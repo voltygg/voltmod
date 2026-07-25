@@ -1,9 +1,8 @@
-#include "MicroTest.hpp"
-
 #include <CS2Kit/Sdk/MemoryAccess.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <doctest/doctest.h>
 #include <string>
 
 using CS2Kit::Sdk::MemberPtr;

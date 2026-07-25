@@ -31,6 +31,9 @@ class CS2KitConan(ConanFile):
         if self.options.with_postgres:
             self.requires("libpqxx/7.10.0")
 
+    def build_requirements(self):
+        self.test_requires("doctest/2.5.2")
+
     def generate(self):
         deps = CMakeDeps(self)
         deps.generate()

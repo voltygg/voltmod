@@ -5,8 +5,8 @@
 #include <CS2Kit/Sdk/GameData.hpp>
 #include <CS2Kit/Sdk/MemoryAccess.hpp>
 #include <CS2Kit/Sdk/TransmitFilter.hpp>
-#include <cstdint>
 #include <checktransmitinfo.h>
+#include <cstdint>
 #include <entity2/entityinstance.h>
 
 using CS2Kit::Core::Engine;

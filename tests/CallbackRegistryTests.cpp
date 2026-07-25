@@ -1,6 +1,5 @@
-#include "MicroTest.hpp"
-
 #include <CS2Kit/Core/CallbackRegistry.hpp>
+#include <doctest/doctest.h>
 #include <functional>
 
 using CS2Kit::Core::CallbackRegistry;

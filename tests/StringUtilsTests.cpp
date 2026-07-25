@@ -1,6 +1,5 @@
-#include "MicroTest.hpp"
-
 #include <CS2Kit/Utils/StringUtils.hpp>
+#include <doctest/doctest.h>
 #include <string>
 #include <vector>
 

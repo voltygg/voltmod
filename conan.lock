@@ -5,6 +5,7 @@
         "openssl/3.6.3#b4bb3a8c7e7ede15b767fead90c11688%1781033588.157",
         "nlohmann_json/3.11.3#45828be26eb619a2e04ca517bb7b828d%1701220705.259",
         "libcurl/8.20.0#c90b0c91a33d9a79b519c1c70bafc823%1780907438.587",
+        "doctest/2.5.2#ee6076d04b7ccc84174e21a6a83b4945%1777278458.461",
         "cpr/1.11.2#f203036d47edb78e50d908e721251113%1742988154.851"
     ],
     "build_requires": [

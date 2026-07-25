@@ -1,7 +1,6 @@
-#include "MicroTest.hpp"
-
 #include <CS2Kit/Utils/DecayingScore.hpp>
 #include <cmath>
+#include <doctest/doctest.h>
 
 using CS2Kit::Utils::DecayingScore;
 

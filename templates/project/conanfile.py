@@ -23,6 +23,9 @@ class ProjectConan(ConanFile):
         "openssl/*:no_fips": True,
     }
 
+    def build_requirements(self):
+        self.test_requires("doctest/2.5.2")
+
     def generate(self):
         deps = CMakeDeps(self)
         deps.generate()

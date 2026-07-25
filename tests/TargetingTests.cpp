@@ -1,6 +1,5 @@
-#include "MicroTest.hpp"
-
 #include <CS2Kit/Players/Targeting.hpp>
+#include <doctest/doctest.h>
 
 using namespace CS2Kit::Players;
 using Kind = TargetKind;

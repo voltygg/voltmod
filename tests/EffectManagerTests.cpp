@@ -1,7 +1,6 @@
-#include "MicroTest.hpp"
-
 #include <CS2Kit/Core/EffectManager.hpp>
 #include <CS2Kit/Core/Scheduler.hpp>
+#include <doctest/doctest.h>
 
 using CS2Kit::Core::EffectManager;
 using CS2Kit::Core::EffectSpec;

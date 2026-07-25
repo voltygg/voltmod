@@ -17,13 +17,14 @@ Metamod:Source 2.0.
 include/CS2Kit/        Public API headers
 src/                   Implementation
 gamedata/              Engine signatures and offsets
-cmake/                 CS2KitSdk.cmake + CS2Plugin.cmake (cs2_add_plugin) + plugin.vdf.in
+cmake/                 CS2KitSdk.cmake + CS2Plugin.cmake (cs2_add_plugin)
+                       + CS2Tests.cmake (cs2_add_tests) + DoctestMain.cpp + plugin.vdf.in
                        + CS2KitBuildInfo.cmake (git/version stamping -> <CS2Kit/BuildInfo.hpp>)
 scripts/               Build tooling (cwd-based; consumers invoke them directly),
                        init_project.py + new_plugin.py scaffold generators
 templates/plugin/      Plugin scaffold tree ($name/$ns/... placeholders)
 templates/project/     Consumer-project scaffold tree ($project placeholder)
-tests/                 SDK-free unit tests (ctest)
+tests/                 SDK-free unit tests (doctest + ctest); see docs/testing.md
 docs/                  Doxygen pages and guides
 vendor/                SDK submodules
 CMakeLists.txt         Standalone CMake build

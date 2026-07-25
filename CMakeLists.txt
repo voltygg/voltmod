@@ -13,6 +13,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(CS2KitSdk)
 include(CS2Plugin)
+include(CS2Tests)
 
 find_package(cpr CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
@@ -104,28 +105,15 @@ endif()
 # SDK-free utils tests: recompile pure-logic sources instead of linking cs2-kit,
 # so the test binary needs no HL2SDK/Metamod link inputs.
 if(BUILD_TESTING)
-    # Test drivers: every tests/*.cpp is a test TU (the framework is a .hpp).
-    file(GLOB CS2KIT_TEST_SOURCES CONFIGURE_DEPENDS
-        "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp"
+    cs2_add_tests(cs2kit-utils-tests
+        SOURCES
+            # SDK-free TUs, hand-picked: the rest of src/ needs HL2SDK/pqxx/json.
+            src/Core/EffectManager.cpp
+            src/Core/ScheduledEffect.cpp
+            src/Core/Scheduler.cpp
+            src/Players/Targeting.cpp
+            src/Utils/StringUtils.cpp
+            src/Utils/SteamId.cpp
+            src/Utils/TimeUtils.cpp
     )
-
-    add_executable(cs2kit-utils-tests
-        ${CS2KIT_TEST_SOURCES}
-        # SDK-free TUs, hand-picked: the rest of src/ needs HL2SDK/pqxx/json.
-        src/Core/EffectManager.cpp
-        src/Core/ScheduledEffect.cpp
-        src/Core/Scheduler.cpp
-        src/Players/Targeting.cpp
-        src/Utils/StringUtils.cpp
-        src/Utils/SteamId.cpp
-        src/Utils/TimeUtils.cpp
-    )
-
-    target_compile_features(cs2kit-utils-tests PRIVATE cxx_std_23)
-    target_include_directories(cs2kit-utils-tests PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/tests"
-        "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    )
-
-    add_test(NAME cs2kit-utils COMMAND cs2kit-utils-tests)
 endif()

@@ -1,7 +1,6 @@
-#include "MicroTest.hpp"
-
 #include <CS2Kit/Utils/SteamId.hpp>
 #include <cstdint>
+#include <doctest/doctest.h>
 #include <string>
 
 using CS2Kit::Utils::SteamId;
@@ -41,7 +40,7 @@ TEST_CASE("SteamId::ToSteamId")
 TEST_CASE("SteamId::FromSteamId3 valid")
 {
     auto id = SteamId::FromSteamId3("[U:1:22202]");
-    CHECK(id.has_value());
+    REQUIRE(id.has_value());
     CHECK_EQ(*id, SampleId64);
 }
 
@@ -56,12 +55,12 @@ TEST_CASE("SteamId::FromSteamId3 invalid")
 TEST_CASE("SteamId::FromSteamId valid")
 {
     auto id = SteamId::FromSteamId("STEAM_0:0:11101");
-    CHECK(id.has_value());
+    REQUIRE(id.has_value());
     CHECK_EQ(*id, SampleId64);
 
     // Odd account id via authServer bit.
     auto id1 = SteamId::FromSteamId("STEAM_0:1:11100");
-    CHECK(id1.has_value());
+    REQUIRE(id1.has_value());
     CHECK_EQ(*id1, Base + (11100 * 2 + 1));
 }
 
@@ -76,13 +75,13 @@ TEST_CASE("SteamId::FromSteamId invalid")
 TEST_CASE("SteamId round-trip 64 -> 3 -> 64")
 {
     auto back = SteamId::FromSteamId3(SteamId::ToSteamId3(SampleId64));
-    CHECK(back.has_value());
+    REQUIRE(back.has_value());
     CHECK_EQ(*back, SampleId64);
 }
 
 TEST_CASE("SteamId round-trip 64 -> 2 -> 64")
 {
     auto back = SteamId::FromSteamId(SteamId::ToSteamId(SampleId64));
-    CHECK(back.has_value());
+    REQUIRE(back.has_value());
     CHECK_EQ(*back, SampleId64);
 }

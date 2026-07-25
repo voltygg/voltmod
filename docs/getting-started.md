@@ -161,3 +161,4 @@ If you can't derive from the base, call the entry points from your own `ISmmPlug
 - @ref commands_guide - add real commands
 - @ref config_guide - grow the settings file
 - @ref menus_guide - menus and wizards
+- @ref testing_guide - unit-test the pure logic you extract

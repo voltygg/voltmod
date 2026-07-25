@@ -32,6 +32,7 @@ A working plugin is a `CommandSpec` and forty lines of skeleton. Generate one wi
 - @subpage sdk_guide - the engine wrapper layer
 - @subpage database_guide - async PostgreSQL and row mapping
 - @subpage http_guide - async HTTP and JSON REST helpers
+- @subpage testing_guide - SDK-free unit tests with doctest
 
 <h2>License</h2>
 

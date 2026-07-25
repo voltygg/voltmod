@@ -1,6 +1,5 @@
-#include "MicroTest.hpp"
-
 #include <CS2Kit/Database/Migrator.hpp>
+#include <doctest/doctest.h>
 
 using CS2Kit::Database::ParseMigrationVersion;
 

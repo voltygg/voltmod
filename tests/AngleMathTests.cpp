@@ -1,7 +1,6 @@
-#include "MicroTest.hpp"
-
 #include <CS2Kit/Utils/AngleMath.hpp>
 #include <cmath>
+#include <doctest/doctest.h>
 
 using namespace CS2Kit::Utils::AngleMath;
 
@@ -18,7 +17,7 @@ bool Near(float a, float b, float eps = 0.01f)
 }
 }  // namespace
 
-TEST_CASE("NormalizeAngleDelta wraps into (-180, 180]")
+TEST_CASE("NormalizeAngleDelta wraps to -180 exclusive through 180 inclusive")
 {
     CHECK(Near(NormalizeAngleDelta(0.0f), 0.0f));
     CHECK(Near(NormalizeAngleDelta(179.0f), 179.0f));

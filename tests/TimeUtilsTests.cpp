@@ -1,7 +1,6 @@
-#include "MicroTest.hpp"
-
 #include <CS2Kit/Utils/TimeUtils.hpp>
 #include <cstdint>
+#include <doctest/doctest.h>
 #include <string>
 
 using CS2Kit::Utils::TimeUtils;

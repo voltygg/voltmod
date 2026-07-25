@@ -1,7 +1,6 @@
-#include "MicroTest.hpp"
-
 #include <CS2Kit/Utils/SlotThrottle.hpp>
 #include <cstdint>
+#include <doctest/doctest.h>
 
 using CS2Kit::Utils::PairThrottle;
 using CS2Kit::Utils::SlotThrottle;
