@@ -116,6 +116,8 @@ MenuBuilder("Custom")
 
 @ref CS2Kit::Menu::MenuManager keeps a per-player stack, reads button state every frame (via a self-registered scheduler pump), debounces input (200 ms), and clears a player's stack on disconnect. `Engine().Menus.SetFreezePlayer(true)` freezes players while a menu is open so WASD doesn't also move them. During a chat-input capture only R is honored, so the cursor doesn't drift while the player types.
 
+The freeze is a global switch, but a single session can opt out: `OpenMenu(slot, menu, {.FreezeMovement = false})` - for menus ordinary players reach mid-round, where being held still is worse than the stray movement the freeze prevents. @ref CS2Kit::Menu::MenuSessionOptions applies to the call that opens the stack; submenus and Flow steps pushed onto a live session inherit it, so an unfrozen session stays unfrozen for its whole flow.
+
 ## Presets
 
 `<CS2Kit/Menu/MenuPresets.hpp>` ships content-agnostic building blocks - every human-facing string is a parameter:

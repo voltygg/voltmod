@@ -30,6 +30,9 @@ public:
     int64_t GetConnectTime() const { return _connectTime; }
     int64_t GetPlaytime() const;
 
+    /** True for engine bots, which connect without a real SteamID. */
+    bool IsBot() const { return _steamId == 0; }
+
     /** Controller wrapper for this player's slot. Check IsValid() before pawn access. */
     Sdk::PlayerController Controller() const;
 

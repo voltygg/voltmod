@@ -22,6 +22,7 @@
 #include <CS2Kit/Sdk/UserMessage.hpp>
 #include <CS2Kit/Utils/Translations.hpp>
 #include <memory>
+#include <string>
 
 namespace CS2Kit::Sdk
 {
@@ -54,6 +55,9 @@ public:
     PluginPolicy Policy;
     /** Named/timed load stages recorded by Initialize and the plugin's OnLoad. */
     Core::LoadReport LoadReport;
+    /** Map the server is running, captured from the StartupServer hook. Empty after a late
+     *  (mid-map) load until the next map change, since the hook has already fired by then. */
+    std::string CurrentMap;
     /** Status sections for diagnostics commands; kit sections registered during load. */
     Core::StatusService Status;
     Sdk::GameInterfaces Interfaces;  // plain interface-pointer holder; populated in CS2Kit::Initialize

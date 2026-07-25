@@ -33,7 +33,7 @@ Call `Listen` whenever you like - typically in your manager's `Initialize` durin
 
 Two related lifecycle points:
 
-- `MetamodPluginBase::OnServerStartup(mapName)` is the plugin-facing map-start callback. The engine resets game convars and re-execs gamemode cfgs around map init, so values set at load time may need re-asserting from here or from a `RoundStart` listener.
+- `MetamodPluginBase::OnServerStartup(mapName)` is the plugin-facing map-start callback. The engine resets game convars and re-execs gamemode cfgs around map init, so values set at load time may need re-asserting from here or from a `RoundStart` listener. The same hook stores the map in `Engine().CurrentMap`, so a plugin that only wants to stamp the current map on a record does not need to override anything - note it stays empty after a late (mid-map) load until the next map change.
 - On `meta reload`, `Shutdown` detaches everything (`RemoveAllListeners`), and the fresh load re-registers - no double dispatch.
 
 ## ConVarService

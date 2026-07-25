@@ -30,7 +30,7 @@ std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(std::string_vi
             .Name = p->GetName(),
             .Team = ctrl.IsValid() ? ctrl.GetTeam() : 0,
             .Alive = ctrl.IsValid() && ctrl.IsAlive(),
-            .Bot = p->GetSteamID() == 0,  // bots have no real SteamID
+            .Bot = p->IsBot(),
             .Targetable = (caller && policy) ? policy(*caller, *p) : true,
         });
     }

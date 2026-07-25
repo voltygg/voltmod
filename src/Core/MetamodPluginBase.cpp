@@ -174,6 +174,7 @@ void MetamodPluginBase::Hook_StartupServer(const GameSessionConfiguration_t&, IS
                                            const char* mapName)
 {
     Log::Info("Server startup: map '{}'.", mapName ? mapName : "<none>");
+    _services->CurrentMap = mapName ? mapName : "";
     _services->Events.OnServerStartup();
     OnServerStartup(mapName ? mapName : "");
 }

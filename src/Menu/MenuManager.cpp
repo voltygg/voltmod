@@ -75,19 +75,20 @@ void JumpPage(const std::vector<std::shared_ptr<MenuOption>>& items, int& idx, i
 
 }  // namespace
 
-void MenuManager::OpenMenu(int slot, std::shared_ptr<MenuView> menu)
+void MenuManager::OpenMenu(int slot, std::shared_ptr<MenuView> menu, MenuSessionOptions options)
 {
     if (!Core::IsValidSlot(slot) || !menu)
         return;
 
     auto& state = _states[slot];
-    bool wasEmpty = state.MenuStack.empty();
+    // Options belong to the call that opens the stack; a submenu pushed onto a live session
+    // inherits it, so an unfrozen session stays unfrozen throughout.
+    if (state.MenuStack.empty() && options.FreezeMovement)
+        SetPlayerFrozen(slot, true);
+
     state.MenuStack.push(std::move(menu));
     state.SelectedIndex = 0;
     state.LastInputTime = GetCurrentTimeMs();
-
-    if (wasEmpty)
-        SetPlayerFrozen(slot, true);
 
     auto* current = state.GetCurrentMenu();
     if (current)

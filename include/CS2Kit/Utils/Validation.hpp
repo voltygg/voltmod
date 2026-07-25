@@ -3,6 +3,7 @@
 #include <CS2Kit/Utils/Log.hpp>
 #include <CS2Kit/Utils/StringUtils.hpp>
 #include <cstddef>
+#include <format>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -43,29 +44,39 @@ void FilterValid(std::vector<T>& items, Fn&& validate, std::string_view what)
     items = std::move(kept);
 }
 
+/** Restore @p defaults (warning names @p what) when filtering left @p items empty, so a list that
+ *  would dead-end a menu falls back instead. Returns true when the defaults were applied. */
+template <class T>
+bool FallbackIfEmpty(std::vector<T>& items, const std::vector<T>& defaults, std::string_view what)
+{
+    if (!items.empty() || defaults.empty())
+        return false;
+
+    Log::Warn("settings: {} has no valid entries; using built-in defaults", what);
+    items = defaults;
+    return true;
+}
+
 /** Parse @ref ParseDuration strings, dropping invalid entries with warnings. Falls back to
  *  parsing @p defaults when nothing valid remains (so the list exists in exactly one place). */
 inline std::vector<int> ParseDurations(const std::vector<std::string>& entries,
                                        const std::vector<std::string>& defaults, std::string_view what)
 {
-    std::vector<int> result;
-    for (std::size_t i = 0; i < entries.size(); ++i)
-    {
-        int seconds = ParseDuration(entries[i]);
-        if (seconds < 0)
-        {
-            Log::Warn("settings: skipping {}[{}]: bad duration '{}'", what, i, entries[i]);
-            continue;
-        }
-        result.push_back(seconds);
-    }
+    std::vector<std::string> kept = entries;
+    FilterValid(
+        kept,
+        [](const std::string& entry, std::size_t) -> std::optional<std::string> {
+            if (ParseDuration(entry) < 0)
+                return std::format("bad duration '{}'", entry);
+            return std::nullopt;
+        },
+        what);
+    FallbackIfEmpty(kept, defaults, what);
 
-    if (result.empty() && !defaults.empty())
-    {
-        Log::Warn("settings: {} has no valid entries; using built-in defaults", what);
-        for (const auto& entry : defaults)
-            result.push_back(ParseDuration(entry));
-    }
+    std::vector<int> result;
+    result.reserve(kept.size());
+    for (const auto& entry : kept)
+        result.push_back(ParseDuration(entry));
     return result;
 }
 

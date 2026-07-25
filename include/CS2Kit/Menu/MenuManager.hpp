@@ -8,6 +8,19 @@ namespace CS2Kit::Menu
 {
 
 /**
+ * @brief Options for the menu session an @ref MenuManager::OpenMenu call starts.
+ *
+ * A session runs from the first menu opened for a player until their stack empties, so these apply
+ * only to the call that opens the stack; a submenu pushed later inherits the live session.
+ */
+struct MenuSessionOptions
+{
+    /** Whether the global movement freeze (@ref MenuManager::SetFreezePlayer) applies. Pass false
+     *  for menus players reach mid-round, where being held still is worse than stray WASD movement. */
+    bool FreezeMovement = true;
+};
+
+/**
  * @brief WASD-navigated center-HTML menus for all players.
  * Supports a per-player menu stack (submenus push, R pops back).
  * Driven by OnGameFrame() - reads button state each tick for input.
@@ -17,8 +30,9 @@ class MenuManager
 public:
     MenuManager() = default;
 
-    /** Push @p menu onto the player's stack and start rendering it. */
-    void OpenMenu(int slot, std::shared_ptr<MenuView> menu);
+    /** Push @p menu onto the player's stack and start rendering it. @p options take effect only
+     *  when this call opens the stack (see @ref MenuSessionOptions). */
+    void OpenMenu(int slot, std::shared_ptr<MenuView> menu, MenuSessionOptions options = {});
 
     /** Pop the top menu (firing its OnClose); falls back to the parent if one exists. */
     void CloseMenu(int slot);
