@@ -59,6 +59,12 @@ Player* PlayerManager::GetPlayerBySteamId(int64_t steamId)
     return nullptr;
 }
 
+Player* PlayerManager::GetPlayerBySlotIfSteamId(int slot, int64_t steamId)
+{
+    Player* player = GetPlayerBySlot(slot);
+    return (player && player->GetSteamID() == steamId) ? player : nullptr;
+}
+
 std::vector<Player*> PlayerManager::FindPlayersByName(const std::string& name)
 {
     std::vector<Player*> results;

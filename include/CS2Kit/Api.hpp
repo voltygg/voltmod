@@ -193,9 +193,11 @@ using Http::HttpResult;
 
 // Utils
 using Utils::DecayingScore;
+using Utils::PairThrottle;
 using Utils::ParseDuration;
 using Utils::SlotThrottle;
 using Utils::StringUtils;
+using Utils::Throttle;
 using Utils::TimeUtils;
 using Utils::Tokens;
 using Utils::Translations;

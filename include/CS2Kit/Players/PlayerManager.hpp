@@ -38,6 +38,14 @@ public:
 
     Player* GetPlayerBySlot(int slot);
     Player* GetPlayerBySteamId(int64_t steamId);
+
+    /**
+     * The player in @p slot, but only if their SteamID is still @p steamId. Use wherever a slot
+     * was captured earlier - a menu step, a queued database completion, a scheduled task - since
+     * the original player may have left and the slot may now host somebody else. Returns null in
+     * that case, rather than the wrong player.
+     */
+    Player* GetPlayerBySlotIfSteamId(int slot, int64_t steamId);
     std::vector<Player*> FindPlayersByName(const std::string& name);
     std::vector<Player*> GetAllPlayers();
     size_t GetPlayerCount() const;

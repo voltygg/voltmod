@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CS2Kit/Database/DbResult.hpp>
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
@@ -87,6 +88,14 @@ public:
     /** Invoke all ready completions on the calling (game) thread. Start self-registers this. */
     void DispatchCompletions();
 
+    /**
+     * Whether the worker's connection was live as of its last job - safe to read from the game
+     * thread, and the only runtime health signal there is. It is a report, not a reservation: the
+     * connection can drop before the next job, so use it for diagnostics and fast-fail, never as
+     * a guarantee that an about-to-be-enqueued write will land.
+     */
+    bool IsConnected() const { return _connected.load(std::memory_order_relaxed); }
+
 private:
     struct Waiter
     {
@@ -112,6 +121,8 @@ private:
     DbResult<pqxx::result> RunJob(Job& job, pqxx::connection& conn);
     /** Open/reopen the worker's connection; returns null on failure (secret-free log). */
     pqxx::connection* EnsureOpen();
+    /** Drop the connection so the next job reopens it, keeping @ref IsConnected in step. */
+    void DropConnection();
     void FinishJob(Job& job, DbResult<pqxx::result> result, bool rawOk);
 
     std::string _connectionString;
@@ -128,6 +139,9 @@ private:
 
     std::thread _worker;
     uint64_t _pumpId = 0;
+
+    /** Written by the worker, read by the game thread; mirrors _connection's liveness. */
+    std::atomic<bool> _connected{false};
 
     // Worker-thread-only state (no lock needed).
     std::unique_ptr<pqxx::connection> _connection;

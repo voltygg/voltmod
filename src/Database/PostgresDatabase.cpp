@@ -192,7 +192,7 @@ void PostgresDatabase::WorkerMain()
             catch (const std::exception& e)
             {
                 Log::Error("db: {} failed: {}", job.Name, e.what());
-                _connection.reset();  // the connection state is unknown; reopen on the next job
+                DropConnection();  // the connection state is unknown; reopen on the next job
                 FinishJob(job, std::unexpected(std::string(e.what())), false);
             }
             continue;
@@ -201,7 +201,7 @@ void PostgresDatabase::WorkerMain()
         FinishJob(job, RunJob(job, *conn), true);
     }
 
-    _connection.reset();
+    DropConnection();
     _prepared.clear();
 }
 
@@ -223,7 +223,7 @@ DbResult<pqxx::result> PostgresDatabase::RunJob(Job& job, pqxx::connection& conn
     catch (const std::exception& e)
     {
         Log::Error("db: {} failed: {}", job.Name, e.what());
-        _connection.reset();  // reopen (and re-prepare) on the next job
+        DropConnection();  // reopen (and re-prepare) on the next job
         return std::unexpected(std::string(e.what()));
     }
 }
@@ -240,7 +240,10 @@ pqxx::connection* PostgresDatabase::EnsureOpen()
     {
         _connection = std::make_unique<pqxx::connection>(_connectionString);
         if (_connection->is_open())
+        {
+            _connected.store(true, std::memory_order_relaxed);
             return _connection.get();
+        }
     }
     catch (const std::exception&)
     {
@@ -248,8 +251,14 @@ pqxx::connection* PostgresDatabase::EnsureOpen()
         // (password included). Report a generic, secret-free message instead.
         Log::Error("Database connection failed - check host/port/credentials.");
     }
-    _connection.reset();
+    DropConnection();
     return nullptr;
+}
+
+void PostgresDatabase::DropConnection()
+{
+    _connection.reset();
+    _connected.store(false, std::memory_order_relaxed);
 }
 
 void PostgresDatabase::FinishJob(Job& job, DbResult<pqxx::result> result, bool rawOk)
