@@ -114,7 +114,6 @@ function(cs2kit_configure_sdk)
             "${CS2KIT_HL2SDK_DIR}/lib/public/win64/2015/libprotobuf.lib"
             "${CS2KIT_HL2SDK_DIR}/lib/public/win64/mathlib.lib"
             "${CS2KIT_HL2SDK_DIR}/lib/public/win64/tier0.lib"
-            "${CS2KIT_HL2SDK_DIR}/lib/public/win64/tier1.lib"
             "${CS2KIT_HL2SDK_DIR}/lib/public/win64/interfaces.lib"
             legacy_stdio_definitions.lib
         )
@@ -137,7 +136,6 @@ function(cs2kit_configure_sdk)
         target_link_libraries(cs2kit_hl2sdk INTERFACE
             m
             "${CS2KIT_HL2SDK_DIR}/lib/linux64/mathlib.a"
-            "${CS2KIT_HL2SDK_DIR}/lib/linux64/tier1.a"
             "${CS2KIT_HL2SDK_DIR}/lib/linux64/interfaces.a"
             "${CS2KIT_HL2SDK_DIR}/lib/linux64/release/libprotobuf.a"
             "${CS2KIT_HL2SDK_DIR}/lib/linux64/libtier0.so"

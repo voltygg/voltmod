@@ -6,8 +6,8 @@
 #include <CS2Kit/Sdk/MemoryAccess.hpp>
 #include <CS2Kit/Sdk/TransmitFilter.hpp>
 #include <cstdint>
+#include <checktransmitinfo.h>
 #include <entity2/entityinstance.h>
-#include <iservernetworkable.h>
 
 using CS2Kit::Core::Engine;
 

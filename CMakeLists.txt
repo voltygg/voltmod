@@ -30,15 +30,19 @@ if(NOT CS2KIT_ENABLE_POSTGRES)
     list(FILTER CS2KIT_SOURCES EXCLUDE REGEX "src/Database/")
 endif()
 
-# These SDK method bodies are neither header-inline nor in the prebuilt tier1
-# libs, so the kit must compile them: entitykeyvalues/keyvalues3 for entity spawn
-# keyvalues, and entityidentity for CEntityIdentity::NameMatches (referenced by
-# entitysystem.cpp - omitting it fails the Linux .so dlopen on an undefined symbol).
+# SDK bodies that ship as source only. entityidentity is needed even though nothing
+# calls it directly: entitysystem.cpp references NameMatches, and omitting it fails
+# the Linux .so dlopen on an undefined symbol. tier1 is here because hl2sdk dropped
+# its prebuilt libs; convar.cpp is excluded because cs2_add_plugin compiles it per
+# module, each module owning its own ConVar registration state, and bitbuf/tokenreader
+# because hl2sdk deleted the headers they include.
 set(CS2KIT_HL2SDK_SOURCES
     "${CS2KIT_HL2SDK_DIR}/entity2/entityidentity.cpp"
     "${CS2KIT_HL2SDK_DIR}/entity2/entitykeyvalues.cpp"
     "${CS2KIT_HL2SDK_DIR}/entity2/entitysystem.cpp"
     "${CS2KIT_HL2SDK_DIR}/tier1/keyvalues3.cpp"
+    "${CS2KIT_HL2SDK_DIR}/tier1/rangecheckedvar.cpp"
+    "${CS2KIT_HL2SDK_DIR}/tier1/utlbufferutil.cpp"
 )
 
 add_library(cs2-kit STATIC
