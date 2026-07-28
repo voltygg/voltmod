@@ -141,9 +141,9 @@ struct ModuleScan
     ModuleImage image;              // load bias, span and on-disk path of the selected module
 };
 
-// Multiple objects can share the basename "libserver.so" (a small loader stub plus the real game
-// library); a substring + first-match scan picked the stub. Match the exact basename and keep the
-// largest-span mapping, recording its PT_LOAD segments.
+// Multiple objects can share the basename "libserver.so" (a loader stub plus the real game
+// library), and a substring + first-match scan picks the stub. Match the exact basename and keep
+// the largest-span mapping.
 static int DlIterateCallback(struct dl_phdr_info* info, size_t /*size*/, void* data)
 {
     auto* mod = static_cast<ModuleScan*>(data);

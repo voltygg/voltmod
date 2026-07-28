@@ -35,10 +35,9 @@ namespace
 constexpr const char* EngineModule = "engine2";
 constexpr const char* ServerSideClientClass = "CServerSideClient";
 
-// A wrong offset is a crash, not a bad answer: a vtable index past the end of the table dispatches
-// into whatever follows it, and a slot offset past the object reads unrelated memory. Both bounds
-// are far above the real values (38/40 and 72) and only exist to catch a gamedata file that has
-// drifted or been edited by hand.
+// A wrong offset is a crash, not a bad answer: a vtable index past the table dispatches into
+// whatever follows it, and a slot offset past the object reads unrelated memory. Both bounds sit
+// far above the real values (38/40 and 72), only to catch drifted or hand-edited gamedata.
 constexpr int MaxVtableIndex = 500;
 constexpr int MaxSlotOffset = 4096;
 
@@ -153,7 +152,7 @@ bool ClientCvarService::Impl::Query(int slot, const std::string& cvarName, Query
     const double now = NowSeconds();
     _pending.Prune(slot, now);
 
-    // An answer is an answer whoever asked for it: re-point the outstanding request rather than
+    // An answer is an answer whoever asked for it, so re-point the outstanding request rather than
     // making the client encode the same convar twice.
     if (_pending.Retarget(slot, cvarName, callback))
         return true;
@@ -173,8 +172,8 @@ bool ClientCvarService::Impl::Send(int slot, const std::string& cvarName, int co
 {
     const auto& interfaces = Core::Engine().Interfaces;
 
-    // Bots and empty slots have no net channel; posting to them would be a silent no-op that
-    // leaves a pending entry to time out.
+    // Bots and empty slots have no net channel, so posting would be a silent no-op leaving a
+    // pending entry to time out.
     if (!interfaces.Engine->GetPlayerNetInfo(CPlayerSlot(slot)))
         return false;
 
@@ -201,7 +200,7 @@ bool ClientCvarService::Impl::Send(int slot, const std::string& cvarName, int co
 
 bool ClientCvarService::Impl::Hook_ProcessRespondCvarValue(const CNetMessagePB<CCLCMsg_RespondCvarValue>& msg)
 {
-    // The responding client is the hooked object; its slot lives at a gamedata byte offset because
+    // The responding client is the hooked object. Its slot lives at a gamedata byte offset because
     // the SDK does not declare CServerSideClient's layout.
     if (void* client = META_IFACEPTR(void); client && _slotOffset >= 0)
     {
@@ -219,9 +218,9 @@ void ClientCvarService::Impl::Deliver(int slot, const CNetMessagePB<CCLCMsg_Resp
     if (!Core::IsValidSlot(slot) || !msg.has_cookie() || !msg.has_status_code() || !msg.has_name())
         return;
 
-    // Everything below the callback is client-controlled, so each field is checked before it is
-    // trusted: an unknown status code, a name that does not match what this cookie asked for, or a
-    // value carrying embedded NULs (which would truncate anywhere it is treated as a C string).
+    // Everything below is client-controlled, so each field is checked before it is trusted: an
+    // unknown status code, a name that does not match what this cookie asked for, or a value with
+    // embedded NULs (which truncate anywhere it is treated as a C string).
     const int status = msg.status_code();
     if (status < static_cast<int>(ClientCvarStatus::ValueIntact) ||
         status > static_cast<int>(ClientCvarStatus::CvarProtected))
@@ -287,7 +286,7 @@ size_t ClientCvarService::PendingCount(int slot) const
 
 void ClientCvarService::OnClientFullyConnect(int slot)
 {
-    // Whoever held this slot before is gone; anything still pending is addressed to them.
+    // Whoever held this slot before is gone, and anything still pending is addressed to them.
     _impl->Pending().Clear(slot);
 }
 

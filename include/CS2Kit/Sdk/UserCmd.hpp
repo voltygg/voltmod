@@ -42,13 +42,12 @@ struct UserCmdView
     int32_t ClientTick = 0;
 
     // The client's own command counter: the int32 CUserCmd carries next to its payload (gamedata
-    // "UserCmdNumber"), falling back to CBaseUserCmdPB.legacy_command_number when that offset is
-    // missing - the live client leaves the protobuf field at 0. Consecutive commands differ by
-    // exactly 1; a gap means commands were lost, reordered, or synthesized.
+    // "UserCmdNumber"), falling back to the always-zero CBaseUserCmdPB.legacy_command_number when
+    // that offset is missing. A gap means commands were lost, reordered, or synthesized.
     int32_t CommandNumber = 0;
 
-    /** False when the client omitted viewangles from this command: the three fields below then
-     *  hold defaults rather than a reading, so treat the angles as untrusted. */
+    /** False when the client omitted viewangles: the three fields below then hold defaults rather
+     *  than a reading, so treat the angles as untrusted. */
     bool HasViewAngles = false;
 
     // CBaseUserCmdPB.viewangles (x = pitch, y = yaw, z = roll)
@@ -94,13 +93,12 @@ struct UserCmdView
     }
 
     /**
-     * True when @p index is at or past the decoded count, i.e. no entry is available for it -
-     * whether the cap dropped it or the client never sent it at all. Callers pass an
-     * Attack1/Attack2StartHistoryIndex to tell "the shot's angles are unavailable" apart from
-     * "no shot started this command" (index -1, for which this is false): a missing index must
-     * never be clamped back into range, that reads another shot's angles. Compare @p index
-     * against InputHistoryTotalCount to separate the two causes - below it the entry was capped
-     * away, at or above it the client named an entry it never sent (a fabricated index).
+     * True when no entry is available for @p index, whether the cap dropped it or the client never
+     * sent it. Pass an Attack1/Attack2StartHistoryIndex to tell "the shot's angles are unavailable"
+     * apart from "no shot started this command" (index -1, for which this is false); a missing
+     * index must never be clamped back into range, which reads another shot's angles. Compare
+     * @p index against InputHistoryTotalCount to separate the causes: below it the entry was capped
+     * away, at or above it the client named an entry it never sent.
      */
     bool AttackSampleMissing(int index) const { return index >= InputHistorySampleCount; }
 };

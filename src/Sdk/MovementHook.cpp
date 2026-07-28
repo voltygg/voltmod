@@ -34,8 +34,8 @@ bool MovementHook::Install()
         return false;
     }
 
-    // Any live instance works: a VP hook binds to the shared vtable, covering all players
-    // (a plain manual hook would only fire for the one registered instance).
+    // Any live instance works: a VP hook binds to the shared vtable, covering all players, where a
+    // plain manual hook would only fire for the one registered instance.
     void* instance = nullptr;
     for (int slot = 0; slot < Core::MaxPlayers && !instance; ++slot)
         instance = Engine().Entities.GetPlayerMovementServices(slot);
@@ -68,8 +68,8 @@ void MovementHook::Remove()
     if (!_installed)
         return;
 
-    // Removal by id never dereferences the hooked instance, so this is safe even after
-    // map change has destroyed every pawn.
+    // Removal by id never dereferences the hooked instance, so this is safe even after a map change
+    // has destroyed every pawn.
     SH_REMOVE_HOOK_ID(_preHookId);
     SH_REMOVE_HOOK_ID(_postHookId);
 
@@ -111,9 +111,8 @@ void MovementHook::DecodeUserCmd(void* userCmd)
 
     _cmdView.Valid = true;
     _cmdView.ClientTick = base.client_tick();
-    // The counter the engine actually maintains lives in the CUserCmd wrapper, not in the payload:
-    // legacy_command_number stays 0 on a live client, so it is only the fallback for when the
-    // "UserCmdNumber" offset is unavailable.
+    // The counter the engine maintains lives in the CUserCmd wrapper, not the payload:
+    // legacy_command_number stays 0 on a live client, so it is only a fallback.
     if (_cmdNumberOffset >= 0)
         std::memcpy(&_cmdView.CommandNumber, static_cast<const char*>(userCmd) + _cmdNumberOffset,
                     sizeof(_cmdView.CommandNumber));

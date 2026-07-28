@@ -15,13 +15,12 @@ namespace CS2Kit::Sdk
 /**
  * @brief Opt-in record of when each player's pawn was last teleported.
  *
- * Dormant until Enable(): it then hooks CBaseEntity::Teleport (gamedata offset "Teleport") on
- * every live pawn and stamps @ref Sdk::ServerTime() whenever one fires. A pawn is a fresh object
- * after every respawn, so the hook is re-bound on PlayerSpawn - and because a spawn moves the
- * player, it stamps a teleport of its own.
+ * Dormant until Enable(): it then hooks CBaseEntity::Teleport (gamedata offset "Teleport") on every
+ * live pawn and stamps @ref Sdk::ServerTime() whenever one fires. A pawn is a fresh object after
+ * every respawn, so the hook is re-bound on PlayerSpawn - and a spawn stamps a teleport of its own.
  *
- * The point is to discount the frame after a teleport: origin and view angles jump
- * discontinuously, which otherwise reads as impossible movement to anything measuring motion.
+ * The point is to discount the frame after a teleport, where origin and view angles jump
+ * discontinuously and read as impossible movement to anything measuring motion.
  *
  * @code
  * Engine().Teleports.Enable();

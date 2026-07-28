@@ -26,9 +26,9 @@ namespace
 #ifdef _WIN32
 
 /**
- * First occurrence of `needle` in [begin, end), stepping `stride` bytes at a time. Structured
- * data (RVAs, pointers) is naturally aligned, so a stride matching its width both speeds the scan
- * up and rules out matches that straddle two unrelated values.
+ * First occurrence of `needle` in [begin, end), stepping `stride` bytes at a time. Structured data
+ * (RVAs, pointers) is naturally aligned, so a stride matching its width both speeds the scan up and
+ * rules out matches straddling two unrelated values.
  */
 const uint8_t* FindValue(const uint8_t* begin, const uint8_t* end, const void* needle, size_t len, size_t stride)
 {
@@ -67,8 +67,8 @@ Section FindSection(const ModuleImage& image, const char* name)
         if (std::strncmp(reinterpret_cast<const char*>(sections[i].Name), name, IMAGE_SIZEOF_SHORT_NAME) != 0)
             continue;
 
-        // The image is mapped, not the file on disk, so the section spans its virtual size;
-        // SizeOfRawData is only the fallback for the rare header that leaves VirtualSize at 0.
+        // The image is mapped, not the file on disk, so the section spans its virtual size.
+        // SizeOfRawData is only the fallback for a header that leaves VirtualSize at 0.
         const DWORD size = sections[i].Misc.VirtualSize ? sections[i].Misc.VirtualSize : sections[i].SizeOfRawData;
         if (sections[i].VirtualAddress + static_cast<size_t>(size) > image.Size)
             return {};
@@ -115,7 +115,7 @@ void* FindVirtualTableWin(const ModuleImage& image, const char* className)
             continue;
 
         // Accept the reference only when it reads as a complete-object (offset 0) x64 locator
-        // (signature 1) rather than some unrelated word that happens to equal the RVA.
+        // (signature 1), not an unrelated word that happens to equal the RVA.
         const uint8_t* locator = ref - PTypeDescriptorOffset;
         if (ReadAt<uint32_t>(locator) != 1 || ReadAt<uint32_t>(locator + 4) != 0)
             continue;
@@ -190,8 +190,8 @@ uint64_t FindSymbolValue(const MappedFile& elf, const std::string& symbol)
     if (!sections || header->e_shentsize != sizeof(Elf64_Shdr))
         return 0;
 
-    // .symtab first: it is the complete table when present, while .dynsym only carries exported
-    // symbols. A fully stripped library has neither and the caller degrades.
+    // .symtab first: it is complete when present, while .dynsym only carries exported symbols. A
+    // fully stripped library has neither and the caller degrades.
     for (const Elf64_Word wanted : {Elf64_Word{SHT_SYMTAB}, Elf64_Word{SHT_DYNSYM}})
     {
         for (uint16_t i = 0; i < header->e_shnum; ++i)
@@ -234,7 +234,7 @@ void* FindVirtualTableElf(const ModuleImage& image, const char* className)
     if (value == 0)
         return nullptr;
 
-    // The symbol addresses the whole vtable; objects carry a pointer two words in, past the
+    // The symbol addresses the whole vtable. Objects carry a pointer two words in, past the
     // offset-to-top and typeinfo slots.
     return const_cast<uint8_t*>(image.Base + value + 2 * sizeof(void*));
 }

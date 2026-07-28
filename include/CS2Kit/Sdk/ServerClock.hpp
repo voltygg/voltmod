@@ -8,9 +8,9 @@ namespace CS2Kit::Sdk
 /**
  * @brief The engine's simulation clock, read straight from IVEngineServer2::GetServerGlobals().
  *
- * Free functions rather than a service: they hold no state and are the timestamp source for
- * anything that has to line up with the tick the engine is simulating (usercmds, game events,
- * teleports). Both reset when a map starts, so never persist a value across a map change.
+ * Free functions rather than a service: they hold no state, and are the timestamp source for
+ * anything that must line up with the tick the engine is simulating. Both reset when a map starts,
+ * so never persist a value across a map change.
  */
 
 /** The engine's CGlobalVars, or nullptr before load / after shutdown. */

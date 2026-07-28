@@ -132,9 +132,8 @@ void GameEventService::FireGameEvent(IGameEvent* event)
     if (!eventName)
         return;
 
-    // Snapshot the IDs to fire instead of iterating live: a handler is free to Listen() or
-    // RemoveListener() (a spawn handler enabling a service that listens for spawns, say), which
-    // rehashes the registry and invalidates the iteration.
+    // Snapshot the IDs rather than iterating live: a handler is free to Listen() or
+    // RemoveListener(), which rehashes the registry and invalidates the iteration.
     std::vector<uint64_t> toFire;
     for (const auto& [id, listener] : _listeners.Items())
     {

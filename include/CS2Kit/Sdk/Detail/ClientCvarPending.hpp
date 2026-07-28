@@ -24,12 +24,11 @@ struct PendingCvarQuery
  * @brief Bookkeeping for @ref ClientCvarService: per-slot, cookie-keyed queries awaiting an answer.
  *
  * Split out of the service so the matching and expiry rules are testable without the SDK. Time is
- * caller-supplied (seconds, any monotonic origin) and expiry is lazy - nothing is dropped until the
+ * caller-supplied (seconds, any monotonic origin) and expiry is lazy: nothing is dropped until the
  * next Prune() for that slot, which the service runs on every Query().
  *
- * A client is under no obligation to answer, so the table is capped per slot: once
- * @ref MaxPendingPerSlot queries are outstanding and unexpired, further ones are refused rather
- * than queued behind a silent client.
+ * A client need never answer, so the table is capped per slot - beyond @ref MaxPendingPerSlot,
+ * queries are refused rather than queued behind a silent client.
  */
 class ClientCvarPendingTable
 {
@@ -48,8 +47,8 @@ public:
 
     /**
      * Hand @p callback to the query for @p name already in flight on @p slot, replacing its
-     * previous callback. False when nothing is in flight for that name, in which case @p callback
-     * is left untouched and the caller should send a new query.
+     * previous callback. False when nothing is in flight, leaving @p callback untouched so the
+     * caller can send a new query.
      */
     bool Retarget(int slot, std::string_view name, ClientCvarService::QueryCallback& callback);
 
@@ -65,8 +64,8 @@ public:
     void Add(int slot, int cookie, std::string name, ClientCvarService::QueryCallback callback, double now);
 
     /**
-     * Remove and return @p slot's query @p cookie, but only when @p name is the convar it asked
-     * for - a client that answers with a different name is answering a question nobody posed.
+     * Remove and return @p slot's query @p cookie, but only when @p name matches the convar it
+     * asked for: a client answering with a different name is answering a question nobody posed.
      */
     std::optional<PendingCvarQuery> Take(int slot, int cookie, std::string_view name);
 

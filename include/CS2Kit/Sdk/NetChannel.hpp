@@ -8,9 +8,9 @@ namespace CS2Kit::Sdk
 /**
  * @brief Per-client network-channel access: latency and the client's replicated userinfo cvars.
  *
- * Stateless wrapper over IVEngineServer2 - every call reads the engine live, so nothing here
- * needs a lifecycle. Bots, empty slots, and clients whose channel is already torn down have no
- * channel; each accessor degrades to a null/zero result rather than asserting.
+ * Stateless wrapper over IVEngineServer2: every call reads the engine live, so nothing here needs a
+ * lifecycle. Bots, empty slots and clients already torn down have no channel, and each accessor
+ * degrades to a null/zero result rather than asserting.
  */
 class NetChannelService
 {
@@ -25,7 +25,7 @@ public:
      * @brief The client's current value for the replicated userinfo cvar @p name.
      *
      * Only cvars the client replicates (FCVAR_USERINFO - `name`, `sensitivity`, `m_yaw`,
-     * `cl_interp_ratio`, ...) are visible this way; anything else needs a cvar query.
+     * `cl_interp_ratio`, ...) are visible this way. Anything else needs a cvar query.
      * @return Engine-owned string, valid until the next engine call; nullptr/empty when unset.
      */
     const char* GetUserInfoCvar(int slot, const char* name) const;

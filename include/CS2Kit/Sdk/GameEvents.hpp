@@ -98,10 +98,10 @@ struct WeaponFire
 /**
  * @brief One bullet landing, fired once per impact (so a shotgun blast produces several).
  *
- * The engine truncates this event's `userid` to its low byte, so it does not round-trip to a
- * slot: @ref Slot is a best-effort decode that is -1 whenever the truncated value names no live
- * player. Correlate impacts with the shot that caused them by tick proximity (plus
- * @ref TruncatedUserId as a disambiguator), never by identity alone.
+ * The engine truncates this event's `userid` to its low byte, so it does not round-trip to a slot:
+ * @ref Slot is a best-effort decode, -1 whenever the truncated value names no live player.
+ * Correlate impacts by tick proximity (with @ref TruncatedUserId as a disambiguator), never by
+ * identity alone.
  */
 struct BulletImpact
 {

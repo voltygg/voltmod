@@ -119,7 +119,7 @@ void MessageSystem::SendCenterHtml(int slot, const std::string& html)
     pEvent->SetInt("userid", slot);
     pEvent->SetInt("duration", 5);
 
-    // Deliver to just this client when the engine exposes its listener; otherwise the event
+    // Deliver to just this client when the engine exposes its listener. Otherwise the event
     // broadcasts and every client renders the panel.
     if (IGameEventListener2* listener = Engine().Events.GetClientLegacyListener(slot))
     {

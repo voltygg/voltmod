@@ -62,8 +62,8 @@ public:
     /**
      * @brief The engine-side listener object the game keeps for @p slot's client.
      *
-     * This is the client's own subscription handle, not a kit listener: firing an event at it
-     * delivers to that one client (how @ref MessageSystem sends center HTML), and it is what
+     * The client's own subscription handle, not a kit listener: firing an event at it delivers to
+     * that one client (how @ref MessageSystem sends center HTML), and it is what
      * @ref ClientListensTo interrogates. nullptr when the slot has no client or the
      * "LegacyGameEventListener" gamedata signature did not resolve.
      */

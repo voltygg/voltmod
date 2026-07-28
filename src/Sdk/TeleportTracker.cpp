@@ -19,9 +19,9 @@ namespace CS2Kit::Sdk
 {
 using namespace CS2Kit::Utils;
 
-// CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*); the vtable index is
-// reconfigured from gamedata at Enable time. Bound per pawn (Hook_Normal), so the handler runs
-// only for the instance it was added on - one call per teleport, no matter how many are bound.
+// CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*); the vtable index comes from
+// gamedata at Enable time. Bound per pawn (Hook_Normal), so the handler runs only for the instance
+// it was added on - one call per teleport, no matter how many are bound.
 SH_DECL_MANUALHOOK3_void(CS2Kit_EntityTeleport, 0, 0, 0, const Vector*, const QAngle*, const Vector*);
 
 TeleportTracker::~TeleportTracker()
@@ -47,8 +47,8 @@ bool TeleportTracker::Enable()
     for (int slot = 0; slot < Core::MaxPlayers; ++slot)
         Bind(slot);
 
-    // Spawning hands the player a brand new pawn object, so the old binding is stale - and the
-    // spawn placement is itself a teleport worth stamping.
+    // Spawning hands the player a new pawn object, so the old binding is stale - and the spawn
+    // placement is itself a teleport worth stamping.
     _spawnListener = Engine().Events.Listen<Events::PlayerSpawn>([this](const Events::PlayerSpawn& e) {
         Bind(e.Slot);
         Stamp(e.Slot);
@@ -97,9 +97,9 @@ float TeleportTracker::LastTeleportTime(int slot) const
 
 void TeleportTracker::OnServerStartup()
 {
-    // Every pawn from the previous map is gone; drop the bindings before their addresses are
-    // recycled by unrelated entities. Removal is by hook id, which SourceHook resolves from
-    // values it recorded at add time - it never touches the (freed) instance.
+    // Every pawn from the previous map is gone, so drop the bindings before their addresses are
+    // recycled. Removal is by hook id, which SourceHook resolves without touching the freed
+    // instance.
     for (int slot = 0; slot < Core::MaxPlayers; ++slot)
         Unbind(slot);
     _lastTeleport.fill(0.0f);
