@@ -200,7 +200,10 @@ function(cs2kit_generate_sdk_protobuf out_sources out_includes)
     _cs2kit_protoc(generated_sources "${protoc_path}"
         "${common_proto_dir}" "${generated_public_dir}"
         "${common_proto_dir};${google_proto_dir}"
-        network_connection networkbasetypes engine_gcmessages valveextensions)
+        network_connection networkbasetypes engine_gcmessages valveextensions
+        # netmessages carries the engine<->client control messages (Sdk::ClientCvarService);
+        # source2_steam_stats is one of its imports, so it has to be generated alongside.
+        netmessages source2_steam_stats)
     _cs2kit_protoc(generated_sources "${protoc_path}"
         "${shared_proto_dir}" "${generated_shared_dir}"
         "${common_proto_dir};${shared_proto_dir};${google_proto_dir}"

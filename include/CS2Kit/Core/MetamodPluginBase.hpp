@@ -118,6 +118,18 @@ protected:
     virtual void OnPlayerDisconnect(Players::Player* player) {}
 
     /**
+     * @brief A player finished connecting and is now in the server (post ClientFullyConnect) -
+     * the first point their name and convars are meaningful. @p player may be null - check it.
+     */
+    virtual void OnPlayerFullyConnected(Players::Player* player) {}
+
+    /**
+     * @brief A player changed a replicated setting (name, userinfo cvars). Fires on every
+     * change, including the ones the engine sends at connect. @p player may be null - check it.
+     */
+    virtual void OnPlayerSettingsChanged(Players::Player* player) {}
+
+    /**
      * @brief A player sent a chat message (say / say_team).
      * @return true to swallow it (the message won't appear in chat), false to let it through.
      */
@@ -145,6 +157,8 @@ protected:
                                 const char* address, bool fakePlayer);
     void Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconnectionReason reason, const char* name, uint64 xuid,
                                const char* networkId);
+    void Hook_ClientFullyConnect(CPlayerSlot slot);
+    void Hook_ClientSettingsChanged(CPlayerSlot slot);
     void Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext& ctx, const CCommand& args);
     void Hook_CheckTransmit(CCheckTransmitInfo** infoList, int infoCount, CBitVec<16384>& unionTransmitEdicts,
                             CBitVec<16384>& unused, const Entity2Networkable_t** networkables,

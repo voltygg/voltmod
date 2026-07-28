@@ -36,6 +36,8 @@ SH_DECL_HOOK6_void(IServerGameClients, OnClientConnected, SH_NOATTRIB, 0, CPlaye
                    const char*, bool);
 SH_DECL_HOOK5_void(IServerGameClients, ClientDisconnect, SH_NOATTRIB, 0, CPlayerSlot, ENetworkDisconnectionReason,
                    const char*, uint64, const char*);
+SH_DECL_HOOK1_void(IServerGameClients, ClientFullyConnect, SH_NOATTRIB, 0, CPlayerSlot);
+SH_DECL_HOOK1_void(IServerGameClients, ClientSettingsChanged, SH_NOATTRIB, 0, CPlayerSlot);
 SH_DECL_HOOK3_void(ICvar, DispatchConCommand, SH_NOATTRIB, 0, ConCommandRef, const CCommandContext&, const CCommand&);
 SH_DECL_HOOK7_void(ISource2GameEntities, CheckTransmit, SH_NOATTRIB, 0, CCheckTransmitInfo**, int, CBitVec<16384>&,
                    CBitVec<16384>&, const Entity2Networkable_t**, const uint16*, int);
@@ -140,6 +142,10 @@ void MetamodPluginBase::RegisterStandardHooks()
                 SH_MEMBER(this, &MetamodPluginBase::Hook_OnClientConnected), false);
     SH_ADD_HOOK(IServerGameClients, ClientDisconnect, gi.ServerGameClients,
                 SH_MEMBER(this, &MetamodPluginBase::Hook_ClientDisconnect), true);
+    SH_ADD_HOOK(IServerGameClients, ClientFullyConnect, gi.ServerGameClients,
+                SH_MEMBER(this, &MetamodPluginBase::Hook_ClientFullyConnect), true);
+    SH_ADD_HOOK(IServerGameClients, ClientSettingsChanged, gi.ServerGameClients,
+                SH_MEMBER(this, &MetamodPluginBase::Hook_ClientSettingsChanged), true);
     SH_ADD_HOOK(ICvar, DispatchConCommand, gi.CVar, SH_MEMBER(this, &MetamodPluginBase::Hook_DispatchConCommand),
                 false);
     // Post hook: the game has filled the per-client transmit bitvecs; the filter clears bits.
@@ -156,6 +162,10 @@ void MetamodPluginBase::RegisterStandardHooks()
                        SH_MEMBER(this, &MetamodPluginBase::Hook_OnClientConnected), false);
         SH_REMOVE_HOOK(IServerGameClients, ClientDisconnect, g.ServerGameClients,
                        SH_MEMBER(this, &MetamodPluginBase::Hook_ClientDisconnect), true);
+        SH_REMOVE_HOOK(IServerGameClients, ClientFullyConnect, g.ServerGameClients,
+                       SH_MEMBER(this, &MetamodPluginBase::Hook_ClientFullyConnect), true);
+        SH_REMOVE_HOOK(IServerGameClients, ClientSettingsChanged, g.ServerGameClients,
+                       SH_MEMBER(this, &MetamodPluginBase::Hook_ClientSettingsChanged), true);
         SH_REMOVE_HOOK(ICvar, DispatchConCommand, g.CVar, SH_MEMBER(this, &MetamodPluginBase::Hook_DispatchConCommand),
                        false);
         SH_REMOVE_HOOK(ISource2GameEntities, CheckTransmit, g.GameEntities,
@@ -176,6 +186,8 @@ void MetamodPluginBase::Hook_StartupServer(const GameSessionConfiguration_t&, IS
     Log::Info("Server startup: map '{}'.", mapName ? mapName : "<none>");
     _services->CurrentMap = mapName ? mapName : "";
     _services->Events.OnServerStartup();
+    _services->Teleports.OnServerStartup();
+    _services->ClientCvars.OnServerStartup();
     OnServerStartup(mapName ? mapName : "");
 }
 
@@ -201,6 +213,17 @@ void MetamodPluginBase::Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconne
     OnPlayerDisconnect(Engine().Players.GetPlayerBySlot(slotIdx));
     CS2Kit::OnPlayerDisconnect(*_services, slotIdx);
     Engine().Players.RemovePlayer(slotIdx);
+}
+
+void MetamodPluginBase::Hook_ClientFullyConnect(CPlayerSlot slot)
+{
+    _services->ClientCvars.OnClientFullyConnect(slot.Get());
+    OnPlayerFullyConnected(Engine().Players.GetPlayerBySlot(slot.Get()));
+}
+
+void MetamodPluginBase::Hook_ClientSettingsChanged(CPlayerSlot slot)
+{
+    OnPlayerSettingsChanged(Engine().Players.GetPlayerBySlot(slot.Get()));
 }
 
 void MetamodPluginBase::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext& ctx, const CCommand& args)

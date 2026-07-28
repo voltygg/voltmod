@@ -7,6 +7,7 @@
 #include <CS2Kit/Utils/Log.hpp>
 #include <algorithm>
 #include <cs_usercmd.pb.h>
+#include <cstring>
 
 PLUGIN_GLOBALVARS();
 
@@ -33,7 +34,8 @@ bool MovementHook::Install()
         return false;
     }
 
-    // Any live instance works: SourceHook patches the class vtable, covering all players.
+    // Any live instance works: a VP hook binds to the shared vtable, covering all players
+    // (a plain manual hook would only fire for the one registered instance).
     void* instance = nullptr;
     for (int slot = 0; slot < Core::MaxPlayers && !instance; ++slot)
         instance = Engine().Entities.GetPlayerMovementServices(slot);
@@ -44,11 +46,18 @@ bool MovementHook::Install()
     if (_pbOffset < 0)
         Log::Warn("MovementHook: gamedata offset 'UserCmdPB' missing; cmd listeners get Valid=false views.");
 
-    SH_MANUALHOOK_RECONFIGURE(CS2Kit_MovementRunCommand, index, 0, 0);
-    SH_ADD_MANUALHOOK(CS2Kit_MovementRunCommand, instance, SH_MEMBER(this, &MovementHook::Hook_RunCommandPre), false);
-    SH_ADD_MANUALHOOK(CS2Kit_MovementRunCommand, instance, SH_MEMBER(this, &MovementHook::Hook_RunCommandPost), true);
+    _cmdNumberOffset = Engine().GameData.GetOffset("UserCmdNumber");
+    if (_cmdNumberOffset < 0)
+        Log::Warn(
+            "MovementHook: gamedata offset 'UserCmdNumber' missing; falling back to the protobuf's "
+            "legacy_command_number, which the live client leaves at 0.");
 
-    _vtable = *static_cast<void**>(instance);
+    SH_MANUALHOOK_RECONFIGURE(CS2Kit_MovementRunCommand, index, 0, 0);
+    _preHookId = SH_ADD_MANUALVPHOOK(CS2Kit_MovementRunCommand, instance,
+                                     SH_MEMBER(this, &MovementHook::Hook_RunCommandPre), false);
+    _postHookId = SH_ADD_MANUALVPHOOK(CS2Kit_MovementRunCommand, instance,
+                                      SH_MEMBER(this, &MovementHook::Hook_RunCommandPost), true);
+
     _installed = true;
     Log::Info("Movement RunCommand hook installed (vtable index {}).", index);
     return true;
@@ -59,15 +68,14 @@ void MovementHook::Remove()
     if (!_installed)
         return;
 
-    // The instance hooked in Install() may be gone by now (map change destroys pawns).
-    // SourceHook locates a manual vhook through the object's vtable pointer, so hand it a
-    // stand-in object whose first pointer-sized field is that same vtable.
-    void* fake = &_vtable;
-    SH_REMOVE_MANUALHOOK(CS2Kit_MovementRunCommand, fake, SH_MEMBER(this, &MovementHook::Hook_RunCommandPre), false);
-    SH_REMOVE_MANUALHOOK(CS2Kit_MovementRunCommand, fake, SH_MEMBER(this, &MovementHook::Hook_RunCommandPost), true);
+    // Removal by id never dereferences the hooked instance, so this is safe even after
+    // map change has destroyed every pawn.
+    SH_REMOVE_HOOK_ID(_preHookId);
+    SH_REMOVE_HOOK_ID(_postHookId);
 
     _installed = false;
-    _vtable = nullptr;
+    _preHookId = 0;
+    _postHookId = 0;
 }
 
 void MovementHook::RemoveListener(uint64_t id)
@@ -103,10 +111,20 @@ void MovementHook::DecodeUserCmd(void* userCmd)
 
     _cmdView.Valid = true;
     _cmdView.ClientTick = base.client_tick();
-    if (base.has_viewangles())
+    // The counter the engine actually maintains lives in the CUserCmd wrapper, not in the payload:
+    // legacy_command_number stays 0 on a live client, so it is only the fallback for when the
+    // "UserCmdNumber" offset is unavailable.
+    if (_cmdNumberOffset >= 0)
+        std::memcpy(&_cmdView.CommandNumber, static_cast<const char*>(userCmd) + _cmdNumberOffset,
+                    sizeof(_cmdView.CommandNumber));
+    else
+        _cmdView.CommandNumber = base.legacy_command_number();
+    _cmdView.HasViewAngles = base.has_viewangles();
+    if (_cmdView.HasViewAngles)
     {
         _cmdView.ViewPitch = base.viewangles().x();
         _cmdView.ViewYaw = base.viewangles().y();
+        _cmdView.ViewRoll = base.viewangles().z();
     }
     _cmdView.ForwardMove = base.forwardmove();
     _cmdView.LeftMove = base.leftmove();
@@ -134,7 +152,8 @@ void MovementHook::DecodeUserCmd(void* userCmd)
         };
     }
 
-    int history = std::min(pb->input_history_size(), UserCmdView::MaxInputHistory);
+    _cmdView.InputHistoryTotalCount = pb->input_history_size();
+    int history = std::min(_cmdView.InputHistoryTotalCount, UserCmdView::MaxInputHistory);
     _cmdView.InputHistorySampleCount = history;
     for (int i = 0; i < history; ++i)
     {

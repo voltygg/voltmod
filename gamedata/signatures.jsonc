@@ -53,6 +53,30 @@
     "UserCmdPB": {
       "windows": 16,
       "linux": 16
+    },
+    // Byte offset of the native command counter inside the same CUserCmd wrapper:
+    // CUserCmdBase is { vptr, int32 cmdNum, 4 bytes padding }, which is why the
+    // CSGOUserCmdPB above starts at 16 (cross-checked vs CS2AC's sdk/usercmd.h).
+    // CBaseUserCmdPB.legacy_command_number is not populated by the live client, so
+    // this is the real source; missing => UserCmdView.CommandNumber falls back to it.
+    "UserCmdNumber": {
+      "windows": 8,
+      "linux": 8
+    },
+    // CServerSideClient::ProcessRespondCvarValue vtable index (CS2AC gamedata:
+    // 38/40). Drives Sdk::ClientCvarService's response hook; a wrong index hooks
+    // an unrelated vfunc. Sanity-bounded at init, which degrades instead of
+    // crashing, but re-verify after every engine update.
+    "ProcessRespondCvarValue": {
+      "windows": 38,
+      "linux": 40
+    },
+    // Byte offset of the player slot inside CServerSideClient, which the SDK
+    // does not declare (CS2AC gamedata: "ClientSlotOffset" 72/72). Read to
+    // attribute a client convar response to a player. Same drift caveat.
+    "ServerSideClientSlot": {
+      "windows": 72,
+      "linux": 72
     }
   },
 

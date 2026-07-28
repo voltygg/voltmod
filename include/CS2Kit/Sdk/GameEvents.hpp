@@ -32,6 +32,8 @@ struct PlayerDeath
     int AttackerSlot = -1;
     std::string Weapon;
     bool Headshot = false;
+    /** Number of surfaces the killing bullet went through; > 0 means a wallbang. */
+    int Penetrated = 0;
     static PlayerDeath From(IGameEvent& e);
 };
 
@@ -91,6 +93,26 @@ struct WeaponFire
     int Slot = -1;
     std::string Weapon;
     static WeaponFire From(IGameEvent& e);
+};
+
+/**
+ * @brief One bullet landing, fired once per impact (so a shotgun blast produces several).
+ *
+ * The engine truncates this event's `userid` to its low byte, so it does not round-trip to a
+ * slot: @ref Slot is a best-effort decode that is -1 whenever the truncated value names no live
+ * player. Correlate impacts with the shot that caused them by tick proximity (plus
+ * @ref TruncatedUserId as a disambiguator), never by identity alone.
+ */
+struct BulletImpact
+{
+    static constexpr const char* Name = "bullet_impact";
+    int Slot = -1;
+    /** Raw `userid` as the engine sent it - the shooter's userid masked to its low byte. */
+    int TruncatedUserId = 0;
+    float X = 0.0f;
+    float Y = 0.0f;
+    float Z = 0.0f;
+    static BulletImpact From(IGameEvent& e);
 };
 
 struct RoundStart

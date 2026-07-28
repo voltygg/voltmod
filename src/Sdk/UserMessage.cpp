@@ -6,6 +6,7 @@
 #include <CS2Kit/Core/Slot.hpp>
 #include <CS2Kit/Players/PlayerManager.hpp>
 #include <CS2Kit/Sdk/GameData.hpp>
+#include <CS2Kit/Sdk/GameEventService.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
 #include <CS2Kit/Sdk/MemoryAccess.hpp>
 #include <CS2Kit/Sdk/RecipientFilter.hpp>
@@ -13,7 +14,6 @@
 #include <CS2Kit/Utils/ChatColors.hpp>
 #include <CS2Kit/Utils/Log.hpp>
 #include <CS2Kit/Utils/Translations.hpp>
-#include <bit>
 #include <engine/igameeventsystem.h>
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
@@ -102,17 +102,6 @@ bool MessageSystem::InitGameEventManager()
         Log::Warn("GameEventManager signature not found.");
     }
 
-    void* legacyListenerAddr = gameData.FindSignature("LegacyGameEventListener");
-    if (legacyListenerAddr)
-    {
-        _getLegacyListener = std::bit_cast<GetLegacyGameEventListenerFn>(legacyListenerAddr);
-        Log::Info("LegacyGameEventListener resolved.");
-    }
-    else
-    {
-        Log::Warn("LegacyGameEventListener signature not found (will use broadcast fallback).");
-    }
-
     return interfaces.GameEventManager != nullptr;
 }
 
@@ -130,15 +119,13 @@ void MessageSystem::SendCenterHtml(int slot, const std::string& html)
     pEvent->SetInt("userid", slot);
     pEvent->SetInt("duration", 5);
 
-    if (_getLegacyListener)
+    // Deliver to just this client when the engine exposes its listener; otherwise the event
+    // broadcasts and every client renders the panel.
+    if (IGameEventListener2* listener = Engine().Events.GetClientLegacyListener(slot))
     {
-        IGameEventListener2* pListener = _getLegacyListener(CPlayerSlot(slot));
-        if (pListener)
-        {
-            pListener->FireGameEvent(pEvent);
-            gameEventManager->FreeEvent(pEvent);
-            return;
-        }
+        listener->FireGameEvent(pEvent);
+        gameEventManager->FreeEvent(pEvent);
+        return;
     }
 
     gameEventManager->FireEvent(pEvent);

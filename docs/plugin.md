@@ -114,6 +114,8 @@ Keep JSON sections compact (counts and names, not full lists) - RCON's console c
 | `OnLoad(late)` | After services + managers exist | Required; `false` rejects the load |
 | `OnUnload()` | On unload, before the Defer stack | Prefer `Defer()` for most cleanup |
 | `OnPlayerConnect(Player*)` | After `PlayerManager` adds the player | Non-null in the normal flow |
+| `OnPlayerFullyConnected(Player*)` | Post `ClientFullyConnect`, once the player is in the server | First point their name and convars are meaningful; may be null - guard it |
+| `OnPlayerSettingsChanged(Player*)` | The client changed a replicated setting (name, userinfo cvars) | Fires on every change, including the burst the engine sends at connect - debounce if you act on it; may be null |
 | `OnPlayerDisconnect(Player*)` | Before the player is removed | May be null - guard it |
 | `OnPlayerChat(Player*, string_view, bool team)` | On `say`/`say_team` | Return `true` to swallow the message; dispatch commands here via `Engine().Commands.HandleChatMessage` |
 | `OnRegisterHooks()` | Once during load | Custom SourceHook hooks |

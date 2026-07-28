@@ -41,9 +41,20 @@ struct UserCmdView
     bool Valid = false;
     int32_t ClientTick = 0;
 
-    // CBaseUserCmdPB.viewangles (x = pitch, y = yaw)
+    // The client's own command counter: the int32 CUserCmd carries next to its payload (gamedata
+    // "UserCmdNumber"), falling back to CBaseUserCmdPB.legacy_command_number when that offset is
+    // missing - the live client leaves the protobuf field at 0. Consecutive commands differ by
+    // exactly 1; a gap means commands were lost, reordered, or synthesized.
+    int32_t CommandNumber = 0;
+
+    /** False when the client omitted viewangles from this command: the three fields below then
+     *  hold defaults rather than a reading, so treat the angles as untrusted. */
+    bool HasViewAngles = false;
+
+    // CBaseUserCmdPB.viewangles (x = pitch, y = yaw, z = roll)
     float ViewPitch = 0.0f;
     float ViewYaw = 0.0f;
+    float ViewRoll = 0.0f;
 
     float ForwardMove = 0.0f;
     float LeftMove = 0.0f;
@@ -67,9 +78,31 @@ struct UserCmdView
     // Per-shot input-history entries (the fired view angles), clamped to MaxInputHistory.
     // Attack1/Attack2StartHistoryIndex address the client's *full* input_history: an index at or
     // past InputHistorySampleCount means that shot's entry was capped away and is absent here.
-    static constexpr int MaxInputHistory = 12;
+    static constexpr int MaxInputHistory = 16;
     int InputHistorySampleCount = 0;
+    /** Entries the client actually sent, before the MaxInputHistory cap. Greater than
+     *  InputHistorySampleCount means the tail was capped away. */
+    int InputHistoryTotalCount = 0;
     std::array<InputHistorySample, MaxInputHistory> InputHistorySamples{};
+
+    /** The decoded entry at @p index, or nullptr when @p index is negative or was capped away. */
+    const InputHistorySample* SampleAt(int index) const
+    {
+        if (index < 0 || index >= InputHistorySampleCount)
+            return nullptr;
+        return &InputHistorySamples[index];
+    }
+
+    /**
+     * True when @p index is at or past the decoded count, i.e. no entry is available for it -
+     * whether the cap dropped it or the client never sent it at all. Callers pass an
+     * Attack1/Attack2StartHistoryIndex to tell "the shot's angles are unavailable" apart from
+     * "no shot started this command" (index -1, for which this is false): a missing index must
+     * never be clamped back into range, that reads another shot's angles. Compare @p index
+     * against InputHistoryTotalCount to separate the two causes - below it the entry was capped
+     * away, at or above it the client named an entry it never sent (a fabricated index).
+     */
+    bool AttackSampleMissing(int index) const { return index >= InputHistorySampleCount; }
 };
 
 }  // namespace CS2Kit::Sdk

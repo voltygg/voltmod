@@ -228,7 +228,9 @@ QAngle PlayerController::GetAbsAngles() const
 
 QAngle PlayerController::GetEyeAngles() const
 {
-    return GetPawnField<QAngle>("CCSPlayerPawnBase", "m_angEyeAngles");
+    // The schema declares m_angEyeAngles on CCSPlayerPawn, and the lookup does not walk base
+    // classes - asking for it on CCSPlayerPawnBase resolves nothing and reads (0,0,0).
+    return GetPawnField<QAngle>("CCSPlayerPawn", "m_angEyeAngles");
 }
 
 Vector PlayerController::GetEyePosition() const

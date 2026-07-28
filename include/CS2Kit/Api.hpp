@@ -48,6 +48,7 @@
 #include <CS2Kit/Players/PlayerManager.hpp>
 #include <CS2Kit/Players/TargetResolver.hpp>
 #include <CS2Kit/Sdk/ChatInputCapture.hpp>
+#include <CS2Kit/Sdk/ClientCvarService.hpp>
 #include <CS2Kit/Sdk/ConVarService.hpp>
 #include <CS2Kit/Sdk/Entity.hpp>
 #include <CS2Kit/Sdk/EntityKeyValues.hpp>
@@ -58,11 +59,14 @@
 #include <CS2Kit/Sdk/InputHistoryService.hpp>
 #include <CS2Kit/Sdk/MoveType.hpp>
 #include <CS2Kit/Sdk/MovementHook.hpp>
+#include <CS2Kit/Sdk/NetChannel.hpp>
 #include <CS2Kit/Sdk/PawnOps.hpp>
 #include <CS2Kit/Sdk/PawnPredicates.hpp>
 #include <CS2Kit/Sdk/PersistentCenterHtml.hpp>
 #include <CS2Kit/Sdk/PlayerController.hpp>
+#include <CS2Kit/Sdk/ServerClock.hpp>
 #include <CS2Kit/Sdk/ServerCommand.hpp>
+#include <CS2Kit/Sdk/TeleportTracker.hpp>
 #include <CS2Kit/Sdk/UserCmd.hpp>
 #include <CS2Kit/Sdk/UserMessage.hpp>
 #include <CS2Kit/Utils/AngleMath.hpp>
@@ -104,24 +108,32 @@ using Core::ToggleEffect;
 
 // Sdk
 using Sdk::ChatInputCapture;
+using Sdk::ClientCvarService;
+using Sdk::ClientCvarStatus;
 using Sdk::ConVarService;
 using Sdk::EntityKeyValues;
 using Sdk::EntityOpsService;
 using Sdk::EntitySystem;
 using Sdk::GameEventService;
+using Sdk::GetServerGlobals;
 using Sdk::GlowVision;
 using Sdk::HasPawnFlag;
 using Sdk::InMoveType;
+using Sdk::InputHistorySample;
 using Sdk::InputHistoryService;
 using Sdk::MessageKind;
 using Sdk::MessageSystem;
 using Sdk::MovementHook;
 using Sdk::MoveType;
+using Sdk::NetChannelService;
 using Sdk::PersistentCenterHtml;
 using Sdk::PlayerController;
 using Sdk::RawConVar;
 using Sdk::ServerCommand;
+using Sdk::ServerTick;
+using Sdk::ServerTime;
 using Sdk::SubtickMove;
+using Sdk::TeleportTracker;
 using Sdk::UserCmdView;
 namespace PawnOps = Sdk::PawnOps;
 namespace Events = Sdk::Events;

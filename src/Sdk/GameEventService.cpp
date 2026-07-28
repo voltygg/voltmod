@@ -1,7 +1,12 @@
 #include <CS2Kit/Core/Services.hpp>
+#include <CS2Kit/Core/Slot.hpp>
+#include <CS2Kit/Sdk/GameData.hpp>
 #include <CS2Kit/Sdk/GameEventService.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
 #include <CS2Kit/Utils/Log.hpp>
+#include <bit>
+#include <playerslot.h>
+#include <vector>
 
 using CS2Kit::Core::Engine;
 
@@ -12,6 +17,11 @@ using namespace CS2Kit::Utils;
 
 bool GameEventService::Initialize()
 {
+    if (void* legacyListener = Engine().GameData.FindSignature("LegacyGameEventListener"))
+        _getLegacyListener = std::bit_cast<GetLegacyGameEventListenerFn>(legacyListener);
+    else
+        Log::Warn("LegacyGameEventListener signature not found; per-client event delivery unavailable.");
+
     if (!Engine().Interfaces.GameEventManager)
     {
         Log::Warn("GameEventService: IGameEventManager2 not available.");
@@ -20,6 +30,24 @@ bool GameEventService::Initialize()
 
     Log::Info("Game event service initialized.");
     return true;
+}
+
+IGameEventListener2* GameEventService::GetClientLegacyListener(int slot) const
+{
+    if (!_getLegacyListener || !Core::IsValidSlot(slot))
+        return nullptr;
+
+    return _getLegacyListener(CPlayerSlot(slot));
+}
+
+bool GameEventService::ClientListensTo(int slot, const char* eventName) const
+{
+    auto* mgr = Engine().Interfaces.GameEventManager;
+    auto* listener = GetClientLegacyListener(slot);
+    if (!mgr || !listener || !eventName)
+        return false;
+
+    return mgr->FindListener(listener, eventName);
 }
 
 IGameEvent* GameEventService::CreateEvent(const char* name)
@@ -104,12 +132,26 @@ void GameEventService::FireGameEvent(IGameEvent* event)
     if (!eventName)
         return;
 
+    // Snapshot the IDs to fire instead of iterating live: a handler is free to Listen() or
+    // RemoveListener() (a spawn handler enabling a service that listens for spawns, say), which
+    // rehashes the registry and invalidates the iteration.
+    std::vector<uint64_t> toFire;
     for (const auto& [id, listener] : _listeners.Items())
     {
         if (listener.EventName == eventName && listener.Callback)
-        {
-            listener.Callback(event);
-        }
+            toFire.push_back(id);
+    }
+
+    for (uint64_t id : toFire)
+    {
+        // Re-find by ID: an earlier handler in this batch may have removed this listener. Copy the
+        // callback out before invoking - running it can destroy the stored one.
+        const RegisteredListener* listener = _listeners.Find(id);
+        if (!listener || !listener->Callback)
+            continue;
+
+        EventCallback callback = listener->Callback;
+        callback(event);
     }
 }
 

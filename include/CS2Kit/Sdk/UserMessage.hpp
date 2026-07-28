@@ -4,9 +4,7 @@
 #include <string>
 #include <string_view>
 
-class IGameEventListener2;
 class INetworkMessageInternal;
-class CPlayerSlot;
 
 namespace CS2Kit::Sdk
 {
@@ -55,9 +53,6 @@ public:
 private:
     void SendTextMsg(int slot, int destination, const std::string& message);
 
-    using GetLegacyGameEventListenerFn = IGameEventListener2* (*)(CPlayerSlot slot);
-
-    GetLegacyGameEventListenerFn _getLegacyListener = nullptr;
     INetworkMessageInternal* _textMsgInternal = nullptr;
 };
 

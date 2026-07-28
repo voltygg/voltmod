@@ -2,6 +2,7 @@
 
 #include <CS2Kit/Utils/Log.hpp>
 #include <sstream>
+#include <utility>
 #include <vector>
 
 #ifdef _WIN32
@@ -76,7 +77,7 @@ static void* ScanMemory(const uint8_t* base, size_t size, const std::vector<Patt
 
 #ifdef _WIN32
 
-static bool GetScanRanges(const char* moduleName, std::vector<ScanRange>& ranges)
+static bool FindImage(const char* fileName, ModuleImage& image)
 {
     HANDLE hProcess = GetCurrentProcess();
     HMODULE hModules[1024];
@@ -86,8 +87,7 @@ static bool GetScanRanges(const char* moduleName, std::vector<ScanRange>& ranges
         return false;
 
     DWORD moduleCount = cbNeeded / sizeof(HMODULE);
-    HMODULE bestModule = nullptr;
-    DWORD bestSize = 0;
+    ModuleImage best;
 
     for (DWORD i = 0; i < moduleCount; ++i)
     {
@@ -95,33 +95,33 @@ static bool GetScanRanges(const char* moduleName, std::vector<ScanRange>& ranges
         if (!GetModuleFileNameA(hModules[i], modPath, sizeof(modPath)))
             continue;
 
-        const char* fileName = strrchr(modPath, '\\');
-        if (!fileName)
-            fileName = strrchr(modPath, '/');
-        fileName = fileName ? fileName + 1 : modPath;
+        const char* baseName = strrchr(modPath, '\\');
+        if (!baseName)
+            baseName = strrchr(modPath, '/');
+        baseName = baseName ? baseName + 1 : modPath;
 
-        if (_stricmp(fileName, moduleName) != 0)
+        if (_stricmp(baseName, fileName) != 0)
             continue;
 
         MODULEINFO modInfo{};
-        if (GetModuleInformation(hProcess, hModules[i], &modInfo, sizeof(modInfo)))
-        {
-            if (modInfo.SizeOfImage > bestSize)
-            {
-                bestModule = hModules[i];
-                bestSize = modInfo.SizeOfImage;
-            }
-        }
+        if (GetModuleInformation(hProcess, hModules[i], &modInfo, sizeof(modInfo)) && modInfo.SizeOfImage > best.Size)
+            best = {static_cast<const uint8_t*>(modInfo.lpBaseOfDll), modInfo.SizeOfImage, modPath};
     }
 
-    if (!bestModule)
+    if (!best.Base)
         return false;
 
-    MODULEINFO modInfo{};
-    if (!GetModuleInformation(hProcess, bestModule, &modInfo, sizeof(modInfo)))
+    image = std::move(best);
+    return true;
+}
+
+static bool GetScanRanges(const char* moduleName, std::vector<ScanRange>& ranges)
+{
+    ModuleImage image;
+    if (!FindImage(moduleName, image))
         return false;
 
-    ranges.push_back({static_cast<const uint8_t*>(modInfo.lpBaseOfDll), modInfo.SizeOfImage});
+    ranges.push_back({image.Base, image.Size});
     return true;
 }
 
@@ -138,6 +138,7 @@ struct ModuleScan
     const char* name;               // basename to match, e.g. "libserver.so"
     size_t bestSpan;                // largest module span seen so far (selects the real lib)
     std::vector<ScanRange> ranges;  // PT_LOAD segments of the selected module
+    ModuleImage image;              // load bias, span and on-disk path of the selected module
 };
 
 // Multiple objects can share the basename "libserver.so" (a small loader stub plus the real game
@@ -166,30 +167,57 @@ static int DlIterateCallback(struct dl_phdr_info* info, size_t /*size*/, void* d
     {
         mod->bestSpan = span;
         mod->ranges = std::move(segments);
+        // l_addr, not the first segment's mapped address: ELF symbol values are link-time
+        // addresses that must be biased by exactly this to become runtime addresses.
+        mod->image = {reinterpret_cast<const uint8_t*>(info->dlpi_addr), span, info->dlpi_name};
     }
     return 0;  // keep iterating; the largest match wins
 }
 
+static bool ScanModule(const char* fileName, ModuleScan& mod)
+{
+    mod = ModuleScan{fileName, 0, {}, {}};
+    dl_iterate_phdr(DlIterateCallback, &mod);
+    return !mod.ranges.empty();
+}
+
 static bool GetScanRanges(const char* moduleName, std::vector<ScanRange>& ranges)
 {
-    ModuleScan mod{moduleName, 0, {}};
-    dl_iterate_phdr(DlIterateCallback, &mod);
-    if (mod.ranges.empty())
+    ModuleScan mod{};
+    if (!ScanModule(moduleName, mod))
         return false;
     ranges = std::move(mod.ranges);
     return true;
 }
 
+static bool FindImage(const char* fileName, ModuleImage& image)
+{
+    ModuleScan mod{};
+    if (!ScanModule(fileName, mod))
+        return false;
+    image = std::move(mod.image);
+    return true;
+}
+
 #endif
+
+std::string PlatformModuleName(const char* moduleName)
+{
+#ifdef _WIN32
+    return std::string(moduleName) + ".dll";
+#else
+    return std::string("lib") + moduleName + ".so";
+#endif
+}
+
+bool FindModuleImage(const char* moduleName, ModuleImage& image)
+{
+    return FindImage(PlatformModuleName(moduleName).c_str(), image);
+}
 
 ScanResult FindPatternEx(const char* moduleName, const std::string& pattern)
 {
-    std::string fullName;
-#ifdef _WIN32
-    fullName = std::string(moduleName) + ".dll";
-#else
-    fullName = std::string("lib") + moduleName + ".so";
-#endif
+    const std::string fullName = PlatformModuleName(moduleName);
 
     std::vector<ScanRange> ranges;
     if (!GetScanRanges(fullName.c_str(), ranges))

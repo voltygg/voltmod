@@ -14,7 +14,8 @@ The guide is split by topic:
 - @subpage sdk_visibility_guide - render mode/color tricks, per-recipient transmit filtering, and per-viewer glow vision
 - @subpage sdk_messaging_guide - chat/center-HTML messages, sticky panels, and chat input capture
 - @subpage sdk_events_guide - typed ConVar access and game event listeners
-- @subpage sdk_hooks_guide - the per-tick movement hook and RAII server console commands
+- @subpage sdk_hooks_guide - the per-tick movement hook, teleport tracking, and RAII server console commands
+- @subpage sdk_client_telemetry_guide - the server clock, per-client latency, and client convar queries
 
 ## GameInterfaces
 

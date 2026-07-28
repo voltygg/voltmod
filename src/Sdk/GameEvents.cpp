@@ -16,6 +16,7 @@ PlayerDeath PlayerDeath::From(IGameEvent& e)
         .AttackerSlot = e.GetPlayerSlot("attacker").Get(),
         .Weapon = e.GetString("weapon", ""),
         .Headshot = e.GetBool("headshot"),
+        .Penetrated = e.GetInt("penetrated"),
     };
 }
 
@@ -68,6 +69,17 @@ WeaponFire WeaponFire::From(IGameEvent& e)
     return {
         .Slot = e.GetPlayerSlot("userid").Get(),
         .Weapon = e.GetString("weapon", ""),
+    };
+}
+
+BulletImpact BulletImpact::From(IGameEvent& e)
+{
+    return {
+        .Slot = e.GetPlayerSlot("userid").Get(),
+        .TruncatedUserId = e.GetInt("userid"),
+        .X = e.GetFloat("x"),
+        .Y = e.GetFloat("y"),
+        .Z = e.GetFloat("z"),
     };
 }
 

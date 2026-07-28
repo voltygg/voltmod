@@ -112,6 +112,7 @@ if(BUILD_TESTING)
             src/Core/ScheduledEffect.cpp
             src/Core/Scheduler.cpp
             src/Players/Targeting.cpp
+            src/Sdk/ClientCvarPending.cpp
             src/Utils/StringUtils.cpp
             src/Utils/SteamId.cpp
             src/Utils/TimeUtils.cpp

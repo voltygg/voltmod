@@ -1,4 +1,4 @@
-# Movement Hook & Server Commands {#sdk_hooks_guide}
+# Movement, Teleports & Server Commands {#sdk_hooks_guide}
 
 [TOC]
 
@@ -22,9 +22,9 @@ Engine().Events.Listen<Events::PlayerSpawn>([](const Events::PlayerSpawn&) {
 
 Details worth knowing:
 
-- SourceHook patches the class vtable, so hooking any one instance covers every player.
+- The hook is a SourceHook **VP hook**: it binds to the shared `CPlayer_MovementServices` vtable, not to the instance passed in. `Install()` only needs some live instance to locate the table; the callbacks then fire for every player, including ones who spawn afterwards. (A plain manual hook would fire only for the one instance it was registered on.)
 - The owning slot is resolved for you (`-1` when unresolved, e.g. an instance mid-destruction).
-- Removal works even after the hooked instance died (map change): the service keeps the vtable pointer and hands SourceHook a stand-in object.
+- Removal is by hook id. SourceHook resolves the id from what it recorded at add time and never dereferences the hooked object, so `Remove()` is safe after a map change has already destroyed every pawn.
 - The vtable index lives in gamedata as `"RunCommand"` and **drifts with CS2 updates** - a wrong index calls an unrelated vfunc and crashes. Re-verify it (against SwiftlyS2/CS2Fixes gamedata) after every game update.
 
 ### Cmd listeners: reading the usercmd
@@ -41,7 +41,27 @@ Engine().MovementHook.ListenPreCmd([](int slot, const CS2Kit::UserCmdView& cmd) 
 
 The decode happens only while at least one cmd (or filter) listener is registered; plain `ListenPre`/`ListenPost` stay free of it. The payload's byte offset inside the `CUserCmd` wrapper lives in gamedata as `"UserCmdPB"` (cross-checked against CS2Fixes and SwiftlyS2) and, like the vtable index, **must be re-verified after CS2 updates** - a missing offset degrades to `Valid=false` views rather than crashing, but a *stale* one reads garbage.
 
-`UserCmdView` also carries the per-shot input-history entries in `InputHistorySamples[k]` (`HasViewAngles`, `ViewPitch`/`ViewYaw`, `TargetEntIndex`), indexed by `Attack1StartHistoryIndex`/`Attack2StartHistoryIndex`. The shot's `view_angles` is the direction the bullet was actually fired along, which a cheat can diverge from the visible `ViewYaw`/`ViewPitch` - that divergence is a silent-aim signature.
+Three fields are worth calling out beyond the obvious aim/button ones:
+
+- `CommandNumber` is the client's own command counter. It is read from the `int32` the `CUserCmd` wrapper carries next to its payload (gamedata `"UserCmdNumber"`, 8 bytes in - which is why the payload itself starts at 16), because the protobuf's `legacy_command_number` stays 0 on a live client and only serves as the fallback when that offset is missing. Consecutive commands differ by exactly 1, so a gap means commands were lost, reordered, or synthesized - it is the cheap integrity check on the command stream itself.
+- `HasViewAngles` says whether the command carried viewangles at all. When it is false the pitch/yaw/roll fields hold defaults, not a reading, so a `(0,0,0)` aim there is an absence rather than a measurement.
+- `ViewRoll` is the third viewangles component (`viewangles.z`), decoded alongside pitch and yaw. Only pitch and yaw are driven by the player's mouse, so roll is the axis that carries whatever the client put there.
+
+### Input history and the cap
+
+`UserCmdView` also carries the per-shot input-history entries in `InputHistorySamples[k]` (`HasViewAngles`, `ViewPitch`/`ViewYaw`, `TargetEntIndex`), addressed by `Attack1StartHistoryIndex`/`Attack2StartHistoryIndex`. The shot's `view_angles` is the direction the bullet was actually fired along, which a cheat can diverge from the visible `ViewYaw`/`ViewPitch` - that divergence is a silent-aim signature.
+
+The decode keeps at most `MaxInputHistory` (16) entries, but the attack indexes address the client's *full* `input_history` list, so the two can disagree. `InputHistoryTotalCount` is what the client sent and `InputHistorySampleCount` is what survived the cap; a greater total means the tail was dropped. Never clamp an out-of-range attack index back into the array - that silently reads a different shot's angles. Use the accessors:
+
+```cpp
+if (const auto* shot = cmd.SampleAt(cmd.Attack1StartHistoryIndex))
+    Compare(shot->ViewYaw, cmd.ViewYaw);            // the entry is present
+else if (cmd.AttackSampleMissing(cmd.Attack1StartHistoryIndex))
+    /* a shot happened but its angles were capped away - no verdict */;
+// otherwise the index is -1: no attack started this command
+```
+
+`SampleAt` returns `nullptr` for both the negative and the capped-away index; `AttackSampleMissing` is what separates "unavailable" from "no shot", and is false for `-1`.
 
 ### Filter listeners: editing the decoded usercmd
 
@@ -66,6 +86,24 @@ const auto& newest = Engine().InputHistory.At(slot, 0);  // At(slot, ago)
 ```
 
 History for a slot resets automatically when its player joins or leaves (via @ref CS2Kit::Players::PlayerManager::ListenSlotChange, which is also the backing feed for the generic @ref CS2Kit::Players::PerSlot container). The MovementHook must still be installed for samples to flow.
+
+## TeleportTracker
+
+@ref CS2Kit::Sdk::TeleportTracker (`Engine().Teleports`) records when each player's pawn was last moved by `CBaseEntity::Teleport`. It exists because a teleport breaks continuity: origin and view angles jump discontinuously, so anything measuring motion across ticks - speed, aim deltas, distance travelled - reads the frame after a teleport as impossible. Discount that window instead of explaining it away.
+
+```cpp
+Engine().Teleports.Enable();                            // dormant until this call
+
+if (!Engine().Teleports.JustTeleported(slot, 0.5f))     // seconds of server time
+    EvaluateAim(slot);
+```
+
+Semantics worth knowing:
+
+- `Enable()` hooks the `"Teleport"` vtable index on every *live* pawn and returns false when that gamedata offset is missing. The binding is per pawn, not per class, so exactly one callback fires per teleport however many pawns are bound.
+- Respawning hands the player a brand-new pawn object, which makes the previous binding stale. The tracker re-binds from its own `PlayerSpawn` listener - and since a spawn also moves the player, **a spawn counts as a teleport** and gets stamped. If you only care about mid-life teleports, filter spawns yourself.
+- Stamps are @ref CS2Kit::Sdk::ServerTime "ServerTime()" values, so they are meaningless across a map change. The kit's `StartupServer` hook drops every binding and stamp at map start, and `LastTeleportTime` returns `0` for "has not teleported this map" - the same sentinel `JustTeleported` treats as never.
+- `ListenTeleport` gives you the event stream instead of the poll; it fires for spawns too, for the reason above.
 
 ## ServerCommand
 

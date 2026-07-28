@@ -73,12 +73,14 @@ private:
     Core::CallbackRegistry<CmdCallback> _preCmd;
     Core::CallbackRegistry<CmdCallback> _postCmd;
     Core::CallbackRegistry<CmdFilter> _filter;
-    uint64_t _nextId = 1;  // one handle space across all five registries, so RemoveListener is unambiguous
-    UserCmdView _cmdView;  // decoded once per RunCommand, reused across pre/post dispatch
-    int _pbOffset = -1;    // gamedata "UserCmdPB"; negative disables decoding
+    uint64_t _nextId = 1;       // one handle space across all five registries, so RemoveListener is unambiguous
+    UserCmdView _cmdView;       // decoded once per RunCommand, reused across pre/post dispatch
+    int _pbOffset = -1;         // gamedata "UserCmdPB"; negative disables decoding
+    int _cmdNumberOffset = -1;  // gamedata "UserCmdNumber"; negative falls back to legacy_command_number
     bool _installed = false;
-    void* _vtable = nullptr;  // vtable of the hooked instance; see Remove()
-    int _preSlot = -1;        // slot resolved in the pre hook, reused by the immediately-following post
+    int _preHookId = 0;  // SourceHook VP-hook ids; removal is by id, see Remove()
+    int _postHookId = 0;
+    int _preSlot = -1;  // slot resolved in the pre hook, reused by the immediately-following post
 };
 
 }  // namespace CS2Kit::Sdk

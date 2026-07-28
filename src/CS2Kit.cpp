@@ -8,6 +8,7 @@
 #include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Menu/MenuManager.hpp>
 #include <CS2Kit/Sdk/ChatInputCapture.hpp>
+#include <CS2Kit/Sdk/ClientCvarService.hpp>
 #include <CS2Kit/Sdk/ConVarService.hpp>
 #include <CS2Kit/Sdk/Entity.hpp>
 #include <CS2Kit/Sdk/EntityOps.hpp>
@@ -139,6 +140,8 @@ bool Initialize(ISmmAPI* ismm, char* error, size_t maxlen, Core::Services& servi
     degradable("Events", "init failed", [&] { return services.Events.Initialize(); });
     degradable("Transmit", "inert; CheckTransmitPlayerSlot offset missing from gamedata",
                [&] { return services.Transmit.Initialize(); });
+    degradable("ClientCvars", "inert; client convar queries unavailable (see warnings)",
+               [&] { return services.ClientCvars.Initialize(); });
 
     // Per-frame subsystems pump through the scheduler (PostgresDatabase registers its own pump
     // in Start), so OnGameFrame has exactly one thing to tick. CancelAll in Shutdown unhooks
@@ -186,6 +189,7 @@ bool Initialize(ISmmAPI* ismm, char* error, size_t maxlen, Core::Services& servi
 void Shutdown(Core::Services& services)
 {
     services.Precache.Shutdown();  // first: the engine must stop referencing our vtables
+    services.ClientCvars.Shutdown();
     services.Events.RemoveAllListeners();
     services.Http.Stop();  // drains in-flight requests before their completion targets go away
     services.Scheduler.CancelAll();
@@ -201,6 +205,7 @@ void OnPlayerDisconnect(Core::Services& services, int slot)
     services.Menus.OnPlayerDisconnect(slot);
     services.ChatInput.OnPlayerDisconnect(slot);
     services.Transmit.OnPlayerDisconnect(slot);
+    services.ClientCvars.OnPlayerDisconnect(slot);
 }
 
 }  // namespace CS2Kit

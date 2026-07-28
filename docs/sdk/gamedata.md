@@ -46,6 +46,32 @@ Two s2sdk-style mechanisms were evaluated and rejected for now; revisit if an en
 }
 ```
 
+## Named offsets
+
+The `"offsets"` block of `signatures.jsonc` holds per-platform integers rather than patterns, resolved by name and with no scanning involved:
+
+```cpp
+int index = Engine().GameData.GetOffset("RunCommand");   // negative when the entry is missing
+```
+
+Two kinds live in there, and they fail differently:
+
+- **Vtable indexes** (`RunCommand`, `Teleport`, `ProcessRespondCvarValue`, ...). A wrong index dispatches into whatever vfunc sits at that slot, which is a crash, not a wrong answer.
+- **Byte offsets into an undeclared layout** (`UserCmdPB`, `ServerSideClientSlot`, `CheckTransmitPlayerSlot`, ...) - fields the SDK headers do not declare, so the kit reaches them by distance. A *missing* one degrades cleanly; a *stale* one reads unrelated memory and looks like plausible data.
+
+Everything here **drifts with CS2 updates**, so re-verify after every one against the upstream projects named in the per-entry comments (SwiftlyS2, CS2Fixes, CS2AC), which are the provenance for these values. The entries the anti-cheat surfaces depend on:
+
+| Offset | Used by | Drift symptom |
+|--------|---------|---------------|
+| `RunCommand` | @ref CS2Kit::Sdk::MovementHook | Crash on the first movement tick |
+| `UserCmdPB` | `MovementHook` cmd listeners | Missing: `Valid=false` views. Stale: garbage viewangles/buttons |
+| `UserCmdNumber` | `UserCmdView::CommandNumber` | Missing: falls back to the protobuf's `legacy_command_number`, which the live client leaves at 0. Stale: a counter that never increments by 1 |
+| `Teleport` | @ref CS2Kit::Sdk::TeleportTracker | `Enable()` returns false when missing |
+| `ProcessRespondCvarValue` | @ref CS2Kit::Sdk::ClientCvarService | Sanity-bounded at init (index > 500 rejected), so the load stage degrades instead of crashing |
+| `ServerSideClientSlot` | `ClientCvarService` | Sanity-bounded too (offset > 4096 or misaligned rejected); unchecked it would attribute a client's answer to the wrong player |
+
+The two `ClientCvarService` entries are validated at `Initialize()` precisely because they come from a third-party gamedata file and can be hand-edited: an implausible value logs a warning and leaves the service inert rather than taking the server down. That safety net catches nonsense, not a value that drifted to another *plausible* index - only re-verification does.
+
 ## Signature scanning
 
 The low-level byte-pattern scanner is **internal** (`src/Sdk/SigScanner.hpp`, free functions

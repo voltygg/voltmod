@@ -9,6 +9,7 @@
 #include <CS2Kit/Menu/MenuManager.hpp>
 #include <CS2Kit/Players/PlayerManager.hpp>
 #include <CS2Kit/Sdk/ChatInputCapture.hpp>
+#include <CS2Kit/Sdk/ClientCvarService.hpp>
 #include <CS2Kit/Sdk/ConVarService.hpp>
 #include <CS2Kit/Sdk/Entity.hpp>
 #include <CS2Kit/Sdk/EntityOps.hpp>
@@ -17,7 +18,9 @@
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
 #include <CS2Kit/Sdk/InputHistoryService.hpp>
 #include <CS2Kit/Sdk/MovementHook.hpp>
+#include <CS2Kit/Sdk/NetChannel.hpp>
 #include <CS2Kit/Sdk/PrecacheService.hpp>
+#include <CS2Kit/Sdk/TeleportTracker.hpp>
 #include <CS2Kit/Sdk/TransmitFilter.hpp>
 #include <CS2Kit/Sdk/UserMessage.hpp>
 #include <CS2Kit/Utils/Translations.hpp>
@@ -70,6 +73,8 @@ public:
     Sdk::ConVarService ConVars;
     /** Dormant until a plugin calls Install(); removes its vtable hook on destruction. */
     Sdk::MovementHook MovementHook;
+    /** Stateless per-client net-channel reads (latency, replicated userinfo cvars). */
+    Sdk::NetChannelService NetChannels;
     Sdk::GameEventService Events;
     Core::Scheduler Scheduler;
     Sdk::ChatInputCapture ChatInput;
@@ -77,6 +82,10 @@ public:
     Players::PlayerManager Players;
     /** Dormant until Enable(depth); listens on MovementHook cmd feed + Players slot changes. */
     Sdk::InputHistoryService InputHistory;
+    /** Dormant until Enable(); per-pawn Teleport hook re-bound on PlayerSpawn. */
+    Sdk::TeleportTracker Teleports;
+    /** Async client-side convar reads. Inert when its load stage degraded (Available() == false). */
+    Sdk::ClientCvarService ClientCvars;
     Commands::CommandManager Commands;
     Menu::MenuManager Menus;
     /** Completions dispatch on the game thread from the OnGameFrame pump; Shutdown stops it. */

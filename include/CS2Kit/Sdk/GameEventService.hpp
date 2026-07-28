@@ -8,6 +8,8 @@
 #include <set>
 #include <string>
 
+class CPlayerSlot;
+
 namespace CS2Kit::Sdk
 {
 
@@ -57,6 +59,24 @@ public:
      */
     void OnServerStartup();
 
+    /**
+     * @brief The engine-side listener object the game keeps for @p slot's client.
+     *
+     * This is the client's own subscription handle, not a kit listener: firing an event at it
+     * delivers to that one client (how @ref MessageSystem sends center HTML), and it is what
+     * @ref ClientListensTo interrogates. nullptr when the slot has no client or the
+     * "LegacyGameEventListener" gamedata signature did not resolve.
+     */
+    IGameEventListener2* GetClientLegacyListener(int slot) const;
+
+    /**
+     * @brief Whether @p slot's client is subscribed to @p eventName engine-side.
+     *
+     * A vanilla client subscribes only to events its HUD needs, so subscriptions it has no
+     * business holding are a fingerprint of injected client code.
+     */
+    bool ClientListensTo(int slot, const char* eventName) const;
+
     void FireGameEvent(IGameEvent* event) override;
 
 private:
@@ -66,8 +86,11 @@ private:
         EventCallback Callback;
     };
 
+    using GetLegacyGameEventListenerFn = IGameEventListener2* (*)(CPlayerSlot slot);
+
     Core::CallbackRegistry<RegisteredListener> _listeners;
     std::set<std::string> _registeredEvents;  // every event name ever listened to; see OnServerStartup
+    GetLegacyGameEventListenerFn _getLegacyListener = nullptr;
 };
 
 }  // namespace CS2Kit::Sdk
