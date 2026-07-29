@@ -4,6 +4,7 @@
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
 #include <CS2Kit/Utils/Log.hpp>
 #include <schemasystem/schemasystem.h>
+#include <string_view>
 
 using CS2Kit::Core::Engine;
 
@@ -30,10 +31,10 @@ int SchemaService::GetOffset(const char* className, const char* fieldName, int e
     if (!schemaSystem)
         return -1;
 
-    auto classIt = _offsetCache.find(className);
+    auto classIt = _offsetCache.find(std::string_view(className));
     if (classIt != _offsetCache.end())
     {
-        auto fieldIt = classIt->second.find(fieldName);
+        auto fieldIt = classIt->second.find(std::string_view(fieldName));
         if (fieldIt != classIt->second.end())
             return fieldIt->second;
     }

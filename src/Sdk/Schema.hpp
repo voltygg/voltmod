@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <string>
 
@@ -27,7 +28,11 @@ public:
     int GetOffset(const char* className, const char* fieldName, int expectedSize = 0);
 
 private:
-    std::map<std::string, std::map<std::string, int>> _offsetCache;
+    /** `std::less<>` so a lookup by `const char*` compares against a string_view instead of
+     *  materializing a std::string for the class and the field on every cache hit - field names
+     *  like "m_bOnGroundLastTick" are past the small-string buffer, so those were real allocations
+     *  on the hot path. */
+    std::map<std::string, std::map<std::string, int, std::less<>>, std::less<>> _offsetCache;
 };
 
 }  // namespace CS2Kit::Sdk
