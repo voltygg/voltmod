@@ -7,17 +7,18 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <unordered_map>
+#include <vector>
 
 namespace CS2Kit::Sdk::Detail
 {
 
-/** @brief One outstanding client convar query, keyed by the cookie sent to the client. */
+/** @brief One outstanding client convar query, identified by the cookie sent to the client. */
 struct PendingCvarQuery
 {
     std::string Name;                           ///< Convar name the query asked for.
     ClientCvarService::QueryCallback Callback;  ///< Invoked once, when a matching answer arrives.
     double SentAtSec = 0.0;                     ///< Caller-supplied monotonic timestamp of the send.
+    int Cookie = -1;                            ///< Cookie sent to the client; matched on the answer.
 };
 
 /**
@@ -75,7 +76,9 @@ public:
     size_t Count(int slot) const;
 
 private:
-    std::array<std::unordered_map<int, PendingCvarQuery>, Core::MaxPlayers> _slots;
+    // A slot holds at most MaxPendingPerSlot entries, so a flat vector beats a keyed container on
+    // every operation here - all of which already scan.
+    std::array<std::vector<PendingCvarQuery>, Core::MaxPlayers> _slots;
     uint32_t _cookieCounter = 0;
 };
 

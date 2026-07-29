@@ -42,7 +42,12 @@ template <class Vec>
     };
 }
 
-/** Combined angular error (degrees) between two view directions. */
+/**
+ * Combined pitch/yaw error (degrees) between two view directions, as a Euclidean distance in
+ * angle space. Cheap and monotonic enough for thresholds, but it is not the true angle between
+ * the directions: it under-reports near the poles and over-reports at large yaw offsets. Build
+ * the great-circle angle from @ref AnglesToPoint and a dot product where that matters.
+ */
 [[nodiscard]] inline float AngularDistance(const AimAngles& a, const AimAngles& b)
 {
     float dp = NormalizeAngleDelta(a.Pitch - b.Pitch);

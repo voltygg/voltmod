@@ -1,11 +1,21 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <string>
 #include <string_view>
 
 namespace CS2Kit::Utils
 {
+
+/**
+ * Seconds from a monotonic clock, for measuring elapsed time and driving rolling windows.
+ * Unrelated to @ref TimeUtils::Now, whose wall-clock epoch is what belongs in a database.
+ */
+inline double MonotonicSeconds()
+{
+    return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+}
 
 /**
  * Localized unit words for @ref TimeUtils::FormatDurationLabel. The caller supplies

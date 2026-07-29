@@ -1,7 +1,9 @@
 #pragma once
 
 #include <CS2Kit/Core/CallbackRegistry.hpp>
+#include <CS2Kit/Core/Slot.hpp>
 #include <CS2Kit/Sdk/UserCmd.hpp>
+#include <array>
 #include <cstdint>
 #include <functional>
 
@@ -81,6 +83,9 @@ private:
     int _preHookId = 0;  // SourceHook VP-hook ids; removal is by id, see Remove()
     int _postHookId = 0;
     int _preSlot = -1;  // slot resolved in the pre hook, reused by the immediately-following post
+    /** Slot -> movement services, to keep the per-usercmd slot lookup off the entity system.
+     *  A hit is still confirmed against the engine, so a stale entry can only cost a rescan. */
+    mutable std::array<void*, Core::MaxPlayers> _movementServices{};
 };
 
 }  // namespace CS2Kit::Sdk

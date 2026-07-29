@@ -54,14 +54,17 @@ Three fields are worth calling out beyond the obvious aim/button ones:
 The decode keeps at most `MaxInputHistory` (16) entries, but the attack indexes address the client's *full* `input_history` list, so the two can disagree. `InputHistoryTotalCount` is what the client sent and `InputHistorySampleCount` is what survived the cap; a greater total means the tail was dropped. Never clamp an out-of-range attack index back into the array - that silently reads a different shot's angles. Use the accessors:
 
 ```cpp
-if (const auto* shot = cmd.SampleAt(cmd.Attack1StartHistoryIndex))
+const int index = cmd.Attack1StartHistoryIndex;
+if (const auto* shot = cmd.SampleAt(index))
     Compare(shot->ViewYaw, cmd.ViewYaw);            // the entry is present
-else if (cmd.AttackSampleMissing(cmd.Attack1StartHistoryIndex))
+else if (index >= cmd.InputHistoryTotalCount)
+    /* the client named an entry it never sent - a malformed command */;
+else if (index >= 0)
     /* a shot happened but its angles were capped away - no verdict */;
 // otherwise the index is -1: no attack started this command
 ```
 
-`SampleAt` returns `nullptr` for both the negative and the capped-away index; `AttackSampleMissing` is what separates "unavailable" from "no shot", and is false for `-1`.
+`SampleAt` returns `nullptr` for both the negative and the capped-away index, so compare the index against `InputHistoryTotalCount` to separate "never sent" from "capped away" from "no shot".
 
 ### Filter listeners: editing the decoded usercmd
 
@@ -102,8 +105,7 @@ Semantics worth knowing:
 
 - `Enable()` hooks the `"Teleport"` vtable index on every *live* pawn and returns false when that gamedata offset is missing. The binding is per pawn, not per class, so exactly one callback fires per teleport however many pawns are bound.
 - Respawning hands the player a brand-new pawn object, which makes the previous binding stale. The tracker re-binds from its own `PlayerSpawn` listener - and since a spawn also moves the player, **a spawn counts as a teleport** and gets stamped. If you only care about mid-life teleports, filter spawns yourself.
-- Stamps are @ref CS2Kit::Sdk::ServerTime "ServerTime()" values, so they are meaningless across a map change. The kit's `StartupServer` hook drops every binding and stamp at map start, and `LastTeleportTime` returns `0` for "has not teleported this map" - the same sentinel `JustTeleported` treats as never.
-- `ListenTeleport` gives you the event stream instead of the poll; it fires for spawns too, for the reason above.
+- Stamps are @ref CS2Kit::Sdk::ServerTime "ServerTime()" values, so they are meaningless across a map change. The kit's `StartupServer` hook drops every binding and stamp at map start, and a slot with no stamp reads as never teleported.
 
 ## ServerCommand
 

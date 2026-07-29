@@ -1,10 +1,8 @@
 #pragma once
 
-#include <CS2Kit/Core/CallbackRegistry.hpp>
 #include <CS2Kit/Core/Slot.hpp>
 #include <array>
 #include <cstdint>
-#include <functional>
 
 class QAngle;
 class Vector;
@@ -30,8 +28,6 @@ namespace CS2Kit::Sdk
 class TeleportTracker
 {
 public:
-    using TeleportCallback = std::function<void(int slot)>;
-
     TeleportTracker() = default;
     ~TeleportTracker();
     TeleportTracker(const TeleportTracker&) = delete;
@@ -48,12 +44,6 @@ public:
     /** True when @p slot teleported within the last @p seconds of server time. */
     bool JustTeleported(int slot, float seconds) const;
 
-    /** Server time of @p slot's last teleport, or 0 when it has not teleported this map. */
-    float LastTeleportTime(int slot) const;
-
-    uint64_t ListenTeleport(TeleportCallback callback) { return _listeners.Add(std::move(callback)); }
-    void RemoveListener(uint64_t id) { _listeners.Remove(id); }
-
     /** Drop every binding and stamp for the new map. Called by the kit's StartupServer hook. */
     void OnServerStartup();
 
@@ -66,7 +56,6 @@ private:
     void Stamp(int slot);
     int SlotFromPawn(const void* pawn) const;
 
-    Core::CallbackRegistry<TeleportCallback> _listeners;
     std::array<void*, Core::MaxPlayers> _pawns{};  // the instance each slot's hook is bound to
     std::array<int, Core::MaxPlayers> _hookIds{};  // SourceHook ids, 0 when unbound
     std::array<float, Core::MaxPlayers> _lastTeleport{};

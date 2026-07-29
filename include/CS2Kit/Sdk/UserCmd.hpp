@@ -91,16 +91,6 @@ struct UserCmdView
             return nullptr;
         return &InputHistorySamples[index];
     }
-
-    /**
-     * True when no entry is available for @p index, whether the cap dropped it or the client never
-     * sent it. Pass an Attack1/Attack2StartHistoryIndex to tell "the shot's angles are unavailable"
-     * apart from "no shot started this command" (index -1, for which this is false); a missing
-     * index must never be clamped back into range, which reads another shot's angles. Compare
-     * @p index against InputHistoryTotalCount to separate the causes: below it the entry was capped
-     * away, at or above it the client named an entry it never sent.
-     */
-    bool AttackSampleMissing(int index) const { return index >= InputHistorySampleCount; }
 };
 
 }  // namespace CS2Kit::Sdk

@@ -4,6 +4,8 @@
 #include <CS2Kit/Sdk/GameEventService.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
 #include <CS2Kit/Utils/Log.hpp>
+#include <algorithm>
+#include <array>
 #include <bit>
 #include <playerslot.h>
 #include <vector>
@@ -133,25 +135,38 @@ void GameEventService::FireGameEvent(IGameEvent* event)
         return;
 
     // Snapshot the IDs rather than iterating live: a handler is free to Listen() or
-    // RemoveListener(), which rehashes the registry and invalidates the iteration.
-    std::vector<uint64_t> toFire;
+    // RemoveListener(), which rehashes the registry and invalidates the iteration. Combat events
+    // fire hundreds of times a second, so the snapshot stays on the stack until it has to grow.
+    constexpr size_t InlineCapacity = 16;
+    std::array<uint64_t, InlineCapacity> inlineIds{};
+    std::vector<uint64_t> overflowIds;
+    size_t matched = 0;
     for (const auto& [id, listener] : _listeners.Items())
     {
-        if (listener.EventName == eventName && listener.Callback)
-            toFire.push_back(id);
+        if (listener.EventName != eventName || !listener.Callback)
+            continue;
+        if (matched < InlineCapacity)
+            inlineIds[matched] = id;
+        else
+            overflowIds.push_back(id);
+        ++matched;
     }
 
-    for (uint64_t id : toFire)
-    {
-        // Re-find by ID: an earlier handler in this batch may have removed this listener. Copy the
-        // callback out before invoking - running it can destroy the stored one.
+    // Re-find by ID: an earlier handler in this batch may have removed this listener. Copy the
+    // callback out before invoking - running it can destroy the stored one.
+    const auto fire = [&](uint64_t id) {
         const RegisteredListener* listener = _listeners.Find(id);
         if (!listener || !listener->Callback)
-            continue;
+            return;
 
         EventCallback callback = listener->Callback;
         callback(event);
-    }
+    };
+
+    for (size_t i = 0; i < std::min(matched, InlineCapacity); ++i)
+        fire(inlineIds[i]);
+    for (uint64_t id : overflowIds)
+        fire(id);
 }
 
 }  // namespace CS2Kit::Sdk

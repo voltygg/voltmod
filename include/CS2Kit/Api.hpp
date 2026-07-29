@@ -71,6 +71,7 @@
 #include <CS2Kit/Sdk/UserMessage.hpp>
 #include <CS2Kit/Utils/AngleMath.hpp>
 #include <CS2Kit/Utils/DecayingScore.hpp>
+#include <CS2Kit/Utils/SlidingWindowScore.hpp>
 #include <CS2Kit/Utils/SlotThrottle.hpp>
 #include <CS2Kit/Utils/StringUtils.hpp>
 #include <CS2Kit/Utils/TimeUtils.hpp>
@@ -205,8 +206,10 @@ using Http::HttpResult;
 
 // Utils
 using Utils::DecayingScore;
+using Utils::MonotonicSeconds;
 using Utils::PairThrottle;
 using Utils::ParseDuration;
+using Utils::SlidingWindowScore;
 using Utils::SlotThrottle;
 using Utils::StringUtils;
 using Utils::Throttle;

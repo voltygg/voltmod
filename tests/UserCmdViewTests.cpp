@@ -61,59 +61,32 @@ TEST_CASE("SampleAt on an empty history is always null")
     CHECK(cmd.SampleAt(-1) == nullptr);
 }
 
-TEST_CASE("AttackSampleMissing is false for indices that decoded")
-{
-    const UserCmdView cmd = WithHistory(4, 4);
-
-    CHECK_FALSE(cmd.AttackSampleMissing(0));
-    CHECK_FALSE(cmd.AttackSampleMissing(3));
-}
-
-TEST_CASE("AttackSampleMissing is true from the decoded count onward")
-{
-    const UserCmdView cmd = WithHistory(4, 4);
-
-    CHECK(cmd.AttackSampleMissing(4));
-    CHECK(cmd.AttackSampleMissing(9));
-}
-
-TEST_CASE("AttackSampleMissing covers entries never sent as well as ones capped away")
-{
-    // 20 sent, MaxInputHistory decoded: 18 was dropped by the cap, 25 was never sent at all.
-    const UserCmdView cmd = WithHistory(UserCmdView::MaxInputHistory, 20);
-
-    CHECK(cmd.AttackSampleMissing(18));
-    CHECK(cmd.AttackSampleMissing(25));
-    // The predicate alone does not separate the two; InputHistoryTotalCount does.
-    CHECK(18 < cmd.InputHistoryTotalCount);
-    CHECK(25 >= cmd.InputHistoryTotalCount);
-}
-
-TEST_CASE("AttackSampleMissing treats no-attack as present rather than missing")
-{
-    const UserCmdView cmd = WithHistory(4, 4);
-
-    // -1 means the command started no attack, which is not a dropped entry.
-    CHECK_FALSE(cmd.AttackSampleMissing(-1));
-}
-
-TEST_CASE("A capped-away attack index reports missing instead of clamping")
+TEST_CASE("A capped-away attack index reads as absent instead of clamping")
 {
     // The client sent 20 entries and the cap kept the first MaxInputHistory of them.
     const UserCmdView cmd = WithHistory(UserCmdView::MaxInputHistory, 20);
 
     CHECK(cmd.InputHistoryTotalCount > cmd.InputHistorySampleCount);
-    CHECK(cmd.AttackSampleMissing(18));
     CHECK(cmd.SampleAt(18) == nullptr);
     // The last decoded entry is still addressable - the cap only drops the tail.
-    CHECK_FALSE(cmd.AttackSampleMissing(UserCmdView::MaxInputHistory - 1));
     CHECK(cmd.SampleAt(UserCmdView::MaxInputHistory - 1) != nullptr);
 }
 
-TEST_CASE("An empty history reports every attack index as missing")
+TEST_CASE("InputHistoryTotalCount separates a capped-away entry from one never sent")
+{
+    // 20 sent, MaxInputHistory decoded: 18 was dropped by the cap, 25 was never sent at all.
+    const UserCmdView cmd = WithHistory(UserCmdView::MaxInputHistory, 20);
+
+    CHECK(cmd.SampleAt(18) == nullptr);
+    CHECK(18 < cmd.InputHistoryTotalCount);
+    CHECK(cmd.SampleAt(25) == nullptr);
+    CHECK(25 >= cmd.InputHistoryTotalCount);
+}
+
+TEST_CASE("An empty history has no addressable entry for any attack index")
 {
     const UserCmdView cmd = WithHistory(0, 6);
 
-    CHECK(cmd.AttackSampleMissing(0));
     CHECK(cmd.SampleAt(0) == nullptr);
+    CHECK(0 < cmd.InputHistoryTotalCount);
 }

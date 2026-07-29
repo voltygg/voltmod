@@ -1,4 +1,5 @@
 #include <CS2Kit/Sdk/Detail/ClientCvarPending.hpp>
+#include <algorithm>
 #include <utility>
 
 namespace CS2Kit::Sdk::Detail
@@ -10,13 +11,7 @@ void ClientCvarPendingTable::Prune(int slot, double now)
         return;
 
     auto& queries = _slots[slot];
-    for (auto it = queries.begin(); it != queries.end();)
-    {
-        if (now - it->second.SentAtSec >= TimeoutSec)
-            it = queries.erase(it);
-        else
-            ++it;
-    }
+    std::erase_if(queries, [&](const PendingCvarQuery& query) { return now - query.SentAtSec >= TimeoutSec; });
 }
 
 bool ClientCvarPendingTable::Retarget(int slot, std::string_view name, ClientCvarService::QueryCallback& callback)
@@ -24,7 +19,7 @@ bool ClientCvarPendingTable::Retarget(int slot, std::string_view name, ClientCva
     if (!Core::IsValidSlot(slot))
         return false;
 
-    for (auto& [cookie, query] : _slots[slot])
+    for (PendingCvarQuery& query : _slots[slot])
     {
         if (query.Name == name)
         {
@@ -53,7 +48,8 @@ int ClientCvarPendingTable::NextCookie(int slot)
             _cookieCounter = 1;
 
         const int cookie = static_cast<int>(_cookieCounter);
-        if (!queries.contains(cookie))
+        if (std::none_of(queries.begin(), queries.end(),
+                         [&](const PendingCvarQuery& query) { return query.Cookie == cookie; }))
             return cookie;
     }
     return -1;
@@ -65,7 +61,16 @@ void ClientCvarPendingTable::Add(int slot, int cookie, std::string name, ClientC
     if (!Core::IsValidSlot(slot) || cookie < 0)
         return;
 
-    _slots[slot].insert_or_assign(cookie, PendingCvarQuery{std::move(name), std::move(callback), now});
+    auto& queries = _slots[slot];
+    PendingCvarQuery query{
+        .Name = std::move(name), .Callback = std::move(callback), .SentAtSec = now, .Cookie = cookie};
+
+    auto existing = std::find_if(queries.begin(), queries.end(),
+                                 [&](const PendingCvarQuery& stored) { return stored.Cookie == cookie; });
+    if (existing != queries.end())
+        *existing = std::move(query);
+    else
+        queries.push_back(std::move(query));
 }
 
 std::optional<PendingCvarQuery> ClientCvarPendingTable::Take(int slot, int cookie, std::string_view name)
@@ -74,11 +79,12 @@ std::optional<PendingCvarQuery> ClientCvarPendingTable::Take(int slot, int cooki
         return std::nullopt;
 
     auto& queries = _slots[slot];
-    auto it = queries.find(cookie);
-    if (it == queries.end() || it->second.Name != name)
+    auto it = std::find_if(queries.begin(), queries.end(),
+                           [&](const PendingCvarQuery& query) { return query.Cookie == cookie; });
+    if (it == queries.end() || it->Name != name)
         return std::nullopt;
 
-    PendingCvarQuery query = std::move(it->second);
+    PendingCvarQuery query = std::move(*it);
     queries.erase(it);
     return query;
 }

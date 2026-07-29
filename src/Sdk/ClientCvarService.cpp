@@ -8,7 +8,7 @@
 #include <CS2Kit/Sdk/GameData.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
 #include <CS2Kit/Utils/Log.hpp>
-#include <chrono>
+#include <CS2Kit/Utils/TimeUtils.hpp>
 #include <cstdint>
 #include <cstring>
 #include <engine/igameeventsystem.h>
@@ -40,12 +40,6 @@ constexpr const char* ServerSideClientClass = "CServerSideClient";
 // far above the real values (38/40 and 72), only to catch drifted or hand-edited gamedata.
 constexpr int MaxVtableIndex = 500;
 constexpr int MaxSlotOffset = 4096;
-
-double NowSeconds()
-{
-    using namespace std::chrono;
-    return duration<double>(steady_clock::now().time_since_epoch()).count();
-}
 
 }  // namespace
 
@@ -149,7 +143,7 @@ bool ClientCvarService::Impl::Query(int slot, const std::string& cvarName, Query
     if (!Available() || !Core::IsValidSlot(slot) || cvarName.empty() || !callback)
         return false;
 
-    const double now = NowSeconds();
+    const double now = MonotonicSeconds();
     _pending.Prune(slot, now);
 
     // An answer is an answer whoever asked for it, so re-point the outstanding request rather than

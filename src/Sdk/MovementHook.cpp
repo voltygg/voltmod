@@ -92,12 +92,22 @@ int MovementHook::SlotFromMovementServices(void* movementServices) const
     if (!movementServices)
         return -1;
 
+    // The VP hook fires for every player, so this runs once per usercmd per player - too hot for the
+    // O(slots) entity-system walk it used to be. Remember the mapping and confirm a hit with a single
+    // engine lookup, which keeps a recycled pointer from ever resolving to the wrong slot.
     auto& entities = Engine().Entities;
     for (int slot = 0; slot < Core::MaxPlayers; ++slot)
-        if (entities.GetPlayerMovementServices(slot) == movementServices)
-            return slot;
+        if (_movementServices[slot] == movementServices)
+            return entities.GetPlayerMovementServices(slot) == movementServices ? slot : -1;
 
-    return -1;
+    int found = -1;
+    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+    {
+        _movementServices[slot] = entities.GetPlayerMovementServices(slot);
+        if (_movementServices[slot] == movementServices)
+            found = slot;
+    }
+    return found;
 }
 
 void MovementHook::DecodeUserCmd(void* userCmd)

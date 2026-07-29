@@ -90,11 +90,6 @@ bool TeleportTracker::JustTeleported(int slot, float seconds) const
     return ServerTime() - _lastTeleport[slot] <= seconds;
 }
 
-float TeleportTracker::LastTeleportTime(int slot) const
-{
-    return Core::IsValidSlot(slot) ? _lastTeleport[slot] : 0.0f;
-}
-
 void TeleportTracker::OnServerStartup()
 {
     // Every pawn from the previous map is gone, so drop the bindings before their addresses are
@@ -134,12 +129,8 @@ void TeleportTracker::Unbind(int slot)
 
 void TeleportTracker::Stamp(int slot)
 {
-    if (!Core::IsValidSlot(slot))
-        return;
-
-    _lastTeleport[slot] = ServerTime();
-    for (const auto& [id, callback] : _listeners.Items())
-        callback(slot);
+    if (Core::IsValidSlot(slot))
+        _lastTeleport[slot] = ServerTime();
 }
 
 int TeleportTracker::SlotFromPawn(const void* pawn) const

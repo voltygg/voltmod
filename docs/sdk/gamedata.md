@@ -24,10 +24,9 @@ void* resolved = gd.ResolveSignature("SomeFunction");
 
 ### Deliberately not implemented
 
-Two s2sdk-style mechanisms were evaluated and rejected for now; revisit if an engine update actually burns us:
+One s2sdk-style mechanism was evaluated and rejected for now; revisit if an engine update actually burns us:
 
 - **Ref-anchored fallback** (find functions by referenced strings when a pattern breaks): high machinery cost for a gamedata file this small whose signatures are synced from upstream projects with provenance comments.
-- **RTTI vtable-by-name resolution**: current consumers are index-based vcalls whose indexes historically break less often than byte patterns.
 
 ### signatures.jsonc Format
 
@@ -86,6 +85,25 @@ void* resolved = gd.ResolveSignature("SomeFunction");          // + RIP-relative
 ```
 
 Wildcard bytes are written as `?` or `??` in pattern strings (see the signatures.jsonc format above).
+
+### Vtable lookup by class name
+
+`src/Sdk/VtableLookup.hpp` (`FindVirtualTable(moduleName, className)`) is the second internal
+resolver, and like the scanner it is not in the public include tree. It exists because a *class
+vtable* hook (SourceHook's `SH_ADD_MANUALVPHOOK`) covers every instance at once, where a per-instance
+hook has to be re-bound as objects come and go - @ref CS2Kit::Sdk::ClientCvarService needs that for
+`CServerSideClient`, whose instances the kit never owns.
+
+It shares `FindModuleImage` with the scanner and resolves per platform:
+
+- **Windows**: walks the module's RTTI - the type descriptor for `.?AV<class>@@`, then the complete
+  object locator referencing it, then the vtable that follows. Assumes the module was built with RTTI.
+- **Linux**: reads `_ZTV<mangled>` from the ELF `.symtab`, falling back to `.dynsym`. A fully stripped
+  module has neither and resolves to null.
+
+Both return `nullptr` on failure rather than a wrong answer, and callers must degrade: `ClientCvarService`
+logs and stays inert, leaving `Available()` false. The vtable *index* to hook still comes from the
+`"offsets"` block above - the lookup only finds the table, never the slot within it.
 
 ## SchemaService
 
