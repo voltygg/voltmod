@@ -143,7 +143,7 @@ bool ClientCvarService::Impl::Query(int slot, const std::string& cvarName, Query
     if (!Available() || !Core::IsValidSlot(slot) || cvarName.empty() || !callback)
         return false;
 
-    const double now = MonotonicSeconds();
+    const double now = TimeUtils::MonotonicSeconds();
     _pending.Prune(slot, now);
 
     // An answer is an answer whoever asked for it, so re-point the outstanding request rather than

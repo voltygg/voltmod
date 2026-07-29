@@ -9,15 +9,6 @@ namespace CS2Kit::Utils
 {
 
 /**
- * Seconds from a monotonic clock, for measuring elapsed time and driving rolling windows.
- * Unrelated to @ref TimeUtils::Now, whose wall-clock epoch is what belongs in a database.
- */
-inline double MonotonicSeconds()
-{
-    return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
-}
-
-/**
  * Localized unit words for @ref TimeUtils::FormatDurationLabel. The caller supplies
  * already-translated text; the kit carries no localization of its own.
  */
@@ -34,7 +25,22 @@ struct DurationUnitLabels
 class TimeUtils
 {
 public:
+    /**
+     * Unix seconds from the wall clock - the timestamp to store, compare against a database row, or
+     * show a human. NTP correction and a manual clock change can step it, backwards included, so it
+     * must not be used to measure how long something took: @ref MonotonicSeconds is for that.
+     */
     static int64_t Now();
+
+    /**
+     * Seconds from a monotonic clock: it never jumps and never runs backwards, so it is the one to
+     * measure an elapsed interval or drive a rolling window with. The origin is arbitrary and does
+     * not survive a restart - persist @ref Now instead.
+     */
+    static double MonotonicSeconds()
+    {
+        return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    }
 
     /**
      * Delegates to the canonical free @ref CS2Kit::Utils::ParseDuration grammar

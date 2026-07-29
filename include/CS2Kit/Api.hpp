@@ -206,7 +206,6 @@ using Http::HttpResult;
 
 // Utils
 using Utils::DecayingScore;
-using Utils::MonotonicSeconds;
 using Utils::PairThrottle;
 using Utils::ParseDuration;
 using Utils::SlidingWindowScore;
