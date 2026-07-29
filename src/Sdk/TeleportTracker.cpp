@@ -111,6 +111,14 @@ void TeleportTracker::Bind(int slot)
     if (!pawn)
         return;
 
+    // A freed pawn's address can be handed straight to another player's new one, and nothing tells
+    // us the old object died. Drop any slot still claiming this address first: leaving it would make
+    // SlotFromPawn resolve every teleport of this pawn to that stale slot, and leave a per-instance
+    // hook registered on the address that fires the handler a second time.
+    for (int other = 0; other < Core::MaxPlayers; ++other)
+        if (other != slot && _pawns[other] == pawn)
+            Unbind(other);
+
     _pawns[slot] = pawn;
     _hookIds[slot] =
         SH_ADD_MANUALHOOK(CS2Kit_EntityTeleport, pawn, SH_MEMBER(this, &TeleportTracker::Hook_Teleport), true);

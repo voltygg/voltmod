@@ -22,6 +22,10 @@ using namespace CS2Kit::Utils;
 // from gamedata at install time.
 SH_DECL_MANUALHOOK1(CS2Kit_MovementRunCommand, 0, 0, 0, void*, void*);
 
+// Far above the real value (8), only to catch drifted or hand-edited gamedata before it turns into
+// a read past the CUserCmd object.
+constexpr int MaxUserCmdOffset = 4096;
+
 bool MovementHook::Install()
 {
     if (_installed)
@@ -46,17 +50,38 @@ bool MovementHook::Install()
     if (_pbOffset < 0)
         Log::Warn("MovementHook: gamedata offset 'UserCmdPB' missing; cmd listeners get Valid=false views.");
 
+    // Read as a raw byte offset into the CUserCmd object, so an implausible value is an
+    // out-of-bounds read rather than a bad number: bound it the way the other raw-offset reads do.
     _cmdNumberOffset = Engine().GameData.GetOffset("UserCmdNumber");
-    if (_cmdNumberOffset < 0)
+    if (_cmdNumberOffset < 0 || _cmdNumberOffset > MaxUserCmdOffset ||
+        _cmdNumberOffset % alignof(int32_t) != 0)
+    {
         Log::Warn(
-            "MovementHook: gamedata offset 'UserCmdNumber' missing; falling back to the protobuf's "
-            "legacy_command_number, which the live client leaves at 0.");
+            "MovementHook: gamedata offset 'UserCmdNumber' missing or implausible ({}); falling back to the "
+            "protobuf's legacy_command_number, which the live client leaves at 0.",
+            _cmdNumberOffset);
+        _cmdNumberOffset = -1;
+    }
+
+    _movementServices.fill(nullptr);
 
     SH_MANUALHOOK_RECONFIGURE(CS2Kit_MovementRunCommand, index, 0, 0);
     _preHookId = SH_ADD_MANUALVPHOOK(CS2Kit_MovementRunCommand, instance,
                                      SH_MEMBER(this, &MovementHook::Hook_RunCommandPre), false);
     _postHookId = SH_ADD_MANUALVPHOOK(CS2Kit_MovementRunCommand, instance,
                                       SH_MEMBER(this, &MovementHook::Hook_RunCommandPost), true);
+    if (_preHookId == 0 || _postHookId == 0)
+    {
+        // Half a hook is worse than none: post would reuse a slot pre never resolved.
+        if (_preHookId != 0)
+            SH_REMOVE_HOOK_ID(_preHookId);
+        if (_postHookId != 0)
+            SH_REMOVE_HOOK_ID(_postHookId);
+        _preHookId = 0;
+        _postHookId = 0;
+        Log::Warn("MovementHook: SourceHook refused the RunCommand hook; movement listeners disabled.");
+        return false;
+    }
 
     _installed = true;
     Log::Info("Movement RunCommand hook installed (vtable index {}).", index);
@@ -76,6 +101,8 @@ void MovementHook::Remove()
     _installed = false;
     _preHookId = 0;
     _postHookId = 0;
+    // Every cached pointer belongs to a pawn that may be freed before the next Install().
+    _movementServices.fill(nullptr);
 }
 
 void MovementHook::RemoveListener(uint64_t id)
@@ -94,11 +121,13 @@ int MovementHook::SlotFromMovementServices(void* movementServices) const
 
     // The VP hook fires for every player, so this runs once per usercmd per player - too hot for the
     // O(slots) entity-system walk it used to be. Remember the mapping and confirm a hit with a single
-    // engine lookup, which keeps a recycled pointer from ever resolving to the wrong slot.
+    // engine lookup, which keeps a recycled pointer from ever resolving to the wrong slot. A hit that
+    // fails to confirm is a stale entry, so it must fall through to the rescan below rather than
+    // answering -1 - the address may since have been recycled into another slot's services.
     auto& entities = Engine().Entities;
     for (int slot = 0; slot < Core::MaxPlayers; ++slot)
-        if (_movementServices[slot] == movementServices)
-            return entities.GetPlayerMovementServices(slot) == movementServices ? slot : -1;
+        if (_movementServices[slot] == movementServices && entities.GetPlayerMovementServices(slot) == movementServices)
+            return slot;
 
     int found = -1;
     for (int slot = 0; slot < Core::MaxPlayers; ++slot)
