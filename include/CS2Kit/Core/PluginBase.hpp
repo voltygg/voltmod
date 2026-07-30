@@ -25,6 +25,8 @@ template <class TManagers>
 class PluginBase : public MetamodPluginBase
 {
 public:
+    using ManagersType = TManagers;
+
     /** The live manager container. Valid only between OnCreateInstances and unload. */
     static TManagers& App() { return ActiveService<TManagers>::Get(); }
 
@@ -62,7 +64,7 @@ private:
     PLUGIN_EXPOSE(PluginClass, g_##PluginClass); \
     namespace AppNamespace                       \
     {                                            \
-    Managers& App()                              \
+    PluginClass::ManagersType& App()             \
     {                                            \
         return PluginClass::App();               \
     }                                            \

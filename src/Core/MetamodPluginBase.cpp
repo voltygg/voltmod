@@ -131,7 +131,7 @@ bool MetamodPluginBase::Unload(char* error, size_t maxlen)
 
 bool MetamodPluginBase::OnPlayerChat(Players::Player* player, std::string_view message, bool /*teamChat*/)
 {
-    return _services->Commands.HandleChatMessage(player, std::string(message));
+    return _services->Commands.HandleChatMessage(player, message);
 }
 
 void MetamodPluginBase::Defer(std::function<void()> cleanup)

@@ -19,7 +19,6 @@ class MetamodSourceConan(ConanFile):
     license = "Zlib"
     homepage = "https://github.com/alliedmodders/metamod-source"
     package_type = "header-library"
-    settings = "os", "arch", "compiler", "build_type"
     no_copy_source = True
 
     def source(self):

@@ -3,6 +3,7 @@
 #include <CS2Kit/Commands/CommandSpec.hpp>
 #include <span>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -28,7 +29,7 @@ public:
     void RegisterAll(std::span<const CommandSpec> specs);
 
     void Unregister(const std::string& name);
-    bool HandleChatMessage(Players::Player* caller, const std::string& message);
+    bool HandleChatMessage(Players::Player* caller, std::string_view message);
     const CommandSpec* GetCommand(const std::string& name) const;
     std::vector<const CommandSpec*> GetAllCommands() const;
     size_t Count() const { return _commands.size(); }

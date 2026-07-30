@@ -59,7 +59,7 @@ void CommandManager::Unregister(const std::string& name)
     _commands.erase(StringUtils::ToLower(name));
 }
 
-bool CommandManager::HandleChatMessage(Players::Player* caller, const std::string& message)
+bool CommandManager::HandleChatMessage(Players::Player* caller, std::string_view message)
 {
     if (!caller || message.empty())
         return false;
@@ -79,7 +79,7 @@ bool CommandManager::HandleChatMessage(Players::Player* caller, const std::strin
     if (!hasPrefix)
         return false;
 
-    auto parts = ParseArguments(message.substr(prefixLen));
+    auto parts = ParseArguments(std::string(message.substr(prefixLen)));
     if (parts.empty())
         return false;
 
