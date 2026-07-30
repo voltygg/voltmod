@@ -12,10 +12,9 @@
 
 class ISource2WorldSession;
 
-// Extern declarations for the SourceHook globals every plugin TU references
-// (SH_* macros, RETURN_META). Pure externs, so a plugin that still spells out
-// its own PLUGIN_GLOBALVARS() repeats them harmlessly. The definitions come
-// from CS2KIT_PLUGIN / PLUGIN_EXPOSE in the plugin's Plugin.cpp.
+// Externs for the SourceHook globals every plugin TU references (SH_* macros,
+// RETURN_META); the definitions come from CS2KIT_PLUGIN / PLUGIN_EXPOSE. Pure
+// externs, so a plugin repeating PLUGIN_GLOBALVARS() itself is harmless.
 PLUGIN_GLOBALVARS();
 
 namespace CS2Kit::Players
@@ -49,8 +48,8 @@ struct PluginInfo
  * Subclassing this gets you a working plugin: it wires up the engine, registers the common
  * hooks (game frame, player connect/disconnect, chat), and tracks connected players for you.
  * You provide the metadata via Info(), your setup in OnLoad(), and override only the callbacks
- * you care about. Managers-carrying plugins use PluginBase<TManagers> + CS2KIT_PLUGIN instead;
- * a bare MetamodPluginBase subclass still spells out the instance and PLUGIN_EXPOSE itself.
+ * you care about. Managers-carrying plugins use PluginBase<TManagers> + CS2KIT_PLUGIN instead
+ * of the instance/PLUGIN_EXPOSE pair below.
  *
  * @code
  * class MyPlugin : public CS2Kit::Core::MetamodPluginBase {
@@ -139,10 +138,9 @@ protected:
     /**
      * @brief A player sent a chat message (say / say_team).
      *
-     * The default dispatches registered chat commands ("!x" / ".x") and swallows
-     * handled ones; everything else - including unknown "!words" - falls through
-     * to normal chat. Override to customize (an override replaces the dispatch
-     * wholesale, as admin-style chat services do).
+     * The default dispatches registered chat commands ("!x" / ".x") and swallows handled
+     * ones; anything else, including unknown "!words", falls through to normal chat. An
+     * override replaces that dispatch wholesale.
      *
      * @return true to swallow it (the message won't appear in chat), false to let it through.
      */

@@ -34,9 +34,8 @@ class CS2KitConan(ConanFile):
 
     options = {"with_postgres": [True, False]}
 
-    # cpr stays header-private (nothing in include/ leaks it); nlohmann is part
-    # of the public surface (Api.hpp -> JsonConfig/Utils), declared in
-    # requirements() with transitive_headers.
+    # cpr stays header-private; nlohmann is public surface (Api.hpp -> JsonConfig),
+    # so it is declared in requirements() with transitive_headers.
     requires = ("cpr/1.11.2",)
 
     default_options = {
@@ -92,8 +91,8 @@ class CS2KitConan(ConanFile):
                 "use the shipped windows-msvc profile")
 
     def layout(self):
-        # Vendored mode keeps the historical flat --output-folder layout that
-        # build.py and the CMake presets point at.
+        # Vendored mode keeps the flat --output-folder layout build.py and the
+        # CMake presets point at.
         if not self._vendored_sdk():
             cmake_layout(self)
 
@@ -106,8 +105,8 @@ class CS2KitConan(ConanFile):
         toolchain.variables["CMAKE_POSITION_INDEPENDENT_CODE"] = True
         toolchain.variables["CS2KIT_ENABLE_POSTGRES"] = bool(self.options.with_postgres)
         if not self._vendored_sdk():
-            # CS2KitSdk.cmake works unchanged in package mode: point its cache
-            # vars at the dependency packages instead of vendor/ submodules.
+            # Point CS2KitSdk.cmake's cache vars at the dependency packages
+            # instead of the vendor/ submodules; it works unchanged either way.
             toolchain.variables["CS2KIT_HL2SDK_DIR"] = \
                 self.dependencies["hl2sdk-cs2"].package_folder.replace("\\", "/")
             toolchain.variables["CS2KIT_MMSOURCE_DIR"] = \
@@ -126,17 +125,15 @@ class CS2KitConan(ConanFile):
         copy(self, "*.lib", build, os.path.join(pkg, "lib"), keep_path=False)
         copy(self, "*.hpp", os.path.join(self.source_folder, "include"),
              os.path.join(pkg, "include"))
-        # Generated protobuf headers; consumers include them flat (e.g.
-        # <usermessages.pb.h>), matching the generated include dirs in
-        # submodule mode.
+        # Generated protobuf headers; consumers include them flat
+        # (<usermessages.pb.h>), as in submodule mode.
         generated = os.path.join(build, "generated", "hl2sdk-cs2")
         copy(self, "*.pb.h", os.path.join(generated, "public"),
              os.path.join(pkg, "include-pb", "public"))
         copy(self, "*.pb.h", os.path.join(generated, "game", "shared"),
              os.path.join(pkg, "include-pb", "game-shared"))
-        # cmake/ next to gamedata/ so CS2KIT_ROOT_DIR (derived as the cmake
-        # dir's parent) resolves plugin.vdf.in, BuildInfo templates,
-        # DoctestMain.cpp, and gamedata exactly like the repo layout.
+        # cmake/ next to gamedata/ so CS2KIT_ROOT_DIR (the cmake dir's parent)
+        # resolves plugin.vdf.in, DoctestMain.cpp and gamedata as in the repo.
         copy(self, "*", os.path.join(self.source_folder, "cmake"), os.path.join(pkg, "cmake"))
         copy(self, "*", os.path.join(self.source_folder, "gamedata"),
              os.path.join(pkg, "gamedata"))

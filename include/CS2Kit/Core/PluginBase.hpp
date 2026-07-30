@@ -51,13 +51,11 @@ private:
 }  // namespace CS2Kit::Core
 
 /**
- * @brief The per-plugin entry-point boilerplate in one statement: the global plugin
- * instance (g_<PluginClass>), Metamod's PLUGIN_EXPOSE, and the AppNamespace::App()
- * trampoline.
+ * @brief The per-plugin entry-point boilerplate in one statement: the global instance
+ * (g_<PluginClass>), Metamod's PLUGIN_EXPOSE, and the AppNamespace::App() trampoline.
  *
- * Invoke exactly once, at global namespace scope, in the plugin's Plugin.cpp.
- * Requires @p AppNamespace::Managers to be the PluginBase manager container and
- * @p AppNamespace to declare `Managers& App();` (the scaffold's Managers.hpp does).
+ * Invoke once, at global namespace scope, in the plugin's Plugin.cpp. @p AppNamespace
+ * must declare `Managers& App();` over the PluginBase container (the scaffold does).
  */
 #define CS2KIT_PLUGIN(PluginClass, AppNamespace) \
     PluginClass g_##PluginClass;                 \

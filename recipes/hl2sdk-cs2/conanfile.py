@@ -26,17 +26,16 @@ class Hl2SdkCs2Conan(ConanFile):
     license = "LicenseRef-Valve-Source-SDK"
     homepage = "https://github.com/alliedmodders/hl2sdk/tree/cs2"
     package_type = "static-library"
-    # Deliberately no compiler/build_type: one binary package per OS, exactly
-    # how the prebuilt SDK libs are consumed in submodule mode.
+    # No compiler/build_type: one binary package per OS, exactly how the
+    # prebuilt SDK libs are consumed in submodule mode.
     settings = "os", "arch"
     exports = "cmake/hl2sdk-vars.cmake"
     no_copy_source = True
 
     HEADER_TREES = ["public", "game/shared", "game/server", "common"]
     PROTOBUF_SRC = "thirdparty/protobuf-3.21.8/src"
-    # Bodies consumed as sources: six in the cs2-kit static lib, plus
-    # convar.cpp/memoverride.cpp recompiled per plugin (own ConVar state,
-    # global operator new/delete).
+    # Bodies compiled from source: six into the cs2-kit lib, plus convar.cpp and
+    # memoverride.cpp per plugin (own ConVar state, global operator new/delete).
     SOURCE_ONLY = [
         "entity2/entityidentity.cpp",
         "entity2/entitykeyvalues.cpp",

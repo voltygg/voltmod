@@ -19,7 +19,6 @@ class MetamodSourceTestConan(ConanFile):
         cmake.build()
 
     def test(self):
-        # Compilation is the test: SourceHook's header set resolved from the
-        # package include dirs. (ISmmPlugin.h needs hl2sdk headers on top; the
-        # cs2-kit test_package covers that combination.)
+        # Compilation is the test. (ISmmPlugin.h also needs hl2sdk headers;
+        # cs2-kit's test_package covers that combination.)
         pass

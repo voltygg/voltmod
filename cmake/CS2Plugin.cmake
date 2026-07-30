@@ -5,20 +5,17 @@ include_guard(GLOBAL)
 #   cs2_add_plugin(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...]
 #                  [PCH_HEADERS ...] [UNITY])
 
-# Explicit includes rather than relying on the kit root's include order;
-# include_guard(GLOBAL) makes them free. CS2KitSdk provides CS2KIT_ROOT_DIR,
-# CS2KIT_HL2SDK_DIR, CS2KIT_PLATFORM_ARCH, CS2KIT_GAMEDATA_DIR and
-# cs2kit_mark_vendored_sources.
+# CS2KitSdk provides CS2KIT_ROOT_DIR / _HL2SDK_DIR / _PLATFORM_ARCH / _GAMEDATA_DIR
+# and cs2kit_mark_vendored_sources; include_guard(GLOBAL) makes the repeat free.
 include("${CMAKE_CURRENT_LIST_DIR}/CS2KitSdk.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/CS2KitBuildInfo.cmake")
 
 # Create a Metamod plugin MODULE linked against CS2Kit, with output dirs and
 # install rules. SOURCES defaults to a glob of src/*.cpp; INCLUDE_DIRS and
 # LIBRARIES are appended to the defaults. PCH_HEADERS extends the plugin's
-# precompiled header (e.g. "<pqxx/pqxx>" for database-heavy plugins). UNITY
-# enables jumbo compilation - requires file-unique names for namespace-scope
-# statics (self-registration blocks); Registry<T> items keep working since
-# every source still compiles and links in.
+# precompiled header (e.g. "<pqxx/pqxx>"). UNITY enables jumbo compilation -
+# it needs file-unique names for namespace-scope statics (self-registration
+# blocks); Registry<T> items still work, every source is compiled and linked.
 function(cs2_add_plugin target_name)
     cmake_parse_arguments(ARG "UNITY" "" "SOURCES;INCLUDE_DIRS;LIBRARIES;PCH_HEADERS" ${ARGN})
 
@@ -54,9 +51,8 @@ function(cs2_add_plugin target_name)
         "${CS2KIT_HL2SDK_DIR}/public/tier0/memoverride.cpp"
         "${CS2KIT_HL2SDK_DIR}/tier1/convar.cpp"
     )
-    # memoverride.cpp replaces global operator new/delete and convar.cpp defines
-    # what convar.h declares; neither may be merged into a unity TU or see the
-    # forced -include of a PCH.
+    # memoverride.cpp replaces global operator new/delete and convar.cpp defines what
+    # convar.h declares; neither survives a unity TU or a force-included PCH.
     set_source_files_properties(
         "${CS2KIT_HL2SDK_DIR}/public/tier0/memoverride.cpp"
         "${CS2KIT_HL2SDK_DIR}/tier1/convar.cpp"
@@ -74,9 +70,8 @@ function(cs2_add_plugin target_name)
     )
 
     if(NOT CS2KIT_DISABLE_PCH)
-        # Nearly every plugin TU includes <CS2Kit/Api.hpp>, which drags the full
-        # hl2sdk/Metamod/protobuf header universe (~200k LOC) into each compile;
-        # precompiling it once is the dominant build-time win.
+        # <CS2Kit/Api.hpp> drags the whole hl2sdk/Metamod/protobuf header universe
+        # (~200k LOC) into nearly every plugin TU; precompiling it is the big win.
         target_precompile_headers("${target_name}" PRIVATE
             "<CS2Kit/Api.hpp>"
             ${ARG_PCH_HEADERS}
@@ -93,9 +88,8 @@ function(cs2_add_plugin target_name)
 
     cs2kit_stamp_build_info("${target_name}")
 
-    # Route all build artifacts to build/plugins/<name>/<platform_arch>/ with no
-    # rpath and no lib prefix. Ninja is single-config; per-config output-dir
-    # variants (VS/Xcode) aren't needed.
+    # Route artifacts to build/plugins/<name>/<platform_arch>/, no rpath, no lib
+    # prefix. Ninja is single-config, so no per-config output-dir variants.
     set(output_dir "${CMAKE_BINARY_DIR}/plugins/${target_name}/${CS2KIT_PLATFORM_ARCH}")
     set_target_properties("${target_name}" PROPERTIES
         PREFIX ""

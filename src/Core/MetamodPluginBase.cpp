@@ -3,19 +3,19 @@
 #include <CS2Kit/Core/MetamodPluginBase.hpp>
 #include <CS2Kit/Core/Registry.hpp>
 #include <CS2Kit/Core/Services.hpp>
-#include <format>
 #include <CS2Kit/Players/Player.hpp>
 #include <CS2Kit/Players/PlayerManager.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
 #include <CS2Kit/Utils/Log.hpp>
 #include <cstdio>
 #include <cstring>
+#include <format>
 #include <iserver.h>
 #include <nlohmann/json.hpp>
 #include <string>
 
-// The SourceHook extern declarations (PLUGIN_GLOBALVARS) come with
-// MetamodPluginBase.hpp; the definitions come from each plugin's CS2KIT_PLUGIN.
+// PLUGIN_GLOBALVARS ships in MetamodPluginBase.hpp; the definitions come from
+// each plugin's CS2KIT_PLUGIN.
 
 // The SDK only forward-declares this (iloopmode.h keeps the real one commented out). SourceHook's
 // param table needs a complete type; the hook receives it by reference and never looks inside.
@@ -82,8 +82,7 @@ bool MetamodPluginBase::Load(PluginId id, ISmmAPI* ismm, char* error, size_t max
 
     if (!OnLoad(late))
     {
-        // A bare `return false` (no Failed stage recorded) still gets a named
-        // failure in the report and Metamod's error buffer.
+        // A bare `return false` still gets a named failure in the report and error buffer.
         if (_services->LoadReport.FirstFailure().empty())
             _services->LoadReport.Run("OnLoad", [] { return StageResult::Failed("OnLoad returned false"); });
         Log::Info("{}", _services->LoadReport.Summary());
@@ -97,9 +96,8 @@ bool MetamodPluginBase::Load(PluginId id, ISmmAPI* ismm, char* error, size_t max
         return false;
     }
 
-    // Self-registered command specs are ingested after OnLoad, so the plugin's
-    // policy and prefixes are already in place. Registration is idempotent by
-    // name - a plugin still calling RegisterAll itself is harmless.
+    // Ingested after OnLoad, so the plugin's policy and prefixes are in place.
+    // RegisterAll is idempotent by name - a plugin calling it itself is harmless.
     if (auto specs = Registry<Commands::CommandSpec>::Items(); !specs.empty())
     {
         _services->LoadReport.Run("Commands", [&] {

@@ -23,12 +23,11 @@ void SetBaseDir(const std::filesystem::path& baseDir);
  */
 std::filesystem::path ResolvePath(const std::string& relativePath);
 
-/** @brief "addons/<addon>" - the addon's install root, in the engine-relative
- *  form the kit's loaders take. Pure string building; safe at static init. */
+/** @brief "addons/<addon>" - the engine-relative install root the kit's loaders take.
+ *  Pure string building, so safe at static init. */
 std::string AddonDir(std::string_view addon);
 
-/** @brief "addons/<addon>/<relative>", e.g. AddonFile("bhop", "configs/settings.jsonc").
- *  Keeps the plugin name in one place instead of hand-spelled path literals. */
+/** @brief "addons/<addon>/<relative>", e.g. AddonFile("bhop", "configs/settings.jsonc"). */
 std::string AddonFile(std::string_view addon, std::string_view relative);
 
 }  // namespace CS2Kit::Core

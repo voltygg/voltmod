@@ -57,11 +57,10 @@ add_library(CS2Kit::CS2Kit ALIAS cs2-kit)
 cs2kit_mark_vendored_sources(${CS2KIT_HL2SDK_SOURCES} ${CS2KIT_PROTO_SOURCES})
 
 if(NOT CS2KIT_DISABLE_PCH)
-    # Third-party headers only, deliberately no kit headers: editing a kit header
-    # must not invalidate this PCH. <google/protobuf/message.h> rather than the
-    # generated .pb.h so the PCH does not depend on protoc custom-command outputs.
-    # SDK-free TUs (src/Utils, ...) also get the PCH; any TU the SDK macros break
-    # can opt out with a per-file SKIP_PRECOMPILE_HEADERS.
+    # Third-party headers only: editing a kit header must not invalidate the PCH.
+    # <google/protobuf/message.h> rather than the generated .pb.h so it does not
+    # depend on protoc outputs. A TU the SDK macros break opts out per-file with
+    # SKIP_PRECOMPILE_HEADERS.
     target_precompile_headers(cs2-kit PRIVATE
         <ISmmPlugin.h>
         <eiface.h>
@@ -119,9 +118,8 @@ target_link_libraries(cs2-kit
 
 if(CS2KIT_ENABLE_POSTGRES)
     # PUBLIC link: cs2-kit is static, so DB-using plugins need pqxx at link time.
-    # PUBLIC define: Database/Api.hpp's #error guard and consumer feature checks
-    # read the macro. The bare -D costs nothing per TU; the expensive part
-    # (<pqxx/pqxx>) reaches only TUs that include <CS2Kit/Database/Api.hpp>.
+    # PUBLIC define: consumer feature checks and Database/Api.hpp's #error guard
+    # read the macro; only that header pulls in <pqxx/pqxx>.
     target_link_libraries(cs2-kit PUBLIC libpqxx::pqxx)
     target_compile_definitions(cs2-kit PUBLIC CS2KIT_ENABLE_POSTGRES=1)
 endif()

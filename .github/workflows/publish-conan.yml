@@ -1,10 +1,9 @@
 name: Publish Conan packages
 
-# Publishes to the private Cloudsmith Conan remote. cs2-kit publishes on every
-# v* tag; the SDK packages (hl2sdk-cs2, metamod-source) only via manual
-# dispatch when the upstream pins move - bump recipes/*/conandata.yml, the
-# version constants in conanfile.py, and the vendor/ submodules in one PR
-# first. Secrets: CLOUDSMITH_API_KEY (write token for the repo below).
+# Publishes to the private Cloudsmith Conan remote (secret: CLOUDSMITH_API_KEY).
+# cs2-kit publishes on every v* tag; the SDK packages only via manual dispatch,
+# after a PR moves recipes/*/conandata.yml, conanfile.py's version constants and
+# the vendor/ submodules together.
 
 on:
   push:
@@ -29,8 +28,7 @@ jobs:
     container:
       image: registry.gitlab.steamos.cloud/steamrt/sniper/sdk:latest
     steps:
-      # Non-recursive: package mode never reads the vendor/ submodules - the
-      # SDK recipes fetch pinned upstream commits themselves.
+      # Non-recursive: the SDK recipes fetch their pinned upstream commits themselves.
       - uses: actions/checkout@v7
 
       - name: Install conan
@@ -56,8 +54,7 @@ jobs:
           CS2KIT_VERSION: ${{ github.ref_name }}
         run: |
           export CS2KIT_VERSION="${CS2KIT_VERSION#v}"
-          # --lockfile="": conan.lock pins the vendored-dev graph and knows
-          # nothing about the SDK packages package mode requires.
+          # --lockfile="": conan.lock pins the vendored-dev graph, not the SDK packages.
           for bt in Release Debug; do
             for pg in False True; do
               conan create . -pr:a conan/profiles/linux-steamrt.txt \
@@ -83,9 +80,8 @@ jobs:
           conan remote add voltygg "$env:CONAN_REMOTE_URL"
           conan remote login voltygg ci -p "${{ secrets.CLOUDSMITH_API_KEY }}"
 
-      # windows-latest ships cl 19.4x; the checked-in profile says 195. Pass
-      # the runner's actual version so package IDs match what consumers with
-      # newer toolsets resolve through Conan's compatibility fallback.
+      # windows-latest ships cl 19.4x but the checked-in profile says 195; pass the
+      # runner's version so package IDs match what newer consumers resolve.
       - name: Detect MSVC version
         id: msvc
         shell: pwsh
@@ -149,7 +145,6 @@ jobs:
             EXTRA=""
           fi
           VERSION="${GITHUB_REF_NAME#v}"
-          # test_package doubles as the smoke consumer: binaries must come
-          # from the remote, nothing may build locally.
+          # test_package doubles as the smoke consumer: everything from the remote.
           conan test test_package "cs2-kit/$VERSION" -pr:a "$PROFILE" \
             -s build_type=Release $EXTRA -r voltygg --build=never

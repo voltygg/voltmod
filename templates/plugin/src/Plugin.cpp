@@ -20,8 +20,7 @@ CS2Kit::PluginInfo $klass::Info() const
 
 bool $klass::OnLoad(bool late)
 {
-    // Commands in Commands.cpp self-register and the kit ingests them after this
-    // returns; chat dispatch, permissions, and replies default to allow /
-    // Engine().Messages.Reply until the plugin sets Engine().Policy.
+    // Commands in Commands.cpp are ingested after this returns; permissions and
+    // replies stay permissive until the plugin sets Engine().Policy.
     return CS2Kit::LoadStandardConfig($ns::App().Config, {.Addon = "$name"});
 }

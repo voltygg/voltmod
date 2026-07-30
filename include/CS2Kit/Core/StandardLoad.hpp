@@ -22,11 +22,10 @@ struct StandardLoadOptions
 /**
  * @brief The standard OnLoad prelude, recorded as LoadReport stages.
  *
- * "Configuration" loads addons/<Addon>/<SettingsFile>; a failure aborts (return
- * it from OnLoad). "Translations" applies `plugin.locale` when the settings
- * struct carries the standard plugin section, then loads
- * addons/<Addon>/configs/translations. Uses TConfig::LoadSettings when present
- * (the load-then-validate convention), otherwise JsonConfig::Load.
+ * "Configuration" loads addons/<Addon>/<SettingsFile>, via TConfig::LoadSettings when
+ * present (the load-then-validate convention) and JsonConfig::Load otherwise; false
+ * means abort the load. "Translations" applies `plugin.locale` when the settings struct
+ * carries the standard plugin section, then loads addons/<Addon>/configs/translations.
  */
 template <class TConfig>
 bool LoadStandardConfig(TConfig& config, const StandardLoadOptions& options)

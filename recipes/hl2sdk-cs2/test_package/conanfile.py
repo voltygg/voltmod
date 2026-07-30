@@ -18,6 +18,5 @@ class Hl2SdkCs2TestConan(ConanFile):
         cmake.build()
 
     def test(self):
-        # Compiling against tier0/mathlib headers with the package's define set
-        # is the test; the full link is exercised by cs2-kit's test_package.
+        # Compiling is the test; the full link runs in cs2-kit's test_package.
         pass

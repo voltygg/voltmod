@@ -1,5 +1,4 @@
-// Compiling SourceHook proves the package's include layout matches the
-// submodule layout CS2KitSdk.cmake expects (core/ + core/sourcehook/).
+// Proves the include layout (core/ + core/sourcehook/) matches what CS2KitSdk.cmake expects.
 #include <sourcehook.h>
 
 int SourceHookHeaderCompiles()

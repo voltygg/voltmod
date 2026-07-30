@@ -1,5 +1,4 @@
-// Compiling mathlib/tier headers with the package's define set proves the
-// include layout and defines match submodule-mode CS2KitSdk.cmake.
+// Proves the package's include layout and defines match submodule-mode CS2KitSdk.cmake.
 #include <mathlib/vector.h>
 #include <tier1/utlvector.h>
 

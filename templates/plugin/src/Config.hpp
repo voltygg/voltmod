@@ -6,8 +6,7 @@
 namespace $ns
 {
 
-/** Root of settings.jsonc. Add a struct + a member here for each new section;
- *  the kit-standard "plugin" section carries the locale. */
+/** Root of settings.jsonc; add a struct + a member here for each new section. */
 struct Settings
 {
     CS2Kit::StandardPluginSettings plugin;
