@@ -5,7 +5,8 @@ include_guard(GLOBAL)
 #   cs2_add_tests(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...])
 # SOURCES are the SDK-free TUs to recompile; tests/*.cpp is globbed automatically.
 
-set(CS2KIT_TESTS_CMAKE_DIR "${CMAKE_CURRENT_LIST_DIR}" CACHE INTERNAL "")
+# For CS2KIT_ROOT_DIR; include_guard(GLOBAL) makes the repeat include free.
+include("${CMAKE_CURRENT_LIST_DIR}/CS2KitSdk.cmake")
 
 # doctest hands test names to CTest through a CMake list, where '[' and ']' group and
 # ';' separates. An unmatched bracket aborts configure with an unrelated-looking
@@ -39,7 +40,7 @@ function(cs2_add_tests target_name)
 
     add_executable("${target_name}"
         ${test_cases}
-        "${CS2KIT_TESTS_CMAKE_DIR}/DoctestMain.cpp"
+        "${CS2KIT_ROOT_DIR}/cmake/DoctestMain.cpp"
         ${ARG_SOURCES}
     )
     target_compile_features("${target_name}" PRIVATE cxx_std_23)

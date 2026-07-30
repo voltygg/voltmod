@@ -4,6 +4,7 @@ project(cs2-kit VERSION 1.0.0 LANGUAGES CXX)
 
 option(CS2KIT_BUILD_STANDALONE "Build CS2Kit as a standalone project" ${PROJECT_IS_TOP_LEVEL})
 option(CS2KIT_ENABLE_POSTGRES "Build the CS2Kit::Database Postgres client (requires libpqxx)" OFF)
+option(CS2KIT_DISABLE_PCH "Disable precompiled headers (e.g. to favor ccache hits over PCH on MSVC)" OFF)
 
 # Conan imported targets are directory-scoped; make them visible to sibling
 # plugin directories when cs2-kit is vendored into a monorepo.
@@ -55,6 +56,35 @@ add_library(CS2Kit::CS2Kit ALIAS cs2-kit)
 
 cs2kit_mark_vendored_sources(${CS2KIT_HL2SDK_SOURCES} ${CS2KIT_PROTO_SOURCES})
 
+if(NOT CS2KIT_DISABLE_PCH)
+    # Third-party headers only, deliberately no kit headers: editing a kit header
+    # must not invalidate this PCH. <google/protobuf/message.h> rather than the
+    # generated .pb.h so the PCH does not depend on protoc custom-command outputs.
+    # SDK-free TUs (src/Utils, ...) also get the PCH; any TU the SDK macros break
+    # can opt out with a per-file SKIP_PRECOMPILE_HEADERS.
+    target_precompile_headers(cs2-kit PRIVATE
+        <ISmmPlugin.h>
+        <eiface.h>
+        <icvar.h>
+        <igameevents.h>
+        <entity2/entitysystem.h>
+        <tier1/convar.h>
+        <google/protobuf/message.h>
+        <nlohmann/json.hpp>
+        <chrono>
+        <format>
+        <functional>
+        <memory>
+        <string>
+        <string_view>
+        <unordered_map>
+        <vector>
+    )
+    # Vendored/generated TUs keep their own include order.
+    set_source_files_properties(${CS2KIT_HL2SDK_SOURCES} ${CS2KIT_PROTO_SOURCES}
+        PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+endif()
+
 target_compile_features(cs2-kit PUBLIC cxx_std_23)
 set_target_properties(cs2-kit PROPERTIES
     CXX_STANDARD 23
@@ -88,8 +118,10 @@ target_link_libraries(cs2-kit
 )
 
 if(CS2KIT_ENABLE_POSTGRES)
-    # PUBLIC: PostgresDatabase.hpp exposes pqxx types in its templates, and
-    # Api.hpp gates its Database surface on the macro in consumer TUs.
+    # PUBLIC link: cs2-kit is static, so DB-using plugins need pqxx at link time.
+    # PUBLIC define: Database/Api.hpp's #error guard and consumer feature checks
+    # read the macro. The bare -D costs nothing per TU; the expensive part
+    # (<pqxx/pqxx>) reaches only TUs that include <CS2Kit/Database/Api.hpp>.
     target_link_libraries(cs2-kit PUBLIC libpqxx::pqxx)
     target_compile_definitions(cs2-kit PUBLIC CS2KIT_ENABLE_POSTGRES=1)
 endif()

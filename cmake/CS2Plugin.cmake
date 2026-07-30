@@ -2,40 +2,25 @@ include_guard(GLOBAL)
 
 # Consumer-facing plugin API. Included by cs2-kit's root CMakeLists, so after
 # add_subdirectory(vendor/cs2-kit) any project can call:
-#   cs2_add_plugin(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...])
+#   cs2_add_plugin(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...]
+#                  [PCH_HEADERS ...] [UNITY])
 
-# Module dir at include time (CMAKE_CURRENT_LIST_DIR points at the caller inside a
-# function); used to locate plugin.vdf.in. Cached so sibling plugin directories see
-# it - this file is included from the kit's own scope, which they don't inherit.
-# CS2KIT_PLATFORM_ARCH comes from CS2KitSdk.
-set(CS2KIT_PLUGIN_CMAKE_DIR "${CMAKE_CURRENT_LIST_DIR}" CACHE INTERNAL "")
-
+# Explicit includes rather than relying on the kit root's include order;
+# include_guard(GLOBAL) makes them free. CS2KitSdk provides CS2KIT_ROOT_DIR,
+# CS2KIT_HL2SDK_DIR, CS2KIT_PLATFORM_ARCH, CS2KIT_GAMEDATA_DIR and
+# cs2kit_mark_vendored_sources.
+include("${CMAKE_CURRENT_LIST_DIR}/CS2KitSdk.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/CS2KitBuildInfo.cmake")
-
-# Route all of `target_name`'s build artifacts to
-# build/plugins/<name>/<platform_arch>/ with no rpath and no lib prefix.
-function(cs2_set_output_dirs target_name platform_arch)
-    set(output_dir "${CMAKE_BINARY_DIR}/plugins/${target_name}/${platform_arch}")
-
-    # Ninja is single-config; per-config output-dir variants (VS/Xcode) aren't needed.
-    set_target_properties("${target_name}" PROPERTIES
-        PREFIX ""
-        OUTPUT_NAME "${target_name}"
-        LIBRARY_OUTPUT_DIRECTORY "${output_dir}"
-        RUNTIME_OUTPUT_DIRECTORY "${output_dir}"
-        ARCHIVE_OUTPUT_DIRECTORY "${output_dir}"
-        PDB_OUTPUT_DIRECTORY "${output_dir}"
-        SKIP_BUILD_RPATH TRUE
-        BUILD_RPATH ""
-        INSTALL_RPATH ""
-    )
-endfunction()
 
 # Create a Metamod plugin MODULE linked against CS2Kit, with output dirs and
 # install rules. SOURCES defaults to a glob of src/*.cpp; INCLUDE_DIRS and
-# LIBRARIES are appended to the defaults.
+# LIBRARIES are appended to the defaults. PCH_HEADERS extends the plugin's
+# precompiled header (e.g. "<pqxx/pqxx>" for database-heavy plugins). UNITY
+# enables jumbo compilation - requires file-unique names for namespace-scope
+# statics (self-registration blocks); Registry<T> items keep working since
+# every source still compiles and links in.
 function(cs2_add_plugin target_name)
-    cmake_parse_arguments(ARG "" "" "SOURCES;INCLUDE_DIRS;LIBRARIES" ${ARGN})
+    cmake_parse_arguments(ARG "UNITY" "" "SOURCES;INCLUDE_DIRS;LIBRARIES;PCH_HEADERS" ${ARGN})
 
     if(NOT ARG_SOURCES)
         file(GLOB_RECURSE ARG_SOURCES CONFIGURE_DEPENDS
@@ -69,6 +54,14 @@ function(cs2_add_plugin target_name)
         "${CS2KIT_HL2SDK_DIR}/public/tier0/memoverride.cpp"
         "${CS2KIT_HL2SDK_DIR}/tier1/convar.cpp"
     )
+    # memoverride.cpp replaces global operator new/delete and convar.cpp defines
+    # what convar.h declares; neither may be merged into a unity TU or see the
+    # forced -include of a PCH.
+    set_source_files_properties(
+        "${CS2KIT_HL2SDK_DIR}/public/tier0/memoverride.cpp"
+        "${CS2KIT_HL2SDK_DIR}/tier1/convar.cpp"
+        PROPERTIES SKIP_PRECOMPILE_HEADERS ON SKIP_UNITY_BUILD_INCLUSION ON
+    )
 
     target_include_directories("${target_name}" PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -80,9 +73,41 @@ function(cs2_add_plugin target_name)
         ${ARG_LIBRARIES}
     )
 
+    if(NOT CS2KIT_DISABLE_PCH)
+        # Nearly every plugin TU includes <CS2Kit/Api.hpp>, which drags the full
+        # hl2sdk/Metamod/protobuf header universe (~200k LOC) into each compile;
+        # precompiling it once is the dominant build-time win.
+        target_precompile_headers("${target_name}" PRIVATE
+            "<CS2Kit/Api.hpp>"
+            ${ARG_PCH_HEADERS}
+        )
+    endif()
+
+    if(ARG_UNITY)
+        # Batch of 8 keeps a jumbo TU quick to rebuild and preserves parallelism.
+        set_target_properties("${target_name}" PROPERTIES
+            UNITY_BUILD ON
+            UNITY_BUILD_BATCH_SIZE 8
+        )
+    endif()
+
     cs2kit_stamp_build_info("${target_name}")
 
-    cs2_set_output_dirs("${target_name}" "${CS2KIT_PLATFORM_ARCH}")
+    # Route all build artifacts to build/plugins/<name>/<platform_arch>/ with no
+    # rpath and no lib prefix. Ninja is single-config; per-config output-dir
+    # variants (VS/Xcode) aren't needed.
+    set(output_dir "${CMAKE_BINARY_DIR}/plugins/${target_name}/${CS2KIT_PLATFORM_ARCH}")
+    set_target_properties("${target_name}" PROPERTIES
+        PREFIX ""
+        OUTPUT_NAME "${target_name}"
+        LIBRARY_OUTPUT_DIRECTORY "${output_dir}"
+        RUNTIME_OUTPUT_DIRECTORY "${output_dir}"
+        ARCHIVE_OUTPUT_DIRECTORY "${output_dir}"
+        PDB_OUTPUT_DIRECTORY "${output_dir}"
+        SKIP_BUILD_RPATH TRUE
+        BUILD_RPATH ""
+        INSTALL_RPATH ""
+    )
 
     cs2_install_plugin("${target_name}")
 endfunction()
@@ -116,7 +141,7 @@ function(cs2_install_plugin target_name)
     set(CS2_PLUGIN_NAME "${target_name}")
     set(CS2_PLUGIN_BIN_SUBDIR "${bin_subdir}")
     configure_file(
-        "${CS2KIT_PLUGIN_CMAKE_DIR}/plugin.vdf.in"
+        "${CS2KIT_ROOT_DIR}/cmake/plugin.vdf.in"
         "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.vdf"
         @ONLY
         NEWLINE_STYLE LF
