@@ -25,14 +25,9 @@
 #include <CS2Kit/Core/Registry.hpp>
 #include <CS2Kit/Core/Scheduler.hpp>
 #include <CS2Kit/Core/Services.hpp>
-// Database headers need libpqxx; only present when the kit was built with
-// CS2KIT_ENABLE_POSTGRES (the macro is a PUBLIC define of the cs2-kit target).
-#ifdef CS2KIT_ENABLE_POSTGRES
-#include <CS2Kit/Database/DbResult.hpp>
-#include <CS2Kit/Database/Mapping.hpp>
-#include <CS2Kit/Database/Migrator.hpp>
-#include <CS2Kit/Database/PostgresDatabase.hpp>
-#endif
+// The Database vocabulary lives in <CS2Kit/Database/Api.hpp>, deliberately
+// outside this umbrella: it drags <pqxx/pqxx> into every including TU, and
+// most plugin code never touches the database.
 #include <CS2Kit/Http/HttpResult.hpp>
 #include <CS2Kit/Menu/Flow.hpp>
 #include <CS2Kit/Menu/Menu.hpp>
@@ -182,23 +177,6 @@ using Commands::SteamId64;
 using Commands::Target;
 using Commands::TargetOrSteamId;
 using Commands::Word;
-
-// Database
-#ifdef CS2KIT_ENABLE_POSTGRES
-using Database::Column;
-using Database::DbResult;
-using Database::FromResult;
-using Database::FromRow;
-using Database::InsertParams;
-using Database::InsertSql;
-using Database::MigrationResult;
-using Database::PostgresConfig;
-using Database::PostgresDatabase;
-using Database::RunMigrations;
-using Database::SelectSql;
-using Database::TryDb;
-using Database::TryOr;
-#endif
 
 // Http
 using Http::HttpClient;
