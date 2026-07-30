@@ -79,14 +79,8 @@ def main() -> int:
         )
 
     new_plugin.render_tree(TEMPLATE_DIR, REPO_ROOT, {"project": args.name}, safe=True)
-    new_plugin.render_tree(
-        new_plugin.TEMPLATE_DIR,
-        plugin_dir,
-        new_plugin.substitutions(args.plugin),
-        label=f"plugins/{args.plugin}/",
-    )
-    if new_plugin.insert_subdirectory(REPO_ROOT / "CMakeLists.txt", args.plugin):
-        print(f"  registered add_subdirectory(plugins/{args.plugin}) in CMakeLists.txt")
+    if (code := new_plugin.scaffold_plugin(args.plugin)) != 0:
+        return code
 
     print(
         "\nDone. Next steps:\n"

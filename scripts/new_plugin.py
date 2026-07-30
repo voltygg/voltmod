@@ -78,19 +78,13 @@ def insert_subdirectory(root_cmake: Path, name: str) -> bool:
     return True
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    parser.add_argument("name", type=kebab_case, help="kebab-case plugin name, e.g. fun-votes")
-    name = parser.parse_args().name
+def scaffold_plugin(name: str) -> int:
+    """Render templates/plugin into plugins/<name>/ and register the subdirectory.
 
+    Shared by this script and init_project.py; returns a process exit code.
+    """
     if not TEMPLATE_DIR.is_dir():
         print(f"error: template tree missing at {TEMPLATE_DIR}.")
-        return 1
-
-    if not (REPO_ROOT / "CMakeLists.txt").is_file():
-        print(f"error: no CMakeLists.txt in {REPO_ROOT}; run from your repo's root.")
         return 1
 
     plugin_dir = REPO_ROOT / "plugins" / name
@@ -102,6 +96,22 @@ def main() -> int:
 
     if insert_subdirectory(REPO_ROOT / "CMakeLists.txt", name):
         print(f"  registered add_subdirectory(plugins/{name}) in CMakeLists.txt")
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument("name", type=kebab_case, help="kebab-case plugin name, e.g. fun-votes")
+    name = parser.parse_args().name
+
+    if not (REPO_ROOT / "CMakeLists.txt").is_file():
+        print(f"error: no CMakeLists.txt in {REPO_ROOT}; run from your repo's root.")
+        return 1
+
+    if (code := scaffold_plugin(name)) != 0:
+        return code
 
     print("\nDone. Build it with: uv run poe build")
     return 0

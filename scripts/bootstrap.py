@@ -13,18 +13,15 @@ ROOT = Path.cwd()
 
 
 def main() -> None:
-    """Fetch submodules (cs2-kit + nested SDKs), verify tools, build."""
-    print("==> [1/3] Fetching submodules (cs2-kit + nested SDKs)")
+    """Fetch submodules (cs2-kit + nested SDKs), then build (which verifies tools)."""
+    print("==> [1/2] Fetching submodules (cs2-kit + nested SDKs)")
     subprocess.run(
         ["git", "submodule", "update", "--init", "--recursive", "--depth", "1"],
         cwd=ROOT,
         check=True,
     )
 
-    print("==> [2/3] Checking CMake + Conan build tools")
-    buildtools.require_build_tools()
-
-    print("==> [3/3] Building with Conan + CMake")
+    print("==> [2/2] Building with Conan + CMake")
     buildtools.build(ROOT, buildtools.default_preset())
 
     print(

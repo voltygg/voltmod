@@ -130,8 +130,12 @@ def ensure_msvc_env() -> None:
         die("cl still not on PATH after vcvars.")
 
 
-def build(repo_root: Path, preset: str) -> None:
-    """Conan install + CMake build for one preset under repo_root."""
+def build(repo_root: Path, preset: str, *, run_tests: bool = True) -> None:
+    """Conan install + CMake build for one preset under repo_root.
+
+    run_tests=False replaces the workflow preset (configure+build+ctest) with
+    configure+build, so CI can time and report tests as a separate step.
+    """
     require_build_tools()
     build_type = "Debug" if "debug" in preset else "Release"
 
@@ -171,6 +175,10 @@ def build(repo_root: Path, preset: str) -> None:
         *settings,
     )
 
-    run_tool("cmake", "--workflow", "--preset", preset)
+    if run_tests:
+        run_tool("cmake", "--workflow", "--preset", preset)
+    else:
+        run_tool("cmake", "--preset", preset)
+        run_tool("cmake", "--build", "--preset", preset)
 
     print(f"\n=== Build Complete ===\nPreset: {preset}\nBuild directory: build/{preset}")

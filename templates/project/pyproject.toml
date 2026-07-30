@@ -10,7 +10,6 @@ dependencies = [
     "conan>=2.29.1",
     "ninja>=1.13.0",
     "ruff>=0.14.0",
-    "mypy>=1.19.0",
     "poethepoet>=0.47.0",
     "clang-format==22.1.5",
 ]
@@ -38,11 +37,3 @@ extend-exclude = ["vendor"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP"]
-
-[tool.mypy]
-python_version = "3.14"
-warn_return_any = true
-warn_unused_configs = true
-ignore_missing_imports = true
-exclude = ["vendor"]
-mypy_path = "vendor/cs2-kit/scripts"
