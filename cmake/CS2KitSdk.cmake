@@ -73,7 +73,6 @@ function(cs2kit_configure_sdk)
         "${CS2KIT_HL2SDK_DIR}/public/tier0"
         "${CS2KIT_HL2SDK_DIR}/public/tier1"
         "${CS2KIT_HL2SDK_DIR}/public/entity2"
-        "${CS2KIT_HL2SDK_DIR}/public/game/server"
         "${CS2KIT_HL2SDK_DIR}/game/shared"
         "${CS2KIT_HL2SDK_DIR}/game/server"
         "${CS2KIT_HL2SDK_DIR}/common"

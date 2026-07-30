@@ -39,6 +39,8 @@ uv run poe build
 
 `init_project.py` generates the root `CMakeLists.txt`, `CMakePresets.json`, `conanfile.py`, and `pyproject.toml` (whose poe tasks call the kit's build scripts directly), then scaffolds a first plugin that compiles, loads, and answers `!ping` out of the box. Add more with `uv run poe new-plugin <name>`.
 
+Prefer no submodules? The kit and its SDK dependencies are also published as Conan packages on a private remote - `init_project.py --conan` scaffolds that flavor; see `docs/consuming-via-conan.md`.
+
 Already have a CMake repo? Vendor the kit and declare a plugin with one call - `cs2_add_plugin` owns the module target, SDK glue, output layout, Metamod `.vdf`, and install rules:
 
 ```cmake

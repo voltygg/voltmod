@@ -23,14 +23,20 @@ cmake/                 CS2KitSdk.cmake + CS2Plugin.cmake (cs2_add_plugin)
 scripts/               Build tooling (cwd-based; consumers invoke them directly),
                        init_project.py + new_plugin.py scaffold generators
 templates/plugin/      Plugin scaffold tree ($name/$ns/... placeholders)
-templates/project/     Consumer-project scaffold tree ($project placeholder)
+templates/project/     Consumer-project scaffold (vendored-submodule mode)
+templates/project-conan/  Consumer-project scaffold (Conan-package mode)
+recipes/               Conan recipes for hl2sdk-cs2 + metamod-source
+                       (private Cloudsmith remote; see docs/consuming-via-conan.md)
+test_package/          conan create validation: hello plugin via cs2_add_plugin
 tests/                 SDK-free unit tests (doctest + ctest); see docs/testing.md
 docs/                  Doxygen pages and guides
 vendor/                SDK submodules
 CMakeLists.txt         Standalone CMake build
 CMakePresets.json      Windows/Linux presets (consumers include this file)
-conanfile.py           Third-party deps
-conan/profiles/        Conan profiles (canonical; consuming repos reuse them)
+conanfile.py           Consumer conanfile AND package recipe (mode auto-detected
+                       by vendor/ presence; conan create omits vendor/)
+conan/profiles/        Conan profiles (canonical; consuming repos reuse them,
+                       package consumers `conan config install` them)
 ```
 
 `templates/project/CMakePresets.json` includes the root `CMakePresets.json` by

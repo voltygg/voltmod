@@ -1,0 +1,155 @@
+name: Publish Conan packages
+
+# Publishes to the private Cloudsmith Conan remote. cs2-kit publishes on every
+# v* tag; the SDK packages (hl2sdk-cs2, metamod-source) only via manual
+# dispatch when the upstream pins move - bump recipes/*/conandata.yml, the
+# version constants in conanfile.py, and the vendor/ submodules in one PR
+# first. Secrets: CLOUDSMITH_API_KEY (write token for the repo below).
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      publish_sdks:
+        description: "Also build + upload hl2sdk-cs2 and metamod-source"
+        type: boolean
+        default: false
+
+env:
+  # Cloudsmith Conan repo, e.g. https://conan.cloudsmith.io/<org>/<repo>/
+  CONAN_REMOTE_URL: https://conan.cloudsmith.io/voltygg/cs2-kit/
+  HL2SDK_VERSION: "2026.07.23"
+  METAMOD_VERSION: "2.0.0.20260711"
+
+jobs:
+  linux:
+    name: Build + upload (linux-steamrt)
+    runs-on: ubuntu-latest
+    container:
+      image: registry.gitlab.steamos.cloud/steamrt/sniper/sdk:latest
+    steps:
+      # Non-recursive: package mode never reads the vendor/ submodules - the
+      # SDK recipes fetch pinned upstream commits themselves.
+      - uses: actions/checkout@v7
+
+      - name: Install conan
+        run: pip3 install "conan>=2.29.1" "cmake>=4.3.4" "ninja>=1.13.0"
+
+      - name: Configure remote
+        run: |
+          conan profile detect --force >/dev/null 2>&1 || true
+          conan remote add voltygg "$CONAN_REMOTE_URL"
+          conan remote login voltygg ci -p "${{ secrets.CLOUDSMITH_API_KEY }}"
+
+      - name: Build SDK packages
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_sdks
+        run: |
+          conan create recipes/metamod-source --version "$METAMOD_VERSION" \
+            -pr:a conan/profiles/linux-steamrt.txt -s build_type=Release
+          conan create recipes/hl2sdk-cs2 --version "$HL2SDK_VERSION" \
+            -pr:a conan/profiles/linux-steamrt.txt -s build_type=Release
+
+      - name: Build cs2-kit (Release + Debug, with/without postgres)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          CS2KIT_VERSION: ${{ github.ref_name }}
+        run: |
+          export CS2KIT_VERSION="${CS2KIT_VERSION#v}"
+          # --lockfile="": conan.lock pins the vendored-dev graph and knows
+          # nothing about the SDK packages package mode requires.
+          for bt in Release Debug; do
+            for pg in False True; do
+              conan create . -pr:a conan/profiles/linux-steamrt.txt \
+                -s build_type=$bt -o "cs2-kit/*:with_postgres=$pg" --build=missing --lockfile=""
+            done
+          done
+
+      - name: Upload everything (recipes + binaries, incl. third-party deps)
+        run: conan upload "*" -r voltygg --confirm
+
+  windows:
+    name: Build + upload (windows-msvc)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install conan
+        run: pip install "conan>=2.29.1" "cmake>=4.3.4" "ninja>=1.13.0"
+
+      - name: Configure remote
+        run: |
+          conan profile detect --force 2>$null; if (-not $?) { }
+          conan remote add voltygg "$env:CONAN_REMOTE_URL"
+          conan remote login voltygg ci -p "${{ secrets.CLOUDSMITH_API_KEY }}"
+
+      # windows-latest ships cl 19.4x; the checked-in profile says 195. Pass
+      # the runner's actual version so package IDs match what consumers with
+      # newer toolsets resolve through Conan's compatibility fallback.
+      - name: Detect MSVC version
+        id: msvc
+        shell: pwsh
+        run: |
+          $cl = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -find "VC\Tools\MSVC\*\bin\Hostx64\x64\cl.exe" | Select-Object -First 1
+          $ver = (& $cl 2>&1 | Select-String "Version (\d+)\.(\d+)").Matches[0]
+          $msvc = "$($ver.Groups[1].Value)$($ver.Groups[2].Value.Substring(0,1))"
+          "version=$msvc" >> $env:GITHUB_OUTPUT
+
+      - name: Build SDK packages
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_sdks
+        shell: pwsh
+        run: |
+          conan create recipes/metamod-source --version "$env:METAMOD_VERSION" -pr:a conan/profiles/windows-msvc.txt -s compiler.version=${{ steps.msvc.outputs.version }} -s build_type=Release -s compiler.runtime_type=Release
+          conan create recipes/hl2sdk-cs2 --version "$env:HL2SDK_VERSION" -pr:a conan/profiles/windows-msvc.txt -s compiler.version=${{ steps.msvc.outputs.version }} -s build_type=Release -s compiler.runtime_type=Release
+
+      - name: Build cs2-kit (Release + Debug, with/without postgres)
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          CS2KIT_VERSION: ${{ github.ref_name }}
+        run: |
+          $env:CS2KIT_VERSION = $env:CS2KIT_VERSION -replace '^v', ''
+          foreach ($bt in "Release", "Debug") {
+            foreach ($pg in "False", "True") {
+              conan create . -pr:a conan/profiles/windows-msvc.txt -s compiler.version=${{ steps.msvc.outputs.version }} -s build_type=$bt -s compiler.runtime_type=$bt -o "cs2-kit/*:with_postgres=$pg" --build=missing --lockfile=""
+              if ($LASTEXITCODE -ne 0) { exit 1 }
+            }
+          }
+
+      - name: Upload everything (recipes + binaries, incl. third-party deps)
+        run: conan upload "*" -r voltygg --confirm
+
+  smoke:
+    name: Consume from the remote (no submodules)
+    needs: [linux, windows]
+    if: startsWith(github.ref, 'refs/tags/v')
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install conan
+        run: pip install "conan>=2.29.1" "cmake>=4.3.4" "ninja>=1.13.0"
+
+      - name: Fresh consume of cs2-kit from the remote
+        shell: bash
+        env:
+          CONAN_HOME: ${{ runner.temp }}/conan-fresh
+        run: |
+          conan profile detect --force >/dev/null 2>&1 || true
+          conan remote add voltygg "$CONAN_REMOTE_URL"
+          conan remote login voltygg ci -p "${{ secrets.CLOUDSMITH_API_KEY }}"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            PROFILE=conan/profiles/windows-msvc.txt
+            EXTRA="-s compiler.runtime_type=Release -s compiler.version=194"
+          else
+            PROFILE=conan/profiles/linux-steamrt.txt
+            EXTRA=""
+          fi
+          VERSION="${GITHUB_REF_NAME#v}"
+          # test_package doubles as the smoke consumer: binaries must come
+          # from the remote, nothing may build locally.
+          conan test test_package "cs2-kit/$VERSION" -pr:a "$PROFILE" \
+            -s build_type=Release $EXTRA -r voltygg --build=never
