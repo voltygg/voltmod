@@ -10,11 +10,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "logLevel": {
-          "type": "string",
-          "enum": ["trace", "debug", "info", "warn", "error"],
-          "default": "info"
-        },
         "locale": {
           "type": "string",
           "default": "en",

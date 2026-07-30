@@ -36,4 +36,4 @@ A working plugin is a `CommandSpec` and forty lines of skeleton. Generate one wi
 
 <h2>License</h2>
 
-CS2-Kit is released under the [MIT License](https://github.com/suxrobGM/cs2-kit/blob/main/LICENSE).
+CS2-Kit is released under the [MIT License](https://github.com/voltygg/cs2-kit/blob/main/LICENSE).

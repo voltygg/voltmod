@@ -1,6 +1,6 @@
 # $project
 
-CS2 Metamod plugins built on [cs2-kit](https://github.com/suxrobGM/cs2-kit).
+CS2 Metamod plugins built on [cs2-kit](https://github.com/voltygg/cs2-kit).
 
 ## Requirements
 

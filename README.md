@@ -30,7 +30,7 @@ Start a plugin project from an empty directory:
 ```sh
 mkdir my-cs2-plugins && cd my-cs2-plugins
 git init
-git submodule add https://github.com/suxrobgm/cs2-kit.git vendor/cs2-kit
+git submodule add https://github.com/voltygg/cs2-kit.git vendor/cs2-kit
 git submodule update --init --recursive
 python vendor/cs2-kit/scripts/init_project.py --plugin my-plugin
 uv sync

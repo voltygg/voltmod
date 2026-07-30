@@ -10,54 +10,48 @@
 
 ```cpp
 #include <CS2Kit/Api.hpp>
+#include <CS2Kit/Core/PluginInfoStamp.hpp>
 
 class MyPlugin : public CS2Kit::PluginBase<MyNs::Managers>
 {
 protected:
     CS2Kit::PluginInfo Info() const override
     {
-        return { .Name = "My Plugin", .Author = "me", .Version = "1.0.0", .LogTag = "MINE" };
+        // WithBuildInfo stamps Version/Date/Commit from <CS2Kit/BuildInfo.hpp>.
+        return CS2Kit::WithBuildInfo({ .Name = "My Plugin", .Author = "me", .LogTag = "MINE" });
     }
 
     bool OnLoad(bool late) override;
 };
 
-// In the .cpp:
-MyPlugin g_MyPlugin;
-PLUGIN_EXPOSE(MyPlugin, g_MyPlugin);   // + PLUGIN_GLOBALVARS() in the header
-
-namespace MyNs { Managers& App() { return MyPlugin::App(); } }
+// In the .cpp - instance, PLUGIN_EXPOSE, and the MyNs::App() trampoline in one line:
+CS2KIT_PLUGIN(MyPlugin, MyNs);
 ```
 
-`PLUGIN_EXPOSE` / `PLUGIN_GLOBALVARS` stay in your code - they define the per-plugin SourceHook globals the base links against.
+`CS2KIT_PLUGIN` expands the per-plugin SourceHook globals (`PLUGIN_EXPOSE`) the base links against; the matching extern declarations ship inside `MetamodPluginBase.hpp`, so your header needs nothing. Your `Managers` struct stays a plain aggregate - one rule: a member initializer may only reference members declared **above** it (declaration order is construction order).
 
 ## What Load does, in order
 
 1. `PLUGIN_SAVEVARS()` + `CS2Kit::Initialize()` - interface resolution, gamedata, every kit subsystem.
 2. `OnRegisterHooks()` - your custom SourceHook hooks.
 3. `OnCreateInstances()` - `PluginBase` constructs your `Managers` here, after the kit services are live, so manager member initializers may call `Engine()`.
-4. Your `OnLoad(late)`. Returning `false` rejects the load - the Defer stack runs and `CS2Kit::Shutdown()` is called first, so a failed init never leaks.
+4. Your `OnLoad(late)`. Returning `false` rejects the load - the Defer stack runs and `CS2Kit::Shutdown()` is called first, so a failed init never leaks. A bare `return false` with no Failed stage recorded gets a synthetic "OnLoad" failure stage, so `meta list` always names a reason.
+5. Self-registered `CommandSpec`s are ingested automatically (a "Commands" stage appears in the report when any exist) - after `OnLoad`, so your policy and prefixes are already in place.
 
-A typical `OnLoad` reads config, installs the policy, and ingests registered commands:
+The standard prelude - config plus translations, recorded as LoadReport stages - is one call:
 
 ```cpp
 bool MyPlugin::OnLoad(bool late)
 {
-    if (!App().Config.Load("addons/my-plugin/configs/settings.jsonc"))
+    if (!CS2Kit::LoadStandardConfig(App().Config, {.Addon = "my-plugin"}))
         return false;
-
-    Engine().Translations.SetLanguage(App().Config.Get().plugin.locale);
-    Engine().Translations.Load("addons/my-plugin/configs/translations");
-
-    Engine().Policy = {
-        .HasPermission = ...,   // see the architecture guide
-        .Reply = [](int slot, std::string_view msg) { Engine().Messages.Reply(slot, msg); },
-    };
-
-    Engine().Commands.RegisterAll(CS2Kit::Registry<CS2Kit::CommandSpec>::Items());
+    // Optional: install Engine().Policy once you have real permission data.
+    // Without one, commands dispatch permissively and reply via Engine().Messages.Reply.
     return true;
 }
 ```
+
+`LoadStandardConfig` uses your config type's `LoadSettings` when it has one (the load-then-validate convention), otherwise `JsonConfig::Load`; it applies `plugin.locale` when your settings struct embeds @ref CS2Kit::Core::StandardPluginSettings, and `{.Translations = false}` skips the translations stage for plugins that ship none.
 
 ## Load stages: LoadReport
 
@@ -117,7 +111,7 @@ Keep JSON sections compact (counts and names, not full lists) - RCON's console c
 | `OnPlayerFullyConnected(Player*)` | Post `ClientFullyConnect`, once the player is in the server | First point their name and convars are meaningful; may be null - guard it |
 | `OnPlayerSettingsChanged(Player*)` | The client changed a replicated setting (name, userinfo cvars) | Fires on every change, including the burst the engine sends at connect - debounce if you act on it; may be null |
 | `OnPlayerDisconnect(Player*)` | Before the player is removed | May be null - guard it |
-| `OnPlayerChat(Player*, string_view, bool team)` | On `say`/`say_team` | Return `true` to swallow the message; dispatch commands here via `Engine().Commands.HandleChatMessage` |
+| `OnPlayerChat(Player*, string_view, bool team)` | On `say`/`say_team` | Default dispatches registered chat commands and swallows handled ones; override to customize (an override replaces the dispatch wholesale, as admin-style chat services do) |
 | `OnRegisterHooks()` | Once during load | Custom SourceHook hooks |
 
 ## Teardown: Defer

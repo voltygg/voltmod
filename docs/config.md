@@ -10,23 +10,19 @@ Settings are a struct that mirrors your JSON file, deserialized in one call. Dec
 #include <CS2Kit/Api.hpp>
 #include <nlohmann/json.hpp>
 
-struct PluginSettings
-{
-    std::string logLevel = "info";
-    std::string locale = "en";
-};
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(PluginSettings, logLevel, locale)
-
 struct Settings
 {
-    PluginSettings plugin;
+    CS2Kit::StandardPluginSettings plugin;   // the kit-standard "plugin" section (locale)
+    // one struct + member per additional section
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Settings, plugin)
 
 using ConfigManager = CS2Kit::JsonConfig<Settings>;
 ```
 
-Member names must match the JSON keys. The `_WITH_DEFAULT` macro means a missing key keeps the member's default - only a missing file, a parse error, or a wrong-typed value fails the load. JSONC comments are tolerated.
+Member names must match the JSON keys. The `_WITH_DEFAULT` macro means a missing key keeps the member's default - only a missing file, a parse error, or a wrong-typed value fails the load. JSONC comments are tolerated, and unknown keys are ignored (which is also why retired keys need no config migration).
+
+@ref CS2Kit::Core::StandardPluginSettings is the kit-owned "plugin" section; embedding it is what lets `LoadStandardConfig` apply `plugin.locale` to `Engine().Translations` automatically (see @ref plugin_guide).
 
 ### Editor validation with a JSON Schema
 
@@ -35,18 +31,15 @@ Ship a `settings.schema.json` next to the jsonc and reference it with a relative
 ```cpp
 bool MyPlugin::OnLoad(bool late)
 {
-    if (!App().Config.Load("addons/my-plugin/configs/settings.jsonc"))
-        return false;   // logged already; reject the load
-
-    const auto& s = App().Config.Get();
-    Engine().Translations.SetLanguage(s.plugin.locale);
-    return true;
+    // Config + translations as LoadReport stages; uses LoadSettings when your
+    // ConfigManager defines one, plain Load otherwise.
+    return CS2Kit::LoadStandardConfig(App().Config, {.Addon = "my-plugin"});
 }
 ```
 
 ## Post-load validation
 
-When raw settings need parsing or clamping (duration strings, tag sanitizing, dropping invalid list entries), subclass `JsonConfig` and resolve once after `Load`:
+When raw settings need parsing or clamping (duration strings, tag sanitizing, dropping invalid list entries), subclass `JsonConfig` and resolve once after `Load`. Name the entry point `LoadSettings` and `LoadStandardConfig` picks it up instead of `Load`:
 
 ```cpp
 class ConfigManager : public CS2Kit::JsonConfig<Settings>

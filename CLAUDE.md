@@ -89,3 +89,12 @@ the `PlayerManager` lifecycle, and constructs/destroys the plugin's `TManagers`
 container (reached via the plugin's `App()`). All player-facing text goes
 through `Engine().Messages` (MessageKind: Chat/Center/CenterHtml/Alert);
 `PostgresDatabase` is async-first with blocking calls reserved for load time.
+
+`CS2KIT_PLUGIN(Klass, Ns)` expands the per-plugin entry-point ceremony
+(instance, PLUGIN_EXPOSE, App() trampoline); `PLUGIN_GLOBALVARS` ships inside
+MetamodPluginBase.hpp. `CS2Kit::LoadStandardConfig` is the standard OnLoad
+prelude (config + translations as LoadReport stages); self-registered
+`CommandSpec`s are auto-ingested after OnLoad and the default `OnPlayerChat`
+dispatches them, so a plugin with no chat customization writes none of that.
+The Database vocabulary hoist lives in `<CS2Kit/Database/Api.hpp>`, deliberately
+outside `Api.hpp`, so `<pqxx/pqxx>` only reaches TUs that opt in.

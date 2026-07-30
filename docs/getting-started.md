@@ -16,7 +16,7 @@ From an empty directory, vendor the kit and let `init_project.py` stamp the whol
 ```sh
 mkdir my-cs2-plugins && cd my-cs2-plugins
 git init
-git submodule add https://github.com/suxrobgm/cs2-kit.git vendor/cs2-kit
+git submodule add https://github.com/voltygg/cs2-kit.git vendor/cs2-kit
 git submodule update --init --recursive
 python vendor/cs2-kit/scripts/init_project.py --plugin my-plugin
 uv sync
@@ -46,12 +46,10 @@ You get `plugins/fun-votes/` with a `PluginBase` skeleton, a self-registering ex
 A plugin's `CMakeLists.txt` is a single declaration - `cs2_add_plugin` is defined by the kit and available after `add_subdirectory(vendor/cs2-kit)`:
 
 ```cmake
-cs2_add_plugin(fun-votes
-    LIBRARIES nlohmann_json::nlohmann_json
-)
+cs2_add_plugin(fun-votes)
 ```
 
-- `cs2_add_plugin(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...])` creates the Metamod MODULE: `SOURCES` defaults to a recursive glob of `src/*.cpp`; the required HL2SDK translation units (`memoverride.cpp`, `convar.cpp`) and the `CS2Kit::CS2Kit` link are added for you, along with C++23, the static MSVC runtime, and ccache when present.
+- `cs2_add_plugin(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...] [PCH_HEADERS ...] [UNITY])` creates the Metamod MODULE: `SOURCES` defaults to a recursive glob of `src/*.cpp`; the required HL2SDK translation units (`memoverride.cpp`, `convar.cpp`) and the `CS2Kit::CS2Kit` link are added for you, along with C++23, the static MSVC runtime, ccache when present, and a precompiled `<CS2Kit/Api.hpp>` (extend with `PCH_HEADERS`, disable with `-DCS2KIT_DISABLE_PCH=ON`).
 - `cs2_install_plugin(<name>)` (called automatically) defines the deploy bundle as an install component: the module under `addons/<name>/bin/{win64|linuxsteamrt64}`, a generated Metamod `.vdf` under `addons/metamod`, the plugin's `configs/`, and the kit's shared gamedata. `cmake --install build/<preset> --component <name> --prefix <dir>` stages a server-ready `addons/` tree.
 
 ### Version and build provenance
@@ -59,14 +57,11 @@ cs2_add_plugin(fun-votes
 Every plugin build stamps a generated `<CS2Kit/BuildInfo.hpp>` (namespace `CS2Kit::BuildInfo`) with a display `Version`, the `RepoCommit` short hash, and the last-commit `BuildDate`. The display version is `<version.txt>+<short-sha>[-dirty]`, where `version.txt` is a single-line file at your repo root (missing file → `0.0.0`). A clean `RepoCommit` pins your submodules (cs2-kit included), and a modified one is flagged `-dirty`, so those three fields identify a build exactly. Wire them into your `Info()` so `meta list` always identifies the exact deployed build:
 
 ```cpp
-#include <CS2Kit/BuildInfo.hpp>  // only from Plugin.cpp - the header changes every commit
+#include <CS2Kit/Core/PluginInfoStamp.hpp>  // only from Plugin.cpp - it pulls the per-commit BuildInfo.hpp
 
 CS2Kit::PluginInfo MyPlugin::Info() const {
-    return { .Name = "My Plugin",
-             .Version = CS2Kit::BuildInfo::Version,
-             .Date = CS2Kit::BuildInfo::BuildDate,
-             .Commit = CS2Kit::BuildInfo::RepoCommit,
-             .LogTag = "MINE" };
+    // WithBuildInfo overwrites Version/Date/Commit from the stamp.
+    return CS2Kit::WithBuildInfo({ .Name = "My Plugin", .LogTag = "MINE" });
 }
 ```
 
@@ -87,7 +82,7 @@ The kit's CMake leans on standard mechanisms instead of hand-rolled flags wherev
 If you already have a CMake project, you only need the submodule and the subdirectory:
 
 ```sh
-git submodule add https://github.com/suxrobgm/cs2-kit.git vendor/cs2-kit
+git submodule add https://github.com/voltygg/cs2-kit.git vendor/cs2-kit
 git submodule update --init --recursive
 ```
 
@@ -124,31 +119,33 @@ If you'd rather see what the generator writes: derive from @ref CS2Kit::Core::Pl
 
 ```cpp
 #include <CS2Kit/Api.hpp>
+#include <CS2Kit/Core/PluginInfoStamp.hpp>
 
+namespace MyNs
+{
 struct Managers
 {
     ConfigManager Config;   // your managers, in dependency order
 };
-Managers& App();            // free accessor, forwarded below
+Managers& App();            // free accessor; CS2KIT_PLUGIN defines it
+}  // namespace MyNs
 
-class MyPlugin : public CS2Kit::PluginBase<Managers>
+class MyPlugin : public CS2Kit::PluginBase<MyNs::Managers>
 {
 protected:
     CS2Kit::PluginInfo Info() const override
     {
-        return { .Name = "My Plugin", .Author = "me", .Version = "1.0.0", .LogTag = "MINE" };
+        return CS2Kit::WithBuildInfo({ .Name = "My Plugin", .Author = "me", .LogTag = "MINE" });
     }
 
     bool OnLoad(bool late) override
     {
-        return App().Config.Load("addons/my-plugin/configs/settings.jsonc");
+        return CS2Kit::LoadStandardConfig(MyNs::App().Config, {.Addon = "my-plugin"});
     }
 };
 
-MyPlugin g_MyPlugin;
-PLUGIN_EXPOSE(MyPlugin, g_MyPlugin);
-
-Managers& App() { return MyPlugin::App(); }
+// Global instance, PLUGIN_EXPOSE, and the MyNs::App() definition in one line:
+CS2KIT_PLUGIN(MyPlugin, MyNs);
 ```
 
 ## Manual initialization

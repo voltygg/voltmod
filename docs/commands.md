@@ -26,26 +26,11 @@ static const bool _registered = CS2Kit::Registry<CommandSpec>::Add({
 });
 ```
 
-In `OnLoad`, ingest everything that registered itself:
-
-```cpp
-Engine().Commands.RegisterAll(CS2Kit::Registry<CS2Kit::CommandSpec>::Items());
-```
-
-And dispatch from your chat override (commands are triggered by `!` or `.`; `HandleChatMessage` returns `false` for unknown names so they fall through to normal chat):
-
-```cpp
-bool MyPlugin::OnPlayerChat(Player* p, std::string_view msg, bool team)
-{
-    if (msg.empty() || (msg.front() != '!' && msg.front() != '.'))
-        return false;
-    return Engine().Commands.HandleChatMessage(p, std::string(msg));
-}
-```
+That's the whole thing: the kit ingests every self-registered spec automatically after `OnLoad` (a "Commands" stage appears in the load report), and the default `OnPlayerChat` dispatches `!`/`.` messages through `HandleChatMessage` - unknown names fall through to normal chat. Plugins with their own chat handling (admin-style chat services) override `OnPlayerChat` and take over dispatch wholesale.
 
 ## The pipeline
 
-For each chat command: prefix match → `Engine().Policy.HasPermission(callerSteamId, spec.Permission)` → per-argument resolve/validate → your handler → the returned `CommandResult.Message` routed through `Engine().Policy.Reply`. An empty `Permission` skips the gate; a failure at any step replies with a localized message and never reaches the handler.
+For each chat command: prefix match → `Engine().Policy.HasPermission(callerSteamId, spec.Permission)` → per-argument resolve/validate → your handler → the returned `CommandResult.Message` routed through `Engine().Policy.Reply` (or a plain `Engine().Messages.Reply` line when no policy Reply is installed). An empty `Permission` skips the gate; a failure at any step replies with a localized message and never reaches the handler.
 
 ## Argument kinds
 
