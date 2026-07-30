@@ -92,8 +92,12 @@ bool CommandManager::HandleChatMessage(Players::Player* caller, const std::strin
 
     auto& policy = Core::Engine().Policy;
     auto reply = [&](const std::string& msg) {
-        if (policy.Reply && !msg.empty())
+        if (msg.empty())
+            return;
+        if (policy.Reply)
             policy.Reply(caller->GetSlot(), msg);
+        else
+            Core::Engine().Messages.Reply(caller->GetSlot(), msg);
     };
 
     if (!cmd->Permission.empty())

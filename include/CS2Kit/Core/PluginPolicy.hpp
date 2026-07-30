@@ -28,7 +28,8 @@ struct PluginPolicy
     /** May @p caller act on @p target (immunity / same-team rules)? */
     std::function<bool(Players::Player& caller, Players::Player& target)> CanTarget;
 
-    /** Deliver a command result or error line to a player (e.g. as a colored chat reply). */
+    /** Deliver a command result or error line to a player (e.g. as a colored chat
+     *  reply). Empty = the kit falls back to a plain Engine().Messages.Reply line. */
     std::function<void(int slot, std::string_view message)> Reply;
 
     /** Announce a performed action; @p target is null for actions without one. */

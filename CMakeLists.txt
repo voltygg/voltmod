@@ -141,6 +141,7 @@ if(BUILD_TESTING)
         SOURCES
             # SDK-free TUs, hand-picked: the rest of src/ needs HL2SDK/pqxx/json.
             src/Core/EffectManager.cpp
+            src/Core/Paths.cpp
             src/Core/ScheduledEffect.cpp
             src/Core/Scheduler.cpp
             src/Players/Targeting.cpp

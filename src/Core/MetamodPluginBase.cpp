@@ -1,6 +1,9 @@
 #include <CS2Kit/CS2Kit.hpp>
+#include <CS2Kit/Commands/CommandSpec.hpp>
 #include <CS2Kit/Core/MetamodPluginBase.hpp>
+#include <CS2Kit/Core/Registry.hpp>
 #include <CS2Kit/Core/Services.hpp>
+#include <format>
 #include <CS2Kit/Players/Player.hpp>
 #include <CS2Kit/Players/PlayerManager.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
@@ -11,9 +14,8 @@
 #include <nlohmann/json.hpp>
 #include <string>
 
-// extern decls for the SourceHook globals the consumer's PLUGIN_EXPOSE defines; lets the base
-// own the standard hooks and call PLUGIN_SAVEVARS in Load().
-PLUGIN_GLOBALVARS();
+// The SourceHook extern declarations (PLUGIN_GLOBALVARS) come with
+// MetamodPluginBase.hpp; the definitions come from each plugin's CS2KIT_PLUGIN.
 
 // The SDK only forward-declares this (iloopmode.h keeps the real one commented out). SourceHook's
 // param table needs a complete type; the hook receives it by reference and never looks inside.
@@ -80,15 +82,30 @@ bool MetamodPluginBase::Load(PluginId id, ISmmAPI* ismm, char* error, size_t max
 
     if (!OnLoad(late))
     {
+        // A bare `return false` (no Failed stage recorded) still gets a named
+        // failure in the report and Metamod's error buffer.
+        if (_services->LoadReport.FirstFailure().empty())
+            _services->LoadReport.Run("OnLoad", [] { return StageResult::Failed("OnLoad returned false"); });
         Log::Info("{}", _services->LoadReport.Summary());
         const std::string failure = _services->LoadReport.FirstFailure();
-        snprintf(error, maxlen, "%s", failure.empty() ? "Plugin initialization failed" : failure.c_str());
+        snprintf(error, maxlen, "%s", failure.c_str());
         RunDeferred();
         CS2Kit::Shutdown(*_services);
         OnDestroyInstances();
         SetActiveServices(nullptr);
         _services.reset();
         return false;
+    }
+
+    // Self-registered command specs are ingested after OnLoad, so the plugin's
+    // policy and prefixes are already in place. Registration is idempotent by
+    // name - a plugin still calling RegisterAll itself is harmless.
+    if (auto specs = Registry<Commands::CommandSpec>::Items(); !specs.empty())
+    {
+        _services->LoadReport.Run("Commands", [&] {
+            _services->Commands.RegisterAll(specs);
+            return StageResult::Ok(std::format("{} chat commands", _services->Commands.Count()));
+        });
     }
 
     Log::Info("{}", _services->LoadReport.Summary());
@@ -112,6 +129,11 @@ bool MetamodPluginBase::Unload(char* error, size_t maxlen)
     SetActiveServices(nullptr);
     _services.reset();
     return true;
+}
+
+bool MetamodPluginBase::OnPlayerChat(Players::Player* player, std::string_view message, bool /*teamChat*/)
+{
+    return _services->Commands.HandleChatMessage(player, std::string(message));
 }
 
 void MetamodPluginBase::Defer(std::function<void()> cleanup)

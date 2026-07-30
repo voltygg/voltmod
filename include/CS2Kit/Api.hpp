@@ -17,14 +17,20 @@
 #include <CS2Kit/Core/CallbackRegistry.hpp>
 #include <CS2Kit/Core/EffectDescriptor.hpp>
 #include <CS2Kit/Core/EffectManager.hpp>
+#include <CS2Kit/Core/HookMacros.hpp>
+#include <CS2Kit/Core/ILogger.hpp>
 #include <CS2Kit/Core/JsonConfig.hpp>
 #include <CS2Kit/Core/LoadReport.hpp>
 #include <CS2Kit/Core/MetamodPluginBase.hpp>
+#include <CS2Kit/Core/Paths.hpp>
 #include <CS2Kit/Core/PluginBase.hpp>
 #include <CS2Kit/Core/PluginPolicy.hpp>
+#include <CS2Kit/Core/PluginSettings.hpp>
 #include <CS2Kit/Core/Registry.hpp>
 #include <CS2Kit/Core/Scheduler.hpp>
 #include <CS2Kit/Core/Services.hpp>
+#include <CS2Kit/Core/Slot.hpp>
+#include <CS2Kit/Core/StandardLoad.hpp>
 // The Database vocabulary lives in <CS2Kit/Database/Api.hpp>, deliberately
 // outside this umbrella: it drags <pqxx/pqxx> into every including TU, and
 // most plugin code never touches the database.
@@ -66,6 +72,7 @@
 #include <CS2Kit/Sdk/UserMessage.hpp>
 #include <CS2Kit/Utils/AngleMath.hpp>
 #include <CS2Kit/Utils/DecayingScore.hpp>
+#include <CS2Kit/Utils/Log.hpp>
 #include <CS2Kit/Utils/SlidingWindowScore.hpp>
 #include <CS2Kit/Utils/SlotThrottle.hpp>
 #include <CS2Kit/Utils/StringUtils.hpp>
@@ -77,6 +84,8 @@ namespace CS2Kit
 {
 
 // Core
+using Core::AddonDir;
+using Core::AddonFile;
 using Core::ApplyEffect;
 using Core::CallbackRegistry;
 using Core::ClearEffect;
@@ -87,18 +96,25 @@ using Core::EffectManager;
 using Core::EffectScope;
 using Core::EffectSpec;
 using Core::Engine;
+using Core::ILogger;
+using Core::IsValidSlot;
 using Core::JsonConfig;
 using Core::LoadReport;
+using Core::MaxPlayers;
 using Core::MetamodPluginBase;
 using Core::ParamEffectDescriptor;
 using Core::PluginBase;
 using Core::PluginInfo;
 using Core::PluginPolicy;
+using Core::LoadStandardConfig;
 using Core::Registry;
+using Core::ResolvePath;
 using Core::Scheduler;
 using Core::Services;
 using Core::StageResult;
 using Core::StageStatus;
+using Core::StandardLoadOptions;
+using Core::StandardPluginSettings;
 using Core::StatusService;
 using Core::ToggleEffect;
 
@@ -194,6 +210,7 @@ using Utils::TimeUtils;
 using Utils::Tokens;
 using Utils::Translations;
 namespace AngleMath = Utils::AngleMath;
+namespace Log = Utils::Log;
 namespace Validation = Utils::Validation;
 
 }  // namespace CS2Kit

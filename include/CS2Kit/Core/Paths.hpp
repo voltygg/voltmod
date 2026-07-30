@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <string>
+#include <string_view>
 
 namespace CS2Kit::Core
 {
@@ -21,5 +22,13 @@ void SetBaseDir(const std::filesystem::path& baseDir);
  * @return The resolved absolute path.
  */
 std::filesystem::path ResolvePath(const std::string& relativePath);
+
+/** @brief "addons/<addon>" - the addon's install root, in the engine-relative
+ *  form the kit's loaders take. Pure string building; safe at static init. */
+std::string AddonDir(std::string_view addon);
+
+/** @brief "addons/<addon>/<relative>", e.g. AddonFile("bhop", "configs/settings.jsonc").
+ *  Keeps the plugin name in one place instead of hand-spelled path literals. */
+std::string AddonFile(std::string_view addon, std::string_view relative);
 
 }  // namespace CS2Kit::Core

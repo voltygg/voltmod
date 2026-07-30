@@ -15,9 +15,10 @@ namespace CS2Kit::Core
  * unload after the Defer() cleanups ran - the same lifetime the kit's own Services follow.
  *
  * @code
+ * // Plugin.hpp
  * class MyPlugin : public CS2Kit::PluginBase<MySystem::Managers> { ... };
- * // anywhere in the plugin:
- * inline MySystem::Managers& App() { return MyPlugin::App(); }
+ * // Plugin.cpp - instance, PLUGIN_EXPOSE and the App() trampoline in one line:
+ * CS2KIT_PLUGIN(MyPlugin, MySystem);
  * @endcode
  */
 template <class TManagers>
@@ -48,3 +49,24 @@ private:
 };
 
 }  // namespace CS2Kit::Core
+
+/**
+ * @brief The per-plugin entry-point boilerplate in one statement: the global plugin
+ * instance (g_<PluginClass>), Metamod's PLUGIN_EXPOSE, and the AppNamespace::App()
+ * trampoline.
+ *
+ * Invoke exactly once, at global namespace scope, in the plugin's Plugin.cpp.
+ * Requires @p AppNamespace::Managers to be the PluginBase manager container and
+ * @p AppNamespace to declare `Managers& App();` (the scaffold's Managers.hpp does).
+ */
+#define CS2KIT_PLUGIN(PluginClass, AppNamespace) \
+    PluginClass g_##PluginClass;                 \
+    PLUGIN_EXPOSE(PluginClass, g_##PluginClass); \
+    namespace AppNamespace                       \
+    {                                            \
+    Managers& App()                              \
+    {                                            \
+        return PluginClass::App();               \
+    }                                            \
+    }                                            \
+    static_assert(true, "CS2KIT_PLUGIN requires a trailing semicolon")

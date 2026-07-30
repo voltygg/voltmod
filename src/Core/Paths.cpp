@@ -1,4 +1,5 @@
 #include <CS2Kit/Core/Paths.hpp>
+#include <format>
 
 namespace CS2Kit::Core
 {
@@ -14,6 +15,16 @@ std::filesystem::path ResolvePath(const std::string& relativePath)
 {
     std::filesystem::path p(relativePath);
     return p.is_absolute() ? p : g_baseDir / p;
+}
+
+std::string AddonDir(std::string_view addon)
+{
+    return std::format("addons/{}", addon);
+}
+
+std::string AddonFile(std::string_view addon, std::string_view relative)
+{
+    return std::format("addons/{}/{}", addon, relative);
 }
 
 }  // namespace CS2Kit::Core
