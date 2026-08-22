@@ -31,7 +31,8 @@ conan config install https://github.com/voltygg/cs2-kit.git -sf conan
 
 # The private remote:
 conan remote add voltygg https://conan.cloudsmith.io/voltygg/cs2-kit/
-conan remote login voltygg <user> -p <entitlement-token>
+# Username is the literal repo path when authenticating with an entitlement token:
+conan remote login voltygg voltygg/cs2-kit -p <entitlement-token>
 ```
 
 The profiles are required, not a convenience: the Linux binaries are built

@@ -11,7 +11,7 @@ conan config install https://github.com/voltygg/cs2-kit.git -sf conan
 
 # The private remote (ask a maintainer for a read entitlement token):
 conan remote add voltygg https://conan.cloudsmith.io/voltygg/cs2-kit/
-conan remote login voltygg <user> -p <token>
+conan remote login voltygg voltygg/cs2-kit -p <token>
 ```
 
 ## Build

@@ -1,6 +1,8 @@
 name: Publish Conan packages
 
-# Publishes to the private Cloudsmith Conan remote (secret: CLOUDSMITH_API_KEY).
+# Publishes to the private Cloudsmith Conan remote. Secrets: CLOUDSMITH_USERNAME
+# (a Cloudsmith user or service-account slug with Write on the repo) and
+# CLOUDSMITH_API_KEY (that account's API key - entitlement tokens are read-only).
 # cs2-kit publishes on every v* tag; the SDK packages only via manual dispatch,
 # after a PR moves recipes/*/conandata.yml, conanfile.py's version constants and
 # the vendor/ submodules together.
@@ -38,7 +40,7 @@ jobs:
         run: |
           conan profile detect --force >/dev/null 2>&1 || true
           conan remote add voltygg "$CONAN_REMOTE_URL"
-          conan remote login voltygg ci -p "${{ secrets.CLOUDSMITH_API_KEY }}"
+          conan remote login voltygg "${{ secrets.CLOUDSMITH_USERNAME }}" -p "${{ secrets.CLOUDSMITH_API_KEY }}"
 
       - name: Build SDK packages
         if: github.event_name == 'workflow_dispatch' && inputs.publish_sdks
@@ -78,7 +80,7 @@ jobs:
         run: |
           conan profile detect --force 2>$null; if (-not $?) { }
           conan remote add voltygg "$env:CONAN_REMOTE_URL"
-          conan remote login voltygg ci -p "${{ secrets.CLOUDSMITH_API_KEY }}"
+          conan remote login voltygg "${{ secrets.CLOUDSMITH_USERNAME }}" -p "${{ secrets.CLOUDSMITH_API_KEY }}"
 
       # windows-latest ships cl 19.4x but the checked-in profile says 195; pass the
       # runner's version so package IDs match what newer consumers resolve.
@@ -136,7 +138,7 @@ jobs:
         run: |
           conan profile detect --force >/dev/null 2>&1 || true
           conan remote add voltygg "$CONAN_REMOTE_URL"
-          conan remote login voltygg ci -p "${{ secrets.CLOUDSMITH_API_KEY }}"
+          conan remote login voltygg "${{ secrets.CLOUDSMITH_USERNAME }}" -p "${{ secrets.CLOUDSMITH_API_KEY }}"
           if [ "$RUNNER_OS" = "Windows" ]; then
             PROFILE=conan/profiles/windows-msvc.txt
             EXTRA="-s compiler.runtime_type=Release -s compiler.version=194"
