@@ -97,9 +97,14 @@ jobs:
         id: msvc
         shell: pwsh
         run: |
-          $cl = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -find "VC\Tools\MSVC\*\bin\Hostx64\x64\cl.exe" | Select-Object -First 1
-          $ver = (& $cl 2>&1 | Select-String "Version (\d+)\.(\d+)").Matches[0]
-          $msvc = "$($ver.Groups[1].Value)$($ver.Groups[2].Value.Substring(0,1))"
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          # -find lists every installed toolset ascending, so take the last: a VS2022 image
+          # also carries the 14.29 (cl 19.2x) toolset, which cannot compile C++23.
+          $cl = & $vswhere -latest -products * -find "VC\Tools\MSVC\*\bin\Hostx64\x64\cl.exe" | Sort-Object | Select-Object -Last 1
+          if (-not $cl) { throw "no cl.exe found" }
+          if ((& $cl 2>&1 | Out-String) -notmatch "Version (\d+)\.(\d+)") { throw "could not parse cl version" }
+          $msvc = "$($Matches[1])$($Matches[2].Substring(0,1))"
+          if ([int]$msvc -lt 193) { throw "cl $msvc predates C++23 support" }
           "version=$msvc" >> $env:GITHUB_OUTPUT
 
       - name: Build SDK packages
