@@ -137,9 +137,10 @@ endif()
 if(BUILD_TESTING)
     cs2_add_tests(cs2kit-utils-tests
         SOURCES
-            # SDK-free TUs, hand-picked: the rest of src/ needs HL2SDK/pqxx/json.
+            # SDK-free TUs, hand-picked: the rest of src/ needs HL2SDK or pqxx.
             src/Core/EffectManager.cpp
             src/Core/Paths.cpp
+            src/Core/PluginManifest.cpp
             src/Core/ScheduledEffect.cpp
             src/Core/Scheduler.cpp
             src/Players/Targeting.cpp
@@ -147,5 +148,7 @@ if(BUILD_TESTING)
             src/Utils/StringUtils.cpp
             src/Utils/SteamId.cpp
             src/Utils/TimeUtils.cpp
+        # PluginManifest parses its JSON with nlohmann; the rest of these TUs need nothing.
+        LIBRARIES nlohmann_json::nlohmann_json
     )
 endif()

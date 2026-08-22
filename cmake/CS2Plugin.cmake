@@ -3,7 +3,9 @@ include_guard(GLOBAL)
 # Consumer-facing plugin API. Included by cs2-kit's root CMakeLists, so after
 # add_subdirectory(vendor/cs2-kit) any project can call:
 #   cs2_add_plugin(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...]
-#                  [PCH_HEADERS ...] [UNITY])
+#                  [PCH_HEADERS ...] [UNITY]
+#                  [VERSION <v>] [DESCRIPTION <text>]
+#                  [DEPENDS <spec>...] [REQUIRES <spec>...])
 
 # CS2KitSdk provides CS2KIT_ROOT_DIR / _HL2SDK_DIR / _PLATFORM_ARCH / _GAMEDATA_DIR
 # and cs2kit_mark_vendored_sources; include_guard(GLOBAL) makes the repeat free.
@@ -16,8 +18,13 @@ include("${CMAKE_CURRENT_LIST_DIR}/CS2KitBuildInfo.cmake")
 # precompiled header (e.g. "<pqxx/pqxx>"). UNITY enables jumbo compilation -
 # it needs file-unique names for namespace-scope statics (self-registration
 # blocks); Registry<T> items still work, every source is compiled and linked.
+#
+# VERSION/DESCRIPTION/DEPENDS/REQUIRES populate the generated manifest (see
+# cs2_write_plugin_manifest). VERSION defaults to the repo's version.txt, so a
+# plugin only sets it when it genuinely versions apart from the repo.
 function(cs2_add_plugin target_name)
-    cmake_parse_arguments(ARG "UNITY" "" "SOURCES;INCLUDE_DIRS;LIBRARIES;PCH_HEADERS" ${ARGN})
+    cmake_parse_arguments(ARG "UNITY" "VERSION;DESCRIPTION"
+        "SOURCES;INCLUDE_DIRS;LIBRARIES;PCH_HEADERS;DEPENDS;REQUIRES" ${ARGN})
 
     if(NOT ARG_SOURCES)
         file(GLOB_RECURSE ARG_SOURCES CONFIGURE_DEPENDS
@@ -103,7 +110,65 @@ function(cs2_add_plugin target_name)
         INSTALL_RPATH ""
     )
 
+    cs2_write_plugin_manifest("${target_name}"
+        "${ARG_VERSION}" "${ARG_DESCRIPTION}" "${ARG_DEPENDS}" "${ARG_REQUIRES}")
     cs2_install_plugin("${target_name}")
+endfunction()
+
+# Turn a "<name>[>=<version>]" spec into one JSON dependency object, appended to
+# the list variable named by out_var.
+function(_cs2_dependency_json out_var spec required)
+    if(spec MATCHES "^(.+)>=(.+)$")
+        set(name "${CMAKE_MATCH_1}")
+        set(minimum "${CMAKE_MATCH_2}")
+    else()
+        set(name "${spec}")
+        set(minimum "")
+    endif()
+    string(STRIP "${name}" name)
+    string(STRIP "${minimum}" minimum)
+
+    set(entries ${${out_var}})
+    list(APPEND entries
+        "
+    {\"name\": \"${name}\", \"minVersion\": \"${minimum}\", \"required\": ${required}}")
+    set("${out_var}" "${entries}" PARENT_SCOPE)
+endfunction()
+
+# Generate addons/<name>/<name>.manifest.json declaring the plugin's identity and
+# peer dependencies. It lives on disk rather than compiled in so deploy tooling can
+# inspect a staged bundle without loading it; the kit reads it in LoadStandardConfig.
+# DEPENDS entries are advisory (a warning when unmet), REQUIRES entries log an error -
+# neither aborts the load, because Metamod's .vdf load order is not ours to control.
+function(cs2_write_plugin_manifest target_name version description depends requires)
+    if(NOT version)
+        # Same file the build stamp reads, so one bump moves both.
+        file(READ "${CMAKE_SOURCE_DIR}/version.txt" version)
+        string(STRIP "${version}" version)
+    endif()
+
+    set(dependency_entries)
+    foreach(spec IN LISTS depends)
+        _cs2_dependency_json(dependency_entries "${spec}" "false")
+    endforeach()
+    foreach(spec IN LISTS requires)
+        _cs2_dependency_json(dependency_entries "${spec}" "true")
+    endforeach()
+    string(JOIN "," CS2_PLUGIN_DEPENDENCIES ${dependency_entries})
+    if(dependency_entries)
+        string(APPEND CS2_PLUGIN_DEPENDENCIES "
+  ")
+    endif()
+
+    set(CS2_PLUGIN_NAME "${target_name}")
+    set(CS2_PLUGIN_VERSION "${version}")
+    set(CS2_PLUGIN_DESCRIPTION "${description}")
+    configure_file(
+        "${CS2KIT_ROOT_DIR}/cmake/plugin.manifest.json.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.manifest.json"
+        @ONLY
+        NEWLINE_STYLE LF
+    )
 endfunction()
 
 # install() rules for one plugin's deploy bundle, under a component named after the
@@ -142,6 +207,10 @@ function(cs2_install_plugin target_name)
     )
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.vdf"
         DESTINATION "addons/metamod" COMPONENT "${target_name}")
+
+    # Beside the configs, where LoadStandardConfig and the deploy tooling look for it.
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.manifest.json"
+        DESTINATION "addons/${target_name}" COMPONENT "${target_name}")
 
     # Configs except settings.jsonc (rendered per-server at deploy time).
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/configs")

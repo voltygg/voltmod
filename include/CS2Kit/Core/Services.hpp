@@ -2,6 +2,7 @@
 
 #include <CS2Kit/Commands/CommandManager.hpp>
 #include <CS2Kit/Core/LoadReport.hpp>
+#include <CS2Kit/Core/PluginManifest.hpp>
 #include <CS2Kit/Core/PluginPolicy.hpp>
 #include <CS2Kit/Core/Scheduler.hpp>
 #include <CS2Kit/Core/ServiceExchange.hpp>
@@ -60,6 +61,8 @@ public:
     /** Interfaces this plugin offers to, and borrows from, other loaded plugins. Declared first
      *  so it outlives every manager that might publish into it. */
     Core::ServiceExchange Exchange;
+    /** This plugin's manifest, published to peers. Filled by LoadStandardConfig. */
+    Core::PluginIdentity Identity;
     /** Named/timed load stages recorded by Initialize and the plugin's OnLoad. */
     Core::LoadReport LoadReport;
     /** Map the server is running, captured from the StartupServer hook. Empty after a late

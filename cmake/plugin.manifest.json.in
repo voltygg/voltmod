@@ -1,0 +1,6 @@
+{
+  "name": "@CS2_PLUGIN_NAME@",
+  "version": "@CS2_PLUGIN_VERSION@",
+  "description": "@CS2_PLUGIN_DESCRIPTION@",
+  "dependencies": [@CS2_PLUGIN_DEPENDENCIES@]
+}

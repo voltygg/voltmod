@@ -49,15 +49,24 @@ public:
     template <class T>
     void Publish(T* impl)
     {
-        _published[T::InterfaceName] = static_cast<void*>(impl);
+        PublishNamed(T::InterfaceName, static_cast<void*>(impl));
     }
+
+    /**
+     * Publish under a name computed at runtime, for interfaces parameterised by something
+     * the type cannot carry - the per-plugin identity key, for instance. Prefer Publish<T>.
+     */
+    void PublishNamed(const char* iface, void* impl) { _published[iface] = impl; }
 
     /** Withdraw `T::InterfaceName`. Publishing plugins should do this before their state dies. */
     template <class T>
     void Unpublish()
     {
-        _published.erase(T::InterfaceName);
+        UnpublishNamed(T::InterfaceName);
     }
+
+    /** Withdraw a name published with PublishNamed. */
+    void UnpublishNamed(const char* iface) { _published.erase(iface); }
 
     /**
      * The implementation another loaded plugin published for @p T, or nullptr when no plugin
@@ -69,6 +78,9 @@ public:
     {
         return static_cast<T*>(Query(T::InterfaceName));
     }
+
+    /** Get() for a runtime-computed name; the caller owns the cast. */
+    void* GetNamed(const char* iface) const { return Query(iface); }
 
     /**
      * This module's own published pointer for @p iface, or nullptr. Serves OnMetamodQuery.

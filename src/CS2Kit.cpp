@@ -188,6 +188,9 @@ bool Initialize(ISmmAPI* ismm, char* error, size_t maxlen, Core::Services& servi
 
 void Shutdown(Core::Services& services)
 {
+    // Before anything else tears down: peers must stop resolving this plugin's interfaces
+    // while the objects behind them are still alive.
+    services.Identity.Withdraw();
     services.Precache.Shutdown();  // first: the engine must stop referencing our vtables
     services.ClientCvars.Shutdown();
     services.Events.RemoveAllListeners();

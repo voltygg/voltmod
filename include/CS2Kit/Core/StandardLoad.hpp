@@ -2,6 +2,7 @@
 
 #include <CS2Kit/Core/LoadReport.hpp>
 #include <CS2Kit/Core/Paths.hpp>
+#include <CS2Kit/Core/PluginManifest.hpp>
 #include <CS2Kit/Core/Services.hpp>
 #include <format>
 #include <string>
@@ -26,7 +27,15 @@ struct StandardLoadOptions
  * present (the load-then-validate convention) and JsonConfig::Load otherwise; false
  * means abort the load. "Translations" applies `plugin.locale` when the settings struct
  * carries the standard plugin section, then loads addons/<Addon>/configs/translations.
+ * "Manifest" adopts addons/<Addon>/<Addon>.manifest.json when cs2_add_plugin generated
+ * one, which announces this plugin to peers and queues its dependency report; a plugin
+ * that ships no manifest simply skips the stage.
  */
+/** Read and adopt addons/<addon>/<addon>.manifest.json, recording a LoadReport stage.
+ *  Absent or malformed is a degraded stage, never a failed load - the manifest is
+ *  diagnostics. */
+void LoadPluginManifest(std::string_view addon);
+
 template <class TConfig>
 bool LoadStandardConfig(TConfig& config, const StandardLoadOptions& options)
 {
@@ -54,6 +63,7 @@ bool LoadStandardConfig(TConfig& config, const StandardLoadOptions& options)
             return StageResult::Ok(Engine().Translations.GetLanguage());
         });
     }
+    LoadPluginManifest(options.Addon);
     return true;
 }
 
