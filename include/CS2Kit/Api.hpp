@@ -28,6 +28,7 @@
 #include <CS2Kit/Core/PluginSettings.hpp>
 #include <CS2Kit/Core/Registry.hpp>
 #include <CS2Kit/Core/Scheduler.hpp>
+#include <CS2Kit/Core/ServiceExchange.hpp>
 #include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Core/Slot.hpp>
 #include <CS2Kit/Core/StandardLoad.hpp>
@@ -110,6 +111,7 @@ using Core::PluginPolicy;
 using Core::Registry;
 using Core::ResolvePath;
 using Core::Scheduler;
+using Core::ServiceExchange;
 using Core::Services;
 using Core::StageResult;
 using Core::StageStatus;

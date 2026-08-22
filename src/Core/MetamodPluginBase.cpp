@@ -313,12 +313,17 @@ const char* MetamodPluginBase::GetLogTag()
 
 void* MetamodPluginBase::OnMetamodQuery(const char* iface, int* ret)
 {
+    // Serves whatever this plugin published into Engine().Exchange. Metamod calls this on every
+    // loaded plugin for each MetaFactory query, so an unknown iface is the normal case, not an
+    // error - and after Unload the container is gone, which is how a consumer sees us disappear.
+    void* impl = _services ? _services->Exchange.Find(iface) : nullptr;
+
     if (ret)
     {
-        *ret = META_IFACE_FAILED;
+        *ret = impl ? META_IFACE_OK : META_IFACE_FAILED;
     }
 
-    return nullptr;
+    return impl;
 }
 
 }  // namespace CS2Kit::Core

@@ -4,6 +4,7 @@
 #include <CS2Kit/Core/LoadReport.hpp>
 #include <CS2Kit/Core/PluginPolicy.hpp>
 #include <CS2Kit/Core/Scheduler.hpp>
+#include <CS2Kit/Core/ServiceExchange.hpp>
 #include <CS2Kit/Core/StatusService.hpp>
 #include <CS2Kit/Http/HttpClient.hpp>
 #include <CS2Kit/Menu/MenuManager.hpp>
@@ -56,6 +57,9 @@ public:
     // Declaration order == construction order.
     /** Plugin-supplied policy (permissions, targeting, replies). Set once in OnLoad. */
     PluginPolicy Policy;
+    /** Interfaces this plugin offers to, and borrows from, other loaded plugins. Declared first
+     *  so it outlives every manager that might publish into it. */
+    Core::ServiceExchange Exchange;
     /** Named/timed load stages recorded by Initialize and the plugin's OnLoad. */
     Core::LoadReport LoadReport;
     /** Map the server is running, captured from the StartupServer hook. Empty after a late
