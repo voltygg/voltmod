@@ -13,6 +13,9 @@ from typing import NoReturn
 
 WINDOWS = sys.platform == "win32"
 CPP_EXTS = (".cpp", ".hpp")
+# Well under the 32767-character Windows command-line cap, leaving room for the
+# resolved clang-format path and its flags.
+MAX_COMMAND_LINE = 24000
 
 
 def die(message: str) -> NoReturn:
@@ -44,6 +47,20 @@ def run_tool(tool: str, *args: str) -> subprocess.CompletedProcess[bytes]:
     )
 
 
+def _chunk_by_length(files: list[str], budget: int) -> list[list[str]]:
+    """Split `files` into batches whose joined length stays under `budget` characters."""
+    batches: list[list[str]] = [[]]
+    used = 0
+    for f in files:
+        cost = len(f) + 3  # quotes and a separating space
+        if batches[-1] and used + cost > budget:
+            batches.append([])
+            used = 0
+        batches[-1].append(f)
+        used += cost
+    return [b for b in batches if b]
+
+
 def format_sources(repo_root: Path, dirs: list[str], *, check: bool) -> None:
     """Run the pinned clang-format over C++ sources under dirs (relative to repo_root).
 
@@ -61,10 +78,20 @@ def format_sources(repo_root: Path, dirs: list[str], *, check: bool) -> None:
         print("No C++ sources found.")
         return
     args = ["--dry-run", "--Werror"] if check else ["-i"]
-    try:
-        run_tool("clang-format", *args, *files)
-    except subprocess.CalledProcessError as e:
-        raise SystemExit(e.returncode)
+
+    # Windows caps a command line at 32767 characters, which this repo's file list
+    # exceeds - CreateProcess then fails with WinError 206 instead of formatting
+    # anything. Batch on POSIX too so both platforms exercise the same path.
+    failure = 0
+    for batch in _chunk_by_length(files, MAX_COMMAND_LINE):
+        try:
+            run_tool("clang-format", *args, *batch)
+        except subprocess.CalledProcessError as e:
+            # Keep going: --check should report every offending file, not just the
+            # first batch that happens to contain one.
+            failure = failure or e.returncode
+    if failure:
+        raise SystemExit(failure)
     print(f"clang-format {'checked' if check else 'formatted'} {len(files)} file(s).")
 
 

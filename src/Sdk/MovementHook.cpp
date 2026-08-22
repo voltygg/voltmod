@@ -53,8 +53,7 @@ bool MovementHook::Install()
     // Read as a raw byte offset into the CUserCmd object, so an implausible value is an
     // out-of-bounds read rather than a bad number: bound it the way the other raw-offset reads do.
     _cmdNumberOffset = Engine().GameData.GetOffset("UserCmdNumber");
-    if (_cmdNumberOffset < 0 || _cmdNumberOffset > MaxUserCmdOffset ||
-        _cmdNumberOffset % alignof(int32_t) != 0)
+    if (_cmdNumberOffset < 0 || _cmdNumberOffset > MaxUserCmdOffset || _cmdNumberOffset % alignof(int32_t) != 0)
     {
         Log::Warn(
             "MovementHook: gamedata offset 'UserCmdNumber' missing or implausible ({}); falling back to the "
