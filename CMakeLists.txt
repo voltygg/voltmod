@@ -148,7 +148,7 @@ if(BUILD_TESTING)
             src/Utils/StringUtils.cpp
             src/Utils/SteamId.cpp
             src/Utils/TimeUtils.cpp
-        # PluginManifest parses its JSON with nlohmann; the rest of these TUs need nothing.
+        # For PluginManifest's JSON parsing.
         LIBRARIES nlohmann_json::nlohmann_json
     )
 endif()

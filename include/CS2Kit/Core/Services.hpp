@@ -58,8 +58,8 @@ public:
     // Declaration order == construction order.
     /** Plugin-supplied policy (permissions, targeting, replies). Set once in OnLoad. */
     PluginPolicy Policy;
-    /** Interfaces this plugin offers to, and borrows from, other loaded plugins. Declared first
-     *  so it outlives every manager that might publish into it. */
+    /** Interfaces offered to, and borrowed from, other plugins. Declared first so it
+     *  outlives everything that publishes into it. */
     Core::ServiceExchange Exchange;
     /** This plugin's manifest, published to peers. Filled by LoadStandardConfig. */
     Core::PluginIdentity Identity;

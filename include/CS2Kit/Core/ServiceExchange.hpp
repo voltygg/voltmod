@@ -9,42 +9,27 @@ namespace CS2Kit::Core
 /**
  * @brief Typed interface exchange between separately-loaded plugins.
  *
- * cs2-kit is a static library, so every plugin module owns its own copy of the kit's
- * globals - @ref Engine() in one plugin is a different Services than in another. Sharing
- * therefore cannot go through kit state; it goes through Metamod, which is the one thing
- * both modules genuinely share. Publish writes into this module's table, which
- * `MetamodPluginBase::OnMetamodQuery` serves; Get() asks `ISmmAPI::MetaFactory`, which
- * walks every loaded plugin.
+ * The kit is a static library, so each plugin has its own Engine() and sharing cannot go
+ * through kit state. It goes through Metamod instead: Publish fills this module's table,
+ * which MetamodPluginBase::OnMetamodQuery serves, and Get asks MetaFactory across every
+ * loaded plugin.
  *
- * An interface is any pure-virtual struct carrying its own name:
+ * An interface is a pure-virtual struct carrying a versioned `InterfaceName`. Bump the
+ * version in the name whenever the vtable or a parameter's meaning changes, so a stale
+ * consumer gets nullptr rather than a mismatched vtable.
  *
- * @code
- * struct IBanService
- * {
- *     static constexpr const char* InterfaceName = "cs2plugins.IBanService/1";
- *     virtual BanResult Ban(int64_t steamId, int64_t seconds, std::string_view reason) = 0;
- * protected:
- *     ~IBanService() = default;
- * };
- * @endcode
- *
- * Version the *name*, not the object: any change to the vtable layout or to a parameter's
- * meaning gets a new `/2` suffix, so a stale consumer sees a clean nullptr instead of
- * calling through a mismatched vtable.
- *
- * Because the two sides are separate modules with separate `operator new` (cs2_add_plugin
- * compiles memoverride.cpp per plugin), interfaces must never transfer ownership of memory
- * across the boundary: pass std::string_view, return trivially-copyable types, and let
- * exceptions cross nothing.
+ * Each plugin compiles its own memoverride.cpp and so has its own operator new: never
+ * transfer ownership across the boundary. Take string_view, return trivially-copyable
+ * types, let no exception escape.
  */
 class ServiceExchange
 {
 public:
     /**
-     * Offer @p impl to other plugins under `T::InterfaceName`, until Unpublish or unload.
+     * Offer @p impl under `T::InterfaceName` until Unpublish or unload.
      *
      * Name @p T explicitly (`Publish<IBanService>(&_bans)`) so the stored pointer is the
-     * interface subobject rather than the concrete type - the consumer casts back to @p T.
+     * interface subobject the consumer casts back to.
      */
     template <class T>
     void Publish(T* impl)
@@ -52,40 +37,32 @@ public:
         PublishNamed(T::InterfaceName, static_cast<void*>(impl));
     }
 
-    /**
-     * Publish under a name computed at runtime, for interfaces parameterised by something
-     * the type cannot carry - the per-plugin identity key, for instance. Prefer Publish<T>.
-     */
+    /** Publish under a runtime name, for interfaces keyed by something the type cannot
+     *  carry (the per-plugin identity). Prefer Publish<T>. */
     void PublishNamed(const char* iface, void* impl) { _published[iface] = impl; }
 
-    /** Withdraw `T::InterfaceName`. Publishing plugins should do this before their state dies. */
     template <class T>
     void Unpublish()
     {
         UnpublishNamed(T::InterfaceName);
     }
 
-    /** Withdraw a name published with PublishNamed. */
     void UnpublishNamed(const char* iface) { _published.erase(iface); }
 
-    /**
-     * The implementation another loaded plugin published for @p T, or nullptr when no plugin
-     * offers it. Not cached: a peer can unload at any time, and callers are rare enough that
-     * a factory walk per call is cheaper than tracking invalidation.
-     */
+    /** What another plugin published for @p T, or nullptr. Not cached: peers come and go,
+     *  and callers are rare enough that a factory walk each time is cheaper than tracking
+     *  invalidation. */
     template <class T>
     T* Get() const
     {
         return static_cast<T*>(Query(T::InterfaceName));
     }
 
-    /** Get() for a runtime-computed name; the caller owns the cast. */
+    /** Get() for a runtime name; the caller owns the cast. */
     void* GetNamed(const char* iface) const { return Query(iface); }
 
-    /**
-     * This module's own published pointer for @p iface, or nullptr. Serves OnMetamodQuery.
-     * Inline so the table can be exercised without linking Metamod - only Query() needs it.
-     */
+    /** This module's own entry for @p iface. Serves OnMetamodQuery; inline so the table
+     *  can be tested without linking Metamod. */
     void* Find(const char* iface) const
     {
         auto it = _published.find(iface);
@@ -93,7 +70,6 @@ public:
     }
 
 private:
-    /** Ask Metamod's factory across all loaded plugins. */
     static void* Query(const char* iface);
 
     std::unordered_map<std::string, void*> _published;

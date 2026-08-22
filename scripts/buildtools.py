@@ -13,8 +13,7 @@ from typing import NoReturn
 
 WINDOWS = sys.platform == "win32"
 CPP_EXTS = (".cpp", ".hpp")
-# Well under the 32767-character Windows command-line cap, leaving room for the
-# resolved clang-format path and its flags.
+# Under the 32767-character Windows cap, with room for the tool path and flags.
 MAX_COMMAND_LINE = 24000
 
 
@@ -79,16 +78,14 @@ def format_sources(repo_root: Path, dirs: list[str], *, check: bool) -> None:
         return
     args = ["--dry-run", "--Werror"] if check else ["-i"]
 
-    # Windows caps a command line at 32767 characters, which this repo's file list
-    # exceeds - CreateProcess then fails with WinError 206 instead of formatting
-    # anything. Batch on POSIX too so both platforms exercise the same path.
+    # A single argv with every file exceeds the 32767-character Windows command-line cap
+    # (WinError 206, nothing formatted). Batch on POSIX too, so both take the same path.
     failure = 0
     for batch in _chunk_by_length(files, MAX_COMMAND_LINE):
         try:
             run_tool("clang-format", *args, *batch)
         except subprocess.CalledProcessError as e:
-            # Keep going: --check should report every offending file, not just the
-            # first batch that happens to contain one.
+            # Keep going so --check reports every offending file, not just the first batch.
             failure = failure or e.returncode
     if failure:
         raise SystemExit(failure)

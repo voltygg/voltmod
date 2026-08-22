@@ -313,9 +313,8 @@ const char* MetamodPluginBase::GetLogTag()
 
 void* MetamodPluginBase::OnMetamodQuery(const char* iface, int* ret)
 {
-    // Serves whatever this plugin published into Engine().Exchange. Metamod calls this on every
-    // loaded plugin for each MetaFactory query, so an unknown iface is the normal case, not an
-    // error - and after Unload the container is gone, which is how a consumer sees us disappear.
+    // Metamod asks every loaded plugin on each MetaFactory query, so an unknown iface is
+    // routine, not an error. After Unload the container is gone - that is how peers see us go.
     void* impl = _services ? _services->Exchange.Find(iface) : nullptr;
 
     if (ret)

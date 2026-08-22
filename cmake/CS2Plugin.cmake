@@ -19,9 +19,8 @@ include("${CMAKE_CURRENT_LIST_DIR}/CS2KitBuildInfo.cmake")
 # it needs file-unique names for namespace-scope statics (self-registration
 # blocks); Registry<T> items still work, every source is compiled and linked.
 #
-# VERSION/DESCRIPTION/DEPENDS/REQUIRES populate the generated manifest (see
-# cs2_write_plugin_manifest). VERSION defaults to the repo's version.txt, so a
-# plugin only sets it when it genuinely versions apart from the repo.
+# VERSION/DESCRIPTION/DEPENDS/REQUIRES fill the generated manifest. VERSION defaults to
+# the repo's version.txt; set it only when a plugin versions apart from the repo.
 function(cs2_add_plugin target_name)
     cmake_parse_arguments(ARG "UNITY" "VERSION;DESCRIPTION"
         "SOURCES;INCLUDE_DIRS;LIBRARIES;PCH_HEADERS;DEPENDS;REQUIRES" ${ARGN})
@@ -115,8 +114,7 @@ function(cs2_add_plugin target_name)
     cs2_install_plugin("${target_name}")
 endfunction()
 
-# Turn a "<name>[>=<version>]" spec into one JSON dependency object, appended to
-# the list variable named by out_var.
+# Append one JSON dependency object for the spec "<name>[>=<version>]" to out_var.
 function(_cs2_dependency_json out_var spec required)
     if(spec MATCHES "^(.+)>=(.+)$")
         set(name "${CMAKE_MATCH_1}")
@@ -135,11 +133,10 @@ function(_cs2_dependency_json out_var spec required)
     set("${out_var}" "${entries}" PARENT_SCOPE)
 endfunction()
 
-# Generate addons/<name>/<name>.manifest.json declaring the plugin's identity and
-# peer dependencies. It lives on disk rather than compiled in so deploy tooling can
-# inspect a staged bundle without loading it; the kit reads it in LoadStandardConfig.
-# DEPENDS entries are advisory (a warning when unmet), REQUIRES entries log an error -
-# neither aborts the load, because Metamod's .vdf load order is not ours to control.
+# Generate <name>.manifest.json: the plugin's identity and peer dependencies, on disk so
+# deploy tooling can read a staged bundle. The kit adopts it in LoadStandardConfig.
+# Unmet DEPENDS warn and unmet REQUIRES log an error; neither aborts the load, since .vdf
+# load order is Metamod's.
 function(cs2_write_plugin_manifest target_name version description depends requires)
     if(NOT version)
         # Same file the build stamp reads, so one bump moves both.
@@ -208,7 +205,7 @@ function(cs2_install_plugin target_name)
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.vdf"
         DESTINATION "addons/metamod" COMPONENT "${target_name}")
 
-    # Beside the configs, where LoadStandardConfig and the deploy tooling look for it.
+    # Beside the configs, where LoadStandardConfig looks for it.
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.manifest.json"
         DESTINATION "addons/${target_name}" COMPONENT "${target_name}")
 

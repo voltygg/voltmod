@@ -23,7 +23,7 @@ protected:
     ~ICounter() = default;
 };
 
-// Implements both, so Publish<T> has to store the T subobject rather than the object address.
+// Implements both, so Publish<T> must store the T subobject, not the object address.
 struct Both final : IGreeter, ICounter
 {
     int Greet() override { return 7; }
@@ -31,8 +31,8 @@ struct Both final : IGreeter, ICounter
 };
 }  // namespace
 
-// Get() is deliberately absent from these cases: it routes through Metamod's MetaFactory, which
-// only exists in a loaded plugin. What is testable here is the table OnMetamodQuery serves.
+// No Get() cases: it goes through MetaFactory, which only exists in a loaded plugin. What is
+// testable here is the table OnMetamodQuery serves.
 
 TEST_CASE("An unpublished interface is not found")
 {
@@ -56,8 +56,8 @@ TEST_CASE("Publish stores the interface subobject not the object address")
     Both impl;
     exchange.Publish<ICounter>(&impl);
 
-    // The second base sits at a non-zero offset, so a consumer casting the void* back to ICounter
-    // must land on the right vtable. Recovering 9 rather than 7 is what proves it.
+    // The second base is at a non-zero offset; recovering 9 rather than 7 proves the cast
+    // lands on the right vtable.
     auto* recovered = static_cast<ICounter*>(exchange.Find(ICounter::InterfaceName));
     REQUIRE(recovered != nullptr);
     CHECK(recovered->Count() == 9);

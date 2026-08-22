@@ -65,7 +65,7 @@ TEST_CASE("Missing version components read as zero")
 
 TEST_CASE("Ten beats nine rather than sorting before it")
 {
-    // The reason this compares numerically instead of lexicographically.
+    // Why this compares numerically, not lexicographically.
     CHECK(VersionAtLeast("1.10.0", "1.9.0"));
     CHECK_FALSE(VersionAtLeast("1.9.0", "1.10.0"));
 }

@@ -21,8 +21,7 @@ std::vector<int> VersionParts(std::string_view version)
 
         int value = 0;
         const auto [ptr, ec] = std::from_chars(field.data(), field.data() + field.size(), value);
-        // A non-numeric component ends the comparison rather than reading as zero: treating
-        // "1.x" as "1.0" would silently accept a version we cannot actually reason about.
+        // Stop rather than read a non-numeric component as zero: "1.x" is not "1.0".
         if (ec != std::errc{} || ptr != field.data() + field.size())
             break;
         parts.push_back(value);

@@ -1,4 +1,3 @@
-#include <CS2Kit/Core/JsonConfig.hpp>
 #include <CS2Kit/Core/Paths.hpp>
 #include <CS2Kit/Core/PluginManifest.hpp>
 #include <CS2Kit/Core/Services.hpp>
@@ -15,7 +14,6 @@ namespace CS2Kit::Core
 
 namespace
 {
-/** One dependency's state, once every plugin has had a chance to load. */
 void ReportDependency(const PluginDependency& dependency)
 {
     const std::string key = IdentityKey(dependency.Name);
@@ -54,8 +52,7 @@ void PluginIdentity::Adopt(PluginManifest manifest)
     if (_manifest.Dependencies.empty())
         return;
 
-    // First frame, not OnLoad: see the class comment - at OnLoad a peer that simply loads
-    // later looks exactly like one that is missing.
+    // First frame, not OnLoad - see PluginIdentity's comment.
     Engine().Scheduler.NextTick([this] {
         for (const auto& dependency : _manifest.Dependencies)
             ReportDependency(dependency);

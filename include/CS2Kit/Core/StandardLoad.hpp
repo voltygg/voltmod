@@ -27,13 +27,11 @@ struct StandardLoadOptions
  * present (the load-then-validate convention) and JsonConfig::Load otherwise; false
  * means abort the load. "Translations" applies `plugin.locale` when the settings struct
  * carries the standard plugin section, then loads addons/<Addon>/configs/translations.
- * "Manifest" adopts addons/<Addon>/<Addon>.manifest.json when cs2_add_plugin generated
- * one, which announces this plugin to peers and queues its dependency report; a plugin
- * that ships no manifest simply skips the stage.
+ * "Manifest" adopts addons/<Addon>/<Addon>.manifest.json, announcing the plugin to peers
+ * and queueing its dependency report; a plugin shipping no manifest skips the stage.
  */
-/** Read and adopt addons/<addon>/<addon>.manifest.json, recording a LoadReport stage.
- *  Absent or malformed is a degraded stage, never a failed load - the manifest is
- *  diagnostics. */
+/** Adopt addons/<addon>/<addon>.manifest.json as a LoadReport stage. Absent or malformed
+ *  degrades the stage rather than failing the load: the manifest is diagnostics. */
 void LoadPluginManifest(std::string_view addon);
 
 template <class TConfig>
