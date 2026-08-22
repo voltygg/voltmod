@@ -18,12 +18,12 @@ conan remote login voltygg voltygg/cs2-kit -p <token>
 
 ```sh
 # Linux (SteamRT-compatible toolchain, gcc-14):
-conan install . -pr:a linux-steamrt -s build_type=Release \
+conan install . -pr:a linux-steamrt.txt -s build_type=Release \
   --output-folder build/linux-steamrt-release/generators -r voltygg -r conancenter
 cmake --workflow --preset linux-steamrt-release
 
 # Windows (MSVC, static runtime):
-conan install . -pr:a windows-msvc -s build_type=Release -s compiler.runtime_type=Release \
+conan install . -pr:a windows-msvc.txt -s build_type=Release -s compiler.runtime_type=Release \
   --output-folder build/windows-msvc-release/generators -r voltygg -r conancenter
 cmake --workflow --preset windows-msvc-release
 ```
