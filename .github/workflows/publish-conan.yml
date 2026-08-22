@@ -33,8 +33,17 @@ jobs:
       # Non-recursive: the SDK recipes fetch their pinned upstream commits themselves.
       - uses: actions/checkout@v7
 
+      # The sniper image ships neither pip nor a C++23 compiler; gcc-14 lives in
+      # sniper_beta, as deploy/Dockerfile in cs2-plugins already does.
+      - name: Bootstrap the SteamRT container
+        run: |
+          echo 'deb https://repo.steampowered.com/steamrt3/apt sniper_beta main contrib non-free' > /etc/apt/sources.list.d/steamrt-beta.list
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates gcc-14-monolithic git ninja-build python3-pip
+          rm -rf /var/lib/apt/lists/*
+
       - name: Install conan
-        run: pip3 install "conan>=2.29.1" "cmake>=4.3.4" "ninja>=1.13.0"
+        run: python3 -m pip install --no-cache-dir "conan>=2.29.1" "cmake>=4.3.4" "ninja>=1.13.0"
 
       - name: Configure remote
         run: |
@@ -74,7 +83,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Install conan
-        run: pip install "conan>=2.29.1" "cmake>=4.3.4" "ninja>=1.13.0"
+        run: python -m pip install "conan>=2.29.1" "cmake>=4.3.4" "ninja>=1.13.0"
 
       - name: Configure remote
         run: |
@@ -129,7 +138,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Install conan
-        run: pip install "conan>=2.29.1" "cmake>=4.3.4" "ninja>=1.13.0"
+        run: python -m pip install "conan>=2.29.1" "cmake>=4.3.4" "ninja>=1.13.0"
 
       - name: Fresh consume of cs2-kit from the remote
         shell: bash
