@@ -5,6 +5,7 @@
 #include <CS2Kit/Players/Targeting.hpp>
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -14,8 +15,10 @@ namespace CS2Kit::Commands
 
 struct CommandResult
 {
-    bool Success = true;
     std::string Message;
+
+    /** Handled, with nothing to say: the handler already replied, or a menu is the feedback. */
+    static CommandResult Silent() { return {}; }
 };
 
 /**
@@ -80,20 +83,48 @@ ArgSpec Int();
 ArgSpec Word(bool required = true);
 ArgSpec ReasonTail(std::string fallbackKey = {});
 
-/** Everything a handler needs, pre-resolved and pre-validated. */
+/**
+ * @brief Everything a handler needs, pre-resolved and pre-validated.
+ *
+ * The accessors are the interface; the fields behind them are what resolution filled in.
+ * Resolution refuses to call the handler unless every required argument came through, so an
+ * accessor for an argument the spec declared always has a value - which is why Target() hands
+ * back a reference and there is nothing to null-check.
+ *
+ * Reading an accessor the spec did *not* declare is a bug, and reads as if the argument were
+ * absent (empty, zero, nullopt) rather than crashing.
+ */
 struct CommandContext
 {
     Players::Player* Caller = nullptr;
-    Players::Player* Target = nullptr;      ///< single-target arg result
-    std::vector<Players::Player*> Targets;  ///< multi-target results (TargetRules::AllowMultiple)
+    Players::Player* TargetPlayer = nullptr;  ///< single-target arg result
+    std::vector<Players::Player*> TargetList; ///< multi-target results (TargetRules::AllowMultiple)
     int64_t SteamId = 0;
-    int64_t DurationSec = 0;
-    int IntValue = 0;
+    std::optional<int64_t> DurationSec;
+    std::optional<int> IntValue;
     std::string Word;
     std::string Reason;
     std::vector<std::string> RawArgs;
 
     int CallerSlot() const;
+
+    /** The resolved target. Valid whenever the spec declared a Target()/TargetOrSteamId() that
+     *  matched an online player - which is the only way the handler runs. */
+    Players::Player& Target() const { return *TargetPlayer; }
+
+    /** True when a target was resolved. Only interesting for TargetOrSteamId(), where a bare
+     *  SteamID addresses someone who is not here. */
+    bool HasTarget() const { return TargetPlayer != nullptr; }
+
+    /** Every matched target, for a spec using TargetRules::AllowMultiple. */
+    const std::vector<Players::Player*>& Targets() const { return TargetList; }
+
+    /** The parsed duration in seconds, or nullopt when the caller supplied none. 0 is a real
+     *  value meaning permanent, which is why this is optional rather than a sentinel. */
+    std::optional<int64_t> Duration() const { return DurationSec; }
+
+    /** The parsed integer, or nullopt when the caller supplied none. */
+    std::optional<int> Int() const { return IntValue; }
 
     /** Localized result helpers: translate @p key in the caller's language with @p tokens. */
     CommandResult Ok(std::string_view key, Core::Tokens tokens = {}) const;
@@ -105,6 +136,7 @@ struct CommandSpec
     std::string Name;
     std::vector<std::string> Aliases;
     std::string Description;
+    /** Leave empty to derive from Name and Args: `!ban <target> <duration> [reason]`. */
     std::string Usage;
     std::string Permission;  ///< empty = no permission required
     std::vector<ArgSpec> Args;
@@ -112,5 +144,9 @@ struct CommandSpec
 
     bool Matches(const std::string& nameOrAlias) const;
 };
+
+/** `!ban <target> <duration> [reason]`, built from the arg kinds so nothing hand-written can
+ *  drift from what the command actually accepts. */
+std::string DeriveUsage(const CommandSpec& spec);
 
 }  // namespace CS2Kit::Commands

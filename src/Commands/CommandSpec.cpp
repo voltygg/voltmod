@@ -50,12 +50,53 @@ int CommandContext::CallerSlot() const
 
 CommandResult CommandContext::Ok(std::string_view key, Core::Tokens tokens) const
 {
-    return {true, CS2Kit::Detail::Rt().Translations.Get(std::string(key), CallerSlot(), tokens)};
+    return {CS2Kit::Detail::Rt().Translations.Get(std::string(key), CallerSlot(), tokens)};
 }
 
 CommandResult CommandContext::Fail(std::string_view key, Core::Tokens tokens) const
 {
-    return {false, CS2Kit::Detail::Rt().Translations.Get(std::string(key), CallerSlot(), tokens)};
+    return {CS2Kit::Detail::Rt().Translations.Get(std::string(key), CallerSlot(), tokens)};
+}
+
+namespace
+{
+
+/** The placeholder shown for each kind. Names, not types: `<target>` reads better than
+ *  `<player>` and `<reason>` better than `<text>`. */
+std::string_view Placeholder(ArgKind kind)
+{
+    switch (kind)
+    {
+    case ArgKind::Target:
+        return "target";
+    case ArgKind::TargetOrSteamId:
+        return "target|steamId";
+    case ArgKind::Duration:
+        return "duration";
+    case ArgKind::SteamId64:
+        return "steamId";
+    case ArgKind::Int:
+        return "number";
+    case ArgKind::ReasonTail:
+        return "reason";
+    case ArgKind::Word:
+    default:
+        return "value";
+    }
+}
+
+}  // namespace
+
+std::string DeriveUsage(const CommandSpec& spec)
+{
+    std::string usage = "!" + spec.Name;
+    for (const ArgSpec& arg : spec.Args)
+    {
+        usage += arg.Required ? " <" : " [";
+        usage += Placeholder(arg.Kind);
+        usage += arg.Required ? '>' : ']';
+    }
+    return usage;
 }
 
 bool CommandSpec::Matches(const std::string& nameOrAlias) const

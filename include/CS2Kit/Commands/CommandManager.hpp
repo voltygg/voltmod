@@ -41,6 +41,9 @@ private:
     bool ResolveArgs(const CommandSpec& cmd, const std::vector<std::string>& args, CommandContext& ctx,
                      std::string& outError) const;
 
+    /** True when more tokens were given than the spec can consume. */
+    bool TooManyArguments(const CommandSpec& cmd, const std::vector<std::string>& args) const;
+
     std::unordered_map<std::string, CommandSpec> _commands;
     /** Lowercased alias -> the lowercased command name that owns it. */
     std::unordered_map<std::string, std::string> _aliases;

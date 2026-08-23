@@ -162,10 +162,19 @@ bool CommandManager::HandleChatMessage(Players::Player* caller, std::string_view
     ctx.Caller = caller;
     ctx.RawArgs = args;
 
+    // Extras used to be dropped in silence, so a typo'd selector looked like it worked.
+    if (TooManyArguments(*cmd, args))
+    {
+        reply(CS2Kit::Detail::Rt().Translations.Get(
+            "cmd.tooManyArgs", caller->GetSlot(),
+            {{"usage", cmd->Usage.empty() ? DeriveUsage(*cmd) : cmd->Usage}}));
+        return true;
+    }
+
     std::string error;
     if (!ResolveArgs(*cmd, args, ctx, error))
     {
-        reply(error.empty() ? "Usage: " + (cmd->Usage.empty() ? cmd->Name : cmd->Usage) : error);
+        reply(error.empty() ? "Usage: " + (cmd->Usage.empty() ? DeriveUsage(*cmd) : cmd->Usage) : error);
         return true;
     }
 
@@ -176,6 +185,16 @@ bool CommandManager::HandleChatMessage(Players::Player* caller, std::string_view
     }
 
     return true;
+}
+
+bool CommandManager::TooManyArguments(const CommandSpec& cmd, const std::vector<std::string>& args) const
+{
+    // A ReasonTail swallows the remainder, so anything with one can never have extras.
+    for (const auto& spec : cmd.Args)
+        if (spec.Kind == ArgKind::ReasonTail)
+            return false;
+
+    return args.size() > cmd.Args.size();
 }
 
 bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::string>& args, CommandContext& ctx,
@@ -217,9 +236,9 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
                 outError = TargetErrorMessage(resolved.error(), token, slot);
                 return false;
             }
-            ctx.Target = resolved->front();
+            ctx.TargetPlayer = resolved->front();
             if (spec.Targeting.AllowMultiple)
-                ctx.Targets = std::move(*resolved);
+                ctx.TargetList = std::move(*resolved);
             ++i;
             break;
         }
@@ -239,7 +258,7 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
                     outError = TargetErrorMessage(resolved.error(), token, slot);
                     return false;
                 }
-                ctx.Target = resolved->front();
+                ctx.TargetPlayer = resolved->front();
                 ctx.SteamId = ctx.Target->GetSteamID();
             }
             ++i;
