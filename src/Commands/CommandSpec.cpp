@@ -1,6 +1,7 @@
 #include <CS2Kit/Commands/CommandSpec.hpp>
+#include <CS2Kit/Detail/Runtime.hpp>
+#include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Utils/StringUtils.hpp>
-#include <CS2Kit/Utils/UtilsServices.hpp>
 
 namespace CS2Kit::Commands
 {
@@ -49,12 +50,12 @@ int CommandContext::CallerSlot() const
 
 CommandResult CommandContext::Ok(std::string_view key, Utils::Tokens tokens) const
 {
-    return {true, Utils::Ctx().Translations.Get(std::string(key), CallerSlot(), tokens)};
+    return {true, CS2Kit::Detail::Rt().Translations.Get(std::string(key), CallerSlot(), tokens)};
 }
 
 CommandResult CommandContext::Fail(std::string_view key, Utils::Tokens tokens) const
 {
-    return {false, Utils::Ctx().Translations.Get(std::string(key), CallerSlot(), tokens)};
+    return {false, CS2Kit::Detail::Rt().Translations.Get(std::string(key), CallerSlot(), tokens)};
 }
 
 bool CommandSpec::Matches(const std::string& nameOrAlias) const

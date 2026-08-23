@@ -1,6 +1,5 @@
 #pragma once
 
-#include <CS2Kit/Core/CoreServices.hpp>
 #include <CS2Kit/Menu/Menu.hpp>
 #include <CS2Kit/Menu/MenuContext.hpp>
 #include <CS2Kit/Menu/Options.hpp>
@@ -67,7 +66,7 @@ public:
     /**
      * Bind an admin/target context for the policy-aware rows below. Each row then derives its
      * label (admin-language translation of a key), its enabled state (permission + immunity via
-     * Core::Ctx().Policy), and its dispatch pair from the context - no per-row captures:
+     * runtime.Policy), and its dispatch pair from the context - no per-row captures:
      *
      * @code
      * MenuBuilder(title)

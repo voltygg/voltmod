@@ -1,6 +1,8 @@
 #include "Sdk/Schema.hpp"
 #include "Sdk/VirtualCall.hpp"
 
+#include <CS2Kit/Detail/Runtime.hpp>
+#include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Sdk/Entity.hpp>
 #include <CS2Kit/Sdk/EntityOps.hpp>
 #include <CS2Kit/Sdk/EntityRender.hpp>
@@ -8,7 +10,6 @@
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
 #include <CS2Kit/Sdk/MemoryAccess.hpp>
 #include <CS2Kit/Sdk/PlayerController.hpp>
-#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <CS2Kit/Utils/Log.hpp>
 #include <algorithm>
 #include <cstring>
@@ -31,7 +32,7 @@ void CallVtableByName(void* target, const char* name, Args... args)
 {
     if (!target)
         return;
-    int index = Ctx().GameData.GetOffset(name);
+    int index = CS2Kit::Detail::Rt().GameData.GetOffset(name);
     if (index < 0)
     {
         Log::Warn("PlayerController: vtable offset '{}' not found.", name);
@@ -47,14 +48,14 @@ void* ResolveSceneNode(CEntityInstance* pawn)
     if (!pawn)
         return nullptr;
 
-    int bodyOffset = Ctx().Schema().GetOffset("CBaseEntity", "m_CBodyComponent");
+    int bodyOffset = CS2Kit::Detail::Rt().Schema().GetOffset("CBaseEntity", "m_CBodyComponent");
     if (bodyOffset < 0)
         return nullptr;
     auto* body = ReadAt<uint8_t*>(pawn, bodyOffset);
     if (!body)
         return nullptr;
 
-    int nodeOffset = Ctx().Schema().GetOffset("CBodyComponent", "m_pSceneNode");
+    int nodeOffset = CS2Kit::Detail::Rt().Schema().GetOffset("CBodyComponent", "m_pSceneNode");
     if (nodeOffset < 0)
         return nullptr;
     return ReadAt<void*>(body, nodeOffset);
@@ -67,7 +68,7 @@ T GetSceneNodeField(CEntityInstance* pawn, const char* fieldName)
     if (!node)
         return T{0.0f, 0.0f, 0.0f};
 
-    int offset = Ctx().Schema().GetOffset("CGameSceneNode", fieldName, sizeof(T));
+    int offset = CS2Kit::Detail::Rt().Schema().GetOffset("CGameSceneNode", fieldName, sizeof(T));
     if (offset < 0)
         return T{0.0f, 0.0f, 0.0f};
     return ReadAt<T>(node, offset);
@@ -76,7 +77,7 @@ T GetSceneNodeField(CEntityInstance* pawn, const char* fieldName)
 
 PlayerController::PlayerController(int slot) : _slot(slot)
 {
-    _controller = Ctx().Entities.GetPlayerController(slot);
+    _controller = CS2Kit::Detail::Rt().Entities.GetPlayerController(slot);
 }
 
 bool PlayerController::IsValid() const
@@ -94,12 +95,12 @@ CEntityInstance* PlayerController::GetPawn() const
     if (!_controller)
         return nullptr;
 
-    int offset = Ctx().Schema().GetOffset("CCSPlayerController", "m_hPlayerPawn", sizeof(uint32_t));
+    int offset = CS2Kit::Detail::Rt().Schema().GetOffset("CCSPlayerController", "m_hPlayerPawn", sizeof(uint32_t));
     if (offset < 0)
         return nullptr;
 
     auto hPawn = ReadAt<uint32_t>(_controller, offset);
-    return Ctx().Entities.ResolveEntityHandle(hPawn);
+    return CS2Kit::Detail::Rt().Entities.ResolveEntityHandle(hPawn);
 }
 
 void PlayerController::Kick(const char* reason) const
@@ -107,7 +108,7 @@ void PlayerController::Kick(const char* reason) const
     if (!IsValid())
         return;
 
-    auto* engine = Ctx().Interfaces.Engine;
+    auto* engine = CS2Kit::Detail::Rt().Interfaces.Engine;
     if (!engine)
     {
         Log::Warn("PlayerController::Kick: IVEngineServer2 not available.");
@@ -119,7 +120,7 @@ void PlayerController::Kick(const char* reason) const
 
 int PlayerController::SchemaOffset(const char* className, const char* fieldName, int expectedSize) const
 {
-    return Ctx().Schema().GetOffset(className, fieldName, expectedSize);
+    return CS2Kit::Detail::Rt().Schema().GetOffset(className, fieldName, expectedSize);
 }
 
 int PlayerController::GetHealth() const
@@ -144,7 +145,7 @@ bool PlayerController::IsAlive() const
 
 uint64_t PlayerController::GetButtons() const
 {
-    return Ctx().Entities.GetPlayerButtons(_slot);
+    return CS2Kit::Detail::Rt().Entities.GetPlayerButtons(_slot);
 }
 
 void PlayerController::SetHealth(int health) const
@@ -175,7 +176,7 @@ void PlayerController::SetModelScale(float scale) const
     constexpr float MinSafeModelScale = 0.05f;
     constexpr float MaxSafeModelScale = 3.0f;
     scale = std::clamp(scale, MinSafeModelScale, MaxSafeModelScale);
-    Ctx().EntityOps.AcceptInputFloat(GetPawn(), "SetScale", scale);
+    CS2Kit::Detail::Rt().EntityOps.AcceptInputFloat(GetPawn(), "SetScale", scale);
 }
 
 uint32_t PlayerController::GetFlags() const
@@ -299,7 +300,7 @@ std::string PlayerController::GetPlayerName() const
     if (!_controller)
         return {};
 
-    int offset = Ctx().Schema().GetOffset("CBasePlayerController", "m_iszPlayerName");
+    int offset = CS2Kit::Detail::Rt().Schema().GetOffset("CBasePlayerController", "m_iszPlayerName");
     if (offset < 0)
         return {};
 
@@ -318,7 +319,7 @@ std::string PlayerController::GetPawnModelName() const
     if (!node)
         return {};
 
-    auto& schema = Ctx().Schema();
+    auto& schema = CS2Kit::Detail::Rt().Schema();
     int stateOffset = schema.GetOffset("CSkeletonInstance", "m_modelState");
     int nameOffset = schema.GetOffset("CModelState", "m_ModelName");
     if (stateOffset < 0 || nameOffset < 0)
@@ -333,7 +334,7 @@ void PlayerController::SetPlayerName(const std::string& name) const
     if (!_controller)
         return;
 
-    int offset = Ctx().Schema().GetOffset("CBasePlayerController", "m_iszPlayerName");
+    int offset = CS2Kit::Detail::Rt().Schema().GetOffset("CBasePlayerController", "m_iszPlayerName");
     if (offset < 0)
         return;
 

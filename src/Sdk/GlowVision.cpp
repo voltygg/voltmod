@@ -1,9 +1,10 @@
+#include <CS2Kit/Detail/Runtime.hpp>
+#include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Sdk/EntityKeyValues.hpp>
 #include <CS2Kit/Sdk/EntityOps.hpp>
 #include <CS2Kit/Sdk/GlowVision.hpp>
 #include <CS2Kit/Sdk/PawnOps.hpp>
 #include <CS2Kit/Sdk/PlayerController.hpp>
-#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <utility>
 
 namespace CS2Kit::Sdk
@@ -30,12 +31,12 @@ void GlowVision::DestroyPair(GlowPair& pair)
 
     // Unregister before removal: a recycled index still registered would filter
     // whatever entity the engine hands that index to next.
-    auto& transmit = Ctx().Transmit;
+    auto& transmit = CS2Kit::Detail::Rt().Transmit;
     transmit.ClearEntityExclusive(pair.RelayIndex);
     transmit.ClearEntityExclusive(pair.GlowIndex);
 
-    auto& ops = Ctx().EntityOps;
-    auto& entities = Ctx().Entities;
+    auto& ops = CS2Kit::Detail::Rt().EntityOps;
+    auto& entities = CS2Kit::Detail::Rt().Entities;
     if (auto* glow = entities.ResolveEntityHandle(pair.GlowHandle))
         ops.Remove(glow);
     if (auto* relay = entities.ResolveEntityHandle(pair.RelayHandle))
@@ -53,7 +54,7 @@ void GlowVision::CreatePair(int slot, GlowPair& pair)
     if (!pawn || model.empty())
         return;
 
-    auto& ops = Ctx().EntityOps;
+    auto& ops = CS2Kit::Detail::Rt().EntityOps;
 
     EntityKeyValues relayKv;
     relayKv.Set("model", model.c_str()).Set("spawnflags", PropSpawnFlags).Set("rendermode", RenderModeNone);
@@ -79,7 +80,7 @@ void GlowVision::CreatePair(int slot, GlowPair& pair)
     ops.AcceptInput(relay, "FollowEntity", "!activator", pawn);
     ops.AcceptInput(glow, "FollowEntity", "!activator", relay);
 
-    auto& entities = Ctx().Entities;
+    auto& entities = CS2Kit::Detail::Rt().Entities;
     pair.RelayHandle = entities.GetEntityHandle(relay);
     pair.GlowHandle = entities.GetEntityHandle(glow);
     pair.RelayIndex = entities.GetEntityIndex(relay);
@@ -87,7 +88,7 @@ void GlowVision::CreatePair(int slot, GlowPair& pair)
     pair.Team = team;
     pair.Model = std::move(model);
 
-    auto& transmit = Ctx().Transmit;
+    auto& transmit = CS2Kit::Detail::Rt().Transmit;
     transmit.SetEntityExclusive(pair.RelayIndex, _beneficiarySlot);
     transmit.SetEntityExclusive(pair.GlowIndex, _beneficiarySlot);
 }
@@ -102,11 +103,11 @@ void GlowVision::Reconcile()
         int team = pc.GetTeam();
         // Ghosted pawns never transmit to the beneficiary, so a clone would follow nothing.
         bool desired = slot != _beneficiarySlot && pc.IsValid() && pc.IsAlive() && (team == TeamT || team == TeamCT) &&
-                       !Ctx().Transmit.IsPawnHidden(slot) && (!_config.Filter || _config.Filter(slot));
+                       !CS2Kit::Detail::Rt().Transmit.IsPawnHidden(slot) && (!_config.Filter || _config.Filter(slot));
 
         if (pair.Active())
         {
-            auto& entities = Ctx().Entities;
+            auto& entities = CS2Kit::Detail::Rt().Entities;
             bool stale = !desired || team != pair.Team || !entities.ResolveEntityHandle(pair.RelayHandle) ||
                          !entities.ResolveEntityHandle(pair.GlowHandle) || pc.GetPawnModelName() != pair.Model;
             if (stale)

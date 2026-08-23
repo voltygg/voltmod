@@ -1,7 +1,8 @@
 #pragma once
 
-#include <CS2Kit/Core/CoreServices.hpp>
 #include <CS2Kit/Core/Slot.hpp>
+#include <CS2Kit/Detail/Runtime.hpp>
+#include <CS2Kit/Runtime.hpp>
 #include <array>
 #include <cstdint>
 
@@ -31,14 +32,14 @@ public:
     {
         if (_listener != 0)
             return;
-        _listener = Core::Ctx().Slots.Listen([this](int slot) { Reset(slot); });
+        _listener = CS2Kit::Detail::Rt().Slots.Listen([this](int slot) { Reset(slot); });
     }
 
     void Unbind()
     {
         if (_listener == 0)
             return;
-        if (auto* core = Core::CtxOrNull())
+        if (auto* core = CS2Kit::Detail::RtOrNull())
             core->Slots.Remove(_listener);
         _listener = 0;
     }

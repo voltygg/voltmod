@@ -1,6 +1,5 @@
 #pragma once
 
-#include <CS2Kit/Core/CoreServices.hpp>
 #include <CS2Kit/Players/Player.hpp>
 #include <CS2Kit/Players/Targeting.hpp>
 #include <CS2Kit/Utils/Translations.hpp>
@@ -43,7 +42,7 @@ struct CommandResult
  * @endcode
  *
  * Argument resolution runs before the handler: targets are resolved through the selector
- * grammar (with immunity from Core::Ctx().Policy), durations/SteamIDs are parsed and validated,
+ * grammar (with immunity from runtime.Policy), durations/SteamIDs are parsed and validated,
  * and failures reply with localized messages from the reserved keys `target.noMatch`,
  * `target.immune`, `target.ambiguous`, `target.dead`, `target.bot`, `cmd.badDuration`,
  * `cmd.badSteamId` (override per-arg via ArgSpec::ErrorKey).

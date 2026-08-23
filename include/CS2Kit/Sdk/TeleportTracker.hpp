@@ -22,8 +22,8 @@ namespace CS2Kit::Sdk
  * discontinuously and read as impossible movement to anything measuring motion.
  *
  * @code
- * Ctx().Teleports.Enable();
- * if (!Ctx().Teleports.JustTeleported(slot, 5.0f)) EvaluateAim(slot);
+ * runtime.Teleports.Enable();
+ * if (!runtime.Teleports.JustTeleported(slot, 5.0f)) EvaluateAim(slot);
  * @endcode
  */
 class TeleportTracker

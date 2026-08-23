@@ -1,7 +1,8 @@
 #include "Sdk/Schema.hpp"
 
+#include <CS2Kit/Detail/Runtime.hpp>
+#include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
-#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <CS2Kit/Utils/Log.hpp>
 #include <schemasystem/schemasystem.h>
 #include <string_view>
@@ -13,7 +14,7 @@ using namespace CS2Kit::Utils;
 
 bool SchemaService::Initialize()
 {
-    if (!Ctx().Interfaces.SchemaSystem)
+    if (!CS2Kit::Detail::Rt().Interfaces.SchemaSystem)
     {
         Log::Warn("ISchemaSystem not available.");
         return false;
@@ -25,7 +26,7 @@ bool SchemaService::Initialize()
 
 int SchemaService::GetOffset(const char* className, const char* fieldName, int expectedSize)
 {
-    auto* schemaSystem = Ctx().Interfaces.SchemaSystem;
+    auto* schemaSystem = CS2Kit::Detail::Rt().Interfaces.SchemaSystem;
     if (!schemaSystem)
         return -1;
 

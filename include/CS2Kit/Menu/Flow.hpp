@@ -1,13 +1,12 @@
 #pragma once
 
-#include <CS2Kit/Core/CoreServices.hpp>
+#include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Menu/Menu.hpp>
-#include <CS2Kit/Menu/MenuAccess.hpp>
 #include <CS2Kit/Menu/MenuBuilder.hpp>
 #include <CS2Kit/Menu/MenuManager.hpp>
 #include <CS2Kit/Menu/MenuPresets.hpp>
+#include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Utils/StringUtils.hpp>
-#include <CS2Kit/Utils/UtilsServices.hpp>
 #include <format>
 #include <functional>
 #include <memory>
@@ -27,7 +26,7 @@ namespace CS2Kit::Menu
  * cleanly), renders an auto-built summary confirm dialog when configured, and finally hands the
  * accumulated state to OnFinish. Human-facing text comes from caller-supplied per-slot providers,
  * so the kit carries no localization; the OnValidate error is a translation key (resolved in the
- * offending player's language, replied via Core::Ctx().Policy.Reply).
+ * offending player's language, replied via runtime.Policy.Reply).
  *
  * @code
  * Flow<PendingPunishment>::Create(std::move(pending))
@@ -187,7 +186,7 @@ private:
                 continue;
             _stepIndex = i;
             if (auto menu = _steps[i].Build(slot, *this))
-                Menu::Menus().OpenMenu(slot, menu);
+                CS2Kit::Detail::Rt().Menus.OpenMenu(slot, menu);
             return;
         }
 
@@ -209,7 +208,7 @@ private:
         for (const auto& [label, value] : _confirmSummary(slot, _state))
             spec.BodyLines.push_back(value.empty() ? label : std::format("{}: {}", label, value));
 
-        Menu::Menus().OpenMenu(slot, BuildConfirmDialog(std::move(spec)));
+        CS2Kit::Detail::Rt().Menus.OpenMenu(slot, BuildConfirmDialog(std::move(spec)));
     }
 
     void RunFinish(int slot)
@@ -219,7 +218,7 @@ private:
             return;
         if (_finish)
             _finish(slot, _state);
-        Menu::Menus().CloseAllMenus(slot);
+        CS2Kit::Detail::Rt().Menus.CloseAllMenus(slot);
     }
 
     /** False = aborted (error replied, menus closed). */
@@ -231,9 +230,9 @@ private:
         if (!error)
             return true;
 
-        if (Core::Ctx().Policy.Reply)
-            Core::Ctx().Policy.Reply(slot, Utils::Ctx().Translations.Get(*error, slot));
-        Menu::Menus().CloseAllMenus(slot);
+        if (CS2Kit::Detail::Rt().Policy.Reply)
+            CS2Kit::Detail::Rt().Policy.Reply(slot, CS2Kit::Detail::Rt().Translations.Get(*error, slot));
+        CS2Kit::Detail::Rt().Menus.CloseAllMenus(slot);
         return false;
     }
 

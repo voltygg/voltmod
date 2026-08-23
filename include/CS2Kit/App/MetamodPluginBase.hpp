@@ -16,10 +16,13 @@ namespace CS2Kit::Players
 class Player;
 }
 
+namespace CS2Kit
+{
+class Runtime;
+}
+
 namespace CS2Kit::App
 {
-
-class Services;
 
 /** @brief Your plugin's name, author, version, and log tag. Return it from MetamodPluginBase::Info().
  *  Wire Version/Date/Commit to <CS2Kit/BuildInfo.hpp> so `meta list` shows the exact build. */
@@ -42,8 +45,7 @@ struct PluginInfo
  * Subclassing this gets you a working plugin: it wires up the engine, registers the common
  * hooks (game frame, player connect/disconnect, chat), and tracks connected players for you.
  * You provide the metadata via Info(), your setup in OnLoad(), and override only the callbacks
- * you care about. Managers-carrying plugins use PluginBase<TManagers> + CS2KIT_PLUGIN instead
- * of the instance/PLUGIN_EXPOSE pair below.
+ * you care about.
  *
  * @code
  * class MyPlugin : public CS2Kit::App::MetamodPluginBase {
@@ -89,10 +91,9 @@ protected:
     virtual void OnUnload() {}
 
     /**
-     * @brief Construct plugin-owned service instances (your Managers container). Runs during
-     * Load after the kit services are initialized and hooks are registered, right before
-     * OnLoad - so member initializers may call Engine(). Prefer @ref PluginBase, which
-     * overrides this (and OnDestroyInstances) for you.
+     * @brief Construct plugin-owned service instances. Runs during Load after the runtime is
+     * started and hooks are registered, right before OnLoad, so member initializers may reach
+     * the runtime.
      */
     virtual void OnCreateInstances() {}
 
@@ -175,7 +176,7 @@ private:
 
     bool _lateLoad = false;
     std::vector<std::function<void()>> _deferred;
-    std::unique_ptr<Services> _services;
+    std::unique_ptr<CS2Kit::Runtime> _runtime;
     PluginInfo _info;  // cached copy of Info() captured at load; backs the ISmmPlugin getters
 };
 

@@ -1,6 +1,7 @@
-#include <CS2Kit/Core/CoreServices.hpp>
 #include <CS2Kit/Core/Scheduler.hpp>
 #include <CS2Kit/Database/PostgresDatabase.hpp>
+#include <CS2Kit/Detail/Runtime.hpp>
+#include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Utils/Log.hpp>
 #include <format>
 
@@ -40,7 +41,7 @@ bool PostgresDatabase::Start(const PostgresConfig& config)
         return false;
     }
 
-    if (auto* core = Core::CtxOrNull())
+    if (auto* core = CS2Kit::Detail::RtOrNull())
         _pumpId = core->Scheduler.EveryFrame([this] { DispatchCompletions(); });
     return true;
 }
@@ -62,7 +63,7 @@ void PostgresDatabase::Stop(std::chrono::milliseconds drainDeadline)
 
     if (_pumpId != 0)
     {
-        if (auto* core = Core::CtxOrNull())
+        if (auto* core = CS2Kit::Detail::RtOrNull())
             core->Scheduler.Cancel(_pumpId);
         _pumpId = 0;
     }

@@ -1,9 +1,10 @@
 #pragma once
 
-#include <CS2Kit/App/Services.hpp>
 #include <CS2Kit/Core/LoadReport.hpp>
 #include <CS2Kit/Core/Paths.hpp>
 #include <CS2Kit/Core/PluginManifest.hpp>
+#include <CS2Kit/Detail/Runtime.hpp>
+#include <CS2Kit/Runtime.hpp>
 #include <format>
 #include <string>
 #include <string_view>
@@ -37,7 +38,7 @@ void LoadPluginManifest(std::string_view addon);
 template <class TConfig>
 bool LoadStandardConfig(TConfig& config, const StandardLoadOptions& options)
 {
-    auto& report = Engine().Core.LoadReport;
+    auto& report = CS2Kit::Detail::Rt().LoadReport;
     const std::string path = Core::AddonFile(options.Addon, options.SettingsFile);
 
     const auto status = report.Run("Configuration", [&] {
@@ -55,10 +56,10 @@ bool LoadStandardConfig(TConfig& config, const StandardLoadOptions& options)
     if (options.Translations)
     {
         report.Run("Translations", [&] {
-            if constexpr (requires { Engine().Utils.Translations.SetLanguage(config.Get().plugin.locale); })
-                Engine().Utils.Translations.SetLanguage(config.Get().plugin.locale);
-            Engine().Utils.Translations.Load(Core::AddonFile(options.Addon, "configs/translations"));
-            return Core::StageResult::Ok(Engine().Utils.Translations.GetLanguage());
+            if constexpr (requires { CS2Kit::Detail::Rt().Translations.SetLanguage(config.Get().plugin.locale); })
+                CS2Kit::Detail::Rt().Translations.SetLanguage(config.Get().plugin.locale);
+            CS2Kit::Detail::Rt().Translations.Load(Core::AddonFile(options.Addon, "configs/translations"));
+            return Core::StageResult::Ok(CS2Kit::Detail::Rt().Translations.GetLanguage());
         });
     }
     LoadPluginManifest(options.Addon);

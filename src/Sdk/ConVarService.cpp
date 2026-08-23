@@ -1,8 +1,9 @@
 #include <CS2Kit/Core/Slot.hpp>
+#include <CS2Kit/Detail/Runtime.hpp>
+#include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Sdk/ConVarService.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
 #include <CS2Kit/Sdk/RecipientFilter.hpp>
-#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <CS2Kit/Utils/Log.hpp>
 #include <engine/igameeventsystem.h>
 #include <icvar.h>
@@ -21,7 +22,7 @@ void GlobalConVarChangeCallback(ConVarRefAbstract* ref, CSplitScreenSlot /*slot*
         return;
 
     const char* name = ref->GetName();
-    CS2Kit::Sdk::Ctx().ConVars.DispatchChange(name, oldValue, newValue);
+    CS2Kit::Detail::Rt().ConVars.DispatchChange(name, oldValue, newValue);
 }
 
 }  // namespace
@@ -67,7 +68,7 @@ void RawConVar::SetFloat(float value)
 
 bool ConVarService::Initialize()
 {
-    if (!Ctx().Interfaces.CVar)
+    if (!CS2Kit::Detail::Rt().Interfaces.CVar)
     {
         Log::Error("ConVarService: ICvar not available.");
         return false;
@@ -152,7 +153,7 @@ bool ConVarService::SetString(const char* name, const char* value)
 
 void ConVarService::ExecuteServerCommand(const char* command)
 {
-    auto* engine = Ctx().Interfaces.Engine;
+    auto* engine = CS2Kit::Detail::Rt().Interfaces.Engine;
     if (!engine)
     {
         Log::Warn("ConVarService::ExecuteServerCommand: IVEngineServer2 not available.");
@@ -174,7 +175,7 @@ void ConVarService::ExecuteServerCommand(const char* command)
 
 bool ConVarService::ReplicateToClient(int slot, const char* name, const char* value)
 {
-    auto& interfaces = Ctx().Interfaces;
+    auto& interfaces = CS2Kit::Detail::Rt().Interfaces;
     if (!interfaces.GameEventSystem || !interfaces.NetworkMessages || !Core::IsValidSlot(slot) || !name || !value)
         return false;
 
@@ -217,7 +218,7 @@ uint64_t ConVarService::OnChange(ChangeCallback callback)
 {
     if (!_globalCallbackInstalled)
     {
-        auto* cvar = Ctx().Interfaces.CVar;
+        auto* cvar = CS2Kit::Detail::Rt().Interfaces.CVar;
         if (cvar)
         {
             cvar->InstallGlobalChangeCallback(&GlobalConVarChangeCallback);

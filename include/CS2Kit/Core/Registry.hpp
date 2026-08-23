@@ -20,7 +20,7 @@ namespace CS2Kit::Core
  * cs2-kit is a static library, so the registry static lives inside the plugin DLL: `meta unload`
  * discards it with the module and a reload re-runs the registrants - registrations are per-load
  * by construction. Constraint: items are constructed during static init, before Load, so they
- * must be data-only (no Engine()/App() access at construction; lambdas that call them at invoke
+ * must be data-only (they cannot reach the runtime at construction; lambdas that call it at invoke
  * time are fine).
  */
 template <class T>

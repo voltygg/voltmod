@@ -1,6 +1,7 @@
 #include <CS2Kit/Core/Slot.hpp>
+#include <CS2Kit/Detail/Runtime.hpp>
+#include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Sdk/InputHistoryService.hpp>
-#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <algorithm>
 #include <cassert>
 
@@ -13,7 +14,7 @@ InputHistoryService::~InputHistoryService()
     if (_slotListener != 0)
         _slots.Remove(_slotListener);
     // MovementHook still has to go through the hub, which may already be gone on shutdown.
-    if (auto* services = CtxOrNull(); services && _cmdListener != 0)
+    if (auto* services = CS2Kit::Detail::RtOrNull(); services && _cmdListener != 0)
         services->MovementHook.RemoveListener(_cmdListener);
 }
 
@@ -32,7 +33,8 @@ void InputHistoryService::Enable(int depth)
     }
 
     if (_cmdListener == 0)
-        _cmdListener = Ctx().MovementHook.ListenPreCmd([this](int slot, const UserCmdView& cmd) { Record(slot, cmd); });
+        _cmdListener = CS2Kit::Detail::Rt().MovementHook.ListenPreCmd(
+            [this](int slot, const UserCmdView& cmd) { Record(slot, cmd); });
     if (_slotListener == 0)
         _slotListener = _slots.Listen([this](int slot) { Clear(slot); });
 }

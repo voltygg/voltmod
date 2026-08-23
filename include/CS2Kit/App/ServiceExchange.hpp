@@ -9,7 +9,7 @@ namespace CS2Kit::App
 /**
  * @brief Typed interface exchange between separately-loaded plugins.
  *
- * The kit is a static library, so each plugin has its own Engine() and sharing cannot go
+ * The kit is a static library, so each plugin has its own Runtime and sharing cannot go
  * through kit state. It goes through Metamod instead: Publish fills this module's table,
  * which MetamodPluginBase::OnMetamodQuery serves, and Get asks MetaFactory across every
  * loaded plugin.

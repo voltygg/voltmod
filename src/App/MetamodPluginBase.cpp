@@ -1,10 +1,10 @@
 #include <CS2Kit/App/MetamodPluginBase.hpp>
-#include <CS2Kit/App/Services.hpp>
-#include <CS2Kit/CS2Kit.hpp>
 #include <CS2Kit/Commands/CommandSpec.hpp>
 #include <CS2Kit/Core/Registry.hpp>
+#include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Players/Player.hpp>
 #include <CS2Kit/Players/PlayerManager.hpp>
+#include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
 #include <CS2Kit/Utils/Log.hpp>
 #include <cstdio>
@@ -21,8 +21,6 @@
 // param table needs a complete type; the hook receives it by reference and never looks inside.
 class GameSessionConfiguration_t
 {};
-
-using CS2Kit::App::Engine;
 
 namespace CS2Kit::App
 {
@@ -53,24 +51,23 @@ bool MetamodPluginBase::Load(PluginId id, ISmmAPI* ismm, char* error, size_t max
     _lateLoad = late;
     _info = Info();  // capture once; the ISmmPlugin getters read this copy
 
-    // Fresh service container per load; wire the accessor before Initialize so kit subsystems
-    // (and the plugin's OnLoad) can reach each other via Engine(). Destroyed in Unload - this is
-    // what makes meta reload start from clean state.
-    _services = std::make_unique<Services>();
-    SetActiveServices(_services.get());
+    // Fresh runtime per load; wire the ambient pointer before Start so kit subsystems
+    // (and the plugin's OnLoad) can reach it. Destroyed in Unload - this is what makes
+    // meta reload start from clean state.
+    _runtime = std::make_unique<Runtime>();
+    Detail::SetRt(_runtime.get());
 
-    CS2Kit::InitParams params;
-    params.LogPrefix = _info.LogTag;
-    if (!CS2Kit::Initialize(ismm, error, maxlen, *_services, params))
+    const LoadContext context{.Ismm = ismm, .Error = error, .MaxLen = maxlen, .Late = late, .LogPrefix = _info.LogTag};
+    if (!_runtime->Start(context))
     {
-        if (!_services->Core.LoadReport.Stages().empty())
-            Log::Info("{}", _services->Core.LoadReport.Summary());
-        SetActiveServices(nullptr);
-        _services.reset();
+        if (!_runtime->LoadReport.Stages().empty())
+            Log::Info("{}", _runtime->LoadReport.Summary());
+        Detail::SetRt(nullptr);
+        _runtime.reset();
         return false;
     }
 
-    _services->Status.RegisterSection("build", [info = _info] {
+    _runtime->Status.RegisterSection("build", [info = _info] {
         return nlohmann::json{
             {"name", info.Name}, {"version", info.Version}, {"commit", info.Commit}, {"date", info.Date}};
     });
@@ -83,16 +80,15 @@ bool MetamodPluginBase::Load(PluginId id, ISmmAPI* ismm, char* error, size_t max
     if (!OnLoad(late))
     {
         // A bare `return false` still gets a named failure in the report and error buffer.
-        if (_services->Core.LoadReport.FirstFailure().empty())
-            _services->Core.LoadReport.Run("OnLoad", [] { return Core::StageResult::Failed("OnLoad returned false"); });
-        Log::Info("{}", _services->Core.LoadReport.Summary());
-        const std::string failure = _services->Core.LoadReport.FirstFailure();
+        if (_runtime->LoadReport.FirstFailure().empty())
+            _runtime->LoadReport.Run("OnLoad", [] { return Core::StageResult::Failed("OnLoad returned false"); });
+        Log::Info("{}", _runtime->LoadReport.Summary());
+        const std::string failure = _runtime->LoadReport.FirstFailure();
         snprintf(error, maxlen, "%s", failure.c_str());
         RunDeferred();
-        CS2Kit::Shutdown(*_services);
         OnDestroyInstances();
-        SetActiveServices(nullptr);
-        _services.reset();
+        Detail::SetRt(nullptr);
+        _runtime.reset();
         return false;
     }
 
@@ -100,13 +96,13 @@ bool MetamodPluginBase::Load(PluginId id, ISmmAPI* ismm, char* error, size_t max
     // RegisterAll is idempotent by name - a plugin calling it itself is harmless.
     if (auto specs = Core::Registry<Commands::CommandSpec>::Items(); !specs.empty())
     {
-        _services->Core.LoadReport.Run("Commands", [&] {
-            _services->Commands.RegisterAll(specs);
-            return Core::StageResult::Ok(std::format("{} chat commands", _services->Commands.Count()));
+        _runtime->LoadReport.Run("Commands", [&] {
+            _runtime->Commands.RegisterAll(specs);
+            return Core::StageResult::Ok(std::format("{} chat commands", _runtime->Commands.Count()));
         });
     }
 
-    Log::Info("{}", _services->Core.LoadReport.Summary());
+    Log::Info("{}", _runtime->LoadReport.Summary());
     if (_info.Commit != nullptr && *_info.Commit != '\0')
         Log::Info("Loaded {} v{} ({}, committed {}){}.", _info.Name, _info.Version, _info.Commit, _info.Date,
                   late ? " (late)" : "");
@@ -118,20 +114,20 @@ bool MetamodPluginBase::Load(PluginId id, ISmmAPI* ismm, char* error, size_t max
 bool MetamodPluginBase::Unload(char* error, size_t maxlen)
 {
     // Order matters: deferred teardown (hook removal, DB close, timer cancel) runs while every
-    // instance is still alive; only then do we tear the instances down (plugin first, then kit),
-    // and null the accessor before the kit services are destroyed so nothing dereferences Engine().
+    // instance is still alive; then the plugin's instances go, and only then the runtime, whose
+    // destructor is the kit's shutdown. The ambient pointer is cleared first so nothing
+    // dereferences CS2Kit::Detail::Rt() from a member destructor.
     OnUnload();
     RunDeferred();
-    CS2Kit::Shutdown(*_services);
     OnDestroyInstances();
-    SetActiveServices(nullptr);
-    _services.reset();
+    Detail::SetRt(nullptr);
+    _runtime.reset();
     return true;
 }
 
 bool MetamodPluginBase::OnPlayerChat(Players::Player* player, std::string_view message, bool /*teamChat*/)
 {
-    return _services->Commands.HandleChatMessage(player, message);
+    return _runtime->Commands.HandleChatMessage(player, message);
 }
 
 void MetamodPluginBase::Defer(std::function<void()> cleanup)
@@ -153,7 +149,7 @@ void MetamodPluginBase::RunDeferred()
 
 void MetamodPluginBase::RegisterStandardHooks()
 {
-    auto& gi = Engine().Sdk.Interfaces;
+    auto& gi = CS2Kit::Detail::Rt().Interfaces;
 
     SH_ADD_HOOK(IServerGameDLL, GameFrame, gi.ServerGameDLL, SH_MEMBER(this, &MetamodPluginBase::Hook_GameFrame), true);
     SH_ADD_HOOK(INetworkServerService, StartupServer, gi.NetworkServerService,
@@ -173,7 +169,7 @@ void MetamodPluginBase::RegisterStandardHooks()
                 SH_MEMBER(this, &MetamodPluginBase::Hook_CheckTransmit), true);
 
     Defer([this] {
-        auto& g = Engine().Sdk.Interfaces;
+        auto& g = CS2Kit::Detail::Rt().Interfaces;
         SH_REMOVE_HOOK(IServerGameDLL, GameFrame, g.ServerGameDLL, SH_MEMBER(this, &MetamodPluginBase::Hook_GameFrame),
                        true);
         SH_REMOVE_HOOK(INetworkServerService, StartupServer, g.NetworkServerService,
@@ -197,24 +193,24 @@ void MetamodPluginBase::RegisterStandardHooks()
 
 void MetamodPluginBase::Hook_GameFrame(bool simulating, bool firstTick, bool lastTick)
 {
-    CS2Kit::OnGameFrame(*_services);
+    _runtime->OnGameFrame();
 }
 
 void MetamodPluginBase::Hook_StartupServer(const GameSessionConfiguration_t&, ISource2WorldSession*,
                                            const char* mapName)
 {
     Log::Info("Server startup: map '{}'.", mapName ? mapName : "<none>");
-    _services->Core.CurrentMap = mapName ? mapName : "";
-    _services->Sdk.Events.OnServerStartup();
-    _services->Sdk.Teleports.OnServerStartup();
-    _services->Sdk.ClientCvars.OnServerStartup();
+    _runtime->CurrentMap = mapName ? mapName : "";
+    _runtime->Events.OnServerStartup();
+    _runtime->Teleports.OnServerStartup();
+    _runtime->ClientCvars.OnServerStartup();
     OnServerStartup(mapName ? mapName : "");
 }
 
 void MetamodPluginBase::Hook_CheckTransmit(CCheckTransmitInfo** infoList, int infoCount, CBitVec<16384>&,
                                            CBitVec<16384>&, const Entity2Networkable_t**, const uint16*, int)
 {
-    _services->Sdk.Transmit.OnCheckTransmit(infoList, infoCount);
+    _runtime->Transmit.OnCheckTransmit(infoList, infoCount);
 }
 
 void MetamodPluginBase::Hook_OnClientConnected(CPlayerSlot slot, const char* name, uint64 xuid, const char* networkId,
@@ -222,7 +218,7 @@ void MetamodPluginBase::Hook_OnClientConnected(CPlayerSlot slot, const char* nam
 {
     int slotIdx = slot.Get();
     int64_t steamId = static_cast<int64_t>(xuid);
-    Player* player = Engine().Players.AddPlayer(slotIdx, steamId, name ? name : "", address ? address : "");
+    Player* player = CS2Kit::Detail::Rt().Players.AddPlayer(slotIdx, steamId, name ? name : "", address ? address : "");
     OnPlayerConnect(player);
 }
 
@@ -230,20 +226,20 @@ void MetamodPluginBase::Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconne
                                               uint64 xuid, const char* networkId)
 {
     int slotIdx = slot.Get();
-    OnPlayerDisconnect(Engine().Players.GetPlayerBySlot(slotIdx));
-    CS2Kit::OnPlayerDisconnect(*_services, slotIdx);
-    Engine().Players.RemovePlayer(slotIdx);
+    OnPlayerDisconnect(CS2Kit::Detail::Rt().Players.GetPlayerBySlot(slotIdx));
+    _runtime->OnPlayerDisconnect(slotIdx);
+    CS2Kit::Detail::Rt().Players.RemovePlayer(slotIdx);
 }
 
 void MetamodPluginBase::Hook_ClientFullyConnect(CPlayerSlot slot)
 {
-    _services->Sdk.ClientCvars.OnClientFullyConnect(slot.Get());
-    OnPlayerFullyConnected(Engine().Players.GetPlayerBySlot(slot.Get()));
+    _runtime->ClientCvars.OnClientFullyConnect(slot.Get());
+    OnPlayerFullyConnected(CS2Kit::Detail::Rt().Players.GetPlayerBySlot(slot.Get()));
 }
 
 void MetamodPluginBase::Hook_ClientSettingsChanged(CPlayerSlot slot)
 {
-    OnPlayerSettingsChanged(Engine().Players.GetPlayerBySlot(slot.Get()));
+    OnPlayerSettingsChanged(CS2Kit::Detail::Rt().Players.GetPlayerBySlot(slot.Get()));
 }
 
 void MetamodPluginBase::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext& ctx, const CCommand& args)
@@ -270,7 +266,7 @@ void MetamodPluginBase::Hook_DispatchConCommand(ConCommandRef cmd, const CComman
     if (!Core::IsValidSlot(slotIdx))
         return;
 
-    Player* player = Engine().Players.GetPlayerBySlot(slotIdx);
+    Player* player = CS2Kit::Detail::Rt().Players.GetPlayerBySlot(slotIdx);
     if (!player)
         return;
 
@@ -315,7 +311,7 @@ void* MetamodPluginBase::OnMetamodQuery(const char* iface, int* ret)
 {
     // Metamod asks every loaded plugin on each MetaFactory query, so an unknown iface is
     // routine, not an error. After Unload the container is gone - that is how peers see us go.
-    void* impl = _services ? _services->Exchange.Find(iface) : nullptr;
+    void* impl = _runtime ? _runtime->Exchange.Find(iface) : nullptr;
 
     if (ret)
     {

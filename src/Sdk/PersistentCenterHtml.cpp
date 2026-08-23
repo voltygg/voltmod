@@ -1,7 +1,7 @@
-#include <CS2Kit/Core/CoreServices.hpp>
 #include <CS2Kit/Core/Scheduler.hpp>
+#include <CS2Kit/Detail/Runtime.hpp>
+#include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Sdk/PersistentCenterHtml.hpp>
-#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <CS2Kit/Sdk/UserMessage.hpp>
 #include <utility>
 
@@ -23,18 +23,20 @@ void PersistentCenterHtml::Show(int slot, int refreshMs, std::function<std::stri
 
     Stop(slot);
 
-    auto send = [slot, render = std::move(render)]() { Ctx().Messages.SendCenterHtml(slot, render(slot)); };
+    auto send = [slot, render = std::move(render)]() {
+        CS2Kit::Detail::Rt().Messages.SendCenterHtml(slot, render(slot));
+    };
     send();
-    _timers[slot] = Core::Ctx().Scheduler.Repeat(refreshMs, send);
+    _timers[slot] = CS2Kit::Detail::Rt().Scheduler.Repeat(refreshMs, send);
 }
 
 void PersistentCenterHtml::Stop(int slot)
 {
     if (!ValidSlot(slot) || _timers[slot] == 0)
         return;
-    Core::Ctx().Scheduler.Cancel(_timers[slot]);
+    CS2Kit::Detail::Rt().Scheduler.Cancel(_timers[slot]);
     _timers[slot] = 0;
-    Ctx().Messages.ClearCenterHtml(slot);
+    CS2Kit::Detail::Rt().Messages.ClearCenterHtml(slot);
 }
 
 void PersistentCenterHtml::StopAll()

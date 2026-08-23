@@ -1,7 +1,7 @@
-#include <CS2Kit/Core/CoreServices.hpp>
+#include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Players/PlayerManager.hpp>
-#include <CS2Kit/Players/Roster.hpp>
 #include <CS2Kit/Players/TargetResolver.hpp>
+#include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Sdk/PlayerController.hpp>
 #include <random>
 
@@ -15,8 +15,8 @@ std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(std::string_vi
     if (token.empty())
         return std::unexpected(TargetFailure{TargetError::NoMatch});
 
-    auto& mgr = Players::Roster();
-    const CanTargetFn& policy = canTarget ? canTarget : Core::Ctx().Policy.CanTarget;
+    auto& mgr = CS2Kit::Detail::Rt().Players;
+    const CanTargetFn& policy = canTarget ? canTarget : CS2Kit::Detail::Rt().Policy.CanTarget;
 
     // Snapshot the roster into engine-free views; FilterRoster owns the grammar semantics.
     std::vector<PlayerView> roster;

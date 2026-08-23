@@ -1,5 +1,6 @@
-#include <CS2Kit/App/Services.hpp>
 #include <CS2Kit/App/StatusService.hpp>
+#include <CS2Kit/Detail/Runtime.hpp>
+#include <CS2Kit/Runtime.hpp>
 #include <format>
 #include <string_view>
 #include <tier0/dbg.h>
@@ -23,7 +24,7 @@ void StatusService::RegisterSection(std::string name, Provider provider)
 
 bool StatusService::IsHealthy() const
 {
-    if (!Engine().Core.LoadReport.FirstFailure().empty())
+    if (!CS2Kit::Detail::Rt().LoadReport.FirstFailure().empty())
         return false;
     return !_healthy || _healthy();
 }
@@ -64,7 +65,7 @@ void StatusService::InstallCommand(const char* name, const char* helpText, Healt
 {
     _healthy = std::move(healthy);
     _command = std::make_unique<Sdk::ServerCommand>(name, helpText, [name](const CCommand& args) {
-        auto& status = Engine().Status;
+        auto& status = CS2Kit::Detail::Rt().Status;
         if (args.ArgC() > 1 && std::string_view(args.Arg(1)) == "json")
         {
             // Single marker-prefixed line so RCON tooling can find it amid console noise.

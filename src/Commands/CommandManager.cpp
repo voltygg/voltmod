@@ -1,9 +1,8 @@
 #include <CS2Kit/Commands/CommandManager.hpp>
-#include <CS2Kit/Core/CoreServices.hpp>
+#include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Players/TargetResolver.hpp>
-#include <CS2Kit/Sdk/SdkServices.hpp>
+#include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Utils/StringUtils.hpp>
-#include <CS2Kit/Utils/UtilsServices.hpp>
 #include <charconv>
 
 namespace CS2Kit::Commands
@@ -25,7 +24,7 @@ std::optional<int64_t> ParseInt64(const std::string& text)
 
 std::string TargetErrorMessage(const Players::TargetFailure& failure, const std::string& token, int slot)
 {
-    auto& tr = Utils::Ctx().Translations;
+    auto& tr = CS2Kit::Detail::Rt().Translations;
     switch (failure.Error)
     {
     case Players::TargetError::Immune:
@@ -92,14 +91,14 @@ bool CommandManager::HandleChatMessage(Players::Player* caller, std::string_view
     if (!cmd)
         return false;
 
-    auto& policy = Core::Ctx().Policy;
+    auto& policy = CS2Kit::Detail::Rt().Policy;
     auto reply = [&](const std::string& msg) {
         if (msg.empty())
             return;
         if (policy.Reply)
             policy.Reply(caller->GetSlot(), msg);
         else
-            Sdk::Ctx().Messages.Reply(caller->GetSlot(), msg);
+            CS2Kit::Detail::Rt().Messages.Reply(caller->GetSlot(), msg);
     };
 
     if (!cmd->Permission.empty())
@@ -134,7 +133,7 @@ bool CommandManager::HandleChatMessage(Players::Player* caller, std::string_view
 bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::string>& args, CommandContext& ctx,
                                  std::string& outError) const
 {
-    auto& tr = Utils::Ctx().Translations;
+    auto& tr = CS2Kit::Detail::Rt().Translations;
     const int slot = ctx.CallerSlot();
     std::size_t i = 0;
 

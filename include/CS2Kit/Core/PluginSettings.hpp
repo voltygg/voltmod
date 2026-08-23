@@ -7,7 +7,7 @@ namespace CS2Kit::Core
 {
 
 /** @brief The kit-standard "plugin" section of settings.jsonc; embed it in the root
- *  settings struct. LoadStandardConfig applies the locale to Engine().Utils.Translations. */
+ *  settings struct. LoadStandardConfig applies the locale to runtime.Translations. */
 struct StandardPluginSettings
 {
     std::string locale = "en";

@@ -14,9 +14,7 @@
 
 #include <CS2Kit/App/JsonConfig.hpp>
 #include <CS2Kit/App/MetamodPluginBase.hpp>
-#include <CS2Kit/App/PluginBase.hpp>
 #include <CS2Kit/App/ServiceExchange.hpp>
-#include <CS2Kit/App/Services.hpp>
 #include <CS2Kit/App/StandardLoad.hpp>
 #include <CS2Kit/Commands/CommandManager.hpp>
 #include <CS2Kit/Commands/CommandSpec.hpp>
@@ -32,6 +30,7 @@
 #include <CS2Kit/Core/Scheduler.hpp>
 #include <CS2Kit/Core/Slot.hpp>
 #include <CS2Kit/Players/EffectDescriptor.hpp>
+#include <CS2Kit/Runtime.hpp>
 // The Database vocabulary lives in <CS2Kit/Database/Api.hpp>, deliberately
 // outside this umbrella: it drags <pqxx/pqxx> into every including TU, and
 // most plugin code never touches the database.
@@ -85,14 +84,11 @@ namespace CS2Kit
 {
 
 // Core
-using App::Engine;
 using App::JsonConfig;
 using App::LoadStandardConfig;
 using App::MetamodPluginBase;
-using App::PluginBase;
 using App::PluginInfo;
 using App::ServiceExchange;
-using App::Services;
 using App::StandardLoadOptions;
 using App::StatusService;
 using Core::AddonDir;

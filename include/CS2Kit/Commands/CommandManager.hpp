@@ -1,7 +1,6 @@
 #pragma once
 
 #include <CS2Kit/Commands/CommandSpec.hpp>
-#include <CS2Kit/Core/CoreServices.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -15,8 +14,8 @@ namespace CS2Kit::Commands
  * @brief Dispatches chat commands (prefixed with ! or .) to registered CommandSpecs.
  *
  * The pipeline per message: prefix match -> spec lookup -> permission check
- * (`Core::Ctx().Policy.HasPermission`) -> typed argument resolution (targets, durations,
- * SteamIDs - see @ref ArgKind) -> handler -> result message via `Core::Ctx().Policy.Reply`.
+ * (`runtime.Policy.HasPermission`) -> typed argument resolution (targets, durations,
+ * SteamIDs - see @ref ArgKind) -> handler -> result message via `runtime.Policy.Reply`.
  * Handlers only run with fully-resolved, validated arguments.
  */
 class CommandManager

@@ -1,7 +1,8 @@
-#include <CS2Kit/App/Services.hpp>
 #include <CS2Kit/App/StandardLoad.hpp>
 #include <CS2Kit/Core/Paths.hpp>
 #include <CS2Kit/Core/PluginManifest.hpp>
+#include <CS2Kit/Detail/Runtime.hpp>
+#include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Utils/Log.hpp>
 #include <format>
 #include <fstream>
@@ -17,7 +18,7 @@ namespace
 void ReportDependency(const Core::PluginDependency& dependency)
 {
     const std::string key = Core::IdentityKey(dependency.Name);
-    auto* peer = static_cast<Core::IPluginIdentity*>(Engine().Exchange.GetNamed(key.c_str()));
+    auto* peer = static_cast<Core::IPluginIdentity*>(CS2Kit::Detail::Rt().Exchange.GetNamed(key.c_str()));
 
     if (peer == nullptr)
     {
@@ -47,13 +48,13 @@ void PluginIdentity::Adopt(Core::PluginManifest manifest)
 {
     _manifest = std::move(manifest);
     _key = Core::IdentityKey(_manifest.Name);
-    Engine().Exchange.PublishNamed(_key.c_str(), static_cast<Core::IPluginIdentity*>(this));
+    CS2Kit::Detail::Rt().Exchange.PublishNamed(_key.c_str(), static_cast<Core::IPluginIdentity*>(this));
 
     if (_manifest.Dependencies.empty())
         return;
 
     // First frame, not OnLoad - see PluginIdentity's comment.
-    Engine().Core.Scheduler.NextTick([this] {
+    CS2Kit::Detail::Rt().Scheduler.NextTick([this] {
         for (const auto& dependency : _manifest.Dependencies)
             ReportDependency(dependency);
     });
@@ -63,7 +64,7 @@ void PluginIdentity::Withdraw()
 {
     if (_key.empty())
         return;
-    Engine().Exchange.UnpublishNamed(_key.c_str());
+    CS2Kit::Detail::Rt().Exchange.UnpublishNamed(_key.c_str());
     _key.clear();
 }
 
@@ -71,7 +72,7 @@ void LoadPluginManifest(std::string_view addon)
 {
     const std::string path = Core::AddonFile(addon, std::format("{}.manifest.json", addon));
 
-    Engine().Core.LoadReport.Run("Manifest", [&]() -> Core::StageResult {
+    CS2Kit::Detail::Rt().LoadReport.Run("Manifest", [&]() -> Core::StageResult {
         std::ifstream file(path, std::ios::binary);
         if (!file)
             return Core::StageResult::Degraded("no manifest shipped");
@@ -85,7 +86,7 @@ void LoadPluginManifest(std::string_view addon)
 
         const size_t dependencies = manifest->Dependencies.size();
         const std::string version = manifest->Version;
-        Engine().Identity.Adopt(std::move(*manifest));
+        CS2Kit::Detail::Rt().Identity.Adopt(std::move(*manifest));
         return Core::StageResult::Ok(dependencies == 0 ? std::format("v{}", version)
                                                        : std::format("v{}, {} dependencies", version, dependencies));
     });

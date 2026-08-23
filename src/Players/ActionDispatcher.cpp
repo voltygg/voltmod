@@ -1,7 +1,7 @@
-#include <CS2Kit/Core/CoreServices.hpp>
+#include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Players/ActionDispatcher.hpp>
 #include <CS2Kit/Players/PlayerManager.hpp>
-#include <CS2Kit/Players/Roster.hpp>
+#include <CS2Kit/Runtime.hpp>
 
 namespace CS2Kit::Players
 {
@@ -12,14 +12,14 @@ ActionContext ActionDispatcher::Resolve(int callerSlot, int targetSlot, const st
 {
     ActionContext ctx{nullptr, nullptr, PlayerController(callerSlot), PlayerController(targetSlot)};
 
-    auto& plrMgr = Players::Roster();
+    auto& plrMgr = CS2Kit::Detail::Rt().Players;
     ctx.Caller = plrMgr.GetPlayerBySlot(callerSlot);
     ctx.Target = plrMgr.GetPlayerBySlot(targetSlot);
 
     if (!ctx.Caller || !ctx.Target)
         return ctx;
 
-    auto& policy = Core::Ctx().Policy;
+    auto& policy = CS2Kit::Detail::Rt().Policy;
     if (!permission.empty() && policy.HasPermission && !policy.HasPermission(ctx.Caller->GetSteamID(), permission))
     {
         ctx.Caller = nullptr;
@@ -57,7 +57,7 @@ void ActionDispatcher::Run(int callerSlot, int targetSlot, int param, const Para
 
 void ActionDispatcher::Broadcast(const ActionContext& ctx, const std::string& translationKey) const
 {
-    auto& policy = Core::Ctx().Policy;
+    auto& policy = CS2Kit::Detail::Rt().Policy;
     if (!policy.Broadcast || !ctx.Caller)
         return;
     policy.Broadcast(*ctx.Caller, ctx.Target, translationKey);

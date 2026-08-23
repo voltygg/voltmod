@@ -31,8 +31,9 @@ foreach(module Core Utils Http Sdk Players Commands Menu Database App)
     file(GLOB_RECURSE CS2KIT_${module}_SOURCES CONFIGURE_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/src/${module}/*.cpp")
 endforeach()
-# CS2Kit.cpp is Initialize/Shutdown - composition, so it belongs with App.
-list(APPEND CS2KIT_App_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/CS2Kit.cpp")
+# Runtime.cpp is the composition root - the flat service container plus the one
+# ambient pointer the lower modules reach it through - so it belongs with App.
+list(APPEND CS2KIT_App_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/Runtime.cpp")
 
 # SDK bodies that ship as source only, compiled into the Sdk component. entityidentity
 # is needed even though nothing calls it directly: entitysystem.cpp references

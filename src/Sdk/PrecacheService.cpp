@@ -1,8 +1,9 @@
 #include "Sdk/GameSystem.hpp"
 
+#include <CS2Kit/Detail/Runtime.hpp>
+#include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Sdk/GameData.hpp>
 #include <CS2Kit/Sdk/PrecacheService.hpp>
-#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <CS2Kit/Utils/Log.hpp>
 #include <algorithm>
 
@@ -35,7 +36,7 @@ bool PrecacheService::Initialize(std::string systemName)
     if (_factory)
         return true;
 
-    auto& gameData = Ctx().GameData;
+    auto& gameData = CS2Kit::Detail::Rt().GameData;
 
     auto* listHead = static_cast<GameSystemFactory**>(gameData.ResolveSignature("IGameSystem_InitAllSystems_pFirst"));
     _eventDispatcher = gameData.ResolveSignature("IGameSystem_LoopPostInitAllSystems_pEventDispatcher");

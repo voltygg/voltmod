@@ -11,7 +11,7 @@
 //   SH_DECL_HOOK3(IVEngineServer2, SetClientListening, SH_NOATTRIB, 0, bool, CPlayerSlot, CPlayerSlot, bool);
 //   void MyPlugin::OnRegisterHooks()
 //   {
-//       CS2KIT_SCOPED_HOOK(IVEngineServer2, SetClientListening, Engine().Sdk.Interfaces.Engine,
+//       CS2KIT_SCOPED_HOOK(IVEngineServer2, SetClientListening, runtime.Interfaces.Engine,
 //                          SH_MEMBER(this, &MyPlugin::Hook_SetClientListening), false);
 //   }
 #define CS2KIT_SCOPED_HOOK(Iface, Func, ifacePtr, handler, post)                                                      \

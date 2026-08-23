@@ -1,25 +1,13 @@
 #include "Core/ConsoleLogger.hpp"
 #include "Sdk/Schema.hpp"
 
-#include <CS2Kit/App/Services.hpp>
-#include <CS2Kit/CS2Kit.hpp>
-#include <CS2Kit/Core/ILogger.hpp>
 #include <CS2Kit/Core/Paths.hpp>
-#include <CS2Kit/Core/Scheduler.hpp>
-#include <CS2Kit/Menu/MenuManager.hpp>
-#include <CS2Kit/Sdk/ChatInputCapture.hpp>
-#include <CS2Kit/Sdk/ClientCvarService.hpp>
-#include <CS2Kit/Sdk/ConVarService.hpp>
-#include <CS2Kit/Sdk/Entity.hpp>
-#include <CS2Kit/Sdk/EntityOps.hpp>
-#include <CS2Kit/Sdk/GameData.hpp>
-#include <CS2Kit/Sdk/GameEventService.hpp>
-#include <CS2Kit/Sdk/GameInterfaces.hpp>
-#include <CS2Kit/Sdk/PrecacheService.hpp>
-#include <CS2Kit/Sdk/UserMessage.hpp>
+#include <CS2Kit/Detail/Runtime.hpp>
+#include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Utils/Log.hpp>
 #include <ISmmAPI.h>
 #include <chrono>
+#include <cstdlib>
 #include <eiface.h>
 #include <engine/igameeventsystem.h>
 #include <format>
@@ -34,19 +22,65 @@
 namespace CS2Kit
 {
 
-static constexpr const char* DefaultGameDataPath = "addons/cs2-kit/gamedata/signatures.jsonc";
-static Core::ConsoleLogger g_consoleLogger;
-
-bool Initialize(ISmmAPI* ismm, char* error, size_t maxlen, App::Services& services, const InitParams& params)
+namespace
 {
-    // 1. Set up logging
-    if (params.Logger)
+constexpr const char* DefaultGameDataPath = "addons/cs2-kit/gamedata/signatures.jsonc";
+Core::ConsoleLogger g_consoleLogger;
+Runtime* g_active = nullptr;
+}  // namespace
+
+namespace Detail
+{
+
+void SetRt(Runtime* runtime)
+{
+    g_active = runtime;
+}
+
+Runtime& Rt()
+{
+    if (!g_active)
     {
-        Core::SetGlobalLogger(params.Logger);
+        // Release builds would otherwise take a null dereference into a Metamod crash dump
+        // with no context. Name the mistake instead: this is always a lifetime bug.
+        Utils::Log::Error("CS2Kit::Detail::Rt() called with no live Runtime (outside Load/Unload).");
+        std::abort();
+    }
+    return *g_active;
+}
+
+Runtime* RtOrNull()
+{
+    return g_active;
+}
+
+}  // namespace Detail
+
+Runtime::Runtime() : _schema(std::make_unique<Sdk::SchemaService>()) {}
+
+Runtime::~Runtime()
+{
+    // First: peers must stop resolving our interfaces while their objects are still alive.
+    Identity.Withdraw();
+    Precache.Shutdown();  // the engine must stop referencing our vtables
+    ClientCvars.Shutdown();
+    Events.RemoveAllListeners();
+    Http.Stop();  // drains in-flight requests before their completion targets go away
+    Scheduler.CancelAll();
+}
+
+bool Runtime::Start(const LoadContext& context)
+{
+    ISmmAPI* ismm = context.Ismm;
+
+    // 1. Set up logging
+    if (context.Logger)
+    {
+        Core::SetGlobalLogger(context.Logger);
     }
     else
     {
-        g_consoleLogger.SetPrefix(params.LogPrefix);
+        g_consoleLogger.SetPrefix(context.LogPrefix);
         Core::SetGlobalLogger(&g_consoleLogger);
     }
 
@@ -63,17 +97,17 @@ bool Initialize(ISmmAPI* ismm, char* error, size_t maxlen, App::Services& servic
         return ismm->VInterfaceMatch(ismm->GetServerFactory(), version, 0);
     };
 
-    auto& gi = services.Sdk.Interfaces;
+    auto& gi = Interfaces;
 
     // Resolve each required interface, erroring out on the first one that is missing. The macro
     // keeps this type-safe (decltype, no void** punning) while collapsing the per-interface
     // resolve-and-check boilerplate to one line each.
-#define CS2KIT_RESOLVE(field, factory, version)                               \
-    gi.field = static_cast<decltype(gi.field)>(factory(version));             \
-    if (!gi.field)                                                            \
-    {                                                                         \
-        ismm->Format(error, maxlen, "Could not find interface: %s", version); \
-        return false;                                                         \
+#define CS2KIT_RESOLVE(field, factory, version)                                               \
+    gi.field = static_cast<decltype(gi.field)>(factory(version));                             \
+    if (!gi.field)                                                                            \
+    {                                                                                         \
+        ismm->Format(context.Error, context.MaxLen, "Could not find interface: %s", version); \
+        return false;                                                                         \
     }
 
     CS2KIT_RESOLVE(ServerGameDLL, resolveServer, INTERFACEVERSION_SERVERGAMEDLL)
@@ -98,27 +132,27 @@ bool Initialize(ISmmAPI* ismm, char* error, size_t maxlen, App::Services& servic
     // Only the message system is load-aborting; MetamodPluginBase logs the
     // summary and surfaces FirstFailure() in Metamod's error buffer.
     using Core::StageResult;
-    auto& report = services.Core.LoadReport;
+    auto& report = LoadReport;
 
     report.Run("GameData", [&] {
-        const char* gameDataPath = params.GameDataPath ? params.GameDataPath : DefaultGameDataPath;
-        if (!services.Sdk.GameData.Load(gameDataPath))
+        const char* gameDataPath = context.GameDataPath ? context.GameDataPath : DefaultGameDataPath;
+        if (!GameData.Load(gameDataPath))
             return StageResult::Degraded(std::format("failed to load {}", gameDataPath));
-        services.Sdk.GameData.ResolveAll();
-        if (auto failures = services.Sdk.GameData.FailureSummary(); !failures.empty())
+        GameData.ResolveAll();
+        if (auto failures = GameData.FailureSummary(); !failures.empty())
             return StageResult::Degraded(std::move(failures));
-        return StageResult::Ok(std::format("{} offsets, {} signatures resolved", services.Sdk.GameData.OffsetCount(),
-                                           services.Sdk.GameData.SignatureCount()));
+        return StageResult::Ok(
+            std::format("{} offsets, {} signatures resolved", GameData.OffsetCount(), GameData.SignatureCount()));
     });
 
     const auto messages = report.Run("Messages", [&] {
-        if (!services.Sdk.Messages.Initialize())
+        if (!Messages.Initialize())
             return StageResult::Failed("message system init failed");
         return StageResult::Ok();
     });
     if (messages == Core::StageStatus::Failed)
     {
-        ismm->Format(error, maxlen, "%s", report.FirstFailure().c_str());
+        ismm->Format(context.Error, context.MaxLen, "%s", report.FirstFailure().c_str());
         return false;
     }
 
@@ -128,34 +162,33 @@ bool Initialize(ISmmAPI* ismm, char* error, size_t maxlen, App::Services& servic
         report.Run(name, [&] { return init() ? StageResult::Ok() : StageResult::Degraded(std::move(detail)); });
     };
 
-    degradable("Schema", "init failed; button detection may not work",
-               [&] { return services.Sdk.Schema().Initialize(); });
-    degradable("Entities", "init failed; menus may not work", [&] { return services.Sdk.Entities.Initialize(); });
+    degradable("Schema", "init failed; button detection may not work", [&] { return Schema().Initialize(); });
+    degradable("Entities", "init failed; menus may not work", [&] { return Entities.Initialize(); });
     degradable("EntityOps", "unavailable; spawned effects degrade (see signature warnings)",
-               [&] { return services.Sdk.EntityOps.Initialize(); });
+               [&] { return EntityOps.Initialize(); });
     degradable("Precache", "not registered; resource precaching unavailable",
-               [&] { return services.Sdk.Precache.Initialize(std::format("{}_CS2KitPrecache", params.LogPrefix)); });
+               [&] { return Precache.Initialize(std::format("{}_CS2KitPrecache", context.LogPrefix)); });
     degradable("GameEventManager", "not resolved; center HTML display will not work",
-               [&] { return services.Sdk.Messages.InitGameEventManager(); });
-    degradable("ConVars", "init failed", [&] { return services.Sdk.ConVars.Initialize(); });
-    degradable("Events", "init failed", [&] { return services.Sdk.Events.Initialize(); });
+               [&] { return Messages.InitGameEventManager(); });
+    degradable("ConVars", "init failed", [&] { return ConVars.Initialize(); });
+    degradable("Events", "init failed", [&] { return Events.Initialize(); });
     degradable("Transmit", "inert; CheckTransmitPlayerSlot offset missing from gamedata",
-               [&] { return services.Sdk.Transmit.Initialize(); });
+               [&] { return Transmit.Initialize(); });
     degradable("ClientCvars", "inert; client convar queries unavailable (see warnings)",
-               [&] { return services.Sdk.ClientCvars.Initialize(); });
+               [&] { return ClientCvars.Initialize(); });
 
     // Per-frame subsystems pump through the scheduler (PostgresDatabase registers its own pump
-    // in Start), so OnGameFrame has exactly one thing to tick. CancelAll in Shutdown unhooks
-    // these; Initialize re-registers them on the next load.
-    services.Core.Scheduler.EveryFrame([&services] { services.Menus.OnGameFrame(); });
-    services.Core.Scheduler.EveryFrame([&services] { services.Http.DispatchCompletions(); });
+    // in Start), so OnGameFrame has exactly one thing to tick. CancelAll in the destructor
+    // unhooks these; Start re-registers them on the next load.
+    Scheduler.EveryFrame([this] { Menus.OnGameFrame(); });
+    Scheduler.EveryFrame([this] { Http.DispatchCompletions(); });
 
-    // Kit status sections; plugins add theirs in OnLoad. Providers capture `services` by
-    // reference - it outlives them (both live for one Load/Unload cycle).
-    services.Status.RegisterSection("load", [&services] {
+    // Kit status sections; plugins add theirs in OnLoad. Providers capture `this` - the
+    // runtime outlives them (both live for one Load/Unload cycle).
+    Status.RegisterSection("load", [this] {
         auto names = nlohmann::json::object();
         int ok = 0;
-        for (const auto& stage : services.Core.LoadReport.Stages())
+        for (const auto& stage : LoadReport.Stages())
         {
             if (stage.Status == Core::StageStatus::Ok)
                 ++ok;
@@ -166,10 +199,9 @@ bool Initialize(ISmmAPI* ismm, char* error, size_t maxlen, App::Services& servic
         return names;
     });
 
-    services.Status.RegisterSection("gamedata", [&services] {
-        auto section = nlohmann::json{{"offsets", services.Sdk.GameData.OffsetCount()},
-                                      {"signatures", services.Sdk.GameData.SignatureCount()}};
-        for (const auto& [name, entry] : services.Sdk.GameData.Resolutions())
+    Status.RegisterSection("gamedata", [this] {
+        auto section = nlohmann::json{{"offsets", GameData.OffsetCount()}, {"signatures", GameData.SignatureCount()}};
+        for (const auto& [name, entry] : GameData.Resolutions())
         {
             if (!entry.Error.empty())
                 section["failed"].push_back(name);
@@ -179,7 +211,7 @@ bool Initialize(ISmmAPI* ismm, char* error, size_t maxlen, App::Services& servic
         return section;
     });
 
-    services.Status.RegisterSection("uptime", [start = std::chrono::steady_clock::now()] {
+    Status.RegisterSection("uptime", [start = std::chrono::steady_clock::now()] {
         const auto uptime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start);
         return nlohmann::json{{"seconds", uptime.count()}};
     });
@@ -187,28 +219,17 @@ bool Initialize(ISmmAPI* ismm, char* error, size_t maxlen, App::Services& servic
     return true;
 }
 
-void Shutdown(App::Services& services)
+void Runtime::OnGameFrame()
 {
-    // First: peers must stop resolving our interfaces while their objects are still alive.
-    services.Identity.Withdraw();
-    services.Sdk.Precache.Shutdown();  // first: the engine must stop referencing our vtables
-    services.Sdk.ClientCvars.Shutdown();
-    services.Sdk.Events.RemoveAllListeners();
-    services.Http.Stop();  // drains in-flight requests before their completion targets go away
-    services.Core.Scheduler.CancelAll();
+    Scheduler.OnGameFrame();
 }
 
-void OnGameFrame(App::Services& services)
+void Runtime::OnPlayerDisconnect(int slot)
 {
-    services.Core.Scheduler.OnGameFrame();
-}
-
-void OnPlayerDisconnect(App::Services& services, int slot)
-{
-    services.Menus.OnPlayerDisconnect(slot);
-    services.Sdk.ChatInput.OnPlayerDisconnect(slot);
-    services.Sdk.Transmit.OnPlayerDisconnect(slot);
-    services.Sdk.ClientCvars.OnPlayerDisconnect(slot);
+    Menus.OnPlayerDisconnect(slot);
+    ChatInput.OnPlayerDisconnect(slot);
+    Transmit.OnPlayerDisconnect(slot);
+    ClientCvars.OnPlayerDisconnect(slot);
 }
 
 }  // namespace CS2Kit
