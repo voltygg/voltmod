@@ -243,10 +243,7 @@ void ConVarService::Shutdown()
 
 void ConVarService::DispatchChange(const char* name, const char* oldValue, const char* newValue)
 {
-    for (const auto& [id, callback] : _changeCallbacks.Items())
-    {
-        callback(name, oldValue, newValue);
-    }
+    _changeCallbacks.Dispatch([&](auto& callback) { callback(name, oldValue, newValue); });
 }
 
 }  // namespace CS2Kit::Sdk

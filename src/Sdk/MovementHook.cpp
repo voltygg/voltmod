@@ -212,12 +212,9 @@ void* MovementHook::Hook_RunCommandPre(void* userCmd)
         DecodeUserCmd(userCmd);
     // Filters edit the decoded view before anyone reads it, so pre/preCmd/postCmd listeners
     // and InputHistory all observe the same edited command.
-    for (const auto& [id, filter] : _filter.Items())
-        filter(_preSlot, _cmdView);
-    for (const auto& [id, callback] : _pre.Items())
-        callback(_preSlot);
-    for (const auto& [id, callback] : _preCmd.Items())
-        callback(_preSlot, _cmdView);
+    _filter.Dispatch([&](auto& filter) { filter(_preSlot, _cmdView); });
+    _pre.Dispatch([&](auto& callback) { callback(_preSlot); });
+    _preCmd.Dispatch([&](auto& callback) { callback(_preSlot, _cmdView); });
     RETURN_META_VALUE(MRES_IGNORED, nullptr);
 }
 
@@ -226,10 +223,8 @@ void* MovementHook::Hook_RunCommandPost(void* /*userCmd*/)
     // Post always brackets the same RunCommand call as the preceding pre (movement is
     // processed one player at a time, no nesting), so reuse the pre-resolved slot and
     // the pre-decoded cmd view rather than repeating the work.
-    for (const auto& [id, callback] : _post.Items())
-        callback(_preSlot);
-    for (const auto& [id, callback] : _postCmd.Items())
-        callback(_preSlot, _cmdView);
+    _post.Dispatch([&](auto& callback) { callback(_preSlot); });
+    _postCmd.Dispatch([&](auto& callback) { callback(_preSlot, _cmdView); });
     RETURN_META_VALUE(MRES_IGNORED, nullptr);
 }
 

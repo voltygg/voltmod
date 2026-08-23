@@ -28,8 +28,7 @@ public:
     /** Notify every listener that @p slot changed hands. */
     void Raise(int slot)
     {
-        for (const auto& [id, callback] : _changed.Items())
-            callback(slot);
+        _changed.Dispatch([slot](auto& callback) { callback(slot); });
     }
 
 private:
