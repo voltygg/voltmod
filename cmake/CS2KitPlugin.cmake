@@ -7,10 +7,8 @@ include_guard(GLOBAL)
 #                  [VERSION <v>] [DESCRIPTION <text>]
 #                  [DEPENDS <spec>...] [REQUIRES <spec>...])
 
-# CS2KitSdk provides CS2KIT_ROOT_DIR / _PLATFORM_ARCH / _GAMEDATA_DIR and
-# cs2kit_set_sdk_warnings; include_guard(GLOBAL) makes the repeat free.
-include("${CMAKE_CURRENT_LIST_DIR}/CS2KitSdk.cmake")
-include("${CMAKE_CURRENT_LIST_DIR}/CS2KitBuildInfo.cmake")
+# CS2KIT_ROOT_DIR / _PLATFORM_ARCH / _GAMEDATA_DIR and cs2kit_set_warnings.
+include("${CMAKE_CURRENT_LIST_DIR}/CS2KitCommon.cmake")
 
 # Create a Metamod plugin MODULE linked against CS2Kit, with output dirs and
 # install rules. SOURCES defaults to a glob of src/*.cpp; INCLUDE_DIRS and
@@ -106,7 +104,7 @@ function(cs2_add_plugin target_name)
         )
     endif()
 
-    cs2kit_set_sdk_warnings("${target_name}")
+    cs2kit_set_warnings("${target_name}")
     cs2kit_stamp_build_info("${target_name}")
 
     # Route artifacts to build/plugins/<name>/<platform_arch>/, no rpath, no lib
@@ -244,4 +242,28 @@ function(cs2_install_plugin target_name)
             DESTINATION "addons/cs2-kit/gamedata"
             COMPONENT "${target_name}")
     endif()
+endfunction()
+
+# Stamped values are repo-wide, so all plugins share one custom target and one
+# generated <CS2Kit/BuildInfo.hpp>. Called by cs2_add_plugin.
+function(cs2kit_stamp_build_info target_name)
+    set(include_dir "${CMAKE_BINARY_DIR}/cs2kit-buildinfo/include")
+    set(header "${include_dir}/CS2Kit/BuildInfo.hpp")
+
+    if(NOT TARGET cs2kit-buildinfo)
+        add_custom_target(cs2kit-buildinfo
+            COMMAND "${CMAKE_COMMAND}"
+                -D "TEMPLATE_FILE=${CS2KIT_ROOT_DIR}/cmake/BuildInfo.hpp.in"
+                -D "OUTPUT_FILE=${header}"
+                -D "VERSION_FILE=${CMAKE_SOURCE_DIR}/version.txt"
+                -D "REPO_DIR=${CMAKE_SOURCE_DIR}"
+                -P "${CS2KIT_ROOT_DIR}/cmake/GitBuildInfoScript.cmake"
+            BYPRODUCTS "${header}"
+            COMMENT "Stamping CS2Kit build info"
+            VERBATIM
+        )
+    endif()
+
+    add_dependencies("${target_name}" cs2kit-buildinfo)
+    target_include_directories("${target_name}" PRIVATE "${include_dir}")
 endfunction()

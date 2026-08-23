@@ -12,10 +12,10 @@ set(CMAKE_FIND_PACKAGE_TARGETS_GLOBAL ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-include(CS2KitSdk)
+include(CS2KitCommon)
 include(CS2KitLibrary)
-include(CS2Plugin)
-include(CS2Tests)
+include(CS2KitPlugin)
+include(CS2KitTests)
 
 find_package(cpr CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)

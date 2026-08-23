@@ -55,7 +55,7 @@ function(cs2kit_add_library name)
     target_compile_options("${target}" PRIVATE
         "$<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:MSVC>>:/Z7>"
     )
-    cs2kit_set_sdk_warnings("${target}")
+    cs2kit_set_warnings("${target}")
 
     target_include_directories("${target}"
         PUBLIC

@@ -17,10 +17,10 @@ Metamod:Source 2.0.
 include/CS2Kit/        Public API headers, one directory per module
 src/                   Implementation, one static library per module
 gamedata/              Engine signatures and offsets
-cmake/                 CS2KitSdk.cmake + CS2KitComponent.cmake (one lib per module)
-                       + CS2Plugin.cmake (cs2_add_plugin)
-                       + CS2Tests.cmake (cs2_add_tests) + DoctestMain.cpp + plugin.vdf.in
-                       + CS2KitBuildInfo.cmake (git/version stamping -> <CS2Kit/BuildInfo.hpp>)
+cmake/                 CS2KitCommon.cmake (paths, platform, toolchain fallbacks)
+                       + CS2KitPlugin.cmake (cs2_add_plugin, manifest/vdf, build stamping)
+                       + CS2KitTests.cmake (cs2_add_tests) + DoctestMain.cpp + templates
+                       + CS2KitLibrary.cmake (kit-internal: one static lib per target)
 scripts/cs2kit/        Build + scaffolding tooling, shipped as the `cs2-kit` Python
                        distribution (cs2kit-build, -bootstrap, -format, -new-plugin,
                        -init-project); every entry point targets Path.cwd()

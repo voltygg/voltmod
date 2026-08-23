@@ -72,8 +72,8 @@ The kit's CMake leans on standard mechanisms instead of hand-rolled flags wherev
 - SDK/Metamod headers are `SYSTEM` include dirs, so consumer warning levels don't apply to third-party headers; vendored SDK *sources* compiled into targets (`memoverride.cpp`, `convar.cpp`, the entity2/keyvalues3 TUs, protoc output) are silenced per-source by the `hl2sdk_attach_*` functions that add them.
 - Symbol visibility comes from the `CXX_VISIBILITY_PRESET hidden` / `VISIBILITY_INLINES_HIDDEN` target properties, not raw `-fvisibility` flags.
 - MSVC Release builds compile with `/Z7` and link with `/DEBUG /OPT:REF /OPT:ICF`, so every shipped plugin has a PDB for crash-dump symbolication (`/Z7` rather than `/Zi` because ccache cannot cache `/Zi`).
-- The static-MSVC-runtime and ccache fallbacks live once in `CS2KitSdk.cmake` as cache variables (visible to sibling plugin directories); a Conan toolchain that sets them wins.
-- SDK includes, defines and ABI flags are the `hl2sdk-cs2` package's usage requirements, not hand-written lists. Warning level is the one exception - `cs2kit_set_sdk_warnings()` applies it per target, because it is the consumer's policy rather than the SDK's.
+- The static-MSVC-runtime and ccache fallbacks live once in `CS2KitCommon.cmake` as cache variables (visible to sibling plugin directories); a Conan toolchain that sets them wins.
+- SDK includes, defines and ABI flags are the `hl2sdk-cs2` package's usage requirements, not hand-written lists. Warning level is the one exception - `cs2kit_set_warnings()` applies it per target, because it is the consumer's policy rather than the SDK's.
 - protobuf sources are generated once, inside the `hl2sdk-cs2` package build, and ship as source. No consumer runs protoc.
 - Deliberately **not** used, so the audit isn't re-run later: `GenerateExportHeader` (no export macros exist - Metamod's `PLUGIN_EXPOSE` handles the entry point), `install(... RUNTIME_DEPENDENCIES)` (runtimes are static), and `VERSION`/`SOVERSION` (meaningless for MODULE libraries).
 

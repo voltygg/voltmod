@@ -140,10 +140,10 @@ class CS2KitConan(ConanFile):
         self.cpp_info.set_property("cmake_target_name", "CS2Kit::CS2Kit")
         self.cpp_info.builddirs = ["cmake"]
         # cs2_add_plugin / cs2_add_tests reach consumers as CMakeDeps build
-        # modules; CS2Plugin.cmake pulls CS2KitSdk/CS2KitBuildInfo itself.
+        # modules; CS2KitPlugin.cmake pulls CS2KitCommon itself.
         self.cpp_info.set_property("cmake_build_modules", [
-            os.path.join("cmake", "CS2Plugin.cmake"),
-            os.path.join("cmake", "CS2Tests.cmake"),
+            os.path.join("cmake", "CS2KitPlugin.cmake"),
+            os.path.join("cmake", "CS2KitTests.cmake"),
         ])
 
         # Two components, matching the two libraries CMake builds. The source modules

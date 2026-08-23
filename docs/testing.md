@@ -129,7 +129,7 @@ TEST_CASE_TEMPLATE("Trim accepts any string-like input", T, const char*, std::st
 
 ## Adding tests to a plugin
 
-`cs2_add_tests()` (from `cmake/CS2Tests.cmake`, included by the kit's root CMakeLists) owns
+`cs2_add_tests()` (from `cmake/CS2KitTests.cmake`, included by the kit's root CMakeLists) owns
 the wiring: it globs `tests/*.cpp`, supplies doctest's `main`, links `doctest::doctest`,
 adds the kit's include dir, and registers the cases with CTest. `SOURCES` is the list of
 SDK-free TUs to recompile - test binaries never link the plugin module or the kit, so

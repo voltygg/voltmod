@@ -1,12 +1,12 @@
 include_guard(GLOBAL)
 
+# Shared by everything else in this directory: where the kit lives, what platform this is,
+# and the toolchain fallbacks. Kept separate from CS2KitPlugin so CS2KitTests and the
+# kit-internal CS2KitLibrary can have the paths without pulling in the plugin API.
+
 get_filename_component(CS2KIT_ROOT_DIR_DEFAULT "${CMAKE_CURRENT_LIST_DIR}/.." REALPATH)
 set(CS2KIT_ROOT_DIR "${CS2KIT_ROOT_DIR_DEFAULT}" CACHE PATH "CS2Kit repository root")
 set(CS2KIT_GAMEDATA_DIR "${CS2KIT_ROOT_DIR}/gamedata" CACHE PATH "CS2Kit shared gamedata path")
-
-# Nothing here describes the SDK. hl2sdk-cs2 ships its own build module, which attaches
-# the TUs a consumer must compile (hl2sdk_attach_*); everything else it needs to say rides
-# on the CS2Kit::HL2SDK imported target.
 
 # Fallbacks when no toolchain sets these; CACHE so sibling plugin dirs see them.
 if(NOT DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)
@@ -35,7 +35,7 @@ endif()
 # Warning level for first-party code. The SDK packages carry includes, defines and
 # ABI flags as usage requirements, but warnings are the consumer's policy, so every
 # target the kit owns opts in explicitly.
-function(cs2kit_set_sdk_warnings target)
+function(cs2kit_set_warnings target)
     target_compile_options("${target}" PRIVATE
         "$<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang>:-Wall>"
         "$<$<CXX_COMPILER_ID:MSVC>:/W3>"

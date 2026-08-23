@@ -6,7 +6,7 @@ include_guard(GLOBAL)
 # SOURCES are the SDK-free TUs to recompile; tests/*.cpp is globbed automatically.
 
 # For CS2KIT_ROOT_DIR; include_guard(GLOBAL) makes the repeat include free.
-include("${CMAKE_CURRENT_LIST_DIR}/CS2KitSdk.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/CS2KitCommon.cmake")
 
 # doctest hands test names to CTest through a CMake list, where '[' and ']' group and
 # ';' separates. An unmatched bracket aborts configure with an unrelated-looking

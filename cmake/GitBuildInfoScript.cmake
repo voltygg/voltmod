@@ -1,4 +1,4 @@
-# Run via `cmake -P` each build (see CS2KitBuildInfo.cmake). All values derive
+# Run via `cmake -P` each build (see cs2kit_stamp_build_info). All values derive
 # from committed state so the header is only rewritten when a commit changes.
 # Inputs: TEMPLATE_FILE, OUTPUT_FILE, VERSION_FILE, REPO_DIR.
 
