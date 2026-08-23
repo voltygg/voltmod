@@ -1,7 +1,7 @@
+#include <CS2Kit/App/Services.hpp>
 #include <CS2Kit/Core/ActiveService.hpp>
-#include <CS2Kit/Core/Services.hpp>
 
-namespace CS2Kit::Core
+namespace CS2Kit::App
 {
 
 Services::Services()
@@ -17,17 +17,17 @@ Services::~Services()
 
 void SetActiveServices(Services* services)
 {
-    ActiveService<Services>::Set(services);
+    Core::ActiveService<Services>::Set(services);
 }
 
 Services& Engine()
 {
-    return ActiveService<Services>::Get();
+    return Core::ActiveService<Services>::Get();
 }
 
 Services* EngineOrNull()
 {
-    return ActiveService<Services>::GetOrNull();
+    return Core::ActiveService<Services>::GetOrNull();
 }
 
-}  // namespace CS2Kit::Core
+}  // namespace CS2Kit::App

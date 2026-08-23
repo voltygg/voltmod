@@ -1,7 +1,7 @@
+#include <CS2Kit/App/Services.hpp>
+#include <CS2Kit/App/StandardLoad.hpp>
 #include <CS2Kit/Core/Paths.hpp>
 #include <CS2Kit/Core/PluginManifest.hpp>
-#include <CS2Kit/Core/Services.hpp>
-#include <CS2Kit/Core/StandardLoad.hpp>
 #include <CS2Kit/Utils/Log.hpp>
 #include <format>
 #include <fstream>
@@ -9,15 +9,15 @@
 
 namespace Log = CS2Kit::Utils::Log;
 
-namespace CS2Kit::Core
+namespace CS2Kit::App
 {
 
 namespace
 {
-void ReportDependency(const PluginDependency& dependency)
+void ReportDependency(const Core::PluginDependency& dependency)
 {
-    const std::string key = IdentityKey(dependency.Name);
-    auto* peer = static_cast<IPluginIdentity*>(Engine().Exchange.GetNamed(key.c_str()));
+    const std::string key = Core::IdentityKey(dependency.Name);
+    auto* peer = static_cast<Core::IPluginIdentity*>(Engine().Exchange.GetNamed(key.c_str()));
 
     if (peer == nullptr)
     {
@@ -30,7 +30,7 @@ void ReportDependency(const PluginDependency& dependency)
     }
 
     const char* version = peer->PluginVersion();
-    if (!VersionAtLeast(version ? version : "", dependency.MinVersion))
+    if (!Core::VersionAtLeast(version ? version : "", dependency.MinVersion))
     {
         const std::string message =
             std::format("dependency '{}' is {} but {} or newer is expected", dependency.Name,
@@ -43,11 +43,11 @@ void ReportDependency(const PluginDependency& dependency)
 }
 }  // namespace
 
-void PluginIdentity::Adopt(PluginManifest manifest)
+void PluginIdentity::Adopt(Core::PluginManifest manifest)
 {
     _manifest = std::move(manifest);
-    _key = IdentityKey(_manifest.Name);
-    Engine().Exchange.PublishNamed(_key.c_str(), static_cast<IPluginIdentity*>(this));
+    _key = Core::IdentityKey(_manifest.Name);
+    Engine().Exchange.PublishNamed(_key.c_str(), static_cast<Core::IPluginIdentity*>(this));
 
     if (_manifest.Dependencies.empty())
         return;
@@ -69,26 +69,26 @@ void PluginIdentity::Withdraw()
 
 void LoadPluginManifest(std::string_view addon)
 {
-    const std::string path = AddonFile(addon, std::format("{}.manifest.json", addon));
+    const std::string path = Core::AddonFile(addon, std::format("{}.manifest.json", addon));
 
-    Engine().LoadReport.Run("Manifest", [&]() -> StageResult {
+    Engine().LoadReport.Run("Manifest", [&]() -> Core::StageResult {
         std::ifstream file(path, std::ios::binary);
         if (!file)
-            return StageResult::Degraded("no manifest shipped");
+            return Core::StageResult::Degraded("no manifest shipped");
 
         std::ostringstream buffer;
         buffer << file.rdbuf();
 
-        auto manifest = ParsePluginManifest(buffer.str());
+        auto manifest = Core::ParsePluginManifest(buffer.str());
         if (!manifest)
-            return StageResult::Degraded(std::format("{} is malformed", path));
+            return Core::StageResult::Degraded(std::format("{} is malformed", path));
 
         const size_t dependencies = manifest->Dependencies.size();
         const std::string version = manifest->Version;
         Engine().Identity.Adopt(std::move(*manifest));
-        return StageResult::Ok(dependencies == 0 ? std::format("v{}", version)
-                                                 : std::format("v{}, {} dependencies", version, dependencies));
+        return Core::StageResult::Ok(dependencies == 0 ? std::format("v{}", version)
+                                                       : std::format("v{}, {} dependencies", version, dependencies));
     });
 }
 
-}  // namespace CS2Kit::Core
+}  // namespace CS2Kit::App

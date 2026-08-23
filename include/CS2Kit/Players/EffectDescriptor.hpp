@@ -7,8 +7,11 @@
 
 namespace CS2Kit::Core
 {
+class EffectManager;  // Core/EffectManager.hpp; by reference only, so a declaration is enough
+}
 
-class EffectManager;
+namespace CS2Kit::Players
+{
 
 /** Lifetime policy, declared as data on the descriptor (not baked into the body). */
 enum class EffectScope
@@ -48,7 +51,7 @@ struct EffectChoice
 struct EffectDescriptor
 {
     std::string Permission; /**< Consumer-defined permission token; "" skips the check. */
-    int Id;                 /**< Plugin-defined key into the per-slot EffectManager map. */
+    int Id;                 /**< Plugin-defined key into the per-slot Core::EffectManager map. */
     std::string NameKey;    /**< Translation key for the menu row label. */
     std::string OnKey;      /**< Broadcast key when applied ("" = silent). */
     std::string OffKey;     /**< Broadcast key when cleared ("" = silent). */
@@ -77,15 +80,16 @@ struct ParamEffectDescriptor
 };
 
 /** Apply if inactive, clear if active. Broadcasts OnKey/OffKey. The default menu-row verb. */
-void ToggleEffect(EffectManager& effects, int adminSlot, int targetSlot, const EffectDescriptor& effect);
+void ToggleEffect(Core::EffectManager& effects, int adminSlot, int targetSlot, const EffectDescriptor& effect);
 /** (Re)apply unconditionally, broadcasting OnKey. */
-void ApplyEffect(EffectManager& effects, int adminSlot, int targetSlot, const EffectDescriptor& effect);
+void ApplyEffect(Core::EffectManager& effects, int adminSlot, int targetSlot, const EffectDescriptor& effect);
 /** Cancel if active, broadcasting OffKey (when set). */
-void ClearEffect(EffectManager& effects, int adminSlot, int targetSlot, const EffectDescriptor& effect);
+void ClearEffect(Core::EffectManager& effects, int adminSlot, int targetSlot, const EffectDescriptor& effect);
 
 /** Apply the parameterized effect at `param`, broadcasting OnKey. */
-void ApplyEffect(EffectManager& effects, int adminSlot, int targetSlot, int param, const ParamEffectDescriptor& effect);
+void ApplyEffect(Core::EffectManager& effects, int adminSlot, int targetSlot, int param,
+                 const ParamEffectDescriptor& effect);
 /** Cancel the parameterized effect if active, broadcasting OffKey. */
-void ClearEffect(EffectManager& effects, int adminSlot, int targetSlot, const ParamEffectDescriptor& effect);
+void ClearEffect(Core::EffectManager& effects, int adminSlot, int targetSlot, const ParamEffectDescriptor& effect);
 
-}  // namespace CS2Kit::Core
+}  // namespace CS2Kit::Players

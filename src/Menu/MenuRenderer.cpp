@@ -1,12 +1,12 @@
 #include "Menu/MenuRenderer.hpp"
 
-#include <CS2Kit/Core/Services.hpp>
+#include <CS2Kit/App/Services.hpp>
 #include <CS2Kit/Menu/MenuOption.hpp>
 #include <CS2Kit/Utils/Translations.hpp>
 #include <algorithm>
 #include <sstream>
 
-using CS2Kit::Core::Engine;
+using CS2Kit::App::Engine;
 
 namespace CS2Kit::Menu
 {

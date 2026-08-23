@@ -22,7 +22,7 @@ namespace CS2Kit::Players
 class Player;
 }
 
-namespace CS2Kit::Core
+namespace CS2Kit::App
 {
 
 class Services;
@@ -52,7 +52,7 @@ struct PluginInfo
  * of the instance/PLUGIN_EXPOSE pair below.
  *
  * @code
- * class MyPlugin : public CS2Kit::Core::MetamodPluginBase {
+ * class MyPlugin : public CS2Kit::App::MetamodPluginBase {
  *     PluginInfo Info() const override { return { .Name = "My Plugin", .LogTag = "MINE" }; }
  *     bool OnLoad(bool late) override { Defer([]{ MySystem::Shutdown(); }); return MySystem::Init(); }
  * };
@@ -185,4 +185,4 @@ private:
     PluginInfo _info;  // cached copy of Info() captured at load; backs the ISmmPlugin getters
 };
 
-}  // namespace CS2Kit::Core
+}  // namespace CS2Kit::App

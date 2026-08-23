@@ -12,26 +12,26 @@
 // The fully-qualified module names keep working; the short forms are synonyms.
 // Include this header wherever the short `CS2Kit::Type` spelling is used.
 
+#include <CS2Kit/App/JsonConfig.hpp>
+#include <CS2Kit/App/MetamodPluginBase.hpp>
+#include <CS2Kit/App/PluginBase.hpp>
+#include <CS2Kit/App/ServiceExchange.hpp>
+#include <CS2Kit/App/Services.hpp>
+#include <CS2Kit/App/StandardLoad.hpp>
 #include <CS2Kit/Commands/CommandManager.hpp>
 #include <CS2Kit/Commands/CommandSpec.hpp>
 #include <CS2Kit/Core/CallbackRegistry.hpp>
-#include <CS2Kit/Core/EffectDescriptor.hpp>
 #include <CS2Kit/Core/EffectManager.hpp>
 #include <CS2Kit/Core/HookMacros.hpp>
 #include <CS2Kit/Core/ILogger.hpp>
-#include <CS2Kit/Core/JsonConfig.hpp>
 #include <CS2Kit/Core/LoadReport.hpp>
-#include <CS2Kit/Core/MetamodPluginBase.hpp>
 #include <CS2Kit/Core/Paths.hpp>
-#include <CS2Kit/Core/PluginBase.hpp>
 #include <CS2Kit/Core/PluginPolicy.hpp>
 #include <CS2Kit/Core/PluginSettings.hpp>
 #include <CS2Kit/Core/Registry.hpp>
 #include <CS2Kit/Core/Scheduler.hpp>
-#include <CS2Kit/Core/ServiceExchange.hpp>
-#include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Core/Slot.hpp>
-#include <CS2Kit/Core/StandardLoad.hpp>
+#include <CS2Kit/Players/EffectDescriptor.hpp>
 // The Database vocabulary lives in <CS2Kit/Database/Api.hpp>, deliberately
 // outside this umbrella: it drags <pqxx/pqxx> into every including TU, and
 // most plugin code never touches the database.
@@ -85,40 +85,40 @@ namespace CS2Kit
 {
 
 // Core
+using App::Engine;
+using App::JsonConfig;
+using App::LoadStandardConfig;
+using App::MetamodPluginBase;
+using App::PluginBase;
+using App::PluginInfo;
+using App::ServiceExchange;
+using App::Services;
+using App::StandardLoadOptions;
+using App::StatusService;
 using Core::AddonDir;
 using Core::AddonFile;
-using Core::ApplyEffect;
 using Core::CallbackRegistry;
-using Core::ClearEffect;
-using Core::EffectChoice;
-using Core::EffectDescriptor;
-using Core::EffectInstance;
 using Core::EffectManager;
-using Core::EffectScope;
 using Core::EffectSpec;
-using Core::Engine;
 using Core::ILogger;
 using Core::IsValidSlot;
-using Core::JsonConfig;
 using Core::LoadReport;
-using Core::LoadStandardConfig;
 using Core::MaxPlayers;
-using Core::MetamodPluginBase;
-using Core::ParamEffectDescriptor;
-using Core::PluginBase;
-using Core::PluginInfo;
 using Core::PluginPolicy;
 using Core::Registry;
 using Core::ResolvePath;
 using Core::Scheduler;
-using Core::ServiceExchange;
-using Core::Services;
 using Core::StageResult;
 using Core::StageStatus;
-using Core::StandardLoadOptions;
 using Core::StandardPluginSettings;
-using Core::StatusService;
-using Core::ToggleEffect;
+using Players::ApplyEffect;
+using Players::ClearEffect;
+using Players::EffectChoice;
+using Players::EffectDescriptor;
+using Players::EffectInstance;
+using Players::EffectScope;
+using Players::ParamEffectDescriptor;
+using Players::ToggleEffect;
 
 // Sdk
 using Sdk::ChatInputCapture;

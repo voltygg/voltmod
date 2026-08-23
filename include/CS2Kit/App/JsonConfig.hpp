@@ -3,7 +3,7 @@
 #include <CS2Kit/Utils/Json.hpp>
 #include <string>
 
-namespace CS2Kit::Core
+namespace CS2Kit::App
 {
 
 /**
@@ -48,4 +48,4 @@ private:
     TSettings _settings;
 };
 
-}  // namespace CS2Kit::Core
+}  // namespace CS2Kit::App

@@ -10,16 +10,12 @@
 #include <utility>
 #include <vector>
 
-namespace CS2Kit::Core
-{
-struct EffectDescriptor;
-struct ParamEffectDescriptor;
-}  // namespace CS2Kit::Core
-
 namespace CS2Kit::Players
 {
 struct Action;
 struct ParamAction;
+struct EffectDescriptor;
+struct ParamEffectDescriptor;
 }  // namespace CS2Kit::Players
 
 namespace CS2Kit::Sdk
@@ -109,11 +105,11 @@ public:
 
     /** A toggle row bound to a data-defined effect (uses the context's EffectManager; the on/off
      *  state labels come from the reserved keys `effectState.on` / `effectState.off`). */
-    MenuBuilder& AddEffectToggleRow(const Core::EffectDescriptor& effect);
+    MenuBuilder& AddEffectToggleRow(const Players::EffectDescriptor& effect);
 
     /** A submenu row opening a picker over the effect's Choices (plus a reset row when
      *  ResetLabelKey is set). */
-    MenuBuilder& AddEffectPickerRow(const Core::ParamEffectDescriptor& effect);
+    MenuBuilder& AddEffectPickerRow(const Players::ParamEffectDescriptor& effect);
 
     /** Append an action row with a label that is recomputed every render. */
     MenuBuilder& AddDynamicButton(std::function<std::string()> getLabel, std::function<void(int)> onActivate,

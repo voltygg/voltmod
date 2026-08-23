@@ -1,11 +1,11 @@
-#include <CS2Kit/Core/Services.hpp>
-#include <CS2Kit/Core/StatusService.hpp>
+#include <CS2Kit/App/Services.hpp>
+#include <CS2Kit/App/StatusService.hpp>
 #include <format>
 #include <string_view>
 #include <tier0/dbg.h>
 #include <tier1/convar.h>
 
-namespace CS2Kit::Core
+namespace CS2Kit::App
 {
 
 void StatusService::RegisterSection(std::string name, Provider provider)
@@ -75,4 +75,4 @@ void StatusService::InstallCommand(const char* name, const char* helpText, Healt
     });
 }
 
-}  // namespace CS2Kit::Core
+}  // namespace CS2Kit::App

@@ -1,10 +1,10 @@
 #pragma once
 
+#include <CS2Kit/App/MetamodPluginBase.hpp>
 #include <CS2Kit/Core/ActiveService.hpp>
-#include <CS2Kit/Core/MetamodPluginBase.hpp>
 #include <memory>
 
-namespace CS2Kit::Core
+namespace CS2Kit::App
 {
 
 /**
@@ -28,21 +28,21 @@ public:
     using ManagersType = TManagers;
 
     /** The live manager container. Valid only between OnCreateInstances and unload. */
-    static TManagers& App() { return ActiveService<TManagers>::Get(); }
+    static TManagers& App() { return Core::ActiveService<TManagers>::Get(); }
 
     /** The live manager container, or nullptr - for teardown paths that may outlive it. */
-    static TManagers* AppOrNull() { return ActiveService<TManagers>::GetOrNull(); }
+    static TManagers* AppOrNull() { return Core::ActiveService<TManagers>::GetOrNull(); }
 
 protected:
     void OnCreateInstances() override
     {
         _managers = std::make_unique<TManagers>();
-        ActiveService<TManagers>::Set(_managers.get());
+        Core::ActiveService<TManagers>::Set(_managers.get());
     }
 
     void OnDestroyInstances() override
     {
-        ActiveService<TManagers>::Set(nullptr);
+        Core::ActiveService<TManagers>::Set(nullptr);
         _managers.reset();
     }
 
@@ -50,7 +50,7 @@ private:
     std::unique_ptr<TManagers> _managers;
 };
 
-}  // namespace CS2Kit::Core
+}  // namespace CS2Kit::App
 
 /**
  * @brief The per-plugin entry-point boilerplate in one statement: the global instance

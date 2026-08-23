@@ -1,6 +1,6 @@
 #include "Sdk/VtableLookup.hpp"
 
-#include <CS2Kit/Core/MetamodPluginBase.hpp>
+#include <CS2Kit/App/MetamodPluginBase.hpp>
 #include <CS2Kit/Core/Slot.hpp>
 #include <CS2Kit/Sdk/ClientCvarService.hpp>
 #include <CS2Kit/Sdk/Detail/ClientCvarPending.hpp>

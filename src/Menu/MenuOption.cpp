@@ -1,11 +1,11 @@
-#include <CS2Kit/Core/Services.hpp>
+#include <CS2Kit/App/Services.hpp>
 #include <CS2Kit/Menu/Menu.hpp>
 #include <CS2Kit/Menu/MenuManager.hpp>
 #include <CS2Kit/Menu/Options/InputOption.hpp>
 #include <CS2Kit/Menu/Options/SubmenuOption.hpp>
 #include <CS2Kit/Sdk/ChatInputCapture.hpp>
 
-using CS2Kit::Core::Engine;
+using CS2Kit::App::Engine;
 
 namespace CS2Kit::Menu
 {

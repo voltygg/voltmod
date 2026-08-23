@@ -9,7 +9,7 @@ class ISmmAPI;
 }
 using SourceMM::ISmmAPI;
 
-namespace CS2Kit::Core
+namespace CS2Kit::App
 {
 class Services;
 }
@@ -43,24 +43,24 @@ struct InitParams
  * @param params   Optional configuration (log prefix, custom logger, gamedata path override)
  * @return true on success, false if a critical subsystem failed to initialize.
  */
-bool Initialize(ISmmAPI* ismm, char* error, size_t maxlen, Core::Services& services, const InitParams& params = {});
+bool Initialize(ISmmAPI* ismm, char* error, size_t maxlen, App::Services& services, const InitParams& params = {});
 
 /**
  * @brief Shut down all CS2Kit subsystems.
  * Call from Plugin::Unload().
  */
-void Shutdown(Core::Services& services);
+void Shutdown(App::Services& services);
 
 /**
  * @brief Process one game frame. Drives Scheduler and MenuManager.
  * Call from Hook_GameFrame().
  */
-void OnGameFrame(Core::Services& services);
+void OnGameFrame(App::Services& services);
 
 /**
  * @brief Clean up state when a player disconnects.
  * Call from Hook_ClientDisconnect().
  */
-void OnPlayerDisconnect(Core::Services& services, int slot);
+void OnPlayerDisconnect(App::Services& services, int slot);
 
 }  // namespace CS2Kit

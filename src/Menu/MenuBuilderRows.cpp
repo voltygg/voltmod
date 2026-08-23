@@ -1,9 +1,9 @@
-#include <CS2Kit/Core/EffectDescriptor.hpp>
+#include <CS2Kit/App/Services.hpp>
 #include <CS2Kit/Core/EffectManager.hpp>
-#include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Menu/MenuBuilder.hpp>
 #include <CS2Kit/Menu/MenuManager.hpp>
 #include <CS2Kit/Players/ActionDispatcher.hpp>
+#include <CS2Kit/Players/EffectDescriptor.hpp>
 #include <CS2Kit/Players/PlayerManager.hpp>
 #include <CS2Kit/Sdk/PlayerController.hpp>
 #include <format>
@@ -55,14 +55,14 @@ MenuBuilder& MenuBuilder::AddPresetChoiceRow(std::string_view labelKey, std::str
         _context.Tr(labelKey), std::move(choices),
         [admin = _context.Admin, target = _context.Target, a](int slot, const int& value) {
             ActionDispatcher{}.Run(admin, target, value, *a);
-            Core::Engine().Menus.CloseAllMenus(slot);
+            App::Engine().Menus.CloseAllMenus(slot);
         },
         _context.Allowed(action.Permission), initialIndex);
 }
 
-MenuBuilder& MenuBuilder::AddEffectToggleRow(const Core::EffectDescriptor& effect)
+MenuBuilder& MenuBuilder::AddEffectToggleRow(const Players::EffectDescriptor& effect)
 {
-    const Core::EffectDescriptor* e = &effect;
+    const Players::EffectDescriptor* e = &effect;
     Core::EffectManager* effects = _context.Effects;
     int target = _context.Target;
     return AddToggle(
@@ -70,7 +70,7 @@ MenuBuilder& MenuBuilder::AddEffectToggleRow(const Core::EffectDescriptor& effec
         [effects, target, id = effect.Id](int) { return effects && effects->IsActive(target, id); },
         [effects, admin = _context.Admin, target, e](int) {
             if (effects)
-                Core::ToggleEffect(*effects, admin, target, *e);
+                Players::ToggleEffect(*effects, admin, target, *e);
         },
         _context.Allowed(effect.Permission));
 }
@@ -79,18 +79,18 @@ namespace
 {
 
 /** Picker submenu for a ParamEffectDescriptor: one button per choice plus an optional reset row. */
-std::shared_ptr<MenuView> BuildEffectPicker(MenuContext ctx, const Core::ParamEffectDescriptor& effect)
+std::shared_ptr<MenuView> BuildEffectPicker(MenuContext ctx, const Players::ParamEffectDescriptor& effect)
 {
-    auto* target = Core::Engine().Players.GetPlayerBySlot(ctx.Target);
+    auto* target = App::Engine().Players.GetPlayerBySlot(ctx.Target);
     if (!target)
         return nullptr;
 
     bool allowed = ctx.Allowed(effect.Permission);
-    const Core::ParamEffectDescriptor* e = &effect;
+    const Players::ParamEffectDescriptor* e = &effect;
     Core::EffectManager* effects = ctx.Effects;
     MenuBuilder builder(std::format("{}: {}", ctx.Tr(effect.NameKey), target->GetName()));
 
-    auto choices = effect.Choices ? effect.Choices() : std::vector<Core::EffectChoice>{};
+    auto choices = effect.Choices ? effect.Choices() : std::vector<Players::EffectChoice>{};
     for (const auto& choice : choices)
     {
         int param = choice.Param;
@@ -98,8 +98,8 @@ std::shared_ptr<MenuView> BuildEffectPicker(MenuContext ctx, const Core::ParamEf
             choice.Label,
             [effects, admin = ctx.Admin, targetSlot = ctx.Target, e, param](int slot) {
                 if (effects)
-                    Core::ApplyEffect(*effects, admin, targetSlot, param, *e);
-                Core::Engine().Menus.CloseAllMenus(slot);
+                    Players::ApplyEffect(*effects, admin, targetSlot, param, *e);
+                App::Engine().Menus.CloseAllMenus(slot);
             },
             allowed);
     }
@@ -110,8 +110,8 @@ std::shared_ptr<MenuView> BuildEffectPicker(MenuContext ctx, const Core::ParamEf
             ctx.Tr(effect.ResetLabelKey),
             [effects, admin = ctx.Admin, targetSlot = ctx.Target, e](int slot) {
                 if (effects)
-                    Core::ClearEffect(*effects, admin, targetSlot, *e);
-                Core::Engine().Menus.CloseAllMenus(slot);
+                    Players::ClearEffect(*effects, admin, targetSlot, *e);
+                App::Engine().Menus.CloseAllMenus(slot);
             },
             allowed);
     }
@@ -121,9 +121,9 @@ std::shared_ptr<MenuView> BuildEffectPicker(MenuContext ctx, const Core::ParamEf
 
 }  // namespace
 
-MenuBuilder& MenuBuilder::AddEffectPickerRow(const Core::ParamEffectDescriptor& effect)
+MenuBuilder& MenuBuilder::AddEffectPickerRow(const Players::ParamEffectDescriptor& effect)
 {
-    const Core::ParamEffectDescriptor* e = &effect;
+    const Players::ParamEffectDescriptor* e = &effect;
     return AddSubmenu(
         _context.Tr(effect.NameKey), [ctx = _context, e](int) { return BuildEffectPicker(ctx, *e); },
         _context.Allowed(effect.Permission));

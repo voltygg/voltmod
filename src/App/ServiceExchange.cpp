@@ -1,7 +1,7 @@
-#include <CS2Kit/Core/MetamodPluginBase.hpp>  // PLUGIN_GLOBALVARS -> g_SMAPI
-#include <CS2Kit/Core/ServiceExchange.hpp>
+#include <CS2Kit/App/MetamodPluginBase.hpp>  // PLUGIN_GLOBALVARS -> g_SMAPI
+#include <CS2Kit/App/ServiceExchange.hpp>
 
-namespace CS2Kit::Core
+namespace CS2Kit::App
 {
 
 void* ServiceExchange::Query(const char* iface)
@@ -14,4 +14,4 @@ void* ServiceExchange::Query(const char* iface)
     return ret == META_IFACE_OK ? impl : nullptr;
 }
 
-}  // namespace CS2Kit::Core
+}  // namespace CS2Kit::App

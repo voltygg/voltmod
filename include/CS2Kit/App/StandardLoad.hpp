@@ -1,14 +1,14 @@
 #pragma once
 
+#include <CS2Kit/App/Services.hpp>
 #include <CS2Kit/Core/LoadReport.hpp>
 #include <CS2Kit/Core/Paths.hpp>
 #include <CS2Kit/Core/PluginManifest.hpp>
-#include <CS2Kit/Core/Services.hpp>
 #include <format>
 #include <string>
 #include <string_view>
 
-namespace CS2Kit::Core
+namespace CS2Kit::App
 {
 
 /** @brief Options for LoadStandardConfig; Addon is the plugin's addon folder name. */
@@ -20,6 +20,10 @@ struct StandardLoadOptions
     bool Translations = true;
 };
 
+/** Adopt addons/<addon>/<addon>.manifest.json as a Core::LoadReport stage. Absent or malformed
+ *  degrades the stage rather than failing the load: the manifest is diagnostics. */
+void LoadPluginManifest(std::string_view addon);
+
 /**
  * @brief The standard OnLoad prelude, recorded as LoadReport stages.
  *
@@ -30,15 +34,11 @@ struct StandardLoadOptions
  * "Manifest" adopts addons/<Addon>/<Addon>.manifest.json, announcing the plugin to peers
  * and queueing its dependency report; a plugin shipping no manifest skips the stage.
  */
-/** Adopt addons/<addon>/<addon>.manifest.json as a LoadReport stage. Absent or malformed
- *  degrades the stage rather than failing the load: the manifest is diagnostics. */
-void LoadPluginManifest(std::string_view addon);
-
 template <class TConfig>
 bool LoadStandardConfig(TConfig& config, const StandardLoadOptions& options)
 {
     auto& report = Engine().LoadReport;
-    const std::string path = AddonFile(options.Addon, options.SettingsFile);
+    const std::string path = Core::AddonFile(options.Addon, options.SettingsFile);
 
     const auto status = report.Run("Configuration", [&] {
         const bool loaded = [&] {
@@ -47,9 +47,9 @@ bool LoadStandardConfig(TConfig& config, const StandardLoadOptions& options)
             else
                 return config.Load(path);
         }();
-        return loaded ? StageResult::Ok(path) : StageResult::Failed(std::format("failed to load {}", path));
+        return loaded ? Core::StageResult::Ok(path) : Core::StageResult::Failed(std::format("failed to load {}", path));
     });
-    if (status == StageStatus::Failed)
+    if (status == Core::StageStatus::Failed)
         return false;
 
     if (options.Translations)
@@ -57,12 +57,12 @@ bool LoadStandardConfig(TConfig& config, const StandardLoadOptions& options)
         report.Run("Translations", [&] {
             if constexpr (requires { Engine().Translations.SetLanguage(config.Get().plugin.locale); })
                 Engine().Translations.SetLanguage(config.Get().plugin.locale);
-            Engine().Translations.Load(AddonFile(options.Addon, "configs/translations"));
-            return StageResult::Ok(Engine().Translations.GetLanguage());
+            Engine().Translations.Load(Core::AddonFile(options.Addon, "configs/translations"));
+            return Core::StageResult::Ok(Engine().Translations.GetLanguage());
         });
     }
     LoadPluginManifest(options.Addon);
     return true;
 }
 
-}  // namespace CS2Kit::Core
+}  // namespace CS2Kit::App

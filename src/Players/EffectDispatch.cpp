@@ -1,8 +1,8 @@
-#include <CS2Kit/Core/EffectDescriptor.hpp>
 #include <CS2Kit/Core/EffectManager.hpp>
+#include <CS2Kit/Players/EffectDescriptor.hpp>
 #include <utility>
 
-namespace CS2Kit::Core
+namespace CS2Kit::Players
 {
 
 using Players::ActionDispatcher;
@@ -11,7 +11,7 @@ namespace
 {
 
 // Build the EffectSpec from the descriptor's declarative lifetime plus the body's instance.
-EffectSpec MakeSpec(EffectScope scope, int tickIntervalMs, int durationMs, EffectInstance inst)
+Core::EffectSpec MakeSpec(EffectScope scope, int tickIntervalMs, int durationMs, EffectInstance inst)
 {
     return {.TickIntervalMs = tickIntervalMs,
             .DurationMs = durationMs,
@@ -22,7 +22,7 @@ EffectSpec MakeSpec(EffectScope scope, int tickIntervalMs, int durationMs, Effec
 }
 
 // Shared body for the Clear verbs (both key off Permission/Id/OffKey only).
-void ClearById(EffectManager& effects, int adminSlot, int targetSlot, const std::string& permission, int id,
+void ClearById(Core::EffectManager& effects, int adminSlot, int targetSlot, const std::string& permission, int id,
                const std::string& offKey)
 {
     ActionDispatcher dispatch;
@@ -43,7 +43,7 @@ void BroadcastKey(const Players::ActionContext& ctx, const std::string& key)
 
 }  // namespace
 
-void ApplyEffect(EffectManager& effects, int adminSlot, int targetSlot, const EffectDescriptor& effect)
+void ApplyEffect(Core::EffectManager& effects, int adminSlot, int targetSlot, const EffectDescriptor& effect)
 {
     auto ctx = ActionDispatcher{}.Resolve(adminSlot, targetSlot, effect.Permission);
     if (!ctx.Valid())
@@ -61,12 +61,12 @@ void ApplyEffect(EffectManager& effects, int adminSlot, int targetSlot, const Ef
     BroadcastKey(ctx, effect.OnKey);
 }
 
-void ClearEffect(EffectManager& effects, int adminSlot, int targetSlot, const EffectDescriptor& effect)
+void ClearEffect(Core::EffectManager& effects, int adminSlot, int targetSlot, const EffectDescriptor& effect)
 {
     ClearById(effects, adminSlot, targetSlot, effect.Permission, effect.Id, effect.OffKey);
 }
 
-void ToggleEffect(EffectManager& effects, int adminSlot, int targetSlot, const EffectDescriptor& effect)
+void ToggleEffect(Core::EffectManager& effects, int adminSlot, int targetSlot, const EffectDescriptor& effect)
 {
     if (effects.IsActive(targetSlot, effect.Id))
         ClearEffect(effects, adminSlot, targetSlot, effect);
@@ -74,7 +74,8 @@ void ToggleEffect(EffectManager& effects, int adminSlot, int targetSlot, const E
         ApplyEffect(effects, adminSlot, targetSlot, effect);
 }
 
-void ApplyEffect(EffectManager& effects, int adminSlot, int targetSlot, int param, const ParamEffectDescriptor& effect)
+void ApplyEffect(Core::EffectManager& effects, int adminSlot, int targetSlot, int param,
+                 const ParamEffectDescriptor& effect)
 {
     auto ctx = ActionDispatcher{}.Resolve(adminSlot, targetSlot, effect.Permission);
     if (!ctx.Valid() || !effect.Setup)
@@ -90,9 +91,9 @@ void ApplyEffect(EffectManager& effects, int adminSlot, int targetSlot, int para
     BroadcastKey(ctx, effect.OnKey);
 }
 
-void ClearEffect(EffectManager& effects, int adminSlot, int targetSlot, const ParamEffectDescriptor& effect)
+void ClearEffect(Core::EffectManager& effects, int adminSlot, int targetSlot, const ParamEffectDescriptor& effect)
 {
     ClearById(effects, adminSlot, targetSlot, effect.Permission, effect.Id, effect.OffKey);
 }
 
-}  // namespace CS2Kit::Core
+}  // namespace CS2Kit::Players

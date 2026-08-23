@@ -3,7 +3,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace CS2Kit::Core
+namespace CS2Kit::App
 {
 
 /**
@@ -75,4 +75,4 @@ private:
     std::unordered_map<std::string, void*> _published;
 };
 
-}  // namespace CS2Kit::Core
+}  // namespace CS2Kit::App

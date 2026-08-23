@@ -1,7 +1,7 @@
-#include <CS2Kit/Core/ServiceExchange.hpp>
+#include <CS2Kit/App/ServiceExchange.hpp>
 #include <doctest/doctest.h>
 
-using CS2Kit::Core::ServiceExchange;
+using CS2Kit::App::ServiceExchange;
 
 namespace
 {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <CS2Kit/Core/Services.hpp>
+#include <CS2Kit/App/Services.hpp>
 #include <CS2Kit/Menu/Menu.hpp>
 #include <CS2Kit/Menu/MenuBuilder.hpp>
 #include <CS2Kit/Menu/MenuManager.hpp>
@@ -185,7 +185,7 @@ private:
                 continue;
             _stepIndex = i;
             if (auto menu = _steps[i].Build(slot, *this))
-                Core::Engine().Menus.OpenMenu(slot, menu);
+                App::Engine().Menus.OpenMenu(slot, menu);
             return;
         }
 
@@ -207,7 +207,7 @@ private:
         for (const auto& [label, value] : _confirmSummary(slot, _state))
             spec.BodyLines.push_back(value.empty() ? label : std::format("{}: {}", label, value));
 
-        Core::Engine().Menus.OpenMenu(slot, BuildConfirmDialog(std::move(spec)));
+        App::Engine().Menus.OpenMenu(slot, BuildConfirmDialog(std::move(spec)));
     }
 
     void RunFinish(int slot)
@@ -217,7 +217,7 @@ private:
             return;
         if (_finish)
             _finish(slot, _state);
-        Core::Engine().Menus.CloseAllMenus(slot);
+        App::Engine().Menus.CloseAllMenus(slot);
     }
 
     /** False = aborted (error replied, menus closed). */
@@ -229,7 +229,7 @@ private:
         if (!error)
             return true;
 
-        auto& engine = Core::Engine();
+        auto& engine = App::Engine();
         if (engine.Policy.Reply)
             engine.Policy.Reply(slot, engine.Translations.Get(*error, slot));
         engine.Menus.CloseAllMenus(slot);

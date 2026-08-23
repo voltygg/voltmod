@@ -4,10 +4,10 @@
 // on plugin targets' include paths), so hoisting this into Api.hpp would
 // rebuild every TU on every commit.
 
+#include <CS2Kit/App/MetamodPluginBase.hpp>
 #include <CS2Kit/BuildInfo.hpp>
-#include <CS2Kit/Core/MetamodPluginBase.hpp>
 
-namespace CS2Kit::Core
+namespace CS2Kit::App
 {
 
 /** @brief Your designated-init PluginInfo with Version/Date/Commit filled in from the
@@ -20,9 +20,9 @@ inline PluginInfo WithBuildInfo(PluginInfo info)
     return info;
 }
 
-}  // namespace CS2Kit::Core
+}  // namespace CS2Kit::App
 
 namespace CS2Kit
 {
-using Core::WithBuildInfo;
+using App::WithBuildInfo;
 }  // namespace CS2Kit

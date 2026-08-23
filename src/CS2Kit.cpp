@@ -1,11 +1,11 @@
 #include "Core/ConsoleLogger.hpp"
 #include "Sdk/Schema.hpp"
 
+#include <CS2Kit/App/Services.hpp>
 #include <CS2Kit/CS2Kit.hpp>
 #include <CS2Kit/Core/ILogger.hpp>
 #include <CS2Kit/Core/Paths.hpp>
 #include <CS2Kit/Core/Scheduler.hpp>
-#include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Menu/MenuManager.hpp>
 #include <CS2Kit/Sdk/ChatInputCapture.hpp>
 #include <CS2Kit/Sdk/ClientCvarService.hpp>
@@ -37,7 +37,7 @@ namespace CS2Kit
 static constexpr const char* DefaultGameDataPath = "addons/cs2-kit/gamedata/signatures.jsonc";
 static Core::ConsoleLogger g_consoleLogger;
 
-bool Initialize(ISmmAPI* ismm, char* error, size_t maxlen, Core::Services& services, const InitParams& params)
+bool Initialize(ISmmAPI* ismm, char* error, size_t maxlen, App::Services& services, const InitParams& params)
 {
     // 1. Set up logging
     if (params.Logger)
@@ -187,7 +187,7 @@ bool Initialize(ISmmAPI* ismm, char* error, size_t maxlen, Core::Services& servi
     return true;
 }
 
-void Shutdown(Core::Services& services)
+void Shutdown(App::Services& services)
 {
     // First: peers must stop resolving our interfaces while their objects are still alive.
     services.Identity.Withdraw();
@@ -198,12 +198,12 @@ void Shutdown(Core::Services& services)
     services.Scheduler.CancelAll();
 }
 
-void OnGameFrame(Core::Services& services)
+void OnGameFrame(App::Services& services)
 {
     services.Scheduler.OnGameFrame();
 }
 
-void OnPlayerDisconnect(Core::Services& services, int slot)
+void OnPlayerDisconnect(App::Services& services, int slot)
 {
     services.Menus.OnPlayerDisconnect(slot);
     services.Sdk.ChatInput.OnPlayerDisconnect(slot);

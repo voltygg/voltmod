@@ -1,4 +1,4 @@
-#include <CS2Kit/Core/Services.hpp>
+#include <CS2Kit/App/Services.hpp>
 #include <CS2Kit/Menu/MenuBuilder.hpp>
 #include <CS2Kit/Menu/MenuManager.hpp>
 #include <CS2Kit/Menu/MenuPresets.hpp>
@@ -8,7 +8,7 @@
 #include <string_view>
 #include <utility>
 
-using CS2Kit::Core::Engine;
+using CS2Kit::App::Engine;
 
 namespace CS2Kit::Menu
 {

@@ -1,4 +1,4 @@
-#include <CS2Kit/Core/Services.hpp>
+#include <CS2Kit/App/Services.hpp>
 #include <CS2Kit/Players/ActionDispatcher.hpp>
 #include <CS2Kit/Players/PlayerManager.hpp>
 
@@ -11,14 +11,14 @@ ActionContext ActionDispatcher::Resolve(int callerSlot, int targetSlot, const st
 {
     ActionContext ctx{nullptr, nullptr, PlayerController(callerSlot), PlayerController(targetSlot)};
 
-    auto& plrMgr = Core::Engine().Players;
+    auto& plrMgr = App::Engine().Players;
     ctx.Caller = plrMgr.GetPlayerBySlot(callerSlot);
     ctx.Target = plrMgr.GetPlayerBySlot(targetSlot);
 
     if (!ctx.Caller || !ctx.Target)
         return ctx;
 
-    auto& policy = Core::Engine().Policy;
+    auto& policy = App::Engine().Policy;
     if (!permission.empty() && policy.HasPermission && !policy.HasPermission(ctx.Caller->GetSteamID(), permission))
     {
         ctx.Caller = nullptr;
@@ -56,7 +56,7 @@ void ActionDispatcher::Run(int callerSlot, int targetSlot, int param, const Para
 
 void ActionDispatcher::Broadcast(const ActionContext& ctx, const std::string& translationKey) const
 {
-    auto& policy = Core::Engine().Policy;
+    auto& policy = App::Engine().Policy;
     if (!policy.Broadcast || !ctx.Caller)
         return;
     policy.Broadcast(*ctx.Caller, ctx.Target, translationKey);

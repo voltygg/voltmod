@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-namespace CS2Kit::Core
+namespace CS2Kit::App
 {
 
 /**
@@ -55,4 +55,4 @@ private:
     std::unique_ptr<Sdk::ServerCommand> _command;
 };
 
-}  // namespace CS2Kit::Core
+}  // namespace CS2Kit::App

@@ -1,8 +1,8 @@
+#include <CS2Kit/App/MetamodPluginBase.hpp>
+#include <CS2Kit/App/Services.hpp>
 #include <CS2Kit/CS2Kit.hpp>
 #include <CS2Kit/Commands/CommandSpec.hpp>
-#include <CS2Kit/Core/MetamodPluginBase.hpp>
 #include <CS2Kit/Core/Registry.hpp>
-#include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Players/Player.hpp>
 #include <CS2Kit/Players/PlayerManager.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
@@ -22,9 +22,9 @@
 class GameSessionConfiguration_t
 {};
 
-using CS2Kit::Core::Engine;
+using CS2Kit::App::Engine;
 
-namespace CS2Kit::Core
+namespace CS2Kit::App
 {
 
 using namespace CS2Kit::Players;
@@ -84,7 +84,7 @@ bool MetamodPluginBase::Load(PluginId id, ISmmAPI* ismm, char* error, size_t max
     {
         // A bare `return false` still gets a named failure in the report and error buffer.
         if (_services->LoadReport.FirstFailure().empty())
-            _services->LoadReport.Run("OnLoad", [] { return StageResult::Failed("OnLoad returned false"); });
+            _services->LoadReport.Run("OnLoad", [] { return Core::StageResult::Failed("OnLoad returned false"); });
         Log::Info("{}", _services->LoadReport.Summary());
         const std::string failure = _services->LoadReport.FirstFailure();
         snprintf(error, maxlen, "%s", failure.c_str());
@@ -98,11 +98,11 @@ bool MetamodPluginBase::Load(PluginId id, ISmmAPI* ismm, char* error, size_t max
 
     // Ingested after OnLoad, so the plugin's policy and prefixes are in place.
     // RegisterAll is idempotent by name - a plugin calling it itself is harmless.
-    if (auto specs = Registry<Commands::CommandSpec>::Items(); !specs.empty())
+    if (auto specs = Core::Registry<Commands::CommandSpec>::Items(); !specs.empty())
     {
         _services->LoadReport.Run("Commands", [&] {
             _services->Commands.RegisterAll(specs);
-            return StageResult::Ok(std::format("{} chat commands", _services->Commands.Count()));
+            return Core::StageResult::Ok(std::format("{} chat commands", _services->Commands.Count()));
         });
     }
 
@@ -325,4 +325,4 @@ void* MetamodPluginBase::OnMetamodQuery(const char* iface, int* ret)
     return impl;
 }
 
-}  // namespace CS2Kit::Core
+}  // namespace CS2Kit::App

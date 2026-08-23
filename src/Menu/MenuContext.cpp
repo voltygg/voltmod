@@ -1,4 +1,4 @@
-#include <CS2Kit/Core/Services.hpp>
+#include <CS2Kit/App/Services.hpp>
 #include <CS2Kit/Menu/MenuContext.hpp>
 #include <CS2Kit/Players/Player.hpp>
 #include <CS2Kit/Players/PlayerManager.hpp>
@@ -8,7 +8,7 @@ namespace CS2Kit::Menu
 
 bool MenuContext::Allowed(const std::string& permission) const
 {
-    auto& engine = Core::Engine();
+    auto& engine = App::Engine();
     auto* admin = engine.Players.GetPlayerBySlot(Admin);
     if (!admin)
         return false;
@@ -30,7 +30,7 @@ bool MenuContext::Allowed(const std::string& permission) const
 
 std::string MenuContext::Tr(std::string_view key, Utils::Tokens tokens) const
 {
-    return Core::Engine().Translations.Get(std::string(key), Admin, tokens);
+    return App::Engine().Translations.Get(std::string(key), Admin, tokens);
 }
 
 }  // namespace CS2Kit::Menu
