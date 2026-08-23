@@ -1,10 +1,10 @@
+#include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Core/Slot.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Sdk/GameData.hpp>
 #include <CS2Kit/Sdk/GameEventService.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
-#include <CS2Kit/Utils/Log.hpp>
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -14,7 +14,7 @@
 namespace CS2Kit::Sdk
 {
 
-using namespace CS2Kit::Utils;
+using namespace CS2Kit::Core;
 
 bool GameEventService::Initialize()
 {

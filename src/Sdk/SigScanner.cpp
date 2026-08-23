@@ -1,6 +1,6 @@
 #include "Sdk/SigScanner.hpp"
 
-#include <CS2Kit/Utils/Log.hpp>
+#include <CS2Kit/Core/Log.hpp>
 #include <sstream>
 #include <utility>
 #include <vector>
@@ -16,7 +16,7 @@
 namespace CS2Kit::Sdk
 {
 
-using namespace CS2Kit::Utils;
+using namespace CS2Kit::Core;
 
 struct PatternByte
 {

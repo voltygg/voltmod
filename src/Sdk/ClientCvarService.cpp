@@ -1,15 +1,15 @@
 #include "Sdk/VtableLookup.hpp"
 
+#include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Core/MetamodGlobals.hpp>
 #include <CS2Kit/Core/Slot.hpp>
+#include <CS2Kit/Core/TimeUtils.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Sdk/ClientCvarService.hpp>
 #include <CS2Kit/Sdk/Detail/ClientCvarPending.hpp>
 #include <CS2Kit/Sdk/GameData.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
-#include <CS2Kit/Utils/Log.hpp>
-#include <CS2Kit/Utils/TimeUtils.hpp>
 #include <cstdint>
 #include <cstring>
 #include <engine/igameeventsystem.h>
@@ -22,7 +22,7 @@ PLUGIN_GLOBALVARS();
 
 namespace CS2Kit::Sdk
 {
-using namespace CS2Kit::Utils;
+using namespace CS2Kit::Core;
 
 // CServerSideClient::ProcessRespondCvarValue(const CNetMessagePB<CCLCMsg_RespondCvarValue>&); the
 // vtable index is reconfigured from gamedata at Initialize time. Bound to the class vtable

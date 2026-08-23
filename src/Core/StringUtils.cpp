@@ -1,12 +1,12 @@
-#include <CS2Kit/Utils/SteamId.hpp>
-#include <CS2Kit/Utils/StringUtils.hpp>
+#include <CS2Kit/Core/SteamId.hpp>
+#include <CS2Kit/Core/StringUtils.hpp>
 #include <algorithm>
 #include <cctype>
 #include <charconv>
 #include <limits>
 #include <sstream>
 
-namespace CS2Kit::Utils
+namespace CS2Kit::Core
 {
 
 int ParseDuration(std::string_view text)
@@ -205,4 +205,4 @@ std::string StringUtils::DisplayNameOr(int64_t id, const std::string& name, std:
     return name.empty() ? std::to_string(id) : TruncateUtf8(name, maxBytes);
 }
 
-}  // namespace CS2Kit::Utils
+}  // namespace CS2Kit::Core

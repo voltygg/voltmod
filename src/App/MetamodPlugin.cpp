@@ -1,10 +1,10 @@
 #include <CS2Kit/App/MetamodPlugin.hpp>
+#include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Players/Player.hpp>
 #include <CS2Kit/Players/PlayerManager.hpp>
 #include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
-#include <CS2Kit/Utils/Log.hpp>
 #include <cstdio>
 #include <cstring>
 #include <format>
@@ -25,7 +25,7 @@ namespace CS2Kit::App
 
 using namespace CS2Kit::Players;
 using namespace CS2Kit::Sdk;
-using namespace CS2Kit::Utils;
+using namespace CS2Kit::Core;
 
 SH_DECL_HOOK3_void(IServerGameDLL, GameFrame, SH_NOATTRIB, 0, bool, bool, bool);
 SH_DECL_HOOK3_void(INetworkServerService, StartupServer, SH_NOATTRIB, 0, const GameSessionConfiguration_t&,

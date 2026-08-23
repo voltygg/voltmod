@@ -1,14 +1,14 @@
+#include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Core/Scheduler.hpp>
 #include <CS2Kit/Database/PostgresDatabase.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Utils/Log.hpp>
 #include <format>
 
 namespace CS2Kit::Database
 {
 
-namespace Log = CS2Kit::Utils::Log;
+namespace Log = CS2Kit::Core::Log;
 
 std::string PostgresConfig::GetConnectionString() const
 {

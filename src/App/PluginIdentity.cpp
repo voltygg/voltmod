@@ -1,14 +1,14 @@
 #include <CS2Kit/App/StandardLoad.hpp>
+#include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Core/Paths.hpp>
 #include <CS2Kit/Core/PluginManifest.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Utils/Log.hpp>
 #include <format>
 #include <fstream>
 #include <sstream>
 
-namespace Log = CS2Kit::Utils::Log;
+namespace Log = CS2Kit::Core::Log;
 
 namespace CS2Kit::App
 {

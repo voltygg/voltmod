@@ -1,8 +1,8 @@
-#include <CS2Kit/Utils/AngleMath.hpp>
+#include <CS2Kit/Core/AngleMath.hpp>
 #include <cmath>
 #include <doctest/doctest.h>
 
-using namespace CS2Kit::Utils::AngleMath;
+using namespace CS2Kit::Core::AngleMath;
 
 namespace
 {

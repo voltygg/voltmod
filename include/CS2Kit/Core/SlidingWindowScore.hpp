@@ -2,7 +2,7 @@
 
 #include <deque>
 
-namespace CS2Kit::Utils
+namespace CS2Kit::Core
 {
 
 /**
@@ -57,4 +57,4 @@ private:
     double _windowSec = 0.0;
 };
 
-}  // namespace CS2Kit::Utils
+}  // namespace CS2Kit::Core

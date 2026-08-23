@@ -1,7 +1,7 @@
+#include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Core/Paths.hpp>
 #include <CS2Kit/Database/Migrator.hpp>
 #include <CS2Kit/Database/PostgresDatabase.hpp>
-#include <CS2Kit/Utils/Log.hpp>
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
@@ -15,7 +15,7 @@ namespace fs = std::filesystem;
 namespace CS2Kit::Database
 {
 
-namespace Log = CS2Kit::Utils::Log;
+namespace Log = CS2Kit::Core::Log;
 
 namespace
 {

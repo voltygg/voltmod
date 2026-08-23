@@ -6,7 +6,7 @@
 #include <string_view>
 #include <vector>
 
-namespace CS2Kit::Utils
+namespace CS2Kit::Core
 {
 
 /**
@@ -53,4 +53,4 @@ public:
     static std::string DisplayNameOr(int64_t id, const std::string& name, std::size_t maxBytes = 20);
 };
 
-}  // namespace CS2Kit::Utils
+}  // namespace CS2Kit::Core

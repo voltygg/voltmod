@@ -1,15 +1,15 @@
 #include "Sdk/GameSystem.hpp"
 
+#include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Sdk/GameData.hpp>
 #include <CS2Kit/Sdk/PrecacheService.hpp>
-#include <CS2Kit/Utils/Log.hpp>
 #include <algorithm>
 
 namespace CS2Kit::Sdk
 {
-using namespace CS2Kit::Utils;
+using namespace CS2Kit::Core;
 
 GS_EVENT_MEMBER(PrecacheGameSystem, BuildGameSessionManifest)
 {

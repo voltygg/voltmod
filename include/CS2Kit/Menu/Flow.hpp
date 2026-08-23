@@ -1,12 +1,12 @@
 #pragma once
 
+#include <CS2Kit/Core/StringUtils.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Menu/Menu.hpp>
 #include <CS2Kit/Menu/MenuBuilder.hpp>
 #include <CS2Kit/Menu/MenuManager.hpp>
 #include <CS2Kit/Menu/MenuPresets.hpp>
 #include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Utils/StringUtils.hpp>
 #include <format>
 #include <functional>
 #include <memory>
@@ -118,7 +118,7 @@ public:
                     builder.AddInput(
                         customLabel(slot), customPrompt ? customPrompt(slot) : "", [](int) { return std::string(); },
                         [self, set](int s, std::string_view text) {
-                            std::string value = Utils::StringUtils::Trim(std::string(text));
+                            std::string value = Core::StringUtils::Trim(std::string(text));
                             if (value.empty())
                                 return false;  // re-prompt
                             set(self->_state, std::move(value));

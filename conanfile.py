@@ -134,13 +134,12 @@ class CS2KitConan(ConanFile):
     COMPONENTS = {
         "Core": ["hl2sdk-cs2::hl2sdk-cs2", "metamod-source::metamod-source",
                  "nlohmann_json::nlohmann_json"],
-        "Utils": ["Core", "nlohmann_json::nlohmann_json"],
-        "Http": ["Utils", "cpr::cpr"],
-        "Sdk": ["Core", "Utils"],
-        "Players": ["Sdk", "Core", "Utils"],
-        "Commands": ["Players", "Sdk", "Core", "Utils"],
-        "Menu": ["Players", "Sdk", "Core", "Utils"],
-        "App": ["Commands", "Menu", "Players", "Sdk", "Http", "Core", "Utils"],
+        "Http": ["Core", "cpr::cpr"],
+        "Sdk": ["Core"],
+        "Players": ["Sdk", "Core"],
+        "Commands": ["Players", "Sdk", "Core"],
+        "Menu": ["Players", "Sdk", "Core"],
+        "App": ["Commands", "Menu", "Players", "Sdk", "Http", "Core"],
     }
 
     def package_info(self):
@@ -169,7 +168,7 @@ class CS2KitConan(ConanFile):
             db.set_property("cmake_target_name", "CS2Kit::Database")
             db.libs = ["cs2-kit-database"]
             db.includedirs = ["include"]
-            db.requires = ["core", "utils", "libpqxx::libpqxx"]
+            db.requires = ["core", "libpqxx::libpqxx"]
             # Consumer feature checks and Database/Api.hpp's #error guard read this.
             db.defines = ["CS2KIT_ENABLE_POSTGRES=1"]
 

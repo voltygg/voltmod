@@ -1,6 +1,6 @@
 #pragma once
 
-#include <CS2Kit/Utils/Log.hpp>
+#include <CS2Kit/Core/Log.hpp>
 #include <expected>
 #include <string>
 #include <string_view>
@@ -31,7 +31,7 @@ auto TryDb(std::string_view what, Fn&& fn) -> DbResult<std::invoke_result_t<Fn>>
     }
     catch (const std::exception& e)
     {
-        Utils::Log::Error("db: {} failed: {}", what, e.what());
+        Core::Log::Error("db: {} failed: {}", what, e.what());
         return std::unexpected(std::string(e.what()));
     }
 }
@@ -51,7 +51,7 @@ T TryOr(T fallback, std::string_view what, Fn&& fn)
     }
     catch (const std::exception& e)
     {
-        Utils::Log::Error("db: {} failed: {}", what, e.what());
+        Core::Log::Error("db: {} failed: {}", what, e.what());
         return fallback;
     }
 }

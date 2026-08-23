@@ -9,6 +9,7 @@
 #include <CS2Kit/Core/PluginPolicy.hpp>
 #include <CS2Kit/Core/Scheduler.hpp>
 #include <CS2Kit/Core/SlotEvents.hpp>
+#include <CS2Kit/Core/Translations.hpp>
 #include <CS2Kit/Http/HttpClient.hpp>
 #include <CS2Kit/Menu/MenuManager.hpp>
 #include <CS2Kit/Players/PlayerManager.hpp>
@@ -27,7 +28,6 @@
 #include <CS2Kit/Sdk/TeleportTracker.hpp>
 #include <CS2Kit/Sdk/TransmitFilter.hpp>
 #include <CS2Kit/Sdk/UserMessage.hpp>
-#include <CS2Kit/Utils/Translations.hpp>
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -104,7 +104,7 @@ public:
     std::string CurrentMap;
 
     /** Translated player-facing text. */
-    Utils::Translations Translations;
+    Core::Translations Translations;
 
     // --- Sdk: everything engine-facing ---
     /** Plain interface-pointer holder; populated by Start. */

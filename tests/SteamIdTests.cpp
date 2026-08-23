@@ -1,9 +1,9 @@
-#include <CS2Kit/Utils/SteamId.hpp>
+#include <CS2Kit/Core/SteamId.hpp>
 #include <cstdint>
 #include <doctest/doctest.h>
 #include <string>
 
-using CS2Kit::Utils::SteamId;
+using CS2Kit::Core::SteamId;
 
 // Reference identity: account id 22202.
 static constexpr int64_t Base = 76561197960265728LL;

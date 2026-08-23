@@ -1,12 +1,12 @@
 #include <CS2Kit/Commands/CommandSpec.hpp>
+#include <CS2Kit/Core/StringUtils.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Utils/StringUtils.hpp>
 
 namespace CS2Kit::Commands
 {
 
-using Utils::StringUtils;
+using Core::StringUtils;
 
 ArgSpec Target(Players::TargetRules rules)
 {
@@ -48,12 +48,12 @@ int CommandContext::CallerSlot() const
     return Caller ? Caller->GetSlot() : -1;
 }
 
-CommandResult CommandContext::Ok(std::string_view key, Utils::Tokens tokens) const
+CommandResult CommandContext::Ok(std::string_view key, Core::Tokens tokens) const
 {
     return {true, CS2Kit::Detail::Rt().Translations.Get(std::string(key), CallerSlot(), tokens)};
 }
 
-CommandResult CommandContext::Fail(std::string_view key, Utils::Tokens tokens) const
+CommandResult CommandContext::Fail(std::string_view key, Core::Tokens tokens) const
 {
     return {false, CS2Kit::Detail::Rt().Translations.Get(std::string(key), CallerSlot(), tokens)};
 }

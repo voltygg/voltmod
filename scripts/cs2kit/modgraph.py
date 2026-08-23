@@ -20,14 +20,13 @@ from pathlib import Path
 # the documentation of the layering and mirrors what CMake links.
 ALLOWED: dict[str, set[str]] = {
     "Core": set(),
-    "Utils": {"Core"},
-    "Http": {"Core", "Utils"},
-    "Sdk": {"Core", "Utils"},
-    "Players": {"Core", "Utils", "Sdk"},
-    "Commands": {"Core", "Utils", "Sdk", "Players"},
-    "Menu": {"Core", "Utils", "Sdk", "Players"},
-    "Database": {"Core", "Utils"},
-    "App": {"Core", "Utils", "Http", "Sdk", "Players", "Commands", "Menu", "Database"},
+    "Http": {"Core"},
+    "Sdk": {"Core"},
+    "Players": {"Core", "Sdk"},
+    "Commands": {"Core", "Sdk", "Players"},
+    "Menu": {"Core", "Sdk", "Players"},
+    "Database": {"Core"},
+    "App": {"Core", "Http", "Sdk", "Players", "Commands", "Menu", "Database"},
 }
 
 # Reachable from anywhere and reaching anywhere; see the module docstring.

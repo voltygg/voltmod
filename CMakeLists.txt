@@ -27,7 +27,7 @@ cs2kit_find_sdk()
 
 # One static library per module. The layering is enforced by the dependency scan in
 # scripts/; DEPS below must stay a DAG, downward only.
-foreach(module Core Utils Http Sdk Players Commands Menu Database App)
+foreach(module Core Http Sdk Players Commands Menu Database App)
     file(GLOB_RECURSE CS2KIT_${module}_SOURCES CONFIGURE_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/src/${module}/*.cpp")
 endforeach()
@@ -56,14 +56,9 @@ cs2kit_add_component(Core
     SOURCES ${CS2KIT_Core_SOURCES}
     LIBS CS2Kit::Metamod CS2Kit::HL2SDK nlohmann_json::nlohmann_json)
 
-cs2kit_add_component(Utils
-    SOURCES ${CS2KIT_Utils_SOURCES}
-    DEPS CS2Kit::Core
-    LIBS nlohmann_json::nlohmann_json)
-
 cs2kit_add_component(Http
     SOURCES ${CS2KIT_Http_SOURCES}
-    DEPS CS2Kit::Utils
+    DEPS CS2Kit::Core
     LIBS cpr::cpr)
 
 # The SDK bodies and the generated protobufs ride here: this is the only component
@@ -71,24 +66,24 @@ cs2kit_add_component(Http
 cs2kit_add_component(Sdk PCH
     SOURCES ${CS2KIT_Sdk_SOURCES}
     VENDORED ${CS2KIT_HL2SDK_SOURCES} ${CS2KIT_HL2SDK_PROTO_SOURCES}
-    DEPS CS2Kit::Core CS2Kit::Utils)
+    DEPS CS2Kit::Core)
 
 cs2kit_add_component(Players PCH
     SOURCES ${CS2KIT_Players_SOURCES}
-    DEPS CS2Kit::Sdk CS2Kit::Core CS2Kit::Utils)
+    DEPS CS2Kit::Sdk CS2Kit::Core)
 
 cs2kit_add_component(Commands PCH
     SOURCES ${CS2KIT_Commands_SOURCES}
-    DEPS CS2Kit::Players CS2Kit::Sdk CS2Kit::Core CS2Kit::Utils)
+    DEPS CS2Kit::Players CS2Kit::Sdk CS2Kit::Core)
 
 cs2kit_add_component(Menu PCH
     SOURCES ${CS2KIT_Menu_SOURCES}
-    DEPS CS2Kit::Players CS2Kit::Sdk CS2Kit::Core CS2Kit::Utils)
+    DEPS CS2Kit::Players CS2Kit::Sdk CS2Kit::Core)
 
 if(CS2KIT_ENABLE_POSTGRES)
     cs2kit_add_component(Database
         SOURCES ${CS2KIT_Database_SOURCES}
-        DEPS CS2Kit::Core CS2Kit::Utils
+        DEPS CS2Kit::Core
         LIBS libpqxx::pqxx)
     # Consumer feature checks and Database/Api.hpp's #error guard read this; only that
     # header pulls in <pqxx/pqxx>.
@@ -99,7 +94,7 @@ endif()
 cs2kit_add_component(App PCH
     SOURCES ${CS2KIT_App_SOURCES}
     DEPS CS2Kit::Commands CS2Kit::Menu CS2Kit::Players CS2Kit::Sdk CS2Kit::Http
-         CS2Kit::Core CS2Kit::Utils)
+         CS2Kit::Core)
 
 if(WIN32)
     target_link_libraries(cs2-kit-sdk PUBLIC psapi)
@@ -131,9 +126,9 @@ if(BUILD_TESTING)
             src/Core/Scheduler.cpp
             src/Players/Targeting.cpp
             src/Sdk/ClientCvarPending.cpp
-            src/Utils/StringUtils.cpp
-            src/Utils/SteamId.cpp
-            src/Utils/TimeUtils.cpp
+            src/Core/StringUtils.cpp
+            src/Core/SteamId.cpp
+            src/Core/TimeUtils.cpp
         # For PluginManifest's JSON parsing.
         LIBRARIES nlohmann_json::nlohmann_json
     )

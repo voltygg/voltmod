@@ -1,8 +1,8 @@
-#include <CS2Kit/Utils/DecayingScore.hpp>
+#include <CS2Kit/Core/DecayingScore.hpp>
 #include <cmath>
 #include <doctest/doctest.h>
 
-using CS2Kit::Utils::DecayingScore;
+using CS2Kit::Core::DecayingScore;
 
 namespace
 {

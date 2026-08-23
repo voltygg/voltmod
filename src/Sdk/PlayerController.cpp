@@ -1,6 +1,7 @@
 #include "Sdk/Schema.hpp"
 #include "Sdk/VirtualCall.hpp"
 
+#include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Sdk/Entity.hpp>
@@ -10,7 +11,6 @@
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
 #include <CS2Kit/Sdk/MemoryAccess.hpp>
 #include <CS2Kit/Sdk/PlayerController.hpp>
-#include <CS2Kit/Utils/Log.hpp>
 #include <algorithm>
 #include <cstring>
 #include <eiface.h>
@@ -20,7 +20,7 @@
 namespace CS2Kit::Sdk
 {
 
-using namespace CS2Kit::Utils;
+using namespace CS2Kit::Core;
 
 namespace
 {

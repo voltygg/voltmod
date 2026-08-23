@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-namespace CS2Kit::Utils::AngleMath
+namespace CS2Kit::Core::AngleMath
 {
 
 inline constexpr float RadToDeg = 57.29577951308232f;
@@ -55,4 +55,4 @@ template <class Vec>
     return std::sqrt(dp * dp + dy * dy);
 }
 
-}  // namespace CS2Kit::Utils::AngleMath
+}  // namespace CS2Kit::Core::AngleMath

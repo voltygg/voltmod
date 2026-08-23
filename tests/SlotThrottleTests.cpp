@@ -1,9 +1,9 @@
-#include <CS2Kit/Utils/SlotThrottle.hpp>
+#include <CS2Kit/Core/SlotThrottle.hpp>
 #include <cstdint>
 #include <doctest/doctest.h>
 
-using CS2Kit::Utils::PairThrottle;
-using CS2Kit::Utils::SlotThrottle;
+using CS2Kit::Core::PairThrottle;
+using CS2Kit::Core::SlotThrottle;
 
 TEST_CASE("SlotThrottle: first acquire always succeeds")
 {

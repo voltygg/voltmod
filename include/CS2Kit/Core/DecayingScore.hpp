@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace CS2Kit::Utils
+namespace CS2Kit::Core
 {
 
 /**
@@ -46,4 +46,4 @@ private:
     float _decayPerSec = 0.0f;
 };
 
-}  // namespace CS2Kit::Utils
+}  // namespace CS2Kit::Core

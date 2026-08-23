@@ -1,8 +1,8 @@
 #pragma once
 
+#include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Core/Paths.hpp>
-#include <CS2Kit/Utils/Log.hpp>
-#include <CS2Kit/Utils/StringUtils.hpp>
+#include <CS2Kit/Core/StringUtils.hpp>
 #include <fstream>
 #include <iterator>
 #include <map>
@@ -11,7 +11,7 @@
 #include <string>
 #include <string_view>
 
-namespace CS2Kit::Utils
+namespace CS2Kit::Core
 {
 
 /**
@@ -132,4 +132,4 @@ public:
     }
 };
 
-}  // namespace CS2Kit::Utils
+}  // namespace CS2Kit::Core

@@ -1,7 +1,7 @@
-#include <CS2Kit/Utils/SlidingWindowScore.hpp>
+#include <CS2Kit/Core/SlidingWindowScore.hpp>
 #include <doctest/doctest.h>
 
-using CS2Kit::Utils::SlidingWindowScore;
+using CS2Kit::Core::SlidingWindowScore;
 
 TEST_CASE("SlidingWindowScore counts unweighted events inside the window")
 {

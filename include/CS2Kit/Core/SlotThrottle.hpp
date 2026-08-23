@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <utility>
 
-namespace CS2Kit::Utils
+namespace CS2Kit::Core
 {
 
 /**
@@ -83,4 +83,4 @@ using SlotThrottle = Throttle<int>;
 template <class TFirst, class TSecond>
 using PairThrottle = Throttle<std::pair<TFirst, TSecond>, std::map<std::pair<TFirst, TSecond>, int64_t>>;
 
-}  // namespace CS2Kit::Utils
+}  // namespace CS2Kit::Core

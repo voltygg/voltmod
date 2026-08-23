@@ -1,11 +1,11 @@
+#include <CS2Kit/Core/ChatColors.hpp>
+#include <CS2Kit/Core/StringUtils.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Menu/MenuBuilder.hpp>
 #include <CS2Kit/Menu/MenuManager.hpp>
 #include <CS2Kit/Menu/MenuPresets.hpp>
 #include <CS2Kit/Players/PlayerManager.hpp>
 #include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Utils/ChatColors.hpp>
-#include <CS2Kit/Utils/StringUtils.hpp>
 #include <string_view>
 #include <utility>
 
@@ -67,7 +67,7 @@ std::shared_ptr<MenuView> BuildDurationPicker(int viewerSlot, const std::string&
         builder.AddInput(
             customLabel, customPrompt, [](int) { return std::string{}; },
             [viewerSlot, onPick](int /*slot*/, std::string_view text) -> bool {
-                int seconds = Utils::ParseDuration(text);
+                int seconds = Core::ParseDuration(text);
                 if (seconds < 0)
                     return false;  // re-prompt
                 if (onPick)
@@ -105,9 +105,9 @@ std::vector<ChoiceOption<std::string>::Choice> BuildPaletteChoices(
     const std::function<std::string(std::string_view canonicalName)>& labelFor)
 {
     std::vector<ChoiceOption<std::string>::Choice> choices;
-    choices.reserve(Utils::ChatColors::Palette.size());
+    choices.reserve(Core::ChatColors::Palette.size());
 
-    for (const auto& entry : Utils::ChatColors::Palette)
+    for (const auto& entry : Core::ChatColors::Palette)
     {
         std::string label = labelFor ? labelFor(entry.Name) : std::string{};
         if (label.empty())

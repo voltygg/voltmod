@@ -1,14 +1,14 @@
 #include <CS2Kit/Commands/CommandManager.hpp>
+#include <CS2Kit/Core/StringUtils.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Players/TargetResolver.hpp>
 #include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Utils/StringUtils.hpp>
 #include <charconv>
 
 namespace CS2Kit::Commands
 {
 
-using namespace CS2Kit::Utils;
+using namespace CS2Kit::Core;
 
 namespace
 {
@@ -137,7 +137,7 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
     const int slot = ctx.CallerSlot();
     std::size_t i = 0;
 
-    auto fail = [&](const ArgSpec& spec, const char* defaultKey, Utils::Tokens tokens = {}) {
+    auto fail = [&](const ArgSpec& spec, const char* defaultKey, Core::Tokens tokens = {}) {
         outError = tr.Get(spec.ErrorKey.empty() ? defaultKey : spec.ErrorKey.c_str(), slot, tokens);
         return false;
     };

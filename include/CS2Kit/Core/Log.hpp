@@ -4,7 +4,7 @@
 #include <format>
 #include <string>
 
-namespace CS2Kit::Utils::Log
+namespace CS2Kit::Core::Log
 {
 
 template <typename... Args>
@@ -28,4 +28,4 @@ void Error(std::format_string<Args...> fmt, Args&&... args)
         logger->Error(std::format(fmt, std::forward<Args>(args)...));
 }
 
-}  // namespace CS2Kit::Utils::Log
+}  // namespace CS2Kit::Core::Log

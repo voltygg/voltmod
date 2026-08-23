@@ -1,9 +1,9 @@
-#include <CS2Kit/Utils/StringUtils.hpp>
+#include <CS2Kit/Core/StringUtils.hpp>
 #include <doctest/doctest.h>
 #include <string>
 #include <vector>
 
-using CS2Kit::Utils::StringUtils;
+using CS2Kit::Core::StringUtils;
 
 TEST_CASE("StringUtils::ToLower")
 {

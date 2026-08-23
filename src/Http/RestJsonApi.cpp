@@ -1,13 +1,13 @@
+#include <CS2Kit/Core/Json.hpp>
+#include <CS2Kit/Core/StringUtils.hpp>
 #include <CS2Kit/Http/RestJsonApi.hpp>
-#include <CS2Kit/Utils/Json.hpp>
-#include <CS2Kit/Utils/StringUtils.hpp>
 #include <utility>
 
 namespace CS2Kit::Http
 {
 
-using Utils::Json;
-using Utils::StringUtils;
+using Core::Json;
+using Core::StringUtils;
 
 namespace
 {

@@ -1,9 +1,9 @@
 #include "Menu/MenuRenderer.hpp"
 
+#include <CS2Kit/Core/Translations.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Menu/MenuOption.hpp>
 #include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Utils/Translations.hpp>
 #include <algorithm>
 #include <sstream>
 

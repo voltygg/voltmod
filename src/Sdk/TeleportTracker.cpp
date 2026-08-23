@@ -1,3 +1,4 @@
+#include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Core/MetamodGlobals.hpp>
 #include <CS2Kit/Core/Slot.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
@@ -8,14 +9,13 @@
 #include <CS2Kit/Sdk/PlayerController.hpp>
 #include <CS2Kit/Sdk/ServerClock.hpp>
 #include <CS2Kit/Sdk/TeleportTracker.hpp>
-#include <CS2Kit/Utils/Log.hpp>
 #include <mathlib/vector.h>
 
 PLUGIN_GLOBALVARS();
 
 namespace CS2Kit::Sdk
 {
-using namespace CS2Kit::Utils;
+using namespace CS2Kit::Core;
 
 // CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*); the vtable index comes from
 // gamedata at Enable time. Bound per pawn (Hook_Normal), so the handler runs only for the instance

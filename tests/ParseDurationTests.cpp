@@ -1,7 +1,7 @@
-#include <CS2Kit/Utils/StringUtils.hpp>
+#include <CS2Kit/Core/StringUtils.hpp>
 #include <doctest/doctest.h>
 
-using CS2Kit::Utils::ParseDuration;
+using CS2Kit::Core::ParseDuration;
 
 TEST_CASE("ParseDuration: bare seconds")
 {

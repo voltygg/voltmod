@@ -2,7 +2,10 @@
 
 #include <igameevents.h>
 
+#include <CS2Kit/Core/ChatColors.hpp>
+#include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Core/Slot.hpp>
+#include <CS2Kit/Core/Translations.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Sdk/GameData.hpp>
@@ -11,9 +14,6 @@
 #include <CS2Kit/Sdk/MemoryAccess.hpp>
 #include <CS2Kit/Sdk/RecipientFilter.hpp>
 #include <CS2Kit/Sdk/UserMessage.hpp>
-#include <CS2Kit/Utils/ChatColors.hpp>
-#include <CS2Kit/Utils/Log.hpp>
-#include <CS2Kit/Utils/Translations.hpp>
 #include <engine/igameeventsystem.h>
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
@@ -22,7 +22,7 @@
 namespace CS2Kit::Sdk
 {
 
-using namespace CS2Kit::Utils;
+using namespace CS2Kit::Core;
 
 namespace
 {

@@ -2,7 +2,7 @@
 
 #include "Sdk/SigScanner.hpp"
 
-#include <CS2Kit/Utils/Log.hpp>
+#include <CS2Kit/Core/Log.hpp>
 #include <cstddef>
 #include <cstring>
 #include <string>
@@ -18,7 +18,7 @@
 namespace CS2Kit::Sdk
 {
 
-using namespace CS2Kit::Utils;
+using namespace CS2Kit::Core;
 
 namespace
 {

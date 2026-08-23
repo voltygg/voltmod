@@ -1,8 +1,8 @@
 #pragma once
 
+#include <CS2Kit/Core/Translations.hpp>
 #include <CS2Kit/Players/Player.hpp>
 #include <CS2Kit/Players/Targeting.hpp>
-#include <CS2Kit/Utils/Translations.hpp>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -96,8 +96,8 @@ struct CommandContext
     int CallerSlot() const;
 
     /** Localized result helpers: translate @p key in the caller's language with @p tokens. */
-    CommandResult Ok(std::string_view key, Utils::Tokens tokens = {}) const;
-    CommandResult Fail(std::string_view key, Utils::Tokens tokens = {}) const;
+    CommandResult Ok(std::string_view key, Core::Tokens tokens = {}) const;
+    CommandResult Fail(std::string_view key, Core::Tokens tokens = {}) const;
 };
 
 struct CommandSpec

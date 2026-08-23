@@ -1,9 +1,9 @@
 #include "Sdk/SigScanner.hpp"
 
+#include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Core/Paths.hpp>
+#include <CS2Kit/Core/StringUtils.hpp>
 #include <CS2Kit/Sdk/GameData.hpp>
-#include <CS2Kit/Utils/Log.hpp>
-#include <CS2Kit/Utils/StringUtils.hpp>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -13,7 +13,7 @@
 
 namespace CS2Kit::Sdk
 {
-using namespace CS2Kit::Utils;
+using namespace CS2Kit::Core;
 
 bool GameData::Load(const std::string& path)
 {

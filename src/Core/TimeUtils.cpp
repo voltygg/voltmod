@@ -1,10 +1,10 @@
-#include <CS2Kit/Utils/StringUtils.hpp>
-#include <CS2Kit/Utils/TimeUtils.hpp>
+#include <CS2Kit/Core/StringUtils.hpp>
+#include <CS2Kit/Core/TimeUtils.hpp>
 #include <charconv>
 #include <chrono>
 #include <format>
 
-namespace CS2Kit::Utils
+namespace CS2Kit::Core
 {
 
 int64_t TimeUtils::Now()
@@ -15,7 +15,7 @@ int64_t TimeUtils::Now()
 
 int64_t TimeUtils::ParseDuration(const std::string& duration)
 {
-    return ::CS2Kit::Utils::ParseDuration(duration);
+    return ::CS2Kit::Core::ParseDuration(duration);
 }
 
 std::string TimeUtils::FormatDuration(int64_t seconds)
@@ -112,4 +112,4 @@ int64_t TimeUtils::GetExpirationTime(int64_t durationSeconds)
     return Now() + durationSeconds;
 }
 
-}  // namespace CS2Kit::Utils
+}  // namespace CS2Kit::Core

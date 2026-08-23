@@ -1,10 +1,10 @@
+#include <CS2Kit/Core/StringUtils.hpp>
 #include <CS2Kit/Players/PlayerManager.hpp>
-#include <CS2Kit/Utils/StringUtils.hpp>
 
 namespace CS2Kit::Players
 {
 
-using namespace CS2Kit::Utils;
+using namespace CS2Kit::Core;
 
 Player* PlayerManager::AddPlayer(int slot, int64_t steamId, const std::string& name, const std::string& ipAddress)
 {

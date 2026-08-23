@@ -5,7 +5,7 @@
 #include <string>
 #include <string_view>
 
-namespace CS2Kit::Utils
+namespace CS2Kit::Core
 {
 
 /**
@@ -43,7 +43,7 @@ public:
     }
 
     /**
-     * Delegates to the canonical free @ref CS2Kit::Utils::ParseDuration grammar
+     * Delegates to the canonical free @ref CS2Kit::Core::ParseDuration grammar
      * (s/m/h/d/w suffixes, case-insensitive): -1 on failure, 0 for permanent.
      */
     static int64_t ParseDuration(const std::string& duration);
@@ -75,4 +75,4 @@ private:
     static constexpr int64_t SecondsPerWeek = 604800;
 };
 
-}  // namespace CS2Kit::Utils
+}  // namespace CS2Kit::Core

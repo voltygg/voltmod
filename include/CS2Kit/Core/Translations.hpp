@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace CS2Kit::Utils
+namespace CS2Kit::Core
 {
 
 /** `{token}` -> replacement map for the token-substituting @ref Translations::Get overloads. */
@@ -57,4 +57,4 @@ private:
     std::array<std::string, MaxSlots> _playerLangs{};
 };
 
-}  // namespace CS2Kit::Utils
+}  // namespace CS2Kit::Core

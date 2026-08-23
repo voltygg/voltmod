@@ -1,12 +1,12 @@
+#include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Core/Paths.hpp>
-#include <CS2Kit/Utils/Log.hpp>
-#include <CS2Kit/Utils/StringUtils.hpp>
-#include <CS2Kit/Utils/Translations.hpp>
+#include <CS2Kit/Core/StringUtils.hpp>
+#include <CS2Kit/Core/Translations.hpp>
 #include <filesystem>
 #include <fstream>
 #include <nlohmann/json.hpp>
 
-namespace CS2Kit::Utils
+namespace CS2Kit::Core
 {
 
 namespace
@@ -178,4 +178,4 @@ std::string Translations::Get(const std::string& key, const std::map<std::string
     return Get(key, -1, tokens);
 }
 
-}  // namespace CS2Kit::Utils
+}  // namespace CS2Kit::Core

@@ -1,11 +1,11 @@
+#include <CS2Kit/Core/TimeUtils.hpp>
 #include <CS2Kit/Players/Player.hpp>
 #include <CS2Kit/Sdk/PlayerController.hpp>
-#include <CS2Kit/Utils/TimeUtils.hpp>
 
 namespace CS2Kit::Players
 {
 
-using namespace CS2Kit::Utils;
+using namespace CS2Kit::Core;
 
 Player::Player(int slot, int64_t steamId, const std::string& name, const std::string& ipAddress)
     : _slot(slot), _steamId(steamId), _name(name), _ipAddress(ipAddress), _connectTime(TimeUtils::Now())

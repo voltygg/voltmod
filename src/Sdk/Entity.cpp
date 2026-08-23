@@ -1,12 +1,12 @@
 #include "Sdk/Schema.hpp"
 
+#include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Sdk/Entity.hpp>
 #include <CS2Kit/Sdk/GameData.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
 #include <CS2Kit/Sdk/MemoryAccess.hpp>
-#include <CS2Kit/Utils/Log.hpp>
 #include <bit>
 #include <entity2/concreteentitylist.h>
 #include <entity2/entityidentity.h>
@@ -23,7 +23,7 @@ CGameEntitySystem* GameEntitySystem()
 
 namespace CS2Kit::Sdk
 {
-using namespace CS2Kit::Utils;
+using namespace CS2Kit::Core;
 
 int EntitySystem::GetEntityIndex(CEntityInstance* entity) const
 {

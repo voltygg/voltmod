@@ -34,6 +34,15 @@
 // The Database vocabulary lives in <CS2Kit/Database/Api.hpp>, deliberately
 // outside this umbrella: it drags <pqxx/pqxx> into every including TU, and
 // most plugin code never touches the database.
+#include <CS2Kit/Core/AngleMath.hpp>
+#include <CS2Kit/Core/DecayingScore.hpp>
+#include <CS2Kit/Core/Log.hpp>
+#include <CS2Kit/Core/SlidingWindowScore.hpp>
+#include <CS2Kit/Core/SlotThrottle.hpp>
+#include <CS2Kit/Core/StringUtils.hpp>
+#include <CS2Kit/Core/TimeUtils.hpp>
+#include <CS2Kit/Core/Translations.hpp>
+#include <CS2Kit/Core/Validation.hpp>
 #include <CS2Kit/Http/HttpResult.hpp>
 #include <CS2Kit/Menu/Flow.hpp>
 #include <CS2Kit/Menu/Menu.hpp>
@@ -70,15 +79,6 @@
 #include <CS2Kit/Sdk/TeleportTracker.hpp>
 #include <CS2Kit/Sdk/UserCmd.hpp>
 #include <CS2Kit/Sdk/UserMessage.hpp>
-#include <CS2Kit/Utils/AngleMath.hpp>
-#include <CS2Kit/Utils/DecayingScore.hpp>
-#include <CS2Kit/Utils/Log.hpp>
-#include <CS2Kit/Utils/SlidingWindowScore.hpp>
-#include <CS2Kit/Utils/SlotThrottle.hpp>
-#include <CS2Kit/Utils/StringUtils.hpp>
-#include <CS2Kit/Utils/TimeUtils.hpp>
-#include <CS2Kit/Utils/Translations.hpp>
-#include <CS2Kit/Utils/Validation.hpp>
 
 namespace CS2Kit
 {
@@ -197,18 +197,18 @@ using Http::HttpClient;
 using Http::HttpResult;
 
 // Utils
-using Utils::DecayingScore;
-using Utils::PairThrottle;
-using Utils::ParseDuration;
-using Utils::SlidingWindowScore;
-using Utils::SlotThrottle;
-using Utils::StringUtils;
-using Utils::Throttle;
-using Utils::TimeUtils;
-using Utils::Tokens;
-using Utils::Translations;
-namespace AngleMath = Utils::AngleMath;
-namespace Log = Utils::Log;
-namespace Validation = Utils::Validation;
+using Core::DecayingScore;
+using Core::PairThrottle;
+using Core::ParseDuration;
+using Core::SlidingWindowScore;
+using Core::SlotThrottle;
+using Core::StringUtils;
+using Core::Throttle;
+using Core::TimeUtils;
+using Core::Tokens;
+using Core::Translations;
+namespace AngleMath = Core::AngleMath;
+namespace Log = Core::Log;
+namespace Validation = Core::Validation;
 
 }  // namespace CS2Kit

@@ -1,5 +1,6 @@
 #include "Menu/MenuRenderer.hpp"
 
+#include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Menu/MenuManager.hpp>
 #include <CS2Kit/Menu/MenuOption.hpp>
@@ -8,14 +9,13 @@
 #include <CS2Kit/Sdk/Entity.hpp>
 #include <CS2Kit/Sdk/PlayerController.hpp>
 #include <CS2Kit/Sdk/UserMessage.hpp>
-#include <CS2Kit/Utils/Log.hpp>
 #include <algorithm>
 #include <chrono>
 
 namespace CS2Kit::Menu
 {
 
-using namespace CS2Kit::Utils;
+using namespace CS2Kit::Core;
 using namespace CS2Kit::Sdk;
 
 static int64_t GetCurrentTimeMs()

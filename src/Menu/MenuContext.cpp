@@ -27,7 +27,7 @@ bool MenuContext::Allowed(const std::string& permission) const
     return true;
 }
 
-std::string MenuContext::Tr(std::string_view key, Utils::Tokens tokens) const
+std::string MenuContext::Tr(std::string_view key, Core::Tokens tokens) const
 {
     return CS2Kit::Detail::Rt().Translations.Get(std::string(key), Admin, tokens);
 }

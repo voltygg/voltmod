@@ -1,6 +1,6 @@
 #pragma once
 
-#include <CS2Kit/Utils/Translations.hpp>
+#include <CS2Kit/Core/Translations.hpp>
 #include <string>
 #include <string_view>
 
@@ -32,7 +32,7 @@ struct MenuContext
     bool Allowed(const std::string& permission) const;
 
     /** Translate @p key in the admin's language. */
-    std::string Tr(std::string_view key, Utils::Tokens tokens = {}) const;
+    std::string Tr(std::string_view key, Core::Tokens tokens = {}) const;
 };
 
 }  // namespace CS2Kit::Menu

@@ -1,3 +1,4 @@
+#include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Core/MetamodGlobals.hpp>
 #include <CS2Kit/Core/Slot.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
@@ -5,7 +6,6 @@
 #include <CS2Kit/Sdk/Entity.hpp>
 #include <CS2Kit/Sdk/GameData.hpp>
 #include <CS2Kit/Sdk/MovementHook.hpp>
-#include <CS2Kit/Utils/Log.hpp>
 #include <algorithm>
 #include <cs_usercmd.pb.h>
 #include <cstring>
@@ -14,7 +14,7 @@ PLUGIN_GLOBALVARS();
 
 namespace CS2Kit::Sdk
 {
-using namespace CS2Kit::Utils;
+using namespace CS2Kit::Core;
 
 // void* return/param stand in for the real CPlayer_MovementServices::RunCommand(CUserCmd*)
 // signature - a pre/post observer never touches either. The vtable index is reconfigured

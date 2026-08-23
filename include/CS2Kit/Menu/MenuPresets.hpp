@@ -43,7 +43,7 @@ std::shared_ptr<MenuView> BuildPlayerPicker(int viewerSlot, const std::string& t
  * Build a duration picker. Each @p presets entry is a (label, seconds) pair rendered as a row;
  * selecting it invokes @p onPick(viewerSlot, seconds). When @p customLabel is non-empty an
  * extra chat-input row is appended: it prompts with @p customPrompt and parses the typed text
- * via @ref CS2Kit::Utils::ParseDuration (rejecting/re-prompting on a negative result).
+ * via @ref CS2Kit::Core::ParseDuration (rejecting/re-prompting on a negative result).
  */
 std::shared_ptr<MenuView> BuildDurationPicker(int viewerSlot, const std::string& title,
                                               const std::vector<std::pair<std::string, int>>& presets,
@@ -66,7 +66,7 @@ struct ConfirmDialogSpec
 std::shared_ptr<MenuView> BuildConfirmDialog(ConfirmDialogSpec spec);
 
 /**
- * Render @ref Utils::ChatColors::Palette as ChoiceOption choices (value = canonical color name),
+ * Render @ref Core::ChatColors::Palette as ChoiceOption choices (value = canonical color name),
  * so color pickers grow automatically as the palette does. @p labelFor supplies the localized
  * label for each canonical name; return "" to fall back to the name itself.
  */

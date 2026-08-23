@@ -1,10 +1,10 @@
+#include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Core/Slot.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Sdk/ConVarService.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
 #include <CS2Kit/Sdk/RecipientFilter.hpp>
-#include <CS2Kit/Utils/Log.hpp>
 #include <engine/igameeventsystem.h>
 #include <icvar.h>
 #include <networkbasetypes.pb.h>
@@ -29,7 +29,7 @@ void GlobalConVarChangeCallback(ConVarRefAbstract* ref, CSplitScreenSlot /*slot*
 
 namespace CS2Kit::Sdk
 {
-using namespace CS2Kit::Utils;
+using namespace CS2Kit::Core;
 
 RawConVar::RawConVar(const char* name)
 {

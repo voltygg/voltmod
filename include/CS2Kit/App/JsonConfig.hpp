@@ -1,6 +1,6 @@
 #pragma once
 
-#include <CS2Kit/Utils/Json.hpp>
+#include <CS2Kit/Core/Json.hpp>
 #include <string>
 
 namespace CS2Kit::App
@@ -30,12 +30,12 @@ public:
      *  parse error, or wrong-typed value. */
     bool Load(const std::string& path)
     {
-        auto loaded = Utils::Json::TryDeserializeFile<TSettings>(path);
+        auto loaded = Core::Json::TryDeserializeFile<TSettings>(path);
         if (!loaded)
             return false;
 
         _settings = std::move(*loaded);
-        Utils::Log::Info("Loaded settings from {}", path);
+        Core::Log::Info("Loaded settings from {}", path);
         return true;
     }
 

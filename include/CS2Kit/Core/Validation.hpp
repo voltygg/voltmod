@@ -1,7 +1,7 @@
 #pragma once
 
-#include <CS2Kit/Utils/Log.hpp>
-#include <CS2Kit/Utils/StringUtils.hpp>
+#include <CS2Kit/Core/Log.hpp>
+#include <CS2Kit/Core/StringUtils.hpp>
 #include <cstddef>
 #include <format>
 #include <optional>
@@ -9,7 +9,7 @@
 #include <string_view>
 #include <vector>
 
-namespace CS2Kit::Utils::Validation
+namespace CS2Kit::Core::Validation
 {
 
 /**
@@ -80,4 +80,4 @@ inline std::vector<int> ParseDurations(const std::vector<std::string>& entries,
     return result;
 }
 
-}  // namespace CS2Kit::Utils::Validation
+}  // namespace CS2Kit::Core::Validation

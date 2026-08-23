@@ -1,9 +1,9 @@
-#include <CS2Kit/Utils/SteamId.hpp>
+#include <CS2Kit/Core/SteamId.hpp>
 #include <charconv>
 #include <format>
 #include <string_view>
 
-namespace CS2Kit::Utils
+namespace CS2Kit::Core
 {
 
 std::string SteamId::ToSteamId3(int64_t steamId64)
@@ -77,4 +77,4 @@ uint32_t SteamId::GetAccountId(int64_t steamId64)
     return static_cast<uint32_t>(steamId64 - SteamId64Base);
 }
 
-}  // namespace CS2Kit::Utils
+}  // namespace CS2Kit::Core

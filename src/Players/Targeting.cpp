@@ -1,14 +1,14 @@
+#include <CS2Kit/Core/SteamId.hpp>
+#include <CS2Kit/Core/StringUtils.hpp>
 #include <CS2Kit/Players/Targeting.hpp>
-#include <CS2Kit/Utils/SteamId.hpp>
-#include <CS2Kit/Utils/StringUtils.hpp>
 #include <algorithm>
 #include <charconv>
 
 namespace CS2Kit::Players
 {
 
-using Utils::SteamId;
-using Utils::StringUtils;
+using Core::SteamId;
+using Core::StringUtils;
 
 namespace
 {

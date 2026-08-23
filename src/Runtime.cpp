@@ -1,10 +1,10 @@
 #include "Core/ConsoleLogger.hpp"
 #include "Sdk/Schema.hpp"
 
+#include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Core/Paths.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Utils/Log.hpp>
 #include <ISmmAPI.h>
 #include <chrono>
 #include <cstdlib>
@@ -43,7 +43,7 @@ Runtime& Rt()
     {
         // Release builds would otherwise take a null dereference into a Metamod crash dump
         // with no context. Name the mistake instead: this is always a lifetime bug.
-        Utils::Log::Error("CS2Kit::Detail::Rt() called with no live Runtime (outside Load/Unload).");
+        Core::Log::Error("CS2Kit::Detail::Rt() called with no live Runtime (outside Load/Unload).");
         std::abort();
     }
     return *g_active;
@@ -87,7 +87,7 @@ bool Runtime::Start(const LoadContext& context)
     // 2. Set base directory for path resolution
     Core::SetBaseDir(ismm->GetBaseDir());
 
-    Utils::Log::Info("Initializing CS2Kit...");
+    Core::Log::Info("Initializing CS2Kit...");
 
     // 3. Resolve SDK interfaces via Metamod
     auto resolveEngine = [&](const char* version) -> void* {
