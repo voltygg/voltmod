@@ -96,6 +96,21 @@ if(CS2KIT_ENABLE_POSTGRES)
     target_link_libraries(cs2-kit INTERFACE CS2Kit::Database)
 endif()
 
+# Installation is CMake's to describe, so the Conan recipe only has to run it. Note there
+# is deliberately no install(EXPORT): CMakeDeps generates the package config, and an
+# installed export set would compete with it.
+install(TARGETS cs2-kit-runtime ARCHIVE DESTINATION lib)
+if(TARGET cs2-kit-database)
+    install(TARGETS cs2-kit-database ARCHIVE DESTINATION lib)
+endif()
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/" DESTINATION include)
+# cmake/ lands next to gamedata/ so CS2KIT_ROOT_DIR (the cmake dir's parent) resolves
+# plugin.vdf.in, DoctestMain.cpp and gamedata exactly as it does in the repo.
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/" DESTINATION cmake)
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/gamedata/" DESTINATION gamedata)
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/templates/plugin/" DESTINATION templates/plugin)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE" DESTINATION licenses)
+
 if(CS2KIT_BUILD_STANDALONE)
     include(CTest)
 endif()

@@ -8,7 +8,6 @@ from conan import ConanFile  # type: ignore[attr-defined]
 from conan.errors import ConanInvalidConfiguration
 from conan.tools.build import check_min_cppstd
 from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
-from conan.tools.files import copy
 
 
 class CS2KitConan(ConanFile):
@@ -114,19 +113,9 @@ class CS2KitConan(ConanFile):
         cmake.build()
 
     def package(self):
-        build, pkg = self.build_folder, self.package_folder
-        copy(self, "*.a", build, os.path.join(pkg, "lib"), keep_path=False)
-        copy(self, "*.lib", build, os.path.join(pkg, "lib"), keep_path=False)
-        copy(self, "*.hpp", os.path.join(self.source_folder, "include"),
-             os.path.join(pkg, "include"))
-        # cmake/ next to gamedata/ so CS2KIT_ROOT_DIR (the cmake dir's parent)
-        # resolves plugin.vdf.in, DoctestMain.cpp and gamedata as in the repo.
-        copy(self, "*", os.path.join(self.source_folder, "cmake"), os.path.join(pkg, "cmake"))
-        copy(self, "*", os.path.join(self.source_folder, "gamedata"),
-             os.path.join(pkg, "gamedata"))
-        copy(self, "*", os.path.join(self.source_folder, "templates", "plugin"),
-             os.path.join(pkg, "templates", "plugin"))
-        copy(self, "LICENSE", self.source_folder, os.path.join(pkg, "licenses"))
+        # CMake owns the output names and the install layout; this just runs it.
+        cmake = CMake(self)
+        cmake.install()
 
     def package_info(self):
         self.cpp_info.set_property("cmake_file_name", "cs2-kit")
