@@ -146,7 +146,10 @@ void MenuManager::CloseAllMenus(int slot)
 
 void MenuManager::SetPlayerFrozen(int slot, bool frozen)
 {
-    if (!_freezePlayer)
+    // Only the freeze direction is gated. Releasing must always run: gating both meant turning
+    // the setting off while sessions were open stranded whoever was already frozen, with no
+    // path back short of a reconnect.
+    if (frozen && !_freezePlayer)
         return;
 
     auto& state = _states[slot];
@@ -165,6 +168,22 @@ void MenuManager::SetPlayerFrozen(int slot, bool frozen)
 
     pc.SetMoveType(frozen ? MoveType::None : state.PrevMoveType);
     state.MovementFrozen = frozen;
+}
+
+void MenuManager::SetFreezePlayer(bool enabled)
+{
+    _freezePlayer = enabled;
+
+    if (enabled)
+        return;
+
+    // Turning it off releases whoever the previous setting already froze; leaving them stuck
+    // until they close a menu they may not know is open is not a defensible reading of "off".
+    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+    {
+        if (_states[slot].MovementFrozen)
+            SetPlayerFrozen(slot, false);
+    }
 }
 
 bool MenuManager::HasActiveMenu(int slot) const

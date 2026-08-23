@@ -48,7 +48,9 @@ public:
      * so WASD navigation does not also walk the player around. The original MoveType is
      * restored when the last menu closes. Disabled by default.
      */
-    void SetFreezePlayer(bool enabled) { _freezePlayer = enabled; }
+    /** Freeze movement for the duration of a menu session. Turning this off also releases
+     *  anyone the previous setting had already frozen. */
+    void SetFreezePlayer(bool enabled);
 
     /** Per-tick driver: reads buttons, advances selection, and re-renders. */
     void OnGameFrame();
