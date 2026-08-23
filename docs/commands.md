@@ -14,12 +14,11 @@ using namespace CS2Kit::Commands;
 commands.Register({
     .Name = "ban",
     .Description = "Ban a player.",
-    .Usage = "!ban <target> <duration> [reason]",
     .Permission = "b",
     .Args = {Target(), Duration(), ReasonTail("reason.bannedByAdmin")},
     .Handler = [](CommandContext& c) {
-        std::string name = c.Target->GetName();      // capture first - a ban can drop the target
-        if (!IssueBan(*c.Caller, *c.Target, c.Reason, c.DurationSec))
+        std::string name = c.Target().GetName();     // capture first - a ban can drop the target
+        if (!IssueBan(*c.Caller, c.Target(), c.Reason, c.Duration().value_or(0)))
             return c.Fail("cmd.banFailed");
         return c.Ok("cmd.banSuccess", {{"name", name}});
     },
@@ -36,15 +35,23 @@ For each chat command: prefix match → `runtime.Policy.HasPermission(callerStea
 
 Declare `Args` with the terse factories; each fills a `CommandContext` field:
 
-| Factory | Consumes | Fills |
-|---------|----------|-------|
-| `Target(rules = {})` | one token via the selector grammar | `c.Target` (and `c.Targets` when `rules.AllowMultiple`) |
-| `TargetOrSteamId()` | online player, or a bare SteamID64 for offline targets | `c.Target` + `c.SteamId`, or `c.SteamId` alone |
-| `Duration()` | `30` (minutes), `30s`/`5m`/`2h`/`7d`, `0`/`perm` | `c.DurationSec` (0 = permanent) |
+| Factory | Consumes | Read with |
+|---------|----------|-----------|
+| `Target(rules = {})` | one token via the selector grammar | `c.Target()` - a reference, never null (and `c.Targets()` when `rules.AllowMultiple`) |
+| `TargetOrSteamId()` | online player, or a bare SteamID64 for offline targets | `c.HasTarget() ? c.Target() : ...` plus `c.SteamId` |
+| `Duration()` | `30` (minutes), `30s`/`5m`/`2h`/`7d`, `0`/`perm` | `c.Duration()` - nullopt when absent, `0` means permanent |
 | `SteamId64(errorKey = {})` | numeric SteamID64 | `c.SteamId` |
-| `Int()` | integer | `c.IntValue` |
+| `Int()` | integer | `c.Int()` - nullopt when absent |
 | `Word(required = true)` | one verbatim token | `c.Word` |
 | `ReasonTail(fallbackKey = {})` | all remaining tokens joined | `c.Reason` (the translated fallback when absent) |
+
+Resolution refuses to run the handler unless every required argument came through, so an
+accessor for an argument the spec declared always has a value. That is why `Target()` hands
+back a reference: the old pointer only invited a null check that could not fire.
+
+`Usage` is derived from the argument kinds - `!ban <target> <duration> [reason]` - unless you
+set it. Extra arguments beyond what the spec consumes are refused with `cmd.tooManyArgs`
+rather than dropped.
 
 `TargetRules` narrows what a Target argument accepts: `{.AllowMultiple = true}` permits `@all`-style selectors, `AllowDead`/`AllowBots` filter the match set.
 
@@ -75,7 +82,7 @@ and failing open there hands every player every command.
 
 Argument failures reply from these translation keys - ship them in your translation files:
 
-`target.noMatch`, `target.immune`, `target.ambiguous` (gets a `{count}` token), `target.dead`, `target.bot`, `cmd.badDuration`, `cmd.badSteamId`, `cmd.noPermission`, and the command's own `Usage` string for arity errors. Override per-argument with `ArgSpec::ErrorKey` (e.g. `SteamId64("cmd.unbanUsage")`).
+`target.noMatch`, `target.immune`, `target.ambiguous` (gets a `{count}` token), `target.dead`, `target.bot`, `cmd.badDuration`, `cmd.badSteamId`, `cmd.badNumber`, `cmd.noPermission`, `cmd.tooManyArgs`, and the command's `Usage` (derived unless set) for arity errors. Override per-argument with `ArgSpec::ErrorKey` (e.g. `SteamId64("cmd.unbanUsage")`).
 
 ## Introspection
 
