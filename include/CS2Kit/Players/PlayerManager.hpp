@@ -59,6 +59,8 @@ public:
     size_t GetPlayerCount() const;
 
 private:
+    void IndexBySteamId(Player* player);
+    void UnindexBySteamId(const Player* player);
     void FireSlotChange(int slot);
 
     Core::SlotEvents& _slots;
