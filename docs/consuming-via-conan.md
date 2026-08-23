@@ -13,7 +13,7 @@ The remote is **public** - no login, no token.
 
 | Package | Contents |
 | --- | --- |
-| `cs2-kit/x.y.z` | prebuilt static lib, public headers, `cmake/` helpers, gamedata, plugin template. Option `with_postgres` gates the Database module (pulls libpqxx). |
+| `cs2-kit/x.y.z` | one prebuilt static library per module, public headers, `cmake/` helpers, gamedata, plugin template. Option `with_postgres` gates the Database component (pulls libpqxx). |
 | `hl2sdk-cs2/<yyyy.mm.dd>` | trimmed HL2SDK in mirror layout: headers, prebuilt Valve libs, the generated `.pb.h`/`.pb.cc`, and the source-only TUs `cs2_add_plugin` compiles per plugin. Versioned by the upstream commit date. |
 | `metamod-source/2.0.0.<yyyymmdd>` | Metamod core + SourceHook headers (header-only). |
 
@@ -54,6 +54,24 @@ uv run poe bootstrap
 The project's CMakeLists is `find_package(cs2-kit CONFIG REQUIRED)` plus one
 `add_subdirectory(plugins/<name>)` per plugin; each plugin's CMakeLists is one
 `cs2_add_plugin(<name>)` call.
+
+## Components
+
+The kit ships as one library per module, declared as Conan components:
+
+```text
+Core  Utils  Http  Sdk  Players  Commands  Menu  Database  App
+```
+
+`CS2Kit::CS2Kit` is all of them, and remains the default. To link less, name what
+you need - dependencies come along automatically:
+
+```cmake
+cs2_add_plugin(bhop COMPONENTS App)   # everything except Database, so no libpqxx
+```
+
+`App` is the composition root (`Engine()`, `PluginBase`), so nearly every plugin
+wants it; the reason to name it explicitly is to leave `Database` behind.
 
 ## How the CMake side works
 

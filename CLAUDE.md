@@ -14,10 +14,11 @@ Metamod:Source 2.0.
 ## Project Structure
 
 ```text
-include/CS2Kit/        Public API headers
-src/                   Implementation
+include/CS2Kit/        Public API headers, one directory per module
+src/                   Implementation, one static library per module
 gamedata/              Engine signatures and offsets
-cmake/                 CS2KitSdk.cmake + CS2Plugin.cmake (cs2_add_plugin)
+cmake/                 CS2KitSdk.cmake + CS2KitComponent.cmake (one lib per module)
+                       + CS2Plugin.cmake (cs2_add_plugin)
                        + CS2Tests.cmake (cs2_add_tests) + DoctestMain.cpp + plugin.vdf.in
                        + CS2KitBuildInfo.cmake (git/version stamping -> <CS2Kit/BuildInfo.hpp>)
 scripts/cs2kit/        Build + scaffolding tooling, shipped as the `cs2-kit` Python
@@ -84,6 +85,33 @@ cs2_add_plugin(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...])
 - Public vocabulary is hoisted to `CS2Kit::Type` in `CS2Kit/Api.hpp`; prefer the
   short names over `CS2Kit::Module::Type`. In `.hpp` never use a namespace-scope
   using-directive; `using namespace CS2Kit::X;` is `.cpp`-only (TU-local).
+
+## Module Layering
+
+The modules form a DAG, and `uv run poe modgraph` fails the build if that stops
+being true:
+
+```text
+Core      -> (none)          primitives: ILogger, Paths, Registry, Slot, Scheduler
+Utils     -> Core
+Http      -> Utils
+Sdk       -> Core Utils      everything engine-facing
+Players   -> Core Sdk Utils
+Commands  -> Core Players Sdk Utils
+Menu      -> Core Players Sdk Utils
+Database  -> Core Utils      option-gated on with_postgres
+App       -> everything      the composition root: Services, PluginBase, Engine()
+```
+
+Each layer builds its own static library and is a Conan component, so
+`cs2_add_plugin(<name> COMPONENTS App)` links App and its dependencies but not
+Database - a plugin with no database carries no libpqxx. Omitting COMPONENTS
+links `CS2Kit::CS2Kit`, which is everything.
+
+**Only App may use `Engine()`.** Inside a module, reach the layer you need
+through its own accessor - `Core::Ctx()`, `Utils::Ctx()`, `Sdk::Ctx()`,
+`Players::Roster()`, `Commands::Manager()`, `Menu::Menus()` - and downward only.
+Plugins are consumers, not modules, and use `Engine()` as before.
 
 ## Design Notes
 
