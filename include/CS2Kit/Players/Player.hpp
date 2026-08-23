@@ -1,6 +1,5 @@
 #pragma once
 
-#include <CS2Kit/Players/PlayerRef.hpp>
 #include <cstdint>
 #include <string>
 
@@ -22,7 +21,7 @@ namespace CS2Kit::Players
 class Player
 {
 public:
-    Player(int slot, int64_t steamId, const std::string& name, const std::string& ipAddress, uint64_t generation);
+    Player(int slot, int64_t steamId, const std::string& name, const std::string& ipAddress);
 
     int GetSlot() const { return _slot; }
     int64_t GetSteamID() const { return _steamId; }
@@ -36,17 +35,12 @@ public:
     /** Controller wrapper for this player's slot. Check IsValid() before pawn access. */
     Sdk::PlayerController Controller() const;
 
-    /** An identity safe to carry across a delay. See @ref PlayerRef. */
-    [[nodiscard]] PlayerRef Ref() const { return {.Slot = _slot, .Generation = _generation, .SteamId = _steamId}; }
-
 private:
     int _slot;
     int64_t _steamId;
     std::string _name;
     std::string _ipAddress;
     int64_t _connectTime;
-    /** Occupancy stamp from PlayerManager; distinguishes this occupant from the next. */
-    uint64_t _generation;
 };
 
 }  // namespace CS2Kit::Players

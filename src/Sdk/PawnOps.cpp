@@ -93,19 +93,19 @@ void Slap(const PlayerController& pc, float upward, float horizontal, int fallPr
     {
         SetGodmode(pc, true);
 
-        // A ref, not the slot: the target can disconnect inside the protection window and the
-        // next player to take the seat would have had their godmode stripped instead.
         auto& runtime = CS2Kit::Detail::Rt();
-        Players::Player* player = runtime.Players.GetPlayerBySlot(pc.GetSlot());
+        const int slot = pc.GetSlot();
+        Players::Player* player = runtime.Players.GetPlayerBySlot(slot);
         if (!player)
             return;
 
-        runtime.Scheduler.Delay(fallProtectMs, [ref = player->Ref()]() {
-            Players::Player* still = CS2Kit::Detail::Rt().Players.Resolve(ref);
-            if (!still)
+        // Check the seat still holds the same player: they can disconnect inside the protection
+        // window, and clearing godmode off whoever took the slot next is not our business.
+        runtime.Scheduler.Delay(fallProtectMs, [slot, steamId = player->GetSteamID()]() {
+            if (!CS2Kit::Detail::Rt().Players.GetPlayerBySlotIfSteamId(slot, steamId))
                 return;
 
-            PlayerController target(still->GetSlot());
+            PlayerController target(slot);
             if (target.IsValid())
                 SetGodmode(target, false);
         });

@@ -3,7 +3,6 @@
 #include <CS2Kit/Core/SlotEvents.hpp>
 #include <CS2Kit/Core/Subscription.hpp>
 #include <CS2Kit/Players/Player.hpp>
-#include <CS2Kit/Players/PlayerRef.hpp>
 #include <functional>
 #include <memory>
 #include <string>
@@ -55,12 +54,6 @@ public:
      * that case, rather than the wrong player.
      */
     Player* GetPlayerBySlotIfSteamId(int slot, int64_t steamId);
-
-    /**
-     * The player @p ref names, or nullptr if they have left or the slot changed hands since the
-     * ref was taken. Resolve on every use; do not cache what this returns.
-     */
-    Player* Resolve(const PlayerRef& ref);
     std::vector<Player*> FindPlayersByName(const std::string& name);
     std::vector<Player*> GetAllPlayers();
     size_t GetPlayerCount() const;
@@ -69,13 +62,6 @@ private:
     void IndexBySteamId(Player* player);
     void UnindexBySteamId(const Player* player);
     void FireSlotChange(int slot);
-
-    /** Monotonic across the manager's life: every AddPlayer stamps the next value, so no two
-
-     *  occupants of a slot ever share one. */
-
-    uint64_t _nextGeneration = 1;
-
 
     Core::SlotEvents& _slots;
     std::unordered_map<int, std::unique_ptr<Player>> _playersBySlot;
