@@ -1,6 +1,6 @@
 #pragma once
 
-#include <CS2Kit/Core/CallbackRegistry.hpp>
+#include <CS2Kit/Core/SlotEvents.hpp>
 #include <CS2Kit/Players/Player.hpp>
 #include <functional>
 #include <memory>
@@ -20,9 +20,10 @@ namespace CS2Kit::Players
 class PlayerManager
 {
 public:
-    using SlotCallback = std::function<void(int slot)>;
+    using SlotCallback = Core::SlotEvents::Callback;
 
-    PlayerManager() = default;
+    /** @p slots is the Core-level signal this manager raises; it outlives the manager. */
+    explicit PlayerManager(Core::SlotEvents& slots) : _slots(slots) {}
 
     Player* AddPlayer(int slot, int64_t steamId, const std::string& name, const std::string& ipAddress);
     void RemovePlayer(int slot);
@@ -31,10 +32,14 @@ public:
     /**
      * Fires whenever a slot's occupant changes: on AddPlayer, RemovePlayer, and
      * once per tracked slot on Clear. The backing hook for per-slot state that
-     * must not leak across occupants (see PerSlot, InputHistoryService).
+     * must not leak across occupants (see PerSlot).
+     *
+     * A convenience over Core::SlotEvents for plugin code that already holds a
+     * PlayerManager. Anything below Players in the layering listens on the signal
+     * itself instead - that is the whole reason it lives in Core.
      */
-    uint64_t ListenSlotChange(SlotCallback callback) { return _slotChange.Add(std::move(callback)); }
-    void RemoveListener(uint64_t id) { _slotChange.Remove(id); }
+    uint64_t ListenSlotChange(SlotCallback callback) { return _slots.Listen(std::move(callback)); }
+    void RemoveListener(uint64_t id) { _slots.Remove(id); }
 
     Player* GetPlayerBySlot(int slot);
     Player* GetPlayerBySteamId(int64_t steamId);
@@ -53,9 +58,9 @@ public:
 private:
     void FireSlotChange(int slot);
 
+    Core::SlotEvents& _slots;
     std::unordered_map<int, std::unique_ptr<Player>> _playersBySlot;
     std::unordered_map<int64_t, Player*> _playersBySteamId;
-    Core::CallbackRegistry<SlotCallback> _slotChange;
 };
 
 }  // namespace CS2Kit::Players

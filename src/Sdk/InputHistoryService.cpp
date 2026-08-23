@@ -12,13 +12,12 @@ using Core::EngineOrNull;
 
 InputHistoryService::~InputHistoryService()
 {
-    auto* services = EngineOrNull();
-    if (!services)
-        return;
-    if (_cmdListener != 0)
-        services->MovementHook.RemoveListener(_cmdListener);
+    // _slots is declared ahead of this service in Services, so it outlives us either way.
     if (_slotListener != 0)
-        services->Players.RemoveListener(_slotListener);
+        _slots.Remove(_slotListener);
+    // MovementHook still has to go through the hub, which may already be gone on shutdown.
+    if (auto* services = EngineOrNull(); services && _cmdListener != 0)
+        services->MovementHook.RemoveListener(_cmdListener);
 }
 
 void InputHistoryService::Enable(int depth)
@@ -39,7 +38,7 @@ void InputHistoryService::Enable(int depth)
         _cmdListener =
             Engine().MovementHook.ListenPreCmd([this](int slot, const UserCmdView& cmd) { Record(slot, cmd); });
     if (_slotListener == 0)
-        _slotListener = Engine().Players.ListenSlotChange([this](int slot) { Clear(slot); });
+        _slotListener = _slots.Listen([this](int slot) { Clear(slot); });
 }
 
 void InputHistoryService::Record(int slot, const UserCmdView& cmd)

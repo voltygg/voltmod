@@ -4,7 +4,6 @@
 
 #include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Core/Slot.hpp>
-#include <CS2Kit/Players/PlayerManager.hpp>
 #include <CS2Kit/Sdk/GameData.hpp>
 #include <CS2Kit/Sdk/GameEventService.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
@@ -146,19 +145,28 @@ void MessageSystem::Send(int slot, std::string_view message, MessageKind kind)
 void MessageSystem::Broadcast(std::string_view message, MessageKind kind)
 {
     auto rendered = Render(message, kind);
-    for (auto* p : Engine().Players.GetAllPlayers())
+
+    if (kind == MessageKind::CenterHtml)
     {
-        if (!p)
-            continue;
-        if (kind == MessageKind::CenterHtml)
-            SendCenterHtml(p->GetSlot(), rendered);
-        else
-            SendTextMsg(p->GetSlot(),
-                        kind == MessageKind::Center  ? DestCenter
-                        : kind == MessageKind::Alert ? DestAlert
-                                                     : DestChat,
-                        rendered);
+        // Per-slot, because each panel write targets one client's own event listener.
+        // A null listener means nobody is in that slot.
+        for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+            if (Engine().Events.GetClientLegacyListener(slot))
+                SendCenterHtml(slot, rendered);
+        return;
     }
+
+    // One event for everyone rather than one per player: the engine drops slots with no
+    // client from the recipient bits, which is also how this avoids needing the roster.
+    MultiRecipientFilter filter;
+    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+        filter.AddRecipient(slot);
+
+    PostTextMsg(filter,
+                kind == MessageKind::Center  ? DestCenter
+                : kind == MessageKind::Alert ? DestAlert
+                                             : DestChat,
+                rendered);
 }
 
 void MessageSystem::Reply(int slot, std::string_view message)
@@ -173,8 +181,17 @@ void MessageSystem::ReplyKey(int slot, const std::string& key, const std::map<st
 
 void MessageSystem::SendTextMsg(int slot, int destination, const std::string& message)
 {
+    if (!Core::IsValidSlot(slot))
+        return;
+
+    SingleRecipientFilter filter(slot);
+    PostTextMsg(filter, destination, message);
+}
+
+void MessageSystem::PostTextMsg(IRecipientFilter& filter, int destination, const std::string& message)
+{
     auto& interfaces = Engine().Interfaces;
-    if (!interfaces.GameEventSystem || !interfaces.NetworkMessages || !Core::IsValidSlot(slot))
+    if (!interfaces.GameEventSystem || !interfaces.NetworkMessages)
         return;
 
     // CS2 routes server-originated chat through TextMsg with dest=HUD_PRINTTALK rather than
@@ -203,7 +220,6 @@ void MessageSystem::SendTextMsg(int slot, int destination, const std::string& me
     pTextMsg->set_dest(destination);
     pTextMsg->add_param(message.c_str());
 
-    SingleRecipientFilter filter(slot);
     interfaces.GameEventSystem->PostEventAbstract(-1, false, &filter, _textMsgInternal, pMsg, 0);
 
     interfaces.NetworkMessages->DeallocateNetMessageAbstract(_textMsgInternal, pMsg);

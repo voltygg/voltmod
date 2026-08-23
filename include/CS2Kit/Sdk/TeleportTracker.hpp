@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CS2Kit/Core/Slot.hpp>
+#include <CS2Kit/Core/SlotEvents.hpp>
 #include <array>
 #include <cstdint>
 
@@ -28,7 +29,8 @@ namespace CS2Kit::Sdk
 class TeleportTracker
 {
 public:
-    TeleportTracker() = default;
+    /** @p slots tells this tracker when a slot changes hands, without it needing the roster. */
+    explicit TeleportTracker(Core::SlotEvents& slots) : _slots(slots) {}
     ~TeleportTracker();
     TeleportTracker(const TeleportTracker&) = delete;
     TeleportTracker& operator=(const TeleportTracker&) = delete;
@@ -56,6 +58,7 @@ private:
     void Stamp(int slot);
     int SlotFromPawn(const void* pawn) const;
 
+    Core::SlotEvents& _slots;
     std::array<void*, Core::MaxPlayers> _pawns{};  // the instance each slot's hook is bound to
     std::array<int, Core::MaxPlayers> _hookIds{};  // SourceHook ids, 0 when unbound
     std::array<float, Core::MaxPlayers> _lastTeleport{};

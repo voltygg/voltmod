@@ -6,6 +6,7 @@
 #include <CS2Kit/Core/PluginPolicy.hpp>
 #include <CS2Kit/Core/Scheduler.hpp>
 #include <CS2Kit/Core/ServiceExchange.hpp>
+#include <CS2Kit/Core/SlotEvents.hpp>
 #include <CS2Kit/Core/StatusService.hpp>
 #include <CS2Kit/Http/HttpClient.hpp>
 #include <CS2Kit/Menu/MenuManager.hpp>
@@ -70,6 +71,9 @@ public:
     std::string CurrentMap;
     /** Status sections for diagnostics commands; kit sections registered during load. */
     Core::StatusService Status;
+    /** "This slot changed hands", raised by Players and consumed by services beneath it.
+     *  Declared here so it outlives every listener below. */
+    Core::SlotEvents Slots;
     Sdk::GameInterfaces Interfaces;  // plain interface-pointer holder; populated in CS2Kit::Initialize
     Sdk::GameData GameData;
     Sdk::MessageSystem Messages;
@@ -86,11 +90,11 @@ public:
     Core::Scheduler Scheduler;
     Sdk::ChatInputCapture ChatInput;
     Utils::Translations Translations;
-    Players::PlayerManager Players;
-    /** Dormant until Enable(depth); listens on MovementHook cmd feed + Players slot changes. */
-    Sdk::InputHistoryService InputHistory;
+    Players::PlayerManager Players{Slots};
+    /** Dormant until Enable(depth); listens on MovementHook cmd feed + slot changes. */
+    Sdk::InputHistoryService InputHistory{Slots};
     /** Dormant until Enable(); per-pawn Teleport hook re-bound on PlayerSpawn. */
-    Sdk::TeleportTracker Teleports;
+    Sdk::TeleportTracker Teleports{Slots};
     /** Async client-side convar reads. Inert when its load stage degraded (Available() == false). */
     Sdk::ClientCvarService ClientCvars;
     Commands::CommandManager Commands;

@@ -1,7 +1,6 @@
 #include <CS2Kit/Core/MetamodPluginBase.hpp>
 #include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Core/Slot.hpp>
-#include <CS2Kit/Players/PlayerManager.hpp>
 #include <CS2Kit/Sdk/GameData.hpp>
 #include <CS2Kit/Sdk/GameEventService.hpp>
 #include <CS2Kit/Sdk/GameEvents.hpp>
@@ -53,7 +52,7 @@ bool TeleportTracker::Enable()
         Bind(e.Slot);
         Stamp(e.Slot);
     });
-    _slotListener = Engine().Players.ListenSlotChange([this](int slot) {
+    _slotListener = _slots.Listen([this](int slot) {
         Unbind(slot);
         if (Core::IsValidSlot(slot))
             _lastTeleport[slot] = 0.0f;
@@ -69,14 +68,12 @@ void TeleportTracker::Disable()
         Unbind(slot);
     _lastTeleport.fill(0.0f);
 
-    // Runs from the destructor too, where the services may already be gone.
-    if (auto* services = Core::EngineOrNull())
-    {
-        if (_spawnListener != 0)
-            services->Events.RemoveListener(_spawnListener);
-        if (_slotListener != 0)
-            services->Players.RemoveListener(_slotListener);
-    }
+    // _slots is declared ahead of this tracker in Services, so it outlives us either way.
+    if (_slotListener != 0)
+        _slots.Remove(_slotListener);
+    // Runs from the destructor too, where the hub may already be gone.
+    if (auto* services = Core::EngineOrNull(); services && _spawnListener != 0)
+        services->Events.RemoveListener(_spawnListener);
     _spawnListener = 0;
     _slotListener = 0;
     _enabled = false;

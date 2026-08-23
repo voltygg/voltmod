@@ -52,6 +52,8 @@ public:
 
 private:
     void SendTextMsg(int slot, int destination, const std::string& message);
+    /** Post one already-rendered TextMsg to whoever @p filter selects. */
+    void PostTextMsg(IRecipientFilter& filter, int destination, const std::string& message);
 
     INetworkMessageInternal* _textMsgInternal = nullptr;
 };

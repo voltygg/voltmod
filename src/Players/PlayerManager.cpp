@@ -33,8 +33,7 @@ void PlayerManager::RemovePlayer(int slot)
 
 void PlayerManager::FireSlotChange(int slot)
 {
-    for (const auto& [id, callback] : _slotChange.Items())
-        callback(slot);
+    _slots.Raise(slot);
 }
 
 Player* PlayerManager::GetPlayerBySlot(int slot)
