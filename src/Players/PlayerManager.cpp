@@ -37,7 +37,7 @@ Player* PlayerManager::AddPlayer(int slot, int64_t steamId, const std::string& n
         _playersBySlot.erase(prev);
     }
 
-    auto player = std::make_unique<Player>(slot, steamId, name, ipAddress);
+    auto player = std::make_unique<Player>(slot, steamId, name, ipAddress, _nextGeneration++);
     Player* playerPtr = player.get();
 
     _playersBySlot[slot] = std::move(player);
@@ -83,6 +83,17 @@ Player* PlayerManager::GetPlayerBySteamId(int64_t steamId)
     }
 
     return nullptr;
+}
+
+Player* PlayerManager::Resolve(const PlayerRef& ref)
+{
+    if (!ref.IsSet())
+        return nullptr;
+
+    Player* player = GetPlayerBySlot(ref.Slot);
+    // The generation, not the SteamID: a player who reconnected into the same slot is a new
+    // session, and work queued for the old one should not land on it.
+    return (player && player->Ref().Generation == ref.Generation) ? player : nullptr;
 }
 
 Player* PlayerManager::GetPlayerBySlotIfSteamId(int slot, int64_t steamId)

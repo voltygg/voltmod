@@ -6,8 +6,14 @@ namespace CS2Kit::Players
 
 using namespace CS2Kit::Core;
 
-Player::Player(int slot, int64_t steamId, const std::string& name, const std::string& ipAddress)
-    : _slot(slot), _steamId(steamId), _name(name), _ipAddress(ipAddress), _connectTime(TimeUtils::Now())
+Player::Player(int slot, int64_t steamId, const std::string& name, const std::string& ipAddress,
+               uint64_t generation)
+    : _slot(slot),
+      _steamId(steamId),
+      _name(name),
+      _ipAddress(ipAddress),
+      _connectTime(TimeUtils::Now()),
+      _generation(generation)
 {}
 
 int64_t Player::GetPlaytime() const

@@ -101,3 +101,79 @@ TEST_CASE("A slot change fires for both the departing and arriving occupant")
 
     CHECK(raised == 3);
 }
+
+TEST_CASE("A ref resolves to the player it was taken from")
+{
+    SlotEvents slots;
+    PlayerManager players(slots);
+
+    auto* alpha = players.AddPlayer(3, SteamA, "alpha", "1.2.3.4");
+    auto ref = alpha->Ref();
+
+    CHECK(ref.IsSet());
+    CHECK(ref.Slot == 3);
+    CHECK(ref.SteamId == SteamA);
+    CHECK(players.Resolve(ref) == alpha);
+}
+
+TEST_CASE("A ref stops resolving once its player leaves")
+{
+    SlotEvents slots;
+    PlayerManager players(slots);
+
+    auto ref = players.AddPlayer(3, SteamA, "alpha", "1.2.3.4")->Ref();
+    players.RemovePlayer(3);
+
+    CHECK(players.Resolve(ref) == nullptr);
+}
+
+TEST_CASE("A ref does not resolve to whoever took the slot next")
+{
+    SlotEvents slots;
+    PlayerManager players(slots);
+
+    auto stale = players.AddPlayer(3, SteamA, "alpha", "1.2.3.4")->Ref();
+    auto* bravo = players.AddPlayer(3, SteamB, "bravo", "5.6.7.8");
+
+    // This is the whole point: work deferred for alpha must not land on bravo.
+    CHECK(players.Resolve(stale) == nullptr);
+    CHECK(players.Resolve(bravo->Ref()) == bravo);
+}
+
+TEST_CASE("A reconnect into the same slot is a different session")
+{
+    SlotEvents slots;
+    PlayerManager players(slots);
+
+    auto before = players.AddPlayer(3, SteamA, "alpha", "1.2.3.4")->Ref();
+    players.RemovePlayer(3);
+    auto* rejoined = players.AddPlayer(3, SteamA, "alpha", "1.2.3.4");
+
+    // Same player, same slot, but the earlier session's queued work is no longer theirs.
+    CHECK(players.Resolve(before) == nullptr);
+    CHECK(players.Resolve(rejoined->Ref()) == rejoined);
+}
+
+TEST_CASE("A default-constructed ref never resolves")
+{
+    SlotEvents slots;
+    PlayerManager players(slots);
+    players.AddPlayer(0, SteamA, "alpha", "1.2.3.4");
+
+    CS2Kit::Players::PlayerRef empty;
+    CHECK_FALSE(empty.IsSet());
+    CHECK(players.Resolve(empty) == nullptr);
+}
+
+TEST_CASE("Bots get refs too")
+{
+    SlotEvents slots;
+    PlayerManager players(slots);
+
+    auto* bot = players.AddPlayer(4, 0, "Bot Sam", "");
+    auto ref = bot->Ref();
+
+    CHECK(ref.IsSet());
+    CHECK(ref.SteamId == 0);
+    CHECK(players.Resolve(ref) == bot);
+}
