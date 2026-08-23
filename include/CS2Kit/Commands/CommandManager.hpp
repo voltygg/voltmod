@@ -4,6 +4,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace CS2Kit::Commands
@@ -13,7 +14,7 @@ namespace CS2Kit::Commands
  * @brief Dispatches chat commands (prefixed with ! or .) to registered CommandSpecs.
  *
  * The pipeline per message: prefix match -> spec lookup -> permission check
- * (`runtime.Policy.HasPermission`) -> typed argument resolution (targets, durations,
+ * (`runtime.Policy.HasPermission`, which denies when unset) -> typed argument resolution (targets, durations,
  * SteamIDs - see @ref ArgKind) -> handler -> result message via `runtime.Policy.Reply`.
  * Handlers only run with fully-resolved, validated arguments.
  */
@@ -42,6 +43,9 @@ private:
 
     std::unordered_map<std::string, CommandSpec> _commands;
     std::vector<std::string> _prefixes{"!", "."};
+    /** Command names already reported for a missing HasPermission policy, so the error is
+     *  logged once rather than on every attempt. */
+    std::unordered_set<std::string> _missingPolicyWarned;
 };
 
 }  // namespace CS2Kit::Commands

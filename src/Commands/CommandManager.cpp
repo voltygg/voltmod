@@ -1,4 +1,5 @@
 #include <CS2Kit/Commands/CommandManager.hpp>
+#include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Core/StringUtils.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Players/TargetResolver.hpp>
@@ -97,9 +98,22 @@ bool CommandManager::HandleChatMessage(Players::Player* caller, std::string_view
 
     if (!cmd->Permission.empty())
     {
-        if (policy.HasPermission && !policy.HasPermission(caller->GetSteamID(), cmd->Permission))
+        // No policy means no way to tell an admin from anyone else, so the only safe answer is
+        // no. Warn once per command: a plugin that declares permissions and forgets to install
+        // a policy is misconfigured, and the old behaviour let everyone through silently.
+        if (!policy.HasPermission)
         {
-            reply("You do not have permission to use this command.");
+            if (_missingPolicyWarned.insert(cmd->Name).second)
+                Log::Error("Command '{}' declares permission '{}' but no HasPermission policy is "
+                           "installed - denying. Set Runtime::Policy.HasPermission in OnLoad.",
+                           cmd->Name, cmd->Permission);
+            reply(CS2Kit::Detail::Rt().Translations.Get("cmd.noPermission", caller->GetSlot()));
+            return true;
+        }
+
+        if (!policy.HasPermission(caller->GetSteamID(), cmd->Permission))
+        {
+            reply(CS2Kit::Detail::Rt().Translations.Get("cmd.noPermission", caller->GetSlot()));
             return true;
         }
     }

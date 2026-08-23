@@ -64,11 +64,18 @@ name           exact match, then prefix, then substring (case-insensitive)
 
 Immunity comes from `runtime.Policy.CanTarget` - matches the policy rejects are dropped, and if that empties the set the caller is told the target is immune, not "no match".
 
+## Permissions
+
+A spec with a non-empty `Permission` is gated on `runtime.Policy.HasPermission`. **If no
+policy is installed the command is denied**, not allowed, and the kit logs an error once per
+command name - a plugin that declares permissions without wiring a policy is misconfigured,
+and failing open there hands every player every command.
+
 ## Error replies and reserved keys
 
 Argument failures reply from these translation keys - ship them in your translation files:
 
-`target.noMatch`, `target.immune`, `target.ambiguous` (gets a `{count}` token), `target.dead`, `target.bot`, `cmd.badDuration`, `cmd.badSteamId`, and the command's own `Usage` string for arity errors. Override per-argument with `ArgSpec::ErrorKey` (e.g. `SteamId64("cmd.unbanUsage")`).
+`target.noMatch`, `target.immune`, `target.ambiguous` (gets a `{count}` token), `target.dead`, `target.bot`, `cmd.badDuration`, `cmd.badSteamId`, `cmd.noPermission`, and the command's own `Usage` string for arity errors. Override per-argument with `ArgSpec::ErrorKey` (e.g. `SteamId64("cmd.unbanUsage")`).
 
 ## Introspection
 
