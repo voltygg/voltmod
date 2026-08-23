@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 4.3)
 
-project(cs2-kit VERSION 1.0.0 LANGUAGES CXX)
+# version.txt is the one place the kit's version is written; the Conan recipe and the
+# Python distribution read the same file.
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" CS2KIT_VERSION)
+string(STRIP "${CS2KIT_VERSION}" CS2KIT_VERSION)
+
+project(cs2-kit VERSION ${CS2KIT_VERSION} LANGUAGES CXX)
 
 option(CS2KIT_BUILD_STANDALONE "Build CS2Kit as a standalone project" ${PROJECT_IS_TOP_LEVEL})
 option(CS2KIT_ENABLE_POSTGRES "Build the CS2Kit::Database Postgres client (requires libpqxx)" OFF)

@@ -42,6 +42,7 @@ class CS2KitConan(ConanFile):
 
     exports_sources = (
         "CMakeLists.txt",
+        "version.txt",
         "cmake/*",
         "include/*",
         "src/*",
@@ -51,7 +52,11 @@ class CS2KitConan(ConanFile):
     )
 
     def set_version(self):
-        self.version = self.version or os.environ.get("CS2KIT_VERSION", "1.0.0")
+        # version.txt, same as CMake and pyproject.toml read. A tag does not override it:
+        # publishing a tag whose version disagrees with the file should fail, not silently
+        # ship a package whose CMake project() says something else.
+        with open(os.path.join(self.recipe_folder, "version.txt"), encoding="utf-8") as handle:
+            self.version = handle.read().strip()
 
     def _source_checkout(self):
         # exports_sources omits CMakePresets.json, so this is false in the cache.
