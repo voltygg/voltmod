@@ -13,6 +13,7 @@
 #include <pqxx/pqxx>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -146,7 +147,9 @@ private:
 
     // Worker-thread-only state (no lock needed).
     std::unique_ptr<pqxx::connection> _connection;
-    std::unordered_set<std::string> _prepared;
+    /** Statement name -> the SQL it was prepared with, so a name reused for different SQL is
+     *  caught rather than silently running the first one. */
+    std::unordered_map<std::string, std::string> _prepared;
 };
 
 }  // namespace CS2Kit::Database

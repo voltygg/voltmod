@@ -130,16 +130,29 @@ void PostgresDatabase::DispatchCompletions()
 
 void PostgresDatabase::Enqueue(Job job)
 {
+    bool accepted = false;
     {
         std::lock_guard lock(_queueMutex);
-        if (!_accepting)
-        {
-            Log::Warn("db: dropping '{}' - database not running.", job.Name);
-            return;
-        }
-        _queue.push_back(std::move(job));
+        accepted = _accepting;
+        if (accepted)
+            _queue.push_back(std::move(job));
     }
-    _queueCv.notify_all();
+
+    if (accepted)
+    {
+        _queueCv.notify_all();
+        return;
+    }
+
+    Log::Warn("db: '{}' failed - database not running.", job.Name);
+
+    // Fail the completion rather than dropping it. Callers treat Query as "the callback always
+    // runs", so a silent drop left their state machines waiting forever - and with no connection
+    // at all (bad credentials, say) that was every query for the whole session. Enqueue is
+    // game-thread-only, so this runs the callback directly: the completion pump may not exist yet.
+    // Run it outside the lock, since a callback is free to enqueue again.
+    if (job.OnDone)
+        job.OnDone(std::unexpected(std::string("database not running")));
 }
 
 void PostgresDatabase::WorkerMain()
@@ -205,10 +218,19 @@ DbResult<pqxx::result> PostgresDatabase::RunJob(Job& job, pqxx::connection& conn
 {
     try
     {
-        if (!_prepared.contains(job.Name))
+        // Key on the SQL too: the cache used to trust the name alone, so a second job reusing a
+        // name with different SQL silently executed the first job's statement.
+        if (auto it = _prepared.find(job.Name); it == _prepared.end())
         {
             conn.prepare(job.Name, job.Sql);
-            _prepared.insert(job.Name);
+            _prepared.emplace(job.Name, job.Sql);
+        }
+        else if (it->second != job.Sql)
+        {
+            Log::Error("db: statement name '{}' is already prepared with different SQL - refusing. "
+                       "Give the two queries distinct names.",
+                       job.Name);
+            return std::unexpected(std::string("prepared statement name collision: " + job.Name));
         }
 
         pqxx::work txn(conn);
