@@ -1,6 +1,5 @@
 #pragma once
 
-#include <CS2Kit/Core/CoreServices.hpp>
 #include <CS2Kit/Database/DbResult.hpp>
 #include <atomic>
 #include <chrono>
@@ -65,7 +64,7 @@ public:
 
     /**
      * Spawn the worker, verify connectivity with a ping, and register the completion pump with
-     * Core::Ctx().Scheduler. Returns false (worker stopped again) when the database is unreachable,
+     * the kit scheduler. Returns false (worker stopped again) when the database is unreachable,
      * so the plugin can degrade instead of queueing into the void.
      */
     bool Start(const PostgresConfig& config);
