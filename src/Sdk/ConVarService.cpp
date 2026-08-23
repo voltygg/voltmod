@@ -229,6 +229,18 @@ Core::Subscription ConVarService::OnChange(ChangeCallback callback)
     return _changeCallbacks.AddOwned(std::move(callback));
 }
 
+void ConVarService::Shutdown()
+{
+    if (!_globalCallbackInstalled)
+        return;
+
+    if (auto* cvar = CS2Kit::Detail::Rt().Interfaces.CVar)
+        cvar->RemoveGlobalChangeCallback(&GlobalConVarChangeCallback);
+
+    _globalCallbackInstalled = false;
+    _changeCallbacks.Clear();
+}
+
 void ConVarService::DispatchChange(const char* name, const char* oldValue, const char* newValue)
 {
     for (const auto& [id, callback] : _changeCallbacks.Items())

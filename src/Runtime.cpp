@@ -84,6 +84,7 @@ Runtime::~Runtime()
     Identity.Withdraw();
     Precache.Shutdown();  // the engine must stop referencing our vtables
     ClientCvars.Shutdown();
+    ConVars.Shutdown();
     Events.RemoveAllListeners();
     Http.Stop();  // drains in-flight requests before their completion targets go away
     Scheduler.CancelAll();

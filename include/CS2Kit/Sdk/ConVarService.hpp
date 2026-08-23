@@ -85,6 +85,10 @@ public:
     [[nodiscard]] Core::Subscription OnChange(ChangeCallback callback);
     void DispatchChange(const char* name, const char* oldValue, const char* newValue);
 
+    /** Take the engine's global change callback back off. Idempotent, and it must run before
+     *  the ambient runtime goes away: the callback reaches this service through it. */
+    void Shutdown();
+
 private:
     Core::CallbackRegistry<ChangeCallback> _changeCallbacks;
     bool _globalCallbackInstalled = false;
