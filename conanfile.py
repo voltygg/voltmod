@@ -20,9 +20,9 @@ class CS2KitConan(ConanFile):
 
     Package mode (`conan create` - exports_sources omits vendor/, so the
     exported recipe never sees the submodules): requires the hl2sdk-cs2 and
-    metamod-source packages, builds libcs2-kit against them, and ships the
-    headers, generated protobuf headers, cmake helpers (cs2_add_plugin via
-    CMakeDeps build modules), gamedata, and the plugin template.
+    metamod-source packages, builds libcs2-kit against them, and ships the headers,
+    cmake helpers (cs2_add_plugin via CMakeDeps build modules), gamedata and the
+    plugin template.
     """
 
     name = "cs2-kit"
@@ -125,13 +125,6 @@ class CS2KitConan(ConanFile):
         copy(self, "*.lib", build, os.path.join(pkg, "lib"), keep_path=False)
         copy(self, "*.hpp", os.path.join(self.source_folder, "include"),
              os.path.join(pkg, "include"))
-        # Generated protobuf headers; consumers include them flat
-        # (<usermessages.pb.h>), as in submodule mode.
-        generated = os.path.join(build, "generated", "hl2sdk-cs2")
-        copy(self, "*.pb.h", os.path.join(generated, "public"),
-             os.path.join(pkg, "include-pb", "public"))
-        copy(self, "*.pb.h", os.path.join(generated, "game", "shared"),
-             os.path.join(pkg, "include-pb", "game-shared"))
         # cmake/ next to gamedata/ so CS2KIT_ROOT_DIR (the cmake dir's parent)
         # resolves plugin.vdf.in, DoctestMain.cpp and gamedata as in the repo.
         copy(self, "*", os.path.join(self.source_folder, "cmake"), os.path.join(pkg, "cmake"))
@@ -145,11 +138,7 @@ class CS2KitConan(ConanFile):
         self.cpp_info.set_property("cmake_file_name", "cs2-kit")
         self.cpp_info.set_property("cmake_target_name", "CS2Kit::CS2Kit")
         self.cpp_info.libs = ["cs2-kit"]
-        self.cpp_info.includedirs = [
-            "include",
-            os.path.join("include-pb", "public"),
-            os.path.join("include-pb", "game-shared"),
-        ]
+        self.cpp_info.includedirs = ["include"]
         if self.options.with_postgres:
             self.cpp_info.defines = ["CS2KIT_ENABLE_POSTGRES=1"]
         if self.settings.os == "Windows":

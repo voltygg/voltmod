@@ -19,8 +19,8 @@ include("${CMAKE_CURRENT_LIST_DIR}/CS2KitBuildInfo.cmake")
 # it needs file-unique names for namespace-scope statics (self-registration
 # blocks); Registry<T> items still work, every source is compiled and linked.
 #
-# VERSION/DESCRIPTION/DEPENDS/REQUIRES fill the generated manifest. VERSION defaults to
-# the repo's version.txt; set it only when a plugin versions apart from the repo.
+# VERSION/DESCRIPTION/DEPENDS/REQUIRES fill the generated manifest; VERSION defaults to
+# the repo's version.txt.
 function(cs2_add_plugin target_name)
     cmake_parse_arguments(ARG "UNITY" "VERSION;DESCRIPTION"
         "SOURCES;INCLUDE_DIRS;LIBRARIES;PCH_HEADERS;DEPENDS;REQUIRES" ${ARGN})
@@ -114,7 +114,7 @@ function(cs2_add_plugin target_name)
     cs2_install_plugin("${target_name}")
 endfunction()
 
-# Append one JSON dependency object for the spec "<name>[>=<version>]" to out_var.
+# Append one JSON dependency object for "<name>[>=<version>]" to out_var.
 function(_cs2_dependency_json out_var spec required)
     if(spec MATCHES "^(.+)>=(.+)$")
         set(name "${CMAKE_MATCH_1}")
@@ -133,15 +133,20 @@ function(_cs2_dependency_json out_var spec required)
     set("${out_var}" "${entries}" PARENT_SCOPE)
 endfunction()
 
-# Generate <name>.manifest.json: the plugin's identity and peer dependencies, on disk so
-# deploy tooling can read a staged bundle. The kit adopts it in LoadStandardConfig.
-# Unmet DEPENDS warn and unmet REQUIRES log an error; neither aborts the load, since .vdf
-# load order is Metamod's.
+# Generate <name>.manifest.json, which LoadStandardConfig adopts. Unmet DEPENDS warn and
+# unmet REQUIRES log an error; neither aborts the load, since .vdf order is Metamod's.
 function(cs2_write_plugin_manifest target_name version description depends requires)
     if(NOT version)
-        # Same file the build stamp reads, so one bump moves both.
-        file(READ "${CMAKE_SOURCE_DIR}/version.txt" version)
-        string(STRIP "${version}" version)
+        # version.txt is what the build stamp reads, so one bump moves both. Projects
+        # without one (the kit's own test_package) fall back to their project() version.
+        if(EXISTS "${CMAKE_SOURCE_DIR}/version.txt")
+            file(READ "${CMAKE_SOURCE_DIR}/version.txt" version)
+            string(STRIP "${version}" version)
+        elseif(PROJECT_VERSION)
+            set(version "${PROJECT_VERSION}")
+        else()
+            set(version "0.0.0")
+        endif()
     endif()
 
     set(dependency_entries)

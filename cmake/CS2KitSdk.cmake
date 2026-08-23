@@ -176,9 +176,20 @@ function(_cs2kit_protoc out_list_var protoc_path proto_dir out_dir proto_paths)
     set("${out_list_var}" "${generated}" PARENT_SCOPE)
 endfunction()
 
-# Generate .pb.cc/.pb.h from the SDK protos with the SDK's bundled protoc;
-# returns the generated sources and their include dirs via the out args.
+# The SDK's protobuf sources and their include dirs, via the out args.
+#
+# The hl2sdk-cs2 package ships them pre-generated, so protoc runs nowhere but that
+# package's build. A vendored checkout has no generated/ tree and still generates here.
 function(cs2kit_generate_sdk_protobuf out_sources out_includes)
+    set(packaged_public "${CS2KIT_HL2SDK_DIR}/generated/public")
+    set(packaged_shared "${CS2KIT_HL2SDK_DIR}/generated/game-shared")
+    file(GLOB packaged_sources "${packaged_public}/*.pb.cc" "${packaged_shared}/*.pb.cc")
+    if(packaged_sources)
+        set("${out_sources}" "${packaged_sources}" PARENT_SCOPE)
+        set("${out_includes}" "${packaged_public};${packaged_shared}" PARENT_SCOPE)
+        return()
+    endif()
+
     if(WIN32)
         set(protoc_path "${CS2KIT_HL2SDK_DIR}/devtools/bin/protoc.exe")
     else()
