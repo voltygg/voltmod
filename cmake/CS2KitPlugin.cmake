@@ -42,18 +42,9 @@ function(cs2_add_plugin target_name)
 
     add_library("${target_name}" MODULE ${ARG_SOURCES})
     target_compile_features("${target_name}" PRIVATE cxx_std_23)
-    set_target_properties("${target_name}" PROPERTIES
-        CXX_STANDARD 23
-        CXX_STANDARD_REQUIRED ON
-        CXX_EXTENSIONS OFF
-        CXX_VISIBILITY_PRESET hidden
-        VISIBILITY_INLINES_HIDDEN ON
-    )
+    cs2kit_set_cxx_defaults("${target_name}")
 
-    # Release PDBs for crash dumps; /Z7 rather than /Zi because ccache can't cache /Zi.
-    target_compile_options("${target_name}" PRIVATE
-        "$<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:MSVC>>:/Z7>"
-    )
+    # Release PDBs for crash dumps; the /Z7 half comes from cs2kit_set_cxx_defaults.
     target_link_options("${target_name}" PRIVATE
         "$<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:MSVC>>:/DEBUG;/OPT:REF;/OPT:ICF>"
     )

@@ -32,6 +32,23 @@ else()
     message(FATAL_ERROR "Only Windows and Linux builds are supported.")
 endif()
 
+# Language level, symbol visibility and debug-info format shared by every target the kit
+# owns - kit libraries and plugins alike. Linkage-specific properties (PIC, OUTPUT_NAME) and
+# the cxx_std_23 usage requirement stay with the caller, which knows its own target kind.
+# /Z7 rather than /Zi because ccache cannot cache /Zi.
+function(cs2kit_set_cxx_defaults target)
+    set_target_properties("${target}" PROPERTIES
+        CXX_STANDARD 23
+        CXX_STANDARD_REQUIRED ON
+        CXX_EXTENSIONS OFF
+        CXX_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN ON
+    )
+    target_compile_options("${target}" PRIVATE
+        "$<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:MSVC>>:/Z7>"
+    )
+endfunction()
+
 # Warning level for first-party code. The SDK packages carry includes, defines and
 # ABI flags as usage requirements, but warnings are the consumer's policy, so every
 # target the kit owns opts in explicitly.

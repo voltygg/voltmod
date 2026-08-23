@@ -41,19 +41,11 @@ function(cs2kit_add_library name)
     add_library("CS2Kit::${name}" ALIAS "${target}")
 
     target_compile_features("${target}" PUBLIC cxx_std_23)
+    # /Z7 from cs2kit_set_cxx_defaults is what puts kit frames in plugin crash-dump PDBs.
+    cs2kit_set_cxx_defaults("${target}")
     set_target_properties("${target}" PROPERTIES
-        CXX_STANDARD 23
-        CXX_STANDARD_REQUIRED ON
-        CXX_EXTENSIONS OFF
         POSITION_INDEPENDENT_CODE ON
-        CXX_VISIBILITY_PRESET hidden
-        VISIBILITY_INLINES_HIDDEN ON
         OUTPUT_NAME "${target}"
-    )
-
-    # /Z7 so kit frames appear in plugin crash-dump PDBs (see cs2_add_plugin).
-    target_compile_options("${target}" PRIVATE
-        "$<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:MSVC>>:/Z7>"
     )
     cs2kit_set_warnings("${target}")
 
