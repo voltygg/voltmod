@@ -1,6 +1,7 @@
 #include "Sdk/SigScanner.hpp"
 
 #include <CS2Kit/Core/Log.hpp>
+#include <charconv>
 #include <sstream>
 #include <utility>
 #include <vector>
@@ -46,7 +47,17 @@ static std::vector<PatternByte> ParsePattern(const std::string& pattern)
         }
         else
         {
-            bytes.push_back({static_cast<uint8_t>(std::stoul(token, nullptr, 16)), false});
+            // from_chars, not stoul: a typo in signatures.jsonc used to throw out of parsing and
+            // take the load with it. A bad token now fails just its own signature.
+            unsigned value = 0;
+            const char* end = token.data() + token.size();
+            auto [ptr, ec] = std::from_chars(token.data(), end, value, 16);
+            if (ec != std::errc{} || ptr != end || value > 0xFF)
+            {
+                Core::Log::Error("Signature pattern has an invalid byte '{}'; ignoring the pattern.", token);
+                return {};
+            }
+            bytes.push_back({static_cast<uint8_t>(value), false});
         }
     }
     return bytes;

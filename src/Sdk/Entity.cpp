@@ -70,27 +70,30 @@ bool EntitySystem::Initialize()
 
     if (!interfaces.GameResourceService)
     {
-        Log::Warn("IGameResourceService not available.");
+        Log::Error("IGameResourceService not available.");
+        return false;
     }
 
     int offsetGameEntitySystem = CS2Kit::Detail::Rt().GameData.GetOffset("GameEntitySystem");
 
     if (offsetGameEntitySystem < 0)
     {
-        Log::Warn("GameEntitySystem offset not found in gamedata.");
+        Log::Error("GameEntitySystem offset not found in gamedata.");
+        return false;
     }
-    else
-    {
-        Log::Info("Gamedata loaded (entity system offset: {}).", offsetGameEntitySystem);
-    }
+    Log::Info("Gamedata loaded (entity system offset: {}).", offsetGameEntitySystem);
 
     interfaces.EntitySystem = ReadEntitySystemPointer();
 
-    if (interfaces.EntitySystem)
+    // Nothing that touches an entity works without this, so reporting success here just moved the
+    // failure to the first confusing symptom instead of the load report.
+    if (!interfaces.EntitySystem)
     {
-        Log::Info("Entity system initialized.");
+        Log::Error("Entity system pointer could not be read from IGameResourceService.");
+        return false;
     }
 
+    Log::Info("Entity system initialized.");
     return true;
 }
 
