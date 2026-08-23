@@ -68,11 +68,11 @@ void PluginIdentity::Withdraw()
     _key.clear();
 }
 
-void LoadPluginManifest(std::string_view addon)
+void LoadPluginManifest(Runtime& runtime, std::string_view addon)
 {
     const std::string path = Core::AddonFile(addon, std::format("{}.manifest.json", addon));
 
-    CS2Kit::Detail::Rt().LoadReport.Run("Manifest", [&]() -> Core::StageResult {
+    runtime.LoadReport.Run("Manifest", [&]() -> Core::StageResult {
         std::ifstream file(path, std::ios::binary);
         if (!file)
             return Core::StageResult::Degraded("no manifest shipped");
@@ -86,7 +86,7 @@ void LoadPluginManifest(std::string_view addon)
 
         const size_t dependencies = manifest->Dependencies.size();
         const std::string version = manifest->Version;
-        CS2Kit::Detail::Rt().Identity.Adopt(std::move(*manifest));
+        runtime.Identity.Adopt(std::move(*manifest));
         return Core::StageResult::Ok(dependencies == 0 ? std::format("v{}", version)
                                                        : std::format("v{}, {} dependencies", version, dependencies));
     });

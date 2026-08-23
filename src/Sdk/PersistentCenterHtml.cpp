@@ -32,10 +32,9 @@ void PersistentCenterHtml::Show(int slot, int refreshMs, std::function<std::stri
 
 void PersistentCenterHtml::Stop(int slot)
 {
-    if (!ValidSlot(slot) || _timers[slot] == 0)
+    if (!ValidSlot(slot) || !_timers[slot])
         return;
-    CS2Kit::Detail::Rt().Scheduler.Cancel(_timers[slot]);
-    _timers[slot] = 0;
+    _timers[slot].Reset();
     CS2Kit::Detail::Rt().Messages.ClearCenterHtml(slot);
 }
 

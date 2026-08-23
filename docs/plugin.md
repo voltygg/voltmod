@@ -65,7 +65,7 @@ The standard prelude - config plus translations, recorded as LoadReport stages -
 ```cpp
 bool App::Start()
 {
-    if (!CS2Kit::LoadStandardConfig(Config, {.Addon = "my-plugin"}))
+    if (!CS2Kit::LoadStandardConfig(Runtime, Config, {.Addon = "my-plugin"}))
         return false;
     // Optional: install Runtime.Policy once you have real permission data.
     // Without one, commands dispatch permissively and reply via Runtime.Messages.Reply.

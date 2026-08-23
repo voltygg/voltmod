@@ -1,5 +1,6 @@
 #pragma once
 
+#include <CS2Kit/Core/Subscription.hpp>
 #include <array>
 #include <cstdint>
 #include <functional>
@@ -28,7 +29,7 @@ public:
     void StopAll();
 
 private:
-    std::array<uint64_t, MaxSlots> _timers{};
+    std::array<Core::Subscription, MaxSlots> _timers;
 };
 
 }  // namespace CS2Kit::Sdk

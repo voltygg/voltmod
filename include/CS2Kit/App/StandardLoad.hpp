@@ -3,7 +3,6 @@
 #include <CS2Kit/Core/LoadReport.hpp>
 #include <CS2Kit/Core/Paths.hpp>
 #include <CS2Kit/Core/PluginManifest.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Runtime.hpp>
 #include <format>
 #include <string>
@@ -23,7 +22,7 @@ struct StandardLoadOptions
 
 /** Adopt addons/<addon>/<addon>.manifest.json as a Core::LoadReport stage. Absent or malformed
  *  degrades the stage rather than failing the load: the manifest is diagnostics. */
-void LoadPluginManifest(std::string_view addon);
+void LoadPluginManifest(Runtime& runtime, std::string_view addon);
 
 /**
  * @brief The standard OnLoad prelude, recorded as LoadReport stages.
@@ -36,9 +35,9 @@ void LoadPluginManifest(std::string_view addon);
  * and queueing its dependency report; a plugin shipping no manifest skips the stage.
  */
 template <class TConfig>
-bool LoadStandardConfig(TConfig& config, const StandardLoadOptions& options)
+bool LoadStandardConfig(Runtime& runtime, TConfig& config, const StandardLoadOptions& options)
 {
-    auto& report = CS2Kit::Detail::Rt().LoadReport;
+    auto& report = runtime.LoadReport;
     const std::string path = Core::AddonFile(options.Addon, options.SettingsFile);
 
     const auto status = report.Run("Configuration", [&] {
@@ -55,14 +54,15 @@ bool LoadStandardConfig(TConfig& config, const StandardLoadOptions& options)
 
     if (options.Translations)
     {
+        auto& translations = runtime.Translations;
         report.Run("Translations", [&] {
-            if constexpr (requires { CS2Kit::Detail::Rt().Translations.SetLanguage(config.Get().plugin.locale); })
-                CS2Kit::Detail::Rt().Translations.SetLanguage(config.Get().plugin.locale);
-            CS2Kit::Detail::Rt().Translations.Load(Core::AddonFile(options.Addon, "configs/translations"));
-            return Core::StageResult::Ok(CS2Kit::Detail::Rt().Translations.GetLanguage());
+            if constexpr (requires { translations.SetLanguage(config.Get().plugin.locale); })
+                translations.SetLanguage(config.Get().plugin.locale);
+            translations.Load(Core::AddonFile(options.Addon, "configs/translations"));
+            return Core::StageResult::Ok(translations.GetLanguage());
         });
     }
-    LoadPluginManifest(options.Addon);
+    LoadPluginManifest(runtime, options.Addon);
     return true;
 }
 

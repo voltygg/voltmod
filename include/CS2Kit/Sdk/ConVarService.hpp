@@ -86,8 +86,6 @@ public:
     void DispatchChange(const char* name, const char* oldValue, const char* newValue);
 
 private:
-    void RemoveChangeListener(uint64_t id);
-
     Core::CallbackRegistry<ChangeCallback> _changeCallbacks;
     bool _globalCallbackInstalled = false;
     INetworkMessageInternal* _setConVarMsg = nullptr;

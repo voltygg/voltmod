@@ -170,7 +170,7 @@ private:
     void RegisterStandardHooks();
 
     bool _lateLoad = false;
-    Core::Subscription _standardHooks;
+    std::vector<Core::Subscription> _standardHooks;
     std::unique_ptr<CS2Kit::Runtime> _runtime;
     PluginInfo _info;  // cached copy of Info() captured at load; backs the ISmmPlugin getters
 };

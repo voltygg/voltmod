@@ -82,13 +82,6 @@ public:
         return {[c = std::move(cleanup)](uint64_t) { c(); }, 1};
     }
 
-    /** Give up ownership without unregistering, returning the raw handle. */
-    uint64_t Release() noexcept
-    {
-        _remove = nullptr;
-        return std::exchange(_id, 0);
-    }
-
     /** True while this holds a live registration. */
     explicit operator bool() const noexcept { return _id != 0; }
 

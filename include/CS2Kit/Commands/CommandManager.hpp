@@ -1,7 +1,6 @@
 #pragma once
 
 #include <CS2Kit/Commands/CommandSpec.hpp>
-#include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -24,9 +23,6 @@ public:
     CommandManager() = default;
 
     void Register(CommandSpec spec);
-
-    /** Bulk-ingest, for a plugin that keeps its specs in a table. */
-    void RegisterAll(std::span<const CommandSpec> specs);
 
     void Unregister(const std::string& name);
     bool HandleChatMessage(Players::Player* caller, std::string_view message);

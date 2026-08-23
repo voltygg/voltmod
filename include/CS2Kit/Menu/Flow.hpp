@@ -230,9 +230,10 @@ private:
         if (!error)
             return true;
 
-        if (CS2Kit::Detail::Rt().Policy.Reply)
-            CS2Kit::Detail::Rt().Policy.Reply(slot, CS2Kit::Detail::Rt().Translations.Get(*error, slot));
-        CS2Kit::Detail::Rt().Menus.CloseAllMenus(slot);
+        auto& rt = CS2Kit::Detail::Rt();
+        if (rt.Policy.Reply)
+            rt.Policy.Reply(slot, rt.Translations.Get(*error, slot));
+        rt.Menus.CloseAllMenus(slot);
         return false;
     }
 

@@ -79,8 +79,6 @@ public:
     void FireGameEvent(IGameEvent* event) override;
 
 private:
-    void RemoveListener(uint64_t id);
-
     struct RegisteredListener
     {
         std::string EventName;

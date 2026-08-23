@@ -226,13 +226,7 @@ Core::Subscription ConVarService::OnChange(ChangeCallback callback)
         }
     }
 
-    const uint64_t id = _changeCallbacks.Add(std::move(callback));
-    return {[this](uint64_t handle) { RemoveChangeListener(handle); }, id};
-}
-
-void ConVarService::RemoveChangeListener(uint64_t id)
-{
-    _changeCallbacks.Remove(id);
+    return _changeCallbacks.AddOwned(std::move(callback));
 }
 
 void ConVarService::DispatchChange(const char* name, const char* oldValue, const char* newValue)

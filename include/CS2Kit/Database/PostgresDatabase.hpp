@@ -1,5 +1,6 @@
 #pragma once
 
+#include <CS2Kit/Core/Subscription.hpp>
 #include <CS2Kit/Database/DbResult.hpp>
 #include <atomic>
 #include <chrono>
@@ -138,7 +139,7 @@ private:
     std::vector<std::pair<ResultCallback, DbResult<pqxx::result>>> _completions;
 
     std::thread _worker;
-    uint64_t _pumpId = 0;
+    Core::Subscription _pump;
 
     /** Written by the worker, read by the game thread; mirrors _connection's liveness. */
     std::atomic<bool> _connected{false};

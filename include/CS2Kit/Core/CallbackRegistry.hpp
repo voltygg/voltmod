@@ -1,5 +1,6 @@
 #pragma once
 
+#include <CS2Kit/Core/Subscription.hpp>
 #include <cstdint>
 #include <unordered_map>
 
@@ -29,6 +30,18 @@ public:
     {
         _items.emplace(id, std::move(item));
         return id;
+    }
+
+    /**
+     * Store @p item and return a Subscription that removes it on destruction - the owning
+     * form of Add, for registries whose handles callers would otherwise have to hand back.
+     */
+    [[nodiscard]] Subscription AddOwned(T item) { return AddOwned(std::move(item), _nextId++); }
+
+    /** AddOwned under a caller-supplied @p id, for owners sharing one handle space. */
+    [[nodiscard]] Subscription AddOwned(T item, uint64_t id)
+    {
+        return {[this](uint64_t handle) { Remove(handle); }, Add(std::move(item), id)};
     }
 
     /** Remove by handle. Safe to call with an unknown id; returns whether anything was removed. */

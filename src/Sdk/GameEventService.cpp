@@ -87,8 +87,7 @@ Core::Subscription GameEventService::Listen(const char* eventName, EventCallback
     if (_registeredEvents.insert(eventName).second)
         mgr->AddListener(this, eventName, true);
 
-    const uint64_t id = _listeners.Add({eventName, std::move(callback)});
-    return {[this](uint64_t handle) { RemoveListener(handle); }, id};
+    return _listeners.AddOwned({eventName, std::move(callback)});
 }
 
 void GameEventService::OnServerStartup()
@@ -109,11 +108,6 @@ void GameEventService::OnServerStartup()
             Log::Warn("Game event listener failed to attach: {}.", name);
     }
     Log::Info("Attached {}/{} game event listener(s) at map start.", attached, _registeredEvents.size());
-}
-
-void GameEventService::RemoveListener(uint64_t id)
-{
-    _listeners.Remove(id);
 }
 
 void GameEventService::RemoveAllListeners()

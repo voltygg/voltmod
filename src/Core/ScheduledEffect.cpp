@@ -8,8 +8,8 @@ namespace CS2Kit::Core
 struct ScheduledEffect::State
 {
     Scheduler* scheduler = nullptr;
-    uint64_t tickTimer = 0;
-    uint64_t stopTimer = 0;
+    Subscription tickTimer;
+    uint64_t stopTimer = 0;  // one-shot Delay: only cancelled when the effect ends early
     std::function<void()> onStop;
     bool stopped = false;
 
@@ -19,14 +19,9 @@ struct ScheduledEffect::State
             return;
         stopped = true;
 
-        if (scheduler)
-        {
-            if (tickTimer)
-                scheduler->Cancel(tickTimer);
-            if (stopTimer)
-                scheduler->Cancel(stopTimer);
-        }
-        tickTimer = 0;
+        tickTimer.Reset();
+        if (scheduler && stopTimer)
+            scheduler->Cancel(stopTimer);
         stopTimer = 0;
 
         if (onStop)

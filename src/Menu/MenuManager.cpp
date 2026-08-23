@@ -177,13 +177,14 @@ bool MenuManager::HasActiveMenu(int slot) const
 
 void MenuManager::OnGameFrame()
 {
+    auto& entities = CS2Kit::Detail::Rt().Entities;
     for (int slot = 0; slot < Core::MaxPlayers; ++slot)
     {
         auto& state = _states[slot];
         if (!state.HasMenu())
             continue;
 
-        uint64_t buttons = CS2Kit::Detail::Rt().Entities.GetPlayerButtons(slot);
+        uint64_t buttons = entities.GetPlayerButtons(slot);
         auto prev = state.PrevButtons;
         state.PrevButtons = buttons;
 
@@ -270,17 +271,17 @@ void MenuManager::RenderMenu(int slot)
     if (!menu)
         return;
 
+    auto& rt = CS2Kit::Detail::Rt();
+
     // While a capture is pending, render a prompt overlay instead of the item list.
-    if (auto* prompt = CS2Kit::Detail::Rt().ChatInput.GetPrompt(slot); prompt != nullptr)
+    if (auto* prompt = rt.ChatInput.GetPrompt(slot); prompt != nullptr)
     {
-        auto html = RenderCaptureOverlay(menu->Title, *prompt);
-        CS2Kit::Detail::Rt().Messages.SendCenterHtml(slot, html);
+        rt.Messages.SendCenterHtml(slot, RenderCaptureOverlay(menu->Title, *prompt));
         return;
     }
 
     bool isSubmenu = state.MenuStack.size() > 1;
-    auto html = RenderMenuHtml(menu, slot, state.SelectedIndex, isSubmenu);
-    CS2Kit::Detail::Rt().Messages.SendCenterHtml(slot, html);
+    rt.Messages.SendCenterHtml(slot, RenderMenuHtml(menu, slot, state.SelectedIndex, isSubmenu));
 }
 
 void MenuManager::OnPlayerDisconnect(int slot)

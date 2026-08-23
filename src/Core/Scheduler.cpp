@@ -16,14 +16,14 @@ uint64_t Scheduler::Delay(int64_t delayMs, std::function<void()> callback)
     return _timers.Add({GetCurrentTimeMs() + delayMs, 0, std::move(callback)});
 }
 
-uint64_t Scheduler::Repeat(int64_t intervalMs, std::function<void()> callback)
+Subscription Scheduler::Repeat(int64_t intervalMs, std::function<void()> callback)
 {
-    return _timers.Add({GetCurrentTimeMs() + intervalMs, intervalMs, std::move(callback)});
+    return _timers.AddOwned({GetCurrentTimeMs() + intervalMs, intervalMs, std::move(callback)});
 }
 
-uint64_t Scheduler::DelayAndRepeat(int64_t delayMs, int64_t intervalMs, std::function<void()> callback)
+Subscription Scheduler::DelayAndRepeat(int64_t delayMs, int64_t intervalMs, std::function<void()> callback)
 {
-    return _timers.Add({GetCurrentTimeMs() + delayMs, intervalMs, std::move(callback)});
+    return _timers.AddOwned({GetCurrentTimeMs() + delayMs, intervalMs, std::move(callback)});
 }
 
 uint64_t Scheduler::NextTick(std::function<void()> callback)
@@ -31,11 +31,11 @@ uint64_t Scheduler::NextTick(std::function<void()> callback)
     return Delay(0, std::move(callback));
 }
 
-uint64_t Scheduler::EveryFrame(std::function<void()> callback)
+Subscription Scheduler::EveryFrame(std::function<void()> callback)
 {
     // Interval -1 is the every-frame sentinel: OnGameFrame refires it each frame instead of
     // erasing it (interval 0 = one-shot) or waiting an interval (> 0).
-    return _timers.Add({0, -1, std::move(callback)});
+    return _timers.AddOwned({0, -1, std::move(callback)});
 }
 
 void Scheduler::Cancel(uint64_t id)

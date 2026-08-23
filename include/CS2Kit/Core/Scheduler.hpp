@@ -20,17 +20,17 @@ public:
     /** Run `callback` once after `delayMs` milliseconds. Returns a cancellation handle. */
     uint64_t Delay(int64_t delayMs, std::function<void()> callback);
 
-    /** Run `callback` every `intervalMs` milliseconds. Returns a cancellation handle. */
-    uint64_t Repeat(int64_t intervalMs, std::function<void()> callback);
+    /** Run `callback` every `intervalMs` milliseconds, until the subscription is dropped. */
+    [[nodiscard]] Subscription Repeat(int64_t intervalMs, std::function<void()> callback);
 
-    /** First fire after `delayMs`, then repeat every `intervalMs`. Returns a cancellation handle. */
-    uint64_t DelayAndRepeat(int64_t delayMs, int64_t intervalMs, std::function<void()> callback);
+    /** First fire after `delayMs`, then repeat every `intervalMs`, until the subscription is dropped. */
+    [[nodiscard]] Subscription DelayAndRepeat(int64_t delayMs, int64_t intervalMs, std::function<void()> callback);
 
     /** Run `callback` on the very next game frame. */
     uint64_t NextTick(std::function<void()> callback);
 
-    /** Run `callback` every game frame until cancelled (e.g. a completion pump). */
-    uint64_t EveryFrame(std::function<void()> callback);
+    /** Run `callback` every game frame, until the subscription is dropped (e.g. a completion pump). */
+    [[nodiscard]] Subscription EveryFrame(std::function<void()> callback);
 
     /** Cancel a timer by handle. Safe to call with an unknown id. */
     void Cancel(uint64_t id);

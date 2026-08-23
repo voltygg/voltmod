@@ -33,7 +33,7 @@ bool MyPlugin::OnLoad(bool late)
 {
     // Config + translations as LoadReport stages; uses LoadSettings when your
     // ConfigManager defines one, plain Load otherwise.
-    return CS2Kit::LoadStandardConfig(Config, {.Addon = "my-plugin"});
+    return CS2Kit::LoadStandardConfig(Runtime, Config, {.Addon = "my-plugin"});
 }
 ```
 

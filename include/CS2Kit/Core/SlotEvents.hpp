@@ -23,11 +23,7 @@ public:
     using Callback = std::function<void(int slot)>;
 
     /** Register @p callback for as long as the returned subscription lives. */
-    [[nodiscard]] Subscription Listen(Callback callback)
-    {
-        const uint64_t id = _changed.Add(std::move(callback));
-        return {[this](uint64_t handle) { _changed.Remove(handle); }, id};
-    }
+    [[nodiscard]] Subscription Listen(Callback callback) { return _changed.AddOwned(std::move(callback)); }
 
     /** Notify every listener that @p slot changed hands. */
     void Raise(int slot)

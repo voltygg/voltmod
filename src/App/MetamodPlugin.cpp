@@ -1,4 +1,5 @@
 #include <CS2Kit/App/MetamodPlugin.hpp>
+#include <CS2Kit/Core/HookMacros.hpp>
 #include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Players/Player.hpp>
@@ -11,6 +12,7 @@
 #include <iserver.h>
 #include <nlohmann/json.hpp>
 #include <string>
+#include <string_view>
 
 // PLUGIN_GLOBALVARS ships in MetamodPlugin.hpp; the definitions come from
 // each plugin's CS2KIT_PLUGIN.
@@ -103,7 +105,7 @@ bool MetamodPlugin::Unload(char* error, size_t maxlen)
     // the runtime, whose destructor is the kit's shutdown. The ambient pointer is cleared last
     // of the three so teardown can still reach it.
     OnUnload();
-    _standardHooks.Reset();
+    _standardHooks.clear();
     Detail::SetRt(nullptr);
     _runtime.reset();
     return true;
@@ -116,44 +118,27 @@ bool MetamodPlugin::OnPlayerChat(Players::Player* player, std::string_view messa
 
 void MetamodPlugin::RegisterStandardHooks()
 {
-    auto& gi = CS2Kit::Detail::Rt().Interfaces;
+    auto& gi = _runtime->Interfaces;
 
-    SH_ADD_HOOK(IServerGameDLL, GameFrame, gi.ServerGameDLL, SH_MEMBER(this, &MetamodPlugin::Hook_GameFrame), true);
-    SH_ADD_HOOK(INetworkServerService, StartupServer, gi.NetworkServerService,
-                SH_MEMBER(this, &MetamodPlugin::Hook_StartupServer), true);
-    SH_ADD_HOOK(IServerGameClients, OnClientConnected, gi.ServerGameClients,
-                SH_MEMBER(this, &MetamodPlugin::Hook_OnClientConnected), false);
-    SH_ADD_HOOK(IServerGameClients, ClientDisconnect, gi.ServerGameClients,
-                SH_MEMBER(this, &MetamodPlugin::Hook_ClientDisconnect), true);
-    SH_ADD_HOOK(IServerGameClients, ClientFullyConnect, gi.ServerGameClients,
-                SH_MEMBER(this, &MetamodPlugin::Hook_ClientFullyConnect), true);
-    SH_ADD_HOOK(IServerGameClients, ClientSettingsChanged, gi.ServerGameClients,
-                SH_MEMBER(this, &MetamodPlugin::Hook_ClientSettingsChanged), true);
-    SH_ADD_HOOK(ICvar, DispatchConCommand, gi.CVar, SH_MEMBER(this, &MetamodPlugin::Hook_DispatchConCommand), false);
+    // CS2KIT_SCOPED_HOOK installs each hook and yields the Subscription that removes it, so the
+    // add and remove lists cannot drift apart. Reset in Unload, before the runtime goes away.
+    _standardHooks.push_back(CS2KIT_SCOPED_HOOK(IServerGameDLL, GameFrame, gi.ServerGameDLL,
+                                                SH_MEMBER(this, &MetamodPlugin::Hook_GameFrame), true));
+    _standardHooks.push_back(CS2KIT_SCOPED_HOOK(INetworkServerService, StartupServer, gi.NetworkServerService,
+                                                SH_MEMBER(this, &MetamodPlugin::Hook_StartupServer), true));
+    _standardHooks.push_back(CS2KIT_SCOPED_HOOK(IServerGameClients, OnClientConnected, gi.ServerGameClients,
+                                                SH_MEMBER(this, &MetamodPlugin::Hook_OnClientConnected), false));
+    _standardHooks.push_back(CS2KIT_SCOPED_HOOK(IServerGameClients, ClientDisconnect, gi.ServerGameClients,
+                                                SH_MEMBER(this, &MetamodPlugin::Hook_ClientDisconnect), true));
+    _standardHooks.push_back(CS2KIT_SCOPED_HOOK(IServerGameClients, ClientFullyConnect, gi.ServerGameClients,
+                                                SH_MEMBER(this, &MetamodPlugin::Hook_ClientFullyConnect), true));
+    _standardHooks.push_back(CS2KIT_SCOPED_HOOK(IServerGameClients, ClientSettingsChanged, gi.ServerGameClients,
+                                                SH_MEMBER(this, &MetamodPlugin::Hook_ClientSettingsChanged), true));
+    _standardHooks.push_back(CS2KIT_SCOPED_HOOK(ICvar, DispatchConCommand, gi.CVar,
+                                                SH_MEMBER(this, &MetamodPlugin::Hook_DispatchConCommand), false));
     // Post hook: the game has filled the per-client transmit bitvecs; the filter clears bits.
-    SH_ADD_HOOK(ISource2GameEntities, CheckTransmit, gi.GameEntities,
-                SH_MEMBER(this, &MetamodPlugin::Hook_CheckTransmit), true);
-
-    // Captures the interface pointers, not the runtime: this subscription is reset in Unload,
-    // before the runtime goes away, but capturing by value keeps that independent.
-    _standardHooks = Core::Subscription::OnDestroy([this, g = gi] {
-        SH_REMOVE_HOOK(IServerGameDLL, GameFrame, g.ServerGameDLL, SH_MEMBER(this, &MetamodPlugin::Hook_GameFrame),
-                       true);
-        SH_REMOVE_HOOK(INetworkServerService, StartupServer, g.NetworkServerService,
-                       SH_MEMBER(this, &MetamodPlugin::Hook_StartupServer), true);
-        SH_REMOVE_HOOK(IServerGameClients, OnClientConnected, g.ServerGameClients,
-                       SH_MEMBER(this, &MetamodPlugin::Hook_OnClientConnected), false);
-        SH_REMOVE_HOOK(IServerGameClients, ClientDisconnect, g.ServerGameClients,
-                       SH_MEMBER(this, &MetamodPlugin::Hook_ClientDisconnect), true);
-        SH_REMOVE_HOOK(IServerGameClients, ClientFullyConnect, g.ServerGameClients,
-                       SH_MEMBER(this, &MetamodPlugin::Hook_ClientFullyConnect), true);
-        SH_REMOVE_HOOK(IServerGameClients, ClientSettingsChanged, g.ServerGameClients,
-                       SH_MEMBER(this, &MetamodPlugin::Hook_ClientSettingsChanged), true);
-        SH_REMOVE_HOOK(ICvar, DispatchConCommand, g.CVar, SH_MEMBER(this, &MetamodPlugin::Hook_DispatchConCommand),
-                       false);
-        SH_REMOVE_HOOK(ISource2GameEntities, CheckTransmit, g.GameEntities,
-                       SH_MEMBER(this, &MetamodPlugin::Hook_CheckTransmit), true);
-    });
+    _standardHooks.push_back(CS2KIT_SCOPED_HOOK(ISource2GameEntities, CheckTransmit, gi.GameEntities,
+                                                SH_MEMBER(this, &MetamodPlugin::Hook_CheckTransmit), true));
 
     Log::Info("Hooks registered.");
 }
@@ -184,7 +169,7 @@ void MetamodPlugin::Hook_OnClientConnected(CPlayerSlot slot, const char* name, u
 {
     int slotIdx = slot.Get();
     int64_t steamId = static_cast<int64_t>(xuid);
-    Player* player = CS2Kit::Detail::Rt().Players.AddPlayer(slotIdx, steamId, name ? name : "", address ? address : "");
+    Player* player = _runtime->Players.AddPlayer(slotIdx, steamId, name ? name : "", address ? address : "");
     OnPlayerConnect(player);
 }
 
@@ -192,20 +177,20 @@ void MetamodPlugin::Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconnectio
                                           uint64 xuid, const char* networkId)
 {
     int slotIdx = slot.Get();
-    OnPlayerDisconnect(CS2Kit::Detail::Rt().Players.GetPlayerBySlot(slotIdx));
+    OnPlayerDisconnect(_runtime->Players.GetPlayerBySlot(slotIdx));
     _runtime->OnPlayerDisconnect(slotIdx);
-    CS2Kit::Detail::Rt().Players.RemovePlayer(slotIdx);
+    _runtime->Players.RemovePlayer(slotIdx);
 }
 
 void MetamodPlugin::Hook_ClientFullyConnect(CPlayerSlot slot)
 {
     _runtime->ClientCvars.OnClientFullyConnect(slot.Get());
-    OnPlayerFullyConnected(CS2Kit::Detail::Rt().Players.GetPlayerBySlot(slot.Get()));
+    OnPlayerFullyConnected(_runtime->Players.GetPlayerBySlot(slot.Get()));
 }
 
 void MetamodPlugin::Hook_ClientSettingsChanged(CPlayerSlot slot)
 {
-    OnPlayerSettingsChanged(CS2Kit::Detail::Rt().Players.GetPlayerBySlot(slot.Get()));
+    OnPlayerSettingsChanged(_runtime->Players.GetPlayerBySlot(slot.Get()));
 }
 
 void MetamodPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext& ctx, const CCommand& args)
@@ -222,9 +207,12 @@ void MetamodPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandCon
     if (args.ArgC() < 2)
         return;
 
-    std::string message = args.Arg(1);
+    std::string_view message = args.Arg(1);
     if (message.size() >= 2 && message.front() == '"' && message.back() == '"')
-        message = message.substr(1, message.size() - 2);
+    {
+        message.remove_prefix(1);
+        message.remove_suffix(1);
+    }
     if (message.empty())
         return;
 
@@ -232,7 +220,7 @@ void MetamodPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandCon
     if (!Core::IsValidSlot(slotIdx))
         return;
 
-    Player* player = CS2Kit::Detail::Rt().Players.GetPlayerBySlot(slotIdx);
+    Player* player = _runtime->Players.GetPlayerBySlot(slotIdx);
     if (!player)
         return;
 

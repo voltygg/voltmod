@@ -128,7 +128,7 @@ struct App
 {
     explicit App(CS2Kit::Runtime& runtime) : Runtime(runtime) {}
 
-    bool Start() { return CS2Kit::LoadStandardConfig(Config, {.Addon = "my-plugin"}); }
+    bool Start() { return CS2Kit::LoadStandardConfig(Runtime, Config, {.Addon = "my-plugin"}); }
 
     CS2Kit::Runtime& Runtime;
     ConfigManager Config;   // your own state, in dependency order

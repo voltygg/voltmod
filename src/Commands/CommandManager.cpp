@@ -49,12 +49,6 @@ void CommandManager::Register(CommandSpec spec)
     _commands[StringUtils::ToLower(spec.Name)] = std::move(spec);
 }
 
-void CommandManager::RegisterAll(std::span<const CommandSpec> specs)
-{
-    for (const auto& spec : specs)
-        Register(spec);
-}
-
 void CommandManager::Unregister(const std::string& name)
 {
     _commands.erase(StringUtils::ToLower(name));
