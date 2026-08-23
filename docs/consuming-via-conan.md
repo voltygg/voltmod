@@ -18,7 +18,9 @@ The remote is **public** - no login, no token.
 | `metamod-source/2.0.0.<yyyymmdd>` | Metamod core + SourceHook headers (header-only). |
 
 Third-party dependencies (cpr, nlohmann_json, libpqxx, openssl, ...) come from
-Conan Center, not from this remote.
+Conan Center as *recipes*, and compile locally: nobody publishes binaries for the
+gcc-14 / old-libstdc++-ABI profile the Valve libs force. That is a one-time cost
+per machine, and CI bakes it into the toolchain image.
 
 Only Linux Release binaries of `cs2-kit` are published - that is the deploy
 target. Windows and Debug builds resolve the recipe and compile locally through
@@ -72,8 +74,9 @@ ABI flags, link order - is ordinary `package_info()`.
 - **cs2-kit** - `.github/workflows/publish-conan.yml`, on every `v*` tag. Uploads
   Linux Release (both `with_postgres` values); a Windows job verifies the build
   without uploading, and a `smoke` job re-consumes the result anonymously on a
-  clean runner with `--build=never`. Needs `CLOUDSMITH_USERNAME` /
-  `CLOUDSMITH_API_KEY` (write; entitlement tokens are read-only).
+  clean runner, refusing to build cs2-kit or either SDK locally. Needs
+  `CLOUDSMITH_USERNAME` / `CLOUDSMITH_API_KEY` (write; entitlement tokens are
+  read-only).
 - **SDK packages** - a separate repo, [voltygg/cs2-sdk-recipes][recipes]. A daily
   job watches both upstreams and opens a PR when a branch tip moves; the PR gate
   builds the new SDK *and* this kit against it, so a version that cannot compile

@@ -135,7 +135,11 @@ jobs:
         run: |
           conan profile detect --force >/dev/null 2>&1 || true
           conan remote add voltygg "$CONAN_REMOTE_URL"
-          # test_package doubles as the smoke consumer: every input from the remote.
+          # test_package doubles as the smoke consumer. --build=!<ours> rather than
+          # --build=never: only cs2-kit and the SDKs are claimed to be prebuilt, and
+          # Conan Center has no binaries for the gcc-14 / old-libstdc++-ABI profile,
+          # so cpr and friends legitimately compile here.
           conan test test_package "cs2-kit/${GITHUB_REF_NAME#v}" \
             -pr:a conan/profiles/linux-steamrt.txt -s build_type=Release \
-            -r voltygg --build=never
+            --build=missing '--build=!cs2-kit/*' \
+            '--build=!hl2sdk-cs2/*' '--build=!metamod-source/*'
