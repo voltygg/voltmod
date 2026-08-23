@@ -42,6 +42,16 @@ from the recipes in `recipes/`; hl2sdk's build module attaches the SDK sources a
 consumer compiles (`hl2sdk_attach_*`). Preset names are public API for consumers -
 rename with care.
 
+## Releasing
+
+`cs2kit package <build|publish|tag|prune|watch>` is the whole release surface, and
+CI is three workflows that call it: `ci.yml` (checks, then build the SDKs and the
+kit against them), `publish.yml` (SDK packages on a `recipes/**` push to main,
+cs2-kit on a `v*` tag), `watch.yml` (daily upstream check, weekly prune). Each
+value has one home: `version.txt` for the kit's version, each recipe's
+`conandata.yml` for its SDK pin, `conan/remotes.json` for the remote,
+`conan/profiles/` for the ABI, `pyproject.toml` for tool versions.
+
 ## Build Commands
 
 ```bash

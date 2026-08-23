@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+name: Set up the cs2-kit toolchain
+description: Install the build tools, this repo's CLI, and the canonical Conan profiles.
+
+runs:
+  using: composite
+  steps:
+    # The sniper image ships neither pip nor a C++23 compiler; gcc-14 lives in sniper_beta.
+    # cs2-plugins' deploy/Dockerfile bakes the same list.
+    - name: Bootstrap the SteamRT container
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        echo 'deb https://repo.steampowered.com/steamrt3/apt sniper_beta main contrib non-free' \
+          > /etc/apt/sources.list.d/steamrt-beta.list
+        apt-get update
+        DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+          ca-certificates gcc-14-monolithic git ninja-build python3-pip
+        rm -rf /var/lib/apt/lists/*
+
+    # Installing this repo brings the `cs2kit` CLI and, with it, the pinned CMake, Conan,
+    # Ninja and clang-format from pyproject.toml. No workflow names a tool version.
+    - name: Install cs2-kit (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: python3 -m pip install --no-cache-dir .
+
+    - name: Install cs2-kit (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: python -m pip install --no-cache-dir .
+
+    - name: Install the canonical Conan profiles and remotes
+      shell: bash
+      run: |
+        conan profile detect --force >/dev/null 2>&1 || true
+        conan config install ./conan

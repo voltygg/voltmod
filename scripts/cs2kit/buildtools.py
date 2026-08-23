@@ -4,7 +4,9 @@ Import, don't execute. This is the single source of truth for the toolchain
 invocation; consuming repos get it from the installed cs2-kit distribution.
 """
 
+import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -13,7 +15,6 @@ from typing import NoReturn
 
 WINDOWS = sys.platform == "win32"
 CONAN_REMOTE = "voltygg"
-CONAN_REMOTE_URL = "https://conan.cloudsmith.io/voltygg/cs2-kit/"
 CPP_EXTS = (".cpp", ".hpp")
 # Under the 32767-character Windows cap, with room for the tool path and flags.
 MAX_COMMAND_LINE = 24000
@@ -24,6 +25,18 @@ def templates_dir() -> Path:
     in a checkout."""
     packaged = Path(__file__).resolve().parent / "templates"
     return packaged if packaged.is_dir() else Path(__file__).resolve().parents[2] / "templates"
+
+
+def remote_url() -> str:
+    """The package remote, read from conan/remotes.json - the file `conan config install`
+    ships, so CI and a developer's machine cannot disagree about where packages live."""
+    for base in (Path.cwd(), Path(__file__).resolve().parents[2]):
+        remotes = base / "conan/remotes.json"
+        if remotes.is_file():
+            for entry in json.loads(remotes.read_text(encoding="utf-8"))["remotes"]:
+                if entry["name"] == CONAN_REMOTE:
+                    return entry["url"]
+    die(f"no '{CONAN_REMOTE}' entry in any conan/remotes.json")
 
 
 def die(message: str) -> NoReturn:
@@ -77,9 +90,10 @@ def ensure_remote() -> None:
     )
     if listing.returncode == 0 and f"{CONAN_REMOTE}:" in listing.stdout:
         return
-    print(f"==> Adding Conan remote '{CONAN_REMOTE}' ({CONAN_REMOTE_URL})")
+    url = remote_url()
+    print(f"==> Adding Conan remote '{CONAN_REMOTE}' ({url})")
     subprocess.run(
-        [*argv, "remote", "add", "--force", CONAN_REMOTE, CONAN_REMOTE_URL],
+        [*argv, "remote", "add", "--force", CONAN_REMOTE, url],
         check=True, env=env,
     )
 
@@ -155,19 +169,46 @@ def require_build_tools() -> None:
             die(f"{tool} {want} or newer is required, found {got}.")
 
 
+def _vswhere() -> Path:
+    path = Path(os.environ["ProgramFiles(x86)"]) / "Microsoft Visual Studio/Installer/vswhere.exe"
+    if not path.is_file():
+        die("vswhere not found; install Visual Studio with C++ tools.")
+    return path
+
+
+def msvc_version() -> str:
+    """The runner's cl version as Conan spells it, e.g. "195".
+
+    Hosted Windows runners ship a newer cl than the checked-in profile names, and a
+    package built under the wrong compiler.version gets a package id no consumer
+    resolves. -find lists every installed toolset ascending, so take the last: a VS2022
+    image also carries the 14.29 (cl 19.2x) toolset, which cannot compile C++23.
+    """
+    found = subprocess.run(
+        [str(_vswhere()), "-latest", "-products", "*",
+         "-find", r"VC\Tools\MSVC\*\bin\Hostx64\x64\cl.exe"],
+        check=True, text=True, capture_output=True,
+    ).stdout.splitlines()  # not .split(): the paths contain "Program Files"
+    if not found:
+        die("no cl.exe found")
+    # cl with no arguments prints its banner on stderr, then a usage summary.
+    banner = subprocess.run([sorted(found)[-1]], text=True, capture_output=True).stderr
+    match = re.search(r"Version (\d+)\.(\d+)", banner)
+    if not match:
+        die("could not parse the cl version banner")
+    version = f"{match.group(1)}{match.group(2)[0]}"
+    if int(version) < 193:
+        die(f"cl {version} predates C++23 support")
+    return version
+
+
 def ensure_msvc_env() -> None:
     """Import the MSVC toolchain (cl + INCLUDE/LIB) into os.environ on Windows."""
     if not WINDOWS or shutil.which("cl"):
         return
 
-    vswhere = Path(os.environ["ProgramFiles(x86)"]) / (
-        "Microsoft Visual Studio/Installer/vswhere.exe"
-    )
-    if not vswhere.is_file():
-        die("vswhere not found; install Visual Studio with C++ tools.")
-
     vs_path = subprocess.run(
-        [str(vswhere), "-latest", "-products", "*", "-requires",
+        [str(_vswhere()), "-latest", "-products", "*", "-requires",
          "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
          "-property", "installationPath"],
         check=True, text=True, capture_output=True,

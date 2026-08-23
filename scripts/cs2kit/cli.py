@@ -9,6 +9,7 @@ itself and any repo that depends on it:
     cs2kit modgraph [root]
     cs2kit new-plugin <name>
     cs2kit init [--name <n>] [--plugin <p>]
+    cs2kit package <build|publish|prune|watch>
 
 This replaced six separate console scripts. They shared argument parsing, a
 working-directory convention and error style, but each reimplemented them by hand
@@ -20,7 +21,7 @@ import argparse
 import subprocess
 from pathlib import Path
 
-from . import buildtools, init_project, modgraph, new_plugin
+from . import buildtools, init_project, modgraph, new_plugin, package
 
 ROOT = Path.cwd()
 # The kit checkout, when running from one rather than from an installed wheel.
@@ -104,6 +105,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--plugin", type=new_plugin.kebab_case, default="my-plugin",
                    help="kebab-case name for the first plugin (default: my-plugin)")
     p.set_defaults(run=lambda a: init_project.create(a.name, a.plugin))
+
+    package.add_parser(sub)
 
     return parser
 

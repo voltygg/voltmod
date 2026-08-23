@@ -1,0 +1,68 @@
+name: Watch upstream
+
+# Opens or updates one PR when upstream moves, editing conandata.yml and nothing else.
+# ci.yml decides whether the bump is safe by building cs2-kit against it; merging
+# publishes.
+
+on:
+  schedule:
+    - cron: "0 6 * * *"  # watch, daily
+    - cron: "0 4 * * 0"  # prune, weekly
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    if: github.event.schedule != '0 4 * * 0'
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install cs2-kit
+        run: python3 -m pip install --no-cache-dir .
+
+      # Rewrites recipes/*/conandata.yml in place and sets `changed`; a quiet day
+      # leaves the tree untouched and the rest of this job skipped.
+      - name: Resolve the upstream tips
+        id: watch
+        run: cs2kit package watch
+
+      # Fixed branch, force-pushed: five commits in a week update one PR, not open five.
+      - name: Open or update the PR
+        if: steps.watch.outputs.changed == 'true'
+        run: |
+          branch=bot/sdk-pins
+          title="chore(sdk): follow upstream"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$branch"
+          git add recipes/*/conandata.yml
+          git commit -m "$title"
+          git push --force origin "$branch"
+          body=$(git show --stat --format= HEAD)
+          gh pr create --head "$branch" --title "$title" --body "$body" 2>/dev/null \
+            || gh pr edit "$branch" --body "$body"
+
+  prune:
+    name: Prune superseded artifacts
+    runs-on: ubuntu-latest
+    # Each SDK version is ~20 MB across both platforms and upstream moves several times
+    # a month, so revisions no consumer can resolve are pure weight. Weekly is enough.
+    if: github.event.schedule != '0 6 * * *'
+    env:
+      CLOUDSMITH_USERNAME: ${{ secrets.CLOUDSMITH_USERNAME }}
+      CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install cs2-kit
+        run: python3 -m pip install --no-cache-dir .
+      - name: Prune
+        run: |
+          conan profile detect --force >/dev/null 2>&1 || true
+          conan config install ./conan
+          cs2kit package prune --keep 3
