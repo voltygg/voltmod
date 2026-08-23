@@ -59,8 +59,8 @@ CS2Kit::Flow<PendingPunishment>::Create(std::move(pending))
                       [](PendingPunishment& s, int sec) { s.DurationSec = sec; },
                       CustomLabelFn, CustomPromptFn,
                       [](const PendingPunishment& s) { return IsTimed(s.Type); })   // skipped for kicks
-    ->AddOptionsStep(ReasonTitleFn, ReasonPresetsFn,
-                     [](PendingPunishment& s, std::string r) { s.Reason = std::move(r); },
+    ->AddOptionsStep(ReasonTitleFn, ReasonPresetsFn,   // presets are (label, value) pairs
+                     [](PendingPunishment& s, const std::string& label, const std::string&) { s.Reason = label; },
                      CustomLabelFn, CustomPromptFn)
     ->WithConfirm(ConfirmTitleFn, SummaryRowsFn, ConfirmLabelFn, CancelLabelFn)
     ->OnFinish([](int slot, PendingPunishment& s) { Issue(slot, s); })

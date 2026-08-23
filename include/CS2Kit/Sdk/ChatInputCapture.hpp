@@ -14,10 +14,11 @@ namespace CS2Kit::Sdk
 /**
  * @brief Per-player pending-prompt registry for menu free-text input.
  *
- * The plugin's chat hook is expected to call @ref TryConsume on every incoming
+ * @ref MetamodPlugin::OnPlayerChat calls @ref TryConsume on every incoming
  * `say`/`say_team` message before its own command parsing - when a capture is
  * active for that slot, the message is routed to the registered callback and the
- * caller should suppress the chat broadcast (return true).
+ * chat broadcast is suppressed. A plugin that overrides OnPlayerChat replaces that
+ * default and must make the same call, or its menu input rows never complete.
  *
  * The service intentionally does *not* install its own chat hook: CS2Kit cannot
  * suppress chat from a `player_say` listener (the broadcast has already

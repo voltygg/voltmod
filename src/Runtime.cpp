@@ -54,6 +54,26 @@ Runtime* RtOrNull()
     return g_active;
 }
 
+Core::SlotEvents& Slots()
+{
+    return Rt().Slots;
+}
+
+Core::Translations& Translations()
+{
+    return Rt().Translations;
+}
+
+Core::PluginPolicy& Policy()
+{
+    return Rt().Policy;
+}
+
+Menu::MenuManager& Menus()
+{
+    return Rt().Menus;
+}
+
 }  // namespace Detail
 
 Runtime::Runtime() : _schema(std::make_unique<Sdk::SchemaService>()) {}

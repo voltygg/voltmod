@@ -113,6 +113,12 @@ bool MetamodPlugin::Unload(char* error, size_t maxlen)
 
 bool MetamodPlugin::OnPlayerChat(Players::Player* player, std::string_view message, bool /*teamChat*/)
 {
+    // A pending menu capture owns the line before command parsing does: it is the player's
+    // answer to a prompt, not a chat message. Menu input rows are a kit feature, so consuming
+    // for them belongs here rather than in every plugin that happens to use one.
+    if (_runtime->ChatInput.TryConsume(player->GetSlot(), message))
+        return true;
+
     return _runtime->Commands.HandleChatMessage(player, message);
 }
 

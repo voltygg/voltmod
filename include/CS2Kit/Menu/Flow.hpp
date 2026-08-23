@@ -1,12 +1,13 @@
 #pragma once
 
+#include <CS2Kit/Core/PluginPolicy.hpp>
 #include <CS2Kit/Core/StringUtils.hpp>
+#include <CS2Kit/Core/Translations.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Menu/Menu.hpp>
 #include <CS2Kit/Menu/MenuBuilder.hpp>
 #include <CS2Kit/Menu/MenuManager.hpp>
 #include <CS2Kit/Menu/MenuPresets.hpp>
-#include <CS2Kit/Runtime.hpp>
 #include <format>
 #include <functional>
 #include <memory>
@@ -89,39 +90,54 @@ public:
             std::move(applies));
     }
 
-    /** Append an options step: one button per option, plus an optional free-text input row
-     *  (empty input re-prompts) when @p customLabel is set. */
-    Ptr AddOptionsStep(LabelFn title, std::function<std::vector<std::string>(int slot)> options,
-                       std::function<void(TState&, std::string value)> set, LabelFn customLabel = {},
-                       LabelFn customPrompt = {}, AppliesFn applies = {})
+    /**
+     * Append an options step: one button per option, plus an optional free-text input row
+     * (empty input re-prompts) when @p customLabel is set.
+     *
+     * Each option is a (label, value) pair, like @ref AddDurationStep - the label is shown and
+     * localized, the value is the caller's stable identity for the row (a preset code, say).
+     * `set` receives both, so a state that stores the code and the display text separately does
+     * not have to recover one from the other. When a row has no separate identity, pass the
+     * label as the value. The custom-input row reports @p customValue as its value, defaulting
+     * to the typed text; a @p customLabel that resolves to an empty string omits the row.
+     */
+    using Option = std::pair<std::string, std::string>;  // (label, value)
+
+    Ptr AddOptionsStep(LabelFn title, std::function<std::vector<Option>(int slot)> options,
+                       std::function<void(TState&, const std::string& label, const std::string& value)> set,
+                       LabelFn customLabel = {}, LabelFn customPrompt = {}, std::string customValue = {},
+                       AppliesFn applies = {})
     {
         auto weak = this->weak_from_this();
         return AddStep(
             [weak, title = std::move(title), options = std::move(options), set = std::move(set),
-             customLabel = std::move(customLabel),
-             customPrompt = std::move(customPrompt)](int slot, Flow&) -> std::shared_ptr<MenuView> {
+             customLabel = std::move(customLabel), customPrompt = std::move(customPrompt),
+             customValue = std::move(customValue)](int slot, Flow&) -> std::shared_ptr<MenuView> {
                 auto self = weak.lock();
                 if (!self)
                     return nullptr;
 
                 MenuBuilder builder(title(slot));
-                for (const auto& option : options(slot))
+                for (const auto& [label, value] : options(slot))
                 {
-                    builder.AddButton(option, [self, set, option](int s) {
-                        set(self->_state, option);
+                    builder.AddButton(label, [self, set, label, value](int s) {
+                        set(self->_state, label, value);
                         self->Advance(s);
                     });
                 }
 
-                if (customLabel)
+                // An empty label means "no custom row", matching BuildDurationPicker - so a
+                // caller can gate the row on config without splitting the chain.
+                const std::string custom = customLabel ? customLabel(slot) : std::string();
+                if (!custom.empty())
                 {
                     builder.AddInput(
-                        customLabel(slot), customPrompt ? customPrompt(slot) : "", [](int) { return std::string(); },
-                        [self, set](int s, std::string_view text) {
-                            std::string value = Core::StringUtils::Trim(std::string(text));
-                            if (value.empty())
+                        custom, customPrompt ? customPrompt(slot) : "", [](int) { return std::string(); },
+                        [self, set, customValue](int s, std::string_view text) {
+                            std::string typed = Core::StringUtils::Trim(std::string(text));
+                            if (typed.empty())
                                 return false;  // re-prompt
-                            set(self->_state, std::move(value));
+                            set(self->_state, typed, customValue.empty() ? typed : customValue);
                             self->Advance(s);
                             return true;
                         },
@@ -186,7 +202,7 @@ private:
                 continue;
             _stepIndex = i;
             if (auto menu = _steps[i].Build(slot, *this))
-                CS2Kit::Detail::Rt().Menus.OpenMenu(slot, menu);
+                CS2Kit::Detail::Menus().OpenMenu(slot, menu);
             return;
         }
 
@@ -208,7 +224,7 @@ private:
         for (const auto& [label, value] : _confirmSummary(slot, _state))
             spec.BodyLines.push_back(value.empty() ? label : std::format("{}: {}", label, value));
 
-        CS2Kit::Detail::Rt().Menus.OpenMenu(slot, BuildConfirmDialog(std::move(spec)));
+        CS2Kit::Detail::Menus().OpenMenu(slot, BuildConfirmDialog(std::move(spec)));
     }
 
     void RunFinish(int slot)
@@ -218,7 +234,7 @@ private:
             return;
         if (_finish)
             _finish(slot, _state);
-        CS2Kit::Detail::Rt().Menus.CloseAllMenus(slot);
+        CS2Kit::Detail::Menus().CloseAllMenus(slot);
     }
 
     /** False = aborted (error replied, menus closed). */
@@ -230,10 +246,10 @@ private:
         if (!error)
             return true;
 
-        auto& rt = CS2Kit::Detail::Rt();
-        if (rt.Policy.Reply)
-            rt.Policy.Reply(slot, rt.Translations.Get(*error, slot));
-        rt.Menus.CloseAllMenus(slot);
+        auto& policy = CS2Kit::Detail::Policy();
+        if (policy.Reply)
+            policy.Reply(slot, CS2Kit::Detail::Translations().Get(*error, slot));
+        CS2Kit::Detail::Menus().CloseAllMenus(slot);
         return false;
     }
 

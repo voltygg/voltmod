@@ -132,9 +132,11 @@ protected:
     /**
      * @brief A player sent a chat message (say / say_team).
      *
-     * The default dispatches registered chat commands ("!x" / ".x") and swallows handled
-     * ones; anything else, including unknown "!words", falls through to normal chat. An
-     * override replaces that dispatch wholesale.
+     * The default first hands the line to any pending @ref CS2Kit::Sdk::ChatInputCapture
+     * prompt for that slot, then dispatches registered chat commands ("!x" / ".x") and
+     * swallows handled ones; anything else, including unknown "!words", falls through to
+     * normal chat. An override replaces all of that wholesale - if your plugin uses menu
+     * input rows, call `runtime.ChatInput.TryConsume` first or the prompt never completes.
      *
      * @return true to swallow it (the message won't appear in chat), false to let it through.
      */

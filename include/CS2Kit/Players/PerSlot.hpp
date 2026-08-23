@@ -1,9 +1,9 @@
 #pragma once
 
 #include <CS2Kit/Core/Slot.hpp>
+#include <CS2Kit/Core/SlotEvents.hpp>
 #include <CS2Kit/Core/Subscription.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
 #include <array>
 #include <cstdint>
 
@@ -32,7 +32,7 @@ public:
     void BindReset()
     {
         if (!_listener)
-            _listener = CS2Kit::Detail::Rt().Slots.Listen([this](int slot) { Reset(slot); });
+            _listener = CS2Kit::Detail::Slots().Listen([this](int slot) { Reset(slot); });
     }
 
     void Unbind() { _listener.Reset(); }

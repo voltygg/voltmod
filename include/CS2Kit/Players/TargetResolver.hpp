@@ -3,7 +3,6 @@
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Players/Player.hpp>
 #include <CS2Kit/Players/Targeting.hpp>
-#include <CS2Kit/Runtime.hpp>
 #include <expected>
 #include <functional>
 #include <string_view>
