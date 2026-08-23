@@ -8,12 +8,12 @@
 
 ## Tracking
 
-With @ref CS2Kit::Core::PluginBase this is automatic: the base adds/removes players around your `OnPlayerConnect(Player*)` / `OnPlayerDisconnect(Player*)` overrides. Look players up through `Engine().Players`:
+With @ref CS2Kit::App::MetamodPlugin this is automatic: the base adds/removes players around your `OnPlayerConnect(Player*)` / `OnPlayerDisconnect(Player*)` overrides. Look players up through `runtime.Players`:
 
 ```cpp
-auto* p = Engine().Players.GetPlayerBySlot(slot);        // O(1)
-auto* q = Engine().Players.GetPlayerBySteamId(steamId);  // O(1)
-for (auto* each : Engine().Players.GetAllPlayers()) { /* ... */ }
+auto* p = runtime.Players.GetPlayerBySlot(slot);        // O(1)
+auto* q = runtime.Players.GetPlayerBySteamId(steamId);  // O(1)
+for (auto* each : runtime.Players.GetAllPlayers()) { /* ... */ }
 ```
 
 `Player` carries `GetSlot()`, `GetSteamID()`, `GetName()`, `GetIpAddress()`, `GetConnectTime()`, `GetPlaytime()` - and `Controller()`, which returns the @ref CS2Kit::Sdk::PlayerController for typed engine operations:
@@ -37,11 +37,11 @@ _state.BindReset();                // in Initialize(), once services are live
 _state[slot].Combo++;              // plain indexed access afterwards
 ```
 
-For time-decaying per-player scores (suspicion, rate limits), pair it with @ref CS2Kit::Utils::DecayingScore - a clock-free accumulator that drains linearly between caller-supplied timestamps - or @ref CS2Kit::Utils::SlidingWindowScore when the threshold is "N events in the last M seconds" and evidence should expire on a hard boundary instead of fading. Both take caller-supplied seconds; @ref CS2Kit::Utils::TimeUtils::MonotonicSeconds is the matching clock. Angle bookkeeping helpers (`NormalizeAngleDelta`, `AnglesToPoint`, `AngularDistance`) live in `CS2Kit::AngleMath` (`<CS2Kit/Utils/AngleMath.hpp>`); note its `AngularDistance` is a Euclidean pitch/yaw metric, not a great-circle angle, so it under-reports near the poles - consumers that need true angular separation should build it from `AnglesToPoint` and a dot product. All are unit-tested in the kit's SDK-free test suite.
+For time-decaying per-player scores (suspicion, rate limits), pair it with @ref CS2Kit::Core::DecayingScore - a clock-free accumulator that drains linearly between caller-supplied timestamps - or @ref CS2Kit::Core::SlidingWindowScore when the threshold is "N events in the last M seconds" and evidence should expire on a hard boundary instead of fading. Both take caller-supplied seconds; @ref CS2Kit::Core::TimeUtils::MonotonicSeconds is the matching clock. Angle bookkeeping helpers (`NormalizeAngleDelta`, `AnglesToPoint`, `AngularDistance`) live in `CS2Kit::AngleMath` (`<CS2Kit/Core/AngleMath.hpp>`); note its `AngularDistance` is a Euclidean pitch/yaw metric, not a great-circle angle, so it under-reports near the poles - consumers that need true angular separation should build it from `AnglesToPoint` and a dot product. All are unit-tested in the kit's SDK-free test suite.
 
 ## Target resolution
 
-@ref CS2Kit::Players::ResolveTargets resolves one token to players, applying the immunity policy (`Engine().Policy.CanTarget` unless you pass your own):
+@ref CS2Kit::Players::ResolveTargets resolves one token to players, applying the immunity policy (`runtime.Policy.CanTarget` unless you pass your own):
 
 ```
 @all @*        everyone                @me    yourself        @!me   everyone else
@@ -77,7 +77,7 @@ The grammar core is engine-free (`Targeting.hpp`: `ParseTargetToken` + `FilterRo
 
 ## Actions
 
-An @ref CS2Kit::Players::Action is a single-target operation as data: permission token, guards, body. The @ref CS2Kit::Players::ActionDispatcher owns the resolve → permission → immunity → run → broadcast pipeline, reading everything from `Engine().Policy` - there is nothing to wire per dispatcher:
+An @ref CS2Kit::Players::Action is a single-target operation as data: permission token, guards, body. The @ref CS2Kit::Players::ActionDispatcher owns the resolve → permission → immunity → run → broadcast pipeline, reading everything from `runtime.Policy` - there is nothing to wire per dispatcher:
 
 ```cpp
 using namespace CS2Kit::Players;
@@ -109,16 +109,25 @@ inline const EffectDescriptor Ghost{
     .Scope = EffectScope::Persistent,      // or Round: auto-cancel on round end
     .Setup = [](const Players::ActionContext& ctx) -> EffectInstance {
         int slot = ctx.Target->GetSlot();
-        Engine().Transmit.SetPawnHidden(slot, true);
-        return {.OnStop = [slot] { Engine().Transmit.SetPawnHidden(slot, false); }};
+        // ActionContext carries the runtime, so an effect body needs no ambient lookup.
+        auto& transmit = ctx.Rt.Transmit;
+        transmit.SetPawnHidden(slot, true);
+        return {.OnStop = [&transmit, slot] { transmit.SetPawnHidden(slot, false); }};
     },
 };
 
-// Self-register at the definition site (EffectEntry is your own {Order, descriptor*} record);
-// the menu that renders the list ingests Registry<EffectEntry>::Items() sorted by Order:
-static const bool _reg = Registry<EffectEntry>::Add({.Order = 10, .Toggle = &Ghost});
+// The menu that renders the list reads an explicit table (EffectEntry is your own
+// {Order, descriptor*} record), so the order is visible in one place:
+inline constexpr std::array MenuEffects{
+    EffectEntry{.Order = 10, .Toggle = &Ghost},
+    EffectEntry{.Order = 20, .Toggle = &Disco},
+};
 ```
 
-Dispatch through `ToggleEffect` / `ApplyEffect` / `ClearEffect` (they apply `Engine().Policy` first), or drop the descriptor straight into a menu with `AddEffectToggleRow`. `ParamEffectDescriptor` adds a `Choices` list and a parameterized `Setup` for picker-style effects (model selection); `AddEffectPickerRow` renders it. `EffectManager` guarantees `OnStop` runs exactly once however the effect ends - toggle, death, disconnect, round end, or unload.
+`OnStop` outlives the `ActionContext` that produced it, so capture the service, never
+`ctx`. Capturing a runtime service by reference is safe because `EffectManager` is a
+member of your `App`, which is destroyed before the `Runtime`.
+
+Dispatch through `ToggleEffect` / `ApplyEffect` / `ClearEffect` (they apply `runtime.Policy` first), or drop the descriptor straight into a menu with `AddEffectToggleRow`. `ParamEffectDescriptor` adds a `Choices` list and a parameterized `Setup` for picker-style effects (model selection); `AddEffectPickerRow` renders it. `EffectManager` guarantees `OnStop` runs exactly once however the effect ends - toggle, death, disconnect, round end, or unload.
 
 Sweeps come in three shapes: `CancelAllForSlot(slot)` clears a player, `CancelRoundScoped()` clears round-scoped effects everywhere, and `CancelPerLife(slot)` clears a player's per-life effects on death while keeping `EffectScope::Session` grants - declare `Scope = EffectScope::Session` on the descriptor and the death sweep skips it, no per-effect special-casing.

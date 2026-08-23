@@ -22,11 +22,10 @@ The guide is split by topic:
 Centralized holder for all SDK interface pointers. Automatically populated by `CS2Kit::Initialize()` - no manual setup needed.
 
 ```cpp
-#include <CS2Kit/Core/Services.hpp>
-using CS2Kit::Core::Engine;
+#include <CS2Kit/Runtime.hpp>
 
 // After CS2Kit::Initialize(), all interfaces are available:
-auto& gi = Engine().Interfaces;
+auto& gi = runtime.Interfaces;
 auto* engine = gi.Engine;       // IVEngineServer2*
 auto* cvar = gi.CVar;           // ICvar*
 auto* schema = gi.SchemaSystem; // ISchemaSystem*
@@ -34,4 +33,4 @@ auto* schema = gi.SchemaSystem; // ISchemaSystem*
 ```
 
 All other Sdk classes read from this holder internally. The examples across these pages reach their
-service the same way - `Engine().GameData`, `Engine().Entities`, `Engine().Schema()`, and so on.
+service the same way - `runtime.GameData`, `runtime.Entities`, `runtime.Schema()`, and so on.

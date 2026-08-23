@@ -11,7 +11,7 @@ A command is one aggregate - name, metadata, permission, typed arguments, handle
 
 using namespace CS2Kit::Commands;
 
-static const bool _registered = CS2Kit::Registry<CommandSpec>::Add({
+commands.Register({
     .Name = "ban",
     .Description = "Ban a player.",
     .Usage = "!ban <target> <duration> [reason]",
@@ -30,7 +30,7 @@ That's the whole thing: the kit ingests every self-registered spec automatically
 
 ## The pipeline
 
-For each chat command: prefix match → `Engine().Policy.HasPermission(callerSteamId, spec.Permission)` → per-argument resolve/validate → your handler → the returned `CommandResult.Message` routed through `Engine().Policy.Reply` (or a plain `Engine().Messages.Reply` line when no policy Reply is installed). An empty `Permission` skips the gate; a failure at any step replies with a localized message and never reaches the handler.
+For each chat command: prefix match → `runtime.Policy.HasPermission(callerSteamId, spec.Permission)` → per-argument resolve/validate → your handler → the returned `CommandResult.Message` routed through `runtime.Policy.Reply` (or a plain `runtime.Messages.Reply` line when no policy Reply is installed). An empty `Permission` skips the gate; a failure at any step replies with a localized message and never reaches the handler.
 
 ## Argument kinds
 
@@ -62,7 +62,7 @@ The `Target` argument (and @ref CS2Kit::Players::ResolveTargets directly) unders
 name           exact match, then prefix, then substring (case-insensitive)
 ```
 
-Immunity comes from `Engine().Policy.CanTarget` - matches the policy rejects are dropped, and if that empties the set the caller is told the target is immune, not "no match".
+Immunity comes from `runtime.Policy.CanTarget` - matches the policy rejects are dropped, and if that empties the set the caller is told the target is immune, not "no match".
 
 ## Error replies and reserved keys
 
@@ -72,7 +72,7 @@ Argument failures reply from these translation keys - ship them in your translat
 
 ## Introspection
 
-`Engine().Commands.GetAllCommands()` returns every registered spec with its `Name`, `Aliases`, `Description`, `Usage`, and `Permission` - enough to build a `!help` command or an admin menu from the same data the dispatcher uses.
+`runtime.Commands.GetAllCommands()` returns every registered spec with its `Name`, `Aliases`, `Description`, `Usage`, and `Permission` - enough to build a `!help` command or an admin menu from the same data the dispatcher uses.
 
 ## Console callers
 

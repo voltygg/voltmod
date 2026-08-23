@@ -7,21 +7,21 @@
 - **HttpClient** - GET/POST on CPR's worker pool; completions are queued and replayed on the game thread from a self-registered per-frame pump
 - **RestJsonApi** - helpers for the config-driven "call an operator-configured JSON endpoint and pull a field out of the response" shape
 
-`HttpClient` is a kit service - reach it via `Engine().Http`. `CS2Kit::Shutdown()` drains in-flight requests, so there is nothing to wire up or tear down.
+`HttpClient` is a kit service - reach it via `runtime.Http`. The `Runtime` destructor drains in-flight requests, so there is nothing to wire up or tear down.
 
 ## Requests
 
 ```cpp
 #include <CS2Kit/Api.hpp>
 
-Engine().Http.Post(url, body, {"Content-Type: application/json"}, /*timeoutMs=*/8000,
+runtime.Http.Post(url, body, {"Content-Type: application/json"}, /*timeoutMs=*/8000,
                    [](const CS2Kit::HttpResult& result) {
                        // Game thread - safe to touch players, menus, managers.
                        if (!result.Ok)
                            Log::Warn("request failed: {}", result.Error);
                    });
 
-Engine().Http.Get(url, {}, 5000, [](const CS2Kit::HttpResult& result) { /* ... */ });
+runtime.Http.Get(url, {}, 5000, [](const CS2Kit::HttpResult& result) { /* ... */ });
 ```
 
 `HttpResult::Ok` reflects transport success only; check `StatusCode` for the HTTP verdict (or use `IsSuccess` from RestJsonApi, which means `Ok && 2xx`).
@@ -46,7 +46,7 @@ JsonPostSpec spec{
 auto request = BuildJsonPost(spec, {{"steamId", std::to_string(steamId)}, {"playerName", name}});
 if (request)
 {
-    Post(Engine().Http, std::move(*request), [](const HttpResult& result) {
+    Post(runtime.Http, std::move(*request), [](const HttpResult& result) {
         if (!IsSuccess(result))
             return;
         std::string url = ExtractField(result, "data.room.playerUrl");  // dot-path extraction

@@ -26,16 +26,16 @@ auto menu = MenuBuilder("Admin Panel")
     .OnClose([](int slot) { /* cleanup */ })
     .Build();
 
-CS2Kit::Engine().Menus.OpenMenu(playerSlot, menu);
+runtime.Menus.OpenMenu(playerSlot, menu);
 ```
 
 ## Context rows
 
-For rows that act on an admin/target pair, bind a @ref CS2Kit::Menu::MenuContext once. Every context row then derives its label (a translation key in the admin's language), its enabled state (permission + immunity via `Engine().Policy` - no permission, no row), and its dispatch pair from the context:
+For rows that act on an admin/target pair, bind a @ref CS2Kit::Menu::MenuContext once. Every context row then derives its label (a translation key in the admin's language), its enabled state (permission + immunity via `runtime.Policy` - no permission, no row), and its dispatch pair from the context:
 
 ```cpp
 MenuBuilder(title)
-    .WithContext({.Admin = adminSlot, .Target = targetSlot, .Effects = &App().Effects})
+    .WithContext({.Admin = adminSlot, .Target = targetSlot, .Effects = &app.Effects})
     .AddActionRow("action.kill", Actions::Kill)                                    // runs an Action
     .AddStateToggleRow("action.freeze", InMoveType(MoveType::None), Actions::Freeze)  // live on/off state
     .AddPresetChoiceRow("action.health", "HP", HealthPresets, Actions::SetHealth)  // A/D cycles, E applies
@@ -70,7 +70,7 @@ CS2Kit::Flow<PendingPunishment>::Create(std::move(pending))
 Notes:
 
 - Text comes from per-slot provider functions, so every step renders in the viewing admin's language; the kit ships no strings of its own.
-- The `OnValidate` result is a translation key - on failure the flow closes the menus and replies through `Engine().Policy.Reply`.
+- The `OnValidate` result is a translation key - on failure the flow closes the menus and replies through `runtime.Policy.Reply`.
 - A confirm-only flow (skip straight to `WithConfirm`) is the natural shape for "quick" variants of a wizard.
 - Lifetime is automatic: menu rows hold the only owning references, so the flow lives exactly as long as one of its menus is on screen. No manager, no manual cleanup.
 - `AddStep(build, applies)` is the escape hatch for a fully custom step - build any menu, mutate `flow.State()`, call `flow.Advance(slot)`.
@@ -88,7 +88,7 @@ Every builder method appends a typed row; `AddOption(std::shared_ptr<MenuOption>
 .AddChoice<int>("HP", {{"1 HP", 1}, {"100 HP", 100}, {"999 HP", 999}},
     [admin, target](int slot, const int& hp) {
         Actions::DoSetHealth(admin, target, hp);
-        CS2Kit::Engine().Menus.CloseAllMenus(slot);
+        runtime.Menus.CloseAllMenus(slot);
     })
 ```
 
@@ -97,7 +97,7 @@ Every builder method appends a typed row; `AddOption(std::shared_ptr<MenuOption>
 - **`AddSelector<T>(title, values, formatter, ...)`** - Choice for value types without their own label (seconds → `"5m"`, enum → translation).
 - **`AddSlider(title, min, max, step, getValue, setValue, enabled = true)`** - A/D adjusts in steps, clamped; renders a unicode bar.
 - **`AddProgressBar(title, getValue, max)`** - read-only bar, skipped by the cursor.
-- **`AddInput(title, prompt, get, set, maxLength = 64, enabled = true)`** - E pauses the menu and routes the player's next chat line into `set`; return `false` to re-prompt, `true` to accept. R cancels. Backed by @ref CS2Kit::Sdk::ChatInputCapture - your chat hook must call `Engine().ChatInput.TryConsume` first (see @ref sdk_messaging_guide).
+- **`AddInput(title, prompt, get, set, maxLength = 64, enabled = true)`** - E pauses the menu and routes the player's next chat line into `set`; return `false` to re-prompt, `true` to accept. R cancels. Backed by @ref CS2Kit::Sdk::ChatInputCapture - your chat hook must call `runtime.ChatInput.TryConsume` first (see @ref sdk_messaging_guide).
 - **`AddSubmenu(label, factory, enabled = true)`** - the factory runs lazily on E and the returned menu pushes onto the stack; R pops back.
 
 ## Pagination
@@ -114,7 +114,7 @@ MenuBuilder("Custom")
 
 ## Lifecycle
 
-@ref CS2Kit::Menu::MenuManager keeps a per-player stack, reads button state every frame (via a self-registered scheduler pump), debounces input (200 ms), and clears a player's stack on disconnect. `Engine().Menus.SetFreezePlayer(true)` freezes players while a menu is open so WASD doesn't also move them. During a chat-input capture only R is honored, so the cursor doesn't drift while the player types.
+@ref CS2Kit::Menu::MenuManager keeps a per-player stack, reads button state every frame (via a self-registered scheduler pump), debounces input (200 ms), and clears a player's stack on disconnect. `runtime.Menus.SetFreezePlayer(true)` freezes players while a menu is open so WASD doesn't also move them. During a chat-input capture only R is honored, so the cursor doesn't drift while the player types.
 
 The freeze is a global switch, but a single session can opt out: `OpenMenu(slot, menu, {.FreezeMovement = false})` - for menus ordinary players reach mid-round, where being held still is worse than the stray movement the freeze prevents. @ref CS2Kit::Menu::MenuSessionOptions applies to the call that opens the stack; submenus and Flow steps pushed onto a live session inherit it, so an unfrozen session stays unfrozen for its whole flow.
 

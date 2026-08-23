@@ -43,7 +43,7 @@ doctest's `main`. A new file needs no registration, the glob picks it up.
 #include <doctest/doctest.h>
 #include <string>
 
-using CS2Kit::Utils::ParseDuration;
+using CS2Kit::Core::ParseDuration;
 
 TEST_CASE("ParseDuration: suffixes")
 {
@@ -158,7 +158,7 @@ def build_requirements(self):
 Logic that takes plain values and returns plain values: parsers and formatters, the
 target-selector grammar, angle math, decaying scores, throttles, migration-version
 extraction, detector heuristics, threshold reachability. Anything that needs a live
-`Engine()`, an entity, or a database connection is out of scope for this suite - keep that
+a live `Runtime`, an entity, or a database connection is out of scope for this suite - keep that
 logic thin and push the decisions into free functions over structs, which is what makes
 the rest testable.
 

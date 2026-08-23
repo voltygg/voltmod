@@ -22,7 +22,7 @@ Render tricks only affect the pawn body; held weapons, wearables and gloves are 
 Per-recipient entity transmit filtering via a post-hook on `ISource2GameEntities::CheckTransmit`. Hidden entities are never sent to the client, so the model, weapons, wearables, gloves and shadow all disappear - unlike render alpha. Two independent per-slot toggles:
 
 ```cpp
-auto& transmit = Engine().Transmit;
+auto& transmit = runtime.Transmit;
 
 transmit.SetPawnHidden(slot, true);        // pawn + weapons + wearables vanish for everyone else
 transmit.SetControllerHidden(slot, true);  // removes the player's scoreboard row

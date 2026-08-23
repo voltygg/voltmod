@@ -21,17 +21,17 @@ default_options = {"cs2-kit/*:with_postgres": True}
 ## Start / Stop
 
 ```cpp
-auto& db = App().Db;                       // a PostgresDatabase member in your Managers
-
-if (!db.Start(App().Config.Get().database))
+// Db is a PostgresDatabase member of your App, declared above everything that uses it.
+if (!Db.Start(Config.Get().database))
 {
     Log::Warn("Database unavailable - running degraded.");
     return true;                           // your call: degrade or reject the load
 }
-Defer([] { App().Db.Stop(); });
 ```
 
 `Start` spawns the worker and verifies connectivity with a ping - it returns `false` when the database is unreachable so you can degrade instead of queueing into the void.
+
+`Stop` belongs in your `App`'s destructor rather than beside `Start`: it drains queued writes (a ban issued just before unload must land) and drops undispatched completions, so it has to run after the managers those completions would touch are done with it, not before.
 
 `Stop(drainDeadline = 5s)` is deliberate about what happens to in-flight work: new work is dropped with a log line; already-queued jobs drain within the deadline (a ban written just before unload must land); anything past the deadline is dropped with a warning; blocked waiters are released with a failed result; and undispatched completions are destroyed unrun - the state they would touch is going away.
 
@@ -97,9 +97,9 @@ std::vector<Ban> bans = rows ? FromResult<Ban>(*rows) : std::vector<Ban>{};
 // INSERT: column list, $n placeholders, and params all derived; key column excluded,
 // "RETURNING id" appended so you can backfill the id:
 db.Query("ban_insert", InsertSql<Ban>(), InsertParams(ban),
-         [steamId](DbResult<pqxx::result> r) {
+         [&punishments, steamId](DbResult<pqxx::result> r) {
              if (r && !r->empty())
-                 App().Punishments.BackfillBanId(steamId, (*r)[0][0].as<int64_t>());
+                 punishments.BackfillBanId(steamId, (*r)[0][0].as<int64_t>());
          });
 ```
 

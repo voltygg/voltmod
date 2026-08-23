@@ -9,7 +9,7 @@ CS2-Kit ships built-in gamedata (`gamedata/signatures.jsonc`) that is automatica
 Consumer plugins can also use GameData for their own signatures:
 
 ```cpp
-auto& gd = Engine().GameData;
+auto& gd = runtime.GameData;
 
 // Find a raw signature address
 void* addr = gd.FindSignature("CCSPlayerController_Kick");
@@ -50,7 +50,7 @@ One s2sdk-style mechanism was evaluated and rejected for now; revisit if an engi
 The `"offsets"` block of `signatures.jsonc` holds per-platform integers rather than patterns, resolved by name and with no scanning involved:
 
 ```cpp
-int index = Engine().GameData.GetOffset("RunCommand");   // negative when the entry is missing
+int index = runtime.GameData.GetOffset("RunCommand");   // negative when the entry is missing
 ```
 
 Two kinds live in there, and they fail differently:
@@ -79,7 +79,7 @@ part of the public include tree. Consumers scan through @ref CS2Kit::Sdk::GameDa
 adds per-platform patterns, named lookups, and caching:
 
 ```cpp
-auto& gd = Engine().GameData;
+auto& gd = runtime.GameData;
 void* addr = gd.FindSignature("CCSPlayerController_Kick");     // raw match
 void* resolved = gd.ResolveSignature("SomeFunction");          // + RIP-relative resolve
 ```
@@ -110,7 +110,7 @@ logs and stays inert, leaving `Available()` false. The vtable *index* to hook st
 Resolves entity field offsets at runtime using CS2's schema system. Results are cached:
 
 ```cpp
-auto& schema = Engine().Schema();
+auto& schema = runtime.Schema();
 
 // Get field offset
 int32_t offset = schema.GetOffset("CCSPlayerPawn", "m_iHealth");

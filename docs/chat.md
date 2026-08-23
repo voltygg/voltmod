@@ -2,14 +2,14 @@
 
 [TOC]
 
-All player-facing text leaves the server through one service: `Engine().Messages` (@ref CS2Kit::Sdk::MessageSystem). It sends to the chat box, the center of the screen, the center-HTML panel, or the alert bar - same call, different @ref CS2Kit::Sdk::MessageKind. Colors are plain escape bytes you compose with `std::format` using the `ChatColors` constants.
+All player-facing text leaves the server through one service: `runtime.Messages` (@ref CS2Kit::Sdk::MessageSystem). It sends to the chat box, the center of the screen, the center-HTML panel, or the alert bar - same call, different @ref CS2Kit::Sdk::MessageKind. Colors are plain escape bytes you compose with `std::format` using the `ChatColors` constants.
 
 ## Sending
 
 ```cpp
 #include <CS2Kit/Api.hpp>
 
-auto& msg = CS2Kit::Engine().Messages;
+auto& msg = runtime.Messages;
 
 msg.Reply(slot, "Done.");                                  // chat, to one player
 msg.Send(slot, "Watch out!", CS2Kit::MessageKind::Center); // plain center print
@@ -20,7 +20,7 @@ msg.Broadcast("Round of the day!", CS2Kit::MessageKind::Alert);
 msg.ReplyKey(slot, "cmd.banSuccess", {{"name", targetName}});
 ```
 
-`Reply` is `Send(slot, message)` with the chat default - it exists because "reply to the command caller" is the sentence you write most. `Engine().Policy.Reply` typically points straight at it.
+`Reply` is `Send(slot, message)` with the chat default - it exists because "reply to the command caller" is the sentence you write most. `runtime.Policy.Reply` typically points straight at it.
 
 Chat sends normalize colors for you: a message that already starts with a color escape keeps it; anything else gets the default color prepended so lines don't inherit the previous line's color. (CS2 routes server-originated chat through `TextMsg` - `SayText2` from non-player sources is silently dropped.)
 
@@ -53,7 +53,7 @@ Names sharing a byte are aliases - pick whichever reads better. Byte values mirr
 ## Composing colored text
 
 ```cpp
-using namespace CS2Kit::Utils;
+using namespace CS2Kit::Core;
 
 auto line = std::format(
     "{}[ADMIN]{} {}{}{} kicked {} for {}{}",
@@ -62,7 +62,7 @@ auto line = std::format(
     targetName,
     ChatColors::Olive, reason);
 
-Engine().Messages.Broadcast(line);
+runtime.Messages.Broadcast(line);
 ```
 
 For runtime/config-driven colors, look the escape up by name - `ParseNamed` is case-insensitive, resolves aliases (`"orange"` → `Gold`), and returns `Default` for unknown names:

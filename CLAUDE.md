@@ -15,7 +15,7 @@ Metamod:Source 2.0.
 
 ```text
 include/CS2Kit/        Public API headers, one directory per module
-src/                   Implementation, one static library per module
+src/                   Implementation, one directory per module (two libraries)
 gamedata/              Engine signatures and offsets
 cmake/                 CS2KitCommon.cmake (paths, platform, toolchain fallbacks)
                        + CS2KitPlugin.cmake (cs2_add_plugin, manifest/vdf, build stamping)
@@ -83,12 +83,15 @@ cs2_add_plugin(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...])
 - C++23.
 - `.hpp` headers, not `.h`.
 - C#-style naming: `PascalCase` types/methods, `_camelCase` members.
-- Service container + `Engine()` accessor; no process-lifetime singletons.
+- One flat `CS2Kit::Runtime` per load cycle; no process-lifetime singletons.
+  Objects take their collaborators through constructors, not from a global.
 - Use `std::format`, designated initializers, and `std::function` callbacks.
 - Declarative descriptors over builders: `CommandSpec`, `EffectDescriptor`,
-  `Action`, menu context rows. Descriptors self-register via `Registry<T>` at
-  their definition site (data-only at static init; no `Engine()` before Load).
-- Consumer policy is injected once through `Engine().Policy` (PluginPolicy);
+  `Action`, menu context rows. They are plain data, registered explicitly from
+  the consumer's load path - never self-registering at static init.
+- Listener registrations return a `[[nodiscard]] Subscription` that unregisters
+  on destruction; hold it next to whatever its callback captures.
+- Consumer policy is injected once through `Runtime::Policy` (PluginPolicy);
   kit code never hardcodes permission/immunity/reply behavior.
 - Game thread only. The only threads are the database worker and HTTP's pool;
   both replay completions on the game thread via `Scheduler::EveryFrame` pumps.
@@ -98,45 +101,46 @@ cs2_add_plugin(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...])
 
 ## Module Layering
 
-The modules form a DAG, and `uv run poe modgraph` fails the build if that stops
-being true:
+`uv run poe modgraph` checks each module's includes against an explicit
+allowlist in `scripts/cs2kit/modgraph.py`. A cycle check is not enough: an
+upward edge stays acyclic and is exactly what breaks the layering.
 
 ```text
-Core      -> (none)          primitives: ILogger, Paths, Registry, Slot, Scheduler
-Utils     -> Core
-Http      -> Utils
-Sdk       -> Core Utils      everything engine-facing
-Players   -> Core Sdk Utils
-Commands  -> Core Players Sdk Utils
-Menu      -> Core Players Sdk Utils
-Database  -> Core Utils      option-gated on with_postgres
-App       -> everything      the composition root: Services, PluginBase, Engine()
+Core      -> (none)          primitives: ILogger, Paths, Slot, Scheduler, Subscription
+Http      -> Core
+Sdk       -> Core            everything engine-facing
+Players   -> Core Sdk
+Commands  -> Core Sdk Players
+Menu      -> Core Sdk Players
+Database  -> Core            option-gated on with_postgres
+App       -> everything      the composition root: Runtime, MetamodPlugin
 ```
 
-Each layer builds its own static library and is a Conan component, so
-`cs2_add_plugin(<name> COMPONENTS App)` links App and its dependencies but not
-Database - a plugin with no database carries no libpqxx. Omitting COMPONENTS
-links `CS2Kit::CS2Kit`, which is everything.
+The build is two libraries, not one per module: `CS2Kit::Runtime` and
+`CS2Kit::Database`. `cs2_add_plugin(<name> FEATURES DATABASE)` adds the second,
+so a plugin with no database carries no libpqxx.
 
-**Only App may use `Engine()`.** Inside a module, reach the layer you need
-through its own accessor - `Core::Ctx()`, `Utils::Ctx()`, `Sdk::Ctx()`,
-`Players::Roster()`, `Commands::Manager()`, `Menu::Menus()` - and downward only.
-Plugins are consumers, not modules, and use `Engine()` as before.
+**Kit code reaches services through the references it was given.** The one
+exemption is `CS2Kit::Detail::Rt()`, the ambient pointer to the live Runtime,
+for the places that have no other channel: class templates instantiated in
+consumer TUs (`Flow<TState>`, `PerSlot<T>`), ConVar and SourceHook trampolines,
+and Metamod entry points. It is kit-internal; plugins never call it.
 
 ## Design Notes
 
-`CS2Kit::Core::PluginBase<TManagers>` is the recommended plugin entry point: it
-owns the ISmmPlugin boilerplate, Load/Unload flow, standard SourceHook hooks,
-the `PlayerManager` lifecycle, and constructs/destroys the plugin's `TManagers`
-container (reached via the plugin's `App()`). All player-facing text goes
-through `Engine().Messages` (MessageKind: Chat/Center/CenterHtml/Alert);
+`CS2Kit::App::MetamodPlugin` is the plugin entry point: it owns the ISmmPlugin
+boilerplate, the Load/Unload flow, the standard SourceHook hooks and the
+`PlayerManager` lifecycle, creates the `Runtime` for one load cycle and hands it
+to `OnLoad(Runtime&, bool late)`. Whatever the plugin owns goes in a struct of
+its own, built there and dropped in `OnUnload` - which is what makes a
+`meta reload` start clean. All player-facing text goes through
+`Runtime::Messages` (MessageKind: Chat/Center/CenterHtml/Alert);
 `PostgresDatabase` is async-first with blocking calls reserved for load time.
 
-`CS2KIT_PLUGIN(Klass, Ns)` expands the per-plugin entry-point ceremony
-(instance, PLUGIN_EXPOSE, App() trampoline); `PLUGIN_GLOBALVARS` ships inside
-MetamodPluginBase.hpp. `CS2Kit::LoadStandardConfig` is the standard OnLoad
-prelude (config + translations as LoadReport stages); self-registered
-`CommandSpec`s are auto-ingested after OnLoad and the default `OnPlayerChat`
-dispatches them, so a plugin with no chat customization writes none of that.
+`CS2KIT_PLUGIN(Klass)` expands the per-plugin entry-point ceremony (instance,
+PLUGIN_EXPOSE); `PLUGIN_GLOBALVARS` ships inside MetamodPlugin.hpp.
+`CS2Kit::LoadStandardConfig` is the standard OnLoad prelude (config +
+translations as LoadReport stages). The default `OnPlayerChat` dispatches
+registered commands, so a plugin with no chat customization writes none of that.
 The Database vocabulary hoist lives in `<CS2Kit/Database/Api.hpp>`, deliberately
 outside `Api.hpp`, so `<pqxx/pqxx>` only reaches TUs that opt in.

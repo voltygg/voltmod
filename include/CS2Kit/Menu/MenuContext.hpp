@@ -24,7 +24,7 @@ struct MenuContext
 {
     int Admin = -1;
     int Target = -1;
-    /** Required only by the effect rows; usually `&App().Effects`. */
+    /** Required only by the effect rows; usually a member of the plugin's App. */
     Core::EffectManager* Effects = nullptr;
 
     /** Policy check: the admin holds @p permission and (when a distinct target is set) may

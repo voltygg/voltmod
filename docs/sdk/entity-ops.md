@@ -4,14 +4,14 @@
 
 ## EntityOps (spawning, entity IO, sound)
 
-@ref CS2Kit::Sdk::EntityOpsService (`Engine().EntityOps`) exposes the signature-resolved entity
+@ref CS2Kit::Sdk::EntityOpsService (`runtime.EntityOps`) exposes the signature-resolved entity
 mutation functions: create/spawn, inputs, deferred IO, removal, model, and sound-event emission.
 Spawn keyvalues are built with @ref CS2Kit::Sdk::EntityKeyValues, which the engine consumes on
 spawn (never reuse or free one after `DispatchSpawn`). Every method no-ops gracefully when its
 gamedata signature failed to resolve; branch on `CanSpawn()` when you want an explicit fallback.
 
 ```cpp
-auto& ops = Engine().EntityOps;
+auto& ops = runtime.EntityOps;
 
 CS2Kit::EntityKeyValues kv;
 kv.Set("origin", pos).Set("spawnflags", 1);
@@ -45,14 +45,14 @@ EffectOps::SpawnProp("models/props/crate.vmdl", pos, /*physics*/ true, 30.0f);
 
 ## PrecacheService
 
-@ref CS2Kit::Sdk::PrecacheService (`Engine().Precache`) registers a kit-owned game system that
+@ref CS2Kit::Sdk::PrecacheService (`runtime.Precache`) registers a kit-owned game system that
 receives `BuildGameSessionManifest`, letting plugins precache custom resources (particles, models,
 sound events). Queue paths any time; they apply at the **next map load** - the engine's manifest
 only exists inside that event. Assets that are not part of the map must also reach clients (e.g.
 via a workshop addon), or they precache server-side but render nothing.
 
 ```cpp
-Engine().Precache.Add("particles/my_plugin/lightning_strike.vpcf");
+runtime.Precache.Add("particles/my_plugin/lightning_strike.vpcf");
 ```
 
 Registered automatically by `CS2Kit::Initialize` under a `LogPrefix`-derived name; detached safely

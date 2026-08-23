@@ -7,7 +7,7 @@
 One service, every destination - see @ref chat_guide for the full messaging story (colors, `ReplyKey`, broadcast semantics). The raw surface:
 
 ```cpp
-auto& msg = Engine().Messages;
+auto& msg = runtime.Messages;
 
 msg.Reply(slot, "Hello!");                                     // chat line
 msg.Send(slot, "Look up", CS2Kit::MessageKind::Center);        // plain center print
@@ -38,7 +38,7 @@ panel.Stop(slot);   // cancel + clear the panel
 Per-slot pending-prompt registry that backs the menu system's free-text @ref CS2Kit::Menu::InputOption. Use it directly when you need a prompt outside of a menu (e.g. a chat command that asks the player to type a value as a follow-up).
 
 ```cpp
-auto& capture = Engine().ChatInput;
+auto& capture = runtime.ChatInput;
 
 capture.BeginCapture(slot, "Enter your nickname:",
     [](int s, std::string_view text) -> bool {
@@ -58,7 +58,7 @@ Suppressing a chat broadcast has to happen in the `say` / `say_team` hook. With 
 ```cpp
 bool MyPlugin::OnPlayerChat(Player* p, std::string_view message, bool team) override
 {
-    if (Engine().ChatInput.TryConsume(p->GetSlot(), message))
+    if (runtime.ChatInput.TryConsume(p->GetSlot(), message))
         return true;   // capture handled it; don't broadcast
     return false;      // fall through to normal chat handling
 }

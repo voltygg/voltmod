@@ -70,7 +70,7 @@ public:
      *
      * @code
      * MenuBuilder(title)
-     *     .WithContext({.Admin = adminSlot, .Target = targetSlot, .Effects = &App().Effects})
+     *     .WithContext({.Admin = adminSlot, .Target = targetSlot, .Effects = &app.Effects})
      *     .AddActionRow("action.kill", Actions::Kill)
      *     .AddStateToggleRow("action.freeze", InMoveType(MoveType::None), Actions::Freeze)
      *     .AddPresetChoiceRow("action.health", "HP", HealthPresets, Actions::SetHealth)

@@ -7,7 +7,7 @@
 Access player controllers and entity data:
 
 ```cpp
-auto& es = Engine().Entities;
+auto& es = runtime.Entities;
 
 // Get the raw controller entity by slot
 auto* controller = es.GetPlayerController(slot);

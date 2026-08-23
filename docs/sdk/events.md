@@ -8,7 +8,7 @@ Prefer the typed listeners: each struct in `CS2Kit::Events` (`Sdk/GameEvents.hpp
 
 ```cpp
 namespace Events = CS2Kit::Events;
-auto& events = Engine().Events;
+auto& events = runtime.Events;
 
 uint64_t id = events.Listen<Events::PlayerDeath>([](const Events::PlayerDeath& e) {
     // e.VictimSlot, e.AttackerSlot, e.Headshot, e.Weapon, ...
@@ -49,7 +49,7 @@ Call `Listen` whenever you like - typically in your manager's `Initialize` durin
 
 Related lifecycle points:
 
-- `MetamodPlugin::OnServerStartup(mapName)` is the plugin-facing map-start callback. The engine resets game convars and re-execs gamemode cfgs around map init, so values set at load time may need re-asserting from here or from a `RoundStart` listener. The same hook stores the map in `Engine().CurrentMap`, so a plugin that only wants to stamp the current map on a record does not need to override anything - note it stays empty after a late (mid-map) load until the next map change.
+- `MetamodPlugin::OnServerStartup(mapName)` is the plugin-facing map-start callback. The engine resets game convars and re-execs gamemode cfgs around map init, so values set at load time may need re-asserting from here or from a `RoundStart` listener. The same hook stores the map in `runtime.CurrentMap`, so a plugin that only wants to stamp the current map on a record does not need to override anything - note it stays empty after a late (mid-map) load until the next map change.
 - On `meta reload`, `Shutdown` detaches everything (`RemoveAllListeners`), and the fresh load re-registers - no double dispatch.
 - A handler may `Listen` or `RemoveListener` while it runs: dispatch works from a snapshot of the handles and re-resolves each one before calling it, so the registry is free to change underneath. A listener removed by an earlier handler in the same event does not fire; one registered during it starts with the next event.
 
@@ -60,7 +60,7 @@ Related lifecycle points:
 `ClientListensTo(slot, eventName)` asks the event manager whether that handle is subscribed to a given event:
 
 ```cpp
-if (Engine().Events.ClientListensTo(slot, "player_death"))
+if (runtime.Events.ClientListensTo(slot, "player_death"))
     /* ... */;
 ```
 
@@ -71,7 +71,7 @@ A vanilla client subscribes only to the events its HUD needs, so a subscription 
 Typed reads and writes over ICvar:
 
 ```cpp
-auto& cvars = Engine().ConVars;
+auto& cvars = runtime.ConVars;
 
 if (auto gravity = cvars.GetFloat("sv_gravity"))   // getters return std::optional
     Use(*gravity);

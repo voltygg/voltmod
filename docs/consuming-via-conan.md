@@ -57,22 +57,22 @@ The project's CMakeLists is `find_package(cs2-kit CONFIG REQUIRED)` plus one
 
 ## Components
 
-The kit ships as one library per module, declared as Conan components:
+The kit ships as two libraries, declared as Conan components:
 
 ```text
-Core  Utils  Http  Sdk  Players  Commands  Menu  Database  App
+runtime  database
 ```
 
-`CS2Kit::CS2Kit` is all of them, and remains the default. To link less, name what
-you need - dependencies come along automatically:
+`CS2Kit::CS2Kit` is both, and remains the default. The source modules under `src/`
+are an architecture rather than a packaging unit - nothing ever selected them
+individually, so declaring nine components only duplicated the CMake dependency
+graph somewhere it could drift from. What a plugin genuinely can do without is the
+database, so that is the one thing to name:
 
 ```cmake
 cs2_add_plugin(bhop)                        # runtime only, so no libpqxx
 cs2_add_plugin(admin-system FEATURES DATABASE)
 ```
-
-`App` is the composition root (`Engine()`, `PluginBase`), so nearly every plugin
-wants it; the reason to name it explicitly is to leave `Database` behind.
 
 ## How the CMake side works
 
@@ -93,24 +93,25 @@ order - is ordinary `package_info()`.
 
 ## Publishing (maintainers)
 
-- **cs2-kit** - `.github/workflows/publish-conan.yml`, on every `v*` tag. Uploads
-  Linux Release (both `with_postgres` values); a Windows job verifies the build
-  without uploading, and a `smoke` job re-consumes the result anonymously on a
-  clean runner, refusing to build cs2-kit or either SDK locally. Needs
-  `CLOUDSMITH_USERNAME` / `CLOUDSMITH_API_KEY` (write; entitlement tokens are
-  read-only).
-- **SDK packages** - a separate repo, [voltygg/cs2-sdk-recipes][recipes]. A daily
-  job watches both upstreams and opens a PR when a branch tip moves; the PR gate
-  builds the new SDK *and* this kit against it, so a version that cannot compile
-  the kit never publishes.
+Everything publishes from this repo, through `cs2kit package`:
 
-[recipes]: https://github.com/voltygg/cs2-sdk-recipes
+- **cs2-kit** - `.github/workflows/publish.yml` on every `v*` tag, which must match
+  `version.txt`. Uploads Linux Release (both `with_postgres` values); a `smoke` job
+  re-consumes the result anonymously on a clean runner, refusing to build cs2-kit or
+  either SDK locally.
+- **SDK packages** - the recipes in `recipes/`, published on a push to `main` that
+  touches them. A daily job watches both upstreams and opens a PR when a branch tip
+  moves; the PR gate builds the new SDK *and* this kit against it, so a version that
+  cannot compile the kit never publishes.
+
+Both need `CLOUDSMITH_USERNAME` / `CLOUDSMITH_API_KEY` (write; entitlement tokens are
+read-only).
 
 Local escape hatch if the remote is unreachable:
 
 ```sh
-conan create recipes/hl2sdk-cs2 -pr:a <profile> -s build_type=Release   # in cs2-sdk-recipes
-conan create . -pr:a <profile> -s build_type=Release --build=missing    # here
+cs2kit package build sdk    # conan create both recipes
+cs2kit package build kit    # ... then the kit against them
 ```
 
 ## Working on cs2-kit and a plugin together

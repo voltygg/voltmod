@@ -6,91 +6,142 @@
 
 ```
 CS2Kit
-├── Core        Plugin base, service container, policy, scheduler, registry, effects
-├── Commands    Declarative chat commands (CommandSpec)
-├── Players     Player tracking, target selectors, action dispatch
-├── Menu        WASD center-HTML menus + Flow wizard
+├── Core        Primitives: policy, scheduler, slot events, subscriptions,
+│               translations, parsing, colors, string/time helpers
 ├── Sdk         HL2SDK wrapper layer (entities, events, messages, gamedata)
+├── Players     Player tracking, target selectors, action dispatch
+├── Commands    Declarative chat commands (CommandSpec)
+├── Menu        WASD center-HTML menus + Flow wizard
 ├── Database    Async PostgreSQL + row mapping (CS2KIT_ENABLE_POSTGRES)
 ├── Http        Async HTTP client + JSON REST helpers
-└── Utils       Translations, parsing, colors, string/time helpers
+└── App         The composition root: Runtime, MetamodPlugin, ServiceExchange
 ```
+
+These are source directories, not link units - the kit builds as two libraries
+(`CS2Kit::Runtime` and `CS2Kit::Database`). The layering between them is real and
+checked: `cs2kit modgraph` fails the build if a module includes a header from a layer
+it is not allowed to reach.
 
 ## Ground rules
 
 - **Game thread only.** Metamod hooks all arrive on the main thread, and everything in the kit runs there. The two exceptions - the database worker and HTTP's pool - queue their completions and replay them on the game thread from a per-frame pump, so your callbacks never race game code.
-- **No process-lifetime singletons.** Every kit service is a member of one `CS2Kit::Services`, constructed on Load and destroyed on Unload. State cannot survive a `meta reload`.
+- **No process-lifetime singletons.** Every kit service is a member of one @ref CS2Kit::Runtime, constructed on Load and destroyed on Unload. State cannot survive a `meta reload`.
 - **Data over glue.** Commands, effects, and menu rows are described as structs (`CommandSpec`, `EffectDescriptor`, context rows); the kit owns the resolve/check/dispatch/reply pipeline around them.
-- **Policy is injected once.** The kit carries no admin model. Your plugin sets `Engine().Policy` in OnLoad, and every permission gate, immunity check, and command reply in the kit goes through it.
+- **Policy is injected once.** The kit carries no admin model. Your plugin sets `runtime.Policy` in OnLoad, and every permission gate, immunity check, and command reply in the kit goes through it.
+- **Dependencies arrive through constructors.** Nothing reaches for a global to find a collaborator. The runtime is handed to `OnLoad`; you pass on what each of your own objects needs.
 
-## Two containers, same lifetime
+## Two objects, same lifetime
 
-**`Engine()`** is the kit's services. `PluginBase` constructs the `Services` on Load and destroys it on Unload; members are declared in dependency order and torn down in reverse. `Engine()` asserts outside that window; `EngineOrNull()` is for late-teardown paths.
+**@ref CS2Kit::Runtime** is the kit's services, flat. `MetamodPlugin` creates it on Load
+and destroys it on Unload; members are declared in dependency order and torn down in
+reverse. Every service is named directly - `runtime.Messages`, not
+`runtime.Sdk.Messages` - because which source module a service lives in is the kit's
+business, and mirroring it here would mean every service that moved broke its callers.
 
 ```cpp
-Engine().Players.GetPlayerBySlot(slot);
-Engine().Messages.Reply(slot, "done");
-Engine().Schema().GetOffset("CCSPlayerPawn", "m_iHealth");   // Schema() is a method
+runtime.Players.GetPlayerBySlot(slot);
+runtime.Messages.Reply(slot, "done");
+runtime.Schema().GetOffset("CCSPlayerPawn", "m_iHealth");   // Schema() is a method
 ```
 
-**`App()`** is yours. Declare your managers in a plain struct and hand it to @ref CS2Kit::Core::PluginBase as the template argument - the base constructs it *after* the kit services are live (so member initializers may call `Engine()`), publishes it, and destroys it after your `Defer` cleanups ran:
+**Your `App`** holds everything your plugin owns for one load cycle. Build it in
+`OnLoad` from the runtime you are given, drop it in `OnUnload`:
 
 ```cpp
-struct Managers
+struct App
 {
-    ConfigManager Config;                                  // declaration order == construction order
-    AdminManager Admins;
-    CS2Kit::EffectManager Effects{CS2Kit::Engine().Scheduler};  // kit types are fine here
+    explicit App(CS2Kit::Runtime& runtime) : Runtime(runtime) {}
+
+    CS2Kit::Runtime& Runtime;
+    ConfigManager Config;                       // declaration order == construction order
+    AdminManager Admins{Db, Config};            // each member takes what it uses
+    CS2Kit::EffectManager Effects{Runtime.Scheduler};
 };
 
-class MyPlugin : public CS2Kit::PluginBase<Managers> { ... };
-Managers& App() { return MyPlugin::App(); }
-
-App().Admins.IsAdmin(steamId);
+class MyPlugin final : public CS2Kit::MetamodPlugin
+{
+    bool OnLoad(CS2Kit::Runtime& runtime, bool late) override
+    {
+        _app.emplace(runtime);
+        return _app->Start();
+    }
+    void OnUnload() override { _app.reset(); }
+    std::optional<App> _app;
+};
 ```
+
+Reverse-declaration destruction is what makes this safe: your `App` dies before the
+`Runtime`, so any subscription you hold is torn down while the service it points at is
+still alive.
 
 ## PluginPolicy
 
 @ref CS2Kit::Core::PluginPolicy is the one bridge between the kit's generic machinery and your domain rules. Set it once in OnLoad:
 
 ```cpp
-Engine().Policy = {
-    .HasPermission = [](int64_t steamId, const std::string& perm) { return App().Admins.HasAnyPermission(steamId, perm); },
-    .CanTarget     = [](Player& caller, Player& target) { return App().Admins.CanTarget(caller.GetSteamID(), target.GetSteamID()); },
-    .Reply         = [](int slot, std::string_view msg) { Engine().Messages.Reply(slot, msg); },
-    .Broadcast     = [](Player& caller, Player* target, const std::string& key) { App().Chat.BroadcastAction(key, ...); },
+runtime.Policy = {
+    .HasPermission = [this](int64_t steamId, const std::string& perm) { return Access.HasAnyPermission(steamId, perm); },
+    .CanTarget     = [this](Player& caller, Player& target) { return Access.CanTarget(caller.GetSteamID(), target.GetSteamID()); },
+    .Reply         = [this](int slot, std::string_view msg) { Chat.Reply(slot, msg); },
+    .Broadcast     = [this](Player& caller, Player* target, const std::string& key) { Chat.BroadcastAction(key, ...); },
 };
 ```
 
 Consumers: `CommandManager` (permission gate + reply routing), the target resolver (immunity), `ActionDispatcher` and the effect dispatch helpers (permission + immunity + broadcast), context menu rows and `Flow` (row enabling, validation replies). Unset members are skipped, not crashes.
 
-## Self-registration (`Registry<T>`)
+## Registration is explicit
 
-Descriptors register themselves where they are defined instead of being `push_back`'d from a central list:
+Commands, effects and menu builders are registered from your `App::Start()`, by code
+that already holds what the handlers need:
 
 ```cpp
-static const bool _registered = CS2Kit::Registry<CS2Kit::CommandSpec>::Add({ ... });
-// OnLoad, once:
-Engine().Commands.RegisterAll(CS2Kit::Registry<CS2Kit::CommandSpec>::Items());
+// src/Commands/BanCommands.cpp
+void RegisterBanCommands(CS2Kit::CommandManager& commands, App& app)
+{
+    commands.Register({ .Name = "ban", /* ... */,
+                        .Handler = [&app](const CommandContext& ctx) { /* ... */ } });
+}
 ```
 
-The kit is a static library, so the registry static lives inside your plugin DLL: `meta unload` discards it with the module and a reload re-runs the registrants. The one constraint: items are built during static init, before Load, so they must be data-only - no `Engine()`/`App()` at construction time (lambdas that call them later are fine). Static-init order across translation units is unspecified; sort on an explicit `Order` field when presentation order matters.
+The kit used to offer a `Registry<T>` that let a descriptor register itself at its
+definition site. It was dropped: those items are constructed during static
+initialization, before Load, so their handlers could only reach dependencies through a
+process-wide accessor - which is the reason such an accessor existed at all. Calling a
+function costs one line and hands the handler its collaborators directly.
 
 ## Teardown
 
-`Defer(fn)` pushes a cleanup onto a LIFO stack that runs on unload **and** on a failed load, so setup and teardown sit next to each other and a rejected `OnLoad` never leaks initialized subsystems. The base's own order on unload: your `OnUnload`, the Defer stack, manager destruction, `CS2Kit::Shutdown()`, `Services` destruction.
+There is no deferred-cleanup stack. Anything that needs undoing is either a member
+whose destructor does it, or a @ref CS2Kit::Core::Subscription:
+
+```cpp
+_spawn = runtime.Events.Listen<Events::PlayerSpawn>([this](const auto& e) { OnSpawn(e.Slot); });
+```
+
+`Subscription` is move-only and unregisters on destruction, so a listener cannot outlive
+the state its callback captures. `CS2KIT_SCOPED_HOOK` yields one for SourceHook installs
+too. On unload the base runs your `OnUnload`, removes its own standard hooks, then
+destroys the `Runtime` - whose destructor is the kit's shutdown.
 
 ## The frame pump
 
-The plugin's GameFrame hook calls `CS2Kit::OnGameFrame()`, which ticks exactly one thing: the @ref CS2Kit::Core::Scheduler. Everything per-frame - menu input, HTTP completions, database completions - self-registers a `Scheduler::EveryFrame` timer, so there is no hardcoded pump list to keep in sync.
+The plugin's GameFrame hook calls `Runtime::OnGameFrame()`, which ticks exactly one thing: the @ref CS2Kit::Core::Scheduler. Everything per-frame - menu input, HTTP completions, database completions - registers a `Scheduler::EveryFrame` timer, so there is no hardcoded pump list to keep in sync.
 
-## Module dependencies
+## Module layering
 
-- **Utils** stands alone (standard library only)
+`scripts/cs2kit/modgraph.py` holds the map and enforces it. A cycle check would not be
+enough: an upward edge (Core reaching into Sdk) stays acyclic and is exactly what breaks
+the layering.
+
 - **Core** depends on nothing else in the kit
-- **Commands**, **Menu**, **Players**, **Sdk** sit on Core (+ Utils)
-- **Database** is Utils + libpqxx, compiled only under `CS2KIT_ENABLE_POSTGRES`
-- **Http** wraps CPR; completions ride the scheduler pump
+- **Sdk** and **Http** sit on Core
+- **Players** on Core + Sdk; **Commands** and **Menu** on Core + Sdk + Players
+- **Database** is Core + libpqxx, compiled only under `CS2KIT_ENABLE_POSTGRES`
+- **App** may reach all of them - it is the composition root
+
+`Detail/` is the one exemption: it holds the ambient pointer to the live `Runtime` that
+class templates instantiated in consumer TUs (`Flow<TState>`, `PerSlot<T>`) and
+callback trampolines with no user data reach it through. Plugin code never needs it.
 
 ## Interface contracts
 

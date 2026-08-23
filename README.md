@@ -11,11 +11,11 @@ You describe your plugin's behavior as data - commands, menu rows, effects, data
 
 ## What you get
 
-- **Plugin base** - subclass `PluginBase<Managers>` and the Metamod lifecycle, standard hooks, player tracking, and your own manager container are wired up; cleanup is a LIFO `Defer` stack.
-- **Declarative commands** - a `CommandSpec` self-registers where it's defined; targets, durations, and SteamIDs are resolved and validated before your handler runs, with localized error replies.
+- **Plugin base** - subclass `MetamodPlugin` and the Metamod lifecycle, standard hooks and player tracking are wired up; you get a `Runtime` holding every kit service for the duration of a load, and cleanup is ordinary destruction.
+- **Declarative commands** - a `CommandSpec` is plain data; targets, durations, and SteamIDs are resolved and validated before your handler runs, with localized error replies.
 - **Target selectors** - `@all`, `@me`, `@t`, `@ct`, `@dead`, `@random`, `#slot`, SteamIDs, and name fragments, with immunity applied through your injected policy.
 - **Menus** - WASD-navigated in-game menus: typed rows, policy-aware context rows for admin/target actions, ready-made pickers, and the `Flow` wizard for multi-step "pick duration → pick reason → confirm" chains.
-- **One policy hook** - permissions, immunity, replies, and broadcasts are injected once via `Engine().Policy`; the kit ships no admin model of its own.
+- **One policy hook** - permissions, immunity, replies, and broadcasts are injected once via `Runtime::Policy`; the kit ships no admin model of its own.
 - **Messages** - one service for chat, center print, center-HTML, and alerts, with per-player translations (`ReplyKey`) and chat colors.
 - **Typed game events** - `Listen<PlayerDeath>(...)` instead of string names and `GetInt` calls; the raw overload stays for unmodeled events.
 - **PostgreSQL** (optional) - async-first client (worker thread owns the connection, completions on the game thread), column-table row mapping that generates the INSERT/SELECT/parse code, and a migration runner. Gated behind `CS2KIT_ENABLE_POSTGRES`.
@@ -60,10 +60,14 @@ Or write the skeleton yourself:
 ```cpp
 #include <CS2Kit/Api.hpp>
 
-struct Managers { ConfigManager Config; };
-Managers& App();
+struct App
+{
+    explicit App(CS2Kit::Runtime& runtime) : Runtime(runtime) {}
+    CS2Kit::Runtime& Runtime;
+    ConfigManager Config;
+};
 
-class MyPlugin : public CS2Kit::PluginBase<Managers>
+class MyPlugin final : public CS2Kit::MetamodPlugin
 {
 protected:
     CS2Kit::PluginInfo Info() const override
@@ -71,21 +75,25 @@ protected:
         return { .Name = "My Plugin", .Author = "me", .Version = "1.0.0", .LogTag = "MINE" };
     }
 
-    bool OnLoad(bool late) override
+    bool OnLoad(CS2Kit::Runtime& runtime, bool late) override
     {
-        return App().Config.Load("addons/my-plugin/configs/settings.jsonc");
+        _app.emplace(runtime);
+        return _app->Config.Load("addons/my-plugin/configs/settings.jsonc");
     }
+
+    void OnUnload() override { _app.reset(); }
+
+private:
+    std::optional<App> _app;
 };
 
-MyPlugin g_MyPlugin;
-PLUGIN_EXPOSE(MyPlugin, g_MyPlugin);
-Managers& App() { return MyPlugin::App(); }
+CS2KIT_PLUGIN(MyPlugin);
 ```
 
-A command is one self-registering aggregate - no dispatcher wiring, no arg parsing:
+A command is one aggregate - no dispatcher wiring, no arg parsing:
 
 ```cpp
-static const bool _registered = CS2Kit::Registry<CS2Kit::CommandSpec>::Add({
+runtime.Commands.Register({
     .Name = "slap",
     .Usage = "!slap <target>",
     .Permission = "s",

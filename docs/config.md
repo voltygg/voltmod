@@ -22,7 +22,7 @@ using ConfigManager = CS2Kit::JsonConfig<Settings>;
 
 Member names must match the JSON keys. The `_WITH_DEFAULT` macro means a missing key keeps the member's default - only a missing file, a parse error, or a wrong-typed value fails the load. JSONC comments are tolerated, and unknown keys are ignored (which is also why retired keys need no config migration).
 
-@ref CS2Kit::Core::StandardPluginSettings is the kit-owned "plugin" section; embedding it is what lets `LoadStandardConfig` apply `plugin.locale` to `Engine().Translations` automatically (see @ref plugin_guide).
+@ref CS2Kit::Core::StandardPluginSettings is the kit-owned "plugin" section; embedding it is what lets `LoadStandardConfig` apply `plugin.locale` to `runtime.Translations` automatically (see @ref plugin_guide).
 
 ### Editor validation with a JSON Schema
 
@@ -33,7 +33,7 @@ bool MyPlugin::OnLoad(bool late)
 {
     // Config + translations as LoadReport stages; uses LoadSettings when your
     // ConfigManager defines one, plain Load otherwise.
-    return CS2Kit::LoadStandardConfig(App().Config, {.Addon = "my-plugin"});
+    return CS2Kit::LoadStandardConfig(Config, {.Addon = "my-plugin"});
 }
 ```
 
@@ -111,11 +111,11 @@ Human-facing text lives in per-language JSON files (`translations/en.json`, `tra
 ```
 
 ```cpp
-Engine().Translations.Load("addons/my-plugin/configs/translations");
-Engine().Translations.SetLanguage("en");                       // server default
-Engine().Translations.SetPlayerLanguage(slot, "ru");           // per-player override
+runtime.Translations.Load("addons/my-plugin/configs/translations");
+runtime.Translations.SetLanguage("en");                       // server default
+runtime.Translations.SetPlayerLanguage(slot, "ru");           // per-player override
 
-auto line = Engine().Translations.Get("cmd.banSuccess", slot, {{"name", targetName}});
+auto line = runtime.Translations.Get("cmd.banSuccess", slot, {{"name", targetName}});
 ```
 
 Command results (`CommandContext::Ok`/`Fail`), `Flow` validation errors, and `MessageSystem::ReplyKey` all resolve through this service in the addressed player's language. The kit reserves a handful of keys for its own error replies - see @ref commands_guide.

@@ -6,17 +6,19 @@
 
 @ref CS2Kit::Sdk::MovementHook is a manual vtable hook on `CPlayer_MovementServices::RunCommand` - the per-tick, per-player movement entry point. Pre/post callbacks bracket exactly one player's movement processing, which makes the pair the right place for per-player state flips (see @ref CS2Kit::Sdk::RawConVar "RawConVar").
 
-The service is a dormant `Services` member: it costs nothing until a plugin calls `Install()`, and it removes its hook on destruction.
+The service is a dormant `Runtime` member: it costs nothing until a plugin calls `Install()`, and it removes its hook on destruction.
 
 ```cpp
 // Callbacks can be registered up front; they fire only once the hook is installed.
-Engine().MovementHook.ListenPre([](int slot) { /* before this player's movement runs */ });
-Engine().MovementHook.ListenPost([](int slot) { /* after it ran - restore state here */ });
+// Every Listen* returns a [[nodiscard]] Subscription - keep it as a member next to
+// whatever the callback captures, and the registration goes away with that state.
+_pre  = runtime.MovementHook.ListenPre([this](int slot) { /* before movement runs */ });
+_post = runtime.MovementHook.ListenPost([this](int slot) { /* after it ran - restore */ });
 
 // Install needs a live movement-services instance (a spawned pawn), so call it lazily
 // and treat false as "retry later" - a PlayerSpawn listener is the natural place:
-Engine().Events.Listen<Events::PlayerSpawn>([](const Events::PlayerSpawn&) {
-    Engine().MovementHook.Install();   // no-op once installed
+_spawn = runtime.Events.Listen<Events::PlayerSpawn>([&runtime](const Events::PlayerSpawn&) {
+    runtime.MovementHook.Install();   // no-op once installed
 });
 ```
 
@@ -32,7 +34,7 @@ Details worth knowing:
 `ListenPreCmd`/`ListenPostCmd` additionally hand you a @ref CS2Kit::Sdk::UserCmdView - the command's viewangles, held/changed button masks, raw mouse deltas, and per-subtick pitch/yaw deltas, decoded once per RunCommand from the `CSGOUserCmdPB` payload:
 
 ```cpp
-Engine().MovementHook.ListenPreCmd([](int slot, const CS2Kit::UserCmdView& cmd) {
+_preCmd = runtime.MovementHook.ListenPreCmd([](int slot, const CS2Kit::UserCmdView& cmd) {
     if (!cmd.Valid)
         return;  // null usercmd or missing gamedata offset
     // cmd.ViewYaw, cmd.MouseDx, cmd.ButtonsHeld, cmd.SubtickMoves[0].YawDelta, ...
@@ -71,7 +73,7 @@ else if (index >= 0)
 `ListenFilterCmd` hands you a **mutable** `UserCmdView&`. Filters run once, after the decode and before every pre/preCmd/postCmd listener, so whatever a filter writes is what `InputHistory` and every cmd listener then observe:
 
 ```cpp
-Engine().MovementHook.ListenFilterCmd([](int slot, CS2Kit::UserCmdView& cmd) {
+_filter = runtime.MovementHook.ListenFilterCmd([](int slot, CS2Kit::UserCmdView& cmd) {
     cmd.ViewYaw += 90.0f;  // every downstream reader now sees the rotated view
 });
 ```
@@ -80,24 +82,24 @@ The edit touches only the decoded snapshot - the underlying `CUserCmd` the engin
 
 ### InputHistoryService: lookback over recent usercmds
 
-@ref CS2Kit::Sdk::InputHistoryService (`Engine().InputHistory`) is an opt-in per-slot ring buffer of the decoded views - for plugins that need "what did this player's aim do over the last N ticks" (anti-cheat, movement analytics) without wiring their own buffers:
+@ref CS2Kit::Sdk::InputHistoryService (`runtime.InputHistory`) is an opt-in per-slot ring buffer of the decoded views - for plugins that need "what did this player's aim do over the last N ticks" (anti-cheat, movement analytics) without wiring their own buffers:
 
 ```cpp
-Engine().InputHistory.Enable(128);                    // keep ~2s at 64 tick
-int n = Engine().InputHistory.Count(slot);
-const auto& newest = Engine().InputHistory.At(slot, 0);  // At(slot, ago)
+runtime.InputHistory.Enable(128);                    // keep ~2s at 64 tick
+int n = runtime.InputHistory.Count(slot);
+const auto& newest = runtime.InputHistory.At(slot, 0);  // At(slot, ago)
 ```
 
 History for a slot resets automatically when its player joins or leaves (via @ref CS2Kit::Players::PlayerManager::ListenSlotChange, which is also the backing feed for the generic @ref CS2Kit::Players::PerSlot container). The MovementHook must still be installed for samples to flow.
 
 ## TeleportTracker
 
-@ref CS2Kit::Sdk::TeleportTracker (`Engine().Teleports`) records when each player's pawn was last moved by `CBaseEntity::Teleport`. It exists because a teleport breaks continuity: origin and view angles jump discontinuously, so anything measuring motion across ticks - speed, aim deltas, distance travelled - reads the frame after a teleport as impossible. Discount that window instead of explaining it away.
+@ref CS2Kit::Sdk::TeleportTracker (`runtime.Teleports`) records when each player's pawn was last moved by `CBaseEntity::Teleport`. It exists because a teleport breaks continuity: origin and view angles jump discontinuously, so anything measuring motion across ticks - speed, aim deltas, distance travelled - reads the frame after a teleport as impossible. Discount that window instead of explaining it away.
 
 ```cpp
-Engine().Teleports.Enable();                            // dormant until this call
+runtime.Teleports.Enable();                            // dormant until this call
 
-if (!Engine().Teleports.JustTeleported(slot, 0.5f))     // seconds of server time
+if (!runtime.Teleports.JustTeleported(slot, 0.5f))     // seconds of server time
     EvaluateAim(slot);
 ```
 
@@ -124,6 +126,6 @@ class MyManager
 };
 ```
 
-Beyond console/cfg use, this is the standard **cross-plugin surface**: plugins are isolated modules that cannot share managers, so a feature one plugin should drive in another is exposed as a server command and invoked via `Engine().ConVars.ExecuteServerCommand("myplugin_do 765...")`. When the providing plugin is absent the engine just logs "Unknown command" - graceful degradation for free. (This is how admin-system's Bunnyhop effect drives the bhop plugin's `bhop_player` command.)
+Beyond console/cfg use, this is the standard **cross-plugin surface**: plugins are isolated modules that cannot share managers, so a feature one plugin should drive in another is exposed as a server command and invoked via `runtime.ConVars.ExecuteServerCommand("myplugin_do 765...")`. When the providing plugin is absent the engine just logs "Unknown command" - graceful degradation for free. (This is how admin-system's Bunnyhop effect drives the bhop plugin's `bhop_player` command.)
 
 Construct only while the plugin is loaded (ICvar must be live) - typically as a manager member, so unload unregisters it automatically.

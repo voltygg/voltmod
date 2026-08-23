@@ -37,7 +37,7 @@ It generates:
 uv run poe new-plugin fun-votes        # from your repo's root
 ```
 
-You get `plugins/fun-votes/` with a `PluginBase` skeleton, a self-registering example command, a `settings.jsonc` mapped by @ref CS2Kit::Core::JsonConfig, and translations - it builds, loads, and answers `!ping` before you write a line of code. The root `CMakeLists.txt` gains its `add_subdirectory` line automatically.
+You get `plugins/fun-votes/` with a `MetamodPlugin` skeleton, an example command registered from its `App`, a `settings.jsonc` mapped by @ref CS2Kit::Core::JsonConfig, and translations - it builds, loads, and answers `!ping` before you write a line of code. The root `CMakeLists.txt` gains its `add_subdirectory` line automatically.
 
 ## Plugins are one function call
 
@@ -111,27 +111,31 @@ The generated project carries that line already, set to `False`.
 
 ## The skeleton, by hand
 
-If you'd rather see what the generator writes: derive from @ref CS2Kit::Core::PluginBase with your manager struct. The base runs `CS2Kit::Initialize()`/`Shutdown()`, owns the standard SourceHook hooks and the player lifecycle, constructs your managers once the kit services are live, and tears everything down LIFO on unload.
+If you'd rather see what the generator writes: derive from @ref CS2Kit::App::MetamodPlugin. The base owns the standard SourceHook hooks and the player lifecycle, creates a @ref CS2Kit::Runtime for one load cycle, and hands it to your `OnLoad`. What your plugin owns goes in a struct of your own, built from that runtime and dropped in `OnUnload`.
 
 > **Short names.** Including `<CS2Kit/Api.hpp>` hoists the public vocabulary to `CS2Kit::Type`
-> (`CS2Kit::PluginBase`, `CS2Kit::CommandSpec`, `CS2Kit::Engine()`, ...), so you don't spell out
+> (`CS2Kit::MetamodPlugin`, `CS2Kit::CommandSpec`, `CS2Kit::Runtime`, ...), so you don't spell out
 > the internal module namespaces. The fully-qualified `CS2Kit::Module::Type` forms keep working.
 > Examples in these guides use the short form.
 
 ```cpp
 #include <CS2Kit/Api.hpp>
-#include <CS2Kit/Core/PluginInfoStamp.hpp>
+#include <CS2Kit/App/PluginInfoStamp.hpp>
 
 namespace MyNs
 {
-struct Managers
+struct App
 {
-    ConfigManager Config;   // your managers, in dependency order
+    explicit App(CS2Kit::Runtime& runtime) : Runtime(runtime) {}
+
+    bool Start() { return CS2Kit::LoadStandardConfig(Config, {.Addon = "my-plugin"}); }
+
+    CS2Kit::Runtime& Runtime;
+    ConfigManager Config;   // your own state, in dependency order
 };
-Managers& App();            // free accessor; CS2KIT_PLUGIN defines it
 }  // namespace MyNs
 
-class MyPlugin : public CS2Kit::PluginBase<MyNs::Managers>
+class MyPlugin final : public CS2Kit::MetamodPlugin
 {
 protected:
     CS2Kit::PluginInfo Info() const override
@@ -139,19 +143,25 @@ protected:
         return CS2Kit::WithBuildInfo({ .Name = "My Plugin", .Author = "me", .LogTag = "MINE" });
     }
 
-    bool OnLoad(bool late) override
+    bool OnLoad(CS2Kit::Runtime& runtime, bool late) override
     {
-        return CS2Kit::LoadStandardConfig(MyNs::App().Config, {.Addon = "my-plugin"});
+        _app.emplace(runtime);
+        return _app->Start();
     }
+
+    void OnUnload() override { _app.reset(); }
+
+private:
+    std::optional<MyNs::App> _app;
 };
 
-// Global instance, PLUGIN_EXPOSE, and the MyNs::App() definition in one line:
-CS2KIT_PLUGIN(MyPlugin, MyNs);
+// Global instance and PLUGIN_EXPOSE in one line:
+CS2KIT_PLUGIN(MyPlugin);
 ```
 
-## Manual initialization
+## Doing it without the base
 
-If you can't derive from the base, call the entry points from your own `ISmmPlugin`: `CS2Kit::Initialize()` in `Load()`, `CS2Kit::OnGameFrame()` from your frame hook, `CS2Kit::OnPlayerDisconnect()` from disconnect handling, and `CS2Kit::Shutdown()` in `Unload()`.
+If you can't derive from `MetamodPlugin`, own a `CS2Kit::Runtime` yourself: construct it and call `Start(LoadContext{...})` in `Load()`, `OnGameFrame()` from your frame hook, `OnPlayerDisconnect(slot)` from disconnect handling, and destroy it in `Unload()`. Its destructor is the kit's shutdown.
 
 ## Next steps
 
