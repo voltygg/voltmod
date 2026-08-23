@@ -37,10 +37,9 @@ conan/                 profiles/ + remotes.json, installed together with
 ```
 
 There are no submodules. hl2sdk-cs2 and metamod-source are Conan packages built
-from [voltygg/cs2-sdk-recipes](https://github.com/voltygg/cs2-sdk-recipes);
-`cs2kit_find_sdk()` locates them and their build modules supply the SDK path and
-generated protobuf list. Preset names are public API for consumers - rename with
-care.
+from the recipes in `recipes/`; hl2sdk's build module attaches the SDK sources a
+consumer compiles (`hl2sdk_attach_*`). Preset names are public API for consumers -
+rename with care.
 
 ## Build Commands
 

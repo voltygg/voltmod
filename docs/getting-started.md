@@ -69,7 +69,7 @@ The stamp reruns every build but rewrites the header only when committed state c
 
 The kit's CMake leans on standard mechanisms instead of hand-rolled flags wherever one exists:
 
-- SDK/Metamod headers are `SYSTEM` include dirs, so consumer warning levels don't apply to third-party headers; vendored SDK *sources* compiled into targets (`memoverride.cpp`, `convar.cpp`, the entity2/keyvalues3 TUs, protoc output) are silenced per-source via `cs2kit_mark_vendored_sources`.
+- SDK/Metamod headers are `SYSTEM` include dirs, so consumer warning levels don't apply to third-party headers; vendored SDK *sources* compiled into targets (`memoverride.cpp`, `convar.cpp`, the entity2/keyvalues3 TUs, protoc output) are silenced per-source by the `hl2sdk_attach_*` functions that add them.
 - Symbol visibility comes from the `CXX_VISIBILITY_PRESET hidden` / `VISIBILITY_INLINES_HIDDEN` target properties, not raw `-fvisibility` flags.
 - MSVC Release builds compile with `/Z7` and link with `/DEBUG /OPT:REF /OPT:ICF`, so every shipped plugin has a PDB for crash-dump symbolication (`/Z7` rather than `/Zi` because ccache cannot cache `/Zi`).
 - The static-MSVC-runtime and ccache fallbacks live once in `CS2KitSdk.cmake` as cache variables (visible to sibling plugin directories); a Conan toolchain that sets them wins.

@@ -7,9 +7,8 @@ include_guard(GLOBAL)
 #                  [VERSION <v>] [DESCRIPTION <text>]
 #                  [DEPENDS <spec>...] [REQUIRES <spec>...])
 
-# CS2KitSdk provides CS2KIT_ROOT_DIR / _PLATFORM_ARCH / _GAMEDATA_DIR plus
-# cs2kit_mark_vendored_sources and cs2kit_set_sdk_warnings; include_guard(GLOBAL)
-# makes the repeat free.
+# CS2KitSdk provides CS2KIT_ROOT_DIR / _PLATFORM_ARCH / _GAMEDATA_DIR and
+# cs2kit_set_sdk_warnings; include_guard(GLOBAL) makes the repeat free.
 include("${CMAKE_CURRENT_LIST_DIR}/CS2KitSdk.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/CS2KitBuildInfo.cmake")
 
@@ -30,11 +29,11 @@ function(cs2_add_plugin target_name)
     cmake_parse_arguments(ARG "UNITY" "VERSION;DESCRIPTION"
         "SOURCES;INCLUDE_DIRS;LIBRARIES;FEATURES;PCH_HEADERS;DEPENDS;REQUIRES" ${ARGN})
 
-    # Set by the hl2sdk-cs2 build module; the plugin compiles two TUs out of that tree.
-    if(NOT CS2KIT_HL2SDK_DIR)
+    # Shipped by the hl2sdk-cs2 build module, which arrives with cs2-kit.
+    if(NOT COMMAND hl2sdk_attach_plugin_support)
         message(FATAL_ERROR
-            "CS2KIT_HL2SDK_DIR is unset - find_package(cs2-kit CONFIG REQUIRED) must run "
-            "before cs2_add_plugin() so hl2sdk-cs2 is pulled in with it.")
+            "hl2sdk-cs2's build module is missing - find_package(cs2-kit CONFIG REQUIRED) "
+            "must run before cs2_add_plugin().")
     endif()
 
     if(NOT ARG_SOURCES)
@@ -61,21 +60,8 @@ function(cs2_add_plugin target_name)
         "$<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:MSVC>>:/DEBUG;/OPT:REF;/OPT:ICF>"
     )
 
-    target_sources("${target_name}" PRIVATE
-        "${CS2KIT_HL2SDK_DIR}/public/tier0/memoverride.cpp"
-        "${CS2KIT_HL2SDK_DIR}/tier1/convar.cpp"
-    )
-    cs2kit_mark_vendored_sources(
-        "${CS2KIT_HL2SDK_DIR}/public/tier0/memoverride.cpp"
-        "${CS2KIT_HL2SDK_DIR}/tier1/convar.cpp"
-    )
-    # memoverride.cpp replaces global operator new/delete and convar.cpp defines what
-    # convar.h declares; neither survives a unity TU or a force-included PCH.
-    set_source_files_properties(
-        "${CS2KIT_HL2SDK_DIR}/public/tier0/memoverride.cpp"
-        "${CS2KIT_HL2SDK_DIR}/tier1/convar.cpp"
-        PROPERTIES SKIP_PRECOMPILE_HEADERS ON SKIP_UNITY_BUILD_INCLUSION ON
-    )
+    # The per-module SDK TUs, with the warning, PCH and unity exclusions they need.
+    hl2sdk_attach_plugin_support("${target_name}")
 
     target_include_directories("${target_name}" PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"

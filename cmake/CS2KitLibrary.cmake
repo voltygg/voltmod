@@ -27,23 +27,18 @@ set(CS2KIT_PCH_HEADERS
 
 # cs2kit_add_library(<name>
 #     SOURCES <files...>       # first-party TUs
-#     VENDORED <files...>      # third-party TUs: warnings off, no PCH, no unity
 #     DEPS <CS2Kit::X...>      # sibling kit libraries (PUBLIC)
 #     LIBS <targets...>        # external usage requirements (PUBLIC)
 #     PRIVATE_LIBS <targets...># externals that never appear in a public header
 # )
 function(cs2kit_add_library name)
-    cmake_parse_arguments(ARG "" "" "SOURCES;VENDORED;DEPS;LIBS;PRIVATE_LIBS" ${ARGN})
+    cmake_parse_arguments(ARG "" "" "SOURCES;DEPS;LIBS;PRIVATE_LIBS" ${ARGN})
 
     string(TOLOWER "${name}" lower)
     set(target "cs2-kit-${lower}")
 
-    add_library("${target}" STATIC ${ARG_SOURCES} ${ARG_VENDORED})
+    add_library("${target}" STATIC ${ARG_SOURCES})
     add_library("CS2Kit::${name}" ALIAS "${target}")
-
-    if(ARG_VENDORED)
-        cs2kit_mark_vendored_sources(${ARG_VENDORED})
-    endif()
 
     target_compile_features("${target}" PUBLIC cxx_std_23)
     set_target_properties("${target}" PROPERTIES
@@ -74,9 +69,5 @@ function(cs2kit_add_library name)
 
     if(NOT CS2KIT_DISABLE_PCH)
         target_precompile_headers("${target}" PRIVATE ${CS2KIT_PCH_HEADERS})
-        if(ARG_VENDORED)
-            # Vendored/generated TUs keep their own include order.
-            set_source_files_properties(${ARG_VENDORED} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
-        endif()
     endif()
 endfunction()

@@ -12,10 +12,10 @@ from conan.tools.scm import Git
 class Hl2SdkCs2Conan(ConanFile):
     """AlliedModders HL2SDK, CS2 branch, trimmed for cs2-kit consumption.
 
-    The tree mirrors the upstream layout, so consumers resolve SDK paths as they would
-    against a checkout; hl2sdk-vars.cmake points CS2KIT_HL2SDK_DIR here. Ships headers,
-    the prebuilt Valve libs, the .proto files and the sources generated from them, and
-    the TUs cs2-kit and each plugin compile themselves.
+    The tree mirrors the upstream layout. Ships headers, the prebuilt Valve libs, the
+    .proto files and the sources generated from them, and the TUs consumers compile
+    themselves - which cmake/hl2sdk-sources.cmake attaches by function, so no consumer
+    reproduces this layout.
 
     conandata.yml is the sole source of truth for the version and the commit it pins.
     """
@@ -28,7 +28,7 @@ class Hl2SdkCs2Conan(ConanFile):
     # No compiler/build_type: the prebuilt Valve libs have neither, and generated protobuf
     # *source* is identical wherever protoc runs.
     settings = "os", "arch"
-    exports = "cmake/hl2sdk-vars.cmake"
+    exports = "cmake/hl2sdk-sources.cmake"
 
     HEADER_TREES = ["public", "game/shared", "game/server", "common"]
     PROTOBUF_SRC = "thirdparty/protobuf-3.21.8/src"
@@ -137,7 +137,7 @@ class Hl2SdkCs2Conan(ConanFile):
                     shutil.copyfile(plain, os.path.join(lib_dir, f"lib{stem}.a"))
         else:
             copy(self, "*", os.path.join(src, "lib/public/win64"), os.path.join(dst, "lib/public/win64"))
-        copy(self, "hl2sdk-vars.cmake", os.path.join(self.recipe_folder, "cmake"), os.path.join(dst, "cmake"))
+        copy(self, "hl2sdk-sources.cmake", os.path.join(self.recipe_folder, "cmake"), os.path.join(dst, "cmake"))
         copy(self, "LICENSE*", src, os.path.join(dst, "licenses"))
 
     def package_info(self):
@@ -167,7 +167,7 @@ class Hl2SdkCs2Conan(ConanFile):
             "PLATFORM_64BITS",
         ]
         self.cpp_info.builddirs = ["cmake"]
-        self.cpp_info.set_property("cmake_build_modules", [os.path.join("cmake", "hl2sdk-vars.cmake")])
+        self.cpp_info.set_property("cmake_build_modules", [os.path.join("cmake", "hl2sdk-sources.cmake")])
         if self.settings.os == "Linux":
             self.cpp_info.defines += [
                 "stricmp=strcasecmp",

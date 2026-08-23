@@ -23,7 +23,8 @@ if(CS2KIT_ENABLE_POSTGRES)
     find_package(libpqxx CONFIG REQUIRED)
 endif()
 
-cs2kit_find_sdk()
+find_package(hl2sdk-cs2 CONFIG REQUIRED)
+find_package(metamod-source CONFIG REQUIRED)
 
 # Two libraries, not nine. The module directories under src/ are still the architecture -
 # scripts/cs2kit/modgraph.py checks the layering between them - but they were never
@@ -48,26 +49,15 @@ file(GLOB_RECURSE CS2KIT_DATABASE_SOURCES CONFIGURE_DEPENDS
 file(GLOB_RECURSE CS2KIT_Http_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Http/*.cpp")
 
-# SDK bodies that ship as source only. entityidentity is needed even though nothing calls
-# it directly: entitysystem.cpp references NameMatches, and omitting it fails the Linux .so
-# dlopen on an undefined symbol. tier1 is here because hl2sdk dropped its prebuilt libs;
-# convar.cpp is excluded because cs2_add_plugin compiles it per module, each module owning
-# its own ConVar registration state, and bitbuf/tokenreader because hl2sdk deleted the
-# headers they include.
-set(CS2KIT_HL2SDK_SOURCES
-    "${CS2KIT_HL2SDK_DIR}/entity2/entityidentity.cpp"
-    "${CS2KIT_HL2SDK_DIR}/entity2/entitykeyvalues.cpp"
-    "${CS2KIT_HL2SDK_DIR}/entity2/entitysystem.cpp"
-    "${CS2KIT_HL2SDK_DIR}/tier1/keyvalues3.cpp"
-    "${CS2KIT_HL2SDK_DIR}/tier1/rangecheckedvar.cpp"
-    "${CS2KIT_HL2SDK_DIR}/tier1/utlbufferutil.cpp"
-)
-
 cs2kit_add_library(Runtime
     SOURCES ${CS2KIT_RUNTIME_SOURCES}
-    VENDORED ${CS2KIT_HL2SDK_SOURCES} ${CS2KIT_HL2SDK_PROTO_SOURCES}
     LIBS CS2Kit::Metamod CS2Kit::HL2SDK nlohmann_json::nlohmann_json
     PRIVATE_LIBS cpr::cpr)
+
+# Which SDK bodies exist, where they live and how they must be compiled is the hl2sdk-cs2
+# package's business; it attaches them, warnings and PCH exclusions included.
+hl2sdk_attach_engine_sources(cs2-kit-runtime)
+hl2sdk_attach_generated_sources(cs2-kit-runtime)
 
 # cpr never appears in a public header, so it stays off the include path of everything
 # that links the kit. src/Http/*.cpp is also kept out of the precompiled header: forcing

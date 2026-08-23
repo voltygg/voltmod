@@ -81,12 +81,15 @@ wants it; the reason to name it explicitly is to leave `Database` behind.
 `cmake/CS2Plugin.cmake` / `cmake/CS2Tests.cmake` as build modules - that is where
 `cs2_add_plugin` and `cs2_add_tests` come from.
 
-The hl2sdk package ships a build module of its own, `hl2sdk-vars.cmake`. It
-publishes the two things a package cannot express as usage requirements: the
-filesystem path `CS2KIT_HL2SDK_DIR` (how the per-plugin `convar.cpp` and
-`memoverride.cpp` TUs resolve) and `CS2KIT_HL2SDK_PROTO_SOURCES` (the generated
-`.pb.cc` list the kit compiles into itself). Everything else - includes, defines,
-ABI flags, link order - is ordinary `package_info()`.
+The hl2sdk package ships a build module of its own, `hl2sdk-sources.cmake`. It
+publishes the one thing a package cannot express as usage requirements: the SDK
+translation units a consumer must compile itself. Three functions attach them,
+each applying the warning, PCH and unity exclusions those TUs need -
+`hl2sdk_attach_plugin_support(<target>)` for the per-module `convar.cpp` and
+`memoverride.cpp` (`cs2_add_plugin` calls it for you), plus
+`hl2sdk_attach_engine_sources` and `hl2sdk_attach_generated_sources`, which the
+kit's own library uses. Everything else - includes, defines, ABI flags, link
+order - is ordinary `package_info()`.
 
 ## Publishing (maintainers)
 
