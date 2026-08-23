@@ -1,14 +1,6 @@
 #include <CS2Kit/Api.hpp>
 
-namespace Hello
-{
-struct Managers
-{
-};
-Managers& App();
-}  // namespace Hello
-
-class HelloPlugin : public CS2Kit::PluginBase<Hello::Managers>
+class HelloPlugin final : public CS2Kit::MetamodPlugin
 {
 protected:
     CS2Kit::PluginInfo Info() const override
@@ -16,7 +8,7 @@ protected:
         return {.Name = "Hello", .Author = "cs2-kit test_package", .LogTag = "HELLO"};
     }
 
-    bool OnLoad(bool /*late*/) override { return true; }
+    bool OnLoad(CS2Kit::Runtime& /*runtime*/, bool /*late*/) override { return true; }
 };
 
-CS2KIT_PLUGIN(HelloPlugin, Hello);
+CS2KIT_PLUGIN(HelloPlugin);

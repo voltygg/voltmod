@@ -1,12 +1,11 @@
 #include "Plugin.hpp"
 
 #include "Config.hpp"
-#include "Managers.hpp"
 
 #include <CS2Kit/Api.hpp>
 #include <CS2Kit/Core/PluginInfoStamp.hpp>
 
-CS2KIT_PLUGIN($klass, $ns);
+CS2KIT_PLUGIN($klass);
 
 CS2Kit::PluginInfo $klass::Info() const
 {
@@ -18,9 +17,8 @@ CS2Kit::PluginInfo $klass::Info() const
     });
 }
 
-bool $klass::OnLoad(bool late)
+bool $klass::OnLoad(CS2Kit::Runtime& runtime, bool late)
 {
-    // Commands in Commands.cpp are ingested after this returns; permissions and
-    // replies stay permissive until the plugin sets Engine().Policy.
-    return CS2Kit::LoadStandardConfig($ns::App().Config, {.Addon = "$name"});
+    _app.emplace(runtime);
+    return _app->Start();
 }

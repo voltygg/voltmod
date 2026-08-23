@@ -25,7 +25,7 @@ public:
 
     void Register(CommandSpec spec);
 
-    /** Bulk-ingest, typically `RegisterAll(Registry<CommandSpec>::Items())` in OnLoad. */
+    /** Bulk-ingest, for a plugin that keeps its specs in a table. */
     void RegisterAll(std::span<const CommandSpec> specs);
 
     void Unregister(const std::string& name);

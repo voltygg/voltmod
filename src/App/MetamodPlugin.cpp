@@ -1,6 +1,4 @@
-#include <CS2Kit/App/MetamodPluginBase.hpp>
-#include <CS2Kit/Commands/CommandSpec.hpp>
-#include <CS2Kit/Core/Registry.hpp>
+#include <CS2Kit/App/MetamodPlugin.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Players/Player.hpp>
 #include <CS2Kit/Players/PlayerManager.hpp>
@@ -14,7 +12,7 @@
 #include <nlohmann/json.hpp>
 #include <string>
 
-// PLUGIN_GLOBALVARS ships in MetamodPluginBase.hpp; the definitions come from
+// PLUGIN_GLOBALVARS ships in MetamodPlugin.hpp; the definitions come from
 // each plugin's CS2KIT_PLUGIN.
 
 // The SDK only forward-declares this (iloopmode.h keeps the real one commented out). SourceHook's
@@ -42,10 +40,10 @@ SH_DECL_HOOK3_void(ICvar, DispatchConCommand, SH_NOATTRIB, 0, ConCommandRef, con
 SH_DECL_HOOK7_void(ISource2GameEntities, CheckTransmit, SH_NOATTRIB, 0, CCheckTransmitInfo**, int, CBitVec<16384>&,
                    CBitVec<16384>&, const Entity2Networkable_t**, const uint16*, int);
 
-MetamodPluginBase::MetamodPluginBase() = default;
-MetamodPluginBase::~MetamodPluginBase() = default;
+MetamodPlugin::MetamodPlugin() = default;
+MetamodPlugin::~MetamodPlugin() = default;
 
-bool MetamodPluginBase::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, bool late)
+bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, bool late)
 {
     PLUGIN_SAVEVARS();
     _lateLoad = late;
@@ -73,11 +71,9 @@ bool MetamodPluginBase::Load(PluginId id, ISmmAPI* ismm, char* error, size_t max
     });
 
     RegisterStandardHooks();
-    OnRegisterHooks();
+    OnRegisterHooks(*_runtime);
 
-    OnCreateInstances();
-
-    if (!OnLoad(late))
+    if (!OnLoad(*_runtime, late))
     {
         // A bare `return false` still gets a named failure in the report and error buffer.
         if (_runtime->LoadReport.FirstFailure().empty())
@@ -85,21 +81,10 @@ bool MetamodPluginBase::Load(PluginId id, ISmmAPI* ismm, char* error, size_t max
         Log::Info("{}", _runtime->LoadReport.Summary());
         const std::string failure = _runtime->LoadReport.FirstFailure();
         snprintf(error, maxlen, "%s", failure.c_str());
-        RunDeferred();
-        OnDestroyInstances();
+        OnUnload();
         Detail::SetRt(nullptr);
         _runtime.reset();
         return false;
-    }
-
-    // Ingested after OnLoad, so the plugin's policy and prefixes are in place.
-    // RegisterAll is idempotent by name - a plugin calling it itself is harmless.
-    if (auto specs = Core::Registry<Commands::CommandSpec>::Items(); !specs.empty())
-    {
-        _runtime->LoadReport.Run("Commands", [&] {
-            _runtime->Commands.RegisterAll(specs);
-            return Core::StageResult::Ok(std::format("{} chat commands", _runtime->Commands.Count()));
-        });
     }
 
     Log::Info("{}", _runtime->LoadReport.Summary());
@@ -111,93 +96,74 @@ bool MetamodPluginBase::Load(PluginId id, ISmmAPI* ismm, char* error, size_t max
     return true;
 }
 
-bool MetamodPluginBase::Unload(char* error, size_t maxlen)
+bool MetamodPlugin::Unload(char* error, size_t maxlen)
 {
-    // Order matters: deferred teardown (hook removal, DB close, timer cancel) runs while every
-    // instance is still alive; then the plugin's instances go, and only then the runtime, whose
-    // destructor is the kit's shutdown. The ambient pointer is cleared first so nothing
-    // dereferences CS2Kit::Detail::Rt() from a member destructor.
+    // Order matters: the plugin drops its own graph first, while every kit service it holds a
+    // reference or subscription to is still alive; then the standard hooks come off; only then
+    // the runtime, whose destructor is the kit's shutdown. The ambient pointer is cleared last
+    // of the three so teardown can still reach it.
     OnUnload();
-    RunDeferred();
-    OnDestroyInstances();
+    _standardHooks.Reset();
     Detail::SetRt(nullptr);
     _runtime.reset();
     return true;
 }
 
-bool MetamodPluginBase::OnPlayerChat(Players::Player* player, std::string_view message, bool /*teamChat*/)
+bool MetamodPlugin::OnPlayerChat(Players::Player* player, std::string_view message, bool /*teamChat*/)
 {
     return _runtime->Commands.HandleChatMessage(player, message);
 }
 
-void MetamodPluginBase::Defer(std::function<void()> cleanup)
-{
-    _deferred.push_back(std::move(cleanup));
-}
-
-void MetamodPluginBase::RunDeferred()
-{
-    for (auto it = _deferred.rbegin(); it != _deferred.rend(); ++it)
-    {
-        if (*it)
-        {
-            (*it)();
-        }
-    }
-    _deferred.clear();
-}
-
-void MetamodPluginBase::RegisterStandardHooks()
+void MetamodPlugin::RegisterStandardHooks()
 {
     auto& gi = CS2Kit::Detail::Rt().Interfaces;
 
-    SH_ADD_HOOK(IServerGameDLL, GameFrame, gi.ServerGameDLL, SH_MEMBER(this, &MetamodPluginBase::Hook_GameFrame), true);
+    SH_ADD_HOOK(IServerGameDLL, GameFrame, gi.ServerGameDLL, SH_MEMBER(this, &MetamodPlugin::Hook_GameFrame), true);
     SH_ADD_HOOK(INetworkServerService, StartupServer, gi.NetworkServerService,
-                SH_MEMBER(this, &MetamodPluginBase::Hook_StartupServer), true);
+                SH_MEMBER(this, &MetamodPlugin::Hook_StartupServer), true);
     SH_ADD_HOOK(IServerGameClients, OnClientConnected, gi.ServerGameClients,
-                SH_MEMBER(this, &MetamodPluginBase::Hook_OnClientConnected), false);
+                SH_MEMBER(this, &MetamodPlugin::Hook_OnClientConnected), false);
     SH_ADD_HOOK(IServerGameClients, ClientDisconnect, gi.ServerGameClients,
-                SH_MEMBER(this, &MetamodPluginBase::Hook_ClientDisconnect), true);
+                SH_MEMBER(this, &MetamodPlugin::Hook_ClientDisconnect), true);
     SH_ADD_HOOK(IServerGameClients, ClientFullyConnect, gi.ServerGameClients,
-                SH_MEMBER(this, &MetamodPluginBase::Hook_ClientFullyConnect), true);
+                SH_MEMBER(this, &MetamodPlugin::Hook_ClientFullyConnect), true);
     SH_ADD_HOOK(IServerGameClients, ClientSettingsChanged, gi.ServerGameClients,
-                SH_MEMBER(this, &MetamodPluginBase::Hook_ClientSettingsChanged), true);
-    SH_ADD_HOOK(ICvar, DispatchConCommand, gi.CVar, SH_MEMBER(this, &MetamodPluginBase::Hook_DispatchConCommand),
-                false);
+                SH_MEMBER(this, &MetamodPlugin::Hook_ClientSettingsChanged), true);
+    SH_ADD_HOOK(ICvar, DispatchConCommand, gi.CVar, SH_MEMBER(this, &MetamodPlugin::Hook_DispatchConCommand), false);
     // Post hook: the game has filled the per-client transmit bitvecs; the filter clears bits.
     SH_ADD_HOOK(ISource2GameEntities, CheckTransmit, gi.GameEntities,
-                SH_MEMBER(this, &MetamodPluginBase::Hook_CheckTransmit), true);
+                SH_MEMBER(this, &MetamodPlugin::Hook_CheckTransmit), true);
 
-    Defer([this] {
-        auto& g = CS2Kit::Detail::Rt().Interfaces;
-        SH_REMOVE_HOOK(IServerGameDLL, GameFrame, g.ServerGameDLL, SH_MEMBER(this, &MetamodPluginBase::Hook_GameFrame),
+    // Captures the interface pointers, not the runtime: this subscription is reset in Unload,
+    // before the runtime goes away, but capturing by value keeps that independent.
+    _standardHooks = Core::Subscription::OnDestroy([this, g = gi] {
+        SH_REMOVE_HOOK(IServerGameDLL, GameFrame, g.ServerGameDLL, SH_MEMBER(this, &MetamodPlugin::Hook_GameFrame),
                        true);
         SH_REMOVE_HOOK(INetworkServerService, StartupServer, g.NetworkServerService,
-                       SH_MEMBER(this, &MetamodPluginBase::Hook_StartupServer), true);
+                       SH_MEMBER(this, &MetamodPlugin::Hook_StartupServer), true);
         SH_REMOVE_HOOK(IServerGameClients, OnClientConnected, g.ServerGameClients,
-                       SH_MEMBER(this, &MetamodPluginBase::Hook_OnClientConnected), false);
+                       SH_MEMBER(this, &MetamodPlugin::Hook_OnClientConnected), false);
         SH_REMOVE_HOOK(IServerGameClients, ClientDisconnect, g.ServerGameClients,
-                       SH_MEMBER(this, &MetamodPluginBase::Hook_ClientDisconnect), true);
+                       SH_MEMBER(this, &MetamodPlugin::Hook_ClientDisconnect), true);
         SH_REMOVE_HOOK(IServerGameClients, ClientFullyConnect, g.ServerGameClients,
-                       SH_MEMBER(this, &MetamodPluginBase::Hook_ClientFullyConnect), true);
+                       SH_MEMBER(this, &MetamodPlugin::Hook_ClientFullyConnect), true);
         SH_REMOVE_HOOK(IServerGameClients, ClientSettingsChanged, g.ServerGameClients,
-                       SH_MEMBER(this, &MetamodPluginBase::Hook_ClientSettingsChanged), true);
-        SH_REMOVE_HOOK(ICvar, DispatchConCommand, g.CVar, SH_MEMBER(this, &MetamodPluginBase::Hook_DispatchConCommand),
+                       SH_MEMBER(this, &MetamodPlugin::Hook_ClientSettingsChanged), true);
+        SH_REMOVE_HOOK(ICvar, DispatchConCommand, g.CVar, SH_MEMBER(this, &MetamodPlugin::Hook_DispatchConCommand),
                        false);
         SH_REMOVE_HOOK(ISource2GameEntities, CheckTransmit, g.GameEntities,
-                       SH_MEMBER(this, &MetamodPluginBase::Hook_CheckTransmit), true);
+                       SH_MEMBER(this, &MetamodPlugin::Hook_CheckTransmit), true);
     });
 
     Log::Info("Hooks registered.");
 }
 
-void MetamodPluginBase::Hook_GameFrame(bool simulating, bool firstTick, bool lastTick)
+void MetamodPlugin::Hook_GameFrame(bool simulating, bool firstTick, bool lastTick)
 {
     _runtime->OnGameFrame();
 }
 
-void MetamodPluginBase::Hook_StartupServer(const GameSessionConfiguration_t&, ISource2WorldSession*,
-                                           const char* mapName)
+void MetamodPlugin::Hook_StartupServer(const GameSessionConfiguration_t&, ISource2WorldSession*, const char* mapName)
 {
     Log::Info("Server startup: map '{}'.", mapName ? mapName : "<none>");
     _runtime->CurrentMap = mapName ? mapName : "";
@@ -207,14 +173,14 @@ void MetamodPluginBase::Hook_StartupServer(const GameSessionConfiguration_t&, IS
     OnServerStartup(mapName ? mapName : "");
 }
 
-void MetamodPluginBase::Hook_CheckTransmit(CCheckTransmitInfo** infoList, int infoCount, CBitVec<16384>&,
-                                           CBitVec<16384>&, const Entity2Networkable_t**, const uint16*, int)
+void MetamodPlugin::Hook_CheckTransmit(CCheckTransmitInfo** infoList, int infoCount, CBitVec<16384>&, CBitVec<16384>&,
+                                       const Entity2Networkable_t**, const uint16*, int)
 {
     _runtime->Transmit.OnCheckTransmit(infoList, infoCount);
 }
 
-void MetamodPluginBase::Hook_OnClientConnected(CPlayerSlot slot, const char* name, uint64 xuid, const char* networkId,
-                                               const char* address, bool fakePlayer)
+void MetamodPlugin::Hook_OnClientConnected(CPlayerSlot slot, const char* name, uint64 xuid, const char* networkId,
+                                           const char* address, bool fakePlayer)
 {
     int slotIdx = slot.Get();
     int64_t steamId = static_cast<int64_t>(xuid);
@@ -222,8 +188,8 @@ void MetamodPluginBase::Hook_OnClientConnected(CPlayerSlot slot, const char* nam
     OnPlayerConnect(player);
 }
 
-void MetamodPluginBase::Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconnectionReason reason, const char* name,
-                                              uint64 xuid, const char* networkId)
+void MetamodPlugin::Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconnectionReason reason, const char* name,
+                                          uint64 xuid, const char* networkId)
 {
     int slotIdx = slot.Get();
     OnPlayerDisconnect(CS2Kit::Detail::Rt().Players.GetPlayerBySlot(slotIdx));
@@ -231,18 +197,18 @@ void MetamodPluginBase::Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconne
     CS2Kit::Detail::Rt().Players.RemovePlayer(slotIdx);
 }
 
-void MetamodPluginBase::Hook_ClientFullyConnect(CPlayerSlot slot)
+void MetamodPlugin::Hook_ClientFullyConnect(CPlayerSlot slot)
 {
     _runtime->ClientCvars.OnClientFullyConnect(slot.Get());
     OnPlayerFullyConnected(CS2Kit::Detail::Rt().Players.GetPlayerBySlot(slot.Get()));
 }
 
-void MetamodPluginBase::Hook_ClientSettingsChanged(CPlayerSlot slot)
+void MetamodPlugin::Hook_ClientSettingsChanged(CPlayerSlot slot)
 {
     OnPlayerSettingsChanged(CS2Kit::Detail::Rt().Players.GetPlayerBySlot(slot.Get()));
 }
 
-void MetamodPluginBase::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext& ctx, const CCommand& args)
+void MetamodPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext& ctx, const CCommand& args)
 {
     const char* cmdName = cmd.GetName();
     if (!cmdName)
@@ -274,40 +240,40 @@ void MetamodPluginBase::Hook_DispatchConCommand(ConCommandRef cmd, const CComman
         RETURN_META(MRES_SUPERCEDE);
 }
 
-const char* MetamodPluginBase::GetAuthor()
+const char* MetamodPlugin::GetAuthor()
 {
     return _info.Author;
 }
-const char* MetamodPluginBase::GetName()
+const char* MetamodPlugin::GetName()
 {
     return _info.Name;
 }
-const char* MetamodPluginBase::GetDescription()
+const char* MetamodPlugin::GetDescription()
 {
     return _info.Description;
 }
-const char* MetamodPluginBase::GetURL()
+const char* MetamodPlugin::GetURL()
 {
     return _info.Url;
 }
-const char* MetamodPluginBase::GetLicense()
+const char* MetamodPlugin::GetLicense()
 {
     return _info.License;
 }
-const char* MetamodPluginBase::GetVersion()
+const char* MetamodPlugin::GetVersion()
 {
     return _info.Version;
 }
-const char* MetamodPluginBase::GetDate()
+const char* MetamodPlugin::GetDate()
 {
     return _info.Date;
 }
-const char* MetamodPluginBase::GetLogTag()
+const char* MetamodPlugin::GetLogTag()
 {
     return _info.LogTag;
 }
 
-void* MetamodPluginBase::OnMetamodQuery(const char* iface, int* ret)
+void* MetamodPlugin::OnMetamodQuery(const char* iface, int* ret)
 {
     // Metamod asks every loaded plugin on each MetaFactory query, so an unknown iface is
     // routine, not an error. After Unload the container is gone - that is how peers see us go.

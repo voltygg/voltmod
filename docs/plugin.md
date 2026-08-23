@@ -4,7 +4,7 @@
 
 @ref CS2Kit::Core::PluginBase owns everything a Metamod plugin re-types by hand: the ISmmPlugin metadata getters, the Load/Unload skeleton, the standard SourceHook hooks, the `PlayerManager` lifecycle, and the construction of your own manager container. You subclass it with your `Managers` struct, return your metadata, and override only the callbacks you care about.
 
-`MetamodPluginBase` (the non-template parent) is the same thing without the manager container - use it only if you manage your own `App()` equivalent.
+`MetamodPlugin` (the non-template parent) is the same thing without the manager container - use it only if you manage your own `App()` equivalent.
 
 ## The skeleton
 
@@ -28,7 +28,7 @@ protected:
 CS2KIT_PLUGIN(MyPlugin, MyNs);
 ```
 
-`CS2KIT_PLUGIN` expands the per-plugin SourceHook globals (`PLUGIN_EXPOSE`) the base links against; the matching extern declarations ship inside `MetamodPluginBase.hpp`, so your header needs nothing. Your `Managers` struct stays a plain aggregate - one rule: a member initializer may only reference members declared **above** it (declaration order is construction order).
+`CS2KIT_PLUGIN` expands the per-plugin SourceHook globals (`PLUGIN_EXPOSE`) the base links against; the matching extern declarations ship inside `MetamodPlugin.hpp`, so your header needs nothing. Your `Managers` struct stays a plain aggregate - one rule: a member initializer may only reference members declared **above** it (declaration order is construction order).
 
 ## What Load does, in order
 

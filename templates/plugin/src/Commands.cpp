@@ -1,14 +1,22 @@
-#include "Managers.hpp"
+#include "App.hpp"
 
 #include <CS2Kit/Api.hpp>
 
 using namespace CS2Kit::Commands;
 
-// Specs self-register at their definition site; the kit ingests them after OnLoad.
-// Add more here or in new .cpp files - there is no central registration list.
-static const bool _pingRegistered = CS2Kit::Registry<CS2Kit::CommandSpec>::Add({
-    .Name = "ping",
-    .Description = "Check that the plugin is alive.",
-    .Usage = "!ping",
-    .Handler = [](CommandContext& c) { return c.Ok("cmd.pong"); },
-});
+namespace $ns
+{
+
+// Registered explicitly from App::Start, so every handler is handed what it needs
+// instead of reaching for a global. Add more here or in new .cpp files.
+void RegisterCommands(CS2Kit::CommandManager& commands)
+{
+    commands.Register({
+        .Name = "ping",
+        .Description = "Check that the plugin is alive.",
+        .Usage = "!ping",
+        .Handler = [](CommandContext& c) { return c.Ok("cmd.pong"); },
+    });
+}
+
+}  // namespace $ns

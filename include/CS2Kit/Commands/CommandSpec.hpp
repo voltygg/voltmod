@@ -22,23 +22,26 @@ struct CommandResult
  * @brief Declarative chat-command definition.
  *
  * A command is one aggregate: name, metadata, permission, typed arguments, and a handler that
- * receives everything pre-resolved. Register at the definition site and ingest once in OnLoad:
+ * receives everything pre-resolved. Register from a function that is handed both the command
+ * table and whatever the handler needs, so the dependency is visible at the call site:
  *
  * @code
- * static const bool _registered = CS2Kit::Registry<CommandSpec>::Add({
+ * void RegisterBanCommands(CommandManager& commands, PunishmentService& punishments)
+ * {
+ * commands.Register({
  *     .Name = "ban",
  *     .Description = "Ban a player.",
  *     .Usage = "!ban <target> <duration> [reason]",
  *     .Permission = Flag(Permission::Ban),
  *     .Args = {Target(), Duration(), ReasonTail("reason.bannedByAdmin")},
- *     .Handler = [](CommandContext& c) {
+ *     .Handler = [&punishments](CommandContext& c) {
  *         std::string name = c.Target->GetName();
- *         if (!IssueBan(*c.Caller, *c.Target, c.Reason, c.DurationSec))
+ *         if (!punishments.IssueBan(*c.Caller, *c.Target, c.Reason, c.DurationSec))
  *             return c.Fail("cmd.banFailed");
  *         return c.Ok("cmd.banSuccess", {{"name", name}});
  *     },
  * });
- * // OnLoad: Commands::Manager().RegisterAll(CS2Kit::Registry<CS2Kit::CommandSpec>::Items());
+ * }
  * @endcode
  *
  * Argument resolution runs before the handler: targets are resolved through the selector

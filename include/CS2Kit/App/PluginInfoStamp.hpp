@@ -4,7 +4,7 @@
 // on plugin targets' include paths), so hoisting this into Api.hpp would
 // rebuild every TU on every commit.
 
-#include <CS2Kit/App/MetamodPluginBase.hpp>
+#include <CS2Kit/App/MetamodPlugin.hpp>
 #include <CS2Kit/BuildInfo.hpp>
 
 namespace CS2Kit::App

@@ -42,7 +42,7 @@ struct StageRecord
  * Both CS2Kit::Initialize and a plugin's OnLoad record their steps here
  * (`runtime.LoadReport`). Later stages guard on earlier ones via IsOk()
  * and return StageResult::Skipped instead of failing with a secondary error;
- * MetamodPluginBase surfaces FirstFailure() in Metamod's error buffer and
+ * MetamodPlugin surfaces FirstFailure() in Metamod's error buffer and
  * logs Summary() after load.
  */
 class LoadReport

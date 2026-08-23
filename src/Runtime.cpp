@@ -129,7 +129,7 @@ bool Runtime::Start(const LoadContext& context)
     ConVar_Register(FCVAR_RELEASE | FCVAR_CLIENT_CAN_EXECUTE | FCVAR_SERVER_CAN_EXECUTE | FCVAR_GAMEDLL);
 
     // 5-6. Load game data and initialize SDK subsystems as named, timed stages.
-    // Only the message system is load-aborting; MetamodPluginBase logs the
+    // Only the message system is load-aborting; MetamodPlugin logs the
     // summary and surfaces FirstFailure() in Metamod's error buffer.
     using Core::StageResult;
     auto& report = LoadReport;

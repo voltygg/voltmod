@@ -1,17 +1,22 @@
 #pragma once
 
-#include "Managers.hpp"
+#include "App.hpp"
 
 #include <CS2Kit/Api.hpp>
+#include <optional>
 
 /**
- * $title plugin entry point. CS2Kit::PluginBase owns the Metamod lifecycle, standard
- * hooks, player tracking, chat-command dispatch, and the Managers container; this class
- * adds plugin metadata and subsystem wiring. Reach the managers via $ns::App().
+ * $title plugin entry point. CS2Kit::MetamodPlugin owns the Metamod lifecycle, standard
+ * hooks, player tracking and chat-command dispatch; this class adds the metadata and owns
+ * the plugin's object graph for one load cycle.
  */
-class $klass : public CS2Kit::PluginBase<$ns::Managers>
+class $klass final : public CS2Kit::MetamodPlugin
 {
 protected:
     CS2Kit::PluginInfo Info() const override;
-    bool OnLoad(bool late) override;
+    bool OnLoad(CS2Kit::Runtime& runtime, bool late) override;
+    void OnUnload() override { _app.reset(); }
+
+private:
+    std::optional<$ns::App> _app;
 };

@@ -1,4 +1,4 @@
-#include <CS2Kit/App/MetamodPluginBase.hpp>  // PLUGIN_GLOBALVARS -> g_SMAPI
+#include <CS2Kit/App/MetamodPlugin.hpp>  // PLUGIN_GLOBALVARS -> g_SMAPI
 #include <CS2Kit/App/ServiceExchange.hpp>
 
 namespace CS2Kit::App

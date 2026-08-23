@@ -53,7 +53,7 @@ public:
     /** Drop all hiding for a slot. Called on disconnect so a reused slot starts clean. */
     void OnPlayerDisconnect(int slot);
 
-    /** Post-hook body for ISource2GameEntities::CheckTransmit; called by MetamodPluginBase. */
+    /** Post-hook body for ISource2GameEntities::CheckTransmit; called by MetamodPlugin. */
     void OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount);
 
 private:

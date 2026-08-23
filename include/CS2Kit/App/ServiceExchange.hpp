@@ -11,7 +11,7 @@ namespace CS2Kit::App
  *
  * The kit is a static library, so each plugin has its own Runtime and sharing cannot go
  * through kit state. It goes through Metamod instead: Publish fills this module's table,
- * which MetamodPluginBase::OnMetamodQuery serves, and Get asks MetaFactory across every
+ * which MetamodPlugin::OnMetamodQuery serves, and Get asks MetaFactory across every
  * loaded plugin.
  *
  * An interface is a pure-virtual struct carrying a versioned `InterfaceName`. Bump the

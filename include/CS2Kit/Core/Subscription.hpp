@@ -73,6 +73,15 @@ public:
         _id = 0;
     }
 
+    /**
+     * A subscription over arbitrary cleanup rather than a registry handle - for the
+     * add/remove pairs that are not handle-keyed, such as SourceHook installs.
+     */
+    [[nodiscard]] static Subscription OnDestroy(std::function<void()> cleanup)
+    {
+        return {[c = std::move(cleanup)](uint64_t) { c(); }, 1};
+    }
+
     /** Give up ownership without unregistering, returning the raw handle. */
     uint64_t Release() noexcept
     {

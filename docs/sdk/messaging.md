@@ -53,7 +53,7 @@ The validator returns `true` to accept the input (capture clears) or `false` to 
 
 ### Plumbing the chat hook
 
-Suppressing a chat broadcast has to happen in the `say` / `say_team` hook. With @ref CS2Kit::Core::MetamodPluginBase that hook is the base's, routed to your `OnPlayerChat` override - call @ref CS2Kit::Sdk::ChatInputCapture::TryConsume there and return `true` to supersede:
+Suppressing a chat broadcast has to happen in the `say` / `say_team` hook. With @ref CS2Kit::Core::MetamodPlugin that hook is the base's, routed to your `OnPlayerChat` override - call @ref CS2Kit::Sdk::ChatInputCapture::TryConsume there and return `true` to supersede:
 
 ```cpp
 bool MyPlugin::OnPlayerChat(Player* p, std::string_view message, bool team) override

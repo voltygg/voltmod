@@ -19,7 +19,7 @@ class Runtime;
 namespace CS2Kit::Detail
 {
 
-/** Point the accessors at @p runtime, or clear them with nullptr. Called by MetamodPluginBase. */
+/** Point the accessors at @p runtime, or clear them with nullptr. Called by MetamodPlugin. */
 void SetRt(Runtime* runtime);
 
 /** The live runtime. Aborts with a log line if called outside a Load/Unload window. */

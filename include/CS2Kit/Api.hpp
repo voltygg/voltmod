@@ -13,7 +13,7 @@
 // Include this header wherever the short `CS2Kit::Type` spelling is used.
 
 #include <CS2Kit/App/JsonConfig.hpp>
-#include <CS2Kit/App/MetamodPluginBase.hpp>
+#include <CS2Kit/App/MetamodPlugin.hpp>
 #include <CS2Kit/App/ServiceExchange.hpp>
 #include <CS2Kit/App/StandardLoad.hpp>
 #include <CS2Kit/Commands/CommandManager.hpp>
@@ -26,9 +26,9 @@
 #include <CS2Kit/Core/Paths.hpp>
 #include <CS2Kit/Core/PluginPolicy.hpp>
 #include <CS2Kit/Core/PluginSettings.hpp>
-#include <CS2Kit/Core/Registry.hpp>
 #include <CS2Kit/Core/Scheduler.hpp>
 #include <CS2Kit/Core/Slot.hpp>
+#include <CS2Kit/Core/Subscription.hpp>
 #include <CS2Kit/Players/EffectDescriptor.hpp>
 #include <CS2Kit/Runtime.hpp>
 // The Database vocabulary lives in <CS2Kit/Database/Api.hpp>, deliberately
@@ -86,7 +86,7 @@ namespace CS2Kit
 // Core
 using App::JsonConfig;
 using App::LoadStandardConfig;
-using App::MetamodPluginBase;
+using App::MetamodPlugin;
 using App::PluginInfo;
 using App::ServiceExchange;
 using App::StandardLoadOptions;
@@ -101,12 +101,12 @@ using Core::IsValidSlot;
 using Core::LoadReport;
 using Core::MaxPlayers;
 using Core::PluginPolicy;
-using Core::Registry;
 using Core::ResolvePath;
 using Core::Scheduler;
 using Core::StageResult;
 using Core::StageStatus;
 using Core::StandardPluginSettings;
+using Core::Subscription;
 using Players::ApplyEffect;
 using Players::ClearEffect;
 using Players::EffectChoice;

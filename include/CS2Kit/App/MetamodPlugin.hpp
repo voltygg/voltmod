@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CS2Kit/Core/MetamodGlobals.hpp>
+#include <CS2Kit/Core/Subscription.hpp>
 #include <cstddef>
 #include <eiface.h>
 #include <functional>
@@ -24,7 +25,7 @@ class Runtime;
 namespace CS2Kit::App
 {
 
-/** @brief Your plugin's name, author, version, and log tag. Return it from MetamodPluginBase::Info().
+/** @brief Your plugin's name, author, version, and log tag. Return it from MetamodPlugin::Info().
  *  Wire Version/Date/Commit to <CS2Kit/BuildInfo.hpp> so `meta list` shows the exact build. */
 struct PluginInfo
 {
@@ -47,20 +48,30 @@ struct PluginInfo
  * You provide the metadata via Info(), your setup in OnLoad(), and override only the callbacks
  * you care about.
  *
+ * The base owns the Runtime for exactly one Load/Unload cycle and hands it to OnLoad. Your
+ * plugin owns everything else the same way - build the object graph in OnLoad, drop it in
+ * OnUnload - so nothing survives a `meta reload`, and each service is handed the collaborators
+ * it needs instead of reaching for them.
+ *
  * @code
- * class MyPlugin : public CS2Kit::App::MetamodPluginBase {
- *     PluginInfo Info() const override { return { .Name = "My Plugin", .LogTag = "MINE" }; }
- *     bool OnLoad(bool late) override { Defer([]{ MySystem::Shutdown(); }); return MySystem::Init(); }
+ * class MyPlugin final : public CS2Kit::MetamodPlugin {
+ *     PluginInfo Info() const override { return {.Name = "My Plugin", .LogTag = "MINE"}; }
+ *     bool OnLoad(CS2Kit::Runtime& runtime, bool late) override
+ *     {
+ *         _app.emplace(runtime);
+ *         return _app->Start();
+ *     }
+ *     void OnUnload() override { _app.reset(); }
+ *     std::optional<MySystem::App> _app;
  * };
- * MyPlugin g_MyPlugin;
- * PLUGIN_EXPOSE(MyPlugin, g_MyPlugin);
+ * CS2KIT_PLUGIN(MyPlugin);
  * @endcode
  */
-class MetamodPluginBase : public ISmmPlugin, public IMetamodListener
+class MetamodPlugin : public ISmmPlugin, public IMetamodListener
 {
 public:
-    MetamodPluginBase();
-    ~MetamodPluginBase();
+    MetamodPlugin();
+    ~MetamodPlugin();
 
     bool Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, bool late) override;
     bool Unload(char* error, size_t maxlen) override;
@@ -81,28 +92,16 @@ protected:
     virtual PluginInfo Info() const = 0;
 
     /**
-     * @brief Set up your plugin here - load config, connect services, register commands.
-     * Return false to abort the load; the base then runs your Defer() cleanups and shuts down.
+     * @brief Set up your plugin here: build its object graph over @p runtime, load config,
+     * register commands. Construct whatever holds load-cycle state now and release it in
+     * OnUnload - that pairing is the whole lifetime.
+     * Return false to abort the load.
      * @param late true if the plugin was loaded after the server had already started.
      */
-    virtual bool OnLoad(bool late) = 0;
+    virtual bool OnLoad(Runtime& runtime, bool late) = 0;
 
-    /** @brief Optional extra teardown on unload. Prefer Defer() - it runs automatically. */
+    /** @brief Release whatever OnLoad built, before the runtime goes away. */
     virtual void OnUnload() {}
-
-    /**
-     * @brief Construct plugin-owned service instances. Runs during Load after the runtime is
-     * started and hooks are registered, right before OnLoad, so member initializers may reach
-     * the runtime.
-     */
-    virtual void OnCreateInstances() {}
-
-    /**
-     * @brief Destroy plugin-owned service instances. Runs on unload AFTER the Defer() cleanups
-     * (so deferred teardown still sees live instances) and BEFORE the kit's own services are
-     * destroyed. Override to `reset()` your Managers container.
-     */
-    virtual void OnDestroyInstances() {}
 
     /**
      * @brief The engine is starting a (new) map. Fires on every map start, after the engine has
@@ -142,14 +141,11 @@ protected:
     virtual bool OnPlayerChat(Players::Player* player, std::string_view message, bool teamChat);
 
     /** @brief Install your own SourceHook hooks here; the base already installs the common ones.
-     *  Pair each with a Defer() that removes it. */
-    virtual void OnRegisterHooks() {}
+     *  Keep each CS2KIT_SCOPED_HOOK subscription in a member so it is removed on unload. */
+    virtual void OnRegisterHooks(Runtime& runtime) {}
 
-    /**
-     * @brief Queue a cleanup callback to run when the plugin unloads (or if loading fails).
-     * Deferred callbacks run in reverse order, so register each cleanup right next to its setup.
-     */
-    void Defer(std::function<void()> cleanup);
+    /** @brief The live runtime, for hook bodies. Valid between OnLoad and OnUnload. */
+    Runtime& Rt() { return *_runtime; }
 
     /** @brief True if the plugin was loaded after the server started, rather than at boot. */
     bool IsLateLoad() const { return _lateLoad; }
@@ -172,12 +168,22 @@ protected:
 
 private:
     void RegisterStandardHooks();
-    void RunDeferred();
 
     bool _lateLoad = false;
-    std::vector<std::function<void()>> _deferred;
+    Core::Subscription _standardHooks;
     std::unique_ptr<CS2Kit::Runtime> _runtime;
     PluginInfo _info;  // cached copy of Info() captured at load; backs the ISmmPlugin getters
 };
 
 }  // namespace CS2Kit::App
+
+/**
+ * @brief The per-plugin entry-point boilerplate in one statement: the global instance
+ * (g_<PluginClass>) and Metamod's PLUGIN_EXPOSE.
+ *
+ * Invoke once, at global namespace scope, in the plugin's Plugin.cpp.
+ */
+#define CS2KIT_PLUGIN(PluginClass)               \
+    PluginClass g_##PluginClass;                 \
+    PLUGIN_EXPOSE(PluginClass, g_##PluginClass); \
+    static_assert(true, "CS2KIT_PLUGIN requires a trailing semicolon")
