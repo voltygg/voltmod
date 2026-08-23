@@ -42,6 +42,8 @@ private:
                      std::string& outError) const;
 
     std::unordered_map<std::string, CommandSpec> _commands;
+    /** Lowercased alias -> the lowercased command name that owns it. */
+    std::unordered_map<std::string, std::string> _aliases;
     std::vector<std::string> _prefixes{"!", "."};
     /** Command names already reported for a missing HasPermission policy, so the error is
      *  logged once rather than on every attempt. */

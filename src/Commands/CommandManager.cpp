@@ -5,6 +5,7 @@
 #include <CS2Kit/Players/TargetResolver.hpp>
 #include <CS2Kit/Runtime.hpp>
 #include <charconv>
+#include <limits>
 
 namespace CS2Kit::Commands
 {
@@ -47,12 +48,51 @@ std::string TargetErrorMessage(const Players::TargetFailure& failure, const std:
 
 void CommandManager::Register(CommandSpec spec)
 {
-    _commands[StringUtils::ToLower(spec.Name)] = std::move(spec);
+    const std::string name = StringUtils::ToLower(spec.Name);
+
+    if (_commands.contains(name) || _aliases.contains(name))
+    {
+        Log::Error("Command '{}' is already registered - ignoring the second registration.", spec.Name);
+        return;
+    }
+
+    // Index aliases up front. Lookup used to fall back to a linear scan over an unordered_map,
+    // so two commands sharing an alias resolved to whichever the bucket order happened to reach
+    // first - stable within a run, arbitrary between builds.
+    std::vector<std::string> claimed;
+    claimed.reserve(spec.Aliases.size());
+    for (const auto& alias : spec.Aliases)
+    {
+        std::string key = StringUtils::ToLower(alias);
+        if (key.empty() || key == name)
+            continue;
+
+        if (_commands.contains(key))
+        {
+            Log::Error("Command '{}' claims alias '{}', which is already a command name - skipping the alias.",
+                       spec.Name, alias);
+            continue;
+        }
+        if (auto it = _aliases.find(key); it != _aliases.end())
+        {
+            Log::Error("Command '{}' claims alias '{}', already taken by '{}' - skipping the alias.", spec.Name,
+                       alias, it->second);
+            continue;
+        }
+        claimed.push_back(std::move(key));
+    }
+
+    for (auto& key : claimed)
+        _aliases.emplace(std::move(key), name);
+
+    _commands[name] = std::move(spec);
 }
 
 void CommandManager::Unregister(const std::string& name)
 {
-    _commands.erase(StringUtils::ToLower(name));
+    const std::string key = StringUtils::ToLower(name);
+    _commands.erase(key);
+    std::erase_if(_aliases, [&](const auto& entry) { return entry.second == key; });
 }
 
 bool CommandManager::HandleChatMessage(Players::Player* caller, std::string_view message)
@@ -229,8 +269,12 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
         case ArgKind::Int:
         {
             auto value = ParseInt64(token);
-            if (!value)
-                return false;
+            if (!value || *value < std::numeric_limits<int>::min() || *value > std::numeric_limits<int>::max())
+            {
+                // Every other kind reports through fail(); Int used to return a bare false, so a
+                // bad number printed the usage line and never its own error key.
+                return fail(spec, "cmd.badNumber", {{"token", token}});
+            }
             ctx.IntValue = static_cast<int>(*value);
             ++i;
             break;
@@ -254,14 +298,15 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
 
 const CommandSpec* CommandManager::GetCommand(const std::string& name) const
 {
-    auto it = _commands.find(StringUtils::ToLower(name));
-    if (it != _commands.end())
+    const std::string key = StringUtils::ToLower(name);
+
+    if (auto it = _commands.find(key); it != _commands.end())
         return &it->second;
 
-    for (const auto& [key, cmd] : _commands)
+    if (auto alias = _aliases.find(key); alias != _aliases.end())
     {
-        if (cmd.Matches(name))
-            return &cmd;
+        if (auto it = _commands.find(alias->second); it != _commands.end())
+            return &it->second;
     }
 
     return nullptr;
