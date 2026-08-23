@@ -11,12 +11,12 @@ The HL2SDK and Metamod:Source arrive as Conan packages from a public remote. Not
 
 ## Start a new project
 
-From an empty directory, let `cs2kit-init-project` stamp the whole thing:
+From an empty directory, let `cs2kit init` stamp the whole thing:
 
 ```sh
 mkdir my-cs2-plugins && cd my-cs2-plugins
 git init
-uvx --from git+https://github.com/voltygg/cs2-kit.git cs2kit-init-project --plugin my-plugin
+uvx --from git+https://github.com/voltygg/cs2-kit.git cs2kit init --plugin my-plugin
 uv sync
 uv run poe bootstrap
 ```

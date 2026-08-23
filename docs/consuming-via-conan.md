@@ -46,7 +46,7 @@ kit's `validate()` rejects mismatching profiles with a pointer back here.
 ```sh
 mkdir my-plugins && cd my-plugins
 git init
-uvx --from git+https://github.com/voltygg/cs2-kit.git cs2kit-init-project --plugin my-plugin
+uvx --from git+https://github.com/voltygg/cs2-kit.git cs2kit init --plugin my-plugin
 uv sync
 uv run poe bootstrap
 ```

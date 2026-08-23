@@ -16,13 +16,13 @@ dependencies = [
 package = false
 
 [tool.poe.tasks]
-build = "cs2kit-build"
-build-linux = "cs2kit-build linux-steamrt-release"
-bootstrap = "cs2kit-bootstrap"
-new-plugin = "cs2kit-new-plugin"
+build = "cs2kit build"
+build-linux = "cs2kit build linux-steamrt-release"
+bootstrap = "cs2kit bootstrap"
+new-plugin = "cs2kit new-plugin"
 lint = "ruff check ."
-format = "cs2kit-format"
-format-check = "cs2kit-format --check"
+format = "cs2kit format"
+format-check = "cs2kit format --check"
 
 [tool.ruff]
 line-length = 100

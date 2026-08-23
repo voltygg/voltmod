@@ -17,12 +17,7 @@ dependencies = [
 ]
 
 [project.scripts]
-cs2kit-build = "cs2kit.build:main"
-cs2kit-bootstrap = "cs2kit.bootstrap:main"
-cs2kit-format = "cs2kit.format:main"
-cs2kit-new-plugin = "cs2kit.new_plugin:main"
-cs2kit-init-project = "cs2kit.init_project:main"
-cs2kit-modgraph = "cs2kit.modgraph:main"
+cs2kit = "cs2kit.cli:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -46,16 +41,17 @@ dev = [
     "poethepoet>=0.47.0",
 ]
 
+# Aliases for the cs2kit CLI, which is where the behaviour lives.
 [tool.poe.tasks]
-build = "cs2kit-build"
-build-linux = "cs2kit-build linux-steamrt-release"
+build = "cs2kit build"
+build-linux = "cs2kit build linux-steamrt-release"
 # Stamps plugins/<name>/ in the invoking repo (run from the consuming repo's root).
-new-plugin = "cs2kit-new-plugin"
+new-plugin = "cs2kit new-plugin"
 lint = "ruff check ."
 # Fails if a module starts depending on a layer above it.
-modgraph = "cs2kit-modgraph"
-format = "cs2kit-format"
-format-check = "cs2kit-format --check"
+modgraph = "cs2kit modgraph"
+format = "cs2kit format"
+format-check = "cs2kit format --check"
 
 [tool.ruff]
 line-length = 100

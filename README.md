@@ -20,7 +20,7 @@ You describe your plugin's behavior as data - commands, menu rows, effects, data
 - **Typed game events** - `Listen<PlayerDeath>(...)` instead of string names and `GetInt` calls; the raw overload stays for unmodeled events.
 - **PostgreSQL** (optional) - async-first client (worker thread owns the connection, completions on the game thread), column-table row mapping that generates the INSERT/SELECT/parse code, and a migration runner. Gated behind `CS2KIT_ENABLE_POSTGRES`.
 - **HTTP** - async requests with game-thread completions, plus config-driven JSON endpoint helpers.
-- **Project + plugin scaffolding** - `cs2kit-init-project` stamps a complete buildable project (root CMake, presets, conanfile, poe tasks); `cs2kit-new-plugin` adds more from the `templates/plugin/` tree.
+- **Project + plugin scaffolding** - `cs2kit init` stamps a complete buildable project (root CMake, presets, conanfile, poe tasks); `cs2kit new-plugin` adds more from the `templates/plugin/` tree.
 - **One-call plugin builds** - `cs2_add_plugin(<name>)` declares the whole Metamod module: sources, SDK glue, output layout, the generated `.vdf`, and per-plugin install components.
 
 ## Quick start
@@ -30,7 +30,7 @@ Start a plugin project from an empty directory:
 ```sh
 mkdir my-cs2-plugins && cd my-cs2-plugins
 git init
-uvx --from git+https://github.com/voltygg/cs2-kit.git cs2kit-init-project --plugin my-plugin
+uvx --from git+https://github.com/voltygg/cs2-kit.git cs2kit init --plugin my-plugin
 uv sync
 uv run poe bootstrap
 ```

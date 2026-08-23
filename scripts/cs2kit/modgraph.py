@@ -8,11 +8,10 @@ the authority, and this exits non-zero naming the include that violated it.
 Detail/ is the composition root's private bridge - every module may reach it, and it
 reaches back into all of them. That is the one deliberate exemption.
 
-Usage: cs2kit-modgraph [repo-root]   (default: the working directory)
+Usage: cs2kit modgraph [repo-root]   (default: the working directory)
 """
 
 import re
-import sys
 from collections import defaultdict
 from pathlib import Path
 
@@ -74,8 +73,8 @@ def violations(edges):
     return found
 
 
-def main() -> int:
-    root = Path(sys.argv[1] if len(sys.argv) > 1 else ".")
+def check(root: Path) -> int:
+    """Print the graph and return a process exit code."""
     if not (root / "include/CS2Kit").is_dir():
         print(f"error: no include/CS2Kit under {root.resolve()}")
         return 2

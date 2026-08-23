@@ -1,6 +1,6 @@
 """Stamp a new plugin skeleton under plugins/<name>/ in the consuming repo.
 
-Usage (from the consuming repo's root): uv run poe new-plugin <name>
+Usage (from the consuming repo's root): cs2kit new-plugin <name>
 
 <name> is kebab-case (e.g. "fun-votes"). The generated plugin builds as-is: it loads
 settings.jsonc, installs a permissive policy, and answers !ping. The repo's root
@@ -11,7 +11,7 @@ file contents are rendered with string.Template ($name, $ns, $klass, $title, $ta
 The script targets the current working directory, so any repo depending on the kit
 can expose it as a task:
 
-    new-plugin = "cs2kit-new-plugin"
+    new-plugin = "cs2kit new-plugin"
 """
 
 import argparse
@@ -100,12 +100,11 @@ def scaffold_plugin(name: str) -> int:
     return 0
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    parser.add_argument("name", type=kebab_case, help="kebab-case plugin name, e.g. fun-votes")
-    name = parser.parse_args().name
+def create(name: str) -> int:
+    """Render templates/plugin into plugins/<name>/ and register the subdirectory."""
+    if not TEMPLATE_DIR.is_dir():
+        print(f"error: template tree missing at {TEMPLATE_DIR}.")
+        return 1
 
     if not (REPO_ROOT / "CMakeLists.txt").is_file():
         print(f"error: no CMakeLists.txt in {REPO_ROOT}; run from your repo's root.")
@@ -116,5 +115,3 @@ def main() -> int:
 
     print("\nDone. Build it with: uv run poe build")
     return 0
-
-

@@ -22,8 +22,9 @@ cmake/                 CS2KitCommon.cmake (paths, platform, toolchain fallbacks)
                        + CS2KitTests.cmake (cs2_add_tests) + DoctestMain.cpp + templates
                        + CS2KitLibrary.cmake (kit-internal: one static lib per target)
 scripts/cs2kit/        Build + scaffolding tooling, shipped as the `cs2-kit` Python
-                       distribution (cs2kit-build, -bootstrap, -format, -new-plugin,
-                       -init-project); every entry point targets Path.cwd()
+                       distribution behind one `cs2kit` command (build, bootstrap,
+                       format, modgraph, new-plugin, init); every subcommand
+                       targets Path.cwd()
 templates/plugin/      Plugin scaffold tree ($name/$ns/... placeholders)
 templates/project/     Consumer-project scaffold
 test_package/          conan create validation: hello plugin via cs2_add_plugin
@@ -48,7 +49,7 @@ uv run poe build
 uv run poe build windows-msvc-release
 uv run poe build-linux
 uv run poe new-plugin <name>   # scaffold a plugin into the invoking repo's plugins/
-cs2kit-init-project            # stamp a whole consumer project (run from its root)
+cs2kit init                    # stamp a whole consumer project (run from its root)
 ```
 
 `poe build` runs the full workflow preset (configure, build, ctest). Consuming

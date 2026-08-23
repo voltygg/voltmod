@@ -21,7 +21,8 @@ class Hl2SdkCs2Conan(ConanFile):
     """
 
     name = "hl2sdk-cs2"
-    description = "HL2SDK (CS2 branch): headers, prebuilt libs, generated protobufs, source-only TUs"
+    description = ("HL2SDK (CS2 branch): headers, prebuilt libs, generated protobufs, "
+                   "source-only TUs")
     license = "LicenseRef-Valve-Source-SDK"
     homepage = "https://github.com/alliedmodders/hl2sdk/tree/cs2"
     package_type = "static-library"
@@ -94,7 +95,8 @@ class Hl2SdkCs2Conan(ConanFile):
         Git(self).fetch_commit(url=data["url"], commit=data["commit"])
 
     def _protoc(self):
-        relative = "devtools/bin/protoc.exe" if self.settings.os == "Windows" else "devtools/bin/linux/protoc"
+        windows = self.settings.os == "Windows"
+        relative = "devtools/bin/protoc.exe" if windows else "devtools/bin/linux/protoc"
         path = os.path.join(self.source_folder, relative)
         if not os.path.isfile(path):
             raise ConanInvalidConfiguration(f"the SDK checkout has no protoc at {relative}")
@@ -120,12 +122,14 @@ class Hl2SdkCs2Conan(ConanFile):
             for pattern in ("*.h", "*.hpp", "*.inl", "*.inc", "*.proto"):
                 copy(self, pattern, os.path.join(src, tree), os.path.join(dst, tree))
         for pattern in ("*.h", "*.inc", "*.proto"):
-            copy(self, pattern, os.path.join(src, self.PROTOBUF_SRC), os.path.join(dst, self.PROTOBUF_SRC))
+            copy(self, pattern, os.path.join(src, self.PROTOBUF_SRC),
+                 os.path.join(dst, self.PROTOBUF_SRC))
         for rel in self.SOURCE_ONLY:
             copy(self, os.path.basename(rel), os.path.join(src, os.path.dirname(rel)),
                  os.path.join(dst, os.path.dirname(rel)))
         # Generated .pb.h/.pb.cc. protoc itself is not shipped - only build() needs it.
-        copy(self, "*", os.path.join(self.build_folder, "generated"), os.path.join(dst, "generated"))
+        copy(self, "*", os.path.join(self.build_folder, "generated"),
+             os.path.join(dst, "generated"))
         if self.settings.os == "Linux":
             lib_dir = os.path.join(dst, "lib/linux64")
             copy(self, "*", os.path.join(src, "lib/linux64"), lib_dir)
@@ -136,8 +140,10 @@ class Hl2SdkCs2Conan(ConanFile):
                 if os.path.isfile(plain):
                     shutil.copyfile(plain, os.path.join(lib_dir, f"lib{stem}.a"))
         else:
-            copy(self, "*", os.path.join(src, "lib/public/win64"), os.path.join(dst, "lib/public/win64"))
-        copy(self, "hl2sdk-sources.cmake", os.path.join(self.recipe_folder, "cmake"), os.path.join(dst, "cmake"))
+            copy(self, "*", os.path.join(src, "lib/public/win64"),
+                 os.path.join(dst, "lib/public/win64"))
+        copy(self, "hl2sdk-sources.cmake", os.path.join(self.recipe_folder, "cmake"),
+             os.path.join(dst, "cmake"))
         copy(self, "LICENSE*", src, os.path.join(dst, "licenses"))
 
     def package_info(self):
@@ -167,7 +173,8 @@ class Hl2SdkCs2Conan(ConanFile):
             "PLATFORM_64BITS",
         ]
         self.cpp_info.builddirs = ["cmake"]
-        self.cpp_info.set_property("cmake_build_modules", [os.path.join("cmake", "hl2sdk-sources.cmake")])
+        self.cpp_info.set_property("cmake_build_modules",
+                                   [os.path.join("cmake", "hl2sdk-sources.cmake")])
         if self.settings.os == "Linux":
             self.cpp_info.defines += [
                 "stricmp=strcasecmp",
