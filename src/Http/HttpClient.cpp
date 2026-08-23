@@ -1,5 +1,7 @@
 #include <CS2Kit/Http/HttpClient.hpp>
 #include <chrono>
+#include <deque>
+#include <functional>
 #include <cpr/cpr.h>
 #include <future>
 #include <utility>
@@ -52,7 +54,37 @@ struct HttpClient::Impl
         HttpCompletion OnComplete;
     };
 
+    struct Queued
+    {
+        std::function<HttpResult()> Task;
+        HttpCompletion OnComplete;
+    };
+
+    /** Each in-flight request is its own std::async thread. Unbounded, that let a burst of
+     *  requests spawn a thread apiece on a box already budgeting its cores for the tick loop;
+     *  past this many, requests wait their turn. */
+    static constexpr size_t MaxInFlight = 4;
+
     std::vector<Pending> Items;
+    std::deque<Queued> Waiting;
+
+    void Launch(Queued&& queued)
+    {
+        if (Items.size() < MaxInFlight)
+            Items.push_back({std::async(std::launch::async, std::move(queued.Task)), std::move(queued.OnComplete)});
+        else
+            Waiting.push_back(std::move(queued));
+    }
+
+    void PumpWaiting()
+    {
+        while (!Waiting.empty() && Items.size() < MaxInFlight)
+        {
+            Queued next = std::move(Waiting.front());
+            Waiting.pop_front();
+            Items.push_back({std::async(std::launch::async, std::move(next.Task)), std::move(next.OnComplete)});
+        }
+    }
 };
 
 HttpClient::HttpClient() : _impl(std::make_unique<Impl>()) {}
@@ -69,6 +101,7 @@ void HttpClient::Stop()
     for (auto& p : _impl->Items)
         p.Result.wait();
     _impl->Items.clear();
+    _impl->Waiting.clear();  // never started, so nothing to wait on
 }
 
 void HttpClient::Post(std::string url, std::string body, std::vector<std::string> headers, long timeoutMs,
@@ -82,7 +115,7 @@ void HttpClient::Post(std::string url, std::string body, std::vector<std::string
                                       cpr::Timeout{std::chrono::milliseconds{timeoutMs}}));
     };
 
-    _impl->Items.push_back({std::async(std::launch::async, std::move(task)), std::move(onComplete)});
+    _impl->Launch({std::move(task), std::move(onComplete)});
 }
 
 void HttpClient::Get(std::string url, std::vector<std::string> headers, long timeoutMs, HttpCompletion onComplete)
@@ -92,7 +125,7 @@ void HttpClient::Get(std::string url, std::vector<std::string> headers, long tim
             cpr::Get(cpr::Url{url}, ParseHeaderLines(headers), cpr::Timeout{std::chrono::milliseconds{timeoutMs}}));
     };
 
-    _impl->Items.push_back({std::async(std::launch::async, std::move(task)), std::move(onComplete)});
+    _impl->Launch({std::move(task), std::move(onComplete)});
 }
 
 void HttpClient::DispatchCompletions()
@@ -114,6 +147,10 @@ void HttpClient::DispatchCompletions()
             ++it;
         }
     }
+
+    // Start whatever was waiting on a slot before running callbacks, so a queued request is not
+    // held back by however long the completions take.
+    _impl->PumpWaiting();
 
     for (auto& p : ready)
     {
