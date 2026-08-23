@@ -47,7 +47,7 @@ void SetGodmode(const PlayerController& pc, bool enable);
 bool ToggleGodmode(const PlayerController& pc);
 
 /** Punt the pawn upward with random horizontal jitter, granting FL_GODMODE for
- *  `fallProtectMs` (via Engine().Scheduler) so the landing doesn't kill the target.
+ *  `fallProtectMs` (via Ctx().Scheduler) so the landing doesn't kill the target.
  *  Pre-existing godmode is left untouched. */
 void Slap(const PlayerController& pc, float upward = 800.0f, float horizontal = 100.0f, int fallProtectMs = 3000);
 

@@ -1,5 +1,5 @@
-#include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
+#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <CS2Kit/Sdk/ServerClock.hpp>
 #include <globalvars.h>
 
@@ -8,7 +8,7 @@ namespace CS2Kit::Sdk
 
 CGlobalVars* GetServerGlobals()
 {
-    auto* services = Core::EngineOrNull();
+    auto* services = CtxOrNull();
     if (!services || !services->Interfaces.Engine)
         return nullptr;
     return services->Interfaces.Engine->GetServerGlobals();

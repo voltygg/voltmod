@@ -1,15 +1,13 @@
 #include "Sdk/Schema.hpp"
 
-#include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Sdk/Entity.hpp>
 #include <CS2Kit/Sdk/GameData.hpp>
 #include <CS2Kit/Sdk/MemoryAccess.hpp>
+#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <CS2Kit/Sdk/TransmitFilter.hpp>
 #include <checktransmitinfo.h>
 #include <cstdint>
 #include <entity2/entityinstance.h>
-
-using CS2Kit::Core::Engine;
 
 namespace CS2Kit::Sdk
 {
@@ -51,21 +49,21 @@ void AddHandleVector(HiddenPlayer& player, void* base, int offset)
     const auto* view = MemberPtr<const HandleVectorView>(base, offset);
     if (!view->Elements)
         return;
-    auto& entities = Engine().Entities;
+    auto& entities = Ctx().Entities;
     for (int32_t i = 0; i < view->Count && i < MaxIndicesPerPlayer; ++i)
         AddIndex(player, entities.GetEntityIndex(entities.ResolveEntityHandle(view->Elements[i])));
 }
 
 CEntityInstance* GetCurrentPawn(int slot)
 {
-    auto* controller = Engine().Entities.GetPlayerController(slot);
+    auto* controller = Ctx().Entities.GetPlayerController(slot);
     if (!controller)
         return nullptr;
     // m_hPawn is the possessed pawn (observer pawn while dead/spectating), unlike m_hPlayerPawn.
-    int offset = Engine().Schema().GetOffset("CBasePlayerController", "m_hPawn", sizeof(uint32_t));
+    int offset = Ctx().Schema().GetOffset("CBasePlayerController", "m_hPawn", sizeof(uint32_t));
     if (offset < 0)
         return nullptr;
-    return Engine().Entities.ResolveEntityHandle(ReadAt<uint32_t>(controller, offset));
+    return Ctx().Entities.ResolveEntityHandle(ReadAt<uint32_t>(controller, offset));
 }
 
 // True when `recipientSlot` is currently observing `hiddenPawn`; the pawn must keep
@@ -76,7 +74,7 @@ bool IsObservingPawn(int recipientSlot, CEntityInstance* hiddenPawn)
     if (!pawn)
         return false;
 
-    auto& schema = Engine().Schema();
+    auto& schema = Ctx().Schema();
     int servicesOffset = schema.GetOffset("CBasePlayerPawn", "m_pObserverServices");
     if (servicesOffset < 0)
         return false;
@@ -88,32 +86,32 @@ bool IsObservingPawn(int recipientSlot, CEntityInstance* hiddenPawn)
     if (targetOffset < 0)
         return false;
     auto targetHandle = ReadAt<uint32_t>(observerServices, targetOffset);
-    return Engine().Entities.ResolveEntityHandle(targetHandle) == hiddenPawn;
+    return Ctx().Entities.ResolveEntityHandle(targetHandle) == hiddenPawn;
 }
 
 void CollectHiddenPlayer(int slot, bool pawnHidden, bool controllerHidden, HiddenPlayer& out)
 {
     out.Slot = slot;
 
-    auto* controller = Engine().Entities.GetPlayerController(slot);
+    auto* controller = Ctx().Entities.GetPlayerController(slot);
     if (!controller)
         return;
 
     if (controllerHidden)
-        out.ControllerIndex = Engine().Entities.GetEntityIndex(controller);
+        out.ControllerIndex = Ctx().Entities.GetEntityIndex(controller);
 
     if (!pawnHidden)
         return;
 
-    auto& schema = Engine().Schema();
+    auto& schema = Ctx().Schema();
     int pawnOffset = schema.GetOffset("CCSPlayerController", "m_hPlayerPawn");
     if (pawnOffset < 0)
         return;
-    out.Pawn = Engine().Entities.ResolveEntityHandle(ReadAt<uint32_t>(controller, pawnOffset));
+    out.Pawn = Ctx().Entities.ResolveEntityHandle(ReadAt<uint32_t>(controller, pawnOffset));
     if (!out.Pawn)
         return;
 
-    AddIndex(out, Engine().Entities.GetEntityIndex(out.Pawn));
+    AddIndex(out, Ctx().Entities.GetEntityIndex(out.Pawn));
 
     int weaponServicesOffset = schema.GetOffset("CBasePlayerPawn", "m_pWeaponServices");
     if (weaponServicesOffset >= 0)
@@ -129,7 +127,7 @@ void CollectHiddenPlayer(int slot, bool pawnHidden, bool controllerHidden, Hidde
 
 bool TransmitFilterService::Initialize()
 {
-    _slotOffset = Engine().GameData.GetOffset("CheckTransmitPlayerSlot");
+    _slotOffset = Ctx().GameData.GetOffset("CheckTransmitPlayerSlot");
     return _slotOffset >= 0;
 }
 

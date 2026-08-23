@@ -29,7 +29,7 @@ struct PluginPolicy
     std::function<bool(Players::Player& caller, Players::Player& target)> CanTarget;
 
     /** Deliver a command result or error line (e.g. as a colored chat reply);
-     *  empty falls back to a plain Engine().Messages.Reply. */
+     *  empty falls back to a plain Engine().Sdk.Messages.Reply. */
     std::function<void(int slot, std::string_view message)> Reply;
 
     /** Announce a performed action; @p target is null for actions without one. */

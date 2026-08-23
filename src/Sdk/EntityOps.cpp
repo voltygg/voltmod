@@ -1,17 +1,15 @@
 #include "Sdk/Schema.hpp"
 
-#include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Sdk/EntityKeyValues.hpp>
 #include <CS2Kit/Sdk/EntityOps.hpp>
 #include <CS2Kit/Sdk/GameData.hpp>
+#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <CS2Kit/Utils/Log.hpp>
 #include <bit>
 #include <entity2/entityinstance.h>
 #include <entity2/entitykeyvalues.h>
 #include <entity2/entitysystem.h>
 #include <variant.h>
-
-using CS2Kit::Core::Engine;
 
 namespace CS2Kit::Sdk
 {
@@ -81,7 +79,7 @@ void FireInput(void* acceptInput, CEntityInstance* entity, const char* input, va
 
 bool EntityOpsService::Initialize()
 {
-    auto& gameData = Engine().GameData;
+    auto& gameData = Ctx().GameData;
 
     struct SignatureSlot
     {
@@ -164,7 +162,7 @@ void EntityOpsService::AddIOEvent(CEntityInstance* target, const char* input, fl
     if (!_addEntityIOEvent || !target || !input)
         return;
 
-    CEntitySystem* system = Engine().Entities.GetEntitySystem();
+    CEntitySystem* system = Ctx().Entities.GetEntitySystem();
     if (!system)
         return;
 
@@ -222,7 +220,7 @@ void EntityOpsService::NotifyFieldChanged(CEntityInstance* entity, const char* c
     if (!entity || !className || !fieldName)
         return;
 
-    int offset = Engine().Schema().GetOffset(className, fieldName);
+    int offset = Ctx().Schema().GetOffset(className, fieldName);
     if (offset < 0)
         return;
 

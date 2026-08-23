@@ -1,7 +1,7 @@
-#include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Sdk/Entity.hpp>
 #include <CS2Kit/Sdk/MoveType.hpp>
 #include <CS2Kit/Sdk/PawnOps.hpp>
+#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <cmath>
 #include <mathlib/vector.h>
 #include <numbers>
@@ -91,7 +91,7 @@ void Slap(const PlayerController& pc, float upward, float horizontal, int fallPr
     {
         SetGodmode(pc, true);
         int slot = pc.GetSlot();
-        Core::Engine().Scheduler.Delay(fallProtectMs, [slot]() {
+        Ctx().Scheduler.Delay(fallProtectMs, [slot]() {
             PlayerController target(slot);
             if (target.IsValid())
                 SetGodmode(target, false);

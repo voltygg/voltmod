@@ -17,7 +17,7 @@ namespace CS2Kit::Sdk::EffectOps
 /**
  * Spawn a particle system at @p origin (info_particle_system, started immediately).
  * Effects that are not baked into the map must be precached via
- * Engine().Precache.Add(effectName) and shipped to clients (workshop addon).
+ * Ctx().Precache.Add(effectName) and shipped to clients (workshop addon).
  * @param lifetimeSeconds destroy the helper entity after this long (> 0).
  */
 CEntityInstance* SpawnParticle(const char* effectName, const Vector& origin, float lifetimeSeconds);
@@ -33,7 +33,7 @@ CEntityInstance* SpawnBeam(const Vector& from, const Vector& to, const Color& co
 /**
  * Spawn a prop with @p modelPath at @p origin (prop_physics_override or
  * prop_dynamic_override). Models that are not baked into the map must be precached
- * via Engine().Precache.Add(modelPath) and shipped to clients.
+ * via Ctx().Precache.Add(modelPath) and shipped to clients.
  * @param lifetimeSeconds destroy the prop after this long; 0 keeps it until round end.
  */
 CEntityInstance* SpawnProp(const char* modelPath, const Vector& origin, bool physics, float lifetimeSeconds = 0.0f);

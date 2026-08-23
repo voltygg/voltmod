@@ -11,29 +11,9 @@
 #include <CS2Kit/Http/HttpClient.hpp>
 #include <CS2Kit/Menu/MenuManager.hpp>
 #include <CS2Kit/Players/PlayerManager.hpp>
-#include <CS2Kit/Sdk/ChatInputCapture.hpp>
-#include <CS2Kit/Sdk/ClientCvarService.hpp>
-#include <CS2Kit/Sdk/ConVarService.hpp>
-#include <CS2Kit/Sdk/Entity.hpp>
-#include <CS2Kit/Sdk/EntityOps.hpp>
-#include <CS2Kit/Sdk/GameData.hpp>
-#include <CS2Kit/Sdk/GameEventService.hpp>
-#include <CS2Kit/Sdk/GameInterfaces.hpp>
-#include <CS2Kit/Sdk/InputHistoryService.hpp>
-#include <CS2Kit/Sdk/MovementHook.hpp>
-#include <CS2Kit/Sdk/NetChannel.hpp>
-#include <CS2Kit/Sdk/PrecacheService.hpp>
-#include <CS2Kit/Sdk/TeleportTracker.hpp>
-#include <CS2Kit/Sdk/TransmitFilter.hpp>
-#include <CS2Kit/Sdk/UserMessage.hpp>
+#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <CS2Kit/Utils/Translations.hpp>
-#include <memory>
 #include <string>
-
-namespace CS2Kit::Sdk
-{
-class SchemaService;  // internal (src/Sdk/Schema.hpp) - held by pointer so this public header stays clean
-}
 
 namespace CS2Kit::Core
 {
@@ -46,7 +26,7 @@ namespace CS2Kit::Core
  * `meta unload`/`meta reload`. Members are declared in dependency order;
  * destruction is the reverse (RAII).
  *
- * Reach a service via @ref Engine() (e.g. `Engine().Players`, `Engine().Schema()`).
+ * Reach a service via @ref Engine() (e.g. `Engine().Players`, `Engine().Sdk.Schema()`).
  */
 class Services
 {
@@ -74,39 +54,17 @@ public:
     /** "This slot changed hands", raised by Players and consumed by services beneath it.
      *  Declared here so it outlives every listener below. */
     Core::SlotEvents Slots;
-    Sdk::GameInterfaces Interfaces;  // plain interface-pointer holder; populated in CS2Kit::Initialize
-    Sdk::GameData GameData;
-    Sdk::MessageSystem Messages;
-    Sdk::EntitySystem Entities;
-    Sdk::EntityOpsService EntityOps;
-    Sdk::TransmitFilterService Transmit;
-    Sdk::PrecacheService Precache;
-    Sdk::ConVarService ConVars;
-    /** Dormant until a plugin calls Install(); removes its vtable hook on destruction. */
-    Sdk::MovementHook MovementHook;
-    /** Stateless per-client net-channel reads (latency, replicated userinfo cvars). */
-    Sdk::NetChannelService NetChannels;
-    Sdk::GameEventService Events;
     Core::Scheduler Scheduler;
-    Sdk::ChatInputCapture ChatInput;
     Utils::Translations Translations;
+
+    /** Every engine-facing service, as one lower-layer unit. */
+    Sdk::SdkServices Sdk{Scheduler, Slots, Translations};
+
     Players::PlayerManager Players{Slots};
-    /** Dormant until Enable(depth); listens on MovementHook cmd feed + slot changes. */
-    Sdk::InputHistoryService InputHistory{Slots};
-    /** Dormant until Enable(); per-pawn Teleport hook re-bound on PlayerSpawn. */
-    Sdk::TeleportTracker Teleports{Slots};
-    /** Async client-side convar reads. Inert when its load stage degraded (Available() == false). */
-    Sdk::ClientCvarService ClientCvars;
     Commands::CommandManager Commands;
     Menu::MenuManager Menus;
     /** Completions dispatch on the game thread from the OnGameFrame pump; Shutdown stops it. */
     Http::HttpClient Http;
-
-    /** Internal schema-offset service (forward-declared type). */
-    Sdk::SchemaService& Schema() { return *_schema; }
-
-private:
-    std::unique_ptr<Sdk::SchemaService> _schema;  // constructed last, before public members are used
 };
 
 /** Set/clear the active Services backing @ref Engine(). Called by MetamodPluginBase on Load/Unload. */

@@ -1,12 +1,12 @@
 #include "Sdk/VtableLookup.hpp"
 
 #include <CS2Kit/Core/MetamodPluginBase.hpp>
-#include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Core/Slot.hpp>
 #include <CS2Kit/Sdk/ClientCvarService.hpp>
 #include <CS2Kit/Sdk/Detail/ClientCvarPending.hpp>
 #include <CS2Kit/Sdk/GameData.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
+#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <CS2Kit/Utils/Log.hpp>
 #include <CS2Kit/Utils/TimeUtils.hpp>
 #include <cstdint>
@@ -76,7 +76,7 @@ bool ClientCvarService::Impl::Initialize()
     if (_hookId != 0)
         return true;
 
-    auto& services = Core::Engine();
+    auto& services = Ctx();
     const auto& interfaces = services.Interfaces;
     if (!interfaces.Engine || !interfaces.NetworkMessages || !interfaces.GameEventSystem)
     {
@@ -164,7 +164,7 @@ bool ClientCvarService::Impl::Query(int slot, const std::string& cvarName, Query
 
 bool ClientCvarService::Impl::Send(int slot, const std::string& cvarName, int cookie)
 {
-    const auto& interfaces = Core::Engine().Interfaces;
+    const auto& interfaces = Ctx().Interfaces;
 
     // Bots and empty slots have no net channel, so posting would be a silent no-op leaving a
     // pending entry to time out.

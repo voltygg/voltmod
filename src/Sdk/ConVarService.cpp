@@ -1,8 +1,8 @@
-#include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Core/Slot.hpp>
 #include <CS2Kit/Sdk/ConVarService.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
 #include <CS2Kit/Sdk/RecipientFilter.hpp>
+#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <CS2Kit/Utils/Log.hpp>
 #include <engine/igameeventsystem.h>
 #include <icvar.h>
@@ -10,8 +10,6 @@
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
 #include <tier1/convar.h>
-
-using CS2Kit::Core::Engine;
 
 namespace
 {
@@ -23,7 +21,7 @@ void GlobalConVarChangeCallback(ConVarRefAbstract* ref, CSplitScreenSlot /*slot*
         return;
 
     const char* name = ref->GetName();
-    Engine().ConVars.DispatchChange(name, oldValue, newValue);
+    CS2Kit::Sdk::Ctx().ConVars.DispatchChange(name, oldValue, newValue);
 }
 
 }  // namespace
@@ -69,7 +67,7 @@ void RawConVar::SetFloat(float value)
 
 bool ConVarService::Initialize()
 {
-    if (!Engine().Interfaces.CVar)
+    if (!Ctx().Interfaces.CVar)
     {
         Log::Error("ConVarService: ICvar not available.");
         return false;
@@ -154,7 +152,7 @@ bool ConVarService::SetString(const char* name, const char* value)
 
 void ConVarService::ExecuteServerCommand(const char* command)
 {
-    auto* engine = Engine().Interfaces.Engine;
+    auto* engine = Ctx().Interfaces.Engine;
     if (!engine)
     {
         Log::Warn("ConVarService::ExecuteServerCommand: IVEngineServer2 not available.");
@@ -176,7 +174,7 @@ void ConVarService::ExecuteServerCommand(const char* command)
 
 bool ConVarService::ReplicateToClient(int slot, const char* name, const char* value)
 {
-    auto& interfaces = Engine().Interfaces;
+    auto& interfaces = Ctx().Interfaces;
     if (!interfaces.GameEventSystem || !interfaces.NetworkMessages || !Core::IsValidSlot(slot) || !name || !value)
         return false;
 
@@ -219,7 +217,7 @@ uint64_t ConVarService::OnChange(ChangeCallback callback)
 {
     if (!_globalCallbackInstalled)
     {
-        auto* cvar = Engine().Interfaces.CVar;
+        auto* cvar = Ctx().Interfaces.CVar;
         if (cvar)
         {
             cvar->InstallGlobalChangeCallback(&GlobalConVarChangeCallback);

@@ -1,18 +1,16 @@
 #include <CS2Kit/Core/MetamodPluginBase.hpp>
-#include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Core/Slot.hpp>
 #include <CS2Kit/Sdk/GameData.hpp>
 #include <CS2Kit/Sdk/GameEventService.hpp>
 #include <CS2Kit/Sdk/GameEvents.hpp>
 #include <CS2Kit/Sdk/PlayerController.hpp>
+#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <CS2Kit/Sdk/ServerClock.hpp>
 #include <CS2Kit/Sdk/TeleportTracker.hpp>
 #include <CS2Kit/Utils/Log.hpp>
 #include <mathlib/vector.h>
 
 PLUGIN_GLOBALVARS();
-
-using CS2Kit::Core::Engine;
 
 namespace CS2Kit::Sdk
 {
@@ -33,7 +31,7 @@ bool TeleportTracker::Enable()
     if (_enabled)
         return true;
 
-    int index = Engine().GameData.GetOffset("Teleport");
+    int index = Ctx().GameData.GetOffset("Teleport");
     if (index < 0)
     {
         Log::Warn("TeleportTracker: gamedata offset 'Teleport' missing; tracking disabled.");
@@ -48,7 +46,7 @@ bool TeleportTracker::Enable()
 
     // Spawning hands the player a new pawn object, so the old binding is stale - and the spawn
     // placement is itself a teleport worth stamping.
-    _spawnListener = Engine().Events.Listen<Events::PlayerSpawn>([this](const Events::PlayerSpawn& e) {
+    _spawnListener = Ctx().Events.Listen<Events::PlayerSpawn>([this](const Events::PlayerSpawn& e) {
         Bind(e.Slot);
         Stamp(e.Slot);
     });
@@ -72,7 +70,7 @@ void TeleportTracker::Disable()
     if (_slotListener != 0)
         _slots.Remove(_slotListener);
     // Runs from the destructor too, where the hub may already be gone.
-    if (auto* services = Core::EngineOrNull(); services && _spawnListener != 0)
+    if (auto* services = CtxOrNull(); services && _spawnListener != 0)
         services->Events.RemoveListener(_spawnListener);
     _spawnListener = 0;
     _slotListener = 0;

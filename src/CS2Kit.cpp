@@ -63,7 +63,7 @@ bool Initialize(ISmmAPI* ismm, char* error, size_t maxlen, Core::Services& servi
         return ismm->VInterfaceMatch(ismm->GetServerFactory(), version, 0);
     };
 
-    auto& gi = services.Interfaces;
+    auto& gi = services.Sdk.Interfaces;
 
     // Resolve each required interface, erroring out on the first one that is missing. The macro
     // keeps this type-safe (decltype, no void** punning) while collapsing the per-interface
@@ -102,17 +102,17 @@ bool Initialize(ISmmAPI* ismm, char* error, size_t maxlen, Core::Services& servi
 
     report.Run("GameData", [&] {
         const char* gameDataPath = params.GameDataPath ? params.GameDataPath : DefaultGameDataPath;
-        if (!services.GameData.Load(gameDataPath))
+        if (!services.Sdk.GameData.Load(gameDataPath))
             return StageResult::Degraded(std::format("failed to load {}", gameDataPath));
-        services.GameData.ResolveAll();
-        if (auto failures = services.GameData.FailureSummary(); !failures.empty())
+        services.Sdk.GameData.ResolveAll();
+        if (auto failures = services.Sdk.GameData.FailureSummary(); !failures.empty())
             return StageResult::Degraded(std::move(failures));
-        return StageResult::Ok(std::format("{} offsets, {} signatures resolved", services.GameData.OffsetCount(),
-                                           services.GameData.SignatureCount()));
+        return StageResult::Ok(std::format("{} offsets, {} signatures resolved", services.Sdk.GameData.OffsetCount(),
+                                           services.Sdk.GameData.SignatureCount()));
     });
 
     const auto messages = report.Run("Messages", [&] {
-        if (!services.Messages.Initialize())
+        if (!services.Sdk.Messages.Initialize())
             return StageResult::Failed("message system init failed");
         return StageResult::Ok();
     });
@@ -128,20 +128,21 @@ bool Initialize(ISmmAPI* ismm, char* error, size_t maxlen, Core::Services& servi
         report.Run(name, [&] { return init() ? StageResult::Ok() : StageResult::Degraded(std::move(detail)); });
     };
 
-    degradable("Schema", "init failed; button detection may not work", [&] { return services.Schema().Initialize(); });
-    degradable("Entities", "init failed; menus may not work", [&] { return services.Entities.Initialize(); });
+    degradable("Schema", "init failed; button detection may not work",
+               [&] { return services.Sdk.Schema().Initialize(); });
+    degradable("Entities", "init failed; menus may not work", [&] { return services.Sdk.Entities.Initialize(); });
     degradable("EntityOps", "unavailable; spawned effects degrade (see signature warnings)",
-               [&] { return services.EntityOps.Initialize(); });
+               [&] { return services.Sdk.EntityOps.Initialize(); });
     degradable("Precache", "not registered; resource precaching unavailable",
-               [&] { return services.Precache.Initialize(std::format("{}_CS2KitPrecache", params.LogPrefix)); });
+               [&] { return services.Sdk.Precache.Initialize(std::format("{}_CS2KitPrecache", params.LogPrefix)); });
     degradable("GameEventManager", "not resolved; center HTML display will not work",
-               [&] { return services.Messages.InitGameEventManager(); });
-    degradable("ConVars", "init failed", [&] { return services.ConVars.Initialize(); });
-    degradable("Events", "init failed", [&] { return services.Events.Initialize(); });
+               [&] { return services.Sdk.Messages.InitGameEventManager(); });
+    degradable("ConVars", "init failed", [&] { return services.Sdk.ConVars.Initialize(); });
+    degradable("Events", "init failed", [&] { return services.Sdk.Events.Initialize(); });
     degradable("Transmit", "inert; CheckTransmitPlayerSlot offset missing from gamedata",
-               [&] { return services.Transmit.Initialize(); });
+               [&] { return services.Sdk.Transmit.Initialize(); });
     degradable("ClientCvars", "inert; client convar queries unavailable (see warnings)",
-               [&] { return services.ClientCvars.Initialize(); });
+               [&] { return services.Sdk.ClientCvars.Initialize(); });
 
     // Per-frame subsystems pump through the scheduler (PostgresDatabase registers its own pump
     // in Start), so OnGameFrame has exactly one thing to tick. CancelAll in Shutdown unhooks
@@ -166,9 +167,9 @@ bool Initialize(ISmmAPI* ismm, char* error, size_t maxlen, Core::Services& servi
     });
 
     services.Status.RegisterSection("gamedata", [&services] {
-        auto section = nlohmann::json{{"offsets", services.GameData.OffsetCount()},
-                                      {"signatures", services.GameData.SignatureCount()}};
-        for (const auto& [name, entry] : services.GameData.Resolutions())
+        auto section = nlohmann::json{{"offsets", services.Sdk.GameData.OffsetCount()},
+                                      {"signatures", services.Sdk.GameData.SignatureCount()}};
+        for (const auto& [name, entry] : services.Sdk.GameData.Resolutions())
         {
             if (!entry.Error.empty())
                 section["failed"].push_back(name);
@@ -190,9 +191,9 @@ void Shutdown(Core::Services& services)
 {
     // First: peers must stop resolving our interfaces while their objects are still alive.
     services.Identity.Withdraw();
-    services.Precache.Shutdown();  // first: the engine must stop referencing our vtables
-    services.ClientCvars.Shutdown();
-    services.Events.RemoveAllListeners();
+    services.Sdk.Precache.Shutdown();  // first: the engine must stop referencing our vtables
+    services.Sdk.ClientCvars.Shutdown();
+    services.Sdk.Events.RemoveAllListeners();
     services.Http.Stop();  // drains in-flight requests before their completion targets go away
     services.Scheduler.CancelAll();
 }
@@ -205,9 +206,9 @@ void OnGameFrame(Core::Services& services)
 void OnPlayerDisconnect(Core::Services& services, int slot)
 {
     services.Menus.OnPlayerDisconnect(slot);
-    services.ChatInput.OnPlayerDisconnect(slot);
-    services.Transmit.OnPlayerDisconnect(slot);
-    services.ClientCvars.OnPlayerDisconnect(slot);
+    services.Sdk.ChatInput.OnPlayerDisconnect(slot);
+    services.Sdk.Transmit.OnPlayerDisconnect(slot);
+    services.Sdk.ClientCvars.OnPlayerDisconnect(slot);
 }
 
 }  // namespace CS2Kit

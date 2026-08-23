@@ -1,21 +1,19 @@
 #include "Sdk/Schema.hpp"
 
-#include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Sdk/EffectOps.hpp>
 #include <CS2Kit/Sdk/EntityKeyValues.hpp>
 #include <CS2Kit/Sdk/EntityOps.hpp>
 #include <CS2Kit/Sdk/MemoryAccess.hpp>
+#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <Color.h>
 #include <mathlib/vector.h>
-
-using CS2Kit::Core::Engine;
 
 namespace CS2Kit::Sdk::EffectOps
 {
 
 CEntityInstance* SpawnParticle(const char* effectName, const Vector& origin, float lifetimeSeconds)
 {
-    auto& ops = Engine().EntityOps;
+    auto& ops = Ctx().EntityOps;
     if (!ops.CanSpawn() || !effectName)
         return nullptr;
 
@@ -39,7 +37,7 @@ CEntityInstance* SpawnParticle(const char* effectName, const Vector& origin, flo
 
 CEntityInstance* SpawnBeam(const Vector& from, const Vector& to, const Color& color, float width, float lifetimeSeconds)
 {
-    auto& ops = Engine().EntityOps;
+    auto& ops = Ctx().EntityOps;
     if (!ops.CanSpawn())
         return nullptr;
 
@@ -49,7 +47,7 @@ CEntityInstance* SpawnBeam(const Vector& from, const Vector& to, const Color& co
 
     // Endpoint/width/color live in schema fields with no spawn keyvalue; written
     // before DispatchSpawn they go out with the first network snapshot.
-    auto& schema = Engine().Schema();
+    auto& schema = Ctx().Schema();
     int offsetWidth = schema.GetOffset("CBeam", "m_fWidth");
     int offsetEndPos = schema.GetOffset("CBeam", "m_vecEndPos");
     int offsetColor = schema.GetOffset("CBaseModelEntity", "m_clrRender");
@@ -73,7 +71,7 @@ CEntityInstance* SpawnBeam(const Vector& from, const Vector& to, const Color& co
 
 CEntityInstance* SpawnProp(const char* modelPath, const Vector& origin, bool physics, float lifetimeSeconds)
 {
-    auto& ops = Engine().EntityOps;
+    auto& ops = Ctx().EntityOps;
     if (!ops.CanSpawn() || !modelPath)
         return nullptr;
 

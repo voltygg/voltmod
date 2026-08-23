@@ -1,10 +1,10 @@
 #include "Sdk/Schema.hpp"
 
-#include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Sdk/Entity.hpp>
 #include <CS2Kit/Sdk/GameData.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
 #include <CS2Kit/Sdk/MemoryAccess.hpp>
+#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <CS2Kit/Utils/Log.hpp>
 #include <bit>
 #include <entity2/concreteentitylist.h>
@@ -12,13 +12,11 @@
 #include <entity2/entityinstance.h>
 #include <entity2/entitysystem.h>
 
-using CS2Kit::Core::Engine;
-
 // The SDK's entity2 sources (entitykeyvalues.cpp) link against this accessor;
 // route it to the kit's resolved entity system so both agree on the pointer.
 CGameEntitySystem* GameEntitySystem()
 {
-    auto* services = CS2Kit::Core::EngineOrNull();
+    auto* services = CS2Kit::Sdk::CtxOrNull();
     return services ? services->Entities.GetEntitySystem() : nullptr;
 }
 
@@ -41,7 +39,7 @@ void EntitySystem::ResolveSchemaOffsets()
     if (_schemaOffsetsResolved)
         return;
 
-    auto& schema = Engine().Schema();
+    auto& schema = Ctx().Schema();
 
     _offsetPlayerPawn = schema.GetOffset("CBasePlayerController", "m_hPawn");
     _offsetMovementServices = schema.GetOffset("CBasePlayerPawn", "m_pMovementServices");
@@ -53,12 +51,12 @@ void EntitySystem::ResolveSchemaOffsets()
 
 CGameEntitySystem* EntitySystem::ReadEntitySystemPointer()
 {
-    auto& interfaces = Engine().Interfaces;
+    auto& interfaces = Ctx().Interfaces;
     if (!interfaces.GameResourceService)
         return nullptr;
 
     // "GameEntitySystem" = byte offset of the CGameEntitySystem* cached inside CGameResourceService.
-    int offsetGameEntitySystem = Engine().GameData.GetOffset("GameEntitySystem");
+    int offsetGameEntitySystem = Ctx().GameData.GetOffset("GameEntitySystem");
     if (offsetGameEntitySystem < 0)
         return nullptr;
 
@@ -67,14 +65,14 @@ CGameEntitySystem* EntitySystem::ReadEntitySystemPointer()
 
 bool EntitySystem::Initialize()
 {
-    auto& interfaces = Engine().Interfaces;
+    auto& interfaces = Ctx().Interfaces;
 
     if (!interfaces.GameResourceService)
     {
         Log::Warn("IGameResourceService not available.");
     }
 
-    int offsetGameEntitySystem = Engine().GameData.GetOffset("GameEntitySystem");
+    int offsetGameEntitySystem = Ctx().GameData.GetOffset("GameEntitySystem");
 
     if (offsetGameEntitySystem < 0)
     {
@@ -97,7 +95,7 @@ bool EntitySystem::Initialize()
 
 CGameEntitySystem* EntitySystem::GetEntitySystem()
 {
-    auto& interfaces = Engine().Interfaces;
+    auto& interfaces = Ctx().Interfaces;
 
     if (!interfaces.EntitySystem)
         interfaces.EntitySystem = ReadEntitySystemPointer();
@@ -209,7 +207,7 @@ void EntitySystem::ResolveFinderSignatures()
     if (_findersResolved)
         return;
 
-    auto& gameData = Engine().GameData;
+    auto& gameData = Ctx().GameData;
     _findByClassName = gameData.FindSignature("CGameEntitySystem_FindEntityByClassName");
     _findByName = gameData.FindSignature("CGameEntitySystem_FindEntityByName");
 

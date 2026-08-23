@@ -1,17 +1,15 @@
 #include <CS2Kit/Core/MetamodPluginBase.hpp>
-#include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Core/Slot.hpp>
 #include <CS2Kit/Sdk/Entity.hpp>
 #include <CS2Kit/Sdk/GameData.hpp>
 #include <CS2Kit/Sdk/MovementHook.hpp>
+#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <CS2Kit/Utils/Log.hpp>
 #include <algorithm>
 #include <cs_usercmd.pb.h>
 #include <cstring>
 
 PLUGIN_GLOBALVARS();
-
-using CS2Kit::Core::Engine;
 
 namespace CS2Kit::Sdk
 {
@@ -31,7 +29,7 @@ bool MovementHook::Install()
     if (_installed)
         return true;
 
-    int index = Engine().GameData.GetOffset("RunCommand");
+    int index = Ctx().GameData.GetOffset("RunCommand");
     if (index < 0)
     {
         Log::Warn("MovementHook: gamedata offset 'RunCommand' missing; hook disabled.");
@@ -42,17 +40,17 @@ bool MovementHook::Install()
     // plain manual hook would only fire for the one registered instance.
     void* instance = nullptr;
     for (int slot = 0; slot < Core::MaxPlayers && !instance; ++slot)
-        instance = Engine().Entities.GetPlayerMovementServices(slot);
+        instance = Ctx().Entities.GetPlayerMovementServices(slot);
     if (!instance)
         return false;
 
-    _pbOffset = Engine().GameData.GetOffset("UserCmdPB");
+    _pbOffset = Ctx().GameData.GetOffset("UserCmdPB");
     if (_pbOffset < 0)
         Log::Warn("MovementHook: gamedata offset 'UserCmdPB' missing; cmd listeners get Valid=false views.");
 
     // Read as a raw byte offset into the CUserCmd object, so an implausible value is an
     // out-of-bounds read rather than a bad number: bound it the way the other raw-offset reads do.
-    _cmdNumberOffset = Engine().GameData.GetOffset("UserCmdNumber");
+    _cmdNumberOffset = Ctx().GameData.GetOffset("UserCmdNumber");
     if (_cmdNumberOffset < 0 || _cmdNumberOffset > MaxUserCmdOffset || _cmdNumberOffset % alignof(int32_t) != 0)
     {
         Log::Warn(
@@ -123,7 +121,7 @@ int MovementHook::SlotFromMovementServices(void* movementServices) const
     // engine lookup, which keeps a recycled pointer from ever resolving to the wrong slot. A hit that
     // fails to confirm is a stale entry, so it must fall through to the rescan below rather than
     // answering -1 - the address may since have been recycled into another slot's services.
-    auto& entities = Engine().Entities;
+    auto& entities = Ctx().Entities;
     for (int slot = 0; slot < Core::MaxPlayers; ++slot)
         if (_movementServices[slot] == movementServices && entities.GetPlayerMovementServices(slot) == movementServices)
             return slot;

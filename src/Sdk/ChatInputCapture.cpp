@@ -1,9 +1,7 @@
 #include <CS2Kit/Core/Scheduler.hpp>
-#include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Sdk/ChatInputCapture.hpp>
+#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <utility>
-
-using CS2Kit::Core::Engine;
 
 namespace CS2Kit::Sdk
 {
@@ -23,7 +21,7 @@ void ChatInputCapture::BeginCapture(int slot, std::string prompt, Callback callb
 
     if (timeoutMs > 0)
     {
-        p.TimeoutHandle = Engine().Scheduler.Delay(timeoutMs, [slot]() { Engine().ChatInput.CancelCapture(slot); });
+        p.TimeoutHandle = Ctx().Scheduler.Delay(timeoutMs, [slot]() { Ctx().ChatInput.CancelCapture(slot); });
     }
 
     _pending[slot] = std::move(p);
@@ -52,7 +50,7 @@ bool ChatInputCapture::TryConsume(int slot, std::string_view text)
     if (accepted)
     {
         if (timeoutHandle != 0)
-            Engine().Scheduler.Cancel(timeoutHandle);
+            Ctx().Scheduler.Cancel(timeoutHandle);
         opt.reset();
     }
     // Either way we suppress the chat broadcast - the player typed a value, not a chat message.
@@ -69,7 +67,7 @@ void ChatInputCapture::CancelCapture(int slot)
         return;
 
     if (opt->TimeoutHandle != 0)
-        Engine().Scheduler.Cancel(opt->TimeoutHandle);
+        Ctx().Scheduler.Cancel(opt->TimeoutHandle);
 
     opt.reset();
 }

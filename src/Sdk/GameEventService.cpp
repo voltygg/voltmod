@@ -1,16 +1,14 @@
-#include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Core/Slot.hpp>
 #include <CS2Kit/Sdk/GameData.hpp>
 #include <CS2Kit/Sdk/GameEventService.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
+#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <CS2Kit/Utils/Log.hpp>
 #include <algorithm>
 #include <array>
 #include <bit>
 #include <playerslot.h>
 #include <vector>
-
-using CS2Kit::Core::Engine;
 
 namespace CS2Kit::Sdk
 {
@@ -19,12 +17,12 @@ using namespace CS2Kit::Utils;
 
 bool GameEventService::Initialize()
 {
-    if (void* legacyListener = Engine().GameData.FindSignature("LegacyGameEventListener"))
+    if (void* legacyListener = Ctx().GameData.FindSignature("LegacyGameEventListener"))
         _getLegacyListener = std::bit_cast<GetLegacyGameEventListenerFn>(legacyListener);
     else
         Log::Warn("LegacyGameEventListener signature not found; per-client event delivery unavailable.");
 
-    if (!Engine().Interfaces.GameEventManager)
+    if (!Ctx().Interfaces.GameEventManager)
     {
         Log::Warn("GameEventService: IGameEventManager2 not available.");
         return false;
@@ -44,7 +42,7 @@ IGameEventListener2* GameEventService::GetClientLegacyListener(int slot) const
 
 bool GameEventService::ClientListensTo(int slot, const char* eventName) const
 {
-    auto* mgr = Engine().Interfaces.GameEventManager;
+    auto* mgr = Ctx().Interfaces.GameEventManager;
     auto* listener = GetClientLegacyListener(slot);
     if (!mgr || !listener || !eventName)
         return false;
@@ -54,7 +52,7 @@ bool GameEventService::ClientListensTo(int slot, const char* eventName) const
 
 IGameEvent* GameEventService::CreateEvent(const char* name)
 {
-    auto* mgr = Engine().Interfaces.GameEventManager;
+    auto* mgr = Ctx().Interfaces.GameEventManager;
     if (!mgr)
         return nullptr;
 
@@ -63,7 +61,7 @@ IGameEvent* GameEventService::CreateEvent(const char* name)
 
 bool GameEventService::FireEvent(IGameEvent* event, bool dontBroadcast)
 {
-    auto* mgr = Engine().Interfaces.GameEventManager;
+    auto* mgr = Ctx().Interfaces.GameEventManager;
     if (!mgr || !event)
         return false;
 
@@ -72,14 +70,14 @@ bool GameEventService::FireEvent(IGameEvent* event, bool dontBroadcast)
 
 void GameEventService::FreeEvent(IGameEvent* event)
 {
-    auto* mgr = Engine().Interfaces.GameEventManager;
+    auto* mgr = Ctx().Interfaces.GameEventManager;
     if (mgr && event)
         mgr->FreeEvent(event);
 }
 
 uint64_t GameEventService::Listen(const char* eventName, EventCallback callback)
 {
-    auto* mgr = Engine().Interfaces.GameEventManager;
+    auto* mgr = Ctx().Interfaces.GameEventManager;
     if (!mgr)
         return 0;
 
@@ -93,7 +91,7 @@ uint64_t GameEventService::Listen(const char* eventName, EventCallback callback)
 
 void GameEventService::OnServerStartup()
 {
-    auto* mgr = Engine().Interfaces.GameEventManager;
+    auto* mgr = Ctx().Interfaces.GameEventManager;
     if (!mgr || _registeredEvents.empty())
         return;
 
@@ -118,7 +116,7 @@ void GameEventService::RemoveListener(uint64_t id)
 
 void GameEventService::RemoveAllListeners()
 {
-    if (auto* mgr = Engine().Interfaces.GameEventManager)
+    if (auto* mgr = Ctx().Interfaces.GameEventManager)
         mgr->RemoveListener(this);  // detaches this listener from every event in one call
 
     _registeredEvents.clear();

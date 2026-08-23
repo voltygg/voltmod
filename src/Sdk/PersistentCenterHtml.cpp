@@ -1,6 +1,6 @@
 #include <CS2Kit/Core/Scheduler.hpp>
-#include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Sdk/PersistentCenterHtml.hpp>
+#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <CS2Kit/Sdk/UserMessage.hpp>
 #include <utility>
 
@@ -22,18 +22,18 @@ void PersistentCenterHtml::Show(int slot, int refreshMs, std::function<std::stri
 
     Stop(slot);
 
-    auto send = [slot, render = std::move(render)]() { Core::Engine().Messages.SendCenterHtml(slot, render(slot)); };
+    auto send = [slot, render = std::move(render)]() { Ctx().Messages.SendCenterHtml(slot, render(slot)); };
     send();
-    _timers[slot] = Core::Engine().Scheduler.Repeat(refreshMs, send);
+    _timers[slot] = Ctx().Scheduler.Repeat(refreshMs, send);
 }
 
 void PersistentCenterHtml::Stop(int slot)
 {
     if (!ValidSlot(slot) || _timers[slot] == 0)
         return;
-    Core::Engine().Scheduler.Cancel(_timers[slot]);
+    Ctx().Scheduler.Cancel(_timers[slot]);
     _timers[slot] = 0;
-    Core::Engine().Messages.ClearCenterHtml(slot);
+    Ctx().Messages.ClearCenterHtml(slot);
 }
 
 void PersistentCenterHtml::StopAll()

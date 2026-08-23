@@ -36,7 +36,7 @@ std::string_view ToString(ClientCvarStatus status);
  * drift with engine updates. On failure the kit logs one warning and @ref Available() stays false.
  *
  * @code
- * Engine().ClientCvars.Query(slot, "sensitivity",
+ * Ctx().ClientCvars.Query(slot, "sensitivity",
  *     [](int slot, ClientCvarStatus status, std::string_view name, std::string_view value) {
  *         if (status == ClientCvarStatus::ValueIntact)
  *             Log::Info("{} = {}", name, value);

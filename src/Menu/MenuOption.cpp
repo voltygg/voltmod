@@ -28,7 +28,7 @@ void InputOption::OnActivate(int slot)
     auto setter = _set;
     int maxLen = _maxLength;
 
-    Engine().ChatInput.BeginCapture(slot, _prompt, [setter, maxLen](int s, std::string_view text) -> bool {
+    Engine().Sdk.ChatInput.BeginCapture(slot, _prompt, [setter, maxLen](int s, std::string_view text) -> bool {
         if (maxLen > 0 && static_cast<int>(text.size()) > maxLen)
             return false;
         if (!setter)

@@ -1,7 +1,7 @@
-#include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Core/Slot.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
 #include <CS2Kit/Sdk/NetChannel.hpp>
+#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <inetchannelinfo.h>
 
 namespace CS2Kit::Sdk
@@ -14,7 +14,7 @@ IVEngineServer2* EngineServer(int slot)
 {
     if (!Core::IsValidSlot(slot))
         return nullptr;
-    auto* services = Core::EngineOrNull();
+    auto* services = CtxOrNull();
     return services ? services->Interfaces.Engine : nullptr;
 }
 

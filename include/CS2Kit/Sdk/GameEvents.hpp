@@ -15,7 +15,7 @@ namespace CS2Kit::Sdk::Events
  * @ref GameEventService::Listen<T>:
  *
  * @code
- * Engine().Events.Listen<Events::PlayerDeath>([](const auto& e) {
+ * Ctx().Events.Listen<Events::PlayerDeath>([](const auto& e) {
  *     if (e.VictimSlot >= 0) ...;
  * });
  * @endcode

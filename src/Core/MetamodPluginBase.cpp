@@ -153,7 +153,7 @@ void MetamodPluginBase::RunDeferred()
 
 void MetamodPluginBase::RegisterStandardHooks()
 {
-    auto& gi = Engine().Interfaces;
+    auto& gi = Engine().Sdk.Interfaces;
 
     SH_ADD_HOOK(IServerGameDLL, GameFrame, gi.ServerGameDLL, SH_MEMBER(this, &MetamodPluginBase::Hook_GameFrame), true);
     SH_ADD_HOOK(INetworkServerService, StartupServer, gi.NetworkServerService,
@@ -173,7 +173,7 @@ void MetamodPluginBase::RegisterStandardHooks()
                 SH_MEMBER(this, &MetamodPluginBase::Hook_CheckTransmit), true);
 
     Defer([this] {
-        auto& g = Engine().Interfaces;
+        auto& g = Engine().Sdk.Interfaces;
         SH_REMOVE_HOOK(IServerGameDLL, GameFrame, g.ServerGameDLL, SH_MEMBER(this, &MetamodPluginBase::Hook_GameFrame),
                        true);
         SH_REMOVE_HOOK(INetworkServerService, StartupServer, g.NetworkServerService,
@@ -205,16 +205,16 @@ void MetamodPluginBase::Hook_StartupServer(const GameSessionConfiguration_t&, IS
 {
     Log::Info("Server startup: map '{}'.", mapName ? mapName : "<none>");
     _services->CurrentMap = mapName ? mapName : "";
-    _services->Events.OnServerStartup();
-    _services->Teleports.OnServerStartup();
-    _services->ClientCvars.OnServerStartup();
+    _services->Sdk.Events.OnServerStartup();
+    _services->Sdk.Teleports.OnServerStartup();
+    _services->Sdk.ClientCvars.OnServerStartup();
     OnServerStartup(mapName ? mapName : "");
 }
 
 void MetamodPluginBase::Hook_CheckTransmit(CCheckTransmitInfo** infoList, int infoCount, CBitVec<16384>&,
                                            CBitVec<16384>&, const Entity2Networkable_t**, const uint16*, int)
 {
-    _services->Transmit.OnCheckTransmit(infoList, infoCount);
+    _services->Sdk.Transmit.OnCheckTransmit(infoList, infoCount);
 }
 
 void MetamodPluginBase::Hook_OnClientConnected(CPlayerSlot slot, const char* name, uint64 xuid, const char* networkId,
@@ -237,7 +237,7 @@ void MetamodPluginBase::Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconne
 
 void MetamodPluginBase::Hook_ClientFullyConnect(CPlayerSlot slot)
 {
-    _services->ClientCvars.OnClientFullyConnect(slot.Get());
+    _services->Sdk.ClientCvars.OnClientFullyConnect(slot.Get());
     OnPlayerFullyConnected(Engine().Players.GetPlayerBySlot(slot.Get()));
 }
 

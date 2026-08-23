@@ -120,7 +120,7 @@ void MenuManager::CloseMenu(int slot)
     if (state.MenuStack.empty())
     {
         SetPlayerFrozen(slot, false);
-        Engine().Messages.ClearCenterHtml(slot);
+        Engine().Sdk.Messages.ClearCenterHtml(slot);
         state.Reset();
     }
     else
@@ -142,7 +142,7 @@ void MenuManager::CloseAllMenus(int slot)
     auto& state = _states[slot];
     SetPlayerFrozen(slot, false);
     state.Reset();
-    Engine().Messages.ClearCenterHtml(slot);
+    Engine().Sdk.Messages.ClearCenterHtml(slot);
 }
 
 void MenuManager::SetPlayerFrozen(int slot, bool frozen)
@@ -184,7 +184,7 @@ void MenuManager::OnGameFrame()
         if (!state.HasMenu())
             continue;
 
-        uint64_t buttons = Engine().Entities.GetPlayerButtons(slot);
+        uint64_t buttons = Engine().Sdk.Entities.GetPlayerButtons(slot);
         auto prev = state.PrevButtons;
         state.PrevButtons = buttons;
 
@@ -210,7 +210,7 @@ void MenuManager::HandleInput(int slot, uint64_t buttons, uint64_t prevButtons)
 
     // While a chat-input capture is active, the only key we honor is R (cancel) - every
     // other input is ignored so the menu doesn't drift while the player types in chat.
-    auto& capture = Engine().ChatInput;
+    auto& capture = Engine().Sdk.ChatInput;
     if (capture.IsCapturing(slot))
     {
         if (pressed & IN_RELOAD)
@@ -272,16 +272,16 @@ void MenuManager::RenderMenu(int slot)
         return;
 
     // While a capture is pending, render a prompt overlay instead of the item list.
-    if (auto* prompt = Engine().ChatInput.GetPrompt(slot); prompt != nullptr)
+    if (auto* prompt = Engine().Sdk.ChatInput.GetPrompt(slot); prompt != nullptr)
     {
         auto html = RenderCaptureOverlay(menu->Title, *prompt);
-        Engine().Messages.SendCenterHtml(slot, html);
+        Engine().Sdk.Messages.SendCenterHtml(slot, html);
         return;
     }
 
     bool isSubmenu = state.MenuStack.size() > 1;
     auto html = RenderMenuHtml(menu, slot, state.SelectedIndex, isSubmenu);
-    Engine().Messages.SendCenterHtml(slot, html);
+    Engine().Sdk.Messages.SendCenterHtml(slot, html);
 }
 
 void MenuManager::OnPlayerDisconnect(int slot)

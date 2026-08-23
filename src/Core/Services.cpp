@@ -1,14 +1,19 @@
-#include "Sdk/Schema.hpp"
-
 #include <CS2Kit/Core/ActiveService.hpp>
 #include <CS2Kit/Core/Services.hpp>
 
 namespace CS2Kit::Core
 {
 
-Services::Services() : _schema(std::make_unique<Sdk::SchemaService>()) {}
+Services::Services()
+{
+    // The Sdk layer has its own accessor so nothing under Players has to reach the hub.
+    Sdk::SetActiveSdkServices(&Sdk);
+}
 
-Services::~Services() = default;
+Services::~Services()
+{
+    Sdk::SetActiveSdkServices(nullptr);
+}
 
 void SetActiveServices(Services* services)
 {

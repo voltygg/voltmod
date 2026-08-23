@@ -97,7 +97,7 @@ bool CommandManager::HandleChatMessage(Players::Player* caller, std::string_view
         if (policy.Reply)
             policy.Reply(caller->GetSlot(), msg);
         else
-            Core::Engine().Messages.Reply(caller->GetSlot(), msg);
+            Core::Engine().Sdk.Messages.Reply(caller->GetSlot(), msg);
     };
 
     if (!cmd->Permission.empty())

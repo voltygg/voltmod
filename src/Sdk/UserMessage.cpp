@@ -2,13 +2,13 @@
 
 #include <igameevents.h>
 
-#include <CS2Kit/Core/Services.hpp>
 #include <CS2Kit/Core/Slot.hpp>
 #include <CS2Kit/Sdk/GameData.hpp>
 #include <CS2Kit/Sdk/GameEventService.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
 #include <CS2Kit/Sdk/MemoryAccess.hpp>
 #include <CS2Kit/Sdk/RecipientFilter.hpp>
+#include <CS2Kit/Sdk/SdkServices.hpp>
 #include <CS2Kit/Sdk/UserMessage.hpp>
 #include <CS2Kit/Utils/ChatColors.hpp>
 #include <CS2Kit/Utils/Log.hpp>
@@ -17,8 +17,6 @@
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
 #include <usermessages.pb.h>
-
-using CS2Kit::Core::Engine;
 
 namespace CS2Kit::Sdk
 {
@@ -58,7 +56,7 @@ std::string Render(std::string_view message, MessageKind kind)
 
 bool MessageSystem::Initialize()
 {
-    auto& interfaces = Engine().Interfaces;
+    auto& interfaces = Ctx().Interfaces;
 
     if (!interfaces.GameEventSystem)
     {
@@ -78,8 +76,8 @@ bool MessageSystem::Initialize()
 
 bool MessageSystem::InitGameEventManager()
 {
-    auto& interfaces = Engine().Interfaces;
-    auto& gameData = Engine().GameData;
+    auto& interfaces = Ctx().Interfaces;
+    auto& gameData = Ctx().GameData;
 
     void* eventManagerAddr = gameData.ResolveSignature("GameEventManager");
     if (eventManagerAddr)
@@ -106,7 +104,7 @@ bool MessageSystem::InitGameEventManager()
 
 void MessageSystem::SendCenterHtml(int slot, const std::string& html)
 {
-    auto* gameEventManager = Engine().Interfaces.GameEventManager;
+    auto* gameEventManager = Ctx().Interfaces.GameEventManager;
     if (!gameEventManager || !Core::IsValidSlot(slot))
         return;
 
@@ -120,7 +118,7 @@ void MessageSystem::SendCenterHtml(int slot, const std::string& html)
 
     // Deliver to just this client when the engine exposes its listener. Otherwise the event
     // broadcasts and every client renders the panel.
-    if (IGameEventListener2* listener = Engine().Events.GetClientLegacyListener(slot))
+    if (IGameEventListener2* listener = Ctx().Events.GetClientLegacyListener(slot))
     {
         listener->FireGameEvent(pEvent);
         gameEventManager->FreeEvent(pEvent);
@@ -151,7 +149,7 @@ void MessageSystem::Broadcast(std::string_view message, MessageKind kind)
         // Per-slot, because each panel write targets one client's own event listener.
         // A null listener means nobody is in that slot.
         for (int slot = 0; slot < Core::MaxPlayers; ++slot)
-            if (Engine().Events.GetClientLegacyListener(slot))
+            if (Ctx().Events.GetClientLegacyListener(slot))
                 SendCenterHtml(slot, rendered);
         return;
     }
@@ -176,7 +174,7 @@ void MessageSystem::Reply(int slot, std::string_view message)
 
 void MessageSystem::ReplyKey(int slot, const std::string& key, const std::map<std::string, std::string>& tokens)
 {
-    Reply(slot, Engine().Translations.Get(key, slot, tokens));
+    Reply(slot, Ctx().Translations.Get(key, slot, tokens));
 }
 
 void MessageSystem::SendTextMsg(int slot, int destination, const std::string& message)
@@ -190,7 +188,7 @@ void MessageSystem::SendTextMsg(int slot, int destination, const std::string& me
 
 void MessageSystem::PostTextMsg(IRecipientFilter& filter, int destination, const std::string& message)
 {
-    auto& interfaces = Engine().Interfaces;
+    auto& interfaces = Ctx().Interfaces;
     if (!interfaces.GameEventSystem || !interfaces.NetworkMessages)
         return;
 
