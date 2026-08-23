@@ -8,16 +8,6 @@
 namespace CS2Kit::Sdk
 {
 
-InputHistoryService::~InputHistoryService()
-{
-    // _slots is declared ahead of this service in Services, so it outlives us either way.
-    if (_slotListener != 0)
-        _slots.Remove(_slotListener);
-    // MovementHook still has to go through the hub, which may already be gone on shutdown.
-    if (auto* services = CS2Kit::Detail::RtOrNull(); services && _cmdListener != 0)
-        services->MovementHook.RemoveListener(_cmdListener);
-}
-
 void InputHistoryService::Enable(int depth)
 {
     depth = std::max(depth, 1);
@@ -32,10 +22,10 @@ void InputHistoryService::Enable(int depth)
         }
     }
 
-    if (_cmdListener == 0)
+    if (!_cmdListener)
         _cmdListener = CS2Kit::Detail::Rt().MovementHook.ListenPreCmd(
             [this](int slot, const UserCmdView& cmd) { Record(slot, cmd); });
-    if (_slotListener == 0)
+    if (!_slotListener)
         _slotListener = _slots.Listen([this](int slot) { Clear(slot); });
 }
 

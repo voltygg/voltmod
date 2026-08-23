@@ -2,6 +2,7 @@
 
 #include <CS2Kit/Core/Slot.hpp>
 #include <CS2Kit/Core/SlotEvents.hpp>
+#include <CS2Kit/Core/Subscription.hpp>
 #include <array>
 #include <cstdint>
 
@@ -62,8 +63,8 @@ private:
     std::array<void*, Core::MaxPlayers> _pawns{};  // the instance each slot's hook is bound to
     std::array<int, Core::MaxPlayers> _hookIds{};  // SourceHook ids, 0 when unbound
     std::array<float, Core::MaxPlayers> _lastTeleport{};
-    uint64_t _spawnListener = 0;
-    uint64_t _slotListener = 0;
+    Core::Subscription _spawnListener;
+    Core::Subscription _slotListener;
     bool _enabled = false;
 };
 

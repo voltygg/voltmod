@@ -67,14 +67,8 @@ void TeleportTracker::Disable()
         Unbind(slot);
     _lastTeleport.fill(0.0f);
 
-    // _slots is declared ahead of this tracker in Services, so it outlives us either way.
-    if (_slotListener != 0)
-        _slots.Remove(_slotListener);
-    // Runs from the destructor too, where the hub may already be gone.
-    if (auto* services = CS2Kit::Detail::RtOrNull(); services && _spawnListener != 0)
-        services->Events.RemoveListener(_spawnListener);
-    _spawnListener = 0;
-    _slotListener = 0;
+    _spawnListener.Reset();
+    _slotListener.Reset();
     _enabled = false;
 }
 

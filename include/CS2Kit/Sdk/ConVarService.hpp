@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CS2Kit/Core/CallbackRegistry.hpp>
+#include <CS2Kit/Core/Subscription.hpp>
 #include <cstdint>
 #include <functional>
 #include <optional>
@@ -81,11 +82,12 @@ public:
     bool ReplicateToClient(int slot, const char* name, const char* value);
 
     using ChangeCallback = std::function<void(const char* name, const char* oldValue, const char* newValue)>;
-    uint64_t OnChange(ChangeCallback callback);
-    void RemoveChangeListener(uint64_t id);
+    [[nodiscard]] Core::Subscription OnChange(ChangeCallback callback);
     void DispatchChange(const char* name, const char* oldValue, const char* newValue);
 
 private:
+    void RemoveChangeListener(uint64_t id);
+
     Core::CallbackRegistry<ChangeCallback> _changeCallbacks;
     bool _globalCallbackInstalled = false;
     INetworkMessageInternal* _setConVarMsg = nullptr;

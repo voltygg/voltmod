@@ -2,6 +2,7 @@
 
 #include <CS2Kit/Core/Slot.hpp>
 #include <CS2Kit/Core/SlotEvents.hpp>
+#include <CS2Kit/Core/Subscription.hpp>
 #include <CS2Kit/Sdk/UserCmd.hpp>
 #include <array>
 #include <cstdint>
@@ -27,7 +28,7 @@ class InputHistoryService
 public:
     /** @p slots tells this service when a slot changes hands, without it needing the roster. */
     explicit InputHistoryService(Core::SlotEvents& slots) : _slots(slots) {}
-    ~InputHistoryService();
+
     InputHistoryService(const InputHistoryService&) = delete;
     InputHistoryService& operator=(const InputHistoryService&) = delete;
 
@@ -58,8 +59,8 @@ private:
     Core::SlotEvents& _slots;
     std::array<Ring, Core::MaxPlayers> _rings{};
     int _depth = 0;
-    uint64_t _cmdListener = 0;
-    uint64_t _slotListener = 0;
+    Core::Subscription _cmdListener;
+    Core::Subscription _slotListener;
 };
 
 }  // namespace CS2Kit::Sdk

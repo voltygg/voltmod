@@ -214,7 +214,7 @@ bool ConVarService::ReplicateToClient(int slot, const char* name, const char* va
     return true;
 }
 
-uint64_t ConVarService::OnChange(ChangeCallback callback)
+Core::Subscription ConVarService::OnChange(ChangeCallback callback)
 {
     if (!_globalCallbackInstalled)
     {
@@ -226,7 +226,8 @@ uint64_t ConVarService::OnChange(ChangeCallback callback)
         }
     }
 
-    return _changeCallbacks.Add(std::move(callback));
+    const uint64_t id = _changeCallbacks.Add(std::move(callback));
+    return {[this](uint64_t handle) { RemoveChangeListener(handle); }, id};
 }
 
 void ConVarService::RemoveChangeListener(uint64_t id)

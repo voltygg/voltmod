@@ -2,6 +2,7 @@
 
 #include <CS2Kit/Core/CallbackRegistry.hpp>
 #include <CS2Kit/Core/Slot.hpp>
+#include <CS2Kit/Core/Subscription.hpp>
 #include <CS2Kit/Sdk/UserCmd.hpp>
 #include <array>
 #include <cstdint>
@@ -53,19 +54,40 @@ public:
     bool Installed() const { return _installed; }
     void Remove();
 
-    uint64_t ListenPre(Callback callback) { return _pre.Add(std::move(callback), _nextId++); }
-    uint64_t ListenPost(Callback callback) { return _post.Add(std::move(callback), _nextId++); }
-    uint64_t ListenPreCmd(CmdCallback callback) { return _preCmd.Add(std::move(callback), _nextId++); }
-    uint64_t ListenPostCmd(CmdCallback callback) { return _postCmd.Add(std::move(callback), _nextId++); }
+    [[nodiscard]] Core::Subscription ListenPre(Callback callback)
+    {
+        return Own(_pre.Add(std::move(callback), _nextId++));
+    }
+    [[nodiscard]] Core::Subscription ListenPost(Callback callback)
+    {
+        return Own(_post.Add(std::move(callback), _nextId++));
+    }
+    [[nodiscard]] Core::Subscription ListenPreCmd(CmdCallback callback)
+    {
+        return Own(_preCmd.Add(std::move(callback), _nextId++));
+    }
+    [[nodiscard]] Core::Subscription ListenPostCmd(CmdCallback callback)
+    {
+        return Own(_postCmd.Add(std::move(callback), _nextId++));
+    }
 
     /** Mutable pre-decode-time edit of the shared UserCmdView; see the class docs. */
-    uint64_t ListenFilterCmd(CmdFilter filter) { return _filter.Add(std::move(filter), _nextId++); }
-    void RemoveListener(uint64_t id);
-
+    [[nodiscard]] Core::Subscription ListenFilterCmd(CmdFilter filter)
+    {
+        return Own(_filter.Add(std::move(filter), _nextId++));
+    }
     /** Slot whose pawn owns @p movementServices, or -1. */
     int SlotFromMovementServices(void* movementServices) const;
 
 private:
+    /** Wrap a freshly issued handle so the caller owns its removal. */
+    Core::Subscription Own(uint64_t id)
+    {
+        return {[this](uint64_t handle) { RemoveListener(handle); }, id};
+    }
+
+    void RemoveListener(uint64_t id);
+
     void* Hook_RunCommandPre(void* userCmd);
     void* Hook_RunCommandPost(void* userCmd);
     void DecodeUserCmd(void* userCmd);

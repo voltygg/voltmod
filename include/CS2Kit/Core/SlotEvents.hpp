@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CS2Kit/Core/CallbackRegistry.hpp>
+#include <CS2Kit/Core/Subscription.hpp>
 #include <cstdint>
 #include <functional>
 
@@ -21,11 +22,12 @@ class SlotEvents
 public:
     using Callback = std::function<void(int slot)>;
 
-    /** Register @p callback; returns a handle for Remove. */
-    uint64_t Listen(Callback callback) { return _changed.Add(std::move(callback)); }
-
-    /** Unregister by handle. Safe with an unknown or zero id. */
-    void Remove(uint64_t id) { _changed.Remove(id); }
+    /** Register @p callback for as long as the returned subscription lives. */
+    [[nodiscard]] Subscription Listen(Callback callback)
+    {
+        const uint64_t id = _changed.Add(std::move(callback));
+        return {[this](uint64_t handle) { _changed.Remove(handle); }, id};
+    }
 
     /** Notify every listener that @p slot changed hands. */
     void Raise(int slot)

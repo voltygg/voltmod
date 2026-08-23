@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CS2Kit/Core/SlotEvents.hpp>
+#include <CS2Kit/Core/Subscription.hpp>
 #include <CS2Kit/Players/Player.hpp>
 #include <functional>
 #include <memory>
@@ -38,8 +39,10 @@ public:
      * PlayerManager. Anything below Players in the layering listens on the signal
      * itself instead - that is the whole reason it lives in Core.
      */
-    uint64_t ListenSlotChange(SlotCallback callback) { return _slots.Listen(std::move(callback)); }
-    void RemoveListener(uint64_t id) { _slots.Remove(id); }
+    [[nodiscard]] Core::Subscription ListenSlotChange(SlotCallback callback)
+    {
+        return _slots.Listen(std::move(callback));
+    }
 
     Player* GetPlayerBySlot(int slot);
     Player* GetPlayerBySteamId(int64_t steamId);

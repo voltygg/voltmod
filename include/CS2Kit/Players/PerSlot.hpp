@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CS2Kit/Core/Slot.hpp>
+#include <CS2Kit/Core/Subscription.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Runtime.hpp>
 #include <array>
@@ -30,19 +31,11 @@ public:
     /** Auto-reset a slot's entry on player connect/disconnect. Idempotent. */
     void BindReset()
     {
-        if (_listener != 0)
-            return;
-        _listener = CS2Kit::Detail::Rt().Slots.Listen([this](int slot) { Reset(slot); });
+        if (!_listener)
+            _listener = CS2Kit::Detail::Rt().Slots.Listen([this](int slot) { Reset(slot); });
     }
 
-    void Unbind()
-    {
-        if (_listener == 0)
-            return;
-        if (auto* core = CS2Kit::Detail::RtOrNull())
-            core->Slots.Remove(_listener);
-        _listener = 0;
-    }
+    void Unbind() { _listener.Reset(); }
 
     T& operator[](int slot) { return _items[slot]; }
     const T& operator[](int slot) const { return _items[slot]; }
@@ -62,7 +55,7 @@ public:
 
 private:
     std::array<T, Core::MaxPlayers> _items{};
-    uint64_t _listener = 0;
+    Core::Subscription _listener;
 };
 
 }  // namespace CS2Kit::Players

@@ -76,18 +76,19 @@ void GameEventService::FreeEvent(IGameEvent* event)
         mgr->FreeEvent(event);
 }
 
-uint64_t GameEventService::Listen(const char* eventName, EventCallback callback)
+Core::Subscription GameEventService::Listen(const char* eventName, EventCallback callback)
 {
     auto* mgr = CS2Kit::Detail::Rt().Interfaces.GameEventManager;
     if (!mgr)
-        return 0;
+        return {};
 
     // This attach only serves listens made while a map is live (late load, mid-map Listen);
     // the engine drops it during the next map startup, where OnServerStartup re-attaches.
     if (_registeredEvents.insert(eventName).second)
         mgr->AddListener(this, eventName, true);
 
-    return _listeners.Add({eventName, std::move(callback)});
+    const uint64_t id = _listeners.Add({eventName, std::move(callback)});
+    return {[this](uint64_t handle) { RemoveListener(handle); }, id};
 }
 
 void GameEventService::OnServerStartup()
