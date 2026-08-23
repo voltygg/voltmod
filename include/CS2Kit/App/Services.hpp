@@ -4,16 +4,12 @@
 #include <CS2Kit/App/ServiceExchange.hpp>
 #include <CS2Kit/App/StatusService.hpp>
 #include <CS2Kit/Commands/CommandManager.hpp>
-#include <CS2Kit/Core/LoadReport.hpp>
-#include <CS2Kit/Core/PluginPolicy.hpp>
-#include <CS2Kit/Core/Scheduler.hpp>
-#include <CS2Kit/Core/SlotEvents.hpp>
+#include <CS2Kit/Core/CoreServices.hpp>
 #include <CS2Kit/Http/HttpClient.hpp>
 #include <CS2Kit/Menu/MenuManager.hpp>
 #include <CS2Kit/Players/PlayerManager.hpp>
 #include <CS2Kit/Sdk/SdkServices.hpp>
-#include <CS2Kit/Utils/Translations.hpp>
-#include <string>
+#include <CS2Kit/Utils/UtilsServices.hpp>
 
 namespace CS2Kit::App
 {
@@ -36,35 +32,29 @@ public:
     Services(const Services&) = delete;
     Services& operator=(const Services&) = delete;
 
-    // Declaration order == construction order.
-    /** Plugin-supplied policy (permissions, targeting, replies). Set once in OnLoad. */
-    Core::PluginPolicy Policy;
-    /** Interfaces offered to, and borrowed from, other plugins. Declared first so it
-     *  outlives everything that publishes into it. */
+    // Declaration order == construction order; destruction is the reverse.
+    /** Primitives every other layer may reach: policy, scheduler, load report, slot signal. */
+    Core::CoreServices Core;
+    /** Translations. */
+    Utils::UtilsServices Utils;
+    /** Every engine-facing service. */
+    Sdk::SdkServices Sdk{Core};
+
+    /** Interfaces offered to, and borrowed from, other plugins. */
     App::ServiceExchange Exchange;
     /** This plugin's manifest, published to peers. Filled by LoadStandardConfig. */
     App::PluginIdentity Identity;
-    /** Named/timed load stages recorded by Initialize and the plugin's OnLoad. */
-    Core::LoadReport LoadReport;
-    /** Map the server is running, captured from the StartupServer hook. Empty after a late
-     *  (mid-map) load until the next map change, since the hook has already fired by then. */
-    std::string CurrentMap;
     /** Status sections for diagnostics commands; kit sections registered during load. */
     App::StatusService Status;
-    /** "This slot changed hands", raised by Players and consumed by services beneath it.
-     *  Declared here so it outlives every listener below. */
-    Core::SlotEvents Slots;
-    Core::Scheduler Scheduler;
-    Utils::Translations Translations;
 
-    /** Every engine-facing service, as one lower-layer unit. */
-    Sdk::SdkServices Sdk{Scheduler, Slots, Translations};
-
-    Players::PlayerManager Players{Slots};
+    Players::PlayerManager Players{Core.Slots};
     Commands::CommandManager Commands;
     Menu::MenuManager Menus;
     /** Completions dispatch on the game thread from the OnGameFrame pump; Shutdown stops it. */
     Http::HttpClient Http;
+
+    /** Internal schema-offset service (forward-declared type). */
+    CS2Kit::Sdk::SchemaService& Schema() { return Sdk.Schema(); }
 };
 
 /** Set/clear the active Services backing @ref Engine(). Called by MetamodPluginBase on Load/Unload. */

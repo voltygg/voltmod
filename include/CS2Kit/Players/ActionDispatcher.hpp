@@ -1,5 +1,6 @@
 #pragma once
 
+#include <CS2Kit/Core/CoreServices.hpp>
 #include <CS2Kit/Players/Player.hpp>
 #include <CS2Kit/Players/TargetResolver.hpp>
 #include <CS2Kit/Sdk/PlayerController.hpp>
@@ -48,7 +49,7 @@ struct ParamAction
 };
 
 /**
- * @brief Runs data-defined actions under the plugin's policy (`Engine().Policy`): the
+ * @brief Runs data-defined actions under the plugin's policy (`Core::Ctx().Policy`): the
  * permission check, the targetability check (immunity), and the broadcast sink all come
  * from there - no per-dispatcher wiring. Empty policy members skip the corresponding step.
  */

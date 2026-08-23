@@ -63,8 +63,8 @@ bool MetamodPluginBase::Load(PluginId id, ISmmAPI* ismm, char* error, size_t max
     params.LogPrefix = _info.LogTag;
     if (!CS2Kit::Initialize(ismm, error, maxlen, *_services, params))
     {
-        if (!_services->LoadReport.Stages().empty())
-            Log::Info("{}", _services->LoadReport.Summary());
+        if (!_services->Core.LoadReport.Stages().empty())
+            Log::Info("{}", _services->Core.LoadReport.Summary());
         SetActiveServices(nullptr);
         _services.reset();
         return false;
@@ -83,10 +83,10 @@ bool MetamodPluginBase::Load(PluginId id, ISmmAPI* ismm, char* error, size_t max
     if (!OnLoad(late))
     {
         // A bare `return false` still gets a named failure in the report and error buffer.
-        if (_services->LoadReport.FirstFailure().empty())
-            _services->LoadReport.Run("OnLoad", [] { return Core::StageResult::Failed("OnLoad returned false"); });
-        Log::Info("{}", _services->LoadReport.Summary());
-        const std::string failure = _services->LoadReport.FirstFailure();
+        if (_services->Core.LoadReport.FirstFailure().empty())
+            _services->Core.LoadReport.Run("OnLoad", [] { return Core::StageResult::Failed("OnLoad returned false"); });
+        Log::Info("{}", _services->Core.LoadReport.Summary());
+        const std::string failure = _services->Core.LoadReport.FirstFailure();
         snprintf(error, maxlen, "%s", failure.c_str());
         RunDeferred();
         CS2Kit::Shutdown(*_services);
@@ -100,13 +100,13 @@ bool MetamodPluginBase::Load(PluginId id, ISmmAPI* ismm, char* error, size_t max
     // RegisterAll is idempotent by name - a plugin calling it itself is harmless.
     if (auto specs = Core::Registry<Commands::CommandSpec>::Items(); !specs.empty())
     {
-        _services->LoadReport.Run("Commands", [&] {
+        _services->Core.LoadReport.Run("Commands", [&] {
             _services->Commands.RegisterAll(specs);
             return Core::StageResult::Ok(std::format("{} chat commands", _services->Commands.Count()));
         });
     }
 
-    Log::Info("{}", _services->LoadReport.Summary());
+    Log::Info("{}", _services->Core.LoadReport.Summary());
     if (_info.Commit != nullptr && *_info.Commit != '\0')
         Log::Info("Loaded {} v{} ({}, committed {}){}.", _info.Name, _info.Version, _info.Commit, _info.Date,
                   late ? " (late)" : "");
@@ -204,7 +204,7 @@ void MetamodPluginBase::Hook_StartupServer(const GameSessionConfiguration_t&, IS
                                            const char* mapName)
 {
     Log::Info("Server startup: map '{}'.", mapName ? mapName : "<none>");
-    _services->CurrentMap = mapName ? mapName : "";
+    _services->Core.CurrentMap = mapName ? mapName : "";
     _services->Sdk.Events.OnServerStartup();
     _services->Sdk.Teleports.OnServerStartup();
     _services->Sdk.ClientCvars.OnServerStartup();

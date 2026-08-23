@@ -1,5 +1,6 @@
 #pragma once
 
+#include <CS2Kit/Core/CoreServices.hpp>
 #include <CS2Kit/Players/ActionDispatcher.hpp>
 #include <functional>
 #include <string>
@@ -46,7 +47,7 @@ struct EffectChoice
  * returns its @ref EffectInstance. Lifetime is declarative: `Scope`, `TickIntervalMs`, and
  * `DurationMs` are forwarded to @ref EffectManager. An empty `OnKey`/`OffKey` suppresses that
  * broadcast. Dispatch via @ref ToggleEffect / @ref ApplyEffect / @ref ClearEffect, which apply
- * `Engine().Policy` before running the body.
+ * `Core::Ctx().Policy` before running the body.
  */
 struct EffectDescriptor
 {

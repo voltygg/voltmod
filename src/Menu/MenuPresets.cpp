@@ -1,14 +1,13 @@
-#include <CS2Kit/App/Services.hpp>
+#include <CS2Kit/Menu/MenuAccess.hpp>
 #include <CS2Kit/Menu/MenuBuilder.hpp>
 #include <CS2Kit/Menu/MenuManager.hpp>
 #include <CS2Kit/Menu/MenuPresets.hpp>
 #include <CS2Kit/Players/PlayerManager.hpp>
+#include <CS2Kit/Players/Roster.hpp>
 #include <CS2Kit/Utils/ChatColors.hpp>
 #include <CS2Kit/Utils/StringUtils.hpp>
 #include <string_view>
 #include <utility>
-
-using CS2Kit::App::Engine;
 
 namespace CS2Kit::Menu
 {
@@ -17,7 +16,7 @@ void AppendPlayerRows(MenuBuilder& builder, int viewerSlot,
                       const std::function<void(int viewerSlot, int targetSlot)>& onPick, const std::string& emptyLabel,
                       const std::function<bool(int targetSlot)>& isEnabled)
 {
-    auto players = Engine().Players.GetAllPlayers();
+    auto players = Players::Roster().GetAllPlayers();
     for (auto* p : players)
     {
         if (!p)
@@ -96,7 +95,7 @@ std::shared_ptr<MenuView> BuildConfirmDialog(ConfirmDialogSpec spec)
         if (onCancel)
             onCancel(slot);
         else
-            Engine().Menus.CloseAllMenus(slot);
+            Menu::Menus().CloseAllMenus(slot);
     });
 
     return builder.Build();

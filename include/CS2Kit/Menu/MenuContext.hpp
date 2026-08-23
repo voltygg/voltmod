@@ -1,5 +1,6 @@
 #pragma once
 
+#include <CS2Kit/Core/CoreServices.hpp>
 #include <CS2Kit/Utils/Translations.hpp>
 #include <string>
 #include <string_view>
@@ -18,7 +19,7 @@ namespace CS2Kit::Menu
  * Bind one per menu via @ref MenuBuilder::WithContext, then add rows with AddActionRow /
  * AddStateToggleRow / AddPresetChoiceRow / AddEffectToggleRow / AddEffectPickerRow - each row
  * derives its label (admin-language translation), its enabled state (permission + immunity via
- * Engine().Policy), and its dispatch target from here instead of per-row captures.
+ * Core::Ctx().Policy), and its dispatch target from here instead of per-row captures.
  */
 struct MenuContext
 {

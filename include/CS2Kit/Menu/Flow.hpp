@@ -1,11 +1,13 @@
 #pragma once
 
-#include <CS2Kit/App/Services.hpp>
+#include <CS2Kit/Core/CoreServices.hpp>
 #include <CS2Kit/Menu/Menu.hpp>
+#include <CS2Kit/Menu/MenuAccess.hpp>
 #include <CS2Kit/Menu/MenuBuilder.hpp>
 #include <CS2Kit/Menu/MenuManager.hpp>
 #include <CS2Kit/Menu/MenuPresets.hpp>
 #include <CS2Kit/Utils/StringUtils.hpp>
+#include <CS2Kit/Utils/UtilsServices.hpp>
 #include <format>
 #include <functional>
 #include <memory>
@@ -25,7 +27,7 @@ namespace CS2Kit::Menu
  * cleanly), renders an auto-built summary confirm dialog when configured, and finally hands the
  * accumulated state to OnFinish. Human-facing text comes from caller-supplied per-slot providers,
  * so the kit carries no localization; the OnValidate error is a translation key (resolved in the
- * offending player's language, replied via Engine().Policy.Reply).
+ * offending player's language, replied via Core::Ctx().Policy.Reply).
  *
  * @code
  * Flow<PendingPunishment>::Create(std::move(pending))
@@ -185,7 +187,7 @@ private:
                 continue;
             _stepIndex = i;
             if (auto menu = _steps[i].Build(slot, *this))
-                App::Engine().Menus.OpenMenu(slot, menu);
+                Menu::Menus().OpenMenu(slot, menu);
             return;
         }
 
@@ -207,7 +209,7 @@ private:
         for (const auto& [label, value] : _confirmSummary(slot, _state))
             spec.BodyLines.push_back(value.empty() ? label : std::format("{}: {}", label, value));
 
-        App::Engine().Menus.OpenMenu(slot, BuildConfirmDialog(std::move(spec)));
+        Menu::Menus().OpenMenu(slot, BuildConfirmDialog(std::move(spec)));
     }
 
     void RunFinish(int slot)
@@ -217,7 +219,7 @@ private:
             return;
         if (_finish)
             _finish(slot, _state);
-        App::Engine().Menus.CloseAllMenus(slot);
+        Menu::Menus().CloseAllMenus(slot);
     }
 
     /** False = aborted (error replied, menus closed). */
@@ -229,10 +231,9 @@ private:
         if (!error)
             return true;
 
-        auto& engine = App::Engine();
-        if (engine.Policy.Reply)
-            engine.Policy.Reply(slot, engine.Translations.Get(*error, slot));
-        engine.Menus.CloseAllMenus(slot);
+        if (Core::Ctx().Policy.Reply)
+            Core::Ctx().Policy.Reply(slot, Utils::Ctx().Translations.Get(*error, slot));
+        Menu::Menus().CloseAllMenus(slot);
         return false;
     }
 

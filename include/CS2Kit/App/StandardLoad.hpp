@@ -37,7 +37,7 @@ void LoadPluginManifest(std::string_view addon);
 template <class TConfig>
 bool LoadStandardConfig(TConfig& config, const StandardLoadOptions& options)
 {
-    auto& report = Engine().LoadReport;
+    auto& report = Engine().Core.LoadReport;
     const std::string path = Core::AddonFile(options.Addon, options.SettingsFile);
 
     const auto status = report.Run("Configuration", [&] {
@@ -55,10 +55,10 @@ bool LoadStandardConfig(TConfig& config, const StandardLoadOptions& options)
     if (options.Translations)
     {
         report.Run("Translations", [&] {
-            if constexpr (requires { Engine().Translations.SetLanguage(config.Get().plugin.locale); })
-                Engine().Translations.SetLanguage(config.Get().plugin.locale);
-            Engine().Translations.Load(Core::AddonFile(options.Addon, "configs/translations"));
-            return Core::StageResult::Ok(Engine().Translations.GetLanguage());
+            if constexpr (requires { Engine().Utils.Translations.SetLanguage(config.Get().plugin.locale); })
+                Engine().Utils.Translations.SetLanguage(config.Get().plugin.locale);
+            Engine().Utils.Translations.Load(Core::AddonFile(options.Addon, "configs/translations"));
+            return Core::StageResult::Ok(Engine().Utils.Translations.GetLanguage());
         });
     }
     LoadPluginManifest(options.Addon);

@@ -1,3 +1,4 @@
+#include <CS2Kit/Core/CoreServices.hpp>
 #include <CS2Kit/Sdk/Entity.hpp>
 #include <CS2Kit/Sdk/MoveType.hpp>
 #include <CS2Kit/Sdk/PawnOps.hpp>
@@ -91,7 +92,7 @@ void Slap(const PlayerController& pc, float upward, float horizontal, int fallPr
     {
         SetGodmode(pc, true);
         int slot = pc.GetSlot();
-        Ctx().Scheduler.Delay(fallProtectMs, [slot]() {
+        Core::Ctx().Scheduler.Delay(fallProtectMs, [slot]() {
             PlayerController target(slot);
             if (target.IsValid())
                 SetGodmode(target, false);

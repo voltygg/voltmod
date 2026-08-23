@@ -53,7 +53,7 @@ void PluginIdentity::Adopt(Core::PluginManifest manifest)
         return;
 
     // First frame, not OnLoad - see PluginIdentity's comment.
-    Engine().Scheduler.NextTick([this] {
+    Engine().Core.Scheduler.NextTick([this] {
         for (const auto& dependency : _manifest.Dependencies)
             ReportDependency(dependency);
     });
@@ -71,7 +71,7 @@ void LoadPluginManifest(std::string_view addon)
 {
     const std::string path = Core::AddonFile(addon, std::format("{}.manifest.json", addon));
 
-    Engine().LoadReport.Run("Manifest", [&]() -> Core::StageResult {
+    Engine().Core.LoadReport.Run("Manifest", [&]() -> Core::StageResult {
         std::ifstream file(path, std::ios::binary);
         if (!file)
             return Core::StageResult::Degraded("no manifest shipped");

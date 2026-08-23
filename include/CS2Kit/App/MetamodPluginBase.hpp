@@ -1,7 +1,6 @@
 #pragma once
 
-#include <ISmmPlugin.h>
-
+#include <CS2Kit/Core/MetamodGlobals.hpp>
 #include <cstddef>
 #include <eiface.h>
 #include <functional>
@@ -11,11 +10,6 @@
 #include <vector>
 
 class ISource2WorldSession;
-
-// Externs for the SourceHook globals every plugin TU references (SH_* macros,
-// RETURN_META); the definitions come from CS2KIT_PLUGIN / PLUGIN_EXPOSE. Pure
-// externs, so a plugin repeating PLUGIN_GLOBALVARS() itself is harmless.
-PLUGIN_GLOBALVARS();
 
 namespace CS2Kit::Players
 {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <CS2Kit/Core/CoreServices.hpp>
 #include <CS2Kit/Players/Player.hpp>
 #include <CS2Kit/Players/Targeting.hpp>
 #include <expected>
@@ -10,7 +11,7 @@
 namespace CS2Kit::Players
 {
 
-/** Targetability policy (immunity, same-team rules, ...). Empty means "use Engine().Policy.CanTarget". */
+/** Targetability policy (immunity, same-team rules, ...). Empty means "use Core::Ctx().Policy.CanTarget". */
 using CanTargetFn = std::function<bool(Player& caller, Player& target)>;
 
 /**
@@ -22,7 +23,7 @@ using CanTargetFn = std::function<bool(Player& caller, Player& target)>;
  * @ref TargetFailure explaining what to tell the caller.
  *
  * @p caller null means the server console: always allowed, `@me` never matches.
- * @p canTarget overrides the immunity policy; empty uses `Engine().Policy.CanTarget`.
+ * @p canTarget overrides the immunity policy; empty uses `Core::Ctx().Policy.CanTarget`.
  */
 std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(std::string_view token, Player* caller,
                                                                   const TargetRules& rules = {},

@@ -1,10 +1,11 @@
-#include <CS2Kit/App/Services.hpp>
 #include <CS2Kit/Core/EffectManager.hpp>
+#include <CS2Kit/Menu/MenuAccess.hpp>
 #include <CS2Kit/Menu/MenuBuilder.hpp>
 #include <CS2Kit/Menu/MenuManager.hpp>
 #include <CS2Kit/Players/ActionDispatcher.hpp>
 #include <CS2Kit/Players/EffectDescriptor.hpp>
 #include <CS2Kit/Players/PlayerManager.hpp>
+#include <CS2Kit/Players/Roster.hpp>
 #include <CS2Kit/Sdk/PlayerController.hpp>
 #include <format>
 
@@ -55,7 +56,7 @@ MenuBuilder& MenuBuilder::AddPresetChoiceRow(std::string_view labelKey, std::str
         _context.Tr(labelKey), std::move(choices),
         [admin = _context.Admin, target = _context.Target, a](int slot, const int& value) {
             ActionDispatcher{}.Run(admin, target, value, *a);
-            App::Engine().Menus.CloseAllMenus(slot);
+            Menu::Menus().CloseAllMenus(slot);
         },
         _context.Allowed(action.Permission), initialIndex);
 }
@@ -81,7 +82,7 @@ namespace
 /** Picker submenu for a ParamEffectDescriptor: one button per choice plus an optional reset row. */
 std::shared_ptr<MenuView> BuildEffectPicker(MenuContext ctx, const Players::ParamEffectDescriptor& effect)
 {
-    auto* target = App::Engine().Players.GetPlayerBySlot(ctx.Target);
+    auto* target = Players::Roster().GetPlayerBySlot(ctx.Target);
     if (!target)
         return nullptr;
 
@@ -99,7 +100,7 @@ std::shared_ptr<MenuView> BuildEffectPicker(MenuContext ctx, const Players::Para
             [effects, admin = ctx.Admin, targetSlot = ctx.Target, e, param](int slot) {
                 if (effects)
                     Players::ApplyEffect(*effects, admin, targetSlot, param, *e);
-                App::Engine().Menus.CloseAllMenus(slot);
+                Menu::Menus().CloseAllMenus(slot);
             },
             allowed);
     }
@@ -111,7 +112,7 @@ std::shared_ptr<MenuView> BuildEffectPicker(MenuContext ctx, const Players::Para
             [effects, admin = ctx.Admin, targetSlot = ctx.Target, e](int slot) {
                 if (effects)
                     Players::ClearEffect(*effects, admin, targetSlot, *e);
-                App::Engine().Menus.CloseAllMenus(slot);
+                Menu::Menus().CloseAllMenus(slot);
             },
             allowed);
     }

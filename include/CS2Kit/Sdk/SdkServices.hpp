@@ -1,7 +1,6 @@
 #pragma once
 
-#include <CS2Kit/Core/Scheduler.hpp>
-#include <CS2Kit/Core/SlotEvents.hpp>
+#include <CS2Kit/Core/CoreServices.hpp>
 #include <CS2Kit/Sdk/ChatInputCapture.hpp>
 #include <CS2Kit/Sdk/ClientCvarService.hpp>
 #include <CS2Kit/Sdk/ConVarService.hpp>
@@ -17,7 +16,6 @@
 #include <CS2Kit/Sdk/TeleportTracker.hpp>
 #include <CS2Kit/Sdk/TransmitFilter.hpp>
 #include <CS2Kit/Sdk/UserMessage.hpp>
-#include <CS2Kit/Utils/Translations.hpp>
 #include <memory>
 
 namespace CS2Kit::Sdk
@@ -27,10 +25,9 @@ class SchemaService;  // internal (src/Sdk/Schema.hpp) - by pointer, so this hea
 /**
  * @brief Every engine-facing service, owned as one unit.
  *
- * Sdk is the bottom of the service stack, so this aggregate holds its own members by
- * value and takes references to the two things it needs from below - the Core scheduler
- * and the Utils translation table. It never reaches upward: nothing here knows about
- * players, commands or menus.
+ * Sdk sits just above Core, so this aggregate holds its own members by value and reaches
+ * the scheduler and slot signal through Core::Ctx(). It never reaches upward: nothing here
+ * knows about players, commands or menus.
  *
  * Reached from inside the Sdk module via @ref Ctx(); plugins go through `Engine()`,
  * which forwards to these same objects.
@@ -38,14 +35,10 @@ class SchemaService;  // internal (src/Sdk/Schema.hpp) - by pointer, so this hea
 class SdkServices
 {
 public:
-    SdkServices(Core::Scheduler& scheduler, Core::SlotEvents& slots, Utils::Translations& translations);
+    explicit SdkServices(Core::CoreServices& core);
     ~SdkServices();
     SdkServices(const SdkServices&) = delete;
     SdkServices& operator=(const SdkServices&) = delete;
-
-    // From below. Held by reference: the composition root owns them and outlives this.
-    Core::Scheduler& Scheduler;
-    Utils::Translations& Translations;
 
     // Declaration order == construction order; destruction is the reverse.
     GameInterfaces Interfaces;  // plain interface-pointer holder; populated in CS2Kit::Initialize

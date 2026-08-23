@@ -16,7 +16,7 @@ namespace CS2Kit::Core
 /**
  * @brief Plugin-supplied policy the kit consults for permissions, targeting, and message routing.
  *
- * Set it once in OnLoad (`Engine().Policy = {...}`) and every policy-aware kit subsystem -
+ * Set it once in OnLoad (`Engine().Core.Policy = {...}`) and every policy-aware kit subsystem -
  * command dispatch, target resolution, action dispatch, context menu rows - picks it up from
  * there. An empty member means allow / no-op, so a plugin only fills in what it enforces.
  */

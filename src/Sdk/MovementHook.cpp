@@ -1,4 +1,4 @@
-#include <CS2Kit/App/MetamodPluginBase.hpp>
+#include <CS2Kit/Core/MetamodGlobals.hpp>
 #include <CS2Kit/Core/Slot.hpp>
 #include <CS2Kit/Sdk/Entity.hpp>
 #include <CS2Kit/Sdk/GameData.hpp>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <CS2Kit/App/Services.hpp>
+#include <CS2Kit/Core/CoreServices.hpp>
 #include <CS2Kit/Core/Slot.hpp>
 #include <array>
 #include <cstdint>
@@ -31,15 +31,15 @@ public:
     {
         if (_listener != 0)
             return;
-        _listener = App::Engine().Players.ListenSlotChange([this](int slot) { Reset(slot); });
+        _listener = Core::Ctx().Slots.Listen([this](int slot) { Reset(slot); });
     }
 
     void Unbind()
     {
         if (_listener == 0)
             return;
-        if (auto* services = App::EngineOrNull())
-            services->Players.RemoveListener(_listener);
+        if (auto* core = Core::CtxOrNull())
+            core->Slots.Remove(_listener);
         _listener = 0;
     }
 

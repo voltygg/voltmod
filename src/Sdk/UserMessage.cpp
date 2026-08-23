@@ -13,6 +13,7 @@
 #include <CS2Kit/Utils/ChatColors.hpp>
 #include <CS2Kit/Utils/Log.hpp>
 #include <CS2Kit/Utils/Translations.hpp>
+#include <CS2Kit/Utils/UtilsServices.hpp>
 #include <engine/igameeventsystem.h>
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
@@ -174,7 +175,7 @@ void MessageSystem::Reply(int slot, std::string_view message)
 
 void MessageSystem::ReplyKey(int slot, const std::string& key, const std::map<std::string, std::string>& tokens)
 {
-    Reply(slot, Ctx().Translations.Get(key, slot, tokens));
+    Reply(slot, Utils::Ctx().Translations.Get(key, slot, tokens));
 }
 
 void MessageSystem::SendTextMsg(int slot, int destination, const std::string& message)

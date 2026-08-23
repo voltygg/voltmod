@@ -23,7 +23,7 @@ void StatusService::RegisterSection(std::string name, Provider provider)
 
 bool StatusService::IsHealthy() const
 {
-    if (!Engine().LoadReport.FirstFailure().empty())
+    if (!Engine().Core.LoadReport.FirstFailure().empty())
         return false;
     return !_healthy || _healthy();
 }

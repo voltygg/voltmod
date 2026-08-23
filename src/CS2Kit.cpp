@@ -98,7 +98,7 @@ bool Initialize(ISmmAPI* ismm, char* error, size_t maxlen, App::Services& servic
     // Only the message system is load-aborting; MetamodPluginBase logs the
     // summary and surfaces FirstFailure() in Metamod's error buffer.
     using Core::StageResult;
-    auto& report = services.LoadReport;
+    auto& report = services.Core.LoadReport;
 
     report.Run("GameData", [&] {
         const char* gameDataPath = params.GameDataPath ? params.GameDataPath : DefaultGameDataPath;
@@ -147,15 +147,15 @@ bool Initialize(ISmmAPI* ismm, char* error, size_t maxlen, App::Services& servic
     // Per-frame subsystems pump through the scheduler (PostgresDatabase registers its own pump
     // in Start), so OnGameFrame has exactly one thing to tick. CancelAll in Shutdown unhooks
     // these; Initialize re-registers them on the next load.
-    services.Scheduler.EveryFrame([&services] { services.Menus.OnGameFrame(); });
-    services.Scheduler.EveryFrame([&services] { services.Http.DispatchCompletions(); });
+    services.Core.Scheduler.EveryFrame([&services] { services.Menus.OnGameFrame(); });
+    services.Core.Scheduler.EveryFrame([&services] { services.Http.DispatchCompletions(); });
 
     // Kit status sections; plugins add theirs in OnLoad. Providers capture `services` by
     // reference - it outlives them (both live for one Load/Unload cycle).
     services.Status.RegisterSection("load", [&services] {
         auto names = nlohmann::json::object();
         int ok = 0;
-        for (const auto& stage : services.LoadReport.Stages())
+        for (const auto& stage : services.Core.LoadReport.Stages())
         {
             if (stage.Status == Core::StageStatus::Ok)
                 ++ok;
@@ -195,12 +195,12 @@ void Shutdown(App::Services& services)
     services.Sdk.ClientCvars.Shutdown();
     services.Sdk.Events.RemoveAllListeners();
     services.Http.Stop();  // drains in-flight requests before their completion targets go away
-    services.Scheduler.CancelAll();
+    services.Core.Scheduler.CancelAll();
 }
 
 void OnGameFrame(App::Services& services)
 {
-    services.Scheduler.OnGameFrame();
+    services.Core.Scheduler.OnGameFrame();
 }
 
 void OnPlayerDisconnect(App::Services& services, int slot)
