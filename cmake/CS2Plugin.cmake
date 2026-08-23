@@ -3,7 +3,7 @@ include_guard(GLOBAL)
 # Consumer-facing plugin API. Reaches consumers as a CMakeDeps build module, so
 # after find_package(cs2-kit CONFIG REQUIRED) any project can call:
 #   cs2_add_plugin(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...]
-#                  [COMPONENTS ...] [PCH_HEADERS ...] [UNITY]
+#                  [FEATURES ...] [PCH_HEADERS ...] [UNITY]
 #                  [VERSION <v>] [DESCRIPTION <text>]
 #                  [DEPENDS <spec>...] [REQUIRES <spec>...])
 
@@ -20,15 +20,15 @@ include("${CMAKE_CURRENT_LIST_DIR}/CS2KitBuildInfo.cmake")
 # it needs file-unique names for namespace-scope statics (self-registration
 # blocks); Registry<T> items still work, every source is compiled and linked.
 #
-# COMPONENTS narrows what the plugin links: naming `Sdk Menu` pulls those and whatever
-# they depend on, and nothing else - a movement plugin stops carrying libpqxx. Omit it to
-# link CS2Kit::CS2Kit, which is everything.
+# FEATURES names the optional parts of the kit this plugin needs. DATABASE adds
+# CS2Kit::Database (and libpqxx); without it a movement plugin carries neither. The
+# always-present CS2Kit::Runtime is linked either way.
 #
 # VERSION/DESCRIPTION/DEPENDS/REQUIRES fill the generated manifest; VERSION defaults to
 # the repo's version.txt.
 function(cs2_add_plugin target_name)
     cmake_parse_arguments(ARG "UNITY" "VERSION;DESCRIPTION"
-        "SOURCES;INCLUDE_DIRS;LIBRARIES;COMPONENTS;PCH_HEADERS;DEPENDS;REQUIRES" ${ARGN})
+        "SOURCES;INCLUDE_DIRS;LIBRARIES;FEATURES;PCH_HEADERS;DEPENDS;REQUIRES" ${ARGN})
 
     # Set by the hl2sdk-cs2 build module; the plugin compiles two TUs out of that tree.
     if(NOT CS2KIT_HL2SDK_DIR)
@@ -82,19 +82,21 @@ function(cs2_add_plugin target_name)
         ${ARG_INCLUDE_DIRS}
     )
 
-    if(ARG_COMPONENTS)
-        set(kit_targets)
-        foreach(component IN LISTS ARG_COMPONENTS)
-            if(NOT TARGET "CS2Kit::${component}")
+    set(kit_targets CS2Kit::Runtime)
+    foreach(feature IN LISTS ARG_FEATURES)
+        if(feature STREQUAL "DATABASE")
+            if(NOT TARGET CS2Kit::Database)
                 message(FATAL_ERROR
-                    "cs2_add_plugin(${target_name} COMPONENTS ${component}): no such CS2Kit "
-                    "component. Known: Core Utils Http Sdk Players Commands Menu Database App.")
+                    "cs2_add_plugin(${target_name} FEATURES DATABASE): cs2-kit was built "
+                    "without Postgres. Set -o cs2-kit/*:with_postgres=True.")
             endif()
-            list(APPEND kit_targets "CS2Kit::${component}")
-        endforeach()
-    else()
-        set(kit_targets CS2Kit::CS2Kit)
-    endif()
+            list(APPEND kit_targets CS2Kit::Database)
+        else()
+            message(FATAL_ERROR
+                "cs2_add_plugin(${target_name} FEATURES ${feature}): no such feature. "
+                "Known: DATABASE.")
+        endif()
+    endforeach()
 
     target_link_libraries("${target_name}" PRIVATE
         ${kit_targets}

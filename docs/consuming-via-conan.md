@@ -67,7 +67,8 @@ Core  Utils  Http  Sdk  Players  Commands  Menu  Database  App
 you need - dependencies come along automatically:
 
 ```cmake
-cs2_add_plugin(bhop COMPONENTS App)   # everything except Database, so no libpqxx
+cs2_add_plugin(bhop)                        # runtime only, so no libpqxx
+cs2_add_plugin(admin-system FEATURES DATABASE)
 ```
 
 `App` is the composition root (`Engine()`, `PluginBase`), so nearly every plugin

@@ -13,7 +13,7 @@ set(CMAKE_FIND_PACKAGE_TARGETS_GLOBAL ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(CS2KitSdk)
-include(CS2KitComponent)
+include(CS2KitLibrary)
 include(CS2Plugin)
 include(CS2Tests)
 
@@ -25,22 +25,35 @@ endif()
 
 cs2kit_find_sdk()
 
-# One static library per module. The layering is enforced by the dependency scan in
-# scripts/; DEPS below must stay a DAG, downward only.
-foreach(module Core Http Sdk Players Commands Menu Database App)
-    file(GLOB_RECURSE CS2KIT_${module}_SOURCES CONFIGURE_DEPENDS
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/${module}/*.cpp")
-endforeach()
-# Runtime.cpp is the composition root - the flat service container plus the one
-# ambient pointer the lower modules reach it through - so it belongs with App.
-list(APPEND CS2KIT_App_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/Runtime.cpp")
+# Two libraries, not nine. The module directories under src/ are still the architecture -
+# scripts/cs2kit/modgraph.py checks the layering between them - but they were never
+# independently selectable, so mirroring them as CMake targets and Conan components only
+# meant the same dependency list was written out three times. Database stays separate
+# because it is the one thing a plugin can genuinely do without.
+file(GLOB_RECURSE CS2KIT_RUNTIME_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Core/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Http/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Sdk/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Players/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Commands/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Menu/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/App/*.cpp"
+)
+# Runtime.cpp is the composition root - the flat service container plus the one ambient
+# pointer the lower modules reach it through.
+list(APPEND CS2KIT_RUNTIME_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/Runtime.cpp")
 
-# SDK bodies that ship as source only, compiled into the Sdk component. entityidentity
-# is needed even though nothing calls it directly: entitysystem.cpp references
-# NameMatches, and omitting it fails the Linux .so dlopen on an undefined symbol. tier1
-# is here because hl2sdk dropped its prebuilt libs; convar.cpp is excluded because
-# cs2_add_plugin compiles it per module, each module owning its own ConVar registration
-# state, and bitbuf/tokenreader because hl2sdk deleted the headers they include.
+file(GLOB_RECURSE CS2KIT_DATABASE_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Database/*.cpp")
+file(GLOB_RECURSE CS2KIT_Http_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Http/*.cpp")
+
+# SDK bodies that ship as source only. entityidentity is needed even though nothing calls
+# it directly: entitysystem.cpp references NameMatches, and omitting it fails the Linux .so
+# dlopen on an undefined symbol. tier1 is here because hl2sdk dropped its prebuilt libs;
+# convar.cpp is excluded because cs2_add_plugin compiles it per module, each module owning
+# its own ConVar registration state, and bitbuf/tokenreader because hl2sdk deleted the
+# headers they include.
 set(CS2KIT_HL2SDK_SOURCES
     "${CS2KIT_HL2SDK_DIR}/entity2/entityidentity.cpp"
     "${CS2KIT_HL2SDK_DIR}/entity2/entitykeyvalues.cpp"
@@ -50,61 +63,35 @@ set(CS2KIT_HL2SDK_SOURCES
     "${CS2KIT_HL2SDK_DIR}/tier1/utlbufferutil.cpp"
 )
 
-# HL2SDK and nlohmann are third-party, not CS2Kit modules, so Core still depends on no
-# layer: ConsoleLogger writes through the engine console and the manifest parser is JSON.
-cs2kit_add_component(Core
-    SOURCES ${CS2KIT_Core_SOURCES}
-    LIBS CS2Kit::Metamod CS2Kit::HL2SDK nlohmann_json::nlohmann_json)
-
-cs2kit_add_component(Http
-    SOURCES ${CS2KIT_Http_SOURCES}
-    DEPS CS2Kit::Core
-    LIBS cpr::cpr)
-
-# The SDK bodies and the generated protobufs ride here: this is the only component
-# that speaks to the engine, and they are what it speaks through.
-cs2kit_add_component(Sdk PCH
-    SOURCES ${CS2KIT_Sdk_SOURCES}
+cs2kit_add_library(Runtime
+    SOURCES ${CS2KIT_RUNTIME_SOURCES}
     VENDORED ${CS2KIT_HL2SDK_SOURCES} ${CS2KIT_HL2SDK_PROTO_SOURCES}
-    DEPS CS2Kit::Core)
+    LIBS CS2Kit::Metamod CS2Kit::HL2SDK nlohmann_json::nlohmann_json
+    PRIVATE_LIBS cpr::cpr)
 
-cs2kit_add_component(Players PCH
-    SOURCES ${CS2KIT_Players_SOURCES}
-    DEPS CS2Kit::Sdk CS2Kit::Core)
+# cpr never appears in a public header, so it stays off the include path of everything
+# that links the kit. src/Http/*.cpp is also kept out of the precompiled header: forcing
+# the hl2sdk universe ahead of <cpr/cpr.h> puts windows.h before winsock2.h.
+set_source_files_properties(${CS2KIT_Http_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 
-cs2kit_add_component(Commands PCH
-    SOURCES ${CS2KIT_Commands_SOURCES}
-    DEPS CS2Kit::Players CS2Kit::Sdk CS2Kit::Core)
-
-cs2kit_add_component(Menu PCH
-    SOURCES ${CS2KIT_Menu_SOURCES}
-    DEPS CS2Kit::Players CS2Kit::Sdk CS2Kit::Core)
+if(WIN32)
+    target_link_libraries(cs2-kit-runtime PUBLIC psapi)
+endif()
 
 if(CS2KIT_ENABLE_POSTGRES)
-    cs2kit_add_component(Database
-        SOURCES ${CS2KIT_Database_SOURCES}
-        DEPS CS2Kit::Core
+    cs2kit_add_library(Database
+        SOURCES ${CS2KIT_DATABASE_SOURCES}
+        DEPS CS2Kit::Runtime
         LIBS libpqxx::pqxx)
     # Consumer feature checks and Database/Api.hpp's #error guard read this; only that
     # header pulls in <pqxx/pqxx>.
     target_compile_definitions(cs2-kit-database PUBLIC CS2KIT_ENABLE_POSTGRES=1)
 endif()
 
-# The composition root: the only component allowed to depend on all the others.
-cs2kit_add_component(App PCH
-    SOURCES ${CS2KIT_App_SOURCES}
-    DEPS CS2Kit::Commands CS2Kit::Menu CS2Kit::Players CS2Kit::Sdk CS2Kit::Http
-         CS2Kit::Core)
-
-if(WIN32)
-    target_link_libraries(cs2-kit-sdk PUBLIC psapi)
-endif()
-
-# What a plugin links unless it names components: everything, App first so the
-# composition root's objects are pulled before the layers they reference.
+# What a plugin links unless it asks for a feature.
 add_library(cs2-kit INTERFACE)
 add_library(CS2Kit::CS2Kit ALIAS cs2-kit)
-target_link_libraries(cs2-kit INTERFACE CS2Kit::App)
+target_link_libraries(cs2-kit INTERFACE CS2Kit::Runtime)
 if(CS2KIT_ENABLE_POSTGRES)
     target_link_libraries(cs2-kit INTERFACE CS2Kit::Database)
 endif()

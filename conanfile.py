@@ -128,20 +128,6 @@ class CS2KitConan(ConanFile):
              os.path.join(pkg, "templates", "plugin"))
         copy(self, "LICENSE", self.source_folder, os.path.join(pkg, "licenses"))
 
-    # One static library per module, in dependency order. Mirrors the DAG the
-    # CMake build enforces, so a plugin naming COMPONENTS links only its layers.
-    # requires lists siblings first, then third-party.
-    COMPONENTS = {
-        "Core": ["hl2sdk-cs2::hl2sdk-cs2", "metamod-source::metamod-source",
-                 "nlohmann_json::nlohmann_json"],
-        "Http": ["Core", "cpr::cpr"],
-        "Sdk": ["Core"],
-        "Players": ["Sdk", "Core"],
-        "Commands": ["Players", "Sdk", "Core"],
-        "Menu": ["Players", "Sdk", "Core"],
-        "App": ["Commands", "Menu", "Players", "Sdk", "Http", "Core"],
-    }
-
     def package_info(self):
         self.cpp_info.set_property("cmake_file_name", "cs2-kit")
         self.cpp_info.set_property("cmake_target_name", "CS2Kit::CS2Kit")
@@ -153,28 +139,33 @@ class CS2KitConan(ConanFile):
             os.path.join("cmake", "CS2Tests.cmake"),
         ])
 
-        for name, requires in self.COMPONENTS.items():
-            comp = self.cpp_info.components[name.lower()]
-            comp.set_property("cmake_target_name", f"CS2Kit::{name}")
-            comp.libs = [f"cs2-kit-{name.lower()}"]
-            comp.includedirs = ["include"]
-            comp.requires = [r.lower() if "::" not in r else r for r in requires]
-
+        # Two components, matching the two libraries CMake builds. The source modules
+        # are an architecture, not a packaging unit: nothing ever selected them
+        # individually, so declaring them here only duplicated the CMake dependency
+        # graph in a second place that could drift from it.
+        runtime = self.cpp_info.components["runtime"]
+        runtime.set_property("cmake_target_name", "CS2Kit::Runtime")
+        runtime.libs = ["cs2-kit-runtime"]
+        runtime.includedirs = ["include"]
+        runtime.requires = [
+            "hl2sdk-cs2::hl2sdk-cs2",
+            "metamod-source::metamod-source",
+            "nlohmann_json::nlohmann_json",
+            "cpr::cpr",
+        ]
         if self.settings.os == "Windows":
-            self.cpp_info.components["sdk"].system_libs = ["psapi"]
+            runtime.system_libs = ["psapi"]
 
         if self.options.with_postgres:
             db = self.cpp_info.components["database"]
             db.set_property("cmake_target_name", "CS2Kit::Database")
             db.libs = ["cs2-kit-database"]
             db.includedirs = ["include"]
-            db.requires = ["core", "libpqxx::libpqxx"]
+            db.requires = ["runtime", "libpqxx::libpqxx"]
             # Consumer feature checks and Database/Api.hpp's #error guard read this.
             db.defines = ["CS2KIT_ENABLE_POSTGRES=1"]
 
-        # CS2Kit::CS2Kit is the everything target. CMakeDeps builds it from the
-        # component graph, so a plugin that names no COMPONENTS is unaffected by
-        # the split - it just links App, which pulls the rest.
+        # What cs2_add_plugin links unless the plugin asks for a feature.
         umbrella = self.cpp_info.components["cs2-kit"]
         umbrella.set_property("cmake_target_name", "CS2Kit::CS2Kit")
-        umbrella.requires = ["app"] + (["database"] if self.options.with_postgres else [])
+        umbrella.requires = ["runtime"] + (["database"] if self.options.with_postgres else [])

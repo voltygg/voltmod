@@ -1,10 +1,7 @@
 include_guard(GLOBAL)
 
-# Kit-internal: builds one static library per module, matching the layering the
-# dependency scan enforces. Not shipped to consumers - they get the components as
-# CMakeDeps targets from package_info().
-
-set(CS2KIT_COMPONENTS "" CACHE INTERNAL "Component names, in dependency order")
+# Kit-internal: builds one of the kit's static libraries. Not shipped to consumers -
+# they get CS2Kit::Runtime and CS2Kit::Database as CMakeDeps targets from package_info().
 
 # The third-party headers worth precompiling. Kit headers are deliberately absent:
 # editing one must not invalidate the PCH. <google/protobuf/message.h> rather than a
@@ -28,15 +25,15 @@ set(CS2KIT_PCH_HEADERS
     <vector>
 )
 
-# cs2kit_add_component(<name>
-#     SOURCES <files...>            # the module's TUs
-#     VENDORED <files...>           # third-party TUs: warnings off, no PCH, no unity
-#     DEPS <CS2Kit::X...>           # sibling components, downward only
-#     LIBS <targets...>             # external usage requirements (PUBLIC)
-#     [PCH]                         # precompile the SDK header universe for this module
+# cs2kit_add_library(<name>
+#     SOURCES <files...>       # first-party TUs
+#     VENDORED <files...>      # third-party TUs: warnings off, no PCH, no unity
+#     DEPS <CS2Kit::X...>      # sibling kit libraries (PUBLIC)
+#     LIBS <targets...>        # external usage requirements (PUBLIC)
+#     PRIVATE_LIBS <targets...># externals that never appear in a public header
 # )
-function(cs2kit_add_component name)
-    cmake_parse_arguments(ARG "PCH" "" "SOURCES;VENDORED;DEPS;LIBS" ${ARGN})
+function(cs2kit_add_library name)
+    cmake_parse_arguments(ARG "" "" "SOURCES;VENDORED;DEPS;LIBS;PRIVATE_LIBS" ${ARGN})
 
     string(TOLOWER "${name}" lower)
     set(target "cs2-kit-${lower}")
@@ -73,15 +70,13 @@ function(cs2kit_add_component name)
     )
 
     target_link_libraries("${target}" PUBLIC ${ARG_DEPS} ${ARG_LIBS})
+    target_link_libraries("${target}" PRIVATE ${ARG_PRIVATE_LIBS})
 
-    if(ARG_PCH AND NOT CS2KIT_DISABLE_PCH)
+    if(NOT CS2KIT_DISABLE_PCH)
         target_precompile_headers("${target}" PRIVATE ${CS2KIT_PCH_HEADERS})
         if(ARG_VENDORED)
             # Vendored/generated TUs keep their own include order.
             set_source_files_properties(${ARG_VENDORED} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
         endif()
     endif()
-
-    set(components ${CS2KIT_COMPONENTS} "${name}")
-    set(CS2KIT_COMPONENTS "${components}" CACHE INTERNAL "Component names, in dependency order")
 endfunction()
