@@ -18,6 +18,7 @@ void ChatInputCapture::BeginCapture(int slot, std::string prompt, Callback callb
         .Prompt = std::move(prompt),
         .Cb = std::move(callback),
         .TimeoutHandle = 0,
+        .Id = _nextId++,
     };
 
     if (timeoutMs > 0)
@@ -45,15 +46,24 @@ bool ChatInputCapture::TryConsume(int slot, std::string_view text)
     if (!opt.has_value())
         return false;
 
+    // Copy before invoking: a menu flow routinely chains prompts, so the callback can replace
+    // this very capture (BeginCapture) or drop it (CancelCapture).
     auto cb = opt->Cb;
-    auto timeoutHandle = opt->TimeoutHandle;
+    const uint64_t id = opt->Id;
 
     bool accepted = cb && cb(slot, text);
+
+    // Clear only if the capture we just ran is still the one installed. Without the id check a
+    // callback that chained a follow-up prompt had it deleted the moment it returned.
     if (accepted)
     {
-        if (timeoutHandle != 0)
-            CS2Kit::Detail::Rt().Scheduler.Cancel(timeoutHandle);
-        opt.reset();
+        auto& current = _pending[slot];
+        if (current.has_value() && current->Id == id)
+        {
+            if (current->TimeoutHandle != 0)
+                CS2Kit::Detail::Rt().Scheduler.Cancel(current->TimeoutHandle);
+            current.reset();
+        }
     }
     // Either way we suppress the chat broadcast - the player typed a value, not a chat message.
     return true;

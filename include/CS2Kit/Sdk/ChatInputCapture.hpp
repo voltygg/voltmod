@@ -64,9 +64,12 @@ private:
         std::string Prompt;
         Callback Cb;
         uint64_t TimeoutHandle = 0;
+        /** Distinguishes this capture from any that replaces it while its own callback runs. */
+        uint64_t Id = 0;
     };
 
     std::array<std::optional<Pending>, Core::MaxPlayers> _pending{};
+    uint64_t _nextId = 1;
 };
 
 }  // namespace CS2Kit::Sdk
