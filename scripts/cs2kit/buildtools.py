@@ -1,7 +1,7 @@
-"""Shared build helpers for cs2-kit and projects that vendor it (e.g. cs2-plugins).
+"""Shared build helpers for cs2-kit and the projects that depend on it.
 
-Import, don't execute. This is the single source of truth; consuming repos add this
-directory to sys.path and call build().
+Import, don't execute. This is the single source of truth for the toolchain
+invocation; consuming repos get it from the installed cs2-kit distribution.
 """
 
 import os
@@ -12,9 +12,18 @@ from pathlib import Path
 from typing import NoReturn
 
 WINDOWS = sys.platform == "win32"
+CONAN_REMOTE = "voltygg"
+CONAN_REMOTE_URL = "https://conan.cloudsmith.io/voltygg/cs2-kit/"
 CPP_EXTS = (".cpp", ".hpp")
 # Under the 32767-character Windows cap, with room for the tool path and flags.
 MAX_COMMAND_LINE = 24000
+
+
+def templates_dir() -> Path:
+    """The scaffold tree: packaged beside this module in a wheel, at the repo root
+    in a checkout."""
+    packaged = Path(__file__).resolve().parent / "templates"
+    return packaged if packaged.is_dir() else Path(__file__).resolve().parents[2] / "templates"
 
 
 def die(message: str) -> NoReturn:
@@ -27,22 +36,51 @@ def default_preset() -> str:
     return "windows-msvc-release" if WINDOWS else "linux-steamrt-release"
 
 
-def run_tool(tool: str, *args: str) -> subprocess.CompletedProcess[bytes]:
-    """Run a build tool, preferring the project venv, then `uv run`, then PATH."""
+def resolve_tool(tool: str) -> tuple[list[str], dict[str, str]]:
+    """Locate a build tool, preferring the project venv, then `uv run`, then PATH.
+
+    Returns the argv prefix to invoke it with and the environment it needs.
+    """
     for root in filter(None, (os.environ.get("VIRTUAL_ENV"), ".venv")):
         bindir = Path(root) / ("Scripts" if WINDOWS else "bin")
         exe = shutil.which(tool, path=str(bindir))
         if exe:
-            env = {**os.environ, "PATH": f"{bindir}{os.pathsep}{os.environ['PATH']}"}
-            return subprocess.run([exe, *args], check=True, env=env)
+            return [exe], {**os.environ, "PATH": f"{bindir}{os.pathsep}{os.environ['PATH']}"}
 
     if shutil.which("uv"):
-        return subprocess.run(["uv", "run", tool, *args], check=True)
+        return ["uv", "run", tool], dict(os.environ)
     if shutil.which(tool):
-        return subprocess.run([tool, *args], check=True)
+        return [tool], dict(os.environ)
     die(
         f"'{tool}' was not found on PATH. Install CMake 4.3.4+, Conan 2.29.1+, and "
         "Ninja, or install uv and run `uv sync`."
+    )
+
+
+def run_tool(tool: str, *args: str) -> subprocess.CompletedProcess[bytes]:
+    """Run a build tool, failing the process if it exits non-zero."""
+    argv, env = resolve_tool(tool)
+    return subprocess.run([*argv, *args], check=True, env=env)
+
+
+def ensure_remote() -> None:
+    """Register the public Cloudsmith remote that serves hl2sdk-cs2 and metamod-source.
+
+    Writes to the global Conan config, so CS2KIT_SKIP_REMOTE_SETUP=1 opts out for
+    anyone who manages remotes themselves (a proxy, a mirror, an air-gapped cache).
+    """
+    if os.environ.get("CS2KIT_SKIP_REMOTE_SETUP"):
+        return
+    argv, env = resolve_tool("conan")
+    listing = subprocess.run(
+        [*argv, "remote", "list"], text=True, capture_output=True, env=env
+    )
+    if listing.returncode == 0 and f"{CONAN_REMOTE}:" in listing.stdout:
+        return
+    print(f"==> Adding Conan remote '{CONAN_REMOTE}' ({CONAN_REMOTE_URL})")
+    subprocess.run(
+        [*argv, "remote", "add", "--force", CONAN_REMOTE, CONAN_REMOTE_URL],
+        check=True, env=env,
     )
 
 
@@ -63,8 +101,8 @@ def _chunk_by_length(files: list[str], budget: int) -> list[list[str]]:
 def format_sources(repo_root: Path, dirs: list[str], *, check: bool) -> None:
     """Run the pinned clang-format over C++ sources under dirs (relative to repo_root).
 
-    rglob only descends the listed dirs, so nested SDK submodules under vendor/ are
-    never touched. --check leaves files untouched and exits non-zero on any diff.
+    rglob only descends the listed dirs, so nothing outside them is touched.
+    --check leaves files as they are and exits non-zero on any diff.
     """
     files = sorted(
         str(p)
@@ -161,6 +199,7 @@ def build(repo_root: Path, preset: str, *, run_tests: bool = True) -> None:
     configure+build, so CI can time and report tests as a separate step.
     """
     require_build_tools()
+    ensure_remote()
     build_type = "Debug" if "debug" in preset else "Release"
 
     # Own profiles first (cs2-kit standalone); vendored cs2-kit's otherwise, so
@@ -193,6 +232,10 @@ def build(repo_root: Path, preset: str, *, run_tests: bool = True) -> None:
         "conan", "install", str(repo_root),
         "--output-folder", str(build_dir / "generators"),
         "--build=missing",
+        # Never build an SDK locally: a missing binary means the publish job never ran,
+        # and --build=missing would start a multi-GB upstream fetch that fails anyway.
+        "--build=!hl2sdk-cs2/*",
+        "--build=!metamod-source/*",
         *lock_args,
         "--profile:host", str(profile),
         "--profile:build", str(profile),

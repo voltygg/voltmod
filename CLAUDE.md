@@ -20,27 +20,26 @@ gamedata/              Engine signatures and offsets
 cmake/                 CS2KitSdk.cmake + CS2Plugin.cmake (cs2_add_plugin)
                        + CS2Tests.cmake (cs2_add_tests) + DoctestMain.cpp + plugin.vdf.in
                        + CS2KitBuildInfo.cmake (git/version stamping -> <CS2Kit/BuildInfo.hpp>)
-scripts/               Build tooling (cwd-based; consumers invoke them directly),
-                       init_project.py + new_plugin.py scaffold generators
+scripts/cs2kit/        Build + scaffolding tooling, shipped as the `cs2-kit` Python
+                       distribution (cs2kit-build, -bootstrap, -format, -new-plugin,
+                       -init-project); every entry point targets Path.cwd()
 templates/plugin/      Plugin scaffold tree ($name/$ns/... placeholders)
-templates/project/     Consumer-project scaffold (vendored-submodule mode)
-templates/project-conan/  Consumer-project scaffold (Conan-package mode)
-recipes/               Conan recipes for hl2sdk-cs2 + metamod-source
-                       (private Cloudsmith remote; see docs/consuming-via-conan.md)
+templates/project/     Consumer-project scaffold
 test_package/          conan create validation: hello plugin via cs2_add_plugin
 tests/                 SDK-free unit tests (doctest + ctest); see docs/testing.md
 docs/                  Doxygen pages and guides
-vendor/                SDK submodules
 CMakeLists.txt         Standalone CMake build
-CMakePresets.json      Windows/Linux presets (consumers include this file)
-conanfile.py           Consumer conanfile AND package recipe (mode auto-detected
-                       by vendor/ presence; conan create omits vendor/)
-conan/profiles/        Conan profiles (canonical; consuming repos reuse them,
-                       package consumers `conan config install` them)
+CMakePresets.json      Windows/Linux presets
+conanfile.py           This repo's consumer conanfile AND its package recipe
+conan/                 profiles/ + remotes.json, installed together with
+                       `conan config install <repo> -sf conan`
 ```
 
-`templates/project/CMakePresets.json` includes the root `CMakePresets.json` by
-relative path; preset names are public API for consumers - rename with care.
+There are no submodules. hl2sdk-cs2 and metamod-source are Conan packages built
+from [voltygg/cs2-sdk-recipes](https://github.com/voltygg/cs2-sdk-recipes);
+`cs2kit_find_sdk()` locates them and their build modules supply the SDK path and
+generated protobuf list. Preset names are public API for consumers - rename with
+care.
 
 ## Build Commands
 
@@ -49,19 +48,18 @@ uv run poe build
 uv run poe build windows-msvc-release
 uv run poe build-linux
 uv run poe new-plugin <name>   # scaffold a plugin into the invoking repo's plugins/
-python scripts/init_project.py # stamp a whole consumer project (run from its root)
+cs2kit-init-project            # stamp a whole consumer project (run from its root)
 ```
 
-`poe build` runs the full workflow preset (configure, build, ctest). All scripts
-target `Path.cwd()`, so consuming repos call them in place
-(`python vendor/cs2-kit/scripts/build.py`) instead of keeping wrappers.
+`poe build` runs the full workflow preset (configure, build, ctest). Consuming
+repos install this distribution and get the same tasks; there are no wrapper
+scripts anywhere.
 
-Consuming projects add the subdirectory and declare plugins with the kit-provided
-`cs2_add_plugin` (from `cmake/CS2Plugin.cmake`, included by the kit's root
-CMakeLists):
+Consuming projects find the package and declare plugins with the kit-provided
+`cs2_add_plugin`, which reaches them as a CMakeDeps build module:
 
 ```cmake
-add_subdirectory(vendor/cs2-kit)
+find_package(cs2-kit CONFIG REQUIRED)
 ```
 
 ```cmake

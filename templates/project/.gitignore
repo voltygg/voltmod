@@ -10,7 +10,6 @@ __pycache__/
 *.py[cod]
 .venv/
 .ruff_cache/
-.mypy_cache/
 
 # IDE
 .vs/

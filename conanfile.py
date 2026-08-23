@@ -12,17 +12,13 @@ from conan.tools.files import copy
 
 
 class CS2KitConan(ConanFile):
-    """cs2-kit: consumer conanfile AND package recipe, mode-detected.
+    """cs2-kit: this repo's consumer conanfile AND its package recipe.
 
-    Vendored mode (this repo checked out with its vendor/ submodules): plain
-    dependency resolution for build.py's conan install - no layout, no SDK
-    requires, CS2KitSdk.cmake finds the SDKs under vendor/.
-
-    Package mode (`conan create` - exports_sources omits vendor/, so the
-    exported recipe never sees the submodules): requires the hl2sdk-cs2 and
-    metamod-source packages, builds libcs2-kit against them, and ships the headers,
-    cmake helpers (cs2_add_plugin via CMakeDeps build modules), gamedata and the
-    plugin template.
+    Dependencies resolve identically either way - the SDKs are always Conan packages.
+    The two differ only in build layout: a source checkout keeps the flat
+    --output-folder the CMake presets expect, while `conan create` uses cmake_layout
+    and ships the headers, cmake helpers (cs2_add_plugin as a CMakeDeps build module),
+    gamedata and the plugin template.
     """
 
     name = "cs2-kit"
@@ -55,24 +51,24 @@ class CS2KitConan(ConanFile):
         "LICENSE",
     )
 
-    # Keep in sync with recipes/*/conandata.yml and the vendor/ submodule pins.
-    HL2SDK_VERSION = "2026.07.23"
-    METAMOD_VERSION = "2.0.0.20260711"
-
     def set_version(self):
         self.version = self.version or os.environ.get("CS2KIT_VERSION", "1.0.0")
 
-    def _vendored_sdk(self):
-        return os.path.isdir(os.path.join(self.recipe_folder, "vendor", "hl2sdk-cs2", "public"))
+    def _source_checkout(self):
+        # exports_sources omits CMakePresets.json, so this is false in the cache.
+        return os.path.isfile(os.path.join(self.recipe_folder, "CMakePresets.json"))
 
     def requirements(self):
         # transitive_headers: plugin TUs include SDK/json headers through Api.hpp;
         # transitive_libs: the plugin MODULE links the prebuilt SDK libs.
         self.requires("nlohmann_json/3.11.3", transitive_headers=True)
-        if not self._vendored_sdk():
-            self.requires(f"hl2sdk-cs2/{self.HL2SDK_VERSION}",
-                          transitive_headers=True, transitive_libs=True)
-            self.requires(f"metamod-source/{self.METAMOD_VERSION}", transitive_headers=True)
+        # Ranges, so an SDK bump never edits this recipe; conan.lock pins the build.
+        self.requires("hl2sdk-cs2/[>=2026 <2028]",
+                      transitive_headers=True, transitive_libs=True)
+        # Header-only, and it moves monthly - minor_mode keeps a bump from
+        # invalidating every published cs2-kit binary.
+        self.requires("metamod-source/[>=2.0 <3]",
+                      transitive_headers=True, package_id_mode="minor_mode")
         if self.options.with_postgres:
             self.requires("libpqxx/7.10.0", transitive_headers=True, transitive_libs=True)
 
@@ -84,16 +80,19 @@ class CS2KitConan(ConanFile):
         if self.settings.os == "Linux" and self.settings.get_safe("compiler.libcxx") != "libstdc++":
             raise ConanInvalidConfiguration(
                 "cs2-kit requires compiler.libcxx=libstdc++ (Valve's _GLIBCXX_USE_CXX11_ABI=0); "
-                "use the shipped linux-steamrt profile (conan config install the repo's conan/ dir)")
-        if self.settings.os == "Windows" and str(self.settings.get_safe("compiler.runtime")) != "static":
+                "use the shipped linux-steamrt profile "
+                "(conan config install the repo's conan/ dir)")
+        runtime = str(self.settings.get_safe("compiler.runtime"))
+        if self.settings.os == "Windows" and runtime != "static":
             raise ConanInvalidConfiguration(
                 "cs2-kit requires the static MSVC runtime (/MT); "
                 "use the shipped windows-msvc profile")
 
     def layout(self):
-        # Vendored mode keeps the flat --output-folder layout build.py and the
-        # CMake presets point at.
-        if not self._vendored_sdk():
+        # A checkout keeps the flat --output-folder layout build.py and the CMake
+        # presets point at; cmake_layout would derive a folder from build_type, which
+        # does not map onto preset names that encode a toolchain.
+        if not self._source_checkout():
             cmake_layout(self)
 
     def generate(self):
@@ -104,13 +103,8 @@ class CS2KitConan(ConanFile):
         toolchain.user_presets_path = False
         toolchain.variables["CMAKE_POSITION_INDEPENDENT_CODE"] = True
         toolchain.variables["CS2KIT_ENABLE_POSTGRES"] = bool(self.options.with_postgres)
-        if not self._vendored_sdk():
-            # Point CS2KitSdk.cmake's cache vars at the dependency packages
-            # instead of the vendor/ submodules; it works unchanged either way.
-            toolchain.variables["CS2KIT_HL2SDK_DIR"] = \
-                self.dependencies["hl2sdk-cs2"].package_folder.replace("\\", "/")
-            toolchain.variables["CS2KIT_MMSOURCE_DIR"] = \
-                self.dependencies["metamod-source"].package_folder.replace("\\", "/")
+        # CS2KIT_HL2SDK_DIR is not set here - hl2sdk-cs2's own build module owns it.
+        if not self._source_checkout():
             toolchain.variables["BUILD_TESTING"] = False
         toolchain.generate()
 

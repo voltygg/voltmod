@@ -19,8 +19,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+
+      # The Doxygen theme, checked out rather than vendored: it is a docs-only asset
+      # and this repo otherwise has no submodules. Doxyfile expects it here.
+      - uses: actions/checkout@v7
         with:
-          submodules: true
+          repository: jothepro/doxygen-awesome-css
+          ref: 82d315e34ac419a81caccf470cc2fbc2ec8ee524
+          path: vendor/doxygen-awesome-css
 
       - name: Install Doxygen
         run: sudo apt-get update && sudo apt-get install -y doxygen graphviz

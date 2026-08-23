@@ -6,34 +6,27 @@ readme = "README.md"
 requires-python = ">=3.14"
 
 dependencies = [
-    "cmake>=4.3.4",
-    "conan>=2.29.1",
-    "ninja>=1.13.0",
-    "ruff>=0.14.0",
+    # Brings the poe tasks below plus the pinned CMake/Conan/Ninja/clang-format.
+    "cs2-kit @ git+https://github.com/voltygg/cs2-kit.git@v1.0.0",
     "poethepoet>=0.47.0",
-    "clang-format==22.1.5",
+    "ruff>=0.14.0",
 ]
 
 [tool.uv]
 package = false
 
-[tool.poe.env]
-# Lets repo scripts `import buildtools` from the vendored kit.
-PYTHONPATH = "${POE_ROOT}/vendor/cs2-kit/scripts"
-
 [tool.poe.tasks]
-build = "python vendor/cs2-kit/scripts/build.py"
-build-linux = "python vendor/cs2-kit/scripts/build.py linux-steamrt-release"
-bootstrap = "python vendor/cs2-kit/scripts/bootstrap.py"
-new-plugin = "python vendor/cs2-kit/scripts/new_plugin.py"
+build = "cs2kit-build"
+build-linux = "cs2kit-build linux-steamrt-release"
+bootstrap = "cs2kit-bootstrap"
+new-plugin = "cs2kit-new-plugin"
 lint = "ruff check ."
-format = "python vendor/cs2-kit/scripts/format.py"
-format-check = "python vendor/cs2-kit/scripts/format.py --check"
+format = "cs2kit-format"
+format-check = "cs2kit-format --check"
 
 [tool.ruff]
 line-length = 100
 target-version = "py314"
-extend-exclude = ["vendor"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP"]

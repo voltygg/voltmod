@@ -1,14 +1,15 @@
 include_guard(GLOBAL)
 
-# Consumer-facing plugin API. Included by cs2-kit's root CMakeLists, so after
-# add_subdirectory(vendor/cs2-kit) any project can call:
+# Consumer-facing plugin API. Reaches consumers as a CMakeDeps build module, so
+# after find_package(cs2-kit CONFIG REQUIRED) any project can call:
 #   cs2_add_plugin(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...]
 #                  [PCH_HEADERS ...] [UNITY]
 #                  [VERSION <v>] [DESCRIPTION <text>]
 #                  [DEPENDS <spec>...] [REQUIRES <spec>...])
 
-# CS2KitSdk provides CS2KIT_ROOT_DIR / _HL2SDK_DIR / _PLATFORM_ARCH / _GAMEDATA_DIR
-# and cs2kit_mark_vendored_sources; include_guard(GLOBAL) makes the repeat free.
+# CS2KitSdk provides CS2KIT_ROOT_DIR / _PLATFORM_ARCH / _GAMEDATA_DIR plus
+# cs2kit_mark_vendored_sources and cs2kit_set_sdk_warnings; include_guard(GLOBAL)
+# makes the repeat free.
 include("${CMAKE_CURRENT_LIST_DIR}/CS2KitSdk.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/CS2KitBuildInfo.cmake")
 
@@ -24,6 +25,13 @@ include("${CMAKE_CURRENT_LIST_DIR}/CS2KitBuildInfo.cmake")
 function(cs2_add_plugin target_name)
     cmake_parse_arguments(ARG "UNITY" "VERSION;DESCRIPTION"
         "SOURCES;INCLUDE_DIRS;LIBRARIES;PCH_HEADERS;DEPENDS;REQUIRES" ${ARGN})
+
+    # Set by the hl2sdk-cs2 build module; the plugin compiles two TUs out of that tree.
+    if(NOT CS2KIT_HL2SDK_DIR)
+        message(FATAL_ERROR
+            "CS2KIT_HL2SDK_DIR is unset - find_package(cs2-kit CONFIG REQUIRED) must run "
+            "before cs2_add_plugin() so hl2sdk-cs2 is pulled in with it.")
+    endif()
 
     if(NOT ARG_SOURCES)
         file(GLOB_RECURSE ARG_SOURCES CONFIGURE_DEPENDS
@@ -92,6 +100,7 @@ function(cs2_add_plugin target_name)
         )
     endif()
 
+    cs2kit_set_sdk_warnings("${target_name}")
     cs2kit_stamp_build_info("${target_name}")
 
     # Route artifacts to build/plugins/<name>/<platform_arch>/, no rpath, no lib

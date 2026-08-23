@@ -6,8 +6,8 @@
 namespace CS2Kit::BuildInfo
 {
 
-/// "<version.txt>+<short-sha>[-dirty]", e.g. "1.2.0+a1b2c3d". A clean RepoCommit pins the
-/// submodules too, and a modified one shows up as `-dirty`, so the kit needs no separate hash.
+/// "<version.txt>+<short-sha>[-dirty]", e.g. "1.2.0+a1b2c3d". A modified tree shows up as
+/// `-dirty`, so one string identifies the build.
 inline constexpr const char* Version = "@CS2KIT_BI_VERSION@";
 inline constexpr const char* RepoCommit = "@CS2KIT_BI_REPO_COMMIT@";
 /// ISO-8601 last-commit date (not wall clock, so no-op builds stay no-op).

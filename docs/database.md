@@ -6,9 +6,9 @@
 
 Compiled only when `CS2KIT_ENABLE_POSTGRES` is `ON` (default `OFF`); plugins without a database never pull libpqxx.
 
-```cmake
-set(CS2KIT_ENABLE_POSTGRES ON)
-add_subdirectory(vendor/cs2-kit)
+```python
+# conanfile.py
+default_options = {"cs2-kit/*:with_postgres": True}
 ```
 
 ## The threading model

@@ -20,7 +20,7 @@ You describe your plugin's behavior as data - commands, menu rows, effects, data
 - **Typed game events** - `Listen<PlayerDeath>(...)` instead of string names and `GetInt` calls; the raw overload stays for unmodeled events.
 - **PostgreSQL** (optional) - async-first client (worker thread owns the connection, completions on the game thread), column-table row mapping that generates the INSERT/SELECT/parse code, and a migration runner. Gated behind `CS2KIT_ENABLE_POSTGRES`.
 - **HTTP** - async requests with game-thread completions, plus config-driven JSON endpoint helpers.
-- **Project + plugin scaffolding** - `scripts/init_project.py` stamps a complete buildable project around the vendored kit (root CMake, presets, conanfile, poe tasks); `scripts/new_plugin.py` adds more plugins from the `templates/plugin/` tree.
+- **Project + plugin scaffolding** - `cs2kit-init-project` stamps a complete buildable project (root CMake, presets, conanfile, poe tasks); `cs2kit-new-plugin` adds more from the `templates/plugin/` tree.
 - **One-call plugin builds** - `cs2_add_plugin(<name>)` declares the whole Metamod module: sources, SDK glue, output layout, the generated `.vdf`, and per-plugin install components.
 
 ## Quick start
@@ -30,21 +30,24 @@ Start a plugin project from an empty directory:
 ```sh
 mkdir my-cs2-plugins && cd my-cs2-plugins
 git init
-git submodule add https://github.com/voltygg/cs2-kit.git vendor/cs2-kit
-git submodule update --init --recursive
-python vendor/cs2-kit/scripts/init_project.py --plugin my-plugin
+uvx --from git+https://github.com/voltygg/cs2-kit.git cs2kit-init-project --plugin my-plugin
 uv sync
-uv run poe build
+uv run poe bootstrap
 ```
 
-`init_project.py` generates the root `CMakeLists.txt`, `CMakePresets.json`, `conanfile.py`, and `pyproject.toml` (whose poe tasks call the kit's build scripts directly), then scaffolds a first plugin that compiles, loads, and answers `!ping` out of the box. Add more with `uv run poe new-plugin <name>`.
+That generates the root `CMakeLists.txt`, `CMakePresets.json`, `conanfile.py`, and `pyproject.toml`, then scaffolds a first plugin that compiles, loads, and answers `!ping` out of the box. Add more with `uv run poe new-plugin <name>`.
 
-Prefer no submodules? The kit and its SDK dependencies are also published as Conan packages on a private remote - `init_project.py --conan` scaffolds that flavor; see `docs/consuming-via-conan.md`.
+The kit, the HL2SDK and Metamod all arrive as Conan packages from a public remote - no submodules, nothing to build but your own code. See `docs/consuming-via-conan.md`.
 
-Already have a CMake repo? Vendor the kit and declare a plugin with one call - `cs2_add_plugin` owns the module target, SDK glue, output layout, Metamod `.vdf`, and install rules:
+Already have a CMake repo? Add the requirement and declare a plugin with one call - `cs2_add_plugin` owns the module target, SDK glue, output layout, Metamod `.vdf`, and install rules:
+
+```python
+# conanfile.py
+requires = ("cs2-kit/[~1]",)
+```
 
 ```cmake
-add_subdirectory(vendor/cs2-kit)
+find_package(cs2-kit CONFIG REQUIRED)
 ```
 
 ```cmake

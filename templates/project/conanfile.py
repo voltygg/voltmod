@@ -11,19 +11,19 @@ class ProjectConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     package_type = "shared-library"
 
-    requires = (
-        "cpr/1.11.2",
-        "nlohmann_json/3.11.3",
-        # "libpqxx/7.10.0",  # uncomment together with CS2KIT_ENABLE_POSTGRES
-    )
+    # cpr and nlohmann_json arrive transitively through cs2-kit.
+    requires = ("cs2-kit/[~1]",)
 
     default_options = {
         "*:shared": False,
         "openssl/*:no_apps": True,
         "openssl/*:no_fips": True,
+        # Postgres support: flip to True (pulls libpqxx transitively).
+        "cs2-kit/*:with_postgres": False,
     }
 
     def build_requirements(self):
+        # For cs2_add_tests targets; drop if the project has no unit tests.
         self.test_requires("doctest/2.5.2")
 
     def generate(self):

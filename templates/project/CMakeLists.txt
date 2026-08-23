@@ -1,10 +1,10 @@
-cmake_minimum_required(VERSION 4.3)
+cmake_minimum_required(VERSION 3.24)
 
 project($project VERSION 1.0.0 LANGUAGES CXX)
 
 include(CTest)
 
-# Postgres support: uncomment and add "libpqxx/7.10.0" to conanfile.py requires.
-# set(CS2KIT_ENABLE_POSTGRES ON)
+# CS2Kit::CS2Kit plus cs2_add_plugin/cs2_add_tests, from the Conan package.
+find_package(cs2-kit CONFIG REQUIRED)
 
-add_subdirectory(vendor/cs2-kit)
+# Plugins are registered below by `new_plugin.py` (add_subdirectory per plugin).

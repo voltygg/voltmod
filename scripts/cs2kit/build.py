@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-"""Build the current repo with Conan + CMake. Usage: build.py [preset] [--no-test]
+"""Build the current repo with Conan + CMake. Usage: cs2kit-build [preset] [--no-test]
 
 Targets the working directory, so it serves cs2-kit itself and any repo that
-vendors it: python vendor/cs2-kit/scripts/build.py [preset]
---no-test skips the ctest step so CI can run tests separately.
+depends on it. --no-test skips the ctest step so CI can time tests separately.
 """
 
 import sys
 from pathlib import Path
 
-import buildtools
+from . import buildtools
 
 ROOT = Path.cwd()
 
@@ -23,5 +22,3 @@ def main() -> None:
     buildtools.build(ROOT, preset, run_tests=run_tests)
 
 
-if __name__ == "__main__":
-    main()

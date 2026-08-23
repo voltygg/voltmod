@@ -8,20 +8,21 @@ CMakeLists.txt gets its add_subdirectory() line inserted automatically.
 
 Templates live in cs2-kit's templates/plugin/ tree, mirroring the output layout;
 file contents are rendered with string.Template ($name, $ns, $klass, $title, $tag).
-The script targets the current working directory, so any repo that vendors the kit
-can expose it as a task, e.g.:
+The script targets the current working directory, so any repo depending on the kit
+can expose it as a task:
 
-    new-plugin = "python vendor/cs2-kit/scripts/new_plugin.py"
+    new-plugin = "cs2kit-new-plugin"
 """
 
 import argparse
 import re
 import string
-import sys
 from pathlib import Path
 
+from .buildtools import templates_dir
+
 REPO_ROOT = Path.cwd()
-TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates" / "plugin"
+TEMPLATE_DIR = templates_dir() / "plugin"
 
 NAME_RE = re.compile(r"^[a-z][a-z0-9]*(-[a-z0-9]+)*$")
 
@@ -117,5 +118,3 @@ def main() -> int:
     return 0
 
 
-if __name__ == "__main__":
-    sys.exit(main())

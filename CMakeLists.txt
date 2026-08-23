@@ -22,8 +22,7 @@ if(CS2KIT_ENABLE_POSTGRES)
     find_package(libpqxx CONFIG REQUIRED)
 endif()
 
-cs2kit_configure_sdk()
-cs2kit_generate_sdk_protobuf(CS2KIT_PROTO_SOURCES CS2KIT_PROTO_INCLUDE_DIRS)
+cs2kit_find_sdk()
 
 file(GLOB_RECURSE CS2KIT_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
@@ -50,11 +49,11 @@ set(CS2KIT_HL2SDK_SOURCES
 add_library(cs2-kit STATIC
     ${CS2KIT_SOURCES}
     ${CS2KIT_HL2SDK_SOURCES}
-    ${CS2KIT_PROTO_SOURCES}
+    ${CS2KIT_HL2SDK_PROTO_SOURCES}
 )
 add_library(CS2Kit::CS2Kit ALIAS cs2-kit)
 
-cs2kit_mark_vendored_sources(${CS2KIT_HL2SDK_SOURCES} ${CS2KIT_PROTO_SOURCES})
+cs2kit_mark_vendored_sources(${CS2KIT_HL2SDK_SOURCES} ${CS2KIT_HL2SDK_PROTO_SOURCES})
 
 if(NOT CS2KIT_DISABLE_PCH)
     # Third-party headers only: editing a kit header must not invalidate the PCH.
@@ -80,9 +79,11 @@ if(NOT CS2KIT_DISABLE_PCH)
         <vector>
     )
     # Vendored/generated TUs keep their own include order.
-    set_source_files_properties(${CS2KIT_HL2SDK_SOURCES} ${CS2KIT_PROTO_SOURCES}
+    set_source_files_properties(${CS2KIT_HL2SDK_SOURCES} ${CS2KIT_HL2SDK_PROTO_SOURCES}
         PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 endif()
+
+cs2kit_set_sdk_warnings(cs2-kit)
 
 target_compile_features(cs2-kit PUBLIC cxx_std_23)
 set_target_properties(cs2-kit PROPERTIES
@@ -103,7 +104,6 @@ target_compile_options(cs2-kit PRIVATE
 target_include_directories(cs2-kit
     PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
-        ${CS2KIT_PROTO_INCLUDE_DIRS}
     PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )

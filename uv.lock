@@ -139,12 +139,16 @@ wheels = [
 [[package]]
 name = "cs2-kit"
 version = "1.0.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "clang-format" },
     { name = "cmake" },
     { name = "conan" },
     { name = "ninja" },
+]
+
+[package.dev-dependencies]
+dev = [
     { name = "poethepoet" },
     { name = "ruff" },
 ]
@@ -155,6 +159,10 @@ requires-dist = [
     { name = "cmake", specifier = ">=4.3.4" },
     { name = "conan", specifier = ">=2.29.1" },
     { name = "ninja", specifier = ">=1.13.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
     { name = "poethepoet", specifier = ">=0.47.0" },
     { name = "ruff", specifier = ">=0.14.0" },
 ]

@@ -2,36 +2,18 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Build (Static Library)",
+      "label": "Build",
       "type": "shell",
-      "command": "python",
-      "args": [
-        "${workspaceFolder}/scripts/build.py"
-      ],
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "problemMatcher": ["$msCompile"]
+      "command": "uv",
+      "args": ["run", "poe", "build"],
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$msCompile", "$gcc"]
     },
     {
-      "label": "Clean Build",
+      "label": "Format",
       "type": "shell",
-      "command": "cmd",
-      "args": ["/c", "if exist objdir rmdir /s /q objdir"],
-      "problemMatcher": [],
-      "presentation": {
-        "reveal": "silent"
-      }
-    },
-    {
-      "label": "Generate VS Project",
-      "type": "shell",
-      "command": "cmd",
-      "args": [
-        "/c",
-        "if not exist objdir mkdir objdir && cd objdir && python ../configure.py --gen=vs --vs-version 18"
-      ],
+      "command": "uv",
+      "args": ["run", "poe", "format"],
       "problemMatcher": []
     }
   ]

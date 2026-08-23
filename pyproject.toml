@@ -1,37 +1,59 @@
 [project]
 name = "cs2-kit"
 version = "1.0.0"
-description = "C++23 library for CS2 Metamod:Source plugins - build tools"
+description = "Build and scaffolding tooling for CS2 Metamod:Source plugin projects"
 readme = "README.md"
 requires-python = ">=3.14"
 license = { text = "MIT" }
 
+# Runtime deps, not dev extras: consuming repos install this distribution to get the
+# poe tasks below, and inherit these pins so the toolchain never drifts between repos.
 dependencies = [
     "cmake>=4.3.4",
     "conan>=2.29.1",
     "ninja>=1.13.0",
-    "ruff>=0.14.0",
-    "poethepoet>=0.47.0",
     "clang-format==22.1.5",
 ]
 
-[tool.uv]
-package = false
+[project.scripts]
+cs2kit-build = "cs2kit.build:main"
+cs2kit-bootstrap = "cs2kit.bootstrap:main"
+cs2kit-format = "cs2kit.format:main"
+cs2kit-new-plugin = "cs2kit.new_plugin:main"
+cs2kit-init-project = "cs2kit.init_project:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["scripts/cs2kit"]
+
+# The scaffold trees live at the repo root for editability; the wheel carries them
+# beside the package, where templates_dir() looks first.
+[tool.hatch.build.targets.wheel.force-include]
+"templates" = "cs2kit/templates"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.0",
+    "poethepoet>=0.47.0",
+]
 
 [tool.poe.tasks]
-build = "python scripts/build.py"
-build-linux = "python scripts/build.py linux-steamrt-release"
+build = "cs2kit-build"
+build-linux = "cs2kit-build linux-steamrt-release"
 # Stamps plugins/<name>/ in the invoking repo (run from the consuming repo's root).
-new-plugin = "python scripts/new_plugin.py"
+new-plugin = "cs2kit-new-plugin"
 lint = "ruff check ."
-format = "python scripts/format.py"
-format-check = "python scripts/format.py --check"
+format = "cs2kit-format"
+format-check = "cs2kit-format --check"
 
 [tool.ruff]
 line-length = 100
 target-version = "py314"
 # templates/ are $placeholder scaffolds; linting would drop a .ruff_cache there.
-extend-exclude = ["vendor", "templates"]
+extend-exclude = ["templates"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP"]
