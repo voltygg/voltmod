@@ -233,6 +233,33 @@ def ensure_msvc_env() -> None:
         die("cl still not on PATH after vcvars.")
 
 
+# What ccache needs to be useful against a force-included precompiled header. Every CI
+# job that builds this project restated these; they are a property of the kit's PCH, not
+# of any one runner, so the kit asserts them. An explicitly set value always wins.
+CCACHE_SETTINGS = {
+    # Without pch_defines AND depend mode, every PCH-using TU is a permanent miss.
+    "CCACHE_SLOPPINESS": "pch_defines,time_macros,locale,include_file_ctime,include_file_mtime",
+    "CCACHE_DEPEND": "1",
+    "CCACHE_MAXSIZE": "1G",
+}
+
+
+def _prepare_ccache(repo_root: Path) -> bool:
+    """Apply the PCH-compatible ccache settings. False if ccache is not in play."""
+    if not shutil.which("ccache"):
+        return False
+    for key, value in CCACHE_SETTINGS.items():
+        os.environ.setdefault(key, value)
+    # Rewrites absolute paths in the hash: a container sees a different workspace path
+    # than the host that saved the cache, and without this every entry misses.
+    os.environ.setdefault("CCACHE_BASEDIR", str(repo_root))
+    return True
+
+
+def _ccache(*args: str) -> None:
+    subprocess.run(["ccache", *args], check=False)
+
+
 def build(repo_root: Path, preset: str, *, run_tests: bool = True,
           options: list[str] | None = None) -> None:
     """Conan install + CMake build for one preset under repo_root.
@@ -242,6 +269,7 @@ def build(repo_root: Path, preset: str, *, run_tests: bool = True,
     extra `conan install` arguments, typically -o pairs.
     """
     require_build_tools()
+    ccache = _prepare_ccache(repo_root)
     ensure_remote()
     build_type = "Debug" if "debug" in preset else "Release"
 
@@ -287,10 +315,18 @@ def build(repo_root: Path, preset: str, *, run_tests: bool = True,
         *settings,
     )
 
+    if ccache:
+        _ccache("-z")
+
     if run_tests:
         run_tool("cmake", "--workflow", "--preset", preset)
     else:
         run_tool("cmake", "--preset", preset)
         run_tool("cmake", "--build", "--preset", preset)
+
+    if ccache:
+        # A warm rerun of an unchanged tree should show >95% hits; a collapse means
+        # the settings above stopped matching how the compiler is invoked.
+        _ccache("-s", "-v")
 
     print(f"\n=== Build Complete ===\nPreset: {preset}\nBuild directory: build/{preset}")
