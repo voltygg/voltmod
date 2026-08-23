@@ -88,6 +88,9 @@ Runtime::~Runtime()
     Events.RemoveAllListeners();
     Http.Stop();  // drains in-flight requests before their completion targets go away
     Scheduler.CancelAll();
+    // The workers have joined by now; their last lines are still queued and OnGameFrame will
+    // not run again.
+    Core::DrainDeferredLogs();
 }
 
 bool Runtime::Start(const LoadContext& context)
@@ -241,6 +244,7 @@ bool Runtime::Start(const LoadContext& context)
 
 void Runtime::OnGameFrame()
 {
+    Core::DrainDeferredLogs();
     Scheduler.OnGameFrame();
 }
 
