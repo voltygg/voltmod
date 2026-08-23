@@ -1,6 +1,5 @@
 #include <CS2Kit/Core/TimeUtils.hpp>
 #include <CS2Kit/Players/Player.hpp>
-#include <CS2Kit/Sdk/PlayerController.hpp>
 
 namespace CS2Kit::Players
 {
@@ -14,11 +13,6 @@ Player::Player(int slot, int64_t steamId, const std::string& name, const std::st
 int64_t Player::GetPlaytime() const
 {
     return TimeUtils::Now() - _connectTime;
-}
-
-Sdk::PlayerController Player::Controller() const
-{
-    return Sdk::PlayerController(_slot);
 }
 
 }  // namespace CS2Kit::Players

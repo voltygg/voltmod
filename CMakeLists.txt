@@ -121,6 +121,8 @@ if(BUILD_TESTING)
             src/Core/PluginManifest.cpp
             src/Core/ScheduledEffect.cpp
             src/Core/Scheduler.cpp
+            src/Players/Player.cpp
+            src/Players/PlayerManager.cpp
             src/Players/Targeting.cpp
             src/Sdk/ClientCvarPending.cpp
             src/Core/StringUtils.cpp
