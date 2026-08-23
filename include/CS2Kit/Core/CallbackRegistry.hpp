@@ -36,12 +36,10 @@ public:
      * Store @p item and return a Subscription that removes it on destruction - the owning
      * form of Add, for registries whose handles callers would otherwise have to hand back.
      */
-    [[nodiscard]] Subscription AddOwned(T item) { return AddOwned(std::move(item), _nextId++); }
-
-    /** AddOwned under a caller-supplied @p id, for owners sharing one handle space. */
-    [[nodiscard]] Subscription AddOwned(T item, uint64_t id)
+    [[nodiscard]] Subscription AddOwned(T item)
     {
-        return {[this](uint64_t handle) { Remove(handle); }, Add(std::move(item), id)};
+        const uint64_t id = Add(std::move(item));
+        return Subscription([this, id] { Remove(id); });
     }
 
     /** Remove by handle. Safe to call with an unknown id; returns whether anything was removed. */

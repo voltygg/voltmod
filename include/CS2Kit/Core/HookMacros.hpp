@@ -15,10 +15,9 @@
 //       _listening = CS2KIT_SCOPED_HOOK(IVEngineServer2, SetClientListening, runtime.Interfaces.Engine,
 //                                       SH_MEMBER(this, &MyPlugin::Hook_SetClientListening), false);
 //   }
-#define CS2KIT_SCOPED_HOOK(Iface, Func, ifacePtr, handler, post)                     \
-    ([&] {                                                                           \
-        auto* cs2kitHookIface = (ifacePtr);                                          \
-        SH_ADD_HOOK(Iface, Func, cs2kitHookIface, handler, (post));                  \
-        return CS2Kit::Core::Subscription::OnDestroy(                                \
-            [=] { SH_REMOVE_HOOK(Iface, Func, cs2kitHookIface, handler, (post)); }); \
+#define CS2KIT_SCOPED_HOOK(Iface, Func, ifacePtr, handler, post)                                                   \
+    ([&] {                                                                                                         \
+        auto* cs2kitHookIface = (ifacePtr);                                                                        \
+        SH_ADD_HOOK(Iface, Func, cs2kitHookIface, handler, (post));                                                \
+        return CS2Kit::Core::Subscription([=] { SH_REMOVE_HOOK(Iface, Func, cs2kitHookIface, handler, (post)); }); \
     }())

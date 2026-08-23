@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <functional>
 #include <utility>
 
@@ -8,7 +7,7 @@ namespace CS2Kit::Core
 {
 
 /**
- * @brief Owns one listener registration and removes it on destruction.
+ * @brief Owns one registration and releases it on destruction.
  *
  * Every registry in the kit hands out a `uint64_t` handle, which callers then had to
  * remember to hand back - usually from a destructor that first checked whether the
@@ -28,6 +27,10 @@ namespace CS2Kit::Core
  * };
  * @endcode
  *
+ * The handle stays inside the cleanup callable, so this works just as well for the
+ * add/remove pairs that are not handle-keyed at all, such as SourceHook installs (see
+ * CS2KIT_SCOPED_HOOK).
+ *
  * Move-only, and safe to destroy after the registry it points at is gone only if the
  * registry outlives it - which reverse-declaration-order destruction gives you for free
  * when both are members of the same object.
@@ -35,28 +38,21 @@ namespace CS2Kit::Core
 class Subscription
 {
 public:
-    using Remover = std::function<void(uint64_t)>;
-
     Subscription() = default;
 
-    /** Take ownership of @p id, to be passed to @p remove on destruction. */
-    Subscription(Remover remove, uint64_t id) : _remove(std::move(remove)), _id(id) {}
+    /** Run @p cleanup on destruction; it captures whatever handle the registry issued. */
+    explicit Subscription(std::function<void()> cleanup) : _cleanup(std::move(cleanup)) {}
 
     ~Subscription() { Reset(); }
 
-    Subscription(Subscription&& other) noexcept : _remove(std::move(other._remove)), _id(std::exchange(other._id, 0))
-    {
-        other._remove = nullptr;
-    }
+    Subscription(Subscription&& other) noexcept : _cleanup(std::exchange(other._cleanup, nullptr)) {}
 
     Subscription& operator=(Subscription&& other) noexcept
     {
         if (this != &other)
         {
             Reset();
-            _remove = std::move(other._remove);
-            _id = std::exchange(other._id, 0);
-            other._remove = nullptr;
+            _cleanup = std::exchange(other._cleanup, nullptr);
         }
         return *this;
     }
@@ -64,30 +60,18 @@ public:
     Subscription(const Subscription&) = delete;
     Subscription& operator=(const Subscription&) = delete;
 
-    /** Unregister now. Idempotent; the subscription is empty afterwards. */
+    /** Release now. Idempotent, and re-entrant: the callable is detached before it runs. */
     void Reset()
     {
-        if (_remove && _id != 0)
-            _remove(_id);
-        _remove = nullptr;
-        _id = 0;
-    }
-
-    /**
-     * A subscription over arbitrary cleanup rather than a registry handle - for the
-     * add/remove pairs that are not handle-keyed, such as SourceHook installs.
-     */
-    [[nodiscard]] static Subscription OnDestroy(std::function<void()> cleanup)
-    {
-        return {[c = std::move(cleanup)](uint64_t) { c(); }, 1};
+        if (auto cleanup = std::exchange(_cleanup, nullptr))
+            cleanup();
     }
 
     /** True while this holds a live registration. */
-    explicit operator bool() const noexcept { return _id != 0; }
+    explicit operator bool() const noexcept { return static_cast<bool>(_cleanup); }
 
 private:
-    Remover _remove;
-    uint64_t _id = 0;
+    std::function<void()> _cleanup;
 };
 
 }  // namespace CS2Kit::Core

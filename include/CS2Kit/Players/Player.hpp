@@ -27,7 +27,6 @@ public:
     int64_t GetSteamID() const { return _steamId; }
     const std::string& GetName() const { return _name; }
     const std::string& GetIpAddress() const { return _ipAddress; }
-    int64_t GetConnectTime() const { return _connectTime; }
     int64_t GetPlaytime() const;
 
     /** True for engine bots, which connect without a real SteamID. */
@@ -35,8 +34,6 @@ public:
 
     /** Controller wrapper for this player's slot. Check IsValid() before pawn access. */
     Sdk::PlayerController Controller() const;
-
-    void SetName(const std::string& name) { _name = name; }
 
 private:
     int _slot;

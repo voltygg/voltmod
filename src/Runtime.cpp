@@ -199,8 +199,8 @@ bool Runtime::Start(const LoadContext& context)
 
     // Per-frame subsystems pump through the scheduler (PostgresDatabase registers its own pump
     // in Start), so OnGameFrame has exactly one thing to tick.
-    _pumps.push_back(Scheduler.EveryFrame([this] { Menus.OnGameFrame(); }));
-    _pumps.push_back(Scheduler.EveryFrame([this] { Http.DispatchCompletions(); }));
+    _frameTimers.push_back(Scheduler.EveryFrame([this] { Menus.OnGameFrame(); }));
+    _frameTimers.push_back(Scheduler.EveryFrame([this] { Http.DispatchCompletions(); }));
 
     // Kit status sections; plugins add theirs in OnLoad. Providers capture `this` - the
     // runtime outlives them (both live for one Load/Unload cycle).

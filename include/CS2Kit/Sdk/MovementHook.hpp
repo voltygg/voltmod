@@ -51,7 +51,6 @@ public:
 
     /** Install the vtable hook. False when the gamedata offset is missing or no pawn is live yet. */
     bool Install();
-    bool Installed() const { return _installed; }
     void Remove();
 
     [[nodiscard]] Core::Subscription ListenPre(Callback callback)
@@ -83,7 +82,7 @@ private:
     /** Wrap a freshly issued handle so the caller owns its removal. */
     Core::Subscription Own(uint64_t id)
     {
-        return {[this](uint64_t handle) { RemoveListener(handle); }, id};
+        return Core::Subscription([this, id] { RemoveListener(id); });
     }
 
     void RemoveListener(uint64_t id);

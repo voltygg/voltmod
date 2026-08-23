@@ -30,7 +30,6 @@ public:
 
     /** Disabled rows are rendered greyed out and excluded from cursor stepping. */
     bool IsEnabled() const { return _enabled; }
-    void SetEnabled(bool enabled) { _enabled = enabled; }
 
     /** E key. Called only when the option is selectable and enabled. */
     virtual void OnActivate(int /*slot*/) {}

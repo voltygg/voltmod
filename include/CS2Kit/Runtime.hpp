@@ -151,7 +151,7 @@ public:
 private:
     std::unique_ptr<Sdk::SchemaService> _schema;
     /** Declared after Scheduler so these unregister while it is still alive. */
-    std::vector<Core::Subscription> _pumps;
+    std::vector<Core::Subscription> _frameTimers;
 };
 
 }  // namespace CS2Kit

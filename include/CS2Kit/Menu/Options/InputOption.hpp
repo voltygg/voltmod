@@ -43,10 +43,6 @@ public:
 
     void OnActivate(int slot) override;
 
-    const std::string& Prompt() const { return _prompt; }
-    int MaxLength() const { return _maxLength; }
-    const SetFn& Setter() const { return _set; }
-
 private:
     std::string _title;
     std::string _prompt;

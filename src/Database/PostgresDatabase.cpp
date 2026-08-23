@@ -42,7 +42,7 @@ bool PostgresDatabase::Start(const PostgresConfig& config)
     }
 
     if (auto* core = CS2Kit::Detail::RtOrNull())
-        _pump = core->Scheduler.EveryFrame([this] { DispatchCompletions(); });
+        _completionPump = core->Scheduler.EveryFrame([this] { DispatchCompletions(); });
     return true;
 }
 
@@ -61,7 +61,7 @@ void PostgresDatabase::Stop(std::chrono::milliseconds drainDeadline)
     if (_worker.joinable())
         _worker.join();
 
-    _pump.Reset();
+    _completionPump.Reset();
 
     // Undispatched completions are destroyed unrun: the engine/plugin state they would touch
     // is going away with this unload.

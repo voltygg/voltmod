@@ -37,8 +37,6 @@ public:
      *  vector). Idempotent; must run before the plugin image unloads. */
     void Shutdown();
 
-    bool IsAvailable() const { return _factory != nullptr; }
-
     /** Queue a resource path (e.g. "particles/foo.vpcf") for the next map load. Dedupes. */
     void Add(std::string resourcePath);
 

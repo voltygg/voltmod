@@ -139,7 +139,7 @@ private:
     std::vector<std::pair<ResultCallback, DbResult<pqxx::result>>> _completions;
 
     std::thread _worker;
-    Core::Subscription _pump;
+    Core::Subscription _completionPump;
 
     /** Written by the worker, read by the game thread; mirrors _connection's liveness. */
     std::atomic<bool> _connected{false};
