@@ -23,8 +23,11 @@ void ChatInputCapture::BeginCapture(int slot, std::string prompt, Callback callb
 
     if (timeoutMs > 0)
     {
+        // Cancel by capture id, not by slot: the prompt can outlive its player, and cancelling
+        // the slot would take out whatever the next occupant had open.
+        const uint64_t id = p.Id;
         p.TimeoutHandle = CS2Kit::Detail::Rt().Scheduler.Delay(
-            timeoutMs, [slot]() { CS2Kit::Detail::Rt().ChatInput.CancelCapture(slot); });
+            timeoutMs, [slot, id]() { CS2Kit::Detail::Rt().ChatInput.CancelCaptureById(slot, id); });
     }
 
     _pending[slot] = std::move(p);
@@ -67,6 +70,16 @@ bool ChatInputCapture::TryConsume(int slot, std::string_view text)
     }
     // Either way we suppress the chat broadcast - the player typed a value, not a chat message.
     return true;
+}
+
+void ChatInputCapture::CancelCaptureById(int slot, uint64_t id)
+{
+    if (!Core::IsValidSlot(slot))
+        return;
+
+    const auto& opt = _pending[slot];
+    if (opt.has_value() && opt->Id == id)
+        CancelCapture(slot);
 }
 
 void ChatInputCapture::CancelCapture(int slot)

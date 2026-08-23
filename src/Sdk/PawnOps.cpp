@@ -1,4 +1,5 @@
 #include <CS2Kit/Detail/Runtime.hpp>
+#include <CS2Kit/Players/PlayerManager.hpp>
 #include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Sdk/Entity.hpp>
 #include <CS2Kit/Sdk/MoveType.hpp>
@@ -91,9 +92,20 @@ void Slap(const PlayerController& pc, float upward, float horizontal, int fallPr
     if (fallProtectMs > 0 && !HasGodmode(pc))
     {
         SetGodmode(pc, true);
-        int slot = pc.GetSlot();
-        CS2Kit::Detail::Rt().Scheduler.Delay(fallProtectMs, [slot]() {
-            PlayerController target(slot);
+
+        // A ref, not the slot: the target can disconnect inside the protection window and the
+        // next player to take the seat would have had their godmode stripped instead.
+        auto& runtime = CS2Kit::Detail::Rt();
+        Players::Player* player = runtime.Players.GetPlayerBySlot(pc.GetSlot());
+        if (!player)
+            return;
+
+        runtime.Scheduler.Delay(fallProtectMs, [ref = player->Ref()]() {
+            Players::Player* still = CS2Kit::Detail::Rt().Players.Resolve(ref);
+            if (!still)
+                return;
+
+            PlayerController target(still->GetSlot());
             if (target.IsValid())
                 SetGodmode(target, false);
         });

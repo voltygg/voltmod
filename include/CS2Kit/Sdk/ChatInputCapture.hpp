@@ -52,6 +52,10 @@ public:
     /** Cancel without firing the callback. */
     void CancelCapture(int slot);
 
+    /** Cancel only if @p slot still holds the capture with @p id. Used by the timeout, which
+     *  must not take out whatever replaced the prompt it was scheduled for. */
+    void CancelCaptureById(int slot, uint64_t id);
+
     /** The active prompt for @p slot, or nullptr if no capture is pending. */
     const std::string* GetPrompt(int slot) const;
 
