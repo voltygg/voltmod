@@ -83,7 +83,7 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
         Log::Info("{}", _runtime->LoadReport.Summary());
         const std::string failure = _runtime->LoadReport.FirstFailure();
         snprintf(error, maxlen, "%s", failure.c_str());
-        Teardown();
+        Shutdown();
         return false;
     }
 
@@ -99,11 +99,11 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
 // Order matters: the plugin drops its own graph first, while every kit service it holds a
 // reference or subscription to is still alive; then the standard hooks come off; only then the
 // runtime, whose destructor is the kit's shutdown. The ambient pointer is cleared last of the
-// three so teardown can still reach it.
+// three so this shutdown can still reach it.
 //
 // A failed OnLoad takes this same path. It used to skip _standardHooks.clear(), leaving live
 // hooks pointing at a destroyed runtime.
-void MetamodPlugin::Teardown()
+void MetamodPlugin::Shutdown()
 {
     OnUnload();
     _standardHooks.clear();
@@ -113,7 +113,7 @@ void MetamodPlugin::Teardown()
 
 bool MetamodPlugin::Unload(char* error, size_t maxlen)
 {
-    Teardown();
+    Shutdown();
     return true;
 }
 

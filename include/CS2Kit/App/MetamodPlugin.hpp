@@ -172,9 +172,9 @@ private:
     void RegisterStandardHooks();
 
     bool _lateLoad = false;
-    /** Drop the plugin graph, the standard hooks and the runtime, in that order.
+    /** Release the plugin graph, the standard hooks and the runtime, in that order.
      *  Shared by Unload and the failed-OnLoad path so neither can drift. */
-    void Teardown();
+    void Shutdown();
 
     std::vector<Core::Subscription> _standardHooks;
     std::unique_ptr<CS2Kit::Runtime> _runtime;
