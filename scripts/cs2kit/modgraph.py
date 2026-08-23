@@ -1,8 +1,12 @@
-"""Check that cs2-kit's module graph is a DAG.
+"""Check cs2-kit's module layering against the map declared here.
 
-A CS2Kit/<Module>/ may only include modules below it; App, the composition root, is the
-only one allowed to reach everything. A cycle means the Conan components can no longer
-be declared, so this exits non-zero and names the include that caused it.
+A CS2Kit/<Module>/ may only include the modules ALLOWED lists for it. A cycle-only
+check is not enough: an upward edge (Core reaching into Sdk, say) stays acyclic and
+would slip through, yet it is exactly what breaks the layering. So the map below is
+the authority, and this exits non-zero naming the include that violated it.
+
+Detail/ is the composition root's private bridge - every module may reach it, and it
+reaches back into all of them. That is the one deliberate exemption.
 
 Usage: cs2kit-modgraph [repo-root]   (default: the working directory)
 """
@@ -12,11 +16,28 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+# What each module may include. Transitive edges are spelled out, so this doubles as
+# the documentation of the layering and mirrors what CMake links.
+ALLOWED: dict[str, set[str]] = {
+    "Core": set(),
+    "Utils": {"Core"},
+    "Http": {"Core", "Utils"},
+    "Sdk": {"Core", "Utils"},
+    "Players": {"Core", "Utils", "Sdk"},
+    "Commands": {"Core", "Utils", "Sdk", "Players"},
+    "Menu": {"Core", "Utils", "Sdk", "Players"},
+    "Database": {"Core", "Utils"},
+    "App": {"Core", "Utils", "Http", "Sdk", "Players", "Commands", "Menu", "Database"},
+}
+
+# Reachable from anywhere and reaching anywhere; see the module docstring.
+EXEMPT = {"Detail"}
+
 INCLUDE = re.compile(r'#\s*include\s*[<"]CS2Kit/([A-Za-z0-9_]+)/([^>"]+)[>"]')
 
 
 def scan(root: Path):
-    """Return (modules, edges, witness): who depends on whom, and one include proving it."""
+    """Return (modules, edges, witness): who includes whom, and one include proving it."""
     modules = sorted(p.name for p in (root / "include/CS2Kit").iterdir() if p.is_dir())
     edges: defaultdict[str, set[str]] = defaultdict(set)
     witness: dict[tuple[str, str], str] = {}
@@ -37,21 +58,21 @@ def scan(root: Path):
     return modules, edges, witness
 
 
-def cycles(modules, edges):
-    """Every distinct cycle, as a list of module names ending where it started."""
+def undeclared(modules):
+    """Modules on disk that ALLOWED says nothing about, and vice versa."""
+    known = set(ALLOWED) | EXEMPT
+    return sorted(set(modules) - known), sorted(known - set(modules) - EXEMPT)
+
+
+def violations(edges):
+    """Every (owner, dep) the map forbids, ignoring the exempt modules."""
     found = []
-
-    def walk(node, stack, seen):
-        for nxt in sorted(edges[node]):
-            if nxt in stack:
-                found.append(stack[stack.index(nxt):] + [nxt])
-            elif nxt not in seen:
-                seen.add(nxt)
-                walk(nxt, stack + [nxt], seen)
-
-    for m in modules:
-        walk(m, [m], {m})
-    return {tuple(sorted(set(c))): c for c in found}.values()
+    for owner, deps in sorted(edges.items()):
+        if owner in EXEMPT:
+            continue
+        permitted = ALLOWED.get(owner, set()) | EXEMPT
+        found.extend((owner, dep) for dep in sorted(deps - permitted))
+    return found
 
 
 def main() -> int:
@@ -64,14 +85,22 @@ def main() -> int:
     for m in modules:
         print(f"{m:10} -> {' '.join(sorted(edges[m])) or '(none)'}")
 
-    found = list(cycles(modules, edges))
+    missing, stale = undeclared(modules)
+    if missing or stale:
+        print()
+        for m in missing:
+            print(f"error: module {m}/ exists but ALLOWED does not list it")
+        for m in stale:
+            print(f"error: ALLOWED lists {m}, which no longer exists")
+        return 1
+
+    found = violations(edges)
     if not found:
-        print("\nDAG.")
+        print("\nLayering holds.")
         return 0
 
-    print(f"\n{len(found)} cycle(s):")
-    for c in found:
-        print("  " + " -> ".join(c))
-        for a, b in zip(c, c[1:]):
-            print(f"      {a}->{b}: {witness.get((a, b), '?')}")
+    print(f"\n{len(found)} forbidden edge(s):")
+    for owner, dep in found:
+        print(f"  {owner} -> {dep} (allowed: {' '.join(sorted(ALLOWED[owner])) or 'nothing'})")
+        print(f"      {witness.get((owner, dep), '?')}")
     return 1
