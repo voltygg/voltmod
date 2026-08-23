@@ -10,7 +10,8 @@ using Sdk::PlayerController;
 
 ActionContext ActionDispatcher::Resolve(int callerSlot, int targetSlot, const std::string& permission) const
 {
-    ActionContext ctx{nullptr, nullptr, PlayerController(callerSlot), PlayerController(targetSlot)};
+    ActionContext ctx{nullptr, nullptr, PlayerController(callerSlot), PlayerController(targetSlot),
+                      CS2Kit::Detail::Rt()};
 
     auto& plrMgr = CS2Kit::Detail::Rt().Players;
     ctx.Caller = plrMgr.GetPlayerBySlot(callerSlot);

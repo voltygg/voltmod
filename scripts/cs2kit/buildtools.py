@@ -192,11 +192,13 @@ def ensure_msvc_env() -> None:
         die("cl still not on PATH after vcvars.")
 
 
-def build(repo_root: Path, preset: str, *, run_tests: bool = True) -> None:
+def build(repo_root: Path, preset: str, *, run_tests: bool = True,
+          options: list[str] | None = None) -> None:
     """Conan install + CMake build for one preset under repo_root.
 
     run_tests=False replaces the workflow preset (configure+build+ctest) with
-    configure+build, so CI can time and report tests as a separate step.
+    configure+build, so CI can time and report tests as a separate step. `options` are
+    extra `conan install` arguments, typically -o pairs.
     """
     require_build_tools()
     ensure_remote()
@@ -227,16 +229,18 @@ def build(repo_root: Path, preset: str, *, run_tests: bool = True) -> None:
     lock = repo_root / "conan.lock"
     lock_args = ["--lockfile", str(lock)] if lock.is_file() else []
 
-    build_dir = repo_root / "build" / preset
+    # The recipe's layout() decides where the toolchain and generators land; passing the
+    # repo root keeps that the single description instead of restating it here.
     run_tool(
         "conan", "install", str(repo_root),
-        "--output-folder", str(build_dir / "generators"),
+        "--output-folder", str(repo_root),
         "--build=missing",
         # Never build an SDK locally: a missing binary means the publish job never ran,
         # and --build=missing would start a multi-GB upstream fetch that fails anyway.
         "--build=!hl2sdk-cs2/*",
         "--build=!metamod-source/*",
         *lock_args,
+        *(options or []),
         "--profile:host", str(profile),
         "--profile:build", str(profile),
         *settings,

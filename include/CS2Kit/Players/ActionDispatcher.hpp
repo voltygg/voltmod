@@ -7,6 +7,11 @@
 #include <optional>
 #include <string>
 
+namespace CS2Kit
+{
+class Runtime;
+}
+
 namespace CS2Kit::Players
 {
 
@@ -20,6 +25,9 @@ struct ActionContext
     Player* Target;
     Sdk::PlayerController CallerCtrl;
     Sdk::PlayerController TargetCtrl;
+    /** The live runtime, so action and effect bodies reach services without a global.
+     *  Include <CS2Kit/Runtime.hpp> to use it. */
+    Runtime& Rt;
 
     bool Valid() const { return Caller && Target && TargetCtrl.IsValid(); }
 };

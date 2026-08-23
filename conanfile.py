@@ -87,11 +87,29 @@ class CS2KitConan(ConanFile):
                 "cs2-kit requires the static MSVC runtime (/MT); "
                 "use the shipped windows-msvc profile")
 
+    def _preset(self):
+        """The CMake preset a checkout builds into. Preset names are public API."""
+        toolchain = "windows-msvc" if self.settings.os == "Windows" else "linux-steamrt"
+        return f"{toolchain}-{str(self.settings.build_type).lower()}"
+
     def layout(self):
-        # A checkout keeps the flat --output-folder layout build.py and the CMake
-        # presets point at; cmake_layout would derive a folder from build_type, which
-        # does not map onto preset names that encode a toolchain.
-        if not self._source_checkout():
+        # A checkout keeps the flat --output-folder layout the CMake presets point at;
+        # cmake_layout would derive a folder from build_type alone, which does not map onto
+        # preset names that encode a toolchain. Spelling out where that build puts things is
+        # also what makes `conan editable add` work: an editable consumer resolves the kit
+        # through cpp.build/cpp.source rather than through a package folder.
+        if self._source_checkout():
+            self.folders.build = f"build/{self._preset()}"
+            self.folders.generators = f"build/{self._preset()}/generators"
+            # Per component, not just the top level: CMakeDeps reads the component
+            # dirs, and those default to the package layout even in editable mode.
+            for component in ("runtime", "database", "cs2-kit"):
+                self.cpp.build.components[component].libdirs = ["."]
+                self.cpp.source.components[component].includedirs = ["include"]
+            self.cpp.build.libdirs = ["."]
+            self.cpp.source.includedirs = ["include"]
+            self.cpp.source.builddirs = ["cmake"]
+        else:
             cmake_layout(self)
 
     def generate(self):
