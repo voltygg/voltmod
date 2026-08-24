@@ -24,6 +24,12 @@ public:
      * Field offset via the engine's schema system (cached). When `expectedSize` > 0, the
      * first (uncached) lookup also compares the engine's field size against it and warns
      * on mismatch - catches schema drift after a game update. Warning-only.
+     *
+     * Pass `sizeof(T)` whenever the caller reads or writes a T at exactly this offset;
+     * a mismatch then means the access itself is wrong. Leave it 0 when the offset is
+     * not that: an embedded subobject whose address is taken, an offset added to an
+     * inner field's, or a fixed-size buffer read through MemberPtr. Guessing there
+     * produces warnings that are always wrong, on the fields most likely to really move.
      */
     int GetOffset(const char* className, const char* fieldName, int expectedSize = 0);
 

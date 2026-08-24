@@ -56,7 +56,7 @@ void* ResolveSceneNode(CEntityInstance* pawn)
     if (!body)
         return nullptr;
 
-    int nodeOffset = CS2Kit::Detail::Rt().Schema().GetOffset("CBodyComponent", "m_pSceneNode");
+    int nodeOffset = CS2Kit::Detail::Rt().Schema().GetOffset("CBodyComponent", "m_pSceneNode", sizeof(void*));
     if (nodeOffset < 0)
         return nullptr;
     return ReadAt<void*>(body, nodeOffset);
