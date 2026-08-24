@@ -41,6 +41,7 @@ runs:
         uv venv --python 3.14 "$RUNNER_TEMP/voltmod"
         uv pip install --python "$RUNNER_TEMP/voltmod/bin/python" --no-cache "$VOLTMOD_SOURCE"
         echo "$RUNNER_TEMP/voltmod/bin" >> "$GITHUB_PATH"
+        echo "VIRTUAL_ENV=$RUNNER_TEMP/voltmod" >> "$GITHUB_ENV"
 
     - name: Install voltmod (Windows)
       if: runner.os == 'Windows'
@@ -54,6 +55,7 @@ runs:
         uv venv --python 3.14 "$env:RUNNER_TEMP\voltmod"
         uv pip install --python "$env:RUNNER_TEMP\voltmod\Scripts\python.exe" --no-cache "$env:VOLTMOD_SOURCE"
         Add-Content -Path $env:GITHUB_PATH -Value "$env:RUNNER_TEMP\voltmod\Scripts"
+        Add-Content -Path $env:GITHUB_ENV -Value "VIRTUAL_ENV=$env:RUNNER_TEMP\voltmod"
 
     - name: Install the canonical Conan profiles and remotes
       shell: bash

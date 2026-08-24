@@ -276,16 +276,15 @@ def build(repo_root: Path, preset: str, *, run_tests: bool = True,
     ensure_remote()
     build_type = "Debug" if "debug" in preset else "Release"
 
-    # Own profiles first (voltmod standalone); vendored voltmod's otherwise, so
-    # consuming repos don't carry duplicate copies that drift.
-    profiles = repo_root / "conan/profiles"
-    if not profiles.is_dir():
-        profiles = repo_root / "vendor/voltmod/conan/profiles"
-    if not profiles.is_dir():
-        die(
-            "no Conan profiles at conan/profiles or "
-            f"vendor/voltmod/conan/profiles under {repo_root}"
-        )
+    conan_home = Path(os.environ.get("CONAN_HOME", Path.home() / ".conan2"))
+    profile_dirs = (
+        repo_root / "conan/profiles",
+        repo_root / "vendor/voltmod/conan/profiles",
+        conan_home / "profiles",
+    )
+    profiles = next((path for path in profile_dirs if path.is_dir()), None)
+    if profiles is None:
+        die("no Conan profiles found; run `voltmod bootstrap` or the setup-toolchain action")
     settings = ["-s", f"build_type={build_type}"]
     if preset.startswith("linux-"):
         profile = profiles / "linux-steamrt.txt"
