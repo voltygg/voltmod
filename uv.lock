@@ -138,13 +138,13 @@ wheels = [
 
 [[package]]
 name = "cs2-kit"
-version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "clang-format" },
     { name = "cmake" },
     { name = "conan" },
     { name = "ninja" },
+    { name = "pyyaml" },
 ]
 
 [package.dev-dependencies]
@@ -159,6 +159,7 @@ requires-dist = [
     { name = "cmake", specifier = ">=4.3.4" },
     { name = "conan", specifier = ">=2.29.1" },
     { name = "ninja", specifier = ">=1.13.0" },
+    { name = "pyyaml", specifier = ">=6.0" },
 ]
 
 [package.metadata.requires-dev]
