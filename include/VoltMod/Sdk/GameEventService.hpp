@@ -48,7 +48,7 @@ public:
     void RemoveAllListeners();
 
     /**
-     * @brief Re-attach every listener to the engine. Called by the kit's StartupServer hook on
+     * @brief Re-attach every listener to the engine. Called by the framework's StartupServer hook on
      * every map start.
      *
      * AddListener succeeds even before the first map, but the engine resets the event manager's
@@ -61,7 +61,7 @@ public:
     /**
      * @brief The engine-side listener object the game keeps for @p slot's client.
      *
-     * The client's own subscription handle, not a kit listener: firing an event at it delivers to
+     * The client's own subscription handle, not a framework listener: firing an event at it delivers to
      * that one client (how @ref MessageSystem sends center HTML), and it is what
      * @ref ClientListensTo interrogates. nullptr when the slot has no client or the
      * "LegacyGameEventListener" gamedata signature did not resolve.

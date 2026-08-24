@@ -15,7 +15,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/VoltModCommon.cmake")
 # LIBRARIES are appended to the defaults. PCH_HEADERS extends the plugin's
 # precompiled header (e.g. "<pqxx/pqxx>").
 #
-# FEATURES names the optional parts of the kit this plugin needs. DATABASE adds
+# FEATURES names the optional parts of the framework this plugin needs. DATABASE adds
 # VoltMod::Database (and libpqxx); without it a movement plugin carries neither. The
 # always-present VoltMod::Runtime is linked either way.
 #

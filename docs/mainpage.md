@@ -2,7 +2,7 @@
 
 > **Work in progress** - the API is still moving. Expect breaking changes between versions.
 
-**VoltMod** is a C++23 library for building [Counter-Strike 2](https://www.counter-strike.net/) server plugins with [Metamod:Source 2.0](https://www.metamodsource.net/). You describe your plugin's behavior - commands, menus, effects, database rows - as data, and the kit handles the engine: SDK interface resolution, hooks, player tracking, message transport, signature scanning. Everything it owns lives on one @ref VoltMod::Runtime, handed to your plugin for the duration of a load.
+**VoltMod** is a C++23 framework for building [Counter-Strike 2](https://www.counter-strike.net/) server plugins with [Metamod:Source 2.0](https://www.metamodsource.net/). You describe your plugin's behavior - commands, menus, effects, database rows - as data, and the framework handles the engine: SDK interface resolution, hooks, player tracking, message transport, signature scanning. Everything it owns lives on one @ref VoltMod::Runtime, handed to your plugin for the duration of a load.
 
 A working plugin is a `CommandSpec` and forty lines of skeleton. Generate one with `voltmod new-plugin` and go from there (see @ref getting_started).
 

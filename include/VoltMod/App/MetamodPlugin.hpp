@@ -105,7 +105,7 @@ protected:
 
     /**
      * @brief The engine is starting a (new) map. Fires on every map start, after the engine has
-     * loaded game event definitions - by this point kit game-event listeners are attached. Note
+     * loaded game event definitions - by this point framework game-event listeners are attached. Note
      * that the engine resets game convars and re-execs gamemode cfgs around this, so values set
      * at load time may need re-asserting from here or from a game event.
      */

@@ -23,7 +23,7 @@ void SetBaseDir(const std::filesystem::path& baseDir);
  */
 std::filesystem::path ResolvePath(const std::string& relativePath);
 
-/** @brief "addons/<addon>" - the engine-relative install root the kit's loaders take.
+/** @brief "addons/<addon>" - the engine-relative install root the framework's loaders take.
  *  Pure string building, so safe at static init. */
 std::string AddonDir(std::string_view addon);
 

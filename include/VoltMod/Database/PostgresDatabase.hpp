@@ -66,7 +66,7 @@ public:
 
     /**
      * Spawn the worker, verify connectivity with a ping, and register the completion pump with
-     * the kit scheduler. Returns false (worker stopped again) when the database is unreachable,
+     * the framework scheduler. Returns false (worker stopped again) when the database is unreachable,
      * so the plugin can degrade instead of queueing into the void.
      */
     bool Start(const PostgresConfig& config);

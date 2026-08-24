@@ -2,7 +2,11 @@
 
 [TOC]
 
-A command is one aggregate - name, metadata, permission, typed arguments, handler - registered at its definition site. The kit resolves and validates every argument *before* your handler runs: targets go through the selector grammar with immunity applied, durations and SteamIDs are parsed, and every failure already replied to the caller in their language. Your handler only sees the happy path.
+A command is one aggregate: name, metadata, permission, typed arguments, and a
+handler. Register it at its definition site. The framework resolves and
+validates every argument before the handler runs, including target immunity,
+duration parsing, and SteamID parsing. Failures are translated for the caller;
+the handler sees only valid input.
 
 ## A complete command
 
@@ -25,11 +29,20 @@ commands.Register({
 });
 ```
 
-That's the whole thing: the kit ingests every self-registered spec automatically after `OnLoad` (a "Commands" stage appears in the load report), and the default `OnPlayerChat` dispatches `!`/`.` messages through `HandleChatMessage` - unknown names fall through to normal chat. Plugins with their own chat handling (admin-style chat services) override `OnPlayerChat` and take over dispatch wholesale.
+The framework collects every registered spec after `OnLoad` and records a
+`Commands` stage in the load report. The default `OnPlayerChat` dispatches `!`
+and `.` messages through `HandleChatMessage`; unknown names fall through to
+normal chat. A plugin with its own chat service can override `OnPlayerChat` and
+take over dispatch.
 
 ## The pipeline
 
-For each chat command: prefix match → `runtime.Policy.HasPermission(callerSteamId, spec.Permission)` → per-argument resolve/validate → your handler → the returned `CommandResult.Message` routed through `runtime.Policy.Reply` (or a plain `runtime.Messages.Reply` line when no policy Reply is installed). An empty `Permission` skips the gate; a failure at any step replies with a localized message and never reaches the handler.
+For each chat command, the manager matches the prefix, checks
+`runtime.Policy.HasPermission(callerSteamId, spec.Permission)`, resolves and
+validates each argument, calls the handler, and routes its `CommandResult.Message`
+through `runtime.Policy.Reply` (or `runtime.Messages.Reply` when no policy reply
+is installed). An empty `Permission` skips the permission check. Any failure
+replies with a localized message and stops before the handler.
 
 ## Argument kinds
 
@@ -45,9 +58,10 @@ Declare `Args` with the terse factories; each fills a `CommandContext` field:
 | `Word(required = true)` | one verbatim token | `c.Word` |
 | `ReasonTail(fallbackKey = {})` | all remaining tokens joined | `c.Reason` (the translated fallback when absent) |
 
-Resolution refuses to run the handler unless every required argument came through, so an
-accessor for an argument the spec declared always has a value. That is why `Target()` hands
-back a reference: the old pointer only invited a null check that could not fire.
+The manager does not run the handler until every required argument resolves. An
+accessor for an argument declared by the spec therefore has a value. `Target()`
+returns a reference for the same reason; callers do not need a null check that
+cannot succeed.
 
 `Usage` is derived from the argument kinds - `!ban <target> <duration> [reason]` - unless you
 set it. The prefix comes from the surface being replied to (the manager's first chat prefix, or
@@ -70,12 +84,14 @@ The `Target` argument (and @ref VoltMod::Players::ResolveTargets directly) under
 name           exact match, then prefix, then substring (case-insensitive)
 ```
 
-Immunity comes from `runtime.Policy.CanTarget` - matches the policy rejects are dropped, and if that empties the set the caller is told the target is immune, not "no match".
+Immunity comes from `runtime.Policy.CanTarget`. Matches rejected by the policy
+are removed; if none remain, the caller is told that the target is immune rather
+than receiving a "no match" error.
 
 ## Permissions
 
 A spec with a non-empty `Permission` is gated on `runtime.Policy.HasPermission`. **If no
-policy is installed the command is denied**, not allowed, and the kit logs an error once per
+policy is installed the command is denied**, not allowed, and the framework logs an error once per
 command name - a plugin that declares permissions without wiring a policy is misconfigured,
 and failing open there hands every player every command.
 

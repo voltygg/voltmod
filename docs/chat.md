@@ -2,7 +2,11 @@
 
 [TOC]
 
-All player-facing text leaves the server through one service: `runtime.Messages` (@ref VoltMod::Sdk::MessageSystem). It sends to the chat box, the center of the screen, the center-HTML panel, or the alert bar - same call, different @ref VoltMod::Sdk::MessageKind. Colors are plain escape bytes you compose with `std::format` using the `ChatColors` constants.
+All player-facing text leaves the server through `runtime.Messages`
+(@ref VoltMod::Sdk::MessageSystem). It can send to chat, the center of the
+screen, the center-HTML panel, or the alert bar; the destination is selected by
+@ref VoltMod::Sdk::MessageKind. Colors are escape bytes that you compose with
+`std::format` and the `ChatColors` constants.
 
 ## Sending
 
@@ -72,7 +76,9 @@ std::string_view color = ChatColors::ParseNamed(group.PrefixColor);
 auto line = std::format("{}{} {}: {}", color, group.Prefix, ChatColors::Default, message);
 ```
 
-Broadcast layouts with a repeated shape ("[PREFIX] actor did-thing target") are a few lines of `std::format` in your own chat service - the kit ships transport and colors, not house style.
+Broadcast layouts with a repeated shape ("[PREFIX] actor did-thing target")
+belong in the plugin's chat service. The framework supplies transport and
+colors, not an application-specific format.
 
 ## Stripping colors for logs
 
@@ -84,4 +90,6 @@ Log::Info("{}", ChatColors::Strip(coloredLine));
 
 ## Threading
 
-Main-thread only, like the rest of the kit. Call from hooks, timers, command handlers, or async completions (database/HTTP callbacks already run on the game thread) - never from a worker thread you spawned yourself.
+This service is main-thread only. Call it from hooks, timers, command handlers,
+or asynchronous completions (database and HTTP callbacks already run on the
+game thread), never from a worker thread created by the plugin.

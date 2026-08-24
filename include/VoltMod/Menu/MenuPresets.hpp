@@ -23,7 +23,7 @@ namespace VoltMod::Menu
 class MenuBuilder;
 
 /**
- * Append one row per connected player (from the kit PlayerManager) to @p builder - the body of
+ * Append one row per connected player (from the framework PlayerManager) to @p builder - the body of
  * @ref BuildPlayerPicker, exposed so callers can put their own rows above the player list.
  * Selecting a player invokes @p onPick(viewerSlot, targetSlot). @p isEnabled, when supplied,
  * decides per-row whether a target is selectable. If no players are connected, a single

@@ -10,7 +10,7 @@ namespace VoltMod::Core
 {
 
 /**
- * @brief Handle-keyed item store shared by every listener registry in the kit.
+ * @brief Handle-keyed item store shared by every listener registry in the framework.
  *
  * Scheduler timers, ConVar change listeners, and game-event listeners all need the same
  * thing: add an item, get back a stable `uint64_t` handle, remove by handle later. This

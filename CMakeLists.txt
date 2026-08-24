@@ -60,7 +60,7 @@ hl2sdk_attach_engine_sources(voltmod-runtime)
 hl2sdk_attach_generated_sources(voltmod-runtime)
 
 # cpr never appears in a public header, so it stays off the include path of everything
-# that links the kit. src/Http/*.cpp is also kept out of the precompiled header: forcing
+# that links the framework. src/Http/*.cpp is also kept out of the precompiled header: forcing
 # the hl2sdk universe ahead of <cpr/cpr.h> puts windows.h before winsock2.h.
 set_source_files_properties(${VOLTMOD_Http_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 

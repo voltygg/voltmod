@@ -26,7 +26,7 @@ namespace VoltMod::Menu
  * check before every step AND before finishing (so "target left" / "permission revoked" abort
  * cleanly), renders an auto-built summary confirm dialog when configured, and finally hands the
  * accumulated state to OnFinish. Human-facing text comes from caller-supplied per-slot providers,
- * so the kit carries no localization; the OnValidate error is a translation key (resolved in the
+ * so the framework carries no localization; the OnValidate error is a translation key (resolved in the
  * offending player's language, replied via runtime.Policy.Reply).
  *
  * @code

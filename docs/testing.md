@@ -2,10 +2,11 @@
 
 [TOC]
 
-Unit tests use [doctest](https://github.com/doctest/doctest), pulled in as a Conan
-`test_requires` and linked as `doctest::doctest`. Tests are SDK-free: they exercise pure
-logic - parsers, math, score decay, targeting rules - without loading Metamod or the
-HL2SDK, so the whole suite links in seconds and runs in milliseconds.
+Unit tests use [doctest](https://github.com/doctest/doctest), added through Conan
+`test_requires` and linked as `doctest::doctest`. Tests are SDK-free: they cover
+pure logic such as parsers, math, score decay, and targeting rules without
+loading Metamod or the HL2SDK. The suite therefore links quickly and runs in
+milliseconds.
 
 ## Running
 
@@ -15,8 +16,8 @@ ctest --preset windows-msvc-release   # tests only
 ctest --preset windows-msvc-release --output-on-failure
 ```
 
-Every test case is its own ctest entry, so `ctest -R` filters and CI failure reports name
-the exact case:
+Each test case is its own CTest entry, so `ctest -R` can filter it and CI failure
+reports identify the exact case:
 
 ```bash
 ctest --preset windows-msvc-release -R "SteamId"
@@ -129,10 +130,10 @@ TEST_CASE_TEMPLATE("Trim accepts any string-like input", T, const char*, std::st
 
 ## Adding tests to a plugin
 
-`voltmod_add_tests()` (from `cmake/VoltModTests.cmake`, included by the kit's root CMakeLists) owns
+`voltmod_add_tests()` (from `cmake/VoltModTests.cmake`, included by the framework's root CMakeLists) owns
 the wiring: it globs `tests/*.cpp`, supplies doctest's `main`, links `doctest::doctest`,
-adds the kit's include dir, and registers the cases with CTest. `SOURCES` is the list of
-SDK-free TUs to recompile - test binaries never link the plugin module or the kit, so
+adds the framework's include dir, and registers the cases with CTest. `SOURCES` is the list of
+SDK-free TUs to recompile - test binaries never link the plugin module or the framework, so
 nothing drags in Metamod.
 
 ```cmake
@@ -155,12 +156,12 @@ def build_requirements(self):
 
 ## What is worth testing
 
-Logic that takes plain values and returns plain values: parsers and formatters, the
+Test logic that takes plain values and returns plain values: parsers and formatters, the
 target-selector grammar, angle math, decaying scores, throttles, migration-version
-extraction, detector heuristics, threshold reachability. Anything that needs a live
-a live `Runtime`, an entity, or a database connection is out of scope for this suite - keep that
-logic thin and push the decisions into free functions over structs, which is what makes
-the rest testable.
+extraction, detector heuristics, threshold reachability. Anything that needs a
+live `Runtime`, an entity, or a database connection is out of scope for this
+suite. Keep that logic thin and push the decisions into free functions over
+structs; that is what makes the rest testable.
 
 ## Naming rule: no `[`, `]` or `;`
 

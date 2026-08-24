@@ -14,9 +14,9 @@ namespace VoltMod::Core
 {
 
 /**
- * @brief Plugin-supplied policy the kit consults for permissions, targeting, and message routing.
+ * @brief Plugin-supplied policy the framework consults for permissions, targeting, and message routing.
  *
- * Set it once in OnLoad (`runtime.Policy = {...}`) and every policy-aware kit subsystem -
+ * Set it once in OnLoad (`runtime.Policy = {...}`) and every policy-aware framework subsystem -
  * command dispatch, target resolution, action dispatch, context menu rows - picks it up from
  * there. An empty member means allow / no-op, so a plugin only fills in what it enforces.
  */

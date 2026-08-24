@@ -1,10 +1,11 @@
-# SDK Wrappers {#sdk_guide}
+# SDK wrappers {#sdk_guide}
 
 [TOC]
 
 ## Overview
 
-`VoltMod::Sdk` is the engine wrapper layer - typed classes over the HL2SDK interfaces so plugin code doesn't juggle raw pointers and reversed offsets.
+`VoltMod::Sdk` is the engine wrapper layer: typed classes over HL2SDK interfaces
+so plugin code does not have to juggle raw pointers and reversed offsets.
 
 The guide is split by topic:
 
@@ -32,5 +33,6 @@ auto* schema = gi.SchemaSystem; // ISchemaSystem*
 // ... etc.
 ```
 
-All other Sdk classes read from this holder internally. The examples across these pages reach their
-service the same way - `runtime.GameData`, `runtime.Entities`, `runtime.Schema()`, and so on.
+Other SDK classes read from this holder internally. The examples on these pages
+reach services through `runtime.GameData`, `runtime.Entities`, `runtime.Schema()`,
+and the corresponding runtime members.

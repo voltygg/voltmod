@@ -10,7 +10,7 @@ namespace VoltMod::Core
 
 /**
  * Localized unit words for @ref TimeUtils::FormatDurationLabel. The caller supplies
- * already-translated text; the kit carries no localization of its own.
+ * already-translated text; the framework carries no localization of its own.
  */
 struct DurationUnitLabels
 {

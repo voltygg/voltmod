@@ -9,7 +9,7 @@ namespace VoltMod::Core
 /**
  * @brief Owns one registration and releases it on destruction.
  *
- * Every registry in the kit hands out a `uint64_t` handle, which callers then had to
+ * Every registry in the framework hands out a `uint64_t` handle, which callers then had to
  * remember to hand back - usually from a destructor that first checked whether the
  * service was still alive. That check was the bug: by the time those destructors ran the
  * ambient accessor was already cleared, so the removal silently never happened.

@@ -3,19 +3,21 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://suxrobgm.github.io/voltmod/)
 
-A C++23 toolkit for building Counter-Strike 2 server plugins on Metamod:Source 2.0.
+A C++23 framework for building Counter-Strike 2 server plugins on Metamod:Source 2.0.
 
-You describe your plugin's behavior as data - commands, menu rows, effects, database rows - and VoltMod owns the machinery around it: engine setup, hooks, player tracking, permission gating, message transport, and teardown.
+Describe plugin behavior as data - commands, menu rows, effects, and database
+rows - and VoltMod supplies the surrounding machinery: engine setup, hooks,
+player tracking, permission gates, message transport, and teardown.
 
 > **Work in progress.** The API is still evolving and may change between versions.
 
 ## What you get
 
-- **Plugin base** - subclass `MetamodPlugin` and the Metamod lifecycle, standard hooks and player tracking are wired up; you get a `Runtime` holding every kit service for the duration of a load, and cleanup is ordinary destruction.
+- **Plugin base** - subclass `MetamodPlugin` and the Metamod lifecycle, standard hooks and player tracking are wired up; you get a `Runtime` holding every framework service for the duration of a load, and cleanup is ordinary destruction.
 - **Declarative commands** - a `CommandSpec` is plain data; targets, durations, and SteamIDs are resolved and validated before your handler runs, with localized error replies.
 - **Target selectors** - `@all`, `@me`, `@t`, `@ct`, `@dead`, `@random`, `#slot`, SteamIDs, and name fragments, with immunity applied through your injected policy.
 - **Menus** - WASD-navigated in-game menus: typed rows, policy-aware context rows for admin/target actions, ready-made pickers, and the `Flow` wizard for multi-step "pick duration → pick reason → confirm" chains.
-- **One policy hook** - permissions, immunity, replies, and broadcasts are injected once via `Runtime::Policy`; the kit ships no admin model of its own.
+- **One policy hook** - permissions, immunity, replies, and broadcasts are injected once via `Runtime::Policy`; the framework ships no admin model of its own.
 - **Messages** - one service for chat, center print, center-HTML, and alerts, with per-player translations (`ReplyKey`) and chat colors.
 - **Typed game events** - `Listen<PlayerDeath>(...)` instead of string names and `GetInt` calls; the raw overload stays for unmodeled events.
 - **PostgreSQL** (optional) - async-first client (worker thread owns the connection, completions on the game thread), column-table row mapping that generates the INSERT/SELECT/parse code, and a migration runner. Gated behind `VOLTMOD_ENABLE_POSTGRES`.
@@ -25,7 +27,7 @@ You describe your plugin's behavior as data - commands, menu rows, effects, data
 
 ## Quick start
 
-Start a plugin project from an empty directory:
+Start a plugin project in an empty directory:
 
 ```sh
 mkdir my-cs2-plugins && cd my-cs2-plugins
@@ -37,8 +39,8 @@ uv run poe bootstrap
 
 That generates the root `CMakeLists.txt`, `CMakePresets.json`, `conanfile.py`, and `pyproject.toml`, then scaffolds a first plugin that compiles, loads, and answers `!ping` out of the box. Add more with `uv run poe new-plugin <name>`.
 
-The kit, HL2SDK, and Metamod use Conan packages from a public remote. Linux uses
-published binaries; Windows builds missing packages locally. See
+The framework, HL2SDK, and Metamod use Conan packages from a public remote. Linux
+uses published binaries; Windows builds missing packages locally. See
 `docs/consuming-via-conan.md`.
 
 Already have a CMake repo? Add the requirement and declare a plugin with one call - `voltmod_add_plugin` owns the module target, SDK glue, output layout, Metamod `.vdf`, and install rules:

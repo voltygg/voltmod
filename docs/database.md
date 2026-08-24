@@ -2,7 +2,10 @@
 
 [TOC]
 
-`VoltMod::Database` is an opt-in, **async-first** PostgreSQL layer. One worker thread owns the only connection; the game thread never blocks on the database during play. Row parsing and INSERT/SELECT SQL are generated from a per-entity column table, so a repository method is a query and a callback - nothing else.
+`VoltMod::Database` is an opt-in, **async-first** PostgreSQL layer. One worker
+thread owns the connection, and gameplay code never blocks on the database.
+Row parsing and INSERT/SELECT SQL are generated from a per-entity column table,
+so a repository method only needs a query and a callback.
 
 Compiled only when `VOLTMOD_ENABLE_POSTGRES` is `ON` (default `OFF`); plugins without a database never pull libpqxx.
 
@@ -31,7 +34,10 @@ if (!Db.Start(Config.Get().database))
 
 `Start` spawns the worker and verifies connectivity with a ping - it returns `false` when the database is unreachable so you can degrade instead of queueing into the void.
 
-`Stop` belongs in your `App`'s destructor rather than beside `Start`: it drains queued writes (a ban issued just before unload must land) and drops undispatched completions, so it has to run after the managers those completions would touch are done with it, not before.
+Call `Stop` from your `App` destructor rather than next to `Start`. It drains
+queued writes (a ban issued just before unload must land) and drops undispatched
+completions, so it must run after the managers those callbacks would touch have
+been destroyed.
 
 `Stop(drainDeadline = 5s)` is deliberate about what happens to in-flight work: new work is dropped with a log line; already-queued jobs drain within the deadline (a ban written just before unload must land); anything past the deadline is dropped with a warning; blocked waiters are released with a failed result; and undispatched completions are destroyed unrun - the state they would touch is going away.
 
@@ -61,7 +67,7 @@ Load-time variants: `QueryBlocking(name, sql, params)` returns the `DbResult` di
 
 ## Row mapping
 
-Declare each entity's table shape once and the kit generates the repetitive SQL and parsing (`Database/Column.hpp` + `Mapping.hpp`):
+Declare each entity's table shape once and the framework generates the repetitive SQL and parsing (`Database/Column.hpp` + `Mapping.hpp`):
 
 ```cpp
 struct Ban
@@ -103,7 +109,8 @@ db.Query("ban_insert", InsertSql<Ban>(), InsertParams(ban),
          });
 ```
 
-Bespoke UPDATE/WHERE SQL stays hand-written - that's the part worth reading at the call site.
+Bespoke UPDATE/WHERE SQL stays hand-written; that is the part worth seeing at
+the call site.
 
 ## The cache-first pattern
 

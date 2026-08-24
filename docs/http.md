@@ -2,12 +2,15 @@
 
 [TOC]
 
-`VoltMod::Http` gives you async requests whose completions run on the game thread:
+`VoltMod::Http` provides asynchronous requests whose completions run on the game
+thread:
 
 - **HttpClient** - GET/POST on CPR's worker pool; completions are queued and replayed on the game thread from a self-registered per-frame pump
 - **RestJsonApi** - helpers for the config-driven "call an operator-configured JSON endpoint and pull a field out of the response" shape
 
-`HttpClient` is a kit service - reach it via `runtime.Http`. The `Runtime` destructor drains in-flight requests, so there is nothing to wire up or tear down.
+`HttpClient` is a framework service; reach it through `runtime.Http`. The
+`Runtime` destructor drains in-flight requests, so the plugin has no separate
+shutdown step.
 
 ## Requests
 
@@ -56,4 +59,6 @@ if (request)
 
 ## Threading
 
-Requests run off-thread; **callbacks never run concurrently with game code**. Do not block on a request from the game thread - there is no synchronous API by design.
+Requests run off-thread, but **callbacks never run concurrently with game code**.
+Do not block on a request from the game thread; the API is asynchronous by
+design.

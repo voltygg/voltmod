@@ -1,14 +1,16 @@
-# Spawning & Effects {#sdk_entity_ops_guide}
+# Spawning and effects {#sdk_entity_ops_guide}
 
 [TOC]
 
 ## EntityOps (spawning, entity IO, sound)
 
-@ref VoltMod::Sdk::EntityOpsService (`runtime.EntityOps`) exposes the signature-resolved entity
-mutation functions: create/spawn, inputs, deferred IO, removal, model, and sound-event emission.
-Spawn keyvalues are built with @ref VoltMod::Sdk::EntityKeyValues, which the engine consumes on
-spawn (never reuse or free one after `DispatchSpawn`). Every method no-ops gracefully when its
-gamedata signature failed to resolve; branch on `CanSpawn()` when you want an explicit fallback.
+@ref VoltMod::Sdk::EntityOpsService (`runtime.EntityOps`) exposes
+signature-resolved entity operations: create/spawn, inputs, deferred I/O,
+removal, models, and sound events. Build spawn keyvalues with
+@ref VoltMod::Sdk::EntityKeyValues; the engine consumes them during spawn, so do
+not reuse or free them after `DispatchSpawn`. Methods no-op when their gamedata
+signature is unavailable; use `CanSpawn()` when the plugin needs an explicit
+fallback.
 
 ```cpp
 auto& ops = runtime.EntityOps;
@@ -45,7 +47,7 @@ EffectOps::SpawnProp("models/props/crate.vmdl", pos, /*physics*/ true, 30.0f);
 
 ## PrecacheService
 
-@ref VoltMod::Sdk::PrecacheService (`runtime.Precache`) registers a kit-owned game system that
+@ref VoltMod::Sdk::PrecacheService (`runtime.Precache`) registers a framework-owned game system that
 receives `BuildGameSessionManifest`, letting plugins precache custom resources (particles, models,
 sound events). Queue paths any time; they apply at the **next map load** - the engine's manifest
 only exists inside that event. Assets that are not part of the map must also reach clients (e.g.

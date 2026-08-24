@@ -17,7 +17,7 @@ using Tokens = std::map<std::string, std::string>;
  * dotted keys (`category.punish`). Use @ref Get(key, slot) for per-player text; use
  * @ref SetPlayerLanguage to register a slot's preferred language.
  *
- * Lookup order is the slot's language, then the active language, then English, then the kit's
+ * Lookup order is the slot's language, then the active language, then English, then the framework's
  * own English defaults for the keys it emits itself (`cmd.*`, `target.*`), then the key
  * verbatim. A plugin that translates those keys still wins; one that forgets a language gets
  * readable English instead of a raw key on screen.

@@ -14,7 +14,7 @@
 #include <entity2/entitysystem.h>
 
 // The SDK's entity2 sources (entitykeyvalues.cpp) link against this accessor;
-// route it to the kit's resolved entity system so both agree on the pointer.
+// route it to the framework's resolved entity system so both agree on the pointer.
 CGameEntitySystem* GameEntitySystem()
 {
     auto* services = VoltMod::Detail::RtOrNull();

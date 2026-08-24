@@ -1,10 +1,14 @@
-# Movement, Teleports & Server Commands {#sdk_hooks_guide}
+# Movement, teleports, and server commands {#sdk_hooks_guide}
 
 [TOC]
 
 ## MovementHook
 
-@ref VoltMod::Sdk::MovementHook is a manual vtable hook on `CPlayer_MovementServices::RunCommand` - the per-tick, per-player movement entry point. Pre/post callbacks bracket exactly one player's movement processing, which makes the pair the right place for per-player state flips (see @ref VoltMod::Sdk::RawConVar "RawConVar").
+@ref VoltMod::Sdk::MovementHook is a manual vtable hook on
+`CPlayer_MovementServices::RunCommand`, the per-tick movement entry point.
+Pre/post callbacks bracket one player's movement processing, which makes them
+the right place for per-player state flips (see
+@ref VoltMod::Sdk::RawConVar "RawConVar").
 
 The service is a dormant `Runtime` member: it costs nothing until a plugin calls `Install()`, and it removes its hook on destruction.
 
@@ -107,7 +111,7 @@ Semantics worth knowing:
 
 - `Enable()` hooks the `"Teleport"` vtable index on every *live* pawn and returns false when that gamedata offset is missing. The binding is per pawn, not per class, so exactly one callback fires per teleport however many pawns are bound.
 - Respawning hands the player a brand-new pawn object, which makes the previous binding stale. The tracker re-binds from its own `PlayerSpawn` listener - and since a spawn also moves the player, **a spawn counts as a teleport** and gets stamped. If you only care about mid-life teleports, filter spawns yourself.
-- Stamps are @ref VoltMod::Sdk::ServerTime "ServerTime()" values, so they are meaningless across a map change. The kit's `StartupServer` hook drops every binding and stamp at map start, and a slot with no stamp reads as never teleported.
+- Stamps are @ref VoltMod::Sdk::ServerTime "ServerTime()" values, so they are meaningless across a map change. The framework's `StartupServer` hook drops every binding and stamp at map start, and a slot with no stamp reads as never teleported.
 
 ## ServerCommand
 

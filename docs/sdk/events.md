@@ -1,4 +1,4 @@
-# ConVars & Game Events {#sdk_events_guide}
+# ConVars and game events {#sdk_events_guide}
 
 [TOC]
 
@@ -17,7 +17,8 @@ uint64_t id = events.Listen<Events::PlayerDeath>([](const Events::PlayerDeath& e
 events.RemoveListener(id);   // or leave it - Shutdown removes everything on unload
 ```
 
-For events the kit hasn't modeled, the stringly overload is the escape hatch - same registration, raw `IGameEvent*`:
+For events the framework has not modeled, use the string overload with the same
+registration API and a raw `IGameEvent*`:
 
 ```cpp
 events.Listen("bomb_planted", [](IGameEvent* event) {
@@ -45,7 +46,12 @@ events.Listen<Events::BulletImpact>([](const Events::BulletImpact& e) {
 
 ### Listener lifecycle
 
-Call `Listen` whenever you like - typically in your manager's `Initialize` during OnLoad - and the kit takes care of when the engine actually accepts the registration. The trap it handles: `IGameEventManager2::AddListener` **succeeds** before the first map, but the engine resets its listener table during every map startup, so a registration made at plugin load on a cold boot is silently dropped and the listener never fires (no error anywhere; the callback just doesn't run). The kit therefore re-attaches every listened event from its `StartupServer` hook on **every** map start - watch for `Attached N/N game event listener(s) at map start.` in the server log as the health check.
+Call `Listen` whenever you need it, usually from a manager's `Initialize` during
+`OnLoad`. The framework handles a Source engine quirk: `AddListener` succeeds
+before the first map, but the engine resets its listener table during each map
+startup. The framework re-attaches every listener from its `StartupServer` hook
+on every map start. Use `Attached N/N game event listener(s) at map start.` in
+the server log as the health check.
 
 Related lifecycle points:
 
@@ -55,7 +61,7 @@ Related lifecycle points:
 
 ### Inspecting a client's own subscriptions
 
-`GetClientLegacyListener(slot)` returns the engine-side listener object the game keeps for that client - the client's own subscription handle, not a kit listener. Firing an event at it delivers to that one client (this is how @ref VoltMod::Sdk::MessageSystem "MessageSystem" sends center HTML). It is `nullptr` when the slot has no client or when the `"LegacyGameEventListener"` gamedata signature did not resolve.
+`GetClientLegacyListener(slot)` returns the engine-side listener object the game keeps for that client - the client's own subscription handle, not a framework listener. Firing an event at it delivers to that one client (this is how @ref VoltMod::Sdk::MessageSystem "MessageSystem" sends center HTML). It is `nullptr` when the slot has no client or when the `"LegacyGameEventListener"` gamedata signature did not resolve.
 
 `ClientListensTo(slot, eventName)` asks the event manager whether that handle is subscribed to a given event:
 

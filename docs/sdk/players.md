@@ -1,4 +1,4 @@
-# Entities & Players {#sdk_players_guide}
+# Entities and players {#sdk_players_guide}
 
 [TOC]
 
@@ -25,8 +25,9 @@ while ((door = es.FindByClassName(door, "func_door")))
 auto* named = es.FindByName(nullptr, "my_targetname");
 ```
 
-For typed operations on a player, construct a @ref VoltMod::Sdk::PlayerController from the slot (see
-below) rather than working with the raw `CEntityInstance*`.
+For typed operations on a player, construct a
+@ref VoltMod::Sdk::PlayerController from the slot rather than using the raw
+`CEntityInstance*`.
 
 ## PlayerController
 

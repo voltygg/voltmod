@@ -53,7 +53,7 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
     _lateLoad = late;
     _info = Info();  // capture once; the ISmmPlugin getters read this copy
 
-    // Fresh runtime per load; wire the ambient pointer before Start so kit subsystems
+    // Fresh runtime per load; wire the ambient pointer before Start so framework subsystems
     // (and the plugin's OnLoad) can reach it. Destroyed in Unload - this is what makes
     // meta reload start from clean state.
     _runtime = std::make_unique<Runtime>();
@@ -112,9 +112,9 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
     return true;
 }
 
-// Order matters: the plugin drops its own graph first, while every kit service it holds a
+// Order matters: the plugin drops its own graph first, while every framework service it holds a
 // reference or subscription to is still alive; then the standard hooks come off; only then the
-// runtime, whose destructor is the kit's shutdown. The ambient pointer is cleared last of the
+// runtime, whose destructor is the framework's shutdown. The ambient pointer is cleared last of the
 // three so this shutdown can still reach it.
 //
 // A failed OnLoad takes this same path. It used to skip _standardHooks.clear(), leaving live
@@ -136,7 +136,7 @@ bool MetamodPlugin::Unload(char* error, size_t maxlen)
 bool MetamodPlugin::OnPlayerChat(Players::Player* player, std::string_view message, bool /*teamChat*/)
 {
     // A pending menu capture owns the line before command parsing does: it is the player's
-    // answer to a prompt, not a chat message. Menu input rows are a kit feature, so consuming
+    // answer to a prompt, not a chat message. Menu input rows are a framework feature, so consuming
     // for them belongs here rather than in every plugin that happens to use one.
     if (_runtime->ChatInput.TryConsume(player->GetSlot(), message))
         return true;

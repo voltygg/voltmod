@@ -12,7 +12,7 @@ from . import buildtools
 
 ROOT = Path.cwd()
 
-# Package names in dependency order: the SDKs, then the kit that consumes them.
+# Package names in dependency order: the SDKs, then the framework that consumes them.
 SDK_PACKAGES = ("metamod-source", "hl2sdk-cs2")
 KIT_PACKAGE = "voltmod"
 

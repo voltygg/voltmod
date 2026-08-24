@@ -24,7 +24,7 @@ function(voltmod_verify_test_names)
 endfunction()
 
 # Test executable that recompiles pure-logic TUs rather than linking the plugin or the
-# kit, so nothing pulls in HL2SDK/Metamod. One CTest entry per test case.
+# framework, so nothing pulls in HL2SDK/Metamod. One CTest entry per test case.
 function(voltmod_add_tests target_name)
     cmake_parse_arguments(ARG "" "" "SOURCES;INCLUDE_DIRS;LIBRARIES" ${ARGN})
 

@@ -27,7 +27,7 @@ void FlattenInto(const nlohmann::json& node, const std::string& prefix,
     }
 }
 /**
- * English text for the keys the kit itself emits. Translations::Get returns the raw key on a
+ * English text for the keys the framework itself emits. Translations::Get returns the raw key on a
  * miss, so without this every plugin had to hand-copy all of them into every language file or
  * players saw the literal string `cmd.noPermission`. A plugin's own file still wins - these are
  * the floor, not an override.

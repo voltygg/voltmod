@@ -1,9 +1,9 @@
 include_guard(GLOBAL)
 
-# Kit-internal: builds one of the kit's static libraries. Not shipped to consumers -
+# Framework-internal: builds one of the framework's static libraries. Not shipped to consumers -
 # they get VoltMod::Runtime and VoltMod::Database as CMakeDeps targets from package_info().
 
-# The third-party headers worth precompiling. Kit headers are deliberately absent:
+# The third-party headers worth precompiling. Framework headers are deliberately absent:
 # editing one must not invalidate the PCH. <google/protobuf/message.h> rather than a
 # generated .pb.h so it does not depend on protoc output.
 set(VOLTMOD_PCH_HEADERS
@@ -27,7 +27,7 @@ set(VOLTMOD_PCH_HEADERS
 
 # voltmod_add_library(<name>
 #     SOURCES <files...>       # first-party TUs
-#     DEPS <VoltMod::X...>      # sibling kit libraries (PUBLIC)
+#     DEPS <VoltMod::X...>      # sibling framework libraries (PUBLIC)
 #     LIBS <targets...>        # external usage requirements (PUBLIC)
 #     PRIVATE_LIBS <targets...># externals that never appear in a public header
 # )
@@ -41,7 +41,7 @@ function(voltmod_add_library name)
     add_library("VoltMod::${name}" ALIAS "${target}")
 
     target_compile_features("${target}" PUBLIC cxx_std_23)
-    # /Z7 from voltmod_set_cxx_defaults is what puts kit frames in plugin crash-dump PDBs.
+    # /Z7 from voltmod_set_cxx_defaults is what puts framework frames in plugin crash-dump PDBs.
     voltmod_set_cxx_defaults("${target}")
     set_target_properties("${target}" PROPERTIES
         POSITION_INDEPENDENT_CODE ON

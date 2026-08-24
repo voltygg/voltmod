@@ -60,7 +60,7 @@ struct LoadContext
 };
 
 /**
- * @brief Every kit service, owned as one unit for one Load/Unload cycle.
+ * @brief Every framework service, owned as one unit for one Load/Unload cycle.
  *
  * One flat container, not a tree of per-layer ones: the layering that matters is between
  * source modules, and mirroring it in the runtime only meant plugins spelled out which
@@ -69,7 +69,7 @@ struct LoadContext
  *
  * Declaration order is construction order and reverse destruction order, so the three
  * inter-member dependencies below (everything taking @ref Slots) are satisfied by position.
- * Plugins receive this by reference in OnLoad; kit modules reach it via @ref Detail::Rt.
+ * Plugins receive this by reference in OnLoad; framework modules reach it via @ref Detail::Rt.
  */
 class Runtime
 {
@@ -135,7 +135,7 @@ public:
     App::ServiceExchange Exchange;
     /** This plugin's manifest, published to peers. Filled by LoadStandardConfig. */
     App::PluginIdentity Identity;
-    /** Status sections for diagnostics commands; kit sections registered by Start. */
+    /** Status sections for diagnostics commands; framework sections registered by Start. */
     App::StatusService Status;
     Menu::MenuManager Menus;
 

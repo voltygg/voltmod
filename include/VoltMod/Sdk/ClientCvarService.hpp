@@ -33,7 +33,7 @@ std::string_view ToString(ClientCvarStatus status);
  *
  * Degradable load stage: it depends on two gamedata offsets (`ProcessRespondCvarValue`,
  * `ServerSideClientSlot`) and an RTTI/symbol lookup of the `CServerSideClient` vtable, all of which
- * drift with engine updates. On failure the kit logs one warning and @ref Available() stays false.
+ * drift with engine updates. On failure the framework logs one warning and @ref Available() stays false.
  *
  * @code
  * runtime.ClientCvars.Query(slot, "sensitivity",
@@ -80,13 +80,13 @@ public:
     /** Number of queries awaiting an answer on @p slot. Diagnostics only. */
     size_t PendingCount(int slot) const;
 
-    /** Drop anything the slot's previous occupant left behind. Called by the kit's connect path. */
+    /** Drop anything the slot's previous occupant left behind. Called by the framework's connect path. */
     void OnClientFullyConnect(int slot);
 
-    /** Drop @p slot's pending queries; their callbacks will never fire. Called by the kit. */
+    /** Drop @p slot's pending queries; their callbacks will never fire. Called by the framework. */
     void OnPlayerDisconnect(int slot);
 
-    /** Drop every pending query for the new map. Called by the kit's StartupServer hook. */
+    /** Drop every pending query for the new map. Called by the framework's StartupServer hook. */
     void OnServerStartup();
 
 private:

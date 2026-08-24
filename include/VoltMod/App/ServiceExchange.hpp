@@ -9,8 +9,8 @@ namespace VoltMod::App
 /**
  * @brief Typed interface exchange between separately-loaded plugins.
  *
- * The kit is a static library, so each plugin has its own Runtime and sharing cannot go
- * through kit state. It goes through Metamod instead: Publish fills this module's table,
+ * The framework is a static library, so each plugin has its own Runtime and sharing cannot go
+ * through framework state. It goes through Metamod instead: Publish fills this module's table,
  * which MetamodPlugin::OnMetamodQuery serves, and Get asks MetaFactory across every
  * loaded plugin.
  *

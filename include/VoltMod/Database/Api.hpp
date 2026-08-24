@@ -5,7 +5,7 @@
 // VoltMod::PostgresDatabase / VoltMod::FromRow / ... spellings are used.
 
 #ifndef VOLTMOD_ENABLE_POSTGRES
-#error "VoltMod/Database requires the kit to be built with VOLTMOD_ENABLE_POSTGRES"
+#error "VoltMod/Database requires the framework to be built with VOLTMOD_ENABLE_POSTGRES"
 #endif
 
 #include <VoltMod/Database/DbResult.hpp>

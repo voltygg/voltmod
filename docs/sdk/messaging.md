@@ -1,10 +1,11 @@
-# Messaging & Chat Input {#sdk_messaging_guide}
+# Messaging and chat input {#sdk_messaging_guide}
 
 [TOC]
 
 ## MessageSystem
 
-One service, every destination - see @ref chat_guide for the full messaging story (colors, `ReplyKey`, broadcast semantics). The raw surface:
+One service handles every destination. See @ref chat_guide for colors,
+`ReplyKey`, and broadcast behavior; the raw API is:
 
 ```cpp
 auto& msg = runtime.Messages;
@@ -19,9 +20,10 @@ msg.ClearCenterHtml(slot);
 
 ## PersistentCenterHtml
 
-CS2 drops center-HTML almost immediately (death, team switch, HUD updates), so a sticky panel must
-be re-sent continuously. @ref VoltMod::Sdk::PersistentCenterHtml owns that re-send loop; deadline or
-expiry policy stays with the caller's own timer:
+CS2 drops center-HTML almost immediately after events such as death, a team
+switch, or a HUD update. A sticky panel must therefore be sent repeatedly.
+@ref VoltMod::Sdk::PersistentCenterHtml owns that refresh loop; the caller owns
+the deadline or expiry policy:
 
 ```cpp
 VoltMod::PersistentCenterHtml panel;

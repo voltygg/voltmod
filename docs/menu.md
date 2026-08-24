@@ -2,7 +2,10 @@
 
 [TOC]
 
-WASD-navigated center-HTML menus. Each row is a typed @ref VoltMod::Menu::MenuOption; you build menus fluently with @ref VoltMod::Menu::MenuBuilder, and for admin panels the context rows and the @ref VoltMod::Menu::Flow wizard remove nearly all per-row glue.
+These are WASD-navigated center-HTML menus. Each row is a typed
+@ref VoltMod::Menu::MenuOption. Build menus with
+@ref VoltMod::Menu::MenuBuilder; context rows and the
+@ref VoltMod::Menu::Flow wizard provide the common admin-panel behavior.
 
 Players navigate with:
 
@@ -46,9 +49,12 @@ MenuBuilder(title)
 
 `AddStateToggleRow` re-reads its predicate every redraw, so the same row shows "Freeze"/"Unfreeze" reality and doubles as the undo control. The pawn predicates (`InMoveType`, `HasPawnFlag`) live in `Sdk/PawnPredicates.hpp`. Effect rows read on/off labels from the reserved keys `effectState.on` / `effectState.off`; the descriptors themselves are covered in @ref players_guide.
 
-## Flow: multi-step wizards
+## Flow: multistep wizards
 
-@ref VoltMod::Menu::Flow threads a state struct through a sequence of steps - the "pick duration, pick reason, confirm, execute" shape - with validation re-run before every step and before finishing, so "target left" or "permission revoked" abort cleanly instead of half-applying.
+@ref VoltMod::Menu::Flow carries a state struct through steps such as “pick
+duration, pick reason, confirm, execute”. It re-runs validation before each step
+and before finishing, so a departed target or revoked permission aborts cleanly
+instead of applying half the action.
 
 ```cpp
 VoltMod::Flow<PendingPunishment>::Create(std::move(pending))
@@ -69,7 +75,7 @@ VoltMod::Flow<PendingPunishment>::Create(std::move(pending))
 
 Notes:
 
-- Text comes from per-slot provider functions, so every step renders in the viewing admin's language; the kit ships no strings of its own.
+- Text comes from per-slot provider functions, so every step renders in the viewing admin's language; the framework ships no strings of its own.
 - The `OnValidate` result is a translation key - on failure the flow closes the menus and replies through `runtime.Policy.Reply`.
 - A confirm-only flow (skip straight to `WithConfirm`) is the natural shape for "quick" variants of a wizard.
 - Lifetime is automatic: menu rows hold the only owning references, so the flow lives exactly as long as one of its menus is on screen. No manager, no manual cleanup.
@@ -112,7 +118,7 @@ MenuBuilder("Custom")
     .WithFooter([] { return "<font color='gray'>WASD to navigate</font>"; })
 ```
 
-## Lifecycle
+## Lifetime and input
 
 @ref VoltMod::Menu::MenuManager keeps a per-player stack, reads button state every frame (via a self-registered scheduler pump), debounces input (200 ms), and clears a player's stack on disconnect. `runtime.Menus.SetFreezePlayer(true)` freezes players while a menu is open so WASD doesn't also move them. During a chat-input capture only R is honored, so the cursor doesn't drift while the player types.
 

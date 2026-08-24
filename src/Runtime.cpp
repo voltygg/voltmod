@@ -206,7 +206,7 @@ bool Runtime::Start(const LoadContext& context)
     _frameTimers.push_back(Scheduler.EveryFrame([this] { Menus.OnGameFrame(); }));
     _frameTimers.push_back(Scheduler.EveryFrame([this] { Http.DispatchCompletions(); }));
 
-    // Kit status sections; plugins add theirs in OnLoad. Providers capture `this` - the
+    // Framework status sections; plugins add theirs in OnLoad. Providers capture `this` - the
     // runtime outlives them (both live for one Load/Unload cycle).
     Status.RegisterSection("load", [this] {
         auto names = nlohmann::json::object();

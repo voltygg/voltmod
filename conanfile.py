@@ -94,7 +94,7 @@ class VoltModConan(ConanFile):
         # A checkout keeps the flat --output-folder layout the CMake presets point at;
         # cmake_layout would derive a folder from build_type alone, which does not map onto
         # preset names that encode a toolchain. Spelling out where that build puts things is
-        # also what makes `conan editable add` work: an editable consumer resolves the kit
+        # also what makes `conan editable add` work: an editable consumer resolves the framework
         # through cpp.build/cpp.source rather than through a package folder.
         if self._source_checkout():
             self.folders.build = f"build/{self._preset()}"

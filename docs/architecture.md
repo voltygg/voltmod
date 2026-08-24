@@ -17,25 +17,31 @@ VoltMod
 └── App         The composition root: Runtime, MetamodPlugin, ServiceExchange
 ```
 
-These are source directories, not link units - the kit builds as two libraries
-(`VoltMod::Runtime` and `VoltMod::Database`). The layering between them is real and
-checked: `voltmod modgraph` fails the build if a module includes a header from a layer
+These are source directories, not link units. The framework builds as two
+libraries (`VoltMod::Runtime` and `VoltMod::Database`). The layering is checked:
+`voltmod modgraph` fails the build when a module includes a header from a layer
 it is not allowed to reach.
 
 ## Ground rules
 
-- **Game thread only.** Metamod hooks all arrive on the main thread, and everything in the kit runs there. The two exceptions - the database worker and HTTP's pool - queue their completions and replay them on the game thread from a per-frame pump, so your callbacks never race game code.
-- **No process-lifetime singletons.** Every kit service is a member of one @ref VoltMod::Runtime, constructed on Load and destroyed on Unload. State cannot survive a `meta reload`.
-- **Data over glue.** Commands, effects, and menu rows are described as structs (`CommandSpec`, `EffectDescriptor`, context rows); the kit owns the resolve/check/dispatch/reply pipeline around them.
-- **Policy is injected once.** The kit carries no admin model. Your plugin sets `runtime.Policy` in OnLoad, and every permission gate, immunity check, and command reply in the kit goes through it.
+- **Game thread only.** Metamod hooks arrive on the main thread, and framework
+  code runs there. The database worker and HTTP pool are the exceptions: they
+  queue completions and replay them on the game thread from a per-frame pump, so
+  callbacks do not race game code.
+- **No process-lifetime singletons.** Every framework service is a member of one @ref VoltMod::Runtime, constructed on Load and destroyed on Unload. State cannot survive a `meta reload`.
+- **Data over glue.** Commands, effects, and menu rows are described as structs
+  (`CommandSpec`, `EffectDescriptor`, and context rows). The framework owns the
+  resolve, check, dispatch, and reply pipeline around them.
+- **Policy is injected once.** The framework carries no admin model. Your plugin sets `runtime.Policy` in OnLoad, and every permission gate, immunity check, and command reply in the framework goes through it.
 - **Dependencies arrive through constructors.** Nothing reaches for a global to find a collaborator. The runtime is handed to `OnLoad`; you pass on what each of your own objects needs.
 
 ## Two objects, same lifetime
 
-**@ref VoltMod::Runtime** is the kit's services, flat. `MetamodPlugin` creates it on Load
-and destroys it on Unload; members are declared in dependency order and torn down in
-reverse. Every service is named directly - `runtime.Messages`, not
-`runtime.Sdk.Messages` - because which source module a service lives in is the kit's
+**@ref VoltMod::Runtime** is the framework's flat service container.
+`MetamodPlugin` creates it on Load and destroys it on Unload; members are declared
+in dependency order and torn down in reverse. Every service is named directly -
+`runtime.Messages`, not
+`runtime.Sdk.Messages` - because which source module a service lives in is the framework's
 business, and mirroring it here would mean every service that moved broke its callers.
 
 ```cpp
@@ -76,7 +82,7 @@ still alive.
 
 ## PluginPolicy
 
-@ref VoltMod::Core::PluginPolicy is the one bridge between the kit's generic machinery and your domain rules. Set it once in OnLoad:
+@ref VoltMod::Core::PluginPolicy is the one bridge between the framework's generic machinery and your domain rules. Set it once in OnLoad:
 
 ```cpp
 runtime.Policy = {
@@ -103,7 +109,7 @@ void RegisterBanCommands(VoltMod::CommandManager& commands, App& app)
 }
 ```
 
-The kit used to offer a `Registry<T>` that let a descriptor register itself at its
+The framework used to offer a `Registry<T>` that let a descriptor register itself at its
 definition site. It was dropped: those items are constructed during static
 initialization, before Load, so their handlers could only reach dependencies through a
 process-wide accessor - which is the reason such an accessor existed at all. Calling a
@@ -121,7 +127,7 @@ _spawn = runtime.Events.Listen<Events::PlayerSpawn>([this](const auto& e) { OnSp
 `Subscription` is move-only and unregisters on destruction, so a listener cannot outlive
 the state its callback captures. `VOLTMOD_SCOPED_HOOK` yields one for SourceHook installs
 too. On unload the base runs your `OnUnload`, removes its own standard hooks, then
-destroys the `Runtime` - whose destructor is the kit's shutdown.
+destroys the `Runtime` - whose destructor is the framework's shutdown.
 
 ## The frame pump
 
@@ -133,7 +139,7 @@ The plugin's GameFrame hook calls `Runtime::OnGameFrame()`, which ticks exactly 
 enough: an upward edge (Core reaching into Sdk) stays acyclic and is exactly what breaks
 the layering.
 
-- **Core** depends on nothing else in the kit
+- **Core** depends on nothing else in the framework
 - **Sdk** and **Http** sit on Core
 - **Players** on Core + Sdk; **Commands** and **Menu** on Core + Sdk + Players
 - **Database** is Core + libpqxx, compiled only under `VOLTMOD_ENABLE_POSTGRES`

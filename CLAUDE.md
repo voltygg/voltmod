@@ -1,6 +1,6 @@
-# VoltMod - C++23 CS2 Plugin Development Library
+# VoltMod - C++23 CS2 plugin development framework
 
-Reusable C++23 library for building Counter-Strike 2 server plugins with
+Reusable C++23 framework for building Counter-Strike 2 server plugins with
 Metamod:Source 2.0.
 
 ## Tech Stack
@@ -20,7 +20,7 @@ gamedata/              Engine signatures and offsets
 cmake/                 VoltModCommon.cmake (paths, platform, toolchain fallbacks)
                        + VoltModPlugin.cmake (voltmod_add_plugin, manifest/vdf, build stamping)
                        + VoltModTests.cmake (voltmod_add_tests) + DoctestMain.cpp + templates
-                       + VoltModLibrary.cmake (kit-internal: one static lib per target)
+                       + VoltModLibrary.cmake (framework-internal: one static lib per target)
 scripts/voltmod/        Build + scaffolding tooling, shipped as the `voltmod` Python
                        distribution behind one `voltmod` command (build, bootstrap,
                        format, modgraph, new-plugin, init); every subcommand
@@ -37,22 +37,22 @@ conan/                 profiles/ + remotes.json, installed together with
                        `conan config install <repo> -sf conan`
 ```
 
-There are no submodules. hl2sdk-cs2 and metamod-source are Conan packages built
+There are no submodules. `hl2sdk-cs2` and `metamod-source` are Conan packages built
 from the recipes in `recipes/`; hl2sdk's build module attaches the SDK sources a
 consumer compiles (`hl2sdk_attach_*`). Preset names are public API for consumers -
 rename with care.
 
-## Releasing
+## Release workflow
 
 `voltmod package <build|publish|tag|prune|watch>` is the whole release surface, and
 CI is three workflows that call it: `ci.yml` (checks, then build the SDKs and the
-kit against them), `publish.yml` (SDK packages on a `recipes/**` push to main,
+framework against them), `publish.yml` (SDK packages on a `recipes/**` push to main,
 voltmod on a `v*` tag), `watch.yml` (daily upstream check, weekly prune). Each
-value has one home: `conanfile.py` for the kit's version, each recipe's
+value has one home: `conanfile.py` for the framework's version, each recipe's
 `conandata.yml` for its SDK pin, `conan/remotes.json` for the remote,
 `conan/profiles/` for the ABI, `pyproject.toml` for tool versions.
 
-## Build Commands
+## Build commands
 
 ```bash
 uv run poe build
@@ -66,7 +66,7 @@ voltmod init                    # stamp a whole consumer project (run from its r
 repos install this distribution and get the same tasks; there are no wrapper
 scripts anywhere.
 
-Consuming projects find the package and declare plugins with the kit-provided
+Consuming projects find the package and declare plugins with the framework-provided
 `voltmod_add_plugin`, which reaches them as a CMakeDeps build module:
 
 ```cmake
@@ -78,7 +78,7 @@ find_package(voltmod CONFIG REQUIRED)
 voltmod_add_plugin(<name> VERSION <version> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...])
 ```
 
-## Code Conventions
+## Code conventions
 
 - C++23.
 - `.hpp` headers, not `.h`.
@@ -92,14 +92,14 @@ voltmod_add_plugin(<name> VERSION <version> [SOURCES ...] [INCLUDE_DIRS ...] [LI
 - Listener registrations return a `[[nodiscard]] Subscription` that unregisters
   on destruction; hold it next to whatever its callback captures.
 - Consumer policy is injected once through `Runtime::Policy` (PluginPolicy);
-  kit code never hardcodes permission/immunity/reply behavior.
+  framework code never hardcodes permission/immunity/reply behavior.
 - Game thread only. The only threads are the database worker and HTTP's pool;
   both replay completions on the game thread via `Scheduler::EveryFrame` pumps.
 - Public vocabulary is hoisted to `VoltMod::Type` in `VoltMod/Api.hpp`; prefer the
   short names over `VoltMod::Module::Type`. In `.hpp` never use a namespace-scope
   using-directive; `using namespace VoltMod::X;` is `.cpp`-only (TU-local).
 
-## Module Layering
+## Module layering
 
 `uv run poe modgraph` checks each module's includes against an explicit
 allowlist in `scripts/voltmod/modgraph.py`. A cycle check is not enough: an
@@ -120,13 +120,13 @@ The build is two libraries, not one per module: `VoltMod::Runtime` and
 `VoltMod::Database`. `voltmod_add_plugin(<name> FEATURES DATABASE)` adds the second,
 so a plugin with no database carries no libpqxx.
 
-**Kit code reaches services through the references it was given.** The one
+**Framework code reaches services through the references it was given.** The one
 exemption is `VoltMod::Detail::Rt()`, the ambient pointer to the live Runtime,
 for the places that have no other channel: class templates instantiated in
 consumer TUs (`Flow<TState>`, `PerSlot<T>`), ConVar and SourceHook trampolines,
-and Metamod entry points. It is kit-internal; plugins never call it.
+and Metamod entry points. It is framework-internal; plugins never call it.
 
-## Design Notes
+## Design notes
 
 `VoltMod::App::MetamodPlugin` is the plugin entry point: it owns the ISmmPlugin
 boilerplate, the Load/Unload flow, the standard SourceHook hooks and the

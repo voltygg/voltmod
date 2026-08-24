@@ -1,8 +1,8 @@
 include_guard(GLOBAL)
 
-# Shared by everything else in this directory: where the kit lives, what platform this is,
+# Shared by everything else in this directory: where the framework lives, what platform this is,
 # and the toolchain fallbacks. Kept separate from VoltModPlugin so VoltModTests and the
-# kit-internal VoltModLibrary can have the paths without pulling in the plugin API.
+# framework-internal VoltModLibrary can have the paths without pulling in the plugin API.
 
 get_filename_component(VOLTMOD_ROOT_DIR_DEFAULT "${CMAKE_CURRENT_LIST_DIR}/.." REALPATH)
 set(VOLTMOD_ROOT_DIR "${VOLTMOD_ROOT_DIR_DEFAULT}" CACHE PATH "VoltMod repository root")
@@ -32,8 +32,8 @@ else()
     message(FATAL_ERROR "Only Windows and Linux builds are supported.")
 endif()
 
-# Language level, symbol visibility and debug-info format shared by every target the kit
-# owns - kit libraries and plugins alike. Linkage-specific properties (PIC, OUTPUT_NAME) and
+# Language level, symbol visibility and debug-info format shared by every target the framework
+# owns - framework libraries and plugins alike. Linkage-specific properties (PIC, OUTPUT_NAME) and
 # the cxx_std_23 usage requirement stay with the caller, which knows its own target kind.
 # /Z7 rather than /Zi because ccache cannot cache /Zi.
 function(voltmod_set_cxx_defaults target)
@@ -51,7 +51,7 @@ endfunction()
 
 # Warning level for first-party code. The SDK packages carry includes, defines and
 # ABI flags as usage requirements, but warnings are the consumer's policy, so every
-# target the kit owns opts in explicitly.
+# target the framework owns opts in explicitly.
 function(voltmod_set_warnings target)
     target_compile_options("${target}" PRIVATE
         "$<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang>:-Wall>"

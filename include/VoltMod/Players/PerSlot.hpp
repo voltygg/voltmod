@@ -16,7 +16,7 @@ namespace VoltMod::Players
  * A plain `std::array<T, MaxPlayers>` plus an optional binding to the
  * PlayerManager slot-change feed: after BindReset() the entry for a slot is
  * value-reset whenever a player joins or leaves it. Call BindReset() once the
- * kit services are live (e.g. in a manager's Initialize); default construction
+ * framework services are live (e.g. in a manager's Initialize); default construction
  * is inert so PerSlot can live in plugin manager containers.
  */
 template <class T>

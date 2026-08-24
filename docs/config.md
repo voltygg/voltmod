@@ -2,7 +2,9 @@
 
 [TOC]
 
-Settings are a struct that mirrors your JSON file, deserialized in one call. Declare each section as a struct with defaults, map it with nlohmann's non-intrusive macro, and hold the root in a @ref VoltMod::Core::JsonConfig.
+Settings are represented by a struct that mirrors the JSON file. Declare each
+section with defaults, map it with nlohmann's non-intrusive macro, and hold the
+root in a @ref VoltMod::Core::JsonConfig.
 
 ## Declaring settings
 
@@ -12,7 +14,7 @@ Settings are a struct that mirrors your JSON file, deserialized in one call. Dec
 
 struct Settings
 {
-    VoltMod::StandardPluginSettings plugin;   // the kit-standard "plugin" section (locale)
+    VoltMod::StandardPluginSettings plugin;   // the framework-standard "plugin" section (locale)
     // one struct + member per additional section
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Settings, plugin)
@@ -22,11 +24,11 @@ using ConfigManager = VoltMod::JsonConfig<Settings>;
 
 Member names must match the JSON keys. The `_WITH_DEFAULT` macro means a missing key keeps the member's default - only a missing file, a parse error, or a wrong-typed value fails the load. JSONC comments are tolerated, and unknown keys are ignored (which is also why retired keys need no config migration).
 
-@ref VoltMod::Core::StandardPluginSettings is the kit-owned "plugin" section; embedding it is what lets `LoadStandardConfig` apply `plugin.locale` to `runtime.Translations` automatically (see @ref plugin_guide).
+@ref VoltMod::Core::StandardPluginSettings is the framework-owned "plugin" section; embedding it is what lets `LoadStandardConfig` apply `plugin.locale` to `runtime.Translations` automatically (see @ref plugin_guide).
 
 ### Editor validation with a JSON Schema
 
-Ship a `settings.schema.json` next to the jsonc and reference it with a relative `$schema` line as the file's first key - editors then autocomplete keys and squiggle typos (`additionalProperties: false` makes the schema stricter than the runtime, which is the point; the parser itself ignores unknown keys). The plugin scaffold emits a starter schema; keep it in sync when the Settings struct grows. The kit's own `gamedata/signatures.jsonc` follows the same convention.
+Ship a `settings.schema.json` next to the jsonc and reference it with a relative `$schema` line as the file's first key - editors then autocomplete keys and squiggle typos (`additionalProperties: false` makes the schema stricter than the runtime, which is the point; the parser itself ignores unknown keys). The plugin scaffold emits a starter schema; keep it in sync when the Settings struct grows. The framework's own `gamedata/signatures.jsonc` follows the same convention.
 
 ```cpp
 bool MyPlugin::OnLoad(bool late)
@@ -82,9 +84,9 @@ void ConfigManager::Resolve()
 }
 ```
 
-## Kit types in your settings
+## Framework types in your settings
 
-`PostgresConfig` uses lowercase field names precisely so a JSON section maps onto it. The kit header stays nlohmann-free - define the mapper in your plugin, inside the `VoltMod::Database` namespace so ADL finds it:
+`PostgresConfig` uses lowercase field names precisely so a JSON section maps onto it. The framework header stays nlohmann-free - define the mapper in your plugin, inside the `VoltMod::Database` namespace so ADL finds it:
 
 ```cpp
 namespace VoltMod::Database
@@ -118,4 +120,7 @@ runtime.Translations.SetPlayerLanguage(slot, "ru");           // per-player over
 auto line = runtime.Translations.Get("cmd.banSuccess", slot, {{"name", targetName}});
 ```
 
-Command results (`CommandContext::Ok`/`Fail`), `Flow` validation errors, and `MessageSystem::ReplyKey` all resolve through this service in the addressed player's language. The kit reserves a handful of keys for its own error replies - see @ref commands_guide.
+Command results (`CommandContext::Ok`/`Fail`), `Flow` validation errors, and
+`MessageSystem::ReplyKey` all resolve through this service in the addressed
+player's language. The framework reserves a small set of keys for its own error
+replies; see @ref commands_guide.

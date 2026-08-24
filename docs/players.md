@@ -2,9 +2,12 @@
 
 [TOC]
 
-`VoltMod::Players` tracks connected players and turns "who does this act on?" into data: a selector grammar for command targets, and policy-checked `Action`/effect descriptors for the acting itself.
+`VoltMod::Players` tracks connected players and turns “who does this act on?”
+into data: a selector grammar for command targets and policy-checked
+`Action`/effect descriptors for the operation itself.
 
-`Player` is deliberately minimal - identity and connection metadata only. Plugin state (admin flags, punishments, stats) belongs in your own managers, keyed by SteamID.
+`Player` contains identity and connection metadata only. Keep plugin state such as
+admin flags, punishments, and statistics in your own managers, keyed by SteamID.
 
 ## Tracking
 
@@ -37,9 +40,9 @@ _state.BindReset();                // in Initialize(), once services are live
 _state[slot].Combo++;              // plain indexed access afterwards
 ```
 
-For time-decaying per-player scores (suspicion, rate limits), pair it with @ref VoltMod::Core::DecayingScore - a clock-free accumulator that drains linearly between caller-supplied timestamps - or @ref VoltMod::Core::SlidingWindowScore when the threshold is "N events in the last M seconds" and evidence should expire on a hard boundary instead of fading. Both take caller-supplied seconds; @ref VoltMod::Core::TimeUtils::MonotonicSeconds is the matching clock. Angle bookkeeping helpers (`NormalizeAngleDelta`, `AnglesToPoint`, `AngularDistance`) live in `VoltMod::AngleMath` (`<VoltMod/Core/AngleMath.hpp>`); note its `AngularDistance` is a Euclidean pitch/yaw metric, not a great-circle angle, so it under-reports near the poles - consumers that need true angular separation should build it from `AnglesToPoint` and a dot product. All are unit-tested in the kit's SDK-free test suite.
+For time-decaying per-player scores (suspicion, rate limits), pair it with @ref VoltMod::Core::DecayingScore - a clock-free accumulator that drains linearly between caller-supplied timestamps - or @ref VoltMod::Core::SlidingWindowScore when the threshold is "N events in the last M seconds" and evidence should expire on a hard boundary instead of fading. Both take caller-supplied seconds; @ref VoltMod::Core::TimeUtils::MonotonicSeconds is the matching clock. Angle bookkeeping helpers (`NormalizeAngleDelta`, `AnglesToPoint`, `AngularDistance`) live in `VoltMod::AngleMath` (`<VoltMod/Core/AngleMath.hpp>`); note its `AngularDistance` is a Euclidean pitch/yaw metric, not a great-circle angle, so it under-reports near the poles - consumers that need true angular separation should build it from `AnglesToPoint` and a dot product. All are unit-tested in the framework's SDK-free test suite.
 
-## Target resolution
+## Resolve targets
 
 @ref VoltMod::Players::ResolveTargets resolves one token to players, applying the immunity policy (`runtime.Policy.CanTarget` unless you pass your own):
 
@@ -71,9 +74,9 @@ if (!result)
 for (Player* target : *result) { /* ... */ }
 ```
 
-`TargetRules` says what the call site accepts: `AllowMultiple` permits `@all`-class selectors, `AllowDead`/`AllowBots` filter. A single-target call gets exactly one player or a failure - never a silent first-of-many. Error *text* stays with you (translation keys); the kit returns the typed reason. Command `Target()` arguments run this same resolution and reply from the reserved keys automatically (@ref commands_guide).
+`TargetRules` says what the call site accepts: `AllowMultiple` permits `@all`-class selectors, `AllowDead`/`AllowBots` filter. A single-target call gets exactly one player or a failure - never a silent first-of-many. Error *text* stays with you (translation keys); the framework returns the typed reason. Command `Target()` arguments run this same resolution and reply from the reserved keys automatically (@ref commands_guide).
 
-The grammar core is engine-free (`Targeting.hpp`: `ParseTargetToken` + `FilterRoster` over plain `PlayerView` records), which is what makes it unit-testable - the kit's own tests cover it without a server.
+The grammar core is engine-free (`Targeting.hpp`: `ParseTargetToken` + `FilterRoster` over plain `PlayerView` records), which is what makes it unit-testable - the framework's own tests cover it without a server.
 
 ## Actions
 
@@ -94,7 +97,7 @@ ActionDispatcher{}.Run(adminSlot, targetSlot, Slay);
 
 Actions plug directly into menu context rows (`AddActionRow`, `AddStateToggleRow`, `AddPresetChoiceRow` - see @ref menus_guide), so the same data drives commands, menus, and bespoke call sites.
 
-## Effects
+## Effect descriptors
 
 Effects are toggleable/timed per-player states - the fun-command family (ghost, disco, wallhack, custom models). An @ref VoltMod::Core::EffectDescriptor declares the whole thing: permission, id, label key, broadcast keys, lifetime policy, and a `Setup` body that returns the `OnTick`/`OnStop` closures @ref VoltMod::Core::EffectManager drives:
 

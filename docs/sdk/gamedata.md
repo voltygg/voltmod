@@ -1,10 +1,12 @@
-# Gamedata & Schema {#sdk_gamedata_guide}
+# Gamedata and schema {#sdk_gamedata_guide}
 
 [TOC]
 
-## GameData (Signature Management)
+## GameData (signature management)
 
-VoltMod ships built-in gamedata (`gamedata/signatures.jsonc`) that is automatically loaded during `VoltMod::Initialize()`. The gamedata contains engine signatures and offsets used internally by Entity, PlayerController, and UserMessage subsystems.
+VoltMod ships built-in gamedata (`gamedata/signatures.jsonc`), loaded during
+`VoltMod::Initialize()`. It contains engine signatures and offsets used by the
+Entity, PlayerController, and UserMessage subsystems.
 
 Consumer plugins can also use GameData for their own signatures:
 
@@ -28,7 +30,7 @@ One s2sdk-style mechanism was evaluated and rejected for now; revisit if an engi
 
 - **Ref-anchored fallback** (find functions by referenced strings when a pattern breaks): high machinery cost for a gamedata file this small whose signatures are synced from upstream projects with provenance comments.
 
-### signatures.jsonc Format
+### `signatures.jsonc` format
 
 ```json
 {
@@ -56,9 +58,11 @@ int index = runtime.GameData.GetOffset("RunCommand");   // negative when the ent
 Two kinds live in there, and they fail differently:
 
 - **Vtable indexes** (`RunCommand`, `Teleport`, `ProcessRespondCvarValue`, ...). A wrong index dispatches into whatever vfunc sits at that slot, which is a crash, not a wrong answer.
-- **Byte offsets into an undeclared layout** (`UserCmdPB`, `ServerSideClientSlot`, `CheckTransmitPlayerSlot`, ...) - fields the SDK headers do not declare, so the kit reaches them by distance. A *missing* one degrades cleanly; a *stale* one reads unrelated memory and looks like plausible data.
+- **Byte offsets into an undeclared layout** (`UserCmdPB`, `ServerSideClientSlot`, `CheckTransmitPlayerSlot`, ...) - fields the SDK headers do not declare, so the framework reaches them by distance. A *missing* one degrades cleanly; a *stale* one reads unrelated memory and looks like plausible data.
 
-Everything here **drifts with CS2 updates**, so re-verify after every one against the upstream projects named in the per-entry comments (SwiftlyS2, CS2Fixes, CS2AC), which are the provenance for these values. The entries the anti-cheat surfaces depend on:
+Everything here **drifts with CS2 updates**. Re-verify every entry after a game
+update against the upstream projects named in its comments (SwiftlyS2, CS2Fixes,
+and CS2AC). The entries surfaced by anti-cheat are:
 
 | Offset | Used by | Drift symptom |
 |--------|---------|---------------|
@@ -92,7 +96,7 @@ Wildcard bytes are written as `?` or `??` in pattern strings (see the signatures
 resolver, and like the scanner it is not in the public include tree. It exists because a *class
 vtable* hook (SourceHook's `SH_ADD_MANUALVPHOOK`) covers every instance at once, where a per-instance
 hook has to be re-bound as objects come and go - @ref VoltMod::Sdk::ClientCvarService needs that for
-`CServerSideClient`, whose instances the kit never owns.
+`CServerSideClient`, whose instances the framework never owns.
 
 It shares `FindModuleImage` with the scanner and resolves per platform:
 

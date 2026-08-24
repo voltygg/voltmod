@@ -1,17 +1,19 @@
-# Getting Started {#getting_started}
+# Getting started {#getting_started}
 
 [TOC]
 
 ## Prerequisites
 
 - C++23 compiler (MSVC 2022+, or the Steam Runtime toolchain for Linux)
-- CMake 4.3.4+, Conan 2.29.1+, and Ninja - all three are pinned by the `voltmod` Python distribution, so `uv sync` installs them into the project environment (or install globally via pip/pipx)
+- CMake 4.3.4+, Conan 2.29.1+, and Ninja. The `voltmod` Python distribution
+  pins all three, so `uv sync` installs them into the project environment; you
+  can also install them globally with pip or pipx.
 
 The HL2SDK and Metamod:Source arrive as Conan packages from a public remote. Nothing is vendored and there are no submodules.
 
 ## Start a new project
 
-From an empty directory, let `voltmod init` stamp the whole thing:
+From an empty directory, let `voltmod init` create the project skeleton:
 
 ```sh
 mkdir my-cs2-plugins && cd my-cs2-plugins
@@ -23,15 +25,19 @@ uv run poe bootstrap
 
 It generates:
 
-- `CMakeLists.txt` - a few lines: `project()`, `include(CTest)`, `find_package(voltmod CONFIG REQUIRED)`, and one `add_subdirectory(plugins/<name>)` per plugin. Everything else comes from the kit.
+- `CMakeLists.txt` - a few lines: `project()`, `include(CTest)`, `find_package(voltmod CONFIG REQUIRED)`, and one `add_subdirectory(plugins/<name>)` per plugin. Everything else comes from the framework.
 - `CMakePresets.json` - `windows-msvc-{release,debug}` and `linux-steamrt-{release,debug}`, with matching build/test/workflow presets.
 - `conanfile.py` - `requires = ("voltmod/[~1]",)`; add your own deps here. cpr, nlohmann_json and (with `with_postgres`) libpqxx arrive transitively.
 - `pyproject.toml` - depends on the `voltmod` distribution, which brings the pinned CMake/Conan/Ninja/clang-format and the poe tasks (`build`, `bootstrap`, `new-plugin`, `format`, `lint`). The project carries no build scripts of its own.
 - `plugins/my-plugin/` - a working first plugin (see below).
 
-`poe bootstrap` installs the kit's Conan profiles and the public remote, then builds; after that `uv run poe build` is the loop. Output lands in `build/<preset>/plugins/<name>/<platform-arch>/`. Pin the dependency graph with `conan lock create .` (same profiles) and commit `conan.lock` - builds pick it up automatically.
+`poe bootstrap` installs the framework's Conan profiles and public remote, then
+builds once. After that, use `uv run poe build` for the normal build loop. Output
+goes to `build/<preset>/plugins/<name>/<platform-arch>/`. Pin the dependency
+graph with `conan lock create .` using the same profiles and commit
+`conan.lock`; builds pick it up automatically.
 
-## Scaffold more plugins
+## Add more plugins
 
 ```sh
 uv run poe new-plugin fun-votes        # from your repo's root
@@ -39,7 +45,7 @@ uv run poe new-plugin fun-votes        # from your repo's root
 
 You get `plugins/fun-votes/` with a `MetamodPlugin` skeleton, an example command registered from its `App`, a `settings.jsonc` mapped by @ref VoltMod::Core::JsonConfig, and translations - it builds, loads, and answers `!ping` before you write a line of code. The root `CMakeLists.txt` gains its `add_subdirectory` line automatically.
 
-## Plugins are one function call
+## Declare a plugin in one call
 
 A plugin's `CMakeLists.txt` is a single declaration - `voltmod_add_plugin` reaches you as a CMakeDeps build module, so it is available right after `find_package(voltmod CONFIG REQUIRED)`:
 
@@ -48,7 +54,7 @@ voltmod_add_plugin(fun-votes VERSION 1.0.0)
 ```
 
 - `voltmod_add_plugin(<name> VERSION <version> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...] [PCH_HEADERS ...])` creates the Metamod MODULE: `SOURCES` defaults to a recursive glob of `src/*.cpp`; the required HL2SDK translation units (`memoverride.cpp`, `convar.cpp`) and the `VoltMod::VoltMod` link are added for you, along with C++23, the static MSVC runtime, ccache when present, and a precompiled `<VoltMod/Api.hpp>` (extend with `PCH_HEADERS`, disable with `-DVOLTMOD_DISABLE_PCH=ON`).
-- `voltmod_install_plugin(<name>)` (called automatically) defines the deploy bundle as an install component: the module under `addons/<name>/bin/{win64|linuxsteamrt64}`, a generated Metamod `.vdf` under `addons/metamod`, the plugin's `configs/`, and the kit's shared gamedata. `cmake --install build/<preset> --component <name> --prefix <dir>` stages a server-ready `addons/` tree.
+- `voltmod_install_plugin(<name>)` (called automatically) defines the deploy bundle as an install component: the module under `addons/<name>/bin/{win64|linuxsteamrt64}`, a generated Metamod `.vdf` under `addons/metamod`, the plugin's `configs/`, and the framework's shared gamedata. `cmake --install build/<preset> --component <name> --prefix <dir>` stages a server-ready `addons/` tree.
 
 ### Version and build provenance
 
@@ -67,7 +73,7 @@ The stamp reruns every build but rewrites the header only when committed state c
 
 ### Build-system conventions
 
-The kit's CMake leans on standard mechanisms instead of hand-rolled flags wherever one exists:
+The framework's CMake leans on standard mechanisms instead of hand-rolled flags wherever one exists:
 
 - SDK/Metamod headers are `SYSTEM` include dirs, so consumer warning levels don't apply to third-party headers; vendored SDK *sources* compiled into targets (`memoverride.cpp`, `convar.cpp`, the entity2/keyvalues3 TUs, protoc output) are silenced per-source by the `hl2sdk_attach_*` functions that add them.
 - Symbol visibility comes from the `CXX_VISIBILITY_PRESET hidden` / `VISIBILITY_INLINES_HIDDEN` target properties, not raw `-fvisibility` flags.
@@ -101,7 +107,7 @@ That installs the canonical profiles (`linux-steamrt.txt`, `windows-msvc.txt`) a
 
 ## PostgreSQL (optional)
 
-Flip the kit's option; libpqxx arrives transitively and `VoltMod::Database` lights up:
+Flip the framework's option; libpqxx arrives transitively and `VoltMod::Database` lights up:
 
 ```python
 default_options = {"voltmod/*:with_postgres": True}
@@ -161,7 +167,11 @@ VOLTMOD_PLUGIN(MyPlugin);
 
 ## Doing it without the base
 
-If you can't derive from `MetamodPlugin`, own a `VoltMod::Runtime` yourself: construct it and call `Start(LoadContext{...})` in `Load()`, `OnGameFrame()` from your frame hook, `OnPlayerDisconnect(slot)` from disconnect handling, and destroy it in `Unload()`. Its destructor is the kit's shutdown.
+If you cannot derive from `MetamodPlugin`, own a `VoltMod::Runtime` yourself:
+construct it and call `Start(LoadContext{...})` in `Load()`, call
+`OnGameFrame()` from your frame hook, call `OnPlayerDisconnect(slot)` from
+disconnect handling, and destroy it in `Unload()`. Its destructor shuts down the
+framework.
 
 ## Next steps
 

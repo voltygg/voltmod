@@ -35,7 +35,7 @@ endif()
 
 _voltmod_git(commit_date "unknown" -C "${REPO_DIR}" log -1 --format=%cI)
 
-# A modified submodule shows up here as ` M vendor/...`, so this covers the kit too.
+# A modified submodule shows up here as ` M vendor/...`, so this covers the framework too.
 _voltmod_git(status_output "" -C "${REPO_DIR}" status --porcelain --untracked-files=no)
 
 set(VOLTMOD_BI_VERSION "${version_base}")

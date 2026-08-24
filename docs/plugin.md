@@ -2,7 +2,11 @@
 
 [TOC]
 
-@ref VoltMod::App::MetamodPlugin owns everything a Metamod plugin re-types by hand: the ISmmPlugin metadata getters, the Load/Unload skeleton, the standard SourceHook hooks, and the `PlayerManager` lifecycle. It creates the @ref VoltMod::Runtime for one load cycle and hands it to your `OnLoad`. You return your metadata, build your own object graph, and override only the callbacks you care about.
+@ref VoltMod::App::MetamodPlugin owns the Metamod boilerplate that plugins
+otherwise repeat: ISmmPlugin metadata getters, the Load/Unload skeleton, the
+standard SourceHook hooks, and the `PlayerManager` lifecycle. It creates one
+@ref VoltMod::Runtime for each load cycle and passes it to `OnLoad`. You provide
+metadata, build your object graph, and override only the callbacks you need.
 
 ## The skeleton
 
@@ -35,7 +39,9 @@ private:
 VOLTMOD_PLUGIN(MyPlugin);
 ```
 
-`VOLTMOD_PLUGIN` expands the per-plugin SourceHook globals (`PLUGIN_EXPOSE`) the base links against; the matching extern declarations ship inside `MetamodPlugin.hpp`, so your header needs nothing.
+`VOLTMOD_PLUGIN` expands the per-plugin SourceHook globals (`PLUGIN_EXPOSE`)
+used by the base. The matching extern declarations are in
+`MetamodPlugin.hpp`, so the plugin header needs no additional declarations.
 
 Your `App` is a plain struct holding whatever the plugin owns for one load cycle. It takes the runtime by reference and passes on what each member needs; declaration order is construction order, so a member initializer may only reference members declared **above** it.
 
@@ -54,9 +60,9 @@ struct App
 
 Nothing survives `OnUnload`, so a `meta reload` starts from clean state - and because the `App` is destroyed before the `Runtime`, every subscription it holds is removed while the service it points at is still alive.
 
-## What Load does, in order
+## Load order
 
-1. `PLUGIN_SAVEVARS()`, then the `Runtime` is constructed and `Runtime::Start` runs - interface resolution, gamedata, every kit subsystem, each as a `LoadReport` stage.
+1. `PLUGIN_SAVEVARS()`, then the `Runtime` is constructed and `Runtime::Start` runs - interface resolution, gamedata, every framework subsystem, each as a `LoadReport` stage.
 2. The standard SourceHook hooks, then `OnRegisterHooks(runtime)` for yours.
 3. Your `OnLoad(runtime, late)`. Returning `false` rejects the load; `OnUnload()` runs and the `Runtime` is destroyed, so a failed init never leaks. A bare `return false` with no Failed stage recorded gets a synthetic "OnLoad" failure stage, so `meta list` always names a reason.
 
@@ -73,7 +79,11 @@ bool App::Start()
 }
 ```
 
-`LoadStandardConfig` uses your config type's `LoadSettings` when it has one (the load-then-validate convention), otherwise `JsonConfig::Load`; it applies `plugin.locale` when your settings struct embeds @ref VoltMod::Core::StandardPluginSettings, and `{.Translations = false}` skips the translations stage for plugins that ship none.
+`LoadStandardConfig` uses your config type's `LoadSettings` when it has one
+(the load-then-validate convention), otherwise `JsonConfig::Load`. It applies
+`plugin.locale` when the settings struct embeds
+@ref VoltMod::Core::StandardPluginSettings. Use `{.Translations = false}` for
+a plugin that ships no translations.
 
 ## Registering commands
 
@@ -100,7 +110,11 @@ void App::RegisterCommands()
 
 ## Load stages: LoadReport
 
-`runtime.LoadReport` records named, timed load stages. `Runtime::Start` already runs every kit subsystem through it; run your own steps through `Run()` too and the base class does the rest - it logs an aligned per-stage summary after load and, when `OnLoad` fails, copies `FirstFailure()` into Metamod's error buffer so `meta list` shows the actual reason instead of a generic message.
+`runtime.LoadReport` records named, timed stages. `Runtime::Start` already runs
+the framework subsystems through it. Run plugin initialization through `Run()` as
+well; the base logs an aligned summary and copies `FirstFailure()` into
+Metamod's error buffer when `OnLoad` fails, so `meta list` shows the actual
+reason.
 
 ```cpp
 auto& report = Runtime.LoadReport;
@@ -130,7 +144,10 @@ Statuses: `Ok`, `Degraded` (loaded with reduced functionality), `Skipped` (depen
 
 ## Status sections: StatusService
 
-`runtime.Status` aggregates named sections into one diagnostics report. The kit registers `build` (PluginInfo), `load` (LoadReport rollup), `gamedata` (resolution results), and `uptime`; plugins register their own in `OnLoad` and call `InstallCommand` to expose the report:
+`runtime.Status` aggregates named sections into one diagnostics report. The
+framework registers `build` (PluginInfo), `load` (LoadReport rollup), `gamedata`
+(resolution results), and `uptime`. Plugins can register sections in `OnLoad`
+and call `InstallCommand` to expose the report:
 
 ```cpp
 Runtime.Status.RegisterSection("db", [this] {
@@ -207,7 +224,7 @@ The stringly `Listen("event_name", ...)` overload stays as the escape hatch for 
 
 `SH_DECL_HOOKn` must still appear once at namespace scope in your .cpp (it expands to hook-manager classes; no helper can wrap it). The add/remove pairing *is* automated: `VOLTMOD_SCOPED_HOOK` installs the hook and yields a `Subscription` that removes it.
 
-For per-tick player movement you don't need a custom hook at all - the kit ships @ref VoltMod::Sdk::MovementHook (see @ref sdk_hooks_guide).
+For per-tick player movement you don't need a custom hook at all - the framework ships @ref VoltMod::Sdk::MovementHook (see @ref sdk_hooks_guide).
 
 ```cpp
 #include <VoltMod/Core/HookMacros.hpp>

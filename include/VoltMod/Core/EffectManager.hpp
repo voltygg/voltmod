@@ -41,7 +41,7 @@ struct ActiveEffect
  * integer id (cast your effect enum). Owns each effect's @ref ScheduledEffect and its
  * re-apply/replace semantics.
  *
- * Deliberately plugin-owned rather than a kit service: onStop closures touch pawns and
+ * Deliberately plugin-owned rather than a framework service: onStop closures touch pawns and
  * timers, so the owning plugin must control when CancelAll runs relative to engine teardown.
  */
 class EffectManager

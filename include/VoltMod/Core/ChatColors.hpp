@@ -43,7 +43,7 @@ struct NamedColor
  * Canonical, deduplicated list of every named color recognized by @ref ParseNamed,
  * one entry per distinct escape byte. Aliases (e.g. `grey`/`gray`, `magenta`/`purple`)
  * collapse to a single canonical name. Useful for building color-picker UIs that
- * stay in sync with the kit as new colors are added.
+ * stay in sync with the framework as new colors are added.
  */
 inline constexpr std::array<NamedColor, 15> Palette = {{
     {"default", Default},

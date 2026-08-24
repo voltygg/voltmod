@@ -1,4 +1,4 @@
-# Client Telemetry {#sdk_client_telemetry_guide}
+# Client telemetry {#sdk_client_telemetry_guide}
 
 [TOC]
 
@@ -39,7 +39,7 @@ if (const char* sens = net.GetUserInfoCvar(slot, "sensitivity"))
 
 ## ClientCvarService
 
-`runtime.ClientCvars` asks a connected client what one of *its* convars is set to. The server posts `CSVCMsg_GetCvarValue` carrying a cookie to that one client; the client answers with `CCLCMsg_RespondCvarValue` some round-trips later. The kit intercepts the answer with a manual **DVP** hook on `CServerSideClient::ProcessRespondCvarValue` - bound to the class vtable, so it covers every connected client without per-instance bindings - reads the responder's slot from a gamedata byte offset, and routes the value to the callback that asked for it. The engine's own handling of the response is untouched (`MRES_IGNORED`).
+`runtime.ClientCvars` asks a connected client what one of *its* convars is set to. The server posts `CSVCMsg_GetCvarValue` carrying a cookie to that one client; the client answers with `CCLCMsg_RespondCvarValue` some round-trips later. The framework intercepts the answer with a manual **DVP** hook on `CServerSideClient::ProcessRespondCvarValue` - bound to the class vtable, so it covers every connected client without per-instance bindings - reads the responder's slot from a gamedata byte offset, and routes the value to the callback that asked for it. The engine's own handling of the response is untouched (`MRES_IGNORED`).
 
 ```cpp
 runtime.ClientCvars.Query(slot, "cl_interp_ratio",
@@ -78,4 +78,4 @@ The service is a **degradable load stage** (`ClientCvars`). It needs two gamedat
 | `ProcessRespondCvarValue` | vtable index of the response handler | Sanity-bounded at init, so the stage degrades instead of hooking an unrelated vfunc |
 | `ServerSideClientSlot` | byte offset of the player slot inside `CServerSideClient` | Sanity-bounded too; unchecked it would attribute answers to the wrong player |
 
-Both drift with engine updates - see @ref sdk_gamedata_guide. When any part of the setup fails the kit logs one warning, the load continues, @ref VoltMod::Sdk::ClientCvarService::Available "Available()" stays false, and every `Query()` returns false. Check `Available()` once at load rather than treating each `false` from `Query()` as a per-call failure.
+Both drift with engine updates - see @ref sdk_gamedata_guide. When any part of the setup fails the framework logs one warning, the load continues, @ref VoltMod::Sdk::ClientCvarService::Available "Available()" stays false, and every `Query()` returns false. Check `Available()` once at load rather than treating each `false` from `Query()` as a per-call failure.

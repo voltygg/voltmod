@@ -109,13 +109,13 @@ private:
     // traversal above reads their next pointers through this same layout.
     GameSystemFactory* _next;
     const char* _name;
-    // Kit-only fields (the engine never reads past the name).
+    // Framework-only fields (the engine never reads past the name).
     IGameSystem* _system;
     GameSystemFactory** _listHead;
 };
 
 /**
- * Kit-owned game system: forwards BuildGameSessionManifest to the owning
+ * Framework-owned game system: forwards BuildGameSessionManifest to the owning
  * PrecacheService so queued resource paths reach the session manifest.
  */
 class PrecacheGameSystem final : public CBaseGameSystem

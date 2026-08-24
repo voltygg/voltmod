@@ -6,7 +6,7 @@
 namespace VoltMod::Core
 {
 
-/** @brief The kit-standard "plugin" section of settings.jsonc; embed it in the root
+/** @brief The framework-standard "plugin" section of settings.jsonc; embed it in the root
  *  settings struct. LoadStandardConfig applies the locale to runtime.Translations. */
 struct StandardPluginSettings
 {

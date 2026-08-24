@@ -12,7 +12,7 @@ class GameSystemFactory;   // internal
 
 /**
  * @brief Precaches custom resources (particles, models, sound events) by
- * registering a kit-owned game system that receives BuildGameSessionManifest.
+ * registering a framework-owned game system that receives BuildGameSessionManifest.
  *
  * Paths queued with Add() take effect at the NEXT map load - the engine's
  * resource manifest only exists inside that event. Resources that are not part

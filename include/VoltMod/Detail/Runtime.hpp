@@ -16,7 +16,7 @@ class MenuManager;
 }
 
 /**
- * The kit's one ambient pointer to the live @ref VoltMod::Runtime.
+ * The framework's one ambient pointer to the live @ref VoltMod::Runtime.
  *
  * Headers below the composition root cannot include <VoltMod/Runtime.hpp> - it holds every
  * service by value, so pulling it into a Sdk or Menu header would push the whole graph into

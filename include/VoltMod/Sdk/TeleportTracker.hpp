@@ -47,7 +47,7 @@ public:
     /** True when @p slot teleported within the last @p seconds of server time. */
     bool JustTeleported(int slot, float seconds) const;
 
-    /** Drop every binding and stamp for the new map. Called by the kit's StartupServer hook. */
+    /** Drop every binding and stamp for the new map. Called by the framework's StartupServer hook. */
     void OnServerStartup();
 
 private:

@@ -1,17 +1,17 @@
 # $project
 
-CS2 Metamod plugins built on [voltmod](https://github.com/voltygg/voltmod).
-Everything - the kit, the HL2SDK and Metamod - arrives as a Conan package. No
-submodules.
+CS2 Metamod plugins built on [VoltMod](https://github.com/voltygg/voltmod).
+The framework, HL2SDK, and Metamod arrive as Conan packages. No submodules are
+required.
 
 ## Setup
 
 ```sh
-uv sync                # provisions CMake/Conan/Ninja and the kit's build tooling
-uv run poe bootstrap   # installs the Conan profiles + remote, then builds
+uv sync                # install CMake, Conan, Ninja, and the framework tasks
+uv run poe bootstrap   # install Conan profiles and the remote, then build
 ```
 
-`bootstrap` is a one-off; after it, `uv run poe build` is the loop.
+`bootstrap` runs once. After it, use `uv run poe build` for the normal build loop.
 
 ## Build
 
@@ -34,17 +34,17 @@ conan install . -pr:a linux-steamrt.txt -s build_type=Release \
 cmake --workflow --preset linux-steamrt-release
 ```
 
-## Adding plugins
+## Add plugins
 
 ```sh
 uv run poe new-plugin fun-votes
 ```
 
-That stamps `plugins/fun-votes/` (a one-line `CMakeLists.txt` calling
+This stamps `plugins/fun-votes/` (a one-line `CMakeLists.txt` calling
 `voltmod_add_plugin`, plus `src/` and `configs/`) and registers its
 `add_subdirectory()` in the root CMakeLists.
 
-## Postgres
+## PostgreSQL
 
 Flip `voltmod/*:with_postgres` to `True` in `conanfile.py` - libpqxx arrives
-transitively and the kit's `VoltMod::Database` module lights up.
+transitively and the framework's `VoltMod::Database` module lights up.
