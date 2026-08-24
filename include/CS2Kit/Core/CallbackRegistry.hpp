@@ -17,9 +17,9 @@ namespace CS2Kit::Core
  * is that one implementation. Handles start at 1 and never repeat within a Load/Unload
  * cycle, so 0 is free to mean "no registration".
  *
- * Iteration order is unspecified (unordered_map). Use @ref Dispatch to fire callbacks - it
- * handles the case where one of them adds or removes registrations mid-loop. @ref Items is for
- * inspection only.
+ * Iteration order is unspecified (unordered_map). Use @ref Dispatch (or @ref DispatchIf) to
+ * fire callbacks - it handles the case where one of them adds or removes registrations mid-loop.
+ * @ref Items is for inspection only.
  */
 template <class T>
 class CallbackRegistry
@@ -64,17 +64,19 @@ public:
     const std::unordered_map<uint64_t, T>& Items() const { return _items; }
 
     /**
-     * Invoke @p fn(item) for every stored item, safe against a callback that adds or removes
-     * registrations while it runs - including one that drops its own Subscription.
+     * Invoke @p fn(item) for every stored item @p pred accepts, safe against a callback that adds
+     * or removes registrations while it runs - including one that drops its own Subscription.
      *
      * Handles are snapshotted first, then re-found one at a time, because invoking rehashes or
      * erases and would otherwise invalidate a live iterator. The item is copied out before the
-     * call for the same reason: running a callback can destroy the stored copy of itself.
-     * Registries here hold a handful of entries at most, so the snapshot stays on the stack
-     * unless it has to grow.
+     * call for the same reason: running a callback can destroy the stored copy of itself. @p pred
+     * is applied to the stored item, so entries it rejects never pay for that copy - which is what
+     * lets a registry keyed by something other than the handle (game events by name) filter here
+     * rather than hand-rolling its own snapshot. Registries here hold a handful of entries at
+     * most, so the snapshot stays on the stack unless it has to grow.
      */
-    template <class Fn>
-    void Dispatch(Fn&& fn)
+    template <class Pred, class Fn>
+    void DispatchIf(Pred&& pred, Fn&& fn)
     {
         if (_items.empty())
             return;
@@ -85,6 +87,8 @@ public:
         size_t count = 0;
         for (const auto& [id, item] : _items)
         {
+            if (!pred(item))
+                continue;
             if (count < InlineCapacity)
                 inlineIds[count] = id;
             else
@@ -92,18 +96,21 @@ public:
             ++count;
         }
 
-        const auto fire = [&](uint64_t id) {
-            T* stored = Find(id);
-            if (!stored)
-                return;  // an earlier callback in this batch removed it
+        for (size_t i = 0; i < count; ++i)
+        {
+            T* stored = Find(i < InlineCapacity ? inlineIds[i] : overflowIds[i - InlineCapacity]);
+            if (!stored || !pred(*stored))
+                continue;  // an earlier callback in this batch removed it
             T item = *stored;
             fn(item);
-        };
+        }
+    }
 
-        for (size_t i = 0; i < count && i < InlineCapacity; ++i)
-            fire(inlineIds[i]);
-        for (uint64_t id : overflowIds)
-            fire(id);
+    /** @ref DispatchIf over every stored item. */
+    template <class Fn>
+    void Dispatch(Fn&& fn)
+    {
+        DispatchIf([](const T&) { return true; }, std::forward<Fn>(fn));
     }
 
 private:

@@ -5,11 +5,8 @@
 #include <CS2Kit/Sdk/GameData.hpp>
 #include <CS2Kit/Sdk/GameEventService.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
-#include <algorithm>
-#include <array>
 #include <bit>
 #include <playerslot.h>
-#include <vector>
 
 namespace CS2Kit::Sdk
 {
@@ -128,39 +125,10 @@ void GameEventService::FireGameEvent(IGameEvent* event)
     if (!eventName)
         return;
 
-    // Snapshot the IDs rather than iterating live: a handler is free to Listen() or
-    // RemoveListener(), which rehashes the registry and invalidates the iteration. Combat events
-    // fire hundreds of times a second, so the snapshot stays on the stack until it has to grow.
-    constexpr size_t InlineCapacity = 16;
-    std::array<uint64_t, InlineCapacity> inlineIds{};
-    std::vector<uint64_t> overflowIds;
-    size_t matched = 0;
-    for (const auto& [id, listener] : _listeners.Items())
-    {
-        if (listener.EventName != eventName || !listener.Callback)
-            continue;
-        if (matched < InlineCapacity)
-            inlineIds[matched] = id;
-        else
-            overflowIds.push_back(id);
-        ++matched;
-    }
-
-    // Re-find by ID: an earlier handler in this batch may have removed this listener. Copy the
-    // callback out before invoking - running it can destroy the stored one.
-    const auto fire = [&](uint64_t id) {
-        const RegisteredListener* listener = _listeners.Find(id);
-        if (!listener || !listener->Callback)
-            return;
-
-        EventCallback callback = listener->Callback;
-        callback(event);
-    };
-
-    for (size_t i = 0; i < std::min(matched, InlineCapacity); ++i)
-        fire(inlineIds[i]);
-    for (uint64_t id : overflowIds)
-        fire(id);
+    // DispatchIf owns the snapshot-and-re-find dance: a handler is free to Listen() or
+    // RemoveListener() from inside this call.
+    _listeners.DispatchIf([&](const RegisteredListener& l) { return l.Callback && l.EventName == eventName; },
+                          [&](RegisteredListener& l) { l.Callback(event); });
 }
 
 }  // namespace CS2Kit::Sdk
