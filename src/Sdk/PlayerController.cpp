@@ -55,7 +55,7 @@ void* ResolveSceneNode(CEntityInstance* pawn)
     if (!body)
         return nullptr;
 
-    int nodeOffset = CS2Kit::Detail::Rt().Schema().GetOffset("CBodyComponent", "m_pSceneNode", sizeof(void*));
+    int nodeOffset = CS2Kit::Detail::Rt().Schema().GetOffsetOf<void*>("CBodyComponent", "m_pSceneNode");
     if (nodeOffset < 0)
         return nullptr;
     return ReadAt<void*>(body, nodeOffset);
@@ -68,7 +68,7 @@ T GetSceneNodeField(CEntityInstance* pawn, const char* fieldName)
     if (!node)
         return T{0.0f, 0.0f, 0.0f};
 
-    int offset = CS2Kit::Detail::Rt().Schema().GetOffset("CGameSceneNode", fieldName, sizeof(T));
+    int offset = CS2Kit::Detail::Rt().Schema().GetOffsetOf<T>("CGameSceneNode", fieldName);
     if (offset < 0)
         return T{0.0f, 0.0f, 0.0f};
     return ReadAt<T>(node, offset);
@@ -95,7 +95,7 @@ CEntityInstance* PlayerController::GetPawn() const
     if (!_controller)
         return nullptr;
 
-    int offset = CS2Kit::Detail::Rt().Schema().GetOffset("CCSPlayerController", "m_hPlayerPawn", sizeof(uint32_t));
+    int offset = CS2Kit::Detail::Rt().Schema().GetOffsetOf<uint32_t>("CCSPlayerController", "m_hPlayerPawn");
     if (offset < 0)
         return nullptr;
 

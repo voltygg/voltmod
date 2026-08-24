@@ -21,8 +21,8 @@ void SetEntityRender(CEntityInstance* entity, RenderMode_t mode, uint32_t color)
     if (modeOffset < 0 || colorOffset < 0)
     {
         auto& schema = CS2Kit::Detail::Rt().Schema();
-        modeOffset = schema.GetOffset("CBaseModelEntity", "m_nRenderMode", sizeof(uint8_t));
-        colorOffset = schema.GetOffset("CBaseModelEntity", "m_clrRender", sizeof(uint32_t));
+        modeOffset = schema.GetOffsetOf<uint8_t>("CBaseModelEntity", "m_nRenderMode");
+        colorOffset = schema.GetOffsetOf<uint32_t>("CBaseModelEntity", "m_clrRender");
         if (modeOffset < 0 || colorOffset < 0)
             return;
     }

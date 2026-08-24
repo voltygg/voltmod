@@ -42,8 +42,8 @@ void EntitySystem::ResolveSchemaOffsets()
 
     auto& schema = CS2Kit::Detail::Rt().Schema();
 
-    _offsetPlayerPawn = schema.GetOffset("CBasePlayerController", "m_hPawn", sizeof(uint32_t));
-    _offsetMovementServices = schema.GetOffset("CBasePlayerPawn", "m_pMovementServices", sizeof(uint8_t*));
+    _offsetPlayerPawn = schema.GetOffsetOf<uint32_t>("CBasePlayerController", "m_hPawn");
+    _offsetMovementServices = schema.GetOffsetOf<uint8_t*>("CBasePlayerPawn", "m_pMovementServices");
     _offsetButtons = schema.GetOffset("CPlayer_MovementServices", "m_nButtons");
     _offsetButtonStates = schema.GetOffset("CInButtonState", "m_pButtonStates");
 

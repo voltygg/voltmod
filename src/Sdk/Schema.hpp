@@ -33,6 +33,15 @@ public:
      */
     int GetOffset(const char* className, const char* fieldName, int expectedSize = 0);
 
+    /** @ref GetOffset for a field accessed as exactly a T - the drift check derives its expected
+     *  size from the type being read or written, so the two cannot fall out of step. Use the
+     *  size-less @ref GetOffset for the cases above where sizeof(T) is not what is at the offset. */
+    template <class T>
+    int GetOffsetOf(const char* className, const char* fieldName)
+    {
+        return GetOffset(className, fieldName, static_cast<int>(sizeof(T)));
+    }
+
 private:
     /** `std::less<>` so a lookup by `const char*` compares against a string_view instead of
      *  materializing a std::string for the class and the field on every cache hit - field names

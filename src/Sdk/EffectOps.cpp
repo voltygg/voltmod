@@ -49,9 +49,9 @@ CEntityInstance* SpawnBeam(const Vector& from, const Vector& to, const Color& co
     // Endpoint/width/color live in schema fields with no spawn keyvalue; written
     // before DispatchSpawn they go out with the first network snapshot.
     auto& schema = CS2Kit::Detail::Rt().Schema();
-    int offsetWidth = schema.GetOffset("CBeam", "m_fWidth", sizeof(float));
-    int offsetEndPos = schema.GetOffset("CBeam", "m_vecEndPos", sizeof(Vector));
-    int offsetColor = schema.GetOffset("CBaseModelEntity", "m_clrRender", sizeof(Color));
+    int offsetWidth = schema.GetOffsetOf<float>("CBeam", "m_fWidth");
+    int offsetEndPos = schema.GetOffsetOf<Vector>("CBeam", "m_vecEndPos");
+    int offsetColor = schema.GetOffsetOf<Color>("CBaseModelEntity", "m_clrRender");
 
     if (offsetWidth >= 0)
         WriteAt<float>(beam, offsetWidth, width);

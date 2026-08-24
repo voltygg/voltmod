@@ -61,7 +61,7 @@ CEntityInstance* GetCurrentPawn(Runtime& rt, int slot)
     if (!controller)
         return nullptr;
     // m_hPawn is the possessed pawn (observer pawn while dead/spectating), unlike m_hPlayerPawn.
-    int offset = rt.Schema().GetOffset("CBasePlayerController", "m_hPawn", sizeof(uint32_t));
+    int offset = rt.Schema().GetOffsetOf<uint32_t>("CBasePlayerController", "m_hPawn");
     if (offset < 0)
         return nullptr;
     return rt.Entities.ResolveEntityHandle(ReadAt<uint32_t>(controller, offset));
@@ -77,14 +77,14 @@ CEntityInstance* GetObserverTarget(Runtime& rt, int recipientSlot)
         return nullptr;
 
     auto& schema = rt.Schema();
-    int servicesOffset = schema.GetOffset("CBasePlayerPawn", "m_pObserverServices", sizeof(void*));
+    int servicesOffset = schema.GetOffsetOf<void*>("CBasePlayerPawn", "m_pObserverServices");
     if (servicesOffset < 0)
         return nullptr;
     auto* observerServices = ReadAt<void*>(pawn, servicesOffset);
     if (!observerServices)
         return nullptr;
 
-    int targetOffset = schema.GetOffset("CPlayer_ObserverServices", "m_hObserverTarget", sizeof(uint32_t));
+    int targetOffset = schema.GetOffsetOf<uint32_t>("CPlayer_ObserverServices", "m_hObserverTarget");
     if (targetOffset < 0)
         return nullptr;
     return rt.Entities.ResolveEntityHandle(ReadAt<uint32_t>(observerServices, targetOffset));
@@ -105,7 +105,7 @@ void CollectHiddenPlayer(Runtime& rt, int slot, bool pawnHidden, bool controller
         return;
 
     auto& schema = rt.Schema();
-    int pawnOffset = schema.GetOffset("CCSPlayerController", "m_hPlayerPawn", sizeof(uint32_t));
+    int pawnOffset = schema.GetOffsetOf<uint32_t>("CCSPlayerController", "m_hPlayerPawn");
     if (pawnOffset < 0)
         return;
     out.Pawn = rt.Entities.ResolveEntityHandle(ReadAt<uint32_t>(controller, pawnOffset));
@@ -114,7 +114,7 @@ void CollectHiddenPlayer(Runtime& rt, int slot, bool pawnHidden, bool controller
 
     AddIndex(out, rt.Entities.GetEntityIndex(out.Pawn));
 
-    int weaponServicesOffset = schema.GetOffset("CBasePlayerPawn", "m_pWeaponServices", sizeof(void*));
+    int weaponServicesOffset = schema.GetOffsetOf<void*>("CBasePlayerPawn", "m_pWeaponServices");
     if (weaponServicesOffset >= 0)
     {
         if (auto* weaponServices = ReadAt<void*>(out.Pawn, weaponServicesOffset))
