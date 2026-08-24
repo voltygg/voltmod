@@ -29,19 +29,10 @@ jobs:
         run: uv run poe modgraph
 
   build:
-    name: Build (${{ matrix.name }})
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: linux-steamrt
-            os: ubuntu-latest
-            container: registry.gitlab.steamos.cloud/steamrt/sniper/sdk:latest
-          - name: windows-msvc
-            os: windows-latest
-            container: ""
-    runs-on: ${{ matrix.os }}
-    container: ${{ matrix.container || null }}
+    name: Build (linux-steamrt)
+    runs-on: ubuntu-latest
+    container:
+      image: registry.gitlab.steamos.cloud/steamrt/sniper/sdk:latest
     steps:
       - uses: actions/checkout@v7
 

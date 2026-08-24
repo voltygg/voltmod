@@ -232,8 +232,7 @@ def _cloudsmith(method: str, url: str, token: str) -> bytes:
 def prune(args) -> int:
     """Delete artifacts no consumer can resolve any more.
 
-    Each SDK version is ~20 MB across both platforms and upstream moves several times a
-    month, so superseded revisions are pure weight.
+    SDK revisions move several times a month, so superseded artifacts are pure weight.
     """
     token = os.environ.get("CLOUDSMITH_API_KEY", "")
     if not token and not args.dry_run:

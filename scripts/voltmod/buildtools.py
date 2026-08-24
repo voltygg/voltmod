@@ -15,9 +15,11 @@ from typing import NoReturn
 
 WINDOWS = sys.platform == "win32"
 CONAN_REMOTE = "volty"
-# Never build an SDK locally: a missing binary means its publish job never ran, and
-# --build=missing would start a multi-GB upstream fetch that fails anyway.
-SDK_BUILD_EXCLUSIONS = ("--build=!hl2sdk-cs2/*", "--build=!metamod-source/*")
+# Linux CI consumes published SDK binaries; Windows builds them locally when missing.
+SDK_BUILD_EXCLUSIONS = () if WINDOWS else (
+    "--build=!hl2sdk-cs2/*",
+    "--build=!metamod-source/*",
+)
 CPP_EXTS = (".cpp", ".hpp")
 # Under the 32767-character Windows cap, with room for the tool path and flags.
 MAX_COMMAND_LINE = 24000

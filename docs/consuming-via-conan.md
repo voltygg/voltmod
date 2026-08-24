@@ -20,12 +20,10 @@ The remote is **public** - no login, no token.
 Third-party dependencies (cpr, nlohmann_json, libpqxx, openssl, ...) come from
 Conan Center as *recipes*, and compile locally: nobody publishes binaries for the
 gcc-14 / old-libstdc++-ABI profile the Valve libs force. That is a one-time cost
-per machine, and CI bakes it into the toolchain image.
+per machine, and CI caches the Conan home.
 
-Only Linux Release binaries of `voltmod` are published - that is the deploy
-target. Windows and Debug builds resolve the recipe and compile locally through
-`--build=missing`, which takes a couple of minutes. The SDK packages ship
-binaries for both platforms; they are never built locally.
+CI publishes Linux Release binaries for Voltmod and the SDK packages. Windows
+and Debug builds compile missing packages locally through `--build=missing`.
 
 ## Setup
 
@@ -99,10 +97,10 @@ Everything publishes from this repo, through `voltmod package`:
   `version.txt`. Uploads Linux Release (both `with_postgres` values); a `smoke` job
   re-consumes the result anonymously on a clean runner, refusing to build voltmod or
   either SDK locally.
-- **SDK packages** - the recipes in `recipes/`, published on a push to `main` that
-  touches them. A daily job watches both upstreams and opens a PR when a branch tip
-  moves; the PR gate builds the new SDK *and* this kit against it, so a version that
-  cannot compile the kit never publishes.
+- **SDK packages** - Linux binaries from the recipes in `recipes/`, published on
+  a push to `main` that touches them. A daily job watches both upstreams and opens
+  a PR when a branch tip moves; the PR gate builds the new SDK *and* this kit
+  against it, so a version that cannot compile the kit never publishes.
 
 Both need `CLOUDSMITH_USERNAME` / `CLOUDSMITH_API_KEY` (write; entitlement tokens are
 read-only).

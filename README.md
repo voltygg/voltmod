@@ -37,7 +37,9 @@ uv run poe bootstrap
 
 That generates the root `CMakeLists.txt`, `CMakePresets.json`, `conanfile.py`, and `pyproject.toml`, then scaffolds a first plugin that compiles, loads, and answers `!ping` out of the box. Add more with `uv run poe new-plugin <name>`.
 
-The kit, the HL2SDK and Metamod all arrive as Conan packages from a public remote - no submodules, nothing to build but your own code. See `docs/consuming-via-conan.md`.
+The kit, HL2SDK, and Metamod use Conan packages from a public remote. Linux uses
+published binaries; Windows builds missing packages locally. See
+`docs/consuming-via-conan.md`.
 
 Already have a CMake repo? Add the requirement and declare a plugin with one call - `voltmod_add_plugin` owns the module target, SDK glue, output layout, Metamod `.vdf`, and install rules:
 
