@@ -3,6 +3,7 @@
 
 #include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
+#include <CS2Kit/Players/Player.hpp>
 #include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Sdk/Entity.hpp>
 #include <CS2Kit/Sdk/EntityOps.hpp>
@@ -10,7 +11,6 @@
 #include <CS2Kit/Sdk/GameData.hpp>
 #include <CS2Kit/Sdk/GameInterfaces.hpp>
 #include <CS2Kit/Sdk/MemoryAccess.hpp>
-#include <CS2Kit/Players/Player.hpp>
 #include <CS2Kit/Sdk/PlayerController.hpp>
 #include <algorithm>
 #include <cstring>

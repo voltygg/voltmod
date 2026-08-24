@@ -75,8 +75,8 @@ void CommandManager::Register(CommandSpec spec)
         }
         if (auto it = _aliases.find(key); it != _aliases.end())
         {
-            Log::Error("Command '{}' claims alias '{}', already taken by '{}' - skipping the alias.", spec.Name,
-                       alias, it->second);
+            Log::Error("Command '{}' claims alias '{}', already taken by '{}' - skipping the alias.", spec.Name, alias,
+                       it->second);
             continue;
         }
         claimed.push_back(std::move(key));
@@ -144,9 +144,10 @@ bool CommandManager::HandleChatMessage(Players::Player* caller, std::string_view
         if (!policy.HasPermission)
         {
             if (_missingPolicyWarned.insert(cmd->Name).second)
-                Log::Error("Command '{}' declares permission '{}' but no HasPermission policy is "
-                           "installed - denying. Set Runtime::Policy.HasPermission in OnLoad.",
-                           cmd->Name, cmd->Permission);
+                Log::Error(
+                    "Command '{}' declares permission '{}' but no HasPermission policy is "
+                    "installed - denying. Set Runtime::Policy.HasPermission in OnLoad.",
+                    cmd->Name, cmd->Permission);
             reply(CS2Kit::Detail::Rt().Translations.Get("cmd.noPermission", caller->GetSlot()));
             return true;
         }
@@ -165,9 +166,8 @@ bool CommandManager::HandleChatMessage(Players::Player* caller, std::string_view
     // Extras used to be dropped in silence, so a typo'd selector looked like it worked.
     if (TooManyArguments(*cmd, args))
     {
-        reply(CS2Kit::Detail::Rt().Translations.Get(
-            "cmd.tooManyArgs", caller->GetSlot(),
-            {{"usage", cmd->Usage.empty() ? DeriveUsage(*cmd) : cmd->Usage}}));
+        reply(CS2Kit::Detail::Rt().Translations.Get("cmd.tooManyArgs", caller->GetSlot(),
+                                                    {{"usage", cmd->Usage.empty() ? DeriveUsage(*cmd) : cmd->Usage}}));
         return true;
     }
 

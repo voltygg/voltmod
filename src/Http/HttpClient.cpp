@@ -1,8 +1,8 @@
 #include <CS2Kit/Http/HttpClient.hpp>
 #include <chrono>
+#include <cpr/cpr.h>
 #include <deque>
 #include <functional>
-#include <cpr/cpr.h>
 #include <future>
 #include <utility>
 

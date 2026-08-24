@@ -227,9 +227,10 @@ DbResult<pqxx::result> PostgresDatabase::RunJob(Job& job, pqxx::connection& conn
         }
         else if (it->second != job.Sql)
         {
-            Log::Error("db: statement name '{}' is already prepared with different SQL - refusing. "
-                       "Give the two queries distinct names.",
-                       job.Name);
+            Log::Error(
+                "db: statement name '{}' is already prepared with different SQL - refusing. "
+                "Give the two queries distinct names.",
+                job.Name);
             return std::unexpected(std::string("prepared statement name collision: " + job.Name));
         }
 

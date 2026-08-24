@@ -9,7 +9,7 @@ namespace
 {
 constexpr int64_t SteamA = 76561198000000001LL;
 constexpr int64_t SteamB = 76561198000000002LL;
-}
+}  // namespace
 
 TEST_CASE("A player is reachable by slot and by SteamID")
 {

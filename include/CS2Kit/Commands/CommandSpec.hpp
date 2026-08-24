@@ -97,8 +97,8 @@ ArgSpec ReasonTail(std::string fallbackKey = {});
 struct CommandContext
 {
     Players::Player* Caller = nullptr;
-    Players::Player* TargetPlayer = nullptr;  ///< single-target arg result
-    std::vector<Players::Player*> TargetList; ///< multi-target results (TargetRules::AllowMultiple)
+    Players::Player* TargetPlayer = nullptr;   ///< single-target arg result
+    std::vector<Players::Player*> TargetList;  ///< multi-target results (TargetRules::AllowMultiple)
     int64_t SteamId = 0;
     std::optional<int64_t> DurationSec;
     std::optional<int> IntValue;

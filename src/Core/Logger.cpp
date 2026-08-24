@@ -1,5 +1,4 @@
 #include <CS2Kit/Core/ILogger.hpp>
-
 #include <mutex>
 #include <thread>
 #include <utility>

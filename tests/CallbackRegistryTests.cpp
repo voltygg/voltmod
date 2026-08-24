@@ -1,7 +1,6 @@
 #include <CS2Kit/Core/CallbackRegistry.hpp>
 #include <CS2Kit/Core/SlotEvents.hpp>
 #include <doctest/doctest.h>
-
 #include <functional>
 #include <vector>
 
