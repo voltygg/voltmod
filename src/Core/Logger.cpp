@@ -1,4 +1,5 @@
 #include <CS2Kit/Core/ILogger.hpp>
+#include <deque>
 #include <mutex>
 #include <thread>
 #include <utility>
@@ -14,7 +15,7 @@ ILogger* g_logger = nullptr;
 std::thread::id g_gameThread{};
 
 std::mutex g_deferredMutex;
-std::vector<std::pair<LogLevel, std::string>> g_deferred;
+std::deque<std::pair<LogLevel, std::string>> g_deferred;
 
 /** A worker that logs in a tight failure loop must not grow this without bound; past the cap
  *  the oldest lines go, because the first error is rarely the interesting one. */
@@ -62,13 +63,13 @@ void Emit(LogLevel level, std::string message)
 
     std::lock_guard lock(g_deferredMutex);
     if (g_deferred.size() >= MaxDeferred)
-        g_deferred.erase(g_deferred.begin());
+        g_deferred.pop_front();
     g_deferred.emplace_back(level, std::move(message));
 }
 
 void DrainDeferredLogs()
 {
-    std::vector<std::pair<LogLevel, std::string>> ready;
+    std::deque<std::pair<LogLevel, std::string>> ready;
     {
         std::lock_guard lock(g_deferredMutex);
         if (g_deferred.empty())
