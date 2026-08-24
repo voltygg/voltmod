@@ -146,8 +146,11 @@ bool CommandManager::HandleChatMessage(Players::Player* caller, std::string_view
     const std::string& cmdName = parts[0];
     std::vector<std::string> args(parts.begin() + 1, parts.end());
 
+    // Surfaces is what makes a console-only command console-only. Without this the Chat bit was
+    // never read, so a spec registered as Surface::Console - typically an operator command with
+    // no Permission, because the console needs none - was also typeable in chat by anyone.
     const CommandSpec* cmd = GetCommand(cmdName);
-    if (!cmd)
+    if (!cmd || !HasSurface(cmd->Surfaces, Surface::Chat))
         return false;
 
     auto& policy = CS2Kit::Detail::Rt().Policy;

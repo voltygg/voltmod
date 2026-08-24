@@ -91,9 +91,10 @@ Argument failures reply from these translation keys - ship them in your translat
 
 ## Console callers
 
-`Surfaces` says where a spec can be invoked from; it defaults to `Surface::Chat`. Adding
-`Surface::Console` registers a real tier1 ConCommand of the same name alongside the chat
-command, so rcon, cfg files and `ExecuteServerCommand` reach the same handler:
+`Surfaces` says where a spec can be invoked from; it defaults to `Surface::Chat`, and it gates
+both ends - a spec that does not name `Surface::Chat` is not reachable from chat at all. Adding
+`Surface::Console` registers a real tier1 ConCommand of the same name, so rcon, cfg files and
+`ExecuteServerCommand` reach the same handler. Name both to get both:
 
 ```cpp
 commands.Register({
@@ -108,5 +109,7 @@ commands.Register({
 Console invocations run the same argument resolution and handler with no caller, and print
 their reply to the console. With no caller there is no SteamID to check, so `Permission` is
 never consulted - the server console already is the authority - and caller-relative selectors
-(`@me`, `@!me`) match no one. Replies resolve translations against slot `-1`, the server
+(`@me`, `@!me`) match no one. That is also why `Surface::Console` on its own matters: such a
+command usually carries no `Permission`, and chat has callers that a permission check would
+otherwise be the only thing standing in front of. Replies resolve translations against slot `-1`, the server
 language. Registration owns the ConCommand, so `Unregister` and destruction remove it.

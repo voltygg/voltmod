@@ -20,7 +20,8 @@ namespace CS2Kit::Commands
  * SteamIDs - see @ref ArgKind) -> handler -> result message via `runtime.Policy.Reply`.
  * Handlers only run with fully-resolved, validated arguments.
  *
- * A spec that names Surface::Console additionally gets a tier1 ConCommand of the same name,
+ * `Surfaces` gates both ends: a spec without Surface::Chat is not reachable from chat, and one
+ * that names Surface::Console additionally gets a tier1 ConCommand of the same name,
  * running the same resolution and handler with no caller and printing its reply to the
  * console. Registration owns that ConCommand, so Unregister and destruction remove it.
  */
