@@ -263,7 +263,6 @@ def build(
     conan_home = Path(os.environ.get("CONAN_HOME", Path.home() / ".conan2"))
     profile_dirs = (
         repo_root / "conan/profiles",
-        repo_root / "vendor/voltmod/conan/profiles",
         conan_home / "profiles",
     )
     profiles = next((path for path in profile_dirs if path.is_dir()), None)

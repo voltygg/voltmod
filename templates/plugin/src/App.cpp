@@ -12,7 +12,7 @@ bool App::Start()
     if (!VoltMod::LoadStandardConfig(Runtime, Config, {.Addon = "$name"}))
         return false;
 
-    // Permissions and replies stay permissive until the plugin sets Runtime.Policy.
+    // Set Runtime.Policy before registering commands that declare a permission.
     RegisterCommands(Runtime.Commands);
     return true;
 }

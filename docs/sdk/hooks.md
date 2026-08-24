@@ -131,6 +131,13 @@ class MyManager
 };
 ```
 
-Beyond console/cfg use, this is the standard **cross-plugin surface**: plugins are isolated modules that cannot share managers, so a feature one plugin should drive in another is exposed as a server command and invoked via `runtime.ConVars.ExecuteServerCommand("myplugin_do 765...")`. When the providing plugin is absent the engine just logs "Unknown command" - graceful degradation for free. (This is how admin-system's Bunnyhop effect drives the bhop plugin's `bhop_player` command.)
+Use server commands for console, RCON, cfg files, and loose automation. For a
+typed plugin-to-plugin contract, publish a versioned interface through
+`runtime.Exchange` and query it at the point of use. Plugins are separate
+modules, so never transfer ownership or allow exceptions across that boundary.
+
+Commands remain useful as a compatibility fallback. A caller can invoke one
+with `runtime.ConVars.ExecuteServerCommand("myplugin_do 765...")`; if the
+provider is absent, the engine reports an unknown command.
 
 Construct only while the plugin is loaded (ICvar must be live) - typically as a manager member, so unload unregisters it automatically.

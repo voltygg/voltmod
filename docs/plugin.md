@@ -1,4 +1,4 @@
-# Plugin Base {#plugin_guide}
+# Plugin base {#plugin_guide}
 
 [TOC]
 
@@ -73,8 +73,8 @@ bool App::Start()
 {
     if (!VoltMod::LoadStandardConfig(Runtime, Config, {.Addon = "my-plugin"}))
         return false;
-    // Optional: install Runtime.Policy once you have real permission data.
-    // Without one, commands dispatch permissively and reply via Runtime.Messages.Reply.
+    // Install Runtime.Policy before registering permission-gated commands.
+    // Commands with no permission remain available without a policy.
     return true;
 }
 ```
@@ -183,7 +183,7 @@ Keep JSON sections compact (counts and names, not full lists) - RCON's console c
 `Rt()` is available inside the base for hook bodies, which SourceHook calls without a
 runtime argument. Everywhere else, use what `OnLoad` handed you.
 
-## Teardown
+## Cleanup on unload
 
 Cleanup belongs in a member destructor or a @ref VoltMod::Core::Subscription
 held beside the state its callback captures:

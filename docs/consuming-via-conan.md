@@ -1,13 +1,35 @@
-# Consuming voltmod via Conan {#conan_guide}
+# Consuming VoltMod via Conan {#conan_guide}
 
 [TOC]
 
-The framework and its SDK dependencies are published as Conan packages. A plugin
-project therefore needs no submodules: `conan install` delivers prebuilt `libvoltmod`,
-the HL2SDK headers and prebuilt Valve libs, Metamod headers, the generated
-protobuf sources, and the `voltmod_add_plugin` CMake API.
+The Conan package is the default and supported way to add VoltMod to a plugin
+project. Do not add the framework as a Git submodule or with CMake
+`add_subdirectory`. `conan install` supplies the VoltMod libraries, HL2SDK
+headers and Valve libraries, Metamod headers, generated protobuf sources, and
+the `voltmod_add_plugin` CMake API.
 
 The remote is **public**; no login or token is required.
+
+## Add the package
+
+Declare VoltMod in the consumer's `conanfile.py`:
+
+```python
+requires = ("voltmod/[~1.2]",)
+```
+
+Load the generated CMake package and register each plugin:
+
+```cmake
+find_package(voltmod CONFIG REQUIRED)
+add_subdirectory(plugins/my-plugin)
+```
+
+The plugin CMake file then uses the helper shipped in the package:
+
+```cmake
+voltmod_add_plugin(my-plugin VERSION 1.0.0)
+```
 
 ## Packages
 
@@ -46,8 +68,13 @@ mkdir my-plugins && cd my-plugins
 git init
 uvx --from git+https://github.com/voltygg/voltmod.git voltmod init --plugin my-plugin
 uv sync
+uv run poe doctor
 uv run poe bootstrap
 ```
+
+`doctor` checks the local tools and generated project without changing them.
+`bootstrap` installs the Conan profiles and remote, then configures, builds, and
+tests the project for the first time.
 
 The project's `CMakeLists.txt` contains `find_package(voltmod CONFIG REQUIRED)`
 plus one `add_subdirectory(plugins/<name>)` per plugin. Each plugin's

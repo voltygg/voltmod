@@ -27,12 +27,6 @@ signature is scanned once, and later lookups use the cache. The stage reports
 missing and ambiguous signatures by name; per-entry results are available from
 `Resolutions()`.
 
-### Deliberately not implemented
-
-One s2sdk-style mechanism was evaluated and rejected for now; revisit if an engine update actually burns us:
-
-- **Ref-anchored fallback** (find functions by referenced strings when a pattern breaks): high machinery cost for a gamedata file this small whose signatures are synced from upstream projects with provenance comments.
-
 ### `signatures.jsonc` format
 
 ```json

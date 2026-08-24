@@ -80,4 +80,4 @@ If no capture is pending for the slot, `TryConsume` returns `false`.
 | `TryConsume(slot, text)` | Route a chat line to the active prompt. Returns `true` when the message was consumed. |
 | `CancelCapture(slot)` | Drop the pending prompt without firing the callback. |
 | `GetPrompt(slot)` | Returns the active prompt string (used by `MenuRenderer` to draw the overlay), or `nullptr`. |
-| `OnPlayerDisconnect(slot)` | Lifecycle hook - called automatically by `VoltMod::OnPlayerDisconnect`. |
+| `OnPlayerDisconnect(slot)` | Lifecycle hook called automatically by `Runtime::OnPlayerDisconnect`. |

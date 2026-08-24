@@ -17,8 +17,8 @@ VoltMod
 └── App         The composition root: Runtime, MetamodPlugin, ServiceExchange
 ```
 
-These are source directories, not link units. The framework builds as two
-libraries (`VoltMod::Runtime` and `VoltMod::Database`). The layering is checked:
+These are source directories, not link units. The framework exposes the
+`VoltMod::Runtime` and optional `VoltMod::Database` libraries. The layering is checked:
 `voltmod modgraph` fails the build when a module includes a header from a layer
 it is not allowed to reach.
 
@@ -28,21 +28,24 @@ it is not allowed to reach.
   code runs there. The database worker and HTTP pool are the exceptions: they
   queue completions and replay them on the game thread from a per-frame pump, so
   callbacks do not race game code.
-- **No process-lifetime singletons.** Every framework service is a member of one @ref VoltMod::Runtime, constructed on Load and destroyed on Unload. State cannot survive a `meta reload`.
+- **One load-cycle lifetime.** Every service belongs to one @ref VoltMod::Runtime,
+  created on load and destroyed on unload. A `meta reload` starts clean.
 - **Data over glue.** Commands, effects, and menu rows are described as structs
   (`CommandSpec`, `EffectDescriptor`, and context rows). The framework owns the
   resolve, check, dispatch, and reply pipeline around them.
-- **Policy is injected once.** The framework carries no admin model. Your plugin sets `runtime.Policy` in OnLoad, and every permission gate, immunity check, and command reply in the framework goes through it.
-- **Dependencies arrive through constructors.** Nothing reaches for a global to find a collaborator. The runtime is handed to `OnLoad`; you pass on what each of your own objects needs.
+- **Policy is injected once.** The framework has no admin model. Your plugin sets
+  `runtime.Policy` in `OnLoad`; permission, immunity, reply, and broadcast paths
+  consult it. A command that declares a permission is denied when
+  `HasPermission` is unset.
+- **Dependencies arrive through constructors.** `OnLoad` receives the runtime;
+  your objects receive only the services they need.
 
 ## Two objects, same lifetime
 
 **@ref VoltMod::Runtime** is the framework's flat service container.
-`MetamodPlugin` creates it on Load and destroys it on Unload; members are declared
-in dependency order and torn down in reverse. Every service is named directly -
-`runtime.Messages`, not
-`runtime.Sdk.Messages` - because which source module a service lives in is the framework's
-business, and mirroring it here would mean every service that moved broke its callers.
+`MetamodPlugin` creates it on load and destroys it on unload. Services are named
+directly (`runtime.Messages`, not `runtime.Sdk.Messages`) so internal module
+moves do not break consumers.
 
 ```cpp
 runtime.Players.GetPlayerBySlot(slot);
@@ -76,9 +79,8 @@ class MyPlugin final : public VoltMod::MetamodPlugin
 };
 ```
 
-Reverse-declaration destruction is what makes this safe: your `App` dies before the
-`Runtime`, so any subscription you hold is torn down while the service it points at is
-still alive.
+Your `App` dies before the runtime, so its subscriptions are removed while the
+services they reference are still alive.
 
 ## PluginPolicy
 
@@ -93,7 +95,37 @@ runtime.Policy = {
 };
 ```
 
-Consumers: `CommandManager` (permission gate + reply routing), the target resolver (immunity), `ActionDispatcher` and the effect dispatch helpers (permission + immunity + broadcast), context menu rows and `Flow` (row enabling, validation replies). Unset members are skipped, not crashes.
+`CommandManager`, targeting, action dispatch, effects, context menus, and `Flow`
+all consult this policy. An unset reply or broadcast callback falls back or is
+skipped where documented. An unset `HasPermission` is deliberately fail-closed
+for commands that declare a permission.
+
+## Cross-plugin services
+
+Plugins are separate modules and each has its own runtime. Share typed behavior
+through @ref VoltMod::App::ServiceExchange instead of exposing a manager or
+framework object directly:
+
+```cpp
+struct IBanService
+{
+    static constexpr const char* InterfaceName = "admin.IBanService/1";
+    virtual bool IsBanned(uint64_t steamId) const = 0;
+
+protected:
+    ~IBanService() = default;
+};
+
+runtime.Exchange.Publish<IBanService>(&bans);       // provider
+if (auto* bans = runtime.Exchange.Get<IBanService>()) // consumer
+    Check(*bans);
+```
+
+Include a version in `InterfaceName` and change it when the vtable or parameter
+meaning changes. Query at the point of use because peers may load or unload.
+Do not transfer ownership, pass allocator-owned objects, or let exceptions cross
+the module boundary. Use a @ref VoltMod::Sdk::ServerCommand when console, RCON,
+cfg files, or untyped automation also need the operation.
 
 ## Registration is explicit
 
@@ -112,18 +144,19 @@ void RegisterBanCommands(VoltMod::CommandManager& commands, App& app)
 Do not self-register descriptors during static initialization. Register them
 from the load path so handlers can capture their dependencies explicitly.
 
-## Teardown
+## Cleanup and subscriptions
 
-Cleanup belongs in a member destructor or a @ref VoltMod::Core::Subscription:
+Cleanup belongs in a member destructor or a
+@ref VoltMod::Core::Subscription "Subscription":
 
 ```cpp
 _spawn = runtime.Events.Listen<Events::PlayerSpawn>([this](const auto& e) { OnSpawn(e.Slot); });
 ```
 
-`Subscription` is move-only and unregisters on destruction, so a listener cannot outlive
-the state its callback captures. `VOLTMOD_SCOPED_HOOK` yields one for SourceHook installs
-too. On unload the base runs your `OnUnload`, removes its own standard hooks, then
-destroys the `Runtime` - whose destructor is the framework's shutdown.
+`Subscription` is move-only and unregisters on destruction, so a listener cannot
+outlive captured state. `VOLTMOD_SCOPED_HOOK` provides the same lifetime for
+SourceHook installs. On unload, the base runs `OnUnload`, removes its standard
+hooks, and destroys the runtime.
 
 ## The frame pump
 
@@ -144,9 +177,3 @@ the layering.
 `Detail/` is the one exemption: it holds the ambient pointer to the live `Runtime` that
 class templates instantiated in consumer TUs (`Flow<TState>`, `PerSlot<T>`) and
 callback trampolines with no user data reach it through. Plugin code never needs it.
-
-## Interface contracts
-
-| Interface | Purpose | Required? |
-|-----------|---------|-----------|
-| `ILogger` | Logging backend (Info/Warn/Error) | No - a built-in `ConsoleLogger` is the default |

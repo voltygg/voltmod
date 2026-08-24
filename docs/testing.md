@@ -38,7 +38,7 @@ Every `tests/*.cpp` is a test TU - nothing but test cases; `voltmod_add_tests()`
 doctest's `main`. A new file needs no registration, the glob picks it up.
 
 ```cpp
-#include <VoltMod/Utils/StringUtils.hpp>
+#include <VoltMod/Core/StringUtils.hpp>
 #include <doctest/doctest.h>
 #include <string>
 

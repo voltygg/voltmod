@@ -90,7 +90,6 @@ def _check_project(report: Report, root: Path) -> None:
 
     profile_roots = (
         root / "conan/profiles",
-        root / "vendor/voltmod/conan/profiles",
         Path.home() / ".conan2/profiles",
     )
     if any(path.is_dir() for path in profile_roots):

@@ -65,7 +65,9 @@ bool fullBlind = player.GetFlashMaxAlpha() >= 255.0f;
 
 ### Visibility
 
-`SetVisible` toggles transparency on the player pawn body. Weapons, gloves, and grenades stay visible - they are separate networked entities that the render fields on the pawn do not reach. For full invisibility use the [TransmitFilter](@ref sdk_visibility_guide) instead.
+`SetVisible` toggles transparency on the player pawn body. Weapons, gloves, and
+grenades stay visible because they are separate networked entities. For full
+invisibility, use the @ref sdk_visibility_guide "transmit filter" instead.
 
 ```cpp
 player.SetVisible(false);          // body fully invisible (alpha = 0)

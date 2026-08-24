@@ -12,10 +12,9 @@ namespace VoltMod::Sdk
  * @brief RAII server console command: registers a tier1 ConCommand on construction and
  * unregisters on destruction.
  *
- * This is the standard cross-plugin surface: plugins are isolated modules, so a feature
- * that another plugin (or the server console / a cfg) should drive is exposed as a server
- * command and invoked via @ref ConVarService::ExecuteServerCommand. When the providing
- * plugin is absent the engine just logs "Unknown command" - graceful degradation for free.
+ * Use this for server-console, RCON, cfg, and loosely coupled automation surfaces. Invoke
+ * commands through @ref ConVarService::ExecuteServerCommand. Prefer App::ServiceExchange
+ * when two plugins need a typed, versioned contract.
  *
  * The handler runs on the game thread. Construct only while the plugin is loaded (ICvar
  * must be live); typically a manager member, so destruction on unload unregisters it.
