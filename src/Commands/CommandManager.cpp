@@ -259,7 +259,7 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
                     return false;
                 }
                 ctx.TargetPlayer = resolved->front();
-                ctx.SteamId = ctx.Target->GetSteamID();
+                ctx.SteamId = ctx.Target().GetSteamID();
             }
             ++i;
             break;
