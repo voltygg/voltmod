@@ -17,16 +17,15 @@ struct CommandResult
 {
     std::string Message;
 
-    /** Handled, with nothing to say: the handler already replied, or a menu is the feedback. */
+    /** Mark the command handled without sending another reply. */
     static CommandResult Silent() { return {}; }
 };
 
 /**
  * @brief Declarative chat-command definition.
  *
- * A command is one aggregate: name, metadata, permission, typed arguments, and a handler that
- * receives everything pre-resolved. Register from a function that is handed both the command
- * table and whatever the handler needs, so the dependency is visible at the call site:
+ * Defines a command's metadata, permission, typed arguments, and handler. Argument
+ * resolution finishes before the handler runs.
  *
  * @code
  * void RegisterBanCommands(CommandManager& commands, PunishmentService& punishments)
@@ -46,7 +45,7 @@ struct CommandResult
  * }
  * @endcode
  *
- * Argument resolution runs before the handler: targets are resolved through the selector
+ * Targets are resolved through the selector
  * grammar (with immunity from runtime.Policy), durations/SteamIDs are parsed and validated,
  * and failures reply with localized messages from the reserved keys `target.noMatch`,
  * `target.immune`, `target.ambiguous`, `target.dead`, `target.bot`, `cmd.badDuration`,
@@ -73,7 +72,7 @@ struct ArgSpec
     std::string ErrorKey;               ///< overrides the default parse-failure message key
 };
 
-// Terse factories for the common arg shapes (preferred over raw ArgSpec at call sites).
+// Prefer these factories to raw ArgSpec values at call sites.
 ArgSpec Target(Players::TargetRules rules = {});
 ArgSpec TargetOrSteamId();
 ArgSpec Duration();
@@ -83,15 +82,12 @@ ArgSpec Word(bool required = true);
 ArgSpec ReasonTail(std::string fallbackKey = {});
 
 /**
- * @brief Everything a handler needs, pre-resolved and pre-validated.
+ * @brief Resolved command input.
  *
- * The accessors are the interface; the fields behind them are what resolution filled in.
- * Resolution refuses to call the handler unless every required argument came through, so an
- * accessor for an argument the spec declared always has a value - which is why Target() hands
- * back a reference and there is nothing to null-check.
+ * Required arguments are present whenever the handler runs, so accessors for
+ * declared arguments can return values directly.
  *
- * Reading an accessor the spec did *not* declare is a bug, and reads as if the argument were
- * absent (empty, zero, nullopt) rather than crashing.
+ * An accessor not declared by the spec returns its empty value.
  */
 struct CommandContext
 {
@@ -107,19 +103,16 @@ struct CommandContext
 
     int CallerSlot() const;
 
-    /** The resolved target. Valid whenever the spec declared a Target()/TargetOrSteamId() that
-     *  matched an online player - which is the only way the handler runs. */
+    /** Resolved online target. */
     Players::Player& Target() const { return *TargetPlayer; }
 
-    /** True when a target was resolved. Only interesting for TargetOrSteamId(), where a bare
-     *  SteamID addresses someone who is not here. */
+    /** Whether TargetOrSteamId resolved an online player. */
     bool HasTarget() const { return TargetPlayer != nullptr; }
 
     /** Every matched target, for a spec using TargetRules::AllowMultiple. */
     const std::vector<Players::Player*>& Targets() const { return TargetList; }
 
-    /** The parsed duration in seconds, or nullopt when the caller supplied none. 0 is a real
-     *  value meaning permanent, which is why this is optional rather than a sentinel. */
+    /** Duration in seconds. `0` means permanent; nullopt means omitted. */
     std::optional<int64_t> Duration() const { return DurationSec; }
 
     /** The parsed integer, or nullopt when the caller supplied none. */
@@ -133,11 +126,9 @@ struct CommandContext
 /**
  * @brief Where a command can be invoked from.
  *
- * Console commands are registered as real tier1 ConCommands, so rcon, cfg files and
- * ExecuteServerCommand all reach them. They run with no caller: there is no immunity to
- * apply and no permission to check, because the server console already is the authority.
- * Caller-relative selectors (`@me`, `@!me`) resolve against no one and simply report no
- * match.
+ * Console commands are tier1 ConCommands reachable through RCON, cfg files, and
+ * ExecuteServerCommand. They have no caller, permission check, or immunity check.
+ * Caller-relative selectors therefore report no match.
  */
 enum class Surface : uint8_t
 {
@@ -168,17 +159,13 @@ struct CommandSpec
     std::function<CommandResult(CommandContext&)> Handler;
 };
 
-/** `!ban <target> <duration> [reason]`, built from the arg kinds so nothing hand-written can
- *  drift from what the command actually accepts. @p prefix is what the caller types before the
- *  name - a chat prefix, or empty for the console, which has none. */
+/** Derive usage from the argument kinds. @p prefix is empty for console commands. */
 std::string DeriveUsage(const CommandSpec& spec, std::string_view prefix);
 
-/** True when @p spec declares @p surface. This is what makes a console-only command
- *  console-only: a spec that does not name Surface::Chat is not reachable from chat. */
+/** Whether @p spec is reachable from @p surface. */
 bool ReachableFrom(const CommandSpec& spec, Surface surface);
 
-/** True when more tokens were given than @p spec can consume. A ReasonTail swallows the
- *  remainder, so a spec with one never has extras. */
+/** Whether the input has tokens the spec cannot consume. ReasonTail consumes the remainder. */
 bool TooManyArguments(const CommandSpec& spec, size_t argCount);
 
 }  // namespace VoltMod::Commands

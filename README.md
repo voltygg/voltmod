@@ -3,11 +3,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://suxrobgm.github.io/voltmod/)
 
-A C++23 framework for building Counter-Strike 2 server plugins on Metamod:Source 2.0.
-
-Describe plugin behavior as data - commands, menu rows, effects, and database
-rows - and VoltMod supplies the surrounding machinery: engine setup, hooks,
-player tracking, permission gates, message transport, and teardown.
+A C++23 framework for Counter-Strike 2 server plugins on Metamod:Source 2.0.
+Plugins declare commands, menus, effects, and database rows; VoltMod handles
+engine setup, hooks, players, policy checks, messages, and teardown.
 
 > **Work in progress.** The API is still evolving and may change between versions.
 
@@ -37,13 +35,16 @@ uv sync
 uv run poe bootstrap
 ```
 
-That generates the root `CMakeLists.txt`, `CMakePresets.json`, `conanfile.py`, and `pyproject.toml`, then scaffolds a first plugin that compiles, loads, and answers `!ping` out of the box. Add more with `uv run poe new-plugin <name>`.
+This generates the project build files and a first plugin that answers `!ping`.
+Add plugins with `uv run poe new-plugin <name>`.
 
 The framework, HL2SDK, and Metamod use Conan packages from a public remote. Linux
 uses published binaries; Windows builds missing packages locally. See
 `docs/consuming-via-conan.md`.
 
-Already have a CMake repo? Add the requirement and declare a plugin with one call - `voltmod_add_plugin` owns the module target, SDK glue, output layout, Metamod `.vdf`, and install rules:
+For an existing CMake repository, add the requirement and declare the plugin.
+`voltmod_add_plugin` configures the module, SDK sources, output, `.vdf`, and
+install rules:
 
 ```python
 # conanfile.py
@@ -121,7 +122,7 @@ Full guides and API reference: **[suxrobgm.github.io/voltmod](https://suxrobgm.g
 
 ## Contributing
 
-Contributions are welcome. Since the API is still evolving, it's worth opening an issue to discuss larger changes first.
+Open an issue before starting a large change because the API is still evolving.
 
 ## License
 

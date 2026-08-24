@@ -27,12 +27,9 @@ namespace VoltMod::Menu
 {
 
 /**
- * @brief Fluent builder for constructing Menu instances.
+ * @brief Fluent Menu builder.
  *
- * Each `Add*` method appends a typed @ref MenuOption to the menu. Plain action rows
- * use @ref AddButton; toggles, choice pickers, sliders, progress bars, free-text inputs,
- * and submenu links each have a dedicated builder method that constructs the matching
- * option subclass.
+ * Each `Add*` method appends the matching typed @ref MenuOption.
  *
  * Usage:
  * @code
@@ -64,9 +61,8 @@ public:
     }
 
     /**
-     * Bind an admin/target context for the policy-aware rows below. Each row then derives its
-     * label (admin-language translation of a key), its enabled state (permission + immunity via
-     * runtime.Policy), and its dispatch pair from the context - no per-row captures:
+     * Bind the admin, target, policy, and effect state used by context rows.
+     * Rows derive their translated labels, enabled state, and dispatch arguments.
      *
      * @code
      * MenuBuilder(title)
@@ -88,27 +84,21 @@ public:
     MenuBuilder& AddActionRow(std::string_view labelKey, const Players::Action& action);
 
     /**
-     * A toggle row whose live on-state is @p isActive against the target's pawn (re-read every
-     * redraw) and whose press runs the toggle action. Because the same action flips the state
-     * back off on a second press, the row doubles as an "undo" control (e.g. unfreeze).
-     * Predicate factories live in `Sdk/PawnPredicates.hpp` (InMoveType, HasPawnFlag).
+     * A toggle row that re-evaluates @p isActive on every redraw and runs the
+     * action when pressed. Predicates live in Sdk/PawnPredicates.hpp.
      */
     MenuBuilder& AddStateToggleRow(std::string_view labelKey,
                                    std::function<bool(const Sdk::PlayerController&)> isActive,
                                    const Players::Action& action);
 
-    /** An inline choice row: A/D cycles "{value} {unit}" presets, E runs the @ref Players::ParamAction
-     *  with the picked value and closes the player's menus. @p initialIndex selects the preset the row
-     *  opens on (e.g. the "no change" anchor). */
+    /** Choice row: A/D selects a preset and E runs the action. */
     MenuBuilder& AddPresetChoiceRow(std::string_view labelKey, std::string_view unit, std::span<const int> presets,
                                     const Players::ParamAction& action, int initialIndex = 0);
 
-    /** A toggle row bound to a data-defined effect (uses the context's EffectManager; the on/off
-     *  state labels come from the reserved keys `effectState.on` / `effectState.off`). */
+    /** Effect toggle using the context's EffectManager and reserved state labels. */
     MenuBuilder& AddEffectToggleRow(const Players::EffectDescriptor& effect);
 
-    /** A submenu row opening a picker over the effect's Choices (plus a reset row when
-     *  ResetLabelKey is set). */
+    /** Effect-choice submenu, with a reset row when ResetLabelKey is set. */
     MenuBuilder& AddEffectPickerRow(const Players::ParamEffectDescriptor& effect);
 
     /** Append an action row with a label that is recomputed every render. */

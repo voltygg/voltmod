@@ -25,8 +25,8 @@ class Runtime;
 namespace VoltMod::App
 {
 
-/** @brief Your plugin's name, author, version, and log tag. Return it from MetamodPlugin::Info().
- *  Wire Version/Date/Commit to <VoltMod/BuildInfo.hpp> so `meta list` shows the exact build. */
+/** Plugin metadata returned by MetamodPlugin::Info(). Use BuildInfo.hpp for
+ *  version, date, and commit fields when build identification matters. */
 struct PluginInfo
 {
     const char* Name = "VoltMod Plugin";
@@ -41,17 +41,13 @@ struct PluginInfo
 };
 
 /**
- * @brief Base class for a Metamod:Source plugin - handles the boilerplate so you don't have to.
+ * @brief Base class for a Metamod:Source plugin.
  *
- * Subclassing this gets you a working plugin: it wires up the engine, registers the common
- * hooks (game frame, player connect/disconnect, chat), and tracks connected players for you.
- * You provide the metadata via Info(), your setup in OnLoad(), and override only the callbacks
- * you care about.
+ * Wires the engine, common hooks, and player tracking. Subclasses provide metadata,
+ * build their state in OnLoad(), and override the callbacks they need.
  *
- * The base owns the Runtime for exactly one Load/Unload cycle and hands it to OnLoad. Your
- * plugin owns everything else the same way - build the object graph in OnLoad, drop it in
- * OnUnload - so nothing survives a `meta reload`, and each service is handed the collaborators
- * it needs instead of reaching for them.
+ * The Runtime and plugin state belong to one Load/Unload cycle. Release all state
+ * in OnUnload so `meta reload` starts clean.
  *
  * @code
  * class MyPlugin final : public VoltMod::MetamodPlugin {
@@ -92,22 +88,19 @@ protected:
     virtual PluginInfo Info() const = 0;
 
     /**
-     * @brief Set up your plugin here: build its object graph over @p runtime, load config,
-     * register commands. Construct whatever holds load-cycle state now and release it in
-     * OnUnload - that pairing is the whole lifetime.
+     * @brief Build load-cycle state, load configuration, and register commands.
      * Return false to abort the load.
      * @param late true if the plugin was loaded after the server had already started.
      */
     virtual bool OnLoad(Runtime& runtime, bool late) = 0;
 
-    /** @brief Release whatever OnLoad built, before the runtime goes away. */
+    /** @brief Release state created by OnLoad before the runtime is destroyed. */
     virtual void OnUnload() {}
 
     /**
-     * @brief The engine is starting a (new) map. Fires on every map start, after the engine has
-     * loaded game event definitions - by this point framework game-event listeners are attached. Note
-     * that the engine resets game convars and re-execs gamemode cfgs around this, so values set
-     * at load time may need re-asserting from here or from a game event.
+     * @brief Called at each map start after game-event listeners are attached.
+     * The engine resets convars and runs game-mode cfgs around this callback, so
+     * plugins may need to reapply load-time values.
      */
     virtual void OnServerStartup(const char* mapName) {}
 
@@ -152,8 +145,7 @@ protected:
     /** @brief True if the plugin was loaded after the server started, rather than at boot. */
     bool IsLateLoad() const { return _lateLoad; }
 
-    // The base's own callbacks for the standard hooks. They forward to the virtuals above -
-    // you don't call these directly.
+    // Standard hook callbacks; subclasses use the virtual callbacks above.
     void Hook_GameFrame(bool simulating, bool firstTick, bool lastTick);
     void Hook_StartupServer(const GameSessionConfiguration_t& config, ISource2WorldSession* session,
                             const char* mapName);
@@ -172,8 +164,7 @@ private:
     void RegisterStandardHooks();
 
     bool _lateLoad = false;
-    /** Release the plugin graph, the standard hooks and the runtime, in that order.
-     *  Shared by Unload and the failed-OnLoad path so neither can drift. */
+    /** Release plugin state, standard hooks, and runtime in that order. */
     void Shutdown();
 
     std::vector<Core::Subscription> _standardHooks;
@@ -184,8 +175,7 @@ private:
 }  // namespace VoltMod::App
 
 /**
- * @brief The per-plugin entry-point boilerplate in one statement: the global instance
- * (g_<PluginClass>) and Metamod's PLUGIN_EXPOSE.
+ * @brief Define the global plugin instance and Metamod entry point.
  *
  * Invoke once, at global namespace scope, in the plugin's Plugin.cpp.
  */

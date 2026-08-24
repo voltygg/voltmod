@@ -11,7 +11,7 @@ uv sync                # install CMake, Conan, Ninja, and the framework tasks
 uv run poe bootstrap   # install Conan profiles and the remote, then build
 ```
 
-`bootstrap` runs once. After it, use `uv run poe build` for the normal build loop.
+Run `bootstrap` once, then use `uv run poe build` during development.
 
 ## Build
 
@@ -40,11 +40,10 @@ cmake --workflow --preset linux-steamrt-release
 uv run poe new-plugin fun-votes
 ```
 
-This stamps `plugins/fun-votes/` (a one-line `CMakeLists.txt` calling
-`voltmod_add_plugin`, plus `src/` and `configs/`) and registers its
-`add_subdirectory()` in the root CMakeLists.
+This creates `plugins/fun-votes/` with its CMake file, source, and configuration,
+then registers it in the root `CMakeLists.txt`.
 
 ## PostgreSQL
 
-Flip `voltmod/*:with_postgres` to `True` in `conanfile.py` - libpqxx arrives
-transitively and the framework's `VoltMod::Database` module lights up.
+Set `voltmod/*:with_postgres` to `True` in `conanfile.py` to add libpqxx and
+the `VoltMod::Database` module.
