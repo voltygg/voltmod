@@ -7,8 +7,7 @@ namespace VoltMod::Core
 {
 
 /**
- * @brief Default console logger implementation using HL2SDK's ConColorMsg.
- * Created automatically by VoltMod::Initialize() when no custom logger is provided.
+ * @brief Default `ConColorMsg` logger used when LoadContext has no custom logger.
  */
 class ConsoleLogger : public ILogger
 {

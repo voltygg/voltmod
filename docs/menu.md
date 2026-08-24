@@ -2,7 +2,7 @@
 
 [TOC]
 
-These are WASD-navigated center-HTML menus. Each row is a typed
+VoltMod menus use WASD input and center HTML. Each row is a typed
 @ref VoltMod::Menu::MenuOption. Build menus with
 @ref VoltMod::Menu::MenuBuilder; context rows and the
 @ref VoltMod::Menu::Flow wizard provide the common admin-panel behavior.
@@ -73,7 +73,7 @@ VoltMod::Flow<PendingPunishment>::Create(std::move(pending))
     ->Start(adminSlot);
 ```
 
-Notes:
+Flow contracts:
 
 - Text comes from per-slot provider functions, so every step renders in the viewing admin's language; the framework ships no strings of its own.
 - The `OnValidate` result is a translation key - on failure the flow closes the menus and replies through `runtime.Policy.Reply`.
@@ -83,7 +83,8 @@ Notes:
 
 ## Option types
 
-Every builder method appends a typed row; `AddOption(std::shared_ptr<MenuOption>)` is the escape hatch for custom subclasses.
+Every builder method appends a typed row. Use
+`AddOption(std::shared_ptr<MenuOption>)` for a custom subclass.
 
 - **`AddText(label)`** - non-selectable heading/divider; the cursor skips it.
 - **`AddButton(label, onActivate, enabled = true)`** - plain action row. `AddDynamicButton(getLabel, ...)` recomputes the label every frame.

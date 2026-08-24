@@ -61,7 +61,7 @@ voltmod_add_plugin(fun-votes VERSION 1.0.0)
 Each `voltmod_add_plugin` version is written to that plugin's manifest and build stamp. The generated `<VoltMod/BuildInfo.hpp>` adds the repository's short commit and last-commit date, producing a display version such as `1.0.0+a1b2c3d-dirty`. This lets plugins in one repository version independently while retaining exact build provenance. Wire the stamp into `Info()` so `meta list` identifies the deployed build:
 
 ```cpp
-#include <VoltMod/Core/PluginInfoStamp.hpp>  // only from Plugin.cpp - it pulls the per-commit BuildInfo.hpp
+#include <VoltMod/App/PluginInfoStamp.hpp>  // Plugin.cpp only; includes the generated BuildInfo.hpp
 
 VoltMod::PluginInfo MyPlugin::Info() const {
     // WithBuildInfo overwrites Version/Date/Commit from the stamp.
@@ -69,9 +69,12 @@ VoltMod::PluginInfo MyPlugin::Info() const {
 }
 ```
 
-The stamp reruns every build but rewrites the header only when committed state changes, so no-op builds stay no-op (that is also why `BuildDate` is the last-commit date, not wall-clock time). Outside a git checkout the fields degrade to `"unknown"`; in GitHub Actions, `GITHUB_SHA` is used as a fallback.
+The stamp step runs on every build but rewrites the header only when repository
+state changes. `BuildDate` is the last commit date, not wall-clock time. Outside
+a Git checkout the fields become `"unknown"`; GitHub Actions can use
+`GITHUB_SHA` as a fallback.
 
-### Build-system conventions
+### Build-system contracts
 
 The framework's CMake leans on standard mechanisms instead of hand-rolled flags wherever one exists:
 
@@ -81,7 +84,9 @@ The framework's CMake leans on standard mechanisms instead of hand-rolled flags 
 - The static-MSVC-runtime and ccache fallbacks live once in `VoltModCommon.cmake` as cache variables (visible to sibling plugin directories); a Conan toolchain that sets them wins.
 - SDK includes, defines and ABI flags are the `hl2sdk-cs2` package's usage requirements, not hand-written lists. Warning level is the one exception - `voltmod_set_warnings()` applies it per target, because it is the consumer's policy rather than the SDK's.
 - protobuf sources are generated once, inside the `hl2sdk-cs2` package build, and ship as source. No consumer runs protoc.
-- Deliberately **not** used, so the audit isn't re-run later: `GenerateExportHeader` (no export macros exist - Metamod's `PLUGIN_EXPOSE` handles the entry point), `install(... RUNTIME_DEPENDENCIES)` (runtimes are static), and `VERSION`/`SOVERSION` (meaningless for MODULE libraries).
+- The build does not use `GenerateExportHeader`, runtime-dependency installation,
+  or `VERSION`/`SOVERSION`. Metamod exports the entry point, runtimes are static,
+  and plugin targets are MODULE libraries.
 
 ## Adding to an existing repo
 

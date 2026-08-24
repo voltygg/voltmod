@@ -6,14 +6,13 @@ readme = "README.md"
 requires-python = ">=3.14"
 license = { text = "MIT" }
 
-# Runtime deps, not dev extras: consuming repos install this distribution to get the
-# poe tasks below, and inherit these pins so the toolchain never drifts between repos.
+# Consumers install these dependencies with the CLI and inherit its tool pins.
 dependencies = [
     "cmake>=4.3.4",
     "conan>=2.29.1",
     "ninja>=1.13.0",
     "clang-format==22.1.5",
-    # `voltmod package` reads each recipe's conandata.yml.
+    # `voltmod package` reads recipe conandata files.
     "pyyaml>=6.0",
 ]
 
@@ -27,8 +26,7 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["scripts/voltmod"]
 
-# The scaffold trees live at the repo root for editability; the wheel carries them
-# beside the package, where templates_dir() looks first.
+# Ship the repository-level scaffold trees beside the Python package.
 [tool.hatch.build.targets.wheel.force-include]
 "templates" = "voltmod/templates"
 
@@ -38,14 +36,14 @@ dev = [
     "poethepoet>=0.47.0",
 ]
 
-# Aliases for the voltmod CLI, which is where the behaviour lives.
+# Task aliases for the voltmod CLI.
 [tool.poe.tasks]
 build = "voltmod build"
 build-linux = "voltmod build linux-steamrt-release"
-# Stamps plugins/<name>/ in the invoking repo (run from the consuming repo's root).
+# Run from the consumer root; creates `plugins/<name>` there.
 new-plugin = "voltmod new-plugin"
 lint = "ruff check ."
-# Fails if a module starts depending on a layer above it.
+# Enforce the module include allowlist.
 modgraph = "voltmod modgraph"
 format = "voltmod format"
 format-check = "voltmod format --check"
@@ -53,12 +51,12 @@ format-check = "voltmod format --check"
 [tool.ruff]
 line-length = 100
 target-version = "py314"
-# templates/ are $placeholder scaffolds; linting would drop a .ruff_cache there.
+# Templates contain placeholders and should not receive a Ruff cache.
 extend-exclude = ["templates"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP"]
 
 [tool.ruff.lint.isort]
-# Sibling conan/ profiles dir would otherwise make isort treat conan as first-party.
+# The sibling `conan/` directory is not the Python package.
 known-third-party = ["conan"]

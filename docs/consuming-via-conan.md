@@ -13,7 +13,7 @@ The remote is **public**; no login or token is required.
 
 | Package | Contents |
 | --- | --- |
-| `voltmod/x.y.z` | one prebuilt static library per module, public headers, `cmake/` helpers, gamedata, plugin template. Option `with_postgres` gates the Database component (pulls libpqxx). |
+| `voltmod/x.y.z` | Runtime and optional Database static libraries, public headers, CMake helpers, gamedata, and plugin templates. `with_postgres` controls the Database component and libpqxx. |
 | `hl2sdk-cs2/<yyyy.mm.dd>` | trimmed HL2SDK in mirror layout: headers, prebuilt Valve libs, the generated `.pb.h`/`.pb.cc`, and the source-only TUs `voltmod_add_plugin` compiles per plugin. Versioned by the upstream commit date. |
 | `metamod-source/2.0.0.<yyyymmdd>` | Metamod core + SourceHook headers (header-only). |
 
@@ -22,7 +22,7 @@ Conan Center as *recipes*, and compile locally: nobody publishes binaries for th
 gcc-14 / old-libstdc++-ABI profile the Valve libs force. That is a one-time cost
 per machine, and CI caches the Conan home.
 
-CI publishes Linux Release binaries for Voltmod and the SDK packages. Windows
+CI publishes Linux Release binaries for VoltMod and the SDK packages. Windows
 and Debug builds compile missing packages locally through `--build=missing`.
 
 ## Setup
@@ -62,11 +62,9 @@ The framework ships as two libraries, declared as Conan components:
 runtime  database
 ```
 
-`VoltMod::VoltMod` is both, and remains the default. The source modules under `src/`
-are an architecture rather than a packaging unit - nothing ever selected them
-individually, so declaring nine components only duplicated the CMake dependency
-graph somewhere it could drift from. What a plugin genuinely can do without is the
-database, so that is the one thing to name:
+`VoltMod::VoltMod` includes every component enabled in the package. Source
+modules are architecture boundaries, not Conan components. Plugins select the
+optional database feature explicitly:
 
 ```cmake
 voltmod_add_plugin(bhop VERSION 1.0.0)          # runtime only, so no libpqxx

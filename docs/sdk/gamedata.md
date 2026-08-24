@@ -4,9 +4,9 @@
 
 ## GameData (signature management)
 
-VoltMod ships built-in gamedata (`gamedata/signatures.jsonc`), loaded during
-`VoltMod::Initialize()`. It contains engine signatures and offsets used by the
-Entity, PlayerController, and UserMessage subsystems.
+VoltMod ships `gamedata/signatures.jsonc`, which `Runtime::Start()` loads before
+consumer `OnLoad`. It contains engine signatures and offsets used by SDK
+services.
 
 Consumer plugins can also use GameData for their own signatures:
 
@@ -22,7 +22,10 @@ void* resolved = gd.ResolveSignature("SomeFunction");
 
 ### Eager resolution and diagnostics
 
-`VoltMod::Initialize()` runs `ResolveAll()` as the `GameData` load stage: every signature is scanned once, `FindSignature`/`ResolveSignature` answer from the cache afterwards, and the stage reports failures by name (`"2/13 signatures failed: X, Y"`). The scanner also detects **ambiguous** patterns - a pattern matching more than one location is a broken signature waiting to resolve to the wrong function after a game update, so it is warned about and listed in the stage detail. Per-entry results are available programmatically via `Resolutions()`.
+`Runtime::Start()` runs `ResolveAll()` as the `GameData` load stage. Each
+signature is scanned once, and later lookups use the cache. The stage reports
+missing and ambiguous signatures by name; per-entry results are available from
+`Resolutions()`.
 
 ### Deliberately not implemented
 
@@ -73,7 +76,9 @@ and CS2AC). The entries surfaced by anti-cheat are:
 | `ProcessRespondCvarValue` | @ref VoltMod::Sdk::ClientCvarService | Sanity-bounded at init (index > 500 rejected), so the load stage degrades instead of crashing |
 | `ServerSideClientSlot` | `ClientCvarService` | Sanity-bounded too (offset > 4096 or misaligned rejected); unchecked it would attribute a client's answer to the wrong player |
 
-The two `ClientCvarService` entries are validated at `Initialize()` precisely because they come from a third-party gamedata file and can be hand-edited: an implausible value logs a warning and leaves the service inert rather than taking the server down. That safety net catches nonsense, not a value that drifted to another *plausible* index - only re-verification does.
+`ClientCvarService::Initialize()` rejects implausible values and leaves the
+service inert. This catches invalid edits, but not a stale value that still falls
+within the accepted range; game updates still require verification.
 
 ## Signature scanning
 

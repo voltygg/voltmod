@@ -20,12 +20,13 @@ The guide is split by topic:
 
 ## GameInterfaces
 
-Centralized holder for all SDK interface pointers. Automatically populated by `VoltMod::Initialize()` - no manual setup needed.
+`Runtime::Start()` populates this holder with the SDK interfaces used by the
+framework.
 
 ```cpp
 #include <VoltMod/Runtime.hpp>
 
-// After VoltMod::Initialize(), all interfaces are available:
+// OnLoad runs after Runtime::Start, so the interfaces are available here:
 auto& gi = runtime.Interfaces;
 auto* engine = gi.Engine;       // IVEngineServer2*
 auto* cvar = gi.CVar;           // ICvar*

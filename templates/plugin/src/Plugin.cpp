@@ -3,7 +3,7 @@
 #include "Config.hpp"
 
 #include <VoltMod/Api.hpp>
-#include <VoltMod/Core/PluginInfoStamp.hpp>
+#include <VoltMod/App/PluginInfoStamp.hpp>
 
 VOLTMOD_PLUGIN($klass);
 

@@ -1,7 +1,6 @@
 include_guard(GLOBAL)
 
-# Consumer-facing plugin API. Reaches consumers as a CMakeDeps build module, so
-# after find_package(voltmod CONFIG REQUIRED) any project can call:
+# Consumer plugin API delivered as a CMakeDeps build module:
 #   voltmod_add_plugin(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...]
 #                  [FEATURES ...] [PCH_HEADERS ...]
 #                  VERSION <v> [DESCRIPTION <text>]
@@ -10,17 +9,12 @@ include_guard(GLOBAL)
 # VOLTMOD_ROOT_DIR / _PLATFORM_ARCH / _GAMEDATA_DIR and voltmod_set_warnings.
 include("${CMAKE_CURRENT_LIST_DIR}/VoltModCommon.cmake")
 
-# Create a Metamod plugin MODULE linked against VoltMod, with output dirs and
-# install rules. SOURCES defaults to a glob of src/*.cpp; INCLUDE_DIRS and
-# LIBRARIES are appended to the defaults. PCH_HEADERS extends the plugin's
-# precompiled header (e.g. "<pqxx/pqxx>").
+# Create a Metamod MODULE with output and install rules. SOURCES defaults to
+# `src/*.cpp`; the other lists extend their defaults.
 #
-# FEATURES names the optional parts of the framework this plugin needs. DATABASE adds
-# VoltMod::Database (and libpqxx); without it a movement plugin carries neither. The
-# always-present VoltMod::Runtime is linked either way.
+# FEATURES DATABASE adds VoltMod::Database and libpqxx. Runtime is always linked.
 #
-# VERSION is required and fills both the manifest and build stamp.
-# DESCRIPTION/DEPENDS/REQUIRES fill the rest of the generated manifest.
+# VERSION is required. Metadata and dependency arguments fill the manifest.
 function(voltmod_add_plugin target_name)
     cmake_parse_arguments(ARG "" "VERSION;DESCRIPTION"
         "SOURCES;INCLUDE_DIRS;LIBRARIES;FEATURES;PCH_HEADERS;DEPENDS;REQUIRES" ${ARGN})
@@ -29,7 +23,7 @@ function(voltmod_add_plugin target_name)
         message(FATAL_ERROR "voltmod_add_plugin(${target_name}) requires VERSION")
     endif()
 
-    # Shipped by the hl2sdk-cs2 build module, which arrives with voltmod.
+# Provided by the hl2sdk-cs2 build module.
     if(NOT COMMAND hl2sdk_attach_plugin_support)
         message(FATAL_ERROR
             "hl2sdk-cs2's build module is missing - find_package(voltmod CONFIG REQUIRED) "
@@ -46,12 +40,12 @@ function(voltmod_add_plugin target_name)
     target_compile_features("${target_name}" PRIVATE cxx_std_23)
     voltmod_set_cxx_defaults("${target_name}")
 
-    # Release PDBs for crash dumps; the /Z7 half comes from voltmod_set_cxx_defaults.
+# Ship release PDBs for crash dumps; common settings provide /Z7.
     target_link_options("${target_name}" PRIVATE
         "$<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:MSVC>>:/DEBUG;/OPT:REF;/OPT:ICF>"
     )
 
-    # The per-module SDK TUs, with the warning, PCH and unity exclusions they need.
+# Attach per-plugin SDK sources and their compile exclusions.
     hl2sdk_attach_plugin_support("${target_name}")
 
     target_include_directories("${target_name}" PRIVATE
@@ -81,8 +75,7 @@ function(voltmod_add_plugin target_name)
     )
 
     if(NOT VOLTMOD_DISABLE_PCH)
-        # <VoltMod/Api.hpp> drags the whole hl2sdk/Metamod/protobuf header universe
-        # (~200k LOC) into nearly every plugin TU; precompiling it is the big win.
+# Precompile the large public API header unless explicitly disabled.
         target_precompile_headers("${target_name}" PRIVATE
             "<VoltMod/Api.hpp>"
             ${ARG_PCH_HEADERS}
@@ -92,8 +85,7 @@ function(voltmod_add_plugin target_name)
     voltmod_set_warnings("${target_name}")
     voltmod_stamp_build_info("${target_name}" "${ARG_VERSION}")
 
-    # Route artifacts to build/plugins/<name>/<platform_arch>/, no rpath, no lib
-    # prefix. Ninja is single-config, so no per-config output-dir variants.
+# Write unprefixed modules to `plugins/<name>/<platform_arch>` without an rpath.
     set(output_dir "${CMAKE_BINARY_DIR}/plugins/${target_name}/${VOLTMOD_PLATFORM_ARCH}")
     set_target_properties("${target_name}" PROPERTIES
         PREFIX ""
@@ -112,7 +104,7 @@ function(voltmod_add_plugin target_name)
     voltmod_install_plugin("${target_name}")
 endfunction()
 
-# Append one JSON dependency object for "<name>[>=<version>]" to out_var.
+# Append a parsed dependency specification to the manifest JSON.
 function(_voltmod_dependency_json out_var spec required)
     if(spec MATCHES "^(.+)>=(.+)$")
         set(name "${CMAKE_MATCH_1}")
@@ -131,8 +123,8 @@ function(_voltmod_dependency_json out_var spec required)
     set("${out_var}" "${entries}" PARENT_SCOPE)
 endfunction()
 
-# Generate <name>.manifest.json, which LoadStandardConfig adopts. Unmet DEPENDS warn and
-# unmet REQUIRES log an error; neither aborts the load, since .vdf order is Metamod's.
+# Generate the manifest consumed by LoadStandardConfig. Dependency findings are
+# advisory because Metamod controls VDF load order.
 function(voltmod_write_plugin_manifest target_name version description depends requires)
     set(dependency_entries)
     foreach(spec IN LISTS depends)
@@ -158,9 +150,7 @@ function(voltmod_write_plugin_manifest target_name version description depends r
     )
 endfunction()
 
-# install() rules for one plugin's deploy bundle, under a component named after the
-# target. `cmake --install --component <target>` is the single source of the addons/
-# layout consumed by deploy tooling.
+# Install one server-ready addon bundle under a component named after the target.
 function(voltmod_install_plugin target_name)
     if(WIN32)
         set(bin_subdir "win64")
@@ -169,21 +159,19 @@ function(voltmod_install_plugin target_name)
     endif()
     set(addon_bin "addons/${target_name}/bin/${bin_subdir}")
 
-    # Only the loadable module ships (no ARCHIVE import .lib). COMPONENT must repeat
-    # per kind: a MODULE's .dll/.so is the LIBRARY artifact, else it lands in the
-    # default "Unspecified" component.
+# Install only the MODULE artifact. COMPONENT must be specified per artifact kind.
     install(TARGETS "${target_name}"
         LIBRARY DESTINATION "${addon_bin}" COMPONENT "${target_name}"
         RUNTIME DESTINATION "${addon_bin}" COMPONENT "${target_name}"
     )
 
-    # Debug symbols when the build produced them (Release usually does not).
+# Install debug symbols when present.
     if(WIN32)
         install(FILES "$<TARGET_PDB_FILE:${target_name}>"
             DESTINATION "${addon_bin}" COMPONENT "${target_name}" OPTIONAL)
     endif()
 
-    # Generated, platform-correct VDF (the bin subdir is part of its "file" value).
+# Generate a VDF whose file path includes the platform bin directory.
     set(CS2_PLUGIN_NAME "${target_name}")
     set(CS2_PLUGIN_BIN_SUBDIR "${bin_subdir}")
     configure_file(
@@ -195,11 +183,11 @@ function(voltmod_install_plugin target_name)
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.vdf"
         DESTINATION "addons/metamod" COMPONENT "${target_name}")
 
-    # Beside the configs, where LoadStandardConfig looks for it.
+# LoadStandardConfig reads the manifest beside `configs`.
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.manifest.json"
         DESTINATION "addons/${target_name}" COMPONENT "${target_name}")
 
-    # Configs except settings.jsonc (rendered per-server at deploy time).
+# Deployment renders settings.jsonc per server.
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/configs")
         install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/configs/"
             DESTINATION "addons/${target_name}/configs"
@@ -208,7 +196,7 @@ function(voltmod_install_plugin target_name)
         )
     endif()
 
-    # Shared voltmod gamedata (location owned by voltmod, not hardcoded here).
+# Install VoltMod's shared gamedata.
     if(EXISTS "${VOLTMOD_GAMEDATA_DIR}")
         install(DIRECTORY "${VOLTMOD_GAMEDATA_DIR}/"
             DESTINATION "addons/voltmod/gamedata"
@@ -216,8 +204,7 @@ function(voltmod_install_plugin target_name)
     endif()
 endfunction()
 
-# Generate a target-specific <VoltMod/BuildInfo.hpp> so plugins in one repository can
-# carry independent versions while sharing the same Git build identity.
+# Generate target-specific BuildInfo with the plugin version and repository identity.
 function(voltmod_stamp_build_info target_name version)
     set(stamp_target "${target_name}-buildinfo")
     set(include_dir "${CMAKE_BINARY_DIR}/voltmod-buildinfo/${target_name}/include")

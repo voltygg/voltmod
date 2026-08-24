@@ -1,146 +1,148 @@
-# VoltMod - C++23 CS2 plugin development framework
+# VoltMod repository
 
-Reusable C++23 framework for building Counter-Strike 2 server plugins with
-Metamod:Source 2.0.
+VoltMod is a C++23 framework for Counter-Strike 2 Metamod:Source plugins. This
+directory is its own Git repository; when it is nested in `cs2-plugins`, inspect
+and validate it separately from the parent worktree.
 
-## Tech Stack
-
-- Language: C++23
-- Framework: Metamod:Source 2.0 + hl2sdk-cs2
-- Build: CMake 4.3.4+ presets + Conan 2.29.1+
-- Public target: `VoltMod::VoltMod`
-- Docs: Doxygen + doxygen-awesome-css (`docs/`)
-
-## Project Structure
-
-```text
-include/VoltMod/        Public API headers, one directory per module
-src/                   Implementation, one directory per module (two libraries)
-gamedata/              Engine signatures and offsets
-cmake/                 VoltModCommon.cmake (paths, platform, toolchain fallbacks)
-                       + VoltModPlugin.cmake (voltmod_add_plugin, manifest/vdf, build stamping)
-                       + VoltModTests.cmake (voltmod_add_tests) + DoctestMain.cpp + templates
-                       + VoltModLibrary.cmake (framework-internal: one static lib per target)
-scripts/voltmod/        Build + scaffolding tooling, shipped as the `voltmod` Python
-                       distribution behind one `voltmod` command (build, bootstrap,
-                       format, modgraph, new-plugin, init); every subcommand
-                       targets Path.cwd()
-templates/plugin/      Plugin scaffold tree ($name/$ns/... placeholders)
-templates/project/     Consumer-project scaffold
-test_package/          conan create validation: hello plugin via voltmod_add_plugin
-tests/                 SDK-free unit tests (doctest + ctest); see docs/testing.md
-docs/                  Doxygen pages and guides
-CMakeLists.txt         Standalone CMake build
-CMakePresets.json      Windows/Linux presets
-conanfile.py           This repo's consumer conanfile AND its package recipe
-conan/                 profiles/ + remotes.json, installed together with
-                       `conan config install <repo> -sf conan`
-```
-
-There are no submodules. `hl2sdk-cs2` and `metamod-source` are Conan packages built
-from the recipes in `recipes/`; hl2sdk's build module attaches the SDK sources a
-consumer compiles (`hl2sdk_attach_*`). Preset names are public API for consumers -
-rename with care.
-
-## Release workflow
-
-`voltmod package <build|publish|tag|prune|watch>` is the whole release surface, and
-CI is three workflows that call it: `ci.yml` (checks, then build the SDKs and the
-framework against them), `publish.yml` (SDK packages on a `recipes/**` push to main,
-voltmod on a `v*` tag), `watch.yml` (daily upstream check, weekly prune). Each
-value has one home: `conanfile.py` for the framework's version, each recipe's
-`conandata.yml` for its SDK pin, `conan/remotes.json` for the remote,
-`conan/profiles/` for the ABI, `pyproject.toml` for tool versions.
-
-## Build commands
+## Commands
 
 ```bash
+uv sync
 uv run poe build
 uv run poe build windows-msvc-release
 uv run poe build-linux
-uv run poe new-plugin <name>   # scaffold a plugin into the invoking repo's plugins/
-voltmod init                    # stamp a whole consumer project (run from its root)
+uv run poe lint
+uv run poe format-check
+uv run poe modgraph
+uv run poe new-plugin <name>
+voltmod init
 ```
 
-`poe build` runs the full workflow preset (configure, build, ctest). Consuming
-repos install this distribution and get the same tasks; there are no wrapper
-scripts anywhere.
+`voltmod build` runs the selected CMake workflow preset, including CTest unless
+`--no-test` is passed. All CLI commands operate on the current working
+directory, so run scaffolding commands from the consumer repository.
 
-Consuming projects find the package and declare plugins with the framework-provided
-`voltmod_add_plugin`, which reaches them as a CMakeDeps build module:
+## Repository map
+
+```text
+include/VoltMod/     Public C++ API by module
+src/                 Framework implementation
+cmake/               Plugin, test, library, and build-stamp helpers
+gamedata/            Engine signatures and offsets
+conan/               Canonical profiles and public remote configuration
+recipes/             HL2SDK and Metamod Conan recipes
+scripts/voltmod/     The `voltmod` Python CLI
+templates/plugin/    Files copied by `voltmod new-plugin`
+templates/project/   Files copied by `voltmod init`
+test_package/        Conan package smoke test
+tests/               SDK-free doctest suite
+docs/                Doxygen guides
+```
+
+HL2SDK and Metamod are Conan packages. The HL2SDK build module attaches the SDK
+translation units that consumers must compile. There are no submodules.
+
+## Package and build model
+
+Consumers require the package, then call the CMake helpers delivered as Conan
+build modules:
 
 ```cmake
 find_package(voltmod CONFIG REQUIRED)
+voltmod_add_plugin(my-plugin VERSION 1.0.0)
 ```
 
-```cmake
-# plugins/<name>/CMakeLists.txt
-voltmod_add_plugin(<name> VERSION <version> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...])
-```
+The framework builds two libraries:
 
-## Code conventions
+- `VoltMod::Runtime` contains Core, SDK, Players, Commands, Menu, HTTP, and App.
+- `VoltMod::Database` contains the optional PostgreSQL layer.
 
-- C++23.
-- `.hpp` headers, not `.h`.
-- C#-style naming: `PascalCase` types/methods, `_camelCase` members.
-- One flat `VoltMod::Runtime` per load cycle; no process-lifetime singletons.
-  Objects take their collaborators through constructors, not from a global.
-- Use `std::format`, designated initializers, and `std::function` callbacks.
-- Declarative descriptors over builders: `CommandSpec`, `EffectDescriptor`,
-  `Action`, menu context rows. They are plain data, registered explicitly from
-  the consumer's load path - never self-registering at static init.
-- Listener registrations return a `[[nodiscard]] Subscription` that unregisters
-  on destruction; hold it next to whatever its callback captures.
-- Consumer policy is injected once through `Runtime::Policy` (PluginPolicy);
-  framework code never hardcodes permission/immunity/reply behavior.
-- Game thread only. The only threads are the database worker and HTTP's pool;
-  both replay completions on the game thread via `Scheduler::EveryFrame` pumps.
-- Public vocabulary is hoisted to `VoltMod::Type` in `VoltMod/Api.hpp`; prefer the
-  short names over `VoltMod::Module::Type`. In `.hpp` never use a namespace-scope
-  using-directive; `using namespace VoltMod::X;` is `.cpp`-only (TU-local).
+`VoltMod::VoltMod` is the umbrella target. A plugin gets only Runtime by
+default; `FEATURES DATABASE` adds Database. `voltmod_add_plugin` also configures
+SDK glue, PCH, output layout, build metadata, VDF generation, and install
+components.
 
-## Module layering
+The public presets are `windows-msvc-{release,debug}` and
+`linux-steamrt-{release,debug}`. Treat their names as consumer API.
 
-`uv run poe modgraph` checks each module's includes against an explicit
-allowlist in `scripts/voltmod/modgraph.py`. A cycle check is not enough: an
-upward edge stays acyclic and is exactly what breaks the layering.
+`voltmod package <build|publish|tag|prune|watch>` owns releases. Framework
+versioning lives in `conanfile.py`; SDK revisions live in each recipe's
+`conandata.yml`; remotes and ABI profiles live under `conan/`; tool versions live
+in `pyproject.toml`.
+
+## Runtime and API design
+
+`VoltMod::MetamodPlugin` owns Metamod entry points, standard hooks, player
+tracking, and one `VoltMod::Runtime` per load cycle. It passes the runtime to
+`OnLoad(Runtime&, bool late)`. Consumers must destroy their own load-cycle state
+in `OnUnload`.
+
+The runtime is a flat service container. Services are accessed directly, such
+as `runtime.Messages` and `runtime.Players`, so moving a service between source
+modules does not rename the consumer API. Framework-only call sites that cannot
+receive a reference may use `VoltMod::Detail::Rt()`; consumer plugins must not.
+
+Use these patterns throughout the framework:
+
+- Plain-data descriptors such as `CommandSpec`, `Action`, and menu context rows
+  are registered explicitly during load. Do not self-register at static init.
+- Consumers inject permission, targeting, reply, and broadcast behavior once
+  through `Runtime::Policy`.
+- Registrations return a `[[nodiscard]] Subscription`. Store it beside the state
+  its callback captures.
+- Constructor injection is the default. Do not add process-lifetime singletons.
+- Database and HTTP workers replay completions on the game thread through
+  scheduler frame pumps.
+- `<VoltMod/Api.hpp>` exports common short names into `VoltMod`. Database names
+  remain in `<VoltMod/Database/Api.hpp>` so ordinary translation units do not
+  include libpqxx.
+
+## Module rules
+
+`uv run poe modgraph` enforces the include allowlist in
+`scripts/voltmod/modgraph.py`:
 
 ```text
-Core      -> (none)          primitives: ILogger, Paths, Slot, Scheduler, Subscription
+Core      -> none
 Http      -> Core
-Sdk       -> Core            everything engine-facing
-Players   -> Core Sdk
-Commands  -> Core Sdk Players
-Menu      -> Core Sdk Players
-Database  -> Core            option-gated on with_postgres
-App       -> everything      the composition root: Runtime, MetamodPlugin
+Sdk       -> Core
+Players   -> Core, Sdk
+Commands  -> Core, Sdk, Players
+Menu      -> Core, Sdk, Players
+Database  -> Core
+App       -> all modules
 ```
 
-The build is two libraries, not one per module: `VoltMod::Runtime` and
-`VoltMod::Database`. `voltmod_add_plugin(<name> FEATURES DATABASE)` adds the second,
-so a plugin with no database carries no libpqxx.
+An acyclic graph is not enough; an upward dependency still violates this
+layering.
 
-**Framework code reaches services through the references it was given.** The one
-exemption is `VoltMod::Detail::Rt()`, the ambient pointer to the live Runtime,
-for the places that have no other channel: class templates instantiated in
-consumer TUs (`Flow<TState>`, `PerSlot<T>`), ConVar and SourceHook trampolines,
-and Metamod entry points. It is framework-internal; plugins never call it.
+## Conventions
 
-## Design notes
+- Use C++23 and `.hpp` headers.
+- Use `PascalCase` for types and methods and `_camelCase` for members.
+- Use `std::format`, designated initializers, and `std::function` callbacks.
+- Do not put namespace-scope using-directives in headers.
+- Keep templates buildable and documentation examples aligned with the public
+  headers.
 
-`VoltMod::App::MetamodPlugin` is the plugin entry point: it owns the ISmmPlugin
-boilerplate, the Load/Unload flow, the standard SourceHook hooks and the
-`PlayerManager` lifecycle, creates the `Runtime` for one load cycle and hands it
-to `OnLoad(Runtime&, bool late)`. Whatever the plugin owns goes in a struct of
-its own, built there and dropped in `OnUnload` - which is what makes a
-`meta reload` start clean. All player-facing text goes through
-`Runtime::Messages` (MessageKind: Chat/Center/CenterHtml/Alert);
-`PostgresDatabase` is async-first with blocking calls reserved for load time.
+## Commenting and documentation
 
-`VOLTMOD_PLUGIN(Klass)` expands the per-plugin entry-point ceremony (instance,
-PLUGIN_EXPOSE); `PLUGIN_GLOBALVARS` ships inside MetamodPlugin.hpp.
-`VoltMod::LoadStandardConfig` is the standard OnLoad prelude (config +
-translations as LoadReport stages). The default `OnPlayerChat` dispatches
-registered commands, so a plugin with no chat customization writes none of that.
-The Database vocabulary hoist lives in `<VoltMod/Database/Api.hpp>`, deliberately
-outside `Api.hpp`, so `<pqxx/pqxx>` only reaches TUs that opt in.
+- Keep public comments focused on purpose, preconditions, ownership, lifetime,
+  errors, return behavior, and concurrency when those details are not obvious
+  from the declaration. Remove comments that narrate syntax or repeat a
+  symbol name.
+- Use Doxygen for public headers. Preserve exact symbol names and Doxygen tags,
+  and update the contract when the API changes.
+- Use internal comments for module boundaries, layering constraints, build
+  behavior, compatibility, and other reasons the code cannot express clearly.
+  Keep them next to the code they explain and remove stale history.
+- Keep `docs/` focused on current framework behavior and maintenance. Lead
+  procedures with prerequisites, commands, paths, and expected results.
+- Keep `templates/` documentation synchronized with the files that
+  `voltmod init` and `voltmod new-plugin` copy. Examples must remain runnable.
+- Use sentence-case headings and plain, direct English. Refer to VoltMod as
+  the framework; use “library” only for an actual library or CMake target.
+
+Tests use doctest and must remain SDK-free unless a separate integration-test
+surface is added. Each test case becomes a CTest entry; names must not contain
+`[`, `]`, or `;`.

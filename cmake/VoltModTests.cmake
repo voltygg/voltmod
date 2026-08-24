@@ -1,17 +1,14 @@
 include_guard(GLOBAL)
 
-# Consumer-facing test API. Reaches consumers as a CMakeDeps build module, so
-# after find_package(voltmod CONFIG REQUIRED) any project can call:
+# Consumer test API delivered as a CMakeDeps build module:
 #   voltmod_add_tests(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...])
 # SOURCES are the SDK-free TUs to recompile; tests/*.cpp is globbed automatically.
 
 # For VOLTMOD_ROOT_DIR; include_guard(GLOBAL) makes the repeat include free.
 include("${CMAKE_CURRENT_LIST_DIR}/VoltModCommon.cmake")
 
-# doctest hands test names to CTest through a CMake list, where '[' and ']' group and
-# ';' separates. An unmatched bracket aborts configure with an unrelated-looking
-# "add_test called with incorrect number of arguments"; a ';' silently splits one case
-# into two bogus entries. Fail here instead, pointing at the file.
+# doctest passes names through a CMake list, where brackets group and semicolons
+# split entries. Reject them before discovery corrupts the test list.
 function(voltmod_verify_test_names)
     foreach(source IN LISTS ARGN)
         file(STRINGS "${source}" offenders REGEX "TEST_CASE[A-Z_]*\\(\"[^\"]*[][;]")
@@ -23,8 +20,7 @@ function(voltmod_verify_test_names)
     endforeach()
 endfunction()
 
-# Test executable that recompiles pure-logic TUs rather than linking the plugin or the
-# framework, so nothing pulls in HL2SDK/Metamod. One CTest entry per test case.
+# Recompile pure logic without the plugin, framework, HL2SDK, or Metamod.
 function(voltmod_add_tests target_name)
     cmake_parse_arguments(ARG "" "" "SOURCES;INCLUDE_DIRS;LIBRARIES" ${ARGN})
 

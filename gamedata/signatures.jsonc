@@ -1,9 +1,7 @@
 {
   "$schema": "./signatures.schema.json",
-  // Platform-specific byte patterns and offsets, resolved at runtime by the
-  // signature scanner. Fragile: re-verify after every CS2 engine update.
-  // Pattern syntax: space-separated hex, "?" = wildcard byte, "offset" = byte
-  // distance from the match to the rel32 displacement (RIP-relative resolve).
+  // Re-verify offsets and patterns after every CS2 engine update. Patterns use
+  // space-separated hex and `?` wildcards; `offset` locates a rel32 displacement.
 
   "offsets": {
     // Byte offset of the CGameEntitySystem* inside IGameResourceService.
@@ -11,14 +9,12 @@
       "windows": 88,
       "linux": 80
     },
-    // CBasePlayerPawn::CommitSuicide vtable index. Cross-checked vs SwiftlyS2
-    // and cs2-menus; the earlier 400/400 hit an unrelated vfunc and crashed.
+    // CBasePlayerPawn::CommitSuicide vtable index; checked against SwiftlyS2 and cs2-menus.
     "CommitSuicide": {
       "windows": 390,
       "linux": 390
     },
     // CCSPlayerController::ChangeTeam vtable index (SwiftlyS2: 103/102).
-    // Earlier 101/101 hit CBaseEntity::ChangeTeam, which doesn't switch team.
     "ChangeTeam": {
       "windows": 103,
       "linux": 102
@@ -46,34 +42,23 @@
       "windows": 22,
       "linux": 23
     },
-    // Byte offset of the CSGOUserCmdPB message inside the CUserCmd wrapper that
-    // RunCommand receives. Cross-checked vs CS2Fixes (pad0[0x10]) and SwiftlyS2
-    // (CUserCmd.Address + 0x10). Missing/wrong => MovementHook cmd listeners get
-    // Valid=false views.
+    // CSGOUserCmdPB offset in CUserCmd; checked against CS2Fixes and SwiftlyS2.
     "UserCmdPB": {
       "windows": 16,
       "linux": 16
     },
-    // Byte offset of the native command counter inside the same CUserCmd wrapper:
-    // CUserCmdBase is { vptr, int32 cmdNum, 4 bytes padding }, which is why the
-    // CSGOUserCmdPB above starts at 16 (cross-checked vs CS2AC's sdk/usercmd.h).
-    // CBaseUserCmdPB.legacy_command_number is not populated by the live client, so
-    // this is the real source; missing => UserCmdView.CommandNumber falls back to it.
+    // Native command counter in CUserCmd. The live client does not populate
+    // CBaseUserCmdPB.legacy_command_number; checked against CS2AC.
     "UserCmdNumber": {
       "windows": 8,
       "linux": 8
     },
-    // CServerSideClient::ProcessRespondCvarValue vtable index (CS2AC gamedata:
-    // 38/40). Drives Sdk::ClientCvarService's response hook; a wrong index hooks
-    // an unrelated vfunc. Sanity-bounded at init, which degrades instead of
-    // crashing, but re-verify after every engine update.
+    // CServerSideClient::ProcessRespondCvarValue vtable index (CS2AC: 38/40).
     "ProcessRespondCvarValue": {
       "windows": 38,
       "linux": 40
     },
-    // Byte offset of the player slot inside CServerSideClient, which the SDK
-    // does not declare (CS2AC gamedata: "ClientSlotOffset" 72/72). Read to
-    // attribute a client convar response to a player. Same drift caveat.
+    // Player slot offset in CServerSideClient (CS2AC ClientSlotOffset: 72/72).
     "ServerSideClientSlot": {
       "windows": 72,
       "linux": 72

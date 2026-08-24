@@ -22,34 +22,11 @@ struct CommandResult
 };
 
 /**
- * @brief Declarative chat-command definition.
+ * @brief Command metadata, typed arguments, permission, surfaces, and handler.
  *
- * Defines a command's metadata, permission, typed arguments, and handler. Argument
- * resolution finishes before the handler runs.
- *
- * @code
- * void RegisterBanCommands(CommandManager& commands, PunishmentService& punishments)
- * {
- * commands.Register({
- *     .Name = "ban",
- *     .Description = "Ban a player.",
- *     .Permission = Flag(Permission::Ban),
- *     .Args = {Target(), Duration(), ReasonTail("reason.bannedByAdmin")},
- *     .Handler = [&punishments](CommandContext& c) {
- *         std::string name = c.Target().GetName();
- *         if (!punishments.IssueBan(*c.Caller, c.Target(), c.Reason, c.Duration().value_or(0)))
- *             return c.Fail("cmd.banFailed");
- *         return c.Ok("cmd.banSuccess", {{"name", name}});
- *     },
- * });
- * }
- * @endcode
- *
- * Targets are resolved through the selector
- * grammar (with immunity from runtime.Policy), durations/SteamIDs are parsed and validated,
- * and failures reply with localized messages from the reserved keys `target.noMatch`,
- * `target.immune`, `target.ambiguous`, `target.dead`, `target.bot`, `cmd.badDuration`,
- * `cmd.badSteamId` (override per-arg via ArgSpec::ErrorKey).
+ * The manager resolves every required argument and applies target immunity
+ * before calling the handler. Parse and target failures produce localized
+ * replies; ArgSpec::ErrorKey can override the default key.
  */
 enum class ArgKind : uint8_t
 {
@@ -72,7 +49,7 @@ struct ArgSpec
     std::string ErrorKey;               ///< overrides the default parse-failure message key
 };
 
-// Prefer these factories to raw ArgSpec values at call sites.
+// Factories for declarations at call sites.
 ArgSpec Target(Players::TargetRules rules = {});
 ArgSpec TargetOrSteamId();
 ArgSpec Duration();
@@ -84,10 +61,8 @@ ArgSpec ReasonTail(std::string fallbackKey = {});
 /**
  * @brief Resolved command input.
  *
- * Required arguments are present whenever the handler runs, so accessors for
- * declared arguments can return values directly.
- *
- * An accessor not declared by the spec returns its empty value.
+ * Required arguments are present when the handler runs. Accessors for arguments
+ * not declared by the spec return their empty value.
  */
 struct CommandContext
 {

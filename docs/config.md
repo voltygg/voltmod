@@ -31,11 +31,11 @@ Member names must match the JSON keys. The `_WITH_DEFAULT` macro means a missing
 Ship a `settings.schema.json` next to the jsonc and reference it with a relative `$schema` line as the file's first key - editors then autocomplete keys and squiggle typos (`additionalProperties: false` makes the schema stricter than the runtime, which is the point; the parser itself ignores unknown keys). The plugin scaffold emits a starter schema; keep it in sync when the Settings struct grows. The framework's own `gamedata/signatures.jsonc` follows the same convention.
 
 ```cpp
-bool MyPlugin::OnLoad(bool late)
+bool MyPlugin::OnLoad(VoltMod::Runtime& runtime, bool late)
 {
     // Config + translations as LoadReport stages; uses LoadSettings when your
     // ConfigManager defines one, plain Load otherwise.
-    return VoltMod::LoadStandardConfig(Runtime, Config, {.Addon = "my-plugin"});
+    return VoltMod::LoadStandardConfig(runtime, Config, {.Addon = "my-plugin"});
 }
 ```
 

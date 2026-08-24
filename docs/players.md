@@ -6,8 +6,8 @@
 into data: a selector grammar for command targets and policy-checked
 `Action`/effect descriptors for the operation itself.
 
-`Player` contains identity and connection metadata only. Keep plugin state such as
-admin flags, punishments, and statistics in your own managers, keyed by SteamID.
+`Player` stores identity and connection metadata only. Keep admin flags,
+punishments, statistics, and other plugin state in managers keyed by SteamID.
 
 ## Tracking
 

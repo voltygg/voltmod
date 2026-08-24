@@ -22,7 +22,7 @@ libraries (`VoltMod::Runtime` and `VoltMod::Database`). The layering is checked:
 `voltmod modgraph` fails the build when a module includes a header from a layer
 it is not allowed to reach.
 
-## Ground rules
+## Design rules
 
 - **Game thread only.** Metamod hooks arrive on the main thread, and framework
   code runs there. The database worker and HTTP pool are the exceptions: they
@@ -50,7 +50,7 @@ runtime.Messages.Reply(slot, "done");
 runtime.Schema().GetOffset("CCSPlayerPawn", "m_iHealth");   // Schema() is a method
 ```
 
-**Your `App`** holds everything your plugin owns for one load cycle. Build it in
+**Your `App`** holds everything the plugin owns for one load cycle. Build it in
 `OnLoad` from the runtime you are given, drop it in `OnUnload`:
 
 ```cpp
@@ -109,16 +109,12 @@ void RegisterBanCommands(VoltMod::CommandManager& commands, App& app)
 }
 ```
 
-The framework used to offer a `Registry<T>` that let a descriptor register itself at its
-definition site. It was dropped: those items are constructed during static
-initialization, before Load, so their handlers could only reach dependencies through a
-process-wide accessor - which is the reason such an accessor existed at all. Calling a
-function costs one line and hands the handler its collaborators directly.
+Do not self-register descriptors during static initialization. Register them
+from the load path so handlers can capture their dependencies explicitly.
 
 ## Teardown
 
-There is no deferred-cleanup stack. Anything that needs undoing is either a member
-whose destructor does it, or a @ref VoltMod::Core::Subscription:
+Cleanup belongs in a member destructor or a @ref VoltMod::Core::Subscription:
 
 ```cpp
 _spawn = runtime.Events.Listen<Events::PlayerSpawn>([this](const auto& e) { OnSpawn(e.Slot); });

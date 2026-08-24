@@ -4,7 +4,7 @@
 
 ## EntitySystem
 
-Access player controllers and entity data:
+Use `runtime.Entities` for raw controllers and entity lookup:
 
 ```cpp
 auto& es = runtime.Entities;
@@ -31,7 +31,7 @@ For typed operations on a player, construct a
 
 ## PlayerController
 
-Typed wrapper around `CCSPlayerController` for common operations. Construct it from a player
+`PlayerController` wraps common `CCSPlayerController` operations. Construct it from a player
 slot - it resolves the controller entity internally (check `IsValid()` if the slot may be
 empty). When you already hold a tracked `VoltMod::Player*`, `player->Controller()` builds the
 same wrapper:

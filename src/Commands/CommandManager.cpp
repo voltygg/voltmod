@@ -58,9 +58,7 @@ void CommandManager::Register(CommandSpec spec)
         return;
     }
 
-    // Index aliases up front. Lookup used to fall back to a linear scan over an unordered_map,
-    // so two commands sharing an alias resolved to whichever the bucket order happened to reach
-    // first - stable within a run, arbitrary between builds.
+    // Index aliases once and reject collisions for deterministic lookup.
     for (const auto& alias : spec.Aliases)
     {
         std::string key = StringUtils::ToLower(alias);
@@ -191,9 +189,8 @@ void CommandManager::Dispatch(const CommandSpec& cmd, Players::Player* caller, s
     {
         auto& policy = VoltMod::Detail::Rt().Policy;
 
-        // No policy means no way to tell an admin from anyone else, so the only safe answer is
-        // no. Warn once per command: a plugin that declares permissions and forgets to install
-        // a policy is misconfigured, and the old behaviour let everyone through silently.
+        // Without policy there is no trusted permission source. Deny and warn once
+        // per command so the plugin misconfiguration is visible.
         if (!policy.HasPermission)
         {
             if (_missingPolicyWarned.insert(cmd.Name).second)
@@ -216,7 +213,7 @@ void CommandManager::Dispatch(const CommandSpec& cmd, Players::Player* caller, s
     ctx.Caller = caller;
     ctx.RawArgs = std::move(args);
 
-    // Extras used to be dropped in silence, so a typo'd selector looked like it worked.
+    // Reject extra tokens so malformed commands cannot appear successful.
     if (TooManyArguments(cmd, ctx.RawArgs.size()))
     {
         say(tr.Get("cmd.tooManyArgs", slot, {{"usage", usage()}}));
@@ -306,7 +303,7 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
             int seconds = ParseDuration(token);
             if (seconds < 0)
                 return fail(spec, "cmd.badDuration");
-            // A bare number keeps the legacy command meaning (minutes); ParseDuration read it as seconds.
+            // ParseDuration treats bare numbers as seconds; some specs reinterpret them as minutes.
             ctx.DurationSec = (spec.BareNumbersAreMinutes && StringUtils::IsNumeric(token))
                                   ? static_cast<int64_t>(seconds) * 60
                                   : seconds;
@@ -327,8 +324,7 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
             auto value = ParseInt64(token);
             if (!value || *value < std::numeric_limits<int>::min() || *value > std::numeric_limits<int>::max())
             {
-                // Every other kind reports through fail(); Int used to return a bare false, so a
-                // bad number printed the usage line and never its own error key.
+                // Report the integer-specific error rather than generic usage.
                 return fail(spec, "cmd.badNumber", {{"token", token}});
             }
             ctx.IntValue = static_cast<int>(*value);

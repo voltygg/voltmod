@@ -3,7 +3,7 @@
 [TOC]
 
 A command is one aggregate: name, metadata, permission, typed arguments, and a
-handler. Register it at its definition site. The framework resolves and
+handler. Register it from the plugin's load path. The framework resolves and
 validates every argument before the handler runs, including target immunity,
 duration parsing, and SteamID parsing. Failures are translated for the caller;
 the handler sees only valid input.
@@ -29,8 +29,8 @@ commands.Register({
 });
 ```
 
-The framework collects every registered spec after `OnLoad` and records a
-`Commands` stage in the load report. The default `OnPlayerChat` dispatches `!`
+After `OnLoad`, the framework records the registered command count in the load
+report. The default `OnPlayerChat` dispatches `!`
 and `.` messages through `HandleChatMessage`; unknown names fall through to
 normal chat. A plugin with its own chat service can override `OnPlayerChat` and
 take over dispatch.
@@ -122,10 +122,7 @@ commands.Register({
 });
 ```
 
-Console invocations run the same argument resolution and handler with no caller, and print
-their reply to the console. With no caller there is no SteamID to check, so `Permission` is
-never consulted - the server console already is the authority - and caller-relative selectors
-(`@me`, `@!me`) match no one. That is also why `Surface::Console` on its own matters: such a
-command usually carries no `Permission`, and chat has callers that a permission check would
-otherwise be the only thing standing in front of. Replies resolve translations against slot `-1`, the server
-language. Registration owns the ConCommand, so `Unregister` and destruction remove it.
+Console calls use the same argument resolver and handler, print replies to the
+console, and have no caller. They skip `Permission`, and caller-relative
+selectors such as `@me` match nobody. Translations use slot `-1`, the server
+language. Unregistering or destroying the registration removes the ConCommand.

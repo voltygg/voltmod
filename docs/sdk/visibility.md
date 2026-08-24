@@ -4,7 +4,8 @@
 
 ## EntityRender
 
-Mutate `m_nRenderMode` and `m_clrRender` on any `CBaseModelEntity`. Used internally by `PlayerController::SetVisible`, but exposed so plugins can hide/recolor any entity (props, dropped weapons, world objects).
+These helpers change `m_nRenderMode` and `m_clrRender` on a
+`CBaseModelEntity`. `PlayerController::SetVisible` uses them internally.
 
 ```cpp
 using namespace VoltMod::Sdk;
@@ -19,7 +20,7 @@ Render tricks only affect the pawn body; held weapons, wearables and gloves are 
 
 ## TransmitFilter
 
-Per-recipient entity transmit filtering uses a post-hook on
+Per-recipient transmit filtering uses a post-hook on
 `ISource2GameEntities::CheckTransmit`. Hidden entities are never sent to the
 client, so the model, weapons, wearables, gloves, and shadow all disappear;
 render alpha does not hide those related entities. There are two independent

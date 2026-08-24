@@ -41,7 +41,7 @@ using SourceMM::ISmmAPI;
 
 namespace VoltMod::Sdk
 {
-class SchemaService;  // internal (src/Sdk/Schema.hpp) - by pointer, so this header stays clean
+class SchemaService;  // Internal type kept out of the public include graph.
 }
 
 namespace VoltMod
@@ -60,16 +60,11 @@ struct LoadContext
 };
 
 /**
- * @brief Every framework service, owned as one unit for one Load/Unload cycle.
+ * @brief Framework services for one Load/Unload cycle.
  *
- * One flat container, not a tree of per-layer ones: the layering that matters is between
- * source modules, and mirroring it in the runtime only meant plugins spelled out which
- * module owned a service (`Sdk.Messages`) instead of naming the service (`Messages`).
- * Services move between modules; the names here should not move with them.
- *
- * Declaration order is construction order and reverse destruction order, so the three
- * inter-member dependencies below (everything taking @ref Slots) are satisfied by position.
- * Plugins receive this by reference in OnLoad; framework modules reach it via @ref Detail::Rt.
+ * Services are flat so their public names do not depend on source-module
+ * placement. Declaration order satisfies member dependencies and controls
+ * reverse-order teardown. Plugins receive the runtime in OnLoad.
  */
 class Runtime
 {
@@ -80,8 +75,8 @@ public:
     Runtime& operator=(const Runtime&) = delete;
 
     /**
-     * Resolve the SDK interfaces, load gamedata and bring up every subsystem, recording each
-     * as a @ref LoadReport stage. False means the load must abort; @p context.Error carries why.
+     * Start every subsystem and record its @ref LoadReport stage.
+     * @return false when loading must abort; @p context.Error contains the reason.
      */
     bool Start(const LoadContext& context);
 
@@ -91,7 +86,7 @@ public:
     /** Drop per-slot state across the services that hold any. */
     void OnPlayerDisconnect(int slot);
 
-    // --- Core: primitives every service may reach ---
+    // Core services.
     /** Plugin-supplied permission, targeting and reply rules. Set once in OnLoad. */
     Core::PluginPolicy Policy;
     /** Named, timed load stages recorded by Start and by the plugin's OnLoad. */
@@ -104,10 +99,9 @@ public:
      *  until the next map change, since the hook has already fired by then. */
     std::string CurrentMap;
 
-    /** Translated player-facing text. */
     Core::Translations Translations;
 
-    // --- Sdk: everything engine-facing ---
+    // Engine-facing services.
     /** Plain interface-pointer holder; populated by Start. */
     Sdk::GameInterfaces Interfaces;
     Sdk::GameData GameData;
@@ -130,7 +124,7 @@ public:
     /** Async client-side convar reads. Inert when its load stage degraded (Available() == false). */
     Sdk::ClientCvarService ClientCvars;
 
-    // --- App: composition-root services ---
+    // Composition-root services.
     /** Interfaces offered to, and borrowed from, other plugins. */
     App::ServiceExchange Exchange;
     /** This plugin's manifest, published to peers. Filled by LoadStandardConfig. */
@@ -142,7 +136,7 @@ public:
     /** Internal schema-offset service (forward-declared type). */
     Sdk::SchemaService& Schema() { return *_schema; }
 
-    // Declared last: each name shadows its own namespace for the rest of the class body.
+    // These names shadow their namespaces, so keep them last.
     Players::PlayerManager Players{Slots};
     Commands::CommandManager Commands;
     /** Completions dispatch on the game thread from the scheduler pump; the dtor stops it. */

@@ -1,17 +1,18 @@
 # VoltMod
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://suxrobgm.github.io/voltmod/)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://voltygg.github.io/voltmod/)
 
 A C++23 framework for Counter-Strike 2 server plugins on Metamod:Source 2.0.
-Plugins declare commands, menus, effects, and database rows; VoltMod handles
+Plugins declare commands, menus, effects, and database rows. VoltMod handles
 engine setup, hooks, players, policy checks, messages, and teardown.
 
 > **Work in progress.** The API is still evolving and may change between versions.
 
 ## What you get
 
-- **Plugin base** - subclass `MetamodPlugin` and the Metamod lifecycle, standard hooks and player tracking are wired up; you get a `Runtime` holding every framework service for the duration of a load, and cleanup is ordinary destruction.
+- **Plugin base** - `MetamodPlugin` wires the Metamod lifecycle, standard hooks,
+  and player tracking around one load-cycle `Runtime`.
 - **Declarative commands** - a `CommandSpec` is plain data; targets, durations, and SteamIDs are resolved and validated before your handler runs, with localized error replies.
 - **Target selectors** - `@all`, `@me`, `@t`, `@ct`, `@dead`, `@random`, `#slot`, SteamIDs, and name fragments, with immunity applied through your injected policy.
 - **Menus** - WASD-navigated in-game menus: typed rows, policy-aware context rows for admin/target actions, ready-made pickers, and the `Flow` wizard for multi-step "pick duration → pick reason → confirm" chains.
@@ -21,7 +22,9 @@ engine setup, hooks, players, policy checks, messages, and teardown.
 - **PostgreSQL** (optional) - async-first client (worker thread owns the connection, completions on the game thread), column-table row mapping that generates the INSERT/SELECT/parse code, and a migration runner. Gated behind `VOLTMOD_ENABLE_POSTGRES`.
 - **HTTP** - async requests with game-thread completions, plus config-driven JSON endpoint helpers.
 - **Project + plugin scaffolding** - `voltmod init` stamps a complete buildable project (root CMake, presets, conanfile, poe tasks); `voltmod new-plugin` adds more from the `templates/plugin/` tree.
-- **One-call plugin builds** - `voltmod_add_plugin(<name> VERSION <version>)` declares the whole Metamod module: sources, SDK glue, output layout, the generated `.vdf`, and per-plugin install components.
+- **One-call plugin builds** - `voltmod_add_plugin(<name> VERSION <version>)`
+  configures sources, SDK glue, output layout, VDF generation, and install
+  components.
 
 ## Quick start
 
@@ -110,11 +113,12 @@ runtime.Commands.Register({
 });
 ```
 
-The [Getting Started guide](https://suxrobgm.github.io/voltmod/) walks through the build setup and the rest.
+The [Getting started guide](https://voltygg.github.io/voltmod/) covers setup and
+the public APIs.
 
 ## Documentation
 
-Full guides and API reference: **[suxrobgm.github.io/voltmod](https://suxrobgm.github.io/voltmod/)**
+Full guides and API reference: **[voltygg.github.io/voltmod](https://voltygg.github.io/voltmod/)**
 
 - **Getting Started** - install, scaffold, build
 - **Architecture** - services, policy, lifetimes

@@ -47,8 +47,7 @@ static std::vector<PatternByte> ParsePattern(const std::string& pattern)
         }
         else
         {
-            // from_chars, not stoul: a typo in signatures.jsonc used to throw out of parsing and
-            // take the load with it. A bad token now fails just its own signature.
+            // from_chars keeps a bad token local to this signature.
             unsigned value = 0;
             const char* end = token.data() + token.size();
             auto [ptr, ec] = std::from_chars(token.data(), end, value, 16);

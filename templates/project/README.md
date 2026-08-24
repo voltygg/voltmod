@@ -1,8 +1,8 @@
 # $project
 
-CS2 Metamod plugins built on [VoltMod](https://github.com/voltygg/voltmod).
-The framework, HL2SDK, and Metamod arrive as Conan packages. No submodules are
-required.
+CS2 Metamod plugins built with
+[VoltMod](https://github.com/voltygg/voltmod). Conan supplies the framework,
+HL2SDK, and Metamod; no submodules are required.
 
 ## Setup
 

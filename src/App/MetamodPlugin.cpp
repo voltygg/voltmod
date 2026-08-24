@@ -53,9 +53,8 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
     _lateLoad = late;
     _info = Info();  // capture once; the ISmmPlugin getters read this copy
 
-    // Fresh runtime per load; wire the ambient pointer before Start so framework subsystems
-    // (and the plugin's OnLoad) can reach it. Destroyed in Unload - this is what makes
-    // meta reload start from clean state.
+    // Install the ambient pointer before Start; framework callbacks need it.
+    // Unload destroys this runtime so reload starts clean.
     _runtime = std::make_unique<Runtime>();
     Detail::SetRt(_runtime.get());
 
@@ -89,9 +88,8 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
         return false;
     }
 
-    // After OnLoad, because that is where plugins register their commands. A spec that gates
-    // on a permission with no policy behind it is denied to everyone, and that used to surface
-    // only when a player tried it.
+    // Plugins register commands during OnLoad. Report missing permission policy now
+    // instead of waiting for the first invocation.
     _runtime->LoadReport.Run("Commands", [this] {
         const std::vector<std::string> missing = _runtime->Commands.CommandsMissingPolicy();
         if (missing.empty())
@@ -117,8 +115,7 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
 // runtime, whose destructor is the framework's shutdown. The ambient pointer is cleared last of the
 // three so this shutdown can still reach it.
 //
-// A failed OnLoad takes this same path. It used to skip _standardHooks.clear(), leaving live
-// hooks pointing at a destroyed runtime.
+// Failed loads use the same path so no hook can outlive the runtime.
 void MetamodPlugin::Shutdown()
 {
     OnUnload();

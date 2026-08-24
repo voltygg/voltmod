@@ -16,8 +16,8 @@ namespace VoltMod::Database
 /**
  * @brief Row/SQL generation over an entity's Column table (see Column.hpp for the contract).
  *
- * The entity declares each column exactly once; these helpers derive everything repositories
- * used to hand-write: field-by-field row parsing (@ref FromRow), result mapping
+ * The entity declares each column once; these helpers derive field-by-field row
+ * parsing (@ref FromRow), result mapping
  * (@ref FromResult), the INSERT statement with its placeholder list (@ref InsertSql +
  * @ref InsertParams, key column excluded), and explicit-column SELECTs (@ref SelectSql).
  * `std::optional` members map to nullable columns. Bespoke UPDATE/WHERE SQL stays hand-written -

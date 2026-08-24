@@ -5,8 +5,7 @@
 Unit tests use [doctest](https://github.com/doctest/doctest), added through Conan
 `test_requires` and linked as `doctest::doctest`. Tests are SDK-free: they cover
 pure logic such as parsers, math, score decay, and targeting rules without
-loading Metamod or the HL2SDK. The suite therefore links quickly and runs in
-milliseconds.
+loading Metamod or HL2SDK.
 
 ## Running
 
@@ -24,8 +23,7 @@ ctest --preset windows-msvc-release -R "SteamId"
 ctest --preset windows-msvc-release -N          # list without running
 ```
 
-To iterate on one case, running the binary directly is faster and doctest's CLI is richer
-than ctest's:
+Run the test binary directly to use doctest's case and source filters:
 
 ```bash
 build/windows-msvc-release/vendor/voltmod/voltmod-utils-tests.exe --list-test-cases

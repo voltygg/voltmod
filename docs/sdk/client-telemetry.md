@@ -2,7 +2,8 @@
 
 [TOC]
 
-Three read-only views on a client that sit outside the movement path: the clock everything else is timestamped against, the client's network channel, and the client's own convars.
+This page covers the simulation clock, per-client network data, and client
+convar queries.
 
 ## ServerClock
 
@@ -51,9 +52,11 @@ runtime.ClientCvars.Query(slot, "cl_interp_ratio",
 
 `ClientCvarStatus` mirrors the protocol's status code: `ValueIntact` (the only case carrying a value), `CvarNotFound`, `NotACvar`, `CvarProtected`. `ToString(status)` gives the lower-case identifier for logs.
 
-### There is no timeout callback
+### No timeout callback
 
-A client is under no obligation to answer. One that disconnects, or simply ignores the request, produces **no callback at all** - pending entries are dropped silently after 10 seconds and nothing is invoked on expiry. Queries are also unordered between each other. So do not model this as a request/response pair: whatever a "no answer" means for your feature has to be carried on your side (a deadline of your own, a default verdict), never in the callback.
+A client does not have to answer. Pending entries expire silently after 10
+seconds, and disconnects also produce no callback. If a feature needs a timeout
+verdict, track its own deadline rather than waiting for this callback.
 
 Pending queries are also dropped - callbacks never firing - when the player disconnects, when a new player takes the slot, and at map start.
 

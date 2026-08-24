@@ -6,8 +6,7 @@ option(VOLTMOD_BUILD_STANDALONE "Build VoltMod as a standalone project" ${PROJEC
 option(VOLTMOD_ENABLE_POSTGRES "Build the VoltMod::Database Postgres client (requires libpqxx)" OFF)
 option(VOLTMOD_DISABLE_PCH "Disable precompiled headers (e.g. to favor ccache hits over PCH on MSVC)" OFF)
 
-# Conan imported targets are directory-scoped; make them visible to sibling
-# plugin directories when voltmod is vendored into a monorepo.
+# Imported targets must be global when sibling plugin directories consume them.
 set(CMAKE_FIND_PACKAGE_TARGETS_GLOBAL ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -26,11 +25,8 @@ endif()
 find_package(hl2sdk-cs2 CONFIG REQUIRED)
 find_package(metamod-source CONFIG REQUIRED)
 
-# Two libraries, not nine. The module directories under src/ are still the architecture -
-# scripts/voltmod/modgraph.py checks the layering between them - but they were never
-# independently selectable, so mirroring them as CMake targets and Conan components only
-# meant the same dependency list was written out three times. Database stays separate
-# because it is the one thing a plugin can genuinely do without.
+# Source modules define include boundaries, while Runtime and optional Database
+# are the link units.
 file(GLOB_RECURSE VOLTMOD_RUNTIME_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Core/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Http/*.cpp"
@@ -40,8 +36,7 @@ file(GLOB_RECURSE VOLTMOD_RUNTIME_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Menu/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/App/*.cpp"
 )
-# Runtime.cpp is the composition root - the flat service container plus the one ambient
-# pointer the lower modules reach it through.
+# Runtime.cpp is the service composition root.
 list(APPEND VOLTMOD_RUNTIME_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/Runtime.cpp")
 
 file(GLOB_RECURSE VOLTMOD_DATABASE_SOURCES CONFIGURE_DEPENDS
@@ -54,14 +49,11 @@ voltmod_add_library(Runtime
     LIBS VoltMod::Metamod VoltMod::HL2SDK nlohmann_json::nlohmann_json
     PRIVATE_LIBS cpr::cpr)
 
-# Which SDK bodies exist, where they live and how they must be compiled is the hl2sdk-cs2
-# package's business; it attaches them, warnings and PCH exclusions included.
+# The HL2SDK package attaches its required sources and compile properties.
 hl2sdk_attach_engine_sources(voltmod-runtime)
 hl2sdk_attach_generated_sources(voltmod-runtime)
 
-# cpr never appears in a public header, so it stays off the include path of everything
-# that links the framework. src/Http/*.cpp is also kept out of the precompiled header: forcing
-# the hl2sdk universe ahead of <cpr/cpr.h> puts windows.h before winsock2.h.
+# Keep cpr private. HTTP sources skip the PCH to preserve winsock2/windows.h order.
 set_source_files_properties(${VOLTMOD_Http_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 
 if(WIN32)
@@ -73,12 +65,11 @@ if(VOLTMOD_ENABLE_POSTGRES)
         SOURCES ${VOLTMOD_DATABASE_SOURCES}
         DEPS VoltMod::Runtime
         LIBS libpqxx::pqxx)
-    # Consumer feature checks and Database/Api.hpp's #error guard read this; only that
-    # header pulls in <pqxx/pqxx>.
+# Database/Api.hpp uses this definition to guard pqxx-dependent API.
     target_compile_definitions(voltmod-database PUBLIC VOLTMOD_ENABLE_POSTGRES=1)
 endif()
 
-# What a plugin links unless it asks for a feature.
+# Default plugin target.
 add_library(voltmod INTERFACE)
 add_library(VoltMod::VoltMod ALIAS voltmod)
 target_link_libraries(voltmod INTERFACE VoltMod::Runtime)
@@ -86,16 +77,13 @@ if(VOLTMOD_ENABLE_POSTGRES)
     target_link_libraries(voltmod INTERFACE VoltMod::Database)
 endif()
 
-# Installation is CMake's to describe, so the Conan recipe only has to run it. Note there
-# is deliberately no install(EXPORT): CMakeDeps generates the package config, and an
-# installed export set would compete with it.
+# CMakeDeps generates the package config, so do not install an export set.
 install(TARGETS voltmod-runtime ARCHIVE DESTINATION lib)
 if(TARGET voltmod-database)
     install(TARGETS voltmod-database ARCHIVE DESTINATION lib)
 endif()
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/" DESTINATION include)
-# cmake/ lands next to gamedata/ so VOLTMOD_ROOT_DIR (the cmake dir's parent) resolves
-# plugin.vdf.in, DoctestMain.cpp and gamedata exactly as it does in the repo.
+# Preserve the relative layout used by VOLTMOD_ROOT_DIR.
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/" DESTINATION cmake)
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/gamedata/" DESTINATION gamedata)
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/templates/plugin/" DESTINATION templates/plugin)
@@ -105,12 +93,11 @@ if(VOLTMOD_BUILD_STANDALONE)
     include(CTest)
 endif()
 
-# SDK-free utils tests: recompile pure-logic sources instead of linking voltmod,
-# so the test binary needs no HL2SDK/Metamod link inputs.
+# Recompile pure logic so tests do not link HL2SDK or Metamod.
 if(BUILD_TESTING)
     voltmod_add_tests(voltmod-utils-tests
         SOURCES
-            # SDK-free TUs, hand-picked: the rest of src/ needs HL2SDK or pqxx.
+            # Other implementation files require HL2SDK or pqxx.
             src/Commands/CommandSpec.cpp
             src/Core/EffectManager.cpp
             src/Core/Paths.cpp

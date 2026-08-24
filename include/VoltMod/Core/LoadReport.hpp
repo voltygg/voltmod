@@ -39,11 +39,10 @@ struct StageRecord
 /**
  * @brief Named, timed load stages with a per-stage report.
  *
- * Both VoltMod::Initialize and a plugin's OnLoad record their steps here
- * (`runtime.LoadReport`). Later stages guard on earlier ones via IsOk()
- * and return StageResult::Skipped instead of failing with a secondary error;
- * MetamodPlugin surfaces FirstFailure() in Metamod's error buffer and
- * logs Summary() after load.
+ * `Runtime::Start` and plugin `OnLoad` record their steps here. Dependent stages
+ * can use IsOk() and return Skipped instead of producing a secondary failure.
+ * MetamodPlugin copies FirstFailure() to Metamod's error buffer and logs
+ * Summary().
  */
 class LoadReport
 {

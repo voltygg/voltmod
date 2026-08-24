@@ -26,8 +26,8 @@ if (auto* boom = ops.Spawn("env_explosion", kv))
 ops.EmitSound(entity, "SoundEventName");   // .vsndevts event name, not a file path
 ```
 
-Cleanup rules: never `delete` an entity - use `Remove` (immediate) or `RemoveDelayed`
-(preferred for short-lived effect helpers, runs through the engine's IO queue).
+Never `delete` an entity. Use `Remove` immediately or `RemoveDelayed` through
+the engine's I/O queue.
 `NotifyFieldChanged(entity, "CClass", "m_field")` makes a direct schema `WriteAt` replicate
 immediately instead of riding the next broadcast.
 
@@ -57,5 +57,5 @@ via a workshop addon), or they precache server-side but render nothing.
 runtime.Precache.Add("particles/my_plugin/lightning_strike.vpcf");
 ```
 
-Registered automatically by `VoltMod::Initialize` under a `LogPrefix`-derived name; detached safely
+Registered by `Runtime::Start()` under a `LogPrefix`-derived name; detached safely
 on unload (factory unlink + dispatcher/active-list removal), so `meta unload` mid-map is safe.

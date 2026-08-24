@@ -24,7 +24,8 @@ msg.Broadcast("Round of the day!", VoltMod::MessageKind::Alert);
 msg.ReplyKey(slot, "cmd.banSuccess", {{"name", targetName}});
 ```
 
-`Reply` is `Send(slot, message)` with the chat default - it exists because "reply to the command caller" is the sentence you write most. `runtime.Policy.Reply` typically points straight at it.
+`Reply` sends a chat message to one player. `runtime.Policy.Reply` usually
+forwards to it.
 
 Chat sends normalize colors for you: a message that already starts with a color escape keeps it; anything else gets the default color prepended so lines don't inherit the previous line's color. (CS2 routes server-originated chat through `TextMsg` - `SayText2` from non-player sources is silently dropped.)
 
@@ -52,7 +53,8 @@ CS2's chat reads ASCII bytes `0x01`-`0x10` as in-line color toggles. Embed them 
 | `LightRed` | `\x0F` | Light red |
 | `Gold` / `Orange` | `\x10` | Gold / orange |
 
-Names sharing a byte are aliases - pick whichever reads better. Byte values mirror what CS2 actually renders today (per the SwiftlyS2 mapping).
+Names sharing a byte are aliases. The byte values follow the current SwiftlyS2
+mapping.
 
 ## Composing colored text
 

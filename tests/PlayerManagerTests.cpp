@@ -30,7 +30,7 @@ TEST_CASE("Re-occupying a slot drops the previous occupant from the SteamID inde
     players.AddPlayer(3, SteamA, "alpha", "1.2.3.4");
     auto* second = players.AddPlayer(3, SteamB, "bravo", "5.6.7.8");
 
-    // The old entry used to survive here, pointing at a destroyed Player.
+    // Reusing a slot must remove the previous occupant's SteamID index.
     CHECK(players.GetPlayerBySteamId(SteamA) == nullptr);
     CHECK(players.GetPlayerBySteamId(SteamB) == second);
     CHECK(players.GetPlayerBySlot(3) == second);

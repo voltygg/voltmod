@@ -2,8 +2,8 @@
 
 [TOC]
 
-@ref VoltMod::App::MetamodPlugin owns the Metamod boilerplate that plugins
-otherwise repeat: ISmmPlugin metadata getters, the Load/Unload skeleton, the
+@ref VoltMod::App::MetamodPlugin owns the repeated Metamod integration:
+ISmmPlugin metadata getters, the Load/Unload flow, the
 standard SourceHook hooks, and the `PlayerManager` lifecycle. It creates one
 @ref VoltMod::Runtime for each load cycle and passes it to `OnLoad`. You provide
 metadata, build your object graph, and override only the callbacks you need.
@@ -185,9 +185,8 @@ runtime argument. Everywhere else, use what `OnLoad` handed you.
 
 ## Teardown
 
-There is no cleanup stack. Anything that needs undoing is either a member whose
-destructor does it, or a @ref VoltMod::Core::Subscription held next to the state its
-callback captures:
+Cleanup belongs in a member destructor or a @ref VoltMod::Core::Subscription
+held beside the state its callback captures:
 
 ```cpp
 class Bhop

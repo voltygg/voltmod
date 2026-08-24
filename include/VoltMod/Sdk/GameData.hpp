@@ -9,10 +9,9 @@ namespace VoltMod::Sdk
 /**
  * @brief Centralized gamedata manager for platform-specific signatures and offsets.
  *
- * Loads byte-pattern signatures and named integer offsets from a JSON file.
- * ResolveAll() eagerly scans every signature once (VoltMod::Initialize runs it as
- * the GameData load stage); FindSignature/ResolveSignature then answer from the
- * cache, and per-entry failures/ambiguities are reported by name.
+ * Loads byte-pattern signatures and named integer offsets from JSON.
+ * Runtime::Start calls ResolveAll() during the GameData stage; later lookups use
+ * its cache. Resolution results record missing and ambiguous patterns by name.
  */
 class GameData
 {

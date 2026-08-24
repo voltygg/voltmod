@@ -117,11 +117,8 @@ int MovementHook::SlotFromMovementServices(void* movementServices) const
     if (!movementServices)
         return -1;
 
-    // The VP hook fires for every player, so this runs once per usercmd per player - too hot for the
-    // O(slots) entity-system walk it used to be. Remember the mapping and confirm a hit with a single
-    // engine lookup, which keeps a recycled pointer from ever resolving to the wrong slot. A hit that
-    // fails to confirm is a stale entry, so it must fall through to the rescan below rather than
-    // answering -1 - the address may since have been recycled into another slot's services.
+    // Cache this hot lookup, but confirm each hit so a recycled pointer cannot map
+    // to the wrong slot. A stale hit falls through to the rescan.
     auto& entities = VoltMod::Detail::Rt().Entities;
     for (int slot = 0; slot < Core::MaxPlayers; ++slot)
         if (_movementServices[slot] == movementServices && entities.GetPlayerMovementServices(slot) == movementServices)

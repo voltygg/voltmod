@@ -1,14 +1,12 @@
 include_guard(GLOBAL)
 
-# Shared by everything else in this directory: where the framework lives, what platform this is,
-# and the toolchain fallbacks. Kept separate from VoltModPlugin so VoltModTests and the
-# framework-internal VoltModLibrary can have the paths without pulling in the plugin API.
+# Shared paths, platform names, and toolchain fallbacks.
 
 get_filename_component(VOLTMOD_ROOT_DIR_DEFAULT "${CMAKE_CURRENT_LIST_DIR}/.." REALPATH)
 set(VOLTMOD_ROOT_DIR "${VOLTMOD_ROOT_DIR_DEFAULT}" CACHE PATH "VoltMod repository root")
 set(VOLTMOD_GAMEDATA_DIR "${VOLTMOD_ROOT_DIR}/gamedata" CACHE PATH "VoltMod shared gamedata path")
 
-# Fallbacks when no toolchain sets these; CACHE so sibling plugin dirs see them.
+# Cache fallbacks so sibling plugin directories share them.
 if(NOT DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "")
 endif()
@@ -20,7 +18,7 @@ if(NOT DEFINED CMAKE_CXX_COMPILER_LAUNCHER)
     endif()
 endif()
 
-# The `<os>-<arch>` folder name used for plugin output dirs.
+# Plugin output directory suffix: `<os>-<arch>`.
 if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(FATAL_ERROR "Only x86_64 builds are supported.")
 endif()
@@ -32,10 +30,8 @@ else()
     message(FATAL_ERROR "Only Windows and Linux builds are supported.")
 endif()
 
-# Language level, symbol visibility and debug-info format shared by every target the framework
-# owns - framework libraries and plugins alike. Linkage-specific properties (PIC, OUTPUT_NAME) and
-# the cxx_std_23 usage requirement stay with the caller, which knows its own target kind.
-# /Z7 rather than /Zi because ccache cannot cache /Zi.
+# Common compile settings. Callers own target-specific linkage properties.
+# Use /Z7 because ccache cannot cache /Zi.
 function(voltmod_set_cxx_defaults target)
     set_target_properties("${target}" PROPERTIES
         CXX_STANDARD 23
@@ -49,9 +45,7 @@ function(voltmod_set_cxx_defaults target)
     )
 endfunction()
 
-# Warning level for first-party code. The SDK packages carry includes, defines and
-# ABI flags as usage requirements, but warnings are the consumer's policy, so every
-# target the framework owns opts in explicitly.
+# First-party warning policy; SDK usage requirements do not set it.
 function(voltmod_set_warnings target)
     target_compile_options("${target}" PRIVATE
         "$<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang>:-Wall>"

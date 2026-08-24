@@ -218,8 +218,7 @@ DbResult<pqxx::result> PostgresDatabase::RunJob(Job& job, pqxx::connection& conn
 {
     try
     {
-        // Key on the SQL too: the cache used to trust the name alone, so a second job reusing a
-        // name with different SQL silently executed the first job's statement.
+        // Reject a prepared-statement name reused with different SQL.
         if (auto it = _prepared.find(job.Name); it == _prepared.end())
         {
             conn.prepare(job.Name, job.Sql);

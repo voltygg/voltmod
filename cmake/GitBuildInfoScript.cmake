@@ -1,5 +1,5 @@
-# Run via `cmake -P` each build (see voltmod_stamp_build_info). All values derive
-# from committed state so the header is only rewritten when a commit changes.
+# Run through `cmake -P` on each build. Values use repository state so unchanged
+# builds do not rewrite the header.
 # Inputs: TEMPLATE_FILE, OUTPUT_FILE, VERSION, REPO_DIR.
 
 find_program(GIT_EXECUTABLE git)

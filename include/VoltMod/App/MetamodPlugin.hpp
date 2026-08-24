@@ -41,27 +41,10 @@ struct PluginInfo
 };
 
 /**
- * @brief Base class for a Metamod:Source plugin.
+ * @brief Base class that owns Metamod integration, standard hooks, and players.
  *
- * Wires the engine, common hooks, and player tracking. Subclasses provide metadata,
- * build their state in OnLoad(), and override the callbacks they need.
- *
- * The Runtime and plugin state belong to one Load/Unload cycle. Release all state
- * in OnUnload so `meta reload` starts clean.
- *
- * @code
- * class MyPlugin final : public VoltMod::MetamodPlugin {
- *     PluginInfo Info() const override { return {.Name = "My Plugin", .LogTag = "MINE"}; }
- *     bool OnLoad(VoltMod::Runtime& runtime, bool late) override
- *     {
- *         _app.emplace(runtime);
- *         return _app->Start();
- *     }
- *     void OnUnload() override { _app.reset(); }
- *     std::optional<MySystem::App> _app;
- * };
- * VOLTMOD_PLUGIN(MyPlugin);
- * @endcode
+ * The base creates one Runtime per load and passes it to OnLoad. Subclasses must
+ * release their load-cycle state in OnUnload so `meta reload` starts clean.
  */
 class MetamodPlugin : public ISmmPlugin, public IMetamodListener
 {
@@ -123,13 +106,11 @@ protected:
     virtual void OnPlayerSettingsChanged(Players::Player* player) {}
 
     /**
-     * @brief A player sent a chat message (say / say_team).
+     * @brief A player sent a `say` or `say_team` message.
      *
-     * The default first hands the line to any pending @ref VoltMod::Sdk::ChatInputCapture
-     * prompt for that slot, then dispatches registered chat commands ("!x" / ".x") and
-     * swallows handled ones; anything else, including unknown "!words", falls through to
-     * normal chat. An override replaces all of that wholesale - if your plugin uses menu
-     * input rows, call `runtime.ChatInput.TryConsume` first or the prompt never completes.
+     * The default consumes pending chat input, then dispatches registered `!` and
+     * `.` commands. An override replaces that behavior and must consume input
+     * itself when the plugin uses menu prompts.
      *
      * @return true to swallow it (the message won't appear in chat), false to let it through.
      */

@@ -10,11 +10,11 @@ Prefer the typed listeners: each struct in `VoltMod::Events` (`Sdk/GameEvents.hp
 namespace Events = VoltMod::Events;
 auto& events = runtime.Events;
 
-uint64_t id = events.Listen<Events::PlayerDeath>([](const Events::PlayerDeath& e) {
+auto death = events.Listen<Events::PlayerDeath>([](const Events::PlayerDeath& e) {
     // e.VictimSlot, e.AttackerSlot, e.Headshot, e.Weapon, ...
 });
 
-events.RemoveListener(id);   // or leave it - Shutdown removes everything on unload
+// Keep `death` beside the state captured by the callback.
 ```
 
 For events the framework has not modeled, use the string overload with the same
@@ -46,8 +46,8 @@ events.Listen<Events::BulletImpact>([](const Events::BulletImpact& e) {
 
 ### Listener lifecycle
 
-Call `Listen` whenever you need it, usually from a manager's `Initialize` during
-`OnLoad`. The framework handles a Source engine quirk: `AddListener` succeeds
+Call `Listen` during plugin load and keep the returned `Subscription`. The
+framework handles a Source engine quirk: `AddListener` succeeds
 before the first map, but the engine resets its listener table during each map
 startup. The framework re-attaches every listener from its `StartupServer` hook
 on every map start. Use `Attached N/N game event listener(s) at map start.` in

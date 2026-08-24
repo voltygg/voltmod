@@ -91,7 +91,7 @@ struct Ban
 };
 ```
 
-What that buys:
+The mapping helpers then provide:
 
 ```cpp
 using namespace VoltMod;
@@ -112,7 +112,7 @@ db.Query("ban_insert", InsertSql<Ban>(), InsertParams(ban),
 Bespoke UPDATE/WHERE SQL stays hand-written; that is the part worth seeing at
 the call site.
 
-## The cache-first pattern
+## Cache-first reads
 
 Gameplay reads should never wait on the database. Keep the active rows in memory, update the cache synchronously when acting, and let the write ride the worker:
 

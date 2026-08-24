@@ -2,8 +2,7 @@
 
 [TOC]
 
-`VoltMod::Http` provides asynchronous requests whose completions run on the game
-thread:
+`VoltMod::Http` provides asynchronous requests with game-thread completions:
 
 - **HttpClient** - GET/POST on CPR's worker pool; completions are queued and replayed on the game thread from a self-registered per-frame pump
 - **RestJsonApi** - helpers for the config-driven "call an operator-configured JSON endpoint and pull a field out of the response" shape
@@ -29,7 +28,7 @@ runtime.Http.Get(url, {}, 5000, [](const VoltMod::HttpResult& result) { /* ... *
 
 `HttpResult::Ok` reflects transport success only; check `StatusCode` for the HTTP verdict (or use `IsSuccess` from RestJsonApi, which means `Ok && 2xx`).
 
-## Config-driven JSON endpoints (RestJsonApi)
+## Config-driven JSON endpoints
 
 `JsonPostSpec` describes an endpoint entirely from settings - URL, optional auth header, a JSON body template with `{token}` placeholders - so server operators can point a plugin at their own backend without code changes:
 

@@ -8,7 +8,7 @@
 namespace VoltMod::Menu
 {
 
-/** Plain action row. E fires the callback. Replaces the legacy `AddItem`. */
+/** Plain action row; E invokes the callback. */
 class ButtonOption : public MenuOption
 {
 public:
@@ -21,7 +21,7 @@ public:
         _enabled = enabled;
     }
 
-    /** Dynamic-label variant - replaces the legacy `AddDynamicItem`. */
+    /** Action row whose label is evaluated when rendered. */
     ButtonOption(LabelFn dynamicLabel, ActivateFn onActivate, bool enabled = true)
         : _dynamicLabel(std::move(dynamicLabel)), _onActivate(std::move(onActivate))
     {

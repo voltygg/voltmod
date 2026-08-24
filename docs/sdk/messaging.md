@@ -37,7 +37,8 @@ panel.Stop(slot);   // cancel + clear the panel
 
 ## ChatInputCapture
 
-Per-slot pending-prompt registry that backs the menu system's free-text @ref VoltMod::Menu::InputOption. Use it directly when you need a prompt outside of a menu (e.g. a chat command that asks the player to type a value as a follow-up).
+This per-slot prompt registry backs menu text input. Use it directly for prompts
+outside a menu.
 
 ```cpp
 auto& capture = runtime.ChatInput;
@@ -55,12 +56,14 @@ The validator returns `true` to accept the input (capture clears) or `false` to 
 
 ### Plumbing the chat hook
 
-Suppressing a chat broadcast has to happen in the `say` / `say_team` hook. With @ref VoltMod::Core::MetamodPlugin that hook is the base's, routed to your `OnPlayerChat` override - call @ref VoltMod::Sdk::ChatInputCapture::TryConsume there and return `true` to supersede:
+The base `MetamodPlugin::OnPlayerChat` already consumes active prompts before
+dispatching commands. An override replaces that behavior, so it must call
+@ref VoltMod::Sdk::ChatInputCapture::TryConsume before handling other chat:
 
 ```cpp
 bool MyPlugin::OnPlayerChat(Player* p, std::string_view message, bool team) override
 {
-    if (runtime.ChatInput.TryConsume(p->GetSlot(), message))
+    if (Rt().ChatInput.TryConsume(p->GetSlot(), message))
         return true;   // capture handled it; don't broadcast
     return false;      // fall through to normal chat handling
 }

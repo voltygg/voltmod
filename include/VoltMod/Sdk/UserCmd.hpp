@@ -41,9 +41,8 @@ struct UserCmdView
     bool Valid = false;
     int32_t ClientTick = 0;
 
-    // The client's own command counter: the int32 CUserCmd carries next to its payload (gamedata
-    // "UserCmdNumber"), falling back to the always-zero CBaseUserCmdPB.legacy_command_number when
-    // that offset is missing. A gap means commands were lost, reordered, or synthesized.
+    // Client command counter from gamedata "UserCmdNumber". Missing gamedata falls
+    // back to legacy_command_number, which live clients leave at zero.
     int32_t CommandNumber = 0;
 
     /** False when the client omitted viewangles: the three fields below then hold defaults rather
@@ -74,9 +73,8 @@ struct UserCmdView
     int SubtickMoveCount = 0;  // clamped to MaxSubtickMoves
     std::array<SubtickMove, MaxSubtickMoves> SubtickMoves{};
 
-    // Per-shot input-history entries (the fired view angles), clamped to MaxInputHistory.
-    // Attack1/Attack2StartHistoryIndex address the client's *full* input_history: an index at or
-    // past InputHistorySampleCount means that shot's entry was capped away and is absent here.
+    // Fired-view samples, capped at MaxInputHistory. Attack indices address the
+    // full client list, so an index beyond this snapshot names a discarded sample.
     static constexpr int MaxInputHistory = 16;
     int InputHistorySampleCount = 0;
     /** Entries the client actually sent, before the MaxInputHistory cap. Greater than

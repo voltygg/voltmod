@@ -10,7 +10,8 @@ Pre/post callbacks bracket one player's movement processing, which makes them
 the right place for per-player state flips (see
 @ref VoltMod::Sdk::RawConVar "RawConVar").
 
-The service is a dormant `Runtime` member: it costs nothing until a plugin calls `Install()`, and it removes its hook on destruction.
+The service stays dormant until a plugin calls `Install()` and removes its hook
+on destruction.
 
 ```cpp
 // Callbacks can be registered up front; they fire only once the hook is installed.
@@ -26,7 +27,7 @@ _spawn = runtime.Events.Listen<Events::PlayerSpawn>([&runtime](const Events::Pla
 });
 ```
 
-Details worth knowing:
+Hook contracts:
 
 - The hook is a SourceHook **VP hook**: it binds to the shared `CPlayer_MovementServices` vtable, not to the instance passed in. `Install()` only needs some live instance to locate the table; the callbacks then fire for every player, including ones who spawn afterwards. (A plain manual hook would fire only for the one instance it was registered on.)
 - The owning slot is resolved for you (`-1` when unresolved, e.g. an instance mid-destruction).
@@ -47,7 +48,7 @@ _preCmd = runtime.MovementHook.ListenPreCmd([](int slot, const VoltMod::UserCmdV
 
 The decode happens only while at least one cmd (or filter) listener is registered; plain `ListenPre`/`ListenPost` stay free of it. The payload's byte offset inside the `CUserCmd` wrapper lives in gamedata as `"UserCmdPB"` (cross-checked against CS2Fixes and SwiftlyS2) and, like the vtable index, **must be re-verified after CS2 updates** - a missing offset degrades to `Valid=false` views rather than crashing, but a *stale* one reads garbage.
 
-Three fields are worth calling out beyond the obvious aim/button ones:
+Important fields:
 
 - `CommandNumber` is the client's own command counter. It is read from the `int32` the `CUserCmd` wrapper carries next to its payload (gamedata `"UserCmdNumber"`, 8 bytes in - which is why the payload itself starts at 16), because the protobuf's `legacy_command_number` stays 0 on a live client and only serves as the fallback when that offset is missing. Consecutive commands differ by exactly 1, so a gap means commands were lost, reordered, or synthesized - it is the cheap integrity check on the command stream itself.
 - `HasViewAngles` says whether the command carried viewangles at all. When it is false the pitch/yaw/roll fields hold defaults, not a reading, so a `(0,0,0)` aim there is an absence rather than a measurement.

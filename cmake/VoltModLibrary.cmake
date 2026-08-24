@@ -1,11 +1,9 @@
 include_guard(GLOBAL)
 
-# Framework-internal: builds one of the framework's static libraries. Not shipped to consumers -
-# they get VoltMod::Runtime and VoltMod::Database as CMakeDeps targets from package_info().
+# Framework-only helper for the Runtime and Database static libraries.
 
-# The third-party headers worth precompiling. Framework headers are deliberately absent:
-# editing one must not invalidate the PCH. <google/protobuf/message.h> rather than a
-# generated .pb.h so it does not depend on protoc output.
+# Keep framework headers out of the PCH so ordinary edits do not invalidate it.
+# Use protobuf's stable public header rather than generated output.
 set(VOLTMOD_PCH_HEADERS
     <ISmmPlugin.h>
     <eiface.h>
@@ -41,7 +39,7 @@ function(voltmod_add_library name)
     add_library("VoltMod::${name}" ALIAS "${target}")
 
     target_compile_features("${target}" PUBLIC cxx_std_23)
-    # /Z7 from voltmod_set_cxx_defaults is what puts framework frames in plugin crash-dump PDBs.
+# /Z7 includes framework frames in plugin crash-dump PDBs.
     voltmod_set_cxx_defaults("${target}")
     set_target_properties("${target}" PROPERTIES
         POSITION_INDEPENDENT_CODE ON

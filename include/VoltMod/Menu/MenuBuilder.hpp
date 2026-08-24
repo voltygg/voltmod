@@ -27,19 +27,7 @@ namespace VoltMod::Menu
 {
 
 /**
- * @brief Fluent Menu builder.
- *
- * Each `Add*` method appends the matching typed @ref MenuOption.
- *
- * Usage:
- * @code
- * MenuBuilder("Settings")
- *     .AddToggle("Beacon", "ON", "OFF", getFn, toggleFn)
- *     .AddChoice<int>("Speed", {{"Slow", 1}, {"Fast", 5}}, getIdx, setIdx, applyFn)
- *     .AddInput("Reason", "Type your reason in chat", getFn, setFn)
- *     .AddSubmenu("Advanced", &BuildAdvancedMenu)
- *     .Build();
- * @endcode
+ * @brief Fluent builder whose `Add*` methods append typed @ref MenuOption rows.
  */
 class MenuBuilder
 {
