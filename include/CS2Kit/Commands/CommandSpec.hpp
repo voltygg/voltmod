@@ -34,12 +34,11 @@ struct CommandResult
  * commands.Register({
  *     .Name = "ban",
  *     .Description = "Ban a player.",
- *     .Usage = "!ban <target> <duration> [reason]",
  *     .Permission = Flag(Permission::Ban),
  *     .Args = {Target(), Duration(), ReasonTail("reason.bannedByAdmin")},
  *     .Handler = [&punishments](CommandContext& c) {
- *         std::string name = c.Target->GetName();
- *         if (!punishments.IssueBan(*c.Caller, *c.Target, c.Reason, c.DurationSec))
+ *         std::string name = c.Target().GetName();
+ *         if (!punishments.IssueBan(*c.Caller, c.Target(), c.Reason, c.Duration().value_or(0)))
  *             return c.Fail("cmd.banFailed");
  *         return c.Ok("cmd.banSuccess", {{"name", name}});
  *     },
@@ -131,6 +130,31 @@ struct CommandContext
     CommandResult Fail(std::string_view key, Core::Tokens tokens = {}) const;
 };
 
+/**
+ * @brief Where a command can be invoked from.
+ *
+ * Console commands are registered as real tier1 ConCommands, so rcon, cfg files and
+ * ExecuteServerCommand all reach them. They run with no caller: there is no immunity to
+ * apply and no permission to check, because the server console already is the authority.
+ * Caller-relative selectors (`@me`, `@!me`) resolve against no one and simply report no
+ * match.
+ */
+enum class Surface : uint8_t
+{
+    Chat = 1 << 0,
+    Console = 1 << 1,
+};
+
+constexpr Surface operator|(Surface a, Surface b)
+{
+    return static_cast<Surface>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
+}
+
+constexpr bool HasSurface(Surface set, Surface one)
+{
+    return (static_cast<uint8_t>(set) & static_cast<uint8_t>(one)) != 0;
+}
+
 struct CommandSpec
 {
     std::string Name;
@@ -138,8 +162,9 @@ struct CommandSpec
     std::string Description;
     /** Leave empty to derive from Name and Args: `!ban <target> <duration> [reason]`. */
     std::string Usage;
-    std::string Permission;  ///< empty = no permission required
+    std::string Permission;  ///< empty = no permission required; never checked on Console
     std::vector<ArgSpec> Args;
+    Surface Surfaces = Surface::Chat;
     std::function<CommandResult(CommandContext&)> Handler;
 
     bool Matches(const std::string& nameOrAlias) const;

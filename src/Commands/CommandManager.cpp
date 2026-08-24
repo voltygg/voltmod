@@ -5,6 +5,7 @@
 #include <CS2Kit/Players/TargetResolver.hpp>
 #include <CS2Kit/Runtime.hpp>
 #include <charconv>
+#include <convar.h>
 #include <limits>
 
 namespace CS2Kit::Commands
@@ -85,13 +86,41 @@ void CommandManager::Register(CommandSpec spec)
     for (auto& key : claimed)
         _aliases.emplace(std::move(key), name);
 
+    const bool console = HasSurface(spec.Surfaces, Surface::Console);
     _commands[name] = std::move(spec);
+
+    if (console)
+        RegisterConsoleCommand(name);
+}
+
+void CommandManager::RegisterConsoleCommand(const std::string& name)
+{
+    const CommandSpec* spec = GetCommand(name);
+    if (!spec)
+        return;
+
+    const std::string help = spec->Description.empty() ? DeriveUsage(*spec) : spec->Description;
+    _consoleCommands.emplace(
+        name, std::make_unique<Sdk::ServerCommand>(name.c_str(), help.c_str(), [this, name](const CCommand& args) {
+            const CommandSpec* cmd = GetCommand(name);
+            if (!cmd)
+                return;
+
+            std::vector<std::string> tokens;
+            tokens.reserve(static_cast<size_t>(args.ArgC()));
+            for (int i = 1; i < args.ArgC(); ++i)
+                tokens.emplace_back(args.Arg(i));
+
+            // The console has no chat window to reply into, and no language of its own.
+            Dispatch(*cmd, nullptr, std::move(tokens), [](const std::string& msg) { Log::Info("{}", msg); });
+        }));
 }
 
 void CommandManager::Unregister(const std::string& name)
 {
     const std::string key = StringUtils::ToLower(name);
     _commands.erase(key);
+    _consoleCommands.erase(key);
     std::erase_if(_aliases, [&](const auto& entry) { return entry.second == key; });
 }
 
@@ -127,35 +156,53 @@ bool CommandManager::HandleChatMessage(Players::Player* caller, std::string_view
         return false;
 
     auto& policy = CS2Kit::Detail::Rt().Policy;
-    auto reply = [&](const std::string& msg) {
-        if (msg.empty())
-            return;
+    const int slot = caller->GetSlot();
+    Dispatch(*cmd, caller, std::move(args), [&](const std::string& msg) {
         if (policy.Reply)
-            policy.Reply(caller->GetSlot(), msg);
+            policy.Reply(slot, msg);
         else
-            CS2Kit::Detail::Rt().Messages.Reply(caller->GetSlot(), msg);
-    };
+            CS2Kit::Detail::Rt().Messages.Reply(slot, msg);
+    });
 
-    if (!cmd->Permission.empty())
+    return true;
+}
+
+void CommandManager::Dispatch(const CommandSpec& cmd, Players::Player* caller, std::vector<std::string> args,
+                              const std::function<void(const std::string&)>& reply)
+{
+    // Console has no player and so no language of its own; slot -1 resolves the server language.
+    const int slot = caller ? caller->GetSlot() : -1;
+    auto& tr = CS2Kit::Detail::Rt().Translations;
+    const auto say = [&](const std::string& msg) {
+        if (!msg.empty())
+            reply(msg);
+    };
+    const auto usage = [&] { return cmd.Usage.empty() ? DeriveUsage(cmd) : cmd.Usage; };
+
+    // Permissions say which players may do this. The console is the server itself: no SteamID
+    // to check, and nothing above it to deny it.
+    if (caller && !cmd.Permission.empty())
     {
+        auto& policy = CS2Kit::Detail::Rt().Policy;
+
         // No policy means no way to tell an admin from anyone else, so the only safe answer is
         // no. Warn once per command: a plugin that declares permissions and forgets to install
         // a policy is misconfigured, and the old behaviour let everyone through silently.
         if (!policy.HasPermission)
         {
-            if (_missingPolicyWarned.insert(cmd->Name).second)
+            if (_missingPolicyWarned.insert(cmd.Name).second)
                 Log::Error(
                     "Command '{}' declares permission '{}' but no HasPermission policy is "
                     "installed - denying. Set Runtime::Policy.HasPermission in OnLoad.",
-                    cmd->Name, cmd->Permission);
-            reply(CS2Kit::Detail::Rt().Translations.Get("cmd.noPermission", caller->GetSlot()));
-            return true;
+                    cmd.Name, cmd.Permission);
+            say(tr.Get("cmd.noPermission", slot));
+            return;
         }
 
-        if (!policy.HasPermission(caller->GetSteamID(), cmd->Permission))
+        if (!policy.HasPermission(caller->GetSteamID(), cmd.Permission))
         {
-            reply(CS2Kit::Detail::Rt().Translations.Get("cmd.noPermission", caller->GetSlot()));
-            return true;
+            say(tr.Get("cmd.noPermission", slot));
+            return;
         }
     }
 
@@ -164,27 +211,21 @@ bool CommandManager::HandleChatMessage(Players::Player* caller, std::string_view
     ctx.RawArgs = args;
 
     // Extras used to be dropped in silence, so a typo'd selector looked like it worked.
-    if (TooManyArguments(*cmd, args))
+    if (TooManyArguments(cmd, args))
     {
-        reply(CS2Kit::Detail::Rt().Translations.Get("cmd.tooManyArgs", caller->GetSlot(),
-                                                    {{"usage", cmd->Usage.empty() ? DeriveUsage(*cmd) : cmd->Usage}}));
-        return true;
+        say(tr.Get("cmd.tooManyArgs", slot, {{"usage", usage()}}));
+        return;
     }
 
     std::string error;
-    if (!ResolveArgs(*cmd, args, ctx, error))
+    if (!ResolveArgs(cmd, args, ctx, error))
     {
-        reply(error.empty() ? "Usage: " + (cmd->Usage.empty() ? DeriveUsage(*cmd) : cmd->Usage) : error);
-        return true;
+        say(error.empty() ? "Usage: " + usage() : error);
+        return;
     }
 
-    if (cmd->Handler)
-    {
-        auto result = cmd->Handler(ctx);
-        reply(result.Message);
-    }
-
-    return true;
+    if (cmd.Handler)
+        say(cmd.Handler(ctx).Message);
 }
 
 bool CommandManager::TooManyArguments(const CommandSpec& cmd, const std::vector<std::string>& args) const
