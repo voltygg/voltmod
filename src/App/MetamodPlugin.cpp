@@ -1,6 +1,7 @@
 #include <CS2Kit/App/MetamodPlugin.hpp>
 #include <CS2Kit/Core/HookMacros.hpp>
 #include <CS2Kit/Core/Log.hpp>
+#include <CS2Kit/Core/StringUtils.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Players/Player.hpp>
 #include <CS2Kit/Players/PlayerManager.hpp>
@@ -13,6 +14,7 @@
 #include <nlohmann/json.hpp>
 #include <string>
 #include <string_view>
+#include <vector>
 
 // PLUGIN_GLOBALVARS ships in MetamodPlugin.hpp; the definitions come from
 // each plugin's CS2KIT_PLUGIN.
@@ -86,6 +88,20 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
         Shutdown();
         return false;
     }
+
+    // After OnLoad, because that is where plugins register their commands. A spec that gates
+    // on a permission with no policy behind it is denied to everyone, and that used to surface
+    // only when a player tried it.
+    _runtime->LoadReport.Run("Commands", [this] {
+        const std::vector<std::string> missing = _runtime->Commands.CommandsMissingPolicy();
+        if (missing.empty())
+            return Core::StageResult::Ok();
+        return Core::StageResult::Degraded(
+            std::format("{} command(s) gate on a permission with no HasPermission policy "
+                        "installed and will be denied ({}); set Runtime::Policy.HasPermission "
+                        "in OnLoad",
+                        missing.size(), Core::StringUtils::Join(missing, ", ")));
+    });
 
     Log::Info("{}", _runtime->LoadReport.Summary());
     if (_info.Commit != nullptr && *_info.Commit != '\0')
