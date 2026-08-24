@@ -127,21 +127,15 @@ layering.
 
 ## Commenting and documentation
 
-- Keep public comments focused on purpose, preconditions, ownership, lifetime,
-  errors, return behavior, and concurrency when those details are not obvious
-  from the declaration. Remove comments that narrate syntax or repeat a
-  symbol name.
-- Use Doxygen for public headers. Preserve exact symbol names and Doxygen tags,
-  and update the contract when the API changes.
-- Use internal comments for module boundaries, layering constraints, build
-  behavior, compatibility, and other reasons the code cannot express clearly.
-  Keep them next to the code they explain and remove stale history.
-- Keep `docs/` focused on current framework behavior and maintenance. Lead
-  procedures with prerequisites, commands, paths, and expected results.
-- Keep `templates/` documentation synchronized with the files that
-  `voltmod init` and `voltmod new-plugin` copy. Examples must remain runnable.
-- Use sentence-case headings and plain, direct English. Refer to VoltMod as
-  the framework; use “library” only for an actual library or CMake target.
+- Comment only to explain contracts, ownership, lifetime, concurrency, module
+  boundaries, build behavior, or compatibility. Keep comments near the code
+  and remove stale or obvious narration.
+- Use Doxygen for non-obvious public contracts and preserve exact symbols and
+  tags. Keep `docs/` task-first, current, and explicit about commands, paths,
+  and expected results.
+- Keep examples and `templates/` synchronized with the public headers and
+  generated output. Use plain English and sentence-case headings; call VoltMod
+  the framework and reserve “library” for actual libraries or CMake targets.
 
 Tests use doctest and must remain SDK-free unless a separate integration-test
 surface is added. Each test case becomes a CTest entry; names must not contain
