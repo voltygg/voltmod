@@ -110,11 +110,6 @@ def _recipe_version(name: str) -> str:
 
 def _build_sdks() -> None:
     for name in SDK_PACKAGES:
-        # metamod-source clears its package_id, so one binary serves every platform.
-        # Building it on both would write two revisions under the same id; Linux owns it.
-        if name == "metamod-source" and buildtools.WINDOWS:
-            print("skipping metamod-source on Windows: its package_id is platform-independent")
-            continue
         _create(ROOT / "recipes" / name, [], [])
 
 
@@ -141,6 +136,9 @@ def publish(args) -> int:
     if args.target in ("sdk", "all"):
         _build_sdks()
         for name in SDK_PACKAGES:
+            # metamod-source clears its package_id, so one binary serves every platform;
+            # uploading from both would write two revisions under the same id. Both build
+            # it - the kit needs it in the local cache either way - but Linux publishes.
             if name == "metamod-source" and buildtools.WINDOWS:
                 continue
             _upload(f"{name}/*")
