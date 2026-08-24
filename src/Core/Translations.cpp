@@ -26,6 +26,29 @@ void FlattenInto(const nlohmann::json& node, const std::string& prefix,
             out[full] = value.get<std::string>();
     }
 }
+/**
+ * English text for the keys the kit itself emits. Translations::Get returns the raw key on a
+ * miss, so without this every plugin had to hand-copy all of them into every language file or
+ * players saw the literal string `cmd.noPermission`. A plugin's own file still wins - these are
+ * the floor, not an override.
+ */
+const std::unordered_map<std::string, std::string>& KitDefaults()
+{
+    static const std::unordered_map<std::string, std::string> defaults{
+        {"cmd.noPermission", "You do not have permission to use this command."},
+        {"cmd.tooManyArgs", "Too many arguments. Usage: {usage}"},
+        {"cmd.badDuration", "Invalid duration. Use minutes (e.g. 30), 30s/5m/2h/7d, or 'perm'."},
+        {"cmd.badSteamId", "'{token}' is not a valid SteamID64."},
+        {"cmd.badNumber", "'{token}' is not a valid number."},
+        {"target.noMatch", "No player matches '{token}'."},
+        {"target.immune", "'{token}' is immune to that."},
+        {"target.ambiguous", "'{token}' matches {count} players - be more specific."},
+        {"target.dead", "'{token}' is not alive."},
+        {"target.bot", "'{token}' is a bot."},
+    };
+    return defaults;
+}
+
 }  // namespace
 
 bool Translations::Load(const std::string& dirPath)
@@ -165,6 +188,8 @@ std::string Translations::Get(const std::string& key, int slot) const
     if (lang != "en")
         if (const std::string* v = LookupIn("en", key))
             return *v;
+    if (auto it = KitDefaults().find(key); it != KitDefaults().end())
+        return it->second;
     return key;
 }
 
