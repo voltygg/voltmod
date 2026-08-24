@@ -1,49 +1,65 @@
 # $project
 
-CS2 Metamod plugins built with
-[VoltMod](https://github.com/voltygg/voltmod). Conan supplies the framework,
-HL2SDK, and Metamod; no submodules are required.
+Counter-Strike 2 Metamod plugins built with
+[VoltMod](https://github.com/voltygg/voltmod).
 
-## Setup
+## First build
 
-```sh
-uv sync                # install CMake, Conan, Ninja, and the framework tasks
-uv run poe bootstrap   # install Conan profiles and the remote, then build
-```
-
-Run `bootstrap` once, then use `uv run poe build` during development.
-
-## Build
+Install Git, [uv](https://docs.astral.sh/uv/), Python 3.14+, and a C++23
+compiler. Then run:
 
 ```sh
-uv run poe build                              # release preset for this OS
-uv run poe build windows-msvc-debug
-uv run poe build-linux
-ctest --preset windows-msvc-release
+uv sync
+uv run poe doctor
+uv run poe bootstrap
 ```
 
-Plugin binaries land in `build/<preset>/plugins/<name>/<platform-arch>/`, and
-`cmake --install build/<preset> --component <name> --prefix <dir>` stages a
-server-ready `addons/` tree per plugin.
+Doctor checks the environment without changing it. Bootstrap installs the
+Conan profiles and package remote, resolves VoltMod, HL2SDK, and Metamod,
+configures CMake, builds, and runs tests.
 
-Without uv, drive Conan and CMake directly:
+Bootstrap is already the first build. Use this afterward:
 
 ```sh
-conan install . -pr:a linux-steamrt.txt -s build_type=Release \
-  --output-folder build/linux-steamrt-release/generators --build=missing
-cmake --workflow --preset linux-steamrt-release
+uv run poe build
 ```
 
-## Add plugins
+## Verify $plugin
+
+Stage a server-ready addon:
+
+```sh
+cmake --install build/<preset> --component $plugin --prefix dist
+```
+
+Copy `dist/addons` into the CS2 server's `game/csgo` directory. Start the
+server, run `meta list`, and confirm `$plugin` appears. Join and enter `!ping`
+to verify command and translation loading.
+
+Build output is under
+`build/<preset>/plugins/<name>/<platform-arch>/`.
+
+## Add a plugin
 
 ```sh
 uv run poe new-plugin fun-votes
 ```
 
-This creates `plugins/fun-votes/` with its CMake file, source, and configuration,
+The command creates `plugins/fun-votes` with source and configuration files,
 then registers it in the root `CMakeLists.txt`.
+
+## Common commands
+
+| Command | Purpose |
+| --- | --- |
+| `uv run poe doctor` | Check tools and project configuration |
+| `uv run poe build` | Build and test the release preset for this OS |
+| `uv run poe build windows-msvc-debug` | Build and test Windows debug |
+| `uv run poe build-linux` | Build and test Linux Steam Runtime release |
+| `uv run poe new-plugin <name>` | Scaffold and register another plugin |
+| `uv run poe format-check` | Check C++ formatting |
 
 ## PostgreSQL
 
-Set `voltmod/*:with_postgres` to `True` in `conanfile.py` to add libpqxx and
-the `VoltMod::Database` module.
+Set `voltmod/*:with_postgres` to `True` in `conanfile.py`, then add
+`FEATURES DATABASE` to the plugin's `voltmod_add_plugin` call.

@@ -6,13 +6,11 @@ readme = "README.md"
 requires-python = ">=3.14"
 license = { text = "MIT" }
 
-# Consumers install these dependencies with the CLI and inherit its tool pins.
 dependencies = [
     "cmake>=4.3.4",
     "conan>=2.29.1",
     "ninja>=1.13.0",
     "clang-format==22.1.5",
-    # `voltmod package` reads recipe conandata files.
     "pyyaml>=6.0",
 ]
 
@@ -36,14 +34,14 @@ dev = [
     "poethepoet>=0.47.0",
 ]
 
-# Task aliases for the voltmod CLI.
+
 [tool.poe.tasks]
 build = "voltmod build"
 build-linux = "voltmod build linux-steamrt-release"
-# Run from the consumer root; creates `plugins/<name>` there.
+doctor = "voltmod doctor"
 new-plugin = "voltmod new-plugin"
 lint = "ruff check ."
-# Enforce the module include allowlist.
+
 modgraph = "voltmod modgraph"
 format = "voltmod format"
 format-check = "voltmod format --check"
@@ -51,12 +49,10 @@ format-check = "voltmod format --check"
 [tool.ruff]
 line-length = 100
 target-version = "py314"
-# Templates contain placeholders and should not receive a Ruff cache.
 extend-exclude = ["templates"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP"]
 
 [tool.ruff.lint.isort]
-# The sibling `conan/` directory is not the Python package.
 known-third-party = ["conan"]

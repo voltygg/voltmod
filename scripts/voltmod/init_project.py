@@ -32,6 +32,7 @@ def create(name: str, plugin: str) -> int:
     print(
         "\nDone. Next steps:\n"
         "  uv sync              # provision the toolchain (https://docs.astral.sh/uv)\n"
+        "  uv run poe doctor    # check tools and project configuration\n"
         "  uv run poe bootstrap # Conan profiles + remote, then a first build"
     )
     return 0

@@ -8,6 +8,7 @@ and validate it separately from the parent worktree.
 
 ```bash
 uv sync
+uv run poe doctor
 uv run poe build
 uv run poe build windows-msvc-release
 uv run poe build-linux

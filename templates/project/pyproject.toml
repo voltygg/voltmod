@@ -19,6 +19,7 @@ package = false
 build = "voltmod build"
 build-linux = "voltmod build linux-steamrt-release"
 bootstrap = "voltmod bootstrap"
+doctor = "voltmod doctor"
 new-plugin = "voltmod new-plugin"
 lint = "ruff check ."
 format = "voltmod format"

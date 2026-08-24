@@ -3,7 +3,7 @@
 import argparse
 from pathlib import Path
 
-from . import buildtools, init_project, modgraph, new_plugin, package
+from . import buildtools, doctor, init_project, modgraph, new_plugin, package
 
 ROOT = Path.cwd()
 KIT_ROOT = Path(__file__).resolve().parents[2]
@@ -40,6 +40,10 @@ def _format(args: argparse.Namespace) -> int:
     return 0
 
 
+def _doctor(args: argparse.Namespace) -> int:
+    return doctor.run(ROOT, args.server_path)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="voltmod",
@@ -66,6 +70,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("bootstrap", help="install Conan profiles and the remote, then build")
     p.set_defaults(run=_bootstrap)
+
+    p = sub.add_parser("doctor", help="check the local toolchain, project, and optional server")
+    p.add_argument("--server-path", default="", help="optional CS2 server installation root")
+    p.set_defaults(run=_doctor)
 
     p = sub.add_parser("format", help="run the pinned clang-format over C++ sources")
     p.add_argument("--check", action="store_true", help="report diffs instead of writing them")
