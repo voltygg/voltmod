@@ -116,6 +116,7 @@ if(BUILD_TESTING)
     cs2_add_tests(cs2kit-utils-tests
         SOURCES
             # SDK-free TUs, hand-picked: the rest of src/ needs HL2SDK or pqxx.
+            src/Commands/CommandSpec.cpp
             src/Core/EffectManager.cpp
             src/Core/Paths.cpp
             src/Core/PluginManifest.cpp

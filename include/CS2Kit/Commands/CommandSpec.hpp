@@ -173,4 +173,12 @@ struct CommandSpec
  *  name - a chat prefix, or empty for the console, which has none. */
 std::string DeriveUsage(const CommandSpec& spec, std::string_view prefix);
 
+/** True when @p spec declares @p surface. This is what makes a console-only command
+ *  console-only: a spec that does not name Surface::Chat is not reachable from chat. */
+bool ReachableFrom(const CommandSpec& spec, Surface surface);
+
+/** True when more tokens were given than @p spec can consume. A ReasonTail swallows the
+ *  remainder, so a spec with one never has extras. */
+bool TooManyArguments(const CommandSpec& spec, size_t argCount);
+
 }  // namespace CS2Kit::Commands

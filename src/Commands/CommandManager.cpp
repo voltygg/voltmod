@@ -4,6 +4,7 @@
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Players/TargetResolver.hpp>
 #include <CS2Kit/Runtime.hpp>
+#include <algorithm>
 #include <charconv>
 #include <convar.h>
 #include <limits>
@@ -81,7 +82,7 @@ void CommandManager::Register(CommandSpec spec)
         _aliases.emplace(std::move(key), name);
     }
 
-    const bool console = HasSurface(spec.Surfaces, Surface::Console);
+    const bool console = ReachableFrom(spec, Surface::Console);
     const CommandSpec& stored = (_commands[name] = std::move(spec));
 
     if (console)
@@ -150,7 +151,7 @@ bool CommandManager::HandleChatMessage(Players::Player* caller, std::string_view
     // never read, so a spec registered as Surface::Console - typically an operator command with
     // no Permission, because the console needs none - was also typeable in chat by anyone.
     const CommandSpec* cmd = GetCommand(cmdName);
-    if (!cmd || !HasSurface(cmd->Surfaces, Surface::Chat))
+    if (!cmd || !ReachableFrom(*cmd, Surface::Chat))
         return false;
 
     auto& policy = CS2Kit::Detail::Rt().Policy;
@@ -216,7 +217,7 @@ void CommandManager::Dispatch(const CommandSpec& cmd, Players::Player* caller, s
     ctx.RawArgs = std::move(args);
 
     // Extras used to be dropped in silence, so a typo'd selector looked like it worked.
-    if (TooManyArguments(cmd, ctx.RawArgs))
+    if (TooManyArguments(cmd, ctx.RawArgs.size()))
     {
         say(tr.Get("cmd.tooManyArgs", slot, {{"usage", usage()}}));
         return;
@@ -231,16 +232,6 @@ void CommandManager::Dispatch(const CommandSpec& cmd, Players::Player* caller, s
 
     if (cmd.Handler)
         say(cmd.Handler(ctx).Message);
-}
-
-bool CommandManager::TooManyArguments(const CommandSpec& cmd, const std::vector<std::string>& args) const
-{
-    // A ReasonTail swallows the remainder, so anything with one can never have extras.
-    for (const auto& spec : cmd.Args)
-        if (spec.Kind == ArgKind::ReasonTail)
-            return false;
-
-    return args.size() > cmd.Args.size();
 }
 
 bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::string>& args, CommandContext& ctx,
@@ -359,6 +350,19 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
     }
 
     return true;
+}
+
+std::vector<std::string> CommandManager::CommandsMissingPolicy() const
+{
+    if (CS2Kit::Detail::Rt().Policy.HasPermission)
+        return {};
+
+    std::vector<std::string> names;
+    for (const auto& [key, spec] : _commands)
+        if (!spec.Permission.empty())
+            names.push_back(spec.Name);
+    std::sort(names.begin(), names.end());  // map order is arbitrary; the report should not be
+    return names;
 }
 
 const CommandSpec* CommandManager::GetCommand(const std::string& name) const

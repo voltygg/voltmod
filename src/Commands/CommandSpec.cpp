@@ -1,6 +1,4 @@
 #include <CS2Kit/Commands/CommandSpec.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
 
 namespace CS2Kit::Commands
 {
@@ -38,21 +36,6 @@ ArgSpec Word(bool required)
 ArgSpec ReasonTail(std::string fallbackKey)
 {
     return {.Kind = ArgKind::ReasonTail, .Required = false, .FallbackKey = std::move(fallbackKey)};
-}
-
-int CommandContext::CallerSlot() const
-{
-    return Caller ? Caller->GetSlot() : -1;
-}
-
-CommandResult CommandContext::Ok(std::string_view key, Core::Tokens tokens) const
-{
-    return {CS2Kit::Detail::Rt().Translations.Get(std::string(key), CallerSlot(), tokens)};
-}
-
-CommandResult CommandContext::Fail(std::string_view key, Core::Tokens tokens) const
-{
-    return Ok(key, tokens);  // same wire shape; the two names say which outcome the handler meant
 }
 
 namespace
@@ -94,6 +77,21 @@ std::string DeriveUsage(const CommandSpec& spec, std::string_view prefix)
         usage += arg.Required ? '>' : ']';
     }
     return usage;
+}
+
+bool ReachableFrom(const CommandSpec& spec, Surface surface)
+{
+    return HasSurface(spec.Surfaces, surface);
+}
+
+bool TooManyArguments(const CommandSpec& spec, size_t argCount)
+{
+    // A ReasonTail swallows the remainder, so anything with one can never have extras.
+    for (const ArgSpec& arg : spec.Args)
+        if (arg.Kind == ArgKind::ReasonTail)
+            return false;
+
+    return argCount > spec.Args.size();
 }
 
 }  // namespace CS2Kit::Commands

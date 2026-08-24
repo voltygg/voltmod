@@ -40,6 +40,12 @@ public:
 
     void SetPrefixes(const std::vector<std::string>& prefixes) { _prefixes = prefixes; }
 
+    /** Names of registered specs that declare a Permission while no HasPermission policy is
+     *  installed. Every one of them will be denied; MetamodPlugin reports this after OnLoad so
+     *  the misconfiguration shows up in the load summary instead of the first time a player
+     *  tries the command. */
+    std::vector<std::string> CommandsMissingPolicy() const;
+
 private:
     std::vector<std::string> ParseArguments(const std::string& text) const;
 
@@ -47,9 +53,6 @@ private:
      *  message ("" = generic usage line). */
     bool ResolveArgs(const CommandSpec& cmd, const std::vector<std::string>& args, CommandContext& ctx,
                      std::string& outError) const;
-
-    /** True when more tokens were given than the spec can consume. */
-    bool TooManyArguments(const CommandSpec& cmd, const std::vector<std::string>& args) const;
 
     /** Resolve and run @p cmd for @p caller (null = console), sending every reply to @p reply. */
     void Dispatch(const CommandSpec& cmd, Players::Player* caller, std::vector<std::string> args,
