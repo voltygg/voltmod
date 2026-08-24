@@ -1,7 +1,7 @@
 include_guard(GLOBAL)
 
-# Consumer-facing test API. Included by cs2-kit's root CMakeLists, so after
-# add_subdirectory(vendor/cs2-kit) any project can call:
+# Consumer-facing test API. Reaches consumers as a CMakeDeps build module, so
+# after find_package(cs2-kit CONFIG REQUIRED) any project can call:
 #   cs2_add_tests(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...])
 # SOURCES are the SDK-free TUs to recompile; tests/*.cpp is globbed automatically.
 

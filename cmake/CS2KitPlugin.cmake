@@ -3,7 +3,7 @@ include_guard(GLOBAL)
 # Consumer-facing plugin API. Reaches consumers as a CMakeDeps build module, so
 # after find_package(cs2-kit CONFIG REQUIRED) any project can call:
 #   cs2_add_plugin(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...]
-#                  [FEATURES ...] [PCH_HEADERS ...] [UNITY]
+#                  [FEATURES ...] [PCH_HEADERS ...]
 #                  [VERSION <v>] [DESCRIPTION <text>]
 #                  [DEPENDS <spec>...] [REQUIRES <spec>...])
 
@@ -13,9 +13,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/CS2KitCommon.cmake")
 # Create a Metamod plugin MODULE linked against CS2Kit, with output dirs and
 # install rules. SOURCES defaults to a glob of src/*.cpp; INCLUDE_DIRS and
 # LIBRARIES are appended to the defaults. PCH_HEADERS extends the plugin's
-# precompiled header (e.g. "<pqxx/pqxx>"). UNITY enables jumbo compilation -
-# it needs file-unique names for namespace-scope statics (self-registration
-# blocks); Registry<T> items still work, every source is compiled and linked.
+# precompiled header (e.g. "<pqxx/pqxx>").
 #
 # FEATURES names the optional parts of the kit this plugin needs. DATABASE adds
 # CS2Kit::Database (and libpqxx); without it a movement plugin carries neither. The
@@ -24,7 +22,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/CS2KitCommon.cmake")
 # VERSION/DESCRIPTION/DEPENDS/REQUIRES fill the generated manifest; VERSION defaults to
 # the repo's version.txt.
 function(cs2_add_plugin target_name)
-    cmake_parse_arguments(ARG "UNITY" "VERSION;DESCRIPTION"
+    cmake_parse_arguments(ARG "" "VERSION;DESCRIPTION"
         "SOURCES;INCLUDE_DIRS;LIBRARIES;FEATURES;PCH_HEADERS;DEPENDS;REQUIRES" ${ARGN})
 
     # Shipped by the hl2sdk-cs2 build module, which arrives with cs2-kit.
@@ -84,14 +82,6 @@ function(cs2_add_plugin target_name)
         target_precompile_headers("${target_name}" PRIVATE
             "<CS2Kit/Api.hpp>"
             ${ARG_PCH_HEADERS}
-        )
-    endif()
-
-    if(ARG_UNITY)
-        # Batch of 8 keeps a jumbo TU quick to rebuild and preserves parallelism.
-        set_target_properties("${target_name}" PROPERTIES
-            UNITY_BUILD ON
-            UNITY_BUILD_BATCH_SIZE 8
         )
     endif()
 

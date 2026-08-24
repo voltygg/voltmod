@@ -47,7 +47,7 @@ A plugin's `CMakeLists.txt` is a single declaration - `cs2_add_plugin` reaches y
 cs2_add_plugin(fun-votes)
 ```
 
-- `cs2_add_plugin(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...] [PCH_HEADERS ...] [UNITY])` creates the Metamod MODULE: `SOURCES` defaults to a recursive glob of `src/*.cpp`; the required HL2SDK translation units (`memoverride.cpp`, `convar.cpp`) and the `CS2Kit::CS2Kit` link are added for you, along with C++23, the static MSVC runtime, ccache when present, and a precompiled `<CS2Kit/Api.hpp>` (extend with `PCH_HEADERS`, disable with `-DCS2KIT_DISABLE_PCH=ON`).
+- `cs2_add_plugin(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...] [PCH_HEADERS ...])` creates the Metamod MODULE: `SOURCES` defaults to a recursive glob of `src/*.cpp`; the required HL2SDK translation units (`memoverride.cpp`, `convar.cpp`) and the `CS2Kit::CS2Kit` link are added for you, along with C++23, the static MSVC runtime, ccache when present, and a precompiled `<CS2Kit/Api.hpp>` (extend with `PCH_HEADERS`, disable with `-DCS2KIT_DISABLE_PCH=ON`).
 - `cs2_install_plugin(<name>)` (called automatically) defines the deploy bundle as an install component: the module under `addons/<name>/bin/{win64|linuxsteamrt64}`, a generated Metamod `.vdf` under `addons/metamod`, the plugin's `configs/`, and the kit's shared gamedata. `cmake --install build/<preset> --component <name> --prefix <dir>` stages a server-ready `addons/` tree.
 
 ### Version and build provenance
