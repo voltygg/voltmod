@@ -1,8 +1,4 @@
-"""Shared build helpers for voltmod and the projects that depend on it.
-
-Import, don't execute. This is the single source of truth for the toolchain
-invocation; consuming repos get it from the installed voltmod distribution.
-"""
+"""Shared toolchain helpers for VoltMod and its consumers."""
 
 import json
 import os
@@ -16,25 +12,22 @@ from typing import NoReturn
 WINDOWS = sys.platform == "win32"
 CONAN_REMOTE = "volty"
 # Linux CI consumes published SDK binaries; Windows builds them locally when missing.
-SDK_BUILD_EXCLUSIONS = () if WINDOWS else (
-    "--build=!hl2sdk-cs2/*",
-    "--build=!metamod-source/*",
-)
+SDK_BUILD_EXCLUSIONS = ()
+if not WINDOWS:
+    SDK_BUILD_EXCLUSIONS = ("--build=!hl2sdk-cs2/*", "--build=!metamod-source/*")
 CPP_EXTS = (".cpp", ".hpp")
 # Under the 32767-character Windows cap, with room for the tool path and flags.
 MAX_COMMAND_LINE = 24000
 
 
 def templates_dir() -> Path:
-    """The scaffold tree: packaged beside this module in a wheel, at the repo root
-    in a checkout."""
+    """Return scaffold templates from the installed wheel or repository."""
     packaged = Path(__file__).resolve().parent / "templates"
     return packaged if packaged.is_dir() else Path(__file__).resolve().parents[2] / "templates"
 
 
 def remote_url() -> str:
-    """The package remote, read from conan/remotes.json - the file `conan config install`
-    ships, so CI and a developer's machine cannot disagree about where packages live."""
+    """Read the package remote from conan/remotes.json."""
     for base in (Path.cwd(), Path(__file__).resolve().parents[2]):
         remotes = base / "conan/remotes.json"
         if remotes.is_file():
@@ -55,10 +48,7 @@ def default_preset() -> str:
 
 
 def resolve_tool(tool: str) -> tuple[list[str], dict[str, str]]:
-    """Locate a build tool, preferring the project venv, then `uv run`, then PATH.
-
-    Returns the argv prefix to invoke it with and the environment it needs.
-    """
+    """Resolve a build tool from the project venv, uv, or PATH."""
     for root in filter(None, (os.environ.get("VIRTUAL_ENV"), ".venv")):
         bindir = Path(root) / ("Scripts" if WINDOWS else "bin")
         exe = shutil.which(tool, path=str(bindir))
@@ -75,32 +65,27 @@ def resolve_tool(tool: str) -> tuple[list[str], dict[str, str]]:
     )
 
 
-def run_tool(tool: str, *args: str) -> subprocess.CompletedProcess[bytes]:
-    """Run a build tool, failing the process if it exits non-zero."""
+def run_tool(
+    tool: str,
+    *args: str,
+    capture: bool = False,
+    check: bool = True,
+) -> subprocess.CompletedProcess[str]:
+    """Run a resolved build tool."""
     argv, env = resolve_tool(tool)
-    return subprocess.run([*argv, *args], check=True, env=env)
+    return subprocess.run([*argv, *args], check=check, env=env, text=True, capture_output=capture)
 
 
 def ensure_remote() -> None:
-    """Register the public Cloudsmith remote that serves hl2sdk-cs2 and metamod-source.
-
-    Writes to the global Conan config, so VOLTMOD_SKIP_REMOTE_SETUP=1 opts out for
-    anyone who manages remotes themselves (a proxy, a mirror, an air-gapped cache).
-    """
+    """Register Cloudsmith unless VOLTMOD_SKIP_REMOTE_SETUP is set."""
     if os.environ.get("VOLTMOD_SKIP_REMOTE_SETUP"):
         return
-    argv, env = resolve_tool("conan")
-    listing = subprocess.run(
-        [*argv, "remote", "list"], text=True, capture_output=True, env=env
-    )
+    listing = run_tool("conan", "remote", "list", capture=True, check=False)
     if listing.returncode == 0 and f"{CONAN_REMOTE}:" in listing.stdout:
         return
     url = remote_url()
     print(f"==> Adding Conan remote '{CONAN_REMOTE}' ({url})")
-    subprocess.run(
-        [*argv, "remote", "add", "--force", CONAN_REMOTE, url],
-        check=True, env=env,
-    )
+    run_tool("conan", "remote", "add", "--force", CONAN_REMOTE, url)
 
 
 def _chunk_by_length(files: list[str], budget: int) -> list[list[str]]:
@@ -118,11 +103,7 @@ def _chunk_by_length(files: list[str], budget: int) -> list[list[str]]:
 
 
 def format_sources(repo_root: Path, dirs: list[str], *, check: bool) -> None:
-    """Run the pinned clang-format over C++ sources under dirs (relative to repo_root).
-
-    rglob only descends the listed dirs, so nothing outside them is touched.
-    --check leaves files as they are and exits non-zero on any diff.
-    """
+    """Format or check C++ files below the selected directories."""
     files = sorted(
         str(p)
         for d in dirs
@@ -135,8 +116,7 @@ def format_sources(repo_root: Path, dirs: list[str], *, check: bool) -> None:
         return
     args = ["--dry-run", "--Werror"] if check else ["-i"]
 
-    # A single argv with every file exceeds the 32767-character Windows command-line cap
-    # (WinError 206, nothing formatted). Batch on POSIX too, so both take the same path.
+    # Stay below Windows' command-line limit on every platform.
     failure = 0
     for batch in _chunk_by_length(files, MAX_COMMAND_LINE):
         try:
@@ -151,9 +131,7 @@ def format_sources(repo_root: Path, dirs: list[str], *, check: bool) -> None:
 
 def _tool_version(tool: str, prefix: str) -> tuple[int, ...]:
     """Read `<tool> --version` and parse the dotted number after `prefix`."""
-    out = subprocess.run(
-        [tool, "--version"], check=True, text=True, capture_output=True
-    ).stdout
+    out = run_tool(tool, "--version", capture=True).stdout
     for token in out.replace(prefix, " ").split():
         if token[:1].isdigit():
             return tuple(int(p) for p in token.split(".") if p.isdigit())
@@ -182,18 +160,20 @@ def _vswhere() -> Path:
 
 
 def msvc_version() -> str:
-    """The runner's cl version as Conan spells it, e.g. "195".
-
-    Hosted Windows runners ship a newer cl than the checked-in profile names, and a
-    package built under the wrong compiler.version gets a package id no consumer
-    resolves. -find lists every installed toolset ascending, so take the last: a VS2022
-    image also carries the 14.29 (cl 19.2x) toolset, which cannot compile C++23.
-    """
+    """Return the newest installed cl version in Conan form, such as ``195``."""
     found = subprocess.run(
-        [str(_vswhere()), "-latest", "-products", "*",
-         "-find", r"VC\Tools\MSVC\*\bin\Hostx64\x64\cl.exe"],
-        check=True, text=True, capture_output=True,
-    ).stdout.splitlines()  # not .split(): the paths contain "Program Files"
+        [
+            str(_vswhere()),
+            "-latest",
+            "-products",
+            "*",
+            "-find",
+            r"VC\Tools\MSVC\*\bin\Hostx64\x64\cl.exe",
+        ],
+        check=True,
+        text=True,
+        capture_output=True,
+    ).stdout.splitlines()
     if not found:
         die("no cl.exe found")
     # cl with no arguments prints its banner on stderr, then a usage summary.
@@ -213,10 +193,19 @@ def ensure_msvc_env() -> None:
         return
 
     vs_path = subprocess.run(
-        [str(_vswhere()), "-latest", "-products", "*", "-requires",
-         "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
-         "-property", "installationPath"],
-        check=True, text=True, capture_output=True,
+        [
+            str(_vswhere()),
+            "-latest",
+            "-products",
+            "*",
+            "-requires",
+            "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+            "-property",
+            "installationPath",
+        ],
+        check=True,
+        text=True,
+        capture_output=True,
     ).stdout.strip()
     vcvars = Path(vs_path) / "VC/Auxiliary/Build/vcvars64.bat"
     if not vs_path or not vcvars.is_file():
@@ -227,7 +216,9 @@ def ensure_msvc_env() -> None:
     # the space-containing vcvars path. `>nul` drops the banner, leaving `set` output.
     out = subprocess.run(
         f'cmd /c "{vcvars}" >nul && set',
-        check=True, text=True, capture_output=True,
+        check=True,
+        text=True,
+        capture_output=True,
     ).stdout
     for line in out.splitlines():
         key, sep, value = line.partition("=")
@@ -238,11 +229,8 @@ def ensure_msvc_env() -> None:
         die("cl still not on PATH after vcvars.")
 
 
-# What ccache needs to be useful against a force-included precompiled header. Every CI
-# job that builds this project restated these; they are a property of the kit's PCH, not
-# of any one runner, so the kit asserts them. An explicitly set value always wins.
+# Settings required to cache force-included precompiled headers.
 CCACHE_SETTINGS = {
-    # Without pch_defines AND depend mode, every PCH-using TU is a permanent miss.
     "CCACHE_SLOPPINESS": "pch_defines,time_macros,locale,include_file_ctime,include_file_mtime",
     "CCACHE_DEPEND": "1",
     "CCACHE_MAXSIZE": "1G",
@@ -255,8 +243,6 @@ def _prepare_ccache(repo_root: Path) -> bool:
         return False
     for key, value in CCACHE_SETTINGS.items():
         os.environ.setdefault(key, value)
-    # Rewrites absolute paths in the hash: a container sees a different workspace path
-    # than the host that saved the cache, and without this every entry misses.
     os.environ.setdefault("CCACHE_BASEDIR", str(repo_root))
     return True
 
@@ -265,14 +251,10 @@ def _ccache(*args: str) -> None:
     subprocess.run(["ccache", *args], check=False)
 
 
-def build(repo_root: Path, preset: str, *, run_tests: bool = True,
-          options: list[str] | None = None) -> None:
-    """Conan install + CMake build for one preset under repo_root.
-
-    run_tests=False replaces the workflow preset (configure+build+ctest) with
-    configure+build, so CI can time and report tests as a separate step. `options` are
-    extra `conan install` arguments, typically -o pairs.
-    """
+def build(
+    repo_root: Path, preset: str, *, run_tests: bool = True, options: list[str] | None = None
+) -> None:
+    """Run Conan install and the selected CMake preset."""
     require_build_tools()
     ccache = _prepare_ccache(repo_root)
     ensure_remote()
@@ -297,22 +279,23 @@ def build(repo_root: Path, preset: str, *, run_tests: bool = True,
     else:
         die(f"Unknown preset: {preset}")
 
-    # Lockfile only when the repo pins one; fresh projects build unpinned until
-    # they run `conan lock create`.
     lock = repo_root / "conan.lock"
     lock_args = ["--lockfile", str(lock)] if lock.is_file() else []
 
-    # The recipe's layout() decides where the toolchain and generators land; passing the
-    # repo root keeps that the single description instead of restating it here.
     run_tool(
-        "conan", "install", str(repo_root),
-        "--output-folder", str(repo_root),
+        "conan",
+        "install",
+        str(repo_root),
+        "--output-folder",
+        str(repo_root),
         "--build=missing",
         *SDK_BUILD_EXCLUSIONS,
         *lock_args,
         *(options or []),
-        "--profile:host", str(profile),
-        "--profile:build", str(profile),
+        "--profile:host",
+        str(profile),
+        "--profile:build",
+        str(profile),
         *settings,
     )
 
@@ -326,8 +309,6 @@ def build(repo_root: Path, preset: str, *, run_tests: bool = True,
         run_tool("cmake", "--build", "--preset", preset)
 
     if ccache:
-        # A warm rerun of an unchanged tree should show >95% hits; a collapse means
-        # the settings above stopped matching how the compiler is invoked.
         _ccache("-s", "-v")
 
-    print(f"\n=== Build Complete ===\nPreset: {preset}\nBuild directory: build/{preset}")
+    print(f"\nBuild complete: {preset} -> build/{preset}")

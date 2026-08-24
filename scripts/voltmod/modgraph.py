@@ -1,29 +1,10 @@
-"""Check voltmod's module layering against the map declared here.
-
-A VoltMod/<Module>/ may only include the modules ALLOWED lists for it. A cycle-only
-check is not enough: an upward edge (Core reaching into Sdk, say) stays acyclic and
-would slip through, yet it is exactly what breaks the layering. So the map below is
-the authority, and this exits non-zero naming the include that violated it.
-
-Detail/ is the composition root's private bridge - every module may reach it, and it
-reaches back into all of them. That is the one deliberate exemption.
-
-Separately: the root headers (VoltMod/Runtime.hpp, VoltMod/Api.hpp) sit outside every
-module directory, so the per-module regex below cannot see them at all. A .cpp may
-include the root - Detail::Rt() returns a Runtime&, which is unusable without the
-definition, and a .cpp edge does not propagate. A *header* below the root may not:
-that would pull the whole service graph into every consumer. ROOT_HEADERS checks
-exactly that, and it is why the blind spot is not simply a wider regex.
-
-Usage: voltmod modgraph [repo-root]   (default: the working directory)
-"""
+"""Enforce the declared include graph between VoltMod modules."""
 
 import re
 from collections import defaultdict
 from pathlib import Path
 
-# What each module may include. Transitive edges are spelled out, so this doubles as
-# the documentation of the layering and mirrors what CMake links.
+# Transitive edges are explicit so this also documents the layering.
 ALLOWED: dict[str, set[str]] = {
     "Core": set(),
     "Http": {"Core"},
@@ -35,15 +16,15 @@ ALLOWED: dict[str, set[str]] = {
     "App": {"Core", "Http", "Sdk", "Players", "Commands", "Menu", "Database"},
 }
 
-# Reachable from anywhere and reaching anywhere; see the module docstring.
+# Private composition bridge; every module may use it.
 EXEMPT = {"Detail"}
 
 INCLUDE = re.compile(r'#\s*include\s*[<"]VoltMod/([A-Za-z0-9_]+)/([^>"]+)[>"]')
 
-# Composition-root headers: no directory segment, so INCLUDE never matches them.
+# Root headers have no module directory and need a separate check.
 ROOT_HEADERS = re.compile(r'#\s*include\s*[<"]VoltMod/(Runtime|Api)\.hpp[>"]')
 
-# App/ IS the composition root, so its headers may name it.
+# App is the composition root, so its headers may include it.
 ROOT_HEADER_EXEMPT = {"App"}
 
 

@@ -1,18 +1,4 @@
-"""Stamp a complete, buildable plugin project that consumes voltmod as a package.
-
-Run from an empty repo root:
-
-    mkdir my-cs2-plugins && cd my-cs2-plugins
-    git init
-    uvx --from git+https://github.com/voltygg/voltmod.git voltmod init --plugin my-plugin
-    uv sync
-    uv run poe bootstrap
-
-Generates the root CMakeLists.txt, CMakePresets.json, conanfile.py, pyproject.toml,
-.gitignore, .clang-format and README.md from templates/project/, rendered with
-string.Template.safe_substitute ($project only, so CMake/preset `${...}` syntax
-passes through). The first plugin is then scaffolded via new_plugin.
-"""
+"""Scaffold a complete VoltMod consumer project in the current directory."""
 
 from pathlib import Path
 
@@ -39,7 +25,7 @@ def create(name: str, plugin: str) -> int:
         print(f"error: {plugin_dir} already exists; refusing to overwrite.")
         return 1
 
-    new_plugin.render_tree(template_dir, REPO_ROOT, {"project": name}, safe=True)
+    new_plugin.render_tree(template_dir, REPO_ROOT, {"project": name})
     if (code := new_plugin.scaffold_plugin(plugin)) != 0:
         return code
 

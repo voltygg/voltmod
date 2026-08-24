@@ -1,18 +1,4 @@
-"""Stamp a new plugin skeleton under plugins/<name>/ in the consuming repo.
-
-Usage (from the consuming repo's root): voltmod new-plugin <name>
-
-<name> is kebab-case (e.g. "fun-votes"). The generated plugin builds as-is: it loads
-settings.jsonc, installs a permissive policy, and answers !ping. The repo's root
-CMakeLists.txt gets its add_subdirectory() line inserted automatically.
-
-Templates live in voltmod's templates/plugin/ tree, mirroring the output layout;
-file contents are rendered with string.Template ($name, $ns, $klass, $title, $tag).
-The script targets the current working directory, so any repo depending on the kit
-can expose it as a task:
-
-    new-plugin = "voltmod new-plugin"
-"""
+"""Scaffold a buildable plugin under the current project's plugins directory."""
 
 import argparse
 import re
@@ -38,24 +24,22 @@ def substitutions(name: str) -> dict[str, str]:
     parts = [p.capitalize() for p in name.split("-")]
     pascal = "".join(parts)
     return {
-        "name": name,                # fun-votes
-        "ns": pascal,                # FunVotes
-        "klass": f"{pascal}Plugin",  # FunVotesPlugin
-        "title": " ".join(parts),    # Fun Votes
-        "tag": pascal.upper()[:12],  # FUNVOTES
+        "name": name,
+        "ns": pascal,
+        "klass": f"{pascal}Plugin",
+        "title": " ".join(parts),
+        "tag": pascal.upper()[:12],
     }
 
 
-def render_tree(
-    template_dir: Path, dest: Path, subs: dict[str, str], *, safe: bool = False, label: str = ""
-) -> None:
-    """Render a template tree into dest; safe_substitute leaves unknown $vars intact."""
+def render_tree(template_dir: Path, dest: Path, subs: dict[str, str], *, label: str = "") -> None:
+    """Render known template fields and preserve runtime placeholders."""
     for template in sorted(template_dir.rglob("*")):
         if not template.is_file():
             continue
         rel = template.relative_to(template_dir)
         tmpl = string.Template(template.read_text(encoding="utf-8"))
-        content = tmpl.safe_substitute(subs) if safe else tmpl.substitute(subs)
+        content = tmpl.safe_substitute(subs)
         out = dest / rel
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(content, encoding="utf-8", newline="\n")
@@ -80,10 +64,7 @@ def insert_subdirectory(root_cmake: Path, name: str) -> bool:
 
 
 def scaffold_plugin(name: str) -> int:
-    """Render templates/plugin into plugins/<name>/ and register the subdirectory.
-
-    Shared by this script and init_project.py; returns a process exit code.
-    """
+    """Render a plugin and register its CMake subdirectory."""
     if not TEMPLATE_DIR.is_dir():
         print(f"error: template tree missing at {TEMPLATE_DIR}.")
         return 1
@@ -102,10 +83,6 @@ def scaffold_plugin(name: str) -> int:
 
 def create(name: str) -> int:
     """Render templates/plugin into plugins/<name>/ and register the subdirectory."""
-    if not TEMPLATE_DIR.is_dir():
-        print(f"error: template tree missing at {TEMPLATE_DIR}.")
-        return 1
-
     if not (REPO_ROOT / "CMakeLists.txt").is_file():
         print(f"error: no CMakeLists.txt in {REPO_ROOT}; run from your repo's root.")
         return 1
