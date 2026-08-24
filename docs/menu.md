@@ -34,7 +34,7 @@ runtime.Menus.OpenMenu(playerSlot, menu);
 
 ## Context rows
 
-For rows that act on an admin/target pair, bind a @ref VoltMod::Menu::MenuContext once. Every context row then derives its label (a translation key in the admin's language), its enabled state (permission + immunity via `runtime.Policy` - no permission, no row), and its dispatch pair from the context:
+For rows that act on an admin/target pair, bind a @ref VoltMod::Menu::MenuContext once. Every context row then derives its label (a translation key in the admin's language), its enabled state (permission and immunity via `runtime.Policy`, so a row the admin cannot use does not appear), and its dispatch pair from the context:
 
 ```cpp
 MenuBuilder(title)
@@ -51,8 +51,8 @@ MenuBuilder(title)
 
 ## Flow: multistep wizards
 
-@ref VoltMod::Menu::Flow carries a state struct through steps such as “pick
-duration, pick reason, confirm, execute”. It re-runs validation before each step
+@ref VoltMod::Menu::Flow carries a state struct through steps such as "pick
+duration, pick reason, confirm, execute". It re-runs validation before each step
 and before finishing, so a departed target or revoked permission aborts cleanly
 instead of applying half the action.
 
@@ -76,20 +76,20 @@ VoltMod::Flow<PendingPunishment>::Create(std::move(pending))
 Flow contracts:
 
 - Text comes from per-slot provider functions, so every step renders in the viewing admin's language; the framework ships no strings of its own.
-- The `OnValidate` result is a translation key - on failure the flow closes the menus and replies through `runtime.Policy.Reply`.
+- The `OnValidate` result is a translation key. On failure the flow closes the menus and replies through `runtime.Policy.Reply`.
 - A confirm-only flow (skip straight to `WithConfirm`) is the natural shape for "quick" variants of a wizard.
-- Lifetime is automatic: menu rows hold the only owning references, so the flow lives exactly as long as one of its menus is on screen. No manager, no manual cleanup.
-- `AddStep(build, applies)` is the escape hatch for a fully custom step - build any menu, mutate `flow.State()`, call `flow.Advance(slot)`.
+- Lifetime is automatic: menu rows hold the only owning references, so the flow lives exactly as long as one of its menus is on screen. There is no manager to hold and no cleanup to write.
+- `AddStep(build, applies)` is the escape hatch for a fully custom step: build any menu, mutate `flow.State()`, and call `flow.Advance(slot)`.
 
 ## Option types
 
 Every builder method appends a typed row. Use
 `AddOption(std::shared_ptr<MenuOption>)` for a custom subclass.
 
-- **`AddText(label)`** - non-selectable heading/divider; the cursor skips it.
-- **`AddButton(label, onActivate, enabled = true)`** - plain action row. `AddDynamicButton(getLabel, ...)` recomputes the label every frame.
-- **`AddToggle(title, onLabel, offLabel, getState, onToggle, enabled = true)`** - renders `"title: ON|OFF"`; E and A/D both flip. State lives wherever you keep it - pass a getter.
-- **`AddChoice<T>(title, choices, onCommit, enabled = true, initialIndex = 0)`** - A/D cycles the `{label, value}` list, E commits the current value. The option owns its index, so ephemeral pick-one rows need no external state:
+- `AddText(label)` is a non-selectable heading or divider; the cursor skips it.
+- `AddButton(label, onActivate, enabled = true)` is a plain action row. `AddDynamicButton(getLabel, ...)` recomputes the label every frame.
+- `AddToggle(title, onLabel, offLabel, getState, onToggle, enabled = true)` renders `"title: ON|OFF"`; E and A/D both flip. State lives wherever you keep it, so pass a getter.
+- `AddChoice<T>(title, choices, onCommit, enabled = true, initialIndex = 0)`: A/D cycles the `{label, value}` list and E commits the current value. The option owns its index, so ephemeral pick-one rows need no external state:
 
 ```cpp
 .AddChoice<int>("HP", {{"1 HP", 1}, {"100 HP", 100}, {"999 HP", 999}},
@@ -99,13 +99,13 @@ Every builder method appends a typed row. Use
     })
 ```
 
-  The getter/setter overload (`AddChoice<T>(title, choices, getIndex, setIndex, onCommit, enabled)`) remains for state that lives outside the menu. With no `onCommit`, E advances like D - useful for pick-a-value rows another part of the menu reads live.
+  The getter/setter overload (`AddChoice<T>(title, choices, getIndex, setIndex, onCommit, enabled)`) remains for state that lives outside the menu. With no `onCommit`, E advances like D, which suits pick-a-value rows another part of the menu reads live.
 
-- **`AddSelector<T>(title, values, formatter, ...)`** - Choice for value types without their own label (seconds → `"5m"`, enum → translation).
-- **`AddSlider(title, min, max, step, getValue, setValue, enabled = true)`** - A/D adjusts in steps, clamped; renders a unicode bar.
-- **`AddProgressBar(title, getValue, max)`** - read-only bar, skipped by the cursor.
-- **`AddInput(title, prompt, get, set, maxLength = 64, enabled = true)`** - E pauses the menu and routes the player's next chat line into `set`; return `false` to re-prompt, `true` to accept. R cancels. Backed by @ref VoltMod::Sdk::ChatInputCapture - your chat hook must call `runtime.ChatInput.TryConsume` first (see @ref sdk_messaging_guide).
-- **`AddSubmenu(label, factory, enabled = true)`** - the factory runs lazily on E and the returned menu pushes onto the stack; R pops back.
+- `AddSelector<T>(title, values, formatter, ...)` is Choice for value types without their own label (seconds → `"5m"`, enum → translation).
+- `AddSlider(title, min, max, step, getValue, setValue, enabled = true)`: A/D adjusts in steps, clamped, and renders a unicode bar.
+- `AddProgressBar(title, getValue, max)` is a read-only bar the cursor skips.
+- `AddInput(title, prompt, get, set, maxLength = 64, enabled = true)`: E pauses the menu and routes the player's next chat line into `set`; return `false` to re-prompt, `true` to accept. R cancels. Backed by @ref VoltMod::Sdk::ChatInputCapture, so your chat hook must call `runtime.ChatInput.TryConsume` first (see @ref sdk_messaging_guide).
+- `AddSubmenu(label, factory, enabled = true)` runs the factory lazily on E and pushes the returned menu onto the stack; R pops back.
 
 ## Pagination
 
@@ -123,11 +123,11 @@ MenuBuilder("Custom")
 
 @ref VoltMod::Menu::MenuManager keeps a per-player stack, reads button state every frame (via a self-registered scheduler pump), debounces input (200 ms), and clears a player's stack on disconnect. `runtime.Menus.SetFreezePlayer(true)` freezes players while a menu is open so WASD doesn't also move them. During a chat-input capture only R is honored, so the cursor doesn't drift while the player types.
 
-The freeze is a global switch, but a single session can opt out: `OpenMenu(slot, menu, {.FreezeMovement = false})` - for menus ordinary players reach mid-round, where being held still is worse than the stray movement the freeze prevents. @ref VoltMod::Menu::MenuSessionOptions applies to the call that opens the stack; submenus and Flow steps pushed onto a live session inherit it, so an unfrozen session stays unfrozen for its whole flow.
+The freeze is a global switch, but a single session can opt out: `OpenMenu(slot, menu, {.FreezeMovement = false})`. That suits menus ordinary players reach mid-round, where being held still is worse than the stray movement the freeze prevents. @ref VoltMod::Menu::MenuSessionOptions applies to the call that opens the stack; submenus and Flow steps pushed onto a live session inherit it, so an unfrozen session stays unfrozen for its whole flow.
 
 ## Presets
 
-`<VoltMod/Menu/MenuPresets.hpp>` ships content-agnostic building blocks - every human-facing string is a parameter:
+`<VoltMod/Menu/MenuPresets.hpp>` ships content-agnostic building blocks; every human-facing string is a parameter:
 
 ```cpp
 using namespace VoltMod::Menu;
@@ -157,7 +157,7 @@ auto confirm = BuildConfirmDialog({
 auto choices = BuildPaletteChoices([&](std::string_view name) { return LabelFor(name); });
 ```
 
-`Flow` composes these same presets internally - reach for the raw presets when a single picker is all you need.
+`Flow` composes these same presets internally. Reach for the raw presets when a single picker is all you need.
 
 ## Headers
 

@@ -34,8 +34,8 @@ build/windows-msvc-release/vendor/voltmod/voltmod-utils-tests.exe --success   # 
 
 ## Writing a test
 
-Every `tests/*.cpp` is a test TU - nothing but test cases; `voltmod_add_tests()` supplies
-doctest's `main`. A new file needs no registration, the glob picks it up.
+Every `tests/*.cpp` is a test TU holding nothing but test cases; `voltmod_add_tests()`
+supplies doctest's `main`. A new file needs no registration because the glob picks it up.
 
 ```cpp
 #include <VoltMod/Core/StringUtils.hpp>
@@ -57,7 +57,7 @@ TEST_CASE("ParseDuration: suffixes")
 
 `CHECK*` records a failure and keeps going; `REQUIRE*` aborts the case immediately. Reach
 for `REQUIRE` whenever the rest of the case would dereference or index what you just
-checked - otherwise a failure turns into a crash with no report:
+checked. Otherwise a failure turns into a crash with no report:
 
 ```cpp
 TEST_CASE("FindSettledSnap picks the snap nearest the shot")
@@ -68,7 +68,7 @@ TEST_CASE("FindSettledSnap picks the snap nearest the shot")
 }
 ```
 
-Failures print operand *values*, not just the source text - `CHECK(a == b)` decomposes the
+Failures print operand *values*, not just the source text. `CHECK(a == b)` decomposes the
 comparison, and the binary forms (`CHECK_EQ`, `CHECK_NE`, `CHECK_LT`, ...) are equivalent:
 
 ```text
@@ -81,11 +81,11 @@ ParseDurationTests.cpp(9): ERROR: CHECK_EQ( ParseDuration("5m"), 300 ) is NOT co
 What does lose that detail is wrapping the comparison in a predicate: `CHECK(Near(a, b))`
 can only report `values: CHECK( false )`. Compare directly where you can.
 
-`doctest::Approx` is the built-in float comparison, but note its tolerance is *relative* -
+`doctest::Approx` is the built-in float comparison, but note its tolerance is *relative*:
 `|a - b| < epsilon * (scale + max(|a|, |b|))`, so `Approx(180.0f).epsilon(0.01)` accepts a
 1.81 gap, not 0.01. Where an absolute tolerance is what the test means (degrees, score
-units), a small local `Near(a, b, eps)` helper is the honest choice; the angle and decaying
--score suites use one deliberately.
+units), a small local `Near(a, b, eps)` helper is the honest choice; the angle and
+decaying-score suites use one deliberately.
 
 For expected throws use `CHECK_THROWS_AS(expr, Type)`, `CHECK_THROWS_WITH`, or
 `CHECK_NOTHROW`.
@@ -93,7 +93,7 @@ For expected throws use `CHECK_THROWS_AS(expr, Type)`, `CHECK_THROWS_WITH`, or
 ### Sharing setup with SUBCASE
 
 Each `SUBCASE` re-runs the enclosing case body from the top, so setup is written once and
-every branch gets a fresh copy - no fixture class, no leakage between branches:
+every branch gets a fresh copy, with no fixture class and no leakage between branches:
 
 ```cpp
 TEST_CASE("FilterRoster: team selectors")
@@ -131,7 +131,7 @@ TEST_CASE_TEMPLATE("Trim accepts any string-like input", T, const char*, std::st
 `voltmod_add_tests()` (from `cmake/VoltModTests.cmake`, included by the framework's root CMakeLists) owns
 the wiring: it globs `tests/*.cpp`, supplies doctest's `main`, links `doctest::doctest`,
 adds the framework's include dir, and registers the cases with CTest. `SOURCES` is the list of
-SDK-free TUs to recompile - test binaries never link the plugin module or the framework, so
+SDK-free TUs to recompile. Test binaries never link the plugin module or the framework, so
 nothing drags in Metamod.
 
 ```cmake
@@ -167,7 +167,7 @@ Discovery registers the CTest entries by running the freshly built binary with
 `--list-test-cases` and parsing the output as a CMake list, where `[`...`]` groups and `;`
 separates. So an unmatched bracket folds every following case into one entry (configure then
 dies with the unrelated-looking `add_test called with incorrect number of arguments`), and a
-semicolon splits one case into two bogus entries - silently.
+semicolon silently splits one case into two bogus entries.
 
 `voltmod_add_tests()` scans the test sources and fails configure with the offending file rather
 than letting either happen. Spell interval bounds out (`wraps to -180 exclusive through 180

@@ -20,7 +20,7 @@ kv.Set("origin", pos).Set("spawnflags", 1);
 if (auto* boom = ops.Spawn("env_explosion", kv))
 {
     ops.AcceptInput(boom, "Explode");      // fire an input now
-    ops.RemoveDelayed(boom, 1.0f);         // deferred "Kill" - the sanctioned cleanup
+    ops.RemoveDelayed(boom, 1.0f);         // deferred "Kill", the sanctioned cleanup
 }
 
 ops.EmitSound(entity, "SoundEventName");   // .vsndevts event name, not a file path
@@ -33,7 +33,7 @@ immediately instead of riding the next broadcast.
 
 ## EffectOps
 
-One-shot world effects composed from EntityOps - free functions in `VoltMod::Sdk::EffectOps`
+One-shot world effects composed from EntityOps, as free functions in `VoltMod::Sdk::EffectOps`
 (`<VoltMod/Sdk/EffectOps.hpp>`). Each returns the helper entity (nullptr on failure) and cleans
 itself up when a lifetime is given:
 
@@ -48,9 +48,9 @@ EffectOps::SpawnProp("models/props/crate.vmdl", pos, /*physics*/ true, 30.0f);
 ## PrecacheService
 
 @ref VoltMod::Sdk::PrecacheService (`runtime.Precache`) registers a framework-owned game system that
-receives `BuildGameSessionManifest`, letting plugins precache custom resources (particles, models,
-sound events). Queue paths any time; they apply at the **next map load** - the engine's manifest
-only exists inside that event. Assets that are not part of the map must also reach clients (e.g.
+receives `BuildGameSessionManifest`, so plugins can precache custom resources (particles, models,
+sound events). Queue paths any time; they apply at the **next map load**, because the engine's
+manifest only exists inside that event. Assets that are not part of the map must also reach clients (e.g.
 via a workshop addon), or they precache server-side but render nothing.
 
 ```cpp

@@ -22,13 +22,13 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Settings, plugin)
 using ConfigManager = VoltMod::JsonConfig<Settings>;
 ```
 
-Member names must match the JSON keys. The `_WITH_DEFAULT` macro means a missing key keeps the member's default - only a missing file, a parse error, or a wrong-typed value fails the load. JSONC comments are tolerated, and unknown keys are ignored (which is also why retired keys need no config migration).
+Member names must match the JSON keys. The `_WITH_DEFAULT` macro means a missing key keeps the member's default. Only a missing file, a parse error, or a wrong-typed value fails the load. JSONC comments are tolerated, and unknown keys are ignored (which is also why retired keys need no config migration).
 
 @ref VoltMod::Core::StandardPluginSettings is the framework-owned "plugin" section; embedding it is what lets `LoadStandardConfig` apply `plugin.locale` to `runtime.Translations` automatically (see @ref plugin_guide).
 
 ### Editor validation with a JSON Schema
 
-Ship a `settings.schema.json` next to the jsonc and reference it with a relative `$schema` line as the file's first key - editors then autocomplete keys and squiggle typos (`additionalProperties: false` makes the schema stricter than the runtime, which is the point; the parser itself ignores unknown keys). The plugin scaffold emits a starter schema; keep it in sync when the Settings struct grows. The framework's own `gamedata/signatures.jsonc` follows the same convention.
+Ship a `settings.schema.json` next to the jsonc and reference it with a relative `$schema` line as the file's first key. Editors then autocomplete keys and squiggle typos (`additionalProperties: false` makes the schema stricter than the runtime, which is the point; the parser itself ignores unknown keys). The plugin scaffold emits a starter schema; keep it in sync when the Settings struct grows. The framework's own `gamedata/signatures.jsonc` follows the same convention.
 
 ```cpp
 bool MyPlugin::OnLoad(VoltMod::Runtime& runtime, bool late)
@@ -86,7 +86,7 @@ void ConfigManager::Resolve()
 
 ## Framework types in your settings
 
-`PostgresConfig` uses lowercase field names precisely so a JSON section maps onto it. The framework header stays nlohmann-free - define the mapper in your plugin, inside the `VoltMod::Database` namespace so ADL finds it:
+`PostgresConfig` uses lowercase field names precisely so a JSON section maps onto it. The framework header stays nlohmann-free, so define the mapper in your plugin, inside the `VoltMod::Database` namespace where ADL finds it:
 
 ```cpp
 namespace VoltMod::Database

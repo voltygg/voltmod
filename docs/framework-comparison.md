@@ -8,7 +8,7 @@ Choose by language, runtime model, required services, and how much engine
 integration you want the framework to own.
 
 This page compares documented features as of August 2026. It is not a
-performance benchmark. “Language ecosystem” means the plugin can use normal
+performance benchmark. "Language ecosystem" means the plugin can use normal
 packages from its language, but the framework does not provide one shared
 service with a framework-specific lifecycle.
 

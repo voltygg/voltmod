@@ -17,7 +17,7 @@ default_options = {"voltmod/*:with_postgres": True}
 ## The threading model
 
 - `Query` / `Exec` are the gameplay path: enqueue, return immediately. `Query` completions are queued and replayed **on the game thread** (a per-frame pump self-registers in `Start`), so callbacks may touch players, menus, and your managers freely.
-- Jobs run FIFO on the worker, so a write enqueued before a read is visible to that read - counting rows you just inserted works without ceremony.
+- Jobs run FIFO on the worker, so a write enqueued before a read is visible to that read. Counting rows you just inserted works without ceremony.
 - The `*Blocking` variants ride the same queue but wait. They exist for load time only: `OnLoad`, migrations, an explicit admin reload. Never call them per-frame or per-event.
 - The connection opens lazily and reopens after a drop; `PostgresConfig::connectTimeoutSec` (default 5) bounds every attempt so a dead database can't hang a query or unload.
 
@@ -27,19 +27,19 @@ default_options = {"voltmod/*:with_postgres": True}
 // Db is a PostgresDatabase member of your App, declared above everything that uses it.
 if (!Db.Start(Config.Get().database))
 {
-    Log::Warn("Database unavailable - running degraded.");
+    Log::Warn("Database unavailable, running degraded.");
     return true;                           // your call: degrade or reject the load
 }
 ```
 
-`Start` spawns the worker and verifies connectivity with a ping - it returns `false` when the database is unreachable so you can degrade instead of queueing into the void.
+`Start` spawns the worker and verifies connectivity with a ping. It returns `false` when the database is unreachable, so you can degrade instead of queueing into the void.
 
 Call `Stop` from your `App` destructor rather than next to `Start`. It drains
 queued writes (a ban issued just before unload must land) and drops undispatched
 completions, so it must run after the managers those callbacks would touch have
 been destroyed.
 
-`Stop(drainDeadline = 5s)` is deliberate about what happens to in-flight work: new work is dropped with a log line; already-queued jobs drain within the deadline (a ban written just before unload must land); anything past the deadline is dropped with a warning; blocked waiters are released with a failed result; and undispatched completions are destroyed unrun - the state they would touch is going away.
+`Stop(drainDeadline = 5s)` is deliberate about what happens to in-flight work: new work is dropped with a log line; already-queued jobs drain within the deadline (a ban written just before unload must land); anything past the deadline is dropped with a warning; blocked waiters are released with a failed result; and undispatched completions are destroyed unrun, because the state they would touch is going away.
 
 ## Queries
 
@@ -57,7 +57,7 @@ db.Query("count_recent_bans",
              if (!result)
                  return;                         // already logged
              int count = (*result)[0][0].as<int>();
-             /* touch managers, players, menus - this is the game thread */
+             /* touch managers, players, menus: this is the game thread */
          });
 ```
 
@@ -129,7 +129,7 @@ A periodic async sweep re-snapshots the caches (expiry, changes from other serve
 
 ## Migrations
 
-`RunMigrations(db, dir, options)` scans `dir` for `NNNN_*.sql` files and applies everything above the recorded version, in order, each in its own transaction, under a session advisory lock (two servers loading against one database won't race). A missing directory is a logged no-op. It runs on the blocking path - call it from `OnLoad` right after `Start`:
+`RunMigrations(db, dir, options)` scans `dir` for `NNNN_*.sql` files and applies everything above the recorded version, in order, each in its own transaction, under a session advisory lock (two servers loading against one database won't race). A missing directory is a logged no-op. It runs on the blocking path, so call it from `OnLoad` right after `Start`:
 
 ```cpp
 if (!VoltMod::RunMigrations(db, "addons/my-plugin/configs/migrations",

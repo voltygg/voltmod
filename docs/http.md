@@ -4,8 +4,8 @@
 
 `VoltMod::Http` provides asynchronous requests with game-thread completions:
 
-- **HttpClient** - GET/POST on CPR's worker pool; completions are queued and replayed on the game thread from a self-registered per-frame pump
-- **RestJsonApi** - helpers for the config-driven "call an operator-configured JSON endpoint and pull a field out of the response" shape
+- `HttpClient` runs GET and POST on CPR's worker pool. Completions are queued and replayed on the game thread from a self-registered per-frame pump.
+- `RestJsonApi` covers the config-driven shape: call an operator-configured JSON endpoint and pull a field out of the response.
 
 `HttpClient` is a framework service; reach it through `runtime.Http`. The
 `Runtime` destructor drains in-flight requests, so the plugin has no separate
@@ -18,7 +18,7 @@ shutdown step.
 
 runtime.Http.Post(url, body, {"Content-Type: application/json"}, /*timeoutMs=*/8000,
                    [](const VoltMod::HttpResult& result) {
-                       // Game thread - safe to touch players, menus, managers.
+                       // Game thread: safe to touch players, menus, managers.
                        if (!result.Ok)
                            Log::Warn("request failed: {}", result.Error);
                    });
@@ -30,7 +30,7 @@ runtime.Http.Get(url, {}, 5000, [](const VoltMod::HttpResult& result) { /* ... *
 
 ## Config-driven JSON endpoints
 
-`JsonPostSpec` describes an endpoint entirely from settings - URL, optional auth header, a JSON body template with `{token}` placeholders - so server operators can point a plugin at their own backend without code changes:
+`JsonPostSpec` describes an endpoint entirely from settings (URL, optional auth header, and a JSON body template with `{token}` placeholders), so server operators can point a plugin at their own backend without code changes:
 
 ```cpp
 #include <VoltMod/Http/RestJsonApi.hpp>

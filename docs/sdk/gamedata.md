@@ -54,8 +54,8 @@ int index = runtime.GameData.GetOffset("RunCommand");   // negative when the ent
 
 Two kinds live in there, and they fail differently:
 
-- **Vtable indexes** (`RunCommand`, `Teleport`, `ProcessRespondCvarValue`, ...). A wrong index dispatches into whatever vfunc sits at that slot, which is a crash, not a wrong answer.
-- **Byte offsets into an undeclared layout** (`UserCmdPB`, `ServerSideClientSlot`, `CheckTransmitPlayerSlot`, ...) - fields the SDK headers do not declare, so the framework reaches them by distance. A *missing* one degrades cleanly; a *stale* one reads unrelated memory and looks like plausible data.
+- Vtable indexes (`RunCommand`, `Teleport`, `ProcessRespondCvarValue`, ...). A wrong index dispatches into whatever vfunc sits at that slot, which is a crash, not a wrong answer.
+- Byte offsets into an undeclared layout (`UserCmdPB`, `ServerSideClientSlot`, `CheckTransmitPlayerSlot`, ...), fields the SDK headers do not declare, so the framework reaches them by distance. A *missing* one degrades cleanly; a *stale* one reads unrelated memory and looks like plausible data.
 
 Everything here **drifts with CS2 updates**. Re-verify every entry after a game
 update against the upstream projects named in its comments (SwiftlyS2, CS2Fixes,
@@ -94,19 +94,19 @@ Wildcard bytes are written as `?` or `??` in pattern strings (see the signatures
 `src/Sdk/VtableLookup.hpp` (`FindVirtualTable(moduleName, className)`) is the second internal
 resolver, and like the scanner it is not in the public include tree. It exists because a *class
 vtable* hook (SourceHook's `SH_ADD_MANUALVPHOOK`) covers every instance at once, where a per-instance
-hook has to be re-bound as objects come and go - @ref VoltMod::Sdk::ClientCvarService needs that for
+hook has to be re-bound as objects come and go. @ref VoltMod::Sdk::ClientCvarService needs that for
 `CServerSideClient`, whose instances the framework never owns.
 
 It shares `FindModuleImage` with the scanner and resolves per platform:
 
-- **Windows**: walks the module's RTTI - the type descriptor for `.?AV<class>@@`, then the complete
-  object locator referencing it, then the vtable that follows. Assumes the module was built with RTTI.
-- **Linux**: reads `_ZTV<mangled>` from the ELF `.symtab`, falling back to `.dynsym`. A fully stripped
+- Windows: walks the module's RTTI, first the type descriptor for `.?AV<class>@@`, then the complete
+  object locator referencing it, then the vtable that follows. This assumes the module was built with RTTI.
+- Linux: reads `_ZTV<mangled>` from the ELF `.symtab`, falling back to `.dynsym`. A fully stripped
   module has neither and resolves to null.
 
 Both return `nullptr` on failure rather than a wrong answer, and callers must degrade: `ClientCvarService`
 logs and stays inert, leaving `Available()` false. The vtable *index* to hook still comes from the
-`"offsets"` block above - the lookup only finds the table, never the slot within it.
+`"offsets"` block above. The lookup only finds the table, never the slot within it.
 
 ## SchemaService
 

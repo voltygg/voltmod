@@ -136,7 +136,7 @@ layering.
   and expected results.
 - Keep examples and `templates/` synchronized with the public headers and
   generated output. Use plain English and sentence-case headings; call VoltMod
-  the framework and reserve “library” for actual libraries or CMake targets.
+  the framework and reserve "library" for actual libraries or CMake targets.
 
 Tests use doctest and must remain SDK-free unless a separate integration-test
 surface is added. Each test case becomes a CTest entry; names must not contain

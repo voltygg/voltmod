@@ -7,7 +7,7 @@ convar queries.
 
 ## ServerClock
 
-Free functions, not a service (`Sdk/ServerClock.hpp`) - they hold no state and read `IVEngineServer2::GetServerGlobals()` on every call:
+Free functions, not a service (`Sdk/ServerClock.hpp`); they hold no state and read `IVEngineServer2::GetServerGlobals()` on every call:
 
 ```cpp
 using namespace VoltMod::Sdk;
@@ -16,7 +16,7 @@ const int tick = ServerTick();     // globals->tickcount
 const float now = ServerTime();    // globals->curtime, seconds
 ```
 
-This is the timestamp source for anything that has to line up with the tick the engine is simulating - usercmds, game events, teleports. Use it instead of `std::chrono`: it is the *simulation* clock, so it stays in step with the tick stream those things are numbered by, which wall time does not.
+This is the timestamp source for anything that has to line up with the tick the engine is simulating: usercmds, game events, and teleports. Use it instead of `std::chrono`: it is the *simulation* clock, so it stays in step with the tick stream those things are numbered by, which wall time does not.
 
 Two consequences to respect:
 
@@ -35,12 +35,12 @@ if (const char* sens = net.GetUserInfoCvar(slot, "sensitivity"))
     std::string keep = sens;                                   // copy before the next engine call
 ```
 
-- `EngineLatency` returns `0` for "no channel", which is indistinguishable from a genuine zero RTT on a listen server - pair it with `GetNetInfo(slot) != nullptr` when the difference matters.
-- `GetUserInfoCvar` only sees cvars the client *replicates* (`FCVAR_USERINFO`: `name`, `sensitivity`, `m_yaw`, `cl_interp_ratio`, ...). The returned string is engine-owned and valid only until the next engine call - copy anything you keep. Everything outside that set needs a cvar query.
+- `EngineLatency` returns `0` for "no channel", which is indistinguishable from a genuine zero RTT on a listen server, so pair it with `GetNetInfo(slot) != nullptr` when the difference matters.
+- `GetUserInfoCvar` only sees cvars the client *replicates* (`FCVAR_USERINFO`: `name`, `sensitivity`, `m_yaw`, `cl_interp_ratio`, ...). The returned string is engine-owned and valid only until the next engine call, so copy anything you keep. Everything outside that set needs a cvar query.
 
 ## ClientCvarService
 
-`runtime.ClientCvars` asks a connected client what one of *its* convars is set to. The server posts `CSVCMsg_GetCvarValue` carrying a cookie to that one client; the client answers with `CCLCMsg_RespondCvarValue` some round-trips later. The framework intercepts the answer with a manual **DVP** hook on `CServerSideClient::ProcessRespondCvarValue` - bound to the class vtable, so it covers every connected client without per-instance bindings - reads the responder's slot from a gamedata byte offset, and routes the value to the callback that asked for it. The engine's own handling of the response is untouched (`MRES_IGNORED`).
+`runtime.ClientCvars` asks a connected client what one of *its* convars is set to. The server posts `CSVCMsg_GetCvarValue` carrying a cookie to that one client; the client answers with `CCLCMsg_RespondCvarValue` some round-trips later. The framework intercepts the answer with a manual **DVP** hook on `CServerSideClient::ProcessRespondCvarValue` (bound to the class vtable, so it covers every connected client without per-instance bindings), reads the responder's slot from a gamedata byte offset, and routes the value to the callback that asked for it. The engine's own handling of the response is untouched (`MRES_IGNORED`).
 
 ```cpp
 runtime.ClientCvars.Query(slot, "cl_interp_ratio",
@@ -58,7 +58,7 @@ A client does not have to answer. Pending entries expire silently after 10
 seconds, and disconnects also produce no callback. If a feature needs a timeout
 verdict, track its own deadline rather than waiting for this callback.
 
-Pending queries are also dropped - callbacks never firing - when the player disconnects, when a new player takes the slot, and at map start.
+Pending queries are also dropped, with their callbacks never firing, when the player disconnects, when a new player takes the slot, and at map start.
 
 ### Re-query and the pending cap
 
@@ -68,9 +68,9 @@ Distinct convars queue up to `MaxPendingPerSlot` (11) outstanding per slot; past
 
 ### Borrowed strings and trust
 
-`name` and `value` borrow the decoded message and are valid **only for the duration of the call** - copy what you keep. `value` is empty unless `status` is `ValueIntact`.
+`name` and `value` borrow the decoded message and are valid **only for the duration of the call**, so copy what you keep. `value` is empty unless `status` is `ValueIntact`.
 
-Responses are client-controlled, so the service drops anything malformed before your callback runs: unknown status codes, a name that does not match what that cookie asked for, and values containing embedded NULs (which would truncate anywhere they are treated as a C string). What survives is still a value a modified client chose to send - treat it as evidence, not proof.
+Responses are client-controlled, so the service drops anything malformed before your callback runs: unknown status codes, a name that does not match what that cookie asked for, and values containing embedded NULs (which would truncate anywhere they are treated as a C string). What survives is still a value a modified client chose to send, so treat it as evidence rather than proof.
 
 ### Availability and gamedata drift
 
@@ -81,4 +81,4 @@ The service is a **degradable load stage** (`ClientCvars`). It needs two gamedat
 | `ProcessRespondCvarValue` | vtable index of the response handler | Sanity-bounded at init, so the stage degrades instead of hooking an unrelated vfunc |
 | `ServerSideClientSlot` | byte offset of the player slot inside `CServerSideClient` | Sanity-bounded too; unchecked it would attribute answers to the wrong player |
 
-Both drift with engine updates - see @ref sdk_gamedata_guide. When any part of the setup fails the framework logs one warning, the load continues, @ref VoltMod::Sdk::ClientCvarService::Available "Available()" stays false, and every `Query()` returns false. Check `Available()` once at load rather than treating each `false` from `Query()` as a per-call failure.
+Both drift with engine updates; see @ref sdk_gamedata_guide. When any part of the setup fails the framework logs one warning, the load continues, @ref VoltMod::Sdk::ClientCvarService::Available "Available()" stays false, and every `Query()` returns false. Check `Available()` once at load rather than treating each `false` from `Query()` as a per-call failure.

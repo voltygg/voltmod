@@ -1,8 +1,8 @@
-# Players, Targeting & Actions {#players_guide}
+# Players, targeting, and actions {#players_guide}
 
 [TOC]
 
-`VoltMod::Players` tracks connected players and turns “who does this act on?”
+`VoltMod::Players` tracks connected players and turns "who does this act on?"
 into data: a selector grammar for command targets and policy-checked
 `Action`/effect descriptors for the operation itself.
 
@@ -19,18 +19,18 @@ auto* q = runtime.Players.GetPlayerBySteamId(steamId);  // O(1)
 for (auto* each : runtime.Players.GetAllPlayers()) { /* ... */ }
 ```
 
-`Player` carries `GetSlot()`, `GetSteamID()`, `GetName()`, `GetIpAddress()`, `GetConnectTime()`, `GetPlaytime()` - and `Controller()`, which returns the @ref VoltMod::Sdk::PlayerController for typed engine operations:
+`Player` carries `GetSlot()`, `GetSteamID()`, `GetName()`, `GetIpAddress()`, `GetConnectTime()`, `GetPlaytime()`, plus `Controller()`, which returns the @ref VoltMod::Sdk::PlayerController for typed engine operations:
 
 ```cpp
 player->Controller().Slay();
 int hp = player->Controller().GetHealth();
 ```
 
-**Pointer lifetime:** a `Player*` is owned by the manager and dies on disconnect, slot reuse, or `Clear()`. Never store one across the disconnect callback - store the SteamID.
+**Pointer lifetime:** a `Player*` is owned by the manager and dies on disconnect, slot reuse, or `Clear()`. Never store one across the disconnect callback. Store the SteamID instead.
 
 ### Per-slot plugin state
 
-Plugin state keyed by slot has one recurring bug: values leaking from a disconnected player to the next occupant of the slot. @ref VoltMod::Players::PerSlot solves it once - a `std::array<T, MaxPlayers>` whose entries value-reset whenever a player joins or leaves the slot (backed by @ref VoltMod::Players::PlayerManager::ListenSlotChange, which fires on AddPlayer/RemovePlayer/Clear):
+Plugin state keyed by slot has one recurring bug: values leaking from a disconnected player to the next occupant of the slot. @ref VoltMod::Players::PerSlot solves it once: a `std::array<T, MaxPlayers>` whose entries value-reset whenever a player joins or leaves the slot (backed by @ref VoltMod::Players::PlayerManager::ListenSlotChange, which fires on AddPlayer/RemovePlayer/Clear):
 
 ```cpp
 struct MyState { int Combo = 0; float Score = 0; };
@@ -40,7 +40,7 @@ _state.BindReset();                // in Initialize(), once services are live
 _state[slot].Combo++;              // plain indexed access afterwards
 ```
 
-For time-decaying per-player scores (suspicion, rate limits), pair it with @ref VoltMod::Core::DecayingScore - a clock-free accumulator that drains linearly between caller-supplied timestamps - or @ref VoltMod::Core::SlidingWindowScore when the threshold is "N events in the last M seconds" and evidence should expire on a hard boundary instead of fading. Both take caller-supplied seconds; @ref VoltMod::Core::TimeUtils::MonotonicSeconds is the matching clock. Angle bookkeeping helpers (`NormalizeAngleDelta`, `AnglesToPoint`, `AngularDistance`) live in `VoltMod::AngleMath` (`<VoltMod/Core/AngleMath.hpp>`); note its `AngularDistance` is a Euclidean pitch/yaw metric, not a great-circle angle, so it under-reports near the poles - consumers that need true angular separation should build it from `AnglesToPoint` and a dot product. All are unit-tested in the framework's SDK-free test suite.
+For time-decaying per-player scores (suspicion, rate limits), pair it with @ref VoltMod::Core::DecayingScore, a clock-free accumulator that drains linearly between caller-supplied timestamps, or @ref VoltMod::Core::SlidingWindowScore when the threshold is "N events in the last M seconds" and evidence should expire on a hard boundary instead of fading. Both take caller-supplied seconds; @ref VoltMod::Core::TimeUtils::MonotonicSeconds is the matching clock. Angle bookkeeping helpers (`NormalizeAngleDelta`, `AnglesToPoint`, `AngularDistance`) live in `VoltMod::AngleMath` (`<VoltMod/Core/AngleMath.hpp>`); note its `AngularDistance` is a Euclidean pitch/yaw metric, not a great-circle angle, so it under-reports near the poles. Consumers that need true angular separation should build it from `AnglesToPoint` and a dot product. All are unit-tested in the framework's SDK-free test suite.
 
 ## Resolve targets
 
@@ -64,7 +64,7 @@ if (!result)
     {
     case TargetError::NoMatch:    /* "no player matched" */ break;
     case TargetError::Immune:     /* matches existed; policy blocked them all */ break;
-    case TargetError::Ambiguous:  /* result.error().Count matches - narrow the token */ break;
+    case TargetError::Ambiguous:  /* result.error().Count matches; narrow the token */ break;
     case TargetError::MultiNotAllowed:
     case TargetError::DeadNotAllowed:
     case TargetError::BotNotAllowed: /* rules rejected the match */ break;
@@ -74,13 +74,13 @@ if (!result)
 for (Player* target : *result) { /* ... */ }
 ```
 
-`TargetRules` says what the call site accepts: `AllowMultiple` permits `@all`-class selectors, `AllowDead`/`AllowBots` filter. A single-target call gets exactly one player or a failure - never a silent first-of-many. Error *text* stays with you (translation keys); the framework returns the typed reason. Command `Target()` arguments run this same resolution and reply from the reserved keys automatically (@ref commands_guide).
+`TargetRules` says what the call site accepts: `AllowMultiple` permits `@all`-class selectors, `AllowDead`/`AllowBots` filter. A single-target call gets exactly one player or a failure, never a silent first-of-many. Error *text* stays with you (translation keys); the framework returns the typed reason. Command `Target()` arguments run this same resolution and reply from the reserved keys automatically (@ref commands_guide).
 
-The grammar core is engine-free (`Targeting.hpp`: `ParseTargetToken` + `FilterRoster` over plain `PlayerView` records), which is what makes it unit-testable - the framework's own tests cover it without a server.
+The grammar core is engine-free (`Targeting.hpp`: `ParseTargetToken` + `FilterRoster` over plain `PlayerView` records), which is what makes it unit-testable; the framework's own tests cover it without a server.
 
 ## Actions
 
-An @ref VoltMod::Players::Action is a single-target operation as data: permission token, guards, body. The @ref VoltMod::Players::ActionDispatcher owns the resolve → permission → immunity → run → broadcast pipeline, reading everything from `runtime.Policy` - there is nothing to wire per dispatcher:
+An @ref VoltMod::Players::Action is a single-target operation as data: permission token, guards, body. The @ref VoltMod::Players::ActionDispatcher owns the resolve → permission → immunity → run → broadcast pipeline, reading everything from `runtime.Policy`, so there is nothing to wire per dispatcher:
 
 ```cpp
 using namespace VoltMod::Players;
@@ -95,11 +95,11 @@ ActionDispatcher{}.Run(adminSlot, targetSlot, Slay);
 
 `ActionContext` carries the resolved `Caller`/`Target` players plus transient `CallerCtrl`/`TargetCtrl` controllers. `ParamAction` adds an int the call site supplies (health value, team id). An empty permission string skips that check.
 
-Actions plug directly into menu context rows (`AddActionRow`, `AddStateToggleRow`, `AddPresetChoiceRow` - see @ref menus_guide), so the same data drives commands, menus, and bespoke call sites.
+Actions plug directly into menu context rows (`AddActionRow`, `AddStateToggleRow`, `AddPresetChoiceRow`; see @ref menus_guide), so the same data drives commands, menus, and bespoke call sites.
 
 ## Effect descriptors
 
-Effects are toggleable/timed per-player states - the fun-command family (ghost, disco, wallhack, custom models). An @ref VoltMod::Core::EffectDescriptor declares the whole thing: permission, id, label key, broadcast keys, lifetime policy, and a `Setup` body that returns the `OnTick`/`OnStop` closures @ref VoltMod::Core::EffectManager drives:
+Effects are toggleable or timed per-player states: the fun-command family (ghost, disco, wallhack, custom models). An @ref VoltMod::Core::EffectDescriptor declares the whole thing: permission, id, label key, broadcast keys, lifetime policy, and a `Setup` body that returns the `OnTick`/`OnStop` closures @ref VoltMod::Core::EffectManager drives:
 
 ```cpp
 using namespace VoltMod;
@@ -131,6 +131,6 @@ inline constexpr std::array MenuEffects{
 `ctx`. Capturing a runtime service by reference is safe because `EffectManager` is a
 member of your `App`, which is destroyed before the `Runtime`.
 
-Dispatch through `ToggleEffect` / `ApplyEffect` / `ClearEffect` (they apply `runtime.Policy` first), or drop the descriptor straight into a menu with `AddEffectToggleRow`. `ParamEffectDescriptor` adds a `Choices` list and a parameterized `Setup` for picker-style effects (model selection); `AddEffectPickerRow` renders it. `EffectManager` guarantees `OnStop` runs exactly once however the effect ends - toggle, death, disconnect, round end, or unload.
+Dispatch through `ToggleEffect` / `ApplyEffect` / `ClearEffect` (they apply `runtime.Policy` first), or drop the descriptor straight into a menu with `AddEffectToggleRow`. `ParamEffectDescriptor` adds a `Choices` list and a parameterized `Setup` for picker-style effects (model selection); `AddEffectPickerRow` renders it. `EffectManager` guarantees `OnStop` runs exactly once however the effect ends, whether by toggle, death, disconnect, round end, or unload.
 
-Sweeps come in three shapes: `CancelAllForSlot(slot)` clears a player, `CancelRoundScoped()` clears round-scoped effects everywhere, and `CancelPerLife(slot)` clears a player's per-life effects on death while keeping `EffectScope::Session` grants - declare `Scope = EffectScope::Session` on the descriptor and the death sweep skips it, no per-effect special-casing.
+Sweeps come in three shapes: `CancelAllForSlot(slot)` clears a player, `CancelRoundScoped()` clears round-scoped effects everywhere, and `CancelPerLife(slot)` clears a player's per-life effects on death while keeping `EffectScope::Session` grants. Declare `Scope = EffectScope::Session` on the descriptor and the death sweep skips it, without any per-effect special-casing.

@@ -160,7 +160,7 @@ hooks, and destroys the runtime.
 
 ## The frame pump
 
-The plugin's GameFrame hook calls `Runtime::OnGameFrame()`, which ticks exactly one thing: the @ref VoltMod::Core::Scheduler. Everything per-frame - menu input, HTTP completions, database completions - registers a `Scheduler::EveryFrame` timer, so there is no hardcoded pump list to keep in sync.
+The plugin's GameFrame hook calls `Runtime::OnGameFrame()`, which ticks exactly one thing: the @ref VoltMod::Core::Scheduler. Everything per-frame (menu input, HTTP completions, database completions) registers a `Scheduler::EveryFrame` timer, so there is no hardcoded pump list to keep in sync.
 
 ## Module layering
 
@@ -172,8 +172,9 @@ the layering.
 - **Sdk** and **Http** sit on Core
 - **Players** on Core + Sdk; **Commands** and **Menu** on Core + Sdk + Players
 - **Database** is Core + libpqxx, compiled only under `VOLTMOD_ENABLE_POSTGRES`
-- **App** may reach all of them - it is the composition root
+- **App** may reach all of them; it is the composition root
 
-`Detail/` is the one exemption: it holds the ambient pointer to the live `Runtime` that
-class templates instantiated in consumer TUs (`Flow<TState>`, `PerSlot<T>`) and
-callback trampolines with no user data reach it through. Plugin code never needs it.
+`Detail/` is the one exemption: it holds the ambient pointer to the live `Runtime`.
+Class templates instantiated in consumer TUs (`Flow<TState>`, `PerSlot<T>`) and
+callback trampolines with no user data reach the runtime through it. Plugin code
+never needs it.

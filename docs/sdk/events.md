@@ -26,13 +26,13 @@ events.Listen("bomb_planted", [](IGameEvent* event) {
 });
 ```
 
-You can also create and fire events (`CreateEvent` / `FireEvent` / `FreeEvent`) - the center-HTML transport is built on exactly that.
+You can also create and fire events (`CreateEvent` / `FireEvent` / `FreeEvent`); the center-HTML transport is built on exactly that.
 
 ### BulletImpact: correlate by tick, not identity
 
 @ref VoltMod::Sdk::Events::BulletImpact "BulletImpact" fires once per bullet landing, so one shotgun blast produces several. Its catch is that the engine truncates the event's `userid` to its low byte before sending it, so the value does not round-trip to a player: `Slot` is a best-effort decode that is `-1` whenever the truncated id names no live player, and it can name the *wrong* player when two userids share a low byte.
 
-Attribute impacts to a shot by **tick proximity** - the impacts belonging to a `WeaponFire` (or to a usercmd carrying an attack) arrive in the same tick - and use `TruncatedUserId` only to disambiguate among candidates in that tick. Never key state on `Slot` alone.
+Attribute impacts to a shot by **tick proximity** (the impacts belonging to a `WeaponFire`, or to a usercmd carrying an attack, arrive in the same tick), and use `TruncatedUserId` only to disambiguate among candidates in that tick. Never key state on `Slot` alone.
 
 ```cpp
 events.Listen<Events::BulletImpact>([](const Events::BulletImpact& e) {
@@ -55,13 +55,13 @@ the server log as the health check.
 
 Related lifecycle points:
 
-- `MetamodPlugin::OnServerStartup(mapName)` is the plugin-facing map-start callback. The engine resets game convars and re-execs gamemode cfgs around map init, so values set at load time may need re-asserting from here or from a `RoundStart` listener. The same hook stores the map in `runtime.CurrentMap`, so a plugin that only wants to stamp the current map on a record does not need to override anything - note it stays empty after a late (mid-map) load until the next map change.
-- On `meta reload`, `Shutdown` detaches everything (`RemoveAllListeners`), and the fresh load re-registers - no double dispatch.
+- `MetamodPlugin::OnServerStartup(mapName)` is the plugin-facing map-start callback. The engine resets game convars and re-execs gamemode cfgs around map init, so values set at load time may need re-asserting from here or from a `RoundStart` listener. The same hook stores the map in `runtime.CurrentMap`, so a plugin that only wants to stamp the current map on a record does not need to override anything. Note that it stays empty after a late (mid-map) load until the next map change.
+- On `meta reload`, `Shutdown` detaches everything (`RemoveAllListeners`), and the fresh load re-registers, so there is no double dispatch.
 - A handler may `Listen` or `RemoveListener` while it runs: dispatch works from a snapshot of the handles and re-resolves each one before calling it, so the registry is free to change underneath. A listener removed by an earlier handler in the same event does not fire; one registered during it starts with the next event.
 
 ### Inspecting a client's own subscriptions
 
-`GetClientLegacyListener(slot)` returns the engine-side listener object the game keeps for that client - the client's own subscription handle, not a framework listener. Firing an event at it delivers to that one client (this is how @ref VoltMod::Sdk::MessageSystem "MessageSystem" sends center HTML). It is `nullptr` when the slot has no client or when the `"LegacyGameEventListener"` gamedata signature did not resolve.
+`GetClientLegacyListener(slot)` returns the engine-side listener object the game keeps for that client: the client's own subscription handle, not a framework listener. Firing an event at it delivers to that one client (this is how @ref VoltMod::Sdk::MessageSystem "MessageSystem" sends center HTML). It is `nullptr` when the slot has no client or when the `"LegacyGameEventListener"` gamedata signature did not resolve.
 
 `ClientListensTo(slot, eventName)` asks the event manager whether that handle is subscribed to a given event:
 
@@ -70,7 +70,7 @@ if (runtime.Events.ClientListensTo(slot, "player_death"))
     /* ... */;
 ```
 
-A vanilla client subscribes only to the events its HUD needs, so a subscription it has no business holding is a fingerprint of injected client code. Both calls degrade to `nullptr`/`false` rather than failing, so `false` means "not subscribed **or** unavailable" - resolve `GetClientLegacyListener` once and check it for null if you need to tell those apart.
+A vanilla client subscribes only to the events its HUD needs, so a subscription it has no business holding is a fingerprint of injected client code. Both calls degrade to `nullptr`/`false` rather than failing, so `false` means "not subscribed **or** unavailable". Resolve `GetClientLegacyListener` once and check it for null if you need to tell those apart.
 
 ## ConVarService
 
@@ -91,11 +91,11 @@ uint64_t id = cvars.OnChange([](const char* name, const char* oldValue, const ch
 });
 ```
 
-The setters change the server's stored value and fire change callbacks, but they do **not** network anything - an `FCVAR_REPLICATED` convar set this way silently diverges from what clients predict with. They also do no cross-type conversion: the SDK's `SetAs<T>` no-ops when the convar's type has no conversion from `T` (e.g. `SetInt` on a bool convar like `sv_autobunnyhopping`; `SetString` works for any type). For a server-wide change that must reach clients, use `ExecuteServerCommand("name value")` - the console path both sets and replicates, exactly as a cfg line would. Two escape hatches cover the per-player cases.
+The setters change the server's stored value and fire change callbacks, but they do **not** network anything. An `FCVAR_REPLICATED` convar set this way silently diverges from what clients predict with. They also do no cross-type conversion: the SDK's `SetAs<T>` no-ops when the convar's type has no conversion from `T` (e.g. `SetInt` on a bool convar like `sv_autobunnyhopping`; `SetString` works for any type). For a server-wide change that must reach clients, use `ExecuteServerCommand("name value")`. The console path both sets and replicates, exactly as a cfg line would. Two escape hatches cover the per-player cases.
 
 ### Per-client replication
 
-@ref VoltMod::Sdk::ConVarService::ReplicateToClient "ReplicateToClient" sends `CNETMsg_SetConVar` to a single client, so only that client's view of a replicated convar changes - the server value and every other client are untouched. This is how you make *one* player's prediction run with different movement settings (the bhop plugin replicates `sv_autobunnyhopping` to granted players):
+@ref VoltMod::Sdk::ConVarService::ReplicateToClient "ReplicateToClient" sends `CNETMsg_SetConVar` to a single client, so only that client's view of a replicated convar changes; the server value and every other client are untouched. This is how you make *one* player's prediction run with different movement settings (the bhop plugin replicates `sv_autobunnyhopping` to granted players):
 
 ```cpp
 cvars.ReplicateToClient(slot, "sv_autobunnyhopping", "1");

@@ -35,7 +35,7 @@ private:
     std::optional<MyNs::App> _app;
 };
 
-// In the .cpp - the global instance and PLUGIN_EXPOSE in one line:
+// In the .cpp: the global instance and PLUGIN_EXPOSE in one line:
 VOLTMOD_PLUGIN(MyPlugin);
 ```
 
@@ -58,15 +58,15 @@ struct App
 };
 ```
 
-Nothing survives `OnUnload`, so a `meta reload` starts from clean state - and because the `App` is destroyed before the `Runtime`, every subscription it holds is removed while the service it points at is still alive.
+Nothing survives `OnUnload`, so a `meta reload` starts from clean state. Because the `App` is destroyed before the `Runtime`, every subscription it holds is removed while the service it points at is still alive.
 
 ## Load order
 
-1. `PLUGIN_SAVEVARS()`, then the `Runtime` is constructed and `Runtime::Start` runs - interface resolution, gamedata, every framework subsystem, each as a `LoadReport` stage.
+1. `PLUGIN_SAVEVARS()`, then the `Runtime` is constructed and `Runtime::Start` runs: interface resolution, gamedata, and every framework subsystem, each as a `LoadReport` stage.
 2. The standard SourceHook hooks, then `OnRegisterHooks(runtime)` for yours.
 3. Your `OnLoad(runtime, late)`. Returning `false` rejects the load; `OnUnload()` runs and the `Runtime` is destroyed, so a failed init never leaks. A bare `return false` with no Failed stage recorded gets a synthetic "OnLoad" failure stage, so `meta list` always names a reason.
 
-The standard prelude - config plus translations, recorded as LoadReport stages - is one call:
+The standard prelude (config plus translations, recorded as LoadReport stages) is one call:
 
 ```cpp
 bool App::Start()
@@ -140,7 +140,7 @@ report.Run("Admins", [&] {
 });
 ```
 
-Statuses: `Ok`, `Degraded` (loaded with reduced functionality), `Skipped` (dependency not Ok), `Failed` (aborts the load when you return `false`). `IsOk()` is true only for `Ok` - a degraded dependency skips its dependents.
+Statuses: `Ok`, `Degraded` (loaded with reduced functionality), `Skipped` (dependency not Ok), `Failed` (aborts the load when you return `false`). `IsOk()` is true only for `Ok`, so a degraded dependency skips its dependents.
 
 ## Status sections: StatusService
 
@@ -160,11 +160,11 @@ Runtime.Status.InstallCommand("my_status", "Report plugin health; 'my_status jso
 
 `my_status` prints the sections for humans; `my_status json` emits them as one `STATUS_JSON {...}` line RCON scripts can find amid console noise. Both carry a top-level `healthy` flag: no load stage `Failed`, ANDed with the optional predicate you pass (omit it for the baseline alone). The command unregisters itself on unload.
 
-Sections capture `this`, so keep them on an object the `Runtime` outlives - the `App` is
+Sections capture `this`, so keep them on an object the `Runtime` outlives. The `App` is
 destroyed first, and a section left holding a dangling pointer is a lifetime bug even if
 nothing calls it in the gap.
 
-Keep JSON sections compact (counts and names, not full lists) - RCON's console capture can truncate large responses.
+Keep JSON sections compact (counts and names, not full lists), because RCON's console capture can truncate large responses.
 
 ## Overrides
 
@@ -174,9 +174,9 @@ Keep JSON sections compact (counts and names, not full lists) - RCON's console c
 | `OnLoad(runtime, late)` | Once the runtime is live | Required; `false` rejects the load |
 | `OnUnload()` | On unload, before the runtime is destroyed | Drop whatever `OnLoad` built |
 | `OnPlayerConnect(Player*)` | After `PlayerManager` adds the player | Non-null in the normal flow |
-| `OnPlayerFullyConnected(Player*)` | Post `ClientFullyConnect`, once the player is in the server | First point their name and convars are meaningful; may be null - guard it |
-| `OnPlayerSettingsChanged(Player*)` | The client changed a replicated setting (name, userinfo cvars) | Fires on every change, including the burst the engine sends at connect - debounce if you act on it; may be null |
-| `OnPlayerDisconnect(Player*)` | Before the player is removed | May be null - guard it |
+| `OnPlayerFullyConnected(Player*)` | Post `ClientFullyConnect`, once the player is in the server | First point their name and convars are meaningful; may be null, so guard it |
+| `OnPlayerSettingsChanged(Player*)` | The client changed a replicated setting (name, userinfo cvars) | Fires on every change, including the burst the engine sends at connect, so debounce if you act on it; may be null |
+| `OnPlayerDisconnect(Player*)` | Before the player is removed | May be null, so guard it |
 | `OnPlayerChat(Player*, string_view, bool team)` | On `say`/`say_team` | Default dispatches registered chat commands and swallows handled ones; override to customize (an override replaces the dispatch wholesale, as admin-style chat services do) |
 | `OnRegisterHooks(runtime)` | Once during load | Custom SourceHook hooks |
 
@@ -201,8 +201,8 @@ class Bhop
 
 `Subscription` is move-only and `[[nodiscard]]`, so a registration you drop on the floor
 is a compiler warning rather than a listener that fires into freed memory. Work that is
-not a registration - draining a database, withdrawing a published interface - belongs in
-your `App`'s destructor.
+not a registration, such as draining a database or withdrawing a published interface, belongs
+in your `App`'s destructor.
 
 ## Typed game events
 
@@ -217,13 +217,13 @@ _playerDeath = Runtime.Events.Listen<Events::PlayerDeath>([this](const Events::P
 });
 ```
 
-The stringly `Listen("event_name", ...)` overload stays as the escape hatch for unmodeled events - see @ref sdk_events_guide.
+The stringly `Listen("event_name", ...)` overload stays as the escape hatch for unmodeled events; see @ref sdk_events_guide.
 
 ## Custom hooks
 
 `SH_DECL_HOOKn` must still appear once at namespace scope in your .cpp (it expands to hook-manager classes; no helper can wrap it). The add/remove pairing *is* automated: `VOLTMOD_SCOPED_HOOK` installs the hook and yields a `Subscription` that removes it.
 
-For per-tick player movement you don't need a custom hook at all - the framework ships @ref VoltMod::Sdk::MovementHook (see @ref sdk_hooks_guide).
+For per-tick player movement you don't need a custom hook at all: the framework ships @ref VoltMod::Sdk::MovementHook (see @ref sdk_hooks_guide).
 
 ```cpp
 #include <VoltMod/Core/HookMacros.hpp>
@@ -239,4 +239,4 @@ void MyPlugin::OnRegisterHooks(VoltMod::Runtime& runtime)
 
 ## Configuration
 
-Settings loading is one call through @ref VoltMod::App::JsonConfig - see @ref config_guide.
+Settings loading is one call through @ref VoltMod::App::JsonConfig; see @ref config_guide.

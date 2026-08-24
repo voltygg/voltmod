@@ -1,4 +1,4 @@
-# Messages & Chat Colors {#chat_guide}
+# Messages and chat colors {#chat_guide}
 
 [TOC]
 
@@ -20,16 +20,16 @@ msg.Send(slot, "Watch out!", VoltMod::MessageKind::Center); // plain center prin
 msg.Broadcast("Server restarting in 5 minutes.");          // chat, to everyone
 msg.Broadcast("Round of the day!", VoltMod::MessageKind::Alert);
 
-// Translate in the player's language, substitute tokens, reply - one call:
+// Translate in the player's language, substitute tokens, and reply, all in one call:
 msg.ReplyKey(slot, "cmd.banSuccess", {{"name", targetName}});
 ```
 
 `Reply` sends a chat message to one player. `runtime.Policy.Reply` usually
 forwards to it.
 
-Chat sends normalize colors for you: a message that already starts with a color escape keeps it; anything else gets the default color prepended so lines don't inherit the previous line's color. (CS2 routes server-originated chat through `TextMsg` - `SayText2` from non-player sources is silently dropped.)
+Chat sends normalize colors for you: a message that already starts with a color escape keeps it; anything else gets the default color prepended so lines don't inherit the previous line's color. (CS2 routes server-originated chat through `TextMsg`; it silently drops `SayText2` from non-player sources.)
 
-For a *sticky* center panel that survives the client's aggressive HUD clearing, use @ref VoltMod::Sdk::PersistentCenterHtml - see @ref sdk_messaging_guide.
+For a *sticky* center panel that survives the client's aggressive HUD clearing, use @ref VoltMod::Sdk::PersistentCenterHtml; see @ref sdk_messaging_guide.
 
 ## Color constants
 
@@ -71,7 +71,7 @@ auto line = std::format(
 runtime.Messages.Broadcast(line);
 ```
 
-For runtime/config-driven colors, look the escape up by name - `ParseNamed` is case-insensitive, resolves aliases (`"orange"` → `Gold`), and returns `Default` for unknown names:
+For runtime/config-driven colors, look the escape up by name. `ParseNamed` is case-insensitive, resolves aliases (`"orange"` → `Gold`), and returns `Default` for unknown names:
 
 ```cpp
 std::string_view color = ChatColors::ParseNamed(group.PrefixColor);

@@ -14,7 +14,7 @@ SetEntityRender(prop, RenderMode_t::TransTexture, ColorInvisible);
 SetEntityRender(prop, RenderMode_t::Normal, ColorOpaqueWhite);
 ```
 
-`m_clrRender` is RGBA packed as `(A << 24) | (B << 16) | (G << 8) | R` - `ColorInvisible` (`0x00FFFFFF`) is white at zero alpha.
+`m_clrRender` is RGBA packed as `(A << 24) | (B << 16) | (G << 8) | R`. `ColorInvisible` (`0x00FFFFFF`) is white at zero alpha.
 
 Render tricks only affect the pawn body; held weapons, wearables and gloves are separate networked entities. For true invisibility use the TransmitFilter instead.
 
@@ -35,7 +35,7 @@ transmit.SetControllerHidden(slot, true);  // removes the player's scoreboard ro
 
 The hidden player still receives their own entities, and a client actively observing the hidden pawn keeps receiving it (dropping it would break the spectator camera). Sounds (footsteps, gunfire) are networked separately and are not filtered. State is cleared automatically when the player disconnects.
 
-Arbitrary entities can also be made exclusive to a single client - the building block for per-viewer effects like GlowVision below:
+Arbitrary entities can also be made exclusive to a single client, which is the building block for per-viewer effects like GlowVision below:
 
 ```cpp
 transmit.SetEntityExclusive(entityIndex, beneficiarySlot);  // only this client receives it
@@ -48,7 +48,7 @@ Requires the `CheckTransmitPlayerSlot` gamedata offset (the recipient slot insid
 
 ## GlowVision
 
-Per-viewer wallhack-style vision built on the TransmitFilter: one client sees live players as team-colored glow outlines through walls, while every other client (and GOTV) never receives the glow entities - invisible to them by construction, not by rendering tricks. Each glowing player gets two `prop_dynamic` clones following their pawn - an invisible relay and a glow prop parented to it (the indirection renders only the outline) - both transmit-filtered exclusively to the beneficiary.
+Per-viewer wallhack-style vision built on the TransmitFilter: one client sees live players as team-colored glow outlines through walls, while every other client (and GOTV) never receives the glow entities. They are invisible to those clients by construction rather than by a rendering trick. Each glowing player gets two `prop_dynamic` clones following their pawn: an invisible relay and a glow prop parented to it (the indirection renders only the outline). Both are transmit-filtered exclusively to the beneficiary.
 
 ```cpp
 using VoltMod::Sdk::GlowVision;
@@ -75,4 +75,4 @@ GlowVision::Config config{
 auto glow = std::make_shared<GlowVision>(viewerSlot, std::move(config));
 ```
 
-Costs two entities per glowing player and inherits the TransmitFilter's gamedata requirement - without the `CheckTransmitPlayerSlot` offset the clones would be visible to everyone, so do not use it when the filter is inert.
+Costs two entities per glowing player and inherits the TransmitFilter's gamedata requirement. Without the `CheckTransmitPlayerSlot` offset the clones would be visible to everyone, so do not use it when the filter is inert.

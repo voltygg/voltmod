@@ -32,7 +32,7 @@ For typed operations on a player, construct a
 ## PlayerController
 
 `PlayerController` wraps common `CCSPlayerController` operations. Construct it from a player
-slot - it resolves the controller entity internally (check `IsValid()` if the slot may be
+slot; it resolves the controller entity internally (check `IsValid()` if the slot may be
 empty). When you already hold a tracked `VoltMod::Player*`, `player->Controller()` builds the
 same wrapper:
 
@@ -48,10 +48,10 @@ player.ChangeTeam(3);  // CT
 player.Respawn();
 ```
 
-### Aim & flash state
+### Aim and flash state
 
 For angle/position analysis (anti-cheat, aim telemetry): `GetEyeAngles()` reads the pawn's
-networked eye angles, `GetEyePosition()` is the abs origin plus `m_vecViewOffset` - where the
+networked eye angles, `GetEyePosition()` is the abs origin plus `m_vecViewOffset`, where the
 player's shots originate. `GetFlashDuration()` / `GetFlashMaxAlpha()` expose the flashbang
 state the last `player_blind` set on the pawn (`m_flFlashDuration`, `m_flFlashMaxAlpha`;
 255 max-alpha means a full blind). For blind-time bookkeeping, prefer the typed
@@ -99,7 +99,7 @@ player.SetPlayerName(saved);
 
 ## PawnOps
 
-Common pawn manipulations composed from `PlayerController` primitives - the operations most
+Common pawn manipulations composed from `PlayerController` primitives: the operations most
 gameplay plugins end up writing by hand. Free functions in `VoltMod::Sdk::PawnOps`
 (`<VoltMod/Sdk/PawnOps.hpp>`), plus the engine team constants `TeamNone` / `TeamSpectator` /
 `TeamT` / `TeamCT`:
