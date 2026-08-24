@@ -60,8 +60,6 @@ void CommandManager::Register(CommandSpec spec)
     // Index aliases up front. Lookup used to fall back to a linear scan over an unordered_map,
     // so two commands sharing an alias resolved to whichever the bucket order happened to reach
     // first - stable within a run, arbitrary between builds.
-    std::vector<std::string> claimed;
-    claimed.reserve(spec.Aliases.size());
     for (const auto& alias : spec.Aliases)
     {
         std::string key = StringUtils::ToLower(alias);
@@ -80,31 +78,28 @@ void CommandManager::Register(CommandSpec spec)
                        it->second);
             continue;
         }
-        claimed.push_back(std::move(key));
+        _aliases.emplace(std::move(key), name);
     }
 
-    for (auto& key : claimed)
-        _aliases.emplace(std::move(key), name);
-
     const bool console = HasSurface(spec.Surfaces, Surface::Console);
-    _commands[name] = std::move(spec);
+    const CommandSpec& stored = (_commands[name] = std::move(spec));
 
     if (console)
-        RegisterConsoleCommand(name);
+        RegisterConsoleCommand(name, stored);
 }
 
-void CommandManager::RegisterConsoleCommand(const std::string& name)
+void CommandManager::RegisterConsoleCommand(const std::string& name, const CommandSpec& spec)
 {
-    const CommandSpec* spec = GetCommand(name);
-    if (!spec)
-        return;
-
-    const std::string help = spec->Description.empty() ? DeriveUsage(*spec) : spec->Description;
+    // The console has no prefix to type, so the derived usage must not claim one.
+    const std::string help = spec.Description.empty() ? DeriveUsage(spec, "") : spec.Description;
     _consoleCommands.emplace(
         name, std::make_unique<Sdk::ServerCommand>(name.c_str(), help.c_str(), [this, name](const CCommand& args) {
-            const CommandSpec* cmd = GetCommand(name);
-            if (!cmd)
+            // Re-resolved per invocation: the spec can be unregistered while the ConCommand
+            // lives. `name` is already the canonical key, so no lowering or alias hop is needed.
+            auto it = _commands.find(name);
+            if (it == _commands.end())
                 return;
+            const CommandSpec* cmd = &it->second;
 
             std::vector<std::string> tokens;
             tokens.reserve(static_cast<size_t>(args.ArgC()));
@@ -177,7 +172,14 @@ void CommandManager::Dispatch(const CommandSpec& cmd, Players::Player* caller, s
         if (!msg.empty())
             reply(msg);
     };
-    const auto usage = [&] { return cmd.Usage.empty() ? DeriveUsage(cmd) : cmd.Usage; };
+    // The prefix belongs to the surface being replied to, not to the spec: the console types no
+    // prefix, and a server that called SetPrefixes does not necessarily use "!".
+    const auto usage = [&] {
+        if (!cmd.Usage.empty())
+            return cmd.Usage;
+        const std::string_view prefix = caller && !_prefixes.empty() ? _prefixes.front() : std::string_view{};
+        return DeriveUsage(cmd, prefix);
+    };
 
     // Permissions say which players may do this. The console is the server itself: no SteamID
     // to check, and nothing above it to deny it.
@@ -208,17 +210,17 @@ void CommandManager::Dispatch(const CommandSpec& cmd, Players::Player* caller, s
 
     CommandContext ctx;
     ctx.Caller = caller;
-    ctx.RawArgs = args;
+    ctx.RawArgs = std::move(args);
 
     // Extras used to be dropped in silence, so a typo'd selector looked like it worked.
-    if (TooManyArguments(cmd, args))
+    if (TooManyArguments(cmd, ctx.RawArgs))
     {
         say(tr.Get("cmd.tooManyArgs", slot, {{"usage", usage()}}));
         return;
     }
 
     std::string error;
-    if (!ResolveArgs(cmd, args, ctx, error))
+    if (!ResolveArgs(cmd, ctx.RawArgs, ctx, error))
     {
         say(error.empty() ? "Usage: " + usage() : error);
         return;

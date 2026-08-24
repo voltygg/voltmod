@@ -1,12 +1,9 @@
 #include <CS2Kit/Commands/CommandSpec.hpp>
-#include <CS2Kit/Core/StringUtils.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
 #include <CS2Kit/Runtime.hpp>
 
 namespace CS2Kit::Commands
 {
-
-using Core::StringUtils;
 
 ArgSpec Target(Players::TargetRules rules)
 {
@@ -55,7 +52,7 @@ CommandResult CommandContext::Ok(std::string_view key, Core::Tokens tokens) cons
 
 CommandResult CommandContext::Fail(std::string_view key, Core::Tokens tokens) const
 {
-    return {CS2Kit::Detail::Rt().Translations.Get(std::string(key), CallerSlot(), tokens)};
+    return Ok(key, tokens);  // same wire shape; the two names say which outcome the handler meant
 }
 
 namespace
@@ -87,9 +84,9 @@ std::string_view Placeholder(ArgKind kind)
 
 }  // namespace
 
-std::string DeriveUsage(const CommandSpec& spec)
+std::string DeriveUsage(const CommandSpec& spec, std::string_view prefix)
 {
-    std::string usage = "!" + spec.Name;
+    std::string usage = std::string(prefix) + spec.Name;
     for (const ArgSpec& arg : spec.Args)
     {
         usage += arg.Required ? " <" : " [";
@@ -97,17 +94,6 @@ std::string DeriveUsage(const CommandSpec& spec)
         usage += arg.Required ? '>' : ']';
     }
     return usage;
-}
-
-bool CommandSpec::Matches(const std::string& nameOrAlias) const
-{
-    const std::string lower = StringUtils::ToLower(nameOrAlias);
-    if (StringUtils::ToLower(Name) == lower)
-        return true;
-    for (const auto& alias : Aliases)
-        if (StringUtils::ToLower(alias) == lower)
-            return true;
-    return false;
 }
 
 }  // namespace CS2Kit::Commands

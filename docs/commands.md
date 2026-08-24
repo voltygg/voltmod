@@ -50,8 +50,9 @@ accessor for an argument the spec declared always has a value. That is why `Targ
 back a reference: the old pointer only invited a null check that could not fire.
 
 `Usage` is derived from the argument kinds - `!ban <target> <duration> [reason]` - unless you
-set it. Extra arguments beyond what the spec consumes are refused with `cmd.tooManyArgs`
-rather than dropped.
+set it. The prefix comes from the surface being replied to (the manager's first chat prefix, or
+nothing at all in the console), so the same spec reads correctly in both places. Extra arguments
+beyond what the spec consumes are refused with `cmd.tooManyArgs` rather than dropped.
 
 `TargetRules` narrows what a Target argument accepts: `{.AllowMultiple = true}` permits `@all`-style selectors, `AllowDead`/`AllowBots` filter the match set.
 
@@ -90,4 +91,22 @@ Argument failures reply from these translation keys - ship them in your translat
 
 ## Console callers
 
-Only chat messages are dispatched. Server-console input doesn't go through `CommandManager`; slot `-1` replies are dropped harmlessly by the message layer.
+`Surfaces` says where a spec can be invoked from; it defaults to `Surface::Chat`. Adding
+`Surface::Console` registers a real tier1 ConCommand of the same name alongside the chat
+command, so rcon, cfg files and `ExecuteServerCommand` reach the same handler:
+
+```cpp
+commands.Register({
+    .Name = "bhop_player",
+    .Description = "Grant or revoke bhop for a SteamID64.",
+    .Args = {SteamId64(), Int()},
+    .Surfaces = Surface::Chat | Surface::Console,
+    .Handler = [&](CommandContext& c) { ... },
+});
+```
+
+Console invocations run the same argument resolution and handler with no caller, and print
+their reply to the console. With no caller there is no SteamID to check, so `Permission` is
+never consulted - the server console already is the authority - and caller-relative selectors
+(`@me`, `@!me`) match no one. Replies resolve translations against slot `-1`, the server
+language. Registration owns the ConCommand, so `Unregister` and destruction remove it.

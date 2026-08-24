@@ -166,12 +166,11 @@ struct CommandSpec
     std::vector<ArgSpec> Args;
     Surface Surfaces = Surface::Chat;
     std::function<CommandResult(CommandContext&)> Handler;
-
-    bool Matches(const std::string& nameOrAlias) const;
 };
 
 /** `!ban <target> <duration> [reason]`, built from the arg kinds so nothing hand-written can
- *  drift from what the command actually accepts. */
-std::string DeriveUsage(const CommandSpec& spec);
+ *  drift from what the command actually accepts. @p prefix is what the caller types before the
+ *  name - a chat prefix, or empty for the console, which has none. */
+std::string DeriveUsage(const CommandSpec& spec, std::string_view prefix);
 
 }  // namespace CS2Kit::Commands

@@ -54,8 +54,9 @@ private:
     void Dispatch(const CommandSpec& cmd, Players::Player* caller, std::vector<std::string> args,
                   const std::function<void(const std::string&)>& reply);
 
-    /** Bind a Surface::Console spec to a ConCommand of the same name. */
-    void RegisterConsoleCommand(const std::string& name);
+    /** Bind a Surface::Console spec to a ConCommand of the same name. @p name must be the
+     *  lowercased key @p spec is stored under. */
+    void RegisterConsoleCommand(const std::string& name, const CommandSpec& spec);
 
     std::unordered_map<std::string, CommandSpec> _commands;
     /** Lowercased alias -> the lowercased command name that owns it. */
