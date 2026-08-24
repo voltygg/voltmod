@@ -20,8 +20,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # The Doxygen theme, checked out rather than vendored: it is a docs-only asset
-      # and this repo otherwise has no submodules. Doxyfile expects it here.
       - uses: actions/checkout@v7
         with:
           repository: jothepro/doxygen-awesome-css

@@ -1,18 +1,6 @@
 name: Publish
 
-# Two release paths into the same public Cloudsmith remote:
-#
-#   push to main touching recipes/**  ->  the SDK packages, then a rebuilt voltmod so a
-#                                         consumer resolving the new SDK finds a binary
-#   v* tag                            ->  voltmod itself
-#
-# The SDK path used to be a separate repo, which is why it needed a cross-checkout and a
-# "pin voltmod to its newest release" dance to avoid building an untagged tip. Both halves
-# now build the working tree, and `voltmod package publish` refuses a v* tag that disagrees
-# with version.txt.
-#
-# Secrets: CLOUDSMITH_USERNAME (an account with Write on the repo) and CLOUDSMITH_API_KEY
-# (that account's API key - entitlement tokens are read-only).
+# Recipe changes publish SDK packages; v* tags publish Voltmod.
 
 on:
   push:
@@ -48,8 +36,6 @@ jobs:
       - name: Build and upload the SDK packages
         run: voltmod package publish sdk
 
-      # Linux only: it is the deploy target, and a Windows Release voltmod.lib is ~208 MB
-      # of embedded CodeView. Windows and Debug consumers build the kit themselves.
       - name: Rebuild voltmod against them
         if: runner.os == 'Linux'
         run: voltmod package publish kit --no-lockfile
@@ -91,17 +77,12 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-toolchain
 
-      # No login. That the remote serves anonymously is the property under test, and it
-      # is the one thing a publishing job cannot check about itself.
       - name: Fresh consume of voltmod from the remote
         env:
           CONAN_HOME: ${{ runner.temp }}/conan-fresh
         run: |
           conan profile detect --force >/dev/null 2>&1 || true
           conan config install ./conan
-          # --build=!<ours>: only voltmod and the SDKs are claimed to be prebuilt. Conan
-          # Center has no binaries for the gcc-14 / old-libstdc++-ABI profile, so cpr and
-          # friends legitimately compile here.
           conan test test_package "voltmod/$(cat version.txt)" \
             -pr:a conan/profiles/linux-steamrt.txt -s build_type=Release \
             --build=missing '--build=!voltmod/*' \

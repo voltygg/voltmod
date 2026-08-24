@@ -1,13 +1,5 @@
 name: CI
 
-# Two gates. The cheap one needs no compiler. The expensive one asks the only question
-# that matters about an SDK bump: does voltmod still compile against it - the hl2sdk cs2
-# branch deletes headers without warning.
-#
-# Both live here now. They used to be split across two repos, which meant cs2-sdk-recipes
-# checked out voltmod to gate a recipe change while voltmod deferred that same gate back
-# to the recipes repo, and each had to pin the other to a release to break the circle.
-
 on:
   push:
     branches: [main]
@@ -33,9 +25,6 @@ jobs:
       - name: clang-format
         run: uv run poe format-check
 
-      # The layering is what the module directories mean; nothing else enforces it now
-      # that the CMake targets are collapsed, and a violation would only surface much
-      # later as a consumer's link failure.
       - name: Module layering holds
         run: uv run poe modgraph
 
@@ -61,7 +50,5 @@ jobs:
       - name: Build the SDK packages
         run: voltmod package build sdk
 
-      # The gate. --no-lockfile because conan.lock pins the SDK revisions this run just
-      # replaced; `conan create` runs test_package, so a plugin build is covered too.
       - name: Build voltmod against them
         run: voltmod package build kit --no-lockfile

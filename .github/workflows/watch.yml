@@ -1,8 +1,6 @@
 name: Watch upstream
 
-# Opens or updates one PR when upstream moves, editing conandata.yml and nothing else.
-# ci.yml decides whether the bump is safe by building voltmod against it; merging
-# publishes.
+# Opens or updates one PR for upstream SDK revisions.
 
 on:
   schedule:
@@ -25,13 +23,10 @@ jobs:
 
       - uses: ./.github/actions/setup-toolchain
 
-      # Rewrites recipes/*/conandata.yml in place and sets `changed`; a quiet day
-      # leaves the tree untouched and the rest of this job skipped.
       - name: Resolve the upstream tips
         id: watch
         run: voltmod package watch
 
-      # Fixed branch, force-pushed: five commits in a week update one PR, not open five.
       - name: Open or update the PR
         if: steps.watch.outputs.changed == 'true'
         run: |
@@ -50,8 +45,6 @@ jobs:
   prune:
     name: Prune superseded artifacts
     runs-on: ubuntu-latest
-    # Each SDK version is ~20 MB across both platforms and upstream moves several times
-    # a month, so revisions no consumer can resolve are pure weight. Weekly is enough.
     if: github.event.schedule != '0 6 * * *'
     env:
       CLOUDSMITH_USERNAME: ${{ secrets.CLOUDSMITH_USERNAME }}

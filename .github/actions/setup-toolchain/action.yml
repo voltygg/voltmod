@@ -1,12 +1,19 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-action.json
 name: Set up the voltmod toolchain
-description: Install the build tools, this repo's CLI, and the canonical Conan profiles.
+description: Install build tools, Voltmod, and the canonical Conan configuration.
 
+inputs:
+  voltmod-source:
+    description: Package source to install; @action uses this action's checkout
+    required: false
+    default: "."
+  conan-source:
+    description: Repository root containing conan; @action uses this action's checkout
+    required: false
+    default: "."
 runs:
   using: composite
   steps:
-    # gcc-14 (C++23) lives in sniper_beta, not the base image. No-ops off a plain runner,
-    # so CLI-only jobs can use this action too. deploy/Dockerfile bakes the same list.
     - name: Bootstrap the SteamRT container
       if: runner.os == 'Linux'
       shell: bash
@@ -16,33 +23,45 @@ runs:
           > /etc/apt/sources.list.d/steamrt-beta.list
         apt-get update
         DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-          ca-certificates gcc-14-monolithic git ninja-build
+          ca-certificates ccache gcc-14-monolithic git ninja-build
         rm -rf /var/lib/apt/lists/*
 
     - name: Install uv
       uses: astral-sh/setup-uv@v8.2.0
 
-    # This repo's venv brings the `voltmod` CLI plus the pinned CMake, Conan, Ninja and
-    # clang-format, so no workflow names a tool version. A venv rather than the ambient
-    # interpreter: uv fetches 3.14, which no runner and no sniper image has.
     - name: Install voltmod (Linux)
       if: runner.os == 'Linux'
       shell: bash
+      env:
+        VOLTMOD_SOURCE: ${{ inputs.voltmod-source }}
       run: |
+        if [ "$VOLTMOD_SOURCE" = "@action" ]; then
+          VOLTMOD_SOURCE="$GITHUB_ACTION_PATH/../../.."
+        fi
         uv venv --python 3.14 "$RUNNER_TEMP/voltmod"
-        uv pip install --python "$RUNNER_TEMP/voltmod/bin/python" --no-cache .
+        uv pip install --python "$RUNNER_TEMP/voltmod/bin/python" --no-cache "$VOLTMOD_SOURCE"
         echo "$RUNNER_TEMP/voltmod/bin" >> "$GITHUB_PATH"
 
     - name: Install voltmod (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
+      env:
+        VOLTMOD_SOURCE: ${{ inputs.voltmod-source }}
       run: |
+        if ($env:VOLTMOD_SOURCE -eq "@action") {
+          $env:VOLTMOD_SOURCE = "$env:GITHUB_ACTION_PATH\..\..\.."
+        }
         uv venv --python 3.14 "$env:RUNNER_TEMP\voltmod"
-        uv pip install --python "$env:RUNNER_TEMP\voltmod\Scripts\python.exe" --no-cache .
+        uv pip install --python "$env:RUNNER_TEMP\voltmod\Scripts\python.exe" --no-cache "$env:VOLTMOD_SOURCE"
         Add-Content -Path $env:GITHUB_PATH -Value "$env:RUNNER_TEMP\voltmod\Scripts"
 
     - name: Install the canonical Conan profiles and remotes
       shell: bash
+      env:
+        CONAN_SOURCE: ${{ inputs.conan-source }}
       run: |
+        if [ "$CONAN_SOURCE" = "@action" ]; then
+          CONAN_SOURCE="$GITHUB_ACTION_PATH/../../.."
+        fi
         conan profile detect --force >/dev/null 2>&1 || true
-        conan config install ./conan
+        conan config install "$CONAN_SOURCE" -sf conan
