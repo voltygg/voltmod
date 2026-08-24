@@ -3,11 +3,6 @@
 #include <cstdint>
 #include <string>
 
-namespace CS2Kit::Sdk
-{
-class PlayerController;
-}
-
 namespace CS2Kit::Players
 {
 
@@ -31,9 +26,6 @@ public:
 
     /** True for engine bots, which connect without a real SteamID. */
     bool IsBot() const { return _steamId == 0; }
-
-    /** Controller wrapper for this player's slot. Check IsValid() before pawn access. */
-    Sdk::PlayerController Controller() const;
 
 private:
     int _slot;

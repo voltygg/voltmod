@@ -24,7 +24,7 @@ std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(std::string_vi
     {
         if (!p)
             continue;
-        Sdk::PlayerController ctrl = p->Controller();
+        Sdk::PlayerController ctrl(p->GetSlot());
         roster.push_back({
             .Slot = p->GetSlot(),
             .SteamId = p->GetSteamID(),

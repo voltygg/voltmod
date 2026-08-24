@@ -1,5 +1,4 @@
 #include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Players/PlayerManager.hpp>
 #include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Sdk/Entity.hpp>
 #include <CS2Kit/Sdk/MoveType.hpp>

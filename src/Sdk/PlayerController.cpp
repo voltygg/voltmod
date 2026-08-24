@@ -3,7 +3,6 @@
 
 #include <CS2Kit/Core/Log.hpp>
 #include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Players/Player.hpp>
 #include <CS2Kit/Runtime.hpp>
 #include <CS2Kit/Sdk/Entity.hpp>
 #include <CS2Kit/Sdk/EntityOps.hpp>
@@ -362,15 +361,3 @@ void PlayerController::SetVisible(bool visible, uint8_t alpha) const
 }
 
 }  // namespace CS2Kit::Sdk
-
-namespace CS2Kit::Players
-{
-
-// Defined here rather than in Player.cpp: it is the one place Player reaches into Sdk, and
-// keeping it there dragged the whole SDK into every TU that only wanted player identity.
-Sdk::PlayerController Player::Controller() const
-{
-    return Sdk::PlayerController(_slot);
-}
-
-}  // namespace CS2Kit::Players
