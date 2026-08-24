@@ -1,4 +1,4 @@
-#include <CS2Kit/Http/HttpClient.hpp>
+#include <VoltMod/Http/HttpClient.hpp>
 #include <chrono>
 #include <cpr/cpr.h>
 #include <deque>
@@ -6,7 +6,7 @@
 #include <future>
 #include <utility>
 
-namespace CS2Kit::Http
+namespace VoltMod::Http
 {
 
 namespace
@@ -159,4 +159,4 @@ void HttpClient::DispatchCompletions()
     }
 }
 
-}  // namespace CS2Kit::Http
+}  // namespace VoltMod::Http

@@ -10,7 +10,7 @@ endif()
 
 add_library(hl2sdk-test STATIC src/test.cpp)
 target_compile_features(hl2sdk-test PRIVATE cxx_std_17)
-target_link_libraries(hl2sdk-test PRIVATE CS2Kit::HL2SDK)
+target_link_libraries(hl2sdk-test PRIVATE VoltMod::HL2SDK)
 
 # Compiles the generated protobufs and the SDK bodies out of the package, which is the
 # half of it that usage requirements cannot carry.

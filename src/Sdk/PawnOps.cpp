@@ -1,14 +1,14 @@
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/Entity.hpp>
-#include <CS2Kit/Sdk/MoveType.hpp>
-#include <CS2Kit/Sdk/PawnOps.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/Entity.hpp>
+#include <VoltMod/Sdk/MoveType.hpp>
+#include <VoltMod/Sdk/PawnOps.hpp>
 #include <cmath>
 #include <mathlib/vector.h>
 #include <numbers>
 #include <random>
 
-namespace CS2Kit::Sdk::PawnOps
+namespace VoltMod::Sdk::PawnOps
 {
 
 namespace
@@ -92,7 +92,7 @@ void Slap(const PlayerController& pc, float upward, float horizontal, int fallPr
     {
         SetGodmode(pc, true);
 
-        auto& runtime = CS2Kit::Detail::Rt();
+        auto& runtime = VoltMod::Detail::Rt();
         const int slot = pc.GetSlot();
         Players::Player* player = runtime.Players.GetPlayerBySlot(slot);
         if (!player)
@@ -101,7 +101,7 @@ void Slap(const PlayerController& pc, float upward, float horizontal, int fallPr
         // Check the seat still holds the same player: they can disconnect inside the protection
         // window, and clearing godmode off whoever took the slot next is not our business.
         runtime.Scheduler.Delay(fallProtectMs, [slot, steamId = player->GetSteamID()]() {
-            if (!CS2Kit::Detail::Rt().Players.GetPlayerBySlotIfSteamId(slot, steamId))
+            if (!VoltMod::Detail::Rt().Players.GetPlayerBySlotIfSteamId(slot, steamId))
                 return;
 
             PlayerController target(slot);
@@ -119,4 +119,4 @@ bool ChangeTeamSafe(const PlayerController& pc, int team)
     return true;
 }
 
-}  // namespace CS2Kit::Sdk::PawnOps
+}  // namespace VoltMod::Sdk::PawnOps

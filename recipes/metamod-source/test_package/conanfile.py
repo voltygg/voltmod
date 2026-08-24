@@ -19,5 +19,5 @@ class MetamodSourceTestConan(ConanFile):
 
     def test(self):
         # Compilation is the test. (ISmmPlugin.h also needs hl2sdk headers;
-        # cs2-kit's test_package covers that combination.)
+        # voltmod's test_package covers that combination.)
         pass

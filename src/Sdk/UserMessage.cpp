@@ -2,27 +2,27 @@
 
 #include <igameevents.h>
 
-#include <CS2Kit/Core/ChatColors.hpp>
-#include <CS2Kit/Core/Log.hpp>
-#include <CS2Kit/Core/Slot.hpp>
-#include <CS2Kit/Core/Translations.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/GameData.hpp>
-#include <CS2Kit/Sdk/GameEventService.hpp>
-#include <CS2Kit/Sdk/GameInterfaces.hpp>
-#include <CS2Kit/Sdk/MemoryAccess.hpp>
-#include <CS2Kit/Sdk/RecipientFilter.hpp>
-#include <CS2Kit/Sdk/UserMessage.hpp>
+#include <VoltMod/Core/ChatColors.hpp>
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Core/Translations.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/GameData.hpp>
+#include <VoltMod/Sdk/GameEventService.hpp>
+#include <VoltMod/Sdk/GameInterfaces.hpp>
+#include <VoltMod/Sdk/MemoryAccess.hpp>
+#include <VoltMod/Sdk/RecipientFilter.hpp>
+#include <VoltMod/Sdk/UserMessage.hpp>
 #include <engine/igameeventsystem.h>
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
 #include <usermessages.pb.h>
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
 
-using namespace CS2Kit::Core;
+using namespace VoltMod::Core;
 
 namespace
 {
@@ -57,7 +57,7 @@ std::string Render(std::string_view message, MessageKind kind)
 
 bool MessageSystem::Initialize()
 {
-    auto& interfaces = CS2Kit::Detail::Rt().Interfaces;
+    auto& interfaces = VoltMod::Detail::Rt().Interfaces;
 
     if (!interfaces.GameEventSystem)
     {
@@ -77,8 +77,8 @@ bool MessageSystem::Initialize()
 
 bool MessageSystem::InitGameEventManager()
 {
-    auto& interfaces = CS2Kit::Detail::Rt().Interfaces;
-    auto& gameData = CS2Kit::Detail::Rt().GameData;
+    auto& interfaces = VoltMod::Detail::Rt().Interfaces;
+    auto& gameData = VoltMod::Detail::Rt().GameData;
 
     void* eventManagerAddr = gameData.ResolveSignature("GameEventManager");
     if (eventManagerAddr)
@@ -105,7 +105,7 @@ bool MessageSystem::InitGameEventManager()
 
 void MessageSystem::SendCenterHtml(int slot, const std::string& html)
 {
-    auto* gameEventManager = CS2Kit::Detail::Rt().Interfaces.GameEventManager;
+    auto* gameEventManager = VoltMod::Detail::Rt().Interfaces.GameEventManager;
     if (!gameEventManager || !Core::IsValidSlot(slot))
         return;
 
@@ -119,7 +119,7 @@ void MessageSystem::SendCenterHtml(int slot, const std::string& html)
 
     // Deliver to just this client when the engine exposes its listener. Otherwise the event
     // broadcasts and every client renders the panel.
-    if (IGameEventListener2* listener = CS2Kit::Detail::Rt().Events.GetClientLegacyListener(slot))
+    if (IGameEventListener2* listener = VoltMod::Detail::Rt().Events.GetClientLegacyListener(slot))
     {
         listener->FireGameEvent(pEvent);
         gameEventManager->FreeEvent(pEvent);
@@ -150,7 +150,7 @@ void MessageSystem::Broadcast(std::string_view message, MessageKind kind)
         // Per-slot, because each panel write targets one client's own event listener.
         // A null listener means nobody is in that slot.
         for (int slot = 0; slot < Core::MaxPlayers; ++slot)
-            if (CS2Kit::Detail::Rt().Events.GetClientLegacyListener(slot))
+            if (VoltMod::Detail::Rt().Events.GetClientLegacyListener(slot))
                 SendCenterHtml(slot, rendered);
         return;
     }
@@ -175,7 +175,7 @@ void MessageSystem::Reply(int slot, std::string_view message)
 
 void MessageSystem::ReplyKey(int slot, const std::string& key, const std::map<std::string, std::string>& tokens)
 {
-    Reply(slot, CS2Kit::Detail::Rt().Translations.Get(key, slot, tokens));
+    Reply(slot, VoltMod::Detail::Rt().Translations.Get(key, slot, tokens));
 }
 
 void MessageSystem::SendTextMsg(int slot, int destination, const std::string& message)
@@ -189,7 +189,7 @@ void MessageSystem::SendTextMsg(int slot, int destination, const std::string& me
 
 void MessageSystem::PostTextMsg(IRecipientFilter& filter, int destination, const std::string& message)
 {
-    auto& interfaces = CS2Kit::Detail::Rt().Interfaces;
+    auto& interfaces = VoltMod::Detail::Rt().Interfaces;
     if (!interfaces.GameEventSystem || !interfaces.NetworkMessages)
         return;
 
@@ -229,4 +229,4 @@ void MessageSystem::ClearCenterHtml(int slot)
     SendCenterHtml(slot, " ");
 }
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

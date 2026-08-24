@@ -1,16 +1,16 @@
-#include <CS2Kit/App/StandardLoad.hpp>
-#include <CS2Kit/Core/Log.hpp>
-#include <CS2Kit/Core/Paths.hpp>
-#include <CS2Kit/Core/PluginManifest.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
+#include <VoltMod/App/StandardLoad.hpp>
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/Paths.hpp>
+#include <VoltMod/Core/PluginManifest.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
 #include <format>
 #include <fstream>
 #include <sstream>
 
-namespace Log = CS2Kit::Core::Log;
+namespace Log = VoltMod::Core::Log;
 
-namespace CS2Kit::App
+namespace VoltMod::App
 {
 
 namespace
@@ -18,7 +18,7 @@ namespace
 void ReportDependency(const Core::PluginDependency& dependency)
 {
     const std::string key = Core::IdentityKey(dependency.Name);
-    auto* peer = static_cast<Core::IPluginIdentity*>(CS2Kit::Detail::Rt().Exchange.GetNamed(key.c_str()));
+    auto* peer = static_cast<Core::IPluginIdentity*>(VoltMod::Detail::Rt().Exchange.GetNamed(key.c_str()));
 
     if (peer == nullptr)
     {
@@ -48,13 +48,13 @@ void PluginIdentity::Adopt(Core::PluginManifest manifest)
 {
     _manifest = std::move(manifest);
     _key = Core::IdentityKey(_manifest.Name);
-    CS2Kit::Detail::Rt().Exchange.PublishNamed(_key.c_str(), static_cast<Core::IPluginIdentity*>(this));
+    VoltMod::Detail::Rt().Exchange.PublishNamed(_key.c_str(), static_cast<Core::IPluginIdentity*>(this));
 
     if (_manifest.Dependencies.empty())
         return;
 
     // First frame, not OnLoad - see PluginIdentity's comment.
-    CS2Kit::Detail::Rt().Scheduler.NextTick([this] {
+    VoltMod::Detail::Rt().Scheduler.NextTick([this] {
         for (const auto& dependency : _manifest.Dependencies)
             ReportDependency(dependency);
     });
@@ -64,7 +64,7 @@ void PluginIdentity::Withdraw()
 {
     if (_key.empty())
         return;
-    CS2Kit::Detail::Rt().Exchange.UnpublishNamed(_key.c_str());
+    VoltMod::Detail::Rt().Exchange.UnpublishNamed(_key.c_str());
     _key.clear();
 }
 
@@ -92,4 +92,4 @@ void LoadPluginManifest(Runtime& runtime, std::string_view addon)
     });
 }
 
-}  // namespace CS2Kit::App
+}  // namespace VoltMod::App

@@ -1,22 +1,22 @@
 #include "Menu/MenuRenderer.hpp"
 
-#include <CS2Kit/Core/Log.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Menu/MenuManager.hpp>
-#include <CS2Kit/Menu/MenuOption.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/ChatInputCapture.hpp>
-#include <CS2Kit/Sdk/Entity.hpp>
-#include <CS2Kit/Sdk/PlayerController.hpp>
-#include <CS2Kit/Sdk/UserMessage.hpp>
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Menu/MenuManager.hpp>
+#include <VoltMod/Menu/MenuOption.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/ChatInputCapture.hpp>
+#include <VoltMod/Sdk/Entity.hpp>
+#include <VoltMod/Sdk/PlayerController.hpp>
+#include <VoltMod/Sdk/UserMessage.hpp>
 #include <algorithm>
 #include <chrono>
 
-namespace CS2Kit::Menu
+namespace VoltMod::Menu
 {
 
-using namespace CS2Kit::Core;
-using namespace CS2Kit::Sdk;
+using namespace VoltMod::Core;
+using namespace VoltMod::Sdk;
 
 static int64_t GetCurrentTimeMs()
 {
@@ -119,7 +119,7 @@ void MenuManager::CloseMenu(int slot)
     if (state.MenuStack.empty())
     {
         SetPlayerFrozen(slot, false);
-        CS2Kit::Detail::Rt().Messages.ClearCenterHtml(slot);
+        VoltMod::Detail::Rt().Messages.ClearCenterHtml(slot);
         state.Reset();
     }
     else
@@ -141,7 +141,7 @@ void MenuManager::CloseAllMenus(int slot)
     auto& state = _states[slot];
     SetPlayerFrozen(slot, false);
     state.Reset();
-    CS2Kit::Detail::Rt().Messages.ClearCenterHtml(slot);
+    VoltMod::Detail::Rt().Messages.ClearCenterHtml(slot);
 }
 
 void MenuManager::SetPlayerFrozen(int slot, bool frozen)
@@ -196,7 +196,7 @@ bool MenuManager::HasActiveMenu(int slot) const
 
 void MenuManager::OnGameFrame()
 {
-    auto& entities = CS2Kit::Detail::Rt().Entities;
+    auto& entities = VoltMod::Detail::Rt().Entities;
     for (int slot = 0; slot < Core::MaxPlayers; ++slot)
     {
         auto& state = _states[slot];
@@ -229,7 +229,7 @@ void MenuManager::HandleInput(int slot, uint64_t buttons, uint64_t prevButtons)
 
     // While a chat-input capture is active, the only key we honor is R (cancel) - every
     // other input is ignored so the menu doesn't drift while the player types in chat.
-    auto& capture = CS2Kit::Detail::Rt().ChatInput;
+    auto& capture = VoltMod::Detail::Rt().ChatInput;
     if (capture.IsCapturing(slot))
     {
         if (pressed & IN_RELOAD)
@@ -290,7 +290,7 @@ void MenuManager::RenderMenu(int slot)
     if (!menu)
         return;
 
-    auto& rt = CS2Kit::Detail::Rt();
+    auto& rt = VoltMod::Detail::Rt();
 
     // While a capture is pending, render a prompt overlay instead of the item list.
     if (auto* prompt = rt.ChatInput.GetPrompt(slot); prompt != nullptr)
@@ -309,7 +309,7 @@ void MenuManager::OnPlayerDisconnect(int slot)
         return;
 
     _states[slot].Reset();
-    CS2Kit::Detail::Rt().Translations.ClearPlayerLanguage(slot);
+    VoltMod::Detail::Rt().Translations.ClearPlayerLanguage(slot);
 }
 
-}  // namespace CS2Kit::Menu
+}  // namespace VoltMod::Menu

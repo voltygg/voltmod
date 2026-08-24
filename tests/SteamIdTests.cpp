@@ -1,9 +1,9 @@
-#include <CS2Kit/Core/SteamId.hpp>
+#include <VoltMod/Core/SteamId.hpp>
 #include <cstdint>
 #include <doctest/doctest.h>
 #include <string>
 
-using CS2Kit::Core::SteamId;
+using VoltMod::Core::SteamId;
 
 // Reference identity: account id 22202.
 static constexpr int64_t Base = 76561197960265728LL;

@@ -1,20 +1,20 @@
 #include "Sdk/Schema.hpp"
 
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/EffectOps.hpp>
-#include <CS2Kit/Sdk/EntityKeyValues.hpp>
-#include <CS2Kit/Sdk/EntityOps.hpp>
-#include <CS2Kit/Sdk/MemoryAccess.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/EffectOps.hpp>
+#include <VoltMod/Sdk/EntityKeyValues.hpp>
+#include <VoltMod/Sdk/EntityOps.hpp>
+#include <VoltMod/Sdk/MemoryAccess.hpp>
 #include <Color.h>
 #include <mathlib/vector.h>
 
-namespace CS2Kit::Sdk::EffectOps
+namespace VoltMod::Sdk::EffectOps
 {
 
 CEntityInstance* SpawnParticle(const char* effectName, const Vector& origin, float lifetimeSeconds)
 {
-    auto& ops = CS2Kit::Detail::Rt().EntityOps;
+    auto& ops = VoltMod::Detail::Rt().EntityOps;
     if (!ops.CanSpawn() || !effectName)
         return nullptr;
 
@@ -38,7 +38,7 @@ CEntityInstance* SpawnParticle(const char* effectName, const Vector& origin, flo
 
 CEntityInstance* SpawnBeam(const Vector& from, const Vector& to, const Color& color, float width, float lifetimeSeconds)
 {
-    auto& ops = CS2Kit::Detail::Rt().EntityOps;
+    auto& ops = VoltMod::Detail::Rt().EntityOps;
     if (!ops.CanSpawn())
         return nullptr;
 
@@ -48,7 +48,7 @@ CEntityInstance* SpawnBeam(const Vector& from, const Vector& to, const Color& co
 
     // Endpoint/width/color live in schema fields with no spawn keyvalue; written
     // before DispatchSpawn they go out with the first network snapshot.
-    auto& schema = CS2Kit::Detail::Rt().Schema();
+    auto& schema = VoltMod::Detail::Rt().Schema();
     int offsetWidth = schema.GetOffsetOf<float>("CBeam", "m_fWidth");
     int offsetEndPos = schema.GetOffsetOf<Vector>("CBeam", "m_vecEndPos");
     int offsetColor = schema.GetOffsetOf<Color>("CBaseModelEntity", "m_clrRender");
@@ -72,7 +72,7 @@ CEntityInstance* SpawnBeam(const Vector& from, const Vector& to, const Color& co
 
 CEntityInstance* SpawnProp(const char* modelPath, const Vector& origin, bool physics, float lifetimeSeconds)
 {
-    auto& ops = CS2Kit::Detail::Rt().EntityOps;
+    auto& ops = VoltMod::Detail::Rt().EntityOps;
     if (!ops.CanSpawn() || !modelPath)
         return nullptr;
 
@@ -93,4 +93,4 @@ CEntityInstance* SpawnProp(const char* modelPath, const Vector& origin, bool phy
     return prop;
 }
 
-}  // namespace CS2Kit::Sdk::EffectOps
+}  // namespace VoltMod::Sdk::EffectOps

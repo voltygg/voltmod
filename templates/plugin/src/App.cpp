@@ -1,15 +1,15 @@
 #include "App.hpp"
 
-#include <CS2Kit/Api.hpp>
+#include <VoltMod/Api.hpp>
 
 namespace $ns
 {
 
-void RegisterCommands(CS2Kit::CommandManager& commands);
+void RegisterCommands(VoltMod::CommandManager& commands);
 
 bool App::Start()
 {
-    if (!CS2Kit::LoadStandardConfig(Runtime, Config, {.Addon = "$name"}))
+    if (!VoltMod::LoadStandardConfig(Runtime, Config, {.Addon = "$name"}))
         return false;
 
     // Permissions and replies stay permissive until the plugin sets Runtime.Policy.

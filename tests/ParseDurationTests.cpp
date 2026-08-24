@@ -1,7 +1,7 @@
-#include <CS2Kit/Core/StringUtils.hpp>
+#include <VoltMod/Core/StringUtils.hpp>
 #include <doctest/doctest.h>
 
-using CS2Kit::Core::ParseDuration;
+using VoltMod::Core::ParseDuration;
 
 TEST_CASE("ParseDuration: bare seconds")
 {

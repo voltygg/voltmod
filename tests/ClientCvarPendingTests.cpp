@@ -1,11 +1,11 @@
-#include <CS2Kit/Sdk/Detail/ClientCvarPending.hpp>
+#include <VoltMod/Sdk/Detail/ClientCvarPending.hpp>
 #include <cstdint>
 #include <doctest/doctest.h>
 #include <string>
 
-using CS2Kit::Sdk::ClientCvarService;
-using CS2Kit::Sdk::ClientCvarStatus;
-using CS2Kit::Sdk::Detail::ClientCvarPendingTable;
+using VoltMod::Sdk::ClientCvarService;
+using VoltMod::Sdk::ClientCvarStatus;
+using VoltMod::Sdk::Detail::ClientCvarPendingTable;
 
 namespace
 {
@@ -71,7 +71,7 @@ TEST_CASE("Take rejects an unknown cookie and an out of range slot")
 
     CHECK_FALSE(table.Take(0, 999999, "cl_showpos").has_value());
     CHECK_FALSE(table.Take(-1, 1, "cl_showpos").has_value());
-    CHECK_FALSE(table.Take(CS2Kit::Core::MaxPlayers, 1, "cl_showpos").has_value());
+    CHECK_FALSE(table.Take(VoltMod::Core::MaxPlayers, 1, "cl_showpos").has_value());
 }
 
 TEST_CASE("A cookie is only valid on the slot it was issued for")
@@ -202,7 +202,7 @@ TEST_CASE("NextCookie refuses an out of range slot")
 {
     ClientCvarPendingTable table;
     CHECK(table.NextCookie(-1) == -1);
-    CHECK(table.NextCookie(CS2Kit::Core::MaxPlayers) == -1);
+    CHECK(table.NextCookie(VoltMod::Core::MaxPlayers) == -1);
 }
 
 TEST_CASE("Clear drops one slot and ClearAll drops every slot")
@@ -225,8 +225,8 @@ TEST_CASE("Adding to an out of range slot is a no op")
     ClientCvarPendingTable table;
     std::string seen;
     table.Add(-1, 1, "a", Recorder(seen), 0.0);
-    table.Add(CS2Kit::Core::MaxPlayers, 1, "a", Recorder(seen), 0.0);
+    table.Add(VoltMod::Core::MaxPlayers, 1, "a", Recorder(seen), 0.0);
 
     CHECK(table.Count(-1) == 0);
-    CHECK(table.Count(CS2Kit::Core::MaxPlayers) == 0);
+    CHECK(table.Count(VoltMod::Core::MaxPlayers) == 0);
 }

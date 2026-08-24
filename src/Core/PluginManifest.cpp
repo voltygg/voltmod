@@ -1,9 +1,9 @@
-#include <CS2Kit/Core/PluginManifest.hpp>
+#include <VoltMod/Core/PluginManifest.hpp>
 #include <algorithm>
 #include <charconv>
 #include <nlohmann/json.hpp>
 
-namespace CS2Kit::Core
+namespace VoltMod::Core
 {
 
 namespace
@@ -56,7 +56,7 @@ bool VersionAtLeast(std::string_view have, std::string_view want)
 
 std::string IdentityKey(std::string_view pluginName)
 {
-    return "cs2kit.IPluginIdentity/1:" + std::string(pluginName);
+    return "voltmod.IPluginIdentity/1:" + std::string(pluginName);
 }
 
 std::optional<PluginManifest> ParsePluginManifest(std::string_view json)
@@ -95,4 +95,4 @@ std::optional<PluginManifest> ParsePluginManifest(std::string_view json)
     return manifest;
 }
 
-}  // namespace CS2Kit::Core
+}  // namespace VoltMod::Core

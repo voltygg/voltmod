@@ -1,10 +1,10 @@
-#include <CS2Kit/Core/Scheduler.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/ChatInputCapture.hpp>
+#include <VoltMod/Core/Scheduler.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/ChatInputCapture.hpp>
 #include <utility>
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
 
 void ChatInputCapture::BeginCapture(int slot, std::string prompt, Callback callback, int timeoutMs)
@@ -26,8 +26,8 @@ void ChatInputCapture::BeginCapture(int slot, std::string prompt, Callback callb
         // Cancel by capture id, not by slot: the prompt can outlive its player, and cancelling
         // the slot would take out whatever the next occupant had open.
         const uint64_t id = p.Id;
-        p.TimeoutHandle = CS2Kit::Detail::Rt().Scheduler.Delay(
-            timeoutMs, [slot, id]() { CS2Kit::Detail::Rt().ChatInput.CancelCaptureById(slot, id); });
+        p.TimeoutHandle = VoltMod::Detail::Rt().Scheduler.Delay(
+            timeoutMs, [slot, id]() { VoltMod::Detail::Rt().ChatInput.CancelCaptureById(slot, id); });
     }
 
     _pending[slot] = std::move(p);
@@ -64,7 +64,7 @@ bool ChatInputCapture::TryConsume(int slot, std::string_view text)
         if (current.has_value() && current->Id == id)
         {
             if (current->TimeoutHandle != 0)
-                CS2Kit::Detail::Rt().Scheduler.Cancel(current->TimeoutHandle);
+                VoltMod::Detail::Rt().Scheduler.Cancel(current->TimeoutHandle);
             current.reset();
         }
     }
@@ -92,7 +92,7 @@ void ChatInputCapture::CancelCapture(int slot)
         return;
 
     if (opt->TimeoutHandle != 0)
-        CS2Kit::Detail::Rt().Scheduler.Cancel(opt->TimeoutHandle);
+        VoltMod::Detail::Rt().Scheduler.Cancel(opt->TimeoutHandle);
 
     opt.reset();
 }
@@ -110,4 +110,4 @@ void ChatInputCapture::OnPlayerDisconnect(int slot)
     CancelCapture(slot);
 }
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

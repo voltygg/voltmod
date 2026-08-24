@@ -27,23 +27,23 @@ To iterate on one case, running the binary directly is faster and doctest's CLI 
 than ctest's:
 
 ```bash
-build/windows-msvc-release/vendor/cs2-kit/cs2kit-utils-tests.exe --list-test-cases
-build/windows-msvc-release/vendor/cs2-kit/cs2kit-utils-tests.exe --test-case="SteamId::*"
-build/windows-msvc-release/vendor/cs2-kit/cs2kit-utils-tests.exe --source-file="*Targeting*"
-build/windows-msvc-release/vendor/cs2-kit/cs2kit-utils-tests.exe --success   # print passing asserts too
+build/windows-msvc-release/vendor/voltmod/voltmod-utils-tests.exe --list-test-cases
+build/windows-msvc-release/vendor/voltmod/voltmod-utils-tests.exe --test-case="SteamId::*"
+build/windows-msvc-release/vendor/voltmod/voltmod-utils-tests.exe --source-file="*Targeting*"
+build/windows-msvc-release/vendor/voltmod/voltmod-utils-tests.exe --success   # print passing asserts too
 ```
 
 ## Writing a test
 
-Every `tests/*.cpp` is a test TU - nothing but test cases; `cs2_add_tests()` supplies
+Every `tests/*.cpp` is a test TU - nothing but test cases; `voltmod_add_tests()` supplies
 doctest's `main`. A new file needs no registration, the glob picks it up.
 
 ```cpp
-#include <CS2Kit/Utils/StringUtils.hpp>
+#include <VoltMod/Utils/StringUtils.hpp>
 #include <doctest/doctest.h>
 #include <string>
 
-using CS2Kit::Core::ParseDuration;
+using VoltMod::Core::ParseDuration;
 
 TEST_CASE("ParseDuration: suffixes")
 {
@@ -129,7 +129,7 @@ TEST_CASE_TEMPLATE("Trim accepts any string-like input", T, const char*, std::st
 
 ## Adding tests to a plugin
 
-`cs2_add_tests()` (from `cmake/CS2KitTests.cmake`, included by the kit's root CMakeLists) owns
+`voltmod_add_tests()` (from `cmake/VoltModTests.cmake`, included by the kit's root CMakeLists) owns
 the wiring: it globs `tests/*.cpp`, supplies doctest's `main`, links `doctest::doctest`,
 adds the kit's include dir, and registers the cases with CTest. `SOURCES` is the list of
 SDK-free TUs to recompile - test binaries never link the plugin module or the kit, so
@@ -137,7 +137,7 @@ nothing drags in Metamod.
 
 ```cmake
 if(BUILD_TESTING)
-    cs2_add_tests(myplugin-tests
+    voltmod_add_tests(myplugin-tests
         SOURCES
             src/Detectors/AimSnapCore.cpp
         INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -170,7 +170,7 @@ separates. So an unmatched bracket folds every following case into one entry (co
 dies with the unrelated-looking `add_test called with incorrect number of arguments`), and a
 semicolon splits one case into two bogus entries - silently.
 
-`cs2_add_tests()` scans the test sources and fails configure with the offending file rather
+`voltmod_add_tests()` scans the test sources and fails configure with the offending file rather
 than letting either happen. Spell interval bounds out (`wraps to -180 exclusive through 180
 inclusive`, not `wraps into (-180, 180]`). Parentheses, commas, colons, `<`, `>` and `::`
 are all fine.

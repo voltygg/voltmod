@@ -1,14 +1,14 @@
-#include <CS2Kit/Core/Log.hpp>
-#include <CS2Kit/Core/Scheduler.hpp>
-#include <CS2Kit/Database/PostgresDatabase.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/Scheduler.hpp>
+#include <VoltMod/Database/PostgresDatabase.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
 #include <format>
 
-namespace CS2Kit::Database
+namespace VoltMod::Database
 {
 
-namespace Log = CS2Kit::Core::Log;
+namespace Log = VoltMod::Core::Log;
 
 std::string PostgresConfig::GetConnectionString() const
 {
@@ -41,7 +41,7 @@ bool PostgresDatabase::Start(const PostgresConfig& config)
         return false;
     }
 
-    if (auto* core = CS2Kit::Detail::RtOrNull())
+    if (auto* core = VoltMod::Detail::RtOrNull())
         _completionPump = core->Scheduler.EveryFrame([this] { DispatchCompletions(); });
     return true;
 }
@@ -299,4 +299,4 @@ void PostgresDatabase::FinishJob(Job& job, DbResult<pqxx::result> result, bool r
     }
 }
 
-}  // namespace CS2Kit::Database
+}  // namespace VoltMod::Database

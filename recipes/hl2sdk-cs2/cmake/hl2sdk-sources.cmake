@@ -2,7 +2,7 @@ include_guard(GLOBAL)
 
 # CMakeDeps build module, run at find_package(hl2sdk-cs2) time.
 #
-# Includes, defines, libs and ABI flags ride on the CS2Kit::HL2SDK imported target. What a
+# Includes, defines, libs and ABI flags ride on the VoltMod::HL2SDK imported target. What a
 # package cannot express that way is the set of SDK translation units a consumer has to
 # compile into its own binary - so this module attaches them by function instead of
 # publishing a path and a file list for every consumer to assemble. Interface sources

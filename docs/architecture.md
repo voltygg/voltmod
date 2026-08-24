@@ -5,34 +5,34 @@
 ## Modules
 
 ```
-CS2Kit
+VoltMod
 ├── Core        Primitives: policy, scheduler, slot events, subscriptions,
 │               translations, parsing, colors, string/time helpers
 ├── Sdk         HL2SDK wrapper layer (entities, events, messages, gamedata)
 ├── Players     Player tracking, target selectors, action dispatch
 ├── Commands    Declarative chat commands (CommandSpec)
 ├── Menu        WASD center-HTML menus + Flow wizard
-├── Database    Async PostgreSQL + row mapping (CS2KIT_ENABLE_POSTGRES)
+├── Database    Async PostgreSQL + row mapping (VOLTMOD_ENABLE_POSTGRES)
 ├── Http        Async HTTP client + JSON REST helpers
 └── App         The composition root: Runtime, MetamodPlugin, ServiceExchange
 ```
 
 These are source directories, not link units - the kit builds as two libraries
-(`CS2Kit::Runtime` and `CS2Kit::Database`). The layering between them is real and
-checked: `cs2kit modgraph` fails the build if a module includes a header from a layer
+(`VoltMod::Runtime` and `VoltMod::Database`). The layering between them is real and
+checked: `voltmod modgraph` fails the build if a module includes a header from a layer
 it is not allowed to reach.
 
 ## Ground rules
 
 - **Game thread only.** Metamod hooks all arrive on the main thread, and everything in the kit runs there. The two exceptions - the database worker and HTTP's pool - queue their completions and replay them on the game thread from a per-frame pump, so your callbacks never race game code.
-- **No process-lifetime singletons.** Every kit service is a member of one @ref CS2Kit::Runtime, constructed on Load and destroyed on Unload. State cannot survive a `meta reload`.
+- **No process-lifetime singletons.** Every kit service is a member of one @ref VoltMod::Runtime, constructed on Load and destroyed on Unload. State cannot survive a `meta reload`.
 - **Data over glue.** Commands, effects, and menu rows are described as structs (`CommandSpec`, `EffectDescriptor`, context rows); the kit owns the resolve/check/dispatch/reply pipeline around them.
 - **Policy is injected once.** The kit carries no admin model. Your plugin sets `runtime.Policy` in OnLoad, and every permission gate, immunity check, and command reply in the kit goes through it.
 - **Dependencies arrive through constructors.** Nothing reaches for a global to find a collaborator. The runtime is handed to `OnLoad`; you pass on what each of your own objects needs.
 
 ## Two objects, same lifetime
 
-**@ref CS2Kit::Runtime** is the kit's services, flat. `MetamodPlugin` creates it on Load
+**@ref VoltMod::Runtime** is the kit's services, flat. `MetamodPlugin` creates it on Load
 and destroys it on Unload; members are declared in dependency order and torn down in
 reverse. Every service is named directly - `runtime.Messages`, not
 `runtime.Sdk.Messages` - because which source module a service lives in is the kit's
@@ -50,17 +50,17 @@ runtime.Schema().GetOffset("CCSPlayerPawn", "m_iHealth");   // Schema() is a met
 ```cpp
 struct App
 {
-    explicit App(CS2Kit::Runtime& runtime) : Runtime(runtime) {}
+    explicit App(VoltMod::Runtime& runtime) : Runtime(runtime) {}
 
-    CS2Kit::Runtime& Runtime;
+    VoltMod::Runtime& Runtime;
     ConfigManager Config;                       // declaration order == construction order
     AdminManager Admins{Db, Config};            // each member takes what it uses
-    CS2Kit::EffectManager Effects{Runtime.Scheduler};
+    VoltMod::EffectManager Effects{Runtime.Scheduler};
 };
 
-class MyPlugin final : public CS2Kit::MetamodPlugin
+class MyPlugin final : public VoltMod::MetamodPlugin
 {
-    bool OnLoad(CS2Kit::Runtime& runtime, bool late) override
+    bool OnLoad(VoltMod::Runtime& runtime, bool late) override
     {
         _app.emplace(runtime);
         return _app->Start();
@@ -76,7 +76,7 @@ still alive.
 
 ## PluginPolicy
 
-@ref CS2Kit::Core::PluginPolicy is the one bridge between the kit's generic machinery and your domain rules. Set it once in OnLoad:
+@ref VoltMod::Core::PluginPolicy is the one bridge between the kit's generic machinery and your domain rules. Set it once in OnLoad:
 
 ```cpp
 runtime.Policy = {
@@ -96,7 +96,7 @@ that already holds what the handlers need:
 
 ```cpp
 // src/Commands/BanCommands.cpp
-void RegisterBanCommands(CS2Kit::CommandManager& commands, App& app)
+void RegisterBanCommands(VoltMod::CommandManager& commands, App& app)
 {
     commands.Register({ .Name = "ban", /* ... */,
                         .Handler = [&app](const CommandContext& ctx) { /* ... */ } });
@@ -112,31 +112,31 @@ function costs one line and hands the handler its collaborators directly.
 ## Teardown
 
 There is no deferred-cleanup stack. Anything that needs undoing is either a member
-whose destructor does it, or a @ref CS2Kit::Core::Subscription:
+whose destructor does it, or a @ref VoltMod::Core::Subscription:
 
 ```cpp
 _spawn = runtime.Events.Listen<Events::PlayerSpawn>([this](const auto& e) { OnSpawn(e.Slot); });
 ```
 
 `Subscription` is move-only and unregisters on destruction, so a listener cannot outlive
-the state its callback captures. `CS2KIT_SCOPED_HOOK` yields one for SourceHook installs
+the state its callback captures. `VOLTMOD_SCOPED_HOOK` yields one for SourceHook installs
 too. On unload the base runs your `OnUnload`, removes its own standard hooks, then
 destroys the `Runtime` - whose destructor is the kit's shutdown.
 
 ## The frame pump
 
-The plugin's GameFrame hook calls `Runtime::OnGameFrame()`, which ticks exactly one thing: the @ref CS2Kit::Core::Scheduler. Everything per-frame - menu input, HTTP completions, database completions - registers a `Scheduler::EveryFrame` timer, so there is no hardcoded pump list to keep in sync.
+The plugin's GameFrame hook calls `Runtime::OnGameFrame()`, which ticks exactly one thing: the @ref VoltMod::Core::Scheduler. Everything per-frame - menu input, HTTP completions, database completions - registers a `Scheduler::EveryFrame` timer, so there is no hardcoded pump list to keep in sync.
 
 ## Module layering
 
-`scripts/cs2kit/modgraph.py` holds the map and enforces it. A cycle check would not be
+`scripts/voltmod/modgraph.py` holds the map and enforces it. A cycle check would not be
 enough: an upward edge (Core reaching into Sdk) stays acyclic and is exactly what breaks
 the layering.
 
 - **Core** depends on nothing else in the kit
 - **Sdk** and **Http** sit on Core
 - **Players** on Core + Sdk; **Commands** and **Menu** on Core + Sdk + Players
-- **Database** is Core + libpqxx, compiled only under `CS2KIT_ENABLE_POSTGRES`
+- **Database** is Core + libpqxx, compiled only under `VOLTMOD_ENABLE_POSTGRES`
 - **App** may reach all of them - it is the composition root
 
 `Detail/` is the one exemption: it holds the ambient pointer to the live `Runtime` that

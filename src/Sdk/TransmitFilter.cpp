@@ -1,16 +1,16 @@
 #include "Sdk/Schema.hpp"
 
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/Entity.hpp>
-#include <CS2Kit/Sdk/GameData.hpp>
-#include <CS2Kit/Sdk/MemoryAccess.hpp>
-#include <CS2Kit/Sdk/TransmitFilter.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/Entity.hpp>
+#include <VoltMod/Sdk/GameData.hpp>
+#include <VoltMod/Sdk/MemoryAccess.hpp>
+#include <VoltMod/Sdk/TransmitFilter.hpp>
 #include <checktransmitinfo.h>
 #include <cstdint>
 #include <entity2/entityinstance.h>
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
 
 namespace
@@ -128,7 +128,7 @@ void CollectHiddenPlayer(Runtime& rt, int slot, bool pawnHidden, bool controller
 
 bool TransmitFilterService::Initialize()
 {
-    _slotOffset = CS2Kit::Detail::Rt().GameData.GetOffset("CheckTransmitPlayerSlot");
+    _slotOffset = VoltMod::Detail::Rt().GameData.GetOffset("CheckTransmitPlayerSlot");
     return _slotOffset >= 0;
 }
 
@@ -201,7 +201,7 @@ void TransmitFilterService::OnCheckTransmit(CCheckTransmitInfo** infoList, int i
 
     // Entity indices are the same for every recipient (only the self/observer
     // exemptions differ per client), so gather them once per snapshot.
-    auto& rt = CS2Kit::Detail::Rt();
+    auto& rt = VoltMod::Detail::Rt();
     std::array<HiddenPlayer, Core::MaxPlayers> hidden;
     int hiddenCount = 0;
     for (int slot = 0; slot < Core::MaxPlayers && hiddenCount < _activeCount; ++slot)
@@ -244,4 +244,4 @@ void TransmitFilterService::OnCheckTransmit(CCheckTransmitInfo** infoList, int i
     }
 }
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

@@ -1,7 +1,7 @@
 name: Watch upstream
 
 # Opens or updates one PR when upstream moves, editing conandata.yml and nothing else.
-# ci.yml decides whether the bump is safe by building cs2-kit against it; merging
+# ci.yml decides whether the bump is safe by building voltmod against it; merging
 # publishes.
 
 on:
@@ -23,14 +23,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install cs2-kit
+      - name: Install voltmod
         run: python3 -m pip install --no-cache-dir .
 
       # Rewrites recipes/*/conandata.yml in place and sets `changed`; a quiet day
       # leaves the tree untouched and the rest of this job skipped.
       - name: Resolve the upstream tips
         id: watch
-        run: cs2kit package watch
+        run: voltmod package watch
 
       # Fixed branch, force-pushed: five commits in a week update one PR, not open five.
       - name: Open or update the PR
@@ -59,10 +59,10 @@ jobs:
       CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
     steps:
       - uses: actions/checkout@v7
-      - name: Install cs2-kit
+      - name: Install voltmod
         run: python3 -m pip install --no-cache-dir .
       - name: Prune
         run: |
           conan profile detect --force >/dev/null 2>&1 || true
           conan config install ./conan
-          cs2kit package prune --keep 3
+          voltmod package prune --keep 3

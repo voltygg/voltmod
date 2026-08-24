@@ -1,7 +1,7 @@
-#include <CS2Kit/Core/Paths.hpp>
+#include <VoltMod/Core/Paths.hpp>
 #include <format>
 
-namespace CS2Kit::Core
+namespace VoltMod::Core
 {
 
 static std::filesystem::path g_baseDir;
@@ -27,4 +27,4 @@ std::string AddonFile(std::string_view addon, std::string_view relative)
     return std::format("addons/{}/{}", addon, relative);
 }
 
-}  // namespace CS2Kit::Core
+}  // namespace VoltMod::Core

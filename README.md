@@ -1,11 +1,11 @@
-# CS2Kit
+# VoltMod
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://suxrobgm.github.io/cs2-kit/)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://suxrobgm.github.io/voltmod/)
 
 A C++23 toolkit for building Counter-Strike 2 server plugins on Metamod:Source 2.0.
 
-You describe your plugin's behavior as data - commands, menu rows, effects, database rows - and CS2Kit owns the machinery around it: engine setup, hooks, player tracking, permission gating, message transport, and teardown.
+You describe your plugin's behavior as data - commands, menu rows, effects, database rows - and VoltMod owns the machinery around it: engine setup, hooks, player tracking, permission gating, message transport, and teardown.
 
 > **Work in progress.** The API is still evolving and may change between versions.
 
@@ -18,10 +18,10 @@ You describe your plugin's behavior as data - commands, menu rows, effects, data
 - **One policy hook** - permissions, immunity, replies, and broadcasts are injected once via `Runtime::Policy`; the kit ships no admin model of its own.
 - **Messages** - one service for chat, center print, center-HTML, and alerts, with per-player translations (`ReplyKey`) and chat colors.
 - **Typed game events** - `Listen<PlayerDeath>(...)` instead of string names and `GetInt` calls; the raw overload stays for unmodeled events.
-- **PostgreSQL** (optional) - async-first client (worker thread owns the connection, completions on the game thread), column-table row mapping that generates the INSERT/SELECT/parse code, and a migration runner. Gated behind `CS2KIT_ENABLE_POSTGRES`.
+- **PostgreSQL** (optional) - async-first client (worker thread owns the connection, completions on the game thread), column-table row mapping that generates the INSERT/SELECT/parse code, and a migration runner. Gated behind `VOLTMOD_ENABLE_POSTGRES`.
 - **HTTP** - async requests with game-thread completions, plus config-driven JSON endpoint helpers.
-- **Project + plugin scaffolding** - `cs2kit init` stamps a complete buildable project (root CMake, presets, conanfile, poe tasks); `cs2kit new-plugin` adds more from the `templates/plugin/` tree.
-- **One-call plugin builds** - `cs2_add_plugin(<name>)` declares the whole Metamod module: sources, SDK glue, output layout, the generated `.vdf`, and per-plugin install components.
+- **Project + plugin scaffolding** - `voltmod init` stamps a complete buildable project (root CMake, presets, conanfile, poe tasks); `voltmod new-plugin` adds more from the `templates/plugin/` tree.
+- **One-call plugin builds** - `voltmod_add_plugin(<name>)` declares the whole Metamod module: sources, SDK glue, output layout, the generated `.vdf`, and per-plugin install components.
 
 ## Quick start
 
@@ -30,7 +30,7 @@ Start a plugin project from an empty directory:
 ```sh
 mkdir my-cs2-plugins && cd my-cs2-plugins
 git init
-uvx --from git+https://github.com/voltygg/cs2-kit.git cs2kit init --plugin my-plugin
+uvx --from git+https://github.com/voltygg/voltmod.git voltmod init --plugin my-plugin
 uv sync
 uv run poe bootstrap
 ```
@@ -39,43 +39,43 @@ That generates the root `CMakeLists.txt`, `CMakePresets.json`, `conanfile.py`, a
 
 The kit, the HL2SDK and Metamod all arrive as Conan packages from a public remote - no submodules, nothing to build but your own code. See `docs/consuming-via-conan.md`.
 
-Already have a CMake repo? Add the requirement and declare a plugin with one call - `cs2_add_plugin` owns the module target, SDK glue, output layout, Metamod `.vdf`, and install rules:
+Already have a CMake repo? Add the requirement and declare a plugin with one call - `voltmod_add_plugin` owns the module target, SDK glue, output layout, Metamod `.vdf`, and install rules:
 
 ```python
 # conanfile.py
-requires = ("cs2-kit/[~1]",)
+requires = ("voltmod/[~1]",)
 ```
 
 ```cmake
-find_package(cs2-kit CONFIG REQUIRED)
+find_package(voltmod CONFIG REQUIRED)
 ```
 
 ```cmake
 # plugins/my-plugin/CMakeLists.txt
-cs2_add_plugin(my-plugin)
+voltmod_add_plugin(my-plugin)
 ```
 
 Or write the skeleton yourself:
 
 ```cpp
-#include <CS2Kit/Api.hpp>
+#include <VoltMod/Api.hpp>
 
 struct App
 {
-    explicit App(CS2Kit::Runtime& runtime) : Runtime(runtime) {}
-    CS2Kit::Runtime& Runtime;
+    explicit App(VoltMod::Runtime& runtime) : Runtime(runtime) {}
+    VoltMod::Runtime& Runtime;
     ConfigManager Config;
 };
 
-class MyPlugin final : public CS2Kit::MetamodPlugin
+class MyPlugin final : public VoltMod::MetamodPlugin
 {
 protected:
-    CS2Kit::PluginInfo Info() const override
+    VoltMod::PluginInfo Info() const override
     {
         return { .Name = "My Plugin", .Author = "me", .Version = "1.0.0", .LogTag = "MINE" };
     }
 
-    bool OnLoad(CS2Kit::Runtime& runtime, bool late) override
+    bool OnLoad(VoltMod::Runtime& runtime, bool late) override
     {
         _app.emplace(runtime);
         return _app->Config.Load("addons/my-plugin/configs/settings.jsonc");
@@ -87,7 +87,7 @@ private:
     std::optional<App> _app;
 };
 
-CS2KIT_PLUGIN(MyPlugin);
+VOLTMOD_PLUGIN(MyPlugin);
 ```
 
 A command is one aggregate - no dispatcher wiring, no arg parsing:
@@ -99,17 +99,17 @@ runtime.Commands.Register({
     .Permission = "s",
     .Args = {Target()},
     .Handler = [](CommandContext& c) {
-        CS2Kit::PawnOps::Slap(c.Target->Controller());
+        VoltMod::PawnOps::Slap(c.Target->Controller());
         return c.Ok("cmd.slapped", {{"name", c.Target->GetName()}});
     },
 });
 ```
 
-The [Getting Started guide](https://suxrobgm.github.io/cs2-kit/) walks through the build setup and the rest.
+The [Getting Started guide](https://suxrobgm.github.io/voltmod/) walks through the build setup and the rest.
 
 ## Documentation
 
-Full guides and API reference: **[suxrobgm.github.io/cs2-kit](https://suxrobgm.github.io/cs2-kit/)**
+Full guides and API reference: **[suxrobgm.github.io/voltmod](https://suxrobgm.github.io/voltmod/)**
 
 - **Getting Started** - install, scaffold, build
 - **Architecture** - services, policy, lifetimes

@@ -7,9 +7,9 @@ A command is one aggregate - name, metadata, permission, typed arguments, handle
 ## A complete command
 
 ```cpp
-#include <CS2Kit/Api.hpp>
+#include <VoltMod/Api.hpp>
 
-using namespace CS2Kit::Commands;
+using namespace VoltMod::Commands;
 
 commands.Register({
     .Name = "ban",
@@ -60,7 +60,7 @@ beyond what the spec consumes are refused with `cmd.tooManyArgs` rather than dro
 
 ## Target selectors
 
-The `Target` argument (and @ref CS2Kit::Players::ResolveTargets directly) understands:
+The `Target` argument (and @ref VoltMod::Players::ResolveTargets directly) understands:
 
 ```
 @all @*        everyone                @me    yourself        @!me   everyone else

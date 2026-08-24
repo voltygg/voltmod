@@ -2,7 +2,7 @@
 
 [TOC]
 
-WASD-navigated center-HTML menus. Each row is a typed @ref CS2Kit::Menu::MenuOption; you build menus fluently with @ref CS2Kit::Menu::MenuBuilder, and for admin panels the context rows and the @ref CS2Kit::Menu::Flow wizard remove nearly all per-row glue.
+WASD-navigated center-HTML menus. Each row is a typed @ref VoltMod::Menu::MenuOption; you build menus fluently with @ref VoltMod::Menu::MenuBuilder, and for admin panels the context rows and the @ref VoltMod::Menu::Flow wizard remove nearly all per-row glue.
 
 Players navigate with:
 
@@ -16,9 +16,9 @@ Players navigate with:
 ## Building a menu
 
 ```cpp
-#include <CS2Kit/Menu/MenuBuilder.hpp>
+#include <VoltMod/Menu/MenuBuilder.hpp>
 
-using namespace CS2Kit::Menu;
+using namespace VoltMod::Menu;
 
 auto menu = MenuBuilder("Admin Panel")
     .AddButton("Kick Player", [](int slot) { /* ... */ })
@@ -31,7 +31,7 @@ runtime.Menus.OpenMenu(playerSlot, menu);
 
 ## Context rows
 
-For rows that act on an admin/target pair, bind a @ref CS2Kit::Menu::MenuContext once. Every context row then derives its label (a translation key in the admin's language), its enabled state (permission + immunity via `runtime.Policy` - no permission, no row), and its dispatch pair from the context:
+For rows that act on an admin/target pair, bind a @ref VoltMod::Menu::MenuContext once. Every context row then derives its label (a translation key in the admin's language), its enabled state (permission + immunity via `runtime.Policy` - no permission, no row), and its dispatch pair from the context:
 
 ```cpp
 MenuBuilder(title)
@@ -48,10 +48,10 @@ MenuBuilder(title)
 
 ## Flow: multi-step wizards
 
-@ref CS2Kit::Menu::Flow threads a state struct through a sequence of steps - the "pick duration, pick reason, confirm, execute" shape - with validation re-run before every step and before finishing, so "target left" or "permission revoked" abort cleanly instead of half-applying.
+@ref VoltMod::Menu::Flow threads a state struct through a sequence of steps - the "pick duration, pick reason, confirm, execute" shape - with validation re-run before every step and before finishing, so "target left" or "permission revoked" abort cleanly instead of half-applying.
 
 ```cpp
-CS2Kit::Flow<PendingPunishment>::Create(std::move(pending))
+VoltMod::Flow<PendingPunishment>::Create(std::move(pending))
     ->OnValidate([](int slot, const PendingPunishment& s) -> std::optional<std::string> {
         return StillPunishable(s) ? std::nullopt : std::optional<std::string>("cmd.targetLost");
     })
@@ -97,7 +97,7 @@ Every builder method appends a typed row; `AddOption(std::shared_ptr<MenuOption>
 - **`AddSelector<T>(title, values, formatter, ...)`** - Choice for value types without their own label (seconds → `"5m"`, enum → translation).
 - **`AddSlider(title, min, max, step, getValue, setValue, enabled = true)`** - A/D adjusts in steps, clamped; renders a unicode bar.
 - **`AddProgressBar(title, getValue, max)`** - read-only bar, skipped by the cursor.
-- **`AddInput(title, prompt, get, set, maxLength = 64, enabled = true)`** - E pauses the menu and routes the player's next chat line into `set`; return `false` to re-prompt, `true` to accept. R cancels. Backed by @ref CS2Kit::Sdk::ChatInputCapture - your chat hook must call `runtime.ChatInput.TryConsume` first (see @ref sdk_messaging_guide).
+- **`AddInput(title, prompt, get, set, maxLength = 64, enabled = true)`** - E pauses the menu and routes the player's next chat line into `set`; return `false` to re-prompt, `true` to accept. R cancels. Backed by @ref VoltMod::Sdk::ChatInputCapture - your chat hook must call `runtime.ChatInput.TryConsume` first (see @ref sdk_messaging_guide).
 - **`AddSubmenu(label, factory, enabled = true)`** - the factory runs lazily on E and the returned menu pushes onto the stack; R pops back.
 
 ## Pagination
@@ -114,16 +114,16 @@ MenuBuilder("Custom")
 
 ## Lifecycle
 
-@ref CS2Kit::Menu::MenuManager keeps a per-player stack, reads button state every frame (via a self-registered scheduler pump), debounces input (200 ms), and clears a player's stack on disconnect. `runtime.Menus.SetFreezePlayer(true)` freezes players while a menu is open so WASD doesn't also move them. During a chat-input capture only R is honored, so the cursor doesn't drift while the player types.
+@ref VoltMod::Menu::MenuManager keeps a per-player stack, reads button state every frame (via a self-registered scheduler pump), debounces input (200 ms), and clears a player's stack on disconnect. `runtime.Menus.SetFreezePlayer(true)` freezes players while a menu is open so WASD doesn't also move them. During a chat-input capture only R is honored, so the cursor doesn't drift while the player types.
 
-The freeze is a global switch, but a single session can opt out: `OpenMenu(slot, menu, {.FreezeMovement = false})` - for menus ordinary players reach mid-round, where being held still is worse than the stray movement the freeze prevents. @ref CS2Kit::Menu::MenuSessionOptions applies to the call that opens the stack; submenus and Flow steps pushed onto a live session inherit it, so an unfrozen session stays unfrozen for its whole flow.
+The freeze is a global switch, but a single session can opt out: `OpenMenu(slot, menu, {.FreezeMovement = false})` - for menus ordinary players reach mid-round, where being held still is worse than the stray movement the freeze prevents. @ref VoltMod::Menu::MenuSessionOptions applies to the call that opens the stack; submenus and Flow steps pushed onto a live session inherit it, so an unfrozen session stays unfrozen for its whole flow.
 
 ## Presets
 
-`<CS2Kit/Menu/MenuPresets.hpp>` ships content-agnostic building blocks - every human-facing string is a parameter:
+`<VoltMod/Menu/MenuPresets.hpp>` ships content-agnostic building blocks - every human-facing string is a parameter:
 
 ```cpp
-using namespace CS2Kit::Menu;
+using namespace VoltMod::Menu;
 
 // Paginated list of connected players; the optional predicate grays out rows.
 auto picker = BuildPlayerPicker(adminSlot, "Select player",

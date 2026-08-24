@@ -1,12 +1,12 @@
-#include <CS2Kit/App/MetamodPlugin.hpp>
-#include <CS2Kit/Core/HookMacros.hpp>
-#include <CS2Kit/Core/Log.hpp>
-#include <CS2Kit/Core/StringUtils.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Players/Player.hpp>
-#include <CS2Kit/Players/PlayerManager.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/GameInterfaces.hpp>
+#include <VoltMod/App/MetamodPlugin.hpp>
+#include <VoltMod/Core/HookMacros.hpp>
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/StringUtils.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Players/Player.hpp>
+#include <VoltMod/Players/PlayerManager.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/GameInterfaces.hpp>
 #include <cstdio>
 #include <cstring>
 #include <format>
@@ -17,19 +17,19 @@
 #include <vector>
 
 // PLUGIN_GLOBALVARS ships in MetamodPlugin.hpp; the definitions come from
-// each plugin's CS2KIT_PLUGIN.
+// each plugin's VOLTMOD_PLUGIN.
 
 // The SDK only forward-declares this (iloopmode.h keeps the real one commented out). SourceHook's
 // param table needs a complete type; the hook receives it by reference and never looks inside.
 class GameSessionConfiguration_t
 {};
 
-namespace CS2Kit::App
+namespace VoltMod::App
 {
 
-using namespace CS2Kit::Players;
-using namespace CS2Kit::Sdk;
-using namespace CS2Kit::Core;
+using namespace VoltMod::Players;
+using namespace VoltMod::Sdk;
+using namespace VoltMod::Core;
 
 SH_DECL_HOOK3_void(IServerGameDLL, GameFrame, SH_NOATTRIB, 0, bool, bool, bool);
 SH_DECL_HOOK3_void(INetworkServerService, StartupServer, SH_NOATTRIB, 0, const GameSessionConfiguration_t&,
@@ -148,24 +148,24 @@ void MetamodPlugin::RegisterStandardHooks()
 {
     auto& gi = _runtime->Interfaces;
 
-    // CS2KIT_SCOPED_HOOK installs each hook and yields the Subscription that removes it, so the
+    // VOLTMOD_SCOPED_HOOK installs each hook and yields the Subscription that removes it, so the
     // add and remove lists cannot drift apart. Reset in Unload, before the runtime goes away.
-    _standardHooks.push_back(CS2KIT_SCOPED_HOOK(IServerGameDLL, GameFrame, gi.ServerGameDLL,
+    _standardHooks.push_back(VOLTMOD_SCOPED_HOOK(IServerGameDLL, GameFrame, gi.ServerGameDLL,
                                                 SH_MEMBER(this, &MetamodPlugin::Hook_GameFrame), true));
-    _standardHooks.push_back(CS2KIT_SCOPED_HOOK(INetworkServerService, StartupServer, gi.NetworkServerService,
+    _standardHooks.push_back(VOLTMOD_SCOPED_HOOK(INetworkServerService, StartupServer, gi.NetworkServerService,
                                                 SH_MEMBER(this, &MetamodPlugin::Hook_StartupServer), true));
-    _standardHooks.push_back(CS2KIT_SCOPED_HOOK(IServerGameClients, OnClientConnected, gi.ServerGameClients,
+    _standardHooks.push_back(VOLTMOD_SCOPED_HOOK(IServerGameClients, OnClientConnected, gi.ServerGameClients,
                                                 SH_MEMBER(this, &MetamodPlugin::Hook_OnClientConnected), false));
-    _standardHooks.push_back(CS2KIT_SCOPED_HOOK(IServerGameClients, ClientDisconnect, gi.ServerGameClients,
+    _standardHooks.push_back(VOLTMOD_SCOPED_HOOK(IServerGameClients, ClientDisconnect, gi.ServerGameClients,
                                                 SH_MEMBER(this, &MetamodPlugin::Hook_ClientDisconnect), true));
-    _standardHooks.push_back(CS2KIT_SCOPED_HOOK(IServerGameClients, ClientFullyConnect, gi.ServerGameClients,
+    _standardHooks.push_back(VOLTMOD_SCOPED_HOOK(IServerGameClients, ClientFullyConnect, gi.ServerGameClients,
                                                 SH_MEMBER(this, &MetamodPlugin::Hook_ClientFullyConnect), true));
-    _standardHooks.push_back(CS2KIT_SCOPED_HOOK(IServerGameClients, ClientSettingsChanged, gi.ServerGameClients,
+    _standardHooks.push_back(VOLTMOD_SCOPED_HOOK(IServerGameClients, ClientSettingsChanged, gi.ServerGameClients,
                                                 SH_MEMBER(this, &MetamodPlugin::Hook_ClientSettingsChanged), true));
-    _standardHooks.push_back(CS2KIT_SCOPED_HOOK(ICvar, DispatchConCommand, gi.CVar,
+    _standardHooks.push_back(VOLTMOD_SCOPED_HOOK(ICvar, DispatchConCommand, gi.CVar,
                                                 SH_MEMBER(this, &MetamodPlugin::Hook_DispatchConCommand), false));
     // Post hook: the game has filled the per-client transmit bitvecs; the filter clears bits.
-    _standardHooks.push_back(CS2KIT_SCOPED_HOOK(ISource2GameEntities, CheckTransmit, gi.GameEntities,
+    _standardHooks.push_back(VOLTMOD_SCOPED_HOOK(ISource2GameEntities, CheckTransmit, gi.GameEntities,
                                                 SH_MEMBER(this, &MetamodPlugin::Hook_CheckTransmit), true));
 
     Log::Info("Hooks registered.");
@@ -303,4 +303,4 @@ void* MetamodPlugin::OnMetamodQuery(const char* iface, int* ret)
     return impl;
 }
 
-}  // namespace CS2Kit::App
+}  // namespace VoltMod::App

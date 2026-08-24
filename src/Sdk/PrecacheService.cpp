@@ -1,15 +1,15 @@
 #include "Sdk/GameSystem.hpp"
 
-#include <CS2Kit/Core/Log.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/GameData.hpp>
-#include <CS2Kit/Sdk/PrecacheService.hpp>
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/GameData.hpp>
+#include <VoltMod/Sdk/PrecacheService.hpp>
 #include <algorithm>
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
-using namespace CS2Kit::Core;
+using namespace VoltMod::Core;
 
 GS_EVENT_MEMBER(PrecacheGameSystem, BuildGameSessionManifest)
 {
@@ -36,7 +36,7 @@ bool PrecacheService::Initialize(std::string systemName)
     if (_factory)
         return true;
 
-    auto& gameData = CS2Kit::Detail::Rt().GameData;
+    auto& gameData = VoltMod::Detail::Rt().GameData;
 
     auto* listHead = static_cast<GameSystemFactory**>(gameData.ResolveSignature("IGameSystem_InitAllSystems_pFirst"));
     _eventDispatcher = gameData.ResolveSignature("IGameSystem_LoopPostInitAllSystems_pEventDispatcher");
@@ -114,4 +114,4 @@ void PrecacheService::Add(std::string resourcePath)
     _resources.push_back(std::move(resourcePath));
 }
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

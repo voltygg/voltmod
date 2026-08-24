@@ -1,8 +1,8 @@
-#include <CS2Kit/Core/ChatColors.hpp>
+#include <VoltMod/Core/ChatColors.hpp>
 #include <cctype>
 #include <unordered_map>
 
-namespace CS2Kit::Core::ChatColors
+namespace VoltMod::Core::ChatColors
 {
 
 namespace
@@ -46,4 +46,4 @@ std::string Strip(std::string_view text)
     return out;
 }
 
-}  // namespace CS2Kit::Core::ChatColors
+}  // namespace VoltMod::Core::ChatColors

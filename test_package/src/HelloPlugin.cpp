@@ -1,14 +1,14 @@
-#include <CS2Kit/Api.hpp>
+#include <VoltMod/Api.hpp>
 
-class HelloPlugin final : public CS2Kit::MetamodPlugin
+class HelloPlugin final : public VoltMod::MetamodPlugin
 {
 protected:
-    CS2Kit::PluginInfo Info() const override
+    VoltMod::PluginInfo Info() const override
     {
-        return {.Name = "Hello", .Author = "cs2-kit test_package", .LogTag = "HELLO"};
+        return {.Name = "Hello", .Author = "voltmod test_package", .LogTag = "HELLO"};
     }
 
-    bool OnLoad(CS2Kit::Runtime& /*runtime*/, bool /*late*/) override { return true; }
+    bool OnLoad(VoltMod::Runtime& /*runtime*/, bool /*late*/) override { return true; }
 };
 
-CS2KIT_PLUGIN(HelloPlugin);
+VOLTMOD_PLUGIN(HelloPlugin);

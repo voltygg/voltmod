@@ -1,10 +1,10 @@
-# Run via `cmake -P` each build (see cs2kit_stamp_build_info). All values derive
+# Run via `cmake -P` each build (see voltmod_stamp_build_info). All values derive
 # from committed state so the header is only rewritten when a commit changes.
 # Inputs: TEMPLATE_FILE, OUTPUT_FILE, VERSION_FILE, REPO_DIR.
 
 find_program(GIT_EXECUTABLE git)
 
-function(_cs2kit_git out_var default)
+function(_voltmod_git out_var default)
     if(NOT GIT_EXECUTABLE)
         set("${out_var}" "${default}" PARENT_SCOPE)
         return()
@@ -31,7 +31,7 @@ if(EXISTS "${VERSION_FILE}")
     endif()
 endif()
 
-_cs2kit_git(repo_commit "" -C "${REPO_DIR}" rev-parse --short HEAD)
+_voltmod_git(repo_commit "" -C "${REPO_DIR}" rev-parse --short HEAD)
 if(repo_commit STREQUAL "" AND DEFINED ENV{GITHUB_SHA})
     string(SUBSTRING "$ENV{GITHUB_SHA}" 0 7 repo_commit)
 endif()
@@ -39,19 +39,19 @@ if(repo_commit STREQUAL "")
     set(repo_commit "unknown")
 endif()
 
-_cs2kit_git(commit_date "unknown" -C "${REPO_DIR}" log -1 --format=%cI)
+_voltmod_git(commit_date "unknown" -C "${REPO_DIR}" log -1 --format=%cI)
 
 # A modified submodule shows up here as ` M vendor/...`, so this covers the kit too.
-_cs2kit_git(status_output "" -C "${REPO_DIR}" status --porcelain --untracked-files=no)
+_voltmod_git(status_output "" -C "${REPO_DIR}" status --porcelain --untracked-files=no)
 
-set(CS2KIT_BI_VERSION "${version_base}")
+set(VOLTMOD_BI_VERSION "${version_base}")
 if(NOT repo_commit STREQUAL "unknown")
-    string(APPEND CS2KIT_BI_VERSION "+${repo_commit}")
+    string(APPEND VOLTMOD_BI_VERSION "+${repo_commit}")
     if(NOT status_output STREQUAL "")
-        string(APPEND CS2KIT_BI_VERSION "-dirty")
+        string(APPEND VOLTMOD_BI_VERSION "-dirty")
     endif()
 endif()
-set(CS2KIT_BI_REPO_COMMIT "${repo_commit}")
-set(CS2KIT_BI_DATE "${commit_date}")
+set(VOLTMOD_BI_REPO_COMMIT "${repo_commit}")
+set(VOLTMOD_BI_DATE "${commit_date}")
 
 configure_file("${TEMPLATE_FILE}" "${OUTPUT_FILE}" @ONLY)

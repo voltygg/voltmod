@@ -1,9 +1,9 @@
-#include <CS2Kit/Core/PluginManifest.hpp>
+#include <VoltMod/Core/PluginManifest.hpp>
 #include <doctest/doctest.h>
 
-using CS2Kit::Core::IdentityKey;
-using CS2Kit::Core::ParsePluginManifest;
-using CS2Kit::Core::VersionAtLeast;
+using VoltMod::Core::IdentityKey;
+using VoltMod::Core::ParsePluginManifest;
+using VoltMod::Core::VersionAtLeast;
 
 TEST_CASE("A manifest without dependencies parses to an empty list")
 {
@@ -87,6 +87,6 @@ TEST_CASE("An empty requirement accepts anything and an unparsable version accep
 
 TEST_CASE("The identity key is namespaced by plugin name")
 {
-    CHECK(IdentityKey("admin-system") == "cs2kit.IPluginIdentity/1:admin-system");
+    CHECK(IdentityKey("admin-system") == "voltmod.IPluginIdentity/1:admin-system");
     CHECK(IdentityKey("bhop") != IdentityKey("anticheat"));
 }

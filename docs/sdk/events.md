@@ -4,10 +4,10 @@
 
 ## GameEventService
 
-Prefer the typed listeners: each struct in `CS2Kit::Events` (`Sdk/GameEvents.hpp`) carries the event name and decodes its fields for you. Available: `PlayerDeath`, `PlayerSpawn`, `PlayerJump`, `PlayerHurt`, `PlayerBlind`, `PlayerTeam`, `PlayerConnectFull`, `WeaponFire`, `BulletImpact`, `RoundStart`, `RoundEnd`, `RoundPrestart`.
+Prefer the typed listeners: each struct in `VoltMod::Events` (`Sdk/GameEvents.hpp`) carries the event name and decodes its fields for you. Available: `PlayerDeath`, `PlayerSpawn`, `PlayerJump`, `PlayerHurt`, `PlayerBlind`, `PlayerTeam`, `PlayerConnectFull`, `WeaponFire`, `BulletImpact`, `RoundStart`, `RoundEnd`, `RoundPrestart`.
 
 ```cpp
-namespace Events = CS2Kit::Events;
+namespace Events = VoltMod::Events;
 auto& events = runtime.Events;
 
 uint64_t id = events.Listen<Events::PlayerDeath>([](const Events::PlayerDeath& e) {
@@ -29,13 +29,13 @@ You can also create and fire events (`CreateEvent` / `FireEvent` / `FreeEvent`) 
 
 ### BulletImpact: correlate by tick, not identity
 
-@ref CS2Kit::Sdk::Events::BulletImpact "BulletImpact" fires once per bullet landing, so one shotgun blast produces several. Its catch is that the engine truncates the event's `userid` to its low byte before sending it, so the value does not round-trip to a player: `Slot` is a best-effort decode that is `-1` whenever the truncated id names no live player, and it can name the *wrong* player when two userids share a low byte.
+@ref VoltMod::Sdk::Events::BulletImpact "BulletImpact" fires once per bullet landing, so one shotgun blast produces several. Its catch is that the engine truncates the event's `userid` to its low byte before sending it, so the value does not round-trip to a player: `Slot` is a best-effort decode that is `-1` whenever the truncated id names no live player, and it can name the *wrong* player when two userids share a low byte.
 
 Attribute impacts to a shot by **tick proximity** - the impacts belonging to a `WeaponFire` (or to a usercmd carrying an attack) arrive in the same tick - and use `TruncatedUserId` only to disambiguate among candidates in that tick. Never key state on `Slot` alone.
 
 ```cpp
 events.Listen<Events::BulletImpact>([](const Events::BulletImpact& e) {
-    Record(CS2Kit::Sdk::ServerTick(), e.TruncatedUserId, e.X, e.Y, e.Z);
+    Record(VoltMod::Sdk::ServerTick(), e.TruncatedUserId, e.X, e.Y, e.Z);
 });
 ```
 
@@ -55,7 +55,7 @@ Related lifecycle points:
 
 ### Inspecting a client's own subscriptions
 
-`GetClientLegacyListener(slot)` returns the engine-side listener object the game keeps for that client - the client's own subscription handle, not a kit listener. Firing an event at it delivers to that one client (this is how @ref CS2Kit::Sdk::MessageSystem "MessageSystem" sends center HTML). It is `nullptr` when the slot has no client or when the `"LegacyGameEventListener"` gamedata signature did not resolve.
+`GetClientLegacyListener(slot)` returns the engine-side listener object the game keeps for that client - the client's own subscription handle, not a kit listener. Firing an event at it delivers to that one client (this is how @ref VoltMod::Sdk::MessageSystem "MessageSystem" sends center HTML). It is `nullptr` when the slot has no client or when the `"LegacyGameEventListener"` gamedata signature did not resolve.
 
 `ClientListensTo(slot, eventName)` asks the event manager whether that handle is subscribed to a given event:
 
@@ -89,7 +89,7 @@ The setters change the server's stored value and fire change callbacks, but they
 
 ### Per-client replication
 
-@ref CS2Kit::Sdk::ConVarService::ReplicateToClient "ReplicateToClient" sends `CNETMsg_SetConVar` to a single client, so only that client's view of a replicated convar changes - the server value and every other client are untouched. This is how you make *one* player's prediction run with different movement settings (the bhop plugin replicates `sv_autobunnyhopping` to granted players):
+@ref VoltMod::Sdk::ConVarService::ReplicateToClient "ReplicateToClient" sends `CNETMsg_SetConVar` to a single client, so only that client's view of a replicated convar changes - the server value and every other client are untouched. This is how you make *one* player's prediction run with different movement settings (the bhop plugin replicates `sv_autobunnyhopping` to granted players):
 
 ```cpp
 cvars.ReplicateToClient(slot, "sv_autobunnyhopping", "1");
@@ -99,10 +99,10 @@ The client's connect/map-change snapshot restores the server value, so re-send t
 
 ### Raw value access
 
-@ref CS2Kit::Sdk::RawConVar "Raw(name)" returns a handle to the convar's raw storage: reads and writes skip change callbacks *and* replication. Use it for scoped flips around one player's processing (e.g. inside a @ref CS2Kit::Sdk::MovementHook "MovementHook" pre/post pair), where the engine setters' broadcast would leak the change to everyone. You are responsible for restoring the prior value; the handle stays valid for the convar's lifetime, so resolve once and cache.
+@ref VoltMod::Sdk::RawConVar "Raw(name)" returns a handle to the convar's raw storage: reads and writes skip change callbacks *and* replication. Use it for scoped flips around one player's processing (e.g. inside a @ref VoltMod::Sdk::MovementHook "MovementHook" pre/post pair), where the engine setters' broadcast would leak the change to everyone. You are responsible for restoring the prior value; the handle stays valid for the convar's lifetime, so resolve once and cache.
 
 ```cpp
-CS2Kit::RawConVar autoBhop = cvars.Raw("sv_autobunnyhopping");
+VoltMod::RawConVar autoBhop = cvars.Raw("sv_autobunnyhopping");
 bool saved = autoBhop.GetBool();
 autoBhop.SetBool(true);   // no callbacks, nothing networked
 // ... run the per-player work ...

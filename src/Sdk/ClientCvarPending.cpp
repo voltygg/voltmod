@@ -1,8 +1,8 @@
-#include <CS2Kit/Sdk/Detail/ClientCvarPending.hpp>
+#include <VoltMod/Sdk/Detail/ClientCvarPending.hpp>
 #include <algorithm>
 #include <utility>
 
-namespace CS2Kit::Sdk::Detail
+namespace VoltMod::Sdk::Detail
 {
 
 void ClientCvarPendingTable::Prune(int slot, double now)
@@ -106,4 +106,4 @@ size_t ClientCvarPendingTable::Count(int slot) const
     return Core::IsValidSlot(slot) ? _slots[slot].size() : 0;
 }
 
-}  // namespace CS2Kit::Sdk::Detail
+}  // namespace VoltMod::Sdk::Detail

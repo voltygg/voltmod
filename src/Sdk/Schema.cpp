@@ -1,20 +1,20 @@
 #include "Sdk/Schema.hpp"
 
-#include <CS2Kit/Core/Log.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/GameInterfaces.hpp>
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/GameInterfaces.hpp>
 #include <schemasystem/schemasystem.h>
 #include <string_view>
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
 
-using namespace CS2Kit::Core;
+using namespace VoltMod::Core;
 
 bool SchemaService::Initialize()
 {
-    if (!CS2Kit::Detail::Rt().Interfaces.SchemaSystem)
+    if (!VoltMod::Detail::Rt().Interfaces.SchemaSystem)
     {
         Log::Warn("ISchemaSystem not available.");
         return false;
@@ -26,7 +26,7 @@ bool SchemaService::Initialize()
 
 int SchemaService::GetOffset(const char* className, const char* fieldName, int expectedSize)
 {
-    auto* schemaSystem = CS2Kit::Detail::Rt().Interfaces.SchemaSystem;
+    auto* schemaSystem = VoltMod::Detail::Rt().Interfaces.SchemaSystem;
     if (!schemaSystem)
         return -1;
 
@@ -83,4 +83,4 @@ int SchemaService::GetOffset(const char* className, const char* fieldName, int e
     return -1;
 }
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

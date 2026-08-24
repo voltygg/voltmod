@@ -1,9 +1,9 @@
 // UserCmd.hpp is deliberately protobuf- and SDK-free so this TU compiles it standalone;
 // an include that drags in HL2SDK would fail to build here rather than silently pass.
-#include <CS2Kit/Sdk/UserCmd.hpp>
+#include <VoltMod/Sdk/UserCmd.hpp>
 #include <doctest/doctest.h>
 
-using CS2Kit::Sdk::UserCmdView;
+using VoltMod::Sdk::UserCmdView;
 
 namespace
 {

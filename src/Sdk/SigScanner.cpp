@@ -1,6 +1,6 @@
 #include "Sdk/SigScanner.hpp"
 
-#include <CS2Kit/Core/Log.hpp>
+#include <VoltMod/Core/Log.hpp>
 #include <charconv>
 #include <sstream>
 #include <utility>
@@ -14,10 +14,10 @@
 #include <link.h>
 #endif
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
 
-using namespace CS2Kit::Core;
+using namespace VoltMod::Core;
 
 struct PatternByte
 {
@@ -277,4 +277,4 @@ uintptr_t ResolveRelativeAddress(uintptr_t addr, int ripOffset, int ripSize)
     return addr + ripSize + relative;
 }
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

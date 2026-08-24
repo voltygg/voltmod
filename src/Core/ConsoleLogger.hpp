@@ -1,14 +1,14 @@
 #pragma once
 
-#include <CS2Kit/Core/ILogger.hpp>
+#include <VoltMod/Core/ILogger.hpp>
 #include <string>
 
-namespace CS2Kit::Core
+namespace VoltMod::Core
 {
 
 /**
  * @brief Default console logger implementation using HL2SDK's ConColorMsg.
- * Created automatically by CS2Kit::Initialize() when no custom logger is provided.
+ * Created automatically by VoltMod::Initialize() when no custom logger is provided.
  */
 class ConsoleLogger : public ILogger
 {
@@ -20,7 +20,7 @@ public:
     void Error(const std::string& message) override;
 
 private:
-    const char* _prefix = "CS2Kit";
+    const char* _prefix = "VoltMod";
 };
 
-}  // namespace CS2Kit::Core
+}  // namespace VoltMod::Core

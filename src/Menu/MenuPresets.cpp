@@ -1,22 +1,22 @@
-#include <CS2Kit/Core/ChatColors.hpp>
-#include <CS2Kit/Core/StringUtils.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Menu/MenuBuilder.hpp>
-#include <CS2Kit/Menu/MenuManager.hpp>
-#include <CS2Kit/Menu/MenuPresets.hpp>
-#include <CS2Kit/Players/PlayerManager.hpp>
-#include <CS2Kit/Runtime.hpp>
+#include <VoltMod/Core/ChatColors.hpp>
+#include <VoltMod/Core/StringUtils.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Menu/MenuBuilder.hpp>
+#include <VoltMod/Menu/MenuManager.hpp>
+#include <VoltMod/Menu/MenuPresets.hpp>
+#include <VoltMod/Players/PlayerManager.hpp>
+#include <VoltMod/Runtime.hpp>
 #include <string_view>
 #include <utility>
 
-namespace CS2Kit::Menu
+namespace VoltMod::Menu
 {
 
 void AppendPlayerRows(MenuBuilder& builder, int viewerSlot,
                       const std::function<void(int viewerSlot, int targetSlot)>& onPick, const std::string& emptyLabel,
                       const std::function<bool(int targetSlot)>& isEnabled)
 {
-    auto players = CS2Kit::Detail::Rt().Players.GetAllPlayers();
+    auto players = VoltMod::Detail::Rt().Players.GetAllPlayers();
     for (auto* p : players)
     {
         if (!p)
@@ -95,7 +95,7 @@ std::shared_ptr<MenuView> BuildConfirmDialog(ConfirmDialogSpec spec)
         if (onCancel)
             onCancel(slot);
         else
-            CS2Kit::Detail::Rt().Menus.CloseAllMenus(slot);
+            VoltMod::Detail::Rt().Menus.CloseAllMenus(slot);
     });
 
     return builder.Build();
@@ -117,4 +117,4 @@ std::vector<ChoiceOption<std::string>::Choice> BuildPaletteChoices(
     return choices;
 }
 
-}  // namespace CS2Kit::Menu
+}  // namespace VoltMod::Menu

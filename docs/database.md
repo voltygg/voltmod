@@ -2,13 +2,13 @@
 
 [TOC]
 
-`CS2Kit::Database` is an opt-in, **async-first** PostgreSQL layer. One worker thread owns the only connection; the game thread never blocks on the database during play. Row parsing and INSERT/SELECT SQL are generated from a per-entity column table, so a repository method is a query and a callback - nothing else.
+`VoltMod::Database` is an opt-in, **async-first** PostgreSQL layer. One worker thread owns the only connection; the game thread never blocks on the database during play. Row parsing and INSERT/SELECT SQL are generated from a per-entity column table, so a repository method is a query and a callback - nothing else.
 
-Compiled only when `CS2KIT_ENABLE_POSTGRES` is `ON` (default `OFF`); plugins without a database never pull libpqxx.
+Compiled only when `VOLTMOD_ENABLE_POSTGRES` is `ON` (default `OFF`); plugins without a database never pull libpqxx.
 
 ```python
 # conanfile.py
-default_options = {"cs2-kit/*:with_postgres": True}
+default_options = {"voltmod/*:with_postgres": True}
 ```
 
 ## The threading model
@@ -47,7 +47,7 @@ db.Exec("audit_insert",
 db.Query("count_recent_bans",
          "SELECT COUNT(*) FROM bans WHERE admin_id = $1 AND created_at > $2",
          pqxx::params{steamId, windowStart},
-         [](CS2Kit::DbResult<pqxx::result> result) {
+         [](VoltMod::DbResult<pqxx::result> result) {
              if (!result)
                  return;                         // already logged
              int count = (*result)[0][0].as<int>();
@@ -76,10 +76,10 @@ struct Ban
     static constexpr auto Columns()
     {
         return std::tuple{
-            CS2Kit::Column{"id", &Ban::Id},
-            CS2Kit::Column{"steam_id", &Ban::SteamId},
-            CS2Kit::Column{"reason", &Ban::Reason},
-            CS2Kit::Column{"removed_at", &Ban::RemovedAt},
+            VoltMod::Column{"id", &Ban::Id},
+            VoltMod::Column{"steam_id", &Ban::SteamId},
+            VoltMod::Column{"reason", &Ban::Reason},
+            VoltMod::Column{"removed_at", &Ban::RemovedAt},
         };
     }
 };
@@ -88,7 +88,7 @@ struct Ban
 What that buys:
 
 ```cpp
-using namespace CS2Kit;
+using namespace VoltMod;
 
 // SELECT with explicit columns (stable against schema drift), rows -> entities:
 auto rows = db.QueryBlocking("bans_active", SelectSql<Ban>("removed_at IS NULL"));
@@ -125,7 +125,7 @@ A periodic async sweep re-snapshots the caches (expiry, changes from other serve
 `RunMigrations(db, dir, options)` scans `dir` for `NNNN_*.sql` files and applies everything above the recorded version, in order, each in its own transaction, under a session advisory lock (two servers loading against one database won't race). A missing directory is a logged no-op. It runs on the blocking path - call it from `OnLoad` right after `Start`:
 
 ```cpp
-if (!CS2Kit::RunMigrations(db, "addons/my-plugin/configs/migrations",
+if (!VoltMod::RunMigrations(db, "addons/my-plugin/configs/migrations",
                            {.TableName = "schema_migrations", .AdvisoryLockKey = 727274}))
     return false;   // don't run against an out-of-date schema
 ```
@@ -134,4 +134,4 @@ Plugins sharing a database need distinct table names *and* distinct lock keys. T
 
 ## Config
 
-`PostgresConfig` fields are lowercase so a JSON section maps onto them directly; define the nlohmann mapper in your plugin, inside the `CS2Kit::Database` namespace (see @ref config_guide). `sslMode` defaults to `prefer`.
+`PostgresConfig` fields are lowercase so a JSON section maps onto them directly; define the nlohmann mapper in your plugin, inside the `VoltMod::Database` namespace (see @ref config_guide). `sslMode` defaults to `prefer`.

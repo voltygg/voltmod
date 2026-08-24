@@ -1,26 +1,26 @@
-#include <CS2Kit/Core/Log.hpp>
-#include <CS2Kit/Core/MetamodGlobals.hpp>
-#include <CS2Kit/Core/Slot.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/GameData.hpp>
-#include <CS2Kit/Sdk/GameEventService.hpp>
-#include <CS2Kit/Sdk/GameEvents.hpp>
-#include <CS2Kit/Sdk/PlayerController.hpp>
-#include <CS2Kit/Sdk/ServerClock.hpp>
-#include <CS2Kit/Sdk/TeleportTracker.hpp>
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/MetamodGlobals.hpp>
+#include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/GameData.hpp>
+#include <VoltMod/Sdk/GameEventService.hpp>
+#include <VoltMod/Sdk/GameEvents.hpp>
+#include <VoltMod/Sdk/PlayerController.hpp>
+#include <VoltMod/Sdk/ServerClock.hpp>
+#include <VoltMod/Sdk/TeleportTracker.hpp>
 #include <mathlib/vector.h>
 
 PLUGIN_GLOBALVARS();
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
-using namespace CS2Kit::Core;
+using namespace VoltMod::Core;
 
 // CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*); the vtable index comes from
 // gamedata at Enable time. Bound per pawn (Hook_Normal), so the handler runs only for the instance
 // it was added on - one call per teleport, no matter how many are bound.
-SH_DECL_MANUALHOOK3_void(CS2Kit_EntityTeleport, 0, 0, 0, const Vector*, const QAngle*, const Vector*);
+SH_DECL_MANUALHOOK3_void(VoltMod_EntityTeleport, 0, 0, 0, const Vector*, const QAngle*, const Vector*);
 
 TeleportTracker::~TeleportTracker()
 {
@@ -32,14 +32,14 @@ bool TeleportTracker::Enable()
     if (_enabled)
         return true;
 
-    int index = CS2Kit::Detail::Rt().GameData.GetOffset("Teleport");
+    int index = VoltMod::Detail::Rt().GameData.GetOffset("Teleport");
     if (index < 0)
     {
         Log::Warn("TeleportTracker: gamedata offset 'Teleport' missing; tracking disabled.");
         return false;
     }
 
-    SH_MANUALHOOK_RECONFIGURE(CS2Kit_EntityTeleport, index, 0, 0);
+    SH_MANUALHOOK_RECONFIGURE(VoltMod_EntityTeleport, index, 0, 0);
     _enabled = true;
 
     for (int slot = 0; slot < Core::MaxPlayers; ++slot)
@@ -47,7 +47,7 @@ bool TeleportTracker::Enable()
 
     // Spawning hands the player a new pawn object, so the old binding is stale - and the spawn
     // placement is itself a teleport worth stamping.
-    _spawnListener = CS2Kit::Detail::Rt().Events.Listen<Events::PlayerSpawn>([this](const Events::PlayerSpawn& e) {
+    _spawnListener = VoltMod::Detail::Rt().Events.Listen<Events::PlayerSpawn>([this](const Events::PlayerSpawn& e) {
         Bind(e.Slot);
         Stamp(e.Slot);
     });
@@ -111,7 +111,7 @@ void TeleportTracker::Bind(int slot)
 
     _pawns[slot] = pawn;
     _hookIds[slot] =
-        SH_ADD_MANUALHOOK(CS2Kit_EntityTeleport, pawn, SH_MEMBER(this, &TeleportTracker::Hook_Teleport), true);
+        SH_ADD_MANUALHOOK(VoltMod_EntityTeleport, pawn, SH_MEMBER(this, &TeleportTracker::Hook_Teleport), true);
 }
 
 void TeleportTracker::Unbind(int slot)
@@ -149,4 +149,4 @@ void TeleportTracker::Hook_Teleport(const Vector*, const QAngle*, const Vector*)
     RETURN_META(MRES_IGNORED);
 }
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

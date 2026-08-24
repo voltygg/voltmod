@@ -1,8 +1,8 @@
-#include <CS2Kit/Core/Scheduler.hpp>
+#include <VoltMod/Core/Scheduler.hpp>
 #include <chrono>
 #include <vector>
 
-namespace CS2Kit::Core
+namespace VoltMod::Core
 {
 
 int64_t Scheduler::GetCurrentTimeMs() const
@@ -92,4 +92,4 @@ void Scheduler::OnGameFrame()
     }
 }
 
-}  // namespace CS2Kit::Core
+}  // namespace VoltMod::Core

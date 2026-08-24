@@ -5,8 +5,8 @@ from conan import ConanFile
 from conan.tools.cmake import CMake, cmake_layout
 
 
-class CS2KitTestConan(ConanFile):
-    """Builds a hello plugin through cs2_add_plugin - the whole consumer
+class VoltModTestConan(ConanFile):
+    """Builds a hello plugin through voltmod_add_plugin - the whole consumer
     contract: SDK headers via transitive includes, prebuilt SDK libs, the
     per-plugin convar/memoverride TUs, the PCH, the .vdf render."""
 

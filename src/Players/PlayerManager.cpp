@@ -1,10 +1,10 @@
-#include <CS2Kit/Core/StringUtils.hpp>
-#include <CS2Kit/Players/PlayerManager.hpp>
+#include <VoltMod/Core/StringUtils.hpp>
+#include <VoltMod/Players/PlayerManager.hpp>
 
-namespace CS2Kit::Players
+namespace VoltMod::Players
 {
 
-using namespace CS2Kit::Core;
+using namespace VoltMod::Core;
 
 // Bots share SteamID 0, so indexing them would make the map's single 0 entry mean whichever
 // bot connected last - and removing any one of them would unindex a live player. GetPlayerBySlot
@@ -138,4 +138,4 @@ void PlayerManager::Clear()
         FireSlotChange(slot);
 }
 
-}  // namespace CS2Kit::Players
+}  // namespace VoltMod::Players

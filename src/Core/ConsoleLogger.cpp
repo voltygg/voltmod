@@ -3,7 +3,7 @@
 #include <Color.h>
 #include <tier0/dbg.h>
 
-namespace CS2Kit::Core
+namespace VoltMod::Core
 {
 
 void ConsoleLogger::Info(const std::string& message)
@@ -24,4 +24,4 @@ void ConsoleLogger::Error(const std::string& message)
     Msg("%s\n", message.c_str());
 }
 
-}  // namespace CS2Kit::Core
+}  // namespace VoltMod::Core

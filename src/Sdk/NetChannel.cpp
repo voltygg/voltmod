@@ -1,11 +1,11 @@
-#include <CS2Kit/Core/Slot.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/GameInterfaces.hpp>
-#include <CS2Kit/Sdk/NetChannel.hpp>
+#include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/GameInterfaces.hpp>
+#include <VoltMod/Sdk/NetChannel.hpp>
 #include <inetchannelinfo.h>
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
 
 namespace
@@ -15,7 +15,7 @@ IVEngineServer2* EngineServer(int slot)
 {
     if (!Core::IsValidSlot(slot))
         return nullptr;
-    auto* services = CS2Kit::Detail::RtOrNull();
+    auto* services = VoltMod::Detail::RtOrNull();
     return services ? services->Interfaces.Engine : nullptr;
 }
 
@@ -41,4 +41,4 @@ const char* NetChannelService::GetUserInfoCvar(int slot, const char* name) const
     return engine->GetClientConVarValue(CPlayerSlot(slot), name);
 }
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

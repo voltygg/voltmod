@@ -1,9 +1,9 @@
 #include <igameevents.h>
 
-#include <CS2Kit/Sdk/GameEvents.hpp>
+#include <VoltMod/Sdk/GameEvents.hpp>
 #include <playerslot.h>
 
-namespace CS2Kit::Sdk::Events
+namespace VoltMod::Sdk::Events
 {
 
 // GetPlayerSlot decodes the connection userid to the actual slot (userids drift from slots
@@ -101,4 +101,4 @@ RoundPrestart RoundPrestart::From(IGameEvent&)
     return {};
 }
 
-}  // namespace CS2Kit::Sdk::Events
+}  // namespace VoltMod::Sdk::Events

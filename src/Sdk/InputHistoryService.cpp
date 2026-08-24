@@ -1,11 +1,11 @@
-#include <CS2Kit/Core/Slot.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/InputHistoryService.hpp>
+#include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/InputHistoryService.hpp>
 #include <algorithm>
 #include <cassert>
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
 
 void InputHistoryService::Enable(int depth)
@@ -23,7 +23,7 @@ void InputHistoryService::Enable(int depth)
     }
 
     if (!_cmdListener)
-        _cmdListener = CS2Kit::Detail::Rt().MovementHook.ListenPreCmd(
+        _cmdListener = VoltMod::Detail::Rt().MovementHook.ListenPreCmd(
             [this](int slot, const UserCmdView& cmd) { Record(slot, cmd); });
     if (!_slotListener)
         _slotListener = _slots.Listen([this](int slot) { Clear(slot); });
@@ -67,4 +67,4 @@ void InputHistoryService::ClearAll()
         Clear(slot);
 }
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

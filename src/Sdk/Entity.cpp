@@ -1,12 +1,12 @@
 #include "Sdk/Schema.hpp"
 
-#include <CS2Kit/Core/Log.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/Entity.hpp>
-#include <CS2Kit/Sdk/GameData.hpp>
-#include <CS2Kit/Sdk/GameInterfaces.hpp>
-#include <CS2Kit/Sdk/MemoryAccess.hpp>
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/Entity.hpp>
+#include <VoltMod/Sdk/GameData.hpp>
+#include <VoltMod/Sdk/GameInterfaces.hpp>
+#include <VoltMod/Sdk/MemoryAccess.hpp>
 #include <bit>
 #include <entity2/concreteentitylist.h>
 #include <entity2/entityidentity.h>
@@ -17,13 +17,13 @@
 // route it to the kit's resolved entity system so both agree on the pointer.
 CGameEntitySystem* GameEntitySystem()
 {
-    auto* services = CS2Kit::Detail::RtOrNull();
+    auto* services = VoltMod::Detail::RtOrNull();
     return services ? services->Entities.GetEntitySystem() : nullptr;
 }
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
-using namespace CS2Kit::Core;
+using namespace VoltMod::Core;
 
 int EntitySystem::GetEntityIndex(CEntityInstance* entity) const
 {
@@ -40,7 +40,7 @@ void EntitySystem::ResolveSchemaOffsets()
     if (_schemaOffsetsResolved)
         return;
 
-    auto& schema = CS2Kit::Detail::Rt().Schema();
+    auto& schema = VoltMod::Detail::Rt().Schema();
 
     _offsetPlayerPawn = schema.GetOffsetOf<uint32_t>("CBasePlayerController", "m_hPawn");
     _offsetMovementServices = schema.GetOffsetOf<uint8_t*>("CBasePlayerPawn", "m_pMovementServices");
@@ -52,12 +52,12 @@ void EntitySystem::ResolveSchemaOffsets()
 
 CGameEntitySystem* EntitySystem::ReadEntitySystemPointer()
 {
-    auto& interfaces = CS2Kit::Detail::Rt().Interfaces;
+    auto& interfaces = VoltMod::Detail::Rt().Interfaces;
     if (!interfaces.GameResourceService)
         return nullptr;
 
     // "GameEntitySystem" = byte offset of the CGameEntitySystem* cached inside CGameResourceService.
-    int offsetGameEntitySystem = CS2Kit::Detail::Rt().GameData.GetOffset("GameEntitySystem");
+    int offsetGameEntitySystem = VoltMod::Detail::Rt().GameData.GetOffset("GameEntitySystem");
     if (offsetGameEntitySystem < 0)
         return nullptr;
 
@@ -66,7 +66,7 @@ CGameEntitySystem* EntitySystem::ReadEntitySystemPointer()
 
 bool EntitySystem::Initialize()
 {
-    auto& interfaces = CS2Kit::Detail::Rt().Interfaces;
+    auto& interfaces = VoltMod::Detail::Rt().Interfaces;
 
     if (!interfaces.GameResourceService)
     {
@@ -74,7 +74,7 @@ bool EntitySystem::Initialize()
         return false;
     }
 
-    int offsetGameEntitySystem = CS2Kit::Detail::Rt().GameData.GetOffset("GameEntitySystem");
+    int offsetGameEntitySystem = VoltMod::Detail::Rt().GameData.GetOffset("GameEntitySystem");
 
     if (offsetGameEntitySystem < 0)
     {
@@ -99,7 +99,7 @@ bool EntitySystem::Initialize()
 
 CGameEntitySystem* EntitySystem::GetEntitySystem()
 {
-    auto& interfaces = CS2Kit::Detail::Rt().Interfaces;
+    auto& interfaces = VoltMod::Detail::Rt().Interfaces;
 
     if (!interfaces.EntitySystem)
         interfaces.EntitySystem = ReadEntitySystemPointer();
@@ -211,7 +211,7 @@ void EntitySystem::ResolveFinderSignatures()
     if (_findersResolved)
         return;
 
-    auto& gameData = CS2Kit::Detail::Rt().GameData;
+    auto& gameData = VoltMod::Detail::Rt().GameData;
     _findByClassName = gameData.FindSignature("CGameEntitySystem_FindEntityByClassName");
     _findByName = gameData.FindSignature("CGameEntitySystem_FindEntityByName");
 
@@ -243,4 +243,4 @@ CEntityInstance* EntitySystem::FindByName(CEntityInstance* startAfter, const cha
     return std::bit_cast<FindByNameFn>(_findByName)(pSys, startAfter, name, nullptr, nullptr, nullptr, nullptr);
 }
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

@@ -10,20 +10,20 @@ from conan.tools.build import check_min_cppstd
 from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
 
 
-class CS2KitConan(ConanFile):
-    """cs2-kit: this repo's consumer conanfile AND its package recipe.
+class VoltModConan(ConanFile):
+    """voltmod: this repo's consumer conanfile AND its package recipe.
 
     Dependencies resolve identically either way - the SDKs are always Conan packages.
     The two differ only in build layout: a source checkout keeps the flat
     --output-folder the CMake presets expect, while `conan create` uses cmake_layout
-    and ships the headers, cmake helpers (cs2_add_plugin as a CMakeDeps build module),
+    and ships the headers, cmake helpers (voltmod_add_plugin as a CMakeDeps build module),
     gamedata and the plugin template.
     """
 
-    name = "cs2-kit"
+    name = "voltmod"
     description = "C++23 library for CS2 Metamod:Source plugins"
     license = "MIT"
-    homepage = "https://github.com/voltygg/cs2-kit"
+    homepage = "https://github.com/voltygg/voltmod"
     settings = "os", "compiler", "build_type", "arch"
     package_type = "static-library"
 
@@ -70,7 +70,7 @@ class CS2KitConan(ConanFile):
         self.requires("hl2sdk-cs2/[>=2026 <2028]",
                       transitive_headers=True, transitive_libs=True)
         # Header-only, and it moves monthly - minor_mode keeps a bump from
-        # invalidating every published cs2-kit binary.
+        # invalidating every published voltmod binary.
         self.requires("metamod-source/[>=2.0 <3]",
                       transitive_headers=True, package_id_mode="minor_mode")
         if self.options.with_postgres:
@@ -83,13 +83,13 @@ class CS2KitConan(ConanFile):
         check_min_cppstd(self, 23)
         if self.settings.os == "Linux" and self.settings.get_safe("compiler.libcxx") != "libstdc++":
             raise ConanInvalidConfiguration(
-                "cs2-kit requires compiler.libcxx=libstdc++ (Valve's _GLIBCXX_USE_CXX11_ABI=0); "
+                "voltmod requires compiler.libcxx=libstdc++ (Valve's _GLIBCXX_USE_CXX11_ABI=0); "
                 "use the shipped linux-steamrt profile "
                 "(conan config install the repo's conan/ dir)")
         runtime = str(self.settings.get_safe("compiler.runtime"))
         if self.settings.os == "Windows" and runtime != "static":
             raise ConanInvalidConfiguration(
-                "cs2-kit requires the static MSVC runtime (/MT); "
+                "voltmod requires the static MSVC runtime (/MT); "
                 "use the shipped windows-msvc profile")
 
     def _preset(self):
@@ -108,7 +108,7 @@ class CS2KitConan(ConanFile):
             self.folders.generators = f"build/{self._preset()}/generators"
             # Per component, not just the top level: CMakeDeps reads the component
             # dirs, and those default to the package layout even in editable mode.
-            for component in ("runtime", "database", "cs2-kit"):
+            for component in ("runtime", "database", "voltmod"):
                 self.cpp.build.components[component].libdirs = ["."]
                 self.cpp.source.components[component].includedirs = ["include"]
             self.cpp.build.libdirs = ["."]
@@ -124,8 +124,8 @@ class CS2KitConan(ConanFile):
         toolchain = CMakeToolchain(self)
         toolchain.user_presets_path = False
         toolchain.variables["CMAKE_POSITION_INDEPENDENT_CODE"] = True
-        toolchain.variables["CS2KIT_ENABLE_POSTGRES"] = bool(self.options.with_postgres)
-        # CS2KIT_HL2SDK_DIR is not set here - hl2sdk-cs2's own build module owns it.
+        toolchain.variables["VOLTMOD_ENABLE_POSTGRES"] = bool(self.options.with_postgres)
+        # VOLTMOD_HL2SDK_DIR is not set here - hl2sdk-cs2's own build module owns it.
         if not self._source_checkout():
             toolchain.variables["BUILD_TESTING"] = False
         toolchain.generate()
@@ -141,14 +141,14 @@ class CS2KitConan(ConanFile):
         cmake.install()
 
     def package_info(self):
-        self.cpp_info.set_property("cmake_file_name", "cs2-kit")
-        self.cpp_info.set_property("cmake_target_name", "CS2Kit::CS2Kit")
+        self.cpp_info.set_property("cmake_file_name", "voltmod")
+        self.cpp_info.set_property("cmake_target_name", "VoltMod::VoltMod")
         self.cpp_info.builddirs = ["cmake"]
-        # cs2_add_plugin / cs2_add_tests reach consumers as CMakeDeps build
-        # modules; CS2KitPlugin.cmake pulls CS2KitCommon itself.
+        # voltmod_add_plugin / voltmod_add_tests reach consumers as CMakeDeps build
+        # modules; VoltModPlugin.cmake pulls VoltModCommon itself.
         self.cpp_info.set_property("cmake_build_modules", [
-            os.path.join("cmake", "CS2KitPlugin.cmake"),
-            os.path.join("cmake", "CS2KitTests.cmake"),
+            os.path.join("cmake", "VoltModPlugin.cmake"),
+            os.path.join("cmake", "VoltModTests.cmake"),
         ])
 
         # Two components, matching the two libraries CMake builds. The source modules
@@ -156,8 +156,8 @@ class CS2KitConan(ConanFile):
         # individually, so declaring them here only duplicated the CMake dependency
         # graph in a second place that could drift from it.
         runtime = self.cpp_info.components["runtime"]
-        runtime.set_property("cmake_target_name", "CS2Kit::Runtime")
-        runtime.libs = ["cs2-kit-runtime"]
+        runtime.set_property("cmake_target_name", "VoltMod::Runtime")
+        runtime.libs = ["voltmod-runtime"]
         runtime.includedirs = ["include"]
         runtime.requires = [
             "hl2sdk-cs2::hl2sdk-cs2",
@@ -170,14 +170,14 @@ class CS2KitConan(ConanFile):
 
         if self.options.with_postgres:
             db = self.cpp_info.components["database"]
-            db.set_property("cmake_target_name", "CS2Kit::Database")
-            db.libs = ["cs2-kit-database"]
+            db.set_property("cmake_target_name", "VoltMod::Database")
+            db.libs = ["voltmod-database"]
             db.includedirs = ["include"]
             db.requires = ["runtime", "libpqxx::libpqxx"]
             # Consumer feature checks and Database/Api.hpp's #error guard read this.
-            db.defines = ["CS2KIT_ENABLE_POSTGRES=1"]
+            db.defines = ["VOLTMOD_ENABLE_POSTGRES=1"]
 
-        # What cs2_add_plugin links unless the plugin asks for a feature.
-        umbrella = self.cpp_info.components["cs2-kit"]
-        umbrella.set_property("cmake_target_name", "CS2Kit::CS2Kit")
+        # What voltmod_add_plugin links unless the plugin asks for a feature.
+        umbrella = self.cpp_info.components["voltmod"]
+        umbrella.set_property("cmake_target_name", "VoltMod::VoltMod")
         umbrella.requires = ["runtime"] + (["database"] if self.options.with_postgres else [])

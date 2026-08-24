@@ -1,9 +1,9 @@
-#include <CS2Kit/Core/TimeUtils.hpp>
+#include <VoltMod/Core/TimeUtils.hpp>
 #include <cstdint>
 #include <doctest/doctest.h>
 #include <string>
 
-using CS2Kit::Core::TimeUtils;
+using VoltMod::Core::TimeUtils;
 
 TEST_CASE("TimeUtils::ParseDuration suffixes")
 {
@@ -58,7 +58,7 @@ TEST_CASE("TimeUtils::FormatDuration prefers largest exact unit")
 
 TEST_CASE("TimeUtils::FormatDurationLabel largest exact unit, localized")
 {
-    CS2Kit::Core::DurationUnitLabels units{
+    VoltMod::Core::DurationUnitLabels units{
         .Permanent = "perm", .Days = "d", .Hours = "h", .Minutes = "min", .Seconds = "s"};
     CHECK_EQ(TimeUtils::FormatDurationLabel(0, units), std::string("perm"));
     CHECK_EQ(TimeUtils::FormatDurationLabel(-1, units), std::string("perm"));

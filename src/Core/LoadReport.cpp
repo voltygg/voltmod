@@ -1,9 +1,9 @@
-#include <CS2Kit/Core/LoadReport.hpp>
+#include <VoltMod/Core/LoadReport.hpp>
 #include <algorithm>
 #include <chrono>
 #include <format>
 
-namespace CS2Kit::Core
+namespace VoltMod::Core
 {
 
 std::string_view ToString(StageStatus status)
@@ -66,4 +66,4 @@ std::string LoadReport::FirstFailure() const
     return it->Detail.empty() ? it->Name : std::format("{}: {}", it->Name, it->Detail);
 }
 
-}  // namespace CS2Kit::Core
+}  // namespace VoltMod::Core

@@ -1,8 +1,8 @@
-#include <CS2Kit/Core/DecayingScore.hpp>
+#include <VoltMod/Core/DecayingScore.hpp>
 #include <cmath>
 #include <doctest/doctest.h>
 
-using CS2Kit::Core::DecayingScore;
+using VoltMod::Core::DecayingScore;
 
 namespace
 {

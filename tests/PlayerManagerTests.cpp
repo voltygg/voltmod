@@ -1,9 +1,9 @@
-#include <CS2Kit/Core/SlotEvents.hpp>
-#include <CS2Kit/Players/PlayerManager.hpp>
+#include <VoltMod/Core/SlotEvents.hpp>
+#include <VoltMod/Players/PlayerManager.hpp>
 #include <doctest/doctest.h>
 
-using CS2Kit::Core::SlotEvents;
-using CS2Kit::Players::PlayerManager;
+using VoltMod::Core::SlotEvents;
+using VoltMod::Players::PlayerManager;
 
 namespace
 {

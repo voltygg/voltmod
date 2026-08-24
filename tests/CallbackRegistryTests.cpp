@@ -1,12 +1,12 @@
-#include <CS2Kit/Core/CallbackRegistry.hpp>
-#include <CS2Kit/Core/SlotEvents.hpp>
+#include <VoltMod/Core/CallbackRegistry.hpp>
+#include <VoltMod/Core/SlotEvents.hpp>
 #include <doctest/doctest.h>
 #include <functional>
 #include <vector>
 
-using CS2Kit::Core::CallbackRegistry;
-using CS2Kit::Core::SlotEvents;
-using CS2Kit::Core::Subscription;
+using VoltMod::Core::CallbackRegistry;
+using VoltMod::Core::SlotEvents;
+using VoltMod::Core::Subscription;
 
 namespace
 {

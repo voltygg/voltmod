@@ -1,12 +1,12 @@
 #include "Sdk/Schema.hpp"
 
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/EntityRender.hpp>
-#include <CS2Kit/Sdk/MemoryAccess.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/EntityRender.hpp>
+#include <VoltMod/Sdk/MemoryAccess.hpp>
 #include <entity2/entityinstance.h>
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
 
 void SetEntityRender(CEntityInstance* entity, RenderMode_t mode, uint32_t color)
@@ -20,7 +20,7 @@ void SetEntityRender(CEntityInstance* entity, RenderMode_t mode, uint32_t color)
     static int colorOffset = -1;
     if (modeOffset < 0 || colorOffset < 0)
     {
-        auto& schema = CS2Kit::Detail::Rt().Schema();
+        auto& schema = VoltMod::Detail::Rt().Schema();
         modeOffset = schema.GetOffsetOf<uint8_t>("CBaseModelEntity", "m_nRenderMode");
         colorOffset = schema.GetOffsetOf<uint32_t>("CBaseModelEntity", "m_clrRender");
         if (modeOffset < 0 || colorOffset < 0)
@@ -36,4 +36,4 @@ void SetEntityRender(CEntityInstance* entity, RenderMode_t mode, uint32_t color)
     entity->NetworkStateChanged(NetworkStateChangedData(static_cast<uint32>(colorOffset)));
 }
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

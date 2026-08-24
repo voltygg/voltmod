@@ -1,8 +1,8 @@
-#include <CS2Kit/Core/Paths.hpp>
+#include <VoltMod/Core/Paths.hpp>
 #include <doctest/doctest.h>
 #include <filesystem>
 
-using namespace CS2Kit::Core;
+using namespace VoltMod::Core;
 
 TEST_CASE("AddonDir builds the engine-relative addon root")
 {

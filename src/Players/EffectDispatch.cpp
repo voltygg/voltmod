@@ -1,8 +1,8 @@
-#include <CS2Kit/Core/EffectManager.hpp>
-#include <CS2Kit/Players/EffectDescriptor.hpp>
+#include <VoltMod/Core/EffectManager.hpp>
+#include <VoltMod/Players/EffectDescriptor.hpp>
 #include <utility>
 
-namespace CS2Kit::Players
+namespace VoltMod::Players
 {
 
 using Players::ActionDispatcher;
@@ -96,4 +96,4 @@ void ClearEffect(Core::EffectManager& effects, int adminSlot, int targetSlot, co
     ClearById(effects, adminSlot, targetSlot, effect.Permission, effect.Id, effect.OffKey);
 }
 
-}  // namespace CS2Kit::Players
+}  // namespace VoltMod::Players

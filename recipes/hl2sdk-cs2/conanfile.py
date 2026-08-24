@@ -10,7 +10,7 @@ from conan.tools.scm import Git
 
 
 class Hl2SdkCs2Conan(ConanFile):
-    """AlliedModders HL2SDK, CS2 branch, trimmed for cs2-kit consumption.
+    """AlliedModders HL2SDK, CS2 branch, trimmed for voltmod consumption.
 
     The tree mirrors the upstream layout. Ships headers, the prebuilt Valve libs, the
     .proto files and the sources generated from them, and the TUs consumers compile
@@ -33,7 +33,7 @@ class Hl2SdkCs2Conan(ConanFile):
 
     HEADER_TREES = ["public", "game/shared", "game/server", "common"]
     PROTOBUF_SRC = "thirdparty/protobuf-3.21.8/src"
-    # Bodies compiled from source: six into the cs2-kit lib, plus convar.cpp and
+    # Bodies compiled from source: six into the voltmod lib, plus convar.cpp and
     # memoverride.cpp per plugin (own ConVar state, global operator new/delete).
     SOURCE_ONLY = [
         "entity2/entityidentity.cpp",
@@ -149,7 +149,7 @@ class Hl2SdkCs2Conan(ConanFile):
     def package_info(self):
         # The only definition of the SDK's usage requirements; nothing mirrors it.
         self.cpp_info.set_property("cmake_file_name", "hl2sdk-cs2")
-        self.cpp_info.set_property("cmake_target_name", "CS2Kit::HL2SDK")
+        self.cpp_info.set_property("cmake_target_name", "VoltMod::HL2SDK")
         self.cpp_info.includedirs = [
             self.PROTOBUF_SRC,
             "public",

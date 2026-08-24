@@ -1,13 +1,13 @@
 #include "Menu/MenuRenderer.hpp"
 
-#include <CS2Kit/Core/Translations.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Menu/MenuOption.hpp>
-#include <CS2Kit/Runtime.hpp>
+#include <VoltMod/Core/Translations.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Menu/MenuOption.hpp>
+#include <VoltMod/Runtime.hpp>
 #include <algorithm>
 #include <sstream>
 
-namespace CS2Kit::Menu
+namespace VoltMod::Menu
 {
 
 namespace Theme
@@ -26,7 +26,7 @@ constexpr const char* NavBack = "#AA8833";
 // English literal - lets consumers that don't ship nav.* keys still render cleanly.
 static std::string FooterLabel(const char* key, const char* fallback, int slot)
 {
-    auto value = CS2Kit::Detail::Rt().Translations.Get(key, slot);
+    auto value = VoltMod::Detail::Rt().Translations.Get(key, slot);
     return value == key ? std::string(fallback) : value;
 }
 
@@ -180,4 +180,4 @@ std::string RenderCaptureOverlay(const std::string& menuTitle, std::string_view 
     return html.str();
 }
 
-}  // namespace CS2Kit::Menu
+}  // namespace VoltMod::Menu

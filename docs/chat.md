@@ -2,19 +2,19 @@
 
 [TOC]
 
-All player-facing text leaves the server through one service: `runtime.Messages` (@ref CS2Kit::Sdk::MessageSystem). It sends to the chat box, the center of the screen, the center-HTML panel, or the alert bar - same call, different @ref CS2Kit::Sdk::MessageKind. Colors are plain escape bytes you compose with `std::format` using the `ChatColors` constants.
+All player-facing text leaves the server through one service: `runtime.Messages` (@ref VoltMod::Sdk::MessageSystem). It sends to the chat box, the center of the screen, the center-HTML panel, or the alert bar - same call, different @ref VoltMod::Sdk::MessageKind. Colors are plain escape bytes you compose with `std::format` using the `ChatColors` constants.
 
 ## Sending
 
 ```cpp
-#include <CS2Kit/Api.hpp>
+#include <VoltMod/Api.hpp>
 
 auto& msg = runtime.Messages;
 
 msg.Reply(slot, "Done.");                                  // chat, to one player
-msg.Send(slot, "Watch out!", CS2Kit::MessageKind::Center); // plain center print
+msg.Send(slot, "Watch out!", VoltMod::MessageKind::Center); // plain center print
 msg.Broadcast("Server restarting in 5 minutes.");          // chat, to everyone
-msg.Broadcast("Round of the day!", CS2Kit::MessageKind::Alert);
+msg.Broadcast("Round of the day!", VoltMod::MessageKind::Alert);
 
 // Translate in the player's language, substitute tokens, reply - one call:
 msg.ReplyKey(slot, "cmd.banSuccess", {{"name", targetName}});
@@ -24,7 +24,7 @@ msg.ReplyKey(slot, "cmd.banSuccess", {{"name", targetName}});
 
 Chat sends normalize colors for you: a message that already starts with a color escape keeps it; anything else gets the default color prepended so lines don't inherit the previous line's color. (CS2 routes server-originated chat through `TextMsg` - `SayText2` from non-player sources is silently dropped.)
 
-For a *sticky* center panel that survives the client's aggressive HUD clearing, use @ref CS2Kit::Sdk::PersistentCenterHtml - see @ref sdk_messaging_guide.
+For a *sticky* center panel that survives the client's aggressive HUD clearing, use @ref VoltMod::Sdk::PersistentCenterHtml - see @ref sdk_messaging_guide.
 
 ## Color constants
 
@@ -53,7 +53,7 @@ Names sharing a byte are aliases - pick whichever reads better. Byte values mirr
 ## Composing colored text
 
 ```cpp
-using namespace CS2Kit::Core;
+using namespace VoltMod::Core;
 
 auto line = std::format(
     "{}[ADMIN]{} {}{}{} kicked {} for {}{}",

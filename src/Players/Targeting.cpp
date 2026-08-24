@@ -1,10 +1,10 @@
-#include <CS2Kit/Core/SteamId.hpp>
-#include <CS2Kit/Core/StringUtils.hpp>
-#include <CS2Kit/Players/Targeting.hpp>
+#include <VoltMod/Core/SteamId.hpp>
+#include <VoltMod/Core/StringUtils.hpp>
+#include <VoltMod/Players/Targeting.hpp>
 #include <algorithm>
 #include <charconv>
 
-namespace CS2Kit::Players
+namespace VoltMod::Players
 {
 
 using Core::SteamId;
@@ -203,4 +203,4 @@ std::expected<std::vector<int>, TargetFailure> FilterRoster(std::span<const Play
     return slots;
 }
 
-}  // namespace CS2Kit::Players
+}  // namespace VoltMod::Players

@@ -1,11 +1,11 @@
-# Doxyfile for CS2-Kit
+# Doxyfile for VoltMod
 # Generated for Doxygen 1.10.0 with doxygen-awesome-css theme
 
 #---------------------------------------------------------------------------
 # Project
 #---------------------------------------------------------------------------
 
-PROJECT_NAME           = "CS2-Kit"
+PROJECT_NAME           = "VoltMod"
 PROJECT_NUMBER         =
 PROJECT_BRIEF          = "C++23 library for CS2 Metamod:Source plugin"
 PROJECT_LOGO           =

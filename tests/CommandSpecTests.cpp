@@ -1,7 +1,7 @@
-#include <CS2Kit/Commands/CommandSpec.hpp>
+#include <VoltMod/Commands/CommandSpec.hpp>
 #include <doctest/doctest.h>
 
-using namespace CS2Kit::Commands;
+using namespace VoltMod::Commands;
 
 TEST_CASE("A spec is reachable only from the surfaces it declares")
 {

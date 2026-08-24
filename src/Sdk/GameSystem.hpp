@@ -30,7 +30,7 @@ public:
     virtual void unk_10() = 0;
 };
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
 
 class PrecacheService;
@@ -133,4 +133,4 @@ private:
     PrecacheService& _owner;
 };
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

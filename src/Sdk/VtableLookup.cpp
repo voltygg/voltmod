@@ -2,7 +2,7 @@
 
 #include "Sdk/SigScanner.hpp"
 
-#include <CS2Kit/Core/Log.hpp>
+#include <VoltMod/Core/Log.hpp>
 #include <cstddef>
 #include <cstring>
 #include <string>
@@ -15,10 +15,10 @@
 #include <unistd.h>
 #endif
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
 
-using namespace CS2Kit::Core;
+using namespace VoltMod::Core;
 
 namespace
 {
@@ -266,4 +266,4 @@ void* FindVirtualTable(const char* moduleName, const char* className)
     return vtable;
 }
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

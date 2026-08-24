@@ -1,26 +1,26 @@
-#include <CS2Kit/Core/Log.hpp>
-#include <CS2Kit/Core/Slot.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/GameData.hpp>
-#include <CS2Kit/Sdk/GameEventService.hpp>
-#include <CS2Kit/Sdk/GameInterfaces.hpp>
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/GameData.hpp>
+#include <VoltMod/Sdk/GameEventService.hpp>
+#include <VoltMod/Sdk/GameInterfaces.hpp>
 #include <bit>
 #include <playerslot.h>
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
 
-using namespace CS2Kit::Core;
+using namespace VoltMod::Core;
 
 bool GameEventService::Initialize()
 {
-    if (void* legacyListener = CS2Kit::Detail::Rt().GameData.FindSignature("LegacyGameEventListener"))
+    if (void* legacyListener = VoltMod::Detail::Rt().GameData.FindSignature("LegacyGameEventListener"))
         _getLegacyListener = std::bit_cast<GetLegacyGameEventListenerFn>(legacyListener);
     else
         Log::Warn("LegacyGameEventListener signature not found; per-client event delivery unavailable.");
 
-    if (!CS2Kit::Detail::Rt().Interfaces.GameEventManager)
+    if (!VoltMod::Detail::Rt().Interfaces.GameEventManager)
     {
         Log::Warn("GameEventService: IGameEventManager2 not available.");
         return false;
@@ -40,7 +40,7 @@ IGameEventListener2* GameEventService::GetClientLegacyListener(int slot) const
 
 bool GameEventService::ClientListensTo(int slot, const char* eventName) const
 {
-    auto* mgr = CS2Kit::Detail::Rt().Interfaces.GameEventManager;
+    auto* mgr = VoltMod::Detail::Rt().Interfaces.GameEventManager;
     auto* listener = GetClientLegacyListener(slot);
     if (!mgr || !listener || !eventName)
         return false;
@@ -50,7 +50,7 @@ bool GameEventService::ClientListensTo(int slot, const char* eventName) const
 
 IGameEvent* GameEventService::CreateEvent(const char* name)
 {
-    auto* mgr = CS2Kit::Detail::Rt().Interfaces.GameEventManager;
+    auto* mgr = VoltMod::Detail::Rt().Interfaces.GameEventManager;
     if (!mgr)
         return nullptr;
 
@@ -59,7 +59,7 @@ IGameEvent* GameEventService::CreateEvent(const char* name)
 
 bool GameEventService::FireEvent(IGameEvent* event, bool dontBroadcast)
 {
-    auto* mgr = CS2Kit::Detail::Rt().Interfaces.GameEventManager;
+    auto* mgr = VoltMod::Detail::Rt().Interfaces.GameEventManager;
     if (!mgr || !event)
         return false;
 
@@ -68,14 +68,14 @@ bool GameEventService::FireEvent(IGameEvent* event, bool dontBroadcast)
 
 void GameEventService::FreeEvent(IGameEvent* event)
 {
-    auto* mgr = CS2Kit::Detail::Rt().Interfaces.GameEventManager;
+    auto* mgr = VoltMod::Detail::Rt().Interfaces.GameEventManager;
     if (mgr && event)
         mgr->FreeEvent(event);
 }
 
 Core::Subscription GameEventService::Listen(const char* eventName, EventCallback callback)
 {
-    auto* mgr = CS2Kit::Detail::Rt().Interfaces.GameEventManager;
+    auto* mgr = VoltMod::Detail::Rt().Interfaces.GameEventManager;
     if (!mgr)
         return {};
 
@@ -89,7 +89,7 @@ Core::Subscription GameEventService::Listen(const char* eventName, EventCallback
 
 void GameEventService::OnServerStartup()
 {
-    auto* mgr = CS2Kit::Detail::Rt().Interfaces.GameEventManager;
+    auto* mgr = VoltMod::Detail::Rt().Interfaces.GameEventManager;
     if (!mgr || _registeredEvents.empty())
         return;
 
@@ -109,7 +109,7 @@ void GameEventService::OnServerStartup()
 
 void GameEventService::RemoveAllListeners()
 {
-    if (auto* mgr = CS2Kit::Detail::Rt().Interfaces.GameEventManager)
+    if (auto* mgr = VoltMod::Detail::Rt().Interfaces.GameEventManager)
         mgr->RemoveListener(this);  // detaches this listener from every event in one call
 
     _registeredEvents.clear();
@@ -131,4 +131,4 @@ void GameEventService::FireGameEvent(IGameEvent* event)
                           [&](RegisteredListener& l) { l.Callback(event); });
 }
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

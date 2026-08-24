@@ -1,25 +1,25 @@
-#include <CS2Kit/Core/Log.hpp>
-#include <CS2Kit/Core/MetamodGlobals.hpp>
-#include <CS2Kit/Core/Slot.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/Entity.hpp>
-#include <CS2Kit/Sdk/GameData.hpp>
-#include <CS2Kit/Sdk/MovementHook.hpp>
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/MetamodGlobals.hpp>
+#include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/Entity.hpp>
+#include <VoltMod/Sdk/GameData.hpp>
+#include <VoltMod/Sdk/MovementHook.hpp>
 #include <algorithm>
 #include <cs_usercmd.pb.h>
 #include <cstring>
 
 PLUGIN_GLOBALVARS();
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
-using namespace CS2Kit::Core;
+using namespace VoltMod::Core;
 
 // void* return/param stand in for the real CPlayer_MovementServices::RunCommand(CUserCmd*)
 // signature - a pre/post observer never touches either. The vtable index is reconfigured
 // from gamedata at install time.
-SH_DECL_MANUALHOOK1(CS2Kit_MovementRunCommand, 0, 0, 0, void*, void*);
+SH_DECL_MANUALHOOK1(VoltMod_MovementRunCommand, 0, 0, 0, void*, void*);
 
 // Far above the real value (8), only to catch drifted or hand-edited gamedata before it turns into
 // a read past the CUserCmd object.
@@ -30,7 +30,7 @@ bool MovementHook::Install()
     if (_installed)
         return true;
 
-    int index = CS2Kit::Detail::Rt().GameData.GetOffset("RunCommand");
+    int index = VoltMod::Detail::Rt().GameData.GetOffset("RunCommand");
     if (index < 0)
     {
         Log::Warn("MovementHook: gamedata offset 'RunCommand' missing; hook disabled.");
@@ -41,17 +41,17 @@ bool MovementHook::Install()
     // plain manual hook would only fire for the one registered instance.
     void* instance = nullptr;
     for (int slot = 0; slot < Core::MaxPlayers && !instance; ++slot)
-        instance = CS2Kit::Detail::Rt().Entities.GetPlayerMovementServices(slot);
+        instance = VoltMod::Detail::Rt().Entities.GetPlayerMovementServices(slot);
     if (!instance)
         return false;
 
-    _pbOffset = CS2Kit::Detail::Rt().GameData.GetOffset("UserCmdPB");
+    _pbOffset = VoltMod::Detail::Rt().GameData.GetOffset("UserCmdPB");
     if (_pbOffset < 0)
         Log::Warn("MovementHook: gamedata offset 'UserCmdPB' missing; cmd listeners get Valid=false views.");
 
     // Read as a raw byte offset into the CUserCmd object, so an implausible value is an
     // out-of-bounds read rather than a bad number: bound it the way the other raw-offset reads do.
-    _cmdNumberOffset = CS2Kit::Detail::Rt().GameData.GetOffset("UserCmdNumber");
+    _cmdNumberOffset = VoltMod::Detail::Rt().GameData.GetOffset("UserCmdNumber");
     if (_cmdNumberOffset < 0 || _cmdNumberOffset > MaxUserCmdOffset || _cmdNumberOffset % alignof(int32_t) != 0)
     {
         Log::Warn(
@@ -63,10 +63,10 @@ bool MovementHook::Install()
 
     _movementServices.fill(nullptr);
 
-    SH_MANUALHOOK_RECONFIGURE(CS2Kit_MovementRunCommand, index, 0, 0);
-    _preHookId = SH_ADD_MANUALVPHOOK(CS2Kit_MovementRunCommand, instance,
+    SH_MANUALHOOK_RECONFIGURE(VoltMod_MovementRunCommand, index, 0, 0);
+    _preHookId = SH_ADD_MANUALVPHOOK(VoltMod_MovementRunCommand, instance,
                                      SH_MEMBER(this, &MovementHook::Hook_RunCommandPre), false);
-    _postHookId = SH_ADD_MANUALVPHOOK(CS2Kit_MovementRunCommand, instance,
+    _postHookId = SH_ADD_MANUALVPHOOK(VoltMod_MovementRunCommand, instance,
                                       SH_MEMBER(this, &MovementHook::Hook_RunCommandPost), true);
     if (_preHookId == 0 || _postHookId == 0)
     {
@@ -122,7 +122,7 @@ int MovementHook::SlotFromMovementServices(void* movementServices) const
     // engine lookup, which keeps a recycled pointer from ever resolving to the wrong slot. A hit that
     // fails to confirm is a stale entry, so it must fall through to the rescan below rather than
     // answering -1 - the address may since have been recycled into another slot's services.
-    auto& entities = CS2Kit::Detail::Rt().Entities;
+    auto& entities = VoltMod::Detail::Rt().Entities;
     for (int slot = 0; slot < Core::MaxPlayers; ++slot)
         if (_movementServices[slot] == movementServices && entities.GetPlayerMovementServices(slot) == movementServices)
             return slot;
@@ -228,4 +228,4 @@ void* MovementHook::Hook_RunCommandPost(void* /*userCmd*/)
     RETURN_META_VALUE(MRES_IGNORED, nullptr);
 }
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

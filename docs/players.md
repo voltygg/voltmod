@@ -2,13 +2,13 @@
 
 [TOC]
 
-`CS2Kit::Players` tracks connected players and turns "who does this act on?" into data: a selector grammar for command targets, and policy-checked `Action`/effect descriptors for the acting itself.
+`VoltMod::Players` tracks connected players and turns "who does this act on?" into data: a selector grammar for command targets, and policy-checked `Action`/effect descriptors for the acting itself.
 
 `Player` is deliberately minimal - identity and connection metadata only. Plugin state (admin flags, punishments, stats) belongs in your own managers, keyed by SteamID.
 
 ## Tracking
 
-With @ref CS2Kit::App::MetamodPlugin this is automatic: the base adds/removes players around your `OnPlayerConnect(Player*)` / `OnPlayerDisconnect(Player*)` overrides. Look players up through `runtime.Players`:
+With @ref VoltMod::App::MetamodPlugin this is automatic: the base adds/removes players around your `OnPlayerConnect(Player*)` / `OnPlayerDisconnect(Player*)` overrides. Look players up through `runtime.Players`:
 
 ```cpp
 auto* p = runtime.Players.GetPlayerBySlot(slot);        // O(1)
@@ -16,7 +16,7 @@ auto* q = runtime.Players.GetPlayerBySteamId(steamId);  // O(1)
 for (auto* each : runtime.Players.GetAllPlayers()) { /* ... */ }
 ```
 
-`Player` carries `GetSlot()`, `GetSteamID()`, `GetName()`, `GetIpAddress()`, `GetConnectTime()`, `GetPlaytime()` - and `Controller()`, which returns the @ref CS2Kit::Sdk::PlayerController for typed engine operations:
+`Player` carries `GetSlot()`, `GetSteamID()`, `GetName()`, `GetIpAddress()`, `GetConnectTime()`, `GetPlaytime()` - and `Controller()`, which returns the @ref VoltMod::Sdk::PlayerController for typed engine operations:
 
 ```cpp
 player->Controller().Slay();
@@ -27,21 +27,21 @@ int hp = player->Controller().GetHealth();
 
 ### Per-slot plugin state
 
-Plugin state keyed by slot has one recurring bug: values leaking from a disconnected player to the next occupant of the slot. @ref CS2Kit::Players::PerSlot solves it once - a `std::array<T, MaxPlayers>` whose entries value-reset whenever a player joins or leaves the slot (backed by @ref CS2Kit::Players::PlayerManager::ListenSlotChange, which fires on AddPlayer/RemovePlayer/Clear):
+Plugin state keyed by slot has one recurring bug: values leaking from a disconnected player to the next occupant of the slot. @ref VoltMod::Players::PerSlot solves it once - a `std::array<T, MaxPlayers>` whose entries value-reset whenever a player joins or leaves the slot (backed by @ref VoltMod::Players::PlayerManager::ListenSlotChange, which fires on AddPlayer/RemovePlayer/Clear):
 
 ```cpp
 struct MyState { int Combo = 0; float Score = 0; };
 
-CS2Kit::PerSlot<MyState> _state;   // manager member; inert until bound
+VoltMod::PerSlot<MyState> _state;   // manager member; inert until bound
 _state.BindReset();                // in Initialize(), once services are live
 _state[slot].Combo++;              // plain indexed access afterwards
 ```
 
-For time-decaying per-player scores (suspicion, rate limits), pair it with @ref CS2Kit::Core::DecayingScore - a clock-free accumulator that drains linearly between caller-supplied timestamps - or @ref CS2Kit::Core::SlidingWindowScore when the threshold is "N events in the last M seconds" and evidence should expire on a hard boundary instead of fading. Both take caller-supplied seconds; @ref CS2Kit::Core::TimeUtils::MonotonicSeconds is the matching clock. Angle bookkeeping helpers (`NormalizeAngleDelta`, `AnglesToPoint`, `AngularDistance`) live in `CS2Kit::AngleMath` (`<CS2Kit/Core/AngleMath.hpp>`); note its `AngularDistance` is a Euclidean pitch/yaw metric, not a great-circle angle, so it under-reports near the poles - consumers that need true angular separation should build it from `AnglesToPoint` and a dot product. All are unit-tested in the kit's SDK-free test suite.
+For time-decaying per-player scores (suspicion, rate limits), pair it with @ref VoltMod::Core::DecayingScore - a clock-free accumulator that drains linearly between caller-supplied timestamps - or @ref VoltMod::Core::SlidingWindowScore when the threshold is "N events in the last M seconds" and evidence should expire on a hard boundary instead of fading. Both take caller-supplied seconds; @ref VoltMod::Core::TimeUtils::MonotonicSeconds is the matching clock. Angle bookkeeping helpers (`NormalizeAngleDelta`, `AnglesToPoint`, `AngularDistance`) live in `VoltMod::AngleMath` (`<VoltMod/Core/AngleMath.hpp>`); note its `AngularDistance` is a Euclidean pitch/yaw metric, not a great-circle angle, so it under-reports near the poles - consumers that need true angular separation should build it from `AnglesToPoint` and a dot product. All are unit-tested in the kit's SDK-free test suite.
 
 ## Target resolution
 
-@ref CS2Kit::Players::ResolveTargets resolves one token to players, applying the immunity policy (`runtime.Policy.CanTarget` unless you pass your own):
+@ref VoltMod::Players::ResolveTargets resolves one token to players, applying the immunity policy (`runtime.Policy.CanTarget` unless you pass your own):
 
 ```
 @all @*        everyone                @me    yourself        @!me   everyone else
@@ -52,7 +52,7 @@ name           exact match, then prefix, then substring (case-insensitive)
 ```
 
 ```cpp
-using namespace CS2Kit::Players;
+using namespace VoltMod::Players;
 
 auto result = ResolveTargets(token, caller, {.AllowMultiple = true, .AllowBots = false});
 if (!result)
@@ -77,10 +77,10 @@ The grammar core is engine-free (`Targeting.hpp`: `ParseTargetToken` + `FilterRo
 
 ## Actions
 
-An @ref CS2Kit::Players::Action is a single-target operation as data: permission token, guards, body. The @ref CS2Kit::Players::ActionDispatcher owns the resolve → permission → immunity → run → broadcast pipeline, reading everything from `runtime.Policy` - there is nothing to wire per dispatcher:
+An @ref VoltMod::Players::Action is a single-target operation as data: permission token, guards, body. The @ref VoltMod::Players::ActionDispatcher owns the resolve → permission → immunity → run → broadcast pipeline, reading everything from `runtime.Policy` - there is nothing to wire per dispatcher:
 
 ```cpp
-using namespace CS2Kit::Players;
+using namespace VoltMod::Players;
 
 const Action Slay{"s", /*RequireAlive=*/true, [](const ActionContext& ctx) -> OptKey {
     ctx.TargetCtrl.Slay();
@@ -96,10 +96,10 @@ Actions plug directly into menu context rows (`AddActionRow`, `AddStateToggleRow
 
 ## Effects
 
-Effects are toggleable/timed per-player states - the fun-command family (ghost, disco, wallhack, custom models). An @ref CS2Kit::Core::EffectDescriptor declares the whole thing: permission, id, label key, broadcast keys, lifetime policy, and a `Setup` body that returns the `OnTick`/`OnStop` closures @ref CS2Kit::Core::EffectManager drives:
+Effects are toggleable/timed per-player states - the fun-command family (ghost, disco, wallhack, custom models). An @ref VoltMod::Core::EffectDescriptor declares the whole thing: permission, id, label key, broadcast keys, lifetime policy, and a `Setup` body that returns the `OnTick`/`OnStop` closures @ref VoltMod::Core::EffectManager drives:
 
 ```cpp
-using namespace CS2Kit;
+using namespace VoltMod;
 
 inline const EffectDescriptor Ghost{
     .Permission = "g",

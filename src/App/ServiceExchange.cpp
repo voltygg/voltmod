@@ -1,7 +1,7 @@
-#include <CS2Kit/App/MetamodPlugin.hpp>  // PLUGIN_GLOBALVARS -> g_SMAPI
-#include <CS2Kit/App/ServiceExchange.hpp>
+#include <VoltMod/App/MetamodPlugin.hpp>  // PLUGIN_GLOBALVARS -> g_SMAPI
+#include <VoltMod/App/ServiceExchange.hpp>
 
-namespace CS2Kit::App
+namespace VoltMod::App
 {
 
 void* ServiceExchange::Query(const char* iface)
@@ -14,4 +14,4 @@ void* ServiceExchange::Query(const char* iface)
     return ret == META_IFACE_OK ? impl : nullptr;
 }
 
-}  // namespace CS2Kit::App
+}  // namespace VoltMod::App

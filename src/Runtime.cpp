@@ -1,10 +1,10 @@
 #include "Core/ConsoleLogger.hpp"
 #include "Sdk/Schema.hpp"
 
-#include <CS2Kit/Core/Log.hpp>
-#include <CS2Kit/Core/Paths.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/Paths.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
 #include <ISmmAPI.h>
 #include <chrono>
 #include <cstdlib>
@@ -19,12 +19,12 @@
 #include <string_view>
 #include <tier1/convar.h>
 
-namespace CS2Kit
+namespace VoltMod
 {
 
 namespace
 {
-constexpr const char* DefaultGameDataPath = "addons/cs2-kit/gamedata/signatures.jsonc";
+constexpr const char* DefaultGameDataPath = "addons/voltmod/gamedata/signatures.jsonc";
 Core::ConsoleLogger g_consoleLogger;
 Runtime* g_active = nullptr;
 }  // namespace
@@ -43,7 +43,7 @@ Runtime& Rt()
     {
         // Release builds would otherwise take a null dereference into a Metamod crash dump
         // with no context. Name the mistake instead: this is always a lifetime bug.
-        Core::Log::Error("CS2Kit::Detail::Rt() called with no live Runtime (outside Load/Unload).");
+        Core::Log::Error("VoltMod::Detail::Rt() called with no live Runtime (outside Load/Unload).");
         std::abort();
     }
     return *g_active;
@@ -111,7 +111,7 @@ bool Runtime::Start(const LoadContext& context)
     // 2. Set base directory for path resolution
     Core::SetBaseDir(ismm->GetBaseDir());
 
-    Core::Log::Info("Initializing CS2Kit...");
+    Core::Log::Info("Initializing VoltMod...");
 
     // 3. Resolve SDK interfaces via Metamod
     auto resolveEngine = [&](const char* version) -> void* {
@@ -126,7 +126,7 @@ bool Runtime::Start(const LoadContext& context)
     // Resolve each required interface, erroring out on the first one that is missing. The macro
     // keeps this type-safe (decltype, no void** punning) while collapsing the per-interface
     // resolve-and-check boilerplate to one line each.
-#define CS2KIT_RESOLVE(field, factory, version)                                               \
+#define VOLTMOD_RESOLVE(field, factory, version)                                               \
     gi.field = static_cast<decltype(gi.field)>(factory(version));                             \
     if (!gi.field)                                                                            \
     {                                                                                         \
@@ -134,21 +134,21 @@ bool Runtime::Start(const LoadContext& context)
         return false;                                                                         \
     }
 
-    CS2KIT_RESOLVE(ServerGameDLL, resolveServer, INTERFACEVERSION_SERVERGAMEDLL)
-    CS2KIT_RESOLVE(ServerGameClients, resolveServer, INTERFACEVERSION_SERVERGAMECLIENTS)
-    CS2KIT_RESOLVE(NetworkServerService, resolveEngine, NETWORKSERVERSERVICE_INTERFACE_VERSION)
-    CS2KIT_RESOLVE(GameEntities, resolveServer, INTERFACEVERSION_SERVERGAMEENTS)
-    CS2KIT_RESOLVE(Engine, resolveEngine, INTERFACEVERSION_VENGINESERVER)
-    CS2KIT_RESOLVE(GameEventSystem, resolveEngine, GAMEEVENTSYSTEM_INTERFACE_VERSION)
-    CS2KIT_RESOLVE(NetworkMessages, resolveEngine, NETWORKMESSAGES_INTERFACE_VERSION)
-    CS2KIT_RESOLVE(SchemaSystem, resolveEngine, SCHEMASYSTEM_INTERFACE_VERSION)
-    CS2KIT_RESOLVE(CVar, resolveEngine, CVAR_INTERFACE_VERSION)
-    CS2KIT_RESOLVE(GameResourceService, resolveEngine, GAMERESOURCESERVICESERVER_INTERFACE_VERSION)
+    VOLTMOD_RESOLVE(ServerGameDLL, resolveServer, INTERFACEVERSION_SERVERGAMEDLL)
+    VOLTMOD_RESOLVE(ServerGameClients, resolveServer, INTERFACEVERSION_SERVERGAMECLIENTS)
+    VOLTMOD_RESOLVE(NetworkServerService, resolveEngine, NETWORKSERVERSERVICE_INTERFACE_VERSION)
+    VOLTMOD_RESOLVE(GameEntities, resolveServer, INTERFACEVERSION_SERVERGAMEENTS)
+    VOLTMOD_RESOLVE(Engine, resolveEngine, INTERFACEVERSION_VENGINESERVER)
+    VOLTMOD_RESOLVE(GameEventSystem, resolveEngine, GAMEEVENTSYSTEM_INTERFACE_VERSION)
+    VOLTMOD_RESOLVE(NetworkMessages, resolveEngine, NETWORKMESSAGES_INTERFACE_VERSION)
+    VOLTMOD_RESOLVE(SchemaSystem, resolveEngine, SCHEMASYSTEM_INTERFACE_VERSION)
+    VOLTMOD_RESOLVE(CVar, resolveEngine, CVAR_INTERFACE_VERSION)
+    VOLTMOD_RESOLVE(GameResourceService, resolveEngine, GAMERESOURCESERVICESERVER_INTERFACE_VERSION)
 
-#undef CS2KIT_RESOLVE
+#undef VOLTMOD_RESOLVE
 
     // 4. Set g_pCVar and flush pending registrations; without ConVar_Register, tier1 ConCommands
-    // (CS2Kit::ServerCommand) construct but never register, so the engine reports "Unknown command".
+    // (VoltMod::ServerCommand) construct but never register, so the engine reports "Unknown command".
     g_pCVar = gi.CVar;
     ConVar_Register(FCVAR_RELEASE | FCVAR_CLIENT_CAN_EXECUTE | FCVAR_SERVER_CAN_EXECUTE | FCVAR_GAMEDLL);
 
@@ -191,7 +191,7 @@ bool Runtime::Start(const LoadContext& context)
     degradable("EntityOps", "unavailable; spawned effects degrade (see signature warnings)",
                [&] { return EntityOps.Initialize(); });
     degradable("Precache", "not registered; resource precaching unavailable",
-               [&] { return Precache.Initialize(std::format("{}_CS2KitPrecache", context.LogPrefix)); });
+               [&] { return Precache.Initialize(std::format("{}_VoltModPrecache", context.LogPrefix)); });
     degradable("GameEventManager", "not resolved; center HTML display will not work",
                [&] { return Messages.InitGameEventManager(); });
     degradable("ConVars", "init failed", [&] { return ConVars.Initialize(); });
@@ -256,4 +256,4 @@ void Runtime::OnPlayerDisconnect(int slot)
     ClientCvars.OnPlayerDisconnect(slot);
 }
 
-}  // namespace CS2Kit
+}  // namespace VoltMod

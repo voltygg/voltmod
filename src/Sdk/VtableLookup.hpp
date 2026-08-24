@@ -1,6 +1,6 @@
 #pragma once
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
 
 /**
@@ -19,4 +19,4 @@ namespace CS2Kit::Sdk
  */
 void* FindVirtualTable(const char* moduleName, const char* className);
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

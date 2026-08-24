@@ -2,14 +2,14 @@
 
 #include "Config.hpp"
 
-#include <CS2Kit/Api.hpp>
-#include <CS2Kit/Core/PluginInfoStamp.hpp>
+#include <VoltMod/Api.hpp>
+#include <VoltMod/Core/PluginInfoStamp.hpp>
 
-CS2KIT_PLUGIN($klass);
+VOLTMOD_PLUGIN($klass);
 
-CS2Kit::PluginInfo $klass::Info() const
+VoltMod::PluginInfo $klass::Info() const
 {
-    return CS2Kit::WithBuildInfo({
+    return VoltMod::WithBuildInfo({
         .Name = "$title",
         .Author = "TODO",
         .Description = "TODO",
@@ -17,7 +17,7 @@ CS2Kit::PluginInfo $klass::Info() const
     });
 }
 
-bool $klass::OnLoad(CS2Kit::Runtime& runtime, bool late)
+bool $klass::OnLoad(VoltMod::Runtime& runtime, bool late)
 {
     _app.emplace(runtime);
     return _app->Start();

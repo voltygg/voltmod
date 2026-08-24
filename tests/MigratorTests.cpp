@@ -1,7 +1,7 @@
-#include <CS2Kit/Database/Migrator.hpp>
+#include <VoltMod/Database/Migrator.hpp>
 #include <doctest/doctest.h>
 
-using CS2Kit::Database::ParseMigrationVersion;
+using VoltMod::Database::ParseMigrationVersion;
 
 TEST_CASE("ParseMigrationVersion: leading integer")
 {

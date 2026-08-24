@@ -1,8 +1,8 @@
-#include <CS2Kit/Core/ScheduledEffect.hpp>
-#include <CS2Kit/Core/Scheduler.hpp>
+#include <VoltMod/Core/ScheduledEffect.hpp>
+#include <VoltMod/Core/Scheduler.hpp>
 #include <utility>
 
-namespace CS2Kit::Core
+namespace VoltMod::Core
 {
 
 struct ScheduledEffect::State
@@ -81,4 +81,4 @@ bool ScheduledEffect::Active() const
     return _state && !_state->stopped;
 }
 
-}  // namespace CS2Kit::Core
+}  // namespace VoltMod::Core

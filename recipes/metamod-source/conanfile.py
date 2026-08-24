@@ -46,7 +46,7 @@ class MetamodSourceConan(ConanFile):
 
     def package_info(self):
         self.cpp_info.set_property("cmake_file_name", "metamod-source")
-        self.cpp_info.set_property("cmake_target_name", "CS2Kit::Metamod")
+        self.cpp_info.set_property("cmake_target_name", "VoltMod::Metamod")
         self.cpp_info.includedirs = ["core", "core/sourcehook"]
         self.cpp_info.bindirs = []
         self.cpp_info.libdirs = []

@@ -1,18 +1,18 @@
-#include <CS2Kit/Commands/CommandManager.hpp>
-#include <CS2Kit/Core/Log.hpp>
-#include <CS2Kit/Core/StringUtils.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Players/TargetResolver.hpp>
-#include <CS2Kit/Runtime.hpp>
+#include <VoltMod/Commands/CommandManager.hpp>
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/StringUtils.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Players/TargetResolver.hpp>
+#include <VoltMod/Runtime.hpp>
 #include <algorithm>
 #include <charconv>
 #include <convar.h>
 #include <limits>
 
-namespace CS2Kit::Commands
+namespace VoltMod::Commands
 {
 
-using namespace CS2Kit::Core;
+using namespace VoltMod::Core;
 
 namespace
 {
@@ -28,7 +28,7 @@ std::optional<int64_t> ParseInt64(const std::string& text)
 
 std::string TargetErrorMessage(const Players::TargetFailure& failure, const std::string& token, int slot)
 {
-    auto& tr = CS2Kit::Detail::Rt().Translations;
+    auto& tr = VoltMod::Detail::Rt().Translations;
     switch (failure.Error)
     {
     case Players::TargetError::Immune:
@@ -154,13 +154,13 @@ bool CommandManager::HandleChatMessage(Players::Player* caller, std::string_view
     if (!cmd || !ReachableFrom(*cmd, Surface::Chat))
         return false;
 
-    auto& policy = CS2Kit::Detail::Rt().Policy;
+    auto& policy = VoltMod::Detail::Rt().Policy;
     const int slot = caller->GetSlot();
     Dispatch(*cmd, caller, std::move(args), [&](const std::string& msg) {
         if (policy.Reply)
             policy.Reply(slot, msg);
         else
-            CS2Kit::Detail::Rt().Messages.Reply(slot, msg);
+            VoltMod::Detail::Rt().Messages.Reply(slot, msg);
     });
 
     return true;
@@ -171,7 +171,7 @@ void CommandManager::Dispatch(const CommandSpec& cmd, Players::Player* caller, s
 {
     // Console has no player and so no language of its own; slot -1 resolves the server language.
     const int slot = caller ? caller->GetSlot() : -1;
-    auto& tr = CS2Kit::Detail::Rt().Translations;
+    auto& tr = VoltMod::Detail::Rt().Translations;
     const auto say = [&](const std::string& msg) {
         if (!msg.empty())
             reply(msg);
@@ -189,7 +189,7 @@ void CommandManager::Dispatch(const CommandSpec& cmd, Players::Player* caller, s
     // to check, and nothing above it to deny it.
     if (caller && !cmd.Permission.empty())
     {
-        auto& policy = CS2Kit::Detail::Rt().Policy;
+        auto& policy = VoltMod::Detail::Rt().Policy;
 
         // No policy means no way to tell an admin from anyone else, so the only safe answer is
         // no. Warn once per command: a plugin that declares permissions and forgets to install
@@ -237,7 +237,7 @@ void CommandManager::Dispatch(const CommandSpec& cmd, Players::Player* caller, s
 bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::string>& args, CommandContext& ctx,
                                  std::string& outError) const
 {
-    auto& tr = CS2Kit::Detail::Rt().Translations;
+    auto& tr = VoltMod::Detail::Rt().Translations;
     const int slot = ctx.CallerSlot();
     std::size_t i = 0;
 
@@ -354,7 +354,7 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
 
 std::vector<std::string> CommandManager::CommandsMissingPolicy() const
 {
-    if (CS2Kit::Detail::Rt().Policy.HasPermission)
+    if (VoltMod::Detail::Rt().Policy.HasPermission)
         return {};
 
     std::vector<std::string> names;
@@ -404,4 +404,4 @@ std::vector<std::string> CommandManager::ParseArguments(const std::string& text)
     return parts;
 }
 
-}  // namespace CS2Kit::Commands
+}  // namespace VoltMod::Commands

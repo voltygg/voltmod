@@ -1,11 +1,11 @@
-#include <CS2Kit/Core/ILogger.hpp>
+#include <VoltMod/Core/ILogger.hpp>
 #include <deque>
 #include <mutex>
 #include <thread>
 #include <utility>
 #include <vector>
 
-namespace CS2Kit::Core
+namespace VoltMod::Core
 {
 
 namespace
@@ -84,4 +84,4 @@ void DrainDeferredLogs()
         Write(*g_logger, level, message);
 }
 
-}  // namespace CS2Kit::Core
+}  // namespace VoltMod::Core

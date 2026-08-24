@@ -1,10 +1,10 @@
 #pragma once
 
-#include <CS2Kit/Menu/Menu.hpp>
+#include <VoltMod/Menu/Menu.hpp>
 #include <string>
 #include <string_view>
 
-namespace CS2Kit::Menu
+namespace VoltMod::Menu
 {
 /** Renders the HTML for a menu, including its items and layout. */
 std::string RenderMenuHtml(const MenuView* menu, int slot, int selectedIndex, bool isSubmenu);
@@ -25,4 +25,4 @@ std::string DefaultHeader(const std::string& title, int currentPage, int totalPa
  */
 std::string DefaultFooter(bool isSubmenu, bool isPaginated, bool usesHorizontal, int slot);
 
-}  // namespace CS2Kit::Menu
+}  // namespace VoltMod::Menu

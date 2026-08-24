@@ -1,12 +1,12 @@
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Menu/Menu.hpp>
-#include <CS2Kit/Menu/MenuManager.hpp>
-#include <CS2Kit/Menu/Options/InputOption.hpp>
-#include <CS2Kit/Menu/Options/SubmenuOption.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/ChatInputCapture.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Menu/Menu.hpp>
+#include <VoltMod/Menu/MenuManager.hpp>
+#include <VoltMod/Menu/Options/InputOption.hpp>
+#include <VoltMod/Menu/Options/SubmenuOption.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/ChatInputCapture.hpp>
 
-namespace CS2Kit::Menu
+namespace VoltMod::Menu
 {
 
 void SubmenuOption::OnActivate(int slot)
@@ -16,7 +16,7 @@ void SubmenuOption::OnActivate(int slot)
 
     auto submenu = _factory(slot);
     if (submenu)
-        CS2Kit::Detail::Rt().Menus.OpenMenu(slot, submenu);
+        VoltMod::Detail::Rt().Menus.OpenMenu(slot, submenu);
 }
 
 void InputOption::OnActivate(int slot)
@@ -27,7 +27,7 @@ void InputOption::OnActivate(int slot)
     auto setter = _set;
     int maxLen = _maxLength;
 
-    CS2Kit::Detail::Rt().ChatInput.BeginCapture(slot, _prompt, [setter, maxLen](int s, std::string_view text) -> bool {
+    VoltMod::Detail::Rt().ChatInput.BeginCapture(slot, _prompt, [setter, maxLen](int s, std::string_view text) -> bool {
         if (maxLen > 0 && static_cast<int>(text.size()) > maxLen)
             return false;
         if (!setter)
@@ -36,4 +36,4 @@ void InputOption::OnActivate(int slot)
     });
 }
 
-}  // namespace CS2Kit::Menu
+}  // namespace VoltMod::Menu

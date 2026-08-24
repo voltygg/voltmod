@@ -4,7 +4,7 @@
 
 ## Overview
 
-`CS2Kit::Sdk` is the engine wrapper layer - typed classes over the HL2SDK interfaces so plugin code doesn't juggle raw pointers and reversed offsets.
+`VoltMod::Sdk` is the engine wrapper layer - typed classes over the HL2SDK interfaces so plugin code doesn't juggle raw pointers and reversed offsets.
 
 The guide is split by topic:
 
@@ -19,12 +19,12 @@ The guide is split by topic:
 
 ## GameInterfaces
 
-Centralized holder for all SDK interface pointers. Automatically populated by `CS2Kit::Initialize()` - no manual setup needed.
+Centralized holder for all SDK interface pointers. Automatically populated by `VoltMod::Initialize()` - no manual setup needed.
 
 ```cpp
-#include <CS2Kit/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
 
-// After CS2Kit::Initialize(), all interfaces are available:
+// After VoltMod::Initialize(), all interfaces are available:
 auto& gi = runtime.Interfaces;
 auto* engine = gi.Engine;       // IVEngineServer2*
 auto* cvar = gi.CVar;           // ICvar*

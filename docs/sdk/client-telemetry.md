@@ -9,7 +9,7 @@ Three read-only views on a client that sit outside the movement path: the clock 
 Free functions, not a service (`Sdk/ServerClock.hpp`) - they hold no state and read `IVEngineServer2::GetServerGlobals()` on every call:
 
 ```cpp
-using namespace CS2Kit::Sdk;
+using namespace VoltMod::Sdk;
 
 const int tick = ServerTick();     // globals->tickcount
 const float now = ServerTime();    // globals->curtime, seconds
@@ -19,7 +19,7 @@ This is the timestamp source for anything that has to line up with the tick the 
 
 Two consequences to respect:
 
-- Both **reset when a map starts**. A value persisted across a map change compares as absurdly far in the future; drop stamps at map start rather than carrying them (this is what @ref CS2Kit::Sdk::TeleportTracker "TeleportTracker" does).
+- Both **reset when a map starts**. A value persisted across a map change compares as absurdly far in the future; drop stamps at map start rather than carrying them (this is what @ref VoltMod::Sdk::TeleportTracker "TeleportTracker" does).
 - Both return `0` when the globals are unavailable (before load, after shutdown), and `GetServerGlobals()` returns `nullptr` there. `0` therefore reads as "unknown", not "the beginning of the map".
 
 ## NetChannelService
@@ -43,8 +43,8 @@ if (const char* sens = net.GetUserInfoCvar(slot, "sensitivity"))
 
 ```cpp
 runtime.ClientCvars.Query(slot, "cl_interp_ratio",
-    [](int slot, CS2Kit::ClientCvarStatus status, std::string_view name, std::string_view value) {
-        if (status == CS2Kit::ClientCvarStatus::ValueIntact)
+    [](int slot, VoltMod::ClientCvarStatus status, std::string_view name, std::string_view value) {
+        if (status == VoltMod::ClientCvarStatus::ValueIntact)
             Log::Info("{} answered {} = {}", slot, name, value);
     });
 ```
@@ -78,4 +78,4 @@ The service is a **degradable load stage** (`ClientCvars`). It needs two gamedat
 | `ProcessRespondCvarValue` | vtable index of the response handler | Sanity-bounded at init, so the stage degrades instead of hooking an unrelated vfunc |
 | `ServerSideClientSlot` | byte offset of the player slot inside `CServerSideClient` | Sanity-bounded too; unchecked it would attribute answers to the wrong player |
 
-Both drift with engine updates - see @ref sdk_gamedata_guide. When any part of the setup fails the kit logs one warning, the load continues, @ref CS2Kit::Sdk::ClientCvarService::Available "Available()" stays false, and every `Query()` returns false. Check `Available()` once at load rather than treating each `false` from `Query()` as a per-call failure.
+Both drift with engine updates - see @ref sdk_gamedata_guide. When any part of the setup fails the kit logs one warning, the load continues, @ref VoltMod::Sdk::ClientCvarService::Available "Available()" stays false, and every `Query()` returns false. Check `Available()` once at load rather than treating each `false` from `Query()` as a per-call failure.

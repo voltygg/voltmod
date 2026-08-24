@@ -1,11 +1,11 @@
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Players/PlayerManager.hpp>
-#include <CS2Kit/Players/TargetResolver.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/PlayerController.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Players/PlayerManager.hpp>
+#include <VoltMod/Players/TargetResolver.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/PlayerController.hpp>
 #include <random>
 
-namespace CS2Kit::Players
+namespace VoltMod::Players
 {
 
 std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(std::string_view token, Player* caller,
@@ -15,8 +15,8 @@ std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(std::string_vi
     if (token.empty())
         return std::unexpected(TargetFailure{TargetError::NoMatch});
 
-    auto& mgr = CS2Kit::Detail::Rt().Players;
-    const CanTargetFn& policy = canTarget ? canTarget : CS2Kit::Detail::Rt().Policy.CanTarget;
+    auto& mgr = VoltMod::Detail::Rt().Players;
+    const CanTargetFn& policy = canTarget ? canTarget : VoltMod::Detail::Rt().Policy.CanTarget;
 
     // Snapshot the roster into engine-free views; FilterRoster owns the grammar semantics.
     std::vector<PlayerView> roster;
@@ -51,4 +51,4 @@ std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(std::string_vi
     return players;
 }
 
-}  // namespace CS2Kit::Players
+}  // namespace VoltMod::Players

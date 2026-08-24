@@ -1,8 +1,8 @@
 {
   "remotes": [
     {
-      "name": "voltygg",
-      "url": "https://conan.cloudsmith.io/voltygg/cs2-kit/",
+      "name": "volty",
+      "url": "https://conan.cloudsmith.io/volty/voltmod/",
       "verify_ssl": true
     },
     {

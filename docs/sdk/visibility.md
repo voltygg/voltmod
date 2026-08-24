@@ -7,7 +7,7 @@
 Mutate `m_nRenderMode` and `m_clrRender` on any `CBaseModelEntity`. Used internally by `PlayerController::SetVisible`, but exposed so plugins can hide/recolor any entity (props, dropped weapons, world objects).
 
 ```cpp
-using namespace CS2Kit::Sdk;
+using namespace VoltMod::Sdk;
 
 SetEntityRender(prop, RenderMode_t::TransTexture, ColorInvisible);
 SetEntityRender(prop, RenderMode_t::Normal, ColorOpaqueWhite);
@@ -46,7 +46,7 @@ Requires the `CheckTransmitPlayerSlot` gamedata offset (the recipient slot insid
 Per-viewer wallhack-style vision built on the TransmitFilter: one client sees live players as team-colored glow outlines through walls, while every other client (and GOTV) never receives the glow entities - invisible to them by construction, not by rendering tricks. Each glowing player gets two `prop_dynamic` clones following their pawn - an invisible relay and a glow prop parented to it (the indirection renders only the outline) - both transmit-filtered exclusively to the beneficiary.
 
 ```cpp
-using CS2Kit::Sdk::GlowVision;
+using VoltMod::Sdk::GlowVision;
 
 auto glow = std::make_shared<GlowVision>(viewerSlot);
 glow->Reconcile();  // build the clones immediately

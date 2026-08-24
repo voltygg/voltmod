@@ -1,9 +1,9 @@
-#include <CS2Kit/Core/Json.hpp>
-#include <CS2Kit/Core/StringUtils.hpp>
-#include <CS2Kit/Http/RestJsonApi.hpp>
+#include <VoltMod/Core/Json.hpp>
+#include <VoltMod/Core/StringUtils.hpp>
+#include <VoltMod/Http/RestJsonApi.hpp>
 #include <utility>
 
-namespace CS2Kit::Http
+namespace VoltMod::Http
 {
 
 using Core::Json;
@@ -86,4 +86,4 @@ void Get(HttpClient& client, HttpRequest request, HttpCompletion onComplete)
     client.Get(std::move(request.Url), std::move(request.Headers), request.TimeoutMs, std::move(onComplete));
 }
 
-}  // namespace CS2Kit::Http
+}  // namespace VoltMod::Http

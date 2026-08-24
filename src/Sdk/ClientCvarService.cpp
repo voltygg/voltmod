@@ -1,15 +1,15 @@
 #include "Sdk/VtableLookup.hpp"
 
-#include <CS2Kit/Core/Log.hpp>
-#include <CS2Kit/Core/MetamodGlobals.hpp>
-#include <CS2Kit/Core/Slot.hpp>
-#include <CS2Kit/Core/TimeUtils.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/ClientCvarService.hpp>
-#include <CS2Kit/Sdk/Detail/ClientCvarPending.hpp>
-#include <CS2Kit/Sdk/GameData.hpp>
-#include <CS2Kit/Sdk/GameInterfaces.hpp>
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/MetamodGlobals.hpp>
+#include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Core/TimeUtils.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/ClientCvarService.hpp>
+#include <VoltMod/Sdk/Detail/ClientCvarPending.hpp>
+#include <VoltMod/Sdk/GameData.hpp>
+#include <VoltMod/Sdk/GameInterfaces.hpp>
 #include <cstdint>
 #include <cstring>
 #include <engine/igameeventsystem.h>
@@ -20,14 +20,14 @@
 
 PLUGIN_GLOBALVARS();
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
-using namespace CS2Kit::Core;
+using namespace VoltMod::Core;
 
 // CServerSideClient::ProcessRespondCvarValue(const CNetMessagePB<CCLCMsg_RespondCvarValue>&); the
 // vtable index is reconfigured from gamedata at Initialize time. Bound to the class vtable
 // (DVP hook), so it fires for every connected client without needing per-instance bindings.
-SH_DECL_MANUALHOOK1(CS2Kit_ProcessRespondCvarValue, 0, 0, 0, bool, const CNetMessagePB<CCLCMsg_RespondCvarValue>&);
+SH_DECL_MANUALHOOK1(VoltMod_ProcessRespondCvarValue, 0, 0, 0, bool, const CNetMessagePB<CCLCMsg_RespondCvarValue>&);
 
 namespace
 {
@@ -77,7 +77,7 @@ bool ClientCvarService::Impl::Initialize()
     if (_hookId != 0)
         return true;
 
-    auto& services = CS2Kit::Detail::Rt();
+    auto& services = VoltMod::Detail::Rt();
     const auto& interfaces = services.Interfaces;
     if (!interfaces.Engine || !interfaces.NetworkMessages || !interfaces.GameEventSystem)
     {
@@ -112,8 +112,8 @@ bool ClientCvarService::Impl::Initialize()
     if (!vtable)
         return false;  // FindVirtualTable already logged which step failed
 
-    SH_MANUALHOOK_RECONFIGURE(CS2Kit_ProcessRespondCvarValue, vtableIndex, 0, 0);
-    _hookId = SH_ADD_MANUALDVPHOOK(CS2Kit_ProcessRespondCvarValue, vtable,
+    SH_MANUALHOOK_RECONFIGURE(VoltMod_ProcessRespondCvarValue, vtableIndex, 0, 0);
+    _hookId = SH_ADD_MANUALDVPHOOK(VoltMod_ProcessRespondCvarValue, vtable,
                                    SH_MEMBER(this, &Impl::Hook_ProcessRespondCvarValue), true);
     if (_hookId == 0)
     {
@@ -165,7 +165,7 @@ bool ClientCvarService::Impl::Query(int slot, const std::string& cvarName, Query
 
 bool ClientCvarService::Impl::Send(int slot, const std::string& cvarName, int cookie)
 {
-    const auto& interfaces = CS2Kit::Detail::Rt().Interfaces;
+    const auto& interfaces = VoltMod::Detail::Rt().Interfaces;
 
     // Bots and empty slots have no net channel, so posting would be a silent no-op leaving a
     // pending entry to time out.
@@ -295,4 +295,4 @@ void ClientCvarService::OnServerStartup()
     _impl->Pending().ClearAll();
 }
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

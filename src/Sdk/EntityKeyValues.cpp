@@ -1,9 +1,9 @@
-#include <CS2Kit/Sdk/EntityKeyValues.hpp>
+#include <VoltMod/Sdk/EntityKeyValues.hpp>
 #include <Color.h>
 #include <entity2/entitykeyvalues.h>
 #include <mathlib/vector.h>
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
 
 EntityKeyValues::EntityKeyValues() : _kv(new CEntityKeyValues()) {}
@@ -72,4 +72,4 @@ CEntityKeyValues* EntityKeyValues::Detach()
     return kv;
 }
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

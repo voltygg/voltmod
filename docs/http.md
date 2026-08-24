@@ -2,7 +2,7 @@
 
 [TOC]
 
-`CS2Kit::Http` gives you async requests whose completions run on the game thread:
+`VoltMod::Http` gives you async requests whose completions run on the game thread:
 
 - **HttpClient** - GET/POST on CPR's worker pool; completions are queued and replayed on the game thread from a self-registered per-frame pump
 - **RestJsonApi** - helpers for the config-driven "call an operator-configured JSON endpoint and pull a field out of the response" shape
@@ -12,16 +12,16 @@
 ## Requests
 
 ```cpp
-#include <CS2Kit/Api.hpp>
+#include <VoltMod/Api.hpp>
 
 runtime.Http.Post(url, body, {"Content-Type: application/json"}, /*timeoutMs=*/8000,
-                   [](const CS2Kit::HttpResult& result) {
+                   [](const VoltMod::HttpResult& result) {
                        // Game thread - safe to touch players, menus, managers.
                        if (!result.Ok)
                            Log::Warn("request failed: {}", result.Error);
                    });
 
-runtime.Http.Get(url, {}, 5000, [](const CS2Kit::HttpResult& result) { /* ... */ });
+runtime.Http.Get(url, {}, 5000, [](const VoltMod::HttpResult& result) { /* ... */ });
 ```
 
 `HttpResult::Ok` reflects transport success only; check `StatusCode` for the HTTP verdict (or use `IsSuccess` from RestJsonApi, which means `Ok && 2xx`).
@@ -31,8 +31,8 @@ runtime.Http.Get(url, {}, 5000, [](const CS2Kit::HttpResult& result) { /* ... */
 `JsonPostSpec` describes an endpoint entirely from settings - URL, optional auth header, a JSON body template with `{token}` placeholders - so server operators can point a plugin at their own backend without code changes:
 
 ```cpp
-#include <CS2Kit/Http/RestJsonApi.hpp>
-using namespace CS2Kit::Http;
+#include <VoltMod/Http/RestJsonApi.hpp>
+using namespace VoltMod::Http;
 
 JsonPostSpec spec{
     .Url = cfg.createRoomUrl,

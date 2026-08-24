@@ -1,25 +1,25 @@
 #include "Sdk/Schema.hpp"
 
-#include <CS2Kit/Core/Log.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/EntityKeyValues.hpp>
-#include <CS2Kit/Sdk/EntityOps.hpp>
-#include <CS2Kit/Sdk/GameData.hpp>
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/EntityKeyValues.hpp>
+#include <VoltMod/Sdk/EntityOps.hpp>
+#include <VoltMod/Sdk/GameData.hpp>
 #include <bit>
 #include <entity2/entityinstance.h>
 #include <entity2/entitykeyvalues.h>
 #include <entity2/entitysystem.h>
 #include <variant.h>
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
-using namespace CS2Kit::Core;
+using namespace VoltMod::Core;
 
 namespace
 {
 
-// CS2's sound-event EmitSound_t; layout copied from CS2Fixes (src/cs2_sdk/entity/
+// CS2's sound-event EmitSound_t; layout copied from CS2Fixes (src/voltmod_sdk/entity/
 // globaltypes.h) - NOT the legacy Source1 struct in the SDK's shareddefs.h.
 struct EmitSoundParams
 {
@@ -80,7 +80,7 @@ void FireInput(void* acceptInput, CEntityInstance* entity, const char* input, va
 
 bool EntityOpsService::Initialize()
 {
-    auto& gameData = CS2Kit::Detail::Rt().GameData;
+    auto& gameData = VoltMod::Detail::Rt().GameData;
 
     struct SignatureSlot
     {
@@ -163,7 +163,7 @@ void EntityOpsService::AddIOEvent(CEntityInstance* target, const char* input, fl
     if (!_addEntityIOEvent || !target || !input)
         return;
 
-    CEntitySystem* system = CS2Kit::Detail::Rt().Entities.GetEntitySystem();
+    CEntitySystem* system = VoltMod::Detail::Rt().Entities.GetEntitySystem();
     if (!system)
         return;
 
@@ -221,11 +221,11 @@ void EntityOpsService::NotifyFieldChanged(CEntityInstance* entity, const char* c
     if (!entity || !className || !fieldName)
         return;
 
-    int offset = CS2Kit::Detail::Rt().Schema().GetOffset(className, fieldName);
+    int offset = VoltMod::Detail::Rt().Schema().GetOffset(className, fieldName);
     if (offset < 0)
         return;
 
     entity->NetworkStateChanged(NetworkStateChangedData(static_cast<uint32>(offset)));
 }
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

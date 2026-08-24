@@ -3,7 +3,7 @@
 #include <bit>
 #include <cstdint>
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
 
 /**
@@ -17,4 +17,4 @@ constexpr Ret CallVirtual(int index, void* thisPtr, Args... args) noexcept
     return fn(thisPtr, args...);
 }
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

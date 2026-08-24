@@ -1,4 +1,4 @@
-// Proves the package's include layout and defines match submodule-mode CS2KitSdk.cmake.
+// Proves the package's include layout and defines match submodule-mode VoltModSdk.cmake.
 #include <mathlib/vector.h>
 #include <tier1/utlvector.h>
 

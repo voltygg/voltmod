@@ -2,24 +2,24 @@
 
 [TOC]
 
-@ref CS2Kit::App::MetamodPlugin owns everything a Metamod plugin re-types by hand: the ISmmPlugin metadata getters, the Load/Unload skeleton, the standard SourceHook hooks, and the `PlayerManager` lifecycle. It creates the @ref CS2Kit::Runtime for one load cycle and hands it to your `OnLoad`. You return your metadata, build your own object graph, and override only the callbacks you care about.
+@ref VoltMod::App::MetamodPlugin owns everything a Metamod plugin re-types by hand: the ISmmPlugin metadata getters, the Load/Unload skeleton, the standard SourceHook hooks, and the `PlayerManager` lifecycle. It creates the @ref VoltMod::Runtime for one load cycle and hands it to your `OnLoad`. You return your metadata, build your own object graph, and override only the callbacks you care about.
 
 ## The skeleton
 
 ```cpp
-#include <CS2Kit/Api.hpp>
-#include <CS2Kit/App/PluginInfoStamp.hpp>
+#include <VoltMod/Api.hpp>
+#include <VoltMod/App/PluginInfoStamp.hpp>
 
-class MyPlugin final : public CS2Kit::MetamodPlugin
+class MyPlugin final : public VoltMod::MetamodPlugin
 {
 protected:
-    CS2Kit::PluginInfo Info() const override
+    VoltMod::PluginInfo Info() const override
     {
-        // WithBuildInfo stamps Version/Date/Commit from <CS2Kit/BuildInfo.hpp>.
-        return CS2Kit::WithBuildInfo({ .Name = "My Plugin", .Author = "me", .LogTag = "MINE" });
+        // WithBuildInfo stamps Version/Date/Commit from <VoltMod/BuildInfo.hpp>.
+        return VoltMod::WithBuildInfo({ .Name = "My Plugin", .Author = "me", .LogTag = "MINE" });
     }
 
-    bool OnLoad(CS2Kit::Runtime& runtime, bool late) override
+    bool OnLoad(VoltMod::Runtime& runtime, bool late) override
     {
         _app.emplace(runtime);
         return _app->Start();
@@ -32,22 +32,22 @@ private:
 };
 
 // In the .cpp - the global instance and PLUGIN_EXPOSE in one line:
-CS2KIT_PLUGIN(MyPlugin);
+VOLTMOD_PLUGIN(MyPlugin);
 ```
 
-`CS2KIT_PLUGIN` expands the per-plugin SourceHook globals (`PLUGIN_EXPOSE`) the base links against; the matching extern declarations ship inside `MetamodPlugin.hpp`, so your header needs nothing.
+`VOLTMOD_PLUGIN` expands the per-plugin SourceHook globals (`PLUGIN_EXPOSE`) the base links against; the matching extern declarations ship inside `MetamodPlugin.hpp`, so your header needs nothing.
 
 Your `App` is a plain struct holding whatever the plugin owns for one load cycle. It takes the runtime by reference and passes on what each member needs; declaration order is construction order, so a member initializer may only reference members declared **above** it.
 
 ```cpp
 struct App
 {
-    explicit App(CS2Kit::Runtime& runtime) : Runtime(runtime) {}
+    explicit App(VoltMod::Runtime& runtime) : Runtime(runtime) {}
     bool Start();
 
-    CS2Kit::Runtime& Runtime;
+    VoltMod::Runtime& Runtime;
     ConfigManager Config;
-    CS2Kit::PostgresDatabase Db;
+    VoltMod::PostgresDatabase Db;
     AdminManager Admins{Db, Config};
 };
 ```
@@ -65,7 +65,7 @@ The standard prelude - config plus translations, recorded as LoadReport stages -
 ```cpp
 bool App::Start()
 {
-    if (!CS2Kit::LoadStandardConfig(Runtime, Config, {.Addon = "my-plugin"}))
+    if (!VoltMod::LoadStandardConfig(Runtime, Config, {.Addon = "my-plugin"}))
         return false;
     // Optional: install Runtime.Policy once you have real permission data.
     // Without one, commands dispatch permissively and reply via Runtime.Messages.Reply.
@@ -73,7 +73,7 @@ bool App::Start()
 }
 ```
 
-`LoadStandardConfig` uses your config type's `LoadSettings` when it has one (the load-then-validate convention), otherwise `JsonConfig::Load`; it applies `plugin.locale` when your settings struct embeds @ref CS2Kit::Core::StandardPluginSettings, and `{.Translations = false}` skips the translations stage for plugins that ship none.
+`LoadStandardConfig` uses your config type's `LoadSettings` when it has one (the load-then-validate convention), otherwise `JsonConfig::Load`; it applies `plugin.locale` when your settings struct embeds @ref VoltMod::Core::StandardPluginSettings, and `{.Translations = false}` skips the translations stage for plugins that ship none.
 
 ## Registering commands
 
@@ -82,12 +82,12 @@ handlers need:
 
 ```cpp
 // src/Commands/BanCommands.cpp
-void RegisterBanCommands(CS2Kit::CommandManager& commands, App& app)
+void RegisterBanCommands(VoltMod::CommandManager& commands, App& app)
 {
     commands.Register({
         .Name = "ban",
         .Permission = "d",
-        .Handler = [&app](const CS2Kit::CommandContext& ctx) { return app.Punishments.Ban(ctx); },
+        .Handler = [&app](const VoltMod::CommandContext& ctx) { return app.Punishments.Ban(ctx); },
     });
 }
 
@@ -107,21 +107,21 @@ auto& report = Runtime.LoadReport;
 
 const auto config = report.Run("Configuration", [this] {
     if (!Config.Load("addons/my-plugin/configs/settings.jsonc"))
-        return CS2Kit::StageResult::Failed("failed to load settings.jsonc");
-    return CS2Kit::StageResult::Ok();
+        return VoltMod::StageResult::Failed("failed to load settings.jsonc");
+    return VoltMod::StageResult::Ok();
 });
-if (config == CS2Kit::StageStatus::Failed)
+if (config == VoltMod::StageStatus::Failed)
     return false;                        // base surfaces "Configuration: failed to load settings.jsonc"
 
 report.Run("Database", [this] {
     if (!Db.Start(Config.Get().database))
-        return CS2Kit::StageResult::Degraded("unavailable");  // load continues, reduced functionality
-    return CS2Kit::StageResult::Ok();
+        return VoltMod::StageResult::Degraded("unavailable");  // load continues, reduced functionality
+    return VoltMod::StageResult::Ok();
 });
 
 report.Run("Admins", [&] {
     if (!report.IsOk("Database"))        // dependency-aware skip: no confusing secondary error
-        return CS2Kit::StageResult::Skipped("database unavailable");
+        return VoltMod::StageResult::Skipped("database unavailable");
     return LoadAdminData();
 });
 ```
@@ -169,17 +169,17 @@ runtime argument. Everywhere else, use what `OnLoad` handed you.
 ## Teardown
 
 There is no cleanup stack. Anything that needs undoing is either a member whose
-destructor does it, or a @ref CS2Kit::Core::Subscription held next to the state its
+destructor does it, or a @ref VoltMod::Core::Subscription held next to the state its
 callback captures:
 
 ```cpp
 class Bhop
 {
-    Bhop(CS2Kit::Runtime& runtime) : _rt(runtime)
+    Bhop(VoltMod::Runtime& runtime) : _rt(runtime)
     {
         _spawn = _rt.Events.Listen<Events::PlayerSpawn>([this](const auto& e) { OnSpawn(e.Slot); });
     }
-    CS2Kit::Subscription _spawn;   // removed before the members above it are destroyed
+    VoltMod::Subscription _spawn;   // removed before the members above it are destroyed
 };
 ```
 
@@ -190,10 +190,10 @@ your `App`'s destructor.
 
 ## Typed game events
 
-Listen for game events as structs instead of string + `GetInt` pairs. The structs live in `CS2Kit::Events` (`Sdk/GameEvents.hpp`): `PlayerDeath`, `PlayerSpawn`, `PlayerJump`, `PlayerHurt`, `PlayerTeam`, `PlayerConnectFull`, `WeaponFire`, `RoundStart`, `RoundEnd`, `RoundPrestart`.
+Listen for game events as structs instead of string + `GetInt` pairs. The structs live in `VoltMod::Events` (`Sdk/GameEvents.hpp`): `PlayerDeath`, `PlayerSpawn`, `PlayerJump`, `PlayerHurt`, `PlayerTeam`, `PlayerConnectFull`, `WeaponFire`, `RoundStart`, `RoundEnd`, `RoundPrestart`.
 
 ```cpp
-namespace Events = CS2Kit::Events;
+namespace Events = VoltMod::Events;
 
 _playerDeath = Runtime.Events.Listen<Events::PlayerDeath>([this](const Events::PlayerDeath& e) {
     if (e.VictimSlot >= 0)
@@ -205,22 +205,22 @@ The stringly `Listen("event_name", ...)` overload stays as the escape hatch for 
 
 ## Custom hooks
 
-`SH_DECL_HOOKn` must still appear once at namespace scope in your .cpp (it expands to hook-manager classes; no helper can wrap it). The add/remove pairing *is* automated: `CS2KIT_SCOPED_HOOK` installs the hook and yields a `Subscription` that removes it.
+`SH_DECL_HOOKn` must still appear once at namespace scope in your .cpp (it expands to hook-manager classes; no helper can wrap it). The add/remove pairing *is* automated: `VOLTMOD_SCOPED_HOOK` installs the hook and yields a `Subscription` that removes it.
 
-For per-tick player movement you don't need a custom hook at all - the kit ships @ref CS2Kit::Sdk::MovementHook (see @ref sdk_hooks_guide).
+For per-tick player movement you don't need a custom hook at all - the kit ships @ref VoltMod::Sdk::MovementHook (see @ref sdk_hooks_guide).
 
 ```cpp
-#include <CS2Kit/Core/HookMacros.hpp>
+#include <VoltMod/Core/HookMacros.hpp>
 
 SH_DECL_HOOK3(IVEngineServer2, SetClientListening, SH_NOATTRIB, 0, bool, CPlayerSlot, CPlayerSlot, bool);
 
-void MyPlugin::OnRegisterHooks(CS2Kit::Runtime& runtime)
+void MyPlugin::OnRegisterHooks(VoltMod::Runtime& runtime)
 {
-    _listening = CS2KIT_SCOPED_HOOK(IVEngineServer2, SetClientListening, runtime.Interfaces.Engine,
+    _listening = VOLTMOD_SCOPED_HOOK(IVEngineServer2, SetClientListening, runtime.Interfaces.Engine,
                                     SH_MEMBER(this, &MyPlugin::Hook_SetClientListening), false);
 }
 ```
 
 ## Configuration
 
-Settings loading is one call through @ref CS2Kit::App::JsonConfig - see @ref config_guide.
+Settings loading is one call through @ref VoltMod::App::JsonConfig - see @ref config_guide.

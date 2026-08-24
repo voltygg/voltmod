@@ -1,10 +1,10 @@
-#include <CS2Kit/Core/EffectManager.hpp>
-#include <CS2Kit/Core/Scheduler.hpp>
+#include <VoltMod/Core/EffectManager.hpp>
+#include <VoltMod/Core/Scheduler.hpp>
 #include <doctest/doctest.h>
 
-using CS2Kit::Core::EffectManager;
-using CS2Kit::Core::EffectSpec;
-using CS2Kit::Core::Scheduler;
+using VoltMod::Core::EffectManager;
+using VoltMod::Core::EffectSpec;
+using VoltMod::Core::Scheduler;
 
 namespace
 {

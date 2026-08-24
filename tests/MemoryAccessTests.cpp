@@ -1,13 +1,13 @@
-#include <CS2Kit/Sdk/MemoryAccess.hpp>
+#include <VoltMod/Sdk/MemoryAccess.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <doctest/doctest.h>
 #include <string>
 
-using CS2Kit::Sdk::MemberPtr;
-using CS2Kit::Sdk::ReadAt;
-using CS2Kit::Sdk::WriteAt;
+using VoltMod::Sdk::MemberPtr;
+using VoltMod::Sdk::ReadAt;
+using VoltMod::Sdk::WriteAt;
 
 namespace
 {

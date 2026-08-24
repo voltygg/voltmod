@@ -1,6 +1,6 @@
-#include <CS2Kit/Commands/CommandSpec.hpp>
+#include <VoltMod/Commands/CommandSpec.hpp>
 
-namespace CS2Kit::Commands
+namespace VoltMod::Commands
 {
 
 ArgSpec Target(Players::TargetRules rules)
@@ -94,4 +94,4 @@ bool TooManyArguments(const CommandSpec& spec, size_t argCount)
     return argCount > spec.Args.size();
 }
 
-}  // namespace CS2Kit::Commands
+}  // namespace VoltMod::Commands

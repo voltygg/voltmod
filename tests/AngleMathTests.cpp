@@ -1,8 +1,8 @@
-#include <CS2Kit/Core/AngleMath.hpp>
+#include <VoltMod/Core/AngleMath.hpp>
 #include <cmath>
 #include <doctest/doctest.h>
 
-using namespace CS2Kit::Core::AngleMath;
+using namespace VoltMod::Core::AngleMath;
 
 namespace
 {

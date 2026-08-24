@@ -1,15 +1,15 @@
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/GameInterfaces.hpp>
-#include <CS2Kit/Sdk/ServerClock.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/GameInterfaces.hpp>
+#include <VoltMod/Sdk/ServerClock.hpp>
 #include <globalvars.h>
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
 
 CGlobalVars* GetServerGlobals()
 {
-    auto* services = CS2Kit::Detail::RtOrNull();
+    auto* services = VoltMod::Detail::RtOrNull();
     if (!services || !services->Interfaces.Engine)
         return nullptr;
     return services->Interfaces.Engine->GetServerGlobals();
@@ -27,4 +27,4 @@ float ServerTime()
     return globals ? globals->curtime : 0.0f;
 }
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

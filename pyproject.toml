@@ -1,5 +1,5 @@
 [project]
-name = "cs2-kit"
+name = "voltmod"
 # version.txt, the same file CMakeLists.txt and conanfile.py read.
 dynamic = ["version"]
 description = "Build and scaffolding tooling for CS2 Metamod:Source plugin projects"
@@ -14,12 +14,12 @@ dependencies = [
     "conan>=2.29.1",
     "ninja>=1.13.0",
     "clang-format==22.1.5",
-    # `cs2kit package` reads each recipe's conandata.yml.
+    # `voltmod package` reads each recipe's conandata.yml.
     "pyyaml>=6.0",
 ]
 
 [project.scripts]
-cs2kit = "cs2kit.cli:main"
+voltmod = "voltmod.cli:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -30,12 +30,12 @@ path = "version.txt"
 pattern = "(?P<version>.+)"
 
 [tool.hatch.build.targets.wheel]
-packages = ["scripts/cs2kit"]
+packages = ["scripts/voltmod"]
 
 # The scaffold trees live at the repo root for editability; the wheel carries them
 # beside the package, where templates_dir() looks first.
 [tool.hatch.build.targets.wheel.force-include]
-"templates" = "cs2kit/templates"
+"templates" = "voltmod/templates"
 
 [dependency-groups]
 dev = [
@@ -43,17 +43,17 @@ dev = [
     "poethepoet>=0.47.0",
 ]
 
-# Aliases for the cs2kit CLI, which is where the behaviour lives.
+# Aliases for the voltmod CLI, which is where the behaviour lives.
 [tool.poe.tasks]
-build = "cs2kit build"
-build-linux = "cs2kit build linux-steamrt-release"
+build = "voltmod build"
+build-linux = "voltmod build linux-steamrt-release"
 # Stamps plugins/<name>/ in the invoking repo (run from the consuming repo's root).
-new-plugin = "cs2kit new-plugin"
+new-plugin = "voltmod new-plugin"
 lint = "ruff check ."
 # Fails if a module starts depending on a layer above it.
-modgraph = "cs2kit modgraph"
-format = "cs2kit format"
-format-check = "cs2kit format --check"
+modgraph = "voltmod modgraph"
+format = "voltmod format"
+format-check = "voltmod format --check"
 
 [tool.ruff]
 line-length = 100

@@ -1,8 +1,8 @@
-#include <CS2Kit/Sdk/ServerCommand.hpp>
+#include <VoltMod/Sdk/ServerCommand.hpp>
 #include <tier1/convar.h>
 #include <utility>
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
 
 struct ServerCommand::Impl final : ICommandCallback
@@ -27,4 +27,4 @@ ServerCommand::ServerCommand(const char* name, const char* helpText, Handler han
 
 ServerCommand::~ServerCommand() = default;
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

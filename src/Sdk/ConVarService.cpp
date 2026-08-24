@@ -1,10 +1,10 @@
-#include <CS2Kit/Core/Log.hpp>
-#include <CS2Kit/Core/Slot.hpp>
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Runtime.hpp>
-#include <CS2Kit/Sdk/ConVarService.hpp>
-#include <CS2Kit/Sdk/GameInterfaces.hpp>
-#include <CS2Kit/Sdk/RecipientFilter.hpp>
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Sdk/ConVarService.hpp>
+#include <VoltMod/Sdk/GameInterfaces.hpp>
+#include <VoltMod/Sdk/RecipientFilter.hpp>
 #include <engine/igameeventsystem.h>
 #include <icvar.h>
 #include <networkbasetypes.pb.h>
@@ -22,14 +22,14 @@ void GlobalConVarChangeCallback(ConVarRefAbstract* ref, CSplitScreenSlot /*slot*
         return;
 
     const char* name = ref->GetName();
-    CS2Kit::Detail::Rt().ConVars.DispatchChange(name, oldValue, newValue);
+    VoltMod::Detail::Rt().ConVars.DispatchChange(name, oldValue, newValue);
 }
 
 }  // namespace
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
-using namespace CS2Kit::Core;
+using namespace VoltMod::Core;
 
 RawConVar::RawConVar(const char* name)
 {
@@ -68,7 +68,7 @@ void RawConVar::SetFloat(float value)
 
 bool ConVarService::Initialize()
 {
-    if (!CS2Kit::Detail::Rt().Interfaces.CVar)
+    if (!VoltMod::Detail::Rt().Interfaces.CVar)
     {
         Log::Error("ConVarService: ICvar not available.");
         return false;
@@ -153,7 +153,7 @@ bool ConVarService::SetString(const char* name, const char* value)
 
 void ConVarService::ExecuteServerCommand(const char* command)
 {
-    auto* engine = CS2Kit::Detail::Rt().Interfaces.Engine;
+    auto* engine = VoltMod::Detail::Rt().Interfaces.Engine;
     if (!engine)
     {
         Log::Warn("ConVarService::ExecuteServerCommand: IVEngineServer2 not available.");
@@ -175,7 +175,7 @@ void ConVarService::ExecuteServerCommand(const char* command)
 
 bool ConVarService::ReplicateToClient(int slot, const char* name, const char* value)
 {
-    auto& interfaces = CS2Kit::Detail::Rt().Interfaces;
+    auto& interfaces = VoltMod::Detail::Rt().Interfaces;
     if (!interfaces.GameEventSystem || !interfaces.NetworkMessages || !Core::IsValidSlot(slot) || !name || !value)
         return false;
 
@@ -218,7 +218,7 @@ Core::Subscription ConVarService::OnChange(ChangeCallback callback)
 {
     if (!_globalCallbackInstalled)
     {
-        auto* cvar = CS2Kit::Detail::Rt().Interfaces.CVar;
+        auto* cvar = VoltMod::Detail::Rt().Interfaces.CVar;
         if (cvar)
         {
             cvar->InstallGlobalChangeCallback(&GlobalConVarChangeCallback);
@@ -234,7 +234,7 @@ void ConVarService::Shutdown()
     if (!_globalCallbackInstalled)
         return;
 
-    if (auto* cvar = CS2Kit::Detail::Rt().Interfaces.CVar)
+    if (auto* cvar = VoltMod::Detail::Rt().Interfaces.CVar)
         cvar->RemoveGlobalChangeCallback(&GlobalConVarChangeCallback);
 
     _globalCallbackInstalled = false;
@@ -246,4 +246,4 @@ void ConVarService::DispatchChange(const char* name, const char* oldValue, const
     _changeCallbacks.Dispatch([&](auto& callback) { callback(name, oldValue, newValue); });
 }
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

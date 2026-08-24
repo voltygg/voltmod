@@ -1,24 +1,24 @@
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Menu/MenuContext.hpp>
-#include <CS2Kit/Players/Player.hpp>
-#include <CS2Kit/Runtime.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Menu/MenuContext.hpp>
+#include <VoltMod/Players/Player.hpp>
+#include <VoltMod/Runtime.hpp>
 
-namespace CS2Kit::Menu
+namespace VoltMod::Menu
 {
 
 bool MenuContext::Allowed(const std::string& permission) const
 {
-    auto* admin = CS2Kit::Detail::Rt().Players.GetPlayerBySlot(Admin);
+    auto* admin = VoltMod::Detail::Rt().Players.GetPlayerBySlot(Admin);
     if (!admin)
         return false;
 
-    auto& policy = CS2Kit::Detail::Rt().Policy;
+    auto& policy = VoltMod::Detail::Rt().Policy;
     if (!permission.empty() && policy.HasPermission && !policy.HasPermission(admin->GetSteamID(), permission))
         return false;
 
     if (Target >= 0 && Target != Admin)
     {
-        auto* target = CS2Kit::Detail::Rt().Players.GetPlayerBySlot(Target);
+        auto* target = VoltMod::Detail::Rt().Players.GetPlayerBySlot(Target);
         if (!target)
             return false;
         if (policy.CanTarget && !policy.CanTarget(*admin, *target))
@@ -29,7 +29,7 @@ bool MenuContext::Allowed(const std::string& permission) const
 
 std::string MenuContext::Tr(std::string_view key, Core::Tokens tokens) const
 {
-    return CS2Kit::Detail::Rt().Translations.Get(std::string(key), Admin, tokens);
+    return VoltMod::Detail::Rt().Translations.Get(std::string(key), Admin, tokens);
 }
 
-}  // namespace CS2Kit::Menu
+}  // namespace VoltMod::Menu

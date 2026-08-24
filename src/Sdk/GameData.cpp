@@ -1,9 +1,9 @@
 #include "Sdk/SigScanner.hpp"
 
-#include <CS2Kit/Core/Log.hpp>
-#include <CS2Kit/Core/Paths.hpp>
-#include <CS2Kit/Core/StringUtils.hpp>
-#include <CS2Kit/Sdk/GameData.hpp>
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/Paths.hpp>
+#include <VoltMod/Core/StringUtils.hpp>
+#include <VoltMod/Sdk/GameData.hpp>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -11,9 +11,9 @@
 #include <string>
 #include <vector>
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
-using namespace CS2Kit::Core;
+using namespace VoltMod::Core;
 
 bool GameData::Load(const std::string& path)
 {
@@ -87,7 +87,7 @@ void* GameData::FindSignature(const std::string& name) const
         return nullptr;
 
     auto& sig = it->second;
-    return CS2Kit::Sdk::FindPattern(sig.Library.c_str(), sig.Pattern);
+    return VoltMod::Sdk::FindPattern(sig.Library.c_str(), sig.Pattern);
 }
 
 void* GameData::ResolveSignature(const std::string& name) const
@@ -174,4 +174,4 @@ std::string GameData::FailureSummary() const
     return summary;
 }
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

@@ -1,7 +1,7 @@
-#include <CS2Kit/App/ServiceExchange.hpp>
+#include <VoltMod/App/ServiceExchange.hpp>
 #include <doctest/doctest.h>
 
-using CS2Kit::App::ServiceExchange;
+using VoltMod::App::ServiceExchange;
 
 namespace
 {

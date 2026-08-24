@@ -2,7 +2,7 @@
 
 #include "Config.hpp"
 
-#include <CS2Kit/Api.hpp>
+#include <VoltMod/Api.hpp>
 
 namespace $ns
 {
@@ -16,12 +16,12 @@ namespace $ns
  */
 struct App
 {
-    explicit App(CS2Kit::Runtime& runtime) : Runtime(runtime) {}
+    explicit App(VoltMod::Runtime& runtime) : Runtime(runtime) {}
 
     /** Load config and register commands. False aborts the plugin load. */
     bool Start();
 
-    CS2Kit::Runtime& Runtime;
+    VoltMod::Runtime& Runtime;
     ConfigManager Config;
 };
 

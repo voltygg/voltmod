@@ -25,18 +25,18 @@ while ((door = es.FindByClassName(door, "func_door")))
 auto* named = es.FindByName(nullptr, "my_targetname");
 ```
 
-For typed operations on a player, construct a @ref CS2Kit::Sdk::PlayerController from the slot (see
+For typed operations on a player, construct a @ref VoltMod::Sdk::PlayerController from the slot (see
 below) rather than working with the raw `CEntityInstance*`.
 
 ## PlayerController
 
 Typed wrapper around `CCSPlayerController` for common operations. Construct it from a player
 slot - it resolves the controller entity internally (check `IsValid()` if the slot may be
-empty). When you already hold a tracked `CS2Kit::Player*`, `player->Controller()` builds the
+empty). When you already hold a tracked `VoltMod::Player*`, `player->Controller()` builds the
 same wrapper:
 
 ```cpp
-CS2Kit::PlayerController player(slot);   // or: trackedPlayer->Controller()
+VoltMod::PlayerController player(slot);   // or: trackedPlayer->Controller()
 
 int health = player.GetHealth();
 int team = player.GetTeam();
@@ -77,7 +77,7 @@ player.SetVisible(true);           // restore opaque
 Read or force a player into a specific spectator mode:
 
 ```cpp
-using CS2Kit::Sdk::ObserverMode_t;
+using VoltMod::Sdk::ObserverMode_t;
 
 if (player.GetObserverMode() != ObserverMode_t::Roaming)
     player.SetObserverMode(ObserverMode_t::Roaming);
@@ -97,12 +97,12 @@ player.SetPlayerName(saved);
 ## PawnOps
 
 Common pawn manipulations composed from `PlayerController` primitives - the operations most
-gameplay plugins end up writing by hand. Free functions in `CS2Kit::Sdk::PawnOps`
-(`<CS2Kit/Sdk/PawnOps.hpp>`), plus the engine team constants `TeamNone` / `TeamSpectator` /
+gameplay plugins end up writing by hand. Free functions in `VoltMod::Sdk::PawnOps`
+(`<VoltMod/Sdk/PawnOps.hpp>`), plus the engine team constants `TeamNone` / `TeamSpectator` /
 `TeamT` / `TeamCT`:
 
 ```cpp
-using namespace CS2Kit::Sdk;
+using namespace VoltMod::Sdk;
 PlayerController target(slot);
 
 PawnOps::ToggleNoclip(target);              // noclip <-> walk; returns the new on-state

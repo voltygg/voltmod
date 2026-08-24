@@ -2,13 +2,13 @@ name: Publish
 
 # Two release paths into the same public Cloudsmith remote:
 #
-#   push to main touching recipes/**  ->  the SDK packages, then a rebuilt cs2-kit so a
+#   push to main touching recipes/**  ->  the SDK packages, then a rebuilt voltmod so a
 #                                         consumer resolving the new SDK finds a binary
-#   v* tag                            ->  cs2-kit itself
+#   v* tag                            ->  voltmod itself
 #
 # The SDK path used to be a separate repo, which is why it needed a cross-checkout and a
-# "pin cs2-kit to its newest release" dance to avoid building an untagged tip. Both halves
-# now build the working tree, and `cs2kit package publish` refuses a v* tag that disagrees
+# "pin voltmod to its newest release" dance to avoid building an untagged tip. Both halves
+# now build the working tree, and `voltmod package publish` refuses a v* tag that disagrees
 # with version.txt.
 #
 # Secrets: CLOUDSMITH_USERNAME (an account with Write on the repo) and CLOUDSMITH_API_KEY
@@ -46,13 +46,13 @@ jobs:
       - uses: ./.github/actions/setup-toolchain
 
       - name: Build and upload the SDK packages
-        run: cs2kit package publish sdk
+        run: voltmod package publish sdk
 
-      # Linux only: it is the deploy target, and a Windows Release cs2-kit.lib is ~208 MB
+      # Linux only: it is the deploy target, and a Windows Release voltmod.lib is ~208 MB
       # of embedded CodeView. Windows and Debug consumers build the kit themselves.
-      - name: Rebuild cs2-kit against them
+      - name: Rebuild voltmod against them
         if: runner.os == 'Linux'
-        run: cs2kit package publish kit --no-lockfile
+        run: voltmod package publish kit --no-lockfile
 
   tag:
     name: Tag the SDK versions
@@ -63,10 +63,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Tag each pinned version
-        run: python3 -m pip install --no-cache-dir . && cs2kit package tag
+        run: python3 -m pip install --no-cache-dir . && voltmod package tag
 
   kit:
-    name: Release cs2-kit
+    name: Release voltmod
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     container:
@@ -77,8 +77,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-toolchain
-      - name: Build and upload cs2-kit
-        run: cs2kit package publish kit
+      - name: Build and upload voltmod
+        run: voltmod package publish kit
 
   smoke:
     name: Consume from the remote (anonymous)
@@ -92,16 +92,16 @@ jobs:
 
       # No login. That the remote serves anonymously is the property under test, and it
       # is the one thing a publishing job cannot check about itself.
-      - name: Fresh consume of cs2-kit from the remote
+      - name: Fresh consume of voltmod from the remote
         env:
           CONAN_HOME: ${{ runner.temp }}/conan-fresh
         run: |
           conan profile detect --force >/dev/null 2>&1 || true
           conan config install ./conan
-          # --build=!<ours>: only cs2-kit and the SDKs are claimed to be prebuilt. Conan
+          # --build=!<ours>: only voltmod and the SDKs are claimed to be prebuilt. Conan
           # Center has no binaries for the gcc-14 / old-libstdc++-ABI profile, so cpr and
           # friends legitimately compile here.
-          conan test test_package "cs2-kit/$(cat version.txt)" \
+          conan test test_package "voltmod/$(cat version.txt)" \
             -pr:a conan/profiles/linux-steamrt.txt -s build_type=Release \
-            --build=missing '--build=!cs2-kit/*' \
+            --build=missing '--build=!voltmod/*' \
             '--build=!hl2sdk-cs2/*' '--build=!metamod-source/*'

@@ -1,8 +1,8 @@
-#include <CS2Kit/Core/EffectManager.hpp>
+#include <VoltMod/Core/EffectManager.hpp>
 #include <utility>
 #include <vector>
 
-namespace CS2Kit::Core
+namespace VoltMod::Core
 {
 
 namespace
@@ -89,4 +89,4 @@ void EffectManager::CancelAll()
         CancelAllForSlot(slot);
 }
 
-}  // namespace CS2Kit::Core
+}  // namespace VoltMod::Core

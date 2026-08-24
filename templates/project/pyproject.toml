@@ -1,13 +1,13 @@
 [project]
 name = "$project"
 version = "1.0.0"
-description = "CS2 Metamod plugins built on cs2-kit"
+description = "CS2 Metamod plugins built on voltmod"
 readme = "README.md"
 requires-python = ">=3.14"
 
 dependencies = [
     # Brings the poe tasks below plus the pinned CMake/Conan/Ninja/clang-format.
-    "cs2-kit @ git+https://github.com/voltygg/cs2-kit.git@v1.0.0",
+    "voltmod @ git+https://github.com/voltygg/voltmod.git@v1.0.0",
     "poethepoet>=0.47.0",
     "ruff>=0.14.0",
 ]
@@ -16,13 +16,13 @@ dependencies = [
 package = false
 
 [tool.poe.tasks]
-build = "cs2kit build"
-build-linux = "cs2kit build linux-steamrt-release"
-bootstrap = "cs2kit bootstrap"
-new-plugin = "cs2kit new-plugin"
+build = "voltmod build"
+build-linux = "voltmod build linux-steamrt-release"
+bootstrap = "voltmod bootstrap"
+new-plugin = "voltmod new-plugin"
 lint = "ruff check ."
-format = "cs2kit format"
-format-check = "cs2kit format --check"
+format = "voltmod format"
+format-check = "voltmod format --check"
 
 [tool.ruff]
 line-length = 100

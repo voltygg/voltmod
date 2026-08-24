@@ -5,7 +5,7 @@
 #include <map>
 #include <string>
 
-namespace CS2Kit::Sdk
+namespace VoltMod::Sdk
 {
 
 /**
@@ -50,4 +50,4 @@ private:
     std::map<std::string, std::map<std::string, int, std::less<>>, std::less<>> _offsetCache;
 };
 
-}  // namespace CS2Kit::Sdk
+}  // namespace VoltMod::Sdk

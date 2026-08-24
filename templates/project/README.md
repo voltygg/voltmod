@@ -1,6 +1,6 @@
 # $project
 
-CS2 Metamod plugins built on [cs2-kit](https://github.com/voltygg/cs2-kit).
+CS2 Metamod plugins built on [voltmod](https://github.com/voltygg/voltmod).
 Everything - the kit, the HL2SDK and Metamod - arrives as a Conan package. No
 submodules.
 
@@ -41,10 +41,10 @@ uv run poe new-plugin fun-votes
 ```
 
 That stamps `plugins/fun-votes/` (a one-line `CMakeLists.txt` calling
-`cs2_add_plugin`, plus `src/` and `configs/`) and registers its
+`voltmod_add_plugin`, plus `src/` and `configs/`) and registers its
 `add_subdirectory()` in the root CMakeLists.
 
 ## Postgres
 
-Flip `cs2-kit/*:with_postgres` to `True` in `conanfile.py` - libpqxx arrives
-transitively and the kit's `CS2Kit::Database` module lights up.
+Flip `voltmod/*:with_postgres` to `True` in `conanfile.py` - libpqxx arrives
+transitively and the kit's `VoltMod::Database` module lights up.

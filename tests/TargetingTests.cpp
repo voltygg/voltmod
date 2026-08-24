@@ -1,7 +1,7 @@
-#include <CS2Kit/Players/Targeting.hpp>
+#include <VoltMod/Players/Targeting.hpp>
 #include <doctest/doctest.h>
 
-using namespace CS2Kit::Players;
+using namespace VoltMod::Players;
 using Kind = TargetKind;
 
 namespace

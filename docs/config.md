@@ -2,27 +2,27 @@
 
 [TOC]
 
-Settings are a struct that mirrors your JSON file, deserialized in one call. Declare each section as a struct with defaults, map it with nlohmann's non-intrusive macro, and hold the root in a @ref CS2Kit::Core::JsonConfig.
+Settings are a struct that mirrors your JSON file, deserialized in one call. Declare each section as a struct with defaults, map it with nlohmann's non-intrusive macro, and hold the root in a @ref VoltMod::Core::JsonConfig.
 
 ## Declaring settings
 
 ```cpp
-#include <CS2Kit/Api.hpp>
+#include <VoltMod/Api.hpp>
 #include <nlohmann/json.hpp>
 
 struct Settings
 {
-    CS2Kit::StandardPluginSettings plugin;   // the kit-standard "plugin" section (locale)
+    VoltMod::StandardPluginSettings plugin;   // the kit-standard "plugin" section (locale)
     // one struct + member per additional section
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Settings, plugin)
 
-using ConfigManager = CS2Kit::JsonConfig<Settings>;
+using ConfigManager = VoltMod::JsonConfig<Settings>;
 ```
 
 Member names must match the JSON keys. The `_WITH_DEFAULT` macro means a missing key keeps the member's default - only a missing file, a parse error, or a wrong-typed value fails the load. JSONC comments are tolerated, and unknown keys are ignored (which is also why retired keys need no config migration).
 
-@ref CS2Kit::Core::StandardPluginSettings is the kit-owned "plugin" section; embedding it is what lets `LoadStandardConfig` apply `plugin.locale` to `runtime.Translations` automatically (see @ref plugin_guide).
+@ref VoltMod::Core::StandardPluginSettings is the kit-owned "plugin" section; embedding it is what lets `LoadStandardConfig` apply `plugin.locale` to `runtime.Translations` automatically (see @ref plugin_guide).
 
 ### Editor validation with a JSON Schema
 
@@ -33,7 +33,7 @@ bool MyPlugin::OnLoad(bool late)
 {
     // Config + translations as LoadReport stages; uses LoadSettings when your
     // ConfigManager defines one, plain Load otherwise.
-    return CS2Kit::LoadStandardConfig(Runtime, Config, {.Addon = "my-plugin"});
+    return VoltMod::LoadStandardConfig(Runtime, Config, {.Addon = "my-plugin"});
 }
 ```
 
@@ -42,7 +42,7 @@ bool MyPlugin::OnLoad(bool late)
 When raw settings need parsing or clamping (duration strings, tag sanitizing, dropping invalid list entries), subclass `JsonConfig` and resolve once after `Load`. Name the entry point `LoadSettings` and `LoadStandardConfig` picks it up instead of `Load`:
 
 ```cpp
-class ConfigManager : public CS2Kit::JsonConfig<Settings>
+class ConfigManager : public VoltMod::JsonConfig<Settings>
 {
 public:
     bool LoadSettings(const std::string& path)
@@ -61,10 +61,10 @@ private:
 };
 ```
 
-`Utils/Validation.hpp` (`CS2Kit::Validation`) has the common resolution helpers:
+`Utils/Validation.hpp` (`VoltMod::Validation`) has the common resolution helpers:
 
 ```cpp
-using namespace CS2Kit;
+using namespace VoltMod;
 
 void ConfigManager::Resolve()
 {
@@ -84,17 +84,17 @@ void ConfigManager::Resolve()
 
 ## Kit types in your settings
 
-`PostgresConfig` uses lowercase field names precisely so a JSON section maps onto it. The kit header stays nlohmann-free - define the mapper in your plugin, inside the `CS2Kit::Database` namespace so ADL finds it:
+`PostgresConfig` uses lowercase field names precisely so a JSON section maps onto it. The kit header stays nlohmann-free - define the mapper in your plugin, inside the `VoltMod::Database` namespace so ADL finds it:
 
 ```cpp
-namespace CS2Kit::Database
+namespace VoltMod::Database
 {
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(PostgresConfig, host, port, database, username, password, sslMode)
 }
 
 struct Settings
 {
-    CS2Kit::PostgresConfig database;   // "database": { "host": ..., "port": ... }
+    VoltMod::PostgresConfig database;   // "database": { "host": ..., "port": ... }
     // ...
 };
 ```

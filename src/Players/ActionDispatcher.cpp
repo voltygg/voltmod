@@ -1,9 +1,9 @@
-#include <CS2Kit/Detail/Runtime.hpp>
-#include <CS2Kit/Players/ActionDispatcher.hpp>
-#include <CS2Kit/Players/PlayerManager.hpp>
-#include <CS2Kit/Runtime.hpp>
+#include <VoltMod/Detail/Runtime.hpp>
+#include <VoltMod/Players/ActionDispatcher.hpp>
+#include <VoltMod/Players/PlayerManager.hpp>
+#include <VoltMod/Runtime.hpp>
 
-namespace CS2Kit::Players
+namespace VoltMod::Players
 {
 
 using Sdk::PlayerController;
@@ -11,16 +11,16 @@ using Sdk::PlayerController;
 ActionContext ActionDispatcher::Resolve(int callerSlot, int targetSlot, const std::string& permission) const
 {
     ActionContext ctx{nullptr, nullptr, PlayerController(callerSlot), PlayerController(targetSlot),
-                      CS2Kit::Detail::Rt()};
+                      VoltMod::Detail::Rt()};
 
-    auto& plrMgr = CS2Kit::Detail::Rt().Players;
+    auto& plrMgr = VoltMod::Detail::Rt().Players;
     ctx.Caller = plrMgr.GetPlayerBySlot(callerSlot);
     ctx.Target = plrMgr.GetPlayerBySlot(targetSlot);
 
     if (!ctx.Caller || !ctx.Target)
         return ctx;
 
-    auto& policy = CS2Kit::Detail::Rt().Policy;
+    auto& policy = VoltMod::Detail::Rt().Policy;
     if (!permission.empty() && policy.HasPermission && !policy.HasPermission(ctx.Caller->GetSteamID(), permission))
     {
         ctx.Caller = nullptr;
@@ -58,10 +58,10 @@ void ActionDispatcher::Run(int callerSlot, int targetSlot, int param, const Para
 
 void ActionDispatcher::Broadcast(const ActionContext& ctx, const std::string& translationKey) const
 {
-    auto& policy = CS2Kit::Detail::Rt().Policy;
+    auto& policy = VoltMod::Detail::Rt().Policy;
     if (!policy.Broadcast || !ctx.Caller)
         return;
     policy.Broadcast(*ctx.Caller, ctx.Target, translationKey);
 }
 
-}  // namespace CS2Kit::Players
+}  // namespace VoltMod::Players

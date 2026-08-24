@@ -1,7 +1,7 @@
-#include <CS2Kit/Core/Log.hpp>
-#include <CS2Kit/Core/Paths.hpp>
-#include <CS2Kit/Database/Migrator.hpp>
-#include <CS2Kit/Database/PostgresDatabase.hpp>
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/Paths.hpp>
+#include <VoltMod/Database/Migrator.hpp>
+#include <VoltMod/Database/PostgresDatabase.hpp>
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
@@ -12,10 +12,10 @@
 
 namespace fs = std::filesystem;
 
-namespace CS2Kit::Database
+namespace VoltMod::Database
 {
 
-namespace Log = CS2Kit::Core::Log;
+namespace Log = VoltMod::Core::Log;
 
 namespace
 {
@@ -157,4 +157,4 @@ MigrationResult RunMigrations(PostgresDatabase& db, const std::string& dir, cons
     return {.Success = *outcome, .Applied = appliedTotal, .CurrentVersion = finalVersion};
 }
 
-}  // namespace CS2Kit::Database
+}  // namespace VoltMod::Database
