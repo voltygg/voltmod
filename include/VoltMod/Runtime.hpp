@@ -54,7 +54,7 @@ struct LoadContext
     char* Error = nullptr;               ///< Error buffer Metamod shows if the load fails
     size_t MaxLen = 0;                   ///< Size of that buffer
     bool Late = false;                   ///< Loaded after the server had already started
-    const char* LogPrefix = "VoltMod";    ///< Console log prefix, e.g. "[ADMIN]"
+    const char* LogPrefix = "VoltMod";   ///< Console log prefix, e.g. "[ADMIN]"
     const char* GameDataPath = nullptr;  ///< Override signatures.jsonc; null uses the shipped one
     Core::ILogger* Logger = nullptr;     ///< Custom logger; null uses the console logger
 };

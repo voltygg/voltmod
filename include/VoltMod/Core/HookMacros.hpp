@@ -15,9 +15,9 @@
 //       _listening = VOLTMOD_SCOPED_HOOK(IVEngineServer2, SetClientListening, runtime.Interfaces.Engine,
 //                                       SH_MEMBER(this, &MyPlugin::Hook_SetClientListening), false);
 //   }
-#define VOLTMOD_SCOPED_HOOK(Iface, Func, ifacePtr, handler, post)                                                   \
-    ([&] {                                                                                                         \
-        auto* voltmodHookIface = (ifacePtr);                                                                        \
-        SH_ADD_HOOK(Iface, Func, voltmodHookIface, handler, (post));                                                \
+#define VOLTMOD_SCOPED_HOOK(Iface, Func, ifacePtr, handler, post)                                                    \
+    ([&] {                                                                                                           \
+        auto* voltmodHookIface = (ifacePtr);                                                                         \
+        SH_ADD_HOOK(Iface, Func, voltmodHookIface, handler, (post));                                                 \
         return VoltMod::Core::Subscription([=] { SH_REMOVE_HOOK(Iface, Func, voltmodHookIface, handler, (post)); }); \
     }())

@@ -189,7 +189,7 @@ private:
  *
  * Invoke once, at global namespace scope, in the plugin's Plugin.cpp.
  */
-#define VOLTMOD_PLUGIN(PluginClass)               \
+#define VOLTMOD_PLUGIN(PluginClass)              \
     PluginClass g_##PluginClass;                 \
     PLUGIN_EXPOSE(PluginClass, g_##PluginClass); \
     static_assert(true, "VOLTMOD_PLUGIN requires a trailing semicolon")

@@ -1,5 +1,5 @@
-#include <VoltMod/Sdk/EntityKeyValues.hpp>
 #include <Color.h>
+#include <VoltMod/Sdk/EntityKeyValues.hpp>
 #include <entity2/entitykeyvalues.h>
 #include <mathlib/vector.h>
 

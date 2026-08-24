@@ -1,11 +1,11 @@
 #include "Core/ConsoleLogger.hpp"
 #include "Sdk/Schema.hpp"
 
+#include <ISmmAPI.h>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Paths.hpp>
 #include <VoltMod/Detail/Runtime.hpp>
 #include <VoltMod/Runtime.hpp>
-#include <ISmmAPI.h>
 #include <chrono>
 #include <cstdlib>
 #include <eiface.h>
@@ -126,7 +126,7 @@ bool Runtime::Start(const LoadContext& context)
     // Resolve each required interface, erroring out on the first one that is missing. The macro
     // keeps this type-safe (decltype, no void** punning) while collapsing the per-interface
     // resolve-and-check boilerplate to one line each.
-#define VOLTMOD_RESOLVE(field, factory, version)                                               \
+#define VOLTMOD_RESOLVE(field, factory, version)                                              \
     gi.field = static_cast<decltype(gi.field)>(factory(version));                             \
     if (!gi.field)                                                                            \
     {                                                                                         \

@@ -1,12 +1,12 @@
 #include "Sdk/Schema.hpp"
 
+#include <Color.h>
 #include <VoltMod/Detail/Runtime.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <VoltMod/Sdk/EffectOps.hpp>
 #include <VoltMod/Sdk/EntityKeyValues.hpp>
 #include <VoltMod/Sdk/EntityOps.hpp>
 #include <VoltMod/Sdk/MemoryAccess.hpp>
-#include <Color.h>
 #include <mathlib/vector.h>
 
 namespace VoltMod::Sdk::EffectOps

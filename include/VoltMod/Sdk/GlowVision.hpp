@@ -1,7 +1,7 @@
 #pragma once
 
-#include <VoltMod/Sdk/Entity.hpp>
 #include <Color.h>
+#include <VoltMod/Sdk/Entity.hpp>
 #include <array>
 #include <cstdint>
 #include <functional>
