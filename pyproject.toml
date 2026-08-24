@@ -1,7 +1,6 @@
 [project]
 name = "voltmod"
-# version.txt, the same file CMakeLists.txt and conanfile.py read.
-dynamic = ["version"]
+version = "1.2.0"
 description = "Build and scaffolding tooling for CS2 Metamod:Source plugin projects"
 readme = "README.md"
 requires-python = ">=3.14"
@@ -24,10 +23,6 @@ voltmod = "voltmod.cli:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[tool.hatch.version]
-path = "version.txt"
-pattern = "(?P<version>.+)"
 
 [tool.hatch.build.targets.wheel]
 packages = ["scripts/voltmod"]

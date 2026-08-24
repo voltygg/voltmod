@@ -1,10 +1,7 @@
 """Release plumbing for the Conan packages this repo owns.
 
-`voltmod package <build|publish|prune|watch>`. All four used to live inside workflow
-YAML - three divergent `conan create` blocks, two different upload retry loops, three
-copies of the vswhere MSVC probe, and a 126-line Python program embedded in a heredoc
-that nothing could lint or run locally. They are ordinary code here, and CI is reduced
-to triggers, permissions and one call.
+`voltmod package <build|publish|tag|prune|watch|version>` owns build and release
+operations. Keeping that logic here leaves CI responsible only for triggers and permissions.
 
 Every command targets the kit checkout it is run from: recipes/<name> for the SDK
 packages, the repo root for voltmod itself.
@@ -108,6 +105,15 @@ def _recipe_version(name: str) -> str:
     return next(iter(sources))
 
 
+def _kit_version() -> str:
+    """Read the package version through Conan, which owns that metadata."""
+    metadata = json.loads(_conan("inspect", str(ROOT), "--format=json", capture=True))
+    version = metadata.get("version")
+    if not version:
+        buildtools.die("the voltmod Conan recipe has no version")
+    return version
+
+
 def _build_sdks() -> None:
     for name in SDK_PACKAGES:
         _create(ROOT / "recipes" / name, [], [])
@@ -150,13 +156,19 @@ def publish(args) -> int:
 
 
 def _check_release_tag() -> None:
-    """A v* tag must agree with version.txt, which is what the recipe actually reads."""
+    """A v* tag must agree with the Conan package version."""
     ref = os.environ.get("GITHUB_REF_NAME", "")
     if not ref.startswith("v"):
         return
-    declared = (ROOT / "version.txt").read_text(encoding="utf-8").strip()
+    declared = _kit_version()
     if ref[1:] != declared:
-        buildtools.die(f"tag {ref} does not match version.txt ({declared})")
+        buildtools.die(f"tag {ref} does not match conanfile.py ({declared})")
+
+
+def show_version(args) -> int:
+    """Print the VoltMod Conan package version for scripts and workflows."""
+    print(_kit_version())
+    return 0
 
 
 def tag(args) -> int:
@@ -363,6 +375,9 @@ def add_parser(subparsers) -> None:
 
     p = sub.add_parser("tag", help="tag this commit with each recipe's pinned version")
     p.set_defaults(run=tag)
+
+    p = sub.add_parser("version", help="print the voltmod Conan package version")
+    p.set_defaults(run=show_version)
 
     p = sub.add_parser("prune", help="delete artifacts no consumer can resolve")
     p.add_argument("--keep", type=int, default=3, help="versions to keep per package")

@@ -6,10 +6,7 @@ from conan.tools.cmake import CMakeDeps, CMakeToolchain
 
 
 class ProjectConan(ConanFile):
-    name = "$project"
-    version = "1.0.0"
     settings = "os", "compiler", "build_type", "arch"
-    package_type = "shared-library"
 
     # cpr and nlohmann_json arrive transitively through voltmod.
     requires = ("voltmod/[~1]",)

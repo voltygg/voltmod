@@ -6,7 +6,7 @@
 namespace VoltMod::BuildInfo
 {
 
-/// "<version.txt>+<short-sha>[-dirty]", e.g. "1.2.0+a1b2c3d". A modified tree shows up as
+/// "<plugin-version>+<short-sha>[-dirty]", e.g. "1.2.0+a1b2c3d". A modified tree shows up as
 /// `-dirty`, so one string identifies the build.
 inline constexpr const char* Version = "@VOLTMOD_BI_VERSION@";
 inline constexpr const char* RepoCommit = "@VOLTMOD_BI_REPO_COMMIT@";

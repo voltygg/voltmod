@@ -21,6 +21,7 @@ class VoltModConan(ConanFile):
     """
 
     name = "voltmod"
+    version = "1.2.0"
     description = "C++23 library for CS2 Metamod:Source plugins"
     license = "MIT"
     homepage = "https://github.com/voltygg/voltmod"
@@ -42,7 +43,6 @@ class VoltModConan(ConanFile):
 
     exports_sources = (
         "CMakeLists.txt",
-        "version.txt",
         "cmake/*",
         "include/*",
         "src/*",
@@ -50,13 +50,6 @@ class VoltModConan(ConanFile):
         "templates/plugin/*",
         "LICENSE",
     )
-
-    def set_version(self):
-        # version.txt, same as CMake and pyproject.toml read. A tag does not override it:
-        # publishing a tag whose version disagrees with the file should fail, not silently
-        # ship a package whose CMake project() says something else.
-        with open(os.path.join(self.recipe_folder, "version.txt"), encoding="utf-8") as handle:
-            self.version = handle.read().strip()
 
     def _source_checkout(self):
         # exports_sources omits CMakePresets.json, so this is false in the cache.

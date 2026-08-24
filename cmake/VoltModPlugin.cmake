@@ -4,7 +4,7 @@ include_guard(GLOBAL)
 # after find_package(voltmod CONFIG REQUIRED) any project can call:
 #   voltmod_add_plugin(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...]
 #                  [FEATURES ...] [PCH_HEADERS ...]
-#                  [VERSION <v>] [DESCRIPTION <text>]
+#                  VERSION <v> [DESCRIPTION <text>]
 #                  [DEPENDS <spec>...] [REQUIRES <spec>...])
 
 # VOLTMOD_ROOT_DIR / _PLATFORM_ARCH / _GAMEDATA_DIR and voltmod_set_warnings.
@@ -19,11 +19,15 @@ include("${CMAKE_CURRENT_LIST_DIR}/VoltModCommon.cmake")
 # VoltMod::Database (and libpqxx); without it a movement plugin carries neither. The
 # always-present VoltMod::Runtime is linked either way.
 #
-# VERSION/DESCRIPTION/DEPENDS/REQUIRES fill the generated manifest; VERSION defaults to
-# the repo's version.txt.
+# VERSION is required and fills both the manifest and build stamp.
+# DESCRIPTION/DEPENDS/REQUIRES fill the rest of the generated manifest.
 function(voltmod_add_plugin target_name)
     cmake_parse_arguments(ARG "" "VERSION;DESCRIPTION"
         "SOURCES;INCLUDE_DIRS;LIBRARIES;FEATURES;PCH_HEADERS;DEPENDS;REQUIRES" ${ARGN})
+
+    if(NOT ARG_VERSION)
+        message(FATAL_ERROR "voltmod_add_plugin(${target_name}) requires VERSION")
+    endif()
 
     # Shipped by the hl2sdk-cs2 build module, which arrives with voltmod.
     if(NOT COMMAND hl2sdk_attach_plugin_support)
@@ -86,7 +90,7 @@ function(voltmod_add_plugin target_name)
     endif()
 
     voltmod_set_warnings("${target_name}")
-    voltmod_stamp_build_info("${target_name}")
+    voltmod_stamp_build_info("${target_name}" "${ARG_VERSION}")
 
     # Route artifacts to build/plugins/<name>/<platform_arch>/, no rpath, no lib
     # prefix. Ninja is single-config, so no per-config output-dir variants.
@@ -130,19 +134,6 @@ endfunction()
 # Generate <name>.manifest.json, which LoadStandardConfig adopts. Unmet DEPENDS warn and
 # unmet REQUIRES log an error; neither aborts the load, since .vdf order is Metamod's.
 function(voltmod_write_plugin_manifest target_name version description depends requires)
-    if(NOT version)
-        # version.txt is what the build stamp reads, so one bump moves both. Projects
-        # without one (the kit's own test_package) fall back to their project() version.
-        if(EXISTS "${CMAKE_SOURCE_DIR}/version.txt")
-            file(READ "${CMAKE_SOURCE_DIR}/version.txt" version)
-            string(STRIP "${version}" version)
-        elseif(PROJECT_VERSION)
-            set(version "${PROJECT_VERSION}")
-        else()
-            set(version "0.0.0")
-        endif()
-    endif()
-
     set(dependency_entries)
     foreach(spec IN LISTS depends)
         _voltmod_dependency_json(dependency_entries "${spec}" "false")
@@ -225,26 +216,27 @@ function(voltmod_install_plugin target_name)
     endif()
 endfunction()
 
-# Stamped values are repo-wide, so all plugins share one custom target and one
-# generated <VoltMod/BuildInfo.hpp>. Called by voltmod_add_plugin.
-function(voltmod_stamp_build_info target_name)
-    set(include_dir "${CMAKE_BINARY_DIR}/voltmod-buildinfo/include")
+# Generate a target-specific <VoltMod/BuildInfo.hpp> so plugins in one repository can
+# carry independent versions while sharing the same Git build identity.
+function(voltmod_stamp_build_info target_name version)
+    set(stamp_target "${target_name}-buildinfo")
+    set(include_dir "${CMAKE_BINARY_DIR}/voltmod-buildinfo/${target_name}/include")
     set(header "${include_dir}/VoltMod/BuildInfo.hpp")
 
-    if(NOT TARGET voltmod-buildinfo)
-        add_custom_target(voltmod-buildinfo
+    if(NOT TARGET "${stamp_target}")
+        add_custom_target("${stamp_target}"
             COMMAND "${CMAKE_COMMAND}"
                 -D "TEMPLATE_FILE=${VOLTMOD_ROOT_DIR}/cmake/BuildInfo.hpp.in"
                 -D "OUTPUT_FILE=${header}"
-                -D "VERSION_FILE=${CMAKE_SOURCE_DIR}/version.txt"
+                -D "VERSION=${version}"
                 -D "REPO_DIR=${CMAKE_SOURCE_DIR}"
                 -P "${VOLTMOD_ROOT_DIR}/cmake/GitBuildInfoScript.cmake"
             BYPRODUCTS "${header}"
-            COMMENT "Stamping VoltMod build info"
+            COMMENT "Stamping ${target_name} build info"
             VERBATIM
         )
     endif()
 
-    add_dependencies("${target_name}" voltmod-buildinfo)
+    add_dependencies("${target_name}" "${stamp_target}")
     target_include_directories("${target_name}" PRIVATE "${include_dir}")
 endfunction()

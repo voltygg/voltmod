@@ -1,6 +1,6 @@
 # Run via `cmake -P` each build (see voltmod_stamp_build_info). All values derive
 # from committed state so the header is only rewritten when a commit changes.
-# Inputs: TEMPLATE_FILE, OUTPUT_FILE, VERSION_FILE, REPO_DIR.
+# Inputs: TEMPLATE_FILE, OUTPUT_FILE, VERSION, REPO_DIR.
 
 find_program(GIT_EXECUTABLE git)
 
@@ -23,13 +23,7 @@ function(_voltmod_git out_var default)
     endif()
 endfunction()
 
-set(version_base "0.0.0")
-if(EXISTS "${VERSION_FILE}")
-    file(STRINGS "${VERSION_FILE}" version_lines LIMIT_COUNT 1)
-    if(version_lines)
-        string(STRIP "${version_lines}" version_base)
-    endif()
-endif()
+set(version_base "${VERSION}")
 
 _voltmod_git(repo_commit "" -C "${REPO_DIR}" rev-parse --short HEAD)
 if(repo_commit STREQUAL "" AND DEFINED ENV{GITHUB_SHA})

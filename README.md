@@ -21,7 +21,7 @@ You describe your plugin's behavior as data - commands, menu rows, effects, data
 - **PostgreSQL** (optional) - async-first client (worker thread owns the connection, completions on the game thread), column-table row mapping that generates the INSERT/SELECT/parse code, and a migration runner. Gated behind `VOLTMOD_ENABLE_POSTGRES`.
 - **HTTP** - async requests with game-thread completions, plus config-driven JSON endpoint helpers.
 - **Project + plugin scaffolding** - `voltmod init` stamps a complete buildable project (root CMake, presets, conanfile, poe tasks); `voltmod new-plugin` adds more from the `templates/plugin/` tree.
-- **One-call plugin builds** - `voltmod_add_plugin(<name>)` declares the whole Metamod module: sources, SDK glue, output layout, the generated `.vdf`, and per-plugin install components.
+- **One-call plugin builds** - `voltmod_add_plugin(<name> VERSION <version>)` declares the whole Metamod module: sources, SDK glue, output layout, the generated `.vdf`, and per-plugin install components.
 
 ## Quick start
 
@@ -54,7 +54,7 @@ find_package(voltmod CONFIG REQUIRED)
 
 ```cmake
 # plugins/my-plugin/CMakeLists.txt
-voltmod_add_plugin(my-plugin)
+voltmod_add_plugin(my-plugin VERSION 1.0.0)
 ```
 
 Or write the skeleton yourself:

@@ -5,4 +5,4 @@ project(voltmod-test LANGUAGES CXX)
 # hl2sdk's included - that is what attaches the per-plugin SDK TUs.
 find_package(voltmod CONFIG REQUIRED)
 
-voltmod_add_plugin(hello-plugin SOURCES src/HelloPlugin.cpp)
+voltmod_add_plugin(hello-plugin VERSION 1.0.0 SOURCES src/HelloPlugin.cpp)

@@ -44,15 +44,15 @@ You get `plugins/fun-votes/` with a `MetamodPlugin` skeleton, an example command
 A plugin's `CMakeLists.txt` is a single declaration - `voltmod_add_plugin` reaches you as a CMakeDeps build module, so it is available right after `find_package(voltmod CONFIG REQUIRED)`:
 
 ```cmake
-voltmod_add_plugin(fun-votes)
+voltmod_add_plugin(fun-votes VERSION 1.0.0)
 ```
 
-- `voltmod_add_plugin(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...] [PCH_HEADERS ...])` creates the Metamod MODULE: `SOURCES` defaults to a recursive glob of `src/*.cpp`; the required HL2SDK translation units (`memoverride.cpp`, `convar.cpp`) and the `VoltMod::VoltMod` link are added for you, along with C++23, the static MSVC runtime, ccache when present, and a precompiled `<VoltMod/Api.hpp>` (extend with `PCH_HEADERS`, disable with `-DVOLTMOD_DISABLE_PCH=ON`).
+- `voltmod_add_plugin(<name> VERSION <version> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...] [PCH_HEADERS ...])` creates the Metamod MODULE: `SOURCES` defaults to a recursive glob of `src/*.cpp`; the required HL2SDK translation units (`memoverride.cpp`, `convar.cpp`) and the `VoltMod::VoltMod` link are added for you, along with C++23, the static MSVC runtime, ccache when present, and a precompiled `<VoltMod/Api.hpp>` (extend with `PCH_HEADERS`, disable with `-DVOLTMOD_DISABLE_PCH=ON`).
 - `voltmod_install_plugin(<name>)` (called automatically) defines the deploy bundle as an install component: the module under `addons/<name>/bin/{win64|linuxsteamrt64}`, a generated Metamod `.vdf` under `addons/metamod`, the plugin's `configs/`, and the kit's shared gamedata. `cmake --install build/<preset> --component <name> --prefix <dir>` stages a server-ready `addons/` tree.
 
 ### Version and build provenance
 
-Every plugin build stamps a generated `<VoltMod/BuildInfo.hpp>` (namespace `VoltMod::BuildInfo`) with a display `Version`, the `RepoCommit` short hash, and the last-commit `BuildDate`. The display version is `<version.txt>+<short-sha>[-dirty]`, where `version.txt` is a single-line file at your repo root (missing file → `0.0.0`). A modified tree is flagged `-dirty`, so those three fields identify a build exactly (which voltmod went in is pinned by `conan.lock`). Wire them into your `Info()` so `meta list` always identifies the exact deployed build:
+Each `voltmod_add_plugin` version is written to that plugin's manifest and build stamp. The generated `<VoltMod/BuildInfo.hpp>` adds the repository's short commit and last-commit date, producing a display version such as `1.0.0+a1b2c3d-dirty`. This lets plugins in one repository version independently while retaining exact build provenance. Wire the stamp into `Info()` so `meta list` identifies the deployed build:
 
 ```cpp
 #include <VoltMod/Core/PluginInfoStamp.hpp>  // only from Plugin.cpp - it pulls the per-commit BuildInfo.hpp
@@ -88,7 +88,7 @@ requires = ("voltmod/[~1]",)
 
 ```cmake
 find_package(voltmod CONFIG REQUIRED)
-add_subdirectory(plugins/my-plugin)    # voltmod_add_plugin(my-plugin) inside
+add_subdirectory(plugins/my-plugin)    # voltmod_add_plugin(my-plugin VERSION 1.0.0) inside
 ```
 
 One-time, so Conan can resolve it:

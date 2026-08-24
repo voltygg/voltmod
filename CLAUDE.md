@@ -48,7 +48,7 @@ rename with care.
 CI is three workflows that call it: `ci.yml` (checks, then build the SDKs and the
 kit against them), `publish.yml` (SDK packages on a `recipes/**` push to main,
 voltmod on a `v*` tag), `watch.yml` (daily upstream check, weekly prune). Each
-value has one home: `version.txt` for the kit's version, each recipe's
+value has one home: `conanfile.py` for the kit's version, each recipe's
 `conandata.yml` for its SDK pin, `conan/remotes.json` for the remote,
 `conan/profiles/` for the ABI, `pyproject.toml` for tool versions.
 
@@ -75,7 +75,7 @@ find_package(voltmod CONFIG REQUIRED)
 
 ```cmake
 # plugins/<name>/CMakeLists.txt
-voltmod_add_plugin(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...])
+voltmod_add_plugin(<name> VERSION <version> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...])
 ```
 
 ## Code Conventions

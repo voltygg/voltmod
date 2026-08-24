@@ -1,11 +1,6 @@
 cmake_minimum_required(VERSION 4.3)
 
-# version.txt is the one place the kit's version is written; the Conan recipe and the
-# Python distribution read the same file.
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" VOLTMOD_VERSION)
-string(STRIP "${VOLTMOD_VERSION}" VOLTMOD_VERSION)
-
-project(voltmod VERSION ${VOLTMOD_VERSION} LANGUAGES CXX)
+project(voltmod LANGUAGES CXX)
 
 option(VOLTMOD_BUILD_STANDALONE "Build VoltMod as a standalone project" ${PROJECT_IS_TOP_LEVEL})
 option(VOLTMOD_ENABLE_POSTGRES "Build the VoltMod::Database Postgres client (requires libpqxx)" OFF)

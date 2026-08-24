@@ -71,9 +71,10 @@ jobs:
         env:
           CONAN_HOME: ${{ runner.temp }}/conan-fresh
         run: |
+          version="$(voltmod package version)"
           conan profile detect --force >/dev/null 2>&1 || true
           conan config install ./conan
-          conan test test_package "voltmod/$(cat version.txt)" \
+          conan test test_package "voltmod/$version" \
             -pr:a conan/profiles/linux-steamrt.txt -s build_type=Release \
             --build=missing '--build=!voltmod/*' \
             '--build=!hl2sdk-cs2/*' '--build=!metamod-source/*'

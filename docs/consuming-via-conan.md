@@ -51,7 +51,7 @@ uv run poe bootstrap
 
 The project's CMakeLists is `find_package(voltmod CONFIG REQUIRED)` plus one
 `add_subdirectory(plugins/<name>)` per plugin; each plugin's CMakeLists is one
-`voltmod_add_plugin(<name>)` call.
+`voltmod_add_plugin(<name> VERSION <version>)` call.
 
 ## Components
 
@@ -68,8 +68,8 @@ graph somewhere it could drift from. What a plugin genuinely can do without is t
 database, so that is the one thing to name:
 
 ```cmake
-voltmod_add_plugin(bhop)                        # runtime only, so no libpqxx
-voltmod_add_plugin(admin-system FEATURES DATABASE)
+voltmod_add_plugin(bhop VERSION 1.0.0)          # runtime only, so no libpqxx
+voltmod_add_plugin(admin-system VERSION 1.0.0 FEATURES DATABASE)
 ```
 
 ## How the CMake side works
@@ -94,7 +94,7 @@ order - is ordinary `package_info()`.
 Everything publishes from this repo, through `voltmod package`:
 
 - **voltmod** - `.github/workflows/publish.yml` on every `v*` tag, which must match
-  `version.txt`. Uploads Linux Release (both `with_postgres` values); a `smoke` job
+  the version in `conanfile.py`. Uploads Linux Release (both `with_postgres` values); a `smoke` job
   re-consumes the result anonymously on a clean runner, refusing to build voltmod or
   either SDK locally.
 - **SDK packages** - Linux binaries from the recipes in `recipes/`, published on
