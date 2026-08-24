@@ -62,8 +62,9 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-toolchain
       - name: Tag each pinned version
-        run: python3 -m pip install --no-cache-dir . && voltmod package tag
+        run: voltmod package tag
 
   kit:
     name: Release voltmod

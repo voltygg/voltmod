@@ -5,30 +5,41 @@ description: Install the build tools, this repo's CLI, and the canonical Conan p
 runs:
   using: composite
   steps:
-    # The sniper image ships neither pip nor a C++23 compiler; gcc-14 lives in sniper_beta.
-    # cs2-plugins' deploy/Dockerfile bakes the same list.
+    # gcc-14 (C++23) lives in sniper_beta, not the base image. No-ops off a plain runner,
+    # so CLI-only jobs can use this action too. deploy/Dockerfile bakes the same list.
     - name: Bootstrap the SteamRT container
       if: runner.os == 'Linux'
       shell: bash
       run: |
+        grep -q steamrt /etc/os-release || exit 0
         echo 'deb https://repo.steampowered.com/steamrt3/apt sniper_beta main contrib non-free' \
           > /etc/apt/sources.list.d/steamrt-beta.list
         apt-get update
         DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-          ca-certificates gcc-14-monolithic git ninja-build python3-pip
+          ca-certificates gcc-14-monolithic git ninja-build
         rm -rf /var/lib/apt/lists/*
 
-    # Installing this repo brings the `voltmod` CLI and, with it, the pinned CMake, Conan,
-    # Ninja and clang-format from pyproject.toml. No workflow names a tool version.
+    - name: Install uv
+      uses: astral-sh/setup-uv@v8.2.0
+
+    # This repo's venv brings the `voltmod` CLI plus the pinned CMake, Conan, Ninja and
+    # clang-format, so no workflow names a tool version. A venv rather than the ambient
+    # interpreter: uv fetches 3.14, which no runner and no sniper image has.
     - name: Install voltmod (Linux)
       if: runner.os == 'Linux'
       shell: bash
-      run: python3 -m pip install --no-cache-dir .
+      run: |
+        uv venv --python 3.14 "$RUNNER_TEMP/voltmod"
+        uv pip install --python "$RUNNER_TEMP/voltmod/bin/python" --no-cache .
+        echo "$RUNNER_TEMP/voltmod/bin" >> "$GITHUB_PATH"
 
     - name: Install voltmod (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
-      run: python -m pip install --no-cache-dir .
+      run: |
+        uv venv --python 3.14 "$env:RUNNER_TEMP\voltmod"
+        uv pip install --python "$env:RUNNER_TEMP\voltmod\Scripts\python.exe" --no-cache .
+        Add-Content -Path $env:GITHUB_PATH -Value "$env:RUNNER_TEMP\voltmod\Scripts"
 
     - name: Install the canonical Conan profiles and remotes
       shell: bash

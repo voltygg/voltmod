@@ -23,8 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install voltmod
-        run: python3 -m pip install --no-cache-dir .
+      - uses: ./.github/actions/setup-toolchain
 
       # Rewrites recipes/*/conandata.yml in place and sets `changed`; a quiet day
       # leaves the tree untouched and the rest of this job skipped.
@@ -59,10 +58,6 @@ jobs:
       CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
     steps:
       - uses: actions/checkout@v7
-      - name: Install voltmod
-        run: python3 -m pip install --no-cache-dir .
+      - uses: ./.github/actions/setup-toolchain
       - name: Prune
-        run: |
-          conan profile detect --force >/dev/null 2>&1 || true
-          conan config install ./conan
-          voltmod package prune --keep 3
+        run: voltmod package prune --keep 3
