@@ -15,6 +15,9 @@ from typing import NoReturn
 
 WINDOWS = sys.platform == "win32"
 CONAN_REMOTE = "voltygg"
+# Never build an SDK locally: a missing binary means its publish job never ran, and
+# --build=missing would start a multi-GB upstream fetch that fails anyway.
+SDK_BUILD_EXCLUSIONS = ("--build=!hl2sdk-cs2/*", "--build=!metamod-source/*")
 CPP_EXTS = (".cpp", ".hpp")
 # Under the 32767-character Windows cap, with room for the tool path and flags.
 MAX_COMMAND_LINE = 24000
@@ -304,10 +307,7 @@ def build(repo_root: Path, preset: str, *, run_tests: bool = True,
         "conan", "install", str(repo_root),
         "--output-folder", str(repo_root),
         "--build=missing",
-        # Never build an SDK locally: a missing binary means the publish job never ran,
-        # and --build=missing would start a multi-GB upstream fetch that fails anyway.
-        "--build=!hl2sdk-cs2/*",
-        "--build=!metamod-source/*",
+        *SDK_BUILD_EXCLUSIONS,
         *lock_args,
         *(options or []),
         "--profile:host", str(profile),

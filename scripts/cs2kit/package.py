@@ -119,9 +119,7 @@ def _build_sdks() -> None:
 
 
 def _build_kit(use_lockfile: bool) -> None:
-    # --build=!<sdk>: a missing SDK binary means its publish never ran, and building it
-    # here starts a multi-GB upstream fetch that fails anyway.
-    extra = ["--build=missing", "--build=!hl2sdk-cs2/*", "--build=!metamod-source/*"]
+    extra = ["--build=missing", *buildtools.SDK_BUILD_EXCLUSIONS]
     if not use_lockfile:
         extra.append("--lockfile=")
     for postgres in ("False", "True"):
