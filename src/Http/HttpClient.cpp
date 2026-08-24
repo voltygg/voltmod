@@ -68,12 +68,12 @@ struct HttpClient::Impl
     std::vector<Pending> Items;
     std::deque<Queued> Waiting;
 
+    /** Everything queues; PumpWaiting is the one place a request is actually started, so the
+     *  in-flight cap is tested once. */
     void Launch(Queued&& queued)
     {
-        if (Items.size() < MaxInFlight)
-            Items.push_back({std::async(std::launch::async, std::move(queued.Task)), std::move(queued.OnComplete)});
-        else
-            Waiting.push_back(std::move(queued));
+        Waiting.push_back(std::move(queued));
+        PumpWaiting();
     }
 
     void PumpWaiting()
