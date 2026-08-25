@@ -121,8 +121,6 @@ public:
     /** Depends on: Interfaces, GameData, Schema(). */
     Sdk::EntitySystem Entities{Interfaces, GameData, *_schema};
     /** Pawn manipulations that need framework services, such as slap and its fall protection.
-     *  Declared after Entities and after the Scheduler whose timers it owns: its slot
-     *  subscription drops first, and its pending timers are discarded unrun with the Scheduler.
      *  Depends on: Scheduler, Slots, Entities. */
     Sdk::PawnService Pawns{Scheduler, Slots, Entities};
     /** Depends on: Entities, GameData, Schema(). */

@@ -15,10 +15,9 @@ using Players::ActionDispatcher;
 using Players::EffectDispatcher;
 
 // Context-aware rows. Descriptors are namespace-scope globals in the consumer, so capturing
-// their address in row lambdas is safe for the process lifetime. Every row captures the
-// context's runtime pointer, which is null only for a context nobody bound - in which case
-// MenuContext::Allowed has already disabled the row and MenuManager never runs its activation
-// callback, so only the render-time predicates below have to tolerate a null.
+// their address in row lambdas is safe for the process lifetime. A null MenuContext::Rt means
+// nobody bound the context, which Allowed() already turns into a disabled row - and MenuManager
+// activates only enabled rows, so only the render-time predicates below tolerate it.
 
 MenuBuilder& MenuBuilder::AddActionRow(std::string_view labelKey, const Players::Action& action)
 {

@@ -28,9 +28,8 @@ namespace VoltMod::Menu
 struct MenuContext
 {
     /** The live runtime, source of the roster, the policy and the translations. Declared first
-     *  so a designated initializer can name it before Admin/Target. Null makes the context
-     *  inert: @ref Allowed denies - so every context row renders disabled and never dispatches -
-     *  and @ref Tr returns the key unchanged. */
+     *  so a designated initializer can name it before Admin/Target. Null makes the context inert:
+     *  @ref Tr echoes the key and @ref Allowed denies, so every row renders disabled. */
     Runtime* Rt = nullptr;
     int Admin = -1;
     int Target = -1;

@@ -101,19 +101,15 @@ public:
      *  nullptr when exhausted or the finder signature is unresolved. */
     CEntityInstance* FindByName(CEntityInstance* startAfter, const char* name);
 
-    /** @internal The schema service this system was built with, so framework types that need an
-     *  entity plus its offsets (PlayerController and friends) can be built from it alone. */
+private:
+    // PlayerController stays a three-pointer transient by reaching the siblings through these
+    // rather than carrying copies. Private, not @internal: a service graph reachable from a value
+    // type is the locator shape this framework does not have. `Ref` because `GameData` is a type.
+    friend class PlayerController;
     SchemaService& Schema() { return _schema; }
-
-    /** @internal The engine interfaces this system was built with, for framework types that reach
-     *  the engine directly from an entity (PlayerController::Kick). */
     const GameInterfaces& Interfaces() const { return _interfaces; }
-
-    /** @internal The gamedata this system was built with, for framework types that dispatch by
-     *  vtable index from an entity. Spelled with the `Ref` suffix because `GameData` is a type here. */
     const GameData& GameDataRef() const { return _gameData; }
 
-private:
     void ResolveSchemaOffsets();
     void ResolveFinderSignatures();
     CEntityIdentity* GetEntityIdentityByIndex(CGameEntitySystem* pSys, int index);

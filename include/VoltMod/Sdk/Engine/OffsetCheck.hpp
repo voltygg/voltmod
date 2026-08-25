@@ -5,10 +5,8 @@ namespace VoltMod::Sdk
 
 /**
  * @file OffsetCheck.hpp
- * @brief Pure bounds checks shared by GameData's vtable index and byte offset accessors.
- *
- * Split into the two halves GameData reports separately, so a rejected offset says whether it
- * was out of range or misaligned.
+ * @brief Pure bounds checks for GameData's offset accessors, split into the two halves it
+ * reports separately so a rejection says whether the value was out of range or misaligned.
  */
 
 /** True when @p value is within [0, max]. */

@@ -96,8 +96,7 @@ namespace VoltMod::Sdk
 PawnService::PawnService(Core::Scheduler& scheduler, Core::SlotEvents& slots, EntitySystem& entities)
     : _scheduler(scheduler),
       _entities(entities),
-      // SlotEvents also fires when a slot is filled; either edge means the pending clear no longer
-      // belongs to whoever sits there, so both drop it.
+      // Either edge of a slot change means the pending clear no longer belongs to whoever sits there.
       _slotListener(slots.Listen([this](int slot) {
           if (!Core::IsValidSlot(slot))
               return;
@@ -122,10 +121,8 @@ void PawnService::Slap(const PlayerController& pc, float upward, float horizonta
     PawnOps::SetGodmode(pc, true);
     _scheduler.Cancel(_fallProtect[slot]);
 
-    // Re-resolve the controller when the timer fires rather than holding this one: the wrapper
-    // caches an entity pointer, and the protection window outlives the frame it was taken in.
-    // The Runtime destroys the Scheduler after this service, discarding pending timers unrun, so
-    // the captured `this` is never dereferenced after it dies.
+    // Re-resolve rather than holding this controller: it caches an entity pointer and the window
+    // outlives the frame. The Runtime discards pending timers unrun, so `this` never dangles.
     _fallProtect[slot] = _scheduler.Delay(fallProtectMs, [this, slot] {
         _fallProtect[slot] = 0;
         PlayerController target = _entities.Controller(slot);

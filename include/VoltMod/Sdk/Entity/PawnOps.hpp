@@ -14,10 +14,9 @@ inline constexpr int TeamT = 2;
 inline constexpr int TeamCT = 3;
 
 /**
- * @brief Common pawn manipulations composed from PlayerController primitives: teleport
- * destinations, movement/godmode toggles, and burying. Free functions so PlayerController itself
- * stays a thin field accessor. Operations that need framework services live on
- * @ref PawnService (`runtime.Pawns`) instead.
+ * @brief Pawn manipulations composed from PlayerController primitives: teleport destinations,
+ * movement/godmode toggles, burying. Free functions so PlayerController stays a thin field
+ * accessor. Anything needing framework services lives on @ref PawnService instead.
  */
 namespace PawnOps
 {
