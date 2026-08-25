@@ -34,7 +34,7 @@ immediately instead of riding the next broadcast.
 ## EffectOps
 
 One-shot world effects composed from EntityOps, as free functions in `VoltMod::Sdk::EffectOps`
-(`<VoltMod/Sdk/EffectOps.hpp>`). Each returns the helper entity (nullptr on failure) and cleans
+(`<VoltMod/Sdk/Entity/EffectOps.hpp>`). Each returns the helper entity (nullptr on failure) and cleans
 itself up when a lifetime is given:
 
 ```cpp

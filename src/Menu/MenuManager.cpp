@@ -5,10 +5,10 @@
 #include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Menu/MenuOption.hpp>
 #include <VoltMod/Runtime.hpp>
-#include <VoltMod/Sdk/ChatInputCapture.hpp>
-#include <VoltMod/Sdk/Entity.hpp>
-#include <VoltMod/Sdk/PlayerController.hpp>
-#include <VoltMod/Sdk/UserMessage.hpp>
+#include <VoltMod/Sdk/Entity/Entity.hpp>
+#include <VoltMod/Sdk/Entity/PlayerController.hpp>
+#include <VoltMod/Sdk/Messaging/ChatInputCapture.hpp>
+#include <VoltMod/Sdk/Messaging/UserMessage.hpp>
 #include <algorithm>
 #include <chrono>
 

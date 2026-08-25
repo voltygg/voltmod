@@ -101,7 +101,7 @@ player.SetPlayerName(saved);
 
 Common pawn manipulations composed from `PlayerController` primitives: the operations most
 gameplay plugins end up writing by hand. Free functions in `VoltMod::Sdk::PawnOps`
-(`<VoltMod/Sdk/PawnOps.hpp>`), plus the engine team constants `TeamNone` / `TeamSpectator` /
+(`<VoltMod/Sdk/Entity/PawnOps.hpp>`), plus the engine team constants `TeamNone` / `TeamSpectator` /
 `TeamT` / `TeamCT`:
 
 ```cpp

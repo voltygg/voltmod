@@ -47,7 +47,7 @@ MenuBuilder(title)
     .Build();
 ```
 
-`AddStateToggleRow` re-reads its predicate every redraw, so the same row shows "Freeze"/"Unfreeze" reality and doubles as the undo control. The pawn predicates (`InMoveType`, `HasPawnFlag`) live in `Sdk/PawnPredicates.hpp`. Effect rows read on/off labels from the reserved keys `effectState.on` / `effectState.off`; the descriptors themselves are covered in @ref players_guide.
+`AddStateToggleRow` re-reads its predicate every redraw, so the same row shows "Freeze"/"Unfreeze" reality and doubles as the undo control. The pawn predicates (`InMoveType`, `HasPawnFlag`) live in `Sdk/Entity/PawnPredicates.hpp`. Effect rows read on/off labels from the reserved keys `effectState.on` / `effectState.off`; the descriptors themselves are covered in @ref players_guide.
 
 ## Flow: multistep wizards
 

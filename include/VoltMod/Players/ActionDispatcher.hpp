@@ -2,7 +2,7 @@
 
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Players/TargetResolver.hpp>
-#include <VoltMod/Sdk/PlayerController.hpp>
+#include <VoltMod/Sdk/Entity/PlayerController.hpp>
 #include <functional>
 #include <optional>
 #include <string>

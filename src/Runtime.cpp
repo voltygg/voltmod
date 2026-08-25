@@ -1,5 +1,5 @@
 #include "Core/ConsoleLogger.hpp"
-#include "Sdk/Schema.hpp"
+#include "Sdk/Internal/Schema.hpp"
 
 #include <ISmmAPI.h>
 #include <VoltMod/Core/Log.hpp>

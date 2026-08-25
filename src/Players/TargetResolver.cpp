@@ -2,7 +2,7 @@
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/TargetResolver.hpp>
 #include <VoltMod/Runtime.hpp>
-#include <VoltMod/Sdk/PlayerController.hpp>
+#include <VoltMod/Sdk/Entity/PlayerController.hpp>
 #include <random>
 
 namespace VoltMod::Players

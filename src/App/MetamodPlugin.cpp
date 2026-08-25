@@ -6,7 +6,7 @@
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Runtime.hpp>
-#include <VoltMod/Sdk/GameInterfaces.hpp>
+#include <VoltMod/Sdk/Engine/GameInterfaces.hpp>
 #include <cstdio>
 #include <cstring>
 #include <format>

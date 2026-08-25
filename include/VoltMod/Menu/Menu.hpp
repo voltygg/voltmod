@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Sdk/MoveType.hpp>
+#include <VoltMod/Sdk/Entity/MoveType.hpp>
 #include <cstdint>
 #include <functional>
 #include <memory>

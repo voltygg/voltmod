@@ -4,7 +4,7 @@
 #include <VoltMod/Menu/Options/InputOption.hpp>
 #include <VoltMod/Menu/Options/SubmenuOption.hpp>
 #include <VoltMod/Runtime.hpp>
-#include <VoltMod/Sdk/ChatInputCapture.hpp>
+#include <VoltMod/Sdk/Messaging/ChatInputCapture.hpp>
 
 namespace VoltMod::Menu
 {

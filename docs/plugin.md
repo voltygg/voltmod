@@ -206,7 +206,7 @@ in your `App`'s destructor.
 
 ## Typed game events
 
-Listen for game events as structs instead of string + `GetInt` pairs. The structs live in `VoltMod::Events` (`Sdk/GameEvents.hpp`): `PlayerDeath`, `PlayerSpawn`, `PlayerJump`, `PlayerHurt`, `PlayerTeam`, `PlayerConnectFull`, `WeaponFire`, `RoundStart`, `RoundEnd`, `RoundPrestart`.
+Listen for game events as structs instead of string + `GetInt` pairs. The structs live in `VoltMod::Events` (`Sdk/Events/GameEvents.hpp`): `PlayerDeath`, `PlayerSpawn`, `PlayerJump`, `PlayerHurt`, `PlayerTeam`, `PlayerConnectFull`, `WeaponFire`, `RoundStart`, `RoundEnd`, `RoundPrestart`.
 
 ```cpp
 namespace Events = VoltMod::Events;

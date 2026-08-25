@@ -7,7 +7,7 @@ convar queries.
 
 ## ServerClock
 
-Free functions, not a service (`Sdk/ServerClock.hpp`); they hold no state and read `IVEngineServer2::GetServerGlobals()` on every call:
+Free functions, not a service (`Sdk/Engine/ServerClock.hpp`); they hold no state and read `IVEngineServer2::GetServerGlobals()` on every call:
 
 ```cpp
 using namespace VoltMod::Sdk;

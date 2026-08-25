@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoltMod/Commands/CommandSpec.hpp>
-#include <VoltMod/Sdk/ServerCommand.hpp>
+#include <VoltMod/Sdk/Engine/ServerCommand.hpp>
 #include <memory>
 #include <string>
 #include <string_view>

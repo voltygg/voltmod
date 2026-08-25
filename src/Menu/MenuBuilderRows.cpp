@@ -6,7 +6,7 @@
 #include <VoltMod/Players/EffectDescriptor.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Runtime.hpp>
-#include <VoltMod/Sdk/PlayerController.hpp>
+#include <VoltMod/Sdk/Entity/PlayerController.hpp>
 #include <format>
 
 namespace VoltMod::Menu

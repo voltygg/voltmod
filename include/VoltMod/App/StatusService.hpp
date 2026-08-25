@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Sdk/ServerCommand.hpp>
+#include <VoltMod/Sdk/Engine/ServerCommand.hpp>
 #include <functional>
 #include <memory>
 #include <nlohmann/json.hpp>

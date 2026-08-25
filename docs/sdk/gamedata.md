@@ -76,7 +76,7 @@ within the accepted range; game updates still require verification.
 
 ## Signature scanning
 
-The low-level byte-pattern scanner is **internal** (`src/Sdk/SigScanner.hpp`, free functions
+The low-level byte-pattern scanner is **internal** (`src/Sdk/Internal/SigScanner.hpp`, free functions
 `FindPattern(moduleName, pattern)` / `ResolveRelativeAddress(addr, ripOffset, ripSize)`); it is not
 part of the public include tree. Consumers scan through @ref VoltMod::Sdk::GameData instead, which
 adds per-platform patterns, named lookups, and caching:
@@ -91,7 +91,7 @@ Wildcard bytes are written as `?` or `??` in pattern strings (see the signatures
 
 ### Vtable lookup by class name
 
-`src/Sdk/VtableLookup.hpp` (`FindVirtualTable(moduleName, className)`) is the second internal
+`src/Sdk/Internal/VtableLookup.hpp` (`FindVirtualTable(moduleName, className)`) is the second internal
 resolver, and like the scanner it is not in the public include tree. It exists because a *class
 vtable* hook (SourceHook's `SH_ADD_MANUALVPHOOK`) covers every instance at once, where a per-instance
 hook has to be re-bound as objects come and go. @ref VoltMod::Sdk::ClientCvarService needs that for
