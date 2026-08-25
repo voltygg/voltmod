@@ -68,6 +68,7 @@
 #include <VoltMod/Sdk/Entity/MoveType.hpp>
 #include <VoltMod/Sdk/Entity/PawnOps.hpp>
 #include <VoltMod/Sdk/Entity/PawnPredicates.hpp>
+#include <VoltMod/Sdk/Entity/PawnService.hpp>
 #include <VoltMod/Sdk/Entity/PlayerController.hpp>
 #include <VoltMod/Sdk/Events/GameEventService.hpp>
 #include <VoltMod/Sdk/Events/GameEvents.hpp>
@@ -79,6 +80,7 @@
 #include <VoltMod/Sdk/Movement/TeleportTracker.hpp>
 #include <VoltMod/Sdk/Movement/UserCmd.hpp>
 #include <VoltMod/Sdk/Visibility/GlowVision.hpp>
+#include <VoltMod/Sdk/Visibility/VisibilityService.hpp>
 
 namespace VoltMod
 {
@@ -135,6 +137,7 @@ using Sdk::MessageSystem;
 using Sdk::MovementHook;
 using Sdk::MoveType;
 using Sdk::NetChannelService;
+using Sdk::PawnService;
 using Sdk::PersistentCenterHtml;
 using Sdk::PlayerController;
 using Sdk::RawConVar;
@@ -143,6 +146,7 @@ using Sdk::ServerCommand;
 using Sdk::SubtickMove;
 using Sdk::TeleportTracker;
 using Sdk::UserCmdView;
+using Sdk::VisibilityService;
 namespace PawnOps = Sdk::PawnOps;
 namespace Events = Sdk::Events;
 

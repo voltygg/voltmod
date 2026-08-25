@@ -52,6 +52,9 @@ bool ToggleGodmode(const PlayerController& pc);
  * Punt the pawn upward with random horizontal jitter, granting FL_GODMODE for `fallProtectMs`
  * so the landing doesn't kill the target. Pre-existing godmode is left untouched.
  *
+ * The primitive, taking its services as parameters. `runtime.Pawns.Slap(pc)` is the normal
+ * entry point; it has these two bound already.
+ *
  * @param scheduler runs the delayed godmode clear; pass `runtime.Scheduler`.
  * @param slots     cancels that clear if the seat changes hands first, so the next occupant of
  *                  @p pc's slot never has godmode stripped; pass `runtime.Slots`.

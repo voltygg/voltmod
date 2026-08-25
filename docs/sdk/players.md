@@ -117,8 +117,10 @@ PawnOps::ToggleGodmode(target);             // FL_GODMODE flip (the working CS2 
 PawnOps::ShiftZ(target, -15.0f);            // bury; +15 to unbury
 PawnOps::ChangeTeamSafe(target, TeamCT);    // bounds-checked ChangeTeam
 
-// Slap needs the two Core services its fall protection runs on.
-PawnOps::Slap(target, runtime.Scheduler, runtime.Slots);   // upward punt + timed fall protection
+// Slap needs two Core services for its fall protection; runtime.Pawns has them bound.
+runtime.Pawns.Slap(target);                          // upward punt + timed fall protection
+// The primitive is still there when you already hold the services:
+// PawnOps::Slap(target, runtime.Scheduler, runtime.Slots);
 
 // Teleports: a destination cleared past the anchor's hull, and an exact-origin swap.
 Vector dest = PawnOps::ClearedDestination(anchor);   // 48u ahead of anchor's eye yaw

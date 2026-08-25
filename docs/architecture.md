@@ -181,7 +181,11 @@ constructor or a parameter, and `modgraph` enforces that too: a `.cpp` under `Sd
 - `Sdk/`, `Core/`, `Http/` and `Database/` never name `Runtime`. Services and value types
   (`PlayerController`, `GlowVision`, `PersistentCenterHtml`, `HttpClient`, `PostgresDatabase`)
   take the sibling services they use; the free helpers reach their service through the
-  controller they are handed or take it as a parameter (`EffectOps`, `PawnOps::Slap`).
+  controller they are handed or take it as a parameter (`EffectOps`, `PawnOps::Slap`). Where a
+  plugin would otherwise thread those services through every call, the runtime owns a small
+  facade that binds them once: `PawnService` (`runtime.Pawns`, over `PawnOps::Slap`) and
+  `VisibilityService` (`runtime.Visibility`, over the `GlowVision` constructor). The primitives
+  stay public for code that already holds the services.
 - `Players/`, `Commands/`, `Menu/` and `App/` may take `Runtime&`, and the runtime-owned
   services do (`CommandManager`, `MenuManager`, `ActionDispatcher`). The header-only templates
   and plain-data types plugins instantiate (`Flow<TState>`, `PerSlot<T>`, `MenuContext`, the

@@ -22,6 +22,7 @@
 #include <VoltMod/Sdk/Engine/ServerClock.hpp>
 #include <VoltMod/Sdk/Entity/Entity.hpp>
 #include <VoltMod/Sdk/Entity/EntityOps.hpp>
+#include <VoltMod/Sdk/Entity/PawnService.hpp>
 #include <VoltMod/Sdk/Events/GameEventService.hpp>
 #include <VoltMod/Sdk/Messaging/ChatInputCapture.hpp>
 #include <VoltMod/Sdk/Messaging/UserMessage.hpp>
@@ -29,6 +30,7 @@
 #include <VoltMod/Sdk/Movement/MovementHook.hpp>
 #include <VoltMod/Sdk/Movement/TeleportTracker.hpp>
 #include <VoltMod/Sdk/Visibility/TransmitFilter.hpp>
+#include <VoltMod/Sdk/Visibility/VisibilityService.hpp>
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -96,8 +98,12 @@ public:
     Core::SlotEvents Slots;
     /** Frame pump, timers and delayed work. Pending timers are destroyed with it, never run, so
      *  whatever a timer's captured state owns may only point at members declared above this
-     *  line - today that is PawnOps::Slap's slot subscription, which is why Slots comes first. */
+     *  line - today that is the fall-protection slot subscription taken by Pawns.Slap below,
+     *  which is why Slots comes first. */
     Core::Scheduler Scheduler;
+    /** Pawn manipulations that need framework services, such as slap and its fall protection.
+     *  Depends on: Scheduler, Slots. */
+    Sdk::PawnService Pawns{Scheduler, Slots};
     /** Map the server is running, captured from StartupServer. Empty after a late load
      *  until the next map change, since the hook has already fired by then. */
     std::string CurrentMap;
@@ -122,6 +128,8 @@ public:
     Sdk::EntityOpsService EntityOps{Entities, GameData, *_schema};
     /** Depends on: Entities, GameData, Schema(), Slots. */
     Sdk::TransmitFilterService Transmit{Entities, GameData, *_schema, Slots};
+    /** Builds per-viewer visibility effects (GlowVision). Depends on: Entities, EntityOps, Transmit. */
+    Sdk::VisibilityService Visibility{Entities, EntityOps, Transmit};
     /** Depends on: GameData. */
     Sdk::PrecacheService Precache{GameData};
     /** Depends on: Interfaces. */

@@ -95,7 +95,7 @@ runtime.Commands.Register({
     .Args = {VoltMod::Target()},
     .Handler = [&runtime](VoltMod::CommandContext& context) {
         auto target = runtime.Entities.Controller(context.Target().GetSlot());
-        VoltMod::PawnOps::Slap(target, runtime.Scheduler, runtime.Slots);
+        runtime.Pawns.Slap(target);
         return context.Ok("cmd.slapped", {{"name", context.Target().GetName()}});
     },
 });

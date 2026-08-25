@@ -36,7 +36,7 @@ transmit.SetControllerHidden(slot, true);  // removes the player's scoreboard ro
 
 The hidden player still receives their own entities, and a client actively observing the hidden pawn keeps receiving it (dropping it would break the spectator camera). Sounds (footsteps, gunfire) are networked separately and are not filtered. State is cleared automatically when the player disconnects.
 
-Arbitrary entities can also be made exclusive to a single client, which is the building block for per-viewer effects like GlowVision below:
+Arbitrary entities can also be made exclusive to a single client, which is the building block for per-viewer effects like GlowVision below (`runtime.Visibility` wraps this one up for you):
 
 ```cpp
 transmit.SetEntityExclusive(entityIndex, beneficiarySlot);  // only this client receives it
@@ -54,7 +54,7 @@ Per-viewer wallhack-style vision built on the TransmitFilter: one client sees li
 ```cpp
 using VoltMod::Sdk::GlowVision;
 
-auto glow = std::make_shared<GlowVision>(runtime.Entities, runtime.EntityOps, runtime.Transmit, viewerSlot);
+auto glow = runtime.Visibility.CreateGlow(viewerSlot);
 glow->Reconcile();  // build the clones immediately
 
 // Then drive it from a repeating tick, e.g. an EffectManager spec:
@@ -74,8 +74,7 @@ GlowVision::Config config{
     // Ts only:
     .Filter = [&runtime](int slot) { return runtime.Entities.Controller(slot).GetTeam() == TeamT; },
 };
-auto glow = std::make_shared<GlowVision>(runtime.Entities, runtime.EntityOps, runtime.Transmit, viewerSlot,
-                                         std::move(config));
+auto glow = runtime.Visibility.CreateGlow(viewerSlot, std::move(config));
 ```
 
 Costs two entities per glowing player and inherits the TransmitFilter's gamedata requirement. Without the `CheckTransmitPlayerSlot` offset the clones would be visible to everyone, so do not use it when the filter is inert.

@@ -36,8 +36,9 @@ public:
     /** Suggested tick interval for @ref Reconcile. */
     static constexpr int ReconcileIntervalMs = 500;
 
-    /** All three services must outlive this object; the Runtime owns them. Pass
-     *  `runtime.Entities`, `runtime.EntityOps` and `runtime.Transmit`. */
+    /** All three services must outlive this object; the Runtime owns them.
+     *  `runtime.Visibility.CreateGlow(beneficiarySlot)` is the normal entry point - it passes
+     *  `runtime.Entities`, `runtime.EntityOps` and `runtime.Transmit` for you. */
     GlowVision(EntitySystem& entities, EntityOpsService& ops, TransmitFilterService& transmit, int beneficiarySlot,
                Config config = {})
         : _entities(entities),
