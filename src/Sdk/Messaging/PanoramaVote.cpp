@@ -1,0 +1,336 @@
+#include "Sdk/Internal/Schema.hpp"
+
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/Scheduler.hpp>
+#include <VoltMod/Sdk/Engine/GameInterfaces.hpp>
+#include <VoltMod/Sdk/Engine/MemoryAccess.hpp>
+#include <VoltMod/Sdk/Engine/RecipientFilter.hpp>
+#include <VoltMod/Sdk/Entity/Entity.hpp>
+#include <VoltMod/Sdk/Events/GameEventService.hpp>
+#include <VoltMod/Sdk/Messaging/PanoramaVote.hpp>
+#include <engine/igameeventsystem.h>
+#include <google/protobuf/descriptor.h>
+#include <google/protobuf/message.h>
+#include <networksystem/inetworkmessages.h>
+#include <networksystem/netmessage.h>
+
+namespace VoltMod::Sdk
+{
+using namespace VoltMod::Core;
+
+namespace
+{
+
+constexpr const char* ControllerClass = "vote_controller";
+constexpr const char* VoteControllerSchema = "CVoteController";
+
+// The engine's yes/no issue index; option 0 is Yes, option 1 is No, 3 means "not voted".
+constexpr int YesNoIssueIndex = 2;
+constexpr int OptionYes = 0;
+constexpr int OptionNo = 1;
+constexpr int VoteUncast = 3;
+constexpr int OptionSlots = 5;
+constexpr int AllTeams = -1;
+
+using ProtoMessage = google::protobuf::Message;
+
+/**
+ * The CS-specific user messages (CCSUsrMsg_VoteStart and friends) are declared in the SDK's
+ * cstrike15_usermessages.proto but are not generated into headers, and consumer builds
+ * deliberately do not run protoc. The engine has already registered their descriptors though,
+ * so the fields are set through protobuf reflection by name instead - no generated type, no
+ * build-system change, and a renamed field degrades to a warning rather than miscompiling.
+ */
+ProtoMessage* AsProto(CNetMessage* message)
+{
+    return message ? message->ToPB<ProtoMessage>() : nullptr;
+}
+
+const google::protobuf::FieldDescriptor* Field(ProtoMessage* message, const char* name)
+{
+    const auto* descriptor = message->GetDescriptor();
+    const auto* field = descriptor ? descriptor->FindFieldByName(name) : nullptr;
+    if (!field)
+        Log::Warn("PanoramaVote: {} has no field '{}'; the panel may render incomplete.",
+                  descriptor ? descriptor->name() : "<unknown>", name);
+    return field;
+}
+
+void SetInt(ProtoMessage* message, const char* name, int32_t value)
+{
+    if (const auto* field = Field(message, name))
+        message->GetReflection()->SetInt32(message, field, value);
+}
+
+void SetBool(ProtoMessage* message, const char* name, bool value)
+{
+    if (const auto* field = Field(message, name))
+        message->GetReflection()->SetBool(message, field, value);
+}
+
+void SetString(ProtoMessage* message, const char* name, const std::string& value)
+{
+    if (const auto* field = Field(message, name))
+        message->GetReflection()->SetString(message, field, value);
+}
+
+}  // namespace
+
+PanoramaVote::PanoramaVote(GameInterfaces& interfaces, EntitySystem& entities, SchemaService& schema,
+                           GameEventService& events, Core::Scheduler& scheduler)
+    : _interfaces(interfaces), _entities(entities), _schema(schema), _events(events), _scheduler(scheduler)
+{}
+
+void PanoramaVote::Start()
+{
+    _voteCastSub = _events.Listen("vote_cast", [this](IGameEvent* event) {
+        if (!event || !_inProgress)
+            return;
+        OnVoteCast(event->GetPlayerSlot("userid").Get(), event->GetInt("vote_option"));
+    });
+}
+
+void* PanoramaVote::FindController()
+{
+    return _entities.FindByClassName(nullptr, ControllerClass);
+}
+
+int PanoramaVote::OptionCount(int option)
+{
+    if (!_controller || option < 0 || option >= OptionSlots)
+        return 0;
+    int offset = _schema.GetOffset(VoteControllerSchema, "m_nVoteOptionCount");
+    if (offset < 0)
+        return 0;
+    return ReadAt<int>(_controller, offset + option * static_cast<int>(sizeof(int)));
+}
+
+void PanoramaVote::SetOptionCount(int option, int value)
+{
+    if (!_controller || option < 0 || option >= OptionSlots)
+        return;
+    int offset = _schema.GetOffset(VoteControllerSchema, "m_nVoteOptionCount");
+    if (offset < 0)
+        return;
+    WriteAt<int>(_controller, offset + option * static_cast<int>(sizeof(int)), value);
+}
+
+void PanoramaVote::ResetBallots()
+{
+    for (int option = 0; option < OptionSlots; ++option)
+        SetOptionCount(option, 0);
+
+    int castOffset = _schema.GetOffset(VoteControllerSchema, "m_nVotesCast");
+    if (castOffset < 0)
+        return;
+    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+        WriteAt<int>(_controller, castOffset + slot * static_cast<int>(sizeof(int)), VoteUncast);
+}
+
+bool PanoramaVote::StartVote(const std::string& title, const std::string& detail, float durationSec, int callerSlot,
+                             ResultFn onResult, FinishedFn onFinished)
+{
+    if (_inProgress || !onResult)
+        return false;
+
+    // The controller is a map entity, so it is a different object after every map change.
+    _controller = FindController();
+    if (!_controller)
+    {
+        Log::Warn("PanoramaVote: this map has no vote_controller; no vote can be shown.");
+        return false;
+    }
+
+    auto& schema = _schema;  // local alias keeps the offset block below narrow
+
+    _eligible = 0;
+    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+    {
+        if (_entities.GetPlayerController(slot))
+            ++_eligible;
+    }
+    if (_eligible <= 0)
+        return false;
+
+    ResetBallots();
+
+    if (int offset = schema.GetOffsetOf<int>(VoteControllerSchema, "m_nPotentialVotes"); offset >= 0)
+        WriteAt<int>(_controller, offset, _eligible);
+    if (int offset = schema.GetOffsetOf<bool>(VoteControllerSchema, "m_bIsYesNoVote"); offset >= 0)
+        WriteAt<bool>(_controller, offset, true);
+    if (int offset = schema.GetOffsetOf<int>(VoteControllerSchema, "m_iActiveIssueIndex"); offset >= 0)
+        WriteAt<int>(_controller, offset, YesNoIssueIndex);
+    // Who may vote is decided by the recipients of the VoteStart message, not by this field.
+    if (int offset = schema.GetOffsetOf<int>(VoteControllerSchema, "m_iOnlyTeamToVote"); offset >= 0)
+        WriteAt<int>(_controller, offset, AllTeams);
+
+    _inProgress = true;
+    _title = title;
+    _detail = detail;
+    _callerSlot = callerSlot;
+    _onResult = std::move(onResult);
+    _onFinished = std::move(onFinished);
+
+    PublishCounts();
+    SendVoteStart();
+
+    // Captured by value so a timeout can only ever end the vote that scheduled it; a vote that
+    // finished early has already moved the id on.
+    const uint64_t voteId = ++_voteId;
+    _scheduler.Delay(static_cast<int64_t>(durationSec * 1000.0f), [this, voteId] {
+        if (_inProgress && voteId == _voteId)
+            FinishVote(VoteEndReason::TimeUp);
+    });
+
+    return true;
+}
+
+void PanoramaVote::OnVoteCast(int slot, int option)
+{
+    if (slot < 0 || option < 0 || option >= OptionSlots)
+        return;
+
+    PublishCounts();
+
+    // Close as soon as everyone who could vote has, rather than sitting on a decided vote.
+    if (OptionCount(OptionYes) + OptionCount(OptionNo) >= _eligible)
+    {
+        // Deferred a tick: ending inside the event dispatch that produced the last ballot tears
+        // down state the engine is still walking.
+        const uint64_t voteId = _voteId;
+        _scheduler.NextTick([this, voteId] {
+            if (_inProgress && voteId == _voteId)
+                FinishVote(VoteEndReason::AllVoted);
+        });
+    }
+}
+
+void PanoramaVote::EndVote(VoteEndReason reason)
+{
+    if (_inProgress)
+        FinishVote(reason);
+}
+
+void PanoramaVote::FinishVote(VoteEndReason reason)
+{
+    _inProgress = false;
+    ++_voteId;  // any timeout still pending for this vote is now stale
+
+    VoteTally tally{.Eligible = _eligible, .Yes = OptionCount(OptionYes), .No = OptionCount(OptionNo)};
+
+    // A cancelled vote never asks the caller whether it passed.
+    bool passed = reason != VoteEndReason::Cancelled && _onResult && _onResult(tally);
+
+    SendVoteOutcome(passed);
+
+    if (_controller)
+    {
+        if (int offset = _schema.GetOffsetOf<int>(VoteControllerSchema, "m_iActiveIssueIndex"); offset >= 0)
+            WriteAt<int>(_controller, offset, -1);
+    }
+    _controller = nullptr;
+
+    auto finished = std::move(_onFinished);
+    _onResult = nullptr;
+    _onFinished = nullptr;
+    if (finished)
+        finished(passed, reason);
+}
+
+void PanoramaVote::PublishCounts()
+{
+    // The panel reads its running tally from vote_changed, not from the entity, so the counts
+    // have to be re-announced after every ballot.
+    IGameEvent* event = _events.CreateEvent("vote_changed");
+    if (!event)
+        return;
+
+    event->SetInt("vote_option1", OptionCount(0));
+    event->SetInt("vote_option2", OptionCount(1));
+    event->SetInt("vote_option3", OptionCount(2));
+    event->SetInt("vote_option4", OptionCount(3));
+    event->SetInt("vote_option5", OptionCount(4));
+    event->SetInt("potentialVotes", _eligible);
+
+    _events.FireEvent(event, false);
+}
+
+void PanoramaVote::SendVoteStart()
+{
+    if (!_interfaces.NetworkMessages || !_interfaces.GameEventSystem)
+        return;
+
+    auto* internalMsg = _interfaces.NetworkMessages->FindNetworkMessagePartial("VoteStart");
+    if (!internalMsg)
+        return;
+
+    CNetMessage* message = internalMsg->AllocateMessage();
+    if (!message)
+        return;
+
+    auto* start = AsProto(message);
+    if (!start)
+    {
+        _interfaces.NetworkMessages->DeallocateNetMessageAbstract(internalMsg, message);
+        return;
+    }
+
+    SetInt(start, "team", AllTeams);
+    SetInt(start, "player_slot", _callerSlot);
+    SetInt(start, "vote_type", -1);
+    SetString(start, "disp_str", _title);
+    SetString(start, "details_str", _detail);
+    SetBool(start, "is_yes_no_vote", true);
+
+    MultiRecipientFilter filter;
+    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+    {
+        if (_entities.GetPlayerController(slot))
+            filter.AddRecipient(slot);
+    }
+
+    _interfaces.GameEventSystem->PostEventAbstract(-1, false, &filter, internalMsg, message, 0);
+    _interfaces.NetworkMessages->DeallocateNetMessageAbstract(internalMsg, message);
+}
+
+void PanoramaVote::SendVoteOutcome(bool passed)
+{
+    if (!_interfaces.NetworkMessages || !_interfaces.GameEventSystem)
+        return;
+
+    const char* name = passed ? "VotePass" : "VoteFailed";
+    auto* internalMsg = _interfaces.NetworkMessages->FindNetworkMessagePartial(name);
+    if (!internalMsg)
+        return;
+
+    CNetMessage* message = internalMsg->AllocateMessage();
+    if (!message)
+        return;
+
+    if (auto* outcome = AsProto(message))
+    {
+        SetInt(outcome, "team", AllTeams);
+        if (passed)
+        {
+            SetInt(outcome, "vote_type", -1);
+            SetString(outcome, "disp_str", _title);
+            SetString(outcome, "details_str", _detail);
+        }
+        else
+        {
+            SetInt(outcome, "reason", 0);
+        }
+    }
+
+    MultiRecipientFilter filter;
+    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+    {
+        if (_entities.GetPlayerController(slot))
+            filter.AddRecipient(slot);
+    }
+
+    _interfaces.GameEventSystem->PostEventAbstract(-1, false, &filter, internalMsg, message, 0);
+    _interfaces.NetworkMessages->DeallocateNetMessageAbstract(internalMsg, message);
+}
+
+}  // namespace VoltMod::Sdk

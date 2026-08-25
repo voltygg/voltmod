@@ -77,6 +77,7 @@
 #include <VoltMod/Sdk/Events/GameEventService.hpp>
 #include <VoltMod/Sdk/Events/GameEvents.hpp>
 #include <VoltMod/Sdk/Messaging/ChatInputCapture.hpp>
+#include <VoltMod/Sdk/Messaging/PanoramaVote.hpp>
 #include <VoltMod/Sdk/Messaging/PersistentCenterHtml.hpp>
 #include <VoltMod/Sdk/Messaging/UserMessage.hpp>
 #include <VoltMod/Sdk/Movement/InputHistoryService.hpp>
@@ -143,6 +144,7 @@ using Sdk::MessageSystem;
 using Sdk::MovementHook;
 using Sdk::MoveType;
 using Sdk::NetChannelService;
+using Sdk::PanoramaVote;
 using Sdk::PawnService;
 using Sdk::PersistentCenterHtml;
 using Sdk::PlayerController;
@@ -153,6 +155,8 @@ using Sdk::SubtickMove;
 using Sdk::TeleportTracker;
 using Sdk::UserCmdView;
 using Sdk::VisibilityService;
+using Sdk::VoteEndReason;
+using Sdk::VoteTally;
 namespace PawnOps = Sdk::PawnOps;
 namespace Events = Sdk::Events;
 

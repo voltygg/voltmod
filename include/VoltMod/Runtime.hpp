@@ -28,6 +28,7 @@
 #include <VoltMod/Sdk/Entity/PawnService.hpp>
 #include <VoltMod/Sdk/Events/GameEventService.hpp>
 #include <VoltMod/Sdk/Messaging/ChatInputCapture.hpp>
+#include <VoltMod/Sdk/Messaging/PanoramaVote.hpp>
 #include <VoltMod/Sdk/Messaging/UserMessage.hpp>
 #include <VoltMod/Sdk/Movement/InputHistoryService.hpp>
 #include <VoltMod/Sdk/Movement/MovementHook.hpp>
@@ -146,6 +147,9 @@ public:
     Sdk::MessageSystem Messages{Interfaces, GameData, Events, Translations};
     /** The engine's simulation clock (tick and curtime). Depends on: Interfaces. */
     Sdk::ServerClock Clock{Interfaces};
+    /** The game's own yes/no vote panel. Dormant until Start().
+     *  Depends on: Interfaces, Entities, Schema(), Events, Scheduler. */
+    Sdk::PanoramaVote Vote{Interfaces, Entities, *_schema, Events, Scheduler};
     /** Dormant until a plugin calls Install(); removes its vtable hook on destruction.
      *  Depends on: Entities, GameData. */
     Sdk::MovementHook MovementHook{Entities, GameData};
