@@ -1,10 +1,11 @@
-#include <VoltMod/Detail/Runtime.hpp>
-#include <VoltMod/Runtime.hpp>
+#include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Sdk/Entity/Entity.hpp>
 #include <VoltMod/Sdk/Entity/MoveType.hpp>
 #include <VoltMod/Sdk/Entity/PawnOps.hpp>
 #include <cmath>
+#include <cstdint>
 #include <mathlib/vector.h>
+#include <memory>
 #include <numbers>
 #include <random>
 
@@ -19,6 +20,19 @@ float Rand(float lo, float hi)
     std::uniform_real_distribution<float> dist(lo, hi);
     return dist(rng);
 }
+
+/**
+ * One slap's fall protection: the pending godmode clear plus the slot listener that cancels it.
+ * The timer's callback holds the only strong reference, so both die together the moment the timer
+ * fires or is cancelled - including from Scheduler::CancelAll during runtime teardown, which runs
+ * while SlotEvents is still alive. The listener holds a weak reference so it can never keep the
+ * state (and therefore itself) alive.
+ */
+struct FallProtection
+{
+    uint64_t Timer = 0;
+    Core::Subscription SlotChanged;
+};
 }  // namespace
 
 Vector ClearedDestination(const PlayerController& anchor, float clearance)
@@ -79,7 +93,8 @@ bool ToggleGodmode(const PlayerController& pc)
     return turningOn;
 }
 
-void Slap(const PlayerController& pc, float upward, float horizontal, int fallProtectMs)
+void Slap(const PlayerController& pc, Core::Scheduler& scheduler, Core::SlotEvents& slots, float upward,
+          float horizontal, int fallProtectMs)
 {
     // Write velocity directly on the pawn rather than through the Teleport vfunc.
     // Teleport(nullptr origin, ...) was crashing the server in CS2 builds we tested;
@@ -88,27 +103,31 @@ void Slap(const PlayerController& pc, float upward, float horizontal, int fallPr
 
     // Only toggle godmode for fall protection if the target wasn't already in godmode, otherwise
     // the delayed clear below would silently strip an externally applied godmode.
-    if (fallProtectMs > 0 && !HasGodmode(pc))
-    {
-        SetGodmode(pc, true);
+    if (fallProtectMs <= 0 || HasGodmode(pc))
+        return;
 
-        auto& runtime = VoltMod::Detail::Rt();
-        const int slot = pc.GetSlot();
-        Players::Player* player = runtime.Players.GetPlayerBySlot(slot);
-        if (!player)
+    SetGodmode(pc, true);
+
+    const int slot = pc.GetSlot();
+    auto& entities = pc.Entities();
+    auto state = std::make_shared<FallProtection>();
+
+    // Re-resolve the controller when the timer fires rather than holding this one: the wrapper
+    // caches an entity pointer, and the protection window outlives the frame it was taken in.
+    state->Timer = scheduler.Delay(fallProtectMs, [state, &entities, slot] {
+        PlayerController target = entities.Controller(slot);
+        if (target.IsValid())
+            SetGodmode(target, false);
+    });
+
+    // The player can disconnect inside the protection window; clearing godmode off whoever takes
+    // the slot next is not our business, so drop the timer as soon as the seat changes hands.
+    state->SlotChanged = slots.Listen([weak = std::weak_ptr<FallProtection>(state), slot, &scheduler](int changed) {
+        if (changed != slot)
             return;
-
-        // Check the seat still holds the same player: they can disconnect inside the protection
-        // window, and clearing godmode off whoever took the slot next is not our business.
-        runtime.Scheduler.Delay(fallProtectMs, [slot, steamId = player->GetSteamID()]() {
-            if (!VoltMod::Detail::Rt().Players.GetPlayerBySlotIfSteamId(slot, steamId))
-                return;
-
-            PlayerController target(slot);
-            if (target.IsValid())
-                SetGodmode(target, false);
-        });
-    }
+        if (auto owned = weak.lock())
+            scheduler.Cancel(owned->Timer);
+    });
 }
 
 bool ChangeTeamSafe(const PlayerController& pc, int team)

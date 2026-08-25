@@ -6,8 +6,15 @@
 #include <functional>
 #include <string>
 
+namespace VoltMod::Core
+{
+class Scheduler;
+}
+
 namespace VoltMod::Sdk
 {
+
+class MessageSystem;
 
 /**
  * @brief Re-sends a center-HTML panel on a fixed interval until stopped. CS2 drops center-HTML
@@ -20,6 +27,12 @@ class PersistentCenterHtml
 public:
     static constexpr int MaxSlots = 64;
 
+    /** @p messages sends and clears the panel, @p scheduler drives the refresh. Both must outlive
+     *  this object; pass `runtime.Messages` and `runtime.Scheduler`. */
+    PersistentCenterHtml(MessageSystem& messages, Core::Scheduler& scheduler)
+        : _messages(messages), _scheduler(scheduler)
+    {}
+
     /** Start (or restart) re-sending `render(slot)`'s HTML to @p slot every @p refreshMs. */
     void Show(int slot, int refreshMs, std::function<std::string(int slot)> render);
 
@@ -29,6 +42,8 @@ public:
     void StopAll();
 
 private:
+    MessageSystem& _messages;
+    Core::Scheduler& _scheduler;
     std::array<Core::Subscription, MaxSlots> _timers;
 };
 

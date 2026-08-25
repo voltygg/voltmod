@@ -1,5 +1,7 @@
 #pragma once
 
+#include <VoltMod/Core/Scheduler.hpp>
+#include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Sdk/Entity/PlayerController.hpp>
 
 class Vector;
@@ -46,10 +48,18 @@ bool HasGodmode(const PlayerController& pc);
 void SetGodmode(const PlayerController& pc, bool enable);
 bool ToggleGodmode(const PlayerController& pc);
 
-/** Punt the pawn upward with random horizontal jitter, granting FL_GODMODE for
- *  `fallProtectMs` (via runtime.Scheduler) so the landing doesn't kill the target.
- *  Pre-existing godmode is left untouched. */
-void Slap(const PlayerController& pc, float upward = 800.0f, float horizontal = 100.0f, int fallProtectMs = 3000);
+/**
+ * Punt the pawn upward with random horizontal jitter, granting FL_GODMODE for `fallProtectMs`
+ * so the landing doesn't kill the target. Pre-existing godmode is left untouched.
+ *
+ * @param scheduler runs the delayed godmode clear; pass `runtime.Scheduler`.
+ * @param slots     cancels that clear if the seat changes hands first, so the next occupant of
+ *                  @p pc's slot never has godmode stripped; pass `runtime.Slots`.
+ * Both must outlive the protection window - the Runtime owns them and cancels its scheduler
+ * before they go away.
+ */
+void Slap(const PlayerController& pc, Core::Scheduler& scheduler, Core::SlotEvents& slots, float upward = 800.0f,
+          float horizontal = 100.0f, int fallProtectMs = 3000);
 
 /** ChangeTeam bounds-checked to TeamSpectator..TeamCT. Returns false for out-of-range values. */
 bool ChangeTeamSafe(const PlayerController& pc, int team);

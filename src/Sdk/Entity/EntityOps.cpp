@@ -5,6 +5,7 @@
 #include <VoltMod/Sdk/Entity/Entity.hpp>
 #include <VoltMod/Sdk/Entity/EntityKeyValues.hpp>
 #include <VoltMod/Sdk/Entity/EntityOps.hpp>
+#include <algorithm>
 #include <bit>
 #include <entity2/entityinstance.h>
 #include <entity2/entitykeyvalues.h>
@@ -156,6 +157,16 @@ void EntityOpsService::AcceptInputFloat(CEntityInstance* entity, const char* inp
 {
     variant_t variant(value);
     FireInput(_acceptInput, entity, input, variant, activator, caller);
+}
+
+void EntityOpsService::SetModelScale(CEntityInstance* entity, float scale)
+{
+    // Hard clamp: very large model scales blow up the collision hull and can destabilize
+    // or crash the server. This is the crash-safety bound, not a gameplay ceiling; keep every
+    // caller inside it regardless of input.
+    constexpr float MinSafeModelScale = 0.05f;
+    constexpr float MaxSafeModelScale = 3.0f;
+    AcceptInputFloat(entity, "SetScale", std::clamp(scale, MinSafeModelScale, MaxSafeModelScale));
 }
 
 void EntityOpsService::AddIOEvent(CEntityInstance* target, const char* input, float delaySeconds,

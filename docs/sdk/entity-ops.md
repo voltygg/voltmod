@@ -34,15 +34,17 @@ immediately instead of riding the next broadcast.
 ## EffectOps
 
 One-shot world effects composed from EntityOps, as free functions in `VoltMod::Sdk::EffectOps`
-(`<VoltMod/Sdk/Entity/EffectOps.hpp>`). Each returns the helper entity (nullptr on failure) and cleans
-itself up when a lifetime is given:
+(`<VoltMod/Sdk/Entity/EffectOps.hpp>`). Each takes the service it spawns through as its first
+argument, returns the helper entity (nullptr on failure), and cleans itself up when a lifetime is
+given:
 
 ```cpp
 using namespace VoltMod::Sdk;
+auto& ops = runtime.EntityOps;
 
-EffectOps::SpawnParticle("particles/foo.vpcf", pos, 2.0f);          // needs Precache.Add for custom vpcf
-EffectOps::SpawnBeam(from, to, Color(0, 128, 255, 255), 1.5f, 1.0f);
-EffectOps::SpawnProp("models/props/crate.vmdl", pos, /*physics*/ true, 30.0f);
+EffectOps::SpawnParticle(ops, "particles/foo.vpcf", pos, 2.0f);          // needs Precache.Add for custom vpcf
+EffectOps::SpawnBeam(ops, from, to, Color(0, 128, 255, 255), 1.5f, 1.0f);
+EffectOps::SpawnProp(ops, "models/props/crate.vmdl", pos, /*physics*/ true, 30.0f);
 ```
 
 ## PrecacheService

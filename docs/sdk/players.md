@@ -12,6 +12,10 @@ auto& es = runtime.Entities;
 // Get the raw controller entity by slot
 auto* controller = es.GetPlayerController(slot);
 
+// ... or the typed wrapper around it (see PlayerController below; the call needs
+// <VoltMod/Sdk/Entity/PlayerController.hpp>, which Api.hpp already includes)
+auto typed = es.Controller(slot);
+
 // Check if a slot is valid
 bool valid = es.IsPlayerSlotValid(slot);
 
@@ -25,19 +29,18 @@ while ((door = es.FindByClassName(door, "func_door")))
 auto* named = es.FindByName(nullptr, "my_targetname");
 ```
 
-For typed operations on a player, construct a
-@ref VoltMod::Sdk::PlayerController from the slot rather than using the raw
-`CEntityInstance*`.
+For typed operations on a player, ask the entity system for a
+@ref VoltMod::Sdk::PlayerController rather than using the raw `CEntityInstance*`.
 
 ## PlayerController
 
-`PlayerController` wraps common `CCSPlayerController` operations. Construct it from a player
-slot; it resolves the controller entity internally (check `IsValid()` if the slot may be
-empty). When you already hold a tracked `VoltMod::Player*`, `player->Controller()` builds the
-same wrapper:
+`PlayerController` wraps common `CCSPlayerController` operations. Build one with
+`runtime.Entities.Controller(slot)`; it resolves the controller entity internally (check
+`IsValid()` if the slot may be empty). The wrapper caches that entity pointer, so treat it as a
+value good for the current frame - resolve it again rather than storing it:
 
 ```cpp
-VoltMod::PlayerController player(slot);   // or: trackedPlayer->Controller()
+VoltMod::PlayerController player = runtime.Entities.Controller(slot);
 
 int health = player.GetHealth();
 int team = player.GetTeam();
@@ -106,14 +109,16 @@ gameplay plugins end up writing by hand. Free functions in `VoltMod::Sdk::PawnOp
 
 ```cpp
 using namespace VoltMod::Sdk;
-PlayerController target(slot);
+PlayerController target = runtime.Entities.Controller(slot);
 
 PawnOps::ToggleNoclip(target);              // noclip <-> walk; returns the new on-state
 PawnOps::ToggleFreeze(target);              // MoveType None <-> walk
 PawnOps::ToggleGodmode(target);             // FL_GODMODE flip (the working CS2 invincibility path)
 PawnOps::ShiftZ(target, -15.0f);            // bury; +15 to unbury
-PawnOps::Slap(target);                      // upward punt + timed fall protection
 PawnOps::ChangeTeamSafe(target, TeamCT);    // bounds-checked ChangeTeam
+
+// Slap needs the two Core services its fall protection runs on.
+PawnOps::Slap(target, runtime.Scheduler, runtime.Slots);   // upward punt + timed fall protection
 
 // Teleports: a destination cleared past the anchor's hull, and an exact-origin swap.
 Vector dest = PawnOps::ClearedDestination(anchor);   // 48u ahead of anchor's eye yaw
@@ -122,4 +127,6 @@ PawnOps::SwapOrigins(a, b);                          // both spots vacate in the
 
 Two CS2 workarounds are baked in: `Slap` writes velocity via `m_vecAbsVelocity` because
 `Teleport(nullptr, ...)` crashes the server, and godmode uses the `FL_GODMODE` flag because the
-legacy `m_takedamage` write is a no-op.
+legacy `m_takedamage` write is a no-op. `Slap`'s fall protection clears itself on a scheduler
+timer, and the `SlotEvents` listener it takes cancels that timer if the player leaves first, so
+the next occupant of the slot never has godmode stripped.

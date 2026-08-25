@@ -26,7 +26,8 @@ switch, or a HUD update. A sticky panel must therefore be sent repeatedly.
 the deadline or expiry policy:
 
 ```cpp
-VoltMod::PersistentCenterHtml panel;
+// A member of your plugin object; the two services it takes belong to the runtime.
+VoltMod::PersistentCenterHtml panel{runtime.Messages, runtime.Scheduler};
 
 panel.Show(slot, /*refreshMs=*/100, [](int s) {
     return std::format("<b>Time left: {}s</b>", RemainingSeconds(s));  // re-rendered every refresh

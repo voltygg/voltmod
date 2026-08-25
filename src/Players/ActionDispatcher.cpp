@@ -6,12 +6,11 @@
 namespace VoltMod::Players
 {
 
-using Sdk::PlayerController;
-
 ActionContext ActionDispatcher::Resolve(int callerSlot, int targetSlot, const std::string& permission) const
 {
-    ActionContext ctx{nullptr, nullptr, PlayerController(callerSlot), PlayerController(targetSlot),
-                      VoltMod::Detail::Rt()};
+    auto& runtime = VoltMod::Detail::Rt();
+    ActionContext ctx{nullptr, nullptr, runtime.Entities.Controller(callerSlot),
+                      runtime.Entities.Controller(targetSlot), runtime};
 
     auto& plrMgr = VoltMod::Detail::Rt().Players;
     ctx.Caller = plrMgr.GetPlayerBySlot(callerSlot);

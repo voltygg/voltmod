@@ -2,16 +2,12 @@
 #include "Sdk/Internal/VirtualCall.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
-#include <VoltMod/Runtime.hpp>
 #include <VoltMod/Sdk/Engine/GameData.hpp>
 #include <VoltMod/Sdk/Engine/GameInterfaces.hpp>
 #include <VoltMod/Sdk/Engine/MemoryAccess.hpp>
 #include <VoltMod/Sdk/Entity/Entity.hpp>
-#include <VoltMod/Sdk/Entity/EntityOps.hpp>
 #include <VoltMod/Sdk/Entity/EntityRender.hpp>
 #include <VoltMod/Sdk/Entity/PlayerController.hpp>
-#include <algorithm>
 #include <cstring>
 #include <eiface.h>
 #include <entity2/entityinstance.h>
@@ -29,11 +25,11 @@ namespace
 // when the offset is missing or `target` is null - collapses the lookup/guard/dispatch the
 // vtable wrappers all repeat.
 template <typename... Args>
-void CallVtableByName(void* target, const char* name, Args&&... args)
+void CallVtableByName(const GameData& gameData, void* target, const char* name, Args&&... args)
 {
     if (!target)
         return;
-    int index = VoltMod::Detail::Rt().GameData.GetVtableIndex(name);
+    int index = gameData.GetVtableIndex(name);
     if (index < 0)
         return;
     CallVirtual<void>(index, target, std::forward<Args>(args)...);
@@ -41,41 +37,46 @@ void CallVtableByName(void* target, const char* name, Args&&... args)
 
 // Origin/rotation are not schema fields of CBaseEntity in CS2; they live on the
 // pawn's CGameSceneNode, reached via m_CBodyComponent -> m_pSceneNode.
-void* ResolveSceneNode(CEntityInstance* pawn)
+void* ResolveSceneNode(SchemaService& schema, CEntityInstance* pawn)
 {
     if (!pawn)
         return nullptr;
 
-    int bodyOffset = VoltMod::Detail::Rt().Schema().GetOffset("CBaseEntity", "m_CBodyComponent");
+    int bodyOffset = schema.GetOffset("CBaseEntity", "m_CBodyComponent");
     if (bodyOffset < 0)
         return nullptr;
     auto* body = ReadAt<uint8_t*>(pawn, bodyOffset);
     if (!body)
         return nullptr;
 
-    int nodeOffset = VoltMod::Detail::Rt().Schema().GetOffsetOf<void*>("CBodyComponent", "m_pSceneNode");
+    int nodeOffset = schema.GetOffsetOf<void*>("CBodyComponent", "m_pSceneNode");
     if (nodeOffset < 0)
         return nullptr;
     return ReadAt<void*>(body, nodeOffset);
 }
 
 template <typename T>
-T GetSceneNodeField(CEntityInstance* pawn, const char* fieldName)
+T GetSceneNodeField(SchemaService& schema, CEntityInstance* pawn, const char* fieldName)
 {
-    void* node = ResolveSceneNode(pawn);
+    void* node = ResolveSceneNode(schema, pawn);
     if (!node)
         return T{0.0f, 0.0f, 0.0f};
 
-    int offset = VoltMod::Detail::Rt().Schema().GetOffsetOf<T>("CGameSceneNode", fieldName);
+    int offset = schema.GetOffsetOf<T>("CGameSceneNode", fieldName);
     if (offset < 0)
         return T{0.0f, 0.0f, 0.0f};
     return ReadAt<T>(node, offset);
 }
 }  // namespace
 
-PlayerController::PlayerController(int slot) : _slot(slot)
+PlayerController EntitySystem::Controller(int slot)
 {
-    _controller = VoltMod::Detail::Rt().Entities.GetPlayerController(slot);
+    return PlayerController(*this, slot);
+}
+
+PlayerController::PlayerController(EntitySystem& entities, int slot) : _entities(&entities), _slot(slot)
+{
+    _controller = entities.GetPlayerController(slot);
 }
 
 bool PlayerController::IsValid() const
@@ -93,12 +94,12 @@ CEntityInstance* PlayerController::GetPawn() const
     if (!_controller)
         return nullptr;
 
-    int offset = VoltMod::Detail::Rt().Schema().GetOffsetOf<uint32_t>("CCSPlayerController", "m_hPlayerPawn");
+    int offset = _entities->Schema().GetOffsetOf<uint32_t>("CCSPlayerController", "m_hPlayerPawn");
     if (offset < 0)
         return nullptr;
 
     auto hPawn = ReadAt<uint32_t>(_controller, offset);
-    return VoltMod::Detail::Rt().Entities.ResolveEntityHandle(hPawn);
+    return _entities->ResolveEntityHandle(hPawn);
 }
 
 void PlayerController::Kick(const char* reason) const
@@ -106,7 +107,7 @@ void PlayerController::Kick(const char* reason) const
     if (!IsValid())
         return;
 
-    auto* engine = VoltMod::Detail::Rt().Interfaces.Engine;
+    auto* engine = _entities->Interfaces().Engine;
     if (!engine)
     {
         Log::Warn("PlayerController::Kick: IVEngineServer2 not available.");
@@ -118,7 +119,7 @@ void PlayerController::Kick(const char* reason) const
 
 int PlayerController::SchemaOffset(const char* className, const char* fieldName, int expectedSize) const
 {
-    return VoltMod::Detail::Rt().Schema().GetOffset(className, fieldName, expectedSize);
+    return _entities->Schema().GetOffset(className, fieldName, expectedSize);
 }
 
 int PlayerController::GetHealth() const
@@ -143,7 +144,7 @@ bool PlayerController::IsAlive() const
 
 uint64_t PlayerController::GetButtons() const
 {
-    return VoltMod::Detail::Rt().Entities.GetPlayerButtons(_slot);
+    return _entities->GetPlayerButtons(_slot);
 }
 
 void PlayerController::SetHealth(int health) const
@@ -164,17 +165,6 @@ void PlayerController::SetArmor(int armor) const
 void PlayerController::SetSpeedModifier(float multiplier) const
 {
     SetPawnField<float>("CCSPlayerPawn", "m_flVelocityModifier", multiplier);
-}
-
-void PlayerController::SetModelScale(float scale) const
-{
-    // Hard clamp: very large model scales blow up the collision hull and can destabilize
-    // or crash the server. This is the crash-safety bound, not a gameplay ceiling; keep every
-    // caller inside it regardless of input.
-    constexpr float MinSafeModelScale = 0.05f;
-    constexpr float MaxSafeModelScale = 3.0f;
-    scale = std::clamp(scale, MinSafeModelScale, MaxSafeModelScale);
-    VoltMod::Detail::Rt().EntityOps.AcceptInputFloat(GetPawn(), "SetScale", scale);
 }
 
 uint32_t PlayerController::GetFlags() const
@@ -215,12 +205,12 @@ void PlayerController::SetRender(uint8_t mode, uint32_t color) const
 
 Vector PlayerController::GetAbsOrigin() const
 {
-    return GetSceneNodeField<Vector>(GetPawn(), "m_vecAbsOrigin");
+    return GetSceneNodeField<Vector>(_entities->Schema(), GetPawn(), "m_vecAbsOrigin");
 }
 
 QAngle PlayerController::GetAbsAngles() const
 {
-    return GetSceneNodeField<QAngle>(GetPawn(), "m_angAbsRotation");
+    return GetSceneNodeField<QAngle>(_entities->Schema(), GetPawn(), "m_angAbsRotation");
 }
 
 QAngle PlayerController::GetEyeAngles() const
@@ -247,22 +237,22 @@ float PlayerController::GetFlashMaxAlpha() const
 
 void PlayerController::Slay() const
 {
-    CallVtableByName(GetPawn(), "CommitSuicide", false, true);
+    CallVtableByName(_entities->GameDataRef(), GetPawn(), "CommitSuicide", false, true);
 }
 
 void PlayerController::ChangeTeam(int team) const
 {
-    CallVtableByName(_controller, "ChangeTeam", team);
+    CallVtableByName(_entities->GameDataRef(), _controller, "ChangeTeam", team);
 }
 
 void PlayerController::Respawn() const
 {
-    CallVtableByName(_controller, "Respawn");
+    CallVtableByName(_entities->GameDataRef(), _controller, "Respawn");
 }
 
 void PlayerController::Teleport(const Vector* origin, const QAngle* angles, const Vector* velocity) const
 {
-    CallVtableByName(GetPawn(), "Teleport", origin, angles, velocity);
+    CallVtableByName(_entities->GameDataRef(), GetPawn(), "Teleport", origin, angles, velocity);
 }
 
 namespace
@@ -298,7 +288,7 @@ std::string PlayerController::GetPlayerName() const
     if (!_controller)
         return {};
 
-    int offset = VoltMod::Detail::Rt().Schema().GetOffset("CBasePlayerController", "m_iszPlayerName");
+    int offset = _entities->Schema().GetOffset("CBasePlayerController", "m_iszPlayerName");
     if (offset < 0)
         return {};
 
@@ -313,11 +303,11 @@ std::string PlayerController::GetPawnModelName() const
 {
     // The pawn's scene node is a CSkeletonInstance; the model path is the
     // CUtlSymbolLarge inside its embedded CModelState (interned string pointer).
-    void* node = ResolveSceneNode(GetPawn());
+    auto& schema = _entities->Schema();
+    void* node = ResolveSceneNode(schema, GetPawn());
     if (!node)
         return {};
 
-    auto& schema = VoltMod::Detail::Rt().Schema();
     int stateOffset = schema.GetOffset("CSkeletonInstance", "m_modelState");
     int nameOffset = schema.GetOffset("CModelState", "m_ModelName");
     if (stateOffset < 0 || nameOffset < 0)
@@ -332,7 +322,7 @@ void PlayerController::SetPlayerName(const std::string& name) const
     if (!_controller)
         return;
 
-    int offset = VoltMod::Detail::Rt().Schema().GetOffset("CBasePlayerController", "m_iszPlayerName");
+    int offset = _entities->Schema().GetOffset("CBasePlayerController", "m_iszPlayerName");
     if (offset < 0)
         return;
 
@@ -355,7 +345,7 @@ void PlayerController::SetVisible(bool visible, uint8_t alpha) const
     // m_clrRender packs alpha in the top byte; the low three bytes stay opaque white.
     uint32_t color = visible ? ColorOpaqueWhite : ((static_cast<uint32_t>(alpha) << 24) | 0x00FFFFFFu);
 
-    SetEntityRender(VoltMod::Detail::Rt().Schema(), pawn, mode, color);
+    SetEntityRender(_entities->Schema(), pawn, mode, color);
 }
 
 }  // namespace VoltMod::Sdk

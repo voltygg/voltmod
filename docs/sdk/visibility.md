@@ -54,7 +54,7 @@ Per-viewer wallhack-style vision built on the TransmitFilter: one client sees li
 ```cpp
 using VoltMod::Sdk::GlowVision;
 
-auto glow = std::make_shared<GlowVision>(viewerSlot);
+auto glow = std::make_shared<GlowVision>(runtime.Entities, runtime.EntityOps, runtime.Transmit, viewerSlot);
 glow->Reconcile();  // build the clones immediately
 
 // Then drive it from a repeating tick, e.g. an EffectManager spec:
@@ -71,9 +71,11 @@ Team colors and the glow set are configurable; the optional `Filter` veto runs o
 GlowVision::Config config{
     .TerroristColor = Color(255, 0, 0, 255),
     .CtColor = Color(0, 255, 0, 255),
-    .Filter = [](int slot) { return PlayerController(slot).GetTeam() == TeamT; },  // Ts only
+    // Ts only:
+    .Filter = [&runtime](int slot) { return runtime.Entities.Controller(slot).GetTeam() == TeamT; },
 };
-auto glow = std::make_shared<GlowVision>(viewerSlot, std::move(config));
+auto glow = std::make_shared<GlowVision>(runtime.Entities, runtime.EntityOps, runtime.Transmit, viewerSlot,
+                                         std::move(config));
 ```
 
 Costs two entities per glowing player and inherits the TransmitFilter's gamedata requirement. Without the `CheckTransmitPlayerSlot` offset the clones would be visible to everyone, so do not use it when the filter is inert.

@@ -55,6 +55,11 @@ public:
     void AcceptInputFloat(CEntityInstance* entity, const char* input, float value, CEntityInstance* activator = nullptr,
                           CEntityInstance* caller = nullptr);
 
+    /** Scale a model entity (a player pawn, a prop) via the "SetScale" input, which updates both
+     *  its render size and its collision hull. 1.0 is default; the value is clamped to a safe
+     *  range so oversized scales cannot destabilize the server. */
+    void SetModelScale(CEntityInstance* entity, float scale);
+
     /** Fire an entity input after a delay via the engine's entity IO queue. */
     void AddIOEvent(CEntityInstance* target, const char* input, float delaySeconds,
                     CEntityInstance* activator = nullptr, CEntityInstance* caller = nullptr);

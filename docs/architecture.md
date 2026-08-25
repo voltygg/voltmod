@@ -175,10 +175,13 @@ the layering.
 - **App** may reach all of them; it is the composition root
 
 `Detail/` is the one exemption: it holds the ambient pointer to the live `Runtime`.
-Class templates instantiated in consumer TUs (`Flow<TState>`, `PerSlot<T>`), the
-framework glue in `Menu/`, `Commands/`, `Players/` and `App/`, and the Sdk value types
-(`PlayerController`, `PawnOps`, `EffectOps`, `GlowVision`) still reach the runtime through
-it. The engine-facing Sdk services take the siblings they use through their constructors
-instead; where the engine calls back with no user data (`GameEntitySystem()`, the global
-convar change callback, the server clock free functions) a file-static set and cleared by
-the owning service stands in. Plugin code never needs any of it.
+Class templates instantiated in consumer TUs (`Flow<TState>`, `PerSlot<T>`) and the
+framework glue in `Menu/`, `Commands/`, `Players/` and `App/` still reach the runtime
+through it. Nothing under `Sdk/` does: the engine-facing services take the siblings they
+use through their constructors, the value types (`PlayerController`, `GlowVision`,
+`PersistentCenterHtml`) take theirs the same way, and the free helpers reach their service
+through the controller they are handed or take it as a parameter (`EffectOps`,
+`PawnOps::Slap`). Where the engine calls
+back with no user data (`GameEntitySystem()`, the global convar change callback) a
+file-static set and cleared by the owning service stands in. Plugin code never needs any
+of it.

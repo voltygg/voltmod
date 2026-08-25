@@ -16,6 +16,7 @@ std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(std::string_vi
         return std::unexpected(TargetFailure{TargetError::NoMatch});
 
     auto& mgr = VoltMod::Detail::Rt().Players;
+    auto& entities = VoltMod::Detail::Rt().Entities;
     const CanTargetFn& policy = canTarget ? canTarget : VoltMod::Detail::Rt().Policy.CanTarget;
 
     // Snapshot the roster into engine-free views; FilterRoster owns the grammar semantics.
@@ -24,7 +25,7 @@ std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(std::string_vi
     {
         if (!p)
             continue;
-        Sdk::PlayerController ctrl(p->GetSlot());
+        Sdk::PlayerController ctrl = entities.Controller(p->GetSlot());
         roster.push_back({
             .Slot = p->GetSlot(),
             .SteamId = p->GetSteamID(),

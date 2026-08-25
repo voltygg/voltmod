@@ -10,6 +10,9 @@
 namespace VoltMod::Sdk
 {
 
+class EntityOpsService;
+class TransmitFilterService;
+
 /**
  * @brief Per-viewer wallhack-style vision: one client sees live players as team-colored glow
  * outlines through walls, while every other client (and GOTV) never receives the glow entities.
@@ -33,9 +36,16 @@ public:
     /** Suggested tick interval for @ref Reconcile. */
     static constexpr int ReconcileIntervalMs = 500;
 
-    explicit GlowVision(int beneficiarySlot) : GlowVision(beneficiarySlot, Config{}) {}
-
-    GlowVision(int beneficiarySlot, Config config) : _beneficiarySlot(beneficiarySlot), _config(std::move(config)) {}
+    /** All three services must outlive this object; the Runtime owns them. Pass
+     *  `runtime.Entities`, `runtime.EntityOps` and `runtime.Transmit`. */
+    GlowVision(EntitySystem& entities, EntityOpsService& ops, TransmitFilterService& transmit, int beneficiarySlot,
+               Config config = {})
+        : _entities(entities),
+          _ops(ops),
+          _transmit(transmit),
+          _beneficiarySlot(beneficiarySlot),
+          _config(std::move(config))
+    {}
 
     /** Create/refresh/destroy glow clone pairs to match the current live players. */
     void Reconcile();
@@ -60,8 +70,11 @@ private:
     };
 
     void CreatePair(int slot, GlowPair& pair);
-    static void DestroyPair(GlowPair& pair);
+    void DestroyPair(GlowPair& pair);
 
+    EntitySystem& _entities;
+    EntityOpsService& _ops;
+    TransmitFilterService& _transmit;
     int _beneficiarySlot;
     Config _config;
     std::array<GlowPair, MaxPlayers> _pairs{};

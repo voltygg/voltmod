@@ -12,6 +12,7 @@ class Vector;
 namespace VoltMod::Sdk
 {
 
+class EntitySystem;
 class GameData;
 class GameEventService;
 class ServerClock;
@@ -34,12 +35,13 @@ class ServerClock;
 class TeleportTracker
 {
 public:
-    /** @p gameData supplies the Teleport vtable index, @p events the PlayerSpawn re-bind, @p clock
-     *  the stamps. @p slots tells this tracker when a slot changes hands, without it needing the
-     *  roster. All four must outlive it; the Runtime declares them above. Pawn lookup still goes
-     *  through PlayerController, which reaches the entity system ambiently for now. */
-    TeleportTracker(GameData& gameData, GameEventService& events, ServerClock& clock, Core::SlotEvents& slots)
-        : _gameData(gameData), _events(events), _clock(clock), _slots(slots)
+    /** @p entities resolves each slot's pawn, @p gameData supplies the Teleport vtable index,
+     *  @p events the PlayerSpawn re-bind, @p clock the stamps. @p slots tells this tracker when a
+     *  slot changes hands, without it needing the roster. All five must outlive it; the Runtime
+     *  declares them above. */
+    TeleportTracker(EntitySystem& entities, GameData& gameData, GameEventService& events, ServerClock& clock,
+                    Core::SlotEvents& slots)
+        : _entities(entities), _gameData(gameData), _events(events), _clock(clock), _slots(slots)
     {}
     ~TeleportTracker();
     TeleportTracker(const TeleportTracker&) = delete;
@@ -68,6 +70,7 @@ private:
     void Stamp(int slot);
     int SlotFromPawn(const void* pawn) const;
 
+    EntitySystem& _entities;
     GameData& _gameData;
     GameEventService& _events;
     ServerClock& _clock;

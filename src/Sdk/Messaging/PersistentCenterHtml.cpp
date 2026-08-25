@@ -1,6 +1,4 @@
 #include <VoltMod/Core/Scheduler.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
-#include <VoltMod/Runtime.hpp>
 #include <VoltMod/Sdk/Messaging/PersistentCenterHtml.hpp>
 #include <VoltMod/Sdk/Messaging/UserMessage.hpp>
 #include <utility>
@@ -23,11 +21,11 @@ void PersistentCenterHtml::Show(int slot, int refreshMs, std::function<std::stri
 
     Stop(slot);
 
-    auto send = [slot, render = std::move(render)]() {
-        VoltMod::Detail::Rt().Messages.SendCenterHtml(slot, render(slot));
-    };
+    // The timer lives in _timers, so it is cancelled before `this` (and therefore _messages) goes
+    // away - capturing the service by reference here is safe.
+    auto send = [this, slot, render = std::move(render)]() { _messages.SendCenterHtml(slot, render(slot)); };
     send();
-    _timers[slot] = VoltMod::Detail::Rt().Scheduler.Repeat(refreshMs, send);
+    _timers[slot] = _scheduler.Repeat(refreshMs, send);
 }
 
 void PersistentCenterHtml::Stop(int slot)
@@ -35,7 +33,7 @@ void PersistentCenterHtml::Stop(int slot)
     if (!ValidSlot(slot) || !_timers[slot])
         return;
     _timers[slot].Reset();
-    VoltMod::Detail::Rt().Messages.ClearCenterHtml(slot);
+    _messages.ClearCenterHtml(slot);
 }
 
 void PersistentCenterHtml::StopAll()

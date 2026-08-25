@@ -1,8 +1,6 @@
 #include "Sdk/Internal/Schema.hpp"
 
 #include <Color.h>
-#include <VoltMod/Detail/Runtime.hpp>
-#include <VoltMod/Runtime.hpp>
 #include <VoltMod/Sdk/Engine/MemoryAccess.hpp>
 #include <VoltMod/Sdk/Entity/EffectOps.hpp>
 #include <VoltMod/Sdk/Entity/EntityKeyValues.hpp>
@@ -12,9 +10,9 @@
 namespace VoltMod::Sdk::EffectOps
 {
 
-CEntityInstance* SpawnParticle(const char* effectName, const Vector& origin, float lifetimeSeconds)
+CEntityInstance* SpawnParticle(EntityOpsService& ops, const char* effectName, const Vector& origin,
+                               float lifetimeSeconds)
 {
-    auto& ops = VoltMod::Detail::Rt().EntityOps;
     if (!ops.CanSpawn() || !effectName)
         return nullptr;
 
@@ -36,9 +34,9 @@ CEntityInstance* SpawnParticle(const char* effectName, const Vector& origin, flo
     return particle;
 }
 
-CEntityInstance* SpawnBeam(const Vector& from, const Vector& to, const Color& color, float width, float lifetimeSeconds)
+CEntityInstance* SpawnBeam(EntityOpsService& ops, const Vector& from, const Vector& to, const Color& color, float width,
+                           float lifetimeSeconds)
 {
-    auto& ops = VoltMod::Detail::Rt().EntityOps;
     if (!ops.CanSpawn())
         return nullptr;
 
@@ -48,7 +46,7 @@ CEntityInstance* SpawnBeam(const Vector& from, const Vector& to, const Color& co
 
     // Endpoint/width/color live in schema fields with no spawn keyvalue; written
     // before DispatchSpawn they go out with the first network snapshot.
-    auto& schema = VoltMod::Detail::Rt().Schema();
+    auto& schema = ops.Schema();
     int offsetWidth = schema.GetOffsetOf<float>("CBeam", "m_fWidth");
     int offsetEndPos = schema.GetOffsetOf<Vector>("CBeam", "m_vecEndPos");
     int offsetColor = schema.GetOffsetOf<Color>("CBaseModelEntity", "m_clrRender");
@@ -70,9 +68,9 @@ CEntityInstance* SpawnBeam(const Vector& from, const Vector& to, const Color& co
     return beam;
 }
 
-CEntityInstance* SpawnProp(const char* modelPath, const Vector& origin, bool physics, float lifetimeSeconds)
+CEntityInstance* SpawnProp(EntityOpsService& ops, const char* modelPath, const Vector& origin, bool physics,
+                           float lifetimeSeconds)
 {
-    auto& ops = VoltMod::Detail::Rt().EntityOps;
     if (!ops.CanSpawn() || !modelPath)
         return nullptr;
 

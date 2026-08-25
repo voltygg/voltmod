@@ -19,11 +19,12 @@ auto* q = runtime.Players.GetPlayerBySteamId(steamId);  // O(1)
 for (auto* each : runtime.Players.GetAllPlayers()) { /* ... */ }
 ```
 
-`Player` carries `GetSlot()`, `GetSteamID()`, `GetName()`, `GetIpAddress()`, `GetConnectTime()`, `GetPlaytime()`, plus `Controller()`, which returns the @ref VoltMod::Sdk::PlayerController for typed engine operations:
+`Player` carries `GetSlot()`, `GetSteamID()`, `GetName()`, `GetIpAddress()`, `GetPlaytime()`, and `IsBot()`. For typed engine operations, build a @ref VoltMod::Sdk::PlayerController from the player's slot:
 
 ```cpp
-player->Controller().Slay();
-int hp = player->Controller().GetHealth();
+auto controller = runtime.Entities.Controller(player->GetSlot());
+controller.Slay();
+int hp = controller.GetHealth();
 ```
 
 **Pointer lifetime:** a `Player*` is owned by the manager and dies on disconnect, slot reuse, or `Clear()`. Never store one across the disconnect callback. Store the SteamID instead.

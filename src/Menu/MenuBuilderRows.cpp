@@ -35,7 +35,7 @@ MenuBuilder& MenuBuilder::AddStateToggleRow(std::string_view labelKey,
     return AddToggle(
         _context.Tr(labelKey), _context.Tr("effectState.on"), _context.Tr("effectState.off"),
         [target, isActive = std::move(isActive)](int) {
-            Sdk::PlayerController pc(target);
+            Sdk::PlayerController pc = VoltMod::Detail::Rt().Entities.Controller(target);
             return pc.IsValid() && isActive(pc);
         },
         [admin = _context.Admin, target, a](int) { ActionDispatcher{}.Run(admin, target, *a); },

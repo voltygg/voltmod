@@ -169,7 +169,7 @@ void MenuManager::SetPlayerFrozen(int slot, bool frozen)
     if (frozen == state.MovementFrozen)
         return;
 
-    PlayerController pc(slot);
+    PlayerController pc = VoltMod::Detail::Rt().Entities.Controller(slot);
     if (!pc.IsValid())
         return;
 

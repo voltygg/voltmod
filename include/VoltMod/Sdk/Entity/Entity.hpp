@@ -45,6 +45,7 @@ inline constexpr int MaxPlayers = Core::MaxPlayers;
 
 class GameData;
 struct GameInterfaces;
+class PlayerController;
 class SchemaService;  // Internal type (src/Sdk/Internal/Schema.hpp), kept out of the public graph.
 
 /**
@@ -64,6 +65,13 @@ public:
     bool Initialize();
     CGameEntitySystem* GetEntitySystem();
     CEntityInstance* GetPlayerController(int slot);
+
+    /**
+     * Typed wrapper around the controller in @p slot, built from this system and its schema.
+     * The result is a transient value - resolve it again rather than storing it across frames.
+     * Defined in PlayerController.cpp; include `<VoltMod/Sdk/Entity/PlayerController.hpp>` to call it.
+     */
+    PlayerController Controller(int slot);
 
     /**
      * Entity for a full EHandle (index + serial), or nullptr when the handle is
@@ -96,6 +104,14 @@ public:
     /** @internal The schema service this system was built with, so framework types that need an
      *  entity plus its offsets (PlayerController and friends) can be built from it alone. */
     SchemaService& Schema() { return _schema; }
+
+    /** @internal The engine interfaces this system was built with, for framework types that reach
+     *  the engine directly from an entity (PlayerController::Kick). */
+    const GameInterfaces& Interfaces() const { return _interfaces; }
+
+    /** @internal The gamedata this system was built with, for framework types that dispatch by
+     *  vtable index from an entity. Spelled with the `Ref` suffix because `GameData` is a type here. */
+    const GameData& GameDataRef() const { return _gameData; }
 
 private:
     void ResolveSchemaOffsets();

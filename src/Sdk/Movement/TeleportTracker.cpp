@@ -3,6 +3,7 @@
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Sdk/Engine/GameData.hpp>
 #include <VoltMod/Sdk/Engine/ServerClock.hpp>
+#include <VoltMod/Sdk/Entity/Entity.hpp>
 #include <VoltMod/Sdk/Entity/PlayerController.hpp>
 #include <VoltMod/Sdk/Events/GameEventService.hpp>
 #include <VoltMod/Sdk/Events/GameEvents.hpp>
@@ -92,7 +93,7 @@ void TeleportTracker::Bind(int slot)
 
     Unbind(slot);
 
-    void* pawn = PlayerController(slot).GetPawn();
+    void* pawn = _entities.Controller(slot).GetPawn();
     if (!pawn)
         return;
 

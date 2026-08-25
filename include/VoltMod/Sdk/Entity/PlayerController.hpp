@@ -13,6 +13,8 @@ class QAngle;
 namespace VoltMod::Sdk
 {
 
+class EntitySystem;
+
 /**
  * @brief Transient engine-side player wrapper around CCSPlayerController.
  * Provides typed access to entity fields via the schema system,
@@ -21,7 +23,13 @@ namespace VoltMod::Sdk
 class PlayerController
 {
 public:
-    explicit PlayerController(int slot);
+    /**
+     * Resolve the controller in @p slot. Prefer the factory `runtime.Entities.Controller(slot)`,
+     * which supplies @p entities for you. @p entities must outlive this wrapper - the Runtime owns
+     * it - and the wrapper itself caches the controller pointer, so treat it as a value good for
+     * the current frame rather than stored state.
+     */
+    PlayerController(EntitySystem& entities, int slot);
 
     bool IsValid() const;
     CEntityInstance* GetEntity() const;
@@ -91,10 +99,6 @@ public:
     /** Write the pawn's movement-speed multiplier (CCSPlayerPawn::m_flVelocityModifier).
      *  1.0 is normal speed. Note the game decays this toward 1.0 (e.g. after firing). */
     void SetSpeedModifier(float multiplier) const;
-
-    /** Scale the pawn's model via the "SetScale" entity input (updates render + collision hull).
-     *  Clamped to a safe range so oversized scales can't destabilize the server. 1.0 is default. */
-    void SetModelScale(float scale) const;
 
     /** CBaseEntity::m_fFlags bitmask (FL_* values in Entity.hpp). */
     uint32_t GetFlags() const;
@@ -168,11 +172,16 @@ public:
      */
     void Teleport(const Vector* origin, const QAngle* angles, const Vector* velocity) const;
 
+    /** @internal The entity system this wrapper was resolved from, so framework helpers handed only
+     *  a controller can resolve a fresh one for the same slot later (PawnOps::Slap). */
+    EntitySystem& Entities() const { return *_entities; }
+
 private:
     /** Resolve a schema field offset (delegates to the internal SchemaService). */
     // expectedSize > 0 validates the engine's field size on first lookup (warns on schema drift).
     int SchemaOffset(const char* className, const char* fieldName, int expectedSize = 0) const;
 
+    EntitySystem* _entities;
     int _slot;
     CEntityInstance* _controller = nullptr;
 };

@@ -92,10 +92,11 @@ public:
     Core::PluginPolicy Policy;
     /** Named, timed load stages recorded by Start and by the plugin's OnLoad. */
     Core::LoadReport LoadReport;
-    /** Frame pump, timers and delayed work. */
-    Core::Scheduler Scheduler;
     /** "This slot changed hands", raised by the roster and consumed by per-slot caches. */
     Core::SlotEvents Slots;
+    /** Frame pump, timers and delayed work. Declared after Slots: a pending timer may own a slot
+     *  subscription (PawnOps::Slap), so the registry must still exist when the timers go. */
+    Core::Scheduler Scheduler;
     /** Map the server is running, captured from StartupServer. Empty after a late load
      *  until the next map change, since the hook has already fired by then. */
     std::string CurrentMap;
@@ -142,8 +143,8 @@ public:
      *  Depends on: MovementHook, Slots. */
     Sdk::InputHistoryService InputHistory{MovementHook, Slots};
     /** Dormant until Enable(); per-pawn Teleport hook re-bound on PlayerSpawn.
-     *  Depends on: GameData, Events, Clock, Slots. */
-    Sdk::TeleportTracker Teleports{GameData, Events, Clock, Slots};
+     *  Depends on: Entities, GameData, Events, Clock, Slots. */
+    Sdk::TeleportTracker Teleports{Entities, GameData, Events, Clock, Slots};
     /** Async client-side convar reads. Inert when its load stage degraded (Available() == false).
      *  Depends on: Interfaces, GameData, Slots. */
     Sdk::ClientCvarService ClientCvars{Interfaces, GameData, Slots};

@@ -93,8 +93,9 @@ runtime.Commands.Register({
     .Description = "Slap a player.",
     .Permission = "admin.slap",
     .Args = {VoltMod::Target()},
-    .Handler = [](VoltMod::CommandContext& context) {
-        VoltMod::PawnOps::Slap(context.Target().Controller());
+    .Handler = [&runtime](VoltMod::CommandContext& context) {
+        auto target = runtime.Entities.Controller(context.Target().GetSlot());
+        VoltMod::PawnOps::Slap(target, runtime.Scheduler, runtime.Slots);
         return context.Ok("cmd.slapped", {{"name", context.Target().GetName()}});
     },
 });
