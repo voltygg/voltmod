@@ -72,7 +72,9 @@ void LoadPluginManifest(Runtime& runtime, std::string_view addon)
     const std::string path = Core::AddonFile(addon, std::format("{}.manifest.json", addon));
 
     runtime.LoadReport.Run("Manifest", [&]() -> Core::StageResult {
-        std::ifstream file(path, std::ios::binary);
+        // ResolvePath, like every other addon file: the server's working directory is
+        // game/bin/win64, not the game dir addon paths are relative to.
+        std::ifstream file(Core::ResolvePath(path), std::ios::binary);
         if (!file)
             return Core::StageResult::Degraded("no manifest shipped");
 
