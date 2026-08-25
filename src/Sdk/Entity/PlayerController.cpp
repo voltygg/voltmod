@@ -129,7 +129,8 @@ int PlayerController::GetHealth() const
 
 int PlayerController::GetTeam() const
 {
-    return GetPawnField<int>("CBaseEntity", "m_iTeamNum");
+    // m_iTeamNum is one byte; an int read also picked up the three that follow.
+    return GetPawnField<uint8_t>("CBaseEntity", "m_iTeamNum");
 }
 
 int PlayerController::GetLifeState() const
@@ -222,7 +223,8 @@ QAngle PlayerController::GetEyeAngles() const
 
 Vector PlayerController::GetEyePosition() const
 {
-    return GetAbsOrigin() + GetPawnField<Vector>("CBaseModelEntity", "m_vecViewOffset");
+    // m_vecViewOffset is a 40-byte CNetworkViewOffsetVector led by the Vector, so no size check.
+    return GetAbsOrigin() + GetPawnField<Vector>("CBaseModelEntity", "m_vecViewOffset", 0);
 }
 
 float PlayerController::GetFlashDuration() const

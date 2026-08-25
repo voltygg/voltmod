@@ -52,13 +52,14 @@ public:
         return ReadAt<T>(_controller, offset);
     }
 
+    /** @p expectedSize 0 skips the drift check, for a T read out of a larger wrapper field. */
     template <typename T>
-    T GetPawnField(const char* className, const char* fieldName) const
+    T GetPawnField(const char* className, const char* fieldName, int expectedSize = sizeof(T)) const
     {
         auto* pawn = GetPawn();
         if (!pawn)
             return T{};
-        int offset = SchemaOffset(className, fieldName, sizeof(T));
+        int offset = SchemaOffset(className, fieldName, expectedSize);
         if (offset < 0)
             return T{};
         return ReadAt<T>(pawn, offset);
