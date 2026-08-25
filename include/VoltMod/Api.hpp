@@ -67,6 +67,7 @@
 #include <VoltMod/Sdk/Entity/Entity.hpp>
 #include <VoltMod/Sdk/Entity/EntityKeyValues.hpp>
 #include <VoltMod/Sdk/Entity/EntityOps.hpp>
+#include <VoltMod/Sdk/Entity/ItemService.hpp>
 #include <VoltMod/Sdk/Entity/MoveType.hpp>
 #include <VoltMod/Sdk/Entity/PawnOps.hpp>
 #include <VoltMod/Sdk/Entity/PawnPredicates.hpp>
@@ -131,6 +132,7 @@ using Sdk::HasPawnFlag;
 using Sdk::InMoveType;
 using Sdk::InputHistorySample;
 using Sdk::InputHistoryService;
+using Sdk::ItemService;
 using Sdk::MapService;
 using Sdk::MessageKind;
 using Sdk::MessageSystem;

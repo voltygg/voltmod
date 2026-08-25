@@ -54,6 +54,17 @@
       "windows": 8,
       "linux": 8
     },
+    // CCSPlayer_ItemServices::GiveNamedItem vtable index (SwiftlyS2 / s2sdk: 23/24).
+    // Called on the pawn's m_pItemServices; a wrong index calls an unrelated vfunc and crashes.
+    "GiveNamedItem": {
+      "windows": 23,
+      "linux": 24
+    },
+    // CCSPlayer_ItemServices::RemoveAllItems vtable index (SwiftlyS2 / s2sdk: 27/28).
+    "RemoveAllItems": {
+      "windows": 27,
+      "linux": 28
+    },
     // CServerSideClient::ProcessRespondCvarValue vtable index (CS2AC: 38/40).
     "ProcessRespondCvarValue": {
       "windows": 38,

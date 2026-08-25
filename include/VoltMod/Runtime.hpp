@@ -23,6 +23,7 @@
 #include <VoltMod/Sdk/Engine/ServerClock.hpp>
 #include <VoltMod/Sdk/Entity/Entity.hpp>
 #include <VoltMod/Sdk/Entity/EntityOps.hpp>
+#include <VoltMod/Sdk/Entity/ItemService.hpp>
 #include <VoltMod/Sdk/Entity/PawnService.hpp>
 #include <VoltMod/Sdk/Events/GameEventService.hpp>
 #include <VoltMod/Sdk/Messaging/ChatInputCapture.hpp>
@@ -126,6 +127,8 @@ public:
     Sdk::PawnService Pawns{Scheduler, Slots, Entities};
     /** Depends on: Entities, GameData, Schema(). */
     Sdk::EntityOpsService EntityOps{Entities, GameData, *_schema};
+    /** Weapon give/list/strip through CCSPlayer_ItemServices. Depends on: Entities, GameData, Schema(). */
+    Sdk::ItemService Items{Entities, GameData, *_schema};
     /** Depends on: Entities, GameData, Schema(), Slots. */
     Sdk::TransmitFilterService Transmit{Entities, GameData, *_schema, Slots};
     /** Builds per-viewer visibility effects (GlowVision). Depends on: Entities, EntityOps, Transmit. */
