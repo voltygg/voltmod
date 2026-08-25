@@ -79,9 +79,11 @@ struct ParamEffectDescriptor
     std::function<EffectInstance(const Players::ActionContext&, int param)> Setup;
 };
 
-// Each verb resolves the admin/target pair through an @ref ActionDispatcher, so it needs the
-// runtime for the roster, the controllers and the policy. Include <VoltMod/Runtime.hpp> at the
-// call site.
+// @ref EffectDispatcher is the primary API: a plugin binds the runtime and its own EffectManager
+// once and calls Toggle/Apply/Clear. The free verbs below are shorthand for a one-off dispatch and
+// forward to it. Either way the admin/target pair is resolved through an @ref ActionDispatcher, so
+// the runtime supplies the roster, the controllers and the policy; include <VoltMod/Runtime.hpp> at
+// the call site.
 
 /** Apply if inactive, clear if active. Broadcasts OnKey/OffKey. The default menu-row verb. */
 void ToggleEffect(Runtime& runtime, Core::EffectManager& effects, int adminSlot, int targetSlot,

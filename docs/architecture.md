@@ -187,7 +187,8 @@ constructor or a parameter, and `modgraph` enforces that too: a `.cpp` under `Sd
   `VisibilityService` (`runtime.Visibility`, over the `GlowVision` constructor). The primitives
   stay public for code that already holds the services.
 - `Players/`, `Commands/`, `Menu/` and `App/` may take `Runtime&`, and the runtime-owned
-  services do (`CommandManager`, `MenuManager`, `ActionDispatcher`). The header-only templates
+  services do (`CommandManager`, `MenuManager`), as do the dispatchers a plugin builds itself
+  (`ActionDispatcher`, and `EffectDispatcher` over its own `EffectManager`). The header-only templates
   and plain-data types plugins instantiate (`Flow<TState>`, `PerSlot<T>`, `MenuContext`, the
   `MenuPresets` builders) still take the single narrowest service they need, so a consumer TU
   that includes one of those headers does not pull in the whole composition root.

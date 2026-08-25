@@ -134,6 +134,12 @@ inline constexpr std::array MenuEffects{
 `ctx`. Capturing a runtime service by reference is safe because `EffectManager` is a
 member of your `App`, which is destroyed before the `Runtime`.
 
-Dispatch through `ToggleEffect(runtime, effects, adminSlot, targetSlot, descriptor)` and its `ApplyEffect` / `ClearEffect` siblings (they resolve the pair and apply `runtime.Policy` first), or drop the descriptor straight into a menu with `AddEffectToggleRow`. `ParamEffectDescriptor` adds a `Choices` list and a parameterized `Setup` for picker-style effects (model selection); `AddEffectPickerRow` renders it. `EffectManager` guarantees `OnStop` runs exactly once however the effect ends, whether by toggle, death, disconnect, round end, or unload.
+Dispatch through an `EffectDispatcher`, which your `App` owns next to its `EffectManager`
+(`EffectDispatcher PlayerEffects{runtime, Effects};`) and binds both for the load cycle:
+`PlayerEffects.Toggle(adminSlot, targetSlot, descriptor)` plus its `Apply` / `Clear` siblings
+(they resolve the pair and apply `runtime.Policy` first). The free
+`ToggleEffect(runtime, effects, adminSlot, targetSlot, descriptor)` / `ApplyEffect` / `ClearEffect`
+verbs are shorthand for the same call where no dispatcher is at hand. Or drop the descriptor
+straight into a menu with `AddEffectToggleRow`. `ParamEffectDescriptor` adds a `Choices` list and a parameterized `Setup` for picker-style effects (model selection); `AddEffectPickerRow` renders it. `EffectManager` guarantees `OnStop` runs exactly once however the effect ends, whether by toggle, death, disconnect, round end, or unload.
 
 Sweeps come in three shapes: `CancelAllForSlot(slot)` clears a player, `CancelRoundScoped()` clears round-scoped effects everywhere, and `CancelPerLife(slot)` clears a player's per-life effects on death while keeping `EffectScope::Session` grants. Declare `Scope = EffectScope::Session` on the descriptor and the death sweep skips it, without any per-effect special-casing.

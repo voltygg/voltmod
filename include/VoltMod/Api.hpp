@@ -53,6 +53,7 @@
 #include <VoltMod/Menu/MenuPresets.hpp>
 #include <VoltMod/Menu/Options/ChoiceOption.hpp>
 #include <VoltMod/Players/ActionDispatcher.hpp>
+#include <VoltMod/Players/EffectDispatcher.hpp>
 #include <VoltMod/Players/PerSlot.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
@@ -170,6 +171,7 @@ using Players::Action;
 using Players::ActionContext;
 using Players::ActionDispatcher;
 using Players::CanTargetFn;
+using Players::EffectDispatcher;
 using Players::ParamAction;
 using Players::PerSlot;
 using Players::Player;
