@@ -36,7 +36,7 @@ scripts/voltmod/     The `voltmod` Python CLI
 templates/plugin/    Files copied by `voltmod new-plugin`
 templates/project/   Files copied by `voltmod init`
 test_package/        Conan package smoke test
-tests/               SDK-free doctest suite
+tests/               SDK-free doctest suite, grouped by module
 docs/                Doxygen guides
 ```
 

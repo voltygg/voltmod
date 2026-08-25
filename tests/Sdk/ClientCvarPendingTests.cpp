@@ -1,4 +1,4 @@
-#include <VoltMod/Sdk/Detail/ClientCvarPending.hpp>
+#include <VoltMod/Sdk/Client/Detail/ClientCvarPending.hpp>
 #include <cstdint>
 #include <doctest/doctest.h>
 #include <string>

@@ -31,7 +31,7 @@ function(voltmod_add_tests target_name)
         include(doctest)
     endif()
 
-    file(GLOB test_cases CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
+    file(GLOB_RECURSE test_cases CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
     voltmod_verify_test_names(${test_cases})
 
     add_executable("${target_name}"

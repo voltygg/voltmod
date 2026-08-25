@@ -34,8 +34,10 @@ build/windows-msvc-release/vendor/voltmod/voltmod-utils-tests.exe --success   # 
 
 ## Writing a test
 
-Every `tests/*.cpp` is a test TU holding nothing but test cases; `voltmod_add_tests()`
-supplies doctest's `main`. A new file needs no registration because the glob picks it up.
+Every `tests/**/*.cpp` is a test TU holding nothing but test cases, grouped into
+subfolders by module (`Core/`, `Sdk/`, `Players/`, `Commands/`, `App/`, `Database/`);
+`voltmod_add_tests()` supplies doctest's `main`. A new file needs no registration
+because the recursive glob picks it up.
 
 ```cpp
 #include <VoltMod/Core/StringUtils.hpp>
@@ -129,7 +131,7 @@ TEST_CASE_TEMPLATE("Trim accepts any string-like input", T, const char*, std::st
 ## Adding tests to a plugin
 
 `voltmod_add_tests()` (from `cmake/VoltModTests.cmake`, included by the framework's root CMakeLists) owns
-the wiring: it globs `tests/*.cpp`, supplies doctest's `main`, links `doctest::doctest`,
+the wiring: it globs `tests/**/*.cpp`, supplies doctest's `main`, links `doctest::doctest`,
 adds the framework's include dir, and registers the cases with CTest. `SOURCES` is the list of
 SDK-free TUs to recompile. Test binaries never link the plugin module or the framework, so
 nothing drags in Metamod.
