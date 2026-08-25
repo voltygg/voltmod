@@ -9,19 +9,20 @@
       "windows": 88,
       "linux": 80
     },
-    // CBasePlayerPawn::CommitSuicide vtable index; checked against SwiftlyS2 and cs2-menus.
+    // CBasePlayerPawn::CommitSuicide vtable index (SwiftlyS2 v1.4.5: 384/384).
     "CommitSuicide": {
-      "windows": 390,
-      "linux": 390
+      "windows": 384,
+      "linux": 384
     },
     // CCSPlayerController::ChangeTeam vtable index (SwiftlyS2: 103/102).
     "ChangeTeam": {
       "windows": 103,
       "linux": 102
     },
+    // CCSPlayerController::Respawn vtable index (SwiftlyS2 v1.4.5: 270/272).
     "Respawn": {
-      "windows": 42,
-      "linux": 42
+      "windows": 270,
+      "linux": 272
     },
     // CBaseEntity::Teleport(origin, angles, velocity) vtable index
     // (SwiftlyS2: 163/162).
@@ -36,11 +37,11 @@
       "windows": 576,
       "linux": 576
     },
-    // CPlayer_MovementServices::RunCommand vtable index (SwiftlyS2: 22/23).
+    // CPlayer_MovementServices::RunCommand vtable index (SwiftlyS2 v1.4.5: 25/26).
     // Drives Sdk::MovementHook - a wrong index calls an unrelated vfunc and crashes.
     "RunCommand": {
-      "windows": 22,
-      "linux": 23
+      "windows": 25,
+      "linux": 26
     },
     // CSGOUserCmdPB offset in CUserCmd; checked against CS2Fixes and SwiftlyS2.
     "UserCmdPB": {
@@ -83,7 +84,7 @@
     "LegacyGameEventListener": {
       "library": "server",
       "windows": {
-        "pattern": "48 8B 15 ? ? ? ? 48 85 D2 74 ? 83 F9 ? 77"
+        "pattern": "48 8B 15 ? ? ? ? 48 85 D2 74 ? 85 C9"
       },
       "linux": {
         "pattern": "48 8B 05 ? ? ? ? 48 85 C0 74 ? 83 FF ? 77 ? 48 63 FF 48 C1 E7 ? 48 8D 44 38"
