@@ -87,7 +87,9 @@ struct HttpClient::Impl
     }
 };
 
-HttpClient::HttpClient() : _impl(std::make_unique<Impl>()) {}
+HttpClient::HttpClient(Core::Scheduler& scheduler)
+    : _impl(std::make_unique<Impl>()), _pump(scheduler.EveryFrame([this] { DispatchCompletions(); }))
+{}
 
 HttpClient::~HttpClient() = default;
 

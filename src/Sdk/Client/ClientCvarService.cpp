@@ -238,7 +238,13 @@ std::string_view ToString(ClientCvarStatus status)
     return "unknown";
 }
 
-ClientCvarService::ClientCvarService() : _impl(std::make_unique<Impl>()) {}
+ClientCvarService::ClientCvarService(Core::SlotEvents& slots) : _impl(std::make_unique<Impl>())
+{
+    // SlotEvents fires when a slot is filled as well as emptied; a fresh occupant has nothing
+    // pending, so dropping on both edges covers "left" without a dedicated event.
+    _slotListener = slots.Listen([this](int slot) { _impl->Pending().Clear(slot); });
+}
+
 ClientCvarService::~ClientCvarService() = default;
 
 bool ClientCvarService::Initialize()
@@ -269,11 +275,6 @@ size_t ClientCvarService::PendingCount(int slot) const
 void ClientCvarService::OnClientFullyConnect(int slot)
 {
     // Whoever held this slot before is gone, and anything still pending is addressed to them.
-    _impl->Pending().Clear(slot);
-}
-
-void ClientCvarService::OnPlayerDisconnect(int slot)
-{
     _impl->Pending().Clear(slot);
 }
 

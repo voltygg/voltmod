@@ -203,7 +203,7 @@ void MetamodPlugin::Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconnectio
 {
     int slotIdx = slot.Get();
     OnPlayerDisconnect(_runtime->Players.GetPlayerBySlot(slotIdx));
-    _runtime->OnPlayerDisconnect(slotIdx);
+    // RemovePlayer raises the slot change; every service holding per-slot state listens for it.
     _runtime->Players.RemovePlayer(slotIdx);
 }
 

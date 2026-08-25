@@ -7,6 +7,12 @@
 namespace VoltMod::Sdk
 {
 
+ChatInputCapture::ChatInputCapture(Core::SlotEvents& slots)
+    // SlotEvents fires when a slot is filled as well as emptied; a fresh occupant has no capture
+    // pending, so cancelling on both edges covers "left" without a dedicated event.
+    : _slotListener(slots.Listen([this](int slot) { CancelCapture(slot); }))
+{}
+
 void ChatInputCapture::BeginCapture(int slot, std::string prompt, Callback callback, int timeoutMs)
 {
     if (!Core::IsValidSlot(slot) || !callback)
@@ -103,11 +109,6 @@ const std::string* ChatInputCapture::GetPrompt(int slot) const
         return nullptr;
     const auto& opt = _pending[slot];
     return opt.has_value() ? &opt->Prompt : nullptr;
-}
-
-void ChatInputCapture::OnPlayerDisconnect(int slot)
-{
-    CancelCapture(slot);
 }
 
 }  // namespace VoltMod::Sdk

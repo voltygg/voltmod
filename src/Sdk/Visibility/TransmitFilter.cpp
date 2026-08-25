@@ -126,6 +126,19 @@ void CollectHiddenPlayer(Runtime& rt, int slot, bool pawnHidden, bool controller
 
 }  // namespace
 
+TransmitFilterService::TransmitFilterService(Core::SlotEvents& slots)
+{
+    // SlotEvents fires when a slot is filled as well as emptied; a fresh occupant has nothing
+    // hidden, so clearing on both edges covers "left" without a dedicated event.
+    _slotListener = slots.Listen([this](int slot) {
+        SetPawnHidden(slot, false);
+        SetControllerHidden(slot, false);
+        // The owning effect normally cleans up first (effect cancel runs before this);
+        // this catches entries whose beneficiary vanished without cleanup.
+        std::erase_if(_exclusive, [slot](const ExclusiveEntity& e) { return e.BeneficiarySlot == slot; });
+    });
+}
+
 bool TransmitFilterService::Initialize()
 {
     _slotOffset = VoltMod::Detail::Rt().GameData.GetByteOffset("CheckTransmitPlayerSlot");
@@ -183,15 +196,6 @@ void TransmitFilterService::SetEntityExclusive(int entityIndex, int beneficiaryS
 void TransmitFilterService::ClearEntityExclusive(int entityIndex)
 {
     std::erase_if(_exclusive, [entityIndex](const ExclusiveEntity& e) { return e.EntityIndex == entityIndex; });
-}
-
-void TransmitFilterService::OnPlayerDisconnect(int slot)
-{
-    SetPawnHidden(slot, false);
-    SetControllerHidden(slot, false);
-    // The owning effect normally cleans up first (effect cancel runs before this);
-    // this catches entries whose beneficiary vanished without cleanup.
-    std::erase_if(_exclusive, [slot](const ExclusiveEntity& e) { return e.BeneficiarySlot == slot; });
 }
 
 void TransmitFilterService::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)

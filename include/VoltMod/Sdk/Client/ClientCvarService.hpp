@@ -1,5 +1,7 @@
 #pragma once
 
+#include <VoltMod/Core/SlotEvents.hpp>
+#include <VoltMod/Core/Subscription.hpp>
 #include <cstddef>
 #include <functional>
 #include <memory>
@@ -53,7 +55,9 @@ public:
     using QueryCallback =
         std::function<void(int slot, ClientCvarStatus status, std::string_view name, std::string_view value)>;
 
-    ClientCvarService();
+    /** @p slots tells the service when a slot changes hands, so an answer can never be routed
+     *  to the callback of whoever held the slot before. */
+    explicit ClientCvarService(Core::SlotEvents& slots);
     ~ClientCvarService();
     ClientCvarService(const ClientCvarService&) = delete;
     ClientCvarService& operator=(const ClientCvarService&) = delete;
@@ -83,15 +87,14 @@ public:
     /** Drop anything the slot's previous occupant left behind. Called by the framework's connect path. */
     void OnClientFullyConnect(int slot);
 
-    /** Drop @p slot's pending queries; their callbacks will never fire. Called by the framework. */
-    void OnPlayerDisconnect(int slot);
-
     /** Drop every pending query for the new map. Called by the framework's StartupServer hook. */
     void OnServerStartup();
 
 private:
     class Impl;
     std::unique_ptr<Impl> _impl;
+    /** Declared after _impl so it unregisters before the pending table its callback clears. */
+    Core::Subscription _slotListener;
 };
 
 }  // namespace VoltMod::Sdk

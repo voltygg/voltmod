@@ -31,7 +31,6 @@
 #include <cstddef>
 #include <memory>
 #include <string>
-#include <vector>
 
 namespace SourceMM
 {
@@ -83,9 +82,6 @@ public:
     /** Drive the scheduler. Called once per frame from the GameFrame hook. */
     void OnGameFrame();
 
-    /** Drop per-slot state across the services that hold any. */
-    void OnPlayerDisconnect(int slot);
-
     // Core services.
     /** Plugin-supplied permission, targeting and reply rules. Set once in OnLoad. */
     Core::PluginPolicy Policy;
@@ -99,7 +95,7 @@ public:
      *  until the next map change, since the hook has already fired by then. */
     std::string CurrentMap;
 
-    Core::Translations Translations;
+    Core::Translations Translations{Slots};
 
     // Engine-facing services.
     /** Plain interface-pointer holder; populated by Start. */
@@ -108,7 +104,7 @@ public:
     Sdk::MessageSystem Messages;
     Sdk::EntitySystem Entities;
     Sdk::EntityOpsService EntityOps;
-    Sdk::TransmitFilterService Transmit;
+    Sdk::TransmitFilterService Transmit{Slots};
     Sdk::PrecacheService Precache;
     Sdk::ConVarService ConVars;
     /** Dormant until a plugin calls Install(); removes its vtable hook on destruction. */
@@ -116,13 +112,13 @@ public:
     /** Stateless per-client net-channel reads (latency, replicated userinfo cvars). */
     Sdk::NetChannelService NetChannels;
     Sdk::GameEventService Events;
-    Sdk::ChatInputCapture ChatInput;
+    Sdk::ChatInputCapture ChatInput{Slots};
     /** Dormant until Enable(depth); listens on the MovementHook cmd feed + slot changes. */
     Sdk::InputHistoryService InputHistory{Slots};
     /** Dormant until Enable(); per-pawn Teleport hook re-bound on PlayerSpawn. */
     Sdk::TeleportTracker Teleports{Slots};
     /** Async client-side convar reads. Inert when its load stage degraded (Available() == false). */
-    Sdk::ClientCvarService ClientCvars;
+    Sdk::ClientCvarService ClientCvars{Slots};
 
     // Composition-root services.
     /** Interfaces offered to, and borrowed from, other plugins. */
@@ -131,7 +127,8 @@ public:
     App::PluginIdentity Identity;
     /** Status sections for diagnostics commands; framework sections registered by Start. */
     App::StatusService Status;
-    Menu::MenuManager Menus;
+    /** Registers its own per-frame input pump; both it and its slot listener stop in its dtor. */
+    Menu::MenuManager Menus{Scheduler, Slots};
 
     /** Internal schema-offset service (forward-declared type). */
     Sdk::SchemaService& Schema() { return *_schema; }
@@ -139,13 +136,18 @@ public:
     // These names shadow their namespaces, so keep them last.
     Players::PlayerManager Players{Slots};
     Commands::CommandManager Commands;
-    /** Completions dispatch on the game thread from the scheduler pump; the dtor stops it. */
-    Http::HttpClient Http;
+    /** Completions dispatch on the game thread from a pump it registers itself; the dtor stops it. */
+    Http::HttpClient Http{Scheduler};
 
 private:
+    // The four jobs Start does, in call order. A false return aborts the load and has already
+    // written the reason into context.Error.
+    void InstallLogger(const LoadContext& context);
+    bool ResolveInterfaces(const LoadContext& context);
+    bool InitializeServices(const LoadContext& context);
+    void RegisterStatusSections();
+
     std::unique_ptr<Sdk::SchemaService> _schema;
-    /** Declared after Scheduler so these unregister while it is still alive. */
-    std::vector<Core::Subscription> _frameTimers;
 };
 
 }  // namespace VoltMod

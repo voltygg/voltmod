@@ -1,6 +1,8 @@
 #pragma once
 
 #include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Core/SlotEvents.hpp>
+#include <VoltMod/Core/Subscription.hpp>
 #include <array>
 #include <vector>
 
@@ -32,6 +34,10 @@ namespace VoltMod::Sdk
 class TransmitFilterService
 {
 public:
+    /** @p slots tells the service when a slot changes hands, so hiding cannot carry over to
+     *  whoever occupies it next. */
+    explicit TransmitFilterService(Core::SlotEvents& slots);
+
     /** Cache the CCheckTransmitInfo recipient-slot gamedata offset. False leaves the service inert. */
     bool Initialize();
 
@@ -49,9 +55,6 @@ public:
 
     /** Stop filtering `entityIndex`; it transmits normally again. Safe on unknown indices. */
     void ClearEntityExclusive(int entityIndex);
-
-    /** Drop all hiding for a slot. Called on disconnect so a reused slot starts clean. */
-    void OnPlayerDisconnect(int slot);
 
     /** Post-hook body for ISource2GameEntities::CheckTransmit; called by MetamodPlugin. */
     void OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount);
@@ -75,6 +78,8 @@ private:
     std::vector<ExclusiveEntity> _exclusive; /**< Entities transmitted only to their beneficiary. */
     int _activeCount = 0;                    /**< Slots with any flag set; OnCheckTransmit early-outs at 0. */
     int _slotOffset = -1;                    /**< Recipient player-slot byte offset inside CCheckTransmitInfo. */
+    /** Declared after the state above so it unregisters before its callback's targets go away. */
+    Core::Subscription _slotListener;
 };
 
 }  // namespace VoltMod::Sdk

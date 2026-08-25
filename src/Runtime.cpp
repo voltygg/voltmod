@@ -95,9 +95,21 @@ Runtime::~Runtime()
 
 bool Runtime::Start(const LoadContext& context)
 {
-    ISmmAPI* ismm = context.Ismm;
+    InstallLogger(context);
+    Core::Log::Info("Initializing VoltMod...");
 
-    // 1. Set up logging
+    if (!ResolveInterfaces(context))
+        return false;
+
+    if (!InitializeServices(context))
+        return false;
+
+    RegisterStatusSections();
+    return true;
+}
+
+void Runtime::InstallLogger(const LoadContext& context)
+{
     if (context.Logger)
     {
         Core::SetGlobalLogger(context.Logger);
@@ -108,12 +120,13 @@ bool Runtime::Start(const LoadContext& context)
         Core::SetGlobalLogger(&g_consoleLogger);
     }
 
-    // 2. Set base directory for path resolution
-    Core::SetBaseDir(ismm->GetBaseDir());
+    Core::SetBaseDir(context.Ismm->GetBaseDir());
+}
 
-    Core::Log::Info("Initializing VoltMod...");
+bool Runtime::ResolveInterfaces(const LoadContext& context)
+{
+    ISmmAPI* ismm = context.Ismm;
 
-    // 3. Resolve SDK interfaces via Metamod
     auto resolveEngine = [&](const char* version) -> void* {
         return ismm->VInterfaceMatch(ismm->GetEngineFactory(), version, 0);
     };
@@ -147,14 +160,18 @@ bool Runtime::Start(const LoadContext& context)
 
 #undef VOLTMOD_RESOLVE
 
-    // 4. Set g_pCVar and flush pending registrations; without ConVar_Register, tier1 ConCommands
+    // Set g_pCVar and flush pending registrations; without ConVar_Register, tier1 ConCommands
     // (VoltMod::ServerCommand) construct but never register, so the engine reports "Unknown command".
     g_pCVar = gi.CVar;
     ConVar_Register(FCVAR_RELEASE | FCVAR_CLIENT_CAN_EXECUTE | FCVAR_SERVER_CAN_EXECUTE | FCVAR_GAMEDLL);
+    return true;
+}
 
-    // 5-6. Load game data and initialize SDK subsystems as named, timed stages.
-    // Only the message system is load-aborting; MetamodPlugin logs the
-    // summary and surfaces FirstFailure() in Metamod's error buffer.
+bool Runtime::InitializeServices(const LoadContext& context)
+{
+    // Load game data and initialize SDK subsystems as named, timed stages. Only the message
+    // system is load-aborting; MetamodPlugin logs the summary and surfaces FirstFailure() in
+    // Metamod's error buffer.
     using Core::StageResult;
     auto& report = LoadReport;
 
@@ -176,7 +193,7 @@ bool Runtime::Start(const LoadContext& context)
     });
     if (messages == Core::StageStatus::Failed)
     {
-        ismm->Format(context.Error, context.MaxLen, "%s", report.FirstFailure().c_str());
+        context.Ismm->Format(context.Error, context.MaxLen, "%s", report.FirstFailure().c_str());
         return false;
     }
 
@@ -201,11 +218,11 @@ bool Runtime::Start(const LoadContext& context)
     degradable("ClientCvars", "inert; client convar queries unavailable (see warnings)",
                [&] { return ClientCvars.Initialize(); });
 
-    // Per-frame subsystems pump through the scheduler (PostgresDatabase registers its own pump
-    // in Start), so OnGameFrame has exactly one thing to tick.
-    _frameTimers.push_back(Scheduler.EveryFrame([this] { Menus.OnGameFrame(); }));
-    _frameTimers.push_back(Scheduler.EveryFrame([this] { Http.DispatchCompletions(); }));
+    return true;
+}
 
+void Runtime::RegisterStatusSections()
+{
     // Framework status sections; plugins add theirs in OnLoad. Providers capture `this` - the
     // runtime outlives them (both live for one Load/Unload cycle).
     Status.RegisterSection("load", [this] {
@@ -238,22 +255,12 @@ bool Runtime::Start(const LoadContext& context)
         const auto uptime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start);
         return nlohmann::json{{"seconds", uptime.count()}};
     });
-
-    return true;
 }
 
 void Runtime::OnGameFrame()
 {
     Core::DrainDeferredLogs();
     Scheduler.OnGameFrame();
-}
-
-void Runtime::OnPlayerDisconnect(int slot)
-{
-    Menus.OnPlayerDisconnect(slot);
-    ChatInput.OnPlayerDisconnect(slot);
-    Transmit.OnPlayerDisconnect(slot);
-    ClientCvars.OnPlayerDisconnect(slot);
 }
 
 }  // namespace VoltMod

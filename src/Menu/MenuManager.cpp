@@ -74,6 +74,16 @@ void JumpPage(const std::vector<std::shared_ptr<MenuOption>>& items, int& idx, i
 
 }  // namespace
 
+MenuManager::MenuManager(Core::Scheduler& scheduler, Core::SlotEvents& slots)
+    : _pump(scheduler.EveryFrame([this] { OnGameFrame(); })),
+      // SlotEvents also fires when a slot is filled; a fresh occupant has an empty stack, so
+      // resetting on both edges is a no-op on arrival and needs no separate "left" signal.
+      _slotListener(slots.Listen([this](int slot) {
+          if (Core::IsValidSlot(slot))
+              _states[slot].Reset();
+      }))
+{}
+
 void MenuManager::OpenMenu(int slot, std::shared_ptr<MenuView> menu, MenuSessionOptions options)
 {
     if (!Core::IsValidSlot(slot) || !menu)
@@ -301,15 +311,6 @@ void MenuManager::RenderMenu(int slot)
 
     bool isSubmenu = state.MenuStack.size() > 1;
     rt.Messages.SendCenterHtml(slot, RenderMenuHtml(menu, slot, state.SelectedIndex, isSubmenu));
-}
-
-void MenuManager::OnPlayerDisconnect(int slot)
-{
-    if (!Core::IsValidSlot(slot))
-        return;
-
-    _states[slot].Reset();
-    VoltMod::Detail::Rt().Translations.ClearPlayerLanguage(slot);
 }
 
 }  // namespace VoltMod::Menu

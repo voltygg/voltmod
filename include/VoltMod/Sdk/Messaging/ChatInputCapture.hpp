@@ -1,6 +1,8 @@
 #pragma once
 
 #include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Core/SlotEvents.hpp>
+#include <VoltMod/Core/Subscription.hpp>
 #include <array>
 #include <cstdint>
 #include <functional>
@@ -28,7 +30,9 @@ namespace VoltMod::Sdk
 class ChatInputCapture
 {
 public:
-    ChatInputCapture() = default;
+    /** @p slots tells the registry when a slot changes hands, so a prompt cannot outlive
+     *  the player it was addressed to. */
+    explicit ChatInputCapture(Core::SlotEvents& slots);
 
     /** Validator return: true = accept and clear; false = re-prompt and keep waiting. */
     using Callback = std::function<bool(int slot, std::string_view text)>;
@@ -59,9 +63,6 @@ public:
     /** The active prompt for @p slot, or nullptr if no capture is pending. */
     const std::string* GetPrompt(int slot) const;
 
-    /** Lifecycle hook. Clears any pending capture for the disconnecting slot. */
-    void OnPlayerDisconnect(int slot);
-
 private:
     struct Pending
     {
@@ -74,6 +75,8 @@ private:
 
     std::array<std::optional<Pending>, Core::MaxPlayers> _pending{};
     uint64_t _nextId = 1;
+    /** Declared after _pending so it unregisters before the captures its callback cancels. */
+    Core::Subscription _slotListener;
 };
 
 }  // namespace VoltMod::Sdk

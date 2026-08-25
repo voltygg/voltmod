@@ -1,6 +1,9 @@
 #pragma once
 
+#include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Core/SlotEvents.hpp>
+#include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <array>
 
@@ -23,12 +26,17 @@ struct MenuSessionOptions
 /**
  * @brief WASD-navigated center-HTML menus for all players.
  * Supports a per-player menu stack (submenus push, R pops back).
- * Driven by OnGameFrame() - reads button state each tick for input.
+ * Reads button state each tick from a scheduler pump it registers for itself.
  */
 class MenuManager
 {
 public:
-    MenuManager() = default;
+    /**
+     * @param scheduler drives the per-frame input read; must outlive the manager.
+     * @param slots tells the manager a slot changed hands, so one player's stack cannot
+     *        outlive them into the next occupant.
+     */
+    MenuManager(Core::Scheduler& scheduler, Core::SlotEvents& slots);
 
     /** Push @p menu onto the player's stack and start rendering it. @p options take effect only
      *  when this call opens the stack (see @ref MenuSessionOptions). */
@@ -52,13 +60,10 @@ public:
      *  anyone the previous setting had already frozen. */
     void SetFreezePlayer(bool enabled);
 
+private:
     /** Per-tick driver: reads buttons, advances selection, and re-renders. */
     void OnGameFrame();
 
-    /** Resets state for the disconnected slot so it cannot leak into a new player. */
-    void OnPlayerDisconnect(int slot);
-
-private:
     void HandleInput(int slot, uint64_t buttons, uint64_t prevButtons);
     void RenderMenu(int slot);
 
@@ -69,6 +74,9 @@ private:
     std::array<PlayerMenuState, Core::MaxPlayers> _states;
     static constexpr int64_t InputDebounceMs = 200;
     bool _freezePlayer = false;
+    /** Declared after _states: both registrations drop before the state they touch. */
+    Core::Subscription _pump;
+    Core::Subscription _slotListener;
 };
 
 }  // namespace VoltMod::Menu
