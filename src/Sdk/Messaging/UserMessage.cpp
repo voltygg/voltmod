@@ -226,6 +226,38 @@ void MessageSystem::PostTextMsg(IRecipientFilter& filter, int destination, const
     interfaces.NetworkMessages->DeallocateNetMessageAbstract(_textMsgInternal, pMsg);
 }
 
+void MessageSystem::Shake(int slot, float durationSec, float frequency, float amplitude)
+{
+    if (!_interfaces.NetworkMessages || !_interfaces.GameEventSystem)
+        return;
+
+    if (!_shakeInternal)
+        _shakeInternal = _interfaces.NetworkMessages->FindNetworkMessagePartial("Shake");
+    if (!_shakeInternal)
+        return;
+
+    CNetMessage* message = _shakeInternal->AllocateMessage();
+    if (!message)
+        return;
+
+    auto* shake = message->ToPB<CUserMessageShake>();
+    if (!shake)
+    {
+        _interfaces.NetworkMessages->DeallocateNetMessageAbstract(_shakeInternal, message);
+        return;
+    }
+
+    shake->set_duration(durationSec);
+    shake->set_frequency(frequency);
+    shake->set_amplitude(amplitude);
+    shake->set_command(0);  // SHAKE_START
+
+    SingleRecipientFilter filter(slot);
+    _interfaces.GameEventSystem->PostEventAbstract(-1, false, &filter, _shakeInternal, message, 0);
+
+    _interfaces.NetworkMessages->DeallocateNetMessageAbstract(_shakeInternal, message);
+}
+
 void MessageSystem::ClearCenterHtml(int slot)
 {
     SendCenterHtml(slot, " ");

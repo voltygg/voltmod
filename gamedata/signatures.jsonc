@@ -54,6 +54,12 @@
       "windows": 8,
       "linux": 8
     },
+    // CCSPlayerPawn::OnTakeDamage_Alive vtable index (CS2Fixes: 252/253).
+    // Drives Sdk::DamageHook - a wrong index calls an unrelated vfunc and crashes.
+    "OnTakeDamageAlive": {
+      "windows": 252,
+      "linux": 253
+    },
     // CCSPlayer_ItemServices::GiveNamedItem vtable index (SwiftlyS2 / s2sdk: 23/24).
     // Called on the pawn's m_pItemServices; a wrong index calls an unrelated vfunc and crashes.
     "GiveNamedItem": {

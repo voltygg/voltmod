@@ -64,6 +64,7 @@
 #include <VoltMod/Sdk/Engine/NetChannel.hpp>
 #include <VoltMod/Sdk/Engine/ServerClock.hpp>
 #include <VoltMod/Sdk/Engine/ServerCommand.hpp>
+#include <VoltMod/Sdk/Entity/DamageHook.hpp>
 #include <VoltMod/Sdk/Entity/Entity.hpp>
 #include <VoltMod/Sdk/Entity/EntityKeyValues.hpp>
 #include <VoltMod/Sdk/Entity/EntityOps.hpp>
@@ -123,12 +124,15 @@ using Sdk::ChatInputCapture;
 using Sdk::ClientCvarService;
 using Sdk::ClientCvarStatus;
 using Sdk::ConVarService;
+using Sdk::DamageHook;
+using Sdk::DamageView;
 using Sdk::EntityKeyValues;
 using Sdk::EntityOpsService;
 using Sdk::EntitySystem;
 using Sdk::GameEventService;
 using Sdk::GlowVision;
 using Sdk::HasPawnFlag;
+using Sdk::HitGroup;
 using Sdk::InMoveType;
 using Sdk::InputHistorySample;
 using Sdk::InputHistoryService;

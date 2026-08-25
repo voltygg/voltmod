@@ -21,6 +21,7 @@
 #include <VoltMod/Sdk/Engine/NetChannel.hpp>
 #include <VoltMod/Sdk/Engine/PrecacheService.hpp>
 #include <VoltMod/Sdk/Engine/ServerClock.hpp>
+#include <VoltMod/Sdk/Entity/DamageHook.hpp>
 #include <VoltMod/Sdk/Entity/Entity.hpp>
 #include <VoltMod/Sdk/Entity/EntityOps.hpp>
 #include <VoltMod/Sdk/Entity/ItemService.hpp>
@@ -148,6 +149,9 @@ public:
     /** Dormant until a plugin calls Install(); removes its vtable hook on destruction.
      *  Depends on: Entities, GameData. */
     Sdk::MovementHook MovementHook{Entities, GameData};
+    /** Dormant until Install(); pre-damage listeners may rewrite or suppress the hit.
+     *  Depends on: Entities, GameData. */
+    Sdk::DamageHook Damage{Entities, GameData};
     /** Stateless per-client net-channel reads (latency, replicated userinfo cvars).
      *  Depends on: Interfaces. */
     Sdk::NetChannelService NetChannels{Interfaces};

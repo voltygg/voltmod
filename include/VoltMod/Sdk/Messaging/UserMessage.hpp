@@ -60,6 +60,15 @@ public:
     /** Translate @p key for the player's language, substitute @p tokens, and Reply. */
     void ReplyKey(int slot, const std::string& key, const std::map<std::string, std::string>& tokens = {});
 
+    /**
+     * Shake @p slot's screen, the engine's own CUserMessageShake.
+     *
+     * @param durationSec how long the shake lasts.
+     * @param frequency oscillations per second; higher reads as a rattle, lower as a sway.
+     * @param amplitude how far the view is thrown.
+     */
+    void Shake(int slot, float durationSec, float frequency, float amplitude);
+
     /** Raw center-HTML panel write; menus and @ref PersistentCenterHtml build on this. */
     void SendCenterHtml(int slot, const std::string& html);
     void ClearCenterHtml(int slot);
@@ -74,6 +83,7 @@ private:
     GameEventService& _events;
     Core::Translations& _translations;
     INetworkMessageInternal* _textMsgInternal = nullptr;
+    INetworkMessageInternal* _shakeInternal = nullptr;
 };
 
 }  // namespace VoltMod::Sdk

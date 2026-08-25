@@ -163,6 +163,45 @@ void PlayerController::SetArmor(int armor) const
     SetPawnField<int>("CCSPlayerPawn", "m_ArmorValue", armor);
 }
 
+namespace
+{
+constexpr const char* MoneyServicesField = "m_pInGameMoneyServices";
+constexpr const char* MoneyClass = "CCSPlayerController_InGameMoneyServices";
+constexpr const char* MoneyField = "m_iAccount";
+}  // namespace
+
+int PlayerController::GetMoney() const
+{
+    auto* services = GetField<void*>("CCSPlayerController", MoneyServicesField);
+    if (!services)
+        return 0;
+    int offset = SchemaOffset(MoneyClass, MoneyField, sizeof(int));
+    if (offset < 0)
+        return 0;
+    return ReadAt<int>(services, offset);
+}
+
+void PlayerController::SetMoney(int amount) const
+{
+    auto* services = GetField<void*>("CCSPlayerController", MoneyServicesField);
+    if (!services)
+        return;
+    int offset = SchemaOffset(MoneyClass, MoneyField, sizeof(int));
+    if (offset < 0)
+        return;
+    WriteAt<int>(services, offset, amount);
+
+    // The balance lives in a sub-object, so the write alone is invisible to the client. Dirty
+    // the controller's own pointer field, which is what the entity actually replicates through;
+    // the HUD picks the new value up on the next update.
+    if (_controller)
+    {
+        int servicesOffset = SchemaOffset("CCSPlayerController", MoneyServicesField, sizeof(void*));
+        if (servicesOffset >= 0)
+            _controller->NetworkStateChanged(NetworkStateChangedData(static_cast<uint32>(servicesOffset)));
+    }
+}
+
 void PlayerController::SetSpeedModifier(float multiplier) const
 {
     SetPawnField<float>("CCSPlayerPawn", "m_flVelocityModifier", multiplier);

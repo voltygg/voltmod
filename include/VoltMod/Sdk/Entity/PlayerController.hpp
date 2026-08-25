@@ -97,6 +97,12 @@ public:
     int GetArmor() const;
     void SetArmor(int armor) const;
 
+    /** Buy-menu balance (CCSPlayerController_InGameMoneyServices::m_iAccount). 0 when the
+     *  money services are unavailable. */
+    int GetMoney() const;
+    /** Write the balance and dirty it for replication, so the client's HUD follows. */
+    void SetMoney(int amount) const;
+
     /** Write the pawn's movement-speed multiplier (CCSPlayerPawn::m_flVelocityModifier).
      *  1.0 is normal speed. Note the game decays this toward 1.0 (e.g. after firing). */
     void SetSpeedModifier(float multiplier) const;
