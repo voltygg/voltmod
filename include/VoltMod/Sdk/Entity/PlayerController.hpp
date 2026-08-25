@@ -172,10 +172,6 @@ public:
      */
     void Teleport(const Vector* origin, const QAngle* angles, const Vector* velocity) const;
 
-    /** @internal The entity system this wrapper was resolved from, so framework helpers handed only
-     *  a controller can resolve a fresh one for the same slot later (PawnOps::Slap). */
-    EntitySystem& Entities() const { return *_entities; }
-
 private:
     /** Resolve a schema field offset (delegates to the internal SchemaService). */
     // expectedSize > 0 validates the engine's field size on first lookup (warns on schema drift).

@@ -110,14 +110,11 @@ using Core::StageResult;
 using Core::StageStatus;
 using Core::StandardPluginSettings;
 using Core::Subscription;
-using Players::ApplyEffect;
-using Players::ClearEffect;
 using Players::EffectChoice;
 using Players::EffectDescriptor;
 using Players::EffectInstance;
 using Players::EffectScope;
 using Players::ParamEffectDescriptor;
-using Players::ToggleEffect;
 
 // Sdk
 using Sdk::ChatInputCapture;

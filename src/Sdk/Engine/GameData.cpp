@@ -9,6 +9,7 @@
 #include <format>
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -82,47 +83,51 @@ bool GameData::Load(const std::string& path)
     }
 }
 
-int GameData::GetVtableIndex(std::string_view name, int maxIndex) const
+std::optional<int> GameData::Lookup(std::string_view name) const
 {
-    auto it = _offsets.find(std::string(name));
+    auto it = _offsets.find(name);
     if (it == _offsets.end())
     {
         WarnOffset(name, "missing", 0, false);
-        return -1;
+        return std::nullopt;
     }
-
-    if (!IsPlausibleVtableIndex(it->second, maxIndex))
-    {
-        WarnOffset(name, std::format("exceeds {}", maxIndex), it->second, true);
-        return -1;
-    }
-
     return it->second;
+}
+
+int GameData::GetVtableIndex(std::string_view name, int maxIndex) const
+{
+    auto value = Lookup(name);
+    if (!value)
+        return -1;
+
+    if (!IsOffsetInRange(*value, maxIndex))
+    {
+        WarnOffset(name, std::format("exceeds {}", maxIndex), *value, true);
+        return -1;
+    }
+
+    return *value;
 }
 
 int GameData::GetByteOffset(std::string_view name, int maxBytes, int alignment) const
 {
-    auto it = _offsets.find(std::string(name));
-    if (it == _offsets.end())
+    auto value = Lookup(name);
+    if (!value)
+        return -1;
+
+    if (!IsOffsetInRange(*value, maxBytes))
     {
-        WarnOffset(name, "missing", 0, false);
+        WarnOffset(name, std::format("exceeds {}", maxBytes), *value, true);
         return -1;
     }
 
-    const int value = it->second;
-    if (value < 0 || value > maxBytes)
+    if (!IsAlignedOffset(*value, alignment))
     {
-        WarnOffset(name, std::format("exceeds {}", maxBytes), value, true);
+        WarnOffset(name, std::format("not aligned to {}", alignment), *value, true);
         return -1;
     }
 
-    if (!IsPlausibleByteOffset(value, maxBytes, alignment))
-    {
-        WarnOffset(name, std::format("not aligned to {}", alignment), value, true);
-        return -1;
-    }
-
-    return value;
+    return *value;
 }
 
 void* GameData::FindSignature(const std::string& name) const

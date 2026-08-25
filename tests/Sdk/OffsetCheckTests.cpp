@@ -1,58 +1,48 @@
 #include <VoltMod/Sdk/Engine/OffsetCheck.hpp>
 #include <doctest/doctest.h>
 
-using VoltMod::Sdk::IsPlausibleByteOffset;
-using VoltMod::Sdk::IsPlausibleVtableIndex;
+using VoltMod::Sdk::IsAlignedOffset;
+using VoltMod::Sdk::IsOffsetInRange;
 
-TEST_CASE("OffsetCheck::IsPlausibleVtableIndex accepts the boundaries")
+TEST_CASE("OffsetCheck::IsOffsetInRange accepts the boundaries")
 {
-    CHECK(IsPlausibleVtableIndex(0, 500));
-    CHECK(IsPlausibleVtableIndex(500, 500));
+    CHECK(IsOffsetInRange(0, 500));
+    CHECK(IsOffsetInRange(500, 500));
 }
 
-TEST_CASE("OffsetCheck::IsPlausibleVtableIndex rejects one past the max")
+TEST_CASE("OffsetCheck::IsOffsetInRange rejects one past the max")
 {
-    CHECK_FALSE(IsPlausibleVtableIndex(501, 500));
+    CHECK_FALSE(IsOffsetInRange(501, 500));
 }
 
-TEST_CASE("OffsetCheck::IsPlausibleVtableIndex rejects negative values")
+TEST_CASE("OffsetCheck::IsOffsetInRange rejects negative values")
 {
-    CHECK_FALSE(IsPlausibleVtableIndex(-1, 500));
+    CHECK_FALSE(IsOffsetInRange(-1, 500));
 }
 
-TEST_CASE("OffsetCheck::IsPlausibleByteOffset accepts the boundaries")
+TEST_CASE("OffsetCheck::IsAlignedOffset accepts a multiple of the alignment")
 {
-    CHECK(IsPlausibleByteOffset(0, 4096, 4));
-    CHECK(IsPlausibleByteOffset(4096, 4096, 4));
+    CHECK(IsAlignedOffset(0, 4));
+    CHECK(IsAlignedOffset(4096, 4));
 }
 
-TEST_CASE("OffsetCheck::IsPlausibleByteOffset rejects one past the max")
+TEST_CASE("OffsetCheck::IsAlignedOffset rejects a misaligned value")
 {
-    CHECK_FALSE(IsPlausibleByteOffset(4097, 4096, 1));
+    CHECK_FALSE(IsAlignedOffset(6, 4));
 }
 
-TEST_CASE("OffsetCheck::IsPlausibleByteOffset rejects negative values")
+TEST_CASE("OffsetCheck::IsAlignedOffset with alignment 1 accepts anything")
 {
-    CHECK_FALSE(IsPlausibleByteOffset(-4, 4096, 4));
+    CHECK(IsAlignedOffset(1, 1));
+    CHECK(IsAlignedOffset(4095, 1));
 }
 
-TEST_CASE("OffsetCheck::IsPlausibleByteOffset rejects a misaligned value")
+TEST_CASE("OffsetCheck::IsAlignedOffset rejects alignment zero")
 {
-    CHECK_FALSE(IsPlausibleByteOffset(6, 4096, 4));
+    CHECK_FALSE(IsAlignedOffset(0, 0));
 }
 
-TEST_CASE("OffsetCheck::IsPlausibleByteOffset with alignment 1 accepts anything in range")
+TEST_CASE("OffsetCheck::IsAlignedOffset rejects negative alignment")
 {
-    CHECK(IsPlausibleByteOffset(1, 4096, 1));
-    CHECK(IsPlausibleByteOffset(4095, 4096, 1));
-}
-
-TEST_CASE("OffsetCheck::IsPlausibleByteOffset rejects alignment zero")
-{
-    CHECK_FALSE(IsPlausibleByteOffset(0, 4096, 0));
-}
-
-TEST_CASE("OffsetCheck::IsPlausibleByteOffset rejects negative alignment")
-{
-    CHECK_FALSE(IsPlausibleByteOffset(4, 4096, -4));
+    CHECK_FALSE(IsAlignedOffset(4, -4));
 }

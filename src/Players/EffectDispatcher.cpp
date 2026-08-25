@@ -19,31 +19,29 @@ Core::EffectSpec MakeSpec(EffectScope scope, int tickIntervalMs, int durationMs,
             .OnStop = std::move(inst.OnStop)};
 }
 
-// Shared body for the Clear verbs (both key off Permission/Id/OffKey only).
-void ClearById(Runtime& runtime, Core::EffectManager& effects, int adminSlot, int targetSlot,
-               const std::string& permission, int id, const std::string& offKey)
+}  // namespace
+
+void EffectDispatcher::ClearById(int adminSlot, int targetSlot, const std::string& permission, int id,
+                                 const std::string& offKey) const
 {
-    ActionDispatcher dispatch{runtime};
-    auto ctx = dispatch.Resolve(adminSlot, targetSlot, permission);
-    if (!ctx.Valid() || !effects.IsActive(targetSlot, id))
+    auto ctx = _actions.Resolve(adminSlot, targetSlot, permission);
+    if (!ctx.Valid() || !_effects.IsActive(targetSlot, id))
         return;
 
-    effects.Cancel(targetSlot, id);
+    _effects.Cancel(targetSlot, id);
     if (!offKey.empty())
-        dispatch.Broadcast(ctx, offKey);
+        _actions.Broadcast(ctx, offKey);
 }
 
-void BroadcastKey(const Players::ActionContext& ctx, const std::string& key)
+void EffectDispatcher::BroadcastKey(const ActionContext& ctx, const std::string& key) const
 {
     if (!key.empty())
-        ActionDispatcher{ctx.Rt}.Broadcast(ctx, key);
+        _actions.Broadcast(ctx, key);
 }
-
-}  // namespace
 
 void EffectDispatcher::Apply(int adminSlot, int targetSlot, const EffectDescriptor& effect) const
 {
-    auto ctx = ActionDispatcher{_runtime}.Resolve(adminSlot, targetSlot, effect.Permission);
+    auto ctx = _actions.Resolve(adminSlot, targetSlot, effect.Permission);
     if (!ctx.Valid())
         return;
     if (effect.RequireAlive && !ctx.TargetCtrl.IsAlive())
@@ -61,7 +59,7 @@ void EffectDispatcher::Apply(int adminSlot, int targetSlot, const EffectDescript
 
 void EffectDispatcher::Clear(int adminSlot, int targetSlot, const EffectDescriptor& effect) const
 {
-    ClearById(_runtime, _effects, adminSlot, targetSlot, effect.Permission, effect.Id, effect.OffKey);
+    ClearById(adminSlot, targetSlot, effect.Permission, effect.Id, effect.OffKey);
 }
 
 void EffectDispatcher::Toggle(int adminSlot, int targetSlot, const EffectDescriptor& effect) const
@@ -74,7 +72,7 @@ void EffectDispatcher::Toggle(int adminSlot, int targetSlot, const EffectDescrip
 
 void EffectDispatcher::Apply(int adminSlot, int targetSlot, int param, const ParamEffectDescriptor& effect) const
 {
-    auto ctx = ActionDispatcher{_runtime}.Resolve(adminSlot, targetSlot, effect.Permission);
+    auto ctx = _actions.Resolve(adminSlot, targetSlot, effect.Permission);
     if (!ctx.Valid() || !effect.Setup)
         return;
     if (effect.RequireAlive && !ctx.TargetCtrl.IsAlive())
@@ -90,37 +88,7 @@ void EffectDispatcher::Apply(int adminSlot, int targetSlot, int param, const Par
 
 void EffectDispatcher::Clear(int adminSlot, int targetSlot, const ParamEffectDescriptor& effect) const
 {
-    ClearById(_runtime, _effects, adminSlot, targetSlot, effect.Permission, effect.Id, effect.OffKey);
-}
-
-void ToggleEffect(Runtime& runtime, Core::EffectManager& effects, int adminSlot, int targetSlot,
-                  const EffectDescriptor& effect)
-{
-    EffectDispatcher{runtime, effects}.Toggle(adminSlot, targetSlot, effect);
-}
-
-void ApplyEffect(Runtime& runtime, Core::EffectManager& effects, int adminSlot, int targetSlot,
-                 const EffectDescriptor& effect)
-{
-    EffectDispatcher{runtime, effects}.Apply(adminSlot, targetSlot, effect);
-}
-
-void ClearEffect(Runtime& runtime, Core::EffectManager& effects, int adminSlot, int targetSlot,
-                 const EffectDescriptor& effect)
-{
-    EffectDispatcher{runtime, effects}.Clear(adminSlot, targetSlot, effect);
-}
-
-void ApplyEffect(Runtime& runtime, Core::EffectManager& effects, int adminSlot, int targetSlot, int param,
-                 const ParamEffectDescriptor& effect)
-{
-    EffectDispatcher{runtime, effects}.Apply(adminSlot, targetSlot, param, effect);
-}
-
-void ClearEffect(Runtime& runtime, Core::EffectManager& effects, int adminSlot, int targetSlot,
-                 const ParamEffectDescriptor& effect)
-{
-    EffectDispatcher{runtime, effects}.Clear(adminSlot, targetSlot, effect);
+    ClearById(adminSlot, targetSlot, effect.Permission, effect.Id, effect.OffKey);
 }
 
 }  // namespace VoltMod::Players

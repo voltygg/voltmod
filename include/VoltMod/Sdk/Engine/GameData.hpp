@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstddef>
+#include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -61,7 +64,17 @@ private:
         int Offset = 0;
     };
 
-    std::unordered_map<std::string, int> _offsets;
+    /** Heterogeneous hashing, so a string_view lookup does not allocate a key. */
+    struct StringHash
+    {
+        using is_transparent = void;
+        size_t operator()(std::string_view name) const noexcept { return std::hash<std::string_view>{}(name); }
+    };
+
+    /** Offset for @p name, or nullopt after warning that it is missing. */
+    std::optional<int> Lookup(std::string_view name) const;
+
+    std::unordered_map<std::string, int, StringHash, std::equal_to<>> _offsets;
     std::unordered_map<std::string, SignatureEntry> _signatures;
     std::unordered_map<std::string, ResolvedEntry> _resolved;
 };

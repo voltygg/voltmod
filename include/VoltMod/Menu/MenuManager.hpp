@@ -3,8 +3,8 @@
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Menu/Menu.hpp>
+#include <VoltMod/Players/PerSlot.hpp>
 #include <VoltMod/Sdk/Messaging/ChatInputCapture.hpp>
-#include <array>
 #include <string>
 #include <string_view>
 
@@ -87,13 +87,12 @@ private:
     void SetPlayerFrozen(int slot, bool frozen);
 
     Runtime& _runtime;
-    /** Per-player menu state, one entry per slot. */
-    std::array<PlayerMenuState, Core::MaxPlayers> _states;
+    /** Per-player menu state; PerSlot clears a slot's stack when it changes hands. */
+    Players::PerSlot<PlayerMenuState> _states;
     static constexpr int64_t InputDebounceMs = 200;
     bool _freezePlayer = false;
-    /** Declared after _states: both registrations drop before the state they touch. */
+    /** Declared after _states: the frame pump drops before the state it touches. */
     Core::Subscription _pump;
-    Core::Subscription _slotListener;
 };
 
 }  // namespace VoltMod::Menu

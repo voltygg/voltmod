@@ -74,15 +74,10 @@ void JumpPage(const std::vector<std::shared_ptr<MenuOption>>& items, int& idx, i
 }  // namespace
 
 MenuManager::MenuManager(Runtime& runtime)
-    : _runtime(runtime),
-      _pump(runtime.Scheduler.EveryFrame([this] { OnGameFrame(); })),
-      // SlotEvents also fires when a slot is filled; a fresh occupant has an empty stack, so
-      // resetting on both edges is a no-op on arrival and needs no separate "left" signal.
-      _slotListener(runtime.Slots.Listen([this](int slot) {
-          if (Core::IsValidSlot(slot))
-              _states[slot].Reset();
-      }))
-{}
+    : _runtime(runtime), _pump(runtime.Scheduler.EveryFrame([this] { OnGameFrame(); }))
+{
+    _states.BindReset(runtime.Slots);
+}
 
 void MenuManager::OpenMenu(int slot, std::shared_ptr<MenuView> menu, MenuSessionOptions options)
 {

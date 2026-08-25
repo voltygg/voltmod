@@ -2,7 +2,7 @@
 #include <VoltMod/Menu/MenuBuilder.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Players/ActionDispatcher.hpp>
-#include <VoltMod/Players/EffectDescriptor.hpp>
+#include <VoltMod/Players/EffectDispatcher.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <VoltMod/Sdk/Entity/PlayerController.hpp>
@@ -12,11 +12,13 @@ namespace VoltMod::Menu
 {
 
 using Players::ActionDispatcher;
+using Players::EffectDispatcher;
 
 // Context-aware rows. Descriptors are namespace-scope globals in the consumer, so capturing
 // their address in row lambdas is safe for the process lifetime. Every row captures the
 // context's runtime pointer, which is null only for a context nobody bound - in which case
-// MenuContext::Allowed has already disabled the row.
+// MenuContext::Allowed has already disabled the row and MenuManager never runs its activation
+// callback, so only the render-time predicates below have to tolerate a null.
 
 MenuBuilder& MenuBuilder::AddActionRow(std::string_view labelKey, const Players::Action& action)
 {
@@ -24,8 +26,7 @@ MenuBuilder& MenuBuilder::AddActionRow(std::string_view labelKey, const Players:
     return AddButton(
         _context.Tr(labelKey),
         [rt = _context.Rt, admin = _context.Admin, target = _context.Target, a](int) {
-            if (rt)
-                ActionDispatcher{*rt}.Run(admin, target, *a);
+            ActionDispatcher{*rt}.Run(admin, target, *a);
         },
         _context.Allowed(action.Permission));
 }
@@ -45,10 +46,7 @@ MenuBuilder& MenuBuilder::AddStateToggleRow(std::string_view labelKey,
             Sdk::PlayerController pc = rt->Entities.Controller(target);
             return pc.IsValid() && isActive(pc);
         },
-        [rt, admin = _context.Admin, target, a](int) {
-            if (rt)
-                ActionDispatcher{*rt}.Run(admin, target, *a);
-        },
+        [rt, admin = _context.Admin, target, a](int) { ActionDispatcher{*rt}.Run(admin, target, *a); },
         _context.Allowed(action.Permission));
 }
 
@@ -65,8 +63,6 @@ MenuBuilder& MenuBuilder::AddPresetChoiceRow(std::string_view labelKey, std::str
     return AddChoice<int>(
         _context.Tr(labelKey), std::move(choices),
         [rt = _context.Rt, admin = _context.Admin, target = _context.Target, a](int slot, const int& value) {
-            if (!rt)
-                return;
             ActionDispatcher{*rt}.Run(admin, target, value, *a);
             rt->Menus.CloseAllMenus(slot);
         },
@@ -82,8 +78,8 @@ MenuBuilder& MenuBuilder::AddEffectToggleRow(const Players::EffectDescriptor& ef
         _context.Tr(effect.NameKey), _context.Tr("effectState.on"), _context.Tr("effectState.off"),
         [effects, target, id = effect.Id](int) { return effects && effects->IsActive(target, id); },
         [rt = _context.Rt, effects, admin = _context.Admin, target, e](int) {
-            if (rt && effects)
-                Players::ToggleEffect(*rt, *effects, admin, target, *e);
+            if (effects)
+                EffectDispatcher{*rt, *effects}.Toggle(admin, target, *e);
         },
         _context.Allowed(effect.Permission));
 }
@@ -94,9 +90,6 @@ namespace
 /** Picker submenu for a ParamEffectDescriptor: one button per choice plus an optional reset row. */
 std::shared_ptr<MenuView> BuildEffectPicker(MenuContext ctx, const Players::ParamEffectDescriptor& effect)
 {
-    if (!ctx.Rt)
-        return nullptr;
-
     auto* target = ctx.Rt->Players.GetPlayerBySlot(ctx.Target);
     if (!target)
         return nullptr;
@@ -116,7 +109,7 @@ std::shared_ptr<MenuView> BuildEffectPicker(MenuContext ctx, const Players::Para
             choice.Label,
             [rt, effects, menus, admin = ctx.Admin, targetSlot = ctx.Target, e, param](int slot) {
                 if (effects)
-                    Players::ApplyEffect(*rt, *effects, admin, targetSlot, param, *e);
+                    EffectDispatcher{*rt, *effects}.Apply(admin, targetSlot, param, *e);
                 menus->CloseAllMenus(slot);
             },
             allowed);
@@ -128,7 +121,7 @@ std::shared_ptr<MenuView> BuildEffectPicker(MenuContext ctx, const Players::Para
             ctx.Tr(effect.ResetLabelKey),
             [rt, effects, menus, admin = ctx.Admin, targetSlot = ctx.Target, e](int slot) {
                 if (effects)
-                    Players::ClearEffect(*rt, *effects, admin, targetSlot, *e);
+                    EffectDispatcher{*rt, *effects}.Clear(admin, targetSlot, *e);
                 menus->CloseAllMenus(slot);
             },
             allowed);
