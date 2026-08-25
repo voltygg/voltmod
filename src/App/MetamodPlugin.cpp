@@ -63,8 +63,8 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
     {
         if (!_runtime->LoadReport.Stages().empty())
             Log::Info("{}", _runtime->LoadReport.Summary());
-        Detail::SetRt(nullptr);
         _runtime.reset();
+        Detail::SetRt(nullptr);
         return false;
     }
 
@@ -112,16 +112,16 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
 
 // Order matters: the plugin drops its own graph first, while every framework service it holds a
 // reference or subscription to is still alive; then the standard hooks come off; only then the
-// runtime, whose destructor is the framework's shutdown. The ambient pointer is cleared last of the
-// three so this shutdown can still reach it.
+// runtime, whose destructor is the framework's shutdown. The ambient pointer is cleared after that
+// destructor has run, because services that still reach the runtime through it shut down there.
 //
 // Failed loads use the same path so no hook can outlive the runtime.
 void MetamodPlugin::Shutdown()
 {
     OnUnload();
     _standardHooks.clear();
-    Detail::SetRt(nullptr);
     _runtime.reset();
+    Detail::SetRt(nullptr);
 }
 
 bool MetamodPlugin::Unload(char* error, size_t maxlen)
