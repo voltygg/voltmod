@@ -152,7 +152,17 @@ bool Runtime::InitializeServices(const LoadContext& context)
     };
 
     degradable("Schema", "init failed; button detection may not work", [&] { return Schema().Initialize(); });
-    degradable("Entities", "init failed; menus may not work", [&] { return Entities.Initialize(); });
+    report.Run("Entities", [&] {
+        if (!Entities.Initialize())
+            return StageResult::Degraded("init failed; menus may not work");
+        if (Entities.IsResolved())
+            return StageResult::Ok();
+
+        // A cold load runs before the engine creates CGameEntitySystem; StartupServer resolves it.
+        // A late load is already past that point, so nothing will.
+        return context.Late ? StageResult::Degraded("entity system unavailable; menus may not work")
+                            : StageResult::Ok("resolves at the first map load");
+    });
     degradable("EntityOps", "unavailable; spawned effects degrade (see signature warnings)",
                [&] { return EntityOps.Initialize(); });
     degradable("Precache", "not registered; resource precaching unavailable",

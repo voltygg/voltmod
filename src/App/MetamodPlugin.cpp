@@ -171,6 +171,9 @@ void MetamodPlugin::Hook_StartupServer(const GameSessionConfiguration_t&, ISourc
 {
     Log::Info("Server startup: map '{}'.", mapName ? mapName : "<none>");
     _runtime->CurrentMap = mapName ? mapName : "";
+    // First: the map's new CGameEntitySystem must be published before the plugin's
+    // OnServerStartup override below runs, since that is free to touch entities.
+    _runtime->Entities.OnServerStartup();
     _runtime->Events.OnServerStartup();
     _runtime->Teleports.OnServerStartup();
     _runtime->ClientCvars.OnServerStartup();

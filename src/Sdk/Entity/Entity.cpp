@@ -14,10 +14,8 @@
 namespace
 {
 /**
- * The live EntitySystem's resolved CGameEntitySystem*, published for ::GameEntitySystem() below.
- * A file-static is unavoidable there: the SDK calls that free function with no context parameter
- * to hand it a service reference through. Written by EntitySystem as it resolves the pointer and
- * cleared by its destructor, so it is never stale past one load cycle.
+ * Published for ::GameEntitySystem() below, which the SDK calls with no context parameter to
+ * reach a service through. Written and cleared by EntitySystem, so it never outlives a load cycle.
  */
 CGameEntitySystem* g_entitySystem = nullptr;
 }  // namespace
@@ -68,17 +66,20 @@ void EntitySystem::ResolveSchemaOffsets()
     _schemaOffsetsResolved = true;
 }
 
+void EntitySystem::SetEntitySystem(CGameEntitySystem* system)
+{
+    _interfaces.EntitySystem = system;
+    g_entitySystem = system;  // publish for ::GameEntitySystem()
+}
+
 CGameEntitySystem* EntitySystem::ReadEntitySystemPointer()
 {
-    if (!_interfaces.GameResourceService)
+    // Runs per call until the pointer resolves, so it stays a plain read: Initialize caches the
+    // offset rather than paying a gamedata lookup on paths that reach entities every frame.
+    if (!_interfaces.GameResourceService || _offsetGameEntitySystem < 0)
         return nullptr;
 
-    // "GameEntitySystem" = byte offset of the CGameEntitySystem* cached inside CGameResourceService.
-    int offsetGameEntitySystem = _gameData.GetByteOffset("GameEntitySystem", MaxByteOffset, alignof(void*));
-    if (offsetGameEntitySystem < 0)
-        return nullptr;
-
-    return ReadAt<CGameEntitySystem*>(_interfaces.GameResourceService, offsetGameEntitySystem);
+    return ReadAt<CGameEntitySystem*>(_interfaces.GameResourceService, _offsetGameEntitySystem);
 }
 
 bool EntitySystem::Initialize()
@@ -89,32 +90,41 @@ bool EntitySystem::Initialize()
         return false;
     }
 
-    int offsetGameEntitySystem = _gameData.GetByteOffset("GameEntitySystem", MaxByteOffset, alignof(void*));
-    if (offsetGameEntitySystem < 0)
+    // "GameEntitySystem" = byte offset of the CGameEntitySystem* cached inside CGameResourceService.
+    _offsetGameEntitySystem = _gameData.GetByteOffset("GameEntitySystem", MaxByteOffset, alignof(void*));
+    if (_offsetGameEntitySystem < 0)
         return false;
-    Log::Info("Gamedata loaded (entity system offset: {}).", offsetGameEntitySystem);
+    Log::Info("Gamedata loaded (entity system offset: {}).", _offsetGameEntitySystem);
 
-    // Nothing that touches an entity works without this, so reporting success here just moved the
-    // failure to the first confusing symptom instead of the load report.
-    if (!GetEntitySystem())
-    {
-        Log::Error("Entity system pointer could not be read from IGameResourceService.");
-        return false;
-    }
-
-    Log::Info("Entity system initialized.");
+    // The engine creates CGameEntitySystem during server startup, so a null read here is expected
+    // on a cold load and OnServerStartup picks it up. Whether it resolved is load policy, not the
+    // SDK's call: the caller reads IsResolved() and decides.
+    GetEntitySystem();
     return true;
+}
+
+bool EntitySystem::IsResolved() const
+{
+    return _interfaces.EntitySystem != nullptr;
+}
+
+void EntitySystem::OnServerStartup()
+{
+    // A new map gets a new CGameEntitySystem; keeping the old pointer would read freed memory.
+    SetEntitySystem(nullptr);
+
+    if (GetEntitySystem())
+        Log::Info("Entity system initialized.");
+    else
+        Log::Error("Entity system pointer could not be read from IGameResourceService.");
 }
 
 CGameEntitySystem* EntitySystem::GetEntitySystem()
 {
-    // Resolved once per load cycle: the pointer lives inside IGameResourceService, which the
-    // engine keeps for the process lifetime, so there is nothing to refresh on map change.
+    // Null until the engine starts the first server, so an early load caches nothing and
+    // re-reads on the next call. OnServerStartup drops the cache for each new map.
     if (!_interfaces.EntitySystem)
-    {
-        _interfaces.EntitySystem = ReadEntitySystemPointer();
-        g_entitySystem = _interfaces.EntitySystem;  // publish for ::GameEntitySystem()
-    }
+        SetEntitySystem(ReadEntitySystemPointer());
 
     return _interfaces.EntitySystem;
 }

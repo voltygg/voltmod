@@ -62,7 +62,21 @@ public:
     EntitySystem(const EntitySystem&) = delete;
     EntitySystem& operator=(const EntitySystem&) = delete;
 
+    /**
+     * @brief Resolve the gamedata offset and attempt a first read of the entity system.
+     * @return False only when the service cannot work at all (no IGameResourceService, or the
+     *         offset is missing). True with IsResolved() false means the engine has not created
+     *         CGameEntitySystem yet - expected before the first map load, and OnServerStartup
+     *         picks it up. Whether that counts as degraded is the caller's load policy.
+     */
     bool Initialize();
+
+    /** True once the CGameEntitySystem pointer has been read for the current map. */
+    bool IsResolved() const;
+
+    /** Re-read the pointer for the new map. Called by the framework's StartupServer hook. */
+    void OnServerStartup();
+
     CGameEntitySystem* GetEntitySystem();
     CEntityInstance* GetPlayerController(int slot);
 
@@ -120,9 +134,13 @@ private:
      */
     CGameEntitySystem* ReadEntitySystemPointer();
 
+    /** Sole writer of the pointer: keeps the ::GameEntitySystem() global in step with the member. */
+    void SetEntitySystem(CGameEntitySystem* system);
+
     GameInterfaces& _interfaces;
     GameData& _gameData;
     SchemaService& _schema;
+    int _offsetGameEntitySystem = -1;
     int _offsetPlayerPawn = -1;
     int _offsetMovementServices = -1;
     int _offsetButtons = -1;
