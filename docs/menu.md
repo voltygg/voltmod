@@ -34,11 +34,11 @@ runtime.Menus.OpenMenu(playerSlot, menu);
 
 ## Context rows
 
-For rows that act on an admin/target pair, bind a @ref VoltMod::Menu::MenuContext once. Every context row then derives its label (a translation key in the admin's language), its enabled state (permission and immunity via `runtime.Policy`, so a row the admin cannot use does not appear), and its dispatch pair from the context:
+For rows that act on an admin/target pair, bind a @ref VoltMod::Menu::MenuContext once. It carries the runtime as its first member; every context row then derives its label (a translation key in the admin's language), its enabled state (permission and immunity via `runtime.Policy`, so a row the admin cannot use does not appear), and its dispatch pair from the context:
 
 ```cpp
 MenuBuilder(title)
-    .WithContext({.Admin = adminSlot, .Target = targetSlot, .Effects = &app.Effects})
+    .WithContext({.Rt = &runtime, .Admin = adminSlot, .Target = targetSlot, .Effects = &app.Effects})
     .AddActionRow("action.kill", Actions::Kill)                                    // runs an Action
     .AddStateToggleRow("action.freeze", InMoveType(MoveType::None), Actions::Freeze)  // live on/off state
     .AddPresetChoiceRow("action.health", "HP", HealthPresets, Actions::SetHealth)  // A/D cycles, E applies
@@ -47,7 +47,7 @@ MenuBuilder(title)
     .Build();
 ```
 
-`AddStateToggleRow` re-reads its predicate every redraw, so the same row shows "Freeze"/"Unfreeze" reality and doubles as the undo control. The pawn predicates (`InMoveType`, `HasPawnFlag`) live in `Sdk/Entity/PawnPredicates.hpp`. Effect rows read on/off labels from the reserved keys `effectState.on` / `effectState.off`; the descriptors themselves are covered in @ref players_guide.
+A context left without `.Rt` is inert: `Allowed` denies, so every context row renders disabled. `AddStateToggleRow` re-reads its predicate every redraw, so the same row shows "Freeze"/"Unfreeze" reality and doubles as the undo control. The pawn predicates (`InMoveType`, `HasPawnFlag`) live in `Sdk/Entity/PawnPredicates.hpp`. Effect rows read on/off labels from the reserved keys `effectState.on` / `effectState.off`; the descriptors themselves are covered in @ref players_guide.
 
 ## Flow: multistep wizards
 
@@ -57,7 +57,7 @@ and before finishing, so a departed target or revoked permission aborts cleanly
 instead of applying half the action.
 
 ```cpp
-VoltMod::Flow<PendingPunishment>::Create(std::move(pending))
+VoltMod::Flow<PendingPunishment>::Create(runtime.Menus, std::move(pending))
     ->OnValidate([](int slot, const PendingPunishment& s) -> std::optional<std::string> {
         return StillPunishable(s) ? std::nullopt : std::optional<std::string>("cmd.targetLost");
     })
@@ -76,7 +76,8 @@ VoltMod::Flow<PendingPunishment>::Create(std::move(pending))
 Flow contracts:
 
 - Text comes from per-slot provider functions, so every step renders in the viewing admin's language; the framework ships no strings of its own.
-- The `OnValidate` result is a translation key. On failure the flow closes the menus and replies through `runtime.Policy.Reply`.
+- `Create` takes the @ref VoltMod::Menu::MenuManager the flow opens and closes its steps through, so the flow needs no other service.
+- The `OnValidate` result is a translation key. On failure the flow calls `MenuManager::CloseAllWithReply`, which replies through `runtime.Policy.Reply` and closes the menus.
 - A confirm-only flow (skip straight to `WithConfirm`) is the natural shape for "quick" variants of a wizard.
 - Lifetime is automatic: menu rows hold the only owning references, so the flow lives exactly as long as one of its menus is on screen. There is no manager to hold and no cleanup to write.
 - `AddStep(build, applies)` is the escape hatch for a fully custom step: build any menu, mutate `flow.State()`, and call `flow.Advance(slot)`.
@@ -127,13 +128,13 @@ The freeze is a global switch, but a single session can opt out: `OpenMenu(slot,
 
 ## Presets
 
-`<VoltMod/Menu/MenuPresets.hpp>` ships content-agnostic building blocks; every human-facing string is a parameter:
+`<VoltMod/Menu/MenuPresets.hpp>` ships content-agnostic building blocks; every human-facing string is a parameter, and each preset takes the one service it needs as its first argument:
 
 ```cpp
 using namespace VoltMod::Menu;
 
 // Paginated list of connected players; the optional predicate grays out rows.
-auto picker = BuildPlayerPicker(adminSlot, "Select player",
+auto picker = BuildPlayerPicker(runtime.Players, adminSlot, "Select player",
     [](int viewer, int target) { OpenActionsFor(viewer, target); },
     "No players available",
     [self = adminSlot](int target) { return target != self; });
@@ -145,7 +146,7 @@ auto duration = BuildDurationPicker(adminSlot, "Ban duration",
     "Custom...", "Type a duration (30s, 5m, 2h, 7d, perm)");
 
 // Confirmation dialog: read-only body rows, then confirm/cancel.
-auto confirm = BuildConfirmDialog({
+auto confirm = BuildConfirmDialog(runtime.Menus, {
     .Title = "Confirm: Ban",
     .BodyLines = {"Player: Bob", "Duration: 1 day"},
     .ConfirmLabel = "Confirm",
@@ -161,4 +162,4 @@ auto choices = BuildPaletteChoices([&](std::string_view name) { return LabelFor(
 
 ## Headers
 
-Most consumers only need `MenuBuilder.hpp` (which pulls in every option type) plus `Flow.hpp` or `MenuPresets.hpp`. The per-option headers under `Menu/Options/` matter only when constructing an option manually for `AddOption` or subclassing `MenuOption` (override `GetLabel`, `OnActivate`, and optionally `OnHorizontal`).
+Most consumers only need `MenuBuilder.hpp` (which pulls in every option type) plus `Flow.hpp` or `MenuPresets.hpp`. The per-option headers under `Menu/Options/` matter only when constructing an option manually for `AddOption` or subclassing `MenuOption` (override `GetLabel`, `OnActivate(int slot, MenuManager& menus)`, and optionally `OnHorizontal`). `OnActivate` receives the manager rendering the row, so a custom option can push a submenu (`menus.OpenMenu`) or start a chat prompt (`menus.BeginInput`) without holding the runtime.

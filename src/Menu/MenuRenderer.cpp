@@ -1,9 +1,7 @@
 #include "Menu/MenuRenderer.hpp"
 
 #include <VoltMod/Core/Translations.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
 #include <VoltMod/Menu/MenuOption.hpp>
-#include <VoltMod/Runtime.hpp>
 #include <algorithm>
 #include <sstream>
 
@@ -24,9 +22,9 @@ constexpr const char* NavBack = "#AA8833";
 
 // Localized footer label; Get() returns the key unchanged when missing, so fall back to the
 // English literal - lets consumers that don't ship nav.* keys still render cleanly.
-static std::string FooterLabel(const char* key, const char* fallback, int slot)
+static std::string FooterLabel(Core::Translations& translations, const char* key, const char* fallback, int slot)
 {
-    auto value = VoltMod::Detail::Rt().Translations.Get(key, slot);
+    auto value = translations.Get(key, slot);
     return value == key ? std::string(fallback) : value;
 }
 
@@ -53,25 +51,27 @@ static std::string FooterChunk(const char* keyColor, const char* keyText, const 
     return html.str();
 }
 
-std::string DefaultFooter(bool isSubmenu, bool isPaginated, bool usesHorizontal, int slot)
+std::string DefaultFooter(bool isSubmenu, bool isPaginated, bool usesHorizontal, int slot,
+                          Core::Translations& translations)
 {
+    auto label = [&](const char* key, const char* fallback) { return FooterLabel(translations, key, fallback, slot); };
+
     const char* closeColor = isSubmenu ? Theme::NavBack : Theme::NavClose;
-    std::string closeLabel =
-        isSubmenu ? FooterLabel("nav.back", "Back", slot) : FooterLabel("nav.close", "Close", slot);
+    std::string closeLabel = isSubmenu ? label("nav.back", "Back") : label("nav.close", "Close");
 
     // First row: W/S, the A/D hint for the current row (value-change or paging), and E.
     std::ostringstream row1;
-    row1 << FooterChunk(Theme::NavGold, "[W/S]", FooterLabel("nav.navigate", "Navigate", slot));
+    row1 << FooterChunk(Theme::NavGold, "[W/S]", label("nav.navigate", "Navigate"));
 
     bool hasHorizontalHint = usesHorizontal || isPaginated;
     if (usesHorizontal)
-        row1 << " · " << FooterChunk(Theme::NavGold, "[A/D]", FooterLabel("nav.change", "Change", slot));
+        row1 << " · " << FooterChunk(Theme::NavGold, "[A/D]", label("nav.change", "Change"));
     else if (isPaginated)
-        row1 << " · " << FooterChunk(Theme::NavGold, "[A/D]", FooterLabel("nav.page", "Page", slot));
+        row1 << " · " << FooterChunk(Theme::NavGold, "[A/D]", label("nav.page", "Page"));
 
     const char* selectKey = usesHorizontal ? "nav.confirm" : "nav.select";
     const char* selectFallback = usesHorizontal ? "Confirm" : "Select";
-    row1 << " · " << FooterChunk(Theme::Gold, "[E]", FooterLabel(selectKey, selectFallback, slot));
+    row1 << " · " << FooterChunk(Theme::Gold, "[E]", label(selectKey, selectFallback));
 
     std::string closeChunk = FooterChunk(closeColor, "[R]", closeLabel);
 
@@ -127,7 +127,8 @@ static std::string RenderItems(const MenuView* menu, int slot, int selectedIndex
     return html.str();
 }
 
-std::string RenderMenuHtml(const MenuView* menu, int slot, int selectedIndex, bool isSubmenu)
+std::string RenderMenuHtml(const MenuView* menu, int slot, int selectedIndex, bool isSubmenu,
+                           Core::Translations& translations)
 {
     if (!menu)
     {
@@ -161,7 +162,7 @@ std::string RenderMenuHtml(const MenuView* menu, int slot, int selectedIndex, bo
     {
         bool usesHorizontal = selectedIndex >= 0 && selectedIndex < itemCount && menu->Items[selectedIndex] &&
                               menu->Items[selectedIndex]->IsEnabled() && menu->Items[selectedIndex]->UsesHorizontal();
-        html << DefaultFooter(isSubmenu, totalPages > 1, usesHorizontal, slot);
+        html << DefaultFooter(isSubmenu, totalPages > 1, usesHorizontal, slot, translations);
     }
 
     return html.str();

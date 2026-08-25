@@ -1,7 +1,6 @@
 #include "Menu/MenuRenderer.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Menu/MenuOption.hpp>
 #include <VoltMod/Runtime.hpp>
@@ -74,11 +73,12 @@ void JumpPage(const std::vector<std::shared_ptr<MenuOption>>& items, int& idx, i
 
 }  // namespace
 
-MenuManager::MenuManager(Core::Scheduler& scheduler, Core::SlotEvents& slots)
-    : _pump(scheduler.EveryFrame([this] { OnGameFrame(); })),
+MenuManager::MenuManager(Runtime& runtime)
+    : _runtime(runtime),
+      _pump(runtime.Scheduler.EveryFrame([this] { OnGameFrame(); })),
       // SlotEvents also fires when a slot is filled; a fresh occupant has an empty stack, so
       // resetting on both edges is a no-op on arrival and needs no separate "left" signal.
-      _slotListener(slots.Listen([this](int slot) {
+      _slotListener(runtime.Slots.Listen([this](int slot) {
           if (Core::IsValidSlot(slot))
               _states[slot].Reset();
       }))
@@ -129,7 +129,7 @@ void MenuManager::CloseMenu(int slot)
     if (state.MenuStack.empty())
     {
         SetPlayerFrozen(slot, false);
-        VoltMod::Detail::Rt().Messages.ClearCenterHtml(slot);
+        _runtime.Messages.ClearCenterHtml(slot);
         state.Reset();
     }
     else
@@ -151,7 +151,21 @@ void MenuManager::CloseAllMenus(int slot)
     auto& state = _states[slot];
     SetPlayerFrozen(slot, false);
     state.Reset();
-    VoltMod::Detail::Rt().Messages.ClearCenterHtml(slot);
+    _runtime.Messages.ClearCenterHtml(slot);
+}
+
+void MenuManager::CloseAllWithReply(int slot, std::string_view key)
+{
+    // Translate before closing: the reply is addressed to a player whose menus are about to go.
+    if (auto& reply = _runtime.Policy.Reply; reply)
+        reply(slot, _runtime.Translations.Get(std::string(key), slot));
+
+    CloseAllMenus(slot);
+}
+
+void MenuManager::BeginInput(int slot, std::string prompt, Sdk::ChatInputCapture::Callback callback)
+{
+    _runtime.ChatInput.BeginCapture(slot, std::move(prompt), std::move(callback));
 }
 
 void MenuManager::SetPlayerFrozen(int slot, bool frozen)
@@ -169,7 +183,7 @@ void MenuManager::SetPlayerFrozen(int slot, bool frozen)
     if (frozen == state.MovementFrozen)
         return;
 
-    PlayerController pc = VoltMod::Detail::Rt().Entities.Controller(slot);
+    PlayerController pc = _runtime.Entities.Controller(slot);
     if (!pc.IsValid())
         return;
 
@@ -206,7 +220,7 @@ bool MenuManager::HasActiveMenu(int slot) const
 
 void MenuManager::OnGameFrame()
 {
-    auto& entities = VoltMod::Detail::Rt().Entities;
+    auto& entities = _runtime.Entities;
     for (int slot = 0; slot < Core::MaxPlayers; ++slot)
     {
         auto& state = _states[slot];
@@ -239,7 +253,7 @@ void MenuManager::HandleInput(int slot, uint64_t buttons, uint64_t prevButtons)
 
     // While a chat-input capture is active, the only key we honor is R (cancel) - every
     // other input is ignored so the menu doesn't drift while the player types in chat.
-    auto& capture = VoltMod::Detail::Rt().ChatInput;
+    auto& capture = _runtime.ChatInput;
     if (capture.IsCapturing(slot))
     {
         if (pressed & IN_RELOAD)
@@ -282,7 +296,7 @@ void MenuManager::HandleInput(int slot, uint64_t buttons, uint64_t prevButtons)
     else if (pressed & IN_USE)
     {
         if (currentOption && currentOption->IsEnabled() && currentOption->IsSelectable())
-            currentOption->OnActivate(slot);
+            currentOption->OnActivate(slot, *this);
     }
     else if (pressed & IN_RELOAD)
         CloseMenu(slot);
@@ -300,17 +314,16 @@ void MenuManager::RenderMenu(int slot)
     if (!menu)
         return;
 
-    auto& rt = VoltMod::Detail::Rt();
-
     // While a capture is pending, render a prompt overlay instead of the item list.
-    if (auto* prompt = rt.ChatInput.GetPrompt(slot); prompt != nullptr)
+    if (auto* prompt = _runtime.ChatInput.GetPrompt(slot); prompt != nullptr)
     {
-        rt.Messages.SendCenterHtml(slot, RenderCaptureOverlay(menu->Title, *prompt));
+        _runtime.Messages.SendCenterHtml(slot, RenderCaptureOverlay(menu->Title, *prompt));
         return;
     }
 
     bool isSubmenu = state.MenuStack.size() > 1;
-    rt.Messages.SendCenterHtml(slot, RenderMenuHtml(menu, slot, state.SelectedIndex, isSubmenu));
+    _runtime.Messages.SendCenterHtml(slot,
+                                     RenderMenuHtml(menu, slot, state.SelectedIndex, isSubmenu, _runtime.Translations));
 }
 
 }  // namespace VoltMod::Menu

@@ -98,8 +98,10 @@ if(BUILD_TESTING)
     voltmod_add_tests(voltmod-utils-tests
         SOURCES
             # Other implementation files require HL2SDK or pqxx.
+            src/Commands/CommandContext.cpp
             src/Commands/CommandSpec.cpp
             src/Core/EffectManager.cpp
+            src/Core/Logger.cpp
             src/Core/Paths.cpp
             src/Core/PluginManifest.cpp
             src/Core/ScheduledEffect.cpp
@@ -111,6 +113,7 @@ if(BUILD_TESTING)
             src/Core/StringUtils.cpp
             src/Core/SteamId.cpp
             src/Core/TimeUtils.cpp
+            src/Core/Translations.cpp
         # For PluginManifest's JSON parsing.
         LIBRARIES nlohmann_json::nlohmann_json
     )

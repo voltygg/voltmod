@@ -54,26 +54,6 @@ Runtime* RtOrNull()
     return g_active;
 }
 
-Core::SlotEvents& Slots()
-{
-    return Rt().Slots;
-}
-
-Core::Translations& Translations()
-{
-    return Rt().Translations;
-}
-
-Core::PluginPolicy& Policy()
-{
-    return Rt().Policy;
-}
-
-Menu::MenuManager& Menus()
-{
-    return Rt().Menus;
-}
-
 }  // namespace Detail
 
 // Every other service is wired by its default member initializer in Runtime.hpp, where the

@@ -174,14 +174,18 @@ the layering.
 - **Database** is Core + libpqxx, compiled only under `VOLTMOD_ENABLE_POSTGRES`
 - **App** may reach all of them; it is the composition root
 
-`Detail/` is the one exemption: it holds the ambient pointer to the live `Runtime`.
-Class templates instantiated in consumer TUs (`Flow<TState>`, `PerSlot<T>`) and the
-framework glue in `Menu/`, `Commands/`, `Players/` and `App/` still reach the runtime
-through it. Nothing under `Sdk/` does: the engine-facing services take the siblings they
-use through their constructors, the value types (`PlayerController`, `GlowVision`,
-`PersistentCenterHtml`) take theirs the same way, and the free helpers reach their service
-through the controller they are handed or take it as a parameter (`EffectOps`,
-`PawnOps::Slap`). Where the engine calls
-back with no user data (`GameEntitySystem()`, the global convar change callback) a
-file-static set and cleared by the owning service stands in. Plugin code never needs any
-of it.
+`Detail/` is the one exemption: it holds the ambient pointer to the live `Runtime`. Only
+`App/` and `Database/` still read it, and both for the same reason - they run where no
+reference has been threaded yet: `App/` is the composition root that publishes the pointer,
+and the database layer's log sink is entered from a worker. Everything else takes what it
+uses through a constructor or a parameter. `Sdk/` services and value types (`PlayerController`,
+`GlowVision`, `PersistentCenterHtml`) take their siblings that way, and the free helpers
+reach their service through the controller they are handed or take it as a parameter
+(`EffectOps`, `PawnOps::Slap`). `Players/`, `Commands/` and `Menu/` do the same: the
+runtime-owned services (`CommandManager`, `MenuManager`, `ActionDispatcher`) take
+`Runtime&`, while the header-only templates and plain-data types plugins instantiate
+(`Flow<TState>`, `PerSlot<T>`, `MenuContext`, the `MenuPresets` builders) take the single
+narrowest service they need, so a consumer TU that includes one of those headers does not
+pull in the whole composition root. Where the engine calls back with no user data
+(`GameEntitySystem()`, the global convar change callback) a file-static set and cleared by
+the owning service stands in. Plugin code never needs any of it.

@@ -63,9 +63,14 @@ ArgSpec ReasonTail(std::string fallbackKey = {});
  *
  * Required arguments are present when the handler runs. Accessors for arguments
  * not declared by the spec return their empty value.
+ *
+ * Default-constructible and free of engine types, so tests can build one directly.
  */
 struct CommandContext
 {
+    /** Localization source for @ref Ok / @ref Fail, set by the dispatching CommandManager.
+     *  Null (a hand-built context) makes those helpers return the key unchanged. */
+    Core::Translations* Tr = nullptr;
     Players::Player* Caller = nullptr;
     Players::Player* TargetPlayer = nullptr;   ///< single-target arg result
     std::vector<Players::Player*> TargetList;  ///< multi-target results (TargetRules::AllowMultiple)
@@ -93,7 +98,8 @@ struct CommandContext
     /** The parsed integer, or nullopt when the caller supplied none. */
     std::optional<int> Int() const { return IntValue; }
 
-    /** Localized result helpers: translate @p key in the caller's language with @p tokens. */
+    /** Localized result helpers: translate @p key in the caller's language with @p tokens.
+     *  Return @p key verbatim when @ref Tr is null. */
     CommandResult Ok(std::string_view key, Core::Tokens tokens = {}) const;
     CommandResult Fail(std::string_view key, Core::Tokens tokens = {}) const;
 };

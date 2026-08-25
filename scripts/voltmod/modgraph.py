@@ -117,5 +117,6 @@ def check(root: Path) -> int:
         for rel, header in rooted:
             print(f"  {rel} -> VoltMod/{header}.hpp")
         print("      A .cpp may include the root; a header may not - it would pull every")
-        print("      service into each consumer. Use the VoltMod::Detail per-service accessors.")
+        print("      service into each consumer. Forward-declare Runtime (or take the one service")
+        print("      you need) in the header and include the root from the .cpp.")
     return 1

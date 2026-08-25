@@ -1,10 +1,7 @@
 #include <VoltMod/Commands/CommandSpec.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
-#include <VoltMod/Runtime.hpp>
 
-// Split from CommandSpec.cpp: everything here needs the live Runtime, and keeping it out
-// leaves the spec's own logic (arg factories, derived usage, routing predicates) linkable
-// on its own - which is what lets the tests reach it without HL2SDK.
+// Kept apart from CommandSpec.cpp so the reply helpers read as one unit: a null Tr returns the
+// key verbatim, which is what lets a test build a context with no framework behind it.
 namespace VoltMod::Commands
 {
 
@@ -15,7 +12,9 @@ int CommandContext::CallerSlot() const
 
 CommandResult CommandContext::Ok(std::string_view key, Core::Tokens tokens) const
 {
-    return {VoltMod::Detail::Rt().Translations.Get(std::string(key), CallerSlot(), tokens)};
+    if (!Tr)
+        return {std::string(key)};
+    return {Tr->Get(std::string(key), CallerSlot(), tokens)};
 }
 
 CommandResult CommandContext::Fail(std::string_view key, Core::Tokens tokens) const

@@ -1,9 +1,6 @@
 #pragma once
 
-#include <VoltMod/Core/PluginPolicy.hpp>
 #include <VoltMod/Core/StringUtils.hpp>
-#include <VoltMod/Core/Translations.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
@@ -30,7 +27,7 @@ namespace VoltMod::Menu
  * offending player's language, replied via runtime.Policy.Reply).
  *
  * @code
- * Flow<PendingPunishment>::Create(std::move(pending))
+ * Flow<PendingPunishment>::Create(runtime.Menus, std::move(pending))
  *     ->OnValidate(ValidateTargetStillPunishable)
  *     ->AddDurationStep(title, durationPresets, [](auto& s, int sec) { s.DurationSec = sec; },
  *                       customLabel, customPrompt, [](const auto& s) { return IsTimed(s.Type); })
@@ -56,7 +53,9 @@ public:
     /** Step predicate over the current state; a false skips the step. */
     using AppliesFn = std::function<bool(const TState&)>;
 
-    static Ptr Create(TState initial) { return Ptr(new Flow(std::move(initial))); }
+    /** @p menus opens every step and closes them on abort or finish; it must outlive the flow,
+     *  which one Load/Unload cycle guarantees. */
+    static Ptr Create(MenuManager& menus, TState initial) { return Ptr(new Flow(menus, std::move(initial))); }
 
     /** Append a custom step. */
     Ptr AddStep(BuildFn build, AppliesFn applies = {})
@@ -183,7 +182,7 @@ public:
     TState& State() { return _state; }
 
 private:
-    explicit Flow(TState initial) : _state(std::move(initial)) {}
+    Flow(MenuManager& menus, TState initial) : _menus(&menus), _state(std::move(initial)) {}
 
     struct Step
     {
@@ -202,7 +201,7 @@ private:
                 continue;
             _stepIndex = i;
             if (auto menu = _steps[i].Build(slot, *this))
-                VoltMod::Detail::Menus().OpenMenu(slot, menu);
+                _menus->OpenMenu(slot, menu);
             return;
         }
 
@@ -224,7 +223,7 @@ private:
         for (const auto& [label, value] : _confirmSummary(slot, _state))
             spec.BodyLines.push_back(value.empty() ? label : std::format("{}: {}", label, value));
 
-        VoltMod::Detail::Menus().OpenMenu(slot, BuildConfirmDialog(std::move(spec)));
+        _menus->OpenMenu(slot, BuildConfirmDialog(*_menus, std::move(spec)));
     }
 
     void RunFinish(int slot)
@@ -234,7 +233,7 @@ private:
             return;
         if (_finish)
             _finish(slot, _state);
-        VoltMod::Detail::Menus().CloseAllMenus(slot);
+        _menus->CloseAllMenus(slot);
     }
 
     /** False = aborted (error replied, menus closed). */
@@ -246,13 +245,11 @@ private:
         if (!error)
             return true;
 
-        auto& policy = VoltMod::Detail::Policy();
-        if (policy.Reply)
-            policy.Reply(slot, VoltMod::Detail::Translations().Get(*error, slot));
-        VoltMod::Detail::Menus().CloseAllMenus(slot);
+        _menus->CloseAllWithReply(slot, *error);
         return false;
     }
 
+    MenuManager* _menus;
     TState _state;
     std::vector<Step> _steps;
     std::size_t _stepIndex = 0;

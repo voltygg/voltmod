@@ -1,4 +1,3 @@
-#include <VoltMod/Detail/Runtime.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/TargetResolver.hpp>
 #include <VoltMod/Runtime.hpp>
@@ -8,16 +7,16 @@
 namespace VoltMod::Players
 {
 
-std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(std::string_view token, Player* caller,
-                                                                  const TargetRules& rules,
+std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(Runtime& runtime, std::string_view token,
+                                                                  Player* caller, const TargetRules& rules,
                                                                   const CanTargetFn& canTarget)
 {
     if (token.empty())
         return std::unexpected(TargetFailure{TargetError::NoMatch});
 
-    auto& mgr = VoltMod::Detail::Rt().Players;
-    auto& entities = VoltMod::Detail::Rt().Entities;
-    const CanTargetFn& policy = canTarget ? canTarget : VoltMod::Detail::Rt().Policy.CanTarget;
+    auto& mgr = runtime.Players;
+    auto& entities = runtime.Entities;
+    const CanTargetFn& policy = canTarget ? canTarget : runtime.Policy.CanTarget;
 
     // Snapshot the roster into engine-free views; FilterRoster owns the grammar semantics.
     std::vector<PlayerView> roster;

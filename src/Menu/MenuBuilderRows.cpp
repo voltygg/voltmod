@@ -1,5 +1,4 @@
 #include <VoltMod/Core/EffectManager.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Players/ActionDispatcher.hpp>
@@ -15,14 +14,19 @@ namespace VoltMod::Menu
 using Players::ActionDispatcher;
 
 // Context-aware rows. Descriptors are namespace-scope globals in the consumer, so capturing
-// their address in row lambdas is safe for the process lifetime.
+// their address in row lambdas is safe for the process lifetime. Every row captures the
+// context's runtime pointer, which is null only for a context nobody bound - in which case
+// MenuContext::Allowed has already disabled the row.
 
 MenuBuilder& MenuBuilder::AddActionRow(std::string_view labelKey, const Players::Action& action)
 {
     const Players::Action* a = &action;
     return AddButton(
         _context.Tr(labelKey),
-        [admin = _context.Admin, target = _context.Target, a](int) { ActionDispatcher{}.Run(admin, target, *a); },
+        [rt = _context.Rt, admin = _context.Admin, target = _context.Target, a](int) {
+            if (rt)
+                ActionDispatcher{*rt}.Run(admin, target, *a);
+        },
         _context.Allowed(action.Permission));
 }
 
@@ -31,14 +35,20 @@ MenuBuilder& MenuBuilder::AddStateToggleRow(std::string_view labelKey,
                                             const Players::Action& action)
 {
     const Players::Action* a = &action;
+    Runtime* rt = _context.Rt;
     int target = _context.Target;
     return AddToggle(
         _context.Tr(labelKey), _context.Tr("effectState.on"), _context.Tr("effectState.off"),
-        [target, isActive = std::move(isActive)](int) {
-            Sdk::PlayerController pc = VoltMod::Detail::Rt().Entities.Controller(target);
+        [rt, target, isActive = std::move(isActive)](int) {
+            if (!rt)
+                return false;
+            Sdk::PlayerController pc = rt->Entities.Controller(target);
             return pc.IsValid() && isActive(pc);
         },
-        [admin = _context.Admin, target, a](int) { ActionDispatcher{}.Run(admin, target, *a); },
+        [rt, admin = _context.Admin, target, a](int) {
+            if (rt)
+                ActionDispatcher{*rt}.Run(admin, target, *a);
+        },
         _context.Allowed(action.Permission));
 }
 
@@ -54,9 +64,11 @@ MenuBuilder& MenuBuilder::AddPresetChoiceRow(std::string_view labelKey, std::str
     const Players::ParamAction* a = &action;
     return AddChoice<int>(
         _context.Tr(labelKey), std::move(choices),
-        [admin = _context.Admin, target = _context.Target, a](int slot, const int& value) {
-            ActionDispatcher{}.Run(admin, target, value, *a);
-            VoltMod::Detail::Rt().Menus.CloseAllMenus(slot);
+        [rt = _context.Rt, admin = _context.Admin, target = _context.Target, a](int slot, const int& value) {
+            if (!rt)
+                return;
+            ActionDispatcher{*rt}.Run(admin, target, value, *a);
+            rt->Menus.CloseAllMenus(slot);
         },
         _context.Allowed(action.Permission), initialIndex);
 }
@@ -69,9 +81,9 @@ MenuBuilder& MenuBuilder::AddEffectToggleRow(const Players::EffectDescriptor& ef
     return AddToggle(
         _context.Tr(effect.NameKey), _context.Tr("effectState.on"), _context.Tr("effectState.off"),
         [effects, target, id = effect.Id](int) { return effects && effects->IsActive(target, id); },
-        [effects, admin = _context.Admin, target, e](int) {
-            if (effects)
-                Players::ToggleEffect(*effects, admin, target, *e);
+        [rt = _context.Rt, effects, admin = _context.Admin, target, e](int) {
+            if (rt && effects)
+                Players::ToggleEffect(*rt, *effects, admin, target, *e);
         },
         _context.Allowed(effect.Permission));
 }
@@ -82,13 +94,18 @@ namespace
 /** Picker submenu for a ParamEffectDescriptor: one button per choice plus an optional reset row. */
 std::shared_ptr<MenuView> BuildEffectPicker(MenuContext ctx, const Players::ParamEffectDescriptor& effect)
 {
-    auto* target = VoltMod::Detail::Rt().Players.GetPlayerBySlot(ctx.Target);
+    if (!ctx.Rt)
+        return nullptr;
+
+    auto* target = ctx.Rt->Players.GetPlayerBySlot(ctx.Target);
     if (!target)
         return nullptr;
 
     bool allowed = ctx.Allowed(effect.Permission);
     const Players::ParamEffectDescriptor* e = &effect;
     Core::EffectManager* effects = ctx.Effects;
+    Runtime* rt = ctx.Rt;
+    MenuManager* menus = &ctx.Rt->Menus;
     MenuBuilder builder(std::format("{}: {}", ctx.Tr(effect.NameKey), target->GetName()));
 
     auto choices = effect.Choices ? effect.Choices() : std::vector<Players::EffectChoice>{};
@@ -97,10 +114,10 @@ std::shared_ptr<MenuView> BuildEffectPicker(MenuContext ctx, const Players::Para
         int param = choice.Param;
         builder.AddButton(
             choice.Label,
-            [effects, admin = ctx.Admin, targetSlot = ctx.Target, e, param](int slot) {
+            [rt, effects, menus, admin = ctx.Admin, targetSlot = ctx.Target, e, param](int slot) {
                 if (effects)
-                    Players::ApplyEffect(*effects, admin, targetSlot, param, *e);
-                VoltMod::Detail::Rt().Menus.CloseAllMenus(slot);
+                    Players::ApplyEffect(*rt, *effects, admin, targetSlot, param, *e);
+                menus->CloseAllMenus(slot);
             },
             allowed);
     }
@@ -109,10 +126,10 @@ std::shared_ptr<MenuView> BuildEffectPicker(MenuContext ctx, const Players::Para
     {
         builder.AddButton(
             ctx.Tr(effect.ResetLabelKey),
-            [effects, admin = ctx.Admin, targetSlot = ctx.Target, e](int slot) {
+            [rt, effects, menus, admin = ctx.Admin, targetSlot = ctx.Target, e](int slot) {
                 if (effects)
-                    Players::ClearEffect(*effects, admin, targetSlot, *e);
-                VoltMod::Detail::Rt().Menus.CloseAllMenus(slot);
+                    Players::ClearEffect(*rt, *effects, admin, targetSlot, *e);
+                menus->CloseAllMenus(slot);
             },
             allowed);
     }

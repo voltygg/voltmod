@@ -1,7 +1,6 @@
 #include <VoltMod/Commands/CommandManager.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/StringUtils.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
 #include <VoltMod/Players/TargetResolver.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <algorithm>
@@ -26,9 +25,9 @@ std::optional<int64_t> ParseInt64(const std::string& text)
     return value;
 }
 
-std::string TargetErrorMessage(const Players::TargetFailure& failure, const std::string& token, int slot)
+std::string TargetErrorMessage(Core::Translations& tr, const Players::TargetFailure& failure, const std::string& token,
+                               int slot)
 {
-    auto& tr = VoltMod::Detail::Rt().Translations;
     switch (failure.Error)
     {
     case Players::TargetError::Immune:
@@ -152,13 +151,13 @@ bool CommandManager::HandleChatMessage(Players::Player* caller, std::string_view
     if (!cmd || !ReachableFrom(*cmd, Surface::Chat))
         return false;
 
-    auto& policy = VoltMod::Detail::Rt().Policy;
+    auto& policy = _runtime.Policy;
     const int slot = caller->GetSlot();
     Dispatch(*cmd, caller, std::move(args), [&](const std::string& msg) {
         if (policy.Reply)
             policy.Reply(slot, msg);
         else
-            VoltMod::Detail::Rt().Messages.Reply(slot, msg);
+            _runtime.Messages.Reply(slot, msg);
     });
 
     return true;
@@ -169,7 +168,7 @@ void CommandManager::Dispatch(const CommandSpec& cmd, Players::Player* caller, s
 {
     // Console has no player and so no language of its own; slot -1 resolves the server language.
     const int slot = caller ? caller->GetSlot() : -1;
-    auto& tr = VoltMod::Detail::Rt().Translations;
+    auto& tr = _runtime.Translations;
     const auto say = [&](const std::string& msg) {
         if (!msg.empty())
             reply(msg);
@@ -187,7 +186,7 @@ void CommandManager::Dispatch(const CommandSpec& cmd, Players::Player* caller, s
     // to check, and nothing above it to deny it.
     if (caller && !cmd.Permission.empty())
     {
-        auto& policy = VoltMod::Detail::Rt().Policy;
+        auto& policy = _runtime.Policy;
 
         // Without policy there is no trusted permission source. Deny and warn once
         // per command so the plugin misconfiguration is visible.
@@ -210,6 +209,7 @@ void CommandManager::Dispatch(const CommandSpec& cmd, Players::Player* caller, s
     }
 
     CommandContext ctx;
+    ctx.Tr = &tr;  // handler-facing Ok()/Fail() translate through the runtime's table
     ctx.Caller = caller;
     ctx.RawArgs = std::move(args);
 
@@ -234,7 +234,7 @@ void CommandManager::Dispatch(const CommandSpec& cmd, Players::Player* caller, s
 bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::string>& args, CommandContext& ctx,
                                  std::string& outError) const
 {
-    auto& tr = VoltMod::Detail::Rt().Translations;
+    auto& tr = _runtime.Translations;
     const int slot = ctx.CallerSlot();
     std::size_t i = 0;
 
@@ -264,10 +264,10 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
         {
         case ArgKind::Target:
         {
-            auto resolved = Players::ResolveTargets(token, ctx.Caller, spec.Targeting);
+            auto resolved = Players::ResolveTargets(_runtime, token, ctx.Caller, spec.Targeting);
             if (!resolved)
             {
-                outError = TargetErrorMessage(resolved.error(), token, slot);
+                outError = TargetErrorMessage(tr, resolved.error(), token, slot);
                 return false;
             }
             ctx.TargetPlayer = resolved->front();
@@ -286,10 +286,10 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
             }
             else
             {
-                auto resolved = Players::ResolveTargets(token, ctx.Caller, {});
+                auto resolved = Players::ResolveTargets(_runtime, token, ctx.Caller, {});
                 if (!resolved)
                 {
-                    outError = TargetErrorMessage(resolved.error(), token, slot);
+                    outError = TargetErrorMessage(tr, resolved.error(), token, slot);
                     return false;
                 }
                 ctx.TargetPlayer = resolved->front();
@@ -350,7 +350,7 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
 
 std::vector<std::string> CommandManager::CommandsMissingPolicy() const
 {
-    if (VoltMod::Detail::Rt().Policy.HasPermission)
+    if (_runtime.Policy.HasPermission)
         return {};
 
     std::vector<std::string> names;

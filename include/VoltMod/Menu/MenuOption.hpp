@@ -5,6 +5,8 @@
 namespace VoltMod::Menu
 {
 
+class MenuManager;
+
 /**
  * @brief Polymorphic base for every selectable row in a menu.
  *
@@ -31,8 +33,9 @@ public:
     /** Disabled rows are rendered greyed out and excluded from cursor stepping. */
     bool IsEnabled() const { return _enabled; }
 
-    /** E key. Called only when the option is selectable and enabled. */
-    virtual void OnActivate(int /*slot*/) {}
+    /** E key. Called only when the option is selectable and enabled. @p menus is the manager
+     *  rendering this row, so a row can push a submenu or start a chat prompt without a global. */
+    virtual void OnActivate(int /*slot*/, MenuManager& /*menus*/) {}
 
     /** A/D key. Return true to consume the input; false falls back to page-jump. */
     virtual bool OnHorizontal(int /*slot*/, int /*direction*/) { return false; }

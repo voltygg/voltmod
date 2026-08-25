@@ -9,6 +9,11 @@
 #include <unordered_set>
 #include <vector>
 
+namespace VoltMod
+{
+class Runtime;
+}
+
 namespace VoltMod::Commands
 {
 
@@ -28,7 +33,9 @@ namespace VoltMod::Commands
 class CommandManager
 {
 public:
-    CommandManager() = default;
+    /** @p runtime supplies the policy, the translations, the roster and the reply fallback.
+     *  It must outlive the manager, which the runtime's own declaration order guarantees. */
+    explicit CommandManager(Runtime& runtime) : _runtime(runtime) {}
 
     void Register(CommandSpec spec);
 
@@ -62,6 +69,7 @@ private:
      *  lowercased key @p spec is stored under. */
     void RegisterConsoleCommand(const std::string& name, const CommandSpec& spec);
 
+    Runtime& _runtime;
     std::unordered_map<std::string, CommandSpec> _commands;
     /** Lowercased alias -> the lowercased command name that owns it. */
     std::unordered_map<std::string, std::string> _aliases;

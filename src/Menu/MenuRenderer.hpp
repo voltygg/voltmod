@@ -1,13 +1,16 @@
 #pragma once
 
+#include <VoltMod/Core/Translations.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <string>
 #include <string_view>
 
 namespace VoltMod::Menu
 {
-/** Renders the HTML for a menu, including its items and layout. */
-std::string RenderMenuHtml(const MenuView* menu, int slot, int selectedIndex, bool isSubmenu);
+/** Renders the HTML for a menu, including its items and layout. @p translations localizes the
+ *  default footer's nav labels. */
+std::string RenderMenuHtml(const MenuView* menu, int slot, int selectedIndex, bool isSubmenu,
+                           Core::Translations& translations);
 
 /** Renders the chat-input capture overlay shown while a player is typing a value. */
 std::string RenderCaptureOverlay(const std::string& menuTitle, std::string_view prompt);
@@ -21,8 +24,10 @@ std::string DefaultHeader(const std::string& title, int currentPage, int totalPa
  * @param isPaginated True if the menu has multiple pages of items (shows page navigation hints)
  * @param usesHorizontal True if the selected row's A/D edits its value (shows "Change"/"Confirm" hints).
  * @param slot Player slot used to look up the nav-label translations.
+ * @param translations Table the nav labels are looked up in.
  * @return The generated HTML string for the menu footer.
  */
-std::string DefaultFooter(bool isSubmenu, bool isPaginated, bool usesHorizontal, int slot);
+std::string DefaultFooter(bool isSubmenu, bool isPaginated, bool usesHorizontal, int slot,
+                          Core::Translations& translations);
 
 }  // namespace VoltMod::Menu

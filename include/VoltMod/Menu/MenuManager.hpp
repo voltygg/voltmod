@@ -1,11 +1,17 @@
 #pragma once
 
-#include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Menu/Menu.hpp>
+#include <VoltMod/Sdk/Messaging/ChatInputCapture.hpp>
 #include <array>
+#include <string>
+#include <string_view>
+
+namespace VoltMod
+{
+class Runtime;
+}
 
 namespace VoltMod::Menu
 {
@@ -32,11 +38,12 @@ class MenuManager
 {
 public:
     /**
-     * @param scheduler drives the per-frame input read; must outlive the manager.
-     * @param slots tells the manager a slot changed hands, so one player's stack cannot
-     *        outlive them into the next occupant.
+     * @param runtime supplies the frame pump, the slot feed, the entity reads, the chat-input
+     *        capture, the translations and the reply policy. It must outlive the manager, which
+     *        the runtime's own declaration order guarantees. The constructor subscribes to
+     *        `runtime.Scheduler` and `runtime.Slots`, so both must already be constructed.
      */
-    MenuManager(Core::Scheduler& scheduler, Core::SlotEvents& slots);
+    explicit MenuManager(Runtime& runtime);
 
     /** Push @p menu onto the player's stack and start rendering it. @p options take effect only
      *  when this call opens the stack (see @ref MenuSessionOptions). */
@@ -47,6 +54,15 @@ public:
 
     /** Clear the entire stack and hide the HUD for the player. */
     void CloseAllMenus(int slot);
+
+    /** Abort a player's menus with an explanation: @p key is translated in their language and
+     *  sent through `Policy.Reply` (skipped when no reply policy is installed), then every
+     *  menu closes. The abort path for flows whose preconditions stopped holding. */
+    void CloseAllWithReply(int slot, std::string_view key);
+
+    /** Route the player's next chat line to @p callback, showing @p prompt over the open menu.
+     *  Rows use this instead of reaching for the runtime's ChatInputCapture themselves. */
+    void BeginInput(int slot, std::string prompt, Sdk::ChatInputCapture::Callback callback);
 
     /** True if the player has any menu currently open. */
     bool HasActiveMenu(int slot) const;
@@ -70,6 +86,7 @@ private:
     /** Freeze (true) or restore (false) the player's movement; no-op unless freeze is enabled. */
     void SetPlayerFrozen(int slot, bool frozen);
 
+    Runtime& _runtime;
     /** Per-player menu state, one entry per slot. */
     std::array<PlayerMenuState, Core::MaxPlayers> _states;
     static constexpr int64_t InputDebounceMs = 200;

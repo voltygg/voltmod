@@ -1,4 +1,3 @@
-#include <VoltMod/Detail/Runtime.hpp>
 #include <VoltMod/Players/ActionDispatcher.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Runtime.hpp>
@@ -8,18 +7,17 @@ namespace VoltMod::Players
 
 ActionContext ActionDispatcher::Resolve(int callerSlot, int targetSlot, const std::string& permission) const
 {
-    auto& runtime = VoltMod::Detail::Rt();
-    ActionContext ctx{nullptr, nullptr, runtime.Entities.Controller(callerSlot),
-                      runtime.Entities.Controller(targetSlot), runtime};
+    ActionContext ctx{nullptr, nullptr, _runtime.Entities.Controller(callerSlot),
+                      _runtime.Entities.Controller(targetSlot), _runtime};
 
-    auto& plrMgr = VoltMod::Detail::Rt().Players;
+    auto& plrMgr = _runtime.Players;
     ctx.Caller = plrMgr.GetPlayerBySlot(callerSlot);
     ctx.Target = plrMgr.GetPlayerBySlot(targetSlot);
 
     if (!ctx.Caller || !ctx.Target)
         return ctx;
 
-    auto& policy = VoltMod::Detail::Rt().Policy;
+    auto& policy = _runtime.Policy;
     if (!permission.empty() && policy.HasPermission && !policy.HasPermission(ctx.Caller->GetSteamID(), permission))
     {
         ctx.Caller = nullptr;
@@ -57,7 +55,7 @@ void ActionDispatcher::Run(int callerSlot, int targetSlot, int param, const Para
 
 void ActionDispatcher::Broadcast(const ActionContext& ctx, const std::string& translationKey) const
 {
-    auto& policy = VoltMod::Detail::Rt().Policy;
+    auto& policy = _runtime.Policy;
     if (!policy.Broadcast || !ctx.Caller)
         return;
     policy.Broadcast(*ctx.Caller, ctx.Target, translationKey);

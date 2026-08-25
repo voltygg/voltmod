@@ -156,15 +156,19 @@ public:
     App::PluginIdentity Identity;
     /** Status sections for diagnostics commands; framework sections registered by Start. */
     App::StatusService Status;
-    /** Registers its own per-frame input pump; both it and its slot listener stop in its dtor. */
-    Menu::MenuManager Menus{Scheduler, Slots};
+    /** Registers its own per-frame input pump; both it and its slot listener stop in its dtor.
+     *  Takes the whole runtime, so its constructor may only touch members declared above it -
+     *  Scheduler and Slots, which is exactly what it subscribes to. */
+    Menu::MenuManager Menus{*this};
 
     /** Internal schema-offset service (forward-declared type). */
     Sdk::SchemaService& Schema() { return *_schema; }
 
     // These names shadow their namespaces, so keep them last.
     Players::PlayerManager Players{Slots};
-    Commands::CommandManager Commands;
+    /** Takes the whole runtime; its constructor only stores the reference, so every service it
+     *  reads at dispatch time (Policy, Translations, Messages, Players) is live by then. */
+    Commands::CommandManager Commands{*this};
     /** Completions dispatch on the game thread from a pump it registers itself; the dtor stops it. */
     Http::HttpClient Http{Scheduler};
 

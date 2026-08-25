@@ -14,8 +14,8 @@ namespace VoltMod::Menu
  * Free-text input. E pauses the menu and routes the player's next chat line to the validator.
  * If the validator returns false the prompt is re-shown until accepted, timed out, or cancelled (R).
  *
- * The activation path lives in `MenuOption.cpp` because it depends on the `ChatInputCapture`
- * singleton, which would create a circular include if pulled into this header.
+ * The activation path lives in `MenuOption.cpp` because it goes through the manager
+ * (@ref MenuManager::BeginInput), whose header cannot be included here.
  */
 class InputOption : public MenuOption
 {
@@ -41,7 +41,7 @@ public:
         return std::format("{}: {}", _title, val);
     }
 
-    void OnActivate(int slot) override;
+    void OnActivate(int slot, MenuManager& menus) override;
 
 private:
     std::string _title;

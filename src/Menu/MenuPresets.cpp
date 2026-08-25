@@ -1,23 +1,21 @@
 #include <VoltMod/Core/ChatColors.hpp>
 #include <VoltMod/Core/StringUtils.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Menu/MenuPresets.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
-#include <VoltMod/Runtime.hpp>
 #include <string_view>
 #include <utility>
 
 namespace VoltMod::Menu
 {
 
-void AppendPlayerRows(MenuBuilder& builder, int viewerSlot,
+void AppendPlayerRows(MenuBuilder& builder, Players::PlayerManager& players, int viewerSlot,
                       const std::function<void(int viewerSlot, int targetSlot)>& onPick, const std::string& emptyLabel,
                       const std::function<bool(int targetSlot)>& isEnabled)
 {
-    auto players = VoltMod::Detail::Rt().Players.GetAllPlayers();
-    for (auto* p : players)
+    auto connected = players.GetAllPlayers();
+    for (auto* p : connected)
     {
         if (!p)
             continue;
@@ -32,17 +30,17 @@ void AppendPlayerRows(MenuBuilder& builder, int viewerSlot,
             enabled);
     }
 
-    if (players.empty() && !emptyLabel.empty())
+    if (connected.empty() && !emptyLabel.empty())
         builder.AddButton(emptyLabel, [](int) {}, false);
 }
 
-std::shared_ptr<MenuView> BuildPlayerPicker(int viewerSlot, const std::string& title,
+std::shared_ptr<MenuView> BuildPlayerPicker(Players::PlayerManager& players, int viewerSlot, const std::string& title,
                                             std::function<void(int viewerSlot, int targetSlot)> onPick,
                                             const std::string& emptyLabel,
                                             std::function<bool(int targetSlot)> isEnabled)
 {
     MenuBuilder builder(title);
-    AppendPlayerRows(builder, viewerSlot, onPick, emptyLabel, isEnabled);
+    AppendPlayerRows(builder, players, viewerSlot, onPick, emptyLabel, isEnabled);
     return builder.Build();
 }
 
@@ -80,7 +78,7 @@ std::shared_ptr<MenuView> BuildDurationPicker(int viewerSlot, const std::string&
     return builder.Build();
 }
 
-std::shared_ptr<MenuView> BuildConfirmDialog(ConfirmDialogSpec spec)
+std::shared_ptr<MenuView> BuildConfirmDialog(MenuManager& menus, ConfirmDialogSpec spec)
 {
     MenuBuilder builder(spec.Title);
 
@@ -91,11 +89,12 @@ std::shared_ptr<MenuView> BuildConfirmDialog(ConfirmDialogSpec spec)
         if (onConfirm)
             onConfirm(slot);
     });
-    builder.AddButton(spec.CancelLabel, [onCancel = std::move(spec.OnCancel)](int slot) {
+    // By pointer, not by reference: the row outlives this call, and `menus` is a local reference.
+    builder.AddButton(spec.CancelLabel, [menus = &menus, onCancel = std::move(spec.OnCancel)](int slot) {
         if (onCancel)
             onCancel(slot);
         else
-            VoltMod::Detail::Rt().Menus.CloseAllMenus(slot);
+            menus->CloseAllMenus(slot);
     });
 
     return builder.Build();

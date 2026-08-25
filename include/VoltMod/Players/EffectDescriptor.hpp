@@ -79,17 +79,25 @@ struct ParamEffectDescriptor
     std::function<EffectInstance(const Players::ActionContext&, int param)> Setup;
 };
 
+// Each verb resolves the admin/target pair through an @ref ActionDispatcher, so it needs the
+// runtime for the roster, the controllers and the policy. Include <VoltMod/Runtime.hpp> at the
+// call site.
+
 /** Apply if inactive, clear if active. Broadcasts OnKey/OffKey. The default menu-row verb. */
-void ToggleEffect(Core::EffectManager& effects, int adminSlot, int targetSlot, const EffectDescriptor& effect);
+void ToggleEffect(Runtime& runtime, Core::EffectManager& effects, int adminSlot, int targetSlot,
+                  const EffectDescriptor& effect);
 /** (Re)apply unconditionally, broadcasting OnKey. */
-void ApplyEffect(Core::EffectManager& effects, int adminSlot, int targetSlot, const EffectDescriptor& effect);
+void ApplyEffect(Runtime& runtime, Core::EffectManager& effects, int adminSlot, int targetSlot,
+                 const EffectDescriptor& effect);
 /** Cancel if active, broadcasting OffKey (when set). */
-void ClearEffect(Core::EffectManager& effects, int adminSlot, int targetSlot, const EffectDescriptor& effect);
+void ClearEffect(Runtime& runtime, Core::EffectManager& effects, int adminSlot, int targetSlot,
+                 const EffectDescriptor& effect);
 
 /** Apply the parameterized effect at `param`, broadcasting OnKey. */
-void ApplyEffect(Core::EffectManager& effects, int adminSlot, int targetSlot, int param,
+void ApplyEffect(Runtime& runtime, Core::EffectManager& effects, int adminSlot, int targetSlot, int param,
                  const ParamEffectDescriptor& effect);
 /** Cancel the parameterized effect if active, broadcasting OffKey. */
-void ClearEffect(Core::EffectManager& effects, int adminSlot, int targetSlot, const ParamEffectDescriptor& effect);
+void ClearEffect(Runtime& runtime, Core::EffectManager& effects, int adminSlot, int targetSlot,
+                 const ParamEffectDescriptor& effect);
 
 }  // namespace VoltMod::Players

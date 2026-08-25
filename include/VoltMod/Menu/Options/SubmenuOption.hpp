@@ -14,8 +14,8 @@ struct MenuView;
 /**
  * Push a built submenu onto the player's menu stack. The factory is invoked lazily on E.
  *
- * The activation path lives in `MenuOption.cpp` to avoid pulling `MenuManager.hpp`
- * into this header (which would create a circular include via the manager → menu chain).
+ * The activation path lives in `MenuOption.cpp` because it calls into the manager, and
+ * including `MenuManager.hpp` here would close a cycle through the manager → menu chain.
  */
 class SubmenuOption : public MenuOption
 {
@@ -29,7 +29,7 @@ public:
     }
 
     std::string GetLabel(int /*slot*/) const override { return _label; }
-    void OnActivate(int slot) override;
+    void OnActivate(int slot, MenuManager& menus) override;
 
 private:
     std::string _label;

@@ -63,7 +63,9 @@ struct ParamAction
 class ActionDispatcher
 {
 public:
-    ActionDispatcher() = default;
+    /** @p runtime supplies the roster, the controllers, and the policy; it must outlive the
+     *  dispatcher. Cheap to construct, so a call site may build one per dispatch. */
+    explicit ActionDispatcher(Runtime& runtime) : _runtime(runtime) {}
 
     /**
      * Resolve a caller+target slot pair, applying the permission and targetability policies.
@@ -77,6 +79,9 @@ public:
 
     /** Invoke the policy broadcast sink directly (for bespoke flows like multi-target actions). */
     void Broadcast(const ActionContext& ctx, const std::string& translationKey) const;
+
+private:
+    Runtime& _runtime;
 };
 
 }  // namespace VoltMod::Players

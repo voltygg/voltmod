@@ -57,7 +57,7 @@ public:
         return std::format("{}: &lt; {} &gt;", _title, _choices[ClampIndex(slot)].Label);
     }
 
-    void OnActivate(int slot) override
+    void OnActivate(int slot, MenuManager& /*menus*/) override
     {
         if (!_enabled || _choices.empty())
             return;

@@ -30,7 +30,7 @@ public:
 
     std::string GetLabel(int /*slot*/) const override { return _dynamicLabel ? _dynamicLabel() : _label; }
 
-    void OnActivate(int slot) override
+    void OnActivate(int slot, MenuManager& /*menus*/) override
     {
         if (_enabled && _onActivate)
             _onActivate(slot);

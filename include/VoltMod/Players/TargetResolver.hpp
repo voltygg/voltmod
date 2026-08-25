@@ -1,6 +1,5 @@
 #pragma once
 
-#include <VoltMod/Detail/Runtime.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Players/Targeting.hpp>
 #include <expected>
@@ -8,10 +7,15 @@
 #include <string_view>
 #include <vector>
 
+namespace VoltMod
+{
+class Runtime;
+}
+
 namespace VoltMod::Players
 {
 
-/** Targetability policy (immunity, same-team rules, ...). Empty means "use VoltMod::Detail::Rt().Policy.CanTarget". */
+/** Targetability policy (immunity, same-team rules, ...). Empty means "use `runtime.Policy.CanTarget`". */
 using CanTargetFn = std::function<bool(Player& caller, Player& target)>;
 
 /**
@@ -22,11 +26,13 @@ using CanTargetFn = std::function<bool(Player& caller, Player& target)>;
  * a single-target command (`AllowMultiple == false`) gets exactly one player or a
  * @ref TargetFailure explaining what to tell the caller.
  *
+ * @p runtime supplies the roster, the controllers, and the default policy; include
+ * <VoltMod/Runtime.hpp> at the call site.
  * @p caller null means the server console: always allowed, `@me` never matches.
  * @p canTarget overrides the immunity policy; empty uses `runtime.Policy.CanTarget`.
  */
-std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(std::string_view token, Player* caller,
-                                                                  const TargetRules& rules = {},
+std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(Runtime& runtime, std::string_view token,
+                                                                  Player* caller, const TargetRules& rules = {},
                                                                   const CanTargetFn& canTarget = {});
 
 }  // namespace VoltMod::Players
