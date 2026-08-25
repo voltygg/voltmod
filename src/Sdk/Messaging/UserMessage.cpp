@@ -6,8 +6,6 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/Translations.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
-#include <VoltMod/Runtime.hpp>
 #include <VoltMod/Sdk/Engine/GameData.hpp>
 #include <VoltMod/Sdk/Engine/GameInterfaces.hpp>
 #include <VoltMod/Sdk/Engine/MemoryAccess.hpp>
@@ -55,9 +53,14 @@ std::string Render(std::string_view message, MessageKind kind)
 
 }  // namespace
 
+MessageSystem::MessageSystem(GameInterfaces& interfaces, GameData& gameData, GameEventService& events,
+                             Core::Translations& translations)
+    : _interfaces(interfaces), _gameData(gameData), _events(events), _translations(translations)
+{}
+
 bool MessageSystem::Initialize()
 {
-    auto& interfaces = VoltMod::Detail::Rt().Interfaces;
+    auto& interfaces = _interfaces;
 
     if (!interfaces.GameEventSystem)
     {
@@ -77,10 +80,9 @@ bool MessageSystem::Initialize()
 
 bool MessageSystem::InitGameEventManager()
 {
-    auto& interfaces = VoltMod::Detail::Rt().Interfaces;
-    auto& gameData = VoltMod::Detail::Rt().GameData;
+    auto& interfaces = _interfaces;
 
-    void* eventManagerAddr = gameData.ResolveSignature("GameEventManager");
+    void* eventManagerAddr = _gameData.ResolveSignature("GameEventManager");
     if (eventManagerAddr)
     {
         interfaces.GameEventManager = ReadAt<IGameEventManager2*>(eventManagerAddr, 0);
@@ -105,7 +107,7 @@ bool MessageSystem::InitGameEventManager()
 
 void MessageSystem::SendCenterHtml(int slot, const std::string& html)
 {
-    auto* gameEventManager = VoltMod::Detail::Rt().Interfaces.GameEventManager;
+    auto* gameEventManager = _interfaces.GameEventManager;
     if (!gameEventManager || !Core::IsValidSlot(slot))
         return;
 
@@ -119,7 +121,7 @@ void MessageSystem::SendCenterHtml(int slot, const std::string& html)
 
     // Deliver to just this client when the engine exposes its listener. Otherwise the event
     // broadcasts and every client renders the panel.
-    if (IGameEventListener2* listener = VoltMod::Detail::Rt().Events.GetClientLegacyListener(slot))
+    if (IGameEventListener2* listener = _events.GetClientLegacyListener(slot))
     {
         listener->FireGameEvent(pEvent);
         gameEventManager->FreeEvent(pEvent);
@@ -150,7 +152,7 @@ void MessageSystem::Broadcast(std::string_view message, MessageKind kind)
         // Per-slot, because each panel write targets one client's own event listener.
         // A null listener means nobody is in that slot.
         for (int slot = 0; slot < Core::MaxPlayers; ++slot)
-            if (VoltMod::Detail::Rt().Events.GetClientLegacyListener(slot))
+            if (_events.GetClientLegacyListener(slot))
                 SendCenterHtml(slot, rendered);
         return;
     }
@@ -175,7 +177,7 @@ void MessageSystem::Reply(int slot, std::string_view message)
 
 void MessageSystem::ReplyKey(int slot, const std::string& key, const std::map<std::string, std::string>& tokens)
 {
-    Reply(slot, VoltMod::Detail::Rt().Translations.Get(key, slot, tokens));
+    Reply(slot, _translations.Get(key, slot, tokens));
 }
 
 void MessageSystem::SendTextMsg(int slot, int destination, const std::string& message)
@@ -189,7 +191,7 @@ void MessageSystem::SendTextMsg(int slot, int destination, const std::string& me
 
 void MessageSystem::PostTextMsg(IRecipientFilter& filter, int destination, const std::string& message)
 {
-    auto& interfaces = VoltMod::Detail::Rt().Interfaces;
+    auto& interfaces = _interfaces;
     if (!interfaces.GameEventSystem || !interfaces.NetworkMessages)
         return;
 

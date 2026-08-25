@@ -11,6 +11,10 @@ class CCheckTransmitInfo;
 namespace VoltMod::Sdk
 {
 
+class EntitySystem;
+class GameData;
+class SchemaService;  // Internal type (src/Sdk/Internal/Schema.hpp), kept out of the public graph.
+
 /**
  * @brief Per-recipient entity transmit filtering, backed by the CheckTransmit hook.
  *
@@ -35,8 +39,10 @@ class TransmitFilterService
 {
 public:
     /** @p slots tells the service when a slot changes hands, so hiding cannot carry over to
-     *  whoever occupies it next. */
-    explicit TransmitFilterService(Core::SlotEvents& slots);
+     *  whoever occupies it next. The other three must outlive it; the Runtime declares them above. */
+    TransmitFilterService(EntitySystem& entities, GameData& gameData, SchemaService& schema, Core::SlotEvents& slots);
+    TransmitFilterService(const TransmitFilterService&) = delete;
+    TransmitFilterService& operator=(const TransmitFilterService&) = delete;
 
     /** Cache the CCheckTransmitInfo recipient-slot gamedata offset. False leaves the service inert. */
     bool Initialize();
@@ -74,6 +80,9 @@ private:
 
     void SetFlag(int slot, bool SlotState::* flag, bool value);
 
+    EntitySystem& _entities;
+    GameData& _gameData;
+    SchemaService& _schema;
     std::array<SlotState, Core::MaxPlayers> _state{};
     std::vector<ExclusiveEntity> _exclusive; /**< Entities transmitted only to their beneficiary. */
     int _activeCount = 0;                    /**< Slots with any flag set; OnCheckTransmit early-outs at 0. */

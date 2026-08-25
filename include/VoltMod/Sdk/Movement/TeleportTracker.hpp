@@ -12,11 +12,15 @@ class Vector;
 namespace VoltMod::Sdk
 {
 
+class GameData;
+class GameEventService;
+class ServerClock;
+
 /**
  * @brief Opt-in record of when each player's pawn was last teleported.
  *
  * Dormant until Enable(): it then hooks CBaseEntity::Teleport (gamedata offset "Teleport") on every
- * live pawn and stamps @ref Sdk::ServerTime() whenever one fires. A pawn is a fresh object after
+ * live pawn and stamps the server clock whenever one fires. A pawn is a fresh object after
  * every respawn, so the hook is re-bound on PlayerSpawn - and a spawn stamps a teleport of its own.
  *
  * The point is to discount the frame after a teleport, where origin and view angles jump
@@ -30,8 +34,13 @@ namespace VoltMod::Sdk
 class TeleportTracker
 {
 public:
-    /** @p slots tells this tracker when a slot changes hands, without it needing the roster. */
-    explicit TeleportTracker(Core::SlotEvents& slots) : _slots(slots) {}
+    /** @p gameData supplies the Teleport vtable index, @p events the PlayerSpawn re-bind, @p clock
+     *  the stamps. @p slots tells this tracker when a slot changes hands, without it needing the
+     *  roster. All four must outlive it; the Runtime declares them above. Pawn lookup still goes
+     *  through PlayerController, which reaches the entity system ambiently for now. */
+    TeleportTracker(GameData& gameData, GameEventService& events, ServerClock& clock, Core::SlotEvents& slots)
+        : _gameData(gameData), _events(events), _clock(clock), _slots(slots)
+    {}
     ~TeleportTracker();
     TeleportTracker(const TeleportTracker&) = delete;
     TeleportTracker& operator=(const TeleportTracker&) = delete;
@@ -59,6 +68,9 @@ private:
     void Stamp(int slot);
     int SlotFromPawn(const void* pawn) const;
 
+    GameData& _gameData;
+    GameEventService& _events;
+    ServerClock& _clock;
     Core::SlotEvents& _slots;
     std::array<void*, Core::MaxPlayers> _pawns{};  // the instance each slot's hook is bound to
     std::array<int, Core::MaxPlayers> _hookIds{};  // SourceHook ids, 0 when unbound

@@ -5,13 +5,14 @@
 ## EntityRender
 
 These helpers change `m_nRenderMode` and `m_clrRender` on a
-`CBaseModelEntity`. `PlayerController::SetVisible` uses them internally.
+`CBaseModelEntity`. `PlayerController::SetVisible` uses them internally. The first
+argument is the schema service the offsets come from, `runtime.Schema()`.
 
 ```cpp
 using namespace VoltMod::Sdk;
 
-SetEntityRender(prop, RenderMode_t::TransTexture, ColorInvisible);
-SetEntityRender(prop, RenderMode_t::Normal, ColorOpaqueWhite);
+SetEntityRender(runtime.Schema(), prop, RenderMode_t::TransTexture, ColorInvisible);
+SetEntityRender(runtime.Schema(), prop, RenderMode_t::Normal, ColorOpaqueWhite);
 ```
 
 `m_clrRender` is RGBA packed as `(A << 24) | (B << 16) | (G << 8) | R`. `ColorInvisible` (`0x00FFFFFF`) is white at zero alpha.

@@ -1,7 +1,5 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
-#include <VoltMod/Runtime.hpp>
 #include <VoltMod/Sdk/Engine/GameData.hpp>
 #include <VoltMod/Sdk/Engine/GameInterfaces.hpp>
 #include <VoltMod/Sdk/Events/GameEventService.hpp>
@@ -13,14 +11,24 @@ namespace VoltMod::Sdk
 
 using namespace VoltMod::Core;
 
+GameEventService::GameEventService(GameInterfaces& interfaces, GameData& gameData)
+    : _interfaces(interfaces), _gameData(gameData)
+{}
+
+GameEventService::~GameEventService()
+{
+    // The engine must stop dispatching into this listener before the object goes away.
+    RemoveAllListeners();
+}
+
 bool GameEventService::Initialize()
 {
-    if (void* legacyListener = VoltMod::Detail::Rt().GameData.FindSignature("LegacyGameEventListener"))
+    if (void* legacyListener = _gameData.FindSignature("LegacyGameEventListener"))
         _getLegacyListener = std::bit_cast<GetLegacyGameEventListenerFn>(legacyListener);
     else
         Log::Warn("LegacyGameEventListener signature not found; per-client event delivery unavailable.");
 
-    if (!VoltMod::Detail::Rt().Interfaces.GameEventManager)
+    if (!_interfaces.GameEventManager)
     {
         Log::Warn("GameEventService: IGameEventManager2 not available.");
         return false;
@@ -40,7 +48,7 @@ IGameEventListener2* GameEventService::GetClientLegacyListener(int slot) const
 
 bool GameEventService::ClientListensTo(int slot, const char* eventName) const
 {
-    auto* mgr = VoltMod::Detail::Rt().Interfaces.GameEventManager;
+    auto* mgr = _interfaces.GameEventManager;
     auto* listener = GetClientLegacyListener(slot);
     if (!mgr || !listener || !eventName)
         return false;
@@ -50,7 +58,7 @@ bool GameEventService::ClientListensTo(int slot, const char* eventName) const
 
 IGameEvent* GameEventService::CreateEvent(const char* name)
 {
-    auto* mgr = VoltMod::Detail::Rt().Interfaces.GameEventManager;
+    auto* mgr = _interfaces.GameEventManager;
     if (!mgr)
         return nullptr;
 
@@ -59,7 +67,7 @@ IGameEvent* GameEventService::CreateEvent(const char* name)
 
 bool GameEventService::FireEvent(IGameEvent* event, bool dontBroadcast)
 {
-    auto* mgr = VoltMod::Detail::Rt().Interfaces.GameEventManager;
+    auto* mgr = _interfaces.GameEventManager;
     if (!mgr || !event)
         return false;
 
@@ -68,14 +76,14 @@ bool GameEventService::FireEvent(IGameEvent* event, bool dontBroadcast)
 
 void GameEventService::FreeEvent(IGameEvent* event)
 {
-    auto* mgr = VoltMod::Detail::Rt().Interfaces.GameEventManager;
+    auto* mgr = _interfaces.GameEventManager;
     if (mgr && event)
         mgr->FreeEvent(event);
 }
 
 Core::Subscription GameEventService::Listen(const char* eventName, EventCallback callback)
 {
-    auto* mgr = VoltMod::Detail::Rt().Interfaces.GameEventManager;
+    auto* mgr = _interfaces.GameEventManager;
     if (!mgr)
         return {};
 
@@ -89,7 +97,7 @@ Core::Subscription GameEventService::Listen(const char* eventName, EventCallback
 
 void GameEventService::OnServerStartup()
 {
-    auto* mgr = VoltMod::Detail::Rt().Interfaces.GameEventManager;
+    auto* mgr = _interfaces.GameEventManager;
     if (!mgr || _registeredEvents.empty())
         return;
 
@@ -109,7 +117,8 @@ void GameEventService::OnServerStartup()
 
 void GameEventService::RemoveAllListeners()
 {
-    if (auto* mgr = VoltMod::Detail::Rt().Interfaces.GameEventManager)
+    // Idempotent: the runtime calls this explicitly and the destructor calls it again.
+    if (auto* mgr = _interfaces.GameEventManager; mgr && !_registeredEvents.empty())
         mgr->RemoveListener(this);  // detaches this listener from every event in one call
 
     _registeredEvents.clear();

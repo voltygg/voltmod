@@ -139,6 +139,7 @@ using Sdk::NetChannelService;
 using Sdk::PersistentCenterHtml;
 using Sdk::PlayerController;
 using Sdk::RawConVar;
+using Sdk::ServerClock;
 using Sdk::ServerCommand;
 using Sdk::ServerTick;
 using Sdk::ServerTime;

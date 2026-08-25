@@ -1,7 +1,5 @@
 #include "Sdk/Internal/Schema.hpp"
 
-#include <VoltMod/Detail/Runtime.hpp>
-#include <VoltMod/Runtime.hpp>
 #include <VoltMod/Sdk/Engine/GameData.hpp>
 #include <VoltMod/Sdk/Engine/MemoryAccess.hpp>
 #include <VoltMod/Sdk/Entity/Entity.hpp>
@@ -43,40 +41,38 @@ void AddIndex(HiddenPlayer& player, int index)
         player.PawnIndices[player.IndexCount++] = index;
 }
 
-void AddHandleVector(Runtime& rt, HiddenPlayer& player, void* base, int offset)
+void AddHandleVector(EntitySystem& entities, HiddenPlayer& player, void* base, int offset)
 {
     if (offset < 0)
         return;
     const auto* view = MemberPtr<const HandleVectorView>(base, offset);
     if (!view->Elements)
         return;
-    auto& entities = rt.Entities;
     for (int32_t i = 0; i < view->Count && i < MaxIndicesPerPlayer; ++i)
         AddIndex(player, entities.GetEntityIndex(entities.ResolveEntityHandle(view->Elements[i])));
 }
 
-CEntityInstance* GetCurrentPawn(Runtime& rt, int slot)
+CEntityInstance* GetCurrentPawn(EntitySystem& entities, SchemaService& schema, int slot)
 {
-    auto* controller = rt.Entities.GetPlayerController(slot);
+    auto* controller = entities.GetPlayerController(slot);
     if (!controller)
         return nullptr;
     // m_hPawn is the possessed pawn (observer pawn while dead/spectating), unlike m_hPlayerPawn.
-    int offset = rt.Schema().GetOffsetOf<uint32_t>("CBasePlayerController", "m_hPawn");
+    int offset = schema.GetOffsetOf<uint32_t>("CBasePlayerController", "m_hPawn");
     if (offset < 0)
         return nullptr;
-    return rt.Entities.ResolveEntityHandle(ReadAt<uint32_t>(controller, offset));
+    return entities.ResolveEntityHandle(ReadAt<uint32_t>(controller, offset));
 }
 
 // What `recipientSlot` is currently spectating, or nullptr. An observed pawn must keep
 // transmitting to that client or its spectator camera breaks. The answer depends only on the
 // recipient, so the caller resolves it once per recipient rather than once per hidden pawn.
-CEntityInstance* GetObserverTarget(Runtime& rt, int recipientSlot)
+CEntityInstance* GetObserverTarget(EntitySystem& entities, SchemaService& schema, int recipientSlot)
 {
-    auto* pawn = GetCurrentPawn(rt, recipientSlot);
+    auto* pawn = GetCurrentPawn(entities, schema, recipientSlot);
     if (!pawn)
         return nullptr;
 
-    auto& schema = rt.Schema();
     int servicesOffset = schema.GetOffsetOf<void*>("CBasePlayerPawn", "m_pObserverServices");
     if (servicesOffset < 0)
         return nullptr;
@@ -87,46 +83,48 @@ CEntityInstance* GetObserverTarget(Runtime& rt, int recipientSlot)
     int targetOffset = schema.GetOffsetOf<uint32_t>("CPlayer_ObserverServices", "m_hObserverTarget");
     if (targetOffset < 0)
         return nullptr;
-    return rt.Entities.ResolveEntityHandle(ReadAt<uint32_t>(observerServices, targetOffset));
+    return entities.ResolveEntityHandle(ReadAt<uint32_t>(observerServices, targetOffset));
 }
 
-void CollectHiddenPlayer(Runtime& rt, int slot, bool pawnHidden, bool controllerHidden, HiddenPlayer& out)
+void CollectHiddenPlayer(EntitySystem& entities, SchemaService& schema, int slot, bool pawnHidden,
+                         bool controllerHidden, HiddenPlayer& out)
 {
     out.Slot = slot;
 
-    auto* controller = rt.Entities.GetPlayerController(slot);
+    auto* controller = entities.GetPlayerController(slot);
     if (!controller)
         return;
 
     if (controllerHidden)
-        out.ControllerIndex = rt.Entities.GetEntityIndex(controller);
+        out.ControllerIndex = entities.GetEntityIndex(controller);
 
     if (!pawnHidden)
         return;
 
-    auto& schema = rt.Schema();
     int pawnOffset = schema.GetOffsetOf<uint32_t>("CCSPlayerController", "m_hPlayerPawn");
     if (pawnOffset < 0)
         return;
-    out.Pawn = rt.Entities.ResolveEntityHandle(ReadAt<uint32_t>(controller, pawnOffset));
+    out.Pawn = entities.ResolveEntityHandle(ReadAt<uint32_t>(controller, pawnOffset));
     if (!out.Pawn)
         return;
 
-    AddIndex(out, rt.Entities.GetEntityIndex(out.Pawn));
+    AddIndex(out, entities.GetEntityIndex(out.Pawn));
 
     int weaponServicesOffset = schema.GetOffsetOf<void*>("CBasePlayerPawn", "m_pWeaponServices");
     if (weaponServicesOffset >= 0)
     {
         if (auto* weaponServices = ReadAt<void*>(out.Pawn, weaponServicesOffset))
-            AddHandleVector(rt, out, weaponServices, schema.GetOffset("CPlayer_WeaponServices", "m_hMyWeapons"));
+            AddHandleVector(entities, out, weaponServices, schema.GetOffset("CPlayer_WeaponServices", "m_hMyWeapons"));
     }
 
-    AddHandleVector(rt, out, out.Pawn, schema.GetOffset("CBaseCombatCharacter", "m_hMyWearables"));
+    AddHandleVector(entities, out, out.Pawn, schema.GetOffset("CBaseCombatCharacter", "m_hMyWearables"));
 }
 
 }  // namespace
 
-TransmitFilterService::TransmitFilterService(Core::SlotEvents& slots)
+TransmitFilterService::TransmitFilterService(EntitySystem& entities, GameData& gameData, SchemaService& schema,
+                                             Core::SlotEvents& slots)
+    : _entities(entities), _gameData(gameData), _schema(schema)
 {
     // SlotEvents fires when a slot is filled as well as emptied; a fresh occupant has nothing
     // hidden, so clearing on both edges covers "left" without a dedicated event.
@@ -141,7 +139,7 @@ TransmitFilterService::TransmitFilterService(Core::SlotEvents& slots)
 
 bool TransmitFilterService::Initialize()
 {
-    _slotOffset = VoltMod::Detail::Rt().GameData.GetByteOffset("CheckTransmitPlayerSlot");
+    _slotOffset = _gameData.GetByteOffset("CheckTransmitPlayerSlot");
     return _slotOffset >= 0;
 }
 
@@ -205,14 +203,14 @@ void TransmitFilterService::OnCheckTransmit(CCheckTransmitInfo** infoList, int i
 
     // Entity indices are the same for every recipient (only the self/observer
     // exemptions differ per client), so gather them once per snapshot.
-    auto& rt = VoltMod::Detail::Rt();
     std::array<HiddenPlayer, Core::MaxPlayers> hidden;
     int hiddenCount = 0;
     for (int slot = 0; slot < Core::MaxPlayers && hiddenCount < _activeCount; ++slot)
     {
         const auto& state = _state[slot];
         if (state.PawnHidden || state.ControllerHidden)
-            CollectHiddenPlayer(rt, slot, state.PawnHidden, state.ControllerHidden, hidden[hiddenCount++]);
+            CollectHiddenPlayer(_entities, _schema, slot, state.PawnHidden, state.ControllerHidden,
+                                hidden[hiddenCount++]);
     }
 
     for (int i = 0; i < infoCount; ++i)
@@ -222,7 +220,7 @@ void TransmitFilterService::OnCheckTransmit(CCheckTransmitInfo** infoList, int i
             continue;
 
         int recipient = static_cast<int>(ReadAt<uint8_t>(info, _slotOffset));
-        CEntityInstance* observed = hiddenCount > 0 ? GetObserverTarget(rt, recipient) : nullptr;
+        CEntityInstance* observed = hiddenCount > 0 ? GetObserverTarget(_entities, _schema, recipient) : nullptr;
 
         for (int h = 0; h < hiddenCount; ++h)
         {

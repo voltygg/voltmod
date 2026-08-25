@@ -43,6 +43,10 @@ constexpr uint32_t FL_NOTARGET = 32768;
 
 inline constexpr int MaxPlayers = Core::MaxPlayers;
 
+class GameData;
+struct GameInterfaces;
+class SchemaService;  // Internal type (src/Sdk/Internal/Schema.hpp), kept out of the public graph.
+
 /**
  * @brief Entity system access layer for the Source 2 engine.
  * Resolves CGameEntitySystem from IGameResourceService, provides player
@@ -51,7 +55,11 @@ inline constexpr int MaxPlayers = Core::MaxPlayers;
 class EntitySystem
 {
 public:
-    EntitySystem() = default;
+    /** All three must outlive this service; the Runtime declares them above it. */
+    EntitySystem(GameInterfaces& interfaces, GameData& gameData, SchemaService& schema);
+    ~EntitySystem();
+    EntitySystem(const EntitySystem&) = delete;
+    EntitySystem& operator=(const EntitySystem&) = delete;
 
     bool Initialize();
     CGameEntitySystem* GetEntitySystem();
@@ -85,6 +93,10 @@ public:
      *  nullptr when exhausted or the finder signature is unresolved. */
     CEntityInstance* FindByName(CEntityInstance* startAfter, const char* name);
 
+    /** @internal The schema service this system was built with, so framework types that need an
+     *  entity plus its offsets (PlayerController and friends) can be built from it alone. */
+    SchemaService& Schema() { return _schema; }
+
 private:
     void ResolveSchemaOffsets();
     void ResolveFinderSignatures();
@@ -96,6 +108,9 @@ private:
      */
     CGameEntitySystem* ReadEntitySystemPointer();
 
+    GameInterfaces& _interfaces;
+    GameData& _gameData;
+    SchemaService& _schema;
     int _offsetPlayerPawn = -1;
     int _offsetMovementServices = -1;
     int _offsetButtons = -1;

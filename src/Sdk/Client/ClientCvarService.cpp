@@ -4,8 +4,6 @@
 #include <VoltMod/Core/MetamodGlobals.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/TimeUtils.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
-#include <VoltMod/Runtime.hpp>
 #include <VoltMod/Sdk/Client/ClientCvarService.hpp>
 #include <VoltMod/Sdk/Client/Detail/ClientCvarPending.hpp>
 #include <VoltMod/Sdk/Engine/GameData.hpp>
@@ -41,6 +39,7 @@ constexpr const char* ServerSideClientClass = "CServerSideClient";
 class ClientCvarService::Impl
 {
 public:
+    Impl(GameInterfaces& interfaces, GameData& gameData) : _interfaces(interfaces), _gameData(gameData) {}
     ~Impl() { Shutdown(); }
 
     bool Initialize();
@@ -60,6 +59,8 @@ private:
     /** Post CSVCMsg_GetCvarValue to @p slot alone. False for bots and empty slots. */
     bool Send(int slot, const std::string& cvarName, int cookie);
 
+    GameInterfaces& _interfaces;
+    GameData& _gameData;
     Detail::ClientCvarPendingTable _pending;
     INetworkMessageInternal* _getCvarValue = nullptr;
     int _slotOffset = -1;
@@ -71,19 +72,18 @@ bool ClientCvarService::Impl::Initialize()
     if (_hookId != 0)
         return true;
 
-    auto& services = VoltMod::Detail::Rt();
-    const auto& interfaces = services.Interfaces;
+    const auto& interfaces = _interfaces;
     if (!interfaces.Engine || !interfaces.NetworkMessages || !interfaces.GameEventSystem)
     {
         Log::Warn("ClientCvarService: engine interfaces unavailable.");
         return false;
     }
 
-    const int vtableIndex = services.GameData.GetVtableIndex("ProcessRespondCvarValue");
+    const int vtableIndex = _gameData.GetVtableIndex("ProcessRespondCvarValue");
     if (vtableIndex < 0)
         return false;
 
-    const int slotOffset = services.GameData.GetByteOffset("ServerSideClientSlot", MaxByteOffset, alignof(int));
+    const int slotOffset = _gameData.GetByteOffset("ServerSideClientSlot", MaxByteOffset, alignof(int));
     if (slotOffset < 0)
         return false;
 
@@ -152,7 +152,7 @@ bool ClientCvarService::Impl::Query(int slot, const std::string& cvarName, Query
 
 bool ClientCvarService::Impl::Send(int slot, const std::string& cvarName, int cookie)
 {
-    const auto& interfaces = VoltMod::Detail::Rt().Interfaces;
+    const auto& interfaces = _interfaces;
 
     // Bots and empty slots have no net channel, so posting would be a silent no-op leaving a
     // pending entry to time out.
@@ -238,7 +238,8 @@ std::string_view ToString(ClientCvarStatus status)
     return "unknown";
 }
 
-ClientCvarService::ClientCvarService(Core::SlotEvents& slots) : _impl(std::make_unique<Impl>())
+ClientCvarService::ClientCvarService(GameInterfaces& interfaces, GameData& gameData, Core::SlotEvents& slots)
+    : _impl(std::make_unique<Impl>(interfaces, gameData))
 {
     // SlotEvents fires when a slot is filled as well as emptied; a fresh occupant has nothing
     // pending, so dropping on both edges covers "left" without a dedicated event.

@@ -5,9 +5,19 @@
 #include <string_view>
 
 class INetworkMessageInternal;
+class IRecipientFilter;
+
+namespace VoltMod::Core
+{
+class Translations;
+}
 
 namespace VoltMod::Sdk
 {
+
+class GameData;
+class GameEventService;
+struct GameInterfaces;
 
 /** Where a message renders on the client. */
 enum class MessageKind
@@ -29,7 +39,11 @@ enum class MessageKind
 class MessageSystem
 {
 public:
-    MessageSystem() = default;
+    /** All four must outlive this service; the Runtime declares them above it. */
+    MessageSystem(GameInterfaces& interfaces, GameData& gameData, GameEventService& events,
+                  Core::Translations& translations);
+    MessageSystem(const MessageSystem&) = delete;
+    MessageSystem& operator=(const MessageSystem&) = delete;
 
     bool Initialize();
     bool InitGameEventManager();
@@ -55,6 +69,10 @@ private:
     /** Post one already-rendered TextMsg to whoever @p filter selects. */
     void PostTextMsg(IRecipientFilter& filter, int destination, const std::string& message);
 
+    GameInterfaces& _interfaces;
+    GameData& _gameData;
+    GameEventService& _events;
+    Core::Translations& _translations;
     INetworkMessageInternal* _textMsgInternal = nullptr;
 };
 

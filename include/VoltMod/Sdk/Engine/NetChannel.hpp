@@ -5,6 +5,8 @@ class INetChannelInfo;
 namespace VoltMod::Sdk
 {
 
+struct GameInterfaces;
+
 /**
  * @brief Per-client network-channel access: latency and the client's replicated userinfo cvars.
  *
@@ -15,6 +17,9 @@ namespace VoltMod::Sdk
 class NetChannelService
 {
 public:
+    /** @p interfaces supplies IVEngineServer2; it must outlive this service. */
+    explicit NetChannelService(GameInterfaces& interfaces) : _interfaces(interfaces) {}
+
     /** The client's channel, or nullptr when @p slot has none (bot, empty, disconnecting). */
     INetChannelInfo* GetNetInfo(int slot) const;
 
@@ -29,6 +34,9 @@ public:
      * @return Engine-owned string, valid until the next engine call; nullptr/empty when unset.
      */
     const char* GetUserInfoCvar(int slot, const char* name) const;
+
+private:
+    GameInterfaces& _interfaces;
 };
 
 }  // namespace VoltMod::Sdk

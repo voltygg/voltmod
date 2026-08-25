@@ -14,13 +14,20 @@ class CPlayerSlot;
 namespace VoltMod::Sdk
 {
 
+class GameData;
+struct GameInterfaces;
+
 /**
  * @brief Wrapper for IGameEventManager2 providing event creation, firing, and listener registration.
  */
 class GameEventService : public IGameEventListener2
 {
 public:
-    GameEventService() = default;
+    /** Both must outlive this service, which detaches from the engine in its destructor. */
+    GameEventService(GameInterfaces& interfaces, GameData& gameData);
+    ~GameEventService() override;
+    GameEventService(const GameEventService&) = delete;
+    GameEventService& operator=(const GameEventService&) = delete;
 
     bool Initialize();
 
@@ -87,6 +94,8 @@ private:
 
     using GetLegacyGameEventListenerFn = IGameEventListener2* (*)(CPlayerSlot slot);
 
+    GameInterfaces& _interfaces;
+    GameData& _gameData;
     Core::CallbackRegistry<RegisteredListener> _listeners;
     std::set<std::string> _registeredEvents;  // every event name ever listened to; see OnServerStartup
     GetLegacyGameEventListenerFn _getLegacyListener = nullptr;

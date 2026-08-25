@@ -7,6 +7,8 @@ class CEntityInstance;
 namespace VoltMod::Sdk
 {
 
+class SchemaService;  // Internal type (src/Sdk/Internal/Schema.hpp), kept out of the public graph.
+
 /**
  * @brief CBaseModelEntity::m_nRenderMode values (legacy Source numbering).
  * Only the ones plugins actually need are listed.
@@ -27,13 +29,13 @@ constexpr uint32_t ColorInvisible = 0x00FFFFFFu;
  * @brief Set m_nRenderMode and m_clrRender on any CBaseModelEntity (player pawn,
  * weapon, wearable, world prop, dropped weapon, etc.).
  *
- * Resolves the schema offsets via SchemaService on first call and caches them.
- * Safe to call with a null entity (no-op).
+ * Offsets come from @p schema, which caches them itself. Safe to call with a null entity (no-op).
  *
+ * @param schema Offset source; the caller's own SchemaService (`runtime.Schema()`).
  * @param entity Target. Must derive from CBaseModelEntity.
  * @param mode   Render mode (see RenderMode_t).
  * @param color  RGBA, low byte = R, high byte = A.
  */
-void SetEntityRender(CEntityInstance* entity, RenderMode_t mode, uint32_t color);
+void SetEntityRender(SchemaService& schema, CEntityInstance* entity, RenderMode_t mode, uint32_t color);
 
 }  // namespace VoltMod::Sdk

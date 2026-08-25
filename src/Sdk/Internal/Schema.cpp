@@ -1,9 +1,8 @@
 #include "Sdk/Internal/Schema.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
-#include <VoltMod/Runtime.hpp>
 #include <VoltMod/Sdk/Engine/GameInterfaces.hpp>
+#include <cstring>
 #include <schemasystem/schemasystem.h>
 #include <string_view>
 
@@ -14,7 +13,7 @@ using namespace VoltMod::Core;
 
 bool SchemaService::Initialize()
 {
-    if (!VoltMod::Detail::Rt().Interfaces.SchemaSystem)
+    if (!_interfaces.SchemaSystem)
     {
         Log::Warn("ISchemaSystem not available.");
         return false;
@@ -26,7 +25,7 @@ bool SchemaService::Initialize()
 
 int SchemaService::GetOffset(const char* className, const char* fieldName, int expectedSize)
 {
-    auto* schemaSystem = VoltMod::Detail::Rt().Interfaces.SchemaSystem;
+    auto* schemaSystem = _interfaces.SchemaSystem;
     if (!schemaSystem)
         return -1;
 

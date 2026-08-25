@@ -1,7 +1,5 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
-#include <VoltMod/Runtime.hpp>
 #include <VoltMod/Sdk/Engine/ConVarService.hpp>
 #include <VoltMod/Sdk/Engine/GameInterfaces.hpp>
 #include <VoltMod/Sdk/Engine/RecipientFilter.hpp>
@@ -15,14 +13,21 @@
 namespace
 {
 
+/**
+ * The ConVarService that installed the engine's global change callback, or nullptr.
+ * ICvar takes a bare function pointer with no user data, so the trampoline below has nothing
+ * to carry a service reference in. Set when the callback is installed and cleared by
+ * ConVarService::Shutdown(), which also removes the callback - the two are never out of step.
+ */
+VoltMod::Sdk::ConVarService* g_changeSink = nullptr;
+
 void GlobalConVarChangeCallback(ConVarRefAbstract* ref, CSplitScreenSlot /*slot*/, const char* newValue,
                                 const char* oldValue, void* /*unk*/)
 {
-    if (!ref)
+    if (!ref || !g_changeSink)
         return;
 
-    const char* name = ref->GetName();
-    VoltMod::Detail::Rt().ConVars.DispatchChange(name, oldValue, newValue);
+    g_changeSink->DispatchChange(ref->GetName(), oldValue, newValue);
 }
 
 }  // namespace
@@ -30,6 +35,13 @@ void GlobalConVarChangeCallback(ConVarRefAbstract* ref, CSplitScreenSlot /*slot*
 namespace VoltMod::Sdk
 {
 using namespace VoltMod::Core;
+
+ConVarService::ConVarService(GameInterfaces& interfaces) : _interfaces(interfaces) {}
+
+ConVarService::~ConVarService()
+{
+    Shutdown();
+}
 
 RawConVar::RawConVar(const char* name)
 {
@@ -68,7 +80,7 @@ void RawConVar::SetFloat(float value)
 
 bool ConVarService::Initialize()
 {
-    if (!VoltMod::Detail::Rt().Interfaces.CVar)
+    if (!_interfaces.CVar)
     {
         Log::Error("ConVarService: ICvar not available.");
         return false;
@@ -153,7 +165,7 @@ bool ConVarService::SetString(const char* name, const char* value)
 
 void ConVarService::ExecuteServerCommand(const char* command)
 {
-    auto* engine = VoltMod::Detail::Rt().Interfaces.Engine;
+    auto* engine = _interfaces.Engine;
     if (!engine)
     {
         Log::Warn("ConVarService::ExecuteServerCommand: IVEngineServer2 not available.");
@@ -175,7 +187,7 @@ void ConVarService::ExecuteServerCommand(const char* command)
 
 bool ConVarService::ReplicateToClient(int slot, const char* name, const char* value)
 {
-    auto& interfaces = VoltMod::Detail::Rt().Interfaces;
+    auto& interfaces = _interfaces;
     if (!interfaces.GameEventSystem || !interfaces.NetworkMessages || !Core::IsValidSlot(slot) || !name || !value)
         return false;
 
@@ -218,10 +230,10 @@ Core::Subscription ConVarService::OnChange(ChangeCallback callback)
 {
     if (!_globalCallbackInstalled)
     {
-        auto* cvar = VoltMod::Detail::Rt().Interfaces.CVar;
-        if (cvar)
+        if (auto* cvar = _interfaces.CVar)
         {
             cvar->InstallGlobalChangeCallback(&GlobalConVarChangeCallback);
+            g_changeSink = this;
             _globalCallbackInstalled = true;
         }
     }
@@ -234,9 +246,11 @@ void ConVarService::Shutdown()
     if (!_globalCallbackInstalled)
         return;
 
-    if (auto* cvar = VoltMod::Detail::Rt().Interfaces.CVar)
+    if (auto* cvar = _interfaces.CVar)
         cvar->RemoveGlobalChangeCallback(&GlobalConVarChangeCallback);
 
+    if (g_changeSink == this)
+        g_changeSink = nullptr;
     _globalCallbackInstalled = false;
     _changeCallbacks.Clear();
 }

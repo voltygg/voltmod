@@ -35,8 +35,8 @@ You can also create and fire events (`CreateEvent` / `FireEvent` / `FreeEvent`);
 Attribute impacts to a shot by **tick proximity** (the impacts belonging to a `WeaponFire`, or to a usercmd carrying an attack, arrive in the same tick), and use `TruncatedUserId` only to disambiguate among candidates in that tick. Never key state on `Slot` alone.
 
 ```cpp
-events.Listen<Events::BulletImpact>([](const Events::BulletImpact& e) {
-    Record(VoltMod::Sdk::ServerTick(), e.TruncatedUserId, e.X, e.Y, e.Z);
+events.Listen<Events::BulletImpact>([&clock = runtime.Clock](const Events::BulletImpact& e) {
+    Record(clock.Tick(), e.TruncatedUserId, e.X, e.Y, e.Z);
 });
 ```
 

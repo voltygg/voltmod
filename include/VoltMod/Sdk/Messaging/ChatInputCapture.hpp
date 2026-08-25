@@ -10,6 +10,11 @@
 #include <string>
 #include <string_view>
 
+namespace VoltMod::Core
+{
+class Scheduler;
+}
+
 namespace VoltMod::Sdk
 {
 
@@ -30,9 +35,13 @@ namespace VoltMod::Sdk
 class ChatInputCapture
 {
 public:
-    /** @p slots tells the registry when a slot changes hands, so a prompt cannot outlive
-     *  the player it was addressed to. */
-    explicit ChatInputCapture(Core::SlotEvents& slots);
+    /** @p scheduler runs the prompt timeouts. @p slots tells the registry when a slot changes
+     *  hands, so a prompt cannot outlive the player it was addressed to. Both must outlive it. */
+    ChatInputCapture(Core::Scheduler& scheduler, Core::SlotEvents& slots);
+    /** Cancels every outstanding timeout, so none can fire into a destroyed registry. */
+    ~ChatInputCapture();
+    ChatInputCapture(const ChatInputCapture&) = delete;
+    ChatInputCapture& operator=(const ChatInputCapture&) = delete;
 
     /** Validator return: true = accept and clear; false = re-prompt and keep waiting. */
     using Callback = std::function<bool(int slot, std::string_view text)>;
@@ -73,6 +82,7 @@ private:
         uint64_t Id = 0;
     };
 
+    Core::Scheduler& _scheduler;
     std::array<std::optional<Pending>, Core::MaxPlayers> _pending{};
     uint64_t _nextId = 1;
     /** Declared after _pending so it unregisters before the captures its callback cancels. */

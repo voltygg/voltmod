@@ -355,7 +355,7 @@ void PlayerController::SetVisible(bool visible, uint8_t alpha) const
     // m_clrRender packs alpha in the top byte; the low three bytes stay opaque white.
     uint32_t color = visible ? ColorOpaqueWhite : ((static_cast<uint32_t>(alpha) << 24) | 0x00FFFFFFu);
 
-    SetEntityRender(pawn, mode, color);
+    SetEntityRender(VoltMod::Detail::Rt().Schema(), pawn, mode, color);
 }
 
 }  // namespace VoltMod::Sdk

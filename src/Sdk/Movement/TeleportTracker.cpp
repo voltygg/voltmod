@@ -1,8 +1,6 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/MetamodGlobals.hpp>
 #include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
-#include <VoltMod/Runtime.hpp>
 #include <VoltMod/Sdk/Engine/GameData.hpp>
 #include <VoltMod/Sdk/Engine/ServerClock.hpp>
 #include <VoltMod/Sdk/Entity/PlayerController.hpp>
@@ -32,7 +30,7 @@ bool TeleportTracker::Enable()
     if (_enabled)
         return true;
 
-    int index = VoltMod::Detail::Rt().GameData.GetVtableIndex("Teleport");
+    int index = _gameData.GetVtableIndex("Teleport");
     if (index < 0)
         return false;
 
@@ -44,7 +42,7 @@ bool TeleportTracker::Enable()
 
     // Spawning hands the player a new pawn object, so the old binding is stale - and the spawn
     // placement is itself a teleport worth stamping.
-    _spawnListener = VoltMod::Detail::Rt().Events.Listen<Events::PlayerSpawn>([this](const Events::PlayerSpawn& e) {
+    _spawnListener = _events.Listen<Events::PlayerSpawn>([this](const Events::PlayerSpawn& e) {
         Bind(e.Slot);
         Stamp(e.Slot);
     });
@@ -74,7 +72,7 @@ bool TeleportTracker::JustTeleported(int slot, float seconds) const
     if (!Core::IsValidSlot(slot) || _lastTeleport[slot] == 0.0f)
         return false;
 
-    return ServerTime() - _lastTeleport[slot] <= seconds;
+    return _clock.Time() - _lastTeleport[slot] <= seconds;
 }
 
 void TeleportTracker::OnServerStartup()
@@ -125,7 +123,7 @@ void TeleportTracker::Unbind(int slot)
 void TeleportTracker::Stamp(int slot)
 {
     if (Core::IsValidSlot(slot))
-        _lastTeleport[slot] = ServerTime();
+        _lastTeleport[slot] = _clock.Time();
 }
 
 int TeleportTracker::SlotFromPawn(const void* pawn) const

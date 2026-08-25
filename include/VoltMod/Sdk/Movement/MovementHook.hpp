@@ -11,6 +11,9 @@
 namespace VoltMod::Sdk
 {
 
+class EntitySystem;
+class GameData;
+
 /**
  * @brief Manual vtable hook on CCSPlayer_MovementServices::RunCommand - the per-tick,
  * per-player movement entry point (gamedata offset "RunCommand").
@@ -45,7 +48,9 @@ public:
     using CmdCallback = std::function<void(int slot, const UserCmdView& cmd)>;
     using CmdFilter = std::function<void(int slot, UserCmdView& cmd)>;
 
-    MovementHook() = default;
+    /** @p entities resolves the owning slot per usercmd, @p gameData the vtable index and byte
+     *  offsets. Both must outlive this hook; the Runtime declares them above it. */
+    MovementHook(EntitySystem& entities, GameData& gameData) : _entities(entities), _gameData(gameData) {}
     ~MovementHook() { Remove(); }
     MovementHook(const MovementHook&) = delete;
     MovementHook& operator=(const MovementHook&) = delete;
@@ -95,6 +100,8 @@ private:
     void* Hook_RunCommandPost(void* userCmd);
     void DecodeUserCmd(void* userCmd);
 
+    EntitySystem& _entities;
+    GameData& _gameData;
     Core::CallbackRegistry<Callback> _pre;
     Core::CallbackRegistry<Callback> _post;
     Core::CallbackRegistry<CmdCallback> _preCmd;

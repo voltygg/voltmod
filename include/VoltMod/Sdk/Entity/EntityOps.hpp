@@ -7,6 +7,9 @@ namespace VoltMod::Sdk
 {
 
 class EntityKeyValues;
+class EntitySystem;
+class GameData;
+class SchemaService;  // Internal type (src/Sdk/Internal/Schema.hpp), kept out of the public graph.
 
 /**
  * @brief Entity mutation operations resolved from gamedata signatures.
@@ -21,6 +24,11 @@ class EntityKeyValues;
 class EntityOpsService
 {
 public:
+    /** All three must outlive this service; the Runtime declares them above it. */
+    EntityOpsService(EntitySystem& entities, GameData& gameData, SchemaService& schema);
+    EntityOpsService(const EntityOpsService&) = delete;
+    EntityOpsService& operator=(const EntityOpsService&) = delete;
+
     /** Resolve all function pointers once; Warns per missing signature.
      *  Returns true when the spawn trio (create + spawn + input) resolved. */
     bool Initialize();
@@ -74,7 +82,15 @@ public:
      *  new value replicates immediately instead of riding the next broadcast. */
     void NotifyFieldChanged(CEntityInstance* entity, const char* className, const char* fieldName);
 
+    /** @internal The schema service this was built with, for framework code that owns an
+     *  EntityOpsService and needs field offsets for the entities it spawns. */
+    SchemaService& Schema() { return _schema; }
+
 private:
+    EntitySystem& _entities;
+    GameData& _gameData;
+    SchemaService& _schema;
+
     // Stored untyped so variant_t/CEntityKeyValues/EmitSound_t never leak into
     // this header; EntityOps.cpp bit_casts to file-local typedefs.
     void* _createEntityByName = nullptr;

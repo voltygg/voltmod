@@ -1,8 +1,6 @@
 #include "Sdk/Internal/Schema.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
-#include <VoltMod/Runtime.hpp>
 #include <VoltMod/Sdk/Engine/GameData.hpp>
 #include <VoltMod/Sdk/Engine/GameInterfaces.hpp>
 #include <VoltMod/Sdk/Engine/MemoryAccess.hpp>
@@ -13,17 +11,37 @@
 #include <entity2/entityinstance.h>
 #include <entity2/entitysystem.h>
 
+namespace
+{
+/**
+ * The live EntitySystem's resolved CGameEntitySystem*, published for ::GameEntitySystem() below.
+ * A file-static is unavoidable there: the SDK calls that free function with no context parameter
+ * to hand it a service reference through. Written by EntitySystem as it resolves the pointer and
+ * cleared by its destructor, so it is never stale past one load cycle.
+ */
+CGameEntitySystem* g_entitySystem = nullptr;
+}  // namespace
+
 // The SDK's entity2 sources (entitykeyvalues.cpp) link against this accessor;
 // route it to the framework's resolved entity system so both agree on the pointer.
 CGameEntitySystem* GameEntitySystem()
 {
-    auto* services = VoltMod::Detail::RtOrNull();
-    return services ? services->Entities.GetEntitySystem() : nullptr;
+    return g_entitySystem;
 }
 
 namespace VoltMod::Sdk
 {
 using namespace VoltMod::Core;
+
+EntitySystem::EntitySystem(GameInterfaces& interfaces, GameData& gameData, SchemaService& schema)
+    : _interfaces(interfaces), _gameData(gameData), _schema(schema)
+{}
+
+EntitySystem::~EntitySystem()
+{
+    if (g_entitySystem == _interfaces.EntitySystem)
+        g_entitySystem = nullptr;
+}
 
 int EntitySystem::GetEntityIndex(CEntityInstance* entity) const
 {
@@ -40,7 +58,7 @@ void EntitySystem::ResolveSchemaOffsets()
     if (_schemaOffsetsResolved)
         return;
 
-    auto& schema = VoltMod::Detail::Rt().Schema();
+    auto& schema = _schema;
 
     _offsetPlayerPawn = schema.GetOffsetOf<uint32_t>("CBasePlayerController", "m_hPawn");
     _offsetMovementServices = schema.GetOffsetOf<uint8_t*>("CBasePlayerPawn", "m_pMovementServices");
@@ -52,40 +70,33 @@ void EntitySystem::ResolveSchemaOffsets()
 
 CGameEntitySystem* EntitySystem::ReadEntitySystemPointer()
 {
-    auto& interfaces = VoltMod::Detail::Rt().Interfaces;
-    if (!interfaces.GameResourceService)
+    if (!_interfaces.GameResourceService)
         return nullptr;
 
     // "GameEntitySystem" = byte offset of the CGameEntitySystem* cached inside CGameResourceService.
-    int offsetGameEntitySystem =
-        VoltMod::Detail::Rt().GameData.GetByteOffset("GameEntitySystem", MaxByteOffset, alignof(void*));
+    int offsetGameEntitySystem = _gameData.GetByteOffset("GameEntitySystem", MaxByteOffset, alignof(void*));
     if (offsetGameEntitySystem < 0)
         return nullptr;
 
-    return ReadAt<CGameEntitySystem*>(interfaces.GameResourceService, offsetGameEntitySystem);
+    return ReadAt<CGameEntitySystem*>(_interfaces.GameResourceService, offsetGameEntitySystem);
 }
 
 bool EntitySystem::Initialize()
 {
-    auto& interfaces = VoltMod::Detail::Rt().Interfaces;
-
-    if (!interfaces.GameResourceService)
+    if (!_interfaces.GameResourceService)
     {
         Log::Error("IGameResourceService not available.");
         return false;
     }
 
-    int offsetGameEntitySystem =
-        VoltMod::Detail::Rt().GameData.GetByteOffset("GameEntitySystem", MaxByteOffset, alignof(void*));
+    int offsetGameEntitySystem = _gameData.GetByteOffset("GameEntitySystem", MaxByteOffset, alignof(void*));
     if (offsetGameEntitySystem < 0)
         return false;
     Log::Info("Gamedata loaded (entity system offset: {}).", offsetGameEntitySystem);
 
-    interfaces.EntitySystem = ReadEntitySystemPointer();
-
     // Nothing that touches an entity works without this, so reporting success here just moved the
     // failure to the first confusing symptom instead of the load report.
-    if (!interfaces.EntitySystem)
+    if (!GetEntitySystem())
     {
         Log::Error("Entity system pointer could not be read from IGameResourceService.");
         return false;
@@ -97,12 +108,15 @@ bool EntitySystem::Initialize()
 
 CGameEntitySystem* EntitySystem::GetEntitySystem()
 {
-    auto& interfaces = VoltMod::Detail::Rt().Interfaces;
+    // Resolved once per load cycle: the pointer lives inside IGameResourceService, which the
+    // engine keeps for the process lifetime, so there is nothing to refresh on map change.
+    if (!_interfaces.EntitySystem)
+    {
+        _interfaces.EntitySystem = ReadEntitySystemPointer();
+        g_entitySystem = _interfaces.EntitySystem;  // publish for ::GameEntitySystem()
+    }
 
-    if (!interfaces.EntitySystem)
-        interfaces.EntitySystem = ReadEntitySystemPointer();
-
-    return interfaces.EntitySystem;
+    return _interfaces.EntitySystem;
 }
 
 CEntityIdentity* EntitySystem::GetEntityIdentityByIndex(CGameEntitySystem* pSys, int index)
@@ -209,9 +223,8 @@ void EntitySystem::ResolveFinderSignatures()
     if (_findersResolved)
         return;
 
-    auto& gameData = VoltMod::Detail::Rt().GameData;
-    _findByClassName = gameData.FindSignature("CGameEntitySystem_FindEntityByClassName");
-    _findByName = gameData.FindSignature("CGameEntitySystem_FindEntityByName");
+    _findByClassName = _gameData.FindSignature("CGameEntitySystem_FindEntityByClassName");
+    _findByName = _gameData.FindSignature("CGameEntitySystem_FindEntityByName");
 
     if (!_findByClassName || !_findByName)
         Log::Warn("Entity finder signature(s) not resolved; FindByClassName/FindByName are disabled.");

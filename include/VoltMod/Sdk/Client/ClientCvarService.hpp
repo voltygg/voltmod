@@ -11,6 +11,9 @@
 namespace VoltMod::Sdk
 {
 
+class GameData;
+struct GameInterfaces;
+
 /** @brief How the client answered a convar query (CCLCMsg_RespondCvarValue::status_code). */
 enum class ClientCvarStatus
 {
@@ -55,9 +58,10 @@ public:
     using QueryCallback =
         std::function<void(int slot, ClientCvarStatus status, std::string_view name, std::string_view value)>;
 
-    /** @p slots tells the service when a slot changes hands, so an answer can never be routed
-     *  to the callback of whoever held the slot before. */
-    explicit ClientCvarService(Core::SlotEvents& slots);
+    /** @p interfaces and @p gameData drive the response hook and the query send path. @p slots tells
+     *  the service when a slot changes hands, so an answer can never be routed to the callback of
+     *  whoever held the slot before. All three must outlive it; the Runtime declares them above. */
+    ClientCvarService(GameInterfaces& interfaces, GameData& gameData, Core::SlotEvents& slots);
     ~ClientCvarService();
     ClientCvarService(const ClientCvarService&) = delete;
     ClientCvarService& operator=(const ClientCvarService&) = delete;

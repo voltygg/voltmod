@@ -1,17 +1,22 @@
 #include <VoltMod/Core/Scheduler.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
-#include <VoltMod/Runtime.hpp>
 #include <VoltMod/Sdk/Messaging/ChatInputCapture.hpp>
 #include <utility>
 
 namespace VoltMod::Sdk
 {
 
-ChatInputCapture::ChatInputCapture(Core::SlotEvents& slots)
-    // SlotEvents fires when a slot is filled as well as emptied; a fresh occupant has no capture
-    // pending, so cancelling on both edges covers "left" without a dedicated event.
-    : _slotListener(slots.Listen([this](int slot) { CancelCapture(slot); }))
+ChatInputCapture::ChatInputCapture(Core::Scheduler& scheduler, Core::SlotEvents& slots)
+    : _scheduler(scheduler),
+      // SlotEvents fires when a slot is filled as well as emptied; a fresh occupant has no capture
+      // pending, so cancelling on both edges covers "left" without a dedicated event.
+      _slotListener(slots.Listen([this](int slot) { CancelCapture(slot); }))
 {}
+
+ChatInputCapture::~ChatInputCapture()
+{
+    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+        CancelCapture(slot);
+}
 
 void ChatInputCapture::BeginCapture(int slot, std::string prompt, Callback callback, int timeoutMs)
 {
@@ -32,8 +37,9 @@ void ChatInputCapture::BeginCapture(int slot, std::string prompt, Callback callb
         // Cancel by capture id, not by slot: the prompt can outlive its player, and cancelling
         // the slot would take out whatever the next occupant had open.
         const uint64_t id = p.Id;
-        p.TimeoutHandle = VoltMod::Detail::Rt().Scheduler.Delay(
-            timeoutMs, [slot, id]() { VoltMod::Detail::Rt().ChatInput.CancelCaptureById(slot, id); });
+        // Capturing `this` is safe: the scheduler is a sibling service that outlives no longer than
+        // this one, and every pending timer is cancelled before a capture is dropped.
+        p.TimeoutHandle = _scheduler.Delay(timeoutMs, [this, slot, id]() { CancelCaptureById(slot, id); });
     }
 
     _pending[slot] = std::move(p);
@@ -70,7 +76,7 @@ bool ChatInputCapture::TryConsume(int slot, std::string_view text)
         if (current.has_value() && current->Id == id)
         {
             if (current->TimeoutHandle != 0)
-                VoltMod::Detail::Rt().Scheduler.Cancel(current->TimeoutHandle);
+                _scheduler.Cancel(current->TimeoutHandle);
             current.reset();
         }
     }
@@ -98,7 +104,7 @@ void ChatInputCapture::CancelCapture(int slot)
         return;
 
     if (opt->TimeoutHandle != 0)
-        VoltMod::Detail::Rt().Scheduler.Cancel(opt->TimeoutHandle);
+        _scheduler.Cancel(opt->TimeoutHandle);
 
     opt.reset();
 }

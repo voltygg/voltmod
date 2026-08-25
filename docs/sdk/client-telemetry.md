@@ -7,13 +7,15 @@ convar queries.
 
 ## ServerClock
 
-Free functions, not a service (`Sdk/Engine/ServerClock.hpp`); they hold no state and read `IVEngineServer2::GetServerGlobals()` on every call:
+`runtime.Clock` (the free functions remain for compatibility). It holds no state and reads `IVEngineServer2::GetServerGlobals()` on every call:
 
 ```cpp
-using namespace VoltMod::Sdk;
+const int tick = runtime.Clock.Tick();    // globals->tickcount
+const float now = runtime.Clock.Time();   // globals->curtime, seconds
 
-const int tick = ServerTick();     // globals->tickcount
-const float now = ServerTime();    // globals->curtime, seconds
+// Same readings without a runtime reference, for call sites that have none:
+const int sameTick = VoltMod::ServerTick();
+const float sameNow = VoltMod::ServerTime();
 ```
 
 This is the timestamp source for anything that has to line up with the tick the engine is simulating: usercmds, game events, and teleports. Use it instead of `std::chrono`: it is the *simulation* clock, so it stays in step with the tick stream those things are numbered by, which wall time does not.
@@ -21,7 +23,7 @@ This is the timestamp source for anything that has to line up with the tick the 
 Two consequences to respect:
 
 - Both **reset when a map starts**. A value persisted across a map change compares as absurdly far in the future; drop stamps at map start rather than carrying them (this is what @ref VoltMod::Sdk::TeleportTracker "TeleportTracker" does).
-- Both return `0` when the globals are unavailable (before load, after shutdown), and `GetServerGlobals()` returns `nullptr` there. `0` therefore reads as "unknown", not "the beginning of the map".
+- Both return `0` when the globals are unavailable (before load, after shutdown), and `Globals()` / `GetServerGlobals()` returns `nullptr` there. `0` therefore reads as "unknown", not "the beginning of the map".
 
 ## NetChannelService
 

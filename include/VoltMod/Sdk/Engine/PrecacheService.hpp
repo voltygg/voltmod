@@ -9,6 +9,7 @@ namespace VoltMod::Sdk
 
 class PrecacheGameSystem;  // internal (src/Sdk/GameSystem.hpp)
 class GameSystemFactory;   // internal
+class GameData;
 
 /**
  * @brief Precaches custom resources (particles, models, sound events) by
@@ -24,7 +25,8 @@ class PrecacheService
 public:
     // Ctor/dtor are out-of-line: inline they would instantiate the unique_ptr
     // destructor of the forward-declared game system in every consumer TU.
-    PrecacheService();
+    /** @p gameData supplies the game-system signatures; it must outlive this service. */
+    explicit PrecacheService(GameData& gameData);
     ~PrecacheService();
     PrecacheService(const PrecacheService&) = delete;
     PrecacheService& operator=(const PrecacheService&) = delete;
@@ -43,6 +45,7 @@ public:
 private:
     friend class PrecacheGameSystem;  // reads _resources inside the manifest event
 
+    GameData& _gameData;
     std::vector<std::string> _resources;
     std::string _systemName;
     std::unique_ptr<PrecacheGameSystem> _system;

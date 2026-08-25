@@ -1,7 +1,6 @@
 #include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
-#include <VoltMod/Runtime.hpp>
 #include <VoltMod/Sdk/Movement/InputHistoryService.hpp>
+#include <VoltMod/Sdk/Movement/MovementHook.hpp>
 #include <algorithm>
 #include <cassert>
 
@@ -23,8 +22,7 @@ void InputHistoryService::Enable(int depth)
     }
 
     if (!_cmdListener)
-        _cmdListener = VoltMod::Detail::Rt().MovementHook.ListenPreCmd(
-            [this](int slot, const UserCmdView& cmd) { Record(slot, cmd); });
+        _cmdListener = _movement.ListenPreCmd([this](int slot, const UserCmdView& cmd) { Record(slot, cmd); });
     if (!_slotListener)
         _slotListener = _slots.Listen([this](int slot) { Clear(slot); });
 }

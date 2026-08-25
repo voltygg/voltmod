@@ -8,6 +8,8 @@
 namespace VoltMod::Sdk
 {
 
+struct GameInterfaces;
+
 /**
  * Runtime schema field offset resolution via ISchemaSystem.
  * Provides access to entity field offsets at runtime by querying the
@@ -16,7 +18,8 @@ namespace VoltMod::Sdk
 class SchemaService
 {
 public:
-    SchemaService() = default;
+    /** @p interfaces supplies ISchemaSystem; it must outlive this service. */
+    explicit SchemaService(GameInterfaces& interfaces) : _interfaces(interfaces) {}
 
     bool Initialize();
 
@@ -48,6 +51,7 @@ private:
      *  like "m_bOnGroundLastTick" are past the small-string buffer, so those were real allocations
      *  on the hot path. */
     std::map<std::string, std::map<std::string, int, std::less<>>, std::less<>> _offsetCache;
+    GameInterfaces& _interfaces;
 };
 
 }  // namespace VoltMod::Sdk

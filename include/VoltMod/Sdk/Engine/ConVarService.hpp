@@ -12,6 +12,8 @@ class INetworkMessageInternal;
 namespace VoltMod::Sdk
 {
 
+struct GameInterfaces;
+
 /**
  * @brief Direct handle to a convar's raw value storage.
  *
@@ -46,7 +48,12 @@ private:
 class ConVarService
 {
 public:
-    ConVarService() = default;
+    /** @p interfaces supplies ICvar, IVEngineServer2 and the message systems; it must outlive this
+     *  service, which reaches for it again from its destructor. */
+    explicit ConVarService(GameInterfaces& interfaces);
+    ~ConVarService();
+    ConVarService(const ConVarService&) = delete;
+    ConVarService& operator=(const ConVarService&) = delete;
 
     bool Initialize();
 
@@ -85,11 +92,12 @@ public:
     [[nodiscard]] Core::Subscription OnChange(ChangeCallback callback);
     void DispatchChange(const char* name, const char* oldValue, const char* newValue);
 
-    /** Take the engine's global change callback back off. Idempotent, and it must run before
-     *  the ambient runtime goes away: the callback reaches this service through it. */
+    /** Take the engine's global change callback back off, and stop routing to this instance.
+     *  Idempotent; the destructor calls it. */
     void Shutdown();
 
 private:
+    GameInterfaces& _interfaces;
     Core::CallbackRegistry<ChangeCallback> _changeCallbacks;
     bool _globalCallbackInstalled = false;
     INetworkMessageInternal* _setConVarMsg = nullptr;

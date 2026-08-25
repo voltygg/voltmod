@@ -76,7 +76,10 @@ Menu::MenuManager& Menus()
 
 }  // namespace Detail
 
-Runtime::Runtime() : _schema(std::make_unique<Sdk::SchemaService>()) {}
+// Every other service is wired by its default member initializer in Runtime.hpp, where the
+// dependency order is visible. _schema is the exception: SchemaService is only forward-declared
+// there, so make_unique needs this translation unit.
+Runtime::Runtime() : _schema(std::make_unique<Sdk::SchemaService>(Interfaces)) {}
 
 Runtime::~Runtime()
 {

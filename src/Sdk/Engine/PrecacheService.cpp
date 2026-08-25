@@ -1,8 +1,6 @@
 #include "Sdk/Internal/GameSystem.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
-#include <VoltMod/Runtime.hpp>
 #include <VoltMod/Sdk/Engine/GameData.hpp>
 #include <VoltMod/Sdk/Engine/PrecacheService.hpp>
 #include <algorithm>
@@ -24,7 +22,7 @@ GS_EVENT_MEMBER(PrecacheGameSystem, BuildGameSessionManifest)
         Log::Info("Precache: added {} resource(s) to the session manifest.", _owner._resources.size());
 }
 
-PrecacheService::PrecacheService() = default;
+PrecacheService::PrecacheService(GameData& gameData) : _gameData(gameData) {}
 
 PrecacheService::~PrecacheService()
 {
@@ -36,11 +34,9 @@ bool PrecacheService::Initialize(std::string systemName)
     if (_factory)
         return true;
 
-    auto& gameData = VoltMod::Detail::Rt().GameData;
-
-    auto* listHead = static_cast<GameSystemFactory**>(gameData.ResolveSignature("IGameSystem_InitAllSystems_pFirst"));
-    _eventDispatcher = gameData.ResolveSignature("IGameSystem_LoopPostInitAllSystems_pEventDispatcher");
-    _gameSystems = gameData.ResolveSignature("IGameSystem_LoopDestroyAllSystems_s_GameSystems");
+    auto* listHead = static_cast<GameSystemFactory**>(_gameData.ResolveSignature("IGameSystem_InitAllSystems_pFirst"));
+    _eventDispatcher = _gameData.ResolveSignature("IGameSystem_LoopPostInitAllSystems_pEventDispatcher");
+    _gameSystems = _gameData.ResolveSignature("IGameSystem_LoopDestroyAllSystems_s_GameSystems");
 
     if (!listHead || !_eventDispatcher || !_gameSystems)
     {

@@ -1,9 +1,8 @@
 #include "Sdk/Internal/Schema.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
-#include <VoltMod/Runtime.hpp>
 #include <VoltMod/Sdk/Engine/GameData.hpp>
+#include <VoltMod/Sdk/Entity/Entity.hpp>
 #include <VoltMod/Sdk/Entity/EntityKeyValues.hpp>
 #include <VoltMod/Sdk/Entity/EntityOps.hpp>
 #include <bit>
@@ -78,10 +77,12 @@ void FireInput(void* acceptInput, CEntityInstance* entity, const char* input, va
 
 }  // namespace
 
+EntityOpsService::EntityOpsService(EntitySystem& entities, GameData& gameData, SchemaService& schema)
+    : _entities(entities), _gameData(gameData), _schema(schema)
+{}
+
 bool EntityOpsService::Initialize()
 {
-    auto& gameData = VoltMod::Detail::Rt().GameData;
-
     struct SignatureSlot
     {
         const char* Name;
@@ -101,7 +102,7 @@ bool EntityOpsService::Initialize()
 
     for (const auto& signature : signatures)
     {
-        *signature.Slot = gameData.FindSignature(signature.Name);
+        *signature.Slot = _gameData.FindSignature(signature.Name);
         if (!*signature.Slot)
             Log::Warn("Entity ops: signature '{}' not resolved; the dependent operation is disabled.", signature.Name);
     }
@@ -163,7 +164,7 @@ void EntityOpsService::AddIOEvent(CEntityInstance* target, const char* input, fl
     if (!_addEntityIOEvent || !target || !input)
         return;
 
-    CEntitySystem* system = VoltMod::Detail::Rt().Entities.GetEntitySystem();
+    CEntitySystem* system = _entities.GetEntitySystem();
     if (!system)
         return;
 
@@ -221,7 +222,7 @@ void EntityOpsService::NotifyFieldChanged(CEntityInstance* entity, const char* c
     if (!entity || !className || !fieldName)
         return;
 
-    int offset = VoltMod::Detail::Rt().Schema().GetOffset(className, fieldName);
+    int offset = _schema.GetOffset(className, fieldName);
     if (offset < 0)
         return;
 

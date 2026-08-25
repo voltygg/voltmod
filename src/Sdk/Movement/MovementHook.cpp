@@ -3,8 +3,6 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/MetamodGlobals.hpp>
 #include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
-#include <VoltMod/Runtime.hpp>
 #include <VoltMod/Sdk/Engine/GameData.hpp>
 #include <VoltMod/Sdk/Entity/Entity.hpp>
 #include <VoltMod/Sdk/Movement/MovementHook.hpp>
@@ -42,7 +40,7 @@ bool MovementHook::Install()
     if (_installed)
         return true;
 
-    int index = VoltMod::Detail::Rt().GameData.GetVtableIndex("RunCommand");
+    int index = _gameData.GetVtableIndex("RunCommand");
     if (index < 0)
         return false;
 
@@ -56,7 +54,7 @@ bool MovementHook::Install()
     // from OnLoad, with no player connected, so a mismatch only warns.
     for (int slot = 0; slot < Core::MaxPlayers; ++slot)
     {
-        void* instance = VoltMod::Detail::Rt().Entities.GetPlayerMovementServices(slot);
+        void* instance = _entities.GetPlayerMovementServices(slot);
         if (!instance)
             continue;
         if (*static_cast<void**>(instance) != vtable)
@@ -65,12 +63,11 @@ bool MovementHook::Install()
         break;
     }
 
-    _pbOffset = VoltMod::Detail::Rt().GameData.GetByteOffset("UserCmdPB", MaxUserCmdOffset, alignof(void*));
+    _pbOffset = _gameData.GetByteOffset("UserCmdPB", MaxUserCmdOffset, alignof(void*));
     if (_pbOffset < 0)
         Log::Warn("MovementHook: no usable 'UserCmdPB' offset; cmd listeners get Valid=false views.");
 
-    _cmdNumberOffset =
-        VoltMod::Detail::Rt().GameData.GetByteOffset("UserCmdNumber", MaxUserCmdOffset, alignof(int32_t));
+    _cmdNumberOffset = _gameData.GetByteOffset("UserCmdNumber", MaxUserCmdOffset, alignof(int32_t));
     if (_cmdNumberOffset < 0)
         Log::Warn(
             "MovementHook: no usable 'UserCmdNumber' offset; falling back to the protobuf's "
@@ -134,7 +131,7 @@ int MovementHook::SlotFromMovementServices(void* movementServices) const
 
     // Cache this hot lookup, but confirm each hit so a recycled pointer cannot map
     // to the wrong slot. A stale hit falls through to the rescan.
-    auto& entities = VoltMod::Detail::Rt().Entities;
+    auto& entities = _entities;
     for (int slot = 0; slot < Core::MaxPlayers; ++slot)
         if (_movementServices[slot] == movementServices && entities.GetPlayerMovementServices(slot) == movementServices)
             return slot;
