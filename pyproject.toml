@@ -11,6 +11,7 @@ dependencies = [
     "conan>=2.29.1",
     "ninja>=1.13.0",
     "clang-format==22.1.5",
+    "typer>=0.27.1",
     "pyyaml>=6.0",
 ]
 

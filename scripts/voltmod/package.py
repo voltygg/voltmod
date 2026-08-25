@@ -4,8 +4,11 @@ import json
 import os
 import subprocess
 import urllib.request
+from enum import StrEnum
 from pathlib import Path
+from typing import Annotated
 
+import typer
 import yaml
 
 from . import buildtools
@@ -32,6 +35,26 @@ UPSTREAM = {
 
 CLOUDSMITH_OWNER, CLOUDSMITH_REPO = "volty", "voltmod"
 CLOUDSMITH_API = f"https://api.cloudsmith.io/v1/packages/{CLOUDSMITH_OWNER}/{CLOUDSMITH_REPO}/"
+
+app = typer.Typer(help="Build, publish, and maintain VoltMod's Conan packages.")
+
+
+class BuildTarget(StrEnum):
+    SDK = "sdk"
+    KIT = "kit"
+    ALL = "all"
+
+
+class UpstreamPackage(StrEnum):
+    HL2SDK = "hl2sdk-cs2"
+    METAMOD = "metamod-source"
+
+
+Target = Annotated[BuildTarget, typer.Argument(help="Which packages to act on")]
+NoLockfile = Annotated[
+    bool,
+    typer.Option("--no-lockfile", help="Build VoltMod without the lockfile after an SDK bump"),
+]
 
 
 def _conan(*args: str, capture: bool = False) -> str:
@@ -129,30 +152,36 @@ def _build_kit(use_lockfile: bool) -> None:
         )
 
 
-def build(args) -> int:
-    """Create packages locally. The CI gate, and the first half of publish."""
-    if args.target in ("sdk", "all"):
+@app.command()
+def build(
+    target: Target = BuildTarget.ALL,
+    no_lockfile: NoLockfile = False,
+) -> None:
+    """Create packages locally."""
+    if target in (BuildTarget.SDK, BuildTarget.ALL):
         _build_sdks()
-    if args.target in ("kit", "all"):
-        _build_kit(use_lockfile=not args.no_lockfile)
-    return 0
+    if target in (BuildTarget.KIT, BuildTarget.ALL):
+        _build_kit(use_lockfile=not no_lockfile)
 
 
-def publish(args) -> int:
-    """Create, then upload. Only what this repo owns - third-party mirrors are not ours."""
+@app.command()
+def publish(
+    target: Target = BuildTarget.ALL,
+    no_lockfile: NoLockfile = False,
+) -> None:
+    """Create and upload the packages this repository owns."""
     _login()
-    if args.target in ("sdk", "all"):
+    if target in (BuildTarget.SDK, BuildTarget.ALL):
         _build_sdks()
         for name in SDK_PACKAGES:
             # Its platform-neutral package ID must only receive one published revision.
             if name == "metamod-source" and buildtools.WINDOWS:
                 continue
             _upload(f"{name}/*")
-    if args.target in ("kit", "all"):
+    if target in (BuildTarget.KIT, BuildTarget.ALL):
         _check_release_tag()
-        _build_kit(use_lockfile=not args.no_lockfile)
+        _build_kit(use_lockfile=not no_lockfile)
         _upload(f"{KIT_PACKAGE}/*")
-    return 0
 
 
 def _check_release_tag() -> None:
@@ -165,18 +194,15 @@ def _check_release_tag() -> None:
         buildtools.die(f"tag {ref} does not match conanfile.py ({declared})")
 
 
-def show_version(args) -> int:
+@app.command("version")
+def show_version() -> None:
     """Print the VoltMod Conan package version for scripts and workflows."""
     print(_kit_version())
-    return 0
 
 
-def tag(args) -> int:
-    """Tag this commit with each recipe's pinned version, for provenance.
-
-    Answers "which commit of this repo produced hl2sdk-cs2/2026.07.23". Existing tags
-    are left alone, so a re-run of publish is harmless.
-    """
+@app.command()
+def tag() -> None:
+    """Tag this commit with each recipe's pinned version for provenance."""
     for name in SDK_PACKAGES:
         label = f"sdk/{name}/{_recipe_version(name)}"
         created = subprocess.run(["git", "tag", label], capture_output=True, text=True)
@@ -185,7 +211,6 @@ def tag(args) -> int:
             continue
         subprocess.run(["git", "push", "origin", label], check=True)
         print(f"tagged {label}")
-    return 0
 
 
 def _login() -> None:
@@ -241,17 +266,24 @@ def _cloudsmith(method: str, url: str, token: str) -> bytes:
         return response.read()
 
 
-def prune(args) -> int:
-    """Delete artifacts no consumer can resolve any more.
-
-    SDK revisions move several times a month, so superseded artifacts are pure weight.
-    """
+@app.command()
+def prune(
+    keep: Annotated[
+        int,
+        typer.Option("--keep", help="Versions to keep per package"),
+    ] = 3,
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", help="Report without deleting"),
+    ] = False,
+) -> None:
+    """Delete artifacts no consumer can resolve."""
     token = os.environ.get("CLOUDSMITH_API_KEY", "")
-    if not token and not args.dry_run:
+    if not token and not dry_run:
         buildtools.die("CLOUDSMITH_API_KEY is required to delete")
 
-    keep = _reachable_revisions(args.keep)
-    print(f"{len(keep)} reachable revisions")
+    reachable = _reachable_revisions(keep)
+    print(f"{len(reachable)} reachable revisions")
 
     url = CLOUDSMITH_API + "?page_size=500"
     raw = _cloudsmith("GET", url, token) if token else urllib.request.urlopen(url).read()
@@ -260,16 +292,15 @@ def prune(args) -> int:
     removed = 0
     for row in rows:
         revision = (row.get("identifiers") or {}).get("conan_revision_hash")
-        if not revision or revision in keep:
+        if not revision or revision in reachable:
             continue
         print(f"remove {row['name']}/{row['version']} {row.get('filename')} #{revision[:12]}")
         removed += 1
-        if not args.dry_run:
+        if not dry_run:
             _cloudsmith("DELETE", f"{CLOUDSMITH_API}{row['slug_perm']}/", token)
 
-    verb = "would remove" if args.dry_run else "removed"
+    verb = "would remove" if dry_run else "removed"
     print(f"{verb} {removed} of {len(rows)} artifacts")
-    return 0
 
 
 def _git_tip(url: str, branch: str) -> str:
@@ -312,10 +343,17 @@ def _published(name: str, version: str) -> bool:
     return out.returncode == 0 and f'"{name}/' in out.stdout
 
 
-def watch(args) -> int:
-    """Update moved upstream pins and emit GitHub Actions outputs."""
+@app.command()
+def watch(
+    package: Annotated[
+        UpstreamPackage | None,
+        typer.Option("--package", help="Just this package (default: both)"),
+    ] = None,
+) -> None:
+    """Rewrite conandata.yml when an upstream branch has moved."""
     changed = False
-    for name in (args.package,) if args.package else UPSTREAM:
+    selected = (package.value,) if package else UPSTREAM
+    for name in selected:
         spec = UPSTREAM[name]
         data_path = ROOT / "recipes" / name / "conandata.yml"
         data = yaml.safe_load(data_path.read_text(encoding="utf-8"))
@@ -343,7 +381,6 @@ def watch(args) -> int:
         changed = True
 
     _emit_output("changed", "true" if changed else "false")
-    return 0
 
 
 def _emit_output(key: str, value: str) -> None:
@@ -351,42 +388,3 @@ def _emit_output(key: str, value: str) -> None:
     if path := os.environ.get("GITHUB_OUTPUT"):
         with open(path, "a", encoding="utf-8") as handle:
             handle.write(f"{key}={value}\n")
-
-
-def add_parser(subparsers) -> None:
-    """Register `voltmod package ...` on the top-level CLI."""
-    parser = subparsers.add_parser("package", help="build, publish and prune the Conan packages")
-    sub = parser.add_subparsers(dest="package_command", required=True)
-
-    for name, fn, help_text in (
-        ("build", build, "conan create the packages this repo owns"),
-        ("publish", publish, "create and upload them to the remote"),
-    ):
-        p = sub.add_parser(name, help=help_text)
-        p.add_argument(
-            "target",
-            choices=("sdk", "kit", "all"),
-            nargs="?",
-            default="all",
-            help="which packages to act on (default: all)",
-        )
-        # A bumped SDK cannot be built through a lockfile pinning its old revision.
-        p.add_argument(
-            "--no-lockfile", action="store_true", help="build voltmod without conan.lock"
-        )
-        p.set_defaults(run=fn)
-
-    p = sub.add_parser("tag", help="tag this commit with each recipe's pinned version")
-    p.set_defaults(run=tag)
-
-    p = sub.add_parser("version", help="print the voltmod Conan package version")
-    p.set_defaults(run=show_version)
-
-    p = sub.add_parser("prune", help="delete artifacts no consumer can resolve")
-    p.add_argument("--keep", type=int, default=3, help="versions to keep per package")
-    p.add_argument("--dry-run", action="store_true", help="report without deleting")
-    p.set_defaults(run=prune)
-
-    p = sub.add_parser("watch", help="rewrite conandata.yml when upstream has moved")
-    p.add_argument("--package", choices=tuple(UPSTREAM), help="just this one (default: both)")
-    p.set_defaults(run=watch)

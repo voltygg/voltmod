@@ -1,9 +1,10 @@
 """Scaffold a buildable plugin under the current project's plugins directory."""
 
-import argparse
 import re
 import string
 from pathlib import Path
+
+import typer
 
 from .buildtools import templates_dir
 
@@ -14,9 +15,9 @@ NAME_RE = re.compile(r"^[a-z][a-z0-9]*(-[a-z0-9]+)*$")
 
 
 def kebab_case(value: str) -> str:
-    """argparse type: a kebab-case name like 'fun-votes'."""
+    """Validate a CLI value as a kebab-case name like ``fun-votes``."""
     if not NAME_RE.match(value):
-        raise argparse.ArgumentTypeError(f"'{value}' is not kebab-case (expected e.g. 'fun-votes')")
+        raise typer.BadParameter(f"'{value}' is not kebab-case (expected e.g. 'fun-votes')")
     return value
 
 
