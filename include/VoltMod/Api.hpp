@@ -60,6 +60,7 @@
 #include <VoltMod/Players/TargetResolver.hpp>
 #include <VoltMod/Sdk/Client/ClientCvarService.hpp>
 #include <VoltMod/Sdk/Engine/ConVarService.hpp>
+#include <VoltMod/Sdk/Engine/MapService.hpp>
 #include <VoltMod/Sdk/Engine/NetChannel.hpp>
 #include <VoltMod/Sdk/Engine/ServerClock.hpp>
 #include <VoltMod/Sdk/Engine/ServerCommand.hpp>
@@ -130,6 +131,7 @@ using Sdk::HasPawnFlag;
 using Sdk::InMoveType;
 using Sdk::InputHistorySample;
 using Sdk::InputHistoryService;
+using Sdk::MapService;
 using Sdk::MessageKind;
 using Sdk::MessageSystem;
 using Sdk::MovementHook;

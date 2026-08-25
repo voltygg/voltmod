@@ -17,6 +17,7 @@
 #include <VoltMod/Sdk/Engine/ConVarService.hpp>
 #include <VoltMod/Sdk/Engine/GameData.hpp>
 #include <VoltMod/Sdk/Engine/GameInterfaces.hpp>
+#include <VoltMod/Sdk/Engine/MapService.hpp>
 #include <VoltMod/Sdk/Engine/NetChannel.hpp>
 #include <VoltMod/Sdk/Engine/PrecacheService.hpp>
 #include <VoltMod/Sdk/Engine/ServerClock.hpp>
@@ -133,6 +134,8 @@ public:
     Sdk::PrecacheService Precache{GameData};
     /** Depends on: Interfaces. */
     Sdk::ConVarService ConVars{Interfaces};
+    /** Map validation and level changes. Depends on: Interfaces, ConVars. */
+    Sdk::MapService Maps{Interfaces, ConVars};
     /** Depends on: Interfaces, GameData. Declared before Messages, which sends through it. */
     Sdk::GameEventService Events{Interfaces, GameData};
     /** Depends on: Interfaces, GameData, Events, Translations. */
