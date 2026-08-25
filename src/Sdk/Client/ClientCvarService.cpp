@@ -36,12 +36,6 @@ namespace
 constexpr const char* EngineModule = "engine2";
 constexpr const char* ServerSideClientClass = "CServerSideClient";
 
-// A wrong offset is a crash, not a bad answer: a vtable index past the table dispatches into
-// whatever follows it, and a slot offset past the object reads unrelated memory. Both bounds sit
-// far above the real values (38/40 and 72), only to catch drifted or hand-edited gamedata.
-constexpr int MaxVtableIndex = 500;
-constexpr int MaxSlotOffset = 4096;
-
 }  // namespace
 
 class ClientCvarService::Impl
@@ -85,20 +79,13 @@ bool ClientCvarService::Impl::Initialize()
         return false;
     }
 
-    const int vtableIndex = services.GameData.GetOffset("ProcessRespondCvarValue");
-    if (vtableIndex < 0 || vtableIndex > MaxVtableIndex)
-    {
-        Log::Warn("ClientCvarService: gamedata offset 'ProcessRespondCvarValue' missing or out of range ({}).",
-                  vtableIndex);
+    const int vtableIndex = services.GameData.GetVtableIndex("ProcessRespondCvarValue");
+    if (vtableIndex < 0)
         return false;
-    }
 
-    const int slotOffset = services.GameData.GetOffset("ServerSideClientSlot");
-    if (slotOffset < 0 || slotOffset > MaxSlotOffset || slotOffset % alignof(int) != 0)
-    {
-        Log::Warn("ClientCvarService: gamedata offset 'ServerSideClientSlot' missing or implausible ({}).", slotOffset);
+    const int slotOffset = services.GameData.GetByteOffset("ServerSideClientSlot", MaxByteOffset, alignof(int));
+    if (slotOffset < 0)
         return false;
-    }
 
     INetworkMessageInternal* getCvarValue =
         interfaces.NetworkMessages->FindNetworkMessagePartial("CSVCMsg_GetCvarValue");

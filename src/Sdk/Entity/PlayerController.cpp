@@ -32,12 +32,9 @@ void CallVtableByName(void* target, const char* name, Args... args)
 {
     if (!target)
         return;
-    int index = VoltMod::Detail::Rt().GameData.GetOffset(name);
+    int index = VoltMod::Detail::Rt().GameData.GetVtableIndex(name);
     if (index < 0)
-    {
-        Log::Warn("PlayerController: vtable offset '{}' not found.", name);
         return;
-    }
     CallVirtual<void>(index, target, args...);
 }
 

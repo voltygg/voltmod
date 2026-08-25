@@ -4,16 +4,27 @@
 #include <VoltMod/Core/Paths.hpp>
 #include <VoltMod/Core/StringUtils.hpp>
 #include <VoltMod/Sdk/Engine/GameData.hpp>
+#include <VoltMod/Sdk/Engine/OffsetCheck.hpp>
 #include <filesystem>
 #include <format>
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace VoltMod::Sdk
 {
 using namespace VoltMod::Core;
+
+namespace
+{
+/** Every rejected or missing offset lookup warns through here, so there is one message shape. */
+void WarnOffset(std::string_view name, std::string_view reason, int value, bool valuePresent)
+{
+    Log::Warn("GameData: offset '{}' {} ({}).", name, reason, valuePresent ? std::to_string(value) : std::string("-"));
+}
+}  // namespace
 
 bool GameData::Load(const std::string& path)
 {
@@ -71,10 +82,47 @@ bool GameData::Load(const std::string& path)
     }
 }
 
-int GameData::GetOffset(const std::string& name) const
+int GameData::GetVtableIndex(std::string_view name, int maxIndex) const
 {
-    auto it = _offsets.find(name);
-    return it != _offsets.end() ? it->second : -1;
+    auto it = _offsets.find(std::string(name));
+    if (it == _offsets.end())
+    {
+        WarnOffset(name, "missing", 0, false);
+        return -1;
+    }
+
+    if (!IsPlausibleVtableIndex(it->second, maxIndex))
+    {
+        WarnOffset(name, std::format("exceeds {}", maxIndex), it->second, true);
+        return -1;
+    }
+
+    return it->second;
+}
+
+int GameData::GetByteOffset(std::string_view name, int maxBytes, int alignment) const
+{
+    auto it = _offsets.find(std::string(name));
+    if (it == _offsets.end())
+    {
+        WarnOffset(name, "missing", 0, false);
+        return -1;
+    }
+
+    const int value = it->second;
+    if (value < 0 || value > maxBytes)
+    {
+        WarnOffset(name, std::format("exceeds {}", maxBytes), value, true);
+        return -1;
+    }
+
+    if (!IsPlausibleByteOffset(value, maxBytes, alignment))
+    {
+        WarnOffset(name, std::format("not aligned to {}", alignment), value, true);
+        return -1;
+    }
+
+    return value;
 }
 
 void* GameData::FindSignature(const std::string& name) const

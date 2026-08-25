@@ -128,7 +128,7 @@ void CollectHiddenPlayer(Runtime& rt, int slot, bool pawnHidden, bool controller
 
 bool TransmitFilterService::Initialize()
 {
-    _slotOffset = VoltMod::Detail::Rt().GameData.GetOffset("CheckTransmitPlayerSlot");
+    _slotOffset = VoltMod::Detail::Rt().GameData.GetByteOffset("CheckTransmitPlayerSlot");
     return _slotOffset >= 0;
 }
 

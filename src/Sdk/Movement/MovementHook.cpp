@@ -30,12 +30,9 @@ bool MovementHook::Install()
     if (_installed)
         return true;
 
-    int index = VoltMod::Detail::Rt().GameData.GetOffset("RunCommand");
+    int index = VoltMod::Detail::Rt().GameData.GetVtableIndex("RunCommand");
     if (index < 0)
-    {
-        Log::Warn("MovementHook: gamedata offset 'RunCommand' missing; hook disabled.");
         return false;
-    }
 
     // Any live instance works: a VP hook binds to the shared vtable, covering all players, where a
     // plain manual hook would only fire for the one registered instance.
@@ -45,21 +42,16 @@ bool MovementHook::Install()
     if (!instance)
         return false;
 
-    _pbOffset = VoltMod::Detail::Rt().GameData.GetOffset("UserCmdPB");
+    _pbOffset = VoltMod::Detail::Rt().GameData.GetByteOffset("UserCmdPB", MaxUserCmdOffset, alignof(void*));
     if (_pbOffset < 0)
-        Log::Warn("MovementHook: gamedata offset 'UserCmdPB' missing; cmd listeners get Valid=false views.");
+        Log::Warn("MovementHook: no usable 'UserCmdPB' offset; cmd listeners get Valid=false views.");
 
-    // Read as a raw byte offset into the CUserCmd object, so an implausible value is an
-    // out-of-bounds read rather than a bad number: bound it the way the other raw-offset reads do.
-    _cmdNumberOffset = VoltMod::Detail::Rt().GameData.GetOffset("UserCmdNumber");
-    if (_cmdNumberOffset < 0 || _cmdNumberOffset > MaxUserCmdOffset || _cmdNumberOffset % alignof(int32_t) != 0)
-    {
+    _cmdNumberOffset =
+        VoltMod::Detail::Rt().GameData.GetByteOffset("UserCmdNumber", MaxUserCmdOffset, alignof(int32_t));
+    if (_cmdNumberOffset < 0)
         Log::Warn(
-            "MovementHook: gamedata offset 'UserCmdNumber' missing or implausible ({}); falling back to the "
-            "protobuf's legacy_command_number, which the live client leaves at 0.",
-            _cmdNumberOffset);
-        _cmdNumberOffset = -1;
-    }
+            "MovementHook: no usable 'UserCmdNumber' offset; falling back to the protobuf's "
+            "legacy_command_number, which the live client leaves at 0.");
 
     _movementServices.fill(nullptr);
 

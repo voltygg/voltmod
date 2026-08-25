@@ -49,13 +49,22 @@ missing and ambiguous signatures by name; per-entry results are available from
 The `"offsets"` block of `signatures.jsonc` holds per-platform integers rather than patterns, resolved by name and with no scanning involved:
 
 ```cpp
-int index = runtime.GameData.GetOffset("RunCommand");   // negative when the entry is missing
+int index = runtime.GameData.GetVtableIndex("RunCommand");           // negative when missing or out of range
+int offset = runtime.GameData.GetByteOffset("UserCmdPB", MaxUserCmdOffset, alignof(void*));
 ```
 
 Two kinds live in there, and they fail differently:
 
-- Vtable indexes (`RunCommand`, `Teleport`, `ProcessRespondCvarValue`, ...). A wrong index dispatches into whatever vfunc sits at that slot, which is a crash, not a wrong answer.
-- Byte offsets into an undeclared layout (`UserCmdPB`, `ServerSideClientSlot`, `CheckTransmitPlayerSlot`, ...), fields the SDK headers do not declare, so the framework reaches them by distance. A *missing* one degrades cleanly; a *stale* one reads unrelated memory and looks like plausible data.
+- Vtable indexes (`RunCommand`, `Teleport`, `ProcessRespondCvarValue`, ...), read with `GetVtableIndex`. A wrong index dispatches into whatever vfunc sits at that slot, which is a crash, not a wrong answer.
+- Byte offsets into an undeclared layout (`UserCmdPB`, `ServerSideClientSlot`, `CheckTransmitPlayerSlot`, ...), read with `GetByteOffset`. These are fields the SDK headers do not declare, so the framework reaches them by distance. A *missing* one degrades cleanly; a *stale* one reads unrelated memory and looks like plausible data.
+
+Both accessors reject the entry and warn instead of returning it: every vtable index above 500
+(`MaxVtableIndex`) and every byte offset above 4096 (`MaxByteOffset`) or not a multiple of the
+caller's alignment is rejected at lookup, so the owning load stage degrades instead of dispatching
+into the wrong vfunc or reading unrelated memory. A caller can pass a tighter ceiling, as
+`MovementHook` does for `UserCmdPB`/`UserCmdNumber` with `MaxUserCmdOffset`. This catches invalid
+edits, but not a stale value that still falls within the accepted range - game updates still require
+verification.
 
 Everything here **drifts with CS2 updates**. Re-verify every entry after a game
 update against the upstream projects named in its comments (SwiftlyS2, CS2Fixes,
@@ -67,12 +76,10 @@ and CS2AC). The entries surfaced by anti-cheat are:
 | `UserCmdPB` | `MovementHook` cmd listeners | Missing: `Valid=false` views. Stale: garbage viewangles/buttons |
 | `UserCmdNumber` | `UserCmdView::CommandNumber` | Missing: falls back to the protobuf's `legacy_command_number`, which the live client leaves at 0. Stale: a counter that never increments by 1 |
 | `Teleport` | @ref VoltMod::Sdk::TeleportTracker | `Enable()` returns false when missing |
-| `ProcessRespondCvarValue` | @ref VoltMod::Sdk::ClientCvarService | Sanity-bounded at init (index > 500 rejected), so the load stage degrades instead of crashing |
-| `ServerSideClientSlot` | `ClientCvarService` | Sanity-bounded too (offset > 4096 or misaligned rejected); unchecked it would attribute a client's answer to the wrong player |
+| `ProcessRespondCvarValue` | @ref VoltMod::Sdk::ClientCvarService | Rejected at lookup, so the load stage degrades instead of crashing |
+| `ServerSideClientSlot` | `ClientCvarService` | Rejected at lookup too; unchecked it would attribute a client's answer to the wrong player |
 
-`ClientCvarService::Initialize()` rejects implausible values and leaves the
-service inert. This catches invalid edits, but not a stale value that still falls
-within the accepted range; game updates still require verification.
+`ClientCvarService::Initialize()` leaves the service inert when either lookup fails.
 
 ## Signature scanning
 

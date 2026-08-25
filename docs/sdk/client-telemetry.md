@@ -78,7 +78,7 @@ The service is a **degradable load stage** (`ClientCvars`). It needs two gamedat
 
 | Offset | What it is | If it drifts |
 |--------|------------|--------------|
-| `ProcessRespondCvarValue` | vtable index of the response handler | Sanity-bounded at init, so the stage degrades instead of hooking an unrelated vfunc |
-| `ServerSideClientSlot` | byte offset of the player slot inside `CServerSideClient` | Sanity-bounded too; unchecked it would attribute answers to the wrong player |
+| `ProcessRespondCvarValue` | vtable index of the response handler | Rejected at lookup, so the stage degrades instead of hooking an unrelated vfunc |
+| `ServerSideClientSlot` | byte offset of the player slot inside `CServerSideClient` | Rejected at lookup too; unchecked it would attribute answers to the wrong player |
 
 Both drift with engine updates; see @ref sdk_gamedata_guide. When any part of the setup fails the framework logs one warning, the load continues, @ref VoltMod::Sdk::ClientCvarService::Available "Available()" stays false, and every `Query()` returns false. Check `Available()` once at load rather than treating each `false` from `Query()` as a per-call failure.

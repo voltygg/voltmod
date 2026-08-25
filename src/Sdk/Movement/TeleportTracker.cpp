@@ -32,12 +32,9 @@ bool TeleportTracker::Enable()
     if (_enabled)
         return true;
 
-    int index = VoltMod::Detail::Rt().GameData.GetOffset("Teleport");
+    int index = VoltMod::Detail::Rt().GameData.GetVtableIndex("Teleport");
     if (index < 0)
-    {
-        Log::Warn("TeleportTracker: gamedata offset 'Teleport' missing; tracking disabled.");
         return false;
-    }
 
     SH_MANUALHOOK_RECONFIGURE(VoltMod_EntityTeleport, index, 0, 0);
     _enabled = true;

@@ -57,7 +57,8 @@ CGameEntitySystem* EntitySystem::ReadEntitySystemPointer()
         return nullptr;
 
     // "GameEntitySystem" = byte offset of the CGameEntitySystem* cached inside CGameResourceService.
-    int offsetGameEntitySystem = VoltMod::Detail::Rt().GameData.GetOffset("GameEntitySystem");
+    int offsetGameEntitySystem =
+        VoltMod::Detail::Rt().GameData.GetByteOffset("GameEntitySystem", MaxByteOffset, alignof(void*));
     if (offsetGameEntitySystem < 0)
         return nullptr;
 
@@ -74,13 +75,10 @@ bool EntitySystem::Initialize()
         return false;
     }
 
-    int offsetGameEntitySystem = VoltMod::Detail::Rt().GameData.GetOffset("GameEntitySystem");
-
+    int offsetGameEntitySystem =
+        VoltMod::Detail::Rt().GameData.GetByteOffset("GameEntitySystem", MaxByteOffset, alignof(void*));
     if (offsetGameEntitySystem < 0)
-    {
-        Log::Error("GameEntitySystem offset not found in gamedata.");
         return false;
-    }
     Log::Info("Gamedata loaded (entity system offset: {}).", offsetGameEntitySystem);
 
     interfaces.EntitySystem = ReadEntitySystemPointer();

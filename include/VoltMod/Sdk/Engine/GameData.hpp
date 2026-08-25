@@ -1,10 +1,16 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 namespace VoltMod::Sdk
 {
+
+/** Ceilings far above every real value (today: index 390, offset 576) that still catch drifted or hand-edited gamedata.
+ */
+inline constexpr int MaxVtableIndex = 500;
+inline constexpr int MaxByteOffset = 4096;
 
 /**
  * @brief Centralized gamedata manager for platform-specific signatures and offsets.
@@ -27,7 +33,13 @@ public:
     GameData() = default;
 
     bool Load(const std::string& path);
-    int GetOffset(const std::string& name) const;
+
+    /** Vtable index for @p name, or -1 when missing or above @p maxIndex. Warns once either way. */
+    int GetVtableIndex(std::string_view name, int maxIndex = MaxVtableIndex) const;
+    /** Byte offset for @p name, or -1 when missing, above @p maxBytes, or not a multiple of @p alignment. Warns once
+     * either way. */
+    int GetByteOffset(std::string_view name, int maxBytes = MaxByteOffset, int alignment = 1) const;
+
     void* FindSignature(const std::string& name) const;
     void* ResolveSignature(const std::string& name) const;
 
