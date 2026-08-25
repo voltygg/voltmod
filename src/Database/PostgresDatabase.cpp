@@ -1,8 +1,6 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Database/PostgresDatabase.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
-#include <VoltMod/Runtime.hpp>
 #include <format>
 
 namespace VoltMod::Database
@@ -41,8 +39,7 @@ bool PostgresDatabase::Start(const PostgresConfig& config)
         return false;
     }
 
-    if (auto* core = VoltMod::Detail::RtOrNull())
-        _completionPump = core->Scheduler.EveryFrame([this] { DispatchCompletions(); });
+    _completionPump = _scheduler.EveryFrame([this] { DispatchCompletions(); });
     return true;
 }
 

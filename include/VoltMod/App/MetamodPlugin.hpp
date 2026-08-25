@@ -148,8 +148,10 @@ private:
     /** Release plugin state, standard hooks, and runtime in that order. */
     void Shutdown();
 
-    std::vector<Core::Subscription> _standardHooks;
+    // Runtime first so implicit destruction also removes the hooks before the services they
+    // call into go away - the same order Shutdown() enforces explicitly.
     std::unique_ptr<VoltMod::Runtime> _runtime;
+    std::vector<Core::Subscription> _standardHooks;
     PluginInfo _info;  // cached copy of Info() captured at load; backs the ISmmPlugin getters
 };
 

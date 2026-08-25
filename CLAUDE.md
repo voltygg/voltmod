@@ -80,8 +80,20 @@ in `OnUnload`.
 
 The runtime is a flat service container. Services are accessed directly, such
 as `runtime.Messages` and `runtime.Players`, so moving a service between source
-modules does not rename the consumer API. Framework-only call sites that cannot
-receive a reference may use `VoltMod::Detail::Rt()`; consumer plugins must not.
+modules does not rename the consumer API.
+
+There is no ambient accessor for the runtime; everything is injected:
+
+- `Sdk`, `Core`, `Http`, and `Database` never name `Runtime`. They take the
+  sibling services they use. `modgraph` fails a `.cpp` in those modules that
+  includes `VoltMod/Runtime.hpp`.
+- `Players`, `Commands`, `Menu`, and `App` may take `Runtime&`, or the narrowest
+  service that does the job.
+- Header templates plugins instantiate (`Flow<TState>`, `PerSlot<T>`) take one
+  service, so including them does not pull in the composition root.
+- A file-static is only for engine callbacks that carry no user data (set and
+  cleared by the service that owns it) or for process-wide sinks set once at
+  load, such as the logger and the base directory.
 
 Use these patterns throughout the framework:
 

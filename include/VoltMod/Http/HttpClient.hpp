@@ -24,6 +24,7 @@ class HttpClient
 public:
     /** @p scheduler must outlive the client; the pump unregisters in the destructor. */
     explicit HttpClient(Core::Scheduler& scheduler);
+    /** Runs @ref Stop, so a client that is merely destroyed still joins its workers. */
     ~HttpClient();
     HttpClient(const HttpClient&) = delete;
     HttpClient& operator=(const HttpClient&) = delete;

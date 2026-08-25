@@ -174,18 +174,23 @@ the layering.
 - **Database** is Core + libpqxx, compiled only under `VOLTMOD_ENABLE_POSTGRES`
 - **App** may reach all of them; it is the composition root
 
-`Detail/` is the one exemption: it holds the ambient pointer to the live `Runtime`. Only
-`App/` and `Database/` still read it, and both for the same reason - they run where no
-reference has been threaded yet: `App/` is the composition root that publishes the pointer,
-and the database layer's log sink is entered from a worker. Everything else takes what it
-uses through a constructor or a parameter. `Sdk/` services and value types (`PlayerController`,
-`GlowVision`, `PersistentCenterHtml`) take their siblings that way, and the free helpers
-reach their service through the controller they are handed or take it as a parameter
-(`EffectOps`, `PawnOps::Slap`). `Players/`, `Commands/` and `Menu/` do the same: the
-runtime-owned services (`CommandManager`, `MenuManager`, `ActionDispatcher`) take
-`Runtime&`, while the header-only templates and plain-data types plugins instantiate
-(`Flow<TState>`, `PerSlot<T>`, `MenuContext`, the `MenuPresets` builders) take the single
-narrowest service they need, so a consumer TU that includes one of those headers does not
-pull in the whole composition root. Where the engine calls back with no user data
-(`GameEntitySystem()`, the global convar change callback) a file-static set and cleared by
-the owning service stands in. Plugin code never needs any of it.
+There is no ambient accessor for the runtime. Everything takes what it uses through a
+constructor or a parameter, and `modgraph` enforces that too: a `.cpp` under `Sdk/`, `Core/`,
+`Http/` or `Database/` may not include `VoltMod/Runtime.hpp` at all.
+
+- `Sdk/`, `Core/`, `Http/` and `Database/` never name `Runtime`. Services and value types
+  (`PlayerController`, `GlowVision`, `PersistentCenterHtml`, `HttpClient`, `PostgresDatabase`)
+  take the sibling services they use; the free helpers reach their service through the
+  controller they are handed or take it as a parameter (`EffectOps`, `PawnOps::Slap`).
+- `Players/`, `Commands/`, `Menu/` and `App/` may take `Runtime&`, and the runtime-owned
+  services do (`CommandManager`, `MenuManager`, `ActionDispatcher`). The header-only templates
+  and plain-data types plugins instantiate (`Flow<TState>`, `PerSlot<T>`, `MenuContext`, the
+  `MenuPresets` builders) still take the single narrowest service they need, so a consumer TU
+  that includes one of those headers does not pull in the whole composition root.
+- A file-static stands in only where no reference can be threaded, set and cleared by the
+  code that owns it. Two back engine callbacks that carry no user data (the entity system
+  behind `GameEntitySystem()`, the sink for the global convar change callback); the rest are
+  process-wide sinks set once at load (the logger behind `Core::Log`, which worker threads
+  write to as well, and the base directory behind `Core::AddonFile`).
+
+Plugin code never needs any of it: `OnLoad` hands it the runtime.

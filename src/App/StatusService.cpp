@@ -1,6 +1,4 @@
 #include <VoltMod/App/StatusService.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
-#include <VoltMod/Runtime.hpp>
 #include <format>
 #include <string_view>
 #include <tier0/dbg.h>
@@ -24,7 +22,7 @@ void StatusService::RegisterSection(std::string name, Provider provider)
 
 bool StatusService::IsHealthy() const
 {
-    if (!VoltMod::Detail::Rt().LoadReport.FirstFailure().empty())
+    if (!_loadReport.FirstFailure().empty())
         return false;
     return !_healthy || _healthy();
 }
@@ -64,15 +62,15 @@ std::string StatusService::BuildText() const
 void StatusService::InstallCommand(const char* name, const char* helpText, HealthCheck healthy)
 {
     _healthy = std::move(healthy);
-    _command = std::make_unique<Sdk::ServerCommand>(name, helpText, [name](const CCommand& args) {
-        auto& status = VoltMod::Detail::Rt().Status;
+    // Capturing `this` is safe: the command is a member, so it unregisters before the service goes.
+    _command = std::make_unique<Sdk::ServerCommand>(name, helpText, [this, name](const CCommand& args) {
         if (args.ArgC() > 1 && std::string_view(args.Arg(1)) == "json")
         {
             // Single marker-prefixed line so RCON tooling can find it amid console noise.
-            Msg("STATUS_JSON %s\n", status.BuildJson().dump().c_str());
+            Msg("STATUS_JSON %s\n", BuildJson().dump().c_str());
             return;
         }
-        Msg("=== %s (healthy: %s) ===\n%s\n", name, status.IsHealthy() ? "yes" : "no", status.BuildText().c_str());
+        Msg("=== %s (healthy: %s) ===\n%s\n", name, IsHealthy() ? "yes" : "no", BuildText().c_str());
     });
 }
 

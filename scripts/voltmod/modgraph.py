@@ -16,9 +16,6 @@ ALLOWED: dict[str, set[str]] = {
     "App": {"Core", "Http", "Sdk", "Players", "Commands", "Menu", "Database"},
 }
 
-# Private composition bridge; every module may use it.
-EXEMPT = {"Detail"}
-
 INCLUDE = re.compile(r'#\s*include\s*[<"]VoltMod/([A-Za-z0-9_]+)/([^>"]+)[>"]')
 
 # Root headers have no module directory and need a separate check.
@@ -26,6 +23,11 @@ ROOT_HEADERS = re.compile(r'#\s*include\s*[<"]VoltMod/(Runtime|Api)\.hpp[>"]')
 
 # App is the composition root, so its headers may include it.
 ROOT_HEADER_EXEMPT = {"App"}
+
+# Modules whose sources may name the runtime. App composes it; the three service modules that
+# dispatch through several siblings at once take it by reference. Everything else is injected
+# with the sibling services it actually uses.
+ROOT_SOURCE_EXEMPT = {"App", "Players", "Commands", "Menu"}
 
 
 def scan(root: Path):
@@ -56,7 +58,25 @@ def root_in_headers(root: Path, modules):
     for path in (root / "include/VoltMod").rglob("*.hpp"):
         parts = path.relative_to(root / "include/VoltMod").parts
         owner = parts[0] if len(parts) > 1 else None
-        if owner not in modules or owner in ROOT_HEADER_EXEMPT or owner in EXEMPT:
+        if owner not in modules or owner in ROOT_HEADER_EXEMPT:
+            continue
+        hit = ROOT_HEADERS.search(path.read_text(encoding="utf-8", errors="replace"))
+        if hit:
+            found.append((path.relative_to(root).as_posix(), hit.group(1)))
+    return sorted(found)
+
+
+def root_in_sources(root: Path, modules):
+    """Sources below the composition root that include VoltMod/Runtime.hpp or Api.hpp.
+
+    Api.hpp pulls Runtime.hpp in, so both count. src/Runtime.cpp itself has no module
+    directory and is skipped like any other root file.
+    """
+    found = []
+    for path in (root / "src").rglob("*.cpp"):
+        parts = path.relative_to(root / "src").parts
+        owner = parts[0] if len(parts) > 1 else None
+        if owner not in modules or owner in ROOT_SOURCE_EXEMPT:
             continue
         hit = ROOT_HEADERS.search(path.read_text(encoding="utf-8", errors="replace"))
         if hit:
@@ -66,18 +86,15 @@ def root_in_headers(root: Path, modules):
 
 def undeclared(modules):
     """Modules on disk that ALLOWED says nothing about, and vice versa."""
-    known = set(ALLOWED) | EXEMPT
-    return sorted(set(modules) - known), sorted(known - set(modules) - EXEMPT)
+    known = set(ALLOWED)
+    return sorted(set(modules) - known), sorted(known - set(modules))
 
 
 def violations(edges):
-    """Every (owner, dep) the map forbids, ignoring the exempt modules."""
+    """Every (owner, dep) the map forbids."""
     found = []
     for owner, deps in sorted(edges.items()):
-        if owner in EXEMPT:
-            continue
-        permitted = ALLOWED.get(owner, set()) | EXEMPT
-        found.extend((owner, dep) for dep in sorted(deps - permitted))
+        found.extend((owner, dep) for dep in sorted(deps - ALLOWED.get(owner, set())))
     return found
 
 
@@ -102,7 +119,8 @@ def check(root: Path) -> int:
 
     found = violations(edges)
     rooted = root_in_headers(root, modules)
-    if not found and not rooted:
+    sourced = root_in_sources(root, modules)
+    if not found and not rooted and not sourced:
         print("\nLayering holds.")
         return 0
 
@@ -116,7 +134,15 @@ def check(root: Path) -> int:
         print(f"\n{len(rooted)} header(s) including the composition root:")
         for rel, header in rooted:
             print(f"  {rel} -> VoltMod/{header}.hpp")
-        print("      A .cpp may include the root; a header may not - it would pull every")
-        print("      service into each consumer. Forward-declare Runtime (or take the one service")
-        print("      you need) in the header and include the root from the .cpp.")
+        print("      A .cpp in App, Players, Commands or Menu may include the root; a header may")
+        print("      not - it would pull every service into each consumer. Forward-declare Runtime")
+        print("      (or take the one service you need) in the header and include the root from")
+        print("      the .cpp.")
+
+    if sourced:
+        print(f"\n{len(sourced)} source(s) naming the composition root:")
+        for rel, header in sourced:
+            print(f"  {rel} -> VoltMod/{header}.hpp")
+        print(f"      Only {' '.join(sorted(ROOT_SOURCE_EXEMPT))} may reach the runtime. Take the")
+        print("      sibling services this file uses through its constructor instead.")
     return 1

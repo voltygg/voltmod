@@ -94,8 +94,9 @@ public:
     Core::LoadReport LoadReport;
     /** "This slot changed hands", raised by the roster and consumed by per-slot caches. */
     Core::SlotEvents Slots;
-    /** Frame pump, timers and delayed work. Declared after Slots: a pending timer may own a slot
-     *  subscription (PawnOps::Slap), so the registry must still exist when the timers go. */
+    /** Frame pump, timers and delayed work. Pending timers are destroyed with it, never run, so
+     *  whatever a timer's captured state owns may only point at members declared above this
+     *  line - today that is PawnOps::Slap's slot subscription, which is why Slots comes first. */
     Core::Scheduler Scheduler;
     /** Map the server is running, captured from StartupServer. Empty after a late load
      *  until the next map change, since the hook has already fired by then. */
@@ -152,10 +153,12 @@ public:
     // Composition-root services.
     /** Interfaces offered to, and borrowed from, other plugins. */
     App::ServiceExchange Exchange;
-    /** This plugin's manifest, published to peers. Filled by LoadStandardConfig. */
-    App::PluginIdentity Identity;
-    /** Status sections for diagnostics commands; framework sections registered by Start. */
-    App::StatusService Status;
+    /** This plugin's manifest, published to peers. Filled by LoadStandardConfig.
+     *  Depends on: Exchange, Scheduler. Withdraws in its dtor, while Exchange is still alive. */
+    App::PluginIdentity Identity{Exchange, Scheduler};
+    /** Status sections for diagnostics commands; framework sections registered by Start.
+     *  Depends on: LoadReport. */
+    App::StatusService Status{LoadReport};
     /** Registers its own per-frame input pump; both it and its slot listener stop in its dtor.
      *  Takes the whole runtime, so its constructor may only touch members declared above it -
      *  Scheduler and Slots, which is exactly what it subscribes to. */

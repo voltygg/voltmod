@@ -1,5 +1,6 @@
 #pragma once
 
+#include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Database/DbResult.hpp>
 #include <atomic>
@@ -59,7 +60,8 @@ class PostgresDatabase
 public:
     using ResultCallback = std::move_only_function<void(DbResult<pqxx::result>)>;
 
-    PostgresDatabase() = default;
+    /** @p scheduler drives the completion pump and must outlive this object. */
+    explicit PostgresDatabase(Core::Scheduler& scheduler) : _scheduler(scheduler) {}
     ~PostgresDatabase();
     PostgresDatabase(const PostgresDatabase&) = delete;
     PostgresDatabase& operator=(const PostgresDatabase&) = delete;
@@ -127,6 +129,7 @@ private:
     void DropConnection();
     void FinishJob(Job& job, DbResult<pqxx::result> result, bool rawOk);
 
+    Core::Scheduler& _scheduler;
     std::string _connectionString;
 
     std::mutex _queueMutex;

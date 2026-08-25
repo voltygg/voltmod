@@ -2,7 +2,6 @@
 #include <VoltMod/Core/HookMacros.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/StringUtils.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Runtime.hpp>
@@ -53,10 +52,8 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
     _lateLoad = late;
     _info = Info();  // capture once; the ISmmPlugin getters read this copy
 
-    // Install the ambient pointer before Start; framework callbacks need it.
     // Unload destroys this runtime so reload starts clean.
     _runtime = std::make_unique<Runtime>();
-    Detail::SetRt(_runtime.get());
 
     const LoadContext context{.Ismm = ismm, .Error = error, .MaxLen = maxlen, .Late = late, .LogPrefix = _info.LogTag};
     if (!_runtime->Start(context))
@@ -64,7 +61,6 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
         if (!_runtime->LoadReport.Stages().empty())
             Log::Info("{}", _runtime->LoadReport.Summary());
         _runtime.reset();
-        Detail::SetRt(nullptr);
         return false;
     }
 
@@ -112,8 +108,7 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
 
 // Order matters: the plugin drops its own graph first, while every framework service it holds a
 // reference or subscription to is still alive; then the standard hooks come off; only then the
-// runtime, whose destructor is the framework's shutdown. The ambient pointer is cleared after that
-// destructor has run, because services that still reach the runtime through it shut down there.
+// runtime, whose destructor is the framework's shutdown.
 //
 // Failed loads use the same path so no hook can outlive the runtime.
 void MetamodPlugin::Shutdown()
@@ -121,7 +116,6 @@ void MetamodPlugin::Shutdown()
     OnUnload();
     _standardHooks.clear();
     _runtime.reset();
-    Detail::SetRt(nullptr);
 }
 
 bool MetamodPlugin::Unload(char* error, size_t maxlen)

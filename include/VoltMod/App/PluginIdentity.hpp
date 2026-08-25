@@ -1,6 +1,8 @@
 #pragma once
 
+#include <VoltMod/App/ServiceExchange.hpp>
 #include <VoltMod/Core/PluginManifest.hpp>
+#include <VoltMod/Core/Scheduler.hpp>
 #include <string>
 
 namespace VoltMod::App
@@ -9,7 +11,8 @@ namespace VoltMod::App
 /**
  * @brief Holds this plugin's manifest, announces it to peers, reports unmet dependencies.
  *
- * Owned by Services, so the published pointer lives exactly one load cycle.
+ * Owned by the runtime, so the published pointer lives exactly one load cycle: the destructor
+ * withdraws it while the ServiceExchange it was published in is still alive.
  *
  * The dependency report is advisory and runs on the first game frame, not at OnLoad: .vdf
  * load order is Metamod's, so during load a peer that comes later looks exactly like one
@@ -19,9 +22,16 @@ namespace VoltMod::App
 class PluginIdentity final : public Core::IPluginIdentity
 {
 public:
+    /** @p exchange and @p scheduler must outlive this object; both are declared above it. */
+    PluginIdentity(ServiceExchange& exchange, Core::Scheduler& scheduler) : _exchange(exchange), _scheduler(scheduler)
+    {}
+    ~PluginIdentity() { Withdraw(); }
+    PluginIdentity(const PluginIdentity&) = delete;
+    PluginIdentity& operator=(const PluginIdentity&) = delete;
+
     /** Take @p manifest, publish it, and queue the dependency report. */
     void Adopt(Core::PluginManifest manifest);
-    /** Stop answering peer lookups. Called from Shutdown. */
+    /** Stop answering peer lookups. Idempotent; the destructor calls it. */
     void Withdraw();
 
     /** What this plugin declared; empty when it ships no manifest. */
@@ -30,6 +40,8 @@ public:
     const char* PluginVersion() const override { return _manifest.Version.c_str(); }
 
 private:
+    ServiceExchange& _exchange;
+    Core::Scheduler& _scheduler;
     Core::PluginManifest _manifest;
     std::string _key;
 };

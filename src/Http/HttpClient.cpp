@@ -91,7 +91,12 @@ HttpClient::HttpClient(Core::Scheduler& scheduler)
     : _impl(std::make_unique<Impl>()), _pump(scheduler.EveryFrame([this] { DispatchCompletions(); }))
 {}
 
-HttpClient::~HttpClient() = default;
+// Self-cleaning: a client destroyed without an explicit Stop() still joins its workers rather than
+// leaving them pointing into a DLL that is about to be unmapped. Stop() is idempotent.
+HttpClient::~HttpClient()
+{
+    Stop();
+}
 
 void HttpClient::Start() {}
 

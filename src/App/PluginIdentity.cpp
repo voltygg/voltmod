@@ -2,7 +2,6 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Paths.hpp>
 #include <VoltMod/Core/PluginManifest.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <format>
 #include <fstream>
@@ -15,10 +14,10 @@ namespace VoltMod::App
 
 namespace
 {
-void ReportDependency(const Core::PluginDependency& dependency)
+void ReportDependency(ServiceExchange& exchange, const Core::PluginDependency& dependency)
 {
     const std::string key = Core::IdentityKey(dependency.Name);
-    auto* peer = static_cast<Core::IPluginIdentity*>(VoltMod::Detail::Rt().Exchange.GetNamed(key.c_str()));
+    auto* peer = static_cast<Core::IPluginIdentity*>(exchange.GetNamed(key.c_str()));
 
     if (peer == nullptr)
     {
@@ -48,15 +47,15 @@ void PluginIdentity::Adopt(Core::PluginManifest manifest)
 {
     _manifest = std::move(manifest);
     _key = Core::IdentityKey(_manifest.Name);
-    VoltMod::Detail::Rt().Exchange.PublishNamed(_key.c_str(), static_cast<Core::IPluginIdentity*>(this));
+    _exchange.PublishNamed(_key.c_str(), static_cast<Core::IPluginIdentity*>(this));
 
     if (_manifest.Dependencies.empty())
         return;
 
     // First frame, not OnLoad - see PluginIdentity's comment.
-    VoltMod::Detail::Rt().Scheduler.NextTick([this] {
+    _scheduler.NextTick([this] {
         for (const auto& dependency : _manifest.Dependencies)
-            ReportDependency(dependency);
+            ReportDependency(_exchange, dependency);
     });
 }
 
@@ -64,7 +63,7 @@ void PluginIdentity::Withdraw()
 {
     if (_key.empty())
         return;
-    VoltMod::Detail::Rt().Exchange.UnpublishNamed(_key.c_str());
+    _exchange.UnpublishNamed(_key.c_str());
     _key.clear();
 }
 

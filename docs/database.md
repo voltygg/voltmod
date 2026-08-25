@@ -25,6 +25,8 @@ default_options = {"voltmod/*:with_postgres": True}
 
 ```cpp
 // Db is a PostgresDatabase member of your App, declared above everything that uses it.
+// It takes the scheduler that drives its completion pump:
+//     VoltMod::PostgresDatabase Db{Runtime.Scheduler};
 if (!Db.Start(Config.Get().database))
 {
     Log::Warn("Database unavailable, running degraded.");

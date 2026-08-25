@@ -4,10 +4,8 @@
 #include <ISmmAPI.h>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Paths.hpp>
-#include <VoltMod/Detail/Runtime.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <chrono>
-#include <cstdlib>
 #include <eiface.h>
 #include <engine/igameeventsystem.h>
 #include <format>
@@ -26,53 +24,20 @@ namespace
 {
 constexpr const char* DefaultGameDataPath = "addons/voltmod/gamedata/signatures.jsonc";
 Core::ConsoleLogger g_consoleLogger;
-Runtime* g_active = nullptr;
 }  // namespace
-
-namespace Detail
-{
-
-void SetRt(Runtime* runtime)
-{
-    g_active = runtime;
-}
-
-Runtime& Rt()
-{
-    if (!g_active)
-    {
-        // Release builds would otherwise take a null dereference into a Metamod crash dump
-        // with no context. Name the mistake instead: this is always a lifetime bug.
-        Core::Log::Error("VoltMod::Detail::Rt() called with no live Runtime (outside Load/Unload).");
-        std::abort();
-    }
-    return *g_active;
-}
-
-Runtime* RtOrNull()
-{
-    return g_active;
-}
-
-}  // namespace Detail
 
 // Every other service is wired by its default member initializer in Runtime.hpp, where the
 // dependency order is visible. _schema is the exception: SchemaService is only forward-declared
 // there, so make_unique needs this translation unit.
 Runtime::Runtime() : _schema(std::make_unique<Sdk::SchemaService>(Interfaces)) {}
 
+// Every service tears itself down in its own destructor, in reverse declaration order. Only these
+// two cannot wait for that.
 Runtime::~Runtime()
 {
-    // First: peers must stop resolving our interfaces while their objects are still alive.
-    Identity.Withdraw();
-    Precache.Shutdown();  // the engine must stop referencing our vtables
-    ClientCvars.Shutdown();
-    ConVars.Shutdown();
-    Events.RemoveAllListeners();
-    Http.Stop();  // drains in-flight requests before their completion targets go away
-    Scheduler.CancelAll();
-    // The workers have joined by now; their last lines are still queued and OnGameFrame will
-    // not run again.
+    // Both must precede member destruction: the worker threads' final log lines are queued for
+    // the game thread, and OnGameFrame never runs again once the hooks are gone.
+    Http.Stop();
     Core::DrainDeferredLogs();
 }
 

@@ -53,7 +53,7 @@ struct App
 
     VoltMod::Runtime& Runtime;
     ConfigManager Config;
-    VoltMod::PostgresDatabase Db;
+    VoltMod::PostgresDatabase Db{Runtime.Scheduler};
     AdminManager Admins{Db, Config};
 };
 ```
