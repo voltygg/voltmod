@@ -1,3 +1,5 @@
+#include "Sdk/Internal/VtableLookup.hpp"
+
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/MetamodGlobals.hpp>
 #include <VoltMod/Core/Slot.hpp>
@@ -18,12 +20,22 @@ using namespace VoltMod::Core;
 
 // void* return/param stand in for the real CPlayer_MovementServices::RunCommand(CUserCmd*)
 // signature - a pre/post observer never touches either. The vtable index is reconfigured
-// from gamedata at install time.
+// from gamedata at install time. Bound to the class vtable (DVP hook), so it fires for every
+// player without needing a live instance to bind to.
 SH_DECL_MANUALHOOK1(VoltMod_MovementRunCommand, 0, 0, 0, void*, void*);
+
+namespace
+{
+
+// The server module owning the concrete movement-services class every player pawn instantiates.
+constexpr const char* ServerModule = "server";
+constexpr const char* MovementServicesClass = "CCSPlayer_MovementServices";
 
 // Far above the real value (8), only to catch drifted or hand-edited gamedata before it turns into
 // a read past the CUserCmd object.
 constexpr int MaxUserCmdOffset = 4096;
+
+}  // namespace
 
 bool MovementHook::Install()
 {
@@ -34,13 +46,24 @@ bool MovementHook::Install()
     if (index < 0)
         return false;
 
-    // Any live instance works: a VP hook binds to the shared vtable, covering all players, where a
-    // plain manual hook would only fire for the one registered instance.
-    void* instance = nullptr;
-    for (int slot = 0; slot < Core::MaxPlayers && !instance; ++slot)
-        instance = VoltMod::Detail::Rt().Entities.GetPlayerMovementServices(slot);
-    if (!instance)
-        return false;
+    void* vtable = FindVirtualTable(ServerModule, MovementServicesClass);
+    if (!vtable)
+        return false;  // FindVirtualTable already logged which step failed
+
+    // The class name drifts like the index does, and nothing else here would notice: a wrong name
+    // resolves to some other class's table and the hook then never fires. Whenever a pawn happens to
+    // be live, its own vptr is the ground truth to check against - but Install() must still work
+    // from OnLoad, with no player connected, so a mismatch only warns.
+    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+    {
+        void* instance = VoltMod::Detail::Rt().Entities.GetPlayerMovementServices(slot);
+        if (!instance)
+            continue;
+        if (*static_cast<void**>(instance) != vtable)
+            Log::Warn("MovementHook: a live pawn's movement services vtable differs from {}; wrong class name?",
+                      MovementServicesClass);
+        break;
+    }
 
     _pbOffset = VoltMod::Detail::Rt().GameData.GetByteOffset("UserCmdPB", MaxUserCmdOffset, alignof(void*));
     if (_pbOffset < 0)
@@ -56,10 +79,10 @@ bool MovementHook::Install()
     _movementServices.fill(nullptr);
 
     SH_MANUALHOOK_RECONFIGURE(VoltMod_MovementRunCommand, index, 0, 0);
-    _preHookId = SH_ADD_MANUALVPHOOK(VoltMod_MovementRunCommand, instance,
-                                     SH_MEMBER(this, &MovementHook::Hook_RunCommandPre), false);
-    _postHookId = SH_ADD_MANUALVPHOOK(VoltMod_MovementRunCommand, instance,
-                                      SH_MEMBER(this, &MovementHook::Hook_RunCommandPost), true);
+    _preHookId = SH_ADD_MANUALDVPHOOK(VoltMod_MovementRunCommand, vtable,
+                                      SH_MEMBER(this, &MovementHook::Hook_RunCommandPre), false);
+    _postHookId = SH_ADD_MANUALDVPHOOK(VoltMod_MovementRunCommand, vtable,
+                                       SH_MEMBER(this, &MovementHook::Hook_RunCommandPost), true);
     if (_preHookId == 0 || _postHookId == 0)
     {
         // Half a hook is worse than none: post would reuse a slot pre never resolved.
@@ -74,7 +97,7 @@ bool MovementHook::Install()
     }
 
     _installed = true;
-    Log::Info("Movement RunCommand hook installed (vtable index {}).", index);
+    Log::Info("Movement RunCommand hook installed on {} vtable (index {}).", MovementServicesClass, index);
     return true;
 }
 

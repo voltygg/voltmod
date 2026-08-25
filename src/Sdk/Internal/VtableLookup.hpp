@@ -13,9 +13,13 @@ namespace VoltMod::Sdk
  * and callers must degrade gracefully on nullptr:
  *
  * - Windows walks MSVC RTTI: the mangled type descriptor in `.data`, the complete object locator
- *   in `.rdata` that names it, then the vtable slot holding that locator.
+ *   in `.rdata` that names it, then the vtable slot holding that locator. Only the top-level,
+ *   non-template `class` decoration `.?AV<name>@@` is matched, so a `struct` (`.?AU`), a nested
+ *   class, or a namespaced one resolves to nullptr. The walk also accepts a locator only at
+ *   offset 0, i.e. the primary vtable, never a base's subobject table.
  * - Linux reads the module's on-disk ELF symbol tables for the Itanium ABI `_ZTV<len><name>`
- *   symbol. A fully stripped library has no such symbol and resolves to nullptr.
+ *   symbol, in `.symtab` or `.dynsym`. A fully stripped library has neither and resolves to
+ *   nullptr.
  */
 void* FindVirtualTable(const char* moduleName, const char* className);
 

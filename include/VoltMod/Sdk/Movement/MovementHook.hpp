@@ -12,12 +12,11 @@ namespace VoltMod::Sdk
 {
 
 /**
- * @brief Manual vtable hook on CPlayer_MovementServices::RunCommand - the per-tick,
+ * @brief Manual vtable hook on CCSPlayer_MovementServices::RunCommand - the per-tick,
  * per-player movement entry point (gamedata offset "RunCommand").
  *
- * Install() needs at least one live movement-services instance (i.e. a spawned pawn), so
- * call it lazily - e.g. from a PlayerSpawn listener - and treat false as "retry later".
- * SourceHook patches the shared vtable, so hooking one instance covers every player.
+ * The hook binds the class vtable, located by RTTI on Windows and by ELF symbol on Linux, so
+ * Install() works from OnLoad with no player connected and covers every player from then on.
  *
  * Pre/post callbacks fire around each player's RunCommand with the owning slot resolved
  * (-1 when unresolved). A pre/post pair brackets exactly that player's movement
@@ -35,7 +34,9 @@ namespace VoltMod::Sdk
  * hook still returns MRES_IGNORED. Intended for test/diagnostic input synthesis only.
  *
  * The vtable index is gamedata-maintained and drifts with CS2 updates; a wrong index
- * calls an unrelated vfunc and crashes, so re-verify it after every update.
+ * calls an unrelated vfunc and crashes, so re-verify it after every update. The class name
+ * drifts the same way - a wrong one silently resolves nothing, or another class's table -
+ * so both are checked at the same time; Install() warns when a live pawn disagrees with it.
  */
 class MovementHook
 {
@@ -49,7 +50,10 @@ public:
     MovementHook(const MovementHook&) = delete;
     MovementHook& operator=(const MovementHook&) = delete;
 
-    /** Install the vtable hook. False when the gamedata offset is missing or no pawn is live yet. */
+    /**
+     * Install the class-vtable hook; safe to call from OnLoad and a no-op once installed.
+     * False when the gamedata index or the movement-services class cannot be resolved.
+     */
     bool Install();
     void Remove();
 
@@ -101,7 +105,7 @@ private:
     int _pbOffset = -1;         // gamedata "UserCmdPB"; negative disables decoding
     int _cmdNumberOffset = -1;  // gamedata "UserCmdNumber"; negative falls back to legacy_command_number
     bool _installed = false;
-    int _preHookId = 0;  // SourceHook VP-hook ids; removal is by id, see Remove()
+    int _preHookId = 0;  // SourceHook DVP-hook ids; removal is by id, see Remove()
     int _postHookId = 0;
     int _preSlot = -1;  // slot resolved in the pre hook, reused by the immediately-following post
     /** Slot -> movement services, to keep the per-usercmd slot lookup off the entity system.

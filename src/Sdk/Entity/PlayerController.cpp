@@ -16,6 +16,7 @@
 #include <eiface.h>
 #include <entity2/entityinstance.h>
 #include <mathlib/vector.h>
+#include <utility>
 
 namespace VoltMod::Sdk
 {
@@ -28,14 +29,14 @@ namespace
 // when the offset is missing or `target` is null - collapses the lookup/guard/dispatch the
 // vtable wrappers all repeat.
 template <typename... Args>
-void CallVtableByName(void* target, const char* name, Args... args)
+void CallVtableByName(void* target, const char* name, Args&&... args)
 {
     if (!target)
         return;
     int index = VoltMod::Detail::Rt().GameData.GetVtableIndex(name);
     if (index < 0)
         return;
-    CallVirtual<void>(index, target, args...);
+    CallVirtual<void>(index, target, std::forward<Args>(args)...);
 }
 
 // Origin/rotation are not schema fields of CBaseEntity in CS2; they live on the

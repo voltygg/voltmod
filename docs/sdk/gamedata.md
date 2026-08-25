@@ -100,9 +100,11 @@ Wildcard bytes are written as `?` or `??` in pattern strings (see the signatures
 
 `src/Sdk/Internal/VtableLookup.hpp` (`FindVirtualTable(moduleName, className)`) is the second internal
 resolver, and like the scanner it is not in the public include tree. It exists because a *class
-vtable* hook (SourceHook's `SH_ADD_MANUALVPHOOK`) covers every instance at once, where a per-instance
-hook has to be re-bound as objects come and go. @ref VoltMod::Sdk::ClientCvarService needs that for
-`CServerSideClient`, whose instances the framework never owns.
+vtable* hook (SourceHook's `SH_ADD_MANUALDVPHOOK`) covers every instance at once, where a per-instance
+hook has to be re-bound as objects come and go. Two services need that:
+@ref VoltMod::Sdk::ClientCvarService for `CServerSideClient` in `engine2`, and
+@ref VoltMod::Sdk::MovementHook for `CCSPlayer_MovementServices` in `server` - neither owns the
+instances, and the movement hook must install before any pawn exists.
 
 It shares `FindModuleImage` with the scanner and resolves per platform:
 
@@ -111,9 +113,15 @@ It shares `FindModuleImage` with the scanner and resolves per platform:
 - Linux: reads `_ZTV<mangled>` from the ELF `.symtab`, falling back to `.dynsym`. A fully stripped
   module has neither and resolves to null.
 
-Both return `nullptr` on failure rather than a wrong answer, and callers must degrade: `ClientCvarService`
-logs and stays inert, leaving `Available()` false. The vtable *index* to hook still comes from the
-`"offsets"` block above. The lookup only finds the table, never the slot within it.
+The name has to be the top-level class name, exactly: the Windows decoration `.?AV<name>@@` matches
+only a non-template `class`, so a `struct` (`.?AU`), a nested class, or a namespaced one resolves to
+null there. Only a locator at offset 0 is accepted, so the result is always the class's primary
+vtable, never a base subobject's.
+
+Both platforms return `nullptr` on failure rather than a wrong answer, and callers must degrade:
+`ClientCvarService` logs and stays inert, leaving `Available()` false; `MovementHook::Install()`
+returns false. The vtable *index* to hook still comes from the `"offsets"` block above. The lookup
+only finds the table, never the slot within it.
 
 ## SchemaService
 

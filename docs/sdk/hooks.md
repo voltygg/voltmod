@@ -5,7 +5,7 @@
 ## MovementHook
 
 @ref VoltMod::Sdk::MovementHook is a manual vtable hook on
-`CPlayer_MovementServices::RunCommand`, the per-tick movement entry point.
+`CCSPlayer_MovementServices::RunCommand`, the per-tick movement entry point.
 Pre/post callbacks bracket one player's movement processing, which makes them
 the right place for per-player state flips (see
 @ref VoltMod::Sdk::RawConVar "RawConVar").
@@ -20,19 +20,16 @@ on destruction.
 _pre  = runtime.MovementHook.ListenPre([this](int slot) { /* before movement runs */ });
 _post = runtime.MovementHook.ListenPost([this](int slot) { /* after it ran: restore */ });
 
-// Install needs a live movement-services instance (a spawned pawn), so call it lazily
-// and treat false as "retry later". A PlayerSpawn listener is the natural place:
-_spawn = runtime.Events.Listen<Events::PlayerSpawn>([&runtime](const Events::PlayerSpawn&) {
-    runtime.MovementHook.Install();   // no-op once installed
-});
+// Install binds the class vtable, so an empty server is fine: call it once from OnLoad.
+runtime.MovementHook.Install();   // no-op once installed
 ```
 
 Hook contracts:
 
-- The hook is a SourceHook **VP hook**: it binds to the shared `CPlayer_MovementServices` vtable, not to the instance passed in. `Install()` only needs some live instance to locate the table; the callbacks then fire for every player, including ones who spawn afterwards. (A plain manual hook would fire only for the one instance it was registered on.)
+- The hook is a SourceHook **DVP hook**: it binds the `CCSPlayer_MovementServices` class vtable, which is found in `server.dll`/`libserver.so` by the same RTTI (Windows) / ELF symbol (Linux) lookup @ref VoltMod::Sdk::ClientCvarService uses for `CServerSideClient`. No instance is involved, so `Install()` succeeds with no player connected and the callbacks then fire for every player, including ones who connect afterwards.
 - The owning slot is resolved for you (`-1` when unresolved, e.g. an instance mid-destruction).
 - Removal is by hook id. SourceHook resolves the id from what it recorded at add time and never dereferences the hooked object, so `Remove()` is safe after a map change has already destroyed every pawn.
-- The vtable index lives in gamedata as `"RunCommand"` and **drifts with CS2 updates**. A wrong index calls an unrelated vfunc and crashes. Re-verify it (against SwiftlyS2/CS2Fixes gamedata) after every game update.
+- Two things **drift with CS2 updates** and are resolved together at install time: the vtable index, which lives in gamedata as `"RunCommand"`, and the class name. A wrong index calls an unrelated vfunc and crashes; a wrong class name resolves to nothing (or to another class's table) and the hook silently never fires - when a pawn happens to be live, `Install()` compares its vtable against the resolved one and warns on a mismatch. Re-verify both (against SwiftlyS2/CS2Fixes gamedata) after every game update.
 
 ### Cmd listeners: reading the usercmd
 
