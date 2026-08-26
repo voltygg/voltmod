@@ -59,6 +59,13 @@ def build(
             help="Pass through to `conan install` (repeatable)",
         ),
     ] = None,
+    allow_stale_editable: Annotated[
+        bool,
+        typer.Option(
+            "--allow-stale-editable",
+            help="Build even if a Conan-editable voltmod's sources are newer than its build",
+        ),
+    ] = False,
 ) -> None:
     """Run Conan install and CMake build for one preset."""
     preset = preset or localdev.default_preset()
@@ -74,6 +81,7 @@ def build(
         preset,
         run_tests=False,
         options=[item for value in option or [] for item in ("-o", value)],
+        allow_stale_editable=allow_stale_editable,
     )
 
     if install_plugin:

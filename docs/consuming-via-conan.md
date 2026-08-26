@@ -147,3 +147,12 @@ conan editable add <path-to-voltmod>
 uv run poe build          # in the plugin repo; picks up framework edits directly
 conan editable remove voltmod
 ```
+
+`voltmod build` in the plugin repo checks the editable's own build before linking
+against it: if `<path-to-voltmod>/include` or `<path-to-voltmod>/src` has a file
+newer than `<path-to-voltmod>/build/<preset>/voltmod-runtime.lib` (the `.a` on
+Linux), or that archive does not exist yet, the build fails with a message
+naming the framework build to run first, rather than silently linking a stale
+archive against your edits. Build the framework for the same preset
+(`uv run poe build <preset> -o "voltmod/*:with_postgres=True"`) and re-run. Pass
+`--allow-stale-editable` to bypass the check for one build.

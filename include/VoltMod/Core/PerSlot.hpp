@@ -4,6 +4,7 @@
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Subscription.hpp>
 #include <array>
+#include <cassert>
 #include <cstdint>
 
 namespace VoltMod
@@ -39,8 +40,18 @@ public:
             _listener = slots.Listen([this](int slot) { Reset(slot); });
     }
 
-    T& operator[](int slot) { return _items[slot]; }
-    const T& operator[](int slot) const { return _items[slot]; }
+    /** @pre IsValidSlot(slot); asserted, not checked - callers that can receive an unvalidated
+     *  slot (console callers, CallerSlot() == -1) must check IsValidSlot before indexing. */
+    T& operator[](int slot)
+    {
+        assert(IsValidSlot(slot));
+        return _items[slot];
+    }
+    const T& operator[](int slot) const
+    {
+        assert(IsValidSlot(slot));
+        return _items[slot];
+    }
 
     void Reset(int slot)
     {

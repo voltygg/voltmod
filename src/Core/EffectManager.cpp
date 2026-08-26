@@ -46,6 +46,9 @@ void EffectManager::Cancel(int slot, int effectId)
 
 void EffectManager::CancelWhere(int slot, const std::function<bool(int id, const ActiveEffect&)>& keep)
 {
+    if (!IsValidSlot(slot))
+        return;
+
     std::vector<int> ids;
     ids.reserve(_effects[slot].size());
     for (const auto& [id, entry] : _effects[slot])

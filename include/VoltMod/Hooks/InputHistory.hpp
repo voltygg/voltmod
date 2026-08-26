@@ -41,7 +41,9 @@ public:
     /** Number of samples currently buffered for @p slot (0 when disabled/invalid). */
     int Count(int slot) const;
 
-    /** The @p ago-th newest sample for @p slot; ago must be < Count(slot). */
+    /** The @p ago-th newest sample for @p slot. @pre IsValidSlot(slot) && ago < Count(slot);
+     *  both asserted, not checked - callers that can receive an unvalidated slot (console
+     *  callers, CallerSlot() == -1) must check IsValidSlot before calling. */
     const UserCmdView& At(int slot, int ago) const;
 
     void Clear(int slot);

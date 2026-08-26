@@ -167,6 +167,19 @@ hooks, and destroys the runtime.
 
 The plugin's GameFrame hook calls `Runtime::OnGameFrame()`, which ticks exactly one thing: the @ref VoltMod::Scheduler. Everything per-frame (menu input, HTTP completions, database completions) registers a `Scheduler::EveryFrame` timer, so there is no hardcoded pump list to keep in sync.
 
+## Runtime integrity
+
+`Runtime::Start` logs `sizeof(Runtime)` once at load. A trailing canary member
+(`_tail`, the last field declared on the class) is checked by
+`Runtime::VerifyIntegrity()` every frame and once more in `~Runtime()`; a
+mismatch logs `Runtime canary corrupted: <value>` exactly once. A trip means
+something wrote past the end of the `Runtime` object - almost always an
+unchecked `[slot]`/`[index]` into a fixed-size, `MaxPlayers`-sized array (the
+kind `VoltMod::IsValidSlot` and `PerSlot<T>` guard against) rather than a
+change to `Runtime`'s own layout. Treat the size log as a tripwire too: an
+unexpected jump between builds is worth explaining even without a corrupted
+canary.
+
 ## Module layering
 
 `scripts/voltmod/modgraph.py` holds the map and enforces it. A cycle check would not be

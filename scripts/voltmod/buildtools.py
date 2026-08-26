@@ -242,11 +242,92 @@ def _ccache(*args: str) -> None:
     subprocess.run(["ccache", *args], check=False)
 
 
+def _editable_voltmod_path() -> Path | None:
+    """Directory backing a Conan-editable ``voltmod``, or None when it is not editable."""
+    listing = run_tool("conan", "editable", "list", "--format=json", capture=True, check=False)
+    if listing.returncode != 0:
+        return None
+    try:
+        entries = json.loads(listing.stdout)
+    except json.JSONDecodeError:
+        return None
+    for name, info in entries.items():
+        if name.split("/", 1)[0] == "voltmod":
+            return Path(info["path"]).resolve().parent
+    return None
+
+
+def _newest_mtime(paths: list[Path]) -> float | None:
+    """The newest modification time among `paths` (files only), or None if none exist."""
+    return max((p.stat().st_mtime for p in paths if p.is_file()), default=None)
+
+
+def editable_archive_path(editable_root: Path, preset: str) -> Path:
+    """Where the editable's built runtime archive should be for `preset`."""
+    name = "voltmod-runtime.lib" if preset.startswith("windows-") else "libvoltmod-runtime.a"
+    return editable_root / "build" / preset / name
+
+
+def stale_editable_reason(
+    editable_root: Path, preset: str, sources_mtime: float | None, archive_mtime: float | None
+) -> str | None:
+    """Pure check: None when the editable's archive is fresh enough to use, else the
+    error message to show. `sources_mtime` is the newest mtime under the editable's
+    `include/` and `src/` (None if neither has files); `archive_mtime` is its built
+    runtime archive's mtime (None if it does not exist yet). Takes already-computed
+    mtimes, not paths, so it needs no filesystem to test.
+    """
+    if archive_mtime is None:
+        problem = f"has no build/{preset} archive yet"
+    elif sources_mtime is not None and sources_mtime > archive_mtime:
+        problem = f"has sources newer than its build/{preset} archive"
+    else:
+        return None
+    return (
+        f"editable voltmod at {editable_root} {problem}; build it first "
+        f'(uv run poe build {preset} -o "voltmod/*:with_postgres=True")'
+    )
+
+
+def check_editable_freshness(repo_root: Path, preset: str, *, allow_stale: bool = False) -> None:
+    """Fail early when a Conan-editable voltmod's sources outrun its build, or the build is
+    missing outright - a stale editable silently links whatever was last compiled, which is
+    how a consumer's build can pass while shipping framework code the editable no longer has.
+    A no-op when voltmod is not editable, or when `repo_root` is the editable itself (its own
+    build command is what produces the archive being checked).
+    """
+    editable_root = _editable_voltmod_path()
+    if editable_root is None or editable_root == repo_root.resolve():
+        return
+
+    sources_mtime = _newest_mtime(
+        [p for sub in ("include", "src") for p in (editable_root / sub).rglob("*")]
+    )
+    archive = editable_archive_path(editable_root, preset)
+    archive_mtime = archive.stat().st_mtime if archive.is_file() else None
+
+    reason = stale_editable_reason(editable_root, preset, sources_mtime, archive_mtime)
+    if reason is None:
+        return
+    if allow_stale:
+        # Flush now: subprocess.run() below writes straight to the inherited console, which
+        # would otherwise overtake this buffered line and print it out of order at exit.
+        print(f"WARNING: {reason} (--allow-stale-editable set; continuing anyway)", flush=True)
+        return
+    die(reason)
+
+
 def build(
-    repo_root: Path, preset: str, *, run_tests: bool = True, options: list[str] | None = None
+    repo_root: Path,
+    preset: str,
+    *,
+    run_tests: bool = True,
+    options: list[str] | None = None,
+    allow_stale_editable: bool = False,
 ) -> None:
     """Run Conan install and the selected CMake preset."""
     require_build_tools()
+    check_editable_freshness(repo_root, preset, allow_stale=allow_stale_editable)
     ccache = _prepare_ccache(repo_root)
     ensure_remote()
     build_type = "Debug" if "debug" in preset else "Release"

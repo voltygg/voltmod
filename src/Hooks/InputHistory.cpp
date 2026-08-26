@@ -45,6 +45,7 @@ int InputHistory::Count(int slot) const
 
 const UserCmdView& InputHistory::At(int slot, int ago) const
 {
+    assert(IsValidSlot(slot));
     const Ring& ring = _rings[slot];
     assert(ago >= 0 && ago < ring.Count);
     int index = (ring.Head - 1 - ago + 2 * _depth) % _depth;

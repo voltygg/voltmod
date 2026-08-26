@@ -32,6 +32,9 @@ Runtime::Runtime() : _schema(std::make_unique<SchemaService>(Interfaces)) {}
 // two cannot wait for that.
 Runtime::~Runtime()
 {
+    // One last check before member destruction starts unwinding the layout the canary guards.
+    VerifyIntegrity();
+
     // Both must precede member destruction: the worker threads' final log lines are queued for
     // the game thread, and OnGameFrame never runs again once the hooks are gone.
     Http.Stop();
@@ -42,6 +45,7 @@ bool Runtime::Start(const LoadContext& context)
 {
     InstallLogger(context);
     Log::Info("Initializing VoltMod...");
+    Log::Info("Runtime size: {} bytes", sizeof(Runtime));
 
     if (!ResolveInterfaces(context))
         return false;
@@ -204,8 +208,17 @@ void Runtime::RegisterStatusSections()
 
 void Runtime::OnGameFrame()
 {
+    VerifyIntegrity();
     DrainDeferredLogs();
     Scheduler.OnGameFrame();
+}
+
+void Runtime::VerifyIntegrity() const
+{
+    if (_tail == kCanaryValue || _canaryReported)
+        return;
+    _canaryReported = true;
+    Log::Error("Runtime canary corrupted: {:#x}", _tail);
 }
 
 }  // namespace VoltMod
