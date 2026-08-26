@@ -10,6 +10,7 @@ set(VOLTMOD_GAMEDATA_DIR "${VOLTMOD_ROOT_DIR}/gamedata" CACHE PATH "VoltMod shar
 if(NOT DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "")
 endif()
+
 if(NOT DEFINED CMAKE_CXX_COMPILER_LAUNCHER)
     find_program(CCACHE_PROGRAM ccache)
     if(CCACHE_PROGRAM)
@@ -22,6 +23,7 @@ endif()
 if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(FATAL_ERROR "Only x86_64 builds are supported.")
 endif()
+
 if(WIN32)
     set(VOLTMOD_PLATFORM_ARCH "windows-x86_64" CACHE INTERNAL "VoltMod platform architecture")
 elseif(UNIX)
