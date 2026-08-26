@@ -14,10 +14,8 @@
 #include <link.h>
 #endif
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
-
-using namespace VoltMod::Core;
 
 struct PatternByte
 {
@@ -53,7 +51,7 @@ static std::vector<PatternByte> ParsePattern(const std::string& pattern)
             auto [ptr, ec] = std::from_chars(token.data(), end, value, 16);
             if (ec != std::errc{} || ptr != end || value > 0xFF)
             {
-                Core::Log::Error("Signature pattern has an invalid byte '{}'; ignoring the pattern.", token);
+                Log::Error("Signature pattern has an invalid byte '{}'; ignoring the pattern.", token);
                 return {};
             }
             bytes.push_back({static_cast<uint8_t>(value), false});
@@ -276,4 +274,4 @@ uintptr_t ResolveRelativeAddress(uintptr_t addr, int ripOffset, int ripSize)
     return addr + ripSize + relative;
 }
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

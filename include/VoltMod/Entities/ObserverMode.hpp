@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace VoltMod::Entities
+namespace VoltMod
 {
 
 /**
@@ -18,4 +18,4 @@ enum class ObserverMode_t : uint8_t
     Roaming = 4,
 };
 
-}  // namespace VoltMod::Entities
+}  // namespace VoltMod

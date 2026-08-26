@@ -5,12 +5,12 @@
 #include <string>
 #include <string_view>
 
-namespace VoltMod::Menu
+namespace VoltMod
 {
 /** Renders the HTML for a menu, including its items and layout. @p translations localizes the
  *  default footer's nav labels. */
 std::string RenderMenuHtml(const MenuView* menu, int slot, int selectedIndex, bool isSubmenu,
-                           Core::Translations& translations);
+                           Translations& translations);
 
 /** Renders the chat-input capture overlay shown while a player is typing a value. */
 std::string RenderCaptureOverlay(const std::string& menuTitle, std::string_view prompt);
@@ -27,7 +27,6 @@ std::string DefaultHeader(const std::string& title, int currentPage, int totalPa
  * @param translations Table the nav labels are looked up in.
  * @return The generated HTML string for the menu footer.
  */
-std::string DefaultFooter(bool isSubmenu, bool isPaginated, bool usesHorizontal, int slot,
-                          Core::Translations& translations);
+std::string DefaultFooter(bool isSubmenu, bool isPaginated, bool usesHorizontal, int slot, Translations& translations);
 
-}  // namespace VoltMod::Menu
+}  // namespace VoltMod

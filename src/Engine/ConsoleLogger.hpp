@@ -3,7 +3,7 @@
 #include <VoltMod/Core/ILogger.hpp>
 #include <string>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 /**
@@ -22,4 +22,4 @@ private:
     const char* _prefix = "VoltMod";
 };
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

@@ -1,4 +1,4 @@
-#include "Core/ConsoleLogger.hpp"
+#include "Engine/ConsoleLogger.hpp"
 #include "Entities/Schema.hpp"
 
 #include <ISmmAPI.h>
@@ -20,16 +20,13 @@
 namespace VoltMod
 {
 
-namespace
-{
-constexpr const char* DefaultGameDataPath = "addons/voltmod/gamedata/signatures.jsonc";
-Core::ConsoleLogger g_consoleLogger;
-}  // namespace
+static constexpr const char* DefaultGameDataPath = "addons/voltmod/gamedata/signatures.jsonc";
+static ConsoleLogger g_consoleLogger;
 
 // Every other service is wired by its default member initializer in Runtime.hpp, where the
 // dependency order is visible. _schema is the exception: SchemaService is only forward-declared
 // there, so make_unique needs this translation unit.
-Runtime::Runtime() : _schema(std::make_unique<Entities::SchemaService>(Interfaces)) {}
+Runtime::Runtime() : _schema(std::make_unique<SchemaService>(Interfaces)) {}
 
 // Every service tears itself down in its own destructor, in reverse declaration order. Only these
 // two cannot wait for that.
@@ -38,13 +35,13 @@ Runtime::~Runtime()
     // Both must precede member destruction: the worker threads' final log lines are queued for
     // the game thread, and OnGameFrame never runs again once the hooks are gone.
     Http.Stop();
-    Core::DrainDeferredLogs();
+    DrainDeferredLogs();
 }
 
 bool Runtime::Start(const LoadContext& context)
 {
     InstallLogger(context);
-    Core::Log::Info("Initializing VoltMod...");
+    Log::Info("Initializing VoltMod...");
 
     if (!ResolveInterfaces(context))
         return false;
@@ -59,8 +56,8 @@ bool Runtime::Start(const LoadContext& context)
 void Runtime::InstallLogger(const LoadContext& context)
 {
     g_consoleLogger.SetPrefix(context.LogPrefix);
-    Core::SetGlobalLogger(&g_consoleLogger);
-    Core::SetBaseDir(context.Ismm->GetBaseDir());
+    SetGlobalLogger(&g_consoleLogger);
+    SetBaseDir(context.Ismm->GetBaseDir());
 }
 
 bool Runtime::ResolveInterfaces(const LoadContext& context)
@@ -112,7 +109,6 @@ bool Runtime::InitializeServices(const LoadContext& context)
     // Load game data and initialize SDK subsystems as named, timed stages. Only the message
     // system is load-aborting; MetamodPlugin logs the summary and surfaces FirstFailure() in
     // Metamod's error buffer.
-    using Core::StageResult;
     auto& report = LoadReport;
 
     report.Run("GameData", [&] {
@@ -130,7 +126,7 @@ bool Runtime::InitializeServices(const LoadContext& context)
             return StageResult::Failed("message system init failed");
         return StageResult::Ok();
     });
-    if (messages == Core::StageStatus::Failed)
+    if (messages == StageStatus::Failed)
     {
         context.Ismm->Format(context.Error, context.MaxLen, "%s", report.FirstFailure().c_str());
         return false;
@@ -179,10 +175,10 @@ void Runtime::RegisterStatusSections()
         int ok = 0;
         for (const auto& stage : LoadReport.Stages())
         {
-            if (stage.Status == Core::StageStatus::Ok)
+            if (stage.Status == StageStatus::Ok)
                 ++ok;
             else
-                names[std::string(Core::ToString(stage.Status))].push_back(stage.Name);
+                names[std::string(ToString(stage.Status))].push_back(stage.Name);
         }
         names["ok"] = ok;
         return names;
@@ -208,7 +204,7 @@ void Runtime::RegisterStatusSections()
 
 void Runtime::OnGameFrame()
 {
-    Core::DrainDeferredLogs();
+    DrainDeferredLogs();
     Scheduler.OnGameFrame();
 }
 

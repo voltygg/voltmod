@@ -5,7 +5,7 @@
 #include <VoltMod/Core/Scheduler.hpp>
 #include <string>
 
-namespace VoltMod::App
+namespace VoltMod
 {
 
 /**
@@ -19,31 +19,30 @@ namespace VoltMod::App
  * that is missing. Callers still handle a null from ServiceExchange::Get, which stays
  * correct whenever a peer arrives or leaves.
  */
-class PluginIdentity final : public App::IPluginIdentity
+class PluginIdentity final : public IPluginIdentity
 {
 public:
     /** @p exchange and @p scheduler must outlive this object; both are declared above it. */
-    PluginIdentity(ServiceExchange& exchange, Core::Scheduler& scheduler) : _exchange(exchange), _scheduler(scheduler)
-    {}
+    PluginIdentity(ServiceExchange& exchange, Scheduler& scheduler) : _exchange(exchange), _scheduler(scheduler) {}
     ~PluginIdentity() { Withdraw(); }
     PluginIdentity(const PluginIdentity&) = delete;
     PluginIdentity& operator=(const PluginIdentity&) = delete;
 
     /** Take @p manifest, publish it, and queue the dependency report. */
-    void Adopt(App::PluginManifest manifest);
+    void Adopt(PluginManifest manifest);
     /** Stop answering peer lookups. Idempotent; the destructor calls it. */
     void Withdraw();
 
     /** What this plugin declared; empty when it ships no manifest. */
-    const App::PluginManifest& Manifest() const { return _manifest; }
+    const PluginManifest& Manifest() const { return _manifest; }
 
     const char* PluginVersion() const override { return _manifest.Version.c_str(); }
 
 private:
     ServiceExchange& _exchange;
-    Core::Scheduler& _scheduler;
-    App::PluginManifest _manifest;
+    Scheduler& _scheduler;
+    PluginManifest _manifest;
     std::string _key;
 };
 
-}  // namespace VoltMod::App
+}  // namespace VoltMod

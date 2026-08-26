@@ -3,17 +3,13 @@
 #include <VoltMod/Core/PerSlot.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <string>
 #include <string_view>
 
 namespace VoltMod
-{
-class Runtime;
-}
-
-namespace VoltMod::Menu
 {
 
 /**
@@ -62,7 +58,7 @@ public:
 
     /** Route the player's next chat line to @p callback, showing @p prompt over the open menu.
      *  Rows use this instead of reaching for the runtime's ChatInput themselves. */
-    void BeginInput(int slot, std::string prompt, Hooks::ChatInput::Callback callback);
+    void BeginInput(int slot, std::string prompt, ChatInput::Callback callback);
 
     /** True if the player has any menu currently open. */
     bool HasActiveMenu(int slot) const;
@@ -88,11 +84,11 @@ private:
 
     Runtime& _runtime;
     /** Per-player menu state; PerSlot clears a slot's stack when it changes hands. */
-    Core::PerSlot<PlayerMenuState> _states;
+    PerSlot<PlayerMenuState> _states;
     static constexpr int64_t InputDebounceMs = 200;
     bool _freezePlayer = false;
     /** Declared after _states: the frame pump drops before the state it touches. */
-    Core::Subscription _pump;
+    Subscription _pump;
 };
 
-}  // namespace VoltMod::Menu
+}  // namespace VoltMod

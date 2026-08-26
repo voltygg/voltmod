@@ -14,30 +14,26 @@
 #include <mathlib/vector.h>
 #include <utility>
 
-namespace VoltMod::Entities
+namespace VoltMod
 {
 
-using namespace VoltMod::Core;
-
-namespace
-{
 // Resolve a vtable index by its gamedata name and call it on `target`. No-op (with a warning)
 // when the offset is missing or `target` is null - collapses the lookup/guard/dispatch the
 // vtable wrappers all repeat.
 template <typename... Args>
-void CallVtableByName(const Engine::GameData& gameData, void* target, const char* name, Args&&... args)
+static void CallVtableByName(const GameData& gameData, void* target, const char* name, Args&&... args)
 {
     if (!target)
         return;
     int index = gameData.GetVtableIndex(name);
     if (index < 0)
         return;
-    Engine::CallVirtual<void>(index, target, std::forward<Args>(args)...);
+    CallVirtual<void>(index, target, std::forward<Args>(args)...);
 }
 
 // Origin/rotation are not schema fields of CBaseEntity in CS2; they live on the
 // pawn's CGameSceneNode, reached via m_CBodyComponent -> m_pSceneNode.
-void* ResolveSceneNode(SchemaService& schema, CEntityInstance* pawn)
+static void* ResolveSceneNode(SchemaService& schema, CEntityInstance* pawn)
 {
     if (!pawn)
         return nullptr;
@@ -45,18 +41,18 @@ void* ResolveSceneNode(SchemaService& schema, CEntityInstance* pawn)
     int bodyOffset = schema.GetOffset("CBaseEntity", "m_CBodyComponent");
     if (bodyOffset < 0)
         return nullptr;
-    auto* body = Engine::ReadAt<uint8_t*>(pawn, bodyOffset);
+    auto* body = ReadAt<uint8_t*>(pawn, bodyOffset);
     if (!body)
         return nullptr;
 
     int nodeOffset = schema.GetOffsetOf<void*>("CBodyComponent", "m_pSceneNode");
     if (nodeOffset < 0)
         return nullptr;
-    return Engine::ReadAt<void*>(body, nodeOffset);
+    return ReadAt<void*>(body, nodeOffset);
 }
 
 template <typename T>
-T GetSceneNodeField(SchemaService& schema, CEntityInstance* pawn, const char* fieldName)
+static T GetSceneNodeField(SchemaService& schema, CEntityInstance* pawn, const char* fieldName)
 {
     void* node = ResolveSceneNode(schema, pawn);
     if (!node)
@@ -65,9 +61,8 @@ T GetSceneNodeField(SchemaService& schema, CEntityInstance* pawn, const char* fi
     int offset = schema.GetOffsetOf<T>("CGameSceneNode", fieldName);
     if (offset < 0)
         return T{0.0f, 0.0f, 0.0f};
-    return Engine::ReadAt<T>(node, offset);
+    return ReadAt<T>(node, offset);
 }
-}  // namespace
 
 PlayerController EntitySystem::Controller(int slot)
 {
@@ -98,7 +93,7 @@ CEntityInstance* PlayerController::GetPawn() const
     if (offset < 0)
         return nullptr;
 
-    auto hPawn = Engine::ReadAt<uint32_t>(_controller, offset);
+    auto hPawn = ReadAt<uint32_t>(_controller, offset);
     return _entities->ResolveEntityHandle(hPawn);
 }
 
@@ -107,7 +102,7 @@ void PlayerController::Kick(const char* reason) const
     if (!IsValid())
         return;
 
-    auto* engine = _entities->Interfaces().Engine;
+    auto* engine = _entities->InterfacesRef().Engine;
     if (!engine)
     {
         Log::Warn("PlayerController::Kick: IVEngineServer2 not available.");
@@ -163,12 +158,9 @@ void PlayerController::SetArmor(int armor) const
     SetPawnField<int>("CCSPlayerPawn", "m_ArmorValue", armor);
 }
 
-namespace
-{
-constexpr const char* MoneyServicesField = "m_pInGameMoneyServices";
-constexpr const char* MoneyClass = "CCSPlayerController_InGameMoneyServices";
-constexpr const char* MoneyField = "m_iAccount";
-}  // namespace
+static constexpr const char* MoneyServicesField = "m_pInGameMoneyServices";
+static constexpr const char* MoneyClass = "CCSPlayerController_InGameMoneyServices";
+static constexpr const char* MoneyField = "m_iAccount";
 
 int PlayerController::GetMoney() const
 {
@@ -178,7 +170,7 @@ int PlayerController::GetMoney() const
     int offset = SchemaOffset(MoneyClass, MoneyField, sizeof(int));
     if (offset < 0)
         return 0;
-    return Engine::ReadAt<int>(services, offset);
+    return ReadAt<int>(services, offset);
 }
 
 void PlayerController::SetMoney(int amount) const
@@ -189,7 +181,7 @@ void PlayerController::SetMoney(int amount) const
     int offset = SchemaOffset(MoneyClass, MoneyField, sizeof(int));
     if (offset < 0)
         return;
-    Engine::WriteAt<int>(services, offset, amount);
+    WriteAt<int>(services, offset, amount);
 
     // The balance lives in a sub-object, so the write alone is invisible to the client. Dirty
     // the controller's own pointer field, which is what the entity actually replicates through;
@@ -296,11 +288,8 @@ void PlayerController::Teleport(const Vector* origin, const QAngle* angles, cons
     CallVtableByName(_entities->GameDataRef(), GetPawn(), "Teleport", origin, angles, velocity);
 }
 
-namespace
-{
 // Player name is stored as a 128-byte fixed buffer on CBasePlayerController.
-constexpr size_t PlayerNameBufferSize = 128;
-}  // namespace
+static constexpr size_t PlayerNameBufferSize = 128;
 
 MoveType PlayerController::GetMoveType() const
 {
@@ -333,7 +322,7 @@ std::string PlayerController::GetPlayerName() const
     if (offset < 0)
         return {};
 
-    auto* p = Engine::MemberPtr<const char>(_controller, offset);
+    auto* p = MemberPtr<const char>(_controller, offset);
     size_t len = 0;
     while (len < PlayerNameBufferSize && p[len] != '\0')
         ++len;
@@ -354,7 +343,7 @@ std::string PlayerController::GetPawnModelName() const
     if (stateOffset < 0 || nameOffset < 0)
         return {};
 
-    const char* name = Engine::ReadAt<const char*>(node, stateOffset + nameOffset);
+    const char* name = ReadAt<const char*>(node, stateOffset + nameOffset);
     return name ? std::string(name) : std::string{};
 }
 
@@ -367,7 +356,7 @@ void PlayerController::SetPlayerName(const std::string& name) const
     if (offset < 0)
         return;
 
-    auto* dst = Engine::MemberPtr<char>(_controller, offset);
+    auto* dst = MemberPtr<char>(_controller, offset);
     std::memset(dst, 0, PlayerNameBufferSize);
     size_t copyLen = name.size();
     if (copyLen >= PlayerNameBufferSize)
@@ -387,7 +376,7 @@ void PlayerController::SetVisible(bool visible, uint8_t alpha) const
     uint32_t color = visible ? ColorOpaqueWhite : ((static_cast<uint32_t>(alpha) << 24) | 0x00FFFFFFu);
 
     // Qualified: the PlayerController::SetRender overload above would otherwise hide the free one.
-    Entities::SetRender(_entities->Schema(), pawn, mode, color);
+    VoltMod::SetRender(_entities->Schema(), pawn, mode, color);
 }
 
-}  // namespace VoltMod::Entities
+}  // namespace VoltMod

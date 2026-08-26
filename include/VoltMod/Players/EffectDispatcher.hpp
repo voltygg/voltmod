@@ -1,18 +1,10 @@
 #pragma once
 
+#include <VoltMod/Core/EffectManager.hpp>
 #include <VoltMod/Players/EffectDescriptor.hpp>
+#include <VoltMod/Runtime.hpp>
 
 namespace VoltMod
-{
-class Runtime;
-}
-
-namespace VoltMod::Core
-{
-class EffectManager;  // Core/EffectManager.hpp; by reference only, so a declaration is enough
-}
-
-namespace VoltMod::Players
 {
 
 /**
@@ -21,7 +13,7 @@ namespace VoltMod::Players
  *
  * Every verb resolves the admin/target pair through an @ref ActionDispatcher first, so
  * `runtime.Policy` supplies the permission check, the targetability check, and the broadcast sink.
- * The @ref Core::EffectManager it drives is plugin-owned, so a plugin holds the dispatcher next to
+ * The @ref EffectManager it drives is plugin-owned, so a plugin holds the dispatcher next to
  * its manager (`EffectDispatcher PlayerEffects{runtime, effects};`) rather than reaching for a
  * runtime member.
  */
@@ -31,8 +23,7 @@ public:
     /** @p runtime supplies the roster, the controllers and the policy; @p effects owns the per-slot
      *  effect state. Both must outlive the dispatcher. Cheap to construct, so a call site may build
      *  one per dispatch. */
-    EffectDispatcher(Runtime& runtime, Core::EffectManager& effects)
-        : _runtime(runtime), _actions(runtime), _effects(effects)
+    EffectDispatcher(Runtime& runtime, EffectManager& effects) : _runtime(runtime), _actions(runtime), _effects(effects)
     {}
 
     EffectDispatcher(const EffectDispatcher&) = delete;
@@ -59,7 +50,7 @@ private:
 
     Runtime& _runtime;
     ActionDispatcher _actions;
-    Core::EffectManager& _effects;
+    EffectManager& _effects;
 };
 
-}  // namespace VoltMod::Players
+}  // namespace VoltMod

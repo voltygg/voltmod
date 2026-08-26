@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
 
 /**
@@ -37,4 +37,4 @@ void WriteAt(void* base, std::ptrdiff_t offset, const T& value) noexcept
     *MemberPtr<T>(base, offset) = value;
 }
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

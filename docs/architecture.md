@@ -89,7 +89,7 @@ services they reference are still alive.
 
 ## Policy
 
-@ref VoltMod::Core::Policy is the one bridge between the framework's generic machinery and your domain rules. Set it once in OnLoad:
+@ref VoltMod::Policy is the one bridge between the framework's generic machinery and your domain rules. Set it once in OnLoad:
 
 ```cpp
 runtime.Policy = {
@@ -108,7 +108,7 @@ for commands that declare a permission.
 ## Cross-plugin services
 
 Plugins are separate modules and each has its own runtime. Share typed behavior
-through @ref VoltMod::App::ServiceExchange instead of exposing a manager or
+through @ref VoltMod::ServiceExchange instead of exposing a manager or
 framework object directly:
 
 ```cpp
@@ -129,7 +129,7 @@ if (auto* bans = runtime.Exchange.Get<IBanService>()) // consumer
 Include a version in `InterfaceName` and change it when the vtable or parameter
 meaning changes. Query at the point of use because peers may load or unload.
 Do not transfer ownership, pass allocator-owned objects, or let exceptions cross
-the module boundary. Use a @ref VoltMod::Engine::ServerCommand when console, RCON,
+the module boundary. Use a @ref VoltMod::ServerCommand when console, RCON,
 cfg files, or untyped automation also need the operation.
 
 ## Registration is explicit
@@ -152,7 +152,7 @@ from the load path so handlers can capture their dependencies explicitly.
 ## Cleanup and subscriptions
 
 Cleanup belongs in a member destructor or a
-@ref VoltMod::Core::Subscription "Subscription":
+@ref VoltMod::Subscription "Subscription":
 
 ```cpp
 _spawn = runtime.Events.Listen<Events::PlayerSpawn>([this](const auto& e) { OnSpawn(e.Slot); });
@@ -165,7 +165,7 @@ hooks, and destroys the runtime.
 
 ## The frame pump
 
-The plugin's GameFrame hook calls `Runtime::OnGameFrame()`, which ticks exactly one thing: the @ref VoltMod::Core::Scheduler. Everything per-frame (menu input, HTTP completions, database completions) registers a `Scheduler::EveryFrame` timer, so there is no hardcoded pump list to keep in sync.
+The plugin's GameFrame hook calls `Runtime::OnGameFrame()`, which ticks exactly one thing: the @ref VoltMod::Scheduler. Everything per-frame (menu input, HTTP completions, database completions) registers a `Scheduler::EveryFrame` timer, so there is no hardcoded pump list to keep in sync.
 
 ## Module layering
 

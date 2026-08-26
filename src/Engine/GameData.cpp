@@ -14,24 +14,20 @@
 #include <string_view>
 #include <vector>
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
-using namespace VoltMod::Core;
 
-namespace
-{
 /** Every rejected or missing offset lookup warns through here, so there is one message shape. */
-void WarnOffset(std::string_view name, std::string_view reason, int value, bool valuePresent)
+static void WarnOffset(std::string_view name, std::string_view reason, int value, bool valuePresent)
 {
     Log::Warn("GameData: offset '{}' {} ({}).", name, reason, valuePresent ? std::to_string(value) : std::string("-"));
 }
-}  // namespace
 
 bool GameData::Load(const std::string& path)
 {
     try
     {
-        auto fullPath = Core::ResolvePath(path);
+        auto fullPath = ResolvePath(path);
         std::ifstream file(fullPath);
         if (!file.is_open())
         {
@@ -140,7 +136,7 @@ void* GameData::FindSignature(const std::string& name) const
         return nullptr;
 
     auto& sig = it->second;
-    return VoltMod::Engine::FindPattern(sig.Library.c_str(), sig.Pattern);
+    return VoltMod::FindPattern(sig.Library.c_str(), sig.Pattern);
 }
 
 void* GameData::ResolveSignature(const std::string& name) const
@@ -227,4 +223,4 @@ std::string GameData::FailureSummary() const
     return summary;
 }
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

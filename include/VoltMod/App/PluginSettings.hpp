@@ -3,7 +3,7 @@
 #include <nlohmann/json.hpp>
 #include <string>
 
-namespace VoltMod::App
+namespace VoltMod
 {
 
 /** @brief The framework-standard "plugin" section of settings.jsonc; embed it in the root
@@ -14,4 +14,4 @@ struct StandardPluginSettings
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(StandardPluginSettings, locale)
 
-}  // namespace VoltMod::App
+}  // namespace VoltMod

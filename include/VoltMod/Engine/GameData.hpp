@@ -7,7 +7,7 @@
 #include <string_view>
 #include <unordered_map>
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
 
 /** Ceilings far above every real value (today: index 390, offset 576) that still catch drifted or hand-edited gamedata.
@@ -79,4 +79,4 @@ private:
     std::unordered_map<std::string, ResolvedEntry> _resolved;
 };
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

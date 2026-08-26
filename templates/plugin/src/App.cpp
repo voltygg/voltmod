@@ -7,7 +7,7 @@ namespace $ns
 
 void RegisterCommands(VoltMod::CommandManager& commands);
 
-bool App::Start()
+bool Start()
 {
     if (!VoltMod::LoadStandardConfig(Runtime, Config, {.Addon = "$name"}))
         return false;

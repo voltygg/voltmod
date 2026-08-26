@@ -2,13 +2,11 @@
 #include <cctype>
 #include <unordered_map>
 
-namespace VoltMod::Messaging::ChatColors
+namespace VoltMod::ChatColors
 {
 
-namespace
-{
 // Map of color names to their corresponding control codes. Keys are lowercase for case-insensitive lookup.
-const std::unordered_map<std::string, std::string_view> kNameTable = {
+static const std::unordered_map<std::string, std::string_view> kNameTable = {
     {"default", Default},   {"white", White},       {"darkred", DarkRed},     {"lightpurple", LightPurple},
     {"green", Green},       {"olive", Olive},       {"lime", Lime},           {"red", Red},
     {"gray", Gray},         {"grey", Grey},         {"yellow", Yellow},       {"lightyellow", LightYellow},
@@ -16,7 +14,6 @@ const std::unordered_map<std::string, std::string_view> kNameTable = {
     {"darkblue", DarkBlue}, {"purple", Purple},     {"magenta", Magenta},     {"lightred", LightRed},
     {"gold", Gold},         {"orange", Orange},
 };
-}  // namespace
 
 std::string_view ParseNamed(std::string_view name)
 {
@@ -46,4 +43,4 @@ std::string Strip(std::string_view text)
     return out;
 }
 
-}  // namespace VoltMod::Messaging::ChatColors
+}  // namespace VoltMod::ChatColors

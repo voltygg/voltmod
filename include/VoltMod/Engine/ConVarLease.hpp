@@ -1,13 +1,12 @@
 #pragma once
 
 #include <VoltMod/Engine/ConVarSnapshots.hpp>
+#include <VoltMod/Engine/ConVars.hpp>
 #include <cstddef>
 #include <string_view>
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
-
-class ConVars;
 
 /**
  * @brief Takes over server convars and gives them back exactly as they were.
@@ -68,4 +67,4 @@ private:
     ConVarSnapshots _saved;
 };
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

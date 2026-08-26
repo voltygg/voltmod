@@ -2,14 +2,11 @@
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <doctest/doctest.h>
 
-using VoltMod::Core::SlotEvents;
-using VoltMod::Players::PlayerManager;
+using VoltMod::PlayerManager;
+using VoltMod::SlotEvents;
 
-namespace
-{
-constexpr int64_t SteamA = 76561198000000001LL;
-constexpr int64_t SteamB = 76561198000000002LL;
-}  // namespace
+static constexpr int64_t SteamA = 76561198000000001LL;
+static constexpr int64_t SteamB = 76561198000000002LL;
 
 TEST_CASE("A player is reachable by slot and by SteamID")
 {

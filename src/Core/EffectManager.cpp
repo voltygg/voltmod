@@ -2,7 +2,7 @@
 #include <utility>
 #include <vector>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 bool EffectManager::IsActive(int slot, int effectId) const
@@ -81,4 +81,4 @@ void EffectManager::CancelAll()
         CancelAllForSlot(slot);
 }
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

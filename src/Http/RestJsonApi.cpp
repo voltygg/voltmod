@@ -3,23 +3,17 @@
 #include <VoltMod/Http/RestJsonApi.hpp>
 #include <utility>
 
-namespace VoltMod::Http
+namespace VoltMod
 {
 
-using Core::Json;
-using Core::Strings;
-
-namespace
-{
-void AppendAuthHeader(std::vector<std::string>& headers, const std::string& apiKey, const std::string& authHeader,
-                      const std::string& authScheme)
+static void AppendAuthHeader(std::vector<std::string>& headers, const std::string& apiKey,
+                             const std::string& authHeader, const std::string& authScheme)
 {
     if (apiKey.empty())
         return;
     const std::string value = authScheme.empty() ? apiKey : authScheme + " " + apiKey;
     headers.push_back(authHeader + ": " + value);
 }
-}  // namespace
 
 std::optional<HttpRequest> BuildJsonPost(const JsonPostSpec& spec, const std::map<std::string, std::string>& tokens)
 {
@@ -86,4 +80,4 @@ void Get(HttpClient& client, HttpRequest request, HttpCompletion onComplete)
     client.Get(std::move(request.Url), std::move(request.Headers), request.TimeoutMs, std::move(onComplete));
 }
 
-}  // namespace VoltMod::Http
+}  // namespace VoltMod

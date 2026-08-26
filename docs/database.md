@@ -2,7 +2,7 @@
 
 [TOC]
 
-`VoltMod::Database` is an opt-in, **async-first** PostgreSQL layer. One worker
+`VoltMod/Database/` is an opt-in, **async-first** PostgreSQL layer. One worker
 thread owns the connection, and gameplay code never blocks on the database.
 Row parsing and INSERT/SELECT SQL are generated from a per-entity column table,
 so a repository method only needs a query and a callback.
@@ -96,7 +96,11 @@ struct Ban
 The mapping helpers then provide:
 
 ```cpp
-using namespace VoltMod;
+using VoltMod::DbResult;
+using VoltMod::FromResult;
+using VoltMod::InsertParams;
+using VoltMod::InsertSql;
+using VoltMod::SelectSql;
 
 // SELECT with explicit columns (stable against schema drift), rows -> entities:
 auto rows = db.QueryBlocking("bans_active", SelectSql<Ban>("removed_at IS NULL"));
@@ -143,4 +147,4 @@ Plugins sharing a database need distinct table names *and* distinct lock keys. T
 
 ## Config
 
-`PostgresConfig` fields are lowercase so a JSON section maps onto them directly; define the nlohmann mapper in your plugin, inside the `VoltMod::Database` namespace (see @ref config_guide). `sslMode` defaults to `prefer`.
+`PostgresConfig` fields are lowercase so a JSON section maps onto them directly; define the nlohmann mapper in your plugin, inside the `VoltMod` namespace where ADL finds it (see @ref config_guide). `sslMode` defaults to `prefer`.

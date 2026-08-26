@@ -2,7 +2,7 @@
 #include <VoltMod/Core/Scheduler.hpp>
 #include <utility>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 struct ScheduledEffect::State
@@ -81,4 +81,4 @@ bool ScheduledEffect::Active() const
     return _state && !_state->stopped;
 }
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

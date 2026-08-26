@@ -1,8 +1,8 @@
 #include <VoltMod/Engine/OffsetCheck.hpp>
 #include <doctest/doctest.h>
 
-using VoltMod::Engine::IsAlignedOffset;
-using VoltMod::Engine::IsOffsetInRange;
+using VoltMod::IsAlignedOffset;
+using VoltMod::IsOffsetInRange;
 
 TEST_CASE("OffsetCheck::IsOffsetInRange accepts the boundaries")
 {

@@ -4,7 +4,7 @@
 
 Settings are represented by a struct that mirrors the JSON file. Declare each
 section with defaults, map it with nlohmann's non-intrusive macro, and hold the
-root in a @ref VoltMod::Core::JsonConfig.
+root in a @ref VoltMod::JsonConfig.
 
 ## Declaring settings
 
@@ -24,7 +24,7 @@ using ConfigManager = VoltMod::JsonConfig<Settings>;
 
 Member names must match the JSON keys. The `_WITH_DEFAULT` macro means a missing key keeps the member's default. Only a missing file, a parse error, or a wrong-typed value fails the load. JSONC comments are tolerated, and unknown keys are ignored (which is also why retired keys need no config migration).
 
-@ref VoltMod::App::StandardPluginSettings is the framework-owned "plugin" section; embedding it is what lets `LoadStandardConfig` apply `plugin.locale` to `runtime.Translations` automatically (see @ref plugin_guide).
+@ref VoltMod::StandardPluginSettings is the framework-owned "plugin" section; embedding it is what lets `LoadStandardConfig` apply `plugin.locale` to `runtime.Translations` automatically (see @ref plugin_guide).
 
 ### Editor validation with a JSON Schema
 
@@ -63,10 +63,10 @@ private:
 };
 ```
 
-`Utils/Validation.hpp` (`VoltMod::Validation`) has the common resolution helpers:
+`VoltMod/Core/Validation.hpp` (`VoltMod::Validation`) has the common resolution helpers:
 
 ```cpp
-using namespace VoltMod;
+namespace Validation = VoltMod::Validation;
 
 void ConfigManager::Resolve()
 {
@@ -86,10 +86,10 @@ void ConfigManager::Resolve()
 
 ## Framework types in your settings
 
-`PostgresConfig` uses lowercase field names precisely so a JSON section maps onto it. The framework header stays nlohmann-free, so define the mapper in your plugin, inside the `VoltMod::Database` namespace where ADL finds it:
+`PostgresConfig` uses lowercase field names precisely so a JSON section maps onto it. The framework header stays nlohmann-free, so define the mapper in your plugin, inside the `VoltMod` namespace where ADL finds it:
 
 ```cpp
-namespace VoltMod::Database
+namespace VoltMod
 {
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(PostgresConfig, host, port, database, username, password, sslMode)
 }

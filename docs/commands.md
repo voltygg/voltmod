@@ -13,7 +13,10 @@ the handler sees only valid input.
 ```cpp
 #include <VoltMod/Api.hpp>
 
-using namespace VoltMod::Commands;
+using VoltMod::CommandContext;
+using VoltMod::Duration;
+using VoltMod::ReasonTail;
+using VoltMod::Target;
 
 commands.Register({
     .Name = "ban",
@@ -72,7 +75,7 @@ beyond what the spec consumes are refused with `cmd.tooManyArgs` rather than dro
 
 ## Target selectors
 
-The `Target` argument (and @ref VoltMod::Players::ResolveTargets directly) understands:
+The `Target` argument (and @ref VoltMod::ResolveTargets directly) understands:
 
 ```
 @all @*        everyone                @me    yourself        @!me   everyone else

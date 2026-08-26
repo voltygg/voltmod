@@ -23,11 +23,8 @@
 class GameSessionConfiguration_t
 {};
 
-namespace VoltMod::App
+namespace VoltMod
 {
-
-using namespace VoltMod::Players;
-using namespace VoltMod::Core;
 
 SH_DECL_HOOK3_void(IServerGameDLL, GameFrame, SH_NOATTRIB, 0, bool, bool, bool);
 SH_DECL_HOOK3_void(INetworkServerService, StartupServer, SH_NOATTRIB, 0, const GameSessionConfiguration_t&,
@@ -75,7 +72,7 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
     {
         // A bare `return false` still gets a named failure in the report and error buffer.
         if (_runtime->LoadReport.FirstFailure().empty())
-            _runtime->LoadReport.Run("OnLoad", [] { return Core::StageResult::Failed("OnLoad returned false"); });
+            _runtime->LoadReport.Run("OnLoad", [] { return StageResult::Failed("OnLoad returned false"); });
         Log::Info("{}", _runtime->LoadReport.Summary());
         const std::string failure = _runtime->LoadReport.FirstFailure();
         snprintf(error, maxlen, "%s", failure.c_str());
@@ -88,12 +85,12 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
     _runtime->LoadReport.Run("Commands", [this] {
         const std::vector<std::string> missing = _runtime->Commands.CommandsMissingPolicy();
         if (missing.empty())
-            return Core::StageResult::Ok();
-        return Core::StageResult::Degraded(
+            return StageResult::Ok();
+        return StageResult::Degraded(
             std::format("{} command(s) gate on a permission with no HasPermission policy "
                         "installed and will be denied ({}); set Runtime::Policy.HasPermission "
                         "in OnLoad",
-                        missing.size(), Core::Strings::Join(missing, ", ")));
+                        missing.size(), Strings::Join(missing, ", ")));
     });
 
     Log::Info("{}", _runtime->LoadReport.Summary());
@@ -123,7 +120,7 @@ bool MetamodPlugin::Unload(char* error, size_t maxlen)
     return true;
 }
 
-bool MetamodPlugin::OnPlayerChat(Players::Player* player, std::string_view message, bool /*teamChat*/)
+bool MetamodPlugin::OnPlayerChat(Player* player, std::string_view message, bool /*teamChat*/)
 {
     // A pending menu capture owns the line before command parsing does: it is the player's
     // answer to a prompt, not a chat message. Menu input rows are a framework feature, so consuming
@@ -238,7 +235,7 @@ void MetamodPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandCon
         return;
 
     int slotIdx = ctx.GetPlayerSlot().Get();
-    if (!Core::IsValidSlot(slotIdx))
+    if (!IsValidSlot(slotIdx))
         return;
 
     Player* player = _runtime->Players.GetPlayerBySlot(slotIdx);
@@ -296,4 +293,4 @@ void* MetamodPlugin::OnMetamodQuery(const char* iface, int* ret)
     return impl;
 }
 
-}  // namespace VoltMod::App
+}  // namespace VoltMod

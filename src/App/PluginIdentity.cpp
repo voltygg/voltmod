@@ -7,17 +7,13 @@
 #include <fstream>
 #include <sstream>
 
-namespace Log = VoltMod::Core::Log;
-
-namespace VoltMod::App
+namespace VoltMod
 {
 
-namespace
+static void ReportDependency(ServiceExchange& exchange, const PluginDependency& dependency)
 {
-void ReportDependency(ServiceExchange& exchange, const App::PluginDependency& dependency)
-{
-    const std::string key = App::IdentityKey(dependency.Name);
-    auto* peer = static_cast<App::IPluginIdentity*>(exchange.GetNamed(key.c_str()));
+    const std::string key = IdentityKey(dependency.Name);
+    auto* peer = static_cast<IPluginIdentity*>(exchange.GetNamed(key.c_str()));
 
     if (peer == nullptr)
     {
@@ -30,7 +26,7 @@ void ReportDependency(ServiceExchange& exchange, const App::PluginDependency& de
     }
 
     const char* version = peer->PluginVersion();
-    if (!App::VersionAtLeast(version ? version : "", dependency.MinVersion))
+    if (!VersionAtLeast(version ? version : "", dependency.MinVersion))
     {
         const std::string message =
             std::format("dependency '{}' is {} but {} or newer is expected", dependency.Name,
@@ -41,13 +37,12 @@ void ReportDependency(ServiceExchange& exchange, const App::PluginDependency& de
             Log::Warn("{}.", message);
     }
 }
-}  // namespace
 
-void PluginIdentity::Adopt(App::PluginManifest manifest)
+void PluginIdentity::Adopt(PluginManifest manifest)
 {
     _manifest = std::move(manifest);
-    _key = App::IdentityKey(_manifest.Name);
-    _exchange.PublishNamed(_key.c_str(), static_cast<App::IPluginIdentity*>(this));
+    _key = IdentityKey(_manifest.Name);
+    _exchange.PublishNamed(_key.c_str(), static_cast<IPluginIdentity*>(this));
 
     if (_manifest.Dependencies.empty())
         return;
@@ -69,28 +64,28 @@ void PluginIdentity::Withdraw()
 
 void LoadPluginManifest(Runtime& runtime, std::string_view addon)
 {
-    const std::string path = Core::AddonFile(addon, std::format("{}.manifest.json", addon));
+    const std::string path = AddonFile(addon, std::format("{}.manifest.json", addon));
 
-    runtime.LoadReport.Run("Manifest", [&]() -> Core::StageResult {
+    runtime.LoadReport.Run("Manifest", [&]() -> StageResult {
         // ResolvePath, like every other addon file: the server's working directory is
         // game/bin/win64, not the game dir addon paths are relative to.
-        std::ifstream file(Core::ResolvePath(path), std::ios::binary);
+        std::ifstream file(ResolvePath(path), std::ios::binary);
         if (!file)
-            return Core::StageResult::Degraded("no manifest shipped");
+            return StageResult::Degraded("no manifest shipped");
 
         std::ostringstream buffer;
         buffer << file.rdbuf();
 
-        auto manifest = App::ParsePluginManifest(buffer.str());
+        auto manifest = ParsePluginManifest(buffer.str());
         if (!manifest)
-            return Core::StageResult::Degraded(std::format("{} is malformed", path));
+            return StageResult::Degraded(std::format("{} is malformed", path));
 
         const size_t dependencies = manifest->Dependencies.size();
         const std::string version = manifest->Version;
         runtime.Identity.Adopt(std::move(*manifest));
-        return Core::StageResult::Ok(dependencies == 0 ? std::format("v{}", version)
-                                                       : std::format("v{}, {} dependencies", version, dependencies));
+        return StageResult::Ok(dependencies == 0 ? std::format("v{}", version)
+                                                 : std::format("v{}, {} dependencies", version, dependencies));
     });
 }
 
-}  // namespace VoltMod::App
+}  // namespace VoltMod

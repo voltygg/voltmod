@@ -12,11 +12,7 @@
 #include <entity2/entitysystem.h>
 #include <variant.h>
 
-namespace VoltMod::Entities
-{
-using namespace VoltMod::Core;
-
-namespace
+namespace VoltMod
 {
 
 // CS2's sound-event EmitSound_t; layout copied from CS2Fixes (src/voltmod_sdk/entity/
@@ -68,17 +64,15 @@ using EmitSoundFilterFn = StartSoundEventInfo (*)(IRecipientFilter& filter, CEnt
 
 // Collapses the guard + dispatch the AcceptInput* wrappers all repeat; each only differs in how it
 // builds the variant_t (kept out of the public header per the EntityOps members' note).
-void FireInput(void* acceptInput, CEntityInstance* entity, const char* input, variant_t& value,
-               CEntityInstance* activator, CEntityInstance* caller)
+static void FireInput(void* acceptInput, CEntityInstance* entity, const char* input, variant_t& value,
+                      CEntityInstance* activator, CEntityInstance* caller)
 {
     if (!acceptInput || !entity || !input)
         return;
     std::bit_cast<AcceptInputFn>(acceptInput)(entity, input, activator, caller, &value, 0, nullptr);
 }
 
-}  // namespace
-
-EntityOps::EntityOps(EntitySystem& entities, Engine::GameData& gameData, SchemaService& schema)
+EntityOps::EntityOps(EntitySystem& entities, GameData& gameData, SchemaService& schema)
     : _entities(entities), _gameData(gameData), _schema(schema)
 {}
 
@@ -240,4 +234,4 @@ void EntityOps::NotifyFieldChanged(CEntityInstance* entity, const char* classNam
     entity->NetworkStateChanged(NetworkStateChangedData(static_cast<uint32>(offset)));
 }
 
-}  // namespace VoltMod::Entities
+}  // namespace VoltMod

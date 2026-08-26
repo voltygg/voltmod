@@ -2,19 +2,15 @@
 
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Engine/Interfaces.hpp>
 #include <cstddef>
 #include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
 
-namespace VoltMod::Engine
-{
-class GameData;
-struct Interfaces;
-}  // namespace VoltMod::Engine
-
-namespace VoltMod::Hooks
+namespace VoltMod
 {
 
 /** @brief How the client answered a convar query (CCLCMsg_RespondCvarValue::status_code). */
@@ -64,7 +60,7 @@ public:
     /** @p interfaces and @p gameData drive the response hook and the query send path. @p slots tells
      *  the service when a slot changes hands, so an answer can never be routed to the callback of
      *  whoever held the slot before. All three must outlive it; the Runtime declares them above. */
-    ClientCvars(Engine::Interfaces& interfaces, Engine::GameData& gameData, Core::SlotEvents& slots);
+    ClientCvars(Interfaces& interfaces, GameData& gameData, SlotEvents& slots);
     ~ClientCvars();
     ClientCvars(const ClientCvars&) = delete;
     ClientCvars& operator=(const ClientCvars&) = delete;
@@ -101,7 +97,7 @@ private:
     class Impl;
     std::unique_ptr<Impl> _impl;
     /** Declared after _impl so it unregisters before the pending table its callback clears. */
-    Core::Subscription _slotListener;
+    Subscription _slotListener;
 };
 
-}  // namespace VoltMod::Hooks
+}  // namespace VoltMod

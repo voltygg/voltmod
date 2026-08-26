@@ -1,9 +1,7 @@
 #include <VoltMod/Players/PlayerManager.hpp>
 
-namespace VoltMod::Players
+namespace VoltMod
 {
-
-using namespace VoltMod::Core;
 
 // Bots share SteamID 0, so indexing them would make the map's single 0 entry mean whichever
 // bot connected last - and removing any one of them would unindex a live player. GetPlayerBySlot
@@ -117,4 +115,4 @@ void PlayerManager::Clear()
         FireSlotChange(slot);
 }
 
-}  // namespace VoltMod::Players
+}  // namespace VoltMod

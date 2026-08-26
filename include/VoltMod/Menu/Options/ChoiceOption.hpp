@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-namespace VoltMod::Menu
+namespace VoltMod
 {
 
 /**
@@ -106,4 +106,4 @@ private:
     int _ownIndex = 0;  // used when no external get/set state is supplied
 };
 
-}  // namespace VoltMod::Menu
+}  // namespace VoltMod

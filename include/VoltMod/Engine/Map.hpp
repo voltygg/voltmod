@@ -1,13 +1,12 @@
 #pragma once
 
+#include <VoltMod/Engine/ConVars.hpp>
+#include <VoltMod/Engine/Interfaces.hpp>
 #include <cstdint>
 #include <string>
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
-
-struct Interfaces;
-class ConVars;
 
 /**
  * @brief Map validation and level changes.
@@ -56,4 +55,4 @@ private:
     ConVars& _conVars;
 };
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

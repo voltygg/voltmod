@@ -1,11 +1,10 @@
 #pragma once
 
+#include <VoltMod/Engine/EngineTypes.hpp>
 #include <functional>
 #include <memory>
 
-class CCommand;
-
-namespace VoltMod::Engine
+namespace VoltMod
 {
 
 /**
@@ -13,7 +12,7 @@ namespace VoltMod::Engine
  * unregisters on destruction.
  *
  * Use this for server-console, RCON, cfg, and loosely coupled automation surfaces. Invoke
- * commands through @ref ConVars::ExecuteServerCommand. Prefer App::ServiceExchange
+ * commands through @ref ConVars::ExecuteServerCommand. Prefer ServiceExchange
  * when two plugins need a typed, versioned contract.
  *
  * The handler runs on the game thread. Construct only while the plugin is loaded (ICvar
@@ -34,4 +33,4 @@ private:
     std::unique_ptr<Impl> _impl;
 };
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

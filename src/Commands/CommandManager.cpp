@@ -8,15 +8,10 @@
 #include <convar.h>
 #include <limits>
 
-namespace VoltMod::Commands
+namespace VoltMod
 {
 
-using namespace VoltMod::Core;
-
-namespace
-{
-
-std::optional<int64_t> ParseInt64(const std::string& text)
+static std::optional<int64_t> ParseInt64(const std::string& text)
 {
     int64_t value{};
     auto [ptr, ec] = std::from_chars(text.data(), text.data() + text.size(), value);
@@ -25,27 +20,25 @@ std::optional<int64_t> ParseInt64(const std::string& text)
     return value;
 }
 
-std::string TargetErrorMessage(Core::Translations& tr, const Players::TargetFailure& failure, const std::string& token,
-                               int slot)
+static std::string TargetErrorMessage(Translations& tr, const TargetFailure& failure, const std::string& token,
+                                      int slot)
 {
     switch (failure.Error)
     {
-    case Players::TargetError::Immune:
+    case TargetError::Immune:
         return tr.Get("target.immune", slot, {{"token", token}});
-    case Players::TargetError::Ambiguous:
-    case Players::TargetError::MultiNotAllowed:
+    case TargetError::Ambiguous:
+    case TargetError::MultiNotAllowed:
         return tr.Get("target.ambiguous", slot, {{"token", token}, {"count", std::to_string(failure.Count)}});
-    case Players::TargetError::DeadNotAllowed:
+    case TargetError::DeadNotAllowed:
         return tr.Get("target.dead", slot, {{"token", token}});
-    case Players::TargetError::BotNotAllowed:
+    case TargetError::BotNotAllowed:
         return tr.Get("target.bot", slot, {{"token", token}});
-    case Players::TargetError::NoMatch:
+    case TargetError::NoMatch:
     default:
         return tr.Get("target.noMatch", slot, {{"token", token}});
     }
 }
-
-}  // namespace
 
 void CommandManager::Register(CommandSpec spec)
 {
@@ -91,7 +84,7 @@ void CommandManager::RegisterConsoleCommand(const std::string& name, const Comma
     // The console has no prefix to type, so the derived usage must not claim one.
     const std::string help = spec.Description.empty() ? DeriveUsage(spec, "") : spec.Description;
     _consoleCommands.emplace(
-        name, std::make_unique<Engine::ServerCommand>(name.c_str(), help.c_str(), [this, name](const CCommand& args) {
+        name, std::make_unique<ServerCommand>(name.c_str(), help.c_str(), [this, name](const CCommand& args) {
             // Re-resolved per invocation: the spec can be unregistered while the ConCommand
             // lives. `name` is already the canonical key, so no lowering or alias hop is needed.
             auto it = _commands.find(name);
@@ -109,7 +102,7 @@ void CommandManager::RegisterConsoleCommand(const std::string& name, const Comma
         }));
 }
 
-bool CommandManager::HandleChatMessage(Players::Player* caller, std::string_view message)
+bool CommandManager::HandleChatMessage(Player* caller, std::string_view message)
 {
     if (!caller || message.empty())
         return false;
@@ -155,7 +148,7 @@ bool CommandManager::HandleChatMessage(Players::Player* caller, std::string_view
     return true;
 }
 
-void CommandManager::Dispatch(const CommandSpec& cmd, Players::Player* caller, std::vector<std::string> args,
+void CommandManager::Dispatch(const CommandSpec& cmd, Player* caller, std::vector<std::string> args,
                               const std::function<void(const std::string&)>& reply)
 {
     // Console has no player and so no language of its own; slot -1 resolves the server language.
@@ -228,7 +221,7 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
     const int slot = ctx.CallerSlot();
     std::size_t i = 0;
 
-    auto fail = [&](const ArgSpec& spec, const char* defaultKey, Core::Tokens tokens = {}) {
+    auto fail = [&](const ArgSpec& spec, const char* defaultKey, Tokens tokens = {}) {
         outError = tr.Get(spec.ErrorKey.empty() ? defaultKey : spec.ErrorKey.c_str(), slot, tokens);
         return false;
     };
@@ -256,8 +249,8 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
         {
             // Target() always resolves against the default rules: single online target,
             // dead and bots allowed.
-            const Players::TargetRules rules{};
-            auto resolved = Players::ResolveTargets(_runtime, token, ctx.Caller, rules);
+            const TargetRules rules{};
+            auto resolved = ResolveTargets(_runtime, token, ctx.Caller, rules);
             if (!resolved)
             {
                 outError = TargetErrorMessage(tr, resolved.error(), token, slot);
@@ -279,7 +272,7 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
             }
             else
             {
-                auto resolved = Players::ResolveTargets(_runtime, token, ctx.Caller, {});
+                auto resolved = ResolveTargets(_runtime, token, ctx.Caller, {});
                 if (!resolved)
                 {
                     outError = TargetErrorMessage(tr, resolved.error(), token, slot);
@@ -378,4 +371,4 @@ std::vector<std::string> CommandManager::ParseArguments(const std::string& text)
     return parts;
 }
 
-}  // namespace VoltMod::Commands
+}  // namespace VoltMod

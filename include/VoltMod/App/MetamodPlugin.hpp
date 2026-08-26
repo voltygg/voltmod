@@ -1,7 +1,10 @@
 #pragma once
 
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
+#include <VoltMod/Players/Player.hpp>
+#include <VoltMod/Runtime.hpp>
 #include <cstddef>
 #include <eiface.h>
 #include <functional>
@@ -10,19 +13,7 @@
 #include <string_view>
 #include <vector>
 
-class ISource2WorldSession;
-
-namespace VoltMod::Players
-{
-class Player;
-}
-
 namespace VoltMod
-{
-class Runtime;
-}
-
-namespace VoltMod::App
 {
 
 /** Plugin metadata returned by MetamodPlugin::Info(). Use BuildInfo.hpp for
@@ -88,22 +79,22 @@ protected:
     virtual void OnServerStartup(const char* mapName) {}
 
     /** @brief A player joined and is now tracked. @p player is valid (read its SteamID, name, etc.). */
-    virtual void OnPlayerConnect(Players::Player* player) {}
+    virtual void OnPlayerConnect(Player* player) {}
 
     /** @brief A player is leaving, still tracked for this call. @p player may be null - check it. */
-    virtual void OnPlayerDisconnect(Players::Player* player) {}
+    virtual void OnPlayerDisconnect(Player* player) {}
 
     /**
      * @brief A player finished connecting and is now in the server (post ClientFullyConnect) -
      * the first point their name and convars are meaningful. @p player may be null - check it.
      */
-    virtual void OnPlayerFullyConnected(Players::Player* player) {}
+    virtual void OnPlayerFullyConnected(Player* player) {}
 
     /**
      * @brief A player changed a replicated setting (name, userinfo cvars). Fires on every
      * change, including the ones the engine sends at connect. @p player may be null - check it.
      */
-    virtual void OnPlayerSettingsChanged(Players::Player* player) {}
+    virtual void OnPlayerSettingsChanged(Player* player) {}
 
     /**
      * @brief A player sent a `say` or `say_team` message.
@@ -114,7 +105,7 @@ protected:
      *
      * @return true to swallow it (the message won't appear in chat), false to let it through.
      */
-    virtual bool OnPlayerChat(Players::Player* player, std::string_view message, bool teamChat);
+    virtual bool OnPlayerChat(Player* player, std::string_view message, bool teamChat);
 
     /** @brief Install your own SourceHook hooks here; the base already installs the common ones.
      *  Keep each VOLTMOD_SCOPED_HOOK subscription in a member so it is removed on unload. */
@@ -151,11 +142,11 @@ private:
     // Runtime first so implicit destruction also removes the hooks before the services they
     // call into go away - the same order Shutdown() enforces explicitly.
     std::unique_ptr<VoltMod::Runtime> _runtime;
-    std::vector<Core::Subscription> _standardHooks;
+    std::vector<Subscription> _standardHooks;
     PluginInfo _info;  // cached copy of Info() captured at load; backs the ISmmPlugin getters
 };
 
-}  // namespace VoltMod::App
+}  // namespace VoltMod
 
 /**
  * @brief Define the global plugin instance and Metamod entry point.

@@ -9,7 +9,9 @@ These helpers change `m_nRenderMode` and `m_clrRender` on a
 argument is the schema service the offsets come from, `runtime.Schema()`.
 
 ```cpp
-using namespace VoltMod::Entities;
+using VoltMod::ColorInvisible;
+using VoltMod::ColorOpaqueWhite;
+using VoltMod::SetRender;
 
 SetRender(runtime.Schema(), prop, RenderMode_t::TransTexture, ColorInvisible);
 SetRender(runtime.Schema(), prop, RenderMode_t::Normal, ColorOpaqueWhite);
@@ -52,7 +54,7 @@ Requires the `CheckTransmitPlayerSlot` gamedata offset (the recipient slot insid
 Per-viewer wallhack-style vision built on the Transmit filter: one client sees live players as team-colored glow outlines through walls, while every other client (and GOTV) never receives the glow entities. They are invisible to those clients by construction rather than by a rendering trick. Each glowing player gets two `prop_dynamic` clones following their pawn: an invisible relay and a glow prop parented to it (the indirection renders only the outline). Both are transmit-filtered exclusively to the beneficiary.
 
 ```cpp
-using VoltMod::Hooks::GlowVision;
+using VoltMod::GlowVision;
 
 auto glow = runtime.Visibility.CreateGlow(viewerSlot);
 glow->Reconcile();  // build the clones immediately

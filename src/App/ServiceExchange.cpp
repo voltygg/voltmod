@@ -1,7 +1,7 @@
 #include <VoltMod/App/MetamodPlugin.hpp>  // PLUGIN_GLOBALVARS -> g_SMAPI
 #include <VoltMod/App/ServiceExchange.hpp>
 
-namespace VoltMod::App
+namespace VoltMod
 {
 
 void* ServiceExchange::Query(const char* iface)
@@ -14,4 +14,4 @@ void* ServiceExchange::Query(const char* iface)
     return ret == META_IFACE_OK ? impl : nullptr;
 }
 
-}  // namespace VoltMod::App
+}  // namespace VoltMod

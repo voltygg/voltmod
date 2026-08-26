@@ -8,19 +8,15 @@
 #include <numbers>
 #include <random>
 
-namespace VoltMod::Entities::PawnOps
+namespace VoltMod::PawnOps
 {
 
-namespace
-{
-float Rand(float lo, float hi)
+static float Rand(float lo, float hi)
 {
     static thread_local std::mt19937 rng{std::random_device{}()};
     std::uniform_real_distribution<float> dist(lo, hi);
     return dist(rng);
 }
-
-}  // namespace
 
 Vector ClearedDestination(const PlayerController& anchor, float clearance)
 {
@@ -88,17 +84,17 @@ bool ChangeTeamSafe(const PlayerController& pc, int team)
     return true;
 }
 
-}  // namespace VoltMod::Entities::PawnOps
+}  // namespace VoltMod::PawnOps
 
-namespace VoltMod::Entities
+namespace VoltMod
 {
 
-Pawns::Pawns(Core::Scheduler& scheduler, Core::SlotEvents& slots, EntitySystem& entities)
+Pawns::Pawns(Scheduler& scheduler, SlotEvents& slots, EntitySystem& entities)
     : _scheduler(scheduler),
       _entities(entities),
       // Either edge of a slot change means the pending clear no longer belongs to whoever sits there.
       _slotListener(slots.Listen([this](int slot) {
-          if (!Core::IsValidSlot(slot))
+          if (!IsValidSlot(slot))
               return;
           _scheduler.Cancel(_fallProtect[slot]);
           _fallProtect[slot] = 0;
@@ -115,7 +111,7 @@ void Pawns::Slap(const PlayerController& pc, float upward, float horizontal, int
     // Only toggle godmode for fall protection if the target wasn't already in godmode, otherwise
     // the delayed clear below would silently strip an externally applied godmode.
     const int slot = pc.GetSlot();
-    if (fallProtectMs <= 0 || !Core::IsValidSlot(slot) || PawnOps::HasGodmode(pc))
+    if (fallProtectMs <= 0 || !IsValidSlot(slot) || PawnOps::HasGodmode(pc))
         return;
 
     PawnOps::SetGodmode(pc, true);
@@ -131,4 +127,4 @@ void Pawns::Slap(const PlayerController& pc, float upward, float horizontal, int
     });
 }
 
-}  // namespace VoltMod::Entities
+}  // namespace VoltMod

@@ -2,7 +2,7 @@
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Runtime.hpp>
 
-namespace VoltMod::Menu
+namespace VoltMod
 {
 
 bool MenuContext::Allowed(const std::string& permission) const
@@ -29,11 +29,11 @@ bool MenuContext::Allowed(const std::string& permission) const
     return true;
 }
 
-std::string MenuContext::Tr(std::string_view key, Core::Tokens tokens) const
+std::string MenuContext::Tr(std::string_view key, Tokens tokens) const
 {
     if (!Rt)
         return std::string(key);
     return Rt->Translations.Get(std::string(key), Admin, tokens);
 }
 
-}  // namespace VoltMod::Menu
+}  // namespace VoltMod

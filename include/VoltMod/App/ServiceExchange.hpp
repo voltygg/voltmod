@@ -3,7 +3,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace VoltMod::App
+namespace VoltMod
 {
 
 /**
@@ -75,4 +75,4 @@ private:
     std::unordered_map<std::string, void*> _published;
 };
 
-}  // namespace VoltMod::App
+}  // namespace VoltMod

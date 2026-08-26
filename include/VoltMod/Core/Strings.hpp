@@ -6,7 +6,7 @@
 #include <string_view>
 #include <vector>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 /**
@@ -58,4 +58,4 @@ public:
     static std::string DisplayNameOr(int64_t id, const std::string& name, std::size_t maxBytes = 20);
 };
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

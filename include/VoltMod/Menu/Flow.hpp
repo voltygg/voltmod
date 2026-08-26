@@ -13,7 +13,7 @@
 #include <utility>
 #include <vector>
 
-namespace VoltMod::Menu
+namespace VoltMod
 {
 
 /**
@@ -133,7 +133,7 @@ public:
                     builder.AddInput(
                         custom, customPrompt ? customPrompt(slot) : "", [](int) { return std::string(); },
                         [self, set, customValue](int s, std::string_view text) {
-                            std::string typed = Core::Strings::Trim(std::string(text));
+                            std::string typed = Strings::Trim(std::string(text));
                             if (typed.empty())
                                 return false;  // re-prompt
                             set(self->_state, typed, customValue.empty() ? typed : customValue);
@@ -261,4 +261,4 @@ private:
     std::function<void(int, TState&)> _finish;
 };
 
-}  // namespace VoltMod::Menu
+}  // namespace VoltMod

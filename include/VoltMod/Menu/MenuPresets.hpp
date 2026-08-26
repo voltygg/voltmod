@@ -1,7 +1,10 @@
 #pragma once
 
 #include <VoltMod/Menu/Menu.hpp>
+#include <VoltMod/Menu/MenuBuilder.hpp>
+#include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Menu/Options/ChoiceOption.hpp>
+#include <VoltMod/Players/PlayerManager.hpp>
 #include <functional>
 #include <memory>
 #include <string>
@@ -9,12 +12,7 @@
 #include <utility>
 #include <vector>
 
-namespace VoltMod::Players
-{
-class PlayerManager;
-}
-
-namespace VoltMod::Menu
+namespace VoltMod
 {
 
 /**
@@ -27,8 +25,6 @@ namespace VoltMod::Menu
  */
 
 // Forward declarations; full definitions in MenuBuilder.hpp and MenuManager.hpp.
-class MenuBuilder;
-class MenuManager;
 
 /**
  * Append one row per player connected to @p players to @p builder - the body of
@@ -37,12 +33,12 @@ class MenuManager;
  * decides per-row whether a target is selectable. If no players are connected, a single
  * disabled @p emptyLabel row is appended instead.
  */
-void AppendPlayerRows(MenuBuilder& builder, Players::PlayerManager& players, int viewerSlot,
+void AppendPlayerRows(MenuBuilder& builder, PlayerManager& players, int viewerSlot,
                       const std::function<void(int viewerSlot, int targetSlot)>& onPick,
                       const std::string& emptyLabel = "", const std::function<bool(int targetSlot)>& isEnabled = {});
 
 /** Build a paginated picker menu containing only the @ref AppendPlayerRows player list. */
-std::shared_ptr<MenuView> BuildPlayerPicker(Players::PlayerManager& players, int viewerSlot, const std::string& title,
+std::shared_ptr<MenuView> BuildPlayerPicker(PlayerManager& players, int viewerSlot, const std::string& title,
                                             std::function<void(int viewerSlot, int targetSlot)> onPick,
                                             const std::string& emptyLabel = "",
                                             std::function<bool(int targetSlot)> isEnabled = {});
@@ -51,7 +47,7 @@ std::shared_ptr<MenuView> BuildPlayerPicker(Players::PlayerManager& players, int
  * Build a duration picker. Each @p presets entry is a (label, seconds) pair rendered as a row;
  * selecting it invokes @p onPick(viewerSlot, seconds). When @p customLabel is non-empty an
  * extra chat-input row is appended: it prompts with @p customPrompt and parses the typed text
- * via @ref VoltMod::Core::ParseDuration (rejecting/re-prompting on a negative result).
+ * via @ref VoltMod::ParseDuration (rejecting/re-prompting on a negative result).
  */
 std::shared_ptr<MenuView> BuildDurationPicker(int viewerSlot, const std::string& title,
                                               const std::vector<std::pair<std::string, int>>& presets,
@@ -75,11 +71,11 @@ struct ConfirmDialogSpec
 std::shared_ptr<MenuView> BuildConfirmDialog(MenuManager& menus, ConfirmDialogSpec spec);
 
 /**
- * Render @ref Messaging::ChatColors::Palette as ChoiceOption choices (value = canonical color name),
+ * Render @ref ChatColors::Palette as ChoiceOption choices (value = canonical color name),
  * so color pickers grow automatically as the palette does. @p labelFor supplies the localized
  * label for each canonical name; return "" to fall back to the name itself.
  */
 std::vector<ChoiceOption<std::string>::Choice> BuildPaletteChoices(
     const std::function<std::string(std::string_view canonicalName)>& labelFor);
 
-}  // namespace VoltMod::Menu
+}  // namespace VoltMod

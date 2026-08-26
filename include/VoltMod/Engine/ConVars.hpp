@@ -2,25 +2,23 @@
 
 #include <VoltMod/Core/CallbackRegistry.hpp>
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/Interfaces.hpp>
 #include <cstdint>
 #include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
 
-class INetworkMessageInternal;
-
-namespace VoltMod::Engine
+namespace VoltMod
 {
-
-struct Interfaces;
 
 /**
  * @brief Direct handle to a convar's value storage.
  *
  * Reads and writes bypass change callbacks and FCVAR_REPLICATED networking: nothing is sent
  * to clients and no OnChange listener fires. Intended for scoped flips around one player's
- * processing (e.g. inside a Hooks::Movement pre/post pair) where the engine setters' broadcast-
+ * processing (e.g. inside a Movement pre/post pair) where the engine setters' broadcast-
  * to-everyone behavior would be wrong; the caller must restore the prior value itself.
  *
  * There is no type checking - use the accessor matching the convar's actual engine type.
@@ -100,7 +98,7 @@ public:
      * services and removed once the last one goes away, so plugins loaded together each see
      * every change regardless of load order.
      */
-    [[nodiscard]] Core::Subscription OnChange(ChangeCallback callback);
+    [[nodiscard]] Subscription OnChange(ChangeCallback callback);
 
     /** Fan a change out to this service's listeners. For the engine trampoline only. */
     void DispatchChange(const char* name, const char* oldValue, const char* newValue);
@@ -114,9 +112,9 @@ private:
     INetworkMessageInternal* SetConVarMessage();
 
     Interfaces& _interfaces;
-    Core::CallbackRegistry<ChangeCallback> _changeCallbacks;
+    CallbackRegistry<ChangeCallback> _changeCallbacks;
     bool _routingChanges = false;
     INetworkMessageInternal* _setConVarMsg = nullptr;
 };
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

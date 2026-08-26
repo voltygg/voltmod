@@ -2,7 +2,7 @@
 
 #include <irecipientfilter.h>
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
 
 /**
@@ -54,4 +54,4 @@ private:
     CPlayerBitVec _recipients;
 };
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

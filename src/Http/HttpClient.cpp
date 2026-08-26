@@ -6,13 +6,10 @@
 #include <future>
 #include <utility>
 
-namespace VoltMod::Http
+namespace VoltMod
 {
 
-namespace
-{
-
-cpr::Header ParseHeaderLines(const std::vector<std::string>& headers)
+static cpr::Header ParseHeaderLines(const std::vector<std::string>& headers)
 {
     cpr::Header header;
     for (const auto& line : headers)
@@ -28,7 +25,7 @@ cpr::Header ParseHeaderLines(const std::vector<std::string>& headers)
     return header;
 }
 
-HttpResult ToHttpResult(cpr::Response&& response)
+static HttpResult ToHttpResult(cpr::Response&& response)
 {
     HttpResult result;
     if (response.error)
@@ -43,8 +40,6 @@ HttpResult ToHttpResult(cpr::Response&& response)
     }
     return result;
 }
-
-}  // namespace
 
 struct HttpClient::Impl
 {
@@ -87,7 +82,7 @@ struct HttpClient::Impl
     }
 };
 
-HttpClient::HttpClient(Core::Scheduler& scheduler)
+HttpClient::HttpClient(Scheduler& scheduler)
     : _impl(std::make_unique<Impl>()), _pump(scheduler.EveryFrame([this] { DispatchCompletions(); }))
 {}
 
@@ -166,4 +161,4 @@ void HttpClient::DispatchCompletions()
     }
 }
 
-}  // namespace VoltMod::Http
+}  // namespace VoltMod

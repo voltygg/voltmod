@@ -7,10 +7,10 @@
 #include <string_view>
 #include <utility>
 
-namespace VoltMod::Menu
+namespace VoltMod
 {
 
-void AppendPlayerRows(MenuBuilder& builder, Players::PlayerManager& players, int viewerSlot,
+void AppendPlayerRows(MenuBuilder& builder, PlayerManager& players, int viewerSlot,
                       const std::function<void(int viewerSlot, int targetSlot)>& onPick, const std::string& emptyLabel,
                       const std::function<bool(int targetSlot)>& isEnabled)
 {
@@ -34,7 +34,7 @@ void AppendPlayerRows(MenuBuilder& builder, Players::PlayerManager& players, int
         builder.AddButton(emptyLabel, [](int) {}, false);
 }
 
-std::shared_ptr<MenuView> BuildPlayerPicker(Players::PlayerManager& players, int viewerSlot, const std::string& title,
+std::shared_ptr<MenuView> BuildPlayerPicker(PlayerManager& players, int viewerSlot, const std::string& title,
                                             std::function<void(int viewerSlot, int targetSlot)> onPick,
                                             const std::string& emptyLabel,
                                             std::function<bool(int targetSlot)> isEnabled)
@@ -65,7 +65,7 @@ std::shared_ptr<MenuView> BuildDurationPicker(int viewerSlot, const std::string&
         builder.AddInput(
             customLabel, customPrompt, [](int) { return std::string{}; },
             [viewerSlot, onPick](int /*slot*/, std::string_view text) -> bool {
-                int seconds = Core::ParseDuration(text);
+                int seconds = ParseDuration(text);
                 if (seconds < 0)
                     return false;  // re-prompt
                 if (onPick)
@@ -104,9 +104,9 @@ std::vector<ChoiceOption<std::string>::Choice> BuildPaletteChoices(
     const std::function<std::string(std::string_view canonicalName)>& labelFor)
 {
     std::vector<ChoiceOption<std::string>::Choice> choices;
-    choices.reserve(Messaging::ChatColors::Palette.size());
+    choices.reserve(ChatColors::Palette.size());
 
-    for (const auto& entry : Messaging::ChatColors::Palette)
+    for (const auto& entry : ChatColors::Palette)
     {
         std::string label = labelFor ? labelFor(entry.Name) : std::string{};
         if (label.empty())
@@ -116,4 +116,4 @@ std::vector<ChoiceOption<std::string>::Choice> BuildPaletteChoices(
     return choices;
 }
 
-}  // namespace VoltMod::Menu
+}  // namespace VoltMod

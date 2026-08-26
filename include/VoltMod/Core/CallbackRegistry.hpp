@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 /**
@@ -118,4 +118,4 @@ private:
     uint64_t _nextId = 1;
 };
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

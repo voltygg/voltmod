@@ -1,6 +1,6 @@
 #pragma once
 
-namespace VoltMod::Database
+namespace VoltMod
 {
 
 /**
@@ -20,7 +20,7 @@ namespace VoltMod::Database
  *     static constexpr const char* Key = "id";  // auto-generated key, excluded from INSERT
  *     static constexpr auto Columns()
  *     {
- *         using VoltMod::Database::Column;
+ *         using VoltMod::Column;
  *         return std::tuple{Column{"id", &Ban::Id}, Column{"target_steam_id", &Ban::TargetSteamId}, ...};
  *     }
  * };
@@ -36,4 +36,4 @@ struct Column
     M T::* Member;
 };
 
-}  // namespace VoltMod::Database
+}  // namespace VoltMod

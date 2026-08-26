@@ -4,7 +4,7 @@
 #include <optional>
 #include <string>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 /** @brief Static utilities for converting between SteamID formats (64-bit, SteamID2, SteamID3). */
@@ -22,4 +22,4 @@ private:
     static constexpr int64_t SteamId64Base = 76561197960265728LL;
 };
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

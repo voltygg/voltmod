@@ -1,6 +1,6 @@
 #pragma once
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
 
 /**
@@ -23,4 +23,4 @@ namespace VoltMod::Engine
  */
 void* FindVirtualTable(const char* moduleName, const char* className);
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

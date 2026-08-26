@@ -3,27 +3,13 @@
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Entities/Entity.hpp>
 #include <array>
 #include <vector>
 
-class CCheckTransmitInfo;
-
-namespace VoltMod::Engine
-{
-class GameData;
-}  // namespace VoltMod::Engine
-
-namespace VoltMod::Entities
-{
-class EntitySystem;
-}  // namespace VoltMod::Entities
-
-namespace VoltMod::Entities
-{
-class SchemaService;  // Internal type (src/Entities/Schema.hpp), kept out of the public graph.
-}  // namespace VoltMod::Entities
-
-namespace VoltMod::Hooks
+namespace VoltMod
 {
 
 /**
@@ -51,8 +37,7 @@ class Transmit
 public:
     /** @p slots tells the service when a slot changes hands, so hiding cannot carry over to
      *  whoever occupies it next. The other three must outlive it; the Runtime declares them above. */
-    Transmit(Entities::EntitySystem& entities, Engine::GameData& gameData, Entities::SchemaService& schema,
-             Core::SlotEvents& slots);
+    Transmit(EntitySystem& entities, GameData& gameData, SchemaService& schema, SlotEvents& slots);
     Transmit(const Transmit&) = delete;
     Transmit& operator=(const Transmit&) = delete;
 
@@ -92,15 +77,15 @@ private:
 
     void SetFlag(int slot, bool SlotState::* flag, bool value);
 
-    Entities::EntitySystem& _entities;
-    Engine::GameData& _gameData;
-    Entities::SchemaService& _schema;
-    std::array<SlotState, Core::MaxPlayers> _state{};
+    EntitySystem& _entities;
+    GameData& _gameData;
+    SchemaService& _schema;
+    std::array<SlotState, MaxPlayers> _state{};
     std::vector<ExclusiveEntity> _exclusive; /**< Entities transmitted only to their beneficiary. */
     int _activeCount = 0;                    /**< Slots with any flag set; OnCheckTransmit early-outs at 0. */
     int _slotOffset = -1;                    /**< Recipient player-slot byte offset inside CCheckTransmitInfo. */
     /** Declared after the state above so it unregisters before its callback's targets go away. */
-    Core::Subscription _slotListener;
+    Subscription _slotListener;
 };
 
-}  // namespace VoltMod::Hooks
+}  // namespace VoltMod

@@ -3,12 +3,12 @@
 #include <VoltMod/Engine/NetChannel.hpp>
 #include <inetchannelinfo.h>
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
 
 INetChannelInfo* NetChannels::GetNetInfo(int slot) const
 {
-    auto* engine = Core::IsValidSlot(slot) ? _interfaces.Engine : nullptr;
+    auto* engine = IsValidSlot(slot) ? _interfaces.Engine : nullptr;
     return engine ? engine->GetPlayerNetInfo(CPlayerSlot(slot)) : nullptr;
 }
 
@@ -20,10 +20,10 @@ float NetChannels::EngineLatency(int slot) const
 
 const char* NetChannels::GetUserInfoCvar(int slot, const char* name) const
 {
-    auto* engine = Core::IsValidSlot(slot) ? _interfaces.Engine : nullptr;
+    auto* engine = IsValidSlot(slot) ? _interfaces.Engine : nullptr;
     if (!engine || !name)
         return nullptr;
     return engine->GetClientConVarValue(CPlayerSlot(slot), name);
 }
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

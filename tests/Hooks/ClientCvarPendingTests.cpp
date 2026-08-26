@@ -4,29 +4,24 @@
 #include <doctest/doctest.h>
 #include <string>
 
-using VoltMod::Hooks::ClientCvarPendingTable;
-using VoltMod::Hooks::ClientCvars;
-using VoltMod::Hooks::ClientCvarStatus;
-
-namespace
-{
+using VoltMod::ClientCvarPendingTable;
+using VoltMod::ClientCvars;
+using VoltMod::ClientCvarStatus;
 
 /** Callback that records the value it was handed, so tests can tell two callbacks apart. */
-ClientCvars::QueryCallback Recorder(std::string& into)
+static ClientCvars::QueryCallback Recorder(std::string& into)
 {
     return [&into](int, ClientCvarStatus, std::string_view, std::string_view value) { into = value; };
 }
 
 /** Add one query and return its cookie. */
-int AddQuery(ClientCvarPendingTable& table, int slot, const std::string& name, ClientCvars::QueryCallback callback,
-             double now)
+static int AddQuery(ClientCvarPendingTable& table, int slot, const std::string& name,
+                    ClientCvars::QueryCallback callback, double now)
 {
     const int cookie = table.NextCookie(slot);
     table.Add(slot, cookie, name, std::move(callback), now);
     return cookie;
 }
-
-}  // namespace
 
 TEST_CASE("Take returns the query matching both cookie and name")
 {
@@ -72,7 +67,7 @@ TEST_CASE("Take rejects an unknown cookie and an out of range slot")
 
     CHECK_FALSE(table.Take(0, 999999, "cl_showpos").has_value());
     CHECK_FALSE(table.Take(-1, 1, "cl_showpos").has_value());
-    CHECK_FALSE(table.Take(VoltMod::Core::MaxPlayers, 1, "cl_showpos").has_value());
+    CHECK_FALSE(table.Take(VoltMod::MaxPlayers, 1, "cl_showpos").has_value());
 }
 
 TEST_CASE("A cookie is only valid on the slot it was issued for")
@@ -203,7 +198,7 @@ TEST_CASE("NextCookie refuses an out of range slot")
 {
     ClientCvarPendingTable table;
     CHECK(table.NextCookie(-1) == -1);
-    CHECK(table.NextCookie(VoltMod::Core::MaxPlayers) == -1);
+    CHECK(table.NextCookie(VoltMod::MaxPlayers) == -1);
 }
 
 TEST_CASE("Clear drops one slot and ClearAll drops every slot")
@@ -226,8 +221,8 @@ TEST_CASE("Adding to an out of range slot is a no op")
     ClientCvarPendingTable table;
     std::string seen;
     table.Add(-1, 1, "a", Recorder(seen), 0.0);
-    table.Add(VoltMod::Core::MaxPlayers, 1, "a", Recorder(seen), 0.0);
+    table.Add(VoltMod::MaxPlayers, 1, "a", Recorder(seen), 0.0);
 
     CHECK(table.Count(-1) == 0);
-    CHECK(table.Count(VoltMod::Core::MaxPlayers) == 0);
+    CHECK(table.Count(VoltMod::MaxPlayers) == 0);
 }

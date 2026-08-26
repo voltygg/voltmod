@@ -4,7 +4,7 @@
 #include <VoltMod/Players/TargetResolver.hpp>
 #include <VoltMod/Runtime.hpp>
 
-namespace VoltMod::Players
+namespace VoltMod
 {
 
 std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(Runtime& runtime, std::string_view token,
@@ -24,7 +24,7 @@ std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(Runtime& runti
     {
         if (!p)
             continue;
-        Entities::PlayerController ctrl = entities.Controller(p->GetSlot());
+        PlayerController ctrl = entities.Controller(p->GetSlot());
         roster.push_back({
             .Slot = p->GetSlot(),
             .SteamId = p->GetSteamID(),
@@ -36,8 +36,7 @@ std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(Runtime& runti
         });
     }
 
-    auto slots =
-        FilterRoster(roster, ParseTargetToken(token), rules, caller ? caller->GetSlot() : -1, Core::RandomIndex);
+    auto slots = FilterRoster(roster, ParseTargetToken(token), rules, caller ? caller->GetSlot() : -1, RandomIndex);
     if (!slots)
         return std::unexpected(slots.error());
 
@@ -49,4 +48,4 @@ std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(Runtime& runti
     return players;
 }
 
-}  // namespace VoltMod::Players
+}  // namespace VoltMod

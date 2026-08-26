@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoltMod/Commands/CommandSpec.hpp>
+#include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/ServerCommand.hpp>
 #include <memory>
 #include <string>
@@ -10,11 +11,6 @@
 #include <vector>
 
 namespace VoltMod
-{
-class Runtime;
-}
-
-namespace VoltMod::Commands
 {
 
 /**
@@ -39,7 +35,7 @@ public:
 
     void Register(CommandSpec spec);
 
-    bool HandleChatMessage(Players::Player* caller, std::string_view message);
+    bool HandleChatMessage(Player* caller, std::string_view message);
     size_t Count() const { return _commands.size(); }
 
     /** Names of registered specs that declare a Permission while no HasPermission policy is
@@ -58,7 +54,7 @@ private:
                      std::string& outError) const;
 
     /** Resolve and run @p cmd for @p caller (null = console), sending every reply to @p reply. */
-    void Dispatch(const CommandSpec& cmd, Players::Player* caller, std::vector<std::string> args,
+    void Dispatch(const CommandSpec& cmd, Player* caller, std::vector<std::string> args,
                   const std::function<void(const std::string&)>& reply);
 
     /** Bind a Surface::Console spec to a ConCommand of the same name. @p name must be the
@@ -74,7 +70,7 @@ private:
      *  logged once rather than on every attempt. */
     std::unordered_set<std::string> _missingPolicyWarned;
     /** Lowercased command name -> its ConCommand registration, for Surface::Console specs. */
-    std::unordered_map<std::string, std::unique_ptr<Engine::ServerCommand>> _consoleCommands;
+    std::unordered_map<std::string, std::unique_ptr<ServerCommand>> _consoleCommands;
 };
 
-}  // namespace VoltMod::Commands
+}  // namespace VoltMod

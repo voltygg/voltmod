@@ -5,7 +5,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
 
 /**
@@ -23,4 +23,4 @@ Ret CallVirtual(int index, void* thisPtr, Args&&... args)
     return fn(thisPtr, std::forward<Args>(args)...);
 }
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

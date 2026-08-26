@@ -3,7 +3,7 @@
 #include <functional>
 #include <string>
 
-namespace VoltMod::Http
+namespace VoltMod
 {
 
 /** Outcome of an async HTTP request. `Ok` reflects transport success, not the HTTP status. */
@@ -17,4 +17,4 @@ struct HttpResult
 
 using HttpCompletion = std::function<void(const HttpResult&)>;
 
-}  // namespace VoltMod::Http
+}  // namespace VoltMod

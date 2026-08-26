@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace VoltMod::Players
+namespace VoltMod
 {
 
 /**
@@ -21,10 +21,10 @@ namespace VoltMod::Players
 class PlayerManager
 {
 public:
-    using SlotCallback = Core::SlotEvents::Callback;
+    using SlotCallback = SlotEvents::Callback;
 
     /** @p slots is the Core-level signal this manager raises; it outlives the manager. */
-    explicit PlayerManager(Core::SlotEvents& slots) : _slots(slots) {}
+    explicit PlayerManager(SlotEvents& slots) : _slots(slots) {}
 
     Player* AddPlayer(int slot, int64_t steamId, const std::string& name, const std::string& ipAddress);
     void RemovePlayer(int slot);
@@ -35,14 +35,11 @@ public:
      * once per tracked slot on Clear. The backing hook for per-slot state that
      * must not leak across occupants (see PerSlot).
      *
-     * A convenience over Core::SlotEvents for plugin code that already holds a
+     * A convenience over SlotEvents for plugin code that already holds a
      * PlayerManager. Anything below Players in the layering listens on the signal
      * itself instead - that is the whole reason it lives in Core.
      */
-    [[nodiscard]] Core::Subscription ListenSlotChange(SlotCallback callback)
-    {
-        return _slots.Listen(std::move(callback));
-    }
+    [[nodiscard]] Subscription ListenSlotChange(SlotCallback callback) { return _slots.Listen(std::move(callback)); }
 
     Player* GetPlayerBySlot(int slot);
     Player* GetPlayerBySteamId(int64_t steamId);
@@ -61,9 +58,9 @@ private:
     void UnindexBySteamId(const Player* player);
     void FireSlotChange(int slot);
 
-    Core::SlotEvents& _slots;
+    SlotEvents& _slots;
     std::unordered_map<int, std::unique_ptr<Player>> _playersBySlot;
     std::unordered_map<int64_t, Player*> _playersBySteamId;
 };
 
-}  // namespace VoltMod::Players
+}  // namespace VoltMod

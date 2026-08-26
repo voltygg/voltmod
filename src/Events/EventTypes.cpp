@@ -3,7 +3,7 @@
 #include <VoltMod/Events/EventTypes.hpp>
 #include <playerslot.h>
 
-namespace VoltMod::Events
+namespace VoltMod
 {
 
 // GetPlayerSlot decodes the connection userid to the actual slot (userids drift from slots
@@ -101,4 +101,4 @@ RoundPrestart RoundPrestart::From(IGameEvent&)
     return {};
 }
 
-}  // namespace VoltMod::Events
+}  // namespace VoltMod

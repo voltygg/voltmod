@@ -8,7 +8,7 @@
 #include <string_view>
 #include <vector>
 
-namespace VoltMod::Players
+namespace VoltMod
 {
 
 /**
@@ -98,4 +98,4 @@ std::expected<std::vector<int>, TargetFailure> FilterRoster(
     std::span<const PlayerView> roster, const TargetQuery& query, const TargetRules& rules, int callerSlot,
     const std::function<std::size_t(std::size_t)>& randomIndex = {});
 
-}  // namespace VoltMod::Players
+}  // namespace VoltMod

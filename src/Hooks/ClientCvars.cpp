@@ -16,30 +16,22 @@
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
 
-PLUGIN_GLOBALVARS();
-
-namespace VoltMod::Hooks
+namespace VoltMod
 {
-using namespace VoltMod::Core;
 
 // CServerSideClient::ProcessRespondCvarValue(const CNetMessagePB<CCLCMsg_RespondCvarValue>&); the
 // vtable index is reconfigured from gamedata at Initialize time. Bound to the class vtable
 // (DVP hook), so it fires for every connected client without needing per-instance bindings.
 SH_DECL_MANUALHOOK1(VoltMod_ProcessRespondCvarValue, 0, 0, 0, bool, const CNetMessagePB<CCLCMsg_RespondCvarValue>&);
 
-namespace
-{
-
 // The engine module owning CServerSideClient and IVEngineServer2.
-constexpr const char* EngineModule = "engine2";
-constexpr const char* ServerSideClientClass = "CServerSideClient";
-
-}  // namespace
+static constexpr const char* EngineModule = "engine2";
+static constexpr const char* ServerSideClientClass = "CServerSideClient";
 
 class ClientCvars::Impl
 {
 public:
-    Impl(Engine::Interfaces& interfaces, Engine::GameData& gameData) : _interfaces(interfaces), _gameData(gameData) {}
+    Impl(Interfaces& interfaces, GameData& gameData) : _interfaces(interfaces), _gameData(gameData) {}
     ~Impl() { Shutdown(); }
 
     bool Initialize();
@@ -59,8 +51,8 @@ private:
     /** Post CSVCMsg_GetCvarValue to @p slot alone. False for bots and empty slots. */
     bool Send(int slot, const std::string& cvarName, int cookie);
 
-    Engine::Interfaces& _interfaces;
-    Engine::GameData& _gameData;
+    Interfaces& _interfaces;
+    GameData& _gameData;
     ClientCvarPendingTable _pending;
     INetworkMessageInternal* _getCvarValue = nullptr;
     int _slotOffset = -1;
@@ -83,7 +75,7 @@ bool ClientCvars::Impl::Initialize()
     if (vtableIndex < 0)
         return false;
 
-    const int slotOffset = _gameData.GetByteOffset("ServerSideClientSlot", Engine::MaxByteOffset, alignof(int));
+    const int slotOffset = _gameData.GetByteOffset("ServerSideClientSlot", MaxByteOffset, alignof(int));
     if (slotOffset < 0)
         return false;
 
@@ -95,9 +87,9 @@ bool ClientCvars::Impl::Initialize()
         return false;
     }
 
-    void* vtable = Engine::FindVirtualTable(EngineModule, ServerSideClientClass);
+    void* vtable = FindVirtualTable(EngineModule, ServerSideClientClass);
     if (!vtable)
-        return false;  // Engine::FindVirtualTable already logged which step failed
+        return false;  // FindVirtualTable already logged which step failed
 
     SH_MANUALHOOK_RECONFIGURE(VoltMod_ProcessRespondCvarValue, vtableIndex, 0, 0);
     _hookId = SH_ADD_MANUALDVPHOOK(VoltMod_ProcessRespondCvarValue, vtable,
@@ -128,7 +120,7 @@ void ClientCvars::Impl::Shutdown()
 
 bool ClientCvars::Impl::Query(int slot, const std::string& cvarName, QueryCallback callback)
 {
-    if (!Available() || !Core::IsValidSlot(slot) || cvarName.empty() || !callback)
+    if (!Available() || !IsValidSlot(slot) || cvarName.empty() || !callback)
         return false;
 
     const double now = Time::MonotonicSeconds();
@@ -197,7 +189,7 @@ bool ClientCvars::Impl::Hook_ProcessRespondCvarValue(const CNetMessagePB<CCLCMsg
 
 void ClientCvars::Impl::Deliver(int slot, const CNetMessagePB<CCLCMsg_RespondCvarValue>& msg)
 {
-    if (!Core::IsValidSlot(slot) || !msg.has_cookie() || !msg.has_status_code() || !msg.has_name())
+    if (!IsValidSlot(slot) || !msg.has_cookie() || !msg.has_status_code() || !msg.has_name())
         return;
 
     // Everything below is client-controlled, so each field is checked before it is trusted: an
@@ -238,7 +230,7 @@ std::string_view ToString(ClientCvarStatus status)
     return "unknown";
 }
 
-ClientCvars::ClientCvars(Engine::Interfaces& interfaces, Engine::GameData& gameData, Core::SlotEvents& slots)
+ClientCvars::ClientCvars(Interfaces& interfaces, GameData& gameData, SlotEvents& slots)
     : _impl(std::make_unique<Impl>(interfaces, gameData))
 {
     // SlotEvents fires when a slot is filled as well as emptied; a fresh occupant has nothing
@@ -284,4 +276,4 @@ void ClientCvars::OnServerStartup()
     _impl->Pending().ClearAll();
 }
 
-}  // namespace VoltMod::Hooks
+}  // namespace VoltMod

@@ -3,7 +3,7 @@
 #include <format>
 #include <string_view>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 std::string SteamId::ToSteamId3(int64_t steamId64)
@@ -77,4 +77,4 @@ uint32_t SteamId::GetAccountId(int64_t steamId64)
     return static_cast<uint32_t>(steamId64 - SteamId64Base);
 }
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

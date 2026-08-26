@@ -2,7 +2,7 @@
 
 [TOC]
 
-@ref VoltMod::App::MetamodPlugin owns the repeated Metamod integration:
+@ref VoltMod::MetamodPlugin owns the repeated Metamod integration:
 ISmmPlugin metadata getters, the Load/Unload flow, the
 standard SourceHook hooks, and the `PlayerManager` lifecycle. It creates one
 @ref VoltMod::Runtime for each load cycle and passes it to `OnLoad`. You provide
@@ -82,7 +82,7 @@ bool App::Start()
 `LoadStandardConfig` uses your config type's `LoadSettings` when it has one
 (the load-then-validate convention), otherwise `JsonConfig::Load`. It applies
 `plugin.locale` when the settings struct embeds
-@ref VoltMod::App::StandardPluginSettings. Use `{.Translations = false}` for
+@ref VoltMod::StandardPluginSettings. Use `{.Translations = false}` for
 a plugin that ships no translations.
 
 ## Registering commands
@@ -185,7 +185,7 @@ runtime argument. Everywhere else, use what `OnLoad` handed you.
 
 ## Cleanup on unload
 
-Cleanup belongs in a member destructor or a @ref VoltMod::Core::Subscription
+Cleanup belongs in a member destructor or a @ref VoltMod::Subscription
 held beside the state its callback captures:
 
 ```cpp
@@ -206,12 +206,12 @@ in your `App`'s destructor.
 
 ## Typed game events
 
-Listen for game events as structs instead of string + `GetInt` pairs. The structs live in `VoltMod::Events` (`Events/EventTypes.hpp`): `PlayerDeath`, `PlayerSpawn`, `PlayerJump`, `PlayerHurt`, `PlayerTeam`, `PlayerConnectFull`, `WeaponFire`, `RoundStart`, `RoundEnd`, `RoundPrestart`.
+Listen for game events as structs instead of string + `GetInt` pairs. The structs live in `VoltMod` (`VoltMod/Events/EventTypes.hpp`): `PlayerDeath`, `PlayerSpawn`, `PlayerJump`, `PlayerHurt`, `PlayerTeam`, `PlayerConnectFull`, `WeaponFire`, `RoundStart`, `RoundEnd`, `RoundPrestart`.
 
 ```cpp
-namespace Events = VoltMod::Events;
+using VoltMod::PlayerDeath;
 
-_playerDeath = Runtime.Events.Listen<Events::PlayerDeath>([this](const Events::PlayerDeath& e) {
+_playerDeath = Runtime.Events.Listen<PlayerDeath>([this](const PlayerDeath& e) {
     if (e.VictimSlot >= 0)
         Effects.CancelAllForSlot(e.VictimSlot);
 });
@@ -223,7 +223,7 @@ The stringly `Listen("event_name", ...)` overload stays as the escape hatch for 
 
 `SH_DECL_HOOKn` must still appear once at namespace scope in your .cpp (it expands to hook-manager classes; no helper can wrap it). The add/remove pairing *is* automated: `VOLTMOD_SCOPED_HOOK` installs the hook and yields a `Subscription` that removes it.
 
-For per-tick player movement you don't need a custom hook at all: the framework ships @ref VoltMod::Hooks::Movement (see @ref sdk_hooks_guide).
+For per-tick player movement you don't need a custom hook at all: the framework ships @ref VoltMod::Movement (see @ref sdk_hooks_guide).
 
 ```cpp
 #include <VoltMod/Unsafe/HookMacros.hpp>
@@ -239,4 +239,4 @@ void MyPlugin::OnRegisterHooks(VoltMod::Runtime& runtime)
 
 ## Configuration
 
-Settings loading is one call through @ref VoltMod::App::JsonConfig; see @ref config_guide.
+Settings loading is one call through @ref VoltMod::JsonConfig; see @ref config_guide.

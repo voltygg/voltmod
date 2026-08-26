@@ -6,16 +6,14 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
-namespace
-{
 // Flatten nested objects into dotted keys (`category.punish`), so callers can group keys in
 // the JSON without changing the flat lookup model. Leaf string values are stored; non-string
 // leaves are ignored.
-void FlattenInto(const nlohmann::json& node, const std::string& prefix,
-                 std::unordered_map<std::string, std::string>& out)
+static void FlattenInto(const nlohmann::json& node, const std::string& prefix,
+                        std::unordered_map<std::string, std::string>& out)
 {
     for (auto& [key, value] : node.items())
     {
@@ -32,7 +30,7 @@ void FlattenInto(const nlohmann::json& node, const std::string& prefix,
  * players saw the literal string `cmd.noPermission`. A plugin's own file still wins - these are
  * the floor, not an override.
  */
-const std::unordered_map<std::string, std::string>& KitDefaults()
+static const std::unordered_map<std::string, std::string>& KitDefaults()
 {
     static const std::unordered_map<std::string, std::string> defaults{
         {"cmd.noPermission", "You do not have permission to use this command."},
@@ -49,8 +47,6 @@ const std::unordered_map<std::string, std::string>& KitDefaults()
     return defaults;
 }
 
-}  // namespace
-
 Translations::Translations(SlotEvents& slots)
     // SlotEvents is raised from AddPlayer as well as RemovePlayer, but AddPlayer raises it
     // before the plugin's OnPlayerConnect runs, which is where a language gets set - so clearing
@@ -63,7 +59,7 @@ bool Translations::Load(const std::string& dirPath)
     _translations.clear();
     namespace fs = std::filesystem;
 
-    auto resolvedPath = Core::ResolvePath(dirPath);
+    auto resolvedPath = ResolvePath(dirPath);
 
     if (!fs::exists(resolvedPath) || !fs::is_directory(resolvedPath))
     {
@@ -209,4 +205,4 @@ std::string Translations::Get(const std::string& key, const std::map<std::string
     return Get(key, -1, tokens);
 }
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

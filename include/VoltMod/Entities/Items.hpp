@@ -1,15 +1,11 @@
 #pragma once
 
-namespace VoltMod::Engine
-{
-class GameData;
-}  // namespace VoltMod::Engine
+#include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Entities/PlayerController.hpp>
 
-namespace VoltMod::Entities
+namespace VoltMod
 {
-
-class PlayerController;
-class SchemaService;  // Internal type (src/Entities/Schema.hpp), kept out of the public graph.
 
 /**
  * @brief Giving and stripping a player's weapons.
@@ -25,7 +21,7 @@ class Items
 {
 public:
     /** Both must outlive this service; the Runtime declares them above it. */
-    Items(Engine::GameData& gameData, SchemaService& schema);
+    Items(GameData& gameData, SchemaService& schema);
     Items(const Items&) = delete;
     Items& operator=(const Items&) = delete;
 
@@ -51,8 +47,8 @@ private:
     /** The pawn's CCSPlayer_ItemServices, or nullptr. */
     void* ItemServices(const PlayerController& pc) const;
 
-    Engine::GameData& _gameData;
+    GameData& _gameData;
     SchemaService& _schema;
 };
 
-}  // namespace VoltMod::Entities
+}  // namespace VoltMod

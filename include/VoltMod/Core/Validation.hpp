@@ -10,7 +10,7 @@
 #include <string_view>
 #include <vector>
 
-namespace VoltMod::Core::Validation
+namespace VoltMod::Validation
 {
 
 /**
@@ -100,4 +100,4 @@ inline std::vector<int> ParseDurations(const std::vector<std::string>& entries,
     return result;
 }
 
-}  // namespace VoltMod::Core::Validation
+}  // namespace VoltMod::Validation

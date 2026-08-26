@@ -2,7 +2,7 @@
 #include <tier1/convar.h>
 #include <utility>
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
 
 struct ServerCommand::Impl final : ICommandCallback
@@ -27,4 +27,4 @@ ServerCommand::ServerCommand(const char* name, const char* helpText, Handler han
 
 ServerCommand::~ServerCommand() = default;
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

@@ -2,8 +2,8 @@
 #include <cstdint>
 #include <doctest/doctest.h>
 
-using VoltMod::Core::PairThrottle;
-using VoltMod::Core::Throttle;
+using VoltMod::PairThrottle;
+using VoltMod::Throttle;
 
 TEST_CASE("Throttle: first acquire always succeeds")
 {

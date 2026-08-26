@@ -11,7 +11,7 @@
 #include <string>
 #include <string_view>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 /**
@@ -52,7 +52,7 @@ public:
     {
         try
         {
-            auto resolved = Core::ResolvePath(path);
+            auto resolved = ResolvePath(path);
             std::ifstream file(resolved);
             if (!file.is_open())
             {
@@ -77,7 +77,7 @@ public:
     {
         try
         {
-            auto resolved = Core::ResolvePath(path);
+            auto resolved = ResolvePath(path);
             std::ofstream file(resolved);
             if (!file.is_open())
             {
@@ -132,4 +132,4 @@ public:
     }
 };
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

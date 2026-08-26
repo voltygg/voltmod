@@ -6,7 +6,7 @@
 #include <string>
 #include <utility>
 
-namespace VoltMod::Menu
+namespace VoltMod
 {
 
 /**
@@ -60,4 +60,4 @@ private:
     ToggleFn _toggle;
 };
 
-}  // namespace VoltMod::Menu
+}  // namespace VoltMod

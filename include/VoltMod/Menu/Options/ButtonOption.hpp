@@ -5,7 +5,7 @@
 #include <string>
 #include <utility>
 
-namespace VoltMod::Menu
+namespace VoltMod
 {
 
 /** Plain action row; E invokes the callback. */
@@ -42,4 +42,4 @@ private:
     ActivateFn _onActivate;
 };
 
-}  // namespace VoltMod::Menu
+}  // namespace VoltMod

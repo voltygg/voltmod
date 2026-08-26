@@ -5,7 +5,7 @@
 #include <string_view>
 #include <vector>
 
-namespace VoltMod::App
+namespace VoltMod
 {
 
 /** One entry from a manifest's `dependencies` array. */
@@ -55,4 +55,4 @@ protected:
 /** ServiceExchange key under which @p pluginName publishes its IPluginIdentity. */
 std::string IdentityKey(std::string_view pluginName);
 
-}  // namespace VoltMod::App
+}  // namespace VoltMod

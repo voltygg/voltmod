@@ -1,15 +1,19 @@
 #include <VoltMod/Players/Targeting.hpp>
 #include <doctest/doctest.h>
 
-using namespace VoltMod::Players;
-using Kind = TargetKind;
+using VoltMod::FilterRoster;
+using VoltMod::ParseTargetToken;
+using VoltMod::PlayerView;
+using VoltMod::TargetError;
+using VoltMod::TargetFailure;
+using VoltMod::TargetKind;
+using VoltMod::TargetRules;
 
-namespace
-{
+using Kind = TargetKind;
 
 // Slot layout: 0 Alice (T, alive), 1 Bob (CT, alive), 2 Bobby (CT, dead), 3 bot "Chick" (T, alive),
 // 4 Spec (spectator). Caller is Alice (slot 0).
-std::vector<PlayerView> Roster()
+static std::vector<PlayerView> Roster()
 {
     return {
         {.Slot = 0, .SteamId = 76561197960287930, .Name = "Alice", .Team = 2, .Alive = true, .Bot = false},
@@ -20,29 +24,27 @@ std::vector<PlayerView> Roster()
     };
 }
 
-constexpr int Caller = 0;
+static constexpr int Caller = 0;
 
-std::size_t FirstIndex(std::size_t)
+static std::size_t FirstIndex(std::size_t)
 {
     return 0;
 }
 
-int FrontSlot(const std::expected<std::vector<int>, TargetFailure>& r)
+static int FrontSlot(const std::expected<std::vector<int>, TargetFailure>& r)
 {
     return (r && !r->empty()) ? r->front() : -99;
 }
 
-std::size_t Size(const std::expected<std::vector<int>, TargetFailure>& r)
+static std::size_t Size(const std::expected<std::vector<int>, TargetFailure>& r)
 {
     return r ? r->size() : std::size_t{0};
 }
 
-bool FailedWith(const std::expected<std::vector<int>, TargetFailure>& r, TargetError error)
+static bool FailedWith(const std::expected<std::vector<int>, TargetFailure>& r, TargetError error)
 {
     return !r && r.error().Error == error;
 }
-
-}  // namespace
 
 TEST_CASE("ParseTargetToken: selectors")
 {

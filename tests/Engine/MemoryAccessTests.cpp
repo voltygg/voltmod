@@ -5,12 +5,10 @@
 #include <doctest/doctest.h>
 #include <string>
 
-using VoltMod::Engine::MemberPtr;
-using VoltMod::Engine::ReadAt;
-using VoltMod::Engine::WriteAt;
+using VoltMod::MemberPtr;
+using VoltMod::ReadAt;
+using VoltMod::WriteAt;
 
-namespace
-{
 // Stand-in for an engine object: standard-layout so offsetof mirrors how the
 // real code reaches fields by their schema/gamedata byte offset.
 struct Sample
@@ -21,7 +19,6 @@ struct Sample
     void* Next;
     char Name[16];
 };
-}  // namespace
 
 TEST_CASE("MemoryAccess::ReadAt reads fields at their offsets")
 {

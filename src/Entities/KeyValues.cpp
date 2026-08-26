@@ -3,7 +3,7 @@
 #include <entity2/entitykeyvalues.h>
 #include <mathlib/vector.h>
 
-namespace VoltMod::Entities
+namespace VoltMod
 {
 
 KeyValues::KeyValues() : _kv(new CEntityKeyValues()) {}
@@ -72,4 +72,4 @@ CEntityKeyValues* KeyValues::Detach()
     return kv;
 }
 
-}  // namespace VoltMod::Entities
+}  // namespace VoltMod

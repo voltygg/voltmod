@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <functional>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 /**
@@ -48,4 +48,4 @@ private:
     CallbackRegistry<Timer> _timers;
 };
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

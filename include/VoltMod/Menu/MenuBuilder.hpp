@@ -1,8 +1,11 @@
 #pragma once
 
+#include <VoltMod/Entities/PlayerController.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuContext.hpp>
 #include <VoltMod/Menu/Options.hpp>
+#include <VoltMod/Players/ActionDispatcher.hpp>
+#include <VoltMod/Players/EffectDescriptor.hpp>
 #include <memory>
 #include <span>
 #include <string>
@@ -10,20 +13,7 @@
 #include <utility>
 #include <vector>
 
-namespace VoltMod::Players
-{
-struct Action;
-struct ParamAction;
-struct EffectDescriptor;
-struct ParamEffectDescriptor;
-}  // namespace VoltMod::Players
-
-namespace VoltMod::Entities
-{
-class PlayerController;
-}
-
-namespace VoltMod::Menu
+namespace VoltMod
 {
 
 /**
@@ -68,26 +58,25 @@ public:
         return *this;
     }
 
-    /** A button row that runs a single-target @ref Players::Action against (Admin, Target). */
-    MenuBuilder& AddActionRow(std::string_view labelKey, const Players::Action& action);
+    /** A button row that runs a single-target @ref Action against (Admin, Target). */
+    MenuBuilder& AddActionRow(std::string_view labelKey, const Action& action);
 
     /**
      * A toggle row that re-evaluates @p isActive on every redraw and runs the
      * action when pressed. Predicates live in Entities/PawnPredicates.hpp.
      */
-    MenuBuilder& AddStateToggleRow(std::string_view labelKey,
-                                   std::function<bool(const Entities::PlayerController&)> isActive,
-                                   const Players::Action& action);
+    MenuBuilder& AddStateToggleRow(std::string_view labelKey, std::function<bool(const PlayerController&)> isActive,
+                                   const Action& action);
 
     /** Choice row: A/D selects a preset and E runs the action. */
     MenuBuilder& AddPresetChoiceRow(std::string_view labelKey, std::string_view unit, std::span<const int> presets,
-                                    const Players::ParamAction& action, int initialIndex = 0);
+                                    const ParamAction& action, int initialIndex = 0);
 
     /** Effect toggle using the context's EffectManager and reserved state labels. */
-    MenuBuilder& AddEffectToggleRow(const Players::EffectDescriptor& effect);
+    MenuBuilder& AddEffectToggleRow(const EffectDescriptor& effect);
 
     /** Effect-choice submenu, with a reset row when ResetLabelKey is set. */
-    MenuBuilder& AddEffectPickerRow(const Players::ParamEffectDescriptor& effect);
+    MenuBuilder& AddEffectPickerRow(const ParamEffectDescriptor& effect);
 
     /** Append an action row with a label that is recomputed every render. */
     MenuBuilder& AddDynamicButton(std::function<std::string()> getLabel, std::function<void(int)> onActivate,
@@ -212,4 +201,4 @@ private:
     MenuContext _context;
 };
 
-}  // namespace VoltMod::Menu
+}  // namespace VoltMod

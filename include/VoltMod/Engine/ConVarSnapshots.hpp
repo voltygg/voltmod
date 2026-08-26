@@ -6,7 +6,7 @@
 #include <string_view>
 #include <vector>
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
 
 /**
@@ -55,4 +55,4 @@ private:
     std::vector<Entry> _entries;
 };
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

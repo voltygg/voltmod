@@ -1,18 +1,13 @@
 #pragma once
 
+#include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Hooks/GlowVision.hpp>
+#include <VoltMod/Hooks/Transmit.hpp>
 #include <memory>
 #include <utility>
 
-namespace VoltMod::Entities
+namespace VoltMod
 {
-class EntityOps;
-}  // namespace VoltMod::Entities
-
-namespace VoltMod::Hooks
-{
-
-class Transmit;
 
 /**
  * @brief Builds per-viewer visibility effects with the entity services already bound.
@@ -24,7 +19,7 @@ class Transmit;
 class Visibility
 {
 public:
-    Visibility(Entities::EntitySystem& entities, Entities::EntityOps& ops, Transmit& transmit)
+    Visibility(EntitySystem& entities, EntityOps& ops, Transmit& transmit)
         : _entities(entities), _ops(ops), _transmit(transmit)
     {}
     Visibility(const Visibility&) = delete;
@@ -38,9 +33,9 @@ public:
     }
 
 private:
-    Entities::EntitySystem& _entities;
-    Entities::EntityOps& _ops;
+    EntitySystem& _entities;
+    EntityOps& _ops;
     Transmit& _transmit;
 };
 
-}  // namespace VoltMod::Hooks
+}  // namespace VoltMod

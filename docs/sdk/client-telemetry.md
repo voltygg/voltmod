@@ -20,7 +20,7 @@ This is the timestamp source for anything that has to line up with the tick the 
 
 Two consequences to respect:
 
-- Both **reset when a map starts**. A value persisted across a map change compares as absurdly far in the future; drop stamps at map start rather than carrying them (this is what @ref VoltMod::Hooks::Teleport "Teleport" does).
+- Both **reset when a map starts**. A value persisted across a map change compares as absurdly far in the future; drop stamps at map start rather than carrying them (this is what @ref VoltMod::Teleport "Teleport" does).
 - Both return `0` when the globals are unavailable (before load, after shutdown), and `Globals()` returns `nullptr` there. `0` therefore reads as "unknown", not "the beginning of the map".
 
 ## NetChannels
@@ -81,4 +81,4 @@ The service is a **degradable load stage** (`ClientCvars`). It needs two gamedat
 | `ProcessRespondCvarValue` | vtable index of the response handler | Rejected at lookup, so the stage degrades instead of hooking an unrelated vfunc |
 | `ServerSideClientSlot` | byte offset of the player slot inside `CServerSideClient` | Rejected at lookup too; unchecked it would attribute answers to the wrong player |
 
-Both drift with engine updates; see @ref sdk_gamedata_guide. When any part of the setup fails the framework logs one warning, the load continues, @ref VoltMod::Hooks::ClientCvars::Available "Available()" stays false, and every `Query()` returns false. Check `Available()` once at load rather than treating each `false` from `Query()` as a per-call failure.
+Both drift with engine updates; see @ref sdk_gamedata_guide. When any part of the setup fails the framework logs one warning, the load continues, @ref VoltMod::ClientCvars::Available "Available()" stays false, and every `Query()` returns false. Check `Available()` once at load rather than treating each `false` from `Query()` as a per-call failure.

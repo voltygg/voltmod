@@ -9,7 +9,7 @@
 #include <string_view>
 #include <vector>
 
-namespace VoltMod::Http
+namespace VoltMod
 {
 
 /**
@@ -70,4 +70,4 @@ void Post(HttpClient& client, HttpRequest request, HttpCompletion onComplete);
 /** Enqueue a @ref HttpRequest as a GET on @p client; `onComplete` runs on the game thread. */
 void Get(HttpClient& client, HttpRequest request, HttpCompletion onComplete);
 
-}  // namespace VoltMod::Http
+}  // namespace VoltMod

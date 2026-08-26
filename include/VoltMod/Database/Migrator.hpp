@@ -6,10 +6,12 @@
 #include <string>
 #include <string_view>
 
-namespace VoltMod::Database
-{
+// Migration vocabulary only: no pqxx, so a translation unit can parse a migration filename
+// without a database client. @ref RunMigrations, which needs a live connection, is declared in
+// <VoltMod/Database/PostgresDatabase.hpp>.
 
-class PostgresDatabase;
+namespace VoltMod
+{
 
 /** Knobs for @ref RunMigrations; the defaults suit a single plugin owning its database. */
 struct MigrationOptions
@@ -44,13 +46,4 @@ inline std::optional<int> ParseMigrationVersion(std::string_view filename)
     return version;
 }
 
-/**
- * Apply pending forward-only migrations to `db`. Reads `dir` for files named `NNNN_*.sql` (the leading
- * integer is the version), and applies every file whose version exceeds the max recorded in the history
- * table, in ascending order, each in its own transaction, under a session advisory lock so two
- * concurrent plugin loads cannot race. A missing directory is a successful no-op (logged). On failure
- * the database is left at the last successfully applied version.
- */
-MigrationResult RunMigrations(PostgresDatabase& db, const std::string& dir, const MigrationOptions& options = {});
-
-}  // namespace VoltMod::Database
+}  // namespace VoltMod

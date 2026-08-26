@@ -1,6 +1,6 @@
 #pragma once
 
-namespace VoltMod::Entities
+namespace VoltMod
 {
 
 /**
@@ -28,4 +28,4 @@ enum class HitGroup : int
     Neck = 8,
 };
 
-}  // namespace VoltMod::Entities
+}  // namespace VoltMod

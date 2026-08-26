@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-namespace VoltMod::Players
+namespace VoltMod
 {
 
 /**
@@ -35,4 +35,4 @@ private:
     int64_t _connectTime;
 };
 
-}  // namespace VoltMod::Players
+}  // namespace VoltMod

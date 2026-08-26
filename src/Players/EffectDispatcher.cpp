@@ -3,14 +3,11 @@
 #include <VoltMod/Runtime.hpp>
 #include <utility>
 
-namespace VoltMod::Players
-{
-
-namespace
+namespace VoltMod
 {
 
 // Build the EffectSpec from the descriptor's declarative lifetime plus the body's instance.
-Core::EffectSpec MakeSpec(EffectScope scope, int tickIntervalMs, int durationMs, EffectInstance inst)
+static EffectSpec MakeSpec(EffectScope scope, int tickIntervalMs, int durationMs, EffectInstance inst)
 {
     return {.TickIntervalMs = tickIntervalMs,
             .DurationMs = durationMs,
@@ -19,8 +16,6 @@ Core::EffectSpec MakeSpec(EffectScope scope, int tickIntervalMs, int durationMs,
             .OnTick = std::move(inst.OnTick),
             .OnStop = std::move(inst.OnStop)};
 }
-
-}  // namespace
 
 void EffectDispatcher::ClearById(int adminSlot, int targetSlot, const std::string& permission, int id,
                                  const std::string& offKey) const
@@ -97,4 +92,4 @@ void EffectDispatcher::Clear(int adminSlot, int targetSlot, const ParamEffectDes
     ClearById(adminSlot, targetSlot, effect.Permission, effect.Id, effect.OffKey);
 }
 
-}  // namespace VoltMod::Players
+}  // namespace VoltMod

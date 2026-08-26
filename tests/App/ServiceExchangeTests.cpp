@@ -1,10 +1,8 @@
 #include <VoltMod/App/ServiceExchange.hpp>
 #include <doctest/doctest.h>
 
-using VoltMod::App::ServiceExchange;
+using VoltMod::ServiceExchange;
 
-namespace
-{
 struct IGreeter
 {
     static constexpr const char* InterfaceName = "test.IGreeter/1";
@@ -29,7 +27,6 @@ struct Both final : IGreeter, ICounter
     int Greet() override { return 7; }
     int Count() override { return 9; }
 };
-}  // namespace
 
 // No Get() cases: it goes through MetaFactory, which only exists in a loaded plugin. What is
 // testable here is the table OnMetamodQuery serves.

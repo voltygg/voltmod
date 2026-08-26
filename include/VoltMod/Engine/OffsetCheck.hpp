@@ -1,6 +1,6 @@
 #pragma once
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
 
 /**
@@ -21,4 +21,4 @@ constexpr bool IsAlignedOffset(int value, int alignment) noexcept
     return alignment > 0 && value % alignment == 0;
 }
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

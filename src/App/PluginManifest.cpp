@@ -3,13 +3,11 @@
 #include <charconv>
 #include <nlohmann/json.hpp>
 
-namespace VoltMod::App
+namespace VoltMod
 {
 
-namespace
-{
 /** Numeric components of a version, stopping at the first `+build` or `-suffix`. */
-std::vector<int> VersionParts(std::string_view version)
+static std::vector<int> VersionParts(std::string_view version)
 {
     version = version.substr(0, std::min(version.find('+'), version.find('-')));
 
@@ -32,7 +30,6 @@ std::vector<int> VersionParts(std::string_view version)
     }
     return parts;
 }
-}  // namespace
 
 bool VersionAtLeast(std::string_view have, std::string_view want)
 {
@@ -95,4 +92,4 @@ std::optional<PluginManifest> ParsePluginManifest(std::string_view json)
     return manifest;
 }
 
-}  // namespace VoltMod::App
+}  // namespace VoltMod

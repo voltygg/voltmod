@@ -2,7 +2,7 @@
 
 #include <deque>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 /**
@@ -56,4 +56,4 @@ private:
     double _windowSec = 0.0;
 };
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

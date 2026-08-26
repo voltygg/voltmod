@@ -13,21 +13,26 @@ answers `!ping`.
 
 <h2>Modules</h2>
 
-| Module | Namespace | Purpose |
+Every public name lives directly in `VoltMod`. A module is a source directory and a
+layer in the include graph, not a namespace: moving a type between modules never
+renames it. `include/VoltMod/<Module>/` is where a header lives, and the
+`VoltMod::` spelling is what you write.
+
+| Module | Header directory | Purpose |
 | --- | --- | --- |
-| Core | `VoltMod::Core` | Policy, scheduling, subscriptions, effects, logging, translations, parsing, config validation, and utilities |
-| Commands | `VoltMod::Commands` | Declarative commands with typed, pre-resolved arguments |
-| Players | `VoltMod::Players` | Player tracking, target selectors, and actions |
-| Menu | `VoltMod::Menu` | WASD center-HTML menus, context rows, pickers, and flows |
-| Engine | `VoltMod::Engine` | Interfaces, gamedata, convars, the server clock, maps, precaching, and console commands |
-| Entities | `VoltMod::Entities` | Entity lookup, the typed player controller, schema fields, items, and pawn operations |
-| Events | `VoltMod::Events` | The game event listener service and its typed event structs |
-| Messaging | `VoltMod::Messaging` | Chat and center-HTML messages, sticky panels, chat colors, and the vote panel |
-| Hooks | `VoltMod::Hooks` | Movement, damage, transmit, teleport, chat-input, and client-convar hooks |
-| Unsafe | (macros) | `VOLTMOD_SCOPED_HOOK` for raw SourceHook installs |
-| Database | `VoltMod::Database` | Optional async PostgreSQL, migrations, and row mapping |
-| Http | `VoltMod::Http` | Async HTTP and configured JSON endpoints |
-| App | `VoltMod::App` | Metamod lifecycle, JSONC loading, status, and cross-plugin services |
+| Core | `VoltMod/Core/` | Policy, scheduling, subscriptions, effects, logging, translations, parsing, config validation, and utilities |
+| Commands | `VoltMod/Commands/` | Declarative commands with typed, pre-resolved arguments |
+| Players | `VoltMod/Players/` | Player tracking, target selectors, and actions |
+| Menu | `VoltMod/Menu/` | WASD center-HTML menus, context rows, pickers, and flows |
+| Engine | `VoltMod/Engine/` | Interfaces, gamedata, convars, the server clock, maps, precaching, and console commands |
+| Entities | `VoltMod/Entities/` | Entity lookup, the typed player controller, schema fields, items, and pawn operations |
+| Events | `VoltMod/Events/` | The game event listener service and its typed event structs |
+| Messaging | `VoltMod/Messaging/` | Chat and center-HTML messages, sticky panels, chat colors, and the vote panel |
+| Hooks | `VoltMod/Hooks/` | Movement, damage, transmit, teleport, chat-input, and client-convar hooks |
+| Unsafe | `VoltMod/Unsafe/` | `VOLTMOD_SCOPED_HOOK` for raw SourceHook installs |
+| Database | `VoltMod/Database/` | Optional async PostgreSQL, migrations, and row mapping |
+| Http | `VoltMod/Http/` | Async HTTP and configured JSON endpoints |
+| App | `VoltMod/App/` | Metamod lifecycle, JSONC loading, status, and cross-plugin services |
 
 <h2>Guides</h2>
 

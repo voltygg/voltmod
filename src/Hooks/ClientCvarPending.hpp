@@ -9,7 +9,7 @@
 #include <string_view>
 #include <vector>
 
-namespace VoltMod::Hooks
+namespace VoltMod
 {
 
 /** @brief One outstanding client convar query, identified by the cookie sent to the client. */
@@ -78,8 +78,8 @@ public:
 private:
     // A slot holds at most MaxPendingPerSlot entries, so a flat vector beats a keyed container on
     // every operation here - all of which already scan.
-    std::array<std::vector<PendingCvarQuery>, Core::MaxPlayers> _slots;
+    std::array<std::vector<PendingCvarQuery>, MaxPlayers> _slots;
     uint32_t _cookieCounter = 0;
 };
 
-}  // namespace VoltMod::Hooks
+}  // namespace VoltMod

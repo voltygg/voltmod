@@ -1,11 +1,10 @@
 #pragma once
 
-class CGlobalVars;
+#include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/Interfaces.hpp>
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
-
-struct Interfaces;
 
 /**
  * @brief The engine's simulation clock, read straight from IVEngineServer2::GetServerGlobals().
@@ -37,4 +36,4 @@ private:
     Interfaces& _interfaces;
 };
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

@@ -1,7 +1,7 @@
 #include <VoltMod/Commands/CommandSpec.hpp>
 #include <doctest/doctest.h>
 
-using namespace VoltMod::Commands;
+using VoltMod::CommandContext;
 
 TEST_CASE("A context with no translation table replies with the key itself")
 {

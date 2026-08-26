@@ -4,14 +4,11 @@
 #include <functional>
 #include <vector>
 
-using VoltMod::Core::CallbackRegistry;
-using VoltMod::Core::SlotEvents;
-using VoltMod::Core::Subscription;
+using VoltMod::CallbackRegistry;
+using VoltMod::SlotEvents;
+using VoltMod::Subscription;
 
-namespace
-{
 using Fn = std::function<void()>;
-}
 
 TEST_CASE("Dispatch invokes every registered item")
 {

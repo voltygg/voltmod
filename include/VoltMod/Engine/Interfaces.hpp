@@ -1,17 +1,8 @@
 #pragma once
 
-#include <eiface.h>
-#include <icvar.h>
-#include <interfaces/interfaces.h>
+#include <VoltMod/Engine/EngineTypes.hpp>
 
-// Forward declarations for HL2SDK types not exposed by standard includes
-class CGameEntitySystem;
-class IGameEventSystem;
-class INetworkMessages;
-class IGameEventManager2;
-class ISchemaSystem;
-
-namespace VoltMod::Engine
+namespace VoltMod
 {
 
 /**
@@ -19,13 +10,18 @@ namespace VoltMod::Engine
  *
  * All fields are populated during Plugin::Load() via Metamod's
  * `GET_V_IFACE_ANY` / `GET_V_IFACE_CURRENT` macros.
+ *
+ * Every field is a pointer, so this header names the SDK interfaces without including
+ * any SDK header. A translation unit that calls through one of them includes the SDK
+ * header it needs; the rest of the framework - and every plugin that only holds the
+ * runtime - stays clear of eiface.h.
  */
 struct Interfaces
 {
     Interfaces() = default;
 
-    IServerGameDLL* ServerGameDLL = nullptr;
-    IServerGameClients* ServerGameClients = nullptr;
+    ISource2Server* ServerGameDLL = nullptr;
+    ISource2GameClients* ServerGameClients = nullptr;
     INetworkServerService* NetworkServerService = nullptr;
     ISource2GameEntities* GameEntities = nullptr;
     IVEngineServer2* Engine = nullptr;
@@ -38,4 +34,4 @@ struct Interfaces
     IGameResourceService* GameResourceService = nullptr;
 };
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

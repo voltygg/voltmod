@@ -8,10 +8,8 @@
 #include <schemasystem/schemasystem.h>
 #include <string_view>
 
-namespace VoltMod::Entities
+namespace VoltMod
 {
-
-using namespace VoltMod::Core;
 
 bool SchemaService::Initialize()
 {
@@ -39,7 +37,7 @@ int SchemaService::GetOffset(const char* className, const char* fieldName, int e
             return fieldIt->second;
     }
 
-    const std::string moduleName = Engine::PlatformModuleName("server");
+    const std::string moduleName = PlatformModuleName("server");
 
     CSchemaSystemTypeScope* pTypeScope = schemaSystem->FindTypeScopeForModule(moduleName.c_str());
     if (!pTypeScope)
@@ -80,4 +78,4 @@ int SchemaService::GetOffset(const char* className, const char* fieldName, int e
     return -1;
 }
 
-}  // namespace VoltMod::Entities
+}  // namespace VoltMod

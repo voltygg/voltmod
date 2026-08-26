@@ -1,29 +1,15 @@
 #pragma once
 
+#include <VoltMod/Core/Translations.hpp>
+#include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Engine/Interfaces.hpp>
+#include <VoltMod/Events/GameEvents.hpp>
 #include <map>
 #include <string>
 #include <string_view>
 
-class INetworkMessageInternal;
-class IRecipientFilter;
-
-namespace VoltMod::Engine
-{
-class GameData;
-struct Interfaces;
-}  // namespace VoltMod::Engine
-
-namespace VoltMod::Events
-{
-class GameEvents;
-}  // namespace VoltMod::Events
-
-namespace VoltMod::Core
-{
-class Translations;
-}
-
-namespace VoltMod::Messaging
+namespace VoltMod
 {
 
 /** Where a message renders on the client. */
@@ -47,8 +33,7 @@ class Messages
 {
 public:
     /** All four must outlive this service; the Runtime declares them above it. */
-    Messages(Engine::Interfaces& interfaces, Engine::GameData& gameData, Events::GameEvents& events,
-             Core::Translations& translations);
+    Messages(Interfaces& interfaces, GameData& gameData, GameEvents& events, Translations& translations);
     Messages(const Messages&) = delete;
     Messages& operator=(const Messages&) = delete;
 
@@ -85,12 +70,12 @@ private:
     /** Post one already-rendered TextMsg to whoever @p filter selects. */
     void PostTextMsg(IRecipientFilter& filter, int destination, const std::string& message);
 
-    Engine::Interfaces& _interfaces;
-    Engine::GameData& _gameData;
-    Events::GameEvents& _events;
-    Core::Translations& _translations;
+    Interfaces& _interfaces;
+    GameData& _gameData;
+    GameEvents& _events;
+    Translations& _translations;
     INetworkMessageInternal* _textMsgInternal = nullptr;
     INetworkMessageInternal* _shakeInternal = nullptr;
 };
 
-}  // namespace VoltMod::Messaging
+}  // namespace VoltMod

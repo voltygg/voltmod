@@ -1,11 +1,8 @@
 #pragma once
 
-class CEntityKeyValues;
-class Vector;
-class QAngle;
-class Color;
+#include <VoltMod/Engine/EngineTypes.hpp>
 
-namespace VoltMod::Entities
+namespace VoltMod
 {
 
 /**
@@ -42,4 +39,4 @@ private:
     CEntityKeyValues* _kv;
 };
 
-}  // namespace VoltMod::Entities
+}  // namespace VoltMod

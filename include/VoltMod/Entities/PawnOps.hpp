@@ -1,10 +1,9 @@
 #pragma once
 
+#include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Entities/PlayerController.hpp>
 
-class Vector;
-
-namespace VoltMod::Entities
+namespace VoltMod
 {
 
 // Engine team indices.
@@ -51,4 +50,4 @@ bool ChangeTeamSafe(const PlayerController& pc, int team);
 
 }  // namespace PawnOps
 
-}  // namespace VoltMod::Entities
+}  // namespace VoltMod

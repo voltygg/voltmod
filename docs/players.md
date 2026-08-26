@@ -2,7 +2,7 @@
 
 [TOC]
 
-`VoltMod::Players` tracks connected players and turns "who does this act on?"
+`VoltMod/Players/` tracks connected players and turns "who does this act on?"
 into data: a selector grammar for command targets and policy-checked
 `Action`/effect descriptors for the operation itself.
 
@@ -11,7 +11,7 @@ punishments, statistics, and other plugin state in managers keyed by SteamID.
 
 ## Tracking
 
-With @ref VoltMod::App::MetamodPlugin this is automatic: the base adds/removes players around your `OnPlayerConnect(Player*)` / `OnPlayerDisconnect(Player*)` overrides. Look players up through `runtime.Players`:
+With @ref VoltMod::MetamodPlugin this is automatic: the base adds/removes players around your `OnPlayerConnect(Player*)` / `OnPlayerDisconnect(Player*)` overrides. Look players up through `runtime.Players`:
 
 ```cpp
 auto* p = runtime.Players.GetPlayerBySlot(slot);        // O(1)
@@ -19,7 +19,7 @@ auto* q = runtime.Players.GetPlayerBySteamId(steamId);  // O(1)
 for (auto* each : runtime.Players.GetAllPlayers()) { /* ... */ }
 ```
 
-`Player` carries `GetSlot()`, `GetSteamID()`, `GetName()`, `GetIpAddress()`, `GetPlaytime()`, and `IsBot()`. For typed engine operations, build a @ref VoltMod::Entities::PlayerController from the player's slot:
+`Player` carries `GetSlot()`, `GetSteamID()`, `GetName()`, `GetIpAddress()`, `GetPlaytime()`, and `IsBot()`. For typed engine operations, build a @ref VoltMod::PlayerController from the player's slot:
 
 ```cpp
 auto controller = runtime.Entities.Controller(player->GetSlot());
@@ -31,7 +31,7 @@ int hp = controller.GetHealth();
 
 ### Per-slot plugin state
 
-Plugin state keyed by slot has one recurring bug: values leaking from a disconnected player to the next occupant of the slot. @ref VoltMod::Core::PerSlot solves it once: a `std::array<T, MaxPlayers>` whose entries value-reset whenever a player joins or leaves the slot (backed by `runtime.Slots`, which fires on AddPlayer/RemovePlayer/Clear):
+Plugin state keyed by slot has one recurring bug: values leaking from a disconnected player to the next occupant of the slot. @ref VoltMod::PerSlot solves it once: a `std::array<T, MaxPlayers>` whose entries value-reset whenever a player joins or leaves the slot (backed by `runtime.Slots`, which fires on AddPlayer/RemovePlayer/Clear):
 
 ```cpp
 struct MyState { int Combo = 0; float Score = 0; };
@@ -41,13 +41,13 @@ _state.BindReset(runtime.Slots);   // in the owner's ctor or Initialize()
 _state[slot].Combo++;              // plain indexed access afterwards
 ```
 
-`BindReset` is idempotent, and the destructor unsubscribes - so a `PerSlot` may outlive nothing and still leave the feed clean. It takes the @ref VoltMod::Core::SlotEvents feed rather than the runtime, so a translation unit that includes only `PerSlot.hpp` still compiles.
+`BindReset` is idempotent, and the destructor unsubscribes - so a `PerSlot` may outlive nothing and still leave the feed clean. It takes the @ref VoltMod::SlotEvents feed rather than the runtime, so a translation unit that includes only `PerSlot.hpp` still compiles.
 
-For time-decaying per-player scores (suspicion, rate limits), use @ref VoltMod::Core::SlidingWindowScore when the threshold is "N events in the last M seconds" and evidence should expire on a hard boundary. It takes caller-supplied seconds; @ref VoltMod::Core::Time::MonotonicSeconds is the matching clock. @ref VoltMod::Core::RandomIndex is the framework's single source of randomness - use it for a random pick (`@random` targeting does) rather than seeding a generator per feature or reaching for the tick counter, which repeats within a frame. Both are unit-tested in the framework's SDK-free test suite.
+For time-decaying per-player scores (suspicion, rate limits), use @ref VoltMod::SlidingWindowScore when the threshold is "N events in the last M seconds" and evidence should expire on a hard boundary. It takes caller-supplied seconds; @ref VoltMod::Time::MonotonicSeconds is the matching clock. @ref VoltMod::RandomIndex is the framework's single source of randomness - use it for a random pick (`@random` targeting does) rather than seeding a generator per feature or reaching for the tick counter, which repeats within a frame. Both are unit-tested in the framework's SDK-free test suite.
 
 ## Resolve targets
 
-@ref VoltMod::Players::ResolveTargets resolves one token to players against the runtime's roster, applying the immunity policy (`runtime.Policy.CanTarget` unless you pass your own):
+@ref VoltMod::ResolveTargets resolves one token to players against the runtime's roster, applying the immunity policy (`runtime.Policy.CanTarget` unless you pass your own):
 
 ```
 @all @*        everyone                @me    yourself        @!me   everyone else
@@ -58,7 +58,8 @@ name           exact match, then prefix, then substring (case-insensitive)
 ```
 
 ```cpp
-using namespace VoltMod::Players;
+using VoltMod::ResolveTargets;
+using VoltMod::TargetError;
 
 auto result = ResolveTargets(runtime, token, caller, {.AllowMultiple = true, .AllowBots = false});
 if (!result)
@@ -83,10 +84,13 @@ The grammar core is engine-free (`Targeting.hpp`: `ParseTargetToken` + `FilterRo
 
 ## Actions
 
-An @ref VoltMod::Players::Action is a single-target operation as data: permission token, guards, body. The @ref VoltMod::Players::ActionDispatcher owns the resolve → permission → immunity → run → broadcast pipeline, reading everything from `runtime.Policy`. It holds nothing but the runtime reference, so build one where you need it:
+An @ref VoltMod::Action is a single-target operation as data: permission token, guards, body. The @ref VoltMod::ActionDispatcher owns the resolve → permission → immunity → run → broadcast pipeline, reading everything from `runtime.Policy`. It holds nothing but the runtime reference, so build one where you need it:
 
 ```cpp
-using namespace VoltMod::Players;
+using VoltMod::Action;
+using VoltMod::ActionContext;
+using VoltMod::ActionDispatcher;
+using VoltMod::OptKey;
 
 const Action Slay{"s", /*RequireAlive=*/true, [](const ActionContext& ctx) -> OptKey {
     ctx.TargetCtrl.Slay();
@@ -102,10 +106,12 @@ Actions plug directly into menu context rows (`AddActionRow`, `AddStateToggleRow
 
 ## Effect descriptors
 
-Effects are toggleable or timed per-player states: the fun-command family (ghost, disco, wallhack, custom models). An @ref VoltMod::Core::EffectDescriptor declares the whole thing: permission, id, label key, broadcast keys, lifetime policy, and a `Setup` body that returns the `OnTick`/`OnStop` closures @ref VoltMod::Core::EffectManager drives:
+Effects are toggleable or timed per-player states: the fun-command family (ghost, disco, wallhack, custom models). An @ref VoltMod::EffectDescriptor declares the whole thing: permission, id, label key, broadcast keys, lifetime policy, and a `Setup` body that returns the `OnTick`/`OnStop` closures @ref VoltMod::EffectManager drives:
 
 ```cpp
-using namespace VoltMod;
+using VoltMod::EffectDescriptor;
+using VoltMod::EffectInstance;
+using VoltMod::EffectScope;
 
 inline const EffectDescriptor Ghost{
     .Permission = "g",
@@ -113,7 +119,7 @@ inline const EffectDescriptor Ghost{
     .NameKey = "effect.ghost",
     .OnKey = "broadcast.ghosted", .OffKey = "broadcast.unghosted",
     .Scope = EffectScope::Persistent,      // or Round: auto-cancel on round end
-    .Setup = [](const Players::ActionContext& ctx) -> EffectInstance {
+    .Setup = [](const VoltMod::ActionContext& ctx) -> EffectInstance {
         int slot = ctx.Target->GetSlot();
         // ActionContext carries the runtime, so an effect body needs no ambient lookup.
         auto& transmit = ctx.Rt.Transmit;

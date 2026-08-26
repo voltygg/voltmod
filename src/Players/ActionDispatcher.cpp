@@ -2,7 +2,7 @@
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Runtime.hpp>
 
-namespace VoltMod::Players
+namespace VoltMod
 {
 
 ActionContext ActionDispatcher::Resolve(int callerSlot, int targetSlot, const std::string& permission) const
@@ -61,4 +61,4 @@ void ActionDispatcher::Broadcast(const ActionContext& ctx, const std::string& tr
     policy.Broadcast(*ctx.Caller, ctx.Target, translationKey);
 }
 
-}  // namespace VoltMod::Players
+}  // namespace VoltMod

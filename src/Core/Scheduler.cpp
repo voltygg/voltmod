@@ -2,7 +2,7 @@
 #include <chrono>
 #include <vector>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 int64_t Scheduler::GetCurrentTimeMs() const
@@ -82,4 +82,4 @@ void Scheduler::OnGameFrame()
     }
 }
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

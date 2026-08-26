@@ -3,16 +3,12 @@
 #include <VoltMod/Entities/PlayerController.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Players/TargetResolver.hpp>
+#include <VoltMod/Runtime.hpp>
 #include <functional>
 #include <optional>
 #include <string>
 
 namespace VoltMod
-{
-class Runtime;
-}
-
-namespace VoltMod::Players
 {
 
 /** A translation key returned by an action body, or nullopt to skip the broadcast. */
@@ -23,8 +19,8 @@ struct ActionContext
 {
     Player* Caller;
     Player* Target;
-    Entities::PlayerController CallerCtrl;
-    Entities::PlayerController TargetCtrl;
+    PlayerController CallerCtrl;
+    PlayerController TargetCtrl;
     /** The live runtime, so action and effect bodies reach services without a global.
      *  Include <VoltMod/Runtime.hpp> to use it. */
     Runtime& Rt;
@@ -84,4 +80,4 @@ private:
     Runtime& _runtime;
 };
 
-}  // namespace VoltMod::Players
+}  // namespace VoltMod

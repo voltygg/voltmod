@@ -18,22 +18,17 @@
 #include <networksystem/netmessage.h>
 #include <usermessages.pb.h>
 
-namespace VoltMod::Messaging
-{
-
-using namespace VoltMod::Core;
-
-namespace
+namespace VoltMod
 {
 
 // TextMsg destination ids the client understands.
-constexpr int DestChat = 3;
-constexpr int DestCenter = 4;
-constexpr int DestAlert = 6;
+static constexpr int DestChat = 3;
+static constexpr int DestCenter = 4;
+static constexpr int DestAlert = 6;
 
 // CS2 strips leading color escapes until a non-color byte. Prepend a space to
 // preserve a leading color, or Default to avoid color carryover from the prior line.
-std::string EnsureColorPrefix(std::string_view message)
+static std::string EnsureColorPrefix(std::string_view message)
 {
     std::string_view prefix =
         (!message.empty() && static_cast<unsigned char>(message.front()) <= 0x10)  // 0x01-0x10: color escape bytes
@@ -47,15 +42,12 @@ std::string EnsureColorPrefix(std::string_view message)
     return out;
 }
 
-std::string Render(std::string_view message, MessageKind kind)
+static std::string Render(std::string_view message, MessageKind kind)
 {
     return kind == MessageKind::Chat ? EnsureColorPrefix(message) : std::string(message);
 }
 
-}  // namespace
-
-Messages::Messages(Engine::Interfaces& interfaces, Engine::GameData& gameData, Events::GameEvents& events,
-                   Core::Translations& translations)
+Messages::Messages(Interfaces& interfaces, GameData& gameData, GameEvents& events, Translations& translations)
     : _interfaces(interfaces), _gameData(gameData), _events(events), _translations(translations)
 {}
 
@@ -86,7 +78,7 @@ bool Messages::InitGameEventManager()
     void* eventManagerAddr = _gameData.ResolveSignature("GameEventManager");
     if (eventManagerAddr)
     {
-        interfaces.GameEventManager = Engine::ReadAt<IGameEventManager2*>(eventManagerAddr, 0);
+        interfaces.GameEventManager = ReadAt<IGameEventManager2*>(eventManagerAddr, 0);
 
         if (interfaces.GameEventManager)
         {
@@ -109,7 +101,7 @@ bool Messages::InitGameEventManager()
 void Messages::SendCenterHtml(int slot, const std::string& html)
 {
     auto* gameEventManager = _interfaces.GameEventManager;
-    if (!gameEventManager || !Core::IsValidSlot(slot))
+    if (!gameEventManager || !IsValidSlot(slot))
         return;
 
     IGameEvent* pEvent = gameEventManager->CreateEvent("show_survival_respawn_status");
@@ -152,7 +144,7 @@ void Messages::Broadcast(std::string_view message, MessageKind kind)
     {
         // Per-slot, because each panel write targets one client's own event listener.
         // A null listener means nobody is in that slot.
-        for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+        for (int slot = 0; slot < MaxPlayers; ++slot)
             if (_events.GetClientLegacyListener(slot))
                 SendCenterHtml(slot, rendered);
         return;
@@ -160,8 +152,8 @@ void Messages::Broadcast(std::string_view message, MessageKind kind)
 
     // One event for everyone rather than one per player: the engine drops slots with no
     // client from the recipient bits, which is also how this avoids needing the roster.
-    Engine::MultiRecipientFilter filter;
-    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+    MultiRecipientFilter filter;
+    for (int slot = 0; slot < MaxPlayers; ++slot)
         filter.AddRecipient(slot);
 
     PostTextMsg(filter,
@@ -183,10 +175,10 @@ void Messages::ReplyKey(int slot, const std::string& key, const std::map<std::st
 
 void Messages::SendTextMsg(int slot, int destination, const std::string& message)
 {
-    if (!Core::IsValidSlot(slot))
+    if (!IsValidSlot(slot))
         return;
 
-    Engine::SingleRecipientFilter filter(slot);
+    SingleRecipientFilter filter(slot);
     PostTextMsg(filter, destination, message);
 }
 
@@ -198,7 +190,7 @@ void Messages::PostTextMsg(IRecipientFilter& filter, int destination, const std:
     if (!_textMsgInternal && _interfaces.NetworkMessages)
         _textMsgInternal = _interfaces.NetworkMessages->FindNetworkMessage("CUserMessageTextMsg");
 
-    Engine::PostUserMessage(_interfaces, _textMsgInternal, "TextMsg", filter, [&](CNetMessage* raw) {
+    PostUserMessage(_interfaces, _textMsgInternal, "TextMsg", filter, [&](CNetMessage* raw) {
         auto* textMsg = raw->ToPB<CUserMessageTextMsg>();
         if (!textMsg)
             return false;
@@ -210,8 +202,8 @@ void Messages::PostTextMsg(IRecipientFilter& filter, int destination, const std:
 
 void Messages::Shake(int slot, float durationSec, float frequency, float amplitude)
 {
-    Engine::SingleRecipientFilter filter(slot);
-    Engine::PostUserMessage(_interfaces, _shakeInternal, "Shake", filter, [&](CNetMessage* raw) {
+    SingleRecipientFilter filter(slot);
+    PostUserMessage(_interfaces, _shakeInternal, "Shake", filter, [&](CNetMessage* raw) {
         auto* shake = raw->ToPB<CUserMessageShake>();
         if (!shake)
             return false;
@@ -228,4 +220,4 @@ void Messages::ClearCenterHtml(int slot)
     SendCenterHtml(slot, " ");
 }
 
-}  // namespace VoltMod::Messaging
+}  // namespace VoltMod

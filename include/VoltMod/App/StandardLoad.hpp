@@ -8,7 +8,7 @@
 #include <string>
 #include <string_view>
 
-namespace VoltMod::App
+namespace VoltMod
 {
 
 /** @brief Options for LoadStandardConfig; Addon is the plugin's addon folder name. */
@@ -20,7 +20,7 @@ struct StandardLoadOptions
     bool Translations = true;
 };
 
-/** Adopt addons/<addon>/<addon>.manifest.json as a Core::LoadReport stage. Absent or malformed
+/** Adopt addons/<addon>/<addon>.manifest.json as a LoadReport stage. Absent or malformed
  *  degrades the stage rather than failing the load: the manifest is diagnostics. */
 void LoadPluginManifest(Runtime& runtime, std::string_view addon);
 
@@ -38,7 +38,7 @@ template <class TConfig>
 bool LoadStandardConfig(Runtime& runtime, TConfig& config, const StandardLoadOptions& options)
 {
     auto& report = runtime.LoadReport;
-    const std::string path = Core::AddonFile(options.Addon, options.SettingsFile);
+    const std::string path = AddonFile(options.Addon, options.SettingsFile);
 
     const auto status = report.Run("Configuration", [&] {
         const bool loaded = [&] {
@@ -47,9 +47,9 @@ bool LoadStandardConfig(Runtime& runtime, TConfig& config, const StandardLoadOpt
             else
                 return config.Load(path);
         }();
-        return loaded ? Core::StageResult::Ok(path) : Core::StageResult::Failed(std::format("failed to load {}", path));
+        return loaded ? StageResult::Ok(path) : StageResult::Failed(std::format("failed to load {}", path));
     });
-    if (status == Core::StageStatus::Failed)
+    if (status == StageStatus::Failed)
         return false;
 
     if (options.Translations)
@@ -58,12 +58,12 @@ bool LoadStandardConfig(Runtime& runtime, TConfig& config, const StandardLoadOpt
         report.Run("Translations", [&] {
             if constexpr (requires { translations.SetLanguage(config.Get().plugin.locale); })
                 translations.SetLanguage(config.Get().plugin.locale);
-            translations.Load(Core::AddonFile(options.Addon, "configs/translations"));
-            return Core::StageResult::Ok(translations.GetLanguage());
+            translations.Load(AddonFile(options.Addon, "configs/translations"));
+            return StageResult::Ok(translations.GetLanguage());
         });
     }
     LoadPluginManifest(runtime, options.Addon);
     return true;
 }
 
-}  // namespace VoltMod::App
+}  // namespace VoltMod

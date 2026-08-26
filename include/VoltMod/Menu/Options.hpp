@@ -2,7 +2,7 @@
 
 /**
  * @file Options.hpp
- * @brief Aggregate header pulling in every concrete @ref VoltMod::Menu::MenuOption type.
+ * @brief Aggregate header pulling in every concrete @ref VoltMod::MenuOption type.
  *
  * Most consumers should include @ref VoltMod/Menu/MenuBuilder.hpp instead, which already
  * brings these in. Pull this header directly only when constructing options manually

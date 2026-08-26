@@ -1,4 +1,4 @@
-"""Enforce the declared include graph between VoltMod modules."""
+"""Enforce the declared include graph and the source conventions VoltMod relies on."""
 
 import re
 from collections import defaultdict
@@ -27,8 +27,32 @@ INCLUDE = re.compile(r'#\s*include\s*[<"]VoltMod/([A-Za-z0-9_]+)/([^>"]+)[>"]')
 # Root headers have no module directory and need a separate check.
 ROOT_HEADERS = re.compile(r'#\s*include\s*[<"]VoltMod/(Runtime|Api)\.hpp[>"]')
 
-# App is the composition root, so its headers may include it.
-ROOT_HEADER_EXEMPT = {"App"}
+# App is the composition root, so its headers may include it. Players, Commands and Menu are
+# here because their headers still take `Runtime&` and, since no framework type may be
+# forward-declared, they have to include it. Phases 6-8 hand those classes the narrow services
+# they use and shrink this back to {"App"}.
+ROOT_HEADER_EXEMPT = {"App", "Players", "Commands", "Menu"}
+
+# Core is the engine-free layer: nothing under it may reach the SDK or Metamod.
+ENGINE_FREE = ("include/VoltMod/Core", "src/Core")
+ENGINE_INCLUDE = re.compile(
+    r'#\s*include\s*[<"](ISmmPlugin\.h|tier0/|eiface\.h|entity2/|schemasystem/|icvar\.h|Color\.h)')
+
+# Forward declarations live in one header per module graph, named `*Types.hpp`, which says why
+# each name is there: <VoltMod/Engine/EngineTypes.hpp> for the framework. A class pair that owns
+# one another (Runtime and the managers it holds by value) cannot both include the other's
+# header, and that is the only reason a name belongs in one. Every other header includes what it
+# names.
+FORWARD_DECL_HOME = re.compile(r'(^|/)\w*Types\.hpp$')
+FORWARD_DECL = re.compile(r'^(?:class|struct)\s+\w+;')
+
+# A file-local helper is a `static` declaration, not an anonymous namespace: `static` says
+# "file-local" on the declaration itself, where a reader of the line can see it.
+ANON_NAMESPACE = re.compile(r'^[ \t]*namespace[ \t]*(\{[ \t]*)?$')
+
+# Using-directives make an unqualified name's origin invisible. Targeted using-declarations
+# (`using VoltMod::Player;`) in a .cpp are fine and are not matched here.
+USING_DIRECTIVE = re.compile(r'^[ \t]*using\s+namespace\b')
 
 # Modules whose sources may name the runtime. App composes it; the three service modules that
 # dispatch through several siblings at once take it by reference. Everything else is injected
@@ -90,6 +114,87 @@ def root_in_sources(root: Path, modules):
     return sorted(found)
 
 
+def sources(root: Path, bases):
+    """Every .hpp/.cpp under the given bases, as (relative posix path, text)."""
+    for base in bases:
+        d = root / base
+        if not d.is_dir():
+            continue
+        for path in sorted(d.rglob("*")):
+            if path.suffix in (".hpp", ".cpp"):
+                yield path.relative_to(root).as_posix(), path.read_text(encoding="utf-8",
+                                                                        errors="replace")
+
+
+def conventions(root: Path, bases):
+    """Forward declarations, anonymous namespaces and using-directives, with line numbers."""
+    forwards, anonymous, directives = [], [], []
+    for rel, text in sources(root, bases):
+        header = rel.endswith(".hpp")
+        home = bool(FORWARD_DECL_HOME.search(rel))
+        for number, line in enumerate(text.splitlines(), 1):
+            if header and not home and FORWARD_DECL.match(line):
+                forwards.append((rel, number, line.strip()))
+            if ANON_NAMESPACE.match(line):
+                anonymous.append((rel, number))
+            if USING_DIRECTIVE.match(line):
+                directives.append((rel, number, line.strip()))
+    return forwards, anonymous, directives
+
+
+def engine_in_core(root: Path):
+    """Core translation units that reach the SDK or Metamod."""
+    found = []
+    for rel, text in sources(root, ENGINE_FREE):
+        for number, line in enumerate(text.splitlines(), 1):
+            hit = ENGINE_INCLUDE.match(line)
+            if hit:
+                found.append((rel, number, hit.group(1)))
+    return found
+
+
+def report_conventions(root: Path, bases, label: str) -> int:
+    """Print every convention breach under `bases`; return a process exit code."""
+    forwards, anonymous, directives = conventions(root, bases)
+    if not (forwards or anonymous or directives):
+        return 0
+
+    if forwards:
+        print(f"\n{len(forwards)} forward declaration(s) in {label} headers:")
+        for rel, number, line in forwards:
+            print(f"  {rel}:{number}: {line}")
+        print("      Include the header that defines the type. A forward declaration belongs in")
+        print("      the one *Types.hpp header, which says why each name is there.")
+
+    if anonymous:
+        print(f"\n{len(anonymous)} anonymous namespace(s) in {label}:")
+        for rel, number in anonymous:
+            print(f"  {rel}:{number}")
+        print("      Declare file-local helpers `static` at file scope, or make them private")
+        print("      static members when they need class state.")
+
+    if directives:
+        print(f"\n{len(directives)} using-directive(s) in {label}:")
+        for rel, number, line in directives:
+            print(f"  {rel}:{number}: {line}")
+        print("      Qualify the name, or add a targeted `using VoltMod::Thing;` in the .cpp.")
+    return 1
+
+
+def check_plugins(root: Path) -> int:
+    """Run the source conventions over a consumer repository's plugins/."""
+    plugins = root / "plugins" if (root / "plugins").is_dir() else root
+    if not plugins.is_dir():
+        print(f"error: no plugins directory under {root.resolve()}")
+        return 2
+    base = plugins.relative_to(root).as_posix() if plugins != root else "."
+    bases = [base] if base != "." else [""]
+    code = report_conventions(root, bases, "plugin")
+    if code == 0:
+        print("Plugin sources hold.")
+    return code
+
+
 def undeclared(modules):
     """Modules on disk that ALLOWED says nothing about, and vice versa."""
     known = set(ALLOWED)
@@ -126,7 +231,9 @@ def check(root: Path) -> int:
     found = violations(edges)
     rooted = root_in_headers(root, modules)
     sourced = root_in_sources(root, modules)
-    if not found and not rooted and not sourced:
+    engined = engine_in_core(root)
+    conventional = report_conventions(root, ("include/VoltMod", "src"), "framework")
+    if not found and not rooted and not sourced and not engined and not conventional:
         print("\nLayering holds.")
         return 0
 
@@ -151,4 +258,11 @@ def check(root: Path) -> int:
             print(f"  {rel} -> VoltMod/{header}.hpp")
         print(f"      Only {' '.join(sorted(ROOT_SOURCE_EXEMPT))} may reach the runtime. Take the")
         print("      sibling services this file uses through its constructor instead.")
+
+    if engined:
+        print(f"\n{len(engined)} Core file(s) reaching the SDK or Metamod:")
+        for rel, number, header in engined:
+            print(f"  {rel}:{number}: {header}")
+        print("      Core is the engine-free layer. Move the file to src/Engine/ (or take the")
+        print("      engine call through a service that already lives there).")
     return 1

@@ -9,7 +9,7 @@
 #include <utility>
 #include <vector>
 
-namespace VoltMod::App
+namespace VoltMod
 {
 
 /**
@@ -29,7 +29,7 @@ public:
     using HealthCheck = std::function<bool()>;
 
     /** @p loadReport supplies the baseline health signal and must outlive this service. */
-    explicit StatusService(Core::LoadReport& loadReport) : _loadReport(loadReport) {}
+    explicit StatusService(LoadReport& loadReport) : _loadReport(loadReport) {}
 
     /** @brief Add a section, replacing any existing one with the same name. */
     void RegisterSection(std::string name, Provider provider);
@@ -54,10 +54,10 @@ public:
     void InstallCommand(const char* name, const char* helpText, HealthCheck healthy = {});
 
 private:
-    Core::LoadReport& _loadReport;
+    LoadReport& _loadReport;
     std::vector<std::pair<std::string, Provider>> _sections;
     HealthCheck _healthy;
-    std::unique_ptr<Engine::ServerCommand> _command;
+    std::unique_ptr<ServerCommand> _command;
 };
 
-}  // namespace VoltMod::App
+}  // namespace VoltMod

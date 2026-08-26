@@ -1,7 +1,7 @@
 #include <VoltMod/Engine/ConVarSnapshots.hpp>
 #include <doctest/doctest.h>
 
-using VoltMod::Engine::ConVarSnapshots;
+using VoltMod::ConVarSnapshots;
 
 TEST_CASE("Snapshots start empty")
 {

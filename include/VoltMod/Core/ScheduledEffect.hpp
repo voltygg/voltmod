@@ -1,13 +1,12 @@
 #pragma once
 
+#include <VoltMod/Core/Scheduler.hpp>
 #include <cstdint>
 #include <functional>
 #include <memory>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
-
-class Scheduler;
 
 /**
  * @brief A repeating routine with an optional fixed lifetime, driven by a @ref Scheduler.
@@ -50,4 +49,4 @@ private:
     std::shared_ptr<State> _state;
 };
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

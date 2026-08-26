@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-using VoltMod::Core::Strings;
+using VoltMod::Strings;
 
 TEST_CASE("Strings::ToLower")
 {

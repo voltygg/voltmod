@@ -1,13 +1,10 @@
 #pragma once
 
+#include <VoltMod/Engine/EngineTypes.hpp>
 #include <cstdint>
 
-class CEntityInstance;
-
-namespace VoltMod::Entities
+namespace VoltMod
 {
-
-class SchemaService;  // Internal type (src/Entities/Schema.hpp), kept out of the public graph.
 
 /**
  * @brief CBaseModelEntity::m_nRenderMode values (legacy Source numbering).
@@ -38,4 +35,4 @@ constexpr uint32_t ColorInvisible = 0x00FFFFFFu;
  */
 void SetRender(SchemaService& schema, CEntityInstance* entity, RenderMode_t mode, uint32_t color);
 
-}  // namespace VoltMod::Entities
+}  // namespace VoltMod

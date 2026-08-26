@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 /** `{token}` -> replacement map for the token-substituting @ref Translations::Get overloads. */
@@ -67,4 +67,4 @@ private:
     Subscription _slotListener;
 };
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

@@ -4,7 +4,7 @@
 #include <VoltMod/Entities/PlayerController.hpp>
 #include <cstdint>
 
-namespace VoltMod::Entities
+namespace VoltMod
 {
 
 /**
@@ -23,4 +23,4 @@ inline auto HasPawnFlag(uint32_t flag)
     return [flag](const PlayerController& pc) { return (pc.GetFlags() & flag) != 0; };
 }
 
-}  // namespace VoltMod::Entities
+}  // namespace VoltMod

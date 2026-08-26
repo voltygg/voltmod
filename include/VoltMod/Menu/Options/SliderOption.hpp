@@ -8,7 +8,7 @@
 #include <string>
 #include <utility>
 
-namespace VoltMod::Menu
+namespace VoltMod
 {
 
 /** Numeric `[min, max]` value with `step`. A/D adjusts; E does nothing by default. */
@@ -29,7 +29,7 @@ public:
         int val = std::clamp(_get ? _get(slot) : _min, _min, _max);
         constexpr int Cells = 10;
         int filled = (_max == _min) ? 0 : ((val - _min) * Cells) / (_max - _min);
-        return std::format("{}: [{}] {}/{}", _title, Detail::RenderBar(filled, Cells), val, _max);
+        return std::format("{}: [{}] {}/{}", _title, RenderBar(filled, Cells), val, _max);
     }
 
     bool OnHorizontal(int slot, int direction) override
@@ -52,4 +52,4 @@ private:
     SetFn _set;
 };
 
-}  // namespace VoltMod::Menu
+}  // namespace VoltMod

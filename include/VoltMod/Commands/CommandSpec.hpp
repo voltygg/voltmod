@@ -10,7 +10,7 @@
 #include <string_view>
 #include <vector>
 
-namespace VoltMod::Commands
+namespace VoltMod
 {
 
 struct CommandResult
@@ -68,10 +68,10 @@ struct CommandContext
 {
     /** Localization source for @ref Ok / @ref Fail, set by the dispatching CommandManager.
      *  Null (a hand-built context) makes those helpers return the key unchanged. */
-    Core::Translations* Tr = nullptr;
-    Players::Player* Caller = nullptr;
-    Players::Player* TargetPlayer = nullptr;   ///< single-target arg result
-    std::vector<Players::Player*> TargetList;  ///< multi-target results (TargetRules::AllowMultiple)
+    Translations* Tr = nullptr;
+    Player* Caller = nullptr;
+    Player* TargetPlayer = nullptr;   ///< single-target arg result
+    std::vector<Player*> TargetList;  ///< multi-target results (TargetRules::AllowMultiple)
     int64_t SteamId = 0;
     std::optional<int64_t> DurationSec;
     std::optional<int> IntValue;
@@ -81,13 +81,13 @@ struct CommandContext
     int CallerSlot() const;
 
     /** Resolved online target. */
-    Players::Player& Target() const { return *TargetPlayer; }
+    Player& Target() const { return *TargetPlayer; }
 
     /** Whether TargetOrSteamId resolved an online player. */
     bool HasTarget() const { return TargetPlayer != nullptr; }
 
     /** Every matched target, for a spec using TargetRules::AllowMultiple. */
-    const std::vector<Players::Player*>& Targets() const { return TargetList; }
+    const std::vector<Player*>& Targets() const { return TargetList; }
 
     /** Duration in seconds. `0` means permanent; nullopt means omitted. */
     std::optional<int64_t> Duration() const { return DurationSec; }
@@ -97,8 +97,8 @@ struct CommandContext
 
     /** Localized result helpers: translate @p key in the caller's language with @p tokens.
      *  Return @p key verbatim when @ref Tr is null. */
-    CommandResult Ok(std::string_view key, Core::Tokens tokens = {}) const;
-    CommandResult Fail(std::string_view key, Core::Tokens tokens = {}) const;
+    CommandResult Ok(std::string_view key, Tokens tokens = {}) const;
+    CommandResult Fail(std::string_view key, Tokens tokens = {}) const;
 };
 
 /**
@@ -146,4 +146,4 @@ bool ReachableFrom(const CommandSpec& spec, Surface surface);
 /** Whether the input has tokens the spec cannot consume. ReasonTail consumes the remainder. */
 bool TooManyArguments(const CommandSpec& spec, size_t argCount);
 
-}  // namespace VoltMod::Commands
+}  // namespace VoltMod

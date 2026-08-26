@@ -1,15 +1,11 @@
 #pragma once
 
+#include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/Interfaces.hpp>
 #include <functional>
 
-class CNetMessage;
-class IRecipientFilter;
-class INetworkMessageInternal;
-
-namespace VoltMod::Engine
+namespace VoltMod
 {
-
-struct Interfaces;
 
 /**
  * Send one user message: resolve its type, allocate it, let @p fill populate it, post it to
@@ -28,4 +24,4 @@ struct Interfaces;
 bool PostUserMessage(Interfaces& interfaces, INetworkMessageInternal*& cached, const char* partialName,
                      IRecipientFilter& filter, const std::function<bool(CNetMessage*)>& fill);
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

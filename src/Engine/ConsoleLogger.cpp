@@ -1,9 +1,9 @@
-#include "Core/ConsoleLogger.hpp"
+#include "Engine/ConsoleLogger.hpp"
 
 #include <Color.h>
 #include <tier0/dbg.h>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 void ConsoleLogger::Info(const std::string& message)
@@ -24,4 +24,4 @@ void ConsoleLogger::Error(const std::string& message)
     Msg("%s\n", message.c_str());
 }
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

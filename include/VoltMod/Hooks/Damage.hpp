@@ -2,31 +2,23 @@
 
 #include <VoltMod/Core/CallbackRegistry.hpp>
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Entities/HitGroup.hpp>
 #include <cstdint>
 #include <functional>
 
-namespace VoltMod::Engine
-{
-class GameData;
-}  // namespace VoltMod::Engine
-
-namespace VoltMod::Entities
-{
-class EntitySystem;
-}  // namespace VoltMod::Entities
-
-namespace VoltMod::Hooks
+namespace VoltMod
 {
 
 /** One incoming damage event, as a listener sees it. Observation only - see @ref Damage. */
 struct DamageView
 {
-    int VictimSlot = -1;                                     /**< -1 when the victim is not a player pawn */
-    int AttackerSlot = -1;                                   /**< -1 for world damage (fall, fire, the bomb) */
-    Entities::HitGroup Hitbox = Entities::HitGroup::Generic; /**< Invalid when the damage carries no trace */
-    uint32_t DamageTypes = 0;                                /**< DMG_* bits from the originating info */
-    float Damage = 0.0f; /**< the incoming amount, before armor and hitgroup scaling */
+    int VictimSlot = -1;                 /**< -1 when the victim is not a player pawn */
+    int AttackerSlot = -1;               /**< -1 for world damage (fall, fire, the bomb) */
+    HitGroup Hitbox = HitGroup::Generic; /**< Invalid when the damage carries no trace */
+    uint32_t DamageTypes = 0;            /**< DMG_* bits from the originating info */
+    float Damage = 0.0f;                 /**< the incoming amount, before armor and hitgroup scaling */
 };
 
 /**
@@ -53,7 +45,7 @@ public:
     using Callback = std::function<void(const DamageView&)>;
 
     /** Both must outlive this hook; the Runtime declares them above it. */
-    Damage(Entities::EntitySystem& entities, Engine::GameData& gameData) : _entities(entities), _gameData(gameData) {}
+    Damage(EntitySystem& entities, GameData& gameData) : _entities(entities), _gameData(gameData) {}
     ~Damage() { Remove(); }
     Damage(const Damage&) = delete;
     Damage& operator=(const Damage&) = delete;
@@ -66,20 +58,20 @@ public:
 
     /** Called for each damage event, in registration order. Store the subscription beside the
      *  state the callback captures. */
-    [[nodiscard]] Core::Subscription Listen(Callback callback) { return _listeners.AddOwned(std::move(callback)); }
+    [[nodiscard]] Subscription Listen(Callback callback) { return _listeners.AddOwned(std::move(callback)); }
 
 private:
     bool Hook_OnTakeDamageAlive(void* result);
 
     /** Walk info -> trace -> hitbox for the struck hitgroup. */
-    Entities::HitGroup ReadHitGroup(void* info) const;
+    HitGroup ReadHitGroup(void* info) const;
 
     /** Read every damage field offset from gamedata. False when one is missing or implausible. */
     bool ResolveOffsets();
 
-    Entities::EntitySystem& _entities;
-    Engine::GameData& _gameData;
-    Core::CallbackRegistry<Callback> _listeners;
+    EntitySystem& _entities;
+    GameData& _gameData;
+    CallbackRegistry<Callback> _listeners;
     // CTakeDamageInfo fields, then the trace chain the hitgroup lives on. Resolved once by
     // Install(). Adding to this set grows Runtime, which holds the hook by value - see the
     // crash-triage skill on the latent out-of-bounds write that some sizes turn fatal.
@@ -93,4 +85,4 @@ private:
     int _hookId = 0;
 };
 
-}  // namespace VoltMod::Hooks
+}  // namespace VoltMod

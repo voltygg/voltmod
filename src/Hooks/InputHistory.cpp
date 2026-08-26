@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <cassert>
 
-namespace VoltMod::Hooks
+namespace VoltMod
 {
 
 void InputHistory::Enable(int depth)
@@ -29,7 +29,7 @@ void InputHistory::Enable(int depth)
 
 void InputHistory::Record(int slot, const UserCmdView& cmd)
 {
-    if (!Core::IsValidSlot(slot) || !cmd.Valid)
+    if (!IsValidSlot(slot) || !cmd.Valid)
         return;
 
     Ring& ring = _rings[slot];
@@ -40,7 +40,7 @@ void InputHistory::Record(int slot, const UserCmdView& cmd)
 
 int InputHistory::Count(int slot) const
 {
-    return Core::IsValidSlot(slot) ? _rings[slot].Count : 0;
+    return IsValidSlot(slot) ? _rings[slot].Count : 0;
 }
 
 const UserCmdView& InputHistory::At(int slot, int ago) const
@@ -53,7 +53,7 @@ const UserCmdView& InputHistory::At(int slot, int ago) const
 
 void InputHistory::Clear(int slot)
 {
-    if (!Core::IsValidSlot(slot))
+    if (!IsValidSlot(slot))
         return;
     _rings[slot].Head = 0;
     _rings[slot].Count = 0;
@@ -61,8 +61,8 @@ void InputHistory::Clear(int slot)
 
 void InputHistory::ClearAll()
 {
-    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+    for (int slot = 0; slot < MaxPlayers; ++slot)
         Clear(slot);
 }
 
-}  // namespace VoltMod::Hooks
+}  // namespace VoltMod

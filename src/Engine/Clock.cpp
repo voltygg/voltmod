@@ -2,7 +2,7 @@
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <globalvars.h>
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
 
 Clock::Clock(Interfaces& interfaces) : _interfaces(interfaces) {}
@@ -24,4 +24,4 @@ float Clock::Time() const
     return globals ? globals->curtime : 0.0f;
 }
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

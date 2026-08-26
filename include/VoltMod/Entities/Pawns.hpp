@@ -4,15 +4,14 @@
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Entities/PawnOps.hpp>
 #include <VoltMod/Entities/PlayerController.hpp>
 #include <array>
 #include <cstdint>
 
-namespace VoltMod::Entities
+namespace VoltMod
 {
-
-class EntitySystem;
 
 /**
  * @brief Pawn manipulations that need framework services, bound once instead of threaded
@@ -25,7 +24,7 @@ class Pawns
 {
 public:
     /** All three must outlive this service; the runtime declares them above it. */
-    Pawns(Core::Scheduler& scheduler, Core::SlotEvents& slots, EntitySystem& entities);
+    Pawns(Scheduler& scheduler, SlotEvents& slots, EntitySystem& entities);
     Pawns(const Pawns&) = delete;
     Pawns& operator=(const Pawns&) = delete;
 
@@ -35,12 +34,12 @@ public:
     void Slap(const PlayerController& pc, float upward = 800.0f, float horizontal = 100.0f, int fallProtectMs = 3000);
 
 private:
-    Core::Scheduler& _scheduler;
+    Scheduler& _scheduler;
     EntitySystem& _entities;
     /** Pending fall-protection clear per slot, 0 when none. */
-    std::array<uint64_t, Core::MaxPlayers> _fallProtect{};
+    std::array<uint64_t, MaxPlayers> _fallProtect{};
     /** Declared last: drops before the handles its callback touches. */
-    Core::Subscription _slotListener;
+    Subscription _slotListener;
 };
 
-}  // namespace VoltMod::Entities
+}  // namespace VoltMod

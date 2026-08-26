@@ -5,9 +5,8 @@
 #include <VoltMod/Engine/Precache.hpp>
 #include <algorithm>
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
-using namespace VoltMod::Core;
 
 GS_EVENT_MEMBER(PrecacheGameSystem, BuildGameSessionManifest)
 {
@@ -110,4 +109,4 @@ void Precache::Add(std::string resourcePath)
     _resources.push_back(std::move(resourcePath));
 }
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

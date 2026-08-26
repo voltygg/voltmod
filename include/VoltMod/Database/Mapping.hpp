@@ -10,7 +10,7 @@
 #include <tuple>
 #include <vector>
 
-namespace VoltMod::Database
+namespace VoltMod
 {
 
 /**
@@ -24,19 +24,16 @@ namespace VoltMod::Database
  * that is the part worth reading at the call site.
  */
 
-namespace Detail
-{
-
 template <class M>
-inline constexpr bool IsOptional = false;
+inline constexpr bool IsOptionalColumn = false;
 template <class M>
-inline constexpr bool IsOptional<std::optional<M>> = true;
+inline constexpr bool IsOptionalColumn<std::optional<M>> = true;
 
 template <class T, class M>
-void Assign(T& out, const Column<T, M>& col, const pqxx::row& row)
+void AssignColumn(T& out, const Column<T, M>& col, const pqxx::row& row)
 {
     const pqxx::field field = row[col.Name];
-    if constexpr (IsOptional<M>)
+    if constexpr (IsOptionalColumn<M>)
     {
         if (field.is_null())
             out.*(col.Member) = std::nullopt;
@@ -84,14 +81,12 @@ std::size_t CountInsertColumns()
     return count;
 }
 
-}  // namespace Detail
-
 /** Map one row into a default-constructed T, column by column (optionals are null-aware). */
 template <class T>
 T FromRow(const pqxx::row& row)
 {
     T out{};
-    std::apply([&](const auto&... cols) { (Detail::Assign(out, cols, row), ...); }, T::Columns());
+    std::apply([&](const auto&... cols) { (AssignColumn(out, cols, row), ...); }, T::Columns());
     return out;
 }
 
@@ -112,14 +107,14 @@ const std::string& InsertSql()
 {
     static const std::string sql = [] {
         std::string placeholders;
-        const std::size_t count = Detail::CountInsertColumns<T>();
+        const std::size_t count = CountInsertColumns<T>();
         for (std::size_t i = 1; i <= count; ++i)
         {
             if (i > 1)
                 placeholders += ", ";
             placeholders += std::format("${}", i);
         }
-        return std::format("INSERT INTO {} ({}) VALUES ({}) RETURNING {}", T::Table, Detail::JoinColumnNames<T>(true),
+        return std::format("INSERT INTO {} ({}) VALUES ({}) RETURNING {}", T::Table, JoinColumnNames<T>(true),
                            placeholders, T::Key);
     }();
     return sql;
@@ -147,7 +142,7 @@ pqxx::params InsertParams(const T& entity)
 template <class T>
 std::string SelectSql(std::string_view where = {})
 {
-    std::string sql = std::format("SELECT {} FROM {}", Detail::JoinColumnNames<T>(false), T::Table);
+    std::string sql = std::format("SELECT {} FROM {}", JoinColumnNames<T>(false), T::Table);
     if (!where.empty())
     {
         sql += " WHERE ";
@@ -156,4 +151,4 @@ std::string SelectSql(std::string_view where = {})
     return sql;
 }
 
-}  // namespace VoltMod::Database
+}  // namespace VoltMod

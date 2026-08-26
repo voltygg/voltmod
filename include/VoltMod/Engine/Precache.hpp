@@ -1,15 +1,13 @@
 #pragma once
 
+#include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/GameData.hpp>
 #include <memory>
 #include <string>
 #include <vector>
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
-
-class PrecacheGameSystem;  // internal (src/Engine/GameSystem.hpp)
-class GameSystemFactory;   // internal
-class GameData;
 
 /**
  * @brief Precaches custom resources (particles, models, sound events) by
@@ -54,4 +52,4 @@ private:
     void* _gameSystems = nullptr;      // CUtlVector<AddedGameSystem_t>* (internal type)
 };
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

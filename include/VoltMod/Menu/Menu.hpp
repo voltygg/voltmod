@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoltMod/Entities/MoveType.hpp>
+#include <VoltMod/Menu/MenuOption.hpp>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -8,10 +9,8 @@
 #include <string>
 #include <vector>
 
-namespace VoltMod::Menu
+namespace VoltMod
 {
-
-class MenuOption;
 
 /** Maximum items shown per page before the menu paginates. */
 inline constexpr int ItemsPerPage = 5;
@@ -50,7 +49,7 @@ struct PlayerMenuState
     /** True while MenuManager is holding the player's movement frozen for this menu session. */
     bool MovementFrozen = false;
     /** MoveType captured before freezing, restored when the menu closes. */
-    Entities::MoveType PrevMoveType = Entities::MoveType::Walk;
+    MoveType PrevMoveType = MoveType::Walk;
 
     /** True if the player has any menu currently open. */
     bool HasMenu() const { return !MenuStack.empty(); }
@@ -69,8 +68,8 @@ struct PlayerMenuState
         LastInputTime = 0;
         PrevButtons = 0;
         MovementFrozen = false;
-        PrevMoveType = Entities::MoveType::Walk;
+        PrevMoveType = MoveType::Walk;
     }
 };
 
-}  // namespace VoltMod::Menu
+}  // namespace VoltMod

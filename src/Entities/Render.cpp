@@ -4,7 +4,7 @@
 #include <VoltMod/Entities/Render.hpp>
 #include <entity2/entityinstance.h>
 
-namespace VoltMod::Entities
+namespace VoltMod
 {
 
 void SetRender(SchemaService& schema, CEntityInstance* entity, RenderMode_t mode, uint32_t color)
@@ -18,8 +18,8 @@ void SetRender(SchemaService& schema, CEntityInstance* entity, RenderMode_t mode
     if (modeOffset < 0 || colorOffset < 0)
         return;
 
-    Engine::WriteAt<uint8_t>(entity, modeOffset, static_cast<uint8_t>(mode));
-    Engine::WriteAt<uint32_t>(entity, colorOffset, color);
+    WriteAt<uint8_t>(entity, modeOffset, static_cast<uint8_t>(mode));
+    WriteAt<uint32_t>(entity, colorOffset, color);
 
     // Raw writes don't dirty the network state, so without these the new values
     // only replicate when something else touches the entity that tick.
@@ -27,4 +27,4 @@ void SetRender(SchemaService& schema, CEntityInstance* entity, RenderMode_t mode
     entity->NetworkStateChanged(NetworkStateChangedData(static_cast<uint32>(colorOffset)));
 }
 
-}  // namespace VoltMod::Entities
+}  // namespace VoltMod

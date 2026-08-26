@@ -72,11 +72,11 @@ and CS2AC). The entries surfaced by anti-cheat are:
 
 | Offset | Used by | Drift symptom |
 |--------|---------|---------------|
-| `RunCommand` | @ref VoltMod::Hooks::Movement | Crash on the first movement tick |
+| `RunCommand` | @ref VoltMod::Movement | Crash on the first movement tick |
 | `UserCmdPB` | `Movement` cmd listeners | Missing: `Valid=false` views. Stale: garbage viewangles/buttons |
 | `UserCmdNumber` | `UserCmdView::CommandNumber` | Missing: falls back to the protobuf's `legacy_command_number`, which the live client leaves at 0. Stale: a counter that never increments by 1 |
-| `Teleport` | @ref VoltMod::Hooks::Teleport | `Enable()` returns false when missing |
-| `ProcessRespondCvarValue` | @ref VoltMod::Hooks::ClientCvars | Rejected at lookup, so the load stage degrades instead of crashing |
+| `Teleport` | @ref VoltMod::Teleport | `Enable()` returns false when missing |
+| `ProcessRespondCvarValue` | @ref VoltMod::ClientCvars | Rejected at lookup, so the load stage degrades instead of crashing |
 | `ServerSideClientSlot` | `ClientCvars` | Rejected at lookup too; unchecked it would attribute a client's answer to the wrong player |
 
 `ClientCvars::Initialize()` leaves the service inert when either lookup fails.
@@ -85,7 +85,7 @@ and CS2AC). The entries surfaced by anti-cheat are:
 
 The low-level byte-pattern scanner is **internal** (`src/Engine/SigScanner.hpp`, free functions
 `FindPattern(moduleName, pattern)` / `ResolveRelativeAddress(addr, ripOffset, ripSize)`); it is not
-part of the public include tree. Consumers scan through @ref VoltMod::Engine::GameData instead, which
+part of the public include tree. Consumers scan through @ref VoltMod::GameData instead, which
 adds per-platform patterns, named lookups, and caching:
 
 ```cpp
@@ -102,8 +102,8 @@ Wildcard bytes are written as `?` or `??` in pattern strings (see the signatures
 resolver, and like the scanner it is not in the public include tree. It exists because a *class
 vtable* hook (SourceHook's `SH_ADD_MANUALDVPHOOK`) covers every instance at once, where a per-instance
 hook has to be re-bound as objects come and go. Two services need that:
-@ref VoltMod::Hooks::ClientCvars for `CServerSideClient` in `engine2`, and
-@ref VoltMod::Hooks::Movement for `CCSPlayer_MovementServices` in `server` - neither owns the
+@ref VoltMod::ClientCvars for `CServerSideClient` in `engine2`, and
+@ref VoltMod::Movement for `CCSPlayer_MovementServices` in `server` - neither owns the
 instances, and the movement hook must install before any pawn exists.
 
 It shares `FindModuleImage` with the scanner and resolves per platform:

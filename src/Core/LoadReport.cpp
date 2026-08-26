@@ -3,7 +3,7 @@
 #include <chrono>
 #include <format>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 std::string_view ToString(StageStatus status)
@@ -66,4 +66,4 @@ std::string LoadReport::FirstFailure() const
     return it->Detail.empty() ? it->Name : std::format("{}: {}", it->Name, it->Detail);
 }
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

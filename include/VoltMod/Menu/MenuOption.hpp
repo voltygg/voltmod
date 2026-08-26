@@ -1,11 +1,10 @@
 #pragma once
 
+#include <VoltMod/Engine/EngineTypes.hpp>
 #include <string>
 
-namespace VoltMod::Menu
+namespace VoltMod
 {
-
-class MenuManager;
 
 /**
  * @brief Polymorphic base for every selectable row in a menu.
@@ -47,4 +46,4 @@ protected:
     bool _enabled = true;
 };
 
-}  // namespace VoltMod::Menu
+}  // namespace VoltMod

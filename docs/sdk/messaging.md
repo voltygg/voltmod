@@ -22,7 +22,7 @@ msg.ClearCenterHtml(slot);
 
 CS2 drops center-HTML almost immediately after events such as death, a team
 switch, or a HUD update. A sticky panel must therefore be sent repeatedly.
-@ref VoltMod::Messaging::CenterHtml owns that refresh loop; the caller owns
+@ref VoltMod::CenterHtml owns that refresh loop; the caller owns
 the deadline or expiry policy:
 
 ```cpp
@@ -59,7 +59,7 @@ The validator returns `true` to accept the input (capture clears) or `false` to 
 
 The base `MetamodPlugin::OnPlayerChat` already consumes active prompts before
 dispatching commands. An override replaces that behavior, so it must call
-@ref VoltMod::Hooks::ChatInput::TryConsume before handling other chat:
+@ref VoltMod::ChatInput::TryConsume before handling other chat:
 
 ```cpp
 bool MyPlugin::OnPlayerChat(Player* p, std::string_view message, bool team) override
@@ -82,12 +82,12 @@ If no capture is pending for the slot, `TryConsume` returns `false`.
 | `CancelCapture(slot)` | Drop the pending prompt without firing the callback. |
 | `GetPrompt(slot)` | Returns the active prompt string (used by `MenuRenderer` to draw the overlay), or `nullptr`. |
 
-The service subscribes to @ref VoltMod::Core::SlotEvents itself, so a pending prompt is cancelled
+The service subscribes to @ref VoltMod::SlotEvents itself, so a pending prompt is cancelled
 when the slot changes hands. Nothing has to call a lifecycle hook for it.
 
 ## Vote
 
-@ref VoltMod::Messaging::Vote (`runtime.Vote`) drives the game's own yes/no vote panel through
+@ref VoltMod::Vote (`runtime.Vote`) drives the game's own yes/no vote panel through
 the map's `vote_controller` entity. The engine collects the ballots, so there is no plugin-side
 tally to keep.
 

@@ -7,7 +7,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace VoltMod::Database
+namespace VoltMod
 {
 
 /** Result of a database operation: the value on success, or an error message on failure. */
@@ -31,7 +31,7 @@ auto TryDb(std::string_view what, Fn&& fn) -> DbResult<std::invoke_result_t<Fn>>
     }
     catch (const std::exception& e)
     {
-        Core::Log::Error("db: {} failed: {}", what, e.what());
+        Log::Error("db: {} failed: {}", what, e.what());
         return std::unexpected(std::string(e.what()));
     }
 }
@@ -51,9 +51,9 @@ T TryOr(T fallback, std::string_view what, Fn&& fn)
     }
     catch (const std::exception& e)
     {
-        Core::Log::Error("db: {} failed: {}", what, e.what());
+        Log::Error("db: {} failed: {}", what, e.what());
         return fallback;
     }
 }
 
-}  // namespace VoltMod::Database
+}  // namespace VoltMod

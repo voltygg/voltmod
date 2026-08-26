@@ -10,11 +10,8 @@
 #include <VoltMod/Hooks/Teleport.hpp>
 #include <mathlib/vector.h>
 
-PLUGIN_GLOBALVARS();
-
-namespace VoltMod::Hooks
+namespace VoltMod
 {
-using namespace VoltMod::Core;
 
 // CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*); the vtable index comes from
 // gamedata at Enable time. Bound per pawn (Hook_Normal), so the handler runs only for the instance
@@ -38,18 +35,18 @@ bool Teleport::Enable()
     SH_MANUALHOOK_RECONFIGURE(VoltMod_EntityTeleport, index, 0, 0);
     _enabled = true;
 
-    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+    for (int slot = 0; slot < MaxPlayers; ++slot)
         Bind(slot);
 
     // Spawning hands the player a new pawn object, so the old binding is stale - and the spawn
     // placement is itself a teleport worth stamping.
-    _spawnListener = _events.Listen<Events::PlayerSpawn>([this](const Events::PlayerSpawn& e) {
+    _spawnListener = _events.Listen<PlayerSpawn>([this](const PlayerSpawn& e) {
         Bind(e.Slot);
         Stamp(e.Slot);
     });
     _slotListener = _slots.Listen([this](int slot) {
         Unbind(slot);
-        if (Core::IsValidSlot(slot))
+        if (IsValidSlot(slot))
             _lastTeleport[slot] = 0.0f;
     });
 
@@ -59,7 +56,7 @@ bool Teleport::Enable()
 
 void Teleport::Disable()
 {
-    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+    for (int slot = 0; slot < MaxPlayers; ++slot)
         Unbind(slot);
     _lastTeleport.fill(0.0f);
 
@@ -70,7 +67,7 @@ void Teleport::Disable()
 
 bool Teleport::JustTeleported(int slot, float seconds) const
 {
-    if (!Core::IsValidSlot(slot) || _lastTeleport[slot] == 0.0f)
+    if (!IsValidSlot(slot) || _lastTeleport[slot] == 0.0f)
         return false;
 
     return _clock.Time() - _lastTeleport[slot] <= seconds;
@@ -81,14 +78,14 @@ void Teleport::OnServerStartup()
     // Every pawn from the previous map is gone, so drop the bindings before their addresses are
     // recycled. Removal is by hook id, which SourceHook resolves without touching the freed
     // instance.
-    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+    for (int slot = 0; slot < MaxPlayers; ++slot)
         Unbind(slot);
     _lastTeleport.fill(0.0f);
 }
 
 void Teleport::Bind(int slot)
 {
-    if (!_enabled || !Core::IsValidSlot(slot))
+    if (!_enabled || !IsValidSlot(slot))
         return;
 
     Unbind(slot);
@@ -101,7 +98,7 @@ void Teleport::Bind(int slot)
     // us the old object died. Drop any slot still claiming this address first: leaving it would make
     // SlotFromPawn resolve every teleport of this pawn to that stale slot, and leave a per-instance
     // hook registered on the address that fires the handler a second time.
-    for (int other = 0; other < Core::MaxPlayers; ++other)
+    for (int other = 0; other < MaxPlayers; ++other)
         if (other != slot && _pawns[other] == pawn)
             Unbind(other);
 
@@ -111,7 +108,7 @@ void Teleport::Bind(int slot)
 
 void Teleport::Unbind(int slot)
 {
-    if (!Core::IsValidSlot(slot))
+    if (!IsValidSlot(slot))
         return;
 
     if (_hookIds[slot] != 0)
@@ -122,7 +119,7 @@ void Teleport::Unbind(int slot)
 
 void Teleport::Stamp(int slot)
 {
-    if (Core::IsValidSlot(slot))
+    if (IsValidSlot(slot))
         _lastTeleport[slot] = _clock.Time();
 }
 
@@ -131,7 +128,7 @@ int Teleport::SlotFromPawn(const void* pawn) const
     if (!pawn)
         return -1;
 
-    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+    for (int slot = 0; slot < MaxPlayers; ++slot)
         if (_pawns[slot] == pawn)
             return slot;
 
@@ -144,4 +141,4 @@ void Teleport::Hook_Teleport(const Vector*, const QAngle*, const Vector*)
     RETURN_META(MRES_IGNORED);
 }
 
-}  // namespace VoltMod::Hooks
+}  // namespace VoltMod

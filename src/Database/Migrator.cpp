@@ -12,12 +12,7 @@
 
 namespace fs = std::filesystem;
 
-namespace VoltMod::Database
-{
-
-namespace Log = VoltMod::Core::Log;
-
-namespace
+namespace VoltMod
 {
 
 struct Migration
@@ -28,7 +23,7 @@ struct Migration
 };
 
 /** `[A-Za-z_][A-Za-z0-9_]*` - the table name is interpolated into SQL, so reject anything else. */
-bool IsValidTableName(const std::string& name)
+static bool IsValidTableName(const std::string& name)
 {
     if (name.empty())
         return false;
@@ -37,15 +32,13 @@ bool IsValidTableName(const std::string& name)
     return std::all_of(name.begin(), name.end(), [](unsigned char c) { return std::isalnum(c) || c == '_'; });
 }
 
-std::string ReadFile(const fs::path& path)
+static std::string ReadFile(const fs::path& path)
 {
     std::ifstream file(path, std::ios::binary);
     std::ostringstream buffer;
     buffer << file.rdbuf();
     return buffer.str();
 }
-
-}  // namespace
 
 MigrationResult RunMigrations(PostgresDatabase& db, const std::string& dir, const MigrationOptions& options)
 {
@@ -57,7 +50,7 @@ MigrationResult RunMigrations(PostgresDatabase& db, const std::string& dir, cons
     const std::string& table = options.TableName;
 
     // Relative paths must resolve against the game dir, not the server process cwd.
-    const fs::path resolvedDir = Core::ResolvePath(dir);
+    const fs::path resolvedDir = ResolvePath(dir);
 
     std::error_code ec;
     if (!fs::exists(resolvedDir, ec))
@@ -157,4 +150,4 @@ MigrationResult RunMigrations(PostgresDatabase& db, const std::string& dir, cons
     return {.Success = *outcome, .Applied = appliedTotal, .CurrentVersion = finalVersion};
 }
 
-}  // namespace VoltMod::Database
+}  // namespace VoltMod

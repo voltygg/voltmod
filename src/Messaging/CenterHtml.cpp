@@ -3,12 +3,12 @@
 #include <VoltMod/Messaging/Messages.hpp>
 #include <utility>
 
-namespace VoltMod::Messaging
+namespace VoltMod
 {
 
 void CenterHtml::Show(int slot, int refreshMs, std::function<std::string(int slot)> render)
 {
-    if (!Core::IsValidSlot(slot) || !render || refreshMs <= 0)
+    if (!IsValidSlot(slot) || !render || refreshMs <= 0)
         return;
 
     Stop(slot);
@@ -22,7 +22,7 @@ void CenterHtml::Show(int slot, int refreshMs, std::function<std::string(int slo
 
 void CenterHtml::Stop(int slot)
 {
-    if (!Core::IsValidSlot(slot) || !_timers[slot])
+    if (!IsValidSlot(slot) || !_timers[slot])
         return;
     _timers[slot].Reset();
     _messages.ClearCenterHtml(slot);
@@ -30,8 +30,8 @@ void CenterHtml::Stop(int slot)
 
 void CenterHtml::StopAll()
 {
-    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+    for (int slot = 0; slot < MaxPlayers; ++slot)
         Stop(slot);
 }
 
-}  // namespace VoltMod::Messaging
+}  // namespace VoltMod

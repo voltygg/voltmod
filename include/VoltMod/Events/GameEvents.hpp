@@ -4,20 +4,15 @@
 
 #include <VoltMod/Core/CallbackRegistry.hpp>
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Engine/Interfaces.hpp>
 #include <cstdint>
 #include <functional>
 #include <set>
 #include <string>
 
-class CPlayerSlot;
-
-namespace VoltMod::Engine
-{
-class GameData;
-struct Interfaces;
-}  // namespace VoltMod::Engine
-
-namespace VoltMod::Events
+namespace VoltMod
 {
 
 /**
@@ -27,7 +22,7 @@ class GameEvents : public IGameEventListener2
 {
 public:
     /** Both must outlive this service, which detaches from the engine in its destructor. */
-    GameEvents(Engine::Interfaces& interfaces, Engine::GameData& gameData);
+    GameEvents(Interfaces& interfaces, GameData& gameData);
     ~GameEvents() override;
     GameEvents(const GameEvents&) = delete;
     GameEvents& operator=(const GameEvents&) = delete;
@@ -39,13 +34,13 @@ public:
     void FreeEvent(IGameEvent* event);
 
     using EventCallback = std::function<void(IGameEvent*)>;
-    [[nodiscard]] Core::Subscription Listen(const char* eventName, EventCallback callback);
+    [[nodiscard]] Subscription Listen(const char* eventName, EventCallback callback);
 
     /** Typed listen: @p TEvent is one of @ref VoltMod::Events (carries Name + From).
      *  The handler receives the decoded struct; the raw-IGameEvent overload above stays as
      *  the escape hatch for unmodeled events. */
     template <class TEvent>
-    [[nodiscard]] Core::Subscription Listen(std::function<void(const TEvent&)> handler)
+    [[nodiscard]] Subscription Listen(std::function<void(const TEvent&)> handler)
     {
         return Listen(TEvent::Name, [h = std::move(handler)](IGameEvent* e) {
             if (e)
@@ -72,7 +67,7 @@ public:
      * @brief The engine-side listener object the game keeps for @p slot's client.
      *
      * The client's own subscription handle, not a framework listener: firing an event at it delivers to
-     * that one client (how @ref Messaging::Messages sends center HTML), and it is what
+     * that one client (how @ref Messages sends center HTML), and it is what
      * @ref ClientListensTo interrogates. nullptr when the slot has no client or the
      * "LegacyGameEventListener" gamedata signature did not resolve.
      */
@@ -97,11 +92,11 @@ private:
 
     using GetLegacyGameEventListenerFn = IGameEventListener2* (*)(CPlayerSlot slot);
 
-    Engine::Interfaces& _interfaces;
-    Engine::GameData& _gameData;
-    Core::CallbackRegistry<RegisteredListener> _listeners;
+    Interfaces& _interfaces;
+    GameData& _gameData;
+    CallbackRegistry<RegisteredListener> _listeners;
     std::set<std::string> _registeredEvents;  // every event name ever listened to; see OnServerStartup
     GetLegacyGameEventListenerFn _getLegacyListener = nullptr;
 };
 
-}  // namespace VoltMod::Events
+}  // namespace VoltMod

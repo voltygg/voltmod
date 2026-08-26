@@ -1,19 +1,12 @@
 #pragma once
 
-class CEntityInstance;
-class IRecipientFilter;
+#include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Entities/Entity.hpp>
+#include <VoltMod/Entities/KeyValues.hpp>
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
-class GameData;
-}  // namespace VoltMod::Engine
-
-namespace VoltMod::Entities
-{
-
-class KeyValues;
-class EntitySystem;
-class SchemaService;  // Internal type (src/Entities/Schema.hpp), kept out of the public graph.
 
 /**
  * @brief Entity mutation operations resolved from gamedata signatures.
@@ -29,7 +22,7 @@ class EntityOps
 {
 public:
     /** All three must outlive this service; the Runtime declares them above it. */
-    EntityOps(EntitySystem& entities, Engine::GameData& gameData, SchemaService& schema);
+    EntityOps(EntitySystem& entities, GameData& gameData, SchemaService& schema);
     EntityOps(const EntityOps&) = delete;
     EntityOps& operator=(const EntityOps&) = delete;
 
@@ -87,7 +80,7 @@ public:
     void EmitSoundFilter(IRecipientFilter& filter, CEntityInstance* source, const char* soundEvent, float volume = 1.0f,
                          int pitch = 100);
 
-    /** Notify the engine that a schema field written via Engine::WriteAt changed, so the
+    /** Notify the engine that a schema field written via WriteAt changed, so the
      *  new value replicates immediately instead of riding the next broadcast. */
     void NotifyFieldChanged(CEntityInstance* entity, const char* className, const char* fieldName);
 
@@ -97,7 +90,7 @@ public:
 
 private:
     EntitySystem& _entities;
-    Engine::GameData& _gameData;
+    GameData& _gameData;
     SchemaService& _schema;
 
     // Stored untyped so variant_t/CEntityKeyValues/EmitSound_t never leak into
@@ -112,4 +105,4 @@ private:
     void* _emitSoundFilter = nullptr;
 };
 
-}  // namespace VoltMod::Entities
+}  // namespace VoltMod

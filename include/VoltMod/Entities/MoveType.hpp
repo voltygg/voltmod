@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace VoltMod::Entities
+namespace VoltMod
 {
 
 /**
@@ -16,4 +16,4 @@ enum class MoveType : uint8_t
     NoClip = 7,  ///< MOVETYPE_NOCLIP - free fly-through-walls movement.
 };
 
-}  // namespace VoltMod::Entities
+}  // namespace VoltMod

@@ -2,7 +2,7 @@
 
 #include <cstddef>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 /**
@@ -16,4 +16,4 @@ namespace VoltMod::Core
  */
 std::size_t RandomIndex(std::size_t count);
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

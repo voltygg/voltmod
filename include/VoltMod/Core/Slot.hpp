@@ -1,6 +1,6 @@
 #pragma once
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 /** Maximum player slots on a CS2 server (slots 0..MaxPlayers-1). */
@@ -12,4 +12,4 @@ inline constexpr bool IsValidSlot(int slot)
     return slot >= 0 && slot < MaxPlayers;
 }
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

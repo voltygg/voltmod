@@ -3,13 +3,10 @@
 #include <VoltMod/Hooks/UserCmd.hpp>
 #include <doctest/doctest.h>
 
-using VoltMod::Hooks::UserCmdView;
-
-namespace
-{
+using VoltMod::UserCmdView;
 
 /** A view holding @p decoded decoded entries out of @p total the client sent. */
-UserCmdView WithHistory(int decoded, int total)
+static UserCmdView WithHistory(int decoded, int total)
 {
     UserCmdView cmd;
     cmd.Valid = true;
@@ -22,8 +19,6 @@ UserCmdView WithHistory(int decoded, int total)
     }
     return cmd;
 }
-
-}  // namespace
 
 TEST_CASE("SampleAt returns the addressed entry inside the decoded range")
 {

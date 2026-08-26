@@ -1,15 +1,14 @@
 #pragma once
 
+#include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuOption.hpp>
 #include <functional>
 #include <memory>
 #include <string>
 #include <utility>
 
-namespace VoltMod::Menu
+namespace VoltMod
 {
-
-struct MenuView;
 
 /**
  * Push a built submenu onto the player's menu stack. The factory is invoked lazily on E.
@@ -36,4 +35,4 @@ private:
     FactoryFn _factory;
 };
 
-}  // namespace VoltMod::Menu
+}  // namespace VoltMod

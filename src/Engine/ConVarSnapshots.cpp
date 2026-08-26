@@ -1,7 +1,7 @@
 #include <VoltMod/Engine/ConVarSnapshots.hpp>
 #include <algorithm>
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
 
 bool ConVarSnapshots::Save(std::string_view name, std::string_view value)
@@ -34,4 +34,4 @@ std::vector<ConVarSnapshots::Entry>::const_iterator ConVarSnapshots::Find(std::s
     return std::ranges::find_if(_entries, [name](const Entry& entry) { return entry.Name == name; });
 }
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

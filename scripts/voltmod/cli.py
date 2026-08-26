@@ -201,8 +201,19 @@ def modgraph_command(
         Path,
         typer.Argument(help="Repo root (default: the working directory)"),
     ] = Path("."),
+    plugins: Annotated[
+        Path | None,
+        typer.Option(
+            "--plugins",
+            help="Check a consumer repo's plugins/ for the source conventions instead of "
+            "the framework's module layering",
+        ),
+    ] = None,
 ) -> None:
-    """Check VoltMod's module layering."""
+    """Check VoltMod's module layering, or a consumer's plugin sources."""
+    if plugins is not None:
+        _exit_on_error(modgraph.check_plugins(plugins))
+        return
     _exit_on_error(modgraph.check(root))
 
 

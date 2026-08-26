@@ -2,20 +2,15 @@
 
 #include <Color.h>
 #include <VoltMod/Entities/Entity.hpp>
+#include <VoltMod/Entities/EntityOps.hpp>
+#include <VoltMod/Hooks/Transmit.hpp>
 #include <array>
 #include <cstdint>
 #include <functional>
 #include <string>
 
-namespace VoltMod::Entities
+namespace VoltMod
 {
-class EntityOps;
-}  // namespace VoltMod::Entities
-
-namespace VoltMod::Hooks
-{
-
-class Transmit;
 
 /**
  * @brief Per-viewer wallhack-style vision: one client sees live players as team-colored glow
@@ -43,8 +38,7 @@ public:
     /** All three services must outlive this object; the Runtime owns them.
      *  `runtime.Visibility.CreateGlow(beneficiarySlot)` is the normal entry point - it passes
      *  `runtime.Entities`, `runtime.EntityOps` and `runtime.Transmit` for you. */
-    GlowVision(Entities::EntitySystem& entities, Entities::EntityOps& ops, Transmit& transmit, int beneficiarySlot,
-               Config config = {})
+    GlowVision(EntitySystem& entities, EntityOps& ops, Transmit& transmit, int beneficiarySlot, Config config = {})
         : _entities(entities),
           _ops(ops),
           _transmit(transmit),
@@ -61,26 +55,26 @@ public:
 private:
     struct GlowPair
     {
-        uint32_t RelayHandle = Entities::InvalidEntityHandle;
-        uint32_t GlowHandle = Entities::InvalidEntityHandle;
+        uint32_t RelayHandle = InvalidEntityHandle;
+        uint32_t GlowHandle = InvalidEntityHandle;
         int RelayIndex = -1;
         int GlowIndex = -1;
         int Team = 0;
         std::string Model;
 
         // The relay handle is the single source of truth for liveness; DestroyPair resets it.
-        bool Active() const { return RelayHandle != Entities::InvalidEntityHandle; }
+        bool Active() const { return RelayHandle != InvalidEntityHandle; }
     };
 
     void CreatePair(int slot, GlowPair& pair);
     void DestroyPair(GlowPair& pair);
 
-    Entities::EntitySystem& _entities;
-    Entities::EntityOps& _ops;
+    EntitySystem& _entities;
+    EntityOps& _ops;
     Transmit& _transmit;
     int _beneficiarySlot;
     Config _config;
-    std::array<GlowPair, Core::MaxPlayers> _pairs{};
+    std::array<GlowPair, MaxPlayers> _pairs{};
 };
 
-}  // namespace VoltMod::Hooks
+}  // namespace VoltMod

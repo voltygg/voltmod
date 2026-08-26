@@ -7,7 +7,7 @@
 #include <windows.h>
 #endif
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
 
 struct ScanResult
@@ -46,4 +46,4 @@ void* FindPattern(const char* moduleName, const std::string& pattern);
  */
 uintptr_t ResolveRelativeAddress(uintptr_t addr, int ripOffset, int ripSize);
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

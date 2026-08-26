@@ -1,20 +1,13 @@
 #pragma once
 
 #include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Engine/Interfaces.hpp>
 #include <cstdint>
 #include <string>
 
-class CGameEntitySystem;
-class CEntityInstance;
-class CEntityIdentity;
-
-namespace VoltMod::Engine
-{
-class GameData;
-struct Interfaces;
-}  // namespace VoltMod::Engine
-
-namespace VoltMod::Entities
+namespace VoltMod
 {
 
 /** @defgroup ButtonFlags Player Button Flags */
@@ -50,9 +43,6 @@ constexpr uint32_t FL_NOTARGET = 32768;
 /** Sentinel EHandle value for an unset/cleared handle (INVALID_EHANDLE_INDEX). */
 inline constexpr uint32_t InvalidEntityHandle = 0xFFFFFFFFu;
 
-class PlayerController;
-class SchemaService;  // Internal type (src/Entities/Schema.hpp), kept out of the public graph.
-
 /**
  * @brief Entity system access layer for the Source 2 engine.
  * Resolves CGameEntitySystem from IGameResourceService, provides player
@@ -62,7 +52,7 @@ class EntitySystem
 {
 public:
     /** All three must outlive this service; the Runtime declares them above it. */
-    EntitySystem(Engine::Interfaces& interfaces, Engine::GameData& gameData, SchemaService& schema);
+    EntitySystem(Interfaces& interfaces, GameData& gameData, SchemaService& schema);
     ~EntitySystem();
     EntitySystem(const EntitySystem&) = delete;
     EntitySystem& operator=(const EntitySystem&) = delete;
@@ -131,11 +121,12 @@ public:
 private:
     // PlayerController stays a three-pointer transient by reaching the siblings through these
     // rather than carrying copies. Private, not @internal: a service graph reachable from a value
-    // type is the locator shape this framework does not have. `Ref` because `Engine::GameData` is a type.
+    // type is the locator shape this framework does not have. The `Ref` suffix keeps each accessor
+    // from shadowing the type it returns for the rest of this class.
     friend class PlayerController;
     SchemaService& Schema() { return _schema; }
-    const Engine::Interfaces& Interfaces() const { return _interfaces; }
-    const Engine::GameData& GameDataRef() const { return _gameData; }
+    const Interfaces& InterfacesRef() const { return _interfaces; }
+    const GameData& GameDataRef() const { return _gameData; }
 
     void ResolveSchemaOffsets();
     void ResolveFinderSignatures();
@@ -150,8 +141,8 @@ private:
     /** Sole writer of the pointer: keeps the ::GameEntitySystem() global in step with the member. */
     void SetEntitySystem(CGameEntitySystem* system);
 
-    Engine::Interfaces& _interfaces;
-    Engine::GameData& _gameData;
+    Interfaces& _interfaces;
+    GameData& _gameData;
     SchemaService& _schema;
     int _offsetGameEntitySystem = -1;
     int _offsetPlayerPawn = -1;
@@ -165,4 +156,4 @@ private:
     bool _findersResolved = false;
 };
 
-}  // namespace VoltMod::Entities
+}  // namespace VoltMod

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Subscription.hpp>
@@ -10,12 +11,7 @@
 #include <string>
 #include <string_view>
 
-namespace VoltMod::Core
-{
-class Scheduler;
-}
-
-namespace VoltMod::Hooks
+namespace VoltMod
 {
 
 /**
@@ -37,7 +33,7 @@ class ChatInput
 public:
     /** @p scheduler runs the prompt timeouts. @p slots tells the registry when a slot changes
      *  hands, so a prompt cannot outlive the player it was addressed to. Both must outlive it. */
-    ChatInput(Core::Scheduler& scheduler, Core::SlotEvents& slots);
+    ChatInput(Scheduler& scheduler, SlotEvents& slots);
     /** Cancels every outstanding timeout, so none can fire into a destroyed registry. */
     ~ChatInput();
     ChatInput(const ChatInput&) = delete;
@@ -83,11 +79,11 @@ private:
         uint64_t Id = 0;
     };
 
-    Core::Scheduler& _scheduler;
-    std::array<std::optional<Pending>, Core::MaxPlayers> _pending{};
+    Scheduler& _scheduler;
+    std::array<std::optional<Pending>, MaxPlayers> _pending{};
     uint64_t _nextId = 1;
     /** Declared after _pending so it unregisters before the captures its callback cancels. */
-    Core::Subscription _slotListener;
+    Subscription _slotListener;
 };
 
-}  // namespace VoltMod::Hooks
+}  // namespace VoltMod

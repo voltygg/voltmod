@@ -6,14 +6,10 @@
 #include <bit>
 #include <playerslot.h>
 
-namespace VoltMod::Events
+namespace VoltMod
 {
 
-using namespace VoltMod::Core;
-
-GameEvents::GameEvents(Engine::Interfaces& interfaces, Engine::GameData& gameData)
-    : _interfaces(interfaces), _gameData(gameData)
-{}
+GameEvents::GameEvents(Interfaces& interfaces, GameData& gameData) : _interfaces(interfaces), _gameData(gameData) {}
 
 GameEvents::~GameEvents()
 {
@@ -40,7 +36,7 @@ bool GameEvents::Initialize()
 
 IGameEventListener2* GameEvents::GetClientLegacyListener(int slot) const
 {
-    if (!_getLegacyListener || !Core::IsValidSlot(slot))
+    if (!_getLegacyListener || !IsValidSlot(slot))
         return nullptr;
 
     return _getLegacyListener(CPlayerSlot(slot));
@@ -81,7 +77,7 @@ void GameEvents::FreeEvent(IGameEvent* event)
         mgr->FreeEvent(event);
 }
 
-Core::Subscription GameEvents::Listen(const char* eventName, EventCallback callback)
+Subscription GameEvents::Listen(const char* eventName, EventCallback callback)
 {
     auto* mgr = _interfaces.GameEventManager;
     if (!mgr)
@@ -140,4 +136,4 @@ void GameEvents::FireGameEvent(IGameEvent* event)
                           [&](RegisteredListener& l) { l.Callback(event); });
 }
 
-}  // namespace VoltMod::Events
+}  // namespace VoltMod

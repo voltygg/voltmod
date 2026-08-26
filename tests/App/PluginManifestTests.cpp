@@ -1,9 +1,9 @@
 #include <VoltMod/App/PluginManifest.hpp>
 #include <doctest/doctest.h>
 
-using VoltMod::App::IdentityKey;
-using VoltMod::App::ParsePluginManifest;
-using VoltMod::App::VersionAtLeast;
+using VoltMod::IdentityKey;
+using VoltMod::ParsePluginManifest;
+using VoltMod::VersionAtLeast;
 
 TEST_CASE("A manifest without dependencies parses to an empty list")
 {

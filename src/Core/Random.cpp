@@ -1,7 +1,7 @@
 #include <VoltMod/Core/Random.hpp>
 #include <random>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 std::size_t RandomIndex(std::size_t count)
@@ -14,4 +14,4 @@ std::size_t RandomIndex(std::size_t count)
     return std::uniform_int_distribution<std::size_t>(0, count - 1)(rng);
 }
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

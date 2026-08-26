@@ -3,16 +3,13 @@
 #include <VoltMod/Core/Slot.hpp>
 #include <doctest/doctest.h>
 
-using VoltMod::Core::EffectManager;
-using VoltMod::Core::EffectSpec;
-using VoltMod::Core::MaxPlayers;
-using VoltMod::Core::Scheduler;
+using VoltMod::EffectManager;
+using VoltMod::EffectSpec;
+using VoltMod::MaxPlayers;
+using VoltMod::Scheduler;
 
-namespace
-{
-constexpr int Disco = 0;
-constexpr int Ghost = 1;
-}  // namespace
+static constexpr int Disco = 0;
+static constexpr int Ghost = 1;
 
 TEST_CASE("EffectManager: Apply and IsActive")
 {

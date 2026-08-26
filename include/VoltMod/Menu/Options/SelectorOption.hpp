@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-namespace VoltMod::Menu
+namespace VoltMod
 {
 
 /**
@@ -90,4 +90,4 @@ private:
     CommitFn _onCommit;
 };
 
-}  // namespace VoltMod::Menu
+}  // namespace VoltMod

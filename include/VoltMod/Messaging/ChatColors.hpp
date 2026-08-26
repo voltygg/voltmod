@@ -4,7 +4,7 @@
 #include <string>
 #include <string_view>
 
-namespace VoltMod::Messaging::ChatColors
+namespace VoltMod::ChatColors
 {
 
 // CS2 in-line chat color escape bytes. Byte values mirror the SwiftlyS2 mapping
@@ -72,4 +72,4 @@ std::string_view ParseNamed(std::string_view name);
 /** Strip all CS2 color escape bytes (0x01..0x10) from `text` for safe console/log output. */
 std::string Strip(std::string_view text);
 
-}  // namespace VoltMod::Messaging::ChatColors
+}  // namespace VoltMod::ChatColors

@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <functional>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 /**
@@ -35,4 +35,4 @@ private:
     CallbackRegistry<Callback> _changed;
 };
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

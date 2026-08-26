@@ -3,10 +3,8 @@
 #include <VoltMod/Database/PostgresDatabase.hpp>
 #include <format>
 
-namespace VoltMod::Database
+namespace VoltMod
 {
-
-namespace Log = VoltMod::Core::Log;
 
 std::string PostgresConfig::GetConnectionString() const
 {
@@ -295,4 +293,4 @@ void PostgresDatabase::FinishJob(Job& job, DbResult<pqxx::result> result, bool r
     }
 }
 
-}  // namespace VoltMod::Database
+}  // namespace VoltMod

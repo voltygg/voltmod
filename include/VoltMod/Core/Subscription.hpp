@@ -3,7 +3,7 @@
 #include <functional>
 #include <utility>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 /**
@@ -21,7 +21,7 @@ namespace VoltMod::Core
  * @code
  * class Bhop {
  *     Bhop(GameEvents& events) {
- *         _spawn = events.Listen<Events::PlayerSpawn>([this](const auto& e) { OnSpawn(e.Slot); });
+ *         _spawn = events.Listen<PlayerSpawn>([this](const auto& e) { OnSpawn(e.Slot); });
  *     }
  *     Subscription _spawn;
  * };
@@ -74,4 +74,4 @@ private:
     std::function<void()> _cleanup;
 };
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

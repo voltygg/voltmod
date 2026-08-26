@@ -4,7 +4,7 @@
 #include <string>
 #include <string_view>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 /**
@@ -30,4 +30,4 @@ std::string AddonDir(std::string_view addon);
 /** @brief "addons/<addon>/<relative>", e.g. AddonFile("bhop", "configs/settings.jsonc"). */
 std::string AddonFile(std::string_view addon, std::string_view relative);
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

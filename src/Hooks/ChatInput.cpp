@@ -2,10 +2,10 @@
 #include <VoltMod/Hooks/ChatInput.hpp>
 #include <utility>
 
-namespace VoltMod::Hooks
+namespace VoltMod
 {
 
-ChatInput::ChatInput(Core::Scheduler& scheduler, Core::SlotEvents& slots)
+ChatInput::ChatInput(Scheduler& scheduler, SlotEvents& slots)
     : _scheduler(scheduler),
       // SlotEvents fires when a slot is filled as well as emptied; a fresh occupant has no capture
       // pending, so cancelling on both edges covers "left" without a dedicated event.
@@ -14,13 +14,13 @@ ChatInput::ChatInput(Core::Scheduler& scheduler, Core::SlotEvents& slots)
 
 ChatInput::~ChatInput()
 {
-    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+    for (int slot = 0; slot < MaxPlayers; ++slot)
         CancelCapture(slot);
 }
 
 void ChatInput::BeginCapture(int slot, std::string prompt, Callback callback, int timeoutMs)
 {
-    if (!Core::IsValidSlot(slot) || !callback)
+    if (!IsValidSlot(slot) || !callback)
         return;
 
     CancelCapture(slot);  // drops any existing prompt + scheduled timeout
@@ -47,14 +47,14 @@ void ChatInput::BeginCapture(int slot, std::string prompt, Callback callback, in
 
 bool ChatInput::IsCapturing(int slot) const
 {
-    if (!Core::IsValidSlot(slot))
+    if (!IsValidSlot(slot))
         return false;
     return _pending[slot].has_value();
 }
 
 bool ChatInput::TryConsume(int slot, std::string_view text)
 {
-    if (!Core::IsValidSlot(slot))
+    if (!IsValidSlot(slot))
         return false;
 
     auto& opt = _pending[slot];
@@ -86,7 +86,7 @@ bool ChatInput::TryConsume(int slot, std::string_view text)
 
 void ChatInput::CancelCaptureById(int slot, uint64_t id)
 {
-    if (!Core::IsValidSlot(slot))
+    if (!IsValidSlot(slot))
         return;
 
     const auto& opt = _pending[slot];
@@ -96,7 +96,7 @@ void ChatInput::CancelCaptureById(int slot, uint64_t id)
 
 void ChatInput::CancelCapture(int slot)
 {
-    if (!Core::IsValidSlot(slot))
+    if (!IsValidSlot(slot))
         return;
 
     auto& opt = _pending[slot];
@@ -111,7 +111,7 @@ void ChatInput::CancelCapture(int slot)
 
 std::optional<std::string> ChatInput::GetPrompt(int slot) const
 {
-    if (!Core::IsValidSlot(slot))
+    if (!IsValidSlot(slot))
         return std::nullopt;
     const auto& opt = _pending[slot];
     if (!opt)
@@ -119,4 +119,4 @@ std::optional<std::string> ChatInput::GetPrompt(int slot) const
     return opt->Prompt;
 }
 
-}  // namespace VoltMod::Hooks
+}  // namespace VoltMod

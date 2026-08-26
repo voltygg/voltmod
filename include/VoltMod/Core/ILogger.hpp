@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 /**
@@ -49,4 +49,4 @@ void Emit(LogLevel level, std::string message);
 /** Replay lines queued from worker threads. Game thread only; called once per frame. */
 void DrainDeferredLogs();
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

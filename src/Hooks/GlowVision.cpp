@@ -6,22 +6,17 @@
 #include <VoltMod/Hooks/Transmit.hpp>
 #include <utility>
 
-namespace VoltMod::Hooks
+namespace VoltMod
 {
 
-namespace
-{
-
-constexpr int RenderModeNone = 10;
+static constexpr int RenderModeNone = 10;
 
 // prop_dynamic keyvalues shared by the relay and glow clones.
-constexpr int PropSpawnFlags = 256;
-constexpr int GlowRangeUnits = 5000;
-constexpr int GlowTeamAny = -1;
-constexpr int GlowStateAlwaysOn = 3;
-constexpr int GlowRenderAmt = 1;
-
-}  // namespace
+static constexpr int PropSpawnFlags = 256;
+static constexpr int GlowRangeUnits = 5000;
+static constexpr int GlowTeamAny = -1;
+static constexpr int GlowStateAlwaysOn = 3;
+static constexpr int GlowRenderAmt = 1;
 
 void GlowVision::DestroyPair(GlowPair& pair)
 {
@@ -43,23 +38,23 @@ void GlowVision::DestroyPair(GlowPair& pair)
 
 void GlowVision::CreatePair(int slot, GlowPair& pair)
 {
-    Entities::PlayerController pc = _entities.Controller(slot);
+    PlayerController pc = _entities.Controller(slot);
     auto* pawn = pc.GetPawn();
     std::string model = pc.GetPawnModelName();
     int team = pc.GetTeam();
     if (!pawn || model.empty())
         return;
 
-    Entities::KeyValues relayKv;
+    KeyValues relayKv;
     relayKv.Set("model", model.c_str()).Set("spawnflags", PropSpawnFlags).Set("rendermode", RenderModeNone);
     auto* relay = _ops.Spawn("prop_dynamic", relayKv);
     if (!relay)
         return;
 
-    Entities::KeyValues glowKv;
+    KeyValues glowKv;
     glowKv.Set("model", model.c_str())
         .Set("spawnflags", PropSpawnFlags)
-        .Set("glowcolor", team == Entities::TeamT ? _config.TerroristColor : _config.CtColor)
+        .Set("glowcolor", team == TeamT ? _config.TerroristColor : _config.CtColor)
         .Set("glowrange", GlowRangeUnits)
         .Set("glowteam", GlowTeamAny)
         .Set("glowstate", GlowStateAlwaysOn)
@@ -87,16 +82,15 @@ void GlowVision::CreatePair(int slot, GlowPair& pair)
 
 void GlowVision::Reconcile()
 {
-    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+    for (int slot = 0; slot < MaxPlayers; ++slot)
     {
         auto& pair = _pairs[slot];
 
-        Entities::PlayerController pc = _entities.Controller(slot);
+        PlayerController pc = _entities.Controller(slot);
         int team = pc.GetTeam();
         // Ghosted pawns never transmit to the beneficiary, so a clone would follow nothing.
-        bool desired = slot != _beneficiarySlot && pc.IsValid() && pc.IsAlive() &&
-                       (team == Entities::TeamT || team == Entities::TeamCT) && !_transmit.IsPawnHidden(slot) &&
-                       (!_config.Filter || _config.Filter(slot));
+        bool desired = slot != _beneficiarySlot && pc.IsValid() && pc.IsAlive() && (team == TeamT || team == TeamCT) &&
+                       !_transmit.IsPawnHidden(slot) && (!_config.Filter || _config.Filter(slot));
 
         if (pair.Active())
         {
@@ -117,4 +111,4 @@ void GlowVision::Destroy()
         DestroyPair(pair);
 }
 
-}  // namespace VoltMod::Hooks
+}  // namespace VoltMod

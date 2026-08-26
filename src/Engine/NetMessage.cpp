@@ -5,7 +5,7 @@
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
 
 bool PostUserMessage(Interfaces& interfaces, INetworkMessageInternal*& cached, const char* partialName,
@@ -34,4 +34,4 @@ bool PostUserMessage(Interfaces& interfaces, INetworkMessageInternal*& cached, c
     return posted;
 }
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

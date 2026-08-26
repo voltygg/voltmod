@@ -6,7 +6,7 @@
 #include <functional>
 #include <unordered_map>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 /**
@@ -79,4 +79,4 @@ private:
     std::array<std::unordered_map<int, ActiveEffect>, MaxPlayers> _effects{};
 };
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

@@ -5,23 +5,20 @@
 #include <utility>
 #include <vector>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
-namespace
-{
+static ILogger* g_logger = nullptr;
+static std::thread::id g_gameThread{};
 
-ILogger* g_logger = nullptr;
-std::thread::id g_gameThread{};
-
-std::mutex g_deferredMutex;
-std::deque<std::pair<LogLevel, std::string>> g_deferred;
+static std::mutex g_deferredMutex;
+static std::deque<std::pair<LogLevel, std::string>> g_deferred;
 
 /** A worker that logs in a tight failure loop must not grow this without bound; past the cap
  *  the oldest lines go, because the first error is rarely the interesting one. */
-constexpr size_t MaxDeferred = 256;
+static constexpr size_t MaxDeferred = 256;
 
-void Write(ILogger& logger, LogLevel level, const std::string& message)
+static void Write(ILogger& logger, LogLevel level, const std::string& message)
 {
     switch (level)
     {
@@ -36,8 +33,6 @@ void Write(ILogger& logger, LogLevel level, const std::string& message)
         break;
     }
 }
-
-}  // namespace
 
 ILogger* GetGlobalLogger()
 {
@@ -84,4 +79,4 @@ void DrainDeferredLogs()
         Write(*g_logger, level, message);
 }
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

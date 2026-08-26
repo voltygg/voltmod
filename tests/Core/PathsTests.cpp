@@ -2,7 +2,10 @@
 #include <doctest/doctest.h>
 #include <filesystem>
 
-using namespace VoltMod::Core;
+using VoltMod::AddonDir;
+using VoltMod::AddonFile;
+using VoltMod::ResolvePath;
+using VoltMod::SetBaseDir;
 
 TEST_CASE("AddonDir builds the engine-relative addon root")
 {

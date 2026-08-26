@@ -3,9 +3,9 @@
 [TOC]
 
 VoltMod menus use WASD input and center HTML. Each row is a typed
-@ref VoltMod::Menu::MenuOption. Build menus with
-@ref VoltMod::Menu::MenuBuilder; context rows and the
-@ref VoltMod::Menu::Flow wizard provide the common admin-panel behavior.
+@ref VoltMod::MenuOption. Build menus with
+@ref VoltMod::MenuBuilder; context rows and the
+@ref VoltMod::Flow wizard provide the common admin-panel behavior.
 
 Players navigate with:
 
@@ -21,7 +21,7 @@ Players navigate with:
 ```cpp
 #include <VoltMod/Menu/MenuBuilder.hpp>
 
-using namespace VoltMod::Menu;
+using VoltMod::MenuBuilder;
 
 auto menu = MenuBuilder("Admin Panel")
     .AddButton("Kick Player", [](int slot) { /* ... */ })
@@ -34,7 +34,7 @@ runtime.Menus.OpenMenu(playerSlot, menu);
 
 ## Context rows
 
-For rows that act on an admin/target pair, bind a @ref VoltMod::Menu::MenuContext once. It carries the runtime as its first member; every context row then derives its label (a translation key in the admin's language), its enabled state (permission and immunity via `runtime.Policy`, so a row the admin cannot use does not appear), and its dispatch pair from the context:
+For rows that act on an admin/target pair, bind a @ref VoltMod::MenuContext once. It carries the runtime as its first member; every context row then derives its label (a translation key in the admin's language), its enabled state (permission and immunity via `runtime.Policy`, so a row the admin cannot use does not appear), and its dispatch pair from the context:
 
 ```cpp
 MenuBuilder(title)
@@ -51,7 +51,7 @@ A context left without `.Rt` is inert: `Allowed` denies, so every context row re
 
 ## Flow: multistep wizards
 
-@ref VoltMod::Menu::Flow carries a state struct through steps such as "pick
+@ref VoltMod::Flow carries a state struct through steps such as "pick
 duration, pick reason, confirm, execute". It re-runs validation before each step
 and before finishing, so a departed target or revoked permission aborts cleanly
 instead of applying half the action.
@@ -76,7 +76,7 @@ VoltMod::Flow<PendingPunishment>::Create(runtime.Menus, std::move(pending))
 Flow contracts:
 
 - Text comes from per-slot provider functions, so every step renders in the viewing admin's language; the framework ships no strings of its own.
-- `Create` takes the @ref VoltMod::Menu::MenuManager the flow opens and closes its steps through, so the flow needs no other service.
+- `Create` takes the @ref VoltMod::MenuManager the flow opens and closes its steps through, so the flow needs no other service.
 - The `OnValidate` result is a translation key. On failure the flow calls `MenuManager::CloseAllWithReply`, which replies through `runtime.Policy.Reply` and closes the menus.
 - A confirm-only flow (skip straight to `WithConfirm`) is the natural shape for "quick" variants of a wizard.
 - Lifetime is automatic: menu rows hold the only owning references, so the flow lives exactly as long as one of its menus is on screen. There is no manager to hold and no cleanup to write.
@@ -105,7 +105,7 @@ Every builder method appends a typed row. Use
 - `AddSelector<T>(title, values, formatter, ...)` is Choice for value types without their own label (seconds → `"5m"`, enum → translation).
 - `AddSlider(title, min, max, step, getValue, setValue, enabled = true)`: A/D adjusts in steps, clamped, and renders a unicode bar.
 - `AddProgressBar(title, getValue, max)` is a read-only bar the cursor skips.
-- `AddInput(title, prompt, get, set, maxLength = 64, enabled = true)`: E pauses the menu and routes the player's next chat line into `set`; return `false` to re-prompt, `true` to accept. R cancels. Backed by @ref VoltMod::Hooks::ChatInput, so your chat hook must call `runtime.ChatInput.TryConsume` first (see @ref sdk_messaging_guide).
+- `AddInput(title, prompt, get, set, maxLength = 64, enabled = true)`: E pauses the menu and routes the player's next chat line into `set`; return `false` to re-prompt, `true` to accept. R cancels. Backed by @ref VoltMod::ChatInput, so your chat hook must call `runtime.ChatInput.TryConsume` first (see @ref sdk_messaging_guide).
 - `AddSubmenu(label, factory, enabled = true)` runs the factory lazily on E and pushes the returned menu onto the stack; R pops back.
 
 ## Pagination
@@ -122,16 +122,17 @@ MenuBuilder("Custom")
 
 ## Lifetime and input
 
-@ref VoltMod::Menu::MenuManager keeps a per-player stack, reads button state every frame (via a self-registered scheduler pump), debounces input (200 ms), and clears a player's stack on disconnect. `runtime.Menus.SetFreezePlayer(true)` freezes players while a menu is open so WASD doesn't also move them. During a chat-input capture only R is honored, so the cursor doesn't drift while the player types.
+@ref VoltMod::MenuManager keeps a per-player stack, reads button state every frame (via a self-registered scheduler pump), debounces input (200 ms), and clears a player's stack on disconnect. `runtime.Menus.SetFreezePlayer(true)` freezes players while a menu is open so WASD doesn't also move them. During a chat-input capture only R is honored, so the cursor doesn't drift while the player types.
 
-The freeze is a global switch, but a single session can opt out: `OpenMenu(slot, menu, {.FreezeMovement = false})`. That suits menus ordinary players reach mid-round, where being held still is worse than the stray movement the freeze prevents. @ref VoltMod::Menu::MenuSessionOptions applies to the call that opens the stack; submenus and Flow steps pushed onto a live session inherit it, so an unfrozen session stays unfrozen for its whole flow.
+The freeze is a global switch, but a single session can opt out: `OpenMenu(slot, menu, {.FreezeMovement = false})`. That suits menus ordinary players reach mid-round, where being held still is worse than the stray movement the freeze prevents. @ref VoltMod::MenuSessionOptions applies to the call that opens the stack; submenus and Flow steps pushed onto a live session inherit it, so an unfrozen session stays unfrozen for its whole flow.
 
 ## Presets
 
 `<VoltMod/Menu/MenuPresets.hpp>` ships content-agnostic building blocks; every human-facing string is a parameter, and each preset takes the one service it needs as its first argument:
 
 ```cpp
-using namespace VoltMod::Menu;
+using VoltMod::BuildDurationPicker;
+using VoltMod::BuildPlayerPicker;
 
 // Paginated list of connected players; the optional predicate grays out rows.
 auto picker = BuildPlayerPicker(runtime.Players, adminSlot, "Select player",

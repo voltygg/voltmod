@@ -2,6 +2,7 @@
 
 // igamesystem.h assumes these are already in the TU: CSplitScreenSlot lives in
 // convar.h; entitysystem.h supplies CUtlString/CEntityHandle/SpawnGroupHandle_t.
+#include <VoltMod/Engine/Precache.hpp>
 #include <entity2/entitysystem.h>
 #include <igamesystem.h>
 #include <igamesystemfactory.h>
@@ -30,10 +31,8 @@ public:
     virtual void unk_10() = 0;
 };
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
-
-class Precache;
 
 /**
  * Engine-side layout mirrors (copied from CS2Fixes src/gamesystem.h). Only
@@ -138,4 +137,4 @@ private:
     Precache& _owner;
 };
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

@@ -1,20 +1,12 @@
 #pragma once
 
+#include <VoltMod/Core/EffectManager.hpp>
 #include <VoltMod/Core/Translations.hpp>
+#include <VoltMod/Runtime.hpp>
 #include <string>
 #include <string_view>
 
 namespace VoltMod
-{
-class Runtime;
-}
-
-namespace VoltMod::Core
-{
-class EffectManager;
-}
-
-namespace VoltMod::Menu
 {
 
 /**
@@ -34,7 +26,7 @@ struct MenuContext
     int Admin = -1;
     int Target = -1;
     /** Required only by the effect rows; usually a member of the plugin's App. */
-    Core::EffectManager* Effects = nullptr;
+    EffectManager* Effects = nullptr;
 
     /** Policy check: the admin holds @p permission and (when a distinct target is set) may
      *  act on them. Both players must still be connected. Empty permission skips that half.
@@ -42,7 +34,7 @@ struct MenuContext
     bool Allowed(const std::string& permission) const;
 
     /** Translate @p key in the admin's language, or return it unchanged when @ref Rt is null. */
-    std::string Tr(std::string_view key, Core::Tokens tokens = {}) const;
+    std::string Tr(std::string_view key, Tokens tokens = {}) const;
 };
 
-}  // namespace VoltMod::Menu
+}  // namespace VoltMod

@@ -16,23 +16,19 @@
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
 
-namespace VoltMod::Messaging
-{
-using namespace VoltMod::Core;
-
-namespace
+namespace VoltMod
 {
 
-constexpr const char* ControllerClass = "vote_controller";
-constexpr const char* VoteControllerSchema = "CVoteController";
+static constexpr const char* ControllerClass = "vote_controller";
+static constexpr const char* VoteControllerSchema = "CVoteController";
 
 // The engine's yes/no issue index; option 0 is Yes, option 1 is No, 3 means "not voted".
-constexpr int YesNoIssueIndex = 2;
-constexpr int OptionYes = 0;
-constexpr int OptionNo = 1;
-constexpr int VoteUncast = 3;
-constexpr int OptionSlots = 5;
-constexpr int AllTeams = -1;
+static constexpr int YesNoIssueIndex = 2;
+static constexpr int OptionYes = 0;
+static constexpr int OptionNo = 1;
+static constexpr int VoteUncast = 3;
+static constexpr int OptionSlots = 5;
+static constexpr int AllTeams = -1;
 
 using ProtoMessage = google::protobuf::Message;
 
@@ -43,12 +39,12 @@ using ProtoMessage = google::protobuf::Message;
  * so the fields are set through protobuf reflection by name instead - no generated type, no
  * build-system change, and a renamed field degrades to a warning rather than miscompiling.
  */
-ProtoMessage* AsProto(CNetMessage* message)
+static ProtoMessage* AsProto(CNetMessage* message)
 {
     return message ? message->ToPB<ProtoMessage>() : nullptr;
 }
 
-const google::protobuf::FieldDescriptor* Field(ProtoMessage* message, const char* name)
+static const google::protobuf::FieldDescriptor* Field(ProtoMessage* message, const char* name)
 {
     const auto* descriptor = message->GetDescriptor();
     const auto* field = descriptor ? descriptor->FindFieldByName(name) : nullptr;
@@ -58,28 +54,26 @@ const google::protobuf::FieldDescriptor* Field(ProtoMessage* message, const char
     return field;
 }
 
-void SetInt(ProtoMessage* message, const char* name, int32_t value)
+static void SetInt(ProtoMessage* message, const char* name, int32_t value)
 {
     if (const auto* field = Field(message, name))
         message->GetReflection()->SetInt32(message, field, value);
 }
 
-void SetBool(ProtoMessage* message, const char* name, bool value)
+static void SetBool(ProtoMessage* message, const char* name, bool value)
 {
     if (const auto* field = Field(message, name))
         message->GetReflection()->SetBool(message, field, value);
 }
 
-void SetString(ProtoMessage* message, const char* name, const std::string& value)
+static void SetString(ProtoMessage* message, const char* name, const std::string& value)
 {
     if (const auto* field = Field(message, name))
         message->GetReflection()->SetString(message, field, value);
 }
 
-}  // namespace
-
-Vote::Vote(Engine::Interfaces& interfaces, Entities::EntitySystem& entities, Entities::SchemaService& schema,
-           Events::GameEvents& events, Core::Scheduler& scheduler)
+Vote::Vote(Interfaces& interfaces, EntitySystem& entities, SchemaService& schema, GameEvents& events,
+           Scheduler& scheduler)
     : _interfaces(interfaces), _entities(entities), _schema(schema), _events(events), _scheduler(scheduler)
 {}
 
@@ -97,12 +91,12 @@ bool Vote::AcquireController()
     return true;
 }
 
-Engine::MultiRecipientFilter Vote::Recipients() const
+MultiRecipientFilter Vote::Recipients() const
 {
-    Engine::MultiRecipientFilter filter;
-    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+    MultiRecipientFilter filter;
+    for (int slot = 0; slot < MaxPlayers; ++slot)
     {
-        if (const_cast<Entities::EntitySystem&>(_entities).GetPlayerController(slot))
+        if (const_cast<EntitySystem&>(_entities).GetPlayerController(slot))
             filter.AddRecipient(slot);
     }
     return filter;
@@ -112,14 +106,14 @@ int Vote::OptionCount(int option) const
 {
     if (!_controller || _offsetOptionCount < 0 || option < 0 || option >= OptionSlots)
         return 0;
-    return Engine::ReadAt<int>(_controller, _offsetOptionCount + option * static_cast<int>(sizeof(int)));
+    return ReadAt<int>(_controller, _offsetOptionCount + option * static_cast<int>(sizeof(int)));
 }
 
 void Vote::SetOptionCount(int option, int value)
 {
     if (!_controller || _offsetOptionCount < 0 || option < 0 || option >= OptionSlots)
         return;
-    Engine::WriteAt<int>(_controller, _offsetOptionCount + option * static_cast<int>(sizeof(int)), value);
+    WriteAt<int>(_controller, _offsetOptionCount + option * static_cast<int>(sizeof(int)), value);
 }
 
 void Vote::ResetBallots()
@@ -129,8 +123,8 @@ void Vote::ResetBallots()
 
     if (_offsetVotesCast < 0)
         return;
-    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
-        Engine::WriteAt<int>(_controller, _offsetVotesCast + slot * static_cast<int>(sizeof(int)), VoteUncast);
+    for (int slot = 0; slot < MaxPlayers; ++slot)
+        WriteAt<int>(_controller, _offsetVotesCast + slot * static_cast<int>(sizeof(int)), VoteUncast);
 }
 
 bool Vote::StartVote(const std::string& title, const std::string& detail, float durationSec, int callerSlot,
@@ -159,7 +153,7 @@ bool Vote::StartVote(const std::string& title, const std::string& detail, float 
     auto& schema = _schema;  // local alias keeps the offset block below narrow
 
     _eligible = 0;
-    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+    for (int slot = 0; slot < MaxPlayers; ++slot)
     {
         if (_entities.GetPlayerController(slot))
             ++_eligible;
@@ -170,14 +164,14 @@ bool Vote::StartVote(const std::string& title, const std::string& detail, float 
     ResetBallots();
 
     if (int offset = schema.GetOffsetOf<int>(VoteControllerSchema, "m_nPotentialVotes"); offset >= 0)
-        Engine::WriteAt<int>(_controller, offset, _eligible);
+        WriteAt<int>(_controller, offset, _eligible);
     if (int offset = schema.GetOffsetOf<bool>(VoteControllerSchema, "m_bIsYesNoVote"); offset >= 0)
-        Engine::WriteAt<bool>(_controller, offset, true);
+        WriteAt<bool>(_controller, offset, true);
     if (int offset = schema.GetOffsetOf<int>(VoteControllerSchema, "m_iActiveIssueIndex"); offset >= 0)
-        Engine::WriteAt<int>(_controller, offset, YesNoIssueIndex);
+        WriteAt<int>(_controller, offset, YesNoIssueIndex);
     // Who may vote is decided by the recipients of the VoteStart message, not by this field.
     if (int offset = schema.GetOffsetOf<int>(VoteControllerSchema, "m_iOnlyTeamToVote"); offset >= 0)
-        Engine::WriteAt<int>(_controller, offset, AllTeams);
+        WriteAt<int>(_controller, offset, AllTeams);
 
     _inProgress = true;
     _title = title;
@@ -241,7 +235,7 @@ void Vote::FinishVote(VoteEndReason reason)
     if (_controller)
     {
         if (int offset = _schema.GetOffsetOf<int>(VoteControllerSchema, "m_iActiveIssueIndex"); offset >= 0)
-            Engine::WriteAt<int>(_controller, offset, -1);
+            WriteAt<int>(_controller, offset, -1);
     }
     _controller = nullptr;
     _offsetOptionCount = -1;
@@ -271,8 +265,8 @@ void Vote::PublishCounts()
 
 void Vote::SendVoteStart()
 {
-    Engine::MultiRecipientFilter filter = Recipients();
-    Engine::PostUserMessage(_interfaces, _voteStartInternal, "VoteStart", filter, [this](CNetMessage* raw) {
+    MultiRecipientFilter filter = Recipients();
+    PostUserMessage(_interfaces, _voteStartInternal, "VoteStart", filter, [this](CNetMessage* raw) {
         auto* start = AsProto(raw);
         if (!start)
             return false;
@@ -290,26 +284,25 @@ void Vote::SendVoteOutcome(bool passed)
 {
     // Pass and fail are distinct message types, so each gets its own cache slot.
     auto& cached = passed ? _votePassInternal : _voteFailedInternal;
-    Engine::MultiRecipientFilter filter = Recipients();
+    MultiRecipientFilter filter = Recipients();
 
-    Engine::PostUserMessage(_interfaces, cached, passed ? "VotePass" : "VoteFailed", filter,
-                            [this, passed](CNetMessage* raw) {
-                                auto* outcome = AsProto(raw);
-                                if (!outcome)
-                                    return false;
-                                SetInt(outcome, "team", AllTeams);
-                                if (passed)
-                                {
-                                    SetInt(outcome, "vote_type", -1);
-                                    SetString(outcome, "disp_str", _title);
-                                    SetString(outcome, "details_str", _detail);
-                                }
-                                else
-                                {
-                                    SetInt(outcome, "reason", 0);
-                                }
-                                return true;
-                            });
+    PostUserMessage(_interfaces, cached, passed ? "VotePass" : "VoteFailed", filter, [this, passed](CNetMessage* raw) {
+        auto* outcome = AsProto(raw);
+        if (!outcome)
+            return false;
+        SetInt(outcome, "team", AllTeams);
+        if (passed)
+        {
+            SetInt(outcome, "vote_type", -1);
+            SetString(outcome, "disp_str", _title);
+            SetString(outcome, "details_str", _detail);
+        }
+        else
+        {
+            SetInt(outcome, "reason", 0);
+        }
+        return true;
+    });
 }
 
-}  // namespace VoltMod::Messaging
+}  // namespace VoltMod

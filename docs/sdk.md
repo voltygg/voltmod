@@ -4,9 +4,10 @@
 
 ## Overview
 
-`VoltMod::Engine`, `VoltMod::Entities`, `VoltMod::Events`, `VoltMod::Messaging` and
-`VoltMod::Hooks` are the engine wrapper layer: typed classes over HL2SDK interfaces
-so plugin code does not have to juggle raw pointers and reversed offsets.
+`VoltMod/Engine/`, `VoltMod/Entities/`, `VoltMod/Events/`, `VoltMod/Messaging/` and
+`VoltMod/Hooks/` are the engine wrapper layer: typed classes over HL2SDK interfaces
+so plugin code does not have to juggle raw pointers and reversed offsets. Their
+names, like every other public name, live directly in `VoltMod`.
 
 The guide is split by topic:
 

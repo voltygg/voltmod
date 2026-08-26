@@ -1,10 +1,9 @@
 #pragma once
 
+#include <VoltMod/Engine/EngineTypes.hpp>
 #include <string>
 
-class IGameEvent;
-
-namespace VoltMod::Events
+namespace VoltMod
 {
 
 /**
@@ -15,7 +14,7 @@ namespace VoltMod::Events
  * @ref GameEvents::Listen<T>:
  *
  * @code
- * runtime.Events.Listen<Events::PlayerDeath>([](const auto& e) {
+ * runtime.Events.Listen<PlayerDeath>([](const auto& e) {
  *     if (e.VictimSlot >= 0) ...;
  * });
  * @endcode
@@ -135,4 +134,4 @@ struct RoundPrestart
     static RoundPrestart From(IGameEvent& e);
 };
 
-}  // namespace VoltMod::Events
+}  // namespace VoltMod

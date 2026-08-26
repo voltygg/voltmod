@@ -1,16 +1,12 @@
 #pragma once
 
+#include <VoltMod/Core/EffectManager.hpp>
 #include <VoltMod/Players/ActionDispatcher.hpp>
 #include <functional>
 #include <string>
 #include <vector>
 
-namespace VoltMod::Core
-{
-class EffectManager;  // Core/EffectManager.hpp; by reference only, so a declaration is enough
-}
-
-namespace VoltMod::Players
+namespace VoltMod
 {
 
 /** Lifetime policy, declared as data on the descriptor (not baked into the body). */
@@ -40,7 +36,7 @@ struct EffectChoice
 };
 
 /**
- * @brief A toggle / one-shot / timed player effect expressed as data, mirroring @ref Players::Action.
+ * @brief A toggle / one-shot / timed player effect expressed as data, mirroring @ref Action.
  *
  * `Setup` receives the resolved, permission/immunity-checked context, applies the effect, and
  * returns its @ref EffectInstance. Lifetime is declarative: `Scope`, `TickIntervalMs`, and
@@ -51,7 +47,7 @@ struct EffectChoice
 struct EffectDescriptor
 {
     std::string Permission; /**< Consumer-defined permission token; "" skips the check. */
-    int Id;                 /**< Plugin-defined key into the per-slot Core::EffectManager map. */
+    int Id;                 /**< Plugin-defined key into the per-slot EffectManager map. */
     std::string NameKey;    /**< Translation key for the menu row label. */
     std::string OnKey;      /**< Broadcast key when applied ("" = silent). */
     std::string OffKey;     /**< Broadcast key when cleared ("" = silent). */
@@ -59,7 +55,7 @@ struct EffectDescriptor
     int TickIntervalMs = 0;
     int DurationMs = 0;
     bool RequireAlive = false;
-    std::function<EffectInstance(const Players::ActionContext&)> Setup;
+    std::function<EffectInstance(const ActionContext&)> Setup;
 };
 
 /** Like @ref EffectDescriptor but `Setup` receives a menu-supplied int (e.g. a model index). */
@@ -76,7 +72,7 @@ struct ParamEffectDescriptor
     int DurationMs = 0;
     bool RequireAlive = false;
     std::function<std::vector<EffectChoice>()> Choices;
-    std::function<EffectInstance(const Players::ActionContext&, int param)> Setup;
+    std::function<EffectInstance(const ActionContext&, int param)> Setup;
 };
 
-}  // namespace VoltMod::Players
+}  // namespace VoltMod

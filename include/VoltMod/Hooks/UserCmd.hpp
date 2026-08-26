@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace VoltMod::Hooks
+namespace VoltMod
 {
 
 /** One CSubtickMoveStep from the usercmd: a sub-tick input change with its intra-tick time. */
@@ -92,4 +92,4 @@ struct UserCmdView
     }
 };
 
-}  // namespace VoltMod::Hooks
+}  // namespace VoltMod

@@ -3,29 +3,15 @@
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Engine/Clock.hpp>
+#include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Entities/Entity.hpp>
+#include <VoltMod/Events/GameEvents.hpp>
 #include <array>
 #include <cstdint>
 
-class QAngle;
-class Vector;
-
-namespace VoltMod::Engine
-{
-class GameData;
-class Clock;
-}  // namespace VoltMod::Engine
-
-namespace VoltMod::Entities
-{
-class EntitySystem;
-}  // namespace VoltMod::Entities
-
-namespace VoltMod::Events
-{
-class GameEvents;
-}  // namespace VoltMod::Events
-
-namespace VoltMod::Hooks
+namespace VoltMod
 {
 
 /**
@@ -50,8 +36,7 @@ public:
      *  @p events the PlayerSpawn re-bind, @p clock the stamps. @p slots tells this tracker when a
      *  slot changes hands, without it needing the roster. All five must outlive it; the Runtime
      *  declares them above. */
-    Teleport(Entities::EntitySystem& entities, Engine::GameData& gameData, Events::GameEvents& events,
-             Engine::Clock& clock, Core::SlotEvents& slots)
+    Teleport(EntitySystem& entities, GameData& gameData, GameEvents& events, Clock& clock, SlotEvents& slots)
         : _entities(entities), _gameData(gameData), _events(events), _clock(clock), _slots(slots)
     {}
     ~Teleport();
@@ -81,17 +66,17 @@ private:
     void Stamp(int slot);
     int SlotFromPawn(const void* pawn) const;
 
-    Entities::EntitySystem& _entities;
-    Engine::GameData& _gameData;
-    Events::GameEvents& _events;
-    Engine::Clock& _clock;
-    Core::SlotEvents& _slots;
-    std::array<void*, Core::MaxPlayers> _pawns{};  // the instance each slot's hook is bound to
-    std::array<int, Core::MaxPlayers> _hookIds{};  // SourceHook ids, 0 when unbound
-    std::array<float, Core::MaxPlayers> _lastTeleport{};
-    Core::Subscription _spawnListener;
-    Core::Subscription _slotListener;
+    EntitySystem& _entities;
+    GameData& _gameData;
+    GameEvents& _events;
+    Clock& _clock;
+    SlotEvents& _slots;
+    std::array<void*, MaxPlayers> _pawns{};  // the instance each slot's hook is bound to
+    std::array<int, MaxPlayers> _hookIds{};  // SourceHook ids, 0 when unbound
+    std::array<float, MaxPlayers> _lastTeleport{};
+    Subscription _spawnListener;
+    Subscription _slotListener;
     bool _enabled = false;
 };
 
-}  // namespace VoltMod::Hooks
+}  // namespace VoltMod

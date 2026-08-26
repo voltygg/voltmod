@@ -1,7 +1,7 @@
 #include <VoltMod/Core/Strings.hpp>
 #include <doctest/doctest.h>
 
-using VoltMod::Core::ParseDuration;
+using VoltMod::ParseDuration;
 
 TEST_CASE("ParseDuration: bare seconds")
 {

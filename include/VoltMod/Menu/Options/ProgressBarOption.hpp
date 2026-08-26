@@ -8,7 +8,7 @@
 #include <string>
 #include <utility>
 
-namespace VoltMod::Menu
+namespace VoltMod
 {
 
 /** Read-only progress bar. Non-selectable. */
@@ -25,7 +25,7 @@ public:
         int val = _get ? _get(slot) : 0;
         constexpr int Cells = 10;
         int filled = (_max <= 0) ? 0 : std::clamp((val * Cells) / _max, 0, Cells);
-        return std::format("{}: [{}] {}/{}", _title, Detail::RenderBar(filled, Cells), val, _max);
+        return std::format("{}: [{}] {}/{}", _title, RenderBar(filled, Cells), val, _max);
     }
 
     bool IsSelectable() const override { return false; }
@@ -36,4 +36,4 @@ private:
     int _max;
 };
 
-}  // namespace VoltMod::Menu
+}  // namespace VoltMod

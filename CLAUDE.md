@@ -113,9 +113,9 @@ Use these patterns throughout the framework:
 - Constructor injection is the default. Do not add process-lifetime singletons.
 - Database and HTTP workers replay completions on the game thread through
   scheduler frame pumps.
-- `<VoltMod/Api.hpp>` exports common short names into `VoltMod`. Database names
-  remain in `<VoltMod/Database/Api.hpp>` so ordinary translation units do not
-  include libpqxx.
+- `<VoltMod/Api.hpp>` gathers the public headers; every name it reaches is already
+  spelled `VoltMod::Thing`. Database names stay in `<VoltMod/Database/Api.hpp>` so
+  ordinary translation units do not include libpqxx.
 
 ## Module rules
 
@@ -146,9 +146,24 @@ layering.
 - Use C++23 and `.hpp` headers.
 - Use `PascalCase` for types and methods and `_camelCase` for members.
 - Use `std::format`, designated initializers, and `std::function` callbacks.
-- Do not put namespace-scope using-directives in headers.
+- Every public name lives in one namespace, `VoltMod`. Modules are directories and
+  layers, not namespaces. The only nested namespaces are small groups of free
+  functions with a common noun (`VoltMod::Log`, `VoltMod::ChatColors`,
+  `VoltMod::Validation`, `VoltMod::PawnOps`, `VoltMod::EffectOps`) and
+  `VoltMod::Internal`, which may only appear under `src/`.
+- Do not forward-declare a framework type. Include the header that defines it.
+  `include/VoltMod/Engine/EngineTypes.hpp` is the one place a forward declaration
+  belongs, and it says why for each name; a new one needs the same justification -
+  an SDK type, a type defined under `src/`, or a pair that owns one another.
+- Do not use anonymous namespaces. A file-local helper is a `static` function or
+  constant at the top of the .cpp, or a private static member when it needs class
+  state.
+- Do not use using-directives. A .cpp may name what it uses with targeted
+  using-declarations (`using VoltMod::Player;`); a header may not.
 - Keep templates buildable and documentation examples aligned with the public
   headers.
+
+`uv run poe modgraph` enforces the last four alongside the layering.
 
 ## Commenting and documentation
 

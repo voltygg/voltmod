@@ -3,7 +3,7 @@
 #include <doctest/doctest.h>
 #include <string>
 
-using VoltMod::Core::Time;
+using VoltMod::Time;
 
 TEST_CASE("Time::ParseDuration suffixes")
 {
@@ -58,8 +58,7 @@ TEST_CASE("Time::FormatDuration prefers largest exact unit")
 
 TEST_CASE("Time::FormatDurationLabel largest exact unit, localized")
 {
-    VoltMod::Core::DurationUnitLabels units{
-        .Permanent = "perm", .Days = "d", .Hours = "h", .Minutes = "min", .Seconds = "s"};
+    VoltMod::DurationUnitLabels units{.Permanent = "perm", .Days = "d", .Hours = "h", .Minutes = "min", .Seconds = "s"};
     CHECK_EQ(Time::FormatDurationLabel(0, units), std::string("perm"));
     CHECK_EQ(Time::FormatDurationLabel(-1, units), std::string("perm"));
     CHECK_EQ(Time::FormatDurationLabel(86400 * 3, units), std::string("3 d"));

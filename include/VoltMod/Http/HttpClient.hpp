@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace VoltMod::Http
+namespace VoltMod
 {
 
 /**
@@ -23,7 +23,7 @@ class HttpClient
 {
 public:
     /** @p scheduler must outlive the client; the pump unregisters in the destructor. */
-    explicit HttpClient(Core::Scheduler& scheduler);
+    explicit HttpClient(Scheduler& scheduler);
     /** Runs @ref Stop, so a client that is merely destroyed still joins its workers. */
     ~HttpClient();
     HttpClient(const HttpClient&) = delete;
@@ -52,7 +52,7 @@ private:
     struct Impl;
     std::unique_ptr<Impl> _impl;
     /** Declared after _impl so the pump stops before the queue its callback drains goes away. */
-    Core::Subscription _pump;
+    Subscription _pump;
 };
 
-}  // namespace VoltMod::Http
+}  // namespace VoltMod

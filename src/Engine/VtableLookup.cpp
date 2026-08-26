@@ -15,12 +15,7 @@
 #include <unistd.h>
 #endif
 
-namespace VoltMod::Engine
-{
-
-using namespace VoltMod::Core;
-
-namespace
+namespace VoltMod
 {
 
 #ifdef _WIN32
@@ -30,7 +25,7 @@ namespace
  * (RVAs, pointers) is naturally aligned, so a stride matching its width both speeds the scan up and
  * rules out matches straddling two unrelated values.
  */
-const uint8_t* FindValue(const uint8_t* begin, const uint8_t* end, const void* needle, size_t len, size_t stride)
+static const uint8_t* FindValue(const uint8_t* begin, const uint8_t* end, const void* needle, size_t len, size_t stride)
 {
     if (!begin || !end || len == 0 || static_cast<size_t>(end - begin) < len)
         return nullptr;
@@ -49,7 +44,7 @@ struct Section
     const uint8_t* End = nullptr;
 };
 
-Section FindSection(const ModuleImage& image, const char* name)
+static Section FindSection(const ModuleImage& image, const char* name)
 {
     const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(image.Base);
     if (image.Size < sizeof(IMAGE_DOS_HEADER) || dos->e_magic != IMAGE_DOS_SIGNATURE)
@@ -80,14 +75,14 @@ Section FindSection(const ModuleImage& image, const char* name)
 }
 
 template <typename T>
-T ReadAt(const uint8_t* address)
+static T ReadAt(const uint8_t* address)
 {
     T value{};
     std::memcpy(&value, address, sizeof(T));
     return value;
 }
 
-void* FindVirtualTableWin(const ModuleImage& image, const char* className)
+static void* FindVirtualTableWin(const ModuleImage& image, const char* className)
 {
     const Section data = FindSection(image, ".data");
     const Section rdata = FindSection(image, ".rdata");
@@ -180,7 +175,7 @@ private:
 };
 
 /** Link-time address of `symbol` in one of the file's symbol tables, or 0 when absent. */
-uint64_t FindSymbolValue(const MappedFile& elf, const std::string& symbol)
+static uint64_t FindSymbolValue(const MappedFile& elf, const std::string& symbol)
 {
     const auto* header = elf.At<Elf64_Ehdr>(0);
     if (!header || std::memcmp(header->e_ident, ELFMAG, SELFMAG) != 0 || header->e_ident[EI_CLASS] != ELFCLASS64)
@@ -219,7 +214,7 @@ uint64_t FindSymbolValue(const MappedFile& elf, const std::string& symbol)
     return 0;
 }
 
-void* FindVirtualTableElf(const ModuleImage& image, const char* className)
+static void* FindVirtualTableElf(const ModuleImage& image, const char* className)
 {
     if (image.Path.empty())
         return nullptr;
@@ -240,8 +235,6 @@ void* FindVirtualTableElf(const ModuleImage& image, const char* className)
 }
 
 #endif
-
-}  // namespace
 
 void* FindVirtualTable(const char* moduleName, const char* className)
 {
@@ -266,4 +259,4 @@ void* FindVirtualTable(const char* moduleName, const char* className)
     return vtable;
 }
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

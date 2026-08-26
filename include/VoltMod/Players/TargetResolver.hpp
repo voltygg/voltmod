@@ -2,17 +2,13 @@
 
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Players/Targeting.hpp>
+#include <VoltMod/Runtime.hpp>
 #include <expected>
 #include <functional>
 #include <string_view>
 #include <vector>
 
 namespace VoltMod
-{
-class Runtime;
-}
-
-namespace VoltMod::Players
 {
 
 /** Targetability policy (immunity, same-team rules, ...). Empty means "use `runtime.Policy.CanTarget`". */
@@ -35,4 +31,4 @@ std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(Runtime& runti
                                                                   Player* caller, const TargetRules& rules = {},
                                                                   const CanTargetFn& canTarget = {});
 
-}  // namespace VoltMod::Players
+}  // namespace VoltMod

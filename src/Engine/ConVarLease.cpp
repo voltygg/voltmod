@@ -3,7 +3,7 @@
 #include <format>
 #include <string>
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
 
 bool ConVarLease::Override(std::string_view name, std::string_view value)
@@ -49,4 +49,4 @@ void ConVarLease::Write(std::string_view name, std::string_view value)
     _conVars.ExecuteServerCommand(std::format("{} {}", name, value));
 }
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

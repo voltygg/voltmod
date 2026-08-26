@@ -7,7 +7,7 @@
 #include <VoltMod/App/MetamodPlugin.hpp>
 #include <VoltMod/BuildInfo.hpp>
 
-namespace VoltMod::App
+namespace VoltMod
 {
 
 /** @brief Your designated-init PluginInfo with Version/Date/Commit filled in from the
@@ -20,9 +20,4 @@ inline PluginInfo WithBuildInfo(PluginInfo info)
     return info;
 }
 
-}  // namespace VoltMod::App
-
-namespace VoltMod
-{
-using App::WithBuildInfo;
 }  // namespace VoltMod

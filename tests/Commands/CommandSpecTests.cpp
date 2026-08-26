@@ -1,7 +1,16 @@
 #include <VoltMod/Commands/CommandSpec.hpp>
 #include <doctest/doctest.h>
 
-using namespace VoltMod::Commands;
+using VoltMod::CommandSpec;
+using VoltMod::Duration;
+using VoltMod::Int;
+using VoltMod::ReachableFrom;
+using VoltMod::ReasonTail;
+using VoltMod::SteamId64;
+using VoltMod::Surface;
+using VoltMod::Target;
+using VoltMod::TargetOrSteamId;
+using VoltMod::Word;
 
 TEST_CASE("A spec is reachable only from the surfaces it declares")
 {

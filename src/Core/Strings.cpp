@@ -5,7 +5,7 @@
 #include <limits>
 #include <sstream>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 int ParseDuration(std::string_view text)
@@ -196,4 +196,4 @@ std::string Strings::DisplayNameOr(int64_t id, const std::string& name, std::siz
     return name.empty() ? std::to_string(id) : TruncateUtf8(name, maxBytes);
 }
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

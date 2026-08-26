@@ -6,7 +6,7 @@
 #include <array>
 #include <cstdint>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 /**
@@ -18,7 +18,7 @@ namespace VoltMod::Core
  * manager containers and bind later - typically `_state.BindReset(runtime.Slots)`
  * from the owner's constructor or Initialize.
  *
- * Takes @ref Core::SlotEvents rather than the runtime so a plugin translation unit
+ * Takes @ref SlotEvents rather than the runtime so a plugin translation unit
  * that includes only this header still compiles.
  */
 template <class T>
@@ -33,7 +33,7 @@ public:
 
     /** Auto-reset a slot's entry on player connect/disconnect. Idempotent; @p slots must
      *  outlive this object. */
-    void BindReset(Core::SlotEvents& slots)
+    void BindReset(SlotEvents& slots)
     {
         if (!_listener)
             _listener = slots.Listen([this](int slot) { Reset(slot); });
@@ -44,15 +44,15 @@ public:
 
     void Reset(int slot)
     {
-        if (Core::IsValidSlot(slot))
+        if (IsValidSlot(slot))
             _items[slot] = T{};
     }
 
     void ResetAll() { _items.fill(T{}); }
 
 private:
-    std::array<T, Core::MaxPlayers> _items{};
-    Core::Subscription _listener;
+    std::array<T, MaxPlayers> _items{};
+    Subscription _listener;
 };
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

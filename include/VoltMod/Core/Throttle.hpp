@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <utility>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 /**
@@ -79,4 +79,4 @@ private:
 template <class TFirst, class TSecond>
 using PairThrottle = Throttle<std::pair<TFirst, TSecond>, std::map<std::pair<TFirst, TSecond>, int64_t>>;
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

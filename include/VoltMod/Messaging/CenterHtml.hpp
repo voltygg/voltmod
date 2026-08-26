@@ -1,21 +1,16 @@
 #pragma once
 
+#include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Messaging/Messages.hpp>
 #include <array>
 #include <cstdint>
 #include <functional>
 #include <string>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
-class Scheduler;
-}
-
-namespace VoltMod::Messaging
-{
-
-class Messages;
 
 /**
  * @brief Re-sends a center-HTML panel on a fixed interval until stopped. CS2 drops center-HTML
@@ -28,7 +23,7 @@ class CenterHtml
 public:
     /** @p messages sends and clears the panel, @p scheduler drives the refresh. Both must outlive
      *  this object; pass `runtime.Messages` and `runtime.Scheduler`. */
-    CenterHtml(Messages& messages, Core::Scheduler& scheduler) : _messages(messages), _scheduler(scheduler) {}
+    CenterHtml(Messages& messages, Scheduler& scheduler) : _messages(messages), _scheduler(scheduler) {}
 
     /** Start (or restart) re-sending `render(slot)`'s HTML to @p slot every @p refreshMs. */
     void Show(int slot, int refreshMs, std::function<std::string(int slot)> render);
@@ -40,8 +35,8 @@ public:
 
 private:
     Messages& _messages;
-    Core::Scheduler& _scheduler;
-    std::array<Core::Subscription, Core::MaxPlayers> _timers;
+    Scheduler& _scheduler;
+    std::array<Subscription, MaxPlayers> _timers;
 };
 
-}  // namespace VoltMod::Messaging
+}  // namespace VoltMod

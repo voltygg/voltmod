@@ -3,7 +3,7 @@
 #include <VoltMod/Menu/Options/InputOption.hpp>
 #include <VoltMod/Menu/Options/SubmenuOption.hpp>
 
-namespace VoltMod::Menu
+namespace VoltMod
 {
 
 void SubmenuOption::OnActivate(int slot, MenuManager& menus)
@@ -33,4 +33,4 @@ void InputOption::OnActivate(int slot, MenuManager& menus)
     });
 }
 
-}  // namespace VoltMod::Menu
+}  // namespace VoltMod

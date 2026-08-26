@@ -3,12 +3,12 @@
 #include <algorithm>
 #include <utility>
 
-namespace VoltMod::Hooks
+namespace VoltMod
 {
 
 void ClientCvarPendingTable::Prune(int slot, double now)
 {
-    if (!Core::IsValidSlot(slot))
+    if (!IsValidSlot(slot))
         return;
 
     auto& queries = _slots[slot];
@@ -17,7 +17,7 @@ void ClientCvarPendingTable::Prune(int slot, double now)
 
 bool ClientCvarPendingTable::Retarget(int slot, std::string_view name, ClientCvars::QueryCallback& callback)
 {
-    if (!Core::IsValidSlot(slot))
+    if (!IsValidSlot(slot))
         return false;
 
     for (PendingCvarQuery& query : _slots[slot])
@@ -38,7 +38,7 @@ bool ClientCvarPendingTable::Full(int slot) const
 
 int ClientCvarPendingTable::NextCookie(int slot)
 {
-    if (!Core::IsValidSlot(slot))
+    if (!IsValidSlot(slot))
         return -1;
 
     const auto& queries = _slots[slot];
@@ -59,7 +59,7 @@ int ClientCvarPendingTable::NextCookie(int slot)
 void ClientCvarPendingTable::Add(int slot, int cookie, std::string name, ClientCvars::QueryCallback callback,
                                  double now)
 {
-    if (!Core::IsValidSlot(slot) || cookie < 0)
+    if (!IsValidSlot(slot) || cookie < 0)
         return;
 
     auto& queries = _slots[slot];
@@ -76,7 +76,7 @@ void ClientCvarPendingTable::Add(int slot, int cookie, std::string name, ClientC
 
 std::optional<PendingCvarQuery> ClientCvarPendingTable::Take(int slot, int cookie, std::string_view name)
 {
-    if (!Core::IsValidSlot(slot))
+    if (!IsValidSlot(slot))
         return std::nullopt;
 
     auto& queries = _slots[slot];
@@ -92,7 +92,7 @@ std::optional<PendingCvarQuery> ClientCvarPendingTable::Take(int slot, int cooki
 
 void ClientCvarPendingTable::Clear(int slot)
 {
-    if (Core::IsValidSlot(slot))
+    if (IsValidSlot(slot))
         _slots[slot].clear();
 }
 
@@ -104,7 +104,7 @@ void ClientCvarPendingTable::ClearAll()
 
 size_t ClientCvarPendingTable::Count(int slot) const
 {
-    return Core::IsValidSlot(slot) ? _slots[slot].size() : 0;
+    return IsValidSlot(slot) ? _slots[slot].size() : 0;
 }
 
-}  // namespace VoltMod::Hooks
+}  // namespace VoltMod

@@ -4,21 +4,15 @@
 #include <algorithm>
 #include <charconv>
 
-namespace VoltMod::Players
+namespace VoltMod
 {
 
-using Core::SteamId;
-using Core::Strings;
+// Engine team indices (mirrors TeamT/TeamCT/TeamSpectator without the SDK include).
+static constexpr int TeamSpectator = 1;
+static constexpr int TeamT = 2;
+static constexpr int TeamCT = 3;
 
-namespace
-{
-
-// Engine team indices (mirrors Entities::TeamT/TeamCT/TeamSpectator without the SDK include).
-constexpr int TeamSpectator = 1;
-constexpr int TeamT = 2;
-constexpr int TeamCT = 3;
-
-std::optional<int64_t> ParseInt64(std::string_view text)
+static std::optional<int64_t> ParseInt64(std::string_view text)
 {
     int64_t value{};
     auto [ptr, ec] = std::from_chars(text.data(), text.data() + text.size(), value);
@@ -26,8 +20,6 @@ std::optional<int64_t> ParseInt64(std::string_view text)
         return std::nullopt;
     return value;
 }
-
-}  // namespace
 
 TargetQuery ParseTargetToken(std::string_view token)
 {
@@ -198,4 +190,4 @@ std::expected<std::vector<int>, TargetFailure> FilterRoster(std::span<const Play
     return slots;
 }
 
-}  // namespace VoltMod::Players
+}  // namespace VoltMod

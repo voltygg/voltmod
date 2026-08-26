@@ -1,6 +1,6 @@
 #include <VoltMod/Commands/CommandSpec.hpp>
 
-namespace VoltMod::Commands
+namespace VoltMod
 {
 
 ArgSpec Target()
@@ -38,12 +38,9 @@ ArgSpec ReasonTail(std::string fallbackKey)
     return {.Kind = ArgKind::ReasonTail, .Required = false, .FallbackKey = std::move(fallbackKey)};
 }
 
-namespace
-{
-
 /** The placeholder shown for each kind. Names, not types: `<target>` reads better than
  *  `<player>` and `<reason>` better than `<text>`. */
-std::string_view Placeholder(ArgKind kind)
+static std::string_view Placeholder(ArgKind kind)
 {
     switch (kind)
     {
@@ -64,8 +61,6 @@ std::string_view Placeholder(ArgKind kind)
         return "value";
     }
 }
-
-}  // namespace
 
 std::string DeriveUsage(const CommandSpec& spec, std::string_view prefix)
 {
@@ -94,4 +89,4 @@ bool TooManyArguments(const CommandSpec& spec, size_t argCount)
     return argCount > spec.Args.size();
 }
 
-}  // namespace VoltMod::Commands
+}  // namespace VoltMod

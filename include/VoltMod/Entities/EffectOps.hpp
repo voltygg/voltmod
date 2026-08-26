@@ -1,13 +1,7 @@
 #pragma once
 
-class CEntityInstance;
-class Vector;
-class Color;
-
-namespace VoltMod::Entities
-{
-class EntityOps;
-}
+#include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Entities/EntityOps.hpp>
 
 /**
  * @file EffectOps.hpp
@@ -19,7 +13,7 @@ class EntityOps;
  * Every function takes the service it spawns through as its first parameter; pass
  * `runtime.EntityOps`.
  */
-namespace VoltMod::Entities::EffectOps
+namespace VoltMod::EffectOps
 {
 
 /**
@@ -47,4 +41,4 @@ CEntityInstance* SpawnBeam(EntityOps& ops, const Vector& from, const Vector& to,
 CEntityInstance* SpawnProp(EntityOps& ops, const char* modelPath, const Vector& origin, bool physics,
                            float lifetimeSeconds = 0.0f);
 
-}  // namespace VoltMod::Entities::EffectOps
+}  // namespace VoltMod::EffectOps

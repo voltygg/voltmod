@@ -1,7 +1,7 @@
 #include <VoltMod/Core/SlidingWindowScore.hpp>
 #include <doctest/doctest.h>
 
-using VoltMod::Core::SlidingWindowScore;
+using VoltMod::SlidingWindowScore;
 
 TEST_CASE("SlidingWindowScore counts unweighted events inside the window")
 {

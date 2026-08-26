@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <sstream>
 
-namespace VoltMod::Menu
+namespace VoltMod
 {
 
 namespace Theme
@@ -22,7 +22,7 @@ constexpr const char* NavBack = "#AA8833";
 
 // Localized footer label; Get() returns the key unchanged when missing, so fall back to the
 // English literal - lets consumers that don't ship nav.* keys still render cleanly.
-static std::string FooterLabel(Core::Translations& translations, const char* key, const char* fallback, int slot)
+static std::string FooterLabel(Translations& translations, const char* key, const char* fallback, int slot)
 {
     auto value = translations.Get(key, slot);
     return value == key ? std::string(fallback) : value;
@@ -51,8 +51,7 @@ static std::string FooterChunk(const char* keyColor, const char* keyText, const 
     return html.str();
 }
 
-std::string DefaultFooter(bool isSubmenu, bool isPaginated, bool usesHorizontal, int slot,
-                          Core::Translations& translations)
+std::string DefaultFooter(bool isSubmenu, bool isPaginated, bool usesHorizontal, int slot, Translations& translations)
 {
     auto label = [&](const char* key, const char* fallback) { return FooterLabel(translations, key, fallback, slot); };
 
@@ -128,7 +127,7 @@ static std::string RenderItems(const MenuView* menu, int slot, int selectedIndex
 }
 
 std::string RenderMenuHtml(const MenuView* menu, int slot, int selectedIndex, bool isSubmenu,
-                           Core::Translations& translations)
+                           Translations& translations)
 {
     if (!menu)
     {
@@ -181,4 +180,4 @@ std::string RenderCaptureOverlay(const std::string& menuTitle, std::string_view 
     return html.str();
 }
 
-}  // namespace VoltMod::Menu
+}  // namespace VoltMod

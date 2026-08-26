@@ -45,7 +45,7 @@ because the recursive glob picks it up.
 #include <doctest/doctest.h>
 #include <string>
 
-using VoltMod::Core::ParseDuration;
+using VoltMod::ParseDuration;
 
 TEST_CASE("ParseDuration: suffixes")
 {

@@ -10,11 +10,8 @@
 #include <cs_usercmd.pb.h>
 #include <cstring>
 
-PLUGIN_GLOBALVARS();
-
-namespace VoltMod::Hooks
+namespace VoltMod
 {
-using namespace VoltMod::Core;
 
 // void* return/param stand in for the real CPlayer_MovementServices::RunCommand(CUserCmd*)
 // signature - a pre/post observer never touches either. The vtable index is reconfigured
@@ -22,18 +19,13 @@ using namespace VoltMod::Core;
 // player without needing a live instance to bind to.
 SH_DECL_MANUALHOOK1(VoltMod_MovementRunCommand, 0, 0, 0, void*, void*);
 
-namespace
-{
-
 // The server module owning the concrete movement-services class every player pawn instantiates.
-constexpr const char* ServerModule = "server";
-constexpr const char* MovementServicesClass = "CCSPlayer_MovementServices";
+static constexpr const char* ServerModule = "server";
+static constexpr const char* MovementServicesClass = "CCSPlayer_MovementServices";
 
 // Far above the real value (8), only to catch drifted or hand-edited gamedata before it turns into
 // a read past the CUserCmd object.
-constexpr int MaxUserCmdOffset = 4096;
-
-}  // namespace
+static constexpr int MaxUserCmdOffset = 4096;
 
 bool Movement::Install()
 {
@@ -44,15 +36,15 @@ bool Movement::Install()
     if (index < 0)
         return false;
 
-    void* vtable = Engine::FindVirtualTable(ServerModule, MovementServicesClass);
+    void* vtable = FindVirtualTable(ServerModule, MovementServicesClass);
     if (!vtable)
-        return false;  // Engine::FindVirtualTable already logged which step failed
+        return false;  // FindVirtualTable already logged which step failed
 
     // The class name drifts like the index does, and nothing else here would notice: a wrong name
     // resolves to some other class's table and the hook then never fires. Whenever a pawn happens to
     // be live, its own vptr is the ground truth to check against - but Install() must still work
     // from OnLoad, with no player connected, so a mismatch only warns.
-    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+    for (int slot = 0; slot < MaxPlayers; ++slot)
     {
         void* instance = _entities.GetPlayerMovementServices(slot);
         if (!instance)
@@ -132,12 +124,12 @@ int Movement::SlotFromMovementServices(void* movementServices) const
     // Cache this hot lookup, but confirm each hit so a recycled pointer cannot map
     // to the wrong slot. A stale hit falls through to the rescan.
     auto& entities = _entities;
-    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+    for (int slot = 0; slot < MaxPlayers; ++slot)
         if (_movementServices[slot] == movementServices && entities.GetPlayerMovementServices(slot) == movementServices)
             return slot;
 
     int found = -1;
-    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+    for (int slot = 0; slot < MaxPlayers; ++slot)
     {
         _movementServices[slot] = entities.GetPlayerMovementServices(slot);
         if (_movementServices[slot] == movementServices)
@@ -237,4 +229,4 @@ void* Movement::Hook_RunCommandPost(void* /*userCmd*/)
     RETURN_META_VALUE(MRES_IGNORED, nullptr);
 }
 
-}  // namespace VoltMod::Hooks
+}  // namespace VoltMod

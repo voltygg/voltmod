@@ -7,7 +7,7 @@
 #include <VoltMod/Entities/KeyValues.hpp>
 #include <mathlib/vector.h>
 
-namespace VoltMod::Entities::EffectOps
+namespace VoltMod::EffectOps
 {
 
 CEntityInstance* SpawnParticle(EntityOps& ops, const char* effectName, const Vector& origin, float lifetimeSeconds)
@@ -51,11 +51,11 @@ CEntityInstance* SpawnBeam(EntityOps& ops, const Vector& from, const Vector& to,
     int offsetColor = schema.GetOffsetOf<Color>("CBaseModelEntity", "m_clrRender");
 
     if (offsetWidth >= 0)
-        Engine::WriteAt<float>(beam, offsetWidth, width);
+        WriteAt<float>(beam, offsetWidth, width);
     if (offsetEndPos >= 0)
-        Engine::WriteAt<Vector>(beam, offsetEndPos, to);
+        WriteAt<Vector>(beam, offsetEndPos, to);
     if (offsetColor >= 0)
-        Engine::WriteAt<Color>(beam, offsetColor, color);
+        WriteAt<Color>(beam, offsetColor, color);
 
     KeyValues kv;
     kv.Set("origin", from);
@@ -90,4 +90,4 @@ CEntityInstance* SpawnProp(EntityOps& ops, const char* modelPath, const Vector& 
     return prop;
 }
 
-}  // namespace VoltMod::Entities::EffectOps
+}  // namespace VoltMod::EffectOps

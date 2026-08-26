@@ -5,10 +5,8 @@
 #include <eiface.h>
 #include <format>
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
-
-using namespace VoltMod::Core;
 
 Map::Map(Interfaces& interfaces, ConVars& conVars) : _interfaces(interfaces), _conVars(conVars) {}
 
@@ -52,4 +50,4 @@ bool Map::ChangeToWorkshop(uint64_t workshopId)
     return true;
 }
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

@@ -3,8 +3,8 @@
 #include <doctest/doctest.h>
 #include <memory>
 
-using VoltMod::Core::PerSlot;
-using VoltMod::Core::SlotEvents;
+using VoltMod::PerSlot;
+using VoltMod::SlotEvents;
 
 TEST_CASE("An unbound PerSlot keeps its values when a slot changes hands")
 {

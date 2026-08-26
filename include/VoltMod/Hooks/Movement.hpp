@@ -3,22 +3,14 @@
 #include <VoltMod/Core/CallbackRegistry.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Hooks/UserCmd.hpp>
 #include <array>
 #include <cstdint>
 #include <functional>
 
-namespace VoltMod::Engine
-{
-class GameData;
-}  // namespace VoltMod::Engine
-
-namespace VoltMod::Entities
-{
-class EntitySystem;
-}  // namespace VoltMod::Entities
-
-namespace VoltMod::Hooks
+namespace VoltMod
 {
 
 /**
@@ -30,7 +22,7 @@ namespace VoltMod::Hooks
  *
  * Pre/post callbacks fire around each player's RunCommand with the owning slot resolved
  * (-1 when unresolved). A pre/post pair brackets exactly that player's movement
- * processing, which makes it the place for per-player state flips (see Engine::ConVarStorage).
+ * processing, which makes it the place for per-player state flips (see ConVarStorage).
  *
  * Cmd listeners (ListenPreCmd/ListenPostCmd) additionally receive a UserCmdView - the
  * command's viewangles, buttons, mouse deltas, and sub-tick moves decoded from the
@@ -57,7 +49,7 @@ public:
 
     /** @p entities resolves the owning slot per usercmd, @p gameData the vtable index and byte
      *  offsets. Both must outlive this hook; the Runtime declares them above it. */
-    Movement(Entities::EntitySystem& entities, Engine::GameData& gameData) : _entities(entities), _gameData(gameData) {}
+    Movement(EntitySystem& entities, GameData& gameData) : _entities(entities), _gameData(gameData) {}
     ~Movement() { Remove(); }
     Movement(const Movement&) = delete;
     Movement& operator=(const Movement&) = delete;
@@ -69,25 +61,19 @@ public:
     bool Install();
     void Remove();
 
-    [[nodiscard]] Core::Subscription ListenPre(Callback callback)
-    {
-        return Own(_pre.Add(std::move(callback), _nextId++));
-    }
-    [[nodiscard]] Core::Subscription ListenPost(Callback callback)
-    {
-        return Own(_post.Add(std::move(callback), _nextId++));
-    }
-    [[nodiscard]] Core::Subscription ListenPreCmd(CmdCallback callback)
+    [[nodiscard]] Subscription ListenPre(Callback callback) { return Own(_pre.Add(std::move(callback), _nextId++)); }
+    [[nodiscard]] Subscription ListenPost(Callback callback) { return Own(_post.Add(std::move(callback), _nextId++)); }
+    [[nodiscard]] Subscription ListenPreCmd(CmdCallback callback)
     {
         return Own(_preCmd.Add(std::move(callback), _nextId++));
     }
-    [[nodiscard]] Core::Subscription ListenPostCmd(CmdCallback callback)
+    [[nodiscard]] Subscription ListenPostCmd(CmdCallback callback)
     {
         return Own(_postCmd.Add(std::move(callback), _nextId++));
     }
 
     /** Mutable pre-decode-time edit of the shared UserCmdView; see the class docs. */
-    [[nodiscard]] Core::Subscription ListenFilterCmd(CmdFilter filter)
+    [[nodiscard]] Subscription ListenFilterCmd(CmdFilter filter)
     {
         return Own(_filter.Add(std::move(filter), _nextId++));
     }
@@ -96,9 +82,9 @@ public:
 
 private:
     /** Wrap a freshly issued handle so the caller owns its removal. */
-    Core::Subscription Own(uint64_t id)
+    Subscription Own(uint64_t id)
     {
-        return Core::Subscription([this, id] { RemoveListener(id); });
+        return Subscription([this, id] { RemoveListener(id); });
     }
 
     void RemoveListener(uint64_t id);
@@ -107,13 +93,13 @@ private:
     void* Hook_RunCommandPost(void* userCmd);
     void DecodeUserCmd(void* userCmd);
 
-    Entities::EntitySystem& _entities;
-    Engine::GameData& _gameData;
-    Core::CallbackRegistry<Callback> _pre;
-    Core::CallbackRegistry<Callback> _post;
-    Core::CallbackRegistry<CmdCallback> _preCmd;
-    Core::CallbackRegistry<CmdCallback> _postCmd;
-    Core::CallbackRegistry<CmdFilter> _filter;
+    EntitySystem& _entities;
+    GameData& _gameData;
+    CallbackRegistry<Callback> _pre;
+    CallbackRegistry<Callback> _post;
+    CallbackRegistry<CmdCallback> _preCmd;
+    CallbackRegistry<CmdCallback> _postCmd;
+    CallbackRegistry<CmdFilter> _filter;
     uint64_t _nextId = 1;       // one handle space across all five registries, so RemoveListener is unambiguous
     UserCmdView _cmdView;       // decoded once per RunCommand, reused across pre/post dispatch
     int _pbOffset = -1;         // gamedata "UserCmdPB"; negative disables decoding
@@ -124,7 +110,7 @@ private:
     int _preSlot = -1;  // slot resolved in the pre hook, reused by the immediately-following post
     /** Slot -> movement services, to keep the per-usercmd slot lookup off the entity system.
      *  A hit is still confirmed against the engine, so a stale entry can only cost a rescan. */
-    mutable std::array<void*, Core::MaxPlayers> _movementServices{};
+    mutable std::array<void*, MaxPlayers> _movementServices{};
 };
 
-}  // namespace VoltMod::Hooks
+}  // namespace VoltMod

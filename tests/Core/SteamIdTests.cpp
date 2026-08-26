@@ -3,7 +3,7 @@
 #include <doctest/doctest.h>
 #include <string>
 
-using VoltMod::Core::SteamId;
+using VoltMod::SteamId;
 
 // Reference identity: account id 22202.
 static constexpr int64_t Base = 76561197960265728LL;

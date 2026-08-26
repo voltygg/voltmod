@@ -3,6 +3,7 @@
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Database/DbResult.hpp>
+#include <VoltMod/Database/Migrator.hpp>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -19,7 +20,7 @@
 #include <utility>
 #include <vector>
 
-namespace VoltMod::Database
+namespace VoltMod
 {
 
 /** PostgreSQL connection parameters. Field names are lowercase so a consumer's JSON config
@@ -61,7 +62,7 @@ public:
     using ResultCallback = std::move_only_function<void(DbResult<pqxx::result>)>;
 
     /** @p scheduler drives the completion pump and must outlive this object. */
-    explicit PostgresDatabase(Core::Scheduler& scheduler) : _scheduler(scheduler) {}
+    explicit PostgresDatabase(Scheduler& scheduler) : _scheduler(scheduler) {}
     ~PostgresDatabase();
     PostgresDatabase(const PostgresDatabase&) = delete;
     PostgresDatabase& operator=(const PostgresDatabase&) = delete;
@@ -129,7 +130,7 @@ private:
     void DropConnection();
     void FinishJob(Job& job, DbResult<pqxx::result> result, bool rawOk);
 
-    Core::Scheduler& _scheduler;
+    Scheduler& _scheduler;
     std::string _connectionString;
 
     std::mutex _queueMutex;
@@ -143,7 +144,7 @@ private:
     std::vector<std::pair<ResultCallback, DbResult<pqxx::result>>> _completions;
 
     std::thread _worker;
-    Core::Subscription _completionPump;
+    Subscription _completionPump;
 
     /** Written by the worker, read by the game thread; mirrors _connection's liveness. */
     std::atomic<bool> _connected{false};
@@ -155,4 +156,13 @@ private:
     std::unordered_map<std::string, std::string> _prepared;
 };
 
-}  // namespace VoltMod::Database
+/**
+ * Apply pending forward-only migrations to `db`. Reads `dir` for files named `NNNN_*.sql` (the leading
+ * integer is the version), and applies every file whose version exceeds the max recorded in the history
+ * table, in ascending order, each in its own transaction, under a session advisory lock so two
+ * concurrent plugin loads cannot race. A missing directory is a successful no-op (logged). On failure
+ * the database is left at the last successfully applied version.
+ */
+MigrationResult RunMigrations(PostgresDatabase& db, const std::string& dir, const MigrationOptions& options = {});
+
+}  // namespace VoltMod

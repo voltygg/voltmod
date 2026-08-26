@@ -4,7 +4,7 @@
 #include <chrono>
 #include <format>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 int64_t Time::Now()
@@ -15,7 +15,7 @@ int64_t Time::Now()
 
 int64_t Time::ParseDuration(const std::string& duration)
 {
-    return ::VoltMod::Core::ParseDuration(duration);
+    return ::VoltMod::ParseDuration(duration);
 }
 
 std::string Time::FormatDuration(int64_t seconds)
@@ -112,4 +112,4 @@ int64_t Time::GetExpirationTime(int64_t durationSeconds)
     return Now() + durationSeconds;
 }
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

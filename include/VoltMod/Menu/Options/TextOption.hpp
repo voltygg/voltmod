@@ -4,7 +4,7 @@
 #include <string>
 #include <utility>
 
-namespace VoltMod::Menu
+namespace VoltMod
 {
 
 /** Read-only label row. Useful for headings or section dividers inside a menu. */
@@ -19,4 +19,4 @@ private:
     std::string _label;
 };
 
-}  // namespace VoltMod::Menu
+}  // namespace VoltMod

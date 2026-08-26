@@ -3,7 +3,7 @@
 #include <VoltMod/Core/Json.hpp>
 #include <string>
 
-namespace VoltMod::App
+namespace VoltMod
 {
 
 /**
@@ -30,12 +30,12 @@ public:
      *  parse error, or wrong-typed value. */
     bool Load(const std::string& path)
     {
-        auto loaded = Core::Json::TryDeserializeFile<TSettings>(path);
+        auto loaded = Json::TryDeserializeFile<TSettings>(path);
         if (!loaded)
             return false;
 
         _settings = std::move(*loaded);
-        Core::Log::Info("Loaded settings from {}", path);
+        Log::Info("Loaded settings from {}", path);
         return true;
     }
 
@@ -48,4 +48,4 @@ private:
     TSettings _settings;
 };
 
-}  // namespace VoltMod::App
+}  // namespace VoltMod

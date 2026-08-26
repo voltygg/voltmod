@@ -7,7 +7,7 @@
 #include <string_view>
 #include <utility>
 
-namespace VoltMod::Menu
+namespace VoltMod
 {
 
 /**
@@ -51,4 +51,4 @@ private:
     int _maxLength;
 };
 
-}  // namespace VoltMod::Menu
+}  // namespace VoltMod

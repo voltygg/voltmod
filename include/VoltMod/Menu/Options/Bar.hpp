@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace VoltMod::Menu::Detail
+namespace VoltMod
 {
 
 /** Render a fixed-width unicode bar with @p filled cells out of @p cells. */
@@ -15,4 +15,4 @@ inline std::string RenderBar(int filled, int cells)
     return bar;
 }
 
-}  // namespace VoltMod::Menu::Detail
+}  // namespace VoltMod

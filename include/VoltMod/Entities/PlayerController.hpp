@@ -1,19 +1,15 @@
 #pragma once
 
+#include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/MemoryAccess.hpp>
+#include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Entities/MoveType.hpp>
 #include <VoltMod/Entities/ObserverMode.hpp>
 #include <cstdint>
 #include <string>
 
-class CEntityInstance;
-class Vector;
-class QAngle;
-
-namespace VoltMod::Entities
+namespace VoltMod
 {
-
-class EntitySystem;
 
 /**
  * @brief Transient engine-side player wrapper around CCSPlayerController.
@@ -49,7 +45,7 @@ public:
         int offset = SchemaOffset(className, fieldName, sizeof(T));
         if (offset < 0)
             return T{};
-        return Engine::ReadAt<T>(_controller, offset);
+        return ReadAt<T>(_controller, offset);
     }
 
     /** @p expectedSize 0 skips the drift check, for a T read out of a larger wrapper field. */
@@ -62,7 +58,7 @@ public:
         int offset = SchemaOffset(className, fieldName, expectedSize);
         if (offset < 0)
             return T{};
-        return Engine::ReadAt<T>(pawn, offset);
+        return ReadAt<T>(pawn, offset);
     }
 
     template <typename T>
@@ -73,7 +69,7 @@ public:
         int offset = SchemaOffset(className, fieldName, sizeof(T));
         if (offset < 0)
             return;
-        Engine::WriteAt<T>(_controller, offset, value);
+        WriteAt<T>(_controller, offset, value);
     }
 
     template <typename T>
@@ -85,7 +81,7 @@ public:
         int offset = SchemaOffset(className, fieldName, sizeof(T));
         if (offset < 0)
             return;
-        Engine::WriteAt<T>(pawn, offset, value);
+        WriteAt<T>(pawn, offset, value);
     }
 
     int GetHealth() const;
@@ -189,4 +185,4 @@ private:
     CEntityInstance* _controller = nullptr;
 };
 
-}  // namespace VoltMod::Entities
+}  // namespace VoltMod

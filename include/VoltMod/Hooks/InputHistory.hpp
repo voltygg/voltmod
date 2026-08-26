@@ -3,15 +3,14 @@
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Hooks/Movement.hpp>
 #include <VoltMod/Hooks/UserCmd.hpp>
 #include <array>
 #include <cstdint>
 #include <vector>
 
-namespace VoltMod::Hooks
+namespace VoltMod
 {
-
-class Movement;
 
 /**
  * @brief Opt-in per-slot ring buffer of recent decoded usercmds.
@@ -30,7 +29,7 @@ class InputHistory
 public:
     /** @p movement is the cmd feed Enable() subscribes to. @p slots tells this service when a slot
      *  changes hands, without it needing the roster. Both must outlive it. */
-    InputHistory(Movement& movement, Core::SlotEvents& slots) : _movement(movement), _slots(slots) {}
+    InputHistory(Movement& movement, SlotEvents& slots) : _movement(movement), _slots(slots) {}
 
     InputHistory(const InputHistory&) = delete;
     InputHistory& operator=(const InputHistory&) = delete;
@@ -59,11 +58,11 @@ private:
     void Record(int slot, const UserCmdView& cmd);
 
     Movement& _movement;
-    Core::SlotEvents& _slots;
-    std::array<Ring, Core::MaxPlayers> _rings{};
+    SlotEvents& _slots;
+    std::array<Ring, MaxPlayers> _rings{};
     int _depth = 0;
-    Core::Subscription _cmdListener;
-    Core::Subscription _slotListener;
+    Subscription _cmdListener;
+    Subscription _slotListener;
 };
 
-}  // namespace VoltMod::Hooks
+}  // namespace VoltMod

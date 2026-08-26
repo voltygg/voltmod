@@ -1,16 +1,12 @@
 #pragma once
 
+#include <VoltMod/Engine/Interfaces.hpp>
 #include <cstdint>
 #include <functional>
 #include <map>
 #include <string>
 
-namespace VoltMod::Engine
-{
-struct Interfaces;
-}  // namespace VoltMod::Engine
-
-namespace VoltMod::Entities
+namespace VoltMod
 {
 
 /**
@@ -22,7 +18,7 @@ class SchemaService
 {
 public:
     /** @p interfaces supplies ISchemaSystem; it must outlive this service. */
-    explicit SchemaService(Engine::Interfaces& interfaces) : _interfaces(interfaces) {}
+    explicit SchemaService(Interfaces& interfaces) : _interfaces(interfaces) {}
 
     bool Initialize();
 
@@ -34,7 +30,7 @@ public:
      * Pass `sizeof(T)` whenever the caller reads or writes a T at exactly this offset;
      * a mismatch then means the access itself is wrong. Leave it 0 when the offset is
      * not that: an embedded subobject whose address is taken, an offset added to an
-     * inner field's, or a fixed-size buffer read through Engine::MemberPtr. Guessing there
+     * inner field's, or a fixed-size buffer read through MemberPtr. Guessing there
      * produces warnings that are always wrong, on the fields most likely to really move.
      */
     int GetOffset(const char* className, const char* fieldName, int expectedSize = 0);
@@ -54,7 +50,7 @@ private:
      *  like "m_bOnGroundLastTick" are past the small-string buffer, so those were real allocations
      *  on the hot path. */
     std::map<std::string, std::map<std::string, int, std::less<>>, std::less<>> _offsetCache;
-    Engine::Interfaces& _interfaces;
+    Interfaces& _interfaces;
 };
 
-}  // namespace VoltMod::Entities
+}  // namespace VoltMod

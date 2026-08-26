@@ -4,13 +4,14 @@
 
 ## GameEvents
 
-Prefer the typed listeners: each struct in `VoltMod::Events` (`Events/EventTypes.hpp`) carries the event name and decodes its fields for you. Available: `PlayerDeath`, `PlayerSpawn`, `PlayerJump`, `PlayerHurt`, `PlayerBlind`, `PlayerTeam`, `PlayerConnectFull`, `WeaponFire`, `BulletImpact`, `RoundStart`, `RoundEnd`, `RoundPrestart`.
+Prefer the typed listeners: each struct in `VoltMod` (`VoltMod/Events/EventTypes.hpp`) carries the event name and decodes its fields for you. Available: `PlayerDeath`, `PlayerSpawn`, `PlayerJump`, `PlayerHurt`, `PlayerBlind`, `PlayerTeam`, `PlayerConnectFull`, `WeaponFire`, `BulletImpact`, `RoundStart`, `RoundEnd`, `RoundPrestart`.
 
 ```cpp
-namespace Events = VoltMod::Events;
+using VoltMod::PlayerDeath;
+
 auto& events = runtime.Events;
 
-auto death = events.Listen<Events::PlayerDeath>([](const Events::PlayerDeath& e) {
+auto death = events.Listen<PlayerDeath>([](const PlayerDeath& e) {
     // e.VictimSlot, e.AttackerSlot, e.Headshot, e.Weapon, ...
 });
 
@@ -30,7 +31,7 @@ You can also create and fire events (`CreateEvent` / `FireEvent` / `FreeEvent`);
 
 ### BulletImpact: correlate by tick, not identity
 
-@ref VoltMod::Events::BulletImpact "BulletImpact" fires once per bullet landing, so one shotgun blast produces several. Its catch is that the engine truncates the event's `userid` to its low byte before sending it, so the value does not round-trip to a player: `Slot` is a best-effort decode that is `-1` whenever the truncated id names no live player, and it can name the *wrong* player when two userids share a low byte.
+@ref VoltMod::BulletImpact "BulletImpact" fires once per bullet landing, so one shotgun blast produces several. Its catch is that the engine truncates the event's `userid` to its low byte before sending it, so the value does not round-trip to a player: `Slot` is a best-effort decode that is `-1` whenever the truncated id names no live player, and it can name the *wrong* player when two userids share a low byte.
 
 Attribute impacts to a shot by **tick proximity** (the impacts belonging to a `WeaponFire`, or to a usercmd carrying an attack, arrive in the same tick), and use `TruncatedUserId` only to disambiguate among candidates in that tick. Never key state on `Slot` alone.
 
@@ -61,7 +62,7 @@ Related lifecycle points:
 
 ### Inspecting a client's own subscriptions
 
-`GetClientLegacyListener(slot)` returns the engine-side listener object the game keeps for that client: the client's own subscription handle, not a framework listener. Firing an event at it delivers to that one client (this is how @ref VoltMod::Messaging::Messages "Messages" sends center HTML). It is `nullptr` when the slot has no client or when the `"LegacyGameEventListener"` gamedata signature did not resolve.
+`GetClientLegacyListener(slot)` returns the engine-side listener object the game keeps for that client: the client's own subscription handle, not a framework listener. Firing an event at it delivers to that one client (this is how @ref VoltMod::Messages "Messages" sends center HTML). It is `nullptr` when the slot has no client or when the `"LegacyGameEventListener"` gamedata signature did not resolve.
 
 `ClientListensTo(slot, eventName)` asks the event manager whether that handle is subscribed to a given event:
 
@@ -95,7 +96,7 @@ The setters change the server's stored value and fire change callbacks, but they
 
 ### Taking a convar over server-wide
 
-A feature that overrides a server convar owes the operator two things: save their value before the *first* write, and restore only what it actually took. @ref VoltMod::Engine::ConVarLease "ConVarLease" holds those snapshots, and it writes through the console path so replicated convars reach clients:
+A feature that overrides a server convar owes the operator two things: save their value before the *first* write, and restore only what it actually took. @ref VoltMod::ConVarLease "ConVarLease" holds those snapshots, and it writes through the console path so replicated convars reach clients:
 
 ```cpp
 VoltMod::ConVarLease lease{runtime.ConVars};   // restores on destruction
@@ -108,7 +109,7 @@ lease.Restore("sv_gravity");                   // no-op if it never took it
 
 ### Per-client replication
 
-@ref VoltMod::Engine::ConVars::ReplicateToClient "ReplicateToClient" sends `CNETMsg_SetConVar` to a single client, so only that client's view of a replicated convar changes; the server value and every other client are untouched. This is how you make *one* player's prediction run with different movement settings (the bhop plugin replicates `sv_autobunnyhopping` to granted players):
+@ref VoltMod::ConVars::ReplicateToClient "ReplicateToClient" sends `CNETMsg_SetConVar` to a single client, so only that client's view of a replicated convar changes; the server value and every other client are untouched. This is how you make *one* player's prediction run with different movement settings (the bhop plugin replicates `sv_autobunnyhopping` to granted players):
 
 ```cpp
 cvars.ReplicateToClient(slot, "sv_autobunnyhopping", "1");
@@ -118,7 +119,7 @@ The client's connect/map-change snapshot restores the server value, so re-send t
 
 ### Raw value access
 
-@ref VoltMod::Engine::ConVarStorage "Storage(name)" returns a handle to the convar's raw storage: reads and writes skip change callbacks *and* replication. Use it for scoped flips around one player's processing (e.g. inside a @ref VoltMod::Hooks::Movement "Movement" pre/post pair), where the engine setters' broadcast would leak the change to everyone. You are responsible for restoring the prior value; the handle stays valid for the convar's lifetime, so resolve once and cache.
+@ref VoltMod::ConVarStorage "Storage(name)" returns a handle to the convar's raw storage: reads and writes skip change callbacks *and* replication. Use it for scoped flips around one player's processing (e.g. inside a @ref VoltMod::Movement "Movement" pre/post pair), where the engine setters' broadcast would leak the change to everyone. You are responsible for restoring the prior value; the handle stays valid for the convar's lifetime, so resolve once and cache.
 
 ```cpp
 VoltMod::ConVarStorage autoBhop = cvars.Storage("sv_autobunnyhopping");
@@ -130,7 +131,7 @@ autoBhop.SetBool(saved);
 
 ## Map
 
-@ref VoltMod::Engine::Map validates map names and changes level. It deliberately holds no
+@ref VoltMod::Map validates map names and changes level. It deliberately holds no
 map list: which maps a server offers is operator configuration, not engine state, so the list
 belongs to the plugin.
 

@@ -12,9 +12,6 @@
 #include <tier1/convar.h>
 #include <vector>
 
-namespace
-{
-
 /**
  * Every ConVars currently routing engine changes to its listeners.
  *
@@ -24,10 +21,10 @@ namespace
  * subscribed last silently cut off the others. The engine callback is installed when this list
  * becomes non-empty and removed when it empties, so it is installed exactly once.
  */
-std::vector<VoltMod::Engine::ConVars*> g_changeSinks;
+static std::vector<VoltMod::ConVars*> g_changeSinks;
 
-void GlobalConVarChangeCallback(ConVarRefAbstract* ref, CSplitScreenSlot /*slot*/, const char* newValue,
-                                const char* oldValue, void* /*unk*/)
+static void GlobalConVarChangeCallback(ConVarRefAbstract* ref, CSplitScreenSlot /*slot*/, const char* newValue,
+                                       const char* oldValue, void* /*unk*/)
 {
     if (!ref)
         return;
@@ -39,7 +36,7 @@ void GlobalConVarChangeCallback(ConVarRefAbstract* ref, CSplitScreenSlot /*slot*
 }
 
 /** Resolve @p name to a usable convar reference, or nullopt when it is null or not registered. */
-std::optional<ConVarRefAbstract> Resolve(const char* name)
+static std::optional<ConVarRefAbstract> Resolve(const char* name)
 {
     if (!name)
         return std::nullopt;
@@ -51,11 +48,8 @@ std::optional<ConVarRefAbstract> Resolve(const char* name)
     return ref;
 }
 
-}  // namespace
-
-namespace VoltMod::Engine
+namespace VoltMod
 {
-using namespace VoltMod::Core;
 
 ConVars::ConVars(Interfaces& interfaces) : _interfaces(interfaces) {}
 
@@ -213,7 +207,7 @@ INetworkMessageInternal* ConVars::SetConVarMessage()
 
 bool ConVars::ReplicateToClient(int slot, const char* name, const char* value)
 {
-    if (!_interfaces.GameEventSystem || !Core::IsValidSlot(slot) || !name || !value)
+    if (!_interfaces.GameEventSystem || !IsValidSlot(slot) || !name || !value)
         return false;
 
     auto* msgType = SetConVarMessage();
@@ -239,7 +233,7 @@ bool ConVars::ReplicateToClient(int slot, const char* name, const char* value)
     return setConVar != nullptr;
 }
 
-Core::Subscription ConVars::OnChange(ChangeCallback callback)
+Subscription ConVars::OnChange(ChangeCallback callback)
 {
     if (!_routingChanges)
     {
@@ -279,4 +273,4 @@ void ConVars::DispatchChange(const char* name, const char* oldValue, const char*
     _changeCallbacks.Dispatch([&](auto& callback) { callback(name, oldValue, newValue); });
 }
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

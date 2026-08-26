@@ -1,11 +1,10 @@
 #pragma once
 
-class INetChannelInfo;
+#include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/Interfaces.hpp>
 
-namespace VoltMod::Engine
+namespace VoltMod
 {
-
-struct Interfaces;
 
 /**
  * @brief Per-client network-channel access: latency and the client's replicated userinfo cvars.
@@ -39,4 +38,4 @@ private:
     Interfaces& _interfaces;
 };
 
-}  // namespace VoltMod::Engine
+}  // namespace VoltMod

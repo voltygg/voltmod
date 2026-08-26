@@ -9,39 +9,31 @@
 #include <VoltMod/Hooks/Damage.hpp>
 #include <cstdint>
 
-PLUGIN_GLOBALVARS();
-
-namespace VoltMod::Hooks
+namespace VoltMod
 {
-using namespace VoltMod::Core;
 
 // bool CCSPlayerPawn::OnTakeDamage_Alive(CTakeDamageResult*). void* stands in for the result: the
 // SDK declares neither it nor CTakeDamageInfo, so their fields are reached by gamedata offset.
 SH_DECL_MANUALHOOK1(VoltMod_OnTakeDamageAlive, 0, 0, 0, bool, void*);
 
-namespace
-{
-
-constexpr const char* ServerModule = "server";
-constexpr const char* PawnClass = "CCSPlayerPawn";
+static constexpr const char* ServerModule = "server";
+static constexpr const char* PawnClass = "CCSPlayerPawn";
 
 // Both structs are a few hundred bytes; anything past this is a typo rather than a field.
-constexpr int MaxDamageOffset = 512;
+static constexpr int MaxDamageOffset = 512;
 
-}  // namespace
-
-Entities::HitGroup Damage::ReadHitGroup(void* info) const
+HitGroup Damage::ReadHitGroup(void* info) const
 {
     // The hitgroup is on the hitbox the trace struck, not on CTakeDamageInfo - m_iHitGroupId reads
     // -1 for ordinary bullet damage. Damage with no trace (fire, the bomb, a fall) stays Invalid,
     // which is what keeps the aim rules off world damage.
-    auto* trace = Engine::ReadAt<void*>(info, _offsetTrace);
+    auto* trace = ReadAt<void*>(info, _offsetTrace);
     if (!trace)
-        return Entities::HitGroup::Invalid;
-    auto* hitbox = Engine::ReadAt<void*>(trace, _offsetTraceHitbox);
+        return HitGroup::Invalid;
+    auto* hitbox = ReadAt<void*>(trace, _offsetTraceHitbox);
     if (!hitbox)
-        return Entities::HitGroup::Invalid;
-    return static_cast<Entities::HitGroup>(Engine::ReadAt<int32_t>(hitbox, _offsetHitboxGroup));
+        return HitGroup::Invalid;
+    return static_cast<HitGroup>(ReadAt<int32_t>(hitbox, _offsetHitboxGroup));
 }
 
 bool Damage::Install()
@@ -56,9 +48,9 @@ bool Damage::Install()
     if (!ResolveOffsets())
         return false;
 
-    void* vtable = Engine::FindVirtualTable(ServerModule, PawnClass);
+    void* vtable = FindVirtualTable(ServerModule, PawnClass);
     if (!vtable)
-        return false;  // Engine::FindVirtualTable already logged which step failed
+        return false;  // FindVirtualTable already logged which step failed
 
     SH_MANUALHOOK_RECONFIGURE(VoltMod_OnTakeDamageAlive, index, 0, 0);
     _hookId = SH_ADD_MANUALDVPHOOK(VoltMod_OnTakeDamageAlive, vtable, SH_MEMBER(this, &Damage::Hook_OnTakeDamageAlive),
@@ -128,16 +120,16 @@ bool Damage::Hook_OnTakeDamageAlive(void* result)
         RETURN_META_VALUE(MRES_IGNORED, false);
 
     // m_pOriginatingInfo is the result's first member, so it needs no gamedata entry.
-    auto* info = Engine::ReadAt<void*>(result, 0);
+    auto* info = ReadAt<void*>(result, 0);
     if (!info)
         RETURN_META_VALUE(MRES_IGNORED, false);
 
-    const DamageView view{.VictimSlot = _entities.SlotFromPawn(static_cast<CEntityInstance*>(pawn)),
-                          .AttackerSlot = _entities.SlotFromPawn(
-                              _entities.ResolveEntityHandle(Engine::ReadAt<uint32_t>(info, _offsetAttacker))),
-                          .Hitbox = ReadHitGroup(info),
-                          .DamageTypes = static_cast<uint32_t>(Engine::ReadAt<int32_t>(info, _offsetDamageTypes)),
-                          .Damage = Engine::ReadAt<float>(info, _offsetDamage)};
+    const DamageView view{
+        .VictimSlot = _entities.SlotFromPawn(static_cast<CEntityInstance*>(pawn)),
+        .AttackerSlot = _entities.SlotFromPawn(_entities.ResolveEntityHandle(ReadAt<uint32_t>(info, _offsetAttacker))),
+        .Hitbox = ReadHitGroup(info),
+        .DamageTypes = static_cast<uint32_t>(ReadAt<int32_t>(info, _offsetDamageTypes)),
+        .Damage = ReadAt<float>(info, _offsetDamage)};
 
     // Nothing is written back: the engine ignores every attempt to change the outcome here, so
     // the hook reports and always defers. See the header.
@@ -146,4 +138,4 @@ bool Damage::Hook_OnTakeDamageAlive(void* result)
     RETURN_META_VALUE(MRES_IGNORED, false);
 }
 
-}  // namespace VoltMod::Hooks
+}  // namespace VoltMod

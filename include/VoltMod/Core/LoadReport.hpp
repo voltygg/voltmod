@@ -5,7 +5,7 @@
 #include <string_view>
 #include <vector>
 
-namespace VoltMod::Core
+namespace VoltMod
 {
 
 enum class StageStatus
@@ -67,4 +67,4 @@ private:
 
 std::string_view ToString(StageStatus status);
 
-}  // namespace VoltMod::Core
+}  // namespace VoltMod

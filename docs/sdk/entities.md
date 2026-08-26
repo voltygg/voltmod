@@ -34,7 +34,7 @@ auto* named = es.FindByName(nullptr, "my_targetname");
 ```
 
 For typed operations on a player, ask the entity system for a
-@ref VoltMod::Entities::PlayerController rather than using the raw `CEntityInstance*`.
+@ref VoltMod::PlayerController rather than using the raw `CEntityInstance*`.
 
 ## PlayerController
 
@@ -87,7 +87,7 @@ player.SetVisible(true);           // restore opaque
 Read or force a player into a specific spectator mode:
 
 ```cpp
-using VoltMod::Entities::ObserverMode_t;
+using VoltMod::ObserverMode_t;
 
 if (player.GetObserverMode() != ObserverMode_t::Roaming)
     player.SetObserverMode(ObserverMode_t::Roaming);
@@ -107,12 +107,15 @@ player.SetPlayerName(saved);
 ## PawnOps
 
 Common pawn manipulations composed from `PlayerController` primitives: the operations most
-gameplay plugins end up writing by hand. Free functions in `VoltMod::Entities::PawnOps`
+gameplay plugins end up writing by hand. Free functions in `VoltMod::PawnOps`
 (`<VoltMod/Entities/PawnOps.hpp>`), plus the engine team constants `TeamNone` / `TeamSpectator` /
 `TeamT` / `TeamCT`:
 
 ```cpp
-using namespace VoltMod::Entities;
+using VoltMod::PlayerController;
+using VoltMod::TeamCT;
+namespace PawnOps = VoltMod::PawnOps;
+
 PlayerController target = runtime.Entities.Controller(slot);
 
 PawnOps::ToggleNoclip(target);              // noclip <-> walk; returns the new on-state
@@ -137,12 +140,12 @@ the next occupant of the slot never has godmode stripped.
 
 ## Items
 
-@ref VoltMod::Entities::Items gives and strips weapons through the pawn's
+@ref VoltMod::Items gives and strips weapons through the pawn's
 `CCSPlayer_ItemServices`. Both operations are vtable calls whose indices live in gamedata
 (`GiveNamedItem`, `RemoveAllItems`), so a game update is a gamedata edit rather than a rebuild.
 
 ```cpp
-using namespace VoltMod::Entities;
+using VoltMod::PlayerController;
 PlayerController target = runtime.Entities.Controller(slot);
 
 runtime.Items.Give(target, "weapon_ak47");   // entity classname, not a display name

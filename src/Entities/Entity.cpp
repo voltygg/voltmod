@@ -11,14 +11,11 @@
 #include <entity2/entityinstance.h>
 #include <entity2/entitysystem.h>
 
-namespace
-{
 /**
  * Published for ::GameEntitySystem() below, which the SDK calls with no context parameter to
  * reach a service through. Written and cleared by EntitySystem, so it never outlives a load cycle.
  */
-CGameEntitySystem* g_entitySystem = nullptr;
-}  // namespace
+static CGameEntitySystem* g_entitySystem = nullptr;
 
 // The SDK's entity2 sources (entitykeyvalues.cpp) link against this accessor;
 // route it to the framework's resolved entity system so both agree on the pointer.
@@ -27,11 +24,10 @@ CGameEntitySystem* GameEntitySystem()
     return g_entitySystem;
 }
 
-namespace VoltMod::Entities
+namespace VoltMod
 {
-using namespace VoltMod::Core;
 
-EntitySystem::EntitySystem(Engine::Interfaces& interfaces, Engine::GameData& gameData, SchemaService& schema)
+EntitySystem::EntitySystem(Interfaces& interfaces, GameData& gameData, SchemaService& schema)
     : _interfaces(interfaces), _gameData(gameData), _schema(schema)
 {}
 
@@ -81,7 +77,7 @@ CGameEntitySystem* EntitySystem::ReadEntitySystemPointer()
     if (!_interfaces.GameResourceService || _offsetGameEntitySystem < 0)
         return nullptr;
 
-    return Engine::ReadAt<CGameEntitySystem*>(_interfaces.GameResourceService, _offsetGameEntitySystem);
+    return ReadAt<CGameEntitySystem*>(_interfaces.GameResourceService, _offsetGameEntitySystem);
 }
 
 bool EntitySystem::Initialize()
@@ -93,7 +89,7 @@ bool EntitySystem::Initialize()
     }
 
     // "GameEntitySystem" = byte offset of the CGameEntitySystem* cached inside CGameResourceService.
-    _offsetGameEntitySystem = _gameData.GetByteOffset("GameEntitySystem", Engine::MaxByteOffset, alignof(void*));
+    _offsetGameEntitySystem = _gameData.GetByteOffset("GameEntitySystem", MaxByteOffset, alignof(void*));
     if (_offsetGameEntitySystem < 0)
         return false;
     Log::Info("Gamedata loaded (entity system offset: {}).", _offsetGameEntitySystem);
@@ -194,7 +190,7 @@ int EntitySystem::SlotFromPawn(CEntityInstance* pawn)
     if (_offsetPawnController < 0)
         return -1;
 
-    CEntityInstance* controller = ResolveEntityHandle(Engine::ReadAt<uint32_t>(pawn, _offsetPawnController));
+    CEntityInstance* controller = ResolveEntityHandle(ReadAt<uint32_t>(pawn, _offsetPawnController));
     if (!controller)
         return -1;
 
@@ -209,7 +205,7 @@ uint64_t EntitySystem::GetPlayerButtons(int slot)
     if (!pMovementServices || _offsetButtons < 0 || _offsetButtonStates < 0)
         return 0;
 
-    auto* pButtonStates = Engine::MemberPtr<uint64_t>(pMovementServices, _offsetButtons + _offsetButtonStates);
+    auto* pButtonStates = MemberPtr<uint64_t>(pMovementServices, _offsetButtons + _offsetButtonStates);
 
     return pButtonStates[0];  // m_pButtonStates is uint64[3]: [0] held, [1] changed, [2] scroll
 }
@@ -226,12 +222,12 @@ void* EntitySystem::GetPlayerMovementServices(int slot)
     if (!pController)
         return nullptr;
 
-    uint32_t hPawn = Engine::ReadAt<uint32_t>(pController, _offsetPlayerPawn);
+    uint32_t hPawn = ReadAt<uint32_t>(pController, _offsetPlayerPawn);
     CEntityInstance* pPawn = ResolveEntityHandle(hPawn);
     if (!pPawn)
         return nullptr;
 
-    return Engine::ReadAt<uint8_t*>(pPawn, _offsetMovementServices);
+    return ReadAt<uint8_t*>(pPawn, _offsetMovementServices);
 }
 
 bool EntitySystem::IsPlayerSlotValid(int slot)
@@ -239,15 +235,12 @@ bool EntitySystem::IsPlayerSlotValid(int slot)
     return GetPlayerController(slot) != nullptr;
 }
 
-namespace
-{
 // Prototypes mirror CS2Fixes' src/addresses.h; re-verify there after CS2 updates.
 using FindByClassNameFn = CEntityInstance* (*)(CEntitySystem * system, CEntityInstance* startAfter,
                                                const char* className);
 using FindByNameFn = CEntityInstance* (*)(CEntitySystem * system, CEntityInstance* startAfter, const char* name,
                                           CEntityInstance* searching, CEntityInstance* activator,
                                           CEntityInstance* caller, void* filter);
-}  // namespace
 
 void EntitySystem::ResolveFinderSignatures()
 {
@@ -285,4 +278,4 @@ CEntityInstance* EntitySystem::FindByName(CEntityInstance* startAfter, const cha
     return std::bit_cast<FindByNameFn>(_findByName)(pSys, startAfter, name, nullptr, nullptr, nullptr, nullptr);
 }
 
-}  // namespace VoltMod::Entities
+}  // namespace VoltMod
