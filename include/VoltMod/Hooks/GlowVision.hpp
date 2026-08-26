@@ -21,27 +21,26 @@ namespace VoltMod
  * to the beneficiary alone. Call @ref Reconcile on a repeating tick (see @ref ReconcileIntervalMs)
  * to track spawns, deaths, team/model changes, and round restarts; call @ref Destroy to tear down.
  */
+/** Colors and the optional per-slot veto for a @ref GlowVision. A top-level type rather than a
+ *  nested one so it is complete where GlowVision's constructor defaults it (GCC requires that). */
+struct GlowConfig
+{
+    Color TerroristColor{255, 128, 0, 255};
+    Color CtColor{0, 160, 255, 255};
+    /** Extra per-slot veto on top of the built-in live/team/visibility checks (empty = all). */
+    std::function<bool(int slot)> Filter;
+};
+
 class GlowVision
 {
 public:
-    struct Config
-    {
-        Color TerroristColor{255, 128, 0, 255};
-        Color CtColor{0, 160, 255, 255};
-        /** Extra per-slot veto on top of the built-in live/team/visibility checks (empty = all). */
-        std::function<bool(int slot)> Filter;
-    };
-
     /** Suggested tick interval for @ref Reconcile. */
     static constexpr int ReconcileIntervalMs = 500;
 
     /** All three services must outlive this object; the Runtime owns them.
      *  `runtime.Visibility.CreateGlow(beneficiarySlot)` is the normal entry point - it passes
      *  `runtime.Entities`, `runtime.EntityOps` and `runtime.Transmit` for you. */
-    // `Config()` rather than `{}`: GCC 14 cannot convert an empty braced list to a nested aggregate
-    // with default member initializers in a default argument.
-    GlowVision(EntitySystem& entities, EntityOps& ops, Transmit& transmit, int beneficiarySlot,
-               Config config = Config())
+    GlowVision(EntitySystem& entities, EntityOps& ops, Transmit& transmit, int beneficiarySlot, GlowConfig config = {})
         : _entities(entities),
           _ops(ops),
           _transmit(transmit),
@@ -76,7 +75,7 @@ private:
     EntityOps& _ops;
     Transmit& _transmit;
     int _beneficiarySlot;
-    Config _config;
+    GlowConfig _config;
     std::array<GlowPair, MaxPlayers> _pairs{};
 };
 

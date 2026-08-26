@@ -27,7 +27,7 @@ public:
 
     /** A @ref GlowVision for @p beneficiarySlot. Shared because the usual driver is a repeating
      *  tick that captures it; call @ref GlowVision::Destroy before dropping the last owner. */
-    std::shared_ptr<GlowVision> CreateGlow(int beneficiarySlot, GlowVision::Config config = {}) const
+    std::shared_ptr<GlowVision> CreateGlow(int beneficiarySlot, GlowConfig config = {}) const
     {
         return std::make_shared<GlowVision>(_entities, _ops, _transmit, beneficiarySlot, std::move(config));
     }

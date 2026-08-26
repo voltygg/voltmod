@@ -72,7 +72,7 @@ glow->Reconcile();  // build the clones immediately
 Team colors and the glow set are configurable; the optional `Filter` veto runs on top of the built-in checks:
 
 ```cpp
-GlowVision::Config config{
+GlowConfig config{
     .TerroristColor = Color(255, 0, 0, 255),
     .CtColor = Color(0, 255, 0, 255),
     // Ts only:
