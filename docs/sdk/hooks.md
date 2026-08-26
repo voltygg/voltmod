@@ -8,7 +8,7 @@
 `CCSPlayer_MovementServices::RunCommand`, the per-tick movement entry point.
 Pre/post callbacks bracket one player's movement processing, which makes them
 the right place for per-player state flips (see
-@ref VoltMod::Sdk::RawConVar "RawConVar").
+@ref VoltMod::Sdk::ConVarStorage "ConVarStorage").
 
 The service stays dormant until a plugin calls `Install()` and removes its hook
 on destruction.

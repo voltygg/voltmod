@@ -49,7 +49,7 @@ bool MapService::ChangeToWorkshop(uint64_t workshopId)
         return false;
     }
 
-    _conVars.ExecuteServerCommand(std::format("host_workshop_map {}", workshopId).c_str());
+    _conVars.ExecuteServerCommand(std::format("host_workshop_map {}", workshopId));
     return true;
 }
 

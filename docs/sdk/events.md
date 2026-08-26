@@ -95,16 +95,16 @@ The setters change the server's stored value and fire change callbacks, but they
 
 ### Taking a convar over server-wide
 
-A feature that overrides a server convar owes the operator two things: snapshot their value before the *first* write, and restore only what it actually took. @ref VoltMod::Sdk::ConVarOverrides "ConVarOverrides" is that ledger, and it writes through the console path so replicated convars reach clients:
+A feature that overrides a server convar owes the operator two things: save their value before the *first* write, and restore only what it actually took. @ref VoltMod::Sdk::ConVarLease "ConVarLease" holds those snapshots, and it writes through the console path so replicated convars reach clients:
 
 ```cpp
-VoltMod::ConVarOverrides overrides{runtime.ConVars};   // restores on destruction
+VoltMod::ConVarLease lease{runtime.ConVars};   // restores on destruction
 
-overrides.Take("sv_gravity", 250.0f, /*fallback*/ 800.0f);
-overrides.Release("sv_gravity");                       // no-op if it never took it
+lease.Override("sv_gravity", 250.0f);          // false if the server has no such convar
+lease.Restore("sv_gravity");                   // no-op if it never took it
 ```
 
-`Take` snapshots on the first take and re-asserts afterwards, so calling it every round is correct and necessary - the engine resets convars around a map change, and an override that is not re-asserted silently lapses. The fallback is recorded only when the live value cannot be read at all. The destructor calls `ReleaseAll()`, which is what makes unload safe. The admin-system fun toggles and bhop's "enabled" mode both drive one of these.
+`Override` saves on the first take and re-asserts afterwards, so calling it every round is correct and necessary - the engine resets convars around a map change, and an override that is not re-asserted silently lapses. It returns `false` for a convar the server does not have, rather than recording a snapshot it could never restore. The destructor calls `RestoreAll()`, which is what makes unload safe. The admin-system fun toggles and bhop's "enabled" mode both drive one of these.
 
 ### Per-client replication
 
@@ -118,10 +118,10 @@ The client's connect/map-change snapshot restores the server value, so re-send t
 
 ### Raw value access
 
-@ref VoltMod::Sdk::RawConVar "Raw(name)" returns a handle to the convar's raw storage: reads and writes skip change callbacks *and* replication. Use it for scoped flips around one player's processing (e.g. inside a @ref VoltMod::Sdk::MovementHook "MovementHook" pre/post pair), where the engine setters' broadcast would leak the change to everyone. You are responsible for restoring the prior value; the handle stays valid for the convar's lifetime, so resolve once and cache.
+@ref VoltMod::Sdk::ConVarStorage "Storage(name)" returns a handle to the convar's raw storage: reads and writes skip change callbacks *and* replication. Use it for scoped flips around one player's processing (e.g. inside a @ref VoltMod::Sdk::MovementHook "MovementHook" pre/post pair), where the engine setters' broadcast would leak the change to everyone. You are responsible for restoring the prior value; the handle stays valid for the convar's lifetime, so resolve once and cache.
 
 ```cpp
-VoltMod::RawConVar autoBhop = cvars.Raw("sv_autobunnyhopping");
+VoltMod::ConVarStorage autoBhop = cvars.Storage("sv_autobunnyhopping");
 bool saved = autoBhop.GetBool();
 autoBhop.SetBool(true);   // no callbacks, nothing networked
 // ... run the per-player work ...

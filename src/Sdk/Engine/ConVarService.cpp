@@ -3,31 +3,52 @@
 #include <VoltMod/Sdk/Engine/ConVarService.hpp>
 #include <VoltMod/Sdk/Engine/GameInterfaces.hpp>
 #include <VoltMod/Sdk/Engine/RecipientFilter.hpp>
+#include <algorithm>
 #include <engine/igameeventsystem.h>
 #include <icvar.h>
 #include <networkbasetypes.pb.h>
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
 #include <tier1/convar.h>
+#include <vector>
 
 namespace
 {
 
 /**
- * The ConVarService that installed the engine's global change callback, or nullptr.
- * ICvar takes a bare function pointer with no user data, so the trampoline below has nothing
- * to carry a service reference in. Set when the callback is installed and cleared by
- * ConVarService::Shutdown(), which also removes the callback - the two are never out of step.
+ * Every ConVarService currently routing engine changes to its listeners.
+ *
+ * ICvar takes a bare function pointer with no user data, so the trampoline below has nothing to
+ * carry a service reference in. It is a list rather than one pointer because each plugin owns its
+ * own Runtime, and therefore its own ConVarService: a single slot would let whichever plugin
+ * subscribed last silently cut off the others. The engine callback is installed when this list
+ * becomes non-empty and removed when it empties, so it is installed exactly once.
  */
-VoltMod::Sdk::ConVarService* g_changeSink = nullptr;
+std::vector<VoltMod::Sdk::ConVarService*> g_changeSinks;
 
 void GlobalConVarChangeCallback(ConVarRefAbstract* ref, CSplitScreenSlot /*slot*/, const char* newValue,
                                 const char* oldValue, void* /*unk*/)
 {
-    if (!ref || !g_changeSink)
+    if (!ref)
         return;
 
-    g_changeSink->DispatchChange(ref->GetName(), oldValue, newValue);
+    // Copied because a listener may subscribe or shut down while this loop runs.
+    const auto sinks = g_changeSinks;
+    for (auto* sink : sinks)
+        sink->DispatchChange(ref->GetName(), oldValue, newValue);
+}
+
+/** Resolve @p name to a usable convar reference, or nullopt when it is null or not registered. */
+std::optional<ConVarRefAbstract> Resolve(const char* name)
+{
+    if (!name)
+        return std::nullopt;
+
+    ConVarRefAbstract ref(name);
+    if (!ref.IsValidRef() || !ref.IsConVarDataAvailable())
+        return std::nullopt;
+
+    return ref;
 }
 
 }  // namespace
@@ -43,36 +64,36 @@ ConVarService::~ConVarService()
     Shutdown();
 }
 
-RawConVar::RawConVar(const char* name)
+ConVarStorage::ConVarStorage(const char* name)
 {
-    ConVarRefAbstract ref(name);
-    if (!ref.IsValidRef() || !ref.IsConVarDataAvailable())
+    auto ref = Resolve(name);
+    if (!ref)
         return;
 
     // Slot -1 is the shared (non-splitscreen) storage; some cvars only expose slot 0.
-    CVValue_t* value = ref.GetConVarData()->Value(CSplitScreenSlot(-1));
+    CVValue_t* value = ref->GetConVarData()->Value(CSplitScreenSlot(-1));
     if (!value)
-        value = ref.GetConVarData()->Value(CSplitScreenSlot(0));
+        value = ref->GetConVarData()->Value(CSplitScreenSlot(0));
     _value = value;
 }
 
-bool RawConVar::GetBool() const
+bool ConVarStorage::GetBool() const
 {
     return _value && static_cast<CVValue_t*>(_value)->m_bValue;
 }
 
-void RawConVar::SetBool(bool value)
+void ConVarStorage::SetBool(bool value)
 {
     if (_value)
         static_cast<CVValue_t*>(_value)->m_bValue = value;
 }
 
-float RawConVar::GetFloat() const
+float ConVarStorage::GetFloat() const
 {
     return _value ? static_cast<CVValue_t*>(_value)->m_fl32Value : 0.0f;
 }
 
-void RawConVar::SetFloat(float value)
+void ConVarStorage::SetFloat(float value)
 {
     if (_value)
         static_cast<CVValue_t*>(_value)->m_fl32Value = value;
@@ -92,78 +113,68 @@ bool ConVarService::Initialize()
 
 std::optional<int> ConVarService::GetInt(const char* name) const
 {
-    ConVarRefAbstract ref(name);
-    if (!ref.IsValidRef() || !ref.IsConVarDataAvailable())
-        return std::nullopt;
-
-    return ref.GetInt();
+    auto ref = Resolve(name);
+    return ref ? std::optional(ref->GetInt()) : std::nullopt;
 }
 
 std::optional<float> ConVarService::GetFloat(const char* name) const
 {
-    ConVarRefAbstract ref(name);
-    if (!ref.IsValidRef() || !ref.IsConVarDataAvailable())
-        return std::nullopt;
-
-    return ref.GetFloat();
+    auto ref = Resolve(name);
+    return ref ? std::optional(ref->GetFloat()) : std::nullopt;
 }
 
 std::optional<std::string> ConVarService::GetString(const char* name) const
 {
-    ConVarRefAbstract ref(name);
-    if (!ref.IsValidRef() || !ref.IsConVarDataAvailable())
+    auto ref = Resolve(name);
+    if (!ref)
         return std::nullopt;
 
-    CUtlString str = ref.GetString();
+    CUtlString str = ref->GetString();
     return std::string(str.Get());
 }
 
 std::optional<bool> ConVarService::GetBool(const char* name) const
 {
-    ConVarRefAbstract ref(name);
-    if (!ref.IsValidRef() || !ref.IsConVarDataAvailable())
-        return std::nullopt;
-
-    return ref.GetBool();
+    auto ref = Resolve(name);
+    return ref ? std::optional(ref->GetBool()) : std::nullopt;
 }
 
 bool ConVarService::Exists(const char* name) const
 {
-    ConVarRefAbstract ref(name);
-    return ref.IsValidRef() && ref.IsConVarDataAvailable();
+    return Resolve(name).has_value();
 }
 
 bool ConVarService::SetInt(const char* name, int value)
 {
-    ConVarRefAbstract ref(name);
-    if (!ref.IsValidRef() || !ref.IsConVarDataAvailable())
+    auto ref = Resolve(name);
+    if (!ref)
         return false;
 
-    ref.SetInt(value);
+    ref->SetInt(value);
     return true;
 }
 
 bool ConVarService::SetFloat(const char* name, float value)
 {
-    ConVarRefAbstract ref(name);
-    if (!ref.IsValidRef() || !ref.IsConVarDataAvailable())
+    auto ref = Resolve(name);
+    if (!ref)
         return false;
 
-    ref.SetFloat(value);
+    ref->SetFloat(value);
     return true;
 }
 
 bool ConVarService::SetString(const char* name, const char* value)
 {
-    ConVarRefAbstract ref(name);
-    if (!ref.IsValidRef() || !ref.IsConVarDataAvailable())
+    auto ref = Resolve(name);
+    if (!ref || !value)
         return false;
 
-    ref.SetString(CUtlString(value));
+    ref->SetString(CUtlString(value));
     return true;
 }
 
-void ConVarService::ExecuteServerCommand(const char* command)
+void ConVarService::ExecuteServerCommand(std::string_view command)
 {
     auto* engine = _interfaces.Engine;
     if (!engine)
@@ -171,9 +182,6 @@ void ConVarService::ExecuteServerCommand(const char* command)
         Log::Warn("ConVarService::ExecuteServerCommand: IVEngineServer2 not available.");
         return;
     }
-
-    if (!command)
-        return;
 
     // ServerCommand appends to the shared command buffer verbatim, with no separator between
     // calls - so back-to-back commands would concatenate into one malformed line. Guarantee a
@@ -185,56 +193,62 @@ void ConVarService::ExecuteServerCommand(const char* command)
     engine->ServerCommand(line.c_str());
 }
 
+INetworkMessageInternal* ConVarService::SetConVarMessage()
+{
+    if (_setConVarMsg)
+        return _setConVarMsg;
+
+    auto* messages = _interfaces.NetworkMessages;
+    if (!messages)
+        return nullptr;
+
+    _setConVarMsg = messages->FindNetworkMessage("CNETMsg_SetConVar");
+    if (!_setConVarMsg)
+        _setConVarMsg = messages->FindNetworkMessagePartial("SetConVar");
+    if (!_setConVarMsg)
+        Log::Warn("ConVarService::ReplicateToClient: CNETMsg_SetConVar not found.");
+
+    return _setConVarMsg;
+}
+
 bool ConVarService::ReplicateToClient(int slot, const char* name, const char* value)
 {
-    auto& interfaces = _interfaces;
-    if (!interfaces.GameEventSystem || !interfaces.NetworkMessages || !Core::IsValidSlot(slot) || !name || !value)
+    if (!_interfaces.GameEventSystem || !Core::IsValidSlot(slot) || !name || !value)
         return false;
 
-    if (!_setConVarMsg)
+    auto* msgType = SetConVarMessage();
+    if (!msgType)
+        return false;
+
+    CNetMessage* msg = msgType->AllocateMessage();
+    if (!msg)
+        return false;
+
+    auto* setConVar = msg->ToPB<CNETMsg_SetConVar>();
+    if (setConVar)
     {
-        _setConVarMsg = interfaces.NetworkMessages->FindNetworkMessage("CNETMsg_SetConVar");
-        if (!_setConVarMsg)
-            _setConVarMsg = interfaces.NetworkMessages->FindNetworkMessagePartial("SetConVar");
+        auto* cvar = setConVar->mutable_convars()->add_cvars();
+        cvar->set_name(name);
+        cvar->set_value(value);
+
+        SingleRecipientFilter filter(slot);
+        _interfaces.GameEventSystem->PostEventAbstract(-1, false, &filter, msgType, msg, 0);
     }
 
-    if (!_setConVarMsg)
-    {
-        Log::Warn("ConVarService::ReplicateToClient: CNETMsg_SetConVar not found.");
-        return false;
-    }
-
-    CNetMessage* pMsg = _setConVarMsg->AllocateMessage();
-    if (!pMsg)
-        return false;
-
-    auto* pSetConVar = pMsg->ToPB<CNETMsg_SetConVar>();
-    if (!pSetConVar)
-    {
-        interfaces.NetworkMessages->DeallocateNetMessageAbstract(_setConVarMsg, pMsg);
-        return false;
-    }
-
-    auto* cvar = pSetConVar->mutable_convars()->add_cvars();
-    cvar->set_name(name);
-    cvar->set_value(value);
-
-    SingleRecipientFilter filter(slot);
-    interfaces.GameEventSystem->PostEventAbstract(-1, false, &filter, _setConVarMsg, pMsg, 0);
-
-    interfaces.NetworkMessages->DeallocateNetMessageAbstract(_setConVarMsg, pMsg);
-    return true;
+    _interfaces.NetworkMessages->DeallocateNetMessageAbstract(msgType, msg);
+    return setConVar != nullptr;
 }
 
 Core::Subscription ConVarService::OnChange(ChangeCallback callback)
 {
-    if (!_globalCallbackInstalled)
+    if (!_routingChanges)
     {
         if (auto* cvar = _interfaces.CVar)
         {
-            cvar->InstallGlobalChangeCallback(&GlobalConVarChangeCallback);
-            g_changeSink = this;
-            _globalCallbackInstalled = true;
+            if (g_changeSinks.empty())
+                cvar->InstallGlobalChangeCallback(&GlobalConVarChangeCallback);
+            g_changeSinks.push_back(this);
+            _routingChanges = true;
         }
     }
 
@@ -243,16 +257,21 @@ Core::Subscription ConVarService::OnChange(ChangeCallback callback)
 
 void ConVarService::Shutdown()
 {
-    if (!_globalCallbackInstalled)
+    _changeCallbacks.Clear();
+
+    if (!_routingChanges)
         return;
 
-    if (auto* cvar = _interfaces.CVar)
-        cvar->RemoveGlobalChangeCallback(&GlobalConVarChangeCallback);
+    std::erase(g_changeSinks, this);
+    _routingChanges = false;
 
-    if (g_changeSink == this)
-        g_changeSink = nullptr;
-    _globalCallbackInstalled = false;
-    _changeCallbacks.Clear();
+    // The engine callback belongs to whichever services are still listening; take it off only
+    // once the last one is gone, or an unloading plugin would deafen the others.
+    if (g_changeSinks.empty())
+    {
+        if (auto* cvar = _interfaces.CVar)
+            cvar->RemoveGlobalChangeCallback(&GlobalConVarChangeCallback);
+    }
 }
 
 void ConVarService::DispatchChange(const char* name, const char* oldValue, const char* newValue)

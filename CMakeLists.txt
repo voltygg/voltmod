@@ -110,6 +110,7 @@ if(BUILD_TESTING)
             src/Players/PlayerManager.cpp
             src/Players/Targeting.cpp
             src/Sdk/Client/ClientCvarPending.cpp
+            src/Sdk/Engine/ConVarSnapshots.cpp
             src/Core/StringUtils.cpp
             src/Core/SteamId.cpp
             src/Core/TimeUtils.cpp

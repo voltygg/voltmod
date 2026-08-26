@@ -6,6 +6,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <string_view>
 
 class INetworkMessageInternal;
 
@@ -15,7 +16,7 @@ namespace VoltMod::Sdk
 struct GameInterfaces;
 
 /**
- * @brief Direct handle to a convar's raw value storage.
+ * @brief Direct handle to a convar's value storage.
  *
  * Reads and writes bypass change callbacks and FCVAR_REPLICATED networking: nothing is sent
  * to clients and no OnChange listener fires. Intended for scoped flips around one player's
@@ -26,13 +27,13 @@ struct GameInterfaces;
  * The handle stays valid for the convar's lifetime (registered convars outlive map changes),
  * so it can be resolved once and cached.
  */
-class RawConVar
+class ConVarStorage
 {
 public:
-    RawConVar() = default;
-    explicit RawConVar(const char* name);
+    ConVarStorage() = default;
+    explicit ConVarStorage(const char* name);
 
-    bool Valid() const { return _value != nullptr; }
+    bool IsValid() const { return _value != nullptr; }
     bool GetBool() const;
     void SetBool(bool value);
     float GetFloat() const;
@@ -57,6 +58,7 @@ public:
 
     bool Initialize();
 
+    /** Reads return nullopt for a null, unknown, or not-yet-registered convar. */
     std::optional<int> GetInt(const char* name) const;
     std::optional<float> GetFloat(const char* name) const;
     std::optional<std::string> GetString(const char* name) const;
@@ -73,10 +75,11 @@ public:
     bool SetFloat(const char* name, float value);
     bool SetString(const char* name, const char* value);
 
-    void ExecuteServerCommand(const char* command);
+    /** Queue @p command on the server console, as if it were a line in a cfg. */
+    void ExecuteServerCommand(std::string_view command);
 
-    /** Raw-storage handle for @p name (see @ref RawConVar). !Valid() when the convar is unknown. */
-    RawConVar Raw(const char* name) const { return RawConVar(name); }
+    /** Value-storage handle for @p name (see @ref ConVarStorage). !IsValid() when unknown. */
+    ConVarStorage Storage(const char* name) const { return ConVarStorage(name); }
 
     /**
      * @brief Send CNETMsg_SetConVar to one client so its prediction uses @p value.
@@ -89,17 +92,30 @@ public:
     bool ReplicateToClient(int slot, const char* name, const char* value);
 
     using ChangeCallback = std::function<void(const char* name, const char* oldValue, const char* newValue)>;
+
+    /**
+     * Listen for engine-side convar changes until the returned Subscription drops.
+     *
+     * The engine's global change callback is installed on the first subscription across all
+     * services and removed once the last one goes away, so plugins loaded together each see
+     * every change regardless of load order.
+     */
     [[nodiscard]] Core::Subscription OnChange(ChangeCallback callback);
+
+    /** Fan a change out to this service's listeners. For the engine trampoline only. */
     void DispatchChange(const char* name, const char* oldValue, const char* newValue);
 
-    /** Take the engine's global change callback back off, and stop routing to this instance.
-     *  Idempotent; the destructor calls it. */
+    /** Drop every listener and stop routing engine changes here. Idempotent; the destructor
+     *  calls it. Other services keep receiving changes. */
     void Shutdown();
 
 private:
+    /** The cached CNETMsg_SetConVar prototype, looked up on first use. Null when unavailable. */
+    INetworkMessageInternal* SetConVarMessage();
+
     GameInterfaces& _interfaces;
     Core::CallbackRegistry<ChangeCallback> _changeCallbacks;
-    bool _globalCallbackInstalled = false;
+    bool _routingChanges = false;
     INetworkMessageInternal* _setConVarMsg = nullptr;
 };
 

@@ -60,7 +60,7 @@
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/TargetResolver.hpp>
 #include <VoltMod/Sdk/Client/ClientCvarService.hpp>
-#include <VoltMod/Sdk/Engine/ConVarOverrides.hpp>
+#include <VoltMod/Sdk/Engine/ConVarLease.hpp>
 #include <VoltMod/Sdk/Engine/ConVarService.hpp>
 #include <VoltMod/Sdk/Engine/MapService.hpp>
 #include <VoltMod/Sdk/Engine/NetChannel.hpp>
@@ -128,8 +128,9 @@ using Players::ParamEffectDescriptor;
 using Sdk::ChatInputCapture;
 using Sdk::ClientCvarService;
 using Sdk::ClientCvarStatus;
-using Sdk::ConVarOverrides;
+using Sdk::ConVarLease;
 using Sdk::ConVarService;
+using Sdk::ConVarStorage;
 using Sdk::DamageHook;
 using Sdk::DamageView;
 using Sdk::EntityKeyValues;
@@ -153,7 +154,6 @@ using Sdk::PanoramaVote;
 using Sdk::PawnService;
 using Sdk::PersistentCenterHtml;
 using Sdk::PlayerController;
-using Sdk::RawConVar;
 using Sdk::ServerClock;
 using Sdk::ServerCommand;
 using Sdk::SubtickMove;

@@ -23,7 +23,7 @@ class GameData;
  *
  * Pre/post callbacks fire around each player's RunCommand with the owning slot resolved
  * (-1 when unresolved). A pre/post pair brackets exactly that player's movement
- * processing, which makes it the place for per-player state flips (see RawConVar).
+ * processing, which makes it the place for per-player state flips (see ConVarStorage).
  *
  * Cmd listeners (ListenPreCmd/ListenPostCmd) additionally receive a UserCmdView - the
  * command's viewangles, buttons, mouse deltas, and sub-tick moves decoded from the
