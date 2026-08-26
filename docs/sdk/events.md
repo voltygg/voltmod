@@ -93,6 +93,19 @@ uint64_t id = cvars.OnChange([](const char* name, const char* oldValue, const ch
 
 The setters change the server's stored value and fire change callbacks, but they do **not** network anything. An `FCVAR_REPLICATED` convar set this way silently diverges from what clients predict with. They also do no cross-type conversion: the SDK's `SetAs<T>` no-ops when the convar's type has no conversion from `T` (e.g. `SetInt` on a bool convar like `sv_autobunnyhopping`; `SetString` works for any type). For a server-wide change that must reach clients, use `ExecuteServerCommand("name value")`. The console path both sets and replicates, exactly as a cfg line would. Two escape hatches cover the per-player cases.
 
+### Taking a convar over server-wide
+
+A feature that overrides a server convar owes the operator two things: snapshot their value before the *first* write, and restore only what it actually took. @ref VoltMod::Sdk::ConVarOverrides "ConVarOverrides" is that ledger, and it writes through the console path so replicated convars reach clients:
+
+```cpp
+VoltMod::ConVarOverrides overrides{runtime.ConVars};   // restores on destruction
+
+overrides.Take("sv_gravity", 250.0f, /*fallback*/ 800.0f);
+overrides.Release("sv_gravity");                       // no-op if it never took it
+```
+
+`Take` snapshots on the first take and re-asserts afterwards, so calling it every round is correct and necessary - the engine resets convars around a map change, and an override that is not re-asserted silently lapses. The fallback is recorded only when the live value cannot be read at all. The destructor calls `ReleaseAll()`, which is what makes unload safe. The admin-system fun toggles and bhop's "enabled" mode both drive one of these.
+
 ### Per-client replication
 
 @ref VoltMod::Sdk::ConVarService::ReplicateToClient "ReplicateToClient" sends `CNETMsg_SetConVar` to a single client, so only that client's view of a replicated convar changes; the server value and every other client are untouched. This is how you make *one* player's prediction run with different movement settings (the bhop plugin replicates `sv_autobunnyhopping` to granted players):
