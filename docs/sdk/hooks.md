@@ -2,6 +2,14 @@
 
 [TOC]
 
+Every hook service here is **lazily installed**: subscribing to its event is what
+binds the engine, and dropping the last subscription unbinds it again. None of
+them has an `Install()`, `Enable()` or `Available()` of its own - whether the
+gamedata behind one resolved is @ref VoltMod::Capabilities "runtime.Capabilities",
+recorded once by `Runtime::Start` before any plugin's `OnLoad` runs. The last
+section shows how to hook an engine vfunc the framework does not cover, with the
+same two pieces the services use.
+
 ## Movement
 
 @ref VoltMod::Movement is a manual vtable hook on
@@ -22,7 +30,8 @@ _post = runtime.MovementHook.Post += [this](int slot) { /* after it ran: restore
 Hook contracts:
 
 - The hook is a SourceHook **DVP hook**: it binds the `CCSPlayer_MovementServices` class vtable, which is found in `server.dll`/`libserver.so` by the same RTTI (Windows) / ELF symbol (Linux) lookup @ref VoltMod::ClientCvars uses for `CServerSideClient`. No instance is involved, so subscribing from `OnLoad` with no player connected works, and the handlers then fire for every player, including ones who connect afterwards.
-- When gamedata cannot resolve the hook, the subscription is **refused**: `+=` hands back an empty `Subscription`, the framework logs why, and `Installed()` stays false. A silent never-firing handler is the failure this replaces.
+- When gamedata cannot resolve the hook, the subscription is **refused**: `+=` hands back an empty `Subscription` and the framework logs why. A silent never-firing handler is the failure this replaces. Read `runtime.Capabilities.Has(Capability::Movement)` beforehand if you would rather not attempt it.
+- The pre and post sides go in as a **pair or not at all**. A lone post would run against state the pre it brackets never established, so if SourceHook refuses either side nothing stays installed and the log names the side that failed.
 - The owning slot is resolved for you (`-1` when unresolved, e.g. an instance mid-destruction).
 - Removal is by hook id. SourceHook resolves the id from what it recorded at add time and never dereferences the hooked object, so unsubscribing is safe after a map change has already destroyed every pawn.
 - Two things **drift with CS2 updates** and are resolved together at install time: the vtable index, which lives in gamedata as `"RunCommand"`, and the class name. A wrong index calls an unrelated vfunc and crashes; a wrong class name resolves to nothing (or to another class's table) and the hook silently never fires - when a pawn happens to be live, its vtable is compared against the resolved one and a mismatch warns. Re-verify both (against SwiftlyS2/CS2Fixes gamedata) after every game update.
@@ -114,7 +123,7 @@ if (!JustTeleported(slot))       // your own window, against your own clock
 
 Semantics worth knowing:
 
-- The first subscription hooks the `"Teleport"` vtable index on every *live* pawn; the binding is per pawn, not per class, so exactly one handler call happens per teleport however many pawns are bound. A missing gamedata offset refuses the subscription (empty `Subscription`, `Enabled()` stays false) rather than tracking nothing quietly.
+- The first subscription hooks the `"Teleport"` vtable index on every *live* pawn; the binding is per pawn, not per class, so exactly one handler call happens per teleport however many pawns are bound. A missing gamedata offset refuses the subscription (an empty `Subscription`) rather than tracking nothing quietly; `Capability::Teleport` carries the reason.
 - The slot argument is `-1` when the teleported pawn belongs to no player, so guard before indexing.
 - Respawning hands the player a brand-new pawn object, which makes the previous binding stale. The tracker re-binds from its own `PlayerSpawn` handler. Since a spawn also moves the player, **a spawn raises the event too**. If you only care about mid-life teleports, filter spawns yourself.
 - The framework's `StartupServer` hook drops every binding at map start, before the previous map's pawn addresses are recycled. If you stamp @ref VoltMod::Clock "runtime.Clock" times, remember that clock restarts with the map: a stamp ahead of the current time belongs to the previous one.
@@ -145,7 +154,7 @@ Contracts worth knowing:
 - Like Movement this is a **DVP hook** on the class vtable installed by the first subscription, so
   subscribing from `OnLoad` with no player connected works and covers every pawn from then on.
   Dropping the last subscription removes it, and a gamedata failure refuses the subscription
-  outright (`Installed()` stays false).
+  outright; `Capability::Damage` carries the reason.
 - `Hitbox` comes from the damage trace, not `m_iHitGroupId` (which reads `-1` for bullets). It is
   `Invalid` for damage with no trace behind it, which is how world damage is told apart. The
   hitgroup on @ref VoltMod::PlayerHurt comes from the event instead, and reads `Generic` rather
@@ -157,6 +166,94 @@ Contracts worth knowing:
   `TakeDamageInfo*`, `GameTraceHitbox`, `HitboxGroupId`), so a CS2 layout
   change is a gamedata edit. Anything that fails to resolve refuses the subscription rather than
   acting on the wrong bytes.
+
+## Hooking a vfunc the framework does not cover
+
+`<VoltMod/Unsafe/VtableHook.hpp>` is the same pair of pieces the four services
+above are built from. `Unsafe` is an opt-in tier, not a compatibility layer: a
+wrong vtable index calls an unrelated function and crashes the server, and
+nothing here can check that for you.
+
+Two pieces, because a hook has two halves that cannot live in the same place:
+
+- `VOLTMOD_VHOOK<arity>(Name, Ret, params...)` (and `VOLTMOD_VHOOK<arity>_VOID`)
+  at **namespace scope in the .cpp that owns the hook**. It expands to
+  SourceHook's manual-hook declaration plus a `Name##Hook` traits type.
+- @ref VoltMod::VtableHook "VtableHook", the installed hook as a value. It owns
+  the SourceHook ids, and dropping it removes them.
+
+```cpp
+#include <VoltMod/Engine/MetamodGlobals.hpp>   // the SourceHook globals
+#include <VoltMod/Unsafe/VtableHook.hpp>
+
+// void CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*)
+VOLTMOD_VHOOK3_VOID(MyPlugin_Teleport, const Vector*, const QAngle*, const Vector*);
+
+class TeleportWatcher
+{
+    VoltMod::Runtime& _rt;
+    VoltMod::VtableHook _hook;
+
+    void Arm()
+    {
+        // pre only, so post is nullptr; pass a live instance to have its vptr checked
+        // against the class table the gamedata name resolved to.
+        auto hook = VoltMod::VtableHook::OnVTable<MyPlugin_TeleportHook>(
+            "MyPlugin Teleport", _rt.Bindings.PlayerPawn, _rt.Bindings.Teleport.Index(),
+            this, &TeleportWatcher::Hook_Teleport, nullptr);
+        if (!hook)
+        {
+            VoltMod::Log::Warn("teleport watch off: {}", hook.error().Detail);
+            return;
+        }
+        _hook = std::move(*hook);   // dropping _hook removes the hook
+    }
+
+    void Hook_Teleport(const Vector*, const QAngle*, const Vector*)
+    {
+        Record(META_IFACEPTR(void));
+        RETURN_META(MRES_IGNORED);
+    }
+};
+```
+
+`OnInstance` is the per-object form (SourceHook's `Hook_Normal`): it binds one
+live object rather than the class table, which is what @ref VoltMod::Teleport
+does per pawn. Re-bind it whenever the object is replaced - a respawn hands the
+player a brand-new pawn.
+
+### One hooked vfunc per translation unit
+
+`VOLTMOD_VHOOK*` expands to namespace-scope *definitions* - hook-manager
+globals and add/remove functions named after `Name` - so a second translation
+unit declaring the same `Name` is a duplicate symbol at link time.
+
+The sharper reason is the descriptor. `SH_MANUALHOOK_RECONFIGURE`, which is how
+a gamedata-supplied index reaches the declaration, **mutates the file-static
+descriptor `SH_DECL_MANUALHOOK` created**. Two vfuncs sharing one `Name` would
+take turns repointing it, and whichever hook was already live would then be
+dispatched through the other one's slot. `VtableHook` re-points a declaration
+only when the index actually changes (gamedata resolves once per process, so in
+practice only the first install does anything), but the rule stands: one `Name`,
+one vfunc, one .cpp.
+
+### What it does for you, and what it does not
+
+- **Pair-or-nothing.** Ask for both sides and either being refused leaves
+  nothing installed, with the error naming the side that failed.
+- **Removal is by id**, so `Reset()` (and the destructor) is safe after a map
+  change has already freed every instance the hook was bound to.
+- **The class-name cross-check.** Pass a live instance as the last argument and
+  its vptr is compared to the resolved class table; a mismatch means the gamedata
+  class name drifted, and warns.
+- It does **not** validate the index. That is gamedata's job, and re-verifying it
+  after a game update is yours - see @ref sdk_gamedata_guide.
+- Install from an `Event::Lifecycle` (as the framework services do) rather than
+  from `OnLoad` when the hook costs anything per call, so a plugin that never
+  subscribes never pays for it.
+- Keep the `VtableHook` next to the state its handler touches. A hook that
+  outlives its handler's object dispatches into freed memory; one that outlives
+  the plugin dispatches into an unloaded module.
 
 ## ServerCommand
 

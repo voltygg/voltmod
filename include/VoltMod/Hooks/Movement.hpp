@@ -6,6 +6,7 @@
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Hooks/UserCmd.hpp>
+#include <VoltMod/Unsafe/VtableHook.hpp>
 #include <array>
 #include <cstdint>
 
@@ -47,7 +48,7 @@ public:
     /** @p entities resolves the owning slot per usercmd, @p bindings the vtable index, the class
      *  vtable and the byte offsets. Both must outlive this hook; the Runtime declares them above. */
     Movement(EntitySystem& entities, const Bindings& bindings);
-    ~Movement() { Remove(); }
+    ~Movement();
     Movement(const Movement&) = delete;
     Movement& operator=(const Movement&) = delete;
 
@@ -71,8 +72,8 @@ private:
     bool Acquire();
     void ReleaseRef();
 
-    Status Install();
-    void Remove();
+    /** Any connected player's movement services, for the install-time vtable cross-check. */
+    void* LiveMovementServices() const;
 
     void* Hook_RunCommandPre(void* userCmd);
     void* Hook_RunCommandPost(void* userCmd);
@@ -82,10 +83,8 @@ private:
     const Bindings& _bindings;
     int _refs = 0;         // live subscriptions across all five events
     UserCmdView _cmdView;  // decoded once per RunCommand, reused across pre/post dispatch
-    bool _installed = false;
-    int _preHookId = 0;  // SourceHook DVP-hook ids; removal is by id, see Remove()
-    int _postHookId = 0;
-    int _preSlot = -1;  // slot resolved in the pre hook, reused by the immediately-following post
+    VtableHook _hook;      // the pre/post pair; removed by dropping it
+    int _preSlot = -1;     // slot resolved in the pre hook, reused by the immediately-following post
     /** Slot -> movement services, to keep the per-usercmd slot lookup off the entity system.
      *  A hit is still confirmed against the engine, so a stale entry can only cost a rescan. */
     mutable std::array<void*, MaxPlayers> _movementServices{};

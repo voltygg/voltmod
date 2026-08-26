@@ -6,27 +6,31 @@
 #include <VoltMod/Events/EventTypes.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/Teleport.hpp>
+#include <VoltMod/Unsafe/VtableHook.hpp>
 #include <mathlib/vector.h>
+#include <utility>
 
 namespace VoltMod
 {
 
-// CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*); the vtable index comes from
-// gamedata at Enable time. Bound per pawn (Hook_Normal), so the handler runs only for the instance
-// it was added on - one call per teleport, no matter how many are bound.
-SH_DECL_MANUALHOOK3_void(VoltMod_EntityTeleport, 0, 0, 0, const Vector*, const QAngle*, const Vector*);
+// CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*). Bound per pawn
+// (Hook_Normal), so the handler runs only for the instance it was added on - one call per
+// teleport, no matter how many are bound.
+VOLTMOD_VHOOK3_VOID(VoltMod_EntityTeleport, const Vector*, const QAngle*, const Vector*);
 
 Teleport::Teleport(EntitySystem& entities, const Bindings& bindings, GameEvents& events, SlotEvents& slots)
     : Teleported({.OnFirst =
                       [this] {
-                          if (Status enabled = Enable(); !enabled)
+                          if (!_bindings.Teleport)
                           {
-                              Log::Warn("Teleport: {}; teleports will not be tracked.", enabled.error().Detail);
+                              Log::Warn(
+                                  "Teleport: the Teleport vtable index did not bind; teleports will not be tracked.");
                               return false;
                           }
+                          BindAll();
                           return true;
                       },
-                  .OnLast = [this] { Disable(); }}),
+                  .OnLast = [this] { UnbindAll(); }}),
       _entities(entities),
       _bindings(bindings),
       _events(events),
@@ -35,21 +39,16 @@ Teleport::Teleport(EntitySystem& entities, const Bindings& bindings, GameEvents&
 
 Teleport::~Teleport()
 {
-    Disable();
+    // A Subscription that outlives this service would leave per-pawn hooks live across a
+    // meta reload, calling a handler in an unloaded module.
+    if (!Teleported.Empty())
+        Log::Error("Teleport: {} subscription(s) outlived the tracker; a handler may dangle.", Teleported.Count());
+    UnbindAll();
 }
 
-Status Teleport::Enable()
+void Teleport::BindAll()
 {
-    if (_enabled)
-        return {};
-
-    if (!_bindings.Teleport)
-        return std::unexpected(Error::Unsupported("gamedata has no 'Teleport' vtable index"));
-
-    const int index = _bindings.Teleport.Index();
-    SH_MANUALHOOK_RECONFIGURE(VoltMod_EntityTeleport, index, 0, 0);
-    _enabled = true;
-
+    _armed = true;
     for (int slot = 0; slot < MaxPlayers; ++slot)
         Bind(slot);
 
@@ -61,18 +60,17 @@ Status Teleport::Enable()
     });
     _slotListener = _slots.Changed += [this](int slot) { Unbind(slot); };
 
-    Log::Info("Teleport tracking enabled (vtable index {}).", index);
-    return {};
+    Log::Info("Teleport tracking enabled (vtable index {}).", _bindings.Teleport.Index());
 }
 
-void Teleport::Disable()
+void Teleport::UnbindAll()
 {
     for (int slot = 0; slot < MaxPlayers; ++slot)
         Unbind(slot);
 
     _spawnListener.Reset();
     _slotListener.Reset();
-    _enabled = false;
+    _armed = false;
 }
 
 void Teleport::OnServerStartup()
@@ -86,7 +84,7 @@ void Teleport::OnServerStartup()
 
 void Teleport::Bind(int slot)
 {
-    if (!_enabled || !IsValidSlot(slot))
+    if (!_armed || !IsValidSlot(slot))
         return;
 
     Unbind(slot);
@@ -103,8 +101,13 @@ void Teleport::Bind(int slot)
         if (other != slot && _pawns[other] == pawn)
             Unbind(other);
 
+    auto hook = VtableHook::OnInstance<VoltMod_EntityTeleportHook>("Teleport", pawn, _bindings.Teleport.Index(), this,
+                                                                   &Teleport::Hook_Teleport, true);
+    if (!hook)
+        return;
+
     _pawns[slot] = pawn;
-    _hookIds[slot] = SH_ADD_MANUALHOOK(VoltMod_EntityTeleport, pawn, SH_MEMBER(this, &Teleport::Hook_Teleport), true);
+    _hooks[slot] = std::move(*hook);
 }
 
 void Teleport::Unbind(int slot)
@@ -112,9 +115,7 @@ void Teleport::Unbind(int slot)
     if (!IsValidSlot(slot))
         return;
 
-    if (_hookIds[slot] != 0)
-        SH_REMOVE_HOOK_ID(_hookIds[slot]);
-    _hookIds[slot] = 0;
+    _hooks[slot].Reset();
     _pawns[slot] = nullptr;
 }
 

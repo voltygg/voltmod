@@ -4,19 +4,18 @@
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Hooks/Movement.hpp>
+#include <VoltMod/Unsafe/VtableHook.hpp>
 #include <algorithm>
 #include <cs_usercmd.pb.h>
-#include <string>
-#include <string_view>
+#include <utility>
 
 namespace VoltMod
 {
 
 // void* return/param stand in for the real CPlayer_MovementServices::RunCommand(CUserCmd*)
-// signature - a pre/post observer never touches either. The vtable index is reconfigured
-// from gamedata at install time. Bound to the class vtable (DVP hook), so it fires for every
-// player without needing a live instance to bind to.
-SH_DECL_MANUALHOOK1(VoltMod_MovementRunCommand, 0, 0, 0, void*, void*);
+// signature - a pre/post observer never touches either. Bound to the class vtable (DVP hook), so
+// it fires for every player without needing a live instance to bind to.
+VOLTMOD_VHOOK1(VoltMod_MovementRunCommand, void*, void*);
 
 // The five events share one install: whichever is subscribed to first binds the vtable, and the
 // last subscription to drop across all of them unbinds it.
@@ -30,15 +29,37 @@ Movement::Movement(EntitySystem& entities, const Bindings& bindings)
       _bindings(bindings)
 {}
 
+Movement::~Movement()
+{
+    // A Subscription that outlives this service would leave the vtable hook live across a
+    // meta reload, calling a handler in an unloaded module.
+    if (_refs != 0)
+        Log::Error("Movement: {} subscription(s) outlived the hook; a movement handler may dangle.", _refs);
+}
+
 bool Movement::Acquire()
 {
     if (_refs == 0)
     {
-        if (Status installed = Install(); !installed)
+        if (!_bindings.UserCmdPB)
+            Log::Warn("Movement: no usable 'UserCmdPB' offset; cmd listeners get Valid=false views.");
+
+        if (!_bindings.UserCmdNumber)
+            Log::Warn(
+                "Movement: no usable 'UserCmdNumber' offset; falling back to the protobuf's "
+                "legacy_command_number, which the live client leaves at 0.");
+
+        _movementServices.fill(nullptr);
+
+        auto hook = VtableHook::OnVTable<VoltMod_MovementRunCommandHook>(
+            "Movement RunCommand", _bindings.MovementServices, _bindings.RunCommand.Index(), this,
+            &Movement::Hook_RunCommandPre, &Movement::Hook_RunCommandPost, LiveMovementServices());
+        if (!hook)
         {
-            Log::Warn("Movement: {}; movement handlers will not fire.", installed.error().Detail);
+            Log::Warn("Movement: {}; movement handlers will not fire.", hook.error().Detail);
             return false;
         }
+        _hook = std::move(*hook);
     }
     ++_refs;
     return true;
@@ -47,86 +68,19 @@ bool Movement::Acquire()
 void Movement::ReleaseRef()
 {
     if (_refs > 0 && --_refs == 0)
-        Remove();
+    {
+        _hook.Reset();
+        // Every cached pointer belongs to a pawn that may be freed before the next install.
+        _movementServices.fill(nullptr);
+    }
 }
 
-Status Movement::Install()
+void* Movement::LiveMovementServices() const
 {
-    if (_installed)
-        return {};
-
-    if (!_bindings.RunCommand)
-        return std::unexpected(Error::Unsupported("gamedata has no 'RunCommand' vtable index"));
-
-    if (!_bindings.MovementServices)
-        return std::unexpected(Error::Engine("the movement services vtable did not bind"));
-
-    void* vtable = _bindings.MovementServices.Table();
-    const std::string_view movementServicesClass = _bindings.MovementServices.Class();
-
-    // The class name drifts like the index does, and nothing else here would notice: a wrong name
-    // resolves to some other class's table and the hook then never fires. Whenever a pawn happens to
-    // be live, its own vptr is the ground truth to check against - but Install() must still work
-    // from OnLoad, with no player connected, so a mismatch only warns.
     for (int slot = 0; slot < MaxPlayers; ++slot)
-    {
-        void* instance = _entities.MovementServices(slot);
-        if (!instance)
-            continue;
-        if (*static_cast<void**>(instance) != vtable)
-            Log::Warn("Movement: a live pawn's movement services vtable differs from {}; wrong class name?",
-                      movementServicesClass);
-        break;
-    }
-
-    if (!_bindings.UserCmdPB)
-        Log::Warn("Movement: no usable 'UserCmdPB' offset; cmd listeners get Valid=false views.");
-
-    if (!_bindings.UserCmdNumber)
-        Log::Warn(
-            "Movement: no usable 'UserCmdNumber' offset; falling back to the protobuf's "
-            "legacy_command_number, which the live client leaves at 0.");
-
-    _movementServices.fill(nullptr);
-
-    const int index = _bindings.RunCommand.Index();
-    SH_MANUALHOOK_RECONFIGURE(VoltMod_MovementRunCommand, index, 0, 0);
-    _preHookId =
-        SH_ADD_MANUALDVPHOOK(VoltMod_MovementRunCommand, vtable, SH_MEMBER(this, &Movement::Hook_RunCommandPre), false);
-    _postHookId =
-        SH_ADD_MANUALDVPHOOK(VoltMod_MovementRunCommand, vtable, SH_MEMBER(this, &Movement::Hook_RunCommandPost), true);
-    if (_preHookId == 0 || _postHookId == 0)
-    {
-        // Half a hook is worse than none: post would reuse a slot pre never resolved.
-        if (_preHookId != 0)
-            SH_REMOVE_HOOK_ID(_preHookId);
-        if (_postHookId != 0)
-            SH_REMOVE_HOOK_ID(_postHookId);
-        _preHookId = 0;
-        _postHookId = 0;
-        return std::unexpected(Error::Engine("SourceHook refused the RunCommand hook"));
-    }
-
-    _installed = true;
-    Log::Info("Movement RunCommand hook installed on {} vtable (index {}).", movementServicesClass, index);
-    return {};
-}
-
-void Movement::Remove()
-{
-    if (!_installed)
-        return;
-
-    // Removal by id never dereferences the hooked instance, so this is safe even after a map change
-    // has destroyed every pawn.
-    SH_REMOVE_HOOK_ID(_preHookId);
-    SH_REMOVE_HOOK_ID(_postHookId);
-
-    _installed = false;
-    _preHookId = 0;
-    _postHookId = 0;
-    // Every cached pointer belongs to a pawn that may be freed before the next install.
-    _movementServices.fill(nullptr);
+        if (void* instance = _entities.MovementServices(slot))
+            return instance;
+    return nullptr;
 }
 
 int Movement::SlotFromMovementServices(void* movementServices) const

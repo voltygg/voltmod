@@ -120,6 +120,13 @@ Use these patterns throughout the framework:
   subscription installs it, the last one to drop removes it, and `OnFirst`
   returning false refuses the subscription after logging why. Services do not
   expose `Install()`/`Enable()` alongside it.
+- A vtable hook is a `VOLTMOD_VHOOK*` declaration at file scope plus a
+  `VtableHook` member (`<VoltMod/Unsafe/VtableHook.hpp>`): the declaration is one
+  hooked vfunc per translation unit - `SH_MANUALHOOK_RECONFIGURE` mutates the
+  file-static it creates - and the member owns the pre/post pair, installs
+  pair-or-nothing, and removes by id when it is dropped. No service repeats the
+  reconfigure/add/id bookkeeping, and no SourceHook `SH_*` add or remove macro
+  appears outside that one macro.
 - Registrations return a `[[nodiscard]] Subscription`. Store it beside the state
   its handler captures. Dropping one unsubscribes, and a `Scheduler` one-shot is
   cancelled the same way.
@@ -164,7 +171,7 @@ Entities   -> Core, Engine
 Events     -> Core, Engine, Entities
 Messaging  -> Core, Engine, Entities, Events
 Players    -> Core, Engine, Entities
-Hooks      -> Core, Engine, Entities, Events, Players
+Hooks      -> Core, Engine, Entities, Events, Players, Unsafe
 Commands   -> Core, Engine, Entities, Players, Messaging
 Menu       -> Core, Engine, Entities, Players, Messaging, Hooks
 Http       -> Core

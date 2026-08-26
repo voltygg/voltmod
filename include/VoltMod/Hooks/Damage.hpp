@@ -5,6 +5,7 @@
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/HitGroup.hpp>
+#include <VoltMod/Unsafe/VtableHook.hpp>
 #include <cstdint>
 
 namespace VoltMod
@@ -44,7 +45,7 @@ class Damage
 public:
     /** Both must outlive this hook; the Runtime declares them above it. */
     Damage(EntitySystem& entities, const Bindings& bindings);
-    ~Damage() { Remove(); }
+    ~Damage();
     Damage(const Damage&) = delete;
     Damage& operator=(const Damage&) = delete;
 
@@ -55,9 +56,6 @@ private:
     bool Acquire();
     void ReleaseRef();
 
-    Status Install();
-    void Remove();
-
     bool Hook_OnTakeDamageAlive(void* result);
 
     /** Walk info -> trace -> hitbox for the struck hitgroup. */
@@ -65,9 +63,8 @@ private:
 
     EntitySystem& _entities;
     const Bindings& _bindings;
-    int _refs = 0;  // live subscriptions on Hit
-    bool _installed = false;
-    int _hookId = 0;
+    int _refs = 0;     // live subscriptions on Hit
+    VtableHook _hook;  // the pre hook on the pawn class vtable; removed by dropping it
 };
 
 }  // namespace VoltMod

@@ -8,6 +8,7 @@
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
+#include <VoltMod/Unsafe/VtableHook.hpp>
 #include <array>
 
 namespace VoltMod
@@ -50,8 +51,10 @@ public:
     void OnServerStartup();
 
 private:
-    Status Enable();
-    void Disable();
+    /** Bind every live pawn and start listening for the spawns and slot changes that invalidate a
+     *  binding; the reverse drops all of it. Driven only by Teleported's Lifecycle. */
+    void BindAll();
+    void UnbindAll();
 
     void Hook_Teleport(const Vector* origin, const QAngle* angles, const Vector* velocity);
 
@@ -64,11 +67,11 @@ private:
     const Bindings& _bindings;
     GameEvents& _events;
     SlotEvents& _slots;
-    std::array<void*, MaxPlayers> _pawns{};  // the instance each slot's hook is bound to
-    std::array<int, MaxPlayers> _hookIds{};  // SourceHook ids, 0 when unbound
+    std::array<void*, MaxPlayers> _pawns{};     // the instance each slot's hook is bound to
+    std::array<VtableHook, MaxPlayers> _hooks;  // one per bound pawn; empty when unbound
     Subscription _spawnListener;
     Subscription _slotListener;
-    bool _enabled = false;
+    bool _armed = false;
 };
 
 }  // namespace VoltMod

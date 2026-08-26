@@ -85,6 +85,7 @@
 #include <VoltMod/Players/TargetResolver.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <VoltMod/Unsafe/HookMacros.hpp>
+#include <VoltMod/Unsafe/VtableHook.hpp>
 
 // The Database vocabulary lives in <VoltMod/Database/Api.hpp>, deliberately
 // outside this umbrella: it drags <pqxx/pqxx> into every including TU, and

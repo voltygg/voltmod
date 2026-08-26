@@ -19,7 +19,8 @@ VoltMod
 ├── Menu        WASD center-HTML menus + Flow wizard
 ├── Database    Async PostgreSQL + row mapping (VOLTMOD_ENABLE_POSTGRES)
 ├── Http        Async HTTP client + JSON REST helpers
-├── Unsafe      Raw SourceHook install macros (VOLTMOD_SCOPED_HOOK)
+├── Unsafe      Opt-in raw hooking: VOLTMOD_SCOPED_HOOK (HookMacros.hpp) and
+│               VOLTMOD_VHOOK + VtableHook (VtableHook.hpp)
 └── App         The composition root: Runtime, MetamodPlugin, ServiceExchange
 ```
 
@@ -175,7 +176,8 @@ An `Event` whose source costs something to run - a vtable hook, an engine-wide c
 `Lifecycle`: the first subscription installs it and the last one to drop removes it. That is why
 `Movement`, `Damage` and `Teleport` have no `Install()` or `Enable()` to call, and why a hook that
 gamedata cannot resolve refuses the subscription (an empty `Subscription`) instead of silently
-never firing.
+never firing. The install itself is a @ref VoltMod::VtableHook "VtableHook" value paired with a
+`VOLTMOD_VHOOK` declaration; @ref sdk_hooks_guide covers using the same two pieces from a plugin.
 
 Operations that can fail meaningfully return `Result<T>` or @ref VoltMod::Status, an
 `std::expected` over @ref VoltMod::Error - a coarse `ErrorCode`, log text in `Detail`, and a
@@ -211,7 +213,7 @@ Entities   -> Core, Engine
 Events     -> Core, Engine, Entities
 Messaging  -> Core, Engine, Entities, Events
 Players    -> Core, Engine, Entities
-Hooks      -> Core, Engine, Entities, Events, Players
+Hooks      -> Core, Engine, Entities, Events, Players, Unsafe
 Commands   -> Core, Engine, Entities, Players, Messaging
 Menu       -> Core, Engine, Entities, Players, Messaging, Hooks
 Http       -> Core

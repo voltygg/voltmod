@@ -144,11 +144,11 @@ public:
     /** The game's own yes/no vote panel. Subscribes on the first StartVote().
      *  Depends on: Interfaces, Entities, Events, Scheduler. */
     VoltMod::Vote Vote{Interfaces, Entities, Events, Scheduler};
-    /** Dormant until a plugin calls Install(); removes its vtable hook on destruction.
+    /** Dormant until something subscribes; the last subscription dropped removes the vtable hook.
      *  Depends on: Entities, Bindings. */
     Movement MovementHook{Entities, Bindings};
-    /** Dormant until Install(); observation only - listeners see each hit but cannot change it.
-     *  Depends on: Entities, Bindings. */
+    /** Dormant until something subscribes to Hit; observation only - listeners see each hit but
+     *  cannot change it. Depends on: Entities, Bindings. */
     VoltMod::Damage Damage{Entities, Bindings};
     /** Stateless per-client net-channel reads (latency, replicated userinfo cvars).
      *  Depends on: Interfaces. */

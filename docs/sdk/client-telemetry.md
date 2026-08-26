@@ -81,4 +81,11 @@ The service is a **degradable load stage** (`ClientCvars`). It needs two gamedat
 | `ProcessRespondCvarValue` | vtable index of the response handler | Rejected at lookup, so the stage degrades instead of hooking an unrelated vfunc |
 | `ServerSideClientSlot` | byte offset of the player slot inside `CServerSideClient` | Rejected at lookup too; unchecked it would attribute answers to the wrong player |
 
-Both drift with engine updates; see @ref sdk_gamedata_guide. When any part of the setup fails the framework logs one warning, the load continues, @ref VoltMod::ClientCvars::Available "Available()" stays false, and every `Query()` returns false. Check `Available()` once at load rather than treating each `false` from `Query()` as a per-call failure.
+Both drift with engine updates; see @ref sdk_gamedata_guide. When any part of the setup fails the framework logs one warning, the load continues, `Capability::ClientCvars` is off and carries the reason, and every `Query()` returns false. Check the capability once at load rather than treating each `false` from `Query()` as a per-call failure:
+
+```cpp
+if (!runtime.Capabilities.Has(VoltMod::Capability::ClientCvars))
+    Log::Warn("no client convar queries: {}", runtime.Capabilities.Reason(VoltMod::Capability::ClientCvars));
+```
+
+Unlike the movement, damage and teleport hooks, this one is not lazily installed: it is a load stage, because the service is a query API with no event of its own to subscribe to. `Runtime::Start` installs it and records the outcome; a successful install logs `Client convar response hook installed on CServerSideClient vtable (index N).` followed by `Client convar queries enabled (slot offset N).`

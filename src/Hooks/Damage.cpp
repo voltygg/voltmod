@@ -5,15 +5,16 @@
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Hooks/Damage.hpp>
+#include <VoltMod/Unsafe/VtableHook.hpp>
 #include <cstdint>
-#include <string_view>
+#include <utility>
 
 namespace VoltMod
 {
 
 // bool CCSPlayerPawn::OnTakeDamage_Alive(CTakeDamageResult*). void* stands in for the result: the
 // SDK declares neither it nor CTakeDamageInfo, so their fields are reached by gamedata offset.
-SH_DECL_MANUALHOOK1(VoltMod_OnTakeDamageAlive, 0, 0, 0, bool, void*);
+VOLTMOD_VHOOK1(VoltMod_OnTakeDamageAlive, bool, void*);
 
 HitGroup Damage::ReadHitGroup(void* info) const
 {
@@ -35,15 +36,36 @@ Damage::Damage(EntitySystem& entities, const Bindings& bindings)
       _bindings(bindings)
 {}
 
+Damage::~Damage()
+{
+    // A Subscription that outlives this service would leave the vtable hook live across a
+    // meta reload, calling a handler in an unloaded module.
+    if (_refs != 0)
+        Log::Error("Damage: {} subscription(s) outlived the hook; a damage handler may dangle.", _refs);
+}
+
 bool Damage::Acquire()
 {
     if (_refs == 0)
     {
-        if (Status installed = Install(); !installed)
+        // A wrong offset silently reads the wrong bytes, so a missing one leaves the hook
+        // uninstalled rather than letting handlers act on nonsense.
+        if (!_bindings.TakeDamage.Attacker || !_bindings.TakeDamage.Damage || !_bindings.TakeDamage.DamageTypes ||
+            !_bindings.TakeDamage.Trace || !_bindings.GameTraceHitbox || !_bindings.HitboxGroupId)
         {
-            Log::Warn("Damage: {}; damage handlers will not fire.", installed.error().Detail);
+            Log::Warn("Damage: gamedata is missing a damage field offset; damage handlers will not fire.");
             return false;
         }
+
+        auto hook = VtableHook::OnVTable<VoltMod_OnTakeDamageAliveHook>(
+            "Damage OnTakeDamage_Alive", _bindings.PlayerPawn, _bindings.OnTakeDamageAlive.Index(), this,
+            &Damage::Hook_OnTakeDamageAlive, nullptr);
+        if (!hook)
+        {
+            Log::Warn("Damage: {}; damage handlers will not fire.", hook.error().Detail);
+            return false;
+        }
+        _hook = std::move(*hook);
     }
     ++_refs;
     return true;
@@ -52,48 +74,7 @@ bool Damage::Acquire()
 void Damage::ReleaseRef()
 {
     if (_refs > 0 && --_refs == 0)
-        Remove();
-}
-
-Status Damage::Install()
-{
-    if (_installed)
-        return {};
-
-    if (!_bindings.OnTakeDamageAlive)
-        return std::unexpected(Error::Unsupported("gamedata has no 'OnTakeDamageAlive' vtable index"));
-
-    // A wrong offset silently reads the wrong bytes, so a missing one leaves the hook uninstalled
-    // rather than letting handlers act on nonsense.
-    if (!_bindings.TakeDamage.Attacker || !_bindings.TakeDamage.Damage || !_bindings.TakeDamage.DamageTypes ||
-        !_bindings.TakeDamage.Trace || !_bindings.GameTraceHitbox || !_bindings.HitboxGroupId)
-        return std::unexpected(Error::Unsupported("gamedata is missing a damage field offset"));
-
-    if (!_bindings.PlayerPawn)
-        return std::unexpected(Error::Engine("the player pawn vtable did not bind"));
-
-    const int index = _bindings.OnTakeDamageAlive.Index();
-    SH_MANUALHOOK_RECONFIGURE(VoltMod_OnTakeDamageAlive, index, 0, 0);
-    _hookId = SH_ADD_MANUALDVPHOOK(VoltMod_OnTakeDamageAlive, _bindings.PlayerPawn.Table(),
-                                   SH_MEMBER(this, &Damage::Hook_OnTakeDamageAlive), false);
-    if (_hookId == 0)
-        return std::unexpected(Error::Engine("SourceHook refused the OnTakeDamage_Alive hook"));
-
-    _installed = true;
-    Log::Info("Damage OnTakeDamage_Alive hook installed on {} vtable (index {}).", _bindings.PlayerPawn.Class(), index);
-    return {};
-}
-
-void Damage::Remove()
-{
-    if (!_installed)
-        return;
-
-    // Removal by id never dereferences a hooked instance, so this is safe even after a map change
-    // has destroyed every pawn.
-    SH_REMOVE_HOOK_ID(_hookId);
-    _hookId = 0;
-    _installed = false;
+        _hook.Reset();
 }
 
 bool Damage::Hook_OnTakeDamageAlive(void* result)

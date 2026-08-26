@@ -7,6 +7,7 @@
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Hooks/ClientCvars.hpp>
+#include <VoltMod/Unsafe/VtableHook.hpp>
 #include <cstdint>
 #include <cstring>
 #include <engine/igameeventsystem.h>
@@ -14,14 +15,15 @@
 #include <netmessages.pb.h>
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
+#include <utility>
 
 namespace VoltMod
 {
 
-// CServerSideClient::ProcessRespondCvarValue(const CNetMessagePB<CCLCMsg_RespondCvarValue>&); the
-// vtable index is reconfigured from gamedata at Initialize time. Bound to the class vtable
-// (DVP hook), so it fires for every connected client without needing per-instance bindings.
-SH_DECL_MANUALHOOK1(VoltMod_ProcessRespondCvarValue, 0, 0, 0, bool, const CNetMessagePB<CCLCMsg_RespondCvarValue>&);
+// CServerSideClient::ProcessRespondCvarValue(const CNetMessagePB<CCLCMsg_RespondCvarValue>&).
+// Bound to the class vtable (DVP hook), so it fires for every connected client without needing
+// per-instance bindings.
+VOLTMOD_VHOOK1(VoltMod_ProcessRespondCvarValue, bool, const CNetMessagePB<CCLCMsg_RespondCvarValue>&);
 
 class ClientCvars::Impl
 {
@@ -33,7 +35,7 @@ public:
     void Shutdown();
 
     /** Internal readiness: the hook is what makes a query answerable at all. */
-    bool Installed() const { return _hookId != 0; }
+    bool Installed() const { return static_cast<bool>(_hook); }
     bool Query(int slot, const std::string& cvarName, QueryCallback callback);
 
     ClientCvarPendingTable& Pending() { return _pending; }
@@ -52,52 +54,42 @@ private:
     ClientCvarPendingTable _pending;
     INetworkMessageInternal* _getCvarValue = nullptr;
     int _slotOffset = -1;
-    int _hookId = 0;
+    VtableHook _hook;
 };
 
 Status ClientCvars::Impl::Initialize()
 {
-    if (_hookId != 0)
+    if (Installed())
         return {};
 
     const auto& interfaces = _interfaces;
     if (!interfaces.Engine || !interfaces.NetworkMessages || !interfaces.GameEventSystem)
         return std::unexpected(Error::NotReady("engine interfaces unavailable"));
 
-    if (!_bindings.ProcessRespondCvarValue)
-        return std::unexpected(Error::Unsupported("the ProcessRespondCvarValue vtable index did not bind"));
     if (!_bindings.ServerSideClientSlot)
         return std::unexpected(Error::Unsupported("the ServerSideClientSlot offset did not bind"));
-    if (!_bindings.ServerSideClient)
-        return std::unexpected(Error::Unsupported("the CServerSideClient vtable did not bind"));
-
-    const int vtableIndex = _bindings.ProcessRespondCvarValue.Index();
-    const int slotOffset = _bindings.ServerSideClientSlot.Value();
 
     INetworkMessageInternal* getCvarValue =
         interfaces.NetworkMessages->FindNetworkMessagePartial("CSVCMsg_GetCvarValue");
     if (!getCvarValue)
         return std::unexpected(Error::Engine("the engine does not provide CSVCMsg_GetCvarValue"));
 
-    SH_MANUALHOOK_RECONFIGURE(VoltMod_ProcessRespondCvarValue, vtableIndex, 0, 0);
-    _hookId = SH_ADD_MANUALDVPHOOK(VoltMod_ProcessRespondCvarValue, _bindings.ServerSideClient.Table(),
-                                   SH_MEMBER(this, &Impl::Hook_ProcessRespondCvarValue), true);
-    if (_hookId == 0)
-        return std::unexpected(Error::Engine("SourceHook refused the client convar response hook"));
+    auto hook = VtableHook::OnVTable<VoltMod_ProcessRespondCvarValueHook>(
+        "Client convar response", _bindings.ServerSideClient, _bindings.ProcessRespondCvarValue.Index(), this, nullptr,
+        &Impl::Hook_ProcessRespondCvarValue);
+    if (!hook)
+        return std::unexpected(hook.error());
 
+    _hook = std::move(*hook);
     _getCvarValue = getCvarValue;
-    _slotOffset = slotOffset;
-    Log::Info("Client convar queries enabled (vtable index {}, slot offset {}).", vtableIndex, slotOffset);
+    _slotOffset = _bindings.ServerSideClientSlot.Value();
+    Log::Info("Client convar queries enabled (slot offset {}).", _slotOffset);
     return {};
 }
 
 void ClientCvars::Impl::Shutdown()
 {
-    if (_hookId != 0)
-    {
-        SH_REMOVE_HOOK_ID(_hookId);
-        _hookId = 0;
-    }
+    _hook.Reset();
     _pending.ClearAll();
     _getCvarValue = nullptr;
     _slotOffset = -1;

@@ -29,7 +29,7 @@ renames it. `include/VoltMod/<Module>/` is where a header lives, and the
 | Events | `VoltMod/Events/` | The game event listener service and its typed event structs |
 | Messaging | `VoltMod/Messaging/` | Chat and center-HTML messages, sticky panels, chat colors, and the vote panel |
 | Hooks | `VoltMod/Hooks/` | Movement, damage, transmit, teleport, chat-input, and client-convar hooks |
-| Unsafe | `VoltMod/Unsafe/` | `VOLTMOD_SCOPED_HOOK` for raw SourceHook installs |
+| Unsafe | `VoltMod/Unsafe/` | Opt-in raw hooking: `VOLTMOD_SCOPED_HOOK`, and `VOLTMOD_VHOOK` + `VtableHook` for a vtable slot |
 | Database | `VoltMod/Database/` | Optional async PostgreSQL, migrations, and row mapping |
 | Http | `VoltMod/Http/` | Async HTTP and configured JSON endpoints |
 | App | `VoltMod/App/` | Metamod lifecycle, JSONC loading, status, and cross-plugin services |

@@ -37,6 +37,7 @@ file(GLOB_RECURSE VOLTMOD_RUNTIME_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Messaging/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Players/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Hooks/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Unsafe/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Commands/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Menu/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/App/*.cpp"
@@ -133,6 +134,8 @@ if(BUILD_TESTING)
             src/Engine/GameDataFile.cpp
             src/Engine/SigScanner.cpp
             src/Engine/VtableLookup.cpp
+            # The install policy behind VtableHook; the SourceHook half lives in VOLTMOD_VHOOK.
+            src/Unsafe/VtableHook.cpp
             src/Core/Strings.cpp
             src/Core/SteamId.cpp
             src/Core/Time.cpp
