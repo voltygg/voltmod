@@ -64,20 +64,24 @@ Later development uses:
 
 ```sh
 uv run poe build
+uv run poe test
 uv run poe build windows-msvc-debug
 uv run poe build-linux
 uv run poe new-plugin fun-votes
 ```
 
+Tests are a separate command so the edit-build loop stays fast; `poe test`
+recompiles first, then runs them.
+
 Output is written to
-`build/<preset>/plugins/<name>/<platform-arch>/`. Stage a server-ready addon:
+`build/<preset>/plugins/<name>/<platform-arch>/`. With `CS2_SERVER_PATH` set,
+build straight into a local server and run it:
 
 ```sh
-cmake --install build/<preset> --component <name> --prefix dist
+uv run poe build --install <name> --start
 ```
 
-Copy `dist/addons` into the server's `game/csgo` directory, start the server,
-run `meta list`, and test `!ping`.
+Then run `meta list` on the server console and test `!ping`.
 
 The [getting-started guide](docs/getting-started.md) explains every generated
 file, expected result, and common failure.

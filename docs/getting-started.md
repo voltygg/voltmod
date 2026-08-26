@@ -81,7 +81,8 @@ Bootstrap:
 
 Success ends with output under
 `build/<preset>/plugins/my-plugin/<platform-arch>/`. Bootstrap is the first
-build; use `uv run poe build` afterward.
+build; use `uv run poe build` afterward, and `uv run poe test` when you
+want CTest to run as well.
 
 ## Add another plugin
 
@@ -101,15 +102,30 @@ Each scaffold includes:
 - an English translation file;
 - Git-backed build identity for `meta list`.
 
-## Build and stage
+## Build and install
 
 ```sh
 uv run poe build
+uv run poe test
 uv run poe build windows-msvc-debug
 uv run poe build-linux
 ```
 
-Stage one plugin as a server-ready `addons/` tree:
+`test` brings the build up to date and then runs CTest.
+
+Set `CS2_SERVER_PATH` to a CS2 dedicated server installation, in `.env` or the
+environment, and install one plugin straight into it:
+
+```sh
+uv run poe build --install my-plugin --start
+```
+
+`--install` merges the server-ready `addons/` tree into `game/csgo`, seeds
+`configs/settings.jsonc` without overwriting later edits, and `--start` launches
+the server. `uv run poe install my-plugin` skips the build; `uv run poe
+start-server` launches on its own.
+
+To stage the same tree by hand instead:
 
 ```sh
 cmake --install build/<preset> --component my-plugin --prefix dist
@@ -158,19 +174,19 @@ Keep SDK-free decisions in plain types and add doctest coverage.
 ## Normal development loop
 
 ```sh
-uv run poe build
-cmake --install build/<preset> --component my-plugin --prefix dist
+uv run poe build --install my-plugin
 ```
 
-Copy the staged addon to a test server and reload or restart it. Native modules
-may remain locked on Windows while loaded.
+Restart the test server to pick up the new binary. Native modules stay locked
+while loaded on Windows, so an install into a running server fails until it
+stops.
 
 Before publishing:
 
 ```sh
 uv run poe lint
-uv run poe format-check
-uv run poe build
+uv run poe format
+uv run poe test
 ```
 
 ## Build details

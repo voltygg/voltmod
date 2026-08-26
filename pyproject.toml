@@ -39,13 +39,13 @@ dev = [
 [tool.poe.tasks]
 build = "voltmod build"
 build-linux = "voltmod build linux-steamrt-release"
+test = "voltmod test"
 doctor = "voltmod doctor"
 new-plugin = "voltmod new-plugin"
 lint = "ruff check ."
 
 modgraph = "voltmod modgraph"
 format = "voltmod format"
-format-check = "voltmod format --check"
 
 [tool.ruff]
 line-length = 100

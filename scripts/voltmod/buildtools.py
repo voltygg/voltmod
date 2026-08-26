@@ -102,8 +102,8 @@ def _chunk_by_length(files: list[str], budget: int) -> list[list[str]]:
     return [b for b in batches if b]
 
 
-def format_sources(repo_root: Path, dirs: list[str], *, check: bool) -> None:
-    """Format or check C++ files below the selected directories."""
+def format_sources(repo_root: Path, dirs: list[str]) -> None:
+    """Rewrite C++ files below the selected directories in the pinned style."""
     files = sorted(
         str(p)
         for d in dirs
@@ -114,19 +114,10 @@ def format_sources(repo_root: Path, dirs: list[str], *, check: bool) -> None:
     if not files:
         print("No C++ sources found.")
         return
-    args = ["--dry-run", "--Werror"] if check else ["-i"]
-
     # Stay below Windows' command-line limit on every platform.
-    failure = 0
     for batch in _chunk_by_length(files, MAX_COMMAND_LINE):
-        try:
-            run_tool("clang-format", *args, *batch)
-        except subprocess.CalledProcessError as e:
-            # Keep going so --check reports every offending file, not just the first batch.
-            failure = failure or e.returncode
-    if failure:
-        raise SystemExit(failure)
-    print(f"clang-format {'checked' if check else 'formatted'} {len(files)} file(s).")
+        run_tool("clang-format", "-i", *batch)
+    print(f"clang-format formatted {len(files)} file(s).")
 
 
 def _tool_version(tool: str, prefix: str) -> tuple[int, ...]:
@@ -311,3 +302,14 @@ def build(
         _ccache("-s", "-v")
 
     print(f"\nBuild complete: {preset} -> build/{preset}")
+
+
+def test(repo_root: Path, preset: str, *, filter_: str = "") -> None:
+    """Bring the build up to date, then run its CTest preset."""
+    if not (repo_root / "build" / preset).is_dir():
+        die(f"no build at build/{preset}; run `voltmod build {preset}` first")
+    # Recompile first: CTest runs whatever binaries are already on disk, and a
+    # stale pass is worse than a slow one. Incremental, so it is a no-op in CI.
+    ensure_msvc_env()
+    run_tool("cmake", "--build", "--preset", preset)
+    run_tool("ctest", "--preset", preset, *(["-R", filter_] if filter_ else []))

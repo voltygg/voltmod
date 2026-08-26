@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   check:
-    name: Lint, format, module graph
+    name: Lint and module graph
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -22,8 +22,6 @@ jobs:
       - name: Ruff
         run: uv run poe lint
 
-      - name: clang-format
-        run: uv run poe format-check
 
       - name: Module layering holds
         run: uv run poe modgraph

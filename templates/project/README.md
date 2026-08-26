@@ -22,19 +22,32 @@ Bootstrap is already the first build. Use this afterward:
 
 ```sh
 uv run poe build
+uv run poe test
 ```
+
+Tests are a separate command so the edit-build loop stays fast; `poe test`
+recompiles first, then runs them.
 
 ## Verify $plugin
 
-Stage a server-ready addon:
+Point `CS2_SERVER_PATH` at a CS2 dedicated server installation, in `.env` or
+the environment, then build straight into it:
 
 ```sh
-cmake --install build/<preset> --component $plugin --prefix dist
+uv run poe build --install $plugin --start
 ```
 
-Copy `dist/addons` into the CS2 server's `game/csgo` directory. Start the
-server, run `meta list`, and confirm `$plugin` appears. Join and enter `!ping`
-to verify command and translation loading.
+`--install` merges the server-ready `addons/` tree into `game/csgo` and seeds
+`configs/settings.jsonc` without overwriting later edits; `--start` launches the
+server afterwards. Run `meta list` and confirm `$plugin` appears, then join and
+enter `!ping` to verify command and translation loading.
+
+To install without rebuilding, or to launch on its own:
+
+```sh
+uv run poe install $plugin
+uv run poe start-server
+```
 
 Build output is under
 `build/<preset>/plugins/<name>/<platform-arch>/`.
@@ -53,11 +66,15 @@ then registers it in the root `CMakeLists.txt`.
 | Command | Purpose |
 | --- | --- |
 | `uv run poe doctor` | Check tools and project configuration |
-| `uv run poe build` | Build and test the release preset for this OS |
-| `uv run poe build windows-msvc-debug` | Build and test Windows debug |
-| `uv run poe build-linux` | Build and test Linux Steam Runtime release |
+| `uv run poe build` | Build the release preset for this OS |
+| `uv run poe test` | Build, then run the test suite |
+| `uv run poe build windows-msvc-debug` | Build Windows debug |
+| `uv run poe build-linux` | Build Linux Steam Runtime release |
+| `uv run poe build --install <name> --start` | Build, install locally, and launch the server |
+| `uv run poe install [name]` | Install built plugins into the local server |
+| `uv run poe start-server` | Launch the local CS2 dedicated server |
 | `uv run poe new-plugin <name>` | Scaffold and register another plugin |
-| `uv run poe format-check` | Check C++ formatting |
+| `uv run poe format` | Apply the pinned C++ formatting |
 
 ## PostgreSQL
 

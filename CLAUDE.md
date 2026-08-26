@@ -12,16 +12,21 @@ uv run poe doctor
 uv run poe build
 uv run poe build windows-msvc-release
 uv run poe build-linux
+uv run poe test
 uv run poe lint
-uv run poe format-check
+uv run poe format
 uv run poe modgraph
 uv run poe new-plugin <name>
 voltmod init
 ```
 
-`voltmod build` runs the selected CMake workflow preset, including CTest unless
-`--no-test` is passed. All CLI commands operate on the current working
-directory, so run scaffolding commands from the consumer repository.
+`voltmod build` configures and compiles one preset; `voltmod test` brings that
+build up to date and runs its CTest preset (`-R` filters cases). `voltmod
+install [plugin]` merges a built plugin into a local CS2 server at
+`CS2_SERVER_PATH`, `voltmod serve` runs that server, and `voltmod build
+--install <plugin> --start` does all three. All CLI commands operate on the
+current working directory, so run scaffolding commands from the consumer
+repository.
 
 ## Repository map
 

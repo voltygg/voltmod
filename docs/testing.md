@@ -10,7 +10,7 @@ loading Metamod or HL2SDK.
 ## Running
 
 ```bash
-uv run poe build                      # configure -> build -> ctest
+uv run poe test               # configure -> build -> ctest
 ctest --preset windows-msvc-release   # tests only
 ctest --preset windows-msvc-release --output-on-failure
 ```
