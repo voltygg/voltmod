@@ -1,35 +1,15 @@
 #pragma once
 
 #include <VoltMod/Core/Result.hpp>
-#include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Engine/Interfaces.hpp>
+#include <VoltMod/Entities/EntityRef.hpp>
+#include <VoltMod/Entities/Field.hpp>
 #include <cstdint>
-#include <string>
+#include <optional>
+#include <string_view>
 
 namespace VoltMod
 {
-
-/** @defgroup ButtonFlags Player Button Flags */
-/** @{ */
-constexpr uint64_t IN_ATTACK = 0x1;
-constexpr uint64_t IN_JUMP = 0x2;
-constexpr uint64_t IN_DUCK = 0x4;
-constexpr uint64_t IN_FORWARD = 0x8;
-constexpr uint64_t IN_BACK = 0x10;
-constexpr uint64_t IN_USE = 0x20;
-constexpr uint64_t IN_TURNLEFT = 0x80;
-constexpr uint64_t IN_TURNRIGHT = 0x100;
-constexpr uint64_t IN_MOVELEFT = 0x200;
-constexpr uint64_t IN_MOVERIGHT = 0x400;
-constexpr uint64_t IN_ATTACK2 = 0x800;
-constexpr uint64_t IN_RELOAD = 0x2000;
-constexpr uint64_t IN_SPEED = 0x10000;
-constexpr uint64_t IN_SCORE = 0x200000000ULL;
-constexpr uint64_t IN_ZOOM = 0x400000000ULL;
-constexpr uint64_t IN_LOOK_AT_WEAPON = 0x800000000ULL;
-/** @} */
 
 /** @defgroup EntityFlags CBaseEntity::m_fFlags bit values (Flags_t in the CS2 schema) */
 /** @{ */
@@ -41,113 +21,95 @@ constexpr uint32_t FL_GODMODE = 16384;
 constexpr uint32_t FL_NOTARGET = 32768;
 /** @} */
 
-/** Sentinel EHandle value for an unset/cleared handle (INVALID_EHANDLE_INDEX). */
-inline constexpr uint32_t InvalidEntityHandle = 0xFFFFFFFFu;
-
 /**
- * @brief Entity system access layer for the Source 2 engine.
- * Resolves CGameEntitySystem from IGameResourceService, provides player
- * controller lookup by slot, entity handle resolution, and button state reading.
+ * @brief A live entity, addressed by its fields.
+ *
+ * ### Validity
+ *
+ * Every wrapper built on this one - @ref Entity, @ref Pawn, @ref Controller - is a **frame-local
+ * value**. It holds a raw entity pointer, and the engine frees entities between frames without
+ * telling anyone, so a wrapper kept past the frame it was built in points at freed memory.
+ *
+ * - `explicit operator bool()` is the one validity check. There is no `IsValid()`.
+ * - Never store a wrapper. Store an @ref EntityRef (any entity) or a @ref PlayerRef (a player) and
+ *   resolve it again where it is needed: `runtime.Entities.Resolve(ref)`,
+ *   `runtime.Entities.PawnOf(slot)`.
+ * - Wrappers copy but do not assign. Copying rebinds a whole wrapper to the same entity, while
+ *   assigning through a single @ref Field writes that field's value into the entity, and the two
+ *   must not look alike at a call site.
+ *
+ * Reading a field of a falsy wrapper yields a zero value and writing it does nothing, so a
+ * wrapper that was never resolved degrades rather than crashing. A stale non-null one does not,
+ * which is why the rule is "never store one" and not "check before use".
+ *
+ * ### Fields
+ *
+ * Members declared as @ref Field are the entity's schema fields, used as if they were data
+ * members. Writes to networked fields replicate on their own. `Entity` carries the CBaseEntity
+ * fields every entity has; @ref Pawn and @ref Controller add theirs.
  */
-class EntitySystem
+class Entity
 {
+protected:
+    /** These two are declared first because every Field below captures @ref _e in its initializer,
+     *  and members initialize in declaration order. */
+
+    /** The service graph the verbs below reach the engine through. Null only for a
+     *  default-constructed wrapper, which is falsy anyway. */
+    EntitySystem* _sys = nullptr;
+    CEntityInstance* _e = nullptr;
+
 public:
-    /** All three must outlive this service; the Runtime declares them above it. */
-    EntitySystem(Interfaces& interfaces, const Bindings& bindings, SchemaService& schema);
-    ~EntitySystem();
-    EntitySystem(const EntitySystem&) = delete;
-    EntitySystem& operator=(const EntitySystem&) = delete;
+    Entity() = default;
+
+    /** @p entities must outlive this wrapper - the Runtime owns it and the wrapper is frame-local.
+     *  Prefer the factories on @ref EntitySystem over building one by hand. */
+    Entity(EntitySystem& entities, CEntityInstance* raw) noexcept : _sys(&entities), _e(raw) {}
+
+    Entity(const Entity&) = default;
+
+    /** Wrappers are not assignable: see the validity note above. Re-resolve instead. */
+    Entity& operator=(const Entity&) = delete;
+
+    explicit operator bool() const noexcept { return _e != nullptr; }
+
+    /** The entity this wraps, for the engine calls the framework has not typed yet. */
+    [[nodiscard]] CEntityInstance* Raw() const noexcept { return _e; }
+
+    /** Network entity index, or -1 when the entity is null or unlinked. */
+    [[nodiscard]] int Index() const;
+
+    /** The storable form of this entity. Invalid for a null or unlinked entity. */
+    [[nodiscard]] EntityRef Ref() const;
+
+    /** Designer classname, or empty. Borrowed from the engine; it dies with the entity. */
+    [[nodiscard]] std::string_view ClassName() const;
+
+    /** @name CBaseEntity fields, carried by every entity. */
+    /** @{ */
+    Field<int, "CBaseEntity", "m_iHealth"> Health{_e};
+    Field<uint8_t, "CBaseEntity", "m_iTeamNum"> Team{_e};
+    Field<uint8_t, "CBaseEntity", "m_lifeState"> LifeState{_e};
+    Field<uint32_t, "CBaseEntity", "m_fFlags"> Flags{_e};
+    Field<Vector, "CBaseEntity", "m_vecAbsVelocity"> Velocity{_e};
+    /** Raw `m_MoveType`. On a pawn prefer @ref Pawn::Move and @ref Pawn::SetMove, which keep this
+     *  and `m_nActualMoveType` in step - writing only one lets the engine revert it next tick. */
+    Field<uint8_t, "CBaseEntity", "m_MoveType"> MoveTypeRaw{_e};
+    Field<uint8_t, "CBaseEntity", "m_nActualMoveType"> ActualMoveTypeRaw{_e};
+    /** @} */
+
+    /** World position. Origin and rotation are not CBaseEntity schema fields in CS2; both live on
+     *  the entity's CGameSceneNode, reached through `m_CBodyComponent`. */
+    [[nodiscard]] Vector Origin() const;
+    [[nodiscard]] QAngle Angles() const;
 
     /**
-     * @brief Bind the gamedata offset and attempt a first read of the entity system.
-     * @return An error only when the service cannot work at all (no IGameResourceService, or the
-     *         offset did not bind). Success with `GetEntitySystem() == nullptr` means the engine
-     *         has not created CGameEntitySystem yet - expected before the first map load, and
-     *         OnServerStartup picks it up. Whether that counts as degraded is the caller's load
-     *         policy.
+     * Move the entity through `CBaseEntity::Teleport`. A component left as `std::nullopt` is
+     * unchanged.
+     * @return Error::NotReady for a null entity, Error::Unsupported when the Teleport vtable index
+     *         did not bind.
      */
-    Status Initialize();
-
-    /** Re-read the pointer for the new map. Called by the framework's StartupServer hook. */
-    void OnServerStartup();
-
-    CGameEntitySystem* GetEntitySystem();
-    CEntityInstance* GetPlayerController(int slot);
-
-    /**
-     * Typed wrapper around the controller in @p slot, built from this system and its schema.
-     * The result is a transient value - resolve it again rather than storing it across frames.
-     * Defined in PlayerController.cpp; include `<VoltMod/Entities/PlayerController.hpp>` to call it.
-     */
-    PlayerController Controller(int slot);
-
-    /**
-     * Entity for a full EHandle (index + serial), or nullptr when the handle is
-     * unset, stale, or its index was recycled by another entity. Validation happens
-     * on the entity identity, so a handle that outlived its entity is always safe.
-     */
-    CEntityInstance* ResolveEntityHandle(uint32_t handle);
-
-    /** Network entity index of @p entity, or -1 on null/unlinked. */
-    int GetEntityIndex(CEntityInstance* entity) const;
-
-    /**
-     * Slot owning @p pawn, or -1 when it is not a player pawn.
-     *
-     * Constant-time: reads the pawn's own `m_hController` back-reference rather than scanning
-     * the slots. Callers on per-damage or per-tick paths depend on that, so keep it O(1).
-     */
-    int SlotFromPawn(CEntityInstance* pawn);
-
-    /** Raw EHandle (index + serial) of @p entity, or 0xFFFFFFFF (invalid) on null/unlinked. */
-    uint32_t GetEntityHandle(CEntityInstance* entity) const;
-
-    uint64_t GetPlayerButtons(int slot);
-
-    /** The pawn's CPlayer_MovementServices* for @p slot, or nullptr (no pawn / offsets unresolved). */
-    void* GetPlayerMovementServices(int slot);
-
-    bool IsPlayerSlotValid(int slot);
-
-    /** First entity of @p className after @p startAfter (nullptr = list head).
-     *  nullptr when exhausted or the finder signature is unresolved. */
-    CEntityInstance* FindByClassName(CEntityInstance* startAfter, const char* className);
-
-    /** First entity whose targetname is @p name after @p startAfter (nullptr = list head).
-     *  nullptr when exhausted or the finder signature is unresolved. */
-    CEntityInstance* FindByName(CEntityInstance* startAfter, const char* name);
-
-private:
-    // PlayerController stays a three-pointer transient by reaching the siblings through these
-    // rather than carrying copies. Private, not @internal: a service graph reachable from a value
-    // type is the locator shape this framework does not have. The `Ref` suffix keeps each accessor
-    // from shadowing the type it returns for the rest of this class.
-    friend class PlayerController;
-    SchemaService& Schema() { return _schema; }
-    const Interfaces& InterfacesRef() const { return _interfaces; }
-    const Bindings& BindingsRef() const { return _bindings; }
-
-    void ResolveSchemaOffsets();
-    CEntityIdentity* GetEntityIdentityByIndex(CGameEntitySystem* pSys, int index);
-
-    /**
-     * Read the CGameEntitySystem* out of IGameResourceService at the gamedata offset. nullptr if either is
-     *unavailable.
-     */
-    CGameEntitySystem* ReadEntitySystemPointer();
-
-    /** Sole writer of the pointer: keeps the ::GameEntitySystem() global in step with the member. */
-    void SetEntitySystem(CGameEntitySystem* system);
-
-    Interfaces& _interfaces;
-    const Bindings& _bindings;
-    SchemaService& _schema;
-    int _offsetPlayerPawn = -1;
-    int _offsetPawnController = -1;
-    int _offsetMovementServices = -1;
-    int _offsetButtons = -1;
-    int _offsetButtonStates = -1;
-    bool _schemaOffsetsResolved = false;
+    Status Teleport(std::optional<Vector> origin, std::optional<QAngle> angles, std::optional<Vector> velocity) const;
 };
 
 }  // namespace VoltMod

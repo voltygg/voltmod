@@ -1,4 +1,4 @@
-#include <VoltMod/Core/Log.hpp>
+﻿#include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
@@ -70,7 +70,7 @@ Status Movement::Install()
     // from OnLoad, with no player connected, so a mismatch only warns.
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
-        void* instance = _entities.GetPlayerMovementServices(slot);
+        void* instance = _entities.MovementServices(slot);
         if (!instance)
             continue;
         if (*static_cast<void**>(instance) != vtable)
@@ -138,13 +138,13 @@ int Movement::SlotFromMovementServices(void* movementServices) const
     // to the wrong slot. A stale hit falls through to the rescan.
     auto& entities = _entities;
     for (int slot = 0; slot < MaxPlayers; ++slot)
-        if (_movementServices[slot] == movementServices && entities.GetPlayerMovementServices(slot) == movementServices)
+        if (_movementServices[slot] == movementServices && entities.MovementServices(slot) == movementServices)
             return slot;
 
     int found = -1;
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
-        _movementServices[slot] = entities.GetPlayerMovementServices(slot);
+        _movementServices[slot] = entities.MovementServices(slot);
         if (_movementServices[slot] == movementServices)
             found = slot;
     }

@@ -1,5 +1,5 @@
 #include <VoltMod/Core/Random.hpp>
-#include <VoltMod/Entities/PlayerController.hpp>
+#include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/TargetResolver.hpp>
 #include <VoltMod/Runtime.hpp>
@@ -24,13 +24,13 @@ std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(Runtime& runti
     {
         if (!p)
             continue;
-        PlayerController ctrl = entities.Controller(p->GetSlot());
+        Pawn pawn = entities.PawnOf(p->GetSlot());
         roster.push_back({
             .Slot = p->GetSlot(),
             .SteamId = p->GetSteamID(),
             .Name = p->GetName(),
-            .Team = ctrl.IsValid() ? ctrl.GetTeam() : 0,
-            .Alive = ctrl.IsValid() && ctrl.IsAlive(),
+            .Team = pawn ? static_cast<int>(pawn.Team) : 0,
+            .Alive = pawn && pawn.IsAlive(),
             .Bot = p->IsBot(),
             .Targetable = (caller && policy) ? policy(*caller, *p) : true,
         });

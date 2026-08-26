@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Entities/PlayerController.hpp>
+#include <VoltMod/Entities/Controller.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Players/TargetResolver.hpp>
 #include <VoltMod/Runtime.hpp>
@@ -19,13 +19,21 @@ struct ActionContext
 {
     Player* Caller;
     Player* Target;
-    PlayerController CallerCtrl;
-    PlayerController TargetCtrl;
+    /** Frame-local wrappers, resolved by the dispatcher for this one dispatch. The pawns are
+     *  reached through them: `TargetCtrl.GetPawn().Health`. */
+    Controller CallerCtrl;
+    Controller TargetCtrl;
     /** The live runtime, so action and effect bodies reach services without a global.
      *  Include <VoltMod/Runtime.hpp> to use it. */
     Runtime& Rt;
 
-    bool Valid() const { return Caller && Target && TargetCtrl.IsValid(); }
+    bool Valid() const { return Caller && Target && static_cast<bool>(TargetCtrl); }
+
+    /** @{ The pawns behind the two controllers. Free to call - each controller resolved its pawn
+     *  when the dispatcher built it - and falsy when the player has none. */
+    Pawn CallerPawn() const { return CallerCtrl.GetPawn(); }
+    Pawn TargetPawn() const { return TargetCtrl.GetPawn(); }
+    /** @} */
 };
 
 /**

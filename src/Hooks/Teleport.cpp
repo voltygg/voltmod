@@ -2,8 +2,7 @@
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
-#include <VoltMod/Entities/Entity.hpp>
-#include <VoltMod/Entities/PlayerController.hpp>
+#include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Events/EventTypes.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/Teleport.hpp>
@@ -92,7 +91,7 @@ void Teleport::Bind(int slot)
 
     Unbind(slot);
 
-    void* pawn = _entities.Controller(slot).GetPawn();
+    void* pawn = _entities.PawnOf(slot).Raw();
     if (!pawn)
         return;
 

@@ -5,7 +5,7 @@
 #include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Entities/Entity.hpp>
+#include <VoltMod/Entities/EntitySystem.hpp>
 #include <array>
 #include <vector>
 
@@ -36,8 +36,8 @@ class Transmit
 {
 public:
     /** @p slots tells the service when a slot changes hands, so hiding cannot carry over to
-     *  whoever occupies it next. The other three must outlive it; the Runtime declares them above. */
-    Transmit(EntitySystem& entities, const Bindings& bindings, SchemaService& schema, SlotEvents& slots);
+     *  whoever occupies it next. The other two must outlive it; the Runtime declares them above. */
+    Transmit(EntitySystem& entities, const Bindings& bindings, SlotEvents& slots);
     Transmit(const Transmit&) = delete;
     Transmit& operator=(const Transmit&) = delete;
 
@@ -76,7 +76,6 @@ private:
 
     EntitySystem& _entities;
     const Bindings& _bindings;
-    SchemaService& _schema;
     std::array<SlotState, MaxPlayers> _state{};
     std::vector<ExclusiveEntity> _exclusive; /**< Entities transmitted only to their beneficiary. */
     int _activeCount = 0;                    /**< Slots with any flag set; OnCheckTransmit early-outs at 0. */

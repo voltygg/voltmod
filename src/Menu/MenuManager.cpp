@@ -1,8 +1,7 @@
 #include "Menu/MenuRenderer.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Entities/Entity.hpp>
-#include <VoltMod/Entities/PlayerController.hpp>
+#include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Menu/MenuOption.hpp>
@@ -170,14 +169,14 @@ void MenuManager::SetPlayerFrozen(int slot, bool frozen)
     if (frozen == state.MovementFrozen)
         return;
 
-    PlayerController pc = _runtime.Entities.Controller(slot);
-    if (!pc.IsValid())
+    Pawn pawn = _runtime.Entities.PawnOf(slot);
+    if (!pawn)
         return;
 
     if (frozen)
-        state.PrevMoveType = pc.GetMoveType();
+        state.PrevMoveType = pawn.Move();
 
-    pc.SetMoveType(frozen ? MoveType::None : state.PrevMoveType);
+    pawn.SetMove(frozen ? MoveType::None : state.PrevMoveType);
     state.MovementFrozen = frozen;
 }
 
@@ -214,7 +213,7 @@ void MenuManager::OnGameFrame()
         if (!state.HasMenu())
             continue;
 
-        uint64_t buttons = entities.GetPlayerButtons(slot);
+        uint64_t buttons = entities.Buttons(slot);
         auto prev = state.PrevButtons;
         state.PrevButtons = buttons;
 

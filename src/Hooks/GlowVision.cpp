@@ -1,7 +1,7 @@
 #include <VoltMod/Entities/EntityOps.hpp>
+#include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/KeyValues.hpp>
 #include <VoltMod/Entities/PawnOps.hpp>
-#include <VoltMod/Entities/PlayerController.hpp>
 #include <VoltMod/Hooks/GlowVision.hpp>
 #include <VoltMod/Hooks/Transmit.hpp>
 #include <utility>
@@ -28,21 +28,23 @@ void GlowVision::DestroyPair(GlowPair& pair)
     _transmit.ClearEntityExclusive(pair.RelayIndex);
     _transmit.ClearEntityExclusive(pair.GlowIndex);
 
-    if (auto* glow = _entities.ResolveEntityHandle(pair.GlowHandle))
-        _ops.Remove(glow);
-    if (auto* relay = _entities.ResolveEntityHandle(pair.RelayHandle))
-        _ops.Remove(relay);
+    if (Entity glow = _entities.Resolve(pair.Glow))
+        _ops.Remove(glow.Raw());
+    if (Entity relay = _entities.Resolve(pair.Relay))
+        _ops.Remove(relay.Raw());
 
     pair = {};
 }
 
 void GlowVision::CreatePair(int slot, GlowPair& pair)
 {
-    PlayerController pc = _entities.Controller(slot);
-    auto* pawn = pc.GetPawn();
-    std::string model = pc.GetPawnModelName();
-    int team = pc.GetTeam();
-    if (!pawn || model.empty())
+    Pawn pawn = _entities.PawnOf(slot);
+    if (!pawn)
+        return;
+
+    std::string model = pawn.ModelName();
+    const int team = pawn.Team;
+    if (model.empty())
         return;
 
     KeyValues relayKv;
@@ -66,13 +68,15 @@ void GlowVision::CreatePair(int slot, GlowPair& pair)
         return;
     }
 
-    _ops.AcceptInput(relay, "FollowEntity", "!activator", pawn);
+    _ops.AcceptInput(relay, "FollowEntity", "!activator", pawn.Raw());
     _ops.AcceptInput(glow, "FollowEntity", "!activator", relay);
 
-    pair.RelayHandle = _entities.GetEntityHandle(relay);
-    pair.GlowHandle = _entities.GetEntityHandle(glow);
-    pair.RelayIndex = _entities.GetEntityIndex(relay);
-    pair.GlowIndex = _entities.GetEntityIndex(glow);
+    Entity relayEntity{_entities, relay};
+    Entity glowEntity{_entities, glow};
+    pair.Relay = relayEntity.Ref();
+    pair.Glow = glowEntity.Ref();
+    pair.RelayIndex = relayEntity.Index();
+    pair.GlowIndex = glowEntity.Index();
     pair.Team = team;
     pair.Model = std::move(model);
 
@@ -86,16 +90,16 @@ void GlowVision::Reconcile()
     {
         auto& pair = _pairs[slot];
 
-        PlayerController pc = _entities.Controller(slot);
-        int team = pc.GetTeam();
+        Pawn pawn = _entities.PawnOf(slot);
+        const int team = pawn ? static_cast<int>(pawn.Team) : 0;
         // Ghosted pawns never transmit to the beneficiary, so a clone would follow nothing.
-        bool desired = slot != _beneficiarySlot && pc.IsValid() && pc.IsAlive() && (team == TeamT || team == TeamCT) &&
+        bool desired = slot != _beneficiarySlot && pawn && pawn.IsAlive() && (team == TeamT || team == TeamCT) &&
                        !_transmit.IsPawnHidden(slot) && (!_config.Filter || _config.Filter(slot));
 
         if (pair.Active())
         {
-            bool stale = !desired || team != pair.Team || !_entities.ResolveEntityHandle(pair.RelayHandle) ||
-                         !_entities.ResolveEntityHandle(pair.GlowHandle) || pc.GetPawnModelName() != pair.Model;
+            bool stale = !desired || team != pair.Team || !_entities.Resolve(pair.Relay) ||
+                         !_entities.Resolve(pair.Glow) || pawn.ModelName() != pair.Model;
             if (stale)
                 DestroyPair(pair);
         }

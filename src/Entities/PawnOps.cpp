@@ -1,4 +1,4 @@
-#include <VoltMod/Entities/Entity.hpp>
+#include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/MoveType.hpp>
 #include <VoltMod/Entities/PawnOps.hpp>
 #include <VoltMod/Entities/Pawns.hpp>
@@ -18,70 +18,71 @@ static float Rand(float lo, float hi)
     return dist(rng);
 }
 
-Vector ClearedDestination(const PlayerController& anchor, float clearance)
+Vector ClearedDestination(const Pawn& anchor, float clearance)
 {
-    Vector origin = anchor.GetAbsOrigin();
-    float yawRad = anchor.GetEyeAngles().y * std::numbers::pi_v<float> / 180.0f;
+    Vector origin = anchor.Origin();
+    float yawRad = anchor.EyeAngles.Get().y * std::numbers::pi_v<float> / 180.0f;
     origin.x += std::cos(yawRad) * clearance;
     origin.y += std::sin(yawRad) * clearance;
     return origin;
 }
 
-void SwapOrigins(const PlayerController& a, const PlayerController& b)
+void SwapOrigins(const Pawn& a, const Pawn& b)
 {
     // Read both before either move, since each origin is the other pawn's destination.
-    Vector posA = a.GetAbsOrigin();
-    Vector posB = b.GetAbsOrigin();
+    Vector posA = a.Origin();
+    Vector posB = b.Origin();
     Vector zero{0.0f, 0.0f, 0.0f};
-    a.Teleport(&posB, nullptr, &zero);
-    b.Teleport(&posA, nullptr, &zero);
+    (void)a.Teleport(posB, std::nullopt, zero);
+    (void)b.Teleport(posA, std::nullopt, zero);
 }
 
-void ShiftZ(const PlayerController& pc, float deltaZ)
+void ShiftZ(const Pawn& pawn, float deltaZ)
 {
-    Vector origin = pc.GetAbsOrigin();
+    Vector origin = pawn.Origin();
     origin.z += deltaZ;
-    pc.Teleport(&origin, nullptr, nullptr);
+    (void)pawn.Teleport(origin, std::nullopt, std::nullopt);
 }
 
-bool ToggleNoclip(const PlayerController& pc)
+bool ToggleNoclip(const Pawn& pawn)
 {
-    bool turningOn = (pc.GetMoveType() != MoveType::NoClip);
-    pc.SetMoveType(turningOn ? MoveType::NoClip : MoveType::Walk);
+    bool turningOn = (pawn.Move() != MoveType::NoClip);
+    pawn.SetMove(turningOn ? MoveType::NoClip : MoveType::Walk);
     return turningOn;
 }
 
-bool ToggleFreeze(const PlayerController& pc)
+bool ToggleFreeze(const Pawn& pawn)
 {
-    bool turningOn = (pc.GetMoveType() != MoveType::None);
-    pc.SetMoveType(turningOn ? MoveType::None : MoveType::Walk);
+    bool turningOn = (pawn.Move() != MoveType::None);
+    pawn.SetMove(turningOn ? MoveType::None : MoveType::Walk);
     return turningOn;
 }
 
-bool HasGodmode(const PlayerController& pc)
+bool HasGodmode(const Pawn& pawn)
 {
-    return (pc.GetFlags() & FL_GODMODE) != 0;
+    return (pawn.Flags.Get() & FL_GODMODE) != 0;
 }
 
-void SetGodmode(const PlayerController& pc, bool enable)
+void SetGodmode(const Pawn& pawn, bool enable)
 {
-    uint32_t flags = pc.GetFlags();
-    pc.SetFlags(enable ? (flags | FL_GODMODE) : (flags & ~FL_GODMODE));
+    if (enable)
+        pawn.Flags |= FL_GODMODE;
+    else
+        pawn.Flags &= ~FL_GODMODE;
 }
 
-bool ToggleGodmode(const PlayerController& pc)
+bool ToggleGodmode(const Pawn& pawn)
 {
-    bool turningOn = !HasGodmode(pc);
-    SetGodmode(pc, turningOn);
+    bool turningOn = !HasGodmode(pawn);
+    SetGodmode(pawn, turningOn);
     return turningOn;
 }
 
-bool ChangeTeamSafe(const PlayerController& pc, int team)
+bool ChangeTeamSafe(const Controller& controller, int team)
 {
     if (team < TeamSpectator || team > TeamCT)
         return false;
-    pc.ChangeTeam(team);
-    return true;
+    return controller.ChangeTeam(team).has_value();
 }
 
 }  // namespace VoltMod::PawnOps
@@ -101,27 +102,27 @@ Pawns::Pawns(Scheduler& scheduler, SlotEvents& slots, EntitySystem& entities)
       })
 {}
 
-void Pawns::Slap(const PlayerController& pc, float upward, float horizontal, int fallProtectMs)
+void Pawns::Slap(const Pawn& pawn, float upward, float horizontal, int fallProtectMs)
 {
     // Write velocity directly on the pawn rather than through the Teleport vfunc.
     // Teleport(nullptr origin, ...) was crashing the server in CS2 builds we tested;
     // m_vecAbsVelocity is the conventional path for velocity-only changes.
-    pc.SetVelocity({PawnOps::Rand(-horizontal, horizontal), PawnOps::Rand(-horizontal, horizontal), upward});
+    pawn.Velocity = Vector{PawnOps::Rand(-horizontal, horizontal), PawnOps::Rand(-horizontal, horizontal), upward};
 
     // Only toggle godmode for fall protection if the target wasn't already in godmode, otherwise
     // the delayed clear below would silently strip an externally applied godmode.
-    const int slot = pc.GetSlot();
-    if (fallProtectMs <= 0 || !IsValidSlot(slot) || PawnOps::HasGodmode(pc))
+    const int slot = pawn.Slot();
+    if (fallProtectMs <= 0 || !IsValidSlot(slot) || PawnOps::HasGodmode(pawn))
         return;
 
-    PawnOps::SetGodmode(pc, true);
+    PawnOps::SetGodmode(pawn, true);
 
-    // Re-resolve rather than holding this controller: it caches an entity pointer and the window
-    // outlives the frame. The Runtime discards pending timers unrun, so `this` never dangles.
-    // Assigning cancels whatever clear was already pending for this slot.
+    // Re-resolve rather than holding this pawn: it is a frame-local value and the window outlives
+    // the frame. The Runtime discards pending timers unrun, so `this` never dangles. Assigning
+    // cancels whatever clear was already pending for this slot.
     _fallProtect[slot] = _scheduler.Delay(fallProtectMs, [this, slot] {
-        PlayerController target = _entities.Controller(slot);
-        if (target.IsValid())
+        Pawn target = _entities.PawnOf(slot);
+        if (target)
             PawnOps::SetGodmode(target, false);
     });
 }
@@ -134,9 +135,9 @@ void Pawns::SlayDelayed(int slot, int64_t delayMs)
     // Re-resolved on fire for the same reason Slap's clear is, and assigning cancels whatever
     // slay was already pending for this slot.
     _slay[slot] = _scheduler.Delay(delayMs, [this, slot] {
-        PlayerController target = _entities.Controller(slot);
-        if (target.IsValid() && target.IsAlive())
-            target.Slay();
+        Pawn target = _entities.PawnOf(slot);
+        if (target && target.IsAlive())
+            (void)target.Slay();
     });
 }
 

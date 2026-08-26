@@ -1,8 +1,5 @@
-#include "Entities/Schema.hpp"
-
-#include <VoltMod/Core/Log.hpp>
+﻿#include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
-#include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Entities/KeyValues.hpp>
 #include <algorithm>
@@ -52,10 +49,6 @@ static_assert(sizeof(StartSoundEventInfo) == 20);
 // Mirrors CS2Fixes' src/addresses.h; re-verify there after CS2 updates.
 using EmitSoundFilterFn = StartSoundEventInfo (*)(IRecipientFilter& filter, CEntityIndex sourceIndex,
                                                   const EmitSoundParams& params);
-
-EntityOps::EntityOps(EntitySystem& entities, const Bindings& bindings, SchemaService& schema)
-    : _entities(entities), _bindings(bindings), _schema(schema)
-{}
 
 // Collapses the guard + dispatch the AcceptInput* wrappers all repeat; each only differs in how it
 // builds the variant_t, which is why this stays here rather than on the class: the public header
@@ -183,18 +176,6 @@ void EntityOps::EmitSoundFilter(IRecipientFilter& filter, CEntityInstance* sourc
 
     CEntityIndex sourceIndex(source->m_pEntity->m_EHandle.GetEntryIndex());
     std::bit_cast<EmitSoundFilterFn>(_bindings.EmitSoundFilter.Ptr())(filter, sourceIndex, params);
-}
-
-void EntityOps::NotifyFieldChanged(CEntityInstance* entity, const char* className, const char* fieldName)
-{
-    if (!entity || !className || !fieldName)
-        return;
-
-    int offset = _schema.GetOffset(className, fieldName);
-    if (offset < 0)
-        return;
-
-    entity->NetworkStateChanged(NetworkStateChangedData(static_cast<uint32>(offset)));
 }
 
 }  // namespace VoltMod

@@ -26,13 +26,13 @@ constexpr uint32_t ColorInvisible = 0x00FFFFFFu;
  * @brief Set m_nRenderMode and m_clrRender on any CBaseModelEntity (player pawn,
  * weapon, wearable, world prop, dropped weapon, etc.).
  *
- * Offsets come from @p schema, which caches them itself. Safe to call with a null entity (no-op).
+ * A free function because it applies to entities with no wrapper of their own; a player pawn has
+ * @ref Pawn::SetRender. Both writes dirty for replication. Safe to call with a null entity (no-op).
  *
- * @param schema Offset source; the caller's own SchemaService (`runtime.Schema()`).
  * @param entity Target. Must derive from CBaseModelEntity.
  * @param mode   Render mode (see RenderMode_t).
  * @param color  RGBA, low byte = R, high byte = A.
  */
-void SetRender(SchemaService& schema, CEntityInstance* entity, RenderMode_t mode, uint32_t color);
+void SetRender(CEntityInstance* entity, RenderMode_t mode, uint32_t color);
 
 }  // namespace VoltMod

@@ -117,6 +117,9 @@ if(BUILD_TESTING)
             src/Core/Logger.cpp
             src/Core/Paths.cpp
             src/App/PluginManifest.cpp
+            # The field cache and its query seam; the ISchemaSystem walk behind it lives in
+            # SchemaQuery.cpp, which is the SDK half and stays out of the tests.
+            src/Entities/SchemaResolve.cpp
             src/Core/ScheduledEffect.cpp
             src/Core/Scheduler.cpp
             src/Players/Player.cpp
@@ -134,7 +137,8 @@ if(BUILD_TESTING)
             src/Core/SteamId.cpp
             src/Core/Time.cpp
             src/Core/Translations.cpp
-        # ClientCvarPendingTests, GameDataFileTests and ConVarTests reach headers under src/.
+        # ClientCvarPendingTests, GameDataFileTests, ConVarTests and FieldRefTests reach headers
+        # under src/.
         INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src"
         LIBRARIES ${VOLTMOD_TEST_LIBRARIES}
     )

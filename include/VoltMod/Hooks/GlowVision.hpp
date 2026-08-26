@@ -1,8 +1,8 @@
 #pragma once
 
 #include <Color.h>
-#include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Entities/EntityOps.hpp>
+#include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Hooks/Transmit.hpp>
 #include <array>
 #include <cstdint>
@@ -58,15 +58,15 @@ public:
 private:
     struct GlowPair
     {
-        uint32_t RelayHandle = InvalidEntityHandle;
-        uint32_t GlowHandle = InvalidEntityHandle;
+        EntityRef Relay;
+        EntityRef Glow;
         int RelayIndex = -1;
         int GlowIndex = -1;
         int Team = 0;
         std::string Model;
 
-        // The relay handle is the single source of truth for liveness; DestroyPair resets it.
-        bool Active() const { return RelayHandle != InvalidEntityHandle; }
+        // The relay ref is the single source of truth for liveness; DestroyPair resets it.
+        bool Active() const { return static_cast<bool>(Relay); }
     };
 
     void CreatePair(int slot, GlowPair& pair);

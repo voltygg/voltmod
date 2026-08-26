@@ -174,21 +174,30 @@ Both return null on failure rather than a wrong answer, and the binding then fai
 that reaches the capability. The vtable *index* still comes from the same entry; the lookup only
 finds the table.
 
-## SchemaService
+## Schema fields
 
 Schema offsets are a separate mechanism: the engine publishes them at runtime, so they need no
-gamedata and do not drift the same way. Results are cached:
+gamedata and do not drift the same way. They are also constants of the loaded server binary, which
+is why they are not a service - a @ref VoltMod::Field resolves its own once per `(class, field)`
+for the whole process, walking base classes and caching misses as well as hits:
 
 ```cpp
-auto& schema = runtime.Schema();
-
-int32_t offset = schema.GetOffset("CCSPlayerPawn", "m_iHealth");
-
-// Pass the expected size for fixed-size reads/writes: the first lookup validates it against the
-// engine's field size and warns "is N bytes but the caller expects M (schema drift?)" after a game
-// update changes a field type; it still returns the offset.
-int32_t checked = schema.GetOffset("CCSPlayerPawn", "m_iHealth", sizeof(int));
+runtime.Entities.PawnOf(slot).Health = 100;   // resolves CBaseEntity::m_iHealth once, then writes
 ```
 
-`PlayerController`'s typed field templates (`GetField<T>`, `GetPawnField<T>`, `SetField<T>`,
-`SetPawnField<T>`) pass `sizeof(T)` through automatically.
+`Field` passes `sizeof(T)` as the expected size, so the first lookup validates it against the
+engine's own field size and warns "is N bytes but the caller reads M (schema drift?)" once when a
+game update retypes a field. It still returns the offset.
+
+For a field with no wrapper to hang it on - one inside an engine sub-object, or a one-off internal
+lookup - declare a `static` @ref VoltMod::LazyField beside the code that reads it:
+
+```cpp
+static const VoltMod::LazyField kItemServices{"CBasePlayerPawn", "m_pItemServices", sizeof(void*)};
+
+if (kItemServices)
+    services = VoltMod::ReadAt<void*>(pawn.Raw(), kItemServices->Offset);
+```
+
+Both retry for as long as the schema system is not up yet, so a lookup made during load does not
+freeze an empty answer for the rest of the session. Everything here is game-thread only.

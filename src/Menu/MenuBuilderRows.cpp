@@ -1,5 +1,5 @@
 #include <VoltMod/Core/EffectManager.hpp>
-#include <VoltMod/Entities/PlayerController.hpp>
+#include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Players/ActionDispatcher.hpp>
@@ -27,8 +27,8 @@ MenuBuilder& MenuBuilder::AddActionRow(std::string_view labelKey, const Action& 
         _context.Allowed(action.Permission));
 }
 
-MenuBuilder& MenuBuilder::AddStateToggleRow(std::string_view labelKey,
-                                            std::function<bool(const PlayerController&)> isActive, const Action& action)
+MenuBuilder& MenuBuilder::AddStateToggleRow(std::string_view labelKey, std::function<bool(const Pawn&)> isActive,
+                                            const Action& action)
 {
     const Action* a = &action;
     Runtime* rt = _context.Rt;
@@ -38,8 +38,8 @@ MenuBuilder& MenuBuilder::AddStateToggleRow(std::string_view labelKey,
         [rt, target, isActive = std::move(isActive)](int) {
             if (!rt)
                 return false;
-            PlayerController pc = rt->Entities.Controller(target);
-            return pc.IsValid() && isActive(pc);
+            Pawn pawn = rt->Entities.PawnOf(target);
+            return pawn && isActive(pawn);
         },
         [rt, admin = _context.Admin, target, a](int) { ActionDispatcher{*rt}.Run(admin, target, *a); },
         _context.Allowed(action.Permission));

@@ -6,7 +6,7 @@
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/RecipientFilter.hpp>
-#include <VoltMod/Entities/Entity.hpp>
+#include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <cstdint>
 #include <functional>
@@ -53,9 +53,8 @@ public:
     /** Called after the pass/fail panel is sent, with what the result callback decided. */
     using FinishedFn = std::function<void(bool passed, VoteEndReason reason)>;
 
-    /** All five must outlive this service; the Runtime declares them above it. */
-    Vote(Interfaces& interfaces, EntitySystem& entities, SchemaService& schema, GameEvents& events,
-         Scheduler& scheduler);
+    /** All four must outlive this service; the Runtime declares them above it. */
+    Vote(Interfaces& interfaces, EntitySystem& entities, GameEvents& events, Scheduler& scheduler);
     Vote(const Vote&) = delete;
     Vote& operator=(const Vote&) = delete;
 
@@ -95,7 +94,6 @@ private:
 
     Interfaces& _interfaces;
     EntitySystem& _entities;
-    SchemaService& _schema;
     GameEvents& _events;
     Scheduler& _scheduler;
 

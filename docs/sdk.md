@@ -37,8 +37,8 @@ auto* schema = gi.SchemaSystem; // ISchemaSystem*
 ```
 
 Other engine-facing classes read from this holder internally. The examples on these pages
-reach services through `runtime.Entities`, `runtime.Schema()`, and the corresponding
-runtime members.
+reach services through `runtime.Entities` and the corresponding runtime members. Schema field
+offsets are not among them: a @ref VoltMod::Field resolves its own, once per process.
 
 ## Capabilities
 

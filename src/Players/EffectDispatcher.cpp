@@ -1,4 +1,4 @@
-#include <VoltMod/Core/EffectManager.hpp>
+﻿#include <VoltMod/Core/EffectManager.hpp>
 #include <VoltMod/Players/EffectDispatcher.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <utility>
@@ -45,7 +45,7 @@ void EffectDispatcher::Apply(int adminSlot, int targetSlot, const EffectDescript
     auto ctx = _actions.Resolve(adminSlot, targetSlot, effect.Permission);
     if (!ctx.Valid())
         return;
-    if (effect.RequireAlive && !ctx.TargetCtrl.IsAlive())
+    if (effect.RequireAlive && !ctx.TargetCtrl.GetPawn().IsAlive())
         return;
 
     EffectInstance inst = effect.Setup ? effect.Setup(ctx) : EffectInstance{};
@@ -76,7 +76,7 @@ void EffectDispatcher::Apply(int adminSlot, int targetSlot, int param, const Par
     auto ctx = _actions.Resolve(adminSlot, targetSlot, effect.Permission);
     if (!ctx.Valid() || !effect.Setup)
         return;
-    if (effect.RequireAlive && !ctx.TargetCtrl.IsAlive())
+    if (effect.RequireAlive && !ctx.TargetCtrl.GetPawn().IsAlive())
         return;
     if (param < 0 || (effect.Choices && param >= static_cast<int>(effect.Choices().size())))
         return;

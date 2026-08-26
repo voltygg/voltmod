@@ -1,12 +1,11 @@
-#pragma once
+﻿#pragma once
 
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Subscription.hpp>
-#include <VoltMod/Entities/Entity.hpp>
+#include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/PawnOps.hpp>
-#include <VoltMod/Entities/PlayerController.hpp>
 #include <array>
 #include <cstdint>
 
@@ -31,7 +30,7 @@ public:
     /** Punt the pawn upward with random jitter, granting FL_GODMODE for @p fallProtectMs so the
      *  landing does not kill it. Pre-existing godmode is left alone, and the clear is dropped if
      *  the seat changes hands, so the next occupant never has godmode stripped. */
-    void Slap(const PlayerController& pc, float upward = 800.0f, float horizontal = 100.0f, int fallProtectMs = 3000);
+    void Slap(const Pawn& pawn, float upward = 800.0f, float horizontal = 100.0f, int fallProtectMs = 3000);
 
     /** Slay @p slot's pawn after @p delayMs, for effects that want the animation to play first.
      *  Re-resolves the pawn when it fires, replaces any slay already pending for the slot, and

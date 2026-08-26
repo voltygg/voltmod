@@ -19,15 +19,15 @@ auto* q = runtime.Players.GetPlayerBySteamId(steamId);  // O(1)
 for (auto* each : runtime.Players.GetAllPlayers()) { /* ... */ }
 ```
 
-`Player` carries `GetSlot()`, `GetSteamID()`, `GetName()`, `GetIpAddress()`, `GetPlaytime()`, and `IsBot()`. For typed engine operations, build a @ref VoltMod::PlayerController from the player's slot:
+`Player` carries `GetSlot()`, `GetSteamID()`, `GetName()`, `GetIpAddress()`, `GetPlaytime()`, and `IsBot()`. For typed engine operations, resolve the player's slot into a @ref VoltMod::Pawn (the body: health, movement, aim) or a @ref VoltMod::Controller (the identity: name, money, team):
 
 ```cpp
-auto controller = runtime.Entities.Controller(player->GetSlot());
-controller.Slay();
-int hp = controller.GetHealth();
+auto pawn = runtime.Entities.PawnOf(player->GetSlot());
+pawn.Slay();
+int hp = pawn.Health;
 ```
 
-**Pointer lifetime:** a `Player*` is owned by the manager and dies on disconnect, slot reuse, or `Clear()`. Never store one across the disconnect callback. Store the SteamID instead.
+**Pointer lifetime:** a `Player*` is owned by the manager and dies on disconnect, slot reuse, or `Clear()`. Never store one across the disconnect callback. Store a @ref VoltMod::PlayerRef (slot + SteamID) instead - the SteamID is what tells you the slot has not changed hands. The entity wrappers are frame-local for the same reason and are never stored at all; see @ref sdk_players_guide "Entities and players".
 
 ### Per-slot plugin state
 

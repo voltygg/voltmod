@@ -1,12 +1,11 @@
 #include "Engine/NetMessage.hpp"
-#include "Entities/Schema.hpp"
 
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/MemoryAccess.hpp>
 #include <VoltMod/Engine/RecipientFilter.hpp>
-#include <VoltMod/Entities/Entity.hpp>
+#include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Events/EventTypes.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Messaging/Vote.hpp>
@@ -73,22 +72,28 @@ static void SetString(ProtoMessage* message, const char* name, const std::string
         message->GetReflection()->SetString(message, field, value);
 }
 
-Vote::Vote(Interfaces& interfaces, EntitySystem& entities, SchemaService& schema, GameEvents& events,
-           Scheduler& scheduler)
-    : _interfaces(interfaces), _entities(entities), _schema(schema), _events(events), _scheduler(scheduler)
+// The vote controller is a plain map entity with no wrapper of its own, so its fields resolve
+// through file-static lookups rather than a Field on a typed entity.
+static const LazyField kOptionCount{VoteControllerSchema, "m_nVoteOptionCount"};
+static const LazyField kVotesCast{VoteControllerSchema, "m_nVotesCast"};
+static const LazyField kPotentialVotes{VoteControllerSchema, "m_nPotentialVotes", sizeof(int)};
+static const LazyField kIsYesNoVote{VoteControllerSchema, "m_bIsYesNoVote", sizeof(bool)};
+static const LazyField kActiveIssueIndex{VoteControllerSchema, "m_iActiveIssueIndex", sizeof(int)};
+static const LazyField kOnlyTeamToVote{VoteControllerSchema, "m_iOnlyTeamToVote", sizeof(int)};
+
+Vote::Vote(Interfaces& interfaces, EntitySystem& entities, GameEvents& events, Scheduler& scheduler)
+    : _interfaces(interfaces), _entities(entities), _events(events), _scheduler(scheduler)
 {}
 
 bool Vote::AcquireController()
 {
-    // The controller is a map entity, so it is a different object after every map change; its
-    // ballot-array offsets are read once per ballot, so they are cached with it rather than
-    // re-resolved through the schema maps on every access.
-    _controller = _entities.FindByClassName(nullptr, ControllerClass);
+    // The controller is a map entity, so it is a different object after every map change.
+    _controller = _entities.FindByClassName({}, ControllerClass).Raw();
     if (!_controller)
         return false;
 
-    _offsetOptionCount = _schema.GetOffset(VoteControllerSchema, "m_nVoteOptionCount");
-    _offsetVotesCast = _schema.GetOffset(VoteControllerSchema, "m_nVotesCast");
+    _offsetOptionCount = kOptionCount ? kOptionCount->Offset : -1;
+    _offsetVotesCast = kVotesCast ? kVotesCast->Offset : -1;
     return true;
 }
 
@@ -97,7 +102,7 @@ MultiRecipientFilter Vote::Recipients() const
     MultiRecipientFilter filter;
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
-        if (const_cast<EntitySystem&>(_entities).GetPlayerController(slot))
+        if (const_cast<EntitySystem&>(_entities).IsPlayerSlotValid(slot))
             filter.AddRecipient(slot);
     }
     return filter;
@@ -150,12 +155,10 @@ bool Vote::StartVote(const std::string& title, const std::string& detail, float 
         return false;
     }
 
-    auto& schema = _schema;  // local alias keeps the offset block below narrow
-
     _eligible = 0;
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
-        if (_entities.GetPlayerController(slot))
+        if (_entities.IsPlayerSlotValid(slot))
             ++_eligible;
     }
     if (_eligible <= 0)
@@ -163,15 +166,15 @@ bool Vote::StartVote(const std::string& title, const std::string& detail, float 
 
     ResetBallots();
 
-    if (int offset = schema.GetOffsetOf<int>(VoteControllerSchema, "m_nPotentialVotes"); offset >= 0)
-        WriteAt<int>(_controller, offset, _eligible);
-    if (int offset = schema.GetOffsetOf<bool>(VoteControllerSchema, "m_bIsYesNoVote"); offset >= 0)
-        WriteAt<bool>(_controller, offset, true);
-    if (int offset = schema.GetOffsetOf<int>(VoteControllerSchema, "m_iActiveIssueIndex"); offset >= 0)
-        WriteAt<int>(_controller, offset, YesNoIssueIndex);
+    if (kPotentialVotes)
+        WriteAt<int>(_controller, kPotentialVotes->Offset, _eligible);
+    if (kIsYesNoVote)
+        WriteAt<bool>(_controller, kIsYesNoVote->Offset, true);
+    if (kActiveIssueIndex)
+        WriteAt<int>(_controller, kActiveIssueIndex->Offset, YesNoIssueIndex);
     // Who may vote is decided by the recipients of the VoteStart message, not by this field.
-    if (int offset = schema.GetOffsetOf<int>(VoteControllerSchema, "m_iOnlyTeamToVote"); offset >= 0)
-        WriteAt<int>(_controller, offset, AllTeams);
+    if (kOnlyTeamToVote)
+        WriteAt<int>(_controller, kOnlyTeamToVote->Offset, AllTeams);
 
     _inProgress = true;
     _title = title;
@@ -232,11 +235,8 @@ void Vote::FinishVote(VoteEndReason reason)
 
     SendVoteOutcome(passed);
 
-    if (_controller)
-    {
-        if (int offset = _schema.GetOffsetOf<int>(VoteControllerSchema, "m_iActiveIssueIndex"); offset >= 0)
-            WriteAt<int>(_controller, offset, -1);
-    }
+    if (_controller && kActiveIssueIndex)
+        WriteAt<int>(_controller, kActiveIssueIndex->Offset, -1);
     _controller = nullptr;
     _offsetOptionCount = -1;
     _offsetVotesCast = -1;

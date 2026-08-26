@@ -99,8 +99,12 @@ There is no ambient accessor for the runtime; everything is injected:
 - Header templates plugins instantiate (`Flow<TState>`, `PerSlot<T>`) take one
   service, so including them does not pull in the composition root.
 - A file-static is only for engine callbacks that carry no user data (set and
-  cleared by the service that owns it) or for process-wide sinks set once at
-  load, such as the `Log::Sink` and the base directory.
+  cleared by the service that owns it), for process-wide sinks set once at load,
+  such as the `Log::Sink` and the base directory, or for state that is genuinely
+  process-wide rather than per-load: the schema field cache
+  (`src/Entities/SchemaResolve.cpp`) is the one of those, because a class and
+  field name resolve to the same offset for every plugin, Runtime and map in the
+  process.
 
 Use these patterns throughout the framework:
 
@@ -121,6 +125,13 @@ Use these patterns throughout the framework:
   cancelled the same way.
 - Fallible operations return `Result<T>`/`Status` over `Error`: `ErrorCode` to
   branch on, `Detail` for the log, `Key` for a player-facing reply.
+- `Entity`, `Pawn` and `Controller` are frame-local wrappers, not handles to keep.
+  `explicit operator bool()` is the only validity check, they copy but do not
+  assign, and anything stored is an `EntityRef` or a `PlayerRef` re-resolved
+  through `EntitySystem`. A schema field is a `Field<T, "Class", "m_name">` member
+  that resolves its own offset once per process, walks base classes, and dirties a
+  networked write - there is no schema service to inject, and no string-pair
+  lookup on a call path.
 - `gamedata/gamedata.jsonc` (version 2) says only *where* something is; C++ owns every
   prototype, vtable signature and field type in `Engine/Bindings.hpp`. A service takes
   `const Bindings&` and reads a typed field - never a string lookup on a call path. Parsing

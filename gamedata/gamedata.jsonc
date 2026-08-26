@@ -170,7 +170,7 @@
     // CCSPlayerController::Respawn (SwiftlyS2 v1.4.5: 270/272).
     "Respawn": { "class": "CCSPlayerController", "windows": 270, "linux": 272 },
     // CBaseEntity::Teleport(origin, angles, velocity) (SwiftlyS2: 163/162). Bound per pawn by
-    // Hooks::Teleport and called directly by PlayerController::Teleport.
+    // Hooks::Teleport and called directly by Entity::Teleport.
     "Teleport": { "class": "CCSPlayerPawn", "windows": 163, "linux": 162 },
     // CPlayer_MovementServices::RunCommand (SwiftlyS2 v1.4.5: 25/26). Drives Hooks::Movement,
     // which DVP-hooks the concrete class every player pawn instantiates.

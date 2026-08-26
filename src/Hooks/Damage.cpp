@@ -111,12 +111,12 @@ bool Damage::Hook_OnTakeDamageAlive(void* result)
     if (!info)
         RETURN_META_VALUE(MRES_IGNORED, false);
 
-    const DamageView view{
-        .VictimSlot = _entities.SlotFromPawn(static_cast<CEntityInstance*>(pawn)),
-        .AttackerSlot = _entities.SlotFromPawn(_entities.ResolveEntityHandle(_bindings.TakeDamage.Attacker.Read(info))),
-        .Hitbox = ReadHitGroup(info),
-        .DamageTypes = static_cast<uint32_t>(_bindings.TakeDamage.DamageTypes.Read(info)),
-        .Damage = _bindings.TakeDamage.Damage.Read(info)};
+    const DamageView view{.VictimSlot = _entities.SlotOf(Pawn{_entities, static_cast<CEntityInstance*>(pawn)}),
+                          .AttackerSlot = _entities.SlotOf(Pawn{
+                              _entities, _entities.Resolve(EntityRef{_bindings.TakeDamage.Attacker.Read(info)}).Raw()}),
+                          .Hitbox = ReadHitGroup(info),
+                          .DamageTypes = static_cast<uint32_t>(_bindings.TakeDamage.DamageTypes.Read(info)),
+                          .Damage = _bindings.TakeDamage.Damage.Read(info)};
 
     // Nothing is written back: the engine ignores every attempt to change the outcome here, so
     // the hook reports and always defers. See the header.

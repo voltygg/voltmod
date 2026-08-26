@@ -1,5 +1,5 @@
 #include "Engine/ConsoleLogger.hpp"
-#include "Entities/Schema.hpp"
+#include "Entities/SchemaResolve.hpp"
 
 #include <ISmmAPI.h>
 #include <VoltMod/Core/EnumNames.hpp>
@@ -23,10 +23,9 @@ namespace VoltMod
 
 static constexpr const char* DefaultGameDataPath = "addons/voltmod/gamedata/gamedata.jsonc";
 
-// Every other service is wired by its default member initializer in Runtime.hpp, where the
-// dependency order is visible. _schema is the exception: SchemaService is only forward-declared
-// there, so make_unique needs this translation unit.
-Runtime::Runtime() : _schema(std::make_unique<SchemaService>(Interfaces)) {}
+// Every service is wired by its default member initializer in Runtime.hpp, where the dependency
+// order is visible.
+Runtime::Runtime() = default;
 
 // Every service tears itself down in its own destructor, in reverse declaration order. Only these
 // two cannot wait for that.
@@ -158,7 +157,9 @@ bool Runtime::InitializeServices(const LoadContext& context)
         });
     };
 
-    degradable("Schema", Capability::Schema, [&] { return Schema().Initialize(); });
+    // One process-wide sink, not a per-Runtime service: the schema system is a single engine
+    // object and the offsets it answers with are constants of the loaded binary.
+    degradable("Schema", Capability::Schema, [&] { return BindSchemaSystem(Interfaces.SchemaSystem); });
     report.Run("Entities", [&] {
         auto ready = Entities.Initialize();
         if (!ready)

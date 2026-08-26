@@ -1,9 +1,8 @@
-#include "Entities/Schema.hpp"
-
 #include <Color.h>
 #include <VoltMod/Engine/MemoryAccess.hpp>
 #include <VoltMod/Entities/EffectOps.hpp>
 #include <VoltMod/Entities/EntityOps.hpp>
+#include <VoltMod/Entities/Field.hpp>
 #include <VoltMod/Entities/KeyValues.hpp>
 #include <mathlib/vector.h>
 
@@ -44,18 +43,17 @@ CEntityInstance* SpawnBeam(EntityOps& ops, const Vector& from, const Vector& to,
         return nullptr;
 
     // Endpoint/width/color live in schema fields with no spawn keyvalue; written
-    // before DispatchSpawn they go out with the first network snapshot.
-    auto& schema = ops.Schema();
-    int offsetWidth = schema.GetOffsetOf<float>("CBeam", "m_fWidth");
-    int offsetEndPos = schema.GetOffsetOf<Vector>("CBeam", "m_vecEndPos");
-    int offsetColor = schema.GetOffsetOf<Color>("CBaseModelEntity", "m_clrRender");
+    // before DispatchSpawn they go out with the first network snapshot, so no dirtying here.
+    static const LazyField beamWidth{"CBeam", "m_fWidth", sizeof(float)};
+    static const LazyField beamEnd{"CBeam", "m_vecEndPos", sizeof(Vector)};
+    static const LazyField beamColor{"CBaseModelEntity", "m_clrRender", sizeof(Color)};
 
-    if (offsetWidth >= 0)
-        WriteAt<float>(beam, offsetWidth, width);
-    if (offsetEndPos >= 0)
-        WriteAt<Vector>(beam, offsetEndPos, to);
-    if (offsetColor >= 0)
-        WriteAt<Color>(beam, offsetColor, color);
+    if (beamWidth)
+        WriteAt<float>(beam, beamWidth->Offset, width);
+    if (beamEnd)
+        WriteAt<Vector>(beam, beamEnd->Offset, to);
+    if (beamColor)
+        WriteAt<Color>(beam, beamColor->Offset, color);
 
     KeyValues kv;
     kv.Set("origin", from);

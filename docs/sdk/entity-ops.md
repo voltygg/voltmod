@@ -28,8 +28,23 @@ ops.EmitSound(entity, "SoundEventName");   // .vsndevts event name, not a file p
 
 Never `delete` an entity. Use `Remove` immediately or `RemoveDelayed` through
 the engine's I/O queue.
-`NotifyFieldChanged(entity, "CClass", "m_field")` makes a direct schema `WriteAt` replicate
-immediately instead of riding the next broadcast.
+
+A spawned entity has no wrapper of its own, so reach its schema fields through a `static`
+@ref VoltMod::LazyField and dirty the write with @ref VoltMod::MarkChanged - which is what a
+@ref VoltMod::Field does for you on a @ref VoltMod::Pawn or @ref VoltMod::Controller:
+
+```cpp
+static const VoltMod::LazyField kWidth{"CBeam", "m_fWidth", sizeof(float)};
+
+if (kWidth)
+{
+    VoltMod::WriteAt<float>(beam, kWidth->Offset, 2.0f);
+    VoltMod::MarkChanged(beam, *kWidth);   // unnecessary before DispatchSpawn
+}
+```
+
+Fields written before `DispatchSpawn` go out with the first snapshot on their own, so the
+notification is only needed for a live entity.
 
 ## EffectOps
 

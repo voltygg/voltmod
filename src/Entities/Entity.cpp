@@ -1,248 +1,280 @@
-#include "Entities/Schema.hpp"
-
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/MemoryAccess.hpp>
-#include <VoltMod/Entities/Entity.hpp>
-#include <bit>
-#include <entity2/concreteentitylist.h>
+#include <VoltMod/Entities/EntitySystem.hpp>
+#include <VoltMod/Entities/Render.hpp>
+#include <eiface.h>
 #include <entity2/entityidentity.h>
 #include <entity2/entityinstance.h>
-#include <entity2/entitysystem.h>
-
-/**
- * Published for ::GameEntitySystem() below, which the SDK calls with no context parameter to
- * reach a service through. Written and cleared by EntitySystem, so it never outlives a load cycle.
- */
-static CGameEntitySystem* g_entitySystem = nullptr;
-
-// The SDK's entity2 sources (entitykeyvalues.cpp) link against this accessor;
-// route it to the framework's resolved entity system so both agree on the pointer.
-CGameEntitySystem* GameEntitySystem()
-{
-    return g_entitySystem;
-}
+#include <mathlib/vector.h>
 
 namespace VoltMod
 {
 
-EntitySystem::EntitySystem(Interfaces& interfaces, const Bindings& bindings, SchemaService& schema)
-    : _interfaces(interfaces), _bindings(bindings), _schema(schema)
-{}
-
-EntitySystem::~EntitySystem()
+// Origin and rotation are not schema fields of CBaseEntity in CS2; they live on the entity's
+// CGameSceneNode, reached via m_CBodyComponent -> m_pSceneNode.
+static void* ResolveSceneNode(CEntityInstance* entity)
 {
-    if (g_entitySystem == _interfaces.EntitySystem)
-        g_entitySystem = nullptr;
-}
+    static const LazyField body{"CBaseEntity", "m_CBodyComponent"};
+    static const LazyField node{"CBodyComponent", "m_pSceneNode", sizeof(void*)};
 
-int EntitySystem::GetEntityIndex(CEntityInstance* entity) const
-{
-    return (entity && entity->m_pEntity) ? entity->m_pEntity->GetEntityIndex().Get() : -1;
-}
-
-uint32_t EntitySystem::GetEntityHandle(CEntityInstance* entity) const
-{
-    return (entity && entity->m_pEntity) ? static_cast<uint32_t>(entity->m_pEntity->m_EHandle.ToInt())
-                                         : InvalidEntityHandle;
-}
-
-void EntitySystem::ResolveSchemaOffsets()
-{
-    if (_schemaOffsetsResolved)
-        return;
-
-    auto& schema = _schema;
-
-    _offsetPlayerPawn = schema.GetOffsetOf<uint32_t>("CBasePlayerController", "m_hPawn");
-    _offsetPawnController = schema.GetOffsetOf<uint32_t>("CBasePlayerPawn", "m_hController");
-    _offsetMovementServices = schema.GetOffsetOf<uint8_t*>("CBasePlayerPawn", "m_pMovementServices");
-    _offsetButtons = schema.GetOffset("CPlayer_MovementServices", "m_nButtons");
-    _offsetButtonStates = schema.GetOffset("CInButtonState", "m_pButtonStates");
-
-    _schemaOffsetsResolved = true;
-}
-
-void EntitySystem::SetEntitySystem(CGameEntitySystem* system)
-{
-    _interfaces.EntitySystem = system;
-    g_entitySystem = system;  // publish for ::GameEntitySystem()
-}
-
-CGameEntitySystem* EntitySystem::ReadEntitySystemPointer()
-{
-    // Runs per call until the pointer resolves, so it stays a plain read.
-    if (!_interfaces.GameResourceService)
+    if (!entity || !body || !node)
         return nullptr;
 
-    return _bindings.GameEntitySystem.Read(_interfaces.GameResourceService);
+    auto* component = ReadAt<uint8_t*>(entity, body->Offset);
+    return component ? ReadAt<void*>(component, node->Offset) : nullptr;
 }
 
-Status EntitySystem::Initialize()
+template <typename T>
+static T SceneNodeField(CEntityInstance* entity, const LazyField& field)
 {
-    if (!_interfaces.GameResourceService)
-        return std::unexpected(Error::NotReady("IGameResourceService not available"));
+    void* node = ResolveSceneNode(entity);
+    if (!node || !field)
+        return T{0.0f, 0.0f, 0.0f};
+    return ReadAt<T>(node, field->Offset);
+}
 
-    if (!_bindings.GameEntitySystem)
-        return std::unexpected(Error::Unsupported("the GameEntitySystem offset did not bind"));
-    Log::Info("Gamedata loaded (entity system offset: {}).", _bindings.GameEntitySystem.Value());
+int Entity::Index() const
+{
+    return (_e && _e->m_pEntity) ? _e->m_pEntity->GetEntityIndex().Get() : -1;
+}
 
-    // The engine creates CGameEntitySystem during server startup, so a null read here is expected
-    // on a cold load and OnServerStartup picks it up. Whether it resolved is load policy, not the
-    // SDK's call: the caller reads GetEntitySystem() and decides.
-    GetEntitySystem();
+EntityRef Entity::Ref() const
+{
+    return {(_e && _e->m_pEntity) ? static_cast<uint32_t>(_e->m_pEntity->m_EHandle.ToInt()) : InvalidEntityHandle};
+}
+
+std::string_view Entity::ClassName() const
+{
+    if (!_e || !_e->m_pEntity)
+        return {};
+    const char* name = _e->m_pEntity->m_designerName.String();
+    return name ? std::string_view(name) : std::string_view{};
+}
+
+Vector Entity::Origin() const
+{
+    static const LazyField origin{"CGameSceneNode", "m_vecAbsOrigin", sizeof(Vector)};
+    return SceneNodeField<Vector>(_e, origin);
+}
+
+QAngle Entity::Angles() const
+{
+    static const LazyField rotation{"CGameSceneNode", "m_angAbsRotation", sizeof(QAngle)};
+    return SceneNodeField<QAngle>(_e, rotation);
+}
+
+Status Entity::Teleport(std::optional<Vector> origin, std::optional<QAngle> angles,
+                        std::optional<Vector> velocity) const
+{
+    if (!_e || !_sys)
+        return std::unexpected(Error::NotReady("no entity"));
+
+    const auto& teleport = _sys->BindingsRef().Teleport;
+    if (!teleport)
+        return std::unexpected(Error::Unsupported("gamedata has no 'Teleport' vtable index"));
+
+    teleport.Call(_e, origin ? &*origin : nullptr, angles ? &*angles : nullptr, velocity ? &*velocity : nullptr);
     return {};
 }
 
-void EntitySystem::OnServerStartup()
+Vector Pawn::EyePosition() const
 {
-    // A new map gets a new CGameEntitySystem; keeping the old pointer would read freed memory.
-    SetEntitySystem(nullptr);
-
-    if (GetEntitySystem())
-        Log::Info("Entity system initialized.");
-    else
-        Log::Error("Entity system pointer could not be read from IGameResourceService.");
+    return Origin() + ViewOffset.Get();
 }
 
-CGameEntitySystem* EntitySystem::GetEntitySystem()
+void Pawn::SetMove(MoveType type) const
 {
-    // Null until the engine starts the first server, so an early load caches nothing and
-    // re-reads on the next call. OnServerStartup drops the cache for each new map.
-    if (!_interfaces.EntitySystem)
-        SetEntitySystem(ReadEntitySystemPointer());
-
-    return _interfaces.EntitySystem;
+    const auto value = static_cast<uint8_t>(type);
+    MoveTypeRaw = value;
+    ActualMoveTypeRaw = value;
 }
 
-CEntityIdentity* EntitySystem::GetEntityIdentityByIndex(CGameEntitySystem* pSys, int index)
+Status Pawn::Slay() const
 {
-    if (!pSys || index < 0 || index >= MAX_TOTAL_ENTITIES)
-        return nullptr;
+    if (!_e || !_sys)
+        return std::unexpected(Error::NotReady("no pawn"));
 
-    int chunk = index / MAX_ENTITIES_IN_LIST;
-    int offset = index % MAX_ENTITIES_IN_LIST;
+    const auto& suicide = _sys->BindingsRef().CommitSuicide;
+    if (!suicide)
+        return std::unexpected(Error::Unsupported("gamedata has no 'CommitSuicide' vtable index"));
 
-    CEntityIdentity* pChunk = pSys->m_EntityList.m_pIdentityChunks[chunk];
-    if (!pChunk)
-        return nullptr;
-
-    return &pChunk[offset];
+    suicide.Call(_e, false, true);
+    return {};
 }
 
-CEntityInstance* EntitySystem::ResolveEntityHandle(uint32_t handle)
+// The observer mode lives on a sub-object the pawn points at, so it is a method rather than a
+// Field: there is no fixed offset from the pawn to reach it.
+static void* ObserverServices(CEntityInstance* pawn)
 {
-    if (handle == InvalidEntityHandle)
+    static const LazyField services{"CBasePlayerPawn", "m_pObserverServices", sizeof(void*)};
+    if (!pawn || !services)
         return nullptr;
-
-    int entryIndex = handle & 0x7FFF;  // low 15 bits = entity index, high bits = serial number
-
-    auto* pSys = GetEntitySystem();
-    if (!pSys)
-        return nullptr;
-
-    CEntityIdentity* pIdentity = GetEntityIdentityByIndex(pSys, entryIndex);
-    if (!pIdentity)
-        return nullptr;
-
-    // Validate index + serial on the identity itself (chunk memory, never freed) before
-    // touching m_pInstance: once the entity is destroyed the identity slot is recycled and
-    // m_pInstance dangles, so dereferencing the instance to validate is a use-after-free.
-    if (static_cast<uint32_t>(pIdentity->GetRefEHandle().ToInt()) != handle)
-        return nullptr;
-
-    return pIdentity->m_pInstance;
+    return ReadAt<void*>(pawn, services->Offset);
 }
 
-CEntityInstance* EntitySystem::GetPlayerController(int slot)
+ObserverMode_t Pawn::GetObserverMode() const
 {
-    auto* pSys = GetEntitySystem();
-    if (!pSys || slot < 0 || slot >= MaxPlayers)
-        return nullptr;
+    static const LazyField mode{"CPlayer_ObserverServices", "m_iObserverMode", sizeof(uint8_t)};
 
-    // Controllers occupy entity indices 1..MaxPlayers (index 0 is worldspawn).
-    CEntityIdentity* pIdentity = GetEntityIdentityByIndex(pSys, slot + 1);
-    if (!pIdentity)
-        return nullptr;
-
-    return pIdentity->m_pInstance;
+    void* services = ObserverServices(_e);
+    if (!services || !mode)
+        return ObserverMode_t::None;
+    return static_cast<ObserverMode_t>(ReadAt<uint8_t>(services, mode->Offset));
 }
 
-int EntitySystem::SlotFromPawn(CEntityInstance* pawn)
+Status Pawn::SetObserverMode(ObserverMode_t value) const
 {
-    if (!pawn)
-        return -1;
+    static const LazyField mode{"CPlayer_ObserverServices", "m_iObserverMode", sizeof(uint8_t)};
 
-    if (!_schemaOffsetsResolved)
-        ResolveSchemaOffsets();
-    if (_offsetPawnController < 0)
-        return -1;
+    void* services = ObserverServices(_e);
+    if (!services || !mode)
+        return std::unexpected(Error::NotReady("observer services unavailable"));
 
-    CEntityInstance* controller = ResolveEntityHandle(ReadAt<uint32_t>(pawn, _offsetPawnController));
-    if (!controller)
-        return -1;
-
-    // Controllers occupy entity indices 1..MaxPlayers, the same mapping GetPlayerController uses.
-    int slot = GetEntityIndex(controller) - 1;
-    return IsValidSlot(slot) ? slot : -1;
+    WriteAt<uint8_t>(services, mode->Offset, static_cast<uint8_t>(value));
+    return {};
 }
 
-uint64_t EntitySystem::GetPlayerButtons(int slot)
+std::string Pawn::ModelName() const
 {
-    auto* pMovementServices = static_cast<uint8_t*>(GetPlayerMovementServices(slot));
-    if (!pMovementServices || _offsetButtons < 0 || _offsetButtonStates < 0)
+    // The pawn's scene node is a CSkeletonInstance; the model path is the CUtlSymbolLarge inside
+    // its embedded CModelState (an interned string pointer).
+    static const LazyField state{"CSkeletonInstance", "m_modelState"};
+    static const LazyField name{"CModelState", "m_ModelName"};
+
+    void* node = ResolveSceneNode(_e);
+    if (!node || !state || !name)
+        return {};
+
+    const char* path = ReadAt<const char*>(node, state->Offset + name->Offset);
+    return path ? std::string(path) : std::string{};
+}
+
+void Pawn::SetRender(RenderMode_t mode, uint32_t color) const
+{
+    // Qualified: this member would otherwise hide the free function of the same name.
+    VoltMod::SetRender(_e, mode, color);
+}
+
+void Pawn::SetVisible(bool visible, uint8_t alpha) const
+{
+    RenderMode_t mode = visible ? RenderMode_t::Normal : RenderMode_t::TransTexture;
+    // m_clrRender packs alpha in the top byte; the low three bytes stay opaque white.
+    uint32_t color = visible ? ColorOpaqueWhite : ((static_cast<uint32_t>(alpha) << 24) | 0x00FFFFFFu);
+    SetRender(mode, color);
+}
+
+Controller Pawn::GetController() const
+{
+    if (!_sys)
+        return {};
+    return _sys->Controller(Slot());
+}
+
+int Pawn::Slot() const
+{
+    return _sys ? _sys->SlotOf(*this) : -1;
+}
+
+Controller::Controller(EntitySystem& entities, CEntityInstance* raw, int slot) : Entity(entities, raw), _slot(slot)
+{
+    static const LazyField playerPawn{"CCSPlayerController", "m_hPlayerPawn", sizeof(uint32_t)};
+
+    if (_e && playerPawn)
+        _pawn = entities.Resolve(EntityRef{ReadAt<uint32_t>(_e, playerPawn->Offset)}).Raw();
+}
+
+Pawn Controller::GetPawn() const
+{
+    return _sys ? Pawn{*_sys, _pawn} : Pawn{};
+}
+
+// The balance lives in a sub-object the controller points at, so it needs the same two-step reach
+// as the observer mode above.
+static void* MoneyServices(CEntityInstance* controller)
+{
+    static const LazyField services{"CCSPlayerController", "m_pInGameMoneyServices", sizeof(void*)};
+    if (!controller || !services)
+        return nullptr;
+    return ReadAt<void*>(controller, services->Offset);
+}
+
+int Controller::Money() const
+{
+    static const LazyField account{"CCSPlayerController_InGameMoneyServices", "m_iAccount", sizeof(int)};
+
+    void* services = MoneyServices(_e);
+    if (!services || !account)
         return 0;
-
-    auto* pButtonStates = MemberPtr<uint64_t>(pMovementServices, _offsetButtons + _offsetButtonStates);
-
-    return pButtonStates[0];  // m_pButtonStates is uint64[3]: [0] held, [1] changed, [2] scroll
+    return ReadAt<int>(services, account->Offset);
 }
 
-void* EntitySystem::GetPlayerMovementServices(int slot)
+Status Controller::SetMoney(int amount) const
 {
-    if (!_schemaOffsetsResolved)
-        ResolveSchemaOffsets();
+    static const LazyField servicesField{"CCSPlayerController", "m_pInGameMoneyServices", sizeof(void*)};
+    static const LazyField account{"CCSPlayerController_InGameMoneyServices", "m_iAccount", sizeof(int)};
 
-    if (_offsetPlayerPawn < 0 || _offsetMovementServices < 0)
-        return nullptr;
+    void* services = MoneyServices(_e);
+    if (!services || !account)
+        return std::unexpected(Error::NotReady("money services unavailable"));
 
-    CEntityInstance* pController = GetPlayerController(slot);
-    if (!pController)
-        return nullptr;
+    WriteAt<int>(services, account->Offset, amount);
 
-    uint32_t hPawn = ReadAt<uint32_t>(pController, _offsetPlayerPawn);
-    CEntityInstance* pPawn = ResolveEntityHandle(hPawn);
-    if (!pPawn)
-        return nullptr;
-
-    return ReadAt<uint8_t*>(pPawn, _offsetMovementServices);
+    // The write is inside a sub-object, so it is invisible to the client on its own. Dirty the
+    // controller's own pointer field, which is what the entity actually replicates through; the
+    // HUD picks the new value up on the next update.
+    if (servicesField)
+        MarkChanged(_e, *servicesField);
+    return {};
 }
 
-bool EntitySystem::IsPlayerSlotValid(int slot)
+Status Controller::Kick(std::string_view reason) const
 {
-    return GetPlayerController(slot) != nullptr;
+    if (!_e || !_sys)
+        return std::unexpected(Error::NotReady("no controller"));
+
+    auto* engine = _sys->InterfacesRef().Engine;
+    if (!engine)
+        return std::unexpected(Error::NotReady("IVEngineServer2 not available"));
+
+    // DisconnectClient takes a C string; the reason is short and this is not a hot path.
+    const std::string text(reason);
+    engine->DisconnectClient(CPlayerSlot(_slot), NETWORK_DISCONNECT_KICKED, text.c_str());
+    return {};
 }
 
-CEntityInstance* EntitySystem::FindByClassName(CEntityInstance* startAfter, const char* className)
+Status Controller::ChangeTeam(int team) const
 {
-    auto* pSys = GetEntitySystem();
-    if (!_bindings.FindEntityByClassName || !pSys || !className)
-        return nullptr;
+    if (!_e || !_sys)
+        return std::unexpected(Error::NotReady("no controller"));
 
-    // The engine takes CEntitySystem*; the upcast happens here, where the complete types are in
-    // scope, rather than inside the binding's own void* parameter.
-    return _bindings.FindEntityByClassName(static_cast<CEntitySystem*>(pSys), startAfter, className);
+    const auto& changeTeam = _sys->BindingsRef().ChangeTeam;
+    if (!changeTeam)
+        return std::unexpected(Error::Unsupported("gamedata has no 'ChangeTeam' vtable index"));
+
+    changeTeam.Call(_e, team);
+    return {};
 }
 
-CEntityInstance* EntitySystem::FindByName(CEntityInstance* startAfter, const char* name)
+Status Controller::Respawn() const
 {
-    auto* pSys = GetEntitySystem();
-    if (!_bindings.FindEntityByName || !pSys || !name)
-        return nullptr;
+    if (!_e || !_sys)
+        return std::unexpected(Error::NotReady("no controller"));
 
-    return _bindings.FindEntityByName(static_cast<CEntitySystem*>(pSys), startAfter, name, nullptr, nullptr, nullptr,
-                                      nullptr);
+    const auto& respawn = _sys->BindingsRef().Respawn;
+    if (!respawn)
+        return std::unexpected(Error::Unsupported("gamedata has no 'Respawn' vtable index"));
+
+    respawn.Call(_e);
+    return {};
 }
+
+// Each wrapper repeats the entity pointer once per Field, so its size is the field count: today
+// Entity is 72 bytes (2 pointers + 7 fields), Pawn 152 and Controller 96. These are values, copied
+// into every call that takes one, so the bounds are here to make adding a field deliberate - raise
+// them with the field, do not widen them in advance.
+static_assert(sizeof(Pawn) <= 160, "Pawn is a frame-local value; keep the field list tight.");
+static_assert(sizeof(Controller) <= 104, "Controller is a frame-local value; keep the field list tight.");
 
 }  // namespace VoltMod

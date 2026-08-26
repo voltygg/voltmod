@@ -57,8 +57,6 @@ namespace VoltMod
 
 // --- (2) Framework internals, defined under src/ ------------------------------
 
-/** Schema offset resolution. Defined in src/Entities/Schema.hpp. */
-class SchemaService;
 /** Manifest-time precache hook. Defined in src/Engine/GameSystem.hpp. */
 class PrecacheGameSystem;
 /** Stand-in for the SDK game-system factory. Defined in src/Engine/GameSystem.hpp. */
@@ -75,9 +73,15 @@ class Runtime;
  *  holds MenuOption, so MenuOption.hpp cannot include MenuManager.hpp. */
 class MenuManager;
 
-/** Entity.hpp returns PlayerController by value from EntitySystem::Controller,
- *  and PlayerController.hpp needs EntitySystem, so only one side can include
- *  the other: PlayerController.hpp includes Entity.hpp. */
-class PlayerController;
+/** Entity.hpp holds an EntitySystem* so a wrapper's verbs can reach Bindings and
+ *  the entity system, while EntitySystem.hpp returns Entity, Pawn and Controller
+ *  by value. Only one side can include the other: EntitySystem.hpp includes
+ *  Controller.hpp, which includes Pawn.hpp, which includes Entity.hpp. */
+class EntitySystem;
+
+/** Pawn.hpp returns Controller by value from Pawn::GetController and
+ *  Controller.hpp includes Pawn.hpp, so this is the same pair as above one level
+ *  down. */
+class Controller;
 
 }  // namespace VoltMod

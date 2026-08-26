@@ -2,7 +2,7 @@
 
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Entities/PlayerController.hpp>
+#include <VoltMod/Entities/Pawn.hpp>
 
 namespace VoltMod
 {
@@ -20,35 +20,34 @@ namespace VoltMod
 class Items
 {
 public:
-    /** Both must outlive this service; the Runtime declares them above it. */
-    Items(const Bindings& bindings, SchemaService& schema);
+    /** @p bindings must outlive this service; the Runtime declares it above. */
+    explicit Items(const Bindings& bindings) : _bindings(bindings) {}
     Items(const Items&) = delete;
     Items& operator=(const Items&) = delete;
 
     /**
-     * Give @p item (an entity classname, e.g. "weapon_ak47") to @p pc.
+     * Give @p item (an entity classname, e.g. "weapon_ak47") to @p pawn.
      *
      * The engine refuses a weapon the player's team cannot buy, so a refusal is retried once
-     * with the pawn temporarily on the other team. That flip is not networked - it is undone
-     * before this returns - but it does mean the call must not be interleaved with anything
-     * else that reads the pawn's team.
+     * with the pawn temporarily on the other team. Both writes land in the same frame and the
+     * original value is restored before this returns, so no client ever sees the flip - but it
+     * does mean the call must not be interleaved with anything else that reads the pawn's team.
      *
      * @return false when the pawn is unavailable or the engine refused the item twice.
      */
-    bool Give(const PlayerController& pc, const char* item);
+    bool Give(const Pawn& pawn, const char* item);
 
     /**
-     * Remove every weapon @p pc is carrying.
+     * Remove every weapon @p pawn is carrying.
      * @param removeSuit also strips armor and the defuse kit.
      */
-    bool StripWeapons(const PlayerController& pc, bool removeSuit = true);
+    bool StripWeapons(const Pawn& pawn, bool removeSuit = true);
 
 private:
     /** The pawn's CCSPlayer_ItemServices, or nullptr. */
-    void* ItemServices(const PlayerController& pc) const;
+    static void* ItemServices(const Pawn& pawn);
 
     const Bindings& _bindings;
-    SchemaService& _schema;
 };
 
 }  // namespace VoltMod

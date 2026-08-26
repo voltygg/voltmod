@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Entities/PlayerController.hpp>
+#include <VoltMod/Entities/Pawn.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuContext.hpp>
 #include <VoltMod/Menu/Options.hpp>
@@ -65,7 +65,7 @@ public:
      * A toggle row that re-evaluates @p isActive on every redraw and runs the
      * action when pressed. Predicates live in Entities/PawnPredicates.hpp.
      */
-    MenuBuilder& AddStateToggleRow(std::string_view labelKey, std::function<bool(const PlayerController&)> isActive,
+    MenuBuilder& AddStateToggleRow(std::string_view labelKey, std::function<bool(const Pawn&)> isActive,
                                    const Action& action);
 
     /** Choice row: A/D selects a preset and E runs the action. */

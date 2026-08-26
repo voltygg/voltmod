@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Core/Result.hpp>
@@ -6,7 +6,7 @@
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Entities/Entity.hpp>
+#include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <array>
 

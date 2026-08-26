@@ -18,8 +18,8 @@
 #include <VoltMod/Engine/Map.hpp>
 #include <VoltMod/Engine/NetChannel.hpp>
 #include <VoltMod/Engine/Precache.hpp>
-#include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Entities/EntityOps.hpp>
+#include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/Items.hpp>
 #include <VoltMod/Entities/Pawns.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
@@ -115,24 +115,18 @@ public:
     /** The typed view of GameData; bound once by Start and handed to every engine service. */
     Bindings Bindings;
 
-private:
-    /** Internal schema-offset service, declared here because the engine services below take it.
-     *  Constructed in Runtime::Runtime because the type is only forward-declared in this header.
-     *  Depends on: Interfaces. */
-    std::unique_ptr<SchemaService> _schema;
-
-public:
-    /** Depends on: Interfaces, Bindings, Schema(). */
-    EntitySystem Entities{Interfaces, Bindings, *_schema};
+    /** Depends on: Interfaces, Bindings. Schema field offsets resolve themselves, per process
+     *  rather than per load - see @ref Field. */
+    EntitySystem Entities{Interfaces, Bindings};
     /** Pawn manipulations that need framework services, such as slap and its fall protection.
      *  Depends on: Scheduler, Slots, Entities. */
     Pawns Pawns{Scheduler, Slots, Entities};
-    /** Depends on: Entities, Bindings, Schema(). */
-    EntityOps EntityOps{Entities, Bindings, *_schema};
-    /** Weapon give/strip through CCSPlayer_ItemServices. Depends on: Bindings, Schema(). */
-    Items Items{Bindings, *_schema};
-    /** Depends on: Entities, Bindings, Schema(), Slots. */
-    Transmit Transmit{Entities, Bindings, *_schema, Slots};
+    /** Depends on: Entities, Bindings. */
+    EntityOps EntityOps{Entities, Bindings};
+    /** Weapon give/strip through CCSPlayer_ItemServices. Depends on: Bindings. */
+    Items Items{Bindings};
+    /** Depends on: Entities, Bindings, Slots. */
+    Transmit Transmit{Entities, Bindings, Slots};
     /** Builds per-viewer visibility effects (GlowVision). Depends on: Entities, EntityOps, Transmit. */
     Visibility Visibility{Entities, EntityOps, Transmit};
     /** Depends on: Bindings. */
@@ -148,8 +142,8 @@ public:
     /** The engine's simulation clock (tick and curtime). Depends on: Interfaces. */
     Clock Clock{Interfaces};
     /** The game's own yes/no vote panel. Subscribes on the first StartVote().
-     *  Depends on: Interfaces, Entities, Schema(), Events, Scheduler. */
-    Vote Vote{Interfaces, Entities, *_schema, Events, Scheduler};
+     *  Depends on: Interfaces, Entities, Events, Scheduler. */
+    Vote Vote{Interfaces, Entities, Events, Scheduler};
     /** Dormant until a plugin calls Install(); removes its vtable hook on destruction.
      *  Depends on: Entities, Bindings. */
     Movement MovementHook{Entities, Bindings};
@@ -184,9 +178,6 @@ public:
      *  Takes the whole runtime, so its constructor may only touch members declared above it -
      *  Scheduler and Slots, which is exactly what it subscribes to. */
     MenuManager Menus{*this};
-
-    /** Internal schema-offset service (forward-declared type). */
-    SchemaService& Schema() { return *_schema; }
 
     // These names shadow their namespaces, so keep them last.
     PlayerManager Players{Slots};

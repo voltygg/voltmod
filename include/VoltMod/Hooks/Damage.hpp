@@ -1,9 +1,9 @@
-#pragma once
+﻿#pragma once
 
 #include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
-#include <VoltMod/Entities/Entity.hpp>
+#include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/HitGroup.hpp>
 #include <cstdint>
 

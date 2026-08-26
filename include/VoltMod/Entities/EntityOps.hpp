@@ -2,7 +2,7 @@
 
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Entities/Entity.hpp>
+#include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/KeyValues.hpp>
 
 namespace VoltMod
@@ -21,8 +21,8 @@ namespace VoltMod
 class EntityOps
 {
 public:
-    /** All three must outlive this service; the Runtime declares them above it. */
-    EntityOps(EntitySystem& entities, const Bindings& bindings, SchemaService& schema);
+    /** Both must outlive this service; the Runtime declares them above it. */
+    EntityOps(EntitySystem& entities, const Bindings& bindings) : _entities(entities), _bindings(bindings) {}
     EntityOps(const EntityOps&) = delete;
     EntityOps& operator=(const EntityOps&) = delete;
 
@@ -76,18 +76,9 @@ public:
     void EmitSoundFilter(IRecipientFilter& filter, CEntityInstance* source, const char* soundEvent, float volume = 1.0f,
                          int pitch = 100);
 
-    /** Notify the engine that a schema field written via WriteAt changed, so the
-     *  new value replicates immediately instead of riding the next broadcast. */
-    void NotifyFieldChanged(CEntityInstance* entity, const char* className, const char* fieldName);
-
-    /** @internal The schema service this was built with, for framework code that owns an
-     *  EntityOps and needs field offsets for the entities it spawns. */
-    SchemaService& Schema() { return _schema; }
-
 private:
     EntitySystem& _entities;
     const Bindings& _bindings;
-    SchemaService& _schema;
 };
 
 }  // namespace VoltMod

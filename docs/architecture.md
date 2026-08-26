@@ -9,7 +9,8 @@ VoltMod
 ├── Core        Primitives: events and subscriptions, results, capabilities, policy,
 │               scheduler, slot events, translations, parsing, per-slot caches, helpers
 ├── Engine      Interfaces, gamedata + typed Bindings, ConVar<T>, clock, maps, precache, commands
-├── Entities    Entity lookup, PlayerController, schema fields, items, pawn operations
+├── Entities    Entity lookup, the Entity/Pawn/Controller wrappers, schema fields, items,
+│               pawn operations
 ├── Events      The game event service and its typed event structs
 ├── Messaging   Chat and center-HTML messages, chat colors, the vote panel
 ├── Players     Player tracking, target selectors, action dispatch
@@ -55,8 +56,13 @@ moves do not break consumers.
 ```cpp
 runtime.Players.GetPlayerBySlot(slot);
 runtime.Messages.Reply(slot, "done");
-runtime.Schema().GetOffset("CCSPlayerPawn", "m_iHealth");   // Schema() is a method
+runtime.Entities.PawnOf(slot).Health = 100;
 ```
+
+Schema offsets are not a service. A `Field` resolves its own offset once per
+`(class, field)` for the **process**, not once per load, so nothing has to be
+threaded through a constructor to read `m_iHealth`. See
+@ref sdk_players_guide "Entities and players".
 
 **Your `App`** holds everything the plugin owns for one load cycle. Build it in
 `OnLoad` from the runtime you are given, drop it in `OnUnload`:
@@ -222,9 +228,9 @@ constructor or a parameter, and `modgraph` enforces that too: a `.cpp` outside `
 `Players/`, `Commands/` and `Menu/` may not include `VoltMod/Runtime.hpp` at all.
 
 - The engine-facing modules, `Core/`, `Http/` and `Database/` never name `Runtime`. Services and value types
-  (`PlayerController`, `GlowVision`, `CenterHtml`, `HttpClient`, `PostgresDatabase`)
+  (`Entity`/`Pawn`/`Controller`, `GlowVision`, `CenterHtml`, `HttpClient`, `PostgresDatabase`)
   take the sibling services they use; the free helpers that need no service at all work off the
-  controller they are handed (`PawnOps`), and the rest take theirs as a parameter (`EffectOps`).
+  pawn they are handed (`PawnOps`), and the rest take theirs as a parameter (`EffectOps`).
   Where a plugin would otherwise thread services through every call, the runtime owns a small
   facade that binds them once: `Pawns` (`runtime.Pawns`, which owns slap's fall protection)
   and `Visibility` (`runtime.Visibility`, over the `GlowVision` constructor).

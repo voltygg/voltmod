@@ -1,30 +1,26 @@
-#include "Entities/Schema.hpp"
-
 #include <VoltMod/Engine/MemoryAccess.hpp>
+#include <VoltMod/Entities/Field.hpp>
 #include <VoltMod/Entities/Render.hpp>
 #include <entity2/entityinstance.h>
 
 namespace VoltMod
 {
 
-void SetRender(SchemaService& schema, CEntityInstance* entity, RenderMode_t mode, uint32_t color)
+void SetRender(CEntityInstance* entity, RenderMode_t mode, uint32_t color)
 {
-    if (!entity)
+    static const LazyField renderMode{"CBaseModelEntity", "m_nRenderMode", sizeof(uint8_t)};
+    static const LazyField renderColor{"CBaseModelEntity", "m_clrRender", sizeof(uint32_t)};
+
+    if (!entity || !renderMode || !renderColor)
         return;
 
-    // SchemaService caches both lookups, so this stays a map hit per disco tick.
-    const int modeOffset = schema.GetOffsetOf<uint8_t>("CBaseModelEntity", "m_nRenderMode");
-    const int colorOffset = schema.GetOffsetOf<uint32_t>("CBaseModelEntity", "m_clrRender");
-    if (modeOffset < 0 || colorOffset < 0)
-        return;
+    WriteAt<uint8_t>(entity, renderMode->Offset, static_cast<uint8_t>(mode));
+    WriteAt<uint32_t>(entity, renderColor->Offset, color);
 
-    WriteAt<uint8_t>(entity, modeOffset, static_cast<uint8_t>(mode));
-    WriteAt<uint32_t>(entity, colorOffset, color);
-
-    // Raw writes don't dirty the network state, so without these the new values
-    // only replicate when something else touches the entity that tick.
-    entity->NetworkStateChanged(NetworkStateChangedData(static_cast<uint32>(modeOffset)));
-    entity->NetworkStateChanged(NetworkStateChangedData(static_cast<uint32>(colorOffset)));
+    // Raw writes don't dirty the network state, so without these the new values only replicate
+    // when something else touches the entity that tick.
+    MarkChanged(entity, *renderMode);
+    MarkChanged(entity, *renderColor);
 }
 
 }  // namespace VoltMod

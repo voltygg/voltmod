@@ -1,4 +1,4 @@
-#include <VoltMod/Players/ActionDispatcher.hpp>
+﻿#include <VoltMod/Players/ActionDispatcher.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Runtime.hpp>
 
@@ -36,7 +36,7 @@ void ActionDispatcher::Run(int callerSlot, int targetSlot, const Action& action)
     auto ctx = Resolve(callerSlot, targetSlot, action.Permission);
     if (!ctx.Valid())
         return;
-    if (action.RequireAlive && !ctx.TargetCtrl.IsAlive())
+    if (action.RequireAlive && !ctx.TargetCtrl.GetPawn().IsAlive())
         return;
     if (auto key = action.Body(ctx))
         Broadcast(ctx, *key);
@@ -47,7 +47,7 @@ void ActionDispatcher::Run(int callerSlot, int targetSlot, int param, const Para
     auto ctx = Resolve(callerSlot, targetSlot, action.Permission);
     if (!ctx.Valid())
         return;
-    if (action.RequireAlive && !ctx.TargetCtrl.IsAlive())
+    if (action.RequireAlive && !ctx.TargetCtrl.GetPawn().IsAlive())
         return;
     if (auto key = action.Body(ctx, param))
         Broadcast(ctx, *key);

@@ -1,10 +1,10 @@
-#pragma once
+﻿#pragma once
 
 #include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
-#include <VoltMod/Entities/Entity.hpp>
+#include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Hooks/UserCmd.hpp>
 #include <array>
 #include <cstdint>
