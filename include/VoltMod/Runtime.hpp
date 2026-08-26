@@ -156,9 +156,9 @@ public:
     /** Dormant until Enable(depth); listens on the MovementHook cmd feed + slot changes.
      *  Depends on: MovementHook, Slots. */
     InputHistory InputHistory{MovementHook, Slots};
-    /** Dormant until Enable(); per-pawn Teleport hook re-bound on PlayerSpawn.
-     *  Depends on: Entities, GameData, Events, Clock, Slots. */
-    Teleport Teleports{Entities, GameData, Events, Clock, Slots};
+    /** Dormant until something subscribes to Teleports.Teleported; per-pawn Teleport hook re-bound
+     *  on PlayerSpawn. Depends on: Entities, GameData, Events, Slots. */
+    Teleport Teleports{Entities, GameData, Events, Slots};
     /** Async client-side convar reads. Inert when its load stage degraded (Available() == false).
      *  Depends on: Interfaces, GameData, Slots. */
     ClientCvars ClientCvars{Interfaces, GameData, Slots};

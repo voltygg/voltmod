@@ -93,12 +93,12 @@ Pawns::Pawns(Scheduler& scheduler, SlotEvents& slots, EntitySystem& entities)
     : _scheduler(scheduler),
       _entities(entities),
       // Either edge of a slot change means the pending clear no longer belongs to whoever sits there.
-      _slotListener(slots.Listen([this](int slot) {
+      _slotListener(slots.Changed += [this](int slot) {
           if (!IsValidSlot(slot))
               return;
-          _scheduler.Cancel(_fallProtect[slot]);
-          _fallProtect[slot] = 0;
-      }))
+          _fallProtect[slot].Reset();
+          _slay[slot].Reset();
+      })
 {}
 
 void Pawns::Slap(const PlayerController& pc, float upward, float horizontal, int fallProtectMs)
@@ -115,15 +115,28 @@ void Pawns::Slap(const PlayerController& pc, float upward, float horizontal, int
         return;
 
     PawnOps::SetGodmode(pc, true);
-    _scheduler.Cancel(_fallProtect[slot]);
 
     // Re-resolve rather than holding this controller: it caches an entity pointer and the window
     // outlives the frame. The Runtime discards pending timers unrun, so `this` never dangles.
+    // Assigning cancels whatever clear was already pending for this slot.
     _fallProtect[slot] = _scheduler.Delay(fallProtectMs, [this, slot] {
-        _fallProtect[slot] = 0;
         PlayerController target = _entities.Controller(slot);
         if (target.IsValid())
             PawnOps::SetGodmode(target, false);
+    });
+}
+
+void Pawns::SlayDelayed(int slot, int64_t delayMs)
+{
+    if (!IsValidSlot(slot))
+        return;
+
+    // Re-resolved on fire for the same reason Slap's clear is, and assigning cancels whatever
+    // slay was already pending for this slot.
+    _slay[slot] = _scheduler.Delay(delayMs, [this, slot] {
+        PlayerController target = _entities.Controller(slot);
+        if (target.IsValid() && target.IsAlive())
+            target.Slay();
     });
 }
 

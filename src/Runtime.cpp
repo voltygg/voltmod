@@ -21,7 +21,6 @@ namespace VoltMod
 {
 
 static constexpr const char* DefaultGameDataPath = "addons/voltmod/gamedata/signatures.jsonc";
-static ConsoleLogger g_consoleLogger;
 
 // Every other service is wired by its default member initializer in Runtime.hpp, where the
 // dependency order is visible. _schema is the exception: SchemaService is only forward-declared
@@ -35,10 +34,11 @@ Runtime::~Runtime()
     // One last check before member destruction starts unwinding the layout the canary guards.
     VerifyIntegrity();
 
-    // Both must precede member destruction: the worker threads' final log lines are queued for
-    // the game thread, and OnGameFrame never runs again once the hooks are gone.
+    // Both must precede member destruction: Http.Stop() joins the workers, whose final log lines
+    // are queued for the game thread, and OnGameFrame never runs again once the hooks are gone -
+    // so this second drain is the only thing that keeps shutdown diagnostics from being dropped.
     Http.Stop();
-    DrainDeferredLogs();
+    Log::Drain();
 }
 
 bool Runtime::Start(const LoadContext& context)
@@ -59,8 +59,7 @@ bool Runtime::Start(const LoadContext& context)
 
 void Runtime::InstallLogger(const LoadContext& context)
 {
-    g_consoleLogger.SetPrefix(context.LogPrefix);
-    SetGlobalLogger(&g_consoleLogger);
+    Log::SetSink(MakeConsoleSink(context.LogPrefix));
     SetBaseDir(context.Ismm->GetBaseDir());
 }
 
@@ -209,7 +208,7 @@ void Runtime::RegisterStatusSections()
 void Runtime::OnGameFrame()
 {
     VerifyIntegrity();
-    DrainDeferredLogs();
+    Log::Drain();
     Scheduler.OnGameFrame();
 }
 

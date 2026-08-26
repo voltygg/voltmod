@@ -186,38 +186,44 @@ runtime argument. Everywhere else, use what `OnLoad` handed you.
 ## Cleanup on unload
 
 Cleanup belongs in a member destructor or a @ref VoltMod::Subscription
-held beside the state its callback captures:
+held beside the state its handler captures:
 
 ```cpp
 class Bhop
 {
     Bhop(VoltMod::Runtime& runtime) : _rt(runtime)
     {
-        _spawn = _rt.Events.Listen<Events::PlayerSpawn>([this](const auto& e) { OnSpawn(e.Slot); });
+        _spawn = _rt.Events.On<VoltMod::PlayerSpawn>([this](const VoltMod::PlayerSpawn& e) { OnSpawn(e.Slot); });
+        _slots = _rt.Slots.Changed += [this](int slot) { _state.Reset(slot); };
     }
     VoltMod::Subscription _spawn;   // removed before the members above it are destroyed
+    VoltMod::Subscription _slots;
 };
 ```
 
-`Subscription` is move-only and `[[nodiscard]]`, so a registration you drop on the floor
-is a compiler warning rather than a listener that fires into freed memory. Work that is
-not a registration, such as draining a database or withdrawing a published interface, belongs
-in your `App`'s destructor.
+Every registration in the framework returns a `[[nodiscard]]` `Subscription`: `+=` on an
+@ref VoltMod::Event member, `On<T>` for game events, `Scheduler::Delay`/`NextTick`/`Repeat`/
+`EveryFrame`, and `VOLTMOD_SCOPED_HOOK`. Store each one beside the state its handler captured,
+in a member declared after that state so it unregisters first. `Subscription` is move-only, so a
+registration you drop on the floor is a compiler warning rather than a handler that fires into
+freed memory - and for the scheduler, dropping it *cancels* the timer, which is what keeps a
+pending one-shot from outliving what it was going to touch. Work that is not a registration, such
+as draining a database or withdrawing a published interface, belongs in your `App`'s destructor.
 
 ## Typed game events
 
-Listen for game events as structs instead of string + `GetInt` pairs. The structs live in `VoltMod` (`VoltMod/Events/EventTypes.hpp`): `PlayerDeath`, `PlayerSpawn`, `PlayerJump`, `PlayerHurt`, `PlayerTeam`, `PlayerConnectFull`, `WeaponFire`, `RoundStart`, `RoundEnd`, `RoundPrestart`.
+Subscribe to game events as structs instead of string + `GetInt` pairs. The structs live in `VoltMod` (`VoltMod/Events/EventTypes.hpp`): `PlayerDeath`, `PlayerSpawn`, `PlayerJump`, `PlayerHurt`, `PlayerBlind`, `PlayerTeam`, `PlayerConnectFull`, `WeaponFire`, `BulletImpact`, `RoundStart`, `RoundEnd`, `RoundPrestart`, `VoteCast`.
 
 ```cpp
 using VoltMod::PlayerDeath;
 
-_playerDeath = Runtime.Events.Listen<PlayerDeath>([this](const PlayerDeath& e) {
+_playerDeath = Runtime.Events.On<PlayerDeath>([this](const PlayerDeath& e) {
     if (e.VictimSlot >= 0)
         Effects.CancelAllForSlot(e.VictimSlot);
 });
 ```
 
-The stringly `Listen("event_name", ...)` overload stays as the escape hatch for unmodeled events; see @ref sdk_events_guide.
+There is no string form: consuming an unmodeled event means adding its struct to `EventTypes.hpp` first; see @ref sdk_events_guide.
 
 ## Custom hooks
 

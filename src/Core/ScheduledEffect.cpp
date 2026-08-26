@@ -7,9 +7,8 @@ namespace VoltMod
 
 struct ScheduledEffect::State
 {
-    Scheduler* scheduler = nullptr;
     Subscription tickTimer;
-    uint64_t stopTimer = 0;  // one-shot Delay: only cancelled when the effect ends early
+    Subscription stopTimer;  // one-shot Delay; dropping it cancels an effect that ends early
     std::function<void()> onStop;
     bool stopped = false;
 
@@ -20,9 +19,7 @@ struct ScheduledEffect::State
         stopped = true;
 
         tickTimer.Reset();
-        if (scheduler && stopTimer)
-            scheduler->Cancel(stopTimer);
-        stopTimer = 0;
+        stopTimer.Reset();
 
         if (onStop)
         {
@@ -37,7 +34,6 @@ ScheduledEffect::ScheduledEffect(Scheduler& scheduler, int64_t tickIntervalMs, i
                                  std::function<void()> onTick, std::function<void()> onStop)
     : _state(std::make_shared<State>())
 {
-    _state->scheduler = &scheduler;
     _state->onStop = std::move(onStop);
 
     if (onTick && tickIntervalMs > 0)

@@ -4,27 +4,33 @@
 
 ## GameEvents
 
-Prefer the typed listeners: each struct in `VoltMod` (`VoltMod/Events/EventTypes.hpp`) carries the event name and decodes its fields for you. Available: `PlayerDeath`, `PlayerSpawn`, `PlayerJump`, `PlayerHurt`, `PlayerBlind`, `PlayerTeam`, `PlayerConnectFull`, `WeaponFire`, `BulletImpact`, `RoundStart`, `RoundEnd`, `RoundPrestart`.
+Subscribe with `On<T>`, where `T` is one of the structs in `VoltMod` (`VoltMod/Events/EventTypes.hpp`). Each carries the event name and decodes its fields for you. Available: `PlayerDeath`, `PlayerSpawn`, `PlayerJump`, `PlayerHurt`, `PlayerBlind`, `PlayerTeam`, `PlayerConnectFull`, `WeaponFire`, `BulletImpact`, `RoundStart`, `RoundEnd`, `RoundPrestart`, `VoteCast`.
 
 ```cpp
 using VoltMod::PlayerDeath;
 
 auto& events = runtime.Events;
 
-auto death = events.Listen<PlayerDeath>([](const PlayerDeath& e) {
+auto death = events.On<PlayerDeath>([](const PlayerDeath& e) {
     // e.VictimSlot, e.AttackerSlot, e.Headshot, e.Weapon, ...
 });
 
-// Keep `death` beside the state captured by the callback.
+// Keep `death` beside the state captured by the handler.
 ```
 
-For events the framework has not modeled, use the string overload with the same
-registration API and a raw `IGameEvent*`:
+There is no string form. An event nobody has modeled is one nobody decodes
+consistently, so consuming a new one means adding its struct to
+`EventTypes.hpp` first - a `Name`, the fields you need, and a `From(IGameEvent&)`
+that decodes them once:
 
 ```cpp
-events.Listen("bomb_planted", [](IGameEvent* event) {
-    int site = event->GetInt("site");
-});
+struct BombPlanted
+{
+    static constexpr const char* Name = "bomb_planted";
+    int Slot = -1;
+    int Site = 0;
+    static BombPlanted From(IGameEvent& e);
+};
 ```
 
 You can also create and fire events (`CreateEvent` / `FireEvent` / `FreeEvent`); the center-HTML transport is built on exactly that.
@@ -36,7 +42,7 @@ You can also create and fire events (`CreateEvent` / `FireEvent` / `FreeEvent`);
 Attribute impacts to a shot by **tick proximity** (the impacts belonging to a `WeaponFire`, or to a usercmd carrying an attack, arrive in the same tick), and use `TruncatedUserId` only to disambiguate among candidates in that tick. Never key state on `Slot` alone.
 
 ```cpp
-events.Listen<Events::BulletImpact>([&clock = runtime.Clock](const Events::BulletImpact& e) {
+events.On<VoltMod::BulletImpact>([&clock = runtime.Clock](const VoltMod::BulletImpact& e) {
     Record(clock.Tick(), e.TruncatedUserId, e.X, e.Y, e.Z);
 });
 ```
@@ -45,9 +51,9 @@ events.Listen<Events::BulletImpact>([&clock = runtime.Clock](const Events::Bulle
 
 `Penetrated` is the number of surfaces the killing bullet passed through; `> 0` is a wallbang. It is the field that tells a legitimate-looking kill apart from one taken through geometry the shooter could not see.
 
-### Listener lifecycle
+### Handler lifecycle
 
-Call `Listen` during plugin load and keep the returned `Subscription`. The
+Call `On<T>` during plugin load and keep the returned `Subscription`. The
 framework handles a Source engine quirk: `AddListener` succeeds
 before the first map, but the engine resets its listener table during each map
 startup. The framework re-attaches every listener from its `StartupServer` hook
@@ -56,9 +62,9 @@ the server log as the health check.
 
 Related lifecycle points:
 
-- `MetamodPlugin::OnServerStartup(mapName)` is the plugin-facing map-start callback. The engine resets game convars and re-execs gamemode cfgs around map init, so values set at load time may need re-asserting from here or from a `RoundStart` listener. The same hook stores the map in `runtime.CurrentMap`, so a plugin that only wants to stamp the current map on a record does not need to override anything. Note that it stays empty after a late (mid-map) load until the next map change.
+- `MetamodPlugin::OnServerStartup(mapName)` is the plugin-facing map-start callback. The engine resets game convars and re-execs gamemode cfgs around map init, so values set at load time may need re-asserting from here or from a `RoundStart` handler. The same hook stores the map in `runtime.CurrentMap`, so a plugin that only wants to stamp the current map on a record does not need to override anything. Note that it stays empty after a late (mid-map) load until the next map change.
 - On `meta reload`, `Shutdown` detaches everything (`RemoveAllListeners`), and the fresh load re-registers, so there is no double dispatch.
-- A handler may `Listen` or `RemoveListener` while it runs: dispatch works from a snapshot of the handles and re-resolves each one before calling it, so the registry is free to change underneath. A listener removed by an earlier handler in the same event does not fire; one registered during it starts with the next event.
+- A handler may subscribe or unsubscribe while it runs: dispatch works from a snapshot of the registrations and re-resolves each one before calling it, so the set is free to change underneath. A handler removed by an earlier one in the same event does not fire; one added during it starts with the next event.
 
 ### Inspecting a client's own subscriptions
 
@@ -86,11 +92,16 @@ if (auto gravity = cvars.GetFloat("sv_gravity"))   // getters return std::option
 cvars.SetFloat("sv_gravity", 400.0f);
 cvars.ExecuteServerCommand("mp_restartgame 1");
 
-// Global change listener; the id cancels it via RemoveChangeListener.
-uint64_t id = cvars.OnChange([](const char* name, const char* oldValue, const char* newValue) {
-    /* ... */
-});
+// Every engine-side change. The first subscription installs ICvar's global change callback and
+// dropping the last one removes it, so nothing is hooked while nobody is listening.
+_changes = cvars.Changed += [](const VoltMod::ConVarChange& e) {
+    if (e.Name == "sv_cheats")
+        /* e.OldValue, e.NewValue */;
+};
 ```
+
+The three fields are `string_view`s over engine storage that live only for the duration of the
+handler, so copy whatever you keep.
 
 The setters change the server's stored value and fire change callbacks, but they do **not** network anything. An `FCVAR_REPLICATED` convar set this way silently diverges from what clients predict with. They also do no cross-type conversion: the SDK's `SetAs<T>` no-ops when the convar's type has no conversion from `T` (e.g. `SetInt` on a bool convar like `sv_autobunnyhopping`; `SetString` works for any type). For a server-wide change that must reach clients, use `ExecuteServerCommand("name value")`. The console path both sets and replicates, exactly as a cfg line would. Two escape hatches cover the per-player cases.
 
@@ -115,7 +126,7 @@ lease.Restore("sv_gravity");                   // no-op if it never took it
 cvars.ReplicateToClient(slot, "sv_autobunnyhopping", "1");
 ```
 
-The client's connect/map-change snapshot restores the server value, so re-send the override from a `PlayerSpawn` listener to keep it sticky.
+The client's connect/map-change snapshot restores the server value, so re-send the override from a `PlayerSpawn` handler to keep it sticky.
 
 ### Raw value access
 

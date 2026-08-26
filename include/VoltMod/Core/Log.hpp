@@ -1,18 +1,61 @@
 #pragma once
 
-#include <VoltMod/Core/ILogger.hpp>
+#include <cstdint>
 #include <format>
+#include <functional>
 #include <string>
+#include <string_view>
+
+namespace VoltMod
+{
+
+enum class LogLevel : uint8_t
+{
+    Info,
+    Warn,
+    Error
+};
+
+}  // namespace VoltMod
 
 namespace VoltMod::Log
 {
 
-/** No logger means Emit would drop the line, so formatting it is pure waste - and diagnostic
- *  logging behind a debug gate should cost nothing before SetGlobalLogger and after Shutdown. */
-inline bool Enabled()
-{
-    return GetGlobalLogger() != nullptr;
-}
+/**
+ * @brief Where log lines end up.
+ *
+ * Invoked on the game thread only. @p message borrows the caller's storage for the duration of
+ * the call, so a sink that keeps a line must copy it.
+ */
+using Sink = std::function<void(LogLevel level, std::string_view message)>;
+
+/**
+ * Install the process-wide sink and record the calling thread as the game thread.
+ *
+ * Set once per load cycle by `Runtime::Start`, before anything else logs. A file-static rather
+ * than an injected service because logging must work from code that holds no runtime at all -
+ * static initializers, engine trampolines, and worker threads.
+ */
+void SetSink(Sink sink);
+
+/** True while a sink is installed. The gate the formatting helpers below check. */
+bool Enabled();
+
+/**
+ * Route one formatted line to the sink.
+ *
+ * The console sink reaches tier0's ConColorMsg/Msg, which is game-thread-only, but the database
+ * and HTTP workers log too. A line raised off the installing thread is queued instead and
+ * replayed by @ref Drain, so worker diagnostics still reach the console without a worker ever
+ * touching the engine.
+ */
+void Emit(LogLevel level, std::string message);
+
+/** Replay lines queued from worker threads. Game thread only; `Runtime::OnGameFrame` calls it. */
+void Drain();
+
+// Formatting is skipped entirely without a sink: diagnostic logging behind a debug gate should
+// cost nothing before SetSink and after unload.
 
 template <typename... Args>
 void Info(std::format_string<Args...> fmt, Args&&... args)

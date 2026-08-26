@@ -51,7 +51,7 @@ Translations::Translations(SlotEvents& slots)
     // SlotEvents is raised from AddPlayer as well as RemovePlayer, but AddPlayer raises it
     // before the plugin's OnPlayerConnect runs, which is where a language gets set - so clearing
     // on arrival drops nothing, and one event covers both edges.
-    : _slotListener(slots.Listen([this](int slot) { ClearPlayerLanguage(slot); }))
+    : _slotListener(slots.Changed += [this](int slot) { ClearPlayerLanguage(slot); })
 {}
 
 bool Translations::Load(const std::string& dirPath)

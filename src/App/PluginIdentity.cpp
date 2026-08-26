@@ -48,7 +48,7 @@ void PluginIdentity::Adopt(PluginManifest manifest)
         return;
 
     // First frame, not OnLoad - see PluginIdentity's comment.
-    _scheduler.NextTick([this] {
+    _report = _scheduler.NextTick([this] {
         for (const auto& dependency : _manifest.Dependencies)
             ReportDependency(_exchange, dependency);
     });

@@ -90,7 +90,7 @@ TEST_CASE("A slot change fires for both the departing and arriving occupant")
     PlayerManager players(slots);
 
     int raised = 0;
-    auto sub = slots.Listen([&](int) { ++raised; });
+    auto sub = slots.Changed += [&](int) { ++raised; };
 
     players.AddPlayer(6, SteamA, "alpha", "1.2.3.4");
     players.AddPlayer(6, SteamB, "bravo", "5.6.7.8");

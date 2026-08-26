@@ -7,6 +7,7 @@
 #include <VoltMod/Engine/MemoryAccess.hpp>
 #include <VoltMod/Engine/RecipientFilter.hpp>
 #include <VoltMod/Entities/Entity.hpp>
+#include <VoltMod/Events/EventTypes.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Messaging/Vote.hpp>
 #include <engine/igameeventsystem.h>
@@ -137,10 +138,9 @@ bool Vote::StartVote(const std::string& title, const std::string& detail, float 
     // because nobody armed the service is a silent failure with no good diagnostic.
     if (!_voteCastSub)
     {
-        _voteCastSub = _events.Listen("vote_cast", [this](IGameEvent* event) {
-            if (!event || !_inProgress)
-                return;
-            OnVoteCast(event->GetPlayerSlot("userid").Get(), event->GetInt("vote_option"));
+        _voteCastSub = _events.On<VoteCast>([this](const VoteCast& e) {
+            if (_inProgress)
+                OnVoteCast(e.Slot, e.Option);
         });
     }
 
@@ -186,7 +186,7 @@ bool Vote::StartVote(const std::string& title, const std::string& detail, float 
     // Captured by value so a timeout can only ever end the vote that scheduled it; a vote that
     // finished early has already moved the id on.
     const uint64_t voteId = ++_voteId;
-    _scheduler.Delay(static_cast<int64_t>(durationSec * 1000.0f), [this, voteId] {
+    _timeout = _scheduler.Delay(static_cast<int64_t>(durationSec * 1000.0f), [this, voteId] {
         if (_inProgress && voteId == _voteId)
             FinishVote(VoteEndReason::TimeUp);
     });
@@ -207,7 +207,7 @@ void Vote::OnVoteCast(int slot, int option)
         // Deferred a tick: ending inside the event dispatch that produced the last ballot tears
         // down state the engine is still walking.
         const uint64_t voteId = _voteId;
-        _scheduler.NextTick([this, voteId] {
+        _deferredClose = _scheduler.NextTick([this, voteId] {
             if (_inProgress && voteId == _voteId)
                 FinishVote(VoteEndReason::AllVoted);
         });

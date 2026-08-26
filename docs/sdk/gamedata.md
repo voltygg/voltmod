@@ -73,9 +73,9 @@ and CS2AC). The entries surfaced by anti-cheat are:
 | Offset | Used by | Drift symptom |
 |--------|---------|---------------|
 | `RunCommand` | @ref VoltMod::Movement | Crash on the first movement tick |
-| `UserCmdPB` | `Movement` cmd listeners | Missing: `Valid=false` views. Stale: garbage viewangles/buttons |
+| `UserCmdPB` | `Movement` cmd events | Missing: `Valid=false` views. Stale: garbage viewangles/buttons |
 | `UserCmdNumber` | `UserCmdView::CommandNumber` | Missing: falls back to the protobuf's `legacy_command_number`, which the live client leaves at 0. Stale: a counter that never increments by 1 |
-| `Teleport` | @ref VoltMod::Teleport | `Enable()` returns false when missing |
+| `Teleport` | @ref VoltMod::Teleport | Missing: subscribing to `Teleported` is refused and `Enabled()` stays false |
 | `ProcessRespondCvarValue` | @ref VoltMod::ClientCvars | Rejected at lookup, so the load stage degrades instead of crashing |
 | `ServerSideClientSlot` | `ClientCvars` | Rejected at lookup too; unchecked it would attribute a client's answer to the wrong player |
 
@@ -119,9 +119,10 @@ null there. Only a locator at offset 0 is accepted, so the result is always the 
 vtable, never a base subobject's.
 
 Both platforms return `nullptr` on failure rather than a wrong answer, and callers must degrade:
-`ClientCvars` logs and stays inert, leaving `Available()` false; `Movement::Install()`
-returns false. The vtable *index* to hook still comes from the `"offsets"` block above. The lookup
-only finds the table, never the slot within it.
+`ClientCvars` logs and stays inert, leaving `Available()` false; `Movement` and `Damage` refuse the
+subscription that would have installed them, so `+=` hands back an empty `Subscription` and
+`Installed()` stays false. The vtable *index* to hook still comes from the `"offsets"` block above.
+The lookup only finds the table, never the slot within it.
 
 ## SchemaService
 

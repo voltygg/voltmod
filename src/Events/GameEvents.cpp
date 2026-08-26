@@ -77,13 +77,13 @@ void GameEvents::FreeEvent(IGameEvent* event)
         mgr->FreeEvent(event);
 }
 
-Subscription GameEvents::Listen(const char* eventName, EventCallback callback)
+Subscription GameEvents::Add(const char* eventName, EventCallback callback)
 {
     auto* mgr = _interfaces.GameEventManager;
     if (!mgr)
         return {};
 
-    // This attach only serves listens made while a map is live (late load, mid-map Listen);
+    // This attach only serves listens made while a map is live (late load, mid-map On<T>);
     // the engine drops it during the next map startup, where OnServerStartup re-attaches.
     if (_registeredEvents.insert(eventName).second)
         mgr->AddListener(this, eventName, true);
@@ -130,8 +130,8 @@ void GameEvents::FireGameEvent(IGameEvent* event)
     if (!eventName)
         return;
 
-    // DispatchIf owns the snapshot-and-re-find dance: a handler is free to Listen() or
-    // RemoveListener() from inside this call.
+    // DispatchIf owns the snapshot-and-re-find dance: a handler is free to subscribe or
+    // unsubscribe from inside this call.
     _listeners.DispatchIf([&](const RegisteredListener& l) { return l.Callback && l.EventName == eventName; },
                           [&](RegisteredListener& l) { l.Callback(event); });
 }

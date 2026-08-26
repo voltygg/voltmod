@@ -33,16 +33,17 @@ public:
     bool FireEvent(IGameEvent* event, bool dontBroadcast = false);
     void FreeEvent(IGameEvent* event);
 
-    using EventCallback = std::function<void(IGameEvent*)>;
-    [[nodiscard]] Subscription Listen(const char* eventName, EventCallback callback);
-
-    /** Typed listen: @p TEvent is one of @ref VoltMod::Events (carries Name + From).
-     *  The handler receives the decoded struct; the raw-IGameEvent overload above stays as
-     *  the escape hatch for unmodeled events. */
+    /**
+     * Subscribe to one game event for as long as the returned Subscription lives.
+     *
+     * @p TEvent is a struct from `<VoltMod/Events/EventTypes.hpp>` carrying `Name` and `From`.
+     * There is no string form: an event nobody has modeled is one nobody decodes consistently,
+     * so consuming a new one means adding its struct there first.
+     */
     template <class TEvent>
-    [[nodiscard]] Subscription Listen(std::function<void(const TEvent&)> handler)
+    [[nodiscard]] Subscription On(std::function<void(const TEvent&)> handler)
     {
-        return Listen(TEvent::Name, [h = std::move(handler)](IGameEvent* e) {
+        return Add(TEvent::Name, [h = std::move(handler)](IGameEvent* e) {
             if (e)
                 h(TEvent::From(*e));
         });
@@ -84,6 +85,11 @@ public:
     void FireGameEvent(IGameEvent* event) override;
 
 private:
+    using EventCallback = std::function<void(IGameEvent*)>;
+
+    /** Store one raw-IGameEvent listener under @p eventName; @ref On is the only caller. */
+    [[nodiscard]] Subscription Add(const char* eventName, EventCallback callback);
+
     struct RegisteredListener
     {
         std::string EventName;

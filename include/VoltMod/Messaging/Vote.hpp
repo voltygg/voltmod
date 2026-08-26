@@ -100,6 +100,10 @@ private:
     Scheduler& _scheduler;
 
     Subscription _voteCastSub;
+    /** The running vote's timeout, and the deferred close once every ballot is in. Held so
+     *  neither can fire into a torn-down vote; both are guarded by @ref _voteId as well. */
+    Subscription _timeout;
+    Subscription _deferredClose;
     /** Resolved message types, cached on first send; they are stable for the process. */
     INetworkMessageInternal* _voteStartInternal = nullptr;
     INetworkMessageInternal* _votePassInternal = nullptr;

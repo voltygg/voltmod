@@ -3,6 +3,7 @@
 #include <VoltMod/App/PluginManifest.hpp>
 #include <VoltMod/App/ServiceExchange.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
+#include <VoltMod/Core/Subscription.hpp>
 #include <string>
 
 namespace VoltMod
@@ -43,6 +44,8 @@ private:
     Scheduler& _scheduler;
     PluginManifest _manifest;
     std::string _key;
+    /** The queued dependency report; held so it cannot run against a destroyed manifest. */
+    Subscription _report;
 };
 
 }  // namespace VoltMod

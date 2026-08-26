@@ -100,7 +100,7 @@ There is no ambient accessor for the runtime; everything is injected:
   service, so including them does not pull in the composition root.
 - A file-static is only for engine callbacks that carry no user data (set and
   cleared by the service that owns it) or for process-wide sinks set once at
-  load, such as the logger and the base directory.
+  load, such as the `Log::Sink` and the base directory.
 
 Use these patterns throughout the framework:
 
@@ -108,8 +108,19 @@ Use these patterns throughout the framework:
   are registered explicitly during load. Do not self-register at static init.
 - Consumers inject permission, targeting, reply, and broadcast behavior once
   through `Runtime::Policy`.
+- A fixed-signature signal is a public `Event<Args...>` member and `+=` is the only
+  way to subscribe to one; `Raise` belongs to the owner. Game events go through
+  `GameEvents::On<T>` and must have a struct in `Events/EventTypes.hpp` - there is
+  no string form.
+- An `Event` whose source costs something to run takes a `Lifecycle`: the first
+  subscription installs it, the last one to drop removes it, and `OnFirst`
+  returning false refuses the subscription after logging why. Services do not
+  expose `Install()`/`Enable()` alongside it.
 - Registrations return a `[[nodiscard]] Subscription`. Store it beside the state
-  its callback captures.
+  its handler captures. Dropping one unsubscribes, and a `Scheduler` one-shot is
+  cancelled the same way.
+- Fallible operations return `Result<T>`/`Status` over `Error`: `ErrorCode` to
+  branch on, `Detail` for the log, `Key` for a player-facing reply.
 - Constructor injection is the default. Do not add process-lifetime singletons.
 - Database and HTTP workers replay completions on the game thread through
   scheduler frame pumps.

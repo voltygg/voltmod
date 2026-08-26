@@ -3,36 +3,37 @@
 #include <VoltMod/Engine/ConVars.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/RecipientFilter.hpp>
-#include <algorithm>
 #include <engine/igameeventsystem.h>
 #include <icvar.h>
 #include <networkbasetypes.pb.h>
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
+#include <string_view>
 #include <tier1/convar.h>
-#include <vector>
 
 /**
- * Every ConVars currently routing engine changes to its listeners.
+ * The one ConVars currently routing engine changes, or null.
  *
  * ICvar takes a bare function pointer with no user data, so the trampoline below has nothing to
- * carry a service reference in. It is a list rather than one pointer because each plugin owns its
- * own Runtime, and therefore its own ConVars: a single slot would let whichever plugin
- * subscribed last silently cut off the others. The engine callback is installed when this list
- * becomes non-empty and removed when it empties, so it is installed exactly once.
+ * carry a service reference in. One slot is enough because this static, the trampoline, and the
+ * Runtime that owns the service are all per plugin DLL: another plugin's ConVars installs its own
+ * copy of this callback into the engine and never touches this one.
  */
-static std::vector<VoltMod::ConVars*> g_changeSinks;
+static VoltMod::ConVars* g_changeSink = nullptr;
+
+static std::string_view Text(const char* value)
+{
+    return value ? std::string_view(value) : std::string_view{};
+}
 
 static void GlobalConVarChangeCallback(ConVarRefAbstract* ref, CSplitScreenSlot /*slot*/, const char* newValue,
                                        const char* oldValue, void* /*unk*/)
 {
-    if (!ref)
+    if (!ref || !g_changeSink)
         return;
 
-    // Copied because a listener may subscribe or shut down while this loop runs.
-    const auto sinks = g_changeSinks;
-    for (auto* sink : sinks)
-        sink->DispatchChange(ref->GetName(), oldValue, newValue);
+    g_changeSink->Changed.Raise(
+        VoltMod::ConVarChange{.Name = Text(ref->GetName()), .OldValue = Text(oldValue), .NewValue = Text(newValue)});
 }
 
 /** Resolve @p name to a usable convar reference, or nullopt when it is null or not registered. */
@@ -51,11 +52,17 @@ static std::optional<ConVarRefAbstract> Resolve(const char* name)
 namespace VoltMod
 {
 
-ConVars::ConVars(Interfaces& interfaces) : _interfaces(interfaces) {}
+ConVars::ConVars(Interfaces& interfaces)
+    : Changed({.OnFirst = [this] { return RouteChanges(); }, .OnLast = [this] { StopRoutingChanges(); }}),
+      _interfaces(interfaces)
+{}
 
 ConVars::~ConVars()
 {
-    Shutdown();
+    // Belt and braces: the last Subscription dropping is what normally unhooks. This covers a
+    // subscription that outlived the service, which would otherwise leave the engine calling a
+    // trampoline into freed storage.
+    StopRoutingChanges();
 }
 
 ConVarStorage::ConVarStorage(const char* name)
@@ -233,44 +240,34 @@ bool ConVars::ReplicateToClient(int slot, const char* name, const char* value)
     return setConVar != nullptr;
 }
 
-Subscription ConVars::OnChange(ChangeCallback callback)
+bool ConVars::RouteChanges()
 {
-    if (!_routingChanges)
+    if (_routingChanges)
+        return true;
+
+    auto* cvar = _interfaces.CVar;
+    if (!cvar)
     {
-        if (auto* cvar = _interfaces.CVar)
-        {
-            if (g_changeSinks.empty())
-                cvar->InstallGlobalChangeCallback(&GlobalConVarChangeCallback);
-            g_changeSinks.push_back(this);
-            _routingChanges = true;
-        }
+        Log::Warn("ConVars: ICvar is not resolved; convar change handlers will not fire.");
+        return false;
     }
 
-    return _changeCallbacks.AddOwned(std::move(callback));
+    cvar->InstallGlobalChangeCallback(&GlobalConVarChangeCallback);
+    g_changeSink = this;
+    _routingChanges = true;
+    return true;
 }
 
-void ConVars::Shutdown()
+void ConVars::StopRoutingChanges()
 {
-    _changeCallbacks.Clear();
-
     if (!_routingChanges)
         return;
 
-    std::erase(g_changeSinks, this);
+    if (auto* cvar = _interfaces.CVar)
+        cvar->RemoveGlobalChangeCallback(&GlobalConVarChangeCallback);
+
+    g_changeSink = nullptr;
     _routingChanges = false;
-
-    // The engine callback belongs to whichever services are still listening; take it off only
-    // once the last one is gone, or an unloading plugin would deafen the others.
-    if (g_changeSinks.empty())
-    {
-        if (auto* cvar = _interfaces.CVar)
-            cvar->RemoveGlobalChangeCallback(&GlobalConVarChangeCallback);
-    }
-}
-
-void ConVars::DispatchChange(const char* name, const char* oldValue, const char* newValue)
-{
-    _changeCallbacks.Dispatch([&](auto& callback) { callback(name, oldValue, newValue); });
 }
 
 }  // namespace VoltMod

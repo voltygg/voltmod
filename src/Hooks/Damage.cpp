@@ -8,6 +8,7 @@
 #include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Hooks/Damage.hpp>
 #include <cstdint>
+#include <format>
 
 namespace VoltMod
 {
@@ -36,40 +37,63 @@ HitGroup Damage::ReadHitGroup(void* info) const
     return static_cast<HitGroup>(ReadAt<int32_t>(hitbox, _offsetHitboxGroup));
 }
 
-bool Damage::Install()
+Damage::Damage(EntitySystem& entities, GameData& gameData)
+    : Hit({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
+      _entities(entities),
+      _gameData(gameData)
+{}
+
+bool Damage::Acquire()
+{
+    if (_refs == 0)
+    {
+        if (Status installed = Install(); !installed)
+        {
+            Log::Warn("Damage: {}; damage handlers will not fire.", installed.error().Detail);
+            return false;
+        }
+    }
+    ++_refs;
+    return true;
+}
+
+void Damage::ReleaseRef()
+{
+    if (_refs > 0 && --_refs == 0)
+        Remove();
+}
+
+Status Damage::Install()
 {
     if (_installed)
-        return true;
+        return {};
 
     int index = _gameData.GetVtableIndex("OnTakeDamageAlive");
     if (index < 0)
-        return false;
+        return std::unexpected(Error::Unsupported("gamedata has no 'OnTakeDamageAlive' vtable index"));
 
-    if (!ResolveOffsets())
-        return false;
+    if (!ResolveOffsets())  // ResolveOffsets already logged which field is missing
+        return std::unexpected(Error::Unsupported("gamedata is missing a damage field offset"));
 
     void* vtable = FindVirtualTable(ServerModule, PawnClass);
-    if (!vtable)
-        return false;  // FindVirtualTable already logged which step failed
+    if (!vtable)  // FindVirtualTable already logged which step failed
+        return std::unexpected(Error::Engine(std::format("could not resolve the {} vtable", PawnClass)));
 
     SH_MANUALHOOK_RECONFIGURE(VoltMod_OnTakeDamageAlive, index, 0, 0);
     _hookId = SH_ADD_MANUALDVPHOOK(VoltMod_OnTakeDamageAlive, vtable, SH_MEMBER(this, &Damage::Hook_OnTakeDamageAlive),
                                    false);
     if (_hookId == 0)
-    {
-        Log::Warn("Damage: SourceHook refused the OnTakeDamage_Alive hook; damage listeners disabled.");
-        return false;
-    }
+        return std::unexpected(Error::Engine("SourceHook refused the OnTakeDamage_Alive hook"));
 
     _installed = true;
     Log::Info("Damage OnTakeDamage_Alive hook installed on {} vtable (index {}).", PawnClass, index);
-    return true;
+    return {};
 }
 
 bool Damage::ResolveOffsets()
 {
     // A wrong offset silently reads the wrong bytes, so a missing one leaves the hook uninstalled
-    // rather than letting listeners act on nonsense.
+    // rather than letting handlers act on nonsense.
     struct Entry
     {
         const char* Name;
@@ -90,7 +114,7 @@ bool Damage::ResolveOffsets()
         *entry.Target = _gameData.GetByteOffset(entry.Name, MaxDamageOffset, entry.Alignment);
         if (*entry.Target < 0)
         {
-            Log::Warn("Damage: no usable '{}' offset; damage listeners disabled.", entry.Name);
+            Log::Warn("Damage: no usable '{}' offset.", entry.Name);
             return false;
         }
     }
@@ -112,7 +136,7 @@ void Damage::Remove()
 bool Damage::Hook_OnTakeDamageAlive(void* result)
 {
     // Fires per point of damage per living player, so an unused hook must cost only this check.
-    if (_listeners.Empty())
+    if (Hit.Empty())
         RETURN_META_VALUE(MRES_IGNORED, false);
 
     auto* pawn = META_IFACEPTR(void);
@@ -133,7 +157,7 @@ bool Damage::Hook_OnTakeDamageAlive(void* result)
 
     // Nothing is written back: the engine ignores every attempt to change the outcome here, so
     // the hook reports and always defers. See the header.
-    _listeners.Dispatch([&view](const Callback& callback) { callback(view); });
+    Hit.Raise(view);
 
     RETURN_META_VALUE(MRES_IGNORED, false);
 }

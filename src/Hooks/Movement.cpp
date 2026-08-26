@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cs_usercmd.pb.h>
 #include <cstring>
+#include <format>
 
 namespace VoltMod
 {
@@ -27,18 +28,50 @@ static constexpr const char* MovementServicesClass = "CCSPlayer_MovementServices
 // a read past the CUserCmd object.
 static constexpr int MaxUserCmdOffset = 4096;
 
-bool Movement::Install()
+// The five events share one install: whichever is subscribed to first binds the vtable, and the
+// last subscription to drop across all of them unbinds it.
+Movement::Movement(EntitySystem& entities, GameData& gameData)
+    : Pre({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
+      Post({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
+      PreCmd({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
+      PostCmd({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
+      FilterCmd({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
+      _entities(entities),
+      _gameData(gameData)
+{}
+
+bool Movement::Acquire()
+{
+    if (_refs == 0)
+    {
+        if (Status installed = Install(); !installed)
+        {
+            Log::Warn("Movement: {}; movement handlers will not fire.", installed.error().Detail);
+            return false;
+        }
+    }
+    ++_refs;
+    return true;
+}
+
+void Movement::ReleaseRef()
+{
+    if (_refs > 0 && --_refs == 0)
+        Remove();
+}
+
+Status Movement::Install()
 {
     if (_installed)
-        return true;
+        return {};
 
     int index = _gameData.GetVtableIndex("RunCommand");
     if (index < 0)
-        return false;
+        return std::unexpected(Error::Unsupported("gamedata has no 'RunCommand' vtable index"));
 
     void* vtable = FindVirtualTable(ServerModule, MovementServicesClass);
-    if (!vtable)
-        return false;  // FindVirtualTable already logged which step failed
+    if (!vtable)  // FindVirtualTable already logged which step failed
+        return std::unexpected(Error::Engine(std::format("could not resolve the {} vtable", MovementServicesClass)));
 
     // The class name drifts like the index does, and nothing else here would notice: a wrong name
     // resolves to some other class's table and the hook then never fires. Whenever a pawn happens to
@@ -81,13 +114,12 @@ bool Movement::Install()
             SH_REMOVE_HOOK_ID(_postHookId);
         _preHookId = 0;
         _postHookId = 0;
-        Log::Warn("Movement: SourceHook refused the RunCommand hook; movement listeners disabled.");
-        return false;
+        return std::unexpected(Error::Engine("SourceHook refused the RunCommand hook"));
     }
 
     _installed = true;
     Log::Info("Movement RunCommand hook installed on {} vtable (index {}).", MovementServicesClass, index);
-    return true;
+    return {};
 }
 
 void Movement::Remove()
@@ -103,17 +135,8 @@ void Movement::Remove()
     _installed = false;
     _preHookId = 0;
     _postHookId = 0;
-    // Every cached pointer belongs to a pawn that may be freed before the next Install().
+    // Every cached pointer belongs to a pawn that may be freed before the next install.
     _movementServices.fill(nullptr);
-}
-
-void Movement::RemoveListener(uint64_t id)
-{
-    _pre.Remove(id);
-    _post.Remove(id);
-    _preCmd.Remove(id);
-    _postCmd.Remove(id);
-    _filter.Remove(id);
 }
 
 int Movement::SlotFromMovementServices(void* movementServices) const
@@ -209,13 +232,13 @@ void Movement::DecodeUserCmd(void* userCmd)
 void* Movement::Hook_RunCommandPre(void* userCmd)
 {
     _preSlot = SlotFromMovementServices(META_IFACEPTR(void));
-    if (!_preCmd.Empty() || !_postCmd.Empty() || !_filter.Empty())
+    if (!PreCmd.Empty() || !PostCmd.Empty() || !FilterCmd.Empty())
         DecodeUserCmd(userCmd);
-    // Filters edit the decoded view before anyone reads it, so pre/preCmd/postCmd listeners
+    // Filters edit the decoded view before anyone reads it, so pre/preCmd/postCmd handlers
     // and InputHistory all observe the same edited command.
-    _filter.Dispatch([&](auto& filter) { filter(_preSlot, _cmdView); });
-    _pre.Dispatch([&](auto& callback) { callback(_preSlot); });
-    _preCmd.Dispatch([&](auto& callback) { callback(_preSlot, _cmdView); });
+    FilterCmd.Raise(_preSlot, _cmdView);
+    Pre.Raise(_preSlot);
+    PreCmd.Raise(_preSlot, _cmdView);
     RETURN_META_VALUE(MRES_IGNORED, nullptr);
 }
 
@@ -224,8 +247,8 @@ void* Movement::Hook_RunCommandPost(void* /*userCmd*/)
     // Post always brackets the same RunCommand call as the preceding pre (movement is
     // processed one player at a time, no nesting), so reuse the pre-resolved slot and
     // the pre-decoded cmd view rather than repeating the work.
-    _post.Dispatch([&](auto& callback) { callback(_preSlot); });
-    _postCmd.Dispatch([&](auto& callback) { callback(_preSlot, _cmdView); });
+    Post.Raise(_preSlot);
+    PostCmd.Raise(_preSlot, _cmdView);
     RETURN_META_VALUE(MRES_IGNORED, nullptr);
 }
 

@@ -9,7 +9,7 @@ ChatInput::ChatInput(Scheduler& scheduler, SlotEvents& slots)
     : _scheduler(scheduler),
       // SlotEvents fires when a slot is filled as well as emptied; a fresh occupant has no capture
       // pending, so cancelling on both edges covers "left" without a dedicated event.
-      _slotListener(slots.Listen([this](int slot) { CancelCapture(slot); }))
+      _slotListener(slots.Changed += [this](int slot) { CancelCapture(slot); })
 {}
 
 ChatInput::~ChatInput()
@@ -28,7 +28,6 @@ void ChatInput::BeginCapture(int slot, std::string prompt, Callback callback, in
     Pending p{
         .Prompt = std::move(prompt),
         .Cb = std::move(callback),
-        .TimeoutHandle = 0,
         .Id = _nextId++,
     };
 
@@ -37,9 +36,9 @@ void ChatInput::BeginCapture(int slot, std::string prompt, Callback callback, in
         // Cancel by capture id, not by slot: the prompt can outlive its player, and cancelling
         // the slot would take out whatever the next occupant had open.
         const uint64_t id = p.Id;
-        // Capturing `this` is safe: the scheduler is a sibling service that outlives no longer than
-        // this one, and every pending timer is cancelled before a capture is dropped.
-        p.TimeoutHandle = _scheduler.Delay(timeoutMs, [this, slot, id]() { CancelCaptureById(slot, id); });
+        // Capturing `this` is safe: the timer lives inside the capture, so dropping the capture
+        // cancels it before this registry can go away.
+        p.Timeout = _scheduler.Delay(timeoutMs, [this, slot, id]() { CancelCaptureById(slot, id); });
     }
 
     _pending[slot] = std::move(p);
@@ -74,11 +73,7 @@ bool ChatInput::TryConsume(int slot, std::string_view text)
     {
         auto& current = _pending[slot];
         if (current.has_value() && current->Id == id)
-        {
-            if (current->TimeoutHandle != 0)
-                _scheduler.Cancel(current->TimeoutHandle);
-            current.reset();
-        }
+            current.reset();  // takes its pending timeout with it
     }
     // Either way we suppress the chat broadcast - the player typed a value, not a chat message.
     return true;
@@ -99,14 +94,7 @@ void ChatInput::CancelCapture(int slot)
     if (!IsValidSlot(slot))
         return;
 
-    auto& opt = _pending[slot];
-    if (!opt.has_value())
-        return;
-
-    if (opt->TimeoutHandle != 0)
-        _scheduler.Cancel(opt->TimeoutHandle);
-
-    opt.reset();
+    _pending[slot].reset();  // takes its pending timeout with it
 }
 
 std::optional<std::string> ChatInput::GetPrompt(int slot) const

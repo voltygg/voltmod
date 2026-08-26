@@ -1,27 +1,28 @@
 #pragma once
 
 #include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Entities/HitGroup.hpp>
 #include <string>
 
 namespace VoltMod
 {
 
 /**
- * @brief Typed views over the game events plugins commonly consume.
+ * @brief Typed views over the game events VoltMod and its plugins consume.
  *
  * Each struct names its engine event and decodes the raw fields once in From(), so handlers
  * read `e.VictimSlot` instead of `event->GetPlayerSlot("userid").Get()`. Subscribe with
- * @ref GameEvents::Listen<T>:
+ * @ref GameEvents::On:
  *
  * @code
- * runtime.Events.Listen<PlayerDeath>([](const auto& e) {
+ * _death = runtime.Events.On<PlayerDeath>([](const PlayerDeath& e) {
  *     if (e.VictimSlot >= 0) ...;
  * });
  * @endcode
  *
- * Slots decode via GetPlayerSlot (userid -> slot; -1 when absent). Events not modeled here
- * are still reachable through the string overload of Listen - add a struct when a plugin
- * starts caring about one.
+ * Slots decode via GetPlayerSlot (userid -> slot; -1 when absent). This is the only way to
+ * subscribe: there is no string form, so consuming a new event means adding its struct here and
+ * decoding every field it needs in one place.
  */
 
 struct PlayerDeath
@@ -57,6 +58,9 @@ struct PlayerHurt
     int AttackerSlot = -1;
     int Health = 0;
     int DamageHealth = 0;
+    /** Where the shot landed. Unlike @ref DamageView::Hitbox this comes from the event, so it is
+     *  @ref HitGroup::Generic - not Invalid - for damage that carries no hitgroup. */
+    HitGroup Hitbox = HitGroup::Generic;
     static PlayerHurt From(IGameEvent& e);
 };
 
@@ -132,6 +136,16 @@ struct RoundPrestart
 {
     static constexpr const char* Name = "round_prestart";
     static RoundPrestart From(IGameEvent& e);
+};
+
+/** One ballot in the game's own vote panel; @ref VoltMod::Vote counts these. */
+struct VoteCast
+{
+    static constexpr const char* Name = "vote_cast";
+    int Slot = -1;
+    /** Index into the panel's options; 0 is yes and 1 is no for the yes/no issue. */
+    int Option = 0;
+    static VoteCast From(IGameEvent& e);
 };
 
 }  // namespace VoltMod

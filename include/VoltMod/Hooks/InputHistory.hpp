@@ -15,10 +15,12 @@ namespace VoltMod
 /**
  * @brief Opt-in per-slot ring buffer of recent decoded usercmds.
  *
- * Dormant until Enable(depth): it then records every UserCmdView the
- * Movement decodes (ListenPreCmd) and clears a slot's history when its
- * player joins or leaves. The Movement itself must still be installed by
- * some plugin (the usual lazy PlayerSpawn pattern) for samples to flow.
+ * Dormant until Enable(depth): it then subscribes to @ref Movement::PreCmd - which installs the
+ * movement hook if nothing else has - and records every decoded UserCmdView, clearing a slot's
+ * history when its player joins or leaves.
+ *
+ * A query service rather than a signal: it has no event of its own, so Enable is the arming call
+ * and the depth it needs has nowhere else to come from.
  *
  * Lookback is index-based: At(slot, 0) is the newest command, At(slot, 1) the
  * one before it, up to Count(slot)-1. Invalid views (Valid=false) are not
@@ -27,8 +29,8 @@ namespace VoltMod
 class InputHistory
 {
 public:
-    /** @p movement is the cmd feed Enable() subscribes to. @p slots tells this service when a slot
-     *  changes hands, without it needing the roster. Both must outlive it. */
+    /** @p movement carries the cmd feed Enable() subscribes to. @p slots tells this service when a
+     *  slot changes hands, without it needing the roster. Both must outlive it. */
     InputHistory(Movement& movement, SlotEvents& slots) : _movement(movement), _slots(slots) {}
 
     InputHistory(const InputHistory&) = delete;

@@ -37,6 +37,7 @@ PlayerHurt PlayerHurt::From(IGameEvent& e)
         .AttackerSlot = e.GetPlayerSlot("attacker").Get(),
         .Health = e.GetInt("health"),
         .DamageHealth = e.GetInt("dmg_health"),
+        .Hitbox = static_cast<HitGroup>(e.GetInt("hitgroup", static_cast<int>(HitGroup::Generic))),
     };
 }
 
@@ -99,6 +100,14 @@ RoundEnd RoundEnd::From(IGameEvent& e)
 RoundPrestart RoundPrestart::From(IGameEvent&)
 {
     return {};
+}
+
+VoteCast VoteCast::From(IGameEvent& e)
+{
+    return {
+        .Slot = e.GetPlayerSlot("userid").Get(),
+        .Option = e.GetInt("vote_option"),
+    };
 }
 
 }  // namespace VoltMod

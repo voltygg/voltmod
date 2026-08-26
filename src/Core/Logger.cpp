@@ -1,14 +1,13 @@
-#include <VoltMod/Core/ILogger.hpp>
+#include <VoltMod/Core/Log.hpp>
 #include <deque>
 #include <mutex>
 #include <thread>
 #include <utility>
-#include <vector>
 
-namespace VoltMod
+namespace VoltMod::Log
 {
 
-static ILogger* g_logger = nullptr;
+static Sink g_sink;
 static std::thread::id g_gameThread{};
 
 static std::mutex g_deferredMutex;
@@ -18,41 +17,25 @@ static std::deque<std::pair<LogLevel, std::string>> g_deferred;
  *  the oldest lines go, because the first error is rarely the interesting one. */
 static constexpr size_t MaxDeferred = 256;
 
-static void Write(ILogger& logger, LogLevel level, const std::string& message)
+void SetSink(Sink sink)
 {
-    switch (level)
-    {
-    case LogLevel::Info:
-        logger.Info(message);
-        break;
-    case LogLevel::Warn:
-        logger.Warn(message);
-        break;
-    case LogLevel::Error:
-        logger.Error(message);
-        break;
-    }
-}
-
-ILogger* GetGlobalLogger()
-{
-    return g_logger;
-}
-
-void SetGlobalLogger(ILogger* logger)
-{
-    g_logger = logger;
+    g_sink = std::move(sink);
     g_gameThread = std::this_thread::get_id();
+}
+
+bool Enabled()
+{
+    return static_cast<bool>(g_sink);
 }
 
 void Emit(LogLevel level, std::string message)
 {
-    if (!g_logger)
+    if (!g_sink)
         return;
 
     if (std::this_thread::get_id() == g_gameThread)
     {
-        Write(*g_logger, level, message);
+        g_sink(level, message);
         return;
     }
 
@@ -62,7 +45,7 @@ void Emit(LogLevel level, std::string message)
     g_deferred.emplace_back(level, std::move(message));
 }
 
-void DrainDeferredLogs()
+void Drain()
 {
     std::deque<std::pair<LogLevel, std::string>> ready;
     {
@@ -72,11 +55,11 @@ void DrainDeferredLogs()
         ready.swap(g_deferred);
     }
 
-    if (!g_logger)
+    if (!g_sink)
         return;
 
     for (const auto& [level, message] : ready)
-        Write(*g_logger, level, message);
+        g_sink(level, message);
 }
 
-}  // namespace VoltMod
+}  // namespace VoltMod::Log

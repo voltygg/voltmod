@@ -1,12 +1,11 @@
 #pragma once
 
-#include <VoltMod/Core/CallbackRegistry.hpp>
-#include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Core/Event.hpp>
+#include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Engine/GameData.hpp>
 #include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Entities/HitGroup.hpp>
 #include <cstdint>
-#include <functional>
 
 namespace VoltMod
 {
@@ -32,35 +31,37 @@ struct DamageView
  * trap; a feature that must alter the outcome drives the game's own rules instead, and
  * `mp_damage_headshot_only` and the `mp_damage_scale_*` multipliers do work.
  *
- * Like Movement this binds the class vtable (RTTI on Windows, ELF symbol on Linux), so
- * Install() works from OnLoad with no player connected and covers every pawn from then on.
+ * Like Movement this binds the class vtable (RTTI on Windows, ELF symbol on Linux), so the first
+ * subscription can install it from OnLoad with no player connected, and it then covers every pawn.
+ * Dropping the last subscription removes it again.
  *
  * The vtable index and every field offset are gamedata-maintained and drift with CS2 updates. A
  * wrong index calls an unrelated vfunc and crashes, so re-verify after every update; anything that
- * fails to resolve leaves the hook uninstalled and every listener silent rather than guessing.
+ * fails to resolve leaves the hook uninstalled and every handler silent rather than guessing.
  */
 class Damage
 {
 public:
-    using Callback = std::function<void(const DamageView&)>;
-
     /** Both must outlive this hook; the Runtime declares them above it. */
-    Damage(EntitySystem& entities, GameData& gameData) : _entities(entities), _gameData(gameData) {}
+    Damage(EntitySystem& entities, GameData& gameData);
     ~Damage() { Remove(); }
     Damage(const Damage&) = delete;
     Damage& operator=(const Damage&) = delete;
 
-    /** Install the class-vtable hook; safe from OnLoad and a no-op once installed.
-     *  @return false when the gamedata index or the pawn class cannot be resolved. */
-    bool Install();
-    void Remove();
+    /** One point of damage a living player took. Subscribing installs the hook. */
+    Event<const DamageView&> Hit;
+
+    /** Whether the vtable hook is currently bound - false while nothing is subscribed, and false
+     *  after a subscription was refused because gamedata did not resolve. */
     bool Installed() const { return _installed; }
 
-    /** Called for each damage event, in registration order. Store the subscription beside the
-     *  state the callback captures. */
-    [[nodiscard]] Subscription Listen(Callback callback) { return _listeners.AddOwned(std::move(callback)); }
-
 private:
+    bool Acquire();
+    void ReleaseRef();
+
+    Status Install();
+    void Remove();
+
     bool Hook_OnTakeDamageAlive(void* result);
 
     /** Walk info -> trace -> hitbox for the struck hitgroup. */
@@ -71,7 +72,7 @@ private:
 
     EntitySystem& _entities;
     GameData& _gameData;
-    CallbackRegistry<Callback> _listeners;
+    int _refs = 0;  // live subscriptions on Hit
     // CTakeDamageInfo fields, then the trace chain the hitgroup lives on. Resolved once by
     // Install(). Adding to this set grows Runtime, which holds the hook by value - see the
     // crash-triage skill on the latent out-of-bounds write that some sizes turn fatal.

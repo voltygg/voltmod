@@ -10,12 +10,15 @@ namespace VoltMod
 {
 
 /**
- * @brief Handle-keyed item store shared by every listener registry in the framework.
+ * @internal
+ * @brief Handle-keyed item store behind @ref Event, @ref Scheduler, and @ref GameEvents.
  *
- * Scheduler timers, ConVar change listeners, and game-event listeners all need the same
- * thing: add an item, get back a stable `uint64_t` handle, remove by handle later. This
- * is that one implementation. Handles start at 1 and never repeat within a Load/Unload
- * cycle, so 0 is free to mean "no registration".
+ * Not part of the public vocabulary - it is not in `<VoltMod/Api.hpp>`, and plugin code
+ * subscribes through @ref Event instead. It stays a header only because @ref Event is a
+ * template that needs it.
+ *
+ * Add an item, get back a stable `uint64_t` handle, remove by handle later. Handles start at 1
+ * and never repeat within a Load/Unload cycle, so 0 is free to mean "no registration".
  *
  * Iteration order is unspecified (unordered_map). Use @ref Dispatch (or @ref DispatchIf) to
  * fire callbacks - it handles the case where one of them adds or removes registrations mid-loop.

@@ -1,9 +1,6 @@
 #pragma once
 
-#include <VoltMod/Core/CallbackRegistry.hpp>
-#include <VoltMod/Core/Subscription.hpp>
-#include <cstdint>
-#include <functional>
+#include <VoltMod/Core/Event.hpp>
 
 namespace VoltMod
 {
@@ -20,19 +17,11 @@ namespace VoltMod
 class SlotEvents
 {
 public:
-    using Callback = std::function<void(int slot)>;
+    /** `runtime.Slots.Changed += [](int slot) { ... };` */
+    Event<int> Changed;
 
-    /** Register @p callback for as long as the returned subscription lives. */
-    [[nodiscard]] Subscription Listen(Callback callback) { return _changed.AddOwned(std::move(callback)); }
-
-    /** Notify every listener that @p slot changed hands. */
-    void Raise(int slot)
-    {
-        _changed.Dispatch([slot](auto& callback) { callback(slot); });
-    }
-
-private:
-    CallbackRegistry<Callback> _changed;
+    /** Notify every handler that @p slot changed hands. PlayerManager's to call. */
+    void Raise(int slot) { Changed.Raise(slot); }
 };
 
 }  // namespace VoltMod

@@ -43,6 +43,16 @@ _state[slot].Combo++;              // plain indexed access afterwards
 
 `BindReset` is idempotent, and the destructor unsubscribes - so a `PerSlot` may outlive nothing and still leave the feed clean. It takes the @ref VoltMod::SlotEvents feed rather than the runtime, so a translation unit that includes only `PerSlot.hpp` still compiles.
 
+### Reacting to a slot change yourself
+
+`runtime.Slots.Changed` is the same feed `PerSlot` binds to, and it is a plain @ref VoltMod::Event. Subscribe when you need to do more than value-reset an array - close a menu, cancel a timer, flush a session:
+
+```cpp
+_slots = runtime.Slots.Changed += [this](int slot) { CancelCapture(slot); };
+```
+
+It fires on `AddPlayer`, `RemovePlayer`, and once per tracked slot on `Clear()`, so "arrived" and "left" both reach it - a fresh occupant has nothing pending, which is what makes one signal enough for both edges. It lives in Core rather than on `PlayerManager` so services below the roster (per-slot caches, the hooks) can hear it without depending on `Player` at all. Keep the returned `Subscription` beside the state the handler touches.
+
 For time-decaying per-player scores (suspicion, rate limits), use @ref VoltMod::SlidingWindowScore when the threshold is "N events in the last M seconds" and evidence should expire on a hard boundary. It takes caller-supplied seconds; @ref VoltMod::Time::MonotonicSeconds is the matching clock. @ref VoltMod::RandomIndex is the framework's single source of randomness - use it for a random pick (`@random` targeting does) rather than seeding a generator per feature or reaching for the tick counter, which repeats within a frame. Both are unit-tested in the framework's SDK-free test suite.
 
 ## Resolve targets

@@ -6,8 +6,8 @@
 
 ```
 VoltMod
-├── Core        Primitives: policy, scheduler, slot events, subscriptions,
-│               translations, parsing, per-slot caches, string/time helpers
+├── Core        Primitives: events and subscriptions, results, policy, scheduler,
+│               slot events, translations, parsing, per-slot caches, string/time helpers
 ├── Engine      Interfaces, gamedata, convars, clock, maps, precache, console commands
 ├── Entities    Entity lookup, PlayerController, schema fields, items, pawn operations
 ├── Events      The game event service and its typed event structs
@@ -149,19 +149,31 @@ void RegisterBanCommands(VoltMod::CommandManager& commands, App& app)
 Do not self-register descriptors during static initialization. Register them
 from the load path so handlers can capture their dependencies explicitly.
 
-## Cleanup and subscriptions
+## Signals, cleanup and subscriptions
 
-Cleanup belongs in a member destructor or a
-@ref VoltMod::Subscription "Subscription":
+Every fixed-signature signal in the framework is a public @ref VoltMod::Event member, and `+=` is
+the only way to subscribe to one. Game events go through @ref VoltMod::GameEvents::On, which is
+keyed by a typed struct rather than a name.
 
 ```cpp
-_spawn = runtime.Events.Listen<Events::PlayerSpawn>([this](const auto& e) { OnSpawn(e.Slot); });
+_spawn = runtime.Events.On<PlayerSpawn>([this](const PlayerSpawn& e) { OnSpawn(e.Slot); });
+_slots = runtime.Slots.Changed += [this](int slot) { _state.Reset(slot); };
 ```
 
-`Subscription` is move-only and unregisters on destruction, so a listener cannot
-outlive captured state. `VOLTMOD_SCOPED_HOOK` provides the same lifetime for
-SourceHook installs. On unload, the base runs `OnUnload`, removes its standard
-hooks, and destroys the runtime.
+Both hand back a `[[nodiscard]]` @ref VoltMod::Subscription "Subscription". It is move-only and
+unregisters on destruction, so a handler cannot outlive the state it captured; keep it as a member
+beside that state. `VOLTMOD_SCOPED_HOOK` provides the same lifetime for SourceHook installs. On
+unload, the base runs `OnUnload`, removes its standard hooks, and destroys the runtime.
+
+An `Event` whose source costs something to run - a vtable hook, an engine-wide callback - carries a
+`Lifecycle`: the first subscription installs it and the last one to drop removes it. That is why
+`Movement`, `Damage` and `Teleport` have no `Install()` or `Enable()` to call, and why a hook that
+gamedata cannot resolve refuses the subscription (an empty `Subscription`) instead of silently
+never firing.
+
+Operations that can fail meaningfully return `Result<T>` or @ref VoltMod::Status, an
+`std::expected` over @ref VoltMod::Error - a coarse `ErrorCode`, log text in `Detail`, and a
+translation key in `Key` when a player is owed a reply.
 
 ## The frame pump
 
@@ -225,7 +237,7 @@ constructor or a parameter, and `modgraph` enforces that too: a `.cpp` outside `
 - A file-static stands in only where no reference can be threaded, set and cleared by the
   code that owns it. Two back engine callbacks that carry no user data (the entity system
   behind `GameEntitySystem()`, the sink for the global convar change callback); the rest are
-  process-wide sinks set once at load (the logger behind `Core::Log`, which worker threads
+  process-wide sinks set once at load (the `Log::Sink` behind `Core::Log`, which worker threads
   write to as well, and the base directory behind `Core::AddonFile`).
 
 Plugin code never needs any of it: `OnLoad` hands it the runtime.

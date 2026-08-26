@@ -1,25 +1,17 @@
 #pragma once
 
-#include <VoltMod/Core/ILogger.hpp>
+#include <VoltMod/Core/Log.hpp>
 #include <string>
 
 namespace VoltMod
 {
 
 /**
- * @brief Default `ConColorMsg` logger used when LoadContext has no custom logger.
+ * @brief The default sink: tier0 `ConColorMsg`/`Msg`, one colour per level.
+ *
+ * The returned sink owns a copy of @p prefix and reaches the engine, so it may only be invoked on
+ * the game thread - which is exactly the contract @ref VoltMod::Log::Sink already states.
  */
-class ConsoleLogger : public ILogger
-{
-public:
-    void SetPrefix(const char* prefix) { _prefix = prefix; }
-
-    void Info(const std::string& message) override;
-    void Warn(const std::string& message) override;
-    void Error(const std::string& message) override;
-
-private:
-    const char* _prefix = "VoltMod";
-};
+Log::Sink MakeConsoleSink(std::string prefix);
 
 }  // namespace VoltMod

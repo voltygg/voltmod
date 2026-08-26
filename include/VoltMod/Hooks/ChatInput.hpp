@@ -74,7 +74,7 @@ private:
     {
         std::string Prompt;
         Callback Cb;
-        uint64_t TimeoutHandle = 0;
+        Subscription Timeout;
         /** Distinguishes this capture from any that replaces it while its own callback runs. */
         uint64_t Id = 0;
     };

@@ -1,9 +1,7 @@
 #pragma once
 
 #include <VoltMod/Core/SlotEvents.hpp>
-#include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Players/Player.hpp>
-#include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -21,25 +19,14 @@ namespace VoltMod
 class PlayerManager
 {
 public:
-    using SlotCallback = SlotEvents::Callback;
-
-    /** @p slots is the Core-level signal this manager raises; it outlives the manager. */
+    /** @p slots is the Core-level signal this manager raises; it outlives the manager.
+     *  Subscribe on that signal (`runtime.Slots.Changed`), not here: it lives in Core precisely
+     *  so services below Players can hear a slot change without knowing about the roster. */
     explicit PlayerManager(SlotEvents& slots) : _slots(slots) {}
 
     Player* AddPlayer(int slot, int64_t steamId, const std::string& name, const std::string& ipAddress);
     void RemovePlayer(int slot);
     void Clear();
-
-    /**
-     * Fires whenever a slot's occupant changes: on AddPlayer, RemovePlayer, and
-     * once per tracked slot on Clear. The backing hook for per-slot state that
-     * must not leak across occupants (see PerSlot).
-     *
-     * A convenience over SlotEvents for plugin code that already holds a
-     * PlayerManager. Anything below Players in the layering listens on the signal
-     * itself instead - that is the whole reason it lives in Core.
-     */
-    [[nodiscard]] Subscription ListenSlotChange(SlotCallback callback) { return _slots.Listen(std::move(callback)); }
 
     Player* GetPlayerBySlot(int slot);
     Player* GetPlayerBySteamId(int64_t steamId);

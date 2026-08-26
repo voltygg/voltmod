@@ -1,11 +1,9 @@
 #include <VoltMod/Core/CallbackRegistry.hpp>
-#include <VoltMod/Core/SlotEvents.hpp>
 #include <doctest/doctest.h>
 #include <functional>
 #include <vector>
 
 using VoltMod::CallbackRegistry;
-using VoltMod::SlotEvents;
 using VoltMod::Subscription;
 
 using Fn = std::function<void()>;
@@ -95,22 +93,4 @@ TEST_CASE("Dispatch survives more entries than the inline snapshot holds")
     registry.Dispatch([](Fn& fn) { fn(); });
 
     CHECK(calls == 20);
-}
-
-TEST_CASE("A slot listener may unsubscribe itself from inside the notification")
-{
-    SlotEvents events;
-    Subscription self;
-    int seen = -1;
-
-    self = events.Listen([&](int slot) {
-        seen = slot;
-        self.Reset();
-    });
-
-    events.Raise(7);
-
-    CHECK(seen == 7);
-    events.Raise(8);
-    CHECK(seen == 7);  // unsubscribed, so the second raise never reaches it
 }

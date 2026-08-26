@@ -33,12 +33,19 @@ public:
      *  the seat changes hands, so the next occupant never has godmode stripped. */
     void Slap(const PlayerController& pc, float upward = 800.0f, float horizontal = 100.0f, int fallProtectMs = 3000);
 
+    /** Slay @p slot's pawn after @p delayMs, for effects that want the animation to play first.
+     *  Re-resolves the pawn when it fires, replaces any slay already pending for the slot, and
+     *  drops it if the seat changes hands - so it can never kill the next occupant. */
+    void SlayDelayed(int slot, int64_t delayMs);
+
 private:
     Scheduler& _scheduler;
     EntitySystem& _entities;
-    /** Pending fall-protection clear per slot, 0 when none. */
-    std::array<uint64_t, MaxPlayers> _fallProtect{};
-    /** Declared last: drops before the handles its callback touches. */
+    /** Pending fall-protection clear per slot; dropping the entry cancels it. */
+    std::array<Subscription, MaxPlayers> _fallProtect{};
+    /** Pending delayed slay per slot; dropping the entry cancels it. */
+    std::array<Subscription, MaxPlayers> _slay{};
+    /** Declared last: drops before the timers its callback cancels. */
     Subscription _slotListener;
 };
 

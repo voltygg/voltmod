@@ -37,7 +37,7 @@ public:
     void BindReset(SlotEvents& slots)
     {
         if (!_listener)
-            _listener = slots.Listen([this](int slot) { Reset(slot); });
+            _listener = slots.Changed += [this](int slot) { Reset(slot); };
     }
 
     /** @pre IsValidSlot(slot); asserted, not checked - callers that can receive an unvalidated

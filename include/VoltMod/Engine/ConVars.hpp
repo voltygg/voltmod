@@ -1,17 +1,28 @@
 #pragma once
 
-#include <VoltMod/Core/CallbackRegistry.hpp>
+#include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <cstdint>
-#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
 
 namespace VoltMod
 {
+
+/**
+ * @brief One engine-side convar change, as @ref ConVars::Changed reports it.
+ *
+ * All three views borrow engine storage for the duration of the handler; copy what you keep.
+ */
+struct ConVarChange
+{
+    std::string_view Name;
+    std::string_view OldValue;
+    std::string_view NewValue;
+};
 
 /**
  * @brief Direct handle to a convar's value storage.
@@ -89,30 +100,24 @@ public:
      */
     bool ReplicateToClient(int slot, const char* name, const char* value);
 
-    using ChangeCallback = std::function<void(const char* name, const char* oldValue, const char* newValue)>;
-
     /**
-     * Listen for engine-side convar changes until the returned Subscription drops.
+     * @brief Every engine-side convar change, for as long as anything is subscribed.
      *
-     * The engine's global change callback is installed on the first subscription across all
-     * services and removed once the last one goes away, so plugins loaded together each see
-     * every change regardless of load order.
+     * The first subscription installs ICvar's global change callback and the last one to drop
+     * removes it, so nothing is hooked while nobody is listening. Each plugin has its own copy of
+     * this service and its own trampoline, so plugins loaded together all see every change.
      */
-    [[nodiscard]] Subscription OnChange(ChangeCallback callback);
-
-    /** Fan a change out to this service's listeners. For the engine trampoline only. */
-    void DispatchChange(const char* name, const char* oldValue, const char* newValue);
-
-    /** Drop every listener and stop routing engine changes here. Idempotent; the destructor
-     *  calls it. Other services keep receiving changes. */
-    void Shutdown();
+    Event<const ConVarChange&> Changed;
 
 private:
     /** The cached CNETMsg_SetConVar prototype, looked up on first use. Null when unavailable. */
     INetworkMessageInternal* SetConVarMessage();
 
+    /** @ref Changed's Lifecycle. False when ICvar is not resolved, which leaves it unarmed. */
+    bool RouteChanges();
+    void StopRoutingChanges();
+
     Interfaces& _interfaces;
-    CallbackRegistry<ChangeCallback> _changeCallbacks;
     bool _routingChanges = false;
     INetworkMessageInternal* _setConVarMsg = nullptr;
 };

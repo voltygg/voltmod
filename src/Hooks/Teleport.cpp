@@ -1,6 +1,5 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Engine/Clock.hpp>
 #include <VoltMod/Engine/GameData.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Entities/Entity.hpp>
@@ -18,19 +17,36 @@ namespace VoltMod
 // it was added on - one call per teleport, no matter how many are bound.
 SH_DECL_MANUALHOOK3_void(VoltMod_EntityTeleport, 0, 0, 0, const Vector*, const QAngle*, const Vector*);
 
+Teleport::Teleport(EntitySystem& entities, GameData& gameData, GameEvents& events, SlotEvents& slots)
+    : Teleported({.OnFirst =
+                      [this] {
+                          if (Status enabled = Enable(); !enabled)
+                          {
+                              Log::Warn("Teleport: {}; teleports will not be tracked.", enabled.error().Detail);
+                              return false;
+                          }
+                          return true;
+                      },
+                  .OnLast = [this] { Disable(); }}),
+      _entities(entities),
+      _gameData(gameData),
+      _events(events),
+      _slots(slots)
+{}
+
 Teleport::~Teleport()
 {
     Disable();
 }
 
-bool Teleport::Enable()
+Status Teleport::Enable()
 {
     if (_enabled)
-        return true;
+        return {};
 
     int index = _gameData.GetVtableIndex("Teleport");
     if (index < 0)
-        return false;
+        return std::unexpected(Error::Unsupported("gamedata has no 'Teleport' vtable index"));
 
     SH_MANUALHOOK_RECONFIGURE(VoltMod_EntityTeleport, index, 0, 0);
     _enabled = true;
@@ -39,38 +55,25 @@ bool Teleport::Enable()
         Bind(slot);
 
     // Spawning hands the player a new pawn object, so the old binding is stale - and the spawn
-    // placement is itself a teleport worth stamping.
-    _spawnListener = _events.Listen<PlayerSpawn>([this](const PlayerSpawn& e) {
+    // placement is itself a teleport worth reporting.
+    _spawnListener = _events.On<PlayerSpawn>([this](const PlayerSpawn& e) {
         Bind(e.Slot);
-        Stamp(e.Slot);
+        Teleported.Raise(e.Slot);
     });
-    _slotListener = _slots.Listen([this](int slot) {
-        Unbind(slot);
-        if (IsValidSlot(slot))
-            _lastTeleport[slot] = 0.0f;
-    });
+    _slotListener = _slots.Changed += [this](int slot) { Unbind(slot); };
 
     Log::Info("Teleport tracking enabled (vtable index {}).", index);
-    return true;
+    return {};
 }
 
 void Teleport::Disable()
 {
     for (int slot = 0; slot < MaxPlayers; ++slot)
         Unbind(slot);
-    _lastTeleport.fill(0.0f);
 
     _spawnListener.Reset();
     _slotListener.Reset();
     _enabled = false;
-}
-
-bool Teleport::JustTeleported(int slot, float seconds) const
-{
-    if (!IsValidSlot(slot) || _lastTeleport[slot] == 0.0f)
-        return false;
-
-    return _clock.Time() - _lastTeleport[slot] <= seconds;
 }
 
 void Teleport::OnServerStartup()
@@ -80,7 +83,6 @@ void Teleport::OnServerStartup()
     // instance.
     for (int slot = 0; slot < MaxPlayers; ++slot)
         Unbind(slot);
-    _lastTeleport.fill(0.0f);
 }
 
 void Teleport::Bind(int slot)
@@ -117,12 +119,6 @@ void Teleport::Unbind(int slot)
     _pawns[slot] = nullptr;
 }
 
-void Teleport::Stamp(int slot)
-{
-    if (IsValidSlot(slot))
-        _lastTeleport[slot] = _clock.Time();
-}
-
 int Teleport::SlotFromPawn(const void* pawn) const
 {
     if (!pawn)
@@ -137,7 +133,7 @@ int Teleport::SlotFromPawn(const void* pawn) const
 
 void Teleport::Hook_Teleport(const Vector*, const QAngle*, const Vector*)
 {
-    Stamp(SlotFromPawn(META_IFACEPTR(void)));
+    Teleported.Raise(SlotFromPawn(META_IFACEPTR(void)));
     RETURN_META(MRES_IGNORED);
 }
 

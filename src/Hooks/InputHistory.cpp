@@ -21,10 +21,11 @@ void InputHistory::Enable(int depth)
         }
     }
 
+    // Subscribing is also what installs the movement hook, so nothing else has to arm it.
     if (!_cmdListener)
-        _cmdListener = _movement.ListenPreCmd([this](int slot, const UserCmdView& cmd) { Record(slot, cmd); });
+        _cmdListener = _movement.PreCmd += [this](int slot, const UserCmdView& cmd) { Record(slot, cmd); };
     if (!_slotListener)
-        _slotListener = _slots.Listen([this](int slot) { Clear(slot); });
+        _slotListener = _slots.Changed += [this](int slot) { Clear(slot); };
 }
 
 void InputHistory::Record(int slot, const UserCmdView& cmd)

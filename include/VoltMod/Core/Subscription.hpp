@@ -9,26 +9,21 @@ namespace VoltMod
 /**
  * @brief Owns one registration and releases it on destruction.
  *
- * Every registry in the framework hands out a `uint64_t` handle, which callers then had to
- * remember to hand back - usually from a destructor that first checked whether the
- * service was still alive. That check was the bug: by the time those destructors ran the
- * ambient accessor was already cleared, so the removal silently never happened.
- *
- * Holding the subscription instead makes the lifetime the compiler's problem. Declare it
- * as a member next to whatever the callback captures, and it unregisters before that
- * state goes away:
+ * Every registration in the framework returns one of these, and holding it is what keeps the
+ * handler alive. Declare it as a member next to whatever the handler captures, and it
+ * unregisters before that state goes away:
  *
  * @code
  * class Bhop {
  *     Bhop(GameEvents& events) {
- *         _spawn = events.Listen<PlayerSpawn>([this](const auto& e) { OnSpawn(e.Slot); });
+ *         _spawn = events.On<PlayerSpawn>([this](const PlayerSpawn& e) { OnSpawn(e.Slot); });
  *     }
  *     Subscription _spawn;
  * };
  * @endcode
  *
- * The handle stays inside the cleanup callable, so this works just as well for the
- * add/remove pairs that are not handle-keyed at all, such as SourceHook installs (see
+ * Whatever the registry issued stays inside the cleanup callable, so this works just as well for
+ * the add/remove pairs that are not handle-keyed at all, such as SourceHook installs (see
  * VOLTMOD_SCOPED_HOOK).
  *
  * Move-only, and safe to destroy after the registry it points at is gone only if the

@@ -235,7 +235,7 @@ ClientCvars::ClientCvars(Interfaces& interfaces, GameData& gameData, SlotEvents&
 {
     // SlotEvents fires when a slot is filled as well as emptied; a fresh occupant has nothing
     // pending, so dropping on both edges covers "left" without a dedicated event.
-    _slotListener = slots.Listen([this](int slot) { _impl->Pending().Clear(slot); });
+    _slotListener = slots.Changed += [this](int slot) { _impl->Pending().Clear(slot); };
 }
 
 ClientCvars::~ClientCvars() = default;

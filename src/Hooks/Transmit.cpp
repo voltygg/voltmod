@@ -122,13 +122,13 @@ Transmit::Transmit(EntitySystem& entities, GameData& gameData, SchemaService& sc
 {
     // SlotEvents fires when a slot is filled as well as emptied; a fresh occupant has nothing
     // hidden, so clearing on both edges covers "left" without a dedicated event.
-    _slotListener = slots.Listen([this](int slot) {
+    _slotListener = slots.Changed += [this](int slot) {
         SetPawnHidden(slot, false);
         SetControllerHidden(slot, false);
         // The owning effect normally cleans up first (effect cancel runs before this);
         // this catches entries whose beneficiary vanished without cleanup.
         std::erase_if(_exclusive, [slot](const ExclusiveEntity& e) { return e.BeneficiarySlot == slot; });
-    });
+    };
 }
 
 bool Transmit::Initialize()
