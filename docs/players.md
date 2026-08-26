@@ -172,8 +172,8 @@ using VoltMod::ActionDispatcher;
 using VoltMod::OptKey;
 
 const Action Slay{"s", /*RequireAlive=*/true, [](const ActionContext& ctx) -> OptKey {
-    ctx.TargetCtrl.Slay();
-    return "broadcast.slain";     // policy Broadcast sink announces it; nullopt = silent
+    (void)ctx.TargetPawn().Slay();  // Slay() lives on Pawn, not Controller
+    return "broadcast.slain";      // policy Broadcast sink announces it; nullopt = silent
 }};
 
 ActionDispatcher{runtime.Policy, runtime.Players, runtime.Entities}.Run(adminSlot, targetSlot, Slay);
@@ -200,7 +200,7 @@ Effect MakeGhost(VoltMod::Runtime& runtime)
 {
     return Effect{
         .Permission = "g",
-        .Id = EffectId::Ghost,
+        .Id = static_cast<int>(EffectId::Ghost),  // Id is a plain int; cast your effect enum
         .NameKey = "effect.ghost",
         .OnKey = "broadcast.ghosted", .OffKey = "broadcast.unghosted",
         .Scope = EffectScope::Persistent,      // or Round: auto-cancel on round end
@@ -214,10 +214,16 @@ Effect MakeGhost(VoltMod::Runtime& runtime)
 }
 
 // Built once (e.g. as an App member, constructed with Runtime&), then the menu that renders the
-// list reads an explicit table so the order is visible in one place:
-inline constexpr std::array MenuEffects{
-    EffectEntry{.Order = 10, .Toggle = &descriptors.Ghost},
-    EffectEntry{.Order = 20, .Toggle = &descriptors.Disco},
+// list reads an explicit table so the display order is visible in one place - array order,
+// not a field on the entry:
+struct EffectEntry
+{
+    const Effect* Toggle = nullptr;
+};
+
+const std::array<EffectEntry, 2> MenuEffects{
+    EffectEntry{&descriptors.Ghost},
+    EffectEntry{&descriptors.Disco},
 };
 ```
 

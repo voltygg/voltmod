@@ -35,10 +35,12 @@ build/windows-msvc-release/vendor/voltmod/voltmod-utils-tests.exe --success   # 
 ## Writing a test
 
 Every `tests/**/*.cpp` is a test TU holding nothing but test cases, grouped into
-subfolders by module (`Core/`, `Engine/`, `Entities/`, `Hooks/`, `Players/`, `Commands/`,
-`App/`, `Database/`);
-`voltmod_add_tests()` supplies doctest's `main`. A new file needs no registration
-because the recursive glob picks it up.
+subfolders by module (`Core/`, `Engine/`, `Entities/`, `Hooks/`, `Players/`,
+`Commands/`, `Menu/`, `App/`, `Database/`); `voltmod_add_tests()` supplies doctest's
+`main`. A new file needs no registration because the recursive glob picks it up.
+`tests/Api/` is the one exception: `voltmod_add_tests()` excludes it from the glob
+because those files are compile-only checks that need the full HL2SDK/Metamod build
+(see "Api surface checks" below), not this SDK-free executable.
 
 ```cpp
 #include <VoltMod/Core/Strings.hpp>
@@ -154,6 +156,37 @@ The Conan side is one line in `conanfile.py`:
 def build_requirements(self):
     self.test_requires("doctest/2.5.2")
 ```
+
+## Api surface checks
+
+Each module's `Api.hpp` aggregate (`<VoltMod/Api.hpp>`, `Entities/Api.hpp`, `Hooks/Api.hpp`,
+`Menu/Api.hpp`, `Unsafe/Api.hpp`, `Database/Api.hpp`) must compile as the only VoltMod include
+in its translation unit, and `<VoltMod/Api.hpp>` itself must never reach nlohmann or the
+Menu-building surface. `tests/Api/*SurfaceTest.cpp` checks exactly that: one TU per header that
+includes it and nothing else, plus a couple of `#ifdef` assertions on `RootApiSurfaceTest.cpp`
+for the two things `<VoltMod/Api.hpp>` must not pull in. Nothing in these files is ever called,
+so a passing build is the whole test.
+
+They compile into `voltmod-api-surface-check`, an object library defined in the root
+`CMakeLists.txt` and linked against `VoltMod::Runtime` (and `VoltMod::Database` when
+`VOLTMOD_ENABLE_POSTGRES` is on) so they see the same include paths and generated HL2SDK headers
+the framework itself needs - that's also why they live outside `voltmod-utils-tests` and are
+excluded from its `tests/**/*.cpp` glob.
+
+## Checking module layering and source conventions
+
+```sh
+uv run poe modgraph                 # the framework's own module layering
+voltmod modgraph --plugins .        # a consumer repo's plugins/ sources
+```
+
+With no `--plugins`, `voltmod modgraph` walks `include/VoltMod` and `src`, printing each
+module's allowed dependencies and failing on an edge the layering forbids, a stray
+`using`-directive in a header, an anonymous namespace, or a forward-declared framework type
+outside `*Types.hpp`. `--plugins <path>` runs that same set of source conventions - not the
+module layering, which is framework-only - over a consumer's `plugins/` directory (or `<path>`
+itself when it has no `plugins/` subdirectory). Consumers run it from their own repository root,
+typically as `voltmod modgraph --plugins .`.
 
 ## What is worth testing
 

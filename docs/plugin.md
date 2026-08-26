@@ -202,7 +202,7 @@ and call `InstallCommand` to expose the report:
 
 ```cpp
 Runtime.Status.RegisterSection("db", [this] {
-    return nlohmann::json{{"connected", Db.IsConnected()}};
+    return nlohmann::json{{"connected", Db.IsConnected()}}.dump();
 });
 
 Runtime.Status.InstallCommand("my_status", "Report plugin health; 'my_status json' emits STATUS_JSON.",

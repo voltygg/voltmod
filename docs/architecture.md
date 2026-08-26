@@ -268,7 +268,7 @@ include `VoltMod/Runtime.hpp` (or `Api.hpp`) at all - every other module, includ
 - A file-static stands in only where no reference can be threaded, set and cleared by the
   code that owns it. Two back engine callbacks that carry no user data (the entity system
   behind `GameEntitySystem()`, the sink for the global convar change callback); the rest are
-  process-wide sinks set once at load (the `Log::Sink` behind `Core::Log`, which worker threads
-  write to as well, and the base directory behind `Core::AddonFile`).
+  process-wide sinks set once at load (the `Log::Sink` installed by `Log::SetSink`, which worker
+  threads write to as well, and the base directory behind `AddonFile`).
 
 Plugin code never needs any of it: `OnLoad` hands it the runtime.

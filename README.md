@@ -113,7 +113,7 @@ decides permissions, immunity, reply formatting, and broadcast behavior.
 Require the Conan package:
 
 ```python
-requires = ("voltmod/[~1]",)
+requires = ("voltmod/[~1.3]",)
 ```
 
 Load it and declare plugins:

@@ -61,7 +61,7 @@ voltmod_add_plugin(my-plugin VERSION 1.0.0)
 The framework builds two libraries:
 
 - `VoltMod::Runtime` contains Core, Engine, Entities, Events, Messaging, Players,
-  Hooks, Commands, Menu, HTTP, and App.
+  Hooks, Unsafe, Commands, Menu, HTTP, and App.
 - `VoltMod::Database` contains the optional PostgreSQL layer.
 
 `VoltMod::VoltMod` is the umbrella target. A plugin gets only Runtime by
@@ -188,7 +188,7 @@ Entities   -> Core, Engine
 Events     -> Core, Engine, Entities
 Messaging  -> Core, Engine, Entities, Events
 Players    -> Core, Engine, Entities
-Hooks      -> Core, Engine, Entities, Events, Players, Unsafe
+Hooks      -> Core, Engine, Entities, Events, Players, Unsafe, Messaging
 Commands   -> Core, Engine, Entities, Players, Messaging
 Menu       -> Core, Engine, Entities, Players, Messaging, Hooks
 Http       -> Core

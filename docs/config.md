@@ -80,12 +80,19 @@ void ConfigManager::Resolve()
     // Clamp + fall back with a logged warning; "server.tag" names the field in the log line.
     Validation::NormalizeTag(s.server.tag, 32, "default", "server.tag");
 
-    // Drop entries a predicate rejects, logging each removal.
-    Validation::FilterValid(s.punishments.templates,
-                            [](const auto& t) { return IsKnownType(t.type); }, "punishment template");
+    // Drop entries a predicate rejects, logging each removal. The predicate returns the
+    // rejection reason (or nullopt to keep the entry), not a plain bool.
+    Validation::FilterValid(
+        s.punishments.templates,
+        [](const PunishmentTemplate& t, std::size_t) -> std::optional<std::string> {
+            return IsKnownType(t.type) ? std::nullopt : std::optional(std::format("unknown type '{}'", t.type));
+        },
+        "punishments.templates");
 
-    // "5m"/"1h"/"perm" strings -> seconds (0 = permanent); invalid entries logged and skipped.
-    _menuDurationSecs = Validation::ParseDurations(s.punishments.menuDurations, "menu duration");
+    // "5m"/"1h"/"perm" strings -> seconds (0 = permanent); invalid entries logged and skipped,
+    // falling back to the struct defaults if nothing valid remains.
+    _menuDurationSecs = Validation::ParseDurations(s.punishments.menuDurations,
+                                                   PunishmentSettings{}.menuDurations, "punishments.menuDurations");
 }
 ```
 
