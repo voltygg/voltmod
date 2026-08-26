@@ -27,10 +27,10 @@ INCLUDE = re.compile(r'#\s*include\s*[<"]VoltMod/([A-Za-z0-9_]+)/([^>"]+)[>"]')
 # Root headers have no module directory and need a separate check.
 ROOT_HEADERS = re.compile(r'#\s*include\s*[<"]VoltMod/(Runtime|Api)\.hpp[>"]')
 
-# App is the composition root, so its headers may include it. Commands and Menu are here because
-# CommandManager and MenuContext hold a `Runtime&`/`Runtime*` they dereference inline. Phase 8
-# hands them the narrow services they use and shrinks this back to {"App"}.
-ROOT_HEADER_EXEMPT = {"App", "Commands", "Menu"}
+# App is the composition root, so its headers may include it. Menu is here because MenuContext
+# holds a `Runtime*` it dereferences inline. Phase 8 hands it the narrow services it uses and
+# shrinks this back to {"App"}.
+ROOT_HEADER_EXEMPT = {"App", "Menu"}
 
 # Core is the engine-free layer: nothing under it may reach the SDK or Metamod.
 ENGINE_FREE = ("include/VoltMod/Core", "src/Core")
@@ -58,10 +58,10 @@ ANON_NAMESPACE = re.compile(r'^[ \t]*namespace[ \t]*(\{[ \t]*)?$')
 # (`using VoltMod::Player;`) in a .cpp are fine and are not matched here.
 USING_DIRECTIVE = re.compile(r'^[ \t]*using\s+namespace\b')
 
-# Modules whose sources may name the runtime. App composes it; the three service modules that
+# Modules whose sources may name the runtime. App composes it; the two service modules that
 # dispatch through several siblings at once take it by reference. Everything else is injected
 # with the sibling services it actually uses.
-ROOT_SOURCE_EXEMPT = {"App", "Players", "Commands", "Menu"}
+ROOT_SOURCE_EXEMPT = {"App", "Players", "Menu"}
 
 
 def scan(root: Path):

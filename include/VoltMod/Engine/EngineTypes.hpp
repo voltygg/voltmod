@@ -64,12 +64,13 @@ class GameSystemFactory;
 
 // --- (3) Mutually recursive with their owning header --------------------------
 
-/** Runtime.hpp holds CommandManager and MenuManager by value, so neither of
- *  those headers can include it. ActionDispatcher and EffectDispatcher name it
- *  from the same declaration: they only pass a `Runtime&` through, and pulling
- *  the composition root into every header that reaches Player would undo the
- *  point. Phase 8 replaces all four `Runtime&` members with the narrow services
- *  they use, which retires this line. */
+/** Runtime.hpp holds MenuManager by value, so Menu/MenuManager.hpp cannot
+ *  include it. ActionDispatcher and EffectDispatcher name it from the same
+ *  declaration: they only pass a `Runtime&` through, and pulling the composition
+ *  root into every header that reaches Player would undo the point. Commands no
+ *  longer appears here - CommandManager takes its five services directly. Phase 8
+ *  replaces the remaining three `Runtime&` members with the narrow services they
+ *  use, which retires this line. */
 class Runtime;
 
 /** MenuManager holds PlayerMenuState (Menu/Menu.hpp) by value and Menu.hpp

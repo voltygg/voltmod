@@ -185,9 +185,9 @@ public:
      *  Scheduler and Slots, which is exactly what it subscribes to. */
     MenuManager Menus{*this};
 
-    /** Takes the whole runtime; its constructor only stores the reference, so every service it
-     *  reads at dispatch time (Policy, Translations, Messages, Players) is live by then. */
-    CommandManager Commands{*this};
+    /** Depends on: Policy, Translations, Players, Entities, Messages - the five services
+     *  command dispatch reaches, taken directly rather than through the runtime. */
+    VoltMod::CommandManager Commands{Policy, Translations, Players, Entities, Messages};
     /** Completions dispatch on the game thread from a pump it registers itself; the dtor stops it. */
     HttpClient Http{Scheduler};
 

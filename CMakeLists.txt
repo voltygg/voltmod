@@ -110,8 +110,8 @@ if(BUILD_TESTING)
     voltmod_add_tests(voltmod-utils-tests
         SOURCES
             # Other implementation files require HL2SDK or pqxx.
-            src/Commands/CommandContext.cpp
-            src/Commands/CommandSpec.cpp
+            src/Commands/CommandBuilder.cpp
+            src/Commands/CommandRouter.cpp
             src/Core/Capabilities.cpp
             src/Core/EffectManager.cpp
             src/Core/LoadReport.cpp

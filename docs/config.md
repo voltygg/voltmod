@@ -120,7 +120,7 @@ runtime.Translations.SetPlayerLanguage(slot, "ru");           // per-player over
 auto line = runtime.Translations.Get("cmd.banSuccess", slot, {{"name", targetName}});
 ```
 
-Command results (`CommandContext::Ok`/`Fail`), `Flow` validation errors, and
+Command replies (`Caller::Ok`/`Fail`/`Say`), `Flow` validation errors, and
 `Messages::ReplyKey` all resolve through this service in the addressed
 player's language. The framework reserves a small set of keys for its own error
 replies; see @ref commands_guide.

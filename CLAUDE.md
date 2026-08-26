@@ -108,8 +108,10 @@ There is no ambient accessor for the runtime; everything is injected:
 
 Use these patterns throughout the framework:
 
-- Plain-data descriptors such as `CommandSpec`, `Action`, and menu context rows
-  are registered explicitly during load. Do not self-register at static init.
+- Plain-data descriptors such as `Action` and menu context rows are registered
+  explicitly during load, and a command is registered through the fluent
+  `Commands.Add(name)...Run(handler)` builder whose handler signature is its
+  argument spec. Do not self-register at static init.
 - Consumers inject permission, targeting, reply, and broadcast behavior once
   through `Runtime::Policy`, and `Policy::Authorize(caller, target, permission)`
   is the only place the framework applies it. Commands, actions, effects and menu
@@ -198,8 +200,11 @@ layering.
 - Every public name lives in one namespace, `VoltMod`. Modules are directories and
   layers, not namespaces. The only nested namespaces are small groups of free
   functions with a common noun (`VoltMod::Log`, `VoltMod::ChatColors`,
-  `VoltMod::Validation`, `VoltMod::PawnOps`, `VoltMod::EffectOps`) and
-  `VoltMod::Internal`, which may only appear under `src/`.
+  `VoltMod::Validation`, `VoltMod::PawnOps`, `VoltMod::EffectOps`),
+  `VoltMod::Args` - the command argument types, whose names (`Target`, `Int`,
+  `Word`, `Rest`) are too generic to carry at `VoltMod::` scope and appear
+  nowhere but a handler's parameter list - and `VoltMod::Internal`, which may
+  only appear under `src/`.
 - Do not forward-declare a framework type. Include the header that defines it.
   `include/VoltMod/Engine/EngineTypes.hpp` is the one place a forward declaration
   belongs, and it says why for each name; a new one needs the same justification -

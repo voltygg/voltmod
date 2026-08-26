@@ -123,21 +123,26 @@ handlers need:
 
 ```cpp
 // src/Commands/BanCommands.cpp
-void RegisterBanCommands(VoltMod::CommandManager& commands, App& app)
+namespace Args = VoltMod::Args;
+
+void RegisterBanCommands(VoltMod::CommandManager& commands, App& app,
+                         std::vector<VoltMod::Subscription>& subs)
 {
-    commands.Register({
-        .Name = "ban",
-        .Permission = "d",
-        .Handler = [&app](const VoltMod::CommandContext& ctx) { return app.Punishments.Ban(ctx); },
-    });
+    subs.push_back(commands.Add("ban").Permission("d").Run(
+        [&app](VoltMod::Caller c, Args::Target t, Args::Duration d)
+            -> VoltMod::Result<VoltMod::Reply> { return app.Punishments.Ban(c, *t.Value, d.Value); }));
 }
 
 // App.cpp
 void App::RegisterCommands()
 {
-    Commands::RegisterBanCommands(Runtime.Commands, *this);
+    Commands::RegisterBanCommands(Runtime.Commands, *this, _subs);
 }
 ```
+
+`Run` returns the registration. Keep it in the same `_subs` vector the rest of
+your listeners live in, declared last so the handlers stop before the state they
+captured goes away.
 
 ## Load stages: LoadReport
 

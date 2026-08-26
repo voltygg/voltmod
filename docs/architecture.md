@@ -15,7 +15,7 @@ VoltMod
 ├── Messaging   Chat and center-HTML messages, chat colors, the vote panel
 ├── Players     The roster, the Policy gate, action and effect dispatch
 ├── Hooks       Movement, damage, transmit, teleport, chat input, client convars
-├── Commands    Declarative chat commands (CommandSpec)
+├── Commands    Chat and console commands: the fluent builder, typed Args, the router
 ├── Menu        WASD center-HTML menus + Flow wizard
 ├── Database    Async PostgreSQL + row mapping (VOLTMOD_ENABLE_POSTGRES)
 ├── Http        Async HTTP client + JSON REST helpers
@@ -37,9 +37,10 @@ it is not allowed to reach.
   callbacks do not race game code.
 - **One load-cycle lifetime.** Every service belongs to one @ref VoltMod::Runtime,
   created on load and destroyed on unload. A `meta reload` starts clean.
-- **Data over glue.** Commands, effects, and menu rows are described as structs
-  (`CommandSpec`, `EffectDescriptor`, and context rows). The framework owns the
-  resolve, check, dispatch, and reply pipeline around them.
+- **Data over glue.** Effects and menu rows are described as structs
+  (`EffectDescriptor` and context rows), and a command's handler signature is its
+  argument spec. The framework owns the resolve, check, dispatch, and reply
+  pipeline around them.
 - **Policy is injected once.** The framework has no admin model. Your plugin fills in
   `runtime.Policy` in `OnLoad`, and one gate - `Policy::Authorize` - applies it
   everywhere. Anything that declares a permission is denied when
@@ -149,15 +150,16 @@ that already holds what the handlers need:
 
 ```cpp
 // src/Commands/BanCommands.cpp
-void RegisterBanCommands(VoltMod::CommandManager& commands, App& app)
+void RegisterBanCommands(VoltMod::CommandManager& commands, App& app, Subs& subs)
 {
-    commands.Register({ .Name = "ban", /* ... */,
-                        .Handler = [&app](const CommandContext& ctx) { /* ... */ } });
+    subs.push_back(commands.Add("ban").Permission("b").Run(
+        [&app](VoltMod::Caller c, Args::Target t, Args::Duration d) -> Result<Reply> { /* ... */ }));
 }
 ```
 
 Do not self-register descriptors during static initialization. Register them
-from the load path so handlers can capture their dependencies explicitly.
+from the load path so handlers can capture their dependencies explicitly, and
+keep the returned `Subscription` beside that captured state.
 
 ## Signals, cleanup and subscriptions
 
@@ -230,8 +232,8 @@ composition root and may reach all of them.
 
 There is no ambient accessor for the runtime. Everything takes what it uses through a
 constructor or a parameter, and `modgraph` enforces that too: a `.cpp` outside `App/`,
-`Players/`, `Commands/` and `Menu/` may not include `VoltMod/Runtime.hpp` at all, and of the
-*headers*, only `App/`, `Commands/` and `Menu/` may.
+`Players/` and `Menu/` may not include `VoltMod/Runtime.hpp` at all, and of the *headers*, only
+`App/` and `Menu/` may.
 
 - The engine-facing modules, `Core/`, `Http/` and `Database/` never name `Runtime`. Services and value types
   (`Entity`/`Pawn`/`Controller`, `GlowVision`, `CenterHtml`, `HttpClient`, `PostgresDatabase`)
@@ -240,8 +242,8 @@ constructor or a parameter, and `modgraph` enforces that too: a `.cpp` outside `
   Where a plugin would otherwise thread services through every call, the runtime owns a small
   facade that binds them once: `Pawns` (`runtime.Pawns`, which owns slap's fall protection)
   and `Visibility` (`runtime.Visibility`, over the `GlowVision` constructor).
-- `Players/`, `Commands/`, `Menu/` and `App/` may take `Runtime&`, and the runtime-owned
-  services do (`CommandManager`, `MenuManager`), as do the dispatchers a plugin builds itself
+- `Players/`, `Menu/` and `App/` may take `Runtime&`, and `MenuManager` does, as do the
+  dispatchers a plugin builds itself
   (`ActionDispatcher`, and `EffectDispatcher` over its own `EffectManager`). The header-only templates
   and plain-data types plugins instantiate (`Flow<TState>`, `PerSlot<T>`, `MenuContext`, the
   `MenuPresets` builders) still take the single narrowest service they need, so a consumer TU

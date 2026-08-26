@@ -1,3 +1,4 @@
+#include "CommandRouter.hpp"
 #include "Targeting.hpp"
 
 #include <VoltMod/Core/Random.hpp>
@@ -45,6 +46,12 @@ std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(PlayerManager&
         if (Player* player = players.Get(slot))
             resolved.push_back(player);
     return resolved;
+}
+
+std::expected<std::vector<Player*>, TargetFailure> EngineArgBinder::Resolve(std::string_view token, Player* caller,
+                                                                            const TargetRules& rules)
+{
+    return ResolveTargets(_players, _policy, _entities, token, caller, rules);
 }
 
 }  // namespace VoltMod

@@ -1,363 +1,137 @@
-#include "Targeting.hpp"
+#include "CommandRouter.hpp"
 
 #include <VoltMod/Commands/CommandManager.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Strings.hpp>
-#include <VoltMod/Runtime.hpp>
-#include <algorithm>
-#include <charconv>
+#include <VoltMod/Engine/ServerCommand.hpp>
 #include <convar.h>
-#include <limits>
+#include <memory>
+#include <unordered_map>
+#include <utility>
 
 namespace VoltMod
 {
 
-static std::optional<int64_t> ParseInt64(const std::string& text)
+/** The engine-facing half: the router plus what only a running server can provide. */
+struct CommandManager::Impl
 {
-    int64_t value{};
-    auto [ptr, ec] = std::from_chars(text.data(), text.data() + text.size(), value);
-    if (ec != std::errc{} || ptr != text.data() + text.size())
-        return std::nullopt;
-    return value;
+    Impl(Policy& policy, Translations& translations, PlayerManager& players, EntitySystem& entities, Messages& messages)
+        : Policies(policy),
+          Texts(translations),
+          Notify(messages),
+          Binder(players, policy, entities),
+          Router(policy, translations)
+    {}
+
+    Policy& Policies;
+    Translations& Texts;
+    Messages& Notify;
+    EngineArgBinder Binder;
+    CommandRouter Router;
+    /** Lowercased command name -> its ConCommand, for commands that asked for the console. */
+    std::unordered_map<std::string, std::unique_ptr<ServerCommand>> ConsoleCommands;
+};
+
+CommandManager::CommandManager(Policy& policy, Translations& translations, PlayerManager& players,
+                               EntitySystem& entities, Messages& messages)
+    : _impl(std::make_unique<Impl>(policy, translations, players, entities, messages))
+{}
+
+CommandManager::~CommandManager() = default;
+
+CommandBuilder CommandManager::Add(std::string_view name)
+{
+    return CommandBuilder(
+        [this](CommandDefinition def) {
+            const std::string key = Strings::ToLower(def.Name);
+            const bool console = def.Console;
+            const uint64_t id = _impl->Router.Add(std::move(def));
+            if (id == 0)
+                return Subscription{};  // refused and logged; nothing to unregister
+
+            if (console)
+                InstallConsoleCommand(key);
+
+            return Subscription([this, key, id] {
+                _impl->ConsoleCommands.erase(key);
+                _impl->Router.Remove(key, id);
+            });
+        },
+        name);
 }
 
-static std::string TargetErrorMessage(Translations& tr, const TargetFailure& failure, const std::string& token,
-                                      int slot)
+void CommandManager::InstallConsoleCommand(const std::string& name)
 {
-    switch (failure.Error)
-    {
-    case TargetError::Immune:
-        return tr.Get("target.immune", slot, {{"token", token}});
-    case TargetError::Ambiguous:
-    case TargetError::MultiNotAllowed:
-        return tr.Get("target.ambiguous", slot, {{"token", token}, {"count", std::to_string(failure.Count)}});
-    case TargetError::DeadNotAllowed:
-        return tr.Get("target.dead", slot, {{"token", token}});
-    case TargetError::BotNotAllowed:
-        return tr.Get("target.bot", slot, {{"token", token}});
-    case TargetError::NoMatch:
-    default:
-        return tr.Get("target.noMatch", slot, {{"token", token}});
-    }
-}
-
-void CommandManager::Register(CommandSpec spec)
-{
-    const std::string name = Strings::ToLower(spec.Name);
-
-    if (_commands.contains(name) || _aliases.contains(name))
-    {
-        Log::Error("Command '{}' is already registered - ignoring the second registration.", spec.Name);
+    const CommandDefinition* def = _impl->Router.Find(name);
+    if (!def)
         return;
-    }
 
-    // Index aliases once and reject collisions for deterministic lookup.
-    for (const auto& alias : spec.Aliases)
-    {
-        std::string key = Strings::ToLower(alias);
-        if (key.empty() || key == name)
-            continue;
+    // The console types no prefix, so a derived help line must not claim one.
+    const std::string help =
+        def->Description.empty() ? _impl->Router.Usage(*def, -1, Origin::Console) : def->Description;
 
-        if (_commands.contains(key))
-        {
-            Log::Error("Command '{}' claims alias '{}', which is already a command name - skipping the alias.",
-                       spec.Name, alias);
-            continue;
-        }
-        if (auto it = _aliases.find(key); it != _aliases.end())
-        {
-            Log::Error("Command '{}' claims alias '{}', already taken by '{}' - skipping the alias.", spec.Name, alias,
-                       it->second);
-            continue;
-        }
-        _aliases.emplace(std::move(key), name);
-    }
-
-    const bool console = ReachableFrom(spec, Surface::Console);
-    const CommandSpec& stored = (_commands[name] = std::move(spec));
-
-    if (console)
-        RegisterConsoleCommand(name, stored);
-}
-
-void CommandManager::RegisterConsoleCommand(const std::string& name, const CommandSpec& spec)
-{
-    // The console has no prefix to type, so the derived usage must not claim one.
-    const std::string help = spec.Description.empty() ? DeriveUsage(spec, "") : spec.Description;
-    _consoleCommands.emplace(
+    _impl->ConsoleCommands.emplace(
         name, std::make_unique<ServerCommand>(name.c_str(), help.c_str(), [this, name](const CCommand& args) {
-            // Re-resolved per invocation: the spec can be unregistered while the ConCommand
-            // lives. `name` is already the canonical key, so no lowering or alias hop is needed.
-            auto it = _commands.find(name);
-            if (it == _commands.end())
+            // Re-resolved per invocation: the command can be unregistered while the ConCommand
+            // is still being torn down. `name` is already the canonical key.
+            const CommandDefinition* current = _impl->Router.Find(name);
+            if (!current || !current->Console)
                 return;
-            const CommandSpec* cmd = &it->second;
 
+            // The engine already split and unquoted the line for us.
             std::vector<std::string> tokens;
             tokens.reserve(static_cast<size_t>(args.ArgC()));
             for (int i = 1; i < args.ArgC(); ++i)
                 tokens.emplace_back(args.Arg(i));
 
             // The console has no chat window to reply into, and no language of its own.
-            Dispatch(*cmd, nullptr, std::move(tokens), [](const std::string& msg) { Log::Info("{}", msg); });
+            _impl->Router.Dispatch(*current, nullptr, tokens, Origin::Console, _impl->Binder,
+                                   [](const std::string& line) { Log::Info("{}", line); });
         }));
 }
 
 bool CommandManager::HandleChatMessage(Player* caller, std::string_view message)
 {
-    if (!caller || message.empty())
+    if (!caller)
         return false;
 
-    bool hasPrefix = false;
-    size_t prefixLen = 0;
-    for (const auto& prefix : _prefixes)
-    {
-        if (message.size() >= prefix.size() && message.compare(0, prefix.size(), prefix) == 0)
-        {
-            hasPrefix = true;
-            prefixLen = prefix.size();
-            break;
-        }
-    }
-
-    if (!hasPrefix)
+    auto body = CommandRouter::StripPrefix(message);
+    if (!body)
         return false;
 
-    auto parts = ParseArguments(std::string(message.substr(prefixLen)));
+    std::vector<std::string> parts = CommandRouter::Tokenize(*body);
     if (parts.empty())
         return false;
 
-    const std::string& cmdName = parts[0];
-    std::vector<std::string> args(parts.begin() + 1, parts.end());
-
-    // Surfaces is what makes a console-only command console-only. Without this the Chat bit was
-    // never read, so a spec registered as Surface::Console - typically an operator command with
-    // no Permission, because the console needs none - was also typeable in chat by anyone.
-    const CommandSpec* cmd = GetCommand(cmdName);
-    if (!cmd || !ReachableFrom(*cmd, Surface::Chat))
+    // A command that did not ask for the chat surface is not typeable in chat at all, which is
+    // what keeps an operator command - one with no permission, because the console needs none -
+    // out of every player's reach.
+    const CommandDefinition* def = _impl->Router.Find(parts.front());
+    if (!def || !def->Chat)
         return false;
 
-    auto& policy = _runtime.Policy;
+    const std::span<const std::string> tokens{parts.begin() + 1, parts.end()};
     const int slot = caller->Slot();
-    Dispatch(*cmd, caller, std::move(args), [&](const std::string& msg) {
-        if (policy.Reply)
-            policy.Reply(slot, msg);
+    _impl->Router.Dispatch(*def, caller, tokens, Origin::Chat, _impl->Binder, [this, slot](const std::string& line) {
+        if (_impl->Policies.Reply)
+            _impl->Policies.Reply(slot, line);
         else
-            _runtime.Messages.Reply(slot, msg);
+            _impl->Notify.Reply(slot, line);
     });
 
     return true;
 }
 
-void CommandManager::Dispatch(const CommandSpec& cmd, Player* caller, std::vector<std::string> args,
-                              const std::function<void(const std::string&)>& reply)
+size_t CommandManager::Count() const
 {
-    // Console has no player and so no language of its own; slot -1 resolves the server language.
-    const int slot = caller ? caller->Slot() : -1;
-    auto& tr = _runtime.Translations;
-    const auto say = [&](const std::string& msg) {
-        if (!msg.empty())
-            reply(msg);
-    };
-    // The prefix belongs to the surface being replied to, not to the spec: the console types none.
-    const auto usage = [&] {
-        if (!cmd.Usage.empty())
-            return cmd.Usage;
-        const std::string_view prefix = caller && !_prefixes.empty() ? _prefixes.front() : std::string_view{};
-        return DeriveUsage(cmd, prefix);
-    };
-
-    // Permissions say which players may do this, and the one gate answers it. The console is the
-    // server itself: no SteamID to check, and nothing above it to deny it.
-    if (caller && !cmd.Permission.empty())
-    {
-        auto authorized = _runtime.Policy.Authorize(caller->Ref(), std::nullopt, cmd.Permission);
-        if (!authorized)
-        {
-            say(tr.Get(authorized.error().Key, slot));
-            return;
-        }
-    }
-
-    CommandContext ctx;
-    ctx.Tr = &tr;  // handler-facing Ok()/Fail() translate through the runtime's table
-    ctx.Caller = caller;
-
-    // Reject extra tokens so malformed commands cannot appear successful.
-    if (TooManyArguments(cmd, args.size()))
-    {
-        say(tr.Get("cmd.tooManyArgs", slot, {{"usage", usage()}}));
-        return;
-    }
-
-    std::string error;
-    if (!ResolveArgs(cmd, args, ctx, error))
-    {
-        say(error.empty() ? "Usage: " + usage() : error);
-        return;
-    }
-
-    if (cmd.Handler)
-        say(cmd.Handler(ctx).Message);
-}
-
-bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::string>& args, CommandContext& ctx,
-                                 std::string& outError) const
-{
-    auto& tr = _runtime.Translations;
-    const int slot = ctx.CallerSlot();
-    std::size_t i = 0;
-
-    auto fail = [&](const ArgSpec& spec, const char* defaultKey, Tokens tokens = {}) {
-        outError = tr.Get(spec.ErrorKey.empty() ? defaultKey : spec.ErrorKey.c_str(), slot, tokens);
-        return false;
-    };
-
-    for (const auto& spec : cmd.Args)
-    {
-        const bool haveToken = i < args.size();
-        if (!haveToken)
-        {
-            if (spec.Kind == ArgKind::ReasonTail)
-            {
-                // Fallback reasons use the server language - they land in the DB and broadcasts.
-                ctx.Reason = spec.FallbackKey.empty() ? "" : tr.Get(spec.FallbackKey);
-                continue;
-            }
-            if (!spec.Required)
-                continue;
-            return false;  // empty outError => generic usage reply
-        }
-
-        const std::string& token = args[i];
-        switch (spec.Kind)
-        {
-        case ArgKind::Target:
-        {
-            // Target() always resolves against the default rules: single online target,
-            // dead and bots allowed.
-            const TargetRules rules{};
-            auto resolved =
-                ResolveTargets(_runtime.Players, _runtime.Policy, _runtime.Entities, token, ctx.Caller, rules);
-            if (!resolved)
-            {
-                outError = TargetErrorMessage(tr, resolved.error(), token, slot);
-                return false;
-            }
-            ctx.TargetPlayer = resolved->front();
-            if (rules.AllowMultiple)
-                ctx.TargetList = std::move(*resolved);
-            ++i;
-            break;
-        }
-        case ArgKind::TargetOrSteamId:
-        {
-            // A bare numeric token addresses an offline player by SteamID; anything else must
-            // resolve to an online player (whose SteamID is then captured too).
-            if (auto id = ParseInt64(token); id && Strings::IsNumeric(token))
-            {
-                ctx.SteamId = *id;
-            }
-            else
-            {
-                auto resolved =
-                    ResolveTargets(_runtime.Players, _runtime.Policy, _runtime.Entities, token, ctx.Caller, {});
-                if (!resolved)
-                {
-                    outError = TargetErrorMessage(tr, resolved.error(), token, slot);
-                    return false;
-                }
-                ctx.TargetPlayer = resolved->front();
-                ctx.SteamId = ctx.Target().SteamId();
-            }
-            ++i;
-            break;
-        }
-        case ArgKind::Duration:
-        {
-            int seconds = ParseDuration(token);
-            if (seconds < 0)
-                return fail(spec, "cmd.badDuration");
-            // ParseDuration treats bare numbers as seconds; Duration() reinterprets them as minutes.
-            ctx.DurationSec = Strings::IsNumeric(token) ? static_cast<int64_t>(seconds) * 60 : seconds;
-            ++i;
-            break;
-        }
-        case ArgKind::SteamId64:
-        {
-            auto id = ParseInt64(token);
-            if (!id || !Strings::IsNumeric(token))
-                return fail(spec, "cmd.badSteamId", {{"token", token}});
-            ctx.SteamId = *id;
-            ++i;
-            break;
-        }
-        case ArgKind::Int:
-        {
-            auto value = ParseInt64(token);
-            if (!value || *value < std::numeric_limits<int>::min() || *value > std::numeric_limits<int>::max())
-            {
-                // Report the integer-specific error rather than generic usage.
-                return fail(spec, "cmd.badNumber", {{"token", token}});
-            }
-            ctx.IntValue = static_cast<int>(*value);
-            ++i;
-            break;
-        }
-        case ArgKind::Word:
-            ctx.Word = token;
-            ++i;
-            break;
-        case ArgKind::ReasonTail:
-        {
-            std::vector<std::string> rest(args.begin() + static_cast<std::ptrdiff_t>(i), args.end());
-            ctx.Reason = Strings::Join(rest, " ");
-            i = args.size();
-            break;
-        }
-        }
-    }
-
-    return true;
+    return _impl->Router.Count();
 }
 
 std::vector<std::string> CommandManager::CommandsMissingPolicy() const
 {
-    if (_runtime.Policy.HasPermission)
+    if (_impl->Policies.HasPermission)
         return {};
-
-    std::vector<std::string> names;
-    for (const auto& [key, spec] : _commands)
-        if (!spec.Permission.empty())
-            names.push_back(spec.Name);
-    std::sort(names.begin(), names.end());  // map order is arbitrary; the report should not be
-    return names;
-}
-
-const CommandSpec* CommandManager::GetCommand(const std::string& name) const
-{
-    const std::string key = Strings::ToLower(name);
-
-    if (auto it = _commands.find(key); it != _commands.end())
-        return &it->second;
-
-    if (auto alias = _aliases.find(key); alias != _aliases.end())
-    {
-        if (auto it = _commands.find(alias->second); it != _commands.end())
-            return &it->second;
-    }
-
-    return nullptr;
-}
-
-std::vector<std::string> CommandManager::ParseArguments(const std::string& text) const
-{
-    // Drop empty tokens so leading/trailing/repeated spaces (e.g. "ban  Bob") don't yield blank args.
-    std::vector<std::string> parts;
-    for (auto& token : Strings::Split(text, ' '))
-        if (!token.empty())
-            parts.push_back(std::move(token));
-    return parts;
+    return _impl->Router.NamesWithPermission();
 }
 
 }  // namespace VoltMod

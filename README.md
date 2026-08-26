@@ -88,26 +88,25 @@ file, expected result, and common failure.
 
 ## Write a command
 
-Commands are plain data. Required arguments are parsed and resolved before the
-handler runs:
+The handler's parameter list is the argument spec: every argument is parsed,
+resolved and immunity-checked before the handler runs.
 
 ```cpp
-runtime.Commands.Register({
-    .Name = "slap",
-    .Description = "Slap a player.",
-    .Permission = "admin.slap",
-    .Args = {VoltMod::Target()},
-    .Handler = [&runtime](VoltMod::CommandContext& context) {
-        auto target = runtime.Entities.Controller(context.Target().GetSlot());
-        runtime.Pawns.Slap(target);
-        return context.Ok("cmd.slapped", {{"name", context.Target().GetName()}});
-    },
-});
+namespace Args = VoltMod::Args;
+
+_subs.push_back(runtime.Commands.Add("slap")
+    .Describe("Slap a player.")
+    .Permission("admin.slap")
+    .Run([&runtime](VoltMod::Caller c, Args::Target t)
+             -> VoltMod::Result<VoltMod::Reply> {
+        runtime.Pawns.Slap(t.Value->Ctrl());
+        return c.Ok("cmd.slapped", {{"name", t.Value->Name()}});
+    }));
 ```
 
-Add `cmd.slapped` to the translation files. The plugin's
-`Runtime::Policy` decides permissions, immunity, reply formatting, and
-broadcast behavior.
+Add `cmd.slapped` to the translation files. `Run` returns a `Subscription` that
+unregisters the command when it is dropped. The plugin's `Runtime::Policy`
+decides permissions, immunity, reply formatting, and broadcast behavior.
 
 ## Add VoltMod to an existing project
 

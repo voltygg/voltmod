@@ -12,8 +12,9 @@
 #include <VoltMod/App/PluginSettings.hpp>
 #include <VoltMod/App/ServiceExchange.hpp>
 #include <VoltMod/App/StandardLoad.hpp>
+#include <VoltMod/Commands/Args.hpp>
+#include <VoltMod/Commands/CommandBuilder.hpp>
 #include <VoltMod/Commands/CommandManager.hpp>
-#include <VoltMod/Commands/CommandSpec.hpp>
 #include <VoltMod/Core/EffectManager.hpp>
 #include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Core/LoadReport.hpp>
