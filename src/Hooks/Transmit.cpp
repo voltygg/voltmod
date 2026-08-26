@@ -1,6 +1,6 @@
 #include "Entities/Schema.hpp"
 
-#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/MemoryAccess.hpp>
 #include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Hooks/Transmit.hpp>
@@ -117,8 +117,8 @@ static void CollectHiddenPlayer(EntitySystem& entities, SchemaService& schema, i
     AddHandleVector(entities, out, out.Pawn, schema.GetOffset("CBaseCombatCharacter", "m_hMyWearables"));
 }
 
-Transmit::Transmit(EntitySystem& entities, GameData& gameData, SchemaService& schema, SlotEvents& slots)
-    : _entities(entities), _gameData(gameData), _schema(schema)
+Transmit::Transmit(EntitySystem& entities, const Bindings& bindings, SchemaService& schema, SlotEvents& slots)
+    : _entities(entities), _bindings(bindings), _schema(schema)
 {
     // SlotEvents fires when a slot is filled as well as emptied; a fresh occupant has nothing
     // hidden, so clearing on both edges covers "left" without a dedicated event.
@@ -129,12 +129,6 @@ Transmit::Transmit(EntitySystem& entities, GameData& gameData, SchemaService& sc
         // this catches entries whose beneficiary vanished without cleanup.
         std::erase_if(_exclusive, [slot](const ExclusiveEntity& e) { return e.BeneficiarySlot == slot; });
     };
-}
-
-bool Transmit::Initialize()
-{
-    _slotOffset = _gameData.GetByteOffset("CheckTransmitPlayerSlot");
-    return _slotOffset >= 0;
 }
 
 void Transmit::SetFlag(int slot, bool SlotState::* flag, bool value)
@@ -192,7 +186,7 @@ void Transmit::ClearEntityExclusive(int entityIndex)
 
 void Transmit::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
 {
-    if ((_activeCount == 0 && _exclusive.empty()) || _slotOffset < 0 || !infoList)
+    if ((_activeCount == 0 && _exclusive.empty()) || !_bindings.CheckTransmitPlayerSlot || !infoList)
         return;
 
     // Entity indices are the same for every recipient (only the self/observer
@@ -213,7 +207,7 @@ void Transmit::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
         if (!info || !info->m_pTransmitEntity)
             continue;
 
-        int recipient = static_cast<int>(ReadAt<uint8_t>(info, _slotOffset));
+        int recipient = static_cast<int>(_bindings.CheckTransmitPlayerSlot.Read(info));
         CEntityInstance* observed = hiddenCount > 0 ? GetObserverTarget(_entities, _schema, recipient) : nullptr;
 
         for (int h = 0; h < hiddenCount; ++h)

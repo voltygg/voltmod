@@ -1,10 +1,9 @@
-#include "Engine/VtableLookup.hpp"
 #include "Hooks/ClientCvarPending.hpp"
 
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/Time.hpp>
-#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Hooks/ClientCvars.hpp>
@@ -24,20 +23,17 @@ namespace VoltMod
 // (DVP hook), so it fires for every connected client without needing per-instance bindings.
 SH_DECL_MANUALHOOK1(VoltMod_ProcessRespondCvarValue, 0, 0, 0, bool, const CNetMessagePB<CCLCMsg_RespondCvarValue>&);
 
-// The engine module owning CServerSideClient and IVEngineServer2.
-static constexpr const char* EngineModule = "engine2";
-static constexpr const char* ServerSideClientClass = "CServerSideClient";
-
 class ClientCvars::Impl
 {
 public:
-    Impl(Interfaces& interfaces, GameData& gameData) : _interfaces(interfaces), _gameData(gameData) {}
+    Impl(Interfaces& interfaces, const Bindings& bindings) : _interfaces(interfaces), _bindings(bindings) {}
     ~Impl() { Shutdown(); }
 
-    bool Initialize();
+    Status Initialize();
     void Shutdown();
 
-    bool Available() const { return _hookId != 0; }
+    /** Internal readiness: the hook is what makes a query answerable at all. */
+    bool Installed() const { return _hookId != 0; }
     bool Query(int slot, const std::string& cvarName, QueryCallback callback);
 
     ClientCvarPendingTable& Pending() { return _pending; }
@@ -52,58 +48,47 @@ private:
     bool Send(int slot, const std::string& cvarName, int cookie);
 
     Interfaces& _interfaces;
-    GameData& _gameData;
+    const Bindings& _bindings;
     ClientCvarPendingTable _pending;
     INetworkMessageInternal* _getCvarValue = nullptr;
     int _slotOffset = -1;
     int _hookId = 0;
 };
 
-bool ClientCvars::Impl::Initialize()
+Status ClientCvars::Impl::Initialize()
 {
     if (_hookId != 0)
-        return true;
+        return {};
 
     const auto& interfaces = _interfaces;
     if (!interfaces.Engine || !interfaces.NetworkMessages || !interfaces.GameEventSystem)
-    {
-        Log::Warn("ClientCvars: engine interfaces unavailable.");
-        return false;
-    }
+        return std::unexpected(Error::NotReady("engine interfaces unavailable"));
 
-    const int vtableIndex = _gameData.GetVtableIndex("ProcessRespondCvarValue");
-    if (vtableIndex < 0)
-        return false;
+    if (!_bindings.ProcessRespondCvarValue)
+        return std::unexpected(Error::Unsupported("the ProcessRespondCvarValue vtable index did not bind"));
+    if (!_bindings.ServerSideClientSlot)
+        return std::unexpected(Error::Unsupported("the ServerSideClientSlot offset did not bind"));
+    if (!_bindings.ServerSideClient)
+        return std::unexpected(Error::Unsupported("the CServerSideClient vtable did not bind"));
 
-    const int slotOffset = _gameData.GetByteOffset("ServerSideClientSlot", MaxByteOffset, alignof(int));
-    if (slotOffset < 0)
-        return false;
+    const int vtableIndex = _bindings.ProcessRespondCvarValue.Index();
+    const int slotOffset = _bindings.ServerSideClientSlot.Value();
 
     INetworkMessageInternal* getCvarValue =
         interfaces.NetworkMessages->FindNetworkMessagePartial("CSVCMsg_GetCvarValue");
     if (!getCvarValue)
-    {
-        Log::Warn("ClientCvars: the engine does not provide CSVCMsg_GetCvarValue.");
-        return false;
-    }
-
-    void* vtable = FindVirtualTable(EngineModule, ServerSideClientClass);
-    if (!vtable)
-        return false;  // FindVirtualTable already logged which step failed
+        return std::unexpected(Error::Engine("the engine does not provide CSVCMsg_GetCvarValue"));
 
     SH_MANUALHOOK_RECONFIGURE(VoltMod_ProcessRespondCvarValue, vtableIndex, 0, 0);
-    _hookId = SH_ADD_MANUALDVPHOOK(VoltMod_ProcessRespondCvarValue, vtable,
+    _hookId = SH_ADD_MANUALDVPHOOK(VoltMod_ProcessRespondCvarValue, _bindings.ServerSideClient.Table(),
                                    SH_MEMBER(this, &Impl::Hook_ProcessRespondCvarValue), true);
     if (_hookId == 0)
-    {
-        Log::Warn("ClientCvars: could not hook the client convar response handler.");
-        return false;
-    }
+        return std::unexpected(Error::Engine("SourceHook refused the client convar response hook"));
 
     _getCvarValue = getCvarValue;
     _slotOffset = slotOffset;
     Log::Info("Client convar queries enabled (vtable index {}, slot offset {}).", vtableIndex, slotOffset);
-    return true;
+    return {};
 }
 
 void ClientCvars::Impl::Shutdown()
@@ -120,7 +105,7 @@ void ClientCvars::Impl::Shutdown()
 
 bool ClientCvars::Impl::Query(int slot, const std::string& cvarName, QueryCallback callback)
 {
-    if (!Available() || !IsValidSlot(slot) || cvarName.empty() || !callback)
+    if (!Installed() || !IsValidSlot(slot) || cvarName.empty() || !callback)
         return false;
 
     const double now = Time::MonotonicSeconds();
@@ -214,24 +199,8 @@ void ClientCvars::Impl::Deliver(int slot, const CNetMessagePB<CCLCMsg_RespondCva
         query->Callback(slot, static_cast<ClientCvarStatus>(status), msg.name(), value);
 }
 
-std::string_view ToString(ClientCvarStatus status)
-{
-    switch (status)
-    {
-    case ClientCvarStatus::ValueIntact:
-        return "value_intact";
-    case ClientCvarStatus::CvarNotFound:
-        return "cvar_not_found";
-    case ClientCvarStatus::NotACvar:
-        return "not_a_cvar";
-    case ClientCvarStatus::CvarProtected:
-        return "cvar_protected";
-    }
-    return "unknown";
-}
-
-ClientCvars::ClientCvars(Interfaces& interfaces, GameData& gameData, SlotEvents& slots)
-    : _impl(std::make_unique<Impl>(interfaces, gameData))
+ClientCvars::ClientCvars(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots)
+    : _impl(std::make_unique<Impl>(interfaces, bindings))
 {
     // SlotEvents fires when a slot is filled as well as emptied; a fresh occupant has nothing
     // pending, so dropping on both edges covers "left" without a dedicated event.
@@ -240,7 +209,7 @@ ClientCvars::ClientCvars(Interfaces& interfaces, GameData& gameData, SlotEvents&
 
 ClientCvars::~ClientCvars() = default;
 
-bool ClientCvars::Initialize()
+Status ClientCvars::Initialize()
 {
     return _impl->Initialize();
 }
@@ -248,11 +217,6 @@ bool ClientCvars::Initialize()
 void ClientCvars::Shutdown()
 {
     _impl->Shutdown();
-}
-
-bool ClientCvars::Available() const
-{
-    return _impl->Available();
 }
 
 bool ClientCvars::Query(int slot, const std::string& cvarName, QueryCallback callback)

@@ -1,8 +1,9 @@
 #pragma once
 
+#include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Engine/GameData.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <cstdint>
 #include <string>
@@ -52,22 +53,20 @@ class EntitySystem
 {
 public:
     /** All three must outlive this service; the Runtime declares them above it. */
-    EntitySystem(Interfaces& interfaces, GameData& gameData, SchemaService& schema);
+    EntitySystem(Interfaces& interfaces, const Bindings& bindings, SchemaService& schema);
     ~EntitySystem();
     EntitySystem(const EntitySystem&) = delete;
     EntitySystem& operator=(const EntitySystem&) = delete;
 
     /**
-     * @brief Resolve the gamedata offset and attempt a first read of the entity system.
-     * @return False only when the service cannot work at all (no IGameResourceService, or the
-     *         offset is missing). True with IsResolved() false means the engine has not created
-     *         CGameEntitySystem yet - expected before the first map load, and OnServerStartup
-     *         picks it up. Whether that counts as degraded is the caller's load policy.
+     * @brief Bind the gamedata offset and attempt a first read of the entity system.
+     * @return An error only when the service cannot work at all (no IGameResourceService, or the
+     *         offset did not bind). Success with `GetEntitySystem() == nullptr` means the engine
+     *         has not created CGameEntitySystem yet - expected before the first map load, and
+     *         OnServerStartup picks it up. Whether that counts as degraded is the caller's load
+     *         policy.
      */
-    bool Initialize();
-
-    /** True once the CGameEntitySystem pointer has been read for the current map. */
-    bool IsResolved() const;
+    Status Initialize();
 
     /** Re-read the pointer for the new map. Called by the framework's StartupServer hook. */
     void OnServerStartup();
@@ -126,10 +125,9 @@ private:
     friend class PlayerController;
     SchemaService& Schema() { return _schema; }
     const Interfaces& InterfacesRef() const { return _interfaces; }
-    const GameData& GameDataRef() const { return _gameData; }
+    const Bindings& BindingsRef() const { return _bindings; }
 
     void ResolveSchemaOffsets();
-    void ResolveFinderSignatures();
     CEntityIdentity* GetEntityIdentityByIndex(CGameEntitySystem* pSys, int index);
 
     /**
@@ -142,18 +140,14 @@ private:
     void SetEntitySystem(CGameEntitySystem* system);
 
     Interfaces& _interfaces;
-    GameData& _gameData;
+    const Bindings& _bindings;
     SchemaService& _schema;
-    int _offsetGameEntitySystem = -1;
     int _offsetPlayerPawn = -1;
     int _offsetPawnController = -1;
     int _offsetMovementServices = -1;
     int _offsetButtons = -1;
     int _offsetButtonStates = -1;
     bool _schemaOffsetsResolved = false;
-    void* _findByClassName = nullptr;
-    void* _findByName = nullptr;
-    bool _findersResolved = false;
 };
 
 }  // namespace VoltMod

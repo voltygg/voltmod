@@ -1,7 +1,7 @@
 #pragma once
 
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Engine/GameData.hpp>
 #include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Entities/KeyValues.hpp>
 
@@ -9,28 +9,24 @@ namespace VoltMod
 {
 
 /**
- * @brief Entity mutation operations resolved from gamedata signatures.
+ * @brief Entity mutation operations, driven by the entity function bindings.
  *
  * Covers the create/spawn/input/remove lifecycle plus sound emission and
  * replication notification - the plumbing behind spawned effects (explosions,
  * particles, beams, props). All methods are game-thread only. Every method
- * guards on its own resolved pointer and no-ops (or returns nullptr) when the
- * signature is missing, so callers can branch on CanSpawn() for fallbacks but
+ * guards on the binding it uses and no-ops (or returns nullptr) when it
+ * did not resolve, so callers can branch on CanSpawn() for fallbacks but
  * never need to.
  */
 class EntityOps
 {
 public:
     /** All three must outlive this service; the Runtime declares them above it. */
-    EntityOps(EntitySystem& entities, GameData& gameData, SchemaService& schema);
+    EntityOps(EntitySystem& entities, const Bindings& bindings, SchemaService& schema);
     EntityOps(const EntityOps&) = delete;
     EntityOps& operator=(const EntityOps&) = delete;
 
-    /** Resolve all function pointers once; Warns per missing signature.
-     *  Returns true when the spawn trio (create + spawn + input) resolved. */
-    bool Initialize();
-
-    /** True when CreateByName, DispatchSpawn, and AcceptInput are available. */
+    /** True when CreateByName, DispatchSpawn, and AcceptInput all bound. */
     bool CanSpawn() const;
 
     /** Create an entity by classname without spawning it. nullptr on failure. */
@@ -90,19 +86,8 @@ public:
 
 private:
     EntitySystem& _entities;
-    GameData& _gameData;
+    const Bindings& _bindings;
     SchemaService& _schema;
-
-    // Stored untyped so variant_t/CEntityKeyValues/EmitSound_t never leak into
-    // this header; EntityOps.cpp bit_casts to file-local typedefs.
-    void* _createEntityByName = nullptr;
-    void* _dispatchSpawn = nullptr;
-    void* _acceptInput = nullptr;
-    void* _addEntityIOEvent = nullptr;
-    void* _utilRemove = nullptr;
-    void* _setModel = nullptr;
-    void* _emitSoundParams = nullptr;
-    void* _emitSoundFilter = nullptr;
 };
 
 }  // namespace VoltMod

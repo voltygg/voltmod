@@ -38,7 +38,6 @@ public:
 
     /** Start recording with @p depth samples kept per player. Idempotent; depth grows only. */
     void Enable(int depth = 128);
-    bool Enabled() const { return _depth > 0; }
 
     /** Number of samples currently buffered for @p slot (0 when disabled/invalid). */
     int Count(int slot) const;

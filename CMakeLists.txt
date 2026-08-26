@@ -18,6 +18,7 @@ include(VoltModTests)
 
 find_package(cpr CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
+find_package(magic_enum CONFIG REQUIRED)
 if(VOLTMOD_ENABLE_POSTGRES)
     find_package(libpqxx CONFIG REQUIRED)
 endif()
@@ -50,7 +51,7 @@ file(GLOB_RECURSE VOLTMOD_Http_SOURCES CONFIGURE_DEPENDS
 
 voltmod_add_library(Runtime
     SOURCES ${VOLTMOD_RUNTIME_SOURCES}
-    LIBS VoltMod::Metamod VoltMod::HL2SDK nlohmann_json::nlohmann_json
+    LIBS VoltMod::Metamod VoltMod::HL2SDK nlohmann_json::nlohmann_json magic_enum::magic_enum
     PRIVATE_LIBS cpr::cpr)
 
 # The HL2SDK package attaches its required sources and compile properties.
@@ -99,12 +100,20 @@ endif()
 
 # Recompile pure logic so tests do not link HL2SDK or Metamod.
 if(BUILD_TESTING)
+    # The gamedata parser and the module scanners are SDK-free but reach the OS loader.
+    set(VOLTMOD_TEST_LIBRARIES nlohmann_json::nlohmann_json magic_enum::magic_enum)
+    if(WIN32)
+        list(APPEND VOLTMOD_TEST_LIBRARIES psapi)
+    endif()
+
     voltmod_add_tests(voltmod-utils-tests
         SOURCES
             # Other implementation files require HL2SDK or pqxx.
             src/Commands/CommandContext.cpp
             src/Commands/CommandSpec.cpp
+            src/Core/Capabilities.cpp
             src/Core/EffectManager.cpp
+            src/Core/LoadReport.cpp
             src/Core/Logger.cpp
             src/Core/Paths.cpp
             src/App/PluginManifest.cpp
@@ -114,14 +123,19 @@ if(BUILD_TESTING)
             src/Players/PlayerManager.cpp
             src/Players/Targeting.cpp
             src/Hooks/ClientCvarPending.cpp
+            src/Engine/Bindings.cpp
             src/Engine/ConVarSnapshots.cpp
+            src/Engine/ConVarTypes.cpp
+            src/Engine/GameData.cpp
+            src/Engine/GameDataFile.cpp
+            src/Engine/SigScanner.cpp
+            src/Engine/VtableLookup.cpp
             src/Core/Strings.cpp
             src/Core/SteamId.cpp
             src/Core/Time.cpp
             src/Core/Translations.cpp
-        # ClientCvarPendingTests reaches an implementation-only header under src/.
+        # ClientCvarPendingTests, GameDataFileTests and ConVarTests reach headers under src/.
         INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src"
-        # For PluginManifest's JSON parsing.
-        LIBRARIES nlohmann_json::nlohmann_json
+        LIBRARIES ${VOLTMOD_TEST_LIBRARIES}
     )
 endif()

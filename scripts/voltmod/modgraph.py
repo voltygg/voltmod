@@ -44,7 +44,12 @@ ENGINE_INCLUDE = re.compile(
 # header, and that is the only reason a name belongs in one. Every other header includes what it
 # names.
 FORWARD_DECL_HOME = re.compile(r'(^|/)\w*Types\.hpp$')
-FORWARD_DECL = re.compile(r'^(?:class|struct)\s+\w+;')
+FORWARD_DECL = re.compile(r'^(?:class|struct)\s+(\w+);')
+
+# A header that declares a name it goes on to define is ordering its own contents, not standing in
+# for an include: a primary template declared before its partial specializations, or a pair inside
+# one header where each needs the other's name.
+DEFINITION = r'^(?:class|struct)\s+{}\b\s*(?!;)'
 
 # A file-local helper is a `static` declaration, not an anonymous namespace: `static` says
 # "file-local" on the declaration itself, where a reader of the line can see it.
@@ -133,8 +138,11 @@ def conventions(root: Path, bases):
         header = rel.endswith(".hpp")
         home = bool(FORWARD_DECL_HOME.search(rel))
         for number, line in enumerate(text.splitlines(), 1):
-            if header and not home and FORWARD_DECL.match(line):
-                forwards.append((rel, number, line.strip()))
+            declared = FORWARD_DECL.match(line)
+            if header and not home and declared:
+                pattern = DEFINITION.format(re.escape(declared.group(1)))
+                if not re.search(pattern, text, re.MULTILINE):
+                    forwards.append((rel, number, line.strip()))
             if ANON_NAMESPACE.match(line):
                 anonymous.append((rel, number))
             if USING_DIRECTIVE.match(line):

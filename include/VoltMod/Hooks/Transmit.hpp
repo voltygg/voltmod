@@ -3,8 +3,8 @@
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Engine/GameData.hpp>
 #include <VoltMod/Entities/Entity.hpp>
 #include <array>
 #include <vector>
@@ -37,12 +37,9 @@ class Transmit
 public:
     /** @p slots tells the service when a slot changes hands, so hiding cannot carry over to
      *  whoever occupies it next. The other three must outlive it; the Runtime declares them above. */
-    Transmit(EntitySystem& entities, GameData& gameData, SchemaService& schema, SlotEvents& slots);
+    Transmit(EntitySystem& entities, const Bindings& bindings, SchemaService& schema, SlotEvents& slots);
     Transmit(const Transmit&) = delete;
     Transmit& operator=(const Transmit&) = delete;
-
-    /** Cache the CCheckTransmitInfo recipient-slot gamedata offset. False leaves the service inert. */
-    bool Initialize();
 
     /** Hide/show `slot`'s pawn (plus its weapons and wearables) from every other client. */
     void SetPawnHidden(int slot, bool hidden);
@@ -78,12 +75,11 @@ private:
     void SetFlag(int slot, bool SlotState::* flag, bool value);
 
     EntitySystem& _entities;
-    GameData& _gameData;
+    const Bindings& _bindings;
     SchemaService& _schema;
     std::array<SlotState, MaxPlayers> _state{};
     std::vector<ExclusiveEntity> _exclusive; /**< Entities transmitted only to their beneficiary. */
     int _activeCount = 0;                    /**< Slots with any flag set; OnCheckTransmit early-outs at 0. */
-    int _slotOffset = -1;                    /**< Recipient player-slot byte offset inside CCheckTransmitInfo. */
     /** Declared after the state above so it unregisters before its callback's targets go away. */
     Subscription _slotListener;
 };

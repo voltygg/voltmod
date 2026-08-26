@@ -65,6 +65,4 @@ private:
     std::vector<StageRecord> _stages;
 };
 
-std::string_view ToString(StageStatus status);
-
 }  // namespace VoltMod

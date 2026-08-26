@@ -3,9 +3,10 @@
 #include <igameevents.h>
 
 #include <VoltMod/Core/CallbackRegistry.hpp>
+#include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Engine/GameData.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <cstdint>
 #include <functional>
@@ -22,12 +23,13 @@ class GameEvents : public IGameEventListener2
 {
 public:
     /** Both must outlive this service, which detaches from the engine in its destructor. */
-    GameEvents(Interfaces& interfaces, GameData& gameData);
+    GameEvents(Interfaces& interfaces, const Bindings& bindings);
     ~GameEvents() override;
     GameEvents(const GameEvents&) = delete;
     GameEvents& operator=(const GameEvents&) = delete;
 
-    bool Initialize();
+    /** Attach to IGameEventManager2. Error::NotReady when Messages did not resolve it. */
+    Status Initialize();
 
     IGameEvent* CreateEvent(const char* name);
     bool FireEvent(IGameEvent* event, bool dontBroadcast = false);
@@ -99,7 +101,7 @@ private:
     using GetLegacyGameEventListenerFn = IGameEventListener2* (*)(CPlayerSlot slot);
 
     Interfaces& _interfaces;
-    GameData& _gameData;
+    const Bindings& _bindings;
     CallbackRegistry<RegisteredListener> _listeners;
     std::set<std::string> _registeredEvents;  // every event name ever listened to; see OnServerStartup
     GetLegacyGameEventListenerFn _getLegacyListener = nullptr;

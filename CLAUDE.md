@@ -34,7 +34,7 @@ repository.
 include/VoltMod/     Public C++ API by module
 src/                 Framework implementation
 cmake/               Plugin, test, library, and build-stamp helpers
-gamedata/            Engine signatures and offsets
+gamedata/            gamedata.jsonc: where the engine keeps things, plus its schema
 conan/               Canonical profiles and public remote configuration
 recipes/             HL2SDK and Metamod Conan recipes
 scripts/voltmod/     The `voltmod` Python CLI
@@ -121,6 +121,19 @@ Use these patterns throughout the framework:
   cancelled the same way.
 - Fallible operations return `Result<T>`/`Status` over `Error`: `ErrorCode` to
   branch on, `Detail` for the log, `Key` for a player-facing reply.
+- `gamedata/gamedata.jsonc` (version 2) says only *where* something is; C++ owns every
+  prototype, vtable signature and field type in `Engine/Bindings.hpp`. A service takes
+  `const Bindings&` and reads a typed field - never a string lookup on a call path. Parsing
+  lives in `src/Engine/GameDataFile.*` and is SDK-free so it is unit-tested.
+- Whether a feature works this load is `Runtime::Capabilities`, recorded once by
+  `Runtime::Start` with the reason it is off. Services do not carry their own
+  `Available()`/`IsResolved()`/`Installed()`/`Enabled()` flags, and one whose capability is off
+  must be inert and safe to call.
+- Enumerator names come from `Core/EnumNames.hpp` (`Name(value)`, `Parse<E>(text)`), not from
+  hand-written switches.
+- One convar is one `ConVar<T>` handle, resolved by name once. `SetMode` picks the write path:
+  `Console` (a cfg line, replicates), `Server` (value only), `Raw` (storage poke, prefer
+  `RawScope`).
 - Constructor injection is the default. Do not add process-lifetime singletons.
 - Database and HTTP workers replay completions on the game thread through
   scheduler frame pumps.
@@ -165,7 +178,9 @@ layering.
 - Do not forward-declare a framework type. Include the header that defines it.
   `include/VoltMod/Engine/EngineTypes.hpp` is the one place a forward declaration
   belongs, and it says why for each name; a new one needs the same justification -
-  an SDK type, a type defined under `src/`, or a pair that owns one another.
+  an SDK type, a type defined under `src/`, or a pair that owns one another. A header
+  declaring a name it goes on to define itself (a primary template before its partial
+  specializations) is ordering its own contents, not standing in for an include.
 - Do not use anonymous namespaces. A file-local helper is a `static` function or
   constant at the top of the .cpp, or a private static member when it needs class
   state.

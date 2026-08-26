@@ -1,82 +1,78 @@
 #pragma once
 
+#include <VoltMod/Core/Result.hpp>
 #include <cstddef>
-#include <functional>
-#include <optional>
+#include <cstdint>
+#include <map>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 
 namespace VoltMod
 {
 
-/** Ceilings far above every real value (today: index 390, offset 576) that still catch drifted or hand-edited gamedata.
- */
-inline constexpr int MaxVtableIndex = 500;
-inline constexpr int MaxByteOffset = 4096;
-
 /**
- * @brief Centralized gamedata manager for platform-specific signatures and offsets.
+ * @brief Resolves one gamedata file against the loaded modules, once per load.
  *
- * Loads byte-pattern signatures and named integer offsets from JSON.
- * Runtime::Start calls ResolveAll() during the GameData stage; later lookups use
- * its cache. Resolution results record missing and ambiguous patterns by name.
+ * The file says *where* things are (a byte pattern, a rel32 displacement, a vtable slot, a field
+ * offset); C++ owns *what* they are. @ref Bindings is the typed view built on top of this, and is
+ * what services take - nothing looks an entry up by string on a call path.
+ *
+ * @ref Load parses, clears every previous result, and resolves every entry eagerly, so a failure
+ * is a load-time diagnostic naming the key rather than a null pointer discovered later.
  */
 class GameData
 {
 public:
-    struct ResolvedEntry
+    /** Which section an entry came from, and therefore which fields of @ref Resolution matter. */
+    enum class Kind : uint8_t
     {
-        void* Match = nullptr;     ///< Raw pattern-match address.
-        void* Resolved = nullptr;  ///< Match after rel32 resolution (== Match when offset is 0).
-        bool Unique = true;        ///< False when the pattern matched more than once.
-        std::string Error;         ///< Empty when resolved.
+        Signature,  ///< Address is the pattern match.
+        Address,    ///< Address is the rel32 target derived from a signature match.
+        VTable,     ///< Index is the slot, Class and Library name the table it is counted in.
+        Offset      ///< Index is a validated byte offset.
+    };
+
+    /** What one gamedata key resolved to, or why it did not. */
+    struct Resolution
+    {
+        Kind Section = Kind::Signature;
+        void* Address = nullptr;  ///< Signature match, or rel32 target.
+        int Index = -1;           ///< VTable: slot index. Offset: byte offset.
+        std::string Class;        ///< VTable: the RTTI/ELF class the table belongs to.
+        std::string Library;      ///< Signature and VTable: the module to look in.
+        bool Unique = true;       ///< False when a pattern matched more than once.
+        std::string Error;        ///< Empty when the entry resolved.
     };
 
     GameData() = default;
+    GameData(const GameData&) = delete;
+    GameData& operator=(const GameData&) = delete;
 
-    bool Load(const std::string& path);
+    /**
+     * Parse @p path and resolve every entry against the loaded modules.
+     *
+     * Clears all previous state first, so a reload cannot leave a stale resolution behind. An
+     * entry that fails to resolve is recorded with its reason and does not fail the load; only a
+     * missing or malformed file does.
+     */
+    Status Load(const std::string& path);
 
-    /** Vtable index for @p name, or -1 when missing or above @p maxIndex. Warns once either way. */
-    int GetVtableIndex(std::string_view name, int maxIndex = MaxVtableIndex) const;
-    /** Byte offset for @p name, or -1 when missing, above @p maxBytes, or not a multiple of @p alignment. Warns once
-     * either way. */
-    int GetByteOffset(std::string_view name, int maxBytes = MaxByteOffset, int alignment = 1) const;
+    /** Every key, resolved or not. Diagnostics and @ref Bindings::Bind read this. */
+    const std::map<std::string, Resolution>& Resolutions() const { return _resolved; }
 
-    void* FindSignature(const std::string& name) const;
-    void* ResolveSignature(const std::string& name) const;
+    /** How many entries came from @p kind's section. */
+    size_t CountOf(Kind kind) const;
 
-    /** @brief Eagerly resolve every signature into the cache. */
-    void ResolveAll();
-
-    /** @brief "N/M signatures failed: a, b; ambiguous: c" - empty when all resolved uniquely. */
+    /** "N/M entries failed: a, b; ambiguous: c" - empty when everything resolved uniquely. */
     std::string FailureSummary() const;
 
-    const std::unordered_map<std::string, ResolvedEntry>& Resolutions() const { return _resolved; }
-    size_t OffsetCount() const { return _offsets.size(); }
-    size_t SignatureCount() const { return _signatures.size(); }
+    /** The date the loaded file says its entries were last verified against the game. */
+    std::string_view VerifiedOn() const { return _verified; }
 
 private:
-    struct SignatureEntry
-    {
-        std::string Library;
-        std::string Pattern;
-        int Offset = 0;
-    };
-
-    /** Heterogeneous hashing, so a string_view lookup does not allocate a key. */
-    struct StringHash
-    {
-        using is_transparent = void;
-        size_t operator()(std::string_view name) const noexcept { return std::hash<std::string_view>{}(name); }
-    };
-
-    /** Offset for @p name, or nullopt after warning that it is missing. */
-    std::optional<int> Lookup(std::string_view name) const;
-
-    std::unordered_map<std::string, int, StringHash, std::equal_to<>> _offsets;
-    std::unordered_map<std::string, SignatureEntry> _signatures;
-    std::unordered_map<std::string, ResolvedEntry> _resolved;
+    std::map<std::string, Resolution> _resolved;
+    std::string _game;
+    std::string _verified;
 };
 
 }  // namespace VoltMod

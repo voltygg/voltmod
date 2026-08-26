@@ -56,6 +56,8 @@ class VoltModConan(ConanFile):
     def requirements(self):
         # Plugins include SDK and JSON headers through Api.hpp and link the SDK libraries.
         self.requires("nlohmann_json/3.11.3", transitive_headers=True)
+        # Core/EnumNames.hpp is public and header-only, so consumers compile magic_enum too.
+        self.requires("magic_enum/0.9.7", transitive_headers=True)
         # The lockfile pins builds while the range avoids recipe edits for SDK updates.
         self.requires("hl2sdk-cs2/[>=2026 <2028]",
                       transitive_headers=True, transitive_libs=True)
@@ -144,6 +146,7 @@ class VoltModConan(ConanFile):
             "hl2sdk-cs2::hl2sdk-cs2",
             "metamod-source::metamod-source",
             "nlohmann_json::nlohmann_json",
+            "magic_enum::magic_enum",
             "cpr::cpr",
         ]
         if self.settings.os == "Windows":

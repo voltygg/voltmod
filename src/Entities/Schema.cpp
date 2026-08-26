@@ -11,16 +11,13 @@
 namespace VoltMod
 {
 
-bool SchemaService::Initialize()
+Status SchemaService::Initialize()
 {
     if (!_interfaces.SchemaSystem)
-    {
-        Log::Warn("ISchemaSystem not available.");
-        return false;
-    }
+        return std::unexpected(Error::NotReady("ISchemaSystem not available"));
 
     Log::Info("Schema system initialized.");
-    return true;
+    return {};
 }
 
 int SchemaService::GetOffset(const char* className, const char* fieldName, int expectedSize)

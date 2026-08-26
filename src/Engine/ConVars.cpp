@@ -1,15 +1,21 @@
+#include "Engine/ConVarTypes.hpp"
+
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Engine/ConVars.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/RecipientFilter.hpp>
 #include <engine/igameeventsystem.h>
+#include <format>
 #include <icvar.h>
 #include <networkbasetypes.pb.h>
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
+#include <optional>
+#include <string>
 #include <string_view>
 #include <tier1/convar.h>
+#include <type_traits>
 
 /**
  * The one ConVars currently routing engine changes, or null.
@@ -52,6 +58,199 @@ static std::optional<ConVarRefAbstract> Resolve(const char* name)
 namespace VoltMod
 {
 
+// ConVarType mirrors EConVarType so the type check and the console rendering can be checked
+// without the SDK. If the engine ever renumbers these, the mirror is what has to move.
+static_assert(static_cast<int>(ConVarType::Bool) == EConVarType_Bool);
+static_assert(static_cast<int>(ConVarType::Int32) == EConVarType_Int32);
+static_assert(static_cast<int>(ConVarType::Float32) == EConVarType_Float32);
+static_assert(static_cast<int>(ConVarType::String) == EConVarType_String);
+static_assert(static_cast<int>(ConVarType::VectorWS) == EConVarType_VectorWS);
+
+template <class T>
+Result<ConVar<T>> ConVar<T>::Find(ConVars& service, std::string_view name)
+{
+    const std::string owned(name);
+    auto ref = Resolve(owned.c_str());
+    if (!ref)
+        return std::unexpected(Error::NotFound(std::format("no convar '{}'", owned)));
+
+    const auto type = static_cast<ConVarType>(ref->GetType());
+    if (!ConVarTypeMatches<T>(type))
+        return std::unexpected(Error::Invalid(
+            std::format("convar '{}' is engine type {}, not the requested one", owned, static_cast<int>(type))));
+
+    // Slot -1 is the shared (non-splitscreen) storage; some convars only expose slot 0.
+    CVValue_t* storage = ref->GetConVarData()->Value(CSplitScreenSlot(-1));
+    if (!storage)
+        storage = ref->GetConVarData()->Value(CSplitScreenSlot(0));
+    if (!storage)
+        return std::unexpected(Error::Engine(std::format("convar '{}' has no value storage", owned)));
+
+    ConVar<T> handle;
+    handle._service = &service;
+    handle._name = owned;
+    handle._storage = storage;
+    handle._type = static_cast<int16_t>(type);
+    return handle;
+}
+
+template <class T>
+T ConVar<T>::Get() const
+{
+    if (!_storage)
+        return T{};
+
+    const auto* value = static_cast<const CVValue_t*>(_storage);
+    const auto type = static_cast<ConVarType>(_type);
+
+    if constexpr (std::is_same_v<T, bool>)
+    {
+        return value->m_bValue;
+    }
+    else if constexpr (std::is_same_v<T, std::string>)
+    {
+        const char* text = value->m_StringValue.Get();
+        return text ? std::string(text) : std::string{};
+    }
+    else if constexpr (std::is_same_v<T, float>)
+    {
+        return type == ConVarType::Float64 ? static_cast<float>(value->m_fl64Value) : value->m_fl32Value;
+    }
+    else
+    {
+        // Read the engine's own width; a 32-bit read of an int16 convar would pick up the
+        // neighbouring two bytes.
+        switch (type)
+        {
+        case ConVarType::Int16:
+            return value->m_i16Value;
+        case ConVarType::UInt16:
+            return value->m_u16Value;
+        case ConVarType::UInt32:
+            return static_cast<int>(value->m_u32Value);
+        case ConVarType::Int64:
+            return static_cast<int>(value->m_i64Value);
+        case ConVarType::UInt64:
+            return static_cast<int>(value->m_u64Value);
+        default:
+            return value->m_i32Value;
+        }
+    }
+}
+
+template <class T>
+Status ConVar<T>::Set(const T& value, SetMode mode)
+{
+    if (!_storage || !_service)
+        return std::unexpected(Error::NotReady("convar handle is unresolved"));
+
+    if (mode == SetMode::Console)
+    {
+        _service->ExecuteServerCommand(std::format("{} {}", _name, ConVarText(value)));
+        return {};
+    }
+
+    if (mode == SetMode::Server)
+    {
+        auto ref = Resolve(_name.c_str());
+        if (!ref)
+            return std::unexpected(Error::NotFound(std::format("convar '{}' is no longer registered", _name)));
+
+        if constexpr (std::is_same_v<T, bool>)
+            ref->SetBool(value);
+        else if constexpr (std::is_same_v<T, int>)
+            ref->SetInt(value);
+        else if constexpr (std::is_same_v<T, float>)
+            ref->SetFloat(value);
+        else
+            ref->SetString(CUtlString(value.c_str()));
+        return {};
+    }
+
+    // Raw: poke the storage the engine reads from, with nobody told.
+    if constexpr (std::is_same_v<T, std::string>)
+    {
+        return std::unexpected(
+            Error::Unsupported("raw writes are not supported for string convars (the value owns heap storage)"));
+    }
+    else
+    {
+        auto* storage = static_cast<CVValue_t*>(_storage);
+        const auto type = static_cast<ConVarType>(_type);
+        if constexpr (std::is_same_v<T, bool>)
+        {
+            storage->m_bValue = value;
+        }
+        else if constexpr (std::is_same_v<T, float>)
+        {
+            if (type == ConVarType::Float64)
+                storage->m_fl64Value = value;
+            else
+                storage->m_fl32Value = value;
+        }
+        else
+        {
+            switch (type)
+            {
+            case ConVarType::Int16:
+                storage->m_i16Value = static_cast<int16_t>(value);
+                break;
+            case ConVarType::UInt16:
+                storage->m_u16Value = static_cast<uint16_t>(value);
+                break;
+            case ConVarType::UInt32:
+                storage->m_u32Value = static_cast<uint32_t>(value);
+                break;
+            case ConVarType::Int64:
+                storage->m_i64Value = value;
+                break;
+            case ConVarType::UInt64:
+                storage->m_u64Value = static_cast<uint64_t>(value);
+                break;
+            default:
+                storage->m_i32Value = value;
+                break;
+            }
+        }
+        return {};
+    }
+}
+
+template <class T>
+Status ConVar<T>::SetFor(int slot, const T& value) const
+{
+    if (!_storage || !_service)
+        return std::unexpected(Error::NotReady("convar handle is unresolved"));
+
+    if (!_service->SendToClient(slot, _name, ConVarText(value)))
+        return std::unexpected(Error::Engine(std::format("could not send '{}' to slot {}", _name, slot)));
+    return {};
+}
+
+template <class T>
+ConVarRawScope<T>::ConVarRawScope(ConVar<T>& cvar, const T& value) : _cvar(&cvar), _previous(cvar.Get())
+{
+    if (!cvar.Set(value, SetMode::Raw))
+        _cvar = nullptr;  // nothing was written, so there is nothing to put back
+}
+
+template <class T>
+ConVarRawScope<T>::~ConVarRawScope()
+{
+    if (_cvar)
+        (void)_cvar->Set(_previous, SetMode::Raw);
+}
+
+// The four convar types the framework supports; every other T is a compile error at the call site.
+template class ConVar<bool>;
+template class ConVar<int>;
+template class ConVar<float>;
+template class ConVar<std::string>;
+template class ConVarRawScope<bool>;
+template class ConVarRawScope<int>;
+template class ConVarRawScope<float>;
+template class ConVarRawScope<std::string>;
+
 ConVars::ConVars(Interfaces& interfaces)
     : Changed({.OnFirst = [this] { return RouteChanges(); }, .OnLast = [this] { StopRoutingChanges(); }}),
       _interfaces(interfaces)
@@ -65,114 +264,13 @@ ConVars::~ConVars()
     StopRoutingChanges();
 }
 
-ConVarStorage::ConVarStorage(const char* name)
-{
-    auto ref = Resolve(name);
-    if (!ref)
-        return;
-
-    // Slot -1 is the shared (non-splitscreen) storage; some cvars only expose slot 0.
-    CVValue_t* value = ref->GetConVarData()->Value(CSplitScreenSlot(-1));
-    if (!value)
-        value = ref->GetConVarData()->Value(CSplitScreenSlot(0));
-    _value = value;
-}
-
-bool ConVarStorage::GetBool() const
-{
-    return _value && static_cast<CVValue_t*>(_value)->m_bValue;
-}
-
-void ConVarStorage::SetBool(bool value)
-{
-    if (_value)
-        static_cast<CVValue_t*>(_value)->m_bValue = value;
-}
-
-float ConVarStorage::GetFloat() const
-{
-    return _value ? static_cast<CVValue_t*>(_value)->m_fl32Value : 0.0f;
-}
-
-void ConVarStorage::SetFloat(float value)
-{
-    if (_value)
-        static_cast<CVValue_t*>(_value)->m_fl32Value = value;
-}
-
-bool ConVars::Initialize()
+Status ConVars::Initialize()
 {
     if (!_interfaces.CVar)
-    {
-        Log::Error("ConVars: ICvar not available.");
-        return false;
-    }
+        return std::unexpected(Error::NotReady("ICvar not available"));
 
     Log::Info("ConVar service initialized.");
-    return true;
-}
-
-std::optional<int> ConVars::GetInt(const char* name) const
-{
-    auto ref = Resolve(name);
-    return ref ? std::optional(ref->GetInt()) : std::nullopt;
-}
-
-std::optional<float> ConVars::GetFloat(const char* name) const
-{
-    auto ref = Resolve(name);
-    return ref ? std::optional(ref->GetFloat()) : std::nullopt;
-}
-
-std::optional<std::string> ConVars::GetString(const char* name) const
-{
-    auto ref = Resolve(name);
-    if (!ref)
-        return std::nullopt;
-
-    CUtlString str = ref->GetString();
-    return std::string(str.Get());
-}
-
-std::optional<bool> ConVars::GetBool(const char* name) const
-{
-    auto ref = Resolve(name);
-    return ref ? std::optional(ref->GetBool()) : std::nullopt;
-}
-
-bool ConVars::Exists(const char* name) const
-{
-    return Resolve(name).has_value();
-}
-
-bool ConVars::SetInt(const char* name, int value)
-{
-    auto ref = Resolve(name);
-    if (!ref)
-        return false;
-
-    ref->SetInt(value);
-    return true;
-}
-
-bool ConVars::SetFloat(const char* name, float value)
-{
-    auto ref = Resolve(name);
-    if (!ref)
-        return false;
-
-    ref->SetFloat(value);
-    return true;
-}
-
-bool ConVars::SetString(const char* name, const char* value)
-{
-    auto ref = Resolve(name);
-    if (!ref || !value)
-        return false;
-
-    ref->SetString(CUtlString(value));
-    return true;
+    return {};
 }
 
 void ConVars::ExecuteServerCommand(std::string_view command)
@@ -207,14 +305,14 @@ INetworkMessageInternal* ConVars::SetConVarMessage()
     if (!_setConVarMsg)
         _setConVarMsg = messages->FindNetworkMessagePartial("SetConVar");
     if (!_setConVarMsg)
-        Log::Warn("ConVars::ReplicateToClient: CNETMsg_SetConVar not found.");
+        Log::Warn("ConVars: CNETMsg_SetConVar not found; per-client convar overrides are unavailable.");
 
     return _setConVarMsg;
 }
 
-bool ConVars::ReplicateToClient(int slot, const char* name, const char* value)
+bool ConVars::SendToClient(int slot, std::string_view name, std::string_view value)
 {
-    if (!_interfaces.GameEventSystem || !IsValidSlot(slot) || !name || !value)
+    if (!_interfaces.GameEventSystem || !IsValidSlot(slot) || name.empty())
         return false;
 
     auto* msgType = SetConVarMessage();
@@ -229,8 +327,8 @@ bool ConVars::ReplicateToClient(int slot, const char* name, const char* value)
     if (setConVar)
     {
         auto* cvar = setConVar->mutable_convars()->add_cvars();
-        cvar->set_name(name);
-        cvar->set_value(value);
+        cvar->set_name(std::string(name));
+        cvar->set_value(std::string(value));
 
         SingleRecipientFilter filter(slot);
         _interfaces.GameEventSystem->PostEventAbstract(-1, false, &filter, msgType, msg, 0);

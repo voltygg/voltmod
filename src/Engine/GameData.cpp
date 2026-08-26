@@ -1,198 +1,106 @@
+#include "Engine/GameDataFile.hpp"
 #include "Engine/SigScanner.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/Paths.hpp>
 #include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Engine/GameData.hpp>
-#include <VoltMod/Engine/OffsetCheck.hpp>
-#include <filesystem>
 #include <format>
-#include <fstream>
-#include <nlohmann/json.hpp>
-#include <optional>
-#include <string>
-#include <string_view>
+#include <utility>
 #include <vector>
 
 namespace VoltMod
 {
 
-/** Every rejected or missing offset lookup warns through here, so there is one message shape. */
-static void WarnOffset(std::string_view name, std::string_view reason, int value, bool valuePresent)
+/** Scan one signature pattern and record the match. */
+static GameData::Resolution ScanSignature(const SignatureEntry& entry, ScanResult& scan)
 {
-    Log::Warn("GameData: offset '{}' {} ({}).", name, reason, valuePresent ? std::to_string(value) : std::string("-"));
+    GameData::Resolution out{.Section = GameData::Kind::Signature, .Library = entry.Library};
+    scan = FindPatternEx(entry.Library.c_str(), entry.Pattern);
+    out.Address = scan.Address;
+    out.Unique = scan.Unique;
+    if (!scan.Image.Base)
+        out.Error = std::format("module '{}' is not loaded", entry.Library);
+    else if (!scan.Address)
+        out.Error = "pattern not found";
+    return out;
 }
 
-bool GameData::Load(const std::string& path)
+/** Turn a signature match into the rel32 target it points at. */
+static GameData::Resolution ResolveAddress(const AddressEntry& entry, const GameData::Resolution& signature,
+                                           const ModuleImage& image)
 {
-    try
+    GameData::Resolution out{.Section = GameData::Kind::Address};
+    out.Unique = signature.Unique;
+    if (!signature.Error.empty() || !signature.Address)
     {
-        auto fullPath = ResolvePath(path);
-        std::ifstream file(fullPath);
-        if (!file.is_open())
-        {
-            Log::Warn("GameData file not found: {}", path);
-            return false;
-        }
-
-        auto json = nlohmann::json::parse(file,
-                                          /*cb=*/nullptr, /*allow_exceptions=*/true, /*ignore_comments=*/true);
-
-#ifdef _WIN32
-        constexpr const char* platform = "windows";
-#else
-        constexpr const char* platform = "linux";
-#endif
-
-        if (json.contains("offsets"))
-        {
-            for (auto& [name, entry] : json["offsets"].items())
-            {
-                if (entry.contains(platform))
-                    _offsets[name] = entry[platform].get<int>();
-            }
-        }
-
-        if (json.contains("signatures"))
-        {
-            for (auto& [name, entry] : json["signatures"].items())
-            {
-                if (!entry.contains(platform))
-                    continue;
-
-                auto& platEntry = entry[platform];
-                SignatureEntry sig;
-                sig.Library = entry.value("library", "server");
-                sig.Pattern = platEntry.value("pattern", "");
-                sig.Offset = platEntry.value("offset", 0);
-                _signatures[name] = std::move(sig);
-            }
-        }
-
-        Log::Info("GameData loaded: {} offsets, {} signatures.", _offsets.size(), _signatures.size());
-        return true;
-    }
-    catch (const std::exception& e)
-    {
-        Log::Warn("Failed to parse GameData: {}", e.what());
-        return false;
-    }
-}
-
-std::optional<int> GameData::Lookup(std::string_view name) const
-{
-    auto it = _offsets.find(name);
-    if (it == _offsets.end())
-    {
-        WarnOffset(name, "missing", 0, false);
-        return std::nullopt;
-    }
-    return it->second;
-}
-
-int GameData::GetVtableIndex(std::string_view name, int maxIndex) const
-{
-    auto value = Lookup(name);
-    if (!value)
-        return -1;
-
-    if (!IsOffsetInRange(*value, maxIndex))
-    {
-        WarnOffset(name, std::format("exceeds {}", maxIndex), *value, true);
-        return -1;
+        out.Error = std::format("signature '{}' did not resolve", entry.Signature);
+        return out;
     }
 
-    return *value;
-}
-
-int GameData::GetByteOffset(std::string_view name, int maxBytes, int alignment) const
-{
-    auto value = Lookup(name);
-    if (!value)
-        return -1;
-
-    if (!IsOffsetInRange(*value, maxBytes))
+    const uintptr_t target =
+        ResolveRelativeAddress(image, reinterpret_cast<uintptr_t>(signature.Address), entry.Rel32At);
+    if (target == 0)
     {
-        WarnOffset(name, std::format("exceeds {}", maxBytes), *value, true);
-        return -1;
+        out.Error = std::format("rel32 at +{} is outside the module image", entry.Rel32At);
+        return out;
     }
 
-    if (!IsAlignedOffset(*value, alignment))
-    {
-        WarnOffset(name, std::format("not aligned to {}", alignment), *value, true);
-        return -1;
-    }
-
-    return *value;
+    out.Address = reinterpret_cast<void*>(target);
+    return out;
 }
 
-void* GameData::FindSignature(const std::string& name) const
+Status GameData::Load(const std::string& path)
 {
-    if (auto it = _resolved.find(name); it != _resolved.end())
-        return it->second.Match;
-
-    auto it = _signatures.find(name);
-    if (it == _signatures.end())
-        return nullptr;
-
-    auto& sig = it->second;
-    return VoltMod::FindPattern(sig.Library.c_str(), sig.Pattern);
-}
-
-void* GameData::ResolveSignature(const std::string& name) const
-{
-    if (auto it = _resolved.find(name); it != _resolved.end())
-        return it->second.Resolved;
-
-    void* match = FindSignature(name);
-    if (!match)
-        return nullptr;
-
-    const int sigOffset = _signatures.at(name).Offset;  // entry exists - FindSignature matched
-    if (sigOffset == 0)
-        return match;
-
-    // A non-zero offset means the signature points at a 4-byte little-endian rel32 displacement
-    // located `sigOffset` bytes into the match; resolve it to the absolute target address.
-    auto addr = ResolveRelativeAddress(reinterpret_cast<uintptr_t>(match) + sigOffset, 0, 4);
-    if (addr == 0)
-        return nullptr;
-    return reinterpret_cast<void*>(addr);
-}
-
-void GameData::ResolveAll()
-{
+    // Everything, not just the resolutions: a reload that kept the previous build stamp or a
+    // stale entry would report a file it is no longer running on.
     _resolved.clear();
-    for (const auto& [name, sig] : _signatures)
+    _game.clear();
+    _verified.clear();
+
+    auto file = GameDataFile::Load(path, HostPlatform);
+    if (!file)
     {
-        ResolvedEntry entry;
-        if (sig.Pattern.empty())
-        {
-            entry.Error = "empty pattern";
-        }
-        else
-        {
-            auto scan = FindPatternEx(sig.Library.c_str(), sig.Pattern);
-            entry.Match = scan.Address;
-            entry.Unique = scan.Unique;
-            if (!scan.Address)
-            {
-                entry.Error = "pattern not found";
-            }
-            else if (sig.Offset == 0)
-            {
-                entry.Resolved = scan.Address;
-            }
-            else
-            {
-                auto addr = ResolveRelativeAddress(reinterpret_cast<uintptr_t>(scan.Address) + sig.Offset, 0, 4);
-                entry.Resolved = reinterpret_cast<void*>(addr);
-                if (addr == 0)
-                    entry.Error = "rel32 resolution failed";
-            }
-        }
-        _resolved[name] = std::move(entry);
+        Log::Warn("GameData: {}", file.error().Detail);
+        return std::unexpected(file.error());
     }
+
+    _game = file->Build.Game;
+    _verified = file->Build.Verified;
+
+    // Signatures first: an address entry is resolved from its signature's match.
+    std::map<std::string, ModuleImage> images;
+    for (const auto& [key, entry] : file->Signatures)
+    {
+        ScanResult scan;
+        _resolved.emplace(key, ScanSignature(entry, scan));
+        images.emplace(key, std::move(scan.Image));
+    }
+
+    for (const auto& [key, entry] : file->Addresses)
+        _resolved.emplace(key, ResolveAddress(entry, _resolved.at(entry.Signature), images.at(entry.Signature)));
+
+    // A vtable index needs no scanning; the class vtable it is counted in is only located for the
+    // entries a DVP hook binds to, which Bindings::Bind does from Class and Library.
+    for (const auto& [key, entry] : file->VTables)
+        _resolved.emplace(
+            key,
+            Resolution{.Section = Kind::VTable, .Index = entry.Index, .Class = entry.Class, .Library = entry.Library});
+
+    for (const auto& [key, entry] : file->Offsets)
+        _resolved.emplace(key, Resolution{.Section = Kind::Offset, .Index = entry.Value});
+
+    Log::Info("GameData loaded from {} (verified {}): {} signatures, {} addresses, {} vtables, {} offsets.", path,
+              _verified.empty() ? "?" : _verified, file->Signatures.size(), file->Addresses.size(),
+              file->VTables.size(), file->Offsets.size());
+    return {};
+}
+
+size_t GameData::CountOf(Kind kind) const
+{
+    size_t count = 0;
+    for (const auto& [name, entry] : _resolved)
+        count += static_cast<size_t>(entry.Section == kind);
+    return count;
 }
 
 std::string GameData::FailureSummary() const
@@ -212,8 +120,7 @@ std::string GameData::FailureSummary() const
 
     std::string summary;
     if (!failed.empty())
-        summary =
-            std::format("{}/{} signatures failed: {}", failed.size(), _resolved.size(), Strings::Join(failed, ", "));
+        summary = std::format("{}/{} entries failed: {}", failed.size(), _resolved.size(), Strings::Join(failed, ", "));
     if (!ambiguous.empty())
     {
         if (!summary.empty())

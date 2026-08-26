@@ -1,8 +1,7 @@
-#include "Engine/VirtualCall.hpp"
 #include "Entities/Schema.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/MemoryAccess.hpp>
 #include <VoltMod/Entities/Entity.hpp>
@@ -16,20 +15,6 @@
 
 namespace VoltMod
 {
-
-// Resolve a vtable index by its gamedata name and call it on `target`. No-op (with a warning)
-// when the offset is missing or `target` is null - collapses the lookup/guard/dispatch the
-// vtable wrappers all repeat.
-template <typename... Args>
-static void CallVtableByName(const GameData& gameData, void* target, const char* name, Args&&... args)
-{
-    if (!target)
-        return;
-    int index = gameData.GetVtableIndex(name);
-    if (index < 0)
-        return;
-    CallVirtual<void>(index, target, std::forward<Args>(args)...);
-}
 
 // Origin/rotation are not schema fields of CBaseEntity in CS2; they live on the
 // pawn's CGameSceneNode, reached via m_CBodyComponent -> m_pSceneNode.
@@ -268,24 +253,34 @@ float PlayerController::GetFlashMaxAlpha() const
     return GetPawnField<float>("CCSPlayerPawnBase", "m_flFlashMaxAlpha");
 }
 
+// Each of these is a no-op when the pawn/controller is gone or the binding did not resolve; a
+// missing vtable index degrades the verb rather than dispatching into an unrelated vfunc.
 void PlayerController::Slay() const
 {
-    CallVtableByName(_entities->GameDataRef(), GetPawn(), "CommitSuicide", false, true);
+    const auto& suicide = _entities->BindingsRef().CommitSuicide;
+    if (auto* pawn = GetPawn(); pawn && suicide)
+        suicide.Call(pawn, false, true);
 }
 
 void PlayerController::ChangeTeam(int team) const
 {
-    CallVtableByName(_entities->GameDataRef(), _controller, "ChangeTeam", team);
+    const auto& changeTeam = _entities->BindingsRef().ChangeTeam;
+    if (_controller && changeTeam)
+        changeTeam.Call(_controller, team);
 }
 
 void PlayerController::Respawn() const
 {
-    CallVtableByName(_entities->GameDataRef(), _controller, "Respawn");
+    const auto& respawn = _entities->BindingsRef().Respawn;
+    if (_controller && respawn)
+        respawn.Call(_controller);
 }
 
 void PlayerController::Teleport(const Vector* origin, const QAngle* angles, const Vector* velocity) const
 {
-    CallVtableByName(_entities->GameDataRef(), GetPawn(), "Teleport", origin, angles, velocity);
+    const auto& teleport = _entities->BindingsRef().Teleport;
+    if (auto* pawn = GetPawn(); pawn && teleport)
+        teleport.Call(pawn, origin, angles, velocity);
 }
 
 // Player name is stored as a 128-byte fixed buffer on CBasePlayerController.

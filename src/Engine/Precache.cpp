@@ -1,7 +1,7 @@
 #include "Engine/GameSystem.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/Precache.hpp>
 #include <algorithm>
 
@@ -21,28 +21,27 @@ GS_EVENT_MEMBER(PrecacheGameSystem, BuildGameSessionManifest)
         Log::Info("Precache: added {} resource(s) to the session manifest.", _owner._resources.size());
 }
 
-Precache::Precache(GameData& gameData) : _gameData(gameData) {}
+Precache::Precache(const Bindings& bindings) : _bindings(bindings) {}
 
 Precache::~Precache()
 {
     Shutdown();
 }
 
-bool Precache::Initialize(std::string systemName)
+Status Precache::Initialize(std::string systemName)
 {
     if (_factory)
-        return true;
+        return {};
 
-    auto* listHead = static_cast<GameSystemFactory**>(_gameData.ResolveSignature("IGameSystem_InitAllSystems_pFirst"));
-    _eventDispatcher = _gameData.ResolveSignature("IGameSystem_LoopPostInitAllSystems_pEventDispatcher");
-    _gameSystems = _gameData.ResolveSignature("IGameSystem_LoopDestroyAllSystems_s_GameSystems");
+    auto* listHead = static_cast<GameSystemFactory**>(_bindings.GameSystemFactoryList.Ptr());
+    _eventDispatcher = _bindings.GameSystemEventDispatcher.Ptr();
+    _gameSystems = _bindings.GameSystemList.Ptr();
 
     if (!listHead || !_eventDispatcher || !_gameSystems)
     {
-        Log::Warn("Precache: game-system signature(s) unresolved; resource precaching is unavailable.");
         _eventDispatcher = nullptr;
         _gameSystems = nullptr;
-        return false;
+        return std::unexpected(Error::Unsupported("a game-system address did not bind"));
     }
 
     _systemName = std::move(systemName);
@@ -50,7 +49,7 @@ bool Precache::Initialize(std::string systemName)
     _factory = new GameSystemFactory(_systemName.c_str(), _system.get(), listHead);
 
     Log::Info("Precache: game system '{}' registered (active from the next map load).", _systemName);
-    return true;
+    return {};
 }
 
 void Precache::Shutdown()

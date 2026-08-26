@@ -1,6 +1,6 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Entities/PlayerController.hpp>
@@ -17,7 +17,7 @@ namespace VoltMod
 // it was added on - one call per teleport, no matter how many are bound.
 SH_DECL_MANUALHOOK3_void(VoltMod_EntityTeleport, 0, 0, 0, const Vector*, const QAngle*, const Vector*);
 
-Teleport::Teleport(EntitySystem& entities, GameData& gameData, GameEvents& events, SlotEvents& slots)
+Teleport::Teleport(EntitySystem& entities, const Bindings& bindings, GameEvents& events, SlotEvents& slots)
     : Teleported({.OnFirst =
                       [this] {
                           if (Status enabled = Enable(); !enabled)
@@ -29,7 +29,7 @@ Teleport::Teleport(EntitySystem& entities, GameData& gameData, GameEvents& event
                       },
                   .OnLast = [this] { Disable(); }}),
       _entities(entities),
-      _gameData(gameData),
+      _bindings(bindings),
       _events(events),
       _slots(slots)
 {}
@@ -44,10 +44,10 @@ Status Teleport::Enable()
     if (_enabled)
         return {};
 
-    int index = _gameData.GetVtableIndex("Teleport");
-    if (index < 0)
+    if (!_bindings.Teleport)
         return std::unexpected(Error::Unsupported("gamedata has no 'Teleport' vtable index"));
 
+    const int index = _bindings.Teleport.Index();
     SH_MANUALHOOK_RECONFIGURE(VoltMod_EntityTeleport, index, 0, 0);
     _enabled = true;
 

@@ -1,8 +1,9 @@
 #pragma once
 
+#include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Subscription.hpp>
-#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <cstddef>
 #include <functional>
@@ -22,9 +23,6 @@ enum class ClientCvarStatus
     CvarProtected     ///< The convar is marked protected; the client withholds its value.
 };
 
-/** Lower-case identifier for @p status ("value_intact", "cvar_not_found", ...). */
-std::string_view ToString(ClientCvarStatus status);
-
 /**
  * @brief Asks a connected client what one of its own convars is set to.
  *
@@ -35,9 +33,9 @@ std::string_view ToString(ClientCvarStatus status);
  *
  * A modified client can answer with anything, so treat the result as evidence, not proof.
  *
- * Degradable load stage: it depends on two gamedata offsets (`ProcessRespondCvarValue`,
- * `ServerSideClientSlot`) and an RTTI/symbol lookup of the `CServerSideClient` vtable, all of which
- * drift with engine updates. On failure the framework logs one warning and @ref Available() stays false.
+ * Degradable load stage: it depends on the `ProcessRespondCvarValue` vtable slot, the
+ * `ServerSideClientSlot` offset and an RTTI/symbol lookup of the `CServerSideClient` vtable, all of which
+ * drift with engine updates. On failure Capability::ClientCvars is off and carries the reason.
  *
  * @code
  * runtime.ClientCvars.Query(slot, "sensitivity",
@@ -57,26 +55,24 @@ public:
     using QueryCallback =
         std::function<void(int slot, ClientCvarStatus status, std::string_view name, std::string_view value)>;
 
-    /** @p interfaces and @p gameData drive the response hook and the query send path. @p slots tells
+    /** @p interfaces and @p bindings drive the response hook and the query send path. @p slots tells
      *  the service when a slot changes hands, so an answer can never be routed to the callback of
      *  whoever held the slot before. All three must outlive it; the Runtime declares them above. */
-    ClientCvars(Interfaces& interfaces, GameData& gameData, SlotEvents& slots);
+    ClientCvars(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots);
     ~ClientCvars();
     ClientCvars(const ClientCvars&) = delete;
     ClientCvars& operator=(const ClientCvars&) = delete;
 
-    /** Resolve the offsets and install the response hook. Idempotent; false leaves the service inert. */
-    bool Initialize();
+    /** Install the response hook. Idempotent; an error leaves the service inert. */
+    Status Initialize();
 
     /** Remove the hook and drop every pending query. Idempotent; also runs from the destructor. */
     void Shutdown();
 
-    /** True once Initialize() has succeeded. Query() only works while this holds. */
-    bool Available() const;
-
     /**
-     * Ask @p slot for its value of @p cvarName. False when the service is unavailable, the slot
-     * holds a bot or nobody, the per-slot pending cap is reached, or the message could not be sent.
+     * Ask @p slot for its value of @p cvarName. False when Capability::ClientCvars is off, the
+     * slot holds a bot or nobody, the per-slot pending cap is reached, or the message could not
+     * be sent.
      *
      * A convar already in flight for that slot re-targets the outstanding request rather than
      * sending a second one, so polling cannot flood a client. Pending entries expire silently

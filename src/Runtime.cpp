@@ -2,6 +2,7 @@
 #include "Entities/Schema.hpp"
 
 #include <ISmmAPI.h>
+#include <VoltMod/Core/EnumNames.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Paths.hpp>
 #include <VoltMod/Runtime.hpp>
@@ -20,7 +21,7 @@
 namespace VoltMod
 {
 
-static constexpr const char* DefaultGameDataPath = "addons/voltmod/gamedata/signatures.jsonc";
+static constexpr const char* DefaultGameDataPath = "addons/voltmod/gamedata/gamedata.jsonc";
 
 // Every other service is wired by its default member initializer in Runtime.hpp, where the
 // dependency order is visible. _schema is the exception: SchemaService is only forward-declared
@@ -115,18 +116,25 @@ bool Runtime::InitializeServices(const LoadContext& context)
     auto& report = LoadReport;
 
     report.Run("GameData", [&] {
-        if (!GameData.Load(DefaultGameDataPath))
-            return StageResult::Degraded(std::format("failed to load {}", DefaultGameDataPath));
-        GameData.ResolveAll();
+        if (auto loaded = GameData.Load(DefaultGameDataPath); !loaded)
+            return StageResult::Degraded(loaded.error().Detail);
         if (auto failures = GameData.FailureSummary(); !failures.empty())
             return StageResult::Degraded(std::move(failures));
         return StageResult::Ok(
-            std::format("{} offsets, {} signatures resolved", GameData.OffsetCount(), GameData.SignatureCount()));
+            std::format("{} entries resolved (verified {})", GameData.Resolutions().size(), GameData.VerifiedOn()));
+    });
+
+    // Bindings must run even when GameData degraded: it is what records every capability, and a
+    // capability nobody records reads as off with "not initialized" rather than with the reason.
+    report.Run("Bindings", [&] {
+        if (auto bound = Bindings.Bind(GameData, Capabilities); !bound)
+            return StageResult::Degraded(bound.error().Detail);
+        return StageResult::Ok();
     });
 
     const auto messages = report.Run("Messages", [&] {
-        if (!Messages.Initialize())
-            return StageResult::Failed("message system init failed");
+        if (auto ready = Messages.Initialize(); !ready)
+            return StageResult::Failed(ready.error().Detail);
         return StageResult::Ok();
     });
     if (messages == StageStatus::Failed)
@@ -135,37 +143,79 @@ bool Runtime::InitializeServices(const LoadContext& context)
         return false;
     }
 
-    // The remaining subsystems all report the same way: a false return degrades the load
-    // with `detail` and the plugin keeps going without that capability.
-    auto degradable = [&report](std::string_view name, std::string detail, auto&& init) {
-        report.Run(name, [&] { return init() ? StageResult::Ok() : StageResult::Degraded(std::move(detail)); });
+    // The remaining subsystems all report the same way: the setup's error degrades the load stage
+    // and turns off the capability it backs, with the same reason on both.
+    auto degradable = [&](std::string_view name, Capability capability, auto&& init) {
+        report.Run(name, [&] {
+            auto ready = init();
+            if (!ready)
+            {
+                Capabilities.Set(capability, false, ready.error().Detail);
+                return StageResult::Degraded(ready.error().Detail);
+            }
+            Capabilities.Set(capability, true);
+            return StageResult::Ok();
+        });
     };
 
-    degradable("Schema", "init failed; button detection may not work", [&] { return Schema().Initialize(); });
+    degradable("Schema", Capability::Schema, [&] { return Schema().Initialize(); });
     report.Run("Entities", [&] {
-        if (!Entities.Initialize())
-            return StageResult::Degraded("init failed; menus may not work");
-        if (Entities.IsResolved())
+        auto ready = Entities.Initialize();
+        if (!ready)
+        {
+            Capabilities.Set(Capability::Entities, false, ready.error().Detail);
+            return StageResult::Degraded(ready.error().Detail);
+        }
+        if (Entities.GetEntitySystem())
             return StageResult::Ok();
 
         // A cold load runs before the engine creates CGameEntitySystem; StartupServer resolves it.
         // A late load is already past that point, so nothing will.
-        return context.Late ? StageResult::Degraded("entity system unavailable; menus may not work")
-                            : StageResult::Ok("resolves at the first map load");
-    });
-    degradable("EntityOps", "unavailable; spawned effects degrade (see signature warnings)",
-               [&] { return EntityOps.Initialize(); });
-    degradable("Precache", "not registered; resource precaching unavailable",
-               [&] { return Precache.Initialize(std::format("{}_VoltModPrecache", context.LogPrefix)); });
-    degradable("GameEventManager", "not resolved; center HTML display will not work",
-               [&] { return Messages.InitGameEventManager(); });
-    degradable("ConVars", "init failed", [&] { return ConVars.Initialize(); });
-    degradable("Events", "init failed", [&] { return Events.Initialize(); });
-    degradable("Transmit", "inert; CheckTransmitPlayerSlot offset missing from gamedata",
-               [&] { return Transmit.Initialize(); });
-    degradable("ClientCvars", "inert; client convar queries unavailable (see warnings)",
-               [&] { return ClientCvars.Initialize(); });
+        if (!context.Late)
+            return StageResult::Ok("resolves at the first map load");
 
+        Capabilities.Set(Capability::Entities, false, "the entity system was never created");
+        return StageResult::Degraded("entity system unavailable; menus may not work");
+    });
+    // EntityOps and Transmit have no setup of their own: Bindings already decided both.
+    report.Run("EntityOps", [&] {
+        return Capabilities.Has(Capability::EntityOps)
+                   ? StageResult::Ok()
+                   : StageResult::Degraded(std::string(Capabilities.Reason(Capability::EntityOps)));
+    });
+    report.Run("Transmit", [&] {
+        return Capabilities.Has(Capability::Transmit)
+                   ? StageResult::Ok()
+                   : StageResult::Degraded(std::string(Capabilities.Reason(Capability::Transmit)));
+    });
+    degradable("Precache", Capability::Precache,
+               [&] { return Precache.Initialize(std::format("{}_VoltModPrecache", context.LogPrefix)); });
+    degradable("GameEventManager", Capability::GameEvents, [&] { return Messages.InitGameEventManager(); });
+    report.Run("ConVars", [&] {
+        if (auto ready = ConVars.Initialize(); !ready)
+            return StageResult::Degraded(ready.error().Detail);
+        return StageResult::Ok();
+    });
+    report.Run("Events", [&] {
+        auto ready = Events.Initialize();
+        if (!ready)
+        {
+            Capabilities.Set(Capability::GameEvents, false, ready.error().Detail);
+            return StageResult::Degraded(ready.error().Detail);
+        }
+        return StageResult::Ok();
+    });
+    degradable("ClientCvars", Capability::ClientCvars, [&] { return ClientCvars.Initialize(); });
+
+    // The last four have no gamedata or engine setup to fail: Vote and Menus ride on the services
+    // above, and Http owns its own worker pool.
+    Capabilities.Set(Capability::Vote,
+                     Capabilities.Has(Capability::GameEvents) && Capabilities.Has(Capability::Entities),
+                     "needs GameEvents and Entities");
+    Capabilities.Set(Capability::Menus, Capabilities.Has(Capability::Entities), "needs Entities");
+    Capabilities.Set(Capability::Http, true);
+
+    Log::Info("Capabilities: {}", Capabilities.Summary());
     return true;
 }
 
@@ -181,14 +231,18 @@ void Runtime::RegisterStatusSections()
             if (stage.Status == StageStatus::Ok)
                 ++ok;
             else
-                names[std::string(ToString(stage.Status))].push_back(stage.Name);
+                names[std::string(Name(stage.Status))].push_back(stage.Name);
         }
         names["ok"] = ok;
         return names;
     });
 
     Status.RegisterSection("gamedata", [this] {
-        auto section = nlohmann::json{{"offsets", GameData.OffsetCount()}, {"signatures", GameData.SignatureCount()}};
+        auto section = nlohmann::json{{"verified", GameData.VerifiedOn()},
+                                      {"signatures", GameData.CountOf(GameData::Kind::Signature)},
+                                      {"addresses", GameData.CountOf(GameData::Kind::Address)},
+                                      {"vtables", GameData.CountOf(GameData::Kind::VTable)},
+                                      {"offsets", GameData.CountOf(GameData::Kind::Offset)}};
         for (const auto& [name, entry] : GameData.Resolutions())
         {
             if (!entry.Error.empty())
@@ -196,6 +250,20 @@ void Runtime::RegisterStatusSections()
             else if (!entry.Unique)
                 section["ambiguous"].push_back(name);
         }
+        return section;
+    });
+
+    Status.RegisterSection("capabilities", [this] {
+        auto section = nlohmann::json::object();
+        int ok = 0;
+        for (Capability capability : EnumValues<Capability>())
+        {
+            if (Capabilities.Has(capability))
+                ++ok;
+            else
+                section["missing"][std::string(Name(capability))] = Capabilities.Reason(capability);
+        }
+        section["ok"] = ok;
         return section;
     });
 

@@ -1,7 +1,7 @@
 #include "Entities/Schema.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Entities/KeyValues.hpp>
@@ -47,83 +47,47 @@ struct StartSoundEventInfo
 #pragma pack(pop)
 static_assert(sizeof(StartSoundEventInfo) == 20);
 
-// Prototypes mirror CS2Fixes' src/addresses.h; re-verify there after CS2 updates.
-using CreateEntityByNameFn = CEntityInstance* (*)(const char* className, int forceEdictIndex);
-using DispatchSpawnFn = void (*)(CEntityInstance* entity, CEntityKeyValues* kv);
-using AcceptInputFn = void (*)(CEntityInstance* self, const char* input, CEntityInstance* activator,
-                               CEntityInstance* caller, variant_t* value, int outputId, void* unknown);
-using AddEntityIOEventFn = void (*)(CEntitySystem* system, CEntityInstance* target, const char* input,
-                                    CEntityInstance* activator, CEntityInstance* caller, variant_t* value,
-                                    float delaySeconds, int outputId, void* unknown1, void* unknown2);
-using UtilRemoveFn = void (*)(CEntityInstance* entity);
-using SetModelFn = void (*)(CEntityInstance* entity, const char* modelPath);
-using EmitSoundParamsFn = void (*)(CEntityInstance* entity, const char* soundEvent, int pitch, float volume,
-                                   float delay);
+// StartSoundEventInfo is returned by value through the hidden sret pointer, so this prototype
+// cannot live in the public header the way the rest of the entity bindings do.
+// Mirrors CS2Fixes' src/addresses.h; re-verify there after CS2 updates.
 using EmitSoundFilterFn = StartSoundEventInfo (*)(IRecipientFilter& filter, CEntityIndex sourceIndex,
                                                   const EmitSoundParams& params);
 
-// Collapses the guard + dispatch the AcceptInput* wrappers all repeat; each only differs in how it
-// builds the variant_t (kept out of the public header per the EntityOps members' note).
-static void FireInput(void* acceptInput, CEntityInstance* entity, const char* input, variant_t& value,
-                      CEntityInstance* activator, CEntityInstance* caller)
-{
-    if (!acceptInput || !entity || !input)
-        return;
-    std::bit_cast<AcceptInputFn>(acceptInput)(entity, input, activator, caller, &value, 0, nullptr);
-}
-
-EntityOps::EntityOps(EntitySystem& entities, GameData& gameData, SchemaService& schema)
-    : _entities(entities), _gameData(gameData), _schema(schema)
+EntityOps::EntityOps(EntitySystem& entities, const Bindings& bindings, SchemaService& schema)
+    : _entities(entities), _bindings(bindings), _schema(schema)
 {}
 
-bool EntityOps::Initialize()
+// Collapses the guard + dispatch the AcceptInput* wrappers all repeat; each only differs in how it
+// builds the variant_t, which is why this stays here rather than on the class: the public header
+// cannot name that type.
+static void FireInput(const Bindings& bindings, CEntityInstance* entity, const char* input, variant_t& value,
+                      CEntityInstance* activator, CEntityInstance* caller)
 {
-    struct SignatureSlot
-    {
-        const char* Name;
-        void** Slot;
-    };
-
-    const SignatureSlot signatures[] = {
-        {"CreateEntityByName", &_createEntityByName},
-        {"DispatchSpawn", &_dispatchSpawn},
-        {"CEntityInstance_AcceptInput", &_acceptInput},
-        {"CEntitySystem_AddEntityIOEvent", &_addEntityIOEvent},
-        {"UTIL_Remove", &_utilRemove},
-        {"CBaseModelEntity_SetModel", &_setModel},
-        {"CBaseEntity_EmitSoundParams", &_emitSoundParams},
-        {"CBaseEntity_EmitSoundFilter", &_emitSoundFilter},
-    };
-
-    for (const auto& signature : signatures)
-    {
-        *signature.Slot = _gameData.FindSignature(signature.Name);
-        if (!*signature.Slot)
-            Log::Warn("Entity ops: signature '{}' not resolved; the dependent operation is disabled.", signature.Name);
-    }
-
-    return CanSpawn();
+    if (!bindings.AcceptInput || !entity || !input)
+        return;
+    bindings.AcceptInput(entity, input, activator, caller, &value, 0, nullptr);
 }
 
 bool EntityOps::CanSpawn() const
 {
-    return _createEntityByName && _dispatchSpawn && _acceptInput;
+    return static_cast<bool>(_bindings.CreateEntityByName) && static_cast<bool>(_bindings.DispatchSpawn) &&
+           static_cast<bool>(_bindings.AcceptInput);
 }
 
 CEntityInstance* EntityOps::CreateByName(const char* className)
 {
-    if (!_createEntityByName || !className)
+    if (!_bindings.CreateEntityByName || !className)
         return nullptr;
 
-    return std::bit_cast<CreateEntityByNameFn>(_createEntityByName)(className, -1);
+    return _bindings.CreateEntityByName(className, -1);
 }
 
 void EntityOps::DispatchSpawn(CEntityInstance* entity, KeyValues* kv)
 {
-    if (!_dispatchSpawn || !entity)
+    if (!_bindings.DispatchSpawn || !entity)
         return;
 
-    std::bit_cast<DispatchSpawnFn>(_dispatchSpawn)(entity, kv ? kv->Detach() : nullptr);
+    _bindings.DispatchSpawn(entity, kv ? kv->Detach() : nullptr);
 }
 
 CEntityInstance* EntityOps::Spawn(const char* className, KeyValues& kv)
@@ -143,14 +107,14 @@ void EntityOps::AcceptInput(CEntityInstance* entity, const char* input, const ch
                             CEntityInstance* caller)
 {
     variant_t value(param ? param : "");
-    FireInput(_acceptInput, entity, input, value, activator, caller);
+    FireInput(_bindings, entity, input, value, activator, caller);
 }
 
 void EntityOps::AcceptInputFloat(CEntityInstance* entity, const char* input, float value, CEntityInstance* activator,
                                  CEntityInstance* caller)
 {
     variant_t variant(value);
-    FireInput(_acceptInput, entity, input, variant, activator, caller);
+    FireInput(_bindings, entity, input, variant, activator, caller);
 }
 
 void EntityOps::SetModelScale(CEntityInstance* entity, float scale)
@@ -166,7 +130,7 @@ void EntityOps::SetModelScale(CEntityInstance* entity, float scale)
 void EntityOps::AddIOEvent(CEntityInstance* target, const char* input, float delaySeconds, CEntityInstance* activator,
                            CEntityInstance* caller)
 {
-    if (!_addEntityIOEvent || !target || !input)
+    if (!_bindings.AddEntityIOEvent || !target || !input)
         return;
 
     CEntitySystem* system = _entities.GetEntitySystem();
@@ -174,16 +138,15 @@ void EntityOps::AddIOEvent(CEntityInstance* target, const char* input, float del
         return;
 
     variant_t value("");
-    std::bit_cast<AddEntityIOEventFn>(_addEntityIOEvent)(system, target, input, activator, caller, &value, delaySeconds,
-                                                         0, nullptr, nullptr);
+    _bindings.AddEntityIOEvent(system, target, input, activator, caller, &value, delaySeconds, 0, nullptr, nullptr);
 }
 
 void EntityOps::Remove(CEntityInstance* entity)
 {
-    if (!_utilRemove || !entity)
+    if (!_bindings.UtilRemove || !entity)
         return;
 
-    std::bit_cast<UtilRemoveFn>(_utilRemove)(entity);
+    _bindings.UtilRemove(entity);
 }
 
 void EntityOps::RemoveDelayed(CEntityInstance* entity, float delaySeconds)
@@ -193,24 +156,24 @@ void EntityOps::RemoveDelayed(CEntityInstance* entity, float delaySeconds)
 
 void EntityOps::SetModel(CEntityInstance* entity, const char* modelPath)
 {
-    if (!_setModel || !entity || !modelPath)
+    if (!_bindings.SetModel || !entity || !modelPath)
         return;
 
-    std::bit_cast<SetModelFn>(_setModel)(entity, modelPath);
+    _bindings.SetModel(entity, modelPath);
 }
 
 void EntityOps::EmitSound(CEntityInstance* entity, const char* soundEvent, int pitch, float volume, float delay)
 {
-    if (!_emitSoundParams || !entity || !soundEvent)
+    if (!_bindings.EmitSoundParams || !entity || !soundEvent)
         return;
 
-    std::bit_cast<EmitSoundParamsFn>(_emitSoundParams)(entity, soundEvent, pitch, volume, delay);
+    _bindings.EmitSoundParams(entity, soundEvent, pitch, volume, delay);
 }
 
 void EntityOps::EmitSoundFilter(IRecipientFilter& filter, CEntityInstance* source, const char* soundEvent, float volume,
                                 int pitch)
 {
-    if (!_emitSoundFilter || !source || !soundEvent)
+    if (!_bindings.EmitSoundFilter || !source || !soundEvent)
         return;
 
     EmitSoundParams params;
@@ -219,7 +182,7 @@ void EntityOps::EmitSoundFilter(IRecipientFilter& filter, CEntityInstance* sourc
     params.Pitch = static_cast<int16_t>(pitch);
 
     CEntityIndex sourceIndex(source->m_pEntity->m_EHandle.GetEntryIndex());
-    std::bit_cast<EmitSoundFilterFn>(_emitSoundFilter)(filter, sourceIndex, params);
+    std::bit_cast<EmitSoundFilterFn>(_bindings.EmitSoundFilter.Ptr())(filter, sourceIndex, params);
 }
 
 void EntityOps::NotifyFieldChanged(CEntityInstance* entity, const char* className, const char* fieldName)

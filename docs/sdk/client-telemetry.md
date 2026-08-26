@@ -50,7 +50,7 @@ runtime.ClientCvars.Query(slot, "cl_interp_ratio",
     });
 ```
 
-`ClientCvarStatus` mirrors the protocol's status code: `ValueIntact` (the only case carrying a value), `CvarNotFound`, `NotACvar`, `CvarProtected`. `ToString(status)` gives the lower-case identifier for logs.
+`ClientCvarStatus` mirrors the protocol's status code: `ValueIntact` (the only case carrying a value), `CvarNotFound`, `NotACvar`, `CvarProtected`. `VoltMod::Name(status)` gives the enumerator's identifier for logs.
 
 ### No timeout callback
 

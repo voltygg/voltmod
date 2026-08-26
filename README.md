@@ -23,7 +23,7 @@ CMake and Conan builds. It does not host C# or another scripting runtime.
   multi-step flows.
 - Player tracking, actions, scheduled effects, translations, and chat colors.
 - Typed wrappers for entities, schemas, events, convars, user messages,
-  gamedata, hooks, movement commands, input history, precaching, and transmit
+  typed gamedata bindings, hooks, movement commands, input history, precaching, and transmit
   filters.
 - Runtime-scoped subscriptions and cleanup instead of process-lifetime plugin
   globals.

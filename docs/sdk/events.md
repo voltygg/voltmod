@@ -81,15 +81,20 @@ A vanilla client subscribes only to the events its HUD needs, so a subscription 
 
 ## ConVars
 
-Typed reads and writes over ICvar:
+One convar is one typed handle. @ref VoltMod::ConVar "ConVar<T>" resolves a name once and then
+reads and writes without another lookup; `T` is the convar's own engine type - `bool`, `int`,
+`float` or `std::string` - and `Find` refuses a convar of a different kind, so setting an `int` on
+a `bool` convar is an error rather than the silent no-op it used to be.
 
 ```cpp
 auto& cvars = runtime.ConVars;
 
-if (auto gravity = cvars.GetFloat("sv_gravity"))   // getters return std::optional
-    Use(*gravity);
+auto gravity = VoltMod::ConVar<float>::Find(cvars, "sv_gravity");
+if (!gravity)
+    Log::Warn("sv_gravity unusable: {}", gravity.error().Detail);   // NotFound, or Invalid on a type mismatch
+else
+    gravity->Set(400.0f);            // SetMode::Console by default
 
-cvars.SetFloat("sv_gravity", 400.0f);
 cvars.ExecuteServerCommand("mp_restartgame 1");
 
 // Every engine-side change. The first subscription installs ICvar's global change callback and
@@ -103,42 +108,74 @@ _changes = cvars.Changed += [](const VoltMod::ConVarChange& e) {
 The three fields are `string_view`s over engine storage that live only for the duration of the
 handler, so copy whatever you keep.
 
-The setters change the server's stored value and fire change callbacks, but they do **not** network anything. An `FCVAR_REPLICATED` convar set this way silently diverges from what clients predict with. They also do no cross-type conversion: the SDK's `SetAs<T>` no-ops when the convar's type has no conversion from `T` (e.g. `SetInt` on a bool convar like `sv_autobunnyhopping`; `SetString` works for any type). For a server-wide change that must reach clients, use `ExecuteServerCommand("name value")`. The console path both sets and replicates, exactly as a cfg line would. Two escape hatches cover the per-player cases.
+A registered convar outlives map changes, so resolve a handle once - in your `Start()` - and keep
+it as a member. A handle that never resolved is falsy (`IsValid()`), reads as `T{}` and refuses
+every write, so a server without the convar degrades rather than crashing.
+
+### Write modes
+
+@ref VoltMod::SetMode "SetMode" picks who finds out about the write, and that is the whole
+decision:
+
+| Mode | Callbacks | Reaches clients | Use for |
+| --- | --- | --- | --- |
+| `Console` (default) | yes | yes, for `FCVAR_REPLICATED` | anything server-wide |
+| `Server` | yes | **no** | a value only this server reads |
+| `Raw` | no | no | a flip undone in the same call stack |
+
+`Console` is the default because it is the one that cannot half-apply: a replicated convar set any
+other way leaves clients predicting the old value, and their movement or damage then disagrees with
+the server.
 
 ### Taking a convar over server-wide
 
-A feature that overrides a server convar owes the operator two things: save their value before the *first* write, and restore only what it actually took. @ref VoltMod::ConVarLease "ConVarLease" holds those snapshots, and it writes through the console path so replicated convars reach clients:
+A feature that overrides a server convar owes the operator two things: save their value before the
+*first* write, and restore only what it actually took. @ref VoltMod::ConVarLease "ConVarLease"
+holds those snapshots, and writes through the console so replicated convars reach clients:
 
 ```cpp
 VoltMod::ConVarLease lease{runtime.ConVars};   // restores on destruction
 
-lease.Override("sv_gravity", 250.0f);          // false if the server has no such convar
-lease.Restore("sv_gravity");                   // no-op if it never took it
+lease.Override(gravity, 250.0f);               // false when the handle never resolved
+lease.Restore(gravity);                        // no-op when it never took it
 ```
 
-`Override` saves on the first take and re-asserts afterwards, so calling it every round is correct and necessary - the engine resets convars around a map change, and an override that is not re-asserted silently lapses. It returns `false` for a convar the server does not have, rather than recording a snapshot it could never restore. The destructor calls `RestoreAll()`, which is what makes unload safe. The admin-system fun toggles and bhop's "enabled" mode both drive one of these.
+`Override` saves on the first take and re-asserts afterwards, so calling it every round is correct
+and necessary - the engine resets convars around a map change, and an override that is not
+re-asserted silently lapses. The destructor calls `RestoreAll()`, which is what makes unload safe.
+The admin-system fun toggles and bhop's "enabled" mode both drive one of these.
 
 ### Per-client replication
 
-@ref VoltMod::ConVars::ReplicateToClient "ReplicateToClient" sends `CNETMsg_SetConVar` to a single client, so only that client's view of a replicated convar changes; the server value and every other client are untouched. This is how you make *one* player's prediction run with different movement settings (the bhop plugin replicates `sv_autobunnyhopping` to granted players):
+`SetFor(slot, value)` sends `CNETMsg_SetConVar` to a single client, so only that client's view of a
+replicated convar changes; the server value and every other client are untouched. This is how you
+make *one* player's prediction run with different movement settings (bhop pushes
+`sv_autobunnyhopping` to granted players):
 
 ```cpp
-cvars.ReplicateToClient(slot, "sv_autobunnyhopping", "1");
+autoBhop.SetFor(slot, true);
 ```
 
-The client's connect/map-change snapshot restores the server value, so re-send the override from a `PlayerSpawn` handler to keep it sticky.
+The client's connect/map-change snapshot restores the server value, so re-send the override from a
+`PlayerSpawn` handler to keep it sticky.
 
-### Raw value access
+### Scoped raw flips
 
-@ref VoltMod::ConVarStorage "Storage(name)" returns a handle to the convar's raw storage: reads and writes skip change callbacks *and* replication. Use it for scoped flips around one player's processing (e.g. inside a @ref VoltMod::Movement "Movement" pre/post pair), where the engine setters' broadcast would leak the change to everyone. You are responsible for restoring the prior value; the handle stays valid for the convar's lifetime, so resolve once and cache.
+`RawScope(value)` pokes the convar's value storage - no change callbacks, nothing networked - and
+puts the previous value back when the returned scope dies. Use it around one player's processing
+(inside a @ref VoltMod::Movement "Movement" pre/post pair), where a broadcast would leak the change
+to everyone:
 
 ```cpp
-VoltMod::ConVarStorage autoBhop = cvars.Storage("sv_autobunnyhopping");
-bool saved = autoBhop.GetBool();
-autoBhop.SetBool(true);   // no callbacks, nothing networked
-// ... run the per-player work ...
-autoBhop.SetBool(saved);
+{
+    auto flip = autoBhop.RawScope(true);   // no callbacks, nothing networked
+    RunTheOneTickOfWork();
+}                                          // the operator's value is back
 ```
+
+When the window is a hook pair rather than a C++ block, keep the scope in a member and drop it in
+the post hook - that is what bhop's grants mode does. The scope refers to the handle, so the handle
+has to outlive it.
 
 ## Map
 

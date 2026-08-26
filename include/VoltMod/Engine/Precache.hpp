@@ -1,7 +1,8 @@
 #pragma once
 
+#include <VoltMod/Core/Result.hpp>
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Engine/GameData.hpp>
 #include <memory>
 #include <string>
 #include <vector>
@@ -23,15 +24,15 @@ class Precache
 public:
     // Ctor/dtor are out-of-line: inline they would instantiate the unique_ptr
     // destructor of the forward-declared game system in every consumer TU.
-    /** @p gameData supplies the game-system signatures; it must outlive this service. */
-    explicit Precache(GameData& gameData);
+    /** @p bindings supplies the game-system addresses; it must outlive this service. */
+    explicit Precache(const Bindings& bindings);
     ~Precache();
     Precache(const Precache&) = delete;
     Precache& operator=(const Precache&) = delete;
 
-    /** Resolve the game-system signatures and link into the engine's factory list.
-     *  systemName must be unique across plugins - the engine rejects duplicates. */
-    bool Initialize(std::string systemName);
+    /** Link into the engine's factory list. @p systemName must be unique across plugins - the
+     *  engine rejects duplicates. Error::Unsupported when a game-system address did not bind. */
+    Status Initialize(std::string systemName);
 
     /** Detach from the engine (factory list, event dispatcher, active-systems
      *  vector). Idempotent; must run before the plugin image unloads. */
@@ -43,7 +44,7 @@ public:
 private:
     friend class PrecacheGameSystem;  // reads _resources inside the manifest event
 
-    GameData& _gameData;
+    const Bindings& _bindings;
     std::vector<std::string> _resources;
     std::string _systemName;
     std::unique_ptr<PrecacheGameSystem> _system;

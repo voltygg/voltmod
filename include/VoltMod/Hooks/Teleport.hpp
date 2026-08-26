@@ -4,8 +4,8 @@
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Engine/GameData.hpp>
 #include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <array>
@@ -34,10 +34,10 @@ namespace VoltMod
 class Teleport
 {
 public:
-    /** @p entities resolves each slot's pawn, @p gameData supplies the Teleport vtable index,
+    /** @p entities resolves each slot's pawn, @p bindings supplies the Teleport vtable index,
      *  @p events the PlayerSpawn re-bind. @p slots tells this tracker when a slot changes hands,
      *  without it needing the roster. All four must outlive it; the Runtime declares them above. */
-    Teleport(EntitySystem& entities, GameData& gameData, GameEvents& events, SlotEvents& slots);
+    Teleport(EntitySystem& entities, const Bindings& bindings, GameEvents& events, SlotEvents& slots);
     ~Teleport();
     Teleport(const Teleport&) = delete;
     Teleport& operator=(const Teleport&) = delete;
@@ -45,10 +45,6 @@ public:
     /** A pawn was teleported; the argument is its slot (-1 when it belongs to no player).
      *  Subscribing arms the tracker. */
     Event<int> Teleported;
-
-    /** Whether the per-pawn hooks are bound - false while nothing is subscribed, and false after a
-     *  subscription was refused because the gamedata offset is missing. */
-    bool Enabled() const { return _enabled; }
 
     /** Drop every binding for the new map. Called by the framework's StartupServer hook. */
     void OnServerStartup();
@@ -65,7 +61,7 @@ private:
     int SlotFromPawn(const void* pawn) const;
 
     EntitySystem& _entities;
-    GameData& _gameData;
+    const Bindings& _bindings;
     GameEvents& _events;
     SlotEvents& _slots;
     std::array<void*, MaxPlayers> _pawns{};  // the instance each slot's hook is bound to

@@ -1,8 +1,7 @@
-#include "Engine/VirtualCall.hpp"
 #include "Entities/Schema.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/MemoryAccess.hpp>
 #include <VoltMod/Entities/Items.hpp>
 #include <VoltMod/Entities/PawnOps.hpp>
@@ -12,7 +11,7 @@
 namespace VoltMod
 {
 
-Items::Items(GameData& gameData, SchemaService& schema) : _gameData(gameData), _schema(schema) {}
+Items::Items(const Bindings& bindings, SchemaService& schema) : _bindings(bindings), _schema(schema) {}
 
 void* Items::ItemServices(const PlayerController& pc) const
 {
@@ -36,11 +35,10 @@ bool Items::Give(const PlayerController& pc, const char* item)
     if (!services)
         return false;
 
-    int index = _gameData.GetVtableIndex("GiveNamedItem");
-    if (index < 0)
+    if (!_bindings.GiveNamedItem)
         return false;
 
-    if (CallVirtual<void*>(index, services, item))
+    if (_bindings.GiveNamedItem.Call(services, item))
         return true;
 
     // A refusal is usually the weapon belonging to the other team's buy list. Retry once with
@@ -51,7 +49,7 @@ bool Items::Give(const PlayerController& pc, const char* item)
         return false;
 
     pc.SetPawnField<uint8_t>("CBaseEntity", "m_iTeamNum", static_cast<uint8_t>(other));
-    bool given = CallVirtual<void*>(index, services, item) != nullptr;
+    bool given = _bindings.GiveNamedItem.Call(services, item) != nullptr;
     pc.SetPawnField<uint8_t>("CBaseEntity", "m_iTeamNum", static_cast<uint8_t>(team));
 
     if (!given)
@@ -65,11 +63,10 @@ bool Items::StripWeapons(const PlayerController& pc, bool removeSuit)
     if (!services)
         return false;
 
-    int index = _gameData.GetVtableIndex("RemoveAllItems");
-    if (index < 0)
+    if (!_bindings.RemoveAllItems)
         return false;
 
-    CallVirtual<void>(index, services, removeSuit);
+    _bindings.RemoveAllItems.Call(services, removeSuit);
     return true;
 }
 

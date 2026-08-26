@@ -28,7 +28,7 @@ Member names must match the JSON keys. The `_WITH_DEFAULT` macro means a missing
 
 ### Editor validation with a JSON Schema
 
-Ship a `settings.schema.json` next to the jsonc and reference it with a relative `$schema` line as the file's first key. Editors then autocomplete keys and squiggle typos (`additionalProperties: false` makes the schema stricter than the runtime, which is the point; the parser itself ignores unknown keys). The plugin scaffold emits a starter schema; keep it in sync when the Settings struct grows. The framework's own `gamedata/signatures.jsonc` follows the same convention.
+Ship a `settings.schema.json` next to the jsonc and reference it with a relative `$schema` line as the file's first key. Editors then autocomplete keys and squiggle typos (`additionalProperties: false` makes the schema stricter than the runtime, which is the point; the parser itself ignores unknown keys). The plugin scaffold emits a starter schema; keep it in sync when the Settings struct grows. The framework's own `gamedata/gamedata.jsonc` follows the same convention, with `gamedata.schema.json` beside it.
 
 ```cpp
 bool MyPlugin::OnLoad(VoltMod::Runtime& runtime, bool late)

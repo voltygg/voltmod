@@ -1,3 +1,4 @@
+#include <VoltMod/Core/EnumNames.hpp>
 #include <VoltMod/Core/LoadReport.hpp>
 #include <algorithm>
 #include <chrono>
@@ -5,22 +6,6 @@
 
 namespace VoltMod
 {
-
-std::string_view ToString(StageStatus status)
-{
-    switch (status)
-    {
-    case StageStatus::Ok:
-        return "ok";
-    case StageStatus::Degraded:
-        return "degraded";
-    case StageStatus::Skipped:
-        return "skipped";
-    case StageStatus::Failed:
-        return "failed";
-    }
-    return "unknown";
-}
 
 StageStatus LoadReport::Run(std::string_view name, const std::function<StageResult()>& body)
 {
@@ -49,8 +34,8 @@ std::string LoadReport::Summary() const
     for (const auto& stage : _stages)
     {
         totalMs += stage.DurationMs;
-        out += std::format("\n  {:<{}}  {:<8}  {:>7.1f} ms", stage.Name, nameWidth, ToString(stage.Status),
-                           stage.DurationMs);
+        out +=
+            std::format("\n  {:<{}}  {:<8}  {:>7.1f} ms", stage.Name, nameWidth, Name(stage.Status), stage.DurationMs);
         if (!stage.Detail.empty())
             out += std::format("  {}", stage.Detail);
     }

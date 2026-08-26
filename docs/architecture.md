@@ -6,9 +6,9 @@
 
 ```
 VoltMod
-├── Core        Primitives: events and subscriptions, results, policy, scheduler,
-│               slot events, translations, parsing, per-slot caches, string/time helpers
-├── Engine      Interfaces, gamedata, convars, clock, maps, precache, console commands
+├── Core        Primitives: events and subscriptions, results, capabilities, policy,
+│               scheduler, slot events, translations, parsing, per-slot caches, helpers
+├── Engine      Interfaces, gamedata + typed Bindings, ConVar<T>, clock, maps, precache, commands
 ├── Entities    Entity lookup, PlayerController, schema fields, items, pawn operations
 ├── Events      The game event service and its typed event structs
 ├── Messaging   Chat and center-HTML messages, chat colors, the vote panel

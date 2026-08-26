@@ -5,8 +5,8 @@ namespace VoltMod
 
 /**
  * @file OffsetCheck.hpp
- * @brief Pure bounds checks for GameData's offset accessors, split into the two halves it
- * reports separately so a rejection says whether the value was out of range or misaligned.
+ * @brief Pure bounds checks for gamedata offsets, split into the two halves the loader reports
+ * separately so a rejection says whether the value was out of range or misaligned.
  */
 
 /** True when @p value is within [0, max]. */

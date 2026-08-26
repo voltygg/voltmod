@@ -1,15 +1,13 @@
-#include "Engine/VtableLookup.hpp"
-
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Hooks/Movement.hpp>
 #include <algorithm>
 #include <cs_usercmd.pb.h>
-#include <cstring>
-#include <format>
+#include <string>
+#include <string_view>
 
 namespace VoltMod
 {
@@ -20,24 +18,16 @@ namespace VoltMod
 // player without needing a live instance to bind to.
 SH_DECL_MANUALHOOK1(VoltMod_MovementRunCommand, 0, 0, 0, void*, void*);
 
-// The server module owning the concrete movement-services class every player pawn instantiates.
-static constexpr const char* ServerModule = "server";
-static constexpr const char* MovementServicesClass = "CCSPlayer_MovementServices";
-
-// Far above the real value (8), only to catch drifted or hand-edited gamedata before it turns into
-// a read past the CUserCmd object.
-static constexpr int MaxUserCmdOffset = 4096;
-
 // The five events share one install: whichever is subscribed to first binds the vtable, and the
 // last subscription to drop across all of them unbinds it.
-Movement::Movement(EntitySystem& entities, GameData& gameData)
+Movement::Movement(EntitySystem& entities, const Bindings& bindings)
     : Pre({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
       Post({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
       PreCmd({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
       PostCmd({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
       FilterCmd({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
       _entities(entities),
-      _gameData(gameData)
+      _bindings(bindings)
 {}
 
 bool Movement::Acquire()
@@ -65,13 +55,14 @@ Status Movement::Install()
     if (_installed)
         return {};
 
-    int index = _gameData.GetVtableIndex("RunCommand");
-    if (index < 0)
+    if (!_bindings.RunCommand)
         return std::unexpected(Error::Unsupported("gamedata has no 'RunCommand' vtable index"));
 
-    void* vtable = FindVirtualTable(ServerModule, MovementServicesClass);
-    if (!vtable)  // FindVirtualTable already logged which step failed
-        return std::unexpected(Error::Engine(std::format("could not resolve the {} vtable", MovementServicesClass)));
+    if (!_bindings.MovementServices)
+        return std::unexpected(Error::Engine("the movement services vtable did not bind"));
+
+    void* vtable = _bindings.MovementServices.Table();
+    const std::string_view movementServicesClass = _bindings.MovementServices.Class();
 
     // The class name drifts like the index does, and nothing else here would notice: a wrong name
     // resolves to some other class's table and the hook then never fires. Whenever a pawn happens to
@@ -84,22 +75,21 @@ Status Movement::Install()
             continue;
         if (*static_cast<void**>(instance) != vtable)
             Log::Warn("Movement: a live pawn's movement services vtable differs from {}; wrong class name?",
-                      MovementServicesClass);
+                      movementServicesClass);
         break;
     }
 
-    _pbOffset = _gameData.GetByteOffset("UserCmdPB", MaxUserCmdOffset, alignof(void*));
-    if (_pbOffset < 0)
+    if (!_bindings.UserCmdPB)
         Log::Warn("Movement: no usable 'UserCmdPB' offset; cmd listeners get Valid=false views.");
 
-    _cmdNumberOffset = _gameData.GetByteOffset("UserCmdNumber", MaxUserCmdOffset, alignof(int32_t));
-    if (_cmdNumberOffset < 0)
+    if (!_bindings.UserCmdNumber)
         Log::Warn(
             "Movement: no usable 'UserCmdNumber' offset; falling back to the protobuf's "
             "legacy_command_number, which the live client leaves at 0.");
 
     _movementServices.fill(nullptr);
 
+    const int index = _bindings.RunCommand.Index();
     SH_MANUALHOOK_RECONFIGURE(VoltMod_MovementRunCommand, index, 0, 0);
     _preHookId =
         SH_ADD_MANUALDVPHOOK(VoltMod_MovementRunCommand, vtable, SH_MEMBER(this, &Movement::Hook_RunCommandPre), false);
@@ -118,7 +108,7 @@ Status Movement::Install()
     }
 
     _installed = true;
-    Log::Info("Movement RunCommand hook installed on {} vtable (index {}).", MovementServicesClass, index);
+    Log::Info("Movement RunCommand hook installed on {} vtable (index {}).", movementServicesClass, index);
     return {};
 }
 
@@ -164,19 +154,18 @@ int Movement::SlotFromMovementServices(void* movementServices) const
 void Movement::DecodeUserCmd(void* userCmd)
 {
     _cmdView = {};
-    if (!userCmd || _pbOffset < 0)
+    if (!userCmd || !_bindings.UserCmdPB)
         return;
 
-    const auto* pb = reinterpret_cast<const CSGOUserCmdPB*>(static_cast<char*>(userCmd) + _pbOffset);
+    const auto* pb = static_cast<const CSGOUserCmdPB*>(_bindings.UserCmdPB.Ptr(userCmd));
     const auto& base = pb->base();
 
     _cmdView.Valid = true;
     _cmdView.ClientTick = base.client_tick();
     // The counter the engine maintains lives in the CUserCmd wrapper, not the payload:
     // legacy_command_number stays 0 on a live client, so it is only a fallback.
-    if (_cmdNumberOffset >= 0)
-        std::memcpy(&_cmdView.CommandNumber, static_cast<const char*>(userCmd) + _cmdNumberOffset,
-                    sizeof(_cmdView.CommandNumber));
+    if (_bindings.UserCmdNumber)
+        _cmdView.CommandNumber = _bindings.UserCmdNumber.Read(userCmd);
     else
         _cmdView.CommandNumber = base.legacy_command_number();
     _cmdView.HasViewAngles = base.has_viewangles();

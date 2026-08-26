@@ -2,14 +2,17 @@
 
 #include <VoltMod/Core/Log.hpp>
 #include <charconv>
+#include <cstdio>
+#include <cstring>
+#include <fstream>
 #include <sstream>
+#include <string>
 #include <utility>
 #include <vector>
 
 #ifdef _WIN32
 #include <psapi.h>
 #else
-#include <cstring>
 #include <dlfcn.h>
 #include <link.h>
 #endif
@@ -227,8 +230,9 @@ ScanResult FindPatternEx(const char* moduleName, const std::string& pattern)
 {
     const std::string fullName = PlatformModuleName(moduleName);
 
+    ModuleImage image;
     std::vector<ScanRange> ranges;
-    if (!GetScanRanges(fullName.c_str(), ranges))
+    if (!FindImage(fullName.c_str(), image) || !GetScanRanges(fullName.c_str(), ranges))
     {
         Log::Error("SigScanner: Module '{}' not found.", fullName);
         return {};
@@ -245,7 +249,7 @@ ScanResult FindPatternEx(const char* moduleName, const std::string& pattern)
             if (first)
             {
                 Log::Warn("SigScanner: Pattern ambiguous in '{}' (2+ matches); using the first.", fullName);
-                return {first, false};
+                return {first, false, std::move(image)};
             }
             first = hit;
             // Resume one byte past the hit to detect a second match.
@@ -257,7 +261,7 @@ ScanResult FindPatternEx(const char* moduleName, const std::string& pattern)
 
     if (!first)
         Log::Warn("SigScanner: Pattern not found in '{}'.", fullName);
-    return {first, true};
+    return {first, true, std::move(image)};
 }
 
 void* FindPattern(const char* moduleName, const std::string& pattern)
@@ -265,13 +269,50 @@ void* FindPattern(const char* moduleName, const std::string& pattern)
     return FindPatternEx(moduleName, pattern).Address;
 }
 
-uintptr_t ResolveRelativeAddress(uintptr_t addr, int ripOffset, int ripSize)
+uintptr_t ResolveRelativeAddress(const ModuleImage& image, uintptr_t matchAddress, int ripOffset, int ripSize)
 {
-    if (addr == 0)
+    if (matchAddress == 0 || !image.Base)
         return 0;
 
-    int32_t relative = *reinterpret_cast<int32_t*>(addr + ripOffset);
-    return addr + ripSize + relative;
+    // The displacement itself must be inside the mapping: a pattern that matched near the end of
+    // the module, or a rel32At past the instruction, would otherwise read unmapped memory.
+    if (!Rel32ReadInBounds(reinterpret_cast<uintptr_t>(image.Base), image.Size, matchAddress, ripOffset))
+        return 0;
+
+    const uintptr_t site = Rel32Site(matchAddress, ripOffset);
+    int32_t displacement = 0;
+    std::memcpy(&displacement, reinterpret_cast<const void*>(site), sizeof(displacement));
+    return Rel32Target(site, displacement, ripSize);
+}
+
+bool IsExecutableAddress(const void* address)
+{
+    if (!address)
+        return false;
+
+#ifdef _WIN32
+    MEMORY_BASIC_INFORMATION info{};
+    if (VirtualQuery(address, &info, sizeof(info)) != sizeof(info) || info.State != MEM_COMMIT)
+        return false;
+
+    constexpr DWORD executable = PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
+    return (info.Protect & executable) != 0 && (info.Protect & PAGE_GUARD) == 0;
+#else
+    const auto target = reinterpret_cast<unsigned long>(address);
+    std::ifstream maps("/proc/self/maps");
+    std::string line;
+    while (std::getline(maps, line))
+    {
+        unsigned long start = 0;
+        unsigned long end = 0;
+        char perms[5] = {};
+        if (std::sscanf(line.c_str(), "%lx-%lx %4s", &start, &end, perms) != 3)
+            continue;
+        if (target >= start && target < end)
+            return perms[2] == 'x';
+    }
+    return false;
+#endif
 }
 
 }  // namespace VoltMod

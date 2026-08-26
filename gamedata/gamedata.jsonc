@@ -1,0 +1,229 @@
+{
+  "$schema": "./gamedata.schema.json",
+  "version": 2,
+
+  // Everything in this file drifts with CS2. `build.verified` is the day the whole file was last
+  // walked entry by entry; see docs/sdk/gamedata.md for the re-verification procedure.
+  "build": {
+    "game": "cs2",
+    "verified": "2026-08-26",
+    "note": "re-verify after every CS2 engine update"
+  },
+
+  // Byte patterns scanned in a loaded module. `?` and `??` are wildcard bytes. The match address
+  // is the binding; an entry under "addresses" turns one of these into a rel32 target instead.
+  "signatures": {
+    // CSource2Server::g_GameEventManager: the match points at code, and the pointer itself is the
+    // rel32 target 98/106 bytes in - see addresses.GameEventManager.
+    "GameEventManagerSig": {
+      "library": "server",
+      "windows": { "pattern": "48 83 EC ? 48 83 3D ? ? ? ? ? 74 ? 33 C9 E8 ? ? ? ? FF 15 ? ? ? ?" },
+      "linux": { "pattern": "55 48 89 E5 41 55 41 54 53 48 83 EC 08 48 8D 05 ? ? ? ? 48 83 38 00" }
+    },
+
+    // CBaseGameSystemFactory** sm_pFirst - head of the engine's factory list.
+    "GameSystemFactoryListSig": {
+      "library": "server",
+      "windows": { "pattern": "48 8B 1D ? ? ? ? 48 85 DB 0F 84 ? ? ? ? BD" },
+      "linux": { "pattern": "4C 8B 35 ? ? ? ? 4D 85 F6 75 ? E9" }
+    },
+
+    // CGameSystemEventDispatcher** - live dispatcher, for detach on unload.
+    "GameSystemEventDispatcherSig": {
+      "library": "server",
+      "windows": { "pattern": "48 39 1D ? ? ? ? 74 ? 39 05" },
+      "linux": { "pattern": "4C 8B 25 ? ? ? ? 48 8B 05 ? ? ? ? 8B 35" }
+    },
+
+    // CUtlVector<AddedGameSystem_t>* s_GameSystems - active systems, for removal on unload.
+    "GameSystemListSig": {
+      "library": "server",
+      "windows": { "pattern": "8B 05 ? ? ? ? 83 E8 ? 48 63 F8 0F 88" },
+      "linux": { "pattern": "8B 05 ? ? ? ? 89 C2 83 EA ? 0F 88 ? ? ? ? 4C 8D 3D" }
+    },
+
+    // GetLegacyGameEventListener: IGameEventListener2*(*)(CPlayerSlot); the match IS the function.
+    "LegacyGameEventListener": {
+      "library": "server",
+      "windows": { "pattern": "48 8B 15 ? ? ? ? 48 85 D2 74 ? 85 C9" },
+      "linux": { "pattern": "48 8B 05 ? ? ? ? 48 85 C0 74 ? 83 FF ? 77 ? 48 63 FF 48 C1 E7 ? 48 8D 44 38" }
+    },
+
+    // Patterns below are copied from CS2Fixes gamedata (github.com/Source2ZE/CS2Fixes) under the
+    // same entry names - re-sync from there after CS2 updates.
+
+    // CBaseEntity* (const char* className, int forceEdictIndex /* -1 */)
+    "CreateEntityByName": {
+      "library": "server",
+      "windows": { "pattern": "48 83 EC 48 C6 44 24 30 00" },
+      "linux": { "pattern": "48 8D 05 ? ? ? ? 55 48 89 FA" }
+    },
+
+    // void (CBaseEntity*, CEntityKeyValues* /* may be null */)
+    "DispatchSpawn": {
+      "library": "server",
+      "windows": { "pattern": "48 89 5C 24 10 57 48 83 EC 30 48 8B DA 48 8B F9 48 85 C9" },
+      "linux": { "pattern": "48 85 FF 74 ? 55 48 89 E5 41 55 41 54 49 89 FC" }
+    },
+
+    // void (CEntityInstance*, const char* input, activator, caller, variant_t*, int outputId, void*).
+    // Not a vtable call in CS2.
+    "CEntityInstance_AcceptInput": {
+      "library": "server",
+      "windows": { "pattern": "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 49 8B F0 48 8B D9 48 8B 0D" },
+      "linux": { "pattern": "55 48 89 F0 48 89 E5 41 57 49 89 FF 41 56 48 8D 7D" }
+    },
+
+    // Deferred entity IO (delayed inputs, "Kill" cleanup):
+    // void (CEntitySystem*, target, input, activator, caller, variant_t*, float delay, int outputId, void*, void*)
+    "CEntitySystem_AddEntityIOEvent": {
+      "library": "server",
+      "windows": {
+        "pattern": "48 89 5C 24 18 4C 89 4C 24 20 48 89 4C 24 08 55 56 57 41 54 41 55 41 56 41 57 48 83 EC 20"
+      },
+      "linux": { "pattern": "55 48 89 E5 41 55 49 89 CD 41 54 49 89 FC 53 BB" }
+    },
+
+    // void (CEntityInstance*) - immediate entity removal.
+    "UTIL_Remove": {
+      "library": "server",
+      "windows": { "pattern": "48 85 C9 74 ? 48 8B D1 48 8B 0D ? ? ? ?" },
+      "linux": { "pattern": "48 89 FE 48 85 FF 74 ? 48 8D 05 ? ? ? ? 48" }
+    },
+
+    // void (CBaseEntity*, const char* soundEvent, int pitch, float volume, float delay).
+    // Vscript binding per CS2Fixes - may vanish; EmitSoundFilter is sturdier.
+    "CBaseEntity_EmitSoundParams": {
+      "library": "server",
+      "windows": {
+        "pattern": "48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 55 48 8B EC 48 81 EC ? ? ? ? 33 C0"
+      },
+      "linux": { "pattern": "48 B8 ? ? ? ? ? ? ? ? 55 0F 28 D0" }
+    },
+
+    // StartSoundEventInfo (IRecipientFilter&, CEntityIndex, const EmitSound_t&)
+    "CBaseEntity_EmitSoundFilter": {
+      "library": "server",
+      "windows": { "pattern": "40 53 48 83 EC ? 4C 89 4C 24 ? 48 8B D9 45 8B C8" },
+      "linux": {
+        "pattern": "55 48 89 E5 53 48 89 FB 48 83 EC ? E8 ? ? ? ? 48 89 D8 48 8B 5D ? C9 C3 CC CC CC CC CC CC 48 B8"
+      }
+    },
+
+    // void (CBaseModelEntity*, const char* modelPath)
+    "CBaseModelEntity_SetModel": {
+      "library": "server",
+      "windows": {
+        "pattern": "40 53 48 83 EC ? 48 8B D9 4C 8B C2 48 8B 0D ? ? ? ? 48 8D 54 24 ? 48 8B 01 FF 50 ? 48 8B 54 24 ? 48 8B CB E8 ? ? ? ? 48 83 C4 ? 5B C3 CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC 48 89 5C 24"
+      },
+      "linux": {
+        "pattern": "55 48 89 E5 53 48 89 FB 48 83 EC ? 48 8D 05 ? ? ? ? 48 8B 38 48 8B 07 FF 50 ? 48 89 DF 48 8B 5D ? C9 48 89 C6 E9 ? ? ? ? CC CC CC CC 55"
+      }
+    },
+
+    // CBaseEntity* (CEntitySystem*, CEntityInstance* startAfter, const char* className)
+    "CGameEntitySystem_FindEntityByClassName": {
+      "library": "server",
+      "windows": { "pattern": "48 83 EC 68 45 33 C9" },
+      "linux": { "pattern": "55 45 31 C0 31 C9 48 89 E5 53 48 8D 5D ? 48 83 EC ? 48 89 DF" }
+    },
+
+    // CBaseEntity* (CEntitySystem*, startAfter, name, searching, activator, caller, IEntityFindFilter*)
+    "CGameEntitySystem_FindEntityByName": {
+      "library": "server",
+      "windows": { "pattern": "48 81 EC 88 ? ? ? 4D 85 C0" },
+      "linux": { "pattern": "55 48 89 E5 41 54 53 48 83 EC ? 48 85 D2" }
+    }
+  },
+
+  // A pointer reached through a rel32 displacement inside a matched signature. `rel32At` is the
+  // byte distance from the match to the 4-byte little-endian displacement.
+  "addresses": {
+    // IGameEventManager2** inside CSource2Server.
+    "GameEventManager": {
+      "signature": "GameEventManagerSig",
+      "rel32At": { "windows": 98, "linux": 106 }
+    },
+    "GameSystemFactoryList": {
+      "signature": "GameSystemFactoryListSig",
+      "rel32At": { "windows": 3, "linux": 3 }
+    },
+    "GameSystemEventDispatcher": {
+      "signature": "GameSystemEventDispatcherSig",
+      "rel32At": { "windows": 3, "linux": 3 }
+    },
+    "GameSystemList": {
+      "signature": "GameSystemListSig",
+      "rel32At": { "windows": 2, "linux": 2 }
+    }
+  },
+
+  // Virtual function table slots. `class` is the RTTI/ELF class name owning the table, which is
+  // both what a DVP hook binds to and what the index is counted in - a wrong index calls an
+  // unrelated vfunc and crashes.
+  "vtables": {
+    // CBasePlayerPawn::CommitSuicide (SwiftlyS2 v1.4.5: 384/384). Called on the pawn, whose most
+    // derived class is CCSPlayerPawn.
+    "CommitSuicide": { "class": "CCSPlayerPawn", "windows": 384, "linux": 384 },
+    // CCSPlayerController::ChangeTeam (SwiftlyS2: 103/102).
+    "ChangeTeam": { "class": "CCSPlayerController", "windows": 103, "linux": 102 },
+    // CCSPlayerController::Respawn (SwiftlyS2 v1.4.5: 270/272).
+    "Respawn": { "class": "CCSPlayerController", "windows": 270, "linux": 272 },
+    // CBaseEntity::Teleport(origin, angles, velocity) (SwiftlyS2: 163/162). Bound per pawn by
+    // Hooks::Teleport and called directly by PlayerController::Teleport.
+    "Teleport": { "class": "CCSPlayerPawn", "windows": 163, "linux": 162 },
+    // CPlayer_MovementServices::RunCommand (SwiftlyS2 v1.4.5: 25/26). Drives Hooks::Movement,
+    // which DVP-hooks the concrete class every player pawn instantiates.
+    "RunCommand": { "class": "CCSPlayer_MovementServices", "windows": 25, "linux": 26 },
+    // CCSPlayerPawn::OnTakeDamage_Alive (CS2Fixes: 252/253). Drives Hooks::Damage.
+    "OnTakeDamageAlive": { "class": "CCSPlayerPawn", "windows": 252, "linux": 253 },
+    // CCSPlayer_ItemServices::GiveNamedItem (SwiftlyS2 / s2sdk: 23/24). Called on the pawn's
+    // m_pItemServices.
+    "GiveNamedItem": { "class": "CCSPlayer_ItemServices", "windows": 23, "linux": 24 },
+    // CCSPlayer_ItemServices::RemoveAllItems (SwiftlyS2 / s2sdk: 27/28).
+    "RemoveAllItems": { "class": "CCSPlayer_ItemServices", "windows": 27, "linux": 28 },
+    // CServerSideClient::ProcessRespondCvarValue (CS2AC: 38/40). Lives in engine2, not server.
+    "ProcessRespondCvarValue": {
+      "class": "CServerSideClient",
+      "library": "engine2",
+      "windows": 38,
+      "linux": 40
+    }
+  },
+
+  // Byte offsets into layouts the SDK headers do not declare. `max` and `align` describe the field
+  // the framework reads there, so a hand-edited or drifted value is rejected at load rather than
+  // turning into a read of unrelated memory.
+  "offsets": {
+    // The CGameEntitySystem* cached inside IGameResourceService.
+    "GameEntitySystem": { "windows": 88, "linux": 80, "max": 4096, "align": 8 },
+
+    // The recipient player slot inside CCheckTransmitInfo (the SDK declares only the two leading
+    // bitvec pointers). Synced from CS2Fixes gamedata under the same name; read as one byte.
+    "CheckTransmitPlayerSlot": { "windows": 576, "linux": 576, "max": 4096, "align": 1 },
+
+    // CSGOUserCmdPB embedded in CUserCmd; checked against CS2Fixes and SwiftlyS2.
+    "UserCmdPB": { "windows": 16, "linux": 16, "max": 4096, "align": 8 },
+    // Native command counter in CUserCmd. The live client does not populate
+    // CBaseUserCmdPB.legacy_command_number; checked against CS2AC.
+    "UserCmdNumber": { "windows": 8, "linux": 8, "max": 4096, "align": 4 },
+
+    // Player slot in CServerSideClient (CS2AC ClientSlotOffset: 72/72).
+    "ServerSideClientSlot": { "windows": 72, "linux": 72, "max": 4096, "align": 4 },
+
+    // Fields read by Hooks::Damage. The SDK does not declare CTakeDamageInfo, so these are the
+    // only way to reach it; layouts are CS2Fixes' ctakedamageinfo.h plus SwiftlyS2's
+    // CGameTrace/CHitBoxTrace, identical on both platforms. A wrong offset reads the wrong field
+    // rather than crashing, so the hook refuses to install unless every one resolved.
+    // CTakeDamageResult needs no entry beyond m_pOriginatingInfo, which sits at 0.
+    "TakeDamageInfoAttacker": { "windows": 60, "linux": 60, "max": 512, "align": 4 },
+    // m_flDamage, the amount OnTakeDamage_Alive works from and what a listener sees.
+    "TakeDamageInfoDamage": { "windows": 68, "linux": 68, "max": 512, "align": 4 },
+    "TakeDamageInfoDamageTypes": { "windows": 76, "linux": 76, "max": 512, "align": 4 },
+    // The hitgroup is NOT m_iHitGroupId - that reads -1 for ordinary bullet damage. It takes
+    // three hops: info->m_pTrace->m_pHitBox->m_nGroupId.
+    "TakeDamageInfoTrace": { "windows": 104, "linux": 104, "max": 512, "align": 8 },
+    "GameTraceHitbox": { "windows": 16, "linux": 16, "max": 512, "align": 8 },
+    "HitboxGroupId": { "windows": 56, "linux": 56, "max": 512, "align": 4 }
+  }
+}

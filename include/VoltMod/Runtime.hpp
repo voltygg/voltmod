@@ -4,10 +4,12 @@
 #include <VoltMod/App/ServiceExchange.hpp>
 #include <VoltMod/App/StatusService.hpp>
 #include <VoltMod/Commands/CommandManager.hpp>
+#include <VoltMod/Core/Capabilities.hpp>
 #include <VoltMod/Core/LoadReport.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Translations.hpp>
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/Clock.hpp>
 #include <VoltMod/Engine/ConVars.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
@@ -90,6 +92,9 @@ public:
     Policy Policy;
     /** Named, timed load stages recorded by Start and by the plugin's OnLoad. */
     LoadReport LoadReport;
+    /** What this load can actually do, and why anything missing is missing. Written only by
+     *  Start; read it before using a feature whose gamedata or engine support can be absent. */
+    Capabilities Capabilities;
     /** "This slot changed hands", raised by the roster and consumed by per-slot caches. */
     SlotEvents Slots;
     /** Frame pump, timers and delayed work. Pending timers are destroyed with it, never run, so
@@ -105,7 +110,10 @@ public:
     // Engine-facing services.
     /** Plain interface-pointer holder; populated by Start. */
     Interfaces Interfaces;
+    /** The raw gamedata resolutions, for diagnostics. Services read @ref Bindings instead. */
     GameData GameData;
+    /** The typed view of GameData; bound once by Start and handed to every engine service. */
+    Bindings Bindings;
 
 private:
     /** Internal schema-offset service, declared here because the engine services below take it.
@@ -114,40 +122,40 @@ private:
     std::unique_ptr<SchemaService> _schema;
 
 public:
-    /** Depends on: Interfaces, GameData, Schema(). */
-    EntitySystem Entities{Interfaces, GameData, *_schema};
+    /** Depends on: Interfaces, Bindings, Schema(). */
+    EntitySystem Entities{Interfaces, Bindings, *_schema};
     /** Pawn manipulations that need framework services, such as slap and its fall protection.
      *  Depends on: Scheduler, Slots, Entities. */
     Pawns Pawns{Scheduler, Slots, Entities};
-    /** Depends on: Entities, GameData, Schema(). */
-    EntityOps EntityOps{Entities, GameData, *_schema};
-    /** Weapon give/strip through CCSPlayer_ItemServices. Depends on: GameData, Schema(). */
-    Items Items{GameData, *_schema};
-    /** Depends on: Entities, GameData, Schema(), Slots. */
-    Transmit Transmit{Entities, GameData, *_schema, Slots};
+    /** Depends on: Entities, Bindings, Schema(). */
+    EntityOps EntityOps{Entities, Bindings, *_schema};
+    /** Weapon give/strip through CCSPlayer_ItemServices. Depends on: Bindings, Schema(). */
+    Items Items{Bindings, *_schema};
+    /** Depends on: Entities, Bindings, Schema(), Slots. */
+    Transmit Transmit{Entities, Bindings, *_schema, Slots};
     /** Builds per-viewer visibility effects (GlowVision). Depends on: Entities, EntityOps, Transmit. */
     Visibility Visibility{Entities, EntityOps, Transmit};
-    /** Depends on: GameData. */
-    Precache Precache{GameData};
+    /** Depends on: Bindings. */
+    Precache Precache{Bindings};
     /** Depends on: Interfaces. */
     ConVars ConVars{Interfaces};
     /** Map validation and level changes. Depends on: Interfaces, ConVars. */
     Map Maps{Interfaces, ConVars};
-    /** Depends on: Interfaces, GameData. Declared before Messages, which sends through it. */
-    GameEvents Events{Interfaces, GameData};
-    /** Depends on: Interfaces, GameData, Events, Translations. */
-    Messages Messages{Interfaces, GameData, Events, Translations};
+    /** Depends on: Interfaces, Bindings. Declared before Messages, which sends through it. */
+    GameEvents Events{Interfaces, Bindings};
+    /** Depends on: Interfaces, Bindings, Events, Translations. */
+    Messages Messages{Interfaces, Bindings, Events, Translations};
     /** The engine's simulation clock (tick and curtime). Depends on: Interfaces. */
     Clock Clock{Interfaces};
     /** The game's own yes/no vote panel. Subscribes on the first StartVote().
      *  Depends on: Interfaces, Entities, Schema(), Events, Scheduler. */
     Vote Vote{Interfaces, Entities, *_schema, Events, Scheduler};
     /** Dormant until a plugin calls Install(); removes its vtable hook on destruction.
-     *  Depends on: Entities, GameData. */
-    Movement MovementHook{Entities, GameData};
+     *  Depends on: Entities, Bindings. */
+    Movement MovementHook{Entities, Bindings};
     /** Dormant until Install(); observation only - listeners see each hit but cannot change it.
-     *  Depends on: Entities, GameData. */
-    Damage Damage{Entities, GameData};
+     *  Depends on: Entities, Bindings. */
+    Damage Damage{Entities, Bindings};
     /** Stateless per-client net-channel reads (latency, replicated userinfo cvars).
      *  Depends on: Interfaces. */
     NetChannels NetChannels{Interfaces};
@@ -157,11 +165,11 @@ public:
      *  Depends on: MovementHook, Slots. */
     InputHistory InputHistory{MovementHook, Slots};
     /** Dormant until something subscribes to Teleports.Teleported; per-pawn Teleport hook re-bound
-     *  on PlayerSpawn. Depends on: Entities, GameData, Events, Slots. */
-    Teleport Teleports{Entities, GameData, Events, Slots};
-    /** Async client-side convar reads. Inert when its load stage degraded (Available() == false).
-     *  Depends on: Interfaces, GameData, Slots. */
-    ClientCvars ClientCvars{Interfaces, GameData, Slots};
+     *  on PlayerSpawn. Depends on: Entities, Bindings, Events, Slots. */
+    Teleport Teleports{Entities, Bindings, Events, Slots};
+    /** Async client-side convar reads. Inert when Capability::ClientCvars is off.
+     *  Depends on: Interfaces, Bindings, Slots. */
+    ClientCvars ClientCvars{Interfaces, Bindings, Slots};
 
     // Composition-root services.
     /** Interfaces offered to, and borrowed from, other plugins. */

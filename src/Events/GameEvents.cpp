@@ -1,6 +1,6 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <bit>
@@ -9,7 +9,8 @@
 namespace VoltMod
 {
 
-GameEvents::GameEvents(Interfaces& interfaces, GameData& gameData) : _interfaces(interfaces), _gameData(gameData) {}
+GameEvents::GameEvents(Interfaces& interfaces, const Bindings& bindings) : _interfaces(interfaces), _bindings(bindings)
+{}
 
 GameEvents::~GameEvents()
 {
@@ -17,21 +18,18 @@ GameEvents::~GameEvents()
     RemoveAllListeners();
 }
 
-bool GameEvents::Initialize()
+Status GameEvents::Initialize()
 {
-    if (void* legacyListener = _gameData.FindSignature("LegacyGameEventListener"))
-        _getLegacyListener = std::bit_cast<GetLegacyGameEventListenerFn>(legacyListener);
+    if (_bindings.LegacyGameEventListener)
+        _getLegacyListener = std::bit_cast<GetLegacyGameEventListenerFn>(_bindings.LegacyGameEventListener.Ptr());
     else
         Log::Warn("LegacyGameEventListener signature not found; per-client event delivery unavailable.");
 
     if (!_interfaces.GameEventManager)
-    {
-        Log::Warn("GameEvents: IGameEventManager2 not available.");
-        return false;
-    }
+        return std::unexpected(Error::NotReady("IGameEventManager2 not available"));
 
     Log::Info("Game event service initialized.");
-    return true;
+    return {};
 }
 
 IGameEventListener2* GameEvents::GetClientLegacyListener(int slot) const

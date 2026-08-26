@@ -2,7 +2,7 @@
 
 #include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Core/Result.hpp>
-#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Entities/HitGroup.hpp>
 #include <cstdint>
@@ -43,17 +43,13 @@ class Damage
 {
 public:
     /** Both must outlive this hook; the Runtime declares them above it. */
-    Damage(EntitySystem& entities, GameData& gameData);
+    Damage(EntitySystem& entities, const Bindings& bindings);
     ~Damage() { Remove(); }
     Damage(const Damage&) = delete;
     Damage& operator=(const Damage&) = delete;
 
     /** One point of damage a living player took. Subscribing installs the hook. */
     Event<const DamageView&> Hit;
-
-    /** Whether the vtable hook is currently bound - false while nothing is subscribed, and false
-     *  after a subscription was refused because gamedata did not resolve. */
-    bool Installed() const { return _installed; }
 
 private:
     bool Acquire();
@@ -67,21 +63,9 @@ private:
     /** Walk info -> trace -> hitbox for the struck hitgroup. */
     HitGroup ReadHitGroup(void* info) const;
 
-    /** Read every damage field offset from gamedata. False when one is missing or implausible. */
-    bool ResolveOffsets();
-
     EntitySystem& _entities;
-    GameData& _gameData;
+    const Bindings& _bindings;
     int _refs = 0;  // live subscriptions on Hit
-    // CTakeDamageInfo fields, then the trace chain the hitgroup lives on. Resolved once by
-    // Install(). Adding to this set grows Runtime, which holds the hook by value - see the
-    // crash-triage skill on the latent out-of-bounds write that some sizes turn fatal.
-    int _offsetAttacker = -1;
-    int _offsetDamage = -1;
-    int _offsetDamageTypes = -1;
-    int _offsetTrace = -1;
-    int _offsetTraceHitbox = -1;
-    int _offsetHitboxGroup = -1;
     bool _installed = false;
     int _hookId = 0;
 };

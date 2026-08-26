@@ -3,7 +3,7 @@
 #include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Hooks/UserCmd.hpp>
 #include <array>
@@ -23,7 +23,7 @@ namespace VoltMod
  *
  * @ref Pre and @ref Post fire around each player's RunCommand with the owning slot resolved
  * (-1 when unresolved). A pre/post pair brackets exactly that player's movement processing,
- * which makes it the place for per-player state flips (see ConVarStorage).
+ * which makes it the place for per-player state flips (see ConVar::RawScope).
  *
  * @ref PreCmd and @ref PostCmd additionally receive a UserCmdView - the command's viewangles,
  * buttons, mouse deltas, and sub-tick moves decoded from the CSGOUserCmdPB payload (gamedata byte
@@ -44,9 +44,9 @@ namespace VoltMod
 class Movement
 {
 public:
-    /** @p entities resolves the owning slot per usercmd, @p gameData the vtable index and byte
-     *  offsets. Both must outlive this hook; the Runtime declares them above it. */
-    Movement(EntitySystem& entities, GameData& gameData);
+    /** @p entities resolves the owning slot per usercmd, @p bindings the vtable index, the class
+     *  vtable and the byte offsets. Both must outlive this hook; the Runtime declares them above. */
+    Movement(EntitySystem& entities, const Bindings& bindings);
     ~Movement() { Remove(); }
     Movement(const Movement&) = delete;
     Movement& operator=(const Movement&) = delete;
@@ -61,10 +61,6 @@ public:
     Event<int, const UserCmdView&> PostCmd;
     /** Mutable edit of the decoded view, before any other handler sees it; see the class docs. */
     Event<int, UserCmdView&> FilterCmd;
-
-    /** Whether the vtable hook is currently bound - false while nothing is subscribed, and false
-     *  after a subscription was refused because gamedata did not resolve. */
-    bool Installed() const { return _installed; }
 
     /** Slot whose pawn owns @p movementServices, or -1. */
     int SlotFromMovementServices(void* movementServices) const;
@@ -83,11 +79,9 @@ private:
     void DecodeUserCmd(void* userCmd);
 
     EntitySystem& _entities;
-    GameData& _gameData;
-    int _refs = 0;              // live subscriptions across all five events
-    UserCmdView _cmdView;       // decoded once per RunCommand, reused across pre/post dispatch
-    int _pbOffset = -1;         // gamedata "UserCmdPB"; negative disables decoding
-    int _cmdNumberOffset = -1;  // gamedata "UserCmdNumber"; negative falls back to legacy_command_number
+    const Bindings& _bindings;
+    int _refs = 0;         // live subscriptions across all five events
+    UserCmdView _cmdView;  // decoded once per RunCommand, reused across pre/post dispatch
     bool _installed = false;
     int _preHookId = 0;  // SourceHook DVP-hook ids; removal is by id, see Remove()
     int _postHookId = 0;

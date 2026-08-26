@@ -1,0 +1,137 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "voltmod gamedata.jsonc (version 2)",
+  "description": "Where the engine keeps things. C++ owns every ABI (prototypes, vtable signatures, field types) in VoltMod::Bindings; this file only says where to look. Fragile: re-verify after every CS2 engine update.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "build"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": {
+      "type": "integer",
+      "const": 2,
+      "description": "Format version. VoltMod refuses anything else."
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["game", "verified"],
+      "properties": {
+        "game": { "type": "string", "description": "Game these entries were verified against." },
+        "verified": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "description": "Date the whole file was last walked entry by entry (YYYY-MM-DD)."
+        },
+        "note": { "type": "string" }
+      }
+    },
+    "signatures": {
+      "type": "object",
+      "description": "Byte patterns scanned in a loaded module; the match address is the binding.",
+      "additionalProperties": { "$ref": "#/definitions/signature" }
+    },
+    "addresses": {
+      "type": "object",
+      "description": "Pointers reached through a rel32 displacement inside a matched signature.",
+      "additionalProperties": { "$ref": "#/definitions/address" }
+    },
+    "vtables": {
+      "type": "object",
+      "description": "Virtual function table slots, with the class whose table the index is counted in.",
+      "additionalProperties": { "$ref": "#/definitions/vtable" }
+    },
+    "offsets": {
+      "type": "object",
+      "description": "Byte offsets into layouts the SDK headers do not declare.",
+      "additionalProperties": { "$ref": "#/definitions/offset" }
+    }
+  },
+  "definitions": {
+    "library": {
+      "type": "string",
+      "default": "server",
+      "description": "Module to look in, without platform prefix/suffix (\"server\" -> server.dll / libserver.so)."
+    },
+    "pattern": {
+      "type": "string",
+      "pattern": "^([0-9A-Fa-f]{2}|\\?\\??)( ([0-9A-Fa-f]{2}|\\?\\??))*$",
+      "description": "Space-separated hex bytes; \"?\" or \"??\" is a wildcard byte."
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }],
+      "properties": {
+        "library": { "$ref": "#/definitions/library" },
+        "windows": { "$ref": "#/definitions/platformSignature" },
+        "linux": { "$ref": "#/definitions/platformSignature" }
+      }
+    },
+    "platformSignature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pattern"],
+      "properties": {
+        "pattern": { "$ref": "#/definitions/pattern" }
+      }
+    },
+    "address": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["signature", "rel32At"],
+      "properties": {
+        "signature": {
+          "type": "string",
+          "description": "Key in \"signatures\" whose match this address is derived from."
+        },
+        "rel32At": {
+          "type": "object",
+          "additionalProperties": false,
+          "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }],
+          "description": "Byte distance from the match to the 4-byte little-endian rel32 displacement.",
+          "properties": {
+            "windows": { "type": "integer", "minimum": 0 },
+            "linux": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "vtable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["class"],
+      "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }],
+      "properties": {
+        "class": {
+          "type": "string",
+          "description": "Top-level RTTI/ELF class name owning the table (no namespace, no template)."
+        },
+        "library": { "$ref": "#/definitions/library" },
+        "windows": { "type": "integer", "minimum": 0, "maximum": 499 },
+        "linux": { "type": "integer", "minimum": 0, "maximum": 499 }
+      }
+    },
+    "offset": {
+      "type": "object",
+      "additionalProperties": false,
+      "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }],
+      "properties": {
+        "windows": { "type": "integer", "minimum": 0 },
+        "linux": { "type": "integer", "minimum": 0 },
+        "max": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 4096,
+          "description": "Largest plausible offset for this field; a larger value is a typo, not a field."
+        },
+        "align": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1,
+          "description": "Alignment the field the framework reads there requires."
+        }
+      }
+    }
+  }
+}

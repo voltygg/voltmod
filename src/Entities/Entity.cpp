@@ -1,7 +1,7 @@
 #include "Entities/Schema.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/MemoryAccess.hpp>
 #include <VoltMod/Entities/Entity.hpp>
@@ -27,8 +27,8 @@ CGameEntitySystem* GameEntitySystem()
 namespace VoltMod
 {
 
-EntitySystem::EntitySystem(Interfaces& interfaces, GameData& gameData, SchemaService& schema)
-    : _interfaces(interfaces), _gameData(gameData), _schema(schema)
+EntitySystem::EntitySystem(Interfaces& interfaces, const Bindings& bindings, SchemaService& schema)
+    : _interfaces(interfaces), _bindings(bindings), _schema(schema)
 {}
 
 EntitySystem::~EntitySystem()
@@ -72,38 +72,27 @@ void EntitySystem::SetEntitySystem(CGameEntitySystem* system)
 
 CGameEntitySystem* EntitySystem::ReadEntitySystemPointer()
 {
-    // Runs per call until the pointer resolves, so it stays a plain read: Initialize caches the
-    // offset rather than paying a gamedata lookup on paths that reach entities every frame.
-    if (!_interfaces.GameResourceService || _offsetGameEntitySystem < 0)
+    // Runs per call until the pointer resolves, so it stays a plain read.
+    if (!_interfaces.GameResourceService)
         return nullptr;
 
-    return ReadAt<CGameEntitySystem*>(_interfaces.GameResourceService, _offsetGameEntitySystem);
+    return _bindings.GameEntitySystem.Read(_interfaces.GameResourceService);
 }
 
-bool EntitySystem::Initialize()
+Status EntitySystem::Initialize()
 {
     if (!_interfaces.GameResourceService)
-    {
-        Log::Error("IGameResourceService not available.");
-        return false;
-    }
+        return std::unexpected(Error::NotReady("IGameResourceService not available"));
 
-    // "GameEntitySystem" = byte offset of the CGameEntitySystem* cached inside CGameResourceService.
-    _offsetGameEntitySystem = _gameData.GetByteOffset("GameEntitySystem", MaxByteOffset, alignof(void*));
-    if (_offsetGameEntitySystem < 0)
-        return false;
-    Log::Info("Gamedata loaded (entity system offset: {}).", _offsetGameEntitySystem);
+    if (!_bindings.GameEntitySystem)
+        return std::unexpected(Error::Unsupported("the GameEntitySystem offset did not bind"));
+    Log::Info("Gamedata loaded (entity system offset: {}).", _bindings.GameEntitySystem.Value());
 
     // The engine creates CGameEntitySystem during server startup, so a null read here is expected
     // on a cold load and OnServerStartup picks it up. Whether it resolved is load policy, not the
-    // SDK's call: the caller reads IsResolved() and decides.
+    // SDK's call: the caller reads GetEntitySystem() and decides.
     GetEntitySystem();
-    return true;
-}
-
-bool EntitySystem::IsResolved() const
-{
-    return _interfaces.EntitySystem != nullptr;
+    return {};
 }
 
 void EntitySystem::OnServerStartup()
@@ -235,47 +224,25 @@ bool EntitySystem::IsPlayerSlotValid(int slot)
     return GetPlayerController(slot) != nullptr;
 }
 
-// Prototypes mirror CS2Fixes' src/addresses.h; re-verify there after CS2 updates.
-using FindByClassNameFn = CEntityInstance* (*)(CEntitySystem * system, CEntityInstance* startAfter,
-                                               const char* className);
-using FindByNameFn = CEntityInstance* (*)(CEntitySystem * system, CEntityInstance* startAfter, const char* name,
-                                          CEntityInstance* searching, CEntityInstance* activator,
-                                          CEntityInstance* caller, void* filter);
-
-void EntitySystem::ResolveFinderSignatures()
-{
-    if (_findersResolved)
-        return;
-
-    _findByClassName = _gameData.FindSignature("CGameEntitySystem_FindEntityByClassName");
-    _findByName = _gameData.FindSignature("CGameEntitySystem_FindEntityByName");
-
-    if (!_findByClassName || !_findByName)
-        Log::Warn("Entity finder signature(s) not resolved; FindByClassName/FindByName are disabled.");
-
-    _findersResolved = true;
-}
-
 CEntityInstance* EntitySystem::FindByClassName(CEntityInstance* startAfter, const char* className)
 {
-    ResolveFinderSignatures();
-
     auto* pSys = GetEntitySystem();
-    if (!_findByClassName || !pSys || !className)
+    if (!_bindings.FindEntityByClassName || !pSys || !className)
         return nullptr;
 
-    return std::bit_cast<FindByClassNameFn>(_findByClassName)(pSys, startAfter, className);
+    // The engine takes CEntitySystem*; the upcast happens here, where the complete types are in
+    // scope, rather than inside the binding's own void* parameter.
+    return _bindings.FindEntityByClassName(static_cast<CEntitySystem*>(pSys), startAfter, className);
 }
 
 CEntityInstance* EntitySystem::FindByName(CEntityInstance* startAfter, const char* name)
 {
-    ResolveFinderSignatures();
-
     auto* pSys = GetEntitySystem();
-    if (!_findByName || !pSys || !name)
+    if (!_bindings.FindEntityByName || !pSys || !name)
         return nullptr;
 
-    return std::bit_cast<FindByNameFn>(_findByName)(pSys, startAfter, name, nullptr, nullptr, nullptr, nullptr);
+    return _bindings.FindEntityByName(static_cast<CEntitySystem*>(pSys), startAfter, name, nullptr, nullptr, nullptr,
+                                      nullptr);
 }
 
 }  // namespace VoltMod

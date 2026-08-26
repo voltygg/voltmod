@@ -1,5 +1,6 @@
 #pragma once
 
+#include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <cstdint>
 #include <functional>
@@ -20,7 +21,8 @@ public:
     /** @p interfaces supplies ISchemaSystem; it must outlive this service. */
     explicit SchemaService(Interfaces& interfaces) : _interfaces(interfaces) {}
 
-    bool Initialize();
+    /** Bind ISchemaSystem. Error::NotReady when the engine did not hand it over. */
+    Status Initialize();
 
     /**
      * Field offset via the engine's schema system (cached). When `expectedSize` > 0, the

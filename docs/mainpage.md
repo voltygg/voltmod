@@ -24,7 +24,7 @@ renames it. `include/VoltMod/<Module>/` is where a header lives, and the
 | Commands | `VoltMod/Commands/` | Declarative commands with typed, pre-resolved arguments |
 | Players | `VoltMod/Players/` | Player tracking, target selectors, and actions |
 | Menu | `VoltMod/Menu/` | WASD center-HTML menus, context rows, pickers, and flows |
-| Engine | `VoltMod/Engine/` | Interfaces, gamedata, convars, the server clock, maps, precaching, and console commands |
+| Engine | `VoltMod/Engine/` | Interfaces, gamedata and its typed bindings, `ConVar<T>`, the server clock, maps, precaching, and console commands |
 | Entities | `VoltMod/Entities/` | Entity lookup, the typed player controller, schema fields, items, and pawn operations |
 | Events | `VoltMod/Events/` | The game event listener service and its typed event structs |
 | Messaging | `VoltMod/Messaging/` | Chat and center-HTML messages, sticky panels, chat colors, and the vote panel |

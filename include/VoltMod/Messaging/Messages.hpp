@@ -1,8 +1,9 @@
 #pragma once
 
+#include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Translations.hpp>
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Engine/GameData.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <map>
@@ -33,12 +34,15 @@ class Messages
 {
 public:
     /** All four must outlive this service; the Runtime declares them above it. */
-    Messages(Interfaces& interfaces, GameData& gameData, GameEvents& events, Translations& translations);
+    Messages(Interfaces& interfaces, const Bindings& bindings, GameEvents& events, Translations& translations);
     Messages(const Messages&) = delete;
     Messages& operator=(const Messages&) = delete;
 
-    bool Initialize();
-    bool InitGameEventManager();
+    /** Bind the engine message systems. Error::NotReady when either is unavailable. */
+    Status Initialize();
+
+    /** Read IGameEventManager2 out of its gamedata address. Error when it did not resolve. */
+    Status InitGameEventManager();
 
     /** Send one message to one player. */
     void Send(int slot, std::string_view message, MessageKind kind = MessageKind::Chat);
@@ -71,7 +75,7 @@ private:
     void PostTextMsg(IRecipientFilter& filter, int destination, const std::string& message);
 
     Interfaces& _interfaces;
-    GameData& _gameData;
+    const Bindings& _bindings;
     GameEvents& _events;
     Translations& _translations;
     INetworkMessageInternal* _textMsgInternal = nullptr;

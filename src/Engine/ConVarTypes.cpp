@@ -1,0 +1,54 @@
+#include "Engine/ConVarTypes.hpp"
+
+#include <VoltMod/Engine/ConVars.hpp>
+#include <format>
+#include <string>
+#include <type_traits>
+
+namespace VoltMod
+{
+
+template <class T>
+bool ConVarTypeMatches(ConVarType type)
+{
+    if constexpr (std::is_same_v<T, bool>)
+        return type == ConVarType::Bool;
+    else if constexpr (std::is_same_v<T, int>)
+        return type == ConVarType::Int16 || type == ConVarType::UInt16 || type == ConVarType::Int32 ||
+               type == ConVarType::UInt32 || type == ConVarType::Int64 || type == ConVarType::UInt64;
+    else if constexpr (std::is_same_v<T, float>)
+        return type == ConVarType::Float32 || type == ConVarType::Float64;
+    else
+        return type == ConVarType::String;
+}
+
+template bool ConVarTypeMatches<bool>(ConVarType);
+template bool ConVarTypeMatches<int>(ConVarType);
+template bool ConVarTypeMatches<float>(ConVarType);
+template bool ConVarTypeMatches<std::string>(ConVarType);
+
+template <>
+std::string ConVarText<bool>(const bool& value)
+{
+    return value ? "1" : "0";
+}
+
+template <>
+std::string ConVarText<int>(const int& value)
+{
+    return std::format("{}", value);
+}
+
+template <>
+std::string ConVarText<float>(const float& value)
+{
+    return std::format("{}", value);
+}
+
+template <>
+std::string ConVarText<std::string>(const std::string& value)
+{
+    return value;
+}
+
+}  // namespace VoltMod

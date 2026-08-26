@@ -11,7 +11,7 @@ names, like every other public name, live directly in `VoltMod`.
 
 The guide is split by topic:
 
-- @subpage sdk_gamedata_guide - signature scanning, named offsets, and runtime schema field resolution
+- @subpage sdk_gamedata_guide - the gamedata file, typed `Bindings`, capabilities, and runtime schema fields
 - @subpage sdk_players_guide - entity lookup, the typed player wrapper, common pawn operations, and weapons
 - @subpage sdk_entity_ops_guide - entity creation, entity IO, one-shot world effects, and resource precaching
 - @subpage sdk_visibility_guide - render mode/color tricks, per-recipient transmit filtering, and per-viewer glow vision
@@ -37,5 +37,27 @@ auto* schema = gi.SchemaSystem; // ISchemaSystem*
 ```
 
 Other engine-facing classes read from this holder internally. The examples on these pages
-reach services through `runtime.GameData`, `runtime.Entities`, `runtime.Schema()`,
-and the corresponding runtime members.
+reach services through `runtime.Entities`, `runtime.Schema()`, and the corresponding
+runtime members.
+
+## Capabilities
+
+Not every wrapper can work on every build of the game: a gamedata entry can fail to resolve, an
+engine interface can be missing. `Runtime::Start` records each outcome in
+@ref VoltMod::Capabilities, and that is the only place to ask - no service exposes an
+`Available()` or `IsResolved()` flag of its own.
+
+```cpp
+using VoltMod::Capability;
+
+if (!runtime.Capabilities.Has(Capability::ClientCvars))
+    Log::Warn("no client convar queries: {}", runtime.Capabilities.Reason(Capability::ClientCvars));
+
+Log::Info("{}", runtime.Capabilities.Summary());  // "12/14 ok; Movement: ..."
+```
+
+The enumerators are `Schema`, `Entities`, `EntityOps`, `GameEvents`, `Movement`, `Damage`,
+`Teleport`, `Transmit`, `ClientCvars`, `Precache`, `Vote`, `Items`, `Menus` and `Http`. A
+capability that is off means its service is inert, not unsafe: calling into it returns
+`Error::NotReady`, an empty `Subscription`, or nothing at all. The same picture is in the load
+log and in the `capabilities` status section.

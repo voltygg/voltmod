@@ -7,7 +7,7 @@
 @ref VoltMod::Movement is a manual vtable hook on
 `CCSPlayer_MovementServices::RunCommand`, the per-tick movement entry point. It exposes five
 events; `Pre` and `Post` bracket one player's movement processing, which makes them the right
-place for per-player state flips (see @ref VoltMod::ConVarStorage "ConVarStorage").
+place for per-player state flips (see @ref VoltMod::ConVar::RawScope "ConVar::RawScope").
 
 Subscribing is what installs the hook. The first subscription across all five events binds the
 class vtable; dropping the last one unbinds it. There is no `Install()` to call.

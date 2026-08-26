@@ -1,7 +1,7 @@
 #pragma once
 
+#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Engine/GameData.hpp>
 #include <VoltMod/Entities/PlayerController.hpp>
 
 namespace VoltMod
@@ -21,7 +21,7 @@ class Items
 {
 public:
     /** Both must outlive this service; the Runtime declares them above it. */
-    Items(GameData& gameData, SchemaService& schema);
+    Items(const Bindings& bindings, SchemaService& schema);
     Items(const Items&) = delete;
     Items& operator=(const Items&) = delete;
 
@@ -47,7 +47,7 @@ private:
     /** The pawn's CCSPlayer_ItemServices, or nullptr. */
     void* ItemServices(const PlayerController& pc) const;
 
-    GameData& _gameData;
+    const Bindings& _bindings;
     SchemaService& _schema;
 };
 
