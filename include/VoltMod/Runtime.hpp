@@ -153,7 +153,7 @@ public:
     /** Dormant until a plugin calls Install(); removes its vtable hook on destruction.
      *  Depends on: Entities, GameData. */
     Sdk::MovementHook MovementHook{Entities, GameData};
-    /** Dormant until Install(); pre-damage listeners may rewrite or suppress the hit.
+    /** Dormant until Install(); observation only - listeners see each hit but cannot change it.
      *  Depends on: Entities, GameData. */
     Sdk::DamageHook Damage{Entities, GameData};
     /** Stateless per-client net-channel reads (latency, replicated userinfo cvars).

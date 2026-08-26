@@ -15,23 +15,34 @@ namespace VoltMod::Sdk
 {
 using namespace VoltMod::Core;
 
-// bool CCSPlayerPawn::OnTakeDamage_Alive(CTakeDamageResult*). void* stands in for the result:
-// the SDK declares neither it nor CTakeDamageInfo, so their fields are reached by gamedata
-// offset. Bound to the class vtable (DVP hook), so it fires for every pawn without a live one.
+// bool CCSPlayerPawn::OnTakeDamage_Alive(CTakeDamageResult*). void* stands in for the result: the
+// SDK declares neither it nor CTakeDamageInfo, so their fields are reached by gamedata offset.
 SH_DECL_MANUALHOOK1(VoltMod_OnTakeDamageAlive, 0, 0, 0, bool, void*);
 
 namespace
 {
 
-// The server module owning the concrete pawn class every player instantiates.
 constexpr const char* ServerModule = "server";
 constexpr const char* PawnClass = "CCSPlayerPawn";
 
-// Bounds the gamedata reads. Both structs are a few hundred bytes; anything past this is a
-// typo rather than a field.
+// Both structs are a few hundred bytes; anything past this is a typo rather than a field.
 constexpr int MaxDamageOffset = 512;
 
 }  // namespace
+
+HitGroup DamageHook::ReadHitGroup(void* info) const
+{
+    // The hitgroup is on the hitbox the trace struck, not on CTakeDamageInfo - m_iHitGroupId reads
+    // -1 for ordinary bullet damage. Damage with no trace (fire, the bomb, a fall) stays Invalid,
+    // which is what keeps the aim rules off world damage.
+    auto* trace = ReadAt<void*>(info, _offsetTrace);
+    if (!trace)
+        return HitGroup::Invalid;
+    auto* hitbox = ReadAt<void*>(trace, _offsetTraceHitbox);
+    if (!hitbox)
+        return HitGroup::Invalid;
+    return static_cast<HitGroup>(ReadAt<int32_t>(hitbox, _offsetHitboxGroup));
+}
 
 bool DamageHook::Install()
 {
@@ -65,8 +76,8 @@ bool DamageHook::Install()
 
 bool DamageHook::ResolveOffsets()
 {
-    // A wrong field offset silently reads or writes the wrong bytes, so a missing one leaves the
-    // hook uninstalled rather than letting listeners act on nonsense.
+    // A wrong offset silently reads the wrong bytes, so a missing one leaves the hook uninstalled
+    // rather than letting listeners act on nonsense.
     struct Entry
     {
         const char* Name;
@@ -75,10 +86,11 @@ bool DamageHook::ResolveOffsets()
     };
     const Entry entries[]{
         {"TakeDamageInfoAttacker", alignof(uint32_t), &_offsetAttacker},
+        {"TakeDamageInfoDamage", alignof(float), &_offsetDamage},
         {"TakeDamageInfoDamageTypes", alignof(int32_t), &_offsetDamageTypes},
-        {"TakeDamageInfoHitGroup", alignof(int32_t), &_offsetHitGroup},
-        {"TakeDamageResultDealt", alignof(float), &_offsetDealt},
-        {"TakeDamageResultSuppressed", alignof(bool), &_offsetSuppressed},
+        {"TakeDamageInfoTrace", alignof(void*), &_offsetTrace},
+        {"GameTraceHitbox", alignof(void*), &_offsetTraceHitbox},
+        {"HitboxGroupId", alignof(int32_t), &_offsetHitboxGroup},
     };
 
     for (const auto& entry : entries)
@@ -98,8 +110,8 @@ void DamageHook::Remove()
     if (!_installed)
         return;
 
-    // Removal by id never dereferences a hooked instance, so this is safe even after a map
-    // change has destroyed every pawn.
+    // Removal by id never dereferences a hooked instance, so this is safe even after a map change
+    // has destroyed every pawn.
     SH_REMOVE_HOOK_ID(_hookId);
     _hookId = 0;
     _installed = false;
@@ -107,8 +119,7 @@ void DamageHook::Remove()
 
 bool DamageHook::Hook_OnTakeDamageAlive(void* result)
 {
-    // Fires for every point of damage every living player takes, so an installed-but-unused
-    // hook must cost nothing beyond this check.
+    // Fires per point of damage per living player, so an unused hook must cost only this check.
     if (_listeners.Empty())
         RETURN_META_VALUE(MRES_IGNORED, false);
 
@@ -116,33 +127,21 @@ bool DamageHook::Hook_OnTakeDamageAlive(void* result)
     if (!pawn || !result)
         RETURN_META_VALUE(MRES_IGNORED, false);
 
-    // CTakeDamageResult::m_pOriginatingInfo is the first member, so it needs no gamedata entry.
+    // m_pOriginatingInfo is the result's first member, so it needs no gamedata entry.
     auto* info = ReadAt<void*>(result, 0);
     if (!info)
         RETURN_META_VALUE(MRES_IGNORED, false);
 
-    DamageView view{
+    const DamageView view{
         .VictimSlot = _entities.SlotFromPawn(static_cast<CEntityInstance*>(pawn)),
         .AttackerSlot = _entities.SlotFromPawn(_entities.ResolveEntityHandle(ReadAt<uint32_t>(info, _offsetAttacker))),
-        .Hitbox = static_cast<HitGroup>(ReadAt<int32_t>(info, _offsetHitGroup)),
+        .Hitbox = ReadHitGroup(info),
         .DamageTypes = static_cast<uint32_t>(ReadAt<int32_t>(info, _offsetDamageTypes)),
-        .Damage = ReadAt<float>(result, _offsetDealt),
-        .Suppress = false};
+        .Damage = ReadAt<float>(info, _offsetDamage)};
 
-    const float original = view.Damage;
+    // Nothing is written back: the engine ignores every attempt to change the outcome here, so
+    // the hook reports and always defers. See the header.
     _listeners.Dispatch([&view](const Callback& callback) { callback(view); });
-
-    if (view.Suppress)
-    {
-        WriteAt<float>(result, _offsetDealt, 0.0f);
-        WriteAt<bool>(result, _offsetSuppressed, true);
-        RETURN_META_VALUE(MRES_SUPERCEDE, false);
-    }
-
-    // Only write when a listener actually changed it, so the untouched path leaves the engine's
-    // own value bit-for-bit alone.
-    if (view.Damage != original)
-        WriteAt<float>(result, _offsetDealt, view.Damage);
 
     RETURN_META_VALUE(MRES_IGNORED, false);
 }

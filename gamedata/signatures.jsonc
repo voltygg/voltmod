@@ -82,31 +82,37 @@
       "linux": 72
     },
 
-    // CTakeDamageInfo / CTakeDamageResult field offsets, read by Sdk::DamageHook. The SDK
-    // declares neither struct, so these are the only way to reach the fields. Sizes and layout
-    // are from CS2Fixes' cs2_sdk/entity/ctakedamageinfo.h and are identical on both platforms.
-    // A wrong offset reads or writes the wrong field rather than crashing, so the hook checks
-    // each one resolved before it dispatches.
+    // Field offsets read by Sdk::DamageHook. The SDK does not declare CTakeDamageInfo, so these
+    // are the only way to reach its fields; layouts are CS2Fixes' ctakedamageinfo.h plus
+    // SwiftlyS2's CGameTrace/CHitBoxTrace, same on both platforms. A wrong offset reads the wrong
+    // field rather than crashing, so the hook checks each one resolved. The hook only reads, so
+    // CTakeDamageResult needs no entries beyond m_pOriginatingInfo, which sits at 0.
     "TakeDamageInfoAttacker": {
       "windows": 60,
       "linux": 60
+    },
+    // m_flDamage, the amount OnTakeDamage_Alive works from and what a listener sees.
+    "TakeDamageInfoDamage": {
+      "windows": 68,
+      "linux": 68
     },
     "TakeDamageInfoDamageTypes": {
       "windows": 76,
       "linux": 76
     },
-    "TakeDamageInfoHitGroup": {
-      "windows": 120,
-      "linux": 120
+    // The hitgroup is NOT m_iHitGroupId - that reads -1 for ordinary bullet damage. It takes three
+    // hops: info->m_pTrace->m_pHitBox->m_nGroupId.
+    "TakeDamageInfoTrace": {
+      "windows": 104,
+      "linux": 104
     },
-    // CTakeDamageResult::m_pOriginatingInfo is at 0; these two are the fields the hook rewrites.
-    "TakeDamageResultDealt": {
-      "windows": 32,
-      "linux": 32
+    "GameTraceHitbox": {
+      "windows": 16,
+      "linux": 16
     },
-    "TakeDamageResultSuppressed": {
-      "windows": 80,
-      "linux": 80
+    "HitboxGroupId": {
+      "windows": 56,
+      "linux": 56
     }
   },
 
@@ -135,7 +141,6 @@
       }
     },
 
-    // ── Entity ops (EntityOpsService) ─────────────────────────────────
     // Patterns copied from CS2Fixes gamedata (github.com/Source2ZE/CS2Fixes)
     // under the same entry names - re-sync from there after CS2 updates.
 
@@ -251,10 +256,6 @@
         "pattern": "55 48 89 E5 41 54 53 48 83 EC ? 48 85 D2"
       }
     },
-
-    // ── Game-system registration (PrecacheService) ────────────────────
-    // These resolve DATA pointers: "offset" points at the rel32 inside the
-    // matched mov (3 opcode bytes for qword, 2 for dword).
 
     // CBaseGameSystemFactory** sm_pFirst - head of the engine's factory list.
     "IGameSystem_InitAllSystems_pFirst": {

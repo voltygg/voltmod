@@ -114,37 +114,40 @@ Semantics worth knowing:
 ## DamageHook
 
 @ref VoltMod::Sdk::DamageHook (`runtime.Damage`) is a manual vtable hook on
-`CCSPlayerPawn::OnTakeDamage_Alive` - every point of damage a living player takes. Listeners run
-*before* the engine applies the damage, which is what makes headshot-only rules, damage
-multipliers, and one-hit-kill modes possible.
+`CCSPlayerPawn::OnTakeDamage_Alive` - every point of damage a living player takes. Listeners see
+who hit whom, where, and for how much.
 
 ```cpp
 runtime.Damage.Install();       // binds the class vtable; safe from OnLoad, no-op once installed
 
-_damage = runtime.Damage.ListenPreDamage([this](VoltMod::DamageView& view) {
+_damage = runtime.Damage.Listen([this](const VoltMod::DamageView& view) {
     if (view.AttackerSlot < 0)                   // world damage: fall, fire, the bomb
         return;
-    if (view.Hitbox != VoltMod::HitGroup::Head)
-        view.Suppress = true;                    // cancel the hit outright
-    else
-        view.Damage *= 2.0f;                     // or rewrite what the victim loses
+    if (view.Hitbox == VoltMod::HitGroup::Head)
+        RecordHeadshot(view.AttackerSlot);
 });
 ```
 
 Contracts worth knowing:
 
-- Like MovementHook this is a **DVP hook** on the class vtable, so `Install()` works from
-  `OnLoad` with no player connected and covers every pawn from then on.
-- `Suppress` supersedes the engine call; a rewritten `Damage` is written back into the result the
-  engine goes on to use. Leaving both alone costs nothing - the untouched value is not rewritten.
-- Both slots are resolved for you, `-1` when the pawn is not a player's (world damage has no
-  attacker). The lookup is constant-time, which matters: this fires per bullet, per pellet, and
-  per fire or HE tick against every victim in radius.
+- **Observation only**, hence the `const` view. By the time listeners run the engine has already
+  turned `CTakeDamageInfo` into the result it applies, so nothing done here changes what the
+  victim loses - measured in game, `MRES_SUPERCEDE`, writes to both structs, and writing the
+  victim's health from the listener are all ignored. To alter damage, change the game's own rules:
+  `mp_damage_headshot_only` and the `mp_damage_scale_*` multipliers do work, and are what the
+  admin-system fun toggles drive.
+- Like MovementHook this is a **DVP hook** on the class vtable, so `Install()` works from `OnLoad`
+  with no player connected and covers every pawn from then on.
+- `Hitbox` comes from the damage trace, not `m_iHitGroupId` (which reads `-1` for bullets). It is
+  `Invalid` for damage with no trace behind it, which is how world damage is told apart.
+- Both slots are resolved for you, `-1` when the pawn is not a player's. The lookup is
+  constant-time, which matters: this fires per bullet, per pellet, and per fire or HE tick against
+  every victim in radius.
 - An installed hook with no listeners returns immediately, so arming it up front is free.
-- The vtable index **and** the `CTakeDamageInfo` / `CTakeDamageResult` field offsets are all
-  gamedata-maintained (`OnTakeDamageAlive`, `TakeDamageInfo*`, `TakeDamageResult*`), so a CS2
-  layout change is a gamedata edit. Anything that fails to resolve leaves the hook uninstalled
-  and every listener silent rather than acting on the wrong bytes.
+- The vtable index **and** every field offset are gamedata-maintained (`OnTakeDamageAlive`,
+  `TakeDamageInfo*`, `GameTraceHitbox`, `HitboxGroupId`), so a CS2 layout
+  change is a gamedata edit. Anything that fails to resolve leaves the hook uninstalled and every
+  listener silent rather than acting on the wrong bytes.
 
 ## ServerCommand
 

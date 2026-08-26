@@ -12,65 +12,60 @@ namespace VoltMod::Sdk
 class EntitySystem;
 class GameData;
 
-/** One incoming damage event, as a listener sees it. */
+/** One incoming damage event, as a listener sees it. Observation only - see @ref DamageHook. */
 struct DamageView
 {
-    int VictimSlot = -1;   /**< -1 when the victim is not a player pawn */
-    int AttackerSlot = -1; /**< -1 for world damage (fall, fire, the bomb) */
-    HitGroup Hitbox = HitGroup::Generic;
-    uint32_t DamageTypes = 0; /**< DMG_* bits from the originating info */
-    float Damage = 0.0f;      /**< writable: what the victim will actually lose */
-    bool Suppress = false;    /**< set to cancel the damage entirely */
+    int VictimSlot = -1;                 /**< -1 when the victim is not a player pawn */
+    int AttackerSlot = -1;               /**< -1 for world damage (fall, fire, the bomb) */
+    HitGroup Hitbox = HitGroup::Generic; /**< Invalid when the damage carries no trace */
+    uint32_t DamageTypes = 0;            /**< DMG_* bits from the originating info */
+    float Damage = 0.0f;                 /**< the incoming amount, before armor and hitgroup scaling */
 };
 
 /**
- * @brief Manual vtable hook on CCSPlayerPawn::OnTakeDamage_Alive - every point of damage a
- * living player takes (gamedata offset "OnTakeDamageAlive").
+ * @brief Manual vtable hook on CCSPlayerPawn::OnTakeDamage_Alive - every point of damage a living
+ * player takes (gamedata offset "OnTakeDamageAlive").
  *
- * Listeners run before the engine applies the damage and may rewrite @ref DamageView::Damage or
- * set @ref DamageView::Suppress, which is what makes headshot-only rules, damage multipliers and
- * one-hit-kill modes possible. Suppression supersedes the engine call outright; a rewritten
- * amount is written back into the result the engine goes on to use.
+ * **Observation only.** The engine has already turned CTakeDamageInfo into the result it applies
+ * by the time listeners run, so nothing a listener does here changes what the victim loses -
+ * measured in game, MRES_SUPERCEDE and writes to both structs are ignored, as is writing the
+ * victim's health from a listener. The write path was therefore removed rather than left as a
+ * trap; a feature that must alter the outcome drives the game's own rules instead, and
+ * `mp_damage_headshot_only` and the `mp_damage_scale_*` multipliers do work.
  *
- * Like MovementHook this binds the class vtable (located by RTTI on Windows, ELF symbol on
- * Linux), so Install() works from OnLoad with no player connected and covers every pawn from
- * then on. It is dormant until Install().
+ * Like MovementHook this binds the class vtable (RTTI on Windows, ELF symbol on Linux), so
+ * Install() works from OnLoad with no player connected and covers every pawn from then on.
  *
- * The vtable index and the CTakeDamageInfo/CTakeDamageResult field offsets are all
- * gamedata-maintained and drift with CS2 updates, so a layout change is a gamedata edit rather
- * than a framework rebuild. A wrong index calls an unrelated vfunc and crashes, so re-verify
- * after every update; anything that fails to resolve leaves the hook uninstalled and every
- * listener silent rather than guessing.
+ * The vtable index and every field offset are gamedata-maintained and drift with CS2 updates. A
+ * wrong index calls an unrelated vfunc and crashes, so re-verify after every update; anything that
+ * fails to resolve leaves the hook uninstalled and every listener silent rather than guessing.
  */
 class DamageHook
 {
 public:
-    using Callback = std::function<void(DamageView&)>;
+    using Callback = std::function<void(const DamageView&)>;
 
-    /** @p entities resolves pawns to slots, @p gameData the vtable index and field offsets.
-     *  Both must outlive this hook; the Runtime declares them above it. */
+    /** Both must outlive this hook; the Runtime declares them above it. */
     DamageHook(EntitySystem& entities, GameData& gameData) : _entities(entities), _gameData(gameData) {}
     ~DamageHook() { Remove(); }
     DamageHook(const DamageHook&) = delete;
     DamageHook& operator=(const DamageHook&) = delete;
 
-    /**
-     * Install the class-vtable hook; safe from OnLoad and a no-op once installed.
-     * @return false when the gamedata index or the pawn class cannot be resolved.
-     */
+    /** Install the class-vtable hook; safe from OnLoad and a no-op once installed.
+     *  @return false when the gamedata index or the pawn class cannot be resolved. */
     bool Install();
     void Remove();
     bool Installed() const { return _installed; }
 
     /** Called for each damage event, in registration order. Store the subscription beside the
      *  state the callback captures. */
-    [[nodiscard]] Core::Subscription ListenPreDamage(Callback callback)
-    {
-        return _listeners.AddOwned(std::move(callback));
-    }
+    [[nodiscard]] Core::Subscription Listen(Callback callback) { return _listeners.AddOwned(std::move(callback)); }
 
 private:
     bool Hook_OnTakeDamageAlive(void* result);
+
+    /** Walk info -> trace -> hitbox for the struck hitgroup. */
+    HitGroup ReadHitGroup(void* info) const;
 
     /** Read every damage field offset from gamedata. False when one is missing or implausible. */
     bool ResolveOffsets();
@@ -78,12 +73,15 @@ private:
     EntitySystem& _entities;
     GameData& _gameData;
     Core::CallbackRegistry<Callback> _listeners;
-    // CTakeDamageInfo fields, then CTakeDamageResult's. Resolved once by Install().
+    // CTakeDamageInfo fields, then the trace chain the hitgroup lives on. Resolved once by
+    // Install(). Adding to this set grows Runtime, which holds the hook by value - see the
+    // crash-triage skill on the latent out-of-bounds write that some sizes turn fatal.
     int _offsetAttacker = -1;
+    int _offsetDamage = -1;
     int _offsetDamageTypes = -1;
-    int _offsetHitGroup = -1;
-    int _offsetDealt = -1;
-    int _offsetSuppressed = -1;
+    int _offsetTrace = -1;
+    int _offsetTraceHitbox = -1;
+    int _offsetHitboxGroup = -1;
     bool _installed = false;
     int _hookId = 0;
 };

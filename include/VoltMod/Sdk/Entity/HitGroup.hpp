@@ -4,7 +4,10 @@ namespace VoltMod::Sdk
 {
 
 /**
- * Engine hitgroup ids, as carried by CTakeDamageInfo::m_iHitGroupId.
+ * Engine hitgroup ids, as carried by the hitbox the damage trace struck
+ * (CTakeDamageInfo::m_pTrace->m_pHitBox->m_nGroupId). Damage with no trace - fire, the bomb, a
+ * fall - has no hitgroup at all and reads @ref Invalid; CTakeDamageInfo::m_iHitGroupId is not the
+ * source, it reads -1 even for ordinary bullet damage.
  *
  * Deliberately kept in its own dependency-free header: consumers that only need the vocabulary
  * (damage rules, hit statistics) can include it without pulling in the hook, its callback
