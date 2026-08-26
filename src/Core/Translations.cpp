@@ -1,10 +1,10 @@
+#include <VoltMod/Core/Json.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Paths.hpp>
 #include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Core/Translations.hpp>
 #include <filesystem>
 #include <fstream>
-#include <nlohmann/json.hpp>
 
 namespace VoltMod
 {

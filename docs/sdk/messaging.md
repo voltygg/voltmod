@@ -42,7 +42,7 @@ This per-slot prompt registry backs menu text input. Use it directly for prompts
 outside a menu.
 
 ```cpp
-auto& capture = runtime.ChatInput;
+auto& capture = runtime.Hooks.ChatInput;
 
 capture.BeginCapture(slot, "Enter your nickname:",
     [](int s, std::string_view text) -> bool {
@@ -64,7 +64,7 @@ dispatching commands. An override replaces that behavior, so it must call
 ```cpp
 bool MyPlugin::OnPlayerChat(Player* p, std::string_view message, bool team) override
 {
-    if (Rt().ChatInput.TryConsume(p->Slot(), message))
+    if (Rt().Hooks.ChatInput.TryConsume(p->Slot(), message))
         return true;   // capture handled it; don't broadcast
     return false;      // fall through to normal chat handling
 }
@@ -87,12 +87,12 @@ when the slot changes hands. Nothing has to call a lifecycle hook for it.
 
 ## Vote
 
-@ref VoltMod::Vote (`runtime.Vote`) drives the game's own yes/no vote panel through
+@ref VoltMod::Vote (`runtime.Hooks.Vote`) drives the game's own yes/no vote panel through
 the map's `vote_controller` entity. The engine collects the ballots, so there is no plugin-side
 tally to keep.
 
 ```cpp
-runtime.Vote.StartVote(
+runtime.Hooks.Vote.StartVote(
     "#SFUI_vote_changelevel",           // see the token note below
     "Dust II",                          // the token's detail string
     20.0f,                              // seconds before it closes itself
@@ -104,8 +104,8 @@ runtime.Vote.StartVote(
     },
     [](bool passed, VoltMod::VoteEndReason reason) { /* act on the outcome */ });
 
-runtime.Vote.InProgress();                                   // only one vote runs at a time
-runtime.Vote.EndVote(VoltMod::VoteEndReason::Cancelled);     // call one off early
+runtime.Hooks.Vote.InProgress();                                   // only one vote runs at a time
+runtime.Hooks.Vote.EndVote(VoltMod::VoteEndReason::Cancelled);     // call one off early
 ```
 
 Contracts worth knowing:

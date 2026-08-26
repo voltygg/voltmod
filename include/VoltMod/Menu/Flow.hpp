@@ -1,5 +1,12 @@
 #pragma once
 
+// A traditional guard macro alongside `#pragma once` - VoltMod otherwise uses `#pragma once`
+// alone - purely so a translation unit that never meant to include this header can detect
+// that it did. tests/Api/RootApiSurfaceTest.cpp asserts <VoltMod/Api.hpp> never defines this.
+#ifndef VOLTMOD_MENU_FLOW_HPP
+#define VOLTMOD_MENU_FLOW_HPP
+#endif
+
 #include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>

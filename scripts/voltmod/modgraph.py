@@ -12,7 +12,10 @@ ALLOWED: dict[str, set[str]] = {
     "Events": {"Core", "Engine", "Entities"},
     "Messaging": {"Core", "Engine", "Entities", "Events"},
     "Players": {"Core", "Engine", "Entities"},
-    "Hooks": {"Core", "Engine", "Entities", "Events", "Players", "Unsafe"},
+    # Messaging: HookServices (Hooks/Hooks.hpp) owns Vote, whose header lives in Messaging/ -
+    # Runtime's grouping puts the game's own vote panel beside the hooks that are dormant the
+    # same way, not beside Messages/CenterHtml.
+    "Hooks": {"Core", "Engine", "Entities", "Events", "Players", "Unsafe", "Messaging"},
     "Commands": {"Core", "Engine", "Entities", "Players", "Messaging"},
     "Menu": {"Core", "Engine", "Entities", "Players", "Messaging", "Hooks"},
     "Http": {"Core"},
@@ -24,11 +27,41 @@ ALLOWED: dict[str, set[str]] = {
 
 INCLUDE = re.compile(r'#\s*include\s*[<"]VoltMod/([A-Za-z0-9_]+)/([^>"]+)[>"]')
 
+# A module's own Api.hpp (Entities/Api.hpp, Hooks/Api.hpp, ...) is a deliberate cross-module
+# aggregate - Hooks/Api.hpp, for instance, gathers the Events and Messaging types a hook
+# handler needs alongside the hooks themselves. Its includes document that module's public
+# surface, not a source-level dependency, so they are not edges and are exempt from the
+# layering check below.
+AGGREGATE_HEADER = re.compile(r'^include/VoltMod/[A-Za-z0-9_]+/Api\.hpp$')
+
 # Root headers have no module directory and need a separate check.
 ROOT_HEADERS = re.compile(r'#\s*include\s*[<"]VoltMod/(Runtime|Api)\.hpp[>"]')
 
 # App is the composition root, so its headers may include it.
 ROOT_HEADER_EXEMPT = {"App"}
+
+# These modules sit below the composition root; a header here reaching into Menu (the
+# opt-in UI module) or App (which may reach Runtime) would make every consumer of that
+# layer pull in menu building, or the runtime, whether it wants to or not.
+NO_MENU_OR_APP = {"Core", "Engine", "Entities", "Events", "Messaging", "Players", "Hooks",
+                  "Commands"}
+CROSS_MODULE_HEADER = re.compile(r'#\s*include\s*[<"]VoltMod/(Menu|App)/')
+
+# nlohmann is a real dependency (parsing, (de)serializing), declared explicitly by the few
+# files that own it, not picked up incidentally by including one of them. Http/RestJsonApi and
+# Engine/GameDataFile are listed as header+source pairs; everything else routes through
+# <VoltMod/Core/Json.hpp>, which is itself allowed to name nlohmann.
+NLOHMANN_INCLUDE = re.compile(r'#\s*include\s*[<"]nlohmann/')
+NLOHMANN_ALLOWED = {
+    "include/VoltMod/Core/Json.hpp",
+    "include/VoltMod/App/Config.hpp",
+    "include/VoltMod/App/JsonConfig.hpp",
+    "include/VoltMod/App/PluginSettings.hpp",
+    "include/VoltMod/Http/RestJsonApi.hpp",
+    "src/Http/RestJsonApi.cpp",
+    "src/Engine/GameDataFile.hpp",
+    "src/Engine/GameDataFile.cpp",
+}
 
 # Core is the engine-free layer: nothing under it may reach the SDK or Metamod.
 ENGINE_FREE = ("include/VoltMod/Core", "src/Core")
@@ -76,6 +109,8 @@ def scan(root: Path):
             if owner not in modules:
                 continue
             rel = path.relative_to(root).as_posix()
+            if AGGREGATE_HEADER.match(rel):
+                continue
             for dep, header in INCLUDE.findall(path.read_text(encoding="utf-8", errors="replace")):
                 if dep in modules and dep != owner:
                     edges[owner].add(dep)
@@ -113,6 +148,33 @@ def root_in_sources(root: Path, modules):
         if hit:
             found.append((path.relative_to(root).as_posix(), hit.group(1)))
     return sorted(found)
+
+
+def forbidden_surfaces(root: Path, modules):
+    """Menu/App reached from a layer below the composition root, and nlohmann included
+    outside its allowlist - across include/VoltMod and src, aggregate headers included:
+    an aggregate documents its own module's surface, not its neighbors'."""
+    crossed, nlohmann = [], []
+    for base in ("include/VoltMod", "src"):
+        for path in (root / base).rglob("*"):
+            if path.suffix not in (".hpp", ".cpp"):
+                continue
+            parts = path.relative_to(root / base).parts
+            owner = parts[0] if len(parts) > 1 else None
+            rel = path.relative_to(root).as_posix()
+            text = path.read_text(encoding="utf-8", errors="replace")
+
+            if owner in NO_MENU_OR_APP:
+                for number, line in enumerate(text.splitlines(), 1):
+                    hit = CROSS_MODULE_HEADER.search(line)
+                    if hit:
+                        crossed.append((rel, number, hit.group(1)))
+
+            if rel not in NLOHMANN_ALLOWED:
+                for number, line in enumerate(text.splitlines(), 1):
+                    if NLOHMANN_INCLUDE.search(line):
+                        nlohmann.append((rel, number))
+    return sorted(crossed), sorted(nlohmann)
 
 
 def sources(root: Path, bases):
@@ -236,8 +298,9 @@ def check(root: Path) -> int:
     rooted = root_in_headers(root, modules)
     sourced = root_in_sources(root, modules)
     engined = engine_in_core(root)
+    crossed, nlohmann_hits = forbidden_surfaces(root, modules)
     conventional = report_conventions(root, ("include/VoltMod", "src"), "framework")
-    if not found and not rooted and not sourced and not engined and not conventional:
+    if not (found or rooted or sourced or engined or crossed or nlohmann_hits or conventional):
         print("\nLayering holds.")
         return 0
 
@@ -269,4 +332,21 @@ def check(root: Path) -> int:
             print(f"  {rel}:{number}: {header}")
         print("      Core is the engine-free layer. Move the file to src/Engine/ (or take the")
         print("      engine call through a service that already lives there).")
+
+    if crossed:
+        print(f"\n{len(crossed)} file(s) below the composition root reaching Menu or App:")
+        for rel, number, target in crossed:
+            print(f"  {rel}:{number}: VoltMod/{target}/...")
+        print(f"      {' '.join(sorted(NO_MENU_OR_APP))} sit below Menu and App; a plugin that")
+        print("      never touches menus or the runtime should not pull either in by including")
+        print("      this file. Take the narrower type this file actually needs instead.")
+
+    if nlohmann_hits:
+        print(f"\n{len(nlohmann_hits)} file(s) including nlohmann outside its allowlist:")
+        for rel, number in nlohmann_hits:
+            print(f"  {rel}:{number}")
+        print("      Only Core/Json.hpp, App/Config.hpp, App/JsonConfig.hpp,")
+        print("      App/PluginSettings.hpp, Http/RestJsonApi.* and Engine/GameDataFile.* declare")
+        print("      nlohmann directly - route through <VoltMod/Core/Json.hpp> instead, so")
+        print("      <VoltMod/Api.hpp> never has to.")
     return 1

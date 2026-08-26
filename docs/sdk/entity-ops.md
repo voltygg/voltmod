@@ -4,7 +4,7 @@
 
 ## EntityOps (spawning, entity IO, sound)
 
-@ref VoltMod::EntityOps (`runtime.EntityOps`) exposes
+@ref VoltMod::EntityOps (`runtime.World.EntityOps`) exposes
 signature-resolved entity operations: create/spawn, inputs, deferred I/O,
 removal, models, and sound events. Build spawn keyvalues with
 @ref VoltMod::KeyValues; the engine consumes them during spawn, so do
@@ -13,7 +13,7 @@ signature is unavailable; use `CanSpawn()` when the plugin needs an explicit
 fallback.
 
 ```cpp
-auto& ops = runtime.EntityOps;
+auto& ops = runtime.World.EntityOps;
 
 VoltMod::KeyValues kv;
 kv.Set("origin", pos).Set("spawnflags", 1);
@@ -55,23 +55,23 @@ given:
 
 ```cpp
 namespace EffectOps = VoltMod::EffectOps;
-auto& ops = runtime.EntityOps;
+auto& ops = runtime.World.EntityOps;
 
-EffectOps::SpawnParticle(ops, "particles/foo.vpcf", pos, 2.0f);          // needs Precache.Add for custom vpcf
+EffectOps::SpawnParticle(ops, "particles/foo.vpcf", pos, 2.0f);          // needs World.Precache.Add for custom vpcf
 EffectOps::SpawnBeam(ops, from, to, Color(0, 128, 255, 255), 1.5f, 1.0f);
 EffectOps::SpawnProp(ops, "models/props/crate.vmdl", pos, /*physics*/ true, 30.0f);
 ```
 
 ## Precache
 
-@ref VoltMod::Precache (`runtime.Precache`) registers a framework-owned game system that
+@ref VoltMod::Precache (`runtime.World.Precache`) registers a framework-owned game system that
 receives `BuildGameSessionManifest`, so plugins can precache custom resources (particles, models,
 sound events). Queue paths any time; they apply at the **next map load**, because the engine's
 manifest only exists inside that event. Assets that are not part of the map must also reach clients (e.g.
 via a workshop addon), or they precache server-side but render nothing.
 
 ```cpp
-runtime.Precache.Add("particles/my_plugin/lightning_strike.vpcf");
+runtime.World.Precache.Add("particles/my_plugin/lightning_strike.vpcf");
 ```
 
 Registered by `Runtime::Start()` under a `LogPrefix`-derived name; detached safely

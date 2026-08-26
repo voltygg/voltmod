@@ -170,8 +170,8 @@ PawnOps::ShiftZ(target, -15.0f);            // bury; +15 to unbury
 // Team lives on the controller, so this one takes that.
 PawnOps::ChangeTeamSafe(runtime.Entities.Controller(slot), VoltMod::TeamCT);
 
-// Slap needs framework services for its fall protection, so it lives on runtime.Pawns.
-runtime.Pawns.Slap(target);                 // upward punt + timed fall protection
+// Slap needs framework services for its fall protection, so it lives on runtime.World.Pawns.
+runtime.World.Pawns.Slap(target);           // upward punt + timed fall protection
 
 // Teleports: a destination cleared past the anchor's hull, and an exact-origin swap.
 Vector dest = PawnOps::ClearedDestination(anchor);   // 48u ahead of anchor's eye yaw
@@ -194,8 +194,8 @@ a game update is a gamedata edit rather than a rebuild.
 ```cpp
 VoltMod::Pawn target = runtime.Entities.PawnOf(slot);
 
-runtime.Items.Give(target, "weapon_ak47");   // entity classname, not a display name
-runtime.Items.StripWeapons(target);          // pass false to keep armor and the defuse kit
+runtime.World.Items.Give(target, "weapon_ak47");   // entity classname, not a display name
+runtime.World.Items.StripWeapons(target);          // pass false to keep armor and the defuse kit
 ```
 
 `Give` returns false only when the pawn is unavailable or the engine refused the item twice. The

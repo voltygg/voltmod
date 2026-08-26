@@ -97,6 +97,28 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE" DESTINATION licenses)
 
 if(VOLTMOD_BUILD_STANDALONE)
     include(CTest)
+
+    # Each Api.hpp aggregate must compile as the only VoltMod include in its translation unit,
+    # and <VoltMod/Api.hpp> itself must never reach nlohmann or the Menu-building surface - see
+    # tests/Api/*SurfaceTest.cpp for what each TU checks. Linking VoltMod::Runtime (nothing here
+    # calls into it) gives these TUs the same include paths, compile definitions and generated
+    # HL2SDK headers voltmod-runtime itself needs, without repeating that setup; a passing build
+    # is the whole check.
+    add_library(voltmod-api-surface-check OBJECT
+        tests/Api/RootApiSurfaceTest.cpp
+        tests/Api/EntitiesApiSurfaceTest.cpp
+        tests/Api/HooksApiSurfaceTest.cpp
+        tests/Api/MenuApiSurfaceTest.cpp
+        tests/Api/UnsafeApiSurfaceTest.cpp
+    )
+    target_compile_features(voltmod-api-surface-check PRIVATE cxx_std_23)
+    target_compile_definitions(voltmod-api-surface-check PRIVATE VOLTMOD_API_SURFACE_CHECK)
+    target_link_libraries(voltmod-api-surface-check PRIVATE VoltMod::Runtime)
+
+    if(VOLTMOD_ENABLE_POSTGRES)
+        target_sources(voltmod-api-surface-check PRIVATE tests/Api/DatabaseApiSurfaceTest.cpp)
+        target_link_libraries(voltmod-api-surface-check PRIVATE VoltMod::Database)
+    endif()
 endif()
 
 # Recompile pure logic so tests do not link HL2SDK or Metamod.

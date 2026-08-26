@@ -134,7 +134,7 @@ Every builder method appends a typed row. Use
 - `Selector<T>(title, values, formatter, ...)` is Choice for value types without their own label (seconds → `"5m"`, enum → translation).
 - `Slider(title, min, max, step, getValue, setValue, enabled = true)`: A/D adjusts in steps, clamped, and renders a unicode bar.
 - `ProgressBar(title, getValue, max)` is a read-only bar the cursor skips.
-- `Input(title, prompt, get, set, maxLength = 64, enabled = true)`: E pauses the menu and routes the player's next chat line into `set`; return `false` to re-prompt, `true` to accept. R cancels. Backed by @ref VoltMod::ChatInput, so your chat hook must call `runtime.ChatInput.TryConsume` first (see @ref sdk_messaging_guide).
+- `Input(title, prompt, get, set, maxLength = 64, enabled = true)`: E pauses the menu and routes the player's next chat line into `set`; return `false` to re-prompt, `true` to accept. R cancels. Backed by @ref VoltMod::ChatInput, so your chat hook must call `runtime.Hooks.ChatInput.TryConsume` first (see @ref sdk_messaging_guide).
 - `Submenu(label, factory, enabled = true)` runs the factory lazily on E and pushes the returned menu onto the stack; R pops back.
 
 ## Pagination

@@ -9,6 +9,16 @@
 so plugin code does not have to juggle raw pointers and reversed offsets. Their
 names, like every other public name, live directly in `VoltMod`.
 
+`<VoltMod/Api.hpp>` already carries the wrapper types `Runtime` holds by value
+(`EntitySystem`, `GameEvents`, `Messages`, ...). Three more headers gather what
+it does not:
+
+| Header | Brings in |
+|---|---|
+| `<VoltMod/Entities/Api.hpp>` | Every frame-local wrapper (`Entity`, `Pawn`, `Controller`, `EntityRef`, `Field`, ...), `EntitySystem`, `EntityOps`, `Items`, `Render`, and `ConVar`/`ConVarLease` |
+| `<VoltMod/Hooks/Api.hpp>` | Every hook (`Movement`, `Damage`, `Teleport`, `Transmit`, `Visibility`, `ChatInput`, `ClientCvars`, `InputHistory`, `GlowVision`, `UserCmd`), game events, and `Messages`/`CenterHtml` |
+| `<VoltMod/Unsafe/Api.hpp>` | `Interfaces`, `GameData`, `Bindings`, `MemoryAccess`, `RecipientFilter`, and the vtable-hook macros - opt in only where a plugin pokes at the engine directly |
+
 The guide is split by topic:
 
 - @subpage sdk_gamedata_guide - the gamedata file, typed `Bindings`, capabilities, and runtime schema fields
@@ -29,7 +39,7 @@ framework.
 #include <VoltMod/Runtime.hpp>
 
 // OnLoad runs after Runtime::Start, so the interfaces are available here:
-auto& gi = runtime.Interfaces;
+auto& gi = runtime.Unsafe.Interfaces;
 auto* engine = gi.Engine;       // IVEngineServer2*
 auto* cvar = gi.CVar;           // ICvar*
 auto* schema = gi.SchemaSystem; // ISchemaSystem*

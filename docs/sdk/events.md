@@ -9,7 +9,7 @@ Subscribe with `On<T>`, where `T` is one of the structs in `VoltMod` (`VoltMod/E
 ```cpp
 using VoltMod::PlayerDeath;
 
-auto& events = runtime.Events;
+auto& events = runtime.GameEvents;
 
 auto death = events.On<PlayerDeath>([](const PlayerDeath& e) {
     // e.VictimSlot, e.AttackerSlot, e.Headshot, e.Weapon, ...
@@ -62,7 +62,7 @@ the server log as the health check.
 
 Related lifecycle points:
 
-- `MetamodPlugin::OnServerStartup(mapName)` is the plugin-facing map-start callback. The engine resets game convars and re-execs gamemode cfgs around map init, so values set at load time may need re-asserting from here or from a `RoundStart` handler. The same hook stores the map in `runtime.CurrentMap`, so a plugin that only wants to stamp the current map on a record does not need to override anything. Note that it stays empty after a late (mid-map) load until the next map change.
+- `MetamodPlugin::OnServerStartup(mapName)` is the plugin-facing map-start callback. The engine resets game convars and re-execs gamemode cfgs around map init, so values set at load time may need re-asserting from here or from a `RoundStart` handler. The same hook stores the map in `runtime.Map`, readable back via `runtime.Map.Current()`, so a plugin that only wants to stamp the current map on a record does not need to override anything. Note that it stays empty after a late (mid-map) load until the next map change.
 - On `meta reload`, `Shutdown` detaches everything (`RemoveAllListeners`), and the fresh load re-registers, so there is no double dispatch.
 - A handler may subscribe or unsubscribe while it runs: dispatch works from a snapshot of the registrations and re-resolves each one before calling it, so the set is free to change underneath. A handler removed by an earlier one in the same event does not fire; one added during it starts with the next event.
 
@@ -73,7 +73,7 @@ Related lifecycle points:
 `ClientListensTo(slot, eventName)` asks the event manager whether that handle is subscribed to a given event:
 
 ```cpp
-if (runtime.Events.ClientListensTo(slot, "player_death"))
+if (runtime.GameEvents.ClientListensTo(slot, "player_death"))
     /* ... */;
 ```
 
@@ -184,7 +184,7 @@ map list: which maps a server offers is operator configuration, not engine state
 belongs to the plugin.
 
 ```cpp
-auto& maps = runtime.Maps;
+auto& maps = runtime.Map;
 
 if (maps.IsValid("de_dust2"))          // filesystem probe; load-time work, not per-frame
     maps.ChangeLevel("de_dust2");
@@ -195,6 +195,9 @@ maps.ChangeToWorkshop(3070563536ull);  // workshop maps are addressed by publish
 `IsValid` only answers for plain names. A workshop map is addressed by id and is not mounted
 until it loads, so there is nothing to probe - check those at load by other means or accept the
 engine's own failure.
+
+`maps.Current()` returns the map the server is running, captured from `StartupServer`. It is
+empty after a late load until the next map change, since the hook has already fired by then.
 
 Both change calls take effect immediately. A plugin that wants players to read an announcement
 first should schedule the call rather than delaying inside a listener.

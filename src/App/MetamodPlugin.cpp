@@ -1,4 +1,5 @@
 #include <VoltMod/App/MetamodPlugin.hpp>
+#include <VoltMod/Core/Json.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
@@ -10,7 +11,6 @@
 #include <cstring>
 #include <format>
 #include <iserver.h>
-#include <nlohmann/json.hpp>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -62,7 +62,8 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
 
     _runtime->Status.RegisterSection("build", [info = _info] {
         return nlohmann::json{
-            {"name", info.Name}, {"version", info.Version}, {"commit", info.Commit}, {"date", info.Date}};
+            {"name", info.Name}, {"version", info.Version}, {"commit", info.Commit}, {"date", info.Date}}
+            .dump();
     });
 
     RegisterStandardHooks();
@@ -125,7 +126,7 @@ bool MetamodPlugin::OnPlayerChat(Player* player, std::string_view message, bool 
     // A pending menu capture owns the line before command parsing does: it is the player's
     // answer to a prompt, not a chat message. Menu input rows are a framework feature, so consuming
     // for them belongs here rather than in every plugin that happens to use one.
-    if (_runtime->ChatInput.TryConsume(player->Slot(), message))
+    if (_runtime->Hooks.ChatInput.TryConsume(player->Slot(), message))
         return true;
 
     return _runtime->Commands.HandleChatMessage(player, message);
@@ -133,7 +134,7 @@ bool MetamodPlugin::OnPlayerChat(Player* player, std::string_view message, bool 
 
 void MetamodPlugin::RegisterStandardHooks()
 {
-    auto& gi = _runtime->Interfaces;
+    auto& gi = _runtime->Unsafe.Interfaces;
 
     // VOLTMOD_SCOPED_HOOK installs each hook and yields the Subscription that removes it, so the
     // add and remove lists cannot drift apart. Reset in Unload, before the runtime goes away.
@@ -166,20 +167,20 @@ void MetamodPlugin::Hook_GameFrame(bool simulating, bool firstTick, bool lastTic
 void MetamodPlugin::Hook_StartupServer(const GameSessionConfiguration_t&, ISource2WorldSession*, const char* mapName)
 {
     Log::Info("Server startup: map '{}'.", mapName ? mapName : "<none>");
-    _runtime->CurrentMap = mapName ? mapName : "";
+    _runtime->Map.SetCurrent(mapName ? mapName : "");
     // First: the map's new CGameEntitySystem must be published before the plugin's
     // OnServerStartup override below runs, since that is free to touch entities.
     _runtime->Entities.OnServerStartup();
-    _runtime->Events.OnServerStartup();
-    _runtime->Teleports.OnServerStartup();
-    _runtime->ClientCvars.OnServerStartup();
+    _runtime->GameEvents.OnServerStartup();
+    _runtime->Hooks.Teleport.OnServerStartup();
+    _runtime->Hooks.ClientCvars.OnServerStartup();
     OnServerStartup(mapName ? mapName : "");
 }
 
 void MetamodPlugin::Hook_CheckTransmit(CCheckTransmitInfo** infoList, int infoCount, CBitVec<16384>&, CBitVec<16384>&,
                                        const Entity2Networkable_t**, const uint16*, int)
 {
-    _runtime->Transmit.OnCheckTransmit(infoList, infoCount);
+    _runtime->Hooks.Transmit.OnCheckTransmit(infoList, infoCount);
 }
 
 void MetamodPlugin::Hook_OnClientConnected(CPlayerSlot slot, const char* name, uint64 xuid, const char* networkId,
@@ -201,7 +202,7 @@ void MetamodPlugin::Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconnectio
 
 void MetamodPlugin::Hook_ClientFullyConnect(CPlayerSlot slot)
 {
-    _runtime->ClientCvars.OnClientFullyConnect(slot.Get());
+    _runtime->Hooks.ClientCvars.OnClientFullyConnect(slot.Get());
     _runtime->Players.OnClientFullyConnected(slot.Get());
 }
 

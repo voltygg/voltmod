@@ -4,7 +4,6 @@
 #include <VoltMod/Engine/ServerCommand.hpp>
 #include <functional>
 #include <memory>
-#include <nlohmann/json.hpp>
 #include <string>
 #include <utility>
 #include <vector>
@@ -17,13 +16,16 @@ namespace VoltMod
  *
  * VoltMod registers its own sections (build, load, gamedata, uptime) during load;
  * plugins add theirs in OnLoad and expose the report with @ref InstallCommand.
- * Providers run on demand, in registration order. Keep JSON output compact (counts
- * and names, not full lists) - RCON's console capture can truncate large responses.
+ * Providers run on demand, in registration order. Each provider returns its section's
+ * payload as compact JSON text - build it with `VoltMod::Json` or `nlohmann::json{...}.dump()`
+ * (`<VoltMod/Core/Json.hpp>`) - so this header, reachable from every `<VoltMod/Api.hpp>`
+ * translation unit through Runtime, never has to include nlohmann itself.
  */
 class StatusService
 {
 public:
-    using Provider = std::function<nlohmann::json()>;
+    /** @brief Returns this section's payload as JSON text (an object or scalar). */
+    using Provider = std::function<std::string()>;
 
     /** @brief Plugin health condition, ANDed with the baseline (no Failed load stage). */
     using HealthCheck = std::function<bool()>;
@@ -37,8 +39,8 @@ public:
     /** @brief True when no load stage Failed and the plugin's HealthCheck (if any) agrees. */
     bool IsHealthy() const;
 
-    /** @brief One object with a key per section, plus a top-level `healthy` flag. */
-    nlohmann::json BuildJson() const;
+    /** @brief One JSON object with a key per section, plus a top-level `healthy` flag. */
+    std::string BuildJson() const;
 
     /** @brief Human-readable multi-line rendering of the same sections. */
     std::string BuildText() const;

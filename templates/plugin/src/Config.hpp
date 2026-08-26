@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoltMod/Api.hpp>
-#include <nlohmann/json.hpp>
+#include <VoltMod/App/Config.hpp>
 
 namespace $ns
 {

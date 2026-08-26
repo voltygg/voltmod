@@ -32,6 +32,9 @@ function(voltmod_add_tests target_name)
     endif()
 
     file(GLOB_RECURSE test_cases CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
+    # tests/Api holds compile-only Api-surface checks that need the full HL2SDK/Metamod build
+    # (see voltmod-api-surface-check in the root CMakeLists.txt) - not this SDK-free executable.
+    list(FILTER test_cases EXCLUDE REGEX "/tests/Api/")
     voltmod_verify_test_names(${test_cases})
 
     add_executable("${target_name}"

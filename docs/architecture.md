@@ -50,15 +50,24 @@ it is not allowed to reach.
 
 ## Two objects, same lifetime
 
-**@ref VoltMod::Runtime** is the framework's flat service container.
-`MetamodPlugin` creates it on load and destroys it on unload. Services are named
-directly (`runtime.Messages`, not `runtime.Messaging.Messages`) so internal module
-moves do not break consumers.
+**@ref VoltMod::Runtime** is the framework's flat, by-role service container.
+`MetamodPlugin` creates it on load and destroys it on unload. Most services are
+named directly (`runtime.Messages`, not `runtime.Messaging.Messages`) so internal
+module moves do not break consumers. Three tiers are grouped into a struct that
+owns them instead, because they read as one unit rather than thirty peers in one
+list: @ref VoltMod::WorldServices "runtime.World" (entity IO, weapon give/strip,
+precaching, pawn manipulation, net-channel reads), @ref VoltMod::HookServices
+"runtime.Hooks" (the per-tick and per-event engine hooks), and @ref
+VoltMod::UnsafeServices "runtime.Unsafe" (raw interfaces, gamedata, and their
+typed `Bindings` view - the opt-in tier a plugin reaches for only when it pokes
+at the engine directly).
 
 ```cpp
 runtime.Players.Get(slot);
 runtime.Messages.Reply(slot, "done");
 runtime.Entities.PawnOf(slot).Health = 100;
+runtime.World.Precache.Add("models/props/mine.vmdl");
+runtime.Hooks.Movement.Pre += [](int slot) { /* ... */ };
 ```
 
 Schema offsets are not a service. A `Field` resolves its own offset once per
@@ -168,7 +177,7 @@ the only way to subscribe to one. Game events go through @ref VoltMod::GameEvent
 keyed by a typed struct rather than a name.
 
 ```cpp
-_spawn = runtime.Events.On<PlayerSpawn>([this](const PlayerSpawn& e) { OnSpawn(e.Slot); });
+_spawn = runtime.GameEvents.On<PlayerSpawn>([this](const PlayerSpawn& e) { OnSpawn(e.Slot); });
 _slots = runtime.Slots.Changed += [this](int slot) { _state.Reset(slot); };
 ```
 
@@ -218,7 +227,7 @@ Entities   -> Core, Engine
 Events     -> Core, Engine, Entities
 Messaging  -> Core, Engine, Entities, Events
 Players    -> Core, Engine, Entities
-Hooks      -> Core, Engine, Entities, Events, Players, Unsafe
+Hooks      -> Core, Engine, Entities, Events, Players, Unsafe, Messaging
 Commands   -> Core, Engine, Entities, Players, Messaging
 Menu       -> Core, Engine, Entities, Players, Messaging, Hooks
 Http       -> Core
@@ -228,7 +237,9 @@ App        -> every module
 ```
 
 **Database** is Core + libpqxx, compiled only under `VOLTMOD_ENABLE_POSTGRES`. **App** is the
-composition root and may reach all of them.
+composition root and may reach all of them. Hooks reaching Messaging is `HookServices` owning
+`Vote`, whose header lives in `Messaging/` - Runtime's grouping puts the game's own vote panel
+beside the hooks that are dormant the same way, not beside `Messages`/`CenterHtml`.
 
 There is no ambient accessor for the runtime. Everything takes what it uses through a
 constructor or a parameter, and `modgraph` enforces that too: only `App/` sources and headers may
@@ -240,8 +251,9 @@ include `VoltMod/Runtime.hpp` (or `Api.hpp`) at all - every other module, includ
   take the sibling services they use; the free helpers that need no service at all work off the
   pawn they are handed (`PawnOps`), and the rest take theirs as a parameter (`EffectOps`).
   Where a plugin would otherwise thread services through every call, the runtime owns a small
-  facade that binds them once: `Pawns` (`runtime.Pawns`, which owns slap's fall protection)
-  and `Visibility` (`runtime.Visibility`, over the `GlowVision` constructor).
+  facade that binds them once: `Pawns` (`runtime.World.Pawns`, which owns slap's fall
+  protection) and `Visibility` (`runtime.Hooks.Visibility`, over the `GlowVision`
+  constructor).
 - Only `App/` may take `Runtime&`. `Players/` and `Menu/` take the narrowest services they use
   instead: `ActionDispatcher` takes `Policy&`, `PlayerManager&` and `EntitySystem&`;
   `EffectDispatcher` wraps an `ActionDispatcher&` plus its own `EffectManager&`; `MenuManager`

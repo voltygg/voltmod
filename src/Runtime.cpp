@@ -3,6 +3,7 @@
 
 #include <ISmmAPI.h>
 #include <VoltMod/Core/EnumNames.hpp>
+#include <VoltMod/Core/Json.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Paths.hpp>
 #include <VoltMod/Runtime.hpp>
@@ -13,7 +14,6 @@
 #include <icvar.h>
 #include <interfaces/interfaces.h>
 #include <networksystem/inetworkmessages.h>
-#include <nlohmann/json.hpp>
 #include <schemasystem/schemasystem.h>
 #include <string_view>
 #include <tier1/convar.h>
@@ -74,7 +74,7 @@ bool Runtime::ResolveInterfaces(const LoadContext& context)
         return ismm->VInterfaceMatch(ismm->GetServerFactory(), version, 0);
     };
 
-    auto& gi = Interfaces;
+    auto& gi = Unsafe.Interfaces;
 
     // Resolve each required interface, erroring out on the first one that is missing. The macro
     // keeps this type-safe (decltype, no void** punning) while collapsing the per-interface
@@ -115,18 +115,18 @@ bool Runtime::InitializeServices(const LoadContext& context)
     auto& report = LoadReport;
 
     report.Run("GameData", [&] {
-        if (auto loaded = GameData.Load(DefaultGameDataPath); !loaded)
+        if (auto loaded = Unsafe.GameData.Load(DefaultGameDataPath); !loaded)
             return StageResult::Degraded(loaded.error().Detail);
-        if (auto failures = GameData.FailureSummary(); !failures.empty())
+        if (auto failures = Unsafe.GameData.FailureSummary(); !failures.empty())
             return StageResult::Degraded(std::move(failures));
-        return StageResult::Ok(
-            std::format("{} entries resolved (verified {})", GameData.Resolutions().size(), GameData.VerifiedOn()));
+        return StageResult::Ok(std::format("{} entries resolved (verified {})", Unsafe.GameData.Resolutions().size(),
+                                           Unsafe.GameData.VerifiedOn()));
     });
 
     // Bindings must run even when GameData degraded: it is what records every capability, and a
     // capability nobody records reads as off with "not initialized" rather than with the reason.
     report.Run("Bindings", [&] {
-        if (auto bound = Bindings.Bind(GameData, Capabilities); !bound)
+        if (auto bound = Unsafe.Bindings.Bind(Unsafe.GameData, Capabilities); !bound)
             return StageResult::Degraded(bound.error().Detail);
         return StageResult::Ok();
     });
@@ -159,7 +159,7 @@ bool Runtime::InitializeServices(const LoadContext& context)
 
     // One process-wide sink, not a per-Runtime service: the schema system is a single engine
     // object and the offsets it answers with are constants of the loaded binary.
-    degradable("Schema", Capability::Schema, [&] { return BindSchemaSystem(Interfaces.SchemaSystem); });
+    degradable("Schema", Capability::Schema, [&] { return BindSchemaSystem(Unsafe.Interfaces.SchemaSystem); });
     report.Run("Entities", [&] {
         auto ready = Entities.Initialize();
         if (!ready)
@@ -190,15 +190,15 @@ bool Runtime::InitializeServices(const LoadContext& context)
                    : StageResult::Degraded(std::string(Capabilities.Reason(Capability::Transmit)));
     });
     degradable("Precache", Capability::Precache,
-               [&] { return Precache.Initialize(std::format("{}_VoltModPrecache", context.LogPrefix)); });
+               [&] { return World.Precache.Initialize(std::format("{}_VoltModPrecache", context.LogPrefix)); });
     degradable("GameEventManager", Capability::GameEvents, [&] { return Messages.InitGameEventManager(); });
     report.Run("ConVars", [&] {
         if (auto ready = ConVars.Initialize(); !ready)
             return StageResult::Degraded(ready.error().Detail);
         return StageResult::Ok();
     });
-    report.Run("Events", [&] {
-        auto ready = Events.Initialize();
+    report.Run("GameEvents", [&] {
+        auto ready = GameEvents.Initialize();
         if (!ready)
         {
             Capabilities.Set(Capability::GameEvents, false, ready.error().Detail);
@@ -206,7 +206,7 @@ bool Runtime::InitializeServices(const LoadContext& context)
         }
         return StageResult::Ok();
     });
-    degradable("ClientCvars", Capability::ClientCvars, [&] { return ClientCvars.Initialize(); });
+    degradable("ClientCvars", Capability::ClientCvars, [&] { return Hooks.ClientCvars.Initialize(); });
 
     // The last four have no gamedata or engine setup to fail: Vote and Menus ride on the services
     // above, and Http owns its own worker pool.
@@ -235,23 +235,23 @@ void Runtime::RegisterStatusSections()
                 names[std::string(Name(stage.Status))].push_back(stage.Name);
         }
         names["ok"] = ok;
-        return names;
+        return names.dump();
     });
 
     Status.RegisterSection("gamedata", [this] {
-        auto section = nlohmann::json{{"verified", GameData.VerifiedOn()},
-                                      {"signatures", GameData.CountOf(GameData::Kind::Signature)},
-                                      {"addresses", GameData.CountOf(GameData::Kind::Address)},
-                                      {"vtables", GameData.CountOf(GameData::Kind::VTable)},
-                                      {"offsets", GameData.CountOf(GameData::Kind::Offset)}};
-        for (const auto& [name, entry] : GameData.Resolutions())
+        auto section = nlohmann::json{{"verified", Unsafe.GameData.VerifiedOn()},
+                                      {"signatures", Unsafe.GameData.CountOf(GameData::Kind::Signature)},
+                                      {"addresses", Unsafe.GameData.CountOf(GameData::Kind::Address)},
+                                      {"vtables", Unsafe.GameData.CountOf(GameData::Kind::VTable)},
+                                      {"offsets", Unsafe.GameData.CountOf(GameData::Kind::Offset)}};
+        for (const auto& [name, entry] : Unsafe.GameData.Resolutions())
         {
             if (!entry.Error.empty())
                 section["failed"].push_back(name);
             else if (!entry.Unique)
                 section["ambiguous"].push_back(name);
         }
-        return section;
+        return section.dump();
     });
 
     Status.RegisterSection("capabilities", [this] {
@@ -265,12 +265,12 @@ void Runtime::RegisterStatusSections()
                 section["missing"][std::string(Name(capability))] = Capabilities.Reason(capability);
         }
         section["ok"] = ok;
-        return section;
+        return section.dump();
     });
 
     Status.RegisterSection("uptime", [start = std::chrono::steady_clock::now()] {
         const auto uptime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start);
-        return nlohmann::json{{"seconds", uptime.count()}};
+        return nlohmann::json{{"seconds", uptime.count()}}.dump();
     });
 }
 

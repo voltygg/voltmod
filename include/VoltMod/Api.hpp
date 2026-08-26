@@ -1,80 +1,42 @@
 #pragma once
 
-// The VoltMod public vocabulary in one include.
+// The VoltMod core vocabulary, the Runtime facade, and player/command/plugin plumbing in
+// one include - everything a plugin's OnLoad and command handlers touch without opting
+// into a specific tier.
 //
-// Every public name lives directly in `VoltMod`, so this header only gathers the
-// headers that declare them - there is nothing to hoist or alias. Include it
-// wherever a plugin wants the whole surface; include the individual headers when
-// a translation unit only needs a few.
+// Every public name lives directly in `VoltMod`, so this header only gathers the headers
+// that declare them - there is nothing to hoist or alias. It deliberately does not include
+// the Menu-building surface (`<VoltMod/Menu/Api.hpp>`), the Unsafe tier
+// (`<VoltMod/Unsafe/Api.hpp>`), or anything that reaches nlohmann (`<VoltMod/App/Config.hpp>`
+// for a JsonConfig-backed settings struct): most translation units need none of those, and
+// each is one explicit include away. Entities and Hooks types stay reachable through Runtime
+// (it holds one of each service by value) even without their own `Entities/Api.hpp` or
+// `Hooks/Api.hpp`; include those two directly for the rest of the module - the frame-local
+// wrappers and free functions Runtime itself has no member of.
 
-#include <VoltMod/App/JsonConfig.hpp>
 #include <VoltMod/App/MetamodPlugin.hpp>
-#include <VoltMod/App/PluginSettings.hpp>
 #include <VoltMod/App/ServiceExchange.hpp>
 #include <VoltMod/App/StandardLoad.hpp>
 #include <VoltMod/Commands/Args.hpp>
 #include <VoltMod/Commands/CommandBuilder.hpp>
 #include <VoltMod/Commands/CommandManager.hpp>
+#include <VoltMod/Core/Capabilities.hpp>
 #include <VoltMod/Core/EffectManager.hpp>
+#include <VoltMod/Core/EnumNames.hpp>
 #include <VoltMod/Core/Event.hpp>
-#include <VoltMod/Core/LoadReport.hpp>
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/Paths.hpp>
 #include <VoltMod/Core/PerSlot.hpp>
-#include <VoltMod/Core/Random.hpp>
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
-#include <VoltMod/Core/SlidingWindowScore.hpp>
 #include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Core/SlotEvents.hpp>
+#include <VoltMod/Core/SteamId.hpp>
 #include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Core/Throttle.hpp>
 #include <VoltMod/Core/Time.hpp>
 #include <VoltMod/Core/Translations.hpp>
 #include <VoltMod/Core/Validation.hpp>
-#include <VoltMod/Engine/Clock.hpp>
-#include <VoltMod/Engine/ConVarLease.hpp>
-#include <VoltMod/Engine/ConVars.hpp>
-#include <VoltMod/Engine/Map.hpp>
-#include <VoltMod/Engine/NetChannel.hpp>
-#include <VoltMod/Engine/ServerCommand.hpp>
-#include <VoltMod/Entities/Controller.hpp>
-#include <VoltMod/Entities/Entity.hpp>
-#include <VoltMod/Entities/EntityOps.hpp>
-#include <VoltMod/Entities/EntityRef.hpp>
-#include <VoltMod/Entities/EntitySystem.hpp>
-#include <VoltMod/Entities/Field.hpp>
-#include <VoltMod/Entities/HitGroup.hpp>
-#include <VoltMod/Entities/Items.hpp>
-#include <VoltMod/Entities/KeyValues.hpp>
-#include <VoltMod/Entities/MoveType.hpp>
-#include <VoltMod/Entities/Pawn.hpp>
-#include <VoltMod/Entities/PawnOps.hpp>
-#include <VoltMod/Entities/PawnPredicates.hpp>
-#include <VoltMod/Entities/Pawns.hpp>
-#include <VoltMod/Events/EventTypes.hpp>
-#include <VoltMod/Events/GameEvents.hpp>
-#include <VoltMod/Hooks/ChatInput.hpp>
-#include <VoltMod/Hooks/ClientCvars.hpp>
-#include <VoltMod/Hooks/Damage.hpp>
-#include <VoltMod/Hooks/GlowVision.hpp>
-#include <VoltMod/Hooks/InputHistory.hpp>
-#include <VoltMod/Hooks/Movement.hpp>
-#include <VoltMod/Hooks/Teleport.hpp>
-#include <VoltMod/Hooks/UserCmd.hpp>
-#include <VoltMod/Hooks/Visibility.hpp>
-#include <VoltMod/Http/HttpResult.hpp>
-#include <VoltMod/Menu/Flow.hpp>
-#include <VoltMod/Menu/Menu.hpp>
-#include <VoltMod/Menu/MenuBuilder.hpp>
-#include <VoltMod/Menu/MenuManager.hpp>
-#include <VoltMod/Menu/MenuOption.hpp>
-#include <VoltMod/Menu/MenuPresets.hpp>
-#include <VoltMod/Menu/Options/ChoiceOption.hpp>
-#include <VoltMod/Messaging/CenterHtml.hpp>
-#include <VoltMod/Messaging/Messages.hpp>
-#include <VoltMod/Messaging/Vote.hpp>
+#include <VoltMod/Messaging/ChatColors.hpp>
 #include <VoltMod/Players/ActionDispatcher.hpp>
 #include <VoltMod/Players/EffectDescriptor.hpp>
 #include <VoltMod/Players/EffectDispatcher.hpp>
@@ -83,9 +45,15 @@
 #include <VoltMod/Players/PlayerRef.hpp>
 #include <VoltMod/Players/Policy.hpp>
 #include <VoltMod/Runtime.hpp>
-#include <VoltMod/Unsafe/HookMacros.hpp>
-#include <VoltMod/Unsafe/VtableHook.hpp>
 
-// The Database vocabulary lives in <VoltMod/Database/Api.hpp>, deliberately
-// outside this umbrella: it drags <pqxx/pqxx> into every including TU, and
-// most plugin code never touches the database.
+// <VoltMod/Entities/Api.hpp>, <VoltMod/Hooks/Api.hpp>, <VoltMod/Menu/Api.hpp> and
+// <VoltMod/Unsafe/Api.hpp> gather those modules' full public surfaces; a plugin opts into
+// each by including it explicitly.
+//
+// <VoltMod/App/Config.hpp> gathers JsonConfig, PluginSettings and Json - a plugin's own
+// Config.hpp includes it explicitly instead of pulling nlohmann into every translation
+// unit that happens to include this umbrella.
+//
+// <VoltMod/Database/Api.hpp> gathers the Database vocabulary, also outside this umbrella:
+// it drags <pqxx/pqxx> into every including TU, and most plugin code never touches the
+// database.

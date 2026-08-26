@@ -15,7 +15,7 @@ namespace VoltMod
  * @ref GameEvents::On:
  *
  * @code
- * _death = runtime.Events.On<PlayerDeath>([](const PlayerDeath& e) {
+ * _death = runtime.GameEvents.On<PlayerDeath>([](const PlayerDeath& e) {
  *     if (e.VictimSlot >= 0) ...;
  * });
  * @endcode

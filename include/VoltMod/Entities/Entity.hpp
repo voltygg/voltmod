@@ -5,6 +5,9 @@
 #include <VoltMod/Entities/EntityRef.hpp>
 #include <VoltMod/Entities/Field.hpp>
 #include <cstdint>
+// Field.hpp only forward-declares Vector (via EngineTypes.hpp); Velocity below needs the
+// complete type.
+#include <mathlib/vector.h>
 #include <optional>
 #include <string_view>
 

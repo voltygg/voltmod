@@ -43,6 +43,21 @@ VOLTMOD_PLUGIN(MyPlugin);
 used by the base. The matching extern declarations are in
 `MetamodPlugin.hpp`, so the plugin header needs no additional declarations.
 
+`<VoltMod/Api.hpp>` covers everything above: `MetamodPlugin`, `Runtime`,
+players, commands, and the core vocabulary. It deliberately stops there - no
+menu building, no nlohmann, no raw interfaces - so a `.cpp` that needs one of
+those adds the specific header instead:
+
+| Need | Header |
+|---|---|
+| Menus (`MenuBuilder`, `Flow`, presets, options) | `<VoltMod/Menu/Api.hpp>` |
+| More of Entities (`EntityRef`, `Field`, `Items`, `ConVar`) or Hooks (`Movement`, `Damage`, game events) | `<VoltMod/Entities/Api.hpp>`, `<VoltMod/Hooks/Api.hpp>` |
+| A JsonConfig-backed settings struct | `<VoltMod/App/Config.hpp>` (see @ref config_guide) |
+| Raw interfaces, gamedata, or vtable hooking | `<VoltMod/Unsafe/Api.hpp>` |
+| PostgreSQL | `<VoltMod/Database/Api.hpp>` (see @ref database_guide) |
+
+See @ref getting_started "Getting started" for the full table.
+
 Your `App` is a plain struct holding whatever the plugin owns for one load cycle. It takes the runtime by reference and passes on what each member needs; declaration order is construction order, so a member initializer may only reference members declared **above** it.
 
 ```cpp
@@ -231,7 +246,7 @@ class Bhop
 {
     Bhop(VoltMod::Runtime& runtime) : _rt(runtime)
     {
-        _spawn = _rt.Events.On<VoltMod::PlayerSpawn>([this](const VoltMod::PlayerSpawn& e) { OnSpawn(e.Slot); });
+        _spawn = _rt.GameEvents.On<VoltMod::PlayerSpawn>([this](const VoltMod::PlayerSpawn& e) { OnSpawn(e.Slot); });
         _slots = _rt.Slots.Changed += [this](int slot) { _state.Reset(slot); };
     }
     VoltMod::Subscription _spawn;   // removed before the members above it are destroyed
@@ -255,7 +270,7 @@ Subscribe to game events as structs instead of string + `GetInt` pairs. The stru
 ```cpp
 using VoltMod::PlayerDeath;
 
-_playerDeath = Runtime.Events.On<PlayerDeath>([this](const PlayerDeath& e) {
+_playerDeath = Runtime.GameEvents.On<PlayerDeath>([this](const PlayerDeath& e) {
     if (e.VictimSlot >= 0)
         Effects.CancelAllForSlot(e.VictimSlot);
 });
@@ -276,7 +291,7 @@ SH_DECL_HOOK3(IVEngineServer2, SetClientListening, SH_NOATTRIB, 0, bool, CPlayer
 
 void MyPlugin::OnRegisterHooks(VoltMod::Runtime& runtime)
 {
-    _listening = VOLTMOD_SCOPED_HOOK(IVEngineServer2, SetClientListening, runtime.Interfaces.Engine,
+    _listening = VOLTMOD_SCOPED_HOOK(IVEngineServer2, SetClientListening, runtime.Unsafe.Interfaces.Engine,
                                     SH_MEMBER(this, &MyPlugin::Hook_SetClientListening), false);
 }
 ```

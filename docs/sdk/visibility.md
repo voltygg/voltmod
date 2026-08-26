@@ -32,7 +32,7 @@ render alpha does not hide those related entities. There are two independent
 per-slot toggles:
 
 ```cpp
-auto& transmit = runtime.Transmit;
+auto& transmit = runtime.Hooks.Transmit;
 
 transmit.SetPawnHidden(slot, true);        // pawn + weapons + wearables vanish for everyone else
 transmit.SetControllerHidden(slot, true);  // removes the player's scoreboard row
@@ -40,7 +40,7 @@ transmit.SetControllerHidden(slot, true);  // removes the player's scoreboard ro
 
 The hidden player still receives their own entities, and a client actively observing the hidden pawn keeps receiving it (dropping it would break the spectator camera). Sounds (footsteps, gunfire) are networked separately and are not filtered. State is cleared automatically when the player disconnects.
 
-Arbitrary entities can also be made exclusive to a single client, which is the building block for per-viewer effects like GlowVision below (`runtime.Visibility` wraps this one up for you):
+Arbitrary entities can also be made exclusive to a single client, which is the building block for per-viewer effects like GlowVision below (`runtime.Hooks.Visibility` wraps this one up for you):
 
 ```cpp
 transmit.SetEntityExclusive(entityIndex, beneficiarySlot);  // only this client receives it
@@ -58,7 +58,7 @@ Per-viewer wallhack-style vision built on the Transmit filter: one client sees l
 ```cpp
 using VoltMod::GlowVision;
 
-auto glow = runtime.Visibility.CreateGlow(viewerSlot);
+auto glow = runtime.Hooks.Visibility.CreateGlow(viewerSlot);
 glow->Reconcile();  // build the clones immediately
 
 // Then drive it from a repeating tick, e.g. an EffectManager spec:
@@ -78,7 +78,7 @@ GlowConfig config{
     // Ts only:
     .Filter = [&runtime](int slot) { return runtime.Entities.Controller(slot).GetTeam() == TeamT; },
 };
-auto glow = runtime.Visibility.CreateGlow(viewerSlot, std::move(config));
+auto glow = runtime.Hooks.Visibility.CreateGlow(viewerSlot, std::move(config));
 ```
 
 Costs two entities per glowing player and inherits the Transmit filter's gamedata requirement. Without the `CheckTransmitPlayerSlot` offset the clones would be visible to everyone, so do not use it when the filter is inert.

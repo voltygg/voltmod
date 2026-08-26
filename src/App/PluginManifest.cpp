@@ -1,7 +1,7 @@
 #include <VoltMod/App/PluginManifest.hpp>
+#include <VoltMod/Core/Json.hpp>
 #include <algorithm>
 #include <charconv>
-#include <nlohmann/json.hpp>
 
 namespace VoltMod
 {

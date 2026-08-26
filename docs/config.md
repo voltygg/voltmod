@@ -6,11 +6,16 @@ Settings are represented by a struct that mirrors the JSON file. Declare each
 section with defaults, map it with nlohmann's non-intrusive macro, and hold the
 root in a @ref VoltMod::JsonConfig.
 
+`<VoltMod/Api.hpp>` never reaches nlohmann, so a plugin's own `Config.hpp` includes
+`<VoltMod/App/Config.hpp>` as well - it gathers `JsonConfig`, `StandardPluginSettings`, and
+`VoltMod::Json`, and pulls in nlohmann for the `NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT`
+macro below.
+
 ## Declaring settings
 
 ```cpp
 #include <VoltMod/Api.hpp>
-#include <nlohmann/json.hpp>
+#include <VoltMod/App/Config.hpp>
 
 struct Settings
 {

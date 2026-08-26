@@ -1,4 +1,5 @@
 #include <VoltMod/App/StatusService.hpp>
+#include <VoltMod/Core/Json.hpp>
 #include <format>
 #include <string_view>
 #include <tier0/dbg.h>
@@ -27,13 +28,15 @@ bool StatusService::IsHealthy() const
     return !_healthy || _healthy();
 }
 
-nlohmann::json StatusService::BuildJson() const
+std::string StatusService::BuildJson() const
 {
+    // Each provider already returns valid JSON text, so its section is spliced in raw rather
+    // than round-tripped through a parse.
     auto out = nlohmann::json::object();
     for (const auto& [name, provider] : _sections)
-        out[name] = provider();
+        out[name] = nlohmann::json::parse(provider(), nullptr, /*allow_exceptions=*/false);
     out["healthy"] = IsHealthy();
-    return out;
+    return out.dump();
 }
 
 std::string StatusService::BuildText() const
@@ -43,7 +46,7 @@ std::string StatusService::BuildText() const
     {
         out += name;
         out += ":\n";
-        const auto section = provider();
+        const auto section = nlohmann::json::parse(provider(), nullptr, /*allow_exceptions=*/false);
         if (section.is_object())
         {
             for (const auto& [key, value] : section.items())
@@ -67,7 +70,7 @@ void StatusService::InstallCommand(const char* name, const char* helpText, Healt
         if (args.ArgC() > 1 && std::string_view(args.Arg(1)) == "json")
         {
             // Single marker-prefixed line so RCON tooling can find it amid console noise.
-            Msg("STATUS_JSON %s\n", BuildJson().dump().c_str());
+            Msg("STATUS_JSON %s\n", BuildJson().c_str());
             return;
         }
         Msg("=== %s (healthy: %s) ===\n%s\n", name, IsHealthy() ? "yes" : "no", BuildText().c_str());

@@ -211,6 +211,27 @@ voltmod_add_plugin(my-plugin VERSION 1.0.0 FEATURES DATABASE)
 For profiles, lockfiles, editable packages, and existing CMake projects, see
 @ref conan_guide.
 
+## Api headers
+
+`<VoltMod/Api.hpp>` gathers the core vocabulary, the `Runtime` facade, and
+player/command/plugin plumbing - what a typical `OnLoad` and command handler
+touches. Four more modules publish their own `Api.hpp`; include one where a
+translation unit needs that surface:
+
+| Header | Brings in |
+|---|---|
+| `<VoltMod/Api.hpp>` | Core vocabulary (`Event`, `Result`, `Subscription`, `Log`, `Scheduler`, `Translations`, `Capabilities`, ...), `Runtime`, `Player`/`PlayerManager`/`Policy`, commands, `ChatColors`, `MetamodPlugin` and `LoadStandardConfig` |
+| `<VoltMod/Entities/Api.hpp>` | Entity/Pawn/Controller wrappers, `EntitySystem`, `EntityOps`, `Items`, and `ConVar`/`ConVarLease` |
+| `<VoltMod/Hooks/Api.hpp>` | The per-tick hooks (`Movement`, `Damage`, `Teleport`, ...), game events, and messaging |
+| `<VoltMod/Menu/Api.hpp>` | `MenuBuilder`, `Flow`, presets, and every option type |
+| `<VoltMod/Unsafe/Api.hpp>` | Raw interfaces, gamedata, `MemoryAccess`, and vtable hooking - opt in only where you need it |
+| `<VoltMod/Database/Api.hpp>` | The PostgreSQL vocabulary (see @ref database_guide) |
+
+None of these reach nlohmann. A plugin's own `Config.hpp` includes
+`<VoltMod/App/Config.hpp>` for `JsonConfig` and `StandardPluginSettings` (see
+@ref config_guide) - most translation units never touch settings JSON, so it
+stays out of the umbrella.
+
 ## Next steps
 
 - @ref plugin_guide - lifecycle and ownership

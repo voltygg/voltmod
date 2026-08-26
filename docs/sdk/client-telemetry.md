@@ -25,10 +25,10 @@ Two consequences to respect:
 
 ## NetChannels
 
-`runtime.NetChannels` is a stateless wrapper over the engine's per-client channel. Bots, empty slots, and clients whose channel is already torn down simply have no channel; every accessor degrades rather than asserting.
+`runtime.World.NetChannels` is a stateless wrapper over the engine's per-client channel. Bots, empty slots, and clients whose channel is already torn down simply have no channel; every accessor degrades rather than asserting.
 
 ```cpp
-auto& net = runtime.NetChannels;
+auto& net = runtime.World.NetChannels;
 
 const float rtt = net.EngineLatency(slot);                     // seconds, 0 when unavailable
 if (const char* sens = net.GetUserInfoCvar(slot, "sensitivity"))
@@ -40,10 +40,10 @@ if (const char* sens = net.GetUserInfoCvar(slot, "sensitivity"))
 
 ## ClientCvars
 
-`runtime.ClientCvars` asks a connected client what one of *its* convars is set to. The server posts `CSVCMsg_GetCvarValue` carrying a cookie to that one client; the client answers with `CCLCMsg_RespondCvarValue` some round-trips later. The framework intercepts the answer with a manual **DVP** hook on `CServerSideClient::ProcessRespondCvarValue` (bound to the class vtable, so it covers every connected client without per-instance bindings), reads the responder's slot from a gamedata byte offset, and routes the value to the callback that asked for it. The engine's own handling of the response is untouched (`MRES_IGNORED`).
+`runtime.Hooks.ClientCvars` asks a connected client what one of *its* convars is set to. The server posts `CSVCMsg_GetCvarValue` carrying a cookie to that one client; the client answers with `CCLCMsg_RespondCvarValue` some round-trips later. The framework intercepts the answer with a manual **DVP** hook on `CServerSideClient::ProcessRespondCvarValue` (bound to the class vtable, so it covers every connected client without per-instance bindings), reads the responder's slot from a gamedata byte offset, and routes the value to the callback that asked for it. The engine's own handling of the response is untouched (`MRES_IGNORED`).
 
 ```cpp
-runtime.ClientCvars.Query(slot, "cl_interp_ratio",
+runtime.Hooks.ClientCvars.Query(slot, "cl_interp_ratio",
     [](int slot, VoltMod::ClientCvarStatus status, std::string_view name, std::string_view value) {
         if (status == VoltMod::ClientCvarStatus::ValueIntact)
             Log::Info("{} answered {} = {}", slot, name, value);

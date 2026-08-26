@@ -23,8 +23,8 @@ class vtable; dropping the last one unbinds it. There is no `Install()` to call.
 ```cpp
 // Every `+=` returns a [[nodiscard]] Subscription. Keep it as a member next to whatever the
 // handler captures, and the registration - and eventually the hook - goes away with that state.
-_pre  = runtime.MovementHook.Pre  += [this](int slot) { /* before movement runs */ };
-_post = runtime.MovementHook.Post += [this](int slot) { /* after it ran: restore */ };
+_pre  = runtime.Hooks.Movement.Pre  += [this](int slot) { /* before movement runs */ };
+_post = runtime.Hooks.Movement.Post += [this](int slot) { /* after it ran: restore */ };
 ```
 
 Hook contracts:
@@ -41,7 +41,7 @@ Hook contracts:
 `PreCmd`/`PostCmd` additionally hand you a @ref VoltMod::UserCmdView: the command's viewangles, held/changed button masks, raw mouse deltas, and per-subtick pitch/yaw deltas, decoded once per RunCommand from the `CSGOUserCmdPB` payload:
 
 ```cpp
-_preCmd = runtime.MovementHook.PreCmd += [](int slot, const VoltMod::UserCmdView& cmd) {
+_preCmd = runtime.Hooks.Movement.PreCmd += [](int slot, const VoltMod::UserCmdView& cmd) {
     if (!cmd.Valid)
         return;  // null usercmd or missing gamedata offset
     // cmd.ViewYaw, cmd.MouseDx, cmd.ButtonsHeld, cmd.SubtickMoves[0].YawDelta, ...
@@ -80,7 +80,7 @@ else if (index >= 0)
 `FilterCmd` hands you a **mutable** `UserCmdView&`. Filters run once, after the decode and before every `Pre`/`PreCmd`/`PostCmd` handler, so whatever a filter writes is what `InputHistory` and every cmd handler then observe:
 
 ```cpp
-_filter = runtime.MovementHook.FilterCmd += [](int slot, VoltMod::UserCmdView& cmd) {
+_filter = runtime.Hooks.Movement.FilterCmd += [](int slot, VoltMod::UserCmdView& cmd) {
     cmd.ViewYaw += 90.0f;  // every downstream reader now sees the rotated view
 };
 ```
@@ -89,12 +89,12 @@ The edit touches only the decoded snapshot; the underlying `CUserCmd` the engine
 
 ### InputHistory: lookback over recent usercmds
 
-@ref VoltMod::InputHistory (`runtime.InputHistory`) is an opt-in per-slot ring buffer of the decoded views, for plugins that need "what did this player's aim do over the last N ticks" (anti-cheat, movement analytics) without wiring their own buffers:
+@ref VoltMod::InputHistory (`runtime.Hooks.InputHistory`) is an opt-in per-slot ring buffer of the decoded views, for plugins that need "what did this player's aim do over the last N ticks" (anti-cheat, movement analytics) without wiring their own buffers:
 
 ```cpp
-runtime.InputHistory.Enable(128);                    // keep ~2s at 64 tick
-int n = runtime.InputHistory.Count(slot);
-const auto& newest = runtime.InputHistory.At(slot, 0);  // At(slot, ago)
+runtime.Hooks.InputHistory.Enable(128);                    // keep ~2s at 64 tick
+int n = runtime.Hooks.InputHistory.Count(slot);
+const auto& newest = runtime.Hooks.InputHistory.At(slot, 0);  // At(slot, ago)
 ```
 
 `Enable` is the arming call because this is a query service with no event of its own - the depth
@@ -105,14 +105,14 @@ History for a slot resets automatically when its player joins or leaves (via `ru
 
 ## Teleport
 
-@ref VoltMod::Teleport (`runtime.Teleports`) raises `Teleported(slot)` whenever a player pawn is moved by `CBaseEntity::Teleport`. It exists because a teleport breaks continuity: origin and view angles jump discontinuously, so anything measuring motion across ticks (speed, aim deltas, distance travelled) reads the frame after a teleport as impossible. Discount that window instead of explaining it away.
+@ref VoltMod::Teleport (`runtime.Hooks.Teleport`) raises `Teleported(slot)` whenever a player pawn is moved by `CBaseEntity::Teleport`. It exists because a teleport breaks continuity: origin and view angles jump discontinuously, so anything measuring motion across ticks (speed, aim deltas, distance travelled) reads the frame after a teleport as impossible. Discount that window instead of explaining it away.
 
 The hook is all the service owns - it keeps no history. How long the window lasts, and in which clock, is the consumer's question, so the consumer keeps the stamps:
 
 ```cpp
 // Subscribing is what arms the per-pawn hook. PerSlot clears a stamp when the seat changes hands.
 _lastTeleport.BindReset(runtime.Slots);
-_teleports = runtime.Teleports.Teleported += [this](int slot) {
+_teleports = runtime.Hooks.Teleport.Teleported += [this](int slot) {
     if (VoltMod::IsValidSlot(slot))
         _lastTeleport[slot] = _rt.Clock.Time();
 };
@@ -130,12 +130,12 @@ Semantics worth knowing:
 
 ## Damage
 
-@ref VoltMod::Damage (`runtime.Damage`) is a manual vtable hook on
+@ref VoltMod::Damage (`runtime.Hooks.Damage`) is a manual vtable hook on
 `CCSPlayerPawn::OnTakeDamage_Alive` - every point of damage a living player takes. Handlers see
 who hit whom, where, and for how much.
 
 ```cpp
-_damage = runtime.Damage.Hit += [this](const VoltMod::DamageView& view) {
+_damage = runtime.Hooks.Damage.Hit += [this](const VoltMod::DamageView& view) {
     if (view.AttackerSlot < 0)                   // world damage: fall, fire, the bomb
         return;
     if (view.Hitbox == VoltMod::HitGroup::Head)

@@ -4,6 +4,7 @@
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <cstdint>
 #include <string>
+#include <utility>
 
 namespace VoltMod
 {
@@ -50,9 +51,18 @@ public:
      */
     bool ChangeToWorkshop(uint64_t workshopId);
 
+    /** Map the server is running, captured from StartupServer. Empty after a late load until the
+     *  next map change, since the hook has already fired by then. */
+    const std::string& Current() const { return _current; }
+
+    /** Records the map StartupServer just reported. Framework-internal - MetamodPlugin calls
+     *  this once per map start; plugins read @ref Current instead. */
+    void SetCurrent(std::string name) { _current = std::move(name); }
+
 private:
     Interfaces& _interfaces;
     ConVars& _conVars;
+    std::string _current;
 };
 
 }  // namespace VoltMod

@@ -99,7 +99,7 @@ _subs.push_back(runtime.Commands.Add("slap")
     .Permission("admin.slap")
     .Run([&runtime](VoltMod::Caller c, Args::Target t)
              -> VoltMod::Result<VoltMod::Reply> {
-        runtime.Pawns.Slap(t.Value->Ctrl());
+        runtime.World.Pawns.Slap(t.Value->Ctrl());
         return c.Ok("cmd.slapped", {{"name", t.Value->Name()}});
     }));
 ```

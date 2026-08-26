@@ -9,34 +9,20 @@
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Translations.hpp>
-#include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/Clock.hpp>
 #include <VoltMod/Engine/ConVars.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Engine/GameData.hpp>
-#include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/Map.hpp>
-#include <VoltMod/Engine/NetChannel.hpp>
-#include <VoltMod/Engine/Precache.hpp>
-#include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
-#include <VoltMod/Entities/Items.hpp>
-#include <VoltMod/Entities/Pawns.hpp>
+#include <VoltMod/Entities/World.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
-#include <VoltMod/Hooks/ChatInput.hpp>
-#include <VoltMod/Hooks/ClientCvars.hpp>
-#include <VoltMod/Hooks/Damage.hpp>
-#include <VoltMod/Hooks/InputHistory.hpp>
-#include <VoltMod/Hooks/Movement.hpp>
-#include <VoltMod/Hooks/Teleport.hpp>
-#include <VoltMod/Hooks/Transmit.hpp>
-#include <VoltMod/Hooks/Visibility.hpp>
+#include <VoltMod/Hooks/Hooks.hpp>
 #include <VoltMod/Http/HttpClient.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Messaging/Messages.hpp>
-#include <VoltMod/Messaging/Vote.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/Policy.hpp>
+#include <VoltMod/Unsafe/Unsafe.hpp>
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -57,13 +43,22 @@ struct LoadContext
 /**
  * @brief Framework services for one Load/Unload cycle.
  *
- * Services are flat so their public names do not depend on source-module
- * placement. Plugins receive the runtime in OnLoad.
+ * Services are flat, by role, so their public names do not depend on source-module placement:
+ * most are direct members, and a few niche engine tiers are grouped into a struct that owns
+ * them - @ref WorldServices, @ref HookServices and @ref UnsafeServices - so a plugin author
+ * skimming this class sees the shape of what it offers instead of thirty peers in one list.
+ * Reach a grouped service through its group, e.g. `runtime.Hooks.Movement`.
  *
- * Declaration order is the dependency order: each service takes the siblings it uses by
- * reference, so a member may only be initialized from members declared above it. That order
+ * Declaration order is the dependency order: each service (or group) takes the siblings it uses
+ * by reference, so a member may only be initialized from members declared above it. That order
  * also runs teardown in reverse, which is why a service's destructor may only touch what is
- * declared above it. Access specifiers do not affect either - only declaration order does.
+ * declared above it. Access specifiers do not affect either - only declaration order does. A
+ * group states this once for the services it owns, in its own header, rather than once per
+ * member here.
+ *
+ * @ref UnsafeServices is declared right after the services with no dependencies at all, ahead of
+ * almost everything else: nearly every other service reads its @ref Bindings (or resolves
+ * through its @ref Interfaces), the opposite of how late "opt-in tier" reads in the list below.
  */
 class Runtime
 {
@@ -93,29 +88,24 @@ public:
     /** What this load can actually do, and why anything missing is missing. Written only by
      *  Start; read it before using a feature whose gamedata or engine support can be absent. */
     VoltMod::Capabilities Capabilities;
+    /** Status sections for diagnostics commands; framework sections registered by Start.
+     *  Depends on: LoadReport. */
+    StatusService Status{LoadReport};
     /** "This slot changed hands", raised by the roster and consumed by per-slot caches. */
     SlotEvents Slots;
     /** Frame pump, timers and delayed work. Pending timers are destroyed with it, never run, so
      *  whatever a timer's captured state owns may only point at members declared above this
      *  line. */
     VoltMod::Scheduler Scheduler;
-    /** Map the server is running, captured from StartupServer. Empty after a late load
-     *  until the next map change, since the hook has already fired by then. */
-    std::string CurrentMap;
-
     VoltMod::Translations Translations{Slots};
 
-    // Engine-facing services.
-    /** Plain interface-pointer holder; populated by Start. */
-    VoltMod::Interfaces Interfaces;
-    /** The raw gamedata resolutions, for diagnostics. Services read @ref Bindings instead. */
-    VoltMod::GameData GameData;
-    /** The typed view of GameData; bound once by Start and handed to every engine service. */
-    VoltMod::Bindings Bindings;
+    /** The opt-in engine-access tier (Interfaces, GameData, Bindings) - see @ref UnsafeServices
+     *  for why it is declared this early. Populated by Start. */
+    UnsafeServices Unsafe;
 
-    /** Depends on: Interfaces, Bindings. Schema field offsets resolve themselves, per process
-     *  rather than per load - see @ref Field. */
-    EntitySystem Entities{Interfaces, Bindings};
+    /** Depends on: Unsafe.Interfaces, Unsafe.Bindings. Schema field offsets resolve themselves,
+     *  per process rather than per load - see @ref Field. */
+    EntitySystem Entities{Unsafe.Interfaces, Unsafe.Bindings};
 
     /** The roster and the connection lifecycle events. Declared here, above everything that
      *  resolves a player, because Policy holds it. Depends on: Slots, Entities. */
@@ -124,52 +114,27 @@ public:
      *  them (`Policy::Authorize`). Fill the members you enforce in OnLoad. Depends on: Players. */
     VoltMod::Policy Policy{Players};
 
-    /** Pawn manipulations that need framework services, such as slap and its fall protection.
-     *  Depends on: Scheduler, Slots, Entities. */
-    VoltMod::Pawns Pawns{Scheduler, Slots, Entities};
-    /** Depends on: Entities, Bindings. */
-    VoltMod::EntityOps EntityOps{Entities, Bindings};
-    /** Weapon give/strip through CCSPlayer_ItemServices. Depends on: Bindings. */
-    VoltMod::Items Items{Bindings};
-    /** Depends on: Entities, Bindings, Slots. */
-    VoltMod::Transmit Transmit{Entities, Bindings, Slots};
-    /** Builds per-viewer visibility effects (GlowVision). Depends on: Entities, EntityOps, Transmit. */
-    VoltMod::Visibility Visibility{Entities, EntityOps, Transmit};
-    /** Depends on: Bindings. */
-    VoltMod::Precache Precache{Bindings};
-    /** Depends on: Interfaces. */
-    VoltMod::ConVars ConVars{Interfaces};
-    /** Map validation and level changes. Depends on: Interfaces, ConVars. */
-    Map Maps{Interfaces, ConVars};
-    /** Depends on: Interfaces, Bindings. Declared before Messages, which sends through it. */
-    GameEvents Events{Interfaces, Bindings};
-    /** Depends on: Interfaces, Bindings, Events, Translations. */
-    VoltMod::Messages Messages{Interfaces, Bindings, Events, Translations};
-    /** The engine's simulation clock (tick and curtime). Depends on: Interfaces. */
-    VoltMod::Clock Clock{Interfaces};
-    /** The game's own yes/no vote panel. Subscribes on the first StartVote().
-     *  Depends on: Interfaces, Entities, Events, Scheduler. */
-    VoltMod::Vote Vote{Interfaces, Entities, Events, Scheduler};
-    /** Dormant until something subscribes; the last subscription dropped removes the vtable hook.
-     *  Depends on: Entities, Bindings. */
-    Movement MovementHook{Entities, Bindings};
-    /** Dormant until something subscribes to Hit; observation only - listeners see each hit but
-     *  cannot change it. Depends on: Entities, Bindings. */
-    VoltMod::Damage Damage{Entities, Bindings};
-    /** Stateless per-client net-channel reads (latency, replicated userinfo cvars).
-     *  Depends on: Interfaces. */
-    VoltMod::NetChannels NetChannels{Interfaces};
-    /** Depends on: Scheduler, Slots. */
-    VoltMod::ChatInput ChatInput{Scheduler, Slots};
-    /** Dormant until Enable(depth); listens on the MovementHook cmd feed + slot changes.
-     *  Depends on: MovementHook, Slots. */
-    VoltMod::InputHistory InputHistory{MovementHook, Slots};
-    /** Dormant until something subscribes to Teleports.Teleported; per-pawn Teleport hook re-bound
-     *  on PlayerSpawn. Depends on: Entities, Bindings, Events, Slots. */
-    Teleport Teleports{Entities, Bindings, Events, Slots};
-    /** Async client-side convar reads. Inert when Capability::ClientCvars is off.
-     *  Depends on: Interfaces, Bindings, Slots. */
-    VoltMod::ClientCvars ClientCvars{Interfaces, Bindings, Slots};
+    /** Depends on: Unsafe.Interfaces. */
+    VoltMod::ConVars ConVars{Unsafe.Interfaces};
+    /** Map validation and level changes, and the map the server is running (captured from
+     *  StartupServer; empty after a late load until the next map change, since the hook has
+     *  already fired by then). Depends on: Unsafe.Interfaces, ConVars. */
+    VoltMod::Map Map{Unsafe.Interfaces, ConVars};
+    /** Depends on: Unsafe.Interfaces, Unsafe.Bindings. Declared before Messages, which sends
+     *  through it. */
+    VoltMod::GameEvents GameEvents{Unsafe.Interfaces, Unsafe.Bindings};
+    /** Depends on: Unsafe.Interfaces, Unsafe.Bindings, GameEvents, Translations. */
+    VoltMod::Messages Messages{Unsafe.Interfaces, Unsafe.Bindings, GameEvents, Translations};
+    /** The engine's simulation clock (tick and curtime). Depends on: Unsafe.Interfaces. */
+    VoltMod::Clock Clock{Unsafe.Interfaces};
+
+    /** Entity IO, weapon give/strip, precaching, pawn manipulation, and per-client net-channel
+     *  reads - see @ref WorldServices. Depends on: Entities, Unsafe.Bindings, Scheduler, Slots,
+     *  Unsafe.Interfaces. */
+    WorldServices World{Entities, Unsafe.Bindings, Scheduler, Slots, Unsafe.Interfaces};
+    /** The per-tick and per-event engine hooks - see @ref HookServices. Depends on: Entities,
+     *  Unsafe.Bindings, Slots, Scheduler, GameEvents, Unsafe.Interfaces, World.EntityOps. */
+    HookServices Hooks{Entities, Unsafe.Bindings, Slots, Scheduler, GameEvents, Unsafe.Interfaces, World.EntityOps};
 
     // Composition-root services.
     /** Interfaces offered to, and borrowed from, other plugins. */
@@ -177,17 +142,16 @@ public:
     /** This plugin's manifest, published to peers. Filled by LoadStandardConfig.
      *  Depends on: Exchange, Scheduler. Withdraws in its dtor, while Exchange is still alive. */
     PluginIdentity Identity{Exchange, Scheduler};
-    /** Status sections for diagnostics commands; framework sections registered by Start.
-     *  Depends on: LoadReport. */
-    StatusService Status{LoadReport};
     /** Registers its own per-frame input pump; both it and its slot listener stop in its dtor.
-     *  Takes exactly the services it and its context rows use - all declared above it. */
-    MenuManager Menus{Scheduler, Slots, Entities, Messages, ChatInput, Translations, Policy, Players};
+     *  Takes exactly the services it and its context rows use - all declared above it. Depends
+     *  on: Scheduler, Slots, Entities, Messages, Hooks.ChatInput, Translations, Policy, Players.*/
+    MenuManager Menus{Scheduler, Slots, Entities, Messages, Hooks.ChatInput, Translations, Policy, Players};
 
     /** Depends on: Policy, Translations, Players, Entities, Messages - the five services
      *  command dispatch reaches, taken directly rather than through the runtime. */
     VoltMod::CommandManager Commands{Policy, Translations, Players, Entities, Messages};
-    /** Completions dispatch on the game thread from a pump it registers itself; the dtor stops it. */
+    /** Completions dispatch on the game thread from a pump it registers itself; the dtor stops
+     *  it. Depends on: Scheduler. */
     HttpClient Http{Scheduler};
 
 private:

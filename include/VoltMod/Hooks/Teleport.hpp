@@ -29,7 +29,7 @@ namespace VoltMod
  * not this service's.
  *
  * @code
- * _teleports = runtime.Teleports.Teleported += [this](int slot) { _lastTeleport[slot] = _clock.Time(); };
+ * _teleports = runtime.Hooks.Teleport.Teleported += [this](int slot) { _lastTeleport[slot] = _clock.Time(); };
  * @endcode
  */
 class Teleport
