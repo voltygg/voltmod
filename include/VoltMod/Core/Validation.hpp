@@ -2,6 +2,7 @@
 
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/StringUtils.hpp>
+#include <concepts>
 #include <cstddef>
 #include <format>
 #include <optional>
@@ -54,6 +55,25 @@ bool FallbackIfEmpty(std::vector<T>& items, const std::vector<T>& defaults, std:
 
     Log::Warn("settings: {} has no valid entries; using built-in defaults", what);
     items = defaults;
+    return true;
+}
+
+/** As above, but @p makeDefaults is only called when the fallback is actually needed, and its
+ *  result is moved rather than copied. Prefer this when building the defaults costs anything -
+ *  passing them by value forces every caller to build a list it almost always discards.
+ *  @p makeDefaults: `std::vector<T>()`. */
+template <class T, std::invocable Fn>
+bool FallbackIfEmpty(std::vector<T>& items, Fn&& makeDefaults, std::string_view what)
+{
+    if (!items.empty())
+        return false;
+
+    auto defaults = makeDefaults();
+    if (defaults.empty())
+        return false;
+
+    Log::Warn("settings: {} has no valid entries; using built-in defaults", what);
+    items = std::move(defaults);
     return true;
 }
 
