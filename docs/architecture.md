@@ -231,9 +231,9 @@ App        -> every module
 composition root and may reach all of them.
 
 There is no ambient accessor for the runtime. Everything takes what it uses through a
-constructor or a parameter, and `modgraph` enforces that too: a `.cpp` outside `App/`,
-`Players/` and `Menu/` may not include `VoltMod/Runtime.hpp` at all, and of the *headers*, only
-`App/` and `Menu/` may.
+constructor or a parameter, and `modgraph` enforces that too: only `App/` sources and headers may
+include `VoltMod/Runtime.hpp` (or `Api.hpp`) at all - every other module, including `Players/` and
+`Menu/`, takes the sibling services it uses instead.
 
 - The engine-facing modules, `Core/`, `Http/` and `Database/` never name `Runtime`. Services and value types
   (`Entity`/`Pawn`/`Controller`, `GlowVision`, `CenterHtml`, `HttpClient`, `PostgresDatabase`)
@@ -242,12 +242,17 @@ constructor or a parameter, and `modgraph` enforces that too: a `.cpp` outside `
   Where a plugin would otherwise thread services through every call, the runtime owns a small
   facade that binds them once: `Pawns` (`runtime.Pawns`, which owns slap's fall protection)
   and `Visibility` (`runtime.Visibility`, over the `GlowVision` constructor).
-- `Players/`, `Menu/` and `App/` may take `Runtime&`, and `MenuManager` does, as do the
-  dispatchers a plugin builds itself
-  (`ActionDispatcher`, and `EffectDispatcher` over its own `EffectManager`). The header-only templates
-  and plain-data types plugins instantiate (`Flow<TState>`, `PerSlot<T>`, `MenuContext`, the
-  `MenuPresets` builders) still take the single narrowest service they need, so a consumer TU
-  that includes one of those headers does not pull in the whole composition root.
+- Only `App/` may take `Runtime&`. `Players/` and `Menu/` take the narrowest services they use
+  instead: `ActionDispatcher` takes `Policy&`, `PlayerManager&` and `EntitySystem&`;
+  `EffectDispatcher` wraps an `ActionDispatcher&` plus its own `EffectManager&`; `MenuManager`
+  takes `Scheduler&`, `SlotEvents&`, `EntitySystem&`, `Messages&`, `ChatInput&`, `Translations&`,
+  `Policy&` and `PlayerManager&`, and owns a long-lived `ActionDispatcher` built from three of
+  them so a menu row press needs no throwaway dispatcher. The header-only templates and
+  plain-data types plugins instantiate (`Flow<TState>`, `PerSlot<T>`, the `MenuPresets` builders)
+  still take the single narrowest service they need, so a consumer TU that includes one of those
+  headers does not pull in the whole composition root. `MenuBuilder` itself stays SDK-free: it
+  only forward-declares `MenuManager` and never calls into it inline - the context-row bodies that
+  do (`MenuBuilderRows.cpp`) include `MenuManager.hpp` themselves.
 - A file-static stands in only where no reference can be threaded, set and cleared by the
   code that owns it. Two back engine callbacks that carry no user data (the entity system
   behind `GameEntitySystem()`, the sink for the global convar change callback); the rest are

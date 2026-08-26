@@ -3,13 +3,20 @@
 #include <VoltMod/Core/Slot.hpp>
 #include <doctest/doctest.h>
 
+using VoltMod::EffectInstance;
 using VoltMod::EffectManager;
-using VoltMod::EffectSpec;
+using VoltMod::EffectScope;
 using VoltMod::MaxPlayers;
 using VoltMod::Scheduler;
 
 static constexpr int Disco = 0;
 static constexpr int Ghost = 1;
+
+// Apply with just an OnStop: state-only, no tick, no duration.
+static void ApplyStateOnly(EffectManager& mgr, int slot, int id, std::function<void()> onStop)
+{
+    mgr.Apply(slot, id, EffectInstance{.OnStop = std::move(onStop)}, EffectScope::Persistent, 0, 0);
+}
 
 TEST_CASE("EffectManager: Apply and IsActive")
 {
@@ -17,7 +24,7 @@ TEST_CASE("EffectManager: Apply and IsActive")
     EffectManager mgr(scheduler);
 
     CHECK(!mgr.IsActive(3, Disco));
-    mgr.Apply(3, Disco, {.OnStop = [] {}});
+    ApplyStateOnly(mgr, 3, Disco, [] {});
     CHECK(mgr.IsActive(3, Disco));
     CHECK(!mgr.IsActive(3, Ghost));
     CHECK(!mgr.IsActive(4, Disco));
@@ -29,8 +36,8 @@ TEST_CASE("EffectManager: re-Apply runs the prior onStop first")
     EffectManager mgr(scheduler);
 
     int cancels = 0;
-    mgr.Apply(3, Disco, {.OnStop = [&] { ++cancels; }});
-    mgr.Apply(3, Disco, {.OnStop = [&] { cancels += 10; }});
+    ApplyStateOnly(mgr, 3, Disco, [&] { ++cancels; });
+    ApplyStateOnly(mgr, 3, Disco, [&] { cancels += 10; });
     CHECK_EQ(cancels, 1);  // first instance undone, second still active
 
     mgr.Cancel(3, Disco);
@@ -43,7 +50,7 @@ TEST_CASE("EffectManager: Cancel clears state and flips IsActive")
     EffectManager mgr(scheduler);
 
     int cancels = 0;
-    mgr.Apply(3, Disco, {.OnStop = [&] { ++cancels; }});
+    ApplyStateOnly(mgr, 3, Disco, [&] { ++cancels; });
     CHECK(mgr.IsActive(3, Disco));
 
     mgr.Cancel(3, Disco);
@@ -57,8 +64,8 @@ TEST_CASE("EffectManager: Cancel is idempotent and per-id")
     EffectManager mgr(scheduler);
 
     int cancels = 0;
-    mgr.Apply(3, Disco, {.OnStop = [&] { ++cancels; }});
-    mgr.Apply(3, Ghost, {.OnStop = [&] { ++cancels; }});
+    ApplyStateOnly(mgr, 3, Disco, [&] { ++cancels; });
+    ApplyStateOnly(mgr, 3, Ghost, [&] { ++cancels; });
 
     mgr.Cancel(3, Disco);
     mgr.Cancel(3, Disco);  // no-op: already gone
@@ -66,31 +73,31 @@ TEST_CASE("EffectManager: Cancel is idempotent and per-id")
     CHECK(mgr.IsActive(3, Ghost));
 }
 
-TEST_CASE("EffectManager: CancelRoundScoped only touches round-scoped effects")
+TEST_CASE("EffectManager: CancelRound only touches round-scoped effects")
 {
     Scheduler scheduler;
     EffectManager mgr(scheduler);
 
-    mgr.Apply(3, Disco, {.RoundScoped = true, .OnStop = [] {}});
-    mgr.Apply(3, Ghost, {.RoundScoped = false, .OnStop = [] {}});
-    mgr.Apply(5, Disco, {.RoundScoped = true, .OnStop = [] {}});
+    mgr.Apply(3, Disco, EffectInstance{}, EffectScope::Round, 0, 0);
+    mgr.Apply(3, Ghost, EffectInstance{}, EffectScope::Persistent, 0, 0);
+    mgr.Apply(5, Disco, EffectInstance{}, EffectScope::Round, 0, 0);
 
-    mgr.CancelRoundScoped();
+    mgr.CancelRound();
     CHECK(!mgr.IsActive(3, Disco));
     CHECK(mgr.IsActive(3, Ghost));
     CHECK(!mgr.IsActive(5, Disco));
 }
 
-TEST_CASE("EffectManager: CancelAllForSlot and CancelAll")
+TEST_CASE("EffectManager: CancelAll(slot) and CancelAll()")
 {
     Scheduler scheduler;
     EffectManager mgr(scheduler);
 
-    mgr.Apply(3, Disco, {.OnStop = [] {}});
-    mgr.Apply(3, Ghost, {.OnStop = [] {}});
-    mgr.Apply(5, Disco, {.OnStop = [] {}});
+    mgr.Apply(3, Disco, EffectInstance{}, EffectScope::Persistent, 0, 0);
+    mgr.Apply(3, Ghost, EffectInstance{}, EffectScope::Persistent, 0, 0);
+    mgr.Apply(5, Disco, EffectInstance{}, EffectScope::Persistent, 0, 0);
 
-    mgr.CancelAllForSlot(3);
+    mgr.CancelAll(3);
     CHECK(!mgr.IsActive(3, Disco));
     CHECK(!mgr.IsActive(3, Ghost));
     CHECK(mgr.IsActive(5, Disco));
@@ -99,24 +106,24 @@ TEST_CASE("EffectManager: CancelAllForSlot and CancelAll")
     CHECK(!mgr.IsActive(5, Disco));
 }
 
-TEST_CASE("EffectManager: CancelPerLife keeps only SurvivesDeath effects")
+TEST_CASE("EffectManager: CancelOnDeath keeps only Session-scoped effects")
 {
     Scheduler scheduler;
     EffectManager mgr(scheduler);
 
     int cancels = 0;
-    mgr.Apply(3, Disco, {.OnStop = [&] { ++cancels; }});
-    mgr.Apply(3, Ghost, {.SurvivesDeath = true, .OnStop = [&] { ++cancels; }});
-    mgr.Apply(5, Disco, {.OnStop = [&] { ++cancels; }});
+    mgr.Apply(3, Disco, EffectInstance{.OnStop = [&] { ++cancels; }}, EffectScope::Persistent, 0, 0);
+    mgr.Apply(3, Ghost, EffectInstance{.OnStop = [&] { ++cancels; }}, EffectScope::Session, 0, 0);
+    mgr.Apply(5, Disco, EffectInstance{.OnStop = [&] { ++cancels; }}, EffectScope::Persistent, 0, 0);
 
-    mgr.CancelPerLife(3);
+    mgr.CancelOnDeath(3);
     CHECK(!mgr.IsActive(3, Disco));  // per-life: swept on death
-    CHECK(mgr.IsActive(3, Ghost));   // SurvivesDeath: kept
+    CHECK(mgr.IsActive(3, Ghost));   // Session: kept
     CHECK(mgr.IsActive(5, Disco));   // other slot untouched
     CHECK_EQ(cancels, 1);
 
-    mgr.CancelPerLife(-1);  // out-of-range: no-op
-    mgr.CancelPerLife(MaxPlayers);
+    mgr.CancelOnDeath(-1);  // out-of-range: no-op
+    mgr.CancelOnDeath(MaxPlayers);
     CHECK(mgr.IsActive(3, Ghost));
 }
 
@@ -125,10 +132,10 @@ TEST_CASE("EffectManager: out-of-range slots are no-ops")
     Scheduler scheduler;
     EffectManager mgr(scheduler);
 
-    mgr.Apply(-1, Disco, {.OnStop = [] {}});
-    mgr.Apply(MaxPlayers, Disco, {.OnStop = [] {}});
+    ApplyStateOnly(mgr, -1, Disco, [] {});
+    ApplyStateOnly(mgr, MaxPlayers, Disco, [] {});
     CHECK(!mgr.IsActive(-1, Disco));
     CHECK(!mgr.IsActive(MaxPlayers, Disco));
     mgr.Cancel(-1, Disco);
-    mgr.CancelAllForSlot(MaxPlayers);  // must not crash
+    mgr.CancelAll(MaxPlayers);  // must not crash
 }

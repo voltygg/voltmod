@@ -9,26 +9,7 @@
 namespace VoltMod
 {
 
-/** Lifetime policy, declared as data on the descriptor (not baked into the body). */
-enum class EffectScope
-{
-    Persistent, /**< Lives until toggled off, death, disconnect, or unload. */
-    Round,      /**< Also auto-cancels on round end/prestart. */
-    Session     /**< Survives death; cleared only on toggle-off, disconnect, or unload. */
-};
-
-/**
- * @brief What an effect's setup body hands back: the two closures @ref EffectManager drives.
- * `OnTick` runs every `TickIntervalMs` (null for state-only effects); `OnStop` undoes whatever
- * was applied and runs exactly once when the effect ends for any reason.
- */
-struct EffectInstance
-{
-    std::function<void()> OnTick;
-    std::function<void()> OnStop;
-};
-
-/** One selectable option for a @ref ParamEffectDescriptor submenu. */
+/** One selectable option for an @ref EffectDescriptor picker submenu (@ref EffectDescriptor::Choices). */
 struct EffectChoice
 {
     std::string Label;
@@ -36,41 +17,34 @@ struct EffectChoice
 };
 
 /**
- * @brief A toggle / one-shot / timed player effect expressed as data, mirroring @ref Action.
+ * @brief A toggle / one-shot / timed / parameterized player effect expressed as data, mirroring
+ * @ref Action.
  *
- * `Setup` receives the resolved, permission/immunity-checked context, applies the effect, and
- * returns its @ref EffectInstance. Lifetime is declarative: `Scope`, `TickIntervalMs`, and
- * `DurationMs` are forwarded to @ref EffectManager. An empty `OnKey`/`OffKey` suppresses that
- * broadcast. Dispatch via @ref EffectDispatcher, which applies `runtime.Policy` before running
- * the body.
+ * `Setup` receives the resolved, permission/immunity-checked context plus a caller-supplied `param`
+ * (0 for a plain toggle; a picker index for a parameterized effect - see @ref Choices), applies the
+ * effect, and returns its @ref EffectInstance. Lifetime is declarative: `Scope`, `TickIntervalMs`,
+ * and `DurationMs` are forwarded to @ref EffectManager::Apply. An empty `OnKey`/`OffKey` suppresses
+ * that broadcast. Dispatch via @ref EffectDispatcher, which applies `Policy::Authorize` before
+ * running the body.
+ *
+ * Leave @ref Choices empty for a plain toggle row (@ref MenuBuilder::Effect); set it to drive a
+ * picker submenu (@ref MenuBuilder::EffectPicker), where each @ref EffectChoice's `Param` is what
+ * `Setup` receives.
  */
 struct EffectDescriptor
 {
-    std::string Permission; /**< Consumer-defined permission token; "" skips the check. */
-    int Id;                 /**< Plugin-defined key into the per-slot EffectManager map. */
-    std::string NameKey;    /**< Translation key for the menu row label. */
-    std::string OnKey;      /**< Broadcast key when applied ("" = silent). */
-    std::string OffKey;     /**< Broadcast key when cleared ("" = silent). */
+    std::string Permission;    /**< Consumer-defined permission token; "" skips the check. */
+    int Id;                    /**< Plugin-defined key into the per-slot EffectManager map. */
+    std::string NameKey;       /**< Translation key for the menu row label. */
+    std::string OnKey;         /**< Broadcast key when applied ("" = silent). */
+    std::string OffKey;        /**< Broadcast key when cleared ("" = silent). */
+    std::string ResetLabelKey; /**< Picker only; "" = no reset row. */
     EffectScope Scope = EffectScope::Persistent;
     int TickIntervalMs = 0;
     int DurationMs = 0;
     bool RequireAlive = false;
-    std::function<EffectInstance(const ActionContext&)> Setup;
-};
-
-/** Like @ref EffectDescriptor but `Setup` receives a menu-supplied int (e.g. a model index). */
-struct ParamEffectDescriptor
-{
-    std::string Permission;
-    int Id;
-    std::string NameKey;
-    std::string OnKey;
-    std::string OffKey;
-    std::string ResetLabelKey; /**< "" = no reset row in the picker. */
-    EffectScope Scope = EffectScope::Persistent;
-    int TickIntervalMs = 0;
-    int DurationMs = 0;
-    bool RequireAlive = false;
+    /** Empty = plain toggle (@ref MenuBuilder::Effect); non-empty drives a picker submenu
+     *  (@ref MenuBuilder::EffectPicker) whose rows are these choices. */
     std::function<std::vector<EffectChoice>()> Choices;
     std::function<EffectInstance(const ActionContext&, int param)> Setup;
 };

@@ -3,9 +3,8 @@
 [TOC]
 
 VoltMod menus use WASD input and center HTML. Each row is a typed
-@ref VoltMod::MenuOption. Build menus with
-@ref VoltMod::MenuBuilder; context rows and the
-@ref VoltMod::Flow wizard provide the common admin-panel behavior.
+@ref VoltMod::MenuOption. Build menus with @ref VoltMod::MenuBuilder; context
+rows and the @ref VoltMod::Flow wizard provide the common admin-panel behavior.
 
 Players navigate with:
 
@@ -24,30 +23,60 @@ Players navigate with:
 using VoltMod::MenuBuilder;
 
 auto menu = MenuBuilder("Admin Panel")
-    .AddButton("Kick Player", [](int slot) { /* ... */ })
-    .AddButton("Disabled",    [](int slot) {}, /*enabled=*/false)
+    .Button("Kick Player", [](int slot) { /* ... */ })
+    .Button("Disabled",    [](int slot) {}, /*enabled=*/false)
     .OnClose([](int slot) { /* cleanup */ })
     .Build();
 
 runtime.Menus.OpenMenu(playerSlot, menu);
 ```
 
+This plain constructor is enough for any menu whose rows need no player context. Nothing here
+touches the runtime, so this header alone (and the `.cpp`s behind it) stays SDK-free.
+
 ## Context rows
 
-For rows that act on an admin/target pair, bind a @ref VoltMod::MenuContext once. It carries the runtime as its first member; every context row then derives its label (a translation key in the admin's language), its enabled state (`MenuContext::Allowed`, which is one call to `runtime.Policy.Authorize` for the admin, the target and the row permission - so a row the admin cannot use renders disabled), and its dispatch pair from the context:
+For rows that act on an admin/target pair, construct the builder with the @ref VoltMod::MenuManager
+that will render it, then bind the pair once with `For`:
 
 ```cpp
-MenuBuilder(title)
-    .WithContext({.Rt = &runtime, .Admin = adminSlot, .Target = targetSlot, .Effects = &app.Effects})
-    .AddActionRow("action.kill", Actions::Kill)                                    // runs an Action
-    .AddStateToggleRow("action.freeze", InMoveType(MoveType::None), Actions::Freeze)  // live on/off state
-    .AddPresetChoiceRow("action.health", "HP", HealthPresets, Actions::SetHealth)  // A/D cycles, E applies
-    .AddEffectToggleRow(Effects::Ghost)          // data-defined effect (EffectDescriptor)
-    .AddEffectPickerRow(Effects::Model)          // submenu over the effect's Choices
+MenuBuilder(runtime.Menus, title)
+    .For(adminRef, targetRef, &app.Effects)                              // PlayerRef, optional<PlayerRef>
+    .Row("action.kill", Actions::Kill)                                   // runs an Action
+    .StateToggle("action.freeze", InMoveType(MoveType::None), Actions::Freeze)  // live on/off state
+    .Presets("action.health", "HP", HealthPresets, Actions::SetHealth)   // A/D cycles, E applies
+    .Effect(Effects::Ghost)          // data-defined effect (EffectDescriptor)
+    .EffectPicker(Effects::Model)    // submenu over the effect's Choices
     .Build();
 ```
 
-A context left without `.Rt` is inert: `Allowed` denies, so every context row renders disabled. Re-checking a row when it is clicked is the same question, so ask `Policy::Authorize` again rather than writing the permission and immunity rules a second time - a flag can be revoked while the menu is open. `AddStateToggleRow` re-reads its predicate every redraw, so the same row shows "Freeze"/"Unfreeze" reality and doubles as the undo control. The pawn predicates (`InMoveType`, `HasPawnFlag`) live in `Entities/PawnPredicates.hpp`. Effect rows read on/off labels from the reserved keys `effectState.on` / `effectState.off`; the descriptors themselves are covered in @ref players_guide.
+Every context row derives its label (a translation key in the admin's language, via `Tr`), its
+enabled state (`Allowed`, which is one call to `Policy::Authorize` for the admin, the target and
+the row's permission - so a row the admin cannot use renders disabled), and its dispatch pair from
+the bound `For` state. The `MenuManager` owns a long-lived @ref VoltMod::ActionDispatcher (built
+from `Policy`, `PlayerManager` and `EntitySystem`), so a row press runs through it directly - no
+throwaway dispatcher is constructed per click.
+
+A builder built with the plain (no-`MenuManager`) constructor is inert for context rows: `Allowed`
+denies and `Tr` echoes the key back unresolved, so every context row renders disabled rather than
+crashing. `For`'s pair is a `PlayerRef`, not a bare slot: re-checking a row is the same permission
+question every redraw and every click ask `Policy::Authorize` again against that *same* identity,
+so a departed admin's old slot being reused by someone else denies rather than silently
+authorizing the new occupant - the reason a slot is ever promoted to a `PlayerRef` in the first
+place (see @ref players_guide). `StateToggle` re-reads its predicate every redraw, so the same row
+shows "Freeze"/"Unfreeze" reality and doubles as the undo control. The pawn predicates
+(`InMoveType`, `HasPawnFlag`) live in `Entities/PawnPredicates.hpp`. Effect rows read on/off labels
+from the reserved keys `effectState.on` / `effectState.off`; the descriptor itself is covered in
+@ref players_guide.
+
+A plain row that still needs a permission-gated enabled state (a Button that isn't a single-target
+`Action`) uses the same `Allowed` the context rows do:
+
+```cpp
+MenuBuilder(runtime.Menus, title)
+    .For(adminRef, std::nullopt)
+    .Button(Tr("action.callCheck"), [&](int) { StartCheck(...); }, Allowed("s"))
+```
 
 ## Flow: multistep wizards
 
@@ -77,7 +106,7 @@ Flow contracts:
 
 - Text comes from per-slot provider functions, so every step renders in the viewing admin's language; the framework ships no strings of its own.
 - `Create` takes the @ref VoltMod::MenuManager the flow opens and closes its steps through, so the flow needs no other service.
-- The `OnValidate` result is a translation key. On failure the flow calls `MenuManager::CloseAllWithReply`, which replies through `runtime.Policy.Reply` and closes the menus.
+- The `OnValidate` result is a translation key. On failure the flow calls `MenuManager::CloseAllWithReply`, which replies through `Policy::Reply` and closes the menus.
 - A confirm-only flow (skip straight to `WithConfirm`) is the natural shape for "quick" variants of a wizard.
 - Lifetime is automatic: menu rows hold the only owning references, so the flow lives exactly as long as one of its menus is on screen. There is no manager to hold and no cleanup to write.
 - `AddStep(build, applies)` is the escape hatch for a fully custom step: build any menu, mutate `flow.State()`, and call `flow.Advance(slot)`.
@@ -87,26 +116,26 @@ Flow contracts:
 Every builder method appends a typed row. Use
 `AddOption(std::shared_ptr<MenuOption>)` for a custom subclass.
 
-- `AddText(label)` is a non-selectable heading or divider; the cursor skips it.
-- `AddButton(label, onActivate, enabled = true)` is a plain action row. `AddDynamicButton(getLabel, ...)` recomputes the label every frame.
-- `AddToggle(title, onLabel, offLabel, getState, onToggle, enabled = true)` renders `"title: ON|OFF"`; E and A/D both flip. State lives wherever you keep it, so pass a getter.
-- `AddChoice<T>(title, choices, onCommit, enabled = true, initialIndex = 0)`: A/D cycles the `{label, value}` list and E commits the current value. The option owns its index, so ephemeral pick-one rows need no external state:
+- `Text(label)` is a non-selectable heading or divider; the cursor skips it.
+- `Button(label, onActivate, enabled = true)` is a plain action row. `DynamicButton(getLabel, ...)` recomputes the label every frame.
+- `Toggle(title, onLabel, offLabel, getState, onToggle, enabled = true)` renders `"title: ON|OFF"`; E and A/D both flip. State lives wherever you keep it, so pass a getter.
+- `Choice<T>(title, choices, onCommit, enabled = true, initialIndex = 0)`: A/D cycles the `{label, value}` list and E commits the current value. The option owns its index, so ephemeral pick-one rows need no external state:
 
 ```cpp
-.AddChoice<int>("HP", {{"1 HP", 1}, {"100 HP", 100}, {"999 HP", 999}},
+.Choice<int>("HP", {{"1 HP", 1}, {"100 HP", 100}, {"999 HP", 999}},
     [admin, target](int slot, const int& hp) {
         Actions::DoSetHealth(admin, target, hp);
         runtime.Menus.CloseAllMenus(slot);
     })
 ```
 
-  The getter/setter overload (`AddChoice<T>(title, choices, getIndex, setIndex, onCommit, enabled)`) remains for state that lives outside the menu. With no `onCommit`, E advances like D, which suits pick-a-value rows another part of the menu reads live.
+  The getter/setter overload (`Choice<T>(title, choices, getIndex, setIndex, onCommit, enabled)`) remains for state that lives outside the menu. With no `onCommit`, E advances like D, which suits pick-a-value rows another part of the menu reads live.
 
-- `AddSelector<T>(title, values, formatter, ...)` is Choice for value types without their own label (seconds → `"5m"`, enum → translation).
-- `AddSlider(title, min, max, step, getValue, setValue, enabled = true)`: A/D adjusts in steps, clamped, and renders a unicode bar.
-- `AddProgressBar(title, getValue, max)` is a read-only bar the cursor skips.
-- `AddInput(title, prompt, get, set, maxLength = 64, enabled = true)`: E pauses the menu and routes the player's next chat line into `set`; return `false` to re-prompt, `true` to accept. R cancels. Backed by @ref VoltMod::ChatInput, so your chat hook must call `runtime.ChatInput.TryConsume` first (see @ref sdk_messaging_guide).
-- `AddSubmenu(label, factory, enabled = true)` runs the factory lazily on E and pushes the returned menu onto the stack; R pops back.
+- `Selector<T>(title, values, formatter, ...)` is Choice for value types without their own label (seconds → `"5m"`, enum → translation).
+- `Slider(title, min, max, step, getValue, setValue, enabled = true)`: A/D adjusts in steps, clamped, and renders a unicode bar.
+- `ProgressBar(title, getValue, max)` is a read-only bar the cursor skips.
+- `Input(title, prompt, get, set, maxLength = 64, enabled = true)`: E pauses the menu and routes the player's next chat line into `set`; return `false` to re-prompt, `true` to accept. R cancels. Backed by @ref VoltMod::ChatInput, so your chat hook must call `runtime.ChatInput.TryConsume` first (see @ref sdk_messaging_guide).
+- `Submenu(label, factory, enabled = true)` runs the factory lazily on E and pushes the returned menu onto the stack; R pops back.
 
 ## Pagination
 
@@ -164,3 +193,5 @@ auto choices = BuildPaletteChoices([&](std::string_view name) { return LabelFor(
 ## Headers
 
 Most consumers only need `MenuBuilder.hpp` (which pulls in every option type) plus `Flow.hpp` or `MenuPresets.hpp`. The per-option headers under `Menu/Options/` matter only when constructing an option manually for `AddOption` or subclassing `MenuOption` (override `GetLabel`, `OnActivate(int slot, MenuManager& menus)`, and optionally `OnHorizontal`). `OnActivate` receives the manager rendering the row, so a custom option can push a submenu (`menus.OpenMenu`) or start a chat prompt (`menus.BeginInput`) without holding the runtime.
+
+`MenuBuilder.hpp` only forward-declares `MenuManager` (already declared once, in `Engine/EngineTypes.hpp`, for the same reason `MenuOption.hpp` does) and never calls into it inline, so including it does not by itself pull in a live `MenuManager`'s engine-facing dependencies. It is not SDK-free on its own account, though: `Action` and `EffectDescriptor` carry an `ActionContext` that holds `Controller` by value, which needs `Pawn`/`Entity`/`Field<T, ...>` complete - true of `MenuBuilder` since before this phase, because a context row has always taken a `const Action&`. Only `MenuRenderer` (the plain `MenuView`/`MenuOption` → HTML step) is SDK-free; it is exercised by VoltMod's own SDK-free test suite (`tests/Menu/MenuRenderTests.cpp`). The context-row bodies that call into the manager - `Row`, `StateToggle`, `Presets`, `Effect`, `EffectPicker` - live in `MenuBuilderRows.cpp`, which includes `MenuManager.hpp` itself.

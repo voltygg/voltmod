@@ -19,7 +19,7 @@ void AppendPlayerRows(MenuBuilder& builder, PlayerManager& players, int viewerSl
     {
         int targetSlot = p->Slot();
         bool enabled = isEnabled ? isEnabled(targetSlot) : true;
-        builder.AddButton(
+        builder.Button(
             p->Name(),
             [viewerSlot, targetSlot, onPick](int /*slot*/) {
                 if (onPick)
@@ -29,7 +29,7 @@ void AppendPlayerRows(MenuBuilder& builder, PlayerManager& players, int viewerSl
     }
 
     if (connected.empty() && !emptyLabel.empty())
-        builder.AddButton(emptyLabel, [](int) {}, false);
+        builder.Button(emptyLabel, [](int) {}, false);
 }
 
 std::shared_ptr<MenuView> BuildPlayerPicker(PlayerManager& players, int viewerSlot, const std::string& title,
@@ -52,7 +52,7 @@ std::shared_ptr<MenuView> BuildDurationPicker(int viewerSlot, const std::string&
 
     for (const auto& [label, seconds] : presets)
     {
-        builder.AddButton(label, [viewerSlot, secs = seconds, onPick](int /*slot*/) {
+        builder.Button(label, [viewerSlot, secs = seconds, onPick](int /*slot*/) {
             if (onPick)
                 onPick(viewerSlot, secs);
         });
@@ -60,7 +60,7 @@ std::shared_ptr<MenuView> BuildDurationPicker(int viewerSlot, const std::string&
 
     if (!customLabel.empty())
     {
-        builder.AddInput(
+        builder.Input(
             customLabel, customPrompt, [](int) { return std::string{}; },
             [viewerSlot, onPick](int /*slot*/, std::string_view text) -> bool {
                 int seconds = ParseDuration(text);
@@ -81,14 +81,14 @@ std::shared_ptr<MenuView> BuildConfirmDialog(MenuManager& menus, ConfirmDialogSp
     MenuBuilder builder(spec.Title);
 
     for (auto& line : spec.BodyLines)
-        builder.AddText(std::move(line));
+        builder.Text(std::move(line));
 
-    builder.AddButton(spec.ConfirmLabel, [onConfirm = std::move(spec.OnConfirm)](int slot) {
+    builder.Button(spec.ConfirmLabel, [onConfirm = std::move(spec.OnConfirm)](int slot) {
         if (onConfirm)
             onConfirm(slot);
     });
     // By pointer, not by reference: the row outlives this call, and `menus` is a local reference.
-    builder.AddButton(spec.CancelLabel, [menus = &menus, onCancel = std::move(spec.OnCancel)](int slot) {
+    builder.Button(spec.CancelLabel, [menus = &menus, onCancel = std::move(spec.OnCancel)](int slot) {
         if (onCancel)
             onCancel(slot);
         else

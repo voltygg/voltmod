@@ -1,21 +1,19 @@
+#include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Players/ActionDispatcher.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
-#include <VoltMod/Runtime.hpp>
 
 namespace VoltMod
 {
 
 Result<ActionContext> ActionDispatcher::Resolve(int callerSlot, int targetSlot, std::string_view permission) const
 {
-    auto& players = _runtime.Players;
-    auto authorized = _runtime.Policy.Authorize(players.RefFor(callerSlot), players.RefFor(targetSlot), permission);
+    auto authorized = _policy.Authorize(_players.RefFor(callerSlot), _players.RefFor(targetSlot), permission);
     if (!authorized)
         return std::unexpected(authorized.error());
 
     return ActionContext{.Auth = *authorized,
-                         .Rt = _runtime,
-                         .CallerCtrl = _runtime.Entities.Controller(callerSlot),
-                         .TargetCtrl = _runtime.Entities.Controller(targetSlot)};
+                         .CallerCtrl = _entities.Controller(callerSlot),
+                         .TargetCtrl = _entities.Controller(targetSlot)};
 }
 
 void ActionDispatcher::Run(int callerSlot, int targetSlot, const Action& action) const
@@ -42,7 +40,7 @@ void ActionDispatcher::Run(int callerSlot, int targetSlot, int param, const Para
 
 void ActionDispatcher::Broadcast(const ActionContext& ctx, std::string_view translationKey) const
 {
-    if (auto& sink = _runtime.Policy.Broadcast)
+    if (auto& sink = _policy.Broadcast)
         sink(ctx.Auth, translationKey);
 }
 

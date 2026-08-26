@@ -5,115 +5,134 @@
 #include <VoltMod/Players/ActionDispatcher.hpp>
 #include <VoltMod/Players/EffectDispatcher.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
-#include <VoltMod/Runtime.hpp>
 #include <format>
 
 namespace VoltMod
 {
 
-// Context-aware rows. Descriptors are namespace-scope globals in the consumer, so capturing
-// their address in row lambdas is safe for the process lifetime. A null MenuContext::Rt means
-// nobody bound the context, which Allowed() already turns into a disabled row - and MenuManager
-// activates only enabled rows, so only the render-time predicates below tolerate it.
+// Context-aware rows. `_menus` is null only when nobody bound a MenuManager (the plain
+// constructor) - Allowed() already turns that into a disabled row, so the inert fallbacks below
+// build a harmless disabled row of the matching shape rather than dereferencing a null manager.
 
-MenuBuilder& MenuBuilder::AddActionRow(std::string_view labelKey, const Action& action)
+MenuBuilder& MenuBuilder::Row(std::string_view labelKey, const Action& action)
 {
+    if (!_menus)
+        return Button(std::string(labelKey), [](int) {}, false);
+
+    ActionDispatcher* actions = &_menus->Actions();
+    int admin = _admin.Slot;
+    int target = _target ? _target->Slot : -1;
     const Action* a = &action;
-    return AddButton(
-        _context.Tr(labelKey),
-        [rt = _context.Rt, admin = _context.Admin, target = _context.Target, a](int) {
-            ActionDispatcher{*rt}.Run(admin, target, *a);
-        },
-        _context.Allowed(action.Permission));
+    return Button(
+        Tr(labelKey), [actions, admin, target, a](int) { actions->Run(admin, target, *a); },
+        Allowed(action.Permission));
 }
 
-MenuBuilder& MenuBuilder::AddStateToggleRow(std::string_view labelKey, std::function<bool(const Pawn&)> isActive,
-                                            const Action& action)
+MenuBuilder& MenuBuilder::StateToggle(std::string_view labelKey, std::function<bool(const Pawn&)> isActive,
+                                      const Action& action)
 {
+    if (!_menus)
+        return Toggle(std::string(labelKey), "", "", [](int) { return false; }, [](int) {}, false);
+
+    EntitySystem* entities = &_menus->Entities();
+    ActionDispatcher* actions = &_menus->Actions();
+    int admin = _admin.Slot;
+    int target = _target ? _target->Slot : -1;
     const Action* a = &action;
-    Runtime* rt = _context.Rt;
-    int target = _context.Target;
-    return AddToggle(
-        _context.Tr(labelKey), _context.Tr("effectState.on"), _context.Tr("effectState.off"),
-        [rt, target, isActive = std::move(isActive)](int) {
-            if (!rt)
-                return false;
-            Pawn pawn = rt->Entities.PawnOf(target);
+    return Toggle(
+        Tr(labelKey), Tr("effectState.on"), Tr("effectState.off"),
+        [entities, target, isActive = std::move(isActive)](int) {
+            Pawn pawn = entities->PawnOf(target);
             return pawn && isActive(pawn);
         },
-        [rt, admin = _context.Admin, target, a](int) { ActionDispatcher{*rt}.Run(admin, target, *a); },
-        _context.Allowed(action.Permission));
+        [actions, admin, target, a](int) { actions->Run(admin, target, *a); }, Allowed(action.Permission));
 }
 
-MenuBuilder& MenuBuilder::AddPresetChoiceRow(std::string_view labelKey, std::string_view unit,
-                                             std::span<const int> presets, const ParamAction& action, int initialIndex)
+MenuBuilder& MenuBuilder::Presets(std::string_view labelKey, std::string_view unit, std::span<const int> presets,
+                                  const ParamAction& action, int initialIndex)
 {
     std::vector<ChoiceOption<int>::Choice> choices;
     choices.reserve(presets.size());
     for (int value : presets)
         choices.push_back({std::format("{} {}", value, unit), value});
 
+    if (!_menus)
+        return Choice<int>(std::string(labelKey), std::move(choices), [](int, const int&) {}, false, initialIndex);
+
+    ActionDispatcher* actions = &_menus->Actions();
+    MenuManager* menus = _menus;
+    int admin = _admin.Slot;
+    int target = _target ? _target->Slot : -1;
     const ParamAction* a = &action;
-    return AddChoice<int>(
-        _context.Tr(labelKey), std::move(choices),
-        [rt = _context.Rt, admin = _context.Admin, target = _context.Target, a](int slot, const int& value) {
-            ActionDispatcher{*rt}.Run(admin, target, value, *a);
-            rt->Menus.CloseAllMenus(slot);
+    return Choice<int>(
+        Tr(labelKey), std::move(choices),
+        [actions, menus, admin, target, a](int slot, const int& value) {
+            actions->Run(admin, target, value, *a);
+            menus->CloseAllMenus(slot);
         },
-        _context.Allowed(action.Permission), initialIndex);
+        Allowed(action.Permission), initialIndex);
 }
 
-MenuBuilder& MenuBuilder::AddEffectToggleRow(const EffectDescriptor& effect)
+MenuBuilder& MenuBuilder::Effect(const EffectDescriptor& effect)
 {
+    if (!_menus)
+        return Toggle(effect.NameKey, "", "", [](int) { return false; }, [](int) {}, false);
+
     const EffectDescriptor* e = &effect;
-    EffectManager* effects = _context.Effects;
-    int target = _context.Target;
-    return AddToggle(
-        _context.Tr(effect.NameKey), _context.Tr("effectState.on"), _context.Tr("effectState.off"),
+    EffectManager* effects = _effects;
+    ActionDispatcher* actions = &_menus->Actions();
+    int admin = _admin.Slot;
+    int target = _target ? _target->Slot : -1;
+    return Toggle(
+        Tr(effect.NameKey), Tr("effectState.on"), Tr("effectState.off"),
         [effects, target, id = effect.Id](int) { return effects && effects->IsActive(target, id); },
-        [rt = _context.Rt, effects, admin = _context.Admin, target, e](int) {
+        [actions, effects, admin, target, e](int) {
             if (effects)
-                EffectDispatcher{*rt, *effects}.Toggle(admin, target, *e);
+                EffectDispatcher{*actions, *effects}.Toggle(admin, target, *e);
         },
-        _context.Allowed(effect.Permission));
+        Allowed(effect.Permission));
 }
 
-/** Picker submenu for a ParamEffectDescriptor: one button per choice plus an optional reset row. */
-static std::shared_ptr<MenuView> BuildEffectPicker(MenuContext ctx, const ParamEffectDescriptor& effect)
+/** Picker submenu for an EffectDescriptor with Choices set: one button per choice plus an
+ *  optional reset row. */
+static std::shared_ptr<MenuView> BuildEffectPicker(MenuManager& menus, PlayerRef admin, PlayerRef target,
+                                                   EffectManager* effects, bool allowed, const EffectDescriptor& effect)
 {
-    auto* target = ctx.Rt->Players.Get(ctx.Target);
-    if (!target)
+    auto* targetPlayer = menus.Players().Get(target.Slot);
+    if (!targetPlayer)
         return nullptr;
 
-    bool allowed = ctx.Allowed(effect.Permission);
-    const ParamEffectDescriptor* e = &effect;
-    EffectManager* effects = ctx.Effects;
-    Runtime* rt = ctx.Rt;
-    MenuManager* menus = &ctx.Rt->Menus;
-    MenuBuilder builder(std::format("{}: {}", ctx.Tr(effect.NameKey), target->Name()));
+    ActionDispatcher* actions = &menus.Actions();
+    MenuManager* menusPtr = &menus;
+    Translations& tr = menus.Translation();
+    const EffectDescriptor* e = &effect;
+    int adminSlot = admin.Slot;
+    int targetSlot = target.Slot;
+
+    MenuBuilder builder(std::format("{}: {}", tr.Get(effect.NameKey, adminSlot), targetPlayer->Name()));
 
     auto choices = effect.Choices ? effect.Choices() : std::vector<EffectChoice>{};
     for (const auto& choice : choices)
     {
         int param = choice.Param;
-        builder.AddButton(
+        builder.Button(
             choice.Label,
-            [rt, effects, menus, admin = ctx.Admin, targetSlot = ctx.Target, e, param](int slot) {
+            [actions, effects, menusPtr, adminSlot, targetSlot, e, param](int slot) {
                 if (effects)
-                    EffectDispatcher{*rt, *effects}.Apply(admin, targetSlot, param, *e);
-                menus->CloseAllMenus(slot);
+                    EffectDispatcher{*actions, *effects}.Apply(adminSlot, targetSlot, *e, param);
+                menusPtr->CloseAllMenus(slot);
             },
             allowed);
     }
 
     if (!effect.ResetLabelKey.empty())
     {
-        builder.AddButton(
-            ctx.Tr(effect.ResetLabelKey),
-            [rt, effects, menus, admin = ctx.Admin, targetSlot = ctx.Target, e](int slot) {
+        builder.Button(
+            tr.Get(effect.ResetLabelKey, adminSlot),
+            [actions, effects, menusPtr, adminSlot, targetSlot, e](int slot) {
                 if (effects)
-                    EffectDispatcher{*rt, *effects}.Clear(admin, targetSlot, *e);
-                menus->CloseAllMenus(slot);
+                    EffectDispatcher{*actions, *effects}.Clear(adminSlot, targetSlot, *e);
+                menusPtr->CloseAllMenus(slot);
             },
             allowed);
     }
@@ -121,12 +140,25 @@ static std::shared_ptr<MenuView> BuildEffectPicker(MenuContext ctx, const ParamE
     return builder.Build();
 }
 
-MenuBuilder& MenuBuilder::AddEffectPickerRow(const ParamEffectDescriptor& effect)
+MenuBuilder& MenuBuilder::EffectPicker(const EffectDescriptor& effect)
 {
-    const ParamEffectDescriptor* e = &effect;
-    return AddSubmenu(
-        _context.Tr(effect.NameKey), [ctx = _context, e](int) { return BuildEffectPicker(ctx, *e); },
-        _context.Allowed(effect.Permission));
+    if (!_menus)
+        return Submenu(effect.NameKey, [](int) -> std::shared_ptr<MenuView> { return nullptr; }, false);
+
+    MenuManager* menus = _menus;
+    PlayerRef admin = _admin;
+    std::optional<PlayerRef> target = _target;
+    EffectManager* effects = _effects;
+    bool allowed = Allowed(effect.Permission);
+    const EffectDescriptor* e = &effect;
+    return Submenu(
+        Tr(effect.NameKey),
+        [menus, admin, target, effects, allowed, e](int) -> std::shared_ptr<MenuView> {
+            if (!target)
+                return nullptr;
+            return BuildEffectPicker(*menus, admin, *target, effects, allowed, *e);
+        },
+        allowed);
 }
 
 }  // namespace VoltMod

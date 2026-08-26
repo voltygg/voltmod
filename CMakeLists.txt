@@ -121,7 +121,6 @@ if(BUILD_TESTING)
             # The field cache and its query seam; the ISchemaSystem walk behind it lives in
             # SchemaQuery.cpp, which is the SDK half and stays out of the tests.
             src/Entities/SchemaResolve.cpp
-            src/Core/ScheduledEffect.cpp
             src/Core/Scheduler.cpp
             src/Players/PlayerManager.cpp
             src/Players/Policy.cpp
@@ -140,6 +139,12 @@ if(BUILD_TESTING)
             src/Core/SteamId.cpp
             src/Core/Time.cpp
             src/Core/Translations.cpp
+            # MenuRenderer is plain data (MenuView/MenuOption) + Translations, so it stays SDK-free.
+            # MenuBuilder.hpp (and everything built on it - MenuBuilderRows.cpp, MenuOption.cpp,
+            # MenuPresets.cpp) is not: Action/EffectDescriptor's ActionContext holds Controller by
+            # value, which needs Pawn/Entity/Field<Vector,...> complete - true of MenuBuilder even
+            # before this phase, since a context row has always taken an Action by const reference.
+            src/Menu/MenuRenderer.cpp
         # ClientCvarPendingTests, GameDataFileTests, ConVarTests and FieldRefTests reach headers
         # under src/.
         INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src"

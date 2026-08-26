@@ -181,9 +181,8 @@ public:
      *  Depends on: LoadReport. */
     StatusService Status{LoadReport};
     /** Registers its own per-frame input pump; both it and its slot listener stop in its dtor.
-     *  Takes the whole runtime, so its constructor may only touch members declared above it -
-     *  Scheduler and Slots, which is exactly what it subscribes to. */
-    MenuManager Menus{*this};
+     *  Takes exactly the services it and its context rows use - all declared above it. */
+    MenuManager Menus{Scheduler, Slots, Entities, Messages, ChatInput, Translations, Policy, Players};
 
     /** Depends on: Policy, Translations, Players, Entities, Messages - the five services
      *  command dispatch reaches, taken directly rather than through the runtime. */

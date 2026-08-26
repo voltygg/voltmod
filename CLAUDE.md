@@ -94,8 +94,11 @@ There is no ambient accessor for the runtime; everything is injected:
   `Database` never name `Runtime`. They take the sibling services they use.
   `modgraph` fails a `.cpp` in those modules that includes
   `VoltMod/Runtime.hpp`.
-- `Players`, `Commands`, `Menu`, and `App` may take `Runtime&`, or the narrowest
-  service that does the job.
+- `Commands` and `App` may take `Runtime&`, or the narrowest service that does the job.
+  `Players` and `Menu` take the narrowest service directly - `ActionDispatcher(Policy&,
+  PlayerManager&, EntitySystem&)`, `EffectDispatcher(ActionDispatcher&, EffectManager&)`,
+  `MenuManager(Scheduler&, SlotEvents&, EntitySystem&, Messages&, ChatInput&, Translations&,
+  Policy&, PlayerManager&)` - never `Runtime&`.
 - Header templates plugins instantiate (`Flow<TState>`, `PerSlot<T>`) take one
   service, so including them does not pull in the composition root.
 - A file-static is only for engine callbacks that carry no user data (set and

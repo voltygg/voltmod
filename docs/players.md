@@ -163,7 +163,7 @@ declaring the argument, not by resolving tokens itself.
 
 ## Actions
 
-An @ref VoltMod::Action is a single-target operation as data: permission token, guards, body. The @ref VoltMod::ActionDispatcher owns the authorize → run → broadcast pipeline, reading everything from `runtime.Policy`. It holds nothing but the runtime reference, so build one where you need it:
+An @ref VoltMod::Action is a single-target operation as data: permission token, guards, body. The @ref VoltMod::ActionDispatcher owns the authorize → run → broadcast pipeline, reading everything from `Policy::Authorize`. It holds the three services that pipeline needs - `Policy`, `PlayerManager`, `EntitySystem` - by reference, so build one where you need it, or hold one as a long-lived member (this is what `MenuManager` does for its context rows):
 
 ```cpp
 using VoltMod::Action;
@@ -176,55 +176,71 @@ const Action Slay{"s", /*RequireAlive=*/true, [](const ActionContext& ctx) -> Op
     return "broadcast.slain";     // policy Broadcast sink announces it; nullopt = silent
 }};
 
-ActionDispatcher{runtime}.Run(adminSlot, targetSlot, Slay);
+ActionDispatcher{runtime.Policy, runtime.Players, runtime.Entities}.Run(adminSlot, targetSlot, Slay);
 ```
 
-`ActionContext` carries the @ref VoltMod::Authorized pair (`ctx.Caller()`, `ctx.Target()`) plus transient `CallerCtrl`/`TargetCtrl` controllers. `ParamAction` adds an int the call site supplies (health value, team id). An empty permission string skips that check.
+`ActionContext` carries the @ref VoltMod::Authorized pair (`ctx.Caller()`, `ctx.Target()`) plus transient `CallerCtrl`/`TargetCtrl` controllers - nothing else. `ParamAction` adds an int the call site supplies (health value, team id). An empty permission string skips that check. A body that needs an engine service beyond the pawns/controllers here (a hook, a message, a convar) reaches it through the plugin's own `App&` it already captures, not through the context - see the effect example below, which has the identical need.
 
 `ActionDispatcher::Resolve` returns `Result<ActionContext>` when you need the pair without running an action - `if (!ctx) return;` and `ctx->TargetPawn()` from there.
 
-Actions plug directly into menu context rows (`AddActionRow`, `AddStateToggleRow`, `AddPresetChoiceRow`; see @ref menus_guide), so the same data drives commands, menus, and bespoke call sites.
+Actions plug directly into menu context rows (`Row`, `StateToggle`, `Presets`; see @ref menus_guide), so the same data drives commands, menus, and bespoke call sites.
 
 ## Effect descriptors
 
-Effects are toggleable or timed per-player states: the fun-command family (ghost, disco, wallhack, custom models). An @ref VoltMod::EffectDescriptor declares the whole thing: permission, id, label key, broadcast keys, lifetime policy, and a `Setup` body that returns the `OnTick`/`OnStop` closures @ref VoltMod::EffectManager drives:
+Effects are toggleable or timed per-player states: the fun-command family (ghost, disco, wallhack, custom models). One @ref VoltMod::EffectDescriptor covers all of it - the plain toggle and the parameterized/picker shape both use the same type: permission, id, label key, broadcast keys, lifetime policy, an optional `Choices` list, and a `Setup` body that receives a `param` (0 for a plain toggle; the picker's selected value otherwise) and returns the `OnTick`/`OnStop` closures @ref VoltMod::EffectManager drives:
 
 ```cpp
 using VoltMod::EffectDescriptor;
 using VoltMod::EffectInstance;
 using VoltMod::EffectScope;
 
-inline const EffectDescriptor Ghost{
-    .Permission = "g",
-    .Id = EffectId::Ghost,
-    .NameKey = "effect.ghost",
-    .OnKey = "broadcast.ghosted", .OffKey = "broadcast.unghosted",
-    .Scope = EffectScope::Persistent,      // or Round: auto-cancel on round end
-    .Setup = [](const VoltMod::ActionContext& ctx) -> EffectInstance {
-        int slot = ctx.Target().Slot();
-        // ActionContext carries the runtime, so an effect body needs no ambient lookup.
-        auto& transmit = ctx.Rt.Transmit;
-        transmit.SetPawnHidden(slot, true);
-        return {.OnStop = [&transmit, slot] { transmit.SetPawnHidden(slot, false); }};
-    },
-};
+// Effect bodies are static data, built before any App exists, so a body that needs an engine
+// service captures a Runtime& through a small factory function instead of an ActionContext member:
+Effect MakeGhost(VoltMod::Runtime& runtime)
+{
+    return Effect{
+        .Permission = "g",
+        .Id = EffectId::Ghost,
+        .NameKey = "effect.ghost",
+        .OnKey = "broadcast.ghosted", .OffKey = "broadcast.unghosted",
+        .Scope = EffectScope::Persistent,      // or Round: auto-cancel on round end
+        .Setup = [&runtime](const VoltMod::ActionContext& ctx, int) -> EffectInstance {
+            int slot = ctx.Target().Slot();
+            auto& transmit = runtime.Transmit;
+            transmit.SetPawnHidden(slot, true);
+            return {.OnStop = [&transmit, slot] { transmit.SetPawnHidden(slot, false); }};
+        },
+    };
+}
 
-// The menu that renders the list reads an explicit table (EffectEntry is your own
-// {Order, descriptor*} record), so the order is visible in one place:
+// Built once (e.g. as an App member, constructed with Runtime&), then the menu that renders the
+// list reads an explicit table so the order is visible in one place:
 inline constexpr std::array MenuEffects{
-    EffectEntry{.Order = 10, .Toggle = &Ghost},
-    EffectEntry{.Order = 20, .Toggle = &Disco},
+    EffectEntry{.Order = 10, .Toggle = &descriptors.Ghost},
+    EffectEntry{.Order = 20, .Toggle = &descriptors.Disco},
 };
 ```
 
-`OnStop` outlives the `ActionContext` that produced it, so capture the service, never
-`ctx`. Capturing a runtime service by reference is safe because `EffectManager` is a
-member of your `App`, which is destroyed before the `Runtime`.
+A body whose engine services are already reachable through the call - a menu row, a command
+handler - captures its plugin's `App&` (or the specific service) the same way; only a body defined
+as static data before any `App` exists needs the factory-function shape above.
 
-Dispatch through an `EffectDispatcher`, which your `App` owns next to its `EffectManager`
-(`EffectDispatcher PlayerEffects{runtime, Effects};`) and binds both for the load cycle:
-`PlayerEffects.Toggle(adminSlot, targetSlot, descriptor)` plus its `Apply` / `Clear` siblings
-(they resolve the pair and apply `runtime.Policy` first). Or drop the descriptor
-straight into a menu with `AddEffectToggleRow`. `ParamEffectDescriptor` adds a `Choices` list and a parameterized `Setup` for picker-style effects (model selection); `AddEffectPickerRow` renders it. `EffectManager` guarantees `OnStop` runs exactly once however the effect ends, whether by toggle, death, disconnect, round end, or unload.
+`OnStop` outlives the `ActionContext` that produced it, so capture the service, never `ctx`.
+Capturing a `Runtime&` (or an `App&`) by reference is safe because `EffectManager` is a member of
+your `App`, which is destroyed before the `Runtime`.
 
-Sweeps come in three shapes: `CancelAllForSlot(slot)` clears a player, `CancelRoundScoped()` clears round-scoped effects everywhere, and `CancelPerLife(slot)` clears a player's per-life effects on death while keeping `EffectScope::Session` grants. Declare `Scope = EffectScope::Session` on the descriptor and the death sweep skips it, without any per-effect special-casing.
+Dispatch through an `EffectDispatcher`, which your `App` owns next to its `ActionDispatcher` and
+`EffectManager` (`EffectDispatcher PlayerEffects{Actions, Effects};`):
+`PlayerEffects.Toggle(adminSlot, targetSlot, descriptor)` plus its `Apply` / `Clear` siblings (they
+resolve the pair through the wrapped `ActionDispatcher` and apply `Policy::Authorize` first). Or
+drop the descriptor straight into a menu with `MenuBuilder::Effect`. Set `Choices` to drive a
+picker submenu instead of a plain toggle - `Apply`/`Toggle` then take the picker's `param` and
+`MenuBuilder::EffectPicker` renders it, with a reset row when `ResetLabelKey` is set.
+`EffectManager` guarantees `OnStop` runs exactly once however the effect ends, whether by toggle,
+death, disconnect, round end, or unload.
+
+Sweeps come in four shapes: `Cancel(slot, id)` clears one effect, `CancelAll(slot)` clears every
+effect on a player, `CancelAll()` clears everyone, `CancelRound()` clears every `Round`-scoped
+effect everywhere, and `CancelOnDeath(slot)` clears a player's per-life effects on death while
+keeping `EffectScope::Session` grants. Declare `Scope = EffectScope::Session` on the descriptor and
+the death sweep skips it, without any per-effect special-casing.

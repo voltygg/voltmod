@@ -3,9 +3,12 @@
 #include <VoltMod/Core/PerSlot.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/Subscription.hpp>
-#include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Core/Translations.hpp>
+#include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>
 #include <VoltMod/Menu/Menu.hpp>
+#include <VoltMod/Messaging/Messages.hpp>
+#include <VoltMod/Players/ActionDispatcher.hpp>
 #include <string>
 #include <string_view>
 
@@ -34,12 +37,15 @@ class MenuManager
 {
 public:
     /**
-     * @param runtime supplies the frame pump, the slot feed, the entity reads, the chat-input
-     *        capture, the translations and the reply policy. It must outlive the manager, which
-     *        the runtime's own declaration order guarantees. The constructor subscribes to
-     *        `runtime.Scheduler` and `runtime.Slots`, so both must already be constructed.
+     * Takes exactly the services menu dispatch and context rows use. All must outlive the
+     * manager. The constructor subscribes to @p scheduler and @p slots, so both must already be
+     * constructed - true whenever a Runtime builds this in declaration order.
      */
-    explicit MenuManager(Runtime& runtime);
+    MenuManager(Scheduler& scheduler, SlotEvents& slots, EntitySystem& entities, Messages& messages,
+                ChatInput& chatInput, Translations& translations, Policy& policy, PlayerManager& players);
+
+    MenuManager(const MenuManager&) = delete;
+    MenuManager& operator=(const MenuManager&) = delete;
 
     /** Push @p menu onto the player's stack and start rendering it. @p options take effect only
      *  when this call opens the stack (see @ref MenuSessionOptions). */
@@ -72,6 +78,21 @@ public:
      *  anyone the previous setting had already frozen. */
     void SetFreezePlayer(bool enabled);
 
+    /** The dispatcher context rows (@ref MenuBuilder::Row and friends) run actions through - a
+     *  long-lived instance so a row press needs no throwaway dispatcher. */
+    ActionDispatcher& Actions() { return _actions; }
+
+    /** For context rows that need to read a player (e.g. the effect-picker submenu title). */
+    PlayerManager& Players() { return _players; }
+
+    EntitySystem& Entities() { return _entities; }
+
+    /** For context rows to re-check a permission without running an action (row enabled state). */
+    Policy& AccessPolicy() { return _policy; }
+
+    /** For context rows to translate a label key in the viewing player's language. */
+    Translations& Translation() { return _translations; }
+
 private:
     /** Per-tick driver: reads buttons, advances selection, and re-renders. */
     void OnGameFrame();
@@ -82,7 +103,13 @@ private:
     /** Freeze (true) or restore (false) the player's movement; no-op unless freeze is enabled. */
     void SetPlayerFrozen(int slot, bool frozen);
 
-    Runtime& _runtime;
+    EntitySystem& _entities;
+    Messages& _messages;
+    ChatInput& _chatInput;
+    Translations& _translations;
+    Policy& _policy;
+    PlayerManager& _players;
+    ActionDispatcher _actions;
     /** Per-player menu state; PerSlot clears a slot's stack when it changes hands. */
     PerSlot<PlayerMenuState> _states;
     static constexpr int64_t InputDebounceMs = 200;

@@ -119,7 +119,7 @@ public:
                 MenuBuilder builder(title(slot));
                 for (const auto& [label, value] : options(slot))
                 {
-                    builder.AddButton(label, [self, set, label, value](int s) {
+                    builder.Button(label, [self, set, label, value](int s) {
                         set(self->_state, label, value);
                         self->Advance(s);
                     });
@@ -130,7 +130,7 @@ public:
                 const std::string custom = customLabel ? customLabel(slot) : std::string();
                 if (!custom.empty())
                 {
-                    builder.AddInput(
+                    builder.Input(
                         custom, customPrompt ? customPrompt(slot) : "", [](int) { return std::string(); },
                         [self, set, customValue](int s, std::string_view text) {
                             std::string typed = Strings::Trim(std::string(text));

@@ -1,7 +1,8 @@
 #pragma once
 
-#include <VoltMod/Core/ScheduledEffect.hpp>
+#include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Core/Subscription.hpp>
 #include <array>
 #include <functional>
 #include <unordered_map>
@@ -9,40 +10,62 @@
 namespace VoltMod
 {
 
-/**
- * @brief How to apply and tear down one player effect, expressed as data.
- *
- * The manager builds a @ref ScheduledEffect from this: `OnTick` runs every `TickIntervalMs`
- * (omit for state-only effects), `DurationMs > 0` auto-expires the effect, and `OnStop` runs
- * exactly once when it ends for any reason - so it is the single place to undo `OnTick`'s state.
- */
-struct EffectSpec
+/** Lifetime policy for a player effect, declared as data rather than baked into the body. */
+enum class EffectScope
 {
-    int TickIntervalMs = 0;       /**< >0 => repeating body. */
-    int DurationMs = 0;           /**< >0 => auto-expire after this long. */
-    bool RoundScoped = false;     /**< Auto-cancel via @ref EffectManager::CancelRoundScoped. */
-    bool SurvivesDeath = false;   /**< Skip the death sweep (@ref EffectManager::CancelPerLife). */
-    std::function<void()> OnTick; /**< Repeating body; null for state-only effects. */
-    std::function<void()> OnStop; /**< Undo/restore; runs exactly once on any end. */
+    Persistent, /**< Lives until toggled off, death, disconnect, or unload. */
+    Round,      /**< Also auto-cancels on round end/prestart (@ref EffectManager::CancelRound). */
+    Session     /**< Survives death; cleared only on toggle-off, disconnect, or unload. */
 };
 
 /**
- * @brief Per-target effect bookkeeping. Each active effect owns one @ref ScheduledEffect, which
- * holds its tick timer, auto-expire timer, and the single onStop that undoes its state.
+ * @brief What an effect's setup body hands back: the two closures @ref EffectManager drives.
+ * `OnTick` runs every `tickIntervalMs` (null for state-only effects); `OnStop` undoes whatever
+ * was applied and runs exactly once when the effect ends for any reason.
+ */
+struct EffectInstance
+{
+    std::function<void()> OnTick;
+    std::function<void()> OnStop;
+};
+
+/**
+ * @brief One active effect's bookkeeping: the tick and auto-expiry timers, and the single
+ * `OnStop` that undoes it. Owns its `Subscription`s directly - dropping either cancels the
+ * corresponding timer, and `OnStop` runs exactly once, whichever timer (or an explicit Cancel)
+ * triggers it first.
  */
 struct ActiveEffect
 {
-    bool RoundScoped = false;
-    bool SurvivesDeath = false;
-    ScheduledEffect Fx;
+    EffectScope Scope = EffectScope::Persistent;
+    std::function<void()> OnStop;
+    Subscription Tick;
+    Subscription Expiry;
+    bool Stopped = false;
+
+    /** Run `OnStop` (once) and drop both timers. Safe to call repeatedly. */
+    void Stop()
+    {
+        if (Stopped)
+            return;
+        Stopped = true;
+        Tick.Reset();
+        Expiry.Reset();
+        if (OnStop)
+        {
+            auto cb = std::move(OnStop);
+            OnStop = nullptr;
+            cb();
+        }
+    }
 };
 
 /**
  * @brief Per-slot registry of toggleable/timed player effects, keyed by a plugin-defined
- * integer id (cast your effect enum). Owns each effect's @ref ScheduledEffect and its
- * re-apply/replace semantics.
+ * integer id (cast your effect enum). Owns each effect's timers and its re-apply/replace
+ * semantics.
  *
- * Deliberately plugin-owned rather than a framework service: onStop closures touch pawns and
+ * Deliberately plugin-owned rather than a framework service: `OnStop` closures touch pawns and
  * timers, so the owning plugin must control when CancelAll runs relative to engine teardown.
  */
 class EffectManager
@@ -54,23 +77,26 @@ public:
 
     /**
      * @brief Register a new effect for `slot`. If an effect of the same id is already active,
-     * it is cancelled first (re-apply/replace semantics). The effect self-expires after
-     * `spec.DurationMs` (if set), running `spec.OnStop`; the now-inactive slot entry is
-     * reclaimed lazily on the next Apply/Cancel for that id.
+     * it is cancelled first (re-apply/replace semantics). `instance.OnTick` runs every
+     * `tickIntervalMs` (skip for state-only effects); `durationMs > 0` auto-expires the effect,
+     * running `instance.OnStop`. The now-inactive slot entry is reclaimed lazily on the next
+     * Apply/Cancel for that id.
      */
-    void Apply(int slot, int effectId, EffectSpec spec);
+    void Apply(int slot, int effectId, EffectInstance instance, EffectScope scope, int tickIntervalMs, int durationMs);
 
     void Cancel(int slot, int effectId);
-    void CancelAllForSlot(int slot);
-    /** Death sweep: cancel every effect on @p slot except those flagged `SurvivesDeath`
-     *  (session-long grants that outlive a single life). */
-    void CancelPerLife(int slot);
-    /** Cancel every active effect registered with `roundScoped == true`, on every slot. */
-    void CancelRoundScoped();
+    /** Cancel every active effect on @p slot. */
+    void CancelAll(int slot);
+    /** Cancel every active effect, on every slot. */
     void CancelAll();
+    /** Death sweep: cancel every effect on @p slot except those scoped `Session` (grants that
+     *  outlive a single life). */
+    void CancelOnDeath(int slot);
+    /** Cancel every active effect scoped `Round`, on every slot. */
+    void CancelRound();
 
 private:
-    // Snapshot the ids to cancel before cancelling: Cancel runs onStop, which may re-enter the
+    // Snapshot the ids to cancel before cancelling: Cancel runs OnStop, which may re-enter the
     // slot map, so the map must not be iterated while entries are erased.
     void CancelWhere(int slot, const std::function<bool(int id, const ActiveEffect&)>& keep);
 

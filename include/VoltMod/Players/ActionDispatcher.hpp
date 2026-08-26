@@ -21,9 +21,6 @@ struct ActionContext
 {
     /** The pair, as @ref Policy::Authorize cleared it. @ref Caller and @ref Target read it. */
     Authorized Auth;
-    /** The live runtime, so action and effect bodies reach services without a global.
-     *  Include <VoltMod/Runtime.hpp> to use it. */
-    Runtime& Rt;
     /** Frame-local wrappers, resolved by the dispatcher for this one dispatch. */
     Controller CallerCtrl;
     Controller TargetCtrl;
@@ -45,7 +42,9 @@ struct ActionContext
  * Bodies receive an authorized @ref ActionContext, mutate the target, and return the broadcast
  * key (or nullopt to stay silent). @ref ActionDispatcher owns the `Resolve -> guard -> Broadcast`
  * shape, so an action is just its permission string, its guards, and its effect - no per-action
- * wrapper function.
+ * wrapper function. A body that needs an engine service beyond the pawns/controllers here reaches
+ * it through the plugin's own `App&`, or a per-descriptor factory function that captures the
+ * runtime, not through this context.
  */
 struct Action
 {
@@ -63,15 +62,18 @@ struct ParamAction
 };
 
 /**
- * @brief Runs data-defined actions through `runtime.Policy.Authorize`: the permission check, the
+ * @brief Runs data-defined actions through `Policy::Authorize`: the permission check, the
  * targetability check and the broadcast sink all come from there - no per-dispatcher wiring.
  */
 class ActionDispatcher
 {
 public:
-    /** @p runtime supplies the roster, the controllers, and the policy; it must outlive the
-     *  dispatcher. Cheap to construct, so a call site may build one per dispatch. */
-    explicit ActionDispatcher(Runtime& runtime) : _runtime(runtime) {}
+    /** @p policy, @p players and @p entities must outlive the dispatcher. Cheap to construct
+     *  (three references), so a call site may build one per dispatch or hold one as a long-lived
+     *  member (see @ref MenuManager, which owns one for its context rows). */
+    ActionDispatcher(Policy& policy, PlayerManager& players, EntitySystem& entities)
+        : _policy(policy), _players(players), _entities(entities)
+    {}
 
     /**
      * Authorize a caller+target slot pair and build the context for it.
@@ -83,11 +85,14 @@ public:
     void Run(int callerSlot, int targetSlot, const Action& action) const;
     void Run(int callerSlot, int targetSlot, int param, const ParamAction& action) const;
 
-private:
-    /** Invoke the policy broadcast sink. */
+    /** Invoke the policy broadcast sink directly. Exposed so @ref EffectDispatcher (and other
+     *  dispatch-adjacent code) can announce without repeating the sink lookup. */
     void Broadcast(const ActionContext& ctx, std::string_view translationKey) const;
 
-    Runtime& _runtime;
+private:
+    Policy& _policy;
+    PlayerManager& _players;
+    EntitySystem& _entities;
 };
 
 }  // namespace VoltMod
