@@ -1,8 +1,8 @@
 #pragma once
 
 #include <VoltMod/Core/EffectManager.hpp>
+#include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Players/EffectDescriptor.hpp>
-#include <VoltMod/Runtime.hpp>
 
 namespace VoltMod
 {

@@ -1,7 +1,8 @@
+#include "Targeting.hpp"
+
 #include <VoltMod/Commands/CommandManager.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Strings.hpp>
-#include <VoltMod/Players/TargetResolver.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <algorithm>
 #include <charconv>
@@ -137,7 +138,7 @@ bool CommandManager::HandleChatMessage(Player* caller, std::string_view message)
         return false;
 
     auto& policy = _runtime.Policy;
-    const int slot = caller->GetSlot();
+    const int slot = caller->Slot();
     Dispatch(*cmd, caller, std::move(args), [&](const std::string& msg) {
         if (policy.Reply)
             policy.Reply(slot, msg);
@@ -152,7 +153,7 @@ void CommandManager::Dispatch(const CommandSpec& cmd, Player* caller, std::vecto
                               const std::function<void(const std::string&)>& reply)
 {
     // Console has no player and so no language of its own; slot -1 resolves the server language.
-    const int slot = caller ? caller->GetSlot() : -1;
+    const int slot = caller ? caller->Slot() : -1;
     auto& tr = _runtime.Translations;
     const auto say = [&](const std::string& msg) {
         if (!msg.empty())
@@ -166,28 +167,14 @@ void CommandManager::Dispatch(const CommandSpec& cmd, Player* caller, std::vecto
         return DeriveUsage(cmd, prefix);
     };
 
-    // Permissions say which players may do this. The console is the server itself: no SteamID
-    // to check, and nothing above it to deny it.
+    // Permissions say which players may do this, and the one gate answers it. The console is the
+    // server itself: no SteamID to check, and nothing above it to deny it.
     if (caller && !cmd.Permission.empty())
     {
-        auto& policy = _runtime.Policy;
-
-        // Without policy there is no trusted permission source. Deny and warn once
-        // per command so the plugin misconfiguration is visible.
-        if (!policy.HasPermission)
+        auto authorized = _runtime.Policy.Authorize(caller->Ref(), std::nullopt, cmd.Permission);
+        if (!authorized)
         {
-            if (_missingPolicyWarned.insert(cmd.Name).second)
-                Log::Error(
-                    "Command '{}' declares permission '{}' but no HasPermission policy is "
-                    "installed - denying. Set Runtime::Policy.HasPermission in OnLoad.",
-                    cmd.Name, cmd.Permission);
-            say(tr.Get("cmd.noPermission", slot));
-            return;
-        }
-
-        if (!policy.HasPermission(caller->GetSteamID(), cmd.Permission))
-        {
-            say(tr.Get("cmd.noPermission", slot));
+            say(tr.Get(authorized.error().Key, slot));
             return;
         }
     }
@@ -250,7 +237,8 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
             // Target() always resolves against the default rules: single online target,
             // dead and bots allowed.
             const TargetRules rules{};
-            auto resolved = ResolveTargets(_runtime, token, ctx.Caller, rules);
+            auto resolved =
+                ResolveTargets(_runtime.Players, _runtime.Policy, _runtime.Entities, token, ctx.Caller, rules);
             if (!resolved)
             {
                 outError = TargetErrorMessage(tr, resolved.error(), token, slot);
@@ -272,14 +260,15 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
             }
             else
             {
-                auto resolved = ResolveTargets(_runtime, token, ctx.Caller, {});
+                auto resolved =
+                    ResolveTargets(_runtime.Players, _runtime.Policy, _runtime.Entities, token, ctx.Caller, {});
                 if (!resolved)
                 {
                     outError = TargetErrorMessage(tr, resolved.error(), token, slot);
                     return false;
                 }
                 ctx.TargetPlayer = resolved->front();
-                ctx.SteamId = ctx.Target().GetSteamID();
+                ctx.SteamId = ctx.Target().SteamId();
             }
             ++i;
             break;

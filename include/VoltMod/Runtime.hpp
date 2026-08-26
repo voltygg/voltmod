@@ -88,8 +88,6 @@ public:
     void VerifyIntegrity() const;
 
     // Core services.
-    /** Plugin-supplied permission, targeting and reply rules. Set once in OnLoad. */
-    VoltMod::Policy Policy;
     /** Named, timed load stages recorded by Start and by the plugin's OnLoad. */
     VoltMod::LoadReport LoadReport;
     /** What this load can actually do, and why anything missing is missing. Written only by
@@ -118,6 +116,14 @@ public:
     /** Depends on: Interfaces, Bindings. Schema field offsets resolve themselves, per process
      *  rather than per load - see @ref Field. */
     EntitySystem Entities{Interfaces, Bindings};
+
+    /** The roster and the connection lifecycle events. Declared here, above everything that
+     *  resolves a player, because Policy holds it. Depends on: Slots, Entities. */
+    PlayerManager Players{Slots, &Entities};
+    /** Plugin-supplied permission, targeting and reply rules, and the one gate that applies
+     *  them (`Policy::Authorize`). Fill the members you enforce in OnLoad. Depends on: Players. */
+    VoltMod::Policy Policy{Players};
+
     /** Pawn manipulations that need framework services, such as slap and its fall protection.
      *  Depends on: Scheduler, Slots, Entities. */
     VoltMod::Pawns Pawns{Scheduler, Slots, Entities};
@@ -179,8 +185,6 @@ public:
      *  Scheduler and Slots, which is exactly what it subscribes to. */
     MenuManager Menus{*this};
 
-    // These names shadow their namespaces, so keep them last.
-    PlayerManager Players{Slots};
     /** Takes the whole runtime; its constructor only stores the reference, so every service it
      *  reads at dispatch time (Policy, Translations, Messages, Players) is live by then. */
     CommandManager Commands{*this};

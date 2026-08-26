@@ -13,7 +13,7 @@ VoltMod
 │               pawn operations
 ├── Events      The game event service and its typed event structs
 ├── Messaging   Chat and center-HTML messages, chat colors, the vote panel
-├── Players     Player tracking, target selectors, action dispatch
+├── Players     The roster, the Policy gate, action and effect dispatch
 ├── Hooks       Movement, damage, transmit, teleport, chat input, client convars
 ├── Commands    Declarative chat commands (CommandSpec)
 ├── Menu        WASD center-HTML menus + Flow wizard
@@ -40,9 +40,9 @@ it is not allowed to reach.
 - **Data over glue.** Commands, effects, and menu rows are described as structs
   (`CommandSpec`, `EffectDescriptor`, and context rows). The framework owns the
   resolve, check, dispatch, and reply pipeline around them.
-- **Policy is injected once.** The framework has no admin model. Your plugin sets
-  `runtime.Policy` in `OnLoad`; permission, immunity, reply, and broadcast paths
-  consult it. A command that declares a permission is denied when
+- **Policy is injected once.** The framework has no admin model. Your plugin fills in
+  `runtime.Policy` in `OnLoad`, and one gate - `Policy::Authorize` - applies it
+  everywhere. Anything that declares a permission is denied when
   `HasPermission` is unset.
 - **Dependencies arrive through constructors.** `OnLoad` receives the runtime;
   your objects receive only the services they need.
@@ -55,7 +55,7 @@ directly (`runtime.Messages`, not `runtime.Messaging.Messages`) so internal modu
 moves do not break consumers.
 
 ```cpp
-runtime.Players.GetPlayerBySlot(slot);
+runtime.Players.Get(slot);
 runtime.Messages.Reply(slot, "done");
 runtime.Entities.PawnOf(slot).Health = 100;
 ```
@@ -96,21 +96,24 @@ services they reference are still alive.
 
 ## Policy
 
-@ref VoltMod::Policy is the one bridge between the framework's generic machinery and your domain rules. Set it once in OnLoad:
+@ref VoltMod::Policy is the one bridge between the framework's generic machinery and your domain rules. Fill in the members you enforce, once, in OnLoad:
 
 ```cpp
-runtime.Policy = {
-    .HasPermission = [this](int64_t steamId, const std::string& perm) { return Access.HasAnyPermission(steamId, perm); },
-    .CanTarget     = [this](Player& caller, Player& target) { return Access.CanTarget(caller.GetSteamID(), target.GetSteamID()); },
-    .Reply         = [this](int slot, std::string_view msg) { Chat.Reply(slot, msg); },
-    .Broadcast     = [this](Player& caller, Player* target, const std::string& key) { Chat.BroadcastAction(key, ...); },
-};
+auto& policy = runtime.Policy;
+policy.HasPermission = [this](int64_t steamId, std::string_view perm) { return Access.HasAnyPermission(steamId, std::string(perm)); };
+policy.CanTarget     = [this](const Player& caller, const Player& target) { return Access.CanTarget(caller.SteamId(), target.SteamId()); };
+policy.Reply         = [this](int slot, std::string_view msg) { Chat.Reply(slot, msg); };
+policy.Broadcast     = [this](const VoltMod::Authorized& who, std::string_view key) { Chat.BroadcastAction(std::string(key), who.Caller.Name(), ...); };
 ```
 
-`CommandManager`, targeting, action dispatch, effects, context menus, and `Flow`
-all consult this policy. An unset reply or broadcast callback falls back or is
-skipped where documented. An unset `HasPermission` is deliberately fail-closed
-for commands that declare a permission.
+`CommandManager`, target resolution, action dispatch, effects, context menus, and
+`Flow` all reach these through the single gate @ref VoltMod::Policy::Authorize -
+none of them repeats its steps. An unset reply or broadcast callback falls back
+or is skipped where documented. An unset `CanTarget` allows every pair; an unset
+`HasPermission` is deliberately fail-closed for anything that declares a
+permission. Targeting yourself is the framework's rule and never reaches
+`CanTarget`, so `CanTarget` is a pure immunity comparison. The outcome table is
+in @ref players_guide.
 
 ## Cross-plugin services
 
@@ -227,7 +230,8 @@ composition root and may reach all of them.
 
 There is no ambient accessor for the runtime. Everything takes what it uses through a
 constructor or a parameter, and `modgraph` enforces that too: a `.cpp` outside `App/`,
-`Players/`, `Commands/` and `Menu/` may not include `VoltMod/Runtime.hpp` at all.
+`Players/`, `Commands/` and `Menu/` may not include `VoltMod/Runtime.hpp` at all, and of the
+*headers*, only `App/`, `Commands/` and `Menu/` may.
 
 - The engine-facing modules, `Core/`, `Http/` and `Database/` never name `Runtime`. Services and value types
   (`Entity`/`Pawn`/`Controller`, `GlowVision`, `CenterHtml`, `HttpClient`, `PostgresDatabase`)

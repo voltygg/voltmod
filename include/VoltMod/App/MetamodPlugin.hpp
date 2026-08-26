@@ -78,23 +78,10 @@ protected:
      */
     virtual void OnServerStartup(const char* mapName) {}
 
-    /** @brief A player joined and is now tracked. @p player is valid (read its SteamID, name, etc.). */
-    virtual void OnPlayerConnect(Player* player) {}
-
-    /** @brief A player is leaving, still tracked for this call. @p player may be null - check it. */
-    virtual void OnPlayerDisconnect(Player* player) {}
-
-    /**
-     * @brief A player finished connecting and is now in the server (post ClientFullyConnect) -
-     * the first point their name and convars are meaningful. @p player may be null - check it.
-     */
-    virtual void OnPlayerFullyConnected(Player* player) {}
-
-    /**
-     * @brief A player changed a replicated setting (name, userinfo cvars). Fires on every
-     * change, including the ones the engine sends at connect. @p player may be null - check it.
-     */
-    virtual void OnPlayerSettingsChanged(Player* player) {}
+    // The connection lifecycle is not a set of virtuals: subscribe to `runtime.Players.Connected`,
+    // `.Disconnected`, `.FullyConnected` and `.SettingsChanged` in OnLoad and keep the
+    // Subscriptions beside the state their handlers touch. Every one of them hands you a live
+    // `Player&` rather than a pointer that might be null.
 
     /**
      * @brief A player sent a `say` or `say_team` message.

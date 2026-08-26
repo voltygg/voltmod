@@ -14,8 +14,8 @@ namespace VoltMod
  *
  * Bind one per menu via @ref MenuBuilder::WithContext, then add rows with AddActionRow /
  * AddStateToggleRow / AddPresetChoiceRow / AddEffectToggleRow / AddEffectPickerRow - each row
- * derives its label (admin-language translation), its enabled state (permission + immunity via
- * runtime.Policy), and its dispatch target from here instead of per-row captures.
+ * derives its label (admin-language translation), its enabled state (`runtime.Policy.Authorize`),
+ * and its dispatch target from here instead of per-row captures.
  */
 struct MenuContext
 {
@@ -28,10 +28,10 @@ struct MenuContext
     /** Required only by the effect rows; usually a member of the plugin's App. */
     EffectManager* Effects = nullptr;
 
-    /** Policy check: the admin holds @p permission and (when a distinct target is set) may
-     *  act on them. Both players must still be connected. Empty permission skips that half.
-     *  False when @ref Rt is null. */
-    bool Allowed(const std::string& permission) const;
+    /** Whether this row may be used: `runtime.Policy.Authorize` for the admin, the target (when
+     *  one is set) and @p permission. Rendering a row is a permission question like any other,
+     *  so it asks the one gate rather than repeating its rules. False when @ref Rt is null. */
+    bool Allowed(std::string_view permission) const;
 
     /** Translate @p key in the admin's language, or return it unchanged when @ref Rt is null. */
     std::string Tr(std::string_view key, Tokens tokens = {}) const;

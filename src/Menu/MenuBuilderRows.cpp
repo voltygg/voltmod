@@ -81,7 +81,7 @@ MenuBuilder& MenuBuilder::AddEffectToggleRow(const EffectDescriptor& effect)
 /** Picker submenu for a ParamEffectDescriptor: one button per choice plus an optional reset row. */
 static std::shared_ptr<MenuView> BuildEffectPicker(MenuContext ctx, const ParamEffectDescriptor& effect)
 {
-    auto* target = ctx.Rt->Players.GetPlayerBySlot(ctx.Target);
+    auto* target = ctx.Rt->Players.Get(ctx.Target);
     if (!target)
         return nullptr;
 
@@ -90,7 +90,7 @@ static std::shared_ptr<MenuView> BuildEffectPicker(MenuContext ctx, const ParamE
     EffectManager* effects = ctx.Effects;
     Runtime* rt = ctx.Rt;
     MenuManager* menus = &ctx.Rt->Menus;
-    MenuBuilder builder(std::format("{}: {}", ctx.Tr(effect.NameKey), target->GetName()));
+    MenuBuilder builder(std::format("{}: {}", ctx.Tr(effect.NameKey), target->Name()));
 
     auto choices = effect.Choices ? effect.Choices() : std::vector<EffectChoice>{};
     for (const auto& choice : choices)

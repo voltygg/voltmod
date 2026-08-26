@@ -73,11 +73,42 @@ bool App::Start()
 {
     if (!VoltMod::LoadStandardConfig(Runtime, Config, {.Addon = "my-plugin"}))
         return false;
-    // Install Runtime.Policy before registering permission-gated commands.
-    // Commands with no permission remain available without a policy.
+    InstallPolicy();
     return true;
 }
 ```
+
+### Installing the policy
+
+`runtime.Policy` is how the framework asks your plugin who may do what. Fill in
+the members you enforce before registering permission-gated commands - anything
+that declares a permission is denied while `HasPermission` is unset, and the load
+report says so:
+
+```cpp
+void App::InstallPolicy()
+{
+    auto& policy = Runtime.Policy;
+    policy.HasPermission = [this](int64_t steamId, std::string_view perm) {
+        return Access.HasAnyPermission(steamId, std::string(perm));
+    };
+    // Immunity only. The console has no caller and self-targeting is allowed, both
+    // decided by Policy::Authorize before this is consulted.
+    policy.CanTarget = [this](const VoltMod::Player& caller, const VoltMod::Player& target) {
+        return Access.CanTarget(caller.SteamId(), target.SteamId());
+    };
+    policy.Reply = [this](int slot, std::string_view message) { Chat.Reply(slot, message); };
+    policy.Broadcast = [this](const VoltMod::Authorized& who, std::string_view key) {
+        if (who.Target)
+            Chat.BroadcastAction(std::string(key), who.Caller.Name(), who.Target->Name());
+    };
+}
+```
+
+Commands with no permission stay available without a policy. Ask the gate yourself
+with `Runtime.Policy.Authorize(callerRef, targetRef, permission)` wherever your own
+code needs the same answer - never re-implement its steps. The full outcome table
+is in @ref players_guide "Players".
 
 `LoadStandardConfig` uses your config type's `LoadSettings` when it has one
 (the load-then-validate convention), otherwise `JsonConfig::Load`. It applies
@@ -173,12 +204,14 @@ Keep JSON sections compact (counts and names, not full lists), because RCON's co
 | `Info()` | Metadata queries | Required |
 | `OnLoad(runtime, late)` | Once the runtime is live | Required; `false` rejects the load |
 | `OnUnload()` | On unload, before the runtime is destroyed | Drop whatever `OnLoad` built |
-| `OnPlayerConnect(Player*)` | After `PlayerManager` adds the player | Non-null in the normal flow |
-| `OnPlayerFullyConnected(Player*)` | Post `ClientFullyConnect`, once the player is in the server | First point their name and convars are meaningful; may be null, so guard it |
-| `OnPlayerSettingsChanged(Player*)` | The client changed a replicated setting (name, userinfo cvars) | Fires on every change, including the burst the engine sends at connect, so debounce if you act on it; may be null |
-| `OnPlayerDisconnect(Player*)` | Before the player is removed | May be null, so guard it |
+| `OnServerStartup(mapName)` | Each map start, after event listeners are attached | The engine has just reset convars and run the game-mode cfgs |
 | `OnPlayerChat(Player*, string_view, bool team)` | On `say`/`say_team` | Default dispatches registered chat commands and swallows handled ones; override to customize (an override replaces the dispatch wholesale, as admin-style chat services do) |
 | `OnRegisterHooks(runtime)` | Once during load | Custom SourceHook hooks |
+
+The connection lifecycle is **not** an override. Subscribe to
+`runtime.Players.Connected`, `.FullyConnected`, `.SettingsChanged` and
+`.Disconnected` from `OnLoad` and keep the `Subscription`s on the object that
+owns the state - see @ref players_guide "Players".
 
 `Rt()` is available inside the base for hook bodies, which SourceHook calls without a
 runtime argument. Everywhere else, use what `OnLoad` handed you.

@@ -14,15 +14,13 @@ void AppendPlayerRows(MenuBuilder& builder, PlayerManager& players, int viewerSl
                       const std::function<void(int viewerSlot, int targetSlot)>& onPick, const std::string& emptyLabel,
                       const std::function<bool(int targetSlot)>& isEnabled)
 {
-    auto connected = players.GetAllPlayers();
+    auto connected = players.All();
     for (auto* p : connected)
     {
-        if (!p)
-            continue;
-        int targetSlot = p->GetSlot();
+        int targetSlot = p->Slot();
         bool enabled = isEnabled ? isEnabled(targetSlot) : true;
         builder.AddButton(
-            p->GetName(),
+            p->Name(),
             [viewerSlot, targetSlot, onPick](int /*slot*/) {
                 if (onPick)
                     onPick(viewerSlot, targetSlot);

@@ -1,64 +1,49 @@
-﻿#include <VoltMod/Players/ActionDispatcher.hpp>
+#include <VoltMod/Players/ActionDispatcher.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Runtime.hpp>
 
 namespace VoltMod
 {
 
-ActionContext ActionDispatcher::Resolve(int callerSlot, int targetSlot, const std::string& permission) const
+Result<ActionContext> ActionDispatcher::Resolve(int callerSlot, int targetSlot, std::string_view permission) const
 {
-    ActionContext ctx{nullptr, nullptr, _runtime.Entities.Controller(callerSlot),
-                      _runtime.Entities.Controller(targetSlot), _runtime};
+    auto& players = _runtime.Players;
+    auto authorized = _runtime.Policy.Authorize(players.RefFor(callerSlot), players.RefFor(targetSlot), permission);
+    if (!authorized)
+        return std::unexpected(authorized.error());
 
-    auto& plrMgr = _runtime.Players;
-    ctx.Caller = plrMgr.GetPlayerBySlot(callerSlot);
-    ctx.Target = plrMgr.GetPlayerBySlot(targetSlot);
-
-    if (!ctx.Caller || !ctx.Target)
-        return ctx;
-
-    auto& policy = _runtime.Policy;
-    if (!permission.empty() && policy.HasPermission && !policy.HasPermission(ctx.Caller->GetSteamID(), permission))
-    {
-        ctx.Caller = nullptr;
-        return ctx;
-    }
-    if (policy.CanTarget && !policy.CanTarget(*ctx.Caller, *ctx.Target))
-    {
-        ctx.Caller = nullptr;
-        return ctx;
-    }
-    return ctx;
+    return ActionContext{.Auth = *authorized,
+                         .Rt = _runtime,
+                         .CallerCtrl = _runtime.Entities.Controller(callerSlot),
+                         .TargetCtrl = _runtime.Entities.Controller(targetSlot)};
 }
 
 void ActionDispatcher::Run(int callerSlot, int targetSlot, const Action& action) const
 {
     auto ctx = Resolve(callerSlot, targetSlot, action.Permission);
-    if (!ctx.Valid())
+    if (!ctx)
         return;
-    if (action.RequireAlive && !ctx.TargetCtrl.GetPawn().IsAlive())
+    if (action.RequireAlive && !ctx->TargetPawn().IsAlive())
         return;
-    if (auto key = action.Body(ctx))
-        Broadcast(ctx, *key);
+    if (auto key = action.Body(*ctx))
+        Broadcast(*ctx, *key);
 }
 
 void ActionDispatcher::Run(int callerSlot, int targetSlot, int param, const ParamAction& action) const
 {
     auto ctx = Resolve(callerSlot, targetSlot, action.Permission);
-    if (!ctx.Valid())
+    if (!ctx)
         return;
-    if (action.RequireAlive && !ctx.TargetCtrl.GetPawn().IsAlive())
+    if (action.RequireAlive && !ctx->TargetPawn().IsAlive())
         return;
-    if (auto key = action.Body(ctx, param))
-        Broadcast(ctx, *key);
+    if (auto key = action.Body(*ctx, param))
+        Broadcast(*ctx, *key);
 }
 
-void ActionDispatcher::Broadcast(const ActionContext& ctx, const std::string& translationKey) const
+void ActionDispatcher::Broadcast(const ActionContext& ctx, std::string_view translationKey) const
 {
-    auto& policy = _runtime.Policy;
-    if (!policy.Broadcast || !ctx.Caller)
-        return;
-    policy.Broadcast(*ctx.Caller, ctx.Target, translationKey);
+    if (auto& sink = _runtime.Policy.Broadcast)
+        sink(ctx.Auth, translationKey);
 }
 
 }  // namespace VoltMod

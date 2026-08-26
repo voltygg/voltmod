@@ -64,7 +64,7 @@ dispatching commands. An override replaces that behavior, so it must call
 ```cpp
 bool MyPlugin::OnPlayerChat(Player* p, std::string_view message, bool team) override
 {
-    if (Rt().ChatInput.TryConsume(p->GetSlot(), message))
+    if (Rt().ChatInput.TryConsume(p->Slot(), message))
         return true;   // capture handled it; don't broadcast
     return false;      // fall through to normal chat handling
 }

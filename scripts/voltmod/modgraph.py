@@ -27,11 +27,10 @@ INCLUDE = re.compile(r'#\s*include\s*[<"]VoltMod/([A-Za-z0-9_]+)/([^>"]+)[>"]')
 # Root headers have no module directory and need a separate check.
 ROOT_HEADERS = re.compile(r'#\s*include\s*[<"]VoltMod/(Runtime|Api)\.hpp[>"]')
 
-# App is the composition root, so its headers may include it. Players, Commands and Menu are
-# here because their headers still take `Runtime&` and, since no framework type may be
-# forward-declared, they have to include it. Phases 6-8 hand those classes the narrow services
-# they use and shrink this back to {"App"}.
-ROOT_HEADER_EXEMPT = {"App", "Players", "Commands", "Menu"}
+# App is the composition root, so its headers may include it. Commands and Menu are here because
+# CommandManager and MenuContext hold a `Runtime&`/`Runtime*` they dereference inline. Phase 8
+# hands them the narrow services they use and shrinks this back to {"App"}.
+ROOT_HEADER_EXEMPT = {"App", "Commands", "Menu"}
 
 # Core is the engine-free layer: nothing under it may reach the SDK or Metamod.
 ENGINE_FREE = ("include/VoltMod/Core", "src/Core")

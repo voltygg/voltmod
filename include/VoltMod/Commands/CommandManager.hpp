@@ -16,10 +16,10 @@ namespace VoltMod
 /**
  * @brief Dispatches chat commands (prefixed with ! or .) to registered CommandSpecs.
  *
- * The pipeline per message: prefix match -> spec lookup -> permission check
- * (`runtime.Policy.HasPermission`, which denies when unset) -> typed argument resolution (targets, durations,
- * SteamIDs - see @ref ArgKind) -> handler -> result message via `runtime.Policy.Reply`.
- * Handlers only run with fully-resolved, validated arguments.
+ * The pipeline per message: prefix match -> spec lookup -> `runtime.Policy.Authorize` for the
+ * spec's permission (which denies when no HasPermission policy is installed) -> typed argument
+ * resolution (targets, durations, SteamIDs - see @ref ArgKind) -> handler -> result message via
+ * `runtime.Policy.Reply`. Handlers only run with fully-resolved, validated arguments.
  *
  * `Surfaces` gates both ends: a spec without Surface::Chat is not reachable from chat, and one
  * that names Surface::Console additionally gets a tier1 ConCommand of the same name,
@@ -66,9 +66,6 @@ private:
     /** Lowercased alias -> the lowercased command name that owns it. */
     std::unordered_map<std::string, std::string> _aliases;
     std::vector<std::string> _prefixes{"!", "."};
-    /** Command names already reported for a missing HasPermission policy, so the error is
-     *  logged once rather than on every attempt. */
-    std::unordered_set<std::string> _missingPolicyWarned;
     /** Lowercased command name -> its ConCommand registration, for Surface::Console specs. */
     std::unordered_map<std::string, std::unique_ptr<ServerCommand>> _consoleCommands;
 };

@@ -1,4 +1,5 @@
-#include <VoltMod/Players/Targeting.hpp>
+#include "Commands/Targeting.hpp"
+
 #include <doctest/doctest.h>
 
 using VoltMod::FilterRoster;

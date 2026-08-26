@@ -34,7 +34,7 @@ runtime.Menus.OpenMenu(playerSlot, menu);
 
 ## Context rows
 
-For rows that act on an admin/target pair, bind a @ref VoltMod::MenuContext once. It carries the runtime as its first member; every context row then derives its label (a translation key in the admin's language), its enabled state (permission and immunity via `runtime.Policy`, so a row the admin cannot use does not appear), and its dispatch pair from the context:
+For rows that act on an admin/target pair, bind a @ref VoltMod::MenuContext once. It carries the runtime as its first member; every context row then derives its label (a translation key in the admin's language), its enabled state (`MenuContext::Allowed`, which is one call to `runtime.Policy.Authorize` for the admin, the target and the row permission - so a row the admin cannot use renders disabled), and its dispatch pair from the context:
 
 ```cpp
 MenuBuilder(title)
@@ -47,7 +47,7 @@ MenuBuilder(title)
     .Build();
 ```
 
-A context left without `.Rt` is inert: `Allowed` denies, so every context row renders disabled. `AddStateToggleRow` re-reads its predicate every redraw, so the same row shows "Freeze"/"Unfreeze" reality and doubles as the undo control. The pawn predicates (`InMoveType`, `HasPawnFlag`) live in `Entities/PawnPredicates.hpp`. Effect rows read on/off labels from the reserved keys `effectState.on` / `effectState.off`; the descriptors themselves are covered in @ref players_guide.
+A context left without `.Rt` is inert: `Allowed` denies, so every context row renders disabled. Re-checking a row when it is clicked is the same question, so ask `Policy::Authorize` again rather than writing the permission and immunity rules a second time - a flag can be revoked while the menu is open. `AddStateToggleRow` re-reads its predicate every redraw, so the same row shows "Freeze"/"Unfreeze" reality and doubles as the undo control. The pawn predicates (`InMoveType`, `HasPawnFlag`) live in `Entities/PawnPredicates.hpp`. Effect rows read on/off labels from the reserved keys `effectState.on` / `effectState.off`; the descriptors themselves are covered in @ref players_guide.
 
 ## Flow: multistep wizards
 

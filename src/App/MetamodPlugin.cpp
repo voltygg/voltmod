@@ -125,7 +125,7 @@ bool MetamodPlugin::OnPlayerChat(Player* player, std::string_view message, bool 
     // A pending menu capture owns the line before command parsing does: it is the player's
     // answer to a prompt, not a chat message. Menu input rows are a framework feature, so consuming
     // for them belongs here rather than in every plugin that happens to use one.
-    if (_runtime->ChatInput.TryConsume(player->GetSlot(), message))
+    if (_runtime->ChatInput.TryConsume(player->Slot(), message))
         return true;
 
     return _runtime->Commands.HandleChatMessage(player, message);
@@ -185,30 +185,29 @@ void MetamodPlugin::Hook_CheckTransmit(CCheckTransmitInfo** infoList, int infoCo
 void MetamodPlugin::Hook_OnClientConnected(CPlayerSlot slot, const char* name, uint64 xuid, const char* networkId,
                                            const char* address, bool fakePlayer)
 {
-    int slotIdx = slot.Get();
-    int64_t steamId = static_cast<int64_t>(xuid);
-    Player* player = _runtime->Players.AddPlayer(slotIdx, steamId, name ? name : "", address ? address : "");
-    OnPlayerConnect(player);
+    // The engine's `name` here is not yet meaningful - ClientFullyConnect is the first point it
+    // is - so it is kept only as Player::Name's fallback. The address is the opposite: this is
+    // the one callback that carries it.
+    _runtime->Players.Add(slot.Get(), static_cast<int64_t>(xuid), name ? name : "", address ? address : "");
 }
 
 void MetamodPlugin::Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconnectionReason reason, const char* name,
                                           uint64 xuid, const char* networkId)
 {
-    int slotIdx = slot.Get();
-    OnPlayerDisconnect(_runtime->Players.GetPlayerBySlot(slotIdx));
-    // RemovePlayer raises the slot change; every service holding per-slot state listens for it.
-    _runtime->Players.RemovePlayer(slotIdx);
+    // Remove raises Players.Disconnected and then the slot change; every service holding per-slot
+    // state listens for one or the other.
+    _runtime->Players.Remove(slot.Get());
 }
 
 void MetamodPlugin::Hook_ClientFullyConnect(CPlayerSlot slot)
 {
     _runtime->ClientCvars.OnClientFullyConnect(slot.Get());
-    OnPlayerFullyConnected(_runtime->Players.GetPlayerBySlot(slot.Get()));
+    _runtime->Players.OnClientFullyConnected(slot.Get());
 }
 
 void MetamodPlugin::Hook_ClientSettingsChanged(CPlayerSlot slot)
 {
-    OnPlayerSettingsChanged(_runtime->Players.GetPlayerBySlot(slot.Get()));
+    _runtime->Players.OnClientSettingsChanged(slot.Get());
 }
 
 void MetamodPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext& ctx, const CCommand& args)
@@ -238,7 +237,7 @@ void MetamodPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandCon
     if (!IsValidSlot(slotIdx))
         return;
 
-    Player* player = _runtime->Players.GetPlayerBySlot(slotIdx);
+    Player* player = _runtime->Players.Get(slotIdx);
     if (!player)
         return;
 

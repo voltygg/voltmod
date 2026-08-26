@@ -111,7 +111,14 @@ Use these patterns throughout the framework:
 - Plain-data descriptors such as `CommandSpec`, `Action`, and menu context rows
   are registered explicitly during load. Do not self-register at static init.
 - Consumers inject permission, targeting, reply, and broadcast behavior once
-  through `Runtime::Policy`.
+  through `Runtime::Policy`, and `Policy::Authorize(caller, target, permission)`
+  is the only place the framework applies it. Commands, actions, effects and menu
+  rows call that one gate; nothing repeats its steps, and denial is a
+  `Result<Authorized>` error rather than a nulled-out field.
+- `PlayerRef` is what a slot is stored as, `Player&` is who is connected now, and
+  `Controller`/`Pawn` are this frame's entities. `PlayerManager` owns the roster
+  and raises `Connected`, `FullyConnected`, `SettingsChanged` and `Disconnected`;
+  there are no player-lifecycle virtuals on `MetamodPlugin`.
 - A fixed-signature signal is a public `Event<Args...>` member and `+=` is the only
   way to subscribe to one; `Raise` belongs to the owner. Game events go through
   `GameEvents::On<T>` and must have a struct in `Events/EventTypes.hpp` - there is

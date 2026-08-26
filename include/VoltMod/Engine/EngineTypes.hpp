@@ -65,8 +65,11 @@ class GameSystemFactory;
 // --- (3) Mutually recursive with their owning header --------------------------
 
 /** Runtime.hpp holds CommandManager and MenuManager by value, so neither of
- *  those headers can include it. Phases 6-8 replace both `Runtime&` members
- *  with the narrow services they use, which retires this line. */
+ *  those headers can include it. ActionDispatcher and EffectDispatcher name it
+ *  from the same declaration: they only pass a `Runtime&` through, and pulling
+ *  the composition root into every header that reaches Player would undo the
+ *  point. Phase 8 replaces all four `Runtime&` members with the narrow services
+ *  they use, which retires this line. */
 class Runtime;
 
 /** MenuManager holds PlayerMenuState (Menu/Menu.hpp) by value and Menu.hpp
@@ -81,7 +84,14 @@ class EntitySystem;
 
 /** Pawn.hpp returns Controller by value from Pawn::GetController and
  *  Controller.hpp includes Pawn.hpp, so this is the same pair as above one level
- *  down. */
+ *  down.
+ *
+ *  Player.hpp declares `Controller Ctrl()` and `Pawn GetPawn()` from these two as
+ *  well. A return type in a declaration may be incomplete, and including the
+ *  wrappers instead would put a `Field<Vector, ...>` - whose default ExpectedSize
+ *  is `sizeof(Vector)` - in every translation unit that names a Player, which
+ *  means the SDK's mathlib in the SDK-free unit tests. */
 class Controller;
+class Pawn;
 
 }  // namespace VoltMod

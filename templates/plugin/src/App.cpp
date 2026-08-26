@@ -12,7 +12,8 @@ bool Start()
     if (!VoltMod::LoadStandardConfig(Runtime, Config, {.Addon = "$name"}))
         return false;
 
-    // Set Runtime.Policy before registering commands that declare a permission.
+    // Fill in Runtime.Policy (HasPermission at least) before registering commands that
+    // declare a permission: Policy::Authorize denies them while it is unset.
     RegisterCommands(Runtime.Commands);
     return true;
 }

@@ -7,7 +7,7 @@ namespace VoltMod
 
 int CommandContext::CallerSlot() const
 {
-    return Caller ? Caller->GetSlot() : -1;
+    return Caller ? Caller->Slot() : -1;
 }
 
 CommandResult CommandContext::Ok(std::string_view key, Tokens tokens) const

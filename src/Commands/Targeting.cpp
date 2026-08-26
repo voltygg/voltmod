@@ -1,6 +1,7 @@
+#include "Targeting.hpp"
+
 #include <VoltMod/Core/SteamId.hpp>
 #include <VoltMod/Core/Strings.hpp>
-#include <VoltMod/Players/Targeting.hpp>
 #include <algorithm>
 #include <charconv>
 

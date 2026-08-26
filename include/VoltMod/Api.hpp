@@ -82,7 +82,6 @@
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/PlayerRef.hpp>
 #include <VoltMod/Players/Policy.hpp>
-#include <VoltMod/Players/TargetResolver.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <VoltMod/Unsafe/HookMacros.hpp>
 #include <VoltMod/Unsafe/VtableHook.hpp>

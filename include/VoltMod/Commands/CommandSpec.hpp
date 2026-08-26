@@ -2,7 +2,6 @@
 
 #include <VoltMod/Core/Translations.hpp>
 #include <VoltMod/Players/Player.hpp>
-#include <VoltMod/Players/Targeting.hpp>
 #include <cstdint>
 #include <functional>
 #include <optional>

@@ -40,8 +40,8 @@ take over dispatch.
 
 ## The pipeline
 
-For each chat command, the manager matches the prefix, checks
-`runtime.Policy.HasPermission(callerSteamId, spec.Permission)`, resolves and
+For each chat command, the manager matches the prefix, asks the one gate
+`runtime.Policy.Authorize(caller, no target, spec.Permission)`, resolves and
 validates each argument, calls the handler, and routes its `CommandResult.Message`
 through `runtime.Policy.Reply` (or `runtime.Messages.Reply` when no policy reply
 is installed). An empty `Permission` skips the permission check. Any failure
@@ -75,7 +75,7 @@ beyond what the spec consumes are refused with `cmd.tooManyArgs` rather than dro
 
 ## Target selectors
 
-The `Target` argument (and @ref VoltMod::ResolveTargets directly) understands:
+The `Target` argument understands:
 
 ```
 @all @*        everyone                @me    yourself        @!me   everyone else
@@ -85,15 +85,16 @@ The `Target` argument (and @ref VoltMod::ResolveTargets directly) understands:
 name           exact match, then prefix, then substring (case-insensitive)
 ```
 
-Immunity comes from `runtime.Policy.CanTarget`. Matches rejected by the policy
+Every candidate goes through the same `runtime.Policy.Authorize` gate the command
+itself did, so immunity is decided in exactly one place. Matches the gate rejects
 are removed; if none remain, the caller is told that the target is immune rather
-than receiving a "no match" error.
+than receiving a "no match" error. Targeting yourself is always allowed.
 
 ## Permissions
 
-A spec with a non-empty `Permission` is gated on `runtime.Policy.HasPermission`. **If no
-policy is installed the command is denied**, not allowed, and the framework logs an error once per
-command name. A plugin that declares permissions without wiring a policy is misconfigured,
+A spec with a non-empty `Permission` is gated on `runtime.Policy.Authorize`, which asks
+`HasPermission`. **If no policy is installed the command is denied**, not allowed; the
+framework logs an error the first time and the load report names every affected spec. A plugin that declares permissions without wiring a policy is misconfigured,
 and failing open there hands every player every command.
 
 ## Error replies and reserved keys

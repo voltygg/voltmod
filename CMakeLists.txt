@@ -123,9 +123,9 @@ if(BUILD_TESTING)
             src/Entities/SchemaResolve.cpp
             src/Core/ScheduledEffect.cpp
             src/Core/Scheduler.cpp
-            src/Players/Player.cpp
             src/Players/PlayerManager.cpp
-            src/Players/Targeting.cpp
+            src/Players/Policy.cpp
+            src/Commands/Targeting.cpp
             src/Hooks/ClientCvarPending.cpp
             src/Engine/Bindings.cpp
             src/Engine/ConVarSnapshots.cpp
