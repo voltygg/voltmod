@@ -89,81 +89,81 @@ public:
 
     // Core services.
     /** Plugin-supplied permission, targeting and reply rules. Set once in OnLoad. */
-    Policy Policy;
+    VoltMod::Policy Policy;
     /** Named, timed load stages recorded by Start and by the plugin's OnLoad. */
-    LoadReport LoadReport;
+    VoltMod::LoadReport LoadReport;
     /** What this load can actually do, and why anything missing is missing. Written only by
      *  Start; read it before using a feature whose gamedata or engine support can be absent. */
-    Capabilities Capabilities;
+    VoltMod::Capabilities Capabilities;
     /** "This slot changed hands", raised by the roster and consumed by per-slot caches. */
     SlotEvents Slots;
     /** Frame pump, timers and delayed work. Pending timers are destroyed with it, never run, so
      *  whatever a timer's captured state owns may only point at members declared above this
      *  line. */
-    Scheduler Scheduler;
+    VoltMod::Scheduler Scheduler;
     /** Map the server is running, captured from StartupServer. Empty after a late load
      *  until the next map change, since the hook has already fired by then. */
     std::string CurrentMap;
 
-    Translations Translations{Slots};
+    VoltMod::Translations Translations{Slots};
 
     // Engine-facing services.
     /** Plain interface-pointer holder; populated by Start. */
-    Interfaces Interfaces;
+    VoltMod::Interfaces Interfaces;
     /** The raw gamedata resolutions, for diagnostics. Services read @ref Bindings instead. */
-    GameData GameData;
+    VoltMod::GameData GameData;
     /** The typed view of GameData; bound once by Start and handed to every engine service. */
-    Bindings Bindings;
+    VoltMod::Bindings Bindings;
 
     /** Depends on: Interfaces, Bindings. Schema field offsets resolve themselves, per process
      *  rather than per load - see @ref Field. */
     EntitySystem Entities{Interfaces, Bindings};
     /** Pawn manipulations that need framework services, such as slap and its fall protection.
      *  Depends on: Scheduler, Slots, Entities. */
-    Pawns Pawns{Scheduler, Slots, Entities};
+    VoltMod::Pawns Pawns{Scheduler, Slots, Entities};
     /** Depends on: Entities, Bindings. */
-    EntityOps EntityOps{Entities, Bindings};
+    VoltMod::EntityOps EntityOps{Entities, Bindings};
     /** Weapon give/strip through CCSPlayer_ItemServices. Depends on: Bindings. */
-    Items Items{Bindings};
+    VoltMod::Items Items{Bindings};
     /** Depends on: Entities, Bindings, Slots. */
-    Transmit Transmit{Entities, Bindings, Slots};
+    VoltMod::Transmit Transmit{Entities, Bindings, Slots};
     /** Builds per-viewer visibility effects (GlowVision). Depends on: Entities, EntityOps, Transmit. */
-    Visibility Visibility{Entities, EntityOps, Transmit};
+    VoltMod::Visibility Visibility{Entities, EntityOps, Transmit};
     /** Depends on: Bindings. */
-    Precache Precache{Bindings};
+    VoltMod::Precache Precache{Bindings};
     /** Depends on: Interfaces. */
-    ConVars ConVars{Interfaces};
+    VoltMod::ConVars ConVars{Interfaces};
     /** Map validation and level changes. Depends on: Interfaces, ConVars. */
     Map Maps{Interfaces, ConVars};
     /** Depends on: Interfaces, Bindings. Declared before Messages, which sends through it. */
     GameEvents Events{Interfaces, Bindings};
     /** Depends on: Interfaces, Bindings, Events, Translations. */
-    Messages Messages{Interfaces, Bindings, Events, Translations};
+    VoltMod::Messages Messages{Interfaces, Bindings, Events, Translations};
     /** The engine's simulation clock (tick and curtime). Depends on: Interfaces. */
-    Clock Clock{Interfaces};
+    VoltMod::Clock Clock{Interfaces};
     /** The game's own yes/no vote panel. Subscribes on the first StartVote().
      *  Depends on: Interfaces, Entities, Events, Scheduler. */
-    Vote Vote{Interfaces, Entities, Events, Scheduler};
+    VoltMod::Vote Vote{Interfaces, Entities, Events, Scheduler};
     /** Dormant until a plugin calls Install(); removes its vtable hook on destruction.
      *  Depends on: Entities, Bindings. */
     Movement MovementHook{Entities, Bindings};
     /** Dormant until Install(); observation only - listeners see each hit but cannot change it.
      *  Depends on: Entities, Bindings. */
-    Damage Damage{Entities, Bindings};
+    VoltMod::Damage Damage{Entities, Bindings};
     /** Stateless per-client net-channel reads (latency, replicated userinfo cvars).
      *  Depends on: Interfaces. */
-    NetChannels NetChannels{Interfaces};
+    VoltMod::NetChannels NetChannels{Interfaces};
     /** Depends on: Scheduler, Slots. */
-    ChatInput ChatInput{Scheduler, Slots};
+    VoltMod::ChatInput ChatInput{Scheduler, Slots};
     /** Dormant until Enable(depth); listens on the MovementHook cmd feed + slot changes.
      *  Depends on: MovementHook, Slots. */
-    InputHistory InputHistory{MovementHook, Slots};
+    VoltMod::InputHistory InputHistory{MovementHook, Slots};
     /** Dormant until something subscribes to Teleports.Teleported; per-pawn Teleport hook re-bound
      *  on PlayerSpawn. Depends on: Entities, Bindings, Events, Slots. */
     Teleport Teleports{Entities, Bindings, Events, Slots};
     /** Async client-side convar reads. Inert when Capability::ClientCvars is off.
      *  Depends on: Interfaces, Bindings, Slots. */
-    ClientCvars ClientCvars{Interfaces, Bindings, Slots};
+    VoltMod::ClientCvars ClientCvars{Interfaces, Bindings, Slots};
 
     // Composition-root services.
     /** Interfaces offered to, and borrowed from, other plugins. */
