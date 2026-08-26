@@ -44,7 +44,7 @@ static ProtoMessage* AsProto(CNetMessage* message)
     return message ? message->ToPB<ProtoMessage>() : nullptr;
 }
 
-static const google::protobuf::FieldDescriptor* Field(ProtoMessage* message, const char* name)
+static const google::protobuf::FieldDescriptor* ProtoField(ProtoMessage* message, const char* name)
 {
     const auto* descriptor = message->GetDescriptor();
     const auto* field = descriptor ? descriptor->FindFieldByName(name) : nullptr;
@@ -56,19 +56,19 @@ static const google::protobuf::FieldDescriptor* Field(ProtoMessage* message, con
 
 static void SetInt(ProtoMessage* message, const char* name, int32_t value)
 {
-    if (const auto* field = Field(message, name))
+    if (const auto* field = ProtoField(message, name))
         message->GetReflection()->SetInt32(message, field, value);
 }
 
 static void SetBool(ProtoMessage* message, const char* name, bool value)
 {
-    if (const auto* field = Field(message, name))
+    if (const auto* field = ProtoField(message, name))
         message->GetReflection()->SetBool(message, field, value);
 }
 
 static void SetString(ProtoMessage* message, const char* name, const std::string& value)
 {
-    if (const auto* field = Field(message, name))
+    if (const auto* field = ProtoField(message, name))
         message->GetReflection()->SetString(message, field, value);
 }
 
