@@ -109,12 +109,14 @@ void ChatInputCapture::CancelCapture(int slot)
     opt.reset();
 }
 
-const std::string* ChatInputCapture::GetPrompt(int slot) const
+std::optional<std::string> ChatInputCapture::GetPrompt(int slot) const
 {
     if (!Core::IsValidSlot(slot))
-        return nullptr;
+        return std::nullopt;
     const auto& opt = _pending[slot];
-    return opt.has_value() ? &opt->Prompt : nullptr;
+    if (!opt)
+        return std::nullopt;
+    return opt->Prompt;
 }
 
 }  // namespace VoltMod::Sdk

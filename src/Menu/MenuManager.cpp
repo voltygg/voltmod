@@ -310,7 +310,7 @@ void MenuManager::RenderMenu(int slot)
         return;
 
     // While a capture is pending, render a prompt overlay instead of the item list.
-    if (auto* prompt = _runtime.ChatInput.GetPrompt(slot); prompt != nullptr)
+    if (auto prompt = _runtime.ChatInput.GetPrompt(slot))
     {
         _runtime.Messages.SendCenterHtml(slot, RenderCaptureOverlay(menu->Title, *prompt));
         return;

@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 
 namespace VoltMod::Sdk
 {
@@ -82,12 +83,12 @@ struct UserCmdView
     int InputHistoryTotalCount = 0;
     std::array<InputHistorySample, MaxInputHistory> InputHistorySamples{};
 
-    /** The decoded entry at @p index, or nullptr when @p index is negative or was capped away. */
-    const InputHistorySample* SampleAt(int index) const
+    /** The decoded entry at @p index, or nullopt when @p index is negative or was capped away. */
+    std::optional<InputHistorySample> SampleAt(int index) const
     {
         if (index < 0 || index >= InputHistorySampleCount)
-            return nullptr;
-        return &InputHistorySamples[index];
+            return std::nullopt;
+        return InputHistorySamples[index];
     }
 };
 

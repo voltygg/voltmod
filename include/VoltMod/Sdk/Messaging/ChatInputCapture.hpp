@@ -69,8 +69,9 @@ public:
      *  must not take out whatever replaced the prompt it was scheduled for. */
     void CancelCaptureById(int slot, uint64_t id);
 
-    /** The active prompt for @p slot, or nullptr if no capture is pending. */
-    const std::string* GetPrompt(int slot) const;
+    /** The active prompt for @p slot, or nullopt if no capture is pending. By value: a capture
+     *  can be cancelled or replaced from the same frame that read it. */
+    std::optional<std::string> GetPrompt(int slot) const;
 
 private:
     struct Pending
