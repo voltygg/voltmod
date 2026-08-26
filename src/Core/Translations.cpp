@@ -153,7 +153,7 @@ std::vector<std::string> Translations::GetAvailableLanguages() const
 
 void Translations::SetPlayerLanguage(int slot, const std::string& lang)
 {
-    if (slot >= 0 && slot < MaxSlots)
+    if (IsValidSlot(slot))
     {
         _playerLangs[slot] = lang;
     }
@@ -161,7 +161,7 @@ void Translations::SetPlayerLanguage(int slot, const std::string& lang)
 
 void Translations::ClearPlayerLanguage(int slot)
 {
-    if (slot >= 0 && slot < MaxSlots)
+    if (IsValidSlot(slot))
     {
         _playerLangs[slot].clear();
     }
@@ -186,8 +186,7 @@ std::string Translations::Get(const std::string& key) const
 
 std::string Translations::Get(const std::string& key, int slot) const
 {
-    const std::string& lang =
-        (slot >= 0 && slot < MaxSlots && !_playerLangs[slot].empty()) ? _playerLangs[slot] : _activeLang;
+    const std::string& lang = (IsValidSlot(slot) && !_playerLangs[slot].empty()) ? _playerLangs[slot] : _activeLang;
 
     // Pointer (not empty-string) sentinel so a key deliberately mapped to "" is honored, not dropped.
     if (const std::string* v = LookupIn(lang, key))

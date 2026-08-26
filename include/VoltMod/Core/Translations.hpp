@@ -1,5 +1,6 @@
 #pragma once
 
+#include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Subscription.hpp>
 #include <array>
@@ -27,8 +28,6 @@ using Tokens = std::map<std::string, std::string>;
 class Translations
 {
 public:
-    static constexpr int MaxSlots = 64;
-
     /** @p slots tells the table when a slot changes hands, so one player's language pick
      *  cannot answer for the next occupant. */
     explicit Translations(SlotEvents& slots);
@@ -63,7 +62,7 @@ private:
 
     std::unordered_map<std::string, std::unordered_map<std::string, std::string>> _translations;
     std::string _activeLang = "en";
-    std::array<std::string, MaxSlots> _playerLangs{};
+    std::array<std::string, MaxPlayers> _playerLangs{};
     /** Declared after _playerLangs so it unregisters before the entries its callback clears. */
     Subscription _slotListener;
 };

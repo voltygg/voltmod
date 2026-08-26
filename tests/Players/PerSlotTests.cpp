@@ -45,22 +45,6 @@ TEST_CASE("BindReset is idempotent, so a slot change resets once")
     CHECK(values[2] == 0);
 }
 
-TEST_CASE("Unbind stops the resets and BindReset can start them again")
-{
-    SlotEvents slots;
-    PerSlot<int> values;
-    values.BindReset(slots);
-    values.Unbind();
-
-    values[1] = 9;
-    slots.Raise(1);
-    CHECK(values[1] == 9);
-
-    values.BindReset(slots);
-    slots.Raise(1);
-    CHECK(values[1] == 0);
-}
-
 TEST_CASE("Destroying a PerSlot unsubscribes, so a later slot change is inert")
 {
     SlotEvents slots;

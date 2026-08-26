@@ -48,7 +48,8 @@ int EntitySystem::GetEntityIndex(CEntityInstance* entity) const
 
 uint32_t EntitySystem::GetEntityHandle(CEntityInstance* entity) const
 {
-    return (entity && entity->m_pEntity) ? static_cast<uint32_t>(entity->m_pEntity->m_EHandle.ToInt()) : 0xFFFFFFFFu;
+    return (entity && entity->m_pEntity) ? static_cast<uint32_t>(entity->m_pEntity->m_EHandle.ToInt())
+                                         : InvalidEntityHandle;
 }
 
 void EntitySystem::ResolveSchemaOffsets()
@@ -147,7 +148,7 @@ CEntityIdentity* EntitySystem::GetEntityIdentityByIndex(CGameEntitySystem* pSys,
 
 CEntityInstance* EntitySystem::ResolveEntityHandle(uint32_t handle)
 {
-    if (handle == 0xFFFFFFFF)  // INVALID_EHANDLE_INDEX: unset/cleared handle
+    if (handle == InvalidEntityHandle)
         return nullptr;
 
     int entryIndex = handle & 0x7FFF;  // low 15 bits = entity index, high bits = serial number

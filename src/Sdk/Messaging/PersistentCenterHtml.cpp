@@ -6,17 +6,9 @@
 namespace VoltMod::Sdk
 {
 
-namespace
-{
-bool ValidSlot(int slot)
-{
-    return slot >= 0 && slot < PersistentCenterHtml::MaxSlots;
-}
-}  // namespace
-
 void PersistentCenterHtml::Show(int slot, int refreshMs, std::function<std::string(int slot)> render)
 {
-    if (!ValidSlot(slot) || !render || refreshMs <= 0)
+    if (!Core::IsValidSlot(slot) || !render || refreshMs <= 0)
         return;
 
     Stop(slot);
@@ -30,7 +22,7 @@ void PersistentCenterHtml::Show(int slot, int refreshMs, std::function<std::stri
 
 void PersistentCenterHtml::Stop(int slot)
 {
-    if (!ValidSlot(slot) || !_timers[slot])
+    if (!Core::IsValidSlot(slot) || !_timers[slot])
         return;
     _timers[slot].Reset();
     _messages.ClearCenterHtml(slot);
@@ -38,7 +30,7 @@ void PersistentCenterHtml::Stop(int slot)
 
 void PersistentCenterHtml::StopAll()
 {
-    for (int slot = 0; slot < MaxSlots; ++slot)
+    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
         Stop(slot);
 }
 

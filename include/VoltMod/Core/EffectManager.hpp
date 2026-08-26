@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoltMod/Core/ScheduledEffect.hpp>
+#include <VoltMod/Core/Slot.hpp>
 #include <array>
 #include <functional>
 #include <unordered_map>
@@ -47,8 +48,6 @@ struct ActiveEffect
 class EffectManager
 {
 public:
-    static constexpr int MaxSlots = 64;
-
     explicit EffectManager(Scheduler& scheduler) : _scheduler(scheduler) {}
 
     bool IsActive(int slot, int effectId) const;
@@ -77,7 +76,7 @@ private:
 
     Scheduler& _scheduler;
     // Slot-indexed array of small maps: only a handful of effects run per player at once.
-    std::array<std::unordered_map<int, ActiveEffect>, MaxSlots> _effects{};
+    std::array<std::unordered_map<int, ActiveEffect>, MaxPlayers> _effects{};
 };
 
 }  // namespace VoltMod::Core

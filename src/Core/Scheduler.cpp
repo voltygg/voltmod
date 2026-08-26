@@ -21,11 +21,6 @@ Subscription Scheduler::Repeat(int64_t intervalMs, std::function<void()> callbac
     return _timers.AddOwned({GetCurrentTimeMs() + intervalMs, intervalMs, std::move(callback)});
 }
 
-Subscription Scheduler::DelayAndRepeat(int64_t delayMs, int64_t intervalMs, std::function<void()> callback)
-{
-    return _timers.AddOwned({GetCurrentTimeMs() + delayMs, intervalMs, std::move(callback)});
-}
-
 uint64_t Scheduler::NextTick(std::function<void()> callback)
 {
     return Delay(0, std::move(callback));
@@ -41,11 +36,6 @@ Subscription Scheduler::EveryFrame(std::function<void()> callback)
 void Scheduler::Cancel(uint64_t id)
 {
     _timers.Remove(id);
-}
-
-void Scheduler::CancelAll()
-{
-    _timers.Clear();
 }
 
 void Scheduler::OnGameFrame()

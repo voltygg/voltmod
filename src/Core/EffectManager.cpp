@@ -5,17 +5,9 @@
 namespace VoltMod::Core
 {
 
-namespace
-{
-bool ValidSlot(int slot)
-{
-    return slot >= 0 && slot < EffectManager::MaxSlots;
-}
-}  // namespace
-
 bool EffectManager::IsActive(int slot, int effectId) const
 {
-    if (!ValidSlot(slot))
+    if (!IsValidSlot(slot))
         return false;
     auto it = _effects[slot].find(effectId);
     // A self-expired effect (DurationMs elapsed) leaves its entry behind until reclaimed; its
@@ -25,7 +17,7 @@ bool EffectManager::IsActive(int slot, int effectId) const
 
 void EffectManager::Apply(int slot, int effectId, EffectSpec spec)
 {
-    if (!ValidSlot(slot))
+    if (!IsValidSlot(slot))
         return;
 
     Cancel(slot, effectId);  // re-apply semantics: replace any active instance
@@ -39,7 +31,7 @@ void EffectManager::Apply(int slot, int effectId, EffectSpec spec)
 
 void EffectManager::Cancel(int slot, int effectId)
 {
-    if (!ValidSlot(slot))
+    if (!IsValidSlot(slot))
         return;
     auto it = _effects[slot].find(effectId);
     if (it == _effects[slot].end())
@@ -65,27 +57,27 @@ void EffectManager::CancelWhere(int slot, const std::function<bool(int id, const
 
 void EffectManager::CancelAllForSlot(int slot)
 {
-    if (!ValidSlot(slot))
+    if (!IsValidSlot(slot))
         return;
     CancelWhere(slot, [](int, const ActiveEffect&) { return true; });
 }
 
 void EffectManager::CancelPerLife(int slot)
 {
-    if (!ValidSlot(slot))
+    if (!IsValidSlot(slot))
         return;
     CancelWhere(slot, [](int, const ActiveEffect& e) { return !e.SurvivesDeath; });
 }
 
 void EffectManager::CancelRoundScoped()
 {
-    for (int slot = 0; slot < MaxSlots; ++slot)
+    for (int slot = 0; slot < MaxPlayers; ++slot)
         CancelWhere(slot, [](int, const ActiveEffect& e) { return e.RoundScoped; });
 }
 
 void EffectManager::CancelAll()
 {
-    for (int slot = 0; slot < MaxSlots; ++slot)
+    for (int slot = 0; slot < MaxPlayers; ++slot)
         CancelAllForSlot(slot);
 }
 

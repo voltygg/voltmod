@@ -19,8 +19,6 @@ TEST_CASE("StringUtils::Trim")
     CHECK_EQ(StringUtils::Trim("nopad"), std::string("nopad"));
     CHECK_EQ(StringUtils::Trim("   "), std::string(""));
     CHECK_EQ(StringUtils::Trim(""), std::string(""));
-    CHECK_EQ(StringUtils::TrimLeft("  x  "), std::string("x  "));
-    CHECK_EQ(StringUtils::TrimRight("  x  "), std::string("  x"));
 }
 
 TEST_CASE("StringUtils::Split")
@@ -100,15 +98,6 @@ TEST_CASE("StringUtils::StartsWith")
     CHECK(StringUtils::StartsWith("abc", ""));
     CHECK(!StringUtils::StartsWith("abc", "abcd"));
     CHECK(!StringUtils::StartsWith("abc", "xyz"));
-}
-
-TEST_CASE("StringUtils::EndsWith")
-{
-    CHECK(StringUtils::EndsWith("hello world", "world"));
-    CHECK(StringUtils::EndsWith("abc", "abc"));
-    CHECK(StringUtils::EndsWith("abc", ""));
-    CHECK(!StringUtils::EndsWith("abc", "dabc"));
-    CHECK(!StringUtils::EndsWith("abc", "xyz"));
 }
 
 TEST_CASE("StringUtils::DisplayNameOr")

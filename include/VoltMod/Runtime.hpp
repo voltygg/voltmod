@@ -4,7 +4,6 @@
 #include <VoltMod/App/ServiceExchange.hpp>
 #include <VoltMod/App/StatusService.hpp>
 #include <VoltMod/Commands/CommandManager.hpp>
-#include <VoltMod/Core/ILogger.hpp>
 #include <VoltMod/Core/LoadReport.hpp>
 #include <VoltMod/Core/PluginPolicy.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
@@ -56,13 +55,11 @@ namespace VoltMod
 /** Everything @ref Runtime::Start needs from Metamod, plus the optional overrides. */
 struct LoadContext
 {
-    ISmmAPI* Ismm = nullptr;             ///< Metamod API pointer, from Plugin::Load
-    char* Error = nullptr;               ///< Error buffer Metamod shows if the load fails
-    size_t MaxLen = 0;                   ///< Size of that buffer
-    bool Late = false;                   ///< Loaded after the server had already started
-    const char* LogPrefix = "VoltMod";   ///< Console log prefix, e.g. "[ADMIN]"
-    const char* GameDataPath = nullptr;  ///< Override signatures.jsonc; null uses the shipped one
-    Core::ILogger* Logger = nullptr;     ///< Custom logger; null uses the console logger
+    ISmmAPI* Ismm = nullptr;            ///< Metamod API pointer, from Plugin::Load
+    char* Error = nullptr;              ///< Error buffer Metamod shows if the load fails
+    size_t MaxLen = 0;                  ///< Size of that buffer
+    bool Late = false;                  ///< Loaded after the server had already started
+    const char* LogPrefix = "VoltMod";  ///< Console log prefix, e.g. "[ADMIN]"
 };
 
 /**

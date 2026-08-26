@@ -87,7 +87,7 @@ void GlowVision::CreatePair(int slot, GlowPair& pair)
 
 void GlowVision::Reconcile()
 {
-    for (int slot = 0; slot < MaxPlayers; ++slot)
+    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
     {
         auto& pair = _pairs[slot];
 

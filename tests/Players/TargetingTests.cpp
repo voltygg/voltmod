@@ -53,7 +53,8 @@ TEST_CASE("ParseTargetToken: selectors")
     CHECK(ParseTargetToken("@t").Kind == Kind::Team);
     CHECK_EQ(ParseTargetToken("@t").Team, 2);
     CHECK_EQ(ParseTargetToken("@CT").Team, 3);
-    CHECK(ParseTargetToken("@spec").Kind == Kind::Spectators);
+    CHECK(ParseTargetToken("@spec").Kind == Kind::Team);
+    CHECK_EQ(ParseTargetToken("@spec").Team, 1);
     CHECK(ParseTargetToken("@dead").Kind == Kind::Dead);
     CHECK(ParseTargetToken("@alive").Kind == Kind::Alive);
     CHECK(ParseTargetToken("@bot").Kind == Kind::Bots);

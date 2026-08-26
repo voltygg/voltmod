@@ -109,14 +109,6 @@ void CommandManager::RegisterConsoleCommand(const std::string& name, const Comma
         }));
 }
 
-void CommandManager::Unregister(const std::string& name)
-{
-    const std::string key = StringUtils::ToLower(name);
-    _commands.erase(key);
-    _consoleCommands.erase(key);
-    std::erase_if(_aliases, [&](const auto& entry) { return entry.second == key; });
-}
-
 bool CommandManager::HandleChatMessage(Players::Player* caller, std::string_view message)
 {
     if (!caller || message.empty())
@@ -173,8 +165,7 @@ void CommandManager::Dispatch(const CommandSpec& cmd, Players::Player* caller, s
         if (!msg.empty())
             reply(msg);
     };
-    // The prefix belongs to the surface being replied to, not to the spec: the console types no
-    // prefix, and a server that called SetPrefixes does not necessarily use "!".
+    // The prefix belongs to the surface being replied to, not to the spec: the console types none.
     const auto usage = [&] {
         if (!cmd.Usage.empty())
             return cmd.Usage;
@@ -211,17 +202,16 @@ void CommandManager::Dispatch(const CommandSpec& cmd, Players::Player* caller, s
     CommandContext ctx;
     ctx.Tr = &tr;  // handler-facing Ok()/Fail() translate through the runtime's table
     ctx.Caller = caller;
-    ctx.RawArgs = std::move(args);
 
     // Reject extra tokens so malformed commands cannot appear successful.
-    if (TooManyArguments(cmd, ctx.RawArgs.size()))
+    if (TooManyArguments(cmd, args.size()))
     {
         say(tr.Get("cmd.tooManyArgs", slot, {{"usage", usage()}}));
         return;
     }
 
     std::string error;
-    if (!ResolveArgs(cmd, ctx.RawArgs, ctx, error))
+    if (!ResolveArgs(cmd, args, ctx, error))
     {
         say(error.empty() ? "Usage: " + usage() : error);
         return;
@@ -264,14 +254,17 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
         {
         case ArgKind::Target:
         {
-            auto resolved = Players::ResolveTargets(_runtime, token, ctx.Caller, spec.Targeting);
+            // Target() always resolves against the default rules: single online target,
+            // dead and bots allowed.
+            const Players::TargetRules rules{};
+            auto resolved = Players::ResolveTargets(_runtime, token, ctx.Caller, rules);
             if (!resolved)
             {
                 outError = TargetErrorMessage(tr, resolved.error(), token, slot);
                 return false;
             }
             ctx.TargetPlayer = resolved->front();
-            if (spec.Targeting.AllowMultiple)
+            if (rules.AllowMultiple)
                 ctx.TargetList = std::move(*resolved);
             ++i;
             break;
@@ -303,10 +296,8 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
             int seconds = ParseDuration(token);
             if (seconds < 0)
                 return fail(spec, "cmd.badDuration");
-            // ParseDuration treats bare numbers as seconds; some specs reinterpret them as minutes.
-            ctx.DurationSec = (spec.BareNumbersAreMinutes && StringUtils::IsNumeric(token))
-                                  ? static_cast<int64_t>(seconds) * 60
-                                  : seconds;
+            // ParseDuration treats bare numbers as seconds; Duration() reinterprets them as minutes.
+            ctx.DurationSec = StringUtils::IsNumeric(token) ? static_cast<int64_t>(seconds) * 60 : seconds;
             ++i;
             break;
         }
@@ -375,19 +366,6 @@ const CommandSpec* CommandManager::GetCommand(const std::string& name) const
     }
 
     return nullptr;
-}
-
-std::vector<const CommandSpec*> CommandManager::GetAllCommands() const
-{
-    std::vector<const CommandSpec*> commands;
-    commands.reserve(_commands.size());
-
-    for (const auto& [name, cmd] : _commands)
-    {
-        commands.push_back(&cmd);
-    }
-
-    return commands;
 }
 
 std::vector<std::string> CommandManager::ParseArguments(const std::string& text) const

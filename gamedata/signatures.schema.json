@@ -32,11 +32,6 @@
             "default": "server",
             "description": "Module to scan, without platform prefix/suffix (\"server\" -> server.dll / libserver.so)."
           },
-          "refs": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "Reserved: strings the target function references, for future fallback resolution when the pattern breaks."
-          },
           "windows": { "$ref": "#/definitions/platformSignature" },
           "linux": { "$ref": "#/definitions/platformSignature" }
         }

@@ -46,7 +46,7 @@ TargetQuery ParseTargetToken(std::string_view token)
     if (lower == "@ct")
         return {.Kind = Kind::Team, .Team = TeamCT};
     if (lower == "@spec")
-        return {.Kind = Kind::Spectators, .Team = TeamSpectator};
+        return {.Kind = Kind::Team, .Team = TeamSpectator};
     if (lower == "@dead")
         return {.Kind = Kind::Dead};
     if (lower == "@alive")
@@ -116,7 +116,6 @@ std::expected<std::vector<int>, TargetFailure> FilterRoster(std::span<const Play
         break;
     case Kind::Team:
     case Kind::RandomTeam:
-    case Kind::Spectators:
         collect([&](const PlayerView& p) { return p.Team == query.Team; });
         break;
     case Kind::Dead:

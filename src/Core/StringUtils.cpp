@@ -1,4 +1,3 @@
-#include <VoltMod/Core/SteamId.hpp>
 #include <VoltMod/Core/StringUtils.hpp>
 #include <algorithm>
 #include <cctype>
@@ -69,28 +68,11 @@ std::string StringUtils::ToLower(const std::string& str)
     return result;
 }
 
-std::string StringUtils::ToUpper(const std::string& str)
-{
-    std::string result = str;
-    std::transform(result.begin(), result.end(), result.begin(), [](unsigned char c) { return std::toupper(c); });
-    return result;
-}
-
-std::string StringUtils::TrimLeft(const std::string& str)
-{
-    auto it = std::find_if(str.begin(), str.end(), [](unsigned char c) { return !std::isspace(c); });
-    return std::string(it, str.end());
-}
-
-std::string StringUtils::TrimRight(const std::string& str)
-{
-    auto it = std::find_if(str.rbegin(), str.rend(), [](unsigned char c) { return !std::isspace(c); });
-    return std::string(str.begin(), it.base());
-}
-
 std::string StringUtils::Trim(const std::string& str)
 {
-    return TrimLeft(TrimRight(str));
+    auto begin = std::find_if(str.begin(), str.end(), [](unsigned char c) { return !std::isspace(c); });
+    auto end = std::find_if(str.rbegin(), str.rend(), [](unsigned char c) { return !std::isspace(c); }).base();
+    return begin < end ? std::string(begin, end) : std::string();
 }
 
 std::vector<std::string> StringUtils::Split(const std::string& str, char delimiter)
@@ -131,11 +113,6 @@ std::string StringUtils::JoinNonEmpty(const std::vector<std::string>& parts, con
 bool StringUtils::StartsWith(const std::string& str, const std::string& prefix)
 {
     return str.length() >= prefix.length() && str.substr(0, prefix.length()) == prefix;
-}
-
-bool StringUtils::EndsWith(const std::string& str, const std::string& suffix)
-{
-    return str.length() >= suffix.length() && str.substr(str.length() - suffix.length()) == suffix;
 }
 
 bool StringUtils::ContainsIgnoreCase(const std::string& str, const std::string& substr)

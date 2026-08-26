@@ -1,5 +1,6 @@
 #pragma once
 
+#include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/Subscription.hpp>
 #include <array>
 #include <cstdint>
@@ -25,8 +26,6 @@ class MessageSystem;
 class PersistentCenterHtml
 {
 public:
-    static constexpr int MaxSlots = 64;
-
     /** @p messages sends and clears the panel, @p scheduler drives the refresh. Both must outlive
      *  this object; pass `runtime.Messages` and `runtime.Scheduler`. */
     PersistentCenterHtml(MessageSystem& messages, Core::Scheduler& scheduler)
@@ -44,7 +43,7 @@ public:
 private:
     MessageSystem& _messages;
     Core::Scheduler& _scheduler;
-    std::array<Core::Subscription, MaxSlots> _timers;
+    std::array<Core::Subscription, Core::MaxPlayers> _timers;
 };
 
 }  // namespace VoltMod::Sdk

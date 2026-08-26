@@ -21,7 +21,6 @@
 #include <VoltMod/Core/CallbackRegistry.hpp>
 #include <VoltMod/Core/EffectManager.hpp>
 #include <VoltMod/Core/HookMacros.hpp>
-#include <VoltMod/Core/ILogger.hpp>
 #include <VoltMod/Core/LoadReport.hpp>
 #include <VoltMod/Core/Paths.hpp>
 #include <VoltMod/Core/PluginPolicy.hpp>
@@ -34,8 +33,6 @@
 // The Database vocabulary lives in <VoltMod/Database/Api.hpp>, deliberately
 // outside this umbrella: it drags <pqxx/pqxx> into every including TU, and
 // most plugin code never touches the database.
-#include <VoltMod/Core/AngleMath.hpp>
-#include <VoltMod/Core/DecayingScore.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Random.hpp>
 #include <VoltMod/Core/SlidingWindowScore.hpp>
@@ -106,7 +103,6 @@ using Core::AddonFile;
 using Core::CallbackRegistry;
 using Core::EffectManager;
 using Core::EffectSpec;
-using Core::ILogger;
 using Core::IsValidSlot;
 using Core::LoadReport;
 using Core::MaxPlayers;
@@ -215,7 +211,6 @@ using Http::HttpClient;
 using Http::HttpResult;
 
 // Utils
-using Core::DecayingScore;
 using Core::PairThrottle;
 using Core::ParseDuration;
 using Core::SlidingWindowScore;
@@ -225,7 +220,6 @@ using Core::Throttle;
 using Core::TimeUtils;
 using Core::Tokens;
 using Core::Translations;
-namespace AngleMath = Core::AngleMath;
 namespace Log = Core::Log;
 namespace Validation = Core::Validation;
 

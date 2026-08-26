@@ -54,9 +54,7 @@ public:
      * that case, rather than the wrong player.
      */
     Player* GetPlayerBySlotIfSteamId(int slot, int64_t steamId);
-    std::vector<Player*> FindPlayersByName(const std::string& name);
     std::vector<Player*> GetAllPlayers();
-    size_t GetPlayerCount() const;
 
 private:
     void IndexBySteamId(Player* player);

@@ -1,5 +1,7 @@
 #include "Sdk/Internal/Schema.hpp"
 
+#include "Sdk/Internal/SigScanner.hpp"
+
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Sdk/Engine/GameInterfaces.hpp>
 #include <cstring>
@@ -37,13 +39,9 @@ int SchemaService::GetOffset(const char* className, const char* fieldName, int e
             return fieldIt->second;
     }
 
-#ifdef _WIN32
-    const char* moduleName = "server.dll";
-#else
-    const char* moduleName = "libserver.so";
-#endif
+    const std::string moduleName = PlatformModuleName("server");
 
-    CSchemaSystemTypeScope* pTypeScope = schemaSystem->FindTypeScopeForModule(moduleName);
+    CSchemaSystemTypeScope* pTypeScope = schemaSystem->FindTypeScopeForModule(moduleName.c_str());
     if (!pTypeScope)
     {
         Log::Error("Schema: Failed to find type scope for {}.", moduleName);

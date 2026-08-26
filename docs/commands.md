@@ -50,7 +50,7 @@ Declare `Args` with the terse factories; each fills a `CommandContext` field:
 
 | Factory | Consumes | Read with |
 |---------|----------|-----------|
-| `Target(rules = {})` | one token via the selector grammar | `c.Target()`, a reference and never null (`c.Targets()` when `rules.AllowMultiple`) |
+| `Target()` | one token via the selector grammar, single online target | `c.Target()`, a reference and never null |
 | `TargetOrSteamId()` | online player, or a bare SteamID64 for offline targets | `c.HasTarget() ? c.Target() : ...` plus `c.SteamId` |
 | `Duration()` | `30` (minutes), `30s`/`5m`/`2h`/`7d`, `0`/`perm` | `c.Duration()`, nullopt when absent; `0` means permanent |
 | `SteamId64(errorKey = {})` | numeric SteamID64 | `c.SteamId` |
@@ -68,9 +68,7 @@ cannot succeed.
 nothing at all in the console), so the same spec reads correctly in both places. Extra arguments
 beyond what the spec consumes are refused with `cmd.tooManyArgs` rather than dropped.
 
-`TargetRules` narrows what a Target argument accepts: `{.AllowMultiple = true}` permits `@all`-style selectors, `AllowDead`/`AllowBots` filter the match set.
-
-`CommandContext` also carries `Caller`, `RawArgs`, and the localized result helpers `Ok(key, tokens)` / `Fail(key, tokens)`; both translate in the caller's language.
+`CommandContext` also carries `Caller` and the localized result helpers `Ok(key, tokens)` / `Fail(key, tokens)`; both translate in the caller's language.
 
 ## Target selectors
 
@@ -100,10 +98,6 @@ and failing open there hands every player every command.
 Argument failures reply from these translation keys. Ship them in your translation files:
 
 `target.noMatch`, `target.immune`, `target.ambiguous` (gets a `{count}` token), `target.dead`, `target.bot`, `cmd.badDuration`, `cmd.badSteamId`, `cmd.badNumber`, `cmd.noPermission`, `cmd.tooManyArgs`, and the command's `Usage` (derived unless set) for arity errors. Override per-argument with `ArgSpec::ErrorKey` (e.g. `SteamId64("cmd.unbanUsage")`).
-
-## Introspection
-
-`runtime.Commands.GetAllCommands()` returns every registered spec with its `Name`, `Aliases`, `Description`, `Usage`, and `Permission`, enough to build a `!help` command or an admin menu from the same data the dispatcher uses.
 
 ## Console callers
 

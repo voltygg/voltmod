@@ -31,7 +31,9 @@ public:
     /** @p runtime supplies the roster, the controllers and the policy; @p effects owns the per-slot
      *  effect state. Both must outlive the dispatcher. Cheap to construct, so a call site may build
      *  one per dispatch. */
-    EffectDispatcher(Runtime& runtime, Core::EffectManager& effects) : _actions(runtime), _effects(effects) {}
+    EffectDispatcher(Runtime& runtime, Core::EffectManager& effects)
+        : _runtime(runtime), _actions(runtime), _effects(effects)
+    {}
 
     EffectDispatcher(const EffectDispatcher&) = delete;
     EffectDispatcher& operator=(const EffectDispatcher&) = delete;
@@ -52,8 +54,10 @@ private:
     /** Shared body for the Clear verbs (both key off Permission/Id/OffKey only). */
     void ClearById(int adminSlot, int targetSlot, const std::string& permission, int id,
                    const std::string& offKey) const;
+    /** Invoke the policy broadcast sink directly; ActionDispatcher's own Broadcast is private. */
     void BroadcastKey(const ActionContext& ctx, const std::string& key) const;
 
+    Runtime& _runtime;
     ActionDispatcher _actions;
     Core::EffectManager& _effects;
 };

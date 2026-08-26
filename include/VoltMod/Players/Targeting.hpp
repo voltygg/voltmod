@@ -53,8 +53,7 @@ enum class TargetKind
     All,
     Me,
     NotMe,
-    Team,  ///< uses TargetQuery::Team (engine index: 2 = T, 3 = CT)
-    Spectators,
+    Team,  ///< uses TargetQuery::Team (engine index: 1 = spectators, 2 = T, 3 = CT)
     Dead,
     Alive,
     Bots,

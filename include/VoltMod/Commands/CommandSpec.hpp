@@ -43,14 +43,12 @@ struct ArgSpec
 {
     ArgKind Kind = ArgKind::Word;
     bool Required = true;
-    Players::TargetRules Targeting{};   ///< Kind == Target
-    bool BareNumbersAreMinutes = true;  ///< Kind == Duration ("!ban x 30" = 30 minutes)
-    std::string FallbackKey;            ///< Kind == ReasonTail: server-language key for the default reason
-    std::string ErrorKey;               ///< overrides the default parse-failure message key
+    std::string FallbackKey;  ///< Kind == ReasonTail: server-language key for the default reason
+    std::string ErrorKey;     ///< overrides the default parse-failure message key
 };
 
 // Factories for declarations at call sites.
-ArgSpec Target(Players::TargetRules rules = {});
+ArgSpec Target();
 ArgSpec TargetOrSteamId();
 ArgSpec Duration();
 ArgSpec SteamId64(std::string errorKey = {});
@@ -79,7 +77,6 @@ struct CommandContext
     std::optional<int> IntValue;
     std::string Word;
     std::string Reason;
-    std::vector<std::string> RawArgs;
 
     int CallerSlot() const;
 

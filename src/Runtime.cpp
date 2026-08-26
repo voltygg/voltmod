@@ -58,16 +58,8 @@ bool Runtime::Start(const LoadContext& context)
 
 void Runtime::InstallLogger(const LoadContext& context)
 {
-    if (context.Logger)
-    {
-        Core::SetGlobalLogger(context.Logger);
-    }
-    else
-    {
-        g_consoleLogger.SetPrefix(context.LogPrefix);
-        Core::SetGlobalLogger(&g_consoleLogger);
-    }
-
+    g_consoleLogger.SetPrefix(context.LogPrefix);
+    Core::SetGlobalLogger(&g_consoleLogger);
     Core::SetBaseDir(context.Ismm->GetBaseDir());
 }
 
@@ -124,9 +116,8 @@ bool Runtime::InitializeServices(const LoadContext& context)
     auto& report = LoadReport;
 
     report.Run("GameData", [&] {
-        const char* gameDataPath = context.GameDataPath ? context.GameDataPath : DefaultGameDataPath;
-        if (!GameData.Load(gameDataPath))
-            return StageResult::Degraded(std::format("failed to load {}", gameDataPath));
+        if (!GameData.Load(DefaultGameDataPath))
+            return StageResult::Degraded(std::format("failed to load {}", DefaultGameDataPath));
         GameData.ResolveAll();
         if (auto failures = GameData.FailureSummary(); !failures.empty())
             return StageResult::Degraded(std::move(failures));

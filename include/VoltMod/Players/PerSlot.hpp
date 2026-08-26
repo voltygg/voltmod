@@ -26,21 +26,18 @@ class PerSlot
 {
 public:
     PerSlot() = default;
-    /** Unsubscribes, so the feed cannot reset entries that are going away. */
-    ~PerSlot() { Unbind(); }
+    /** Unsubscribes directly, so the feed cannot reset entries that are going away. */
+    ~PerSlot() { _listener.Reset(); }
     PerSlot(const PerSlot&) = delete;
     PerSlot& operator=(const PerSlot&) = delete;
 
     /** Auto-reset a slot's entry on player connect/disconnect. Idempotent; @p slots must
-     *  outlive this object (or Unbind() must run first). */
+     *  outlive this object. */
     void BindReset(Core::SlotEvents& slots)
     {
         if (!_listener)
             _listener = slots.Listen([this](int slot) { Reset(slot); });
     }
-
-    /** Stop the auto-reset. Values are kept; BindReset() may be called again. */
-    void Unbind() { _listener.Reset(); }
 
     T& operator[](int slot) { return _items[slot]; }
     const T& operator[](int slot) const { return _items[slot]; }
@@ -52,11 +49,6 @@ public:
     }
 
     void ResetAll() { _items.fill(T{}); }
-
-    auto begin() { return _items.begin(); }
-    auto end() { return _items.end(); }
-    auto begin() const { return _items.begin(); }
-    auto end() const { return _items.end(); }
 
 private:
     std::array<T, Core::MaxPlayers> _items{};

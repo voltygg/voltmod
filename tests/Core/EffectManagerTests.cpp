@@ -1,9 +1,11 @@
 #include <VoltMod/Core/EffectManager.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
+#include <VoltMod/Core/Slot.hpp>
 #include <doctest/doctest.h>
 
 using VoltMod::Core::EffectManager;
 using VoltMod::Core::EffectSpec;
+using VoltMod::Core::MaxPlayers;
 using VoltMod::Core::Scheduler;
 
 namespace
@@ -117,7 +119,7 @@ TEST_CASE("EffectManager: CancelPerLife keeps only SurvivesDeath effects")
     CHECK_EQ(cancels, 1);
 
     mgr.CancelPerLife(-1);  // out-of-range: no-op
-    mgr.CancelPerLife(EffectManager::MaxSlots);
+    mgr.CancelPerLife(MaxPlayers);
     CHECK(mgr.IsActive(3, Ghost));
 }
 
@@ -127,9 +129,9 @@ TEST_CASE("EffectManager: out-of-range slots are no-ops")
     EffectManager mgr(scheduler);
 
     mgr.Apply(-1, Disco, {.OnStop = [] {}});
-    mgr.Apply(EffectManager::MaxSlots, Disco, {.OnStop = [] {}});
+    mgr.Apply(MaxPlayers, Disco, {.OnStop = [] {}});
     CHECK(!mgr.IsActive(-1, Disco));
-    CHECK(!mgr.IsActive(EffectManager::MaxSlots, Disco));
+    CHECK(!mgr.IsActive(MaxPlayers, Disco));
     mgr.Cancel(-1, Disco);
-    mgr.CancelAllForSlot(EffectManager::MaxSlots);  // must not crash
+    mgr.CancelAllForSlot(MaxPlayers);  // must not crash
 }

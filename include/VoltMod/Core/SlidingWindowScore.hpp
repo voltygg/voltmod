@@ -10,8 +10,7 @@ namespace VoltMod::Core
  * "N incidents within the last M seconds" thresholds.
  *
  * Time is caller-supplied (seconds, any monotonic origin) so the class stays clock-free and
- * testable; pass the same time source to every call. Prefer @ref DecayingScore when evidence
- * should fade smoothly instead of expiring on a hard boundary.
+ * testable; pass the same time source to every call.
  */
 class SlidingWindowScore
 {

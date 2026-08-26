@@ -23,9 +23,6 @@ public:
     /** Run `callback` every `intervalMs` milliseconds, until the subscription is dropped. */
     [[nodiscard]] Subscription Repeat(int64_t intervalMs, std::function<void()> callback);
 
-    /** First fire after `delayMs`, then repeat every `intervalMs`, until the subscription is dropped. */
-    [[nodiscard]] Subscription DelayAndRepeat(int64_t delayMs, int64_t intervalMs, std::function<void()> callback);
-
     /** Run `callback` on the very next game frame. */
     uint64_t NextTick(std::function<void()> callback);
 
@@ -34,9 +31,6 @@ public:
 
     /** Cancel a timer by handle. Safe to call with an unknown id. */
     void Cancel(uint64_t id);
-
-    /** Cancel all pending timers. */
-    void CancelAll();
 
     /** Drive the scheduler (call from your `GameFrame` hook or via `VoltMod::OnGameFrame()`). */
     void OnGameFrame();

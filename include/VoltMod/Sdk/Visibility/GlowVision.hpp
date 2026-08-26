@@ -55,19 +55,17 @@ public:
     void Destroy();
 
 private:
-    static constexpr uint32_t InvalidHandle = 0xFFFFFFFFu;
-
     struct GlowPair
     {
-        uint32_t RelayHandle = InvalidHandle;
-        uint32_t GlowHandle = InvalidHandle;
+        uint32_t RelayHandle = InvalidEntityHandle;
+        uint32_t GlowHandle = InvalidEntityHandle;
         int RelayIndex = -1;
         int GlowIndex = -1;
         int Team = 0;
         std::string Model;
 
         // The relay handle is the single source of truth for liveness; DestroyPair resets it.
-        bool Active() const { return RelayHandle != InvalidHandle; }
+        bool Active() const { return RelayHandle != InvalidEntityHandle; }
     };
 
     void CreatePair(int slot, GlowPair& pair);
@@ -78,7 +76,7 @@ private:
     TransmitFilterService& _transmit;
     int _beneficiarySlot;
     Config _config;
-    std::array<GlowPair, MaxPlayers> _pairs{};
+    std::array<GlowPair, Core::MaxPlayers> _pairs{};
 };
 
 }  // namespace VoltMod::Sdk

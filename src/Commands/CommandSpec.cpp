@@ -3,9 +3,9 @@
 namespace VoltMod::Commands
 {
 
-ArgSpec Target(Players::TargetRules rules)
+ArgSpec Target()
 {
-    return {.Kind = ArgKind::Target, .Targeting = rules};
+    return {.Kind = ArgKind::Target};
 }
 
 ArgSpec TargetOrSteamId()

@@ -1,4 +1,3 @@
-#include <VoltMod/Core/StringUtils.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 
 namespace VoltMod::Players
@@ -91,21 +90,6 @@ Player* PlayerManager::GetPlayerBySlotIfSteamId(int slot, int64_t steamId)
     return (player && player->GetSteamID() == steamId) ? player : nullptr;
 }
 
-std::vector<Player*> PlayerManager::FindPlayersByName(const std::string& name)
-{
-    std::vector<Player*> results;
-
-    for (const auto& [slot, player] : _playersBySlot)
-    {
-        if (StringUtils::ContainsIgnoreCase(player->GetName(), name))
-        {
-            results.push_back(player.get());
-        }
-    }
-
-    return results;
-}
-
 std::vector<Player*> PlayerManager::GetAllPlayers()
 {
     std::vector<Player*> players;
@@ -117,11 +101,6 @@ std::vector<Player*> PlayerManager::GetAllPlayers()
     }
 
     return players;
-}
-
-size_t PlayerManager::GetPlayerCount() const
-{
-    return _playersBySlot.size();
 }
 
 void PlayerManager::Clear()

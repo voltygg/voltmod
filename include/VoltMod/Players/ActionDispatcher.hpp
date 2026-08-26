@@ -77,10 +77,10 @@ public:
     void Run(int callerSlot, int targetSlot, const Action& action) const;
     void Run(int callerSlot, int targetSlot, int param, const ParamAction& action) const;
 
-    /** Invoke the policy broadcast sink directly (for bespoke flows like multi-target actions). */
+private:
+    /** Invoke the policy broadcast sink. */
     void Broadcast(const ActionContext& ctx, const std::string& translationKey) const;
 
-private:
     Runtime& _runtime;
 };
 

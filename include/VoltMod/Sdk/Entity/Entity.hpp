@@ -41,7 +41,8 @@ constexpr uint32_t FL_GODMODE = 16384;
 constexpr uint32_t FL_NOTARGET = 32768;
 /** @} */
 
-inline constexpr int MaxPlayers = Core::MaxPlayers;
+/** Sentinel EHandle value for an unset/cleared handle (INVALID_EHANDLE_INDEX). */
+inline constexpr uint32_t InvalidEntityHandle = 0xFFFFFFFFu;
 
 class GameData;
 struct GameInterfaces;

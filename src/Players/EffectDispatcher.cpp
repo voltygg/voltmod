@@ -1,5 +1,6 @@
 #include <VoltMod/Core/EffectManager.hpp>
 #include <VoltMod/Players/EffectDispatcher.hpp>
+#include <VoltMod/Runtime.hpp>
 #include <utility>
 
 namespace VoltMod::Players
@@ -30,13 +31,18 @@ void EffectDispatcher::ClearById(int adminSlot, int targetSlot, const std::strin
 
     _effects.Cancel(targetSlot, id);
     if (!offKey.empty())
-        _actions.Broadcast(ctx, offKey);
+        BroadcastKey(ctx, offKey);
 }
 
 void EffectDispatcher::BroadcastKey(const ActionContext& ctx, const std::string& key) const
 {
-    if (!key.empty())
-        _actions.Broadcast(ctx, key);
+    if (key.empty())
+        return;
+
+    auto& policy = _runtime.Policy;
+    if (!policy.Broadcast || !ctx.Caller)
+        return;
+    policy.Broadcast(*ctx.Caller, ctx.Target, key);
 }
 
 void EffectDispatcher::Apply(int adminSlot, int targetSlot, const EffectDescriptor& effect) const
