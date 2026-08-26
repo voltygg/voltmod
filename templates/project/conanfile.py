@@ -1,4 +1,4 @@
-# Conan rebinds class attributes at runtime; ignore the Pyright false positives.
+# Conan replaces these class attributes at runtime, causing Pyright false positives.
 # pyright: reportAttributeAccessIssue=false
 
 from conan import ConanFile
@@ -15,12 +15,12 @@ class ProjectConan(ConanFile):
         "*:shared": False,
         "openssl/*:no_apps": True,
         "openssl/*:no_fips": True,
-        # Postgres support: flip to True (pulls libpqxx transitively).
+        # Set to True to enable PostgreSQL and pull in libpqxx.
         "voltmod/*:with_postgres": False,
     }
 
     def build_requirements(self):
-        # For voltmod_add_tests targets; drop if the project has no unit tests.
+        # voltmod_add_tests uses doctest. Remove this if the project has no unit tests.
         self.test_requires("doctest/2.5.2")
 
     def generate(self):

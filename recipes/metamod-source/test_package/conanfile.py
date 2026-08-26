@@ -18,6 +18,5 @@ class MetamodSourceTestConan(ConanFile):
         cmake.build()
 
     def test(self):
-        # Compilation is the test. (ISmmPlugin.h also needs hl2sdk headers;
-        # voltmod's test_package covers that combination.)
+        # Compilation is the test. VoltMod's test package adds the required HL2SDK headers.
         pass

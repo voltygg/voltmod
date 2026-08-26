@@ -6,9 +6,11 @@ from conan.tools.cmake import CMake, cmake_layout
 
 
 class VoltModTestConan(ConanFile):
-    """Builds a hello plugin through voltmod_add_plugin - the whole consumer
-    contract: SDK headers via transitive includes, prebuilt SDK libs, the
-    per-plugin convar/memoverride TUs, the PCH, the .vdf render."""
+    """Build a hello plugin through voltmod_add_plugin to verify the consumer contract.
+
+    This covers transitive SDK headers and libraries, per-plugin translation units,
+    the precompiled header, and VDF generation.
+    """
 
     settings = "os", "compiler", "build_type", "arch"
     generators = "CMakeDeps", "CMakeToolchain"

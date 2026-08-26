@@ -10,14 +10,12 @@ from conan.tools.scm import Git
 
 
 class Hl2SdkCs2Conan(ConanFile):
-    """AlliedModders HL2SDK, CS2 branch, trimmed for voltmod consumption.
+    """Package the AlliedModders CS2 HL2SDK for VoltMod.
 
-    The tree mirrors the upstream layout. Ships headers, the prebuilt Valve libs, the
-    .proto files and the sources generated from them, and the TUs consumers compile
-    themselves - which cmake/hl2sdk-sources.cmake attaches by function, so no consumer
-    reproduces this layout.
-
-    conandata.yml is the sole source of truth for the version and the commit it pins.
+    The package preserves the upstream layout and includes headers, prebuilt Valve
+    libraries, protobuf inputs and outputs, and consumer-compiled translation units.
+    `cmake/hl2sdk-sources.cmake` attaches those units. `conandata.yml` pins the
+    version and commit.
     """
 
     name = "hl2sdk-cs2"
@@ -26,15 +24,15 @@ class Hl2SdkCs2Conan(ConanFile):
     license = "LicenseRef-Valve-Source-SDK"
     homepage = "https://github.com/alliedmodders/hl2sdk/tree/cs2"
     package_type = "static-library"
-    # No compiler/build_type: the prebuilt Valve libs have neither, and generated protobuf
-    # *source* is identical wherever protoc runs.
+    # Valve libraries have no compiler or build type. Generated protobuf sources are
+    # identical across toolchains.
     settings = "os", "arch"
     exports = "cmake/hl2sdk-sources.cmake"
 
     HEADER_TREES = ["public", "game/shared", "game/server", "common"]
     PROTOBUF_SRC = "thirdparty/protobuf-3.21.8/src"
-    # Bodies compiled from source: six into the voltmod lib, plus convar.cpp and
-    # memoverride.cpp per plugin (own ConVar state, global operator new/delete).
+    # VoltMod compiles six files. Each plugin compiles convar.cpp for its own ConVar
+    # state and memoverride.cpp for the global allocation operators.
     SOURCE_ONLY = [
         "entity2/entityidentity.cpp",
         "entity2/entitykeyvalues.cpp",
@@ -46,14 +44,12 @@ class Hl2SdkCs2Conan(ConanFile):
         "public/tier0/memoverride.cpp",
     ]
 
-    # Each batch generates `names` from `src` into `out`, resolving imports along `paths`.
     PROTO_BATCHES = [
         {
             "src": "common",
             "out": "public",
             "paths": ["common", PROTOBUF_SRC],
-            # netmessages carries the engine<->client control messages; source2_steam_stats
-            # is one of its imports, so it comes along.
+            # netmessages imports source2_steam_stats.
             "names": [
                 "network_connection",
                 "networkbasetypes",
@@ -70,8 +66,7 @@ class Hl2SdkCs2Conan(ConanFile):
             "names": ["usermessages", "usercmd", "gameevents"],
         },
         {
-            # game/shared/cs leads so cs_usercmd.proto resolves flat, putting its header
-            # beside the usercmd.pb.h it includes.
+            # Resolve cs_usercmd.proto flat so its header sits beside usercmd.pb.h.
             "src": "game/shared/cs",
             "out": "game-shared",
             "paths": ["game/shared/cs", "game/shared", "common", PROTOBUF_SRC],
@@ -101,12 +96,11 @@ class Hl2SdkCs2Conan(ConanFile):
         if not os.path.isfile(path):
             raise ConanInvalidConfiguration(f"the SDK checkout has no protoc at {relative}")
         if self.settings.os != "Windows":
-            os.chmod(path, 0o755)  # git does not always preserve the bit
+            os.chmod(path, 0o755)  # Git may not preserve the executable bit.
         return path
 
     def build(self):
-        # Here rather than in every consumer's configure: the output is a pure function of
-        # the .proto files and this protoc, both pinned by this package.
+        # Generate once here because the package pins both protoc and its inputs.
         protoc = self._protoc()
         for batch in self.PROTO_BATCHES:
             out_dir = os.path.join(self.build_folder, "generated", batch["out"])
@@ -127,14 +121,14 @@ class Hl2SdkCs2Conan(ConanFile):
         for rel in self.SOURCE_ONLY:
             copy(self, os.path.basename(rel), os.path.join(src, os.path.dirname(rel)),
                  os.path.join(dst, os.path.dirname(rel)))
-        # Generated .pb.h/.pb.cc. protoc itself is not shipped - only build() needs it.
+        # Package the generated sources, but not the build-only protoc executable.
         copy(self, "*", os.path.join(self.build_folder, "generated"),
              os.path.join(dst, "generated"))
         if self.settings.os == "Linux":
             lib_dir = os.path.join(dst, "lib/linux64")
             copy(self, "*", os.path.join(src, "lib/linux64"), lib_dir)
-            # Valve omits the lib prefix and CMake's find_library only searches lib* on
-            # Linux. Add the conventional spelling; the originals stay for path linking.
+            # Add the lib prefix required by CMake's Linux library search. Keep the
+            # originals for path-based linking.
             for stem in ("mathlib", "interfaces"):
                 plain = os.path.join(lib_dir, f"{stem}.a")
                 if os.path.isfile(plain):
@@ -147,7 +141,7 @@ class Hl2SdkCs2Conan(ConanFile):
         copy(self, "LICENSE*", src, os.path.join(dst, "licenses"))
 
     def package_info(self):
-        # The only definition of the SDK's usage requirements; nothing mirrors it.
+        # Keep all SDK usage requirements in this package.
         self.cpp_info.set_property("cmake_file_name", "hl2sdk-cs2")
         self.cpp_info.set_property("cmake_target_name", "VoltMod::HL2SDK")
         self.cpp_info.includedirs = [

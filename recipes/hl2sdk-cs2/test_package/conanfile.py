@@ -18,5 +18,5 @@ class Hl2SdkCs2TestConan(ConanFile):
         cmake.build()
 
     def test(self):
-        # Compiling is the test; the full link runs in voltmod's test_package.
+        # Compilation is the test. VoltMod's test package performs the full link.
         pass

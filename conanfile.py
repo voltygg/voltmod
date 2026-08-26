@@ -1,9 +1,9 @@
-# Conan rebinds class attributes at runtime; ignore the Pyright false positives.
+# Conan replaces these class attributes at runtime, causing Pyright false positives.
 # pyright: reportAttributeAccessIssue=false, reportCallIssue=false
 
 import os
 
-# Sibling conan/ profiles dir shadows the conan package for mypy's file resolution.
+# The sibling conan/ directory shadows the package during mypy resolution.
 from conan import ConanFile  # type: ignore[attr-defined]
 from conan.errors import ConanInvalidConfiguration
 from conan.tools.build import check_min_cppstd
@@ -11,13 +11,11 @@ from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
 
 
 class VoltModConan(ConanFile):
-    """voltmod: this repo's consumer conanfile AND its package recipe.
+    """Serve as both the repository's consumer recipe and VoltMod's package recipe.
 
-    Dependencies resolve identically either way - the SDKs are always Conan packages.
-    The two differ only in build layout: a source checkout keeps the flat
-    --output-folder the CMake presets expect, while `conan create` uses cmake_layout
-    and ships the headers, cmake helpers (voltmod_add_plugin as a CMakeDeps build module),
-    gamedata and the plugin template.
+    A checkout uses the output paths expected by the CMake presets. `conan create`
+    uses `cmake_layout` and packages the headers, CMake helpers, gamedata, and plugin
+    template. Both modes resolve the same dependencies.
     """
 
     name = "voltmod"
@@ -31,8 +29,7 @@ class VoltModConan(ConanFile):
 
     options = {"with_postgres": [True, False]}
 
-    # cpr stays header-private; nlohmann is public surface (Api.hpp -> JsonConfig),
-    # so it is declared in requirements() with transitive_headers.
+    # cpr is header-private. nlohmann_json is public through Api.hpp.
     requires = ("cpr/1.11.2",)
 
     default_options = {
@@ -57,14 +54,12 @@ class VoltModConan(ConanFile):
         return os.path.isfile(os.path.join(self.recipe_folder, "CMakePresets.json"))
 
     def requirements(self):
-        # transitive_headers: plugin TUs include SDK/json headers through Api.hpp;
-        # transitive_libs: the plugin MODULE links the prebuilt SDK libs.
+        # Plugins include SDK and JSON headers through Api.hpp and link the SDK libraries.
         self.requires("nlohmann_json/3.11.3", transitive_headers=True)
-        # Ranges, so an SDK bump never edits this recipe; conan.lock pins the build.
+        # The lockfile pins builds while the range avoids recipe edits for SDK updates.
         self.requires("hl2sdk-cs2/[>=2026 <2028]",
                       transitive_headers=True, transitive_libs=True)
-        # Header-only, and it moves monthly - minor_mode keeps a bump from
-        # invalidating every published voltmod binary.
+        # minor_mode lets compatible Metamod updates reuse VoltMod binaries.
         self.requires("metamod-source/[>=2.0 <3]",
                       transitive_headers=True, package_id_mode="minor_mode")
         if self.options.with_postgres:
@@ -92,16 +87,12 @@ class VoltModConan(ConanFile):
         return f"{toolchain}-{str(self.settings.build_type).lower()}"
 
     def layout(self):
-        # A checkout keeps the flat --output-folder layout the CMake presets point at;
-        # cmake_layout would derive a folder from build_type alone, which does not map onto
-        # preset names that encode a toolchain. Spelling out where that build puts things is
-        # also what makes `conan editable add` work: an editable consumer resolves the framework
-        # through cpp.build/cpp.source rather than through a package folder.
+        # Checkouts use preset paths instead of cmake_layout's build-type path. The
+        # source and build mappings also expose editable packages to consumers.
         if self._source_checkout():
             self.folders.build = f"build/{self._preset()}"
             self.folders.generators = f"build/{self._preset()}/generators"
-            # Per component, not just the top level: CMakeDeps reads the component
-            # dirs, and those default to the package layout even in editable mode.
+            # CMakeDeps reads component directories separately from the top-level ones.
             for component in ("runtime", "database", "voltmod"):
                 self.cpp.build.components[component].libdirs = ["."]
                 self.cpp.source.components[component].includedirs = ["include"]
@@ -119,7 +110,7 @@ class VoltModConan(ConanFile):
         toolchain.user_presets_path = False
         toolchain.variables["CMAKE_POSITION_INDEPENDENT_CODE"] = True
         toolchain.variables["VOLTMOD_ENABLE_POSTGRES"] = bool(self.options.with_postgres)
-        # VOLTMOD_HL2SDK_DIR is not set here - hl2sdk-cs2's own build module owns it.
+        # hl2sdk-cs2's build module owns VOLTMOD_HL2SDK_DIR.
         if not self._source_checkout():
             toolchain.variables["BUILD_TESTING"] = False
         toolchain.generate()
@@ -130,7 +121,6 @@ class VoltModConan(ConanFile):
         cmake.build()
 
     def package(self):
-        # CMake owns the output names and the install layout; this just runs it.
         cmake = CMake(self)
         cmake.install()
 
@@ -138,17 +128,14 @@ class VoltModConan(ConanFile):
         self.cpp_info.set_property("cmake_file_name", "voltmod")
         self.cpp_info.set_property("cmake_target_name", "VoltMod::VoltMod")
         self.cpp_info.builddirs = ["cmake"]
-        # voltmod_add_plugin / voltmod_add_tests reach consumers as CMakeDeps build
-        # modules; VoltModPlugin.cmake pulls VoltModCommon itself.
+        # Export the plugin and test helpers as CMakeDeps build modules.
         self.cpp_info.set_property("cmake_build_modules", [
             os.path.join("cmake", "VoltModPlugin.cmake"),
             os.path.join("cmake", "VoltModTests.cmake"),
         ])
 
-        # Two components, matching the two libraries CMake builds. The source modules
-        # are an architecture, not a packaging unit: nothing ever selected them
-        # individually, so declaring them here only duplicated the CMake dependency
-        # graph in a second place that could drift from it.
+        # Components match the two CMake libraries. Source modules are internal
+        # architecture, not packaging units.
         runtime = self.cpp_info.components["runtime"]
         runtime.set_property("cmake_target_name", "VoltMod::Runtime")
         runtime.libs = ["voltmod-runtime"]
@@ -168,10 +155,10 @@ class VoltModConan(ConanFile):
             db.libs = ["voltmod-database"]
             db.includedirs = ["include"]
             db.requires = ["runtime", "libpqxx::libpqxx"]
-            # Consumer feature checks and Database/Api.hpp's #error guard read this.
+            # Consumer feature checks and Database/Api.hpp's guard read this.
             db.defines = ["VOLTMOD_ENABLE_POSTGRES=1"]
 
-        # What voltmod_add_plugin links unless the plugin asks for a feature.
+        # voltmod_add_plugin links this component by default.
         umbrella = self.cpp_info.components["voltmod"]
         umbrella.set_property("cmake_target_name", "VoltMod::VoltMod")
         umbrella.requires = ["runtime"] + (["database"] if self.options.with_postgres else [])
