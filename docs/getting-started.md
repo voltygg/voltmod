@@ -208,7 +208,7 @@ Then request the feature:
 voltmod_add_plugin(my-plugin VERSION 1.0.0 FEATURES DATABASE)
 ```
 
-For profiles, lockfiles, editable packages, and existing CMake projects, see
+For profiles, lockfiles, local package development, and existing CMake projects, see
 @ref conan_guide.
 
 ## Api headers

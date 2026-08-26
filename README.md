@@ -142,7 +142,7 @@ voltmod_add_plugin(my-plugin VERSION 1.0.0 FEATURES DATABASE)
 ```
 
 See [Consuming VoltMod with Conan](docs/consuming-via-conan.md) for profiles,
-editable packages, remotes, and lockfiles.
+local package development, remotes, and lockfiles.
 
 ## Compare frameworks
 

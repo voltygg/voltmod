@@ -11,12 +11,12 @@ from typing import NoReturn
 
 WINDOWS = sys.platform == "win32"
 CONAN_REMOTE = "volty"
-# Linux CI consumes published SDK binaries; Windows builds them locally when missing.
-SDK_BUILD_EXCLUSIONS = ()
-if not WINDOWS:
-    SDK_BUILD_EXCLUSIONS = ("--build=!hl2sdk-cs2/*", "--build=!metamod-source/*")
+# Linux CI must consume the published SDK binaries.
+SDK_BUILD_EXCLUSIONS = (
+    ("--build=!hl2sdk-cs2/*", "--build=!metamod-source/*") if not WINDOWS else ()
+)
 CPP_EXTS = (".cpp", ".hpp")
-# Under the 32767-character Windows cap, with room for the tool path and flags.
+# Leave room below Windows' 32767-character command-line limit.
 MAX_COMMAND_LINE = 24000
 
 
@@ -93,7 +93,7 @@ def _chunk_by_length(files: list[str], budget: int) -> list[list[str]]:
     batches: list[list[str]] = [[]]
     used = 0
     for f in files:
-        cost = len(f) + 3  # quotes and a separating space
+        cost = len(f) + 3  # quotes and separator
         if batches[-1] and used + cost > budget:
             batches.append([])
             used = 0
@@ -114,29 +114,26 @@ def format_sources(repo_root: Path, dirs: list[str]) -> None:
     if not files:
         print("No C++ sources found.")
         return
-    # Stay below Windows' command-line limit on every platform.
     for batch in _chunk_by_length(files, MAX_COMMAND_LINE):
         run_tool("clang-format", "-i", *batch)
     print(f"clang-format formatted {len(files)} file(s).")
 
 
-def _tool_version(tool: str, prefix: str) -> tuple[int, ...]:
-    """Read `<tool> --version` and parse the dotted number after `prefix`."""
+def _tool_version(tool: str) -> tuple[int, ...]:
+    """Read the first dotted version from `<tool> --version`."""
     out = run_tool(tool, "--version", capture=True).stdout
-    for token in out.replace(prefix, " ").split():
-        if token[:1].isdigit():
-            return tuple(int(p) for p in token.split(".") if p.isdigit())
-    return ()
+    match = re.search(r"\b\d+(?:\.\d+)+", out)
+    return tuple(map(int, match.group().split("."))) if match else ()
 
 
 def require_build_tools() -> None:
     """Verify Ninja is present and CMake/Conan meet the project minimums."""
     run_tool("ninja", "--version")
-    for tool, prefix, minimum in (
-        ("cmake", "cmake version", (4, 3, 4)),
-        ("conan", "Conan version", (2, 29, 1)),
+    for tool, minimum in (
+        ("cmake", (4, 3, 4)),
+        ("conan", (2, 29, 1)),
     ):
-        actual = _tool_version(tool, prefix)
+        actual = _tool_version(tool)
         if actual < minimum:
             want = ".".join(map(str, minimum))
             got = ".".join(map(str, actual)) or "unknown"
@@ -167,7 +164,7 @@ def msvc_version() -> str:
     ).stdout.splitlines()
     if not found:
         die("no cl.exe found")
-    # cl with no arguments prints its banner on stderr, then a usage summary.
+    # cl prints its version to stderr.
     banner = subprocess.run([sorted(found)[-1]], text=True, capture_output=True).stderr
     match = re.search(r"Version (\d+)\.(\d+)", banner)
     if not match:
@@ -203,8 +200,7 @@ def ensure_msvc_env() -> None:
         die("vcvars64.bat not found; install the VC++ x64 toolset.")
 
     print(f"==> Loading MSVC environment ({vs_path})")
-    # Pass as one string, not a list: list2cmdline would mangle the quotes around
-    # the space-containing vcvars path. `>nul` drops the banner, leaving `set` output.
+    # A string preserves the quoted vcvars path; list2cmdline does not.
     out = subprocess.run(
         f'cmd /c "{vcvars}" >nul && set',
         check=True,
@@ -220,7 +216,7 @@ def ensure_msvc_env() -> None:
         die("cl still not on PATH after vcvars.")
 
 
-# Settings required to cache force-included precompiled headers.
+# Make force-included precompiled headers cacheable.
 CCACHE_SETTINGS = {
     "CCACHE_SLOPPINESS": "pch_defines,time_macros,locale,include_file_ctime,include_file_mtime",
     "CCACHE_DEPEND": "1",
@@ -242,92 +238,15 @@ def _ccache(*args: str) -> None:
     subprocess.run(["ccache", *args], check=False)
 
 
-def _editable_voltmod_path() -> Path | None:
-    """Directory backing a Conan-editable ``voltmod``, or None when it is not editable."""
-    listing = run_tool("conan", "editable", "list", "--format=json", capture=True, check=False)
-    if listing.returncode != 0:
-        return None
-    try:
-        entries = json.loads(listing.stdout)
-    except json.JSONDecodeError:
-        return None
-    for name, info in entries.items():
-        if name.split("/", 1)[0] == "voltmod":
-            return Path(info["path"]).resolve().parent
-    return None
-
-
-def _newest_mtime(paths: list[Path]) -> float | None:
-    """The newest modification time among `paths` (files only), or None if none exist."""
-    return max((p.stat().st_mtime for p in paths if p.is_file()), default=None)
-
-
-def editable_archive_path(editable_root: Path, preset: str) -> Path:
-    """Where the editable's built runtime archive should be for `preset`."""
-    name = "voltmod-runtime.lib" if preset.startswith("windows-") else "libvoltmod-runtime.a"
-    return editable_root / "build" / preset / name
-
-
-def stale_editable_reason(
-    editable_root: Path, preset: str, sources_mtime: float | None, archive_mtime: float | None
-) -> str | None:
-    """Pure check: None when the editable's archive is fresh enough to use, else the
-    error message to show. `sources_mtime` is the newest mtime under the editable's
-    `include/` and `src/` (None if neither has files); `archive_mtime` is its built
-    runtime archive's mtime (None if it does not exist yet). Takes already-computed
-    mtimes, not paths, so it needs no filesystem to test.
-    """
-    if archive_mtime is None:
-        problem = f"has no build/{preset} archive yet"
-    elif sources_mtime is not None and sources_mtime > archive_mtime:
-        problem = f"has sources newer than its build/{preset} archive"
-    else:
-        return None
-    return (
-        f"editable voltmod at {editable_root} {problem}; build it first "
-        f'(uv run poe build {preset} -o "voltmod/*:with_postgres=True")'
-    )
-
-
-def check_editable_freshness(repo_root: Path, preset: str, *, allow_stale: bool = False) -> None:
-    """Fail early when a Conan-editable voltmod's sources outrun its build, or the build is
-    missing outright - a stale editable silently links whatever was last compiled, which is
-    how a consumer's build can pass while shipping framework code the editable no longer has.
-    A no-op when voltmod is not editable, or when `repo_root` is the editable itself (its own
-    build command is what produces the archive being checked).
-    """
-    editable_root = _editable_voltmod_path()
-    if editable_root is None or editable_root == repo_root.resolve():
-        return
-
-    sources_mtime = _newest_mtime(
-        [p for sub in ("include", "src") for p in (editable_root / sub).rglob("*")]
-    )
-    archive = editable_archive_path(editable_root, preset)
-    archive_mtime = archive.stat().st_mtime if archive.is_file() else None
-
-    reason = stale_editable_reason(editable_root, preset, sources_mtime, archive_mtime)
-    if reason is None:
-        return
-    if allow_stale:
-        # Flush now: subprocess.run() below writes straight to the inherited console, which
-        # would otherwise overtake this buffered line and print it out of order at exit.
-        print(f"WARNING: {reason} (--allow-stale-editable set; continuing anyway)", flush=True)
-        return
-    die(reason)
-
-
 def build(
     repo_root: Path,
     preset: str,
     *,
     run_tests: bool = True,
     options: list[str] | None = None,
-    allow_stale_editable: bool = False,
 ) -> None:
     """Run Conan install and the selected CMake preset."""
     require_build_tools()
-    check_editable_freshness(repo_root, preset, allow_stale=allow_stale_editable)
     ccache = _prepare_ccache(repo_root)
     ensure_remote()
     build_type = "Debug" if "debug" in preset else "Release"
@@ -389,8 +308,7 @@ def test(repo_root: Path, preset: str, *, filter_: str = "") -> None:
     """Bring the build up to date, then run its CTest preset."""
     if not (repo_root / "build" / preset).is_dir():
         die(f"no build at build/{preset}; run `voltmod build {preset}` first")
-    # Recompile first: CTest runs whatever binaries are already on disk, and a
-    # stale pass is worse than a slow one. Incremental, so it is a no-op in CI.
+    # Never run stale test binaries.
     ensure_msvc_env()
     run_tool("cmake", "--build", "--preset", preset)
     run_tool("ctest", "--preset", preset, *(["-R", filter_] if filter_ else []))

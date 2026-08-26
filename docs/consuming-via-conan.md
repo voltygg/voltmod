@@ -135,24 +135,29 @@ Local escape hatch if the remote is unreachable:
 
 ```sh
 voltmod package build sdk    # conan create both recipes
-voltmod package build framework    # ... then the framework against them
+voltmod package build kit          # ... then the framework against them
 ```
 
 ## Working on voltmod and a plugin together
 
-Use an editable Conan requirement while both repositories are under development:
+Remove any old editable registration once with
+`conan editable remove voltmod`.
+
+Create the changed framework in the local Conan cache:
 
 ```sh
-conan editable add <path-to-voltmod>
-uv run poe build          # in the plugin repo; picks up framework edits directly
-conan editable remove voltmod
+cd <path-to-voltmod>
+uv run voltmod package build kit
 ```
 
-`voltmod build` in the plugin repo checks the editable's own build before linking
-against it: if `<path-to-voltmod>/include` or `<path-to-voltmod>/src` has a file
-newer than `<path-to-voltmod>/build/<preset>/voltmod-runtime.lib` (the `.a` on
-Linux), or that archive does not exist yet, the build fails with a message
-naming the framework build to run first, rather than silently linking a stale
-archive against your edits. Build the framework for the same preset
-(`uv run poe build <preset> -o "voltmod/*:with_postgres=True"`) and re-run. Pass
-`--allow-stale-editable` to bypass the check for one build.
+Then refresh the plugin repository's lockfile and build it:
+
+```sh
+conan lock create . --profile:all <path-to-voltmod>/conan/profiles/windows-msvc.txt \
+  -s build_type=Release -s compiler.runtime_type=Release \
+  --lockfile=conan.lock --lockfile-out=conan.lock --update="voltmod/*" --no-remote
+uv run poe build
+```
+
+Use the same profile, build type, and options as the plugin build. Repeat both
+commands after framework changes.

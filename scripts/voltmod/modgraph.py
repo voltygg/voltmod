@@ -1,10 +1,12 @@
-"""Enforce the declared include graph and the source conventions VoltMod relies on."""
+"""Check VoltMod module boundaries and source conventions."""
 
 import re
-from collections import defaultdict
 from pathlib import Path
 
-# Transitive edges are explicit so this also documents the layering.
+SOURCE_DIRS = ("include/VoltMod", "src")
+SOURCE_SUFFIXES = {".hpp", ".cpp"}
+
+# Transitive dependencies are explicit because this map defines the layering.
 ALLOWED: dict[str, set[str]] = {
     "Core": set(),
     "Engine": {"Core"},
@@ -12,45 +14,49 @@ ALLOWED: dict[str, set[str]] = {
     "Events": {"Core", "Engine", "Entities"},
     "Messaging": {"Core", "Engine", "Entities", "Events"},
     "Players": {"Core", "Engine", "Entities"},
-    # Messaging: HookServices (Hooks/Hooks.hpp) owns Vote, whose header lives in Messaging/ -
-    # Runtime's grouping puts the game's own vote panel beside the hooks that are dormant the
-    # same way, not beside Messages/CenterHtml.
+    # Hooks owns the vote hook; its panel type lives in Messaging.
     "Hooks": {"Core", "Engine", "Entities", "Events", "Players", "Unsafe", "Messaging"},
     "Commands": {"Core", "Engine", "Entities", "Players", "Messaging"},
     "Menu": {"Core", "Engine", "Entities", "Players", "Messaging", "Hooks"},
     "Http": {"Core"},
     "Database": {"Core"},
     "Unsafe": {"Core", "Engine"},
-    "App": {"Core", "Engine", "Entities", "Events", "Messaging", "Players", "Hooks",
-            "Commands", "Menu", "Http", "Database", "Unsafe"},
+    "App": {
+        "Core",
+        "Engine",
+        "Entities",
+        "Events",
+        "Messaging",
+        "Players",
+        "Hooks",
+        "Commands",
+        "Menu",
+        "Http",
+        "Database",
+        "Unsafe",
+    },
 }
 
 INCLUDE = re.compile(r'#\s*include\s*[<"]VoltMod/([A-Za-z0-9_]+)/([^>"]+)[>"]')
+# Module Api.hpp files aggregate public types; their includes are not dependency edges.
+AGGREGATE_HEADER = re.compile(r"^include/VoltMod/[A-Za-z0-9_]+/Api\.hpp$")
 
-# A module's own Api.hpp (Entities/Api.hpp, Hooks/Api.hpp, ...) is a deliberate cross-module
-# aggregate - Hooks/Api.hpp, for instance, gathers the Events and Messaging types a hook
-# handler needs alongside the hooks themselves. Its includes document that module's public
-# surface, not a source-level dependency, so they are not edges and are exempt from the
-# layering check below.
-AGGREGATE_HEADER = re.compile(r'^include/VoltMod/[A-Za-z0-9_]+/Api\.hpp$')
-
-# Root headers have no module directory and need a separate check.
 ROOT_HEADERS = re.compile(r'#\s*include\s*[<"]VoltMod/(Runtime|Api)\.hpp[>"]')
+ROOT_EXEMPT = {"App"}
 
-# App is the composition root, so its headers may include it.
-ROOT_HEADER_EXEMPT = {"App"}
-
-# These modules sit below the composition root; a header here reaching into Menu (the
-# opt-in UI module) or App (which may reach Runtime) would make every consumer of that
-# layer pull in menu building, or the runtime, whether it wants to or not.
-NO_MENU_OR_APP = {"Core", "Engine", "Entities", "Events", "Messaging", "Players", "Hooks",
-                  "Commands"}
+# These layers must not pull in the opt-in Menu surface or the composition-root App.
+LOWER_MODULES = {
+    "Core",
+    "Engine",
+    "Entities",
+    "Events",
+    "Messaging",
+    "Players",
+    "Hooks",
+    "Commands",
+}
 CROSS_MODULE_HEADER = re.compile(r'#\s*include\s*[<"]VoltMod/(Menu|App)/')
 
-# nlohmann is a real dependency (parsing, (de)serializing), declared explicitly by the few
-# files that own it, not picked up incidentally by including one of them. Http/RestJsonApi and
-# Engine/GameDataFile are listed as header+source pairs; everything else routes through
-# <VoltMod/Core/Json.hpp>, which is itself allowed to name nlohmann.
 NLOHMANN_INCLUDE = re.compile(r'#\s*include\s*[<"]nlohmann/')
 NLOHMANN_ALLOWED = {
     "include/VoltMod/Core/Json.hpp",
@@ -63,141 +69,93 @@ NLOHMANN_ALLOWED = {
     "src/Engine/GameDataFile.cpp",
 }
 
-# Core is the engine-free layer: nothing under it may reach the SDK or Metamod.
-ENGINE_FREE = ("include/VoltMod/Core", "src/Core")
+CORE_PATHS = ("include/VoltMod/Core/", "src/Core/")
 ENGINE_INCLUDE = re.compile(
-    r'#\s*include\s*[<"](ISmmPlugin\.h|tier0/|eiface\.h|entity2/|schemasystem/|icvar\.h|Color\.h)')
+    r'#\s*include\s*[<"](ISmmPlugin\.h|tier0/|eiface\.h|entity2/|schemasystem/|icvar\.h|Color\.h)'
+)
 
-# Forward declarations live in one header per module graph, named `*Types.hpp`, which says why
-# each name is there: <VoltMod/Engine/EngineTypes.hpp> for the framework. A class pair that owns
-# one another (Runtime and the managers it holds by value) cannot both include the other's
-# header, and that is the only reason a name belongs in one. Every other header includes what it
-# names.
-FORWARD_DECL_HOME = re.compile(r'(^|/)\w*Types\.hpp$')
-FORWARD_DECL = re.compile(r'^(?:class|struct)\s+(\w+);')
-
-# A header that declares a name it goes on to define is ordering its own contents, not standing in
-# for an include: a primary template declared before its partial specializations, or a pair inside
-# one header where each needs the other's name.
-DEFINITION = r'^(?:class|struct)\s+{}\b\s*(?!;)'
-
-# A file-local helper is a `static` declaration, not an anonymous namespace: `static` says
-# "file-local" on the declaration itself, where a reader of the line can see it.
-ANON_NAMESPACE = re.compile(r'^[ \t]*namespace[ \t]*(\{[ \t]*)?$')
-
-# Using-directives make an unqualified name's origin invisible. Targeted using-declarations
-# (`using VoltMod::Player;`) in a .cpp are fine and are not matched here.
-USING_DIRECTIVE = re.compile(r'^[ \t]*using\s+namespace\b')
-
-# Modules whose sources may name the runtime. App composes it; everything else is injected with
-# the sibling services it actually uses.
-ROOT_SOURCE_EXEMPT = {"App"}
+# Forward declarations belong in the one documented *Types.hpp file.
+FORWARD_DECL_HOME = re.compile(r"(^|/)\w*Types\.hpp$")
+FORWARD_DECL = re.compile(r"^(?:class|struct)\s+(\w+);")
+DEFINITION = r"^(?:class|struct)\s+{}\b\s*(?!;)"
+ANON_NAMESPACE = re.compile(r"^[ \t]*namespace[ \t]*(\{[ \t]*)?$")
+USING_DIRECTIVE = re.compile(r"^[ \t]*using\s+namespace\b")
 
 
-def scan(root: Path):
-    """Return (modules, edges, witness): who includes whom, and one include proving it."""
-    modules = sorted(p.name for p in (root / "include/VoltMod").iterdir() if p.is_dir())
-    edges: defaultdict[str, set[str]] = defaultdict(set)
-    witness: dict[tuple[str, str], str] = {}
-
-    for base in ("include/VoltMod", "src"):
-        for path in (root / base).rglob("*"):
-            if path.suffix not in (".hpp", ".cpp"):
+def source_files(root: Path, bases):
+    """Yield relative path, module owner, and text for C++ sources below bases."""
+    for base in bases:
+        directory = root / base
+        if not directory.is_dir():
+            continue
+        for path in sorted(directory.rglob("*")):
+            if path.suffix not in SOURCE_SUFFIXES:
                 continue
-            parts = path.relative_to(root / base).parts
+            parts = path.relative_to(directory).parts
             owner = parts[0] if len(parts) > 1 else None
-            if owner not in modules:
-                continue
-            rel = path.relative_to(root).as_posix()
-            if AGGREGATE_HEADER.match(rel):
-                continue
-            for dep, header in INCLUDE.findall(path.read_text(encoding="utf-8", errors="replace")):
-                if dep in modules and dep != owner:
-                    edges[owner].add(dep)
-                    witness.setdefault((owner, dep), f"{rel} -> VoltMod/{dep}/{header}")
-    return modules, edges, witness
+            yield (
+                path.relative_to(root).as_posix(),
+                owner,
+                path.read_text(encoding="utf-8", errors="replace"),
+            )
 
 
-def root_in_headers(root: Path, modules):
-    """Headers below the composition root that include VoltMod/Runtime.hpp or Api.hpp."""
-    found = []
-    for path in (root / "include/VoltMod").rglob("*.hpp"):
-        parts = path.relative_to(root / "include/VoltMod").parts
-        owner = parts[0] if len(parts) > 1 else None
-        if owner not in modules or owner in ROOT_HEADER_EXEMPT:
+def dependencies(files, modules):
+    """Return module edges and one include that proves each edge."""
+    edges = {module: set() for module in modules}
+    witness = {}
+    for rel, owner, text in files:
+        if owner not in edges or AGGREGATE_HEADER.match(rel):
             continue
-        hit = ROOT_HEADERS.search(path.read_text(encoding="utf-8", errors="replace"))
-        if hit:
-            found.append((path.relative_to(root).as_posix(), hit.group(1)))
-    return sorted(found)
+        for dependency, header in INCLUDE.findall(text):
+            if dependency in edges and dependency != owner:
+                edges[owner].add(dependency)
+                witness.setdefault(
+                    (owner, dependency), f"{rel} -> VoltMod/{dependency}/{header}"
+                )
+    return edges, witness
 
 
-def root_in_sources(root: Path, modules):
-    """Sources below the composition root that include VoltMod/Runtime.hpp or Api.hpp.
-
-    Api.hpp pulls Runtime.hpp in, so both count. src/Runtime.cpp itself has no module
-    directory and is skipped like any other root file.
-    """
-    found = []
-    for path in (root / "src").rglob("*.cpp"):
-        parts = path.relative_to(root / "src").parts
-        owner = parts[0] if len(parts) > 1 else None
-        if owner not in modules or owner in ROOT_SOURCE_EXEMPT:
+def root_includes(files, modules):
+    """Find framework headers and sources that include the composition root."""
+    headers, sources = [], []
+    for rel, owner, text in files:
+        if owner not in modules or owner in ROOT_EXEMPT:
             continue
-        hit = ROOT_HEADERS.search(path.read_text(encoding="utf-8", errors="replace"))
-        if hit:
-            found.append((path.relative_to(root).as_posix(), hit.group(1)))
-    return sorted(found)
+        hit = ROOT_HEADERS.search(text)
+        if not hit:
+            continue
+        item = (rel, hit.group(1))
+        if rel.startswith("include/VoltMod/") and rel.endswith(".hpp"):
+            headers.append(item)
+        elif rel.startswith("src/") and rel.endswith(".cpp"):
+            sources.append(item)
+    return sorted(headers), sorted(sources)
 
 
-def forbidden_surfaces(root: Path, modules):
-    """Menu/App reached from a layer below the composition root, and nlohmann included
-    outside its allowlist - across include/VoltMod and src, aggregate headers included:
-    an aggregate documents its own module's surface, not its neighbors'."""
+def forbidden_surfaces(files):
+    """Find lower-layer Menu/App includes and direct nlohmann includes."""
     crossed, nlohmann = [], []
-    for base in ("include/VoltMod", "src"):
-        for path in (root / base).rglob("*"):
-            if path.suffix not in (".hpp", ".cpp"):
-                continue
-            parts = path.relative_to(root / base).parts
-            owner = parts[0] if len(parts) > 1 else None
-            rel = path.relative_to(root).as_posix()
-            text = path.read_text(encoding="utf-8", errors="replace")
-
-            if owner in NO_MENU_OR_APP:
-                for number, line in enumerate(text.splitlines(), 1):
-                    hit = CROSS_MODULE_HEADER.search(line)
-                    if hit:
-                        crossed.append((rel, number, hit.group(1)))
-
-            if rel not in NLOHMANN_ALLOWED:
-                for number, line in enumerate(text.splitlines(), 1):
-                    if NLOHMANN_INCLUDE.search(line):
-                        nlohmann.append((rel, number))
+    for rel, owner, text in files:
+        for number, line in enumerate(text.splitlines(), 1):
+            if owner in LOWER_MODULES:
+                hit = CROSS_MODULE_HEADER.search(line)
+                if hit:
+                    crossed.append((rel, number, hit.group(1)))
+            if rel not in NLOHMANN_ALLOWED and NLOHMANN_INCLUDE.search(line):
+                nlohmann.append((rel, number))
     return sorted(crossed), sorted(nlohmann)
 
 
-def sources(root: Path, bases):
-    """Every .hpp/.cpp under the given bases, as (relative posix path, text)."""
-    for base in bases:
-        d = root / base
-        if not d.is_dir():
-            continue
-        for path in sorted(d.rglob("*")):
-            if path.suffix in (".hpp", ".cpp"):
-                yield path.relative_to(root).as_posix(), path.read_text(encoding="utf-8",
-                                                                        errors="replace")
-
-
-def conventions(root: Path, bases):
-    """Forward declarations, anonymous namespaces and using-directives, with line numbers."""
+def conventions(files):
+    """Find forward declarations, anonymous namespaces, and using-directives."""
     forwards, anonymous, directives = [], [], []
-    for rel, text in sources(root, bases):
+    for rel, _, text in files:
         header = rel.endswith(".hpp")
-        home = bool(FORWARD_DECL_HOME.search(rel))
+        declaration_home = bool(FORWARD_DECL_HOME.search(rel))
         for number, line in enumerate(text.splitlines(), 1):
             declared = FORWARD_DECL.match(line)
-            if header and not home and declared:
+            if header and not declaration_home and declared:
                 pattern = DEFINITION.format(re.escape(declared.group(1)))
                 if not re.search(pattern, text, re.MULTILINE):
                     forwards.append((rel, number, line.strip()))
@@ -208,10 +166,12 @@ def conventions(root: Path, bases):
     return forwards, anonymous, directives
 
 
-def engine_in_core(root: Path):
-    """Core translation units that reach the SDK or Metamod."""
+def engine_in_core(files):
+    """Find Core files that include an SDK or Metamod header."""
     found = []
-    for rel, text in sources(root, ENGINE_FREE):
+    for rel, _, text in files:
+        if not rel.startswith(CORE_PATHS):
+            continue
         for number, line in enumerate(text.splitlines(), 1):
             hit = ENGINE_INCLUDE.match(line)
             if hit:
@@ -219,9 +179,9 @@ def engine_in_core(root: Path):
     return found
 
 
-def report_conventions(root: Path, bases, label: str) -> int:
-    """Print every convention breach under `bases`; return a process exit code."""
-    forwards, anonymous, directives = conventions(root, bases)
+def report_conventions(files, label: str) -> int:
+    """Print source-convention violations."""
+    forwards, anonymous, directives = conventions(files)
     if not (forwards or anonymous or directives):
         return 0
 
@@ -229,124 +189,117 @@ def report_conventions(root: Path, bases, label: str) -> int:
         print(f"\n{len(forwards)} forward declaration(s) in {label} headers:")
         for rel, number, line in forwards:
             print(f"  {rel}:{number}: {line}")
-        print("      Include the header that defines the type. A forward declaration belongs in")
-        print("      the one *Types.hpp header, which says why each name is there.")
+        print("      Include the defining header or use the documented *Types.hpp file.")
 
     if anonymous:
         print(f"\n{len(anonymous)} anonymous namespace(s) in {label}:")
         for rel, number in anonymous:
             print(f"  {rel}:{number}")
-        print("      Declare file-local helpers `static` at file scope, or make them private")
-        print("      static members when they need class state.")
+        print("      Use a static file-scope declaration.")
 
     if directives:
         print(f"\n{len(directives)} using-directive(s) in {label}:")
         for rel, number, line in directives:
             print(f"  {rel}:{number}: {line}")
-        print("      Qualify the name, or add a targeted `using VoltMod::Thing;` in the .cpp.")
+        print("      Qualify the name or use a targeted using-declaration in the .cpp.")
     return 1
 
 
 def check_plugins(root: Path) -> int:
-    """Run the source conventions over a consumer repository's plugins/."""
+    """Check source conventions in a consumer's plugins directory."""
     plugins = root / "plugins" if (root / "plugins").is_dir() else root
     if not plugins.is_dir():
         print(f"error: no plugins directory under {root.resolve()}")
         return 2
-    base = plugins.relative_to(root).as_posix() if plugins != root else "."
-    bases = [base] if base != "." else [""]
-    code = report_conventions(root, bases, "plugin")
+
+    base = plugins.relative_to(root).as_posix() if plugins != root else ""
+    code = report_conventions(list(source_files(root, (base,))), "plugin")
     if code == 0:
         print("Plugin sources hold.")
     return code
 
 
-def undeclared(modules):
-    """Modules on disk that ALLOWED says nothing about, and vice versa."""
-    known = set(ALLOWED)
-    return sorted(set(modules) - known), sorted(known - set(modules))
-
-
-def violations(edges):
-    """Every (owner, dep) the map forbids."""
-    found = []
-    for owner, deps in sorted(edges.items()):
-        found.extend((owner, dep) for dep in sorted(deps - ALLOWED.get(owner, set())))
-    return found
-
-
 def check(root: Path) -> int:
-    """Print the graph and return a process exit code."""
-    if not (root / "include/VoltMod").is_dir():
+    """Print the module graph and report policy violations."""
+    include_root = root / "include/VoltMod"
+    if not include_root.is_dir():
         print(f"error: no include/VoltMod under {root.resolve()}")
         return 2
 
-    modules, edges, witness = scan(root)
-    for m in modules:
-        print(f"{m:10} -> {' '.join(sorted(edges[m])) or '(none)'}")
+    modules = sorted(path.name for path in include_root.iterdir() if path.is_dir())
+    files = list(source_files(root, SOURCE_DIRS))
+    edges, witness = dependencies(files, modules)
 
-    missing, stale = undeclared(modules)
+    for module in modules:
+        print(f"{module:10} -> {' '.join(sorted(edges[module])) or '(none)'}")
+
+    known = set(ALLOWED)
+    missing = sorted(set(modules) - known)
+    stale = sorted(known - set(modules))
     if missing or stale:
         print()
-        for m in missing:
-            print(f"error: module {m}/ exists but ALLOWED does not list it")
-        for m in stale:
-            print(f"error: ALLOWED lists {m}, which no longer exists")
+        for module in missing:
+            print(f"error: module {module}/ exists but ALLOWED does not list it")
+        for module in stale:
+            print(f"error: ALLOWED lists {module}, which no longer exists")
         return 1
 
-    found = violations(edges)
-    rooted = root_in_headers(root, modules)
-    sourced = root_in_sources(root, modules)
-    engined = engine_in_core(root)
-    crossed, nlohmann_hits = forbidden_surfaces(root, modules)
-    conventional = report_conventions(root, ("include/VoltMod", "src"), "framework")
-    if not (found or rooted or sourced or engined or crossed or nlohmann_hits or conventional):
+    forbidden_edges = [
+        (owner, dependency)
+        for owner, dependencies_ in sorted(edges.items())
+        for dependency in sorted(dependencies_ - ALLOWED[owner])
+    ]
+    rooted_headers, rooted_sources = root_includes(files, known)
+    engine_hits = engine_in_core(files)
+    crossed, nlohmann_hits = forbidden_surfaces(files)
+    convention_errors = report_conventions(files, "framework")
+
+    if not (
+        forbidden_edges
+        or rooted_headers
+        or rooted_sources
+        or engine_hits
+        or crossed
+        or nlohmann_hits
+        or convention_errors
+    ):
         print("\nLayering holds.")
         return 0
 
-    if found:
-        print(f"\n{len(found)} forbidden edge(s):")
-        for owner, dep in found:
-            print(f"  {owner} -> {dep} (allowed: {' '.join(sorted(ALLOWED[owner])) or 'nothing'})")
-            print(f"      {witness.get((owner, dep), '?')}")
+    if forbidden_edges:
+        print(f"\n{len(forbidden_edges)} forbidden edge(s):")
+        for owner, dependency in forbidden_edges:
+            allowed = " ".join(sorted(ALLOWED[owner])) or "nothing"
+            print(f"  {owner} -> {dependency} (allowed: {allowed})")
+            print(f"      {witness.get((owner, dependency), '?')}")
 
-    if rooted:
-        print(f"\n{len(rooted)} header(s) including the composition root:")
-        for rel, header in rooted:
+    if rooted_headers:
+        print(f"\n{len(rooted_headers)} header(s) including the composition root:")
+        for rel, header in rooted_headers:
             print(f"  {rel} -> VoltMod/{header}.hpp")
-        print("      A .cpp in App, Players, Commands or Menu may include the root; a header may")
-        print("      not - it would pull every service into each consumer. Forward-declare Runtime")
-        print("      (or take the one service you need) in the header and include the root from")
-        print("      the .cpp.")
+        print("      Only App may include the composition root.")
 
-    if sourced:
-        print(f"\n{len(sourced)} source(s) naming the composition root:")
-        for rel, header in sourced:
+    if rooted_sources:
+        print(f"\n{len(rooted_sources)} source(s) including the composition root:")
+        for rel, header in rooted_sources:
             print(f"  {rel} -> VoltMod/{header}.hpp")
-        print(f"      Only {' '.join(sorted(ROOT_SOURCE_EXEMPT))} may reach the runtime. Take the")
-        print("      sibling services this file uses through its constructor instead.")
+        print("      Inject the narrower service instead.")
 
-    if engined:
-        print(f"\n{len(engined)} Core file(s) reaching the SDK or Metamod:")
-        for rel, number, header in engined:
+    if engine_hits:
+        print(f"\n{len(engine_hits)} Core file(s) reaching the SDK or Metamod:")
+        for rel, number, header in engine_hits:
             print(f"  {rel}:{number}: {header}")
-        print("      Core is the engine-free layer. Move the file to src/Engine/ (or take the")
-        print("      engine call through a service that already lives there).")
+        print("      Move engine-dependent code to Engine.")
 
     if crossed:
-        print(f"\n{len(crossed)} file(s) below the composition root reaching Menu or App:")
+        print(f"\n{len(crossed)} lower-layer file(s) reaching Menu or App:")
         for rel, number, target in crossed:
             print(f"  {rel}:{number}: VoltMod/{target}/...")
-        print(f"      {' '.join(sorted(NO_MENU_OR_APP))} sit below Menu and App; a plugin that")
-        print("      never touches menus or the runtime should not pull either in by including")
-        print("      this file. Take the narrower type this file actually needs instead.")
+        print("      Inject or include the narrower dependency.")
 
     if nlohmann_hits:
-        print(f"\n{len(nlohmann_hits)} file(s) including nlohmann outside its allowlist:")
+        print(f"\n{len(nlohmann_hits)} direct nlohmann include(s) outside the allowlist:")
         for rel, number in nlohmann_hits:
             print(f"  {rel}:{number}")
-        print("      Only Core/Json.hpp, App/Config.hpp, App/JsonConfig.hpp,")
-        print("      App/PluginSettings.hpp, Http/RestJsonApi.* and Engine/GameDataFile.* declare")
-        print("      nlohmann directly - route through <VoltMod/Core/Json.hpp> instead, so")
-        print("      <VoltMod/Api.hpp> never has to.")
+        print("      Include VoltMod/Core/Json.hpp instead.")
     return 1

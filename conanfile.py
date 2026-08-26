@@ -89,18 +89,10 @@ class VoltModConan(ConanFile):
         return f"{toolchain}-{str(self.settings.build_type).lower()}"
 
     def layout(self):
-        # Checkouts use preset paths instead of cmake_layout's build-type path. The
-        # source and build mappings also expose editable packages to consumers.
+        # Checkouts use the paths defined by the public CMake presets.
         if self._source_checkout():
             self.folders.build = f"build/{self._preset()}"
             self.folders.generators = f"build/{self._preset()}/generators"
-            # CMakeDeps reads component directories separately from the top-level ones.
-            for component in ("runtime", "database", "voltmod"):
-                self.cpp.build.components[component].libdirs = ["."]
-                self.cpp.source.components[component].includedirs = ["include"]
-            self.cpp.build.libdirs = ["."]
-            self.cpp.source.includedirs = ["include"]
-            self.cpp.source.builddirs = ["cmake"]
         else:
             cmake_layout(self)
 
