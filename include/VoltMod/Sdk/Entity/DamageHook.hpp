@@ -2,6 +2,7 @@
 
 #include <VoltMod/Core/CallbackRegistry.hpp>
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Sdk/Entity/HitGroup.hpp>
 #include <cstdint>
 #include <functional>
 
@@ -10,21 +11,6 @@ namespace VoltMod::Sdk
 
 class EntitySystem;
 class GameData;
-
-/** Engine hitgroup ids, as carried by CTakeDamageInfo::m_iHitGroupId. */
-enum class HitGroup : int
-{
-    Invalid = -1,
-    Generic = 0,
-    Head = 1,
-    Chest = 2,
-    Stomach = 3,
-    LeftArm = 4,
-    RightArm = 5,
-    LeftLeg = 6,
-    RightLeg = 7,
-    Neck = 8,
-};
 
 /** One incoming damage event, as a listener sees it. */
 struct DamageView
@@ -50,10 +36,11 @@ struct DamageView
  * Linux), so Install() works from OnLoad with no player connected and covers every pawn from
  * then on. It is dormant until Install().
  *
- * The vtable index and the CTakeDamageInfo/CTakeDamageResult field offsets are
- * gamedata-maintained and drift with CS2 updates. A wrong index calls an unrelated vfunc and
- * crashes, so re-verify after every update; a missing index leaves the hook uninstalled and
- * every listener silent rather than guessing.
+ * The vtable index and the CTakeDamageInfo/CTakeDamageResult field offsets are all
+ * gamedata-maintained and drift with CS2 updates, so a layout change is a gamedata edit rather
+ * than a framework rebuild. A wrong index calls an unrelated vfunc and crashes, so re-verify
+ * after every update; anything that fails to resolve leaves the hook uninstalled and every
+ * listener silent rather than guessing.
  */
 class DamageHook
 {
@@ -85,12 +72,18 @@ public:
 private:
     bool Hook_OnTakeDamageAlive(void* result);
 
-    /** Slot whose pawn is @p pawn, or -1. */
-    int SlotFromPawn(void* pawn) const;
+    /** Read every damage field offset from gamedata. False when one is missing or implausible. */
+    bool ResolveOffsets();
 
     EntitySystem& _entities;
     GameData& _gameData;
     Core::CallbackRegistry<Callback> _listeners;
+    // CTakeDamageInfo fields, then CTakeDamageResult's. Resolved once by Install().
+    int _offsetAttacker = -1;
+    int _offsetDamageTypes = -1;
+    int _offsetHitGroup = -1;
+    int _offsetDealt = -1;
+    int _offsetSuppressed = -1;
     bool _installed = false;
     int _hookId = 0;
 };

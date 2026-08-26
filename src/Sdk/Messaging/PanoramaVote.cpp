@@ -1,3 +1,4 @@
+#include "Sdk/Internal/NetMessage.hpp"
 #include "Sdk/Internal/Schema.hpp"
 
 #include <VoltMod/Core/Log.hpp>
@@ -9,6 +10,7 @@
 #include <VoltMod/Sdk/Events/GameEventService.hpp>
 #include <VoltMod/Sdk/Messaging/PanoramaVote.hpp>
 #include <engine/igameeventsystem.h>
+#include <format>
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
 #include <networksystem/inetworkmessages.h>
@@ -81,38 +83,43 @@ PanoramaVote::PanoramaVote(GameInterfaces& interfaces, EntitySystem& entities, S
     : _interfaces(interfaces), _entities(entities), _schema(schema), _events(events), _scheduler(scheduler)
 {}
 
-void PanoramaVote::Start()
+bool PanoramaVote::AcquireController()
 {
-    _voteCastSub = _events.Listen("vote_cast", [this](IGameEvent* event) {
-        if (!event || !_inProgress)
-            return;
-        OnVoteCast(event->GetPlayerSlot("userid").Get(), event->GetInt("vote_option"));
-    });
+    // The controller is a map entity, so it is a different object after every map change; its
+    // ballot-array offsets are read once per ballot, so they are cached with it rather than
+    // re-resolved through the schema maps on every access.
+    _controller = _entities.FindByClassName(nullptr, ControllerClass);
+    if (!_controller)
+        return false;
+
+    _offsetOptionCount = _schema.GetOffset(VoteControllerSchema, "m_nVoteOptionCount");
+    _offsetVotesCast = _schema.GetOffset(VoteControllerSchema, "m_nVotesCast");
+    return true;
 }
 
-void* PanoramaVote::FindController()
+MultiRecipientFilter PanoramaVote::Recipients() const
 {
-    return _entities.FindByClassName(nullptr, ControllerClass);
+    MultiRecipientFilter filter;
+    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
+    {
+        if (const_cast<EntitySystem&>(_entities).GetPlayerController(slot))
+            filter.AddRecipient(slot);
+    }
+    return filter;
 }
 
-int PanoramaVote::OptionCount(int option)
+int PanoramaVote::OptionCount(int option) const
 {
-    if (!_controller || option < 0 || option >= OptionSlots)
+    if (!_controller || _offsetOptionCount < 0 || option < 0 || option >= OptionSlots)
         return 0;
-    int offset = _schema.GetOffset(VoteControllerSchema, "m_nVoteOptionCount");
-    if (offset < 0)
-        return 0;
-    return ReadAt<int>(_controller, offset + option * static_cast<int>(sizeof(int)));
+    return ReadAt<int>(_controller, _offsetOptionCount + option * static_cast<int>(sizeof(int)));
 }
 
 void PanoramaVote::SetOptionCount(int option, int value)
 {
-    if (!_controller || option < 0 || option >= OptionSlots)
+    if (!_controller || _offsetOptionCount < 0 || option < 0 || option >= OptionSlots)
         return;
-    int offset = _schema.GetOffset(VoteControllerSchema, "m_nVoteOptionCount");
-    if (offset < 0)
-        return;
-    WriteAt<int>(_controller, offset + option * static_cast<int>(sizeof(int)), value);
+    WriteAt<int>(_controller, _offsetOptionCount + option * static_cast<int>(sizeof(int)), value);
 }
 
 void PanoramaVote::ResetBallots()
@@ -120,11 +127,10 @@ void PanoramaVote::ResetBallots()
     for (int option = 0; option < OptionSlots; ++option)
         SetOptionCount(option, 0);
 
-    int castOffset = _schema.GetOffset(VoteControllerSchema, "m_nVotesCast");
-    if (castOffset < 0)
+    if (_offsetVotesCast < 0)
         return;
     for (int slot = 0; slot < Core::MaxPlayers; ++slot)
-        WriteAt<int>(_controller, castOffset + slot * static_cast<int>(sizeof(int)), VoteUncast);
+        WriteAt<int>(_controller, _offsetVotesCast + slot * static_cast<int>(sizeof(int)), VoteUncast);
 }
 
 bool PanoramaVote::StartVote(const std::string& title, const std::string& detail, float durationSec, int callerSlot,
@@ -133,9 +139,18 @@ bool PanoramaVote::StartVote(const std::string& title, const std::string& detail
     if (_inProgress || !onResult)
         return false;
 
-    // The controller is a map entity, so it is a different object after every map change.
-    _controller = FindController();
-    if (!_controller)
+    // Subscribed here rather than in a separate arming call: a vote that counted no ballots
+    // because nobody armed the service is a silent failure with no good diagnostic.
+    if (!_voteCastSub)
+    {
+        _voteCastSub = _events.Listen("vote_cast", [this](IGameEvent* event) {
+            if (!event || !_inProgress)
+                return;
+            OnVoteCast(event->GetPlayerSlot("userid").Get(), event->GetInt("vote_option"));
+        });
+    }
+
+    if (!AcquireController())
     {
         Log::Warn("PanoramaVote: this map has no vote_controller; no vote can be shown.");
         return false;
@@ -229,6 +244,8 @@ void PanoramaVote::FinishVote(VoteEndReason reason)
             WriteAt<int>(_controller, offset, -1);
     }
     _controller = nullptr;
+    _offsetOptionCount = -1;
+    _offsetVotesCast = -1;
 
     auto finished = std::move(_onFinished);
     _onResult = nullptr;
@@ -245,11 +262,8 @@ void PanoramaVote::PublishCounts()
     if (!event)
         return;
 
-    event->SetInt("vote_option1", OptionCount(0));
-    event->SetInt("vote_option2", OptionCount(1));
-    event->SetInt("vote_option3", OptionCount(2));
-    event->SetInt("vote_option4", OptionCount(3));
-    event->SetInt("vote_option5", OptionCount(4));
+    for (int option = 0; option < OptionSlots; ++option)
+        event->SetInt(std::format("vote_option{}", option + 1).c_str(), OptionCount(option));
     event->SetInt("potentialVotes", _eligible);
 
     _events.FireEvent(event, false);
@@ -257,58 +271,31 @@ void PanoramaVote::PublishCounts()
 
 void PanoramaVote::SendVoteStart()
 {
-    if (!_interfaces.NetworkMessages || !_interfaces.GameEventSystem)
-        return;
-
-    auto* internalMsg = _interfaces.NetworkMessages->FindNetworkMessagePartial("VoteStart");
-    if (!internalMsg)
-        return;
-
-    CNetMessage* message = internalMsg->AllocateMessage();
-    if (!message)
-        return;
-
-    auto* start = AsProto(message);
-    if (!start)
-    {
-        _interfaces.NetworkMessages->DeallocateNetMessageAbstract(internalMsg, message);
-        return;
-    }
-
-    SetInt(start, "team", AllTeams);
-    SetInt(start, "player_slot", _callerSlot);
-    SetInt(start, "vote_type", -1);
-    SetString(start, "disp_str", _title);
-    SetString(start, "details_str", _detail);
-    SetBool(start, "is_yes_no_vote", true);
-
-    MultiRecipientFilter filter;
-    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
-    {
-        if (_entities.GetPlayerController(slot))
-            filter.AddRecipient(slot);
-    }
-
-    _interfaces.GameEventSystem->PostEventAbstract(-1, false, &filter, internalMsg, message, 0);
-    _interfaces.NetworkMessages->DeallocateNetMessageAbstract(internalMsg, message);
+    MultiRecipientFilter filter = Recipients();
+    PostUserMessage(_interfaces, _voteStartInternal, "VoteStart", filter, [this](CNetMessage* raw) {
+        auto* start = AsProto(raw);
+        if (!start)
+            return false;
+        SetInt(start, "team", AllTeams);
+        SetInt(start, "player_slot", _callerSlot);
+        SetInt(start, "vote_type", -1);
+        SetString(start, "disp_str", _title);
+        SetString(start, "details_str", _detail);
+        SetBool(start, "is_yes_no_vote", true);
+        return true;
+    });
 }
 
 void PanoramaVote::SendVoteOutcome(bool passed)
 {
-    if (!_interfaces.NetworkMessages || !_interfaces.GameEventSystem)
-        return;
+    // Pass and fail are distinct message types, so each gets its own cache slot.
+    auto& cached = passed ? _votePassInternal : _voteFailedInternal;
+    MultiRecipientFilter filter = Recipients();
 
-    const char* name = passed ? "VotePass" : "VoteFailed";
-    auto* internalMsg = _interfaces.NetworkMessages->FindNetworkMessagePartial(name);
-    if (!internalMsg)
-        return;
-
-    CNetMessage* message = internalMsg->AllocateMessage();
-    if (!message)
-        return;
-
-    if (auto* outcome = AsProto(message))
-    {
+    PostUserMessage(_interfaces, cached, passed ? "VotePass" : "VoteFailed", filter, [this, passed](CNetMessage* raw) {
+        auto* outcome = AsProto(raw);
+        if (!outcome)
+            return false;
         SetInt(outcome, "team", AllTeams);
         if (passed)
         {
@@ -320,17 +307,8 @@ void PanoramaVote::SendVoteOutcome(bool passed)
         {
             SetInt(outcome, "reason", 0);
         }
-    }
-
-    MultiRecipientFilter filter;
-    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
-    {
-        if (_entities.GetPlayerController(slot))
-            filter.AddRecipient(slot);
-    }
-
-    _interfaces.GameEventSystem->PostEventAbstract(-1, false, &filter, internalMsg, message, 0);
-    _interfaces.NetworkMessages->DeallocateNetMessageAbstract(internalMsg, message);
+        return true;
+    });
 }
 
 }  // namespace VoltMod::Sdk

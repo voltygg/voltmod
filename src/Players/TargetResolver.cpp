@@ -1,8 +1,8 @@
+#include <VoltMod/Core/Random.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/TargetResolver.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <VoltMod/Sdk/Entity/PlayerController.hpp>
-#include <random>
 
 namespace VoltMod::Players
 {
@@ -36,10 +36,8 @@ std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(Runtime& runti
         });
     }
 
-    static std::mt19937 rng{std::random_device{}()};
-    auto randomIndex = [](std::size_t n) { return std::uniform_int_distribution<std::size_t>(0, n - 1)(rng); };
-
-    auto slots = FilterRoster(roster, ParseTargetToken(token), rules, caller ? caller->GetSlot() : -1, randomIndex);
+    auto slots =
+        FilterRoster(roster, ParseTargetToken(token), rules, caller ? caller->GetSlot() : -1, Core::RandomIndex);
     if (!slots)
         return std::unexpected(slots.error());
 

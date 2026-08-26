@@ -80,6 +80,33 @@
     "ServerSideClientSlot": {
       "windows": 72,
       "linux": 72
+    },
+
+    // CTakeDamageInfo / CTakeDamageResult field offsets, read by Sdk::DamageHook. The SDK
+    // declares neither struct, so these are the only way to reach the fields. Sizes and layout
+    // are from CS2Fixes' cs2_sdk/entity/ctakedamageinfo.h and are identical on both platforms.
+    // A wrong offset reads or writes the wrong field rather than crashing, so the hook checks
+    // each one resolved before it dispatches.
+    "TakeDamageInfoAttacker": {
+      "windows": 60,
+      "linux": 60
+    },
+    "TakeDamageInfoDamageTypes": {
+      "windows": 76,
+      "linux": 76
+    },
+    "TakeDamageInfoHitGroup": {
+      "windows": 120,
+      "linux": 120
+    },
+    // CTakeDamageResult::m_pOriginatingInfo is at 0; these two are the fields the hook rewrites.
+    "TakeDamageResultDealt": {
+      "windows": 32,
+      "linux": 32
+    },
+    "TakeDamageResultSuppressed": {
+      "windows": 80,
+      "linux": 80
     }
   },
 

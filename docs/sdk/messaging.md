@@ -84,3 +84,38 @@ If no capture is pending for the slot, `TryConsume` returns `false`.
 
 The service subscribes to @ref VoltMod::Core::SlotEvents itself, so a pending prompt is cancelled
 when the slot changes hands. Nothing has to call a lifecycle hook for it.
+
+## PanoramaVote
+
+@ref VoltMod::Sdk::PanoramaVote (`runtime.Vote`) drives the game's own yes/no vote panel through
+the map's `vote_controller` entity. The engine collects the ballots, so there is no plugin-side
+tally to keep.
+
+```cpp
+runtime.Vote.StartVote(
+    "#SFUI_vote_changelevel",           // see the token note below
+    "Dust II",                          // the token's detail string
+    20.0f,                              // seconds before it closes itself
+    callerSlot,                         // whose name the panel credits; -1 for the server
+    [](const VoltMod::VoteTally& tally) {
+        // Decide whether it passed. Judging on ballots cast rather than on everyone connected
+        // means abstaining is not the same as voting no.
+        return tally.Cast() > 0 && tally.Yes * 2 > tally.Cast();
+    },
+    [](bool passed, VoltMod::VoteEndReason reason) { /* act on the outcome */ });
+
+runtime.Vote.InProgress();                                   // only one vote runs at a time
+runtime.Vote.EndVote(VoltMod::VoteEndReason::Cancelled);     // call one off early
+```
+
+Contracts worth knowing:
+
+- **The title must be a localization token the client already has** - a `#SFUI_vote...` or
+  `#Panorama_vote...` string. The panel is the engine's own; arbitrary text does not render.
+- There is no arming step: the first `StartVote` subscribes to `vote_cast` itself, so a vote can
+  never silently count zero ballots because nobody enabled the service.
+- `StartVote` returns false when a vote is already running, when nobody is connected, or when the
+  map has no `vote_controller` (which is re-found per vote, since it dies with the map).
+- The vote closes on its own as soon as everyone eligible has answered, rather than sitting on a
+  decided result until the timer runs out.
+- Every callback runs on the game thread.

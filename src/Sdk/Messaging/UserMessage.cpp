@@ -1,3 +1,4 @@
+#include "Sdk/Internal/NetMessage.hpp"
 #include "Sdk/Internal/SigScanner.hpp"
 
 #include <igameevents.h>
@@ -191,71 +192,35 @@ void MessageSystem::SendTextMsg(int slot, int destination, const std::string& me
 
 void MessageSystem::PostTextMsg(IRecipientFilter& filter, int destination, const std::string& message)
 {
-    auto& interfaces = _interfaces;
-    if (!interfaces.GameEventSystem || !interfaces.NetworkMessages)
-        return;
-
     // CS2 routes server-originated chat through TextMsg with dest=HUD_PRINTTALK rather than
     // SayText2. SayText2 requires a real source player and silently drops messages whose
     // entityindex doesn't resolve to a connected client.
-    if (!_textMsgInternal)
-    {
-        _textMsgInternal = interfaces.NetworkMessages->FindNetworkMessage("CUserMessageTextMsg");
-        if (!_textMsgInternal)
-            _textMsgInternal = interfaces.NetworkMessages->FindNetworkMessagePartial("TextMsg");
-    }
+    if (!_textMsgInternal && _interfaces.NetworkMessages)
+        _textMsgInternal = _interfaces.NetworkMessages->FindNetworkMessage("CUserMessageTextMsg");
 
-    if (!_textMsgInternal)
-        return;
-
-    CNetMessage* pMsg = _textMsgInternal->AllocateMessage();
-    if (!pMsg)
-        return;
-
-    auto* pTextMsg = pMsg->ToPB<CUserMessageTextMsg>();
-    if (!pTextMsg)
-    {
-        interfaces.NetworkMessages->DeallocateNetMessageAbstract(_textMsgInternal, pMsg);
-        return;
-    }
-    pTextMsg->set_dest(destination);
-    pTextMsg->add_param(message.c_str());
-
-    interfaces.GameEventSystem->PostEventAbstract(-1, false, &filter, _textMsgInternal, pMsg, 0);
-
-    interfaces.NetworkMessages->DeallocateNetMessageAbstract(_textMsgInternal, pMsg);
+    PostUserMessage(_interfaces, _textMsgInternal, "TextMsg", filter, [&](CNetMessage* raw) {
+        auto* textMsg = raw->ToPB<CUserMessageTextMsg>();
+        if (!textMsg)
+            return false;
+        textMsg->set_dest(destination);
+        textMsg->add_param(message.c_str());
+        return true;
+    });
 }
 
 void MessageSystem::Shake(int slot, float durationSec, float frequency, float amplitude)
 {
-    if (!_interfaces.NetworkMessages || !_interfaces.GameEventSystem)
-        return;
-
-    if (!_shakeInternal)
-        _shakeInternal = _interfaces.NetworkMessages->FindNetworkMessagePartial("Shake");
-    if (!_shakeInternal)
-        return;
-
-    CNetMessage* message = _shakeInternal->AllocateMessage();
-    if (!message)
-        return;
-
-    auto* shake = message->ToPB<CUserMessageShake>();
-    if (!shake)
-    {
-        _interfaces.NetworkMessages->DeallocateNetMessageAbstract(_shakeInternal, message);
-        return;
-    }
-
-    shake->set_duration(durationSec);
-    shake->set_frequency(frequency);
-    shake->set_amplitude(amplitude);
-    shake->set_command(0);  // SHAKE_START
-
     SingleRecipientFilter filter(slot);
-    _interfaces.GameEventSystem->PostEventAbstract(-1, false, &filter, _shakeInternal, message, 0);
-
-    _interfaces.NetworkMessages->DeallocateNetMessageAbstract(_shakeInternal, message);
+    PostUserMessage(_interfaces, _shakeInternal, "Shake", filter, [&](CNetMessage* raw) {
+        auto* shake = raw->ToPB<CUserMessageShake>();
+        if (!shake)
+            return false;
+        shake->set_duration(durationSec);
+        shake->set_frequency(frequency);
+        shake->set_amplitude(amplitude);
+        shake->set_command(0);  // SHAKE_START
+        return true;
+    });
 }
 
 void MessageSystem::ClearCenterHtml(int slot)

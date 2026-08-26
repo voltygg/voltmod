@@ -37,6 +37,7 @@
 #include <VoltMod/Core/AngleMath.hpp>
 #include <VoltMod/Core/DecayingScore.hpp>
 #include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/Random.hpp>
 #include <VoltMod/Core/SlidingWindowScore.hpp>
 #include <VoltMod/Core/SlotThrottle.hpp>
 #include <VoltMod/Core/StringUtils.hpp>
@@ -68,6 +69,7 @@
 #include <VoltMod/Sdk/Entity/Entity.hpp>
 #include <VoltMod/Sdk/Entity/EntityKeyValues.hpp>
 #include <VoltMod/Sdk/Entity/EntityOps.hpp>
+#include <VoltMod/Sdk/Entity/HitGroup.hpp>
 #include <VoltMod/Sdk/Entity/ItemService.hpp>
 #include <VoltMod/Sdk/Entity/MoveType.hpp>
 #include <VoltMod/Sdk/Entity/PawnOps.hpp>
@@ -108,6 +110,7 @@ using Core::IsValidSlot;
 using Core::LoadReport;
 using Core::MaxPlayers;
 using Core::PluginPolicy;
+using Core::RandomIndex;
 using Core::ResolvePath;
 using Core::Scheduler;
 using Core::StageResult;

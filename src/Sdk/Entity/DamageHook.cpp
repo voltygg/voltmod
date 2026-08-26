@@ -7,8 +7,7 @@
 #include <VoltMod/Sdk/Engine/MemoryAccess.hpp>
 #include <VoltMod/Sdk/Entity/DamageHook.hpp>
 #include <VoltMod/Sdk/Entity/Entity.hpp>
-#include <VoltMod/Sdk/Entity/PlayerController.hpp>
-#include <cstddef>
+#include <cstdint>
 
 PLUGIN_GLOBALVARS();
 
@@ -16,9 +15,9 @@ namespace VoltMod::Sdk
 {
 using namespace VoltMod::Core;
 
-// bool CCSPlayerPawn::OnTakeDamage_Alive(CTakeDamageResult*). void* stands in for the result,
-// whose fields are read through the checked layout below rather than a real type. Bound to the
-// class vtable (DVP hook), so it fires for every pawn without needing a live instance.
+// bool CCSPlayerPawn::OnTakeDamage_Alive(CTakeDamageResult*). void* stands in for the result:
+// the SDK declares neither it nor CTakeDamageInfo, so their fields are reached by gamedata
+// offset. Bound to the class vtable (DVP hook), so it fires for every pawn without a live one.
 SH_DECL_MANUALHOOK1(VoltMod_OnTakeDamageAlive, 0, 0, 0, bool, void*);
 
 namespace
@@ -28,44 +27,9 @@ namespace
 constexpr const char* ServerModule = "server";
 constexpr const char* PawnClass = "CCSPlayerPawn";
 
-/**
- * The two engine structs, transcribed only as far as the fields this hook touches.
- *
- * They are laid out by hand because the SDK does not declare either one. The trailing padding
- * and the static_asserts are the guard: if a CS2 update moves a field, the total size almost
- * certainly changes too and this stops compiling, which is a much better failure than reading
- * the wrong offset at runtime. Sizes are from CS2Fixes' cs2_sdk/entity/ctakedamageinfo.h.
- */
-struct TakeDamageInfoLayout
-{
-    uint8_t _pad0[0x3c];
-    uint32_t AttackerHandle;  // 0x3c m_hAttacker
-    uint32_t _pad1;           // 0x40 m_hAbility
-    float Damage;             // 0x44 m_flDamage
-    float _pad2;              // 0x48 m_flTotalledDamage
-    int32_t DamageTypes;      // 0x4c m_bitsDamageType
-    uint8_t _pad3[0x28];      // 0x50
-    int32_t HitGroupId;       // 0x78 m_iHitGroupId
-    uint8_t _pad4[0x9c];      // 0x7c
-};
-static_assert(offsetof(TakeDamageInfoLayout, AttackerHandle) == 0x3c);
-static_assert(offsetof(TakeDamageInfoLayout, Damage) == 0x44);
-static_assert(offsetof(TakeDamageInfoLayout, DamageTypes) == 0x4c);
-static_assert(offsetof(TakeDamageInfoLayout, HitGroupId) == 0x78);
-static_assert(sizeof(TakeDamageInfoLayout) == 280);
-
-struct TakeDamageResultLayout
-{
-    TakeDamageInfoLayout* OriginatingInfo;  // 0x00 m_pOriginatingInfo
-    uint8_t _pad0[0x18];                    // 0x08 lean vector + health lost/before
-    float DamageDealt;                      // 0x20 m_flDamageDealt
-    uint8_t _pad1[0x2c];                    // 0x24
-    bool WasDamageSuppressed;               // 0x50 m_bWasDamageSuppressed
-    uint8_t _pad2[0xf];                     // 0x51
-};
-static_assert(offsetof(TakeDamageResultLayout, DamageDealt) == 0x20);
-static_assert(offsetof(TakeDamageResultLayout, WasDamageSuppressed) == 0x50);
-static_assert(sizeof(TakeDamageResultLayout) == 96);
+// Bounds the gamedata reads. Both structs are a few hundred bytes; anything past this is a
+// typo rather than a field.
+constexpr int MaxDamageOffset = 512;
 
 }  // namespace
 
@@ -76,6 +40,9 @@ bool DamageHook::Install()
 
     int index = _gameData.GetVtableIndex("OnTakeDamageAlive");
     if (index < 0)
+        return false;
+
+    if (!ResolveOffsets())
         return false;
 
     void* vtable = FindVirtualTable(ServerModule, PawnClass);
@@ -96,6 +63,36 @@ bool DamageHook::Install()
     return true;
 }
 
+bool DamageHook::ResolveOffsets()
+{
+    // A wrong field offset silently reads or writes the wrong bytes, so a missing one leaves the
+    // hook uninstalled rather than letting listeners act on nonsense.
+    struct Entry
+    {
+        const char* Name;
+        int Alignment;
+        int* Target;
+    };
+    const Entry entries[]{
+        {"TakeDamageInfoAttacker", alignof(uint32_t), &_offsetAttacker},
+        {"TakeDamageInfoDamageTypes", alignof(int32_t), &_offsetDamageTypes},
+        {"TakeDamageInfoHitGroup", alignof(int32_t), &_offsetHitGroup},
+        {"TakeDamageResultDealt", alignof(float), &_offsetDealt},
+        {"TakeDamageResultSuppressed", alignof(bool), &_offsetSuppressed},
+    };
+
+    for (const auto& entry : entries)
+    {
+        *entry.Target = _gameData.GetByteOffset(entry.Name, MaxDamageOffset, entry.Alignment);
+        if (*entry.Target < 0)
+        {
+            Log::Warn("DamageHook: no usable '{}' offset; damage listeners disabled.", entry.Name);
+            return false;
+        }
+    }
+    return true;
+}
+
 void DamageHook::Remove()
 {
     if (!_installed)
@@ -108,50 +105,44 @@ void DamageHook::Remove()
     _installed = false;
 }
 
-int DamageHook::SlotFromPawn(void* pawn) const
-{
-    if (!pawn)
-        return -1;
-
-    for (int slot = 0; slot < Core::MaxPlayers; ++slot)
-    {
-        PlayerController controller(const_cast<EntitySystem&>(_entities), slot);
-        if (controller.IsValid() && controller.GetPawn() == pawn)
-            return slot;
-    }
-    return -1;
-}
-
 bool DamageHook::Hook_OnTakeDamageAlive(void* result)
 {
-    auto* pawn = META_IFACEPTR(void);
-    auto* damage = static_cast<TakeDamageResultLayout*>(result);
-    if (!pawn || !damage || !damage->OriginatingInfo)
+    // Fires for every point of damage every living player takes, so an installed-but-unused
+    // hook must cost nothing beyond this check.
+    if (_listeners.Empty())
         RETURN_META_VALUE(MRES_IGNORED, false);
 
-    const auto* info = damage->OriginatingInfo;
+    auto* pawn = META_IFACEPTR(void);
+    if (!pawn || !result)
+        RETURN_META_VALUE(MRES_IGNORED, false);
 
-    DamageView view{.VictimSlot = SlotFromPawn(pawn),
-                    .AttackerSlot = SlotFromPawn(_entities.ResolveEntityHandle(info->AttackerHandle)),
-                    .Hitbox = static_cast<HitGroup>(info->HitGroupId),
-                    .DamageTypes = static_cast<uint32_t>(info->DamageTypes),
-                    .Damage = damage->DamageDealt,
-                    .Suppress = false};
+    // CTakeDamageResult::m_pOriginatingInfo is the first member, so it needs no gamedata entry.
+    auto* info = ReadAt<void*>(result, 0);
+    if (!info)
+        RETURN_META_VALUE(MRES_IGNORED, false);
+
+    DamageView view{
+        .VictimSlot = _entities.SlotFromPawn(static_cast<CEntityInstance*>(pawn)),
+        .AttackerSlot = _entities.SlotFromPawn(_entities.ResolveEntityHandle(ReadAt<uint32_t>(info, _offsetAttacker))),
+        .Hitbox = static_cast<HitGroup>(ReadAt<int32_t>(info, _offsetHitGroup)),
+        .DamageTypes = static_cast<uint32_t>(ReadAt<int32_t>(info, _offsetDamageTypes)),
+        .Damage = ReadAt<float>(result, _offsetDealt),
+        .Suppress = false};
 
     const float original = view.Damage;
     _listeners.Dispatch([&view](const Callback& callback) { callback(view); });
 
     if (view.Suppress)
     {
-        damage->DamageDealt = 0.0f;
-        damage->WasDamageSuppressed = true;
+        WriteAt<float>(result, _offsetDealt, 0.0f);
+        WriteAt<bool>(result, _offsetSuppressed, true);
         RETURN_META_VALUE(MRES_SUPERCEDE, false);
     }
 
     // Only write when a listener actually changed it, so the untouched path leaves the engine's
     // own value bit-for-bit alone.
     if (view.Damage != original)
-        damage->DamageDealt = view.Damage;
+        WriteAt<float>(result, _offsetDealt, view.Damage);
 
     RETURN_META_VALUE(MRES_IGNORED, false);
 }

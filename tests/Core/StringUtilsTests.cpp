@@ -52,6 +52,30 @@ TEST_CASE("StringUtils::Join")
     CHECK_EQ(StringUtils::Join(none, ","), std::string(""));
 }
 
+TEST_CASE("StringUtils::JoinNonEmpty skips empty pieces")
+{
+    // The point of the helper: an unset piece must not leave a dangling delimiter behind it.
+    std::vector<std::string> gaps{"reason", "", "appeal"};
+    CHECK_EQ(StringUtils::JoinNonEmpty(gaps, " | "), std::string("reason | appeal"));
+
+    std::vector<std::string> leading{"", "only"};
+    CHECK_EQ(StringUtils::JoinNonEmpty(leading, " | "), std::string("only"));
+
+    std::vector<std::string> trailing{"only", ""};
+    CHECK_EQ(StringUtils::JoinNonEmpty(trailing, " | "), std::string("only"));
+
+    std::vector<std::string> allEmpty{"", "", ""};
+    CHECK_EQ(StringUtils::JoinNonEmpty(allEmpty, " | "), std::string(""));
+
+    CHECK_EQ(StringUtils::JoinNonEmpty({}, " | "), std::string(""));
+}
+
+TEST_CASE("StringUtils::JoinNonEmpty matches Join when nothing is empty")
+{
+    std::vector<std::string> parts{"a", "b", "c"};
+    CHECK_EQ(StringUtils::JoinNonEmpty(parts, ","), StringUtils::Join(parts, ","));
+}
+
 TEST_CASE("StringUtils::Split and Join round-trip")
 {
     auto parts = StringUtils::Split("x|y|z", '|');

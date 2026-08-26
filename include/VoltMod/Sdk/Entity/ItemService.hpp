@@ -1,19 +1,14 @@
 #pragma once
 
-#include <vector>
-
-class CEntityInstance;
-
 namespace VoltMod::Sdk
 {
 
-class EntitySystem;
 class GameData;
 class PlayerController;
 class SchemaService;  // Internal type (src/Sdk/Internal/Schema.hpp), kept out of the public graph.
 
 /**
- * @brief Giving, listing and stripping a player's weapons.
+ * @brief Giving and stripping a player's weapons.
  *
  * Reaches CCSPlayer_ItemServices through the pawn's `m_pItemServices` and calls it by vtable
  * index, so the indices live in gamedata rather than in a signature. Every method resolves
@@ -25,8 +20,8 @@ class SchemaService;  // Internal type (src/Sdk/Internal/Schema.hpp), kept out o
 class ItemService
 {
 public:
-    /** All three must outlive this service; the Runtime declares them above it. */
-    ItemService(EntitySystem& entities, GameData& gameData, SchemaService& schema);
+    /** Both must outlive this service; the Runtime declares them above it. */
+    ItemService(GameData& gameData, SchemaService& schema);
     ItemService(const ItemService&) = delete;
     ItemService& operator=(const ItemService&) = delete;
 
@@ -48,14 +43,10 @@ public:
      */
     bool StripWeapons(const PlayerController& pc, bool removeSuit = true);
 
-    /** Entities in @p pc's weapon list. Empty when the pawn or its weapon services are gone. */
-    std::vector<CEntityInstance*> GetWeapons(const PlayerController& pc) const;
-
 private:
     /** The pawn's CCSPlayer_ItemServices, or nullptr. */
     void* ItemServices(const PlayerController& pc) const;
 
-    EntitySystem& _entities;
     GameData& _gameData;
     SchemaService& _schema;
 };

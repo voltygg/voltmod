@@ -114,3 +114,25 @@ autoBhop.SetBool(true);   // no callbacks, nothing networked
 // ... run the per-player work ...
 autoBhop.SetBool(saved);
 ```
+
+## MapService
+
+@ref VoltMod::Sdk::MapService validates map names and changes level. It deliberately holds no
+map list: which maps a server offers is operator configuration, not engine state, so the list
+belongs to the plugin.
+
+```cpp
+auto& maps = runtime.Maps;
+
+if (maps.IsValid("de_dust2"))          // filesystem probe; load-time work, not per-frame
+    maps.ChangeLevel("de_dust2");
+
+maps.ChangeToWorkshop(3070563536ull);  // workshop maps are addressed by published-file id
+```
+
+`IsValid` only answers for plain names. A workshop map is addressed by id and is not mounted
+until it loads, so there is nothing to probe - check those at load by other means or accept the
+engine's own failure.
+
+Both change calls take effect immediately. A plugin that wants players to read an announcement
+first should schedule the call rather than delaying inside a listener.

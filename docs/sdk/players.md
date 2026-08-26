@@ -22,6 +22,10 @@ bool valid = es.IsPlayerSlotValid(slot);
 // Read player button state
 uint64_t buttons = es.GetPlayerButtons(slot);
 
+// Which slot owns a pawn, or -1. Constant-time (it reads the pawn's own controller
+// back-reference), so per-damage and per-tick paths can call it freely.
+int owner = es.SlotFromPawn(pawn);
+
 // Iterate map entities (signature-backed; both return nullptr when exhausted)
 CEntityInstance* door = nullptr;
 while ((door = es.FindByClassName(door, "func_door")))
@@ -130,3 +134,26 @@ Two CS2 workarounds are baked in: `Slap` writes velocity via `m_vecAbsVelocity` 
 legacy `m_takedamage` write is a no-op. `Slap`'s fall protection clears itself on a scheduler
 timer, and the `SlotEvents` listener it takes cancels that timer if the player leaves first, so
 the next occupant of the slot never has godmode stripped.
+
+## ItemService
+
+@ref VoltMod::Sdk::ItemService gives and strips weapons through the pawn's
+`CCSPlayer_ItemServices`. Both operations are vtable calls whose indices live in gamedata
+(`GiveNamedItem`, `RemoveAllItems`), so a game update is a gamedata edit rather than a rebuild.
+
+```cpp
+using namespace VoltMod::Sdk;
+PlayerController target = runtime.Entities.Controller(slot);
+
+runtime.Items.Give(target, "weapon_ak47");   // entity classname, not a display name
+runtime.Items.StripWeapons(target);          // pass false to keep armor and the defuse kit
+```
+
+`Give` returns false only when the pawn is unavailable or the engine refused the item twice.
+The retry matters: the engine rejects a weapon the player's team cannot buy, so a refusal is
+tried again with the pawn briefly flipped to the other team and flipped back before this
+returns. The flip is not networked, but it does mean the call must not be interleaved with
+anything else that reads the pawn's team.
+
+Anything that fails to resolve - the pawn, the item services pointer, the vtable index -
+degrades the call to `false`; it never crashes.

@@ -114,6 +114,20 @@ std::string StringUtils::Join(const std::vector<std::string>& parts, const std::
     return result;
 }
 
+std::string StringUtils::JoinNonEmpty(const std::vector<std::string>& parts, const std::string& delimiter)
+{
+    std::string result;
+    for (const auto& part : parts)
+    {
+        if (part.empty())
+            continue;
+        if (!result.empty())
+            result += delimiter;
+        result += part;
+    }
+    return result;
+}
+
 bool StringUtils::StartsWith(const std::string& str, const std::string& prefix)
 {
     return str.length() >= prefix.length() && str.substr(0, prefix.length()) == prefix;

@@ -2,9 +2,12 @@
 
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Sdk/Engine/RecipientFilter.hpp>
 #include <cstdint>
 #include <functional>
 #include <string>
+
+class INetworkMessageInternal;
 
 namespace VoltMod::Core
 {
@@ -42,7 +45,7 @@ struct VoteTally
  *
  * A vote configures the controller entity, broadcasts a `VoteStart` user message, counts the
  * `vote_cast` game events that come back, and finishes with `VotePass` or `VoteFailed`. Only one
- * vote runs at a time; Start() refuses while one is live.
+ * vote runs at a time; StartVote() refuses while one is live.
  *
  * The panel is the engine's, so its title must be a localization token the client already has -
  * a `#SFUI_vote...` or `#Panorama_vote...` string. Arbitrary text does not render.
@@ -63,11 +66,10 @@ public:
     PanoramaVote(const PanoramaVote&) = delete;
     PanoramaVote& operator=(const PanoramaVote&) = delete;
 
-    /** Subscribe to `vote_cast`. Call once during load; re-finds the controller per vote. */
-    void Start();
-
     /**
      * Open a yes/no vote for every connected human.
+     *
+     * Subscribes to `vote_cast` on first use, so there is no separate arming step to forget.
      *
      * @param title a `#SFUI_vote` / `#Panorama_vote` localization token; see the class docs.
      * @param detail the token's detail string, often a map or player name.
@@ -89,10 +91,12 @@ private:
     void SendVoteStart();
     void SendVoteOutcome(bool passed);
     void PublishCounts();
-    /** The map's vote_controller, or nullptr. Re-found per vote: it dies with the map. */
-    void* FindController();
+    /** Find the map's vote_controller and cache its ballot offsets. False when the map has none. */
+    bool AcquireController();
+    /** Every connected slot - who a vote panel is sent to. */
+    Sdk::MultiRecipientFilter Recipients() const;
 
-    int OptionCount(int option);
+    int OptionCount(int option) const;
     void SetOptionCount(int option, int value);
     void ResetBallots();
 
@@ -103,7 +107,14 @@ private:
     Core::Scheduler& _scheduler;
 
     Core::Subscription _voteCastSub;
+    /** Resolved message types, cached on first send; they are stable for the process. */
+    INetworkMessageInternal* _voteStartInternal = nullptr;
+    INetworkMessageInternal* _votePassInternal = nullptr;
+    INetworkMessageInternal* _voteFailedInternal = nullptr;
     void* _controller = nullptr;
+    /** Ballot-array offsets on `_controller`, resolved with it: they are read once per ballot. */
+    int _offsetOptionCount = -1;
+    int _offsetVotesCast = -1;
     bool _inProgress = false;
     /** Bumped per vote so a timeout cannot end the vote that replaced it. */
     uint64_t _voteId = 0;

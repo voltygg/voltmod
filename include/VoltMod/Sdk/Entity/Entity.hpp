@@ -97,6 +97,14 @@ public:
     /** Network entity index of @p entity, or -1 on null/unlinked. */
     int GetEntityIndex(CEntityInstance* entity) const;
 
+    /**
+     * Slot owning @p pawn, or -1 when it is not a player pawn.
+     *
+     * Constant-time: reads the pawn's own `m_hController` back-reference rather than scanning
+     * the slots. Callers on per-damage or per-tick paths depend on that, so keep it O(1).
+     */
+    int SlotFromPawn(CEntityInstance* pawn);
+
     /** Raw EHandle (index + serial) of @p entity, or 0xFFFFFFFF (invalid) on null/unlinked. */
     uint32_t GetEntityHandle(CEntityInstance* entity) const;
 
@@ -142,6 +150,7 @@ private:
     SchemaService& _schema;
     int _offsetGameEntitySystem = -1;
     int _offsetPlayerPawn = -1;
+    int _offsetPawnController = -1;
     int _offsetMovementServices = -1;
     int _offsetButtons = -1;
     int _offsetButtonStates = -1;

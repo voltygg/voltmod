@@ -129,8 +129,8 @@ public:
     Sdk::PawnService Pawns{Scheduler, Slots, Entities};
     /** Depends on: Entities, GameData, Schema(). */
     Sdk::EntityOpsService EntityOps{Entities, GameData, *_schema};
-    /** Weapon give/list/strip through CCSPlayer_ItemServices. Depends on: Entities, GameData, Schema(). */
-    Sdk::ItemService Items{Entities, GameData, *_schema};
+    /** Weapon give/strip through CCSPlayer_ItemServices. Depends on: GameData, Schema(). */
+    Sdk::ItemService Items{GameData, *_schema};
     /** Depends on: Entities, GameData, Schema(), Slots. */
     Sdk::TransmitFilterService Transmit{Entities, GameData, *_schema, Slots};
     /** Builds per-viewer visibility effects (GlowVision). Depends on: Entities, EntityOps, Transmit. */
@@ -147,7 +147,7 @@ public:
     Sdk::MessageSystem Messages{Interfaces, GameData, Events, Translations};
     /** The engine's simulation clock (tick and curtime). Depends on: Interfaces. */
     Sdk::ServerClock Clock{Interfaces};
-    /** The game's own yes/no vote panel. Dormant until Start().
+    /** The game's own yes/no vote panel. Subscribes on the first StartVote().
      *  Depends on: Interfaces, Entities, Schema(), Events, Scheduler. */
     Sdk::PanoramaVote Vote{Interfaces, Entities, *_schema, Events, Scheduler};
     /** Dormant until a plugin calls Install(); removes its vtable hook on destruction.

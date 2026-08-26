@@ -111,6 +111,41 @@ Semantics worth knowing:
 - Respawning hands the player a brand-new pawn object, which makes the previous binding stale. The tracker re-binds from its own `PlayerSpawn` listener. Since a spawn also moves the player, **a spawn counts as a teleport** and gets stamped. If you only care about mid-life teleports, filter spawns yourself.
 - Stamps are @ref VoltMod::Sdk::ServerClock "runtime.Clock" times, so they are meaningless across a map change. The framework's `StartupServer` hook drops every binding and stamp at map start, and a slot with no stamp reads as never teleported.
 
+## DamageHook
+
+@ref VoltMod::Sdk::DamageHook (`runtime.Damage`) is a manual vtable hook on
+`CCSPlayerPawn::OnTakeDamage_Alive` - every point of damage a living player takes. Listeners run
+*before* the engine applies the damage, which is what makes headshot-only rules, damage
+multipliers, and one-hit-kill modes possible.
+
+```cpp
+runtime.Damage.Install();       // binds the class vtable; safe from OnLoad, no-op once installed
+
+_damage = runtime.Damage.ListenPreDamage([this](VoltMod::DamageView& view) {
+    if (view.AttackerSlot < 0)                   // world damage: fall, fire, the bomb
+        return;
+    if (view.Hitbox != VoltMod::HitGroup::Head)
+        view.Suppress = true;                    // cancel the hit outright
+    else
+        view.Damage *= 2.0f;                     // or rewrite what the victim loses
+});
+```
+
+Contracts worth knowing:
+
+- Like MovementHook this is a **DVP hook** on the class vtable, so `Install()` works from
+  `OnLoad` with no player connected and covers every pawn from then on.
+- `Suppress` supersedes the engine call; a rewritten `Damage` is written back into the result the
+  engine goes on to use. Leaving both alone costs nothing - the untouched value is not rewritten.
+- Both slots are resolved for you, `-1` when the pawn is not a player's (world damage has no
+  attacker). The lookup is constant-time, which matters: this fires per bullet, per pellet, and
+  per fire or HE tick against every victim in radius.
+- An installed hook with no listeners returns immediately, so arming it up front is free.
+- The vtable index **and** the `CTakeDamageInfo` / `CTakeDamageResult` field offsets are all
+  gamedata-maintained (`OnTakeDamageAlive`, `TakeDamageInfo*`, `TakeDamageResult*`), so a CS2
+  layout change is a gamedata edit. Anything that fails to resolve leaves the hook uninstalled
+  and every listener silent rather than acting on the wrong bytes.
+
 ## ServerCommand
 
 @ref VoltMod::Sdk::ServerCommand is a RAII tier1 `ConCommand`: registered on construction, unregistered on destruction, with a `std::function` handler that runs on the game thread.

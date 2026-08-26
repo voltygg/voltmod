@@ -4,7 +4,6 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Sdk/Engine/GameData.hpp>
 #include <VoltMod/Sdk/Engine/MemoryAccess.hpp>
-#include <VoltMod/Sdk/Entity/Entity.hpp>
 #include <VoltMod/Sdk/Entity/ItemService.hpp>
 #include <VoltMod/Sdk/Entity/PawnOps.hpp>
 #include <VoltMod/Sdk/Entity/PlayerController.hpp>
@@ -15,25 +14,7 @@ namespace VoltMod::Sdk
 
 using namespace VoltMod::Core;
 
-namespace
-{
-
-// CNetworkUtlVectorBase<CHandle<T>>: element count at +0, element pointer at +8. Read only.
-struct HandleVectorView
-{
-    int32_t Count;
-    int32_t _pad;
-    const uint32_t* Elements;
-};
-
-// Twelve weapon slots is already generous; the cap only bounds a corrupt count.
-constexpr int MaxWeapons = 24;
-
-}  // namespace
-
-ItemService::ItemService(EntitySystem& entities, GameData& gameData, SchemaService& schema)
-    : _entities(entities), _gameData(gameData), _schema(schema)
-{}
+ItemService::ItemService(GameData& gameData, SchemaService& schema) : _gameData(gameData), _schema(schema) {}
 
 void* ItemService::ItemServices(const PlayerController& pc) const
 {
@@ -92,38 +73,6 @@ bool ItemService::StripWeapons(const PlayerController& pc, bool removeSuit)
 
     CallVirtual<void>(index, services, removeSuit);
     return true;
-}
-
-std::vector<CEntityInstance*> ItemService::GetWeapons(const PlayerController& pc) const
-{
-    std::vector<CEntityInstance*> weapons;
-
-    auto* pawn = pc.GetPawn();
-    if (!pawn)
-        return weapons;
-
-    int servicesOffset = _schema.GetOffsetOf<void*>("CBasePlayerPawn", "m_pWeaponServices");
-    if (servicesOffset < 0)
-        return weapons;
-
-    auto* weaponServices = ReadAt<void*>(pawn, servicesOffset);
-    if (!weaponServices)
-        return weapons;
-
-    int listOffset = _schema.GetOffset("CPlayer_WeaponServices", "m_hMyWeapons");
-    if (listOffset < 0)
-        return weapons;
-
-    const auto* view = MemberPtr<const HandleVectorView>(weaponServices, listOffset);
-    if (!view->Elements)
-        return weapons;
-
-    for (int32_t i = 0; i < view->Count && i < MaxWeapons; ++i)
-    {
-        if (auto* weapon = _entities.ResolveEntityHandle(view->Elements[i]))
-            weapons.push_back(weapon);
-    }
-    return weapons;
 }
 
 }  // namespace VoltMod::Sdk

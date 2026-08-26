@@ -59,6 +59,7 @@ void EntitySystem::ResolveSchemaOffsets()
     auto& schema = _schema;
 
     _offsetPlayerPawn = schema.GetOffsetOf<uint32_t>("CBasePlayerController", "m_hPawn");
+    _offsetPawnController = schema.GetOffsetOf<uint32_t>("CBasePlayerPawn", "m_hController");
     _offsetMovementServices = schema.GetOffsetOf<uint8_t*>("CBasePlayerPawn", "m_pMovementServices");
     _offsetButtons = schema.GetOffset("CPlayer_MovementServices", "m_nButtons");
     _offsetButtonStates = schema.GetOffset("CInButtonState", "m_pButtonStates");
@@ -180,6 +181,25 @@ CEntityInstance* EntitySystem::GetPlayerController(int slot)
         return nullptr;
 
     return pIdentity->m_pInstance;
+}
+
+int EntitySystem::SlotFromPawn(CEntityInstance* pawn)
+{
+    if (!pawn)
+        return -1;
+
+    if (!_schemaOffsetsResolved)
+        ResolveSchemaOffsets();
+    if (_offsetPawnController < 0)
+        return -1;
+
+    CEntityInstance* controller = ResolveEntityHandle(ReadAt<uint32_t>(pawn, _offsetPawnController));
+    if (!controller)
+        return -1;
+
+    // Controllers occupy entity indices 1..MaxPlayers, the same mapping GetPlayerController uses.
+    int slot = GetEntityIndex(controller) - 1;
+    return IsValidSlot(slot) ? slot : -1;
 }
 
 uint64_t EntitySystem::GetPlayerButtons(int slot)
