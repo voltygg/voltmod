@@ -18,7 +18,7 @@ struct EffectDescriptor;
 struct ParamEffectDescriptor;
 }  // namespace VoltMod::Players
 
-namespace VoltMod::Sdk
+namespace VoltMod::Entities
 {
 class PlayerController;
 }
@@ -73,10 +73,10 @@ public:
 
     /**
      * A toggle row that re-evaluates @p isActive on every redraw and runs the
-     * action when pressed. Predicates live in Sdk/PawnPredicates.hpp.
+     * action when pressed. Predicates live in Entities/PawnPredicates.hpp.
      */
     MenuBuilder& AddStateToggleRow(std::string_view labelKey,
-                                   std::function<bool(const Sdk::PlayerController&)> isActive,
+                                   std::function<bool(const Entities::PlayerController&)> isActive,
                                    const Players::Action& action);
 
     /** Choice row: A/D selects a preset and E runs the action. */

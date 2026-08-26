@@ -1,7 +1,7 @@
+#include <VoltMod/App/PluginManifest.hpp>
 #include <VoltMod/App/StandardLoad.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Paths.hpp>
-#include <VoltMod/Core/PluginManifest.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <format>
 #include <fstream>
@@ -14,10 +14,10 @@ namespace VoltMod::App
 
 namespace
 {
-void ReportDependency(ServiceExchange& exchange, const Core::PluginDependency& dependency)
+void ReportDependency(ServiceExchange& exchange, const App::PluginDependency& dependency)
 {
-    const std::string key = Core::IdentityKey(dependency.Name);
-    auto* peer = static_cast<Core::IPluginIdentity*>(exchange.GetNamed(key.c_str()));
+    const std::string key = App::IdentityKey(dependency.Name);
+    auto* peer = static_cast<App::IPluginIdentity*>(exchange.GetNamed(key.c_str()));
 
     if (peer == nullptr)
     {
@@ -30,7 +30,7 @@ void ReportDependency(ServiceExchange& exchange, const Core::PluginDependency& d
     }
 
     const char* version = peer->PluginVersion();
-    if (!Core::VersionAtLeast(version ? version : "", dependency.MinVersion))
+    if (!App::VersionAtLeast(version ? version : "", dependency.MinVersion))
     {
         const std::string message =
             std::format("dependency '{}' is {} but {} or newer is expected", dependency.Name,
@@ -43,11 +43,11 @@ void ReportDependency(ServiceExchange& exchange, const Core::PluginDependency& d
 }
 }  // namespace
 
-void PluginIdentity::Adopt(Core::PluginManifest manifest)
+void PluginIdentity::Adopt(App::PluginManifest manifest)
 {
     _manifest = std::move(manifest);
-    _key = Core::IdentityKey(_manifest.Name);
-    _exchange.PublishNamed(_key.c_str(), static_cast<Core::IPluginIdentity*>(this));
+    _key = App::IdentityKey(_manifest.Name);
+    _exchange.PublishNamed(_key.c_str(), static_cast<App::IPluginIdentity*>(this));
 
     if (_manifest.Dependencies.empty())
         return;
@@ -81,7 +81,7 @@ void LoadPluginManifest(Runtime& runtime, std::string_view addon)
         std::ostringstream buffer;
         buffer << file.rdbuf();
 
-        auto manifest = Core::ParsePluginManifest(buffer.str());
+        auto manifest = App::ParsePluginManifest(buffer.str());
         if (!manifest)
             return Core::StageResult::Degraded(std::format("{} is malformed", path));
 

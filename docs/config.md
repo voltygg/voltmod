@@ -24,7 +24,7 @@ using ConfigManager = VoltMod::JsonConfig<Settings>;
 
 Member names must match the JSON keys. The `_WITH_DEFAULT` macro means a missing key keeps the member's default. Only a missing file, a parse error, or a wrong-typed value fails the load. JSONC comments are tolerated, and unknown keys are ignored (which is also why retired keys need no config migration).
 
-@ref VoltMod::Core::StandardPluginSettings is the framework-owned "plugin" section; embedding it is what lets `LoadStandardConfig` apply `plugin.locale` to `runtime.Translations` automatically (see @ref plugin_guide).
+@ref VoltMod::App::StandardPluginSettings is the framework-owned "plugin" section; embedding it is what lets `LoadStandardConfig` apply `plugin.locale` to `runtime.Translations` automatically (see @ref plugin_guide).
 
 ### Editor validation with a JSON Schema
 
@@ -121,6 +121,6 @@ auto line = runtime.Translations.Get("cmd.banSuccess", slot, {{"name", targetNam
 ```
 
 Command results (`CommandContext::Ok`/`Fail`), `Flow` validation errors, and
-`MessageSystem::ReplyKey` all resolve through this service in the addressed
+`Messages::ReplyKey` all resolve through this service in the addressed
 player's language. The framework reserves a small set of keys for its own error
 replies; see @ref commands_guide.

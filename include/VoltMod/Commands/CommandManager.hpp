@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoltMod/Commands/CommandSpec.hpp>
-#include <VoltMod/Sdk/Engine/ServerCommand.hpp>
+#include <VoltMod/Engine/ServerCommand.hpp>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -74,7 +74,7 @@ private:
      *  logged once rather than on every attempt. */
     std::unordered_set<std::string> _missingPolicyWarned;
     /** Lowercased command name -> its ConCommand registration, for Surface::Console specs. */
-    std::unordered_map<std::string, std::unique_ptr<Sdk::ServerCommand>> _consoleCommands;
+    std::unordered_map<std::string, std::unique_ptr<Engine::ServerCommand>> _consoleCommands;
 };
 
 }  // namespace VoltMod::Commands

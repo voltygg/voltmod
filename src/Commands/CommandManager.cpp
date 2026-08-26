@@ -1,6 +1,6 @@
 #include <VoltMod/Commands/CommandManager.hpp>
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/StringUtils.hpp>
+#include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Players/TargetResolver.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <algorithm>
@@ -49,7 +49,7 @@ std::string TargetErrorMessage(Core::Translations& tr, const Players::TargetFail
 
 void CommandManager::Register(CommandSpec spec)
 {
-    const std::string name = StringUtils::ToLower(spec.Name);
+    const std::string name = Strings::ToLower(spec.Name);
 
     if (_commands.contains(name) || _aliases.contains(name))
     {
@@ -60,7 +60,7 @@ void CommandManager::Register(CommandSpec spec)
     // Index aliases once and reject collisions for deterministic lookup.
     for (const auto& alias : spec.Aliases)
     {
-        std::string key = StringUtils::ToLower(alias);
+        std::string key = Strings::ToLower(alias);
         if (key.empty() || key == name)
             continue;
 
@@ -91,7 +91,7 @@ void CommandManager::RegisterConsoleCommand(const std::string& name, const Comma
     // The console has no prefix to type, so the derived usage must not claim one.
     const std::string help = spec.Description.empty() ? DeriveUsage(spec, "") : spec.Description;
     _consoleCommands.emplace(
-        name, std::make_unique<Sdk::ServerCommand>(name.c_str(), help.c_str(), [this, name](const CCommand& args) {
+        name, std::make_unique<Engine::ServerCommand>(name.c_str(), help.c_str(), [this, name](const CCommand& args) {
             // Re-resolved per invocation: the spec can be unregistered while the ConCommand
             // lives. `name` is already the canonical key, so no lowering or alias hop is needed.
             auto it = _commands.find(name);
@@ -273,7 +273,7 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
         {
             // A bare numeric token addresses an offline player by SteamID; anything else must
             // resolve to an online player (whose SteamID is then captured too).
-            if (auto id = ParseInt64(token); id && StringUtils::IsNumeric(token))
+            if (auto id = ParseInt64(token); id && Strings::IsNumeric(token))
             {
                 ctx.SteamId = *id;
             }
@@ -297,14 +297,14 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
             if (seconds < 0)
                 return fail(spec, "cmd.badDuration");
             // ParseDuration treats bare numbers as seconds; Duration() reinterprets them as minutes.
-            ctx.DurationSec = StringUtils::IsNumeric(token) ? static_cast<int64_t>(seconds) * 60 : seconds;
+            ctx.DurationSec = Strings::IsNumeric(token) ? static_cast<int64_t>(seconds) * 60 : seconds;
             ++i;
             break;
         }
         case ArgKind::SteamId64:
         {
             auto id = ParseInt64(token);
-            if (!id || !StringUtils::IsNumeric(token))
+            if (!id || !Strings::IsNumeric(token))
                 return fail(spec, "cmd.badSteamId", {{"token", token}});
             ctx.SteamId = *id;
             ++i;
@@ -329,7 +329,7 @@ bool CommandManager::ResolveArgs(const CommandSpec& cmd, const std::vector<std::
         case ArgKind::ReasonTail:
         {
             std::vector<std::string> rest(args.begin() + static_cast<std::ptrdiff_t>(i), args.end());
-            ctx.Reason = StringUtils::Join(rest, " ");
+            ctx.Reason = Strings::Join(rest, " ");
             i = args.size();
             break;
         }
@@ -354,7 +354,7 @@ std::vector<std::string> CommandManager::CommandsMissingPolicy() const
 
 const CommandSpec* CommandManager::GetCommand(const std::string& name) const
 {
-    const std::string key = StringUtils::ToLower(name);
+    const std::string key = Strings::ToLower(name);
 
     if (auto it = _commands.find(key); it != _commands.end())
         return &it->second;
@@ -372,7 +372,7 @@ std::vector<std::string> CommandManager::ParseArguments(const std::string& text)
 {
     // Drop empty tokens so leading/trailing/repeated spaces (e.g. "ban  Bob") don't yield blank args.
     std::vector<std::string> parts;
-    for (auto& token : StringUtils::Split(text, ' '))
+    for (auto& token : Strings::Split(text, ' '))
         if (!token.empty())
             parts.push_back(std::move(token));
     return parts;

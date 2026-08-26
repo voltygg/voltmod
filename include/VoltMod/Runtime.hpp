@@ -5,35 +5,35 @@
 #include <VoltMod/App/StatusService.hpp>
 #include <VoltMod/Commands/CommandManager.hpp>
 #include <VoltMod/Core/LoadReport.hpp>
-#include <VoltMod/Core/PluginPolicy.hpp>
+#include <VoltMod/Core/Policy.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Translations.hpp>
+#include <VoltMod/Engine/Clock.hpp>
+#include <VoltMod/Engine/ConVars.hpp>
+#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Engine/Interfaces.hpp>
+#include <VoltMod/Engine/Map.hpp>
+#include <VoltMod/Engine/NetChannel.hpp>
+#include <VoltMod/Engine/Precache.hpp>
+#include <VoltMod/Entities/Entity.hpp>
+#include <VoltMod/Entities/EntityOps.hpp>
+#include <VoltMod/Entities/Items.hpp>
+#include <VoltMod/Entities/Pawns.hpp>
+#include <VoltMod/Events/GameEvents.hpp>
+#include <VoltMod/Hooks/ChatInput.hpp>
+#include <VoltMod/Hooks/ClientCvars.hpp>
+#include <VoltMod/Hooks/Damage.hpp>
+#include <VoltMod/Hooks/InputHistory.hpp>
+#include <VoltMod/Hooks/Movement.hpp>
+#include <VoltMod/Hooks/Teleport.hpp>
+#include <VoltMod/Hooks/Transmit.hpp>
+#include <VoltMod/Hooks/Visibility.hpp>
 #include <VoltMod/Http/HttpClient.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
+#include <VoltMod/Messaging/Messages.hpp>
+#include <VoltMod/Messaging/Vote.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
-#include <VoltMod/Sdk/Client/ClientCvarService.hpp>
-#include <VoltMod/Sdk/Engine/ConVarService.hpp>
-#include <VoltMod/Sdk/Engine/GameData.hpp>
-#include <VoltMod/Sdk/Engine/GameInterfaces.hpp>
-#include <VoltMod/Sdk/Engine/MapService.hpp>
-#include <VoltMod/Sdk/Engine/NetChannel.hpp>
-#include <VoltMod/Sdk/Engine/PrecacheService.hpp>
-#include <VoltMod/Sdk/Engine/ServerClock.hpp>
-#include <VoltMod/Sdk/Entity/DamageHook.hpp>
-#include <VoltMod/Sdk/Entity/Entity.hpp>
-#include <VoltMod/Sdk/Entity/EntityOps.hpp>
-#include <VoltMod/Sdk/Entity/ItemService.hpp>
-#include <VoltMod/Sdk/Entity/PawnService.hpp>
-#include <VoltMod/Sdk/Events/GameEventService.hpp>
-#include <VoltMod/Sdk/Messaging/ChatInputCapture.hpp>
-#include <VoltMod/Sdk/Messaging/PanoramaVote.hpp>
-#include <VoltMod/Sdk/Messaging/UserMessage.hpp>
-#include <VoltMod/Sdk/Movement/InputHistoryService.hpp>
-#include <VoltMod/Sdk/Movement/MovementHook.hpp>
-#include <VoltMod/Sdk/Movement/TeleportTracker.hpp>
-#include <VoltMod/Sdk/Visibility/TransmitFilter.hpp>
-#include <VoltMod/Sdk/Visibility/VisibilityService.hpp>
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -44,7 +44,7 @@ class ISmmAPI;
 }
 using SourceMM::ISmmAPI;
 
-namespace VoltMod::Sdk
+namespace VoltMod::Entities
 {
 class SchemaService;  // Internal type kept out of the public include graph.
 }
@@ -92,7 +92,7 @@ public:
 
     // Core services.
     /** Plugin-supplied permission, targeting and reply rules. Set once in OnLoad. */
-    Core::PluginPolicy Policy;
+    Core::Policy Policy;
     /** Named, timed load stages recorded by Start and by the plugin's OnLoad. */
     Core::LoadReport LoadReport;
     /** "This slot changed hands", raised by the roster and consumed by per-slot caches. */
@@ -109,64 +109,64 @@ public:
 
     // Engine-facing services.
     /** Plain interface-pointer holder; populated by Start. */
-    Sdk::GameInterfaces Interfaces;
-    Sdk::GameData GameData;
+    Engine::Interfaces Interfaces;
+    Engine::GameData GameData;
 
 private:
     /** Internal schema-offset service, declared here because the engine services below take it.
      *  Constructed in Runtime::Runtime because the type is only forward-declared in this header.
      *  Depends on: Interfaces. */
-    std::unique_ptr<Sdk::SchemaService> _schema;
+    std::unique_ptr<Entities::SchemaService> _schema;
 
 public:
     /** Depends on: Interfaces, GameData, Schema(). */
-    Sdk::EntitySystem Entities{Interfaces, GameData, *_schema};
+    Entities::EntitySystem Entities{Interfaces, GameData, *_schema};
     /** Pawn manipulations that need framework services, such as slap and its fall protection.
      *  Depends on: Scheduler, Slots, Entities. */
-    Sdk::PawnService Pawns{Scheduler, Slots, Entities};
+    Entities::Pawns Pawns{Scheduler, Slots, Entities};
     /** Depends on: Entities, GameData, Schema(). */
-    Sdk::EntityOpsService EntityOps{Entities, GameData, *_schema};
+    Entities::EntityOps EntityOps{Entities, GameData, *_schema};
     /** Weapon give/strip through CCSPlayer_ItemServices. Depends on: GameData, Schema(). */
-    Sdk::ItemService Items{GameData, *_schema};
+    Entities::Items Items{GameData, *_schema};
     /** Depends on: Entities, GameData, Schema(), Slots. */
-    Sdk::TransmitFilterService Transmit{Entities, GameData, *_schema, Slots};
+    Hooks::Transmit Transmit{Entities, GameData, *_schema, Slots};
     /** Builds per-viewer visibility effects (GlowVision). Depends on: Entities, EntityOps, Transmit. */
-    Sdk::VisibilityService Visibility{Entities, EntityOps, Transmit};
+    Hooks::Visibility Visibility{Entities, EntityOps, Transmit};
     /** Depends on: GameData. */
-    Sdk::PrecacheService Precache{GameData};
+    Engine::Precache Precache{GameData};
     /** Depends on: Interfaces. */
-    Sdk::ConVarService ConVars{Interfaces};
+    Engine::ConVars ConVars{Interfaces};
     /** Map validation and level changes. Depends on: Interfaces, ConVars. */
-    Sdk::MapService Maps{Interfaces, ConVars};
+    Engine::Map Maps{Interfaces, ConVars};
     /** Depends on: Interfaces, GameData. Declared before Messages, which sends through it. */
-    Sdk::GameEventService Events{Interfaces, GameData};
+    Events::GameEvents Events{Interfaces, GameData};
     /** Depends on: Interfaces, GameData, Events, Translations. */
-    Sdk::MessageSystem Messages{Interfaces, GameData, Events, Translations};
+    Messaging::Messages Messages{Interfaces, GameData, Events, Translations};
     /** The engine's simulation clock (tick and curtime). Depends on: Interfaces. */
-    Sdk::ServerClock Clock{Interfaces};
+    Engine::Clock Clock{Interfaces};
     /** The game's own yes/no vote panel. Subscribes on the first StartVote().
      *  Depends on: Interfaces, Entities, Schema(), Events, Scheduler. */
-    Sdk::PanoramaVote Vote{Interfaces, Entities, *_schema, Events, Scheduler};
+    Messaging::Vote Vote{Interfaces, Entities, *_schema, Events, Scheduler};
     /** Dormant until a plugin calls Install(); removes its vtable hook on destruction.
      *  Depends on: Entities, GameData. */
-    Sdk::MovementHook MovementHook{Entities, GameData};
+    Hooks::Movement MovementHook{Entities, GameData};
     /** Dormant until Install(); observation only - listeners see each hit but cannot change it.
      *  Depends on: Entities, GameData. */
-    Sdk::DamageHook Damage{Entities, GameData};
+    Hooks::Damage Damage{Entities, GameData};
     /** Stateless per-client net-channel reads (latency, replicated userinfo cvars).
      *  Depends on: Interfaces. */
-    Sdk::NetChannelService NetChannels{Interfaces};
+    Engine::NetChannels NetChannels{Interfaces};
     /** Depends on: Scheduler, Slots. */
-    Sdk::ChatInputCapture ChatInput{Scheduler, Slots};
+    Hooks::ChatInput ChatInput{Scheduler, Slots};
     /** Dormant until Enable(depth); listens on the MovementHook cmd feed + slot changes.
      *  Depends on: MovementHook, Slots. */
-    Sdk::InputHistoryService InputHistory{MovementHook, Slots};
+    Hooks::InputHistory InputHistory{MovementHook, Slots};
     /** Dormant until Enable(); per-pawn Teleport hook re-bound on PlayerSpawn.
      *  Depends on: Entities, GameData, Events, Clock, Slots. */
-    Sdk::TeleportTracker Teleports{Entities, GameData, Events, Clock, Slots};
+    Hooks::Teleport Teleports{Entities, GameData, Events, Clock, Slots};
     /** Async client-side convar reads. Inert when its load stage degraded (Available() == false).
      *  Depends on: Interfaces, GameData, Slots. */
-    Sdk::ClientCvarService ClientCvars{Interfaces, GameData, Slots};
+    Hooks::ClientCvars ClientCvars{Interfaces, GameData, Slots};
 
     // Composition-root services.
     /** Interfaces offered to, and borrowed from, other plugins. */
@@ -183,7 +183,7 @@ public:
     Menu::MenuManager Menus{*this};
 
     /** Internal schema-offset service (forward-declared type). */
-    Sdk::SchemaService& Schema() { return *_schema; }
+    Entities::SchemaService& Schema() { return *_schema; }
 
     // These names shadow their namespaces, so keep them last.
     Players::PlayerManager Players{Slots};

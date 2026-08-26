@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/StringUtils.hpp>
+#include <VoltMod/Core/Strings.hpp>
 #include <concepts>
 #include <cstddef>
 #include <format>
@@ -21,7 +21,7 @@ namespace VoltMod::Core::Validation
 /** Reset @p value to @p fallback (warning names @p what) when it is blank or longer than @p maxLen. */
 inline void NormalizeTag(std::string& value, std::size_t maxLen, std::string_view fallback, std::string_view what)
 {
-    if (!StringUtils::Trim(value).empty() && value.size() <= maxLen)
+    if (!Strings::Trim(value).empty() && value.size() <= maxLen)
         return;
 
     Log::Warn("settings: {} is empty or longer than {} chars; using \"{}\"", what, maxLen, fallback);

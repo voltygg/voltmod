@@ -1,7 +1,7 @@
 #pragma once
 
+#include <VoltMod/App/PluginManifest.hpp>
 #include <VoltMod/App/ServiceExchange.hpp>
-#include <VoltMod/Core/PluginManifest.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
 #include <string>
 
@@ -19,7 +19,7 @@ namespace VoltMod::App
  * that is missing. Callers still handle a null from ServiceExchange::Get, which stays
  * correct whenever a peer arrives or leaves.
  */
-class PluginIdentity final : public Core::IPluginIdentity
+class PluginIdentity final : public App::IPluginIdentity
 {
 public:
     /** @p exchange and @p scheduler must outlive this object; both are declared above it. */
@@ -30,19 +30,19 @@ public:
     PluginIdentity& operator=(const PluginIdentity&) = delete;
 
     /** Take @p manifest, publish it, and queue the dependency report. */
-    void Adopt(Core::PluginManifest manifest);
+    void Adopt(App::PluginManifest manifest);
     /** Stop answering peer lookups. Idempotent; the destructor calls it. */
     void Withdraw();
 
     /** What this plugin declared; empty when it ships no manifest. */
-    const Core::PluginManifest& Manifest() const { return _manifest; }
+    const App::PluginManifest& Manifest() const { return _manifest; }
 
     const char* PluginVersion() const override { return _manifest.Version.c_str(); }
 
 private:
     ServiceExchange& _exchange;
     Core::Scheduler& _scheduler;
-    Core::PluginManifest _manifest;
+    App::PluginManifest _manifest;
     std::string _key;
 };
 

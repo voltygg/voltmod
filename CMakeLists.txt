@@ -30,8 +30,12 @@ find_package(metamod-source CONFIG REQUIRED)
 file(GLOB_RECURSE VOLTMOD_RUNTIME_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Core/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Http/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/Sdk/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Engine/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Entities/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Events/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Messaging/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Players/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Hooks/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Commands/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Menu/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/App/*.cpp"
@@ -103,18 +107,20 @@ if(BUILD_TESTING)
             src/Core/EffectManager.cpp
             src/Core/Logger.cpp
             src/Core/Paths.cpp
-            src/Core/PluginManifest.cpp
+            src/App/PluginManifest.cpp
             src/Core/ScheduledEffect.cpp
             src/Core/Scheduler.cpp
             src/Players/Player.cpp
             src/Players/PlayerManager.cpp
             src/Players/Targeting.cpp
-            src/Sdk/Client/ClientCvarPending.cpp
-            src/Sdk/Engine/ConVarSnapshots.cpp
-            src/Core/StringUtils.cpp
+            src/Hooks/ClientCvarPending.cpp
+            src/Engine/ConVarSnapshots.cpp
+            src/Core/Strings.cpp
             src/Core/SteamId.cpp
-            src/Core/TimeUtils.cpp
+            src/Core/Time.cpp
             src/Core/Translations.cpp
+        # ClientCvarPendingTests reaches an implementation-only header under src/.
+        INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src"
         # For PluginManifest's JSON parsing.
         LIBRARIES nlohmann_json::nlohmann_json
     )

@@ -19,7 +19,12 @@ answers `!ping`.
 | Commands | `VoltMod::Commands` | Declarative commands with typed, pre-resolved arguments |
 | Players | `VoltMod::Players` | Player tracking, target selectors, and actions |
 | Menu | `VoltMod::Menu` | WASD center-HTML menus, context rows, pickers, and flows |
-| Sdk | `VoltMod::Sdk` | Entities, schemas, gamedata, hooks, events, messages, convars, and pawn operations |
+| Engine | `VoltMod::Engine` | Interfaces, gamedata, convars, the server clock, maps, precaching, and console commands |
+| Entities | `VoltMod::Entities` | Entity lookup, the typed player controller, schema fields, items, and pawn operations |
+| Events | `VoltMod::Events` | The game event listener service and its typed event structs |
+| Messaging | `VoltMod::Messaging` | Chat and center-HTML messages, sticky panels, chat colors, and the vote panel |
+| Hooks | `VoltMod::Hooks` | Movement, damage, transmit, teleport, chat-input, and client-convar hooks |
+| Unsafe | (macros) | `VOLTMOD_SCOPED_HOOK` for raw SourceHook installs |
 | Database | `VoltMod::Database` | Optional async PostgreSQL, migrations, and row mapping |
 | Http | `VoltMod::Http` | Async HTTP and configured JSON endpoints |
 | App | `VoltMod::App` | Metamod lifecycle, JSONC loading, status, and cross-plugin services |

@@ -2,24 +2,24 @@
 
 [TOC]
 
-## EntityRender
+## Render
 
 These helpers change `m_nRenderMode` and `m_clrRender` on a
 `CBaseModelEntity`. `PlayerController::SetVisible` uses them internally. The first
 argument is the schema service the offsets come from, `runtime.Schema()`.
 
 ```cpp
-using namespace VoltMod::Sdk;
+using namespace VoltMod::Entities;
 
-SetEntityRender(runtime.Schema(), prop, RenderMode_t::TransTexture, ColorInvisible);
-SetEntityRender(runtime.Schema(), prop, RenderMode_t::Normal, ColorOpaqueWhite);
+SetRender(runtime.Schema(), prop, RenderMode_t::TransTexture, ColorInvisible);
+SetRender(runtime.Schema(), prop, RenderMode_t::Normal, ColorOpaqueWhite);
 ```
 
 `m_clrRender` is RGBA packed as `(A << 24) | (B << 16) | (G << 8) | R`. `ColorInvisible` (`0x00FFFFFF`) is white at zero alpha.
 
-Render tricks only affect the pawn body; held weapons, wearables and gloves are separate networked entities. For true invisibility use the TransmitFilter instead.
+Render tricks only affect the pawn body; held weapons, wearables and gloves are separate networked entities. For true invisibility use the Transmit filter instead.
 
-## TransmitFilter
+## Transmit
 
 Per-recipient transmit filtering uses a post-hook on
 `ISource2GameEntities::CheckTransmit`. Hidden entities are never sent to the
@@ -49,10 +49,10 @@ Requires the `CheckTransmitPlayerSlot` gamedata offset (the recipient slot insid
 
 ## GlowVision
 
-Per-viewer wallhack-style vision built on the TransmitFilter: one client sees live players as team-colored glow outlines through walls, while every other client (and GOTV) never receives the glow entities. They are invisible to those clients by construction rather than by a rendering trick. Each glowing player gets two `prop_dynamic` clones following their pawn: an invisible relay and a glow prop parented to it (the indirection renders only the outline). Both are transmit-filtered exclusively to the beneficiary.
+Per-viewer wallhack-style vision built on the Transmit filter: one client sees live players as team-colored glow outlines through walls, while every other client (and GOTV) never receives the glow entities. They are invisible to those clients by construction rather than by a rendering trick. Each glowing player gets two `prop_dynamic` clones following their pawn: an invisible relay and a glow prop parented to it (the indirection renders only the outline). Both are transmit-filtered exclusively to the beneficiary.
 
 ```cpp
-using VoltMod::Sdk::GlowVision;
+using VoltMod::Hooks::GlowVision;
 
 auto glow = runtime.Visibility.CreateGlow(viewerSlot);
 glow->Reconcile();  // build the clones immediately
@@ -63,7 +63,7 @@ glow->Reconcile();  // build the clones immediately
 //   .OnStop = [glow] { glow->Destroy(); },
 ```
 
-`Reconcile` tracks spawns, deaths, and team/model changes, and rebuilds clones the engine destroyed on a round restart. It skips the beneficiary, dead and spectating players, and pawns hidden via the TransmitFilter (a ghosted pawn never transmits, so a clone would follow nothing). `Destroy` clears the transmit-filter entries and removes any surviving clones.
+`Reconcile` tracks spawns, deaths, and team/model changes, and rebuilds clones the engine destroyed on a round restart. It skips the beneficiary, dead and spectating players, and pawns hidden via the Transmit filter (a ghosted pawn never transmits, so a clone would follow nothing). `Destroy` clears the transmit-filter entries and removes any surviving clones.
 
 Team colors and the glow set are configurable; the optional `Filter` veto runs on top of the built-in checks:
 
@@ -77,4 +77,4 @@ GlowVision::Config config{
 auto glow = runtime.Visibility.CreateGlow(viewerSlot, std::move(config));
 ```
 
-Costs two entities per glowing player and inherits the TransmitFilter's gamedata requirement. Without the `CheckTransmitPlayerSlot` offset the clones would be visible to everyone, so do not use it when the filter is inert.
+Costs two entities per glowing player and inherits the Transmit filter's gamedata requirement. Without the `CheckTransmitPlayerSlot` offset the clones would be visible to everyone, so do not use it when the filter is inert.

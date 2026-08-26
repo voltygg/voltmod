@@ -1,7 +1,7 @@
 #pragma once
 
-#include <VoltMod/Core/MetamodGlobals.hpp>
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <cstddef>
 #include <eiface.h>
 #include <functional>

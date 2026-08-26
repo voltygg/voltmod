@@ -41,7 +41,7 @@ scripts/voltmod/     The `voltmod` Python CLI
 templates/plugin/    Files copied by `voltmod new-plugin`
 templates/project/   Files copied by `voltmod init`
 test_package/        Conan package smoke test
-tests/               SDK-free doctest suite, grouped by module
+tests/               HL2SDK-free doctest suite, grouped by module
 docs/                Doxygen guides
 ```
 
@@ -60,7 +60,8 @@ voltmod_add_plugin(my-plugin VERSION 1.0.0)
 
 The framework builds two libraries:
 
-- `VoltMod::Runtime` contains Core, SDK, Players, Commands, Menu, HTTP, and App.
+- `VoltMod::Runtime` contains Core, Engine, Entities, Events, Messaging, Players,
+  Hooks, Commands, Menu, HTTP, and App.
 - `VoltMod::Database` contains the optional PostgreSQL layer.
 
 `VoltMod::VoltMod` is the umbrella target. A plugin gets only Runtime by
@@ -89,9 +90,10 @@ modules does not rename the consumer API.
 
 There is no ambient accessor for the runtime; everything is injected:
 
-- `Sdk`, `Core`, `Http`, and `Database` never name `Runtime`. They take the
-  sibling services they use. `modgraph` fails a `.cpp` in those modules that
-  includes `VoltMod/Runtime.hpp`.
+- `Core`, `Engine`, `Entities`, `Events`, `Messaging`, `Hooks`, `Http`, and
+  `Database` never name `Runtime`. They take the sibling services they use.
+  `modgraph` fails a `.cpp` in those modules that includes
+  `VoltMod/Runtime.hpp`.
 - `Players`, `Commands`, `Menu`, and `App` may take `Runtime&`, or the narrowest
   service that does the job.
 - Header templates plugins instantiate (`Flow<TState>`, `PerSlot<T>`) take one
@@ -121,14 +123,19 @@ Use these patterns throughout the framework:
 `scripts/voltmod/modgraph.py`:
 
 ```text
-Core      -> none
-Http      -> Core
-Sdk       -> Core
-Players   -> Core, Sdk
-Commands  -> Core, Sdk, Players
-Menu      -> Core, Sdk, Players
-Database  -> Core
-App       -> all modules
+Core       -> none
+Engine     -> Core
+Entities   -> Core, Engine
+Events     -> Core, Engine, Entities
+Messaging  -> Core, Engine, Entities, Events
+Players    -> Core, Engine, Entities
+Hooks      -> Core, Engine, Entities, Events, Players
+Commands   -> Core, Engine, Entities, Players, Messaging
+Menu       -> Core, Engine, Entities, Players, Messaging, Hooks
+Http       -> Core
+Database   -> Core
+Unsafe     -> Core, Engine
+App        -> all modules
 ```
 
 An acyclic graph is not enough; an upward dependency still violates this
@@ -155,6 +162,6 @@ layering.
   generated output. Use plain English and sentence-case headings; call VoltMod
   the framework and reserve "library" for actual libraries or CMake targets.
 
-Tests use doctest and must remain SDK-free unless a separate integration-test
+Tests use doctest and must remain HL2SDK-free unless a separate integration-test
 surface is added. Each test case becomes a CTest entry; names must not contain
 `[`, `]`, or `;`.

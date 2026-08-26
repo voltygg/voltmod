@@ -47,7 +47,7 @@ MenuBuilder(title)
     .Build();
 ```
 
-A context left without `.Rt` is inert: `Allowed` denies, so every context row renders disabled. `AddStateToggleRow` re-reads its predicate every redraw, so the same row shows "Freeze"/"Unfreeze" reality and doubles as the undo control. The pawn predicates (`InMoveType`, `HasPawnFlag`) live in `Sdk/Entity/PawnPredicates.hpp`. Effect rows read on/off labels from the reserved keys `effectState.on` / `effectState.off`; the descriptors themselves are covered in @ref players_guide.
+A context left without `.Rt` is inert: `Allowed` denies, so every context row renders disabled. `AddStateToggleRow` re-reads its predicate every redraw, so the same row shows "Freeze"/"Unfreeze" reality and doubles as the undo control. The pawn predicates (`InMoveType`, `HasPawnFlag`) live in `Entities/PawnPredicates.hpp`. Effect rows read on/off labels from the reserved keys `effectState.on` / `effectState.off`; the descriptors themselves are covered in @ref players_guide.
 
 ## Flow: multistep wizards
 
@@ -105,7 +105,7 @@ Every builder method appends a typed row. Use
 - `AddSelector<T>(title, values, formatter, ...)` is Choice for value types without their own label (seconds → `"5m"`, enum → translation).
 - `AddSlider(title, min, max, step, getValue, setValue, enabled = true)`: A/D adjusts in steps, clamped, and renders a unicode bar.
 - `AddProgressBar(title, getValue, max)` is a read-only bar the cursor skips.
-- `AddInput(title, prompt, get, set, maxLength = 64, enabled = true)`: E pauses the menu and routes the player's next chat line into `set`; return `false` to re-prompt, `true` to accept. R cancels. Backed by @ref VoltMod::Sdk::ChatInputCapture, so your chat hook must call `runtime.ChatInput.TryConsume` first (see @ref sdk_messaging_guide).
+- `AddInput(title, prompt, get, set, maxLength = 64, enabled = true)`: E pauses the menu and routes the player's next chat line into `set`; return `false` to re-prompt, `true` to accept. R cancels. Backed by @ref VoltMod::Hooks::ChatInput, so your chat hook must call `runtime.ChatInput.TryConsume` first (see @ref sdk_messaging_guide).
 - `AddSubmenu(label, factory, enabled = true)` runs the factory lazily on E and pushes the returned menu onto the stack; R pops back.
 
 ## Pagination

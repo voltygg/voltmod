@@ -1,5 +1,5 @@
 #include <VoltMod/Core/Json.hpp>
-#include <VoltMod/Core/StringUtils.hpp>
+#include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Http/RestJsonApi.hpp>
 #include <utility>
 
@@ -7,7 +7,7 @@ namespace VoltMod::Http
 {
 
 using Core::Json;
-using Core::StringUtils;
+using Core::Strings;
 
 namespace
 {
@@ -49,7 +49,7 @@ std::optional<HttpRequest> BuildJsonGet(const JsonGetSpec& spec, const std::map<
     AppendAuthHeader(headers, spec.ApiKey, spec.AuthHeader, spec.AuthScheme);
 
     return HttpRequest{
-        .Url = StringUtils::SubstituteTokens(spec.UrlTemplate, tokens),
+        .Url = Strings::SubstituteTokens(spec.UrlTemplate, tokens),
         .Headers = std::move(headers),
         .TimeoutMs = spec.TimeoutMs,
     };
@@ -72,7 +72,7 @@ std::string ExtractField(const HttpResult& result, std::string_view dotPath, con
     const std::string raw = Json::GetStringByPath(json, dotPath);
     if (raw.empty())
         return {};
-    return valueTemplate.empty() ? raw : StringUtils::SubstituteTokens(valueTemplate, {{"value", raw}});
+    return valueTemplate.empty() ? raw : Strings::SubstituteTokens(valueTemplate, {{"value", raw}});
 }
 
 void Post(HttpClient& client, HttpRequest request, HttpCompletion onComplete)

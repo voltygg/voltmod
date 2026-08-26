@@ -1,10 +1,10 @@
 #pragma once
 
+#include <VoltMod/Core/PerSlot.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Hooks/ChatInput.hpp>
 #include <VoltMod/Menu/Menu.hpp>
-#include <VoltMod/Players/PerSlot.hpp>
-#include <VoltMod/Sdk/Messaging/ChatInputCapture.hpp>
 #include <string>
 #include <string_view>
 
@@ -61,8 +61,8 @@ public:
     void CloseAllWithReply(int slot, std::string_view key);
 
     /** Route the player's next chat line to @p callback, showing @p prompt over the open menu.
-     *  Rows use this instead of reaching for the runtime's ChatInputCapture themselves. */
-    void BeginInput(int slot, std::string prompt, Sdk::ChatInputCapture::Callback callback);
+     *  Rows use this instead of reaching for the runtime's ChatInput themselves. */
+    void BeginInput(int slot, std::string prompt, Hooks::ChatInput::Callback callback);
 
     /** True if the player has any menu currently open. */
     bool HasActiveMenu(int slot) const;
@@ -88,7 +88,7 @@ private:
 
     Runtime& _runtime;
     /** Per-player menu state; PerSlot clears a slot's stack when it changes hands. */
-    Players::PerSlot<PlayerMenuState> _states;
+    Core::PerSlot<PlayerMenuState> _states;
     static constexpr int64_t InputDebounceMs = 200;
     bool _freezePlayer = false;
     /** Declared after _states: the frame pump drops before the state it touches. */

@@ -7,13 +7,19 @@ from pathlib import Path
 # Transitive edges are explicit so this also documents the layering.
 ALLOWED: dict[str, set[str]] = {
     "Core": set(),
+    "Engine": {"Core"},
+    "Entities": {"Core", "Engine"},
+    "Events": {"Core", "Engine", "Entities"},
+    "Messaging": {"Core", "Engine", "Entities", "Events"},
+    "Players": {"Core", "Engine", "Entities"},
+    "Hooks": {"Core", "Engine", "Entities", "Events", "Players"},
+    "Commands": {"Core", "Engine", "Entities", "Players", "Messaging"},
+    "Menu": {"Core", "Engine", "Entities", "Players", "Messaging", "Hooks"},
     "Http": {"Core"},
-    "Sdk": {"Core"},
-    "Players": {"Core", "Sdk"},
-    "Commands": {"Core", "Sdk", "Players"},
-    "Menu": {"Core", "Sdk", "Players"},
     "Database": {"Core"},
-    "App": {"Core", "Http", "Sdk", "Players", "Commands", "Menu", "Database"},
+    "Unsafe": {"Core", "Engine"},
+    "App": {"Core", "Engine", "Entities", "Events", "Messaging", "Players", "Hooks",
+            "Commands", "Menu", "Http", "Database", "Unsafe"},
 }
 
 INCLUDE = re.compile(r'#\s*include\s*[<"]VoltMod/([A-Za-z0-9_]+)/([^>"]+)[>"]')

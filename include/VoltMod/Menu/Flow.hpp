@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Core/StringUtils.hpp>
+#include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
@@ -133,7 +133,7 @@ public:
                     builder.AddInput(
                         custom, customPrompt ? customPrompt(slot) : "", [](int) { return std::string(); },
                         [self, set, customValue](int s, std::string_view text) {
-                            std::string typed = Core::StringUtils::Trim(std::string(text));
+                            std::string typed = Core::Strings::Trim(std::string(text));
                             if (typed.empty())
                                 return false;  // re-prompt
                             set(self->_state, typed, customValue.empty() ? typed : customValue);

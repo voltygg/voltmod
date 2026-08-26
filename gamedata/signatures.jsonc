@@ -38,7 +38,7 @@
       "linux": 576
     },
     // CPlayer_MovementServices::RunCommand vtable index (SwiftlyS2 v1.4.5: 25/26).
-    // Drives Sdk::MovementHook - a wrong index calls an unrelated vfunc and crashes.
+    // Drives Hooks::Movement - a wrong index calls an unrelated vfunc and crashes.
     "RunCommand": {
       "windows": 25,
       "linux": 26
@@ -55,7 +55,7 @@
       "linux": 8
     },
     // CCSPlayerPawn::OnTakeDamage_Alive vtable index (CS2Fixes: 252/253).
-    // Drives Sdk::DamageHook - a wrong index calls an unrelated vfunc and crashes.
+    // Drives Hooks::Damage - a wrong index calls an unrelated vfunc and crashes.
     "OnTakeDamageAlive": {
       "windows": 252,
       "linux": 253
@@ -82,7 +82,7 @@
       "linux": 72
     },
 
-    // Field offsets read by Sdk::DamageHook. The SDK does not declare CTakeDamageInfo, so these
+    // Field offsets read by Hooks::Damage. The SDK does not declare CTakeDamageInfo, so these
     // are the only way to reach its fields; layouts are CS2Fixes' ctakedamageinfo.h plus
     // SwiftlyS2's CGameTrace/CHitBoxTrace, same on both platforms. A wrong offset reads the wrong
     // field rather than crashing, so the hook checks each one resolved. The hook only reads, so

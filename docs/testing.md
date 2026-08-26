@@ -35,12 +35,13 @@ build/windows-msvc-release/vendor/voltmod/voltmod-utils-tests.exe --success   # 
 ## Writing a test
 
 Every `tests/**/*.cpp` is a test TU holding nothing but test cases, grouped into
-subfolders by module (`Core/`, `Sdk/`, `Players/`, `Commands/`, `App/`, `Database/`);
+subfolders by module (`Core/`, `Engine/`, `Entities/`, `Hooks/`, `Players/`, `Commands/`,
+`App/`, `Database/`);
 `voltmod_add_tests()` supplies doctest's `main`. A new file needs no registration
 because the recursive glob picks it up.
 
 ```cpp
-#include <VoltMod/Core/StringUtils.hpp>
+#include <VoltMod/Core/Strings.hpp>
 #include <doctest/doctest.h>
 #include <string>
 
@@ -124,7 +125,7 @@ own case:
 ```cpp
 TEST_CASE_TEMPLATE("Trim accepts any string-like input", T, const char*, std::string)
 {
-    CHECK_EQ(StringUtils::Trim(T{"  hi  "}), std::string("hi"));
+    CHECK_EQ(Strings::Trim(T{"  hi  "}), std::string("hi"));
 }
 ```
 

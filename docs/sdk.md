@@ -4,7 +4,8 @@
 
 ## Overview
 
-`VoltMod::Sdk` is the engine wrapper layer: typed classes over HL2SDK interfaces
+`VoltMod::Engine`, `VoltMod::Entities`, `VoltMod::Events`, `VoltMod::Messaging` and
+`VoltMod::Hooks` are the engine wrapper layer: typed classes over HL2SDK interfaces
 so plugin code does not have to juggle raw pointers and reversed offsets.
 
 The guide is split by topic:
@@ -18,7 +19,7 @@ The guide is split by topic:
 - @subpage sdk_hooks_guide - the per-tick movement and damage hooks, teleport tracking, and RAII server console commands
 - @subpage sdk_client_telemetry_guide - the server clock, per-client latency, and client convar queries
 
-## GameInterfaces
+## Interfaces
 
 `Runtime::Start()` populates this holder with the SDK interfaces used by the
 framework.
@@ -34,6 +35,6 @@ auto* schema = gi.SchemaSystem; // ISchemaSystem*
 // ... etc.
 ```
 
-Other SDK classes read from this holder internally. The examples on these pages
+Other engine-facing classes read from this holder internally. The examples on these pages
 reach services through `runtime.GameData`, `runtime.Entities`, `runtime.Schema()`,
 and the corresponding runtime members.

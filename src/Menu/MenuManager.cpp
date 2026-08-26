@@ -1,13 +1,13 @@
 #include "Menu/MenuRenderer.hpp"
 
 #include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Entities/Entity.hpp>
+#include <VoltMod/Entities/PlayerController.hpp>
+#include <VoltMod/Hooks/ChatInput.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Menu/MenuOption.hpp>
+#include <VoltMod/Messaging/Messages.hpp>
 #include <VoltMod/Runtime.hpp>
-#include <VoltMod/Sdk/Entity/Entity.hpp>
-#include <VoltMod/Sdk/Entity/PlayerController.hpp>
-#include <VoltMod/Sdk/Messaging/ChatInputCapture.hpp>
-#include <VoltMod/Sdk/Messaging/UserMessage.hpp>
 #include <algorithm>
 #include <chrono>
 
@@ -15,7 +15,6 @@ namespace VoltMod::Menu
 {
 
 using namespace VoltMod::Core;
-using namespace VoltMod::Sdk;
 
 static int64_t GetCurrentTimeMs()
 {
@@ -158,7 +157,7 @@ void MenuManager::CloseAllWithReply(int slot, std::string_view key)
     CloseAllMenus(slot);
 }
 
-void MenuManager::BeginInput(int slot, std::string prompt, Sdk::ChatInputCapture::Callback callback)
+void MenuManager::BeginInput(int slot, std::string prompt, Hooks::ChatInput::Callback callback)
 {
     _runtime.ChatInput.BeginCapture(slot, std::move(prompt), std::move(callback));
 }
@@ -178,14 +177,14 @@ void MenuManager::SetPlayerFrozen(int slot, bool frozen)
     if (frozen == state.MovementFrozen)
         return;
 
-    PlayerController pc = _runtime.Entities.Controller(slot);
+    Entities::PlayerController pc = _runtime.Entities.Controller(slot);
     if (!pc.IsValid())
         return;
 
     if (frozen)
         state.PrevMoveType = pc.GetMoveType();
 
-    pc.SetMoveType(frozen ? MoveType::None : state.PrevMoveType);
+    pc.SetMoveType(frozen ? Entities::MoveType::None : state.PrevMoveType);
     state.MovementFrozen = frozen;
 }
 
@@ -251,7 +250,7 @@ void MenuManager::HandleInput(int slot, uint64_t buttons, uint64_t prevButtons)
     auto& capture = _runtime.ChatInput;
     if (capture.IsCapturing(slot))
     {
-        if (pressed & IN_RELOAD)
+        if (pressed & Entities::IN_RELOAD)
         {
             capture.CancelCapture(slot);
             state.LastInputTime = now;
@@ -268,11 +267,11 @@ void MenuManager::HandleInput(int slot, uint64_t buttons, uint64_t prevButtons)
 
     auto& currentOption = menu->Items[state.SelectedIndex];
 
-    if (pressed & IN_FORWARD)
+    if (pressed & Entities::IN_FORWARD)
         StepCursor(menu->Items, state.SelectedIndex, -1);
-    else if (pressed & IN_BACK)
+    else if (pressed & Entities::IN_BACK)
         StepCursor(menu->Items, state.SelectedIndex, +1);
-    else if (pressed & IN_MOVELEFT)
+    else if (pressed & Entities::IN_MOVELEFT)
     {
         bool consumed = currentOption && currentOption->IsEnabled() && currentOption->OnHorizontal(slot, -1);
         if (!consumed && isPaginated)
@@ -280,7 +279,7 @@ void MenuManager::HandleInput(int slot, uint64_t buttons, uint64_t prevButtons)
         else if (!consumed)
             inputHandled = false;
     }
-    else if (pressed & IN_MOVERIGHT)
+    else if (pressed & Entities::IN_MOVERIGHT)
     {
         bool consumed = currentOption && currentOption->IsEnabled() && currentOption->OnHorizontal(slot, +1);
         if (!consumed && isPaginated)
@@ -288,12 +287,12 @@ void MenuManager::HandleInput(int slot, uint64_t buttons, uint64_t prevButtons)
         else if (!consumed)
             inputHandled = false;
     }
-    else if (pressed & IN_USE)
+    else if (pressed & Entities::IN_USE)
     {
         if (currentOption && currentOption->IsEnabled() && currentOption->IsSelectable())
             currentOption->OnActivate(slot, *this);
     }
-    else if (pressed & IN_RELOAD)
+    else if (pressed & Entities::IN_RELOAD)
         CloseMenu(slot);
     else
         inputHandled = false;

@@ -2,13 +2,13 @@
 
 [TOC]
 
-## MovementHook
+## Movement
 
-@ref VoltMod::Sdk::MovementHook is a manual vtable hook on
+@ref VoltMod::Hooks::Movement is a manual vtable hook on
 `CCSPlayer_MovementServices::RunCommand`, the per-tick movement entry point.
 Pre/post callbacks bracket one player's movement processing, which makes them
 the right place for per-player state flips (see
-@ref VoltMod::Sdk::ConVarStorage "ConVarStorage").
+@ref VoltMod::Engine::ConVarStorage "ConVarStorage").
 
 The service stays dormant until a plugin calls `Install()` and removes its hook
 on destruction.
@@ -26,14 +26,14 @@ runtime.MovementHook.Install();   // no-op once installed
 
 Hook contracts:
 
-- The hook is a SourceHook **DVP hook**: it binds the `CCSPlayer_MovementServices` class vtable, which is found in `server.dll`/`libserver.so` by the same RTTI (Windows) / ELF symbol (Linux) lookup @ref VoltMod::Sdk::ClientCvarService uses for `CServerSideClient`. No instance is involved, so `Install()` succeeds with no player connected and the callbacks then fire for every player, including ones who connect afterwards.
+- The hook is a SourceHook **DVP hook**: it binds the `CCSPlayer_MovementServices` class vtable, which is found in `server.dll`/`libserver.so` by the same RTTI (Windows) / ELF symbol (Linux) lookup @ref VoltMod::Hooks::ClientCvars uses for `CServerSideClient`. No instance is involved, so `Install()` succeeds with no player connected and the callbacks then fire for every player, including ones who connect afterwards.
 - The owning slot is resolved for you (`-1` when unresolved, e.g. an instance mid-destruction).
 - Removal is by hook id. SourceHook resolves the id from what it recorded at add time and never dereferences the hooked object, so `Remove()` is safe after a map change has already destroyed every pawn.
 - Two things **drift with CS2 updates** and are resolved together at install time: the vtable index, which lives in gamedata as `"RunCommand"`, and the class name. A wrong index calls an unrelated vfunc and crashes; a wrong class name resolves to nothing (or to another class's table) and the hook silently never fires - when a pawn happens to be live, `Install()` compares its vtable against the resolved one and warns on a mismatch. Re-verify both (against SwiftlyS2/CS2Fixes gamedata) after every game update.
 
 ### Cmd listeners: reading the usercmd
 
-`ListenPreCmd`/`ListenPostCmd` additionally hand you a @ref VoltMod::Sdk::UserCmdView: the command's viewangles, held/changed button masks, raw mouse deltas, and per-subtick pitch/yaw deltas, decoded once per RunCommand from the `CSGOUserCmdPB` payload:
+`ListenPreCmd`/`ListenPostCmd` additionally hand you a @ref VoltMod::Hooks::UserCmdView: the command's viewangles, held/changed button masks, raw mouse deltas, and per-subtick pitch/yaw deltas, decoded once per RunCommand from the `CSGOUserCmdPB` payload:
 
 ```cpp
 _preCmd = runtime.MovementHook.ListenPreCmd([](int slot, const VoltMod::UserCmdView& cmd) {
@@ -82,9 +82,9 @@ _filter = runtime.MovementHook.ListenFilterCmd([](int slot, VoltMod::UserCmdView
 
 The edit touches only the decoded snapshot; the underlying `CUserCmd` the engine processes is untouched (the hook still returns `MRES_IGNORED`), so the game is unaffected. This is for test/diagnostic input synthesis (feeding a detector a fabricated command), not for changing gameplay; leave it unused in normal operation.
 
-### InputHistoryService: lookback over recent usercmds
+### InputHistory: lookback over recent usercmds
 
-@ref VoltMod::Sdk::InputHistoryService (`runtime.InputHistory`) is an opt-in per-slot ring buffer of the decoded views, for plugins that need "what did this player's aim do over the last N ticks" (anti-cheat, movement analytics) without wiring their own buffers:
+@ref VoltMod::Hooks::InputHistory (`runtime.InputHistory`) is an opt-in per-slot ring buffer of the decoded views, for plugins that need "what did this player's aim do over the last N ticks" (anti-cheat, movement analytics) without wiring their own buffers:
 
 ```cpp
 runtime.InputHistory.Enable(128);                    // keep ~2s at 64 tick
@@ -92,11 +92,11 @@ int n = runtime.InputHistory.Count(slot);
 const auto& newest = runtime.InputHistory.At(slot, 0);  // At(slot, ago)
 ```
 
-History for a slot resets automatically when its player joins or leaves (via @ref VoltMod::Players::PlayerManager::ListenSlotChange, which is also the backing feed for the generic @ref VoltMod::Players::PerSlot container). The MovementHook must still be installed for samples to flow.
+History for a slot resets automatically when its player joins or leaves (via @ref VoltMod::Players::PlayerManager::ListenSlotChange, which is also the backing feed for the generic @ref VoltMod::Core::PerSlot container). The Movement hook must still be installed for samples to flow.
 
-## TeleportTracker
+## Teleport
 
-@ref VoltMod::Sdk::TeleportTracker (`runtime.Teleports`) records when each player's pawn was last moved by `CBaseEntity::Teleport`. It exists because a teleport breaks continuity: origin and view angles jump discontinuously, so anything measuring motion across ticks (speed, aim deltas, distance travelled) reads the frame after a teleport as impossible. Discount that window instead of explaining it away.
+@ref VoltMod::Hooks::Teleport (`runtime.Teleports`) records when each player's pawn was last moved by `CBaseEntity::Teleport`. It exists because a teleport breaks continuity: origin and view angles jump discontinuously, so anything measuring motion across ticks (speed, aim deltas, distance travelled) reads the frame after a teleport as impossible. Discount that window instead of explaining it away.
 
 ```cpp
 runtime.Teleports.Enable();                            // dormant until this call
@@ -109,11 +109,11 @@ Semantics worth knowing:
 
 - `Enable()` hooks the `"Teleport"` vtable index on every *live* pawn and returns false when that gamedata offset is missing. The binding is per pawn, not per class, so exactly one callback fires per teleport however many pawns are bound.
 - Respawning hands the player a brand-new pawn object, which makes the previous binding stale. The tracker re-binds from its own `PlayerSpawn` listener. Since a spawn also moves the player, **a spawn counts as a teleport** and gets stamped. If you only care about mid-life teleports, filter spawns yourself.
-- Stamps are @ref VoltMod::Sdk::ServerClock "runtime.Clock" times, so they are meaningless across a map change. The framework's `StartupServer` hook drops every binding and stamp at map start, and a slot with no stamp reads as never teleported.
+- Stamps are @ref VoltMod::Engine::Clock "runtime.Clock" times, so they are meaningless across a map change. The framework's `StartupServer` hook drops every binding and stamp at map start, and a slot with no stamp reads as never teleported.
 
-## DamageHook
+## Damage
 
-@ref VoltMod::Sdk::DamageHook (`runtime.Damage`) is a manual vtable hook on
+@ref VoltMod::Hooks::Damage (`runtime.Damage`) is a manual vtable hook on
 `CCSPlayerPawn::OnTakeDamage_Alive` - every point of damage a living player takes. Listeners see
 who hit whom, where, and for how much.
 
@@ -136,7 +136,7 @@ Contracts worth knowing:
   victim's health from the listener are all ignored. To alter damage, change the game's own rules:
   `mp_damage_headshot_only` and the `mp_damage_scale_*` multipliers do work, and are what the
   admin-system fun toggles drive.
-- Like MovementHook this is a **DVP hook** on the class vtable, so `Install()` works from `OnLoad`
+- Like Movement this is a **DVP hook** on the class vtable, so `Install()` works from `OnLoad`
   with no player connected and covers every pawn from then on.
 - `Hitbox` comes from the damage trace, not `m_iHitGroupId` (which reads `-1` for bullets). It is
   `Invalid` for damage with no trace behind it, which is how world damage is told apart.
@@ -151,7 +151,7 @@ Contracts worth knowing:
 
 ## ServerCommand
 
-@ref VoltMod::Sdk::ServerCommand is a RAII tier1 `ConCommand`: registered on construction, unregistered on destruction, with a `std::function` handler that runs on the game thread.
+@ref VoltMod::Engine::ServerCommand is a RAII tier1 `ConCommand`: registered on construction, unregistered on destruction, with a `std::function` handler that runs on the game thread.
 
 ```cpp
 class MyManager

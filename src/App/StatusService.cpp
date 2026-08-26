@@ -63,7 +63,7 @@ void StatusService::InstallCommand(const char* name, const char* helpText, Healt
 {
     _healthy = std::move(healthy);
     // Capturing `this` is safe: the command is a member, so it unregisters before the service goes.
-    _command = std::make_unique<Sdk::ServerCommand>(name, helpText, [this, name](const CCommand& args) {
+    _command = std::make_unique<Engine::ServerCommand>(name, helpText, [this, name](const CCommand& args) {
         if (args.ArgC() > 1 && std::string_view(args.Arg(1)) == "json")
         {
             // Single marker-prefixed line so RCON tooling can find it amid console noise.

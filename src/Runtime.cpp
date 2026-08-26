@@ -1,5 +1,5 @@
 #include "Core/ConsoleLogger.hpp"
-#include "Sdk/Internal/Schema.hpp"
+#include "Entities/Schema.hpp"
 
 #include <ISmmAPI.h>
 #include <VoltMod/Core/Log.hpp>
@@ -29,7 +29,7 @@ Core::ConsoleLogger g_consoleLogger;
 // Every other service is wired by its default member initializer in Runtime.hpp, where the
 // dependency order is visible. _schema is the exception: SchemaService is only forward-declared
 // there, so make_unique needs this translation unit.
-Runtime::Runtime() : _schema(std::make_unique<Sdk::SchemaService>(Interfaces)) {}
+Runtime::Runtime() : _schema(std::make_unique<Entities::SchemaService>(Interfaces)) {}
 
 // Every service tears itself down in its own destructor, in reverse declaration order. Only these
 // two cannot wait for that.

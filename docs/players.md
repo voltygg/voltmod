@@ -19,7 +19,7 @@ auto* q = runtime.Players.GetPlayerBySteamId(steamId);  // O(1)
 for (auto* each : runtime.Players.GetAllPlayers()) { /* ... */ }
 ```
 
-`Player` carries `GetSlot()`, `GetSteamID()`, `GetName()`, `GetIpAddress()`, `GetPlaytime()`, and `IsBot()`. For typed engine operations, build a @ref VoltMod::Sdk::PlayerController from the player's slot:
+`Player` carries `GetSlot()`, `GetSteamID()`, `GetName()`, `GetIpAddress()`, `GetPlaytime()`, and `IsBot()`. For typed engine operations, build a @ref VoltMod::Entities::PlayerController from the player's slot:
 
 ```cpp
 auto controller = runtime.Entities.Controller(player->GetSlot());
@@ -31,7 +31,7 @@ int hp = controller.GetHealth();
 
 ### Per-slot plugin state
 
-Plugin state keyed by slot has one recurring bug: values leaking from a disconnected player to the next occupant of the slot. @ref VoltMod::Players::PerSlot solves it once: a `std::array<T, MaxPlayers>` whose entries value-reset whenever a player joins or leaves the slot (backed by `runtime.Slots`, which fires on AddPlayer/RemovePlayer/Clear):
+Plugin state keyed by slot has one recurring bug: values leaking from a disconnected player to the next occupant of the slot. @ref VoltMod::Core::PerSlot solves it once: a `std::array<T, MaxPlayers>` whose entries value-reset whenever a player joins or leaves the slot (backed by `runtime.Slots`, which fires on AddPlayer/RemovePlayer/Clear):
 
 ```cpp
 struct MyState { int Combo = 0; float Score = 0; };
@@ -43,7 +43,7 @@ _state[slot].Combo++;              // plain indexed access afterwards
 
 `BindReset` is idempotent, and the destructor unsubscribes - so a `PerSlot` may outlive nothing and still leave the feed clean. It takes the @ref VoltMod::Core::SlotEvents feed rather than the runtime, so a translation unit that includes only `PerSlot.hpp` still compiles.
 
-For time-decaying per-player scores (suspicion, rate limits), use @ref VoltMod::Core::SlidingWindowScore when the threshold is "N events in the last M seconds" and evidence should expire on a hard boundary. It takes caller-supplied seconds; @ref VoltMod::Core::TimeUtils::MonotonicSeconds is the matching clock. @ref VoltMod::Core::RandomIndex is the framework's single source of randomness - use it for a random pick (`@random` targeting does) rather than seeding a generator per feature or reaching for the tick counter, which repeats within a frame. Both are unit-tested in the framework's SDK-free test suite.
+For time-decaying per-player scores (suspicion, rate limits), use @ref VoltMod::Core::SlidingWindowScore when the threshold is "N events in the last M seconds" and evidence should expire on a hard boundary. It takes caller-supplied seconds; @ref VoltMod::Core::Time::MonotonicSeconds is the matching clock. @ref VoltMod::Core::RandomIndex is the framework's single source of randomness - use it for a random pick (`@random` targeting does) rather than seeding a generator per feature or reaching for the tick counter, which repeats within a frame. Both are unit-tested in the framework's SDK-free test suite.
 
 ## Resolve targets
 

@@ -1,8 +1,8 @@
-#include <VoltMod/Core/ChatColors.hpp>
-#include <VoltMod/Core/StringUtils.hpp>
+#include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Menu/MenuPresets.hpp>
+#include <VoltMod/Messaging/ChatColors.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <string_view>
 #include <utility>
@@ -104,9 +104,9 @@ std::vector<ChoiceOption<std::string>::Choice> BuildPaletteChoices(
     const std::function<std::string(std::string_view canonicalName)>& labelFor)
 {
     std::vector<ChoiceOption<std::string>::Choice> choices;
-    choices.reserve(Core::ChatColors::Palette.size());
+    choices.reserve(Messaging::ChatColors::Palette.size());
 
-    for (const auto& entry : Core::ChatColors::Palette)
+    for (const auto& entry : Messaging::ChatColors::Palette)
     {
         std::string label = labelFor ? labelFor(entry.Name) : std::string{};
         if (label.empty())

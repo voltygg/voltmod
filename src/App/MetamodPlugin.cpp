@@ -1,11 +1,11 @@
 #include <VoltMod/App/MetamodPlugin.hpp>
-#include <VoltMod/Core/HookMacros.hpp>
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/StringUtils.hpp>
+#include <VoltMod/Core/Strings.hpp>
+#include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Runtime.hpp>
-#include <VoltMod/Sdk/Engine/GameInterfaces.hpp>
+#include <VoltMod/Unsafe/HookMacros.hpp>
 #include <cstdio>
 #include <cstring>
 #include <format>
@@ -27,7 +27,6 @@ namespace VoltMod::App
 {
 
 using namespace VoltMod::Players;
-using namespace VoltMod::Sdk;
 using namespace VoltMod::Core;
 
 SH_DECL_HOOK3_void(IServerGameDLL, GameFrame, SH_NOATTRIB, 0, bool, bool, bool);
@@ -94,7 +93,7 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
             std::format("{} command(s) gate on a permission with no HasPermission policy "
                         "installed and will be denied ({}); set Runtime::Policy.HasPermission "
                         "in OnLoad",
-                        missing.size(), Core::StringUtils::Join(missing, ", ")));
+                        missing.size(), Core::Strings::Join(missing, ", ")));
     });
 
     Log::Info("{}", _runtime->LoadReport.Summary());

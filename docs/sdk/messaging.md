@@ -2,7 +2,7 @@
 
 [TOC]
 
-## MessageSystem
+## Messages
 
 One service handles every destination. See @ref chat_guide for colors,
 `ReplyKey`, and broadcast behavior; the raw API is:
@@ -18,16 +18,16 @@ msg.Broadcast("Map change in 60s", VoltMod::MessageKind::Alert);
 msg.ClearCenterHtml(slot);
 ```
 
-## PersistentCenterHtml
+## CenterHtml
 
 CS2 drops center-HTML almost immediately after events such as death, a team
 switch, or a HUD update. A sticky panel must therefore be sent repeatedly.
-@ref VoltMod::Sdk::PersistentCenterHtml owns that refresh loop; the caller owns
+@ref VoltMod::Messaging::CenterHtml owns that refresh loop; the caller owns
 the deadline or expiry policy:
 
 ```cpp
 // A member of your plugin object; the two services it takes belong to the runtime.
-VoltMod::PersistentCenterHtml panel{runtime.Messages, runtime.Scheduler};
+VoltMod::CenterHtml panel{runtime.Messages, runtime.Scheduler};
 
 panel.Show(slot, /*refreshMs=*/100, [](int s) {
     return std::format("<b>Time left: {}s</b>", RemainingSeconds(s));  // re-rendered every refresh
@@ -36,7 +36,7 @@ panel.Show(slot, /*refreshMs=*/100, [](int s) {
 panel.Stop(slot);   // cancel + clear the panel
 ```
 
-## ChatInputCapture
+## ChatInput
 
 This per-slot prompt registry backs menu text input. Use it directly for prompts
 outside a menu.
@@ -59,7 +59,7 @@ The validator returns `true` to accept the input (capture clears) or `false` to 
 
 The base `MetamodPlugin::OnPlayerChat` already consumes active prompts before
 dispatching commands. An override replaces that behavior, so it must call
-@ref VoltMod::Sdk::ChatInputCapture::TryConsume before handling other chat:
+@ref VoltMod::Hooks::ChatInput::TryConsume before handling other chat:
 
 ```cpp
 bool MyPlugin::OnPlayerChat(Player* p, std::string_view message, bool team) override
@@ -85,9 +85,9 @@ If no capture is pending for the slot, `TryConsume` returns `false`.
 The service subscribes to @ref VoltMod::Core::SlotEvents itself, so a pending prompt is cancelled
 when the slot changes hands. Nothing has to call a lifecycle hook for it.
 
-## PanoramaVote
+## Vote
 
-@ref VoltMod::Sdk::PanoramaVote (`runtime.Vote`) drives the game's own yes/no vote panel through
+@ref VoltMod::Messaging::Vote (`runtime.Vote`) drives the game's own yes/no vote panel through
 the map's `vote_controller` entity. The engine collects the ballots, so there is no plugin-side
 tally to keep.
 

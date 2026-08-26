@@ -2,7 +2,7 @@
 
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Paths.hpp>
-#include <VoltMod/Core/StringUtils.hpp>
+#include <VoltMod/Core/Strings.hpp>
 #include <fstream>
 #include <iterator>
 #include <map>
@@ -100,7 +100,7 @@ public:
     static void SubstituteTokens(nlohmann::json& node, const std::map<std::string, std::string>& tokens)
     {
         if (node.is_string())
-            node = StringUtils::SubstituteTokens(node.get<std::string>(), tokens);
+            node = Strings::SubstituteTokens(node.get<std::string>(), tokens);
         else if (node.is_structured())
             for (auto& child : node)
                 SubstituteTokens(child, tokens);

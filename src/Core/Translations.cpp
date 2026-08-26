@@ -1,6 +1,6 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Paths.hpp>
-#include <VoltMod/Core/StringUtils.hpp>
+#include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Core/Translations.hpp>
 #include <filesystem>
 #include <fstream>
@@ -201,7 +201,7 @@ std::string Translations::Get(const std::string& key, int slot) const
 
 std::string Translations::Get(const std::string& key, int slot, const std::map<std::string, std::string>& tokens) const
 {
-    return StringUtils::SubstituteTokens(Get(key, slot), tokens);
+    return Strings::SubstituteTokens(Get(key, slot), tokens);
 }
 
 std::string Translations::Get(const std::string& key, const std::map<std::string, std::string>& tokens) const

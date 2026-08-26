@@ -75,7 +75,7 @@ struct ConfirmDialogSpec
 std::shared_ptr<MenuView> BuildConfirmDialog(MenuManager& menus, ConfirmDialogSpec spec);
 
 /**
- * Render @ref Core::ChatColors::Palette as ChoiceOption choices (value = canonical color name),
+ * Render @ref Messaging::ChatColors::Palette as ChoiceOption choices (value = canonical color name),
  * so color pickers grow automatically as the palette does. @p labelFor supplies the localized
  * label for each canonical name; return "" to fall back to the name itself.
  */

@@ -3,9 +3,9 @@
 [TOC]
 
 All player-facing text leaves the server through `runtime.Messages`
-(@ref VoltMod::Sdk::MessageSystem). It can send to chat, the center of the
+(@ref VoltMod::Messaging::Messages). It can send to chat, the center of the
 screen, the center-HTML panel, or the alert bar; the destination is selected by
-@ref VoltMod::Sdk::MessageKind. Colors are escape bytes that you compose with
+@ref VoltMod::Messaging::MessageKind. Colors are escape bytes that you compose with
 `std::format` and the `ChatColors` constants.
 
 ## Sending
@@ -29,7 +29,7 @@ forwards to it.
 
 Chat sends normalize colors for you: a message that already starts with a color escape keeps it; anything else gets the default color prepended so lines don't inherit the previous line's color. (CS2 routes server-originated chat through `TextMsg`; it silently drops `SayText2` from non-player sources.)
 
-For a *sticky* center panel that survives the client's aggressive HUD clearing, use @ref VoltMod::Sdk::PersistentCenterHtml; see @ref sdk_messaging_guide.
+For a *sticky* center panel that survives the client's aggressive HUD clearing, use @ref VoltMod::Messaging::CenterHtml; see @ref sdk_messaging_guide.
 
 ## Color constants
 
@@ -59,7 +59,9 @@ mapping.
 ## Composing colored text
 
 ```cpp
-using namespace VoltMod::Core;
+#include <VoltMod/Messaging/ChatColors.hpp>
+
+namespace ChatColors = VoltMod::Messaging::ChatColors;
 
 auto line = std::format(
     "{}[ADMIN]{} {}{}{} kicked {} for {}{}",

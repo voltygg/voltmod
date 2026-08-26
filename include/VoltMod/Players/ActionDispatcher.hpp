@@ -1,8 +1,8 @@
 #pragma once
 
+#include <VoltMod/Entities/PlayerController.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Players/TargetResolver.hpp>
-#include <VoltMod/Sdk/Entity/PlayerController.hpp>
 #include <functional>
 #include <optional>
 #include <string>
@@ -23,8 +23,8 @@ struct ActionContext
 {
     Player* Caller;
     Player* Target;
-    Sdk::PlayerController CallerCtrl;
-    Sdk::PlayerController TargetCtrl;
+    Entities::PlayerController CallerCtrl;
+    Entities::PlayerController TargetCtrl;
     /** The live runtime, so action and effect bodies reach services without a global.
      *  Include <VoltMod/Runtime.hpp> to use it. */
     Runtime& Rt;

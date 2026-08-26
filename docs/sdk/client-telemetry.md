@@ -5,7 +5,7 @@
 This page covers the simulation clock, per-client network data, and client
 convar queries.
 
-## ServerClock
+## Clock
 
 `runtime.Clock` holds no state and reads `IVEngineServer2::GetServerGlobals()` on every call:
 
@@ -14,16 +14,16 @@ const int tick = runtime.Clock.Tick();    // globals->tickcount
 const float now = runtime.Clock.Time();   // globals->curtime, seconds
 ```
 
-A class that needs the clock takes `Sdk::ServerClock&` in its constructor; a free helper takes it as a parameter.
+A class that needs the clock takes `Engine::Clock&` in its constructor; a free helper takes it as a parameter.
 
 This is the timestamp source for anything that has to line up with the tick the engine is simulating: usercmds, game events, and teleports. Use it instead of `std::chrono`: it is the *simulation* clock, so it stays in step with the tick stream those things are numbered by, which wall time does not.
 
 Two consequences to respect:
 
-- Both **reset when a map starts**. A value persisted across a map change compares as absurdly far in the future; drop stamps at map start rather than carrying them (this is what @ref VoltMod::Sdk::TeleportTracker "TeleportTracker" does).
+- Both **reset when a map starts**. A value persisted across a map change compares as absurdly far in the future; drop stamps at map start rather than carrying them (this is what @ref VoltMod::Hooks::Teleport "Teleport" does).
 - Both return `0` when the globals are unavailable (before load, after shutdown), and `Globals()` returns `nullptr` there. `0` therefore reads as "unknown", not "the beginning of the map".
 
-## NetChannelService
+## NetChannels
 
 `runtime.NetChannels` is a stateless wrapper over the engine's per-client channel. Bots, empty slots, and clients whose channel is already torn down simply have no channel; every accessor degrades rather than asserting.
 
@@ -38,7 +38,7 @@ if (const char* sens = net.GetUserInfoCvar(slot, "sensitivity"))
 - `EngineLatency` returns `0` for "no channel", which is indistinguishable from a genuine zero RTT on a listen server, so pair it with `GetNetInfo(slot) != nullptr` when the difference matters.
 - `GetUserInfoCvar` only sees cvars the client *replicates* (`FCVAR_USERINFO`: `name`, `sensitivity`, `m_yaw`, `cl_interp_ratio`, ...). The returned string is engine-owned and valid only until the next engine call, so copy anything you keep. Everything outside that set needs a cvar query.
 
-## ClientCvarService
+## ClientCvars
 
 `runtime.ClientCvars` asks a connected client what one of *its* convars is set to. The server posts `CSVCMsg_GetCvarValue` carrying a cookie to that one client; the client answers with `CCLCMsg_RespondCvarValue` some round-trips later. The framework intercepts the answer with a manual **DVP** hook on `CServerSideClient::ProcessRespondCvarValue` (bound to the class vtable, so it covers every connected client without per-instance bindings), reads the responder's slot from a gamedata byte offset, and routes the value to the callback that asked for it. The engine's own handling of the response is untouched (`MRES_IGNORED`).
 
@@ -81,4 +81,4 @@ The service is a **degradable load stage** (`ClientCvars`). It needs two gamedat
 | `ProcessRespondCvarValue` | vtable index of the response handler | Rejected at lookup, so the stage degrades instead of hooking an unrelated vfunc |
 | `ServerSideClientSlot` | byte offset of the player slot inside `CServerSideClient` | Rejected at lookup too; unchecked it would attribute answers to the wrong player |
 
-Both drift with engine updates; see @ref sdk_gamedata_guide. When any part of the setup fails the framework logs one warning, the load continues, @ref VoltMod::Sdk::ClientCvarService::Available "Available()" stays false, and every `Query()` returns false. Check `Available()` once at load rather than treating each `false` from `Query()` as a per-call failure.
+Both drift with engine updates; see @ref sdk_gamedata_guide. When any part of the setup fails the framework logs one warning, the load continues, @ref VoltMod::Hooks::ClientCvars::Available "Available()" stays false, and every `Query()` returns false. Check `Available()` once at load rather than treating each `false` from `Query()` as a per-call failure.

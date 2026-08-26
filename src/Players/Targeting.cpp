@@ -1,5 +1,5 @@
 #include <VoltMod/Core/SteamId.hpp>
-#include <VoltMod/Core/StringUtils.hpp>
+#include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Players/Targeting.hpp>
 #include <algorithm>
 #include <charconv>
@@ -8,12 +8,12 @@ namespace VoltMod::Players
 {
 
 using Core::SteamId;
-using Core::StringUtils;
+using Core::Strings;
 
 namespace
 {
 
-// Engine team indices (mirrors Sdk::TeamT/TeamCT/TeamSpectator without the SDK include).
+// Engine team indices (mirrors Entities::TeamT/TeamCT/TeamSpectator without the SDK include).
 constexpr int TeamSpectator = 1;
 constexpr int TeamT = 2;
 constexpr int TeamCT = 3;
@@ -32,7 +32,7 @@ std::optional<int64_t> ParseInt64(std::string_view text)
 TargetQuery ParseTargetToken(std::string_view token)
 {
     const std::string raw(token);
-    const std::string lower = StringUtils::ToLower(raw);
+    const std::string lower = Strings::ToLower(raw);
     using Kind = TargetKind;
 
     if (lower == "@all" || lower == "@*")
@@ -73,12 +73,12 @@ TargetQuery ParseTargetToken(std::string_view token)
         if (auto id = ParseInt64(raw); id && SteamId::IsValid(*id))
             return {.Kind = Kind::SteamId, .SteamId = *id};
     }
-    if (StringUtils::StartsWith(raw, "[U:1:"))
+    if (Strings::StartsWith(raw, "[U:1:"))
     {
         if (auto id = SteamId::FromSteamId3(raw))
             return {.Kind = Kind::SteamId, .SteamId = *id};
     }
-    if (StringUtils::StartsWith(raw, "STEAM_"))
+    if (Strings::StartsWith(raw, "STEAM_"))
     {
         if (auto id = SteamId::FromSteamId(raw))
             return {.Kind = Kind::SteamId, .SteamId = *id};
@@ -145,13 +145,9 @@ std::expected<std::vector<int>, TargetFailure> FilterRoster(std::span<const Play
             collect(pred);
             return !candidates.empty();
         };
-        tier([&](const PlayerView& p) { return StringUtils::ToLower(p.Name) == query.Needle; }) ||
-            tier([&](const PlayerView& p) {
-                return StringUtils::StartsWith(StringUtils::ToLower(p.Name), query.Needle);
-            }) ||
-            tier([&](const PlayerView& p) {
-                return StringUtils::ToLower(p.Name).find(query.Needle) != std::string::npos;
-            });
+        tier([&](const PlayerView& p) { return Strings::ToLower(p.Name) == query.Needle; }) ||
+            tier([&](const PlayerView& p) { return Strings::StartsWith(Strings::ToLower(p.Name), query.Needle); }) ||
+            tier([&](const PlayerView& p) { return Strings::ToLower(p.Name).find(query.Needle) != std::string::npos; });
         break;
     }
     }

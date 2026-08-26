@@ -1,11 +1,11 @@
 #include <VoltMod/Core/EffectManager.hpp>
+#include <VoltMod/Entities/PlayerController.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Players/ActionDispatcher.hpp>
 #include <VoltMod/Players/EffectDispatcher.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Runtime.hpp>
-#include <VoltMod/Sdk/Entity/PlayerController.hpp>
 #include <format>
 
 namespace VoltMod::Menu
@@ -31,7 +31,7 @@ MenuBuilder& MenuBuilder::AddActionRow(std::string_view labelKey, const Players:
 }
 
 MenuBuilder& MenuBuilder::AddStateToggleRow(std::string_view labelKey,
-                                            std::function<bool(const Sdk::PlayerController&)> isActive,
+                                            std::function<bool(const Entities::PlayerController&)> isActive,
                                             const Players::Action& action)
 {
     const Players::Action* a = &action;
@@ -42,7 +42,7 @@ MenuBuilder& MenuBuilder::AddStateToggleRow(std::string_view labelKey,
         [rt, target, isActive = std::move(isActive)](int) {
             if (!rt)
                 return false;
-            Sdk::PlayerController pc = rt->Entities.Controller(target);
+            Entities::PlayerController pc = rt->Entities.Controller(target);
             return pc.IsValid() && isActive(pc);
         },
         [rt, admin = _context.Admin, target, a](int) { ActionDispatcher{*rt}.Run(admin, target, *a); },

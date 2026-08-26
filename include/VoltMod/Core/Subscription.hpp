@@ -20,7 +20,7 @@ namespace VoltMod::Core
  *
  * @code
  * class Bhop {
- *     Bhop(GameEventService& events) {
+ *     Bhop(GameEvents& events) {
  *         _spawn = events.Listen<Events::PlayerSpawn>([this](const auto& e) { OnSpawn(e.Slot); });
  *     }
  *     Subscription _spawn;

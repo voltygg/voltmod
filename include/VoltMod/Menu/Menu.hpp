@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Sdk/Entity/MoveType.hpp>
+#include <VoltMod/Entities/MoveType.hpp>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -50,7 +50,7 @@ struct PlayerMenuState
     /** True while MenuManager is holding the player's movement frozen for this menu session. */
     bool MovementFrozen = false;
     /** MoveType captured before freezing, restored when the menu closes. */
-    Sdk::MoveType PrevMoveType = Sdk::MoveType::Walk;
+    Entities::MoveType PrevMoveType = Entities::MoveType::Walk;
 
     /** True if the player has any menu currently open. */
     bool HasMenu() const { return !MenuStack.empty(); }
@@ -69,7 +69,7 @@ struct PlayerMenuState
         LastInputTime = 0;
         PrevButtons = 0;
         MovementFrozen = false;
-        PrevMoveType = Sdk::MoveType::Walk;
+        PrevMoveType = Entities::MoveType::Walk;
     }
 };
 

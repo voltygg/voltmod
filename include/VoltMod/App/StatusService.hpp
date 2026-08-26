@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoltMod/Core/LoadReport.hpp>
-#include <VoltMod/Sdk/Engine/ServerCommand.hpp>
+#include <VoltMod/Engine/ServerCommand.hpp>
 #include <functional>
 #include <memory>
 #include <nlohmann/json.hpp>
@@ -57,7 +57,7 @@ private:
     Core::LoadReport& _loadReport;
     std::vector<std::pair<std::string, Provider>> _sections;
     HealthCheck _healthy;
-    std::unique_ptr<Sdk::ServerCommand> _command;
+    std::unique_ptr<Engine::ServerCommand> _command;
 };
 
 }  // namespace VoltMod::App

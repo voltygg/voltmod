@@ -7,13 +7,18 @@
 ```
 VoltMod
 ├── Core        Primitives: policy, scheduler, slot events, subscriptions,
-│               translations, parsing, colors, string/time helpers
-├── Sdk         HL2SDK wrapper layer (entities, events, messages, gamedata)
+│               translations, parsing, per-slot caches, string/time helpers
+├── Engine      Interfaces, gamedata, convars, clock, maps, precache, console commands
+├── Entities    Entity lookup, PlayerController, schema fields, items, pawn operations
+├── Events      The game event service and its typed event structs
+├── Messaging   Chat and center-HTML messages, chat colors, the vote panel
 ├── Players     Player tracking, target selectors, action dispatch
+├── Hooks       Movement, damage, transmit, teleport, chat input, client convars
 ├── Commands    Declarative chat commands (CommandSpec)
 ├── Menu        WASD center-HTML menus + Flow wizard
 ├── Database    Async PostgreSQL + row mapping (VOLTMOD_ENABLE_POSTGRES)
 ├── Http        Async HTTP client + JSON REST helpers
+├── Unsafe      Raw SourceHook install macros (VOLTMOD_SCOPED_HOOK)
 └── App         The composition root: Runtime, MetamodPlugin, ServiceExchange
 ```
 
@@ -44,7 +49,7 @@ it is not allowed to reach.
 
 **@ref VoltMod::Runtime** is the framework's flat service container.
 `MetamodPlugin` creates it on load and destroys it on unload. Services are named
-directly (`runtime.Messages`, not `runtime.Sdk.Messages`) so internal module
+directly (`runtime.Messages`, not `runtime.Messaging.Messages`) so internal module
 moves do not break consumers.
 
 ```cpp
@@ -82,9 +87,9 @@ class MyPlugin final : public VoltMod::MetamodPlugin
 Your `App` dies before the runtime, so its subscriptions are removed while the
 services they reference are still alive.
 
-## PluginPolicy
+## Policy
 
-@ref VoltMod::Core::PluginPolicy is the one bridge between the framework's generic machinery and your domain rules. Set it once in OnLoad:
+@ref VoltMod::Core::Policy is the one bridge between the framework's generic machinery and your domain rules. Set it once in OnLoad:
 
 ```cpp
 runtime.Policy = {
@@ -124,7 +129,7 @@ if (auto* bans = runtime.Exchange.Get<IBanService>()) // consumer
 Include a version in `InterfaceName` and change it when the vtable or parameter
 meaning changes. Query at the point of use because peers may load or unload.
 Do not transfer ownership, pass allocator-owned objects, or let exceptions cross
-the module boundary. Use a @ref VoltMod::Sdk::ServerCommand when console, RCON,
+the module boundary. Use a @ref VoltMod::Engine::ServerCommand when console, RCON,
 cfg files, or untyped automation also need the operation.
 
 ## Registration is explicit
@@ -165,26 +170,39 @@ The plugin's GameFrame hook calls `Runtime::OnGameFrame()`, which ticks exactly 
 ## Module layering
 
 `scripts/voltmod/modgraph.py` holds the map and enforces it. A cycle check would not be
-enough: an upward edge (Core reaching into Sdk) stays acyclic and is exactly what breaks
+enough: an upward edge (Core reaching into Engine) stays acyclic and is exactly what breaks
 the layering.
 
-- **Core** depends on nothing else in the framework
-- **Sdk** and **Http** sit on Core
-- **Players** on Core + Sdk; **Commands** and **Menu** on Core + Sdk + Players
-- **Database** is Core + libpqxx, compiled only under `VOLTMOD_ENABLE_POSTGRES`
-- **App** may reach all of them; it is the composition root
+```text
+Core       -> nothing
+Engine     -> Core
+Entities   -> Core, Engine
+Events     -> Core, Engine, Entities
+Messaging  -> Core, Engine, Entities, Events
+Players    -> Core, Engine, Entities
+Hooks      -> Core, Engine, Entities, Events, Players
+Commands   -> Core, Engine, Entities, Players, Messaging
+Menu       -> Core, Engine, Entities, Players, Messaging, Hooks
+Http       -> Core
+Database   -> Core
+Unsafe     -> Core, Engine
+App        -> every module
+```
+
+**Database** is Core + libpqxx, compiled only under `VOLTMOD_ENABLE_POSTGRES`. **App** is the
+composition root and may reach all of them.
 
 There is no ambient accessor for the runtime. Everything takes what it uses through a
-constructor or a parameter, and `modgraph` enforces that too: a `.cpp` under `Sdk/`, `Core/`,
-`Http/` or `Database/` may not include `VoltMod/Runtime.hpp` at all.
+constructor or a parameter, and `modgraph` enforces that too: a `.cpp` outside `App/`,
+`Players/`, `Commands/` and `Menu/` may not include `VoltMod/Runtime.hpp` at all.
 
-- `Sdk/`, `Core/`, `Http/` and `Database/` never name `Runtime`. Services and value types
-  (`PlayerController`, `GlowVision`, `PersistentCenterHtml`, `HttpClient`, `PostgresDatabase`)
+- The engine-facing modules, `Core/`, `Http/` and `Database/` never name `Runtime`. Services and value types
+  (`PlayerController`, `GlowVision`, `CenterHtml`, `HttpClient`, `PostgresDatabase`)
   take the sibling services they use; the free helpers that need no service at all work off the
   controller they are handed (`PawnOps`), and the rest take theirs as a parameter (`EffectOps`).
   Where a plugin would otherwise thread services through every call, the runtime owns a small
-  facade that binds them once: `PawnService` (`runtime.Pawns`, which owns slap's fall protection)
-  and `VisibilityService` (`runtime.Visibility`, over the `GlowVision` constructor).
+  facade that binds them once: `Pawns` (`runtime.Pawns`, which owns slap's fall protection)
+  and `Visibility` (`runtime.Visibility`, over the `GlowVision` constructor).
 - `Players/`, `Commands/`, `Menu/` and `App/` may take `Runtime&`, and the runtime-owned
   services do (`CommandManager`, `MenuManager`), as do the dispatchers a plugin builds itself
   (`ActionDispatcher`, and `EffectDispatcher` over its own `EffectManager`). The header-only templates

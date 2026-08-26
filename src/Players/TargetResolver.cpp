@@ -1,8 +1,8 @@
 #include <VoltMod/Core/Random.hpp>
+#include <VoltMod/Entities/PlayerController.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/TargetResolver.hpp>
 #include <VoltMod/Runtime.hpp>
-#include <VoltMod/Sdk/Entity/PlayerController.hpp>
 
 namespace VoltMod::Players
 {
@@ -24,7 +24,7 @@ std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(Runtime& runti
     {
         if (!p)
             continue;
-        Sdk::PlayerController ctrl = entities.Controller(p->GetSlot());
+        Entities::PlayerController ctrl = entities.Controller(p->GetSlot());
         roster.push_back({
             .Slot = p->GetSlot(),
             .SteamId = p->GetSteamID(),

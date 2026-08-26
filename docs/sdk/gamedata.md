@@ -62,7 +62,7 @@ Both accessors reject the entry and warn instead of returning it: every vtable i
 (`MaxVtableIndex`) and every byte offset above 4096 (`MaxByteOffset`) or not a multiple of the
 caller's alignment is rejected at lookup, so the owning load stage degrades instead of dispatching
 into the wrong vfunc or reading unrelated memory. A caller can pass a tighter ceiling, as
-`MovementHook` does for `UserCmdPB`/`UserCmdNumber` with `MaxUserCmdOffset`. This catches invalid
+`Movement` does for `UserCmdPB`/`UserCmdNumber` with `MaxUserCmdOffset`. This catches invalid
 edits, but not a stale value that still falls within the accepted range - game updates still require
 verification.
 
@@ -72,20 +72,20 @@ and CS2AC). The entries surfaced by anti-cheat are:
 
 | Offset | Used by | Drift symptom |
 |--------|---------|---------------|
-| `RunCommand` | @ref VoltMod::Sdk::MovementHook | Crash on the first movement tick |
-| `UserCmdPB` | `MovementHook` cmd listeners | Missing: `Valid=false` views. Stale: garbage viewangles/buttons |
+| `RunCommand` | @ref VoltMod::Hooks::Movement | Crash on the first movement tick |
+| `UserCmdPB` | `Movement` cmd listeners | Missing: `Valid=false` views. Stale: garbage viewangles/buttons |
 | `UserCmdNumber` | `UserCmdView::CommandNumber` | Missing: falls back to the protobuf's `legacy_command_number`, which the live client leaves at 0. Stale: a counter that never increments by 1 |
-| `Teleport` | @ref VoltMod::Sdk::TeleportTracker | `Enable()` returns false when missing |
-| `ProcessRespondCvarValue` | @ref VoltMod::Sdk::ClientCvarService | Rejected at lookup, so the load stage degrades instead of crashing |
-| `ServerSideClientSlot` | `ClientCvarService` | Rejected at lookup too; unchecked it would attribute a client's answer to the wrong player |
+| `Teleport` | @ref VoltMod::Hooks::Teleport | `Enable()` returns false when missing |
+| `ProcessRespondCvarValue` | @ref VoltMod::Hooks::ClientCvars | Rejected at lookup, so the load stage degrades instead of crashing |
+| `ServerSideClientSlot` | `ClientCvars` | Rejected at lookup too; unchecked it would attribute a client's answer to the wrong player |
 
-`ClientCvarService::Initialize()` leaves the service inert when either lookup fails.
+`ClientCvars::Initialize()` leaves the service inert when either lookup fails.
 
 ## Signature scanning
 
-The low-level byte-pattern scanner is **internal** (`src/Sdk/Internal/SigScanner.hpp`, free functions
+The low-level byte-pattern scanner is **internal** (`src/Engine/SigScanner.hpp`, free functions
 `FindPattern(moduleName, pattern)` / `ResolveRelativeAddress(addr, ripOffset, ripSize)`); it is not
-part of the public include tree. Consumers scan through @ref VoltMod::Sdk::GameData instead, which
+part of the public include tree. Consumers scan through @ref VoltMod::Engine::GameData instead, which
 adds per-platform patterns, named lookups, and caching:
 
 ```cpp
@@ -98,12 +98,12 @@ Wildcard bytes are written as `?` or `??` in pattern strings (see the signatures
 
 ### Vtable lookup by class name
 
-`src/Sdk/Internal/VtableLookup.hpp` (`FindVirtualTable(moduleName, className)`) is the second internal
+`src/Engine/VtableLookup.hpp` (`FindVirtualTable(moduleName, className)`) is the second internal
 resolver, and like the scanner it is not in the public include tree. It exists because a *class
 vtable* hook (SourceHook's `SH_ADD_MANUALDVPHOOK`) covers every instance at once, where a per-instance
 hook has to be re-bound as objects come and go. Two services need that:
-@ref VoltMod::Sdk::ClientCvarService for `CServerSideClient` in `engine2`, and
-@ref VoltMod::Sdk::MovementHook for `CCSPlayer_MovementServices` in `server` - neither owns the
+@ref VoltMod::Hooks::ClientCvars for `CServerSideClient` in `engine2`, and
+@ref VoltMod::Hooks::Movement for `CCSPlayer_MovementServices` in `server` - neither owns the
 instances, and the movement hook must install before any pawn exists.
 
 It shares `FindModuleImage` with the scanner and resolves per platform:
@@ -119,7 +119,7 @@ null there. Only a locator at offset 0 is accepted, so the result is always the 
 vtable, never a base subobject's.
 
 Both platforms return `nullptr` on failure rather than a wrong answer, and callers must degrade:
-`ClientCvarService` logs and stays inert, leaving `Available()` false; `MovementHook::Install()`
+`ClientCvars` logs and stays inert, leaving `Available()` false; `Movement::Install()`
 returns false. The vtable *index* to hook still comes from the `"offsets"` block above. The lookup
 only finds the table, never the slot within it.
 
