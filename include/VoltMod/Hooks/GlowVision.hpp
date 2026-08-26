@@ -38,7 +38,10 @@ public:
     /** All three services must outlive this object; the Runtime owns them.
      *  `runtime.Visibility.CreateGlow(beneficiarySlot)` is the normal entry point - it passes
      *  `runtime.Entities`, `runtime.EntityOps` and `runtime.Transmit` for you. */
-    GlowVision(EntitySystem& entities, EntityOps& ops, Transmit& transmit, int beneficiarySlot, Config config = {})
+    // `Config()` rather than `{}`: GCC 14 cannot convert an empty braced list to a nested aggregate
+    // with default member initializers in a default argument.
+    GlowVision(EntitySystem& entities, EntityOps& ops, Transmit& transmit, int beneficiarySlot,
+               Config config = Config())
         : _entities(entities),
           _ops(ops),
           _transmit(transmit),
