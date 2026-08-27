@@ -222,9 +222,9 @@ Entities   -> Core, Engine
 Events     -> Core, Engine, Entities
 Messaging  -> Core, Engine, Entities, Events
 Players    -> Core, Engine, Entities
-Hooks      -> Core, Engine, Entities, Events, Players, Unsafe, Messaging
-Commands   -> Core, Engine, Entities, Players, Messaging
-Menu       -> Core, Engine, Entities, Players, Messaging, Hooks
+Hooks      -> Core, Engine, Entities, Events, Messaging, Players, Unsafe
+Commands   -> Core, Engine, Entities, Messaging, Players
+Menu       -> Core, Engine, Entities, Messaging, Players, Hooks
 Http       -> Core
 Database   -> Core
 Unsafe     -> Core, Engine

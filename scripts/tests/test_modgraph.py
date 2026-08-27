@@ -119,3 +119,10 @@ def test_only_app_may_include_the_composition_root(tmp_path):
     files = list(modgraph.source_files(tmp_path, ("include/VoltMod",)))
     headers, _ = modgraph.root_includes(files, {"Core", "App"})
     assert [rel for rel, _ in headers] == ["include/VoltMod/Core/Thing.hpp"]
+
+
+@pytest.mark.parametrize("rel", ["CLAUDE.md", "docs/architecture.md"])
+def test_the_documented_layering_table_matches_the_enforced_one(rel):
+    """Both copies are prose; ALLOWED is what runs. Fail loudly when they drift."""
+    text = (Path(__file__).resolve().parents[2] / rel).read_text(encoding="utf-8")
+    assert modgraph.layering_table() in text

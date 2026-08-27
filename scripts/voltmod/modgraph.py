@@ -72,6 +72,22 @@ ANON_NAMESPACE = re.compile(r"^[ \t]*namespace[ \t]*(\{[ \t]*)?$")
 USING_DIRECTIVE = re.compile(r"^[ \t]*using\s+namespace\b")
 
 
+def layering_table() -> str:
+    """@ref ALLOWED rendered as the fenced block the docs quote.
+
+    The map is the only copy of the layering that runs; a doc that restates it by hand drifts
+    silently. `scripts/tests/test_modgraph.py` asserts both copies still match this.
+    """
+    lines = []
+    for module, allowed in ALLOWED.items():
+        if module == "App":
+            depends = "every module"
+        else:
+            depends = ", ".join(m for m in ALLOWED if m in allowed) or "nothing"
+        lines.append(f"{module:<10} -> {depends}")
+    return "\n".join(lines)
+
+
 def source_files(root: Path, bases):
     """Yield relative path, module owner, and text for C++ sources below bases."""
     for base in bases:

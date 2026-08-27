@@ -265,7 +265,7 @@ as draining a database or withdrawing a published interface, belongs in your `Ap
 
 ## Typed game events
 
-Subscribe to game events as structs instead of string + `GetInt` pairs. The structs live in `VoltMod` (`VoltMod/Events/EventTypes.hpp`): `PlayerDeath`, `PlayerSpawn`, `PlayerJump`, `PlayerHurt`, `PlayerBlind`, `PlayerTeam`, `PlayerConnectFull`, `WeaponFire`, `BulletImpact`, `RoundStart`, `RoundEnd`, `RoundPrestart`, `VoteCast`.
+Subscribe to game events as structs instead of string + `GetInt` pairs. The structs live in `VoltMod` (`VoltMod/Events/EventTypes.hpp`); @ref sdk_events_guide lists them.
 
 ```cpp
 using VoltMod::PlayerDeath;

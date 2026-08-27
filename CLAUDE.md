@@ -181,19 +181,19 @@ Use these patterns throughout the framework:
 `scripts/voltmod/modgraph.py`:
 
 ```text
-Core       -> none
+Core       -> nothing
 Engine     -> Core
 Entities   -> Core, Engine
 Events     -> Core, Engine, Entities
 Messaging  -> Core, Engine, Entities, Events
 Players    -> Core, Engine, Entities
-Hooks      -> Core, Engine, Entities, Events, Players, Unsafe, Messaging
-Commands   -> Core, Engine, Entities, Players, Messaging
-Menu       -> Core, Engine, Entities, Players, Messaging, Hooks
+Hooks      -> Core, Engine, Entities, Events, Messaging, Players, Unsafe
+Commands   -> Core, Engine, Entities, Messaging, Players
+Menu       -> Core, Engine, Entities, Messaging, Players, Hooks
 Http       -> Core
 Database   -> Core
 Unsafe     -> Core, Engine
-App        -> all modules
+App        -> every module
 ```
 
 An acyclic graph is not enough; an upward dependency still violates this
