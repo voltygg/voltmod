@@ -5,7 +5,7 @@
 namespace $ns
 {
 
-void RegisterCommands(VoltMod::CommandManager& commands, std::vector<VoltMod::Subscription>& subs);
+void RegisterCommands(VoltMod::CommandManager& commands);
 
 bool App::Start()
 {
@@ -14,7 +14,7 @@ bool App::Start()
 
     // Fill in Runtime.Policy (HasPermission at least) before registering commands that
     // declare a permission: Policy::Authorize denies them while it is unset.
-    RegisterCommands(Runtime.Commands, _subs);
+    RegisterCommands(Runtime.Commands);
     return true;
 }
 

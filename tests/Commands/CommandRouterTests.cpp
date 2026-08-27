@@ -138,7 +138,7 @@ TEST_CASE("A command is found by name and by alias, case-insensitively")
     Fixture f;
     CommandDefinition def = Echo("voice_mute", {}, nullptr);
     def.Aliases = {"vmute", "mute"};
-    REQUIRE(f.Router.Add(std::move(def)) != 0);
+    REQUIRE(f.Router.Add(std::move(def)));
 
     CHECK(f.Router.Find("voice_mute") != nullptr);
     CHECK(f.Router.Find("VOICE_MUTE") != nullptr);
@@ -150,24 +150,23 @@ TEST_CASE("A command is found by name and by alias, case-insensitively")
 TEST_CASE("A second registration of the same name is refused")
 {
     Fixture f;
-    CHECK(f.Router.Add(Echo("ban", {}, nullptr)) != 0);
-    CHECK(f.Router.Add(Echo("ban", {}, nullptr)) == 0);
+    CHECK(f.Router.Add(Echo("ban", {}, nullptr)));
+    CHECK_FALSE(f.Router.Add(Echo("ban", {}, nullptr)));
     CHECK(f.Router.Count() == 1);
 }
 
-TEST_CASE("Remove drops the command and its aliases, but only for the id that owns it")
+TEST_CASE("Clear drops every command and its aliases")
 {
     Fixture f;
     CommandDefinition def = Echo("ban", {}, nullptr);
     def.Aliases = {"b"};
-    const uint64_t id = f.Router.Add(std::move(def));
+    f.Router.Add(std::move(def));
+    f.Router.Add(Echo("kick", {}, nullptr));
 
-    f.Router.Remove("ban", id + 99);  // a stale Subscription must not remove somebody else's
-    CHECK(f.Router.Find("ban") != nullptr);
-
-    f.Router.Remove("ban", id);
+    f.Router.Clear();
     CHECK(f.Router.Find("ban") == nullptr);
     CHECK(f.Router.Find("b") == nullptr);
+    CHECK(f.Router.Find("kick") == nullptr);
     CHECK(f.Router.Count() == 0);
 }
 

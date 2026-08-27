@@ -102,17 +102,19 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
     return true;
 }
 
-// Order matters. Custom hooks come off first: their bodies reach into the plugin's own graph,
-// which OnUnload is about to release. Then the plugin drops that graph, while every framework
-// service it holds a reference or subscription to is still alive; then the standard hooks; only
-// then the runtime, whose destructor is the framework's shutdown.
+// Order matters. Custom hooks and commands come off first: their bodies reach into the plugin's
+// own graph, which OnUnload is about to release. Then the plugin drops that graph, while every
+// framework service it holds a reference or subscription to is still alive; then the standard
+// hooks; only then the runtime, whose destructor is the framework's shutdown.
 //
 // Failed loads use the same path, so a hook installed by OnRegisterHooks cannot survive an
-// OnLoad that returned false. Idempotent: clearing an empty vector and resetting a null
+// OnLoad that returned false. Idempotent: clearing an empty list and resetting a null
 // unique_ptr are both no-ops.
 void MetamodPlugin::Shutdown()
 {
     _customHooks.clear();
+    if (_runtime)
+        _runtime->Commands.RemoveAll();
     OnUnload();
     _standardHooks.clear();
     _runtime.reset();

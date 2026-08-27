@@ -26,8 +26,9 @@ struct App
     ConfigManager Config;
 
 private:
-    /** Command and listener registrations, released together. Declared last: reverse member
-     *  destruction stops the handlers before the state they capture goes away. */
+    /** Event, hook and timer registrations, released together. Declared last: reverse member
+     *  destruction stops the handlers before the state they capture goes away. Commands are
+     *  not in here - CommandManager owns those and drops them before OnUnload. */
     std::vector<VoltMod::Subscription> _subs;
 };
 

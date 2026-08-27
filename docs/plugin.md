@@ -140,18 +140,17 @@ handlers need:
 // src/Commands/BanCommands.cpp
 namespace Args = VoltMod::Args;
 
-void RegisterBanCommands(VoltMod::CommandManager& commands, App& app,
-                         std::vector<VoltMod::Subscription>& subs)
+void RegisterBanCommands(VoltMod::CommandManager& commands, App& app)
 {
-    subs.push_back(commands.Add("ban").Permission("d").Run(
+    commands.Add("ban").Permission("d").Run(
         [&app](VoltMod::Caller c, Args::Target t, Args::Duration d)
-            -> VoltMod::Result<VoltMod::Reply> { return app.Punishments.Ban(c, *t.Value, d.Value); }));
+            -> VoltMod::Result<VoltMod::Reply> { return app.Punishments.Ban(c, *t.Value, d.Value); });
 }
 
 // App.cpp
 void App::RegisterCommands()
 {
-    Commands::RegisterBanCommands(Runtime.Commands, *this, _subs);
+    Commands::RegisterBanCommands(Runtime.Commands, *this);
 }
 ```
 

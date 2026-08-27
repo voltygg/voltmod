@@ -13,7 +13,6 @@ using VoltMod::CommandSignature;
 using VoltMod::Reply;
 using VoltMod::Result;
 using VoltMod::SlotEvents;
-using VoltMod::Subscription;
 using VoltMod::Translations;
 
 namespace Args = VoltMod::Args;
@@ -34,14 +33,14 @@ static_assert(!CommandSignature<std::string>, "nor is a string");
 struct Installed
 {
     CommandDefinition Def;
-    int Removals = 0;
+    int Installs = 0;
 
     CommandBuilder Builder(std::string_view name)
     {
         return CommandBuilder(
             [this](CommandDefinition def) {
                 Def = std::move(def);
-                return Subscription([this] { ++Removals; });
+                ++Installs;
             },
             name);
     }
@@ -50,13 +49,13 @@ struct Installed
 TEST_CASE("The metadata methods fill the definition and each returns the builder")
 {
     Installed installed;
-    Subscription sub = installed.Builder("voice_mute")
-                           .Describe("Voice-mute a player.")
-                           .Alias("vmute")
-                           .Alias("mute")
-                           .Permission("m")
-                           .UsageKey("cmd.muteUsage")
-                           .Run([](Caller c) -> Result<Reply> { return c.Ok("cmd.ok"); });
+    installed.Builder("voice_mute")
+        .Describe("Voice-mute a player.")
+        .Alias("vmute")
+        .Alias("mute")
+        .Permission("m")
+        .UsageKey("cmd.muteUsage")
+        .Run([](Caller c) -> Result<Reply> { return c.Ok("cmd.ok"); });
 
     CHECK(installed.Def.Name == "voice_mute");
     CHECK(installed.Def.Description == "Voice-mute a player.");
@@ -72,13 +71,11 @@ TEST_CASE("The metadata methods fill the definition and each returns the builder
 TEST_CASE("Console adds the console surface and ConsoleOnly takes chat away")
 {
     Installed installed;
-    Subscription both =
-        installed.Builder("bhop_reload").Console().Run([](Caller) -> Result<Reply> { return Reply::Silent(); });
+    installed.Builder("bhop_reload").Console().Run([](Caller) -> Result<Reply> { return Reply::Silent(); });
     CHECK(installed.Def.Chat);
     CHECK(installed.Def.Console);
 
-    Subscription consoleOnly =
-        installed.Builder("bhop_player").ConsoleOnly().Run([](Caller) -> Result<Reply> { return Reply::Silent(); });
+    installed.Builder("bhop_player").ConsoleOnly().Run([](Caller) -> Result<Reply> { return Reply::Silent(); });
     CHECK_FALSE(installed.Def.Chat);
     CHECK(installed.Def.Console);
 }
@@ -86,7 +83,7 @@ TEST_CASE("Console adds the console surface and ConsoleOnly takes chat away")
 TEST_CASE("The handler's parameter list is the argument descriptor")
 {
     Installed installed;
-    Subscription sub = installed.Builder("ban").Run(
+    installed.Builder("ban").Run(
         [](Caller c, Args::Target, Args::Duration, Args::Opt<Args::Rest>) -> Result<Reply> { return c.Ok("ok"); });
 
     REQUIRE(installed.Def.Args.size() == 3);
@@ -101,9 +98,9 @@ TEST_CASE("The handler's parameter list is the argument descriptor")
 TEST_CASE("Every argument type maps to its own kind")
 {
     Installed installed;
-    Subscription sub = installed.Builder("everything")
-                           .Run([](Caller c, Args::Target, Args::SteamId, Args::PlayerOrSteamId, Args::Int,
-                                   Args::Word, Args::Rest) -> Result<Reply> { return c.Ok("ok"); });
+    installed.Builder("everything")
+        .Run([](Caller c, Args::Target, Args::SteamId, Args::PlayerOrSteamId, Args::Int, Args::Word,
+                Args::Rest) -> Result<Reply> { return c.Ok("ok"); });
 
     REQUIRE(installed.Def.Args.size() == 6);
     CHECK(installed.Def.Args[0].Kind == ArgKind::Target);
@@ -117,7 +114,7 @@ TEST_CASE("Every argument type maps to its own kind")
 TEST_CASE("The trampoline unpacks bound arguments back into the parameter list")
 {
     Installed installed;
-    Subscription sub = installed.Builder("dumpcmd").Run(
+    installed.Builder("dumpcmd").Run(
         [](Caller c, Args::Int slot, Args::Opt<Args::Int> ticks, Args::Opt<Args::Rest> note) -> Result<Reply> {
             return c.Ok(std::to_string(slot.Value) + "/" + std::to_string(ticks.Value ? ticks.Value->Value : -1) + "/" +
                         (note.Value ? note.Value->Value : std::string("-")));
@@ -138,14 +135,12 @@ TEST_CASE("The trampoline unpacks bound arguments back into the parameter list")
     CHECK(omitted->Text == "2/-1/-");
 }
 
-TEST_CASE("Dropping the subscription unregisters the command")
+TEST_CASE("Run installs the command and hands nothing back")
 {
     Installed installed;
-    {
-        Subscription sub = installed.Builder("ping").Run([](Caller c) -> Result<Reply> { return c.Ok("cmd.pong"); });
-        CHECK(installed.Removals == 0);
-    }
-    CHECK(installed.Removals == 1);
+    installed.Builder("ping").Run([](Caller c) -> Result<Reply> { return c.Ok("cmd.pong"); });
+    CHECK(installed.Installs == 1);
+    CHECK(installed.Def.Name == "ping");
 }
 
 TEST_CASE("Caller Fail is a failure carrying both the key and the localized line")

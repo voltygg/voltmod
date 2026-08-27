@@ -94,14 +94,14 @@ resolved and immunity-checked before the handler runs.
 ```cpp
 namespace Args = VoltMod::Args;
 
-_subs.push_back(runtime.Commands.Add("slap")
+runtime.Commands.Add("slap")
     .Describe("Slap a player.")
     .Permission("admin.slap")
     .Run([&runtime](VoltMod::Caller c, Args::Target t)
              -> VoltMod::Result<VoltMod::Reply> {
         runtime.World.Pawns.Slap(t.Value->Ctrl());
         return c.Ok("cmd.slapped", {{"name", t.Value->Name()}});
-    }));
+    });
 ```
 
 Add `cmd.slapped` to the translation files. `Run` returns a `Subscription` that

@@ -45,19 +45,16 @@ CommandBuilder CommandManager::Add(std::string_view name)
         [this](CommandDefinition def) {
             const std::string key = Strings::ToLower(def.Name);
             const bool console = def.Console;
-            const uint64_t id = _impl->Router.Add(std::move(def));
-            if (id == 0)
-                return Subscription{};  // refused and logged; nothing to unregister
-
-            if (console)
+            if (_impl->Router.Add(std::move(def)) && console)
                 InstallConsoleCommand(key);
-
-            return Subscription([this, key, id] {
-                _impl->ConsoleCommands.erase(key);
-                _impl->Router.Remove(key, id);
-            });
         },
         name);
+}
+
+void CommandManager::RemoveAll()
+{
+    _impl->ConsoleCommands.clear();
+    _impl->Router.Clear();
 }
 
 void CommandManager::InstallConsoleCommand(const std::string& name)

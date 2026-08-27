@@ -113,8 +113,8 @@ struct ArgDesc
 };
 
 /** One bound argument. `std::monostate` is an optional argument the caller omitted. */
-using BoundArg = std::variant<std::monostate, Args::Target, Args::Duration, Args::SteamId,
-                              Args::PlayerOrSteamId, Args::Int, Args::Word, Args::Rest>;
+using BoundArg = std::variant<std::monostate, Args::Target, Args::Duration, Args::SteamId, Args::PlayerOrSteamId,
+                              Args::Int, Args::Word, Args::Rest>;
 
 /**
  * @brief What one handler parameter type means to the framework.

@@ -19,7 +19,7 @@ using VoltMod::Reply;
 using VoltMod::Result;
 namespace Args = VoltMod::Args;
 
-_subs.push_back(commands.Add("ban")
+commands.Add("ban")
     .Describe("Ban a player.")
     .Alias("b")
     .Permission("b")
@@ -30,12 +30,14 @@ _subs.push_back(commands.Add("ban")
         if (!IssueBan(*c.P, *t.Value, reason, d.Value))
             return c.Fail("cmd.banFailed");
         return c.Ok("cmd.banSuccess", {{"name", name}});
-    }));
+    });
 ```
 
-`Run` installs the command and returns a @ref VoltMod::Subscription. Hold it
-beside the state the handler captured - dropping it unregisters the command (and
-removes its ConCommand). The builder is single use: `Add` starts a new one.
+`Run` installs the command and hands nothing back. A command lives as long as
+the @ref VoltMod::CommandManager that owns it, and `MetamodPlugin` drops every
+one of them before `OnUnload`, so a handler cannot outlive the plugin state it
+captured. There is no way to unregister one command on its own. The builder is
+single use: `Add` starts a new one.
 
 After `OnLoad`, the framework records the registered command count in the load
 report. The default `OnPlayerChat` dispatches `!` and `.` messages through
@@ -163,13 +165,13 @@ A command is typeable in chat by default.
 files and `ExecuteServerCommand` reach the same handler:
 
 ```cpp
-_subs.push_back(commands.Add("bhop_player")
+commands.Add("bhop_player")
     .Describe("Grant/revoke session bhop for a player.")
     .ConsoleOnly()
     .Run([this](Caller, Args::SteamId id, Args::Int on) -> Result<Reply> {
         Grant(id.Value, on.Value != 0);
         return Reply::Silent();
-    }));
+    });
 ```
 
 Console calls run the same binder and handler, print their reply to the console,

@@ -100,19 +100,19 @@ std::optional<std::string_view> CommandRouter::StripPrefix(std::string_view mess
     return std::nullopt;
 }
 
-uint64_t CommandRouter::Add(CommandDefinition def)
+bool CommandRouter::Add(CommandDefinition def)
 {
     const std::string name = Strings::ToLower(def.Name);
 
     if (name.empty())
     {
         Log::Error("A command was registered with no name - ignoring it.");
-        return 0;
+        return false;
     }
     if (_commands.contains(name) || _aliases.contains(name))
     {
         Log::Error("Command '{}' is already registered - ignoring the second registration.", def.Name);
-        return 0;
+        return false;
     }
 
     // Index aliases once and reject collisions, so lookup is deterministic.
@@ -136,22 +136,14 @@ uint64_t CommandRouter::Add(CommandDefinition def)
         _aliases.emplace(std::move(key), name);
     }
 
-    const uint64_t id = _nextId++;
-    _ids[name] = id;
     _commands.emplace(name, std::move(def));
-    return id;
+    return true;
 }
 
-void CommandRouter::Remove(std::string_view name, uint64_t id)
+void CommandRouter::Clear()
 {
-    const std::string key = Strings::ToLower(std::string(name));
-    auto owned = _ids.find(key);
-    if (owned == _ids.end() || owned->second != id)
-        return;  // already gone, or re-registered since; the newer registration is not ours
-
-    _ids.erase(owned);
-    _commands.erase(key);
-    std::erase_if(_aliases, [&key](const auto& entry) { return entry.second == key; });
+    _commands.clear();
+    _aliases.clear();
 }
 
 const CommandDefinition* CommandRouter::Find(std::string_view name) const

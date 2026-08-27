@@ -97,12 +97,12 @@ public:
     static std::string_view ChatPrefix();
 
     /** Register @p def under its lowercased name plus its aliases.
-     *  @return the id @ref Remove needs, or 0 when the name was taken (already logged). */
-    uint64_t Add(CommandDefinition def);
+     *  @return false when the name or the registration was refused (already logged). */
+    bool Add(CommandDefinition def);
 
-    /** Drop @p name, but only while it is still the registration @p id identifies - a
-     *  Subscription outliving a same-named re-registration must not remove the new one. */
-    void Remove(std::string_view name, uint64_t id);
+    /** Drop every registration. The router is emptied as a whole or not at all: a command
+     *  lives exactly as long as the manager that owns it. */
+    void Clear();
 
     /** Look @p name up as a command name, then as an alias. */
     const CommandDefinition* Find(std::string_view name) const;
@@ -145,11 +145,8 @@ private:
     Translations& _translations;
 
     std::unordered_map<std::string, CommandDefinition> _commands;
-    /** Lowercased command name -> the id its registration was issued. */
-    std::unordered_map<std::string, uint64_t> _ids;
     /** Lowercased alias -> the lowercased command name that owns it. */
     std::unordered_map<std::string, std::string> _aliases;
-    uint64_t _nextId = 1;
 };
 
 }  // namespace VoltMod

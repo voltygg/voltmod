@@ -137,7 +137,7 @@ struct CommandHandlerArgs<R (*)(Caller, A...)>
  * @brief Fluent command registration, returned by @ref CommandManager::Add.
  *
  * @code
- * _subs.push_back(commands.Add("ban")
+ * commands.Add("ban")
  *     .Describe("Ban a player.")
  *     .Alias("b")
  *     .Permission(Flag(Permission::Ban))
@@ -148,17 +148,17 @@ struct CommandHandlerArgs<R (*)(Caller, A...)>
  *         if (!app.Ban(*c.P, *t.Value, reason, d.Value))
  *             return c.Fail("cmd.banFailed");
  *         return c.Ok("cmd.banSuccess", {{"name", name}});
- *     }));
+ *     });
  * @endcode
  *
- * Single use: @ref Run consumes the builder and returns the @ref Subscription that owns the
- * registration. Hold it beside the state the handler captured.
+ * Single use: @ref Run consumes the builder and installs the command. The manager owns the
+ * registration for its own lifetime, which is one plugin load cycle.
  */
 class CommandBuilder
 {
 public:
     /** How @ref Run hands the finished definition back to the manager that made this builder. */
-    using Installer = std::function<Subscription(CommandDefinition)>;
+    using Installer = std::function<void(CommandDefinition)>;
 
     CommandBuilder(Installer install, std::string_view name) : _install(std::move(install))
     {
@@ -216,17 +216,18 @@ public:
      * argument; that list is the argument spec - arity, order, parsing and the usage line all
      * come from it.
      *
-     * @return the registration. Dropping it unregisters the command and removes its ConCommand.
+     * Nothing to hold on to: the command is unregistered when the @ref CommandManager goes,
+     * which the plugin's unload path does before the state the handler captured.
      */
     template <class F>
-    [[nodiscard]] Subscription Run(F&& handler)
+    void Run(F&& handler)
     {
-        return Bind(std::forward<F>(handler), typename CommandHandlerArgs<std::remove_cvref_t<F>>::List{});
+        Bind(std::forward<F>(handler), typename CommandHandlerArgs<std::remove_cvref_t<F>>::List{});
     }
 
 private:
     template <class F, class... A>
-    Subscription Bind(F&& handler, CommandArgList<A...>)
+    void Bind(F&& handler, CommandArgList<A...>)
     {
         static_assert((CommandArg<A> && ...), "Every command handler parameter after Caller must be an Args:: type.");
         static_assert(OptionalsTrail<A...>(), "Only trailing command arguments may be Args::Opt.");
@@ -237,7 +238,7 @@ private:
                           const Caller& caller, std::span<const BoundArg> bound) {
             return Unpack(fn, caller, bound, std::index_sequence_for<A...>{});
         };
-        return _install(std::move(_def));
+        _install(std::move(_def));
     }
 
     /** The trampoline: one `std::get` per declared argument, in descriptor order. */

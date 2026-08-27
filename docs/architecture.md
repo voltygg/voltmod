@@ -159,10 +159,10 @@ that already holds what the handlers need:
 
 ```cpp
 // src/Commands/BanCommands.cpp
-void RegisterBanCommands(VoltMod::CommandManager& commands, App& app, Subs& subs)
+void RegisterBanCommands(VoltMod::CommandManager& commands, App& app)
 {
-    subs.push_back(commands.Add("ban").Permission("b").Run(
-        [&app](VoltMod::Caller c, Args::Target t, Args::Duration d) -> Result<Reply> { /* ... */ }));
+    commands.Add("ban").Permission("b").Run(
+        [&app](VoltMod::Caller c, Args::Target t, Args::Duration d) -> Result<Reply> { /* ... */ });
 }
 ```
 

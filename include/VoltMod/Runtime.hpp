@@ -1,7 +1,6 @@
 #pragma once
 
 #include <VoltMod/App/ServiceExchange.hpp>
-#include <VoltMod/App/ServiceExchange.hpp>
 #include <VoltMod/App/StatusService.hpp>
 #include <VoltMod/Commands/CommandManager.hpp>
 #include <VoltMod/Core/Capabilities.hpp>

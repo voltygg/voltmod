@@ -20,8 +20,7 @@ void EffectDispatcher::Apply(PlayerRef admin, PlayerRef target, const EffectDesc
     // Register only when there is state to track: a pure fire-and-forget never occupies the slot
     // map, so IsActive stays false and no stale toggle state lingers.
     if (inst.OnTick || inst.OnStop || effect.DurationMs > 0)
-        _effects.Apply(target.Slot, effect.Id, std::move(inst), effect.Scope, effect.TickIntervalMs,
-                       effect.DurationMs);
+        _effects.Apply(target.Slot, effect.Id, std::move(inst), effect.Scope, effect.TickIntervalMs, effect.DurationMs);
 
     if (!effect.OnKey.empty())
         _actions.Broadcast(*ctx, effect.OnKey);

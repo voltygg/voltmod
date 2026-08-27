@@ -20,12 +20,16 @@ namespace VoltMod
  * Registration is fluent and the handler's signature is the argument spec:
  *
  * @code
- * _subs.push_back(commands.Add("slap")
+ * commands.Add("slap")
  *     .Permission("s")
  *     .Run([&](Caller c, Args::Target t, Args::Opt<Args::Int> damage) -> Result<Reply> {
  *         return c.Ok("cmd.slapped", {{"name", t.Value->Name()}});
- *     }));
+ *     });
  * @endcode
+ *
+ * A command lives as long as the manager, so registration hands nothing back to hold. Handlers
+ * routinely capture plugin state; @ref MetamodPlugin drops every command before `OnUnload`, so
+ * they stop before that state does.
  *
  * The pipeline per invocation: prefix match -> name or alias lookup -> `Policy::Authorize` for
  * the command's permission (which denies when no `HasPermission` policy is installed) -> arity
@@ -35,8 +39,8 @@ namespace VoltMod
  * and stops.
  *
  * `Console()` additionally registers a tier1 ConCommand of the same name, running the same
- * binding and handler with no caller and printing its reply to the console. The returned
- * @ref Subscription owns both, so dropping it removes both.
+ * binding and handler with no caller and printing its reply to the console. It is removed with
+ * the command.
  */
 class CommandManager
 {
@@ -57,6 +61,10 @@ public:
     bool HandleChatMessage(Player* caller, std::string_view message);
 
     size_t Count() const;
+
+    /** Unregister every command and its ConCommand. Called by @ref MetamodPlugin on the unload
+     *  path, before the plugin's own state goes away; plugins do not call this. */
+    void RemoveAll();
 
     /** Names of registered commands that declare a permission while no `HasPermission` policy
      *  is installed. Every one of them will be denied; MetamodPlugin reports this after OnLoad
