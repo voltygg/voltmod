@@ -1,4 +1,4 @@
-#include "Hooks/AddonRequirements.hpp"
+#include "Workshop/AddonRequirements.hpp"
 
 #include <VoltMod/Core/Strings.hpp>
 #include <algorithm>

@@ -1,14 +1,14 @@
 #include "Engine/ServerSideClients.hpp"
-#include "Hooks/AddonRequirements.hpp"
+#include "Workshop/AddonRequirements.hpp"
 
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/SteamId.hpp>
 #include <VoltMod/Core/Time.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
-#include <VoltMod/Hooks/Addons.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Unsafe/VtableHook.hpp>
+#include <VoltMod/Workshop/Addons.hpp>
 #include <eiface.h>
 #include <networkbasetypes.pb.h>
 #include <networksystem/inetworkmessages.h>
