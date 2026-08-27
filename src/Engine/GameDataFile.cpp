@@ -2,6 +2,7 @@
 
 #include <VoltMod/Core/Paths.hpp>
 #include <VoltMod/Engine/OffsetCheck.hpp>
+#include <algorithm>
 #include <cctype>
 #include <format>
 #include <fstream>
@@ -72,6 +73,28 @@ bool IsValidBytePattern(std::string_view pattern)
     return tokens > 0;
 }
 
+/**
+ * Whether @p entry carries the other platform's column, i.e. it is deliberately single-platform
+ * rather than malformed. gamedata.schema.json requires one of the two columns, not both: something
+ * only located on Windows so far is a capability that is off on Linux.
+ */
+static bool HasOtherPlatform(const nlohmann::json& entry, GamePlatform platform)
+{
+    const char* other = PlatformKey(platform == GamePlatform::Windows ? GamePlatform::Linux : GamePlatform::Windows);
+    return entry.is_object() && entry.contains(other);
+}
+
+/** Record @p key as unavailable here and tell the caller to skip it. See @ref HasOtherPlatform. */
+static bool SkipOtherPlatform(const nlohmann::json& entry, GamePlatform platform, const std::string& key,
+                              GameDataFile& out)
+{
+    if (!entry.is_object() || entry.contains(PlatformKey(platform)) || !HasOtherPlatform(entry, platform))
+        return false;
+
+    out.OtherPlatformOnly.push_back(key);
+    return true;
+}
+
 /** Read one platform column of @p entry as an integer, or report which key has no column. */
 static Result<int> PlatformInt(const nlohmann::json& entry, GamePlatform platform, const char* section,
                                const std::string& key)
@@ -102,6 +125,8 @@ static Status ParseSignatures(const nlohmann::json& json, GamePlatform platform,
         if (!entry.is_object())
             return Malformed(std::format("signatures.{} is not an object", key));
 
+        if (SkipOtherPlatform(entry, platform, key, out))
+            continue;
         if (!entry.contains(column))
             return Malformed(std::format("signatures.{} has no '{}' entry", key, column));
         if (!entry[column].is_object())
@@ -135,11 +160,21 @@ static Status ParseAddresses(const nlohmann::json& json, GamePlatform platform, 
 
         AddressEntry address;
         address.Signature = entry.value("signature", std::string{});
+        // An address derived from a signature this platform does not carry goes with it, rather
+        // than reading as a reference to a signature nobody wrote.
+        if (std::ranges::contains(out.OtherPlatformOnly, address.Signature))
+        {
+            out.OtherPlatformOnly.push_back(key);
+            continue;
+        }
         if (!out.Signatures.contains(address.Signature))
             return Malformed(std::format("addresses.{} derives from unknown signature '{}'", key, address.Signature));
 
         if (!entry.contains("rel32At"))
             return Malformed(std::format("addresses.{} has no 'rel32At'", key));
+
+        if (SkipOtherPlatform(entry["rel32At"], platform, key, out))
+            continue;
 
         auto rel32At = PlatformInt(entry["rel32At"], platform, "addresses", key + ".rel32At");
         if (!rel32At)
@@ -167,6 +202,9 @@ static Status ParseVTables(const nlohmann::json& json, GamePlatform platform, Ga
             return claimed;
         if (!entry.is_object())
             return Malformed(std::format("vtables.{} is not an object", key));
+
+        if (SkipOtherPlatform(entry, platform, key, out))
+            continue;
 
         VTableEntry vtable;
         vtable.Class = entry.value("class", std::string{});
@@ -200,6 +238,9 @@ static Status ParseOffsets(const nlohmann::json& json, GamePlatform platform, Ga
             return claimed;
         if (!entry.is_object())
             return Malformed(std::format("offsets.{} is not an object", key));
+
+        if (SkipOtherPlatform(entry, platform, key, out))
+            continue;
 
         OffsetEntry offset;
         offset.Max = entry.value("max", MaxByteOffset);

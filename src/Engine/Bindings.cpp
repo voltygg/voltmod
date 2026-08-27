@@ -159,6 +159,16 @@ Status Bindings::Bind(const GameData& data, Capabilities& caps)
     bind(FindEntityByName, "CGameEntitySystem_FindEntityByName");
     bind.Signature(LegacyGameEventListener, "LegacyGameEventListener");
 
+    // All six under one capability, so a partial match disables writes rather than letting one
+    // through a null address. Windows-only patterns today; on Linux they resolve as absent.
+    bind(CustomHudSetHasClass, "CustomHudSetHasClass", Capability::CustomHud);
+    bind(CustomHudSetHasClassForPlayer, "CustomHudSetHasClassForPlayer", Capability::CustomHud);
+    bind(CustomHudSetDialogVariable, "CustomHudSetDialogVariable", Capability::CustomHud);
+    bind(CustomHudSetDialogVariableForPlayer, "CustomHudSetDialogVariableForPlayer", Capability::CustomHud);
+    bind(CustomHudSetInputCapture, "CustomHudSetInputCapture", Capability::CustomHud);
+    bind(CustomHudIsInputCapture, "CustomHudIsInputCapture", Capability::CustomHud);
+    bind.Signature(FilterMessage, "FilterMessage", Capability::HudClicks);
+
     // Addresses
     bind.Global(GameEventManager, "GameEventManager", Capability::GameEvents);
     bind.Global(GameSystemFactoryList, "GameSystemFactoryList", Capability::Precache);
@@ -174,11 +184,19 @@ Status Bindings::Bind(const GameData& data, Capabilities& caps)
     bind(RemoveAllItems, "RemoveAllItems", Capability::Items);
     bind(RunCommand, "RunCommand", Capability::Movement);
     bind(ProcessRespondCvarValue, "ProcessRespondCvarValue", Capability::ClientCvars);
+    bind(SendNetMessage, "SendNetMessage", Capability::Addons);
 
     // Offsets
     bind(GameEntitySystem, "GameEntitySystem", Capability::Entities);
     bind(CheckTransmitPlayerSlot, "CheckTransmitPlayerSlot", Capability::Transmit);
     bind(ServerSideClientSlot, "ServerSideClientSlot", Capability::ClientCvars);
+    // The same offsets read by more than one feature; each records its own capability so a missing
+    // entry names every feature it takes down rather than only the first.
+    bind(ServerSideClientSlot, "ServerSideClientSlot", Capability::HudClicks);
+    bind(ServerSideClientSlot, "ServerSideClientSlot", Capability::Addons);
+    bind(NetworkGameServerClients, "NetworkGameServerClients", Capability::HudClicks);
+    bind(NetworkGameServerClients, "NetworkGameServerClients", Capability::Addons);
+    bind(ServerSideClientSteamId, "ServerSideClientSteamId", Capability::Addons);
     bind(UserCmdPB, "UserCmdPB", Capability::Movement);
     // Optional: movement can use the protobuf counter instead.
     bind(UserCmdNumber, "UserCmdNumber");

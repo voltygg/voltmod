@@ -91,15 +91,47 @@ TEST_CASE("GameDataFile rejects a key declared in two sections")
     CHECK(Detail(parsed.error()).find("'Both' is declared in both 'signatures' and 'offsets'") != std::string::npos);
 }
 
-TEST_CASE("GameDataFile rejects an entry with no column for the platform")
+// gamedata.schema.json requires one platform column, not both: something located on Windows only
+// is a capability that is off on Linux, not a file that fails to parse there.
+TEST_CASE("GameDataFile keeps a single-platform entry out of the other platform's maps")
 {
     const auto text = Document(R"(  "offsets": { "WindowsOnly": { "windows": 8 } })");
 
-    CHECK(GameDataFile::Parse(text, GamePlatform::Windows).has_value());
+    auto windows = GameDataFile::Parse(text, GamePlatform::Windows);
+    REQUIRE(windows.has_value());
+    CHECK(windows->Offsets.contains("WindowsOnly"));
+    CHECK(windows->OtherPlatformOnly.empty());
 
-    auto parsed = GameDataFile::Parse(text, GamePlatform::Linux);
+    auto linux = GameDataFile::Parse(text, GamePlatform::Linux);
+    REQUIRE(linux.has_value());
+    CHECK_FALSE(linux->Offsets.contains("WindowsOnly"));
+    // Named, so an unavailable feature can say more than "not in gamedata".
+    REQUIRE(linux->OtherPlatformOnly.size() == 1);
+    CHECK(linux->OtherPlatformOnly.front() == "WindowsOnly");
+}
+
+TEST_CASE("GameDataFile rejects an entry with no column for either platform")
+{
+    const auto text = Document(R"(  "offsets": { "Nowhere": { "max": 64 } })");
+
+    auto parsed = GameDataFile::Parse(text, GamePlatform::Windows);
     REQUIRE_FALSE(parsed.has_value());
-    CHECK(Detail(parsed.error()).find("has no 'linux' entry") != std::string::npos);
+    CHECK(Detail(parsed.error()).find("has no 'windows' entry") != std::string::npos);
+}
+
+// An address is resolved from its signature's match, so it has to go wherever that signature goes
+// rather than read as a reference to a signature nobody wrote.
+TEST_CASE("GameDataFile drops an address whose signature is for the other platform")
+{
+    const auto text = Document(
+        R"(  "signatures": { "Sig": { "windows": { "pattern": "48 8B" } } },)"
+        "\n"
+        R"(  "addresses": { "Addr": { "signature": "Sig", "rel32At": { "windows": 3, "linux": 3 } } })");
+
+    auto linux = GameDataFile::Parse(text, GamePlatform::Linux);
+    REQUIRE(linux.has_value());
+    CHECK(linux->Addresses.empty());
+    CHECK(linux->Signatures.empty());
 }
 
 TEST_CASE("GameDataFile rejects a malformed byte pattern")

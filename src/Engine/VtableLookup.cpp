@@ -259,4 +259,34 @@ void* FindVirtualTable(const char* moduleName, const char* className)
     return vtable;
 }
 
+std::optional<VTableSlot> FindVTableSlot(const void* instance, const void* function, int maxTables, int maxIndex)
+{
+    if (!instance || !function || maxTables <= 0 || maxIndex <= 0)
+        return std::nullopt;
+
+    const auto* const object = static_cast<const uint8_t*>(instance);
+    for (int table = 0; table < maxTables; ++table)
+    {
+        const int baseOffset = table * static_cast<int>(sizeof(void*));
+
+        void** candidate = nullptr;
+        std::memcpy(&candidate, object + baseOffset, sizeof(candidate));
+
+        // A vptr points at read-only code pointers. Requiring slot 0 to be executable rejects the
+        // ordinary data members that share these leading bytes without dereferencing them blindly:
+        // a small integer or an interior pointer fails here rather than being walked as a table.
+        if (!candidate || !IsExecutableAddress(candidate[0]))
+            continue;
+
+        for (int index = 0; index < maxIndex; ++index)
+        {
+            if (!IsExecutableAddress(candidate[index]))
+                break;  // past the end of this table
+            if (candidate[index] == function)
+                return VTableSlot{.Table = static_cast<void*>(candidate), .Index = index, .BaseOffset = baseOffset};
+        }
+    }
+    return std::nullopt;
+}
+
 }  // namespace VoltMod

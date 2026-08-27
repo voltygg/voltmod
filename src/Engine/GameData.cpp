@@ -94,6 +94,11 @@ Status GameData::Load(const std::string& path)
     Log::Info("GameData loaded from {} (verified {}): {} signatures, {} addresses, {} vtables, {} offsets.", path,
               _verified.empty() ? "?" : _verified, file->Signatures.size(), file->Addresses.size(),
               file->VTables.size(), file->Offsets.size());
+
+    // Said once here, because downstream each of these only reads as "not in gamedata".
+    if (!file->OtherPlatformOnly.empty())
+        Log::Info("GameData: {} entries are located for the other platform only and unavailable here: {}.",
+                  file->OtherPlatformOnly.size(), Strings::Join(file->OtherPlatformOnly, ", "));
     return {};
 }
 

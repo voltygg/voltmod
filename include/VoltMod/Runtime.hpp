@@ -15,6 +15,7 @@
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/World.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
+#include <VoltMod/Hooks/Addons.hpp>
 #include <VoltMod/Hooks/Hooks.hpp>
 #include <VoltMod/Http/HttpClient.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
@@ -129,6 +130,11 @@ public:
     /** The per-tick and per-event engine hooks - see @ref HookServices. Depends on: Entities,
      *  Unsafe.Bindings, Slots, Scheduler, GameEvents, Unsafe.Interfaces, World.EntityOps. */
     HookServices Hooks{Entities, Unsafe.Bindings, Slots, Scheduler, GameEvents, Unsafe.Interfaces, World.EntityOps};
+    /** Workshop addons connecting clients are told to download - how a HUD layout, model or sound
+     *  reaches them. Declared after Hooks because it installs a vtable hook of its own and should
+     *  come down before the tiers above it. Depends on: Unsafe.Interfaces, Unsafe.Bindings,
+     *  Players, Scheduler. */
+    VoltMod::Addons Addons{Unsafe.Interfaces, Unsafe.Bindings, Players, Scheduler};
 
     // Composition-root services.
     /** Interfaces offered to, and borrowed from, other plugins. */

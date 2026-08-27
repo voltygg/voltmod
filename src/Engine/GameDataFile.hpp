@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace VoltMod
 {
@@ -82,14 +83,23 @@ struct GameDataFile
     std::map<std::string, VTableEntry> VTables;
     std::map<std::string, OffsetEntry> Offsets;
 
+    /** Keys the file carries for the other platform only, so they are absent from the maps above.
+     *  gamedata.schema.json requires one platform column, not both, and a feature that has only
+     *  been located on one of them is a capability that is off there - not a malformed file.
+     *  Naming them keeps that distinct from a key nobody wrote. */
+    std::vector<std::string> OtherPlatformOnly;
+
     /** Total entries across every section; each one is a key @ref Bindings can name. */
     size_t EntryCount() const { return Signatures.size() + Addresses.size() + VTables.size() + Offsets.size(); }
 
     /**
      * Parse @p text (JSONC) keeping @p platform's column of every entry.
      *
+     * An entry carrying only the *other* platform's column is not an error: its key is recorded in
+     * @ref OtherPlatformOnly and left out of the maps, so it resolves as absent.
+     *
      * @return Error::Invalid naming the offending key for: a missing or unsupported `version`, a
-     *         key used in more than one section, an entry with no column for @p platform, a
+     *         key used in more than one section, an entry with no column for either platform, a
      *         malformed pattern, a negative `rel32At`, an `addresses` entry naming a signature
      *         that does not exist, a vtable index outside [0, @ref MaxVtableIndex), or an offset
      *         above its `max` or not a multiple of its `align`.

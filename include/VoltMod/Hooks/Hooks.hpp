@@ -9,6 +9,7 @@
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>
 #include <VoltMod/Hooks/ClientCvars.hpp>
+#include <VoltMod/Hooks/HudClicks.hpp>
 #include <VoltMod/Hooks/Movement.hpp>
 #include <VoltMod/Hooks/Teleport.hpp>
 #include <VoltMod/Hooks/Transmit.hpp>
@@ -36,7 +37,8 @@ struct HookServices
           ChatInput(scheduler, slots),
           Teleport(entities, bindings, gameEvents, slots),
           ClientCvars(interfaces, bindings, slots),
-          Vote(interfaces, entities, gameEvents, scheduler)
+          Vote(interfaces, entities, gameEvents, scheduler),
+          HudClicks(interfaces, bindings, slots)
     {}
 
     /** Dormant until something subscribes; the last subscription dropped removes the vtable
@@ -58,6 +60,10 @@ struct HookServices
     /** The game's own yes/no vote panel. Subscribes on the first StartVote().
      *  Depends on: Interfaces, Entities, GameEvents, Scheduler. */
     VoltMod::Vote Vote;
+    /** Button presses coming back from a custom HUD layout. Dormant until something subscribes,
+     *  and it binds from a live client, so an empty server arms on the first connect.
+     *  Depends on: Interfaces, Bindings, Slots. */
+    VoltMod::HudClicks HudClicks;
 };
 
 }  // namespace VoltMod

@@ -194,6 +194,25 @@ struct Bindings
     /** IGameEventListener2* (CPlayerSlot), defined in GameEvents.cpp. */
     Address LegacyGameEventListener;
 
+    /** @defgroup CustomHudSetters CCSCustomHudLayout setters, called by @ref CustomHud.
+     *  `self` is the entity. The `const CUtlString*` parameters are the real ABI; strings are
+     *  never passed as `const char*` here. All six bind together or none does - a half-bound set
+     *  would let a call through a null address - which @ref Capability::CustomHud reports.
+     *  @{ */
+    Fn<void(void*, const CUtlString*, const CUtlString*, int32_t)> CustomHudSetHasClass;
+    Fn<void(void*, int32_t, const CUtlString*, const CUtlString*, int32_t)> CustomHudSetHasClassForPlayer;
+    Fn<void(void*, const CUtlString*, const CUtlString*, const CUtlString*)> CustomHudSetDialogVariable;
+    Fn<void(void*, int32_t, const CUtlString*, const CUtlString*, const CUtlString*)>
+        CustomHudSetDialogVariableForPlayer;
+    Fn<void(void*, int32_t, bool)> CustomHudSetInputCapture;
+    Fn<bool(void*, int32_t)> CustomHudIsInputCapture;
+    /** @} */
+
+    /** CServerSideClient::FilterMessage, bound by signature rather than vtable index because it
+     *  lives in a secondary vtable. @ref Hooks::HudClicks turns this address into a hookable slot
+     *  with FindVTableSlot; see the gamedata comment for why there is no index. */
+    Address FilterMessage;
+
     // Addresses
 
     /** IGameEventManager2** inside CSource2Server. */
@@ -223,6 +242,9 @@ struct Bindings
     VFn<void(bool)> RemoveAllItems;
     /** CServerSideClient::ProcessRespondCvarValue(...), hooked on CServerSideClient. */
     VHookBinding<bool(const void*)> ProcessRespondCvarValue;
+    /** CServerSideClient::SendNetMessage(const CNetMessage*, NetChannelBufType_t), hooked on
+     *  CServerSideClient. The buf type is an enum the SDK declares, so it is taken as int here. */
+    VHookBinding<bool(const void*, int)> SendNetMessage;
 
     // Offsets
 
@@ -232,6 +254,10 @@ struct Bindings
     OffsetOf<uint8_t> CheckTransmitPlayerSlot;
     /** The player slot inside CServerSideClient. */
     OffsetOf<int> ServerSideClientSlot;
+    /** CNetworkGameServer::m_Clients, the slot-indexed client vector. See ServerSideClients.hpp. */
+    OffsetOf<void> NetworkGameServerClients;
+    /** The SteamID inside CServerSideClient. Unaligned; read through memcpy. */
+    OffsetOf<int64_t> ServerSideClientSteamId;
     /** The CSGOUserCmdPB payload embedded in CUserCmd. */
     OffsetOf<void> UserCmdPB;
     /** CUserCmd command counter; live clients leave the protobuf counter at zero. */

@@ -42,6 +42,82 @@
       "linux": { "pattern": "8B 05 ? ? ? ? 89 C2 83 EA ? 0F 88 ? ? ? ? 4C 8D 3D" }
     },
 
+    // CCSCustomHudLayout's setters, for VoltMod::CustomHud.
+    //
+    // These are called rather than written by hand because each of the entity's three networked
+    // string tables (m_vecPanelIds, m_vecClassNames, m_vecDialogVariableNames) is shadowed by a
+    // CUtlHashtable that is neither in the schema nor networked, and CCSCustomHudLayoutState keeps
+    // two more plus index arrays. Appending to a vector directly leaves those indexes stale, so the
+    // next engine-side call misses the hash, appends a duplicate, and the state silently desyncs.
+    // These do the interning, the dedupe and the change notification correctly.
+    //
+    // Windows-only so far: the patterns were recovered from server.dll build 24934554 and each
+    // matches exactly once in .text. A single-platform entry is allowed (see gamedata.schema.json);
+    // on Linux Capability::CustomHud is simply off until the patterns are located there.
+
+    // void (CCSCustomHudLayout*, const CUtlString* panelId, const CUtlString* className,
+    //       EHudPanelClassStatus_t status)
+    "CustomHudSetHasClass": {
+      "library": "server",
+      "windows": {
+        "pattern": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 30 49 8B F0 33 ED 4C 8D 44 24 24 66 89 6C 24 24 41 8B F9 48 8B D9 E8 ? ? ? ? 84 C0 74 33"
+      }
+    },
+
+    // void (self, int32 slot, const CUtlString* panelId, const CUtlString* className, status).
+    // Byte-identical to SetDialogVariableStringForPlayer for 82 bytes; the trailing `44 8B` is the
+    // only thing that separates them, so do not shorten this pattern.
+    "CustomHudSetHasClassForPlayer": {
+      "library": "server",
+      "windows": {
+        "pattern": "40 53 56 57 48 83 EC 20 48 63 DA 49 8B F1 49 8B C0 48 8B F9 3B 99 B0 04 00 00 7D 5E 48 89 6C 24 50 4C 8D 44 24 40 33 ED 48 8B D0 66 89 6C 24 40 E8 ? ? ? ? 84 C0 74 3C 4C 8D 44 24 48 66 89 6C 24 48 48 8B D6 48 8B CF E8 ? ? ? ? 84 C0 74 23 44 8B"
+      }
+    },
+
+    // void (self, const CUtlString* panelId, const CUtlString* varName, const CUtlString* value)
+    "CustomHudSetDialogVariable": {
+      "library": "server",
+      "windows": {
+        "pattern": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 30 49 8B F0 33 ED 4C 8D 44 24 24 66 89 6C 24 24 49 8B F9 48 8B D9 E8 ? ? ? ? 84 C0 74 33"
+      }
+    },
+
+    // void (self, int32 slot, const CUtlString* panelId, const CUtlString* varName,
+    //       const CUtlString* value). See the note on SetHasClassForPlayer: `4C 8B` at the tail.
+    "CustomHudSetDialogVariableForPlayer": {
+      "library": "server",
+      "windows": {
+        "pattern": "40 53 56 57 48 83 EC 20 48 63 DA 49 8B F1 49 8B C0 48 8B F9 3B 99 B0 04 00 00 7D 5E 48 89 6C 24 50 4C 8D 44 24 40 33 ED 48 8B D0 66 89 6C 24 40 E8 ? ? ? ? 84 C0 74 3C 4C 8D 44 24 48 66 89 6C 24 48 48 8B D6 48 8B CF E8 ? ? ? ? 84 C0 74 23 4C 8B"
+      }
+    },
+
+    // void (self, int32 slot, bool enabled)
+    "CustomHudSetInputCapture": {
+      "library": "server",
+      "windows": { "pattern": "40 57 48 83 EC 20 41 0F B6 F8 3B 91 B0 04 00 00 7D 39" }
+    },
+
+    // bool (self, int32 slot). Side-effect free, which makes it the safest call to make once the
+    // patterns bind - see CustomHud's probe path.
+    "CustomHudIsInputCapture": {
+      "library": "server",
+      "windows": { "pattern": "4C 8B C1 3B 91 B0 04 00 00 7C ? 32 C0 C3 48 63 C2 48 69 C8 98 01 00 00 49 8B 80 B8 04 00 00 0F B6 44 01 34 C3" }
+    },
+
+    // CServerSideClient::FilterMessage, the inbound client-message filter. Unlike every other hook
+    // here this one is NOT reached by vtable index: FilterMessage is declared on the third base,
+    // INetworkMessageProcessingPreFilter, so it lives in a secondary vtable that FindVirtualTable
+    // (primary tables only) cannot return. Hooks::HudClicks locates the slot from a live client by
+    // searching for this address - see FindVTableSlot - which is why the signature is the binding
+    // and there is no index to drift. Patterns from SwiftlyS2.
+    "FilterMessage": {
+      "library": "engine2",
+      "windows": { "pattern": "40 53 48 83 EC ? 48 8B 02 48 8B D9 48 8B CA" },
+      "linux": {
+        "pattern": "55 48 89 E5 41 54 53 ? ? ? 48 89 FB 48 89 F7 FF 50 ? 48 8D 15 ? ? ? ? 31 C9 ? ? ? 48 85 D2 74 ? 48 3B 42"
+      }
+    },
+
     // GetLegacyGameEventListener: IGameEventListener2*(*)(CPlayerSlot); the match IS the function.
     "LegacyGameEventListener": {
       "library": "server",
@@ -186,6 +262,16 @@
       "library": "engine2",
       "windows": 38,
       "linux": 40
+    },
+    // CServerSideClient::SendNetMessage (SwiftlyS2: 15/16). Drives VoltMod::Addons, which rewrites
+    // the outgoing signon message. Primary vtable, unlike FilterMessage above: counting the
+    // virtuals in serversideclient.h from here reaches ProcessRespondCvarValue at 38 only when
+    // FilterMessage is left out, which is how we know the two live in different tables.
+    "SendNetMessage": {
+      "class": "CServerSideClient",
+      "library": "engine2",
+      "windows": 15,
+      "linux": 16
     }
   },
 
@@ -207,6 +293,17 @@
     "UserCmdNumber": { "windows": 8, "linux": 8, "max": 4096, "align": 4 },
 
     // Player slot in CServerSideClient (CS2AC ClientSlotOffset: 72/72).
-    "ServerSideClientSlot": { "windows": 72, "linux": 72, "max": 4096, "align": 4 }
+    "ServerSideClientSlot": { "windows": 72, "linux": 72, "max": 4096, "align": 4 },
+
+    // CServerSideClientBase::m_SteamID (SwiftlyS2 v1.4.5: 171/171), anchored on the slot offset
+    // above in the same block. Unaligned because it follows a run of bools, hence align 1 - the
+    // read is a memcpy. Addons keys on it because a client cycling through downloads reconnects,
+    // so its slot changes while its SteamID does not.
+    "ServerSideClientSteamId": { "windows": 171, "linux": 171, "max": 4096, "align": 1 },
+
+    // CNetworkGameServer::m_Clients, the CUtlVector<CServerSideClient*> indexed by slot
+    // (SwiftlyS2 v1.4.5: 584/584). Reached from INetworkServerService::GetIGameServer(), which the
+    // SDK exposes without a client accessor of its own.
+    "NetworkGameServerClients": { "windows": 584, "linux": 584, "max": 4096, "align": 8 }
   }
 }

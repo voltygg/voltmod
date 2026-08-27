@@ -25,10 +25,10 @@ renames it. `include/VoltMod/<Module>/` is where a header lives, and the
 | Players | `VoltMod/Players/` | Player tracking, target selectors, and actions |
 | Menu | `VoltMod/Menu/` | WASD center-HTML menus, context rows, pickers, and flows |
 | Engine | `VoltMod/Engine/` | Interfaces, gamedata and its typed bindings, `ConVar<T>`, the server clock, maps, precaching, and console commands |
-| Entities | `VoltMod/Entities/` | Entity lookup, the typed player controller, schema fields, items, and pawn operations |
+| Entities | `VoltMod/Entities/` | Entity lookup, the typed player controller, schema fields, items, pawn operations, and Panorama HUD layouts |
 | Events | `VoltMod/Events/` | The game event listener service and its typed event structs |
 | Messaging | `VoltMod/Messaging/` | Chat and center-HTML messages, sticky panels, chat colors, and the vote panel |
-| Hooks | `VoltMod/Hooks/` | Movement, damage, transmit, teleport, chat-input, and client-convar hooks |
+| Hooks | `VoltMod/Hooks/` | Movement, damage, transmit, teleport, chat-input and client-convar hooks, HUD button presses, and workshop addon delivery |
 | Unsafe | `VoltMod/Unsafe/` | Opt-in raw hooking: `VOLTMOD_SCOPED_HOOK`, and `VOLTMOD_VHOOK` + `VtableHook` for a vtable slot |
 | Database | `VoltMod/Database/` | Optional async PostgreSQL, migrations, and row mapping |
 | Http | `VoltMod/Http/` | Async HTTP and configured JSON endpoints |
@@ -43,6 +43,8 @@ renames it. `include/VoltMod/<Module>/` is where a header lives, and the
 - @subpage config_guide - settings and validation
 - @subpage commands_guide - commands and targeting
 - @subpage menus_guide - menus and multi-step flows
+- @subpage custom_hud_guide - Panorama HUD layouts and button presses
+- @subpage workshop_guide - making clients download workshop addons
 - @subpage players_guide - players, actions, and effects
 - @subpage chat_guide - messages, replies, and chat colors
 - @subpage sdk_guide - engine wrappers
