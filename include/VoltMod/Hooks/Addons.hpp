@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoltMod/Core/Event.hpp>
+#include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
@@ -8,8 +9,7 @@
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Unsafe/VtableHook.hpp>
 #include <cstdint>
-#include <span>
-#include <unordered_map>
+#include <memory>
 #include <vector>
 
 namespace VoltMod
@@ -18,31 +18,26 @@ namespace VoltMod
 /**
  * @brief Workshop addons that connecting clients are told to download.
  *
- * A CS2 client fetches one addon per connection cycle, so a client needing several reconnects
- * once per addon. This drives that: each time the server sends a client its signon message, the
- * message is rewritten to name the next addon that client is still missing, which makes the
- * client download it and reconnect. When the list runs out the client joins normally and
- * @ref Ready fires.
+ * A CS2 client fetches one addon per connection cycle, so a client needing several reconnects once
+ * per addon - see @ref workshop_guide for how that is driven and what it costs. This is for
+ * content only the client renders (Panorama layouts, models, sounds); nothing is downloaded or
+ * mounted on the server.
  *
- * ### What this does not do
+ * ```cpp
+ * auto lease = runtime.Addons.Require(3401234567);
+ * if (!lease)
+ *     Log::Warn("addons unavailable: {}", lease.error().Detail);
+ * else
+ *     _addon = std::move(*lease);   // required until this Subscription drops
+ * ```
  *
- * Nothing is downloaded or mounted **on the server**. This is for content only the client
- * renders - Panorama layouts (see @ref CustomHud), models, sounds. Content the server itself
- * needs must be installed and mounted the usual way, and a workshop map still goes through
- * `Map::ChangeToWorkshop`.
+ * **One plugin should own the addon list.** The framework is a static library, so each plugin has
+ * its own Runtime, its own instance of this and its own hook; two plugins requiring different
+ * addons rewrite the same message and only one wins.
  *
- * ### Cost, and the one guess it makes
- *
- * Each addon costs the joining client one reconnect, including the first: the server's own addon
- * string is left alone, so the extras only ride the signon cycle.
- *
- * Nothing tells the server that a download finished. Like the plugin this is modelled on, a
- * client is taken to have got the addon it was last sent if it reconnects within
- * @ref DownloadTimeoutSeconds; a client that declines is dropped rather than left reconnecting
- * forever. Raising the timeout suits slow connections or large addons.
- *
- * Inert on a listen server (there is no download step) and when @ref Capability::Addons is off.
- * Everything here runs on the game thread.
+ * Inert on a listen server (there is no download step) and when @ref Capability::Addons is off;
+ * @ref Require reports either as an error rather than silently doing nothing. Everything here runs
+ * on the game thread.
  */
 class Addons
 {
@@ -53,25 +48,23 @@ public:
     Addons(const Addons&) = delete;
     Addons& operator=(const Addons&) = delete;
 
-    /** Require @p id of every client from now on. Idempotent; already-connected clients are not
-     *  disturbed, so a change takes effect on their next connect. */
-    void Require(uint64_t id);
+    /**
+     * Require @p id of every client until the returned Subscription drops.
+     *
+     * Requirements are reference counted, so two callers may require the same addon independently.
+     * Already-connected clients are not disturbed; a change takes effect on their next connect.
+     *
+     * @return the lease, or why nothing was required: @ref ErrorCode::Invalid for id 0,
+     *         @ref ErrorCode::Unsupported on a listen server or when the hook could not install.
+     */
+    [[nodiscard]] Result<Subscription> Require(uint64_t id);
 
-    /** Stop requiring @p id. */
-    void Drop(uint64_t id);
-
-    /** Stop requiring anything. */
-    void Clear();
+    /** @copydoc Require. Of one client only, on top of the global list. Keyed by SteamID because
+     *  a client cycling through downloads has no stable slot. */
+    [[nodiscard]] Result<Subscription> RequireFor(int64_t steamId, uint64_t id);
 
     /** What every client is required to have, in the order they are sent. */
-    std::span<const uint64_t> Required() const { return _required; }
-
-    /** Require @p id of one player only, on top of the global list. Keyed by SteamID because a
-     *  client cycling through downloads has no slot yet. */
-    void RequireFor(int64_t steamId, uint64_t id);
-
-    /** Stop requiring @p id of @p steamId. */
-    void DropFor(int64_t steamId, uint64_t id);
+    std::vector<uint64_t> Required() const;
 
     /** Addons @p slot has still to fetch. Empty once it is fully loaded. */
     std::vector<uint64_t> Pending(int slot) const;
@@ -88,24 +81,9 @@ public:
     int MaxDownloadAttempts = 3;
 
 private:
-    /** One connecting client's progress through its addon list. */
-    struct ClientState
-    {
-        std::vector<uint64_t> Extra;       ///< required of this SteamID alone
-        std::vector<uint64_t> Downloaded;  ///< confirmed by a reconnect
-        uint64_t Sending = 0;              ///< sent but not yet confirmed
-        double SentAt = 0.0;               ///< when Sending was set, for the timeout
-        int Attempts = 0;                  ///< offers of Sending so far, against MaxDownloadAttempts
-    };
-
     /** Install on the first requirement, remove when nothing is required. */
-    void Arm();
+    Status Arm();
     void Disarm();
-
-    /** Everything @p steamId must have: the global list, then its own. */
-    std::vector<uint64_t> RequiredFor(int64_t steamId) const;
-    /** ...minus what it has already downloaded. */
-    std::vector<uint64_t> MissingFor(int64_t steamId) const;
 
     void OnConnected(Player& player);
     bool Hook_SendNetMessage(const CNetMessage* message, int bufType);
@@ -118,8 +96,10 @@ private:
     PlayerManager& _players;
     Scheduler& _scheduler;
 
-    std::vector<uint64_t> _required;
-    std::unordered_map<int64_t, ClientState> _clients;
+    /** Requirements and per-client progress, defined under src/: a plugin has no business
+     *  reaching the table, and it keeps this header free of it. */
+    class Impl;
+    std::unique_ptr<Impl> _impl;
 
     Subscription _connectListener;
     /** Slots waiting to be dropped, and the one-shot that drains them. Kicking from inside the

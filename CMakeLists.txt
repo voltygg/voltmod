@@ -156,6 +156,7 @@ if(BUILD_TESTING)
             src/Players/Policy.cpp
             src/Commands/Targeting.cpp
             src/Hooks/ClientCvarPending.cpp
+            src/Hooks/AddonRequirements.cpp
             src/Hud/LayoutName.cpp
             src/Engine/Bindings.cpp
             src/Engine/ConVarTypes.cpp

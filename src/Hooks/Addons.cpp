@@ -1,4 +1,5 @@
 #include "Engine/ServerSideClients.hpp"
+#include "Hooks/AddonRequirements.hpp"
 
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
@@ -23,146 +24,106 @@ namespace VoltMod
 // enum passed by value, taken as int here.
 VOLTMOD_VHOOK2(VoltMod_SendNetMessage, bool, const CNetMessage*, int);
 
+/** Requirements and per-client progress; see AddonRequirements.hpp for the rules. */
+class Addons::Impl
+{
+public:
+    AddonRequirements Requirements;
+};
+
 Addons::Addons(Interfaces& interfaces, const Bindings& bindings, PlayerManager& players, Scheduler& scheduler)
-    : _interfaces(interfaces), _bindings(bindings), _players(players), _scheduler(scheduler)
+    : _interfaces(interfaces),
+      _bindings(bindings),
+      _players(players),
+      _scheduler(scheduler),
+      _impl(std::make_unique<Impl>())
 {}
 
 Addons::~Addons() = default;
 
-void Addons::Require(uint64_t id)
+Result<Subscription> Addons::Require(uint64_t id)
 {
-    if (id == 0 || std::ranges::contains(_required, id))
-        return;
+    if (id == 0)
+        return std::unexpected(Error::Invalid("0 is not a workshop id"));
 
-    _required.push_back(id);
-    Arm();
-}
+    if (auto armed = Arm(); !armed)
+        return std::unexpected(armed.error());
 
-void Addons::Drop(uint64_t id)
-{
-    std::erase(_required, id);
-    if (_required.empty())
+    _impl->Requirements.Require(id);
+    return Subscription([this, id] {
+        _impl->Requirements.Release(id);
         Disarm();
+    });
 }
 
-void Addons::Clear()
+Result<Subscription> Addons::RequireFor(int64_t steamId, uint64_t id)
 {
-    _required.clear();
-    _clients.clear();
-    Disarm();
+    if (id == 0)
+        return std::unexpected(Error::Invalid("0 is not a workshop id"));
+    if (!SteamId::IsValid(steamId))
+        return std::unexpected(Error::Invalid(std::format("{} is not a SteamID", steamId)));
+
+    if (auto armed = Arm(); !armed)
+        return std::unexpected(armed.error());
+
+    _impl->Requirements.RequireFor(steamId, id);
+    return Subscription([this, steamId, id] {
+        _impl->Requirements.ReleaseFor(steamId, id);
+        Disarm();
+    });
 }
 
-void Addons::RequireFor(int64_t steamId, uint64_t id)
+std::vector<uint64_t> Addons::Required() const
 {
-    if (id == 0 || !SteamId::IsValid(steamId))
-        return;
-
-    auto& extra = _clients[steamId].Extra;
-    if (std::ranges::contains(extra, id))
-        return;
-
-    extra.push_back(id);
-    Arm();
+    return _impl->Requirements.Required();
 }
 
-void Addons::DropFor(int64_t steamId, uint64_t id)
+std::vector<uint64_t> Addons::Pending(int slot) const
 {
-    const auto found = _clients.find(steamId);
-    if (found != _clients.end())
-        std::erase(found->second.Extra, id);
+    Player* player = _players.Get(slot);
+    return player ? _impl->Requirements.MissingFor(player->SteamId()) : std::vector<uint64_t>{};
 }
 
-void Addons::Arm()
+Status Addons::Arm()
 {
     if (_hook)
-        return;
+        return {};
 
     // A listen server's own client already has whatever the host has, and there is no download
     // step to drive.
     if (!_interfaces.Engine || !_interfaces.Engine->IsDedicatedServer())
-    {
-        Log::Info("Addons: not a dedicated server; clients will not be sent addon downloads.");
-        return;
-    }
+        return std::unexpected(Error::Unsupported("addon downloads need a dedicated server"));
 
     auto hook = VtableHook::OnVTable<VoltMod_SendNetMessageHook>("Workshop addon delivery", _bindings.SendNetMessage,
                                                                  this, &Addons::Hook_SendNetMessage, nullptr,
                                                                  AnyServerSideClient(_interfaces, _bindings));
     if (!hook)
-    {
-        Log::Warn("Addons: {}; clients will not be sent addon downloads.", hook.error().Detail);
-        return;
-    }
+        return std::unexpected(Error::Unsupported(hook.error().Detail));
+
     _hook = std::move(*hook);
 
     // A reconnect is the only signal that a download finished, so the roster drives the credit.
     _connectListener = _players.Connected += [this](Player& player) { OnConnected(player); };
+    return {};
 }
 
 void Addons::Disarm()
 {
-    // Per-client requirements outlive an empty global list, so only stand down when neither has
-    // anything left.
-    const bool anyExtra = std::ranges::any_of(_clients, [](const auto& e) { return !e.second.Extra.empty(); });
-    if (!_required.empty() || anyExtra)
+    if (!_impl->Requirements.Empty())
         return;
 
     _connectListener.Reset();
     _kick.Reset();
     _kickSlots.clear();
     _hook.Reset();
-}
-
-std::vector<uint64_t> Addons::RequiredFor(int64_t steamId) const
-{
-    std::vector<uint64_t> all = _required;
-    if (const auto found = _clients.find(steamId); found != _clients.end())
-    {
-        for (uint64_t id : found->second.Extra)
-            if (!std::ranges::contains(all, id))
-                all.push_back(id);
-    }
-    return all;
-}
-
-std::vector<uint64_t> Addons::MissingFor(int64_t steamId) const
-{
-    std::vector<uint64_t> missing = RequiredFor(steamId);
-    if (const auto found = _clients.find(steamId); found != _clients.end())
-    {
-        for (uint64_t id : found->second.Downloaded)
-            std::erase(missing, id);
-    }
-    return missing;
-}
-
-std::vector<uint64_t> Addons::Pending(int slot) const
-{
-    Player* player = _players.Get(slot);
-    return player ? MissingFor(player->SteamId()) : std::vector<uint64_t>{};
+    _impl->Requirements.ForgetClients();
 }
 
 void Addons::OnConnected(Player& player)
 {
-    const auto found = _clients.find(player.SteamId());
-    if (found != _clients.end())
-    {
-        ClientState& state = found->second;
-        if (state.Sending != 0)
-        {
-            // Nothing tells us a download succeeded. Coming back promptly after being sent an
-            // addon is the evidence; a client returning much later was doing something else and
-            // starts that addon over.
-            if (Time::MonotonicSeconds() - state.SentAt <= DownloadTimeoutSeconds)
-            {
-                state.Downloaded.push_back(state.Sending);
-                state.Attempts = 0;
-            }
-            state.Sending = 0;
-        }
-    }
+    _impl->Requirements.CreditReconnect(player.SteamId(), Time::MonotonicSeconds(), DownloadTimeoutSeconds);
 
-    if (MissingFor(player.SteamId()).empty())
+    if (_impl->Requirements.MissingFor(player.SteamId()).empty())
         Ready.Raise(player.Slot());
 }
 
@@ -200,36 +161,49 @@ bool Addons::Hook_SendNetMessage(const CNetMessage* message, int)
     if (!SteamId::IsValid(steamId))
         RETURN_META_VALUE(MRES_IGNORED, true);
 
-    std::vector<uint64_t> missing = MissingFor(steamId);
-    if (missing.empty())
+    // The engine owns this message and is about to serialize it; rewriting it in place is what
+    // redirects the client, which is why the const is cast away here rather than in the signature.
+    auto* signon = const_cast<CNetMessage*>(message)->ToPB<CNETMsg_SignonState>();
+    const double now = Time::MonotonicSeconds();
+
+    // A changelevel signon is the engine's own, and when the server mounts several addons it names
+    // all of them - which the client cannot act on, leaving it in limbo with none downloaded. Cut
+    // it to the first and credit that one, so it is not offered again afterwards.
+    if (signon->signon_state() == SIGNONSTATE_CHANGELEVEL)
+    {
+        const std::vector<uint64_t> listed = ParseAddonList(signon->addons());
+        if (!listed.empty())
+        {
+            if (listed.size() > 1)
+            {
+                Log::Info("Addons: the changelevel message named {} addons; sending {} and holding the rest.",
+                          listed.size(), listed.front());
+                signon->set_addons(std::to_string(listed.front()));
+            }
+            _impl->Requirements.NoteInFlight(steamId, listed.front(), now);
+        }
+        RETURN_META_VALUE(MRES_IGNORED, true);
+    }
+
+    const AddonDecision decision = _impl->Requirements.NextFor(steamId, now, MaxDownloadAttempts);
+    if (decision.Step == AddonStep::Nothing)
         RETURN_META_VALUE(MRES_IGNORED, true);
 
-    ClientState& state = _clients[steamId];
-    const uint64_t next = missing.front();
-
-    // Same addon offered again means the last offer was not taken. Give up rather than leave the
-    // client reconnecting forever.
-    state.Attempts = (state.Sending == next) ? state.Attempts + 1 : 1;
-    if (state.Attempts > MaxDownloadAttempts)
+    if (decision.Step == AddonStep::GiveUp)
     {
         const int slot = SlotOfServerSideClient(_bindings, client);
-        Log::Warn("Addons: {} did not take addon {} in {} attempts; dropping the client.", steamId, next,
+        Log::Warn("Addons: {} did not take addon {} in {} attempts; dropping the client.", steamId, decision.Id,
                   MaxDownloadAttempts);
         if (IsValidSlot(slot))
             KickLater(slot);
         RETURN_META_VALUE(MRES_IGNORED, true);
     }
 
-    state.Sending = next;
-    state.SentAt = Time::MonotonicSeconds();
-
-    // The engine owns this message and is about to serialize it; rewriting it in place is what
-    // redirects the client, which is why the const is cast away here rather than in the signature.
-    auto* signon = const_cast<CNetMessage*>(message)->ToPB<CNETMsg_SignonState>();
-    signon->set_addons(std::to_string(next));
+    signon->set_addons(std::to_string(decision.Id));
     signon->set_signon_state(SIGNONSTATE_CHANGELEVEL);
 
-    Log::Info("Addons: sending addon {} to {} ({} left after it).", next, steamId, missing.size() - 1);
+    Log::Info("Addons: sending addon {} to {} ({} left after it).", decision.Id, steamId,
+              _impl->Requirements.MissingFor(steamId).size() - 1);
     RETURN_META_VALUE(MRES_IGNORED, true);
 }
 
