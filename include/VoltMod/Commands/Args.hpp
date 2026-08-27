@@ -34,13 +34,6 @@ struct Target
     Player* Value = nullptr;
 };
 
-/** Every player a selector matched. Multi-selectors (`@all`, `@t`, `@!me`) are allowed here and
- *  only here; @ref Target rejects a token that matches more than one player. */
-struct Targets
-{
-    std::vector<Player*> Value;
-};
-
 /** The @ref ParseDuration grammar (`30s`/`5m`/`2h`/`7d`/`perm`). A bare number is minutes, and
  *  zero means permanent. */
 struct Duration
@@ -104,7 +97,6 @@ struct Opt
 enum class ArgKind : uint8_t
 {
     Target,
-    Targets,
     Duration,
     SteamId,
     PlayerOrSteamId,
@@ -121,7 +113,7 @@ struct ArgDesc
 };
 
 /** One bound argument. `std::monostate` is an optional argument the caller omitted. */
-using BoundArg = std::variant<std::monostate, Args::Target, Args::Targets, Args::Duration, Args::SteamId,
+using BoundArg = std::variant<std::monostate, Args::Target, Args::Duration, Args::SteamId,
                               Args::PlayerOrSteamId, Args::Int, Args::Word, Args::Rest>;
 
 /**
@@ -139,14 +131,6 @@ struct ArgTrait<Args::Target>
     static constexpr ArgKind Kind = ArgKind::Target;
     static constexpr bool Optional = false;
     using Bound = Args::Target;
-};
-
-template <>
-struct ArgTrait<Args::Targets>
-{
-    static constexpr ArgKind Kind = ArgKind::Targets;
-    static constexpr bool Optional = false;
-    using Bound = Args::Targets;
 };
 
 template <>

@@ -233,8 +233,9 @@ The connection lifecycle is **not** an override. Subscribe to
 `.Disconnected` from `OnLoad` and keep the `Subscription`s on the object that
 owns the state - see @ref players_guide "Players".
 
-`Rt()` is available inside the base for hook bodies, which SourceHook calls without a
-runtime argument. Everywhere else, use what `OnLoad` handed you.
+A hook body reaches the runtime through the state `OnLoad` built, not through the
+base: SourceHook calls these without a runtime argument, so keep whatever `OnLoad`
+handed you on the object that needs it.
 
 ## Cleanup on unload
 

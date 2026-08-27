@@ -223,14 +223,6 @@ public:
     /** Copying a wrapper rebinds its fields to the same entity, so this copies the binding. */
     Field(const Field&) = default;
 
-    /** Assignment copies the *value*, matching `a.Health = b.Health` reading as one. Rebinding is
-     *  the wrapper's job, and entity wrappers are not assignable for exactly this reason. */
-    const Field& operator=(const Field& other) const
-    {
-        Set(other.Get());
-        return *this;
-    }
-
     [[nodiscard]] T Get() const
     {
         const FieldRef& ref = Ref();
@@ -254,13 +246,6 @@ public:
     const Field& operator=(const T& value) const
     {
         Set(value);
-        return *this;
-    }
-
-    const Field& operator+=(const T& value) const
-        requires std::is_arithmetic_v<T>
-    {
-        Set(static_cast<T>(Get() + value));
         return *this;
     }
 
@@ -288,27 +273,11 @@ public:
         return Get() == other;
     }
 
-    template <class U>
-    [[nodiscard]] auto operator<=>(const U& other) const
-        requires std::three_way_comparable_with<T, U>
-    {
-        return Get() <=> other;
-    }
-
     /** The resolved offset for this (class, field), shared by every Field of this type. */
     [[nodiscard]] static const FieldRef& Ref()
     {
         static const LazyField lazy{Klass.View(), Name.View(), ExpectedSize};
         return lazy.Ref();
-    }
-
-    /** The entity exists and the field resolved, so a read means something. Absent for a `bool`
-     *  field, where it would collide with `operator T` - and `if (pawn.OnGroundLastTick)` reading
-     *  as the value is what a caller wants there anyway. */
-    explicit operator bool() const
-        requires(!std::is_same_v<T, bool>)
-    {
-        return _owner != nullptr && static_cast<bool>(Ref());
     }
 
 private:

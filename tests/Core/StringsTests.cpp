@@ -21,22 +21,6 @@ TEST_CASE("Strings::Trim")
     CHECK_EQ(Strings::Trim(""), std::string(""));
 }
 
-TEST_CASE("Strings::Split")
-{
-    auto parts = Strings::Split("a,b,c", ',');
-    CHECK_EQ(parts.size(), static_cast<size_t>(3));
-    CHECK_EQ(parts[0], std::string("a"));
-    CHECK_EQ(parts[1], std::string("b"));
-    CHECK_EQ(parts[2], std::string("c"));
-
-    auto single = Strings::Split("noseparator", ',');
-    CHECK_EQ(single.size(), static_cast<size_t>(1));
-    CHECK_EQ(single[0], std::string("noseparator"));
-
-    auto empty = Strings::Split("", ',');
-    CHECK_EQ(empty.size(), static_cast<size_t>(0));
-}
-
 TEST_CASE("Strings::Join")
 {
     std::vector<std::string> parts = {"a", "b", "c"};
@@ -72,12 +56,6 @@ TEST_CASE("Strings::JoinNonEmpty matches Join when nothing is empty")
 {
     std::vector<std::string> parts{"a", "b", "c"};
     CHECK_EQ(Strings::JoinNonEmpty(parts, ","), Strings::Join(parts, ","));
-}
-
-TEST_CASE("Strings::Split and Join round-trip")
-{
-    auto parts = Strings::Split("x|y|z", '|');
-    CHECK_EQ(Strings::Join(parts, "|"), std::string("x|y|z"));
 }
 
 TEST_CASE("Strings::IsNumeric")

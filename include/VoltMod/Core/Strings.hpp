@@ -25,7 +25,6 @@ class Strings
 public:
     static std::string ToLower(const std::string& str);
     static std::string Trim(const std::string& str);
-    static std::vector<std::string> Split(const std::string& str, char delimiter);
     static std::string Join(const std::vector<std::string>& parts, const std::string& delimiter);
 
     /**
@@ -38,7 +37,6 @@ public:
     static std::string JoinNonEmpty(const std::vector<std::string>& parts, const std::string& delimiter);
     static bool StartsWith(const std::string& str, const std::string& prefix);
     static bool ContainsIgnoreCase(const std::string& str, const std::string& substr);
-    static std::string ReplaceAll(const std::string& str, const std::string& from, const std::string& to);
 
     /** Replace each `{key}` occurrence in @p text with its mapped value. */
     static std::string SubstituteTokens(std::string text, const std::map<std::string, std::string>& tokens);

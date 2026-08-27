@@ -98,12 +98,6 @@ protected:
      *  Keep each VOLTMOD_SCOPED_HOOK subscription in a member so it is removed on unload. */
     virtual void OnRegisterHooks(Runtime& runtime) {}
 
-    /** @brief The live runtime, for hook bodies. Valid between OnLoad and OnUnload. */
-    Runtime& Rt() { return *_runtime; }
-
-    /** @brief True if the plugin was loaded after the server started, rather than at boot. */
-    bool IsLateLoad() const { return _lateLoad; }
-
     // Standard hook callbacks; subclasses use the virtual callbacks above.
     void Hook_GameFrame(bool simulating, bool firstTick, bool lastTick);
     void Hook_StartupServer(const GameSessionConfiguration_t& config, ISource2WorldSession* session,
@@ -122,7 +116,6 @@ protected:
 private:
     void RegisterStandardHooks();
 
-    bool _lateLoad = false;
     /** Release plugin state, standard hooks, and runtime in that order. */
     void Shutdown();
 

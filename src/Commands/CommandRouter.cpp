@@ -267,17 +267,6 @@ std::expected<std::vector<BoundArg>, ArgError> CommandRouter::BindArgs(const Com
             ++i;
             break;
         }
-        case ArgKind::Targets:
-        {
-            // Args::Targets is what declares that a multi-selector is meant; there is no
-            // separate rules knob to forget to set.
-            auto resolved = ResolveArg(binder, token, caller, TargetRules{.AllowMultiple = true});
-            if (!resolved)
-                return std::unexpected(resolved.error());
-            bound.emplace_back(Args::Targets{.Value = std::move(*resolved)});
-            ++i;
-            break;
-        }
         case ArgKind::PlayerOrSteamId:
         {
             auto resolved = binder.Resolve(token, caller, TargetRules{});

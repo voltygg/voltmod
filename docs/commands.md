@@ -58,7 +58,6 @@ Each handler parameter after the leading @ref VoltMod::Caller is one argument:
 | Parameter | Consumes | Read with |
 |-----------|----------|-----------|
 | `Args::Target` | one token via the selector grammar, one online player | `t.Value`, never null |
-| `Args::Targets` | one token, multi-selectors allowed (`@all`, `@t`) | `t.Value`, a non-empty vector |
 | `Args::Duration` | `30` (minutes), `30s`/`5m`/`2h`/`7d`, `0`/`perm` | `d.Value`, a `std::chrono::seconds`; `0` means permanent |
 | `Args::SteamId` | numeric SteamID64 | `id.Value` |
 | `Args::PlayerOrSteamId` | an online player, or a bare SteamID64 for an offline one | `who.Online` (may be null) and `who.SteamId` |
@@ -125,7 +124,7 @@ are split by the engine, which quotes the same way.
 
 ## Target selectors
 
-`Args::Target` and `Args::Targets` understand:
+`Args::Target` understands:
 
 ```
 @all @*        everyone                @me    yourself        @!me   everyone else
@@ -139,8 +138,7 @@ Every candidate goes through the same `runtime.Policy.Authorize` gate the comman
 itself did, so immunity is decided in exactly one place. Matches the gate rejects
 are removed; if none remain, the caller is told the target is immune rather than
 that nothing matched. Targeting yourself is always allowed. A selector that
-matches more than one player is an error for `Args::Target` and the point of
-`Args::Targets`; there is no separate rules knob to set.
+matches more than one player is an error.
 
 ## Permissions
 

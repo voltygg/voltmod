@@ -17,9 +17,9 @@ namespace VoltMod
 /**
  * @brief The target-selector grammar behind a `Target()` command argument.
  *
- * Internal to command dispatch: a plugin picks targets by writing an `Args::Target` (or
- * `Args::Targets`) parameter on its handler, never by calling this. It lives under src/ so the
- * grammar can change without being consumer API.
+ * Internal to command dispatch: a plugin picks targets by writing an `Args::Target` parameter on
+ * its handler, never by calling this. It lives under src/ so the grammar can change without being
+ * consumer API.
  *
  * Grammar: `@all`/`@*`, `@me`, `@!me`, `@t`, `@ct`, `@spec`, `@dead`, `@alive`, `@bot`,
  * `@human`, `@random`, `@randomt`, `@randomct`, `#slot`, a SteamID (64 / STEAM_ / [U:1:...]),

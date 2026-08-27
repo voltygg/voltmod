@@ -316,26 +316,6 @@ TEST_CASE("Target failures map to the key that explains them")
     CHECK(f.Router.BindArgs(*kick, token, nullptr, f.Binder).error().Key == "target.bot");
 }
 
-TEST_CASE("Args Targets is what allows a multi-selector and Args Target is not")
-{
-    Fixture f;
-    Player& one = f.AddPlayer(1, 76561198000000001LL);
-    Player& two = f.AddPlayer(2, 76561198000000002LL);
-    f.Binder.Roster = {&one, &two};
-
-    std::vector<BoundArg> seen;
-    f.Router.Add(Echo("single", {{ArgKind::Target}}, &seen));
-    f.Router.Add(Echo("many", {{ArgKind::Targets}}, &seen));
-
-    f.Run("single", {"@all"}, nullptr);
-    CHECK_FALSE(f.Binder.LastAllowedMultiple);
-    CHECK(std::get<Args::Target>(seen[0]).Value == &one);
-
-    f.Run("many", {"@all"}, nullptr);
-    CHECK(f.Binder.LastAllowedMultiple);
-    CHECK(std::get<Args::Targets>(seen[0]).Value.size() == 2);
-}
-
 TEST_CASE("PlayerOrSteamId prefers the online player and falls back to a bare id")
 {
     Fixture f;

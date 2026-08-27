@@ -24,7 +24,7 @@ if (!pawn)
 
 int hp = pawn.Health;          // reads m_iHealth
 pawn.Health = 100;             // writes it *and* dirties it for replication
-pawn.Health += 25;             // += -= |= &= all work
+pawn.Flags |= VoltMod::FL_ONGROUND;   // |= and &= work on integral fields
 
 auto controller = runtime.Entities.Controller(slot);
 controller.Kick("Cheating");

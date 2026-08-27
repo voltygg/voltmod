@@ -102,11 +102,11 @@ TEST_CASE("Every argument type maps to its own kind")
 {
     Installed installed;
     Subscription sub = installed.Builder("everything")
-                           .Run([](Caller c, Args::Targets, Args::SteamId, Args::PlayerOrSteamId, Args::Int, Args::Word,
-                                   Args::Rest) -> Result<Reply> { return c.Ok("ok"); });
+                           .Run([](Caller c, Args::Target, Args::SteamId, Args::PlayerOrSteamId, Args::Int,
+                                   Args::Word, Args::Rest) -> Result<Reply> { return c.Ok("ok"); });
 
     REQUIRE(installed.Def.Args.size() == 6);
-    CHECK(installed.Def.Args[0].Kind == ArgKind::Targets);
+    CHECK(installed.Def.Args[0].Kind == ArgKind::Target);
     CHECK(installed.Def.Args[1].Kind == ArgKind::SteamId);
     CHECK(installed.Def.Args[2].Kind == ArgKind::PlayerOrSteamId);
     CHECK(installed.Def.Args[3].Kind == ArgKind::Int);

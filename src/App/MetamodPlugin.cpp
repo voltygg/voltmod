@@ -45,7 +45,6 @@ MetamodPlugin::~MetamodPlugin() = default;
 bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, bool late)
 {
     PLUGIN_SAVEVARS();
-    _lateLoad = late;
     _info = Info();  // capture once; the ISmmPlugin getters read this copy
 
     // Unload destroys this runtime so reload starts clean.

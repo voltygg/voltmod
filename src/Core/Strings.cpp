@@ -75,16 +75,6 @@ std::string Strings::Trim(const std::string& str)
     return begin < end ? std::string(begin, end) : std::string();
 }
 
-std::vector<std::string> Strings::Split(const std::string& str, char delimiter)
-{
-    std::vector<std::string> result;
-    std::stringstream ss(str);
-    std::string item;
-    while (std::getline(ss, item, delimiter))
-        result.push_back(item);
-    return result;
-}
-
 std::string Strings::Join(const std::vector<std::string>& parts, const std::string& delimiter)
 {
     if (parts.empty())
@@ -120,7 +110,8 @@ bool Strings::ContainsIgnoreCase(const std::string& str, const std::string& subs
     return ToLower(str).find(ToLower(substr)) != std::string::npos;
 }
 
-std::string Strings::ReplaceAll(const std::string& str, const std::string& from, const std::string& to)
+// SubstituteTokens is the only caller; not public API.
+static std::string ReplaceAll(const std::string& str, const std::string& from, const std::string& to)
 {
     if (from.empty())
         return str;

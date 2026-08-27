@@ -29,11 +29,9 @@ class CallbackRegistry
 {
 public:
     /** Store @p item and return its handle. */
-    uint64_t Add(T item) { return Add(std::move(item), _nextId++); }
-
-    /** Store @p item under a caller-supplied @p id - for owners sharing one handle space across several registries. */
-    uint64_t Add(T item, uint64_t id)
+    uint64_t Add(T item)
     {
+        const uint64_t id = _nextId++;
         _items.emplace(id, std::move(item));
         return id;
     }

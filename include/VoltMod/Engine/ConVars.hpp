@@ -28,13 +28,10 @@ struct ConVarChange
 /**
  * @brief How a @ref ConVar write reaches the engine.
  *
- * The three differ in who finds out, and that is the whole decision:
+ * The two differ in who finds out, and that is the whole decision:
  */
 enum class SetMode : uint8_t
 {
-    /** Value only. No console line, no change callbacks fired by the console path, and an
-     *  FCVAR_REPLICATED convar does **not** reach clients - their prediction keeps the old value. */
-    Server,
     /** A queued console line, exactly as if a cfg had set it: callbacks fire and FCVAR_REPLICATED
      *  networks to every client. The default, because it is the one that cannot half-apply. */
     Console,

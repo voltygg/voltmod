@@ -61,10 +61,13 @@ The base `MetamodPlugin::OnPlayerChat` already consumes active prompts before
 dispatching commands. An override replaces that behavior, so it must call
 @ref VoltMod::ChatInput::TryConsume before handling other chat:
 
+The override reaches `ChatInput` through the state `OnLoad` built - here an
+`std::optional<App>` member holding the `Runtime&`:
+
 ```cpp
 bool MyPlugin::OnPlayerChat(Player* p, std::string_view message, bool team) override
 {
-    if (Rt().Hooks.ChatInput.TryConsume(p->Slot(), message))
+    if (_app->Runtime.Hooks.ChatInput.TryConsume(p->Slot(), message))
         return true;   // capture handled it; don't broadcast
     return false;      // fall through to normal chat handling
 }

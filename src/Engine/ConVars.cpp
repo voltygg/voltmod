@@ -150,23 +150,6 @@ Status ConVar<T>::Set(const T& value, SetMode mode)
         return {};
     }
 
-    if (mode == SetMode::Server)
-    {
-        auto ref = Resolve(_name.c_str());
-        if (!ref)
-            return std::unexpected(Error::NotFound(std::format("convar '{}' is no longer registered", _name)));
-
-        if constexpr (std::is_same_v<T, bool>)
-            ref->SetBool(value);
-        else if constexpr (std::is_same_v<T, int>)
-            ref->SetInt(value);
-        else if constexpr (std::is_same_v<T, float>)
-            ref->SetFloat(value);
-        else
-            ref->SetString(CUtlString(value.c_str()));
-        return {};
-    }
-
     // Raw: poke the storage the engine reads from, with nobody told.
     if constexpr (std::is_same_v<T, std::string>)
     {
