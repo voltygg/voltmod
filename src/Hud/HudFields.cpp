@@ -211,10 +211,10 @@ Status HudWriteInputCapture(EntitySystem* entities, EntityRef ref, int slot, boo
 
     // The chainer lives on the entity and the engine wants the absolute offset of what changed, so
     // the outer field's ref carries both with the summed offset substituted in.
-    MarkChanged(*entity, FieldRef{.Offset = offset,
-                                  .Size = capture.Size,
-                                  .Networked = state.Networked,
-                                  .ChainOffset = state.ChainOffset});
+    MarkChanged(
+        *entity,
+        FieldRef{
+            .Offset = offset, .Size = capture.Size, .Networked = state.Networked, .ChainOffset = state.ChainOffset});
     return {};
 }
 
