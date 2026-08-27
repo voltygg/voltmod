@@ -202,7 +202,7 @@ is a deliberate cross-module aggregate documenting that module's public surface 
 gathering `Events` and `Messaging` types is not the `Hooks` module depending on them. `modgraph`
 also rejects `#include <nlohmann/...>` anywhere under `include/VoltMod` or `src` except
 `Core/Json.hpp`, `App/Config.hpp`, `App/JsonConfig.hpp`, `App/PluginSettings.hpp`,
-`Http/RestJsonApi.*` and `Engine/GameDataFile.*`: route JSON use through `<VoltMod/Core/Json.hpp>`
+`Engine/GameDataFile.*`: route JSON use through `<VoltMod/Core/Json.hpp>`
 instead, and Core, Engine, Entities, Events, Messaging, Players, Hooks and Commands may not
 include `Menu/` or `App/` at all - both would leak into every consumer of that layer.
 

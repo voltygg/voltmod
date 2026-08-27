@@ -93,8 +93,6 @@ HttpClient::~HttpClient()
     Stop();
 }
 
-void HttpClient::Start() {}
-
 void HttpClient::Stop()
 {
     // Block until in-flight requests finish, then drop their (unrun) completions. Joining here - on
@@ -106,28 +104,78 @@ void HttpClient::Stop()
     _impl->Waiting.clear();  // never started, so nothing to wait on
 }
 
-void HttpClient::Post(std::string url, std::string body, std::vector<std::string> headers, long timeoutMs,
-                      HttpCompletion onComplete)
+void HttpClient::Send(HttpRequest request, HttpCompletion onComplete)
 {
     // The worker touches only CPR + strings, never engine state; the callback is replayed on the
     // game thread in DispatchCompletions().
-    auto task = [url = std::move(url), body = std::move(body), headers = std::move(headers),
-                 timeoutMs]() -> HttpResult {
-        return ToHttpResult(cpr::Post(cpr::Url{url}, cpr::Body{body}, ParseHeaderLines(headers),
-                                      cpr::Timeout{std::chrono::milliseconds{timeoutMs}}));
+    auto task = [request = std::move(request)]() -> HttpResult {
+        const cpr::Url url{request.Url};
+        const cpr::Header headers = ParseHeaderLines(request.Headers);
+        const cpr::Timeout timeout{std::chrono::milliseconds{request.TimeoutMs}};
+
+        switch (request.Method)
+        {
+        case HttpMethod::Get:
+            return ToHttpResult(cpr::Get(url, headers, timeout));
+        case HttpMethod::Post:
+            return ToHttpResult(cpr::Post(url, cpr::Body{request.Body}, headers, timeout));
+        case HttpMethod::Put:
+            return ToHttpResult(cpr::Put(url, cpr::Body{request.Body}, headers, timeout));
+        case HttpMethod::Patch:
+            return ToHttpResult(cpr::Patch(url, cpr::Body{request.Body}, headers, timeout));
+        case HttpMethod::Delete:
+            return ToHttpResult(cpr::Delete(url, cpr::Body{request.Body}, headers, timeout));
+        }
+
+        return {.Error = "unsupported HTTP method"};
     };
 
     _impl->Launch({std::move(task), std::move(onComplete)});
 }
 
-void HttpClient::Get(std::string url, std::vector<std::string> headers, long timeoutMs, HttpCompletion onComplete)
+void HttpClient::Get(std::string url, HttpCompletion onComplete, std::vector<std::string> headers, long timeoutMs)
 {
-    auto task = [url = std::move(url), headers = std::move(headers), timeoutMs]() -> HttpResult {
-        return ToHttpResult(
-            cpr::Get(cpr::Url{url}, ParseHeaderLines(headers), cpr::Timeout{std::chrono::milliseconds{timeoutMs}}));
-    };
+    Send({.Method = HttpMethod::Get, .Url = std::move(url), .Headers = std::move(headers), .TimeoutMs = timeoutMs},
+         std::move(onComplete));
+}
 
-    _impl->Launch({std::move(task), std::move(onComplete)});
+void HttpClient::Post(std::string url, std::string body, HttpCompletion onComplete, std::vector<std::string> headers,
+                      long timeoutMs)
+{
+    Send({.Method = HttpMethod::Post,
+          .Url = std::move(url),
+          .Body = std::move(body),
+          .Headers = std::move(headers),
+          .TimeoutMs = timeoutMs},
+         std::move(onComplete));
+}
+
+void HttpClient::Put(std::string url, std::string body, HttpCompletion onComplete, std::vector<std::string> headers,
+                     long timeoutMs)
+{
+    Send({.Method = HttpMethod::Put,
+          .Url = std::move(url),
+          .Body = std::move(body),
+          .Headers = std::move(headers),
+          .TimeoutMs = timeoutMs},
+         std::move(onComplete));
+}
+
+void HttpClient::Patch(std::string url, std::string body, HttpCompletion onComplete, std::vector<std::string> headers,
+                       long timeoutMs)
+{
+    Send({.Method = HttpMethod::Patch,
+          .Url = std::move(url),
+          .Body = std::move(body),
+          .Headers = std::move(headers),
+          .TimeoutMs = timeoutMs},
+         std::move(onComplete));
+}
+
+void HttpClient::Delete(std::string url, HttpCompletion onComplete, std::vector<std::string> headers, long timeoutMs)
+{
+    Send({.Method = HttpMethod::Delete, .Url = std::move(url), .Headers = std::move(headers), .TimeoutMs = timeoutMs},
+         std::move(onComplete));
 }
 
 void HttpClient::DispatchCompletions()

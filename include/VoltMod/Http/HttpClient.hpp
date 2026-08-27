@@ -6,10 +6,48 @@
 #include <VoltMod/Core/Subscription.hpp>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace VoltMod
 {
+
+enum class HttpMethod
+{
+    Get,
+    Post,
+    Put,
+    Patch,
+    Delete,
+};
+
+/** A complete HTTP request. Headers are full "Key: Value" lines. */
+struct HttpRequest
+{
+    HttpMethod Method = HttpMethod::Get;
+    std::string Url;
+    std::string Body;
+    std::vector<std::string> Headers;
+    long TimeoutMs = 8000;
+
+    /** Append one header as the "Key: Value" line the client expects. */
+    void AddHeader(std::string_view name, std::string_view value)
+    {
+        Headers.push_back(std::string(name) + ": " + std::string(value));
+    }
+
+    /**
+     * Append a credential header, e.g. `AddAuth("Authorization", "Bearer", key)`. An empty
+     * @p scheme sends @p key verbatim. An empty @p key is a no-op, so an endpoint configured
+     * without one stays unauthenticated rather than sending an empty credential.
+     */
+    void AddAuth(std::string_view header, std::string_view scheme, std::string_view key)
+    {
+        if (key.empty())
+            return;
+        AddHeader(header, scheme.empty() ? std::string(key) : std::string(scheme) + " " + std::string(key));
+    }
+};
 
 /**
  * Async HTTP client. Requests run off the game thread (CPR's worker pool); completions are queued
@@ -29,26 +67,27 @@ public:
     HttpClient(const HttpClient&) = delete;
     HttpClient& operator=(const HttpClient&) = delete;
 
-    /** Reserved for API symmetry; CPR initialises libcurl lazily, so this is a no-op. */
-    void Start();
-
     /** Wait out any in-flight requests and drop their (unrun) completions. Idempotent. */
     void Stop();
 
-    /**
-     * Enqueue an async POST. `headers` are full "Key: Value" lines. `onComplete` runs on the game
-     * thread on a later `DispatchCompletions()`.
-     */
-    void Post(std::string url, std::string body, std::vector<std::string> headers, long timeoutMs,
-              HttpCompletion onComplete);
+    /** Enqueue a request. `onComplete` runs on the game thread on a later dispatch. */
+    void Send(HttpRequest request, HttpCompletion onComplete);
 
-    /** Enqueue an async GET. Same threading contract as Post. */
-    void Get(std::string url, std::vector<std::string> headers, long timeoutMs, HttpCompletion onComplete);
+    /** Convenience helpers over Send. Use Send directly for less common request shapes. */
+    void Get(std::string url, HttpCompletion onComplete, std::vector<std::string> headers = {}, long timeoutMs = 8000);
+    void Post(std::string url, std::string body, HttpCompletion onComplete, std::vector<std::string> headers = {},
+              long timeoutMs = 8000);
+    void Put(std::string url, std::string body, HttpCompletion onComplete, std::vector<std::string> headers = {},
+             long timeoutMs = 8000);
+    void Patch(std::string url, std::string body, HttpCompletion onComplete, std::vector<std::string> headers = {},
+               long timeoutMs = 8000);
+    void Delete(std::string url, HttpCompletion onComplete, std::vector<std::string> headers = {},
+                long timeoutMs = 8000);
 
+private:
     /** Invoke all ready completions on the calling (game) thread. */
     void DispatchCompletions();
 
-private:
     struct Impl;
     std::unique_ptr<Impl> _impl;
     /** Declared after _impl so the pump stops before the queue its callback drains goes away. */

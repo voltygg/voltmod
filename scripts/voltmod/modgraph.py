@@ -49,8 +49,6 @@ NLOHMANN_ALLOWED = {
     "include/VoltMod/App/Config.hpp",
     "include/VoltMod/App/JsonConfig.hpp",
     "include/VoltMod/App/PluginSettings.hpp",
-    "include/VoltMod/Http/RestJsonApi.hpp",
-    "src/Http/RestJsonApi.cpp",
     "src/Engine/GameDataFile.hpp",
     "src/Engine/GameDataFile.cpp",
 }

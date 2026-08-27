@@ -2,10 +2,10 @@
 
 [TOC]
 
-`VoltMod/Http/` provides asynchronous requests with game-thread completions:
+`VoltMod/Http/` provides one asynchronous client with game-thread completions:
 
-- `HttpClient` runs GET and POST on CPR's worker pool. Completions are queued and replayed on the game thread from a self-registered per-frame pump.
-- `RestJsonApi` covers the config-driven shape: call an operator-configured JSON endpoint and pull a field out of the response.
+- `HttpClient::Send` is the unified request contract. `Get`, `Post`, `Put`, `Patch`, and `Delete` are convenience helpers over it.
+- Requests run on bounded workers, and completions replay on the game thread from a self-registered per-frame pump.
 
 `HttpClient` is a framework service; reach it through `runtime.Http`. The
 `Runtime` destructor drains in-flight requests, so the plugin has no separate
@@ -16,44 +16,38 @@ shutdown step.
 ```cpp
 #include <VoltMod/Api.hpp>
 
-runtime.Http.Post(url, body, {"Content-Type: application/json"}, /*timeoutMs=*/8000,
-                   [](const VoltMod::HttpResult& result) {
-                       // Game thread: safe to touch players, menus, managers.
-                       if (!result.Ok)
-                           Log::Warn("request failed: {}", result.Error);
-                   });
-
-runtime.Http.Get(url, {}, 5000, [](const VoltMod::HttpResult& result) { /* ... */ });
+runtime.Http.Post(
+    url, body,
+    [](const VoltMod::HttpResult& result) {
+        // Game thread: safe to touch players, menus, managers.
+        if (!result.Ok)
+            Log::Warn("request failed: {}", result.Error);
+    },
+    {"Content-Type: application/json"}, 8000);
 ```
 
-`HttpResult::Ok` reflects transport success only; check `StatusCode` for the HTTP verdict (or use `IsSuccess` from RestJsonApi, which means `Ok && 2xx`).
+`HttpResult::Ok` reflects transport success only - a 404 still answered. `HttpResult::IsSuccess()`
+is the verdict most callers want: transport succeeded *and* the status is 2xx.
 
-## Config-driven JSON endpoints
-
-`JsonPostSpec` describes an endpoint entirely from settings (URL, optional auth header, and a JSON body template with `{token}` placeholders), so server operators can point a plugin at their own backend without code changes:
+For a request shape the helpers do not cover, fill in an `HttpRequest` and hand it to `Send`.
+`AddHeader` writes the `"Key: Value"` line the client parses back, and `AddAuth` assembles a
+credential header - an empty scheme sends the key verbatim, and an empty key adds nothing, so an
+endpoint configured without one stays unauthenticated:
 
 ```cpp
-#include <VoltMod/Http/RestJsonApi.hpp>
-using VoltMod::JsonPostSpec;
-
-JsonPostSpec spec{
-    .Url = cfg.createRoomUrl,
-    .ApiKey = cfg.apiKey,             // "" = no auth header
-    .AuthHeader = "Authorization",
-    .AuthScheme = "Bearer",           // "" sends the key verbatim
-    .BodyTemplate = cfg.requestBody,  // nlohmann::json with {token} placeholders
-    .TimeoutMs = 8000,
+VoltMod::HttpRequest request{
+    .Method = VoltMod::HttpMethod::Patch,
+    .Url = url,
+    .Body = body.dump(),
+    .TimeoutMs = cfg.timeoutMs,
 };
+request.AddHeader("Content-Type", "application/json");
+request.AddAuth(cfg.authHeader, cfg.authScheme, cfg.apiKey);
 
-auto request = BuildJsonPost(spec, {{"steamId", std::to_string(steamId)}, {"playerName", name}});
-if (request)
-{
-    Post(runtime.Http, std::move(*request), [](const HttpResult& result) {
-        if (!IsSuccess(result))
-            return;
-        std::string url = ExtractField(result, "data.room.playerUrl");  // dot-path extraction
-    });
-}
+runtime.Http.Send(std::move(request), [](const VoltMod::HttpResult& result) {
+    if (!result.IsSuccess())
+        return;
+});
 ```
 
 ## Threading
