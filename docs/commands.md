@@ -189,10 +189,10 @@ placeholder:
 
 ```
 cmd.usage                  "Usage: {usage}"
-cmd.usage.target           "target"          cmd.usage.targets   "targets"
-cmd.usage.duration         "duration"        cmd.usage.steamId   "steamId"
-cmd.usage.playerOrSteamId  "target|steamId"  cmd.usage.int       "number"
-cmd.usage.word             "value"           cmd.usage.rest      "reason"
+cmd.usage.target           "target"          cmd.usage.duration  "duration"
+cmd.usage.steamId          "steamId"         cmd.usage.int       "number"
+cmd.usage.playerOrSteamId  "target|steamId"  cmd.usage.word      "value"
+cmd.usage.rest             "reason"
 ```
 
 Required arguments render as `<name>` and optional ones as `[name]`, which makes

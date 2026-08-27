@@ -37,7 +37,6 @@ static const std::unordered_map<std::string, std::string>& KitDefaults()
         {"cmd.tooManyArgs", "Too many arguments. Usage: {usage}"},
         {"cmd.usage", "Usage: {usage}"},
         {"cmd.usage.target", "target"},
-        {"cmd.usage.targets", "targets"},
         {"cmd.usage.duration", "duration"},
         {"cmd.usage.steamId", "steamId"},
         {"cmd.usage.playerOrSteamId", "target|steamId"},
