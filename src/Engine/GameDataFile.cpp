@@ -77,6 +77,8 @@ static Result<int> PlatformInt(const nlohmann::json& entry, GamePlatform platfor
                                const std::string& key)
 {
     const char* column = PlatformKey(platform);
+    if (!entry.is_object())
+        return Malformed(std::format("{}.{} is not an object", section, key));
     if (!entry.contains(column))
         return Malformed(std::format("{}.{} has no '{}' entry", section, key, column));
     if (!entry[column].is_number_integer())
@@ -89,15 +91,21 @@ static Status ParseSignatures(const nlohmann::json& json, GamePlatform platform,
 {
     if (!json.contains("signatures"))
         return {};
+    if (!json["signatures"].is_object())
+        return Malformed("'signatures' is not an object");
 
     const char* column = PlatformKey(platform);
     for (const auto& [key, entry] : json["signatures"].items())
     {
         if (Status claimed = ClaimKey(owners, key, "signatures"); !claimed)
             return claimed;
+        if (!entry.is_object())
+            return Malformed(std::format("signatures.{} is not an object", key));
 
         if (!entry.contains(column))
             return Malformed(std::format("signatures.{} has no '{}' entry", key, column));
+        if (!entry[column].is_object())
+            return Malformed(std::format("signatures.{}.{} is not an object", key, column));
 
         SignatureEntry signature;
         signature.Library = entry.value("library", std::string("server"));
@@ -115,11 +123,15 @@ static Status ParseAddresses(const nlohmann::json& json, GamePlatform platform, 
 {
     if (!json.contains("addresses"))
         return {};
+    if (!json["addresses"].is_object())
+        return Malformed("'addresses' is not an object");
 
     for (const auto& [key, entry] : json["addresses"].items())
     {
         if (Status claimed = ClaimKey(owners, key, "addresses"); !claimed)
             return claimed;
+        if (!entry.is_object())
+            return Malformed(std::format("addresses.{} is not an object", key));
 
         AddressEntry address;
         address.Signature = entry.value("signature", std::string{});
@@ -146,11 +158,15 @@ static Status ParseVTables(const nlohmann::json& json, GamePlatform platform, Ga
 {
     if (!json.contains("vtables"))
         return {};
+    if (!json["vtables"].is_object())
+        return Malformed("'vtables' is not an object");
 
     for (const auto& [key, entry] : json["vtables"].items())
     {
         if (Status claimed = ClaimKey(owners, key, "vtables"); !claimed)
             return claimed;
+        if (!entry.is_object())
+            return Malformed(std::format("vtables.{} is not an object", key));
 
         VTableEntry vtable;
         vtable.Class = entry.value("class", std::string{});
@@ -175,11 +191,15 @@ static Status ParseOffsets(const nlohmann::json& json, GamePlatform platform, Ga
 {
     if (!json.contains("offsets"))
         return {};
+    if (!json["offsets"].is_object())
+        return Malformed("'offsets' is not an object");
 
     for (const auto& [key, entry] : json["offsets"].items())
     {
         if (Status claimed = ClaimKey(owners, key, "offsets"); !claimed)
             return claimed;
+        if (!entry.is_object())
+            return Malformed(std::format("offsets.{} is not an object", key));
 
         OffsetEntry offset;
         offset.Max = entry.value("max", MaxByteOffset);
@@ -201,7 +221,7 @@ static Status ParseOffsets(const nlohmann::json& json, GamePlatform platform, Ga
     return {};
 }
 
-Result<GameDataFile> GameDataFile::Parse(std::string_view text, GamePlatform platform)
+static Result<GameDataFile> ParseChecked(std::string_view text, GamePlatform platform)
 {
     nlohmann::json json;
     try
@@ -227,6 +247,8 @@ Result<GameDataFile> GameDataFile::Parse(std::string_view text, GamePlatform pla
     if (json.contains("build"))
     {
         const auto& build = json["build"];
+        if (!build.is_object())
+            return Malformed("'build' is not an object");
         out.Build.Game = build.value("game", std::string{});
         out.Build.Verified = build.value("verified", std::string{});
         out.Build.Note = build.value("note", std::string{});
@@ -246,6 +268,22 @@ Result<GameDataFile> GameDataFile::Parse(std::string_view text, GamePlatform pla
         return std::unexpected(parsed.error());
 
     return out;
+}
+
+Result<GameDataFile> GameDataFile::Parse(std::string_view text, GamePlatform platform)
+{
+    // The checks above name the offending path for every shape seen in practice. This is the
+    // backstop for the rest: nlohmann throws type_error on a conversion, and Parse is called
+    // from Runtime::Start, where an escaping exception would take the load down instead of
+    // degrading it.
+    try
+    {
+        return ParseChecked(text, platform);
+    }
+    catch (const std::exception& e)
+    {
+        return Malformed(std::format("malformed structure: {}", e.what()));
+    }
 }
 
 Result<GameDataFile> GameDataFile::Load(const std::string& path, GamePlatform platform)

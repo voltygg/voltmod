@@ -195,3 +195,58 @@ TEST_CASE("IsValidBytePattern accepts hex bytes and wildcards and nothing else")
     CHECK_FALSE(IsValidBytePattern("48  8B"));
     CHECK_FALSE(IsValidBytePattern("48 ???"));
 }
+
+// Parse is called from Runtime::Start. Before these, only a JSON *syntax* error was caught, so
+// structurally-wrong-but-syntactically-valid input threw nlohmann's type_error out of the load.
+
+TEST_CASE("A section that is not an object is rejected rather than thrown out of")
+{
+    for (std::string_view section : {"signatures", "addresses", "vtables", "offsets"})
+    {
+        const auto text = Document(std::string("  \"") + std::string(section) + "\": [1, 2]");
+        const auto parsed = GameDataFile::Parse(text, GamePlatform::Windows);
+
+        REQUIRE_FALSE(parsed.has_value());
+        CHECK(parsed.error().Code == ErrorCode::Invalid);
+        CHECK(Detail(parsed.error()).find(section) != std::string::npos);
+    }
+}
+
+TEST_CASE("A scalar where an object belongs is rejected rather than thrown out of")
+{
+    for (std::string_view body : {
+             R"(  "build": [1, 2])",
+             R"(  "signatures": { "Sig": 7 })",
+             R"(  "signatures": { "Sig": { "windows": "48 8B", "linux": "55" } })",
+             R"(  "vtables": { "V": 3 })",
+             R"(  "offsets": { "O": "12" })",
+         })
+    {
+        const auto parsed = GameDataFile::Parse(Document(body), GamePlatform::Windows);
+
+        REQUIRE_FALSE(parsed.has_value());
+        CHECK(parsed.error().Code == ErrorCode::Invalid);
+    }
+}
+
+TEST_CASE("A wrong numeric type is rejected rather than thrown out of")
+{
+    const std::string sig = R"(  "signatures": {
+    "Sig": { "windows": { "pattern": "48 8B" }, "linux": { "pattern": "55" } }
+  },
+)";
+
+    for (std::string_view body : {
+             R"(  "addresses": { "A": { "signature": "Sig", "rel32At": 3 } })",
+             R"(  "addresses": { "A": { "signature": "Sig", "rel32At": { "windows": "3", "linux": 7 } } })",
+             R"(  "vtables": { "V": { "class": "C", "windows": "3", "linux": 4 } })",
+             R"(  "offsets": { "O": { "windows": 1.5, "linux": 8 } })",
+             R"(  "offsets": { "O": { "max": "big", "windows": 8, "linux": 8 } })",
+         })
+    {
+        const auto parsed = GameDataFile::Parse(Document(sig + std::string(body)), GamePlatform::Windows);
+
+        REQUIRE_FALSE(parsed.has_value());
+        CHECK(parsed.error().Code == ErrorCode::Invalid);
+    }
+}
