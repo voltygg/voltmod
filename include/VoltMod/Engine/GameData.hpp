@@ -40,7 +40,6 @@ public:
         int Index = -1;           ///< VTable: slot index. Offset: byte offset.
         std::string Class;        ///< VTable: the RTTI/ELF class the table belongs to.
         std::string Library;      ///< Signature and VTable: the module to look in.
-        bool Unique = true;       ///< False when a pattern matched more than once.
         std::string Error;        ///< Empty when the entry resolved.
     };
 
@@ -63,7 +62,7 @@ public:
     /** How many entries came from @p kind's section. */
     size_t CountOf(Kind kind) const;
 
-    /** "N/M entries failed: a, b; ambiguous: c" - empty when everything resolved uniquely. */
+    /** "N/M entries failed: a, b" - empty when every entry resolved. */
     std::string FailureSummary() const;
 
     /** The date the loaded file says its entries were last verified against the game. */

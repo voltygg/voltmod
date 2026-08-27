@@ -17,11 +17,14 @@ static GameData::Resolution ScanSignature(const SignatureEntry& entry, ScanResul
     GameData::Resolution out{.Section = GameData::Kind::Signature, .Library = entry.Library};
     scan = FindPatternEx(entry.Library.c_str(), entry.Pattern);
     out.Address = scan.Address;
-    out.Unique = scan.Unique;
     if (!scan.Image.Base)
         out.Error = std::format("module '{}' is not loaded", entry.Library);
     else if (!scan.Address)
         out.Error = "pattern not found";
+    // Which of several matches is "the" match is arbitrary, so an ambiguous pattern is an
+    // error, not a warning: Bindings gates on Error, so nothing binds or derives from it.
+    else if (!scan.Unique)
+        out.Error = "pattern matched more than once";
     return out;
 }
 
@@ -30,7 +33,6 @@ static GameData::Resolution ResolveAddress(const AddressEntry& entry, const Game
                                            const ModuleImage& image)
 {
     GameData::Resolution out{.Section = GameData::Kind::Address};
-    out.Unique = signature.Unique;
     if (!signature.Error.empty() || !signature.Address)
     {
         out.Error = std::format("signature '{}' did not resolve", entry.Signature);
@@ -106,28 +108,16 @@ size_t GameData::CountOf(Kind kind) const
 std::string GameData::FailureSummary() const
 {
     std::vector<std::string> failed;
-    std::vector<std::string> ambiguous;
     for (const auto& [name, entry] : _resolved)
     {
         if (!entry.Error.empty())
             failed.push_back(name);
-        else if (!entry.Unique)
-            ambiguous.push_back(name);
     }
 
-    if (failed.empty() && ambiguous.empty())
+    if (failed.empty())
         return {};
 
-    std::string summary;
-    if (!failed.empty())
-        summary = std::format("{}/{} entries failed: {}", failed.size(), _resolved.size(), Strings::Join(failed, ", "));
-    if (!ambiguous.empty())
-    {
-        if (!summary.empty())
-            summary += "; ";
-        summary += std::format("ambiguous: {}", Strings::Join(ambiguous, ", "));
-    }
-    return summary;
+    return std::format("{}/{} entries failed: {}", failed.size(), _resolved.size(), Strings::Join(failed, ", "));
 }
 
 }  // namespace VoltMod

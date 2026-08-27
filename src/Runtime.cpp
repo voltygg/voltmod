@@ -245,8 +245,6 @@ void Runtime::RegisterStatusSections()
         {
             if (!entry.Error.empty())
                 section["failed"].push_back(name);
-            else if (!entry.Unique)
-                section["ambiguous"].push_back(name);
         }
         return section.dump();
     });

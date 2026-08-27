@@ -248,7 +248,7 @@ ScanResult FindPatternEx(const char* moduleName, const std::string& pattern)
         {
             if (first)
             {
-                Log::Warn("SigScanner: Pattern ambiguous in '{}' (2+ matches); using the first.", fullName);
+                Log::Warn("SigScanner: Pattern ambiguous in '{}' (2+ matches); refusing it.", fullName);
                 return {first, false, std::move(image)};
             }
             first = hit;
