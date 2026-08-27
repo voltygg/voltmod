@@ -144,7 +144,6 @@ if(BUILD_TESTING)
             src/Core/LoadReport.cpp
             src/Core/Logger.cpp
             src/Core/Paths.cpp
-            src/App/PluginManifest.cpp
             # The field cache and its query seam; the ISchemaSystem walk behind it lives in
             # SchemaQuery.cpp, which is the SDK half and stays out of the tests.
             src/Entities/SchemaResolve.cpp

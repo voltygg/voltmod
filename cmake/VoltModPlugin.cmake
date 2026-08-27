@@ -3,8 +3,7 @@ include_guard(GLOBAL)
 # Consumer plugin API delivered as a CMakeDeps build module:
 #   voltmod_add_plugin(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...]
 #                  [FEATURES ...] [PCH_HEADERS ...]
-#                  VERSION <v> [DESCRIPTION <text>]
-#                  [DEPENDS <spec>...] [REQUIRES <spec>...])
+#                  VERSION <v> [DESCRIPTION <text>])
 
 # VOLTMOD_ROOT_DIR / _PLATFORM_ARCH / _GAMEDATA_DIR and voltmod_set_warnings.
 include("${CMAKE_CURRENT_LIST_DIR}/VoltModCommon.cmake")
@@ -14,10 +13,10 @@ include("${CMAKE_CURRENT_LIST_DIR}/VoltModCommon.cmake")
 #
 # FEATURES DATABASE adds VoltMod::Database and libpqxx. Runtime is always linked.
 #
-# VERSION is required. Metadata and dependency arguments fill the manifest.
+# VERSION is required; it and DESCRIPTION become the plugin's build metadata.
 function(voltmod_add_plugin target_name)
     cmake_parse_arguments(ARG "" "VERSION;DESCRIPTION"
-        "SOURCES;INCLUDE_DIRS;LIBRARIES;FEATURES;PCH_HEADERS;DEPENDS;REQUIRES" ${ARGN})
+        "SOURCES;INCLUDE_DIRS;LIBRARIES;FEATURES;PCH_HEADERS" ${ARGN})
 
     if(NOT ARG_VERSION)
         message(FATAL_ERROR "voltmod_add_plugin(${target_name}) requires VERSION")
@@ -99,55 +98,7 @@ function(voltmod_add_plugin target_name)
         INSTALL_RPATH ""
     )
 
-    voltmod_write_plugin_manifest("${target_name}"
-        "${ARG_VERSION}" "${ARG_DESCRIPTION}" "${ARG_DEPENDS}" "${ARG_REQUIRES}")
     voltmod_install_plugin("${target_name}")
-endfunction()
-
-# Append a parsed dependency specification to the manifest JSON.
-function(_voltmod_dependency_json out_var spec required)
-    if(spec MATCHES "^(.+)>=(.+)$")
-        set(name "${CMAKE_MATCH_1}")
-        set(minimum "${CMAKE_MATCH_2}")
-    else()
-        set(name "${spec}")
-        set(minimum "")
-    endif()
-    string(STRIP "${name}" name)
-    string(STRIP "${minimum}" minimum)
-
-    set(entries ${${out_var}})
-    list(APPEND entries
-        "
-    {\"name\": \"${name}\", \"minVersion\": \"${minimum}\", \"required\": ${required}}")
-    set("${out_var}" "${entries}" PARENT_SCOPE)
-endfunction()
-
-# Generate the manifest consumed by LoadStandardConfig. Dependency findings are
-# advisory because Metamod controls VDF load order.
-function(voltmod_write_plugin_manifest target_name version description depends requires)
-    set(dependency_entries)
-    foreach(spec IN LISTS depends)
-        _voltmod_dependency_json(dependency_entries "${spec}" "false")
-    endforeach()
-    foreach(spec IN LISTS requires)
-        _voltmod_dependency_json(dependency_entries "${spec}" "true")
-    endforeach()
-    string(JOIN "," CS2_PLUGIN_DEPENDENCIES ${dependency_entries})
-    if(dependency_entries)
-        string(APPEND CS2_PLUGIN_DEPENDENCIES "
-  ")
-    endif()
-
-    set(CS2_PLUGIN_NAME "${target_name}")
-    set(CS2_PLUGIN_VERSION "${version}")
-    set(CS2_PLUGIN_DESCRIPTION "${description}")
-    configure_file(
-        "${VOLTMOD_ROOT_DIR}/cmake/plugin.manifest.json.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.manifest.json"
-        @ONLY
-        NEWLINE_STYLE LF
-    )
 endfunction()
 
 # Install one server-ready addon bundle under a component named after the target.
@@ -182,10 +133,6 @@ function(voltmod_install_plugin target_name)
     )
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.vdf"
         DESTINATION "addons/metamod" COMPONENT "${target_name}")
-
-# LoadStandardConfig reads the manifest beside `configs`.
-    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.manifest.json"
-        DESTINATION "addons/${target_name}" COMPONENT "${target_name}")
 
 # Deployment renders settings.jsonc per server.
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/configs")

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/App/PluginIdentity.hpp>
+#include <VoltMod/App/ServiceExchange.hpp>
 #include <VoltMod/App/ServiceExchange.hpp>
 #include <VoltMod/App/StatusService.hpp>
 #include <VoltMod/Commands/CommandManager.hpp>
@@ -134,9 +134,6 @@ public:
     // Composition-root services.
     /** Interfaces offered to, and borrowed from, other plugins. */
     ServiceExchange Exchange;
-    /** This plugin's manifest, published to peers. Filled by LoadStandardConfig.
-     *  Depends on: Exchange, Scheduler. Withdraws in its dtor, while Exchange is still alive. */
-    PluginIdentity Identity{Exchange, Scheduler};
     /** Registers its own per-frame input pump; both it and its slot listener stop in its dtor.
      *  Takes exactly the services it and its context rows use - all declared above it. Depends
      *  on: Scheduler, Slots, Entities, Messages, Hooks.ChatInput, Translations, Policy, Players.*/

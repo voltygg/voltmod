@@ -1,6 +1,5 @@
 #pragma once
 
-#include <VoltMod/App/PluginManifest.hpp>
 #include <VoltMod/Core/LoadReport.hpp>
 #include <VoltMod/Core/Paths.hpp>
 #include <VoltMod/Runtime.hpp>
@@ -20,10 +19,6 @@ struct StandardLoadOptions
     bool Translations = true;
 };
 
-/** Adopt addons/<addon>/<addon>.manifest.json as a LoadReport stage. Absent or malformed
- *  degrades the stage rather than failing the load: the manifest is diagnostics. */
-void LoadPluginManifest(Runtime& runtime, std::string_view addon);
-
 /**
  * @brief The standard OnLoad prelude, recorded as LoadReport stages.
  *
@@ -31,8 +26,6 @@ void LoadPluginManifest(Runtime& runtime, std::string_view addon);
  * present (the load-then-validate convention) and JsonConfig::Load otherwise; false
  * means abort the load. "Translations" applies `plugin.locale` when the settings struct
  * carries the standard plugin section, then loads addons/<Addon>/configs/translations.
- * "Manifest" adopts addons/<Addon>/<Addon>.manifest.json, announcing the plugin to peers
- * and queueing its dependency report; a plugin shipping no manifest skips the stage.
  */
 template <class TConfig>
 bool LoadStandardConfig(Runtime& runtime, TConfig& config, const StandardLoadOptions& options)
@@ -62,7 +55,6 @@ bool LoadStandardConfig(Runtime& runtime, TConfig& config, const StandardLoadOpt
             return StageResult::Ok(translations.GetLanguage());
         });
     }
-    LoadPluginManifest(runtime, options.Addon);
     return true;
 }
 
