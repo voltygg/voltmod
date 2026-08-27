@@ -30,11 +30,18 @@ bool StatusService::IsHealthy() const
 
 std::string StatusService::BuildJson() const
 {
-    // Each provider already returns valid JSON text, so its section is spliced in raw rather
-    // than round-tripped through a parse.
+    // Providers are parsed, not spliced: a section has to be a value in this object, and its
+    // text is only as trustworthy as the provider. A parse failure yields json::discarded, which
+    // dump() writes as a bare <discarded> token - that would make the whole STATUS_JSON line
+    // unparseable for the tooling it exists for, so name the bad section instead.
     auto out = nlohmann::json::object();
     for (const auto& [name, provider] : _sections)
-        out[name] = nlohmann::json::parse(provider(), nullptr, /*allow_exceptions=*/false);
+    {
+        auto section = nlohmann::json::parse(provider(), nullptr, /*allow_exceptions=*/false);
+        if (section.is_discarded())
+            section = nlohmann::json{{"error", "provider returned invalid JSON"}};
+        out[name] = std::move(section);
+    }
     out["healthy"] = IsHealthy();
     return out.dump();
 }
@@ -47,7 +54,9 @@ std::string StatusService::BuildText() const
         out += name;
         out += ":\n";
         const auto section = nlohmann::json::parse(provider(), nullptr, /*allow_exceptions=*/false);
-        if (section.is_object())
+        if (section.is_discarded())
+            out += "  <invalid JSON from provider>\n";
+        else if (section.is_object())
         {
             for (const auto& [key, value] : section.items())
                 out += std::format("  {}: {}\n", key, value.is_string() ? value.get<std::string>() : value.dump());
