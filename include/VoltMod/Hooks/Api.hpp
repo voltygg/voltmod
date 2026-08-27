@@ -10,9 +10,7 @@
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>
 #include <VoltMod/Hooks/ClientCvars.hpp>
-#include <VoltMod/Hooks/Damage.hpp>
 #include <VoltMod/Hooks/GlowVision.hpp>
-#include <VoltMod/Hooks/InputHistory.hpp>
 #include <VoltMod/Hooks/Movement.hpp>
 #include <VoltMod/Hooks/Teleport.hpp>
 #include <VoltMod/Hooks/Transmit.hpp>

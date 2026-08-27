@@ -77,11 +77,6 @@ public:
     /** Drive the scheduler. Called once per frame from the GameFrame hook. */
     void OnGameFrame();
 
-    /** Checks the trailing canary and logs once via Log::Error if it no longer matches its
-     *  initial value - a sign that something wrote past the end of this object. Called once
-     *  per frame (OnGameFrame) and once more at destruction (~Runtime). */
-    void VerifyIntegrity() const;
-
     // Core services.
     /** Named, timed load stages recorded by Start and by the plugin's OnLoad. */
     VoltMod::LoadReport LoadReport;
@@ -161,17 +156,6 @@ private:
     bool ResolveInterfaces(const LoadContext& context);
     bool InitializeServices(const LoadContext& context);
     void RegisterStatusSections();
-
-    /** Set once VerifyIntegrity() has logged a corrupted canary, so it does not spam every frame. */
-    mutable bool _canaryReported = false;
-    /** Value _tail is expected to hold; compared against directly so a corrupted _tail cannot
-     *  hide the corruption by also changing what it is checked against. */
-    static constexpr uint64_t kCanaryValue = 0x564F4C544D4F4400ull;
-    /** Canary; must stay the last data member. An out-of-bounds write into this Runtime is far
-     *  more likely to land here than to corrupt a member declared earlier, turning a silent
-     *  latent bug (see the +8-byte sizeof(Runtime) crash this guards against) into a logged one.
-     *  Checked by VerifyIntegrity(). */
-    uint64_t _tail = kCanaryValue;
 };
 
 }  // namespace VoltMod

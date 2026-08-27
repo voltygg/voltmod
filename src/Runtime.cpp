@@ -31,9 +31,6 @@ Runtime::Runtime() = default;
 // two cannot wait for that.
 Runtime::~Runtime()
 {
-    // One last check before member destruction starts unwinding the layout the canary guards.
-    VerifyIntegrity();
-
     // Both must precede member destruction: Http.Stop() joins the workers, whose final log lines
     // are queued for the game thread, and OnGameFrame never runs again once the hooks are gone -
     // so this second drain is the only thing that keeps shutdown diagnostics from being dropped.
@@ -276,17 +273,8 @@ void Runtime::RegisterStatusSections()
 
 void Runtime::OnGameFrame()
 {
-    VerifyIntegrity();
     Log::Drain();
     Scheduler.OnGameFrame();
-}
-
-void Runtime::VerifyIntegrity() const
-{
-    if (_tail == kCanaryValue || _canaryReported)
-        return;
-    _canaryReported = true;
-    Log::Error("Runtime canary corrupted: {:#x}", _tail);
 }
 
 }  // namespace VoltMod

@@ -51,7 +51,7 @@ those adds the specific header instead:
 | Need | Header |
 |---|---|
 | Menus (`MenuBuilder`, `Flow`, presets, options) | `<VoltMod/Menu/Api.hpp>` |
-| More of Entities (`EntityRef`, `Field`, `Items`, `ConVar`) or Hooks (`Movement`, `Damage`, game events) | `<VoltMod/Entities/Api.hpp>`, `<VoltMod/Hooks/Api.hpp>` |
+| More of Entities (`EntityRef`, `Field`, `Items`, `ConVar`) or Hooks (`Movement`, `Teleport`, game events) | `<VoltMod/Entities/Api.hpp>`, `<VoltMod/Hooks/Api.hpp>` |
 | A JsonConfig-backed settings struct | `<VoltMod/App/Config.hpp>` (see @ref config_guide) |
 | Raw interfaces, gamedata, or vtable hooking | `<VoltMod/Unsafe/Api.hpp>` |
 | PostgreSQL | `<VoltMod/Database/Api.hpp>` (see @ref database_guide) |

@@ -8,7 +8,6 @@
 #include <VoltMod/Engine/ConVarLease.hpp>
 #include <VoltMod/Engine/ConVars.hpp>
 #include <VoltMod/Entities/Controller.hpp>
-#include <VoltMod/Entities/EffectOps.hpp>
 #include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Entities/EntityRef.hpp>

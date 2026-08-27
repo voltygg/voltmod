@@ -175,8 +175,6 @@
     // CPlayer_MovementServices::RunCommand (SwiftlyS2 v1.4.5: 25/26). Drives Hooks::Movement,
     // which DVP-hooks the concrete class every player pawn instantiates.
     "RunCommand": { "class": "CCSPlayer_MovementServices", "windows": 25, "linux": 26 },
-    // CCSPlayerPawn::OnTakeDamage_Alive (CS2Fixes: 252/253). Drives Hooks::Damage.
-    "OnTakeDamageAlive": { "class": "CCSPlayerPawn", "windows": 252, "linux": 253 },
     // CCSPlayer_ItemServices::GiveNamedItem (SwiftlyS2 / s2sdk: 23/24). Called on the pawn's
     // m_pItemServices.
     "GiveNamedItem": { "class": "CCSPlayer_ItemServices", "windows": 23, "linux": 24 },
@@ -209,21 +207,6 @@
     "UserCmdNumber": { "windows": 8, "linux": 8, "max": 4096, "align": 4 },
 
     // Player slot in CServerSideClient (CS2AC ClientSlotOffset: 72/72).
-    "ServerSideClientSlot": { "windows": 72, "linux": 72, "max": 4096, "align": 4 },
-
-    // Fields read by Hooks::Damage. The SDK does not declare CTakeDamageInfo, so these are the
-    // only way to reach it; layouts are CS2Fixes' ctakedamageinfo.h plus SwiftlyS2's
-    // CGameTrace/CHitBoxTrace, identical on both platforms. A wrong offset reads the wrong field
-    // rather than crashing, so the hook refuses to install unless every one resolved.
-    // CTakeDamageResult needs no entry beyond m_pOriginatingInfo, which sits at 0.
-    "TakeDamageInfoAttacker": { "windows": 60, "linux": 60, "max": 512, "align": 4 },
-    // m_flDamage, the amount OnTakeDamage_Alive works from and what a listener sees.
-    "TakeDamageInfoDamage": { "windows": 68, "linux": 68, "max": 512, "align": 4 },
-    "TakeDamageInfoDamageTypes": { "windows": 76, "linux": 76, "max": 512, "align": 4 },
-    // The hitgroup is NOT m_iHitGroupId - that reads -1 for ordinary bullet damage. It takes
-    // three hops: info->m_pTrace->m_pHitBox->m_nGroupId.
-    "TakeDamageInfoTrace": { "windows": 104, "linux": 104, "max": 512, "align": 8 },
-    "GameTraceHitbox": { "windows": 16, "linux": 16, "max": 512, "align": 8 },
-    "HitboxGroupId": { "windows": 56, "linux": 56, "max": 512, "align": 4 }
+    "ServerSideClientSlot": { "windows": 72, "linux": 72, "max": 4096, "align": 4 }
   }
 }

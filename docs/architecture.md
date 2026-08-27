@@ -188,7 +188,7 @@ unload, the base runs `OnUnload`, removes its standard hooks, and destroys the r
 
 An `Event` whose source costs something to run - a vtable hook, an engine-wide callback - carries a
 `Lifecycle`: the first subscription installs it and the last one to drop removes it. That is why
-`Movement`, `Damage` and `Teleport` have no `Install()` or `Enable()` to call, and why a hook that
+`Movement` and `Teleport` have no `Install()` or `Enable()` to call, and why a hook that
 gamedata cannot resolve refuses the subscription (an empty `Subscription`) instead of silently
 never firing. The install itself is a @ref VoltMod::VtableHook "VtableHook" value paired with a
 `VOLTMOD_VHOOK` declaration; @ref sdk_hooks_guide covers using the same two pieces from a plugin.
@@ -203,16 +203,11 @@ The plugin's GameFrame hook calls `Runtime::OnGameFrame()`, which ticks exactly 
 
 ## Runtime integrity
 
-`Runtime::Start` logs `sizeof(Runtime)` once at load. A trailing canary member
-(`_tail`, the last field declared on the class) is checked by
-`Runtime::VerifyIntegrity()` every frame and once more in `~Runtime()`; a
-mismatch logs `Runtime canary corrupted: <value>` exactly once. A trip means
-something wrote past the end of the `Runtime` object - almost always an
-unchecked `[slot]`/`[index]` into a fixed-size, `MaxPlayers`-sized array (the
-kind `VoltMod::IsValidSlot` and `PerSlot<T>` guard against) rather than a
-change to `Runtime`'s own layout. Treat the size log as a tripwire too: an
-unexpected jump between builds is worth explaining even without a corrupted
-canary.
+`Runtime::Start` logs `sizeof(Runtime)` once at load. Treat it as a tripwire: an
+unexpected jump between builds is worth explaining. Index a fixed-size,
+`MaxPlayers`-sized array only after `VoltMod::IsValidSlot`, and prefer
+`PerSlot<T>`; an unchecked `[slot]` into a service that `Runtime` owns by value
+corrupts a neighbouring member rather than failing.
 
 ## Module layering
 
@@ -249,7 +244,7 @@ include `VoltMod/Runtime.hpp` (or `Api.hpp`) at all - every other module, includ
 - The engine-facing modules, `Core/`, `Http/` and `Database/` never name `Runtime`. Services and value types
   (`Entity`/`Pawn`/`Controller`, `GlowVision`, `CenterHtml`, `HttpClient`, `PostgresDatabase`)
   take the sibling services they use; the free helpers that need no service at all work off the
-  pawn they are handed (`PawnOps`), and the rest take theirs as a parameter (`EffectOps`).
+  pawn they are handed (`PawnOps`).
   Where a plugin would otherwise thread services through every call, the runtime owns a small
   facade that binds them once: `Pawns` (`runtime.World.Pawns`, which owns slap's fall
   protection) and `Visibility` (`runtime.Hooks.Visibility`, over the `GlowVision`

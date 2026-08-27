@@ -145,7 +145,6 @@ Status Bindings::Bind(const GameData& data, Capabilities& caps)
     Respawn = VFn<void()>(IndexOf(data, "Respawn"));
     Teleport = VFn<void(const Vector*, const QAngle*, const Vector*)>(IndexOf(data, "Teleport"));
     RunCommand = VFn<void*(void*)>(IndexOf(data, "RunCommand"));
-    OnTakeDamageAlive = VFn<bool(void*)>(IndexOf(data, "OnTakeDamageAlive"));
     GiveNamedItem = VFn<void*(const char*)>(IndexOf(data, "GiveNamedItem"));
     RemoveAllItems = VFn<void(bool)>(IndexOf(data, "RemoveAllItems"));
     ProcessRespondCvarValue = VFn<bool(const void*)>(IndexOf(data, "ProcessRespondCvarValue"));
@@ -155,12 +154,6 @@ Status Bindings::Bind(const GameData& data, Capabilities& caps)
     ServerSideClientSlot = OffsetOf<int>(IndexOf(data, "ServerSideClientSlot"));
     UserCmdPB = OffsetOf<void>(IndexOf(data, "UserCmdPB"));
     UserCmdNumber = OffsetOf<int32_t>(IndexOf(data, "UserCmdNumber"));
-    TakeDamage.Attacker = OffsetOf<uint32_t>(IndexOf(data, "TakeDamageInfoAttacker"));
-    TakeDamage.Trace = OffsetOf<void*>(IndexOf(data, "TakeDamageInfoTrace"));
-    TakeDamage.Damage = OffsetOf<float>(IndexOf(data, "TakeDamageInfoDamage"));
-    TakeDamage.DamageTypes = OffsetOf<int32_t>(IndexOf(data, "TakeDamageInfoDamageTypes"));
-    GameTraceHitbox = OffsetOf<void*>(IndexOf(data, "GameTraceHitbox"));
-    HitboxGroupId = OffsetOf<int32_t>(IndexOf(data, "HitboxGroupId"));
 
     // Capabilities that gamedata alone decides. The rest (Schema, Menus, Vote, Http) are recorded
     // by Runtime::Start from their own setup.
@@ -179,20 +172,11 @@ Status Bindings::Bind(const GameData& data, Capabilities& caps)
     Gate(data, caps, Capability::Transmit, {{"CheckTransmitPlayerSlot", Kind::Offset}});
     // UserCmdNumber is not required: without it the decoder falls back to the protobuf counter.
     Gate(data, caps, Capability::Movement, {{"RunCommand", Kind::VTable}, {"UserCmdPB", Kind::Offset}});
-    Gate(data, caps, Capability::Damage,
-         {{"OnTakeDamageAlive", Kind::VTable},
-          {"TakeDamageInfoAttacker", Kind::Offset},
-          {"TakeDamageInfoDamage", Kind::Offset},
-          {"TakeDamageInfoDamageTypes", Kind::Offset},
-          {"TakeDamageInfoTrace", Kind::Offset},
-          {"GameTraceHitbox", Kind::Offset},
-          {"HitboxGroupId", Kind::Offset}});
     Gate(data, caps, Capability::ClientCvars,
          {{"ProcessRespondCvarValue", Kind::VTable}, {"ServerSideClientSlot", Kind::Offset}});
 
-    // The three class vtables, each folded into the capability whose hook binds it.
+    // The two class vtables, each folded into the capability whose hook binds it.
     GateTable(data, caps, Capability::Movement, "RunCommand", MovementServices);
-    GateTable(data, caps, Capability::Damage, "OnTakeDamageAlive", PlayerPawn);
     GateTable(data, caps, Capability::ClientCvars, "ProcessRespondCvarValue", ServerSideClient);
 
     return {};

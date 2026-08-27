@@ -135,14 +135,12 @@ The entries most likely to bite, and how each one fails:
 | Entry | Section | Used by | Drift symptom |
 | --- | --- | --- | --- |
 | `RunCommand` | vtables | @ref VoltMod::Movement | Crash on the first movement tick, unless the executable-section check catches it first |
-| `OnTakeDamageAlive` | vtables | @ref VoltMod::Damage | Same, on the first point of damage |
 | `Teleport` | vtables | @ref VoltMod::Teleport | Missing: subscribing to `Teleported` is refused and `Capability::Teleport` is off |
 | `ProcessRespondCvarValue` | vtables | @ref VoltMod::ClientCvars | `Capability::ClientCvars` off; client convar queries unavailable |
 | `UserCmdPB` | offsets | `Movement` cmd events | Missing: `Valid=false` views. Stale: garbage viewangles and buttons |
 | `UserCmdNumber` | offsets | `UserCmdView::CommandNumber` | Missing: falls back to the protobuf's `legacy_command_number`, which live clients leave at 0. Stale: a counter that never increments by 1 |
 | `ServerSideClientSlot` | offsets | `ClientCvars` | Stale: a client's answer is attributed to the wrong player |
 | `CheckTransmitPlayerSlot` | offsets | @ref VoltMod::Transmit | Stale: the wrong recipient is filtered |
-| `TakeDamageInfo*` | offsets | `Damage` | Missing: the hook refuses to install. Stale: plausible-looking nonsense in every `DamageView` |
 | `GameEventManager` | addresses | @ref VoltMod::Messages | Center HTML does not display |
 
 ## Signature scanning

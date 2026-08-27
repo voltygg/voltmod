@@ -260,8 +260,6 @@ struct Bindings
     VFn<void(const Vector*, const QAngle*, const Vector*)> Teleport;
     /** CPlayer_MovementServices::RunCommand(CUserCmd*) - hooked, never called. */
     VFn<void*(void*)> RunCommand;
-    /** CCSPlayerPawn::OnTakeDamage_Alive(CTakeDamageResult*) - hooked, never called. */
-    VFn<bool(void*)> OnTakeDamageAlive;
     /** CCSPlayer_ItemServices::GiveNamedItem(const char* classname) */
     VFn<void*(const char*)> GiveNamedItem;
     /** CCSPlayer_ItemServices::RemoveAllItems(bool removeSuit) */
@@ -274,8 +272,6 @@ struct Bindings
 
     /** CCSPlayer_MovementServices in `server`; the RunCommand hook binds this. */
     VTableRef MovementServices;
-    /** CCSPlayerPawn in `server`; the OnTakeDamage_Alive hook binds this. */
-    VTableRef PlayerPawn;
     /** CServerSideClient in `engine2`; the client-convar response hook binds this. */
     VTableRef ServerSideClient;
 
@@ -291,20 +287,6 @@ struct Bindings
     OffsetOf<void> UserCmdPB;
     /** The engine's own command counter in CUserCmd (the protobuf's is left at 0 by live clients). */
     OffsetOf<int32_t> UserCmdNumber;
-
-    /** CTakeDamageInfo fields, which the SDK does not declare. */
-    struct TakeDamageFields
-    {
-        OffsetOf<uint32_t> Attacker;  ///< m_hAttacker, an EHandle.
-        OffsetOf<void*> Trace;        ///< m_pTrace; null for damage with no trace.
-        OffsetOf<float> Damage;       ///< m_flDamage.
-        OffsetOf<int32_t> DamageTypes;
-    } TakeDamage;
-
-    /** CGameTrace::m_pHitBox, the second hop to the struck hitgroup. */
-    OffsetOf<void*> GameTraceHitbox;
-    /** CHitBox::m_nGroupId, the third hop. */
-    OffsetOf<int32_t> HitboxGroupId;
 };
 
 }  // namespace VoltMod

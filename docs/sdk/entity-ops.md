@@ -46,22 +46,6 @@ if (kWidth)
 Fields written before `DispatchSpawn` go out with the first snapshot on their own, so the
 notification is only needed for a live entity.
 
-## EffectOps
-
-One-shot world effects composed from EntityOps, as free functions in `VoltMod::EffectOps`
-(`<VoltMod/Entities/EffectOps.hpp>`). Each takes the service it spawns through as its first
-argument, returns the helper entity (nullptr on failure), and cleans itself up when a lifetime is
-given:
-
-```cpp
-namespace EffectOps = VoltMod::EffectOps;
-auto& ops = runtime.World.EntityOps;
-
-EffectOps::SpawnParticle(ops, "particles/foo.vpcf", pos, 2.0f);          // needs World.Precache.Add for custom vpcf
-EffectOps::SpawnBeam(ops, from, to, Color(0, 128, 255, 255), 1.5f, 1.0f);
-EffectOps::SpawnProp(ops, "models/props/crate.vmdl", pos, /*physics*/ true, 30.0f);
-```
-
 ## Precache
 
 @ref VoltMod::Precache (`runtime.World.Precache`) registers a framework-owned game system that

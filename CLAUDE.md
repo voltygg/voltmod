@@ -215,11 +215,10 @@ include `Menu/` or `App/` at all - both would leak into every consumer of that l
 - Every public name lives in one namespace, `VoltMod`. Modules are directories and
   layers, not namespaces. The only nested namespaces are small groups of free
   functions with a common noun (`VoltMod::Log`, `VoltMod::ChatColors`,
-  `VoltMod::Validation`, `VoltMod::PawnOps`, `VoltMod::EffectOps`),
-  `VoltMod::Args` - the command argument types, whose names (`Target`, `Int`,
-  `Word`, `Rest`) are too generic to carry at `VoltMod::` scope and appear
-  nowhere but a handler's parameter list - and `VoltMod::Internal`, which may
-  only appear under `src/`.
+  `VoltMod::Validation`, `VoltMod::PawnOps`), `VoltMod::Args` - the command
+  argument types, whose names (`Target`, `Int`, `Word`, `Rest`) are too generic
+  to carry at `VoltMod::` scope and appear nowhere but a handler's parameter
+  list - and `VoltMod::Internal`, which may only appear under `src/`.
 - Do not forward-declare a framework type. Include the header that defines it.
   `include/VoltMod/Engine/EngineTypes.hpp` is the one place a forward declaration
   belongs, and it says why for each name; a new one needs the same justification -

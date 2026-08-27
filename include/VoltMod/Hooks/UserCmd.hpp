@@ -32,7 +32,7 @@ struct InputHistorySample
 /**
  * @brief Protobuf-free snapshot of the CUserCmd handed to
  * CPlayer_MovementServices::RunCommand, decoded by Movement for its
- * cmd events (Movement::PreCmd/PostCmd).
+ * cmd events (Movement::PreCmd).
  *
  * Valid is false when the usercmd pointer was null or the "UserCmdPB" gamedata
  * offset is missing - fields then hold their defaults and must not be trusted.

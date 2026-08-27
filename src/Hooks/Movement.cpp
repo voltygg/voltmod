@@ -17,13 +17,12 @@ namespace VoltMod
 // it fires for every player without needing a live instance to bind to.
 VOLTMOD_VHOOK1(VoltMod_MovementRunCommand, void*, void*);
 
-// The five events share one install: whichever is subscribed to first binds the vtable, and the
+// The four events share one install: whichever is subscribed to first binds the vtable, and the
 // last subscription to drop across all of them unbinds it.
 Movement::Movement(EntitySystem& entities, const Bindings& bindings)
     : Pre({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
       Post({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
       PreCmd({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
-      PostCmd({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
       FilterCmd({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
       _entities(entities),
       _bindings(bindings)
@@ -175,10 +174,10 @@ void Movement::DecodeUserCmd(void* userCmd)
 void* Movement::Hook_RunCommandPre(void* userCmd)
 {
     _preSlot = SlotFromMovementServices(META_IFACEPTR(void));
-    if (!PreCmd.Empty() || !PostCmd.Empty() || !FilterCmd.Empty())
+    if (!PreCmd.Empty() || !FilterCmd.Empty())
         DecodeUserCmd(userCmd);
-    // Filters edit the decoded view before anyone reads it, so pre/preCmd/postCmd handlers
-    // and InputHistory all observe the same edited command.
+    // Filters edit the decoded view before anyone reads it, so every pre/preCmd handler
+    // observes the same edited command.
     FilterCmd.Raise(_preSlot, _cmdView);
     Pre.Raise(_preSlot);
     PreCmd.Raise(_preSlot, _cmdView);
@@ -188,10 +187,9 @@ void* Movement::Hook_RunCommandPre(void* userCmd)
 void* Movement::Hook_RunCommandPost(void* /*userCmd*/)
 {
     // Post always brackets the same RunCommand call as the preceding pre (movement is
-    // processed one player at a time, no nesting), so reuse the pre-resolved slot and
-    // the pre-decoded cmd view rather than repeating the work.
+    // processed one player at a time, no nesting), so reuse the pre-resolved slot rather
+    // than repeating the work.
     Post.Raise(_preSlot);
-    PostCmd.Raise(_preSlot, _cmdView);
     RETURN_META_VALUE(MRES_IGNORED, nullptr);
 }
 

@@ -26,15 +26,14 @@ namespace VoltMod
  * (-1 when unresolved). A pre/post pair brackets exactly that player's movement processing,
  * which makes it the place for per-player state flips (see ConVar::RawScope).
  *
- * @ref PreCmd and @ref PostCmd additionally receive a UserCmdView - the command's viewangles,
- * buttons, mouse deltas, and sub-tick moves decoded from the CSGOUserCmdPB payload (gamedata byte
- * offset "UserCmdPB" inside the CUserCmd wrapper). The view is decoded once per RunCommand and
- * shared by the pre and post dispatch; when the offset is missing or the pointer is null its
- * Valid flag is false.
+ * @ref PreCmd additionally receives a UserCmdView - the command's viewangles, buttons, mouse
+ * deltas, and sub-tick moves decoded from the CSGOUserCmdPB payload (gamedata byte offset
+ * "UserCmdPB" inside the CUserCmd wrapper). The view is decoded once per RunCommand; when the
+ * offset is missing or the pointer is null its Valid flag is false.
  *
  * @ref FilterCmd gets mutable access to that view and runs once, before every other handler. It
- * edits only the decoded snapshot (every downstream reader, InputHistory included, sees the
- * edit); the usercmd the engine processes is untouched, since the hook still returns MRES_IGNORED.
+ * edits only the decoded snapshot (every downstream reader sees the edit); the usercmd the
+ * engine processes is untouched, since the hook still returns MRES_IGNORED.
  * Intended for test/diagnostic input synthesis only.
  *
  * The vtable index is gamedata-maintained and drifts with CS2 updates; a wrong index calls an
@@ -58,8 +57,6 @@ public:
     Event<int> Post;
     /** Before movement runs, with the decoded command. */
     Event<int, const UserCmdView&> PreCmd;
-    /** After it ran, with the same decoded command. */
-    Event<int, const UserCmdView&> PostCmd;
     /** Mutable edit of the decoded view, before any other handler sees it; see the class docs. */
     Event<int, UserCmdView&> FilterCmd;
 

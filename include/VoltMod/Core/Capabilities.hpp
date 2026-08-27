@@ -24,7 +24,6 @@ enum class Capability : uint16_t
     EntityOps,    ///< Creating, spawning, inputting and removing entities.
     GameEvents,   ///< IGameEventManager2: game event listeners and center HTML.
     Movement,     ///< The RunCommand hook and its usercmd feed.
-    Damage,       ///< The OnTakeDamage_Alive observation hook.
     Teleport,     ///< CBaseEntity::Teleport, both the hook and the direct call.
     Transmit,     ///< Per-recipient entity transmit filtering.
     ClientCvars,  ///< Asking a connected client what one of its own convars is set to.

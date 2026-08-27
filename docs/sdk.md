@@ -16,7 +16,7 @@ it does not:
 | Header | Brings in |
 |---|---|
 | `<VoltMod/Entities/Api.hpp>` | Every frame-local wrapper (`Entity`, `Pawn`, `Controller`, `EntityRef`, `Field`, ...), `EntitySystem`, `EntityOps`, `Items`, `Render`, and `ConVar`/`ConVarLease` |
-| `<VoltMod/Hooks/Api.hpp>` | Every hook (`Movement`, `Damage`, `Teleport`, `Transmit`, `Visibility`, `ChatInput`, `ClientCvars`, `InputHistory`, `GlowVision`, `UserCmd`), game events, and `Messages`/`CenterHtml` |
+| `<VoltMod/Hooks/Api.hpp>` | Every hook (`Movement`, `Teleport`, `Transmit`, `Visibility`, `ChatInput`, `ClientCvars`, `GlowVision`, `UserCmd`), game events, and `Messages`/`CenterHtml` |
 | `<VoltMod/Unsafe/Api.hpp>` | `Interfaces`, `GameData`, `Bindings`, `MemoryAccess`, `RecipientFilter`, and the vtable-hook macros - opt in only where a plugin pokes at the engine directly |
 
 The guide is split by topic:

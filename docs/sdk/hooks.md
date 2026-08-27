@@ -38,7 +38,7 @@ Hook contracts:
 
 ### Cmd events: reading the usercmd
 
-`PreCmd`/`PostCmd` additionally hand you a @ref VoltMod::UserCmdView: the command's viewangles, held/changed button masks, raw mouse deltas, and per-subtick pitch/yaw deltas, decoded once per RunCommand from the `CSGOUserCmdPB` payload:
+`PreCmd` additionally hands you a @ref VoltMod::UserCmdView: the command's viewangles, held/changed button masks, raw mouse deltas, and per-subtick pitch/yaw deltas, decoded once per RunCommand from the `CSGOUserCmdPB` payload:
 
 ```cpp
 _preCmd = runtime.Hooks.Movement.PreCmd += [](int slot, const VoltMod::UserCmdView& cmd) {
@@ -48,7 +48,7 @@ _preCmd = runtime.Hooks.Movement.PreCmd += [](int slot, const VoltMod::UserCmdVi
 };
 ```
 
-The decode happens only while `PreCmd`, `PostCmd` or `FilterCmd` has a handler; plain `Pre`/`Post` stay free of it. The payload's byte offset inside the `CUserCmd` wrapper lives in gamedata as `"UserCmdPB"` (cross-checked against CS2Fixes and SwiftlyS2) and, like the vtable index, **must be re-verified after CS2 updates**. A missing offset degrades to `Valid=false` views rather than crashing, but a *stale* one reads garbage.
+The decode happens only while `PreCmd` or `FilterCmd` has a handler; plain `Pre`/`Post` stay free of it. The payload's byte offset inside the `CUserCmd` wrapper lives in gamedata as `"UserCmdPB"` (cross-checked against CS2Fixes and SwiftlyS2) and, like the vtable index, **must be re-verified after CS2 updates**. A missing offset degrades to `Valid=false` views rather than crashing, but a *stale* one reads garbage.
 
 Important fields:
 
@@ -77,7 +77,7 @@ else if (index >= 0)
 
 ### FilterCmd: editing the decoded usercmd
 
-`FilterCmd` hands you a **mutable** `UserCmdView&`. Filters run once, after the decode and before every `Pre`/`PreCmd`/`PostCmd` handler, so whatever a filter writes is what `InputHistory` and every cmd handler then observe:
+`FilterCmd` hands you a **mutable** `UserCmdView&`. Filters run once, after the decode and before every `Pre`/`PreCmd` handler, so whatever a filter writes is what every cmd handler then observes:
 
 ```cpp
 _filter = runtime.Hooks.Movement.FilterCmd += [](int slot, VoltMod::UserCmdView& cmd) {
@@ -86,22 +86,6 @@ _filter = runtime.Hooks.Movement.FilterCmd += [](int slot, VoltMod::UserCmdView&
 ```
 
 The edit touches only the decoded snapshot; the underlying `CUserCmd` the engine processes is untouched (the hook still returns `MRES_IGNORED`), so the game is unaffected. This is for test/diagnostic input synthesis (feeding a detector a fabricated command), not for changing gameplay; leave it unused in normal operation.
-
-### InputHistory: lookback over recent usercmds
-
-@ref VoltMod::InputHistory (`runtime.Hooks.InputHistory`) is an opt-in per-slot ring buffer of the decoded views, for plugins that need "what did this player's aim do over the last N ticks" (anti-cheat, movement analytics) without wiring their own buffers:
-
-```cpp
-runtime.Hooks.InputHistory.Enable(128);                    // keep ~2s at 64 tick
-int n = runtime.Hooks.InputHistory.Count(slot);
-const auto& newest = runtime.Hooks.InputHistory.At(slot, 0);  // At(slot, ago)
-```
-
-`Enable` is the arming call because this is a query service with no event of its own - the depth
-it needs has nowhere else to come from. It subscribes to `Movement::PreCmd` itself, so the
-movement hook is installed for you.
-
-History for a slot resets automatically when its player joins or leaves (via `runtime.Slots.Changed`, which is also the backing feed for the generic @ref VoltMod::PerSlot container).
 
 ## Teleport
 
@@ -127,45 +111,6 @@ Semantics worth knowing:
 - The slot argument is `-1` when the teleported pawn belongs to no player, so guard before indexing.
 - Respawning hands the player a brand-new pawn object, which makes the previous binding stale. The tracker re-binds from its own `PlayerSpawn` handler. Since a spawn also moves the player, **a spawn raises the event too**. If you only care about mid-life teleports, filter spawns yourself.
 - The framework's `StartupServer` hook drops every binding at map start, before the previous map's pawn addresses are recycled. If you stamp @ref VoltMod::Clock "runtime.Clock" times, remember that clock restarts with the map: a stamp ahead of the current time belongs to the previous one.
-
-## Damage
-
-@ref VoltMod::Damage (`runtime.Hooks.Damage`) is a manual vtable hook on
-`CCSPlayerPawn::OnTakeDamage_Alive` - every point of damage a living player takes. Handlers see
-who hit whom, where, and for how much.
-
-```cpp
-_damage = runtime.Hooks.Damage.Hit += [this](const VoltMod::DamageView& view) {
-    if (view.AttackerSlot < 0)                   // world damage: fall, fire, the bomb
-        return;
-    if (view.Hitbox == VoltMod::HitGroup::Head)
-        RecordHeadshot(view.AttackerSlot);
-};
-```
-
-Contracts worth knowing:
-
-- **Observation only**, hence the `const` view. By the time handlers run the engine has already
-  turned `CTakeDamageInfo` into the result it applies, so nothing done here changes what the
-  victim loses - measured in game, `MRES_SUPERCEDE`, writes to both structs, and writing the
-  victim's health from the handler are all ignored. To alter damage, change the game's own rules:
-  `mp_damage_headshot_only` and the `mp_damage_scale_*` multipliers do work, and are what the
-  admin-system fun toggles drive.
-- Like Movement this is a **DVP hook** on the class vtable installed by the first subscription, so
-  subscribing from `OnLoad` with no player connected works and covers every pawn from then on.
-  Dropping the last subscription removes it, and a gamedata failure refuses the subscription
-  outright; `Capability::Damage` carries the reason.
-- `Hitbox` comes from the damage trace, not `m_iHitGroupId` (which reads `-1` for bullets). It is
-  `Invalid` for damage with no trace behind it, which is how world damage is told apart. The
-  hitgroup on @ref VoltMod::PlayerHurt comes from the event instead, and reads `Generic` rather
-  than `Invalid` when absent.
-- Both slots are resolved for you, `-1` when the pawn is not a player's. The lookup is
-  constant-time, which matters: this fires per bullet, per pellet, and per fire or HE tick against
-  every victim in radius.
-- The vtable index **and** every field offset are gamedata-maintained (`OnTakeDamageAlive`,
-  `TakeDamageInfo*`, `GameTraceHitbox`, `HitboxGroupId`), so a CS2 layout
-  change is a gamedata edit. Anything that fails to resolve refuses the subscription rather than
-  acting on the wrong bytes.
 
 ## Hooking a vfunc the framework does not cover
 

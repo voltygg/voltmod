@@ -9,8 +9,6 @@
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>
 #include <VoltMod/Hooks/ClientCvars.hpp>
-#include <VoltMod/Hooks/Damage.hpp>
-#include <VoltMod/Hooks/InputHistory.hpp>
 #include <VoltMod/Hooks/Movement.hpp>
 #include <VoltMod/Hooks/Teleport.hpp>
 #include <VoltMod/Hooks/Transmit.hpp>
@@ -33,11 +31,9 @@ struct HookServices
     HookServices(EntitySystem& entities, Bindings& bindings, SlotEvents& slots, Scheduler& scheduler,
                  GameEvents& gameEvents, Interfaces& interfaces, EntityOps& entityOps)
         : Movement(entities, bindings),
-          Damage(entities, bindings),
           Transmit(entities, bindings, slots),
           Visibility(entities, entityOps, Transmit),
           ChatInput(scheduler, slots),
-          InputHistory(Movement, slots),
           Teleport(entities, bindings, gameEvents, slots),
           ClientCvars(interfaces, bindings, slots),
           Vote(interfaces, entities, gameEvents, scheduler)
@@ -46,9 +42,6 @@ struct HookServices
     /** Dormant until something subscribes; the last subscription dropped removes the vtable
      *  hook. Depends on: Entities, Bindings. */
     VoltMod::Movement Movement;
-    /** Dormant until something subscribes to Hit; observation only - listeners see each hit but
-     *  cannot change it. Depends on: Entities, Bindings. */
-    VoltMod::Damage Damage;
     /** Depends on: Entities, Bindings, Slots. */
     VoltMod::Transmit Transmit;
     /** Builds per-viewer visibility effects (GlowVision). Depends on: Entities, EntityOps,
@@ -56,9 +49,6 @@ struct HookServices
     VoltMod::Visibility Visibility;
     /** Depends on: Scheduler, Slots. */
     VoltMod::ChatInput ChatInput;
-    /** Dormant until Enable(depth); listens on the Movement cmd feed + slot changes.
-     *  Depends on: Movement, Slots. */
-    VoltMod::InputHistory InputHistory;
     /** Dormant until something subscribes to Teleported; per-pawn Teleport hook re-bound on
      *  PlayerSpawn. Depends on: Entities, Bindings, GameEvents, Slots. */
     VoltMod::Teleport Teleport;
