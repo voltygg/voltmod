@@ -14,8 +14,7 @@ ALLOWED: dict[str, set[str]] = {
     "Events": {"Core", "Engine", "Entities"},
     "Messaging": {"Core", "Engine", "Entities", "Events"},
     "Players": {"Core", "Engine", "Entities"},
-    # Hooks owns the vote hook; its panel type lives in Messaging.
-    "Hooks": {"Core", "Engine", "Entities", "Events", "Players", "Unsafe", "Messaging"},
+    "Hooks": {"Core", "Engine", "Entities", "Events", "Players", "Unsafe"},
     "Commands": {"Core", "Engine", "Entities", "Players", "Messaging"},
     "Menu": {"Core", "Engine", "Entities", "Players", "Messaging", "Hooks"},
     "Http": {"Core"},

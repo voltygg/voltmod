@@ -27,6 +27,11 @@ function(voltmod_add_tests target_name)
     if(NOT TARGET doctest::doctest)
         find_package(doctest REQUIRED)
     endif()
+    # Public headers on the SDK-free surface (Core/EnumNames.hpp, Core/Capabilities.hpp) compile
+    # magic_enum into the includer, so a plugin test that reaches one needs it on the line too.
+    if(NOT TARGET magic_enum::magic_enum)
+        find_package(magic_enum CONFIG REQUIRED)
+    endif()
     if(NOT COMMAND doctest_discover_tests)
         include(doctest)
     endif()
@@ -47,7 +52,7 @@ function(voltmod_add_tests target_name)
         "${VOLTMOD_ROOT_DIR}/include"
         ${ARG_INCLUDE_DIRS}
     )
-    target_link_libraries("${target_name}" PRIVATE doctest::doctest ${ARG_LIBRARIES})
+    target_link_libraries("${target_name}" PRIVATE doctest::doctest magic_enum::magic_enum ${ARG_LIBRARIES})
 
     doctest_discover_tests("${target_name}")
 endfunction()

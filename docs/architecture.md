@@ -232,9 +232,8 @@ App        -> every module
 ```
 
 **Database** is Core + libpqxx, compiled only under `VOLTMOD_ENABLE_POSTGRES`. **App** is the
-composition root and may reach all of them. Hooks reaching Messaging is `HookServices` owning
-`Vote`, whose header lives in `Messaging/` - Runtime's grouping puts the game's own vote panel
-beside the hooks that are dormant the same way, not beside `Messages`/`CenterHtml`.
+composition root and may reach all of them. Every other edge above is the module's real
+dependency set: there are no exceptions carved into the table.
 
 There is no ambient accessor for the runtime. Everything takes what it uses through a
 constructor or a parameter, and `modgraph` enforces that too: only `App/` sources and headers may

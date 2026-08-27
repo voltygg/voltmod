@@ -35,11 +35,17 @@ constexpr std::string_view Name(E value) noexcept
     return magic_enum::enum_name(value);
 }
 
-/** The enumerator spelled @p name, or nullopt. Case-sensitive, exact match. */
+/**
+ * The enumerator spelled @p name, or nullopt.
+ *
+ * Case-insensitive: enumerators are PascalCase, but the text being parsed is almost always a
+ * lowercase config value ("observe", "grants"), and a case-sensitive match would send every
+ * such call back to a hand-written chain. Pair it with `value_or` to supply the fallback.
+ */
 template <class E>
 constexpr std::optional<E> Parse(std::string_view name) noexcept
 {
-    return magic_enum::enum_cast<E>(name);
+    return magic_enum::enum_cast<E>(name, magic_enum::case_insensitive);
 }
 
 /** How many enumerators @p E declares. */

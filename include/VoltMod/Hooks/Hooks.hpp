@@ -13,7 +13,7 @@
 #include <VoltMod/Hooks/Teleport.hpp>
 #include <VoltMod/Hooks/Transmit.hpp>
 #include <VoltMod/Hooks/Visibility.hpp>
-#include <VoltMod/Messaging/Vote.hpp>
+#include <VoltMod/Hooks/Vote.hpp>
 
 namespace VoltMod
 {

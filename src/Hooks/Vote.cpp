@@ -8,7 +8,7 @@
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Events/EventTypes.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
-#include <VoltMod/Messaging/Vote.hpp>
+#include <VoltMod/Hooks/Vote.hpp>
 #include <engine/igameeventsystem.h>
 #include <format>
 #include <google/protobuf/descriptor.h>
