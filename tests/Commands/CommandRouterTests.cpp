@@ -468,3 +468,29 @@ TEST_CASE("Say lines precede the final reply")
     CHECK(f.Lines[0] == "  #1 Bob");
     CHECK(f.Lines[2] == "cmd.done");
 }
+
+TEST_CASE("An Int argument accepts the whole int range and rejects what is outside it")
+{
+    Fixture f;
+    std::vector<BoundArg> seen;
+    f.Router.Add(Echo("depth", {{ArgKind::Int}}, &seen));
+
+    f.Run("depth", {"2147483647"}, nullptr);
+    REQUIRE(seen.size() == 1);
+    CHECK(std::get<Args::Int>(seen[0]).Value == 2147483647);
+
+    seen.clear();
+    f.Run("depth", {"-2147483648"}, nullptr);
+    REQUIRE(seen.size() == 1);
+    CHECK(std::get<Args::Int>(seen[0]).Value == -2147483648);
+
+    for (std::string_view token : {"2147483648", "-2147483649", "9223372036854775807"})
+    {
+        seen.clear();
+        f.Lines.clear();
+        f.Run("depth", {std::string(token)}, nullptr);
+
+        CHECK(seen.empty());
+        CHECK(f.Lines.size() == 1);
+    }
+}

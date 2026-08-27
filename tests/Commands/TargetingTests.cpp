@@ -160,3 +160,19 @@ TEST_CASE("FilterRoster: slot and steamid forms")
     CHECK_EQ(FrontSlot(FilterRoster(roster, ParseTargetToken("76561197960287932"), {}, Caller)), 2);
     CHECK(FailedWith(FilterRoster(roster, ParseTargetToken("#9"), {}, Caller), TargetError::NoMatch));
 }
+
+// A '#' slot token was accepted for any non-negative int64_t and then narrowed with a plain
+// static_cast, so #4294967296 wrapped to slot 0 and targeted whoever occupied it.
+TEST_CASE("ParseTargetToken: a slot outside int is not narrowed into one")
+{
+    CHECK(ParseTargetToken("#0").Kind == Kind::Slot);
+    CHECK_EQ(ParseTargetToken("#0").Slot, 0);
+    CHECK(ParseTargetToken("#2147483647").Kind == Kind::Slot);
+    CHECK_EQ(ParseTargetToken("#2147483647").Slot, 2147483647);
+
+    // Past INT_MAX, and a negative slot, fall through to the name grammar instead of wrapping.
+    CHECK(ParseTargetToken("#2147483648").Kind != Kind::Slot);
+    CHECK(ParseTargetToken("#4294967296").Kind != Kind::Slot);
+    CHECK(ParseTargetToken("#9223372036854775807").Kind != Kind::Slot);
+    CHECK(ParseTargetToken("#-1").Kind != Kind::Slot);
+}

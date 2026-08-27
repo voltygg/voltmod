@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <expected>
 #include <functional>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -80,6 +81,10 @@ struct TargetQuery
     int64_t SteamId = 0;
     std::string Needle;  ///< lowercased name fragment for TargetKind::Name
 };
+
+/** @p text as an int64_t, or nullopt unless it is entirely digits (with an optional sign).
+ *  Shared with the command router so both narrow external numbers the same way. */
+std::optional<int64_t> ParseInt64(std::string_view text);
 
 TargetQuery ParseTargetToken(std::string_view token);
 

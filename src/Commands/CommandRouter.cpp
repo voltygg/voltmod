@@ -6,23 +6,13 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
-#include <charconv>
-#include <limits>
+#include <utility>
 
 namespace VoltMod
 {
 
 /** The chat prefixes, in the order they are matched. The first is what a usage line shows. */
 static const std::array<std::string_view, 2> kPrefixes{"!", "."};
-
-static std::optional<int64_t> ParseInt64(const std::string& text)
-{
-    int64_t value{};
-    auto [ptr, ec] = std::from_chars(text.data(), text.data() + text.size(), value);
-    if (ec != std::errc{} || ptr != text.data() + text.size())
-        return std::nullopt;
-    return value;
-}
 
 /** The reply key and tokens for a target that did not resolve. */
 static ArgError TargetKey(const TargetFailure& failure, const std::string& token)
@@ -315,7 +305,7 @@ std::expected<std::vector<BoundArg>, ArgError> CommandRouter::BindArgs(const Com
         case ArgKind::Int:
         {
             auto value = ParseInt64(token);
-            if (!value || *value < std::numeric_limits<int>::min() || *value > std::numeric_limits<int>::max())
+            if (!value || !std::in_range<int>(*value))
                 return std::unexpected(ArgError{.Key = "cmd.badNumber", .Vars = {{"token", token}}});
             bound.emplace_back(Args::Int{.Value = static_cast<int>(*value)});
             ++i;

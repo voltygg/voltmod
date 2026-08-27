@@ -4,6 +4,7 @@
 #include <VoltMod/Core/Strings.hpp>
 #include <algorithm>
 #include <charconv>
+#include <utility>
 
 namespace VoltMod
 {
@@ -13,7 +14,7 @@ static constexpr int TeamSpectator = 1;
 static constexpr int TeamT = 2;
 static constexpr int TeamCT = 3;
 
-static std::optional<int64_t> ParseInt64(std::string_view text)
+std::optional<int64_t> ParseInt64(std::string_view text)
 {
     int64_t value{};
     auto [ptr, ec] = std::from_chars(text.data(), text.data() + text.size(), value);
@@ -57,7 +58,9 @@ TargetQuery ParseTargetToken(std::string_view token)
 
     if (raw.size() > 1 && raw[0] == '#')
     {
-        if (auto slot = ParseInt64(std::string_view(raw).substr(1)); slot && *slot >= 0)
+        // in_range before the cast: a value above INT_MAX would otherwise wrap to an
+        // arbitrary slot and match whoever occupies it.
+        if (auto slot = ParseInt64(std::string_view(raw).substr(1)); slot && std::in_range<int>(*slot) && *slot >= 0)
             return {.Kind = Kind::Slot, .Slot = static_cast<int>(*slot)};
     }
 
