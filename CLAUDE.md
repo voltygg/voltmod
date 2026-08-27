@@ -218,9 +218,10 @@ include `Menu/` or `App/` at all - both would leak into every consumer of that l
   argument types, whose names (`Target`, `Int`, `Word`, `Rest`) are too generic
   to carry at `VoltMod::` scope and appear nowhere but a handler's parameter
   list - and `VoltMod::Internal`, which may only appear under `src/`.
-- Do not forward-declare a framework type. Include the header that defines it.
-  `include/VoltMod/Engine/EngineTypes.hpp` is the one place a forward declaration
-  belongs, and it says why for each name; a new one needs the same justification -
+- Do not forward-declare a framework type in a header. Include the header that
+  defines it. `include/VoltMod/Engine/EngineTypes.hpp` is the one place a forward
+  declaration belongs - modgraph names that path, so a new home is a tooling
+  change - and it says why for each name; a new one needs the same justification -
   an SDK type, a type defined under `src/`, or a pair that owns one another. A header
   declaring a name it goes on to define itself (a primary template before its partial
   specializations) is ordering its own contents, not standing in for an include.

@@ -33,6 +33,7 @@ packages = ["scripts/voltmod"]
 dev = [
     "ruff>=0.14.0",
     "poethepoet>=0.47.0",
+    "pytest>=8.4.0",
 ]
 
 
@@ -42,10 +43,15 @@ build-linux = "voltmod build linux-steamrt-release"
 test = "voltmod test"
 doctor = "voltmod doctor"
 new-plugin = "voltmod new-plugin"
-lint = "ruff check ."
+lint = ["_ruff", "test-tools"]
+_ruff = "ruff check ."
 
 modgraph = "voltmod modgraph"
+test-tools = "pytest scripts/tests"
 format = "voltmod format"
+
+[tool.pytest.ini_options]
+pythonpath = ["scripts"]
 
 [tool.ruff]
 line-length = 100

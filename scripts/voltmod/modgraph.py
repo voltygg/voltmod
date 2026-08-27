@@ -44,19 +44,6 @@ AGGREGATE_HEADER = re.compile(r"^include/VoltMod/[A-Za-z0-9_]+/Api\.hpp$")
 ROOT_HEADERS = re.compile(r'#\s*include\s*[<"]VoltMod/(Runtime|Api)\.hpp[>"]')
 ROOT_EXEMPT = {"App"}
 
-# These layers must not pull in the opt-in Menu surface or the composition-root App.
-LOWER_MODULES = {
-    "Core",
-    "Engine",
-    "Entities",
-    "Events",
-    "Messaging",
-    "Players",
-    "Hooks",
-    "Commands",
-}
-CROSS_MODULE_HEADER = re.compile(r'#\s*include\s*[<"]VoltMod/(Menu|App)/')
-
 NLOHMANN_INCLUDE = re.compile(r'#\s*include\s*[<"]nlohmann/')
 NLOHMANN_ALLOWED = {
     "include/VoltMod/Core/Json.hpp",
@@ -74,8 +61,11 @@ ENGINE_INCLUDE = re.compile(
     r'#\s*include\s*[<"](ISmmPlugin\.h|tier0/|eiface\.h|entity2/|schemasystem/|icvar\.h|Color\.h)'
 )
 
-# Forward declarations belong in the one documented *Types.hpp file.
-FORWARD_DECL_HOME = re.compile(r"(^|/)\w*Types\.hpp$")
+# The one framework header allowed to forward-declare, named rather than matched: EventTypes.hpp
+# and ConVarTypes.hpp are definition headers whose names a *Types.hpp pattern would also exempt.
+FRAMEWORK_DECL_HOMES = frozenset({"include/VoltMod/Engine/EngineTypes.hpp"})
+# A consumer's layout is not ours to name, so its one declaration home is matched by filename.
+PLUGIN_DECL_HOME = re.compile(r"(^|/)\w*Types\.hpp$")
 FORWARD_DECL = re.compile(r"^(?:class|struct)\s+(\w+);")
 DEFINITION = r"^(?:class|struct)\s+{}\b\s*(?!;)"
 ANON_NAMESPACE = re.compile(r"^[ \t]*namespace[ \t]*(\{[ \t]*)?$")
@@ -133,55 +123,44 @@ def root_includes(files, modules):
     return sorted(headers), sorted(sources)
 
 
-def forbidden_surfaces(files):
-    """Find lower-layer Menu/App includes and direct nlohmann includes."""
-    crossed, nlohmann = [], []
-    for rel, owner, text in files:
-        for number, line in enumerate(text.splitlines(), 1):
-            if owner in LOWER_MODULES:
-                hit = CROSS_MODULE_HEADER.search(line)
-                if hit:
-                    crossed.append((rel, number, hit.group(1)))
-            if rel not in NLOHMANN_ALLOWED and NLOHMANN_INCLUDE.search(line):
-                nlohmann.append((rel, number))
-    return sorted(crossed), sorted(nlohmann)
+def scan(files, decl_homes=None):
+    """Walk every source line once and collect the line-based violations.
 
-
-def conventions(files):
-    """Find forward declarations, anonymous namespaces, and using-directives."""
-    forwards, anonymous, directives = [], [], []
+    @p decl_homes is the set of relative paths allowed to forward-declare, or None to accept any
+    `*Types.hpp` - which is all a consumer's arbitrary layout lets us say.
+    """
+    found = {"nlohmann": [], "forwards": [], "anonymous": [], "directives": [], "engine": []}
     for rel, _, text in files:
         header = rel.endswith(".hpp")
-        declaration_home = bool(FORWARD_DECL_HOME.search(rel))
+        if decl_homes is None:
+            declaration_home = bool(PLUGIN_DECL_HOME.search(rel))
+        else:
+            declaration_home = rel in decl_homes
+        core = rel.startswith(CORE_PATHS)
+        allows_nlohmann = rel in NLOHMANN_ALLOWED
+
         for number, line in enumerate(text.splitlines(), 1):
+            if not allows_nlohmann and NLOHMANN_INCLUDE.search(line):
+                found["nlohmann"].append((rel, number))
             declared = FORWARD_DECL.match(line)
             if header and not declaration_home and declared:
                 pattern = DEFINITION.format(re.escape(declared.group(1)))
                 if not re.search(pattern, text, re.MULTILINE):
-                    forwards.append((rel, number, line.strip()))
+                    found["forwards"].append((rel, number, line.strip()))
             if ANON_NAMESPACE.match(line):
-                anonymous.append((rel, number))
+                found["anonymous"].append((rel, number))
             if USING_DIRECTIVE.match(line):
-                directives.append((rel, number, line.strip()))
-    return forwards, anonymous, directives
-
-
-def engine_in_core(files):
-    """Find Core files that include an SDK or Metamod header."""
-    found = []
-    for rel, _, text in files:
-        if not rel.startswith(CORE_PATHS):
-            continue
-        for number, line in enumerate(text.splitlines(), 1):
-            hit = ENGINE_INCLUDE.match(line)
-            if hit:
-                found.append((rel, number, hit.group(1)))
+                found["directives"].append((rel, number, line.strip()))
+            if core:
+                hit = ENGINE_INCLUDE.match(line)
+                if hit:
+                    found["engine"].append((rel, number, hit.group(1)))
     return found
 
 
-def report_conventions(files, label: str) -> int:
-    """Print source-convention violations."""
-    forwards, anonymous, directives = conventions(files)
+def report_conventions(found, label: str) -> int:
+    """Print source-convention violations from a @ref scan result."""
+    forwards, anonymous, directives = found["forwards"], found["anonymous"], found["directives"]
     if not (forwards or anonymous or directives):
         return 0
 
@@ -213,7 +192,7 @@ def check_plugins(root: Path) -> int:
         return 2
 
     base = plugins.relative_to(root).as_posix() if plugins != root else ""
-    code = report_conventions(list(source_files(root, (base,))), "plugin")
+    code = report_conventions(scan(source_files(root, (base,))), "plugin")
     if code == 0:
         print("Plugin sources hold.")
     return code
@@ -250,16 +229,15 @@ def check(root: Path) -> int:
         for dependency in sorted(dependencies_ - ALLOWED[owner])
     ]
     rooted_headers, rooted_sources = root_includes(files, known)
-    engine_hits = engine_in_core(files)
-    crossed, nlohmann_hits = forbidden_surfaces(files)
-    convention_errors = report_conventions(files, "framework")
+    found = scan(files, FRAMEWORK_DECL_HOMES)
+    engine_hits, nlohmann_hits = found["engine"], found["nlohmann"]
+    convention_errors = report_conventions(found, "framework")
 
     if not (
         forbidden_edges
         or rooted_headers
         or rooted_sources
         or engine_hits
-        or crossed
         or nlohmann_hits
         or convention_errors
     ):
@@ -290,12 +268,6 @@ def check(root: Path) -> int:
         for rel, number, header in engine_hits:
             print(f"  {rel}:{number}: {header}")
         print("      Move engine-dependent code to Engine.")
-
-    if crossed:
-        print(f"\n{len(crossed)} lower-layer file(s) reaching Menu or App:")
-        for rel, number, target in crossed:
-            print(f"  {rel}:{number}: VoltMod/{target}/...")
-        print("      Inject or include the narrower dependency.")
 
     if nlohmann_hits:
         print(f"\n{len(nlohmann_hits)} direct nlohmann include(s) outside the allowlist:")
