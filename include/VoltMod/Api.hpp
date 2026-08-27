@@ -21,7 +21,6 @@
 #include <VoltMod/Commands/CommandBuilder.hpp>
 #include <VoltMod/Commands/CommandManager.hpp>
 #include <VoltMod/Core/Capabilities.hpp>
-#include <VoltMod/Core/EffectManager.hpp>
 #include <VoltMod/Core/EnumNames.hpp>
 #include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Core/Log.hpp>
@@ -35,10 +34,6 @@
 #include <VoltMod/Core/Throttle.hpp>
 #include <VoltMod/Core/Time.hpp>
 #include <VoltMod/Core/Translations.hpp>
-#include <VoltMod/Core/Validation.hpp>
-#include <VoltMod/Messaging/ChatColors.hpp>
-#include <VoltMod/Players/ActionDispatcher.hpp>
-#include <VoltMod/Players/EffectDescriptor.hpp>
 #include <VoltMod/Players/EffectDispatcher.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
