@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 
 namespace VoltMod
@@ -25,22 +26,6 @@ struct ConVarChange
     std::string_view NewValue;
 };
 
-/**
- * @brief How a @ref ConVar write reaches the engine.
- *
- * The two differ in who finds out, and that is the whole decision:
- */
-enum class SetMode : uint8_t
-{
-    /** A queued console line, exactly as if a cfg had set it: callbacks fire and FCVAR_REPLICATED
-     *  networks to every client. The default, because it is the one that cannot half-apply. */
-    Console,
-    /** Poke the value storage directly: no callbacks, no networking, nobody told. For a flip that
-     *  is undone within the same call stack (a per-player scope inside a Movement pre/post pair),
-     *  where telling everyone would be wrong. Prefer @ref ConVar::RawScope over a bare Raw write. */
-    Raw
-};
-
 template <class T>
 class ConVar;
 
@@ -55,9 +40,9 @@ template <class T>
 class ConVarRawScope
 {
 public:
-    ConVarRawScope() = default;
     /** Flip @p cvar to @p value now and restore its current value on destruction. */
-    ConVarRawScope(ConVar<T>& cvar, const T& value);
+    ConVarRawScope(ConVar<T>& cvar, const T& value)
+        requires(!std::is_same_v<T, std::string>);
     ~ConVarRawScope();
 
     ConVarRawScope(const ConVarRawScope&) = delete;
@@ -105,10 +90,9 @@ public:
 
     /** The current server-side value. `T{}` when this handle never resolved. */
     T Get() const;
-    operator T() const { return Get(); }
 
-    /** Write @p value; see @ref SetMode. Error::NotReady when the handle never resolved. */
-    Status Set(const T& value, SetMode mode = SetMode::Console);
+    /** Set @p value through the server console. Error::NotReady when the handle never resolved. */
+    Status Set(const T& value);
 
     /**
      * Send `CNETMsg_SetConVar` to one client so its prediction uses @p value.
@@ -119,17 +103,25 @@ public:
      */
     Status SetFor(int slot, const T& value) const;
 
-    /** Flip to @p value raw until the returned scope dies. See @ref ConVarRawScope. */
-    [[nodiscard]] ConVarRawScope<T> RawScope(const T& value) { return ConVarRawScope<T>(*this, value); }
+    /** Flip to @p value without callbacks or networking until the returned scope dies. */
+    [[nodiscard]] ConVarRawScope<T> RawScope(const T& value)
+        requires(!std::is_same_v<T, std::string>)
+    {
+        return ConVarRawScope<T>(*this, value);
+    }
 
     /** The convar's name, borrowed from this handle. */
     std::string_view Name() const { return _name; }
 
-    /** Whether @ref Find resolved this handle. Spelled out rather than `explicit operator bool`,
-     *  which would collide with `operator T` for `ConVar<bool>`. */
-    bool IsValid() const noexcept { return _storage != nullptr; }
+    /** Whether @ref Find resolved this handle. */
+    explicit operator bool() const noexcept { return _storage != nullptr; }
 
 private:
+    friend class ConVarRawScope<T>;
+
+    Status SetRaw(const T& value)
+        requires(!std::is_same_v<T, std::string>);
+
     ConVars* _service = nullptr;
     std::string _name;
     void* _storage = nullptr;  ///< the convar's CVValue_t* (void* so this header stays SDK-free)

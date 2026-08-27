@@ -161,8 +161,8 @@ Use these patterns throughout the framework:
   must be inert and safe to call.
 - Enumerator names come from `Core/EnumNames.hpp` (`Name(value)`, `Parse<E>(text)`), not from
   hand-written switches.
-- One convar is one `ConVar<T>` handle, resolved by name once. `SetMode` picks the write path:
-  `Console` (a cfg line, replicates) or `Raw` (storage poke, prefer `RawScope`).
+- One convar is one `ConVar<T>` handle, resolved by name once. `Set` uses a cfg line so replicated
+  values reach clients; `RawScope` temporarily pokes storage without callbacks or networking.
 - Constructor injection is the default. Do not add process-lifetime singletons.
 - Database and HTTP workers replay completions on the game thread through
   scheduler frame pumps.

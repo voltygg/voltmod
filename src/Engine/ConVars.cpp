@@ -11,7 +11,6 @@
 #include <networkbasetypes.pb.h>
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <tier1/convar.h>
@@ -42,19 +41,6 @@ static void GlobalConVarChangeCallback(ConVarRefAbstract* ref, CSplitScreenSlot 
         VoltMod::ConVarChange{.Name = Text(ref->GetName()), .OldValue = Text(oldValue), .NewValue = Text(newValue)});
 }
 
-/** Resolve @p name to a usable convar reference, or nullopt when it is null or not registered. */
-static std::optional<ConVarRefAbstract> Resolve(const char* name)
-{
-    if (!name)
-        return std::nullopt;
-
-    ConVarRefAbstract ref(name);
-    if (!ref.IsValidRef() || !ref.IsConVarDataAvailable())
-        return std::nullopt;
-
-    return ref;
-}
-
 namespace VoltMod
 {
 
@@ -70,19 +56,19 @@ template <class T>
 Result<ConVar<T>> ConVar<T>::Find(ConVars& service, std::string_view name)
 {
     const std::string owned(name);
-    auto ref = Resolve(owned.c_str());
-    if (!ref)
+    ConVarRefAbstract ref(owned.c_str());
+    if (!ref.IsValidRef() || !ref.IsConVarDataAvailable())
         return std::unexpected(Error::NotFound(std::format("no convar '{}'", owned)));
 
-    const auto type = static_cast<ConVarType>(ref->GetType());
+    const auto type = static_cast<ConVarType>(ref.GetType());
     if (!ConVarTypeMatches<T>(type))
         return std::unexpected(Error::Invalid(
             std::format("convar '{}' is engine type {}, not the requested one", owned, static_cast<int>(type))));
 
     // Slot -1 is the shared (non-splitscreen) storage; some convars only expose slot 0.
-    CVValue_t* storage = ref->GetConVarData()->Value(CSplitScreenSlot(-1));
+    CVValue_t* storage = ref.GetConVarData()->Value(CSplitScreenSlot(-1));
     if (!storage)
-        storage = ref->GetConVarData()->Value(CSplitScreenSlot(0));
+        storage = ref.GetConVarData()->Value(CSplitScreenSlot(0));
     if (!storage)
         return std::unexpected(Error::Engine(std::format("convar '{}' has no value storage", owned)));
 
@@ -133,55 +119,48 @@ T ConVar<T>::Get() const
 }
 
 template <class T>
-Status ConVar<T>::Set(const T& value, SetMode mode)
+Status ConVar<T>::Set(const T& value)
 {
     if (!_storage || !_service)
         return std::unexpected(Error::NotReady("convar handle is unresolved"));
 
-    if (mode == SetMode::Console)
-    {
-        _service->ExecuteServerCommand(std::format("{} {}", _name, ConVarText(value)));
-        return {};
-    }
+    _service->ExecuteServerCommand(std::format("{} {}", _name, ConVarText(value)));
+    return {};
+}
 
-    // Raw: poke the storage the engine reads from, with nobody told.
-    if constexpr (std::is_same_v<T, std::string>)
+template <class T>
+Status ConVar<T>::SetRaw(const T& value)
+    requires(!std::is_same_v<T, std::string>)
+{
+    if (!_storage)
+        return std::unexpected(Error::NotReady("convar handle is unresolved"));
+
+    auto* storage = static_cast<CVValue_t*>(_storage);
+    const auto type = static_cast<ConVarType>(_type);
+    if constexpr (std::is_same_v<T, bool>)
     {
-        return std::unexpected(
-            Error::Unsupported("raw writes are not supported for string convars (the value owns heap storage)"));
+        storage->m_bValue = value;
+    }
+    else if constexpr (std::is_same_v<T, float>)
+    {
+        storage->m_fl32Value = value;
     }
     else
     {
-        auto* storage = static_cast<CVValue_t*>(_storage);
-        const auto type = static_cast<ConVarType>(_type);
-        if constexpr (std::is_same_v<T, bool>)
+        switch (type)
         {
-            storage->m_bValue = value;
+        case ConVarType::Int16:
+            storage->m_i16Value = static_cast<int16_t>(value);
+            break;
+        case ConVarType::UInt16:
+            storage->m_u16Value = static_cast<uint16_t>(value);
+            break;
+        default:
+            storage->m_i32Value = value;
+            break;
         }
-        else if constexpr (std::is_same_v<T, float>)
-        {
-            if (type == ConVarType::Float64)
-                storage->m_fl64Value = value;
-            else
-                storage->m_fl32Value = value;
-        }
-        else
-        {
-            switch (type)
-            {
-            case ConVarType::Int16:
-                storage->m_i16Value = static_cast<int16_t>(value);
-                break;
-            case ConVarType::UInt16:
-                storage->m_u16Value = static_cast<uint16_t>(value);
-                break;
-            default:
-                storage->m_i32Value = value;
-                break;
-            }
-        }
-        return {};
     }
+    return {};
 }
 
 template <class T>
@@ -196,9 +175,11 @@ Status ConVar<T>::SetFor(int slot, const T& value) const
 }
 
 template <class T>
-ConVarRawScope<T>::ConVarRawScope(ConVar<T>& cvar, const T& value) : _cvar(&cvar), _previous(cvar.Get())
+ConVarRawScope<T>::ConVarRawScope(ConVar<T>& cvar, const T& value)
+    requires(!std::is_same_v<T, std::string>)
+    : _cvar(&cvar), _previous(cvar.Get())
 {
-    if (!cvar.Set(value, SetMode::Raw))
+    if (!cvar.SetRaw(value))
         _cvar = nullptr;  // nothing was written, so there is nothing to put back
 }
 
@@ -206,7 +187,7 @@ template <class T>
 ConVarRawScope<T>::~ConVarRawScope()
 {
     if (_cvar)
-        (void)_cvar->Set(_previous, SetMode::Raw);
+        (void)_cvar->SetRaw(_previous);
 }
 
 // The four convar types the framework supports; every other T is a compile error at the call site.
@@ -217,7 +198,6 @@ template class ConVar<std::string>;
 template class ConVarRawScope<bool>;
 template class ConVarRawScope<int>;
 template class ConVarRawScope<float>;
-template class ConVarRawScope<std::string>;
 
 ConVars::ConVars(Interfaces& interfaces)
     : Changed({.OnFirst = [this] { return RouteChanges(); }, .OnLast = [this] { StopRoutingChanges(); }}),

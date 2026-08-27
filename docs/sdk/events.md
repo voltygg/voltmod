@@ -93,7 +93,7 @@ auto gravity = VoltMod::ConVar<float>::Find(cvars, "sv_gravity");
 if (!gravity)
     Log::Warn("sv_gravity unusable: {}", gravity.error().Detail);   // NotFound, or Invalid on a type mismatch
 else
-    gravity->Set(400.0f);            // SetMode::Console by default
+    gravity->Set(400.0f);            // cfg-style write; replicated convars reach clients
 
 cvars.ExecuteServerCommand("mp_restartgame 1");
 
@@ -109,38 +109,31 @@ The three fields are `string_view`s over engine storage that live only for the d
 handler, so copy whatever you keep.
 
 A registered convar outlives map changes, so resolve a handle once - in your `Start()` - and keep
-it as a member. A handle that never resolved is falsy (`IsValid()`), reads as `T{}` and refuses
+it as a member. A handle that never resolved is falsy, reads as `T{}` and refuses
 every write, so a server without the convar degrades rather than crashing.
 
-### Write modes
+### Writing values
 
-@ref VoltMod::SetMode "SetMode" picks who finds out about the write, and that is the whole
-decision:
+`Set(value)` queues a cfg-style console write. Callbacks fire and `FCVAR_REPLICATED` values reach
+clients, so a server-wide change cannot leave client prediction using the old value.
 
-| Mode | Callbacks | Reaches clients | Use for |
-| --- | --- | --- | --- |
-| `Console` (default) | yes | yes, for `FCVAR_REPLICATED` | anything server-wide |
-| `Server` | yes | **no** | a value only this server reads |
-| `Raw` | no | no | a flip undone in the same call stack |
-
-`Console` is the default because it is the one that cannot half-apply: a replicated convar set any
-other way leaves clients predicting the old value, and their movement or damage then disagrees with
-the server.
+`RawScope(value)` is the narrow exception for a temporary server-only flip. It writes storage
+without callbacks or networking and restores the previous value when the scope is destroyed.
 
 ### Taking a convar over server-wide
 
 A feature that overrides a server convar owes the operator two things: save their value before the
-*first* write, and restore only what it actually took. @ref VoltMod::ConVarLease "ConVarLease"
+*first* write, and restore only what it actually took. @ref VoltMod::ConVarOverrides "ConVarOverrides"
 holds those snapshots, and writes through the console so replicated convars reach clients:
 
 ```cpp
-VoltMod::ConVarLease lease{runtime.ConVars};   // restores on destruction
+VoltMod::ConVarOverrides overrides{runtime.ConVars}; // restores on destruction
 
-lease.Override(gravity, 250.0f);               // false when the handle never resolved
-lease.Restore(gravity);                        // no-op when it never took it
+overrides.Set(gravity, 250.0f);                // false when the handle never resolved
+overrides.Restore(gravity);                    // no-op when it never changed it
 ```
 
-`Override` saves on the first take and re-asserts afterwards, so calling it every round is correct
+`Set` saves on the first change and re-asserts afterwards, so calling it every round is correct
 and necessary - the engine resets convars around a map change, and an override that is not
 re-asserted silently lapses. The destructor calls `RestoreAll()`, which is what makes unload safe.
 The admin-system fun toggles and bhop's "enabled" mode both drive one of these.

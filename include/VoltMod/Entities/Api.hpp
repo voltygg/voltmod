@@ -5,7 +5,7 @@
 // settings through. Include the individual headers when a translation unit only needs a
 // few of these.
 
-#include <VoltMod/Engine/ConVarLease.hpp>
+#include <VoltMod/Engine/ConVarOverrides.hpp>
 #include <VoltMod/Engine/ConVars.hpp>
 #include <VoltMod/Entities/Controller.hpp>
 #include <VoltMod/Entities/Entity.hpp>

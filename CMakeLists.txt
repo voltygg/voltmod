@@ -153,7 +153,6 @@ if(BUILD_TESTING)
             src/Commands/Targeting.cpp
             src/Hooks/ClientCvarPending.cpp
             src/Engine/Bindings.cpp
-            src/Engine/ConVarSnapshots.cpp
             src/Engine/ConVarTypes.cpp
             src/Engine/GameData.cpp
             src/Engine/GameDataFile.cpp
