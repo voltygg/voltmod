@@ -26,8 +26,7 @@ endif()
 find_package(hl2sdk-cs2 CONFIG REQUIRED)
 find_package(metamod-source CONFIG REQUIRED)
 
-# Source modules define include boundaries, while Runtime and optional Database
-# are the link units.
+# Modules define include boundaries; Runtime and optional Database provide link targets.
 file(GLOB_RECURSE VOLTMOD_RUNTIME_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Core/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Http/*.cpp"
@@ -44,7 +43,6 @@ file(GLOB_RECURSE VOLTMOD_RUNTIME_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Menu/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/App/*.cpp"
 )
-# Runtime.cpp is the service composition root.
 list(APPEND VOLTMOD_RUNTIME_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/Runtime.cpp")
 
 file(GLOB_RECURSE VOLTMOD_DATABASE_SOURCES CONFIGURE_DEPENDS
@@ -57,11 +55,10 @@ voltmod_add_library(Runtime
     LIBS VoltMod::Metamod VoltMod::HL2SDK nlohmann_json::nlohmann_json magic_enum::magic_enum
     PRIVATE_LIBS cpr::cpr)
 
-# The HL2SDK package attaches its required sources and compile properties.
 hl2sdk_attach_engine_sources(voltmod-runtime)
 hl2sdk_attach_generated_sources(voltmod-runtime)
 
-# Keep cpr private. HTTP sources skip the PCH to preserve winsock2/windows.h order.
+# Preserve the winsock2/windows.h include order in HTTP sources.
 set_source_files_properties(${VOLTMOD_Http_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 
 if(WIN32)
@@ -73,11 +70,10 @@ if(VOLTMOD_ENABLE_POSTGRES)
         SOURCES ${VOLTMOD_DATABASE_SOURCES}
         DEPS VoltMod::Runtime
         LIBS libpqxx::pqxx)
-# Database/Api.hpp uses this definition to guard pqxx-dependent API.
+    # Guards the pqxx-dependent API in Database/Api.hpp.
     target_compile_definitions(voltmod-database PUBLIC VOLTMOD_ENABLE_POSTGRES=1)
 endif()
 
-# Default plugin target.
 add_library(voltmod INTERFACE)
 add_library(VoltMod::VoltMod ALIAS voltmod)
 target_link_libraries(voltmod INTERFACE VoltMod::Runtime)
@@ -90,8 +86,8 @@ install(TARGETS voltmod-runtime ARCHIVE DESTINATION lib)
 if(TARGET voltmod-database)
     install(TARGETS voltmod-database ARCHIVE DESTINATION lib)
 endif()
+
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/" DESTINATION include)
-# Preserve the relative layout used by VOLTMOD_ROOT_DIR.
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/" DESTINATION cmake)
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/gamedata/" DESTINATION gamedata)
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/templates/plugin/" DESTINATION templates/plugin)
@@ -100,16 +96,11 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE" DESTINATION licenses)
 if(VOLTMOD_BUILD_STANDALONE)
     include(CTest)
 
-    # tests/ is not part of the Conan package's exports_sources, so this check - like
-    # voltmod-utils-tests below - only exists for a source checkout (BUILD_TESTING is
-    # forced off for a `conan create` cache build).
+    # Conan excludes tests/ and disables BUILD_TESTING for cache builds.
     if(BUILD_TESTING)
-        # Each Api.hpp aggregate must compile as the only VoltMod include in its translation unit,
-        # and <VoltMod/Api.hpp> itself must never reach nlohmann or the Menu-building surface - see
-        # tests/Api/*SurfaceTest.cpp for what each TU checks. Linking VoltMod::Runtime (nothing here
-        # calls into it) gives these TUs the same include paths, compile definitions and generated
-        # HL2SDK headers voltmod-runtime itself needs, without repeating that setup; a passing build
-        # is the whole check.
+        # Verify each Api.hpp compiles alone and the root API does not expose
+        # nlohmann or Menu builders. Runtime supplies their build settings and
+        # generated HL2SDK headers, but they do not call it; compiling is the test.
         add_library(voltmod-api-surface-check OBJECT
             tests/Api/RootApiSurfaceTest.cpp
             tests/Api/EntitiesApiSurfaceTest.cpp
@@ -129,9 +120,9 @@ if(VOLTMOD_BUILD_STANDALONE)
     endif()
 endif()
 
-# Recompile pure logic so tests do not link HL2SDK or Metamod.
+# Recompile pure logic without linking HL2SDK or Metamod.
 if(BUILD_TESTING)
-    # The gamedata parser and the module scanners are SDK-free but reach the OS loader.
+    # SDK-free gamedata and module scanning still need the OS loader.
     set(VOLTMOD_TEST_LIBRARIES nlohmann_json::nlohmann_json magic_enum::magic_enum)
     if(WIN32)
         list(APPEND VOLTMOD_TEST_LIBRARIES psapi)
@@ -139,7 +130,7 @@ if(BUILD_TESTING)
 
     voltmod_add_tests(voltmod-utils-tests
         SOURCES
-            # Other implementation files require HL2SDK or pqxx.
+            # Other implementations require HL2SDK or pqxx.
             src/Commands/CommandBuilder.cpp
             src/Commands/CommandRouter.cpp
             src/Commands/CommandSyntax.cpp
@@ -149,8 +140,7 @@ if(BUILD_TESTING)
             src/Core/LoadReport.cpp
             src/Core/Logger.cpp
             src/Core/Paths.cpp
-            # The field cache and its query seam; the ISchemaSystem walk behind it lives in
-            # SchemaQuery.cpp, which is the SDK half and stays out of the tests.
+            # The field cache and query seam are SDK-free; SchemaQuery.cpp is not.
             src/Entities/SchemaResolve.cpp
             src/Core/Scheduler.cpp
             src/Players/PlayerManager.cpp
@@ -166,20 +156,16 @@ if(BUILD_TESTING)
             src/Engine/BytePattern.cpp
             src/Engine/SigScanner.cpp
             src/Engine/VtableLookup.cpp
-            # The install policy behind VtableHook; the SourceHook half lives in VOLTMOD_VHOOK.
+            # VtableHook policy is SDK-free; VOLTMOD_VHOOK owns the SourceHook half.
             src/Unsafe/VtableHook.cpp
             src/Core/Strings.cpp
             src/Core/SteamId.cpp
             src/Core/Time.cpp
             src/Core/Translations.cpp
-            # MenuRenderer is plain data (MenuView/MenuOption) + Translations, so it stays SDK-free.
-            # MenuBuilder.hpp (and everything built on it - MenuBuilderRows.cpp, MenuOption.cpp,
-            # MenuPresets.cpp) is not: Action/EffectDescriptor's ActionContext holds Controller by
-            # value, which needs Pawn/Entity/Field<Vector,...> complete - true of MenuBuilder even
-            # before this phase, since a context row has always taken an Action by const reference.
+            # MenuRenderer is SDK-free. MenuBuilder is not because ActionContext
+            # stores Controller by value.
             src/Menu/MenuRenderer.cpp
-        # ClientCvarPendingTests, GameDataFileTests, ConVarTests and FieldRefTests reach headers
-        # under src/.
+        # Some tests include private headers from src/.
         INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src"
         LIBRARIES ${VOLTMOD_TEST_LIBRARIES}
     )
