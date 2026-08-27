@@ -5,20 +5,22 @@
 namespace VoltMod
 {
 
-Result<ActionContext> ActionDispatcher::Resolve(int callerSlot, int targetSlot, std::string_view permission) const
+Result<ActionContext> ActionDispatcher::Resolve(PlayerRef caller, PlayerRef target, std::string_view permission) const
 {
-    auto authorized = _policy.Authorize(_players.RefFor(callerSlot), _players.RefFor(targetSlot), permission);
+    // The refs go through untouched: Authorize is what rejects one whose slot has changed hands.
+    auto authorized = _policy.Authorize(caller, target, permission);
     if (!authorized)
         return std::unexpected(authorized.error());
 
+    // Safe only now - Authorize confirmed both refs still name the players they were taken for.
     return ActionContext{.Auth = *authorized,
-                         .CallerCtrl = _entities.Controller(callerSlot),
-                         .TargetCtrl = _entities.Controller(targetSlot)};
+                         .CallerCtrl = _entities.Controller(caller.Slot),
+                         .TargetCtrl = _entities.Controller(target.Slot)};
 }
 
-void ActionDispatcher::Run(int callerSlot, int targetSlot, const Action& action) const
+void ActionDispatcher::Run(PlayerRef caller, PlayerRef target, const Action& action) const
 {
-    auto ctx = Resolve(callerSlot, targetSlot, action.Permission);
+    auto ctx = Resolve(caller, target, action.Permission);
     if (!ctx)
         return;
     if (action.RequireAlive && !ctx->TargetPawn().IsAlive())
@@ -27,9 +29,9 @@ void ActionDispatcher::Run(int callerSlot, int targetSlot, const Action& action)
         Broadcast(*ctx, *key);
 }
 
-void ActionDispatcher::Run(int callerSlot, int targetSlot, int param, const ParamAction& action) const
+void ActionDispatcher::Run(PlayerRef caller, PlayerRef target, int param, const ParamAction& action) const
 {
-    auto ctx = Resolve(callerSlot, targetSlot, action.Permission);
+    auto ctx = Resolve(caller, target, action.Permission);
     if (!ctx)
         return;
     if (action.RequireAlive && !ctx->TargetPawn().IsAlive())

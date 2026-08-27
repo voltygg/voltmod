@@ -4,6 +4,7 @@
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Entities/Controller.hpp>
 #include <VoltMod/Players/Player.hpp>
+#include <VoltMod/Players/PlayerRef.hpp>
 #include <VoltMod/Players/Policy.hpp>
 #include <functional>
 #include <optional>
@@ -76,14 +77,20 @@ public:
     {}
 
     /**
-     * Authorize a caller+target slot pair and build the context for it.
-     * @return the @ref Error from `Policy::Authorize` when either player is not connected, the
-     *         caller lacks @p permission, or the targetability policy blocks the pair.
+     * Authorize a caller+target pair and build the context for it.
+     *
+     * Takes @ref PlayerRef, not slots, and hands them to `Policy::Authorize` unchanged: a stored
+     * row or callback that outlived its player is refused rather than retargeted at whoever
+     * occupies the slot now. Turn a slot into a ref at the boundary that first receives it
+     * (`PlayerManager::RefFor`), not at dispatch time.
+     *
+     * @return the @ref Error from `Policy::Authorize` when either reference is stale or not
+     *         connected, the caller lacks @p permission, or the targetability policy blocks it.
      */
-    Result<ActionContext> Resolve(int callerSlot, int targetSlot, std::string_view permission) const;
+    Result<ActionContext> Resolve(PlayerRef caller, PlayerRef target, std::string_view permission) const;
 
-    void Run(int callerSlot, int targetSlot, const Action& action) const;
-    void Run(int callerSlot, int targetSlot, int param, const ParamAction& action) const;
+    void Run(PlayerRef caller, PlayerRef target, const Action& action) const;
+    void Run(PlayerRef caller, PlayerRef target, int param, const ParamAction& action) const;
 
     /** Invoke the policy broadcast sink directly. Exposed so @ref EffectDispatcher (and other
      *  dispatch-adjacent code) can announce without repeating the sink lookup. */

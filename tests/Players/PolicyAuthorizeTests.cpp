@@ -63,6 +63,28 @@ TEST_CASE("Authorize fails with a player-facing key when the target is gone")
     CHECK(result.error().Key == "target.noMatch");
 }
 
+// The menu case: a row built for one player is pressed after that player left and somebody else
+// took the slot. The stored reference must be refused, not resolved to the new occupant - which
+// is why ActionDispatcher takes PlayerRef rather than re-deriving one from a slot.
+TEST_CASE("Authorize refuses a target whose slot has been taken by somebody else")
+{
+    Gate gate;
+    Player& admin = gate.AddAdmin();
+    Player& target = gate.AddTarget();
+    const PlayerRef stale = target.Ref();
+
+    gate.Players.Remove(2);
+    Player* newcomer = gate.Players.Add(2, 76561198000000003LL, "newcomer", "");
+    REQUIRE(newcomer != nullptr);
+
+    auto result = gate.Rules.Authorize(admin.Ref(), stale, "");
+    REQUIRE(!result);
+    CHECK(result.error().Code == ErrorCode::NotFound);
+
+    // The slot itself is perfectly usable - it is the *identity* that went stale.
+    CHECK(gate.Rules.Authorize(admin.Ref(), newcomer->Ref(), "").has_value());
+}
+
 TEST_CASE("An empty permission skips the permission check")
 {
     Gate gate;

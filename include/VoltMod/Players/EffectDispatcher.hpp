@@ -30,11 +30,11 @@ public:
 
     /** Apply if inactive, clear if active. Broadcasts OnKey/OffKey. The default menu-row verb.
      *  @p param is forwarded to `Setup` (0 for a plain toggle). */
-    void Toggle(int adminSlot, int targetSlot, const EffectDescriptor& effect, int param = 0) const;
+    void Toggle(PlayerRef admin, PlayerRef target, const EffectDescriptor& effect, int param = 0) const;
     /** (Re)apply unconditionally, broadcasting OnKey. */
-    void Apply(int adminSlot, int targetSlot, const EffectDescriptor& effect, int param = 0) const;
+    void Apply(PlayerRef admin, PlayerRef target, const EffectDescriptor& effect, int param = 0) const;
     /** Cancel if active, broadcasting OffKey (when set). */
-    void Clear(int adminSlot, int targetSlot, const EffectDescriptor& effect) const;
+    void Clear(PlayerRef admin, PlayerRef target, const EffectDescriptor& effect) const;
 
 private:
     ActionDispatcher& _actions;

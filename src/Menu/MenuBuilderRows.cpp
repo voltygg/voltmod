@@ -20,8 +20,8 @@ MenuBuilder& MenuBuilder::Row(std::string_view labelKey, const Action& action)
         return Button(std::string(labelKey), [](int) {}, false);
 
     ActionDispatcher* actions = &_menus->Actions();
-    int admin = _admin.Slot;
-    int target = _target ? _target->Slot : -1;
+    PlayerRef admin = _admin;
+    PlayerRef target = _target.value_or(PlayerRef{});
     const Action* a = &action;
     return Button(
         Tr(labelKey), [actions, admin, target, a](int) { actions->Run(admin, target, *a); },
@@ -36,13 +36,13 @@ MenuBuilder& MenuBuilder::StateToggle(std::string_view labelKey, std::function<b
 
     EntitySystem* entities = &_menus->Entities();
     ActionDispatcher* actions = &_menus->Actions();
-    int admin = _admin.Slot;
-    int target = _target ? _target->Slot : -1;
+    PlayerRef admin = _admin;
+    PlayerRef target = _target.value_or(PlayerRef{});
     const Action* a = &action;
     return Toggle(
         Tr(labelKey), Tr("effectState.on"), Tr("effectState.off"),
         [entities, target, isActive = std::move(isActive)](int) {
-            Pawn pawn = entities->PawnOf(target);
+            Pawn pawn = entities->PawnOf(target.Slot);
             return pawn && isActive(pawn);
         },
         [actions, admin, target, a](int) { actions->Run(admin, target, *a); }, Allowed(action.Permission));
@@ -61,8 +61,8 @@ MenuBuilder& MenuBuilder::Presets(std::string_view labelKey, std::string_view un
 
     ActionDispatcher* actions = &_menus->Actions();
     MenuManager* menus = _menus;
-    int admin = _admin.Slot;
-    int target = _target ? _target->Slot : -1;
+    PlayerRef admin = _admin;
+    PlayerRef target = _target.value_or(PlayerRef{});
     const ParamAction* a = &action;
     return Choice<int>(
         Tr(labelKey), std::move(choices),
@@ -81,11 +81,11 @@ MenuBuilder& MenuBuilder::Effect(const EffectDescriptor& effect)
     const EffectDescriptor* e = &effect;
     EffectManager* effects = _effects;
     ActionDispatcher* actions = &_menus->Actions();
-    int admin = _admin.Slot;
-    int target = _target ? _target->Slot : -1;
+    PlayerRef admin = _admin;
+    PlayerRef target = _target.value_or(PlayerRef{});
     return Toggle(
         Tr(effect.NameKey), Tr("effectState.on"), Tr("effectState.off"),
-        [effects, target, id = effect.Id](int) { return effects && effects->IsActive(target, id); },
+        [effects, target, id = effect.Id](int) { return effects && effects->IsActive(target.Slot, id); },
         [actions, effects, admin, target, e](int) {
             if (effects)
                 EffectDispatcher{*actions, *effects}.Toggle(admin, target, *e);
@@ -98,7 +98,9 @@ MenuBuilder& MenuBuilder::Effect(const EffectDescriptor& effect)
 static std::shared_ptr<MenuView> BuildEffectPicker(MenuManager& menus, PlayerRef admin, PlayerRef target,
                                                    EffectManager* effects, bool allowed, const EffectDescriptor& effect)
 {
-    auto* targetPlayer = menus.Players().Get(target.Slot);
+    // Get(PlayerRef), not Get(slot): a picker built for a player who has since left must not
+    // reopen against whoever took the slot.
+    auto* targetPlayer = menus.Players().Get(target);
     if (!targetPlayer)
         return nullptr;
 
@@ -106,10 +108,8 @@ static std::shared_ptr<MenuView> BuildEffectPicker(MenuManager& menus, PlayerRef
     MenuManager* menusPtr = &menus;
     Translations& tr = menus.Translation();
     const EffectDescriptor* e = &effect;
-    int adminSlot = admin.Slot;
-    int targetSlot = target.Slot;
 
-    MenuBuilder builder(std::format("{}: {}", tr.Get(effect.NameKey, adminSlot), targetPlayer->Name()));
+    MenuBuilder builder(std::format("{}: {}", tr.Get(effect.NameKey, admin.Slot), targetPlayer->Name()));
 
     auto choices = effect.Choices ? effect.Choices() : std::vector<EffectChoice>{};
     for (const auto& choice : choices)
@@ -117,9 +117,9 @@ static std::shared_ptr<MenuView> BuildEffectPicker(MenuManager& menus, PlayerRef
         int param = choice.Param;
         builder.Button(
             choice.Label,
-            [actions, effects, menusPtr, adminSlot, targetSlot, e, param](int slot) {
+            [actions, effects, menusPtr, admin, target, e, param](int slot) {
                 if (effects)
-                    EffectDispatcher{*actions, *effects}.Apply(adminSlot, targetSlot, *e, param);
+                    EffectDispatcher{*actions, *effects}.Apply(admin, target, *e, param);
                 menusPtr->CloseAllMenus(slot);
             },
             allowed);
@@ -128,10 +128,10 @@ static std::shared_ptr<MenuView> BuildEffectPicker(MenuManager& menus, PlayerRef
     if (!effect.ResetLabelKey.empty())
     {
         builder.Button(
-            tr.Get(effect.ResetLabelKey, adminSlot),
-            [actions, effects, menusPtr, adminSlot, targetSlot, e](int slot) {
+            tr.Get(effect.ResetLabelKey, admin.Slot),
+            [actions, effects, menusPtr, admin, target, e](int slot) {
                 if (effects)
-                    EffectDispatcher{*actions, *effects}.Clear(adminSlot, targetSlot, *e);
+                    EffectDispatcher{*actions, *effects}.Clear(admin, target, *e);
                 menusPtr->CloseAllMenus(slot);
             },
             allowed);
