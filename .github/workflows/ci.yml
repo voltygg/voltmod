@@ -27,7 +27,7 @@ jobs:
         run: uv run poe modgraph
 
   build:
-    name: Build (linux-steamrt)
+    name: Build and test (linux-steamrt)
     runs-on: ubuntu-latest
     container:
       image: registry.gitlab.steamos.cloud/steamrt/sniper/sdk:latest
@@ -38,6 +38,14 @@ jobs:
 
       - name: Build the SDK packages
         run: voltmod package build sdk
+
+      # `conan create` cannot run these: tests/ is outside exports_sources and the recipe forces
+      # BUILD_TESTING off for a cache build, so the suite needs a source-checkout build of its own.
+      - name: Build the framework from source, with tests
+        run: voltmod build linux-steamrt-release --no-lockfile
+
+      - name: Run the test suite
+        run: voltmod test linux-steamrt-release
 
       - name: Build voltmod against them
         run: voltmod package build kit --no-lockfile

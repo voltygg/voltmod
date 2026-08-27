@@ -33,7 +33,12 @@
     { "name": "windows-msvc-debug", "configurePreset": "windows-msvc-debug" }
   ],
   "testPresets": [
-    { "name": "test-base", "hidden": true, "output": { "outputOnFailure": true } },
+    {
+      "name": "test-base",
+      "hidden": true,
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    },
     { "name": "linux-steamrt-release", "inherits": "test-base", "configurePreset": "linux-steamrt-release" },
     { "name": "linux-steamrt-debug", "inherits": "test-base", "configurePreset": "linux-steamrt-debug" },
     { "name": "windows-msvc-release", "inherits": "test-base", "configurePreset": "windows-msvc-release" },

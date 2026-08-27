@@ -244,6 +244,7 @@ def build(
     *,
     run_tests: bool = True,
     options: list[str] | None = None,
+    use_lockfile: bool = True,
 ) -> None:
     """Run Conan install and the selected CMake preset."""
     require_build_tools()
@@ -269,8 +270,10 @@ def build(
     else:
         die(f"Unknown preset: {preset}")
 
+    # CI builds against SDK packages it just created from the HEAD recipes, whose revisions the
+    # committed lockfile does not pin yet; `package build kit --no-lockfile` skips it the same way.
     lock = repo_root / "conan.lock"
-    lock_args = ["--lockfile", str(lock)] if lock.is_file() else []
+    lock_args = ["--lockfile", str(lock)] if use_lockfile and lock.is_file() else []
 
     run_tool(
         "conan",

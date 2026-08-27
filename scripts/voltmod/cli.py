@@ -59,6 +59,10 @@ def build(
             help="Pass through to `conan install` (repeatable)",
         ),
     ] = None,
+    no_lockfile: Annotated[
+        bool,
+        typer.Option("--no-lockfile", help="Resolve without conan.lock, as after an SDK bump"),
+    ] = False,
 ) -> None:
     """Run Conan install and CMake build for one preset."""
     preset = preset or localdev.default_preset()
@@ -74,6 +78,7 @@ def build(
         preset,
         run_tests=False,
         options=[item for value in option or [] for item in ("-o", value)],
+        use_lockfile=not no_lockfile,
     )
 
     if install_plugin:

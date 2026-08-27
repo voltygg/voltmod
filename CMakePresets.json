@@ -75,7 +75,8 @@
     {
       "name": "test-base",
       "hidden": true,
-      "output": { "outputOnFailure": true }
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
     },
     { "name": "linux-steamrt-release", "inherits": "test-base", "configurePreset": "linux-steamrt-release" },
     { "name": "linux-steamrt-debug", "inherits": "test-base", "configurePreset": "linux-steamrt-debug" },

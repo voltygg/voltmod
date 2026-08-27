@@ -23,6 +23,23 @@ ctest --preset windows-msvc-release -R "SteamId"
 ctest --preset windows-msvc-release -N          # list without running
 ```
 
+## In CI
+
+`conan create` cannot run the suite: `tests/` is outside the recipe's
+`exports_sources` and the recipe forces `BUILD_TESTING` off for a cache build. CI
+therefore builds the framework from the source checkout as its own step and runs
+the Linux preset against it:
+
+```yaml
+- run: voltmod build linux-steamrt-release --no-lockfile
+- run: voltmod test linux-steamrt-release
+```
+
+`--no-lockfile` resolves without `conan.lock`, which CI needs because it builds
+against SDK packages it just created from the HEAD recipes. The test presets set
+`noTestsAction: error`, so a run that discovers no cases fails the job instead of
+reporting success.
+
 Run the test binary directly to use doctest's case and source filters:
 
 ```bash
