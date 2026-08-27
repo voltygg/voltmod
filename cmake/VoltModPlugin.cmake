@@ -143,6 +143,14 @@ function(voltmod_install_plugin target_name)
         )
     endif()
 
+# Panorama sources travel with the bundle so whoever builds the workshop addon has them.
+# They are compiled by the CS2 Workshop Tools and mounted by the client, never by the server.
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/panorama")
+        install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/panorama/"
+            DESTINATION "addons/${target_name}/panorama"
+            COMPONENT "${target_name}")
+    endif()
+
 # Install VoltMod's shared gamedata.
     if(EXISTS "${VOLTMOD_GAMEDATA_DIR}")
         install(DIRECTORY "${VOLTMOD_GAMEDATA_DIR}/"
