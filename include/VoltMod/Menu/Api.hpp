@@ -11,4 +11,3 @@
 #include <VoltMod/Menu/MenuOption.hpp>
 #include <VoltMod/Menu/MenuPresets.hpp>
 #include <VoltMod/Menu/Options.hpp>
-#include <VoltMod/Menu/Options/Bar.hpp>

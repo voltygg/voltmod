@@ -63,8 +63,9 @@ public:
     std::string Summary() const;
 
     /**
-     * Record @p capability's outcome. **Framework only**: `Runtime::Start` owns every call, so a
-     * plugin that sets one is lying to every other plugin that reads it.
+     * Record @p capability's outcome. **Framework only**: `Runtime::Start` and `Bindings::Bind`
+     * own every call, so a plugin that sets one is lying to every other plugin that reads it.
+     * Not private only because `Bindings` reaches it through file-local helpers.
      *
      * @p reason is ignored when @p ok is true.
      */

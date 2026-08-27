@@ -1,5 +1,6 @@
 #include "Menu/MenuRenderer.hpp"
 
+#include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Core/Translations.hpp>
 #include <VoltMod/Menu/MenuOption.hpp>
 #include <algorithm>
@@ -31,7 +32,8 @@ static std::string FooterLabel(Translations& translations, const char* key, cons
 std::string DefaultHeader(const std::string& title, int currentPage, int totalPages)
 {
     std::ostringstream html;
-    html << "<font color='" << Theme::Gold << "'><b>" << title << "</b></font>";
+    // Titles routinely interpolate a player name, so the one place they become markup escapes them.
+    html << "<font color='" << Theme::Gold << "'><b>" << Strings::EscapeHtml(title) << "</b></font>";
 
     if (totalPages > 1)
     {
@@ -142,27 +144,12 @@ std::string RenderMenuHtml(const MenuView* menu, int slot, int selectedIndex, bo
 
     std::ostringstream html;
 
-    if (menu->Layout.Header)
-    {
-        html << menu->Layout.Header();
-    }
-    else
-    {
-        html << DefaultHeader(menu->Title, currentPage, totalPages);
-    }
-
+    html << DefaultHeader(menu->Title, currentPage, totalPages);
     html << RenderItems(menu, slot, selectedIndex, pageStart, pageEnd);
 
-    if (menu->Layout.Footer)
-    {
-        html << menu->Layout.Footer();
-    }
-    else
-    {
-        bool usesHorizontal = selectedIndex >= 0 && selectedIndex < itemCount && menu->Items[selectedIndex] &&
-                              menu->Items[selectedIndex]->IsEnabled() && menu->Items[selectedIndex]->UsesHorizontal();
-        html << DefaultFooter(isSubmenu, totalPages > 1, usesHorizontal, slot, translations);
-    }
+    const bool usesHorizontal = selectedIndex >= 0 && selectedIndex < itemCount && menu->Items[selectedIndex] &&
+                                menu->Items[selectedIndex]->IsEnabled() && menu->Items[selectedIndex]->UsesHorizontal();
+    html << DefaultFooter(isSubmenu, totalPages > 1, usesHorizontal, slot, translations);
 
     return html.str();
 }

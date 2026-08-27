@@ -13,9 +13,6 @@
 #include <VoltMod/Menu/Options/ButtonOption.hpp>
 #include <VoltMod/Menu/Options/ChoiceOption.hpp>
 #include <VoltMod/Menu/Options/InputOption.hpp>
-#include <VoltMod/Menu/Options/ProgressBarOption.hpp>
-#include <VoltMod/Menu/Options/SelectorOption.hpp>
-#include <VoltMod/Menu/Options/SliderOption.hpp>
 #include <VoltMod/Menu/Options/SubmenuOption.hpp>
 #include <VoltMod/Menu/Options/TextOption.hpp>
 #include <VoltMod/Menu/Options/ToggleOption.hpp>

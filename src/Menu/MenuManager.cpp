@@ -1,22 +1,16 @@
 #include "Menu/MenuRenderer.hpp"
 
 #include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/Time.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Menu/MenuOption.hpp>
 #include <VoltMod/Messaging/Messages.hpp>
 #include <algorithm>
-#include <chrono>
 
 namespace VoltMod
 {
-
-static int64_t GetCurrentTimeMs()
-{
-    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
-        .count();
-}
 
 static bool IsCursorTarget(const std::shared_ptr<MenuOption>& opt)
 {
@@ -24,7 +18,7 @@ static bool IsCursorTarget(const std::shared_ptr<MenuOption>& opt)
 }
 
 // Step the cursor by `step` (typically ±1), wrapping over the full item list and skipping
-// disabled or non-selectable rows (Text, ProgressBar).
+// disabled or non-selectable rows (Text rows, and anything a plugin marks unselectable).
 static void StepCursor(const std::vector<std::shared_ptr<MenuOption>>& items, int& idx, int step)
 {
     int n = static_cast<int>(items.size());
@@ -90,13 +84,13 @@ void MenuManager::OpenMenu(int slot, std::shared_ptr<MenuView> menu, MenuSession
 
     state.MenuStack.push(std::move(menu));
     state.SelectedIndex = 0;
-    state.LastInputTime = GetCurrentTimeMs();
+    state.LastInputTime = Time::MonotonicMs();
 
     auto* current = state.GetCurrentMenu();
     if (current)
     {
-        // Move cursor onto the first selectable row so disabled/Text/ProgressBar entries
-        // are not greeted as the initial selection.
+        // Move cursor onto the first selectable row so disabled and Text entries are not
+        // greeted as the initial selection.
         if (!current->Items.empty() && !IsCursorTarget(current->Items[0]))
             StepCursor(current->Items, state.SelectedIndex, +1);
 
@@ -113,11 +107,7 @@ void MenuManager::CloseMenu(int slot)
     if (state.MenuStack.empty())
         return;
 
-    auto menu = state.MenuStack.top();
     state.MenuStack.pop();
-
-    if (menu->OnClose)
-        menu->OnClose(slot);
 
     if (state.MenuStack.empty())
     {
@@ -239,7 +229,7 @@ void MenuManager::HandleInput(int slot, uint64_t buttons, uint64_t prevButtons)
     if (pressed == 0)
         return;
 
-    auto now = GetCurrentTimeMs();
+    auto now = Time::MonotonicMs();
     if (now - state.LastInputTime < InputDebounceMs)
         return;
 

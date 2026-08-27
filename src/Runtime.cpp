@@ -175,17 +175,16 @@ bool Runtime::InitializeServices(const LoadContext& context)
         Capabilities.Set(Capability::Entities, false, "the entity system was never created");
         return StageResult::Degraded("entity system unavailable; menus may not work");
     });
-    // EntityOps and Transmit have no setup of their own: Bindings already decided both.
-    report.Run("EntityOps", [&] {
-        return Capabilities.Has(Capability::EntityOps)
-                   ? StageResult::Ok()
-                   : StageResult::Degraded(std::string(Capabilities.Reason(Capability::EntityOps)));
-    });
-    report.Run("Transmit", [&] {
-        return Capabilities.Has(Capability::Transmit)
-                   ? StageResult::Ok()
-                   : StageResult::Degraded(std::string(Capabilities.Reason(Capability::Transmit)));
-    });
+    // EntityOps and Transmit have no setup of their own: Bindings already decided both, so the
+    // stage only reports what the capability already says.
+    auto alreadyDecided = [&](std::string_view name, Capability capability) {
+        report.Run(name, [&] {
+            return Capabilities.Has(capability) ? StageResult::Ok()
+                                                : StageResult::Degraded(std::string(Capabilities.Reason(capability)));
+        });
+    };
+    alreadyDecided("EntityOps", Capability::EntityOps);
+    alreadyDecided("Transmit", Capability::Transmit);
     degradable("Precache", Capability::Precache,
                [&] { return World.Precache.Initialize(std::format("{}_VoltModPrecache", context.LogPrefix)); });
     degradable("GameEventManager", Capability::GameEvents, [&] { return Messages.InitGameEventManager(); });
@@ -194,15 +193,7 @@ bool Runtime::InitializeServices(const LoadContext& context)
             return StageResult::Degraded(ready.error().Detail);
         return StageResult::Ok();
     });
-    report.Run("GameEvents", [&] {
-        auto ready = GameEvents.Initialize();
-        if (!ready)
-        {
-            Capabilities.Set(Capability::GameEvents, false, ready.error().Detail);
-            return StageResult::Degraded(ready.error().Detail);
-        }
-        return StageResult::Ok();
-    });
+    degradable("GameEvents", Capability::GameEvents, [&] { return GameEvents.Initialize(); });
     degradable("ClientCvars", Capability::ClientCvars, [&] { return Hooks.ClientCvars.Initialize(); });
 
     // The last four have no gamedata or engine setup to fail: Vote and Menus ride on the services

@@ -20,7 +20,7 @@ namespace VoltMod
 
 /**
  * @brief The per-tick and per-event engine hooks, grouped because every one of them is dormant
- * until a plugin subscribes - or, for ClientCvars, until Enable() is called.
+ * until a plugin subscribes - or, for ClientCvars, until Runtime::Start calls its Initialize().
  *
  * Declared once by Runtime, after @ref WorldServices (Visibility needs its EntityOps) and
  * @ref GameEvents (Teleport and Vote need it); each member below takes exactly the sibling

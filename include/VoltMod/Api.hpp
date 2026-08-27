@@ -6,10 +6,15 @@
 //
 // Every public name lives directly in `VoltMod`, so this header only gathers the headers
 // that declare them - there is nothing to hoist or alias. It deliberately does not include
-// the Menu-building surface (`<VoltMod/Menu/Api.hpp>`), the Unsafe tier
-// (`<VoltMod/Unsafe/Api.hpp>`), or anything that reaches nlohmann (`<VoltMod/App/Config.hpp>`
-// for a JsonConfig-backed settings struct): most translation units need none of those, and
-// each is one explicit include away. Entities and Hooks types stay reachable through Runtime
+// the Menu-building surface (`<VoltMod/Menu/Api.hpp>`) or anything that reaches nlohmann
+// (`<VoltMod/App/Config.hpp>` for a JsonConfig-backed settings struct): most translation
+// units need none of those, and each is one explicit include away.
+//
+// The Unsafe tier is a naming convention here, not an include boundary: Runtime holds
+// UnsafeServices and HookServices by value, so all of `<VoltMod/Unsafe/Api.hpp>` except
+// HookMacros.hpp is already in every translation unit that includes this header. Include
+// `<VoltMod/Unsafe/Api.hpp>` anyway where you mean to use it - it says so at the call site,
+// and it is the one that carries VOLTMOD_VHOOK*. Entities and Hooks types stay reachable through Runtime
 // (it holds one of each service by value) even without their own `Entities/Api.hpp` or
 // `Hooks/Api.hpp`; include those two directly for the rest of the module - the frame-local
 // wrappers and free functions Runtime itself has no member of.

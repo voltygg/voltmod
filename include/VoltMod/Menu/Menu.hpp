@@ -15,23 +15,11 @@ namespace VoltMod
 /** Maximum items shown per page before the menu paginates. */
 inline constexpr int ItemsPerPage = 5;
 
-/** Optional custom HTML providers for the header and footer regions of a menu. */
-struct MenuLayout
-{
-    /** Replaces the default title + page indicator block. */
-    std::function<std::string()> Header;
-    /** Replaces the default key-hints block (W/S, E, R). */
-    std::function<std::string()> Footer;
-};
-
 /** A WASD-navigable menu rendered as center-HTML. Build with MenuBuilder. */
 struct MenuView
 {
     std::string Title;
     std::vector<std::shared_ptr<MenuOption>> Items;
-    /** Invoked with the player slot when the menu is dismissed (R pressed or popped). */
-    std::function<void(int)> OnClose;
-    MenuLayout Layout;
 };
 
 /**

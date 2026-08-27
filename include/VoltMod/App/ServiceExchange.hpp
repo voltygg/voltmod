@@ -37,8 +37,6 @@ public:
         PublishNamed(T::InterfaceName, static_cast<void*>(impl));
     }
 
-    /** Publish under a runtime name, for interfaces keyed by something the type cannot
-     *  carry (the per-plugin identity). Prefer Publish<T>. */
     void PublishNamed(const char* iface, void* impl) { _published[iface] = impl; }
 
     template <class T>
@@ -57,9 +55,6 @@ public:
     {
         return static_cast<T*>(Query(T::InterfaceName));
     }
-
-    /** Get() for a runtime name; the caller owns the cast. */
-    void* GetNamed(const char* iface) const { return Query(iface); }
 
     /** This module's own entry for @p iface. Serves OnMetamodQuery; inline so the table
      *  can be tested without linking Metamod. */

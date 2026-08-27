@@ -19,7 +19,7 @@ namespace VoltMod
  *
  * The hook binds the class vtable, located by RTTI on Windows and by ELF symbol on Linux, so it
  * can be installed from OnLoad with no player connected and covers every player from then on.
- * Installing is not a separate call: the first subscription to any of the five events below
+ * Installing is not a separate call: the first subscription to any of the four events below
  * installs it, and dropping the last one removes it.
  *
  * @ref Pre and @ref Post fire around each player's RunCommand with the owning slot resolved
@@ -64,7 +64,7 @@ public:
     int SlotFromMovementServices(void* movementServices) const;
 
 private:
-    /** One shared install behind five events: the first subscription across all of them binds the
+    /** One shared install behind four events: the first subscription across all of them binds the
      *  vtable and the last one to drop unbinds it. */
     bool Acquire();
     void ReleaseRef();
@@ -78,7 +78,7 @@ private:
 
     EntitySystem& _entities;
     const Bindings& _bindings;
-    int _refs = 0;         // live subscriptions across all five events
+    int _refs = 0;         // live subscriptions across all four events
     UserCmdView _cmdView;  // decoded once per RunCommand, reused across pre/post dispatch
     VtableHook _hook;      // the pre/post pair; removed by dropping it
     int _preSlot = -1;     // slot resolved in the pre hook, reused by the immediately-following post

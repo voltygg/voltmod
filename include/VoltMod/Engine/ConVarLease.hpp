@@ -67,12 +67,6 @@ public:
     /** Restore every held convar, in the order they were taken. */
     void RestoreAll();
 
-    template <class T>
-    bool IsOverridden(const ConVar<T>& cvar) const
-    {
-        return _saved.Contains(cvar.Name());
-    }
-
     /** How many convars are currently taken over. */
     std::size_t Count() const { return _saved.Size(); }
 

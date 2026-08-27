@@ -93,10 +93,9 @@ MenuBuilder& MenuBuilder::Effect(const EffectDescriptor& effect)
         Allowed(effect.Permission));
 }
 
-/** Picker submenu for an EffectDescriptor with Choices set: one button per choice plus an
- *  optional reset row. */
-static std::shared_ptr<MenuView> BuildEffectPicker(MenuManager& menus, PlayerRef admin, PlayerRef target,
-                                                   EffectManager* effects, bool allowed, const EffectDescriptor& effect)
+std::shared_ptr<MenuView> MenuBuilder::BuildEffectPicker(MenuManager& menus, PlayerRef admin, PlayerRef target,
+                                                         EffectManager* effects, bool allowed,
+                                                         const EffectDescriptor& effect)
 {
     // Get(PlayerRef), not Get(slot): a picker built for a player who has since left must not
     // reopen against whoever took the slot.
@@ -156,7 +155,7 @@ MenuBuilder& MenuBuilder::EffectPicker(const EffectDescriptor& effect)
         [menus, admin, target, effects, allowed, e](int) -> std::shared_ptr<MenuView> {
             if (!target)
                 return nullptr;
-            return BuildEffectPicker(*menus, admin, *target, effects, allowed, *e);
+            return MenuBuilder::BuildEffectPicker(*menus, admin, *target, effects, allowed, *e);
         },
         allowed);
 }

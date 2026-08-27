@@ -184,7 +184,9 @@ bool Strings::IsNumeric(const std::string& str)
 
 std::string Strings::DisplayNameOr(int64_t id, const std::string& name, std::size_t maxBytes)
 {
-    return name.empty() ? std::to_string(id) : TruncateUtf8(name, maxBytes);
+    // A name is player-controlled and this is row markup, so it is escaped here rather than at
+    // each call site: an unescaped '<' would let a player close the row's font tag.
+    return name.empty() ? std::to_string(id) : EscapeHtml(TruncateUtf8(name, maxBytes));
 }
 
 }  // namespace VoltMod

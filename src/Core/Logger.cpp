@@ -1,4 +1,5 @@
 #include <VoltMod/Core/Log.hpp>
+#include <atomic>
 #include <deque>
 #include <mutex>
 #include <thread>
@@ -12,6 +13,9 @@ static std::thread::id g_gameThread{};
 
 static std::mutex g_deferredMutex;
 static std::deque<std::pair<LogLevel, std::string>> g_deferred;
+/** Read by Drain every game frame, so the common empty case never takes the lock or builds a
+ *  container. Only ever set true under @ref g_deferredMutex. */
+static std::atomic<bool> g_hasDeferred{false};
 
 /** A worker that logs in a tight failure loop must not grow this without bound; past the cap
  *  the oldest lines go, because the first error is rarely the interesting one. */
@@ -43,16 +47,19 @@ void Emit(LogLevel level, std::string message)
     if (g_deferred.size() >= MaxDeferred)
         g_deferred.pop_front();
     g_deferred.emplace_back(level, std::move(message));
+    g_hasDeferred.store(true, std::memory_order_release);
 }
 
 void Drain()
 {
+    if (!g_hasDeferred.load(std::memory_order_acquire))
+        return;
+
     std::deque<std::pair<LogLevel, std::string>> ready;
     {
         std::lock_guard lock(g_deferredMutex);
-        if (g_deferred.empty())
-            return;
         ready.swap(g_deferred);
+        g_hasDeferred.store(false, std::memory_order_release);
     }
 
     if (!g_sink)

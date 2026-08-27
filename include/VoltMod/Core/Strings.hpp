@@ -52,7 +52,7 @@ public:
 
     static bool IsNumeric(const std::string& str);
 
-    /** Row display text: the (UTF-8-safely truncated) name, or @p id as text when unnamed. */
+    /** Row display text, HTML-escaped: the (UTF-8-safely truncated) name, or @p id when unnamed. */
     static std::string DisplayNameOr(int64_t id, const std::string& name, std::size_t maxBytes = 20);
 };
 

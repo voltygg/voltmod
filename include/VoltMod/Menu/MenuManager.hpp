@@ -78,6 +78,11 @@ public:
      *  anyone the previous setting had already frozen. */
     void SetFreezePlayer(bool enabled);
 
+private:
+    /** The row context below is the builder's alone: a plugin reaches these services through its
+     *  own Runtime, and @ref _actions is this manager's composition detail, not a public seam. */
+    friend class MenuBuilder;
+
     /** The dispatcher context rows (@ref MenuBuilder::Row and friends) run actions through - a
      *  long-lived instance so a row press needs no throwaway dispatcher. */
     ActionDispatcher& Actions() { return _actions; }
@@ -93,7 +98,6 @@ public:
     /** For context rows to translate a label key in the viewing player's language. */
     Translations& Translation() { return _translations; }
 
-private:
     /** Per-tick driver: reads buttons, advances selection, and re-renders. */
     void OnGameFrame();
 

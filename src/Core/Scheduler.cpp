@@ -1,5 +1,5 @@
 #include <VoltMod/Core/Scheduler.hpp>
-#include <chrono>
+#include <VoltMod/Core/Time.hpp>
 #include <utility>
 
 namespace VoltMod
@@ -7,8 +7,7 @@ namespace VoltMod
 
 int64_t Scheduler::GetCurrentTimeMs() const
 {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
-        .count();
+    return Time::MonotonicMs();
 }
 
 Subscription Scheduler::AddTimer(int64_t nextFireTime, int64_t interval, std::function<void()> callback)

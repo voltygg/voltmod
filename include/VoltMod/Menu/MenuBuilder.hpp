@@ -163,35 +163,6 @@ public:
         return *this;
     }
 
-    /** Like @ref Choice but uses a formatter to derive labels from arbitrary values. */
-    template <typename T>
-    MenuBuilder& Selector(const std::string& title, std::vector<T> values,
-                          std::function<std::string(const T&)> formatter, std::function<int(int)> getIndex,
-                          std::function<void(int, int)> setIndex, std::function<void(int, const T&)> onCommit = nullptr,
-                          bool enabled = true)
-    {
-        _menu->Items.push_back(std::make_shared<SelectorOption<T>>(title, std::move(values), std::move(formatter),
-                                                                   std::move(getIndex), std::move(setIndex),
-                                                                   std::move(onCommit), enabled));
-        return *this;
-    }
-
-    /** Append a numeric slider. A/D adjusts in `step` units, clamped to `[min, max]`. */
-    MenuBuilder& Slider(const std::string& title, int min, int max, int step, std::function<int(int)> getValue,
-                        std::function<void(int, int)> setValue, bool enabled = true)
-    {
-        _menu->Items.push_back(
-            std::make_shared<SliderOption>(title, min, max, step, std::move(getValue), std::move(setValue), enabled));
-        return *this;
-    }
-
-    /** Append a read-only progress bar. */
-    MenuBuilder& ProgressBar(const std::string& title, std::function<int(int)> getValue, int max)
-    {
-        _menu->Items.push_back(std::make_shared<ProgressBarOption>(title, std::move(getValue), max));
-        return *this;
-    }
-
     /**
      * Append a free-text input row. E starts a chat capture; the player's next chat
      * line is routed to @p set. Return false from @p set to re-prompt for invalid input.
@@ -219,31 +190,17 @@ public:
         return *this;
     }
 
-    /** Set a callback invoked with the player slot when the menu is dismissed. */
-    MenuBuilder& OnClose(std::function<void(int)> callback)
-    {
-        _menu->OnClose = std::move(callback);
-        return *this;
-    }
-
-    /** Override the default title + page-indicator header with custom HTML. */
-    MenuBuilder& WithHeader(std::function<std::string()> header)
-    {
-        _menu->Layout.Header = std::move(header);
-        return *this;
-    }
-
-    /** Override the default key-hints footer with custom HTML. */
-    MenuBuilder& WithFooter(std::function<std::string()> footer)
-    {
-        _menu->Layout.Footer = std::move(footer);
-        return *this;
-    }
-
     /** Finalize and return the built menu. The builder must not be reused after this. */
     std::shared_ptr<MenuView> Build() { return std::move(_menu); }
 
 private:
+    /** Picker submenu for an EffectDescriptor with Choices set: one button per choice plus an
+     *  optional reset row. A private static rather than a file-local helper because it reads the
+     *  manager's row context, which is not public. */
+    static std::shared_ptr<MenuView> BuildEffectPicker(MenuManager& menus, PlayerRef admin, PlayerRef target,
+                                                       EffectManager* effects, bool allowed,
+                                                       const EffectDescriptor& effect);
+
     std::shared_ptr<MenuView> _menu;
     /** Null for a context-free builder (see the plain constructor); every dispatching context row
      *  is then inert. Set by the @ref MenuManager constructor. */

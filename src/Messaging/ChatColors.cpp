@@ -1,5 +1,5 @@
+#include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Messaging/ChatColors.hpp>
-#include <cctype>
 #include <unordered_map>
 
 namespace VoltMod::ChatColors
@@ -20,14 +20,7 @@ std::string_view ParseNamed(std::string_view name)
     if (name.empty())
         return Default;
 
-    std::string lower;
-    lower.reserve(name.size());
-    for (char c : name)
-    {
-        lower.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
-    }
-
-    auto it = kNameTable.find(lower);
+    auto it = kNameTable.find(Strings::ToLower(std::string(name)));
     return it != kNameTable.end() ? it->second : Default;
 }
 

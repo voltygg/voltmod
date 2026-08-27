@@ -26,7 +26,7 @@ public:
     /** Label rendered for this row. Called every frame; safe to read live state. */
     virtual std::string GetLabel(int slot) const = 0;
 
-    /** Non-selectable rows (Text, ProgressBar) are rendered but skipped by W/S navigation. */
+    /** Non-selectable rows (Text) are rendered but skipped by W/S navigation. */
     virtual bool IsSelectable() const { return true; }
 
     /** Disabled rows are rendered greyed out and excluded from cursor stepping. */

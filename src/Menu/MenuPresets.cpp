@@ -20,7 +20,7 @@ void AppendPlayerRows(MenuBuilder& builder, PlayerManager& players, int viewerSl
         int targetSlot = p->Slot();
         bool enabled = isEnabled ? isEnabled(targetSlot) : true;
         builder.Button(
-            p->Name(),
+            Strings::EscapeHtml(p->Name()),
             [viewerSlot, targetSlot, onPick](int /*slot*/) {
                 if (onPick)
                     onPick(viewerSlot, targetSlot);

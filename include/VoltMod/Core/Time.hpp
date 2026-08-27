@@ -42,6 +42,13 @@ public:
         return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
     }
 
+    /** @ref MonotonicSeconds in whole milliseconds, for the integer deadlines timers compare. */
+    static int64_t MonotonicMs()
+    {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
+            .count();
+    }
+
     /**
      * Delegates to the canonical free @ref VoltMod::ParseDuration grammar
      * (s/m/h/d/w suffixes, case-insensitive): -1 on failure, 0 for permanent.
