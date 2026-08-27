@@ -2,12 +2,20 @@
 
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace VoltMod
 {
+
+/** @p text as an int64_t, or nullopt unless it is entirely digits (with an optional sign). */
+std::optional<int64_t> ParseInt64(std::string_view text);
+
+/** @p text as a uint64_t, or nullopt unless it is entirely digits. A leading `-` is rejected
+ *  rather than wrapped, which is the whole reason this is not @ref ParseInt64 with a cast. */
+std::optional<uint64_t> ParseUInt64(std::string_view text);
 
 /**
  * Parse a human duration string into seconds. Accepts a bare integer (seconds) or an

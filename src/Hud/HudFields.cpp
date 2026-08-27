@@ -49,16 +49,22 @@ static int TableCount(CEntityInstance* entity, const LazyField& field)
 /**
  * Fill @p out with @p text.
  *
- * Assigned through `Set` rather than returned by value: `CUtlString`'s methods are tier0 imports,
- * so the allocation happens inside tier0.dll - the same allocator the engine frees with.
+ * `SetDirect` takes the view as it stands - it copies exactly that many bytes and terminates the
+ * result itself - so nothing is allocated to NUL-terminate first. Assigned rather than returned by
+ * value: `CUtlString`'s methods are tier0 imports, so the allocation happens inside tier0.dll, the
+ * same allocator the engine frees with.
  */
 static void SetStr(CUtlString& out, std::string_view text)
 {
-    out.Set(std::string(text).c_str());
+    out.SetDirect(text.data(), static_cast<int>(text.size()));
 }
 
-/** The entity behind @p ref, or the reason it cannot be written to. */
-static Result<CEntityInstance*> ReadyForWrite(EntitySystem* entities, EntityRef ref)
+/**
+ * The entity behind @p ref, or the reason it cannot be written to.
+ *
+ * @p slot may be @ref kEveryone, which skips the per-player range check.
+ */
+static Result<CEntityInstance*> ReadyForWrite(EntitySystem* entities, EntityRef ref, int slot)
 {
     Entity entity = entities ? entities->Resolve(ref) : Entity{};
     if (!entity)
@@ -75,27 +81,24 @@ static Result<CEntityInstance*> ReadyForWrite(EntitySystem* entities, EntityRef 
                 Error::Failed(std::format("the {} table is nearly full ({}/{})", name, count, kTableCap)));
     }
 
-    return entity.Raw();
-}
-
-/** ReadyForWrite plus the per-player range check; @p slot may be @ref kEveryone. */
-static Result<CEntityInstance*> ReadyForWrite(EntitySystem* entities, EntityRef ref, int slot)
-{
-    auto entity = ReadyForWrite(entities, ref);
-    if (!entity || slot == kEveryone)
-        return entity;
+    if (slot == kEveryone)
+        return entity.Raw();
 
     if (!IsValidSlot(slot))
         return std::unexpected(Error::Invalid(std::format("slot {} is not a player slot", slot)));
 
     // The engine's *ForPlayer setters compare the slot against m_vecPlayerLayoutStates and return
     // silently when it is out of range, so an empty vector would look exactly like success.
-    const int states = ReadAt<int32_t>(*entity, kPlayerStates.Ref().Offset);
+    const FieldRef& playerStates = kPlayerStates.Ref();
+    if (!playerStates)
+        return std::unexpected(Error::NotReady("the CustomHud per-player state field did not resolve"));
+
+    const int states = ReadAt<int32_t>(entity.Raw(), playerStates.Offset);
     if (states <= slot)
         return std::unexpected(
             Error::Failed(std::format("slot {} has no per-player layout state (the entity holds {})", slot, states)));
 
-    return entity;
+    return entity.Raw();
 }
 
 /** Write @p className's state; @p state is one of the kClass* values. */

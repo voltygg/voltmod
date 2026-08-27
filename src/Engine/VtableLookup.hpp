@@ -45,16 +45,14 @@ struct VTableSlot
  * Because the address is the search key, the result cannot be off by one: either the slot holds
  * exactly @p function or it is not the slot. There is no index in gamedata to drift.
  *
- * @param instance a live object of the class; the leading @p maxTables pointer-sized slots are
- *                 treated as candidate vptrs, which covers a handful of bases.
- * @param maxIndex how far into each candidate table to look.
+ * @param instance a live object of the class; its leading pointer-sized slots are treated as
+ *                 candidate vptrs, which covers a handful of bases.
  * @return the slot, or nothing when @p function is in none of them.
  *
  * @note @p BaseOffset is what a handler needs to get back to the object: a DVP hook on a
  *       secondary table is called with the *subobject* pointer, so a field at a known offset
  *       from the object lives at `self - BaseOffset + offset`.
  */
-std::optional<VTableSlot> FindVTableSlot(const void* instance, const void* function, int maxTables = 8,
-                                         int maxIndex = 16);
+std::optional<VTableSlot> FindVTableSlot(const void* instance, const void* function);
 
 }  // namespace VoltMod

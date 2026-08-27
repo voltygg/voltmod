@@ -1,3 +1,4 @@
+#include "Engine/ServerSideClients.hpp"
 #include "Hooks/ClientCvarPending.hpp"
 
 #include <VoltMod/Core/Log.hpp>
@@ -9,7 +10,6 @@
 #include <VoltMod/Hooks/ClientCvars.hpp>
 #include <VoltMod/Unsafe/VtableHook.hpp>
 #include <cstdint>
-#include <cstring>
 #include <engine/igameeventsystem.h>
 #include <inetchannel.h>
 #include <netmessages.pb.h>
@@ -51,7 +51,6 @@ private:
     const Bindings& _bindings;
     ClientCvarPendingTable _pending;
     INetworkMessageInternal* _getCvarValue = nullptr;
-    int _slotOffset = -1;
     VtableHook _hook;
 };
 
@@ -80,8 +79,7 @@ Status ClientCvars::Impl::Initialize()
 
     _hook = std::move(*hook);
     _getCvarValue = getCvarValue;
-    _slotOffset = _bindings.ServerSideClientSlot.Value();
-    Log::Info("Client convar queries enabled (slot offset {}).", _slotOffset);
+    Log::Info("Client convar queries enabled (slot offset {}).", _bindings.ServerSideClientSlot.Value());
     return {};
 }
 
@@ -90,7 +88,6 @@ void ClientCvars::Impl::Shutdown()
     _hook.Reset();
     _pending.ClearAll();
     _getCvarValue = nullptr;
-    _slotOffset = -1;
 }
 
 bool ClientCvars::Impl::Query(int slot, const std::string& cvarName, QueryCallback callback)
@@ -147,13 +144,9 @@ bool ClientCvars::Impl::Send(int slot, const std::string& cvarName, int cookie)
 
 bool ClientCvars::Impl::Hook_ProcessRespondCvarValue(const CNetMessagePB<CCLCMsg_RespondCvarValue>& msg)
 {
-    // The SDK omits CServerSideClient's layout, so gamedata supplies the slot offset.
-    if (void* client = META_IFACEPTR(void); client && _slotOffset >= 0)
-    {
-        int slot = -1;
-        std::memcpy(&slot, static_cast<const uint8_t*>(client) + _slotOffset, sizeof(slot));
-        Deliver(slot, msg);
-    }
+    // The SDK omits CServerSideClient's layout, so gamedata supplies the slot offset. Deliver
+    // rejects the -1 that comes back when the offset did not bind.
+    Deliver(SlotOfServerSideClient(_bindings, META_IFACEPTR(void)), msg);
 
     RETURN_META_VALUE(MRES_IGNORED, true);
 }

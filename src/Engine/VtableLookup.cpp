@@ -259,13 +259,18 @@ void* FindVirtualTable(const char* moduleName, const char* className)
     return vtable;
 }
 
-std::optional<VTableSlot> FindVTableSlot(const void* instance, const void* function, int maxTables, int maxIndex)
+/** How many leading pointer-sized slots of an object are tried as vptrs, and how far into each
+ *  candidate table the search goes. Both are bounds on a blind walk, not properties of a class. */
+static constexpr int kMaxBases = 8;
+static constexpr int kMaxSlots = 16;
+
+std::optional<VTableSlot> FindVTableSlot(const void* instance, const void* function)
 {
-    if (!instance || !function || maxTables <= 0 || maxIndex <= 0)
+    if (!instance || !function)
         return std::nullopt;
 
     const auto* const object = static_cast<const uint8_t*>(instance);
-    for (int table = 0; table < maxTables; ++table)
+    for (int table = 0; table < kMaxBases; ++table)
     {
         const int baseOffset = table * static_cast<int>(sizeof(void*));
 
@@ -278,7 +283,7 @@ std::optional<VTableSlot> FindVTableSlot(const void* instance, const void* funct
         if (!candidate || !IsExecutableAddress(candidate[0]))
             continue;
 
-        for (int index = 0; index < maxIndex; ++index)
+        for (int index = 0; index < kMaxSlots; ++index)
         {
             if (!IsExecutableAddress(candidate[index]))
                 break;  // past the end of this table

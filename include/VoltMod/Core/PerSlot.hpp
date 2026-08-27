@@ -59,7 +59,13 @@ public:
             _items[slot] = T{};
     }
 
-    void ResetAll() { _items.fill(T{}); }
+    /** Assigned one by one rather than through `fill`, which would copy: the common T here is
+     *  move-only (a Subscription), and dropping one is exactly what cancels it. */
+    void ResetAll()
+    {
+        for (T& item : _items)
+            item = T{};
+    }
 
 private:
     std::array<T, MaxPlayers> _items{};

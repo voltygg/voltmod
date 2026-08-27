@@ -1,4 +1,5 @@
 #include "Engine/NetMessage.hpp"
+#include "Engine/ProtoReflect.hpp"
 
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
@@ -30,45 +31,40 @@ static constexpr int VoteUncast = 3;
 static constexpr int OptionSlots = 5;
 static constexpr int AllTeams = -1;
 
-using ProtoMessage = google::protobuf::Message;
-
-/**
- * The CS-specific user messages (CCSUsrMsg_VoteStart and friends) are declared in the SDK's
- * cstrike15_usermessages.proto but are not generated into headers, and consumer builds
- * deliberately do not run protoc. The engine has already registered their descriptors though,
- * so the fields are set through protobuf reflection by name instead - no generated type, no
- * build-system change, and a renamed field degrades to a warning rather than miscompiling.
- */
 static ProtoMessage* AsProto(CNetMessage* message)
 {
     return message ? message->ToPB<ProtoMessage>() : nullptr;
 }
 
-static const google::protobuf::FieldDescriptor* ProtoField(ProtoMessage* message, const char* name)
+/** @ref ProtoField plus what a missing field costs here; see Engine/ProtoReflect.hpp for why the
+ *  fields are reached by name at all. */
+static const ProtoFieldDescriptor* VoteField(ProtoMessage* message, const char* name)
 {
-    const auto* descriptor = message->GetDescriptor();
-    const auto* field = descriptor ? descriptor->FindFieldByName(name) : nullptr;
+    const auto* field = ProtoField(*message, name);
     if (!field)
+    {
+        const auto* descriptor = message->GetDescriptor();
         Log::Warn("Vote: {} has no field '{}'; the panel may render incomplete.",
                   descriptor ? descriptor->name() : "<unknown>", name);
+    }
     return field;
 }
 
 static void SetInt(ProtoMessage* message, const char* name, int32_t value)
 {
-    if (const auto* field = ProtoField(message, name))
+    if (const auto* field = VoteField(message, name))
         message->GetReflection()->SetInt32(message, field, value);
 }
 
 static void SetBool(ProtoMessage* message, const char* name, bool value)
 {
-    if (const auto* field = ProtoField(message, name))
+    if (const auto* field = VoteField(message, name))
         message->GetReflection()->SetBool(message, field, value);
 }
 
 static void SetString(ProtoMessage* message, const char* name, const std::string& value)
 {
-    if (const auto* field = ProtoField(message, name))
+    if (const auto* field = VoteField(message, name))
         message->GetReflection()->SetString(message, field, value);
 }
 

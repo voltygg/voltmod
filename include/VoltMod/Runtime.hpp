@@ -17,8 +17,8 @@
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/Addons.hpp>
 #include <VoltMod/Hooks/Hooks.hpp>
-#include <VoltMod/Hud/Hud.hpp>
 #include <VoltMod/Http/HttpClient.hpp>
+#include <VoltMod/Hud/Hud.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Messaging/Messages.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>

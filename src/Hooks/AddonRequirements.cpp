@@ -1,7 +1,7 @@
 #include "Hooks/AddonRequirements.hpp"
 
+#include <VoltMod/Core/Strings.hpp>
 #include <algorithm>
-#include <charconv>
 
 namespace VoltMod
 {
@@ -98,7 +98,7 @@ AddonDecision AddonRequirements::NextFor(int64_t steamId, double now, int maxAtt
 
     state.Sending = next;
     state.SentAt = now;
-    return {.Step = AddonStep::Send, .Id = next};
+    return {.Step = AddonStep::Send, .Id = next, .Remaining = missing.size() - 1};
 }
 
 void AddonRequirements::NoteInFlight(int64_t steamId, uint64_t id, double now)
@@ -142,10 +142,9 @@ void AddonRequirements::ForgetClients()
             continue;
         }
 
-        it->second.Downloaded.clear();
-        it->second.Sending = 0;
-        it->second.SentAt = 0.0;
-        it->second.Attempts = 0;
+        // Rebuilt around the requirements rather than reset field by field, so a progress field
+        // added to ClientState later is cleared here without this loop being touched.
+        it->second = ClientState{.Extra = std::move(it->second.Extra)};
         ++it;
     }
 }
@@ -159,10 +158,8 @@ std::vector<uint64_t> ParseAddonList(std::string_view field)
         const size_t comma = field.find(',');
         const std::string_view token = field.substr(0, comma);
 
-        uint64_t id = 0;
-        const auto* end = token.data() + token.size();
-        if (auto [stop, ec] = std::from_chars(token.data(), end, id); ec == std::errc{} && stop == end && id != 0)
-            ids.push_back(id);
+        if (auto id = ParseUInt64(token); id && *id != 0)
+            ids.push_back(*id);
 
         if (comma == std::string_view::npos)
             break;

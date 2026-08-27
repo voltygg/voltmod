@@ -3,7 +3,6 @@
 #include <VoltMod/Core/SteamId.hpp>
 #include <VoltMod/Core/Strings.hpp>
 #include <algorithm>
-#include <charconv>
 #include <utility>
 
 namespace VoltMod
@@ -13,24 +12,6 @@ namespace VoltMod
 static constexpr int TeamSpectator = 1;
 static constexpr int TeamT = 2;
 static constexpr int TeamCT = 3;
-
-std::optional<int64_t> ParseInt64(std::string_view text)
-{
-    int64_t value{};
-    auto [ptr, ec] = std::from_chars(text.data(), text.data() + text.size(), value);
-    if (ec != std::errc{} || ptr != text.data() + text.size())
-        return std::nullopt;
-    return value;
-}
-
-std::optional<uint64_t> ParseUInt64(std::string_view text)
-{
-    uint64_t value{};
-    auto [ptr, ec] = std::from_chars(text.data(), text.data() + text.size(), value);
-    if (ec != std::errc{} || ptr != text.data() + text.size())
-        return std::nullopt;
-    return value;
-}
 
 TargetQuery ParseTargetToken(std::string_view token)
 {

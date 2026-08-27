@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoltMod/Core/Event.hpp>
+#include <VoltMod/Core/PerSlot.hpp>
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/Subscription.hpp>
@@ -88,8 +89,11 @@ private:
     void OnConnected(Player& player);
     bool Hook_SendNetMessage(const CNetMessage* message, int bufType);
 
-    /** Queue @p slot to be dropped next frame; see @ref _kick. */
-    void KickLater(int slot);
+    /** The hook's actual work, so the hook itself is one unconditional MRES_IGNORED. */
+    void HandleSignon(const CNetMessage* message, void* client);
+
+    /** Drop @p slot next frame, if @p steamId still holds it; see @ref _pendingKick. */
+    void KickLater(int slot, int64_t steamId);
 
     Interfaces& _interfaces;
     const Bindings& _bindings;
@@ -102,10 +106,9 @@ private:
     std::unique_ptr<Impl> _impl;
 
     Subscription _connectListener;
-    /** Slots waiting to be dropped, and the one-shot that drains them. Kicking from inside the
-     *  SendNetMessage hook crashes on Windows, so it happens a frame later. */
-    std::vector<int> _kickSlots;
-    Subscription _kick;
+    /** One pending drop per slot. Kicking from inside the SendNetMessage hook crashes on Windows,
+     *  so it happens a frame later; re-arming a slot cancels the one-shot already queued for it. */
+    PerSlot<Subscription> _pendingKick;
     VtableHook _hook;
 };
 

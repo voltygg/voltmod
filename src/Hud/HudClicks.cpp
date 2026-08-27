@@ -1,3 +1,4 @@
+#include "Engine/ProtoReflect.hpp"
 #include "Engine/ServerSideClients.hpp"
 #include "Engine/VtableLookup.hpp"
 
@@ -7,7 +8,6 @@
 #include <VoltMod/Hud/HudClicks.hpp>
 #include <VoltMod/Unsafe/VtableHook.hpp>
 #include <cstdint>
-#include <google/protobuf/message.h>
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
 #include <string>
@@ -23,20 +23,33 @@ VOLTMOD_VHOOK2(VoltMod_FilterMessage, bool, const CNetMessage*, void*);
 /** The user message carrying a custom HUD button press. */
 static constexpr const char* kClickMessage = "CCSUsrMsg_CustomHudClicked";
 
-using ProtoMessage = google::protobuf::Message;
+/** The two fields a press is read out of. */
+struct ClickFields
+{
+    const ProtoFieldDescriptor* Layout = nullptr;
+    const ProtoFieldDescriptor* Button = nullptr;
+
+    explicit operator bool() const { return Layout && Button; }
+};
 
 /**
- * Read @p name out of @p message by reflection.
+ * Resolve the click message's fields, once per process.
  *
- * The CS-specific user messages are declared in the SDK's cstrike15_usermessages.proto but are
- * not generated into headers, and consumer builds deliberately do not run protoc - the same
- * situation Vote.cpp is in. The engine has registered the descriptors, so the two fields are read
- * by name: a renamed field degrades to an empty click rather than miscompiling.
+ * Process-wide rather than per-load for the same reason the schema field cache is: a field name on
+ * a registered message type resolves to the same descriptor for every plugin, Runtime and map, and
+ * the descriptor pool belongs to the engine rather than to any load cycle. Doing it here keeps the
+ * per-press cost at two loads instead of two string-keyed descriptor lookups.
  */
-static const google::protobuf::FieldDescriptor* ProtoField(const ProtoMessage& message, const char* name)
+static const ClickFields& ClickFieldsOf(const ProtoMessage& proto)
 {
-    const auto* descriptor = message.GetDescriptor();
-    return descriptor ? descriptor->FindFieldByName(name) : nullptr;
+    static const ClickFields fields = [&proto] {
+        const ClickFields resolved{.Layout = ProtoField(proto, "custom_hud_layout"),
+                                   .Button = ProtoField(proto, "button_id")};
+        if (!resolved)
+            Log::Warn("HudClicks: {} has no 'custom_hud_layout'/'button_id' field; ignoring presses.", kClickMessage);
+        return resolved;
+    }();
+    return fields;
 }
 
 HudClicks::HudClicks(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots)
@@ -141,40 +154,42 @@ bool HudClicks::Install()
 
 bool HudClicks::Hook_FilterMessage(const CNetMessage* message, void*)
 {
+    // Reading a press never changes the verdict, so the hook itself is one unconditional
+    // MRES_IGNORED and every early-out below is a plain return.
+    HandleMessage(message, META_IFACEPTR(void));
+    RETURN_META_VALUE(MRES_IGNORED, true);
+}
+
+void HudClicks::HandleMessage(const CNetMessage* message, void* self)
+{
     // Every inbound message from every client lands here, so the id check comes first and costs
     // two loads; the reflection below only runs for an actual click.
     INetworkMessageInternal* info = message ? message->GetNetMessage() : nullptr;
     if (!info || info->GetNetMessageInfo()->m_MessageId != _messageId)
-        RETURN_META_VALUE(MRES_IGNORED, true);
+        return;
 
     // A DVP hook on a secondary vtable is called with that subobject, not the client.
-    auto* self = static_cast<uint8_t*>(META_IFACEPTR(void));
-    const void* client = self ? self - _baseOffset : nullptr;
+    const void* client = self ? static_cast<uint8_t*>(self) - _baseOffset : nullptr;
     const int slot = SlotOfServerSideClient(_bindings, client);
     if (!IsValidSlot(slot))
-        RETURN_META_VALUE(MRES_IGNORED, true);
+        return;
 
     const ProtoMessage& proto = *message->ToPB<ProtoMessage>();
-    const auto* layoutField = ProtoField(proto, "custom_hud_layout");
-    const auto* buttonField = ProtoField(proto, "button_id");
-    if (!layoutField || !buttonField)
-    {
-        Log::Warn("HudClicks: {} has no 'custom_hud_layout'/'button_id' field; ignoring the press.", kClickMessage);
-        RETURN_META_VALUE(MRES_IGNORED, true);
-    }
+    const ClickFields& fields = ClickFieldsOf(proto);
+    if (!fields)
+        return;
 
     const auto* reflection = proto.GetReflection();
     HudClick click{.Slot = slot,
-                   .Layout = EntityRef{reflection->GetUInt32(proto, layoutField)},
-                   .ButtonId = reflection->GetString(proto, buttonField)};
+                   .Layout = EntityRef{reflection->GetUInt32(proto, fields.Layout)},
+                   .ButtonId = reflection->GetString(proto, fields.Button)};
 
     // The button id is client-controlled text. Handlers compare it against ids they authored, so
     // it is passed through as-is, but an embedded NUL would truncate it anywhere it is formatted.
     if (click.ButtonId.find('\0') != std::string::npos)
-        RETURN_META_VALUE(MRES_IGNORED, true);
+        return;
 
     Clicked.Raise(click);
-    RETURN_META_VALUE(MRES_IGNORED, true);
 }
 
 }  // namespace VoltMod

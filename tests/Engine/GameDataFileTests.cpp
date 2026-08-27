@@ -123,10 +123,10 @@ TEST_CASE("GameDataFile rejects an entry with no column for either platform")
 // rather than read as a reference to a signature nobody wrote.
 TEST_CASE("GameDataFile drops an address whose signature is for the other platform")
 {
-    const auto text = Document(
-        R"(  "signatures": { "Sig": { "windows": { "pattern": "48 8B" } } },)"
-        "\n"
-        R"(  "addresses": { "Addr": { "signature": "Sig", "rel32At": { "windows": 3, "linux": 3 } } })");
+    const auto text =
+        Document(R"(  "signatures": { "Sig": { "windows": { "pattern": "48 8B" } } },)"
+                 "\n"
+                 R"(  "addresses": { "Addr": { "signature": "Sig", "rel32At": { "windows": 3, "linux": 3 } } })");
 
     auto linux = GameDataFile::Parse(text, GamePlatform::Linux);
     REQUIRE(linux.has_value());

@@ -58,6 +58,10 @@ private:
 
     bool Hook_FilterMessage(const CNetMessage* message, void* channel);
 
+    /** The hook's actual work, so the hook itself is one unconditional MRES_IGNORED. @p self is
+     *  the hooked subobject, which is @ref _baseOffset bytes into the client. */
+    void HandleMessage(const CNetMessage* message, void* self);
+
     Interfaces& _interfaces;
     const Bindings& _bindings;
     SlotEvents& _slots;

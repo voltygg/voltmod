@@ -9,7 +9,6 @@
 #include <VoltMod/Hooks/Addons.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Unsafe/VtableHook.hpp>
-#include <algorithm>
 #include <eiface.h>
 #include <networkbasetypes.pb.h>
 #include <networksystem/inetworkmessages.h>
@@ -113,8 +112,7 @@ void Addons::Disarm()
         return;
 
     _connectListener.Reset();
-    _kick.Reset();
-    _kickSlots.clear();
+    _pendingKick.ResetAll();
     _hook.Reset();
     _impl->Requirements.ForgetClients();
 }
@@ -127,39 +125,38 @@ void Addons::OnConnected(Player& player)
         Ready.Raise(player.Slot());
 }
 
-void Addons::KickLater(int slot)
+void Addons::KickLater(int slot, int64_t steamId)
 {
-    if (std::ranges::contains(_kickSlots, slot))
+    if (!IsValidSlot(slot))
         return;
 
-    // A non-empty list already has a drain scheduled, so only the first entry schedules one. The
-    // one-shot is never cancelled from inside its own callback.
-    _kickSlots.push_back(slot);
-    if (_kickSlots.size() > 1)
-        return;
+    _pendingKick[slot] = _scheduler.NextTick([this, slot, steamId] {
+        // The seat can change hands before the deferred kick lands; dropping whoever took it is
+        // not what the declined download says.
+        if (!_players.Get(PlayerRef{slot, steamId}) || !_interfaces.Engine)
+            return;
 
-    _kick = _scheduler.Delay(0, [this] {
-        for (int pending : _kickSlots)
-        {
-            if (_interfaces.Engine)
-                _interfaces.Engine->DisconnectClient(CPlayerSlot(pending), NETWORK_DISCONNECT_TIMEDOUT,
-                                                     "Required workshop addon download was declined");
-        }
-        _kickSlots.clear();
+        _interfaces.Engine->DisconnectClient(CPlayerSlot(slot), NETWORK_DISCONNECT_TIMEDOUT,
+                                             "Required workshop addon download was declined");
     });
 }
 
 bool Addons::Hook_SendNetMessage(const CNetMessage* message, int)
 {
+    HandleSignon(message, META_IFACEPTR(void));
+    RETURN_META_VALUE(MRES_IGNORED, true);
+}
+
+void Addons::HandleSignon(const CNetMessage* message, void* client)
+{
     // Every outgoing message to every client lands here, so the cheap rejections come first.
     INetworkMessageInternal* info = message ? message->GetNetMessage() : nullptr;
     if (!info || info->GetNetMessageInfo()->m_MessageId != net_SignonState)
-        RETURN_META_VALUE(MRES_IGNORED, true);
+        return;
 
-    void* client = META_IFACEPTR(void);
     const int64_t steamId = client ? _bindings.ServerSideClientSteamId.Read(client) : 0;
     if (!SteamId::IsValid(steamId))
-        RETURN_META_VALUE(MRES_IGNORED, true);
+        return;
 
     // The engine owns this message and is about to serialize it; rewriting it in place is what
     // redirects the client, which is why the const is cast away here rather than in the signature.
@@ -182,29 +179,25 @@ bool Addons::Hook_SendNetMessage(const CNetMessage* message, int)
             }
             _impl->Requirements.NoteInFlight(steamId, listed.front(), now);
         }
-        RETURN_META_VALUE(MRES_IGNORED, true);
+        return;
     }
 
     const AddonDecision decision = _impl->Requirements.NextFor(steamId, now, MaxDownloadAttempts);
     if (decision.Step == AddonStep::Nothing)
-        RETURN_META_VALUE(MRES_IGNORED, true);
+        return;
 
     if (decision.Step == AddonStep::GiveUp)
     {
-        const int slot = SlotOfServerSideClient(_bindings, client);
         Log::Warn("Addons: {} did not take addon {} in {} attempts; dropping the client.", steamId, decision.Id,
                   MaxDownloadAttempts);
-        if (IsValidSlot(slot))
-            KickLater(slot);
-        RETURN_META_VALUE(MRES_IGNORED, true);
+        KickLater(SlotOfServerSideClient(_bindings, client), steamId);
+        return;
     }
 
     signon->set_addons(std::to_string(decision.Id));
     signon->set_signon_state(SIGNONSTATE_CHANGELEVEL);
 
-    Log::Info("Addons: sending addon {} to {} ({} left after it).", decision.Id, steamId,
-              _impl->Requirements.MissingFor(steamId).size() - 1);
-    RETURN_META_VALUE(MRES_IGNORED, true);
+    Log::Info("Addons: sending addon {} to {} ({} left after it).", decision.Id, steamId, decision.Remaining);
 }
 
 }  // namespace VoltMod

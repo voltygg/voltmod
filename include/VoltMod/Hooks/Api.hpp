@@ -8,9 +8,9 @@
 
 #include <VoltMod/Events/EventTypes.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
+#include <VoltMod/Hooks/Addons.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>
 #include <VoltMod/Hooks/ClientCvars.hpp>
-#include <VoltMod/Hooks/Addons.hpp>
 #include <VoltMod/Hooks/GlowVision.hpp>
 #include <VoltMod/Hooks/Movement.hpp>
 #include <VoltMod/Hooks/Teleport.hpp>

@@ -8,6 +8,24 @@
 namespace VoltMod
 {
 
+std::optional<int64_t> ParseInt64(std::string_view text)
+{
+    int64_t value{};
+    auto [ptr, ec] = std::from_chars(text.data(), text.data() + text.size(), value);
+    if (ec != std::errc{} || ptr != text.data() + text.size())
+        return std::nullopt;
+    return value;
+}
+
+std::optional<uint64_t> ParseUInt64(std::string_view text)
+{
+    uint64_t value{};
+    auto [ptr, ec] = std::from_chars(text.data(), text.data() + text.size(), value);
+    if (ec != std::errc{} || ptr != text.data() + text.size())
+        return std::nullopt;
+    return value;
+}
+
 int ParseDuration(std::string_view text)
 {
     while (!text.empty() && std::isspace(static_cast<unsigned char>(text.front())))

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -21,7 +22,8 @@ enum class AddonStep
 struct AddonDecision
 {
     AddonStep Step = AddonStep::Nothing;
-    uint64_t Id = 0;  ///< the addon to send, when @ref Step is Send
+    uint64_t Id = 0;            ///< the addon to send, when @ref Step is Send
+    std::size_t Remaining = 0;  ///< how many more the client owes after @ref Id, for logging
 };
 
 /**
@@ -97,11 +99,11 @@ private:
     /** One client's progress through its list. */
     struct ClientState
     {
-        std::vector<Requirement> Extra;     ///< required of this SteamID alone
-        std::vector<uint64_t> Downloaded;   ///< confirmed by a reconnect
-        uint64_t Sending = 0;               ///< sent but not yet confirmed
-        double SentAt = 0.0;                ///< when Sending was set, for the timeout
-        int Attempts = 0;                   ///< offers of Sending so far
+        std::vector<Requirement> Extra;    ///< required of this SteamID alone
+        std::vector<uint64_t> Downloaded;  ///< confirmed by a reconnect
+        uint64_t Sending = 0;              ///< sent but not yet confirmed
+        double SentAt = 0.0;               ///< when Sending was set, for the timeout
+        int Attempts = 0;                  ///< offers of Sending so far
     };
 
     static bool Take(std::vector<Requirement>& list, uint64_t id);

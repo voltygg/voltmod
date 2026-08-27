@@ -101,7 +101,7 @@ def install_plugin(root: Path, name: str, csgo: Path, preset: str, *, named: boo
             f"could not replace the installed files for {name}: {exc}\n"
             "A running CS2 server holds the plugin binary open; stop it and try again."
         )
-    print("  -> addons/ (binary, vdf, configs, voltmod gamedata)")
+    print("  -> addons/ (binary, vdf, configs, panorama sources, voltmod gamedata)")
 
     # Preserve operator-edited settings after the first install.
     settings_src = root / "plugins" / name / "configs" / "settings.jsonc"
