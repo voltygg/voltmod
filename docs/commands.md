@@ -27,7 +27,7 @@ commands.Add("ban")
              -> Result<Reply> {
         std::string name = t.Value->Name();          // capture first: a ban drops the target
         std::string reason = why.Value ? why.Value->Value : c.Tr.Get("reason.bannedByAdmin");
-        if (!IssueBan(*c.P, *t.Value, reason, d.Value))
+        if (!IssueBan(*c.Player, *t.Value, reason, d.Value))
             return c.Fail("cmd.banFailed");
         return c.Ok("cmd.banSuccess", {{"name", name}});
     });
@@ -89,7 +89,7 @@ and `c.Say` resolve the caller's.
 
 ## Replying
 
-@ref VoltMod::Caller is the handler's first parameter: `c.P` is the player (null
+@ref VoltMod::Caller is the handler's first parameter: `c.Player` is the player (null
 on the console), `c.Slot` their slot (-1 for the console, which is also the
 server-language slot), and `c.Tr` the translation table.
 
@@ -175,7 +175,7 @@ commands.Add("bhop_player")
 ```
 
 Console calls run the same binder and handler, print their reply to the console,
-and have no caller: `c.P` is null, `c.Slot` is -1, permissions are skipped
+and have no caller: `c.Player` is null, `c.Slot` is -1, permissions are skipped
 (the console is the server itself), and caller-relative selectors such as `@me`
 match nobody. An operator command with no permission belongs on `ConsoleOnly()`,
 because a command that does not name the chat surface is not typeable in chat at

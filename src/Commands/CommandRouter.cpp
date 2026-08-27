@@ -365,7 +365,7 @@ void CommandRouter::Dispatch(const CommandDefinition& def, Player* caller, std::
     if (!def.Invoke)
         return;
 
-    const Caller who{.P = caller, .Slot = slot, .Tr = _translations, .Send = say};
+    const Caller who{.Player = caller, .Slot = slot, .Tr = _translations, .Send = say};
     auto result = def.Invoke(who, *bound);
     if (result)
         reply(result->Text);

@@ -122,7 +122,7 @@ TEST_CASE("The trampoline unpacks bound arguments back into the parameter list")
 
     SlotEvents slots;
     Translations texts{slots};
-    const Caller caller{.P = nullptr, .Slot = -1, .Tr = texts, .Send = {}};
+    const Caller caller{.Player = nullptr, .Slot = -1, .Tr = texts, .Send = {}};
 
     const std::vector<BoundArg> full{Args::Int{7}, Args::Int{128}, Args::Rest{"why not"}};
     auto answered = installed.Def.Invoke(caller, full);
@@ -149,7 +149,7 @@ TEST_CASE("Caller Fail is a failure carrying both the key and the localized line
     Translations texts{slots};
     std::vector<std::string> lines;
     const Caller caller{
-        .P = nullptr, .Slot = -1, .Tr = texts, .Send = [&lines](const std::string& l) { lines.push_back(l); }};
+        .Player = nullptr, .Slot = -1, .Tr = texts, .Send = [&lines](const std::string& l) { lines.push_back(l); }};
 
     Result<Reply> failed = caller.Fail("target.immune", {{"token", "Bob"}});
     REQUIRE_FALSE(failed.has_value());

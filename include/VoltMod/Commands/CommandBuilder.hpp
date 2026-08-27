@@ -41,9 +41,10 @@ struct Reply
  */
 struct Caller
 {
-    /** The player who typed the command; null on the console surface. */
-    Player* P = nullptr;
-    /** @ref P's slot, or -1 for the console - which is also the server-language slot. */
+    /** The player who typed the command; null on the console surface. Spelled with the
+     *  qualified type: an unqualified `Player` here would name this member, not the class. */
+    VoltMod::Player* Player = nullptr;
+    /** @ref Player's slot, or -1 for the console - which is also the server-language slot. */
     int Slot = -1;
     /** The table @ref Ok, @ref Fail and @ref Say translate through. Also the way to read a
      *  server-language string (`Tr.Get(key)`), which is what a reason written to the database
@@ -145,7 +146,7 @@ struct CommandHandlerArgs<R (*)(Caller, A...)>
  *              -> Result<Reply> {
  *         std::string name = t.Value->Name();   // capture first: a ban drops the target
  *         std::string reason = why.Value ? why.Value->Value : c.Tr.Get("reason.bannedByAdmin");
- *         if (!app.Ban(*c.P, *t.Value, reason, d.Value))
+ *         if (!app.Ban(*c.Player, *t.Value, reason, d.Value))
  *             return c.Fail("cmd.banFailed");
  *         return c.Ok("cmd.banSuccess", {{"name", name}});
  *     });
