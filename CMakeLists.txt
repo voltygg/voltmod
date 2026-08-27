@@ -139,6 +139,8 @@ if(BUILD_TESTING)
             # Other implementation files require HL2SDK or pqxx.
             src/Commands/CommandBuilder.cpp
             src/Commands/CommandRouter.cpp
+            src/Commands/CommandSyntax.cpp
+            src/Commands/ArgBinding.cpp
             src/Core/Capabilities.cpp
             src/Core/EffectManager.cpp
             src/Core/LoadReport.cpp

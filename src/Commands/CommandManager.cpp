@@ -1,4 +1,5 @@
 #include "CommandRouter.hpp"
+#include "Commands/CommandSyntax.hpp"
 
 #include <VoltMod/Commands/CommandManager.hpp>
 #include <VoltMod/Core/Log.hpp>
@@ -92,11 +93,11 @@ bool CommandManager::HandleChatMessage(Player* caller, std::string_view message)
     if (!caller)
         return false;
 
-    auto body = CommandRouter::StripPrefix(message);
+    auto body = CommandSyntax::StripPrefix(message);
     if (!body)
         return false;
 
-    std::vector<std::string> parts = CommandRouter::Tokenize(*body);
+    std::vector<std::string> parts = CommandSyntax::Tokenize(*body);
     if (parts.empty())
         return false;
 

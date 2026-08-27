@@ -1,4 +1,4 @@
-#include "CommandRouter.hpp"
+#include "Commands/ArgBinding.hpp"
 #include "Targeting.hpp"
 
 #include <VoltMod/Core/Random.hpp>

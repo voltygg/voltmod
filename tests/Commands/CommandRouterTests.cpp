@@ -1,4 +1,5 @@
 #include "Commands/CommandRouter.hpp"
+#include "Commands/CommandSyntax.hpp"
 
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
@@ -10,6 +11,7 @@
 using VoltMod::ArgBinder;
 using VoltMod::ArgDesc;
 using VoltMod::ArgKind;
+using VoltMod::BindArgs;
 using VoltMod::BoundArg;
 using VoltMod::Caller;
 using VoltMod::CommandDefinition;
@@ -25,6 +27,9 @@ using VoltMod::TargetError;
 using VoltMod::TargetFailure;
 using VoltMod::TargetRules;
 using VoltMod::Translations;
+
+// The chat-syntax free functions, the one nested namespace these tests reach.
+namespace CommandSyntax = VoltMod::CommandSyntax;
 
 namespace Args = VoltMod::Args;
 
@@ -94,7 +99,7 @@ static CommandDefinition Echo(std::string name, std::vector<ArgDesc> args, std::
 
 TEST_CASE("Tokenize splits on spaces and drops the blanks repeated spaces make")
 {
-    const auto tokens = CommandRouter::Tokenize("  ban   Bob    30  ");
+    const auto tokens = CommandSyntax::Tokenize("  ban   Bob    30  ");
     REQUIRE(tokens.size() == 3);
     CHECK(tokens[0] == "ban");
     CHECK(tokens[1] == "Bob");
@@ -103,21 +108,21 @@ TEST_CASE("Tokenize splits on spaces and drops the blanks repeated spaces make")
 
 TEST_CASE("Tokenize keeps a quoted run as one token")
 {
-    const auto tokens = CommandRouter::Tokenize("ban Bob 30 \"bad aim\"");
+    const auto tokens = CommandSyntax::Tokenize("ban Bob 30 \"bad aim\"");
     REQUIRE(tokens.size() == 4);
     CHECK(tokens[3] == "bad aim");
 }
 
 TEST_CASE("Tokenize treats a backslash-escaped quote as a literal quote")
 {
-    const auto tokens = CommandRouter::Tokenize("say \"he said \\\"hi\\\" twice\"");
+    const auto tokens = CommandSyntax::Tokenize("say \"he said \\\"hi\\\" twice\"");
     REQUIRE(tokens.size() == 2);
     CHECK(tokens[1] == "he said \"hi\" twice");
 }
 
 TEST_CASE("Tokenize keeps an explicit empty token but not an implicit one")
 {
-    const auto tokens = CommandRouter::Tokenize("set \"\"  x");
+    const auto tokens = CommandSyntax::Tokenize("set \"\"  x");
     REQUIRE(tokens.size() == 3);
     CHECK(tokens[1].empty());
     CHECK(tokens[2] == "x");
@@ -125,12 +130,12 @@ TEST_CASE("Tokenize keeps an explicit empty token but not an implicit one")
 
 TEST_CASE("StripPrefix accepts both chat prefixes and nothing else")
 {
-    CHECK(CommandRouter::StripPrefix("!ban Bob").value() == "ban Bob");
-    CHECK(CommandRouter::StripPrefix(".ban Bob").value() == "ban Bob");
-    CHECK_FALSE(CommandRouter::StripPrefix("ban Bob").has_value());
-    CHECK_FALSE(CommandRouter::StripPrefix("hello").has_value());
+    CHECK(CommandSyntax::StripPrefix("!ban Bob").value() == "ban Bob");
+    CHECK(CommandSyntax::StripPrefix(".ban Bob").value() == "ban Bob");
+    CHECK_FALSE(CommandSyntax::StripPrefix("ban Bob").has_value());
+    CHECK_FALSE(CommandSyntax::StripPrefix("hello").has_value());
     // A bare prefix names no command, so it is not one.
-    CHECK_FALSE(CommandRouter::StripPrefix("!").has_value());
+    CHECK_FALSE(CommandSyntax::StripPrefix("!").has_value());
 }
 
 TEST_CASE("A command is found by name and by alias, case-insensitively")
@@ -284,9 +289,9 @@ TEST_CASE("Argument parse failures map to their own keys")
     const CommandDefinition* dump = f.Router.Find("dumpcmd");
 
     const std::vector<std::string> bad{"nonsense"};
-    CHECK(f.Router.BindArgs(*ban, bad, nullptr, f.Binder).error().Key == "cmd.badDuration");
-    CHECK(f.Router.BindArgs(*unban, bad, nullptr, f.Binder).error().Key == "cmd.badSteamId");
-    CHECK(f.Router.BindArgs(*dump, bad, nullptr, f.Binder).error().Key == "cmd.badNumber");
+    CHECK(BindArgs(*ban, bad, nullptr, f.Binder).error().Key == "cmd.badDuration");
+    CHECK(BindArgs(*unban, bad, nullptr, f.Binder).error().Key == "cmd.badSteamId");
+    CHECK(BindArgs(*dump, bad, nullptr, f.Binder).error().Key == "cmd.badNumber");
 }
 
 TEST_CASE("Target failures map to the key that explains them")
@@ -298,21 +303,21 @@ TEST_CASE("Target failures map to the key that explains them")
     f.Binder.Succeed = false;
 
     f.Binder.Failure = {TargetError::NoMatch};
-    CHECK(f.Router.BindArgs(*kick, token, nullptr, f.Binder).error().Key == "target.noMatch");
+    CHECK(BindArgs(*kick, token, nullptr, f.Binder).error().Key == "target.noMatch");
 
     f.Binder.Failure = {TargetError::Immune};
-    CHECK(f.Router.BindArgs(*kick, token, nullptr, f.Binder).error().Key == "target.immune");
+    CHECK(BindArgs(*kick, token, nullptr, f.Binder).error().Key == "target.immune");
 
     f.Binder.Failure = {TargetError::Ambiguous, 3};
-    auto ambiguous = f.Router.BindArgs(*kick, token, nullptr, f.Binder);
+    auto ambiguous = BindArgs(*kick, token, nullptr, f.Binder);
     CHECK(ambiguous.error().Key == "target.ambiguous");
     CHECK(ambiguous.error().Vars.at("count") == "3");
 
     f.Binder.Failure = {TargetError::DeadNotAllowed};
-    CHECK(f.Router.BindArgs(*kick, token, nullptr, f.Binder).error().Key == "target.dead");
+    CHECK(BindArgs(*kick, token, nullptr, f.Binder).error().Key == "target.dead");
 
     f.Binder.Failure = {TargetError::BotNotAllowed};
-    CHECK(f.Router.BindArgs(*kick, token, nullptr, f.Binder).error().Key == "target.bot");
+    CHECK(BindArgs(*kick, token, nullptr, f.Binder).error().Key == "target.bot");
 }
 
 TEST_CASE("PlayerOrSteamId prefers the online player and falls back to a bare id")
