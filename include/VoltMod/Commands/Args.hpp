@@ -65,6 +65,12 @@ struct Int
     int Value = 0;
 };
 
+/** A non-negative 64-bit id: a workshop id, or anything else too wide for @ref Int. */
+struct U64
+{
+    uint64_t Value = 0;
+};
+
 /** One verbatim token. `"two words"` in the message is one token. */
 struct Word
 {
@@ -101,6 +107,7 @@ enum class ArgKind : uint8_t
     SteamId,
     PlayerOrSteamId,
     Int,
+    U64,
     Word,
     Rest,
 };
@@ -114,7 +121,7 @@ struct ArgDesc
 
 /** One bound argument. `std::monostate` is an optional argument the caller omitted. */
 using BoundArg = std::variant<std::monostate, Args::Target, Args::Duration, Args::SteamId, Args::PlayerOrSteamId,
-                              Args::Int, Args::Word, Args::Rest>;
+                              Args::Int, Args::U64, Args::Word, Args::Rest>;
 
 /**
  * @brief What one handler parameter type means to the framework.
@@ -163,6 +170,14 @@ struct ArgTrait<Args::Int>
     static constexpr ArgKind Kind = ArgKind::Int;
     static constexpr bool Optional = false;
     using Bound = Args::Int;
+};
+
+template <>
+struct ArgTrait<Args::U64>
+{
+    static constexpr ArgKind Kind = ArgKind::U64;
+    static constexpr bool Optional = false;
+    using Bound = Args::U64;
 };
 
 template <>

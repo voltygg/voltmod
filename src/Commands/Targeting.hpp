@@ -86,6 +86,10 @@ struct TargetQuery
  *  Shared with the command router so both narrow external numbers the same way. */
 std::optional<int64_t> ParseInt64(std::string_view text);
 
+/** @p text as a uint64_t, or nullopt unless it is entirely digits. A leading `-` is rejected
+ *  rather than wrapped, which is the whole reason this is not ParseInt64 with a cast. */
+std::optional<uint64_t> ParseUInt64(std::string_view text);
+
 TargetQuery ParseTargetToken(std::string_view token);
 
 /** Engine-free snapshot of one connected player, for @ref FilterRoster. */

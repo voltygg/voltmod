@@ -41,6 +41,7 @@ static const std::unordered_map<std::string, std::string>& KitDefaults()
         {"cmd.usage.steamId", "steamId"},
         {"cmd.usage.playerOrSteamId", "target|steamId"},
         {"cmd.usage.int", "number"},
+        {"cmd.usage.u64", "id"},
         {"cmd.usage.word", "value"},
         {"cmd.usage.rest", "reason"},
         {"cmd.badDuration", "Invalid duration. Use minutes (e.g. 30), 30s/5m/2h/7d, or 'perm'."},
