@@ -12,16 +12,22 @@ TEST_CASE("A convar handle only accepts the engine kind its C++ type describes")
 {
     CHECK(ConVarTypeMatches<bool>(ConVarType::Bool));
     CHECK(ConVarTypeMatches<float>(ConVarType::Float32));
-    CHECK(ConVarTypeMatches<float>(ConVarType::Float64));
     CHECK(ConVarTypeMatches<std::string>(ConVarType::String));
 
-    // Every integer kind is one an int handle reads and writes through.
+    // The integer kinds that round-trip through int.
     CHECK(ConVarTypeMatches<int>(ConVarType::Int16));
     CHECK(ConVarTypeMatches<int>(ConVarType::UInt16));
     CHECK(ConVarTypeMatches<int>(ConVarType::Int32));
-    CHECK(ConVarTypeMatches<int>(ConVarType::UInt32));
-    CHECK(ConVarTypeMatches<int>(ConVarType::Int64));
-    CHECK(ConVarTypeMatches<int>(ConVarType::UInt64));
+}
+
+// A handle whose Find() succeeded used to narrow on every Get: UInt32/Int64/UInt64 were read
+// through an int and Float64 through a float, so the typed promise was weaker than it looked.
+TEST_CASE("A handle refuses an engine width it cannot represent")
+{
+    CHECK_FALSE(ConVarTypeMatches<int>(ConVarType::UInt32));
+    CHECK_FALSE(ConVarTypeMatches<int>(ConVarType::Int64));
+    CHECK_FALSE(ConVarTypeMatches<int>(ConVarType::UInt64));
+    CHECK_FALSE(ConVarTypeMatches<float>(ConVarType::Float64));
 }
 
 TEST_CASE("An int handle refuses a bool convar, which is the silent no-op this replaces")

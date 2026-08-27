@@ -11,13 +11,16 @@ namespace VoltMod
 template <class T>
 bool ConVarTypeMatches(ConVarType type)
 {
+    // Only widths that round-trip through T. Accepting UInt32/Int64/UInt64 as int, or Float64
+    // as float, made Find() succeed and then silently narrow on every Get - a stronger promise
+    // than the handle could keep. A convar of an unrepresentable width now fails to resolve,
+    // with the type mismatch named, instead of reading wrong.
     if constexpr (std::is_same_v<T, bool>)
         return type == ConVarType::Bool;
     else if constexpr (std::is_same_v<T, int>)
-        return type == ConVarType::Int16 || type == ConVarType::UInt16 || type == ConVarType::Int32 ||
-               type == ConVarType::UInt32 || type == ConVarType::Int64 || type == ConVarType::UInt64;
+        return type == ConVarType::Int16 || type == ConVarType::UInt16 || type == ConVarType::Int32;
     else if constexpr (std::is_same_v<T, float>)
-        return type == ConVarType::Float32 || type == ConVarType::Float64;
+        return type == ConVarType::Float32;
     else
         return type == ConVarType::String;
 }

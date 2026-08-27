@@ -114,7 +114,7 @@ T ConVar<T>::Get() const
     }
     else if constexpr (std::is_same_v<T, float>)
     {
-        return type == ConVarType::Float64 ? static_cast<float>(value->m_fl64Value) : value->m_fl32Value;
+        return value->m_fl32Value;
     }
     else
     {
@@ -126,12 +126,6 @@ T ConVar<T>::Get() const
             return value->m_i16Value;
         case ConVarType::UInt16:
             return value->m_u16Value;
-        case ConVarType::UInt32:
-            return static_cast<int>(value->m_u32Value);
-        case ConVarType::Int64:
-            return static_cast<int>(value->m_i64Value);
-        case ConVarType::UInt64:
-            return static_cast<int>(value->m_u64Value);
         default:
             return value->m_i32Value;
         }
@@ -180,15 +174,6 @@ Status ConVar<T>::Set(const T& value, SetMode mode)
                 break;
             case ConVarType::UInt16:
                 storage->m_u16Value = static_cast<uint16_t>(value);
-                break;
-            case ConVarType::UInt32:
-                storage->m_u32Value = static_cast<uint32_t>(value);
-                break;
-            case ConVarType::Int64:
-                storage->m_i64Value = value;
-                break;
-            case ConVarType::UInt64:
-                storage->m_u64Value = static_cast<uint64_t>(value);
                 break;
             default:
                 storage->m_i32Value = value;
