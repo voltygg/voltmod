@@ -163,6 +163,7 @@ if(BUILD_TESTING)
             src/Engine/ConVarTypes.cpp
             src/Engine/GameData.cpp
             src/Engine/GameDataFile.cpp
+            src/Engine/BytePattern.cpp
             src/Engine/SigScanner.cpp
             src/Engine/VtableLookup.cpp
             # The install policy behind VtableHook; the SourceHook half lives in VOLTMOD_VHOOK.
