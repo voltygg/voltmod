@@ -8,10 +8,7 @@
 namespace VoltMod
 {
 
-/**
- * Localized unit words for @ref Time::FormatDurationLabel. The caller supplies
- * already-translated text; the framework carries no localization of its own.
- */
+/** Translated units for @ref Time::FormatDurationLabel. */
 struct DurationUnitLabels
 {
     std::string Permanent;
@@ -21,53 +18,36 @@ struct DurationUnitLabels
     std::string Seconds;
 };
 
-/** @brief Static utilities for Unix timestamps, duration parsing/formatting, and expiration checks. */
+/** Timestamp, duration, and expiration utilities. */
 class Time
 {
 public:
-    /**
-     * Unix seconds from the wall clock - the timestamp to store, compare against a database row, or
-     * show a human. NTP correction and a manual clock change can step it, backwards included, so it
-     * must not be used to measure how long something took: @ref MonotonicSeconds is for that.
-     */
+    /** Unix wall-clock seconds. Use @ref MonotonicSeconds for elapsed time. */
     static int64_t Now();
 
-    /**
-     * Seconds from a monotonic clock: it never jumps and never runs backwards, so it is the one to
-     * measure an elapsed interval or drive a rolling window with. The origin is arbitrary and does
-     * not survive a restart - persist @ref Now instead.
-     */
+    /** Monotonic seconds for intervals. The arbitrary origin must not be persisted. */
     static double MonotonicSeconds()
     {
         return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
     }
 
-    /** @ref MonotonicSeconds in whole milliseconds, for the integer deadlines timers compare. */
+    /** Monotonic milliseconds for integer deadlines. */
     static int64_t MonotonicMs()
     {
-        return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
+        return std::chrono::duration_cast<std::chrono::milliseconds>(
+                   std::chrono::steady_clock::now().time_since_epoch())
             .count();
     }
 
-    /**
-     * Delegates to the canonical free @ref VoltMod::ParseDuration grammar
-     * (s/m/h/d/w suffixes, case-insensitive): -1 on failure, 0 for permanent.
-     */
+    /** Parse the shared duration grammar. Returns -1 on failure and 0 for permanent. */
     static int64_t ParseDuration(const std::string& duration);
 
     static std::string FormatDuration(int64_t seconds);
 
-    /**
-     * Localized "{n} {unit}" using the largest exactly-dividing unit (days/hours/minutes,
-     * falling back to seconds), or `units.Permanent` for <= 0.
-     */
+    /** Format with the largest exact unit, or `Permanent` for non-positive values. */
     static std::string FormatDurationLabel(int64_t seconds, const DurationUnitLabels& units);
 
-    /**
-     * Render an expiry timestamp as a notice suffix: `permanentText` for <= 0, otherwise
-     * "{expiresInPrefix} {remaining duration}". Already-expired timestamps also render as
-     * `permanentText`; callers filter expired entries before notifying.
-     */
+    /** Format an expiry suffix; non-positive or expired timestamps use @p permanentText. */
     static std::string FormatExpiry(int64_t expiresAt, int64_t nowSec, std::string_view permanentText,
                                     std::string_view expiresInPrefix);
 

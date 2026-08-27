@@ -4,13 +4,9 @@
 
 ## EntityOps (spawning, entity IO, sound)
 
-@ref VoltMod::EntityOps (`runtime.World.EntityOps`) exposes
-signature-resolved entity operations: create/spawn, inputs, deferred I/O,
-removal, models, and sound events. Build spawn keyvalues with
-@ref VoltMod::KeyValues; the engine consumes them during spawn, so do
-not reuse or free them after `DispatchSpawn`. Methods no-op when their gamedata
-signature is unavailable; use `CanSpawn()` when the plugin needs an explicit
-fallback.
+@ref VoltMod::EntityOps exposes entity spawning, inputs, deferred I/O, removal, models, and sound.
+Build spawn data with @ref VoltMod::KeyValues; the engine consumes it during `DispatchSpawn`.
+Unavailable operations safely do nothing. `CanSpawn()` checks the two bindings used by `Spawn()`.
 
 ```cpp
 auto& ops = runtime.World.EntityOps;
@@ -29,9 +25,8 @@ ops.EmitSound(entity, "SoundEventName");   // .vsndevts event name, not a file p
 Never `delete` an entity. Use `Remove` immediately or `RemoveDelayed` through
 the engine's I/O queue.
 
-A spawned entity has no wrapper of its own, so reach its schema fields through a `static`
-@ref VoltMod::LazyField and dirty the write with @ref VoltMod::MarkChanged - which is what a
-@ref VoltMod::Field does for you on a @ref VoltMod::Pawn or @ref VoltMod::Controller:
+For unwrapped entities, use a `static` @ref VoltMod::LazyField and notify live writes with
+@ref VoltMod::MarkChanged:
 
 ```cpp
 static const VoltMod::LazyField kWidth{"CBeam", "m_fWidth", sizeof(float)};
@@ -48,15 +43,11 @@ notification is only needed for a live entity.
 
 ## Precache
 
-@ref VoltMod::Precache (`runtime.World.Precache`) registers a framework-owned game system that
-receives `BuildGameSessionManifest`, so plugins can precache custom resources (particles, models,
-sound events). Queue paths any time; they apply at the **next map load**, because the engine's
-manifest only exists inside that event. Assets that are not part of the map must also reach clients (e.g.
-via a workshop addon), or they precache server-side but render nothing.
+@ref VoltMod::Precache queues custom resources for the next map's session manifest. Assets outside
+the map must also be delivered to clients, such as through a workshop addon.
 
 ```cpp
 runtime.World.Precache.Add("particles/my_plugin/lightning_strike.vpcf");
 ```
 
-Registered by `Runtime::Start()` under a `LogPrefix`-derived name; detached safely
-on unload (factory unlink + dispatcher/active-list removal), so `meta unload` mid-map is safe.
+`Runtime::Start()` registers the game system and unload detaches it safely.

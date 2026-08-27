@@ -4,181 +4,186 @@
 #include <VoltMod/Core/EnumNames.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
+#include <array>
 #include <format>
-#include <initializer_list>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace VoltMod
 {
 
-/** One gamedata key a capability needs, and the section it must have come from. */
-struct RequiredEntry
+/** Resolve a class vtable and verify that the configured slot contains code. */
+static Result<VTableRef> BindVTable(const GameData::Resolution& entry)
 {
-    std::string_view Key;
-    GameData::Kind Section;
-};
+    void* table = FindVirtualTable(entry.Library.c_str(), entry.Class.c_str());
+    if (!table)
+        return std::unexpected(Error::Engine(std::format("no vtable for '{}' in '{}'", entry.Class, entry.Library)));
 
-/** The resolution for @p key, or nullptr when gamedata has no such key. */
-static const GameData::Resolution* Find(const GameData& data, std::string_view key)
-{
-    auto it = data.Resolutions().find(std::string(key));
-    return it == data.Resolutions().end() ? nullptr : &it->second;
+    // Accept executable trampolines installed by other hooks.
+    if (!IsExecutableAddress(static_cast<void**>(table)[entry.Index]))
+        return std::unexpected(Error::Engine(std::format("{}::[{}] does not hold code", entry.Class, entry.Index)));
+
+    return VTableRef(entry.Class, table);
 }
 
-/** Why @p key is unusable as a @p section entry, or empty when it resolved. */
-static std::string EntryError(const GameData& data, std::string_view key, GameData::Kind section)
+/** Binds each member and records the first failure for each capability. */
+class Binder
 {
-    const auto* entry = Find(data, key);
-    if (!entry)
-        return std::format("'{}' is not in gamedata", key);
-    if (entry->Section != section)
-        return std::format("'{}' is a {} entry, not a {} one", key, Name(entry->Section), Name(section));
-    if (!entry->Error.empty())
-        return std::format("{}: {}", key, entry->Error);
-    return {};
-}
+public:
+    Binder(const GameData& data, Capabilities& caps) : _data(data), _caps(caps) {}
 
-/** The resolved address of a signature or address entry, or nullptr. */
-static void* AddressOf(const GameData& data, std::string_view key)
-{
-    const auto* entry = Find(data, key);
-    return entry && entry->Error.empty() ? entry->Address : nullptr;
-}
-
-/** The resolved index of a vtable or offset entry, or -1. */
-static int IndexOf(const GameData& data, std::string_view key)
-{
-    const auto* entry = Find(data, key);
-    return entry && entry->Error.empty() ? entry->Index : -1;
-}
-
-/**
- * Locate the class vtable a DVP hook binds to, and confirm the slot @p key names holds code.
- *
- * The class name drifts exactly like the index does, and a name that resolves to some other
- * class's table would leave the hook silently never firing. Checking that the slot holds code
- * catches both that and an index past the end of a real table.
- */
-static Result<VTableRef> BindVTable(const GameData& data, std::string_view key)
-{
-    const auto* entry = Find(data, key);
-    if (!entry || entry->Section != GameData::Kind::VTable || !entry->Error.empty())
-        return std::unexpected(Error::Unsupported(EntryError(data, key, GameData::Kind::VTable)));
-
-    void* table = FindVirtualTable(entry->Library.c_str(), entry->Class.c_str());
-    if (!table)  // FindVirtualTable already logged which step failed
-        return std::unexpected(Error::Engine(std::format("no vtable for '{}' in '{}'", entry->Class, entry->Library)));
-
-    // A slot another plugin has already hooked points at that hook's trampoline, which is still
-    // code; only a slot holding data means the table or the index is wrong.
-    if (!IsExecutableAddress(static_cast<void**>(table)[entry->Index]))
-        return std::unexpected(Error::Engine(std::format("{}::[{}] does not hold code", entry->Class, entry->Index)));
-
-    return VTableRef(entry->Class, table);
-}
-
-/** Record @p capability from the keys it needs; the first failure is the reason. */
-static void Gate(const GameData& data, Capabilities& caps, Capability capability,
-                 std::initializer_list<RequiredEntry> required)
-{
-    for (const auto& entry : required)
+    template <class Sig>
+    void operator()(Fn<Sig>& member, std::string_view key, std::optional<Capability> capability = {})
     {
-        std::string error = EntryError(data, entry.Key, entry.Section);
-        if (!error.empty())
-        {
-            caps.Set(capability, false, std::move(error));
+        if (const auto* entry = Claim(key, GameData::Kind::Signature, capability))
+            member = Fn<Sig>(entry->Address);
+    }
+
+    template <class Sig>
+    void operator()(VFn<Sig>& member, std::string_view key, std::optional<Capability> capability = {})
+    {
+        if (const auto* entry = Claim(key, GameData::Kind::VTable, capability))
+            member = VFn<Sig>(entry->Index);
+    }
+
+    template <class T>
+    void operator()(OffsetOf<T>& member, std::string_view key, std::optional<Capability> capability = {})
+    {
+        if (const auto* entry = Claim(key, GameData::Kind::Offset, capability))
+            member = OffsetOf<T>(entry->Index);
+    }
+
+    void Signature(Address& member, std::string_view key, std::optional<Capability> capability = {})
+    {
+        if (const auto* entry = Claim(key, GameData::Kind::Signature, capability))
+            member = Address(entry->Address);
+    }
+
+    void Global(Address& member, std::string_view key, std::optional<Capability> capability = {})
+    {
+        if (const auto* entry = Claim(key, GameData::Kind::Address, capability))
+            member = Address(entry->Address);
+    }
+
+    template <class Sig>
+    void operator()(VHookBinding<Sig>& member, std::string_view key, Capability capability)
+    {
+        const auto* entry = Claim(key, GameData::Kind::VTable, capability);
+        if (!entry)
             return;
+
+        member.Method = VFn<Sig>(entry->Index);
+        if (auto table = BindVTable(*entry))
+            member.Table = std::move(*table);
+        else
+            Fail(capability, std::move(table.error().Detail));
+    }
+
+    void Finish()
+    {
+        for (Capability capability : EnumValues<Capability>())
+        {
+            const auto index = EnumIndex(capability);
+            auto& result = _results[index];
+            if (!result.Seen)
+                continue;
+
+            const bool ok = result.Error.empty();
+            _caps.Set(capability, ok, std::move(result.Error));
         }
     }
-    caps.Set(capability, true);
-}
 
-/** Bind one DVP-hook table, folding a failure into the capability that needs it. */
-static void GateTable(const GameData& data, Capabilities& caps, Capability capability, std::string_view key,
-                      VTableRef& target)
-{
-    if (!caps.Has(capability))
-        return;  // an earlier key already failed this capability; keep the first reason
-
-    auto table = BindVTable(data, key);
-    if (!table)
+private:
+    struct CapabilityResult
     {
-        caps.Set(capability, false, table.error().Detail);
-        return;
+        bool Seen = false;
+        std::string Error;
+    };
+
+    const GameData::Resolution* Claim(std::string_view key, GameData::Kind section,
+                                      std::optional<Capability> capability)
+    {
+        if (capability)
+            _results[EnumIndex(*capability)].Seen = true;
+
+        const auto it = _data.Resolutions().find(std::string(key));
+        std::string error;
+        if (it == _data.Resolutions().end())
+            error = std::format("'{}' is not in gamedata", key);
+        else if (it->second.Section != section)
+            error = std::format("'{}' is a {} entry, not a {} one", key, Name(it->second.Section), Name(section));
+        else if (!it->second.Error.empty())
+            error = std::format("{}: {}", key, it->second.Error);
+        else
+            return &it->second;
+
+        if (capability)
+            Fail(*capability, std::move(error));
+        else
+            Log::Warn("Bindings: {}", error);
+
+        return nullptr;
     }
-    target = std::move(*table);
-}
+
+    void Fail(Capability capability, std::string reason)
+    {
+        auto& result = _results[EnumIndex(capability)];
+        if (result.Error.empty())
+            result.Error = std::move(reason);
+    }
+
+    const GameData& _data;
+    Capabilities& _caps;
+    std::array<CapabilityResult, EnumCount<Capability>> _results{};
+};
 
 Status Bindings::Bind(const GameData& data, Capabilities& caps)
 {
-    using Kind = GameData::Kind;
-
     if (data.Resolutions().empty())
         return std::unexpected(Error::NotReady("gamedata is empty; nothing to bind"));
 
-    CreateEntityByName = Fn<CEntityInstance*(const char*, int)>(AddressOf(data, "CreateEntityByName"));
-    DispatchSpawn = Fn<void(CEntityInstance*, CEntityKeyValues*)>(AddressOf(data, "DispatchSpawn"));
-    AcceptInput = Fn<void(CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, void*, int, void*)>(
-        AddressOf(data, "CEntityInstance_AcceptInput"));
-    AddEntityIOEvent = Fn<void(void*, CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, void*, float,
-                               int, void*, void*)>(AddressOf(data, "CEntitySystem_AddEntityIOEvent"));
-    UtilRemove = Fn<void(CEntityInstance*)>(AddressOf(data, "UTIL_Remove"));
-    SetModel = Fn<void(CEntityInstance*, const char*)>(AddressOf(data, "CBaseModelEntity_SetModel"));
-    EmitSoundParams =
-        Fn<void(CEntityInstance*, const char*, int, float, float)>(AddressOf(data, "CBaseEntity_EmitSoundParams"));
-    EmitSoundFilter = Address(AddressOf(data, "CBaseEntity_EmitSoundFilter"));
-    FindEntityByClassName = Fn<CEntityInstance*(void*, CEntityInstance*, const char*)>(
-        AddressOf(data, "CGameEntitySystem_FindEntityByClassName"));
-    FindEntityByName =
-        Fn<CEntityInstance*(void*, CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, CEntityInstance*,
-                            void*)>(AddressOf(data, "CGameEntitySystem_FindEntityByName"));
-    LegacyGameEventListener = Address(AddressOf(data, "LegacyGameEventListener"));
+    Binder bind(data, caps);
 
-    GameEventManager = Address(AddressOf(data, "GameEventManager"));
-    GameSystemFactoryList = Address(AddressOf(data, "GameSystemFactoryList"));
-    GameSystemEventDispatcher = Address(AddressOf(data, "GameSystemEventDispatcher"));
-    GameSystemList = Address(AddressOf(data, "GameSystemList"));
+    // Signatures
+    bind(CreateEntityByName, "CreateEntityByName", Capability::EntityOps);
+    bind(DispatchSpawn, "DispatchSpawn", Capability::EntityOps);
+    bind(AcceptInput, "CEntityInstance_AcceptInput");
+    bind(AddEntityIOEvent, "CEntitySystem_AddEntityIOEvent");
+    bind(UtilRemove, "UTIL_Remove");
+    bind(SetModel, "CBaseModelEntity_SetModel");
+    bind(EmitSoundParams, "CBaseEntity_EmitSoundParams");
+    bind.Signature(EmitSoundFilter, "CBaseEntity_EmitSoundFilter");
+    bind(FindEntityByClassName, "CGameEntitySystem_FindEntityByClassName");
+    bind(FindEntityByName, "CGameEntitySystem_FindEntityByName");
+    bind.Signature(LegacyGameEventListener, "LegacyGameEventListener");
 
-    CommitSuicide = VFn<void(bool, bool)>(IndexOf(data, "CommitSuicide"));
-    ChangeTeam = VFn<void(int)>(IndexOf(data, "ChangeTeam"));
-    Respawn = VFn<void()>(IndexOf(data, "Respawn"));
-    Teleport = VFn<void(const Vector*, const QAngle*, const Vector*)>(IndexOf(data, "Teleport"));
-    RunCommand = VFn<void*(void*)>(IndexOf(data, "RunCommand"));
-    GiveNamedItem = VFn<void*(const char*)>(IndexOf(data, "GiveNamedItem"));
-    RemoveAllItems = VFn<void(bool)>(IndexOf(data, "RemoveAllItems"));
-    ProcessRespondCvarValue = VFn<bool(const void*)>(IndexOf(data, "ProcessRespondCvarValue"));
+    // Addresses
+    bind.Global(GameEventManager, "GameEventManager", Capability::GameEvents);
+    bind.Global(GameSystemFactoryList, "GameSystemFactoryList", Capability::Precache);
+    bind.Global(GameSystemEventDispatcher, "GameSystemEventDispatcher", Capability::Precache);
+    bind.Global(GameSystemList, "GameSystemList", Capability::Precache);
 
-    GameEntitySystem = OffsetOf<CGameEntitySystem*>(IndexOf(data, "GameEntitySystem"));
-    CheckTransmitPlayerSlot = OffsetOf<uint8_t>(IndexOf(data, "CheckTransmitPlayerSlot"));
-    ServerSideClientSlot = OffsetOf<int>(IndexOf(data, "ServerSideClientSlot"));
-    UserCmdPB = OffsetOf<void>(IndexOf(data, "UserCmdPB"));
-    UserCmdNumber = OffsetOf<int32_t>(IndexOf(data, "UserCmdNumber"));
+    // Virtual functions
+    bind(CommitSuicide, "CommitSuicide");
+    bind(ChangeTeam, "ChangeTeam");
+    bind(Respawn, "Respawn");
+    bind(Teleport, "Teleport", Capability::Teleport);
+    bind(GiveNamedItem, "GiveNamedItem", Capability::Items);
+    bind(RemoveAllItems, "RemoveAllItems", Capability::Items);
+    bind(RunCommand, "RunCommand", Capability::Movement);
+    bind(ProcessRespondCvarValue, "ProcessRespondCvarValue", Capability::ClientCvars);
 
-    // Capabilities that gamedata alone decides. The rest (Schema, Menus, Vote, Http) are recorded
-    // by Runtime::Start from their own setup.
-    Gate(data, caps, Capability::Entities, {{"GameEntitySystem", Kind::Offset}});
-    Gate(data, caps, Capability::EntityOps,
-         {{"CreateEntityByName", Kind::Signature},
-          {"DispatchSpawn", Kind::Signature},
-          {"CEntityInstance_AcceptInput", Kind::Signature}});
-    Gate(data, caps, Capability::GameEvents, {{"GameEventManager", Kind::Address}});
-    Gate(data, caps, Capability::Precache,
-         {{"GameSystemFactoryList", Kind::Address},
-          {"GameSystemEventDispatcher", Kind::Address},
-          {"GameSystemList", Kind::Address}});
-    Gate(data, caps, Capability::Items, {{"GiveNamedItem", Kind::VTable}, {"RemoveAllItems", Kind::VTable}});
-    Gate(data, caps, Capability::Teleport, {{"Teleport", Kind::VTable}});
-    Gate(data, caps, Capability::Transmit, {{"CheckTransmitPlayerSlot", Kind::Offset}});
-    // UserCmdNumber is not required: without it the decoder falls back to the protobuf counter.
-    Gate(data, caps, Capability::Movement, {{"RunCommand", Kind::VTable}, {"UserCmdPB", Kind::Offset}});
-    Gate(data, caps, Capability::ClientCvars,
-         {{"ProcessRespondCvarValue", Kind::VTable}, {"ServerSideClientSlot", Kind::Offset}});
+    // Offsets
+    bind(GameEntitySystem, "GameEntitySystem", Capability::Entities);
+    bind(CheckTransmitPlayerSlot, "CheckTransmitPlayerSlot", Capability::Transmit);
+    bind(ServerSideClientSlot, "ServerSideClientSlot", Capability::ClientCvars);
+    bind(UserCmdPB, "UserCmdPB", Capability::Movement);
+    // Optional: movement can use the protobuf counter instead.
+    bind(UserCmdNumber, "UserCmdNumber");
 
-    // The two class vtables, each folded into the capability whose hook binds it.
-    GateTable(data, caps, Capability::Movement, "RunCommand", MovementServices);
-    GateTable(data, caps, Capability::ClientCvars, "ProcessRespondCvarValue", ServerSideClient);
-
+    bind.Finish();
     return {};
 }
 

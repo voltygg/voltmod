@@ -187,7 +187,7 @@ Entities   -> Core, Engine
 Events     -> Core, Engine, Entities
 Messaging  -> Core, Engine, Entities, Events
 Players    -> Core, Engine, Entities
-Hooks      -> Core, Engine, Entities, Events, Messaging, Players, Unsafe
+Hooks      -> Core, Engine, Entities, Events, Players, Unsafe
 Commands   -> Core, Engine, Entities, Messaging, Players
 Menu       -> Core, Engine, Entities, Messaging, Players, Hooks
 Http       -> Core

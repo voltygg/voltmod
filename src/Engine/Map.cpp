@@ -33,7 +33,7 @@ bool Map::ChangeLevel(const char* name)
         return false;
     }
 
-    // s2 is the landmark argument, which only save-game transitions use.
+    // Landmark is used only by save-game transitions.
     _interfaces.Engine->ChangeLevel(name, nullptr);
     return true;
 }
@@ -46,7 +46,11 @@ bool Map::ChangeToWorkshop(uint64_t workshopId)
         return false;
     }
 
-    _conVars.ExecuteServerCommand(std::format("host_workshop_map {}", workshopId));
+    if (auto queued = _conVars.ExecuteServerCommand(std::format("host_workshop_map {}", workshopId)); !queued)
+    {
+        Log::Warn("Map::ChangeToWorkshop: {}", queued.error().Detail);
+        return false;
+    }
     return true;
 }
 

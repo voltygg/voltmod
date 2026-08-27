@@ -11,46 +11,12 @@
 namespace VoltMod
 {
 
-/**
- * @brief Removes one SourceHook hook by its id.
- *
- * A plain function pointer rather than a `std::function`: every @ref VtableHook stores one and
- * @ref Teleport keeps `MaxPlayers` of them, so this sits on `sizeof(Runtime)`'s budget.
- * @ref VOLTMOD_VHOOK1 and friends generate the real one; a test injects its own.
- */
+/** SourceHook removal function. */
 using VtableHookRemover = void (*)(int hookId);
 
 /**
- * @brief One installed manual SourceHook hook - a pre/post pair on a class vtable, or a single
- * side on one instance - owned as a value and removed when it goes away.
- *
- * The declaration half lives in a @ref VOLTMOD_VHOOK1 "VOLTMOD_VHOOK" macro at file scope; this is
- * the install half. Together they replace the reconfigure/add/id-bookkeeping that every hook
- * service used to repeat:
- *
- * @code
- * // exactly once per translation unit, at namespace scope
- * VOLTMOD_VHOOK1(MyPlugin_RunCommand, void*, void*);
- *
- * auto hook = VtableHook::OnVTable<MyPlugin_RunCommandHook>(
- *     "MyPlugin RunCommand", bindings.MovementServices, bindings.RunCommand.Index(), this,
- *     &MyPlugin::Hook_Pre, &MyPlugin::Hook_Post);
- * if (!hook)
- *     Log::Warn("{}", hook.error().Detail);   // nothing was installed
- * else
- *     _hook = std::move(*hook);               // dropping _hook removes both sides
- * @endcode
- *
- * **Pair-or-nothing.** When both sides are asked for and either is refused, nothing stays
- * installed and the error names the side that failed. Half a pair is worse than none: the
- * surviving post would run against state the pre it brackets never established, and a handler
- * cannot see that its counterpart is missing.
- *
- * **Removal is by id.** SourceHook resolves the id from what it recorded at add time and never
- * dereferences the hooked object, so @ref Reset is safe after a map change has freed every
- * instance the hook was bound to.
- *
- * Move-only, and moving transfers the ids: the moved-from hook removes nothing.
+ * Move-only owner for manual SourceHook registrations. Destruction removes all handlers. Hook
+ * pairs install atomically, and removal remains safe after instance destruction.
  */
 class VtableHook
 {
@@ -62,51 +28,22 @@ public:
     VtableHook(const VtableHook&) = delete;
     VtableHook& operator=(const VtableHook&) = delete;
 
-    /**
-     * Point @p Decl's hook at @p index and add @p pre and/or @p post on @p table (a DVP hook, so
-     * it covers every instance of the class and can install with none alive).
-     *
-     * @param Decl the `Name##Hook` traits type a `VOLTMOD_VHOOK*` declaration emitted.
-     * @param what what the hook is, for the install log line and every error's `Detail`.
-     * @param table the class vtable, from @ref Bindings.
-     * @param index the vtable slot, from `VFn::Index()`; a negative one is Unsupported.
-     * @param self the object whose member functions handle the calls.
-     * @param pre pre-handler member pointer, or `nullptr` for post only.
-     * @param post post-handler member pointer, or `nullptr` for pre only.
-     * @param sampleInstance optional live instance whose vptr is compared against @p table; a
-     *        mismatch means the gamedata class name drifted and only warns, since installing must
-     *        still work with no instance alive.
-     */
-    template <class Decl, class Self, class Pre, class Post>
-    static Result<VtableHook> OnVTable(std::string_view what, const VTableRef& table, int index, Self* self, Pre pre,
+    /** Install a pre-hook, post-hook, or both on a class vtable. */
+    template <class Decl, class Sig, class Self, class Pre, class Post>
+    static Result<VtableHook> OnVTable(std::string_view what, const VHookBinding<Sig>& binding, Self* self, Pre pre,
                                        Post post, void* sampleInstance = nullptr);
 
-    /**
-     * Point @p Decl's hook at @p index and add one side on @p instance alone.
-     *
-     * The handler then runs only for that object, so a caller binding many of them gets exactly
-     * one call per event however many are bound. @p instance must outlive the returned hook, or
-     * be released through @ref Reset before it dies.
-     */
+    /** Install one handler on one instance. Reset the hook before the instance is destroyed. */
     template <class Decl, class Self, class Handler>
     static Result<VtableHook> OnInstance(std::string_view what, void* instance, int index, Self* self, Handler handler,
                                          bool post);
 
-    /** Whether anything is installed. */
     explicit operator bool() const noexcept { return _preId != 0 || _postId != 0; }
 
-    /** Remove whatever is installed. Idempotent, and safe after the hooked instances are gone. */
+    /** Remove installed handlers. Safe to call repeatedly and after instance destruction. */
     void Reset() noexcept;
 
-    /**
-     * The pair-or-nothing policy itself, with SourceHook injected.
-     *
-     * @ref OnVTable and @ref OnInstance are the callers that matter; this is public because it is
-     * the seam that lets the policy be unit-tested without the SDK. @p add returns the hook id for
-     * one side, or 0 when SourceHook refused it, and is called at most once per requested side -
-     * post is not even attempted once a requested pre was refused. @p remove is stored in the
-     * result, so it must outlive it (a free function, never a capturing lambda).
-     */
+    /** SDK-free install policy used by tests. @p remove must outlive the returned hook. */
     static Result<VtableHook> Install(std::string_view what, bool wantPre, bool wantPost,
                                       const std::function<int(bool post)>& add, VtableHookRemover remove);
 
@@ -116,23 +53,22 @@ private:
     VtableHookRemover _remove = nullptr;
 };
 
-template <class Decl, class Self, class Pre, class Post>
-Result<VtableHook> VtableHook::OnVTable(std::string_view what, const VTableRef& table, int index, Self* self, Pre pre,
+template <class Decl, class Sig, class Self, class Pre, class Post>
+Result<VtableHook> VtableHook::OnVTable(std::string_view what, const VHookBinding<Sig>& binding, Self* self, Pre pre,
                                         Post post, void* sampleInstance)
 {
     constexpr bool wantPre = !std::is_null_pointer_v<Pre>;
     constexpr bool wantPost = !std::is_null_pointer_v<Post>;
     static_assert(wantPre || wantPost, "a VtableHook with neither side would install nothing");
 
+    const VTableRef& table = binding.Table;
+    const int index = binding.Method.Index();
     if (index < 0)
         return std::unexpected(Error::Unsupported(std::format("the {} vtable index did not bind", what)));
     if (!table)
         return std::unexpected(Error::Engine(std::format("the {} class vtable did not bind", what)));
 
-    // The class name drifts with game updates the way the index does, and nothing else here would
-    // notice: a wrong name resolves to another class's table and the hook then never fires. A live
-    // instance's own vptr is the ground truth to check against - but installing must still work
-    // from OnLoad with nothing alive, so a mismatch only warns.
+    // A live instance detects a stale gamedata class name without blocking early installation.
     if (sampleInstance && *static_cast<void**>(sampleInstance) != table.Table())
         Log::Warn("{}: a live instance's vtable differs from {}; wrong class name?", what, table.Class());
 
@@ -170,73 +106,46 @@ Result<VtableHook> VtableHook::OnInstance(std::string_view what, void* instance,
 
     Decl::Reconfigure(index);
 
-    // Per-instance binding is one-sided; which side it is comes from the caller.
     return Install(
         what, !post, post, [&](bool) { return Decl::AddInstance(instance, self, handler, post); }, &Decl::Remove);
 }
 
 }  // namespace VoltMod
 
-/**
- * @brief The body every `VOLTMOD_VHOOK*` declaration shares - not called directly.
- *
- * Emits `Name##Hook`, the traits type @ref VoltMod::VtableHook drives the SourceHook macros
- * through. Everything a macro name has to be a literal token for lives here, so the install code
- * itself is an ordinary template that never sees one.
- */
-#define VOLTMOD_VHOOK_TRAITS(Name)                                                                    \
-    struct Name##Hook                                                                                 \
-    {                                                                                                 \
-        /** The index the file-static descriptor currently points at; -1 before the first install. */ \
-        static inline int Configured = -1;                                                            \
-                                                                                                      \
-        /** SH_MANUALHOOK_RECONFIGURE mutates the file-static SH_DECL_MANUALHOOK created, which would \
-         *  break every hook already added through it. Gamedata resolves once per process, so the     \
-         *  repeat call is always the same index and is skipped here rather than repointing a live    \
-         *  hook. */                                                                                  \
-        static void Reconfigure(int index)                                                            \
-        {                                                                                             \
-            if (Configured == index)                                                                  \
-                return;                                                                               \
-            SH_MANUALHOOK_RECONFIGURE(Name, index, 0, 0);                                             \
-            Configured = index;                                                                       \
-        }                                                                                             \
-                                                                                                      \
-        /** Add one side on a class vtable; 0 when SourceHook refused it. */                          \
-        template <class Self, class Fn>                                                               \
-        static int AddVTable(void* table, Self* self, Fn fn, bool post)                               \
-        {                                                                                             \
-            return SH_ADD_MANUALDVPHOOK(Name, table, SH_MEMBER(self, fn), post);                      \
-        }                                                                                             \
-                                                                                                      \
-        /** Add one side on a single instance; 0 when SourceHook refused it. */                       \
-        template <class Self, class Fn>                                                               \
-        static int AddInstance(void* instance, Self* self, Fn fn, bool post)                          \
-        {                                                                                             \
-            return SH_ADD_MANUALHOOK(Name, instance, SH_MEMBER(self, fn), post);                      \
-        }                                                                                             \
-                                                                                                      \
-        static void Remove(int hookId) { SH_REMOVE_HOOK_ID(hookId); }                                 \
+/** Traits emitted by each `VOLTMOD_VHOOK*` declaration. */
+#define VOLTMOD_VHOOK_TRAITS(Name)                                               \
+    struct Name##Hook                                                            \
+    {                                                                            \
+        /** Current SourceHook descriptor slot. */                               \
+        static inline int Configured = -1;                                       \
+                                                                                 \
+        /** Keep a live descriptor on its configured slot. */                    \
+        static void Reconfigure(int index)                                       \
+        {                                                                        \
+            if (Configured == index)                                             \
+                return;                                                          \
+            SH_MANUALHOOK_RECONFIGURE(Name, index, 0, 0);                        \
+            Configured = index;                                                  \
+        }                                                                        \
+                                                                                 \
+        template <class Self, class Fn>                                          \
+        static int AddVTable(void* table, Self* self, Fn fn, bool post)          \
+        {                                                                        \
+            return SH_ADD_MANUALDVPHOOK(Name, table, SH_MEMBER(self, fn), post); \
+        }                                                                        \
+                                                                                 \
+        template <class Self, class Fn>                                          \
+        static int AddInstance(void* instance, Self* self, Fn fn, bool post)     \
+        {                                                                        \
+            return SH_ADD_MANUALHOOK(Name, instance, SH_MEMBER(self, fn), post); \
+        }                                                                        \
+                                                                                 \
+        static void Remove(int hookId) { SH_REMOVE_HOOK_ID(hookId); }            \
     }
 
 /**
- * @brief Declare one hooked virtual function, at namespace scope in the .cpp that owns the hook.
- *
- * `VOLTMOD_VHOOK<arity>(Name, Ret, params...)` for a value return and
- * `VOLTMOD_VHOOK<arity>_VOID(Name, params...)` for `void`, arities 0 to 4. Each emits SourceHook's
- * manual-hook declaration plus the `Name##Hook` traits type @ref VoltMod::VtableHook::OnVTable and
- * @ref VoltMod::VtableHook::OnInstance take as their first template argument.
- *
- * The .cpp must include the SourceHook globals (`<VoltMod/Engine/MetamodGlobals.hpp>`) before
- * using one; this header deliberately does not, so it stays free of the SDK.
- *
- * **One hooked vfunc per translation unit.** The declaration expands to namespace-scope
- * definitions and a file-static descriptor that `Reconfigure` mutates, so a second TU declaring
- * the same `Name` is a duplicate symbol, and one `Name` may never stand for two vfuncs.
- *
- * Spell the signature the way the engine declares it. A pre/post observer never touches the
- * parameters or the return, so `void*` stands in wherever the type is one no public header can
- * name.
+ * Declare one manual virtual hook at namespace scope. Use `_VOID` for void returns. Include
+ * `MetamodGlobals.hpp` first, use a unique name, and match the engine signature.
  *
  * @code
  * // void* CPlayer_MovementServices::RunCommand(CUserCmd*)

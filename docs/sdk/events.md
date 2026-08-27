@@ -18,10 +18,8 @@ auto death = events.On<PlayerDeath>([](const PlayerDeath& e) {
 // Keep `death` beside the state captured by the handler.
 ```
 
-There is no string form. An event nobody has modeled is one nobody decodes
-consistently, so consuming a new one means adding its struct to
-`EventTypes.hpp` first - a `Name`, the fields you need, and a `From(IGameEvent&)`
-that decodes them once:
+There is no string form. Add new event types to `EventTypes.hpp` with a `Name`, fields, and a
+`From(IGameEvent&)` decoder:
 
 ```cpp
 struct BombPlanted
@@ -37,9 +35,11 @@ You can also create and fire events (`CreateEvent` / `FireEvent` / `FreeEvent`);
 
 ### BulletImpact: correlate by tick, not identity
 
-@ref VoltMod::BulletImpact "BulletImpact" fires once per bullet landing, so one shotgun blast produces several. Its catch is that the engine truncates the event's `userid` to its low byte before sending it, so the value does not round-trip to a player: `Slot` is a best-effort decode that is `-1` whenever the truncated id names no live player, and it can name the *wrong* player when two userids share a low byte.
+@ref VoltMod::BulletImpact fires once per bullet landing. The engine truncates `userid` to one byte,
+so `Slot` is best effort and may be `-1` or identify the wrong player.
 
-Attribute impacts to a shot by **tick proximity** (the impacts belonging to a `WeaponFire`, or to a usercmd carrying an attack, arrive in the same tick), and use `TruncatedUserId` only to disambiguate among candidates in that tick. Never key state on `Slot` alone.
+Correlate impacts by tick and use `TruncatedUserId` only to disambiguate candidates. Never key state
+on `Slot` alone.
 
 ```cpp
 events.On<VoltMod::BulletImpact>([&clock = runtime.Clock](const VoltMod::BulletImpact& e) {
@@ -49,26 +49,24 @@ events.On<VoltMod::BulletImpact>([&clock = runtime.Clock](const VoltMod::BulletI
 
 ### PlayerDeath.Penetrated
 
-`Penetrated` is the number of surfaces the killing bullet passed through; `> 0` is a wallbang. It is the field that tells a legitimate-looking kill apart from one taken through geometry the shooter could not see.
+`Penetrated` counts surfaces crossed by the killing bullet; values above zero indicate a wallbang.
 
 ### Handler lifecycle
 
-Call `On<T>` during plugin load and keep the returned `Subscription`. The
-framework handles a Source engine quirk: `AddListener` succeeds
-before the first map, but the engine resets its listener table during each map
-startup. The framework re-attaches every listener from its `StartupServer` hook
-on every map start. Use `Attached N/N game event listener(s) at map start.` in
-the server log as the health check.
+Call `On<T>` during plugin load and retain the returned `Subscription`. The framework reattaches
+listeners after the engine resets them at map startup.
 
 Related lifecycle points:
 
-- `MetamodPlugin::OnServerStartup(mapName)` is the plugin-facing map-start callback. The engine resets game convars and re-execs gamemode cfgs around map init, so values set at load time may need re-asserting from here or from a `RoundStart` handler. The same hook stores the map in `runtime.Map`, readable back via `runtime.Map.Current()`, so a plugin that only wants to stamp the current map on a record does not need to override anything. Note that it stays empty after a late (mid-map) load until the next map change.
-- On `meta reload`, `Shutdown` detaches everything (`RemoveAllListeners`), and the fresh load re-registers, so there is no double dispatch.
-- A handler may subscribe or unsubscribe while it runs: dispatch works from a snapshot of the registrations and re-resolves each one before calling it, so the set is free to change underneath. A handler removed by an earlier one in the same event does not fire; one added during it starts with the next event.
+- `OnServerStartup(mapName)` runs at map start. Reapply convars here or on `RoundStart` if map init
+  resets them. `runtime.Map.Current()` stays empty after a mid-map load until the next map.
+- `meta reload` detaches old listeners before the new load registers them.
+- Handlers may subscribe or unsubscribe during dispatch. New handlers start with the next event.
 
 ### Inspecting a client's own subscriptions
 
-`GetClientLegacyListener(slot)` returns the engine-side listener object the game keeps for that client: the client's own subscription handle, not a framework listener. Firing an event at it delivers to that one client (this is how @ref VoltMod::Messages "Messages" sends center HTML). It is `nullptr` when the slot has no client or when the `"LegacyGameEventListener"` gamedata signature did not resolve.
+`GetClientLegacyListener(slot)` returns the client's engine listener, or `nullptr` when unavailable.
+Targeting it sends an event to that client only.
 
 `ClientListensTo(slot, eventName)` asks the event manager whether that handle is subscribed to a given event:
 
@@ -77,19 +75,18 @@ if (runtime.GameEvents.ClientListensTo(slot, "player_death"))
     /* ... */;
 ```
 
-A vanilla client subscribes only to the events its HUD needs, so a subscription it has no business holding is a fingerprint of injected client code. Both calls degrade to `nullptr`/`false` rather than failing, so `false` means "not subscribed **or** unavailable". Resolve `GetClientLegacyListener` once and check it for null if you need to tell those apart.
+Unexpected subscriptions can indicate injected client code. `false` also means unavailable; check
+`GetClientLegacyListener` first when that distinction matters.
 
 ## ConVars
 
-One convar is one typed handle. @ref VoltMod::ConVar "ConVar<T>" resolves a name once and then
-reads and writes without another lookup; `T` is the convar's own engine type - `bool`, `int`,
-`float` or `std::string` - and `Find` refuses a convar of a different kind, so setting an `int` on
-a `bool` convar is an error rather than the silent no-op it used to be.
+@ref VoltMod::ConVar resolves once and supports `bool`, `int`, `float`, and `std::string`. `Find`
+rejects type mismatches.
 
 ```cpp
 auto& cvars = runtime.ConVars;
 
-auto gravity = VoltMod::ConVar<float>::Find(cvars, "sv_gravity");
+auto gravity = cvars.Find<float>("sv_gravity");
 if (!gravity)
     Log::Warn("sv_gravity unusable: {}", gravity.error().Detail);   // NotFound, or Invalid on a type mismatch
 else
@@ -97,20 +94,15 @@ else
 
 cvars.ExecuteServerCommand("mp_restartgame 1");
 
-// Every engine-side change. The first subscription installs ICvar's global change callback and
-// dropping the last one removes it, so nothing is hooked while nobody is listening.
+// The global engine callback exists only while Changed has subscribers.
 _changes = cvars.Changed += [](const VoltMod::ConVarChange& e) {
     if (e.Name == "sv_cheats")
         /* e.OldValue, e.NewValue */;
 };
 ```
 
-The three fields are `string_view`s over engine storage that live only for the duration of the
-handler, so copy whatever you keep.
-
-A registered convar outlives map changes, so resolve a handle once - in your `Start()` - and keep
-it as a member. A handle that never resolved is falsy, reads as `T{}` and refuses
-every write, so a server without the convar degrades rather than crashing.
+Change fields borrow engine storage and live only during the handler. Resolve convars once and keep
+their handles. Unresolved handles are falsy, read as `T{}`, and reject writes.
 
 ### Writing values
 
@@ -122,9 +114,8 @@ without callbacks or networking and restores the previous value when the scope i
 
 ### Taking a convar over server-wide
 
-A feature that overrides a server convar owes the operator two things: save their value before the
-*first* write, and restore only what it actually took. @ref VoltMod::ConVarOverrides "ConVarOverrides"
-holds those snapshots, and writes through the console so replicated convars reach clients:
+@ref VoltMod::ConVarOverrides saves the original before the first write and restores only values it
+changed:
 
 ```cpp
 VoltMod::ConVarOverrides overrides{runtime.ConVars}; // restores on destruction
@@ -133,17 +124,13 @@ overrides.Set(gravity, 250.0f);                // false when the handle never re
 overrides.Restore(gravity);                    // no-op when it never changed it
 ```
 
-`Set` saves on the first change and re-asserts afterwards, so calling it every round is correct
-and necessary - the engine resets convars around a map change, and an override that is not
-re-asserted silently lapses. The destructor calls `RestoreAll()`, which is what makes unload safe.
-The admin-system fun toggles and bhop's "enabled" mode both drive one of these.
+Later `Set` calls reapply the override without replacing the saved original. Reapply after map
+resets. Destruction calls `RestoreAll()`.
 
 ### Per-client replication
 
-`SetFor(slot, value)` sends `CNETMsg_SetConVar` to a single client, so only that client's view of a
-replicated convar changes; the server value and every other client are untouched. This is how you
-make *one* player's prediction run with different movement settings (bhop pushes
-`sv_autobunnyhopping` to granted players):
+`SetFor(slot, value)` changes one client's replicated view without changing the server or other
+clients:
 
 ```cpp
 autoBhop.SetFor(slot, true);
@@ -154,10 +141,8 @@ The client's connect/map-change snapshot restores the server value, so re-send t
 
 ### Scoped raw flips
 
-`RawScope(value)` pokes the convar's value storage - no change callbacks, nothing networked - and
-puts the previous value back when the returned scope dies. Use it around one player's processing
-(inside a @ref VoltMod::Movement "Movement" pre/post pair), where a broadcast would leak the change
-to everyone:
+`RawScope(value)` changes storage without callbacks or networking, then restores it on destruction.
+Use it for a narrow server-side window:
 
 ```cpp
 {
@@ -166,9 +151,7 @@ to everyone:
 }                                          // the operator's value is back
 ```
 
-When the window is a hook pair rather than a C++ block, keep the scope in a member and drop it in
-the post hook - that is what bhop's grants mode does. The scope refers to the handle, so the handle
-has to outlive it.
+For hook pairs, store the scope in a member and release it in post. The handle must outlive it.
 
 ## Map
 
@@ -186,7 +169,7 @@ maps.ChangeToWorkshop(3070563536ull);  // workshop maps are addressed by publish
 ```
 
 `IsValid` only answers for plain names. A workshop map is addressed by id and is not mounted
-until it loads, so there is nothing to probe - check those at load by other means or accept the
+until it loads, so there is nothing to probe. Check those at load by other means or accept the
 engine's own failure.
 
 `maps.Current()` returns the map the server is running, captured from `StartupServer`. It is

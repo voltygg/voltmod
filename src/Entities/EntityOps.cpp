@@ -12,8 +12,7 @@
 namespace VoltMod
 {
 
-// CS2's sound-event EmitSound_t; layout copied from CS2Fixes (src/voltmod_sdk/entity/
-// globaltypes.h) - NOT the legacy Source1 struct in the SDK's shareddefs.h.
+// CS2 EmitSound_t layout from CS2Fixes, not the legacy Source 1 SDK type.
 struct EmitSoundParams
 {
     const char* SoundName = nullptr;       // 0x00
@@ -26,13 +25,12 @@ struct EmitSoundParams
     int16_t Pitch = 100;                   // 0x28
     uint8_t Flags = 0;                     // 0x2a
 };
-// Passed by const reference, so only field offsets matter to the engine ABI.
+// The engine receives this by reference, so field offsets define the ABI.
 static_assert(offsetof(EmitSoundParams, Volume) == 0x14);
 static_assert(offsetof(EmitSoundParams, ForceGuid) == 0x20);
 static_assert(offsetof(EmitSoundParams, Pitch) == 0x28);
 
-// Returned by value from the EmitSoundFilter engine call; the exact size matters
-// for the hidden sret ABI. Copied from CS2Fixes.
+// EmitSoundFilter returns this through the hidden sret ABI.
 #pragma pack(push, 1)
 struct StartSoundEventInfo
 {
@@ -44,15 +42,11 @@ struct StartSoundEventInfo
 #pragma pack(pop)
 static_assert(sizeof(StartSoundEventInfo) == 20);
 
-// StartSoundEventInfo is returned by value through the hidden sret pointer, so this prototype
-// cannot live in the public header the way the rest of the entity bindings do.
-// Mirrors CS2Fixes' src/addresses.h; re-verify there after CS2 updates.
+// Keep this sret prototype aligned with CS2Fixes after game updates.
 using EmitSoundFilterFn = StartSoundEventInfo (*)(IRecipientFilter& filter, CEntityIndex sourceIndex,
                                                   const EmitSoundParams& params);
 
-// Collapses the guard + dispatch the AcceptInput* wrappers all repeat; each only differs in how it
-// builds the variant_t, which is why this stays here rather than on the class: the public header
-// cannot name that type.
+// The public header cannot expose the SDK's variant_t.
 static void FireInput(const Bindings& bindings, CEntityInstance* entity, const char* input, variant_t& value,
                       CEntityInstance* activator, CEntityInstance* caller)
 {
@@ -63,8 +57,7 @@ static void FireInput(const Bindings& bindings, CEntityInstance* entity, const c
 
 bool EntityOps::CanSpawn() const
 {
-    return static_cast<bool>(_bindings.CreateEntityByName) && static_cast<bool>(_bindings.DispatchSpawn) &&
-           static_cast<bool>(_bindings.AcceptInput);
+    return static_cast<bool>(_bindings.CreateEntityByName) && static_cast<bool>(_bindings.DispatchSpawn);
 }
 
 CEntityInstance* EntityOps::CreateByName(const char* className)
@@ -112,9 +105,7 @@ void EntityOps::AcceptInputFloat(CEntityInstance* entity, const char* input, flo
 
 void EntityOps::SetModelScale(CEntityInstance* entity, float scale)
 {
-    // Hard clamp: very large model scales blow up the collision hull and can destabilize
-    // or crash the server. This is the crash-safety bound, not a gameplay ceiling; keep every
-    // caller inside it regardless of input.
+    // Extreme scales can destabilize collision and crash the server.
     constexpr float MinSafeModelScale = 0.05f;
     constexpr float MaxSafeModelScale = 3.0f;
     AcceptInputFloat(entity, "SetScale", std::clamp(scale, MinSafeModelScale, MaxSafeModelScale));

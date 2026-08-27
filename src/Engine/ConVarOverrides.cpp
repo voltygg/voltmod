@@ -26,7 +26,8 @@ void ConVarOverrides::RestoreAll()
 
 void ConVarOverrides::Write(std::string_view name, std::string_view value)
 {
-    _conVars.ExecuteServerCommand(std::format("{} {}", name, value));
+    // Restoration is best effort during engine shutdown.
+    (void)_conVars.ExecuteServerCommand(std::format("{} {}", name, value));
 }
 
 }  // namespace VoltMod

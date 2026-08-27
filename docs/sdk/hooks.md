@@ -2,39 +2,29 @@
 
 [TOC]
 
-Every hook service here is **lazily installed**: subscribing to its event is what
-binds the engine, and dropping the last subscription unbinds it again. None of
-them has an `Install()`, `Enable()` or `Available()` of its own - whether the
-gamedata behind one resolved is @ref VoltMod::Capabilities "runtime.Capabilities",
-recorded once by `Runtime::Start` before any plugin's `OnLoad` runs. The last
-section shows how to hook an engine vfunc the framework does not cover, with the
-same two pieces the services use.
+Hook services install on their first subscription and uninstall with the last. Check
+@ref VoltMod::Capabilities "runtime.Capabilities" for gamedata availability. The last section
+covers custom engine vfunc hooks.
 
 ## Movement
 
-@ref VoltMod::Movement is a manual vtable hook on
-`CCSPlayer_MovementServices::RunCommand`, the per-tick movement entry point. It exposes five
-events; `Pre` and `Post` bracket one player's movement processing, which makes them the right
-place for per-player state flips (see @ref VoltMod::ConVar::RawScope "ConVar::RawScope").
-
-Subscribing is what installs the hook. The first subscription across all five events binds the
-class vtable; dropping the last one unbinds it. There is no `Install()` to call.
+@ref VoltMod::Movement hooks `CCSPlayer_MovementServices::RunCommand`. `Pre` and `Post` bracket one
+player's movement and suit scoped state changes such as @ref VoltMod::ConVar::RawScope.
 
 ```cpp
-// Every `+=` returns a [[nodiscard]] Subscription. Keep it as a member next to whatever the
-// handler captures, and the registration - and eventually the hook - goes away with that state.
+// Keep each Subscription beside the state captured by its handler.
 _pre  = runtime.Hooks.Movement.Pre  += [this](int slot) { /* before movement runs */ };
 _post = runtime.Hooks.Movement.Post += [this](int slot) { /* after it ran: restore */ };
 ```
 
 Hook contracts:
 
-- The hook is a SourceHook **DVP hook**: it binds the `CCSPlayer_MovementServices` class vtable, which is found in `server.dll`/`libserver.so` by the same RTTI (Windows) / ELF symbol (Linux) lookup @ref VoltMod::ClientCvars uses for `CServerSideClient`. No instance is involved, so subscribing from `OnLoad` with no player connected works, and the handlers then fire for every player, including ones who connect afterwards.
-- When gamedata cannot resolve the hook, the subscription is **refused**: `+=` hands back an empty `Subscription` and the framework logs why. A silent never-firing handler is the failure this replaces. Read `runtime.Capabilities.Has(Capability::Movement)` beforehand if you would rather not attempt it.
-- The pre and post sides go in as a **pair or not at all**. A lone post would run against state the pre it brackets never established, so if SourceHook refuses either side nothing stays installed and the log names the side that failed.
-- The owning slot is resolved for you (`-1` when unresolved, e.g. an instance mid-destruction).
-- Removal is by hook id. SourceHook resolves the id from what it recorded at add time and never dereferences the hooked object, so unsubscribing is safe after a map change has already destroyed every pawn.
-- Two things **drift with CS2 updates** and are resolved together at install time: the vtable index, which lives in gamedata as `"RunCommand"`, and the class name. A wrong index calls an unrelated vfunc and crashes; a wrong class name resolves to nothing (or to another class's table) and the hook silently never fires - when a pawn happens to be live, its vtable is compared against the resolved one and a mismatch warns. Re-verify both (against SwiftlyS2/CS2Fixes gamedata) after every game update.
+- The DVP hook binds the class vtable and covers current and future players.
+- Unresolved gamedata returns an empty `Subscription` and logs the reason.
+- Pre and post install atomically.
+- The slot is `-1` when its owner cannot be resolved.
+- Removal by hook id remains safe after pawn destruction.
+- Re-verify the `RunCommand` class and slot after CS2 updates. A wrong slot can crash.
 
 ### Cmd events: reading the usercmd
 
@@ -48,19 +38,23 @@ _preCmd = runtime.Hooks.Movement.PreCmd += [](int slot, const VoltMod::UserCmdVi
 };
 ```
 
-The decode happens only while `PreCmd` or `FilterCmd` has a handler; plain `Pre`/`Post` stay free of it. The payload's byte offset inside the `CUserCmd` wrapper lives in gamedata as `"UserCmdPB"` (cross-checked against CS2Fixes and SwiftlyS2) and, like the vtable index, **must be re-verified after CS2 updates**. A missing offset degrades to `Valid=false` views rather than crashing, but a *stale* one reads garbage.
+Decoding runs only for `PreCmd` or `FilterCmd` subscribers. Re-verify the `UserCmdPB` offset after
+CS2 updates. A missing offset yields `Valid=false`; a stale offset can read garbage.
 
 Important fields:
 
-- `CommandNumber` is the client's own command counter. It is read from the `int32` the `CUserCmd` wrapper carries next to its payload (gamedata `"UserCmdNumber"`, 8 bytes in, which is why the payload itself starts at 16), because the protobuf's `legacy_command_number` stays 0 on a live client and only serves as the fallback when that offset is missing. Consecutive commands differ by exactly 1, so a gap means commands were lost, reordered, or synthesized. It is the cheap integrity check on the command stream itself.
-- `HasViewAngles` says whether the command carried viewangles at all. When it is false the pitch/yaw/roll fields hold defaults, not a reading, so a `(0,0,0)` aim there is an absence rather than a measurement.
-- `ViewRoll` is the third viewangles component (`viewangles.z`), decoded alongside pitch and yaw. Only pitch and yaw are driven by the player's mouse, so roll is the axis that carries whatever the client put there.
+- `CommandNumber` comes from the wrapper because live clients leave protobuf
+  `legacy_command_number` at zero. Gaps indicate lost, reordered, or synthesized commands.
+- `HasViewAngles=false` means the angle values are defaults, not measurements.
+- `ViewRoll` is `viewangles.z`; mouse input drives only pitch and yaw.
 
 ### Input history and the cap
 
-`UserCmdView` also carries the per-shot input-history entries in `InputHistorySamples[k]` (`HasViewAngles`, `ViewPitch`/`ViewYaw`, `TargetEntIndex`), addressed by `Attack1StartHistoryIndex`/`Attack2StartHistoryIndex`. The shot's `view_angles` is the direction the bullet was actually fired along, which a cheat can diverge from the visible `ViewYaw`/`ViewPitch`, and that divergence is a silent-aim signature.
+`InputHistorySamples` stores per-shot angles and targets, addressed by
+`Attack1StartHistoryIndex` and `Attack2StartHistoryIndex`.
 
-The decode keeps at most `MaxInputHistory` (16) entries, but the attack indexes address the client's *full* `input_history` list, so the two can disagree. `InputHistoryTotalCount` is what the client sent and `InputHistorySampleCount` is what survived the cap; a greater total means the tail was dropped. Never clamp an out-of-range attack index back into the array; that silently reads a different shot's angles. Use the accessors:
+Only `MaxInputHistory` entries are retained. Attack indexes address the full client list, so use
+`SampleAt` and never clamp an out-of-range index:
 
 ```cpp
 const int index = cmd.Attack1StartHistoryIndex;
@@ -73,7 +67,7 @@ else if (index >= 0)
 // otherwise the index is -1: no attack started this command
 ```
 
-`SampleAt` returns `nullptr` for both the negative and the capped-away index, so compare the index against `InputHistoryTotalCount` to separate "never sent" from "capped away" from "no shot".
+Compare against `InputHistoryTotalCount` to distinguish absent, invalid, and capped samples.
 
 ### FilterCmd: editing the decoded usercmd
 
@@ -85,13 +79,15 @@ _filter = runtime.Hooks.Movement.FilterCmd += [](int slot, VoltMod::UserCmdView&
 };
 ```
 
-The edit touches only the decoded snapshot; the underlying `CUserCmd` the engine processes is untouched (the hook still returns `MRES_IGNORED`), so the game is unaffected. This is for test/diagnostic input synthesis (feeding a detector a fabricated command), not for changing gameplay; leave it unused in normal operation.
+Edits affect only the decoded snapshot, not the engine's `CUserCmd`. Use this for tests and
+diagnostics, not gameplay.
 
 ## Teleport
 
-@ref VoltMod::Teleport (`runtime.Hooks.Teleport`) raises `Teleported(slot)` whenever a player pawn is moved by `CBaseEntity::Teleport`. It exists because a teleport breaks continuity: origin and view angles jump discontinuously, so anything measuring motion across ticks (speed, aim deltas, distance travelled) reads the frame after a teleport as impossible. Discount that window instead of explaining it away.
+@ref VoltMod::Teleport raises `Teleported(slot)` when a player pawn moves through
+`CBaseEntity::Teleport`. Consumers can ignore the resulting discontinuity in motion data.
 
-The hook is all the service owns - it keeps no history. How long the window lasts, and in which clock, is the consumer's question, so the consumer keeps the stamps:
+The service keeps no history; consumers define and store their own grace window:
 
 ```cpp
 // Subscribing is what arms the per-pawn hook. PerSlot clears a stamp when the seat changes hands.
@@ -107,98 +103,73 @@ if (!JustTeleported(slot))       // your own window, against your own clock
 
 Semantics worth knowing:
 
-- The first subscription hooks the `"Teleport"` vtable index on every *live* pawn; the binding is per pawn, not per class, so exactly one handler call happens per teleport however many pawns are bound. A missing gamedata offset refuses the subscription (an empty `Subscription`) rather than tracking nothing quietly; `Capability::Teleport` carries the reason.
-- The slot argument is `-1` when the teleported pawn belongs to no player, so guard before indexing.
-- Respawning hands the player a brand-new pawn object, which makes the previous binding stale. The tracker re-binds from its own `PlayerSpawn` handler. Since a spawn also moves the player, **a spawn raises the event too**. If you only care about mid-life teleports, filter spawns yourself.
-- The framework's `StartupServer` hook drops every binding at map start, before the previous map's pawn addresses are recycled. If you stamp @ref VoltMod::Clock "runtime.Clock" times, remember that clock restarts with the map: a stamp ahead of the current time belongs to the previous one.
+- The first subscription hooks every live pawn; missing gamedata returns an empty subscription.
+- The slot is `-1` for non-player pawns.
+- Respawns rebind the new pawn and also raise the event.
+- Map startup clears bindings. `runtime.Clock` also restarts with the map.
 
 ## Hooking a vfunc the framework does not cover
 
-`<VoltMod/Unsafe/VtableHook.hpp>` is the same pair of pieces the four services
-above are built from. `Unsafe` is an opt-in tier, not a compatibility layer: a
-wrong vtable index calls an unrelated function and crashes the server, and
-nothing here can check that for you.
+Use `<VoltMod/Unsafe/VtableHook.hpp>` for vfuncs the framework does not expose. A wrong vtable slot
+can call unrelated code and crash the server.
 
-Two pieces, because a hook has two halves that cannot live in the same place:
+Custom hooks use two pieces:
 
-- `VOLTMOD_VHOOK<arity>(Name, Ret, params...)` (and `VOLTMOD_VHOOK<arity>_VOID`)
-  at **namespace scope in the .cpp that owns the hook**. It expands to
-  SourceHook's manual-hook declaration plus a `Name##Hook` traits type.
-- @ref VoltMod::VtableHook "VtableHook", the installed hook as a value. It owns
-  the SourceHook ids, and dropping it removes them.
+- `VOLTMOD_VHOOK*` at namespace scope declares the hook and its traits.
+- @ref VoltMod::VtableHook owns the installed SourceHook ids and removes them on destruction.
 
 ```cpp
 #include <VoltMod/Engine/MetamodGlobals.hpp>   // the SourceHook globals
 #include <VoltMod/Unsafe/VtableHook.hpp>
 
-// void CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*)
-VOLTMOD_VHOOK3_VOID(MyPlugin_Teleport, const Vector*, const QAngle*, const Vector*);
+// void* CPlayer_MovementServices::RunCommand(CUserCmd*)
+VOLTMOD_VHOOK1(MyPlugin_RunCommand, void*, void*);
 
-class TeleportWatcher
+class CommandWatcher
 {
     VoltMod::Runtime& _rt;
     VoltMod::VtableHook _hook;
 
     void Arm()
     {
-        // pre only, so post is nullptr; pass a live instance to have its vptr checked
-        // against the class table the gamedata name resolved to.
-        auto hook = VoltMod::VtableHook::OnVTable<MyPlugin_TeleportHook>(
-            "MyPlugin Teleport", _rt.Bindings.PlayerPawn, _rt.Bindings.Teleport.Index(),
-            this, &TeleportWatcher::Hook_Teleport, nullptr);
+        auto hook = VoltMod::VtableHook::OnVTable<MyPlugin_RunCommandHook>(
+            "MyPlugin RunCommand", _rt.Unsafe.Bindings.RunCommand,
+            this, &CommandWatcher::Hook_RunCommand, nullptr);
         if (!hook)
         {
-            VoltMod::Log::Warn("teleport watch off: {}", hook.error().Detail);
+            VoltMod::Log::Warn("command watch off: {}", hook.error().Detail);
             return;
         }
-        _hook = std::move(*hook);   // dropping _hook removes the hook
+        _hook = std::move(*hook);
     }
 
-    void Hook_Teleport(const Vector*, const QAngle*, const Vector*)
+    void* Hook_RunCommand(void* userCmd)
     {
-        Record(META_IFACEPTR(void));
-        RETURN_META(MRES_IGNORED);
+        Record(META_IFACEPTR(void), userCmd);
+        RETURN_META_VALUE(MRES_IGNORED, nullptr);
     }
 };
 ```
 
-`OnInstance` is the per-object form (SourceHook's `Hook_Normal`): it binds one
-live object rather than the class table, which is what @ref VoltMod::Teleport
-does per pawn. Re-bind it whenever the object is replaced - a respawn hands the
-player a brand-new pawn.
+`VHookBinding` keeps the slot and class table from one gamedata entry together. Direct calls use
+`VFn` to dispatch through an instance.
+
+`OnInstance` hooks one live object. Rebind when that object is replaced.
 
 ### One hooked vfunc per translation unit
 
-`VOLTMOD_VHOOK*` expands to namespace-scope *definitions* - hook-manager
-globals and add/remove functions named after `Name` - so a second translation
-unit declaring the same `Name` is a duplicate symbol at link time.
-
-The sharper reason is the descriptor. `SH_MANUALHOOK_RECONFIGURE`, which is how
-a gamedata-supplied index reaches the declaration, **mutates the file-static
-descriptor `SH_DECL_MANUALHOOK` created**. Two vfuncs sharing one `Name` would
-take turns repointing it, and whichever hook was already live would then be
-dispatched through the other one's slot. `VtableHook` re-points a declaration
-only when the index actually changes (gamedata resolves once per process, so in
-practice only the first install does anything), but the rule stands: one `Name`,
-one vfunc, one .cpp.
+`VOLTMOD_VHOOK*` emits namespace-scope definitions and a mutable SourceHook descriptor. Give each
+hook a unique name and keep one hooked vfunc per translation unit. Sharing a declaration can
+reconfigure a live hook to the wrong slot.
 
 ### What it does for you, and what it does not
 
-- **Pair-or-nothing.** Ask for both sides and either being refused leaves
-  nothing installed, with the error naming the side that failed.
-- **Removal is by id**, so `Reset()` (and the destructor) is safe after a map
-  change has already freed every instance the hook was bound to.
-- **The class-name cross-check.** Pass a live instance as the last argument and
-  its vptr is compared to the resolved class table; a mismatch means the gamedata
-  class name drifted, and warns.
-- It does **not** validate the index. That is gamedata's job, and re-verifying it
-  after a game update is yours - see @ref sdk_gamedata_guide.
-- Install from an `Event::Lifecycle` (as the framework services do) rather than
-  from `OnLoad` when the hook costs anything per call, so a plugin that never
-  subscribes never pays for it.
-- Keep the `VtableHook` next to the state its handler touches. A hook that
-  outlives its handler's object dispatches into freed memory; one that outlives
-  the plugin dispatches into an unloaded module.
+- A requested pre/post pair installs atomically.
+- `Reset()` remains safe after instance destruction because removal uses hook ids.
+- An optional live instance detects a mismatched class table.
+- Slot correctness still requires manual verification; see @ref sdk_gamedata_guide.
+- Use `Event::Lifecycle` for hooks that should exist only while subscribed.
+- Keep `VtableHook` beside the handler state so their lifetimes match.
 
 ## ServerCommand
 
@@ -217,13 +188,11 @@ class MyManager
 };
 ```
 
-Use server commands for console, RCON, cfg files, and loose automation. For a
-typed plugin-to-plugin contract, publish a versioned interface through
-`runtime.Exchange` and query it at the point of use. Plugins are separate
-modules, so never transfer ownership or allow exceptions across that boundary.
+Use server commands for console, RCON, cfg files, and loose automation. For typed plugin contracts,
+publish a versioned interface through `runtime.Exchange`. Do not transfer ownership or exceptions
+across plugin modules.
 
-Commands remain useful as a compatibility fallback. A caller can invoke one
-with `runtime.ConVars.ExecuteServerCommand("myplugin_do 765...")`; if the
-provider is absent, the engine reports an unknown command.
+Call commands with `runtime.ConVars.ExecuteServerCommand("myplugin_do 765...")`. If the provider is
+absent, the engine reports an unknown command.
 
 Construct only while the plugin is loaded (ICvar must be live), typically as a manager member, so unload unregisters it automatically.

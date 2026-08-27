@@ -12,13 +12,10 @@
 namespace VoltMod
 {
 
-// void* return/param stand in for the real CPlayer_MovementServices::RunCommand(CUserCmd*)
-// signature - a pre/post observer never touches either. Bound to the class vtable (DVP hook), so
-// it fires for every player without needing a live instance to bind to.
+// Hooks CPlayer_MovementServices::RunCommand for every player. The opaque types are unused.
 VOLTMOD_VHOOK1(VoltMod_MovementRunCommand, void*, void*);
 
-// The four events share one install: whichever is subscribed to first binds the vtable, and the
-// last subscription to drop across all of them unbinds it.
+// All movement events share one hook installation.
 Movement::Movement(EntitySystem& entities, const Bindings& bindings)
     : Pre({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
       Post({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
@@ -30,8 +27,7 @@ Movement::Movement(EntitySystem& entities, const Bindings& bindings)
 
 Movement::~Movement()
 {
-    // A Subscription that outlives this service would leave the vtable hook live across a
-    // meta reload, calling a handler in an unloaded module.
+    // Never leave a hook pointing into an unloaded module.
     if (_refs != 0)
         Log::Error("Movement: {} subscription(s) outlived the hook; a movement handler may dangle.", _refs);
 }
@@ -51,8 +47,8 @@ bool Movement::Acquire()
         _movementServices.fill(nullptr);
 
         auto hook = VtableHook::OnVTable<VoltMod_MovementRunCommandHook>(
-            "Movement RunCommand", _bindings.MovementServices, _bindings.RunCommand.Index(), this,
-            &Movement::Hook_RunCommandPre, &Movement::Hook_RunCommandPost, LiveMovementServices());
+            "Movement RunCommand", _bindings.RunCommand, this, &Movement::Hook_RunCommandPre,
+            &Movement::Hook_RunCommandPost, LiveMovementServices());
         if (!hook)
         {
             Log::Warn("Movement: {}; movement handlers will not fire.", hook.error().Detail);
@@ -69,7 +65,7 @@ void Movement::ReleaseRef()
     if (_refs > 0 && --_refs == 0)
     {
         _hook.Reset();
-        // Every cached pointer belongs to a pawn that may be freed before the next install.
+        // Pawn pointers may be stale after reinstall.
         _movementServices.fill(nullptr);
     }
 }
@@ -87,8 +83,7 @@ int Movement::SlotFromMovementServices(void* movementServices) const
     if (!movementServices)
         return -1;
 
-    // Cache this hot lookup, but confirm each hit so a recycled pointer cannot map
-    // to the wrong slot. A stale hit falls through to the rescan.
+    // Validate cached pointers before reuse.
     auto& entities = _entities;
     for (int slot = 0; slot < MaxPlayers; ++slot)
         if (_movementServices[slot] == movementServices && entities.MovementServices(slot) == movementServices)
@@ -115,8 +110,7 @@ void Movement::DecodeUserCmd(void* userCmd)
 
     _cmdView.Valid = true;
     _cmdView.ClientTick = base.client_tick();
-    // The counter the engine maintains lives in the CUserCmd wrapper, not the payload:
-    // legacy_command_number stays 0 on a live client, so it is only a fallback.
+    // Live clients keep the command number in the wrapper, not the protobuf payload.
     if (_bindings.UserCmdNumber)
         _cmdView.CommandNumber = _bindings.UserCmdNumber.Read(userCmd);
     else
@@ -176,8 +170,7 @@ void* Movement::Hook_RunCommandPre(void* userCmd)
     _preSlot = SlotFromMovementServices(META_IFACEPTR(void));
     if (!PreCmd.Empty() || !FilterCmd.Empty())
         DecodeUserCmd(userCmd);
-    // Filters edit the decoded view before anyone reads it, so every pre/preCmd handler
-    // observes the same edited command.
+    // Filters run before observers see the command.
     FilterCmd.Raise(_preSlot, _cmdView);
     Pre.Raise(_preSlot);
     PreCmd.Raise(_preSlot, _cmdView);
@@ -186,9 +179,7 @@ void* Movement::Hook_RunCommandPre(void* userCmd)
 
 void* Movement::Hook_RunCommandPost(void* /*userCmd*/)
 {
-    // Post always brackets the same RunCommand call as the preceding pre (movement is
-    // processed one player at a time, no nesting), so reuse the pre-resolved slot rather
-    // than repeating the work.
+    // RunCommand is non-nested, so post reuses the slot resolved by pre.
     Post.Raise(_preSlot);
     RETURN_META_VALUE(MRES_IGNORED, nullptr);
 }

@@ -16,20 +16,10 @@ namespace VoltMod
 
 /**
  * @file Bindings.hpp
- * @brief The typed view of gamedata: C++ owns every ABI, the JSON owns every location.
- *
- * Each member below is one gamedata key, and its C++ type is the contract - the prototype, the
- * vtable signature, the field type. Services take `const Bindings&` and read a field; nothing
- * looks an entry up by string on a call path, so a renamed or missing key is a compile error or a
- * load-time capability failure, never a silent null at the moment it is used.
+ * @brief Typed engine ABIs resolved from gamedata locations.
  */
 
-/**
- * @brief A resolved absolute address whose real prototype a public header cannot name.
- *
- * Used only where the ABI involves a type defined in one .cpp - a struct returned by value, a
- * template instantiation. That translation unit keeps the prototype and casts @ref Ptr itself.
- */
+/** Address for an ABI that can only be named in its implementation file. */
 class Address
 {
 public:
@@ -43,12 +33,7 @@ private:
     void* _address = nullptr;
 };
 
-/**
- * @brief A resolved engine function, called through its declared prototype.
- *
- * `explicit operator bool` is false until it binds; calling an unbound @ref Fn is undefined, so
- * every caller checks (or checks the owning @ref Capability) first.
- */
+/** Typed engine function. Calling an unbound function is undefined. */
 template <class Sig>
 class Fn;
 
@@ -71,13 +56,7 @@ private:
     void* _address = nullptr;
 };
 
-/**
- * @brief A virtual function, by the vtable index gamedata gives it.
- *
- * The parameter list is the callee's, without the implicit `this`: @ref Call takes the instance
- * separately. The game's vfuncs take their parameters by value, and spelling the signature out
- * here is what keeps an lvalue argument from being passed by address.
- */
+/** Typed virtual function. The signature excludes the explicit instance passed to @ref Call. */
 template <class Sig>
 class VFn;
 
@@ -90,10 +69,10 @@ public:
 
     explicit constexpr operator bool() const noexcept { return _index >= 0; }
 
-    /** The raw slot, for the hook macros that reconfigure a manual hook rather than call it. */
+    /** Vtable slot used by hook setup. */
     constexpr int Index() const noexcept { return _index; }
 
-    /** Dispatch on @p instance. Undefined when this is unbound or @p instance is null. */
+    /** Dispatch on @p instance. Both the binding and instance must be valid. */
     Ret Call(void* instance, Args... args) const
     {
         auto* vtable = *reinterpret_cast<void***>(instance);
@@ -104,13 +83,7 @@ private:
     int _index = -1;
 };
 
-/**
- * @brief A class's primary virtual function table, for hooks that bind the table itself.
- *
- * A DVP hook covers every instance of the class at once, which is what lets a hook install from
- * OnLoad with no player connected. The class name is kept for the log line, since a table found
- * under a drifted name is the failure this is most likely to hit.
- */
+/** Primary class vtable and its diagnostic name for DVP hooks. */
 class VTableRef
 {
 public:
@@ -126,12 +99,17 @@ private:
     void* _table = nullptr;
 };
 
-/**
- * @brief A validated byte offset to a `T` inside a layout the SDK does not declare.
- *
- * Reads and writes go through memcpy, so an offset that lands on an unaligned address is a wrong
- * value rather than undefined behaviour. Unbound reads return `T{}` and unbound writes do nothing.
- */
+/** DVP hook slot and class table from one gamedata entry. */
+template <class Sig>
+struct VHookBinding
+{
+    VFn<Sig> Method;
+    VTableRef Table;
+
+    explicit operator bool() const noexcept { return static_cast<bool>(Method) && static_cast<bool>(Table); }
+};
+
+/** Typed byte offset. Unbound access is inert; `memcpy` permits unaligned access. */
 template <class T>
 class OffsetOf
 {
@@ -160,12 +138,7 @@ private:
     int _value = -1;
 };
 
-/**
- * @brief A validated byte offset to an embedded field whose type this header cannot name.
- *
- * The one case is a generated protobuf message sitting inside an engine struct: the reader casts
- * @ref Ptr to the type its own translation unit includes.
- */
+/** Byte offset for an embedded type named only by its implementation file. */
 template <>
 class OffsetOf<void>
 {
@@ -187,45 +160,30 @@ private:
     int _value = -1;
 };
 
-/**
- * @brief Every gamedata entry the framework uses, typed.
- *
- * The Runtime owns one, binds it once in Start, and hands `const Bindings&` to the services that
- * need it. A member's name is its gamedata key; the comment above it is the engine prototype it
- * stands for.
- */
+/** Typed gamedata bindings shared by engine-facing services. */
 struct Bindings
 {
-    /**
-     * Bind every member from @p data and record the outcome of each capability in @p caps.
-     *
-     * Called once by `Runtime::Start`. Each capability is set from the keys it needs, with the
-     * first failing key and its reason as the text. Individual bindings that no capability gates
-     * are simply left empty, and their `explicit operator bool` is what the caller checks.
-     *
-     * @return Error::NotReady when @p data holds nothing, i.e. the gamedata file did not load.
-     */
+    /** Resolve all members. Returns NotReady when @p data is empty. */
     Status Bind(const GameData& data, Capabilities& caps);
 
-    // --- Engine functions located by byte pattern ------------------------------------------
+    // Signatures
 
     /** CBaseEntity* (const char* className, int forceEdictIndex) */
     Fn<CEntityInstance*(const char*, int)> CreateEntityByName;
-    /** void (CBaseEntity*, CEntityKeyValues*) - the keyvalues may be null. */
+    /** void (CBaseEntity*, CEntityKeyValues*), with nullable keyvalues. */
     Fn<void(CEntityInstance*, CEntityKeyValues*)> DispatchSpawn;
     /** void (CEntityInstance*, const char* input, activator, caller, variant_t*, int outputId, void*) */
     Fn<void(CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, void*, int, void*)> AcceptInput;
     /** void (CEntitySystem*, target, input, activator, caller, variant_t*, float delay, int outputId, void*, void*) */
     Fn<void(void*, CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, void*, float, int, void*, void*)>
         AddEntityIOEvent;
-    /** void (CEntityInstance*) - immediate entity removal. */
+    /** void (CEntityInstance*) */
     Fn<void(CEntityInstance*)> UtilRemove;
     /** void (CBaseModelEntity*, const char* modelPath) */
     Fn<void(CEntityInstance*, const char*)> SetModel;
     /** void (CBaseEntity*, const char* soundEvent, int pitch, float volume, float delay) */
     Fn<void(CEntityInstance*, const char*, int, float, float)> EmitSoundParams;
-    /** StartSoundEventInfo (IRecipientFilter&, CEntityIndex, const EmitSound_t&) - returned by value
-     *  through the hidden sret pointer, so the prototype only exists in EntityOps.cpp. */
+    /** StartSoundEventInfo (IRecipientFilter&, CEntityIndex, const EmitSound_t&), defined in EntityOps.cpp. */
     Address EmitSoundFilter;
     /** CBaseEntity* (CEntitySystem*, CEntityInstance* startAfter, const char* className) */
     Fn<CEntityInstance*(void*, CEntityInstance*, const char*)> FindEntityByClassName;
@@ -233,22 +191,21 @@ struct Bindings
     Fn<CEntityInstance*(void*, CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, CEntityInstance*,
                         void*)>
         FindEntityByName;
-    /** IGameEventListener2* (CPlayerSlot) - CPlayerSlot is passed by value, so the prototype only
-     *  exists in GameEvents.cpp. */
+    /** IGameEventListener2* (CPlayerSlot), defined in GameEvents.cpp. */
     Address LegacyGameEventListener;
 
-    // --- Engine data located through a rel32 displacement ----------------------------------
+    // Addresses
 
     /** IGameEventManager2** inside CSource2Server. */
     Address GameEventManager;
-    /** CBaseGameSystemFactory** - head of the engine's game-system factory list. */
+    /** CBaseGameSystemFactory** list head. */
     Address GameSystemFactoryList;
-    /** CGameSystemEventDispatcher** - the live dispatcher, for detach on unload. */
+    /** CGameSystemEventDispatcher** used to detach on unload. */
     Address GameSystemEventDispatcher;
-    /** CUtlVector<AddedGameSystem_t>* - active game systems, for removal on unload. */
+    /** CUtlVector<AddedGameSystem_t>* used to remove systems on unload. */
     Address GameSystemList;
 
-    // --- Virtual functions ------------------------------------------------------------------
+    // Virtual functions
 
     /** CBasePlayerPawn::CommitSuicide(bool explode, bool force) */
     VFn<void(bool, bool)> CommitSuicide;
@@ -258,24 +215,16 @@ struct Bindings
     VFn<void()> Respawn;
     /** CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*) */
     VFn<void(const Vector*, const QAngle*, const Vector*)> Teleport;
-    /** CPlayer_MovementServices::RunCommand(CUserCmd*) - hooked, never called. */
-    VFn<void*(void*)> RunCommand;
+    /** CPlayer_MovementServices::RunCommand(CUserCmd*), hooked on CCSPlayer_MovementServices. */
+    VHookBinding<void*(void*)> RunCommand;
     /** CCSPlayer_ItemServices::GiveNamedItem(const char* classname) */
     VFn<void*(const char*)> GiveNamedItem;
     /** CCSPlayer_ItemServices::RemoveAllItems(bool removeSuit) */
     VFn<void(bool)> RemoveAllItems;
-    /** CServerSideClient::ProcessRespondCvarValue(const CNetMessagePB<CCLCMsg_RespondCvarValue>&) -
-     *  hooked, never called, so the message template never has to be named here. */
-    VFn<bool(const void*)> ProcessRespondCvarValue;
+    /** CServerSideClient::ProcessRespondCvarValue(...), hooked on CServerSideClient. */
+    VHookBinding<bool(const void*)> ProcessRespondCvarValue;
 
-    // --- Class vtables, for the hooks that bind the table ------------------------------------
-
-    /** CCSPlayer_MovementServices in `server`; the RunCommand hook binds this. */
-    VTableRef MovementServices;
-    /** CServerSideClient in `engine2`; the client-convar response hook binds this. */
-    VTableRef ServerSideClient;
-
-    // --- Byte offsets into undeclared layouts -------------------------------------------------
+    // Offsets
 
     /** The CGameEntitySystem* cached inside IGameResourceService. */
     OffsetOf<CGameEntitySystem*> GameEntitySystem;
@@ -285,7 +234,7 @@ struct Bindings
     OffsetOf<int> ServerSideClientSlot;
     /** The CSGOUserCmdPB payload embedded in CUserCmd. */
     OffsetOf<void> UserCmdPB;
-    /** The engine's own command counter in CUserCmd (the protobuf's is left at 0 by live clients). */
+    /** CUserCmd command counter; live clients leave the protobuf counter at zero. */
     OffsetOf<int32_t> UserCmdNumber;
 };
 

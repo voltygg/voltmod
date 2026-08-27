@@ -1,9 +1,11 @@
 #include "Engine/GameDataFile.hpp"
 
 #include <VoltMod/Core/Capabilities.hpp>
+#include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Paths.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/GameData.hpp>
+#include <algorithm>
 #include <cstdio>
 #include <doctest/doctest.h>
 #include <filesystem>
@@ -11,6 +13,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <vector>
 
 using VoltMod::Bindings;
 using VoltMod::Capabilities;
@@ -21,14 +24,7 @@ using VoltMod::GameData;
 // Which column of the fabricated file this build reads.
 static constexpr bool OnWindows = VoltMod::HostPlatform == VoltMod::GamePlatform::Windows;
 
-/**
- * A gamedata file on disk, deleted with the test.
- *
- * Bind() is checked against real GameData rather than a hand-filled resolution map because the
- * mapping from key to member is exactly what would rot silently. No game module is loaded in the
- * test process, so every pattern and vtable *table* fails to resolve while every offset and vtable
- * *index* succeeds - which is the split this suite pins.
- */
+/** Temporary real gamedata file used to test key-to-member mapping. */
 class TempGameData
 {
 public:
@@ -54,6 +50,28 @@ public:
 private:
     std::filesystem::path _path;
     static inline int _counter = 0;
+};
+
+class LogCapture
+{
+public:
+    LogCapture()
+    {
+        VoltMod::Log::SetSink([this](VoltMod::LogLevel, std::string_view line) { _lines.emplace_back(line); });
+    }
+    ~LogCapture() { VoltMod::Log::SetSink({}); }
+
+    LogCapture(const LogCapture&) = delete;
+    LogCapture& operator=(const LogCapture&) = delete;
+
+    bool Mentions(std::string_view text) const
+    {
+        return std::ranges::any_of(_lines,
+                                   [text](const std::string& line) { return line.find(text) != std::string::npos; });
+    }
+
+private:
+    std::vector<std::string> _lines;
 };
 
 static constexpr std::string_view FullBody = R"(
@@ -105,7 +123,7 @@ TEST_CASE("Bind fills offsets and vtable indices from their gamedata keys")
     CHECK(bindings.RemoveAllItems.Index() == (OnWindows ? 27 : 28));
     CHECK(bindings.Teleport.Index() == (OnWindows ? 163 : 162));
 
-    // Offsets and indices need no loaded module, so their capabilities hold.
+    // Offsets and indices do not require a loaded module.
     CHECK(caps.Has(Capability::Entities));
     CHECK(caps.Has(Capability::Transmit));
     CHECK(caps.Has(Capability::Items));
@@ -122,22 +140,22 @@ TEST_CASE("Bind leaves a signature empty and names the module when it cannot be 
     Bindings bindings;
     REQUIRE(bindings.Bind(data, caps).has_value());
 
-    // No game module is mapped into a unit-test process.
+    // Unit tests do not map the game module.
     CHECK_FALSE(static_cast<bool>(bindings.CreateEntityByName));
     CHECK_FALSE(caps.Has(Capability::EntityOps));
     CHECK(std::string(caps.Reason(Capability::EntityOps)).find("CreateEntityByName") != std::string::npos);
 
-    // The RunCommand index is present, but its class vtable is not, so Movement stays off with the
-    // table's reason rather than the index's.
-    CHECK(static_cast<bool>(bindings.RunCommand));
-    CHECK_FALSE(static_cast<bool>(bindings.MovementServices));
+    // Hooks require both the index and class table.
+    CHECK(static_cast<bool>(bindings.RunCommand.Method));
+    CHECK_FALSE(static_cast<bool>(bindings.RunCommand.Table));
+    CHECK_FALSE(static_cast<bool>(bindings.RunCommand));
     CHECK_FALSE(caps.Has(Capability::Movement));
     CHECK_FALSE(std::string(caps.Reason(Capability::Movement)).empty());
 }
 
 TEST_CASE("Bind records a missing key as the capability's reason and leaves the member empty")
 {
-    // Same document with CheckTransmitPlayerSlot removed.
+    // Remove CheckTransmitPlayerSlot from the same document.
     TempGameData file(R"(
   "offsets": {
     "GameEntitySystem": { "windows": 88, "linux": 80, "align": 8 }
@@ -155,9 +173,35 @@ TEST_CASE("Bind records a missing key as the capability's reason and leaves the 
     CHECK_FALSE(caps.Has(Capability::Transmit));
     CHECK(caps.Reason(Capability::Transmit) == "'CheckTransmitPlayerSlot' is not in gamedata");
 
-    // The one key that is present still binds, and its capability holds.
+    // Present keys still bind.
     CHECK(caps.Has(Capability::Entities));
     CHECK(caps.Reason(Capability::Entities).empty());
+}
+
+TEST_CASE("A binding no capability gates still says why its key did not bind")
+{
+    // Missing entries were never loaded into GameData's failure summary.
+    TempGameData file(R"(
+  "offsets": {
+    "GameEntitySystem": { "windows": 88, "linux": 80, "align": 8 }
+  })");
+
+    GameData data;
+    REQUIRE(data.Load(file.Path()).has_value());
+
+    LogCapture log;
+    Capabilities caps;
+    Bindings bindings;
+    REQUIRE(bindings.Bind(data, caps).has_value());
+
+    CHECK(log.Mentions("'UserCmdNumber' is not in gamedata"));
+    CHECK_FALSE(static_cast<bool>(bindings.UserCmdNumber));
+
+    CHECK_FALSE(log.Mentions("'CheckTransmitPlayerSlot'"));
+    CHECK(caps.Reason(Capability::Transmit) == "'CheckTransmitPlayerSlot' is not in gamedata");
+
+    CHECK_FALSE(log.Mentions("'GameEntitySystem'"));
+    CHECK(caps.Has(Capability::Entities));
 }
 
 TEST_CASE("Capabilities summary counts what is on and explains what is not")

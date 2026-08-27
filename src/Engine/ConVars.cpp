@@ -16,14 +16,7 @@
 #include <tier1/convar.h>
 #include <type_traits>
 
-/**
- * The one ConVars currently routing engine changes, or null.
- *
- * ICvar takes a bare function pointer with no user data, so the trampoline below has nothing to
- * carry a service reference in. One slot is enough because this static, the trampoline, and the
- * Runtime that owns the service are all per plugin DLL: another plugin's ConVars installs its own
- * copy of this callback into the engine and never touches this one.
- */
+// ICvar provides no callback context. Each plugin DLL owns one ConVars instance and sink.
 static VoltMod::ConVars* g_changeSink = nullptr;
 
 static std::string_view Text(const char* value)
@@ -44,8 +37,7 @@ static void GlobalConVarChangeCallback(ConVarRefAbstract* ref, CSplitScreenSlot 
 namespace VoltMod
 {
 
-// ConVarType mirrors EConVarType so the type check and the console rendering can be checked
-// without the SDK. If the engine ever renumbers these, the mirror is what has to move.
+// Keep the SDK-independent type mirror aligned with the engine.
 static_assert(static_cast<int>(ConVarType::Bool) == EConVarType_Bool);
 static_assert(static_cast<int>(ConVarType::Int32) == EConVarType_Int32);
 static_assert(static_cast<int>(ConVarType::Float32) == EConVarType_Float32);
@@ -53,7 +45,7 @@ static_assert(static_cast<int>(ConVarType::String) == EConVarType_String);
 static_assert(static_cast<int>(ConVarType::VectorWS) == EConVarType_VectorWS);
 
 template <class T>
-Result<ConVar<T>> ConVar<T>::Find(ConVars& service, std::string_view name)
+Result<ConVar<T>> ConVars::Find(std::string_view name)
 {
     const std::string owned(name);
     ConVarRefAbstract ref(owned.c_str());
@@ -65,7 +57,7 @@ Result<ConVar<T>> ConVar<T>::Find(ConVars& service, std::string_view name)
         return std::unexpected(Error::Invalid(
             std::format("convar '{}' is engine type {}, not the requested one", owned, static_cast<int>(type))));
 
-    // Slot -1 is the shared (non-splitscreen) storage; some convars only expose slot 0.
+    // Prefer shared storage; some convars expose only slot 0.
     CVValue_t* storage = ref.GetConVarData()->Value(CSplitScreenSlot(-1));
     if (!storage)
         storage = ref.GetConVarData()->Value(CSplitScreenSlot(0));
@@ -73,7 +65,7 @@ Result<ConVar<T>> ConVar<T>::Find(ConVars& service, std::string_view name)
         return std::unexpected(Error::Engine(std::format("convar '{}' has no value storage", owned)));
 
     ConVar<T> handle;
-    handle._service = &service;
+    handle._service = this;
     handle._name = owned;
     handle._storage = storage;
     handle._type = static_cast<int16_t>(type);
@@ -104,8 +96,7 @@ T ConVar<T>::Get() const
     }
     else
     {
-        // Read the engine's own width; a 32-bit read of an int16 convar would pick up the
-        // neighbouring two bytes.
+        // Read the declared width to avoid adjacent bytes.
         switch (type)
         {
         case ConVarType::Int16:
@@ -124,8 +115,7 @@ Status ConVar<T>::Set(const T& value)
     if (!_storage || !_service)
         return std::unexpected(Error::NotReady("convar handle is unresolved"));
 
-    _service->ExecuteServerCommand(std::format("{} {}", _name, ConVarText(value)));
-    return {};
+    return _service->ExecuteServerCommand(std::format("{} {}", _name, ConVarText(value)));
 }
 
 template <class T>
@@ -180,7 +170,7 @@ ConVarRawScope<T>::ConVarRawScope(ConVar<T>& cvar, const T& value)
     : _cvar(&cvar), _previous(cvar.Get())
 {
     if (!cvar.SetRaw(value))
-        _cvar = nullptr;  // nothing was written, so there is nothing to put back
+        _cvar = nullptr;
 }
 
 template <class T>
@@ -190,7 +180,7 @@ ConVarRawScope<T>::~ConVarRawScope()
         (void)_cvar->SetRaw(_previous);
 }
 
-// The four convar types the framework supports; every other T is a compile error at the call site.
+// Supported handle types.
 template class ConVar<bool>;
 template class ConVar<int>;
 template class ConVar<float>;
@@ -198,6 +188,10 @@ template class ConVar<std::string>;
 template class ConVarRawScope<bool>;
 template class ConVarRawScope<int>;
 template class ConVarRawScope<float>;
+template Result<ConVar<bool>> ConVars::Find<bool>(std::string_view);
+template Result<ConVar<int>> ConVars::Find<int>(std::string_view);
+template Result<ConVar<float>> ConVars::Find<float>(std::string_view);
+template Result<ConVar<std::string>> ConVars::Find<std::string>(std::string_view);
 
 ConVars::ConVars(Interfaces& interfaces)
     : Changed({.OnFirst = [this] { return RouteChanges(); }, .OnLast = [this] { StopRoutingChanges(); }}),
@@ -206,9 +200,7 @@ ConVars::ConVars(Interfaces& interfaces)
 
 ConVars::~ConVars()
 {
-    // Belt and braces: the last Subscription dropping is what normally unhooks. This covers a
-    // subscription that outlived the service, which would otherwise leave the engine calling a
-    // trampoline into freed storage.
+    // Guard against subscriptions that outlive the service.
     StopRoutingChanges();
 }
 
@@ -221,23 +213,19 @@ Status ConVars::Initialize()
     return {};
 }
 
-void ConVars::ExecuteServerCommand(std::string_view command)
+Status ConVars::ExecuteServerCommand(std::string_view command)
 {
     auto* engine = _interfaces.Engine;
     if (!engine)
-    {
-        Log::Warn("ConVars::ExecuteServerCommand: IVEngineServer2 not available.");
-        return;
-    }
+        return std::unexpected(Error::NotReady("IVEngineServer2 is not available"));
 
-    // ServerCommand appends to the shared command buffer verbatim, with no separator between
-    // calls - so back-to-back commands would concatenate into one malformed line. Guarantee a
-    // trailing newline so each call is parsed as its own console line.
+    // ServerCommand adds no separator between buffered commands.
     std::string line(command);
     if (line.empty() || line.back() != '\n')
         line.push_back('\n');
 
     engine->ServerCommand(line.c_str());
+    return {};
 }
 
 INetworkMessageInternal* ConVars::SetConVarMessage()
