@@ -16,26 +16,28 @@ A layout has two halves, and both are needed:
 ## The shortest working example
 
 ```cpp
-// App.hpp: what survives between commands is a ref, never the wrapper.
-VoltMod::EntityRef _hud;
+// App.hpp: the handle owns the entity, so keep it for as long as the panel should live.
+VoltMod::Hud _hud;
 
 // Somewhere in App::Start()
-auto layout = runtime.World.CustomHud.Spawn("panorama/layout/custom_game/welcome.xml");
-if (layout)
-{
-    _hud = layout->Ref();
-    layout->SetText("title", "name", "Welcome");
-    layout->SetClass("card", "Hidden", VoltMod::HudClass::Absent);  // show it
-    layout->SetInputCapture(true);                                  // make it clickable
-}
+auto hud = runtime.Hud.Spawn("welcome");
+if (!hud)
+    return false;             // the name was refused, or the engine would not spawn it
+
+_hud = std::move(*hud);
+_hud.SetText("title", "name", "Welcome");
+_hud.SetClass("card", "Hidden", false);  // show it
+_hud.SetInputCapture(true);              // make it clickable
 
 // Later, from a command or an event:
-runtime.World.CustomHud.Get(_hud).SetText("title", "name", "Round 2");
+_hud.SetText("title", "name", "Round 2");
 ```
 
-@ref VoltMod::HudLayout is a frame-local wrapper like @ref VoltMod::Pawn. Store
-the @ref VoltMod::EntityRef and call `Get` where you need it; a stored wrapper
-points at freed memory after the entity dies.
+@ref VoltMod::Hud *owns* its entity: dropping the handle removes the panel. That
+is what stops a layout outliving the plugin that spawned it across a
+`meta reload`, so keep it as a member of whatever the panel belongs to rather
+than storing a bare @ref VoltMod::EntityRef. It is move-only, and it re-resolves
+its entity on every call - after a map change it is simply falsy.
 
 Several layouts can exist at once and are independent, so one plugin's HUD does
 not disturb another's.
@@ -108,16 +110,22 @@ layouts nowhere else - and it is spelled with the **source** extension even
 though what ships is compiled:
 
 ```
+welcome                                     expanded to the line below
 panorama/layout/custom_game/welcome.xml     correct
-panorama/layout/custom_game/welcome.vxml_c  rejected as an invalid resource name
+panorama/layout/custom_game/welcome.vxml_c  rejected: name the source, not the compiled resource
+panorama/layout/hud/welcome.xml             rejected: outside the whitelisted directory
 ```
+
+@ref VoltMod::CustomHud::Spawn enforces both rules and expands a bare name, so a
+mistake here is an `Error::Invalid` rather than a panel that renders nothing and
+explains itself only on the client console.
 
 Compile the sources with the CS2 Workshop Tools' `resourcecompiler.exe`, put the
 resulting `.vxml_c` and `.vcss_c` in a workshop addon, publish it, and require
 its id so joining clients download it:
 
 ```cpp
-runtime.Addons.Require(3401234567);
+_addon = runtime.Addons.Require(3401234567);   // keep the lease; see the workshop guide
 ```
 
 See @ref workshop_guide for what that costs and what it does not do. During
@@ -130,11 +138,13 @@ A button press arrives as @ref VoltMod::HudClick. Subscribing is what installs
 the hook, so keep the @ref VoltMod::Subscription:
 
 ```cpp
-_subs.push_back(runtime.Hooks.HudClicks.Clicked += [this](const VoltMod::HudClick& click) {
-    if (click.ButtonId == "accept")
-        Accept(click.Slot);
-});
+_subs.push_back(_hud.OnClick("accept", [this](int slot) { Accept(slot); }));
 ```
+
+`OnClick` filters on both the layout and the button id, so two layouts that both
+have an `accept` button do not trigger each other's handler.
+@ref VoltMod::CustomHud::Clicks is the unfiltered form, for a plugin that wants
+presses from layouts it did not spawn.
 
 Nothing is clickable until that player has a cursor, which is
 `SetInputCapture(true)`. Without it the game keeps mouse-look and the panel never
@@ -145,17 +155,17 @@ than parsing anything out of it.
 
 ## Per-player content
 
-Every method has a `...For(slot, ...)` counterpart writing one player's state,
-which the engine networks through a single-slot recipient filter - so one entity
-can show different content to every player:
+@ref VoltMod::Hud::For narrows any write to one player, which the engine
+networks through a single-slot recipient filter - so one entity can show
+different content to every player:
 
 ```cpp
-layout->SetTextFor(slot, "title", "name", player.Name());
+_hud.For(slot).SetText("title", "name", player.Name());
 ```
 
 The engine's per-player setters index `m_vecPlayerLayoutStates` and return
-silently when the slot is past its end, so the `...For` methods check the count
-first and fail with a reason rather than looking like they worked. When that
+silently when the slot is past its end, so @ref VoltMod::Hud::For checks the
+count first and fails with a reason rather than looking like it worked. When that
 count is zero, the global forms are the ones that work.
 
 ## Availability
@@ -184,6 +194,8 @@ the global state, and `m_bInputCaptureEnabled` is a plain `bool` in an embedded
 struct with no container and no shadow index behind it, so it is written
 directly.
 
-`HudLayout::Describe()` prints every resolved offset against the value it was
-verified at. Run it first after a CS2 update: an offset that has moved means the
-bound setters are addressing something else.
+Schema fields resolve themselves by name, so an offset that moves in a CS2 update
+costs nothing here; the fields declare their expected **size** instead, and a
+mismatch warns once at resolve time. What does break is a byte-pattern signature,
+which @ref VoltMod::Capability::CustomHud reports with its reason - check that
+first after an update.

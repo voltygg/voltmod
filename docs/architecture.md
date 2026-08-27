@@ -10,12 +10,13 @@ VoltMod
 │               scheduler, slot events, translations, parsing, per-slot caches, helpers
 ├── Engine      Interfaces, gamedata + typed Bindings, ConVar<T>, clock, maps, precache, commands
 ├── Entities    Entity lookup, the Entity/Pawn/Controller wrappers, schema fields, items,
-│               pawn operations, custom_hud_layout Panorama HUD panels
+│               pawn operations
 ├── Events      The game event service and its typed event structs
 ├── Messaging   Chat and center-HTML messages, chat colors, the vote panel
 ├── Players     The roster, the Policy gate, action and effect dispatch
 ├── Hooks       Movement, damage, transmit, teleport, chat input, client convars,
-│               HUD button presses, workshop addon delivery
+│               workshop addon delivery
+├── Hud         Panorama custom_hud_layout panels and the button presses they send back
 ├── Commands    Chat and console commands: the fluent builder, typed Args, the router
 ├── Menu        WASD center-HTML menus + Flow wizard
 ├── Database    Async PostgreSQL + row mapping (VOLTMOD_ENABLE_POSTGRES)
@@ -224,6 +225,7 @@ Events     -> Core, Engine, Entities
 Messaging  -> Core, Engine, Entities, Events
 Players    -> Core, Engine, Entities
 Hooks      -> Core, Engine, Entities, Events, Players, Unsafe
+Hud        -> Core, Engine, Entities, Unsafe
 Commands   -> Core, Engine, Entities, Messaging, Players
 Menu       -> Core, Engine, Entities, Messaging, Players, Hooks
 Http       -> Core

@@ -42,18 +42,11 @@
       "linux": { "pattern": "8B 05 ? ? ? ? 89 C2 83 EA ? 0F 88 ? ? ? ? 4C 8D 3D" }
     },
 
-    // CCSCustomHudLayout's setters, for VoltMod::CustomHud.
+    // CCSCustomHudLayout's setters, for VoltMod::CustomHud. Called rather than written by hand
+    // because server-only hash indexes shadow the tables they append to - see docs/custom-hud.md.
     //
-    // These are called rather than written by hand because each of the entity's three networked
-    // string tables (m_vecPanelIds, m_vecClassNames, m_vecDialogVariableNames) is shadowed by a
-    // CUtlHashtable that is neither in the schema nor networked, and CCSCustomHudLayoutState keeps
-    // two more plus index arrays. Appending to a vector directly leaves those indexes stale, so the
-    // next engine-side call misses the hash, appends a duplicate, and the state silently desyncs.
-    // These do the interning, the dedupe and the change notification correctly.
-    //
-    // Windows-only so far: the patterns were recovered from server.dll build 24934554 and each
-    // matches exactly once in .text. A single-platform entry is allowed (see gamedata.schema.json);
-    // on Linux Capability::CustomHud is simply off until the patterns are located there.
+    // Recovered from server.dll build 24934554, each matching exactly once in .text. Windows-only
+    // entries are allowed; on Linux Capability::CustomHud is off until these are located there.
 
     // void (CCSCustomHudLayout*, const CUtlString* panelId, const CUtlString* className,
     //       EHudPanelClassStatus_t status)

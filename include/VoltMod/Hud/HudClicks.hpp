@@ -21,32 +21,24 @@ struct HudClick
 };
 
 /**
- * @brief Button presses coming back from a custom HUD layout.
+ * @brief Button presses coming back from a custom HUD layout, unfiltered.
  *
- * The client sends `CCSUsrMsg_CustomHudClicked` when a `Button` in a layout is pressed, and this
- * turns it into @ref Clicked. A press only happens at all once that player has a cursor, which is
- * `HudLayout::SetInputCapture`; without it the game keeps mouse-look and the panel never sees a
- * pointer.
+ * Owned by @ref CustomHud and reached as `Hud.Clicks`; @ref Hud::OnClick is the per-layout form
+ * most callers want. A press only happens once that player has a cursor - see
+ * @ref Hud::SetInputCapture and @ref custom_hud_guide.
  *
- * A `Button` with no `id` attribute is dropped by the client before it is ever sent, so an
- * unnamed button silently does nothing.
- *
- * ### Arming
- *
- * Dormant until something subscribes, and the hook is removed when the last subscription drops -
- * there is no separate install step. Unlike the framework's other vtable hooks this one cannot
- * bind from a cold start: `CServerSideClient::FilterMessage` is inherited from a secondary base,
- * so it is not in the class's primary vtable and the slot is located from a live client instead
- * (see FindVTableSlot). Subscribing with nobody connected therefore arms on the next connect;
- * that is handled here, and callers see no difference beyond clicks not arriving from an empty
- * server.
+ * Dormant until something subscribes, and removed when the last subscription drops. Unlike the
+ * framework's other vtable hooks this one cannot bind from a cold start: `FilterMessage` is
+ * inherited from a secondary base, so it is not in the class's primary vtable and the slot is
+ * located from a live client instead. Subscribing with nobody connected therefore arms on the
+ * next connect, which callers see only as clicks not arriving from an empty server.
  *
  * Inert when @ref Capability::HudClicks is off. Every handler runs on the game thread.
  */
 class HudClicks
 {
 public:
-    /** All four must outlive this hook; the Runtime declares them above it. */
+    /** All three must outlive this hook; the Runtime declares them above it. */
     HudClicks(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots);
     ~HudClicks();
     HudClicks(const HudClicks&) = delete;
@@ -70,9 +62,9 @@ private:
     const Bindings& _bindings;
     SlotEvents& _slots;
 
-    int _refs = 0;                 // live subscriptions
-    int _baseOffset = 0;           // bytes from CServerSideClient to the hooked subobject
-    int _messageId = -1;           // CCSUsrMsg_CustomHudClicked, from the engine's own registry
+    int _refs = 0;                  // live subscriptions
+    int _baseOffset = 0;            // bytes from CServerSideClient to the hooked subobject
+    int _messageId = -1;            // CCSUsrMsg_CustomHudClicked, from the engine's own registry
     Subscription _connectListener;  // retries Install() while subscribed but not yet armed
     VtableHook _hook;
 };

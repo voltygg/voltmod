@@ -17,6 +17,7 @@
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/Addons.hpp>
 #include <VoltMod/Hooks/Hooks.hpp>
+#include <VoltMod/Hud/Hud.hpp>
 #include <VoltMod/Http/HttpClient.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Messaging/Messages.hpp>
@@ -130,6 +131,11 @@ public:
     /** The per-tick and per-event engine hooks - see @ref HookServices. Depends on: Entities,
      *  Unsafe.Bindings, Slots, Scheduler, GameEvents, Unsafe.Interfaces, World.EntityOps. */
     HookServices Hooks{Entities, Unsafe.Bindings, Slots, Scheduler, GameEvents, Unsafe.Interfaces, World.EntityOps};
+    /** Custom Panorama HUD layouts: spawning them, driving them, and the button presses coming
+     *  back. Declared here, with Addons, because it owns a vtable hook of its own and should come
+     *  down before the tiers above it. Depends on: Entities, World.EntityOps, Unsafe.Bindings,
+     *  Unsafe.Interfaces, Slots. */
+    VoltMod::CustomHud Hud{Entities, World.EntityOps, Unsafe.Bindings, Unsafe.Interfaces, Slots};
     /** Workshop addons connecting clients are told to download - how a HUD layout, model or sound
      *  reaches them. Declared after Hooks because it installs a vtable hook of its own and should
      *  come down before the tiers above it. Depends on: Unsafe.Interfaces, Unsafe.Bindings,

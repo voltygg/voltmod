@@ -4,7 +4,7 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
-#include <VoltMod/Hooks/HudClicks.hpp>
+#include <VoltMod/Hud/HudClicks.hpp>
 #include <VoltMod/Unsafe/VtableHook.hpp>
 #include <cstdint>
 #include <google/protobuf/message.h>

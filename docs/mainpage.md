@@ -25,10 +25,11 @@ renames it. `include/VoltMod/<Module>/` is where a header lives, and the
 | Players | `VoltMod/Players/` | Player tracking, target selectors, and actions |
 | Menu | `VoltMod/Menu/` | WASD center-HTML menus, context rows, pickers, and flows |
 | Engine | `VoltMod/Engine/` | Interfaces, gamedata and its typed bindings, `ConVar<T>`, the server clock, maps, precaching, and console commands |
-| Entities | `VoltMod/Entities/` | Entity lookup, the typed player controller, schema fields, items, pawn operations, and Panorama HUD layouts |
+| Entities | `VoltMod/Entities/` | Entity lookup, the typed player controller, schema fields, items, and pawn operations |
 | Events | `VoltMod/Events/` | The game event listener service and its typed event structs |
 | Messaging | `VoltMod/Messaging/` | Chat and center-HTML messages, sticky panels, chat colors, and the vote panel |
-| Hooks | `VoltMod/Hooks/` | Movement, damage, transmit, teleport, chat-input and client-convar hooks, HUD button presses, and workshop addon delivery |
+| Hooks | `VoltMod/Hooks/` | Movement, damage, transmit, teleport, chat-input and client-convar hooks, and workshop addon delivery |
+| Hud | `VoltMod/Hud/` | Panorama `custom_hud_layout` panels and the button presses they send back |
 | Unsafe | `VoltMod/Unsafe/` | Opt-in raw hooking: `VOLTMOD_SCOPED_HOOK`, and `VOLTMOD_VHOOK` + `VtableHook` for a vtable slot |
 | Database | `VoltMod/Database/` | Optional async PostgreSQL, migrations, and row mapping |
 | Http | `VoltMod/Http/` | Async HTTP and configured JSON endpoints |

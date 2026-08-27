@@ -6,7 +6,6 @@
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/NetChannel.hpp>
 #include <VoltMod/Engine/Precache.hpp>
-#include <VoltMod/Entities/CustomHud.hpp>
 #include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/Items.hpp>
@@ -30,8 +29,7 @@ struct WorldServices
           Items(bindings),
           Precache(bindings),
           Pawns(scheduler, slots, entities),
-          NetChannels(interfaces),
-          CustomHud(entities, EntityOps, bindings)
+          NetChannels(interfaces)
     {}
 
     /** Depends on: Entities, Bindings. */
@@ -46,9 +44,6 @@ struct WorldServices
     /** Stateless per-client net-channel reads (latency, replicated userinfo cvars).
      *  Depends on: Interfaces. */
     VoltMod::NetChannels NetChannels;
-    /** Panorama HUD layouts driven through the custom_hud_layout entity. Declared after
-     *  EntityOps, which it spawns through. Depends on: Entities, EntityOps, Bindings. */
-    VoltMod::CustomHud CustomHud;
 };
 
 }  // namespace VoltMod

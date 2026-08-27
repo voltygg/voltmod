@@ -12,7 +12,6 @@
 #include <VoltMod/Hooks/ClientCvars.hpp>
 #include <VoltMod/Hooks/Addons.hpp>
 #include <VoltMod/Hooks/GlowVision.hpp>
-#include <VoltMod/Hooks/HudClicks.hpp>
 #include <VoltMod/Hooks/Movement.hpp>
 #include <VoltMod/Hooks/Teleport.hpp>
 #include <VoltMod/Hooks/Transmit.hpp>
