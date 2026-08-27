@@ -95,8 +95,18 @@ protected:
     virtual bool OnPlayerChat(Player* player, std::string_view message, bool teamChat);
 
     /** @brief Install your own SourceHook hooks here; the base already installs the common ones.
-     *  Keep each VOLTMOD_SCOPED_HOOK subscription in a member so it is removed on unload. */
+     *  Hand each VOLTMOD_SCOPED_HOOK subscription to OwnHook(). */
     virtual void OnRegisterHooks(Runtime& runtime) {}
+
+    /**
+     * @brief Take ownership of a custom hook subscription for this load cycle.
+     *
+     * Removed before OnUnload runs, so a hook body cannot fire into plugin state that OnUnload
+     * has already released. A subscription kept in a derived member instead outlives the plugin's
+     * own graph - the derived object is the VOLTMOD_PLUGIN global, so its members are not
+     * destroyed until the process is.
+     */
+    void OwnHook(Subscription hook) { _customHooks.push_back(std::move(hook)); }
 
     // Standard hook callbacks; subclasses use the virtual callbacks above.
     void Hook_GameFrame(bool simulating, bool firstTick, bool lastTick);
@@ -120,9 +130,11 @@ private:
     void Shutdown();
 
     // Runtime first so implicit destruction also removes the hooks before the services they
-    // call into go away - the same order Shutdown() enforces explicitly.
+    // call into go away - the same order Shutdown() enforces explicitly. Custom hooks last of
+    // the three, so they are the first to go.
     std::unique_ptr<VoltMod::Runtime> _runtime;
     std::vector<Subscription> _standardHooks;
+    std::vector<Subscription> _customHooks;
     PluginInfo _info;  // cached copy of Info() captured at load; backs the ISmmPlugin getters
 };
 

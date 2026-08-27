@@ -292,10 +292,16 @@ SH_DECL_HOOK3(IVEngineServer2, SetClientListening, SH_NOATTRIB, 0, bool, CPlayer
 
 void MyPlugin::OnRegisterHooks(VoltMod::Runtime& runtime)
 {
-    _listening = VOLTMOD_SCOPED_HOOK(IVEngineServer2, SetClientListening, runtime.Unsafe.Interfaces.Engine,
-                                    SH_MEMBER(this, &MyPlugin::Hook_SetClientListening), false);
+    OwnHook(VOLTMOD_SCOPED_HOOK(IVEngineServer2, SetClientListening, runtime.Unsafe.Interfaces.Engine,
+                                SH_MEMBER(this, &MyPlugin::Hook_SetClientListening), false));
 }
 ```
+
+Hand the subscription to `OwnHook`, do not keep it in a member of your plugin class. The base
+removes custom hooks before `OnUnload` runs, so a hook body cannot fire into state `OnUnload`
+has already released - including after an `OnLoad` that returned false. A subscription held in a
+derived member would instead outlive the whole plugin graph, because the derived object is the
+`VOLTMOD_PLUGIN` global and its members live until the process exits.
 
 ## Configuration
 
