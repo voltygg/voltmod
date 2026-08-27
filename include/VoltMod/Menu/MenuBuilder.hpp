@@ -64,9 +64,15 @@ public:
 
     /**
      * Bind the admin/target pair (and optionally the effect registry) context rows act on.
-     * A row re-checks `Policy::Authorize` for @p admin (and @p target, for a two-player row) every
-     * time it renders or is pressed, so a permission revoked while the menu is open takes effect
-     * immediately. Requires the @ref MenuManager constructor; a no-op otherwise.
+     *
+     * Context rows re-check `Policy::Authorize` for @p admin (and @p target, for a two-player
+     * row) **when pressed**, against these references rather than whoever occupies their slots -
+     * so a revoked permission, a departed admin and a reused target slot are all refused at
+     * activation. The *enabled* state is a snapshot taken by @ref Allowed when the row is built,
+     * and is not recomputed per redraw: a row can look enabled and still refuse. Rebuild the
+     * menu to refresh it.
+     *
+     * Requires the @ref MenuManager constructor; a no-op otherwise.
      */
     MenuBuilder& For(PlayerRef admin, std::optional<PlayerRef> target, EffectManager* effects = nullptr)
     {

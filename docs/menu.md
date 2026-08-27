@@ -59,12 +59,20 @@ throwaway dispatcher is constructed per click.
 
 A builder built with the plain (no-`MenuManager`) constructor is inert for context rows: `Allowed`
 denies and `Tr` echoes the key back unresolved, so every context row renders disabled rather than
-crashing. `For`'s pair is a `PlayerRef`, not a bare slot: re-checking a row is the same permission
-question every redraw and every click ask `Policy::Authorize` again against that *same* identity,
-so a departed admin's old slot being reused by someone else denies rather than silently
-authorizing the new occupant - the reason a slot is ever promoted to a `PlayerRef` in the first
-place (see @ref players_guide). `StateToggle` re-reads its predicate every redraw, so the same row
-shows "Freeze"/"Unfreeze" reality and doubles as the undo control. The pawn predicates
+crashing. `For`'s pair is a `PlayerRef`, not a bare slot: a context row asks `Policy::Authorize` again
+**when it is pressed**, against that *same* identity, so a departed admin's old slot being reused
+by someone else denies rather than silently authorizing the new occupant - the reason a slot is
+ever promoted to a `PlayerRef` in the first place (see @ref players_guide).
+
+The enabled state is a **snapshot**. `Allowed` runs once, while the row is being built, and the
+result is stored on the option; nothing recomputes it per redraw. A permission revoked while the
+menu is open therefore still shows an enabled row - pressing it is refused, but the row does not
+grey out until the menu is rebuilt. Plain `Button` rows gated only by `Allowed` have no
+activation check at all, so treat that flag as presentation, not enforcement: anything that must
+not run without a permission belongs in an `Action` row (or checks for itself in its callback).
+
+`StateToggle` re-reads its predicate every redraw, so the same row shows "Freeze"/"Unfreeze"
+reality and doubles as the undo control. The pawn predicates
 (`InMoveType`, `HasPawnFlag`) live in `Entities/PawnPredicates.hpp`. Effect rows read on/off labels
 from the reserved keys `effectState.on` / `effectState.off`; the descriptor itself is covered in
 @ref players_guide.
@@ -77,6 +85,9 @@ MenuBuilder(runtime.Menus, title)
     .For(adminRef, std::nullopt)
     .Button(Tr("action.callCheck"), [&](int) { StartCheck(...); }, Allowed("s"))
 ```
+
+`Allowed` only greys the row out. The callback still has to authorize - admin-system's rows route
+theirs through `ActionDispatcher::Resolve`/`Run`, which does it for them.
 
 ## Flow: multistep wizards
 
