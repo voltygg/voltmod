@@ -342,6 +342,55 @@ TEST_CASE("PlayerOrSteamId prefers the online player and falls back to a bare id
     CHECK(f.Lines[0] == "No player matches 'Nobody'.");
 }
 
+// The hybrid argument used to fall back to a bare SteamID after *any* resolution failure, so a
+// numeric token naming an immune admin became an offline target and the immunity check was lost.
+TEST_CASE("PlayerOrSteamId does not turn a refused target into an offline one")
+{
+    Fixture f;
+    f.Binder.Succeed = false;
+
+    std::vector<BoundArg> seen;
+    f.Router.Add(Echo("ban", {{ArgKind::PlayerOrSteamId}}, &seen));
+
+    SUBCASE("an immune numeric target is refused, not bound offline")
+    {
+        f.Binder.Failure = {TargetError::Immune};
+        f.Run("ban", {"76561198000000009"}, nullptr);
+
+        CHECK(seen.empty());
+        REQUIRE(f.Lines.size() == 1);
+        CHECK(f.Lines[0].find("immune") != std::string::npos);
+    }
+
+    SUBCASE("an ambiguous numeric token is refused, not bound offline")
+    {
+        f.Binder.Failure = {TargetError::Ambiguous, 2};
+        f.Run("ban", {"76561198000000009"}, nullptr);
+
+        CHECK(seen.empty());
+        CHECK(f.Lines.size() == 1);
+    }
+
+    SUBCASE("a dead-target refusal on a numeric token is still a refusal")
+    {
+        f.Binder.Failure = {TargetError::DeadNotAllowed};
+        f.Run("ban", {"76561198000000009"}, nullptr);
+
+        CHECK(seen.empty());
+        CHECK(f.Lines.size() == 1);
+    }
+
+    SUBCASE("no match still binds the bare id, which is the point of the type")
+    {
+        f.Binder.Failure = {TargetError::NoMatch};
+        f.Run("ban", {"76561198000000009"}, nullptr);
+
+        REQUIRE(seen.size() == 1);
+        CHECK(std::get<Args::PlayerOrSteamId>(seen[0]).Online == nullptr);
+        CHECK(std::get<Args::PlayerOrSteamId>(seen[0]).SteamId == 76561198000000009LL);
+    }
+}
+
 TEST_CASE("A permission is checked for a player and skipped for the console")
 {
     Fixture f;

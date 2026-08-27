@@ -275,10 +275,15 @@ std::expected<std::vector<BoundArg>, ArgError> CommandRouter::BindArgs(const Com
                 Player* player = resolved->front();
                 bound.emplace_back(Args::PlayerOrSteamId{.Online = player, .SteamId = player->SteamId()});
             }
-            else if (auto id = ParseInt64(token); id && Strings::IsNumeric(token))
+            else if (resolved.error().Error == TargetError::NoMatch && Strings::IsNumeric(token))
             {
-                // Nobody online answers to it, but a bare SteamID64 still names somebody.
-                bound.emplace_back(Args::PlayerOrSteamId{.Online = nullptr, .SteamId = *id});
+                // Nobody online answers to it, but a bare SteamID64 still names somebody. Only
+                // for NoMatch: falling back on Immune would turn a refused target into an
+                // offline one and act on it anyway, and on Ambiguous it would pick nobody's id.
+                if (auto id = ParseInt64(token))
+                    bound.emplace_back(Args::PlayerOrSteamId{.Online = nullptr, .SteamId = *id});
+                else
+                    return std::unexpected(TargetKey(resolved.error(), token));
             }
             else
             {
