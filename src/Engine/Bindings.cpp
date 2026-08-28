@@ -161,13 +161,13 @@ Status Bindings::Bind(const GameData& data, Capabilities& caps)
 
     // All six under one capability, so a partial match disables writes rather than letting one
     // through a null address. Windows-only patterns today; on Linux they resolve as absent.
-    bind(CustomHudSetHasClass, "CustomHudSetHasClass", Capability::CustomHud);
-    bind(CustomHudSetHasClassForPlayer, "CustomHudSetHasClassForPlayer", Capability::CustomHud);
-    bind(CustomHudSetDialogVariable, "CustomHudSetDialogVariable", Capability::CustomHud);
-    bind(CustomHudSetDialogVariableForPlayer, "CustomHudSetDialogVariableForPlayer", Capability::CustomHud);
-    bind(CustomHudSetInputCapture, "CustomHudSetInputCapture", Capability::CustomHud);
-    bind(CustomHudIsInputCapture, "CustomHudIsInputCapture", Capability::CustomHud);
-    bind.Signature(FilterMessage, "FilterMessage", Capability::HudClicks);
+    bind(CustomHudSetHasClass, "CustomHudSetHasClass", Capability::CustomUi);
+    bind(CustomHudSetHasClassForPlayer, "CustomHudSetHasClassForPlayer", Capability::CustomUi);
+    bind(CustomHudSetDialogVariable, "CustomHudSetDialogVariable", Capability::CustomUi);
+    bind(CustomHudSetDialogVariableForPlayer, "CustomHudSetDialogVariableForPlayer", Capability::CustomUi);
+    bind(CustomHudSetInputCapture, "CustomHudSetInputCapture", Capability::CustomUi);
+    bind(CustomHudIsInputCapture, "CustomHudIsInputCapture", Capability::CustomUi);
+    bind.Signature(FilterMessage, "FilterMessage", Capability::UiClicks);
 
     // Addresses
     bind.Global(GameEventManager, "GameEventManager", Capability::GameEvents);
@@ -192,9 +192,9 @@ Status Bindings::Bind(const GameData& data, Capabilities& caps)
     bind(ServerSideClientSlot, "ServerSideClientSlot", Capability::ClientCvars);
     // The same offsets read by more than one feature; each records its own capability so a missing
     // entry names every feature it takes down rather than only the first.
-    bind(ServerSideClientSlot, "ServerSideClientSlot", Capability::HudClicks);
+    bind(ServerSideClientSlot, "ServerSideClientSlot", Capability::UiClicks);
     bind(ServerSideClientSlot, "ServerSideClientSlot", Capability::Addons);
-    bind(NetworkGameServerClients, "NetworkGameServerClients", Capability::HudClicks);
+    bind(NetworkGameServerClients, "NetworkGameServerClients", Capability::UiClicks);
     bind(NetworkGameServerClients, "NetworkGameServerClients", Capability::Addons);
     bind(ServerSideClientSteamId, "ServerSideClientSteamId", Capability::Addons);
     bind(UserCmdPB, "UserCmdPB", Capability::Movement);

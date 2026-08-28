@@ -17,11 +17,11 @@
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/Hooks.hpp>
 #include <VoltMod/Http/HttpClient.hpp>
-#include <VoltMod/Hud/Hud.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Messaging/Messages.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/Policy.hpp>
+#include <VoltMod/Ui/UiPanel.hpp>
 #include <VoltMod/Unsafe/Unsafe.hpp>
 #include <VoltMod/Workshop/Addons.hpp>
 #include <cstddef>
@@ -135,9 +135,9 @@ public:
      *  back. Declared here, with Addons, because it owns a vtable hook of its own and should come
      *  down before the tiers above it. Depends on: Entities, World.EntityOps, Unsafe.Bindings,
      *  Unsafe.Interfaces, Slots. */
-    VoltMod::CustomHud Hud{Entities, World.EntityOps, Unsafe.Bindings, Unsafe.Interfaces, Slots};
+    VoltMod::CustomUi Ui{Entities, World.EntityOps, Unsafe.Bindings, Unsafe.Interfaces, Slots};
     /** Workshop addons connecting clients are told to download - how a HUD layout, model or sound
-     *  reaches them. Its own module, like @ref CustomHud, and declared here beside it: both
+     *  reaches them. Its own module, like @ref CustomUi, and declared here beside it: both
      *  install a vtable hook of their own and should come down before the tiers above them.
      *  Depends on: Unsafe.Interfaces, Unsafe.Bindings, Players, Scheduler. */
     VoltMod::Addons Addons{Unsafe.Interfaces, Unsafe.Bindings, Players, Scheduler};

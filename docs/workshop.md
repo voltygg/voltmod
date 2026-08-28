@@ -4,7 +4,7 @@
 
 @ref VoltMod::Addons tells connecting clients which Steam Workshop addons to
 download. Use it for content only the client renders - Panorama layouts (see
-@ref custom_hud_guide), models, sounds.
+@ref custom_ui_guide), models, sounds.
 
 ```cpp
 auto lease = runtime.Addons.Require(3401234567);    // of everyone

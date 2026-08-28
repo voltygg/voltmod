@@ -5,7 +5,7 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
-#include <VoltMod/Hud/HudClicks.hpp>
+#include <VoltMod/Ui/UiClicks.hpp>
 #include <VoltMod/Unsafe/VtableHook.hpp>
 #include <cstdint>
 #include <networksystem/inetworkmessages.h>
@@ -47,33 +47,33 @@ static const ClickFields& ClickFieldsOf(const ProtoMessage& proto)
         const ClickFields resolved{.Layout = ProtoField(proto, "custom_hud_layout"),
                                    .Button = ProtoField(proto, "button_id")};
         if (!resolved)
-            Log::Warn("HudClicks: {} has no 'custom_hud_layout'/'button_id' field; ignoring presses.", kClickMessage);
+            Log::Warn("UiClicks: {} has no 'custom_hud_layout'/'button_id' field; ignoring presses.", kClickMessage);
         return resolved;
     }();
     return fields;
 }
 
-HudClicks::HudClicks(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots)
+UiClicks::UiClicks(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots)
     : Clicked({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
       _interfaces(interfaces),
       _bindings(bindings),
       _slots(slots)
 {}
 
-HudClicks::~HudClicks()
+UiClicks::~UiClicks()
 {
     // Never leave a hook pointing into an unloaded module.
     if (_refs != 0)
-        Log::Error("HudClicks: {} subscription(s) outlived the hook; a click handler may dangle.", _refs);
+        Log::Error("UiClicks: {} subscription(s) outlived the hook; a click handler may dangle.", _refs);
 }
 
-bool HudClicks::Acquire()
+bool UiClicks::Acquire()
 {
     if (_refs == 0)
     {
         if (!_bindings.FilterMessage)
         {
-            Log::Warn("HudClicks: FilterMessage did not bind; button presses will not arrive.");
+            Log::Warn("UiClicks: FilterMessage did not bind; button presses will not arrive.");
             return false;
         }
 
@@ -91,7 +91,7 @@ bool HudClicks::Acquire()
     return true;
 }
 
-void HudClicks::ReleaseRef()
+void UiClicks::ReleaseRef()
 {
     if (_refs > 0 && --_refs == 0)
     {
@@ -102,7 +102,7 @@ void HudClicks::ReleaseRef()
     }
 }
 
-bool HudClicks::Install()
+bool UiClicks::Install()
 {
     void* client = AnyServerSideClient(_interfaces, _bindings);
     if (!client)
@@ -115,7 +115,7 @@ bool HudClicks::Install()
     const auto slot = FindVTableSlot(client, _bindings.FilterMessage.Ptr());
     if (!slot)
     {
-        Log::Warn("HudClicks: FilterMessage is in none of CServerSideClient's vtables; not hooking.");
+        Log::Warn("UiClicks: FilterMessage is in none of CServerSideClient's vtables; not hooking.");
         _connectListener.Reset();  // a retry cannot change this
         return false;
     }
@@ -127,7 +127,7 @@ bool HudClicks::Install()
     }
     if (_messageId < 0)
     {
-        Log::Warn("HudClicks: the engine does not know {}; not hooking.", kClickMessage);
+        Log::Warn("UiClicks: the engine does not know {}; not hooking.", kClickMessage);
         _connectListener.Reset();
         return false;
     }
@@ -139,21 +139,21 @@ bool HudClicks::Install()
                                           .Table = VTableRef("CServerSideClient", slot->Table)};
 
     auto hook = VtableHook::OnVTable<VoltMod_FilterMessageHook>("Custom HUD clicks", binding, this,
-                                                                &HudClicks::Hook_FilterMessage, nullptr);
+                                                                &UiClicks::Hook_FilterMessage, nullptr);
     if (!hook)
     {
-        Log::Warn("HudClicks: {}; button presses will not arrive.", hook.error().Detail);
+        Log::Warn("UiClicks: {}; button presses will not arrive.", hook.error().Detail);
         return false;
     }
 
     _hook = std::move(*hook);
     _baseOffset = slot->BaseOffset;
-    Log::Info("HudClicks: hooked FilterMessage at index {} (+{} from the client), message id {}.", slot->Index,
+    Log::Info("UiClicks: hooked FilterMessage at index {} (+{} from the client), message id {}.", slot->Index,
               _baseOffset, _messageId);
     return true;
 }
 
-bool HudClicks::Hook_FilterMessage(const CNetMessage* message, void*)
+bool UiClicks::Hook_FilterMessage(const CNetMessage* message, void*)
 {
     // Reading a press never changes the verdict, so the hook itself is one unconditional
     // MRES_IGNORED and every early-out below is a plain return.
@@ -161,7 +161,7 @@ bool HudClicks::Hook_FilterMessage(const CNetMessage* message, void*)
     RETURN_META_VALUE(MRES_IGNORED, true);
 }
 
-void HudClicks::HandleMessage(const CNetMessage* message, void* self)
+void UiClicks::HandleMessage(const CNetMessage* message, void* self)
 {
     // Every inbound message from every client lands here, so the id check comes first and costs
     // two loads; the reflection below only runs for an actual click.
@@ -181,9 +181,9 @@ void HudClicks::HandleMessage(const CNetMessage* message, void* self)
         return;
 
     const auto* reflection = proto.GetReflection();
-    HudClick click{.Slot = slot,
-                   .Layout = EntityRef{reflection->GetUInt32(proto, fields.Layout)},
-                   .ButtonId = reflection->GetString(proto, fields.Button)};
+    UiClick click{.Slot = slot,
+                  .Layout = EntityRef{reflection->GetUInt32(proto, fields.Layout)},
+                  .ButtonId = reflection->GetString(proto, fields.Button)};
 
     // The button id is client-controlled text. Handlers compare it against ids they authored, so
     // it is passed through as-is, but an embedded NUL would truncate it anywhere it is formatted.

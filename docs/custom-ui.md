@@ -1,10 +1,10 @@
-# Custom HUD layouts {#custom_hud_guide}
+# Custom UI layouts {#custom_ui_guide}
 
 [TOC]
 
 CS2 can render a server-driven Panorama panel through the `custom_hud_layout`
 entity: real XML and CSS, with clickable buttons, instead of center HTML.
-@ref VoltMod::CustomHud spawns that entity and drives it.
+@ref VoltMod::CustomUi spawns that entity and drives it.
 
 A layout has two halves, and both are needed:
 
@@ -17,29 +17,29 @@ A layout has two halves, and both are needed:
 
 ```cpp
 // App.hpp: the handle owns the entity, so keep it for as long as the panel should live.
-VoltMod::Hud _hud;
+VoltMod::UiPanel _panel;
 
 // Somewhere in App::Start()
-auto hud = runtime.Hud.Spawn("welcome");
-if (!hud)
+auto spawned = runtime.Ui.Spawn("welcome");
+if (!spawned)
     return false;             // the name was refused, or the engine would not spawn it
 
-_hud = std::move(*hud);
-_hud.SetText("title", "name", "Welcome");
-_hud.SetClass("card", "Hidden", false);  // show it
-_hud.SetInputCapture(true);              // make it clickable
+_panel = std::move(*spawned);
+_panel.SetText("title", "name", "Welcome");
+_panel.SetClass("card", "Hidden", false);  // show it
+_panel.SetInputCapture(true);              // make it clickable
 
 // Later, from a command or an event:
-_hud.SetText("title", "name", "Round 2");
+_panel.SetText("title", "name", "Round 2");
 ```
 
-@ref VoltMod::Hud *owns* its entity: dropping the handle removes the panel. That
+@ref VoltMod::UiPanel *owns* its entity: dropping the handle removes the panel. That
 is what stops a layout outliving the plugin that spawned it across a
 `meta reload`, so keep it as a member of whatever the panel belongs to rather
 than storing a bare @ref VoltMod::EntityRef. It is move-only, and it re-resolves
 its entity on every call - after a map change it is simply falsy.
 
-Several layouts can exist at once and are independent, so one plugin's HUD does
+Several layouts can exist at once and are independent, so one plugin's panel does
 not disturb another's.
 
 ## Authoring the layout
@@ -116,7 +116,7 @@ panorama/layout/custom_game/welcome.vxml_c  rejected: name the source, not the c
 panorama/layout/hud/welcome.xml             rejected: outside the whitelisted directory
 ```
 
-@ref VoltMod::CustomHud::Spawn enforces both rules and expands a bare name, so a
+@ref VoltMod::CustomUi::Spawn enforces both rules and expands a bare name, so a
 mistake here is an `Error::Invalid` rather than a panel that renders nothing and
 explains itself only on the client console.
 
@@ -134,16 +134,16 @@ client's `csgo/panorama/layout/custom_game/`.
 
 ## Reacting to a click
 
-A button press arrives as @ref VoltMod::HudClick. Subscribing is what installs
+A button press arrives as @ref VoltMod::UiClick. Subscribing is what installs
 the hook, so keep the @ref VoltMod::Subscription:
 
 ```cpp
-_subs.push_back(_hud.OnClick("accept", [this](int slot) { Accept(slot); }));
+_subs.push_back(_panel.OnClick("accept", [this](int slot) { Accept(slot); }));
 ```
 
 `OnClick` filters on both the layout and the button id, so two layouts that both
 have an `accept` button do not trigger each other's handler.
-@ref VoltMod::CustomHud::Clicks is the unfiltered form, for a plugin that wants
+@ref VoltMod::CustomUi::Clicks is the unfiltered form, for a plugin that wants
 presses from layouts it did not spawn.
 
 Nothing is clickable until that player has a cursor, which is
@@ -155,16 +155,16 @@ than parsing anything out of it.
 
 ## Per-player content
 
-@ref VoltMod::Hud::For narrows any write to one player, which the engine
+@ref VoltMod::UiPanel::For narrows any write to one player, which the engine
 networks through a single-slot recipient filter - so one entity can show
 different content to every player:
 
 ```cpp
-_hud.For(slot).SetText("title", "name", player.Name());
+_panel.For(slot).SetText("title", "name", player.Name());
 ```
 
 The engine's per-player setters index `m_vecPlayerLayoutStates` and return
-silently when the slot is past its end, so @ref VoltMod::Hud::For checks the
+silently when the slot is past its end, so @ref VoltMod::UiPanel::For checks the
 count first and fails with a reason rather than looking like it worked. When that
 count is zero, the global forms are the ones that work.
 
@@ -174,8 +174,8 @@ Ask @ref VoltMod::Capabilities before relying on either feature:
 
 | Capability | Off means |
 | --- | --- |
-| `CustomHud` | the six `CCSCustomHudLayout` setters did not bind; spawning still works, writes fail |
-| `HudClicks` | `FilterMessage` did not bind; presses never arrive |
+| `CustomUi` | the six `CCSCustomHudLayout` setters did not bind; spawning still works, writes fail |
+| `UiClicks` | `FilterMessage` did not bind; presses never arrive |
 
 Both are located by byte pattern in `server.dll` / `engine2` and are **Windows
 only** today, so they report off on Linux until the patterns are located there.
@@ -197,5 +197,5 @@ directly.
 Schema fields resolve themselves by name, so an offset that moves in a CS2 update
 costs nothing here; the fields declare their expected **size** instead, and a
 mismatch warns once at resolve time. What does break is a byte-pattern signature,
-which @ref VoltMod::Capability::CustomHud reports with its reason - check that
+which @ref VoltMod::Capability::CustomUi reports with its reason - check that
 first after an update.

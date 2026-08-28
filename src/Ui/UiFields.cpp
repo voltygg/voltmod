@@ -1,4 +1,4 @@
-#include "Hud/HudFields.hpp"
+#include "Ui/UiFields.hpp"
 
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Entities/Entity.hpp>
@@ -83,7 +83,7 @@ static Result<CEntityInstance*> ReadyForWrite(EntitySystem* entities, EntityRef 
     // The engine's *ForPlayer setters compare the slot against m_vecPlayerLayoutStates and return
     // silently when it is out of range, so an empty vector would look exactly like success.
     if (!kPlayerStates)
-        return std::unexpected(Error::NotReady("the CustomHud per-player state field did not resolve"));
+        return std::unexpected(Error::NotReady("the CustomUi per-player state field did not resolve"));
 
     const int states = SchemaPtr{entity.Raw()}.Get(kPlayerStates);
     if (states <= slot)
@@ -110,19 +110,19 @@ static Status WriteClassState(EntitySystem* entities, EntityRef ref, int slot, s
     {
         const auto& set = bindings.CustomHudSetHasClass;
         if (!set)
-            return std::unexpected(Error::Unsupported("the CustomHud class setter did not bind"));
+            return std::unexpected(Error::Unsupported("the CustomUi class setter did not bind"));
         set(*entity, &panel, &name, state);
         return {};
     }
 
     const auto& set = bindings.CustomHudSetHasClassForPlayer;
     if (!set)
-        return std::unexpected(Error::Unsupported("the CustomHud per-player class setter did not bind"));
+        return std::unexpected(Error::Unsupported("the CustomUi per-player class setter did not bind"));
     set(*entity, slot, &panel, &name, state);
     return {};
 }
 
-int HudPlayerStateCount(EntitySystem* entities, EntityRef ref)
+int UiPlayerStateCount(EntitySystem* entities, EntityRef ref)
 {
     Entity entity = entities ? entities->Resolve(ref) : Entity{};
 
@@ -132,8 +132,8 @@ int HudPlayerStateCount(EntitySystem* entities, EntityRef ref)
     return count ? *count : -1;
 }
 
-Status HudWriteText(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId,
-                    std::string_view variable, std::string_view value)
+Status UiWriteText(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId, std::string_view variable,
+                   std::string_view value)
 {
     auto entity = ReadyForWrite(entities, ref, slot);
     if (!entity)
@@ -149,31 +149,31 @@ Status HudWriteText(EntitySystem* entities, EntityRef ref, int slot, std::string
     {
         const auto& set = bindings.CustomHudSetDialogVariable;
         if (!set)
-            return std::unexpected(Error::Unsupported("the CustomHud dialog variable setter did not bind"));
+            return std::unexpected(Error::Unsupported("the CustomUi dialog variable setter did not bind"));
         set(*entity, &panel, &name, &text);
         return {};
     }
 
     const auto& set = bindings.CustomHudSetDialogVariableForPlayer;
     if (!set)
-        return std::unexpected(Error::Unsupported("the CustomHud per-player dialog variable setter did not bind"));
+        return std::unexpected(Error::Unsupported("the CustomUi per-player dialog variable setter did not bind"));
     set(*entity, slot, &panel, &name, &text);
     return {};
 }
 
-Status HudWriteClass(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId,
-                     std::string_view className, bool on)
+Status UiWriteClass(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId,
+                    std::string_view className, bool on)
 {
     return WriteClassState(entities, ref, slot, panelId, className, on ? kClassPresent : kClassAbsent);
 }
 
-Status HudResetClass(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId,
-                     std::string_view className)
+Status UiResetClass(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId,
+                    std::string_view className)
 {
     return WriteClassState(entities, ref, slot, panelId, className, kClassUndefined);
 }
 
-Status HudWriteInputCapture(EntitySystem* entities, EntityRef ref, int slot, bool enabled)
+Status UiWriteInputCapture(EntitySystem* entities, EntityRef ref, int slot, bool enabled)
 {
     auto entity = ReadyForWrite(entities, ref, slot);
     if (!entity)
@@ -183,7 +183,7 @@ Status HudWriteInputCapture(EntitySystem* entities, EntityRef ref, int slot, boo
     {
         const auto& set = entities->BindingsRef().CustomHudSetInputCapture;
         if (!set)
-            return std::unexpected(Error::Unsupported("the CustomHud input capture setter did not bind"));
+            return std::unexpected(Error::Unsupported("the CustomUi input capture setter did not bind"));
         set(*entity, slot, enabled);
         return {};
     }
@@ -194,7 +194,7 @@ Status HudWriteInputCapture(EntitySystem* entities, EntityRef ref, int slot, boo
     const FieldRef& state = kGlobalState.Ref();
     const FieldRef& capture = kInputCapture.Ref();
     if (!state || !capture)
-        return std::unexpected(Error::NotReady("the CustomHud input capture field did not resolve"));
+        return std::unexpected(Error::NotReady("the CustomUi input capture field did not resolve"));
 
     const int32_t offset = state.Offset + capture.Offset;
     WriteAt<bool>(*entity, offset, enabled);
@@ -208,7 +208,7 @@ Status HudWriteInputCapture(EntitySystem* entities, EntityRef ref, int slot, boo
     return {};
 }
 
-Result<bool> HudReadInputCapture(EntitySystem* entities, EntityRef ref, int slot)
+Result<bool> UiReadInputCapture(EntitySystem* entities, EntityRef ref, int slot)
 {
     Entity entity = entities ? entities->Resolve(ref) : Entity{};
     if (!entity)
@@ -216,7 +216,7 @@ Result<bool> HudReadInputCapture(EntitySystem* entities, EntityRef ref, int slot
 
     const auto& get = entities->BindingsRef().CustomHudIsInputCapture;
     if (!get)
-        return std::unexpected(Error::Unsupported("the CustomHud input capture reader did not bind"));
+        return std::unexpected(Error::Unsupported("the CustomUi input capture reader did not bind"));
 
     return get(entity.Raw(), slot);
 }

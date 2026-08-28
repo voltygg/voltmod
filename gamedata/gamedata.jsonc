@@ -42,11 +42,11 @@
       "linux": { "pattern": "8B 05 ? ? ? ? 89 C2 83 EA ? 0F 88 ? ? ? ? 4C 8D 3D" }
     },
 
-    // CCSCustomHudLayout's setters, for VoltMod::CustomHud. Called rather than written by hand
-    // because server-only hash indexes shadow the tables they append to - see docs/custom-hud.md.
+    // CCSCustomHudLayout's setters, for VoltMod::CustomUi. Called rather than written by hand
+    // because server-only hash indexes shadow the tables they append to - see docs/custom-ui.md.
     //
     // Recovered from server.dll build 24934554, each matching exactly once in .text. Windows-only
-    // entries are allowed; on Linux Capability::CustomHud is off until these are located there.
+    // entries are allowed; on Linux Capability::CustomUi is off until these are located there.
 
     // void (CCSCustomHudLayout*, const CUtlString* panelId, const CUtlString* className,
     //       EHudPanelClassStatus_t status)
@@ -91,7 +91,7 @@
     },
 
     // bool (self, int32 slot). Side-effect free, which makes it the safest call to make once the
-    // patterns bind - see CustomHud's probe path.
+    // patterns bind - see CustomUi's probe path.
     "CustomHudIsInputCapture": {
       "library": "server",
       "windows": { "pattern": "4C 8B C1 3B 91 B0 04 00 00 7C ? 32 C0 C3 48 63 C2 48 69 C8 98 01 00 00 49 8B 80 B8 04 00 00 0F B6 44 01 34 C3" }
@@ -100,7 +100,7 @@
     // CServerSideClient::FilterMessage, the inbound client-message filter. Unlike every other hook
     // here this one is NOT reached by vtable index: FilterMessage is declared on the third base,
     // INetworkMessageProcessingPreFilter, so it lives in a secondary vtable that FindVirtualTable
-    // (primary tables only) cannot return. Hooks::HudClicks locates the slot from a live client by
+    // (primary tables only) cannot return. UiClicks locates the slot from a live client by
     // searching for this address - see FindVTableSlot - which is why the signature is the binding
     // and there is no index to drift. Patterns from SwiftlyS2.
     "FilterMessage": {

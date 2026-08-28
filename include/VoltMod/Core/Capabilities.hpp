@@ -25,8 +25,8 @@ enum class Capability : uint16_t
     Items,        ///< Giving and stripping weapons through CCSPlayer_ItemServices.
     Menus,        ///< The rendered player menu.
     Http,         ///< The HTTP client and its worker pool.
-    CustomHud,    ///< Driving a custom_hud_layout: dialog variables, classes, input capture.
-    HudClicks,    ///< Receiving Button presses from a custom HUD layout.
+    CustomUi,     ///< Driving a custom_hud_layout: dialog variables, classes, input capture.
+    UiClicks,     ///< Receiving Button presses from a custom HUD layout.
     Addons        ///< Telling connecting clients which workshop addons to download.
 };
 

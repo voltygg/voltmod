@@ -194,10 +194,10 @@ struct Bindings
     /** IGameEventListener2* (CPlayerSlot), defined in GameEvents.cpp. */
     Address LegacyGameEventListener;
 
-    /** @defgroup CustomHudSetters CCSCustomHudLayout setters, called by @ref CustomHud.
+    /** @defgroup CustomHudSetters CCSCustomHudLayout setters, called by @ref CustomUi.
      *  `self` is the entity. The `const CUtlString*` parameters are the real ABI; strings are
      *  never passed as `const char*` here. All six bind together or none does - a half-bound set
-     *  would let a call through a null address - which @ref Capability::CustomHud reports.
+     *  would let a call through a null address - which @ref Capability::CustomUi reports.
      *  @{ */
     Fn<void(void*, const CUtlString*, const CUtlString*, int32_t)> CustomHudSetHasClass;
     Fn<void(void*, int32_t, const CUtlString*, const CUtlString*, int32_t)> CustomHudSetHasClassForPlayer;
@@ -209,7 +209,7 @@ struct Bindings
     /** @} */
 
     /** CServerSideClient::FilterMessage, bound by signature rather than vtable index because it
-     *  lives in a secondary vtable. @ref Hooks::HudClicks turns this address into a hookable slot
+     *  lives in a secondary vtable. @ref UiClicks turns this address into a hookable slot
      *  with FindVTableSlot; see the gamedata comment for why there is no index. */
     Address FilterMessage;
 

@@ -10,7 +10,7 @@ namespace VoltMod
  * @file ServerSideClients.hpp
  * @brief The engine's connected-client objects, for the two hooks that need one.
  *
- * `CServerSideClient` is the per-connection object `Hooks::HudClicks` and `Addons` hook, but the
+ * `CServerSideClient` is the per-connection object `UiClicks` and `Addons` hook, but the
  * SDK's `INetworkGameServer` exposes no accessor for it, so the vector is reached by a gamedata
  * offset into `CNetworkGameServer`. Deliberately internal to `src/`: a plugin has `PlayerRef` and
  * `Player` for everything it should be doing with a connection, and nothing in the public API

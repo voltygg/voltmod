@@ -13,7 +13,7 @@ namespace VoltMod
 {
 
 /** A `Button` press inside a custom HUD layout. */
-struct HudClick
+struct UiClick
 {
     int Slot = -1;         ///< who clicked
     EntityRef Layout;      ///< the custom_hud_layout the Button belongs to
@@ -23,9 +23,9 @@ struct HudClick
 /**
  * @brief Button presses coming back from a custom HUD layout, unfiltered.
  *
- * Owned by @ref CustomHud and reached as `Hud.Clicks`; @ref Hud::OnClick is the per-layout form
+ * Owned by @ref CustomUi and reached as `Ui.Clicks`; @ref UiPanel::OnClick is the per-layout form
  * most callers want. A press only happens once that player has a cursor - see
- * @ref Hud::SetInputCapture and @ref custom_hud_guide.
+ * @ref UiPanel::SetInputCapture and @ref custom_ui_guide.
  *
  * Dormant until something subscribes, and removed when the last subscription drops. Unlike the
  * framework's other vtable hooks this one cannot bind from a cold start: `FilterMessage` is
@@ -33,19 +33,19 @@ struct HudClick
  * located from a live client instead. Subscribing with nobody connected therefore arms on the
  * next connect, which callers see only as clicks not arriving from an empty server.
  *
- * Inert when @ref Capability::HudClicks is off. Every handler runs on the game thread.
+ * Inert when @ref Capability::UiClicks is off. Every handler runs on the game thread.
  */
-class HudClicks
+class UiClicks
 {
 public:
     /** All three must outlive this hook; the Runtime declares them above it. */
-    HudClicks(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots);
-    ~HudClicks();
-    HudClicks(const HudClicks&) = delete;
-    HudClicks& operator=(const HudClicks&) = delete;
+    UiClicks(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots);
+    ~UiClicks();
+    UiClicks(const UiClicks&) = delete;
+    UiClicks& operator=(const UiClicks&) = delete;
 
     /** A player pressed a Button. Subscribing installs the hook; see the class docs. */
-    Event<const HudClick&> Clicked;
+    Event<const UiClick&> Clicked;
 
 private:
     /** Install on the first subscription, remove on the last. */

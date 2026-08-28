@@ -36,7 +36,7 @@ file(GLOB_RECURSE VOLTMOD_RUNTIME_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Messaging/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Players/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Hooks/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/Hud/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Ui/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Workshop/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Unsafe/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Commands/*.cpp"
@@ -105,7 +105,7 @@ if(VOLTMOD_BUILD_STANDALONE)
             tests/Api/RootApiSurfaceTest.cpp
             tests/Api/EntitiesApiSurfaceTest.cpp
             tests/Api/HooksApiSurfaceTest.cpp
-            tests/Api/HudApiSurfaceTest.cpp
+            tests/Api/UiApiSurfaceTest.cpp
             tests/Api/MenuApiSurfaceTest.cpp
             tests/Api/UnsafeApiSurfaceTest.cpp
         )
@@ -148,7 +148,7 @@ if(BUILD_TESTING)
             src/Commands/Targeting.cpp
             src/Hooks/ClientCvarPending.cpp
             src/Workshop/AddonRequirements.cpp
-            src/Hud/LayoutName.cpp
+            src/Ui/LayoutName.cpp
             src/Engine/Bindings.cpp
             src/Engine/ConVarTypes.cpp
             src/Engine/GameData.cpp

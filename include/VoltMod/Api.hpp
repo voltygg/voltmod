@@ -46,7 +46,7 @@
 #include <VoltMod/Players/Policy.hpp>
 #include <VoltMod/Runtime.hpp>
 
-// <VoltMod/Entities/Api.hpp>, <VoltMod/Hooks/Api.hpp>, <VoltMod/Hud/Api.hpp>,
+// <VoltMod/Entities/Api.hpp>, <VoltMod/Hooks/Api.hpp>, <VoltMod/Ui/Api.hpp>,
 // <VoltMod/Menu/Api.hpp> and <VoltMod/Unsafe/Api.hpp> gather those modules' full public
 // surfaces; a plugin opts into each by including it explicitly.
 //

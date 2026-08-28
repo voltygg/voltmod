@@ -26,7 +26,7 @@ class CEntityKeyValues;
 class CGameEntitySystem;
 class CGlobalVars;
 class CNetMessage;
-// tier1's ref-counted string. Named only as `const CUtlString*` in the CustomHud setter
+// tier1's ref-counted string. Named only as `const CUtlString*` in the CustomUi setter
 // prototypes, which is the real ABI of those functions rather than a convenience.
 class CUtlString;
 class Color;

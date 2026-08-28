@@ -9,7 +9,7 @@
 #include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Entities/EntityRef.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
-#include <VoltMod/Hud/HudClicks.hpp>
+#include <VoltMod/Ui/UiClicks.hpp>
 #include <functional>
 #include <string>
 #include <string_view>
@@ -18,20 +18,20 @@ namespace VoltMod
 {
 
 /**
- * @brief One player's view of a @ref Hud, from @ref Hud::For.
+ * @brief One player's view of a @ref UiPanel, from @ref UiPanel::For.
  *
  * The engine networks these writes through a single-slot recipient filter, so one entity really
  * can show different content to every player.
  *
  * Frame-local: use it in the expression that made it, like @ref Pawn. It holds no reference to
- * the @ref Hud, so it stays valid if that handle moves, but the entity behind it can still die.
+ * the @ref UiPanel, so it stays valid if that handle moves, but the entity behind it can still die.
  */
-class HudPlayerView
+class UiPlayerView
 {
 public:
-    HudPlayerView(const HudPlayerView&) = default;
-    /** Views are not assignable; ask @ref Hud::For again. */
-    HudPlayerView& operator=(const HudPlayerView&) = delete;
+    UiPlayerView(const UiPlayerView&) = default;
+    /** Views are not assignable; ask @ref UiPanel::For again. */
+    UiPlayerView& operator=(const UiPlayerView&) = delete;
 
     /** Set the dialog variable a `text="{s:variable}"` attribute reads. */
     Status SetText(std::string_view panelId, std::string_view variable, std::string_view value);
@@ -49,12 +49,11 @@ public:
     Result<bool> InputCaptureEnabled() const;
 
 private:
-    friend class Hud;
+    friend class UiPanel;
 
     /** @p entities may be null - a view onto an empty handle fails every call rather than
      *  crashing, the same as writing through the handle itself. */
-    HudPlayerView(EntitySystem* entities, EntityRef ref, int slot) noexcept
-        : _entities(entities), _ref(ref), _slot(slot)
+    UiPlayerView(EntitySystem* entities, EntityRef ref, int slot) noexcept : _entities(entities), _ref(ref), _slot(slot)
     {}
 
     EntitySystem* _entities = nullptr;
@@ -72,29 +71,29 @@ private:
  *
  * Every write goes through the game's own setter rather than the netvar, because the tables they
  * append to are shadowed by server-only hash indexes that a direct write would leave stale. See
- * @ref custom_hud_guide for that and for what the client will render.
+ * @ref custom_ui_guide for that and for what the client will render.
  *
- * Inert unless @ref Capability::CustomHud is on.
+ * Inert unless @ref Capability::CustomUi is on.
  */
-class Hud
+class UiPanel
 {
 public:
     /** An empty handle: falsy, owns nothing, safe to destroy or assign over. */
-    Hud() = default;
+    UiPanel() = default;
 
     /** Removes the entity if it still resolves. */
-    ~Hud();
+    ~UiPanel();
 
-    Hud(Hud&& other) noexcept;
+    UiPanel(UiPanel&& other) noexcept;
     /** Removes what this handle held before taking @p other's entity. */
-    Hud& operator=(Hud&& other) noexcept;
-    Hud(const Hud&) = delete;
-    Hud& operator=(const Hud&) = delete;
+    UiPanel& operator=(UiPanel&& other) noexcept;
+    UiPanel(const UiPanel&) = delete;
+    UiPanel& operator=(const UiPanel&) = delete;
 
     /** Whether the entity still exists. False after a map change or an explicit @ref Remove. */
     explicit operator bool() const;
 
-    /** The entity behind this handle, for logging or comparing against a @ref HudClick. */
+    /** The entity behind this handle, for logging or comparing against a @ref UiClick. */
     [[nodiscard]] EntityRef Ref() const noexcept { return _ref; }
 
     /** Remove the entity now instead of at destruction. Idempotent. */
@@ -118,7 +117,7 @@ public:
     Status SetInputCapture(bool enabled);
 
     /** Write one player's state instead of everyone's. */
-    HudPlayerView For(int slot);
+    UiPlayerView For(int slot);
 
     /** How many per-player states the entity carries. Zero makes every @ref For call fail. */
     int PlayerStateCount() const;
@@ -134,18 +133,18 @@ public:
     [[nodiscard]] Subscription OnClick(std::string buttonId, std::function<void(int slot)> handler);
 
     /** Every press in this layout, whichever Button it was. */
-    [[nodiscard]] Subscription OnAnyClick(std::function<void(const HudClick&)> handler);
+    [[nodiscard]] Subscription OnAnyClick(std::function<void(const UiClick&)> handler);
 
 private:
-    Hud(EntitySystem& entities, EntityOps& ops, Event<const HudClick&>& clicked, EntityRef ref) noexcept
+    UiPanel(EntitySystem& entities, EntityOps& ops, Event<const UiClick&>& clicked, EntityRef ref) noexcept
         : _entities(&entities), _ops(&ops), _clicked(&clicked), _ref(ref)
     {}
 
-    friend class CustomHud;
+    friend class CustomUi;
 
     EntitySystem* _entities = nullptr;
     EntityOps* _ops = nullptr;
-    Event<const HudClick&>* _clicked = nullptr;
+    Event<const UiClick&>* _clicked = nullptr;
     EntityRef _ref;
 };
 
@@ -153,20 +152,20 @@ private:
  * @brief Spawns `custom_hud_layout` entities and owns the hook their Buttons report through.
  *
  * Layouts are independent, so one plugin's HUD does not disturb another's. Inert unless
- * @ref Capability::CustomHud is on - the setters it calls are located by byte pattern and are
+ * @ref Capability::CustomUi is on - the setters it calls are located by byte pattern and are
  * Windows-only today.
  */
-class CustomHud
+class CustomUi
 {
 public:
     /** All must outlive this service; the Runtime declares them above it. */
-    CustomHud(EntitySystem& entities, EntityOps& ops, const Bindings& bindings, Interfaces& interfaces,
-              SlotEvents& slots)
+    CustomUi(EntitySystem& entities, EntityOps& ops, const Bindings& bindings, Interfaces& interfaces,
+             SlotEvents& slots)
         : Clicks(interfaces, bindings, slots), _entities(entities), _ops(ops)
     {}
 
-    CustomHud(const CustomHud&) = delete;
-    CustomHud& operator=(const CustomHud&) = delete;
+    CustomUi(const CustomUi&) = delete;
+    CustomUi& operator=(const CustomUi&) = delete;
 
     /**
      * Spawn a layout entity showing @p layout.
@@ -179,15 +178,15 @@ public:
      * @return an owning handle. Errors when the name breaks that rule, when entity spawning is
      *         unavailable, or when the engine refuses to create the entity.
      */
-    Result<Hud> Spawn(std::string_view layout);
+    Result<UiPanel> Spawn(std::string_view layout);
 
     /**
      * Presses from **any** layout, including one another plugin spawned.
      *
-     * @ref Hud::OnClick is the filtered form and what a plugin driving its own layout wants.
+     * @ref UiPanel::OnClick is the filtered form and what a plugin driving its own layout wants.
      * Subscribing to either installs the hook.
      */
-    HudClicks Clicks;
+    UiClicks Clicks;
 
 private:
     EntitySystem& _entities;
