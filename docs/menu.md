@@ -35,8 +35,11 @@ developing.
 Choose once, at load, and pass the result around as a `MenuHost&`:
 
 ```cpp
-MenuHost& menus = runtime.Capabilities.Has(Capability::CustomUi) ? static_cast<MenuHost&>(runtime.UiMenus)
-                                                                 : static_cast<MenuHost&>(runtime.HtmlMenus);
+// Center HTML is the fallback, so start there and upgrade: the two managers are unrelated types,
+// and a conditional between them would need a cast on each arm to find their common base.
+MenuHost* menus = &runtime.HtmlMenus;
+if (runtime.Capabilities.Has(Capability::CustomUi))
+    menus = &runtime.UiMenus;
 ```
 
 A session that straddled two hosts would leave half its state on the wrong

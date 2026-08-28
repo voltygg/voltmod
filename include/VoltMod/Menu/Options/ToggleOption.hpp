@@ -1,7 +1,6 @@
 #pragma once
 
 #include <VoltMod/Menu/MenuOption.hpp>
-#include <format>
 #include <functional>
 #include <string>
 #include <utility>

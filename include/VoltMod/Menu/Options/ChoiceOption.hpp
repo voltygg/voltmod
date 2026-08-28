@@ -2,7 +2,6 @@
 
 #include <VoltMod/Menu/MenuOption.hpp>
 #include <algorithm>
-#include <format>
 #include <functional>
 #include <string>
 #include <utility>

@@ -21,7 +21,7 @@ namespace VoltMod
 // Menu.hpp -> MenuOption.hpp): this header only stores a pointer and takes a reference
 // parameter, never calling a method on it, so it does not need MenuHost's full definition
 // (and the SDK-facing headers that pulls in). The .cpp files behind the context rows - which do
-// call into it - include <VoltMod/Menu/Html/MenuHost.hpp> themselves.
+// call into it - include <VoltMod/Menu/MenuHost.hpp> themselves.
 
 /**
  * @brief Fluent builder whose row methods append typed @ref MenuOption rows.

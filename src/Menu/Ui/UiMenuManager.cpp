@@ -162,7 +162,8 @@ void UiMenuManager::Present(int slot)
                         .Value = row.Value,
                         .Modifier = ModifierFor(row.Kind),
                         .Enabled = option->IsEnabled(),
-                        .Steppers = row.Kind == MenuRowKind::Toggle || row.Kind == MenuRowKind::Choice});
+                        // The same question the HTML footer asks, so both drivers read one answer.
+                        .Steppers = option->UsesHorizontal()});
     }
     _rows.HideFrom(slot, last - first);
 
