@@ -20,11 +20,8 @@ namespace VoltMod
 
 #ifdef _WIN32
 
-/**
- * First occurrence of `needle` in [begin, end), stepping `stride` bytes at a time. Structured data
- * (RVAs, pointers) is naturally aligned, so a stride matching its width both speeds the scan up and
- * rules out matches straddling two unrelated values.
- */
+/** First `needle` in [begin, end), stepping `stride` bytes: aligned data cannot match across
+ *  two unrelated values. */
 static const uint8_t* FindValue(const uint8_t* begin, const uint8_t* end, const void* needle, size_t len, size_t stride)
 {
     if (!begin || !end || len == 0 || static_cast<size_t>(end - begin) < len)
@@ -89,9 +86,8 @@ static void* FindVirtualTableWin(const ModuleImage& image, const char* className
     if (!data.Begin || !rdata.Begin)
         return nullptr;
 
-    // MSVC emits one RTTITypeDescriptor per polymorphic class into .data, laid out as
-    // { type_info vftable, spare, char name[] } - so the mangled name starts 0x10 bytes in.
-    // Matching the terminator too keeps ".?AVCFoo@@" from matching ".?AVCFooBar@@".
+    // RTTITypeDescriptor: { type_info vftable, spare, char name[] }, so the name is 0x10 in.
+    // The terminator is matched so ".?AVCFoo@@" does not match ".?AVCFooBar@@".
     const std::string mangled = ".?AV" + std::string(className) + "@@";
     const uint8_t* mangledName = FindValue(data.Begin, data.End, mangled.c_str(), mangled.size() + 1, 1);
     if (!mangledName || mangledName - image.Base < 0x10)
@@ -109,8 +105,7 @@ static void* FindVirtualTableWin(const ModuleImage& image, const char* className
         if (ref - PTypeDescriptorOffset < rdata.Begin)
             continue;
 
-        // Accept the reference only when it reads as a complete-object (offset 0) x64 locator
-        // (signature 1), not an unrelated word that happens to equal the RVA.
+        // Only an x64 complete-object locator (signature 1, offset 0), not a stray equal word.
         const uint8_t* locator = ref - PTypeDescriptorOffset;
         if (ReadAt<uint32_t>(locator) != 1 || ReadAt<uint32_t>(locator + 4) != 0)
             continue;
@@ -185,8 +180,7 @@ static uint64_t FindSymbolValue(const MappedFile& elf, const std::string& symbol
     if (!sections || header->e_shentsize != sizeof(Elf64_Shdr))
         return 0;
 
-    // .symtab first: it is complete when present, while .dynsym only carries exported symbols. A
-    // fully stripped library has neither and the caller degrades.
+    // .symtab is complete when present; .dynsym only carries exports.
     for (const Elf64_Word wanted : {Elf64_Word{SHT_SYMTAB}, Elf64_Word{SHT_DYNSYM}})
     {
         for (uint16_t i = 0; i < header->e_shnum; ++i)
@@ -229,8 +223,7 @@ static void* FindVirtualTableElf(const ModuleImage& image, const char* className
     if (value == 0)
         return nullptr;
 
-    // The symbol addresses the whole vtable. Objects carry a pointer two words in, past the
-    // offset-to-top and typeinfo slots.
+    // Objects point two words in, past offset-to-top and typeinfo.
     return const_cast<uint8_t*>(image.Base + value + 2 * sizeof(void*));
 }
 
@@ -259,12 +252,12 @@ void* FindVirtualTable(const char* moduleName, const char* className)
     return vtable;
 }
 
-/** How many leading pointer-sized slots of an object are tried as vptrs, and how far into each
- *  candidate table the search goes. Both are bounds on a blind walk, not properties of a class. */
+/** Bounds on the blind walk: leading object words tried as vptrs, and slots per table. */
 static constexpr int kMaxBases = 8;
 static constexpr int kMaxSlots = 16;
 
-std::optional<VTableSlot> FindVTableSlot(const void* instance, const void* function)
+std::optional<VTableSlot> FindVTableSlot(const void* instance, const void* function,
+                                         const std::function<const void*(void* entry)>& originalOf)
 {
     if (!instance || !function)
         return std::nullopt;
@@ -277,20 +270,18 @@ std::optional<VTableSlot> FindVTableSlot(const void* instance, const void* funct
         void** candidate = nullptr;
         std::memcpy(&candidate, object + baseOffset, sizeof(candidate));
 
-        // These bytes are whatever the object happens to hold, so the candidate is validated as an
-        // address before it is read through - a data member of 0xFFFFFFFFFFFFFFFF is not null and
-        // dereferencing it to ask what it points at is a crash, not a rejection. Only once the
-        // read is safe does slot 0 being executable rule out data members that are real pointers.
+        // The word may be any data member: check it is readable before reading through it, then
+        // that slot 0 is code before treating it as a table.
         if (!candidate || !IsReadableAddress(candidate, sizeof(void*)) || !IsExecutableAddress(candidate[0]))
             continue;
 
         for (int index = 0; index < kMaxSlots; ++index)
         {
-            // A real table can end at the edge of its mapping, so every slot is checked, not just
-            // the first.
+            // A table can end at the edge of its mapping.
             if (!IsReadableAddress(&candidate[index], sizeof(void*)) || !IsExecutableAddress(candidate[index]))
                 break;  // past the end of this table
-            if (candidate[index] == function)
+            // Another plugin's hook patches the entry in place.
+            if (candidate[index] == function || (originalOf && originalOf(&candidate[index]) == function))
                 return VTableSlot{.Table = static_cast<void*>(candidate), .Index = index, .BaseOffset = baseOffset};
         }
     }

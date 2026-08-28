@@ -171,6 +171,10 @@ have an `accept` button do not trigger each other's handler.
 @ref VoltMod::CustomUi::Clicks is the unfiltered form, for a plugin that wants
 presses from layouts it did not spawn.
 
+A press is raised on the game frame after it arrives, not from inside the engine's
+inbound message processing, so a handler may write to the panel - hide it, release
+the cursor - and the write reaches the client.
+
 Nothing is clickable until that player has a cursor, which is
 `SetInputCapture(true)`. Without it the game keeps mouse-look and the panel never
 sees a pointer - the usual reason a layout renders but does nothing.

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoltMod/Core/Event.hpp>
+#include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
@@ -8,7 +9,9 @@
 #include <VoltMod/Entities/EntityRef.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Unsafe/VtableHook.hpp>
+#include <cstdint>
 #include <string>
+#include <vector>
 
 namespace VoltMod
 {
@@ -32,13 +35,17 @@ struct UiClick
  * (`FilterMessage`) sits in a secondary vtable that can only be located from a connected client,
  * so subscribing on an empty server arms on the next connect.
  *
- * Inert when @ref Capability::UiClicks is off. Handlers run on the game thread.
+ * A press is raised on the game frame after it arrives, not from inside the engine's inbound
+ * message processing, so a handler may write to the layout or any other entity.
+ *
+ * Inert when @ref Capability::UiClicks is off.
  */
 class UiClicks
 {
 public:
     /** All references must outlive this hook; the Runtime declares them above it. */
-    UiClicks(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots, EntitySystem& entities);
+    UiClicks(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots, EntitySystem& entities,
+             Scheduler& scheduler);
     ~UiClicks();
     UiClicks(const UiClicks&) = delete;
     UiClicks& operator=(const UiClicks&) = delete;
@@ -58,18 +65,32 @@ private:
     bool Hook_FilterMessage(const CNetMessage* message, void* channel);
 
     /** The hook's actual work, so the hook itself is one unconditional MRES_IGNORED. @p self is
-     *  the hooked subobject, @ref _baseOffset bytes into the client. */
+     *  the hooked subobject, @ref _baseOffset bytes into the client. Only queues. */
     void HandleMessage(const CNetMessage* message, void* self);
+
+    /** Raise what arrived since the last frame. */
+    void Deliver();
+
+    /** A press as it came off the wire, resolved when it is delivered. */
+    struct Pending
+    {
+        int Slot;
+        uint32_t Layout;
+        std::string Button;
+    };
 
     Interfaces& _interfaces;
     const Bindings& _bindings;
     SlotEvents& _slots;
     EntitySystem& _entities;
+    Scheduler& _scheduler;
 
     int _refs = 0;                  // live subscriptions
     int _baseOffset = 0;            // bytes from CServerSideClient to the hooked subobject
     int _messageId = -1;            // CSVCMsg_UserMessage, from the engine's own registry
     Subscription _connectListener;  // retries Install() while subscribed but not yet armed
+    std::vector<Pending> _pending;
+    Subscription _pump;  // delivers _pending each frame while the hook is up
     VtableHook _hook;
 };
 

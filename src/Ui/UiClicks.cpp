@@ -75,12 +75,14 @@ static EntityRef ResolveLayout(EntitySystem& entities, uint32_t wire)
     return {};
 }
 
-UiClicks::UiClicks(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots, EntitySystem& entities)
+UiClicks::UiClicks(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots, EntitySystem& entities,
+                   Scheduler& scheduler)
     : Clicked({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
       _interfaces(interfaces),
       _bindings(bindings),
       _slots(slots),
-      _entities(entities)
+      _entities(entities),
+      _scheduler(scheduler)
 {}
 
 UiClicks::~UiClicks()
@@ -120,6 +122,8 @@ void UiClicks::ReleaseRef()
     {
         _connectListener.Reset();
         _hook.Reset();
+        _pump.Reset();
+        _pending.clear();
         _messageId = -1;
         _baseOffset = 0;
     }
@@ -133,7 +137,9 @@ bool UiClicks::Install()
 
     // FilterMessage lives in a secondary vtable (inherited from a non-first base), so the slot is
     // found by searching a live client's tables for the signature's address - see FindVTableSlot.
-    const auto slot = FindVTableSlot(client, _bindings.FilterMessage.Ptr());
+    const auto slot = FindVTableSlot(client, _bindings.FilterMessage.Ptr(), [](void* entry) -> const void* {
+        return g_SHPtr ? g_SHPtr->GetOrigVfnPtrEntry(entry) : nullptr;
+    });
     if (!slot)
     {
         Log::Warn("UiClicks: FilterMessage is in none of CServerSideClient's vtables; not hooking.");
@@ -176,6 +182,7 @@ bool UiClicks::Install()
 
     _hook = std::move(*hook);
     _baseOffset = slot->BaseOffset;
+    _pump = _scheduler.EveryFrame([this] { Deliver(); });
     Log::Info("UiClicks: hooked FilterMessage at index {} (+{} from the client), user message id {}, click type {}.",
               slot->Index, _baseOffset, _messageId, _bindings.CustomHudClicked);
     return true;
@@ -226,11 +233,23 @@ void UiClicks::HandleMessage(const CNetMessage* message, void* self)
     if (payload->Button.find('\0') != std::string::npos)
         return;
 
-    EntityRef layout = ResolveLayout(_entities, payload->Layout);
-    if (!layout)
-        return;  // stale press from a layout that has since been removed
+    _pending.push_back({.Slot = slot, .Layout = payload->Layout, .Button = std::move(payload->Button)});
+}
 
-    Clicked.Raise(UiClick{.Slot = slot, .Layout = layout, .ButtonId = std::move(payload->Button)});
+void UiClicks::Deliver()
+{
+    // Swapped out first: a handler may drop the last subscription, which clears the queue.
+    std::vector<Pending> presses;
+    presses.swap(_pending);
+
+    for (Pending& press : presses)
+    {
+        EntityRef layout = ResolveLayout(_entities, press.Layout);
+        if (!layout)
+            continue;  // stale press from a layout that has since been removed
+
+        Clicked.Raise(UiClick{.Slot = press.Slot, .Layout = layout, .ButtonId = std::move(press.Button)});
+    }
 }
 
 }  // namespace VoltMod

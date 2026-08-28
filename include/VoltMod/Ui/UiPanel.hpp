@@ -136,8 +136,8 @@ class CustomUi
 public:
     /** All must outlive this service; the Runtime declares them above it. */
     CustomUi(EntitySystem& entities, EntityOps& ops, const Bindings& bindings, Interfaces& interfaces,
-             SlotEvents& slots)
-        : Clicks(interfaces, bindings, slots, entities), _entities(entities), _ops(ops)
+             SlotEvents& slots, Scheduler& scheduler)
+        : Clicks(interfaces, bindings, slots, entities, scheduler), _entities(entities), _ops(ops)
     {}
 
     CustomUi(const CustomUi&) = delete;
