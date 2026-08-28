@@ -89,25 +89,26 @@ const FieldRef& PendingField() noexcept;
 void MarkChanged(CEntityInstance* entity, const FieldRef& ref);
 
 /**
- * @brief A field offset resolved on first use, for code with no entity wrapper to hang a
- * @ref Field on: a field of an engine sub-object, or a one-off internal lookup.
+ * @brief One schema field's offset, resolved on first use and remembered.
  *
- * Declare one `static` beside the code that uses it, with string literals for the names. It
- * resolves once and keeps retrying for as long as the schema system is not up yet, so an instance
- * created during load does not freeze an empty answer. Game-thread only.
+ * The primitive the rest of this header is built on: a @ref Field is a FieldOffset plus an entity
+ * and a type. Declare one where there is no entity wrapper to hang a @ref Field on - a field of an
+ * engine sub-object, or a field on an entity the framework does not wrap - as a `static` beside the
+ * code that uses it, with string literals for the names. It resolves once and keeps retrying for as
+ * long as the schema system is not up yet, so an instance created during load does not freeze an
+ * empty answer. Game-thread only.
  *
  * ```cpp
- * static const LazyField kItemServices{"CBasePlayerPawn", "m_pItemServices", sizeof(void*)};
- * if (kItemServices)
- *     services = ReadAt<void*>(pawn, kItemServices->Offset);
+ * static const FieldOffset kItemServices{"CBasePlayerPawn", "m_pItemServices", sizeof(void*)};
+ * SchemaPtr services = SchemaPtr{pawn}.SubObject(kItemServices);
  * ```
  */
-class LazyField
+class FieldOffset
 {
 public:
     /** @p klass and @p field must outlive this object; pass string literals. @p expectedSize is
      *  the drift check, as on @ref ResolveField - 0 skips it. */
-    constexpr LazyField(std::string_view klass, std::string_view field, size_t expectedSize = 0) noexcept
+    constexpr FieldOffset(std::string_view klass, std::string_view field, size_t expectedSize = 0) noexcept
         : _klass(klass), _field(field), _expectedSize(expectedSize)
     {}
 
@@ -157,6 +158,9 @@ struct CharBuf
 
     CharBuf() = default;
     CharBuf(std::string_view text) noexcept { Assign(text); }
+
+    /** The one place a `const char*` overload earns its keep: without it `name = "literal"` needs
+     *  two user-defined conversions (to `string_view`, then to `CharBuf`) and does not compile. */
     CharBuf(const char* text) noexcept { Assign(text ? std::string_view(text) : std::string_view{}); }
 
     CharBuf& operator=(std::string_view text) noexcept
@@ -199,12 +203,13 @@ struct CharBuf
  * @brief A property proxy for one schema field on one live entity.
  *
  * Declared as a member of an entity wrapper (`Field<int, "CBaseEntity", "m_iHealth"> Health{_e};`)
- * and used as if it were the field: it converts to T on read and takes a T on write. The offset
- * resolves once per (class, field) for the process; the proxy itself only carries the entity it
- * is bound to, so it is exactly as frame-local as its owner - never store one.
+ * and used as if it were the field: it converts to T on read and takes a T on write. The offset is
+ * one @ref FieldOffset shared by every instantiation of this type, so it resolves once per
+ * (class, field) for the process and the proxy itself only carries the entity it is bound to - it
+ * is exactly as frame-local as its owner. Never store one.
  *
  * A write to a networked field dirties it for replication automatically; that is the whole reason
- * to write through a Field rather than @ref WriteAt.
+ * to write through a Field rather than a raw @ref WriteAt.
  *
  * Reading a field on a null entity, or one the schema does not have, yields `T{}`; writing it is
  * a no-op. Constness is the proxy's, not the entity's: a `const Pawn&` still writes, the same way
@@ -274,13 +279,12 @@ public:
     }
 
     /** The resolved offset for this (class, field), shared by every Field of this type. */
-    [[nodiscard]] static const FieldRef& Ref()
-    {
-        static const LazyField lazy{Klass.View(), Name.View(), ExpectedSize};
-        return lazy.Ref();
-    }
+    [[nodiscard]] static const FieldRef& Ref() { return _offset.Ref(); }
 
 private:
+    /** Constant-initialized, so a field access costs no thread-safe-static guard. */
+    static inline FieldOffset _offset{Klass.View(), Name.View(), ExpectedSize};
+
     CEntityInstance* _owner;
 };
 

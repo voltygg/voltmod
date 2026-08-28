@@ -2,6 +2,7 @@
 
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
+#include <string_view>
 
 namespace VoltMod
 {
@@ -24,6 +25,6 @@ using ProtoMessage = google::protobuf::Message;
 using ProtoFieldDescriptor = google::protobuf::FieldDescriptor;
 
 /** @p name's descriptor on @p message, or nullptr when the message carries no such field. */
-const ProtoFieldDescriptor* ProtoField(const ProtoMessage& message, const char* name);
+const ProtoFieldDescriptor* ProtoField(const ProtoMessage& message, std::string_view name);
 
 }  // namespace VoltMod

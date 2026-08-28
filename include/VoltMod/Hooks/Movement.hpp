@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Core/Result.hpp>
@@ -61,7 +61,7 @@ public:
     Event<int, UserCmdView&> FilterCmd;
 
     /** Slot whose pawn owns @p movementServices, or -1. */
-    int SlotFromMovementServices(void* movementServices) const;
+    int SlotFromMovementServices(SchemaPtr movementServices) const;
 
 private:
     /** One shared install behind four events: the first subscription across all of them binds the
@@ -70,7 +70,7 @@ private:
     void ReleaseRef();
 
     /** Any connected player's movement services, for the install-time vtable cross-check. */
-    void* LiveMovementServices() const;
+    SchemaPtr LiveMovementServices() const;
 
     void* Hook_RunCommandPre(void* userCmd);
     void* Hook_RunCommandPost(void* userCmd);
@@ -84,7 +84,7 @@ private:
     int _preSlot = -1;     // slot resolved in the pre hook, reused by the immediately-following post
     /** Slot -> movement services, to keep the per-usercmd slot lookup off the entity system.
      *  A hit is still confirmed against the engine, so a stale entry can only cost a rescan. */
-    mutable std::array<void*, MaxPlayers> _movementServices{};
+    mutable std::array<SchemaPtr, MaxPlayers> _movementServices{};
 };
 
 }  // namespace VoltMod

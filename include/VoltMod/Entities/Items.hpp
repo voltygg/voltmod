@@ -3,6 +3,8 @@
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Entities/Pawn.hpp>
+#include <VoltMod/Entities/SchemaPtr.hpp>
+#include <string_view>
 
 namespace VoltMod
 {
@@ -35,7 +37,7 @@ public:
      *
      * @return false when the pawn is unavailable or the engine refused the item twice.
      */
-    bool Give(const Pawn& pawn, const char* item);
+    bool Give(const Pawn& pawn, std::string_view item);
 
     /**
      * Remove every weapon @p pawn is carrying.
@@ -44,8 +46,8 @@ public:
     bool StripWeapons(const Pawn& pawn, bool removeSuit = true);
 
 private:
-    /** The pawn's CCSPlayer_ItemServices, or nullptr. */
-    static void* ItemServices(const Pawn& pawn);
+    /** The pawn's CCSPlayer_ItemServices, or null. */
+    static SchemaPtr ItemServices(const Pawn& pawn);
 
     const Bindings& _bindings;
 };

@@ -1,4 +1,4 @@
-﻿#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
@@ -44,11 +44,11 @@ bool Movement::Acquire()
                 "Movement: no usable 'UserCmdNumber' offset; falling back to the protobuf's "
                 "legacy_command_number, which the live client leaves at 0.");
 
-        _movementServices.fill(nullptr);
+        _movementServices.fill({});
 
         auto hook = VtableHook::OnVTable<VoltMod_MovementRunCommandHook>(
             "Movement RunCommand", _bindings.RunCommand, this, &Movement::Hook_RunCommandPre,
-            &Movement::Hook_RunCommandPost, LiveMovementServices());
+            &Movement::Hook_RunCommandPost, LiveMovementServices().Raw());
         if (!hook)
         {
             Log::Warn("Movement: {}; movement handlers will not fire.", hook.error().Detail);
@@ -66,19 +66,19 @@ void Movement::ReleaseRef()
     {
         _hook.Reset();
         // Pawn pointers may be stale after reinstall.
-        _movementServices.fill(nullptr);
+        _movementServices.fill({});
     }
 }
 
-void* Movement::LiveMovementServices() const
+SchemaPtr Movement::LiveMovementServices() const
 {
     for (int slot = 0; slot < MaxPlayers; ++slot)
-        if (void* instance = _entities.MovementServices(slot))
+        if (SchemaPtr instance = _entities.MovementServices(slot))
             return instance;
-    return nullptr;
+    return {};
 }
 
-int Movement::SlotFromMovementServices(void* movementServices) const
+int Movement::SlotFromMovementServices(SchemaPtr movementServices) const
 {
     if (!movementServices)
         return -1;
@@ -167,7 +167,7 @@ void Movement::DecodeUserCmd(void* userCmd)
 
 void* Movement::Hook_RunCommandPre(void* userCmd)
 {
-    _preSlot = SlotFromMovementServices(META_IFACEPTR(void));
+    _preSlot = SlotFromMovementServices(SchemaPtr{META_IFACEPTR(void)});
     if (!PreCmd.Empty() || !FilterCmd.Empty())
         DecodeUserCmd(userCmd);
     // Filters run before observers see the command.

@@ -6,7 +6,9 @@
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Entities/Controller.hpp>
+#include <VoltMod/Entities/SchemaPtr.hpp>
 #include <cstdint>
+#include <string_view>
 
 namespace VoltMod
 {
@@ -77,11 +79,11 @@ public:
 
     /** First entity of @p className after @p after (a falsy Entity starts at the list head).
      *  Falsy when exhausted or the finder signature is unresolved. */
-    Entity FindByClassName(const Entity& after, const char* className);
+    Entity FindByClassName(const Entity& after, std::string_view className);
 
     /** First entity whose targetname is @p name after @p after (a falsy Entity starts at the list
      *  head). Falsy when exhausted or the finder signature is unresolved. */
-    Entity FindByName(const Entity& after, const char* name);
+    Entity FindByName(const Entity& after, std::string_view targetName);
 
     /** Slot owning @p pawn, or -1 when it is not a player pawn. Constant-time. */
     int SlotOf(const Pawn& pawn);
@@ -89,9 +91,8 @@ public:
     /** Held buttons for @p slot (m_pButtonStates[0]), or 0. */
     uint64_t Buttons(int slot);
 
-    /** The pawn's CPlayer_MovementServices* for @p slot, or nullptr (no pawn, offsets unresolved).
-     *  Untyped because only the movement hook uses it, and it uses it as a hook target. */
-    void* MovementServices(int slot);
+    /** The pawn's CPlayer_MovementServices for @p slot, or null (no pawn, offsets unresolved). */
+    SchemaPtr MovementServices(int slot);
 
     bool IsPlayerSlotValid(int slot);
 

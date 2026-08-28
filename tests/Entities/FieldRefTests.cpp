@@ -6,10 +6,10 @@
 #include <string_view>
 
 using VoltMod::FieldKey;
+using VoltMod::FieldOffset;
 using VoltMod::FieldQueryResult;
 using VoltMod::FieldRef;
 using VoltMod::FixedString;
-using VoltMod::LazyField;
 using VoltMod::PendingField;
 using VoltMod::ResetFieldCache;
 using VoltMod::ResolveField;
@@ -109,11 +109,11 @@ TEST_CASE("ResolveField caches hits and misses once the schema system is live")
     Reset(false);
 }
 
-TEST_CASE("LazyField retries while the schema system is pending and settles once it answers")
+TEST_CASE("FieldOffset retries while the schema system is pending and settles once it answers")
 {
     Reset(false);
 
-    const LazyField health{"CBaseEntity", "m_iHealth", 4};
+    const FieldOffset health{"CBaseEntity", "m_iHealth", 4};
     CHECK_FALSE(static_cast<bool>(health));
     CHECK(health->Offset == -1);
 

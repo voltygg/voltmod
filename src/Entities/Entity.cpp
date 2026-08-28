@@ -1,7 +1,6 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
-#include <VoltMod/Engine/MemoryAccess.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/Render.hpp>
 #include <eiface.h>
@@ -14,25 +13,12 @@ namespace VoltMod
 
 // Origin and rotation are not schema fields of CBaseEntity in CS2; they live on the entity's
 // CGameSceneNode, reached via m_CBodyComponent -> m_pSceneNode.
-static void* ResolveSceneNode(CEntityInstance* entity)
+static SchemaPtr SceneNode(CEntityInstance* entity)
 {
-    static const LazyField body{"CBaseEntity", "m_CBodyComponent"};
-    static const LazyField node{"CBodyComponent", "m_pSceneNode", sizeof(void*)};
+    static const FieldOffset body{"CBaseEntity", "m_CBodyComponent"};
+    static const FieldOffset node{"CBodyComponent", "m_pSceneNode", sizeof(void*)};
 
-    if (!entity || !body || !node)
-        return nullptr;
-
-    auto* component = ReadAt<uint8_t*>(entity, body->Offset);
-    return component ? ReadAt<void*>(component, node->Offset) : nullptr;
-}
-
-template <typename T>
-static T SceneNodeField(CEntityInstance* entity, const LazyField& field)
-{
-    void* node = ResolveSceneNode(entity);
-    if (!node || !field)
-        return T{0.0f, 0.0f, 0.0f};
-    return ReadAt<T>(node, field->Offset);
+    return SchemaPtr{entity}.SubObject(body).SubObject(node);
 }
 
 int Entity::Index() const
@@ -55,14 +41,15 @@ std::string_view Entity::ClassName() const
 
 Vector Entity::Origin() const
 {
-    static const LazyField origin{"CGameSceneNode", "m_vecAbsOrigin", sizeof(Vector)};
-    return SceneNodeField<Vector>(_e, origin);
+    static const FieldOffset origin{"CGameSceneNode", "m_vecAbsOrigin", sizeof(Vector)};
+    // Spelled out rather than left to `Vector{}`: the SDK's default constructor does not zero.
+    return SceneNode(_e).Get<Vector>(origin, Vector(0.0f, 0.0f, 0.0f));
 }
 
 QAngle Entity::Angles() const
 {
-    static const LazyField rotation{"CGameSceneNode", "m_angAbsRotation", sizeof(QAngle)};
-    return SceneNodeField<QAngle>(_e, rotation);
+    static const FieldOffset rotation{"CGameSceneNode", "m_angAbsRotation", sizeof(QAngle)};
+    return SceneNode(_e).Get<QAngle>(rotation, QAngle(0.0f, 0.0f, 0.0f));
 }
 
 Status Entity::Teleport(std::optional<Vector> origin, std::optional<QAngle> angles,
@@ -106,33 +93,24 @@ Status Pawn::Slay() const
 
 // The observer mode lives on a sub-object the pawn points at, so it is a method rather than a
 // Field: there is no fixed offset from the pawn to reach it.
-static void* ObserverServices(CEntityInstance* pawn)
+static SchemaPtr ObserverServices(CEntityInstance* pawn)
 {
-    static const LazyField services{"CBasePlayerPawn", "m_pObserverServices", sizeof(void*)};
-    if (!pawn || !services)
-        return nullptr;
-    return ReadAt<void*>(pawn, services->Offset);
+    static const FieldOffset services{"CBasePlayerPawn", "m_pObserverServices", sizeof(void*)};
+    return SchemaPtr{pawn}.SubObject(services);
 }
+
+static const FieldOffset kObserverMode{"CPlayer_ObserverServices", "m_iObserverMode", sizeof(uint8_t)};
 
 ObserverMode_t Pawn::GetObserverMode() const
 {
-    static const LazyField mode{"CPlayer_ObserverServices", "m_iObserverMode", sizeof(uint8_t)};
-
-    void* services = ObserverServices(_e);
-    if (!services || !mode)
-        return ObserverMode_t::None;
-    return static_cast<ObserverMode_t>(ReadAt<uint8_t>(services, mode->Offset));
+    return static_cast<ObserverMode_t>(
+        ObserverServices(_e).Get<uint8_t>(kObserverMode, static_cast<uint8_t>(ObserverMode_t::None)));
 }
 
 Status Pawn::SetObserverMode(ObserverMode_t value) const
 {
-    static const LazyField mode{"CPlayer_ObserverServices", "m_iObserverMode", sizeof(uint8_t)};
-
-    void* services = ObserverServices(_e);
-    if (!services || !mode)
+    if (!ObserverServices(_e).Set<uint8_t>(kObserverMode, static_cast<uint8_t>(value)))
         return std::unexpected(Error::NotReady("observer services unavailable"));
-
-    WriteAt<uint8_t>(services, mode->Offset, static_cast<uint8_t>(value));
     return {};
 }
 
@@ -140,14 +118,10 @@ std::string Pawn::ModelName() const
 {
     // The pawn's scene node is a CSkeletonInstance; the model path is the CUtlSymbolLarge inside
     // its embedded CModelState (an interned string pointer).
-    static const LazyField state{"CSkeletonInstance", "m_modelState"};
-    static const LazyField name{"CModelState", "m_ModelName"};
+    static const FieldOffset state{"CSkeletonInstance", "m_modelState"};
+    static const FieldOffset name{"CModelState", "m_ModelName"};
 
-    void* node = ResolveSceneNode(_e);
-    if (!node || !state || !name)
-        return {};
-
-    const char* path = ReadAt<const char*>(node, state->Offset + name->Offset);
+    const char* path = SceneNode(_e).Inside(state).Get<const char*>(name, nullptr);
     return path ? std::string(path) : std::string{};
 }
 
@@ -179,10 +153,10 @@ int Pawn::Slot() const
 
 Controller::Controller(EntitySystem& entities, CEntityInstance* raw, int slot) : Entity(entities, raw), _slot(slot)
 {
-    static const LazyField playerPawn{"CCSPlayerController", "m_hPlayerPawn", sizeof(uint32_t)};
+    static const FieldOffset playerPawn{"CCSPlayerController", "m_hPlayerPawn", sizeof(uint32_t)};
 
-    if (_e && playerPawn)
-        _pawn = entities.Resolve(EntityRef{ReadAt<uint32_t>(_e, playerPawn->Offset)}).Raw();
+    const uint32_t handle = SchemaPtr{_e}.Get<uint32_t>(playerPawn, InvalidEntityHandle);
+    _pawn = entities.Resolve(EntityRef{handle}).Raw();
 }
 
 Pawn Controller::GetPawn() const
@@ -192,40 +166,23 @@ Pawn Controller::GetPawn() const
 
 // The balance lives in a sub-object the controller points at, so it needs the same two-step reach
 // as the observer mode above.
-static void* MoneyServices(CEntityInstance* controller)
-{
-    static const LazyField services{"CCSPlayerController", "m_pInGameMoneyServices", sizeof(void*)};
-    if (!controller || !services)
-        return nullptr;
-    return ReadAt<void*>(controller, services->Offset);
-}
+static const FieldOffset kMoneyServices{"CCSPlayerController", "m_pInGameMoneyServices", sizeof(void*)};
+static const FieldOffset kAccount{"CCSPlayerController_InGameMoneyServices", "m_iAccount", sizeof(int)};
 
 int Controller::Money() const
 {
-    static const LazyField account{"CCSPlayerController_InGameMoneyServices", "m_iAccount", sizeof(int)};
-
-    void* services = MoneyServices(_e);
-    if (!services || !account)
-        return 0;
-    return ReadAt<int>(services, account->Offset);
+    return SchemaPtr{_e}.SubObject(kMoneyServices).Get<int>(kAccount);
 }
 
 Status Controller::SetMoney(int amount) const
 {
-    static const LazyField servicesField{"CCSPlayerController", "m_pInGameMoneyServices", sizeof(void*)};
-    static const LazyField account{"CCSPlayerController_InGameMoneyServices", "m_iAccount", sizeof(int)};
-
-    void* services = MoneyServices(_e);
-    if (!services || !account)
+    if (!SchemaPtr{_e}.SubObject(kMoneyServices).Set<int>(kAccount, amount))
         return std::unexpected(Error::NotReady("money services unavailable"));
-
-    WriteAt<int>(services, account->Offset, amount);
 
     // The write is inside a sub-object, so it is invisible to the client on its own. Dirty the
     // controller's own pointer field, which is what the entity actually replicates through; the
     // HUD picks the new value up on the next update.
-    if (servicesField)
-        MarkChanged(_e, *servicesField);
+    MarkChanged(_e, *kMoneyServices);
     return {};
 }
 

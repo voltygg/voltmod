@@ -69,7 +69,7 @@ public:
      * @param callerSlot whose name the panel credits; -1 for the server.
      * @return false when a vote is already running or the map has no vote controller.
      */
-    bool StartVote(const std::string& title, const std::string& detail, float durationSec, int callerSlot,
+    bool StartVote(std::string_view title, std::string_view detail, float durationSec, int callerSlot,
                    ResultFn onResult, FinishedFn onFinished = {});
 
     /** End the running vote early. No-op when none is running. */
@@ -83,7 +83,7 @@ private:
     void SendVoteStart();
     void SendVoteOutcome(bool passed);
     void PublishCounts();
-    /** Find the map's vote_controller and cache its ballot offsets. False when the map has none. */
+    /** Find the map's vote_controller. False when the map has none. */
     bool AcquireController();
     /** Every connected slot - who a vote panel is sent to. */
     MultiRecipientFilter Recipients() const;
@@ -106,10 +106,8 @@ private:
     INetworkMessageInternal* _voteStartInternal = nullptr;
     INetworkMessageInternal* _votePassInternal = nullptr;
     INetworkMessageInternal* _voteFailedInternal = nullptr;
-    void* _controller = nullptr;
-    /** Ballot-array offsets on `_controller`, resolved with it: they are read once per ballot. */
-    int _offsetOptionCount = -1;
-    int _offsetVotesCast = -1;
+    /** The map's vote_controller, re-acquired per vote: a new map is a new entity. */
+    SchemaPtr _controller;
     bool _inProgress = false;
     /** Bumped per vote so a timeout cannot end the vote that replaced it. */
     uint64_t _voteId = 0;

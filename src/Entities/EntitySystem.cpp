@@ -1,12 +1,12 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
-#include <VoltMod/Engine/MemoryAccess.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <entity2/concreteentitylist.h>
 #include <entity2/entityidentity.h>
 #include <entity2/entityinstance.h>
 #include <entity2/entitysystem.h>
+#include <string>
 
 /**
  * Published for ::GameEntitySystem() below, which the SDK calls with no context parameter to
@@ -151,11 +151,10 @@ Pawn EntitySystem::PawnOf(int slot)
 
 int EntitySystem::SlotOf(const Pawn& pawn)
 {
-    static const LazyField controllerHandle{"CBasePlayerPawn", "m_hController", sizeof(uint32_t)};
-    if (!pawn || !controllerHandle)
-        return -1;
+    static const FieldOffset controllerHandle{"CBasePlayerPawn", "m_hController", sizeof(uint32_t)};
 
-    Entity controller = Resolve(EntityRef{ReadAt<uint32_t>(pawn.Raw(), controllerHandle->Offset)});
+    const uint32_t handle = SchemaPtr{pawn.Raw()}.Get<uint32_t>(controllerHandle, InvalidEntityHandle);
+    Entity controller = Resolve(EntityRef{handle});
     if (!controller)
         return -1;
 
@@ -166,26 +165,20 @@ int EntitySystem::SlotOf(const Pawn& pawn)
 
 uint64_t EntitySystem::Buttons(int slot)
 {
-    static const LazyField buttons{"CPlayer_MovementServices", "m_nButtons"};
-    static const LazyField states{"CInButtonState", "m_pButtonStates"};
+    // m_nButtons is an embedded CInButtonState; m_pButtonStates inside it is uint64[3]:
+    // [0] held, [1] changed, [2] scroll.
+    static const FieldOffset buttons{"CPlayer_MovementServices", "m_nButtons"};
+    static const FieldOffset states{"CInButtonState", "m_pButtonStates"};
 
-    auto* services = static_cast<uint8_t*>(MovementServices(slot));
-    if (!services || !buttons || !states)
-        return 0;
-
-    // m_pButtonStates is uint64[3]: [0] held, [1] changed, [2] scroll.
-    return MemberPtr<uint64_t>(services, buttons->Offset + states->Offset)[0];
+    const uint64_t* held = MovementServices(slot).Inside(buttons).Ptr<uint64_t>(states);
+    return held ? held[0] : 0;
 }
 
-void* EntitySystem::MovementServices(int slot)
+SchemaPtr EntitySystem::MovementServices(int slot)
 {
-    static const LazyField movement{"CBasePlayerPawn", "m_pMovementServices", sizeof(void*)};
+    static const FieldOffset movement{"CBasePlayerPawn", "m_pMovementServices", sizeof(void*)};
 
-    Pawn pawn = PawnOf(slot);
-    if (!pawn || !movement)
-        return nullptr;
-
-    return ReadAt<uint8_t*>(pawn.Raw(), movement->Offset);
+    return SchemaPtr{PawnOf(slot).Raw()}.SubObject(movement);
 }
 
 bool EntitySystem::IsPlayerSlotValid(int slot)
@@ -193,25 +186,28 @@ bool EntitySystem::IsPlayerSlotValid(int slot)
     return RawController(slot) != nullptr;
 }
 
-Entity EntitySystem::FindByClassName(const Entity& after, const char* className)
+Entity EntitySystem::FindByClassName(const Entity& after, std::string_view className)
 {
     auto* system = GetEntitySystem();
-    if (!_bindings.FindEntityByClassName || !system || !className)
+    if (!_bindings.FindEntityByClassName || !system || className.empty())
         return {};
 
     // The engine takes CEntitySystem*; the upcast happens here, where the complete types are in
-    // scope, rather than inside the binding's own void* parameter.
-    return {*this, _bindings.FindEntityByClassName(static_cast<CEntitySystem*>(system), after.Raw(), className)};
+    // scope, rather than inside the binding's own void* parameter. It compares the name during the
+    // walk and does not keep it, so a NUL-terminated temporary is enough.
+    const std::string name(className);
+    return {*this, _bindings.FindEntityByClassName(static_cast<CEntitySystem*>(system), after.Raw(), name.c_str())};
 }
 
-Entity EntitySystem::FindByName(const Entity& after, const char* name)
+Entity EntitySystem::FindByName(const Entity& after, std::string_view targetName)
 {
     auto* system = GetEntitySystem();
-    if (!_bindings.FindEntityByName || !system || !name)
+    if (!_bindings.FindEntityByName || !system || targetName.empty())
         return {};
 
-    return {*this, _bindings.FindEntityByName(static_cast<CEntitySystem*>(system), after.Raw(), name, nullptr, nullptr,
-                                              nullptr, nullptr)};
+    const std::string name(targetName);
+    return {*this, _bindings.FindEntityByName(static_cast<CEntitySystem*>(system), after.Raw(), name.c_str(), nullptr,
+                                              nullptr, nullptr, nullptr)};
 }
 
 }  // namespace VoltMod

@@ -4,7 +4,6 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
-#include <VoltMod/Engine/MemoryAccess.hpp>
 #include <VoltMod/Engine/RecipientFilter.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Events/EventTypes.hpp>
@@ -16,12 +15,13 @@
 #include <google/protobuf/message.h>
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
+#include <string_view>
 
 namespace VoltMod
 {
 
-static constexpr const char* ControllerClass = "vote_controller";
-static constexpr const char* VoteControllerSchema = "CVoteController";
+static constexpr std::string_view ControllerClass = "vote_controller";
+static constexpr std::string_view VoteControllerSchema = "CVoteController";
 
 // The engine's yes/no issue index; option 0 is Yes, option 1 is No, 3 means "not voted".
 static constexpr int YesNoIssueIndex = 2;
@@ -38,7 +38,7 @@ static ProtoMessage* AsProto(CNetMessage* message)
 
 /** @ref ProtoField plus what a missing field costs here; see Engine/ProtoReflect.hpp for why the
  *  fields are reached by name at all. */
-static const ProtoFieldDescriptor* VoteField(ProtoMessage* message, const char* name)
+static const ProtoFieldDescriptor* VoteField(ProtoMessage* message, std::string_view name)
 {
     const auto* field = ProtoField(*message, name);
     if (!field)
@@ -50,19 +50,19 @@ static const ProtoFieldDescriptor* VoteField(ProtoMessage* message, const char* 
     return field;
 }
 
-static void SetInt(ProtoMessage* message, const char* name, int32_t value)
+static void SetInt(ProtoMessage* message, std::string_view name, int32_t value)
 {
     if (const auto* field = VoteField(message, name))
         message->GetReflection()->SetInt32(message, field, value);
 }
 
-static void SetBool(ProtoMessage* message, const char* name, bool value)
+static void SetBool(ProtoMessage* message, std::string_view name, bool value)
 {
     if (const auto* field = VoteField(message, name))
         message->GetReflection()->SetBool(message, field, value);
 }
 
-static void SetString(ProtoMessage* message, const char* name, const std::string& value)
+static void SetString(ProtoMessage* message, std::string_view name, const std::string& value)
 {
     if (const auto* field = VoteField(message, name))
         message->GetReflection()->SetString(message, field, value);
@@ -70,12 +70,12 @@ static void SetString(ProtoMessage* message, const char* name, const std::string
 
 // The vote controller is a plain map entity with no wrapper of its own, so its fields resolve
 // through file-static lookups rather than a Field on a typed entity.
-static const LazyField kOptionCount{VoteControllerSchema, "m_nVoteOptionCount"};
-static const LazyField kVotesCast{VoteControllerSchema, "m_nVotesCast"};
-static const LazyField kPotentialVotes{VoteControllerSchema, "m_nPotentialVotes", sizeof(int)};
-static const LazyField kIsYesNoVote{VoteControllerSchema, "m_bIsYesNoVote", sizeof(bool)};
-static const LazyField kActiveIssueIndex{VoteControllerSchema, "m_iActiveIssueIndex", sizeof(int)};
-static const LazyField kOnlyTeamToVote{VoteControllerSchema, "m_iOnlyTeamToVote", sizeof(int)};
+static const FieldOffset kOptionCount{VoteControllerSchema, "m_nVoteOptionCount"};
+static const FieldOffset kVotesCast{VoteControllerSchema, "m_nVotesCast"};
+static const FieldOffset kPotentialVotes{VoteControllerSchema, "m_nPotentialVotes", sizeof(int)};
+static const FieldOffset kIsYesNoVote{VoteControllerSchema, "m_bIsYesNoVote", sizeof(bool)};
+static const FieldOffset kActiveIssueIndex{VoteControllerSchema, "m_iActiveIssueIndex", sizeof(int)};
+static const FieldOffset kOnlyTeamToVote{VoteControllerSchema, "m_iOnlyTeamToVote", sizeof(int)};
 
 Vote::Vote(Interfaces& interfaces, EntitySystem& entities, GameEvents& events, Scheduler& scheduler)
     : _interfaces(interfaces), _entities(entities), _events(events), _scheduler(scheduler)
@@ -84,13 +84,8 @@ Vote::Vote(Interfaces& interfaces, EntitySystem& entities, GameEvents& events, S
 bool Vote::AcquireController()
 {
     // The controller is a map entity, so it is a different object after every map change.
-    _controller = _entities.FindByClassName({}, ControllerClass).Raw();
-    if (!_controller)
-        return false;
-
-    _offsetOptionCount = kOptionCount ? kOptionCount->Offset : -1;
-    _offsetVotesCast = kVotesCast ? kVotesCast->Offset : -1;
-    return true;
+    _controller = SchemaPtr{_entities.FindByClassName({}, ControllerClass).Raw()};
+    return static_cast<bool>(_controller);
 }
 
 MultiRecipientFilter Vote::Recipients() const
@@ -104,18 +99,22 @@ MultiRecipientFilter Vote::Recipients() const
     return filter;
 }
 
+// m_nVoteOptionCount and m_nVotesCast are both int arrays on the controller, so the field resolves
+// to the array head and the caller indexes it.
 int Vote::OptionCount(int option) const
 {
-    if (!_controller || _offsetOptionCount < 0 || option < 0 || option >= OptionSlots)
+    const int* counts = _controller.Ptr<const int>(kOptionCount);
+    if (!counts || option < 0 || option >= OptionSlots)
         return 0;
-    return ReadAt<int>(_controller, _offsetOptionCount + option * static_cast<int>(sizeof(int)));
+    return counts[option];
 }
 
 void Vote::SetOptionCount(int option, int value)
 {
-    if (!_controller || _offsetOptionCount < 0 || option < 0 || option >= OptionSlots)
+    int* counts = _controller.Ptr<int>(kOptionCount);
+    if (!counts || option < 0 || option >= OptionSlots)
         return;
-    WriteAt<int>(_controller, _offsetOptionCount + option * static_cast<int>(sizeof(int)), value);
+    counts[option] = value;
 }
 
 void Vote::ResetBallots()
@@ -123,13 +122,14 @@ void Vote::ResetBallots()
     for (int option = 0; option < OptionSlots; ++option)
         SetOptionCount(option, 0);
 
-    if (_offsetVotesCast < 0)
+    int* ballots = _controller.Ptr<int>(kVotesCast);
+    if (!ballots)
         return;
     for (int slot = 0; slot < MaxPlayers; ++slot)
-        WriteAt<int>(_controller, _offsetVotesCast + slot * static_cast<int>(sizeof(int)), VoteUncast);
+        ballots[slot] = VoteUncast;
 }
 
-bool Vote::StartVote(const std::string& title, const std::string& detail, float durationSec, int callerSlot,
+bool Vote::StartVote(std::string_view title, std::string_view detail, float durationSec, int callerSlot,
                      ResultFn onResult, FinishedFn onFinished)
 {
     if (_inProgress || !onResult)
@@ -162,15 +162,11 @@ bool Vote::StartVote(const std::string& title, const std::string& detail, float 
 
     ResetBallots();
 
-    if (kPotentialVotes)
-        WriteAt<int>(_controller, kPotentialVotes->Offset, _eligible);
-    if (kIsYesNoVote)
-        WriteAt<bool>(_controller, kIsYesNoVote->Offset, true);
-    if (kActiveIssueIndex)
-        WriteAt<int>(_controller, kActiveIssueIndex->Offset, YesNoIssueIndex);
+    _controller.Set<int>(kPotentialVotes, _eligible);
+    _controller.Set<bool>(kIsYesNoVote, true);
+    _controller.Set<int>(kActiveIssueIndex, YesNoIssueIndex);
     // Who may vote is decided by the recipients of the VoteStart message, not by this field.
-    if (kOnlyTeamToVote)
-        WriteAt<int>(_controller, kOnlyTeamToVote->Offset, AllTeams);
+    _controller.Set<int>(kOnlyTeamToVote, AllTeams);
 
     _inProgress = true;
     _title = title;
@@ -231,11 +227,8 @@ void Vote::FinishVote(VoteEndReason reason)
 
     SendVoteOutcome(passed);
 
-    if (_controller && kActiveIssueIndex)
-        WriteAt<int>(_controller, kActiveIssueIndex->Offset, -1);
-    _controller = nullptr;
-    _offsetOptionCount = -1;
-    _offsetVotesCast = -1;
+    _controller.Set<int>(kActiveIssueIndex, -1);
+    _controller = {};
 
     auto finished = std::move(_onFinished);
     _onResult = nullptr;

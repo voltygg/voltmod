@@ -2,7 +2,7 @@
 
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Entities/Entity.hpp>
-#include <VoltMod/Entities/Field.hpp>
+#include <VoltMod/Entities/SchemaPtr.hpp>
 #include <cstdint>
 #include <format>
 #include <string>
@@ -17,12 +17,12 @@ namespace VoltMod
 // the live schema, so a field that moves in a CS2 update needs nothing here; the sizes are the
 // check that matters - they say the shape is still what this file reads, and a mismatch warns once
 // at resolve time. Sizes from server.dll build 24934554.
-static const LazyField kPanelIds{"CCSCustomHudLayout", "m_vecPanelIds", 24};
-static const LazyField kClassNames{"CCSCustomHudLayout", "m_vecClassNames", 24};
-static const LazyField kDialogVarNames{"CCSCustomHudLayout", "m_vecDialogVariableNames", 24};
-static const LazyField kGlobalState{"CCSCustomHudLayout", "m_globalLayoutState", 408};
-static const LazyField kPlayerStates{"CCSCustomHudLayout", "m_vecPlayerLayoutStates", 104};
-static const LazyField kInputCapture{"CCSCustomHudLayoutState", "m_bInputCaptureEnabled", 1};
+static const FieldOffset kPanelIds{"CCSCustomHudLayout", "m_vecPanelIds", 24};
+static const FieldOffset kClassNames{"CCSCustomHudLayout", "m_vecClassNames", 24};
+static const FieldOffset kDialogVarNames{"CCSCustomHudLayout", "m_vecDialogVariableNames", 24};
+static const FieldOffset kGlobalState{"CCSCustomHudLayout", "m_globalLayoutState", 408};
+static const FieldOffset kPlayerStates{"CCSCustomHudLayout", "m_vecPlayerLayoutStates", 104};
+static const FieldOffset kInputCapture{"CCSCustomHudLayoutState", "m_bInputCaptureEnabled", 1};
 
 using StringTable = CUtlVector<CUtlString>;
 
@@ -38,12 +38,10 @@ static constexpr int kTableCap = 1024;
 static constexpr int kTableHeadroom = 64;
 
 /** Count of one networked string table, or -1 when the field is unresolved. */
-static int TableCount(CEntityInstance* entity, const LazyField& field)
+static int TableCount(CEntityInstance* entity, const FieldOffset& field)
 {
-    const FieldRef& ref = field.Ref();
-    if (!entity || !ref)
-        return -1;
-    return MemberPtr<StringTable>(entity, ref.Offset)->Count();
+    const StringTable* table = SchemaPtr{entity}.Ptr<const StringTable>(field);
+    return table ? table->Count() : -1;
 }
 
 /**
@@ -89,11 +87,10 @@ static Result<CEntityInstance*> ReadyForWrite(EntitySystem* entities, EntityRef 
 
     // The engine's *ForPlayer setters compare the slot against m_vecPlayerLayoutStates and return
     // silently when it is out of range, so an empty vector would look exactly like success.
-    const FieldRef& playerStates = kPlayerStates.Ref();
-    if (!playerStates)
+    if (!kPlayerStates)
         return std::unexpected(Error::NotReady("the CustomHud per-player state field did not resolve"));
 
-    const int states = ReadAt<int32_t>(entity.Raw(), playerStates.Offset);
+    const int states = SchemaPtr{entity.Raw()}.Get<int32_t>(kPlayerStates);
     if (states <= slot)
         return std::unexpected(
             Error::Failed(std::format("slot {} has no per-player layout state (the entity holds {})", slot, states)));
@@ -133,13 +130,11 @@ static Status WriteClassState(EntitySystem* entities, EntityRef ref, int slot, s
 int HudPlayerStateCount(EntitySystem* entities, EntityRef ref)
 {
     Entity entity = entities ? entities->Resolve(ref) : Entity{};
-    const FieldRef& states = kPlayerStates.Ref();
-    if (!entity || !states)
-        return -1;
 
     // CUtlVectorEmbeddedNetworkVar keeps its count first, which is exactly what the engine's own
     // IsInputCaptureEnabled reads before indexing.
-    return ReadAt<int32_t>(entity.Raw(), states.Offset);
+    const int32_t* count = SchemaPtr{entity.Raw()}.Ptr<const int32_t>(kPlayerStates);
+    return count ? *count : -1;
 }
 
 Status HudWriteText(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId,
