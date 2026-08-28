@@ -4,6 +4,8 @@
 
 #include <VoltMod/Core/Log.hpp>
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
@@ -259,6 +261,44 @@ bool IsExecutableAddress(const void* address)
             continue;
         if (target >= start && target < end)
             return perms[2] == 'x';
+    }
+    return false;
+#endif
+}
+
+bool IsReadableAddress(const void* address, size_t bytes)
+{
+    if (!address || bytes == 0)
+        return false;
+
+#ifdef _WIN32
+    MEMORY_BASIC_INFORMATION info{};
+    if (VirtualQuery(address, &info, sizeof(info)) != sizeof(info) || info.State != MEM_COMMIT)
+        return false;
+
+    constexpr DWORD readable = PAGE_READONLY | PAGE_READWRITE | PAGE_WRITECOPY | PAGE_EXECUTE_READ |
+                               PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
+    if ((info.Protect & readable) == 0 || (info.Protect & PAGE_GUARD) != 0)
+        return false;
+
+    // VirtualQuery answers for the region containing `address`; a span running past its end may
+    // continue into memory that is not mapped at all.
+    const auto* start = static_cast<const uint8_t*>(address);
+    const auto* regionEnd = static_cast<const uint8_t*>(info.BaseAddress) + info.RegionSize;
+    return bytes <= static_cast<size_t>(regionEnd - start);
+#else
+    const auto target = reinterpret_cast<unsigned long>(address);
+    std::ifstream maps("/proc/self/maps");
+    std::string line;
+    while (std::getline(maps, line))
+    {
+        unsigned long start = 0;
+        unsigned long end = 0;
+        char perms[5] = {};
+        if (std::sscanf(line.c_str(), "%lx-%lx %4s", &start, &end, perms) != 3)
+            continue;
+        if (target >= start && target < end)
+            return perms[0] == 'r' && target + bytes <= end;
     }
     return false;
 #endif

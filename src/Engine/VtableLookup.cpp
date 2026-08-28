@@ -277,15 +277,18 @@ std::optional<VTableSlot> FindVTableSlot(const void* instance, const void* funct
         void** candidate = nullptr;
         std::memcpy(&candidate, object + baseOffset, sizeof(candidate));
 
-        // A vptr points at read-only code pointers. Requiring slot 0 to be executable rejects the
-        // ordinary data members that share these leading bytes without dereferencing them blindly:
-        // a small integer or an interior pointer fails here rather than being walked as a table.
-        if (!candidate || !IsExecutableAddress(candidate[0]))
+        // These bytes are whatever the object happens to hold, so the candidate is validated as an
+        // address before it is read through - a data member of 0xFFFFFFFFFFFFFFFF is not null and
+        // dereferencing it to ask what it points at is a crash, not a rejection. Only once the
+        // read is safe does slot 0 being executable rule out data members that are real pointers.
+        if (!candidate || !IsReadableAddress(candidate, sizeof(void*)) || !IsExecutableAddress(candidate[0]))
             continue;
 
         for (int index = 0; index < kMaxSlots; ++index)
         {
-            if (!IsExecutableAddress(candidate[index]))
+            // A real table can end at the edge of its mapping, so every slot is checked, not just
+            // the first.
+            if (!IsReadableAddress(&candidate[index], sizeof(void*)) || !IsExecutableAddress(candidate[index]))
                 break;  // past the end of this table
             if (candidate[index] == function)
                 return VTableSlot{.Table = static_cast<void*>(candidate), .Index = index, .BaseOffset = baseOffset};

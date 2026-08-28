@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoltMod/Engine/RelativeAddress.hpp>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 
@@ -63,5 +64,16 @@ uintptr_t ResolveRelativeAddress(const ModuleImage& image, uintptr_t matchAddres
  * what a drifted class name or an index past the end of the real table produces.
  */
 bool IsExecutableAddress(const void* address);
+
+/**
+ * True when @p bytes bytes starting at @p address can be read without faulting.
+ *
+ * For validating a pointer *before* dereferencing it. @ref IsExecutableAddress answers a question
+ * about the value at an address, so asking it about `p[0]` has already dereferenced `p` - which is
+ * a crash when `p` came out of arbitrary object bytes rather than from a known-good field.
+ *
+ * The span must lie inside one mapping: the next one along may be unmapped.
+ */
+bool IsReadableAddress(const void* address, size_t bytes);
 
 }  // namespace VoltMod
