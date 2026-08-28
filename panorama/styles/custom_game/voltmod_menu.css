@@ -1,10 +1,7 @@
 /*
-	Panorama CSS, not web CSS - see docs/custom-ui.md. Selectors are flat; the parser is not a
-	browser's. Every panel on the click path has a resolved size, because a fit-children container
-	renders its buttons but does not take clicks for them.
-
-	The server only sets classes - Hidden, Disabled, HasValue, HasSteppers, Kind--* - so a restyle
-	is this file alone, no C++.
+	Panorama CSS, not web CSS - see docs/custom-ui.md. Selectors are flat, and every panel on the
+	click path has a resolved size. The server only sets classes - Hidden, Disabled, HasValue,
+	HasSteppers, Kind--* - so a restyle is this file alone.
 */
 
 .Root {
@@ -26,10 +23,7 @@
   opacity: 1;
 }
 
-/*
-	Collapse as well as fade: the markup default is hidden, and a panel that only went
-	transparent would still take the clicks meant for whatever is behind it.
-*/
+/* Collapse as well as fade: a merely transparent panel still takes clicks. */
 #vm_root.Hidden {
   visibility: collapse;
   opacity: 0;
@@ -72,7 +66,7 @@
   visibility: collapse;
 }
 
-/* Styling only. A disabled row still reports its press; the menu model decides what it means. */
+/* Styling only; a disabled row still reports its press. */
 .Row.Disabled {
   color: #55535080;
 }
@@ -107,7 +101,7 @@
   visibility: visible;
 }
 
-/* Sit beside the row button, never inside it: a Button in a Button loses the inner press. */
+/* Siblings of the row button: a Button in a Button loses the inner press. */
 .Stepper {
   width: 26px;
   height: 100%;
@@ -132,10 +126,7 @@
   color: #c8a24a;
 }
 
-/*
-	Row kinds. The server sets exactly one of these per row and never says what it should look
-	like, which is what lets a restyle change the whole vocabulary here.
-*/
+/* Row kinds: the server sets exactly one per row and leaves the look to this file. */
 .Kind--text {
   color: #8a8778;
   font-size: 15px;

@@ -1,15 +1,11 @@
 <root>
   <!--
     Driven by VoltMod::UiMenuManager. The ids are the contract (docs/custom-ui.md); everything
-    else is yours. Text is dialog variables on vm_root, which the labels inherit, so they need
-    no ids.
+    else is yours. Text is dialog variables on vm_root, which the labels inherit.
 
-    Hit-testing rules learned the hard way: every panel on the click path needs a resolved
-    size (fit-children containers render their buttons but do not take clicks for them), a
-    Button must never contain another Button, and hittest="false" keeps a decorative panel
-    from eating clicks.
-
-    Eight rows, matching UiMenuManager::RowsPerPage. The server cannot read this file.
+    Clickability: every panel on the click path has a resolved size, a Button never contains
+    another Button, and decorative panels are hittest="false". Eight rows, matching
+    UiMenuManager::RowsPerPage; the server cannot read this file.
   -->
   <styles>
     <include src="file://{resources}/styles/custom_game/voltmod_menu.css" />
@@ -100,10 +96,7 @@
         <Button id="vm_close" class="Nav"><Label text="Close" /></Button>
       </Panel>
 
-      <!--
-        Shown over the menu while a chat-input prompt is open. The driver ignores row
-        presses while a capture is live, so the rows above stay inert rather than hidden.
-      -->
+      <!-- Shown while a chat-input prompt is open; the driver ignores row presses meanwhile. -->
       <Panel id="vm_prompt" class="Prompt Hidden" hittest="true">
         <Label class="Prompt-text" text="{s:vm_prompt_text}" />
         <Button id="vm_cancel" class="Nav"><Label text="Cancel" /></Button>
