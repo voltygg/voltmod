@@ -31,11 +31,17 @@ static std::string FooterLabel(Translations& translations, std::string_view key,
     return value == key ? std::string(fallback) : value;
 }
 
-std::string DefaultHeader(const std::string& title, int currentPage, int totalPages)
+std::string DefaultHeader(const std::string& title, const std::string& subtitle, int currentPage, int totalPages)
 {
     std::ostringstream html;
     // Titles routinely interpolate a player name, so the one place they become markup escapes them.
     html << "<font color='" << Theme::Gold << "'><b>" << Strings::EscapeHtml(title) << "</b></font>";
+
+    if (!subtitle.empty())
+    {
+        html << " <font class='fontSize-s' color='" << Theme::WarmGray << "'>" << Strings::EscapeHtml(subtitle)
+             << "</font>";
+    }
 
     if (totalPages > 1)
     {
@@ -94,6 +100,24 @@ std::string DefaultFooter(bool isSubmenu, bool isPaginated, bool usesHorizontal,
     return html.str();
 }
 
+// One row as this renderer spells it: "Title", "Title: ON", "Title: &lt; 100% &gt;". The model
+// carries the two halves as plain text, so the decoration and the escaping are both decided here.
+static std::string RowText(const MenuOption& option, int slot)
+{
+    MenuRow row = option.Describe(slot);
+    std::string text = Strings::EscapeHtml(row.Label);
+    if (row.Value.empty())
+        return text;
+
+    text += ": ";
+
+    // The arrows say "A and D change this"; nothing else in a line of center HTML does.
+    if (row.Kind == MenuRowKind::Choice)
+        return text + "&lt; " + Strings::EscapeHtml(row.Value) + " &gt;";
+
+    return text + Strings::EscapeHtml(row.Value);
+}
+
 static std::string RenderItems(const MenuView* menu, int slot, int selectedIndex, int pageStart, int pageEnd)
 {
     std::ostringstream html;
@@ -104,7 +128,7 @@ static std::string RenderItems(const MenuView* menu, int slot, int selectedIndex
         if (!opt)
             continue;
 
-        std::string title = opt->GetLabel(slot);
+        std::string title = RowText(*opt, slot);
         bool selectable = opt->IsSelectable();
         bool enabled = opt->IsEnabled();
 
@@ -148,7 +172,7 @@ std::string RenderMenuHtml(const MenuView* menu, int slot, int selectedIndex, bo
 
     std::ostringstream html;
 
-    html << DefaultHeader(menu->Title, currentPage, totalPages);
+    html << DefaultHeader(menu->Title, menu->Subtitle, currentPage, totalPages);
     html << RenderItems(menu, slot, selectedIndex, pageStart, pageEnd);
 
     const bool usesHorizontal = selectedIndex >= 0 && selectedIndex < itemCount && menu->Items[selectedIndex] &&

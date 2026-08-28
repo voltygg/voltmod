@@ -33,12 +33,12 @@ public:
         _enabled = enabled;
     }
 
-    std::string GetLabel(int slot) const override
+    MenuRow Describe(int slot) const override
     {
-        std::string val = _get ? _get(slot) : std::string{};
-        if (val.empty())
-            return std::format("{}: …", _title);
-        return std::format("{}: {}", _title, val);
+        std::string value = _get ? _get(slot) : std::string{};
+
+        // An unset value still needs to look like a field waiting for one.
+        return {.Label = _title, .Value = value.empty() ? "…" : std::move(value), .Kind = MenuRowKind::Input};
     }
 
     void OnActivate(int slot, MenuHost& menus) override;

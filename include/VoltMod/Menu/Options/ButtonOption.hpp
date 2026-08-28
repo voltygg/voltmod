@@ -28,7 +28,10 @@ public:
         _enabled = enabled;
     }
 
-    std::string GetLabel(int /*slot*/) const override { return _dynamicLabel ? _dynamicLabel() : _label; }
+    MenuRow Describe(int /*slot*/) const override
+    {
+        return {.Label = _dynamicLabel ? _dynamicLabel() : _label, .Kind = MenuRowKind::Button};
+    }
 
     void OnActivate(int slot, MenuHost& /*menus*/) override
     {

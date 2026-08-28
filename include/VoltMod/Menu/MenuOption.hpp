@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Menu/MenuRow.hpp>
 #include <string>
 
 namespace VoltMod
@@ -10,7 +11,7 @@ namespace VoltMod
  * @brief Polymorphic base for every selectable row in a menu.
  *
  * Subclasses encode the *behavior* of a row (button, toggle, choice picker, slider,
- * text, progress bar, input field, submenu link). The renderer calls @ref GetLabel
+ * text, progress bar, input field, submenu link). The renderer calls @ref Describe
  * each frame; the manager calls @ref OnActivate when E is pressed and
  * @ref OnHorizontal when A/D is pressed (the manager falls back to page-jump if
  * `OnHorizontal` returns false).
@@ -23,8 +24,14 @@ class MenuOption
 public:
     virtual ~MenuOption() = default;
 
-    /** Label rendered for this row. Called every frame; safe to read live state. */
-    virtual std::string GetLabel(int slot) const = 0;
+    /**
+     * This row as plain text: what it is called, what it is set to, and what it is.
+     *
+     * Called every frame, so it is safe to read live state. Plain text on purpose - a driver
+     * composes and escapes the two halves the way its own output needs, which is the only way one
+     * row can render as both a line of center HTML and a pair of Panorama panels.
+     */
+    virtual MenuRow Describe(int slot) const = 0;
 
     /** Non-selectable rows (Text) are rendered but skipped by W/S navigation. */
     virtual bool IsSelectable() const { return true; }

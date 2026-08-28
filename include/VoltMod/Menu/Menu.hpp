@@ -15,10 +15,13 @@ namespace VoltMod
 /** Maximum items shown per page before the menu paginates. */
 inline constexpr int ItemsPerPage = 5;
 
-/** A WASD-navigable menu rendered as center-HTML. Build with MenuBuilder. */
+/** A menu, as either @ref MenuHost shows it. Build with MenuBuilder. */
 struct MenuView
 {
     std::string Title;
+    /** Shown next to the title, smaller and dimmer: a version, a breadcrumb, a target's name.
+     *  Plain text - it is markup in neither driver. */
+    std::string Subtitle;
     std::vector<std::shared_ptr<MenuOption>> Items;
 };
 

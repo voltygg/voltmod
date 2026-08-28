@@ -15,8 +15,8 @@ std::string RenderMenuHtml(const MenuView* menu, int slot, int selectedIndex, bo
 /** Renders the chat-input capture overlay shown while a player is typing a value. */
 std::string RenderCaptureOverlay(const std::string& menuTitle, std::string_view prompt);
 
-/** Generates the default header HTML for a menu. */
-std::string DefaultHeader(const std::string& title, int currentPage, int totalPages);
+/** Generates the default header HTML for a menu. @p subtitle is optional and rendered small. */
+std::string DefaultHeader(const std::string& title, const std::string& subtitle, int currentPage, int totalPages);
 
 /**
  * Generates the default footer HTML for a menu.

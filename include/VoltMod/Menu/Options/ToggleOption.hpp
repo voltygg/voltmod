@@ -30,10 +30,10 @@ public:
         _enabled = enabled;
     }
 
-    std::string GetLabel(int slot) const override
+    MenuRow Describe(int slot) const override
     {
         bool on = _get && _get(slot);
-        return std::format("{}: {}", _title, on ? _onLabel : _offLabel);
+        return {.Label = _title, .Value = on ? _onLabel : _offLabel, .Kind = MenuRowKind::Toggle};
     }
 
     void OnActivate(int slot, MenuHost& /*menus*/) override

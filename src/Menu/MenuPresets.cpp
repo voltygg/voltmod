@@ -19,8 +19,10 @@ void AppendPlayerRows(MenuBuilder& builder, PlayerManager& players, int viewerSl
     {
         int targetSlot = p->Slot();
         bool enabled = isEnabled ? isEnabled(targetSlot) : true;
+        // The name goes in raw: a row carries plain text and whichever driver renders it escapes
+        // for its own output.
         builder.Button(
-            Strings::EscapeHtml(p->Name()),
+            p->Name(),
             [viewerSlot, targetSlot, onPick](int /*slot*/) {
                 if (onPick)
                     onPick(viewerSlot, targetSlot);

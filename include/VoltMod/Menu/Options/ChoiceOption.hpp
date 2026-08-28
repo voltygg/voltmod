@@ -50,11 +50,11 @@ public:
         _enabled = enabled;
     }
 
-    std::string GetLabel(int slot) const override
+    MenuRow Describe(int slot) const override
     {
         if (_choices.empty())
-            return _title;
-        return std::format("{}: &lt; {} &gt;", _title, _choices[ClampIndex(slot)].Label);
+            return {.Label = _title, .Kind = MenuRowKind::Choice};
+        return {.Label = _title, .Value = _choices[ClampIndex(slot)].Label, .Kind = MenuRowKind::Choice};
     }
 
     void OnActivate(int slot, MenuHost& /*menus*/) override

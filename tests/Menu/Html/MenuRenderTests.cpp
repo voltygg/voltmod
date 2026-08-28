@@ -4,11 +4,14 @@
 #include <VoltMod/Core/Translations.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/Options/ButtonOption.hpp>
+#include <VoltMod/Menu/Options/ChoiceOption.hpp>
 #include <VoltMod/Menu/Options/TextOption.hpp>
+#include <VoltMod/Menu/Options/ToggleOption.hpp>
 #include <doctest/doctest.h>
 #include <memory>
 
 using VoltMod::ButtonOption;
+using VoltMod::ChoiceOption;
 using VoltMod::DefaultFooter;
 using VoltMod::DefaultHeader;
 using VoltMod::ItemsPerPage;
@@ -16,13 +19,21 @@ using VoltMod::MenuView;
 using VoltMod::RenderMenuHtml;
 using VoltMod::SlotEvents;
 using VoltMod::TextOption;
+using VoltMod::ToggleOption;
 using VoltMod::Translations;
 
 TEST_CASE("MenuRenderer: DefaultHeader shows the title and hides the page count for one page")
 {
-    CHECK(DefaultHeader("Admin Panel", 0, 1).find("Admin Panel") != std::string::npos);
-    CHECK(DefaultHeader("Admin Panel", 0, 1).find("(1/1)") == std::string::npos);
-    CHECK(DefaultHeader("Admin Panel", 1, 3).find("(2/3)") != std::string::npos);
+    CHECK(DefaultHeader("Admin Panel", "", 0, 1).find("Admin Panel") != std::string::npos);
+    CHECK(DefaultHeader("Admin Panel", "", 0, 1).find("(1/1)") == std::string::npos);
+    CHECK(DefaultHeader("Admin Panel", "", 1, 3).find("(2/3)") != std::string::npos);
+}
+
+TEST_CASE("MenuRenderer: a subtitle rides next to the title, and an empty one adds nothing")
+{
+    CHECK(DefaultHeader("Admin Panel", "v1.2.0", 0, 1).find("v1.2.0") != std::string::npos);
+    CHECK(DefaultHeader("Admin Panel", "", 0, 1) == DefaultHeader("Admin Panel", "", 0, 1));
+    CHECK(DefaultHeader("Admin Panel", "", 0, 1).length() < DefaultHeader("Admin Panel", "v1.2.0", 0, 1).length());
 }
 
 TEST_CASE("MenuRenderer: RenderMenuHtml marks the selected row and dims disabled rows")
@@ -93,4 +104,43 @@ TEST_CASE("MenuRenderer: a submenu shows the Back hint, a root menu shows Close"
 
     CHECK(RenderMenuHtml(&menu, 0, 0, false, translations).find("Close") != std::string::npos);
     CHECK(RenderMenuHtml(&menu, 0, 0, true, translations).find("Back") != std::string::npos);
+}
+
+TEST_CASE("MenuRenderer: a row that carries a value renders as title and value")
+{
+    SlotEvents slots;
+    Translations translations(slots);
+
+    MenuView menu;
+    menu.Title = "Test Menu";
+    menu.Items.push_back(std::make_shared<ToggleOption>("Prefix", "ON", "OFF", [](int) { return true; }, [](int) {}));
+
+    CHECK(RenderMenuHtml(&menu, 0, 0, false, translations).find("Prefix: ON") != std::string::npos);
+}
+
+TEST_CASE("MenuRenderer: a choice row keeps the arrows that say A and D change it")
+{
+    SlotEvents slots;
+    Translations translations(slots);
+
+    MenuView menu;
+    menu.Title = "Test Menu";
+    std::vector<ChoiceOption<int>::Choice> choices{{.Label = "100%", .Value = 100}};
+    menu.Items.push_back(std::make_shared<ChoiceOption<int>>("Speed", std::move(choices), [](int, const int&) {}));
+
+    CHECK(RenderMenuHtml(&menu, 0, 0, false, translations).find("Speed: &lt; 100% &gt;") != std::string::npos);
+}
+
+TEST_CASE("MenuRenderer: row text is escaped, so a player name cannot inject markup")
+{
+    SlotEvents slots;
+    Translations translations(slots);
+
+    MenuView menu;
+    menu.Title = "Test Menu";
+    menu.Items.push_back(std::make_shared<ButtonOption>("<b>Bold</b> & Co", [](int) {}, true));
+
+    std::string html = RenderMenuHtml(&menu, 0, 0, false, translations);
+    CHECK(html.find("&lt;b&gt;Bold&lt;/b&gt; &amp; Co") != std::string::npos);
+    CHECK(html.find("<b>Bold</b>") == std::string::npos);
 }

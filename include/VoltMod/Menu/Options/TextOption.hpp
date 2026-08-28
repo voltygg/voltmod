@@ -12,7 +12,7 @@ class TextOption : public MenuOption
 {
 public:
     explicit TextOption(std::string label) : _label(std::move(label)) {}
-    std::string GetLabel(int /*slot*/) const override { return _label; }
+    MenuRow Describe(int /*slot*/) const override { return {.Label = _label, .Kind = MenuRowKind::Text}; }
     bool IsSelectable() const override { return false; }
 
 private:

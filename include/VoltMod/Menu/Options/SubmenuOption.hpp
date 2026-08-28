@@ -27,7 +27,7 @@ public:
         _enabled = enabled;
     }
 
-    std::string GetLabel(int /*slot*/) const override { return _label; }
+    MenuRow Describe(int /*slot*/) const override { return {.Label = _label, .Kind = MenuRowKind::Submenu}; }
     void OnActivate(int slot, MenuHost& menus) override;
 
 private:
