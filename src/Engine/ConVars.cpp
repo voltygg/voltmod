@@ -237,9 +237,7 @@ INetworkMessageInternal* ConVars::SetConVarMessage()
     if (!messages)
         return nullptr;
 
-    _setConVarMsg = messages->FindNetworkMessage("CNETMsg_SetConVar");
-    if (!_setConVarMsg)
-        _setConVarMsg = messages->FindNetworkMessagePartial("SetConVar");
+    _setConVarMsg = messages->FindNetworkMessagePartial("SetConVar");
     if (!_setConVarMsg)
         Log::Warn("ConVars: CNETMsg_SetConVar not found; per-client convar overrides are unavailable.");
 

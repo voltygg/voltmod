@@ -24,6 +24,9 @@ VOLTMOD_VHOOK2(VoltMod_FilterMessage, bool, const CNetMessage*, void*);
 /** The user message carrying a custom HUD button press. */
 static constexpr std::string_view kClickMessage = "CCSUsrMsg_CustomHudClicked";
 
+/** What @ref kClickMessage is looked up by when the registry does not know the full name. */
+static constexpr std::string_view kClickPartial = "CustomHudClicked";
+
 /** The two fields a press is read out of. */
 struct ClickFields
 {
@@ -122,7 +125,9 @@ bool UiClicks::Install()
 
     if (_interfaces.NetworkMessages)
     {
-        if (auto* message = _interfaces.NetworkMessages->FindNetworkMessage(std::string(kClickMessage).c_str()))
+        // Partial: a registered message is named with its id appended, so the exact form matches
+        // nothing (see PostUserMessage).
+        if (auto* message = _interfaces.NetworkMessages->FindNetworkMessagePartial(std::string(kClickPartial).c_str()))
             _messageId = message->GetNetMessageInfo()->m_MessageId;
     }
     if (_messageId < 0)

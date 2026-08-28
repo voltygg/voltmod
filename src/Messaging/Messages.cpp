@@ -169,9 +169,6 @@ void Messages::PostTextMsg(IRecipientFilter& filter, int destination, const std:
     // CS2 routes server-originated chat through TextMsg with dest=HUD_PRINTTALK rather than
     // SayText2. SayText2 requires a real source player and silently drops messages whose
     // entityindex doesn't resolve to a connected client.
-    if (!_textMsgInternal && _interfaces.NetworkMessages)
-        _textMsgInternal = _interfaces.NetworkMessages->FindNetworkMessage("CUserMessageTextMsg");
-
     PostUserMessage(_interfaces, _textMsgInternal, "TextMsg", filter, [&](CNetMessage* raw) {
         auto* textMsg = raw->ToPB<CUserMessageTextMsg>();
         if (!textMsg)

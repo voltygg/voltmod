@@ -19,6 +19,9 @@ namespace VoltMod
  * @param cached the caller's cache of the resolved message type, filled on the first call.
  *        Message types are stable for the process, so this is resolved once per sender.
  * @param partialName matched with FindNetworkMessagePartial, e.g. "TextMsg" or "VoteStart".
+ *        Partial rather than exact because a registered message is named with its id appended
+ *        (`"CUserMessageTextMsg [124]"`), so INetworkMessages::FindNetworkMessage matches
+ *        nothing at all - there is no name a caller could pass it that would.
  * @param fill returns false to abandon the send; the message is still deallocated.
  * @return whether the message was posted.
  */
