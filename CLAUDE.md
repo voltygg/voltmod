@@ -97,7 +97,7 @@ There is no ambient accessor for the runtime; everything is injected:
 - `Commands` and `App` may take `Runtime&`, or the narrowest service that does the job.
   `Players` and `Menu` take the narrowest service directly - `ActionDispatcher(Policy&,
   PlayerManager&, EntitySystem&)`, `EffectDispatcher(ActionDispatcher&, EffectManager&)`,
-  `MenuManager(Scheduler&, SlotEvents&, EntitySystem&, Messages&, ChatInput&, Translations&,
+  `HtmlMenuManager(Scheduler&, SlotEvents&, EntitySystem&, Messages&, ChatInput&, Translations&,
   Policy&, PlayerManager&)` - never `Runtime&`.
 - Header templates plugins instantiate (`Flow<TState>`, `PerSlot<T>`) take one
   service, so including them does not pull in the composition root.

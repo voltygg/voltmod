@@ -1,10 +1,10 @@
+#include <VoltMod/Menu/Html/HtmlMenuManager.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
-#include <VoltMod/Menu/MenuManager.hpp>
 
 namespace VoltMod
 {
 
-MenuBuilder::MenuBuilder(MenuManager& menus, const std::string& title)
+MenuBuilder::MenuBuilder(HtmlMenuManager& menus, const std::string& title)
     : _menu(std::make_shared<MenuView>()), _menus(&menus), _policy(&menus.AccessPolicy())
 {
     _menu->Title = title;

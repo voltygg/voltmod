@@ -16,14 +16,14 @@ namespace VoltMod
 {
 
 /**
- * @brief Options for the menu session an @ref MenuManager::OpenMenu call starts.
+ * @brief Options for the menu session an @ref HtmlMenuManager::OpenMenu call starts.
  *
  * A session runs from the first menu opened for a player until their stack empties, so these apply
  * only to the call that opens the stack; a submenu pushed later inherits the live session.
  */
 struct MenuSessionOptions
 {
-    /** Whether the global movement freeze (@ref MenuManager::SetFreezePlayer) applies. Pass false
+    /** Whether the global movement freeze (@ref HtmlMenuManager::SetFreezePlayer) applies. Pass false
      *  for menus players reach mid-round, where being held still is worse than stray WASD movement. */
     bool FreezeMovement = true;
 };
@@ -33,7 +33,7 @@ struct MenuSessionOptions
  * Supports a per-player menu stack (submenus push, R pops back).
  * Reads button state each tick from a scheduler pump it registers for itself.
  */
-class MenuManager
+class HtmlMenuManager
 {
 public:
     /**
@@ -41,11 +41,11 @@ public:
      * manager. The constructor subscribes to @p scheduler and @p slots, so both must already be
      * constructed - true whenever a Runtime builds this in declaration order.
      */
-    MenuManager(Scheduler& scheduler, SlotEvents& slots, EntitySystem& entities, Messages& messages,
-                ChatInput& chatInput, Translations& translations, Policy& policy, PlayerManager& players);
+    HtmlMenuManager(Scheduler& scheduler, SlotEvents& slots, EntitySystem& entities, Messages& messages,
+                    ChatInput& chatInput, Translations& translations, Policy& policy, PlayerManager& players);
 
-    MenuManager(const MenuManager&) = delete;
-    MenuManager& operator=(const MenuManager&) = delete;
+    HtmlMenuManager(const HtmlMenuManager&) = delete;
+    HtmlMenuManager& operator=(const HtmlMenuManager&) = delete;
 
     /** Push @p menu onto the player's stack and start rendering it. @p options take effect only
      *  when this call opens the stack (see @ref MenuSessionOptions). */

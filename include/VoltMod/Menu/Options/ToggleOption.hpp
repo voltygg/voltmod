@@ -36,7 +36,7 @@ public:
         return std::format("{}: {}", _title, on ? _onLabel : _offLabel);
     }
 
-    void OnActivate(int slot, MenuManager& /*menus*/) override
+    void OnActivate(int slot, HtmlMenuManager& /*menus*/) override
     {
         if (_enabled && _toggle)
             _toggle(slot);

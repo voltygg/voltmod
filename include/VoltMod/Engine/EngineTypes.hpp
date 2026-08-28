@@ -67,9 +67,9 @@ class GameSystemFactory;
 
 // --- (3) Mutually recursive with their owning header --------------------------
 
-/** MenuManager holds PlayerMenuState (Menu/Menu.hpp) by value and Menu.hpp
- *  holds MenuOption, so MenuOption.hpp cannot include MenuManager.hpp. */
-class MenuManager;
+/** HtmlMenuManager holds PlayerMenuState (Menu/Menu.hpp) by value and Menu.hpp
+ *  holds MenuOption, so MenuOption.hpp cannot include HtmlMenuManager.hpp. */
+class HtmlMenuManager;
 
 /** Entity.hpp holds an EntitySystem* so a wrapper's verbs can reach Bindings and
  *  the entity system, while EntitySystem.hpp returns Entity, Pawn and Controller

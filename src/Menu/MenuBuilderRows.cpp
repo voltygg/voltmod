@@ -1,7 +1,7 @@
 #include <VoltMod/Core/EffectManager.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
+#include <VoltMod/Menu/Html/HtmlMenuManager.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
-#include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Players/ActionDispatcher.hpp>
 #include <VoltMod/Players/EffectDispatcher.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
@@ -10,7 +10,7 @@
 namespace VoltMod
 {
 
-// Context-aware rows. `_menus` is null only when nobody bound a MenuManager (the plain
+// Context-aware rows. `_menus` is null only when nobody bound a HtmlMenuManager (the plain
 // constructor) - Allowed() already turns that into a disabled row, so the inert fallbacks below
 // build a harmless disabled row of the matching shape rather than dereferencing a null manager.
 
@@ -60,7 +60,7 @@ MenuBuilder& MenuBuilder::Presets(std::string_view labelKey, std::string_view un
         return Choice<int>(std::string(labelKey), std::move(choices), [](int, const int&) {}, false, initialIndex);
 
     ActionDispatcher* actions = &_menus->Actions();
-    MenuManager* menus = _menus;
+    HtmlMenuManager* menus = _menus;
     PlayerRef admin = _admin;
     PlayerRef target = _target.value_or(PlayerRef{});
     const ParamAction* a = &action;
@@ -93,7 +93,7 @@ MenuBuilder& MenuBuilder::Effect(const EffectDescriptor& effect)
         Allowed(effect.Permission));
 }
 
-std::shared_ptr<MenuView> MenuBuilder::BuildEffectPicker(MenuManager& menus, PlayerRef admin, PlayerRef target,
+std::shared_ptr<MenuView> MenuBuilder::BuildEffectPicker(HtmlMenuManager& menus, PlayerRef admin, PlayerRef target,
                                                          EffectManager* effects, bool allowed,
                                                          const EffectDescriptor& effect)
 {
@@ -104,7 +104,7 @@ std::shared_ptr<MenuView> MenuBuilder::BuildEffectPicker(MenuManager& menus, Pla
         return nullptr;
 
     ActionDispatcher* actions = &menus.Actions();
-    MenuManager* menusPtr = &menus;
+    HtmlMenuManager* menusPtr = &menus;
     Translations& tr = menus.Translation();
     const EffectDescriptor* e = &effect;
 
@@ -144,7 +144,7 @@ MenuBuilder& MenuBuilder::EffectPicker(const EffectDescriptor& effect)
     if (!_menus)
         return Submenu(effect.NameKey, [](int) -> std::shared_ptr<MenuView> { return nullptr; }, false);
 
-    MenuManager* menus = _menus;
+    HtmlMenuManager* menus = _menus;
     PlayerRef admin = _admin;
     std::optional<PlayerRef> target = _target;
     EffectManager* effects = _effects;

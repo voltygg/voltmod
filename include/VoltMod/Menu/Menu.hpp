@@ -23,7 +23,7 @@ struct MenuView
 };
 
 /**
- * Per-player menu runtime state held by MenuManager. The stack supports
+ * Per-player menu runtime state held by HtmlMenuManager. The stack supports
  * submenus: opening pushes, R or programmatic close pops back to the parent.
  */
 struct PlayerMenuState
@@ -34,7 +34,7 @@ struct PlayerMenuState
     int64_t LastInputTime = 0;
     uint64_t PrevButtons = 0;
 
-    /** True while MenuManager is holding the player's movement frozen for this menu session. */
+    /** True while HtmlMenuManager is holding the player's movement frozen for this menu session. */
     bool MovementFrozen = false;
     /** MoveType captured before freezing, restored when the menu closes. */
     MoveType PrevMoveType = MoveType::Walk;

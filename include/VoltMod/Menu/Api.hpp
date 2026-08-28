@@ -5,9 +5,9 @@
 // when a translation unit only needs a few of these.
 
 #include <VoltMod/Menu/Flow.hpp>
+#include <VoltMod/Menu/Html/HtmlMenuManager.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
-#include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Menu/MenuOption.hpp>
 #include <VoltMod/Menu/MenuPresets.hpp>
 #include <VoltMod/Menu/Options.hpp>

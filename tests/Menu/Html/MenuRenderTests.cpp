@@ -1,4 +1,4 @@
-#include "Menu/MenuRenderer.hpp"
+#include "Menu/Html/MenuRenderer.hpp"
 
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Translations.hpp>
@@ -53,7 +53,7 @@ TEST_CASE("MenuRenderer: a non-selectable Text row renders without a cursor")
     menu.Items.push_back(std::make_shared<TextOption>("Just a heading"));
     menu.Items.push_back(std::make_shared<ButtonOption>("Pick me", [](int) {}, true));
 
-    // Selection lands on index 1: MenuManager::OpenMenu skips non-selectable rows when it opens a
+    // Selection lands on index 1: HtmlMenuManager::OpenMenu skips non-selectable rows when it opens a
     // menu, and this render call mirrors that already-adjusted index.
     std::string html = RenderMenuHtml(&menu, 0, 1, false, translations);
     CHECK(html.find("Just a heading") != std::string::npos);

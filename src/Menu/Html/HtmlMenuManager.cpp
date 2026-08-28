@@ -1,10 +1,10 @@
-#include "Menu/MenuRenderer.hpp"
+#include "Menu/Html/MenuRenderer.hpp"
 
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Time.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>
-#include <VoltMod/Menu/MenuManager.hpp>
+#include <VoltMod/Menu/Html/HtmlMenuManager.hpp>
 #include <VoltMod/Menu/MenuOption.hpp>
 #include <VoltMod/Messaging/Messages.hpp>
 #include <algorithm>
@@ -57,8 +57,9 @@ static void JumpPage(const std::vector<std::shared_ptr<MenuOption>>& items, int&
     }
 }
 
-MenuManager::MenuManager(Scheduler& scheduler, SlotEvents& slots, EntitySystem& entities, Messages& messages,
-                         ChatInput& chatInput, Translations& translations, Policy& policy, PlayerManager& players)
+HtmlMenuManager::HtmlMenuManager(Scheduler& scheduler, SlotEvents& slots, EntitySystem& entities, Messages& messages,
+                                 ChatInput& chatInput, Translations& translations, Policy& policy,
+                                 PlayerManager& players)
     : _entities(entities),
       _messages(messages),
       _chatInput(chatInput),
@@ -71,7 +72,7 @@ MenuManager::MenuManager(Scheduler& scheduler, SlotEvents& slots, EntitySystem& 
     _states.BindReset(slots);
 }
 
-void MenuManager::OpenMenu(int slot, std::shared_ptr<MenuView> menu, MenuSessionOptions options)
+void HtmlMenuManager::OpenMenu(int slot, std::shared_ptr<MenuView> menu, MenuSessionOptions options)
 {
     if (!IsValidSlot(slot) || !menu)
         return;
@@ -98,7 +99,7 @@ void MenuManager::OpenMenu(int slot, std::shared_ptr<MenuView> menu, MenuSession
     }
 }
 
-void MenuManager::CloseMenu(int slot)
+void HtmlMenuManager::CloseMenu(int slot)
 {
     if (!IsValidSlot(slot))
         return;
@@ -126,7 +127,7 @@ void MenuManager::CloseMenu(int slot)
     }
 }
 
-void MenuManager::CloseAllMenus(int slot)
+void HtmlMenuManager::CloseAllMenus(int slot)
 {
     if (!IsValidSlot(slot))
         return;
@@ -137,7 +138,7 @@ void MenuManager::CloseAllMenus(int slot)
     _messages.ClearCenterHtml(slot);
 }
 
-void MenuManager::CloseAllWithReply(int slot, std::string_view key)
+void HtmlMenuManager::CloseAllWithReply(int slot, std::string_view key)
 {
     // Translate before closing: the reply is addressed to a player whose menus are about to go.
     if (auto& reply = _policy.Reply; reply)
@@ -146,12 +147,12 @@ void MenuManager::CloseAllWithReply(int slot, std::string_view key)
     CloseAllMenus(slot);
 }
 
-void MenuManager::BeginInput(int slot, std::string prompt, ChatInput::Callback callback)
+void HtmlMenuManager::BeginInput(int slot, std::string prompt, ChatInput::Callback callback)
 {
     _chatInput.BeginCapture(slot, std::move(prompt), std::move(callback));
 }
 
-void MenuManager::SetPlayerFrozen(int slot, bool frozen)
+void HtmlMenuManager::SetPlayerFrozen(int slot, bool frozen)
 {
     // Only the freeze direction is gated. Releasing must always run: gating both meant turning
     // the setting off while sessions were open stranded whoever was already frozen, with no
@@ -177,7 +178,7 @@ void MenuManager::SetPlayerFrozen(int slot, bool frozen)
     state.MovementFrozen = frozen;
 }
 
-void MenuManager::SetFreezePlayer(bool enabled)
+void HtmlMenuManager::SetFreezePlayer(bool enabled)
 {
     _freezePlayer = enabled;
 
@@ -193,7 +194,7 @@ void MenuManager::SetFreezePlayer(bool enabled)
     }
 }
 
-bool MenuManager::HasActiveMenu(int slot) const
+bool HtmlMenuManager::HasActiveMenu(int slot) const
 {
     if (!IsValidSlot(slot))
         return false;
@@ -201,7 +202,7 @@ bool MenuManager::HasActiveMenu(int slot) const
     return _states[slot].HasMenu();
 }
 
-void MenuManager::OnGameFrame()
+void HtmlMenuManager::OnGameFrame()
 {
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
@@ -218,7 +219,7 @@ void MenuManager::OnGameFrame()
     }
 }
 
-void MenuManager::HandleInput(int slot, uint64_t buttons, uint64_t prevButtons)
+void HtmlMenuManager::HandleInput(int slot, uint64_t buttons, uint64_t prevButtons)
 {
     auto& state = _states[slot];
     auto* menu = state.GetCurrentMenu();
@@ -288,7 +289,7 @@ void MenuManager::HandleInput(int slot, uint64_t buttons, uint64_t prevButtons)
         state.LastInputTime = now;
 }
 
-void MenuManager::RenderMenu(int slot)
+void HtmlMenuManager::RenderMenu(int slot)
 {
     auto& state = _states[slot];
     auto* menu = state.GetCurrentMenu();

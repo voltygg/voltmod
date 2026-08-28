@@ -17,7 +17,7 @@
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/Hooks.hpp>
 #include <VoltMod/Http/HttpClient.hpp>
-#include <VoltMod/Menu/MenuManager.hpp>
+#include <VoltMod/Menu/Html/HtmlMenuManager.hpp>
 #include <VoltMod/Messaging/Messages.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/Policy.hpp>
@@ -148,7 +148,7 @@ public:
     /** Registers its own per-frame input pump; both it and its slot listener stop in its dtor.
      *  Takes exactly the services it and its context rows use - all declared above it. Depends
      *  on: Scheduler, Slots, Entities, Messages, Hooks.ChatInput, Translations, Policy, Players.*/
-    MenuManager Menus{Scheduler, Slots, Entities, Messages, Hooks.ChatInput, Translations, Policy, Players};
+    HtmlMenuManager HtmlMenus{Scheduler, Slots, Entities, Messages, Hooks.ChatInput, Translations, Policy, Players};
 
     /** Depends on: Policy, Translations, Players, Entities, Messages - the five services
      *  command dispatch reaches, taken directly rather than through the runtime. */

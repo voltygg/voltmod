@@ -18,7 +18,7 @@ VoltMod
 ├── Ui          Panorama custom_hud_layout panels and the button presses they send back
 ├── Workshop    Workshop addon delivery: what connecting clients are told to download
 ├── Commands    Chat and console commands: the fluent builder, typed Args, the router
-├── Menu        WASD center-HTML menus + Flow wizard
+├── Menu        Menu model + Flow wizard; Menu/Html is the center-HTML driver
 ├── Database    Async PostgreSQL + row mapping (VOLTMOD_ENABLE_POSTGRES)
 ├── Http        Async HTTP client + JSON REST helpers
 ├── Unsafe      Opt-in raw hooking: VOLTMOD_SCOPED_HOOK (HookMacros.hpp) and
@@ -254,15 +254,15 @@ include `VoltMod/Runtime.hpp` (or `Api.hpp`) at all - every other module, includ
   constructor).
 - Only `App/` may take `Runtime&`. `Players/` and `Menu/` take the narrowest services they use
   instead: `ActionDispatcher` takes `Policy&`, `PlayerManager&` and `EntitySystem&`;
-  `EffectDispatcher` wraps an `ActionDispatcher&` plus its own `EffectManager&`; `MenuManager`
+  `EffectDispatcher` wraps an `ActionDispatcher&` plus its own `EffectManager&`; `HtmlMenuManager`
   takes `Scheduler&`, `SlotEvents&`, `EntitySystem&`, `Messages&`, `ChatInput&`, `Translations&`,
   `Policy&` and `PlayerManager&`, and owns a long-lived `ActionDispatcher` built from three of
   them so a menu row press needs no throwaway dispatcher. The header-only templates and
   plain-data types plugins instantiate (`Flow<TState>`, `PerSlot<T>`, the `MenuPresets` builders)
   still take the single narrowest service they need, so a consumer TU that includes one of those
   headers does not pull in the whole composition root. `MenuBuilder` itself stays SDK-free: it
-  only forward-declares `MenuManager` and never calls into it inline - the context-row bodies that
-  do (`MenuBuilderRows.cpp`) include `MenuManager.hpp` themselves.
+  only forward-declares `HtmlMenuManager` and never calls into it inline - the context-row bodies that
+  do (`MenuBuilderRows.cpp`) include `HtmlMenuManager.hpp` themselves.
 - A file-static stands in only where no reference can be threaded, set and cleared by the
   code that owns it. Two back engine callbacks that carry no user data (the entity system
   behind `GameEntitySystem()`, the sink for the global convar change callback); the rest are

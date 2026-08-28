@@ -8,9 +8,9 @@
 #endif
 
 #include <VoltMod/Core/Strings.hpp>
+#include <VoltMod/Menu/Html/HtmlMenuManager.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
-#include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Menu/MenuPresets.hpp>
 #include <format>
 #include <functional>
@@ -34,7 +34,7 @@ namespace VoltMod
  * offending player's language, replied via runtime.Policy.Reply).
  *
  * @code
- * Flow<PendingPunishment>::Create(runtime.Menus, std::move(pending))
+ * Flow<PendingPunishment>::Create(runtime.HtmlMenus, std::move(pending))
  *     ->OnValidate(ValidateTargetStillPunishable)
  *     ->AddDurationStep(title, durationPresets, [](auto& s, int sec) { s.DurationSec = sec; },
  *                       customLabel, customPrompt, [](const auto& s) { return IsTimed(s.Type); })
@@ -62,7 +62,7 @@ public:
 
     /** @p menus opens every step and closes them on abort or finish; it must outlive the flow,
      *  which one Load/Unload cycle guarantees. */
-    static Ptr Create(MenuManager& menus, TState initial) { return Ptr(new Flow(menus, std::move(initial))); }
+    static Ptr Create(HtmlMenuManager& menus, TState initial) { return Ptr(new Flow(menus, std::move(initial))); }
 
     /** Append a custom step. */
     Ptr AddStep(BuildFn build, AppliesFn applies = {})
@@ -189,7 +189,7 @@ public:
     TState& State() { return _state; }
 
 private:
-    Flow(MenuManager& menus, TState initial) : _menus(&menus), _state(std::move(initial)) {}
+    Flow(HtmlMenuManager& menus, TState initial) : _menus(&menus), _state(std::move(initial)) {}
 
     struct Step
     {
@@ -256,7 +256,7 @@ private:
         return false;
     }
 
-    MenuManager* _menus;
+    HtmlMenuManager* _menus;
     TState _state;
     std::vector<Step> _steps;
     std::size_t _stepIndex = 0;

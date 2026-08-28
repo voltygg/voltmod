@@ -28,7 +28,7 @@ auto menu = MenuBuilder("Admin Panel")
     .OnClose([](int slot) { /* cleanup */ })
     .Build();
 
-runtime.Menus.OpenMenu(playerSlot, menu);
+runtime.HtmlMenus.OpenMenu(playerSlot, menu);
 ```
 
 This plain constructor is enough for any menu whose rows need no player context. Nothing here
@@ -36,11 +36,11 @@ touches the runtime, so this header alone (and the `.cpp`s behind it) stays SDK-
 
 ## Context rows
 
-For rows that act on an admin/target pair, construct the builder with the @ref VoltMod::MenuManager
+For rows that act on an admin/target pair, construct the builder with the @ref VoltMod::HtmlMenuManager
 that will render it, then bind the pair once with `For`:
 
 ```cpp
-MenuBuilder(runtime.Menus, title)
+MenuBuilder(runtime.HtmlMenus, title)
     .For(adminRef, targetRef, &app.Effects)                              // PlayerRef, optional<PlayerRef>
     .Row("action.kill", Actions::Kill)                                   // runs an Action
     .StateToggle("action.freeze", InMoveType(MoveType::None), Actions::Freeze)  // live on/off state
@@ -53,11 +53,11 @@ MenuBuilder(runtime.Menus, title)
 Every context row derives its label (a translation key in the admin's language, via `Tr`), its
 enabled state (`Allowed`, which is one call to `Policy::Authorize` for the admin, the target and
 the row's permission - so a row the admin cannot use renders disabled), and its dispatch pair from
-the bound `For` state. The `MenuManager` owns a long-lived @ref VoltMod::ActionDispatcher (built
+the bound `For` state. The `HtmlMenuManager` owns a long-lived @ref VoltMod::ActionDispatcher (built
 from `Policy`, `PlayerManager` and `EntitySystem`), so a row press runs through it directly - no
 throwaway dispatcher is constructed per click.
 
-A builder built with the plain (no-`MenuManager`) constructor is inert for context rows: `Allowed`
+A builder built with the plain (no-`HtmlMenuManager`) constructor is inert for context rows: `Allowed`
 denies and `Tr` echoes the key back unresolved, so every context row renders disabled rather than
 crashing. `For`'s pair is a `PlayerRef`, not a bare slot: a context row asks `Policy::Authorize` again
 **when it is pressed**, against that *same* identity, so a departed admin's old slot being reused
@@ -81,7 +81,7 @@ A plain row that still needs a permission-gated enabled state (a Button that isn
 `Action`) uses the same `Allowed` the context rows do:
 
 ```cpp
-MenuBuilder(runtime.Menus, title)
+MenuBuilder(runtime.HtmlMenus, title)
     .For(adminRef, std::nullopt)
     .Button(Tr("action.callCheck"), [&](int) { StartCheck(...); }, Allowed("s"))
 ```
@@ -97,7 +97,7 @@ and before finishing, so a departed target or revoked permission aborts cleanly
 instead of applying half the action.
 
 ```cpp
-VoltMod::Flow<PendingPunishment>::Create(runtime.Menus, std::move(pending))
+VoltMod::Flow<PendingPunishment>::Create(runtime.HtmlMenus, std::move(pending))
     ->OnValidate([](int slot, const PendingPunishment& s) -> std::optional<std::string> {
         return StillPunishable(s) ? std::nullopt : std::optional<std::string>("cmd.targetLost");
     })
@@ -116,8 +116,8 @@ VoltMod::Flow<PendingPunishment>::Create(runtime.Menus, std::move(pending))
 Flow contracts:
 
 - Text comes from per-slot provider functions, so every step renders in the viewing admin's language; the framework ships no strings of its own.
-- `Create` takes the @ref VoltMod::MenuManager the flow opens and closes its steps through, so the flow needs no other service.
-- The `OnValidate` result is a translation key. On failure the flow calls `MenuManager::CloseAllWithReply`, which replies through `Policy::Reply` and closes the menus.
+- `Create` takes the @ref VoltMod::HtmlMenuManager the flow opens and closes its steps through, so the flow needs no other service.
+- The `OnValidate` result is a translation key. On failure the flow calls `HtmlMenuManager::CloseAllWithReply`, which replies through `Policy::Reply` and closes the menus.
 - A confirm-only flow (skip straight to `WithConfirm`) is the natural shape for "quick" variants of a wizard.
 - Lifetime is automatic: menu rows hold the only owning references, so the flow lives exactly as long as one of its menus is on screen. There is no manager to hold and no cleanup to write.
 - `AddStep(build, applies)` is the escape hatch for a fully custom step: build any menu, mutate `flow.State()`, and call `flow.Advance(slot)`.
@@ -136,7 +136,7 @@ Every builder method appends a typed row. Use
 .Choice<int>("HP", {{"1 HP", 1}, {"100 HP", 100}, {"999 HP", 999}},
     [admin, target](int slot, const int& hp) {
         Actions::DoSetHealth(admin, target, hp);
-        runtime.Menus.CloseAllMenus(slot);
+        runtime.HtmlMenus.CloseAllMenus(slot);
     })
 ```
 
@@ -162,7 +162,7 @@ MenuBuilder("Custom")
 
 ## Lifetime and input
 
-@ref VoltMod::MenuManager keeps a per-player stack, reads button state every frame (via a self-registered scheduler pump), debounces input (200 ms), and clears a player's stack on disconnect. `runtime.Menus.SetFreezePlayer(true)` freezes players while a menu is open so WASD doesn't also move them. During a chat-input capture only R is honored, so the cursor doesn't drift while the player types.
+@ref VoltMod::HtmlMenuManager keeps a per-player stack, reads button state every frame (via a self-registered scheduler pump), debounces input (200 ms), and clears a player's stack on disconnect. `runtime.HtmlMenus.SetFreezePlayer(true)` freezes players while a menu is open so WASD doesn't also move them. During a chat-input capture only R is honored, so the cursor doesn't drift while the player types.
 
 The freeze is a global switch, but a single session can opt out: `OpenMenu(slot, menu, {.FreezeMovement = false})`. That suits menus ordinary players reach mid-round, where being held still is worse than the stray movement the freeze prevents. @ref VoltMod::MenuSessionOptions applies to the call that opens the stack; submenus and Flow steps pushed onto a live session inherit it, so an unfrozen session stays unfrozen for its whole flow.
 
@@ -187,7 +187,7 @@ auto duration = BuildDurationPicker(adminSlot, "Ban duration",
     "Custom...", "Type a duration (30s, 5m, 2h, 7d, perm)");
 
 // Confirmation dialog: read-only body rows, then confirm/cancel.
-auto confirm = BuildConfirmDialog(runtime.Menus, {
+auto confirm = BuildConfirmDialog(runtime.HtmlMenus, {
     .Title = "Confirm: Ban",
     .BodyLines = {"Player: Bob", "Duration: 1 day"},
     .ConfirmLabel = "Confirm",
@@ -203,6 +203,6 @@ auto choices = BuildPaletteChoices([&](std::string_view name) { return LabelFor(
 
 ## Headers
 
-Most consumers only need `MenuBuilder.hpp` (which pulls in every option type) plus `Flow.hpp` or `MenuPresets.hpp`. The per-option headers under `Menu/Options/` matter only when constructing an option manually for `AddOption` or subclassing `MenuOption` (override `GetLabel`, `OnActivate(int slot, MenuManager& menus)`, and optionally `OnHorizontal`). `OnActivate` receives the manager rendering the row, so a custom option can push a submenu (`menus.OpenMenu`) or start a chat prompt (`menus.BeginInput`) without holding the runtime.
+Most consumers only need `MenuBuilder.hpp` (which pulls in every option type) plus `Flow.hpp` or `MenuPresets.hpp`. The per-option headers under `Menu/Options/` matter only when constructing an option manually for `AddOption` or subclassing `MenuOption` (override `GetLabel`, `OnActivate(int slot, HtmlMenuManager& menus)`, and optionally `OnHorizontal`). `OnActivate` receives the manager rendering the row, so a custom option can push a submenu (`menus.OpenMenu`) or start a chat prompt (`menus.BeginInput`) without holding the runtime.
 
-`MenuBuilder.hpp` only forward-declares `MenuManager` (already declared once, in `Engine/EngineTypes.hpp`, for the same reason `MenuOption.hpp` does) and never calls into it inline, so including it does not by itself pull in a live `MenuManager`'s engine-facing dependencies. It is not SDK-free on its own account, though: `Action` and `EffectDescriptor` carry an `ActionContext` that holds `Controller` by value, which needs `Pawn`/`Entity`/`Field<T, ...>` complete - true of `MenuBuilder` since before this phase, because a context row has always taken a `const Action&`. Only `MenuRenderer` (the plain `MenuView`/`MenuOption` → HTML step) is SDK-free; it is exercised by VoltMod's own SDK-free test suite (`tests/Menu/MenuRenderTests.cpp`). The context-row bodies that call into the manager - `Row`, `StateToggle`, `Presets`, `Effect`, `EffectPicker` - live in `MenuBuilderRows.cpp`, which includes `MenuManager.hpp` itself.
+`MenuBuilder.hpp` only forward-declares `HtmlMenuManager` (already declared once, in `Engine/EngineTypes.hpp`, for the same reason `MenuOption.hpp` does) and never calls into it inline, so including it does not by itself pull in a live `HtmlMenuManager`'s engine-facing dependencies. It is not SDK-free on its own account, though: `Action` and `EffectDescriptor` carry an `ActionContext` that holds `Controller` by value, which needs `Pawn`/`Entity`/`Field<T, ...>` complete - true of `MenuBuilder` since before this phase, because a context row has always taken a `const Action&`. Only `MenuRenderer` (the plain `MenuView`/`MenuOption` → HTML step) is SDK-free; it is exercised by VoltMod's own SDK-free test suite (`tests/Menu/Html/MenuRenderTests.cpp`). The context-row bodies that call into the manager - `Row`, `StateToggle`, `Presets`, `Effect`, `EffectPicker` - live in `MenuBuilderRows.cpp`, which includes `HtmlMenuManager.hpp` itself.

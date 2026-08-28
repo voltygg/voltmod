@@ -104,7 +104,7 @@ The comparison uses each project's own documentation:
 - [Plugify S2SDK command guide](https://plugify.net/plugins/s2sdk/guides/console-commands/)
 - [CounterStrikeSharp repository](https://github.com/roflmuffin/counterstrikesharp)
 - [CounterStrikeSharp hello-world and reload guide](https://docs.cssharp.dev/docs/guides/hello-world-plugin.html)
-- [CounterStrikeSharp menu API](https://docs.cssharp.dev/api/CounterStrikeSharp.API.Modules.Menu.MenuManager.html)
+- [CounterStrikeSharp menu API](https://docs.cssharp.dev/api/CounterStrikeSharp.API.Modules.Menu.HtmlMenuManager.html)
 - [CounterStrikeSharp shared plugin API](https://docs.cssharp.dev/docs/features/shared-plugin-api.html)
 - [CounterStrikeSharp configuration reference](https://docs.cssharp.dev/docs/reference/core-configuration.html)
 

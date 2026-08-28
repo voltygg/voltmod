@@ -14,7 +14,7 @@ namespace VoltMod
  * Push a built submenu onto the player's menu stack. The factory is invoked lazily on E.
  *
  * The activation path lives in `MenuOption.cpp` because it calls into the manager, and
- * including `MenuManager.hpp` here would close a cycle through the manager → menu chain.
+ * including `HtmlMenuManager.hpp` here would close a cycle through the manager → menu chain.
  */
 class SubmenuOption : public MenuOption
 {
@@ -28,7 +28,7 @@ public:
     }
 
     std::string GetLabel(int /*slot*/) const override { return _label; }
-    void OnActivate(int slot, MenuManager& menus) override;
+    void OnActivate(int slot, HtmlMenuManager& menus) override;
 
 private:
     std::string _label;

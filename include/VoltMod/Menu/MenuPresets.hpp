@@ -1,8 +1,8 @@
 #pragma once
 
+#include <VoltMod/Menu/Html/HtmlMenuManager.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
-#include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Menu/Options/ChoiceOption.hpp>
 #include <VoltMod/Messaging/ChatColors.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
@@ -21,11 +21,11 @@ namespace VoltMod
  *
  * These presets take every human-facing string as a parameter so they carry no
  * localization of their own - the caller supplies already-translated text. Each one
- * takes the single service it needs (`runtime.Players`, `runtime.Menus`) rather than
+ * takes the single service it needs (`runtime.Players`, `runtime.HtmlMenus`) rather than
  * the runtime, so a translation unit including only this header still compiles.
  */
 
-// Forward declarations; full definitions in MenuBuilder.hpp and MenuManager.hpp.
+// Forward declarations; full definitions in MenuBuilder.hpp and HtmlMenuManager.hpp.
 
 /**
  * Append one row per player connected to @p players to @p builder - the body of
@@ -69,7 +69,7 @@ struct ConfirmDialogSpec
 
 /** Build a confirmation dialog: body text rows followed by confirm/cancel buttons.
  *  @p menus is the manager the default cancel closes through; it must outlive the dialog. */
-std::shared_ptr<MenuView> BuildConfirmDialog(MenuManager& menus, ConfirmDialogSpec spec);
+std::shared_ptr<MenuView> BuildConfirmDialog(HtmlMenuManager& menus, ConfirmDialogSpec spec);
 
 /**
  * Render @ref ChatColors::Palette as ChoiceOption choices (value = canonical color name),

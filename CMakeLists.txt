@@ -164,7 +164,7 @@ if(BUILD_TESTING)
             src/Core/Translations.cpp
             # MenuRenderer is SDK-free. MenuBuilder is not because ActionContext
             # stores Controller by value.
-            src/Menu/MenuRenderer.cpp
+            src/Menu/Html/MenuRenderer.cpp
         # Some tests include private headers from src/.
         INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src"
         LIBRARIES ${VOLTMOD_TEST_LIBRARIES}

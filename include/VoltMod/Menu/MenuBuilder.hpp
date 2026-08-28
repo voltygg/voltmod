@@ -17,22 +17,22 @@
 namespace VoltMod
 {
 
-// MenuManager is forward-declared in Engine/EngineTypes.hpp (reached transitively through
+// HtmlMenuManager is forward-declared in Engine/EngineTypes.hpp (reached transitively through
 // Menu.hpp -> MenuOption.hpp): this header only stores a pointer and takes a reference
-// parameter, never calling a method on it, so it does not need MenuManager's full definition
+// parameter, never calling a method on it, so it does not need HtmlMenuManager's full definition
 // (and the SDK-facing headers that pulls in). The .cpp files behind the context rows - which do
-// call into it - include <VoltMod/Menu/MenuManager.hpp> themselves.
+// call into it - include <VoltMod/Menu/Html/HtmlMenuManager.hpp> themselves.
 
 /**
  * @brief Fluent builder whose row methods append typed @ref MenuOption rows.
  *
  * The plain constructor builds rows that need no player context (Button, Toggle, Choice, ...).
- * Construct with a @ref MenuManager instead to also use the context rows (Row, StateToggle,
+ * Construct with a @ref HtmlMenuManager instead to also use the context rows (Row, StateToggle,
  * Presets, Effect, EffectPicker), which run their action/effect through the manager's long-lived
  * @ref ActionDispatcher - bind the admin/target pair once with @ref For:
  *
  * @code
- * MenuBuilder(runtime.Menus, "Admin Panel")
+ * MenuBuilder(runtime.HtmlMenus, "Admin Panel")
  *     .For(adminRef, targetRef, &app.Effects)
  *     .Row("action.kill", Actions::Kill)
  *     .StateToggle("action.freeze", InMoveType(MoveType::None), Actions::Freeze)
@@ -49,11 +49,11 @@ public:
 
     /** Also enables the context rows (@ref For, @ref Row, @ref StateToggle, @ref Presets,
      *  @ref Effect, @ref EffectPicker), dispatched through @p menus' long-lived ActionDispatcher. */
-    MenuBuilder(MenuManager& menus, const std::string& title);
+    MenuBuilder(HtmlMenuManager& menus, const std::string& title);
 
     /**
      * Test-only entry point: enables @ref Allowed and @ref For through @p policy directly, with no
-     * MenuManager. Lets an SDK-free test exercise permission-gated rows against a fake Policy.
+     * HtmlMenuManager. Lets an SDK-free test exercise permission-gated rows against a fake Policy.
      * Context rows that dispatch (Row, StateToggle, Presets, Effect, EffectPicker) stay inert, as
      * they do for the plain constructor.
      */
@@ -72,7 +72,7 @@ public:
      * and is not recomputed per redraw: a row can look enabled and still refuse. Rebuild the
      * menu to refresh it.
      *
-     * Requires the @ref MenuManager constructor; a no-op otherwise.
+     * Requires the @ref HtmlMenuManager constructor; a no-op otherwise.
      */
     MenuBuilder& For(PlayerRef admin, std::optional<PlayerRef> target, EffectManager* effects = nullptr)
     {
@@ -197,15 +197,15 @@ private:
     /** Picker submenu for an EffectDescriptor with Choices set: one button per choice plus an
      *  optional reset row. A private static rather than a file-local helper because it reads the
      *  manager's row context, which is not public. */
-    static std::shared_ptr<MenuView> BuildEffectPicker(MenuManager& menus, PlayerRef admin, PlayerRef target,
+    static std::shared_ptr<MenuView> BuildEffectPicker(HtmlMenuManager& menus, PlayerRef admin, PlayerRef target,
                                                        EffectManager* effects, bool allowed,
                                                        const EffectDescriptor& effect);
 
     std::shared_ptr<MenuView> _menu;
     /** Null for a context-free builder (see the plain constructor); every dispatching context row
-     *  is then inert. Set by the @ref MenuManager constructor. */
-    MenuManager* _menus = nullptr;
-    /** Backs @ref Allowed. Set by either context constructor - the MenuManager one derives it from
+     *  is then inert. Set by the @ref HtmlMenuManager constructor. */
+    HtmlMenuManager* _menus = nullptr;
+    /** Backs @ref Allowed. Set by either context constructor - the HtmlMenuManager one derives it from
      *  `menus.AccessPolicy()`, the test-only one takes it directly. Null makes @ref Allowed deny. */
     Policy* _policy = nullptr;
     PlayerRef _admin{};

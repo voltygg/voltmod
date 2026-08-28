@@ -15,7 +15,7 @@ namespace VoltMod
  * If the validator returns false the prompt is re-shown until accepted, timed out, or cancelled (R).
  *
  * The activation path lives in `MenuOption.cpp` because it goes through the manager
- * (@ref MenuManager::BeginInput), whose header cannot be included here.
+ * (@ref HtmlMenuManager::BeginInput), whose header cannot be included here.
  */
 class InputOption : public MenuOption
 {
@@ -41,7 +41,7 @@ public:
         return std::format("{}: {}", _title, val);
     }
 
-    void OnActivate(int slot, MenuManager& menus) override;
+    void OnActivate(int slot, HtmlMenuManager& menus) override;
 
 private:
     std::string _title;
