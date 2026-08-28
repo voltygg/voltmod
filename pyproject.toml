@@ -47,6 +47,7 @@ lint = ["_ruff", "test-tools"]
 _ruff = "ruff check ."
 
 modgraph = "voltmod modgraph"
+panorama = "voltmod panorama"
 test-tools = "pytest scripts/tests"
 format = "voltmod format"
 

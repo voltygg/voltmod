@@ -120,17 +120,32 @@ panorama/layout/hud/welcome.xml             rejected: outside the whitelisted di
 mistake here is an `Error::Invalid` rather than a panel that renders nothing and
 explains itself only on the client console.
 
-Compile the sources with the CS2 Workshop Tools' `resourcecompiler.exe`, put the
-resulting `.vxml_c` and `.vcss_c` in a workshop addon, publish it, and require
-its id so joining clients download it:
+Compiling is `voltmod panorama`, which runs the CS2 Workshop Tools over every
+`panorama/` directory in the project and installs the results into your own
+client:
+
+```bash
+uv run poe panorama                 # every layout this project has
+uv run poe panorama voltmod         # just the framework's menu layout
+uv run poe panorama ui-lab          # just one plugin's
+uv run poe panorama --no-deploy     # compile only, leave the client alone
+```
+
+It finds the client through Steam's library list; set `CS2_CLIENT_PATH` in
+`.env` or pass `--client-path` when that guess is wrong. Sources are staged into
+`content/csgo_addons/voltmod/`, compiled to `game/csgo_addons/voltmod/`, and the
+compiled resources copied into `csgo/panorama/{layout,styles}/custom_game/` -
+which is why a reconnect is enough to see a change, with no addon involved. The
+Workshop Tools are Windows only, so this is too.
+
+Reaching *other* players is a workshop addon: put the same compiled files in one,
+publish it, and require its id so joining clients download it.
 
 ```cpp
 _addon = runtime.Addons.Require(3401234567);   // keep the lease; see the workshop guide
 ```
 
-See @ref workshop_guide for what that costs and what it does not do. During
-development it is quicker to drop the compiled files straight into your own
-client's `csgo/panorama/layout/custom_game/`.
+See @ref workshop_guide for what that costs and what it does not do.
 
 ## Reacting to a click
 

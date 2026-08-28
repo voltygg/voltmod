@@ -6,7 +6,7 @@ from typing import Annotated
 
 import typer
 
-from . import buildtools, doctor, init_project, localdev, modgraph, new_plugin, package
+from . import buildtools, doctor, init_project, localdev, modgraph, new_plugin, package, panorama
 
 ROOT = Path.cwd()
 KIT_ROOT = Path(__file__).resolve().parents[2]
@@ -220,6 +220,40 @@ def modgraph_command(
         _exit_on_error(modgraph.check_plugins(plugins))
         return
     _exit_on_error(modgraph.check(root))
+
+
+@app.command("panorama")
+def panorama_command(
+    targets: Annotated[
+        list[str] | None,
+        typer.Argument(
+            metavar="[TARGET]...",
+            help="Whose panorama/ to compile: a plugin name, or 'voltmod' for the framework's "
+            "own. Default: every one found.",
+        ),
+    ] = None,
+    client_path: Annotated[
+        str,
+        typer.Option(
+            "--client-path",
+            envvar="CS2_CLIENT_PATH",
+            help="CS2 *client* installation root (not the server). Found via Steam when unset.",
+        ),
+    ] = "",
+    addon: Annotated[
+        str,
+        typer.Option("--addon", help="csgo_addons folder to compile through"),
+    ] = "voltmod",
+    deploy: Annotated[
+        bool,
+        typer.Option(
+            "--deploy/--no-deploy",
+            help="Copy the compiled resources into the client's own csgo/panorama",
+        ),
+    ] = True,
+) -> None:
+    """Compile Panorama sources with the Workshop Tools and install them into your client."""
+    panorama.build(ROOT, KIT_ROOT, targets or [], client_path, addon, deploy)
 
 
 @app.command("new-plugin")

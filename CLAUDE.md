@@ -16,6 +16,7 @@ uv run poe test
 uv run poe lint
 uv run poe format
 uv run poe modgraph
+uv run poe panorama
 uv run poe new-plugin <name>
 voltmod init
 ```
@@ -24,7 +25,10 @@ voltmod init
 build up to date and runs its CTest preset (`-R` filters cases). `voltmod
 install [plugin]` merges a built plugin into a local CS2 server at
 `CS2_SERVER_PATH`, `voltmod serve` runs that server, and `voltmod build
---install <plugin> --start` does all three. All CLI commands operate on the
+--install <plugin> --start` does all three. `voltmod panorama` compiles every
+`panorama/` directory in the project with the CS2 Workshop Tools and installs the
+result into your own client at `CS2_CLIENT_PATH` - Windows only, and the step a
+custom UI shows nothing without. All CLI commands operate on the
 current working directory, so run scaffolding commands from the consumer
 repository.
 
