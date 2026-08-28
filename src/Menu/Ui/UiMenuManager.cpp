@@ -38,12 +38,6 @@ std::string_view UiMenuManager::ModifierFor(MenuRowKind kind)
     return "Kind--button";
 }
 
-int UiMenuManager::PageCount(const MenuView& menu)
-{
-    const int items = static_cast<int>(menu.Items.size());
-    return items <= 0 ? 1 : (items + RowsPerPage - 1) / RowsPerPage;
-}
-
 void UiMenuManager::SetLayout(std::string layout)
 {
     if (layout == _layout.Name())
@@ -113,7 +107,7 @@ void UiMenuManager::TurnPage(int slot, int delta)
     if (!menu)
         return;
 
-    const int pages = PageCount(*menu);
+    const int pages = PageCount(static_cast<int>(menu->Items.size()), RowsPerPage);
     state.Page = ((state.Page + delta) % pages + pages) % pages;
 }
 
@@ -140,7 +134,8 @@ void UiMenuManager::Present(int slot)
 
     BindNav();
 
-    const int pages = PageCount(*menu);
+    const int items = static_cast<int>(menu->Items.size());
+    const int pages = PageCount(items, RowsPerPage);
     state.Page = std::clamp(state.Page, 0, pages - 1);
 
     _layout.Text(slot, RootId, TitleVar, menu->Title);
@@ -152,7 +147,6 @@ void UiMenuManager::Present(int slot)
     if (prompt)
         _layout.Text(slot, RootId, PromptVar, *prompt);
 
-    const int items = static_cast<int>(menu->Items.size());
     const int first = state.Page * RowsPerPage;
     const int last = std::min(items, first + RowsPerPage);
 

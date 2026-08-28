@@ -101,6 +101,20 @@ bool UiClicks::Acquire()
             Log::Warn("UiClicks: FilterMessage did not bind; button presses will not arrive.");
             return false;
         }
+        if (_bindings.CustomHudClicked < 0)
+        {
+            Log::Warn("UiClicks: no custom HUD click message id in gamedata; button presses will not arrive.");
+            return false;
+        }
+        if (auto* message = _interfaces.NetworkMessages ? _interfaces.NetworkMessages->FindNetworkMessagePartial(
+                                                              std::string(kUserMessage).c_str())
+                                                        : nullptr)
+            _messageId = message->GetNetMessageInfo()->m_MessageId;
+        if (_messageId < 0)
+        {
+            Log::Warn("UiClicks: the engine does not know {}; button presses will not arrive.", kUserMessage);
+            return false;
+        }
 
         // Nobody connected yet is the ordinary case at load: keep the subscription and bind on the
         // first connect instead of refusing it.
@@ -135,8 +149,8 @@ bool UiClicks::Install()
     if (!client)
         return false;
 
-    // FilterMessage lives in a secondary vtable (inherited from a non-first base), so the slot is
-    // found by searching a live client's tables for the signature's address - see FindVTableSlot.
+    // FilterMessage lives in a secondary vtable, so the slot is found by searching a live client's
+    // tables for the signature's address - see FindVTableSlot.
     const auto slot = FindVTableSlot(client, _bindings.FilterMessage.Ptr(), [](void* entry) -> const void* {
         return g_SHPtr ? g_SHPtr->GetOrigVfnPtrEntry(entry) : nullptr;
     });
@@ -144,25 +158,6 @@ bool UiClicks::Install()
     {
         Log::Warn("UiClicks: FilterMessage is in none of CServerSideClient's vtables; not hooking.");
         _connectListener.Reset();  // a retry cannot change this
-        return false;
-    }
-
-    if (_bindings.CustomHudClicked < 0)
-    {
-        Log::Warn("UiClicks: no custom HUD click message id in gamedata; not hooking.");
-        _connectListener.Reset();  // a retry cannot change this
-        return false;
-    }
-
-    if (_interfaces.NetworkMessages)
-    {
-        if (auto* message = _interfaces.NetworkMessages->FindNetworkMessagePartial(std::string(kUserMessage).c_str()))
-            _messageId = message->GetNetMessageInfo()->m_MessageId;
-    }
-    if (_messageId < 0)
-    {
-        Log::Warn("UiClicks: the engine does not know {}; not hooking.", kUserMessage);
-        _connectListener.Reset();
         return false;
     }
 

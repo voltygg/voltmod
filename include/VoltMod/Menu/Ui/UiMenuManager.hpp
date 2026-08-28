@@ -69,9 +69,6 @@ private:
     /** The class a row carries for its kind. */
     static std::string_view ModifierFor(MenuRowKind kind);
 
-    /** Pages @p menu needs, at least one. */
-    static int PageCount(const MenuView& menu);
-
     /** Redraw open menus, hide closed ones. */
     void OnGameFrame();
 

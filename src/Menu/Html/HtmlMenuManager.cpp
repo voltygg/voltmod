@@ -19,7 +19,7 @@ void HtmlMenuManager::JumpPage(const std::vector<std::shared_ptr<MenuOption>>& i
     if (n == 0)
         return;
 
-    int pageCount = (n + ItemsPerPage - 1) / ItemsPerPage;
+    int pageCount = PageCount(n, ItemsPerPage);
     int currentPage = idx / ItemsPerPage;
     int offset = idx % ItemsPerPage;
     int newPage = ((currentPage + pageDelta) % pageCount + pageCount) % pageCount;

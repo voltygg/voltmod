@@ -54,8 +54,9 @@ public:
     Event<const UiClick&> Clicked;
 
 private:
-    /** Install on the first subscription, remove on the last. */
+    /** First subscription: check the gamedata and the message registry, then @ref Install. */
     bool Acquire();
+    /** Last subscription: remove the hook. */
     void ReleaseRef();
 
     /** Bind the secondary vtable from a connected client. False while nobody is connected, which

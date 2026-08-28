@@ -15,6 +15,12 @@ namespace VoltMod
 /** Maximum items shown per page before the menu paginates. */
 inline constexpr int ItemsPerPage = 5;
 
+/** Pages @p items need at @p perPage each, never less than one so an empty menu still draws. */
+constexpr int PageCount(int items, int perPage)
+{
+    return items <= 0 ? 1 : (items + perPage - 1) / perPage;
+}
+
 /** A menu, as either @ref MenuHost shows it. Build with MenuBuilder. */
 struct MenuView
 {
@@ -51,20 +57,7 @@ struct PlayerMenuState
     MenuView* GetCurrentMenu() { return MenuStack.empty() ? nullptr : MenuStack.top().get(); }
 
     /** Clears the entire menu stack and resets selection/input state. */
-    void Reset()
-    {
-        while (!MenuStack.empty())
-        {
-            MenuStack.pop();
-        }
-
-        SelectedIndex = 0;
-        Page = 0;
-        LastInputTime = 0;
-        PrevButtons = 0;
-        MovementFrozen = false;
-        PrevMoveType = MoveType::Walk;
-    }
+    void Reset() { *this = {}; }
 };
 
 }  // namespace VoltMod

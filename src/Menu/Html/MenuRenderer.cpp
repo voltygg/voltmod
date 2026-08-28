@@ -165,7 +165,7 @@ std::string RenderMenuHtml(const MenuView* menu, int slot, int selectedIndex, bo
     }
 
     int itemCount = static_cast<int>(menu->Items.size());
-    int totalPages = itemCount == 0 ? 1 : (itemCount + ItemsPerPage - 1) / ItemsPerPage;
+    int totalPages = PageCount(itemCount, ItemsPerPage);
     int currentPage = itemCount == 0 ? 0 : selectedIndex / ItemsPerPage;
     int pageStart = currentPage * ItemsPerPage;
     int pageEnd = std::min(itemCount, pageStart + ItemsPerPage);
