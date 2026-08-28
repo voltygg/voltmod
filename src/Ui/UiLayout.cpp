@@ -76,7 +76,7 @@ Subscription UiLayout::OnClick(std::string buttonId, std::function<void(int slot
     // capturing it rather than `this` is what makes a stray Subscription harmless.
     return _ui.Clicks.Clicked +=
            [live = _live, id = std::move(buttonId), fn = std::move(handler)](const UiClick& click) {
-               if (*live && click.Layout == *live && click.ButtonId == id)
+               if (*live && click.Layout.Is(*live) && click.ButtonId == id)
                    fn(click.Slot);
            };
 }

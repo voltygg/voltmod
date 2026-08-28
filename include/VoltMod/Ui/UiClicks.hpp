@@ -6,6 +6,7 @@
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Entities/EntityRef.hpp>
+#include <VoltMod/Ui/UiLayoutRef.hpp>
 #include <VoltMod/Unsafe/VtableHook.hpp>
 #include <string>
 
@@ -16,7 +17,7 @@ namespace VoltMod
 struct UiClick
 {
     int Slot = -1;         ///< who clicked
-    EntityRef Layout;      ///< the custom_hud_layout the Button belongs to
+    UiLayoutRef Layout;    ///< the custom_hud_layout the Button belongs to
     std::string ButtonId;  ///< the Button's `id` attribute
 };
 
@@ -68,7 +69,7 @@ private:
 
     int _refs = 0;                  // live subscriptions
     int _baseOffset = 0;            // bytes from CServerSideClient to the hooked subobject
-    int _messageId = -1;            // CCSUsrMsg_CustomHudClicked, from the engine's own registry
+    int _messageId = -1;            // CSVCMsg_UserMessage, from the engine's own registry
     Subscription _connectListener;  // retries Install() while subscribed but not yet armed
     VtableHook _hook;
 };

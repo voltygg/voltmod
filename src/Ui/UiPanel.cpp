@@ -112,7 +112,7 @@ Subscription UiPanel::OnClick(std::string buttonId, std::function<void(int slot)
     // The ref is captured by value, never `this`: the handler has to keep filtering correctly
     // after this handle moves, and must never reach back into one that has been destroyed.
     return *_clicked += [ref = _ref, id = std::move(buttonId), fn = std::move(handler)](const UiClick& click) {
-        if (click.Layout == ref && click.ButtonId == id)
+        if (click.Layout.Is(ref) && click.ButtonId == id)
             fn(click.Slot);
     };
 }
@@ -123,7 +123,7 @@ Subscription UiPanel::OnAnyClick(std::function<void(const UiClick&)> handler)
         return {};
 
     return *_clicked += [ref = _ref, fn = std::move(handler)](const UiClick& click) {
-        if (click.Layout == ref)
+        if (click.Layout.Is(ref))
             fn(click);
     };
 }

@@ -1,6 +1,7 @@
 #include "Engine/ProtoReflect.hpp"
 #include "Engine/ServerSideClients.hpp"
 #include "Engine/VtableLookup.hpp"
+#include "Ui/ClickPayload.hpp"
 
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
@@ -21,36 +22,37 @@ namespace VoltMod
 // unused, so it stays opaque.
 VOLTMOD_VHOOK2(VoltMod_FilterMessage, bool, const CNetMessage*, void*);
 
-/** The user message carrying a custom HUD button press. */
-static constexpr std::string_view kClickMessage = "CCSUsrMsg_CustomHudClicked";
+/**
+ * The envelope every user message arrives in.
+ *
+ * A press is not its own registered message: it rides inside this one's `msg_data`, tagged with a
+ * `msg_type` that is named nowhere - hence @ref Bindings::CustomHudClicked. Looked up by partial
+ * name because a registered message carries its id in its name (see PostUserMessage).
+ */
+static constexpr std::string_view kEnvelope = "CSVCMsg_UserMessage";
 
-/** What @ref kClickMessage is looked up by when the registry does not know the full name. */
-static constexpr std::string_view kClickPartial = "CustomHudClicked";
-
-/** The two fields a press is read out of. */
-struct ClickFields
+/** The two envelope fields a press is read out of. */
+struct EnvelopeFields
 {
-    const ProtoFieldDescriptor* Layout = nullptr;
-    const ProtoFieldDescriptor* Button = nullptr;
+    const ProtoFieldDescriptor* Type = nullptr;
+    const ProtoFieldDescriptor* Data = nullptr;
 
-    explicit operator bool() const { return Layout && Button; }
+    explicit operator bool() const { return Type && Data; }
 };
 
 /**
- * Resolve the click message's fields, once per process.
+ * Resolve the envelope's fields, once per process.
  *
  * Process-wide rather than per-load for the same reason the schema field cache is: a field name on
  * a registered message type resolves to the same descriptor for every plugin, Runtime and map, and
- * the descriptor pool belongs to the engine rather than to any load cycle. Doing it here keeps the
- * per-press cost at two loads instead of two string-keyed descriptor lookups.
+ * the descriptor pool belongs to the engine rather than to any load cycle.
  */
-static const ClickFields& ClickFieldsOf(const ProtoMessage& proto)
+static const EnvelopeFields& EnvelopeFieldsOf(const ProtoMessage& proto)
 {
-    static const ClickFields fields = [&proto] {
-        const ClickFields resolved{.Layout = ProtoField(proto, "custom_hud_layout"),
-                                   .Button = ProtoField(proto, "button_id")};
+    static const EnvelopeFields fields = [&proto] {
+        const EnvelopeFields resolved{.Type = ProtoField(proto, "msg_type"), .Data = ProtoField(proto, "msg_data")};
         if (!resolved)
-            Log::Warn("UiClicks: {} has no 'custom_hud_layout'/'button_id' field; ignoring presses.", kClickMessage);
+            Log::Warn("UiClicks: {} has no 'msg_type'/'msg_data' field; ignoring presses.", kEnvelope);
         return resolved;
     }();
     return fields;
@@ -123,16 +125,21 @@ bool UiClicks::Install()
         return false;
     }
 
+    if (!_bindings.CustomHudClicked)
+    {
+        Log::Warn("UiClicks: no custom HUD click message id in gamedata; not hooking.");
+        _connectListener.Reset();  // a retry cannot change this
+        return false;
+    }
+
     if (_interfaces.NetworkMessages)
     {
-        // Partial: a registered message is named with its id appended, so the exact form matches
-        // nothing (see PostUserMessage).
-        if (auto* message = _interfaces.NetworkMessages->FindNetworkMessagePartial(std::string(kClickPartial).c_str()))
+        if (auto* message = _interfaces.NetworkMessages->FindNetworkMessagePartial(std::string(kEnvelope).c_str()))
             _messageId = message->GetNetMessageInfo()->m_MessageId;
     }
     if (_messageId < 0)
     {
-        Log::Warn("UiClicks: the engine does not know {}; not hooking.", kClickMessage);
+        Log::Warn("UiClicks: the engine does not know {}; not hooking.", kEnvelope);
         _connectListener.Reset();
         return false;
     }
@@ -153,8 +160,8 @@ bool UiClicks::Install()
 
     _hook = std::move(*hook);
     _baseOffset = slot->BaseOffset;
-    Log::Info("UiClicks: hooked FilterMessage at index {} (+{} from the client), message id {}.", slot->Index,
-              _baseOffset, _messageId);
+    Log::Info("UiClicks: hooked FilterMessage at index {} (+{} from the client), envelope id {}, click type {}.",
+              slot->Index, _baseOffset, _messageId, _bindings.CustomHudClicked.Value());
     return true;
 }
 
@@ -174,28 +181,39 @@ void UiClicks::HandleMessage(const CNetMessage* message, void* self)
     if (!info || info->GetNetMessageInfo()->m_MessageId != _messageId)
         return;
 
+    const ProtoMessage* proto = message->ToPB<ProtoMessage>();
+    if (!proto)
+        return;
+
+    const EnvelopeFields& fields = EnvelopeFieldsOf(*proto);
+    if (!fields)
+        return;
+
+    // Every user message shares this envelope, so the type is what narrows it to a press.
+    const auto* reflection = proto->GetReflection();
+    if (!_bindings.CustomHudClicked.Is(reflection->GetInt32(*proto, fields.Type)))
+        return;
+
     // A DVP hook on a secondary vtable is called with that subobject, not the client.
     const void* client = self ? static_cast<uint8_t*>(self) - _baseOffset : nullptr;
     const int slot = SlotOfServerSideClient(_bindings, client);
     if (!IsValidSlot(slot))
         return;
 
-    const ProtoMessage& proto = *message->ToPB<ProtoMessage>();
-    const ClickFields& fields = ClickFieldsOf(proto);
-    if (!fields)
+    auto payload = ParseClickPayload(reflection->GetString(*proto, fields.Data));
+    if (!payload)
+    {
+        Log::Warn("UiClicks: a press from slot {} did not parse ({}).", slot, payload.error().Detail);
         return;
-
-    const auto* reflection = proto.GetReflection();
-    UiClick click{.Slot = slot,
-                  .Layout = EntityRef{reflection->GetUInt32(proto, fields.Layout)},
-                  .ButtonId = reflection->GetString(proto, fields.Button)};
+    }
 
     // The button id is client-controlled text. Handlers compare it against ids they authored, so
     // it is passed through as-is, but an embedded NUL would truncate it anywhere it is formatted.
-    if (click.ButtonId.find('\0') != std::string::npos)
+    if (payload->Button.find('\0') != std::string::npos)
         return;
 
-    Clicked.Raise(click);
+    Clicked.Raise(
+        UiClick{.Slot = slot, .Layout = UiLayoutRef{payload->Layout}, .ButtonId = std::move(payload->Button)});
 }
 
 }  // namespace VoltMod
