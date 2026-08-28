@@ -1,6 +1,6 @@
 #include <VoltMod/Core/Strings.hpp>
-#include <VoltMod/Menu/Html/HtmlMenuManager.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
+#include <VoltMod/Menu/MenuHost.hpp>
 #include <VoltMod/Menu/MenuPresets.hpp>
 #include <VoltMod/Messaging/ChatColors.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
@@ -76,7 +76,7 @@ std::shared_ptr<MenuView> BuildDurationPicker(int viewerSlot, const std::string&
     return builder.Build();
 }
 
-std::shared_ptr<MenuView> BuildConfirmDialog(HtmlMenuManager& menus, ConfirmDialogSpec spec)
+std::shared_ptr<MenuView> BuildConfirmDialog(MenuHost& menus, ConfirmDialogSpec spec)
 {
     MenuBuilder builder(spec.Title);
 

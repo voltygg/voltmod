@@ -1,12 +1,12 @@
-#include <VoltMod/Menu/Html/HtmlMenuManager.hpp>
 #include <VoltMod/Menu/Menu.hpp>
+#include <VoltMod/Menu/MenuHost.hpp>
 #include <VoltMod/Menu/Options/InputOption.hpp>
 #include <VoltMod/Menu/Options/SubmenuOption.hpp>
 
 namespace VoltMod
 {
 
-void SubmenuOption::OnActivate(int slot, HtmlMenuManager& menus)
+void SubmenuOption::OnActivate(int slot, MenuHost& menus)
 {
     if (!_enabled || !_factory)
         return;
@@ -16,7 +16,7 @@ void SubmenuOption::OnActivate(int slot, HtmlMenuManager& menus)
         menus.OpenMenu(slot, submenu);
 }
 
-void InputOption::OnActivate(int slot, HtmlMenuManager& menus)
+void InputOption::OnActivate(int slot, MenuHost& menus)
 {
     if (!_enabled)
         return;

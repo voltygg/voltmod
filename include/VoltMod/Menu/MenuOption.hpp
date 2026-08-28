@@ -34,7 +34,7 @@ public:
 
     /** E key. Called only when the option is selectable and enabled. @p menus is the manager
      *  rendering this row, so a row can push a submenu or start a chat prompt without a global. */
-    virtual void OnActivate(int /*slot*/, HtmlMenuManager& /*menus*/) {}
+    virtual void OnActivate(int /*slot*/, MenuHost& /*menus*/) {}
 
     /** A/D key. Return true to consume the input; false falls back to page-jump. */
     virtual bool OnHorizontal(int /*slot*/, int /*direction*/) { return false; }

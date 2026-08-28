@@ -8,9 +8,9 @@
 #endif
 
 #include <VoltMod/Core/Strings.hpp>
-#include <VoltMod/Menu/Html/HtmlMenuManager.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
+#include <VoltMod/Menu/MenuHost.hpp>
 #include <VoltMod/Menu/MenuPresets.hpp>
 #include <format>
 #include <functional>
@@ -62,7 +62,7 @@ public:
 
     /** @p menus opens every step and closes them on abort or finish; it must outlive the flow,
      *  which one Load/Unload cycle guarantees. */
-    static Ptr Create(HtmlMenuManager& menus, TState initial) { return Ptr(new Flow(menus, std::move(initial))); }
+    static Ptr Create(MenuHost& menus, TState initial) { return Ptr(new Flow(menus, std::move(initial))); }
 
     /** Append a custom step. */
     Ptr AddStep(BuildFn build, AppliesFn applies = {})
@@ -189,7 +189,7 @@ public:
     TState& State() { return _state; }
 
 private:
-    Flow(HtmlMenuManager& menus, TState initial) : _menus(&menus), _state(std::move(initial)) {}
+    Flow(MenuHost& menus, TState initial) : _menus(&menus), _state(std::move(initial)) {}
 
     struct Step
     {
@@ -256,7 +256,7 @@ private:
         return false;
     }
 
-    HtmlMenuManager* _menus;
+    MenuHost* _menus;
     TState _state;
     std::vector<Step> _steps;
     std::size_t _stepIndex = 0;
