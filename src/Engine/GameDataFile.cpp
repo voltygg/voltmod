@@ -264,6 +264,35 @@ static Status ParseOffsets(const nlohmann::json& json, GamePlatform platform, Ga
     return {};
 }
 
+static Status ParseMessages(const nlohmann::json& json, GamePlatform platform, GameDataFile& out,
+                            std::map<std::string, std::string>& owners)
+{
+    if (!json.contains("messages"))
+        return {};
+    if (!json["messages"].is_object())
+        return Malformed("'messages' is not an object");
+
+    for (const auto& [key, entry] : json["messages"].items())
+    {
+        if (Status claimed = ClaimKey(owners, key, "messages"); !claimed)
+            return claimed;
+        if (!entry.is_object())
+            return Malformed(std::format("messages.{} is not an object", key));
+
+        if (SkipOtherPlatform(entry, platform, key, out))
+            continue;
+
+        auto value = PlatformInt(entry, platform, "messages", key);
+        if (!value)
+            return std::unexpected(value.error());
+        if (*value < 0)
+            return Malformed(std::format("messages.{} value {} is negative", key, *value));
+
+        out.Messages.emplace(key, *value);
+    }
+    return {};
+}
+
 static Result<GameDataFile> ParseChecked(std::string_view text, GamePlatform platform)
 {
     nlohmann::json json;
@@ -306,6 +335,8 @@ static Result<GameDataFile> ParseChecked(std::string_view text, GamePlatform pla
     if (Status parsed = ParseAddresses(json, platform, out, owners); !parsed)
         return std::unexpected(parsed.error());
     if (Status parsed = ParseVTables(json, platform, out, owners); !parsed)
+        return std::unexpected(parsed.error());
+    if (Status parsed = ParseMessages(json, platform, out, owners); !parsed)
         return std::unexpected(parsed.error());
     if (Status parsed = ParseOffsets(json, platform, out, owners); !parsed)
         return std::unexpected(parsed.error());

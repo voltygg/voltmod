@@ -82,6 +82,8 @@ struct GameDataFile
     std::map<std::string, AddressEntry> Addresses;
     std::map<std::string, VTableEntry> VTables;
     std::map<std::string, OffsetEntry> Offsets;
+    /** Network message type ids, keyed the same way; see the section's schema description. */
+    std::map<std::string, int> Messages;
 
     /** Keys the file carries for the other platform only, so they are absent from the maps above.
      *  gamedata.schema.json requires one platform column, not both, and a feature that has only
@@ -90,7 +92,10 @@ struct GameDataFile
     std::vector<std::string> OtherPlatformOnly;
 
     /** Total entries across every section; each one is a key @ref Bindings can name. */
-    size_t EntryCount() const { return Signatures.size() + Addresses.size() + VTables.size() + Offsets.size(); }
+    size_t EntryCount() const
+    {
+        return Signatures.size() + Addresses.size() + VTables.size() + Offsets.size() + Messages.size();
+    }
 
     /**
      * Parse @p text (JSONC) keeping @p platform's column of every entry.

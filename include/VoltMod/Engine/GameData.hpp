@@ -29,7 +29,8 @@ public:
         Signature,  ///< Address is the pattern match.
         Address,    ///< Address is the rel32 target derived from a signature match.
         VTable,     ///< Index is the slot, Class and Library name the table it is counted in.
-        Offset      ///< Index is a validated byte offset.
+        Offset,     ///< Index is a validated byte offset.
+        Message     ///< Index is a network message type id.
     };
 
     /** What one gamedata key resolved to, or why it did not. */

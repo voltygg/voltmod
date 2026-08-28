@@ -298,5 +298,12 @@
     // (SwiftlyS2 v1.4.5: 584/584). Reached from INetworkServerService::GetIGameServer(), which the
     // SDK exposes without a client accessor of its own.
     "NetworkGameServerClients": { "windows": 584, "linux": 584, "max": 4096, "align": 8 }
+  },
+
+  "messages": {
+    // msg_type of a custom HUD Button press inside its CSVCMsg_UserMessage envelope. Named
+    // nowhere - not in the engine's registry, and past the SDK proto's last id (389) - so the
+    // number is all there is to match on. Read off the wire on build 14178.
+    "CustomHudClicked": { "windows": 390, "linux": 390 }
   }
 }

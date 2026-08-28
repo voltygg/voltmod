@@ -45,6 +45,11 @@
       "type": "object",
       "description": "Byte offsets into layouts the SDK headers do not declare.",
       "additionalProperties": { "$ref": "#/definitions/offset" }
+    },
+    "messages": {
+      "type": "object",
+      "description": "Network message type ids the SDK's protos do not declare, as carried in a CSVCMsg_UserMessage envelope's msg_type.",
+      "additionalProperties": { "$ref": "#/definitions/message" }
     }
   },
   "definitions": {
@@ -131,6 +136,15 @@
           "default": 1,
           "description": "Alignment the field the framework reads there requires."
         }
+      }
+    },
+    "message": {
+      "type": "object",
+      "additionalProperties": false,
+      "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }],
+      "properties": {
+        "windows": { "type": "integer", "minimum": 0 },
+        "linux": { "type": "integer", "minimum": 0 }
       }
     }
   }

@@ -91,9 +91,14 @@ Status GameData::Load(std::string_view path)
     for (const auto& [key, entry] : file->Offsets)
         _resolved.emplace(key, Resolution{.Section = Kind::Offset, .Index = entry.Value});
 
-    Log::Info("GameData loaded from {} (verified {}): {} signatures, {} addresses, {} vtables, {} offsets.", path,
-              _verified.empty() ? "?" : _verified, file->Signatures.size(), file->Addresses.size(),
-              file->VTables.size(), file->Offsets.size());
+    for (const auto& [key, id] : file->Messages)
+        _resolved.emplace(key, Resolution{.Section = Kind::Message, .Index = id});
+
+    Log::Info(
+        "GameData loaded from {} (verified {}): {} signatures, {} addresses, {} vtables, {} offsets, "
+        "{} messages.",
+        path, _verified.empty() ? "?" : _verified, file->Signatures.size(), file->Addresses.size(),
+        file->VTables.size(), file->Offsets.size(), file->Messages.size());
 
     // Said once here, because downstream each of these only reads as "not in gamedata".
     if (!file->OtherPlatformOnly.empty())
