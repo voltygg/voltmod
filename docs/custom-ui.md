@@ -168,6 +168,72 @@ silently when the slot is past its end, so @ref VoltMod::UiPanel::For checks the
 count first and fails with a reason rather than looking like it worked. When that
 count is zero, the global forms are the ones that work.
 
+## Reusable blocks
+
+@ref VoltMod::UiPanel is the raw handle: every call reaches the engine, and it is
+what you want for a panel you write to once. A layout redrawn every tick wants
+the blocks above it instead.
+
+@ref VoltMod::UiLayout owns a panel, re-spawns it when the entity is gone or too
+small for the slot being written, and **drops a write whose value the player
+already has**. That last part is what makes a per-frame redraw affordable: unlike
+center HTML, a networked layout does not need re-sending to stay on screen, so a
+frame that changes one row costs one write.
+
+```cpp
+UiLayout _layout{runtime.Ui, runtime.Slots, "my_panel"};
+
+if (_layout.EnsureFor(slot))                       // spawns on demand; false means fall back
+    _layout.Text(slot, "title", "text", name);     // per player, and only when it changed
+```
+
+@ref VoltMod::UiList drives a fixed run of `{prefix}{i}` rows by index and reports
+presses back as `(slot, index)`:
+
+| Id | What it is |
+| --- | --- |
+| `vm_row3` | the row `Button`; carries `Hidden`, `Disabled`, `HasValue`, `HasSteppers` |
+| `vm_row3_label`, `vm_row3_value` | `Label`s reading `text="{s:text}"` |
+| `vm_row3_dec`, `vm_row3_inc` | the row's stepper `Button`s |
+
+Ids are built once at construction, never per redraw - which matters, because
+every distinct panel id, class name and dialog-variable name is interned
+permanently into a 1024-entry table on the entity. A generated id set exhausts it.
+
+## Reusing the menu layout
+
+@ref VoltMod::UiMenuManager (see @ref menus_guide) drives
+`panorama/layout/custom_game/voltmod_menu.xml`, which ships with the framework and
+installs to `addons/voltmod/panorama`. There are three levels of reuse:
+
+1. **Restyle.** Ship your own `voltmod_menu.css`. The server only ever sets
+   classes, so `Hidden`, `Disabled`, `HasValue`, `HasSteppers` and the per-kind
+   `Kind--text` / `Kind--button` / `Kind--submenu` / `Kind--toggle` /
+   `Kind--choice` / `Kind--input` are the whole vocabulary you are styling
+   against. No C++ changes.
+2. **Re-lay-out.** Ship your own `.xml` declaring the same ids and call
+   `runtime.UiMenus.SetLayout("my_menu")`. The contract is the ids below and
+   nothing else - the nesting, the artwork and the animation are yours.
+3. **Build something else.** Spawn your own @ref VoltMod::UiLayout and bind a
+   @ref VoltMod::UiList to your own prefix. Layouts are independent entities, so
+   your panel coexists with the admin menu rather than replacing it - which is
+   the path for a scoreboard, a welcome card or a vote panel.
+
+The menu layout's id contract:
+
+| Block | Ids |
+| --- | --- |
+| root | `vm_root` - `Hidden` in markup, unhidden per viewer |
+| header | `vm_title`, `vm_subtitle` |
+| rows | `vm_row{0..7}` plus `_label`, `_value`, `_dec`, `_inc` |
+| pager | `vm_pager`, `vm_page`, `vm_prev`, `vm_next` |
+| nav | `vm_back`, `vm_close` |
+| prompt | `vm_prompt`, `vm_prompt_text`, `vm_cancel` |
+
+The row count must match `UiMenuManager::RowsPerPage` (8). The server cannot read
+your layout, so a layout with fewer rows silently loses the ones off the end of a
+page.
+
 ## Availability
 
 Ask @ref VoltMod::Capabilities before relying on either feature:
