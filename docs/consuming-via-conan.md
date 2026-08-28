@@ -143,21 +143,14 @@ voltmod package build kit          # ... then the framework against them
 Remove any old editable registration once with
 `conan editable remove voltmod`.
 
-Create the changed framework in the local Conan cache:
+Build against the checkout in one step:
 
 ```sh
-cd <path-to-voltmod>
-uv run voltmod package build kit
+uv run poe build --framework <path-to-voltmod>
 ```
 
-Then refresh the plugin repository's lockfile and build it:
-
-```sh
-conan lock create . --profile:all <path-to-voltmod>/conan/profiles/windows-msvc.txt \
-  -s build_type=Release -s compiler.runtime_type=Release \
-  --lockfile=conan.lock --lockfile-out=conan.lock --update="voltmod/*" --no-remote
-uv run poe build
-```
-
-Use the same profile, build type, and options as the plugin build. Repeat both
-commands after framework changes.
+That packages the checkout (`voltmod package build kit`), re-pins `voltmod` in
+`conan.lock` against the local cache, drops `build/<preset>` and builds. The
+build tree has to go: CMake caches the package folder it was configured with,
+so a relock alone keeps linking the old framework. Repeat after every framework
+change, and commit the relocked `conan.lock` with the plugin change.

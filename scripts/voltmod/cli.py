@@ -63,6 +63,14 @@ def build(
         bool,
         typer.Option("--no-lockfile", help="Resolve without conan.lock, as after an SDK bump"),
     ] = False,
+    framework: Annotated[
+        str,
+        typer.Option(
+            "--framework",
+            metavar="PATH",
+            help="Package this VoltMod checkout, relock against it, and rebuild from scratch",
+        ),
+    ] = "",
 ) -> None:
     """Run Conan install and CMake build for one preset."""
     preset = preset or localdev.default_preset()
@@ -72,6 +80,9 @@ def build(
         localdev.plugin_names(ROOT, install_plugin)
     if install_plugin or start:
         localdev.server_root(server_path)
+
+    if framework:
+        buildtools.use_framework(ROOT, Path(framework), preset)
 
     buildtools.build(
         ROOT,

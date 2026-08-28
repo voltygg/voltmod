@@ -238,6 +238,56 @@ def _ccache(*args: str) -> None:
     subprocess.run(["ccache", *args], check=False)
 
 
+def _host_profile(repo_root: Path, preset: str) -> tuple[Path, list[str]]:
+    """Return the Conan profile and settings a preset builds with."""
+    build_type = "Debug" if "debug" in preset else "Release"
+    conan_home = Path(os.environ.get("CONAN_HOME", Path.home() / ".conan2"))
+    profile_dirs = (
+        repo_root / "conan/profiles",
+        conan_home / "profiles",
+    )
+    profiles = next((path for path in profile_dirs if path.is_dir()), None)
+    if profiles is None:
+        die("no Conan profiles found; run `voltmod bootstrap` or the setup-toolchain action")
+    settings = ["-s", f"build_type={build_type}"]
+    if preset.startswith("linux-"):
+        return profiles / "linux-steamrt.txt", settings
+    if preset.startswith("windows-"):
+        settings += ["-s", f"compiler.runtime_type={build_type}"]
+        return profiles / "windows-msvc.txt", settings
+    die(f"Unknown preset: {preset}")
+
+
+def use_framework(repo_root: Path, framework_root: Path, preset: str) -> None:
+    """Package a local framework checkout, pin it in conan.lock, and drop the preset's build tree.
+
+    The build tree goes because CMake caches the package folder it was configured with; a relock
+    alone leaves the plugins linking the old framework while still printing "Build complete".
+    """
+    if not (framework_root / "conanfile.py").is_file():
+        die(f"no framework checkout at {framework_root}")
+    subprocess.run(
+        ["uv", "run", "voltmod", "package", "build", "kit"], cwd=framework_root, check=True
+    )
+
+    lock = repo_root / "conan.lock"
+    if lock.is_file():
+        # `--update` never re-pins a revision the lock already names, so the entry is removed first.
+        run_tool(
+            "conan", "lock", "remove", "--requires=voltmod/*",
+            f"--lockfile={lock}", f"--lockfile-out={lock}",
+        )
+    profile, settings = _host_profile(repo_root, preset)
+    lock_args = [f"--lockfile={lock}"] if lock.is_file() else []
+    run_tool(
+        "conan", "lock", "create", str(repo_root),
+        "--profile:all", str(profile), *settings, *lock_args,
+        f"--lockfile-out={lock}", "--no-remote",
+    )
+
+    shutil.rmtree(repo_root / "build" / preset, ignore_errors=True)
+
+
 def build(
     repo_root: Path,
     preset: str,
@@ -250,25 +300,9 @@ def build(
     require_build_tools()
     ccache = _prepare_ccache(repo_root)
     ensure_remote()
-    build_type = "Debug" if "debug" in preset else "Release"
-
-    conan_home = Path(os.environ.get("CONAN_HOME", Path.home() / ".conan2"))
-    profile_dirs = (
-        repo_root / "conan/profiles",
-        conan_home / "profiles",
-    )
-    profiles = next((path for path in profile_dirs if path.is_dir()), None)
-    if profiles is None:
-        die("no Conan profiles found; run `voltmod bootstrap` or the setup-toolchain action")
-    settings = ["-s", f"build_type={build_type}"]
-    if preset.startswith("linux-"):
-        profile = profiles / "linux-steamrt.txt"
-    elif preset.startswith("windows-"):
-        profile = profiles / "windows-msvc.txt"
-        settings += ["-s", f"compiler.runtime_type={build_type}"]
+    profile, settings = _host_profile(repo_root, preset)
+    if preset.startswith("windows-"):
         ensure_msvc_env()
-    else:
-        die(f"Unknown preset: {preset}")
 
     # CI builds against SDK packages it just created from the HEAD recipes, whose revisions the
     # committed lockfile does not pin yet; `package build kit --no-lockfile` skips it the same way.
