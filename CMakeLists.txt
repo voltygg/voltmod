@@ -150,6 +150,7 @@ if(BUILD_TESTING)
             src/Workshop/AddonRequirements.cpp
             src/Ui/LayoutName.cpp
             src/Ui/UiWriteCache.cpp
+            src/Ui/ClickPayload.cpp
             src/Engine/Bindings.cpp
             src/Engine/ConVarTypes.cpp
             src/Engine/GameData.cpp
