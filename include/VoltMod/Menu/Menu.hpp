@@ -34,6 +34,9 @@ struct PlayerMenuState
     /** The stack of menus currently open for the player. */
     std::stack<std::shared_ptr<MenuView>> MenuStack;
     int SelectedIndex = 0;
+    /** Which page of a long menu is showing. Center HTML derives its page from SelectedIndex
+     *  instead; a click driver has no cursor to derive one from, so it keeps this. */
+    int Page = 0;
     int64_t LastInputTime = 0;
     uint64_t PrevButtons = 0;
 
@@ -56,6 +59,7 @@ struct PlayerMenuState
         }
 
         SelectedIndex = 0;
+        Page = 0;
         LastInputTime = 0;
         PrevButtons = 0;
         MovementFrozen = false;

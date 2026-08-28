@@ -51,6 +51,7 @@ void MenuHost::OpenMenu(int slot, std::shared_ptr<MenuView> menu, MenuSessionOpt
 
     state.MenuStack.push(std::move(menu));
     state.SelectedIndex = 0;
+    state.Page = 0;
     state.LastInputTime = Time::MonotonicMs();
 
     if (auto* current = state.GetCurrentMenu())
@@ -80,6 +81,7 @@ void MenuHost::CloseMenu(int slot)
     }
 
     state.SelectedIndex = 0;
+    state.Page = 0;
     SelectFirst(slot);
 }
 

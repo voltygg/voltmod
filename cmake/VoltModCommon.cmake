@@ -6,6 +6,10 @@ get_filename_component(VOLTMOD_ROOT_DIR_DEFAULT "${CMAKE_CURRENT_LIST_DIR}/.." R
 set(VOLTMOD_ROOT_DIR "${VOLTMOD_ROOT_DIR_DEFAULT}" CACHE PATH "VoltMod repository root")
 set(VOLTMOD_GAMEDATA_DIR "${VOLTMOD_ROOT_DIR}/gamedata" CACHE PATH "VoltMod shared gamedata path")
 
+# Deliberately not cached: a cached path outlives the package it pointed at, and the result is a
+# build that silently installs an older release's layouts. This follows VOLTMOD_ROOT_DIR instead.
+set(VOLTMOD_PANORAMA_DIR "${VOLTMOD_ROOT_DIR}/panorama")
+
 # Cache fallbacks so sibling plugin directories share them.
 if(NOT DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "")

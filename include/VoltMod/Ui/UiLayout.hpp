@@ -82,6 +82,14 @@ public:
     /** Drop the entity and everything cached about it. The next @ref EnsureFor spawns a new one. */
     void Reset();
 
+    /**
+     * Drive a different layout resource from here on, dropping the current entity.
+     *
+     * The object itself stays put, which is what makes it usable: a @ref UiList and every
+     * @ref OnClick subscription hold on to *this*, and all of them keep working across the swap.
+     */
+    void Retarget(std::string layout);
+
 private:
     /** The entity handlers match against, shared with them so a re-spawn moves them all at once
      *  and this object's destructor silences them by clearing it. */

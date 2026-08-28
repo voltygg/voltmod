@@ -88,6 +88,19 @@ void UiLayout::Reset()
     _cache.ForgetAll();
 }
 
+void UiLayout::Retarget(std::string layout)
+{
+    if (layout == _layout)
+        return;
+
+    Reset();
+    _layout = std::move(layout);
+
+    // The old entity is gone and the new one has not been asked for; without this a spawn only
+    // happens the next time the roster changes.
+    _rosterChanged = true;
+}
+
 bool UiLayout::Spawn()
 {
     _rosterChanged = false;

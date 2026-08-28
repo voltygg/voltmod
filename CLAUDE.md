@@ -191,7 +191,7 @@ Hooks      -> Core, Engine, Entities, Events, Players, Unsafe
 Ui         -> Core, Engine, Entities, Unsafe
 Workshop   -> Core, Engine, Players, Unsafe
 Commands   -> Core, Engine, Entities, Messaging, Players
-Menu       -> Core, Engine, Entities, Messaging, Players, Hooks
+Menu       -> Core, Engine, Entities, Messaging, Players, Hooks, Ui
 Http       -> Core
 Database   -> Core
 Unsafe     -> Core, Engine

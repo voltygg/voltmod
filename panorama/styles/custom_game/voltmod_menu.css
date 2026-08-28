@@ -1,0 +1,189 @@
+/*
+	Panorama CSS, not web CSS - see docs/custom-ui.md.
+
+	Everything here is presentation. The server only ever sets classes, so a plugin that wants a
+	different look ships its own copy of this file and touches no C++: `Hidden`, `Disabled`,
+	`HasValue`, `HasSteppers` and the per-kind `Kind--*` classes are the whole vocabulary.
+*/
+
+.Root {
+	width: 100%;
+	height: 100%;
+}
+
+#vm_root {
+	width: 460px;
+	horizontal-align: center;
+	vertical-align: center;
+	flow-children: down;
+
+	padding: 16px;
+	background-color: #12141aee;
+	border: 1px solid #c8a24a;
+	color: #e8e6e0;
+
+	transition-property: opacity;
+	transition-duration: .1s;
+	opacity: 1;
+
+	/*
+		Hidden is opacity rather than visibility so the panel keeps its place in the layout: the
+		markup default is hidden, and only the players the server writes to ever see it.
+	*/
+	&.Hidden {
+		opacity: 0;
+	}
+}
+
+.Header {
+	flow-children: down;
+	margin-bottom: 10px;
+}
+
+.Title {
+	font-size: 24px;
+	color: #c8a24a;
+}
+
+.Subtitle {
+	font-size: 14px;
+	color: #8a8778;
+
+	&.Hidden {
+		visibility: collapse;
+	}
+}
+
+.Rows {
+	flow-children: down;
+}
+
+.Row {
+	width: 100%;
+	height: 30px;
+	flow-children: right;
+	padding: 0 8px;
+	background-color: #00000000;
+
+	&:hover {
+		background-color: #ffffff14;
+	}
+
+	&.Hidden {
+		visibility: collapse;
+	}
+
+	/* Styling only. The row still reports its press; the menu model decides what that means. */
+	&.Disabled {
+		color: #55535080;
+	}
+}
+
+.Row-label {
+	vertical-align: center;
+	font-size: 17px;
+}
+
+/* Collapsed unless the row carries a value, so a plain button row has no empty column. */
+.Row-value {
+	vertical-align: center;
+	horizontal-align: right;
+	font-size: 17px;
+	color: #c8a24a;
+	visibility: collapse;
+}
+
+.Row.HasValue .Row-value {
+	visibility: visible;
+}
+
+.Row-steppers {
+	flow-children: right;
+	horizontal-align: right;
+	vertical-align: center;
+	visibility: collapse;
+}
+
+.Row.HasSteppers .Row-steppers {
+	visibility: visible;
+}
+
+.Stepper {
+	width: 22px;
+	height: 22px;
+	font-size: 13px;
+	color: #8a8778;
+
+	&:hover {
+		color: #c8a24a;
+	}
+}
+
+/*
+	Row kinds. The server sets exactly one of these per row and never says what it should look
+	like, which is what lets a restyle change the whole vocabulary here.
+*/
+.Kind--submenu .Row-value {
+	visibility: visible;
+	color: #8a8778;
+}
+
+.Kind--text {
+	color: #8a8778;
+	font-size: 15px;
+}
+
+.Pager,
+.Footer {
+	flow-children: right;
+	horizontal-align: center;
+	margin-top: 10px;
+}
+
+.Pager.Hidden {
+	visibility: collapse;
+}
+
+.Pager-label {
+	vertical-align: center;
+	margin: 0 10px;
+	font-size: 15px;
+	color: #8a8778;
+}
+
+.Nav {
+	height: 26px;
+	padding: 0 12px;
+	margin: 0 4px;
+	font-size: 15px;
+	color: #e8e6e0;
+	background-color: #ffffff14;
+
+	&:hover {
+		background-color: #c8a24a;
+		color: #12141a;
+	}
+
+	&.Hidden {
+		visibility: collapse;
+	}
+}
+
+/* Covers the rows while the player is answering in chat. */
+.Prompt {
+	width: 100%;
+	flow-children: down;
+	margin-top: 10px;
+	padding: 10px;
+	background-color: #000000cc;
+	border: 1px solid #c8a24a;
+
+	&.Hidden {
+		visibility: collapse;
+	}
+}
+
+.Prompt-text {
+	font-size: 16px;
+	margin-bottom: 8px;
+}

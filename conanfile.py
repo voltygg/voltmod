@@ -14,7 +14,8 @@ class VoltModConan(ConanFile):
     """Serve as both the repository's consumer recipe and VoltMod's package recipe.
 
     A checkout uses the output paths expected by the CMake presets. `conan create`
-    uses `cmake_layout` and packages the headers, CMake helpers, gamedata, and plugin
+    uses `cmake_layout` and packages the headers, CMake helpers, gamedata, Panorama
+    sources, and plugin
     template. Both modes resolve the same dependencies.
     """
 
@@ -45,6 +46,7 @@ class VoltModConan(ConanFile):
         "include/*",
         "src/*",
         "gamedata/*",
+        "panorama/*",
         "templates/plugin/*",
         "LICENSE",
     )

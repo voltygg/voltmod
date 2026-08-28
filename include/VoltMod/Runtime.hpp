@@ -18,6 +18,7 @@
 #include <VoltMod/Hooks/Hooks.hpp>
 #include <VoltMod/Http/HttpClient.hpp>
 #include <VoltMod/Menu/Html/HtmlMenuManager.hpp>
+#include <VoltMod/Menu/Ui/UiMenuManager.hpp>
 #include <VoltMod/Messaging/Messages.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/Policy.hpp>
@@ -149,6 +150,12 @@ public:
      *  Takes exactly the services it and its context rows use - all declared above it. Depends
      *  on: Scheduler, Slots, Entities, Messages, Hooks.ChatInput, Translations, Policy, Players.*/
     HtmlMenuManager HtmlMenus{Scheduler, Slots, Entities, Messages, Hooks.ChatInput, Translations, Policy, Players};
+
+    /** The clickable Panorama menu host, for plugins that ship a layout. Spawns nothing until a
+     *  menu is opened, so a server that only ever uses @ref HtmlMenus pays for a few members.
+     *  Depends on: Scheduler, Ui, Slots, Entities, Hooks.ChatInput, Translations, Policy,
+     *  Players. */
+    UiMenuManager UiMenus{Scheduler, Ui, Slots, Entities, Hooks.ChatInput, Translations, Policy, Players};
 
     /** Depends on: Policy, Translations, Players, Entities, Messages - the five services
      *  command dispatch reaches, taken directly rather than through the runtime. */

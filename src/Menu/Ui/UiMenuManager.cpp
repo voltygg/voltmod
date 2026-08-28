@@ -1,0 +1,188 @@
+#include <VoltMod/Menu/MenuOption.hpp>
+#include <VoltMod/Menu/Ui/UiMenuManager.hpp>
+#include <algorithm>
+#include <format>
+#include <utility>
+
+namespace VoltMod
+{
+
+UiMenuManager::UiMenuManager(Scheduler& scheduler, CustomUi& ui, SlotEvents& slots, EntitySystem& entities,
+                             ChatInput& chatInput, Translations& translations, Policy& policy, PlayerManager& players,
+                             std::string layout)
+    : MenuHost(slots, entities, chatInput, translations, policy, players),
+      _layout(ui, slots, std::move(layout)),
+      _rows(_layout, RowPrefix, RowsPerPage),
+      _pump(scheduler.EveryFrame([this] { OnGameFrame(); }))
+{
+    Bind();
+}
+
+std::string_view UiMenuManager::ModifierFor(MenuRowKind kind)
+{
+    switch (kind)
+    {
+    case MenuRowKind::Text:
+        return "Kind--text";
+    case MenuRowKind::Submenu:
+        return "Kind--submenu";
+    case MenuRowKind::Toggle:
+        return "Kind--toggle";
+    case MenuRowKind::Choice:
+        return "Kind--choice";
+    case MenuRowKind::Input:
+        return "Kind--input";
+    case MenuRowKind::Button:
+        break;
+    }
+    return "Kind--button";
+}
+
+int UiMenuManager::PageCount(const MenuView& menu)
+{
+    const int items = static_cast<int>(menu.Items.size());
+    return items <= 0 ? 1 : (items + RowsPerPage - 1) / RowsPerPage;
+}
+
+void UiMenuManager::SetLayout(std::string layout)
+{
+    if (layout == _layout.Name())
+        return;
+
+    for (int slot = 0; slot < MaxPlayers; ++slot)
+    {
+        if (_states[slot].HasMenu())
+            CloseAllMenus(slot);
+    }
+
+    // Retarget keeps the object the rows and subscriptions point at, so only the entity changes.
+    _layout.Retarget(std::move(layout));
+}
+
+void UiMenuManager::Bind()
+{
+    _subs.push_back(_rows.Pressed += [this](int slot, int row) { OnRowPressed(slot, row); });
+    _subs.push_back(_rows.Stepped += [this](int slot, int row, int dir) { OnRowStepped(slot, row, dir); });
+
+    _subs.push_back(_layout.OnClick(std::string(BackId), [this](int slot) { CloseMenu(slot); }));
+    _subs.push_back(_layout.OnClick(std::string(CloseId), [this](int slot) { CloseAllMenus(slot); }));
+    _subs.push_back(_layout.OnClick(std::string(PrevId), [this](int slot) { TurnPage(slot, -1); }));
+    _subs.push_back(_layout.OnClick(std::string(NextId), [this](int slot) { TurnPage(slot, +1); }));
+    _subs.push_back(_layout.OnClick(std::string(CancelId), [this](int slot) { _chatInput.CancelCapture(slot); }));
+}
+
+int UiMenuManager::ItemIndex(int slot, int row) const
+{
+    return _states[slot].Page * RowsPerPage + row;
+}
+
+void UiMenuManager::OnRowPressed(int slot, int row)
+{
+    // While the player is typing an answer in chat the rows are behind the prompt overlay; a
+    // press that lands anyway is theirs to cancel, not to act on.
+    if (!IsValidSlot(slot) || _chatInput.IsCapturing(slot))
+        return;
+
+    Activate(slot, ItemIndex(slot, row));
+}
+
+void UiMenuManager::OnRowStepped(int slot, int row, int direction)
+{
+    if (!IsValidSlot(slot) || _chatInput.IsCapturing(slot))
+        return;
+
+    Step(slot, ItemIndex(slot, row), direction);
+}
+
+void UiMenuManager::TurnPage(int slot, int delta)
+{
+    if (!IsValidSlot(slot) || _chatInput.IsCapturing(slot))
+        return;
+
+    auto& state = _states[slot];
+    auto* menu = state.GetCurrentMenu();
+    if (!menu)
+        return;
+
+    const int pages = PageCount(*menu);
+    state.Page = ((state.Page + delta) % pages + pages) % pages;
+}
+
+void UiMenuManager::OnGameFrame()
+{
+    for (int slot = 0; slot < MaxPlayers; ++slot)
+    {
+        if (_states[slot].HasMenu())
+            Present(slot);
+    }
+}
+
+void UiMenuManager::Present(int slot)
+{
+    auto& state = _states[slot];
+    auto* menu = state.GetCurrentMenu();
+    if (!menu)
+        return;
+
+    // The entity may be missing or too small for this slot; both are recoverable, and a slot that
+    // cannot be written to simply sees nothing this frame.
+    if (!_layout.EnsureFor(slot))
+        return;
+
+    const int pages = PageCount(*menu);
+    state.Page = std::clamp(state.Page, 0, pages - 1);
+
+    _layout.Text(slot, TitleId, "text", menu->Title);
+    _layout.Text(slot, SubtitleId, "text", menu->Subtitle);
+    _layout.Class(slot, SubtitleId, "Hidden", menu->Subtitle.empty());
+
+    const auto prompt = _chatInput.GetPrompt(slot);
+    _layout.Class(slot, PromptId, "Hidden", !prompt.has_value());
+    if (prompt)
+        _layout.Text(slot, PromptTextId, "text", *prompt);
+
+    const int items = static_cast<int>(menu->Items.size());
+    const int first = state.Page * RowsPerPage;
+    const int last = std::min(items, first + RowsPerPage);
+
+    for (int index = first; index < last; ++index)
+    {
+        const auto& option = menu->Items[static_cast<std::size_t>(index)];
+        if (!option)
+            continue;
+
+        const MenuRow row = option->Describe(slot);
+        _rows.Set(slot, index - first,
+                  UiRow{.Label = row.Label,
+                        .Value = row.Value,
+                        .Modifier = ModifierFor(row.Kind),
+                        .Enabled = option->IsEnabled(),
+                        .Steppers = row.Kind == MenuRowKind::Toggle || row.Kind == MenuRowKind::Choice});
+    }
+    _rows.HideFrom(slot, last - first);
+
+    _layout.Class(slot, PagerId, "Hidden", pages <= 1);
+    if (pages > 1)
+        _layout.Text(slot, PageId, "text", std::format("{}/{}", state.Page + 1, pages));
+
+    // Nothing to go back to from the first menu of a session; closing is the way out.
+    _layout.Class(slot, BackId, "Hidden", state.MenuStack.size() <= 1);
+
+    _layout.Class(slot, RootId, "Hidden", false);
+    _layout.InputCapture(slot, true);
+}
+
+void UiMenuManager::Dismiss(int slot)
+{
+    if (!IsValidSlot(slot))
+        return;
+
+    _layout.Class(slot, RootId, "Hidden", true);
+    _layout.InputCapture(slot, false);
+
+    // The next menu this player opens draws onto a panel that may have been re-spawned since, so
+    // nothing about what they were last shown is worth keeping.
+    _layout.Forget(slot);
+}
+
+}  // namespace VoltMod
