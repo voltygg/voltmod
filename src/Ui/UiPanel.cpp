@@ -138,7 +138,7 @@ Result<UiPanel> CustomUi::Spawn(std::string_view layout)
         return std::unexpected(Error::Unsupported("entity spawning is unavailable"));
 
     KeyValues kv;
-    kv.Set("layout", resource->c_str());
+    kv.Set("layout", *resource);
 
     CEntityInstance* entity = _ops.Spawn("custom_hud_layout", kv);
     if (!entity)

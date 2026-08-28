@@ -23,6 +23,19 @@ public:
     KeyValues& operator=(const KeyValues&) = delete;
 
     KeyValues& Set(std::string_view key, std::string_view value);
+
+    /**
+     * String literals and C strings.
+     *
+     * Without this they set the key to `"true"`: a pointer converts to `bool` by a standard
+     * conversion and to `std::string_view` only by a user-defined one, so the bool overload wins
+     * and the engine is handed a bool where a string_t was meant.
+     */
+    KeyValues& Set(std::string_view key, const char* value)
+    {
+        return Set(key, value ? std::string_view(value) : std::string_view{});
+    }
+
     KeyValues& Set(std::string_view key, int value);
     KeyValues& Set(std::string_view key, float value);
     KeyValues& Set(std::string_view key, bool value);
