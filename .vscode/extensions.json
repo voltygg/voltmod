@@ -8,7 +8,10 @@
     "charliermarsh.ruff",
     "ms-python.mypy-type-checker",
 
-    // JSON
-    "esbenp.prettier-vscode"
+    // JSON and CSS
+    "esbenp.prettier-vscode",
+
+    // Panorama XML layouts
+    "redhat.vscode-xml"
   ]
 }

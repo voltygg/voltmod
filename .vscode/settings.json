@@ -32,6 +32,16 @@
     "editor.tabSize": 2,
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  "[css]": {
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[xml]": {
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": "redhat.vscode-xml"
+  },
+  "css.lint.unknownProperties": "ignore",
+  "xml.format.maxLineWidth": 0,
   "[jsonc]": {
     "editor.tabSize": 2,
     "editor.defaultFormatter": "esbenp.prettier-vscode"
