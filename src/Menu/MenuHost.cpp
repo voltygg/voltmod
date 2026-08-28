@@ -71,6 +71,7 @@ void MenuHost::CloseMenu(int slot)
         return;
 
     state.MenuStack.pop();
+    Log::Info("Menu closed for slot {} ({} left on the stack)", slot, state.MenuStack.size());
 
     if (state.MenuStack.empty())
     {
@@ -92,6 +93,7 @@ void MenuHost::CloseAllMenus(int slot)
 
     SetPlayerFrozen(slot, false);
     _states[slot].Reset();
+    Log::Info("All menus closed for slot {}", slot);
     Dismiss(slot);
 }
 

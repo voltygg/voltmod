@@ -7,6 +7,7 @@
 #include <VoltMod/Menu/MenuRow.hpp>
 #include <VoltMod/Ui/UiLayout.hpp>
 #include <VoltMod/Ui/UiList.hpp>
+#include <array>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -16,23 +17,19 @@ namespace VoltMod
 
 /**
  * @brief The clickable @ref MenuHost: the same menus as @ref HtmlMenuManager, drawn into a
- * `custom_hud_layout` the player clicks instead of center HTML they steer with WASD.
+ * `custom_hud_layout` the player clicks.
  *
- * Rows carry their kind as a CSS class, so how a toggle or a submenu looks is the stylesheet's
- * business. Players get a cursor for the length of a menu session. The layout has to reach
- * clients (workshop addon, or a manual copy while developing) and @ref Capability::CustomUi has
- * to be on; @ref HtmlMenuManager is the fallback when either is missing.
+ * Rows carry their kind as a CSS class, so their look is the stylesheet's. Players get a cursor
+ * for the session. Needs the layout on the client and @ref Capability::CustomUi;
+ * @ref HtmlMenuManager is the fallback. All entity writes happen from the frame pump.
  *
  * @see @ref custom_ui_guide for the id contract a replacement layout has to honour.
  */
 class UiMenuManager final : public MenuHost
 {
 public:
-    /**
-     * @param layout the layout resource to drive; the framework ships @ref DefaultLayout.
-     * All references must outlive the manager. Nothing is spawned until a menu is opened, so
-     * constructing one on a server that never shows a Panorama menu costs nothing.
-     */
+    /** @p layout is the resource to drive (@ref DefaultLayout ships with the framework). All
+     *  references must outlive the manager. Nothing is spawned until a menu opens. */
     UiMenuManager(Scheduler& scheduler, CustomUi& ui, SlotEvents& slots, EntitySystem& entities, ChatInput& chatInput,
                   Translations& translations, Policy& policy, PlayerManager& players,
                   std::string layout = std::string(DefaultLayout));
@@ -46,19 +43,11 @@ public:
     /** The layout resource currently driven. */
     [[nodiscard]] const std::string& Layout() const noexcept { return _layout.Name(); }
 
-    /**
-     * Drive a different layout honouring the same ids (see @ref custom_ui_guide).
-     *
-     * Closes every open menu first: the old entity is dropped, and a session left half-drawn
-     * across two layouts is not worth the code to migrate.
-     */
+    /** Drive a different layout honouring the same ids. Closes every open menu first. */
     void SetLayout(std::string layout);
 
 private:
-    /**
-     * Panel ids this driver sets classes on, and clicks arrive from. A layout that omits one
-     * loses that piece and nothing else.
-     */
+    /** Panel ids written to and clicked from. A layout that omits one loses only that piece. */
     static constexpr std::string_view RootId = "vm_root";
     static constexpr std::string_view SubtitleId = "vm_subtitle";
     static constexpr std::string_view PagerId = "vm_pager";
@@ -70,33 +59,33 @@ private:
     static constexpr std::string_view CancelId = "vm_cancel";
     static constexpr std::string_view RowPrefix = "vm_row";
 
-    /**
-     * Dialog variables, all written against @ref RootId.
-     *
-     * A `Label` resolves `{s:name}` by walking up its ancestors, so one scope panel feeds every
-     * label beneath it and the labels need no ids of their own. Writing per label instead - a
-     * `text` variable on each label's own id - is the shape that does not work.
-     */
+    /** Dialog variables, all on @ref RootId: a `Label` resolves `{s:name}` through its ancestors,
+     *  so the labels need no ids. Writing per label id does not work. */
     static constexpr std::string_view TitleVar = "vm_title";
     static constexpr std::string_view SubtitleVar = "vm_subtitle";
     static constexpr std::string_view PageVar = "vm_page";
     static constexpr std::string_view PromptVar = "vm_prompt_text";
 
-    /** The class a row carries for its kind, for a stylesheet to hang a chevron or a check on. */
+    /** The class a row carries for its kind. */
     static std::string_view ModifierFor(MenuRowKind kind);
 
-    /** Pages @p menu needs, never less than one so an empty menu still draws its chrome. */
+    /** Pages @p menu needs, at least one. */
     static int PageCount(const MenuView& menu);
 
-    /** Per-tick redraw. Cheap because @ref UiLayout drops writes whose value the player has. */
+    /** Redraw open menus, hide closed ones. */
     void OnGameFrame();
 
     void Present(int slot) override;
     void Dismiss(int slot) override;
 
-    /** Subscribe the rows and the nav buttons, once. They follow @ref SetLayout on their own,
-     *  because a @ref UiLayout keeps its identity when it changes resource. */
-    void Bind();
+    /** Write the hidden state for @p slot: root collapsed, cursor released. */
+    void Hide(int slot);
+
+    void Bind(SlotEvents& slots);
+
+    /** On the first draw, not in the constructor: a click subscription is refused until
+     *  Runtime::Start has bound the hook. */
+    void BindNav();
 
     void OnRowPressed(int slot, int row);
     void OnRowStepped(int slot, int row, int direction);
@@ -107,8 +96,11 @@ private:
 
     UiLayout _layout;
     UiList _rows;
-    /** Row and nav subscriptions, held for the manager's lifetime. */
+    /** Slots whose entity state may show a menu: set by a draw, and by the slot changing hands
+     *  because the new occupant inherits that state. */
+    std::array<bool, MaxPlayers> _shown{};
     std::vector<Subscription> _subs;
+    std::vector<Subscription> _nav;
     /** Declared last: the frame pump drops before the state it touches. */
     Subscription _pump;
 };

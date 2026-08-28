@@ -32,7 +32,7 @@ bool UiLayout::EnsureFor(int slot)
     if (!_panel && !Spawn())
         return false;
 
-    if (_panel.PlayerStateCount() > slot)
+    if (Covers(slot))
         return true;
 
     // The count is fixed when the entity spawns, so a roster that grew past it needs a new
@@ -41,7 +41,12 @@ bool UiLayout::EnsureFor(int slot)
     if (!_rosterChanged)
         return false;
 
-    return Spawn() && _panel.PlayerStateCount() > slot;
+    return Spawn() && Covers(slot);
+}
+
+bool UiLayout::Covers(int slot) const
+{
+    return IsValidSlot(slot) && _panel && _panel.PlayerStateCount() > slot;
 }
 
 void UiLayout::Text(int slot, std::string_view panelId, std::string_view variable, std::string_view value)

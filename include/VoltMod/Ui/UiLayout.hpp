@@ -46,6 +46,10 @@ public:
      */
     bool EnsureFor(int slot);
 
+    /** True when the entity exists and has per-player state for @p slot, so a write for that
+     *  slot can land. Never spawns: the question a hide asks before touching an idle server. */
+    [[nodiscard]] bool Covers(int slot) const;
+
     /** Set the dialog variable a `text="{s:variable}"` attribute reads, for @p slot only. */
     void Text(int slot, std::string_view panelId, std::string_view variable, std::string_view value);
 

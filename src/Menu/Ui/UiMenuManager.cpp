@@ -15,7 +15,7 @@ UiMenuManager::UiMenuManager(Scheduler& scheduler, CustomUi& ui, SlotEvents& slo
       _rows(_layout, RootId, RowPrefix, RowsPerPage),
       _pump(scheduler.EveryFrame([this] { OnGameFrame(); }))
 {
-    Bind();
+    Bind(slots);
 }
 
 std::string_view UiMenuManager::ModifierFor(MenuRowKind kind)
@@ -55,19 +55,30 @@ void UiMenuManager::SetLayout(std::string layout)
             CloseAllMenus(slot);
     }
 
-    // Retarget keeps the object the rows and subscriptions point at, so only the entity changes.
     _layout.Retarget(std::move(layout));
 }
 
-void UiMenuManager::Bind()
+void UiMenuManager::Bind(SlotEvents& slots)
 {
     _subs.push_back(_rows.Pressed += [this](int slot, int row) { OnRowPressed(slot, row); });
     _subs.push_back(_rows.Stepped += [this](int slot, int row, int dir) { OnRowStepped(slot, row, dir); });
-    _subs.push_back(_layout.OnClick(std::string(BackId), [this](int slot) { CloseMenu(slot); }));
-    _subs.push_back(_layout.OnClick(std::string(CloseId), [this](int slot) { CloseAllMenus(slot); }));
-    _subs.push_back(_layout.OnClick(std::string(PrevId), [this](int slot) { TurnPage(slot, -1); }));
-    _subs.push_back(_layout.OnClick(std::string(NextId), [this](int slot) { TurnPage(slot, +1); }));
-    _subs.push_back(_layout.OnClick(std::string(CancelId), [this](int slot) { _chatInput.CancelCapture(slot); }));
+
+    _subs.push_back(slots.Changed += [this](int slot) {
+        if (IsValidSlot(slot))
+            _shown[static_cast<std::size_t>(slot)] = true;
+    });
+}
+
+void UiMenuManager::BindNav()
+{
+    if (!_nav.empty())
+        return;
+
+    _nav.push_back(_layout.OnClick(std::string(BackId), [this](int slot) { CloseMenu(slot); }));
+    _nav.push_back(_layout.OnClick(std::string(CloseId), [this](int slot) { CloseAllMenus(slot); }));
+    _nav.push_back(_layout.OnClick(std::string(PrevId), [this](int slot) { TurnPage(slot, -1); }));
+    _nav.push_back(_layout.OnClick(std::string(NextId), [this](int slot) { TurnPage(slot, +1); }));
+    _nav.push_back(_layout.OnClick(std::string(CancelId), [this](int slot) { _chatInput.CancelCapture(slot); }));
 }
 
 int UiMenuManager::ItemIndex(int slot, int row) const
@@ -77,8 +88,7 @@ int UiMenuManager::ItemIndex(int slot, int row) const
 
 void UiMenuManager::OnRowPressed(int slot, int row)
 {
-    // While the player is typing an answer in chat the rows are behind the prompt overlay; a
-    // press that lands anyway is theirs to cancel, not to act on.
+    // Rows are inert behind the chat prompt; the press to honour there is Cancel.
     if (!IsValidSlot(slot) || _chatInput.IsCapturing(slot))
         return;
 
@@ -113,6 +123,8 @@ void UiMenuManager::OnGameFrame()
     {
         if (_states[slot].HasMenu())
             Present(slot);
+        else if (_shown[static_cast<std::size_t>(slot)])
+            Hide(slot);
     }
 }
 
@@ -123,10 +135,10 @@ void UiMenuManager::Present(int slot)
     if (!menu)
         return;
 
-    // The entity may be missing or too small for this slot; both are recoverable, and a slot that
-    // cannot be written to simply sees nothing this frame.
     if (!_layout.EnsureFor(slot))
         return;
+
+    BindNav();
 
     const int pages = PageCount(*menu);
     state.Page = std::clamp(state.Page, 0, pages - 1);
@@ -164,23 +176,28 @@ void UiMenuManager::Present(int slot)
     if (pages > 1)
         _layout.Text(slot, RootId, PageVar, std::format("{}/{}", state.Page + 1, pages));
 
-    // Nothing to go back to from the first menu of a session; closing is the way out.
     _layout.Class(slot, BackId, "Hidden", state.MenuStack.size() <= 1);
 
     _layout.Class(slot, RootId, "Hidden", false);
     _layout.InputCapture(slot, true);
+    _shown[static_cast<std::size_t>(slot)] = true;
 }
 
-void UiMenuManager::Dismiss(int slot)
+void UiMenuManager::Dismiss(int)
 {
-    if (!IsValidSlot(slot))
+    // The pump hides the slot next frame.
+}
+
+void UiMenuManager::Hide(int slot)
+{
+    _shown[static_cast<std::size_t>(slot)] = false;
+
+    if (!_layout.Covers(slot))
         return;
 
     _layout.Class(slot, RootId, "Hidden", true);
     _layout.InputCapture(slot, false);
 
-    // The next menu this player opens draws onto a panel that may have been re-spawned since, so
-    // nothing about what they were last shown is worth keeping.
     _layout.Forget(slot);
 }
 
