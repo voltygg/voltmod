@@ -6,6 +6,7 @@
 #include <array>
 #include <map>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -32,28 +33,28 @@ public:
      *  cannot answer for the next occupant. */
     explicit Translations(SlotEvents& slots);
 
-    bool Load(const std::string& dirPath);
-    void SetLanguage(const std::string& lang);
+    bool Load(std::string_view dirPath);
+    void SetLanguage(std::string_view lang);
     const std::string& GetLanguage() const;
 
     /** Look up a key in the active (server) language, falling back to English. For broadcasts;
      *  prefer @ref Get(key, slot) for any message addressed to a specific player. */
-    std::string Get(const std::string& key) const;
+    std::string Get(std::string_view key) const;
 
     /** Look up a key in @p slot's registered language, falling back to the active language then English. */
-    std::string Get(const std::string& key, int slot) const;
+    std::string Get(std::string_view key, int slot) const;
 
     /** @ref Get(key, slot), then replace each `{token}` occurrence from @p tokens. */
-    std::string Get(const std::string& key, int slot, const std::map<std::string, std::string>& tokens) const;
+    std::string Get(std::string_view key, int slot, const std::map<std::string, std::string>& tokens) const;
 
     /** Active-language variant of the token-substituting @ref Get. */
-    std::string Get(const std::string& key, const std::map<std::string, std::string>& tokens) const;
+    std::string Get(std::string_view key, const std::map<std::string, std::string>& tokens) const;
 
     /** Language codes that were successfully loaded (one per JSON file). */
     std::vector<std::string> GetAvailableLanguages() const;
 
     /** Set/clear a slot's preferred language. Empty (or cleared) means "use the active language". */
-    void SetPlayerLanguage(int slot, const std::string& lang);
+    void SetPlayerLanguage(int slot, std::string_view lang);
     void ClearPlayerLanguage(int slot);
 
 private:

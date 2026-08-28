@@ -7,6 +7,7 @@
 #include <entity2/entityinstance.h>
 #include <entity2/entitykeyvalues.h>
 #include <entity2/entitysystem.h>
+#include <string>
 #include <variant.h>
 
 namespace VoltMod
@@ -46,13 +47,14 @@ static_assert(sizeof(StartSoundEventInfo) == 20);
 using EmitSoundFilterFn = StartSoundEventInfo (*)(IRecipientFilter& filter, CEntityIndex sourceIndex,
                                                   const EmitSoundParams& params);
 
-// The public header cannot expose the SDK's variant_t.
-static void FireInput(const Bindings& bindings, CEntityInstance* entity, const char* input, variant_t& value,
+// The public header cannot expose the SDK's variant_t. The engine resolves the input by name
+// during the call and does not keep the pointer, so a NUL-terminated temporary is enough.
+static void FireInput(const Bindings& bindings, CEntityInstance* entity, std::string_view input, variant_t& value,
                       CEntityInstance* activator, CEntityInstance* caller)
 {
-    if (!bindings.AcceptInput || !entity || !input)
+    if (!bindings.AcceptInput || !entity || input.empty())
         return;
-    bindings.AcceptInput(entity, input, activator, caller, &value, 0, nullptr);
+    bindings.AcceptInput(entity, std::string(input).c_str(), activator, caller, &value, 0, nullptr);
 }
 
 bool EntityOps::CanSpawn() const
@@ -60,12 +62,12 @@ bool EntityOps::CanSpawn() const
     return static_cast<bool>(_bindings.CreateEntityByName) && static_cast<bool>(_bindings.DispatchSpawn);
 }
 
-CEntityInstance* EntityOps::CreateByName(const char* className)
+CEntityInstance* EntityOps::CreateByName(std::string_view className)
 {
-    if (!_bindings.CreateEntityByName || !className)
+    if (!_bindings.CreateEntityByName || className.empty())
         return nullptr;
 
-    return _bindings.CreateEntityByName(className, -1);
+    return _bindings.CreateEntityByName(std::string(className).c_str(), -1);
 }
 
 void EntityOps::DispatchSpawn(CEntityInstance* entity, KeyValues* kv)
@@ -76,7 +78,7 @@ void EntityOps::DispatchSpawn(CEntityInstance* entity, KeyValues* kv)
     _bindings.DispatchSpawn(entity, kv ? kv->Detach() : nullptr);
 }
 
-CEntityInstance* EntityOps::Spawn(const char* className, KeyValues& kv)
+CEntityInstance* EntityOps::Spawn(std::string_view className, KeyValues& kv)
 {
     if (!CanSpawn())
         return nullptr;
@@ -89,15 +91,17 @@ CEntityInstance* EntityOps::Spawn(const char* className, KeyValues& kv)
     return entity;
 }
 
-void EntityOps::AcceptInput(CEntityInstance* entity, const char* input, const char* param, CEntityInstance* activator,
-                            CEntityInstance* caller)
+void EntityOps::AcceptInput(CEntityInstance* entity, std::string_view input, std::string_view param,
+                            CEntityInstance* activator, CEntityInstance* caller)
 {
-    variant_t value(param ? param : "");
+    // variant_t holds the pointer rather than copying, so the buffer has to outlive the call below.
+    const std::string text(param);
+    variant_t value(text.c_str());
     FireInput(_bindings, entity, input, value, activator, caller);
 }
 
-void EntityOps::AcceptInputFloat(CEntityInstance* entity, const char* input, float value, CEntityInstance* activator,
-                                 CEntityInstance* caller)
+void EntityOps::AcceptInputFloat(CEntityInstance* entity, std::string_view input, float value,
+                                 CEntityInstance* activator, CEntityInstance* caller)
 {
     variant_t variant(value);
     FireInput(_bindings, entity, input, variant, activator, caller);
@@ -111,18 +115,21 @@ void EntityOps::SetModelScale(CEntityInstance* entity, float scale)
     AcceptInputFloat(entity, "SetScale", std::clamp(scale, MinSafeModelScale, MaxSafeModelScale));
 }
 
-void EntityOps::AddIOEvent(CEntityInstance* target, const char* input, float delaySeconds, CEntityInstance* activator,
-                           CEntityInstance* caller)
+void EntityOps::AddIOEvent(CEntityInstance* target, std::string_view input, float delaySeconds,
+                           CEntityInstance* activator, CEntityInstance* caller)
 {
-    if (!_bindings.AddEntityIOEvent || !target || !input)
+    if (!_bindings.AddEntityIOEvent || !target || input.empty())
         return;
 
     CEntitySystem* system = _entities.GetEntitySystem();
     if (!system)
         return;
 
+    // The queue copies the input name when it takes the event, so this temporary is enough.
+    const std::string name(input);
     variant_t value("");
-    _bindings.AddEntityIOEvent(system, target, input, activator, caller, &value, delaySeconds, 0, nullptr, nullptr);
+    _bindings.AddEntityIOEvent(system, target, name.c_str(), activator, caller, &value, delaySeconds, 0, nullptr,
+                               nullptr);
 }
 
 void EntityOps::Remove(CEntityInstance* entity)
@@ -138,30 +145,32 @@ void EntityOps::RemoveDelayed(CEntityInstance* entity, float delaySeconds)
     AddIOEvent(entity, "Kill", delaySeconds);
 }
 
-void EntityOps::SetModel(CEntityInstance* entity, const char* modelPath)
+void EntityOps::SetModel(CEntityInstance* entity, std::string_view modelPath)
 {
-    if (!_bindings.SetModel || !entity || !modelPath)
+    if (!_bindings.SetModel || !entity || modelPath.empty())
         return;
 
-    _bindings.SetModel(entity, modelPath);
+    _bindings.SetModel(entity, std::string(modelPath).c_str());
 }
 
-void EntityOps::EmitSound(CEntityInstance* entity, const char* soundEvent, int pitch, float volume, float delay)
+void EntityOps::EmitSound(CEntityInstance* entity, std::string_view soundEvent, int pitch, float volume, float delay)
 {
-    if (!_bindings.EmitSoundParams || !entity || !soundEvent)
+    if (!_bindings.EmitSoundParams || !entity || soundEvent.empty())
         return;
 
-    _bindings.EmitSoundParams(entity, soundEvent, pitch, volume, delay);
+    _bindings.EmitSoundParams(entity, std::string(soundEvent).c_str(), pitch, volume, delay);
 }
 
-void EntityOps::EmitSoundFilter(IRecipientFilter& filter, CEntityInstance* source, const char* soundEvent, float volume,
-                                int pitch)
+void EntityOps::EmitSoundFilter(IRecipientFilter& filter, CEntityInstance* source, std::string_view soundEvent,
+                                float volume, int pitch)
 {
-    if (!_bindings.EmitSoundFilter || !source || !soundEvent)
+    if (!_bindings.EmitSoundFilter || !source || soundEvent.empty())
         return;
 
+    // EmitSoundParams borrows the name; the engine reads it during the call below.
+    const std::string sound(soundEvent);
     EmitSoundParams params;
-    params.SoundName = soundEvent;
+    params.SoundName = sound.c_str();
     params.Volume = volume;
     params.Pitch = static_cast<int16_t>(pitch);
 

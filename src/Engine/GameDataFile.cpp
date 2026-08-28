@@ -10,12 +10,13 @@
 #include <map>
 #include <nlohmann/json.hpp>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace VoltMod
 {
 
-static constexpr const char* PlatformKey(GamePlatform platform)
+static constexpr std::string_view PlatformKey(GamePlatform platform)
 {
     return platform == GamePlatform::Windows ? "windows" : "linux";
 }
@@ -26,7 +27,7 @@ static std::unexpected<Error> Malformed(std::string detail)
 }
 
 /** The section a key was first seen in, so a collision can say which two sections clash. */
-static Status ClaimKey(std::map<std::string, std::string>& owners, const std::string& key, const char* section)
+static Status ClaimKey(std::map<std::string, std::string>& owners, const std::string& key, std::string_view section)
 {
     auto [it, inserted] = owners.emplace(key, section);
     if (!inserted)
@@ -80,7 +81,8 @@ bool IsValidBytePattern(std::string_view pattern)
  */
 static bool HasOtherPlatform(const nlohmann::json& entry, GamePlatform platform)
 {
-    const char* other = PlatformKey(platform == GamePlatform::Windows ? GamePlatform::Linux : GamePlatform::Windows);
+    const std::string_view other =
+        PlatformKey(platform == GamePlatform::Windows ? GamePlatform::Linux : GamePlatform::Windows);
     return entry.is_object() && entry.contains(other);
 }
 
@@ -96,10 +98,10 @@ static bool SkipOtherPlatform(const nlohmann::json& entry, GamePlatform platform
 }
 
 /** Read one platform column of @p entry as an integer, or report which key has no column. */
-static Result<int> PlatformInt(const nlohmann::json& entry, GamePlatform platform, const char* section,
+static Result<int> PlatformInt(const nlohmann::json& entry, GamePlatform platform, std::string_view section,
                                const std::string& key)
 {
-    const char* column = PlatformKey(platform);
+    const std::string_view column = PlatformKey(platform);
     if (!entry.is_object())
         return Malformed(std::format("{}.{} is not an object", section, key));
     if (!entry.contains(column))
@@ -117,7 +119,7 @@ static Status ParseSignatures(const nlohmann::json& json, GamePlatform platform,
     if (!json["signatures"].is_object())
         return Malformed("'signatures' is not an object");
 
-    const char* column = PlatformKey(platform);
+    const std::string_view column = PlatformKey(platform);
     for (const auto& [key, entry] : json["signatures"].items())
     {
         if (Status claimed = ClaimKey(owners, key, "signatures"); !claimed)
@@ -327,7 +329,7 @@ Result<GameDataFile> GameDataFile::Parse(std::string_view text, GamePlatform pla
     }
 }
 
-Result<GameDataFile> GameDataFile::Load(const std::string& path, GamePlatform platform)
+Result<GameDataFile> GameDataFile::Load(std::string_view path, GamePlatform platform)
 {
     auto resolved = ResolvePath(path);
     std::ifstream file(resolved);

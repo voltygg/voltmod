@@ -31,9 +31,9 @@ int ParseDuration(std::string_view text);
 class Strings
 {
 public:
-    static std::string ToLower(const std::string& str);
-    static std::string Trim(const std::string& str);
-    static std::string Join(const std::vector<std::string>& parts, const std::string& delimiter);
+    static std::string ToLower(std::string_view str);
+    static std::string Trim(std::string_view str);
+    static std::string Join(const std::vector<std::string>& parts, std::string_view delimiter);
 
     /**
      * Join @p parts with @p delimiter, skipping empty ones.
@@ -42,26 +42,26 @@ public:
      * say. Skipping is the point: a piece that is not configured must not leave a dangling
      * delimiter or a bare label behind it.
      */
-    static std::string JoinNonEmpty(const std::vector<std::string>& parts, const std::string& delimiter);
-    static bool StartsWith(const std::string& str, const std::string& prefix);
-    static bool ContainsIgnoreCase(const std::string& str, const std::string& substr);
+    static std::string JoinNonEmpty(const std::vector<std::string>& parts, std::string_view delimiter);
+    static bool StartsWith(std::string_view str, std::string_view prefix);
+    static bool ContainsIgnoreCase(std::string_view str, std::string_view substr);
 
     /** Replace each `{key}` occurrence in @p text with its mapped value. */
     static std::string SubstituteTokens(std::string text, const std::map<std::string, std::string>& tokens);
 
     /** Escape `& < > " '` as HTML entities for safe embedding in center-HTML panels. */
-    static std::string EscapeHtml(const std::string& text);
+    static std::string EscapeHtml(std::string_view text);
 
     /**
      * Truncate to at most `maxBytes` bytes plus `ellipsis`, cutting at a UTF-8 sequence
      * boundary so multibyte text (e.g. Cyrillic) never renders a split character.
      */
-    static std::string TruncateUtf8(const std::string& text, std::size_t maxBytes, std::string_view ellipsis = "...");
+    static std::string TruncateUtf8(std::string_view text, std::size_t maxBytes, std::string_view ellipsis = "...");
 
-    static bool IsNumeric(const std::string& str);
+    static bool IsNumeric(std::string_view str);
 
     /** Row display text, HTML-escaped: the (UTF-8-safely truncated) name, or @p id when unnamed. */
-    static std::string DisplayNameOr(int64_t id, const std::string& name, std::size_t maxBytes = 20);
+    static std::string DisplayNameOr(int64_t id, std::string_view name, std::size_t maxBytes = 20);
 };
 
 }  // namespace VoltMod

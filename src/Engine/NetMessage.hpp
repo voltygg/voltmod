@@ -3,6 +3,7 @@
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <functional>
+#include <string_view>
 
 namespace VoltMod
 {
@@ -21,7 +22,7 @@ namespace VoltMod
  * @param fill returns false to abandon the send; the message is still deallocated.
  * @return whether the message was posted.
  */
-bool PostUserMessage(Interfaces& interfaces, INetworkMessageInternal*& cached, const char* partialName,
+bool PostUserMessage(Interfaces& interfaces, INetworkMessageInternal*& cached, std::string_view partialName,
                      IRecipientFilter& filter, const std::function<bool(CNetMessage*)>& fill);
 
 }  // namespace VoltMod

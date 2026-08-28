@@ -4,6 +4,7 @@
 #include <charconv>
 #include <limits>
 #include <sstream>
+#include <string_view>
 
 namespace VoltMod
 {
@@ -79,32 +80,35 @@ int ParseDuration(std::string_view text)
     return static_cast<int>(total);
 }
 
-std::string Strings::ToLower(const std::string& str)
+std::string Strings::ToLower(std::string_view str)
 {
-    std::string result = str;
+    std::string result(str);
     std::transform(result.begin(), result.end(), result.begin(), [](unsigned char c) { return std::tolower(c); });
     return result;
 }
 
-std::string Strings::Trim(const std::string& str)
+std::string Strings::Trim(std::string_view str)
 {
     auto begin = std::find_if(str.begin(), str.end(), [](unsigned char c) { return !std::isspace(c); });
     auto end = std::find_if(str.rbegin(), str.rend(), [](unsigned char c) { return !std::isspace(c); }).base();
     return begin < end ? std::string(begin, end) : std::string();
 }
 
-std::string Strings::Join(const std::vector<std::string>& parts, const std::string& delimiter)
+std::string Strings::Join(const std::vector<std::string>& parts, std::string_view delimiter)
 {
     if (parts.empty())
         return "";
 
     std::string result = parts[0];
     for (size_t i = 1; i < parts.size(); ++i)
-        result += delimiter + parts[i];
+    {
+        result += delimiter;
+        result += parts[i];
+    }
     return result;
 }
 
-std::string Strings::JoinNonEmpty(const std::vector<std::string>& parts, const std::string& delimiter)
+std::string Strings::JoinNonEmpty(const std::vector<std::string>& parts, std::string_view delimiter)
 {
     std::string result;
     for (const auto& part : parts)
@@ -118,12 +122,12 @@ std::string Strings::JoinNonEmpty(const std::vector<std::string>& parts, const s
     return result;
 }
 
-bool Strings::StartsWith(const std::string& str, const std::string& prefix)
+bool Strings::StartsWith(std::string_view str, std::string_view prefix)
 {
-    return str.length() >= prefix.length() && str.substr(0, prefix.length()) == prefix;
+    return str.starts_with(prefix);
 }
 
-bool Strings::ContainsIgnoreCase(const std::string& str, const std::string& substr)
+bool Strings::ContainsIgnoreCase(std::string_view str, std::string_view substr)
 {
     return ToLower(str).find(ToLower(substr)) != std::string::npos;
 }
@@ -151,7 +155,7 @@ std::string Strings::SubstituteTokens(std::string text, const std::map<std::stri
     return text;
 }
 
-std::string Strings::EscapeHtml(const std::string& text)
+std::string Strings::EscapeHtml(std::string_view text)
 {
     std::string out;
     out.reserve(text.size());
@@ -182,25 +186,25 @@ std::string Strings::EscapeHtml(const std::string& text)
     return out;
 }
 
-std::string Strings::TruncateUtf8(const std::string& text, std::size_t maxBytes, std::string_view ellipsis)
+std::string Strings::TruncateUtf8(std::string_view text, std::size_t maxBytes, std::string_view ellipsis)
 {
     if (text.size() <= maxBytes)
-        return text;
+        return std::string(text);
     std::size_t end = maxBytes;
     // Back up past UTF-8 continuation bytes so the cut never splits a multibyte sequence.
     while (end > 0 && (static_cast<unsigned char>(text[end]) & 0xC0) == 0x80)
         --end;
-    return text.substr(0, end).append(ellipsis);
+    return std::string(text.substr(0, end)).append(ellipsis);
 }
 
-bool Strings::IsNumeric(const std::string& str)
+bool Strings::IsNumeric(std::string_view str)
 {
     if (str.empty())
         return false;
     return std::all_of(str.begin(), str.end(), [](unsigned char c) { return std::isdigit(c); });
 }
 
-std::string Strings::DisplayNameOr(int64_t id, const std::string& name, std::size_t maxBytes)
+std::string Strings::DisplayNameOr(int64_t id, std::string_view name, std::size_t maxBytes)
 {
     // A name is player-controlled and this is row markup, so it is escaped here rather than at
     // each call site: an unescaped '<' would let a player close the row's font tag.

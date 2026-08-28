@@ -179,7 +179,7 @@ void MetamodPlugin::Hook_StartupServer(const GameSessionConfiguration_t&, ISourc
     _runtime->GameEvents.OnServerStartup();
     _runtime->Hooks.Teleport.OnServerStartup();
     _runtime->Hooks.ClientCvars.OnServerStartup();
-    OnServerStartup(mapName ? mapName : "");
+    OnServerStartup(mapName ? std::string_view(mapName) : std::string_view{});
 }
 
 void MetamodPlugin::Hook_CheckTransmit(CCheckTransmitInfo** infoList, int infoCount, CBitVec<16384>&, CBitVec<16384>&,

@@ -3,6 +3,7 @@
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Entities/HitGroup.hpp>
 #include <string>
+#include <string_view>
 
 namespace VoltMod
 {
@@ -27,7 +28,7 @@ namespace VoltMod
 
 struct PlayerDeath
 {
-    static constexpr const char* Name = "player_death";
+    static constexpr std::string_view Name = "player_death";
     int VictimSlot = -1;
     int AttackerSlot = -1;
     std::string Weapon;
@@ -39,21 +40,21 @@ struct PlayerDeath
 
 struct PlayerSpawn
 {
-    static constexpr const char* Name = "player_spawn";
+    static constexpr std::string_view Name = "player_spawn";
     int Slot = -1;
     static PlayerSpawn From(IGameEvent& e);
 };
 
 struct PlayerJump
 {
-    static constexpr const char* Name = "player_jump";
+    static constexpr std::string_view Name = "player_jump";
     int Slot = -1;
     static PlayerJump From(IGameEvent& e);
 };
 
 struct PlayerHurt
 {
-    static constexpr const char* Name = "player_hurt";
+    static constexpr std::string_view Name = "player_hurt";
     int VictimSlot = -1;
     int AttackerSlot = -1;
     int Health = 0;
@@ -66,7 +67,7 @@ struct PlayerHurt
 
 struct PlayerBlind
 {
-    static constexpr const char* Name = "player_blind";
+    static constexpr std::string_view Name = "player_blind";
     int Slot = -1;
     int AttackerSlot = -1;
     float BlindDuration = 0.0f;
@@ -75,7 +76,7 @@ struct PlayerBlind
 
 struct PlayerTeam
 {
-    static constexpr const char* Name = "player_team";
+    static constexpr std::string_view Name = "player_team";
     int Slot = -1;
     int Team = 0;
     int OldTeam = 0;
@@ -85,14 +86,14 @@ struct PlayerTeam
 
 struct PlayerConnectFull
 {
-    static constexpr const char* Name = "player_connect_full";
+    static constexpr std::string_view Name = "player_connect_full";
     int Slot = -1;
     static PlayerConnectFull From(IGameEvent& e);
 };
 
 struct WeaponFire
 {
-    static constexpr const char* Name = "weapon_fire";
+    static constexpr std::string_view Name = "weapon_fire";
     int Slot = -1;
     std::string Weapon;
     static WeaponFire From(IGameEvent& e);
@@ -108,7 +109,7 @@ struct WeaponFire
  */
 struct BulletImpact
 {
-    static constexpr const char* Name = "bullet_impact";
+    static constexpr std::string_view Name = "bullet_impact";
     int Slot = -1;
     /** Raw `userid` as the engine sent it - the shooter's userid masked to its low byte. */
     int TruncatedUserId = 0;
@@ -120,13 +121,13 @@ struct BulletImpact
 
 struct RoundStart
 {
-    static constexpr const char* Name = "round_start";
+    static constexpr std::string_view Name = "round_start";
     static RoundStart From(IGameEvent& e);
 };
 
 struct RoundEnd
 {
-    static constexpr const char* Name = "round_end";
+    static constexpr std::string_view Name = "round_end";
     int Winner = 0;
     int Reason = 0;
     static RoundEnd From(IGameEvent& e);
@@ -134,14 +135,14 @@ struct RoundEnd
 
 struct RoundPrestart
 {
-    static constexpr const char* Name = "round_prestart";
+    static constexpr std::string_view Name = "round_prestart";
     static RoundPrestart From(IGameEvent& e);
 };
 
 /** One ballot in the game's own vote panel; @ref VoltMod::Vote counts these. */
 struct VoteCast
 {
-    static constexpr const char* Name = "vote_cast";
+    static constexpr std::string_view Name = "vote_cast";
     int Slot = -1;
     /** Index into the panel's options; 0 is yes and 1 is no for the yes/no issue. */
     int Option = 0;

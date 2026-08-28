@@ -40,7 +40,7 @@ static std::string ReadFile(const fs::path& path)
     return buffer.str();
 }
 
-MigrationResult RunMigrations(PostgresDatabase& db, const std::string& dir, const MigrationOptions& options)
+MigrationResult RunMigrations(PostgresDatabase& db, std::string_view dir, const MigrationOptions& options)
 {
     if (!IsValidTableName(options.TableName))
     {

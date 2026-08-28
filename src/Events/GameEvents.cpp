@@ -40,23 +40,24 @@ IGameEventListener2* GameEvents::GetClientLegacyListener(int slot) const
     return _getLegacyListener(CPlayerSlot(slot));
 }
 
-bool GameEvents::ClientListensTo(int slot, const char* eventName) const
+bool GameEvents::ClientListensTo(int slot, std::string_view eventName) const
 {
     auto* mgr = _interfaces.GameEventManager;
     auto* listener = GetClientLegacyListener(slot);
-    if (!mgr || !listener || !eventName)
+    if (!mgr || !listener || eventName.empty())
         return false;
 
-    return mgr->FindListener(listener, eventName);
+    return mgr->FindListener(listener, std::string(eventName).c_str());
 }
 
-IGameEvent* GameEvents::CreateEvent(const char* name)
+IGameEvent* GameEvents::CreateEvent(std::string_view name)
 {
     auto* mgr = _interfaces.GameEventManager;
-    if (!mgr)
+    if (!mgr || name.empty())
         return nullptr;
 
-    return mgr->CreateEvent(name);
+    // The manager resolves the descriptor by name during the call; it keeps no pointer.
+    return mgr->CreateEvent(std::string(name).c_str());
 }
 
 bool GameEvents::FireEvent(IGameEvent* event, bool dontBroadcast)
@@ -75,7 +76,7 @@ void GameEvents::FreeEvent(IGameEvent* event)
         mgr->FreeEvent(event);
 }
 
-Subscription GameEvents::Add(const char* eventName, EventCallback callback)
+Subscription GameEvents::Add(std::string_view eventName, EventCallback callback)
 {
     auto* mgr = _interfaces.GameEventManager;
     if (!mgr)
@@ -83,10 +84,11 @@ Subscription GameEvents::Add(const char* eventName, EventCallback callback)
 
     // This attach only serves listens made while a map is live (late load, mid-map On<T>);
     // the engine drops it during the next map startup, where OnServerStartup re-attaches.
-    if (_registeredEvents.insert(eventName).second)
-        mgr->AddListener(this, eventName, true);
+    std::string name(eventName);
+    if (_registeredEvents.insert(name).second)
+        mgr->AddListener(this, name.c_str(), true);
 
-    return _listeners.AddOwned({eventName, std::move(callback)});
+    return _listeners.AddOwned({std::move(name), std::move(callback)});
 }
 
 void GameEvents::OnServerStartup()

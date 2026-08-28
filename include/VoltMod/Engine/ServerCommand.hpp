@@ -3,6 +3,7 @@
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <functional>
 #include <memory>
+#include <string_view>
 
 namespace VoltMod
 {
@@ -23,7 +24,7 @@ class ServerCommand
 public:
     using Handler = std::function<void(const CCommand& args)>;
 
-    ServerCommand(const char* name, const char* helpText, Handler handler);
+    ServerCommand(std::string_view name, std::string_view helpText, Handler handler);
     ~ServerCommand();
     ServerCommand(const ServerCommand&) = delete;
     ServerCommand& operator=(const ServerCommand&) = delete;

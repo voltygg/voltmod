@@ -21,7 +21,7 @@
 namespace VoltMod
 {
 
-static constexpr const char* DefaultGameDataPath = "addons/voltmod/gamedata/gamedata.jsonc";
+static constexpr std::string_view DefaultGameDataPath = "addons/voltmod/gamedata/gamedata.jsonc";
 
 // Every service is wired by its default member initializer in Runtime.hpp, where the dependency
 // order is visible.
@@ -56,7 +56,7 @@ bool Runtime::Start(const LoadContext& context)
 
 void Runtime::InstallLogger(const LoadContext& context)
 {
-    Log::SetSink(MakeConsoleSink(context.LogPrefix));
+    Log::SetSink(MakeConsoleSink(std::string(context.LogPrefix)));
     SetBaseDir(context.Ismm->GetBaseDir());
 }
 

@@ -5,27 +5,29 @@
 #include <VoltMod/Menu/MenuOption.hpp>
 #include <algorithm>
 #include <sstream>
+#include <string>
+#include <string_view>
 
 namespace VoltMod
 {
 
 namespace Theme
 {
-constexpr const char* Gold = "#FFD700";
-constexpr const char* Amber = "#FF8C00";
-constexpr const char* WarmWhite = "#CCBBAA";
-constexpr const char* WarmGray = "#887755";
-constexpr const char* Disabled = "#665544";
-constexpr const char* NavGold = "#AA8833";
-constexpr const char* NavClose = "#AA4422";
-constexpr const char* NavBack = "#AA8833";
+constexpr std::string_view Gold = "#FFD700";
+constexpr std::string_view Amber = "#FF8C00";
+constexpr std::string_view WarmWhite = "#CCBBAA";
+constexpr std::string_view WarmGray = "#887755";
+constexpr std::string_view Disabled = "#665544";
+constexpr std::string_view NavGold = "#AA8833";
+constexpr std::string_view NavClose = "#AA4422";
+constexpr std::string_view NavBack = "#AA8833";
 }  // namespace Theme
 
 // Localized footer label; Get() returns the key unchanged when missing, so fall back to the
 // English literal - lets consumers that don't ship nav.* keys still render cleanly.
-static std::string FooterLabel(Translations& translations, const char* key, const char* fallback, int slot)
+static std::string FooterLabel(Translations& translations, std::string_view key, std::string_view fallback, int slot)
 {
-    auto value = translations.Get(key, slot);
+    auto value = translations.Get(std::string(key), slot);
     return value == key ? std::string(fallback) : value;
 }
 
@@ -45,7 +47,7 @@ std::string DefaultHeader(const std::string& title, int currentPage, int totalPa
     return html.str();
 }
 
-static std::string FooterChunk(const char* keyColor, const char* keyText, const std::string& label)
+static std::string FooterChunk(std::string_view keyColor, std::string_view keyText, const std::string& label)
 {
     std::ostringstream html;
     html << "<font color='" << keyColor << "'>" << keyText << "</font> "
@@ -55,9 +57,11 @@ static std::string FooterChunk(const char* keyColor, const char* keyText, const 
 
 std::string DefaultFooter(bool isSubmenu, bool isPaginated, bool usesHorizontal, int slot, Translations& translations)
 {
-    auto label = [&](const char* key, const char* fallback) { return FooterLabel(translations, key, fallback, slot); };
+    auto label = [&](std::string_view key, std::string_view fallback) {
+        return FooterLabel(translations, key, fallback, slot);
+    };
 
-    const char* closeColor = isSubmenu ? Theme::NavBack : Theme::NavClose;
+    const std::string_view closeColor = isSubmenu ? Theme::NavBack : Theme::NavClose;
     std::string closeLabel = isSubmenu ? label("nav.back", "Back") : label("nav.close", "Close");
 
     // First row: W/S, the A/D hint for the current row (value-change or paging), and E.
@@ -70,8 +74,8 @@ std::string DefaultFooter(bool isSubmenu, bool isPaginated, bool usesHorizontal,
     else if (isPaginated)
         row1 << " · " << FooterChunk(Theme::NavGold, "[A/D]", label("nav.page", "Page"));
 
-    const char* selectKey = usesHorizontal ? "nav.confirm" : "nav.select";
-    const char* selectFallback = usesHorizontal ? "Confirm" : "Select";
+    const std::string_view selectKey = usesHorizontal ? "nav.confirm" : "nav.select";
+    const std::string_view selectFallback = usesHorizontal ? "Confirm" : "Select";
     row1 << " · " << FooterChunk(Theme::Gold, "[E]", label(selectKey, selectFallback));
 
     std::string closeChunk = FooterChunk(closeColor, "[R]", closeLabel);

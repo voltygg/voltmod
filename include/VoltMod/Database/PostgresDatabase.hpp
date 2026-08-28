@@ -14,6 +14,7 @@
 #include <mutex>
 #include <pqxx/pqxx>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <unordered_map>
 #include <unordered_set>
@@ -163,6 +164,6 @@ private:
  * concurrent plugin loads cannot race. A missing directory is a successful no-op (logged). On failure
  * the database is left at the last successfully applied version.
  */
-MigrationResult RunMigrations(PostgresDatabase& db, const std::string& dir, const MigrationOptions& options = {});
+MigrationResult RunMigrations(PostgresDatabase& db, std::string_view dir, const MigrationOptions& options = {});
 
 }  // namespace VoltMod

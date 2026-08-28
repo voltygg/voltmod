@@ -11,6 +11,7 @@
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace VoltMod
@@ -21,7 +22,7 @@ namespace VoltMod
 VOLTMOD_VHOOK2(VoltMod_FilterMessage, bool, const CNetMessage*, void*);
 
 /** The user message carrying a custom HUD button press. */
-static constexpr const char* kClickMessage = "CCSUsrMsg_CustomHudClicked";
+static constexpr std::string_view kClickMessage = "CCSUsrMsg_CustomHudClicked";
 
 /** The two fields a press is read out of. */
 struct ClickFields
@@ -121,7 +122,7 @@ bool HudClicks::Install()
 
     if (_interfaces.NetworkMessages)
     {
-        if (INetworkMessageInternal* message = _interfaces.NetworkMessages->FindNetworkMessage(kClickMessage))
+        if (auto* message = _interfaces.NetworkMessages->FindNetworkMessage(std::string(kClickMessage).c_str()))
             _messageId = message->GetNetMessageInfo()->m_MessageId;
     }
     if (_messageId < 0)

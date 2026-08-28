@@ -12,6 +12,7 @@
 #include <functional>
 #include <set>
 #include <string>
+#include <string_view>
 
 namespace VoltMod
 {
@@ -31,7 +32,7 @@ public:
     /** Attach to IGameEventManager2. Error::NotReady when Messages did not resolve it. */
     Status Initialize();
 
-    IGameEvent* CreateEvent(const char* name);
+    IGameEvent* CreateEvent(std::string_view name);
     bool FireEvent(IGameEvent* event, bool dontBroadcast = false);
     void FreeEvent(IGameEvent* event);
 
@@ -82,7 +83,7 @@ public:
      * A vanilla client subscribes only to events its HUD needs, so subscriptions it has no
      * business holding are a fingerprint of injected client code.
      */
-    bool ClientListensTo(int slot, const char* eventName) const;
+    bool ClientListensTo(int slot, std::string_view eventName) const;
 
     void FireGameEvent(IGameEvent* event) override;
 
@@ -90,7 +91,7 @@ private:
     using EventCallback = std::function<void(IGameEvent*)>;
 
     /** Store one raw-IGameEvent listener under @p eventName; @ref On is the only caller. */
-    [[nodiscard]] Subscription Add(const char* eventName, EventCallback callback);
+    [[nodiscard]] Subscription Add(std::string_view eventName, EventCallback callback);
 
     struct RegisteredListener
     {

@@ -11,7 +11,7 @@ void SetBaseDir(const std::filesystem::path& baseDir)
     g_baseDir = baseDir;
 }
 
-std::filesystem::path ResolvePath(const std::string& relativePath)
+std::filesystem::path ResolvePath(std::string_view relativePath)
 {
     std::filesystem::path p(relativePath);
     return p.is_absolute() ? p : g_baseDir / p;

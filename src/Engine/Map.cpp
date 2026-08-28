@@ -4,15 +4,16 @@
 #include <VoltMod/Engine/Map.hpp>
 #include <eiface.h>
 #include <format>
+#include <string>
 
 namespace VoltMod
 {
 
 Map::Map(Interfaces& interfaces, ConVars& conVars) : _interfaces(interfaces), _conVars(conVars) {}
 
-bool Map::IsValid(const char* name) const
+bool Map::IsValid(std::string_view name) const
 {
-    if (!name || !*name)
+    if (name.empty())
         return false;
 
     auto* engine = _interfaces.Engine;
@@ -22,19 +23,19 @@ bool Map::IsValid(const char* name) const
         return false;
     }
 
-    return engine->IsMapValid(name) != 0;
+    return engine->IsMapValid(std::string(name).c_str()) != 0;
 }
 
-bool Map::ChangeLevel(const char* name)
+bool Map::ChangeLevel(std::string_view name)
 {
     if (!IsValid(name))
     {
-        Log::Warn("Map::ChangeLevel: '{}' is not a loadable map.", name ? name : "");
+        Log::Warn("Map::ChangeLevel: '{}' is not a loadable map.", name);
         return false;
     }
 
     // Landmark is used only by save-game transitions.
-    _interfaces.Engine->ChangeLevel(name, nullptr);
+    _interfaces.Engine->ChangeLevel(std::string(name).c_str(), nullptr);
     return true;
 }
 

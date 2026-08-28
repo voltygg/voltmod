@@ -97,7 +97,7 @@ void Precache::Shutdown()
     _gameSystems = nullptr;
 }
 
-void Precache::Add(std::string resourcePath)
+void Precache::Add(std::string_view resourcePath)
 {
     if (resourcePath.empty())
         return;
@@ -105,7 +105,7 @@ void Precache::Add(std::string resourcePath)
     if (std::ranges::find(_resources, resourcePath) != _resources.end())
         return;
 
-    _resources.push_back(std::move(resourcePath));
+    _resources.emplace_back(resourcePath);
 }
 
 }  // namespace VoltMod

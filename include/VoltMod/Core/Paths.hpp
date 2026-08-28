@@ -21,7 +21,7 @@ void SetBaseDir(const std::filesystem::path& baseDir);
  * @param relativePath The relative path to resolve.
  * @return The resolved absolute path.
  */
-std::filesystem::path ResolvePath(const std::string& relativePath);
+std::filesystem::path ResolvePath(std::string_view relativePath);
 
 /** @brief "addons/<addon>" - the engine-relative install root the framework's loaders take.
  *  Pure string building, so safe at static init. */

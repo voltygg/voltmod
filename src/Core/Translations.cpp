@@ -5,6 +5,7 @@
 #include <VoltMod/Core/Translations.hpp>
 #include <filesystem>
 #include <fstream>
+#include <string_view>
 
 namespace VoltMod
 {
@@ -63,7 +64,7 @@ Translations::Translations(SlotEvents& slots)
     : _slotListener(slots.Changed += [this](int slot) { ClearPlayerLanguage(slot); })
 {}
 
-bool Translations::Load(const std::string& dirPath)
+bool Translations::Load(std::string_view dirPath)
 {
     _translations.clear();
     namespace fs = std::filesystem;
@@ -134,7 +135,7 @@ bool Translations::Load(const std::string& dirPath)
     return loaded > 0;
 }
 
-void Translations::SetLanguage(const std::string& lang)
+void Translations::SetLanguage(std::string_view lang)
 {
     _activeLang = lang;
 }
@@ -156,7 +157,7 @@ std::vector<std::string> Translations::GetAvailableLanguages() const
     return langs;
 }
 
-void Translations::SetPlayerLanguage(int slot, const std::string& lang)
+void Translations::SetPlayerLanguage(int slot, std::string_view lang)
 {
     if (IsValidSlot(slot))
     {
@@ -184,32 +185,35 @@ const std::string* Translations::LookupIn(const std::string& lang, const std::st
     return nullptr;
 }
 
-std::string Translations::Get(const std::string& key) const
+std::string Translations::Get(std::string_view key) const
 {
     return Get(key, -1);  // negative slot skips the per-player lookup, resolving against the active language
 }
 
-std::string Translations::Get(const std::string& key, int slot) const
+std::string Translations::Get(std::string_view key, int slot) const
 {
     const std::string& lang = (IsValidSlot(slot) && !_playerLangs[slot].empty()) ? _playerLangs[slot] : _activeLang;
 
+    // The tables are keyed by std::string, so the view is materialized once and reused below.
+    const std::string name(key);
+
     // Pointer (not empty-string) sentinel so a key deliberately mapped to "" is honored, not dropped.
-    if (const std::string* v = LookupIn(lang, key))
+    if (const std::string* v = LookupIn(lang, name))
         return *v;
     if (lang != "en")
-        if (const std::string* v = LookupIn("en", key))
+        if (const std::string* v = LookupIn("en", name))
             return *v;
-    if (auto it = KitDefaults().find(key); it != KitDefaults().end())
+    if (auto it = KitDefaults().find(name); it != KitDefaults().end())
         return it->second;
-    return key;
+    return name;
 }
 
-std::string Translations::Get(const std::string& key, int slot, const std::map<std::string, std::string>& tokens) const
+std::string Translations::Get(std::string_view key, int slot, const std::map<std::string, std::string>& tokens) const
 {
     return Strings::SubstituteTokens(Get(key, slot), tokens);
 }
 
-std::string Translations::Get(const std::string& key, const std::map<std::string, std::string>& tokens) const
+std::string Translations::Get(std::string_view key, const std::map<std::string, std::string>& tokens) const
 {
     return Get(key, -1, tokens);
 }

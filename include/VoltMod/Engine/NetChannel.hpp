@@ -2,6 +2,7 @@
 
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
+#include <string_view>
 
 namespace VoltMod
 {
@@ -26,13 +27,13 @@ public:
     float EngineLatency(int slot) const;
 
     /**
-     * @brief The client's current value for the replicated userinfo cvar @p name.
+     * The client's value for the userinfo convar @p name, or empty when the slot has no client,
+     * the engine is unavailable, or the client never sent one.
      *
-     * Only cvars the client replicates (FCVAR_USERINFO - `name`, `sensitivity`, `m_yaw`,
-     * `cl_interp_ratio`, ...) are visible this way. Anything else needs a cvar query.
-     * @return Engine-owned string, valid until the next engine call; nullptr/empty when unset.
+     * The view borrows the engine's own buffer, which the next userinfo update replaces: read it
+     * or copy it before returning to the engine, and never store it.
      */
-    const char* GetUserInfoCvar(int slot, const char* name) const;
+    std::string_view GetUserInfoCvar(int slot, std::string_view name) const;
 
 private:
     Interfaces& _interfaces;

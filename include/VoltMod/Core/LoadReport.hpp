@@ -22,10 +22,10 @@ struct StageResult
     StageStatus Status = StageStatus::Ok;
     std::string Detail;
 
-    static StageResult Ok(std::string detail = {}) { return {StageStatus::Ok, std::move(detail)}; }
-    static StageResult Degraded(std::string detail) { return {StageStatus::Degraded, std::move(detail)}; }
+    static StageResult Ok(std::string_view detail = {}) { return {StageStatus::Ok, std::string(detail)}; }
+    static StageResult Degraded(std::string_view detail) { return {StageStatus::Degraded, std::string(detail)}; }
     static StageResult Skipped(std::string detail) { return {StageStatus::Skipped, std::move(detail)}; }
-    static StageResult Failed(std::string detail) { return {StageStatus::Failed, std::move(detail)}; }
+    static StageResult Failed(std::string_view detail) { return {StageStatus::Failed, std::string(detail)}; }
 };
 
 struct StageRecord

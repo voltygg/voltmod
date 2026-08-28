@@ -2,6 +2,7 @@
 #include <VoltMod/Entities/KeyValues.hpp>
 #include <entity2/entitykeyvalues.h>
 #include <mathlib/vector.h>
+#include <string>
 
 namespace VoltMod
 {
@@ -16,52 +17,54 @@ KeyValues::~KeyValues()
         _kv->Release();
 }
 
-KeyValues& KeyValues::Set(const char* key, const char* value)
+// CEntityKeyValues interns the key and copies the value, so the NUL-terminated temporaries below
+// only have to survive the call.
+KeyValues& KeyValues::Set(std::string_view key, std::string_view value)
 {
     if (_kv)
-        _kv->SetString(key, value);
+        _kv->SetString(std::string(key).c_str(), std::string(value).c_str());
     return *this;
 }
 
-KeyValues& KeyValues::Set(const char* key, int value)
+KeyValues& KeyValues::Set(std::string_view key, int value)
 {
     if (_kv)
-        _kv->SetInt(key, value);
+        _kv->SetInt(std::string(key).c_str(), value);
     return *this;
 }
 
-KeyValues& KeyValues::Set(const char* key, float value)
+KeyValues& KeyValues::Set(std::string_view key, float value)
 {
     if (_kv)
-        _kv->SetFloat(key, value);
+        _kv->SetFloat(std::string(key).c_str(), value);
     return *this;
 }
 
-KeyValues& KeyValues::Set(const char* key, bool value)
+KeyValues& KeyValues::Set(std::string_view key, bool value)
 {
     if (_kv)
-        _kv->SetBool(key, value);
+        _kv->SetBool(std::string(key).c_str(), value);
     return *this;
 }
 
-KeyValues& KeyValues::Set(const char* key, const Vector& value)
+KeyValues& KeyValues::Set(std::string_view key, const Vector& value)
 {
     if (_kv)
-        _kv->SetVector(key, value);
+        _kv->SetVector(std::string(key).c_str(), value);
     return *this;
 }
 
-KeyValues& KeyValues::Set(const char* key, const QAngle& value)
+KeyValues& KeyValues::Set(std::string_view key, const QAngle& value)
 {
     if (_kv)
-        _kv->SetQAngle(key, value);
+        _kv->SetQAngle(std::string(key).c_str(), value);
     return *this;
 }
 
-KeyValues& KeyValues::Set(const char* key, const Color& value)
+KeyValues& KeyValues::Set(std::string_view key, const Color& value)
 {
     if (_kv)
-        _kv->SetColor(key, value);
+        _kv->SetColor(std::string(key).c_str(), value);
     return *this;
 }
 

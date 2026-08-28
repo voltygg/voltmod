@@ -75,7 +75,7 @@ protected:
      * The engine resets convars and runs game-mode cfgs around this callback, so
      * plugins may need to reapply load-time values.
      */
-    virtual void OnServerStartup(const char* mapName) {}
+    virtual void OnServerStartup(std::string_view mapName) {}
 
     // The connection lifecycle is not a set of virtuals: subscribe to `runtime.Players.Connected`,
     // `.Disconnected`, `.FullyConnected` and `.SettingsChanged` in OnLoad and keep the

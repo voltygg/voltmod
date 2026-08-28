@@ -33,7 +33,7 @@ class Json
 public:
     /** @brief Parse a JSON file into T (path resolved via ResolvePath). Returns nullopt and logs on any error. */
     template <typename T>
-    static std::optional<T> TryDeserializeFile(const std::string& path)
+    static std::optional<T> TryDeserializeFile(std::string_view path)
     {
         try
         {

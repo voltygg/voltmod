@@ -2,6 +2,7 @@
 
 #include <VoltMod/Core/Json.hpp>
 #include <string>
+#include <string_view>
 
 namespace VoltMod
 {
@@ -17,7 +18,7 @@ namespace VoltMod
  * class ConfigManager : public VoltMod::JsonConfig<Settings>
  * {
  * public:
- *     bool LoadSettings(const std::string& path) { return Load(path) && (Resolve(), true); }
+ *     bool LoadSettings(std::string_view path) { return Load(path) && (Resolve(), true); }
  *     const ServerSettings& GetServer() const { return Get().server; }
  * };
  * @endcode
@@ -28,7 +29,7 @@ class JsonConfig
 public:
     /** Load + deserialize @p path (JSONC tolerated). Logs and returns false on a missing file,
      *  parse error, or wrong-typed value. */
-    bool Load(const std::string& path)
+    bool Load(std::string_view path)
     {
         auto loaded = Json::TryDeserializeFile<TSettings>(path);
         if (!loaded)

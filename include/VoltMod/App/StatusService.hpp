@@ -5,6 +5,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -53,7 +54,7 @@ public:
      * `helpText` must outlive the plugin (tier1 keeps the pointers); the command belongs to
      * this service and unregisters when the services are torn down.
      */
-    void InstallCommand(const char* name, const char* helpText, HealthCheck healthy = {});
+    void InstallCommand(std::string_view name, std::string_view helpText, HealthCheck healthy = {});
 
 private:
     LoadReport& _loadReport;

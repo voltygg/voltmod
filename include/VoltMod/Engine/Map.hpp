@@ -4,6 +4,7 @@
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace VoltMod
@@ -17,10 +18,10 @@ public:
     Map(Interfaces& interfaces, ConVars& conVars);
 
     /** Whether the engine can load a mounted, non-workshop map. */
-    bool IsValid(const char* name) const;
+    bool IsValid(std::string_view name) const;
 
     /** Validate and queue a non-workshop map change. */
-    bool ChangeLevel(const char* name);
+    bool ChangeLevel(std::string_view name);
 
     /** Queue `host_workshop_map`. Returns false for zero or when queuing fails. */
     bool ChangeToWorkshop(uint64_t workshopId);

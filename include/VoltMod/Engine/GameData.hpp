@@ -54,7 +54,7 @@ public:
      * entry that fails to resolve is recorded with its reason and does not fail the load; only a
      * missing or malformed file does.
      */
-    Status Load(const std::string& path);
+    Status Load(std::string_view path);
 
     /** Every key, resolved or not. Diagnostics and @ref Bindings::Bind read this. */
     const std::map<std::string, Resolution>& Resolutions() const { return _resolved; }

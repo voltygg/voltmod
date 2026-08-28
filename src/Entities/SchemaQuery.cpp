@@ -9,6 +9,8 @@
 #include <entity2/entitysystem.h>
 #include <networksystem/inetworkserializer.h>
 #include <schemasystem/schemasystem.h>
+#include <string>
+#include <string_view>
 
 namespace VoltMod
 {
@@ -23,7 +25,7 @@ struct NetworkVarChainer
 };
 static_assert(offsetof(NetworkVarChainer, PathIndex) == 0x20);
 
-static constexpr const char* ChainField = "__m_pChainEntity";
+static constexpr std::string_view ChainField = "__m_pChainEntity";
 
 /**
  * Set once at load and never cleared. A process-wide sink is right here: the schema system is one
@@ -54,14 +56,16 @@ static CNetworkSerializerCodeGenDatabase* SerializerDatabase()
     return anchor->m_NetworkSerializerInfo->m_pDatabase;
 }
 
-static bool IsNetworked(CNetworkSerializerCodeGenDatabase& database, const char* className, const char* fieldName)
+static bool IsNetworked(CNetworkSerializerCodeGenDatabase& database, std::string_view className,
+                        std::string_view fieldName)
 {
-    const int index = database.m_ClassInfos.Find(className);
+    // The dict and the field lookup both take C strings; this runs once per field per process.
+    const int index = database.m_ClassInfos.Find(std::string(className).c_str());
     if (index == database.m_ClassInfos.InvalidIndex())
         return false;
 
     CNetworkSerializerClassInfo* info = database.m_ClassInfos[index];
-    return info != nullptr && info->FindField(fieldName) != nullptr;
+    return info != nullptr && info->FindField(std::string(fieldName).c_str()) != nullptr;
 }
 
 /** The class's own `__m_pChainEntity`, walking single inheritance up until one turns up. */
@@ -71,7 +75,8 @@ static int32_t FindChainOffset(const CSchemaClassInfo* klass)
     {
         for (uint16_t i = 0; i < klass->m_nFieldCount; ++i)
         {
-            if (std::strcmp(klass->m_pFields[i].m_pszName, ChainField) == 0)
+            const char* name = klass->m_pFields[i].m_pszName;
+            if (name && ChainField == name)
                 return klass->m_pFields[i].m_nSingleInheritanceOffset;
         }
     }

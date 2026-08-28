@@ -24,27 +24,27 @@ public:
     bool CanSpawn() const;
 
     /** Create without spawning. Returns nullptr on failure. */
-    CEntityInstance* CreateByName(const char* className);
+    CEntityInstance* CreateByName(std::string_view className);
 
     /** Spawn an entity. The engine takes ownership of non-null @p kv. */
     void DispatchSpawn(CEntityInstance* entity, KeyValues* kv);
 
     /** Create and spawn an entity. Returns nullptr on failure. */
-    CEntityInstance* Spawn(const char* className, KeyValues& kv);
+    CEntityInstance* Spawn(std::string_view className, KeyValues& kv);
 
     /** Fire an entity input with an optional string value. */
-    void AcceptInput(CEntityInstance* entity, const char* input, const char* param = nullptr,
+    void AcceptInput(CEntityInstance* entity, std::string_view input, std::string_view param = {},
                      CEntityInstance* activator = nullptr, CEntityInstance* caller = nullptr);
 
     /** Fire an entity input with a FIELD_FLOAT32 value. */
-    void AcceptInputFloat(CEntityInstance* entity, const char* input, float value, CEntityInstance* activator = nullptr,
-                          CEntityInstance* caller = nullptr);
+    void AcceptInputFloat(CEntityInstance* entity, std::string_view input, float value,
+                          CEntityInstance* activator = nullptr, CEntityInstance* caller = nullptr);
 
     /** Set render and collision scale through `SetScale`, clamped to a safe range. */
     void SetModelScale(CEntityInstance* entity, float scale);
 
     /** Fire an entity input after a delay via the engine's entity IO queue. */
-    void AddIOEvent(CEntityInstance* target, const char* input, float delaySeconds,
+    void AddIOEvent(CEntityInstance* target, std::string_view input, float delaySeconds,
                     CEntityInstance* activator = nullptr, CEntityInstance* caller = nullptr);
 
     /** Remove immediately through UTIL_Remove. */
@@ -54,15 +54,15 @@ public:
     void RemoveDelayed(CEntityInstance* entity, float delaySeconds);
 
     /** Set a CBaseModelEntity model. */
-    void SetModel(CEntityInstance* entity, const char* modelPath);
+    void SetModel(CEntityInstance* entity, std::string_view modelPath);
 
     /** Emit a `.vsndevts` event with normal attenuation. */
-    void EmitSound(CEntityInstance* entity, const char* soundEvent, int pitch = 100, float volume = 1.0f,
+    void EmitSound(CEntityInstance* entity, std::string_view soundEvent, int pitch = 100, float volume = 1.0f,
                    float delay = 0.0f);
 
     /** Emit a sound event from an entity to the filtered recipients only. */
-    void EmitSoundFilter(IRecipientFilter& filter, CEntityInstance* source, const char* soundEvent, float volume = 1.0f,
-                         int pitch = 100);
+    void EmitSoundFilter(IRecipientFilter& filter, CEntityInstance* source, std::string_view soundEvent,
+                         float volume = 1.0f, int pitch = 100);
 
 private:
     EntitySystem& _entities;

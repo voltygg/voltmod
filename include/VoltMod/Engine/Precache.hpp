@@ -5,6 +5,7 @@
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace VoltMod
@@ -39,7 +40,7 @@ public:
     void Shutdown();
 
     /** Queue a resource path (e.g. "particles/foo.vpcf") for the next map load. Dedupes. */
-    void Add(std::string resourcePath);
+    void Add(std::string_view resourcePath);
 
 private:
     friend class PrecacheGameSystem;  // reads _resources inside the manifest event

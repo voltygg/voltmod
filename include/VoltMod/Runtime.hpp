@@ -27,6 +27,7 @@
 #include <cstddef>
 #include <memory>
 #include <string>
+#include <string_view>
 
 namespace VoltMod
 {
@@ -34,11 +35,10 @@ namespace VoltMod
 /** Everything @ref Runtime::Start needs from Metamod, plus the optional overrides. */
 struct LoadContext
 {
-    SourceMM::ISmmAPI* Ismm = nullptr;  ///< Metamod API pointer, from Plugin::Load
-    char* Error = nullptr;              ///< Error buffer Metamod shows if the load fails
-    size_t MaxLen = 0;                  ///< Size of that buffer
-    bool Late = false;                  ///< Loaded after the server had already started
-    const char* LogPrefix = "VoltMod";  ///< Console log prefix, e.g. "[ADMIN]"
+    SourceMM::ISmmAPI* Ismm = nullptr;       ///< Metamod API pointer, from Plugin::Load
+    char* Error = nullptr;                   ///< Error buffer Metamod shows if the load fails
+    size_t MaxLen = 0;                       ///< Size of that buffer
+    std::string_view LogPrefix = "VoltMod";  ///< Console log prefix, e.g. "[ADMIN]"
 };
 
 /**

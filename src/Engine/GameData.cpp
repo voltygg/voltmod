@@ -51,7 +51,7 @@ static GameData::Resolution ResolveAddress(const AddressEntry& entry, const Game
     return out;
 }
 
-Status GameData::Load(const std::string& path)
+Status GameData::Load(std::string_view path)
 {
     // Everything, not just the resolutions: a reload that kept the previous build stamp or a
     // stale entry would report a file it is no longer running on.

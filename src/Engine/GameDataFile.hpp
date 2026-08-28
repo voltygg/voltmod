@@ -107,7 +107,7 @@ struct GameDataFile
     static Result<GameDataFile> Parse(std::string_view text, GamePlatform platform);
 
     /** @ref Parse over a file, with the path resolved through ResolvePath. */
-    static Result<GameDataFile> Load(const std::string& path, GamePlatform platform);
+    static Result<GameDataFile> Load(std::string_view path, GamePlatform platform);
 };
 
 /** True when @p pattern is space-separated hex bytes and `?`/`??` wildcards, and not empty. */

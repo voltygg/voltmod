@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 namespace VoltMod
@@ -37,7 +38,7 @@ public:
         PublishNamed(T::InterfaceName, static_cast<void*>(impl));
     }
 
-    void PublishNamed(const char* iface, void* impl) { _published[iface] = impl; }
+    void PublishNamed(std::string_view iface, void* impl) { _published[std::string(iface)] = impl; }
 
     template <class T>
     void Unpublish()
@@ -45,7 +46,7 @@ public:
         UnpublishNamed(T::InterfaceName);
     }
 
-    void UnpublishNamed(const char* iface) { _published.erase(iface); }
+    void UnpublishNamed(std::string_view iface) { _published.erase(std::string(iface)); }
 
     /** What another plugin published for @p T, or nullptr. Not cached: peers come and go,
      *  and callers are rare enough that a factory walk each time is cheaper than tracking
@@ -58,14 +59,14 @@ public:
 
     /** This module's own entry for @p iface. Serves OnMetamodQuery; inline so the table
      *  can be tested without linking Metamod. */
-    void* Find(const char* iface) const
+    void* Find(std::string_view iface) const
     {
-        auto it = _published.find(iface);
+        auto it = _published.find(std::string(iface));
         return it == _published.end() ? nullptr : it->second;
     }
 
 private:
-    static void* Query(const char* iface);
+    static void* Query(std::string_view iface);
 
     std::unordered_map<std::string, void*> _published;
 };
