@@ -63,6 +63,18 @@ public:
     }
 
     /**
+     * A second line under the title: a version, a target's name, what a flow is about to do.
+     *
+     * Both drivers show it - center HTML on its header line, the Panorama menu in its own panel -
+     * so it is plain text with no markup, which is what lets either render it.
+     */
+    MenuBuilder& Subtitle(std::string subtitle)
+    {
+        _menu->Subtitle = std::move(subtitle);
+        return *this;
+    }
+
+    /**
      * Bind the admin/target pair (and optionally the effect registry) context rows act on.
      *
      * Context rows re-check `Policy::Authorize` for @p admin (and @p target, for a two-player
