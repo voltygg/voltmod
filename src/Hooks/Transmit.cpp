@@ -12,14 +12,6 @@ namespace VoltMod
 // Pawn + 12 weapon slots + a handful of wearables is well within this.
 static constexpr int MaxIndicesPerPlayer = 24;
 
-// Sub-object fields with no wrapper of their own; resolved once for the process on first use.
-static const SchemaField<uint32_t> kPossessedPawn{"CBasePlayerController", "m_hPawn"};
-static const SchemaField<void*> kObserverServices{"CBasePlayerPawn", "m_pObserverServices"};
-static const SchemaField<uint32_t> kObserverTarget{"CPlayer_ObserverServices", "m_hObserverTarget"};
-static const SchemaField<void*> kWeaponServices{"CBasePlayerPawn", "m_pWeaponServices"};
-static const SchemaField<HandleVectorView> kMyWeapons{"CPlayer_WeaponServices", "m_hMyWeapons", 0};
-static const SchemaField<HandleVectorView> kMyWearables{"CBaseCombatCharacter", "m_hMyWearables", 0};
-
 // CNetworkUtlVectorBase<CHandle<T>>: element count at +0, element pointer at +8.
 // Only these two fields are read; the vector is never mutated.
 struct HandleVectorView
@@ -28,6 +20,14 @@ struct HandleVectorView
     int32_t _pad;
     const uint32_t* Elements;
 };
+
+// Sub-object fields with no wrapper of their own; resolved once for the process on first use.
+static const SchemaField<uint32_t> kPossessedPawn{"CBasePlayerController", "m_hPawn"};
+static const SchemaField<void*> kObserverServices{"CBasePlayerPawn", "m_pObserverServices"};
+static const SchemaField<uint32_t> kObserverTarget{"CPlayer_ObserverServices", "m_hObserverTarget"};
+static const SchemaField<void*> kWeaponServices{"CBasePlayerPawn", "m_pWeaponServices"};
+static const SchemaField<HandleVectorView> kMyWeapons{"CPlayer_WeaponServices", "m_hMyWeapons", 0};
+static const SchemaField<HandleVectorView> kMyWearables{"CBaseCombatCharacter", "m_hMyWearables", 0};
 
 struct HiddenPlayer
 {
