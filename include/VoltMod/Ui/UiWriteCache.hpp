@@ -10,6 +10,14 @@
 namespace VoltMod
 {
 
+/** Which write namespace a key belongs to, so a dialog variable and a CSS class of the same
+ *  name on the same panel are tracked separately instead of shadowing one another. */
+enum class UiProperty
+{
+    Text,
+    Class
+};
+
 /**
  * @brief What each player has already been told about a layout, so an unchanged frame is free.
  *
@@ -27,8 +35,10 @@ public:
     /** Reset a slot's memory when a player joins or leaves it. Idempotent. */
     void Bind(SlotEvents& slots) { _slots.BindReset(slots); }
 
-    /** Record @p value under (@p panelId, @p name) for @p slot; true when it is new or different. */
-    bool Update(int slot, std::string_view panelId, std::string_view name, std::string_view value);
+    /** Record @p value under (@p kind, @p panelId, @p name) for @p slot; true when it is new or
+     *  different. @p kind keeps a dialog variable and a CSS class of the same name apart. */
+    bool Update(int slot, UiProperty kind, std::string_view panelId, std::string_view name,
+                std::string_view value);
 
     /** Record @p enabled as @p slot's input-capture state; true when it changed. */
     bool UpdateCapture(int slot, bool enabled);
@@ -52,8 +62,8 @@ private:
         bool Failed = false;
     };
 
-    /** (panelId, name) joined into one key, in a buffer reused across calls. */
-    const std::string& Key(std::string_view panelId, std::string_view name);
+    /** (kind, panelId, name) joined into one key, in a buffer reused across calls. */
+    const std::string& Key(UiProperty kind, std::string_view panelId, std::string_view name);
 
     std::string _scratch;
     PerSlot<SlotState> _slots;

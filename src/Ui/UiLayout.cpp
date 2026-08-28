@@ -51,13 +51,13 @@ bool UiLayout::Covers(int slot) const
 
 void UiLayout::Text(int slot, std::string_view panelId, std::string_view variable, std::string_view value)
 {
-    if (_cache.Update(slot, panelId, variable, value))
+    if (_cache.Update(slot, UiProperty::Text, panelId, variable, value))
         Wrote(slot, _panel.For(slot).SetText(panelId, variable, value), panelId);
 }
 
 void UiLayout::Class(int slot, std::string_view panelId, std::string_view className, bool on)
 {
-    if (_cache.Update(slot, panelId, className, on ? "1" : "0"))
+    if (_cache.Update(slot, UiProperty::Class, panelId, className, on ? "1" : "0"))
         Wrote(slot, _panel.For(slot).SetClass(panelId, className, on), panelId);
 }
 

@@ -3,16 +3,17 @@
 namespace VoltMod
 {
 
-/** Separates the two halves of a key; not legal in a panel id or a variable name. */
+/** Separates the parts of a key; not legal in a panel id or a variable name. */
 static constexpr char kKeySeparator = '\x1f';
 
-bool UiWriteCache::Update(int slot, std::string_view panelId, std::string_view name, std::string_view value)
+bool UiWriteCache::Update(int slot, UiProperty kind, std::string_view panelId, std::string_view name,
+                           std::string_view value)
 {
     if (!IsValidSlot(slot))
         return false;
 
     auto& values = _slots[slot].Values;
-    const std::string& key = Key(panelId, name);
+    const std::string& key = Key(kind, panelId, name);
     if (auto it = values.find(key); it != values.end())
     {
         if (it->second == value)
@@ -67,9 +68,11 @@ void UiWriteCache::ForgetAll()
     _slots.ResetAll();
 }
 
-const std::string& UiWriteCache::Key(std::string_view panelId, std::string_view name)
+const std::string& UiWriteCache::Key(UiProperty kind, std::string_view panelId, std::string_view name)
 {
-    _scratch.assign(panelId);
+    _scratch.assign(1, static_cast<char>(kind));
+    _scratch += kKeySeparator;
+    _scratch += panelId;
     _scratch += kKeySeparator;
     _scratch += name;
     return _scratch;
