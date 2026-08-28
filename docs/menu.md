@@ -171,7 +171,7 @@ Every builder method appends a typed row. Use
 `AddOption(std::shared_ptr<MenuOption>)` for a custom subclass.
 
 - `Text(label)` is a non-selectable heading or divider; the cursor skips it.
-- `Button(label, onActivate, enabled = true)` is a plain action row. `DynamicButton(getLabel, ...)` recomputes the label every frame.
+- `Button(label, onActivate, enabled = true)` is a plain action row.
 - `Toggle(title, onLabel, offLabel, getState, onToggle, enabled = true)` carries an on/off value; E and A/D both flip it, and a click or a stepper does on the Panorama menu. State lives wherever you keep it, so pass a getter.
 - `Choice<T>(title, choices, onCommit, enabled = true, initialIndex = 0)`: A/D (or the row steppers) cycles the `{label, value}` list and E (or the row itself) commits the current value. The option owns its index, so ephemeral pick-one rows need no external state:
 

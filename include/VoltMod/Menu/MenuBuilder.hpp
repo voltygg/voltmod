@@ -137,14 +137,6 @@ public:
         return *this;
     }
 
-    /** Append an action row with a label that is recomputed every render. */
-    MenuBuilder& DynamicButton(std::function<std::string()> getLabel, std::function<void(int)> onActivate,
-                               bool enabled = true)
-    {
-        _menu->Items.push_back(std::make_shared<ButtonOption>(std::move(getLabel), std::move(onActivate), enabled));
-        return *this;
-    }
-
     /** Append a toggle row. E and A/D both flip. State is read via @p getState every frame. */
     MenuBuilder& Toggle(const std::string& title, const std::string& onLabel, const std::string& offLabel,
                         std::function<bool(int)> getState, std::function<void(int)> onToggle, bool enabled = true)
