@@ -2,6 +2,7 @@
 #include <VoltMod/Core/Time.hpp>
 #include <VoltMod/Menu/MenuHost.hpp>
 #include <VoltMod/Menu/MenuOption.hpp>
+#include <memory>
 #include <utility>
 
 namespace VoltMod
@@ -141,7 +142,9 @@ void MenuHost::Activate(int slot, int index)
     if (!menu || index < 0 || index >= static_cast<int>(menu->Items.size()))
         return;
 
-    auto& option = menu->Items[static_cast<std::size_t>(index)];
+    // A copy of the pointer, not a reference into the vector: a row that closes or reopens the
+    // menu destroys the MenuView, and with it the option whose handler is still running.
+    const std::shared_ptr<MenuOption> option = menu->Items[static_cast<std::size_t>(index)];
     if (IsCursorTarget(option))
         option->OnActivate(slot, *this);
 }
@@ -155,7 +158,8 @@ bool MenuHost::Step(int slot, int index, int direction)
     if (!menu || index < 0 || index >= static_cast<int>(menu->Items.size()))
         return false;
 
-    auto& option = menu->Items[static_cast<std::size_t>(index)];
+    // Copied for the same reason as in Activate: a step that persists may rebuild the menu.
+    const std::shared_ptr<MenuOption> option = menu->Items[static_cast<std::size_t>(index)];
     return option && option->IsEnabled() && option->OnHorizontal(slot, direction);
 }
 
