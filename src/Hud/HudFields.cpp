@@ -12,19 +12,14 @@
 
 namespace VoltMod
 {
-
-// Resolved lazily because the schema system is not up until the first map load. Offsets come from
-// the live schema, so a field that moves in a CS2 update needs nothing here; the sizes are the
-// check that matters - they say the shape is still what this file reads, and a mismatch warns once
-// at resolve time. Sizes from server.dll build 24934554.
-static const FieldOffset kPanelIds{"CCSCustomHudLayout", "m_vecPanelIds", 24};
-static const FieldOffset kClassNames{"CCSCustomHudLayout", "m_vecClassNames", 24};
-static const FieldOffset kDialogVarNames{"CCSCustomHudLayout", "m_vecDialogVariableNames", 24};
-static const FieldOffset kGlobalState{"CCSCustomHudLayout", "m_globalLayoutState", 408};
-static const FieldOffset kPlayerStates{"CCSCustomHudLayout", "m_vecPlayerLayoutStates", 104};
-static const FieldOffset kInputCapture{"CCSCustomHudLayoutState", "m_bInputCaptureEnabled", 1};
-
 using StringTable = CUtlVector<CUtlString>;
+
+static const SchemaField<StringTable> kPanelIds{"CCSCustomHudLayout", "m_vecPanelIds", 24};
+static const SchemaField<StringTable> kClassNames{"CCSCustomHudLayout", "m_vecClassNames", 24};
+static const SchemaField<StringTable> kDialogVarNames{"CCSCustomHudLayout", "m_vecDialogVariableNames", 24};
+static const SchemaField<void> kGlobalState{"CCSCustomHudLayout", "m_globalLayoutState", 408};
+static const SchemaField<int32_t> kPlayerStates{"CCSCustomHudLayout", "m_vecPlayerLayoutStates", 104};
+static const SchemaField<bool> kInputCapture{"CCSCustomHudLayoutState", "m_bInputCaptureEnabled"};
 
 /** EHudPanelClassStatus_t. Undefined defers to whatever the layout markup itself says. */
 static constexpr int32_t kClassUndefined = -1;
@@ -38,9 +33,9 @@ static constexpr int kTableCap = 1024;
 static constexpr int kTableHeadroom = 64;
 
 /** Count of one networked string table, or -1 when the field is unresolved. */
-static int TableCount(CEntityInstance* entity, const FieldOffset& field)
+static int TableCount(CEntityInstance* entity, const SchemaField<StringTable>& field)
 {
-    const StringTable* table = SchemaPtr{entity}.Ptr<const StringTable>(field);
+    const StringTable* table = SchemaPtr{entity}.Ptr(field);
     return table ? table->Count() : -1;
 }
 
@@ -90,7 +85,7 @@ static Result<CEntityInstance*> ReadyForWrite(EntitySystem* entities, EntityRef 
     if (!kPlayerStates)
         return std::unexpected(Error::NotReady("the CustomHud per-player state field did not resolve"));
 
-    const int states = SchemaPtr{entity.Raw()}.Get<int32_t>(kPlayerStates);
+    const int states = SchemaPtr{entity.Raw()}.Get(kPlayerStates);
     if (states <= slot)
         return std::unexpected(
             Error::Failed(std::format("slot {} has no per-player layout state (the entity holds {})", slot, states)));
@@ -133,7 +128,7 @@ int HudPlayerStateCount(EntitySystem* entities, EntityRef ref)
 
     // CUtlVectorEmbeddedNetworkVar keeps its count first, which is exactly what the engine's own
     // IsInputCaptureEnabled reads before indexing.
-    const int32_t* count = SchemaPtr{entity.Raw()}.Ptr<const int32_t>(kPlayerStates);
+    const int32_t* count = SchemaPtr{entity.Raw()}.Ptr(kPlayerStates);
     return count ? *count : -1;
 }
 

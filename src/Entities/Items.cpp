@@ -10,9 +10,9 @@ namespace VoltMod
 
 SchemaPtr Items::ItemServices(const Pawn& pawn)
 {
-    static const FieldOffset services{"CBasePlayerPawn", "m_pItemServices", sizeof(void*)};
+    static const SchemaField<void*> services{"CBasePlayerPawn", "m_pItemServices"};
 
-    return SchemaPtr{pawn.Raw()}.SubObject(services);
+    return SchemaPtr{pawn.Raw()}.Follow(services);
 }
 
 bool Items::Give(const Pawn& pawn, std::string_view item)

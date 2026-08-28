@@ -15,10 +15,10 @@ namespace VoltMod
 // CGameSceneNode, reached via m_CBodyComponent -> m_pSceneNode.
 static SchemaPtr SceneNode(CEntityInstance* entity)
 {
-    static const FieldOffset body{"CBaseEntity", "m_CBodyComponent"};
-    static const FieldOffset node{"CBodyComponent", "m_pSceneNode", sizeof(void*)};
+    static const SchemaField<void> body{"CBaseEntity", "m_CBodyComponent"};
+    static const SchemaField<void*> node{"CBodyComponent", "m_pSceneNode"};
 
-    return SchemaPtr{entity}.SubObject(body).SubObject(node);
+    return SchemaPtr{entity}.At(body).Follow(node);
 }
 
 int Entity::Index() const
@@ -41,15 +41,15 @@ std::string_view Entity::ClassName() const
 
 Vector Entity::Origin() const
 {
-    static const FieldOffset origin{"CGameSceneNode", "m_vecAbsOrigin", sizeof(Vector)};
+    static const SchemaField<Vector> origin{"CGameSceneNode", "m_vecAbsOrigin"};
     // Spelled out rather than left to `Vector{}`: the SDK's default constructor does not zero.
-    return SceneNode(_e).Get<Vector>(origin, Vector(0.0f, 0.0f, 0.0f));
+    return SceneNode(_e).Get(origin, Vector(0.0f, 0.0f, 0.0f));
 }
 
 QAngle Entity::Angles() const
 {
-    static const FieldOffset rotation{"CGameSceneNode", "m_angAbsRotation", sizeof(QAngle)};
-    return SceneNode(_e).Get<QAngle>(rotation, QAngle(0.0f, 0.0f, 0.0f));
+    static const SchemaField<QAngle> rotation{"CGameSceneNode", "m_angAbsRotation"};
+    return SceneNode(_e).Get(rotation, QAngle(0.0f, 0.0f, 0.0f));
 }
 
 Status Entity::Teleport(std::optional<Vector> origin, std::optional<QAngle> angles,
@@ -95,21 +95,21 @@ Status Pawn::Slay() const
 // Field: there is no fixed offset from the pawn to reach it.
 static SchemaPtr ObserverServices(CEntityInstance* pawn)
 {
-    static const FieldOffset services{"CBasePlayerPawn", "m_pObserverServices", sizeof(void*)};
-    return SchemaPtr{pawn}.SubObject(services);
+    static const SchemaField<void*> services{"CBasePlayerPawn", "m_pObserverServices"};
+    return SchemaPtr{pawn}.Follow(services);
 }
 
-static const FieldOffset kObserverMode{"CPlayer_ObserverServices", "m_iObserverMode", sizeof(uint8_t)};
+static const SchemaField<uint8_t> kObserverMode{"CPlayer_ObserverServices", "m_iObserverMode"};
 
 ObserverMode_t Pawn::GetObserverMode() const
 {
     return static_cast<ObserverMode_t>(
-        ObserverServices(_e).Get<uint8_t>(kObserverMode, static_cast<uint8_t>(ObserverMode_t::None)));
+        ObserverServices(_e).Get(kObserverMode, static_cast<uint8_t>(ObserverMode_t::None)));
 }
 
 Status Pawn::SetObserverMode(ObserverMode_t value) const
 {
-    if (!ObserverServices(_e).Set<uint8_t>(kObserverMode, static_cast<uint8_t>(value)))
+    if (!ObserverServices(_e).Set(kObserverMode, static_cast<uint8_t>(value)))
         return std::unexpected(Error::NotReady("observer services unavailable"));
     return {};
 }
@@ -118,10 +118,10 @@ std::string Pawn::ModelName() const
 {
     // The pawn's scene node is a CSkeletonInstance; the model path is the CUtlSymbolLarge inside
     // its embedded CModelState (an interned string pointer).
-    static const FieldOffset state{"CSkeletonInstance", "m_modelState"};
-    static const FieldOffset name{"CModelState", "m_ModelName"};
+    static const SchemaField<void> state{"CSkeletonInstance", "m_modelState"};
+    static const SchemaField<const char*> name{"CModelState", "m_ModelName"};
 
-    const char* path = SceneNode(_e).Inside(state).Get<const char*>(name, nullptr);
+    const char* path = SceneNode(_e).At(state).Get(name, nullptr);
     return path ? std::string(path) : std::string{};
 }
 
@@ -153,9 +153,9 @@ int Pawn::Slot() const
 
 Controller::Controller(EntitySystem& entities, CEntityInstance* raw, int slot) : Entity(entities, raw), _slot(slot)
 {
-    static const FieldOffset playerPawn{"CCSPlayerController", "m_hPlayerPawn", sizeof(uint32_t)};
+    static const SchemaField<uint32_t> playerPawn{"CCSPlayerController", "m_hPlayerPawn"};
 
-    const uint32_t handle = SchemaPtr{_e}.Get<uint32_t>(playerPawn, InvalidEntityHandle);
+    const uint32_t handle = SchemaPtr{_e}.Get(playerPawn, InvalidEntityHandle);
     _pawn = entities.Resolve(EntityRef{handle}).Raw();
 }
 
@@ -166,17 +166,17 @@ Pawn Controller::GetPawn() const
 
 // The balance lives in a sub-object the controller points at, so it needs the same two-step reach
 // as the observer mode above.
-static const FieldOffset kMoneyServices{"CCSPlayerController", "m_pInGameMoneyServices", sizeof(void*)};
-static const FieldOffset kAccount{"CCSPlayerController_InGameMoneyServices", "m_iAccount", sizeof(int)};
+static const SchemaField<void*> kMoneyServices{"CCSPlayerController", "m_pInGameMoneyServices"};
+static const SchemaField<int> kAccount{"CCSPlayerController_InGameMoneyServices", "m_iAccount"};
 
 int Controller::Money() const
 {
-    return SchemaPtr{_e}.SubObject(kMoneyServices).Get<int>(kAccount);
+    return SchemaPtr{_e}.Follow(kMoneyServices).Get(kAccount);
 }
 
 Status Controller::SetMoney(int amount) const
 {
-    if (!SchemaPtr{_e}.SubObject(kMoneyServices).Set<int>(kAccount, amount))
+    if (!SchemaPtr{_e}.Follow(kMoneyServices).Set(kAccount, amount))
         return std::unexpected(Error::NotReady("money services unavailable"));
 
     // The write is inside a sub-object, so it is invisible to the client on its own. Dirty the

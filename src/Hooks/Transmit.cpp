@@ -9,6 +9,17 @@
 namespace VoltMod
 {
 
+// Pawn + 12 weapon slots + a handful of wearables is well within this.
+static constexpr int MaxIndicesPerPlayer = 24;
+
+// Sub-object fields with no wrapper of their own; resolved once for the process on first use.
+static const SchemaField<uint32_t> kPossessedPawn{"CBasePlayerController", "m_hPawn"};
+static const SchemaField<void*> kObserverServices{"CBasePlayerPawn", "m_pObserverServices"};
+static const SchemaField<uint32_t> kObserverTarget{"CPlayer_ObserverServices", "m_hObserverTarget"};
+static const SchemaField<void*> kWeaponServices{"CBasePlayerPawn", "m_pWeaponServices"};
+static const SchemaField<HandleVectorView> kMyWeapons{"CPlayer_WeaponServices", "m_hMyWeapons", 0};
+static const SchemaField<HandleVectorView> kMyWearables{"CBaseCombatCharacter", "m_hMyWearables", 0};
+
 // CNetworkUtlVectorBase<CHandle<T>>: element count at +0, element pointer at +8.
 // Only these two fields are read; the vector is never mutated.
 struct HandleVectorView
@@ -17,9 +28,6 @@ struct HandleVectorView
     int32_t _pad;
     const uint32_t* Elements;
 };
-
-// Pawn + 12 weapon slots + a handful of wearables is well within this.
-static constexpr int MaxIndicesPerPlayer = 24;
 
 struct HiddenPlayer
 {
@@ -30,23 +38,16 @@ struct HiddenPlayer
     std::array<int, MaxIndicesPerPlayer> PawnIndices{};  // pawn itself + weapons + wearables
 };
 
-// Sub-object fields with no wrapper of their own; resolved once for the process on first use.
-static const FieldOffset kPossessedPawn{"CBasePlayerController", "m_hPawn", sizeof(uint32_t)};
-static const FieldOffset kObserverServices{"CBasePlayerPawn", "m_pObserverServices", sizeof(void*)};
-static const FieldOffset kObserverTarget{"CPlayer_ObserverServices", "m_hObserverTarget", sizeof(uint32_t)};
-static const FieldOffset kWeaponServices{"CBasePlayerPawn", "m_pWeaponServices", sizeof(void*)};
-static const FieldOffset kMyWeapons{"CPlayer_WeaponServices", "m_hMyWeapons"};
-static const FieldOffset kMyWearables{"CBaseCombatCharacter", "m_hMyWearables"};
-
 static void AddIndex(HiddenPlayer& player, int index)
 {
     if (index > 0 && player.IndexCount < MaxIndicesPerPlayer)
         player.PawnIndices[player.IndexCount++] = index;
 }
 
-static void AddHandleVector(EntitySystem& entities, HiddenPlayer& player, SchemaPtr base, const FieldOffset& field)
+static void AddHandleVector(EntitySystem& entities, HiddenPlayer& player, SchemaPtr base,
+                            const SchemaField<HandleVectorView>& field)
 {
-    const auto* view = base.Ptr<const HandleVectorView>(field);
+    const auto* view = base.Ptr(field);
     if (!view || !view->Elements)
         return;
     for (int32_t i = 0; i < view->Count && i < MaxIndicesPerPlayer; ++i)
@@ -61,11 +62,10 @@ static CEntityInstance* GetObserverTarget(EntitySystem& entities, int recipientS
     // m_hPawn is the possessed pawn (the observer pawn while dead or spectating), unlike the
     // m_hPlayerPawn that Controller::GetPawn resolves.
     Controller controller = entities.Controller(recipientSlot);
-    const uint32_t possessed = SchemaPtr{controller.Raw()}.Get<uint32_t>(kPossessedPawn, InvalidEntityHandle);
+    const uint32_t possessed = SchemaPtr{controller.Raw()}.Get(kPossessedPawn, InvalidEntityHandle);
 
     Entity pawn = entities.Resolve(EntityRef{possessed});
-    const uint32_t target =
-        SchemaPtr{pawn.Raw()}.SubObject(kObserverServices).Get<uint32_t>(kObserverTarget, InvalidEntityHandle);
+    const uint32_t target = SchemaPtr{pawn.Raw()}.Follow(kObserverServices).Get(kObserverTarget, InvalidEntityHandle);
 
     return entities.Resolve(EntityRef{target}).Raw();
 }
@@ -92,7 +92,7 @@ static void CollectHiddenPlayer(EntitySystem& entities, int slot, bool pawnHidde
     out.Pawn = pawn.Raw();
     AddIndex(out, pawn.Index());
 
-    AddHandleVector(entities, out, SchemaPtr{out.Pawn}.SubObject(kWeaponServices), kMyWeapons);
+    AddHandleVector(entities, out, SchemaPtr{out.Pawn}.Follow(kWeaponServices), kMyWeapons);
     AddHandleVector(entities, out, SchemaPtr{out.Pawn}, kMyWearables);
 }
 

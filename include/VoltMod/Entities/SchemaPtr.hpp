@@ -17,11 +17,11 @@ namespace VoltMod
  * one expression.
  *
  * ```cpp
- * static const FieldOffset kBody{"CBaseEntity", "m_CBodyComponent"};
- * static const FieldOffset kNode{"CBodyComponent", "m_pSceneNode", sizeof(void*)};
- * static const FieldOffset kOrigin{"CGameSceneNode", "m_vecAbsOrigin", sizeof(Vector)};
+ * static const SchemaField<void> kBody{"CBaseEntity", "m_CBodyComponent"};
+ * static const SchemaField<void*> kNode{"CBodyComponent", "m_pSceneNode"};
+ * static const SchemaField<Vector> kOrigin{"CGameSceneNode", "m_vecAbsOrigin"};
  *
- * SchemaPtr{entity}.SubObject(kBody).SubObject(kNode).Get<Vector>(kOrigin, Vector(0, 0, 0));
+ * SchemaPtr{entity}.At(kBody).Follow(kNode).Get(kOrigin, Vector(0, 0, 0));
  * ```
  *
  * Use @ref Field instead for a field on an entity the framework wraps: a Field knows its owning
@@ -46,35 +46,36 @@ public:
     /** Identity, which is what a hook comparing `this` pointers is asking about. */
     [[nodiscard]] bool operator==(const SchemaPtr&) const noexcept = default;
 
-    /** The sub-object a pointer field points at (`m_pItemServices`), or null. */
-    [[nodiscard]] SchemaPtr SubObject(const FieldOffset& field) const
+    /** Follow a schema pointer field (`m_pItemServices`), or return a null view. */
+    template <class T>
+    [[nodiscard]] SchemaPtr Follow(const SchemaField<T*>& field) const
     {
-        void** pointer = Ptr<void*>(field);
-        return pointer ? SchemaPtr{*pointer} : SchemaPtr{};
+        return SchemaPtr{field.Get(_base, nullptr)};
     }
 
-    /** A sub-object stored inline (`m_modelState`): the same storage, further in. */
-    [[nodiscard]] SchemaPtr Inside(const FieldOffset& field) const { return SchemaPtr{Ptr<uint8_t>(field)}; }
+    /** Step into a sub-object stored inline (`m_modelState`). */
+    template <class T>
+    [[nodiscard]] SchemaPtr At(const SchemaField<T>& field) const
+    {
+        return SchemaPtr{field.Ptr(_base)};
+    }
 
     /**
      * A pointer to the field itself, or nullptr. For a field read in place rather than copied out -
      * an engine container - and for one the engine declares as an array.
      */
     template <class T>
-    [[nodiscard]] T* Ptr(const FieldOffset& field) const
+    [[nodiscard]] typename SchemaField<T>::Value* Ptr(const SchemaField<T>& field) const
     {
-        const FieldRef& ref = field.Ref();
-        if (!_base || !ref)
-            return nullptr;
-        return MemberPtr<T>(_base, ref.Offset);
+        return field.Ptr(_base);
     }
 
     /** The field's value, or @p fallback when this is null or the field did not resolve. */
     template <class T>
-    [[nodiscard]] T Get(const FieldOffset& field, T fallback = T{}) const
+    [[nodiscard]] T Get(const SchemaField<T>& field, std::type_identity_t<T> fallback = T{}) const
+        requires(!std::is_void_v<T> && !std::is_array_v<T>)
     {
-        const T* value = Ptr<const T>(field);
-        return value ? *value : fallback;
+        return field.Get(_base, fallback);
     }
 
     /**
@@ -87,13 +88,10 @@ public:
      * @return false when this is null or the field did not resolve, and nothing was written.
      */
     template <class T>
-    bool Set(const FieldOffset& field, const T& value) const
+    bool Set(const SchemaField<T>& field, const std::type_identity_t<T>& value) const
+        requires(!std::is_void_v<T> && !std::is_array_v<T>)
     {
-        T* target = Ptr<T>(field);
-        if (!target)
-            return false;
-        *target = value;
-        return true;
+        return field.Set(_base, value);
     }
 
 private:

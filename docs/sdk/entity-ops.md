@@ -25,13 +25,13 @@ ops.EmitSound(entity, "SoundEventName");   // .vsndevts event name, not a file p
 Never `delete` an entity. Use `Remove` immediately or `RemoveDelayed` through
 the engine's I/O queue.
 
-For unwrapped entities, use a `static` @ref VoltMod::FieldOffset through a
+For unwrapped entities, use a typed `static` @ref VoltMod::SchemaField through a
 @ref VoltMod::SchemaPtr, and notify live writes with @ref VoltMod::MarkChanged:
 
 ```cpp
-static const VoltMod::FieldOffset kWidth{"CBeam", "m_fWidth", sizeof(float)};
+static const VoltMod::SchemaField<float> kWidth{"CBeam", "m_fWidth"};
 
-if (VoltMod::SchemaPtr{beam}.Set<float>(kWidth, 2.0f))
+if (VoltMod::SchemaPtr{beam}.Set(kWidth, 2.0f))
     VoltMod::MarkChanged(beam, *kWidth);   // unnecessary before DispatchSpawn
 ```
 

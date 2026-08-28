@@ -152,21 +152,20 @@ runtime.Entities.PawnOf(slot).Health = 100;   // resolves CBaseEntity::m_iHealth
 
 `Field` compares `sizeof(T)` with the engine field size and warns once on mismatch.
 
-For fields without wrappers, declare a `static` @ref VoltMod::FieldOffset beside the access and
-apply it with a @ref VoltMod::SchemaPtr - the base a schema offset is read from, whether that is an
-entity or a sub-object reached from one:
+For fields without wrappers, declare a typed `static` @ref VoltMod::SchemaField beside the access
+and apply it with a @ref VoltMod::SchemaPtr:
 
 ```cpp
-static const VoltMod::FieldOffset kItemServices{"CBasePlayerPawn", "m_pItemServices", sizeof(void*)};
-static const VoltMod::FieldOffset kAccount{"CCSPlayerController_InGameMoneyServices", "m_iAccount", sizeof(int)};
+static const VoltMod::SchemaField<void*> kMoneyServices{"CCSPlayerController", "m_pInGameMoneyServices"};
+static const VoltMod::SchemaField<int> kAccount{"CCSPlayerController_InGameMoneyServices", "m_iAccount"};
 
-VoltMod::SchemaPtr services = VoltMod::SchemaPtr{pawn.Raw()}.SubObject(kItemServices);
-int money = VoltMod::SchemaPtr{controller.Raw()}.SubObject(kMoneyServices).Get<int>(kAccount);
+int money = VoltMod::SchemaPtr{controller.Raw()}.Follow(kMoneyServices).Get(kAccount);
 ```
 
-`SubObject` follows a pointer field, `Inside` steps into one stored inline, and every accessor
-answers harmlessly when the pointer is null or the field did not resolve. A `SchemaPtr` write does
-not dirty anything for replication - it has no entity to dirty - so pair it with
+The field type is written once and inferred by `Get`, `Set`, and `Ptr`; use `T[]` for an array and
+`void` for an inline object with no C++ type. `Follow` traverses a pointer field and `At` steps into
+an inline object. Every accessor answers harmlessly when the pointer is null or the field did not
+resolve. A `SchemaPtr` write does not dirty anything for replication, so pair it with
 @ref VoltMod::MarkChanged on the owning entity's own field, or use a @ref VoltMod::Field where the
 entity has a wrapper.
 

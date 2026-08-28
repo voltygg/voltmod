@@ -6,13 +6,13 @@
 #include <string_view>
 
 using VoltMod::FieldKey;
-using VoltMod::FieldOffset;
 using VoltMod::FieldQueryResult;
 using VoltMod::FieldRef;
 using VoltMod::FixedString;
 using VoltMod::PendingField;
 using VoltMod::ResetFieldCache;
 using VoltMod::ResolveField;
+using VoltMod::SchemaField;
 using VoltMod::SetFieldQuery;
 
 // The fake backend the cases drive. File-static rather than captured state because the seam is a
@@ -109,11 +109,11 @@ TEST_CASE("ResolveField caches hits and misses once the schema system is live")
     Reset(false);
 }
 
-TEST_CASE("FieldOffset retries while the schema system is pending and settles once it answers")
+TEST_CASE("SchemaField retries while the schema system is pending and settles once it answers")
 {
     Reset(false);
 
-    const FieldOffset health{"CBaseEntity", "m_iHealth", 4};
+    const SchemaField<int32_t> health{"CBaseEntity", "m_iHealth"};
     CHECK_FALSE(static_cast<bool>(health));
     CHECK(health->Offset == -1);
 

@@ -151,9 +151,9 @@ Pawn EntitySystem::PawnOf(int slot)
 
 int EntitySystem::SlotOf(const Pawn& pawn)
 {
-    static const FieldOffset controllerHandle{"CBasePlayerPawn", "m_hController", sizeof(uint32_t)};
+    static const SchemaField<uint32_t> controllerHandle{"CBasePlayerPawn", "m_hController"};
 
-    const uint32_t handle = SchemaPtr{pawn.Raw()}.Get<uint32_t>(controllerHandle, InvalidEntityHandle);
+    const uint32_t handle = SchemaPtr{pawn.Raw()}.Get(controllerHandle, InvalidEntityHandle);
     Entity controller = Resolve(EntityRef{handle});
     if (!controller)
         return -1;
@@ -167,18 +167,18 @@ uint64_t EntitySystem::Buttons(int slot)
 {
     // m_nButtons is an embedded CInButtonState; m_pButtonStates inside it is uint64[3]:
     // [0] held, [1] changed, [2] scroll.
-    static const FieldOffset buttons{"CPlayer_MovementServices", "m_nButtons"};
-    static const FieldOffset states{"CInButtonState", "m_pButtonStates"};
+    static const SchemaField<void> buttons{"CPlayer_MovementServices", "m_nButtons"};
+    static const SchemaField<uint64_t[]> states{"CInButtonState", "m_pButtonStates"};
 
-    const uint64_t* held = MovementServices(slot).Inside(buttons).Ptr<uint64_t>(states);
+    const uint64_t* held = MovementServices(slot).At(buttons).Ptr(states);
     return held ? held[0] : 0;
 }
 
 SchemaPtr EntitySystem::MovementServices(int slot)
 {
-    static const FieldOffset movement{"CBasePlayerPawn", "m_pMovementServices", sizeof(void*)};
+    static const SchemaField<void*> movement{"CBasePlayerPawn", "m_pMovementServices"};
 
-    return SchemaPtr{PawnOf(slot).Raw()}.SubObject(movement);
+    return SchemaPtr{PawnOf(slot).Raw()}.Follow(movement);
 }
 
 bool EntitySystem::IsPlayerSlotValid(int slot)

@@ -16,11 +16,10 @@ namespace VoltMod
 {
 
 /**
- * @brief Where one schema field sits on one class.
+ * @brief The resolved metadata for a schema field.
  *
- * Offsets are constants of the loaded server binary, so a resolved ref is good for the whole
- * process. `Offset < 0` means "no answer": either the field does not exist on the class or the
- * schema system was not up when it was asked. @ref PendingField tells those two apart.
+ * A resolved value remains valid for the process. A negative offset means either the field is
+ * missing or schema is not ready; compare its address with @ref PendingField to distinguish them.
  */
 struct FieldRef
 {
@@ -33,8 +32,7 @@ struct FieldRef
 };
 
 /**
- * FNV-1a 64 over `class::field`. The cache key @ref ResolveField uses; public so a test can
- * pin the mapping and so framework code can key its own tables the same way.
+ * FNV-1a 64 over `class::field`, used by the field cache and exposed for compatible tables.
  */
 [[nodiscard]] constexpr uint64_t FieldKey(std::string_view klass, std::string_view field) noexcept
 {
@@ -57,58 +55,59 @@ struct FieldRef
 }
 
 /**
- * Resolve @p field on @p klass once for the process, walking toward base classes so a field the
- * schema declares on a parent answers when asked for on the child. The walk only goes that way:
- * a field CS2 declares on a derived class (`CCSPlayerPawn::m_angEyeAngles`) has to be asked for
- * under that name, and asking its base resolves nothing.
+ * Resolve @p field on @p klass, searching its base classes. The search does not descend into
+ * derived classes.
  *
- * Hits *and* misses are cached, so a wrong name costs one schema walk rather than one per call.
- * A lookup made before the engine is ready to answer - the schema system or the entity system's
- * network serializer database is missing, which is the case until the first map load - is not an
- * answer: it returns @ref PendingField without caching, and the caller is expected to ask again.
- * Caching there would freeze `Networked = false` and silently stop writes from replicating. When
- * @p expectedSize is non-zero the
- * first (uncached) lookup compares it against the engine's own field size and warns once on a
- * mismatch - the signal that a game update moved or retyped the field. Game-thread only.
+ * Hits and misses are cached for the process. A lookup made before schema and network metadata are
+ * ready returns @ref PendingField without caching, so a later call can retry. If @p expectedSize
+ * is non-zero, the first resolved lookup warns when the schema size differs. Game-thread only.
  *
  * @return A reference stable for the process lifetime.
  */
 const FieldRef& ResolveField(std::string_view klass, std::string_view field, size_t expectedSize);
 
 /**
- * The ref @ref ResolveField hands back while the engine cannot answer yet. Compare addresses
- * against it to tell "ask again later" from a cached miss; both are falsy.
+ * The sentinel returned while schema is not ready. It and cached misses are both falsy.
  */
 const FieldRef& PendingField() noexcept;
 
 /**
- * Tell the engine a networked field written through @ref WriteAt changed, so it replicates on the
- * next snapshot instead of riding whatever touches the entity next. No-op for a null entity, an
- * unresolved ref, or a field that does not replicate.
+ * Mark a networked field for the next snapshot. Does nothing for a null entity, unresolved field,
+ * or non-networked field.
  */
 void MarkChanged(CEntityInstance* entity, const FieldRef& ref);
 
 /**
- * @brief One schema field's offset, resolved on first use and remembered.
+ * @brief A typed, lazily resolved schema field.
  *
- * The primitive the rest of this header is built on: a @ref Field is a FieldOffset plus an entity
- * and a type. Declare one where there is no entity wrapper to hang a @ref Field on - a field of an
- * engine sub-object, or a field on an entity the framework does not wrap - as a `static` beside the
- * code that uses it, with string literals for the names. It resolves once and keeps retrying for as
- * long as the schema system is not up yet, so an instance created during load does not freeze an
- * empty answer. Game-thread only.
+ * Use with @ref SchemaPtr when no entity wrapper exposes the field. Use `T[]` for arrays and
+ * `void` for untyped inline objects. Resolution retries until schema is ready. Game-thread only.
  *
  * ```cpp
- * static const FieldOffset kItemServices{"CBasePlayerPawn", "m_pItemServices", sizeof(void*)};
- * SchemaPtr services = SchemaPtr{pawn}.SubObject(kItemServices);
+ * static const SchemaField<void*> kItemServices{"CBasePlayerPawn", "m_pItemServices"};
+ * static const SchemaField<int> kAccount{"CPlayer_ItemServices", "m_iAccount"};
+ * int account = SchemaPtr{pawn}.Follow(kItemServices).Get(kAccount);
  * ```
  */
-class FieldOffset
+template <class T>
+class SchemaField
 {
 public:
-    /** @p klass and @p field must outlive this object; pass string literals. @p expectedSize is
-     *  the drift check, as on @ref ResolveField - 0 skips it. */
-    constexpr FieldOffset(std::string_view klass, std::string_view field, size_t expectedSize = 0) noexcept
+    using Value = std::remove_extent_t<T>;
+    using StoredValue = std::conditional_t<std::is_void_v<Value>, std::byte, Value>;
+
+    static consteval size_t DefaultExpectedSize()
+    {
+        if constexpr (std::is_void_v<T> || std::is_unbounded_array_v<T>)
+            return 0;
+        else
+            return sizeof(T);
+    }
+
+    static constexpr size_t ExpectedSize = DefaultExpectedSize();
+
+    /** @p klass and @p field must outlive this object. A zero @p expectedSize skips the size check. */
+    constexpr SchemaField(std::string_view klass, std::string_view field, size_t expectedSize = ExpectedSize) noexcept
         : _klass(klass), _field(field), _expectedSize(expectedSize)
     {}
 
@@ -123,6 +122,32 @@ public:
     const FieldRef* operator->() const { return &Ref(); }
     explicit operator bool() const { return static_cast<bool>(Ref()); }
 
+    /** The field address, or null when @p base or the field is unavailable. */
+    [[nodiscard]] Value* Ptr(void* base) const
+    {
+        const FieldRef& ref = Ref();
+        return base && ref ? MemberPtr<Value>(base, ref.Offset) : nullptr;
+    }
+
+    /** The field value, or @p fallback. Arrays and untyped inline objects are pointer-only. */
+    [[nodiscard]] StoredValue Get(void* base, StoredValue fallback = StoredValue{}) const
+        requires(!std::is_void_v<T> && !std::is_array_v<T>)
+    {
+        const auto* value = Ptr(base);
+        return value ? *value : fallback;
+    }
+
+    /** Write the field, returning false when @p base or the field is unavailable. */
+    bool Set(void* base, const StoredValue& value) const
+        requires(!std::is_void_v<T> && !std::is_array_v<T>)
+    {
+        Value* target = Ptr(base);
+        if (!target)
+            return false;
+        *target = value;
+        return true;
+    }
+
 private:
     std::string_view _klass;
     std::string_view _field;
@@ -130,7 +155,6 @@ private:
     mutable const FieldRef* _ref = nullptr;
 };
 
-/** A string literal usable as a non-type template argument. */
 template <size_t N>
 struct FixedString
 {
@@ -138,16 +162,14 @@ struct FixedString
 
     constexpr FixedString(const char (&text)[N]) { std::copy_n(text, N, Value); }
 
-    /** The literal without its terminating NUL. */
     [[nodiscard]] constexpr std::string_view View() const { return {Value, N - 1}; }
 };
 
 /**
- * @brief A fixed char array engine field (`char m_name[N]`), read and written whole.
+ * @brief A value for a fixed engine character array (`char m_name[N]`).
  *
- * Assignment truncates to N-1 characters and always NUL-terminates, and the unused tail is
- * zeroed so no remnant of the previous value stays in the entity. @ref View borrows from this
- * object, so keep the buffer alive for as long as the view; @ref Str copies.
+ * Assignment truncates to N-1 characters, adds a NUL, and clears the unused tail. @ref View
+ * borrows this buffer; @ref Str returns a copy.
  */
 template <size_t N>
 struct CharBuf
@@ -159,8 +181,7 @@ struct CharBuf
     CharBuf() = default;
     CharBuf(std::string_view text) noexcept { Assign(text); }
 
-    /** The one place a `const char*` overload earns its keep: without it `name = "literal"` needs
-     *  two user-defined conversions (to `string_view`, then to `CharBuf`) and does not compile. */
+    /** Supports direct construction from a literal without two user-defined conversions. */
     CharBuf(const char* text) noexcept { Assign(text ? std::string_view(text) : std::string_view{}); }
 
     CharBuf& operator=(std::string_view text) noexcept
@@ -169,14 +190,14 @@ struct CharBuf
         return *this;
     }
 
-    /** Present so `buf = "literal"` is not an ambiguity between the two converting constructors. */
+    /** Avoids ambiguous assignment from a string literal. */
     CharBuf& operator=(const char* text) noexcept
     {
         Assign(text ? std::string_view(text) : std::string_view{});
         return *this;
     }
 
-    /** Contents up to the first NUL. Points into this buffer. */
+    /** Contents before the first NUL, borrowed from this buffer. */
     [[nodiscard]] std::string_view View() const noexcept
     {
         size_t length = 0;
@@ -185,7 +206,6 @@ struct CharBuf
         return {Value, length};
     }
 
-    /** An owning copy of @ref View. */
     [[nodiscard]] std::string Str() const { return std::string(View()); }
 
     [[nodiscard]] bool Empty() const noexcept { return Value[0] == '\0'; }
@@ -200,24 +220,17 @@ struct CharBuf
 };
 
 /**
- * @brief A property proxy for one schema field on one live entity.
+ * @brief A schema-field proxy bound to a live entity.
  *
- * Declared as a member of an entity wrapper (`Field<int, "CBaseEntity", "m_iHealth"> Health{_e};`)
- * and used as if it were the field: it converts to T on read and takes a T on write. The offset is
- * one @ref FieldOffset shared by every instantiation of this type, so it resolves once per
- * (class, field) for the process and the proxy itself only carries the entity it is bound to - it
- * is exactly as frame-local as its owner. Never store one.
+ * Entity wrappers declare these as members and use them like values. Each specialization shares
+ * one resolved @ref SchemaField and each proxy stores only its entity pointer. The proxy is
+ * frame-local and must not be stored.
  *
- * A write to a networked field dirties it for replication automatically; that is the whole reason
- * to write through a Field rather than a raw @ref WriteAt.
+ * Writes mark networked fields for replication. Reads from a null entity or missing field return
+ * `T{}`; writes do nothing. A const proxy can still modify the entity, like a const pointer value.
  *
- * Reading a field on a null entity, or one the schema does not have, yields `T{}`; writing it is
- * a no-op. Constness is the proxy's, not the entity's: a `const Pawn&` still writes, the same way
- * a `T* const` still writes through.
- *
- * @tparam ExpectedSize what the caller assumes is at the offset. Defaults to `sizeof(T)`, which
- *         is right whenever T *is* the field; pass 0 for a T read out of a larger wrapper field
- *         (a Vector at the head of a CNetworkViewOffsetVector) so the drift check stays quiet.
+ * @tparam ExpectedSize Expected schema size. Pass 0 when T reads only the leading value of a
+ *         larger field.
  */
 template <class T, FixedString Klass, FixedString Name, size_t ExpectedSize = sizeof(T)>
 class Field
@@ -225,25 +238,17 @@ class Field
 public:
     explicit Field(CEntityInstance* owner) noexcept : _owner(owner) {}
 
-    /** Copying a wrapper rebinds its fields to the same entity, so this copies the binding. */
     Field(const Field&) = default;
 
-    [[nodiscard]] T Get() const
-    {
-        const FieldRef& ref = Ref();
-        if (!_owner || !ref)
-            return T{};
-        return ReadAt<T>(_owner, ref.Offset);
-    }
+    [[nodiscard]] T Get() const { return _schema.Get(_owner); }
 
     operator T() const { return Get(); }
 
     void Set(const T& value) const
     {
-        const FieldRef& ref = Ref();
-        if (!_owner || !ref)
+        if (!_schema.Set(_owner, value))
             return;
-        WriteAt<T>(_owner, ref.Offset, value);
+        const FieldRef& ref = Ref();
         if (ref.Networked)
             MarkChanged(_owner, ref);
     }
@@ -268,9 +273,7 @@ public:
         return *this;
     }
 
-    /** Templated so `pawn.Team == TeamCT` picks this over the built-in comparison reached through
-     *  `operator T()`; a plain `operator==(const T&)` ties with it whenever the literal's type
-     *  differs from T. */
+    /** Prevents differently typed comparisons from tying with the conversion to T. */
     template <class U>
     [[nodiscard]] bool operator==(const U& other) const
         requires std::equality_comparable_with<T, U>
@@ -278,12 +281,11 @@ public:
         return Get() == other;
     }
 
-    /** The resolved offset for this (class, field), shared by every Field of this type. */
-    [[nodiscard]] static const FieldRef& Ref() { return _offset.Ref(); }
+    [[nodiscard]] static const FieldRef& Ref() { return _schema.Ref(); }
 
 private:
-    /** Constant-initialized, so a field access costs no thread-safe-static guard. */
-    static inline FieldOffset _offset{Klass.View(), Name.View(), ExpectedSize};
+    /** Constant-initialized to avoid a function-local static guard on field access. */
+    static inline SchemaField<T> _schema{Klass.View(), Name.View(), ExpectedSize};
 
     CEntityInstance* _owner;
 };
