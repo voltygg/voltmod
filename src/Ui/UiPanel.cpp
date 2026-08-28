@@ -1,37 +1,144 @@
 #include "Ui/LayoutName.hpp"
 #include "Ui/UiFields.hpp"
+#include "Ui/UiPanelState.hpp"
 
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Entities/KeyValues.hpp>
 #include <VoltMod/Ui/UiPanel.hpp>
+#include <format>
 #include <utility>
 
 namespace VoltMod
 {
 
-Status UiPlayerView::SetText(std::string_view panelId, std::string_view variable, std::string_view value)
+// The public spelling of what UiFields calls kEveryone; they index the same engine setters.
+static_assert(UiPanel::Everyone == kEveryone, "UiPanel::Everyone must be the UiFields global-state slot.");
+
+/** Reserved cache key for the input-capture flag, which is not a panel's dialog variable. */
+static constexpr std::string_view kCaptureName = "input capture";
+
+UiPanelState::UiPanelState(EntitySystem* entities, EntityOps* ops, SlotEvents* slots, Event<const UiClick&>* allClicks,
+                           std::string layout, std::string resource)
+    : Entities(entities),
+      Ops(ops),
+      AllClicks(allClicks),
+      Layout(std::move(layout)),
+      Resource(std::move(resource)),
+      Clicked({.OnFirst = [this] { return OnFirstSubscriber(); }, .OnLast = [this] { OnLastSubscriber(); }})
 {
-    return UiWriteText(_entities, _ref, _slot, panelId, variable, value);
+    if (!slots)
+        return;
+
+    Cache.Bind(*slots);
+
+    // A slot changing hands is the one thing that can make the entity too small, so it is also the
+    // only thing that lets a re-spawn happen.
+    PlayerChanges = slots->Changed += [this](int) { PlayersChanged = true; };
 }
 
-Status UiPlayerView::SetClass(std::string_view panelId, std::string_view className, bool on)
+Status UiPanelState::Spawn()
 {
-    return UiWriteClass(_entities, _ref, _slot, panelId, className, on);
+    PlayersChanged = false;
+
+    // Nothing the old entity was told survives, so it goes before the new one arrives.
+    Remove();
+
+    if (Resource.empty())
+        return std::unexpected(Error::Invalid(std::format("'{}' is not a usable layout name", Layout)));
+    if (!Ops || !Entities)
+        return std::unexpected(Error::NotReady("this panel has no entity system behind it"));
+    if (!Ops->CanSpawn())
+        return std::unexpected(Error::Unsupported("entity spawning is unavailable"));
+
+    KeyValues kv;
+    kv.Set("layout", Resource);
+
+    CEntityInstance* entity = Ops->Spawn("custom_hud_layout", kv);
+    if (!entity)
+        return std::unexpected(Error::Engine("the engine refused to spawn custom_hud_layout"));
+
+    CurrentEntity = Entity(*Entities, entity).Ref();
+    return {};
 }
 
-Status UiPlayerView::ResetClass(std::string_view panelId, std::string_view className)
+void UiPanelState::Remove()
 {
-    return UiResetClass(_entities, _ref, _slot, panelId, className);
+    if (Entities && Ops)
+    {
+        if (Entity entity = Entities->Resolve(CurrentEntity))
+            Ops->Remove(entity.Raw());
+    }
+    CurrentEntity = {};
+    Cache.ForgetAll();
 }
 
-Status UiPlayerView::SetInputCapture(bool enabled)
+bool UiPanelState::Covers(int slot) const
 {
-    return UiWriteInputCapture(_entities, _ref, _slot, enabled);
+    return IsValidSlot(slot) && UiPlayerStateCount(Entities, CurrentEntity) > slot;
 }
 
-Result<bool> UiPlayerView::InputCaptureEnabled() const
+Status UiPanelState::RecordWrite(int slot, Status status, std::string_view what)
 {
-    return UiReadInputCapture(_entities, _ref, _slot);
+    if (status)
+        return status;
+
+    // The cache has already recorded the value this write was meant to install, so it has to be
+    // dropped or the next frame would skip the retry. Every write for the slot then fails the same
+    // way, which is worth exactly one line rather than one per frame.
+    Cache.Forget(slot);
+    if (Cache.FirstFailure(slot))
+        Log::Warn("UiPanel '{}': writing {} for slot {} failed ({}).", Layout, what, slot, status.error().Detail);
+
+    return status;
+}
+
+Event<int>& UiPanelState::Button(std::string_view id)
+{
+    if (auto it = Buttons.find(std::string(id)); it != Buttons.end())
+        return it->second;
+
+    return Buttons
+        .try_emplace(std::string(id), Event<int>::Lifecycle{.OnFirst = [this] { return OnFirstSubscriber(); },
+                                                            .OnLast = [this] { OnLastSubscriber(); }})
+        .first->second;
+}
+
+bool UiPanelState::OnFirstSubscriber()
+{
+    if (Subscribers == 0)
+    {
+        if (!AllClicks)
+            return false;
+
+        // The handler holds this state, never the panel: the state is on the heap, so routing keeps
+        // working after the panel moves, and ClickListener is declared last so the handler is
+        // retired before anything it reads goes away.
+        ClickListener = *AllClicks +=
+            [this](const UiClick& click) { Internal::RouteUiClick(click, CurrentEntity, Clicked, Buttons); };
+        if (!ClickListener)
+            return false;  // the hook refused; a later subscription is free to try again
+    }
+
+    ++Subscribers;
+    return true;
+}
+
+void UiPanelState::OnLastSubscriber()
+{
+    if (Subscribers > 0 && --Subscribers == 0)
+        ClickListener.Reset();
+}
+
+/** Spawn and say why it failed, once per attempt rather than once per frame. */
+static bool SpawnOrWarn(UiPanelState& state)
+{
+    const Status spawned = state.Spawn();
+    if (!spawned)
+        Log::Warn("UiPanel '{}': spawn failed ({}).", state.Layout, spawned.error().Detail);
+
+    return spawned.has_value();
 }
 
 UiPanel::~UiPanel()
@@ -39,112 +146,186 @@ UiPanel::~UiPanel()
     Remove();
 }
 
-UiPanel::UiPanel(UiPanel&& other) noexcept
-    : _entities(std::exchange(other._entities, nullptr)),
-      _ops(std::exchange(other._ops, nullptr)),
-      _clicked(std::exchange(other._clicked, nullptr)),
-      _ref(std::exchange(other._ref, EntityRef{}))
-{}
-
 UiPanel& UiPanel::operator=(UiPanel&& other) noexcept
 {
     if (this != &other)
     {
         Remove();
-        _entities = std::exchange(other._entities, nullptr);
-        _ops = std::exchange(other._ops, nullptr);
-        _clicked = std::exchange(other._clicked, nullptr);
-        _ref = std::exchange(other._ref, EntityRef{});
+        _state = std::move(other._state);
     }
     return *this;
 }
 
 UiPanel::operator bool() const
 {
-    return _entities && static_cast<bool>(_entities->Resolve(_ref));
+    return _state && _state->Entities && static_cast<bool>(_state->Entities->Resolve(_state->CurrentEntity));
 }
 
-void UiPanel::Remove()
+std::string_view UiPanel::Name() const noexcept
 {
-    if (_entities && _ops)
-    {
-        if (Entity entity = _entities->Resolve(_ref))
-            _ops->Remove(entity.Raw());
-    }
-    _ref = {};
+    return _state ? std::string_view(_state->Layout) : std::string_view{};
 }
 
-Status UiPanel::SetText(std::string_view panelId, std::string_view variable, std::string_view value)
+EntityRef UiPanel::Ref() const noexcept
 {
-    return UiWriteText(_entities, _ref, kEveryone, panelId, variable, value);
-}
-
-Status UiPanel::SetClass(std::string_view panelId, std::string_view className, bool on)
-{
-    return UiWriteClass(_entities, _ref, kEveryone, panelId, className, on);
-}
-
-Status UiPanel::ResetClass(std::string_view panelId, std::string_view className)
-{
-    return UiResetClass(_entities, _ref, kEveryone, panelId, className);
-}
-
-Status UiPanel::SetInputCapture(bool enabled)
-{
-    return UiWriteInputCapture(_entities, _ref, kEveryone, enabled);
-}
-
-UiPlayerView UiPanel::For(int slot)
-{
-    return UiPlayerView(_entities, _ref, slot);
+    return _state ? _state->CurrentEntity : EntityRef{};
 }
 
 int UiPanel::PlayerStateCount() const
 {
-    return UiPlayerStateCount(_entities, _ref);
+    return _state ? UiPlayerStateCount(_state->Entities, _state->CurrentEntity) : -1;
 }
 
-Subscription UiPanel::OnClick(std::string buttonId, std::function<void(int slot)> handler)
+bool UiPanel::Ensure(int slot)
 {
-    if (!_clicked || !handler)
+    if (!_state || (slot != Everyone && !IsValidSlot(slot)))
+        return false;
+
+    UiPanelState& state = *_state;
+    if (!*this && !SpawnOrWarn(state))
+        return false;
+
+    // A global write needs the entity and nothing else.
+    if (slot == Everyone || state.Covers(slot))
+        return true;
+
+    // The per-player state count is fixed when the entity spawns, so a server that has since
+    // grown past it needs a new entity. If a spawn made for these players still does not cover the
+    // slot, this build has no per-player layout state and retrying every frame would only churn
+    // entities.
+    if (!state.PlayersChanged)
+        return false;
+
+    return SpawnOrWarn(state) && state.Covers(slot);
+}
+
+bool UiPanel::Covers(int slot) const
+{
+    return _state && _state->Covers(slot);
+}
+
+Status UiPanel::Text(int slot, std::string_view panelId, std::string_view variable, std::string_view value)
+{
+    if (!_state)
+        return UiWriteText(nullptr, {}, slot, panelId, variable, value);
+
+    UiPanelState& state = *_state;
+    if (slot == Everyone)
+        return UiWriteText(state.Entities, state.CurrentEntity, Everyone, panelId, variable, value);
+
+    if (!state.Cache.Update(slot, UiProperty::Text, panelId, variable, value))
         return {};
 
-    // The ref is captured by value, never `this`: the handler has to keep filtering correctly
-    // after this handle moves, and must never reach back into one that has been destroyed.
-    return *_clicked += [ref = _ref, id = std::move(buttonId), fn = std::move(handler)](const UiClick& click) {
-        if (click.Layout == ref && click.ButtonId == id)
-            fn(click.Slot);
-    };
+    return state.RecordWrite(slot, UiWriteText(state.Entities, state.CurrentEntity, slot, panelId, variable, value),
+                             panelId);
 }
 
-Subscription UiPanel::OnAnyClick(std::function<void(const UiClick&)> handler)
+Status UiPanel::Class(int slot, std::string_view panelId, std::string_view className, bool on)
 {
-    if (!_clicked || !handler)
+    if (!_state)
+        return UiWriteClass(nullptr, {}, slot, panelId, className, on);
+
+    UiPanelState& state = *_state;
+    if (slot == Everyone)
+        return UiWriteClass(state.Entities, state.CurrentEntity, Everyone, panelId, className, on);
+
+    if (!state.Cache.Update(slot, UiProperty::Class, panelId, className, on ? "1" : "0"))
         return {};
 
-    return *_clicked += [ref = _ref, fn = std::move(handler)](const UiClick& click) {
-        if (click.Layout == ref)
-            fn(click);
-    };
+    return state.RecordWrite(slot, UiWriteClass(state.Entities, state.CurrentEntity, slot, panelId, className, on),
+                             panelId);
 }
 
-Result<UiPanel> CustomUi::Spawn(std::string_view layout)
+Status UiPanel::ResetClass(int slot, std::string_view panelId, std::string_view className)
 {
+    if (!_state)
+        return UiResetClass(nullptr, {}, slot, panelId, className);
+
+    UiPanelState& state = *_state;
+    const Status status = UiResetClass(state.Entities, state.CurrentEntity, slot, panelId, className);
+
+    // The markup, not the server, decides what the class is now, so everything the cache believes
+    // about this slot is a guess. Dropping it costs one redundant redraw and keeps the rest honest.
+    if (status && slot != Everyone)
+        state.Cache.Forget(slot);
+
+    return status;
+}
+
+Status UiPanel::InputCapture(int slot, bool enabled)
+{
+    if (!_state)
+        return UiWriteInputCapture(nullptr, {}, slot, enabled);
+
+    UiPanelState& state = *_state;
+    if (slot == Everyone)
+        return UiWriteInputCapture(state.Entities, state.CurrentEntity, Everyone, enabled);
+
+    if (!state.Cache.UpdateCapture(slot, enabled))
+        return {};
+
+    return state.RecordWrite(slot, UiWriteInputCapture(state.Entities, state.CurrentEntity, slot, enabled),
+                             kCaptureName);
+}
+
+Result<bool> UiPanel::InputCaptured(int slot) const
+{
+    if (!_state)
+        return UiReadInputCapture(nullptr, {}, slot);
+
+    return UiReadInputCapture(_state->Entities, _state->CurrentEntity, slot);
+}
+
+void UiPanel::Forget(int slot)
+{
+    if (_state)
+        _state->Cache.Forget(slot);
+}
+
+void UiPanel::Remove()
+{
+    if (_state)
+        _state->Remove();
+}
+
+void UiPanel::SetLayout(std::string layout)
+{
+    if (!_state || layout == _state->Layout)
+        return;
+
+    UiPanelState& state = *_state;
+    state.Remove();
+
     auto resource = ResolveLayoutName(layout);
     if (!resource)
-        return std::unexpected(resource.error());
+        Log::Warn("UiPanel: '{}' is not a usable layout name ({}).", layout, resource.error().Detail);
 
-    if (!_ops.CanSpawn())
-        return std::unexpected(Error::Unsupported("entity spawning is unavailable"));
+    state.Layout = std::move(layout);
+    state.Resource = resource ? std::move(*resource) : std::string{};
 
-    KeyValues kv;
-    kv.Set("layout", *resource);
+    // The old entity is gone and the new one has not been asked for; without this a spawn only
+    // happens the next time a player connects or disconnects.
+    state.PlayersChanged = true;
+}
 
-    CEntityInstance* entity = _ops.Spawn("custom_hud_layout", kv);
-    if (!entity)
-        return std::unexpected(Error::Engine("the engine refused to spawn custom_hud_layout"));
+Event<const UiClick&>& UiPanel::Clicked()
+{
+    return State().Clicked;
+}
 
-    return UiPanel(_entities, _ops, Clicks.Clicked, Entity(_entities, entity).Ref());
+Event<int>& UiPanel::Button(std::string_view id)
+{
+    return State().Button(id);
+}
+
+UiPanelState& UiPanel::State()
+{
+    // A moved-from or default-constructed panel still has to hand out a live event to subscribe
+    // to; one with no engine behind it simply never raises.
+    if (!_state)
+        _state = std::make_shared<UiPanelState>();
+
+    return *_state;
 }
 
 }  // namespace VoltMod

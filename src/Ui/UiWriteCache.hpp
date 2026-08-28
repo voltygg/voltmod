@@ -23,8 +23,8 @@ enum class UiProperty
  *
  * A menu is redrawn every tick, but unlike center HTML a networked layout does not need
  * re-sending to stay on screen: this is what turns that redraw into writes for the handful of
- * panels that actually changed. SDK-free so the dedupe rules are unit-tested; @ref UiLayout owns
- * one and does the writing.
+ * panels that actually changed. SDK-free so the dedupe rules are unit-tested; a @ref UiPanel owns
+ * one and does the writing. Internal to `src/`: a panel is the whole public surface.
  *
  * Bound to @ref SlotEvents, a slot changing hands drops everything remembered about it - the new
  * occupant has been told nothing, whatever the last one saw.
@@ -37,8 +37,7 @@ public:
 
     /** Record @p value under (@p kind, @p panelId, @p name) for @p slot; true when it is new or
      *  different. @p kind keeps a dialog variable and a CSS class of the same name apart. */
-    bool Update(int slot, UiProperty kind, std::string_view panelId, std::string_view name,
-                std::string_view value);
+    bool Update(int slot, UiProperty kind, std::string_view panelId, std::string_view name, std::string_view value);
 
     /** Record @p enabled as @p slot's input-capture state; true when it changed. */
     bool UpdateCapture(int slot, bool enabled);

@@ -1,4 +1,4 @@
-#include <VoltMod/Ui/UiWriteCache.hpp>
+#include "Ui/UiWriteCache.hpp"
 
 namespace VoltMod
 {
@@ -7,7 +7,7 @@ namespace VoltMod
 static constexpr char kKeySeparator = '\x1f';
 
 bool UiWriteCache::Update(int slot, UiProperty kind, std::string_view panelId, std::string_view name,
-                           std::string_view value)
+                          std::string_view value)
 {
     if (!IsValidSlot(slot))
         return false;

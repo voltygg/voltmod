@@ -1,5 +1,6 @@
+#include "Ui/UiWriteCache.hpp"
+
 #include <VoltMod/Core/SlotEvents.hpp>
-#include <VoltMod/Ui/UiWriteCache.hpp>
 #include <doctest/doctest.h>
 
 using VoltMod::SlotEvents;

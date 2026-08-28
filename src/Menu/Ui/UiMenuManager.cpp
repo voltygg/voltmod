@@ -1,7 +1,11 @@
+#include "Menu/Ui/UiList.hpp"
+
+#include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Menu/MenuOption.hpp>
 #include <VoltMod/Menu/Ui/UiMenuManager.hpp>
 #include <algorithm>
 #include <format>
+#include <memory>
 #include <utility>
 
 namespace VoltMod
@@ -11,12 +15,19 @@ UiMenuManager::UiMenuManager(Scheduler& scheduler, CustomUi& ui, SlotEvents& slo
                              ChatInput& chatInput, Translations& translations, Policy& policy, PlayerManager& players,
                              std::string layout)
     : MenuHost(slots, entities, chatInput, translations, policy, players),
-      _layout(ui, slots, std::move(layout)),
-      _rows(_layout, RootId, RowPrefix, RowsPerPage),
+      _rows(std::make_unique<UiList>(_panel, RootId, RowPrefix, RowsPerPage)),
       _pump(scheduler.EveryFrame([this] { OnGameFrame(); }))
 {
+    // Nothing is spawned here: the panel holds the name and the first draw asks for the entity.
+    if (auto panel = ui.Panel(layout))
+        _panel = std::move(*panel);
+    else
+        Log::Warn("UiMenuManager: '{}' is not a usable layout name ({}).", layout, panel.error().Detail);
+
     Bind(slots);
 }
+
+UiMenuManager::~UiMenuManager() = default;
 
 std::string_view UiMenuManager::ModifierFor(MenuRowKind kind)
 {
@@ -40,7 +51,7 @@ std::string_view UiMenuManager::ModifierFor(MenuRowKind kind)
 
 void UiMenuManager::SetLayout(std::string layout)
 {
-    if (layout == _layout.Name())
+    if (layout == _panel.Name())
         return;
 
     for (int slot = 0; slot < MaxPlayers; ++slot)
@@ -49,15 +60,15 @@ void UiMenuManager::SetLayout(std::string layout)
             CloseAllMenus(slot);
     }
 
-    _layout.Retarget(std::move(layout));
+    _panel.SetLayout(std::move(layout));
 }
 
 void UiMenuManager::Bind(SlotEvents& slots)
 {
-    _subs.push_back(_rows.Pressed += [this](int slot, int row) { OnRowPressed(slot, row); });
-    _subs.push_back(_rows.Stepped += [this](int slot, int row, int dir) { OnRowStepped(slot, row, dir); });
+    _subs.On(_rows->Pressed, [this](int slot, int row) { OnRowPressed(slot, row); });
+    _subs.On(_rows->Stepped, [this](int slot, int row, int dir) { OnRowStepped(slot, row, dir); });
 
-    _subs.push_back(slots.Changed += [this](int slot) {
+    _subs.On(slots.Changed, [this](int slot) {
         if (IsValidSlot(slot))
             _shown[static_cast<std::size_t>(slot)] = true;
     });
@@ -65,14 +76,14 @@ void UiMenuManager::Bind(SlotEvents& slots)
 
 void UiMenuManager::BindNav()
 {
-    if (!_nav.empty())
+    if (!_nav.Empty())
         return;
 
-    _nav.push_back(_layout.OnClick(std::string(BackId), [this](int slot) { CloseMenu(slot); }));
-    _nav.push_back(_layout.OnClick(std::string(CloseId), [this](int slot) { CloseAllMenus(slot); }));
-    _nav.push_back(_layout.OnClick(std::string(PrevId), [this](int slot) { TurnPage(slot, -1); }));
-    _nav.push_back(_layout.OnClick(std::string(NextId), [this](int slot) { TurnPage(slot, +1); }));
-    _nav.push_back(_layout.OnClick(std::string(CancelId), [this](int slot) { _chatInput.CancelCapture(slot); }));
+    _nav.On(_panel.Button(BackId), [this](int slot) { CloseMenu(slot); });
+    _nav.On(_panel.Button(CloseId), [this](int slot) { CloseAllMenus(slot); });
+    _nav.On(_panel.Button(PrevId), [this](int slot) { TurnPage(slot, -1); });
+    _nav.On(_panel.Button(NextId), [this](int slot) { TurnPage(slot, +1); });
+    _nav.On(_panel.Button(CancelId), [this](int slot) { _chatInput.CancelCapture(slot); });
 }
 
 int UiMenuManager::ItemIndex(int slot, int row) const
@@ -129,7 +140,7 @@ void UiMenuManager::Present(int slot)
     if (!menu)
         return;
 
-    if (!_layout.EnsureFor(slot))
+    if (!_panel.Ensure(slot))
         return;
 
     BindNav();
@@ -138,14 +149,16 @@ void UiMenuManager::Present(int slot)
     const int pages = PageCount(items, RowsPerPage);
     state.Page = std::clamp(state.Page, 0, pages - 1);
 
-    _layout.Text(slot, RootId, TitleVar, menu->Title);
-    _layout.Text(slot, RootId, SubtitleVar, menu->Subtitle);
-    _layout.Class(slot, SubtitleId, "Hidden", menu->Subtitle.empty());
+    // Every write below discards its Status: the panel logs the first failure for a slot itself,
+    // and the next frame redraws anyway.
+    (void)_panel.Text(slot, RootId, TitleVar, menu->Title);
+    (void)_panel.Text(slot, RootId, SubtitleVar, menu->Subtitle);
+    (void)_panel.Class(slot, SubtitleId, "Hidden", menu->Subtitle.empty());
 
     const auto prompt = _chatInput.GetPrompt(slot);
-    _layout.Class(slot, PromptId, "Hidden", !prompt.has_value());
+    (void)_panel.Class(slot, PromptId, "Hidden", !prompt.has_value());
     if (prompt)
-        _layout.Text(slot, RootId, PromptVar, *prompt);
+        (void)_panel.Text(slot, RootId, PromptVar, *prompt);
 
     const int first = state.Page * RowsPerPage;
     const int last = std::min(items, first + RowsPerPage);
@@ -157,24 +170,24 @@ void UiMenuManager::Present(int slot)
             continue;
 
         const MenuRow row = option->Describe(slot);
-        _rows.Set(slot, index - first,
-                  UiRow{.Label = row.Label,
-                        .Value = row.Value,
-                        .Modifier = ModifierFor(row.Kind),
-                        .Enabled = option->IsEnabled(),
-                        // The same question the HTML footer asks, so both drivers read one answer.
-                        .Steppers = option->UsesHorizontal()});
+        _rows->Set(slot, index - first,
+                   UiRow{.Label = row.Label,
+                         .Value = row.Value,
+                         .Modifier = ModifierFor(row.Kind),
+                         .Enabled = option->IsEnabled(),
+                         // The same question the HTML footer asks, so both drivers read one answer.
+                         .Steppers = option->UsesHorizontal()});
     }
-    _rows.HideFrom(slot, last - first);
+    _rows->HideFrom(slot, last - first);
 
-    _layout.Class(slot, PagerId, "Hidden", pages <= 1);
+    (void)_panel.Class(slot, PagerId, "Hidden", pages <= 1);
     if (pages > 1)
-        _layout.Text(slot, RootId, PageVar, std::format("{}/{}", state.Page + 1, pages));
+        (void)_panel.Text(slot, RootId, PageVar, std::format("{}/{}", state.Page + 1, pages));
 
-    _layout.Class(slot, BackId, "Hidden", state.MenuStack.size() <= 1);
+    (void)_panel.Class(slot, BackId, "Hidden", state.MenuStack.size() <= 1);
 
-    _layout.Class(slot, RootId, "Hidden", false);
-    _layout.InputCapture(slot, true);
+    (void)_panel.Class(slot, RootId, "Hidden", false);
+    (void)_panel.InputCapture(slot, true);
     _shown[static_cast<std::size_t>(slot)] = true;
 }
 
@@ -187,13 +200,13 @@ void UiMenuManager::Hide(int slot)
 {
     _shown[static_cast<std::size_t>(slot)] = false;
 
-    if (!_layout.Covers(slot))
+    if (!_panel.Covers(slot))
         return;
 
-    _layout.Class(slot, RootId, "Hidden", true);
-    _layout.InputCapture(slot, false);
+    (void)_panel.Class(slot, RootId, "Hidden", true);
+    (void)_panel.InputCapture(slot, false);
 
-    _layout.Forget(slot);
+    _panel.Forget(slot);
 }
 
 }  // namespace VoltMod

@@ -18,7 +18,7 @@ namespace VoltMod
  *
  * A @p slot of @ref kEveryone writes the layout's global state; any other value writes one
  * player's, which the engine networks through a single-slot recipient filter. Internal to `src/`:
- * plugins drive this through @ref UiPanel and @ref UiPlayerView.
+ * plugins drive this through @ref UiPanel.
  */
 
 /** Slot value meaning "write the global state", not one player's. */

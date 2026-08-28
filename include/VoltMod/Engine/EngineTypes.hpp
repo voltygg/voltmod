@@ -65,6 +65,17 @@ class PrecacheGameSystem;
 /** Stand-in for the SDK game-system factory. Defined in src/Engine/GameSystem.hpp. */
 class GameSystemFactory;
 
+/** Everything a UiPanel keeps between calls: the entity, the write cache and the click routing.
+ *  Held by shared_ptr so a move does not move the events handlers point at. Defined in
+ *  src/Ui/UiPanelState.hpp. */
+struct UiPanelState;
+/** The FilterMessage hook behind CustomUi::Clicked. Held by unique_ptr so no public header
+ *  reaches VtableHook.hpp. Defined in src/Ui/UiClicks.hpp. */
+class UiClicks;
+/** The row driver behind UiMenuManager. Held by unique_ptr because the menu layout's row contract
+ *  is the framework's, not a consumer's. Defined in src/Menu/Ui/UiList.hpp. */
+class UiList;
+
 // --- (3) Mutually recursive with their owning header --------------------------
 
 /** MenuHost holds PlayerMenuState (Menu/Menu.hpp) by value and Menu.hpp

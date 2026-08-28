@@ -16,28 +16,41 @@ A layout has two halves, and both are needed:
 ## The shortest working example
 
 ```cpp
-// App.hpp: the handle owns the entity, so keep it for as long as the panel should live.
+// App.hpp: the panel owns the entity, so keep it for as long as the panel should live.
 VoltMod::UiPanel _panel;
 
 // Somewhere in App::Start()
-auto spawned = runtime.Ui.Spawn("welcome");
-if (!spawned)
+auto panel = runtime.Ui.Spawn("welcome");
+if (!panel)
     return false;             // the name was refused, or the engine would not spawn it
 
-_panel = std::move(*spawned);
-_panel.SetText("title", "name", "Welcome");
-_panel.SetClass("card", "Hidden", false);  // show it
-_panel.SetInputCapture(true);              // make it clickable
+_panel = std::move(*panel);
+_panel.Text(UiPanel::Everyone, "title", "name", "Welcome");
+_panel.Class(UiPanel::Everyone, "card", "Hidden", false);  // show it
+_panel.InputCapture(UiPanel::Everyone, true);              // make it clickable
 
 // Later, from a command or an event:
-_panel.SetText("title", "name", "Round 2");
+_panel.Text(UiPanel::Everyone, "title", "name", "Round 2");
 ```
 
-@ref VoltMod::UiPanel *owns* its entity: dropping the handle removes the panel. That
-is what stops a layout outliving the plugin that spawned it across a
-`meta reload`, so keep it as a member of whatever the panel belongs to rather
-than storing a bare @ref VoltMod::EntityRef. It is move-only, and it re-resolves
-its entity on every call - after a map change it is simply falsy.
+Every write names a slot first. @ref VoltMod::UiPanel::Everyone is the layout's
+global state, which is what a panel showing everybody the same thing wants; a real
+slot writes one player's, which the next section covers.
+
+Each write returns a @ref VoltMod::Status. A one-shot write is worth checking; a
+redraw discards it, because the panel logs the first failure for a slot itself and
+the next frame tries again.
+
+@ref VoltMod::UiPanel *owns* its entity: dropping the panel removes it. That is
+what stops a layout outliving the plugin that spawned it across a `meta reload`,
+so keep it as a member of whatever the panel belongs to rather than storing a bare
+@ref VoltMod::EntityRef. It is move-only, and it re-resolves its entity on every
+call - after a map change it is simply falsy.
+
+@ref VoltMod::CustomUi::Spawn creates the entity now. @ref VoltMod::CustomUi::Panel
+is the same thing without the entity: it checks the name and hands back a panel
+that spawns on its first @ref VoltMod::UiPanel::Ensure, which is what a panel that
+only appears when something opens it wants.
 
 Several layouts can exist at once and are independent, so one plugin's panel does
 not disturb another's.
@@ -85,13 +98,13 @@ Three more decide whether its buttons *click*, and each fails silently:
 </root>
 ```
 
-`text="{s:name}"` is a dialog variable, which is what `SetText` writes. Static
-text needs no variable.
+`text="{s:name}"` is a dialog variable, which is what @ref VoltMod::UiPanel::Text
+writes. Static text needs no variable.
 
 The stylesheet is Panorama CSS, not web CSS: keep selectors flat (no nesting, no
 `&`), and there is no flexbox - use `flow-children`. The pattern worth copying is
-a visible state in `#id` and a hidden state in `#id.Class`, so showing and hiding
-is one `SetClass` call rather than a layout swap:
+a visible state in `#id` and a hidden state in `#id.Class`, so showing and hiding is
+one @ref VoltMod::UiPanel::Class call rather than a layout swap:
 
 ```css
 #card {
@@ -126,9 +139,9 @@ panorama/layout/custom_game/welcome.vxml_c  rejected: name the source, not the c
 panorama/layout/hud/welcome.xml             rejected: outside the whitelisted directory
 ```
 
-@ref VoltMod::CustomUi::Spawn enforces both rules and expands a bare name, so a
-mistake here is an `Error::Invalid` rather than a panel that renders nothing and
-explains itself only on the client console.
+@ref VoltMod::CustomUi::Spawn and @ref VoltMod::CustomUi::Panel enforce both rules
+and expand a bare name, so a mistake here is an `Error::Invalid` rather than a panel
+that renders nothing and explains itself only on the client console.
 
 Compiling is `voltmod panorama`, which runs the CS2 Workshop Tools over every
 `panorama/` directory in the project and installs the results into your own
@@ -159,16 +172,20 @@ See @ref workshop_guide for what that costs and what it does not do.
 
 ## Reacting to a click
 
-A button press arrives as @ref VoltMod::UiClick. Subscribing is what installs
-the hook, so keep the @ref VoltMod::Subscription:
+A button press arrives as @ref VoltMod::UiClick. Subscribing is what installs the
+hook, so keep what subscribing returns - @ref VoltMod::Subscriptions is the bag for
+several handlers that live and die together:
 
 ```cpp
-_subs.push_back(_panel.OnClick("accept", [this](int slot) { Accept(slot); }));
+_subs.On(_panel.Button("accept"), [this](int slot) { Accept(slot); });
+_subs.On(_panel.Clicked(), [this](const UiClick& click) { Log(click.ButtonId); });
 ```
 
-`OnClick` filters on both the layout and the button id, so two layouts that both
-have an `accept` button do not trigger each other's handler.
-@ref VoltMod::CustomUi::Clicks is the unfiltered form, for a plugin that wants
+@ref VoltMod::UiPanel::Button filters on both the layout and the button id, so two
+layouts that both have an `accept` button do not trigger each other's handler, and
+@ref VoltMod::UiPanel::Clicked is every press in that one layout. Both match on
+whichever entity is carrying the layout now, so they survive a re-spawn.
+@ref VoltMod::CustomUi::Clicked is the unfiltered form, for a plugin that wants
 presses from layouts it did not spawn.
 
 A press is raised on the game frame after it arrives, not from inside the engine's
@@ -176,61 +193,43 @@ inbound message processing, so a handler may write to the panel - hide it, relea
 the cursor - and the write reaches the client.
 
 Nothing is clickable until that player has a cursor, which is
-`SetInputCapture(true)`. Without it the game keeps mouse-look and the panel never
-sees a pointer - the usual reason a layout renders but does nothing.
+`InputCapture(slot, true)`. Without it the game keeps mouse-look and the panel
+never sees a pointer - the usual reason a layout renders but does nothing.
 
 `ButtonId` is client-controlled text. Compare it against ids you authored rather
 than parsing anything out of it.
 
 ## Per-player content
 
-@ref VoltMod::UiPanel::For narrows any write to one player, which the engine
-networks through a single-slot recipient filter - so one entity can show
-different content to every player:
+Passing a slot instead of @ref VoltMod::UiPanel::Everyone narrows a write to one
+player, which the engine networks through a single-slot recipient filter - so one
+entity can show different content to every player:
 
 ```cpp
-_panel.For(slot).SetText("title", "name", player.Name());
+if (_panel.Ensure(slot))                              // spawns on demand; false means fall back
+    _panel.Text(slot, "title", "name", player.Name());
 ```
 
-The engine's per-player setters index `m_vecPlayerLayoutStates` and return
-silently when the slot is past its end, so @ref VoltMod::UiPanel::For checks the
-count first and fails with a reason rather than looking like it worked. When that
-count is zero, the global forms are the ones that work.
+The per-player state count is fixed when the entity spawns, so a player who
+connected later is only reachable through a new one.
+@ref VoltMod::UiPanel::Ensure is where that re-spawn happens, and the only place it
+happens: a write never spawns, so call it once before a burst of writes for one
+player rather than paying for the check on each. A write for a slot the entity does
+not cover fails with a reason instead of looking like it worked, and
+@ref VoltMod::UiPanel::Covers asks the same question without the spawn.
 
-## Reusable blocks
+Per-player writes go through a cache: a value the player already has is not sent
+again. That is what makes redrawing a layout every frame affordable - unlike center
+HTML, a networked layout stays on screen without being re-sent, so a frame that
+changes one label costs one write. @ref VoltMod::UiPanel::Forget drops what a slot
+was told, for when something outside the panel has changed what it shows.
 
-@ref VoltMod::UiPanel is the raw handle: every call reaches the engine, and it is
-what you want for a panel you write to once. A layout redrawn every tick wants
-the blocks above it instead.
+## Naming panels and classes
 
-@ref VoltMod::UiLayout owns a panel, re-spawns it when the entity is gone or too
-small for the slot being written, and **drops a write whose value the player
-already has**. That last part is what makes a per-frame redraw affordable: unlike
-center HTML, a networked layout does not need re-sending to stay on screen, so a
-frame that changes one row costs one write.
-
-```cpp
-UiLayout _layout{runtime.Ui, runtime.Slots, "my_panel"};
-
-if (_layout.EnsureFor(slot))                       // spawns on demand; false means fall back
-    _layout.Text(slot, "title", "text", name);     // per player, and only when it changed
-```
-
-@ref VoltMod::UiList drives a fixed run of `{prefix}{i}` rows by index and reports
-presses back as `(slot, index)`:
-
-| Id | What it is |
-| --- | --- |
-| `vm_row3` | the row `Panel`; carries `Hidden`, `Disabled`, `HasValue`, `HasSteppers` |
-| `vm_row3_btn` | the row's main `Button` |
-| `vm_row3_dec`, `vm_row3_inc` | the stepper `Button`s, siblings of the main one |
-
-The row text is two dialog variables on the scope panel - `vm_row3_label` and
-`vm_row3_value` - read by `text="{s:vm_row3_label}"` on `Label`s with no ids.
-
-Ids are built once at construction, never per redraw - which matters, because
-every distinct panel id, class name and dialog-variable name is interned
-permanently into a 1024-entry table on the entity. A generated id set exhausts it.
+Build the panel ids, class names and dialog-variable names you write once, and keep
+them: every distinct one is interned permanently into a 1024-entry table on the
+entity. A name generated per redraw - a row id with a timestamp in it, a class built
+from a player's score - exhausts that table, and the panel then stops updating.
 
 ## Reusing the menu layout
 
@@ -246,12 +245,13 @@ installs to `addons/voltmod/panorama`. There are three levels of reuse:
 2. **Re-lay-out.** Ship your own `.xml` declaring the same ids and call
    `runtime.UiMenus.SetLayout("my_menu")`. The contract is the ids below and
    nothing else - the nesting, the artwork and the animation are yours.
-3. **Build something else.** Spawn your own @ref VoltMod::UiLayout and bind a
-   @ref VoltMod::UiList to your own prefix. Layouts are independent entities, so
-   your panel coexists with the admin menu rather than replacing it - which is
-   the path for a scoreboard, a welcome card or a vote panel.
+3. **Build something else.** Spawn your own @ref VoltMod::UiPanel and write your
+   own ids. Layouts are independent entities, so your panel coexists with the admin
+   menu rather than replacing it - which is the path for a scoreboard, a welcome
+   card or a vote panel.
 
-The menu layout's id contract (text is dialog variables on `vm_root`:
+The menu layout's id contract - what the framework's menu driver writes, and so what
+a replacement layout has to declare (text is dialog variables on `vm_root`:
 `vm_title`, `vm_subtitle`, `vm_page`, `vm_prompt_text`, and the per-row
 `vm_rowN_label` / `vm_rowN_value`):
 
@@ -263,6 +263,11 @@ The menu layout's id contract (text is dialog variables on `vm_root`:
 | pager | `vm_pager`, `vm_prev`, `vm_next` |
 | nav | `vm_back`, `vm_close` |
 | prompt | `vm_prompt`, `vm_cancel` |
+
+Each row `vm_row{i}` is a `Panel` carrying `Hidden`, `Disabled`, `HasValue` and
+`HasSteppers`. Its main `Button` `vm_row{i}_btn` and the steppers `vm_row{i}_dec`
+and `vm_row{i}_inc` are siblings of each other, not nested, because a `Button`
+inside another `Button` loses the inner press.
 
 The row count must match `UiMenuManager::RowsPerPage` (8). The server cannot read
 your layout, so a layout with fewer rows silently loses the ones off the end of a
@@ -289,8 +294,8 @@ so the next engine-side call misses the hash, appends a duplicate, and the state
 silently desyncs. Every write therefore goes through the game's own setter, which
 interns, dedupes and notifies correctly.
 
-The one exception is the global `SetInputCapture(bool)`: no engine setter takes
-the global state, and `m_bInputCaptureEnabled` is a plain `bool` in an embedded
+The one exception is input capture for @ref VoltMod::UiPanel::Everyone: no engine
+setter takes the global state, and `m_bInputCaptureEnabled` is a plain `bool` in an embedded
 struct with no container and no shadow index behind it, so it is written
 directly.
 

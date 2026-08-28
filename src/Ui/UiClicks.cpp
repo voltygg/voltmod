@@ -1,3 +1,5 @@
+#include "Ui/UiClicks.hpp"
+
 #include "Engine/ProtoReflect.hpp"
 #include "Engine/ServerSideClients.hpp"
 #include "Engine/VtableLookup.hpp"
@@ -7,7 +9,6 @@
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Entities/Entity.hpp>
-#include <VoltMod/Ui/UiClicks.hpp>
 #include <VoltMod/Unsafe/VtableHook.hpp>
 #include <cstdint>
 #include <networksystem/inetworkmessages.h>
@@ -50,24 +51,24 @@ static const UserMessageFields& FieldsOf(const ProtoMessage& proto)
 }
 
 /** Bits of the layout handle as the client sends it: 14 of index, low 10 of the serial. */
-static constexpr uint32_t kWireIndexMask = (1u << 14) - 1;
-static constexpr uint32_t kWireSerialMask = (1u << 10) - 1;
+static constexpr uint32_t kNetworkIndexMask = (1u << 14) - 1;
+static constexpr uint32_t kNetworkSerialMask = (1u << 10) - 1;
 
 /**
- * The layout entity a wire handle names, found among the live `custom_hud_layout` entities.
+ * The layout entity a networked handle names, found among the live `custom_hud_layout` entities.
  *
  * The client sends only 24 of the handle's bits, so this walks the layouts - always a handful -
  * instead of trusting the handle: a stale or forged one matches nothing, and whatever matches is
  * guaranteed to actually be a layout.
  */
-static EntityRef ResolveLayout(EntitySystem& entities, uint32_t wire)
+static EntityRef ResolveLayout(EntitySystem& entities, uint32_t networked)
 {
     std::optional<Entity> cursor(entities.FindByClassName({}, "custom_hud_layout"));
     while (*cursor)
     {
         const EntityRef ref = cursor->Ref();
-        if ((ref.Handle & kWireIndexMask) == (wire & kWireIndexMask) &&
-            ((ref.Handle >> 15) & kWireSerialMask) == ((wire >> 14) & kWireSerialMask))
+        if ((ref.Handle & kNetworkIndexMask) == (networked & kNetworkIndexMask) &&
+            ((ref.Handle >> 15) & kNetworkSerialMask) == ((networked >> 14) & kNetworkSerialMask))
             return ref;
 
         cursor.emplace(entities.FindByClassName(*cursor, "custom_hud_layout"));
@@ -76,74 +77,68 @@ static EntityRef ResolveLayout(EntitySystem& entities, uint32_t wire)
 }
 
 UiClicks::UiClicks(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots, EntitySystem& entities,
-                   Scheduler& scheduler)
-    : Clicked({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
-      _interfaces(interfaces),
+                   Scheduler& scheduler, Event<const UiClick&>& clicked)
+    : _interfaces(interfaces),
       _bindings(bindings),
       _slots(slots),
       _entities(entities),
-      _scheduler(scheduler)
+      _scheduler(scheduler),
+      _clicked(clicked)
 {}
 
 UiClicks::~UiClicks()
 {
-    // Never leave a hook pointing into an unloaded module.
-    if (_refs != 0)
-        Log::Error("UiClicks: {} subscription(s) outlived the hook; a click handler may dangle.", _refs);
-}
-
-bool UiClicks::Acquire()
-{
-    if (_refs == 0)
-    {
-        if (!_bindings.FilterMessage)
-        {
-            Log::Warn("UiClicks: FilterMessage did not bind; button presses will not arrive.");
-            return false;
-        }
-        if (_bindings.CustomHudClicked < 0)
-        {
-            Log::Warn("UiClicks: no custom HUD click message id in gamedata; button presses will not arrive.");
-            return false;
-        }
-        if (auto* message = _interfaces.NetworkMessages ? _interfaces.NetworkMessages->FindNetworkMessagePartial(
-                                                              std::string(kUserMessage).c_str())
-                                                        : nullptr)
-            _messageId = message->GetNetMessageInfo()->m_MessageId;
-        if (_messageId < 0)
-        {
-            Log::Warn("UiClicks: the engine does not know {}; button presses will not arrive.", kUserMessage);
-            return false;
-        }
-
-        // Nobody connected yet is the ordinary case at load: keep the subscription and bind on the
-        // first connect instead of refusing it.
-        if (!Install())
-        {
-            _connectListener = _slots.Changed += [this](int) {
-                if (!_hook && Install())
-                    _connectListener.Reset();
-            };
-        }
-    }
-    ++_refs;
-    return true;
-}
-
-void UiClicks::ReleaseRef()
-{
-    if (_refs > 0 && --_refs == 0)
-    {
-        _connectListener.Reset();
-        _hook.Reset();
-        _pump.Reset();
-        _pending.clear();
-        _messageId = -1;
-        _baseOffset = 0;
-    }
+    // Remove() runs when the last subscription drops, so a hook still up here means one outlived
+    // the Runtime - and would point into an unloaded module.
+    if (_hook)
+        Log::Error("UiClicks: a click subscription outlived the hook; a click handler may dangle.");
 }
 
 bool UiClicks::Install()
+{
+    if (!_bindings.FilterMessage)
+    {
+        Log::Warn("UiClicks: FilterMessage did not bind; button presses will not arrive.");
+        return false;
+    }
+    if (_bindings.CustomHudClicked < 0)
+    {
+        Log::Warn("UiClicks: no custom HUD click message id in gamedata; button presses will not arrive.");
+        return false;
+    }
+    if (auto* message = _interfaces.NetworkMessages
+                            ? _interfaces.NetworkMessages->FindNetworkMessagePartial(std::string(kUserMessage).c_str())
+                            : nullptr)
+        _messageId = message->GetNetMessageInfo()->m_MessageId;
+    if (_messageId < 0)
+    {
+        Log::Warn("UiClicks: the engine does not know {}; button presses will not arrive.", kUserMessage);
+        return false;
+    }
+
+    // Nobody connected yet is the ordinary case at load: keep the subscription and bind on the
+    // first connect instead of refusing it.
+    if (!HookClient())
+    {
+        _connectListener = _slots.Changed += [this](int) {
+            if (!_hook && HookClient())
+                _connectListener.Reset();
+        };
+    }
+    return true;
+}
+
+void UiClicks::Remove()
+{
+    _connectListener.Reset();
+    _hook.Reset();
+    _onFrame.Reset();
+    _pending.clear();
+    _messageId = -1;
+    _baseOffset = 0;
+}
+
+bool UiClicks::HookClient()
 {
     void* client = AnyServerSideClient(_interfaces, _bindings);
     if (!client)
@@ -177,7 +172,7 @@ bool UiClicks::Install()
 
     _hook = std::move(*hook);
     _baseOffset = slot->BaseOffset;
-    _pump = _scheduler.EveryFrame([this] { Deliver(); });
+    _onFrame = _scheduler.EveryFrame([this] { DeliverPending(); });
     Log::Info("UiClicks: hooked FilterMessage at index {} (+{} from the client), user message id {}, click type {}.",
               slot->Index, _baseOffset, _messageId, _bindings.CustomHudClicked);
     return true;
@@ -231,9 +226,10 @@ void UiClicks::HandleMessage(const CNetMessage* message, void* self)
     _pending.push_back({.Slot = slot, .Layout = payload->Layout, .Button = std::move(payload->Button)});
 }
 
-void UiClicks::Deliver()
+void UiClicks::DeliverPending()
 {
-    // Swapped out first: a handler may drop the last subscription, which clears the queue.
+    // Swapped out first: a handler may drop the last subscription, which disarms and clears the
+    // queue.
     std::vector<Pending> presses;
     presses.swap(_pending);
 
@@ -243,7 +239,7 @@ void UiClicks::Deliver()
         if (!layout)
             continue;  // stale press from a layout that has since been removed
 
-        Clicked.Raise(UiClick{.Slot = press.Slot, .Layout = layout, .ButtonId = std::move(press.Button)});
+        _clicked.Raise(UiClick{.Slot = press.Slot, .Layout = layout, .ButtonId = std::move(press.Button)});
     }
 }
 

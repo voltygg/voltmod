@@ -29,6 +29,9 @@ namespace VoltMod
  * Move-only, and safe to destroy after the registry it points at is gone only if the
  * registry outlives it - which reverse-declaration-order destruction gives you for free
  * when both are members of the same object.
+ *
+ * `<VoltMod/Core/Subscriptions.hpp>` holds several of them in one member, for an object that
+ * subscribes to a handful of things at once.
  */
 class Subscription
 {

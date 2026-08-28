@@ -1,11 +1,11 @@
 #pragma once
 
-// The Ui module's public surface: spawning a custom_hud_layout, driving it, and the button
-// presses coming back. Runtime holds the CustomUi service by value, so `<VoltMod/Api.hpp>`
+// The Ui module's public surface: a panel that owns its `custom_hud_layout` entity, and the button
+// presses coming back from it. Runtime holds the CustomUi service by value, so `<VoltMod/Api.hpp>`
 // already reaches these types; include this header where a translation unit means to use them.
+//
+// The click hook, the write cache and the row driver behind them live under src/ and are not part
+// of this surface - which is what keeps VtableHook.hpp out of every consumer.
 
-#include <VoltMod/Ui/UiClicks.hpp>
-#include <VoltMod/Ui/UiLayout.hpp>
-#include <VoltMod/Ui/UiList.hpp>
+#include <VoltMod/Ui/UiClick.hpp>
 #include <VoltMod/Ui/UiPanel.hpp>
-#include <VoltMod/Ui/UiWriteCache.hpp>

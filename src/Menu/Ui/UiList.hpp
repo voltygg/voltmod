@@ -2,8 +2,8 @@
 
 #include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Core/PerSlot.hpp>
-#include <VoltMod/Core/Subscription.hpp>
-#include <VoltMod/Ui/UiLayout.hpp>
+#include <VoltMod/Core/Subscriptions.hpp>
+#include <VoltMod/Ui/UiPanel.hpp>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -34,8 +34,9 @@ struct UiRow
  * @brief A fixed run of `{prefix}{i}` rows in a layout, written by index and clicked back.
  *
  * The reusable half of a list-shaped panel: a layout that declares the ids below can be driven by
- * this whoever authored it, so a plugin reskinning the framework menu - or building its own
- * roster, vote or shop panel - writes rows rather than dialog variables.
+ * this whoever authored it, so the menu driver - or anything else drawing a list into a
+ * `custom_hud_layout` - writes rows rather than dialog variables. Internal to `src/`: the ids are
+ * the framework menu layout's contract.
  *
  * For a row @p i, with @p prefix `vm_row`:
  *
@@ -50,7 +51,7 @@ struct UiRow
  * by `text="{s:vm_row3_label}"` on `Label`s that need no id of their own.
  *
  * Rows past what @ref Set was given are hidden by @ref HideFrom, so a short page leaves no stale
- * text on screen. Ids are built once at construction, and writes go through @ref UiLayout, so a
+ * text on screen. Ids are built once at construction, and writes go through @ref UiPanel, so a
  * frame that changes one row costs one write.
  */
 class UiList
@@ -61,9 +62,9 @@ public:
      *                `{s:name}` variables from its ancestors, so one scope feeds every label.
      * @param capacity how many rows the layout declares; writing past it is ignored. It has to
      *                 match the markup, which the server cannot see.
-     * @p layout must outlive this object.
+     * @p panel must outlive this object.
      */
-    UiList(UiLayout& layout, std::string_view scopeId, std::string_view prefix, int capacity);
+    UiList(UiPanel& panel, std::string_view scopeId, std::string_view prefix, int capacity);
 
     UiList(const UiList&) = delete;
     UiList& operator=(const UiList&) = delete;
@@ -99,14 +100,14 @@ private:
      *  installs the click hook, and a list nobody has drawn should not arm one. */
     void Bind();
 
-    UiLayout& _layout;
+    UiPanel& _panel;
     /** The panel every dialog variable is written against. */
     std::string _scopeId;
     std::vector<RowIds> _ids;
     /** The @ref UiRow::Modifier each row currently carries, so the next one can replace it. */
     PerSlot<std::vector<std::string>> _modifiers;
     /** Declared after everything their handlers touch. */
-    std::vector<Subscription> _clicks;
+    Subscriptions _clicks;
 };
 
 }  // namespace VoltMod

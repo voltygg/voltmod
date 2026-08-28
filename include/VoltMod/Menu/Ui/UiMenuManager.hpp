@@ -2,12 +2,13 @@
 
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Core/Subscriptions.hpp>
+#include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Menu/MenuHost.hpp>
 #include <VoltMod/Menu/MenuRow.hpp>
-#include <VoltMod/Ui/UiLayout.hpp>
-#include <VoltMod/Ui/UiList.hpp>
+#include <VoltMod/Ui/UiPanel.hpp>
 #include <array>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -34,6 +35,7 @@ public:
     UiMenuManager(Scheduler& scheduler, CustomUi& ui, SlotEvents& slots, EntitySystem& entities, ChatInput& chatInput,
                   Translations& translations, Policy& policy, PlayerManager& players,
                   std::string layout = std::string(DefaultLayout));
+    ~UiMenuManager() override;
 
     /** The layout the framework ships, under `panorama/layout/custom_game/`. */
     static constexpr std::string_view DefaultLayout = "voltmod_menu";
@@ -42,7 +44,7 @@ public:
     static constexpr int RowsPerPage = 8;
 
     /** The layout resource currently driven. */
-    [[nodiscard]] const std::string& Layout() const noexcept { return _layout.Name(); }
+    [[nodiscard]] std::string_view Layout() const noexcept { return _panel.Name(); }
 
     /** Drive a different layout honouring the same ids. Closes every open menu first. */
     void SetLayout(std::string layout);
@@ -92,13 +94,14 @@ private:
     /** The item index row @p row of the player's current page stands for. */
     int ItemIndex(int slot, int row) const;
 
-    UiLayout _layout;
-    UiList _rows;
+    UiPanel _panel;
+    /** The row driver, held by pointer because the row id contract is internal to the framework. */
+    std::unique_ptr<UiList> _rows;
     /** Slots whose entity state may show a menu: set by a draw, and by the slot changing hands
      *  because the new occupant inherits that state. */
     std::array<bool, MaxPlayers> _shown{};
-    std::vector<Subscription> _subs;
-    std::vector<Subscription> _nav;
+    Subscriptions _subs;
+    Subscriptions _nav;
     /** Declared last: the frame pump drops before the state it touches. */
     Subscription _pump;
 };

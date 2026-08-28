@@ -1,5 +1,7 @@
-#include <VoltMod/Ui/UiList.hpp>
+#include "Menu/Ui/UiList.hpp"
+
 #include <format>
+#include <string>
 #include <utility>
 
 namespace VoltMod
@@ -10,8 +12,8 @@ static constexpr std::string_view kDisabled = "Disabled";
 static constexpr std::string_view kHasValue = "HasValue";
 static constexpr std::string_view kHasSteppers = "HasSteppers";
 
-UiList::UiList(UiLayout& layout, std::string_view scopeId, std::string_view prefix, int capacity)
-    : _layout(layout), _scopeId(scopeId)
+UiList::UiList(UiPanel& panel, std::string_view scopeId, std::string_view prefix, int capacity)
+    : _panel(panel), _scopeId(scopeId)
 {
     _ids.reserve(static_cast<std::size_t>(capacity < 0 ? 0 : capacity));
     for (int i = 0; i < capacity; ++i)
@@ -34,9 +36,13 @@ void UiList::Set(int slot, int index, const UiRow& row)
     Bind();
 
     const RowIds& ids = _ids[static_cast<std::size_t>(index)];
+
+    // Every write below discards its Status: the panel logs the first failure for a slot itself,
+    // and a redraw has no better answer than to carry on and try again next frame.
+    //
     // Variables on the one scope panel; the labels reading them carry no ids.
-    _layout.Text(slot, _scopeId, ids.Label, row.Label);
-    _layout.Text(slot, _scopeId, ids.Value, row.Value);
+    (void)_panel.Text(slot, _scopeId, ids.Label, row.Label);
+    (void)_panel.Text(slot, _scopeId, ids.Value, row.Value);
 
     // One modifier at a time: the row keeps whatever it was given last until something replaces
     // it, so the old one has to come off explicitly rather than being left on underneath.
@@ -46,16 +52,16 @@ void UiList::Set(int slot, int index, const UiRow& row)
     if (previous != row.Modifier)
     {
         if (!previous.empty())
-            _layout.Class(slot, ids.Row, previous, false);
+            (void)_panel.Class(slot, ids.Row, previous, false);
         previous.assign(row.Modifier);
     }
     if (!row.Modifier.empty())
-        _layout.Class(slot, ids.Row, row.Modifier, true);
+        (void)_panel.Class(slot, ids.Row, row.Modifier, true);
 
-    _layout.Class(slot, ids.Row, kHidden, false);
-    _layout.Class(slot, ids.Row, kDisabled, !row.Enabled);
-    _layout.Class(slot, ids.Row, kHasValue, !row.Value.empty());
-    _layout.Class(slot, ids.Row, kHasSteppers, row.Steppers);
+    (void)_panel.Class(slot, ids.Row, kHidden, false);
+    (void)_panel.Class(slot, ids.Row, kDisabled, !row.Enabled);
+    (void)_panel.Class(slot, ids.Row, kHasValue, !row.Value.empty());
+    (void)_panel.Class(slot, ids.Row, kHasSteppers, row.Steppers);
 }
 
 void UiList::HideFrom(int slot, int index)
@@ -64,21 +70,20 @@ void UiList::HideFrom(int slot, int index)
         return;
 
     for (int i = index < 0 ? 0 : index; i < Capacity(); ++i)
-        _layout.Class(slot, _ids[static_cast<std::size_t>(i)].Row, kHidden, true);
+        (void)_panel.Class(slot, _ids[static_cast<std::size_t>(i)].Row, kHidden, true);
 }
 
 void UiList::Bind()
 {
-    if (!_clicks.empty() || _ids.empty())
+    if (!_clicks.Empty() || _ids.empty())
         return;
 
-    _clicks.reserve(_ids.size() * 3);
     for (int i = 0; i < Capacity(); ++i)
     {
         const RowIds& ids = _ids[static_cast<std::size_t>(i)];
-        _clicks.push_back(_layout.OnClick(ids.Btn, [this, i](int slot) { Pressed.Raise(slot, i); }));
-        _clicks.push_back(_layout.OnClick(ids.Dec, [this, i](int slot) { Stepped.Raise(slot, i, -1); }));
-        _clicks.push_back(_layout.OnClick(ids.Inc, [this, i](int slot) { Stepped.Raise(slot, i, +1); }));
+        _clicks.On(_panel.Button(ids.Btn), [this, i](int slot) { Pressed.Raise(slot, i); });
+        _clicks.On(_panel.Button(ids.Dec), [this, i](int slot) { Stepped.Raise(slot, i, -1); });
+        _clicks.On(_panel.Button(ids.Inc), [this, i](int slot) { Stepped.Raise(slot, i, +1); });
     }
 }
 
