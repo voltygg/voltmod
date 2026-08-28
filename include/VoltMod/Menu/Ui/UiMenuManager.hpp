@@ -20,8 +20,9 @@ namespace VoltMod
  * `custom_hud_layout` the player clicks.
  *
  * Rows carry their kind as a CSS class, so their look is the stylesheet's. Players get a cursor
- * for the session. Needs the layout on the client and @ref Capability::CustomUi;
- * @ref HtmlMenuManager is the fallback. All entity writes happen from the frame pump.
+ * for the session. Needs the layout on the client and @ref Capability::CustomUi and
+ * @ref Capability::UiClicks; @ref HtmlMenuManager is the fallback. All entity writes happen from
+ * the frame pump.
  *
  * @see @ref custom_ui_guide for the id contract a replacement layout has to honour.
  */

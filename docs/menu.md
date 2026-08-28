@@ -18,7 +18,7 @@ once rather than writing two menus.
 | Drawn as | center HTML, re-sent every tick | a Panorama `custom_hud_layout` |
 | Input | WASD / E / R | mouse clicks |
 | Rows a page | 5 | 8 |
-| Needs | nothing | @ref VoltMod::Capability::CustomUi, and the layout on the client |
+| Needs | nothing | @ref VoltMod::Capability::CustomUi, @ref VoltMod::Capability::UiClicks, and the layout on the client |
 | Styling | eight hardcoded colors | a stylesheet you can replace |
 
 **Center HTML works everywhere.** No addon to publish, no capability behind it,
@@ -38,9 +38,12 @@ Choose once, at load, and pass the result around as a `MenuHost&`:
 // Center HTML is the fallback, so start there and upgrade: the two managers are unrelated types,
 // and a conditional between them would need a cast on each arm to find their common base.
 MenuHost* menus = &runtime.HtmlMenus;
-if (runtime.Capabilities.Has(Capability::CustomUi))
+if (runtime.Capabilities.Has(Capability::CustomUi) && runtime.Capabilities.Has(Capability::UiClicks))
     menus = &runtime.UiMenus;
 ```
+
+CustomUi and UiClicks bind different gamedata, so either can be on while the other is off; check
+both, because a layout that draws but never reports a press is worse than no Panorama menu at all.
 
 A session that straddled two hosts would leave half its state on the wrong
 screen, so do not switch per menu.
