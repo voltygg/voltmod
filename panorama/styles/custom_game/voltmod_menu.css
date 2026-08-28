@@ -1,189 +1,238 @@
 /*
-	Panorama CSS, not web CSS - see docs/custom-ui.md.
+	Panorama CSS, not web CSS - see docs/custom-ui.md. Selectors are flat; the parser is not a
+	browser's. Every panel on the click path has a resolved size, because a fit-children container
+	renders its buttons but does not take clicks for them.
 
-	Everything here is presentation. The server only ever sets classes, so a plugin that wants a
-	different look ships its own copy of this file and touches no C++: `Hidden`, `Disabled`,
-	`HasValue`, `HasSteppers` and the per-kind `Kind--*` classes are the whole vocabulary.
+	The server only sets classes - Hidden, Disabled, HasValue, HasSteppers, Kind--* - so a restyle
+	is this file alone, no C++.
 */
 
 .Root {
-	width: 100%;
-	height: 100%;
+  width: 100%;
+  height: 100%;
 }
 
 #vm_root {
-	width: 460px;
-	horizontal-align: center;
-	vertical-align: center;
-	flow-children: down;
+  width: 460px;
+  horizontal-align: center;
+  vertical-align: center;
+  flow-children: down;
+  padding: 16px;
+  background-color: rgba(18, 20, 26, 0.93);
+  border: 1px solid #c8a24a;
+  color: #e8e6e0;
+  transition-property: opacity;
+  transition-duration: 0.12s;
+  opacity: 1;
+}
 
-	padding: 16px;
-	background-color: #12141aee;
-	border: 1px solid #c8a24a;
-	color: #e8e6e0;
-
-	transition-property: opacity;
-	transition-duration: .1s;
-	opacity: 1;
-
-	/*
-		Hidden is opacity rather than visibility so the panel keeps its place in the layout: the
-		markup default is hidden, and only the players the server writes to ever see it.
-	*/
-	&.Hidden {
-		opacity: 0;
-	}
+/*
+	Collapse as well as fade: the markup default is hidden, and a panel that only went
+	transparent would still take the clicks meant for whatever is behind it.
+*/
+#vm_root.Hidden {
+  visibility: collapse;
+  opacity: 0;
 }
 
 .Header {
-	flow-children: down;
-	margin-bottom: 10px;
+  width: 100%;
+  flow-children: down;
+  margin-bottom: 10px;
 }
 
 .Title {
-	font-size: 24px;
-	color: #c8a24a;
+  font-size: 24px;
+  font-weight: bold;
+  color: #c8a24a;
 }
 
 .Subtitle {
-	font-size: 14px;
-	color: #8a8778;
+  font-size: 14px;
+  color: #8a8778;
+}
 
-	&.Hidden {
-		visibility: collapse;
-	}
+#vm_subtitle.Hidden {
+  visibility: collapse;
 }
 
 .Rows {
-	flow-children: down;
+  width: 100%;
+  flow-children: down;
 }
 
 .Row {
-	width: 100%;
-	height: 30px;
-	flow-children: right;
-	padding: 0 8px;
-	background-color: #00000000;
+  width: 100%;
+  height: 30px;
+  flow-children: right;
+  margin-bottom: 2px;
+}
 
-	&:hover {
-		background-color: #ffffff14;
-	}
+.Row.Hidden {
+  visibility: collapse;
+}
 
-	&.Hidden {
-		visibility: collapse;
-	}
+/* Styling only. A disabled row still reports its press; the menu model decides what it means. */
+.Row.Disabled {
+  color: #55535080;
+}
 
-	/* Styling only. The row still reports its press; the menu model decides what that means. */
-	&.Disabled {
-		color: #55535080;
-	}
+.Row-btn {
+  width: fill-parent-flow(1);
+  height: 100%;
+  flow-children: right;
+  padding: 0px 8px;
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.Row-btn:hover {
+  background-color: rgba(200, 162, 74, 0.18);
 }
 
 .Row-label {
-	vertical-align: center;
-	font-size: 17px;
+  width: fill-parent-flow(1);
+  vertical-align: center;
+  font-size: 17px;
 }
 
 /* Collapsed unless the row carries a value, so a plain button row has no empty column. */
 .Row-value {
-	vertical-align: center;
-	horizontal-align: right;
-	font-size: 17px;
-	color: #c8a24a;
-	visibility: collapse;
+  vertical-align: center;
+  font-size: 17px;
+  color: #c8a24a;
+  visibility: collapse;
 }
 
 .Row.HasValue .Row-value {
-	visibility: visible;
+  visibility: visible;
 }
 
-.Row-steppers {
-	flow-children: right;
-	horizontal-align: right;
-	vertical-align: center;
-	visibility: collapse;
-}
-
-.Row.HasSteppers .Row-steppers {
-	visibility: visible;
-}
-
+/* Sit beside the row button, never inside it: a Button in a Button loses the inner press. */
 .Stepper {
-	width: 22px;
-	height: 22px;
-	font-size: 13px;
-	color: #8a8778;
+  width: 26px;
+  height: 100%;
+  margin-left: 2px;
+  background-color: rgba(255, 255, 255, 0.04);
+  font-size: 13px;
+  color: #8a8778;
+  visibility: collapse;
+}
 
-	&:hover {
-		color: #c8a24a;
-	}
+.Row.HasSteppers .Stepper {
+  visibility: visible;
+}
+
+.Stepper Label {
+  horizontal-align: center;
+  vertical-align: center;
+}
+
+.Stepper:hover {
+  background-color: rgba(200, 162, 74, 0.18);
+  color: #c8a24a;
 }
 
 /*
 	Row kinds. The server sets exactly one of these per row and never says what it should look
 	like, which is what lets a restyle change the whole vocabulary here.
 */
-.Kind--submenu .Row-value {
-	visibility: visible;
-	color: #8a8778;
-}
-
 .Kind--text {
-	color: #8a8778;
-	font-size: 15px;
+  color: #8a8778;
+  font-size: 15px;
 }
 
-.Pager,
-.Footer {
-	flow-children: right;
-	horizontal-align: center;
-	margin-top: 10px;
+.Kind--submenu .Row-value {
+  visibility: visible;
+  color: #8a8778;
+}
+
+.Pager {
+  width: 100%;
+  height: 28px;
+  flow-children: right;
+  margin-top: 10px;
 }
 
 .Pager.Hidden {
-	visibility: collapse;
+  visibility: collapse;
+}
+
+.Arrow {
+  width: 44px;
+  height: 26px;
+  font-size: 15px;
+  color: #e8e6e0;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.Arrow Label {
+  horizontal-align: center;
+  vertical-align: center;
+}
+
+.Arrow:hover {
+  background-color: #c8a24a;
+  color: #12141a;
 }
 
 .Pager-label {
-	vertical-align: center;
-	margin: 0 10px;
-	font-size: 15px;
-	color: #8a8778;
+  width: fill-parent-flow(1);
+  vertical-align: center;
+  text-align: center;
+  font-size: 15px;
+  color: #8a8778;
+}
+
+.Footer {
+  width: 100%;
+  height: 28px;
+  flow-children: right;
+  margin-top: 10px;
 }
 
 .Nav {
-	height: 26px;
-	padding: 0 12px;
-	margin: 0 4px;
-	font-size: 15px;
-	color: #e8e6e0;
-	background-color: #ffffff14;
-
-	&:hover {
-		background-color: #c8a24a;
-		color: #12141a;
-	}
-
-	&.Hidden {
-		visibility: collapse;
-	}
+  width: fill-parent-flow(1);
+  height: 26px;
+  margin-right: 4px;
+  font-size: 15px;
+  color: #e8e6e0;
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
-/* Covers the rows while the player is answering in chat. */
-.Prompt {
-	width: 100%;
-	flow-children: down;
-	margin-top: 10px;
-	padding: 10px;
-	background-color: #000000cc;
-	border: 1px solid #c8a24a;
+.Nav Label {
+  horizontal-align: center;
+  vertical-align: center;
+}
 
-	&.Hidden {
-		visibility: collapse;
-	}
+.Nav:hover {
+  background-color: #c8a24a;
+  color: #12141a;
+}
+
+.Nav.Hidden {
+  visibility: collapse;
+}
+
+/* Shown below the rows while the player is answering in chat. */
+.Prompt {
+  width: 100%;
+  flow-children: down;
+  margin-top: 10px;
+  padding: 10px;
+  background-color: rgba(0, 0, 0, 0.8);
+  border: 1px solid #c8a24a;
+}
+
+.Prompt.Hidden {
+  visibility: collapse;
 }
 
 .Prompt-text {
-	font-size: 16px;
-	margin-bottom: 8px;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.Prompt .Nav {
+  width: 120px;
+  horizontal-align: center;
 }

@@ -57,6 +57,16 @@ console, not the server's. Four rules decide whether it renders at all:
 - Include the stylesheet by its **source** name under `{resources}`, not the
   compiled `.vcss_c` name.
 
+Three more decide whether its buttons *click*, and each fails silently:
+
+- Every panel on the path to a `Button` needs a resolved size (`width: 100%`, a
+  fixed value, or `fill-parent-flow`). A container left to size itself around its
+  children renders the buttons in the right place but does not take clicks there.
+- Never nest a `Button` inside another `Button`; the inner press is lost. Make
+  them siblings and size them side by side.
+- `hittest="false"` on decorative panels keeps them from eating clicks meant for
+  what is underneath.
+
 ```xml
 <root>
  <styles>
@@ -78,10 +88,10 @@ console, not the server's. Four rules decide whether it renders at all:
 `text="{s:name}"` is a dialog variable, which is what `SetText` writes. Static
 text needs no variable.
 
-The stylesheet is Panorama CSS, not web CSS: nested rules and `&` work, flexbox
-does not - use `flow-children`. The pattern worth copying is to give a panel its
-visible state in `#id` and its hidden state in a nested `&.Class`, so showing and
-hiding is one `SetClass` call rather than a layout swap:
+The stylesheet is Panorama CSS, not web CSS: keep selectors flat (no nesting, no
+`&`), and there is no flexbox - use `flow-children`. The pattern worth copying is
+a visible state in `#id` and a hidden state in `#id.Class`, so showing and hiding
+is one `SetClass` call rather than a layout swap:
 
 ```css
 #card {
@@ -91,9 +101,9 @@ hiding is one `SetClass` call rather than a layout swap:
  transition-property: opacity;
  transition-duration: .1s;
  opacity: 1;
-
- &.Hidden { opacity: 0; }
 }
+
+#card.Hidden { visibility: collapse; opacity: 0; }
 ```
 
 Valve's own reference layout ships as source at
@@ -207,9 +217,12 @@ presses back as `(slot, index)`:
 
 | Id | What it is |
 | --- | --- |
-| `vm_row3` | the row `Button`; carries `Hidden`, `Disabled`, `HasValue`, `HasSteppers` |
-| `vm_row3_label`, `vm_row3_value` | `Label`s reading `text="{s:text}"` |
-| `vm_row3_dec`, `vm_row3_inc` | the row's stepper `Button`s |
+| `vm_row3` | the row `Panel`; carries `Hidden`, `Disabled`, `HasValue`, `HasSteppers` |
+| `vm_row3_btn` | the row's main `Button` |
+| `vm_row3_dec`, `vm_row3_inc` | the stepper `Button`s, siblings of the main one |
+
+The row text is two dialog variables on the scope panel - `vm_row3_label` and
+`vm_row3_value` - read by `text="{s:vm_row3_label}"` on `Label`s with no ids.
 
 Ids are built once at construction, never per redraw - which matters, because
 every distinct panel id, class name and dialog-variable name is interned
@@ -234,16 +247,18 @@ installs to `addons/voltmod/panorama`. There are three levels of reuse:
    your panel coexists with the admin menu rather than replacing it - which is
    the path for a scoreboard, a welcome card or a vote panel.
 
-The menu layout's id contract:
+The menu layout's id contract (text is dialog variables on `vm_root`:
+`vm_title`, `vm_subtitle`, `vm_page`, `vm_prompt_text`, and the per-row
+`vm_rowN_label` / `vm_rowN_value`):
 
 | Block | Ids |
 | --- | --- |
 | root | `vm_root` - `Hidden` in markup, unhidden per viewer |
-| header | `vm_title`, `vm_subtitle` |
-| rows | `vm_row{0..7}` plus `_label`, `_value`, `_dec`, `_inc` |
-| pager | `vm_pager`, `vm_page`, `vm_prev`, `vm_next` |
+| header | `vm_subtitle` |
+| rows | `vm_row{0..7}` plus `_btn`, `_dec`, `_inc` |
+| pager | `vm_pager`, `vm_prev`, `vm_next` |
 | nav | `vm_back`, `vm_close` |
-| prompt | `vm_prompt`, `vm_prompt_text`, `vm_cancel` |
+| prompt | `vm_prompt`, `vm_cancel` |
 
 The row count must match `UiMenuManager::RowsPerPage` (8). The server cannot read
 your layout, so a layout with fewer rows silently loses the ones off the end of a

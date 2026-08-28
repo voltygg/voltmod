@@ -12,7 +12,7 @@ UiMenuManager::UiMenuManager(Scheduler& scheduler, CustomUi& ui, SlotEvents& slo
                              std::string layout)
     : MenuHost(slots, entities, chatInput, translations, policy, players),
       _layout(ui, slots, std::move(layout)),
-      _rows(_layout, RowPrefix, RowsPerPage),
+      _rows(_layout, RootId, RowPrefix, RowsPerPage),
       _pump(scheduler.EveryFrame([this] { OnGameFrame(); }))
 {
     Bind();
@@ -63,7 +63,6 @@ void UiMenuManager::Bind()
 {
     _subs.push_back(_rows.Pressed += [this](int slot, int row) { OnRowPressed(slot, row); });
     _subs.push_back(_rows.Stepped += [this](int slot, int row, int dir) { OnRowStepped(slot, row, dir); });
-
     _subs.push_back(_layout.OnClick(std::string(BackId), [this](int slot) { CloseMenu(slot); }));
     _subs.push_back(_layout.OnClick(std::string(CloseId), [this](int slot) { CloseAllMenus(slot); }));
     _subs.push_back(_layout.OnClick(std::string(PrevId), [this](int slot) { TurnPage(slot, -1); }));
@@ -132,14 +131,14 @@ void UiMenuManager::Present(int slot)
     const int pages = PageCount(*menu);
     state.Page = std::clamp(state.Page, 0, pages - 1);
 
-    _layout.Text(slot, TitleId, "text", menu->Title);
-    _layout.Text(slot, SubtitleId, "text", menu->Subtitle);
+    _layout.Text(slot, RootId, TitleVar, menu->Title);
+    _layout.Text(slot, RootId, SubtitleVar, menu->Subtitle);
     _layout.Class(slot, SubtitleId, "Hidden", menu->Subtitle.empty());
 
     const auto prompt = _chatInput.GetPrompt(slot);
     _layout.Class(slot, PromptId, "Hidden", !prompt.has_value());
     if (prompt)
-        _layout.Text(slot, PromptTextId, "text", *prompt);
+        _layout.Text(slot, RootId, PromptVar, *prompt);
 
     const int items = static_cast<int>(menu->Items.size());
     const int first = state.Page * RowsPerPage;
@@ -163,7 +162,7 @@ void UiMenuManager::Present(int slot)
 
     _layout.Class(slot, PagerId, "Hidden", pages <= 1);
     if (pages > 1)
-        _layout.Text(slot, PageId, "text", std::format("{}/{}", state.Page + 1, pages));
+        _layout.Text(slot, RootId, PageVar, std::format("{}/{}", state.Page + 1, pages));
 
     // Nothing to go back to from the first menu of a session; closing is the way out.
     _layout.Class(slot, BackId, "Hidden", state.MenuStack.size() <= 1);

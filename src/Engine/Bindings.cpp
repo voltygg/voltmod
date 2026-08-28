@@ -55,10 +55,10 @@ public:
             member = OffsetOf<T>(entry->Index);
     }
 
-    void operator()(MessageId& member, std::string_view key, std::optional<Capability> capability = {})
+    void Message(int32_t& member, std::string_view key, std::optional<Capability> capability = {})
     {
         if (const auto* entry = Claim(key, GameData::Kind::Message, capability))
-            member = MessageId(entry->Index);
+            member = entry->Index;
     }
 
     void Signature(Address& member, std::string_view key, std::optional<Capability> capability = {})
@@ -174,7 +174,7 @@ Status Bindings::Bind(const GameData& data, Capabilities& caps)
     bind(CustomHudSetInputCapture, "CustomHudSetInputCapture", Capability::CustomUi);
     bind(CustomHudIsInputCapture, "CustomHudIsInputCapture", Capability::CustomUi);
     bind.Signature(FilterMessage, "FilterMessage", Capability::UiClicks);
-    bind(CustomHudClicked, "CustomHudClicked", Capability::UiClicks);
+    bind.Message(CustomHudClicked, "CustomHudClicked", Capability::UiClicks);
 
     // Addresses
     bind.Global(GameEventManager, "GameEventManager", Capability::GameEvents);

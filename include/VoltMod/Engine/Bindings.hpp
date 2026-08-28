@@ -109,28 +109,6 @@ struct VHookBinding
     explicit operator bool() const noexcept { return static_cast<bool>(Method) && static_cast<bool>(Table); }
 };
 
-/**
- * @brief A network message type id, as carried in a `CSVCMsg_UserMessage` envelope's `msg_type`.
- *
- * For a message the engine's registry does not name and the SDK's protos do not declare, which
- * leaves the number itself as the only way to recognise it. Unbound compares equal to nothing.
- */
-class MessageId
-{
-public:
-    MessageId() = default;
-    explicit constexpr MessageId(int value) noexcept : _value(value) {}
-
-    explicit constexpr operator bool() const noexcept { return _value >= 0; }
-    constexpr int Value() const noexcept { return _value; }
-
-    /** True when @p id is this message. False for an unbound id, whatever @p id is. */
-    [[nodiscard]] constexpr bool Is(int id) const noexcept { return _value >= 0 && _value == id; }
-
-private:
-    int _value = -1;
-};
-
 /** Typed byte offset. Unbound access is inert; `memcpy` permits unaligned access. */
 template <class T>
 class OffsetOf
@@ -235,10 +213,9 @@ struct Bindings
      *  with FindVTableSlot; see the gamedata comment for why there is no index. */
     Address FilterMessage;
 
-    /** The msg_type a custom HUD Button press arrives as, inside a CSVCMsg_UserMessage envelope.
-     *  A number rather than a name: nothing in the engine's registry or the SDK's protos declares
-     *  this message. See the gamedata entry. */
-    MessageId CustomHudClicked;
+    /** The user-message type a custom HUD Button press arrives as. A bare number from gamedata:
+     *  nothing in the engine's registry or the SDK's protos names this message. -1 when unbound. */
+    int32_t CustomHudClicked = -1;
 
     // Addresses
 

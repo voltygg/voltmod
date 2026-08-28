@@ -41,9 +41,13 @@ struct UiRow
  *
  * | Id | What it is |
  * | --- | --- |
- * | `vm_row3` | the row `Button`; carries `Hidden`, `Disabled`, `HasValue`, `HasSteppers` |
- * | `vm_row3_label`, `vm_row3_value` | `Label`s reading `text="{s:text}"` |
- * | `vm_row3_dec`, `vm_row3_inc` | the row's stepper `Button`s |
+ * | `vm_row3` | the row `Panel`; carries `Hidden`, `Disabled`, `HasValue`, `HasSteppers` |
+ * | `vm_row3_btn` | the row's main `Button` |
+ * | `vm_row3_dec`, `vm_row3_inc` | the stepper `Button`s, siblings of the main one |
+ *
+ * The three are siblings because a `Button` nested in another `Button` loses the inner press.
+ * The text is two dialog variables on the scope panel, `vm_row3_label` and `vm_row3_value`, read
+ * by `text="{s:vm_row3_label}"` on `Label`s that need no id of their own.
  *
  * Rows past what @ref Set was given are hidden by @ref HideFrom, so a short page leaves no stale
  * text on screen. Ids are built once at construction, and writes go through @ref UiLayout, so a
@@ -53,12 +57,13 @@ class UiList
 {
 public:
     /**
+     * @param scopeId the panel every dialog variable is written against: a Label inherits
+     *                `{s:name}` variables from its ancestors, so one scope feeds every label.
      * @param capacity how many rows the layout declares; writing past it is ignored. It has to
-     *                 match the markup, which the server cannot see - a layout with eight rows
-     *                 and a list of ten silently loses two.
+     *                 match the markup, which the server cannot see.
      * @p layout must outlive this object.
      */
-    UiList(UiLayout& layout, std::string_view prefix, int capacity);
+    UiList(UiLayout& layout, std::string_view scopeId, std::string_view prefix, int capacity);
 
     UiList(const UiList&) = delete;
     UiList& operator=(const UiList&) = delete;
@@ -79,14 +84,15 @@ public:
     Event<int, int, int> Stepped;
 
 private:
-    /** Every id one row needs, built once so a frame allocates nothing. */
+    /** Every id and variable name one row needs, built once so a frame allocates nothing. */
     struct RowIds
     {
-        std::string Row;
-        std::string Label;
-        std::string Value;
-        std::string Dec;
-        std::string Inc;
+        std::string Row;    ///< row panel id: classes
+        std::string Btn;    ///< main button id: clicks
+        std::string Label;  ///< dialog variable on the scope panel
+        std::string Value;  ///< dialog variable on the scope panel
+        std::string Dec;    ///< stepper button id: clicks
+        std::string Inc;    ///< stepper button id: clicks
     };
 
     /** Subscribe to every row's buttons. Deferred to the first @ref Set: subscribing is what
@@ -94,6 +100,8 @@ private:
     void Bind();
 
     UiLayout& _layout;
+    /** The panel every dialog variable is written against. */
+    std::string _scopeId;
     std::vector<RowIds> _ids;
     /** The @ref UiRow::Modifier each row currently carries, so the next one can replace it. */
     PerSlot<std::vector<std::string>> _modifiers;

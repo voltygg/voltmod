@@ -5,22 +5,24 @@
 namespace VoltMod
 {
 
-/** The dialog variable both text panels read; `text="{s:text}"` in the markup. */
-static constexpr std::string_view kTextVariable = "text";
-
 static constexpr std::string_view kHidden = "Hidden";
 static constexpr std::string_view kDisabled = "Disabled";
 static constexpr std::string_view kHasValue = "HasValue";
 static constexpr std::string_view kHasSteppers = "HasSteppers";
 
-UiList::UiList(UiLayout& layout, std::string_view prefix, int capacity) : _layout(layout)
+UiList::UiList(UiLayout& layout, std::string_view scopeId, std::string_view prefix, int capacity)
+    : _layout(layout), _scopeId(scopeId)
 {
     _ids.reserve(static_cast<std::size_t>(capacity < 0 ? 0 : capacity));
     for (int i = 0; i < capacity; ++i)
     {
         std::string row = std::format("{}{}", prefix, i);
-        _ids.push_back(
-            {.Row = row, .Label = row + "_label", .Value = row + "_value", .Dec = row + "_dec", .Inc = row + "_inc"});
+        _ids.push_back({.Row = row,
+                        .Btn = row + "_btn",
+                        .Label = row + "_label",
+                        .Value = row + "_value",
+                        .Dec = row + "_dec",
+                        .Inc = row + "_inc"});
     }
 }
 
@@ -32,8 +34,9 @@ void UiList::Set(int slot, int index, const UiRow& row)
     Bind();
 
     const RowIds& ids = _ids[static_cast<std::size_t>(index)];
-    _layout.Text(slot, ids.Label, kTextVariable, row.Label);
-    _layout.Text(slot, ids.Value, kTextVariable, row.Value);
+    // Variables on the one scope panel; the labels reading them carry no ids.
+    _layout.Text(slot, _scopeId, ids.Label, row.Label);
+    _layout.Text(slot, _scopeId, ids.Value, row.Value);
 
     // One modifier at a time: the row keeps whatever it was given last until something replaces
     // it, so the old one has to come off explicitly rather than being left on underneath.
@@ -73,7 +76,7 @@ void UiList::Bind()
     for (int i = 0; i < Capacity(); ++i)
     {
         const RowIds& ids = _ids[static_cast<std::size_t>(i)];
-        _clicks.push_back(_layout.OnClick(ids.Row, [this, i](int slot) { Pressed.Raise(slot, i); }));
+        _clicks.push_back(_layout.OnClick(ids.Btn, [this, i](int slot) { Pressed.Raise(slot, i); }));
         _clicks.push_back(_layout.OnClick(ids.Dec, [this, i](int slot) { Stepped.Raise(slot, i, -1); }));
         _clicks.push_back(_layout.OnClick(ids.Inc, [this, i](int slot) { Stepped.Raise(slot, i, +1); }));
     }

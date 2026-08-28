@@ -6,7 +6,7 @@
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Entities/EntityRef.hpp>
-#include <VoltMod/Ui/UiLayoutRef.hpp>
+#include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Unsafe/VtableHook.hpp>
 #include <string>
 
@@ -17,30 +17,28 @@ namespace VoltMod
 struct UiClick
 {
     int Slot = -1;         ///< who clicked
-    UiLayoutRef Layout;    ///< the custom_hud_layout the Button belongs to
-    std::string ButtonId;  ///< the Button's `id` attribute
+    EntityRef Layout;      ///< the custom_hud_layout the Button belongs to, already resolved
+    std::string ButtonId;  ///< the Button's `id` attribute; client-controlled text
 };
 
 /**
- * @brief Button presses coming back from a custom HUD layout, unfiltered.
+ * @brief Button presses coming back from custom HUD layouts, unfiltered.
  *
  * Owned by @ref CustomUi and reached as `Ui.Clicks`; @ref UiPanel::OnClick is the per-layout form
  * most callers want. A press only happens once that player has a cursor - see
- * @ref UiPanel::SetInputCapture and @ref custom_ui_guide.
+ * @ref UiPanel::SetInputCapture.
  *
- * Dormant until something subscribes, and removed when the last subscription drops. Unlike the
- * framework's other vtable hooks this one cannot bind from a cold start: `FilterMessage` is
- * inherited from a secondary base, so it is not in the class's primary vtable and the slot is
- * located from a live client instead. Subscribing with nobody connected therefore arms on the
- * next connect, which callers see only as clicks not arriving from an empty server.
+ * Dormant until something subscribes, removed when the last subscription drops. The hooked vfunc
+ * (`FilterMessage`) sits in a secondary vtable that can only be located from a connected client,
+ * so subscribing on an empty server arms on the next connect.
  *
- * Inert when @ref Capability::UiClicks is off. Every handler runs on the game thread.
+ * Inert when @ref Capability::UiClicks is off. Handlers run on the game thread.
  */
 class UiClicks
 {
 public:
-    /** All three must outlive this hook; the Runtime declares them above it. */
-    UiClicks(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots);
+    /** All references must outlive this hook; the Runtime declares them above it. */
+    UiClicks(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots, EntitySystem& entities);
     ~UiClicks();
     UiClicks(const UiClicks&) = delete;
     UiClicks& operator=(const UiClicks&) = delete;
@@ -60,12 +58,13 @@ private:
     bool Hook_FilterMessage(const CNetMessage* message, void* channel);
 
     /** The hook's actual work, so the hook itself is one unconditional MRES_IGNORED. @p self is
-     *  the hooked subobject, which is @ref _baseOffset bytes into the client. */
+     *  the hooked subobject, @ref _baseOffset bytes into the client. */
     void HandleMessage(const CNetMessage* message, void* self);
 
     Interfaces& _interfaces;
     const Bindings& _bindings;
     SlotEvents& _slots;
+    EntitySystem& _entities;
 
     int _refs = 0;                  // live subscriptions
     int _baseOffset = 0;            // bytes from CServerSideClient to the hooked subobject

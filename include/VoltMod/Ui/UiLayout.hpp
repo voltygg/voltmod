@@ -17,28 +17,19 @@ namespace VoltMod
 /**
  * @brief A live per-player binding to one Panorama layout: spawns it, keeps it, writes deltas.
  *
- * @ref UiPanel is the raw handle - every call reaches the engine. This is what a feature driving
- * a layout every tick wants instead: it owns the panel, re-spawns it when the entity is gone or
- * too small for the slot being written, and drops a write whose value the player already has.
- * That last part is what makes a per-frame redraw affordable, because unlike center HTML a
- * networked layout does not need re-sending to stay on screen.
+ * What a feature redrawing a layout every tick wants over the raw @ref UiPanel: it owns the
+ * panel, re-spawns it when the entity is gone or too small for the slot being written, and drops
+ * a write whose value the player already has - which is what makes a per-tick redraw affordable.
+ * Every write is per player, so one entity shows each player their own content.
  *
- * Every write is per player (@ref UiPanel::For), so one entity shows each player their own
- * content - and a layout whose markup hides itself by default stays hidden for everyone the
- * feature has not written to.
- *
- * Inert unless @ref Capability::CustomUi is on: @ref EnsureFor then fails and the writes are
- * no-ops, which is a caller's cue to fall back rather than draw nothing.
+ * Inert unless @ref Capability::CustomUi is on: @ref EnsureFor then fails, which is a caller's
+ * cue to fall back rather than draw nothing.
  */
 class UiLayout
 {
 public:
-    /**
-     * @param layout what @ref CustomUi::Spawn takes: a bare name, or a full resource name under
-     *               `panorama/layout/custom_game/` with its source `.xml` extension.
-     * Both @p ui and @p slots must outlive this object. Nothing is spawned until the first
-     * @ref EnsureFor, so constructing one during load costs nothing and cannot fail.
-     */
+    /** @p layout is what @ref CustomUi::Spawn takes. Both @p ui and @p slots must outlive this
+     *  object. Nothing is spawned until the first @ref EnsureFor, so constructing one is free. */
     UiLayout(CustomUi& ui, SlotEvents& slots, std::string layout);
     ~UiLayout();
 
@@ -49,12 +40,9 @@ public:
     [[nodiscard]] const std::string& Name() const noexcept { return _layout; }
 
     /**
-     * Make the entity exist and cover @p slot, spawning or re-spawning as needed.
-     *
-     * Call this before a burst of writes for one player; the writes themselves do not check.
-     * False means this player cannot be written to - the capability is off, the engine refused
-     * the entity, or the build carries no per-player layout state - and the reason is logged
-     * once per spawn attempt rather than once per frame.
+     * Make the entity exist and cover @p slot, spawning or re-spawning as needed. Call it before
+     * a burst of writes for one player; the writes themselves do not check. False means the slot
+     * cannot be written to, and the reason is logged once per spawn attempt, not once per frame.
      */
     bool EnsureFor(int slot);
 
@@ -70,24 +58,15 @@ public:
     /** Forget what @p slot was last written, so the next write goes through whatever its value. */
     void Forget(int slot);
 
-    /**
-     * Call @p handler when @p buttonId is pressed in this layout, whichever entity is carrying it.
-     *
-     * Unlike @ref UiPanel::OnClick this survives a re-spawn, which is the point: the subscription
-     * outlives any one entity. Keep the Subscription; presses stop when it is dropped, and every
-     * handler goes quiet when this object is destroyed.
-     */
+    /** Call @p handler when @p buttonId is pressed in this layout, whichever entity is carrying
+     *  it - unlike @ref UiPanel::OnClick this survives a re-spawn. Keep the Subscription. */
     [[nodiscard]] Subscription OnClick(std::string buttonId, std::function<void(int slot)> handler);
 
     /** Drop the entity and everything cached about it. The next @ref EnsureFor spawns a new one. */
     void Reset();
 
-    /**
-     * Drive a different layout resource from here on, dropping the current entity.
-     *
-     * The object itself stays put, which is what makes it usable: a @ref UiList and every
-     * @ref OnClick subscription hold on to *this*, and all of them keep working across the swap.
-     */
+    /** Drive a different layout resource from here on, dropping the current entity. The object
+     *  stays put, so a @ref UiList and every @ref OnClick subscription survive the swap. */
     void Retarget(std::string layout);
 
 private:

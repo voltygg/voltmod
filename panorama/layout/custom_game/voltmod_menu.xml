@@ -1,110 +1,113 @@
 <root>
-	<!--
-		The layout VoltMod::UiMenuManager drives. Every id below is part of the contract in
-		docs/custom-ui.md: a replacement layout keeps the ids and is free to change everything
-		else. Markup rules are the client's, not ours - only Panel/Label/Image/Button, no
-		<script>, and every Button needs an id or its presses go nowhere.
+  <!--
+    Driven by VoltMod::UiMenuManager. The ids are the contract (docs/custom-ui.md); everything
+    else is yours. Text is dialog variables on vm_root, which the labels inherit, so they need
+    no ids.
 
-		Eight rows, which must match UiMenuManager::RowsPerPage. The server cannot see this file,
-		so a mismatch silently loses rows off the end of a page.
-	-->
-	<styles>
-		<include src="file://{resources}/styles/custom_game/voltmod_menu.css" />
-	</styles>
+    Hit-testing rules learned the hard way: every panel on the click path needs a resolved
+    size (fit-children containers render their buttons but do not take clicks for them), a
+    Button must never contain another Button, and hittest="false" keeps a decorative panel
+    from eating clicks.
 
-	<Panel class="Root">
-		<Panel id="vm_root" class="Menu Hidden">
-			<Panel class="Header">
-				<Label id="vm_title" class="Title" text="{s:text}" />
-				<Label id="vm_subtitle" class="Subtitle Hidden" text="{s:text}" />
-			</Panel>
+    Eight rows, matching UiMenuManager::RowsPerPage. The server cannot read this file.
+  -->
+  <styles>
+    <include src="file://{resources}/styles/custom_game/voltmod_menu.css" />
+  </styles>
 
-			<Panel class="Rows">
-				<Button id="vm_row0" class="Row Hidden">
-					<Label id="vm_row0_label" class="Row-label" text="{s:text}" />
-					<Label id="vm_row0_value" class="Row-value" text="{s:text}" />
-					<Panel class="Row-steppers">
-						<Button id="vm_row0_dec" class="Stepper"><Label text="&#9664;" /></Button>
-						<Button id="vm_row0_inc" class="Stepper"><Label text="&#9654;" /></Button>
-					</Panel>
-				</Button>
-				<Button id="vm_row1" class="Row Hidden">
-					<Label id="vm_row1_label" class="Row-label" text="{s:text}" />
-					<Label id="vm_row1_value" class="Row-value" text="{s:text}" />
-					<Panel class="Row-steppers">
-						<Button id="vm_row1_dec" class="Stepper"><Label text="&#9664;" /></Button>
-						<Button id="vm_row1_inc" class="Stepper"><Label text="&#9654;" /></Button>
-					</Panel>
-				</Button>
-				<Button id="vm_row2" class="Row Hidden">
-					<Label id="vm_row2_label" class="Row-label" text="{s:text}" />
-					<Label id="vm_row2_value" class="Row-value" text="{s:text}" />
-					<Panel class="Row-steppers">
-						<Button id="vm_row2_dec" class="Stepper"><Label text="&#9664;" /></Button>
-						<Button id="vm_row2_inc" class="Stepper"><Label text="&#9654;" /></Button>
-					</Panel>
-				</Button>
-				<Button id="vm_row3" class="Row Hidden">
-					<Label id="vm_row3_label" class="Row-label" text="{s:text}" />
-					<Label id="vm_row3_value" class="Row-value" text="{s:text}" />
-					<Panel class="Row-steppers">
-						<Button id="vm_row3_dec" class="Stepper"><Label text="&#9664;" /></Button>
-						<Button id="vm_row3_inc" class="Stepper"><Label text="&#9654;" /></Button>
-					</Panel>
-				</Button>
-				<Button id="vm_row4" class="Row Hidden">
-					<Label id="vm_row4_label" class="Row-label" text="{s:text}" />
-					<Label id="vm_row4_value" class="Row-value" text="{s:text}" />
-					<Panel class="Row-steppers">
-						<Button id="vm_row4_dec" class="Stepper"><Label text="&#9664;" /></Button>
-						<Button id="vm_row4_inc" class="Stepper"><Label text="&#9654;" /></Button>
-					</Panel>
-				</Button>
-				<Button id="vm_row5" class="Row Hidden">
-					<Label id="vm_row5_label" class="Row-label" text="{s:text}" />
-					<Label id="vm_row5_value" class="Row-value" text="{s:text}" />
-					<Panel class="Row-steppers">
-						<Button id="vm_row5_dec" class="Stepper"><Label text="&#9664;" /></Button>
-						<Button id="vm_row5_inc" class="Stepper"><Label text="&#9654;" /></Button>
-					</Panel>
-				</Button>
-				<Button id="vm_row6" class="Row Hidden">
-					<Label id="vm_row6_label" class="Row-label" text="{s:text}" />
-					<Label id="vm_row6_value" class="Row-value" text="{s:text}" />
-					<Panel class="Row-steppers">
-						<Button id="vm_row6_dec" class="Stepper"><Label text="&#9664;" /></Button>
-						<Button id="vm_row6_inc" class="Stepper"><Label text="&#9654;" /></Button>
-					</Panel>
-				</Button>
-				<Button id="vm_row7" class="Row Hidden">
-					<Label id="vm_row7_label" class="Row-label" text="{s:text}" />
-					<Label id="vm_row7_value" class="Row-value" text="{s:text}" />
-					<Panel class="Row-steppers">
-						<Button id="vm_row7_dec" class="Stepper"><Label text="&#9664;" /></Button>
-						<Button id="vm_row7_inc" class="Stepper"><Label text="&#9654;" /></Button>
-					</Panel>
-				</Button>
-			</Panel>
+  <Panel class="Root" hittest="false">
+    <Panel id="vm_root" class="Menu Hidden" hittest="true">
+      <Panel class="Header" hittest="false">
+        <Label class="Title" text="{s:vm_title}" />
+        <Label id="vm_subtitle" class="Subtitle" text="{s:vm_subtitle}" />
+      </Panel>
 
-			<Panel id="vm_pager" class="Pager Hidden">
-				<Button id="vm_prev" class="Nav"><Label text="&#9664;" /></Button>
-				<Label id="vm_page" class="Pager-label" text="{s:text}" />
-				<Button id="vm_next" class="Nav"><Label text="&#9654;" /></Button>
-			</Panel>
+      <Panel class="Rows" hittest="true">
+        <Panel id="vm_row0" class="Row Hidden" hittest="true">
+          <Button id="vm_row0_btn" class="Row-btn">
+            <Label class="Row-label" text="{s:vm_row0_label}" />
+            <Label class="Row-value" text="{s:vm_row0_value}" />
+          </Button>
+          <Button id="vm_row0_dec" class="Stepper"><Label text="&#9664;" /></Button>
+          <Button id="vm_row0_inc" class="Stepper"><Label text="&#9654;" /></Button>
+        </Panel>
+        <Panel id="vm_row1" class="Row Hidden" hittest="true">
+          <Button id="vm_row1_btn" class="Row-btn">
+            <Label class="Row-label" text="{s:vm_row1_label}" />
+            <Label class="Row-value" text="{s:vm_row1_value}" />
+          </Button>
+          <Button id="vm_row1_dec" class="Stepper"><Label text="&#9664;" /></Button>
+          <Button id="vm_row1_inc" class="Stepper"><Label text="&#9654;" /></Button>
+        </Panel>
+        <Panel id="vm_row2" class="Row Hidden" hittest="true">
+          <Button id="vm_row2_btn" class="Row-btn">
+            <Label class="Row-label" text="{s:vm_row2_label}" />
+            <Label class="Row-value" text="{s:vm_row2_value}" />
+          </Button>
+          <Button id="vm_row2_dec" class="Stepper"><Label text="&#9664;" /></Button>
+          <Button id="vm_row2_inc" class="Stepper"><Label text="&#9654;" /></Button>
+        </Panel>
+        <Panel id="vm_row3" class="Row Hidden" hittest="true">
+          <Button id="vm_row3_btn" class="Row-btn">
+            <Label class="Row-label" text="{s:vm_row3_label}" />
+            <Label class="Row-value" text="{s:vm_row3_value}" />
+          </Button>
+          <Button id="vm_row3_dec" class="Stepper"><Label text="&#9664;" /></Button>
+          <Button id="vm_row3_inc" class="Stepper"><Label text="&#9654;" /></Button>
+        </Panel>
+        <Panel id="vm_row4" class="Row Hidden" hittest="true">
+          <Button id="vm_row4_btn" class="Row-btn">
+            <Label class="Row-label" text="{s:vm_row4_label}" />
+            <Label class="Row-value" text="{s:vm_row4_value}" />
+          </Button>
+          <Button id="vm_row4_dec" class="Stepper"><Label text="&#9664;" /></Button>
+          <Button id="vm_row4_inc" class="Stepper"><Label text="&#9654;" /></Button>
+        </Panel>
+        <Panel id="vm_row5" class="Row Hidden" hittest="true">
+          <Button id="vm_row5_btn" class="Row-btn">
+            <Label class="Row-label" text="{s:vm_row5_label}" />
+            <Label class="Row-value" text="{s:vm_row5_value}" />
+          </Button>
+          <Button id="vm_row5_dec" class="Stepper"><Label text="&#9664;" /></Button>
+          <Button id="vm_row5_inc" class="Stepper"><Label text="&#9654;" /></Button>
+        </Panel>
+        <Panel id="vm_row6" class="Row Hidden" hittest="true">
+          <Button id="vm_row6_btn" class="Row-btn">
+            <Label class="Row-label" text="{s:vm_row6_label}" />
+            <Label class="Row-value" text="{s:vm_row6_value}" />
+          </Button>
+          <Button id="vm_row6_dec" class="Stepper"><Label text="&#9664;" /></Button>
+          <Button id="vm_row6_inc" class="Stepper"><Label text="&#9654;" /></Button>
+        </Panel>
+        <Panel id="vm_row7" class="Row Hidden" hittest="true">
+          <Button id="vm_row7_btn" class="Row-btn">
+            <Label class="Row-label" text="{s:vm_row7_label}" />
+            <Label class="Row-value" text="{s:vm_row7_value}" />
+          </Button>
+          <Button id="vm_row7_dec" class="Stepper"><Label text="&#9664;" /></Button>
+          <Button id="vm_row7_inc" class="Stepper"><Label text="&#9654;" /></Button>
+        </Panel>
+      </Panel>
 
-			<Panel class="Footer">
-				<Button id="vm_back" class="Nav Hidden"><Label text="Back" /></Button>
-				<Button id="vm_close" class="Nav"><Label text="Close" /></Button>
-			</Panel>
+      <Panel id="vm_pager" class="Pager Hidden" hittest="true">
+        <Button id="vm_prev" class="Arrow"><Label text="&#9664;" /></Button>
+        <Label class="Pager-label" text="{s:vm_page}" />
+        <Button id="vm_next" class="Arrow"><Label text="&#9654;" /></Button>
+      </Panel>
 
-			<!--
-				Sits over the rows while a chat-input prompt is open. The rows stay clickable in
-				markup terms; the driver ignores their presses while a capture is live.
-			-->
-			<Panel id="vm_prompt" class="Prompt Hidden">
-				<Label id="vm_prompt_text" class="Prompt-text" text="{s:text}" />
-				<Button id="vm_cancel" class="Nav"><Label text="Cancel" /></Button>
-			</Panel>
-		</Panel>
-	</Panel>
+      <Panel class="Footer" hittest="true">
+        <Button id="vm_back" class="Nav Hidden"><Label text="Back" /></Button>
+        <Button id="vm_close" class="Nav"><Label text="Close" /></Button>
+      </Panel>
+
+      <!--
+        Shown over the menu while a chat-input prompt is open. The driver ignores row
+        presses while a capture is live, so the rows above stay inert rather than hidden.
+      -->
+      <Panel id="vm_prompt" class="Prompt Hidden" hittest="true">
+        <Label class="Prompt-text" text="{s:vm_prompt_text}" />
+        <Button id="vm_cancel" class="Nav"><Label text="Cancel" /></Button>
+      </Panel>
+    </Panel>
+  </Panel>
 </root>

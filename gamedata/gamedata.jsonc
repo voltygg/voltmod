@@ -301,9 +301,9 @@
   },
 
   "messages": {
-    // msg_type of a custom HUD Button press inside its CSVCMsg_UserMessage envelope. Named
-    // nowhere - not in the engine's registry, and past the SDK proto's last id (389) - so the
-    // number is all there is to match on. Read off the wire on build 14178.
+    // msg_type of a custom HUD Button press inside CSVCMsg_UserMessage. Named nowhere - not in
+    // the engine's registry, and past the SDK proto's last id (389) - so the number is all there
+    // is to match on. Read off the wire on build 14178.
     "CustomHudClicked": { "windows": 390, "linux": 390 }
   }
 }

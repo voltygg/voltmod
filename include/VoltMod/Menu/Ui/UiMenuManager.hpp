@@ -15,21 +15,13 @@ namespace VoltMod
 {
 
 /**
- * @brief Clickable Panorama menus, drawn into a `custom_hud_layout`.
+ * @brief The clickable @ref MenuHost: the same menus as @ref HtmlMenuManager, drawn into a
+ * `custom_hud_layout` the player clicks instead of center HTML they steer with WASD.
  *
- * The other @ref MenuHost. Same menus as @ref HtmlMenuManager - a @ref MenuView built by
- * @ref MenuBuilder runs on either - drawn as a real panel the player clicks instead of a block of
- * center HTML they steer with WASD. Rows carry their kind as a CSS class, so how a toggle or a
- * submenu *looks* is the stylesheet's business and never the server's.
- *
- * There is no keyboard path here at all: presses arrive as clicks, which means the player needs a
- * cursor, which this turns on for the length of a menu session and off again when it ends.
- * Movement freeze still applies - a cursor takes mouse-look, not the movement keys.
- *
- * Costs that center HTML does not have: the layout has to reach clients (a workshop addon, or a
- * manual copy while developing) and @ref Capability::CustomUi has to be on, which today means
- * Windows. @ref HtmlMenuManager is the fallback when either is missing, and a plugin picks between
- * them once rather than switching per menu.
+ * Rows carry their kind as a CSS class, so how a toggle or a submenu looks is the stylesheet's
+ * business. Players get a cursor for the length of a menu session. The layout has to reach
+ * clients (workshop addon, or a manual copy while developing) and @ref Capability::CustomUi has
+ * to be on; @ref HtmlMenuManager is the fallback when either is missing.
  *
  * @see @ref custom_ui_guide for the id contract a replacement layout has to honour.
  */
@@ -63,20 +55,32 @@ public:
     void SetLayout(std::string layout);
 
 private:
-    /** Panel ids this driver writes. A layout that omits one loses that piece and nothing else. */
+    /**
+     * Panel ids this driver sets classes on, and clicks arrive from. A layout that omits one
+     * loses that piece and nothing else.
+     */
     static constexpr std::string_view RootId = "vm_root";
-    static constexpr std::string_view TitleId = "vm_title";
     static constexpr std::string_view SubtitleId = "vm_subtitle";
     static constexpr std::string_view PagerId = "vm_pager";
-    static constexpr std::string_view PageId = "vm_page";
     static constexpr std::string_view PrevId = "vm_prev";
     static constexpr std::string_view NextId = "vm_next";
     static constexpr std::string_view BackId = "vm_back";
     static constexpr std::string_view CloseId = "vm_close";
     static constexpr std::string_view PromptId = "vm_prompt";
-    static constexpr std::string_view PromptTextId = "vm_prompt_text";
     static constexpr std::string_view CancelId = "vm_cancel";
     static constexpr std::string_view RowPrefix = "vm_row";
+
+    /**
+     * Dialog variables, all written against @ref RootId.
+     *
+     * A `Label` resolves `{s:name}` by walking up its ancestors, so one scope panel feeds every
+     * label beneath it and the labels need no ids of their own. Writing per label instead - a
+     * `text` variable on each label's own id - is the shape that does not work.
+     */
+    static constexpr std::string_view TitleVar = "vm_title";
+    static constexpr std::string_view SubtitleVar = "vm_subtitle";
+    static constexpr std::string_view PageVar = "vm_page";
+    static constexpr std::string_view PromptVar = "vm_prompt_text";
 
     /** The class a row carries for its kind, for a stylesheet to hang a chevron or a check on. */
     static std::string_view ModifierFor(MenuRowKind kind);
