@@ -93,7 +93,7 @@ struct App
 
 class MyPlugin final : public VoltMod::MetamodPlugin
 {
-    bool OnLoad(VoltMod::Runtime& runtime, bool late) override
+    bool OnLoad(VoltMod::Runtime& runtime) override
     {
         _app.emplace(runtime);
         return _app->Start();

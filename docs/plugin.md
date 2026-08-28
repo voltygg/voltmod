@@ -23,7 +23,7 @@ protected:
         return VoltMod::WithBuildInfo({ .Name = "My Plugin", .Author = "me", .LogTag = "MINE" });
     }
 
-    bool OnLoad(VoltMod::Runtime& runtime, bool late) override
+    bool OnLoad(VoltMod::Runtime& runtime) override
     {
         _app.emplace(runtime);
         return _app->Start();
@@ -79,7 +79,7 @@ Nothing survives `OnUnload`, so a `meta reload` starts from clean state. Because
 
 1. `PLUGIN_SAVEVARS()`, then the `Runtime` is constructed and `Runtime::Start` runs: interface resolution, gamedata, and every framework subsystem, each as a `LoadReport` stage.
 2. The standard SourceHook hooks, then `OnRegisterHooks(runtime)` for yours.
-3. Your `OnLoad(runtime, late)`. Returning `false` rejects the load; `OnUnload()` runs and the `Runtime` is destroyed, so a failed init never leaks. A bare `return false` with no Failed stage recorded gets a synthetic "OnLoad" failure stage, so `meta list` always names a reason.
+3. Your `OnLoad(runtime)`. Returning `false` rejects the load; `OnUnload()` runs and the `Runtime` is destroyed, so a failed init never leaks. A bare `return false` with no Failed stage recorded gets a synthetic "OnLoad" failure stage, so `meta list` always names a reason.
 
 The standard prelude (config plus translations, recorded as LoadReport stages) is one call:
 
@@ -221,7 +221,7 @@ Keep JSON sections compact (counts and names, not full lists), because RCON's co
 | Override | Fires | Notes |
 |----------|-------|-------|
 | `Info()` | Metadata queries | Required |
-| `OnLoad(runtime, late)` | Once the runtime is live | Required; `false` rejects the load |
+| `OnLoad(runtime)` | Once the runtime is live | Required; `false` rejects the load |
 | `OnUnload()` | On unload, before the runtime is destroyed | Drop whatever `OnLoad` built |
 | `OnServerStartup(mapName)` | Each map start, after event listeners are attached | The engine has just reset convars and run the game-mode cfgs |
 | `OnPlayerChat(Player*, string_view, bool team)` | On `say`/`say_team` | Default dispatches registered chat commands and swallows handled ones; override to customize (an override replaces the dispatch wholesale, as admin-style chat services do) |

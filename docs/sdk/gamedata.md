@@ -152,13 +152,22 @@ runtime.Entities.PawnOf(slot).Health = 100;   // resolves CBaseEntity::m_iHealth
 
 `Field` compares `sizeof(T)` with the engine field size and warns once on mismatch.
 
-For fields without wrappers, declare a `static` @ref VoltMod::LazyField beside the access:
+For fields without wrappers, declare a `static` @ref VoltMod::FieldOffset beside the access and
+apply it with a @ref VoltMod::SchemaPtr - the base a schema offset is read from, whether that is an
+entity or a sub-object reached from one:
 
 ```cpp
-static const VoltMod::LazyField kItemServices{"CBasePlayerPawn", "m_pItemServices", sizeof(void*)};
+static const VoltMod::FieldOffset kItemServices{"CBasePlayerPawn", "m_pItemServices", sizeof(void*)};
+static const VoltMod::FieldOffset kAccount{"CCSPlayerController_InGameMoneyServices", "m_iAccount", sizeof(int)};
 
-if (kItemServices)
-    services = VoltMod::ReadAt<void*>(pawn.Raw(), kItemServices->Offset);
+VoltMod::SchemaPtr services = VoltMod::SchemaPtr{pawn.Raw()}.SubObject(kItemServices);
+int money = VoltMod::SchemaPtr{controller.Raw()}.SubObject(kMoneyServices).Get<int>(kAccount);
 ```
+
+`SubObject` follows a pointer field, `Inside` steps into one stored inline, and every accessor
+answers harmlessly when the pointer is null or the field did not resolve. A `SchemaPtr` write does
+not dirty anything for replication - it has no entity to dirty - so pair it with
+@ref VoltMod::MarkChanged on the owning entity's own field, or use a @ref VoltMod::Field where the
+entity has a wrapper.
 
 Both retry until schema is ready. Use them only on the game thread.

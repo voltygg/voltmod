@@ -79,8 +79,8 @@ Three things a `Field` does that a raw offset write does not:
 `Field::Ref()` exposes the resolved @ref VoltMod::FieldRef (offset, size, networked, chain), and
 `Get()` / `Set()` are there when the conversion operators read badly at a call site.
 
-For a field with no wrapper to hang it on, declare a `static` @ref VoltMod::LazyField - see
-@ref sdk_gamedata_guide "Gamedata".
+For a field with no wrapper to hang it on, declare a `static` @ref VoltMod::FieldOffset and reach
+it through a @ref VoltMod::SchemaPtr - see @ref sdk_gamedata_guide "Gamedata".
 
 ## EntitySystem
 

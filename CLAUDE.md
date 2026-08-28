@@ -81,7 +81,7 @@ in `pyproject.toml`.
 
 `VoltMod::MetamodPlugin` owns Metamod entry points, standard hooks, player
 tracking, and one `VoltMod::Runtime` per load cycle. It passes the runtime to
-`OnLoad(Runtime&, bool late)`. Consumers must destroy their own load-cycle state
+`OnLoad(Runtime&)`. Consumers must destroy their own load-cycle state
 in `OnUnload`.
 
 The runtime is a flat service container. Services are accessed directly, such
