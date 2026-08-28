@@ -33,9 +33,9 @@ Runtime::~Runtime()
 {
     // Both must precede member destruction: Http.Stop() joins the workers, whose final log lines
     // are queued for the game thread, and OnGameFrame never runs again once the hooks are gone -
-    // so this second drain is the only thing that keeps shutdown diagnostics from being dropped.
+    // so this second delivery is the only thing that keeps shutdown diagnostics from being dropped.
     Http.Stop();
-    Log::Drain();
+    Log::DeliverPending();
 }
 
 bool Runtime::Start(const LoadContext& context)
@@ -56,7 +56,7 @@ bool Runtime::Start(const LoadContext& context)
 
 void Runtime::InstallLogger(const LoadContext& context)
 {
-    Log::SetSink(MakeConsoleSink(std::string(context.LogPrefix)));
+    Log::SetHandler(MakeConsoleHandler(std::string(context.LogPrefix)));
     SetBaseDir(context.Ismm->GetBaseDir());
 }
 
@@ -154,8 +154,8 @@ bool Runtime::InitializeServices(const LoadContext& context)
         });
     };
 
-    // One process-wide sink, not a per-Runtime service: the schema system is a single engine
-    // object and the offsets it answers with are constants of the loaded binary.
+    // One process-wide file-static, not a per-Runtime service: the schema system is a single
+    // engine object and the offsets it answers with are constants of the loaded binary.
     degradable("Schema", Capability::Schema, [&] { return BindSchemaSystem(Unsafe.Interfaces.SchemaSystem); });
     report.Run("Entities", [&] {
         auto ready = Entities.Initialize();
@@ -257,7 +257,7 @@ void Runtime::RegisterStatusSections()
 
 void Runtime::OnGameFrame()
 {
-    Log::Drain();
+    Log::DeliverPending();
     Scheduler.OnGameFrame();
 }
 

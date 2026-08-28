@@ -16,7 +16,7 @@ default_options = {"voltmod/*:with_postgres": True}
 
 ## The threading model
 
-- `Query` / `Exec` are the gameplay path: enqueue, return immediately. `Query` completions are queued and replayed **on the game thread** (a per-frame pump self-registers in `Start`), so callbacks may touch players, menus, and your managers freely.
+- `Query` / `Exec` are the gameplay path: enqueue, return immediately. `Query` completions are queued and replayed **on the game thread** (a per-frame subscription self-registers in `Start`), so callbacks may touch players, menus, and your managers freely.
 - Jobs run FIFO on the worker, so a write enqueued before a read is visible to that read. Counting rows you just inserted works without ceremony.
 - The `*Blocking` variants ride the same queue but wait. They exist for load time only: `OnLoad`, migrations, an explicit admin reload. Never call them per-frame or per-event.
 - The connection opens lazily and reopens after a drop; `PostgresConfig::connectTimeoutSec` (default 5) bounds every attempt so a dead database can't hang a query or unload.
@@ -25,7 +25,7 @@ default_options = {"voltmod/*:with_postgres": True}
 
 ```cpp
 // Db is a PostgresDatabase member of your App, declared above everything that uses it.
-// It takes the scheduler that drives its completion pump:
+// It takes the scheduler that drives its per-frame completion delivery:
 //     VoltMod::PostgresDatabase Db{Runtime.Scheduler};
 if (!Db.Start(Config.Get().database))
 {
@@ -36,12 +36,12 @@ if (!Db.Start(Config.Get().database))
 
 `Start` spawns the worker and verifies connectivity with a ping. It returns `false` when the database is unreachable, so you can degrade instead of queueing into the void.
 
-Call `Stop` from your `App` destructor rather than next to `Start`. It drains
-queued writes (a ban issued just before unload must land) and drops undispatched
+Call `Stop` from your `App` destructor rather than next to `Start`. It lets
+queued writes finish (a ban issued just before unload must land) and drops undispatched
 completions, so it must run after the managers those callbacks would touch have
 been destroyed.
 
-`Stop(drainDeadline = 5s)` is deliberate about what happens to in-flight work: new work is dropped with a log line; already-queued jobs drain within the deadline (a ban written just before unload must land); anything past the deadline is dropped with a warning; blocked waiters are released with a failed result; and undispatched completions are destroyed unrun, because the state they would touch is going away.
+`Stop(stopDeadline = 5s)` is deliberate about what happens to in-flight work: new work is dropped with a log line; already-queued jobs get to finish within the deadline (a ban written just before unload must land); anything past the deadline is dropped with a warning; blocked waiters are released with a failed result; and undispatched completions are destroyed unrun, because the state they would touch is going away.
 
 ## Queries
 

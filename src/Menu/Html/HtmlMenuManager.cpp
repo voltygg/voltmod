@@ -40,7 +40,7 @@ HtmlMenuManager::HtmlMenuManager(Scheduler& scheduler, SlotEvents& slots, Entity
                                  PlayerManager& players)
     : MenuHost(slots, entities, chatInput, translations, policy, players),
       _messages(messages),
-      _pump(scheduler.EveryFrame([this] { OnGameFrame(); }))
+      _onFrame(scheduler.EveryFrame([this] { OnGameFrame(); }))
 {}
 
 void HtmlMenuManager::OnGameFrame()

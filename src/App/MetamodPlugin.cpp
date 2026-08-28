@@ -112,11 +112,11 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
 // unique_ptr are both no-ops.
 void MetamodPlugin::Shutdown()
 {
-    _customHooks.clear();
+    _customHooks.Clear();
     if (_runtime)
         _runtime->Commands.RemoveAll();
     OnUnload();
-    _standardHooks.clear();
+    _standardHooks.Clear();
     _runtime.reset();
 }
 
@@ -143,23 +143,23 @@ void MetamodPlugin::RegisterStandardHooks()
 
     // VOLTMOD_SCOPED_HOOK installs each hook and yields the Subscription that removes it, so the
     // add and remove lists cannot drift apart. Reset in Unload, before the runtime goes away.
-    _standardHooks.push_back(VOLTMOD_SCOPED_HOOK(IServerGameDLL, GameFrame, gi.ServerGameDLL,
-                                                 SH_MEMBER(this, &MetamodPlugin::Hook_GameFrame), true));
-    _standardHooks.push_back(VOLTMOD_SCOPED_HOOK(INetworkServerService, StartupServer, gi.NetworkServerService,
-                                                 SH_MEMBER(this, &MetamodPlugin::Hook_StartupServer), true));
-    _standardHooks.push_back(VOLTMOD_SCOPED_HOOK(IServerGameClients, OnClientConnected, gi.ServerGameClients,
-                                                 SH_MEMBER(this, &MetamodPlugin::Hook_OnClientConnected), false));
-    _standardHooks.push_back(VOLTMOD_SCOPED_HOOK(IServerGameClients, ClientDisconnect, gi.ServerGameClients,
-                                                 SH_MEMBER(this, &MetamodPlugin::Hook_ClientDisconnect), true));
-    _standardHooks.push_back(VOLTMOD_SCOPED_HOOK(IServerGameClients, ClientFullyConnect, gi.ServerGameClients,
-                                                 SH_MEMBER(this, &MetamodPlugin::Hook_ClientFullyConnect), true));
-    _standardHooks.push_back(VOLTMOD_SCOPED_HOOK(IServerGameClients, ClientSettingsChanged, gi.ServerGameClients,
-                                                 SH_MEMBER(this, &MetamodPlugin::Hook_ClientSettingsChanged), true));
-    _standardHooks.push_back(VOLTMOD_SCOPED_HOOK(ICvar, DispatchConCommand, gi.CVar,
-                                                 SH_MEMBER(this, &MetamodPlugin::Hook_DispatchConCommand), false));
+    _standardHooks.Add(VOLTMOD_SCOPED_HOOK(IServerGameDLL, GameFrame, gi.ServerGameDLL,
+                                           SH_MEMBER(this, &MetamodPlugin::Hook_GameFrame), true));
+    _standardHooks.Add(VOLTMOD_SCOPED_HOOK(INetworkServerService, StartupServer, gi.NetworkServerService,
+                                           SH_MEMBER(this, &MetamodPlugin::Hook_StartupServer), true));
+    _standardHooks.Add(VOLTMOD_SCOPED_HOOK(IServerGameClients, OnClientConnected, gi.ServerGameClients,
+                                           SH_MEMBER(this, &MetamodPlugin::Hook_OnClientConnected), false));
+    _standardHooks.Add(VOLTMOD_SCOPED_HOOK(IServerGameClients, ClientDisconnect, gi.ServerGameClients,
+                                           SH_MEMBER(this, &MetamodPlugin::Hook_ClientDisconnect), true));
+    _standardHooks.Add(VOLTMOD_SCOPED_HOOK(IServerGameClients, ClientFullyConnect, gi.ServerGameClients,
+                                           SH_MEMBER(this, &MetamodPlugin::Hook_ClientFullyConnect), true));
+    _standardHooks.Add(VOLTMOD_SCOPED_HOOK(IServerGameClients, ClientSettingsChanged, gi.ServerGameClients,
+                                           SH_MEMBER(this, &MetamodPlugin::Hook_ClientSettingsChanged), true));
+    _standardHooks.Add(VOLTMOD_SCOPED_HOOK(ICvar, DispatchConCommand, gi.CVar,
+                                           SH_MEMBER(this, &MetamodPlugin::Hook_DispatchConCommand), false));
     // Post hook: the game has filled the per-client transmit bitvecs; the filter clears bits.
-    _standardHooks.push_back(VOLTMOD_SCOPED_HOOK(ISource2GameEntities, CheckTransmit, gi.GameEntities,
-                                                 SH_MEMBER(this, &MetamodPlugin::Hook_CheckTransmit), true));
+    _standardHooks.Add(VOLTMOD_SCOPED_HOOK(ISource2GameEntities, CheckTransmit, gi.GameEntities,
+                                           SH_MEMBER(this, &MetamodPlugin::Hook_CheckTransmit), true));
 
     Log::Info("Hooks registered.");
 }

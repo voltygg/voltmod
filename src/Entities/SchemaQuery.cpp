@@ -28,8 +28,8 @@ static_assert(offsetof(NetworkVarChainer, PathIndex) == 0x20);
 static constexpr std::string_view ChainField = "__m_pChainEntity";
 
 /**
- * Set once at load and never cleared. A process-wide sink is right here: the schema system is one
- * engine object shared by every plugin in the process, and the offsets it answers with are
+ * Set once at load and never cleared. A process-wide file-static is right here: the schema system
+ * is one engine object shared by every plugin in the process, and the offsets it answers with are
  * constants of the loaded binary rather than per-load state.
  */
 static ISchemaSystem* g_schema = nullptr;

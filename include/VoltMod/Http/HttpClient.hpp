@@ -54,13 +54,14 @@ struct HttpRequest
  * and replayed on the game thread via `DispatchCompletions()` so callbacks may safely touch engine
  * state. No engine API may be called from a completion before that dispatch.
  *
- * The dispatch runs from a per-frame scheduler pump the client registers for itself, so nothing
- * outside has a pump list to keep in sync.
+ * The dispatch runs from a per-frame scheduler subscription the client registers for itself, so
+ * nothing outside has a per-frame list to keep in sync.
  */
 class HttpClient
 {
 public:
-    /** @p scheduler must outlive the client; the pump unregisters in the destructor. */
+    /** @p scheduler must outlive the client; the per-frame subscription unregisters in the
+     *  destructor. */
     explicit HttpClient(Scheduler& scheduler);
     /** Runs @ref Stop, so a client that is merely destroyed still joins its workers. */
     ~HttpClient();
@@ -90,8 +91,9 @@ private:
 
     struct Impl;
     std::unique_ptr<Impl> _impl;
-    /** Declared after _impl so the pump stops before the queue its callback drains goes away. */
-    Subscription _pump;
+    /** Declared after _impl so per-frame delivery stops before the queue its callback reads
+     *  goes away. */
+    Subscription _onFrame;
 };
 
 }  // namespace VoltMod

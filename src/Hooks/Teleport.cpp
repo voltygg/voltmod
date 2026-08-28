@@ -48,7 +48,7 @@ Teleport::~Teleport()
 
 void Teleport::BindAll()
 {
-    _armed = true;
+    _installed = true;
     for (int slot = 0; slot < MaxPlayers; ++slot)
         Bind(slot);
 
@@ -70,7 +70,7 @@ void Teleport::UnbindAll()
 
     _spawnListener.Reset();
     _slotListener.Reset();
-    _armed = false;
+    _installed = false;
 }
 
 void Teleport::OnServerStartup()
@@ -84,7 +84,7 @@ void Teleport::OnServerStartup()
 
 void Teleport::Bind(int slot)
 {
-    if (!_armed || !IsValidSlot(slot))
+    if (!_installed || !IsValidSlot(slot))
         return;
 
     Unbind(slot);

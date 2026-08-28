@@ -66,8 +66,8 @@ public:
 private:
     /** One shared install behind four events: the first subscription across all of them binds the
      *  vtable and the last one to drop unbinds it. */
-    bool Acquire();
-    void ReleaseRef();
+    bool OnFirstSubscriber();
+    void OnLastSubscriber();
 
     /** Any connected player's movement services, for the install-time vtable cross-check. */
     SchemaPtr LiveMovementServices() const;
@@ -78,7 +78,7 @@ private:
 
     EntitySystem& _entities;
     const Bindings& _bindings;
-    int _refs = 0;         // live subscriptions across all four events
+    int _subscribers = 0;  // live subscriptions across all four events
     UserCmdView _cmdView;  // decoded once per RunCommand, reused across pre/post dispatch
     VtableHook _hook;      // the pre/post pair; removed by dropping it
     int _preSlot = -1;     // slot resolved in the pre hook, reused by the immediately-following post

@@ -166,7 +166,7 @@ TEST_CASE("Install refuses a request with no adder, no remover, or no side")
     CHECK(adder.Calls() == 0);
 }
 
-// The Lifecycle half of the contract: what a hook service's Acquire/ReleaseRef refcount has to do
+// The Lifecycle half of the contract: what a hook service's OnFirstSubscriber/OnLastSubscriber refcount has to do
 // for the install to happen exactly once and the removal exactly once.
 
 TEST_CASE("The first subscription installs and the last one to drop removes")

@@ -35,7 +35,7 @@ it is not allowed to reach.
 
 - **Game thread only.** Metamod hooks arrive on the main thread, and framework
   code runs there. The database worker and HTTP pool are the exceptions: they
-  queue completions and replay them on the game thread from a per-frame pump, so
+  queue completions and replay them on the game thread through per-frame delivery, so
   callbacks do not race game code.
 - **One load-cycle lifetime.** Every service belongs to one @ref VoltMod::Runtime,
   created on load and destroyed on unload. A `meta reload` starts clean.
@@ -199,9 +199,9 @@ Operations that can fail meaningfully return `Result<T>` or @ref VoltMod::Status
 `std::expected` over @ref VoltMod::Error - a coarse `ErrorCode`, log text in `Detail`, and a
 translation key in `Key` when a player is owed a reply.
 
-## The frame pump
+## Per-frame delivery
 
-The plugin's GameFrame hook calls `Runtime::OnGameFrame()`, which ticks exactly one thing: the @ref VoltMod::Scheduler. Everything per-frame (menu input, HTTP completions, database completions) registers a `Scheduler::EveryFrame` timer, so there is no hardcoded pump list to keep in sync.
+The plugin's GameFrame hook calls `Runtime::OnGameFrame()`, which ticks exactly one thing: the @ref VoltMod::Scheduler. Everything per-frame (menu input, HTTP completions, database completions) registers a `Scheduler::EveryFrame` timer, so there is no hardcoded list of per-frame work to keep in sync.
 
 ## Runtime integrity
 
@@ -265,8 +265,8 @@ include `VoltMod/Runtime.hpp` (or `Api.hpp`) at all - every other module, includ
   do (`MenuBuilderRows.cpp`) include `HtmlMenuManager.hpp` themselves.
 - A file-static stands in only where no reference can be threaded, set and cleared by the
   code that owns it. Two back engine callbacks that carry no user data (the entity system
-  behind `GameEntitySystem()`, the sink for the global convar change callback); the rest are
-  process-wide sinks set once at load (the `Log::Sink` installed by `Log::SetSink`, which worker
-  threads write to as well, and the base directory behind `AddonFile`).
+  behind `GameEntitySystem()`, the file-static for the global convar change callback); the rest are
+  process-wide file-statics set once at load (the `Log::Handler` installed by `Log::SetHandler`,
+  which worker threads write to as well, and the base directory behind `AddonFile`).
 
 Plugin code never needs any of it: `OnLoad` hands it the runtime.

@@ -115,8 +115,8 @@ Contracts worth knowing:
 
 - **The title must be a localization token the client already has** - a `#SFUI_vote...` or
   `#Panorama_vote...` string. The panel is the engine's own; arbitrary text does not render.
-- There is no arming step: the first `StartVote` subscribes to `vote_cast` itself, so a vote can
-  never silently count zero ballots because nobody enabled the service.
+- There is no separate setup step: the first `StartVote` subscribes to `vote_cast` itself, so a vote can
+  never silently count zero ballots because nobody set up the service.
 - `StartVote` returns false when a vote is already running, when nobody is connected, or when the
   map has no `vote_controller` (which is re-found per vote, since it dies with the map).
 - The vote closes on its own as soon as everyone eligible has answered, rather than sitting on a

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Core/Subscriptions.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Players/Player.hpp>
@@ -11,7 +12,6 @@
 #include <icvar.h>
 #include <memory>
 #include <string_view>
-#include <vector>
 
 namespace VoltMod
 {
@@ -105,7 +105,7 @@ protected:
      * own graph - the derived object is the VOLTMOD_PLUGIN global, so its members are not
      * destroyed until the process is.
      */
-    void OwnHook(Subscription hook) { _customHooks.push_back(std::move(hook)); }
+    void OwnHook(Subscription hook) { _customHooks.Add(std::move(hook)); }
 
     // Standard hook callbacks; subclasses use the virtual callbacks above.
     void Hook_GameFrame(bool simulating, bool firstTick, bool lastTick);
@@ -132,8 +132,8 @@ private:
     // call into go away - the same order Shutdown() enforces explicitly. Custom hooks last of
     // the three, so they are the first to go.
     std::unique_ptr<VoltMod::Runtime> _runtime;
-    std::vector<Subscription> _standardHooks;
-    std::vector<Subscription> _customHooks;
+    Subscriptions _standardHooks;
+    Subscriptions _customHooks;
     PluginInfo _info;  // cached copy of Info() captured at load; backs the ISmmPlugin getters
 };
 

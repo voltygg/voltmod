@@ -79,7 +79,7 @@ Vote::Vote(Interfaces& interfaces, EntitySystem& entities, GameEvents& events, S
     : _interfaces(interfaces), _entities(entities), _events(events), _scheduler(scheduler)
 {}
 
-bool Vote::AcquireController()
+bool Vote::FindController()
 {
     // The controller is a map entity, so it is a different object after every map change.
     _controller = SchemaPtr{_entities.FindByClassName({}, ControllerClass).Raw()};
@@ -133,8 +133,8 @@ bool Vote::StartVote(std::string_view title, std::string_view detail, float dura
     if (_inProgress || !onResult)
         return false;
 
-    // Subscribed here rather than in a separate arming call: a vote that counted no ballots
-    // because nobody armed the service is a silent failure with no good diagnostic.
+    // Subscribed here rather than in a separate setup call: a vote that counted no ballots
+    // because nobody set up the service is a silent failure with no good diagnostic.
     if (!_voteCastSub)
     {
         _voteCastSub = _events.On<VoteCast>([this](const VoteCast& e) {
@@ -143,7 +143,7 @@ bool Vote::StartVote(std::string_view title, std::string_view detail, float dura
         });
     }
 
-    if (!AcquireController())
+    if (!FindController())
     {
         Log::Warn("Vote: this map has no vote_controller; no vote can be shown.");
         return false;

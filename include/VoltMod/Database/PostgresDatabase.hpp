@@ -46,14 +46,14 @@ struct PostgresConfig
  * One worker thread owns the ONLY connection (opened lazily, reopened on failure); the game
  * thread never blocks on the database during play. Jobs run FIFO, so a write enqueued before a
  * read is visible to it. Completions are queued and replayed on the game thread (a per-frame
- * pump self-registers in Start), so callbacks may touch engine and plugin state freely.
+ * subscription self-registers in Start), so callbacks may touch engine and plugin state freely.
  *
  * - `Query` / `Exec` are the gameplay path: fire, and (for Query) receive the result later.
  * - The `*Blocking` variants enqueue the same way but wait for the worker - use them ONLY at
  *   load time (OnLoad, migrations, `!admin_reload`); never on a per-frame or per-event path.
  *
- * Shutdown (`Stop`): new work is dropped with a log line, the already-queued jobs drain within
- * `drainDeadline` (a ban written just before unload must land), anything past the deadline is
+ * Shutdown (`Stop`): new work is dropped with a log line, the already-queued jobs get to finish within
+ * `stopDeadline` (a ban written just before unload must land), anything past the deadline is
  * dropped with a warning, blocked waiters are released with a failed result, and undispatched
  * completions are destroyed unrun - the state they would touch is going away.
  */
@@ -62,21 +62,22 @@ class PostgresDatabase
 public:
     using ResultCallback = std::move_only_function<void(DbResult<pqxx::result>)>;
 
-    /** @p scheduler drives the completion pump and must outlive this object. */
+    /** @p scheduler drives per-frame completion delivery and must outlive this object. */
     explicit PostgresDatabase(Scheduler& scheduler) : _scheduler(scheduler) {}
     ~PostgresDatabase();
     PostgresDatabase(const PostgresDatabase&) = delete;
     PostgresDatabase& operator=(const PostgresDatabase&) = delete;
 
     /**
-     * Spawn the worker, verify connectivity with a ping, and register the completion pump with
-     * the framework scheduler. Returns false (worker stopped again) when the database is unreachable,
-     * so the plugin can degrade instead of queueing into the void.
+     * Spawn the worker, verify connectivity with a ping, and register per-frame completion
+     * delivery with the framework scheduler. Returns false (worker stopped again) when the
+     * database is unreachable, so the plugin can degrade instead of queueing into the void.
      */
     bool Start(const PostgresConfig& config);
 
-    /** Drain + join the worker (see class docs). Idempotent; also runs from the destructor. */
-    void Stop(std::chrono::milliseconds drainDeadline = std::chrono::seconds(5));
+    /** Let queued jobs finish, then join the worker (see class docs). Idempotent; also runs from
+     *  the destructor. */
+    void Stop(std::chrono::milliseconds stopDeadline = std::chrono::seconds(5));
 
     /** Run a named prepared statement off-thread; @p onDone runs on the game thread later. */
     void Query(std::string name, std::string sql, pqxx::params params, ResultCallback onDone);
@@ -139,13 +140,13 @@ private:
     std::deque<Job> _queue;
     bool _accepting = false;
     bool _stopping = false;
-    std::chrono::steady_clock::time_point _drainDeadline{};
+    std::chrono::steady_clock::time_point _stopDeadline{};
 
     std::mutex _completionMutex;
     std::vector<std::pair<ResultCallback, DbResult<pqxx::result>>> _completions;
 
     std::thread _worker;
-    Subscription _completionPump;
+    Subscription _onFrame;
 
     /** Written by the worker, read by the game thread; mirrors _connection's liveness. */
     std::atomic<bool> _connected{false};

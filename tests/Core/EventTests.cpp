@@ -114,7 +114,7 @@ TEST_CASE("Lifecycle installs on the first subscriber and removes after the last
     CHECK(removals == 0);
 
     auto second = event += [](int) {};
-    CHECK(installs == 1);  // only the first subscriber arms it
+    CHECK(installs == 1);  // only the first subscriber installs it
 
     second.Reset();
     CHECK(removals == 0);  // one handler is still listening

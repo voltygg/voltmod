@@ -28,7 +28,7 @@ TEST_CASE("Throttle: slots are independent")
     CHECK(!throttle.TryAcquire(1, 1010));
 }
 
-TEST_CASE("Throttle: Reset re-arms a slot")
+TEST_CASE("Throttle: Reset lets a slot acquire again immediately")
 {
     Throttle<int> throttle(60);
     CHECK(throttle.TryAcquire(5, 1000));

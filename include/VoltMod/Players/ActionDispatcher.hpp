@@ -64,7 +64,7 @@ struct ParamAction
 
 /**
  * @brief Runs data-defined actions through `Policy::Authorize`: the permission check, the
- * targetability check and the broadcast sink all come from there - no per-dispatcher wiring.
+ * targetability check and the broadcast callback all come from there - no per-dispatcher wiring.
  */
 class ActionDispatcher
 {
@@ -92,8 +92,8 @@ public:
     void Run(PlayerRef caller, PlayerRef target, const Action& action) const;
     void Run(PlayerRef caller, PlayerRef target, int param, const ParamAction& action) const;
 
-    /** Invoke the policy broadcast sink directly. Exposed so @ref EffectDispatcher (and other
-     *  dispatch-adjacent code) can announce without repeating the sink lookup. */
+    /** Invoke the policy broadcast callback directly. Exposed so @ref EffectDispatcher (and other
+     *  dispatch-adjacent code) can announce without repeating the callback lookup. */
     void Broadcast(const ActionContext& ctx, std::string_view translationKey) const;
 
 private:

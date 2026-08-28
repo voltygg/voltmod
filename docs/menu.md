@@ -217,7 +217,7 @@ looks like, so styling is a host question, not a builder one:
 
 ## Lifetime and input
 
-@ref VoltMod::MenuHost keeps the per-player stack, the session options and the freeze bookkeeping, and clears a player's stack on disconnect. Each host adds only how it draws and what input it reads: @ref VoltMod::HtmlMenuManager reads button state every frame from a self-registered scheduler pump and debounces it (200 ms); @ref VoltMod::UiMenuManager redraws from its own pump and reads clicks.
+@ref VoltMod::MenuHost keeps the per-player stack, the session options and the freeze bookkeeping, and clears a player's stack on disconnect. Each host adds only how it draws and what input it reads: @ref VoltMod::HtmlMenuManager reads button state every frame from a self-registered scheduler subscription and debounces it (200 ms); @ref VoltMod::UiMenuManager redraws from its own pump and reads clicks.
 
 `menus.SetFreezePlayer(true)` freezes players while a menu is open. Center HTML needs it so WASD does not also walk them around; the Panorama menu needs it because a cursor takes mouse-look, and being shoved around while clicking is worse rather than better. During a chat-input capture center HTML honors only R, and the Panorama menu shows a prompt overlay and ignores row presses, so neither drifts while the player types.
 

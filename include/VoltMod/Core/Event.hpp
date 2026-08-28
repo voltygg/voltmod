@@ -31,8 +31,8 @@ namespace VoltMod
  * **Lazy install.** An event whose source costs something to run - a vtable hook, an engine-wide
  * callback - is constructed with a @ref Lifecycle. @ref Lifecycle::OnFirst runs before the first
  * handler is stored and may refuse (returning false yields an empty Subscription and stores
- * nothing); @ref Lifecycle::OnLast runs after the last handler is removed. Nothing else arms the
- * source, so subscribing is the only trigger and the last unsubscribe is the only teardown.
+ * nothing); @ref Lifecycle::OnLast runs after the last handler is removed. Nothing else installs
+ * the source, so subscribing is the only trigger and the last unsubscribe is the only teardown.
  *
  * Not copyable or movable: subscriptions point at one address for their whole life.
  */

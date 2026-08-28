@@ -8,38 +8,38 @@
 namespace VoltMod::Log
 {
 
-static Sink g_sink;
+static Handler g_handler;
 static std::thread::id g_gameThread{};
 
 static std::mutex g_deferredMutex;
 static std::deque<std::pair<LogLevel, std::string>> g_deferred;
-/** Read by Drain every game frame, so the common empty case never takes the lock or builds a
- *  container. Only ever set true under @ref g_deferredMutex. */
+/** Read by DeliverPending every game frame, so the common empty case never takes the lock or
+ *  builds a container. Only ever set true under @ref g_deferredMutex. */
 static std::atomic<bool> g_hasDeferred{false};
 
 /** A worker that logs in a tight failure loop must not grow this without bound; past the cap
  *  the oldest lines go, because the first error is rarely the interesting one. */
 static constexpr size_t MaxDeferred = 256;
 
-void SetSink(Sink sink)
+void SetHandler(Handler handler)
 {
-    g_sink = std::move(sink);
+    g_handler = std::move(handler);
     g_gameThread = std::this_thread::get_id();
 }
 
 bool Enabled()
 {
-    return static_cast<bool>(g_sink);
+    return static_cast<bool>(g_handler);
 }
 
 void Emit(LogLevel level, std::string message)
 {
-    if (!g_sink)
+    if (!g_handler)
         return;
 
     if (std::this_thread::get_id() == g_gameThread)
     {
-        g_sink(level, message);
+        g_handler(level, message);
         return;
     }
 
@@ -50,7 +50,7 @@ void Emit(LogLevel level, std::string message)
     g_hasDeferred.store(true, std::memory_order_release);
 }
 
-void Drain()
+void DeliverPending()
 {
     if (!g_hasDeferred.load(std::memory_order_acquire))
         return;
@@ -62,11 +62,11 @@ void Drain()
         g_hasDeferred.store(false, std::memory_order_release);
     }
 
-    if (!g_sink)
+    if (!g_handler)
         return;
 
     for (const auto& [level, message] : ready)
-        g_sink(level, message);
+        g_handler(level, message);
 }
 
 }  // namespace VoltMod::Log

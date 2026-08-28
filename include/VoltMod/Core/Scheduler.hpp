@@ -33,7 +33,7 @@ public:
     /** Run @p callback on the very next game frame. */
     [[nodiscard]] Subscription NextTick(std::function<void()> callback);
 
-    /** Run @p callback every game frame (e.g. a completion pump). */
+    /** Run @p callback every game frame (e.g. per-frame completion delivery). */
     [[nodiscard]] Subscription EveryFrame(std::function<void()> callback);
 
     /** Drive the scheduler (call from your `GameFrame` hook or via `VoltMod::OnGameFrame()`). */

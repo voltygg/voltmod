@@ -57,9 +57,9 @@ class LogCapture
 public:
     LogCapture()
     {
-        VoltMod::Log::SetSink([this](VoltMod::LogLevel, std::string_view line) { _lines.emplace_back(line); });
+        VoltMod::Log::SetHandler([this](VoltMod::LogLevel, std::string_view line) { _lines.emplace_back(line); });
     }
-    ~LogCapture() { VoltMod::Log::SetSink({}); }
+    ~LogCapture() { VoltMod::Log::SetHandler({}); }
 
     LogCapture(const LogCapture&) = delete;
     LogCapture& operator=(const LogCapture&) = delete;

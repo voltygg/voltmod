@@ -16,8 +16,8 @@
 #include <tier1/convar.h>
 #include <type_traits>
 
-// ICvar provides no callback context. Each plugin DLL owns one ConVars instance and sink.
-static VoltMod::ConVars* g_changeSink = nullptr;
+// ICvar provides no callback context. Each plugin DLL owns one ConVars instance and callback.
+static VoltMod::ConVars* g_changeCallback = nullptr;
 
 static std::string_view Text(const char* value)
 {
@@ -27,10 +27,10 @@ static std::string_view Text(const char* value)
 static void GlobalConVarChangeCallback(ConVarRefAbstract* ref, CSplitScreenSlot /*slot*/, const char* newValue,
                                        const char* oldValue, void* /*unk*/)
 {
-    if (!ref || !g_changeSink)
+    if (!ref || !g_changeCallback)
         return;
 
-    g_changeSink->Changed.Raise(
+    g_changeCallback->Changed.Raise(
         VoltMod::ConVarChange{.Name = Text(ref->GetName()), .OldValue = Text(oldValue), .NewValue = Text(newValue)});
 }
 
@@ -285,7 +285,7 @@ bool ConVars::RouteChanges()
     }
 
     cvar->InstallGlobalChangeCallback(&GlobalConVarChangeCallback);
-    g_changeSink = this;
+    g_changeCallback = this;
     _routingChanges = true;
     return true;
 }
@@ -298,7 +298,7 @@ void ConVars::StopRoutingChanges()
     if (auto* cvar = _interfaces.CVar)
         cvar->RemoveGlobalChangeCallback(&GlobalConVarChangeCallback);
 
-    g_changeSink = nullptr;
+    g_changeCallback = nullptr;
     _routingChanges = false;
 }
 

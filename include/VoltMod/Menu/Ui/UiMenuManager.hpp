@@ -23,7 +23,7 @@ namespace VoltMod
  * Rows carry their kind as a CSS class, so their look is the stylesheet's. Players get a cursor
  * for the session. Needs the layout on the client and @ref Capability::CustomUi and
  * @ref Capability::UiClicks; @ref HtmlMenuManager is the fallback. All entity writes happen from
- * the frame pump.
+ * the per-frame redraw.
  *
  * @see @ref custom_ui_guide for the id contract a replacement layout has to honour.
  */
@@ -102,8 +102,8 @@ private:
     std::array<bool, MaxPlayers> _shown{};
     Subscriptions _subs;
     Subscriptions _nav;
-    /** Declared last: the frame pump drops before the state it touches. */
-    Subscription _pump;
+    /** Declared last: the per-frame redraw drops before the state it touches. */
+    Subscription _onFrame;
 };
 
 }  // namespace VoltMod

@@ -17,10 +17,10 @@ VOLTMOD_VHOOK1(VoltMod_MovementRunCommand, void*, void*);
 
 // All movement events share one hook installation.
 Movement::Movement(EntitySystem& entities, const Bindings& bindings)
-    : Pre({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
-      Post({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
-      PreCmd({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
-      FilterCmd({.OnFirst = [this] { return Acquire(); }, .OnLast = [this] { ReleaseRef(); }}),
+    : Pre({.OnFirst = [this] { return OnFirstSubscriber(); }, .OnLast = [this] { OnLastSubscriber(); }}),
+      Post({.OnFirst = [this] { return OnFirstSubscriber(); }, .OnLast = [this] { OnLastSubscriber(); }}),
+      PreCmd({.OnFirst = [this] { return OnFirstSubscriber(); }, .OnLast = [this] { OnLastSubscriber(); }}),
+      FilterCmd({.OnFirst = [this] { return OnFirstSubscriber(); }, .OnLast = [this] { OnLastSubscriber(); }}),
       _entities(entities),
       _bindings(bindings)
 {}
@@ -28,13 +28,13 @@ Movement::Movement(EntitySystem& entities, const Bindings& bindings)
 Movement::~Movement()
 {
     // Never leave a hook pointing into an unloaded module.
-    if (_refs != 0)
-        Log::Error("Movement: {} subscription(s) outlived the hook; a movement handler may dangle.", _refs);
+    if (_subscribers != 0)
+        Log::Error("Movement: {} subscription(s) outlived the hook; a movement handler may dangle.", _subscribers);
 }
 
-bool Movement::Acquire()
+bool Movement::OnFirstSubscriber()
 {
-    if (_refs == 0)
+    if (_subscribers == 0)
     {
         if (!_bindings.UserCmdPB)
             Log::Warn("Movement: no usable 'UserCmdPB' offset; cmd listeners get Valid=false views.");
@@ -56,13 +56,13 @@ bool Movement::Acquire()
         }
         _hook = std::move(*hook);
     }
-    ++_refs;
+    ++_subscribers;
     return true;
 }
 
-void Movement::ReleaseRef()
+void Movement::OnLastSubscriber()
 {
-    if (_refs > 0 && --_refs == 0)
+    if (_subscribers > 0 && --_subscribers == 0)
     {
         _hook.Reset();
         // Pawn pointers may be stale after reinstall.

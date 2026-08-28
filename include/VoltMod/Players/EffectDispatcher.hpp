@@ -12,7 +12,7 @@ namespace VoltMod
  *
  * Every verb resolves the admin/target pair through the @ref ActionDispatcher it wraps, so
  * `Policy::Authorize` supplies the permission check, the targetability check, and the broadcast
- * sink. The @ref EffectManager it drives is plugin-owned, so a plugin holds the dispatcher next to
+ * callback. The @ref EffectManager it drives is plugin-owned, so a plugin holds the dispatcher next to
  * its manager (`EffectDispatcher PlayerEffects{Actions, Effects};`) rather than reaching for a
  * runtime member.
  */

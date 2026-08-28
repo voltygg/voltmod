@@ -37,11 +37,11 @@ bool PostgresDatabase::Start(const PostgresConfig& config)
         return false;
     }
 
-    _completionPump = _scheduler.EveryFrame([this] { DispatchCompletions(); });
+    _onFrame = _scheduler.EveryFrame([this] { DispatchCompletions(); });
     return true;
 }
 
-void PostgresDatabase::Stop(std::chrono::milliseconds drainDeadline)
+void PostgresDatabase::Stop(std::chrono::milliseconds stopDeadline)
 {
     {
         std::lock_guard lock(_queueMutex);
@@ -49,14 +49,14 @@ void PostgresDatabase::Stop(std::chrono::milliseconds drainDeadline)
             return;
         _accepting = false;
         _stopping = true;
-        _drainDeadline = std::chrono::steady_clock::now() + drainDeadline;
+        _stopDeadline = std::chrono::steady_clock::now() + stopDeadline;
     }
     _queueCv.notify_all();
 
     if (_worker.joinable())
         _worker.join();
 
-    _completionPump.Reset();
+    _onFrame.Reset();
 
     // Undispatched completions are destroyed unrun: the engine/plugin state they would touch
     // is going away with this unload.
@@ -144,7 +144,7 @@ void PostgresDatabase::Enqueue(Job job)
     // Fail the completion rather than dropping it. Callers treat Query as "the callback always
     // runs", so a silent drop left their state machines waiting forever - and with no connection
     // at all (bad credentials, say) that was every query for the whole session. Enqueue is
-    // game-thread-only, so this runs the callback directly: the completion pump may not exist yet.
+    // game-thread-only, so this runs the callback directly: per-frame delivery may not exist yet.
     // Run it outside the lock, since a callback is free to enqueue again.
     if (job.OnDone)
         job.OnDone(std::unexpected(std::string("database not running")));
@@ -162,12 +162,12 @@ void PostgresDatabase::WorkerMain()
             if (_queue.empty() && _stopping)
                 break;
 
-            // Draining past the deadline: drop what's left (a dead database must not hang unload).
-            if (_stopping && std::chrono::steady_clock::now() >= _drainDeadline)
+            // Past the stop deadline: drop what's left (a dead database must not hang unload).
+            if (_stopping && std::chrono::steady_clock::now() >= _stopDeadline)
             {
                 for (auto& dropped : _queue)
                 {
-                    Log::Warn("db: dropping queued '{}' - shutdown drain deadline reached.", dropped.Name);
+                    Log::Warn("db: dropping queued '{}' - shutdown stop deadline reached.", dropped.Name);
                     FinishJob(dropped, std::unexpected(std::string("shutdown")), false);
                 }
                 _queue.clear();

@@ -102,7 +102,7 @@ server-language slot), and `c.Tr` the translation table.
 | `c.SayRaw(line)` | send one already-formatted line now |
 
 Multi-line output is a run of `Say`/`SayRaw` lines followed by an `Ok` or a
-`Reply::Silent()`, so it goes through the same reply sink as everything else:
+`Reply::Silent()`, so it goes through the same reply callback as everything else:
 
 ```cpp
 .Run([&app](Caller c) -> Result<Reply> {

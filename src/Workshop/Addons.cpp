@@ -45,13 +45,13 @@ Result<Subscription> Addons::Require(uint64_t id)
     if (id == 0)
         return std::unexpected(Error::Invalid("0 is not a workshop id"));
 
-    if (auto armed = Arm(); !armed)
-        return std::unexpected(armed.error());
+    if (auto installed = Install(); !installed)
+        return std::unexpected(installed.error());
 
     _impl->Requirements.Require(id);
     return Subscription([this, id] {
         _impl->Requirements.Release(id);
-        Disarm();
+        Remove();
     });
 }
 
@@ -62,13 +62,13 @@ Result<Subscription> Addons::RequireFor(int64_t steamId, uint64_t id)
     if (!SteamId::IsValid(steamId))
         return std::unexpected(Error::Invalid(std::format("{} is not a SteamID", steamId)));
 
-    if (auto armed = Arm(); !armed)
-        return std::unexpected(armed.error());
+    if (auto installed = Install(); !installed)
+        return std::unexpected(installed.error());
 
     _impl->Requirements.RequireFor(steamId, id);
     return Subscription([this, steamId, id] {
         _impl->Requirements.ReleaseFor(steamId, id);
-        Disarm();
+        Remove();
     });
 }
 
@@ -83,7 +83,7 @@ std::vector<uint64_t> Addons::Pending(int slot) const
     return player ? _impl->Requirements.MissingFor(player->SteamId()) : std::vector<uint64_t>{};
 }
 
-Status Addons::Arm()
+Status Addons::Install()
 {
     if (_hook)
         return {};
@@ -106,7 +106,7 @@ Status Addons::Arm()
     return {};
 }
 
-void Addons::Disarm()
+void Addons::Remove()
 {
     if (!_impl->Requirements.Empty())
         return;

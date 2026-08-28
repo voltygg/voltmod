@@ -61,7 +61,7 @@ public:
     /**
      * Open a yes/no vote for every connected human.
      *
-     * Subscribes to `vote_cast` on first use, so there is no separate arming step to forget.
+     * Subscribes to `vote_cast` on first use, so there is no separate setup step to forget.
      *
      * @param title a `#SFUI_vote` / `#Panorama_vote` localization token; see the class docs.
      * @param detail the token's detail string, often a map or player name.
@@ -84,7 +84,7 @@ private:
     void SendVoteOutcome(bool passed);
     void PublishCounts();
     /** Find the map's vote_controller. False when the map has none. */
-    bool AcquireController();
+    bool FindController();
     /** Every connected slot - who a vote panel is sent to. */
     MultiRecipientFilter Recipients() const;
 

@@ -44,7 +44,7 @@ public:
     Teleport& operator=(const Teleport&) = delete;
 
     /** A pawn was teleported; the argument is its slot (-1 when it belongs to no player).
-     *  Subscribing arms the tracker. */
+     *  Subscribing installs the tracker. */
     Event<int> Teleported;
 
     /** Drop every binding for the new map. Called by the framework's StartupServer hook. */
@@ -71,7 +71,7 @@ private:
     std::array<VtableHook, MaxPlayers> _hooks;  // one per bound pawn; empty when unbound
     Subscription _spawnListener;
     Subscription _slotListener;
-    bool _armed = false;
+    bool _installed = false;
 };
 
 }  // namespace VoltMod

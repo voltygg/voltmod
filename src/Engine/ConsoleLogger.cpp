@@ -8,7 +8,7 @@
 namespace VoltMod
 {
 
-Log::Sink MakeConsoleSink(std::string prefix)
+Log::Handler MakeConsoleHandler(std::string prefix)
 {
     return [prefix = std::move(prefix)](LogLevel level, std::string_view message) {
         switch (level)

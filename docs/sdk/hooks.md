@@ -90,7 +90,7 @@ diagnostics, not gameplay.
 The service keeps no history; consumers define and store their own grace window:
 
 ```cpp
-// Subscribing is what arms the per-pawn hook. PerSlot clears a stamp when the seat changes hands.
+// Subscribing is what installs the per-pawn hook. PerSlot clears a stamp when the seat changes hands.
 _lastTeleport.BindReset(runtime.Slots);
 _teleports = runtime.Hooks.Teleport.Teleported += [this](int slot) {
     if (VoltMod::IsValidSlot(slot))
@@ -130,7 +130,7 @@ class CommandWatcher
     VoltMod::Runtime& _rt;
     VoltMod::VtableHook _hook;
 
-    void Arm()
+    void Install()
     {
         auto hook = VoltMod::VtableHook::OnVTable<MyPlugin_RunCommandHook>(
             "MyPlugin RunCommand", _rt.Unsafe.Bindings.RunCommand,

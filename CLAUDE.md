@@ -106,8 +106,8 @@ There is no ambient accessor for the runtime; everything is injected:
 - Header templates plugins instantiate (`Flow<TState>`, `PerSlot<T>`) take one
   service, so including them does not pull in the composition root.
 - A file-static is only for engine callbacks that carry no user data (set and
-  cleared by the service that owns it), for process-wide sinks set once at load,
-  such as the `Log::Sink` and the base directory, or for state that is genuinely
+  cleared by the service that owns it), for process-wide file-statics set once at load,
+  such as the `Log::Handler` and the base directory, or for state that is genuinely
   process-wide rather than per-load: the schema field cache
   (`src/Entities/SchemaResolve.cpp`) is the one of those, because a class and
   field name resolve to the same offset for every plugin, Runtime and map in the
@@ -169,7 +169,7 @@ Use these patterns throughout the framework:
   values reach clients; `RawScope` temporarily pokes storage without callbacks or networking.
 - Constructor injection is the default. Do not add process-lifetime singletons.
 - Database and HTTP workers replay completions on the game thread through
-  scheduler frame pumps.
+  scheduler per-frame delivery.
 - `<VoltMod/Api.hpp>` gathers the core vocabulary, `Runtime`, players, commands, and
   plugin plumbing; every name it reaches is already spelled `VoltMod::Thing`. It never
   reaches nlohmann or the Menu-building surface - `<VoltMod/Entities/Api.hpp>`,

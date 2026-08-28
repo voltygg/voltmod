@@ -5,7 +5,7 @@
 `VoltMod/Http/` provides one asynchronous client with game-thread completions:
 
 - `HttpClient::Send` is the unified request contract. `Get`, `Post`, `Put`, `Patch`, and `Delete` are convenience helpers over it.
-- Requests run on bounded workers, and completions replay on the game thread from a self-registered per-frame pump.
+- Requests run on bounded workers, and completions replay on the game thread through self-registered per-frame delivery.
 
 `HttpClient` is a framework service; reach it through `runtime.Http`. The
 `Runtime` destructor drains in-flight requests, so the plugin has no separate

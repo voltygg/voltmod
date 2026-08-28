@@ -13,8 +13,9 @@ namespace VoltMod
  * @brief WASD-navigated center-HTML menus for all players.
  *
  * The @ref MenuHost every client can show: no workshop addon to publish and no capability behind
- * it, so it works wherever the server does. Reads button state each tick from a scheduler pump it
- * registers for itself and re-sends the HTML, which is what center HTML needs to stay on screen.
+ * it, so it works wherever the server does. Reads button state each tick from a scheduler
+ * subscription it registers for itself and re-sends the HTML, which is what center HTML needs to
+ * stay on screen.
  *
  * @ref UiMenuManager is the Panorama alternative - a real clickable panel, at the cost of shipping
  * a layout to clients and a Windows-only capability.
@@ -45,8 +46,8 @@ private:
 
     Messages& _messages;
     static constexpr int64_t InputDebounceMs = 200;
-    /** Declared last: the frame pump drops before the state it touches. */
-    Subscription _pump;
+    /** Declared last: per-frame delivery drops before the state it touches. */
+    Subscription _onFrame;
 };
 
 }  // namespace VoltMod

@@ -80,8 +80,8 @@ public:
     StatusService Status{LoadReport};
     /** "This slot changed hands", raised by the roster and consumed by per-slot caches. */
     SlotEvents Slots;
-    /** Frame pump, timers and delayed work. Pending timers die with it, never run, so what a
-     *  timer captures may only point at members declared above. */
+    /** Per-frame delivery, timers and delayed work. Pending timers die with it, never run, so
+     *  what a timer captures may only point at members declared above. */
     VoltMod::Scheduler Scheduler;
     VoltMod::Translations Translations{Slots};
 
@@ -123,7 +123,7 @@ public:
     /** Clickable Panorama menus, for plugins that ship a layout. Spawns nothing until a menu opens. */
     UiMenuManager UiMenus{Scheduler, Ui, Slots, Entities, Hooks.ChatInput, Translations, Policy, Players};
     VoltMod::CommandManager Commands{Policy, Translations, Players, Entities, Messages};
-    /** Completions replay on the game thread from a pump it registers itself. */
+    /** Completions replay on the game thread from a per-frame subscription it registers itself. */
     HttpClient Http{Scheduler};
 
 private:

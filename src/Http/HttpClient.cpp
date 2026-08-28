@@ -63,15 +63,15 @@ struct HttpClient::Impl
     std::vector<Pending> Items;
     std::deque<Queued> Waiting;
 
-    /** Everything queues; PumpWaiting is the one place a request is actually started, so the
+    /** Everything queues; StartWaiting is the one place a request is actually started, so the
      *  in-flight cap is tested once. */
     void Launch(Queued&& queued)
     {
         Waiting.push_back(std::move(queued));
-        PumpWaiting();
+        StartWaiting();
     }
 
-    void PumpWaiting()
+    void StartWaiting()
     {
         while (!Waiting.empty() && Items.size() < MaxInFlight)
         {
@@ -83,7 +83,7 @@ struct HttpClient::Impl
 };
 
 HttpClient::HttpClient(Scheduler& scheduler)
-    : _impl(std::make_unique<Impl>()), _pump(scheduler.EveryFrame([this] { DispatchCompletions(); }))
+    : _impl(std::make_unique<Impl>()), _onFrame(scheduler.EveryFrame([this] { DispatchCompletions(); }))
 {}
 
 // Self-cleaning: a client destroyed without an explicit Stop() still joins its workers rather than
@@ -200,7 +200,7 @@ void HttpClient::DispatchCompletions()
 
     // Start whatever was waiting on a slot before running callbacks, so a queued request is not
     // held back by however long the completions take.
-    _impl->PumpWaiting();
+    _impl->StartWaiting();
 
     for (auto& p : ready)
     {

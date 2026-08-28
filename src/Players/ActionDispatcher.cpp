@@ -42,8 +42,8 @@ void ActionDispatcher::Run(PlayerRef caller, PlayerRef target, int param, const 
 
 void ActionDispatcher::Broadcast(const ActionContext& ctx, std::string_view translationKey) const
 {
-    if (auto& sink = _policy.Broadcast)
-        sink(ctx.Auth, translationKey);
+    if (auto& callback = _policy.Broadcast)
+        callback(ctx.Auth, translationKey);
 }
 
 }  // namespace VoltMod

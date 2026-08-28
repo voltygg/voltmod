@@ -16,7 +16,7 @@ UiMenuManager::UiMenuManager(Scheduler& scheduler, CustomUi& ui, SlotEvents& slo
                              std::string layout)
     : MenuHost(slots, entities, chatInput, translations, policy, players),
       _rows(std::make_unique<UiList>(_panel, RootId, RowPrefix, RowsPerPage)),
-      _pump(scheduler.EveryFrame([this] { OnGameFrame(); }))
+      _onFrame(scheduler.EveryFrame([this] { OnGameFrame(); }))
 {
     // Nothing is spawned here: the panel holds the name and the first draw asks for the entity.
     if (auto panel = ui.Panel(layout))

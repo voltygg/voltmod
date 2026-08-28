@@ -83,8 +83,8 @@ public:
 
 private:
     /** Install on the first requirement, remove when nothing is required. */
-    Status Arm();
-    void Disarm();
+    Status Install();
+    void Remove();
 
     void OnConnected(Player& player);
     bool Hook_SendNetMessage(const CNetMessage* message, int bufType);
@@ -107,7 +107,7 @@ private:
 
     Subscription _connectListener;
     /** One pending drop per slot. Kicking from inside the SendNetMessage hook crashes on Windows,
-     *  so it happens a frame later; re-arming a slot cancels the one-shot already queued for it. */
+     *  so it happens a frame later; re-queuing a slot cancels the one-shot already queued for it. */
     PerSlot<Subscription> _pendingKick;
     VtableHook _hook;
 };

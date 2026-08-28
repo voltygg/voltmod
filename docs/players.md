@@ -173,7 +173,7 @@ using VoltMod::OptKey;
 
 const Action Slay{"s", /*RequireAlive=*/true, [](const ActionContext& ctx) -> OptKey {
     (void)ctx.TargetPawn().Slay();  // Slay() lives on Pawn, not Controller
-    return "broadcast.slain";      // policy Broadcast sink announces it; nullopt = silent
+    return "broadcast.slain";      // policy Broadcast callback announces it; nullopt = silent
 }};
 
 ActionDispatcher{runtime.Policy, runtime.Players, runtime.Entities}.Run(adminSlot, targetSlot, Slay);
