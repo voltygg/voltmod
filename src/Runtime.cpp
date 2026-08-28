@@ -167,13 +167,8 @@ bool Runtime::InitializeServices(const LoadContext& context)
         if (Entities.GetEntitySystem())
             return StageResult::Ok();
 
-        // A cold load runs before the engine creates CGameEntitySystem; StartupServer resolves it.
-        // A late load is already past that point, so nothing will.
-        if (!context.Late)
-            return StageResult::Ok("resolves at the first map load");
-
-        Capabilities.Set(Capability::Entities, false, "the entity system was never created");
-        return StageResult::Degraded("entity system unavailable; menus may not work");
+        // A load that runs before the engine creates CGameEntitySystem; StartupServer resolves it.
+        return StageResult::Ok("resolves at the first map load");
     });
     // EntityOps and Transmit have no setup of their own: Bindings already decided both, so the
     // stage only reports what the capability already says.

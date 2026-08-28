@@ -14,7 +14,7 @@ class $klass final : public VoltMod::MetamodPlugin
 {
 protected:
     VoltMod::PluginInfo Info() const override;
-    bool OnLoad(VoltMod::Runtime& runtime, bool late) override;
+    bool OnLoad(VoltMod::Runtime& runtime) override;
     void OnUnload() override { _app.reset(); }
 
 private:

@@ -8,7 +8,7 @@ protected:
         return {.Name = "Hello", .Author = "voltmod test_package", .LogTag = "HELLO"};
     }
 
-    bool OnLoad(VoltMod::Runtime& /*runtime*/, bool /*late*/) override { return true; }
+    bool OnLoad(VoltMod::Runtime& /*runtime*/) override { return true; }
 };
 
 VOLTMOD_PLUGIN(HelloPlugin);

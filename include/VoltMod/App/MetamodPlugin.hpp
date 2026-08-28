@@ -64,9 +64,8 @@ protected:
     /**
      * @brief Build load-cycle state, load configuration, and register commands.
      * Return false to abort the load.
-     * @param late true if the plugin was loaded after the server had already started.
      */
-    virtual bool OnLoad(Runtime& runtime, bool late) = 0;
+    virtual bool OnLoad(Runtime& runtime) = 0;
 
     /** @brief Release state created by OnLoad before the runtime is destroyed. */
     virtual void OnUnload() {}

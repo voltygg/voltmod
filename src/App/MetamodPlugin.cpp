@@ -50,7 +50,7 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
     // Unload destroys this runtime so reload starts clean.
     _runtime = std::make_unique<Runtime>();
 
-    const LoadContext context{.Ismm = ismm, .Error = error, .MaxLen = maxlen, .Late = late, .LogPrefix = _info.LogTag};
+    const LoadContext context{.Ismm = ismm, .Error = error, .MaxLen = maxlen, .LogPrefix = _info.LogTag};
     if (!_runtime->Start(context))
     {
         if (!_runtime->LoadReport.Stages().empty())
@@ -68,7 +68,7 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
     RegisterStandardHooks();
     OnRegisterHooks(*_runtime);
 
-    if (!OnLoad(*_runtime, late))
+    if (!OnLoad(*_runtime))
     {
         // A bare `return false` still gets a named failure in the report and error buffer.
         if (_runtime->LoadReport.FirstFailure().empty())

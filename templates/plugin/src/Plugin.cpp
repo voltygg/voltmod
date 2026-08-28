@@ -17,7 +17,7 @@ VoltMod::PluginInfo $klass::Info() const
     });
 }
 
-bool $klass::OnLoad(VoltMod::Runtime& runtime, bool late)
+bool $klass::OnLoad(VoltMod::Runtime& runtime)
 {
     _app.emplace(runtime);
     return _app->Start();
