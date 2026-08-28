@@ -5,4 +5,7 @@
 // already reaches these types; include this header where a translation unit means to use them.
 
 #include <VoltMod/Ui/UiClicks.hpp>
+#include <VoltMod/Ui/UiLayout.hpp>
+#include <VoltMod/Ui/UiList.hpp>
 #include <VoltMod/Ui/UiPanel.hpp>
+#include <VoltMod/Ui/UiWriteCache.hpp>

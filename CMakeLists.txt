@@ -149,6 +149,7 @@ if(BUILD_TESTING)
             src/Hooks/ClientCvarPending.cpp
             src/Workshop/AddonRequirements.cpp
             src/Ui/LayoutName.cpp
+            src/Ui/UiWriteCache.cpp
             src/Engine/Bindings.cpp
             src/Engine/ConVarTypes.cpp
             src/Engine/GameData.cpp
