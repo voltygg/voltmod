@@ -37,7 +37,6 @@ _STEAM_ROOTS = (
 _CS2_IN_LIBRARY = "steamapps/common/Counter-Strike Global Offensive"
 
 _LIBRARY_PATH_RE = re.compile(r'"path"\s+"([^"]+)"')
-_TALLY_RE = re.compile(r"(\d+) compiled, (\d+) failed")
 
 
 def _library_paths(steam: Path) -> list[Path]:
@@ -115,7 +114,12 @@ def _stage(sources: list[Path], panorama: Path, content: Path) -> list[Path]:
     return staged
 
 
-def _compile(client: Path, addon: str, staged: list[Path]) -> None:
+def _compiled_path(built: Path, staged: Path, content: Path) -> Path:
+    """Where resourcecompiler writes the artifact for a staged source."""
+    return (built / staged.relative_to(content)).with_suffix(COMPILED_SUFFIX[staged.suffix])
+
+
+def _compile(client: Path, addon: str, staged: list[Path], content: Path) -> None:
     """Run resourcecompiler over the staged sources.
 
     Files are passed one `-i` at a time rather than as a wildcard: the compiler documents
@@ -141,13 +145,17 @@ def _compile(client: Path, addon: str, staged: list[Path]) -> None:
     result = subprocess.run(command, cwd=compiler.parent, capture_output=True, text=True)
     output = f"{result.stdout}{result.stderr}"
 
-    # It exits 0 whether or not anything compiled, so its own tally is what decides.
-    tally = _TALLY_RE.search(output)
-    if result.returncode != 0 or not tally or int(tally.group(2)) or not int(tally.group(1)):
+    # It exits 0 whether or not anything compiled, and its console tally is prose that any tools
+    # update may reword, so the artifacts it was asked to produce are what decide.
+    built = client / "game/csgo_addons" / addon
+    missing = [path for path in staged if not _compiled_path(built, path, content).is_file()]
+    if result.returncode != 0 or missing:
         print(output.strip())
-        die("resourcecompiler did not compile every source")
+        if missing:
+            die("resourcecompiler produced no output for: " + ", ".join(p.name for p in missing))
+        die(f"resourcecompiler exited {result.returncode}")
 
-    print(f"  compiled {tally.group(1)} resource(s)")
+    print(f"  compiled {len(staged)} resource(s)")
 
 
 def _deploy(client: Path, addon: str, staged: list[Path], content: Path) -> int:
@@ -158,10 +166,7 @@ def _deploy(client: Path, addon: str, staged: list[Path], content: Path) -> int:
 
     for source in staged:
         relative = source.relative_to(content)
-        compiled = (built / relative).with_suffix(COMPILED_SUFFIX[source.suffix])
-        if not compiled.is_file():
-            die(f"expected {compiled} after compiling {source.name}")
-
+        compiled = _compiled_path(built, source, content)
         target = csgo / relative.parent / compiled.name
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(compiled, target)
@@ -202,17 +207,25 @@ def build(
     content = client / "content/csgo_addons" / addon
     deployed = 0
 
+    # Every target stages into the same addon tree, so they compile in one launch: resourcecompiler
+    # startup dominates the run for this many files, and paying it per target adds nothing.
+    by_target: list[tuple[str, list[Path]]] = []
     for name, panorama in selected.items():
-        print(f"\n--- {name} ---")
         sources = _source_files(panorama)
         if not sources:
-            print(f"  (nothing to compile under {panorama})")
+            print(f"\n--- {name} ---\n  (nothing to compile under {panorama})")
             continue
+        by_target.append((name, _stage(sources, panorama, content)))
 
-        staged = _stage(sources, panorama, content)
-        _compile(client, addon, staged)
-        if deploy:
-            deployed += _deploy(client, addon, staged, content)
+    staged = [path for _, paths in by_target for path in paths]
+    if staged:
+        print(f"\nStaged {len(staged)} source(s) from {', '.join(name for name, _ in by_target)}")
+        _compile(client, addon, staged, content)
+
+    if deploy:
+        for name, paths in by_target:
+            print(f"\n--- {name} ---")
+            deployed += _deploy(client, addon, paths, content)
 
     if deploy:
         print(f"\nInstalled {deployed} resource(s). Reconnect to pick them up.")

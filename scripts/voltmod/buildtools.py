@@ -266,8 +266,10 @@ def use_framework(repo_root: Path, framework_root: Path, preset: str) -> None:
     """
     if not (framework_root / "conanfile.py").is_file():
         die(f"no framework checkout at {framework_root}")
+    # run_tool takes no cwd, so the resolved argv/env are spread into the call directly.
+    argv, env = resolve_tool("voltmod")
     subprocess.run(
-        ["uv", "run", "voltmod", "package", "build", "kit"], cwd=framework_root, check=True
+        [*argv, "package", "build", "kit"], cwd=framework_root, check=True, env=env
     )
 
     lock = repo_root / "conan.lock"
