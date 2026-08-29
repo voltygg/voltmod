@@ -31,22 +31,31 @@ static std::string FooterLabel(Translations& translations, std::string_view key,
     return value == key ? std::string(fallback) : value;
 }
 
-std::string DefaultHeader(const std::string& title, const std::string& subtitle, int currentPage, int totalPages)
+std::string DefaultHeader(const CenterHtmlHeader& header)
 {
     std::ostringstream html;
-    // Titles routinely interpolate a player name, so the one place they become markup escapes them.
-    html << "<font color='" << Theme::Gold << "'><b>" << Strings::EscapeHtml(title) << "</b></font>";
 
-    if (!subtitle.empty())
+    // The path taken to get here, ahead of the title and dimmer than it, so a submenu says where
+    // it sits without the title having to repeat it.
+    if (!header.Crumbs.empty())
     {
-        html << " <font class='fontSize-s' color='" << Theme::WarmGray << "'>" << Strings::EscapeHtml(subtitle)
+        html << "<font class='fontSize-s' color='" << Theme::WarmGray << "'>" << Strings::EscapeHtml(header.Crumbs)
+             << " › </font>";
+    }
+
+    // Titles routinely interpolate a player name, so the one place they become markup escapes them.
+    html << "<font color='" << Theme::Gold << "'><b>" << Strings::EscapeHtml(header.Title) << "</b></font>";
+
+    if (!header.Subtitle.empty())
+    {
+        html << " <font class='fontSize-s' color='" << Theme::WarmGray << "'>" << Strings::EscapeHtml(header.Subtitle)
              << "</font>";
     }
 
-    if (totalPages > 1)
+    if (header.Pages > 1)
     {
-        html << " <font class='fontSize-s' color='" << Theme::WarmGray << "'>(" << (currentPage + 1) << "/"
-             << totalPages << ")</font>";
+        html << " <font class='fontSize-s' color='" << Theme::WarmGray << "'>(" << (header.Page + 1) << "/"
+             << header.Pages << ")</font>";
     }
 
     html << "<br>";
@@ -100,37 +109,40 @@ std::string DefaultFooter(bool isSubmenu, bool isPaginated, bool usesHorizontal,
     return html.str();
 }
 
-// One row as this renderer spells it: "Title", "Title: ON", "Title: &lt; 100% &gt;". The model
-// carries the two halves as plain text, so the decoration and the escaping are both decided here.
+// One row as this renderer spells it: "Title", "Title: [ON]", "Title: &lt; 100 HP… &gt; *". The
+// model carries the two halves as plain text, so the decoration and the escaping are decided here.
+// The two markers mirror what the Panorama driver draws as classes: `…` while a stepped value is
+// still waiting to be applied, `*` for a moment after a value moved.
 static std::string RowText(const MenuRow& row)
 {
     std::string text = Strings::EscapeHtml(row.Label);
     if (row.Value.empty())
         return text;
 
-    text += ": ";
+    std::string value = Strings::EscapeHtml(row.Value);
+    if (row.Pending)
+        value += "…";
 
-    // The arrows say "A and D change this"; nothing else in a line of center HTML does.
-    if (row.Kind == MenuRowKind::Choice)
-        return text + "&lt; " + Strings::EscapeHtml(row.Value) + " &gt;";
+    // The brackets say "this is a switch" and the arrows "A and D change this"; nothing else in a
+    // line of center HTML does.
+    if (row.Kind == MenuRowKind::Toggle)
+        value = "[" + value + "]";
+    else if (row.Kind == MenuRowKind::Choice)
+        value = "&lt; " + value + " &gt;";
 
-    return text + Strings::EscapeHtml(row.Value);
+    text += ": " + value;
+    if (row.Changed)
+        text += " *";
+    return text;
 }
 
-// The row a menu item describes itself as for @p slot. An item with no Describe is malformed;
-// it draws as an inert line rather than a row the cursor could land on.
-static MenuRow DescribeRow(const MenuItem& item, int slot)
-{
-    return item.Describe ? item.Describe(slot) : MenuRow{.Enabled = false, .Selectable = false};
-}
-
-static std::string RenderItems(const Menu* menu, int slot, int selectedIndex, int pageStart, int pageEnd)
+static std::string RenderItems(const CenterHtmlView& view, int pageStart, int pageEnd)
 {
     std::ostringstream html;
 
     for (int i = pageStart; i < pageEnd; ++i)
     {
-        const MenuRow row = DescribeRow(menu->Items[static_cast<std::size_t>(i)], slot);
+        const MenuRow row = view.Describe(i);
         std::string title = RowText(row);
         bool selectable = row.Selectable;
         bool enabled = row.Enabled;
@@ -144,7 +156,7 @@ static std::string RenderItems(const Menu* menu, int slot, int selectedIndex, in
             // Rendered without a cursor glyph - the row is informational, not a target.
             html << "<font color='" << Theme::WarmGray << "'>" << title << "</font><br>";
         }
-        else if (i == selectedIndex)
+        else if (i == view.SelectedIndex)
         {
             // No per-row [E]: the cursor signals selection, the footer carries the hint, and a
             // shorter line avoids wrapping in long locales.
@@ -159,28 +171,39 @@ static std::string RenderItems(const Menu* menu, int slot, int selectedIndex, in
     return html.str();
 }
 
-std::string RenderMenuHtml(const Menu* menu, int slot, int selectedIndex, bool isSubmenu, Translations& translations)
+std::string RenderMenuHtml(const Menu* menu, const CenterHtmlView& view, Translations& translations)
 {
-    if (!menu)
+    if (!menu || !view.Describe)
     {
         return "";
     }
 
     int itemCount = static_cast<int>(menu->Items.size());
     int totalPages = PageCount(itemCount, ItemsPerPage);
-    int currentPage = itemCount == 0 ? 0 : selectedIndex / ItemsPerPage;
+    int currentPage = itemCount == 0 ? 0 : view.SelectedIndex / ItemsPerPage;
     int pageStart = currentPage * ItemsPerPage;
     int pageEnd = std::min(itemCount, pageStart + ItemsPerPage);
 
     std::ostringstream html;
 
-    html << DefaultHeader(menu->Title, menu->Subtitle, currentPage, totalPages);
-    html << RenderItems(menu, slot, selectedIndex, pageStart, pageEnd);
+    html << DefaultHeader({.Title = menu->Title,
+                           .Subtitle = menu->Subtitle,
+                           .Crumbs = view.Crumbs,
+                           .Page = currentPage,
+                           .Pages = totalPages});
 
-    const MenuRow selected = selectedIndex >= 0 && selectedIndex < itemCount
-                                 ? DescribeRow(menu->Items[static_cast<std::size_t>(selectedIndex)], slot)
+    // A menu with nothing in it says so, rather than drawing a header over blank space that
+    // looks like a menu still loading.
+    if (itemCount == 0)
+        html << "<font color='" << Theme::WarmGray << "'>" << Strings::EscapeHtml(view.EmptyLabel) << "</font><br>";
+    else
+        html << RenderItems(view, pageStart, pageEnd);
+
+    const MenuRow selected = view.SelectedIndex >= 0 && view.SelectedIndex < itemCount
+                                 ? view.Describe(view.SelectedIndex)
                                  : MenuRow{.Enabled = false};
-    html << DefaultFooter(isSubmenu, totalPages > 1, selected.Enabled && selected.Steppable, slot, translations);
+    html << DefaultFooter(view.IsSubmenu, totalPages > 1, selected.Enabled && selected.Steppable, view.Slot,
+                          translations);
 
     return html.str();
 }

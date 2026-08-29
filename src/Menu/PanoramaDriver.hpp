@@ -19,11 +19,16 @@ namespace VoltMod
 /**
  * @brief The clickable driver: the same menus, drawn into a `custom_hud_layout` the player clicks.
  *
- * Rows carry their kind as a CSS class, so their look is the stylesheet's. Players get a cursor
- * for the session. Needs the layout on the client and the two UI capabilities, which
- * @ref MenuManager::UsePanorama checks before building this.
+ * Rows carry what they are and how they stand as CSS classes, so their look is the stylesheet's.
+ * Players get a cursor for the session. Needs the layout on the client and the two UI
+ * capabilities, which @ref MenuManager::UsePanorama checks before building this.
  *
- * @see @ref custom_ui_guide for the id contract a replacement layout has to honour.
+ * Keys work here too, and the cursor they move is the session's own, so a player may click one
+ * row and step the next one with A/D. Whether the keys arrive at all depends on what input
+ * capture leaves the server, so nothing here needs them: no key is simply no change, and
+ * @ref MenuOptions::Keyboard turns the reading off for a session that wants clicks only.
+ *
+ * @see @ref custom_ui_guide for the id and class contract a replacement layout has to honour.
  */
 class PanoramaDriver final : public MenuDriver
 {
@@ -34,13 +39,18 @@ public:
     ~PanoramaDriver() override;
 
     /** Rows one page shows. The layout has to declare exactly this many `vm_row{i}` runs. */
-    static constexpr int RowsPerPage = 8;
+    static constexpr int RowsPerPageCount = 8;
 
     void Present(int slot) override;
     void Dismiss(int slot) override;
     void Reset(int slot) override;
-    /** Always false: presses arrive as clicks, not as button state read per frame. */
+    /** Reads the shared keys unless this session asked for clicks only. */
     bool HandleInput(int slot) override;
+
+    [[nodiscard]] int RowsPerPage() const override { return RowsPerPageCount; }
+
+    /** The cursor moved onto @p page, so the page this driver keeps follows it. */
+    void ShowPage(int slot, int page) override;
 
 private:
     /** Panel ids written to. A layout that omits one loses only that piece. */
@@ -56,8 +66,10 @@ private:
      *  so the labels need no ids. Writing per label id does not work. */
     static constexpr std::string_view TitleVar = "vm_title";
     static constexpr std::string_view SubtitleVar = "vm_subtitle";
+    static constexpr std::string_view CrumbsVar = "vm_crumbs";
     static constexpr std::string_view PageVar = "vm_page";
     static constexpr std::string_view PromptVar = "vm_prompt_text";
+    static constexpr std::string_view PromptHintVar = "vm_prompt_hint";
 
     /** Every id and variable name one row needs, built once so a frame allocates nothing. */
     struct RowIds
@@ -71,8 +83,11 @@ private:
      *  changes kind does not keep the old one underneath. */
     static std::string_view ClassFor(MenuRowKind kind);
 
-    /** Write row @p row of the current page for @p slot from @p item, and show it. */
-    void DrawRow(int slot, int row, const MenuItem& item);
+    /** Write row @p row of the current page for @p slot from item @p index, and show it. */
+    void DrawRow(int slot, int row, int index);
+
+    /** Write the one row an empty menu draws, and hide the rest. */
+    void DrawEmpty(int slot);
 
     /** Hide rows @p row and after, so a short page leaves no stale text on screen. */
     void HideRowsFrom(int slot, int row);
@@ -90,8 +105,8 @@ private:
 
     UiPanel _panel;
     std::vector<RowIds> _rows;
-    /** Which page of a long menu each player is on. A click driver has no cursor to derive one
-     *  from, so it keeps the page itself. */
+    /** Which page of a long menu each player is on. Clicks turn it directly; the keyboard cursor
+     *  drags it along through @ref ShowPage. */
     PerSlot<int> _pages;
     /** Declared after everything their handlers touch. */
     Subscriptions _subs;

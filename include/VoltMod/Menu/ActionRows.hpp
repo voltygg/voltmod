@@ -94,8 +94,9 @@ public:
         int Index = 0;
     };
 
-    /** A/D picks a preset and E applies it. The menu stays open, so a value can be tried,
-     *  adjusted and applied again without reopening the panel. */
+    /** A/D picks a preset and applies it once the stepping stops, so a burst of presses is one
+     *  action. The menu stays open, so a value can be tried, adjusted and applied again without
+     *  reopening the panel. */
     [[nodiscard]] MenuItem Presets(const PresetSpec& spec);
 
     /** An on/off row for a data-defined effect, read from and written through the

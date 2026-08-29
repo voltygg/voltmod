@@ -238,10 +238,8 @@ from a player's score - exhausts that table, and the panel then stops updating.
 installs to `addons/voltmod/panorama`. There are three levels of reuse:
 
 1. **Restyle.** Ship your own `voltmod_menu.css`. The server only ever sets
-   classes, so `Hidden`, `Disabled`, `HasValue`, `HasSteppers` and the per-kind
-   `Kind--text` / `Kind--button` / `Kind--submenu` / `Kind--toggle` /
-   `Kind--choice` / `Kind--input` are the whole vocabulary you are styling
-   against. No C++ changes.
+   classes, and the table below is the whole vocabulary you are styling against.
+   No C++ changes.
 2. **Re-lay-out.** Ship your own `.xml` declaring the same ids and call
    `runtime.Menus.UsePanorama("my_menu")`. The contract is the ids below and
    nothing else - the nesting, the artwork and the animation are yours.
@@ -251,9 +249,7 @@ installs to `addons/voltmod/panorama`. There are three levels of reuse:
    card or a vote panel.
 
 The menu layout's id contract - what the framework's menu driver writes, and so what
-a replacement layout has to declare (text is dialog variables on `vm_root`:
-`vm_title`, `vm_subtitle`, `vm_page`, `vm_prompt_text`, and the per-row
-`vm_rowN_label` / `vm_rowN_value`):
+a replacement layout has to declare:
 
 | Block | Ids |
 | --- | --- |
@@ -264,10 +260,51 @@ a replacement layout has to declare (text is dialog variables on `vm_root`:
 | nav | `vm_back`, `vm_close` |
 | prompt | `vm_prompt`, `vm_cancel` |
 
-Each row `vm_row{i}` is a `Panel` carrying `Hidden`, `Disabled`, `HasValue` and
-`HasSteppers`. Its main `Button` `vm_row{i}_btn` and the steppers `vm_row{i}_dec`
-and `vm_row{i}_inc` are siblings of each other, not nested, because a `Button`
-inside another `Button` loses the inner press.
+Text arrives as dialog variables, all of them on `vm_root` because a `Label`
+resolves `{s:name}` through its ancestors:
+
+| Variable | Carries |
+| --- | --- |
+| `vm_title` | the menu's title |
+| `vm_subtitle` | its second line; `vm_subtitle` the *panel* is `Hidden` when empty |
+| `vm_crumbs` | the titles this menu was reached through, joined with ` › `; empty at the root |
+| `vm_page` | the page counter, always written as `n/m`; the pager panel is `Hidden` when `m` is 1 |
+| `vm_prompt_text` | the chat prompt's question |
+| `vm_prompt_hint` | how to answer it ("Answer in chat", translation key `menu.promptHint`) |
+| `vm_row{i}_label` | the row's name |
+| `vm_row{i}_value` | what it is set to |
+
+Each row `vm_row{i}` is a `Panel` carrying the classes below. Its main `Button`
+`vm_row{i}_btn` and the steppers `vm_row{i}_dec` and `vm_row{i}_inc` are siblings
+of each other, not nested, because a `Button` inside another `Button` loses the
+inner press.
+
+| Row class | Set when |
+| --- | --- |
+| `Hidden` | the row is past the end of the page |
+| `Disabled` | the row refuses activation |
+| `Selected` | the keyboard cursor is on it (never while the session has keys off) |
+| `Changed` | its value moved in the last 150 ms |
+| `Pending` | a stepped value is waiting to be applied |
+| `HasValue` | it carries a value at all |
+| `HasSteppers` | it is a Choice - the only kind that cycles a list |
+| `On` | it is a switch that is on |
+| `Kind--text` `Kind--button` `Kind--submenu` `Kind--toggle` `Kind--choice` `Kind--input` | what the row is; exactly one is on |
+
+The root carries four of its own:
+
+| Root class | Set when |
+| --- | --- |
+| `Hidden` | no menu is open for this viewer |
+| `Prompting` | a chat prompt is up - row presses are ignored, so dim the rows |
+| `KeyHints` | keys drive this session, so the footer's key hints are worth showing |
+| `Root` | the stack is one deep, which is what draws Back disabled rather than gone |
+
+`Root` is the new way to say it; `vm_back` still gets `Hidden` at the root too, so
+a layout that hides the button keeps working.
+
+An empty menu is drawn as one `Kind--text` row reading "Nothing here"
+(translation key `menu.empty`) rather than as a header over blank space.
 
 The row count must match the eight rows the Panorama driver draws a page from. The
 server cannot read your layout, so a layout with fewer rows silently loses the ones

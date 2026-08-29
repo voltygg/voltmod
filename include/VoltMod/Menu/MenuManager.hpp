@@ -16,9 +16,9 @@
 #include <VoltMod/Messaging/Messages.hpp>
 #include <VoltMod/Players/Policy.hpp>
 #include <VoltMod/Ui/UiPanel.hpp>
+#include <cstdint>
 #include <functional>
 #include <memory>
-#include <stack>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -51,23 +51,54 @@ struct MenuOptions
     /** Whether the global movement freeze (@ref MenuManager::FreezeWhileOpen) applies. Pass false
      *  for menus players reach mid-round, where being held still is worse than stray movement. */
     bool FreezeMovement = true;
+
+    /** Whether W/S/A/D/E/R drive this session. Center HTML ignores it - keys are the only input
+     *  it has - so it turns the keyboard off for a Panorama session, where the player has a
+     *  cursor and the rows are buttons. */
+    bool Keyboard = true;
 };
 
-/** One player's session: the stack of open menus and the freeze taken out for it. */
+/** What a row last drew for a player, so the manager can tell a driver its value just moved. */
+struct MenuRowMemory
+{
+    /** The last @ref MenuRow::Value the row described itself with. */
+    std::string Value;
+    /** Monotonic milliseconds of the last change; 0 until one happens. */
+    int64_t ChangedAt = 0;
+    /** False until the row has described itself once: arriving on screen is not a change. */
+    bool Drawn = false;
+};
+
+/** One player's session: the stack of open menus, the cursor over it, and the freeze taken out. */
 struct PlayerMenuState
 {
-    /** The stack of menus currently open for the player. */
-    std::stack<std::shared_ptr<Menu>> MenuStack;
+    /** The stack of menus currently open for the player, innermost last. A vector rather than a
+     *  `std::stack` because the titles underneath the top one are the breadcrumb. */
+    std::vector<std::shared_ptr<Menu>> MenuStack;
 
     /** True while the manager is holding the player's movement frozen for this session. */
     bool MovementFrozen = false;
     /** MoveType captured before freezing, restored when the menu closes. */
     MoveType PrevMoveType = MoveType::Walk;
+    /** @ref MenuOptions::Keyboard for this session. */
+    bool Keyboard = true;
+
+    /** @{ The keyboard cursor, shared by both drivers so switching one for the other - or
+     *  clicking a pager button - does not leave two disagreeing cursors behind. */
+    int SelectedIndex = 0;
+    /** Buttons held last frame, for edge detection. */
+    uint64_t PrevButtons = 0;
+    /** Monotonic milliseconds of the last key this session acted on. */
+    int64_t LastInputTime = 0;
+    /** @} */
+
+    /** One entry per row of the current menu, rebuilt when the menu changes. */
+    std::vector<MenuRowMemory> Rows;
 
     /** True if the player has any menu currently open. */
     bool HasMenu() const { return !MenuStack.empty(); }
     /** Top of the stack, or nullptr if no menu is open. */
-    Menu* GetCurrentMenu() { return MenuStack.empty() ? nullptr : MenuStack.top().get(); }
+    Menu* GetCurrentMenu() { return MenuStack.empty() ? nullptr : MenuStack.back().get(); }
 
     /** Clears the entire menu stack and the freeze bookkeeping. */
     void Reset() { *this = {}; }
@@ -141,16 +172,49 @@ public:
 
 private:
     // The drivers reach the session state through MenuDriver's protected helpers, which is the
-    // whole of what they may touch here.
+    // whole of what they may touch here; MenuKeys is the shared half of a driver's HandleInput
+    // and reaches the same session directly.
     friend class MenuDriver;
+    friend class MenuKeys;
 
     /** Run row @p index of the player's current menu, as if it had been selected and confirmed.
-     *  Ignores rows that are disabled, unselectable, or out of range. */
+     *  Ignores rows that are disabled, unselectable, or out of range.
+     *
+     *  Runs a commit held for another row first, and cancels one held for *this* row: a row
+     *  whose activation is its own commit would otherwise apply the value twice. */
     void Activate(int slot, int index);
 
     /** Nudge row @p index's value by @p direction (-1 or +1). True when the row consumed it,
-     *  which is what tells a keyboard driver to page instead. */
+     *  which is what tells a keyboard driver to page instead.
+     *
+     *  A row with a @ref MenuItem::Commit is stepped, not applied: the commit is held for a
+     *  moment so a burst of presses runs one action. */
     bool Step(int slot, int index, int direction);
+
+    /** Row @p index as it describes itself to @p slot, with @ref MenuRow::Pending and
+     *  @ref MenuRow::Changed filled in. What a driver draws from; an index with no row behind it
+     *  describes as an inert, unselectable line. */
+    [[nodiscard]] MenuRow Describe(int slot, int index);
+
+    /** Where @p slot's cursor is. */
+    [[nodiscard]] int Selected(int slot) const;
+
+    /** Put @p slot's cursor on row @p index, applying whatever the row it leaves was holding. */
+    void Select(int slot, int index);
+
+    /** Put @p slot's cursor on the first row it may land on within @p page of @p rowsPerPage,
+     *  for a driver whose page turned without the cursor. */
+    void SelectOnPage(int slot, int page, int rowsPerPage);
+
+    /** The titles under the current menu, joined with ` > `; empty at the root. */
+    [[nodiscard]] std::string Crumbs(int slot) const;
+
+    /** Whether keys drive @p slot's session (@ref MenuOptions::Keyboard). */
+    [[nodiscard]] bool KeyboardEnabled(int slot) const;
+
+    /** Read @p slot's keys and act on them for @p driver's page shape. True when one was
+     *  consumed. Both drivers' @ref MenuDriver::HandleInput is this call. */
+    bool HandleKeys(int slot, MenuDriver& driver);
 
     /** True when the cursor is allowed to land on @p item, as it describes itself to @p slot. */
     static bool IsCursorTarget(const MenuItem& item, int slot);
@@ -162,6 +226,10 @@ private:
     /** Put @p index on the first row the cursor may land on, so a disabled or Text row is never
      *  the initial selection. */
     void SelectFirst(int slot, int& index);
+
+    /** Start the cursor, the debounce window and the row memory over, because @p slot's top menu
+     *  changed. */
+    void ResetCursor(int slot);
 
     /** Read the top of @p slot's stack. Null when nothing is open. */
     [[nodiscard]] Menu* Current(int slot);
@@ -181,12 +249,20 @@ private:
     /** Freeze (true) or restore (false) the player's movement; no-op unless freeze is enabled. */
     void SetPlayerFrozen(int slot, bool frozen);
 
+    /** How long a row's value may sit on screen marked as just changed. */
+    static constexpr int64_t ChangedMs = 150;
+
     MenuServices _services;
     /** Per-player sessions; PerSlot clears a slot's stack when it changes hands. */
     PerSlot<PlayerMenuState> _states;
     /** The layout the Panorama driver was asked for; empty while center HTML is drawing. */
     std::string _layout;
     bool _freezePlayer = false;
+    /** Commits held back while a row is being stepped. Behind a pointer for the same reason as
+     *  @ref _driver: it is defined under src/. */
+    std::unique_ptr<PendingCommit> _pending;
+    /** The keys both drivers read. */
+    std::unique_ptr<MenuKeys> _keys;
     /** Behind a pointer so no public header reaches a driver, and so a swap is one assignment. */
     std::unique_ptr<MenuDriver> _driver;
     /** Declared last: per-frame delivery drops before the state it touches. */

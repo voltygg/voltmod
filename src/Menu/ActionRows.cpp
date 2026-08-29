@@ -63,7 +63,8 @@ MenuItem ActionRows::Presets(const PresetSpec& spec)
     return ChoiceRow<int>{
         .Label = Tr(spec.LabelKey),
         .Choices = std::move(choices),
-        // The menu stays open: a preset is a value to try, adjust and apply again.
+        // The menu stays open: a preset is a value to try, adjust and apply again, and the
+        // manager holds the commit so a burst of steps is one action.
         .Commit = [services = _services, admin = _admin, target = TargetRef(), act = &spec.Action](
                       int, const int& value) { services.Actions.Run(admin, target, value, *act); },
         .Index = spec.Index,

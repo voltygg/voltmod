@@ -75,6 +75,12 @@ class UiClicks;
 /** How a MenuManager draws: center HTML, or the Panorama layout. Held by unique_ptr so no public
  *  header reaches a driver and a plugin cannot name one. Defined in src/Menu/MenuDriver.hpp. */
 class MenuDriver;
+/** The keys both menu drivers read, held by unique_ptr for the same reason as MenuDriver: it
+ *  names a driver, which no public header may. Defined in src/Menu/MenuKeys.hpp. */
+class MenuKeys;
+/** A MenuManager's held-back row commits, one per player. Held by unique_ptr so no public header
+ *  reaches the debounce policy. Defined in src/Menu/PendingCommit.hpp. */
+class PendingCommit;
 
 // --- (3) Mutually recursive with their owning header --------------------------
 

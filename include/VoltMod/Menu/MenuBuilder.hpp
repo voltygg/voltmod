@@ -44,8 +44,22 @@ struct ToggleRow
     [[nodiscard]] MenuItem ToItem() const;
 };
 
+/** When a @ref ChoiceRow runs its `Commit`. */
+enum class ChoiceApply
+{
+    /** Stepping applies the value: A/D (or a stepper) picks it, and the row commits once the
+     *  presses stop. The default, because a value the player picked and saw is one they asked
+     *  for. */
+    OnStep,
+    /** Only E - or a click on the row - applies it. For a value that must not be tried on the
+     *  way past: one that costs something to apply, is destructive, or is announced to everyone
+     *  every time it lands. */
+    OnSelect
+};
+
 /**
- * @brief A row cycling a labeled list of values. A/D walks it (wrapping), E commits.
+ * @brief A row cycling a labeled list of values. A/D walks it (wrapping) and applies what it
+ * lands on; @ref Apply says whether that is what happens or whether E has to.
  *
  * The index lives in the row unless @ref GetIndex and @ref SetIndex are supplied, which is how a
  * caller keeps the selection somewhere the rest of the menu can read.
@@ -60,7 +74,7 @@ struct ChoiceRow
 {
     std::string Label;
     std::vector<std::pair<std::string, T>> Choices;
-    /** Runs on E, and again through @ref MenuItem::Commit. */
+    /** Runs on E, and - unless @ref Apply says otherwise - a moment after the last step. */
     std::function<void(int slot, const T& value)> Commit;
     /** @{ Optional external index. Supply both or neither; neither keeps the index in the row. */
     std::function<int(int slot)> GetIndex;
@@ -68,6 +82,7 @@ struct ChoiceRow
     /** @} */
     int Index = 0;
     bool Enabled = true;
+    ChoiceApply Apply = ChoiceApply::OnStep;
 
     [[nodiscard]] MenuItem ToItem() const;
 };
@@ -242,11 +257,13 @@ MenuItem ChoiceRow<T>::ToItem() const
                     (void)step(slot, +1);
             },
         .Step = [enabled, step](int slot, int direction) { return enabled && step(slot, direction); },
-        .Commit =
-            [enabled, apply](int slot) {
-                if (enabled)
-                    apply(slot);
-            },
+        // OnSelect leaves this empty, which is what tells the manager not to hold a commit for
+        // the row: nothing applies until the row is activated.
+        .Commit = Apply == ChoiceApply::OnSelect ? std::function<void(int)>{}
+                                                 : std::function<void(int)>([enabled, apply](int slot) {
+                                                       if (enabled)
+                                                           apply(slot);
+                                                   }),
     };
 }
 

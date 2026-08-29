@@ -55,6 +55,16 @@ struct MenuRow
     bool Steppable = false;
     /** An on/off row's state, so a driver can draw a switch instead of reading @ref Value. */
     std::optional<bool> State;
+
+    /** @{ Filled in by @ref MenuManager when it describes the row for a driver, not by
+     *  @ref MenuItem::Describe - whatever an item puts here is overwritten.
+     *
+     *  @ref Pending is true while the row's @ref MenuItem::Commit is waiting out the step
+     *  debounce, so a driver can say "not applied yet". @ref Changed is true for a moment after
+     *  the row's @ref Value moved, so a driver can flash it. */
+    bool Pending = false;
+    bool Changed = false;
+    /** @} */
 };
 
 // Declared here and defined at the bottom of this header: a row hands its Activate a session, and
@@ -95,7 +105,8 @@ public:
 
     /** Route the player's next chat line to @p callback, showing @p prompt over the open menu.
      *  Rows use this instead of reaching for the runtime's ChatInput themselves. */
-    virtual void Prompt(int slot, std::string prompt, std::function<bool(int slot, std::string_view text)> callback) = 0;
+    virtual void Prompt(int slot, std::string prompt,
+                        std::function<bool(int slot, std::string_view text)> callback) = 0;
 
 protected:
     MenuSession() = default;
@@ -124,7 +135,13 @@ struct MenuItem
      *  false (or an empty callback) lets the driver page instead. */
     std::function<bool(int slot, int direction)> Step;
 
-    /** Apply whatever @ref Step left the row showing. Empty when stepping already applied it. */
+    /** Apply whatever @ref Step left the row showing. Empty when stepping already applied it,
+     *  or when the row must not apply until it is activated.
+     *
+     *  A row that has one applies by *stepping*: @ref MenuManager holds the commit for a moment
+     *  after the last step and then runs it, so a burst of A/D presses is one action rather than
+     *  one per press. Activating the row, closing the menu or moving the cursor off it runs what
+     *  is held instead of dropping it. */
     std::function<void(int slot)> Commit;
 };
 

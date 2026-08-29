@@ -5,21 +5,32 @@
 #include <VoltMod/Core/EnumNames.hpp>
 #include <algorithm>
 #include <format>
+#include <initializer_list>
 #include <utility>
 
 namespace VoltMod
 {
 
+// The class vocabulary a stylesheet styles against. Every one of them is written on every draw,
+// on or off, so a row never keeps a class the state it stood for has left - and the panel's write
+// cache makes the ones that did not change free.
 static constexpr std::string_view kHidden = "Hidden";
 static constexpr std::string_view kDisabled = "Disabled";
+static constexpr std::string_view kSelected = "Selected";
+static constexpr std::string_view kChanged = "Changed";
+static constexpr std::string_view kPending = "Pending";
 static constexpr std::string_view kHasValue = "HasValue";
 static constexpr std::string_view kHasSteppers = "HasSteppers";
+static constexpr std::string_view kOn = "On";
+static constexpr std::string_view kPrompting = "Prompting";
+static constexpr std::string_view kKeyHints = "KeyHints";
+static constexpr std::string_view kRoot = "Root";
 
 PanoramaDriver::PanoramaDriver(MenuManager& menus, const MenuServices& services, UiPanel panel)
     : MenuDriver(menus, services), _panel(std::move(panel))
 {
-    _rows.reserve(RowsPerPage);
-    for (int i = 0; i < RowsPerPage; ++i)
+    _rows.reserve(RowsPerPageCount);
+    for (int i = 0; i < RowsPerPageCount; ++i)
     {
         std::string row = std::format("vm_row{}", i);
         _rows.push_back({.Row = row, .Label = row + "_label", .Value = row + "_value"});
@@ -55,9 +66,9 @@ std::string_view PanoramaDriver::ClassFor(MenuRowKind kind)
     return "Kind--button";
 }
 
-bool PanoramaDriver::HandleInput(int)
+bool PanoramaDriver::HandleInput(int slot)
 {
-    return false;
+    return KeyboardEnabled(slot) && HandleKeys(slot);
 }
 
 void PanoramaDriver::Reset(int slot)
@@ -65,9 +76,14 @@ void PanoramaDriver::Reset(int slot)
     _pages[slot] = 0;
 }
 
+void PanoramaDriver::ShowPage(int slot, int page)
+{
+    _pages[slot] = page < 0 ? 0 : page;
+}
+
 int PanoramaDriver::ItemIndex(int slot, int row) const
 {
-    return _pages[slot] * RowsPerPage + row;
+    return _pages[slot] * RowsPerPageCount + row;
 }
 
 void PanoramaDriver::BindClicks()
@@ -121,19 +137,24 @@ void PanoramaDriver::OnClick(const UiClick& click)
         break;
     }
 
-    if (press.Row < 0 || press.Row >= RowsPerPage)
+    if (press.Row < 0 || press.Row >= RowsPerPageCount)
         return;
 
     const int index = ItemIndex(slot, press.Row);
     switch (press.Button)
     {
     case MenuButton::Row:
+        // A click moves the cursor there too, so the keyboard carries on from what was pressed
+        // rather than from wherever it was left.
+        Select(slot, index);
         Activate(slot, index);
         break;
     case MenuButton::RowDec:
+        Select(slot, index);
         (void)Step(slot, index, -1);
         break;
     case MenuButton::RowInc:
+        Select(slot, index);
         (void)Step(slot, index, +1);
         break;
     default:
@@ -147,8 +168,10 @@ void PanoramaDriver::TurnPage(int slot, int delta)
     if (!menu)
         return;
 
-    const int pages = PageCount(static_cast<int>(menu->Items.size()), RowsPerPage);
+    const int pages = PageCount(static_cast<int>(menu->Items.size()), RowsPerPageCount);
     _pages[slot] = ((_pages[slot] + delta) % pages + pages) % pages;
+    // The cursor follows the page rather than sitting on a row that is no longer drawn.
+    SelectOnPage(slot, _pages[slot]);
 }
 
 void PanoramaDriver::Present(int slot)
@@ -163,7 +186,7 @@ void PanoramaDriver::Present(int slot)
     BindClicks();
 
     const int items = static_cast<int>(menu->Items.size());
-    const int pages = PageCount(items, RowsPerPage);
+    const int pages = PageCount(items, RowsPerPageCount);
     int& page = _pages[slot];
     page = std::clamp(page, 0, pages - 1);
 
@@ -171,36 +194,50 @@ void PanoramaDriver::Present(int slot)
     // and the next frame redraws anyway.
     (void)_panel.Text(slot, RootId, TitleVar, menu->Title);
     (void)_panel.Text(slot, RootId, SubtitleVar, menu->Subtitle);
+    (void)_panel.Text(slot, RootId, CrumbsVar, Crumbs(slot));
     (void)_panel.Class(slot, SubtitleId, kHidden, menu->Subtitle.empty());
 
     const auto prompt = _services.ChatInput.GetPrompt(slot);
     (void)_panel.Class(slot, PromptId, kHidden, !prompt.has_value());
+    (void)_panel.Class(slot, RootId, kPrompting, prompt.has_value());
     if (prompt)
+    {
         (void)_panel.Text(slot, RootId, PromptVar, *prompt);
+        (void)_panel.Text(slot, RootId, PromptHintVar, Translate("menu.promptHint", "Answer in chat", slot));
+    }
 
-    const int first = page * RowsPerPage;
-    const int last = std::min(items, first + RowsPerPage);
+    if (items == 0)
+    {
+        DrawEmpty(slot);
+    }
+    else
+    {
+        const int first = page * RowsPerPageCount;
+        const int last = std::min(items, first + RowsPerPageCount);
+        for (int index = first; index < last; ++index)
+            DrawRow(slot, index - first, index);
+        HideRowsFrom(slot, last - first);
+    }
 
-    for (int index = first; index < last; ++index)
-        DrawRow(slot, index - first, menu->Items[static_cast<std::size_t>(index)]);
-    HideRowsFrom(slot, last - first);
-
+    // Always written, so a layout may show the counter next to the title rather than inside the
+    // pager the second page is what unhides.
+    (void)_panel.Text(slot, RootId, PageVar, std::format("{}/{}", page + 1, pages));
     (void)_panel.Class(slot, PagerId, kHidden, pages <= 1);
-    if (pages > 1)
-        (void)_panel.Text(slot, RootId, PageVar, std::format("{}/{}", page + 1, pages));
 
-    (void)_panel.Class(slot, BackId, kHidden, Depth(slot) <= 1);
+    // Two ways to say the same thing: `Root` lets the stylesheet draw Back disabled in place,
+    // and the older `Hidden` on the button itself keeps a layout that hides it working.
+    const bool atRoot = Depth(slot) <= 1;
+    (void)_panel.Class(slot, RootId, kRoot, atRoot);
+    (void)_panel.Class(slot, BackId, kHidden, atRoot);
 
+    (void)_panel.Class(slot, RootId, kKeyHints, KeyboardEnabled(slot));
     (void)_panel.Class(slot, RootId, kHidden, false);
     (void)_panel.InputCapture(slot, true);
 }
 
-void PanoramaDriver::DrawRow(int slot, int row, const MenuItem& item)
+void PanoramaDriver::DrawRow(int slot, int row, int index)
 {
-    if (!item.Describe)
-        return;
-
-    const MenuRow described = item.Describe(slot);
+    const MenuRow described = Describe(slot, index);
     const RowIds& ids = _rows[static_cast<std::size_t>(row)];
 
     // Variables on the root panel; the labels reading them carry no ids.
@@ -215,13 +252,37 @@ void PanoramaDriver::DrawRow(int slot, int row, const MenuItem& item)
     (void)_panel.Class(slot, ids.Row, kHidden, false);
     (void)_panel.Class(slot, ids.Row, kDisabled, !described.Enabled);
     (void)_panel.Class(slot, ids.Row, kHasValue, !described.Value.empty());
-    // The same question the HTML footer asks, so both drivers read one answer.
-    (void)_panel.Class(slot, ids.Row, kHasSteppers, described.Steppable);
+    // Only a Choice cycles: a toggle is a switch, and drawing arrows either side of it would say
+    // there is a list behind it. A/D still flips it.
+    (void)_panel.Class(slot, ids.Row, kHasSteppers, described.Kind == MenuRowKind::Choice);
+    (void)_panel.Class(slot, ids.Row, kOn, described.State.value_or(false));
+    (void)_panel.Class(slot, ids.Row, kChanged, described.Changed);
+    (void)_panel.Class(slot, ids.Row, kPending, described.Pending);
+    // Only while keys move it: a click-only session would leave the highlight wherever the cursor
+    // happened to start, which reads as a selection the player did not make.
+    (void)_panel.Class(slot, ids.Row, kSelected, KeyboardEnabled(slot) && index == Selected(slot));
+}
+
+void PanoramaDriver::DrawEmpty(int slot)
+{
+    const RowIds& ids = _rows.front();
+
+    (void)_panel.Text(slot, RootId, ids.Label, Translate("menu.empty", "Nothing here", slot));
+    (void)_panel.Text(slot, RootId, ids.Value, "");
+
+    for (MenuRowKind kind : EnumValues<MenuRowKind>())
+        (void)_panel.Class(slot, ids.Row, ClassFor(kind), kind == MenuRowKind::Text);
+
+    for (std::string_view state : {kDisabled, kHasValue, kHasSteppers, kOn, kChanged, kPending, kSelected})
+        (void)_panel.Class(slot, ids.Row, state, false);
+
+    (void)_panel.Class(slot, ids.Row, kHidden, false);
+    HideRowsFrom(slot, 1);
 }
 
 void PanoramaDriver::HideRowsFrom(int slot, int row)
 {
-    for (int i = row < 0 ? 0 : row; i < RowsPerPage; ++i)
+    for (int i = row < 0 ? 0 : row; i < RowsPerPageCount; ++i)
         (void)_panel.Class(slot, _rows[static_cast<std::size_t>(i)].Row, kHidden, true);
 }
 

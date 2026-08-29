@@ -172,6 +172,9 @@ if(BUILD_TESTING)
             src/Menu/MenuBuilder.cpp
             src/Menu/CenterHtmlRender.cpp
             src/Menu/PanoramaIds.cpp
+            # The step debounce takes its delay as a callable, so the policy runs here against a
+            # hand-fired clock rather than a scheduler.
+            src/Menu/PendingCommit.cpp
         # Some tests include private headers from src/.
         INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src"
         LIBRARIES ${VOLTMOD_TEST_LIBRARIES}
