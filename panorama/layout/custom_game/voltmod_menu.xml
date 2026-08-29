@@ -18,7 +18,7 @@
     <include src="file://{resources}/styles/custom_game/voltmod_menu.css" />
   </styles>
 
-  <Panel class="Root" hittest="false">
+  <Panel class="Screen" hittest="false">
     <Panel id="vm_root" class="Hidden" hittest="true">
       <Panel class="Header" hittest="false">
         <Label class="Breadcrumb" text="{s:vm_breadcrumb}" />

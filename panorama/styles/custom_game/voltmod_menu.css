@@ -11,10 +11,17 @@
 
 	The server only ever sets classes, so a restyle is this file alone. The vocabulary is
 	Hidden / Disabled / Selected / Changed / Pending / HasValue / HasSteppers / On and one
-	Kind--* on a row, and Hidden / Prompting / KeyHints / Root on #vm_root.
+	Kind--* on a row, and Hidden / Prompting / KeyHints / Root on #vm_root - none of which a layout
+	container here may reuse as a class name.
 */
 
-.Root {
+/*
+	The full-screen layer the menu is centred in. Named Screen, not Root: the driver writes a
+	`Root` class onto #vm_root itself to say the stack is at its top level, and a `.Root` rule
+	here would match that too - which sized the whole menu to the screen on the root menu and
+	left every submenu correct.
+*/
+.Screen {
   width: 100%;
   height: 100%;
 }
@@ -121,6 +128,9 @@
   height: 34px;
   flow-children: right;
   margin-bottom: 3px;
+  background-color: rgba(255, 255, 255, 0.03);
+  transition-property: background-color;
+  transition-duration: 0.25s;
 }
 
 .Row.Hidden {
@@ -150,7 +160,7 @@
   height: 100%;
   flow-children: right;
   padding: 0px 10px 0px 4px;
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: rgba(255, 255, 255, 0);
   transition-property: background-color;
   transition-duration: 0.25s;
 }
@@ -163,21 +173,21 @@
   background-color: rgba(200, 162, 74, 0.32);
 }
 
-.Row.Selected .Row-btn {
+.Row.Selected {
   background-color: rgba(255, 255, 255, 0.08);
 }
 
 /* The driver drops Changed after ~150ms, so the transition above is the pulse fading back out. */
-.Row.Changed .Row-btn {
+.Row.Changed {
   background-color: rgba(200, 162, 74, 0.38);
 }
 
 .Row.Disabled .Row-btn:hover {
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: rgba(255, 255, 255, 0);
 }
 
 .Row.Disabled .Row-btn:active {
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: rgba(255, 255, 255, 0);
 }
 
 /* One column, no flow: the kind glyphs stack on the same spot and only one is ever visible. The
@@ -298,7 +308,7 @@
 }
 
 /* Informational row: readable, but it should not look pressable. */
-.Kind--text .Row-btn {
+.Row.Kind--text {
   background-color: rgba(255, 255, 255, 0);
 }
 
