@@ -12,10 +12,10 @@
 namespace VoltMod
 {
 
-// The row specs below carry no engine dependency: a spec is text plus callbacks, and the two
-// that reach the menu session (InputRow, SubmenuRow) do it from MenuBuilder.cpp, which is why
-// this header names MenuHost only through MenuItem. Every name here is spelled `<Kind>Row` so a
-// spec never collides with the builder method of the same kind.
+// The row specs below carry no engine dependency: a spec is text plus callbacks, and the two that
+// reach the menu session (InputRow, SubmenuRow) reach it through MenuSession, which is SDK-free
+// itself. Every name here is spelled `<Kind>Row` so a spec never collides with the builder method
+// of the same kind.
 
 /** A plain action row. @ref Activate runs on E or a click. */
 struct ButtonRow
@@ -231,7 +231,7 @@ MenuItem ChoiceRow<T>::ToItem() const
                     .Steppable = true};
             },
         .Activate =
-            [enabled, commit, apply, step](int slot, MenuHost&) {
+            [enabled, commit, apply, step](int slot, MenuSession&) {
                 if (!enabled)
                     return;
                 // No commit callback: E advances like D, so the row stays interactive for a

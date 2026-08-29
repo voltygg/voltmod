@@ -166,11 +166,12 @@ if(BUILD_TESTING)
             src/Core/SteamId.cpp
             src/Core/Time.cpp
             src/Core/Translations.cpp
-            # The row model is plain values, so both are SDK-free. The two calls a row makes
-            # into a live session live behind src/Menu/HostCalls.hpp; tests/Menu/MenuHostSeam.cpp
-            # supplies them here.
+            # The row model is plain values and MenuSession is an abstract class with no engine
+            # behind it, so rows, flows, the center-HTML markup and the layout's id contract all
+            # recompile here against a fake session.
             src/Menu/MenuBuilder.cpp
-            src/Menu/Html/MenuRenderer.cpp
+            src/Menu/CenterHtmlRender.cpp
+            src/Menu/PanoramaIds.cpp
         # Some tests include private headers from src/.
         INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src"
         LIBRARIES ${VOLTMOD_TEST_LIBRARIES}

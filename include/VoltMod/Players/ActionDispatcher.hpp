@@ -71,7 +71,7 @@ class ActionDispatcher
 public:
     /** @p policy, @p players and @p entities must outlive the dispatcher. Cheap to construct
      *  (three references), so a call site may build one per dispatch or hold one as a long-lived
-     *  member (see @ref MenuHost, which owns one for its context rows). */
+     *  member (see @ref ActionRows, which holds one for its context rows). */
     ActionDispatcher(Policy& policy, PlayerManager& players, EntitySystem& entities)
         : _policy(policy), _players(players), _entities(entities)
     {}

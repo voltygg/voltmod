@@ -15,6 +15,7 @@
 #include <interfaces/interfaces.h>
 #include <networksystem/inetworkmessages.h>
 #include <schemasystem/schemasystem.h>
+#include <string>
 #include <string_view>
 #include <tier1/convar.h>
 
@@ -247,6 +248,14 @@ void Runtime::RegisterStatusSections()
         }
         section["ok"] = ok;
         return section.dump();
+    });
+
+    // Which menu driver is live is a plugin's own choice made at load, and a UsePanorama that was
+    // refused leaves no other trace once the log line has scrolled.
+    Status.RegisterSection("menus", [this] {
+        return nlohmann::json{{"driver", Menus.IsPanorama() ? "panorama" : "center-html"},
+                              {"layout", std::string(Menus.Layout())}}
+            .dump();
     });
 
     Status.RegisterSection("uptime", [start = std::chrono::steady_clock::now()] {

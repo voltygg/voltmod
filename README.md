@@ -19,7 +19,7 @@ CMake and Conan builds. It does not host C# or another scripting runtime.
 - A managed Metamod lifecycle with one `Runtime` per load cycle.
 - Declarative console and chat commands with typed arguments, targeting,
   permissions, replies, and broadcasts.
-- WASD center-HTML menus, context-aware rows, reusable player pickers, and
+- WASD center-HTML or clickable Panorama menus, context-aware rows, reusable player pickers, and
   multi-step flows.
 - Player tracking, actions, scheduled effects, translations, and chat colors.
 - Typed wrappers for entities, schemas, events, convars, user messages,

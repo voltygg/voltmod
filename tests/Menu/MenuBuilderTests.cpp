@@ -1,4 +1,4 @@
-#include "MenuHostSeam.hpp"
+#include "FakeMenuSession.hpp"
 
 #include <VoltMod/Menu/MenuBuilder.hpp>
 #include <doctest/doctest.h>
@@ -17,11 +17,12 @@ using VoltMod::MenuRowKind;
 using VoltMod::SubmenuRow;
 using VoltMod::TextRow;
 using VoltMod::ToggleRow;
-using VoltModTests::HostCalls;
-using VoltModTests::NoMenuHost;
+using VoltModTests::FakeMenuSession;
 
 TEST_CASE("MenuBuilder: a button row describes itself as a button and runs on activate")
 {
+    FakeMenuSession session;
+
     int ran = 0;
     MenuItem item = ButtonRow{.Label = "Kick", .Activate = [&](int slot) { ran = slot; }}.ToItem();
 
@@ -34,23 +35,27 @@ TEST_CASE("MenuBuilder: a button row describes itself as a button and runs on ac
     CHECK_FALSE(row.Steppable);
     CHECK_FALSE(row.State.has_value());
 
-    item.Activate(3, NoMenuHost());
+    item.Activate(3, session);
     CHECK(ran == 3);
     CHECK_FALSE(static_cast<bool>(item.Step));
 }
 
 TEST_CASE("MenuBuilder: a disabled button describes itself disabled and does not run")
 {
+    FakeMenuSession session;
+
     int ran = 0;
     MenuItem item = ButtonRow{.Label = "Kick", .Activate = [&](int) { ++ran; }, .Enabled = false}.ToItem();
 
     CHECK_FALSE(item.Describe(0).Enabled);
-    item.Activate(0, NoMenuHost());
+    item.Activate(0, session);
     CHECK(ran == 0);
 }
 
 TEST_CASE("MenuBuilder: a toggle carries its state and flips on both activate and step")
 {
+    FakeMenuSession session;
+
     bool state = false;
     MenuItem item =
         ToggleRow{.Label = "God mode", .Get = [&](int) { return state; }, .Flip = [&](int) { state = !state; }}
@@ -63,7 +68,7 @@ TEST_CASE("MenuBuilder: a toggle carries its state and flips on both activate an
     REQUIRE(row.State.has_value());
     CHECK_FALSE(*row.State);
 
-    item.Activate(0, NoMenuHost());
+    item.Activate(0, session);
     row = item.Describe(0);
     CHECK(row.Value == "ON");
     CHECK(*row.State);
@@ -97,6 +102,8 @@ TEST_CASE("MenuBuilder: a choice row wraps in both directions and shows the curr
 
 TEST_CASE("MenuBuilder: a choice row commits the current value on activate and on commit")
 {
+    FakeMenuSession session;
+
     std::vector<int> committed;
     MenuItem item = ChoiceRow<int>{.Label = "HP",
                                    .Choices = {{"1 HP", 1}, {"100 HP", 100}},
@@ -106,7 +113,7 @@ TEST_CASE("MenuBuilder: a choice row commits the current value on activate and o
 
     CHECK(item.Describe(0).Value == "100 HP");
 
-    item.Activate(0, NoMenuHost());
+    item.Activate(0, session);
     REQUIRE(committed.size() == 1);
     CHECK(committed[0] == 100);
 
@@ -120,9 +127,11 @@ TEST_CASE("MenuBuilder: a choice row commits the current value on activate and o
 
 TEST_CASE("MenuBuilder: a choice row with no commit callback steps forward on activate")
 {
+    FakeMenuSession session;
+
     MenuItem item = ChoiceRow<std::string>{.Label = "Color", .Choices = {{"Red", "red"}, {"Blue", "blue"}}}.ToItem();
 
-    item.Activate(0, NoMenuHost());
+    item.Activate(0, session);
     CHECK(item.Describe(0).Value == "Blue");
 }
 
@@ -143,7 +152,7 @@ TEST_CASE("MenuBuilder: a choice row round-trips an external index")
 
 TEST_CASE("MenuBuilder: an input row rejects text over its maximum without reaching the setter")
 {
-    HostCalls().Reset();
+    FakeMenuSession session;
 
     int sets = 0;
     MenuItem item = InputRow{.Label = "Reason",
@@ -161,14 +170,14 @@ TEST_CASE("MenuBuilder: an input row rejects text over its maximum without reach
     CHECK(row.Kind == MenuRowKind::Input);
     CHECK(row.Value == "cheating");
 
-    item.Activate(0, NoMenuHost());
-    REQUIRE(HostCalls().Inputs == 1);
-    CHECK(HostCalls().LastPrompt == "Type a reason");
-    REQUIRE(static_cast<bool>(HostCalls().LastInput));
+    item.Activate(0, session);
+    REQUIRE(session.Prompts == 1);
+    CHECK(session.LastPrompt == "Type a reason");
+    REQUIRE(static_cast<bool>(session.LastInput));
 
-    CHECK_FALSE(HostCalls().LastInput(0, "far too long"));
+    CHECK_FALSE(session.LastInput(0, "far too long"));
     CHECK(sets == 0);
-    CHECK(HostCalls().LastInput(0, "ok"));
+    CHECK(session.LastInput(0, "ok"));
     CHECK(sets == 1);
 }
 
@@ -180,20 +189,20 @@ TEST_CASE("MenuBuilder: an input row with no value shows a placeholder")
 
 TEST_CASE("MenuBuilder: a submenu row opens what its factory built, and nothing when it built none")
 {
-    HostCalls().Reset();
+    FakeMenuSession session;
 
     MenuItem item = SubmenuRow{.Label = "More", .Build = [](int) { return MenuBuilder("Submenu").Build(); }}.ToItem();
 
     CHECK(item.Describe(0).Kind == MenuRowKind::Submenu);
-    item.Activate(0, NoMenuHost());
-    REQUIRE(HostCalls().Opened == 1);
-    REQUIRE(static_cast<bool>(HostCalls().LastMenu));
-    CHECK(HostCalls().LastMenu->Title == "Submenu");
+    item.Activate(0, session);
+    REQUIRE(session.Opened.size() == 1);
+    REQUIRE(session.Last() != nullptr);
+    CHECK(session.Last()->Title == "Submenu");
 
     MenuItem empty =
         SubmenuRow{.Label = "More", .Build = [](int) { return std::shared_ptr<VoltMod::Menu>{}; }}.ToItem();
-    empty.Activate(0, NoMenuHost());
-    CHECK(HostCalls().Opened == 1);
+    empty.Activate(0, session);
+    CHECK(session.Opened.size() == 1);
 }
 
 TEST_CASE("MenuBuilder: a text row is not selectable and does nothing when activated")

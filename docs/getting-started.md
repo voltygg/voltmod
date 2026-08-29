@@ -223,7 +223,7 @@ translation unit needs that surface:
 | `<VoltMod/Api.hpp>` | Core vocabulary (`Event`, `Result`, `Subscription`, `Log`, `Scheduler`, `Translations`, `Capabilities`, ...), `Runtime`, `Player`/`PlayerManager`/`Policy`, commands, `ChatColors`, `MetamodPlugin` and `LoadStandardConfig` |
 | `<VoltMod/Entities/Api.hpp>` | Entity/Pawn/Controller wrappers, `EntitySystem`, `EntityOps`, `Items`, and `ConVar`/`ConVarOverrides` |
 | `<VoltMod/Hooks/Api.hpp>` | The per-tick hooks (`Movement`, `Teleport`, ...), game events, and messaging |
-| `<VoltMod/Menu/Api.hpp>` | `MenuBuilder` and its row specs, `ActionRows`, `Flow`, presets |
+| `<VoltMod/Menu/Api.hpp>` | `MenuManager` (`runtime.Menus`), `MenuBuilder` and its row specs, `ActionRows`, `Flow`, presets |
 | `<VoltMod/Unsafe/Api.hpp>` | Raw interfaces, gamedata, `MemoryAccess`, and vtable hooking - opt in only where you need it |
 | `<VoltMod/Database/Api.hpp>` | The PostgreSQL vocabulary (see @ref database_guide) |
 

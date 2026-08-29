@@ -27,7 +27,7 @@ namespace VoltMod
  *
  * @code
  * ActionRows rows({.Actions = app.Actions, .Policy = runtime.Policy, .Translations = runtime.Translations,
- *                  .Players = runtime.Players, .Entities = runtime.Entities, .Menus = menus,
+ *                  .Players = runtime.Players, .Entities = runtime.Entities, .Menus = runtime.Menus,
  *                  .Effects = &app.Effects},
  *                 adminRef, targetRef);
  *
@@ -58,7 +58,7 @@ public:
         Translations& Translations;
         PlayerManager& Players;
         EntitySystem& Entities;
-        MenuHost& Menus;
+        MenuSession& Menus;
         EffectManager* Effects = nullptr;
     };
 

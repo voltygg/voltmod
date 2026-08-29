@@ -1,11 +1,12 @@
 <root>
   <!--
-    Driven by VoltMod::UiMenuManager. The ids are the contract (docs/custom-ui.md); everything
-    else is yours. Text is dialog variables on vm_root, which the labels inherit.
+    Driven by VoltMod::MenuManager's Panorama driver. The ids are the contract
+    (docs/custom-ui.md); everything else is yours. Text is dialog variables on vm_root, which the
+    labels inherit.
 
     Clickability: every panel on the click path has a resolved size, a Button never contains
-    another Button, and decorative panels are hittest="false". Eight rows, matching
-    UiMenuManager::RowsPerPage; the server cannot read this file.
+    another Button, and decorative panels are hittest="false". Eight rows, matching the driver's
+    page size; the server cannot read this file.
   -->
   <styles>
     <include src="file://{resources}/styles/custom_game/voltmod_menu.css" />

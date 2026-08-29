@@ -1,5 +1,3 @@
-#include "Menu/HostCalls.hpp"
-
 #include <VoltMod/Menu/MenuBuilder.hpp>
 #include <utility>
 
@@ -15,7 +13,7 @@ MenuItem ButtonRow::ToItem() const
         .Describe = [label = Label, enabled = Enabled](
                         int) { return MenuRow{.Label = label, .Kind = MenuRowKind::Button, .Enabled = enabled}; },
         .Activate =
-            [activate = Activate, enabled = Enabled](int slot, MenuHost&) {
+            [activate = Activate, enabled = Enabled](int slot, MenuSession&) {
                 if (enabled && activate)
                     activate(slot);
             },
@@ -36,7 +34,7 @@ MenuItem ToggleRow::ToItem() const
                                .State = state};
             },
         .Activate =
-            [flip = Flip, enabled = Enabled](int slot, MenuHost&) {
+            [flip = Flip, enabled = Enabled](int slot, MenuSession&) {
                 if (enabled && flip)
                     flip(slot);
             },
@@ -63,10 +61,10 @@ MenuItem InputRow::ToItem() const
                                .Enabled = enabled};
             },
         .Activate =
-            [prompt = Prompt, set = Set, maxLength = MaxLength, enabled = Enabled](int slot, MenuHost& menus) {
+            [prompt = Prompt, set = Set, maxLength = MaxLength, enabled = Enabled](int slot, MenuSession& session) {
                 if (!enabled)
                     return;
-                Internal::BeginInput(menus, slot, prompt, [set, maxLength](int s, std::string_view text) {
+                session.Prompt(slot, prompt, [set, maxLength](int s, std::string_view text) {
                     // Over-long text re-prompts rather than reaching the setter: a chat line is
                     // whatever the player typed, and the row said how much of it it wants.
                     if (maxLength > 0 && static_cast<int>(text.size()) > maxLength)
@@ -83,11 +81,11 @@ MenuItem SubmenuRow::ToItem() const
         .Describe = [label = Label, enabled = Enabled](
                         int) { return MenuRow{.Label = label, .Kind = MenuRowKind::Submenu, .Enabled = enabled}; },
         .Activate =
-            [build = Build, enabled = Enabled](int slot, MenuHost& menus) {
+            [build = Build, enabled = Enabled](int slot, MenuSession& session) {
                 if (!enabled || !build)
                     return;
                 if (auto submenu = build(slot))
-                    Internal::OpenMenu(menus, slot, std::move(submenu));
+                    session.Open(slot, std::move(submenu));
             },
     };
 }

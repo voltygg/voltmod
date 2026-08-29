@@ -1,4 +1,4 @@
-#include "Menu/Html/MenuRenderer.hpp"
+#include "Menu/CenterHtmlRender.hpp"
 
 #include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Core/Translations.hpp>

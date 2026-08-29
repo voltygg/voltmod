@@ -233,7 +233,7 @@ from a player's score - exhausts that table, and the panel then stops updating.
 
 ## Reusing the menu layout
 
-@ref VoltMod::UiMenuManager (see @ref menus_guide) drives
+@ref VoltMod::MenuManager's Panorama driver (see @ref menus_guide) drives
 `panorama/layout/custom_game/voltmod_menu.xml`, which ships with the framework and
 installs to `addons/voltmod/panorama`. There are three levels of reuse:
 
@@ -243,7 +243,7 @@ installs to `addons/voltmod/panorama`. There are three levels of reuse:
    `Kind--choice` / `Kind--input` are the whole vocabulary you are styling
    against. No C++ changes.
 2. **Re-lay-out.** Ship your own `.xml` declaring the same ids and call
-   `runtime.UiMenus.SetLayout("my_menu")`. The contract is the ids below and
+   `runtime.Menus.UsePanorama("my_menu")`. The contract is the ids below and
    nothing else - the nesting, the artwork and the animation are yours.
 3. **Build something else.** Spawn your own @ref VoltMod::UiPanel and write your
    own ids. Layouts are independent entities, so your panel coexists with the admin
@@ -269,9 +269,9 @@ Each row `vm_row{i}` is a `Panel` carrying `Hidden`, `Disabled`, `HasValue` and
 and `vm_row{i}_inc` are siblings of each other, not nested, because a `Button`
 inside another `Button` loses the inner press.
 
-The row count must match `UiMenuManager::RowsPerPage` (8). The server cannot read
-your layout, so a layout with fewer rows silently loses the ones off the end of a
-page.
+The row count must match the eight rows the Panorama driver draws a page from. The
+server cannot read your layout, so a layout with fewer rows silently loses the ones
+off the end of a page.
 
 ## Availability
 

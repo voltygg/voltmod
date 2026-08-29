@@ -7,15 +7,16 @@ four callbacks, no subclass - built from the row specs @ref VoltMod::MenuBuilder
 @ref VoltMod::ActionRows and the @ref VoltMod::Flow wizard provide the common
 admin-panel behavior.
 
-Nothing in a menu says how it reaches a screen. That is a @ref VoltMod::MenuHost,
-and the framework ships two - so the same menu runs on either, and a plugin picks
-once rather than writing two menus.
+Nothing in a menu says how it reaches a screen. That is a *driver*, and
+@ref VoltMod::MenuManager - `runtime.Menus` - owns both halves: the per-player
+session, and the driver drawing it. The same menu runs on either driver, so a
+plugin picks once rather than writing two menus.
 
-## Which host
+## Choosing the driver
 
-| | @ref VoltMod::HtmlMenuManager | @ref VoltMod::UiMenuManager |
+| | Center HTML | Panorama |
 | --- | --- | --- |
-| Reached as | `runtime.HtmlMenus` | `runtime.UiMenus` |
+| Selected by | the default | `runtime.Menus.UsePanorama(...)` |
 | Drawn as | center HTML, re-sent every tick | a Panorama `custom_hud_layout` |
 | Input | WASD / E / R | mouse clicks |
 | Rows a page | 5 | 8 |
@@ -23,9 +24,9 @@ once rather than writing two menus.
 | Styling | eight hardcoded colors | a stylesheet you can replace |
 
 **Center HTML works everywhere.** No addon to publish, no capability behind it,
-any client. Pick it when you cannot ship content to players, and keep it as the
-fallback when you can: the custom-UI capability is Windows-only today, so a
-plugin that wants the Panorama menu still needs an answer for Linux servers.
+any client. It is what you get without asking, and it stays the fallback when you
+can ship content: the custom-UI capability is Windows-only today, so a plugin
+that wants the Panorama menu still needs an answer for Linux servers.
 
 **The Panorama menu is a real panel.** Clickable, styled by a stylesheet rather
 than by the framework, and cheap to redraw because a networked layout stays on
@@ -33,21 +34,23 @@ screen without being re-sent. It costs you getting the compiled layout to
 clients - a workshop addon (see @ref workshop_guide), or a manual copy while
 developing.
 
-Choose once, at load, and pass the result around as a `MenuHost&`:
+Ask for it once, at load, and carry on either way:
 
 ```cpp
-// Center HTML is the fallback, so start there and upgrade: the two managers are unrelated types,
-// and a conditional between them would need a cast on each arm to find their common base.
-MenuHost* menus = &runtime.HtmlMenus;
-if (runtime.Capabilities.Has(Capability::CustomUi) && runtime.Capabilities.Has(Capability::UiClicks))
-    menus = &runtime.UiMenus;
+if (auto status = runtime.Menus.UsePanorama(layout); !status)
+    Log::Info("center HTML: {}", status.error().Detail);
 ```
 
-CustomUi and UiClicks bind different gamedata, so either can be on while the other is off; check
-both, because a layout that draws but never reports a press is worse than no Panorama menu at all.
+`UsePanorama` checks both capabilities and the layout name, and changes nothing
+when any of them fails - so the session you already have keeps working. It drives
+the layout the framework ships (`voltmod_menu`) when given no name. Both
+capabilities are checked because they bind different gamedata and either can be on
+while the other is off, and a layout that draws but never reports a press is worse
+than no Panorama menu at all.
 
-A session that straddled two hosts would leave half its state on the wrong
-screen, so do not switch per menu.
+Switching closes every open session first, because one that straddled two drivers
+would leave half its state on the wrong screen. `runtime.Menus.IsPanorama()` and
+`runtime.Menus.Layout()` report which driver is drawing.
 
 Center-HTML players navigate with:
 
@@ -72,14 +75,14 @@ using VoltMod::MenuBuilder;
 using VoltMod::ToggleRow;
 
 auto menu = MenuBuilder("Admin Panel")
-    .Subtitle("v1.0")                                   // optional second line; both hosts show it
+    .Subtitle("v1.0")                                   // optional second line; both drivers show it
     .Text("Session")                                    // heading; the cursor skips it
     .Button("Kick Player", [](int slot) { /* ... */ })   // label + callback
     .Add(ButtonRow{.Label = "Disabled", .Enabled = false})
     .Add(ToggleRow{.Label = "God mode", .Get = IsGod, .Flip = FlipGod})
     .Build();
 
-menus.OpenMenu(playerSlot, menu);                       // menus is a MenuHost&
+runtime.Menus.Open(playerSlot, menu);
 ```
 
 Each kind of row is a spec struct filled with designated initializers, and `Add`
@@ -110,9 +113,9 @@ R cancels. It is backed by @ref VoltMod::ChatInput, so your chat hook must call
 `runtime.Hooks.ChatInput.TryConsume` first (see @ref sdk_messaging_guide).
 
 A shape the specs do not cover is a @ref VoltMod::MenuItem written by hand and passed
-to `Add`: `Describe` is required and runs on every redraw, `Activate` receives the host
-showing the row (so it can `OpenMenu` or `BeginInput`), `Step` consumes A/D, and
-`Commit` applies whatever `Step` left showing.
+to `Add`: `Describe` is required and runs on every redraw, `Activate` receives the
+@ref VoltMod::MenuSession showing the row (so it can `Open` a submenu or `Prompt` for a
+line of chat), `Step` consumes A/D, and `Commit` applies whatever `Step` left showing.
 
 ## Context rows
 
@@ -124,7 +127,7 @@ using VoltMod::ActionRows;
 
 ActionRows rows({.Actions = app.Actions, .Policy = runtime.Policy,
                  .Translations = runtime.Translations, .Players = runtime.Players,
-                 .Entities = runtime.Entities, .Menus = menus, .Effects = &app.Effects},
+                 .Entities = runtime.Entities, .Menus = runtime.Menus, .Effects = &app.Effects},
                 adminRef, targetRef);            // PlayerRef, optional<PlayerRef>
 
 MenuBuilder(title)
@@ -175,7 +178,7 @@ translated.
 ```cpp
 using Flow = VoltMod::Flow<PendingPunishment>;
 
-Flow::Create(menus, adminSlot, std::move(pending))
+Flow::Create(runtime.Menus, adminSlot, std::move(pending))
     ->Validate([](const PendingPunishment& s) -> std::optional<std::string> {
         return StillPunishable(s) ? std::nullopt : std::optional<std::string>("cmd.targetLost");
     })
@@ -198,8 +201,8 @@ Flow::Create(menus, adminSlot, std::move(pending))
 
 Flow contracts:
 
-- `Create` takes the @ref VoltMod::MenuHost the flow opens and closes its steps through, and the slot it runs for, so the flow needs no other service.
-- The `Validate` result is a translation key. On failure the flow calls `MenuHost::CloseAllWithReply`, which replies through `Policy::Reply` and closes the menus.
+- `Create` takes the @ref VoltMod::MenuSession the flow opens and closes its steps through, and the slot it runs for, so the flow needs no other service. `runtime.Menus` is one; so is a test double, which is what makes a flow's step order testable without an engine.
+- The `Validate` result is a translation key. On failure the flow calls `MenuSession::CloseAll(slot, key)`, which replies through `Policy::Reply` and closes the menus.
 - A confirm-only flow (skip straight to `Confirm`) is the natural shape for "quick" variants of a wizard.
 - A step's `Applies` skips it for a state it does not fit, and an empty `CustomLabel` omits that step's free-text row, so a caller can gate either on config without splitting the chain.
 - Lifetime is automatic: menu rows hold the only owning references, so the flow lives exactly as long as one of its menus is on screen. There is no manager to hold and no cleanup to write.
@@ -207,35 +210,34 @@ Flow contracts:
 
 ## Pagination
 
-A menu longer than its host's page paginates automatically - `ItemsPerPage` (5)
-rows for center HTML, `UiMenuManager::RowsPerPage` (8) for the Panorama menu -
-with a `(2/3)` indicator.
+A menu longer than its driver's page paginates automatically - `ItemsPerPage` (5)
+rows for center HTML, eight rows for the Panorama menu - with a `(2/3)` indicator.
 
 Center HTML pages with A/D, item-aware: on a value row A/D adjusts the value, so
 highlight a Button or Submenu row to page instead. Disabled and non-selectable
 rows are skipped by the cursor. The Panorama menu has explicit prev/next buttons
-and keeps the page in `PlayerMenuState::Page`, because a click UI has no cursor
-to derive a page from.
+and keeps the page itself, because a click UI has no cursor to derive a page
+from.
 
 ## Styling
 
 A menu carries no markup - only a `Title`, an optional `Subtitle`, and rows that
-say what they *are* (@ref VoltMod::MenuRowKind). Each host decides what that
-looks like, so styling is a host question, not a builder one:
+say what they *are* (@ref VoltMod::MenuRowKind). Each driver decides what that
+looks like, so styling is a driver question, not a builder one:
 
-- Center HTML renders from a fixed palette in `MenuRenderer`.
+- Center HTML renders from a fixed palette in `src/Menu/CenterHtmlRender.cpp`.
 - The Panorama menu puts the row kind on the row as a CSS class, so a plugin
   restyles the whole menu by shipping its own stylesheet, or re-lays it out by
-  shipping an id-compatible layout and calling `UiMenus.SetLayout(name)`. See
-  @ref custom_ui_guide for the id contract.
+  shipping an id-compatible layout and passing its name to
+  `Menus.UsePanorama(name)`. See @ref custom_ui_guide for the id contract.
 
 ## Lifetime and input
 
-@ref VoltMod::MenuHost keeps the per-player stack, the session options and the freeze bookkeeping, and clears a player's stack on disconnect. Each host adds only how it draws and what input it reads: @ref VoltMod::HtmlMenuManager reads button state every frame from a self-registered scheduler subscription and debounces it (200 ms); @ref VoltMod::UiMenuManager redraws every frame and reads clicks.
+@ref VoltMod::MenuManager keeps the per-player stack, the session options and the freeze bookkeeping, and clears a player's stack on disconnect. A driver adds only how it draws and what input it reads: center HTML reads button state every frame and debounces it (200 ms); the Panorama driver redraws every frame and reads clicks. The manager's per-frame subscription is taken by the first `Open` and dropped when the last stack empties, so a plugin with no menu open pays nothing per frame.
 
-`menus.SetFreezePlayer(true)` freezes players while a menu is open. Center HTML needs it so WASD does not also walk them around; the Panorama menu needs it because a cursor takes mouse-look, and being shoved around while clicking is worse rather than better. During a chat-input capture center HTML honors only R, and the Panorama menu shows a prompt overlay and ignores row presses, so neither drifts while the player types.
+`runtime.Menus.FreezeWhileOpen(true)` freezes players while a menu is open. Center HTML needs it so WASD does not also walk them around; the Panorama menu needs it because a cursor takes mouse-look, and being shoved around while clicking is worse rather than better. During a chat-input capture center HTML honors only R, and the Panorama menu shows a prompt overlay and ignores row presses, so neither drifts while the player types.
 
-The freeze is a global switch, but a single session can opt out: `OpenMenu(slot, menu, {.FreezeMovement = false})`. That suits menus ordinary players reach mid-round, where being held still is worse than the stray movement the freeze prevents. @ref VoltMod::MenuSessionOptions applies to the call that opens the stack; submenus and Flow steps pushed onto a live session inherit it, so an unfrozen session stays unfrozen for its whole flow.
+The freeze is a global switch, but a single session can opt out: `Open(slot, menu, {.FreezeMovement = false})`. That suits menus ordinary players reach mid-round, where being held still is worse than the stray movement the freeze prevents. @ref VoltMod::MenuOptions applies to the call that opens the stack; submenus and Flow steps pushed onto a live session inherit it, so an unfrozen session stays unfrozen for its whole flow.
 
 ## Presets
 
@@ -269,10 +271,12 @@ Duration pickers and confirm dialogs are `Flow`'s own steps (`AddDurationStep`,
 Most consumers need `MenuBuilder.hpp` plus `Flow.hpp`, `ActionRows.hpp` or
 `MenuPresets.hpp` - or `<VoltMod/Menu/Api.hpp>` for all of them.
 
-`MenuBuilder.hpp` and the row model behind it are SDK-free: a row is text and
-callbacks, and the two calls a row makes into a live session (a submenu's `OpenMenu`,
-an input row's `BeginInput`) go through `src/Menu/HostCalls.hpp`, whose one translation
-unit includes `MenuHost.hpp`. That is what lets `tests/Menu/MenuBuilderTests.cpp` and
-`tests/Menu/Html/MenuRenderTests.cpp` drive real rows in the SDK-free suite.
-`ActionRows.hpp` is not SDK-free and does not try to be: an `Action` carries an
+`MenuBuilder.hpp`, `Flow.hpp` and the row model behind them are SDK-free: a row is
+text and callbacks, and the two calls a row makes into a live session (a submenu's
+`Open`, an input row's `Prompt`) go through @ref VoltMod::MenuSession, an abstract
+class in `Menu.hpp` with no engine behind it. That is what lets
+`tests/Menu/MenuBuilderTests.cpp`, `tests/Menu/FlowTests.cpp` and
+`tests/Menu/CenterHtmlRenderTests.cpp` drive real rows and real flows against a fake
+session in the SDK-free suite. `MenuManager.hpp` and `ActionRows.hpp` are not SDK-free
+and do not try to be: the manager freezes a pawn, and an `Action` carries an
 `ActionContext` holding a `Controller` by value.

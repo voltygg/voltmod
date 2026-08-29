@@ -1,13 +1,10 @@
 #pragma once
 
-#include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Entities/MoveType.hpp>
-#include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
-#include <stack>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace VoltMod
@@ -60,6 +57,50 @@ struct MenuRow
     std::optional<bool> State;
 };
 
+// Declared here and defined at the bottom of this header: a row hands its Activate a session, and
+// a session opens a menu made of rows, so the three have to be written in one file whichever way
+// round they go.
+struct Menu;
+
+/**
+ * @brief What a row may do to the session it is drawn in.
+ *
+ * Implemented by @ref MenuManager, and named here rather than there so a row - and the
+ * @ref MenuBuilder and @ref Flow that produce rows - stays plain values with no engine behind it.
+ * That is what lets both be unit-tested against a session that only records what it was asked for.
+ *
+ * A session runs from the first menu opened for a player until their stack empties.
+ */
+class MenuSession
+{
+public:
+    virtual ~MenuSession() = default;
+
+    MenuSession(const MenuSession&) = delete;
+    MenuSession& operator=(const MenuSession&) = delete;
+
+    /** Push @p menu onto @p slot's stack and start showing it. */
+    virtual void Open(int slot, std::shared_ptr<Menu> menu) = 0;
+
+    /** Pop the top menu, falling back to the parent if one exists. */
+    virtual void Close(int slot) = 0;
+
+    /** Clear the entire stack and take the menu off the player's screen. */
+    virtual void CloseAll(int slot) = 0;
+
+    /** Abort with an explanation: @p replyKey is translated in the player's language and sent
+     *  through `Policy::Reply`, then every menu closes. The abort path for a flow whose
+     *  preconditions stopped holding. */
+    virtual void CloseAll(int slot, std::string_view replyKey) = 0;
+
+    /** Route the player's next chat line to @p callback, showing @p prompt over the open menu.
+     *  Rows use this instead of reaching for the runtime's ChatInput themselves. */
+    virtual void Prompt(int slot, std::string prompt, std::function<bool(int slot, std::string_view text)> callback) = 0;
+
+protected:
+    MenuSession() = default;
+};
+
 /**
  * @brief One row's behaviour, as values.
  *
@@ -75,9 +116,9 @@ struct MenuItem
     /** This row, right now. Called every redraw, so it is safe to read live state. */
     std::function<MenuRow(int slot)> Describe;
 
-    /** E, or a click. @p menus is the host showing the row, so a row can push a submenu or start
-     *  a chat prompt without reaching for a global. */
-    std::function<void(int slot, MenuHost& menus)> Activate;
+    /** E, or a click. @p session is the session showing the row, so a row can push a submenu or
+     *  start a chat prompt without reaching for a global. */
+    std::function<void(int slot, MenuSession& session)> Activate;
 
     /** A/D, or a stepper press: @p direction is -1 or +1. Return true to consume the input;
      *  false (or an empty callback) lets the driver page instead. */
@@ -87,7 +128,7 @@ struct MenuItem
     std::function<void(int slot)> Commit;
 };
 
-/** A menu, as either @ref MenuHost shows it. Build with MenuBuilder. */
+/** A menu, however @ref MenuManager is drawing menus right now. Build with MenuBuilder. */
 struct Menu
 {
     std::string Title;
@@ -95,35 +136,6 @@ struct Menu
      *  Plain text - it is markup in neither driver. */
     std::string Subtitle;
     std::vector<MenuItem> Items;
-};
-
-/**
- * Per-player menu runtime state held by MenuHost. The stack supports
- * submenus: opening pushes, R or programmatic close pops back to the parent.
- */
-struct PlayerMenuState
-{
-    /** The stack of menus currently open for the player. */
-    std::stack<std::shared_ptr<Menu>> MenuStack;
-    int SelectedIndex = 0;
-    /** Which page of a long menu is showing. Center HTML derives its page from SelectedIndex
-     *  instead; a click driver has no cursor to derive one from, so it keeps this. */
-    int Page = 0;
-    int64_t LastInputTime = 0;
-    uint64_t PrevButtons = 0;
-
-    /** True while MenuHost is holding the player's movement frozen for this menu session. */
-    bool MovementFrozen = false;
-    /** MoveType captured before freezing, restored when the menu closes. */
-    MoveType PrevMoveType = MoveType::Walk;
-
-    /** True if the player has any menu currently open. */
-    bool HasMenu() const { return !MenuStack.empty(); }
-    /** Top of the stack, or nullptr if no menu is open. */
-    Menu* GetCurrentMenu() { return MenuStack.empty() ? nullptr : MenuStack.top().get(); }
-
-    /** Clears the entire menu stack and resets selection/input state. */
-    void Reset() { *this = {}; }
 };
 
 }  // namespace VoltMod

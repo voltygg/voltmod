@@ -3,7 +3,6 @@
 #include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
-#include <VoltMod/Menu/MenuHost.hpp>
 #include <format>
 #include <functional>
 #include <memory>
@@ -28,7 +27,7 @@ namespace VoltMod
  * replied through `runtime.Policy.Reply`.
  *
  * @code
- * Flow<PendingPunishment>::Create(menus, adminSlot, std::move(pending))
+ * Flow<PendingPunishment>::Create(runtime.Menus, adminSlot, std::move(pending))
  *     ->Validate(StillPunishable)
  *     ->AddDurationStep({.Title = tr("punish.duration"),
  *                        .Presets = durations,
@@ -99,7 +98,7 @@ public:
 
     /** @p menus opens every step for @p slot and closes them on abort or finish; it must outlive
      *  the flow, which one Load/Unload cycle guarantees. */
-    static Ptr Create(MenuHost& menus, int slot, TState initial)
+    static Ptr Create(MenuSession& menus, int slot, TState initial)
     {
         return Ptr(new Flow(menus, slot, std::move(initial)));
     }
@@ -167,7 +166,7 @@ public:
     TState& State() { return _state; }
 
 private:
-    Flow(MenuHost& menus, int slot, TState initial) : _menus(&menus), _slot(slot), _state(std::move(initial)) {}
+    Flow(MenuSession& menus, int slot, TState initial) : _menus(&menus), _slot(slot), _state(std::move(initial)) {}
 
     struct Step
     {
@@ -256,7 +255,7 @@ private:
         }
 
         builder.Button(_confirm.ConfirmLabel, [self](int) { self->RunFinish(); });
-        builder.Button(_confirm.CancelLabel, [self](int slot) { self->_menus->CloseAllMenus(slot); });
+        builder.Button(_confirm.CancelLabel, [self](int slot) { self->_menus->CloseAll(slot); });
         return builder.Build();
     }
 
@@ -271,12 +270,12 @@ private:
                 continue;
             _stepIndex = i;
             if (auto menu = _steps[i].Build(*this))
-                _menus->OpenMenu(_slot, std::move(menu));
+                _menus->Open(_slot, std::move(menu));
             return;
         }
 
         if (_confirm.Summary)
-            _menus->OpenMenu(_slot, BuildConfirmMenu());
+            _menus->Open(_slot, BuildConfirmMenu());
         else
             RunFinish();
     }
@@ -288,7 +287,7 @@ private:
             return;
         if (_finish)
             _finish(_state);
-        _menus->CloseAllMenus(_slot);
+        _menus->CloseAll(_slot);
     }
 
     /** False = aborted (error replied, menus closed). */
@@ -300,11 +299,11 @@ private:
         if (!error)
             return true;
 
-        _menus->CloseAllWithReply(_slot, *error);
+        _menus->CloseAll(_slot, *error);
         return false;
     }
 
-    MenuHost* _menus;
+    MenuSession* _menus;
     int _slot;
     TState _state;
     std::vector<Step> _steps;

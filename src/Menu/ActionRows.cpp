@@ -1,6 +1,5 @@
 #include <VoltMod/Menu/ActionRows.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
-#include <VoltMod/Menu/MenuHost.hpp>
 #include <VoltMod/Players/EffectDispatcher.hpp>
 #include <format>
 #include <utility>
@@ -106,7 +105,7 @@ std::shared_ptr<Menu> ActionRows::BuildPicker(const EffectDescriptor& effect, bo
     auto apply = [services = _services, admin = _admin, target = *_target, e = &effect](int slot, int param) {
         if (services.Effects)
             EffectDispatcher{services.Actions, *services.Effects}.Apply(admin, target, *e, param);
-        services.Menus.CloseAllMenus(slot);
+        services.Menus.CloseAll(slot);
     };
 
     for (const auto& choice : effect.Choices ? effect.Choices() : std::vector<EffectChoice>{})
@@ -124,7 +123,7 @@ std::shared_ptr<Menu> ActionRows::BuildPicker(const EffectDescriptor& effect, bo
                                       if (services.Effects)
                                           EffectDispatcher{services.Actions, *services.Effects}.Clear(admin, target,
                                                                                                       *e);
-                                      services.Menus.CloseAllMenus(slot);
+                                      services.Menus.CloseAll(slot);
                                   },
                               .Enabled = allowed});
     }

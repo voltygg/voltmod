@@ -83,7 +83,7 @@ If no capture is pending for the slot, `TryConsume` returns `false`.
 | `IsCapturing(slot)` | `true` if `slot` has a pending prompt. |
 | `TryConsume(slot, text)` | Route a chat line to the active prompt. Returns `true` when the message was consumed. |
 | `CancelCapture(slot)` | Drop the pending prompt without firing the callback. |
-| `GetPrompt(slot)` | Returns the active prompt string (used by `MenuRenderer` to draw the overlay), or `nullptr`. |
+| `GetPrompt(slot)` | Returns the active prompt string (used by the center-HTML menu driver to draw the overlay), or `nullptr`. |
 
 The service subscribes to @ref VoltMod::SlotEvents itself, so a pending prompt is cancelled
 when the slot changes hands. Nothing has to call a lifecycle hook for it.

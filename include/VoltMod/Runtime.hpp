@@ -17,8 +17,7 @@
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/Hooks.hpp>
 #include <VoltMod/Http/HttpClient.hpp>
-#include <VoltMod/Menu/Html/HtmlMenuManager.hpp>
-#include <VoltMod/Menu/Ui/UiMenuManager.hpp>
+#include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Messaging/Messages.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/Policy.hpp>
@@ -118,10 +117,17 @@ public:
     // Composition-root services.
     /** Interfaces offered to, and borrowed from, other plugins. */
     ServiceExchange Exchange;
-    /** Center-HTML menus steered with WASD; works on every client. */
-    HtmlMenuManager HtmlMenus{Scheduler, Slots, Entities, Messages, Hooks.ChatInput, Translations, Policy};
-    /** Clickable Panorama menus, for plugins that ship a layout. Spawns nothing until a menu opens. */
-    UiMenuManager UiMenus{Scheduler, Ui, Slots, Entities, Hooks.ChatInput, Translations, Policy};
+    /** Player menus: the per-player session, and the driver drawing it. Center HTML until a
+     *  plugin calls `Menus.UsePanorama(...)`; costs nothing per frame while nothing is open. */
+    MenuManager Menus{MenuServices{.Scheduler = Scheduler,
+                                   .Slots = Slots,
+                                   .Entities = Entities,
+                                   .ChatInput = Hooks.ChatInput,
+                                   .Translations = Translations,
+                                   .Policy = Policy,
+                                   .Messages = Messages,
+                                   .Ui = Ui,
+                                   .Capabilities = Capabilities}};
     VoltMod::CommandManager Commands{Policy, Translations, Players, Entities, Messages};
     /** Completions replay on the game thread from a per-frame subscription it registers itself. */
     HttpClient Http{Scheduler};

@@ -163,7 +163,7 @@ declaring the argument, not by resolving tokens itself.
 
 ## Actions
 
-An @ref VoltMod::Action is a single-target operation as data: permission token, guards, body. The @ref VoltMod::ActionDispatcher owns the authorize → run → broadcast pipeline, reading everything from `Policy::Authorize`. It holds the three services that pipeline needs - `Policy`, `PlayerManager`, `EntitySystem` - by reference, so build one where you need it, or hold one as a long-lived member (this is what `HtmlMenuManager` does for its context rows):
+An @ref VoltMod::Action is a single-target operation as data: permission token, guards, body. The @ref VoltMod::ActionDispatcher owns the authorize → run → broadcast pipeline, reading everything from `Policy::Authorize`. It holds the three services that pipeline needs - `Policy`, `PlayerManager`, `EntitySystem` - by reference, so build one where you need it, or hold one as a long-lived member (this is what `ActionRows` does for its context rows):
 
 ```cpp
 using VoltMod::Action;

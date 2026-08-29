@@ -1,4 +1,4 @@
-#include "Menu/Html/MenuRenderer.hpp"
+#include "Menu/CenterHtmlRender.hpp"
 
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Translations.hpp>
@@ -19,21 +19,21 @@ using VoltMod::SlotEvents;
 using VoltMod::ToggleRow;
 using VoltMod::Translations;
 
-TEST_CASE("MenuRenderer: DefaultHeader shows the title and hides the page count for one page")
+TEST_CASE("CenterHtmlRender: DefaultHeader shows the title and hides the page count for one page")
 {
     CHECK(DefaultHeader("Admin Panel", "", 0, 1).find("Admin Panel") != std::string::npos);
     CHECK(DefaultHeader("Admin Panel", "", 0, 1).find("(1/1)") == std::string::npos);
     CHECK(DefaultHeader("Admin Panel", "", 1, 3).find("(2/3)") != std::string::npos);
 }
 
-TEST_CASE("MenuRenderer: a subtitle rides next to the title, and an empty one adds nothing")
+TEST_CASE("CenterHtmlRender: a subtitle rides next to the title, and an empty one adds nothing")
 {
     CHECK(DefaultHeader("Admin Panel", "v1.2.0", 0, 1).find("v1.2.0") != std::string::npos);
     CHECK(DefaultHeader("Admin Panel", "", 0, 1) == DefaultHeader("Admin Panel", "", 0, 1));
     CHECK(DefaultHeader("Admin Panel", "", 0, 1).length() < DefaultHeader("Admin Panel", "v1.2.0", 0, 1).length());
 }
 
-TEST_CASE("MenuRenderer: RenderMenuHtml marks the selected row and dims disabled rows")
+TEST_CASE("CenterHtmlRender: RenderMenuHtml marks the selected row and dims disabled rows")
 {
     SlotEvents slots;
     Translations translations(slots);
@@ -51,14 +51,14 @@ TEST_CASE("MenuRenderer: RenderMenuHtml marks the selected row and dims disabled
     CHECK(html.find("&gt; Disabled Row") == std::string::npos);
 }
 
-TEST_CASE("MenuRenderer: a non-selectable Text row renders without a cursor")
+TEST_CASE("CenterHtmlRender: a non-selectable Text row renders without a cursor")
 {
     SlotEvents slots;
     Translations translations(slots);
 
     auto menu = MenuBuilder("Test Menu").Text("Just a heading").Button("Pick me", [](int) {}).Build();
 
-    // Selection lands on index 1: HtmlMenuManager::OpenMenu skips non-selectable rows when it opens a
+    // Selection lands on index 1: MenuManager::Open skips non-selectable rows when it opens a
     // menu, and this render call mirrors that already-adjusted index.
     std::string html = RenderMenuHtml(menu.get(), 0, 1, false, translations);
     CHECK(html.find("Just a heading") != std::string::npos);
@@ -66,7 +66,7 @@ TEST_CASE("MenuRenderer: a non-selectable Text row renders without a cursor")
     CHECK(html.find("&gt; Pick me") != std::string::npos);
 }
 
-TEST_CASE("MenuRenderer: pagination footer appears only once a menu spans multiple pages")
+TEST_CASE("CenterHtmlRender: pagination footer appears only once a menu spans multiple pages")
 {
     SlotEvents slots;
     Translations translations(slots);
@@ -87,7 +87,7 @@ TEST_CASE("MenuRenderer: pagination footer appears only once a menu spans multip
     CHECK(twoPages.find("[A/D]") != std::string::npos);
 }
 
-TEST_CASE("MenuRenderer: a submenu shows the Back hint, a root menu shows Close")
+TEST_CASE("CenterHtmlRender: a submenu shows the Back hint, a root menu shows Close")
 {
     SlotEvents slots;
     Translations translations(slots);
@@ -98,7 +98,7 @@ TEST_CASE("MenuRenderer: a submenu shows the Back hint, a root menu shows Close"
     CHECK(RenderMenuHtml(menu.get(), 0, 0, true, translations).find("Back") != std::string::npos);
 }
 
-TEST_CASE("MenuRenderer: a row that carries a value renders as title and value")
+TEST_CASE("CenterHtmlRender: a row that carries a value renders as title and value")
 {
     SlotEvents slots;
     Translations translations(slots);
@@ -108,7 +108,7 @@ TEST_CASE("MenuRenderer: a row that carries a value renders as title and value")
     CHECK(RenderMenuHtml(menu.get(), 0, 0, false, translations).find("Prefix: ON") != std::string::npos);
 }
 
-TEST_CASE("MenuRenderer: a choice row keeps the arrows that say A and D change it")
+TEST_CASE("CenterHtmlRender: a choice row keeps the arrows that say A and D change it")
 {
     SlotEvents slots;
     Translations translations(slots);
@@ -118,7 +118,7 @@ TEST_CASE("MenuRenderer: a choice row keeps the arrows that say A and D change i
     CHECK(RenderMenuHtml(menu.get(), 0, 0, false, translations).find("Speed: &lt; 100% &gt;") != std::string::npos);
 }
 
-TEST_CASE("MenuRenderer: row text is escaped, so a player name cannot inject markup")
+TEST_CASE("CenterHtmlRender: row text is escaped, so a player name cannot inject markup")
 {
     SlotEvents slots;
     Translations translations(slots);
