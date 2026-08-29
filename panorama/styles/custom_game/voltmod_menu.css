@@ -54,7 +54,7 @@
 }
 
 /* Fixed height: the trail is empty at the root and CSS cannot test that, so it holds its line. */
-.Crumbs {
+.Breadcrumb {
   width: 100%;
   height: 14px;
   font-size: 12px;

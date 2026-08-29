@@ -29,9 +29,9 @@ std::string DefaultHeader(const CenterHtmlHeader& header)
 
     // The path taken to get here, ahead of the title and dimmer than it, so a submenu says where
     // it sits without the title having to repeat it.
-    if (!header.Crumbs.empty())
+    if (!header.Breadcrumb.empty())
     {
-        html << "<font class='fontSize-s' color='" << Theme::WarmGray << "'>" << Strings::EscapeHtml(header.Crumbs)
+        html << "<font class='fontSize-s' color='" << Theme::WarmGray << "'>" << Strings::EscapeHtml(header.Breadcrumb)
              << " › </font>";
     }
 
@@ -185,7 +185,7 @@ std::string RenderMenuHtml(const Menu* menu, const CenterHtmlView& view, Transla
 
     html << DefaultHeader({.Title = menu->Title,
                            .Subtitle = menu->Subtitle,
-                           .Crumbs = view.Crumbs,
+                           .Breadcrumb = view.Breadcrumb,
                            .Page = currentPage,
                            .Pages = totalPages});
 

@@ -2,7 +2,7 @@
   <!--
     Driven by VoltMod::MenuManager's Panorama driver. The ids below are the contract
     (docs/custom-ui.md); the nesting, the artwork and the animation are ours. All text is dialog
-    variables on vm_root, which the labels inherit: vm_title, vm_crumbs, vm_subtitle, vm_page,
+    variables on vm_root, which the labels inherit: vm_title, vm_breadcrumb, vm_subtitle, vm_page,
     vm_prompt_text, vm_prompt_hint and the per-row vm_row{i}_label / vm_row{i}_value.
 
     Clickability (each of these fails silently): every panel on the click path has a resolved
@@ -19,7 +19,7 @@
   <Panel class="Root" hittest="false">
     <Panel id="vm_root" class="Menu Hidden" hittest="true">
       <Panel class="Header" hittest="false">
-        <Label class="Crumbs" text="{s:vm_crumbs}" />
+        <Label class="Breadcrumb" text="{s:vm_breadcrumb}" />
         <Label class="Title" text="{s:vm_title}" />
         <Label id="vm_subtitle" class="Subtitle" text="{s:vm_subtitle}" />
       </Panel>

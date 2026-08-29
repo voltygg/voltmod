@@ -67,10 +67,6 @@ struct PlayerMenuState
     /** One entry per row of the current menu, rebuilt when the menu changes. */
     std::vector<MenuRowMemory> Rows;
 
-    /** The titles under the top menu, already joined. Built when the stack moves rather than on
-     *  every draw: a driver asks for it once per frame and it only changes on a push or a pop. */
-    std::string Crumbs;
-
     /** True if the player has any menu currently open. */
     bool HasMenu() const { return !MenuStack.empty(); }
     /** Top of the stack, or nullptr if no menu is open. */

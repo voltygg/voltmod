@@ -57,7 +57,7 @@ TEST_CASE("CenterHtmlRender: a subtitle rides next to the title, and an empty on
 TEST_CASE("CenterHtmlRender: the breadcrumb draws ahead of the title, and the root has none")
 {
     const std::string root = DefaultHeader({.Title = "Punish"});
-    const std::string nested = DefaultHeader({.Title = "Punish", .Crumbs = "Admin Panel"});
+    const std::string nested = DefaultHeader({.Title = "Punish", .Breadcrumb = "Admin Panel"});
 
     CHECK(nested.find("Admin Panel") != std::string::npos);
     CHECK(nested.find("Admin Panel") < nested.find("Punish"));

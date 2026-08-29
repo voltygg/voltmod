@@ -51,7 +51,7 @@ void PanoramaDriver::Present(int slot)
     // and the next frame redraws anyway.
     (void)_panel.Text(slot, RootId, TitleVar, menu->Title);
     (void)_panel.Text(slot, RootId, SubtitleVar, menu->Subtitle);
-    (void)_panel.Text(slot, RootId, CrumbsVar, Crumbs(slot));
+    (void)_panel.Text(slot, RootId, BreadcrumbVar, Breadcrumb(slot));
     (void)_panel.Class(slot, SubtitleId, Css::Hidden, menu->Subtitle.empty());
 
     const auto prompt = _services.ChatInput.GetPrompt(slot);

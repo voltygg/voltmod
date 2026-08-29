@@ -66,7 +66,7 @@ private:
      *  so the labels need no ids. Writing per label id does not work. */
     static constexpr std::string_view TitleVar = "vm_title";
     static constexpr std::string_view SubtitleVar = "vm_subtitle";
-    static constexpr std::string_view CrumbsVar = "vm_crumbs";
+    static constexpr std::string_view BreadcrumbVar = "vm_breadcrumb";
     static constexpr std::string_view PageVar = "vm_page";
     static constexpr std::string_view PromptVar = "vm_prompt_text";
     static constexpr std::string_view PromptHintVar = "vm_prompt_hint";

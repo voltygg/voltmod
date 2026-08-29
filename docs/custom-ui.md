@@ -267,7 +267,7 @@ resolves `{s:name}` through its ancestors:
 | --- | --- |
 | `vm_title` | the menu's title |
 | `vm_subtitle` | its second line; `vm_subtitle` the *panel* is `Hidden` when empty |
-| `vm_crumbs` | the titles this menu was reached through, joined with ` › `; empty at the root |
+| `vm_breadcrumb` | the titles this menu was reached through, joined with ` › `; empty at the root |
 | `vm_page` | the page counter, always written as `n/m`; the pager panel is `Hidden` when `m` is 1 |
 | `vm_prompt_text` | the chat prompt's question |
 | `vm_prompt_hint` | how to answer it ("Answer in chat", translation key `menu.promptHint`) |

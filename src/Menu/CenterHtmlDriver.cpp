@@ -29,7 +29,7 @@ void CenterHtmlDriver::Present(int slot)
 
     const CenterHtmlView view{
         .Describe = [this, slot](int index) { return Describe(slot, index); },
-        .Crumbs = Crumbs(slot),
+        .Breadcrumb = Breadcrumb(slot),
         .Slot = slot,
         .SelectedIndex = Selected(slot),
         .IsSubmenu = Depth(slot) > 1,
