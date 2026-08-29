@@ -23,12 +23,13 @@ renames it. `include/VoltMod/<Module>/` is where a header lives, and the
 | Core | `VoltMod/Core/` | Policy, scheduling, subscriptions, effects, logging, translations, parsing, config validation, and utilities |
 | Commands | `VoltMod/Commands/` | Declarative commands with typed, pre-resolved arguments |
 | Players | `VoltMod/Players/` | Player tracking, target selectors, and actions |
-| Menu | `VoltMod/Menu/` | Menu model, context rows, pickers, and flows; `Menu/Html/` renders them as WASD center HTML |
+| Menu | `VoltMod/Menu/` | Menu model, context rows, pickers, flows, and center-HTML or Panorama drivers |
 | Engine | `VoltMod/Engine/` | Interfaces, gamedata and its typed bindings, `ConVar<T>`, the server clock, maps, precaching, and console commands |
 | Entities | `VoltMod/Entities/` | Entity lookup, the typed player controller, schema fields, items, and pawn operations |
 | Events | `VoltMod/Events/` | The game event listener service and its typed event structs |
 | Messaging | `VoltMod/Messaging/` | Chat and center-HTML messages, sticky panels, chat colors, and the vote panel |
-| Hooks | `VoltMod/Hooks/` | Movement, damage, transmit, teleport, chat-input and client-convar hooks, and workshop addon delivery |
+| Hooks | `VoltMod/Hooks/` | Movement, transmit, teleport, chat-input, client-convar, visibility, and vote hooks |
+| Workshop | `VoltMod/Workshop/` | Workshop addon requirements for connecting clients |
 | Ui | `VoltMod/Ui/` | Panorama `custom_hud_layout` panels and the button presses they send back |
 | Unsafe | `VoltMod/Unsafe/` | Opt-in raw hooking: `VOLTMOD_SCOPED_HOOK`, and `VOLTMOD_VHOOK` + `VtableHook` for a vtable slot |
 | Database | `VoltMod/Database/` | Optional async PostgreSQL, migrations, and row mapping |

@@ -2,25 +2,18 @@
 
 #include <VoltMod/Api.hpp>
 
-// Every framework name lives in VoltMod. Name the few a file leans on here, in the .cpp -
-// never a using-directive, and never in a header.
+// Keep targeted aliases in the .cpp; do not add using-directives or header aliases.
 using VoltMod::Caller;
 using VoltMod::Reply;
 using VoltMod::Result;
 
-// The command argument types are the one nested namespace worth an alias.
 namespace Args = VoltMod::Args;
 
 namespace $ns
 {
 
-// Registered explicitly from Start, so every handler is handed what it needs
-// instead of reaching for a global. Add more here or in new .cpp files.
-//
-// The handler's parameter list is the argument spec: adding `Args::Target t`
-// after the Caller declares one target argument, parses it, checks immunity, and
-// hands the handler a resolved player. The manager owns every registration and
-// drops them all before App goes away, so there is nothing to hold on to here.
+// Register commands from Start. The handler parameter list declares parsed and
+// immunity-checked arguments, and the manager owns each registration.
 void RegisterCommands(VoltMod::CommandManager& commands)
 {
     commands.Add("ping")

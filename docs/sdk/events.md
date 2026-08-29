@@ -4,7 +4,9 @@
 
 ## GameEvents
 
-Subscribe with `On<T>`, where `T` is one of the structs in `VoltMod` (`VoltMod/Events/EventTypes.hpp`). Each carries the event name and decodes its fields for you. Available: `PlayerDeath`, `PlayerSpawn`, `PlayerJump`, `PlayerHurt`, `PlayerBlind`, `PlayerTeam`, `PlayerConnectFull`, `WeaponFire`, `BulletImpact`, `RoundStart`, `RoundEnd`, `RoundPrestart`, `VoteCast`.
+Subscribe with `On<T>`, using a typed event from
+`VoltMod/Events/EventTypes.hpp`. Each type names the engine event and decodes its
+fields.
 
 ```cpp
 using VoltMod::PlayerDeath;
@@ -18,8 +20,8 @@ auto death = events.On<PlayerDeath>([](const PlayerDeath& e) {
 // Keep `death` beside the state captured by the handler.
 ```
 
-There is no string form. Add new event types to `EventTypes.hpp` with a `Name`, fields, and a
-`From(IGameEvent&)` decoder:
+There is no string subscription API. Add an event type with `Name`, fields, and
+a `From(IGameEvent&)` decoder:
 
 ```cpp
 struct BombPlanted
@@ -53,8 +55,8 @@ events.On<VoltMod::BulletImpact>([&clock = runtime.Clock](const VoltMod::BulletI
 
 ### Handler lifecycle
 
-Call `On<T>` during plugin load and retain the returned `Subscription`. The framework reattaches
-listeners after the engine resets them at map startup.
+Call `On<T>` during load and retain the returned `Subscription`. The framework
+reattaches listeners after the engine resets them at map startup.
 
 Related lifecycle points:
 
@@ -80,8 +82,8 @@ Unexpected subscriptions can indicate injected client code. `false` also means u
 
 ## ConVars
 
-@ref VoltMod::ConVar resolves once and supports `bool`, `int`, `float`, and `std::string`. `Find`
-rejects type mismatches.
+@ref VoltMod::ConVar supports `bool`, `int`, `float`, and `std::string`. Resolve
+the handle once; `Find` rejects type mismatches.
 
 ```cpp
 auto& cvars = runtime.ConVars;
@@ -141,8 +143,8 @@ The client's connect/map-change snapshot restores the server value, so re-send t
 
 ### Scoped raw flips
 
-`RawScope(value)` changes storage without callbacks or networking, then restores it on destruction.
-Use it for a narrow server-side window:
+`RawScope(value)` changes storage without callbacks or replication and restores
+the previous value on destruction:
 
 ```cpp
 {

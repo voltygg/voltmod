@@ -1,7 +1,6 @@
 #pragma once
 
-// The database half of the VoltMod vocabulary, split out of <VoltMod/Api.hpp> so
-// <pqxx/pqxx> only reaches the translation units that opt in.
+// Database APIs. This header is separate because it includes <pqxx/pqxx>.
 
 #ifndef VOLTMOD_ENABLE_POSTGRES
 #error "VoltMod/Database requires the framework to be built with VOLTMOD_ENABLE_POSTGRES"

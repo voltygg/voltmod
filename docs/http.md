@@ -2,14 +2,13 @@
 
 [TOC]
 
-`VoltMod/Http/` provides one asynchronous client with game-thread completions:
+`runtime.Http` is an asynchronous client whose callbacks run on the game thread:
 
 - `HttpClient::Send` is the unified request contract. `Get`, `Post`, `Put`, `Patch`, and `Delete` are convenience helpers over it.
 - Requests run on bounded workers, and completions replay on the game thread through self-registered per-frame delivery.
 
-`HttpClient` is a framework service; reach it through `runtime.Http`. The
-`Runtime` destructor drains in-flight requests, so the plugin has no separate
-shutdown step.
+The runtime drains in-flight requests during shutdown; plugins need no separate
+HTTP cleanup.
 
 ## Requests
 
@@ -29,10 +28,9 @@ runtime.Http.Post(
 `HttpResult::Ok` reflects transport success only - a 404 still answered. `HttpResult::IsSuccess()`
 is the verdict most callers want: transport succeeded *and* the status is 2xx.
 
-For a request shape the helpers do not cover, fill in an `HttpRequest` and hand it to `Send`.
-`AddHeader` writes the `"Key: Value"` line the client parses back, and `AddAuth` assembles a
-credential header - an empty scheme sends the key verbatim, and an empty key adds nothing, so an
-endpoint configured without one stays unauthenticated:
+For other request shapes, construct `HttpRequest` and call `Send`. `AddHeader`
+formats a header line. `AddAuth` omits authentication for an empty key and sends
+the key verbatim when the scheme is empty:
 
 ```cpp
 VoltMod::HttpRequest request{

@@ -7,7 +7,7 @@ convar queries.
 
 ## Clock
 
-`runtime.Clock` holds no state and reads `IVEngineServer2::GetServerGlobals()` on every call:
+`runtime.Clock` reads the current simulation globals on every call:
 
 ```cpp
 const int tick = runtime.Clock.Tick();    // globals->tickcount
@@ -16,7 +16,8 @@ const float now = runtime.Clock.Time();   // globals->curtime, seconds
 
 A class that needs the clock takes `Engine::Clock&` in its constructor; a free helper takes it as a parameter.
 
-This is the timestamp source for anything that has to line up with the tick the engine is simulating: usercmds, game events, and teleports. Use it instead of `std::chrono`: it is the *simulation* clock, so it stays in step with the tick stream those things are numbered by, which wall time does not.
+Use this simulation clock for usercmds, game events, and teleports. Wall time
+does not stay aligned with engine ticks.
 
 Two consequences to respect:
 
@@ -40,7 +41,9 @@ if (const char* sens = net.GetUserInfoCvar(slot, "sensitivity"))
 
 ## ClientCvars
 
-`runtime.Hooks.ClientCvars` asks a connected client what one of *its* convars is set to. The server posts `CSVCMsg_GetCvarValue` carrying a cookie to that one client; the client answers with `CCLCMsg_RespondCvarValue` some round-trips later. The framework intercepts the answer with a manual **DVP** hook on `CServerSideClient::ProcessRespondCvarValue` (bound to the class vtable, so it covers every connected client without per-instance bindings), reads the responder's slot from a gamedata byte offset, and routes the value to the callback that asked for it. The engine's own handling of the response is untouched (`MRES_IGNORED`).
+`runtime.Hooks.ClientCvars` queries a convar on one connected client. The
+framework matches the asynchronous response to its request and invokes the
+callback without changing the engine's own response handling.
 
 ```cpp
 runtime.Hooks.ClientCvars.Query(slot, "cl_interp_ratio",
@@ -54,15 +57,17 @@ runtime.Hooks.ClientCvars.Query(slot, "cl_interp_ratio",
 
 ### No timeout callback
 
-A client does not have to answer. Pending entries expire silently after 10
-seconds, and disconnects also produce no callback. If a feature needs a timeout
-verdict, track its own deadline rather than waiting for this callback.
+A client does not have to answer. Queries expire silently after 10 seconds, and
+disconnects produce no callback. Features that need a timeout verdict must
+track their own deadline.
 
 Pending queries are also dropped, with their callbacks never firing, when the player disconnects, when a new player takes the slot, and at map start.
 
 ### Re-query and the pending cap
 
-Querying a convar that is **already in flight for that slot** re-targets the outstanding request instead of sending a second one, so polling the same convar cannot flood a client. The new callback *replaces* the previous one: only one answer arrives, and only the latest callback sees it.
+Repeating an in-flight query for the same slot and convar replaces its callback
+instead of sending another request. Only the newest callback receives the
+answer.
 
 Distinct convars queue up to `MaxPendingPerSlot` (11) outstanding per slot; past that `Query()` returns false rather than piling requests on a silent client. It also returns false for bots and empty slots (no net channel), and whenever the service is unavailable.
 

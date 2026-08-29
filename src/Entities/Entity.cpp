@@ -227,10 +227,8 @@ Status Controller::Respawn() const
     return {};
 }
 
-// Each wrapper repeats the entity pointer once per Field, so its size is the field count: today
-// Entity is 72 bytes (2 pointers + 7 fields), Pawn 152 and Controller 96. These are values, copied
-// into every call that takes one, so the bounds are here to make adding a field deliberate - raise
-// them with the field, do not widen them in advance.
+// Wrappers repeat the entity pointer in each Field and are passed by value. Keep these size checks
+// close to the fields so adding one requires an intentional update.
 static_assert(sizeof(Pawn) <= 160, "Pawn is a frame-local value; keep the field list tight.");
 static_assert(sizeof(Controller) <= 104, "Controller is a frame-local value; keep the field list tight.");
 

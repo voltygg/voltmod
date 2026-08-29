@@ -17,15 +17,11 @@ namespace VoltMod
 {
 
 /**
- * @brief Multi-step menu wizard threading a state struct through its steps, for one player.
+ * @brief Runs an ordered set of menus for one player while collecting a state value.
  *
- * A Flow owns one @p TState copy, opens each applicable step in order, re-runs the @ref Validate
- * check before every step AND before finishing (so "target left" / "permission revoked" abort
- * cleanly), renders an auto-built summary confirm dialog when configured, and finally hands the
- * accumulated state to @ref Finish. Every human-facing string is a value the caller has already
- * translated - the flow is built for one admin, so there is nothing left to resolve per slot -
- * and the @ref Validate error is a translation key, resolved in that player's language and
- * replied through `runtime.Policy.Reply`.
+ * Each applicable step is opened in order. Validate runs before every step and before Finish;
+ * its returned translation key aborts the flow and is replied in the player's language. An
+ * optional confirmation menu summarizes the state before Finish runs.
  *
  * @code
  * Flow<PendingPunishment>::Create(runtime.Menus, adminSlot, std::move(pending))
@@ -42,8 +38,7 @@ namespace VoltMod
  *     ->Start();
  * @endcode
  *
- * Lifetime: the open menus' row callbacks hold the only shared_ptr references, so the flow
- * lives exactly as long as one of its menus is on screen (steps store weak references).
+ * Open-menu callbacks own the flow while it is displayed; steps keep weak references.
  */
 template <class TState>
 class Flow : public std::enable_shared_from_this<Flow<TState>>
@@ -115,8 +110,7 @@ public:
     Ptr AddDurationStep(DurationStep step)
     {
         auto weak = this->weak_from_this();
-        // Moved out, not copied: AddStep keeps the predicate on the Step, so leaving it on the
-        // captured step too would hold a second copy for as long as the flow is alive.
+        // Keep the predicate in Step rather than retaining a second copy in the callback.
         auto applies = std::move(step.Applies);
         return AddStep(
             [weak, step = std::move(step)](Flow&) -> std::shared_ptr<Menu> {
@@ -194,8 +188,7 @@ private:
         auto self = this->shared_from_this();
         MenuBuilder builder(step.Title);
 
-        // One shared setter for the whole list: every row below stores its callback for as long as
-        // the menu is open, so capturing step.Set by value would keep one copy per option.
+        // Share one setter because each open row retains its callback.
         auto set = std::make_shared<const decltype(step.Set)>(step.Set);
 
         for (const auto& [label, value] : step.Options)
@@ -268,7 +261,7 @@ private:
 
     void RunFinish()
     {
-        // Anything may have changed while the confirm dialog was up - validate one last time.
+        // Revalidate after the confirmation dialog.
         if (!RunValidation())
             return;
         if (_finish)

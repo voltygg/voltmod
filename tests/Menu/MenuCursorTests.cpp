@@ -6,14 +6,12 @@
 using VoltMod::CursorRows;
 using VoltMod::MenuCursor;
 
-/** @p count rows of which only @p landable may be landed on. */
 static CursorRows Rows(int count, std::set<int> landable)
 {
     return {.Count = count,
             .Landable = [landable = std::move(landable)](int index) { return landable.contains(index); }};
 }
 
-/** @p count rows the cursor may land on anywhere. */
 static CursorRows AllRows(int count)
 {
     return {.Count = count};

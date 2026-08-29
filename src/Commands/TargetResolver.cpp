@@ -7,8 +7,7 @@
 namespace VoltMod
 {
 
-// The engine half of the selector grammar: it snapshots the roster, which needs pawns and so the
-// SDK. Everything it delegates to lives in Targeting.cpp, which stays SDK-free and unit-tested.
+// Keep roster snapshots and SDK access here so Targeting.cpp can remain SDK-free and testable.
 
 std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(PlayerManager& players, const Policy& policy,
                                                                   EntitySystem& entities, std::string_view token,
@@ -29,9 +28,7 @@ std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(PlayerManager&
             .Team = pawn ? static_cast<int>(pawn.Team) : 0,
             .Alive = pawn && pawn.IsAlive(),
             .Bot = player->IsBot(),
-            // The same gate the command itself went through, with no permission to check: the
-            // spec's permission was already decided for the caller, this asks only whether the
-            // caller may act on this one player.
+            // The command permission was already checked; this gate only checks the target.
             .Targetable = !caller || policy.Authorize(caller->Ref(), player->Ref(), {}).has_value(),
         });
     }

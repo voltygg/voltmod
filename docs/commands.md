@@ -2,12 +2,10 @@
 
 [TOC]
 
-A command is a name, some metadata, a permission, and a handler. The handler's
-parameter list *is* the argument spec: the framework reads the arity, the order,
-the parsing and the usage line straight off the signature, and only calls the
-handler once every argument has resolved - including target immunity, duration
-parsing and SteamID parsing. Failures are localized for whoever typed the
-command.
+A command combines metadata, an optional permission, and a handler. Parameters
+after @ref VoltMod::Caller define the argument list. The framework parses and
+validates them before calling the handler, then localizes any error for the
+caller.
 
 ## A complete command
 
@@ -46,12 +44,10 @@ its own chat service can override `OnPlayerChat` and take over dispatch.
 
 ## The pipeline
 
-For each invocation the manager matches the prefix, looks the name (or alias)
-up, asks the one gate `runtime.Policy.Authorize(caller, no target, permission)`,
-checks arity, binds and validates each argument, calls the handler, and routes
-the reply through `runtime.Policy.Reply` (or `runtime.Messages.Reply` when no
-policy reply is installed). An empty permission skips the permission check. Any
-failure replies with a localized message and stops before the handler.
+For each invocation, the manager resolves the name, authorizes the caller,
+checks arity, binds every argument, runs the handler, and routes its reply. An
+empty permission skips the permission check. Any failure stops before the
+handler and sends a localized error.
 
 ## Argument types
 
@@ -136,11 +132,9 @@ are split by the engine, which quotes the same way.
 name           exact match, then prefix, then substring (case-insensitive)
 ```
 
-Every candidate goes through the same `runtime.Policy.Authorize` gate the command
-itself did, so immunity is decided in exactly one place. Matches the gate rejects
-are removed; if none remain, the caller is told the target is immune rather than
-that nothing matched. Targeting yourself is always allowed. A selector that
-matches more than one player is an error.
+Every candidate passes through `runtime.Policy.Authorize`. Rejected matches are
+removed, and an all-immune result reports immunity rather than no match.
+Self-targeting is allowed. A selector that leaves multiple players is an error.
 
 ## Permissions
 
@@ -184,8 +178,8 @@ all.
 ## Usage lines and reserved keys
 
 The usage line is built from the argument types and localized, so no English
-literal lives in C++. `cmd.usage` is the frame and `cmd.usage.<argType>` is each
-placeholder:
+literal lives in C++. `cmd.usage` is the frame; keys with the `cmd.usage.` prefix
+provide each argument placeholder:
 
 ```
 cmd.usage                  "Usage: {usage}"
@@ -195,8 +189,14 @@ cmd.usage.playerOrSteamId  "target|steamId"  cmd.usage.word      "value"
 cmd.usage.rest             "reason"
 ```
 
-Required arguments render as `<name>` and optional ones as `[name]`, which makes
-`!ban <target> <duration> [reason]`. The prefix comes from the surface being
+Required arguments use angle brackets and optional ones use square brackets,
+which produces this usage line:
+
+```text
+!ban <target> <duration> [reason]
+```
+
+The prefix comes from the surface being
 answered - the manager's first chat prefix, or nothing at all in the console -
 so the same command reads correctly in both places. `cmd.usage` also receives
 `{prefix}`, `{command}` and `{args}` separately. `UsageKey("cmd.unbanUsage")`
@@ -211,10 +211,7 @@ rather than a raw key; your own translation file still wins.
 
 ## Testing
 
-Registration and dispatch are unit-testable without a server. The router
-(`src/Commands/CommandRouter.hpp`) reaches the engine only through `ArgBinder`,
-so `tests/Commands/CommandRouterTests.cpp` drives the whole pipeline - tokenizer,
-aliases, arity, binding, error keys, surfaces - against a stub binder, and
-`tests/Commands/CommandBuilderTests.cpp` checks the descriptor a handler
-signature produces plus the two compile-time signature rules, as a concept
-rather than by compiling calls that must not compile.
+The router reaches engine state only through `ArgBinder`, so command parsing,
+binding, permissions, surfaces, and replies can be tested with a stub binder.
+Builder tests also verify handler-derived descriptors and the compile-time
+signature rules. See @ref testing_guide.

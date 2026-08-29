@@ -14,9 +14,8 @@ uv run poe doctor
 uv run poe bootstrap
 ```
 
-Doctor checks the environment without changing it. Bootstrap installs the
-Conan profiles and package remote, resolves VoltMod, HL2SDK, and Metamod,
-configures CMake, builds, and runs tests.
+`doctor` checks the environment without changing it. `bootstrap` installs the
+Conan profiles and remote, resolves dependencies, builds, and runs the tests.
 
 Bootstrap is already the first build. Use this afterward:
 
@@ -25,8 +24,7 @@ uv run poe build
 uv run poe test
 ```
 
-Tests are a separate command so the edit-build loop stays fast; `poe test`
-recompiles first, then runs them.
+`test` rebuilds before running CTest.
 
 ## Verify $plugin
 
@@ -37,10 +35,9 @@ the environment, then build straight into it:
 uv run poe build --install $plugin --start
 ```
 
-`--install` merges the server-ready `addons/` tree into `game/csgo` and seeds
-`configs/settings.jsonc` without overwriting later edits; `--start` launches the
-server afterwards. Run `meta list` and confirm `$plugin` appears, then join and
-enter `!ping` to verify command and translation loading.
+`--install` merges the server-ready `addons/` tree into `game/csgo` without
+overwriting edited settings. `--start` then launches the server. Run `meta list`,
+confirm `$plugin` appears, join, and enter `!ping`.
 
 To install without rebuilding, or to launch on its own:
 

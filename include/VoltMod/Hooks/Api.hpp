@@ -1,11 +1,5 @@
 #pragma once
 
-// The Hooks module's public surface in one include: engine hooks a plugin subscribes to,
-// plus the game-event and messaging types most hook handlers need to react (Events and
-// Messaging are included by name here, not wholesale - Hooks does not depend on the rest
-// of Messaging, such as ChatColors). Include the individual headers when a translation
-// unit only needs a few of these.
-
 #include <VoltMod/Events/EventTypes.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>

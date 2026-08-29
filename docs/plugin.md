@@ -2,11 +2,9 @@
 
 [TOC]
 
-@ref VoltMod::MetamodPlugin owns the repeated Metamod integration:
-ISmmPlugin metadata getters, the Load/Unload flow, the
-standard SourceHook hooks, and the `PlayerManager` lifecycle. It creates one
-@ref VoltMod::Runtime for each load cycle and passes it to `OnLoad`. You provide
-metadata, build your object graph, and override only the callbacks you need.
+@ref VoltMod::MetamodPlugin owns the Metamod entry points, standard hooks, and
+player lifecycle. It creates one @ref VoltMod::Runtime per load cycle and passes
+it to `OnLoad`. The plugin supplies metadata and its load-cycle object graph.
 
 ## The skeleton
 
@@ -43,10 +41,8 @@ VOLTMOD_PLUGIN(MyPlugin);
 used by the base. The matching extern declarations are in
 `MetamodPlugin.hpp`, so the plugin header needs no additional declarations.
 
-`<VoltMod/Api.hpp>` covers everything above: `MetamodPlugin`, `Runtime`,
-players, commands, and the core vocabulary. It deliberately stops there - no
-menu building, no nlohmann, no raw interfaces - so a `.cpp` that needs one of
-those adds the specific header instead:
+`<VoltMod/Api.hpp>` covers the base class, runtime, players, commands, and core
+types. Add module headers only where needed:
 
 | Need | Header |
 |---|---|
@@ -58,7 +54,9 @@ those adds the specific header instead:
 
 See @ref getting_started "Getting started" for the full table.
 
-Your `App` is a plain struct holding whatever the plugin owns for one load cycle. It takes the runtime by reference and passes on what each member needs; declaration order is construction order, so a member initializer may only reference members declared **above** it.
+`App` owns plugin state for one load cycle. It receives the runtime and passes
+each member only the services it needs. Members initialize in declaration order,
+so an initializer may reference only members declared above it.
 
 ```cpp
 struct App
@@ -77,9 +75,12 @@ Nothing survives `OnUnload`, so a `meta reload` starts from clean state. Because
 
 ## Load order
 
-1. `PLUGIN_SAVEVARS()`, then the `Runtime` is constructed and `Runtime::Start` runs: interface resolution, gamedata, and every framework subsystem, each as a `LoadReport` stage.
-2. The standard SourceHook hooks, then `OnRegisterHooks(runtime)` for yours.
-3. Your `OnLoad(runtime)`. Returning `false` rejects the load; `OnUnload()` runs and the `Runtime` is destroyed, so a failed init never leaks. A bare `return false` with no Failed stage recorded gets a synthetic "OnLoad" failure stage, so `meta list` always names a reason.
+1. The base saves Metamod globals, creates the runtime, and starts each framework
+   subsystem as a `LoadReport` stage.
+2. It installs standard hooks, then calls `OnRegisterHooks(runtime)`.
+3. It calls `OnLoad(runtime)`. Returning `false` runs `OnUnload`, removes hooks,
+   and destroys the runtime. If no failed stage exists, the base records an
+   `OnLoad` failure so `meta list` still has a reason.
 
 The standard prelude (config plus translations, recorded as LoadReport stages) is one call:
 
@@ -154,9 +155,8 @@ void App::RegisterCommands()
 }
 ```
 
-`Run` returns the registration. Keep it in the same `_subs` vector the rest of
-your listeners live in, declared last so the handlers stop before the state they
-captured goes away.
+`CommandManager` owns registrations until unload. Event, timer, and hook
+subscriptions still belong in `_subs`, declared after the state they capture.
 
 ## Load stages: LoadReport
 
@@ -194,10 +194,9 @@ Statuses: `Ok`, `Degraded` (loaded with reduced functionality), `Skipped` (depen
 
 ## Status sections: StatusService
 
-`runtime.Status` aggregates named sections into one diagnostics report. The
-framework registers `build` (PluginInfo), `load` (LoadReport rollup), `gamedata`
-(resolution results), and `uptime`. Plugins can register sections in `OnLoad`
-and call `InstallCommand` to expose the report:
+`runtime.Status` combines named diagnostic sections. The framework supplies
+build, load, gamedata, and uptime sections. Plugins may add their own and expose
+the report through a console command:
 
 ```cpp
 Runtime.Status.RegisterSection("db", [this] {
@@ -208,7 +207,10 @@ Runtime.Status.InstallCommand("my_status", "Report plugin health; 'my_status jso
                               [this] { return Db.IsConnected(); });
 ```
 
-`my_status` prints the sections for humans; `my_status json` emits them as one `STATUS_JSON {...}` line RCON scripts can find amid console noise. Both carry a top-level `healthy` flag: no load stage `Failed`, ANDed with the optional predicate you pass (omit it for the baseline alone). The command unregisters itself on unload.
+`my_status` prints a human-readable report. `my_status json` emits one
+`STATUS_JSON {...}` line for RCON tooling. The top-level `healthy` value combines
+load-stage health with the optional predicate. The command unregisters on
+unload.
 
 Sections capture `this`, so keep them on an object the `Runtime` outlives. The `App` is
 destroyed first, and a section left holding a dangling pointer is a lifetime bug even if
@@ -254,14 +256,11 @@ class Bhop
 };
 ```
 
-Every registration in the framework returns a `[[nodiscard]]` `Subscription`: `+=` on an
-@ref VoltMod::Event member, `On<T>` for game events, `Scheduler::Delay`/`NextTick`/`Repeat`/
-`EveryFrame`, and `VOLTMOD_SCOPED_HOOK`. Store each one beside the state its handler captured,
-in a member declared after that state so it unregisters first. `Subscription` is move-only, so a
-registration you drop on the floor is a compiler warning rather than a handler that fires into
-freed memory - and for the scheduler, dropping it *cancels* the timer, which is what keeps a
-pending one-shot from outliving what it was going to touch. Work that is not a registration, such
-as draining a database or withdrawing a published interface, belongs in your `App`'s destructor.
+Events, game events, scheduler timers, and scoped hooks return a `[[nodiscard]]`
+`Subscription`. Store it after the state captured by its handler so it is
+destroyed first. Dropping a scheduler subscription cancels the timer. Other
+shutdown work, such as draining the database or withdrawing a published
+interface, belongs in the `App` destructor.
 
 ## Typed game events
 

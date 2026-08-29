@@ -10,11 +10,8 @@ namespace VoltMod
 /**
  * @brief The base a schema offset is applied to: an entity, or a sub-object reached from one.
  *
- * Engine sub-objects (CPlayer_ObserverServices, CGameSceneNode) have no nameable C++ type, so the
- * code that reaches their fields would otherwise pass raw `void*` around and null-check by hand at
- * every step. A SchemaPtr is that pointer with the checks folded in: every accessor answers
- * harmlessly when the pointer is null or the field did not resolve, so a chain of reaches reads as
- * one expression.
+ * Engine sub-objects without a nameable C++ type can be reached through a SchemaPtr. Accessors
+ * handle null pointers and unresolved fields, so chained reads remain safe.
  *
  * ```cpp
  * static const SchemaField<void> kBody{"CBaseEntity", "m_CBodyComponent"};
@@ -27,8 +24,7 @@ namespace VoltMod
  * Use @ref Field instead for a field on an entity the framework wraps: a Field knows its owning
  * entity, so it can dirty a networked write for replication and a SchemaPtr cannot.
  *
- * It is a borrowed pointer with no lifetime of its own - as frame-local as the wrapper it came
- * from. Never store one. Game-thread only.
+ * The pointer is borrowed and frame-local. Do not store it. Use it on the game thread only.
  */
 class SchemaPtr
 {
@@ -61,8 +57,7 @@ public:
     }
 
     /**
-     * A pointer to the field itself, or nullptr. For a field read in place rather than copied out -
-     * an engine container - and for one the engine declares as an array.
+     * A pointer to the field itself, or nullptr. Useful for in-place containers and arrays.
      */
     template <class T>
     [[nodiscard]] typename SchemaField<T>::Value* Ptr(const SchemaField<T>& field) const
@@ -79,11 +74,8 @@ public:
     }
 
     /**
-     * Write the field.
-     *
-     * Nothing is dirtied for replication: a sub-object is not an entity, so there is no chain to
-     * mark - what replicates is the owning entity's own pointer field, and the caller marks that
-     * with @ref MarkChanged.
+     * Write the field. Sub-object writes do not dirty replication; mark the owning entity with
+     * @ref MarkChanged when needed.
      *
      * @return false when this is null or the field did not resolve, and nothing was written.
      */

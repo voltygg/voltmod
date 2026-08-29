@@ -14,11 +14,11 @@ VoltMod
 ├── Events      The game event service and its typed event structs
 ├── Messaging   Chat and center-HTML messages, chat colors, the vote panel
 ├── Players     The roster, the Policy gate, action and effect dispatch
-├── Hooks       Movement, damage, transmit, teleport, chat input, client convars
+├── Hooks       Movement, transmit, teleport, chat input, client convars
 ├── Ui          Panorama custom_hud_layout panels and the button presses they send back
 ├── Workshop    Workshop addon delivery: what connecting clients are told to download
 ├── Commands    Chat and console commands: the fluent builder, typed Args, the router
-├── Menu        Menu model + Flow wizard; Menu/Html is the center-HTML driver
+├── Menu        Menu model and Flow wizard, with center-HTML and Panorama drivers
 ├── Database    Async PostgreSQL + row mapping (VOLTMOD_ENABLE_POSTGRES)
 ├── Http        Async HTTP client + JSON REST helpers
 ├── Unsafe      Opt-in raw hooking: VOLTMOD_SCOPED_HOOK (HookMacros.hpp) and
@@ -26,10 +26,9 @@ VoltMod
 └── App         The composition root: Runtime, MetamodPlugin, ServiceExchange
 ```
 
-These are source directories, not link units. The framework exposes the
-`VoltMod::Runtime` and optional `VoltMod::Database` libraries. The layering is checked:
-`voltmod modgraph` fails the build when a module includes a header from a layer
-it is not allowed to reach.
+These are source layers, not separate link units. The framework exposes
+`VoltMod::Runtime` and the optional `VoltMod::Database` library. `voltmod
+modgraph` rejects dependencies outside the allowed layer graph.
 
 ## Design rules
 
@@ -52,17 +51,10 @@ it is not allowed to reach.
 
 ## Two objects, same lifetime
 
-**@ref VoltMod::Runtime** is the framework's flat, by-role service container.
-`MetamodPlugin` creates it on load and destroys it on unload. Most services are
-named directly (`runtime.Messages`, not `runtime.Messaging.Messages`) so internal
-module moves do not break consumers. Three tiers are grouped into a struct that
-owns them instead, because they read as one unit rather than thirty peers in one
-list: @ref VoltMod::WorldServices "runtime.World" (entity IO, weapon give/strip,
-precaching, pawn manipulation, net-channel reads), @ref VoltMod::HookServices
-"runtime.Hooks" (the per-tick and per-event engine hooks), and @ref
-VoltMod::UnsafeServices "runtime.Unsafe" (raw interfaces, gamedata, and their
-typed `Bindings` view - the opt-in tier a plugin reaches for only when it pokes
-at the engine directly).
+**@ref VoltMod::Runtime** is the framework's service container for one load
+cycle. Most services are direct members. Engine operations live under
+`runtime.World`, hook feeds under `runtime.Hooks`, and raw engine access under
+`runtime.Unsafe`.
 
 ```cpp
 runtime.Players.Get(slot);
@@ -108,7 +100,8 @@ services they reference are still alive.
 
 ## Policy
 
-@ref VoltMod::Policy is the one bridge between the framework's generic machinery and your domain rules. Fill in the members you enforce, once, in OnLoad:
+@ref VoltMod::Policy connects framework dispatch to the plugin's permission and
+immunity rules. Configure it once during load:
 
 ```cpp
 auto& policy = runtime.Policy;
@@ -118,14 +111,11 @@ policy.Reply         = [this](int slot, std::string_view msg) { Chat.Reply(slot,
 policy.Broadcast     = [this](const VoltMod::Authorized& who, std::string_view key) { Chat.BroadcastAction(std::string(key), who.Caller.Name(), ...); };
 ```
 
-`CommandManager`, target resolution, action dispatch, effects, context menus, and
-`Flow` all reach these through the single gate @ref VoltMod::Policy::Authorize -
-none of them repeats its steps. An unset reply or broadcast callback falls back
-or is skipped where documented. An unset `CanTarget` allows every pair; an unset
-`HasPermission` is deliberately fail-closed for anything that declares a
-permission. Targeting yourself is the framework's rule and never reaches
-`CanTarget`, so `CanTarget` is a pure immunity comparison. The outcome table is
-in @ref players_guide.
+Commands, targeting, actions, effects, and menu rows all use @ref
+VoltMod::Policy::Authorize. An unset `CanTarget` allows the pair, while an unset
+`HasPermission` denies anything that declares a permission. Self-targeting is
+allowed before `CanTarget` runs. See @ref players_guide for the full outcome
+table.
 
 ## Cross-plugin services
 
@@ -156,8 +146,8 @@ cfg files, or untyped automation also need the operation.
 
 ## Registration is explicit
 
-Commands, effects and menu builders are registered from your `App::Start()`, by code
-that already holds what the handlers need:
+Register commands, effects, and menus from `App::Start()`, where their handlers
+can capture explicit dependencies:
 
 ```cpp
 // src/Commands/BanCommands.cpp
@@ -168,32 +158,28 @@ void RegisterBanCommands(VoltMod::CommandManager& commands, App& app)
 }
 ```
 
-Do not self-register descriptors during static initialization. Register them
-from the load path so handlers can capture their dependencies explicitly, and
-keep the returned `Subscription` beside that captured state.
+Do not self-register during static initialization. Event and hook registrations
+return a `Subscription`; keep it beside the state captured by the handler.
+Commands are owned by `CommandManager` for the load cycle.
 
 ## Signals, cleanup and subscriptions
 
-Every fixed-signature signal in the framework is a public @ref VoltMod::Event member, and `+=` is
-the only way to subscribe to one. Game events go through @ref VoltMod::GameEvents::On, which is
-keyed by a typed struct rather than a name.
+Fixed-signature signals are public @ref VoltMod::Event members subscribed with
+`+=`. Game events use typed @ref VoltMod::GameEvents::On subscriptions.
 
 ```cpp
 _spawn = runtime.GameEvents.On<PlayerSpawn>([this](const PlayerSpawn& e) { OnSpawn(e.Slot); });
 _slots = runtime.Slots.Changed += [this](int slot) { _state.Reset(slot); };
 ```
 
-Both hand back a `[[nodiscard]]` @ref VoltMod::Subscription "Subscription". It is move-only and
-unregisters on destruction, so a handler cannot outlive the state it captured; keep it as a member
-beside that state. `VOLTMOD_SCOPED_HOOK` provides the same lifetime for SourceHook installs. On
-unload, the base runs `OnUnload`, removes its standard hooks, and destroys the runtime.
+Both return a move-only, `[[nodiscard]]` @ref VoltMod::Subscription
+"Subscription" that unregisters on destruction. `VOLTMOD_SCOPED_HOOK` gives
+SourceHook installs the same lifetime.
 
-An `Event` whose source costs something to run - a vtable hook, an engine-wide callback - carries a
-`Lifecycle`: the first subscription installs it and the last one to drop removes it. That is why
-`Movement` and `Teleport` have no `Install()` or `Enable()` to call, and why a hook that
-gamedata cannot resolve refuses the subscription (an empty `Subscription`) instead of silently
-never firing. The install itself is a @ref VoltMod::VtableHook "VtableHook" value paired with a
-`VOLTMOD_VHOOK` declaration; @ref sdk_hooks_guide covers using the same two pieces from a plugin.
+Expensive event sources use `Event::Lifecycle`: the first subscriber installs
+the source and the last removal uninstalls it. If a hook cannot resolve, the
+subscription is empty and the reason is logged. See @ref sdk_hooks_guide for
+custom vtable hooks.
 
 Operations that can fail meaningfully return `Result<T>` or @ref VoltMod::Status, an
 `std::expected` over @ref VoltMod::Error - a coarse `ErrorCode`, log text in `Detail`, and a
@@ -201,7 +187,8 @@ translation key in `Key` when a player is owed a reply.
 
 ## Per-frame delivery
 
-The plugin's GameFrame hook calls `Runtime::OnGameFrame()`, which ticks exactly one thing: the @ref VoltMod::Scheduler. Everything per-frame (menu input, HTTP completions, database completions) registers a `Scheduler::EveryFrame` timer, so there is no hardcoded list of per-frame work to keep in sync.
+The GameFrame hook ticks @ref VoltMod::Scheduler. Menu input and asynchronous
+HTTP or database completions register their own `EveryFrame` work with it.
 
 ## Runtime integrity
 
@@ -213,9 +200,8 @@ corrupts a neighbouring member rather than failing.
 
 ## Module layering
 
-`scripts/voltmod/modgraph.py` holds the map and enforces it. A cycle check would not be
-enough: an upward edge (Core reaching into Engine) stays acyclic and is exactly what breaks
-the layering.
+`scripts/voltmod/modgraph.py` enforces the allowed edges. It rejects upward
+dependencies as well as cycles.
 
 ```text
 Core       -> nothing
@@ -235,38 +221,14 @@ Unsafe     -> Core, Engine
 App        -> every module
 ```
 
-**Database** is Core + libpqxx, compiled only under `VOLTMOD_ENABLE_POSTGRES`. **App** is the
-composition root and may reach all of them. Every other edge above is the module's real
-dependency set: there are no exceptions carved into the table.
+`Database` adds libpqxx and is compiled only with
+`VOLTMOD_ENABLE_POSTGRES`. `App` is the composition root and may reach every
+module. Other modules take their narrowest dependencies through constructors or
+parameters; only `App` may include `Runtime.hpp` or `Api.hpp`. Header-only
+templates such as `Flow<TState>` and `PerSlot<T>` also avoid the composition
+root so consumer translation units stay narrow.
 
-There is no ambient accessor for the runtime. Everything takes what it uses through a
-constructor or a parameter, and `modgraph` enforces that too: only `App/` sources and headers may
-include `VoltMod/Runtime.hpp` (or `Api.hpp`) at all - every other module, including `Players/` and
-`Menu/`, takes the sibling services it uses instead.
-
-- The engine-facing modules, `Core/`, `Http/` and `Database/` never name `Runtime`. Services and value types
-  (`Entity`/`Pawn`/`Controller`, `GlowVision`, `CenterHtml`, `HttpClient`, `PostgresDatabase`)
-  take the sibling services they use; the free helpers that need no service at all work off the
-  pawn they are handed (`PawnOps`).
-  Where a plugin would otherwise thread services through every call, the runtime owns a small
-  facade that binds them once: `Pawns` (`runtime.World.Pawns`, which owns slap's fall
-  protection) and `Visibility` (`runtime.Hooks.Visibility`, over the `GlowVision`
-  constructor).
-- Only `App/` may take `Runtime&`. `Players/` and `Menu/` take the narrowest services they use
-  instead: `ActionDispatcher` takes `Policy&`, `PlayerManager&` and `EntitySystem&`;
-  `EffectDispatcher` wraps an `ActionDispatcher&` plus its own `EffectManager&`; `MenuManager`
-  takes one `MenuServices` of the nine services a menu *session* and its drivers need, and nothing
-  a row needs, because rows carry their own services in `ActionRows::Services`. The header-only
-  templates and plain-data types plugins instantiate (`Flow<TState>`, `PerSlot<T>`, the
-  `MenuPresets` builders) still take the single narrowest service they need, so a consumer TU that
-  includes one of those headers does not pull in the whole composition root. `MenuBuilder`, `Flow`
-  and the row model are SDK-free: a row is text and callbacks, and the two calls a row makes into
-  a live session go through `MenuSession`, an abstract class in `Menu/Menu.hpp` that the manager
-  implements and a test double can stand in for.
-- A file-static stands in only where no reference can be threaded, set and cleared by the
-  code that owns it. Two back engine callbacks that carry no user data (the entity system
-  behind `GameEntitySystem()`, the file-static for the global convar change callback); the rest are
-  process-wide file-statics set once at load (the `Log::Handler` installed by `Log::SetHandler`,
-  which worker threads write to as well, and the base directory behind `AddonFile`).
-
-Plugin code never needs any of it: `OnLoad` hands it the runtime.
+File-static state is reserved for engine callbacks that cannot carry user data
+and for process-wide values such as the log handler, base directory, and schema
+field cache. The service that owns a callback also sets and clears its static
+bridge.

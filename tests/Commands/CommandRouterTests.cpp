@@ -28,18 +28,17 @@ using VoltMod::TargetFailure;
 using VoltMod::TargetRules;
 using VoltMod::Translations;
 
-// The chat-syntax free functions, the one nested namespace these tests reach.
 namespace CommandSyntax = VoltMod::CommandSyntax;
 
 namespace Args = VoltMod::Args;
 
-/** An ArgBinder with no engine: it answers from a fixed roster, or with a fixed failure. */
+/** Engine-free binder backed by a fixed roster or failure. */
 struct StubBinder final : ArgBinder
 {
     std::vector<Player*> Roster;
     TargetFailure Failure{TargetError::NoMatch};
     bool Succeed = true;
-    /** What the last Resolve was asked for, so a test can check the rules the router chose. */
+    /** Last Resolve input, used to check the router's rules. */
     std::string LastToken;
     bool LastAllowedMultiple = false;
 
@@ -54,7 +53,6 @@ struct StubBinder final : ArgBinder
     }
 };
 
-/** The router with the two plain services it holds, and a roster to resolve against. */
 struct Fixture
 {
     SlotEvents Slots;
@@ -83,7 +81,6 @@ struct Fixture
     }
 };
 
-/** A definition whose handler records the arguments it was handed. */
 static CommandDefinition Echo(std::string name, std::vector<ArgDesc> args, std::vector<BoundArg>* seen)
 {
     CommandDefinition def;
@@ -346,8 +343,7 @@ TEST_CASE("PlayerOrSteamId prefers the online player and falls back to a bare id
     CHECK(f.Lines[0] == "No player matches 'Nobody'.");
 }
 
-// The hybrid argument used to fall back to a bare SteamID after *any* resolution failure, so a
-// numeric token naming an immune admin became an offline target and the immunity check was lost.
+// Only NoMatch may fall back to a bare SteamID; immunity and other failures must remain errors.
 TEST_CASE("PlayerOrSteamId does not turn a refused target into an offline one")
 {
     Fixture f;

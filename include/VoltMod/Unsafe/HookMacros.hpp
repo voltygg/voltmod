@@ -2,12 +2,9 @@
 
 #include <VoltMod/Core/Subscription.hpp>
 
-// SourceHook's SH_DECL_HOOKn must still appear exactly once at namespace scope in your .cpp -
-// it expands to hook-manager classes and cannot be wrapped by a function-scope helper. What CAN
-// be automated is the add/remove pairing: VOLTMOD_SCOPED_HOOK installs the hook and yields a
-// Subscription that removes it. Store it wherever the hook should live.
-//
-// `handler` is usually SH_MEMBER(this, &MyPlugin::Hook_Fn).
+// Declare SH_DECL_HOOKn once at namespace scope in the .cpp. This macro pairs SH_ADD_HOOK with
+// SH_REMOVE_HOOK and returns a Subscription; store it for the desired hook lifetime. `handler`
+// is usually SH_MEMBER(this, &MyPlugin::Hook_Fn).
 //
 //   SH_DECL_HOOK3(IVEngineServer2, SetClientListening, SH_NOATTRIB, 0, bool, CPlayerSlot, CPlayerSlot, bool);
 //   void MyPlugin::OnRegisterHooks(VoltMod::Runtime& runtime)

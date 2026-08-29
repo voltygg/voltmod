@@ -4,9 +4,8 @@
 
 ## Render
 
-These helpers change `m_nRenderMode` and `m_clrRender` on a `CBaseModelEntity` and dirty both for
-replication. Use the free function for entities with no wrapper of their own - props, dropped
-weapons - and @ref VoltMod::Pawn::SetRender or @ref VoltMod::Pawn::SetVisible for a player.
+These helpers update and replicate `m_nRenderMode` and `m_clrRender`. Use the
+free function for unwrapped entities and the pawn methods for players.
 
 ```cpp
 using VoltMod::ColorInvisible;
@@ -25,11 +24,9 @@ Render tricks only affect the pawn body; held weapons, wearables and gloves are 
 
 ## Transmit
 
-Per-recipient transmit filtering uses a post-hook on
-`ISource2GameEntities::CheckTransmit`. Hidden entities are never sent to the
-client, so the model, weapons, wearables, gloves, and shadow all disappear;
-render alpha does not hide those related entities. There are two independent
-per-slot toggles:
+Per-recipient transmit filtering hooks
+`ISource2GameEntities::CheckTransmit`. A hidden pawn and its related entities
+are not sent to other clients. Controller visibility is controlled separately:
 
 ```cpp
 auto& transmit = runtime.Hooks.Transmit;
@@ -53,7 +50,9 @@ Requires the `CheckTransmitPlayerSlot` gamedata offset (the recipient slot insid
 
 ## GlowVision
 
-Per-viewer wallhack-style vision built on the Transmit filter: one client sees live players as team-colored glow outlines through walls, while every other client (and GOTV) never receives the glow entities. They are invisible to those clients by construction rather than by a rendering trick. Each glowing player gets two `prop_dynamic` clones following their pawn: an invisible relay and a glow prop parented to it (the indirection renders only the outline). Both are transmit-filtered exclusively to the beneficiary.
+GlowVision builds per-viewer outlines on the transmit filter. Only the selected
+client receives the two helper entities that follow each visible pawn; other
+clients and GOTV never receive them.
 
 ```cpp
 using VoltMod::GlowVision;

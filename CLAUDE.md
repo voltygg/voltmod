@@ -142,9 +142,10 @@ Use these patterns throughout the framework:
   pair-or-nothing, and removes by id when it is dropped. No service repeats the
   reconfigure/add/id bookkeeping, and no SourceHook `SH_*` add or remove macro
   appears outside that one macro.
-- Registrations return a `[[nodiscard]] Subscription`. Store it beside the state
-  its handler captures. Dropping one unsubscribes, and a `Scheduler` one-shot is
-  cancelled the same way.
+- Event, game-event, scheduler, and hook registrations return a `[[nodiscard]]
+  Subscription`. Store it beside the state its handler captures. Dropping one
+  unsubscribes, and a `Scheduler` one-shot is cancelled the same way. Commands
+  are owned by `CommandManager` for the load cycle.
 - Fallible operations return `Result<T>`/`Status` over `Error`: `ErrorCode` to
   branch on, `Detail` for the log, `Key` for a player-facing reply.
 - `Entity`, `Pawn` and `Controller` are frame-local wrappers, not handles to keep.

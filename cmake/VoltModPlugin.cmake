@@ -1,15 +1,14 @@
 include_guard(GLOBAL)
 
-# Consumer plugin API delivered as a CMakeDeps build module:
+# Consumer plugin API:
 #   voltmod_add_plugin(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...]
 #                  [FEATURES ...] [PCH_HEADERS ...]
 #                  VERSION <v> [DESCRIPTION <text>])
 
-# VOLTMOD_ROOT_DIR / _PLATFORM_ARCH / _GAMEDATA_DIR and voltmod_set_warnings.
+# VoltModCommon defines the shared paths and warning helper.
 include("${CMAKE_CURRENT_LIST_DIR}/VoltModCommon.cmake")
 
-# Create a Metamod MODULE with output and install rules. SOURCES defaults to
-# `src/*.cpp`; the other lists extend their defaults.
+# Create a Metamod MODULE. SOURCES defaults to `src/*.cpp`.
 #
 # FEATURES DATABASE adds VoltMod::Database and libpqxx. Runtime is always linked.
 #
@@ -22,7 +21,6 @@ function(voltmod_add_plugin target_name)
         message(FATAL_ERROR "voltmod_add_plugin(${target_name}) requires VERSION")
     endif()
 
-# Provided by the hl2sdk-cs2 build module.
     if(NOT COMMAND hl2sdk_attach_plugin_support)
         message(FATAL_ERROR
             "hl2sdk-cs2's build module is missing - find_package(voltmod CONFIG REQUIRED) "
@@ -39,12 +37,11 @@ function(voltmod_add_plugin target_name)
     target_compile_features("${target_name}" PRIVATE cxx_std_23)
     voltmod_set_cxx_defaults("${target_name}")
 
-# Ship release PDBs for crash dumps; common settings provide /Z7.
+    # Ship release PDBs for crash dumps; common settings provide /Z7.
     target_link_options("${target_name}" PRIVATE
         "$<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:MSVC>>:/DEBUG;/OPT:REF;/OPT:ICF>"
     )
 
-# Attach per-plugin SDK sources and their compile exclusions.
     hl2sdk_attach_plugin_support("${target_name}")
 
     target_include_directories("${target_name}" PRIVATE
@@ -74,7 +71,6 @@ function(voltmod_add_plugin target_name)
     )
 
     if(NOT VOLTMOD_DISABLE_PCH)
-# Precompile the large public API header unless explicitly disabled.
         target_precompile_headers("${target_name}" PRIVATE
             "<VoltMod/Api.hpp>"
             ${ARG_PCH_HEADERS}
@@ -84,7 +80,6 @@ function(voltmod_add_plugin target_name)
     voltmod_set_warnings("${target_name}")
     voltmod_stamp_build_info("${target_name}" "${ARG_VERSION}")
 
-# Write unprefixed modules to `plugins/<name>/<platform_arch>` without an rpath.
     set(output_dir "${CMAKE_BINARY_DIR}/plugins/${target_name}/${VOLTMOD_PLATFORM_ARCH}")
     set_target_properties("${target_name}" PROPERTIES
         PREFIX ""
@@ -101,7 +96,7 @@ function(voltmod_add_plugin target_name)
     voltmod_install_plugin("${target_name}")
 endfunction()
 
-# Install one server-ready addon bundle under a component named after the target.
+# Install a server-ready addon bundle under the target component.
 function(voltmod_install_plugin target_name)
     if(WIN32)
         set(bin_subdir "win64")
@@ -110,7 +105,7 @@ function(voltmod_install_plugin target_name)
     endif()
     set(addon_bin "addons/${target_name}/bin/${bin_subdir}")
 
-# Install only the MODULE artifact. COMPONENT must be specified per artifact kind.
+    # COMPONENT is required for each artifact kind.
     install(TARGETS "${target_name}"
         LIBRARY DESTINATION "${addon_bin}" COMPONENT "${target_name}"
         RUNTIME DESTINATION "${addon_bin}" COMPONENT "${target_name}"
@@ -122,7 +117,6 @@ function(voltmod_install_plugin target_name)
             DESTINATION "${addon_bin}" COMPONENT "${target_name}" OPTIONAL)
     endif()
 
-# Generate a VDF whose file path includes the platform bin directory.
     set(CS2_PLUGIN_NAME "${target_name}")
     set(CS2_PLUGIN_BIN_SUBDIR "${bin_subdir}")
     configure_file(
@@ -134,7 +128,7 @@ function(voltmod_install_plugin target_name)
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.vdf"
         DESTINATION "addons/metamod" COMPONENT "${target_name}")
 
-# Deployment renders settings.jsonc per server.
+    # Deployment renders settings.jsonc per server.
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/configs")
         install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/configs/"
             DESTINATION "addons/${target_name}/configs"
@@ -143,24 +137,21 @@ function(voltmod_install_plugin target_name)
         )
     endif()
 
-# Panorama sources travel with the bundle so whoever builds the workshop addon has them.
-# They are compiled by the CS2 Workshop Tools and mounted by the client, never by the server.
+    # Workshop Tools compiles Panorama sources and the client mounts them, not the server.
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/panorama")
         install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/panorama/"
             DESTINATION "addons/${target_name}/panorama"
             COMPONENT "${target_name}")
     endif()
 
-# Install VoltMod's shared Panorama sources, which carry the layout the menu's Panorama driver
-# draws into. A plugin shipping its own copy of an id-compatible layout installs it above and
-# names it in Menus.UsePanorama; both can sit in one workshop addon.
+    # Install the shared Panorama layout used by the menu driver. A plugin may install an
+    # id-compatible copy above it and select it with Menus.UsePanorama.
     if(EXISTS "${VOLTMOD_PANORAMA_DIR}")
         install(DIRECTORY "${VOLTMOD_PANORAMA_DIR}/"
             DESTINATION "addons/voltmod/panorama"
             COMPONENT "${target_name}")
     endif()
 
-# Install VoltMod's shared gamedata.
     if(EXISTS "${VOLTMOD_GAMEDATA_DIR}")
         install(DIRECTORY "${VOLTMOD_GAMEDATA_DIR}/"
             DESTINATION "addons/voltmod/gamedata"
@@ -168,7 +159,6 @@ function(voltmod_install_plugin target_name)
     endif()
 endfunction()
 
-# Generate target-specific BuildInfo with the plugin version and repository identity.
 function(voltmod_stamp_build_info target_name version)
     set(stamp_target "${target_name}-buildinfo")
     set(include_dir "${CMAKE_BINARY_DIR}/voltmod-buildinfo/${target_name}/include")

@@ -1,23 +1,8 @@
 #pragma once
 
-// The VoltMod core vocabulary, the Runtime facade, and player/command/plugin plumbing in
-// one include - everything a plugin's OnLoad and command handlers touch without opting
-// into a specific tier.
-//
-// Every public name lives directly in `VoltMod`, so this header only gathers the headers
-// that declare them - there is nothing to hoist or alias. It deliberately does not include
-// the Menu-building surface (`<VoltMod/Menu/Api.hpp>`) or anything that reaches nlohmann
-// (`<VoltMod/App/Config.hpp>` for a JsonConfig-backed settings struct): most translation
-// units need none of those, and each is one explicit include away.
-//
-// The Unsafe tier is a naming convention here, not an include boundary: Runtime holds
-// UnsafeServices and HookServices by value, so all of `<VoltMod/Unsafe/Api.hpp>` except
-// HookMacros.hpp is already in every translation unit that includes this header. Include
-// `<VoltMod/Unsafe/Api.hpp>` anyway where you mean to use it - it says so at the call site,
-// and it is the one that carries VOLTMOD_VHOOK*. Entities and Hooks types stay reachable through Runtime
-// (it holds one of each service by value) even without their own `Entities/Api.hpp` or
-// `Hooks/Api.hpp`; include those two directly for the rest of the module - the frame-local
-// wrappers and free functions Runtime itself has no member of.
+// Core vocabulary, Runtime, and common plugin plumbing. Include each module's Api.hpp when
+// using its wider surface. JSON-backed configuration belongs in <VoltMod/App/Config.hpp>,
+// which keeps nlohmann out of translation units that only need this umbrella.
 
 #include <VoltMod/App/MetamodPlugin.hpp>
 #include <VoltMod/App/ServiceExchange.hpp>
@@ -45,15 +30,3 @@
 #include <VoltMod/Players/PlayerRef.hpp>
 #include <VoltMod/Players/Policy.hpp>
 #include <VoltMod/Runtime.hpp>
-
-// <VoltMod/Entities/Api.hpp>, <VoltMod/Hooks/Api.hpp>, <VoltMod/Ui/Api.hpp>,
-// <VoltMod/Menu/Api.hpp> and <VoltMod/Unsafe/Api.hpp> gather those modules' full public
-// surfaces; a plugin opts into each by including it explicitly.
-//
-// <VoltMod/App/Config.hpp> gathers JsonConfig, PluginSettings and Json - a plugin's own
-// Config.hpp includes it explicitly instead of pulling nlohmann into every translation
-// unit that happens to include this umbrella.
-//
-// <VoltMod/Database/Api.hpp> gathers the Database vocabulary, also outside this umbrella:
-// it drags <pqxx/pqxx> into every including TU, and most plugin code never touches the
-// database.

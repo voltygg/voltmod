@@ -36,7 +36,6 @@ TEST_CASE("Strings::Join")
 
 TEST_CASE("Strings::JoinNonEmpty skips empty pieces")
 {
-    // The point of the helper: an unset piece must not leave a dangling delimiter behind it.
     std::vector<std::string> gaps{"reason", "", "appeal"};
     CHECK_EQ(Strings::JoinNonEmpty(gaps, " | "), std::string("reason | appeal"));
 

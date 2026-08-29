@@ -44,10 +44,8 @@ plugins/
     src/
 ```
 
-`CMakeLists.txt` loads VoltMod and registers the plugin. `CMakePresets.json`
-contains matching configure, build, test, and workflow presets.
-`conanfile.py` declares framework and test dependencies. `pyproject.toml`
-provides the pinned tools and short Poe commands.
+The root CMake file registers the plugin, the Conan recipe declares its
+dependencies, and `pyproject.toml` provides pinned tools and Poe commands.
 
 ## Check the environment
 
@@ -79,10 +77,10 @@ Bootstrap:
 4. Honors an existing `conan.lock`.
 5. Configures CMake, builds, and runs CTest.
 
-Success ends with output under
-`build/<preset>/plugins/my-plugin/<platform-arch>/`. Bootstrap is the first
-build; use `uv run poe build` afterward, and `uv run poe test` when you
-want CTest to run as well.
+Success leaves the plugin under
+`build/<preset>/plugins/my-plugin/<platform-arch>/`. After bootstrapping, use
+`uv run poe build` for normal builds and `uv run poe test` to rebuild and run
+CTest.
 
 ## Add another plugin
 
@@ -93,7 +91,7 @@ uv run poe new-plugin fun-votes
 The command creates `plugins/fun-votes` and adds its `add_subdirectory` line
 to the root project. It refuses to overwrite an existing directory.
 
-Each scaffold includes:
+The scaffold includes:
 
 - a `MetamodPlugin` lifecycle class;
 - a load-cycle `App`;
@@ -155,8 +153,8 @@ meta list
 ```
 
 The plugin name, semantic version, commit, and build state should appear. Join
-the server and enter `!ping`. A translated pong reply confirms lifecycle,
-command, message, configuration, and translation setup.
+the server and enter `!ping`; the translated reply confirms the generated
+plugin loaded correctly.
 
 ## Where to edit
 
@@ -211,12 +209,11 @@ voltmod_add_plugin(my-plugin VERSION 1.0.0 FEATURES DATABASE)
 For profiles, lockfiles, local package development, and existing CMake projects, see
 @ref conan_guide.
 
-## Api headers
+## API headers
 
 `<VoltMod/Api.hpp>` gathers the core vocabulary, the `Runtime` facade, and
-player/command/plugin plumbing - what a typical `OnLoad` and command handler
-touches. Four more modules publish their own `Api.hpp`; include one where a
-translation unit needs that surface:
+player, command, and plugin plumbing used by a typical `OnLoad` or command
+handler. Include a module aggregate only where that translation unit needs it:
 
 | Header | Brings in |
 |---|---|
@@ -227,10 +224,9 @@ translation unit needs that surface:
 | `<VoltMod/Unsafe/Api.hpp>` | Raw interfaces, gamedata, `MemoryAccess`, and vtable hooking - opt in only where you need it |
 | `<VoltMod/Database/Api.hpp>` | The PostgreSQL vocabulary (see @ref database_guide) |
 
-None of these reach nlohmann. A plugin's own `Config.hpp` includes
+These aggregates do not include nlohmann. A plugin's own `Config.hpp` includes
 `<VoltMod/App/Config.hpp>` for `JsonConfig` and `StandardPluginSettings` (see
-@ref config_guide) - most translation units never touch settings JSON, so it
-stays out of the umbrella.
+@ref config_guide), keeping settings JSON out of unrelated translation units.
 
 ## Next steps
 

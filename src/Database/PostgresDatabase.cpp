@@ -141,11 +141,8 @@ void PostgresDatabase::Enqueue(Job job)
 
     Log::Warn("db: '{}' failed - database not running.", job.Name);
 
-    // Fail the completion rather than dropping it. Callers treat Query as "the callback always
-    // runs", so a silent drop left their state machines waiting forever - and with no connection
-    // at all (bad credentials, say) that was every query for the whole session. Enqueue is
-    // game-thread-only, so this runs the callback directly: per-frame delivery may not exist yet.
-    // Run it outside the lock, since a callback is free to enqueue again.
+    // Query callbacks always run. If delivery is unavailable, invoke the failure callback outside
+    // the lock; callbacks may enqueue another query.
     if (job.OnDone)
         job.OnDone(std::unexpected(std::string("database not running")));
 }

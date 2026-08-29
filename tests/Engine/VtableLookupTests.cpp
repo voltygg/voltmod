@@ -7,8 +7,7 @@
 using VoltMod::FindVTableSlot;
 using VoltMod::IsReadableAddress;
 
-// Distinct bodies on purpose: the release build folds identical functions (/OPT:ICF), which
-// would give these one address and make "found the wrong slot" indistinguishable from success.
+// Keep the bodies distinct: /OPT:ICF otherwise gives them one address.
 static int gSink = 0;
 
 static void Slot0()
@@ -33,19 +32,16 @@ TEST_CASE("A readable span is readable, and an impossible address is not")
     CHECK_FALSE(IsReadableAddress(reinterpret_cast<const void*>(uintptr_t{8}), sizeof(void*)));
 }
 
-// FindVTableSlot walks an instance's first kMaxBases words and each table until a slot is not
-// code, so a fixture has to be as long as a real engine object and end its tables the way a real
-// `.rdata` one does. Both are modelled here rather than left to whatever follows a short array on
-// the stack, which is what the object under test is not allowed to read.
+// The fixture matches the blind walk's object length and terminates each table like `.rdata`.
 static constexpr int kScannedWords = 8;
 
-/** A stand-in engine object: kScannedWords words, so the whole blind walk stays inside it. */
+/** Stand-in engine object large enough for the blind walk. */
 struct FakeInstance
 {
     void* Words[kScannedWords]{};
 };
 
-/** A stand-in vtable: entries, then a null terminator the walk stops on rather than reading past. */
+/** Stand-in vtable terminated by the null entry the walk expects. */
 template <int Entries>
 struct FakeVTable
 {
@@ -54,14 +50,13 @@ struct FakeVTable
 
 TEST_CASE("A member holding a wild pointer is skipped, not walked")
 {
-    // Exactly the shape that crashed: the first word is 0xFFFFFFFFFFFFFFFF, which is neither null
-    // nor a mapping, so anything that reads through it before validating it faults.
+    // Match the crash: the first word is neither null nor a mapped address.
     FakeVTable<2> table{{reinterpret_cast<void*>(&Slot0), reinterpret_cast<void*>(&Slot1), nullptr}};
     FakeInstance object{};
     object.Words[0] = reinterpret_cast<void*>(~uintptr_t{0});
     object.Words[1] = table.Slots;
 
-    // Reaching the real table in the second word proves the first was skipped rather than fatal.
+    // Finding the real table in the second word proves the first was skipped safely.
     auto found = FindVTableSlot(&object, reinterpret_cast<const void*>(&Slot1));
     REQUIRE(found.has_value());
     CHECK(found->Index == 1);

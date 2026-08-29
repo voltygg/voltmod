@@ -2,14 +2,12 @@
 
 [TOC]
 
-Settings are represented by a struct that mirrors the JSON file. Declare each
-section with defaults, map it with nlohmann's non-intrusive macro, and hold the
-root in a @ref VoltMod::JsonConfig.
+Represent settings with a default-initialized struct that mirrors the JSON file,
+then load it through @ref VoltMod::JsonConfig.
 
-`<VoltMod/Api.hpp>` never reaches nlohmann, so a plugin's own `Config.hpp` includes
-`<VoltMod/App/Config.hpp>` as well - it gathers `JsonConfig`, `StandardPluginSettings`, and
-`VoltMod::Json`, and pulls in nlohmann for the `NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT`
-macro below.
+Include `<VoltMod/App/Config.hpp>` in the plugin's `Config.hpp`. It provides the
+VoltMod configuration types and nlohmann mapping macros without adding nlohmann
+to the main API umbrella.
 
 ## Declaring settings
 
@@ -27,13 +25,20 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Settings, plugin)
 using ConfigManager = VoltMod::JsonConfig<Settings>;
 ```
 
-Member names must match the JSON keys. The `_WITH_DEFAULT` macro means a missing key keeps the member's default. Only a missing file, a parse error, or a wrong-typed value fails the load. JSONC comments are tolerated, and unknown keys are ignored (which is also why retired keys need no config migration).
+Member names must match JSON keys. With `_WITH_DEFAULT`, missing keys retain
+their defaults. Missing files, parse errors, and wrong value types fail the
+load. JSONC comments and unknown keys are accepted, so removing a key needs no
+configuration migration.
 
 @ref VoltMod::StandardPluginSettings is the framework-owned "plugin" section; embedding it is what lets `LoadStandardConfig` apply `plugin.locale` to `runtime.Translations` automatically (see @ref plugin_guide).
 
 ### Editor validation with a JSON Schema
 
-Ship a `settings.schema.json` next to the jsonc and reference it with a relative `$schema` line as the file's first key. Editors then autocomplete keys and squiggle typos (`additionalProperties: false` makes the schema stricter than the runtime, which is the point; the parser itself ignores unknown keys). The plugin scaffold emits a starter schema; keep it in sync when the Settings struct grows. The framework's own `gamedata/gamedata.jsonc` follows the same convention, with `gamedata.schema.json` beside it.
+Ship `settings.schema.json` beside the JSONC file and reference it with a
+relative `$schema` as the first key. The schema may reject unknown keys with
+`additionalProperties: false` even though the runtime ignores them. This gives
+editors useful validation without making upgrades brittle. Keep the generated
+starter schema synchronized with the settings struct.
 
 ```cpp
 bool MyPlugin::OnLoad(VoltMod::Runtime& runtime)

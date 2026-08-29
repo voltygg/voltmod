@@ -4,35 +4,22 @@
 [![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://voltygg.github.io/voltmod/)
 
 VoltMod is a native C++23 framework for Counter-Strike 2 plugins on
-Metamod:Source. It owns the repeated engine integration, plugin lifecycle,
-build configuration, and common server services while each plugin keeps
-control of its policy and game behavior.
-
-Choose VoltMod when you want native C++, explicit ownership, and reproducible
-CMake and Conan builds. It does not host C# or another scripting runtime.
+Metamod:Source. It provides engine integration, load-cycle ownership, common
+server services, and reproducible CMake and Conan builds. Plugins keep control
+of permissions and game behavior. VoltMod does not host a scripting runtime.
 
 > VoltMod is under active development. Public APIs may change between
 > versions.
 
 ## What it includes
 
-- A managed Metamod lifecycle with one `Runtime` per load cycle.
-- Declarative console and chat commands with typed arguments, targeting,
-  permissions, replies, and broadcasts.
-- WASD center-HTML or clickable Panorama menus, context-aware rows, reusable player pickers, and
-  multi-step flows.
-- Player tracking, actions, scheduled effects, translations, and chat colors.
-- Typed wrappers for entities, schemas, events, convars, user messages,
-  typed gamedata bindings, hooks, movement commands, input history, precaching, and transmit
-  filters.
-- Runtime-scoped subscriptions and cleanup instead of process-lifetime plugin
-  globals.
-- Asynchronous HTTP with game-thread completions.
-- Optional asynchronous PostgreSQL, migrations, and row mapping.
-- JSONC configuration, startup validation, status sections, build identity, and
-  typed cross-plugin services.
-- Project and plugin scaffolding, pinned build tools, CMake presets, tests,
-  package publishing, and server-ready install components.
+- One `Runtime` and deterministic cleanup per Metamod load cycle.
+- Typed chat and console commands with targeting and injected permission policy.
+- WASD center-HTML and clickable Panorama menus, including multi-step flows.
+- Player tracking, translations, scheduled effects, and typed engine wrappers.
+- Asynchronous HTTP and optional PostgreSQL with game-thread completions.
+- JSONC configuration, startup diagnostics, and typed cross-plugin services.
+- Project scaffolding, pinned build tools, tests, and server-ready install bundles.
 
 VoltMod supplies infrastructure rather than an admin model. A plugin injects
 its own permission and immunity policy into the shared command, targeting,
@@ -57,8 +44,8 @@ uv run poe bootstrap
 ```
 
 The generated `my-plugin` is registered automatically and answers `!ping`.
-Bootstrap installs the Conan configuration, resolves dependencies, configures
-CMake, builds, and runs tests. It is already the first build.
+`bootstrap` installs the Conan configuration, resolves dependencies, builds,
+and runs the tests.
 
 Later development uses:
 
@@ -70,8 +57,7 @@ uv run poe build-linux
 uv run poe new-plugin fun-votes
 ```
 
-Tests are a separate command so the edit-build loop stays fast; `poe test`
-recompiles first, then runs them.
+`test` rebuilds before running CTest.
 
 Output is written to
 `build/<preset>/plugins/<name>/<platform-arch>/`. With `CS2_SERVER_PATH` set,
@@ -83,8 +69,8 @@ uv run poe build --install <name> --start
 
 Then run `meta list` on the server console and test `!ping`.
 
-The [getting-started guide](docs/getting-started.md) explains every generated
-file, expected result, and common failure.
+See [Getting started](docs/getting-started.md) for the generated layout and
+manual staging steps.
 
 ## Write a command
 
@@ -104,9 +90,9 @@ runtime.Commands.Add("slap")
     });
 ```
 
-Add `cmd.slapped` to the translation files. `Run` returns a `Subscription` that
-unregisters the command when it is dropped. The plugin's `Runtime::Policy`
-decides permissions, immunity, reply formatting, and broadcast behavior.
+Add `cmd.slapped` to the translation files. `CommandManager` owns the command
+for the load cycle. The plugin's `Runtime::Policy` decides permissions,
+immunity, reply formatting, and broadcast behavior.
 
 ## Add VoltMod to an existing project
 
@@ -146,16 +132,9 @@ local package development, remotes, and lockfiles.
 
 ## Compare frameworks
 
-| Framework | Plugin language | Runtime model | Built-in strengths |
-| --- | --- | --- | --- |
-| **VoltMod** | C++23 | Native Metamod modules | Typed command/targeting pipeline, WASD flows, explicit load-cycle ownership, async HTTP/PostgreSQL, and CMake/Conan scaffolding |
-| [SwiftlyS2](https://swiftlys2.net/) | C# on .NET 10 | Managed plugins over a C++ core | Broad Source 2 services, advanced menus, database connections, dependency injection, and automatic hot reload |
-| [Plugify](https://plugify.net/) with S2SDK | C++, C#, Python, Go, Lua, Rust, JavaScript/TypeScript, and more | Multi-language modules with Source 2 supplied by its Metamod/S2SDK stack | Cross-language calls, language modules, package management, and low-level Source 2 APIs |
-| [CounterStrikeSharp](https://docs.cssharp.dev/) | C# on .NET 8 | Managed scripting layer hosted by Metamod | Familiar .NET workflow, commands/events/listeners, schema access, localization, capabilities, and automatic DLL hot reload |
-
-This is a workflow summary, not a performance ranking. See
-[Choosing a CS2 plugin framework](docs/framework-comparison.md) for the
-feature-by-feature matrix, scope notes, and official sources.
+[Choosing a CS2 plugin framework](docs/framework-comparison.md) compares
+VoltMod's native C++ model with SwiftlyS2, Plugify with S2SDK, and
+CounterStrikeSharp using their official documentation.
 
 ## Documentation
 
@@ -178,8 +157,8 @@ The generated guides and API reference are published at
 
 ## Contributing
 
-Open an issue before starting a large change. Early discussion helps while the
-public API is evolving.
+Open an issue before starting a large change because the public API is still
+evolving.
 
 ## License
 

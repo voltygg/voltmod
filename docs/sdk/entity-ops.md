@@ -4,9 +4,9 @@
 
 ## EntityOps (spawning, entity IO, sound)
 
-@ref VoltMod::EntityOps exposes entity spawning, inputs, deferred I/O, removal, models, and sound.
-Build spawn data with @ref VoltMod::KeyValues; the engine consumes it during `DispatchSpawn`.
-Unavailable operations safely do nothing. `CanSpawn()` checks the two bindings used by `Spawn()`.
+@ref VoltMod::EntityOps handles entity spawning, inputs, removal, models, and
+sound. Build spawn data with @ref VoltMod::KeyValues. Unavailable operations
+fail safely, and `CanSpawn()` checks the bindings required by `Spawn()`.
 
 ```cpp
 auto& ops = runtime.World.EntityOps;
@@ -26,7 +26,7 @@ Never `delete` an entity. Use `Remove` immediately or `RemoveDelayed` through
 the engine's I/O queue.
 
 For unwrapped entities, use a typed `static` @ref VoltMod::SchemaField through a
-@ref VoltMod::SchemaPtr, and notify live writes with @ref VoltMod::MarkChanged:
+@ref VoltMod::SchemaPtr. Notify live writes with @ref VoltMod::MarkChanged.
 
 ```cpp
 static const VoltMod::SchemaField<float> kWidth{"CBeam", "m_fWidth"};

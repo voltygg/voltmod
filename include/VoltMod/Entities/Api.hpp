@@ -1,10 +1,5 @@
 #pragma once
 
-// The Entities module's public surface in one include: frame-local entity wrappers, the
-// resolution and manipulation services built on them, and the convar type they read
-// settings through. Include the individual headers when a translation unit only needs a
-// few of these.
-
 #include <VoltMod/Engine/ConVarOverrides.hpp>
 #include <VoltMod/Engine/ConVars.hpp>
 #include <VoltMod/Entities/Controller.hpp>

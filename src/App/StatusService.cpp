@@ -30,10 +30,8 @@ bool StatusService::IsHealthy() const
 
 std::string StatusService::BuildJson() const
 {
-    // Providers are parsed, not spliced: a section has to be a value in this object, and its
-    // text is only as trustworthy as the provider. A parse failure yields json::discarded, which
-    // dump() writes as a bare <discarded> token - that would make the whole STATUS_JSON line
-    // unparseable for the tooling it exists for, so name the bad section instead.
+    // Parse each provider as a value. Replacing discarded values keeps STATUS_JSON valid and names
+    // the failing section for tooling.
     auto out = nlohmann::json::object();
     for (const auto& [name, provider] : _sections)
     {

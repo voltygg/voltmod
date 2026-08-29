@@ -2,9 +2,9 @@
 
 [TOC]
 
-Hook services install on their first subscription and uninstall with the last. Check
-@ref VoltMod::Capabilities "runtime.Capabilities" for gamedata availability. The last section
-covers custom engine vfunc hooks.
+Hook services install for their first subscriber and uninstall after the last.
+Check @ref VoltMod::Capabilities "runtime.Capabilities" for gamedata
+availability.
 
 ## Movement
 
@@ -28,7 +28,9 @@ Hook contracts:
 
 ### Cmd events: reading the usercmd
 
-`PreCmd` additionally hands you a @ref VoltMod::UserCmdView: the command's viewangles, held/changed button masks, raw mouse deltas, and per-subtick pitch/yaw deltas, decoded once per RunCommand from the `CSGOUserCmdPB` payload:
+`PreCmd` also provides a @ref VoltMod::UserCmdView. It decodes view angles,
+button masks, mouse deltas, and per-subtick angle changes from the
+`CSGOUserCmdPB` payload:
 
 ```cpp
 _preCmd = runtime.Hooks.Movement.PreCmd += [](int slot, const VoltMod::UserCmdView& cmd) {
@@ -50,11 +52,11 @@ Important fields:
 
 ### Input history and the cap
 
-`InputHistorySamples` stores per-shot angles and targets, addressed by
-`Attack1StartHistoryIndex` and `Attack2StartHistoryIndex`.
+`InputHistorySamples` contains per-shot angles and targets. Attack history
+indexes refer to entries in the client's full input list.
 
-Only `MaxInputHistory` entries are retained. Attack indexes address the full client list, so use
-`SampleAt` and never clamp an out-of-range index:
+Only `MaxInputHistory` entries are retained. Use `SampleAt` and never clamp an
+out-of-range attack index:
 
 ```cpp
 const int index = cmd.Attack1StartHistoryIndex;
@@ -71,7 +73,8 @@ Compare against `InputHistoryTotalCount` to distinguish absent, invalid, and cap
 
 ### FilterCmd: editing the decoded usercmd
 
-`FilterCmd` hands you a **mutable** `UserCmdView&`. Filters run once, after the decode and before every `Pre`/`PreCmd` handler, so whatever a filter writes is what every cmd handler then observes:
+`FilterCmd` receives a mutable `UserCmdView&` after decoding and before all
+`Pre` and `PreCmd` handlers. Later handlers observe its edits:
 
 ```cpp
 _filter = runtime.Hooks.Movement.FilterCmd += [](int slot, VoltMod::UserCmdView& cmd) {
@@ -110,8 +113,8 @@ Semantics worth knowing:
 
 ## Hooking a vfunc the framework does not cover
 
-Use `<VoltMod/Unsafe/VtableHook.hpp>` for vfuncs the framework does not expose. A wrong vtable slot
-can call unrelated code and crash the server.
+Use `<VoltMod/Unsafe/VtableHook.hpp>` for vfuncs the framework does not expose.
+An incorrect slot can call unrelated code and crash the server.
 
 Custom hooks use two pieces:
 
@@ -173,7 +176,8 @@ reconfigure a live hook to the wrong slot.
 
 ## ServerCommand
 
-@ref VoltMod::ServerCommand is a RAII tier1 `ConCommand`: registered on construction, unregistered on destruction, with a `std::function` handler that runs on the game thread.
+@ref VoltMod::ServerCommand owns a tier1 `ConCommand`. Construction registers
+it, destruction unregisters it, and its handler runs on the game thread.
 
 ```cpp
 class MyManager

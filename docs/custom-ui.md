@@ -2,9 +2,9 @@
 
 [TOC]
 
-CS2 can render a server-driven Panorama panel through the `custom_hud_layout`
-entity: real XML and CSS, with clickable buttons, instead of center HTML.
-@ref VoltMod::CustomUi spawns that entity and drives it.
+@ref VoltMod::CustomUi drives CS2 Panorama panels through
+`custom_hud_layout` entities. Panels use compiled XML and CSS and may contain
+clickable buttons.
 
 A layout has two halves, and both are needed:
 
@@ -37,15 +37,13 @@ Every write names a slot first. @ref VoltMod::UiPanel::Everyone is the layout's
 global state, which is what a panel showing everybody the same thing wants; a real
 slot writes one player's, which the next section covers.
 
-Each write returns a @ref VoltMod::Status. A one-shot write is worth checking; a
-redraw discards it, because the panel logs the first failure for a slot itself and
-the next frame tries again.
+Each write returns @ref VoltMod::Status. Check one-shot writes. A redraw may
+ignore the result because the panel logs the first failure per slot and retries
+on the next frame.
 
-@ref VoltMod::UiPanel *owns* its entity: dropping the panel removes it. That is
-what stops a layout outliving the plugin that spawned it across a `meta reload`,
-so keep it as a member of whatever the panel belongs to rather than storing a bare
-@ref VoltMod::EntityRef. It is move-only, and it re-resolves its entity on every
-call - after a map change it is simply falsy.
+@ref VoltMod::UiPanel owns and removes its entity. Keep the move-only panel as a
+member instead of storing its @ref VoltMod::EntityRef. Calls re-resolve the
+entity, so a panel becomes falsy after a map change.
 
 @ref VoltMod::CustomUi::Spawn creates the entity now. @ref VoltMod::CustomUi::Panel
 is the same thing without the entity: it checks the name and hands back a panel
@@ -57,8 +55,8 @@ not disturb another's.
 
 ## Authoring the layout
 
-The client validates the markup on arrival and prints rejections on the *client*
-console, not the server's. Four rules decide whether it renders at all:
+The client validates markup and reports failures in the client console. A
+layout must follow these rules:
 
 - Only `Panel`, `Label`, `Image` and `Button`. Anything else is
   `Layout contains disallowed panel type`.
@@ -70,7 +68,7 @@ console, not the server's. Four rules decide whether it renders at all:
 - Include the stylesheet by its **source** name under `{resources}`, not the
   compiled `.vcss_c` name.
 
-Three more decide whether its buttons *click*, and each fails silently:
+For reliable clicks:
 
 - Every panel on the path to a `Button` needs a resolved size (`width: 100%`, a
   fixed value, or `fill-parent-flow`). A container left to size itself around its
@@ -101,10 +99,9 @@ Three more decide whether its buttons *click*, and each fails silently:
 `text="{s:name}"` is a dialog variable, which is what @ref VoltMod::UiPanel::Text
 writes. Static text needs no variable.
 
-The stylesheet is Panorama CSS, not web CSS: keep selectors flat (no nesting, no
-`&`), and there is no flexbox - use `flow-children`. The pattern worth copying is
-a visible state in `#id` and a hidden state in `#id.Class`, so showing and hiding is
-one @ref VoltMod::UiPanel::Class call rather than a layout swap:
+Panorama CSS is not web CSS. Keep selectors flat, do not use `&` or flexbox, and
+use `flow-children` for layout. Toggle visibility with a class rather than
+swapping layouts:
 
 ```css
 #card {
@@ -218,18 +215,15 @@ player rather than paying for the check on each. A write for a slot the entity d
 not cover fails with a reason instead of looking like it worked, and
 @ref VoltMod::UiPanel::Covers asks the same question without the spawn.
 
-Per-player writes go through a cache: a value the player already has is not sent
-again. That is what makes redrawing a layout every frame affordable - unlike center
-HTML, a networked layout stays on screen without being re-sent, so a frame that
-changes one label costs one write. @ref VoltMod::UiPanel::Forget drops what a slot
-was told, for when something outside the panel has changed what it shows.
+Per-player writes are cached, so unchanged values are not resent. @ref
+VoltMod::UiPanel::Forget invalidates the cache when another system changes the
+panel state.
 
 ## Naming panels and classes
 
-Build the panel ids, class names and dialog-variable names you write once, and keep
-them: every distinct one is interned permanently into a 1024-entry table on the
-entity. A name generated per redraw - a row id with a timestamp in it, a class built
-from a player's score - exhausts that table, and the panel then stops updating.
+Reuse panel ids, class names, and dialog-variable names. Each distinct name is
+permanently interned in a 1024-entry entity table; generating names during
+redraw eventually stops panel updates.
 
 ## Reusing the menu layout
 
@@ -331,7 +325,7 @@ so the next engine-side call misses the hash, appends a duplicate, and the state
 silently desyncs. Every write therefore goes through the game's own setter, which
 interns, dedupes and notifies correctly.
 
-The one exception is input capture for @ref VoltMod::UiPanel::Everyone: no engine
+The one exception is input capture for @ref VoltMod::UiPanel::Everyone. No engine
 setter takes the global state, and `m_bInputCaptureEnabled` is a plain `bool` in an embedded
 struct with no container and no shadow index behind it, so it is written
 directly.

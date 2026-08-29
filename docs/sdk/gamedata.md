@@ -4,8 +4,9 @@
 
 ## What gamedata is for
 
-`Runtime::Start()` loads `gamedata/gamedata.jsonc` before consumer `OnLoad`. Gamedata defines
-where engine members are; @ref VoltMod::Bindings defines their C++ types.
+`Runtime::Start()` loads `gamedata/gamedata.jsonc` before plugin `OnLoad`.
+Gamedata records where engine members are; @ref VoltMod::Bindings defines their
+C++ types.
 
 ```cpp
 // include/VoltMod/Engine/Bindings.hpp
@@ -14,8 +15,8 @@ VFn<void(int)> ChangeTeam;                                   // vtables.ChangeTe
 OffsetOf<int> ServerSideClientSlot;                          // offsets.ServerSideClientSlot
 ```
 
-Services use `const Bindings&`, so runtime call paths have no string lookup. `Bindings::Bind`
-reports missing, invalid, or misplaced entries during load.
+Services use `const Bindings&`, avoiding string lookup on runtime call paths.
+Binding failures are reported during load.
 
 ## `gamedata.jsonc` format (version 2)
 
@@ -65,7 +66,7 @@ editor squiggles a typo before the server ever sees it.
 
 ## What the loader checks
 
-The parser validates the file before scanning. It rejects the whole file when it has:
+The parser rejects the file before scanning when it has:
 
 - no `version`, or a `version` this build does not read;
 - one key in two sections;
@@ -78,12 +79,13 @@ The parser validates the file before scanning. It rejects the whole file when it
 Resolution failures do not reject the file. `GameData::FailureSummary()` reports them, and affected
 capabilities carry the same reason.
 
-`FailureSummary()` cannot include a missing key because no entry was loaded. `Bindings::Bind`
-reports it through its capability or a `Bindings: '<key>' is not in gamedata` warning.
+`FailureSummary()` cannot include a missing key because no entry was loaded.
+`Bindings::Bind` reports it through its capability or a warning that names the
+missing key.
 
 ## Capabilities, not readiness flags
 
-`Runtime::Start` records availability in @ref VoltMod::Capabilities:
+`Runtime::Start` records availability in @ref VoltMod::Capabilities.
 
 ```cpp
 if (!runtime.Capabilities.Has(Capability::Movement))
@@ -95,7 +97,7 @@ safe to call and return `Error::NotReady`, an empty `Subscription`, or no result
 
 ## Re-verify after an engine update
 
-Every entry can drift with CS2. Treat a `build.verified` date older than the latest game update as
+Every entry can drift after a CS2 update. Treat an older `build.verified` date as
 unverified.
 
 1. **Read the load and capability reports.** Listed entries are broken; unlisted entries still need
@@ -123,8 +125,8 @@ The entries most likely to bite, and how each one fails:
 
 ## Signature scanning
 
-The internal scanner rejects ambiguous patterns and bounds-checks rel32 targets. Consumers use it
-through gamedata, not directly.
+The internal scanner rejects ambiguous patterns and out-of-bounds rel32 targets.
+Plugins use it through gamedata rather than directly.
 
 ### Vtable lookup by class name
 
@@ -152,8 +154,8 @@ runtime.Entities.PawnOf(slot).Health = 100;   // resolves CBaseEntity::m_iHealth
 
 `Field` compares `sizeof(T)` with the engine field size and warns once on mismatch.
 
-For fields without wrappers, declare a typed `static` @ref VoltMod::SchemaField beside the access
-and apply it with a @ref VoltMod::SchemaPtr:
+For fields without wrappers, declare a typed `static` @ref VoltMod::SchemaField
+beside the access and apply it with a @ref VoltMod::SchemaPtr.
 
 ```cpp
 static const VoltMod::SchemaField<void*> kMoneyServices{"CCSPlayerController", "m_pInGameMoneyServices"};

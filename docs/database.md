@@ -2,10 +2,9 @@
 
 [TOC]
 
-`VoltMod/Database/` is an opt-in, **async-first** PostgreSQL layer. One worker
-thread owns the connection, and gameplay code never blocks on the database.
-Row parsing and INSERT/SELECT SQL are generated from a per-entity column table,
-so a repository method only needs a query and a callback.
+`VoltMod/Database/` is an optional asynchronous PostgreSQL layer. One worker
+owns the connection, while completions return to the game thread. Column tables
+can generate row parsing and common `INSERT` or `SELECT` SQL.
 
 Compiled only when `VOLTMOD_ENABLE_POSTGRES` is `ON` (default `OFF`); plugins without a database never pull libpqxx.
 
@@ -16,10 +15,13 @@ default_options = {"voltmod/*:with_postgres": True}
 
 ## The threading model
 
-- `Query` / `Exec` are the gameplay path: enqueue, return immediately. `Query` completions are queued and replayed **on the game thread** (a per-frame subscription self-registers in `Start`), so callbacks may touch players, menus, and your managers freely.
-- Jobs run FIFO on the worker, so a write enqueued before a read is visible to that read. Counting rows you just inserted works without ceremony.
-- The `*Blocking` variants ride the same queue but wait. They exist for load time only: `OnLoad`, migrations, an explicit admin reload. Never call them per-frame or per-event.
-- The connection opens lazily and reopens after a drop; `PostgresConfig::connectTimeoutSec` (default 5) bounds every attempt so a dead database can't hang a query or unload.
+- `Query` and `Exec` enqueue work and return immediately. Query callbacks run on
+  the game thread and may use players, menus, and plugin managers.
+- Jobs run FIFO, so a queued write is visible to a later read.
+- Blocking variants use the same queue but wait. Restrict them to load-time work,
+  migrations, and explicit operator reloads.
+- Connections open lazily and recover after a drop. `connectTimeoutSec` defaults
+  to 5 seconds and bounds each attempt.
 
 ## Start / Stop
 
@@ -41,7 +43,9 @@ queued writes finish (a ban issued just before unload must land) and drops undis
 completions, so it must run after the managers those callbacks would touch have
 been destroyed.
 
-`Stop(stopDeadline = 5s)` is deliberate about what happens to in-flight work: new work is dropped with a log line; already-queued jobs get to finish within the deadline (a ban written just before unload must land); anything past the deadline is dropped with a warning; blocked waiters are released with a failed result; and undispatched completions are destroyed unrun, because the state they would touch is going away.
+`Stop(stopDeadline = 5s)` rejects new work and lets queued jobs finish until the
+deadline. It then releases blocked waiters with failures and discards
+undelivered callbacks because their target state is being destroyed.
 
 ## Queries
 
@@ -120,7 +124,8 @@ the call site.
 
 ## Cache-first reads
 
-Gameplay reads should never wait on the database. Keep the active rows in memory, update the cache synchronously when acting, and let the write ride the worker:
+Gameplay reads should use an in-memory cache. Update the cache immediately and
+queue persistence work:
 
 ```cpp
 void PunishmentManager::IssueBan(Ban ban)
@@ -135,7 +140,9 @@ A periodic async sweep re-snapshots the caches (expiry, changes from other serve
 
 ## Migrations
 
-`RunMigrations(db, dir, options)` scans `dir` for `NNNN_*.sql` files and applies everything above the recorded version, in order, each in its own transaction, under a session advisory lock (two servers loading against one database won't race). A missing directory is a logged no-op. It runs on the blocking path, so call it from `OnLoad` right after `Start`:
+`RunMigrations(db, dir, options)` applies newer `NNNN_*.sql` files in order,
+using one transaction per file and a session advisory lock. A missing directory
+is a logged no-op. Call it from `OnLoad` after `Start`:
 
 ```cpp
 if (!VoltMod::RunMigrations(db, "addons/my-plugin/configs/migrations",

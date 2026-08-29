@@ -12,10 +12,10 @@ Three value types wrap a live entity, each adding to the one before it:
 | @ref VoltMod::Pawn | A player's body: health, armor, movement, aim, render | `runtime.Entities.PawnOf(slot)` |
 | @ref VoltMod::Controller | A player's identity: name, money, team, kick | `runtime.Entities.Controller(slot)` |
 
-The split matters. The controller is the scoreboard row and survives death, team changes and
-respawns; the pawn is the body and is replaced on every spawn. **A player's health is on the pawn**
-(`controller.GetPawn().Health`, or just `runtime.Entities.PawnOf(slot).Health`). The CBaseEntity
-fields a `Controller` inherits are the controller entity's own and mean nothing for gameplay.
+The controller represents the scoreboard identity and survives respawns. The
+pawn is the replaceable body and holds health, armor, movement, and aim. Base
+entity fields inherited by `Controller` belong to the controller entity, not the
+player's body.
 
 ```cpp
 auto pawn = runtime.Entities.PawnOf(slot);
@@ -33,8 +33,8 @@ controller.ChangeTeam(VoltMod::TeamCT);
 
 ## Validity, and never storing a wrapper
 
-Every wrapper is a **frame-local value**. It holds a raw entity pointer, and the engine frees
-entities between frames without telling anyone.
+Every wrapper is a **frame-local value** around a raw entity pointer. The engine
+may free that entity between frames.
 
 - `explicit operator bool()` is the one validity check. There is no `IsValid()`.
 - **Never store a wrapper.** Store an @ref VoltMod::EntityRef (index + serial, validated on
@@ -53,9 +53,8 @@ scheduler.Delay(3000, [&entities = runtime.Entities, slot] {
 });
 ```
 
-Reading a field of a falsy wrapper yields a zero value and writing it does nothing, so a wrapper
-that never resolved degrades rather than crashing. A stale non-null one does not - which is why
-the rule is "never store one" and not "check before use".
+A falsy wrapper reads zero values and ignores writes. A stale non-null pointer is
+not safe, which is why wrappers must never be stored.
 
 ## Fields
 
@@ -67,14 +66,13 @@ if (pawn.Team == VoltMod::TeamCT && pawn.Flags.Get() & VoltMod::FL_ONGROUND)
     pawn.SpeedModifier = 1.5f;
 ```
 
-Three things a `Field` does that a raw offset write does not:
+Compared with a raw offset, `Field`:
 
-1. **It resolves itself, once per process.** No service to thread through, and the offset is
-   looked up once per `(class, field)` for the lifetime of the server, not once per read.
-2. **It walks base classes.** `m_angEyeAngles` is declared on `CCSPlayerPawnBase`; asking for it
-   on `CCSPlayerPawn` finds it, and the other way round.
-3. **It replicates.** A write to a networked field dirties it, so the client sees the new value on
-   the next snapshot instead of whenever something else happens to touch the entity.
+1. **Resolves once per process.** Each `(class, field)` lookup is cached for the
+   server process.
+2. **Walks base classes.** A field declared on a base resolves from its derived
+   entity class.
+3. **Replicates networked writes.** The field is dirtied for the next snapshot.
 
 `Field::Ref()` exposes the resolved @ref VoltMod::FieldRef (offset, size, networked, chain), and
 `Get()` / `Set()` are there when the conversion operators read badly at a call site.
@@ -179,11 +177,10 @@ target.Teleport(dest, std::nullopt, Vector{0, 0, 0});
 PawnOps::SwapOrigins(a, b);                          // both spots vacate in the same frame
 ```
 
-Two CS2 workarounds are baked in: `Slap` writes velocity through `m_vecAbsVelocity` because
-`Teleport(nullopt origin, ...)` crashes the server, and godmode uses the `FL_GODMODE` flag because
-the legacy `m_takedamage` write is a no-op. `Slap`'s fall protection clears itself on a scheduler
-timer, and the `SlotEvents` listener it takes cancels that timer if the player leaves first, so
-the next occupant of the slot never has godmode stripped.
+`Slap` writes `m_vecAbsVelocity` because teleporting with no origin crashes the
+server. Godmode uses `FL_GODMODE` because the legacy `m_takedamage` write has no
+effect. Slap fall protection is cancelled on slot changes so it cannot affect a
+new occupant.
 
 ## Items
 

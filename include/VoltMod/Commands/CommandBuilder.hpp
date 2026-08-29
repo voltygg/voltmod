@@ -19,8 +19,7 @@ namespace VoltMod
 /**
  * @brief What a command handler answers with.
  *
- * An empty @ref Text sends nothing, which is what a command whose feedback is a menu, a
- * broadcast, or its own @ref Caller::Say lines wants.
+ * An empty @ref Text sends no reply.
  */
 struct Reply
 {
@@ -33,25 +32,17 @@ struct Reply
 /**
  * @brief Who invoked the command, and how to answer them.
  *
- * A handler's first parameter. @ref P is null on the console surface, where @ref Slot is -1
- * and every lookup resolves the server language.
- *
- * The reply helpers localize in the caller's own language, so a handler never touches
- * @ref Translations for its own replies and never formats an English literal.
+ * A handler's first parameter. @ref Player is null and @ref Slot is -1 for console commands.
+ * Reply helpers localize in the caller's language.
  */
 struct Caller
 {
-    /** The player who typed the command; null on the console surface. Spelled with the
-     *  qualified type: an unqualified `Player` here would name this member, not the class. */
+    /** The player who typed the command, or null for console commands. */
     VoltMod::Player* Player = nullptr;
     /** @ref Player's slot, or -1 for the console - which is also the server-language slot. */
     int Slot = -1;
-    /** The table @ref Ok, @ref Fail and @ref Say translate through. Also the way to read a
-     *  server-language string (`Tr.Get(key)`), which is what a reason written to the database
-     *  or announced to everyone wants. */
     Translations& Tr;
-    /** Where @ref Say lines go: `Policy.Reply` in chat, the console log otherwise. Owned by
-     *  the dispatch frame, so it is live for exactly the length of the handler call. */
+    /** Sends a reply to chat or the console for the duration of the handler call. */
     std::function<void(const std::string&)> Send;
 
     /** @p key localized for this caller, with `{token}` substitution. */
@@ -109,8 +100,7 @@ struct CommandArgList
 /**
  * @brief The parameter list of a handler, after the leading @ref Caller.
  *
- * This is what makes the signature the argument spec: `Run` deduces `A...` from the callable
- * itself rather than from a separately written descriptor that could drift from it.
+ * `Run` deduces `A...` from the callable, so the signature is the argument specification.
  */
 template <class F>
 struct CommandHandlerArgs : CommandHandlerArgs<decltype(&std::remove_reference_t<F>::operator())>
@@ -152,8 +142,7 @@ struct CommandHandlerArgs<R (*)(Caller, A...)>
  *     });
  * @endcode
  *
- * Single use: @ref Run consumes the builder and installs the command. The manager owns the
- * registration for its own lifetime, which is one plugin load cycle.
+ * @ref Run installs the command. The manager owns it for the plugin load cycle.
  */
 class CommandBuilder
 {
@@ -217,8 +206,7 @@ public:
      * argument; that list is the argument spec - arity, order, parsing and the usage line all
      * come from it.
      *
-     * Nothing to hold on to: the command is unregistered when the @ref CommandManager goes,
-     * which the plugin's unload path does before the state the handler captured.
+     * The command is unregistered when @ref CommandManager is destroyed.
      */
     template <class F>
     void Run(F&& handler)

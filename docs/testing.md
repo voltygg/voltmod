@@ -2,9 +2,8 @@
 
 [TOC]
 
-Unit tests use [doctest](https://github.com/doctest/doctest), added through Conan
-`test_requires` and linked as `doctest::doctest`. Tests are SDK-free: they cover
-pure logic such as parsers, math, score decay, and targeting rules without
+Unit tests use [doctest](https://github.com/doctest/doctest) and remain SDK-free.
+They cover logic such as parsing, targeting, and score calculations without
 loading Metamod or HL2SDK.
 
 ## Running
@@ -25,10 +24,8 @@ ctest --preset windows-msvc-release -N          # list without running
 
 ## In CI
 
-`conan create` cannot run the suite: `tests/` is outside the recipe's
-`exports_sources` and the recipe forces `BUILD_TESTING` off for a cache build. CI
-therefore builds the framework from the source checkout as its own step and runs
-the Linux preset against it:
+`conan create` does not include `tests/` and disables `BUILD_TESTING`. CI builds
+the source checkout separately and runs the Linux preset:
 
 ```yaml
 - run: voltmod build linux-steamrt-release --no-lockfile
@@ -51,13 +48,9 @@ build/windows-msvc-release/vendor/voltmod/voltmod-utils-tests.exe --success   # 
 
 ## Writing a test
 
-Every `tests/**/*.cpp` is a test TU holding nothing but test cases, grouped into
-subfolders by module (`Core/`, `Engine/`, `Entities/`, `Hooks/`, `Players/`,
-`Commands/`, `Menu/`, `App/`, `Database/`); `voltmod_add_tests()` supplies doctest's
-`main`. A new file needs no registration because the recursive glob picks it up.
-`tests/Api/` is the one exception: `voltmod_add_tests()` excludes it from the glob
-because those files are compile-only checks that need the full HL2SDK/Metamod build
-(see "Api surface checks" below), not this SDK-free executable.
+Put test cases in `tests/<Module>/*.cpp`; `voltmod_add_tests()` supplies `main`
+and discovers new files automatically. `tests/Api/` is excluded because those
+compile-only checks need the full HL2SDK and Metamod build.
 
 ```cpp
 #include <VoltMod/Core/Strings.hpp>
@@ -77,9 +70,8 @@ TEST_CASE("ParseDuration: suffixes")
 
 ### Assertions
 
-`CHECK*` records a failure and keeps going; `REQUIRE*` aborts the case immediately. Reach
-for `REQUIRE` whenever the rest of the case would dereference or index what you just
-checked. Otherwise a failure turns into a crash with no report:
+`CHECK*` records a failure and continues. `REQUIRE*` stops the case, so use it
+before dereferencing or indexing a value under test:
 
 ```cpp
 TEST_CASE("FindSettledSnap picks the snap nearest the shot")
@@ -90,8 +82,8 @@ TEST_CASE("FindSettledSnap picks the snap nearest the shot")
 }
 ```
 
-Failures print operand *values*, not just the source text. `CHECK(a == b)` decomposes the
-comparison, and the binary forms (`CHECK_EQ`, `CHECK_NE`, `CHECK_LT`, ...) are equivalent:
+Direct comparisons print operand values. Binary forms such as `CHECK_EQ` and
+`CHECK_LT` provide the same decomposition:
 
 ```text
 TEST CASE:  ParseDuration: suffixes
@@ -100,8 +92,8 @@ ParseDurationTests.cpp(9): ERROR: CHECK_EQ( ParseDuration("5m"), 300 ) is NOT co
   values: CHECK_EQ( 5, 300 )
 ```
 
-What does lose that detail is wrapping the comparison in a predicate: `CHECK(Near(a, b))`
-can only report `values: CHECK( false )`. Compare directly where you can.
+Wrapping a comparison in a predicate loses that detail, so compare directly
+when possible.
 
 `doctest::Approx` is the built-in float comparison, but note its tolerance is *relative*:
 `|a - b| < epsilon * (scale + max(|a|, |b|))`, so `Approx(180.0f).epsilon(0.01)` accepts a
@@ -176,13 +168,10 @@ def build_requirements(self):
 
 ## Api surface checks
 
-Each module's `Api.hpp` aggregate (`<VoltMod/Api.hpp>`, `Entities/Api.hpp`, `Hooks/Api.hpp`,
-`Menu/Api.hpp`, `Unsafe/Api.hpp`, `Database/Api.hpp`) must compile as the only VoltMod include
-in its translation unit, and `<VoltMod/Api.hpp>` itself must never reach nlohmann or the
-Menu-building surface. `tests/Api/*SurfaceTest.cpp` checks exactly that: one TU per header that
-includes it and nothing else, plus a couple of `#ifdef` assertions on `RootApiSurfaceTest.cpp`
-for the two things `<VoltMod/Api.hpp>` must not pull in. Nothing in these files is ever called,
-so a passing build is the whole test.
+Each `Api.hpp` aggregate must compile as the only VoltMod include in a
+translation unit. `RootApiSurfaceTest.cpp` also verifies that the main umbrella
+does not include nlohmann or the menu-building surface. These files are
+compile-only tests.
 
 They compile into `voltmod-api-surface-check`, an object library defined in the root
 `CMakeLists.txt` and linked against `VoltMod::Runtime` (and `VoltMod::Database` when
@@ -197,13 +186,9 @@ uv run poe modgraph                 # the framework's own module layering
 voltmod modgraph --plugins .        # a consumer repo's plugins/ sources
 ```
 
-With no `--plugins`, `voltmod modgraph` walks `include/VoltMod` and `src`, printing each
-module's allowed dependencies and failing on an edge the layering forbids, a stray
-`using`-directive in a header, an anonymous namespace, or a forward-declared framework type
-outside `*Types.hpp`. `--plugins <path>` runs that same set of source conventions - not the
-module layering, which is framework-only - over a consumer's `plugins/` directory (or `<path>`
-itself when it has no `plugins/` subdirectory). Consumers run it from their own repository root,
-typically as `voltmod modgraph --plugins .`.
+Without `--plugins`, `modgraph` checks the framework's module dependencies and
+source conventions. `--plugins <path>` checks consumer source conventions but
+not framework layering. Run it from the consumer repository root.
 
 ## What is worth testing
 

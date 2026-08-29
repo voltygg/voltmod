@@ -55,16 +55,13 @@ struct HttpClient::Impl
         HttpCompletion OnComplete;
     };
 
-    /** Each in-flight request is its own std::async thread. Unbounded, that let a burst of
-     *  requests spawn a thread apiece on a box already budgeting its cores for the tick loop;
-     *  past this many, requests wait their turn. */
+    /** Maximum number of worker requests. Additional requests wait in the queue. */
     static constexpr size_t MaxInFlight = 4;
 
     std::vector<Pending> Items;
     std::deque<Queued> Waiting;
 
-    /** Everything queues; StartWaiting is the one place a request is actually started, so the
-     *  in-flight cap is tested once. */
+    /** Queued requests are started only by StartWaiting, which enforces the in-flight cap. */
     void Launch(Queued&& queued)
     {
         Waiting.push_back(std::move(queued));
@@ -86,8 +83,7 @@ HttpClient::HttpClient(Scheduler& scheduler)
     : _impl(std::make_unique<Impl>()), _onFrame(scheduler.EveryFrame([this] { DispatchCompletions(); }))
 {}
 
-// Self-cleaning: a client destroyed without an explicit Stop() still joins its workers rather than
-// leaving them pointing into a DLL that is about to be unmapped. Stop() is idempotent.
+// Destruction joins workers so they cannot call into an unmapped plugin. Stop() is idempotent.
 HttpClient::~HttpClient()
 {
     Stop();
@@ -95,9 +91,8 @@ HttpClient::~HttpClient()
 
 void HttpClient::Stop()
 {
-    // Block until in-flight requests finish, then drop their (unrun) completions. Joining here - on
-    // the plugin Unload path, not in DllMain - is what keeps `meta reload` from leaving live worker
-    // threads pointing into the unmapped DLL.
+    // Join workers during plugin unload, then discard completions they did not deliver. This keeps
+    // meta reload from leaving threads pointing into the unmapped DLL.
     for (auto& p : _impl->Items)
         p.Result.wait();
     _impl->Items.clear();

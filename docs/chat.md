@@ -2,11 +2,9 @@
 
 [TOC]
 
-All player-facing text leaves the server through `runtime.Messages`
-(@ref VoltMod::Messages). It can send to chat, the center of the
-screen, the center-HTML panel, or the alert bar; the destination is selected by
-@ref VoltMod::MessageKind. Colors are escape bytes that you compose with
-`std::format` and the `ChatColors` constants.
+Use `runtime.Messages` (@ref VoltMod::Messages) for chat, center text,
+center HTML, and alert messages. @ref VoltMod::MessageKind selects the
+destination. `ChatColors` provides the escape codes used in chat text.
 
 ## Sending
 
@@ -27,13 +25,17 @@ msg.ReplyKey(slot, "cmd.banSuccess", {{"name", targetName}});
 `Reply` sends a chat message to one player. `runtime.Policy.Reply` usually
 forwards to it.
 
-Chat sends normalize colors for you: a message that already starts with a color escape keeps it; anything else gets the default color prepended so lines don't inherit the previous line's color. (CS2 routes server-originated chat through `TextMsg`; it silently drops `SayText2` from non-player sources.)
+Chat output keeps an existing leading color or prepends the default so it cannot
+inherit color from a previous line. CS2 requires `TextMsg` for server-originated
+chat and drops `SayText2` from non-player sources.
 
 For a *sticky* center panel that survives the client's aggressive HUD clearing, use @ref VoltMod::CenterHtml; see @ref sdk_messaging_guide.
 
 ## Color constants
 
-CS2's chat reads ASCII bytes `0x01`-`0x10` as in-line color toggles. Embed them anywhere; everything until the next escape renders in that color. All constants are `inline constexpr std::string_view`, so they drop into `std::format`:
+CS2 treats bytes `0x01` through `0x10` as inline color changes. A color remains
+active until the next escape. The constants are `inline constexpr
+std::string_view` values suitable for `std::format`:
 
 | Constant(s) | Byte | Color |
 |---|---|---|

@@ -4,8 +4,8 @@
 
 ## Messages
 
-One service handles every destination. See @ref chat_guide for colors,
-`ReplyKey`, and broadcast behavior; the raw API is:
+One service handles all message destinations. See @ref chat_guide for colors,
+translation keys, and broadcasts:
 
 ```cpp
 auto& msg = runtime.Messages;
@@ -38,8 +38,8 @@ panel.Stop(slot);   // cancel + clear the panel
 
 ## ChatInput
 
-This per-slot prompt registry backs menu text input. Use it directly for prompts
-outside a menu.
+This per-slot prompt registry powers menu text input and may also be used
+directly.
 
 ```cpp
 auto& capture = runtime.Hooks.ChatInput;
@@ -53,7 +53,8 @@ capture.BeginCapture(slot, "Enter your nickname:",
     /*timeoutMs=*/30000);
 ```
 
-The validator returns `true` to accept the input (capture clears) or `false` to re-prompt the player. The capture auto-cancels after `timeoutMs` of no input.
+The validator returns `true` to accept and clear the capture, or `false` to
+prompt again. Inactive captures expire after `timeoutMs`.
 
 ### Plumbing the chat hook
 
@@ -90,9 +91,8 @@ when the slot changes hands. Nothing has to call a lifecycle hook for it.
 
 ## Vote
 
-@ref VoltMod::Vote (`runtime.Hooks.Vote`) drives the game's own yes/no vote panel through
-the map's `vote_controller` entity. The engine collects the ballots, so there is no plugin-side
-tally to keep.
+@ref VoltMod::Vote drives the engine's yes/no panel through the map's
+`vote_controller`. The engine collects the ballots.
 
 ```cpp
 runtime.Hooks.Vote.StartVote(

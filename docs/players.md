@@ -2,17 +2,16 @@
 
 [TOC]
 
-`VoltMod/Players/` is who is on the server and who may act on whom: one roster,
-one identity type, and one gate (@ref VoltMod::Policy::Authorize) that every
-command, action, menu row and effect goes through.
+`VoltMod/Players/` tracks connections and applies the authorization gate used by
+commands, actions, menu rows, and effects.
 
 `Player` stores identity only. Keep admin flags, punishments, statistics, and
 other plugin state in managers keyed by SteamID.
 
 ## Three identities
 
-A player is named three different ways, and picking the wrong one is the classic
-source of "it acted on whoever took that seat next".
+Choose the identity type by how long it must remain valid. Storing a slot or
+frame-local wrapper can act on the wrong player after reconnect or respawn.
 
 | Type | Lives for | Use it for |
 | ---- | --------- | ---------- |
@@ -20,7 +19,7 @@ source of "it acted on whoever took that seat next".
 | @ref VoltMod::Player `&` / `*` | one connection | the player you are working with **right now**; owned by `runtime.Players` |
 | @ref VoltMod::Controller, @ref VoltMod::Pawn | one frame | the engine entity: name, money, team, health, position |
 
-Resolving goes one way down that table and is re-done each time:
+Resolve stored identities at the point of use:
 
 ```cpp
 VoltMod::Player* p = runtime.Players.Get(ref);   // null if the slot changed hands
@@ -89,7 +88,8 @@ and it can live on whichever object actually owns the state.
 
 ### Per-slot plugin state
 
-Plugin state keyed by slot has one recurring bug: values leaking from a disconnected player to the next occupant of the slot. @ref VoltMod::PerSlot solves it once: a `std::array<T, MaxPlayers>` whose entries value-reset whenever a player joins or leaves the slot (backed by `runtime.Slots`, which fires on every roster change):
+Use @ref VoltMod::PerSlot for slot-indexed plugin state. It value-resets entries
+when a player joins or leaves, preventing state from leaking to the next occupant:
 
 ```cpp
 struct MyState { int Combo = 0; float Score = 0; };
@@ -103,22 +103,23 @@ _state[slot].Combo++;              // plain indexed access afterwards
 
 ### Reacting to a slot change yourself
 
-`runtime.Slots.Changed` is the same feed `PerSlot` binds to, and it is a plain @ref VoltMod::Event. Subscribe when you need to do more than value-reset an array - close a menu, cancel a timer, flush a session:
+Subscribe to `runtime.Slots.Changed` when a slot change must do more than reset
+a value, such as closing a menu or cancelling a timer:
 
 ```cpp
 _slots = runtime.Slots.Changed += [this](int slot) { CancelCapture(slot); };
 ```
 
-It fires on `Add`, `Remove`, and once per tracked slot on `Clear()`, so "arrived" and "left" both reach it - a fresh occupant has nothing pending, which is what makes one signal enough for both edges. It lives in Core rather than on `PlayerManager` so services below the roster (per-slot caches, the hooks) can hear it without depending on `Player` at all. Prefer it over `Players.Connected`/`Disconnected` when all you have is per-slot state and you never look at the player; prefer the roster events when you need the identity. Keep the returned `Subscription` beside the state the handler touches.
+The event fires for additions, removals, and tracked slots cleared during unload.
+Use it for identity-free slot state; use roster events when the handler needs a
+`Player`. Keep the subscription beside the state it resets.
 
 For time-decaying per-player scores (suspicion, rate limits), use @ref VoltMod::SlidingWindowScore when the threshold is "N events in the last M seconds" and evidence should expire on a hard boundary. It takes caller-supplied seconds; @ref VoltMod::Time::MonotonicSeconds is the matching clock. @ref VoltMod::RandomIndex is the framework's single source of randomness - use it for a random pick (`@random` targeting does) rather than seeding a generator per feature or reaching for the tick counter, which repeats within a frame. Both are unit-tested in the framework's SDK-free test suite.
 
 ## The gate
 
-@ref VoltMod::Policy is the one bridge between the framework's machinery and your
-domain rules, and @ref VoltMod::Policy::Authorize is the one place those rules are
-applied. Commands, actions, effects and menu rows all call it; nothing repeats its
-steps.
+@ref VoltMod::Policy::Authorize is the common gate between framework dispatch
+and plugin-defined permission or immunity rules.
 
 ```cpp
 VoltMod::Result<VoltMod::Authorized> Authorize(PlayerRef caller,
@@ -163,7 +164,9 @@ declaring the argument, not by resolving tokens itself.
 
 ## Actions
 
-An @ref VoltMod::Action is a single-target operation as data: permission token, guards, body. The @ref VoltMod::ActionDispatcher owns the authorize → run → broadcast pipeline, reading everything from `Policy::Authorize`. It holds the three services that pipeline needs - `Policy`, `PlayerManager`, `EntitySystem` - by reference, so build one where you need it, or hold one as a long-lived member (this is what `ActionRows` does for its context rows):
+An @ref VoltMod::Action describes a single-target operation: permission, guards,
+and body. @ref VoltMod::ActionDispatcher authorizes, runs, and broadcasts it
+using `Policy`, `PlayerManager`, and `EntitySystem`:
 
 ```cpp
 using VoltMod::Action;
@@ -187,7 +190,10 @@ Actions plug directly into menu context rows (`Row`, `StateToggle`, `Presets`; s
 
 ## Effect descriptors
 
-Effects are toggleable or timed per-player states: the fun-command family (ghost, disco, wallhack, custom models). One @ref VoltMod::EffectDescriptor covers all of it - the plain toggle and the parameterized/picker shape both use the same type: permission, id, label key, broadcast keys, lifetime policy, an optional `Choices` list, and a `Setup` body that receives a `param` (0 for a plain toggle; the picker's selected value otherwise) and returns the `OnTick`/`OnStop` closures @ref VoltMod::EffectManager drives:
+@ref VoltMod::EffectDescriptor defines a toggleable or timed player effect. It
+contains permission and display metadata, lifetime policy, optional choices,
+and a `Setup` function that returns the callbacks driven by @ref
+VoltMod::EffectManager.
 
 ```cpp
 using VoltMod::EffectDescriptor;
@@ -227,21 +233,17 @@ const std::array<EffectEntry, 2> MenuEffects{
 };
 ```
 
-A body whose engine services are already reachable through the call - a menu row, a command
-handler - captures its plugin's `App&` (or the specific service) the same way; only a body defined
-as static data before any `App` exists needs the factory-function shape above.
+A menu row or command handler may capture `App&` or a specific service directly.
+The factory shape above is for descriptors created before `App` exists.
 
 `OnStop` outlives the `ActionContext` that produced it, so capture the service, never `ctx`.
 Capturing a `Runtime&` (or an `App&`) by reference is safe because `EffectManager` is a member of
 your `App`, which is destroyed before the `Runtime`.
 
-Dispatch through an `EffectDispatcher`, which your `App` owns next to its `ActionDispatcher` and
-`EffectManager` (`EffectDispatcher PlayerEffects{Actions, Effects};`):
-`PlayerEffects.Toggle(adminSlot, targetSlot, descriptor)` plus its `Apply` / `Clear` siblings (they
-resolve the pair through the wrapped `ActionDispatcher` and apply `Policy::Authorize` first). Or
-drop the descriptor straight into a menu with `ActionRows::Effect`. Set `Choices` to drive a
-picker submenu instead of a plain toggle - `Apply`/`Toggle` then take the picker's `param` and
-`ActionRows::EffectPicker` renders it, with a reset row when `ResetLabelKey` is set.
+Own an `EffectDispatcher` beside the `ActionDispatcher` and `EffectManager`.
+`Toggle`, `Apply`, and `Clear` resolve and authorize the pair before changing an
+effect. `ActionRows::Effect` adds a toggle to a menu, while `EffectPicker` uses
+the descriptor's `Choices` and optional reset label.
 `EffectManager` guarantees `OnStop` runs exactly once however the effect ends, whether by toggle,
 death, disconnect, round end, or unload.
 

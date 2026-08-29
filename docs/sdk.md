@@ -4,10 +4,9 @@
 
 ## Overview
 
-`VoltMod/Engine/`, `VoltMod/Entities/`, `VoltMod/Events/`, `VoltMod/Messaging/` and
-`VoltMod/Hooks/` are the engine wrapper layer: typed classes over HL2SDK interfaces
-so plugin code does not have to juggle raw pointers and reversed offsets. Their
-names, like every other public name, live directly in `VoltMod`.
+The Engine, Entities, Events, Messaging, and Hooks modules wrap HL2SDK and
+reverse-engineered engine access in typed APIs. Public names live directly in
+`VoltMod`.
 
 `<VoltMod/Api.hpp>` already carries the wrapper types `Runtime` holds by value
 (`EntitySystem`, `GameEvents`, `Messages`, ...). Three more headers gather what
@@ -27,7 +26,7 @@ The guide is split by topic:
 - @subpage sdk_visibility_guide - render mode/color tricks, per-recipient transmit filtering, and per-viewer glow vision
 - @subpage sdk_messaging_guide - chat/center-HTML messages, sticky panels, chat input capture, and the yes/no vote panel
 - @subpage sdk_events_guide - typed ConVar access, game event listeners, and level changes
-- @subpage sdk_hooks_guide - the per-tick movement and damage hooks, teleport tracking, and RAII server console commands
+- @subpage sdk_hooks_guide - movement hooks, teleport tracking, custom vtable hooks, and server console commands
 - @subpage sdk_client_telemetry_guide - the server clock, per-client latency, and client convar queries
 
 ## Interfaces
@@ -46,16 +45,15 @@ auto* schema = gi.SchemaSystem; // ISchemaSystem*
 // ... etc.
 ```
 
-Other engine-facing classes read from this holder internally. The examples on these pages
-reach services through `runtime.Entities` and the corresponding runtime members. Schema field
-offsets are not among them: a @ref VoltMod::Field resolves its own, once per process.
+Framework services use this holder internally. Plugin code normally uses the
+typed runtime services instead. Schema fields resolve their own offsets once per
+process.
 
 ## Capabilities
 
-Not every wrapper can work on every build of the game: a gamedata entry can fail to resolve, an
-engine interface can be missing. `Runtime::Start` records each outcome in
-@ref VoltMod::Capabilities, and that is the only place to ask - no service exposes an
-`Available()` or `IsResolved()` flag of its own.
+Engine updates may invalidate gamedata or remove an interface. `Runtime::Start`
+records each result in @ref VoltMod::Capabilities; services do not expose
+separate readiness flags.
 
 ```cpp
 using VoltMod::Capability;
@@ -66,8 +64,8 @@ if (!runtime.Capabilities.Has(Capability::ClientCvars))
 Log::Info("{}", runtime.Capabilities.Summary());  // "12/14 ok; Movement: ..."
 ```
 
-The enumerators are `Schema`, `Entities`, `EntityOps`, `GameEvents`, `Movement`, `Damage`,
-`Teleport`, `Transmit`, `ClientCvars`, `Precache`, `Vote`, `Items`, `Menus` and `Http`. A
-capability that is off means its service is inert, not unsafe: calling into it returns
-`Error::NotReady`, an empty `Subscription`, or nothing at all. The same picture is in the load
-log and in the `capabilities` status section.
+The enumerators are `Schema`, `Entities`, `EntityOps`, `GameEvents`, `Movement`,
+`Teleport`, `Transmit`, `ClientCvars`, `Precache`, `Vote`, `Items`, `Menus`,
+`Http`, `CustomUi`, `UiClicks`, and `Addons`. A disabled service remains safe to
+call and reports not-ready status, an empty subscription, or no result. The load
+log and `capabilities` status section show the same state.

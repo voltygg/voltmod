@@ -44,14 +44,10 @@ struct LoadContext
 /**
  * @brief Framework services for one Load/Unload cycle.
  *
- * Services are flat members named by role, with a few engine tiers grouped (@ref WorldServices,
- * @ref HookServices, @ref UnsafeServices): `runtime.Hooks.Movement`.
- *
- * Declaration order is dependency order. A member is initialized only from members above it,
- * and torn down before them, so a destructor may only touch what is declared above. Access
- * specifiers change none of that. @ref Unsafe comes early because nearly everything reads its
- * @ref Bindings; @ref Ui and @ref Addons sit below the hook tiers because each installs a vtable
- * hook that must come down before them.
+ * Services are flat members grouped by role, such as `runtime.Hooks.Movement`. Declaration order
+ * is dependency order: members initialize from earlier members and are destroyed before them.
+ * Unsafe comes early because most services use its bindings; Ui and Addons follow the hook tiers
+ * because their vtable hooks must be removed first.
  */
 class Runtime
 {

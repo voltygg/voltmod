@@ -9,9 +9,8 @@ namespace VoltMod
 /**
  * @brief Owns one registration and releases it on destruction.
  *
- * Every registration in the framework returns one of these, and holding it is what keeps the
- * handler alive. Declare it as a member next to whatever the handler captures, and it
- * unregisters before that state goes away:
+ * Holding one keeps the registration alive. Store it beside the state captured by its handler so
+ * it unregisters before that state is destroyed:
  *
  * @code
  * class Bhop {
@@ -22,13 +21,11 @@ namespace VoltMod
  * };
  * @endcode
  *
- * Whatever the registry issued stays inside the cleanup callable, so this works just as well for
- * the add/remove pairs that are not handle-keyed at all, such as SourceHook installs (see
- * VOLTMOD_SCOPED_HOOK).
+ * The cleanup callable may hold any registry handle, including non-handle-based registrations
+ * such as SourceHook installs (see VOLTMOD_SCOPED_HOOK).
  *
- * Move-only, and safe to destroy after the registry it points at is gone only if the
- * registry outlives it - which reverse-declaration-order destruction gives you for free
- * when both are members of the same object.
+ * Move-only. The registry must outlive its Subscription; reverse declaration order provides this
+ * when both are members of one object.
  *
  * `<VoltMod/Core/Subscriptions.hpp>` holds several of them in one member, for an object that
  * subscribes to a handful of things at once.

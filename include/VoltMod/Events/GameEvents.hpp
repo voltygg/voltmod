@@ -52,18 +52,14 @@ public:
         });
     }
 
-    /** @brief Remove all listeners and deregister from the engine. Called by the Runtime destructor
-     * (avoids double-registration on reload). */
+    /** @brief Remove all listeners and deregister from the engine. */
     void RemoveAllListeners();
 
     /**
-     * @brief Re-attach every listener to the engine. Called by the framework's StartupServer hook on
-     * every map start.
+     * @brief Re-attach every listener after map startup.
      *
-     * AddListener succeeds even before the first map, but the engine resets the event manager's
-     * listener table during map startup - so registrations made at plugin load (or on a previous
-     * map) are silently dropped and must be re-attached each map. CS2Fixes registers from
-     * StartupServer for the same reason.
+     * The engine resets the listener table during map startup, including registrations made at
+     * plugin load or on a previous map.
      */
     void OnServerStartup();
 

@@ -2,9 +2,8 @@
 
 [TOC]
 
-@ref VoltMod::Addons tells connecting clients which Steam Workshop addons to
-download. Use it for content only the client renders - Panorama layouts (see
-@ref custom_ui_guide), models, sounds.
+@ref VoltMod::Addons requires Steam Workshop content for connecting clients,
+such as Panorama layouts, models, or sounds.
 
 ```cpp
 auto lease = runtime.Addons.Require(3401234567);    // of everyone
@@ -18,10 +17,9 @@ _subs.push_back(runtime.Addons.Ready += [](int slot) {
 });
 ```
 
-An addon is required for as long as you hold the lease, so keep it beside
-whatever needs the content. Requirements are reference counted - two features may
-require the same addon and each releases its own - and `RequireFor(steamId, id)`
-adds one for a single player on top of the global list.
+The returned lease owns the requirement. Keep it beside the feature that needs
+the content. Requirements are reference counted, and `RequireFor(steamId, id)`
+adds a player-specific requirement.
 
 Requirements take effect on a client's next connect; already-connected players
 are not disturbed. `Require` fails rather than quietly doing nothing when the
@@ -29,11 +27,9 @@ capability is off or the server is a listen server, so a plugin can say so.
 
 ## How it works
 
-CS2 hands a client one addon per connection cycle. Each time the server sends a
-client its signon message, @ref VoltMod::Addons rewrites the message to name the
-next addon that client is still missing, which makes the client download it and
-reconnect. When the list runs out the client joins normally and @ref
-VoltMod::Addons::Ready fires.
+CS2 handles one addon per connection cycle. @ref VoltMod::Addons rewrites each
+signon message with the next missing addon. After the final reconnect, the client
+joins normally and @ref VoltMod::Addons::Ready fires.
 
 So **each addon costs the joining client one reconnect**, including the first:
 the server's own addon string is left alone, and the extras only ride the signon
@@ -63,10 +59,10 @@ that works with vtable hooks alone, and it is the same subset
 
 ## The one guess it makes
 
-Nothing tells the server that a download finished. A client is taken to have got
-the addon it was last sent if it reconnects within
-`Addons::DownloadTimeoutSeconds` (30s by default); a client returning later than
-that starts that addon over. Raise it for large addons or slow connections.
+The server receives no download-complete signal. A reconnect within
+`Addons::DownloadTimeoutSeconds` (30 seconds by default) counts as success;
+later reconnects retry the addon. Increase the timeout for large downloads or
+slow clients.
 
 A client that declines the download would otherwise reconnect forever, so the
 same addon is offered at most `Addons::MaxDownloadAttempts` times (3) before that

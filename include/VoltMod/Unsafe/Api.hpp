@@ -1,8 +1,7 @@
 #pragma once
 
-// The Unsafe tier's public surface in one include: raw interface and gamedata access, memory
-// pokes, and the vtable-hook machinery built on them. Opt in explicitly - most plugin code
-// never needs this - by including this header (or the individual ones) where it does.
+// Raw interfaces, gamedata and memory access, and vtable-hook support. Include explicitly
+// in code that needs unsafe APIs.
 
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
