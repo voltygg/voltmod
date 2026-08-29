@@ -50,7 +50,13 @@
   width: 100%;
   flow-children: down;
   padding: 10px 14px 8px 14px;
-  background-color: gradient( linear, 0% 0%, 0% 100%, from( #ffffff12 ), to( #ffffff05 ) );
+  background-color: gradient(
+    linear,
+    0% 0%,
+    0% 100%,
+    from(#ffffff12),
+    to(#ffffff05)
+  );
 }
 
 /* Fixed height: the trail is empty at the root and CSS cannot test that, so it holds its line. */
@@ -212,7 +218,7 @@
   horizontal-align: center;
   vertical-align: center;
   border-radius: 7px;
-  background-color: rgba(255, 255, 255, 0.10);
+  background-color: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.18);
   visibility: collapse;
   transition-property: background-color;
@@ -287,7 +293,7 @@
 
 /* Informational row: readable, but it should not look pressable. */
 .Kind--text .Row-btn {
-  background-color: rgba(255, 255, 255, 0.0);
+  background-color: rgba(255, 255, 255, 0);
 }
 
 .Kind--text .Row-btn:hover {
