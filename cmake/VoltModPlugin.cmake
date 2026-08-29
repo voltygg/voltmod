@@ -151,9 +151,9 @@ function(voltmod_install_plugin target_name)
             COMPONENT "${target_name}")
     endif()
 
-# Install VoltMod's shared Panorama sources, which carry the menu layout UiMenuManager drives.
-# A plugin shipping its own copy of an id-compatible layout installs it above and points
-# UiMenus.SetLayout at it; both can sit in one workshop addon.
+# Install VoltMod's shared Panorama sources, which carry the layout the menu's Panorama driver
+# draws into. A plugin shipping its own copy of an id-compatible layout installs it above and
+# names it in Menus.UsePanorama; both can sit in one workshop addon.
     if(EXISTS "${VOLTMOD_PANORAMA_DIR}")
         install(DIRECTORY "${VOLTMOD_PANORAMA_DIR}/"
             DESTINATION "addons/voltmod/panorama"
