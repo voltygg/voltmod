@@ -2,6 +2,8 @@
 
 #ifdef _WIN32
 
+#include <windows.h>
+
 #include <cstring>
 #include <psapi.h>
 #include <utility>

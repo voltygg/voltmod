@@ -7,7 +7,10 @@
 #include <cstring>
 #include <string>
 
-#ifndef _WIN32
+#ifdef _WIN32
+// The PE section walk below names IMAGE_* directly.
+#include <windows.h>
+#else
 #include <elf.h>
 #include <fcntl.h>
 #include <sys/mman.h>

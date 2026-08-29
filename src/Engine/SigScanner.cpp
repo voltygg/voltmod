@@ -13,6 +13,11 @@
 #include <utility>
 #include <vector>
 
+#ifdef _WIN32
+// The page-protection probe below names VirtualQuery and the PAGE_* flags directly.
+#include <windows.h>
+#endif
+
 namespace VoltMod
 {
 

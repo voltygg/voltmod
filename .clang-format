@@ -49,10 +49,14 @@ IncludeBlocks: Regroup
 IncludeCategories:
   - Regex: '^"'
     Priority: 1
-  - Regex: '^<(ISmmPlugin|igameevents|iplayerinfo|sh_)'
+  # windows.h declares the types the rest of the Win32 SDK headers name, so it has to sort ahead
+  # of them - psapi.h does not compile without it.
+  - Regex: '^<windows\.h>'
     Priority: 2
-  - Regex: '^<'
+  - Regex: '^<(ISmmPlugin|igameevents|iplayerinfo|sh_)'
     Priority: 3
+  - Regex: '^<'
+    Priority: 4
 
 # Pointer alignment
 DerivePointerAlignment: false
