@@ -62,24 +62,17 @@ def _conan(*args: str, capture: bool = False) -> str:
     return result.stdout or ""
 
 
-def _profile(name: str) -> Path:
-    profile = ROOT / "conan/profiles" / f"{name}.txt"
-    if not profile.is_file():
-        tools.die(f"no Conan profile at {profile}")
-    return profile
+def _host_settings() -> tuple[Path, list[str]]:
+    """The host profile and settings a release package is built with.
 
-
-def _host_settings() -> tuple[str, list[str]]:
-    """Return the host profile and runner-specific settings."""
+    The same resolution the build uses, so a runner whose profiles live only in the Conan home -
+    what the setup-toolchain action installs - resolves them here too.
+    """
+    profile, settings = tools.host_profile(ROOT, tools.default_preset())
     if tools.WINDOWS:
-        version = tools.msvc_version()
-        return "windows-msvc", [
-            "-s",
-            "compiler.runtime_type=Release",
-            "-s",
-            f"compiler.version={version}",
-        ]
-    return "linux-steamrt", []
+        # The runner's own cl, rather than the newest the profile names.
+        settings = [*settings, "-s", f"compiler.version={tools.msvc_version()}"]
+    return profile, settings
 
 
 def _create(
@@ -88,14 +81,12 @@ def _create(
     extra: list[str] | None = None,
     options: list[str] | None = None,
 ) -> None:
-    profile_name, settings = _host_settings()
+    profile, settings = _host_settings()
     _conan(
         "create",
         str(recipe),
         "--profile:all",
-        str(_profile(profile_name)),
-        "-s",
-        "build_type=Release",
+        str(profile),
         *settings,
         *(options or ()),
         *(extra or ()),
