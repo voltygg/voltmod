@@ -182,7 +182,7 @@ Use these patterns throughout the framework:
 ## Module rules
 
 `uv run poe modgraph` enforces the include allowlist in
-`scripts/voltmod/modgraph.py`:
+`scripts/voltmod/checks/modgraph.py`:
 
 ```text
 Core       -> nothing

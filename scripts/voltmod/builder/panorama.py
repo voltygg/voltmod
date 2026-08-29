@@ -15,7 +15,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from .buildtools import WINDOWS, die
+from ..tools import WINDOWS, die
 
 #: Source extension -> what resourcecompiler writes for it.
 COMPILED_SUFFIX = {".xml": ".vxml_c", ".css": ".vcss_c"}

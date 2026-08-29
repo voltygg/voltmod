@@ -11,7 +11,7 @@ from typing import Annotated
 import typer
 import yaml
 
-from . import buildtools
+from .. import tools
 
 ROOT = Path.cwd()
 
@@ -58,21 +58,21 @@ NoLockfile = Annotated[
 
 
 def _conan(*args: str, capture: bool = False) -> str:
-    result = buildtools.run_tool("conan", *args, capture=capture)
+    result = tools.run_tool("conan", *args, capture=capture)
     return result.stdout or ""
 
 
 def _profile(name: str) -> Path:
     profile = ROOT / "conan/profiles" / f"{name}.txt"
     if not profile.is_file():
-        buildtools.die(f"no Conan profile at {profile}")
+        tools.die(f"no Conan profile at {profile}")
     return profile
 
 
 def _host_settings() -> tuple[str, list[str]]:
     """Return the host profile and runner-specific settings."""
-    if buildtools.WINDOWS:
-        version = buildtools.msvc_version()
+    if tools.WINDOWS:
+        version = tools.msvc_version()
         return "windows-msvc", [
             "-s",
             "compiler.runtime_type=Release",
@@ -108,7 +108,7 @@ def _upload(pattern: str) -> None:
         "upload",
         pattern,
         "-r",
-        buildtools.CONAN_REMOTE,
+        tools.CONAN_REMOTE,
         "--confirm",
         "-cc",
         "core.upload:retry=3",
@@ -122,7 +122,7 @@ def _recipe_version(name: str) -> str:
     data = yaml.safe_load((ROOT / "recipes" / name / "conandata.yml").read_text(encoding="utf-8"))
     sources = data["sources"]
     if len(sources) != 1:
-        buildtools.die(f"recipes/{name}/conandata.yml must pin exactly one version")
+        tools.die(f"recipes/{name}/conandata.yml must pin exactly one version")
     return next(iter(sources))
 
 
@@ -131,7 +131,7 @@ def _kit_version() -> str:
     metadata = json.loads(_conan("inspect", str(ROOT), "--format=json", capture=True))
     version = metadata.get("version")
     if not version:
-        buildtools.die("the voltmod Conan recipe has no version")
+        tools.die("the voltmod Conan recipe has no version")
     return version
 
 
@@ -141,7 +141,7 @@ def _build_sdks() -> None:
 
 
 def _build_kit(use_lockfile: bool) -> None:
-    extra = ["--build=missing", *buildtools.SDK_BUILD_EXCLUSIONS]
+    extra = ["--build=missing", *tools.SDK_BUILD_EXCLUSIONS]
     if not use_lockfile:
         extra.append("--lockfile=")
     for postgres in ("False", "True"):
@@ -175,7 +175,7 @@ def publish(
         _build_sdks()
         for name in SDK_PACKAGES:
             # Its platform-neutral package ID must only receive one published revision.
-            if name == "metamod-source" and buildtools.WINDOWS:
+            if name == "metamod-source" and tools.WINDOWS:
                 continue
             _upload(f"{name}/*")
     if target in (BuildTarget.KIT, BuildTarget.ALL):
@@ -191,7 +191,7 @@ def _check_release_tag() -> None:
         return
     declared = _kit_version()
     if ref[1:] != declared:
-        buildtools.die(f"tag {ref} does not match conanfile.py ({declared})")
+        tools.die(f"tag {ref} does not match conanfile.py ({declared})")
 
 
 @app.command("version")
@@ -217,9 +217,9 @@ def _login() -> None:
     user = os.environ.get("CLOUDSMITH_USERNAME")
     key = os.environ.get("CLOUDSMITH_API_KEY")
     if not user or not key:
-        buildtools.die("CLOUDSMITH_USERNAME and CLOUDSMITH_API_KEY are required to publish")
-    buildtools.ensure_remote()
-    _conan("remote", "login", buildtools.CONAN_REMOTE, user, "-p", key)
+        tools.die("CLOUDSMITH_USERNAME and CLOUDSMITH_API_KEY are required to publish")
+    tools.ensure_remote()
+    _conan("remote", "login", tools.CONAN_REMOTE, user, "-p", key)
 
 
 # Cloudsmith cannot delete revisions through Conan, so pruning uses its REST API.
@@ -238,17 +238,17 @@ def _reachable_revisions(keep_versions: int) -> set[str]:
                 "list",
                 f"{name}/*#*:*#*",
                 "-r",
-                buildtools.CONAN_REMOTE,
+                tools.CONAN_REMOTE,
                 "--format=json",
                 capture=True,
             )
-        ).get(buildtools.CONAN_REMOTE, {})
+        ).get(tools.CONAN_REMOTE, {})
 
         versions: dict[str, dict] = {}
         for ref, body in listing.items():
             revisions = body.get("revisions")
             if revisions is None:
-                buildtools.die(f"unexpected conan list output for {ref}: no 'revisions' key")
+                tools.die(f"unexpected conan list output for {ref}: no 'revisions' key")
             versions.setdefault(ref.split("/", 1)[1], {}).update(revisions)
 
         for version in sorted(versions)[-keep_versions:]:
@@ -280,7 +280,7 @@ def prune(
     """Delete artifacts no consumer can resolve."""
     token = os.environ.get("CLOUDSMITH_API_KEY", "")
     if not token and not dry_run:
-        buildtools.die("CLOUDSMITH_API_KEY is required to delete")
+        tools.die("CLOUDSMITH_API_KEY is required to delete")
 
     reachable = _reachable_revisions(keep)
     print(f"{len(reachable)} reachable revisions")
@@ -311,7 +311,7 @@ def _git_tip(url: str, branch: str) -> str:
         capture_output=True,
     ).stdout
     if not out.strip():
-        buildtools.die(f"{url} has no branch {branch}")
+        tools.die(f"{url} has no branch {branch}")
     return out.split()[0]
 
 
@@ -330,12 +330,12 @@ def _next_version(name: str, day: str, scheme: str) -> str:
 
 
 def _published(name: str, version: str) -> bool:
-    out = buildtools.run_tool(
+    out = tools.run_tool(
         "conan",
         "list",
         f"{name}/{version}",
         "-r",
-        buildtools.CONAN_REMOTE,
+        tools.CONAN_REMOTE,
         "--format=json",
         capture=True,
         check=False,

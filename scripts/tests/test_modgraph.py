@@ -9,7 +9,7 @@ import textwrap
 from pathlib import Path
 
 import pytest
-from voltmod import modgraph
+from voltmod.checks import modgraph
 
 
 def write(root: Path, rel: str, text: str) -> None:

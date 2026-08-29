@@ -6,7 +6,10 @@ from typing import Annotated
 
 import typer
 
-from . import buildtools, doctor, init_project, localdev, modgraph, new_plugin, package, panorama
+from . import localdev, tools
+from .builder import package, panorama, project
+from .checks import doctor, modgraph
+from .scaffold import init_project, new_plugin
 
 ROOT = Path.cwd()
 KIT_ROOT = Path(__file__).resolve().parents[2]
@@ -63,14 +66,14 @@ def build(
         bool,
         typer.Option("--no-lockfile", help="Resolve without conan.lock, as after an SDK bump"),
     ] = False,
-    framework: Annotated[
-        str,
+    relock: Annotated[
+        bool,
         typer.Option(
-            "--framework",
-            metavar="PATH",
-            help="Package this VoltMod checkout, relock against it, and rebuild from scratch",
+            "--relock",
+            help="Export the editable voltmod checkout as a package, pin it in conan.lock, and "
+            "drop the editable, so the build matches what CI resolves",
         ),
-    ] = "",
+    ] = False,
 ) -> None:
     """Run Conan install and CMake build for one preset."""
     preset = preset or localdev.default_preset()
@@ -81,15 +84,13 @@ def build(
     if install_plugin or start:
         localdev.server_root(server_path)
 
-    if framework:
-        buildtools.use_framework(ROOT, Path(framework), preset)
-
-    buildtools.build(
+    project.build(
         ROOT,
         preset,
         run_tests=False,
         options=[item for value in option or [] for item in ("-o", value)],
         use_lockfile=not no_lockfile,
+        relock=relock,
     )
 
     if install_plugin:
@@ -110,7 +111,7 @@ def test_command(
     ] = "",
 ) -> None:
     """Bring the build up to date, then run its tests."""
-    buildtools.test(ROOT, preset or localdev.default_preset(), filter_=filter_)
+    project.test(ROOT, preset or localdev.default_preset(), filter_=filter_)
 
 
 def _serve_from_env(server_path: str) -> None:
@@ -180,10 +181,10 @@ def bootstrap() -> None:
         source = [str(ROOT / "conan")]
     else:
         source = [CONFIG_SOURCE, "-sf", "conan"]
-    buildtools.run_tool("conan", "config", "install", *source)
+    tools.run_tool("conan", "config", "install", *source)
 
     print("==> [2/2] Building with Conan + CMake")
-    buildtools.build(ROOT, buildtools.default_preset())
+    project.build(ROOT, tools.default_preset())
 
     print("\nBootstrap complete: build/<preset>/plugins/")
 
@@ -208,7 +209,7 @@ def format_command(
 ) -> None:
     """Rewrite C++ sources in the pinned clang-format style."""
     selected = dirs or (["src", "include", "tests"] if ROOT == KIT_ROOT else ["plugins"])
-    buildtools.format_sources(ROOT, selected)
+    project.format_sources(ROOT, selected)
 
 
 @app.command("modgraph")

@@ -132,9 +132,14 @@ class VoltModConan(ConanFile):
 
         # Components match the two CMake libraries. Source modules are internal
         # architecture, not packaging units.
+        # Relative to the package folder, which for an editable checkout is the checkout itself:
+        # its libraries sit in the preset's build tree rather than in lib/.
+        libdirs = [self.folders.build] if self._source_checkout() else ["lib"]
+
         runtime = self.cpp_info.components["runtime"]
         runtime.set_property("cmake_target_name", "VoltMod::Runtime")
         runtime.libs = ["voltmod-runtime"]
+        runtime.libdirs = libdirs
         runtime.includedirs = ["include"]
         runtime.requires = [
             "hl2sdk-cs2::hl2sdk-cs2",
@@ -150,6 +155,7 @@ class VoltModConan(ConanFile):
             db = self.cpp_info.components["database"]
             db.set_property("cmake_target_name", "VoltMod::Database")
             db.libs = ["voltmod-database"]
+            db.libdirs = libdirs
             db.includedirs = ["include"]
             db.requires = ["runtime", "libpqxx::libpqxx"]
             # Consumer feature checks and Database/Api.hpp's guard read this.

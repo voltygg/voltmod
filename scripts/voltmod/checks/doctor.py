@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import re
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
-from . import buildtools
+from .. import tools
 
 
 class Report:
@@ -30,42 +29,24 @@ class Report:
         print(f"FAIL  {message}")
 
 
-def _version(tool: str) -> str:
-    argv, env = buildtools.resolve_tool(tool)
-    result = subprocess.run(
-        [*argv, "--version"],
-        check=False,
-        capture_output=True,
-        text=True,
-        env=env,
-    )
-    output = (result.stdout or result.stderr).strip().splitlines()
-    if result.returncode != 0 or not output:
-        raise RuntimeError("version command failed")
-    return output[0]
-
-
 def _check_tools(report: Report) -> None:
-    minimums = {"cmake": (4, 3, 4), "conan": (2, 29, 1)}
     for tool in ("cmake", "conan", "ninja"):
         try:
-            version = _version(tool)
-            match = re.search(r"\d+(?:\.\d+)+", version)
-            actual = tuple(int(part) for part in match.group().split(".")) if match else ()
-            minimum = minimums.get(tool)
+            version, actual = tools.tool_version(tool)
+            minimum = tools.MINIMUM_VERSIONS.get(tool)
             if minimum and actual < minimum:
                 required = ".".join(str(part) for part in minimum)
                 report.fail(f"{tool}: {version}; VoltMod requires {required} or newer")
             else:
                 report.pass_(f"{tool}: {version}")
-        except (RuntimeError, SystemExit) as exc:
+        except SystemExit as exc:
             report.fail(f"{tool}: {exc}")
 
 
 def _check_compiler(report: Report) -> None:
-    if buildtools.WINDOWS:
+    if tools.WINDOWS:
         try:
-            report.pass_(f"MSVC compiler: {buildtools.msvc_version()}")
+            report.pass_(f"MSVC compiler: {tools.msvc_version()}")
         except (KeyError, OSError, RuntimeError, subprocess.SubprocessError, SystemExit) as exc:
             report.fail(f"MSVC compiler: {exc}")
         return
@@ -75,8 +56,8 @@ def _check_compiler(report: Report) -> None:
         report.fail("C++ compiler: install GCC or Clang with C++23 support")
         return
     try:
-        report.pass_(f"C++ compiler: {_version(compiler)}")
-    except (RuntimeError, SystemExit) as exc:
+        report.pass_(f"C++ compiler: {tools.tool_version(compiler)[0]}")
+    except SystemExit as exc:
         report.fail(f"C++ compiler: {exc}")
 
 
@@ -88,22 +69,18 @@ def _check_project(report: Report, root: Path) -> None:
         else:
             report.fail(f"project file missing: {relative}")
 
-    profile_roots = (
-        root / "conan/profiles",
-        Path.home() / ".conan2/profiles",
-    )
-    if any(path.is_dir() for path in profile_roots):
+    if any(path.is_dir() for path in tools.profile_dirs(root)):
         report.pass_("Conan profiles are available")
     else:
         report.warn("Conan profiles are not installed yet; run `voltmod bootstrap`")
 
     try:
-        result = buildtools.run_tool("conan", "remote", "list", capture=True, check=False)
-        if result.returncode == 0 and f"{buildtools.CONAN_REMOTE}:" in result.stdout:
-            report.pass_(f"Conan remote: {buildtools.CONAN_REMOTE}")
+        result = tools.run_tool("conan", "remote", "list", capture=True, check=False)
+        if result.returncode == 0 and f"{tools.CONAN_REMOTE}:" in result.stdout:
+            report.pass_(f"Conan remote: {tools.CONAN_REMOTE}")
         else:
             report.warn(
-                f"Conan remote '{buildtools.CONAN_REMOTE}' is not configured; "
+                f"Conan remote '{tools.CONAN_REMOTE}' is not configured; "
                 "run `voltmod bootstrap`"
             )
     except SystemExit as exc:

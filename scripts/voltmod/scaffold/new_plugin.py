@@ -6,7 +6,7 @@ from pathlib import Path
 
 import typer
 
-from .buildtools import templates_dir
+from ..tools import templates_dir
 
 REPO_ROOT = Path.cwd()
 TEMPLATE_DIR = templates_dir() / "plugin"

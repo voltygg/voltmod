@@ -10,8 +10,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from . import buildtools
-from .buildtools import WINDOWS, die
+from . import tools
+from .tools import WINDOWS, die
 
 #: Server-relative paths to the dedicated server executable, most likely first.
 _EXECUTABLES = ("game/bin/win64/cs2.exe", "game/bin/linuxsteamrt64/cs2")
@@ -33,7 +33,7 @@ def load_env(root: Path) -> None:
 
 def default_preset() -> str:
     """The preset to use when the caller does not name one."""
-    return os.environ.get("CS2_BUILD_PRESET") or buildtools.default_preset()
+    return os.environ.get("CS2_BUILD_PRESET") or tools.default_preset()
 
 
 def plugin_names(root: Path, requested: str) -> list[str]:
@@ -79,7 +79,7 @@ def install_plugin(root: Path, name: str, csgo: Path, preset: str, *, named: boo
     staging = build_dir / "_install-staging" / name
     shutil.rmtree(staging, ignore_errors=True)
     try:
-        buildtools.run_tool(
+        tools.run_tool(
             "cmake",
             "--install",
             str(build_dir),

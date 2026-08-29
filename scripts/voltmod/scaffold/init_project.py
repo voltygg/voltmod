@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
+from ..tools import templates_dir
 from . import new_plugin
-from .buildtools import templates_dir
 
 REPO_ROOT = Path.cwd()
 

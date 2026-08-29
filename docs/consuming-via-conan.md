@@ -137,17 +137,21 @@ voltmod package build kit          # ... then the framework against them
 
 ## Working on voltmod and a plugin together
 
-Remove any old editable registration once with
-`conan editable remove voltmod`.
-
-Build against the checkout in one step:
+Register the checkout as the editable `voltmod` package once:
 
 ```sh
-uv run poe build --framework <path-to-voltmod>
+conan editable add <path-to-voltmod>
 ```
 
-That packages the checkout (`voltmod package build kit`), re-pins `voltmod` in
-`conan.lock` against the local cache, drops `build/<preset>` and builds. The
-build tree has to go: CMake caches the package folder it was configured with,
-so a relock alone keeps linking the old framework. Repeat after every framework
-change, and commit the relocked `conan.lock` with the plugin change.
+`voltmod build` then compiles the checkout into its own `build/<preset>` before the
+plugins, so both sides stay incremental and the plugins link the checkout in place.
+Before committing, build against a real package the way CI will:
+
+```sh
+voltmod build --relock
+```
+
+That exports the checkout to the local cache (`conan export-pkg`), re-pins
+`voltmod` in `conan.lock`, drops the editable registration, and fails if the plugin
+build tree was not reconfigured against the new package. Commit the relocked
+`conan.lock` with the plugin change.
