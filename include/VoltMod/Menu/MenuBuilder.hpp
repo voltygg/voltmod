@@ -1,14 +1,9 @@
 #pragma once
 
-#include <VoltMod/Core/Translations.hpp>
-#include <VoltMod/Entities/Pawn.hpp>
 #include <VoltMod/Menu/Menu.hpp>
-#include <VoltMod/Menu/Options.hpp>
-#include <VoltMod/Players/EffectDescriptor.hpp>
-#include <VoltMod/Players/PlayerRef.hpp>
+#include <algorithm>
+#include <functional>
 #include <memory>
-#include <optional>
-#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -17,50 +12,120 @@
 namespace VoltMod
 {
 
-// MenuHost is forward-declared in Engine/EngineTypes.hpp (reached transitively through
-// Menu.hpp -> MenuOption.hpp): this header only stores a pointer and takes a reference
-// parameter, never calling a method on it, so it does not need MenuHost's full definition
-// (and the SDK-facing headers that pulls in). The .cpp files behind the context rows - which do
-// call into it - include <VoltMod/Menu/MenuHost.hpp> themselves.
+// The row specs below carry no engine dependency: a spec is text plus callbacks, and the two
+// that reach the menu session (InputRow, SubmenuRow) do it from MenuBuilder.cpp, which is why
+// this header names MenuHost only through MenuItem. Every name here is spelled `<Kind>Row` so a
+// spec never collides with the builder method of the same kind.
+
+/** A plain action row. @ref Activate runs on E or a click. */
+struct ButtonRow
+{
+    std::string Label;
+    std::function<void(int slot)> Activate;
+    bool Enabled = true;
+
+    /** This spec as a row. */
+    [[nodiscard]] MenuItem ToItem() const;
+};
 
 /**
- * @brief Fluent builder whose row methods append typed @ref MenuOption rows.
+ * A boolean row. Both E and A/D run @ref Flip, and the row reads its state back through
+ * @ref Get on every redraw, so the value shown is the one the world holds.
+ */
+struct ToggleRow
+{
+    std::string Label;
+    std::string On = "ON";
+    std::string Off = "OFF";
+    std::function<bool(int slot)> Get;
+    std::function<void(int slot)> Flip;
+    bool Enabled = true;
+
+    [[nodiscard]] MenuItem ToItem() const;
+};
+
+/**
+ * @brief A row cycling a labeled list of values. A/D walks it (wrapping), E commits.
  *
- * The plain constructor builds rows that need no player context (Button, Toggle, Choice, ...).
- * Construct with a @ref MenuHost instead to also use the context rows (Row, StateToggle,
- * Presets, Effect, EffectPicker), which run their action/effect through the manager's long-lived
- * @ref ActionDispatcher - bind the admin/target pair once with @ref For:
+ * The index lives in the row unless @ref GetIndex and @ref SetIndex are supplied, which is how a
+ * caller keeps the selection somewhere the rest of the menu can read.
+ *
+ * With no @ref Commit, E steps forward like D - the shape for a "pick a value" row another part
+ * of the menu reads live.
+ *
+ * @tparam T value carried with each label.
+ */
+template <class T>
+struct ChoiceRow
+{
+    std::string Label;
+    std::vector<std::pair<std::string, T>> Choices;
+    /** Runs on E, and again through @ref MenuItem::Commit. */
+    std::function<void(int slot, const T& value)> Commit;
+    /** @{ Optional external index. Supply both or neither; neither keeps the index in the row. */
+    std::function<int(int slot)> GetIndex;
+    std::function<void(int slot, int index)> SetIndex;
+    /** @} */
+    int Index = 0;
+    bool Enabled = true;
+
+    [[nodiscard]] MenuItem ToItem() const;
+};
+
+/**
+ * A free-text row. E pauses the menu and routes the player's next chat line to @ref Set; a false
+ * return re-prompts, and so does text longer than @ref MaxLength. R cancels.
+ */
+struct InputRow
+{
+    std::string Label;
+    std::string Prompt;
+    std::function<std::string(int slot)> Get;
+    std::function<bool(int slot, std::string_view text)> Set;
+    int MaxLength = 64;
+    bool Enabled = true;
+
+    [[nodiscard]] MenuItem ToItem() const;
+};
+
+/** A link to another menu. @ref Build runs on E and its result is pushed onto the stack. */
+struct SubmenuRow
+{
+    std::string Label;
+    std::function<std::shared_ptr<Menu>(int slot)> Build;
+    bool Enabled = true;
+
+    [[nodiscard]] MenuItem ToItem() const;
+};
+
+/** A heading or divider. The cursor skips it. */
+struct TextRow
+{
+    std::string Label;
+
+    [[nodiscard]] MenuItem ToItem() const;
+};
+
+/**
+ * @brief Fluent builder over the row specs above.
  *
  * @code
- * MenuBuilder(runtime.HtmlMenus, "Admin Panel")
- *     .For(adminRef, targetRef, &app.Effects)
- *     .Row("action.kill", Actions::Kill)
- *     .StateToggle("action.freeze", InMoveType(MoveType::None), Actions::Freeze)
- *     .Presets("action.health", "HP", HealthPresets, Actions::SetHealth)
- *     .Effect(Effects::Ghost)
- *     .EffectPicker(Effects::Model)
+ * auto menu = MenuBuilder("Admin Panel")
+ *     .Subtitle(targetName)
+ *     .Text("Punish")
+ *     .Button("Kick", [](int slot) { Kick(slot); })
+ *     .Add(ToggleRow{.Label = "God mode", .Get = IsGod, .Flip = FlipGod})
+ *     .Add(ChoiceRow<int>{.Label = "HP", .Choices = {{"1", 1}, {"100", 100}}, .Commit = SetHealth})
  *     .Build();
  * @endcode
+ *
+ * Rows that act on an admin/target pair come from @ref ActionRows, which produces @ref MenuItem
+ * values this builder appends like any other.
  */
 class MenuBuilder
 {
 public:
-    explicit MenuBuilder(const std::string& title) : _menu(std::make_shared<MenuView>()) { _menu->Title = title; }
-
-    /** Also enables the context rows (@ref For, @ref Row, @ref StateToggle, @ref Presets,
-     *  @ref Effect, @ref EffectPicker), dispatched through @p menus' long-lived ActionDispatcher. */
-    MenuBuilder(MenuHost& menus, const std::string& title);
-
-    /**
-     * Test-only entry point: enables @ref Allowed and @ref For through @p policy directly, with no
-     * MenuHost. Lets an SDK-free test exercise permission-gated rows against a fake Policy.
-     * Context rows that dispatch (Row, StateToggle, Presets, Effect, EffectPicker) stay inert, as
-     * they do for the plain constructor.
-     */
-    MenuBuilder(Policy& policy, const std::string& title) : _menu(std::make_shared<MenuView>()), _policy(&policy)
-    {
-        _menu->Title = title;
-    }
+    explicit MenuBuilder(std::string title) : _menu(std::make_shared<Menu>()) { _menu->Title = std::move(title); }
 
     /**
      * A second line under the title: a version, a target's name, what a flow is about to do.
@@ -74,147 +139,115 @@ public:
         return *this;
     }
 
-    /**
-     * Bind the admin/target pair (and optionally the effect registry) context rows act on.
-     *
-     * Context rows re-check `Policy::Authorize` for @p admin (and @p target, for a two-player
-     * row) **when pressed**, against these references rather than whoever occupies their slots -
-     * so a revoked permission, a departed admin and a reused target slot are all refused at
-     * activation. The *enabled* state is a snapshot taken by @ref Allowed when the row is built,
-     * and is not recomputed per redraw: a row can look enabled and still refuse. Rebuild the
-     * menu to refresh it.
-     *
-     * Requires the @ref MenuHost constructor; a no-op otherwise.
-     */
-    MenuBuilder& For(PlayerRef admin, std::optional<PlayerRef> target, EffectManager* effects = nullptr)
+    /** Append a row built by hand, or by @ref ActionRows. */
+    MenuBuilder& Add(MenuItem item)
     {
-        _admin = admin;
-        _target = target;
-        _effects = effects;
+        _menu->Items.push_back(std::move(item));
         return *this;
     }
 
-    /** Whether @p permission is granted for the bound admin/target (see @ref For). False - the
-     *  row-disabled default - when no context is bound. */
-    bool Allowed(std::string_view permission) const;
+    /** @{ Append one of the row specs. */
+    MenuBuilder& Add(const ButtonRow& row) { return Add(row.ToItem()); }
+    MenuBuilder& Add(const ToggleRow& row) { return Add(row.ToItem()); }
+    MenuBuilder& Add(const InputRow& row) { return Add(row.ToItem()); }
+    MenuBuilder& Add(const SubmenuRow& row) { return Add(row.ToItem()); }
+    MenuBuilder& Add(const TextRow& row) { return Add(row.ToItem()); }
 
-    /** Translate @p key in the bound admin's language, or return it unchanged when no context is
-     *  bound. */
-    std::string Tr(std::string_view key, Tokens tokens = {}) const;
-
-    /** A button row that runs a single-target @ref Action against the bound admin/target. */
-    MenuBuilder& Row(std::string_view labelKey, const Action& action);
-
-    /**
-     * A toggle row that re-evaluates @p isActive on every redraw and runs the
-     * action when pressed. Predicates live in Entities/PawnPredicates.hpp.
-     */
-    MenuBuilder& StateToggle(std::string_view labelKey, std::function<bool(const Pawn&)> isActive,
-                             const Action& action);
-
-    /** Choice row: A/D selects a preset and E runs the action. */
-    MenuBuilder& Presets(std::string_view labelKey, std::string_view unit, std::span<const int> presets,
-                         const ParamAction& action, int initialIndex = 0);
-
-    /** Effect toggle using the bound EffectManager (see @ref For) and reserved state labels. */
-    MenuBuilder& Effect(const EffectDescriptor& effect);
-
-    /** Effect-choice submenu (@ref EffectDescriptor::Choices), with a reset row when
-     *  ResetLabelKey is set. */
-    MenuBuilder& EffectPicker(const EffectDescriptor& effect);
-
-    /** Append a non-selectable label row (heading or divider). */
-    MenuBuilder& Text(const std::string& label)
+    template <class T>
+    MenuBuilder& Add(const ChoiceRow<T>& row)
     {
-        _menu->Items.push_back(std::make_shared<TextOption>(label));
-        return *this;
+        return Add(row.ToItem());
+    }
+    /** @} */
+
+    /** @ref ButtonRow with nothing but a label and a callback. */
+    MenuBuilder& Button(std::string label, std::function<void(int slot)> activate)
+    {
+        return Add(ButtonRow{.Label = std::move(label), .Activate = std::move(activate)});
     }
 
-    /** Append a plain action row. E fires the callback. */
-    MenuBuilder& Button(const std::string& label, std::function<void(int)> onActivate, bool enabled = true)
+    /** @ref SubmenuRow with nothing but a label and a factory. */
+    MenuBuilder& Submenu(std::string label, std::function<std::shared_ptr<Menu>(int slot)> build)
     {
-        _menu->Items.push_back(std::make_shared<ButtonOption>(label, std::move(onActivate), enabled));
-        return *this;
+        return Add(SubmenuRow{.Label = std::move(label), .Build = std::move(build)});
     }
 
-    /** Append a toggle row. E and A/D both flip. State is read via @p getState every frame. */
-    MenuBuilder& Toggle(const std::string& title, const std::string& onLabel, const std::string& offLabel,
-                        std::function<bool(int)> getState, std::function<void(int)> onToggle, bool enabled = true)
-    {
-        _menu->Items.push_back(std::make_shared<ToggleOption>(title, onLabel, offLabel, std::move(getState),
-                                                              std::move(onToggle), enabled));
-        return *this;
-    }
-
-    /** Append a string-labeled choice cycle. A/D walks the list; E commits the current value. */
-    template <typename T>
-    MenuBuilder& Choice(const std::string& title, std::vector<typename ChoiceOption<T>::Choice> choices,
-                        std::function<int(int)> getIndex, std::function<void(int, int)> setIndex,
-                        std::function<void(int, const T&)> onCommit = nullptr, bool enabled = true)
-    {
-        _menu->Items.push_back(std::make_shared<ChoiceOption<T>>(title, std::move(choices), std::move(getIndex),
-                                                                 std::move(setIndex), std::move(onCommit), enabled));
-        return *this;
-    }
-
-    /** Self-contained choice cycle: the option owns its index, no external get/set state. */
-    template <typename T>
-    MenuBuilder& Choice(const std::string& title, std::vector<typename ChoiceOption<T>::Choice> choices,
-                        std::function<void(int, const T&)> onCommit, bool enabled = true, int initialIndex = 0)
-    {
-        _menu->Items.push_back(
-            std::make_shared<ChoiceOption<T>>(title, std::move(choices), std::move(onCommit), enabled, initialIndex));
-        return *this;
-    }
-
-    /**
-     * Append a free-text input row. E starts a chat capture; the player's next chat
-     * line is routed to @p set. Return false from @p set to re-prompt for invalid input.
-     */
-    MenuBuilder& Input(const std::string& title, const std::string& prompt, std::function<std::string(int)> get,
-                       std::function<bool(int, std::string_view)> set, int maxLength = 64, bool enabled = true)
-    {
-        _menu->Items.push_back(
-            std::make_shared<InputOption>(title, prompt, std::move(get), std::move(set), maxLength, enabled));
-        return *this;
-    }
-
-    /** Append a submenu link. E builds and pushes the submenu via @p factory. */
-    MenuBuilder& Submenu(const std::string& label, std::function<std::shared_ptr<MenuView>(int)> factory,
-                         bool enabled = true)
-    {
-        _menu->Items.push_back(std::make_shared<SubmenuOption>(label, std::move(factory), enabled));
-        return *this;
-    }
-
-    /** Escape hatch: append a user-defined option subclass. */
-    MenuBuilder& AddOption(std::shared_ptr<MenuOption> option)
-    {
-        _menu->Items.push_back(std::move(option));
-        return *this;
-    }
+    /** @ref TextRow: a heading or divider. */
+    MenuBuilder& Text(std::string label) { return Add(TextRow{.Label = std::move(label)}); }
 
     /** Finalize and return the built menu. The builder must not be reused after this. */
-    std::shared_ptr<MenuView> Build() { return std::move(_menu); }
+    std::shared_ptr<Menu> Build() { return std::move(_menu); }
 
 private:
-    /** Picker submenu for an EffectDescriptor with Choices set: one button per choice plus an
-     *  optional reset row. A private static rather than a file-local helper because it reads the
-     *  manager's row context, which is not public. */
-    static std::shared_ptr<MenuView> BuildEffectPicker(MenuHost& menus, PlayerRef admin, PlayerRef target,
-                                                       EffectManager* effects, bool allowed,
-                                                       const EffectDescriptor& effect);
-
-    std::shared_ptr<MenuView> _menu;
-    /** Null for a context-free builder (see the plain constructor); every dispatching context row
-     *  is then inert. Set by the @ref MenuHost constructor. */
-    MenuHost* _menus = nullptr;
-    /** Backs @ref Allowed. Set by either context constructor - the MenuHost one derives it from
-     *  `menus.AccessPolicy()`, the test-only one takes it directly. Null makes @ref Allowed deny. */
-    Policy* _policy = nullptr;
-    PlayerRef _admin{};
-    std::optional<PlayerRef> _target;
-    EffectManager* _effects = nullptr;
+    std::shared_ptr<Menu> _menu;
 };
+
+template <class T>
+MenuItem ChoiceRow<T>::ToItem() const
+{
+    // By value into every callback: the row outlives the spec the caller wrote it from.
+    auto choices = Choices;
+    auto commit = Commit;
+    auto getIndex = GetIndex;
+    auto setIndex = SetIndex;
+    std::string label = Label;
+    bool enabled = Enabled;
+    // The index the row keeps when the caller supplied none. Shared so all four callbacks
+    // below read and write the one value.
+    auto own = std::make_shared<int>(Index);
+
+    auto read = [choices, getIndex, own](int slot) {
+        if (choices.empty())
+            return 0;
+        int index = getIndex ? getIndex(slot) : *own;
+        return std::clamp(index, 0, static_cast<int>(choices.size()) - 1);
+    };
+    auto write = [setIndex, own](int slot, int index) {
+        if (setIndex)
+            setIndex(slot, index);
+        else
+            *own = index;
+    };
+    auto apply = [choices, commit, read](int slot) {
+        if (commit && !choices.empty())
+            commit(slot, choices[static_cast<std::size_t>(read(slot))].second);
+    };
+    auto step = [choices, read, write](int slot, int direction) {
+        if (choices.empty())
+            return false;
+        int count = static_cast<int>(choices.size());
+        write(slot, ((read(slot) + direction) % count + count) % count);
+        return true;
+    };
+
+    return MenuItem{
+        .Describe =
+            [choices, read, label, enabled](int slot) {
+                return MenuRow{
+                    .Label = label,
+                    .Value = choices.empty() ? std::string{} : choices[static_cast<std::size_t>(read(slot))].first,
+                    .Kind = MenuRowKind::Choice,
+                    .Enabled = enabled,
+                    .Steppable = true};
+            },
+        .Activate =
+            [enabled, commit, apply, step](int slot, MenuHost&) {
+                if (!enabled)
+                    return;
+                // No commit callback: E advances like D, so the row stays interactive for a
+                // plain "pick a value" menu with no separate apply step.
+                if (commit)
+                    apply(slot);
+                else
+                    (void)step(slot, +1);
+            },
+        .Step = [enabled, step](int slot, int direction) { return enabled && step(slot, direction); },
+        .Commit =
+            [enabled, apply](int slot) {
+                if (enabled)
+                    apply(slot);
+            },
+    };
+}
 
 }  // namespace VoltMod

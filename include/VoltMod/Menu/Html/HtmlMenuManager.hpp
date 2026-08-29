@@ -29,7 +29,7 @@ public:
      * constructed - true whenever a Runtime builds this in declaration order.
      */
     HtmlMenuManager(Scheduler& scheduler, SlotEvents& slots, EntitySystem& entities, Messages& messages,
-                    ChatInput& chatInput, Translations& translations, Policy& policy, PlayerManager& players);
+                    ChatInput& chatInput, Translations& translations, Policy& policy);
 
 private:
     /** Per-tick driver: reads buttons, advances selection, and re-renders. */
@@ -39,7 +39,7 @@ private:
 
     /** Jump @p idx by @p pageDelta pages, keeping the in-page offset. A member because it
      *  needs the base's cursor rule; paging by cursor index is this driver's alone. */
-    static void JumpPage(const std::vector<std::shared_ptr<MenuOption>>& items, int& idx, int pageDelta);
+    static void JumpPage(int slot, const std::vector<MenuItem>& items, int& idx, int pageDelta);
 
     void Present(int slot) override;
     void Dismiss(int slot) override;

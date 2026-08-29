@@ -3,23 +3,20 @@
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Translations.hpp>
 #include <VoltMod/Menu/Menu.hpp>
-#include <VoltMod/Menu/Options/ButtonOption.hpp>
-#include <VoltMod/Menu/Options/ChoiceOption.hpp>
-#include <VoltMod/Menu/Options/TextOption.hpp>
-#include <VoltMod/Menu/Options/ToggleOption.hpp>
+#include <VoltMod/Menu/MenuBuilder.hpp>
 #include <doctest/doctest.h>
 #include <memory>
+#include <string>
 
-using VoltMod::ButtonOption;
-using VoltMod::ChoiceOption;
+using VoltMod::ButtonRow;
+using VoltMod::ChoiceRow;
 using VoltMod::DefaultFooter;
 using VoltMod::DefaultHeader;
 using VoltMod::ItemsPerPage;
-using VoltMod::MenuView;
+using VoltMod::MenuBuilder;
 using VoltMod::RenderMenuHtml;
 using VoltMod::SlotEvents;
-using VoltMod::TextOption;
-using VoltMod::ToggleOption;
+using VoltMod::ToggleRow;
 using VoltMod::Translations;
 
 TEST_CASE("MenuRenderer: DefaultHeader shows the title and hides the page count for one page")
@@ -41,12 +38,12 @@ TEST_CASE("MenuRenderer: RenderMenuHtml marks the selected row and dims disabled
     SlotEvents slots;
     Translations translations(slots);
 
-    MenuView menu;
-    menu.Title = "Test Menu";
-    menu.Items.push_back(std::make_shared<ButtonOption>("Enabled Row", [](int) {}, true));
-    menu.Items.push_back(std::make_shared<ButtonOption>("Disabled Row", [](int) {}, false));
+    auto menu = MenuBuilder("Test Menu")
+                    .Button("Enabled Row", [](int) {})
+                    .Add(ButtonRow{.Label = "Disabled Row", .Enabled = false})
+                    .Build();
 
-    std::string html = RenderMenuHtml(&menu, 0, 0, false, translations);
+    std::string html = RenderMenuHtml(menu.get(), 0, 0, false, translations);
     CHECK(html.find("Test Menu") != std::string::npos);
     CHECK(html.find("&gt; Enabled Row") != std::string::npos);  // cursor marker on the selected row
     CHECK(html.find("Disabled Row") != std::string::npos);
@@ -59,14 +56,11 @@ TEST_CASE("MenuRenderer: a non-selectable Text row renders without a cursor")
     SlotEvents slots;
     Translations translations(slots);
 
-    MenuView menu;
-    menu.Title = "Test Menu";
-    menu.Items.push_back(std::make_shared<TextOption>("Just a heading"));
-    menu.Items.push_back(std::make_shared<ButtonOption>("Pick me", [](int) {}, true));
+    auto menu = MenuBuilder("Test Menu").Text("Just a heading").Button("Pick me", [](int) {}).Build();
 
     // Selection lands on index 1: HtmlMenuManager::OpenMenu skips non-selectable rows when it opens a
     // menu, and this render call mirrors that already-adjusted index.
-    std::string html = RenderMenuHtml(&menu, 0, 1, false, translations);
+    std::string html = RenderMenuHtml(menu.get(), 0, 1, false, translations);
     CHECK(html.find("Just a heading") != std::string::npos);
     CHECK(html.find("&gt; Just a heading") == std::string::npos);
     CHECK(html.find("&gt; Pick me") != std::string::npos);
@@ -77,18 +71,18 @@ TEST_CASE("MenuRenderer: pagination footer appears only once a menu spans multip
     SlotEvents slots;
     Translations translations(slots);
 
-    MenuView menu;
-    menu.Title = "Multi-row Menu";
+    MenuBuilder builder("Multi-row Menu");
     for (int i = 0; i < ItemsPerPage; ++i)
-        menu.Items.push_back(std::make_shared<ButtonOption>("Row", [](int) {}, true));
+        builder.Button("Row", [](int) {});
+    auto menu = builder.Build();
 
     // Exactly one page: no page indicator, no [A/D] page hint.
-    std::string onePage = RenderMenuHtml(&menu, 0, 0, false, translations);
+    std::string onePage = RenderMenuHtml(menu.get(), 0, 0, false, translations);
     CHECK(onePage.find("(1/") == std::string::npos);
     CHECK(onePage.find("Page") == std::string::npos);
 
-    menu.Items.push_back(std::make_shared<ButtonOption>("Row", [](int) {}, true));  // spills to page 2
-    std::string twoPages = RenderMenuHtml(&menu, 0, 0, false, translations);
+    menu->Items.push_back(ButtonRow{.Label = "Row"}.ToItem());  // spills to page 2
+    std::string twoPages = RenderMenuHtml(menu.get(), 0, 0, false, translations);
     CHECK(twoPages.find("(1/2)") != std::string::npos);
     CHECK(twoPages.find("[A/D]") != std::string::npos);
 }
@@ -98,12 +92,10 @@ TEST_CASE("MenuRenderer: a submenu shows the Back hint, a root menu shows Close"
     SlotEvents slots;
     Translations translations(slots);
 
-    MenuView menu;
-    menu.Title = "Test Menu";
-    menu.Items.push_back(std::make_shared<ButtonOption>("Row", [](int) {}, true));
+    auto menu = MenuBuilder("Test Menu").Button("Row", [](int) {}).Build();
 
-    CHECK(RenderMenuHtml(&menu, 0, 0, false, translations).find("Close") != std::string::npos);
-    CHECK(RenderMenuHtml(&menu, 0, 0, true, translations).find("Back") != std::string::npos);
+    CHECK(RenderMenuHtml(menu.get(), 0, 0, false, translations).find("Close") != std::string::npos);
+    CHECK(RenderMenuHtml(menu.get(), 0, 0, true, translations).find("Back") != std::string::npos);
 }
 
 TEST_CASE("MenuRenderer: a row that carries a value renders as title and value")
@@ -111,11 +103,9 @@ TEST_CASE("MenuRenderer: a row that carries a value renders as title and value")
     SlotEvents slots;
     Translations translations(slots);
 
-    MenuView menu;
-    menu.Title = "Test Menu";
-    menu.Items.push_back(std::make_shared<ToggleOption>("Prefix", "ON", "OFF", [](int) { return true; }, [](int) {}));
+    auto menu = MenuBuilder("Test Menu").Add(ToggleRow{.Label = "Prefix", .Get = [](int) { return true; }}).Build();
 
-    CHECK(RenderMenuHtml(&menu, 0, 0, false, translations).find("Prefix: ON") != std::string::npos);
+    CHECK(RenderMenuHtml(menu.get(), 0, 0, false, translations).find("Prefix: ON") != std::string::npos);
 }
 
 TEST_CASE("MenuRenderer: a choice row keeps the arrows that say A and D change it")
@@ -123,12 +113,9 @@ TEST_CASE("MenuRenderer: a choice row keeps the arrows that say A and D change i
     SlotEvents slots;
     Translations translations(slots);
 
-    MenuView menu;
-    menu.Title = "Test Menu";
-    std::vector<ChoiceOption<int>::Choice> choices{{.Label = "100%", .Value = 100}};
-    menu.Items.push_back(std::make_shared<ChoiceOption<int>>("Speed", std::move(choices), [](int, const int&) {}));
+    auto menu = MenuBuilder("Test Menu").Add(ChoiceRow<int>{.Label = "Speed", .Choices = {{"100%", 100}}}).Build();
 
-    CHECK(RenderMenuHtml(&menu, 0, 0, false, translations).find("Speed: &lt; 100% &gt;") != std::string::npos);
+    CHECK(RenderMenuHtml(menu.get(), 0, 0, false, translations).find("Speed: &lt; 100% &gt;") != std::string::npos);
 }
 
 TEST_CASE("MenuRenderer: row text is escaped, so a player name cannot inject markup")
@@ -136,11 +123,9 @@ TEST_CASE("MenuRenderer: row text is escaped, so a player name cannot inject mar
     SlotEvents slots;
     Translations translations(slots);
 
-    MenuView menu;
-    menu.Title = "Test Menu";
-    menu.Items.push_back(std::make_shared<ButtonOption>("<b>Bold</b> & Co", [](int) {}, true));
+    auto menu = MenuBuilder("Test Menu").Button("<b>Bold</b> & Co", [](int) {}).Build();
 
-    std::string html = RenderMenuHtml(&menu, 0, 0, false, translations);
+    std::string html = RenderMenuHtml(menu.get(), 0, 0, false, translations);
     CHECK(html.find("&lt;b&gt;Bold&lt;/b&gt; &amp; Co") != std::string::npos);
     CHECK(html.find("<b>Bold</b>") == std::string::npos);
 }

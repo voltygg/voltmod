@@ -2,7 +2,7 @@
 
 #include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Core/Translations.hpp>
-#include <VoltMod/Menu/MenuOption.hpp>
+#include <VoltMod/Menu/Menu.hpp>
 #include <algorithm>
 #include <sstream>
 #include <string>
@@ -102,9 +102,8 @@ std::string DefaultFooter(bool isSubmenu, bool isPaginated, bool usesHorizontal,
 
 // One row as this renderer spells it: "Title", "Title: ON", "Title: &lt; 100% &gt;". The model
 // carries the two halves as plain text, so the decoration and the escaping are both decided here.
-static std::string RowText(const MenuOption& option, int slot)
+static std::string RowText(const MenuRow& row)
 {
-    MenuRow row = option.Describe(slot);
     std::string text = Strings::EscapeHtml(row.Label);
     if (row.Value.empty())
         return text;
@@ -118,19 +117,23 @@ static std::string RowText(const MenuOption& option, int slot)
     return text + Strings::EscapeHtml(row.Value);
 }
 
-static std::string RenderItems(const MenuView* menu, int slot, int selectedIndex, int pageStart, int pageEnd)
+// The row a menu item describes itself as for @p slot. An item with no Describe is malformed;
+// it draws as an inert line rather than a row the cursor could land on.
+static MenuRow DescribeRow(const MenuItem& item, int slot)
+{
+    return item.Describe ? item.Describe(slot) : MenuRow{.Enabled = false, .Selectable = false};
+}
+
+static std::string RenderItems(const Menu* menu, int slot, int selectedIndex, int pageStart, int pageEnd)
 {
     std::ostringstream html;
 
     for (int i = pageStart; i < pageEnd; ++i)
     {
-        const auto& opt = menu->Items[i];
-        if (!opt)
-            continue;
-
-        std::string title = RowText(*opt, slot);
-        bool selectable = opt->IsSelectable();
-        bool enabled = opt->IsEnabled();
+        const MenuRow row = DescribeRow(menu->Items[static_cast<std::size_t>(i)], slot);
+        std::string title = RowText(row);
+        bool selectable = row.Selectable;
+        bool enabled = row.Enabled;
 
         if (!enabled)
         {
@@ -156,8 +159,7 @@ static std::string RenderItems(const MenuView* menu, int slot, int selectedIndex
     return html.str();
 }
 
-std::string RenderMenuHtml(const MenuView* menu, int slot, int selectedIndex, bool isSubmenu,
-                           Translations& translations)
+std::string RenderMenuHtml(const Menu* menu, int slot, int selectedIndex, bool isSubmenu, Translations& translations)
 {
     if (!menu)
     {
@@ -175,9 +177,10 @@ std::string RenderMenuHtml(const MenuView* menu, int slot, int selectedIndex, bo
     html << DefaultHeader(menu->Title, menu->Subtitle, currentPage, totalPages);
     html << RenderItems(menu, slot, selectedIndex, pageStart, pageEnd);
 
-    const bool usesHorizontal = selectedIndex >= 0 && selectedIndex < itemCount && menu->Items[selectedIndex] &&
-                                menu->Items[selectedIndex]->IsEnabled() && menu->Items[selectedIndex]->UsesHorizontal();
-    html << DefaultFooter(isSubmenu, totalPages > 1, usesHorizontal, slot, translations);
+    const MenuRow selected = selectedIndex >= 0 && selectedIndex < itemCount
+                                 ? DescribeRow(menu->Items[static_cast<std::size_t>(selectedIndex)], slot)
+                                 : MenuRow{.Enabled = false};
+    html << DefaultFooter(isSubmenu, totalPages > 1, selected.Enabled && selected.Steppable, slot, translations);
 
     return html.str();
 }

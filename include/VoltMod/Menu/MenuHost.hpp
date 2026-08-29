@@ -7,7 +7,7 @@
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>
 #include <VoltMod/Menu/Menu.hpp>
-#include <VoltMod/Players/ActionDispatcher.hpp>
+#include <VoltMod/Players/Policy.hpp>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -30,7 +30,7 @@ struct MenuSessionOptions
 };
 
 /**
- * @brief Whatever a @ref MenuView is opened on: the session, the stack, and the row context.
+ * @brief Whatever a @ref Menu is opened on: the session and the stack.
  *
  * A menu is a model - rows and callbacks - and nothing in it says how it reaches a screen, so
  * everything that runs a menu *session* lives here and each subclass adds only how it draws:
@@ -50,7 +50,7 @@ public:
 
     /** Push @p menu onto the player's stack and start showing it. @p options take effect only
      *  when this call opens the stack (see @ref MenuSessionOptions). */
-    void OpenMenu(int slot, std::shared_ptr<MenuView> menu, MenuSessionOptions options = {});
+    void OpenMenu(int slot, std::shared_ptr<Menu> menu, MenuSessionOptions options = {});
 
     /** Pop the top menu, falling back to the parent if one exists. */
     void CloseMenu(int slot);
@@ -78,10 +78,10 @@ public:
     void SetFreezePlayer(bool enabled);
 
 protected:
-    /** Takes exactly the services a menu session and its context rows use; all must outlive this
-     *  object. Subscribes to @p slots, so it must already be constructed. */
+    /** Takes exactly the services a menu session uses; all must outlive this object. Subscribes
+     *  to @p slots, so it must already be constructed. */
     MenuHost(SlotEvents& slots, EntitySystem& entities, ChatInput& chatInput, Translations& translations,
-             Policy& policy, PlayerManager& players);
+             Policy& policy);
 
     /** Draw @p slot's current menu. Called by the subclass, per tick or per change. */
     virtual void Present(int slot) = 0;
@@ -97,11 +97,12 @@ protected:
      *  which is what tells a keyboard driver to page instead. */
     bool Step(int slot, int index, int direction);
 
-    /** True when the cursor is allowed to land on @p option. */
-    static bool IsCursorTarget(const std::shared_ptr<MenuOption>& option);
+    /** True when the cursor is allowed to land on @p item, as it describes itself to @p slot. */
+    static bool IsCursorTarget(const MenuItem& item, int slot);
 
-    /** Move @p idx by @p step, wrapping over @p items and skipping rows the cursor cannot land on. */
-    static void StepCursor(const std::vector<std::shared_ptr<MenuOption>>& items, int& idx, int step);
+    /** Move @p idx by @p step, wrapping over @p items and skipping rows the cursor cannot land
+     *  on for @p slot. */
+    static void StepCursor(int slot, const std::vector<MenuItem>& items, int& idx, int step);
 
     /** Freeze (true) or restore (false) the player's movement; no-op unless freeze is enabled. */
     void SetPlayerFrozen(int slot, bool frozen);
@@ -110,32 +111,11 @@ protected:
     ChatInput& _chatInput;
     Translations& _translations;
     Policy& _policy;
-    PlayerManager& _players;
-    ActionDispatcher _actions;
     /** Per-player menu state; PerSlot clears a slot's stack when it changes hands. */
     PerSlot<PlayerMenuState> _states;
     bool _freezePlayer = false;
 
 private:
-    /** The row context below is the builder's alone: a plugin reaches these services through its
-     *  own Runtime, and @ref _actions is this host's composition detail, not a public seam. */
-    friend class MenuBuilder;
-
-    /** The dispatcher context rows (@ref MenuBuilder::Row and friends) run actions through - a
-     *  long-lived instance so a row press needs no throwaway dispatcher. */
-    ActionDispatcher& Actions() { return _actions; }
-
-    /** For context rows that need to read a player (e.g. the effect-picker submenu title). */
-    PlayerManager& Players() { return _players; }
-
-    EntitySystem& Entities() { return _entities; }
-
-    /** For context rows to re-check a permission without running an action (row enabled state). */
-    Policy& AccessPolicy() { return _policy; }
-
-    /** For context rows to translate a label key in the viewing player's language. */
-    Translations& Translation() { return _translations; }
-
     /** Put the cursor on the first row it may land on, so a disabled or Text row is never the
      *  initial selection. */
     void SelectFirst(int slot);

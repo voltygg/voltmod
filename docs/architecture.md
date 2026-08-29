@@ -255,14 +255,14 @@ include `VoltMod/Runtime.hpp` (or `Api.hpp`) at all - every other module, includ
 - Only `App/` may take `Runtime&`. `Players/` and `Menu/` take the narrowest services they use
   instead: `ActionDispatcher` takes `Policy&`, `PlayerManager&` and `EntitySystem&`;
   `EffectDispatcher` wraps an `ActionDispatcher&` plus its own `EffectManager&`; `HtmlMenuManager`
-  takes `Scheduler&`, `SlotEvents&`, `EntitySystem&`, `Messages&`, `ChatInput&`, `Translations&`,
-  `Policy&` and `PlayerManager&`, and owns a long-lived `ActionDispatcher` built from three of
-  them so a menu row press needs no throwaway dispatcher. The header-only templates and
-  plain-data types plugins instantiate (`Flow<TState>`, `PerSlot<T>`, the `MenuPresets` builders)
-  still take the single narrowest service they need, so a consumer TU that includes one of those
-  headers does not pull in the whole composition root. `MenuBuilder` itself stays SDK-free: it
-  only forward-declares `HtmlMenuManager` and never calls into it inline - the context-row bodies that
-  do (`MenuBuilderRows.cpp`) include `HtmlMenuManager.hpp` themselves.
+  takes `Scheduler&`, `SlotEvents&`, `EntitySystem&`, `Messages&`, `ChatInput&`, `Translations&`
+  and `Policy&` - the services a menu *session* needs, and nothing a row needs, because rows carry
+  their own services in `ActionRows::Services`. The header-only templates and plain-data types
+  plugins instantiate (`Flow<TState>`, `PerSlot<T>`, the `MenuPresets` builders) still take the
+  single narrowest service they need, so a consumer TU that includes one of those headers does not
+  pull in the whole composition root. `MenuBuilder` and the row model are SDK-free: a row is text
+  and callbacks, and the two calls a row makes into a live session go through
+  `src/Menu/HostCalls.hpp`, whose one translation unit includes `MenuHost.hpp`.
 - A file-static stands in only where no reference can be threaded, set and cleared by the
   code that owns it. Two back engine callbacks that carry no user data (the entity system
   behind `GameEntitySystem()`, the file-static for the global convar change callback); the rest are

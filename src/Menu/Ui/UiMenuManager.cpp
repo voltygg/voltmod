@@ -1,7 +1,6 @@
 #include "Menu/Ui/UiList.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Menu/MenuOption.hpp>
 #include <VoltMod/Menu/Ui/UiMenuManager.hpp>
 #include <algorithm>
 #include <format>
@@ -12,9 +11,8 @@ namespace VoltMod
 {
 
 UiMenuManager::UiMenuManager(Scheduler& scheduler, CustomUi& ui, SlotEvents& slots, EntitySystem& entities,
-                             ChatInput& chatInput, Translations& translations, Policy& policy, PlayerManager& players,
-                             std::string layout)
-    : MenuHost(slots, entities, chatInput, translations, policy, players),
+                             ChatInput& chatInput, Translations& translations, Policy& policy, std::string layout)
+    : MenuHost(slots, entities, chatInput, translations, policy),
       _rows(std::make_unique<UiList>(_panel, RootId, RowPrefix, RowsPerPage)),
       _onFrame(scheduler.EveryFrame([this] { OnGameFrame(); }))
 {
@@ -165,18 +163,18 @@ void UiMenuManager::Present(int slot)
 
     for (int index = first; index < last; ++index)
     {
-        const auto& option = menu->Items[static_cast<std::size_t>(index)];
-        if (!option)
+        const MenuItem& item = menu->Items[static_cast<std::size_t>(index)];
+        if (!item.Describe)
             continue;
 
-        const MenuRow row = option->Describe(slot);
+        const MenuRow row = item.Describe(slot);
         _rows->Set(slot, index - first,
                    UiRow{.Label = row.Label,
                          .Value = row.Value,
                          .Modifier = ModifierFor(row.Kind),
-                         .Enabled = option->IsEnabled(),
+                         .Enabled = row.Enabled,
                          // The same question the HTML footer asks, so both drivers read one answer.
-                         .Steppers = option->UsesHorizontal()});
+                         .Steppers = row.Steppable});
     }
     _rows->HideFrom(slot, last - first);
 
@@ -193,7 +191,7 @@ void UiMenuManager::Present(int slot)
 
 void UiMenuManager::Dismiss(int)
 {
-    // The pump hides the slot next frame.
+    // The per-frame redraw hides the slot next frame.
 }
 
 void UiMenuManager::Hide(int slot)

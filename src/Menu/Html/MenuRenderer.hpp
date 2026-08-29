@@ -9,8 +9,7 @@ namespace VoltMod
 {
 /** Renders the HTML for a menu, including its items and layout. @p translations localizes the
  *  default footer's nav labels. */
-std::string RenderMenuHtml(const MenuView* menu, int slot, int selectedIndex, bool isSubmenu,
-                           Translations& translations);
+std::string RenderMenuHtml(const Menu* menu, int slot, int selectedIndex, bool isSubmenu, Translations& translations);
 
 /** Renders the chat-input capture overlay shown while a player is typing a value. */
 std::string RenderCaptureOverlay(const std::string& menuTitle, std::string_view prompt);

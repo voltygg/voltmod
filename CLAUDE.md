@@ -102,7 +102,7 @@ There is no ambient accessor for the runtime; everything is injected:
   `Players` and `Menu` take the narrowest service directly - `ActionDispatcher(Policy&,
   PlayerManager&, EntitySystem&)`, `EffectDispatcher(ActionDispatcher&, EffectManager&)`,
   `HtmlMenuManager(Scheduler&, SlotEvents&, EntitySystem&, Messages&, ChatInput&, Translations&,
-  Policy&, PlayerManager&)` - never `Runtime&`.
+  Policy&)` - never `Runtime&`.
 - Header templates plugins instantiate (`Flow<TState>`, `PerSlot<T>`) take one
   service, so including them does not pull in the composition root.
 - A file-static is only for engine callbacks that carry no user data (set and

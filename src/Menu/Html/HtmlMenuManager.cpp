@@ -4,7 +4,6 @@
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>
 #include <VoltMod/Menu/Html/HtmlMenuManager.hpp>
-#include <VoltMod/Menu/MenuOption.hpp>
 #include <VoltMod/Messaging/Messages.hpp>
 #include <algorithm>
 
@@ -13,7 +12,7 @@ namespace VoltMod
 
 // Preserves the in-page offset, then skips forward over disabled or non-selectable rows
 // within the new page.
-void HtmlMenuManager::JumpPage(const std::vector<std::shared_ptr<MenuOption>>& items, int& idx, int pageDelta)
+void HtmlMenuManager::JumpPage(int slot, const std::vector<MenuItem>& items, int& idx, int pageDelta)
 {
     int n = static_cast<int>(items.size());
     if (n == 0)
@@ -29,16 +28,15 @@ void HtmlMenuManager::JumpPage(const std::vector<std::shared_ptr<MenuOption>>& i
 
     idx = std::min(pageStart + offset, pageEnd - 1);
     int attempts = pageEnd - pageStart;
-    while (!IsCursorTarget(items[idx]) && --attempts > 0)
+    while (!IsCursorTarget(items[idx], slot) && --attempts > 0)
     {
         idx = (idx + 1 < pageEnd) ? idx + 1 : pageStart;
     }
 }
 
 HtmlMenuManager::HtmlMenuManager(Scheduler& scheduler, SlotEvents& slots, EntitySystem& entities, Messages& messages,
-                                 ChatInput& chatInput, Translations& translations, Policy& policy,
-                                 PlayerManager& players)
-    : MenuHost(slots, entities, chatInput, translations, policy, players),
+                                 ChatInput& chatInput, Translations& translations, Policy& policy)
+    : MenuHost(slots, entities, chatInput, translations, policy),
       _messages(messages),
       _onFrame(scheduler.EveryFrame([this] { OnGameFrame(); }))
 {}
@@ -95,14 +93,14 @@ void HtmlMenuManager::HandleInput(int slot, uint64_t buttons, uint64_t prevButto
     bool inputHandled = true;
 
     if (pressed & IN_FORWARD)
-        StepCursor(menu->Items, state.SelectedIndex, -1);
+        StepCursor(slot, menu->Items, state.SelectedIndex, -1);
     else if (pressed & IN_BACK)
-        StepCursor(menu->Items, state.SelectedIndex, +1);
+        StepCursor(slot, menu->Items, state.SelectedIndex, +1);
     else if (pressed & IN_MOVELEFT)
     {
         bool consumed = Step(slot, state.SelectedIndex, -1);
         if (!consumed && isPaginated)
-            JumpPage(menu->Items, state.SelectedIndex, -1);
+            JumpPage(slot, menu->Items, state.SelectedIndex, -1);
         else if (!consumed)
             inputHandled = false;
     }
@@ -110,7 +108,7 @@ void HtmlMenuManager::HandleInput(int slot, uint64_t buttons, uint64_t prevButto
     {
         bool consumed = Step(slot, state.SelectedIndex, +1);
         if (!consumed && isPaginated)
-            JumpPage(menu->Items, state.SelectedIndex, +1);
+            JumpPage(slot, menu->Items, state.SelectedIndex, +1);
         else if (!consumed)
             inputHandled = false;
     }

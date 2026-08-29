@@ -1,7 +1,6 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Time.hpp>
 #include <VoltMod/Menu/MenuHost.hpp>
-#include <VoltMod/Menu/MenuOption.hpp>
 #include <memory>
 #include <utility>
 
@@ -9,23 +8,21 @@ namespace VoltMod
 {
 
 MenuHost::MenuHost(SlotEvents& slots, EntitySystem& entities, ChatInput& chatInput, Translations& translations,
-                   Policy& policy, PlayerManager& players)
-    : _entities(entities),
-      _chatInput(chatInput),
-      _translations(translations),
-      _policy(policy),
-      _players(players),
-      _actions(policy, players, entities)
+                   Policy& policy)
+    : _entities(entities), _chatInput(chatInput), _translations(translations), _policy(policy)
 {
     _states.BindReset(slots);
 }
 
-bool MenuHost::IsCursorTarget(const std::shared_ptr<MenuOption>& option)
+bool MenuHost::IsCursorTarget(const MenuItem& item, int slot)
 {
-    return option && option->IsEnabled() && option->IsSelectable();
+    if (!item.Describe)
+        return false;
+    const MenuRow row = item.Describe(slot);
+    return row.Enabled && row.Selectable;
 }
 
-void MenuHost::StepCursor(const std::vector<std::shared_ptr<MenuOption>>& items, int& idx, int step)
+void MenuHost::StepCursor(int slot, const std::vector<MenuItem>& items, int& idx, int step)
 {
     int n = static_cast<int>(items.size());
     if (n == 0)
@@ -36,10 +33,10 @@ void MenuHost::StepCursor(const std::vector<std::shared_ptr<MenuOption>>& items,
     {
         idx = ((idx + step) % n + n) % n;
     }
-    while (!IsCursorTarget(items[idx]) && --attempts > 0);
+    while (!IsCursorTarget(items[idx], slot) && --attempts > 0);
 }
 
-void MenuHost::OpenMenu(int slot, std::shared_ptr<MenuView> menu, MenuSessionOptions options)
+void MenuHost::OpenMenu(int slot, std::shared_ptr<Menu> menu, MenuSessionOptions options)
 {
     if (!IsValidSlot(slot) || !menu)
         return;
@@ -142,11 +139,11 @@ void MenuHost::Activate(int slot, int index)
     if (!menu || index < 0 || index >= static_cast<int>(menu->Items.size()))
         return;
 
-    // A copy of the pointer, not a reference into the vector: a row that closes or reopens the
-    // menu destroys the MenuView, and with it the option whose handler is still running.
-    const std::shared_ptr<MenuOption> option = menu->Items[static_cast<std::size_t>(index)];
-    if (IsCursorTarget(option))
-        option->OnActivate(slot, *this);
+    // Copies out of the vector, not references into it: a row that closes or reopens the menu
+    // destroys the Menu, and with it the item whose handler is still running.
+    const MenuItem item = menu->Items[static_cast<std::size_t>(index)];
+    if (item.Activate && IsCursorTarget(item, slot))
+        item.Activate(slot, *this);
 }
 
 bool MenuHost::Step(int slot, int index, int direction)
@@ -159,8 +156,10 @@ bool MenuHost::Step(int slot, int index, int direction)
         return false;
 
     // Copied for the same reason as in Activate: a step that persists may rebuild the menu.
-    const std::shared_ptr<MenuOption> option = menu->Items[static_cast<std::size_t>(index)];
-    return option && option->IsEnabled() && option->OnHorizontal(slot, direction);
+    const MenuItem item = menu->Items[static_cast<std::size_t>(index)];
+    if (!item.Step || !item.Describe || !item.Describe(slot).Enabled)
+        return false;
+    return item.Step(slot, direction);
 }
 
 void MenuHost::SetPlayerFrozen(int slot, bool frozen)
@@ -193,8 +192,8 @@ void MenuHost::SelectFirst(int slot)
 {
     auto& state = _states[slot];
     auto* menu = state.GetCurrentMenu();
-    if (menu && !menu->Items.empty() && !IsCursorTarget(menu->Items[0]))
-        StepCursor(menu->Items, state.SelectedIndex, +1);
+    if (menu && !menu->Items.empty() && !IsCursorTarget(menu->Items[0], slot))
+        StepCursor(slot, menu->Items, state.SelectedIndex, +1);
 }
 
 }  // namespace VoltMod

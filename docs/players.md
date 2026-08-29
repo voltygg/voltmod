@@ -239,9 +239,9 @@ Dispatch through an `EffectDispatcher`, which your `App` owns next to its `Actio
 `EffectManager` (`EffectDispatcher PlayerEffects{Actions, Effects};`):
 `PlayerEffects.Toggle(adminSlot, targetSlot, descriptor)` plus its `Apply` / `Clear` siblings (they
 resolve the pair through the wrapped `ActionDispatcher` and apply `Policy::Authorize` first). Or
-drop the descriptor straight into a menu with `MenuBuilder::Effect`. Set `Choices` to drive a
+drop the descriptor straight into a menu with `ActionRows::Effect`. Set `Choices` to drive a
 picker submenu instead of a plain toggle - `Apply`/`Toggle` then take the picker's `param` and
-`MenuBuilder::EffectPicker` renders it, with a reset row when `ResetLabelKey` is set.
+`ActionRows::EffectPicker` renders it, with a reset row when `ResetLabelKey` is set.
 `EffectManager` guarantees `OnStop` runs exactly once however the effect ends, whether by toggle,
 death, disconnect, round end, or unload.
 

@@ -4,12 +4,12 @@
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
 #include <VoltMod/Menu/MenuHost.hpp>
-#include <VoltMod/Menu/MenuPresets.hpp>
 #include <format>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -17,25 +17,29 @@ namespace VoltMod
 {
 
 /**
- * @brief Multi-step menu wizard threading a state struct through its steps.
+ * @brief Multi-step menu wizard threading a state struct through its steps, for one player.
  *
- * A Flow owns one @p TState copy, opens each applicable step in order, re-runs the OnValidate
+ * A Flow owns one @p TState copy, opens each applicable step in order, re-runs the @ref Validate
  * check before every step AND before finishing (so "target left" / "permission revoked" abort
  * cleanly), renders an auto-built summary confirm dialog when configured, and finally hands the
- * accumulated state to OnFinish. Human-facing text comes from caller-supplied per-slot providers,
- * so the framework carries no localization; the OnValidate error is a translation key (resolved in the
- * offending player's language, replied via runtime.Policy.Reply).
+ * accumulated state to @ref Finish. Every human-facing string is a value the caller has already
+ * translated - the flow is built for one admin, so there is nothing left to resolve per slot -
+ * and the @ref Validate error is a translation key, resolved in that player's language and
+ * replied through `runtime.Policy.Reply`.
  *
  * @code
- * Flow<PendingPunishment>::Create(runtime.HtmlMenus, std::move(pending))
- *     ->OnValidate(ValidateTargetStillPunishable)
- *     ->AddDurationStep(title, durationPresets, [](auto& s, int sec) { s.DurationSec = sec; },
- *                       customLabel, customPrompt, [](const auto& s) { return IsTimed(s.Type); })
- *     ->AddOptionsStep(title, reasonPresets, [](auto& s, std::string r) { s.Reason = std::move(r); },
- *                      customLabel, customPrompt)
- *     ->WithConfirm(confirmTitle, SummaryRows, confirmLabel, cancelLabel)
- *     ->OnFinish(IssueFromState)
- *     ->Start(adminSlot);
+ * Flow<PendingPunishment>::Create(menus, adminSlot, std::move(pending))
+ *     ->Validate(StillPunishable)
+ *     ->AddDurationStep({.Title = tr("punish.duration"),
+ *                        .Presets = durations,
+ *                        .Set = [](PendingPunishment& s, int sec) { s.DurationSec = sec; },
+ *                        .CustomLabel = tr("punish.custom"),
+ *                        .CustomPrompt = tr("punish.customPrompt"),
+ *                        .Applies = [](const PendingPunishment& s) { return IsTimed(s.Type); }})
+ *     ->Confirm({.Title = tr("punish.confirm"), .Summary = SummaryRows,
+ *                .ConfirmLabel = tr("nav.confirm"), .CancelLabel = tr("nav.cancel")})
+ *     ->Finish([](PendingPunishment& s) { Issue(s); })
+ *     ->Start();
  * @endcode
  *
  * Lifetime: the open menus' row callbacks hold the only shared_ptr references, so the flow
@@ -46,143 +50,124 @@ class Flow : public std::enable_shared_from_this<Flow<TState>>
 {
 public:
     using Ptr = std::shared_ptr<Flow>;
-    /** Per-slot text provider (title, button label, prompt, ...). */
-    using LabelFn = std::function<std::string(int slot)>;
-    /** Menu factory for a custom step; call `flow.Advance(slot)` after mutating `flow.State()`. */
-    using BuildFn = std::function<std::shared_ptr<MenuView>(int slot, Flow& flow)>;
+    /** Menu factory for a custom step; call `flow.Advance()` after mutating `flow.State()`. */
+    using BuildFn = std::function<std::shared_ptr<Menu>(Flow& flow)>;
     /** Step predicate over the current state; a false skips the step. */
     using AppliesFn = std::function<bool(const TState&)>;
 
-    /** @p menus opens every step and closes them on abort or finish; it must outlive the flow,
-     *  which one Load/Unload cycle guarantees. */
-    static Ptr Create(MenuHost& menus, TState initial) { return Ptr(new Flow(menus, std::move(initial))); }
+    /** A row per (label, seconds) preset, plus a chat-input row parsed by @ref ParseDuration when
+     *  @ref CustomLabel is set. */
+    struct DurationStep
+    {
+        std::string Title;
+        std::vector<std::pair<std::string, int>> Presets;
+        std::function<void(TState&, int seconds)> Set;
+        /** Empty = no free-text row. */
+        std::string CustomLabel;
+        std::string CustomPrompt;
+        AppliesFn Applies;
+    };
+
+    /**
+     * A row per option, plus a free-text row (empty input re-prompts) when @ref CustomLabel is set.
+     *
+     * Each option is a (label, value) pair: the label is what the player reads, the value is the
+     * caller's stable identity for the row (a preset code, say). @ref Set receives both, so a
+     * state that stores the code and the display text separately does not have to recover one
+     * from the other. When a row has no separate identity, pass the label as the value. The
+     * custom row reports @ref CustomValue, defaulting to the typed text.
+     */
+    struct OptionsStep
+    {
+        std::string Title;
+        std::vector<std::pair<std::string, std::string>> Options;
+        std::function<void(TState&, const std::string& label, const std::string& value)> Set;
+        std::string CustomLabel;
+        std::string CustomPrompt;
+        std::string CustomValue;
+        AppliesFn Applies;
+    };
+
+    /** The summary dialog the flow ends with; rows render as "{label}: {value}". */
+    struct ConfirmSpec
+    {
+        std::string Title;
+        std::function<std::vector<std::pair<std::string, std::string>>(const TState&)> Summary;
+        std::string ConfirmLabel;
+        std::string CancelLabel;
+    };
+
+    /** @p menus opens every step for @p slot and closes them on abort or finish; it must outlive
+     *  the flow, which one Load/Unload cycle guarantees. */
+    static Ptr Create(MenuHost& menus, int slot, TState initial)
+    {
+        return Ptr(new Flow(menus, slot, std::move(initial)));
+    }
 
     /** Append a custom step. */
     Ptr AddStep(BuildFn build, AppliesFn applies = {})
     {
-        _steps.push_back({std::move(build), std::move(applies)});
+        _steps.push_back({.Build = std::move(build), .Applies = std::move(applies)});
         return this->shared_from_this();
     }
 
-    /** Append a duration-picker step: rows from @p presets (label, seconds) pairs, plus an
-     *  optional custom chat-input row when @p customLabel is set. */
-    Ptr AddDurationStep(LabelFn title, std::function<std::vector<std::pair<std::string, int>>(int slot)> presets,
-                        std::function<void(TState&, int seconds)> set, LabelFn customLabel = {},
-                        LabelFn customPrompt = {}, AppliesFn applies = {})
+    /** Append a duration-picker step. */
+    Ptr AddDurationStep(DurationStep step)
     {
         auto weak = this->weak_from_this();
+        auto applies = step.Applies;
         return AddStep(
-            [weak, title = std::move(title), presets = std::move(presets), set = std::move(set),
-             customLabel = std::move(customLabel),
-             customPrompt = std::move(customPrompt)](int slot, Flow&) -> std::shared_ptr<MenuView> {
+            [weak, step = std::move(step)](Flow&) -> std::shared_ptr<Menu> {
                 auto self = weak.lock();
-                if (!self)
-                    return nullptr;
-                auto onPick = [self, set](int s, int seconds) {
-                    set(self->_state, seconds);
-                    self->Advance(s);
-                };
-                return BuildDurationPicker(slot, title(slot), presets(slot), std::move(onPick),
-                                           customLabel ? customLabel(slot) : "",
-                                           customPrompt ? customPrompt(slot) : "");
+                return self ? self->BuildDurationMenu(step) : nullptr;
             },
             std::move(applies));
     }
 
-    /**
-     * Append an options step: one button per option, plus an optional free-text input row
-     * (empty input re-prompts) when @p customLabel is set.
-     *
-     * Each option is a (label, value) pair, like @ref AddDurationStep - the label is shown and
-     * localized, the value is the caller's stable identity for the row (a preset code, say).
-     * `set` receives both, so a state that stores the code and the display text separately does
-     * not have to recover one from the other. When a row has no separate identity, pass the
-     * label as the value. The custom-input row reports @p customValue as its value, defaulting
-     * to the typed text; a @p customLabel that resolves to an empty string omits the row.
-     */
-    using Option = std::pair<std::string, std::string>;  // (label, value)
-
-    Ptr AddOptionsStep(LabelFn title, std::function<std::vector<Option>(int slot)> options,
-                       std::function<void(TState&, const std::string& label, const std::string& value)> set,
-                       LabelFn customLabel = {}, LabelFn customPrompt = {}, std::string customValue = {},
-                       AppliesFn applies = {})
+    /** Append an options step. */
+    Ptr AddOptionsStep(OptionsStep step)
     {
         auto weak = this->weak_from_this();
+        auto applies = step.Applies;
         return AddStep(
-            [weak, title = std::move(title), options = std::move(options), set = std::move(set),
-             customLabel = std::move(customLabel), customPrompt = std::move(customPrompt),
-             customValue = std::move(customValue)](int slot, Flow&) -> std::shared_ptr<MenuView> {
+            [weak, step = std::move(step)](Flow&) -> std::shared_ptr<Menu> {
                 auto self = weak.lock();
-                if (!self)
-                    return nullptr;
-
-                MenuBuilder builder(title(slot));
-                for (const auto& [label, value] : options(slot))
-                {
-                    builder.Button(label, [self, set, label, value](int s) {
-                        set(self->_state, label, value);
-                        self->Advance(s);
-                    });
-                }
-
-                // An empty label means "no custom row", matching BuildDurationPicker - so a
-                // caller can gate the row on config without splitting the chain.
-                const std::string custom = customLabel ? customLabel(slot) : std::string();
-                if (!custom.empty())
-                {
-                    builder.Input(
-                        custom, customPrompt ? customPrompt(slot) : "", [](int) { return std::string(); },
-                        [self, set, customValue](int s, std::string_view text) {
-                            std::string typed = Strings::Trim(std::string(text));
-                            if (typed.empty())
-                                return false;  // re-prompt
-                            set(self->_state, typed, customValue.empty() ? typed : customValue);
-                            self->Advance(s);
-                            return true;
-                        },
-                        64);
-                }
-                return builder.Build();
+                return self ? self->BuildOptionsMenu(step) : nullptr;
             },
             std::move(applies));
     }
 
     /** Re-run before every step and before finish; return a translation key to abort (the key
      *  is resolved in the player's language, replied, and all their menus close). */
-    Ptr OnValidate(std::function<std::optional<std::string>(int slot, const TState&)> check)
+    Ptr Validate(std::function<std::optional<std::string>(const TState&)> check)
     {
         _validate = std::move(check);
         return this->shared_from_this();
     }
 
-    /** End with a summary confirm dialog; rows render as "{label}: {value}". */
-    Ptr WithConfirm(LabelFn title,
-                    std::function<std::vector<std::pair<std::string, std::string>>(int slot, const TState&)> summary,
-                    LabelFn confirmLabel, LabelFn cancelLabel)
+    /** End with a summary confirm dialog instead of finishing straight away. */
+    Ptr Confirm(ConfirmSpec spec)
     {
-        _confirmTitle = std::move(title);
-        _confirmSummary = std::move(summary);
-        _confirmLabel = std::move(confirmLabel);
-        _cancelLabel = std::move(cancelLabel);
+        _confirm = std::move(spec);
         return this->shared_from_this();
     }
 
-    Ptr OnFinish(std::function<void(int slot, TState&)> finish)
+    Ptr Finish(std::function<void(TState&)> finish)
     {
         _finish = std::move(finish);
         return this->shared_from_this();
     }
 
     /** Open the first applicable step (or the confirm/finish when there are none). */
-    void Start(int slot) { OpenFrom(slot, 0); }
+    void Start() { OpenFrom(0); }
 
-    /** Move past the current step. Steps call this after writing their value into State(). */
-    void Advance(int slot) { OpenFrom(slot, _stepIndex + 1); }
+    /** Move past the current step. Steps call this after writing their value into @ref State. */
+    void Advance() { OpenFrom(_stepIndex + 1); }
 
     TState& State() { return _state; }
 
 private:
-    Flow(MenuHost& menus, TState initial) : _menus(&menus), _state(std::move(initial)) {}
+    Flow(MenuHost& menus, int slot, TState initial) : _menus(&menus), _slot(slot), _state(std::move(initial)) {}
 
     struct Step
     {
@@ -190,9 +175,94 @@ private:
         AppliesFn Applies;
     };
 
-    void OpenFrom(int slot, std::size_t from)
+    std::shared_ptr<Menu> BuildDurationMenu(const DurationStep& step)
     {
-        if (!RunValidation(slot))
+        auto self = this->shared_from_this();
+        MenuBuilder builder(step.Title);
+
+        for (const auto& [label, seconds] : step.Presets)
+        {
+            builder.Button(label, [self, set = step.Set, seconds](int) {
+                if (set)
+                    set(self->_state, seconds);
+                self->Advance();
+            });
+        }
+
+        // An empty label means "no custom row", so a caller can gate it on config without
+        // splitting the chain.
+        if (!step.CustomLabel.empty())
+        {
+            builder.Add(InputRow{.Label = step.CustomLabel,
+                                 .Prompt = step.CustomPrompt,
+                                 .Set =
+                                     [self, set = step.Set](int, std::string_view text) {
+                                         int seconds = ParseDuration(text);
+                                         if (seconds < 0)
+                                             return false;  // re-prompt
+                                         if (set)
+                                             set(self->_state, seconds);
+                                         self->Advance();
+                                         return true;
+                                     },
+                                 .MaxLength = 32});
+        }
+
+        return builder.Build();
+    }
+
+    std::shared_ptr<Menu> BuildOptionsMenu(const OptionsStep& step)
+    {
+        auto self = this->shared_from_this();
+        MenuBuilder builder(step.Title);
+
+        for (const auto& [label, value] : step.Options)
+        {
+            builder.Button(label, [self, set = step.Set, label, value](int) {
+                if (set)
+                    set(self->_state, label, value);
+                self->Advance();
+            });
+        }
+
+        if (!step.CustomLabel.empty())
+        {
+            builder.Add(
+                InputRow{.Label = step.CustomLabel,
+                         .Prompt = step.CustomPrompt,
+                         .Set = [self, set = step.Set, customValue = step.CustomValue](int, std::string_view text) {
+                             std::string typed = Strings::Trim(std::string(text));
+                             if (typed.empty())
+                                 return false;  // re-prompt
+                             if (set)
+                                 set(self->_state, typed, customValue.empty() ? typed : customValue);
+                             self->Advance();
+                             return true;
+                         }});
+        }
+
+        return builder.Build();
+    }
+
+    std::shared_ptr<Menu> BuildConfirmMenu()
+    {
+        auto self = this->shared_from_this();
+        MenuBuilder builder(_confirm.Title);
+
+        if (_confirm.Summary)
+        {
+            for (const auto& [label, value] : _confirm.Summary(_state))
+                builder.Text(value.empty() ? label : std::format("{}: {}", label, value));
+        }
+
+        builder.Button(_confirm.ConfirmLabel, [self](int) { self->RunFinish(); });
+        builder.Button(_confirm.CancelLabel, [self](int slot) { self->_menus->CloseAllMenus(slot); });
+        return builder.Build();
+    }
+
+    void OpenFrom(std::size_t from)
+    {
+        if (!RunValidation())
             return;
 
         for (std::size_t i = from; i < _steps.size(); ++i)
@@ -200,65 +270,48 @@ private:
             if (_steps[i].Applies && !_steps[i].Applies(_state))
                 continue;
             _stepIndex = i;
-            if (auto menu = _steps[i].Build(slot, *this))
-                _menus->OpenMenu(slot, menu);
+            if (auto menu = _steps[i].Build(*this))
+                _menus->OpenMenu(_slot, std::move(menu));
             return;
         }
 
-        if (_confirmSummary)
-            OpenConfirm(slot);
+        if (_confirm.Summary)
+            _menus->OpenMenu(_slot, BuildConfirmMenu());
         else
-            RunFinish(slot);
+            RunFinish();
     }
 
-    void OpenConfirm(int slot)
-    {
-        auto self = this->shared_from_this();
-        ConfirmDialogSpec spec{
-            .Title = _confirmTitle ? _confirmTitle(slot) : std::string{},
-            .ConfirmLabel = _confirmLabel ? _confirmLabel(slot) : std::string{},
-            .CancelLabel = _cancelLabel ? _cancelLabel(slot) : std::string{},
-            .OnConfirm = [self](int s) { self->RunFinish(s); },
-        };
-        for (const auto& [label, value] : _confirmSummary(slot, _state))
-            spec.BodyLines.push_back(value.empty() ? label : std::format("{}: {}", label, value));
-
-        _menus->OpenMenu(slot, BuildConfirmDialog(*_menus, std::move(spec)));
-    }
-
-    void RunFinish(int slot)
+    void RunFinish()
     {
         // Anything may have changed while the confirm dialog was up - validate one last time.
-        if (!RunValidation(slot))
+        if (!RunValidation())
             return;
         if (_finish)
-            _finish(slot, _state);
-        _menus->CloseAllMenus(slot);
+            _finish(_state);
+        _menus->CloseAllMenus(_slot);
     }
 
     /** False = aborted (error replied, menus closed). */
-    bool RunValidation(int slot)
+    bool RunValidation()
     {
         if (!_validate)
             return true;
-        auto error = _validate(slot, _state);
+        auto error = _validate(_state);
         if (!error)
             return true;
 
-        _menus->CloseAllWithReply(slot, *error);
+        _menus->CloseAllWithReply(_slot, *error);
         return false;
     }
 
     MenuHost* _menus;
+    int _slot;
     TState _state;
     std::vector<Step> _steps;
     std::size_t _stepIndex = 0;
-    std::function<std::optional<std::string>(int, const TState&)> _validate;
-    std::function<std::vector<std::pair<std::string, std::string>>(int, const TState&)> _confirmSummary;
-    LabelFn _confirmTitle;
-    LabelFn _confirmLabel;
-    LabelFn _cancelLabel;
-    std::function<void(int, TState&)> _finish;
+    std::function<std::optional<std::string>(const TState&)> _validate;
+    ConfirmSpec _confirm;
+    std::function<void(TState&)> _finish;
 };
 
 }  // namespace VoltMod

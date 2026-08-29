@@ -5,7 +5,6 @@
 #include <VoltMod/Core/Subscriptions.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Menu/MenuHost.hpp>
-#include <VoltMod/Menu/MenuRow.hpp>
 #include <VoltMod/Ui/UiPanel.hpp>
 #include <array>
 #include <memory>
@@ -33,8 +32,7 @@ public:
     /** @p layout is the resource to drive (@ref DefaultLayout ships with the framework). All
      *  references must outlive the manager. Nothing is spawned until a menu opens. */
     UiMenuManager(Scheduler& scheduler, CustomUi& ui, SlotEvents& slots, EntitySystem& entities, ChatInput& chatInput,
-                  Translations& translations, Policy& policy, PlayerManager& players,
-                  std::string layout = std::string(DefaultLayout));
+                  Translations& translations, Policy& policy, std::string layout = std::string(DefaultLayout));
     ~UiMenuManager() override;
 
     /** The layout the framework ships, under `panorama/layout/custom_game/`. */

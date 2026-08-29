@@ -119,9 +119,9 @@ public:
     /** Interfaces offered to, and borrowed from, other plugins. */
     ServiceExchange Exchange;
     /** Center-HTML menus steered with WASD; works on every client. */
-    HtmlMenuManager HtmlMenus{Scheduler, Slots, Entities, Messages, Hooks.ChatInput, Translations, Policy, Players};
+    HtmlMenuManager HtmlMenus{Scheduler, Slots, Entities, Messages, Hooks.ChatInput, Translations, Policy};
     /** Clickable Panorama menus, for plugins that ship a layout. Spawns nothing until a menu opens. */
-    UiMenuManager UiMenus{Scheduler, Ui, Slots, Entities, Hooks.ChatInput, Translations, Policy, Players};
+    UiMenuManager UiMenus{Scheduler, Ui, Slots, Entities, Hooks.ChatInput, Translations, Policy};
     VoltMod::CommandManager Commands{Policy, Translations, Players, Entities, Messages};
     /** Completions replay on the game thread from a per-frame subscription it registers itself. */
     HttpClient Http{Scheduler};

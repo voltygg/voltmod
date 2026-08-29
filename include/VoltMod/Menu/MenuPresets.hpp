@@ -2,9 +2,6 @@
 
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
-#include <VoltMod/Menu/MenuHost.hpp>
-#include <VoltMod/Menu/Options/ChoiceOption.hpp>
-#include <VoltMod/Messaging/ChatColors.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <functional>
 #include <memory>
@@ -17,66 +14,39 @@ namespace VoltMod
 {
 
 /**
- * @brief Reusable, content-agnostic menu builders.
+ * @brief Reusable, content-agnostic menu building blocks.
  *
- * These presets take every human-facing string as a parameter so they carry no
- * localization of their own - the caller supplies already-translated text. Each one
- * takes the single service it needs (`runtime.Players`, `runtime.HtmlMenus`) rather than
- * the runtime, so a translation unit including only this header still compiles.
+ * These take every human-facing string as a parameter, so they carry no localization of their
+ * own - the caller supplies already-translated text - and each takes the single service it needs
+ * (`runtime.Players`) rather than the runtime.
  */
 
-// Forward declarations; full definitions in MenuBuilder.hpp and MenuHost.hpp.
-
-/**
- * Append one row per player connected to @p players to @p builder - the body of
- * @ref BuildPlayerPicker, exposed so callers can put their own rows above the player list.
- * Selecting a player invokes @p onPick(viewerSlot, targetSlot). @p isEnabled, when supplied,
- * decides per-row whether a target is selectable. If no players are connected, a single
- * disabled @p emptyLabel row is appended instead.
- */
-void AppendPlayerRows(MenuBuilder& builder, PlayerManager& players, int viewerSlot,
-                      const std::function<void(int viewerSlot, int targetSlot)>& onPick,
-                      const std::string& emptyLabel = "", const std::function<bool(int targetSlot)>& isEnabled = {});
-
-/** Build a paginated picker menu containing only the @ref AppendPlayerRows player list. */
-std::shared_ptr<MenuView> BuildPlayerPicker(PlayerManager& players, int viewerSlot, const std::string& title,
-                                            std::function<void(int viewerSlot, int targetSlot)> onPick,
-                                            const std::string& emptyLabel = "",
-                                            std::function<bool(int targetSlot)> isEnabled = {});
-
-/**
- * Build a duration picker. Each @p presets entry is a (label, seconds) pair rendered as a row;
- * selecting it invokes @p onPick(viewerSlot, seconds). When @p customLabel is non-empty an
- * extra chat-input row is appended: it prompts with @p customPrompt and parses the typed text
- * via @ref VoltMod::ParseDuration (rejecting/re-prompting on a negative result).
- */
-std::shared_ptr<MenuView> BuildDurationPicker(int viewerSlot, const std::string& title,
-                                              const std::vector<std::pair<std::string, int>>& presets,
-                                              std::function<void(int viewerSlot, int seconds)> onPick,
-                                              const std::string& customLabel = "", const std::string& customPrompt = "",
-                                              int maxInputLen = 32);
-
-/** Confirmation dialog content; every human-facing string is caller-supplied. */
-struct ConfirmDialogSpec
+/** The player list @ref AppendPlayerRows and @ref BuildPlayerPicker draw. */
+struct PlayerPicker
 {
+    /** Only @ref BuildPlayerPicker uses it; @ref AppendPlayerRows appends into a titled builder. */
     std::string Title;
-    std::vector<std::string> BodyLines; /**< Read-only summary rows shown above the buttons. */
-    std::string ConfirmLabel;
-    std::string CancelLabel;
-    std::function<void(int slot)> OnConfirm;
-    std::function<void(int slot)> OnCancel; /**< Empty = close all of the player's menus. */
+    /** Runs with the picked player's slot. The viewer is whoever the caller built this for. */
+    std::function<void(int targetSlot)> Pick;
+    /** Shown as one disabled row when nobody is connected; empty appends nothing. */
+    std::string EmptyLabel;
+    /** Per-row: false renders that player disabled. Unset enables every row. */
+    std::function<bool(int targetSlot)> Enabled;
 };
 
-/** Build a confirmation dialog: body text rows followed by confirm/cancel buttons.
- *  @p menus is the manager the default cancel closes through; it must outlive the dialog. */
-std::shared_ptr<MenuView> BuildConfirmDialog(MenuHost& menus, ConfirmDialogSpec spec);
+/** Append one row per connected player to @p builder, so a caller can put its own rows above the
+ *  list. */
+void AppendPlayerRows(MenuBuilder& builder, PlayerManager& players, const PlayerPicker& spec);
+
+/** A menu holding only the @ref AppendPlayerRows list. */
+std::shared_ptr<Menu> BuildPlayerPicker(PlayerManager& players, PlayerPicker spec);
 
 /**
- * Render @ref ChatColors::Palette as ChoiceOption choices (value = canonical color name),
- * so color pickers grow automatically as the palette does. @p labelFor supplies the localized
- * label for each canonical name; return "" to fall back to the name itself.
+ * @ref ChatColors::Palette as choice-row entries (value = canonical color name), so color pickers
+ * grow as the palette does. @p labelFor supplies the localized label for each canonical name;
+ * returning "" falls back to the name itself.
  */
-std::vector<ChoiceOption<std::string>::Choice> BuildPaletteChoices(
-    const std::function<std::string(std::string_view canonicalName)>& labelFor);
+std::vector<std::pair<std::string, std::string>> BuildPaletteChoices(
+    std::function<std::string(std::string_view canonicalName)> labelFor);
 
 }  // namespace VoltMod

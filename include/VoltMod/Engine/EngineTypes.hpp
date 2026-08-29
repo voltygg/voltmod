@@ -78,8 +78,9 @@ class UiList;
 
 // --- (3) Mutually recursive with their owning header --------------------------
 
-/** MenuHost holds PlayerMenuState (Menu/Menu.hpp) by value and Menu.hpp
- *  holds MenuOption, so MenuOption.hpp cannot include MenuHost.hpp. */
+/** MenuHost holds PlayerMenuState (Menu/Menu.hpp) by value and Menu.hpp declares
+ *  MenuItem::Activate, which hands a row the host showing it, so Menu.hpp cannot
+ *  include MenuHost.hpp. */
 class MenuHost;
 
 /** Entity.hpp holds an EntitySystem* so a wrapper's verbs can reach Bindings and

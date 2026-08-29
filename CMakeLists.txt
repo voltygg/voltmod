@@ -166,8 +166,10 @@ if(BUILD_TESTING)
             src/Core/SteamId.cpp
             src/Core/Time.cpp
             src/Core/Translations.cpp
-            # MenuRenderer is SDK-free. MenuBuilder is not because ActionContext
-            # stores Controller by value.
+            # The row model is plain values, so both are SDK-free. The two calls a row makes
+            # into a live session live behind src/Menu/HostCalls.hpp; tests/Menu/MenuHostSeam.cpp
+            # supplies them here.
+            src/Menu/MenuBuilder.cpp
             src/Menu/Html/MenuRenderer.cpp
         # Some tests include private headers from src/.
         INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src"
