@@ -1,36 +1,24 @@
 /*
-	VoltMod's Panorama menu. Panorama CSS, not web CSS - see docs/custom-ui.md: selectors are
-	flat (no nesting, no &), there is no flexbox, and every panel on the click path keeps a
-	resolved size, because a container sized around its children renders its buttons where you
-	expect and then does not take clicks there.
+	VoltMod's Panorama menu. Panorama CSS, not web CSS (docs/custom-ui.md): flat selectors, no
+	flexbox, and every panel on the click path needs a resolved size, or its buttons draw where
+	you expect and take clicks elsewhere.
 
-	Palette - the whole sheet is these three colours plus white and black washes:
-		background  rgba(12, 13, 16, 0.96)  panel body; bands are white washes over it
-		ink         #e8e6e0                 primary text, #8a8778 when it is secondary
-		accent      #c8a24a                 title, selection, values, pressed states
+	Palette: background rgba(12,13,16,0.96), ink #e8e6e0 (#8a8778 secondary), accent #c8a24a.
 
-	The server only ever sets classes, so a restyle is this file alone. The vocabulary is
-	Hidden / Disabled / Selected / Changed / Pending / HasValue / HasSteppers / On and one
-	Kind--* on a row, and Hidden / Prompting / KeyHints / Root on #vm_root - none of which a layout
-	container here may reuse as a class name.
+	The server only sets classes, so a restyle is this file alone. Its vocabulary: Hidden,
+	Disabled, Selected, Changed, Pending, HasValue, HasSteppers, On and one Kind--* per row;
+	Hidden, Prompting, KeyHints, Root on #vm_root. Root is also this sheet's full-screen layer,
+	so #vm_root sets its own width and height rather than inheriting that rule.
 */
 
-/*
-	The full-screen layer the menu is centred in. Named Screen, not Root: the driver writes a
-	`Root` class onto #vm_root itself to say the stack is at its top level, and a `.Root` rule
-	here would match that too - which sized the whole menu to the screen on the root menu and
-	left every submenu correct.
-*/
-.Screen {
+/* The full-screen layer the menu is centred in. */
+.Root {
   width: 100%;
   height: 100%;
 }
 
-/*
-	No padding here: the header band and the footer run to the panel edge, and every block inside
-	is a fixed width centred in the 480px body, so the panel's own height is the only box that has
-	to be measured from its children.
-*/
+/* No padding: the header and footer bands run to the panel edge, and every block inside is a
+   fixed width centred in the 480px body. */
 #vm_root {
   width: 480px;
   height: fit-children;
@@ -47,7 +35,7 @@
   transition-timing-function: ease-out;
 }
 
-/* Collapse as well as fade: a merely transparent panel still takes clicks. */
+/* Collapse as well as fade: a transparent panel still takes clicks. */
 #vm_root.Hidden {
   visibility: collapse;
   opacity: 0;
@@ -68,7 +56,7 @@
   );
 }
 
-/* Fixed height: the trail is empty at the root and CSS cannot test that, so it holds its line. */
+/* Fixed height: empty at the root, and CSS cannot test that, so it holds its line. */
 .Breadcrumb {
   width: 100%;
   height: 14px;
@@ -114,7 +102,7 @@
   transition-duration: 0.12s;
 }
 
-/* The driver ignores row presses while a chat prompt is up; this is what says so. */
+/* The driver ignores row presses while a prompt is up; this says so. */
 #vm_root.Prompting .Rows {
   opacity: 0.35;
 }
@@ -142,7 +130,7 @@
   opacity: 0.4;
 }
 
-/* Keyboard cursor. Always laid out, so moving the cursor moves colour and not geometry. */
+/* Keyboard cursor. Always laid out, so moving it moves colour, not geometry. */
 .Mark {
   width: 3px;
   height: 100%;
@@ -177,7 +165,7 @@
   background-color: rgba(255, 255, 255, 0.08);
 }
 
-/* The driver drops Changed after ~150ms, so the transition above is the pulse fading back out. */
+/* The driver drops Changed after ~150ms; the transition above is the pulse fading out. */
 .Row.Changed {
   background-color: rgba(200, 162, 74, 0.38);
 }
@@ -190,9 +178,8 @@
   background-color: rgba(255, 255, 255, 0);
 }
 
-/* One column, no flow: the kind glyphs stack on the same spot and only one is ever visible. The
-   margin is the gap to the label: the switch fills this column edge to edge, so without it a
-   toggle sits flush against its text while the narrower glyphs look spaced. */
+/* One column, no flow: the kind glyphs stack and only one shows. The margin is the gap to the
+   label - the switch fills this column edge to edge and would otherwise touch its text. */
 .Glyphs {
   width: 26px;
   height: 100%;
@@ -227,7 +214,7 @@
   visibility: visible;
 }
 
-/* A toggle is a switch, not a value: that is what tells it apart from a choice at a glance. */
+/* A switch, not a value: what tells a toggle from a choice at a glance. */
 .Switch {
   width: 26px;
   height: 14px;
@@ -275,7 +262,7 @@
   text-overflow: ellipsis;
 }
 
-/* Fixed column, right aligned, so a long label never pushes the values out of line. */
+/* Fixed column, right aligned, so a long label never pushes values out of line. */
 .Row-value {
   width: 120px;
   vertical-align: center;
@@ -294,8 +281,7 @@
   color: #8a8778;
 }
 
-/* The switch already says on or off; the words would only repeat it. Three classes, so this
-   outweighs the HasValue rule above rather than tying with it. */
+/* The switch already says on or off. Three classes, so this outweighs HasValue above. */
 .Row.Kind--toggle .Row-value {
   visibility: collapse;
 }
@@ -321,11 +307,8 @@
   color: #8a8778;
 }
 
-/*
-	The stepper column keeps its width on every row, so a choice row's label and value sit exactly
-	where a toggle row's do. Collapsing the buttons inside it is what makes them unclickable -
-	hittest is markup, not CSS - while the reserved box stops the rest of the row shifting.
-*/
+/* Reserved on every row so labels and values line up across kinds. Collapsing the buttons is
+   what makes them unclickable; the box stays so the row does not shift. */
 .Steps {
   width: 76px;
   height: 100%;
@@ -408,10 +391,7 @@
   color: #8a8778;
 }
 
-/*
-	Fixed height: Cancel has to stay clickable, and this is the one block whose height would
-	otherwise be measured from however long a prompt happens to be.
-*/
+/* Fixed height: Cancel must stay clickable, and a prompt is any length. */
 .Prompt {
   width: 460px;
   height: 112px;

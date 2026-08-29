@@ -1,24 +1,21 @@
 <root>
   <!--
-    Driven by VoltMod::MenuManager's Panorama driver. The ids below are the contract
-    (docs/custom-ui.md); the nesting, the artwork and the animation are ours. All text is dialog
-    variables on vm_root, which the labels inherit: vm_title, vm_breadcrumb, vm_subtitle, vm_page,
-    vm_prompt_text, vm_prompt_hint and the per-row vm_row{i}_label / vm_row{i}_value.
+    Driven by VoltMod::MenuManager's Panorama driver. The ids are the contract (docs/custom-ui.md);
+    nesting and artwork are ours. Text arrives as dialog variables on vm_root: vm_title,
+    vm_breadcrumb, vm_subtitle, vm_page, vm_prompt_text, vm_prompt_hint, vm_row{i}_label/_value.
 
-    Clickability (each of these fails silently): every panel on the click path has a resolved
-    size, a Button never contains another Button, and decorative panels are hittest="false".
-    Eight rows, matching the driver's page size; the server cannot read this file.
+    Clickability, each failing silently: every panel on the click path needs a resolved size, a
+    Button never nests a Button, decorative panels are hittest="false". Eight rows, matching the
+    driver's page size.
 
-    Each row carries its own kind glyph set. Exactly one is uncollapsed by the row's kind class
-    (Kind, two dashes, then button, text, submenu, toggle, choice or input - spelled out here
-    because XML forbids a double dash inside a comment), and they stack on one 26px column so a
+    A row carries every kind glyph; its kind class uncollapses one. They share a 26px column so a
     row without a glyph still lines up.
   -->
   <styles>
     <include src="file://{resources}/styles/custom_game/voltmod_menu.css" />
   </styles>
 
-  <Panel class="Screen" hittest="false">
+  <Panel class="Root" hittest="false">
     <Panel id="vm_root" class="Hidden" hittest="true">
       <Panel class="Header" hittest="false">
         <Label class="Breadcrumb" text="{s:vm_breadcrumb}" />
@@ -241,8 +238,8 @@
         </Button>
       </Panel>
 
-      <!-- Back and Close are always laid out; at the root, Back is drawn inert instead of hidden.
-           The hint line keeps its box and fades, so showing it never reflows the footer. -->
+      <!-- Always laid out: at the root Back is drawn inert, not hidden, and the hint line keeps its
+           box and fades, so neither reflows the footer. -->
       <Panel class="Foot" hittest="true">
         <Panel class="Nav-row" hittest="true">
           <Button id="vm_back" class="Nav">
