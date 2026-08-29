@@ -9,8 +9,10 @@
     size, a Button never contains another Button, and decorative panels are hittest="false".
     Eight rows, matching the driver's page size; the server cannot read this file.
 
-    Each row carries its own kind glyph set. Exactly one is uncollapsed by the row's Kind--*
-    class, and they stack on one 26px column so a row without a glyph still lines up.
+    Each row carries its own kind glyph set. Exactly one is uncollapsed by the row's kind class
+    (Kind, two dashes, then button, text, submenu, toggle, choice or input - spelled out here
+    because XML forbids a double dash inside a comment), and they stack on one 26px column so a
+    row without a glyph still lines up.
   -->
   <styles>
     <include src="file://{resources}/styles/custom_game/voltmod_menu.css" />
