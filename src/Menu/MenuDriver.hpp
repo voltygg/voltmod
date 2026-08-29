@@ -34,8 +34,9 @@ public:
     virtual void Dismiss(int slot) = 0;
 
     /** The menu on top of @p slot's stack changed, so anything this driver tracks per menu - a
-     *  page - starts over. */
-    virtual void Reset(int slot) = 0;
+     *  page - starts over. The cursor and the debounce window are the session's, and the manager
+     *  has already started those over, so a driver that keeps nothing per menu needs no override. */
+    virtual void Reset(int /*slot*/) {}
 
     /** Read whatever input this driver has for @p slot. True when something was consumed; a
      *  driver whose input arrives as events rather than button state returns false. */
@@ -46,7 +47,7 @@ public:
 
     /** The cursor moved onto @p page. A driver that keeps a page of its own follows it here; one
      *  that derives the page from the cursor has nothing to do. */
-    virtual void ShowPage(int slot, int page) = 0;
+    virtual void ShowPage(int /*slot*/, int /*page*/) {}
 
 protected:
     /** @p menus and @p services must outlive the driver, which the manager owning it gives. */
@@ -80,8 +81,9 @@ protected:
     /** Put @p slot's cursor on the first row it may land on within @p page of this driver. */
     void SelectOnPage(int slot, int page) const { _menus.SelectOnPage(slot, page, RowsPerPage()); }
 
-    /** The titles under the current menu, joined with ` > `; empty at the root. */
-    [[nodiscard]] std::string Crumbs(int slot) const { return _menus.Crumbs(slot); }
+    /** The titles under the current menu, joined with ` > `; empty at the root. Valid until
+     *  @p slot's stack moves, which outlasts any one draw. */
+    [[nodiscard]] std::string_view Crumbs(int slot) const { return _menus.Crumbs(slot); }
 
     /** Whether keys drive @p slot's session (@ref MenuOptions::Keyboard). */
     [[nodiscard]] bool KeyboardEnabled(int slot) const { return _menus.KeyboardEnabled(slot); }
@@ -89,13 +91,12 @@ protected:
     /** The shared W/S/A/D/E/R handling, which is what a driver's @ref HandleInput calls. */
     bool HandleKeys(int slot) { return _menus.HandleKeys(slot, *this); }
 
-    /** @p key in @p slot's language, or @p fallback when the table does not carry it. A missing
-     *  key comes back as itself, which is what this reads as absent - so a consumer that ships
-     *  no `menu.*` keys still gets readable English rather than a dotted key on screen. */
+    /** @p key in @p slot's language, or @p fallback when the table does not carry it - so a
+     *  consumer that ships no `menu.*` keys still gets readable English rather than a dotted key
+     *  on screen. */
     [[nodiscard]] std::string Translate(std::string_view key, std::string_view fallback, int slot) const
     {
-        std::string value = _services.Translations.Get(key, slot);
-        return value == key ? std::string(fallback) : value;
+        return _services.Translations.GetOr(key, slot, fallback);
     }
 
     MenuManager& _menus;

@@ -5,6 +5,7 @@
 #include <VoltMod/Core/Subscription.hpp>
 #include <array>
 #include <map>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -44,6 +45,10 @@ public:
     /** Look up a key in @p slot's registered language, falling back to the active language then English. */
     std::string Get(std::string_view key, int slot) const;
 
+    /** @ref Get(key, slot), but @p fallback instead of the key itself when nothing carries it.
+     *  For text the framework or a plugin can render without the consumer shipping the key. */
+    std::string GetOr(std::string_view key, int slot, std::string_view fallback) const;
+
     /** @ref Get(key, slot), then replace each `{token}` occurrence from @p tokens. */
     std::string Get(std::string_view key, int slot, const std::map<std::string, std::string>& tokens) const;
 
@@ -58,8 +63,14 @@ public:
     void ClearPlayerLanguage(int slot);
 
 private:
-    // Returns a pointer to the stored value (which may be empty), or nullptr when lang/key is absent.
-    const std::string* LookupIn(const std::string& lang, const std::string& key) const;
+    // Engaged (possibly with an empty view) when lang/key is present, nullopt when it is absent.
+    // A view, not a string, so a lookup on the per-frame menu path copies nothing; the tables and
+    // the built-in defaults both outlive the call.
+    std::optional<std::string_view> LookupIn(const std::string& lang, const std::string& key) const;
+
+    // The whole lookup chain for @p slot short of the final fallback: nullopt means nothing
+    // carries the key, which is what Get and GetOr answer differently.
+    std::optional<std::string_view> Resolve(const std::string& key, int slot) const;
 
     std::unordered_map<std::string, std::unordered_map<std::string, std::string>> _translations;
     std::string _activeLang = "en";

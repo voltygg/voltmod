@@ -8,27 +8,33 @@ namespace VoltMod
 {
 
 ActionRows::ActionRows(const Services& services, PlayerRef admin, std::optional<PlayerRef> target)
-    : _services(services), _admin(admin), _target(std::move(target))
+    : _services(std::make_shared<const Services>(services)), _admin(admin), _target(std::move(target))
 {}
 
 bool ActionRows::Allowed(std::string_view permission) const
 {
-    return _services.Policy.Authorize(_admin, _target, permission).has_value();
+    return _services->Policy.Authorize(_admin, _target, permission).has_value();
 }
 
 std::string ActionRows::Tr(std::string_view key, Tokens tokens) const
 {
-    return _services.Translations.Get(key, _admin.Slot, tokens);
+    return _services->Translations.Get(key, _admin.Slot, tokens);
+}
+
+ActionRows::ToggleText ActionRows::StateLabels() const
+{
+    return {.On = Tr("effectState.on"), .Off = Tr("effectState.off")};
 }
 
 MenuItem ActionRows::Action(std::string_view labelKey, const VoltMod::Action& action)
 {
-    // Services and refs by value into the callback, the descriptor by pointer: an Action is
-    // static plugin data, while the row may outlive the ActionRows that produced it.
+    // The shared services handle and the refs by value into the callback, the descriptor by
+    // pointer: an Action is static plugin data, while the row may outlive the ActionRows that
+    // produced it.
     return ButtonRow{
         .Label = Tr(labelKey),
         .Activate = [services = _services, admin = _admin, target = TargetRef(),
-                     act = &action](int) { services.Actions.Run(admin, target, *act); },
+                     act = &action](int) { services->Actions.Run(admin, target, *act); },
         .Enabled = Allowed(action.Permission),
     }
         .ToItem();
@@ -37,17 +43,18 @@ MenuItem ActionRows::Action(std::string_view labelKey, const VoltMod::Action& ac
 MenuItem ActionRows::StateToggle(std::string_view labelKey, std::function<bool(const Pawn&)> isActive,
                                  const VoltMod::Action& action)
 {
+    ToggleText state = StateLabels();
     return ToggleRow{
         .Label = Tr(labelKey),
-        .On = Tr("effectState.on"),
-        .Off = Tr("effectState.off"),
+        .On = std::move(state.On),
+        .Off = std::move(state.Off),
         .Get =
             [services = _services, target = TargetRef(), isActive = std::move(isActive)](int) {
-                Pawn pawn = services.Entities.PawnOf(target.Slot);
+                Pawn pawn = services->Entities.PawnOf(target.Slot);
                 return pawn && isActive(pawn);
             },
         .Flip = [services = _services, admin = _admin, target = TargetRef(),
-                 act = &action](int) { services.Actions.Run(admin, target, *act); },
+                 act = &action](int) { services->Actions.Run(admin, target, *act); },
         .Enabled = Allowed(action.Permission),
     }
         .ToItem();
@@ -66,7 +73,7 @@ MenuItem ActionRows::Presets(const PresetSpec& spec)
         // The menu stays open: a preset is a value to try, adjust and apply again, and the
         // manager holds the commit so a burst of steps is one action.
         .Commit = [services = _services, admin = _admin, target = TargetRef(), act = &spec.Action](
-                      int, const int& value) { services.Actions.Run(admin, target, value, *act); },
+                      int, const int& value) { services->Actions.Run(admin, target, value, *act); },
         .Index = spec.Index,
         .Enabled = Allowed(spec.Action.Permission),
     }
@@ -75,16 +82,17 @@ MenuItem ActionRows::Presets(const PresetSpec& spec)
 
 MenuItem ActionRows::Effect(const EffectDescriptor& effect)
 {
+    ToggleText state = StateLabels();
     return ToggleRow{
         .Label = Tr(effect.NameKey),
-        .On = Tr("effectState.on"),
-        .Off = Tr("effectState.off"),
-        .Get = [effects = _services.Effects, target = TargetRef(),
+        .On = std::move(state.On),
+        .Off = std::move(state.Off),
+        .Get = [effects = _services->Effects, target = TargetRef(),
                 id = effect.Id](int) { return effects && effects->IsActive(target.Slot, id); },
         .Flip =
             [services = _services, admin = _admin, target = TargetRef(), e = &effect](int) {
-                if (services.Effects)
-                    EffectDispatcher{services.Actions, *services.Effects}.Toggle(admin, target, *e);
+                if (services->Effects)
+                    EffectDispatcher{services->Actions, *services->Effects}.Toggle(admin, target, *e);
             },
         .Enabled = Allowed(effect.Permission),
     }
@@ -97,16 +105,16 @@ std::shared_ptr<Menu> ActionRows::BuildPicker(const EffectDescriptor& effect, bo
     // reopen against whoever took the slot.
     if (!_target)
         return nullptr;
-    auto* targetPlayer = _services.Players.Get(*_target);
+    auto* targetPlayer = _services->Players.Get(*_target);
     if (!targetPlayer)
         return nullptr;
 
     MenuBuilder builder(std::format("{}: {}", Tr(effect.NameKey), targetPlayer->Name()));
 
     auto apply = [services = _services, admin = _admin, target = *_target, e = &effect](int slot, int param) {
-        if (services.Effects)
-            EffectDispatcher{services.Actions, *services.Effects}.Apply(admin, target, *e, param);
-        services.Menus.CloseAll(slot);
+        if (services->Effects)
+            EffectDispatcher{services->Actions, *services->Effects}.Apply(admin, target, *e, param);
+        services->Menus.CloseAll(slot);
     };
 
     for (const auto& choice : effect.Choices ? effect.Choices() : std::vector<EffectChoice>{})
@@ -121,10 +129,10 @@ std::shared_ptr<Menu> ActionRows::BuildPicker(const EffectDescriptor& effect, bo
         builder.Add(ButtonRow{.Label = Tr(effect.ResetLabelKey),
                               .Activate =
                                   [services = _services, admin = _admin, target = *_target, e = &effect](int slot) {
-                                      if (services.Effects)
-                                          EffectDispatcher{services.Actions, *services.Effects}.Clear(admin, target,
-                                                                                                      *e);
-                                      services.Menus.CloseAll(slot);
+                                      if (services->Effects)
+                                          EffectDispatcher{services->Actions, *services->Effects}.Clear(admin, target,
+                                                                                                        *e);
+                                      services->Menus.CloseAll(slot);
                                   },
                               .Enabled = allowed});
     }

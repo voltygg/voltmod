@@ -52,7 +52,7 @@ int MenuCursor::Step(const CursorRows& rows, int index, int step)
     int attempts = rows.Count;
     do
     {
-        index = ((index + step) % rows.Count + rows.Count) % rows.Count;
+        index = WrapIndex(index + step, rows.Count);
     }
     while (!Landable(rows, index) && --attempts > 0);
 
@@ -88,7 +88,7 @@ int MenuCursor::JumpPage(const CursorRows& rows, int index, int rowsPerPage, int
         return index;
 
     const int pages = PageCount(rows.Count, rowsPerPage);
-    const int page = ((index / rowsPerPage + delta) % pages + pages) % pages;
+    const int page = WrapIndex(index / rowsPerPage + delta, pages);
     const int start = page * rowsPerPage;
     const int end = std::min(rows.Count, start + rowsPerPage);
 

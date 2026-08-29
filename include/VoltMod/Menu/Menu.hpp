@@ -19,6 +19,13 @@ constexpr int PageCount(int items, int perPage)
     return items <= 0 ? 1 : (items + perPage - 1) / perPage;
 }
 
+/** @p value wrapped into `[0, count)`, so stepping off either end comes back round. Handles a
+ *  negative @p value, which the plain `%` does not. */
+constexpr int WrapIndex(int value, int count)
+{
+    return count <= 0 ? 0 : ((value % count) + count) % count;
+}
+
 /** What a row *is*, for a driver that styles rows rather than spelling them out in their text. */
 enum class MenuRowKind
 {

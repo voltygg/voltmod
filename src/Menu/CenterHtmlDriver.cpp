@@ -7,14 +7,6 @@ namespace VoltMod
 
 CenterHtmlDriver::CenterHtmlDriver(MenuManager& menus, const MenuServices& services) : MenuDriver(menus, services) {}
 
-void CenterHtmlDriver::Reset(int)
-{
-    // The cursor and the debounce window belong to the session, and the manager has already
-    // started them over for the menu now on top.
-}
-
-void CenterHtmlDriver::ShowPage(int, int) {}
-
 bool CenterHtmlDriver::HandleInput(int slot)
 {
     // Keys are the only input this driver has, so MenuOptions::Keyboard is not consulted: a
@@ -38,7 +30,6 @@ void CenterHtmlDriver::Present(int slot)
     const CenterHtmlView view{
         .Describe = [this, slot](int index) { return Describe(slot, index); },
         .Crumbs = Crumbs(slot),
-        .EmptyLabel = Translate("menu.empty", "Nothing here", slot),
         .Slot = slot,
         .SelectedIndex = Selected(slot),
         .IsSubmenu = Depth(slot) > 1,

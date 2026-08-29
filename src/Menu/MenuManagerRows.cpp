@@ -37,22 +37,9 @@ bool MenuManager::HandleKeys(int slot, MenuDriver& driver)
     return _keys->Handle(slot, driver);
 }
 
-std::string MenuManager::Crumbs(int slot) const
+std::string_view MenuManager::Crumbs(int slot) const
 {
-    if (!IsValidSlot(slot))
-        return {};
-
-    // Everything under the top menu, which is the path taken to reach what is on screen; the
-    // current title is drawn on its own and would only repeat itself here.
-    const auto& stack = _states[slot].MenuStack;
-    std::string crumbs;
-    for (std::size_t i = 0; i + 1 < stack.size(); ++i)
-    {
-        if (!crumbs.empty())
-            crumbs += kCrumbSeparator;
-        crumbs += stack[i]->Title;
-    }
-    return crumbs;
+    return IsValidSlot(slot) ? std::string_view(_states[slot].Crumbs) : std::string_view{};
 }
 
 int MenuManager::Selected(int slot) const
@@ -90,6 +77,16 @@ void MenuManager::ResetCursor(int slot)
     auto& state = _states[slot];
     state.LastInputTime = Time::MonotonicMs();
     state.Rows.clear();
+
+    // Everything under the top menu, which is the path taken to reach what is on screen; the
+    // current title is drawn on its own and would only repeat itself here.
+    state.Crumbs.clear();
+    for (std::size_t i = 0; i + 1 < state.MenuStack.size(); ++i)
+    {
+        if (!state.Crumbs.empty())
+            state.Crumbs += kCrumbSeparator;
+        state.Crumbs += state.MenuStack[i]->Title;
+    }
 
     auto* menu = state.GetCurrentMenu();
     _cursor->Select(slot, menu ? MenuCursor::First(CursorRowsOf(menu->Items, slot)) : 0);

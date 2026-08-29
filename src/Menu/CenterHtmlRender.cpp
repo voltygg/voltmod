@@ -23,14 +23,6 @@ constexpr std::string_view NavClose = "#AA4422";
 constexpr std::string_view NavBack = "#AA8833";
 }  // namespace Theme
 
-// Localized footer label; Get() returns the key unchanged when missing, so fall back to the
-// English literal - lets consumers that don't ship nav.* keys still render cleanly.
-static std::string FooterLabel(Translations& translations, std::string_view key, std::string_view fallback, int slot)
-{
-    auto value = translations.Get(std::string(key), slot);
-    return value == key ? std::string(fallback) : value;
-}
-
 std::string DefaultHeader(const CenterHtmlHeader& header)
 {
     std::ostringstream html;
@@ -72,8 +64,9 @@ static std::string FooterChunk(std::string_view keyColor, std::string_view keyTe
 
 std::string DefaultFooter(bool isSubmenu, bool isPaginated, bool usesHorizontal, int slot, Translations& translations)
 {
+    // Fall back to the English literal so consumers that don't ship nav.* keys still render cleanly.
     auto label = [&](std::string_view key, std::string_view fallback) {
-        return FooterLabel(translations, key, fallback, slot);
+        return translations.GetOr(key, slot, fallback);
     };
 
     const std::string_view closeColor = isSubmenu ? Theme::NavBack : Theme::NavClose;
@@ -136,13 +129,17 @@ static std::string RowText(const MenuRow& row)
     return text;
 }
 
-static std::string RenderItems(const CenterHtmlView& view, int pageStart, int pageEnd)
+// @p selected takes the cursor's row as it was described for the page, so the footer that needs it
+// does not describe the same row a second time.
+static std::string RenderItems(const CenterHtmlView& view, int pageStart, int pageEnd, MenuRow& selected)
 {
     std::ostringstream html;
 
     for (int i = pageStart; i < pageEnd; ++i)
     {
         const MenuRow row = view.Describe(i);
+        if (i == view.SelectedIndex)
+            selected = row;
         std::string title = RowText(row);
         bool selectable = row.Selectable;
         bool enabled = row.Enabled;
@@ -192,16 +189,19 @@ std::string RenderMenuHtml(const Menu* menu, const CenterHtmlView& view, Transla
                            .Page = currentPage,
                            .Pages = totalPages});
 
-    // A menu with nothing in it says so, rather than drawing a header over blank space that
-    // looks like a menu still loading.
+    // Only the branch that draws it pays for it: the empty line is looked up here rather than by
+    // every caller on every frame, and the cursor's row comes back from the page that drew it.
+    MenuRow selected{.Enabled = false};
     if (itemCount == 0)
-        html << "<font color='" << Theme::WarmGray << "'>" << Strings::EscapeHtml(view.EmptyLabel) << "</font><br>";
+    {
+        const std::string empty = translations.GetOr("menu.empty", view.Slot, "Nothing here");
+        html << "<font color='" << Theme::WarmGray << "'>" << Strings::EscapeHtml(empty) << "</font><br>";
+    }
     else
-        html << RenderItems(view, pageStart, pageEnd);
+    {
+        html << RenderItems(view, pageStart, pageEnd, selected);
+    }
 
-    const MenuRow selected = view.SelectedIndex >= 0 && view.SelectedIndex < itemCount
-                                 ? view.Describe(view.SelectedIndex)
-                                 : MenuRow{.Enabled = false};
     html << DefaultFooter(view.IsSubmenu, totalPages > 1, selected.Enabled && selected.Steppable, view.Slot,
                           translations);
 

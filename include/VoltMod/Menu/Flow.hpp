@@ -115,7 +115,9 @@ public:
     Ptr AddDurationStep(DurationStep step)
     {
         auto weak = this->weak_from_this();
-        auto applies = step.Applies;
+        // Moved out, not copied: AddStep keeps the predicate on the Step, so leaving it on the
+        // captured step too would hold a second copy for as long as the flow is alive.
+        auto applies = std::move(step.Applies);
         return AddStep(
             [weak, step = std::move(step)](Flow&) -> std::shared_ptr<Menu> {
                 auto self = weak.lock();
@@ -140,7 +142,7 @@ public:
     Ptr AddOptionsStep(OptionsStep step)
     {
         auto weak = this->weak_from_this();
-        auto applies = step.Applies;
+        auto applies = std::move(step.Applies);
         return AddStep(
             [weak, step = std::move(step)](Flow&) -> std::shared_ptr<Menu> {
                 auto self = weak.lock();
@@ -192,29 +194,32 @@ private:
         auto self = this->shared_from_this();
         MenuBuilder builder(step.Title);
 
+        // One shared setter for the whole list: every row below stores its callback for as long as
+        // the menu is open, so capturing step.Set by value would keep one copy per option.
+        auto set = std::make_shared<const decltype(step.Set)>(step.Set);
+
         for (const auto& [label, value] : step.Options)
         {
-            builder.Button(label, [self, set = step.Set, label, value](int) {
-                if (set)
-                    set(self->_state, label, value);
+            builder.Button(label, [self, set, label, value](int) {
+                if (*set)
+                    (*set)(self->_state, label, value);
                 self->Advance();
             });
         }
 
         if (!step.CustomLabel.empty())
         {
-            builder.Add(
-                InputRow{.Label = step.CustomLabel,
-                         .Prompt = step.CustomPrompt,
-                         .Set = [self, set = step.Set, customValue = step.CustomValue](int, std::string_view text) {
-                             std::string typed = Strings::Trim(std::string(text));
-                             if (typed.empty())
-                                 return false;  // re-prompt
-                             if (set)
-                                 set(self->_state, typed, customValue.empty() ? typed : customValue);
-                             self->Advance();
-                             return true;
-                         }});
+            builder.Add(InputRow{.Label = step.CustomLabel,
+                                 .Prompt = step.CustomPrompt,
+                                 .Set = [self, set, customValue = step.CustomValue](int, std::string_view text) {
+                                     std::string typed = Strings::Trim(std::string(text));
+                                     if (typed.empty())
+                                         return false;  // re-prompt
+                                     if (*set)
+                                         (*set)(self->_state, typed, customValue.empty() ? typed : customValue);
+                                     self->Advance();
+                                     return true;
+                                 }});
         }
 
         return builder.Build();

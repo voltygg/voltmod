@@ -200,70 +200,90 @@ private:
 template <class T>
 MenuItem ChoiceRow<T>::ToItem() const
 {
-    // By value into every callback: the row outlives the spec the caller wrote it from.
-    auto choices = Choices;
-    auto commit = Commit;
-    auto getIndex = GetIndex;
-    auto setIndex = SetIndex;
-    std::string label = Label;
-    bool enabled = Enabled;
-    // The index the row keeps when the caller supplied none. Shared so all four callbacks
-    // below read and write the one value.
-    auto own = std::make_shared<int>(Index);
+    // The row outlives the spec the caller wrote it from, so the spec is copied once into a shared
+    // state rather than by value into each callback: all four callbacks below are stored on the
+    // MenuItem for as long as the menu is open, and a capture per callback would keep that many
+    // copies of Choices alive.
+    struct State
+    {
+        std::vector<std::pair<std::string, T>> Choices;
+        std::function<void(int slot, const T& value)> Commit;
+        std::function<int(int slot)> GetIndex;
+        std::function<void(int slot, int index)> SetIndex;
+        std::string Label;
+        bool Enabled;
+        /** The index the row keeps for itself when the caller supplied no GetIndex/SetIndex. */
+        int Own;
 
-    auto read = [choices, getIndex, own](int slot) {
-        if (choices.empty())
-            return 0;
-        int index = getIndex ? getIndex(slot) : *own;
-        return std::clamp(index, 0, static_cast<int>(choices.size()) - 1);
+        [[nodiscard]] int Read(int slot) const
+        {
+            if (Choices.empty())
+                return 0;
+            const int index = GetIndex ? GetIndex(slot) : Own;
+            return std::clamp(index, 0, static_cast<int>(Choices.size()) - 1);
+        }
+
+        void Write(int slot, int index)
+        {
+            if (SetIndex)
+                SetIndex(slot, index);
+            else
+                Own = index;
+        }
+
+        void Apply(int slot) const
+        {
+            if (Commit && !Choices.empty())
+                Commit(slot, Choices[static_cast<std::size_t>(Read(slot))].second);
+        }
+
+        bool Step(int slot, int direction)
+        {
+            if (Choices.empty())
+                return false;
+            Write(slot, WrapIndex(Read(slot) + direction, static_cast<int>(Choices.size())));
+            return true;
+        }
     };
-    auto write = [setIndex, own](int slot, int index) {
-        if (setIndex)
-            setIndex(slot, index);
-        else
-            *own = index;
-    };
-    auto apply = [choices, commit, read](int slot) {
-        if (commit && !choices.empty())
-            commit(slot, choices[static_cast<std::size_t>(read(slot))].second);
-    };
-    auto step = [choices, read, write](int slot, int direction) {
-        if (choices.empty())
-            return false;
-        int count = static_cast<int>(choices.size());
-        write(slot, ((read(slot) + direction) % count + count) % count);
-        return true;
-    };
+
+    auto state = std::make_shared<State>(State{.Choices = Choices,
+                                               .Commit = Commit,
+                                               .GetIndex = GetIndex,
+                                               .SetIndex = SetIndex,
+                                               .Label = Label,
+                                               .Enabled = Enabled,
+                                               .Own = Index});
 
     return MenuItem{
         .Describe =
-            [choices, read, label, enabled](int slot) {
-                return MenuRow{
-                    .Label = label,
-                    .Value = choices.empty() ? std::string{} : choices[static_cast<std::size_t>(read(slot))].first,
-                    .Kind = MenuRowKind::Choice,
-                    .Enabled = enabled,
-                    .Steppable = true};
+            [state](int slot) {
+                return MenuRow{.Label = state->Label,
+                               .Value = state->Choices.empty()
+                                            ? std::string{}
+                                            : state->Choices[static_cast<std::size_t>(state->Read(slot))].first,
+                               .Kind = MenuRowKind::Choice,
+                               .Enabled = state->Enabled,
+                               .Steppable = true};
             },
         .Activate =
-            [enabled, commit, apply, step](int slot, MenuSession&) {
-                if (!enabled)
+            [state](int slot, MenuSession&) {
+                if (!state->Enabled)
                     return;
                 // No commit callback: E advances like D, so the row stays interactive for a
                 // plain "pick a value" menu with no separate apply step.
-                if (commit)
-                    apply(slot);
+                if (state->Commit)
+                    state->Apply(slot);
                 else
-                    (void)step(slot, +1);
+                    (void)state->Step(slot, +1);
             },
-        .Step = [enabled, step](int slot, int direction) { return enabled && step(slot, direction); },
+        .Step = [state](int slot, int direction) { return state->Enabled && state->Step(slot, direction); },
         // OnSelect leaves this empty, which is what tells the manager not to hold a commit for
         // the row: nothing applies until the row is activated.
-        .Commit = Apply == ChoiceApply::OnSelect ? std::function<void(int)>{}
-                                                 : std::function<void(int)>([enabled, apply](int slot) {
-                                                       if (enabled)
-                                                           apply(slot);
-                                                   }),
+        .Commit =
+            Apply == ChoiceApply::OnSelect ? std::function<void(int)>{} : std::function<void(int)>([state](int slot) {
+                if (state->Enabled)
+                    state->Apply(slot);
+            }),
     };
 }
 

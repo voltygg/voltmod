@@ -53,6 +53,10 @@ static const std::unordered_map<std::string, std::string>& KitDefaults()
         {"target.ambiguous", "'{token}' matches {count} players - be more specific."},
         {"target.dead", "'{token}' is not alive."},
         {"target.bot", "'{token}' is a bot."},
+        // Written by ActionRows onto every toggle row it builds, so a consumer that ships no
+        // effectState.* keys reads "ON"/"OFF" rather than the dotted key.
+        {"effectState.on", "ON"},
+        {"effectState.off", "OFF"},
     };
     return defaults;
 }
@@ -173,16 +177,16 @@ void Translations::ClearPlayerLanguage(int slot)
     }
 }
 
-const std::string* Translations::LookupIn(const std::string& lang, const std::string& key) const
+std::optional<std::string_view> Translations::LookupIn(const std::string& lang, const std::string& key) const
 {
     auto langIt = _translations.find(lang);
     if (langIt != _translations.end())
     {
         auto keyIt = langIt->second.find(key);
         if (keyIt != langIt->second.end())
-            return &keyIt->second;
+            return keyIt->second;
     }
-    return nullptr;
+    return std::nullopt;
 }
 
 std::string Translations::Get(std::string_view key) const
@@ -190,22 +194,34 @@ std::string Translations::Get(std::string_view key) const
     return Get(key, -1);  // negative slot skips the per-player lookup, resolving against the active language
 }
 
-std::string Translations::Get(std::string_view key, int slot) const
+std::optional<std::string_view> Translations::Resolve(const std::string& key, int slot) const
 {
     const std::string& lang = (IsValidSlot(slot) && !_playerLangs[slot].empty()) ? _playerLangs[slot] : _activeLang;
 
-    // The tables are keyed by std::string, so the view is materialized once and reused below.
-    const std::string name(key);
-
-    // Pointer (not empty-string) sentinel so a key deliberately mapped to "" is honored, not dropped.
-    if (const std::string* v = LookupIn(lang, name))
-        return *v;
+    // Engaged-vs-nullopt (not an empty string) so a key deliberately mapped to "" is honored, not
+    // dropped and re-resolved as missing.
+    if (auto v = LookupIn(lang, key))
+        return v;
     if (lang != "en")
-        if (const std::string* v = LookupIn("en", name))
-            return *v;
-    if (auto it = KitDefaults().find(name); it != KitDefaults().end())
+        if (auto v = LookupIn("en", key))
+            return v;
+    if (auto it = KitDefaults().find(key); it != KitDefaults().end())
         return it->second;
-    return name;
+    return std::nullopt;
+}
+
+std::string Translations::Get(std::string_view key, int slot) const
+{
+    // The tables are keyed by std::string, so the view is materialized once for the lookup.
+    const std::string name(key);
+    auto value = Resolve(name, slot);
+    return value ? std::string(*value) : name;
+}
+
+std::string Translations::GetOr(std::string_view key, int slot, std::string_view fallback) const
+{
+    auto value = Resolve(std::string(key), slot);
+    return std::string(value.value_or(fallback));
 }
 
 std::string Translations::Get(std::string_view key, int slot, const std::map<std::string, std::string>& tokens) const

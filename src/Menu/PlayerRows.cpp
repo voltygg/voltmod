@@ -27,7 +27,7 @@ void AppendPlayerRows(MenuBuilder& builder, PlayerManager& players, const Player
     }
 
     if (connected.empty() && !spec.EmptyLabel.empty())
-        builder.Add(ButtonRow{.Label = spec.EmptyLabel, .Enabled = false});
+        builder.Text(spec.EmptyLabel);
 }
 
 std::shared_ptr<Menu> BuildPlayerPicker(PlayerManager& players, PlayerPicker spec)

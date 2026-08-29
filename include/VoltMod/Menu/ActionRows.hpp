@@ -112,13 +112,24 @@ private:
      *  target is by then. Null when the target has left. */
     std::shared_ptr<Menu> BuildPicker(const EffectDescriptor& effect, bool allowed) const;
 
+    /** The on/off text every toggle row here shares, in the admin's language. */
+    struct ToggleText
+    {
+        std::string On;
+        std::string Off;
+    };
+    [[nodiscard]] ToggleText StateLabels() const;
+
     /** The target as a dispatcher takes it: an absent one is a reference naming nobody, which
      *  @ref Policy::Authorize refuses. */
     [[nodiscard]] PlayerRef TargetRef() const { return _target.value_or(PlayerRef{}); }
 
-    /** By value, so the rows a builder chain produces do not depend on the caller's spec
-     *  outliving them. The references inside it still must. */
-    Services _services;
+    /** Copied once and shared, so the rows a builder chain produces do not depend on the caller's
+     *  spec outliving them. Behind a shared_ptr because every row callback below captures it and
+     *  is then stored on the menu: by value, each of the dozen closures would carry its own copy
+     *  of the bag - and push itself past what a std::function holds inline. The references inside
+     *  it must still outlive the rows. */
+    std::shared_ptr<const Services> _services;
     PlayerRef _admin;
     std::optional<PlayerRef> _target;
 };

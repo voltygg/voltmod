@@ -1,9 +1,33 @@
 #pragma once
 
+#include <string>
 #include <string_view>
 
 namespace VoltMod
 {
+
+/**
+ * The layout's Button id vocabulary, in one place because it is read in both directions: the
+ * driver writes these ids onto the panel and @ref ParseMenuButton reads the presses back. Two
+ * spellings of an id would not fail to compile, only to click, so neither side writes a literal.
+ */
+struct MenuIds
+{
+    static constexpr std::string_view RowPrefix = "vm_row";
+    static constexpr std::string_view Back = "vm_back";
+    static constexpr std::string_view Close = "vm_close";
+    static constexpr std::string_view Prev = "vm_prev";
+    static constexpr std::string_view Next = "vm_next";
+    static constexpr std::string_view Cancel = "vm_cancel";
+
+    /** Suffixes the layout hangs off a `vm_row{i}` run. */
+    static constexpr std::string_view RowActivate = "btn";
+    static constexpr std::string_view RowDecrement = "dec";
+    static constexpr std::string_view RowIncrement = "inc";
+};
+
+/** `vm_row{row}`, the panel id one row's classes are written to. */
+[[nodiscard]] std::string MenuRowId(int row);
 
 /** What a Button in the framework's menu layout stands for. */
 enum class MenuButton

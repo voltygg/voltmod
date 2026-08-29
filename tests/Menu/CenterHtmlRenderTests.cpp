@@ -32,7 +32,6 @@ static CenterHtmlView ViewOf(const Menu& menu, int selectedIndex, bool isSubmenu
                 const VoltMod::MenuItem& item = menu.Items[static_cast<std::size_t>(index)];
                 return item.Describe ? item.Describe(0) : MenuRow{.Enabled = false, .Selectable = false};
             },
-        .EmptyLabel = "Nothing here",
         .SelectedIndex = selectedIndex,
         .IsSubmenu = isSubmenu,
     };

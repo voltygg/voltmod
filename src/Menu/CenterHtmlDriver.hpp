@@ -27,13 +27,12 @@ public:
 
     void Present(int slot) override;
     void Dismiss(int slot) override;
-    void Reset(int slot) override;
     bool HandleInput(int slot) override;
 
     [[nodiscard]] int RowsPerPage() const override { return ItemsPerPage; }
 
-    /** Nothing to follow: the page this driver draws is the cursor's own. */
-    void ShowPage(int slot, int page) override;
+    // Reset and ShowPage keep the base's empty bodies: this driver holds nothing per menu, and the
+    // page it draws is the cursor's own.
 };
 
 }  // namespace VoltMod

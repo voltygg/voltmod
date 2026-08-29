@@ -122,8 +122,10 @@ Status UiPanel::Class(int slot, std::string_view panelId, std::string_view class
 Status UiPanel::ResetClass(int slot, std::string_view panelId, std::string_view className)
 {
     UiPanelState* state = _state.get();
-    const Status status = state ? UiResetClass(state->Entities, state->CurrentEntity, slot, panelId, className)
-                                : UiResetClass(nullptr, {}, slot, panelId, className);
+    // The UiFields calls take a null system and a dead ref by design, so the moved-from panel
+    // takes the same call rather than a second spelling of it.
+    const Status status = UiResetClass(state ? state->Entities : nullptr, state ? state->CurrentEntity : EntityRef{},
+                                       slot, panelId, className);
 
     // Not recorded like the writes above: the markup, not the server, decides what the class is
     // now, so everything the cache believes about this slot is a guess. Dropping it costs one
@@ -147,10 +149,7 @@ Status UiPanel::InputCapture(int slot, bool enabled)
 
 Result<bool> UiPanel::InputCaptured(int slot) const
 {
-    if (!_state)
-        return UiReadInputCapture(nullptr, {}, slot);
-
-    return UiReadInputCapture(_state->Entities, _state->CurrentEntity, slot);
+    return UiReadInputCapture(_state ? _state->Entities : nullptr, _state ? _state->CurrentEntity : EntityRef{}, slot);
 }
 
 void UiPanel::Forget(int slot)

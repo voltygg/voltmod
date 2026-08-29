@@ -41,9 +41,9 @@ TEST_CASE("PanoramaIds: anything else is no button at all")
 {
     // The id is client-controlled text, so each of these is dropped rather than rounded to a row
     // or a nav button a press could land on.
-    for (const char* id : {"", "vm_row", "vm_row_btn", "vm_rowx_btn", "vm_row3", "vm_row3_", "vm_row3_x",
-                           "vm_row03_btn", "vm_row+3_btn", "vm_row-1_btn", "vm_row 3_btn", "row3_btn", "vm_backk",
-                           "VM_BACK", "vm_row3_btn_btn"})
+    for (const char* id :
+         {"", "vm_row", "vm_row_btn", "vm_rowx_btn", "vm_row3", "vm_row3_", "vm_row3_x", "vm_row03_btn", "vm_row+3_btn",
+          "vm_row-1_btn", "vm_row 3_btn", "row3_btn", "vm_backk", "VM_BACK", "vm_row3_btn_btn"})
     {
         CAPTURE(id);
         const MenuPress press = ParseMenuButton(id);

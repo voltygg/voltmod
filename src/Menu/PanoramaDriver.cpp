@@ -127,7 +127,7 @@ void PanoramaDriver::TurnPage(int slot, int delta)
         return;
 
     const int pages = PageCount(static_cast<int>(menu->Items.size()), RowsPerPageCount);
-    _pages[slot] = ((_pages[slot] + delta) % pages + pages) % pages;
+    _pages[slot] = WrapIndex(_pages[slot] + delta, pages);
     // The cursor follows the page rather than sitting on a row that is no longer drawn.
     SelectOnPage(slot, _pages[slot]);
 }

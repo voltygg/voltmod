@@ -141,8 +141,9 @@ private:
      *  for a driver whose page turned without the cursor. */
     void SelectOnPage(int slot, int page, int rowsPerPage);
 
-    /** The titles under the current menu, joined with ` > `; empty at the root. */
-    [[nodiscard]] std::string Crumbs(int slot) const;
+    /** The titles under the current menu, joined with ` > `; empty at the root. Valid until
+     *  @p slot's stack moves. */
+    [[nodiscard]] std::string_view Crumbs(int slot) const;
 
     /** Whether keys drive @p slot's session (@ref MenuOptions::Keyboard). */
     [[nodiscard]] bool KeyboardEnabled(int slot) const;

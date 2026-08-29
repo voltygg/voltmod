@@ -27,17 +27,15 @@ struct CenterHtmlView
     /** Row @p index as @ref MenuManager::Describe fills it in, so @ref MenuRow::Pending and
      *  @ref MenuRow::Changed are already answered. */
     std::function<MenuRow(int index)> Describe;
-    /** The titles under this menu, joined; empty at the root. */
-    std::string Crumbs;
-    /** The one line an empty menu draws, already translated. */
-    std::string EmptyLabel;
+    /** The titles under this menu, joined; empty at the root. Borrowed for the render call. */
+    std::string_view Crumbs;
     int Slot = 0;
     int SelectedIndex = 0;
     bool IsSubmenu = false;
 };
 
 /** Renders the HTML for a menu, including its items and layout. @p translations localizes the
- *  default footer's nav labels and the empty-menu line. */
+ *  default footer's nav labels and the empty-menu line, each looked up only where it is drawn. */
 std::string RenderMenuHtml(const Menu* menu, const CenterHtmlView& view, Translations& translations);
 
 /** Renders the chat-input capture overlay shown while a player is typing a value. */
