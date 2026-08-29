@@ -11,7 +11,7 @@ namespace VoltMod
  *
  * Mirrored rather than used directly so the two decisions that do not need a running engine - is
  * this convar's kind the C++ type the handle promises, and what text does a console line carry -
- * live in a translation unit that does not include the SDK. ConVars.cpp static_asserts that the
+ * live in a translation unit that does not include the SDK. ConVar.cpp static_asserts that the
  * values still line up.
  */
 enum class ConVarType : int16_t

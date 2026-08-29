@@ -26,15 +26,6 @@ static std::unexpected<Error> Malformed(std::string detail)
     return std::unexpected(Error::Invalid(std::move(detail)));
 }
 
-/** The section a key was first seen in, so a collision can say which two sections clash. */
-static Status ClaimKey(std::map<std::string, std::string>& owners, const std::string& key, std::string_view section)
-{
-    auto [it, inserted] = owners.emplace(key, section);
-    if (!inserted)
-        return Malformed(std::format("'{}' is declared in both '{}' and '{}'", key, it->second, section));
-    return {};
-}
-
 bool IsValidBytePattern(std::string_view pattern)
 {
     // Mirrors gamedata.schema.json's regex: "AA BB ? ?? CC", at least one token.
@@ -75,6 +66,26 @@ bool IsValidBytePattern(std::string_view pattern)
 }
 
 /**
+ * What a section reader writes to: the platform column being kept, the file being built, and the
+ * section each key was first claimed by, so a collision can say which two sections clash.
+ */
+struct SectionContext
+{
+    GamePlatform Platform;
+    GameDataFile& Out;
+    std::map<std::string, std::string> Owners;
+};
+
+/** Keys are the names Bindings resolves by, so one key may only mean one thing. */
+static Status ClaimKey(SectionContext& ctx, const std::string& key, std::string_view section)
+{
+    auto [it, inserted] = ctx.Owners.emplace(key, section);
+    if (!inserted)
+        return Malformed(std::format("'{}' is declared in both '{}' and '{}'", key, it->second, section));
+    return {};
+}
+
+/**
  * Whether @p entry carries the other platform's column, i.e. it is deliberately single-platform
  * rather than malformed. gamedata.schema.json requires one of the two columns, not both: something
  * only located on Windows so far is a capability that is off on Linux.
@@ -87,13 +98,12 @@ static bool HasOtherPlatform(const nlohmann::json& entry, GamePlatform platform)
 }
 
 /** Record @p key as unavailable here and tell the caller to skip it. See @ref HasOtherPlatform. */
-static bool SkipOtherPlatform(const nlohmann::json& entry, GamePlatform platform, const std::string& key,
-                              GameDataFile& out)
+static bool SkipOtherPlatform(SectionContext& ctx, const std::string& key, const nlohmann::json& entry)
 {
-    if (!entry.is_object() || entry.contains(PlatformKey(platform)) || !HasOtherPlatform(entry, platform))
+    if (!entry.is_object() || entry.contains(PlatformKey(ctx.Platform)) || !HasOtherPlatform(entry, ctx.Platform))
         return false;
 
-    out.OtherPlatformOnly.push_back(key);
+    ctx.Out.OtherPlatformOnly.push_back(key);
     return true;
 }
 
@@ -111,187 +121,147 @@ static Result<int> PlatformInt(const nlohmann::json& entry, GamePlatform platfor
     return entry[column].get<int>();
 }
 
-static Status ParseSignatures(const nlohmann::json& json, GamePlatform platform, GameDataFile& out,
-                              std::map<std::string, std::string>& owners)
-{
-    if (!json.contains("signatures"))
-        return {};
-    if (!json["signatures"].is_object())
-        return Malformed("'signatures' is not an object");
+/**
+ * Reads one entry that has already passed the checks every section shares, into @p ctx. Storing
+ * nothing is how a reader accepts an entry that does not apply to this platform.
+ */
+using SectionReader = Status (*)(SectionContext& ctx, const std::string& key, const nlohmann::json& entry);
 
-    const std::string_view column = PlatformKey(platform);
-    for (const auto& [key, entry] : json["signatures"].items())
+static Status ReadSignature(SectionContext& ctx, const std::string& key, const nlohmann::json& entry)
+{
+    const std::string_view column = PlatformKey(ctx.Platform);
+    if (!entry.contains(column))
+        return Malformed(std::format("signatures.{} has no '{}' entry", key, column));
+    if (!entry[column].is_object())
+        return Malformed(std::format("signatures.{}.{} is not an object", key, column));
+
+    SignatureEntry signature;
+    signature.Library = entry.value("library", std::string("server"));
+    signature.Pattern = entry[column].value("pattern", std::string{});
+    if (!IsValidBytePattern(signature.Pattern))
+        return Malformed(std::format("signatures.{}.{}.pattern is not a byte pattern", key, column));
+
+    ctx.Out.Signatures.emplace(key, std::move(signature));
+    return {};
+}
+
+static Status ReadAddress(SectionContext& ctx, const std::string& key, const nlohmann::json& entry)
+{
+    AddressEntry address;
+    address.Signature = entry.value("signature", std::string{});
+    // An address derived from a signature this platform does not carry goes with it, rather
+    // than reading as a reference to a signature nobody wrote.
+    if (std::ranges::contains(ctx.Out.OtherPlatformOnly, address.Signature))
     {
-        if (Status claimed = ClaimKey(owners, key, "signatures"); !claimed)
+        ctx.Out.OtherPlatformOnly.push_back(key);
+        return {};
+    }
+    if (!ctx.Out.Signatures.contains(address.Signature))
+        return Malformed(std::format("addresses.{} derives from unknown signature '{}'", key, address.Signature));
+
+    if (!entry.contains("rel32At"))
+        return Malformed(std::format("addresses.{} has no 'rel32At'", key));
+
+    // The platform columns are on `rel32At`, not on the entry: the shared check above saw neither.
+    if (SkipOtherPlatform(ctx, key, entry["rel32At"]))
+        return {};
+
+    auto rel32At = PlatformInt(entry["rel32At"], ctx.Platform, "addresses", key + ".rel32At");
+    if (!rel32At)
+        return std::unexpected(rel32At.error());
+    if (*rel32At < 0)
+        return Malformed(std::format("addresses.{}.rel32At is negative ({})", key, *rel32At));
+
+    address.Rel32At = *rel32At;
+    ctx.Out.Addresses.emplace(key, std::move(address));
+    return {};
+}
+
+static Status ReadVTable(SectionContext& ctx, const std::string& key, const nlohmann::json& entry)
+{
+    VTableEntry vtable;
+    vtable.Class = entry.value("class", std::string{});
+    if (vtable.Class.empty())
+        return Malformed(std::format("vtables.{} has no 'class'", key));
+    vtable.Library = entry.value("library", std::string("server"));
+
+    auto index = PlatformInt(entry, ctx.Platform, "vtables", key);
+    if (!index)
+        return std::unexpected(index.error());
+    if (*index < 0 || *index >= MaxVtableIndex)
+        return Malformed(std::format("vtables.{} index {} is outside [0, {})", key, *index, MaxVtableIndex));
+
+    vtable.Index = *index;
+    ctx.Out.VTables.emplace(key, std::move(vtable));
+    return {};
+}
+
+static Status ReadMessage(SectionContext& ctx, const std::string& key, const nlohmann::json& entry)
+{
+    auto value = PlatformInt(entry, ctx.Platform, "messages", key);
+    if (!value)
+        return std::unexpected(value.error());
+    if (*value < 0)
+        return Malformed(std::format("messages.{} value {} is negative", key, *value));
+
+    ctx.Out.Messages.emplace(key, *value);
+    return {};
+}
+
+static Status ReadOffset(SectionContext& ctx, const std::string& key, const nlohmann::json& entry)
+{
+    OffsetEntry offset;
+    offset.Max = entry.value("max", MaxByteOffset);
+    offset.Align = entry.value("align", 1);
+    if (offset.Align <= 0)
+        return Malformed(std::format("offsets.{}.align must be positive (got {})", key, offset.Align));
+
+    auto value = PlatformInt(entry, ctx.Platform, "offsets", key);
+    if (!value)
+        return std::unexpected(value.error());
+    if (!IsOffsetInRange(*value, offset.Max))
+        return Malformed(std::format("offsets.{} value {} is outside [0, {}]", key, *value, offset.Max));
+    if (!IsAlignedOffset(*value, offset.Align))
+        return Malformed(std::format("offsets.{} value {} is not aligned to {}", key, *value, offset.Align));
+
+    offset.Value = *value;
+    ctx.Out.Offsets.emplace(key, offset);
+    return {};
+}
+
+/**
+ * The shape every section shares: an optional object of named entries, each key claimed exactly
+ * once across the whole file, each entry an object, and each entry either this platform's or
+ * recorded as the other platform's. @p read sees only what got past all four.
+ */
+static Status ParseSection(const nlohmann::json& json, SectionContext& ctx, std::string_view section,
+                           SectionReader read)
+{
+    const auto found = json.find(section);
+    if (found == json.end())
+        return {};
+    if (!found->is_object())
+        return Malformed(std::format("'{}' is not an object", section));
+
+    for (const auto& [key, entry] : found->items())
+    {
+        if (Status claimed = ClaimKey(ctx, key, section); !claimed)
             return claimed;
         if (!entry.is_object())
-            return Malformed(std::format("signatures.{} is not an object", key));
-
-        if (SkipOtherPlatform(entry, platform, key, out))
+            return Malformed(std::format("{}.{} is not an object", section, key));
+        if (SkipOtherPlatform(ctx, key, entry))
             continue;
-        if (!entry.contains(column))
-            return Malformed(std::format("signatures.{} has no '{}' entry", key, column));
-        if (!entry[column].is_object())
-            return Malformed(std::format("signatures.{}.{} is not an object", key, column));
-
-        SignatureEntry signature;
-        signature.Library = entry.value("library", std::string("server"));
-        signature.Pattern = entry[column].value("pattern", std::string{});
-        if (!IsValidBytePattern(signature.Pattern))
-            return Malformed(std::format("signatures.{}.{}.pattern is not a byte pattern", key, column));
-
-        out.Signatures.emplace(key, std::move(signature));
+        if (Status stored = read(ctx, key, entry); !stored)
+            return stored;
     }
     return {};
 }
 
-static Status ParseAddresses(const nlohmann::json& json, GamePlatform platform, GameDataFile& out,
-                             std::map<std::string, std::string>& owners)
-{
-    if (!json.contains("addresses"))
-        return {};
-    if (!json["addresses"].is_object())
-        return Malformed("'addresses' is not an object");
-
-    for (const auto& [key, entry] : json["addresses"].items())
-    {
-        if (Status claimed = ClaimKey(owners, key, "addresses"); !claimed)
-            return claimed;
-        if (!entry.is_object())
-            return Malformed(std::format("addresses.{} is not an object", key));
-
-        AddressEntry address;
-        address.Signature = entry.value("signature", std::string{});
-        // An address derived from a signature this platform does not carry goes with it, rather
-        // than reading as a reference to a signature nobody wrote.
-        if (std::ranges::contains(out.OtherPlatformOnly, address.Signature))
-        {
-            out.OtherPlatformOnly.push_back(key);
-            continue;
-        }
-        if (!out.Signatures.contains(address.Signature))
-            return Malformed(std::format("addresses.{} derives from unknown signature '{}'", key, address.Signature));
-
-        if (!entry.contains("rel32At"))
-            return Malformed(std::format("addresses.{} has no 'rel32At'", key));
-
-        if (SkipOtherPlatform(entry["rel32At"], platform, key, out))
-            continue;
-
-        auto rel32At = PlatformInt(entry["rel32At"], platform, "addresses", key + ".rel32At");
-        if (!rel32At)
-            return std::unexpected(rel32At.error());
-        if (*rel32At < 0)
-            return Malformed(std::format("addresses.{}.rel32At is negative ({})", key, *rel32At));
-
-        address.Rel32At = *rel32At;
-        out.Addresses.emplace(key, std::move(address));
-    }
-    return {};
-}
-
-static Status ParseVTables(const nlohmann::json& json, GamePlatform platform, GameDataFile& out,
-                           std::map<std::string, std::string>& owners)
-{
-    if (!json.contains("vtables"))
-        return {};
-    if (!json["vtables"].is_object())
-        return Malformed("'vtables' is not an object");
-
-    for (const auto& [key, entry] : json["vtables"].items())
-    {
-        if (Status claimed = ClaimKey(owners, key, "vtables"); !claimed)
-            return claimed;
-        if (!entry.is_object())
-            return Malformed(std::format("vtables.{} is not an object", key));
-
-        if (SkipOtherPlatform(entry, platform, key, out))
-            continue;
-
-        VTableEntry vtable;
-        vtable.Class = entry.value("class", std::string{});
-        if (vtable.Class.empty())
-            return Malformed(std::format("vtables.{} has no 'class'", key));
-        vtable.Library = entry.value("library", std::string("server"));
-
-        auto index = PlatformInt(entry, platform, "vtables", key);
-        if (!index)
-            return std::unexpected(index.error());
-        if (*index < 0 || *index >= MaxVtableIndex)
-            return Malformed(std::format("vtables.{} index {} is outside [0, {})", key, *index, MaxVtableIndex));
-
-        vtable.Index = *index;
-        out.VTables.emplace(key, std::move(vtable));
-    }
-    return {};
-}
-
-static Status ParseOffsets(const nlohmann::json& json, GamePlatform platform, GameDataFile& out,
-                           std::map<std::string, std::string>& owners)
-{
-    if (!json.contains("offsets"))
-        return {};
-    if (!json["offsets"].is_object())
-        return Malformed("'offsets' is not an object");
-
-    for (const auto& [key, entry] : json["offsets"].items())
-    {
-        if (Status claimed = ClaimKey(owners, key, "offsets"); !claimed)
-            return claimed;
-        if (!entry.is_object())
-            return Malformed(std::format("offsets.{} is not an object", key));
-
-        if (SkipOtherPlatform(entry, platform, key, out))
-            continue;
-
-        OffsetEntry offset;
-        offset.Max = entry.value("max", MaxByteOffset);
-        offset.Align = entry.value("align", 1);
-        if (offset.Align <= 0)
-            return Malformed(std::format("offsets.{}.align must be positive (got {})", key, offset.Align));
-
-        auto value = PlatformInt(entry, platform, "offsets", key);
-        if (!value)
-            return std::unexpected(value.error());
-        if (!IsOffsetInRange(*value, offset.Max))
-            return Malformed(std::format("offsets.{} value {} is outside [0, {}]", key, *value, offset.Max));
-        if (!IsAlignedOffset(*value, offset.Align))
-            return Malformed(std::format("offsets.{} value {} is not aligned to {}", key, *value, offset.Align));
-
-        offset.Value = *value;
-        out.Offsets.emplace(key, offset);
-    }
-    return {};
-}
-
-static Status ParseMessages(const nlohmann::json& json, GamePlatform platform, GameDataFile& out,
-                            std::map<std::string, std::string>& owners)
-{
-    if (!json.contains("messages"))
-        return {};
-    if (!json["messages"].is_object())
-        return Malformed("'messages' is not an object");
-
-    for (const auto& [key, entry] : json["messages"].items())
-    {
-        if (Status claimed = ClaimKey(owners, key, "messages"); !claimed)
-            return claimed;
-        if (!entry.is_object())
-            return Malformed(std::format("messages.{} is not an object", key));
-
-        if (SkipOtherPlatform(entry, platform, key, out))
-            continue;
-
-        auto value = PlatformInt(entry, platform, "messages", key);
-        if (!value)
-            return std::unexpected(value.error());
-        if (*value < 0)
-            return Malformed(std::format("messages.{} value {} is negative", key, *value));
-
-        out.Messages.emplace(key, *value);
-    }
-    return {};
-}
+// Signatures first: `addresses` entries are checked against them as they parse.
+static constexpr std::pair<std::string_view, SectionReader> GameDataSections[] = {
+    {"signatures", ReadSignature}, {"addresses", ReadAddress}, {"vtables", ReadVTable},
+    {"messages", ReadMessage},     {"offsets", ReadOffset},
+};
 
 static Result<GameDataFile> ParseChecked(std::string_view text, GamePlatform platform)
 {
@@ -326,20 +296,12 @@ static Result<GameDataFile> ParseChecked(std::string_view text, GamePlatform pla
         out.Build.Note = build.value("note", std::string{});
     }
 
-    // Keys are the names Bindings resolves by, so one key may only mean one thing.
-    std::map<std::string, std::string> owners;
-
-    // Signatures first: `addresses` entries are checked against them as they parse.
-    if (Status parsed = ParseSignatures(json, platform, out, owners); !parsed)
-        return std::unexpected(parsed.error());
-    if (Status parsed = ParseAddresses(json, platform, out, owners); !parsed)
-        return std::unexpected(parsed.error());
-    if (Status parsed = ParseVTables(json, platform, out, owners); !parsed)
-        return std::unexpected(parsed.error());
-    if (Status parsed = ParseMessages(json, platform, out, owners); !parsed)
-        return std::unexpected(parsed.error());
-    if (Status parsed = ParseOffsets(json, platform, out, owners); !parsed)
-        return std::unexpected(parsed.error());
+    SectionContext ctx{.Platform = platform, .Out = out};
+    for (const auto& [section, read] : GameDataSections)
+    {
+        if (Status parsed = ParseSection(json, ctx, section, read); !parsed)
+            return std::unexpected(parsed.error());
+    }
 
     return out;
 }

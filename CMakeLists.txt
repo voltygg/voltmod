@@ -159,6 +159,9 @@ if(BUILD_TESTING)
             src/Engine/GameDataFile.cpp
             src/Engine/BytePattern.cpp
             src/Engine/SigScanner.cpp
+            # SigScanner's loader half; one of the two compiles to nothing on this platform.
+            src/Engine/ModuleImage_Windows.cpp
+            src/Engine/ModuleImage_Linux.cpp
             src/Engine/VtableLookup.cpp
             # VtableHook policy is SDK-free; VOLTMOD_VHOOK owns the SourceHook half.
             src/Unsafe/VtableHook.cpp

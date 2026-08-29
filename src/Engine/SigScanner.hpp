@@ -1,24 +1,14 @@
 #pragma once
 
+#include "Engine/ModuleImage.hpp"
+
 #include <VoltMod/Engine/RelativeAddress.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <string>
 
-#ifdef _WIN32
-#include <windows.h>
-#endif
-
 namespace VoltMod
 {
-
-/** A loaded module's mapped image. */
-struct ModuleImage
-{
-    const uint8_t* Base = nullptr;  // mapped base address
-    size_t Size = 0;                // mapped span in bytes
-    std::string Path;               // full path of the file backing the mapping
-};
 
 struct ScanResult
 {

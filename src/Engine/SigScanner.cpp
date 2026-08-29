@@ -3,7 +3,6 @@
 #include "Engine/BytePattern.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -14,127 +13,8 @@
 #include <utility>
 #include <vector>
 
-#ifdef _WIN32
-#include <psapi.h>
-#else
-#include <dlfcn.h>
-#include <link.h>
-#endif
-
 namespace VoltMod
 {
-
-// A mapped region to scan: the whole image on Windows, one PT_LOAD segment on Linux (so we never
-// read across an unmapped `-z separate-code` gap).
-struct ScanRange
-{
-    const uint8_t* Base;
-    size_t Size;
-};
-
-#ifdef _WIN32
-
-/** The module's image and the ranges to scan, from one enumeration of the process. */
-static bool FindImageAndRanges(const char* fileName, ModuleImage& image, std::vector<ScanRange>& ranges)
-{
-    HANDLE process = GetCurrentProcess();
-    HMODULE modules[1024];
-    DWORD needed = 0;
-
-    if (!EnumProcessModules(process, modules, sizeof(modules), &needed))
-        return false;
-
-    ModuleImage best;
-    for (DWORD i = 0; i < needed / sizeof(HMODULE); ++i)
-    {
-        char path[MAX_PATH];
-        if (!GetModuleFileNameA(modules[i], path, sizeof(path)))
-            continue;
-
-        const char* baseName = strrchr(path, '\\');
-        if (!baseName)
-            baseName = strrchr(path, '/');
-        baseName = baseName ? baseName + 1 : path;
-
-        if (_stricmp(baseName, fileName) != 0)
-            continue;
-
-        MODULEINFO info{};
-        if (GetModuleInformation(process, modules[i], &info, sizeof(info)) && info.SizeOfImage > best.Size)
-            best = {static_cast<const uint8_t*>(info.lpBaseOfDll), info.SizeOfImage, path};
-    }
-
-    if (!best.Base)
-        return false;
-
-    image = std::move(best);
-    ranges.assign(1, ScanRange{image.Base, image.Size});
-    return true;
-}
-
-#else
-
-static const char* BaseName(const char* path)
-{
-    const char* slash = strrchr(path, '/');
-    return slash ? slash + 1 : path;
-}
-
-/** The best match so far while walking the loaded objects; see @ref DlIterateCallback. */
-struct ModuleScan
-{
-    const char* Name = nullptr;     // basename to match, e.g. "libserver.so"
-    size_t BestSpan = 0;            // largest module span seen so far (selects the real lib)
-    std::vector<ScanRange> Ranges;  // PT_LOAD segments of the selected module
-    ModuleImage Image;              // load bias, span and on-disk path of the selected module
-};
-
-// Multiple objects can share the basename "libserver.so" (a loader stub plus the real game
-// library), and a substring + first-match scan picks the stub. Match the exact basename and keep
-// the largest-span mapping.
-static int DlIterateCallback(struct dl_phdr_info* info, size_t /*size*/, void* data)
-{
-    auto* scan = static_cast<ModuleScan*>(data);
-    if (!info->dlpi_name || strcmp(BaseName(info->dlpi_name), scan->Name) != 0)
-        return 0;
-
-    size_t span = 0;
-    std::vector<ScanRange> segments;
-    for (int i = 0; i < info->dlpi_phnum; ++i)
-    {
-        const auto& phdr = info->dlpi_phdr[i];
-        if (phdr.p_type != PT_LOAD || phdr.p_memsz == 0)
-            continue;
-
-        span = std::max(span, static_cast<size_t>(phdr.p_vaddr + phdr.p_memsz));
-        segments.push_back({reinterpret_cast<const uint8_t*>(info->dlpi_addr + phdr.p_vaddr), phdr.p_memsz});
-    }
-
-    if (span > scan->BestSpan)
-    {
-        scan->BestSpan = span;
-        scan->Ranges = std::move(segments);
-        // l_addr, not the first segment's mapped address: ELF symbol values are link-time
-        // addresses that must be biased by exactly this to become runtime addresses.
-        scan->Image = {reinterpret_cast<const uint8_t*>(info->dlpi_addr), span, info->dlpi_name};
-    }
-    return 0;  // keep iterating; the largest match wins
-}
-
-/** The module's image and the ranges to scan, from one walk of the loaded objects. */
-static bool FindImageAndRanges(const char* fileName, ModuleImage& image, std::vector<ScanRange>& ranges)
-{
-    ModuleScan scan{.Name = fileName};
-    dl_iterate_phdr(DlIterateCallback, &scan);
-    if (scan.Ranges.empty())
-        return false;
-
-    image = std::move(scan.Image);
-    ranges = std::move(scan.Ranges);
-    return true;
-}
-
-#endif
 
 /**
  * Byte frequencies across @p ranges, counted once per module.

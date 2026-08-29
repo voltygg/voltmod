@@ -186,6 +186,27 @@ TEST_CASE("GameDataFile rejects a vtable entry with no class")
     CHECK(Detail(parsed.error()).find("has no 'class'") != std::string::npos);
 }
 
+// The five sections are one table driven by one loop, so `messages` - the only one with no other
+// case here - is also the only one that could silently drop out of it.
+TEST_CASE("GameDataFile parses messages and refuses a negative id")
+{
+    const auto text = Document(R"(  "messages": { "Clicked": { "windows": 452, "linux": 453 } })");
+
+    auto windows = GameDataFile::Parse(text, GamePlatform::Windows);
+    REQUIRE(windows.has_value());
+    CHECK(windows->EntryCount() == 1);
+    CHECK(windows->Messages.at("Clicked") == 452);
+
+    auto elf = GameDataFile::Parse(text, GamePlatform::Linux);
+    REQUIRE(elf.has_value());
+    CHECK(elf->Messages.at("Clicked") == 453);
+
+    const auto negative = Document(R"(  "messages": { "Clicked": { "windows": -1, "linux": 1 } })");
+    auto parsed = GameDataFile::Parse(negative, GamePlatform::Windows);
+    REQUIRE_FALSE(parsed.has_value());
+    CHECK(Detail(parsed.error()).find("is negative") != std::string::npos);
+}
+
 TEST_CASE("GameDataFile rejects an offset above its own max")
 {
     const auto text = Document(R"(  "offsets": { "Field": { "windows": 600, "linux": 8, "max": 512 } })");
