@@ -155,13 +155,21 @@ Controller::Controller(EntitySystem& entities, CEntityInstance* raw, int slot) :
 {
     static const SchemaField<uint32_t> playerPawn{"CCSPlayerController", "m_hPlayerPawn"};
 
-    const uint32_t handle = SchemaPtr{_e}.Get(playerPawn, InvalidEntityHandle);
-    _pawn = entities.Resolve(EntityRef{handle}).Raw();
+    _pawn = entities.Resolve(EntityRef{SchemaPtr{_e}.Get(playerPawn, InvalidEntityHandle)}).Raw();
 }
 
 Pawn Controller::GetPawn() const
 {
     return _sys ? Pawn{*_sys, _pawn} : Pawn{};
+}
+
+Pawn Controller::Possessed() const
+{
+    static const SchemaField<uint32_t> possessedPawn{"CBasePlayerController", "m_hPawn"};
+
+    if (!_sys)
+        return {};
+    return Pawn{*_sys, _sys->Resolve(EntityRef{SchemaPtr{_e}.Get(possessedPawn, InvalidEntityHandle)}).Raw()};
 }
 
 // The balance lives in a sub-object the controller points at, so it needs the same two-step reach

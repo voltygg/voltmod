@@ -62,8 +62,12 @@ auto menu = MenuBuilder("Admin Panel")
     .Add(ToggleRow{.Label = "God mode", .Get = IsGod, .Flip = FlipGod})
     .Build();
 
-runtime.Menus.Open(playerSlot, menu);
+runtime.Menus.Open(playerSlot, menu, {});   // start a session, replacing any the player has open
 ```
+
+The three-argument `Open` starts a session, closing any the player already has; a
+command calls it. The two-argument @ref VoltMod::MenuSession::Open pushes a submenu
+onto the open session, which is what a row calls.
 
 Each kind of row is a spec struct filled with designated initializers, and `Add`
 appends it. `Button`, `Submenu` and `Text` also have two-argument conveniences for
@@ -263,6 +267,14 @@ and stops when the last stack closes.
 `runtime.Menus.FreezeWhileOpen(true)` freezes players while a menu is open. Center HTML needs it so WASD does not also walk them around; the Panorama menu needs it because a cursor takes mouse-look, and being shoved around while clicking is worse rather than better. During a chat-input capture center HTML honors only R, and the Panorama menu shows a prompt overlay and ignores row presses, so neither drifts while the player types.
 
 The freeze is a global switch, but a single session can opt out: `Open(slot, menu, {.FreezeMovement = false})`. That suits menus ordinary players reach mid-round, where being held still is worse than the stray movement the freeze prevents. @ref VoltMod::MenuOptions applies to the call that opens the stack; submenus and Flow steps pushed onto a live session inherit it, so an unfrozen session stays unfrozen for its whole flow. `Keyboard` is the other option it carries, and behaves the same way.
+
+A session survives death and spectating. Only a live pawn is frozen and only that
+pawn is restored, so a respawn is frozen afresh rather than handed a dead body's
+move type, and keys are read from the pawn the player is driving. While the player
+is not alive the session is drawn as center HTML even under `UsePanorama`: the
+client shows a layout's per-player state for the pawn it is viewing, so a Panorama
+menu reaches only a player looking at their own pawn. The switch happens in place;
+the stack, cursor and keys carry over.
 
 ## Presets
 

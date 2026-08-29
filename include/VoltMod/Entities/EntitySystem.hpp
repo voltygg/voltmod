@@ -67,7 +67,7 @@ public:
     /** The controller in @p slot. Falsy when the slot is empty. */
     VoltMod::Controller Controller(int slot);
 
-    /** The pawn the player in @p slot currently possesses. Falsy when there is none. */
+    /** The player pawn of @p slot (@ref Controller::GetPawn). Falsy when there is none. */
     Pawn PawnOf(int slot);
 
     /**
@@ -88,10 +88,12 @@ public:
     /** Slot owning @p pawn, or -1 when it is not a player pawn. Constant-time. */
     int SlotOf(const Pawn& pawn);
 
-    /** Held buttons for @p slot (m_pButtonStates[0]), or 0. */
+    /** Held buttons for @p slot (m_pButtonStates[0]), or 0. Read from @ref Controller::Possessed,
+     *  so they arrive while dead or spectating too. */
     uint64_t Buttons(int slot);
 
-    /** The pawn's CPlayer_MovementServices for @p slot, or null (no pawn, offsets unresolved). */
+    /** The player pawn's CPlayer_MovementServices for @p slot, or null (no pawn, offsets
+     *  unresolved). */
     SchemaPtr MovementServices(int slot);
 
     bool IsPlayerSlotValid(int slot);

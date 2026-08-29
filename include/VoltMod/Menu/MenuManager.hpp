@@ -51,6 +51,10 @@ struct MenuServices
  * client. @ref UsePanorama upgrades to a clickable `custom_hud_layout` and reports why it could
  * not, which is a plugin's cue to carry on with center HTML rather than draw nothing.
  *
+ * A client shows a layout's per-player state for the pawn it is viewing, so a dead or spectating
+ * player cannot be reached through Panorama. Such a session is drawn as center HTML until the
+ * player is alive again; the stack, cursor and keys carry over.
+ *
  * Costs nothing per frame while no menu is open: the frame subscription is taken by the first
  * @ref Open and dropped when the last stack empties.
  */
@@ -85,10 +89,11 @@ public:
     /** The layout being drawn into, or empty for center HTML. */
     [[nodiscard]] std::string_view Layout() const noexcept;
 
-    /** Push @p menu onto the player's stack and start showing it. @p options take effect only
-     *  when this call opens the stack (see @ref MenuOptions). */
+    /** Start a session for @p slot showing @p menu, closing any session the player already has.
+     *  What a command calls; a submenu goes through the two-argument @ref MenuSession::Open. */
     void Open(int slot, std::shared_ptr<Menu> menu, MenuOptions options);
 
+    /** Push @p menu onto the player's session, starting one with default options if none is open. */
     void Open(int slot, std::shared_ptr<Menu> menu) override;
     void Close(int slot) override;
     void CloseAll(int slot) override;
@@ -152,6 +157,17 @@ private:
      *  consumed. Both drivers' @ref MenuDriver::HandleInput is this call. */
     bool HandleKeys(int slot, MenuDriver& driver);
 
+    /** Put @p menu on top of @p slot's stack and start drawing it. */
+    void Push(int slot, std::shared_ptr<Menu> menu);
+
+    /** The driver drawing @p slot's session: the chosen one, or the fallback while
+     *  @ref PlayerMenuState::OnFallback. */
+    [[nodiscard]] MenuDriver& DriverOf(int slot);
+
+    /** Switch @p slot between the chosen driver and the fallback as the player dies and spawns,
+     *  dismissing the old driver's drawing first. @p pawn is the slot's body this frame. */
+    void SyncDriver(int slot, const Pawn& pawn);
+
     /** Start the cursor, the debounce window and the row memory over, because @p slot's top menu
      *  changed. */
     void ResetCursor(int slot);
@@ -171,8 +187,13 @@ private:
     /** Close every open session, so a driver swap leaves nothing half-drawn on the old one. */
     void CloseAllSessions();
 
-    /** Freeze (true) or restore (false) the player's movement; no-op unless freeze is enabled. */
-    void SetPlayerFrozen(int slot, bool frozen);
+    /** Freeze (true) or restore (false) @p pawn's movement; no-op unless freeze is enabled.
+     *  Only a live pawn is frozen, and only the pawn that was frozen is restored. The body is a
+     *  parameter because the per-frame path already holds it. */
+    void SetPlayerFrozen(int slot, bool frozen, const Pawn& pawn);
+
+    /** Per frame: drop the hold on a pawn that died or was replaced, and freeze the live one. */
+    void SyncFreeze(int slot, const Pawn& pawn);
 
     /** How long a row's value may sit on screen marked as just changed. */
     static constexpr int64_t ChangedMs = 150;
@@ -193,6 +214,8 @@ private:
     std::unique_ptr<MenuKeys> _keys;
     /** Behind a pointer so no public header reaches a driver, and so a swap is one assignment. */
     std::unique_ptr<MenuDriver> _driver;
+    /** Center HTML for sessions whose player is not alive; only while Panorama is chosen. */
+    std::unique_ptr<MenuDriver> _fallback;
     /** Declared last: per-frame delivery drops before the state it touches. */
     Subscription _onFrame;
 };

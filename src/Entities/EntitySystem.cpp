@@ -163,6 +163,15 @@ int EntitySystem::SlotOf(const Pawn& pawn)
     return IsValidSlot(slot) ? slot : -1;
 }
 
+// The movement services live on a sub-object the pawn points at, so reaching them is a follow
+// rather than a fixed offset. Which pawn to start from is the caller's choice.
+static SchemaPtr MovementServicesOf(CEntityInstance* pawn)
+{
+    static const SchemaField<void*> movement{"CBasePlayerPawn", "m_pMovementServices"};
+
+    return SchemaPtr{pawn}.Follow(movement);
+}
+
 uint64_t EntitySystem::Buttons(int slot)
 {
     // m_nButtons is an embedded CInButtonState; m_pButtonStates inside it is uint64[3]:
@@ -170,15 +179,14 @@ uint64_t EntitySystem::Buttons(int slot)
     static const SchemaField<void> buttons{"CPlayer_MovementServices", "m_nButtons"};
     static const SchemaField<uint64_t[]> states{"CInButtonState", "m_pButtonStates"};
 
-    const uint64_t* held = MovementServices(slot).At(buttons).Ptr(states);
+    // The possessed pawn, not MovementServices(): while dead the observer pawn takes the input.
+    const uint64_t* held = MovementServicesOf(Controller(slot).Possessed().Raw()).At(buttons).Ptr(states);
     return held ? held[0] : 0;
 }
 
 SchemaPtr EntitySystem::MovementServices(int slot)
 {
-    static const SchemaField<void*> movement{"CBasePlayerPawn", "m_pMovementServices"};
-
-    return SchemaPtr{PawnOf(slot).Raw()}.Follow(movement);
+    return MovementServicesOf(PawnOf(slot).Raw());
 }
 
 bool EntitySystem::IsPlayerSlotValid(int slot)

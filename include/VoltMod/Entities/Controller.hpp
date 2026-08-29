@@ -23,7 +23,7 @@ class Controller : public Entity
 public:
     Controller() = default;
 
-    /** Resolves and caches the possessed pawn, so @ref GetPawn is free afterwards. Prefer
+    /** Resolves and caches the player pawn, so @ref GetPawn is free afterwards. Prefer
      *  `runtime.Entities.Controller(slot)`. */
     Controller(EntitySystem& entities, CEntityInstance* raw, int slot);
 
@@ -38,8 +38,13 @@ public:
     /** The slot this controller occupies, or -1. */
     [[nodiscard]] int Slot() const noexcept { return _slot; }
 
-    /** The pawn this player currently possesses, resolved once when the wrapper was built. */
+    /** The player pawn (`m_hPlayerPawn`): the body gameplay code wants. Dead or falsy while the
+     *  player is not alive. */
     [[nodiscard]] Pawn GetPawn() const;
+
+    /** The pawn the player is driving (`m_hPawn`): @ref GetPawn while alive, the observer pawn
+     *  while dead or spectating. Where input lands; changes on every death and spawn. */
+    [[nodiscard]] Pawn Possessed() const;
 
     /** Buy-menu balance (CCSPlayerController_InGameMoneyServices::m_iAccount), or 0 when the money
      *  services are unavailable. */
@@ -62,7 +67,8 @@ public:
 private:
     int _slot = -1;
     /** Resolved in the constructor: the pawn lookup is a handle resolve, and callers ask for it
-     *  several times per wrapper. */
+     *  several times per wrapper. @ref Possessed resolves on demand instead - every controller
+     *  would pay for it, and only the input paths ask. */
     CEntityInstance* _pawn = nullptr;
 };
 

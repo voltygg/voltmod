@@ -207,6 +207,12 @@ if (_panel.Ensure(slot))                              // spawns on demand; false
     _panel.Text(slot, "title", "name", player.Name());
 ```
 
+A client shows the per-player state of the **pawn it is viewing**: a spectator sees
+the observed player's classes and variables, and a spectated player shares theirs
+with every spectator. Only input capture follows the viewer's own slot. A per-slot
+write is therefore that player's HUD, and reaches the player themselves only while
+they are alive; @ref VoltMod::MenuManager falls back to center HTML otherwise.
+
 The per-player state count is fixed when the entity spawns, so a player who
 connected later is only reachable through a new one.
 @ref VoltMod::UiPanel::Ensure is where that re-spawn happens, and the only place it

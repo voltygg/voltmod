@@ -22,7 +22,6 @@ struct HandleVectorView
 };
 
 // Sub-object fields with no wrapper of their own; resolved once for the process on first use.
-static const SchemaField<uint32_t> kPossessedPawn{"CBasePlayerController", "m_hPawn"};
 static const SchemaField<void*> kObserverServices{"CBasePlayerPawn", "m_pObserverServices"};
 static const SchemaField<uint32_t> kObserverTarget{"CPlayer_ObserverServices", "m_hObserverTarget"};
 static const SchemaField<void*> kWeaponServices{"CBasePlayerPawn", "m_pWeaponServices"};
@@ -59,12 +58,8 @@ static void AddHandleVector(EntitySystem& entities, HiddenPlayer& player, Schema
 // recipient, so the caller resolves it once per recipient rather than once per hidden pawn.
 static CEntityInstance* GetObserverTarget(EntitySystem& entities, int recipientSlot)
 {
-    // m_hPawn is the possessed pawn (the observer pawn while dead or spectating), unlike the
-    // m_hPlayerPawn that Controller::GetPawn resolves.
-    Controller controller = entities.Controller(recipientSlot);
-    const uint32_t possessed = SchemaPtr{controller.Raw()}.Get(kPossessedPawn, InvalidEntityHandle);
-
-    Entity pawn = entities.Resolve(EntityRef{possessed});
+    // Possessed(), not GetPawn(): while dead or spectating the observer pawn carries the camera.
+    Pawn pawn = entities.Controller(recipientSlot).Possessed();
     const uint32_t target = SchemaPtr{pawn.Raw()}.Follow(kObserverServices).Get(kObserverTarget, InvalidEntityHandle);
 
     return entities.Resolve(EntityRef{target}).Raw();

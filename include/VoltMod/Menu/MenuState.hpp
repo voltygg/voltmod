@@ -1,5 +1,6 @@
 #pragma once
 
+#include <VoltMod/Entities/EntityRef.hpp>
 #include <VoltMod/Entities/MoveType.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <cstdint>
@@ -13,8 +14,8 @@ namespace VoltMod
 /**
  * @brief Options for the session an @ref MenuManager::Open call starts.
  *
- * A session runs from the first menu opened for a player until their stack empties, so these apply
- * only to the call that opens the stack; a submenu pushed later inherits the live session.
+ * A session runs from the `Open` that starts it until the player's stack empties; a submenu pushed
+ * through @ref MenuSession::Open inherits these.
  */
 struct MenuOptions
 {
@@ -52,12 +53,17 @@ struct PlayerMenuState
      *  `std::stack` because the titles underneath the top one are the breadcrumb. */
     std::vector<std::shared_ptr<Menu>> MenuStack;
 
-    /** True while the manager is holding the player's movement frozen for this session. */
-    bool MovementFrozen = false;
+    /** @ref MenuOptions::FreezeMovement for this session. */
+    bool FreezeMovement = true;
+    /** The pawn held frozen, or unset. Only this pawn is ever given @ref PrevMoveType back; a
+     *  respawn gets a fresh freeze instead of a dead body's move type. */
+    EntityRef FrozenPawn;
     /** MoveType captured before freezing, restored when the menu closes. */
     MoveType PrevMoveType = MoveType::Walk;
     /** @ref MenuOptions::Keyboard for this session. */
     bool Keyboard = true;
+    /** Drawn as center HTML while the player is not alive (see @ref MenuManager). */
+    bool OnFallback = false;
 
     /** Buttons held last frame, for edge detection. */
     uint64_t PrevButtons = 0;
