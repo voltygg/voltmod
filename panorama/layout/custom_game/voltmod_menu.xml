@@ -19,7 +19,7 @@
   </styles>
 
   <Panel class="Root" hittest="false">
-    <Panel id="vm_root" class="Menu Hidden" hittest="true">
+    <Panel id="vm_root" class="Hidden" hittest="true">
       <Panel class="Header" hittest="false">
         <Label class="Breadcrumb" text="{s:vm_breadcrumb}" />
         <Label class="Title" text="{s:vm_title}" />
