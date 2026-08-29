@@ -79,12 +79,37 @@ private:
         std::string Value;  ///< dialog variable on the root panel
     };
 
+    /**
+     * The class vocabulary a stylesheet styles against, grouped so a name here cannot be read as
+     * one of the driver's own. Every one of them is written on every draw, on or off, so a row
+     * never keeps a class the state it stood for has left - and the panel's write cache makes the
+     * ones that did not change free.
+     */
+    struct Css
+    {
+        static constexpr std::string_view Hidden = "Hidden";
+        static constexpr std::string_view Disabled = "Disabled";
+        static constexpr std::string_view Selected = "Selected";
+        static constexpr std::string_view Changed = "Changed";
+        static constexpr std::string_view Pending = "Pending";
+        static constexpr std::string_view HasValue = "HasValue";
+        static constexpr std::string_view HasSteppers = "HasSteppers";
+        static constexpr std::string_view On = "On";
+        static constexpr std::string_view Prompting = "Prompting";
+        static constexpr std::string_view KeyHints = "KeyHints";
+        static constexpr std::string_view Root = "Root";
+    };
+
     /** The class a row of @p kind carries. Every kind is written on every row, so a row that
      *  changes kind does not keep the old one underneath. */
     static std::string_view ClassFor(MenuRowKind kind);
 
     /** Write row @p row of the current page for @p slot from item @p index, and show it. */
     void DrawRow(int slot, int row, int index);
+
+    /** Write @p described into row @p row for @p slot, drawing it selected when @p selected.
+     *  Every class the vocabulary has is written here, whether or not this row carries it. */
+    void WriteRow(int slot, int row, const MenuRow& described, bool selected);
 
     /** Write the one row an empty menu draws, and hide the rest. */
     void DrawEmpty(int slot);

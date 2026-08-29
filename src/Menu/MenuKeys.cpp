@@ -1,8 +1,9 @@
 #include "Menu/MenuKeys.hpp"
 
+#include "Menu/MenuCursor.hpp"
+
 #include <VoltMod/Core/Time.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
-#include <algorithm>
 
 namespace VoltMod
 {
@@ -96,8 +97,7 @@ void MenuKeys::MoveCursor(int slot, MenuDriver& driver, int step)
     if (!menu)
         return;
 
-    int index = _menus.Selected(slot);
-    MenuManager::StepCursor(slot, menu->Items, index, step);
+    const int index = MenuCursor::Step(CursorRowsOf(menu->Items, slot), _menus.Selected(slot), step);
     _menus.Select(slot, index);
     driver.ShowPage(slot, index / driver.RowsPerPage());
 }
@@ -108,27 +108,12 @@ void MenuKeys::JumpPage(int slot, MenuDriver& driver, int delta)
     if (!menu || menu->Items.empty())
         return;
 
-    // The offset within the page is preserved, then the cursor skips forward over rows it may
-    // not land on within the new page.
     const int rows = driver.RowsPerPage();
-    const int items = static_cast<int>(menu->Items.size());
-    const int pages = PageCount(items, rows);
-    const int index = _menus.Selected(slot);
-    const int page = ((index / rows + delta) % pages + pages) % pages;
+    const int landed = MenuCursor::JumpPage(CursorRowsOf(menu->Items, slot), _menus.Selected(slot), rows, delta);
 
-    const int start = page * rows;
-    const int end = std::min(items, start + rows);
-
-    int landed = std::min(start + index % rows, end - 1);
-    for (int attempts = end - start; attempts > 0; --attempts)
-    {
-        if (MenuManager::IsCursorTarget(menu->Items[static_cast<std::size_t>(landed)], slot))
-            break;
-        landed = (landed + 1 < end) ? landed + 1 : start;
-    }
-
+    // The landing row is inside the page it was computed for, so the page follows from it.
     _menus.Select(slot, landed);
-    driver.ShowPage(slot, page);
+    driver.ShowPage(slot, landed / rows);
 }
 
 }  // namespace VoltMod

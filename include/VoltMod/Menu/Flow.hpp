@@ -3,6 +3,7 @@
 #include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
+#include <VoltMod/Menu/MenuPresets.hpp>
 #include <format>
 #include <functional>
 #include <memory>
@@ -110,7 +111,7 @@ public:
         return this->shared_from_this();
     }
 
-    /** Append a duration-picker step. */
+    /** Append a duration-picker step, drawn by @ref VoltMod::BuildDurationMenu. */
     Ptr AddDurationStep(DurationStep step)
     {
         auto weak = this->weak_from_this();
@@ -118,7 +119,19 @@ public:
         return AddStep(
             [weak, step = std::move(step)](Flow&) -> std::shared_ptr<Menu> {
                 auto self = weak.lock();
-                return self ? self->BuildDurationMenu(step) : nullptr;
+                if (!self)
+                    return nullptr;
+
+                return BuildDurationMenu({.Title = step.Title,
+                                          .Presets = step.Presets,
+                                          .Pick =
+                                              [self, set = step.Set](int, int seconds) {
+                                                  if (set)
+                                                      set(self->_state, seconds);
+                                                  self->Advance();
+                                              },
+                                          .CustomLabel = step.CustomLabel,
+                                          .CustomPrompt = step.CustomPrompt});
             },
             std::move(applies));
     }
@@ -174,42 +187,6 @@ private:
         AppliesFn Applies;
     };
 
-    std::shared_ptr<Menu> BuildDurationMenu(const DurationStep& step)
-    {
-        auto self = this->shared_from_this();
-        MenuBuilder builder(step.Title);
-
-        for (const auto& [label, seconds] : step.Presets)
-        {
-            builder.Button(label, [self, set = step.Set, seconds](int) {
-                if (set)
-                    set(self->_state, seconds);
-                self->Advance();
-            });
-        }
-
-        // An empty label means "no custom row", so a caller can gate it on config without
-        // splitting the chain.
-        if (!step.CustomLabel.empty())
-        {
-            builder.Add(InputRow{.Label = step.CustomLabel,
-                                 .Prompt = step.CustomPrompt,
-                                 .Set =
-                                     [self, set = step.Set](int, std::string_view text) {
-                                         int seconds = ParseDuration(text);
-                                         if (seconds < 0)
-                                             return false;  // re-prompt
-                                         if (set)
-                                             set(self->_state, seconds);
-                                         self->Advance();
-                                         return true;
-                                     },
-                                 .MaxLength = 32});
-        }
-
-        return builder.Build();
-    }
-
     std::shared_ptr<Menu> BuildOptionsMenu(const OptionsStep& step)
     {
         auto self = this->shared_from_this();
@@ -243,20 +220,24 @@ private:
         return builder.Build();
     }
 
-    std::shared_ptr<Menu> BuildConfirmMenu()
+    /** The summary dialog, as @ref VoltMod::BuildConfirmMenu draws it. Cancel is left empty, so
+     *  it closes through the session the dialog is drawn in - the one this flow opened on. */
+    std::shared_ptr<Menu> BuildSummary()
     {
         auto self = this->shared_from_this();
-        MenuBuilder builder(_confirm.Title);
 
+        std::vector<std::string> lines;
         if (_confirm.Summary)
         {
             for (const auto& [label, value] : _confirm.Summary(_state))
-                builder.Text(value.empty() ? label : std::format("{}: {}", label, value));
+                lines.push_back(value.empty() ? label : std::format("{}: {}", label, value));
         }
 
-        builder.Button(_confirm.ConfirmLabel, [self](int) { self->RunFinish(); });
-        builder.Button(_confirm.CancelLabel, [self](int slot) { self->_menus->CloseAll(slot); });
-        return builder.Build();
+        return BuildConfirmMenu({.Title = _confirm.Title,
+                                 .Lines = std::move(lines),
+                                 .ConfirmLabel = _confirm.ConfirmLabel,
+                                 .CancelLabel = _confirm.CancelLabel,
+                                 .Confirm = [self](int) { self->RunFinish(); }});
     }
 
     void OpenFrom(std::size_t from)
@@ -275,7 +256,7 @@ private:
         }
 
         if (_confirm.Summary)
-            _menus->Open(_slot, BuildConfirmMenu());
+            _menus->Open(_slot, BuildSummary());
         else
             RunFinish();
     }

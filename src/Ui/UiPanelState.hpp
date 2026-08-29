@@ -42,14 +42,18 @@ struct UiPanelState
     /** Spawn a fresh entity, dropping the old one and everything remembered about it. */
     Status Spawn();
 
+    /** @ref Spawn, saying why it failed once per attempt rather than once per frame. */
+    bool SpawnOrWarn();
+
     /** Remove the entity and forget what every player was told about it. Idempotent. */
     void Remove();
 
     /** Whether the entity exists and carries per-player state for @p slot. */
     [[nodiscard]] bool Covers(int slot) const;
 
-    /** Pass @p status through, and on a failure drop what the cache just recorded so the next
-     *  frame retries - saying why once per generation rather than once per frame. */
+    /** Pass @p status through, and on a per-slot failure drop what the cache just recorded so the
+     *  next frame retries - saying why once per generation rather than once per frame. A write for
+     *  @ref UiPanel::Everyone has no such memory and passes straight through. */
     Status RecordWrite(int slot, Status status, std::string_view what);
 
     /** The event for one Button id, created on first use. */

@@ -78,6 +78,9 @@ class MenuDriver;
 /** The keys both menu drivers read, held by unique_ptr for the same reason as MenuDriver: it
  *  names a driver, which no public header may. Defined in src/Menu/MenuKeys.hpp. */
 class MenuKeys;
+/** Where every player's menu cursor is, and the moves over a menu's rows. Held by unique_ptr so
+ *  no public header reaches the cursor arithmetic. Defined in src/Menu/MenuCursor.hpp. */
+class MenuCursor;
 /** A MenuManager's held-back row commits, one per player. Held by unique_ptr so no public header
  *  reaches the debounce policy. Defined in src/Menu/PendingCommit.hpp. */
 class PendingCommit;

@@ -305,8 +305,34 @@ auto choices = BuildPaletteChoices([&](std::string_view name) { return LabelFor(
 builder you already have rows in. The picked slot is the only thing a `PlayerPicker`
 reports; the viewer is whoever the caller built it for, captured in `Pick`.
 
-Duration pickers and confirm dialogs are `Flow`'s own steps (`AddDurationStep`,
-`Confirm`), not free functions.
+Duration pickers and confirm dialogs are presets too, so a plugin can put one in
+front of a single action without building a whole `Flow`:
+
+```cpp
+using VoltMod::BuildConfirmMenu;
+using VoltMod::BuildDurationMenu;
+
+// Rows for each preset length, plus a chat-input row read with ParseDuration
+// ("30s", "5m", "2h", "perm"); text it refuses re-prompts.
+runtime.Menus.Open(adminSlot, BuildDurationMenu(
+    {.Title = "Mute for",
+     .Presets = {{"5 minutes", 300}, {"1 hour", 3600}},
+     .Pick = [](int slot, int seconds) { Mute(slot, seconds); },
+     .CustomLabel = "Custom…",
+     .CustomPrompt = "Type a duration"}));
+
+// Lines above, then confirm and cancel. An empty Cancel closes every menu
+// through the session the dialog is drawn in.
+runtime.Menus.Open(adminSlot, BuildConfirmMenu(
+    {.Title = "Restart the map?",
+     .Lines = {"Map: de_dust2"},
+     .ConfirmLabel = "Yes",
+     .CancelLabel = "No",
+     .Confirm = [](int slot) { RestartMap(slot); }}));
+```
+
+`Flow::AddDurationStep` and `Flow::Confirm` are these two presets with the flow's
+state threaded through them.
 
 ## Headers
 

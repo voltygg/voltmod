@@ -1,38 +1,73 @@
+#include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
 #include <VoltMod/Menu/MenuPresets.hpp>
 #include <VoltMod/Messaging/ChatColors.hpp>
-#include <VoltMod/Players/PlayerManager.hpp>
+#include <string>
 #include <string_view>
 #include <utility>
+
+// The presets that are rows and callbacks and nothing else. The player list needs the roster and
+// lives in PlayerRows.cpp; everything here is SDK-free and recompiled by the unit tests.
 
 namespace VoltMod
 {
 
-void AppendPlayerRows(MenuBuilder& builder, PlayerManager& players, const PlayerPicker& spec)
+std::shared_ptr<Menu> BuildDurationMenu(DurationMenu spec)
 {
-    auto connected = players.All();
-    for (auto* player : connected)
+    MenuBuilder builder(std::move(spec.Title));
+
+    for (const auto& [label, seconds] : spec.Presets)
     {
-        int targetSlot = player->Slot();
-        // The name goes in raw: a row carries plain text and whichever driver renders it escapes
-        // for its own output.
-        builder.Add(ButtonRow{.Label = player->Name(),
-                              .Activate =
-                                  [targetSlot, pick = spec.Pick](int) {
-                                      if (pick)
-                                          pick(targetSlot);
-                                  },
-                              .Enabled = spec.Enabled ? spec.Enabled(targetSlot) : true});
+        builder.Button(label, [pick = spec.Pick, seconds](int slot) {
+            if (pick)
+                pick(slot, seconds);
+        });
     }
 
-    if (connected.empty() && !spec.EmptyLabel.empty())
-        builder.Add(ButtonRow{.Label = spec.EmptyLabel, .Enabled = false});
+    // An empty label means "no custom row", so a caller can gate it on config without splitting
+    // the call.
+    if (!spec.CustomLabel.empty())
+    {
+        builder.Add(InputRow{.Label = std::move(spec.CustomLabel),
+                             .Prompt = std::move(spec.CustomPrompt),
+                             .Set =
+                                 [pick = spec.Pick](int slot, std::string_view text) {
+                                     const int seconds = ParseDuration(text);
+                                     if (seconds < 0)
+                                         return false;  // re-prompt
+                                     if (pick)
+                                         pick(slot, seconds);
+                                     return true;
+                                 },
+                             .MaxLength = spec.MaxInputLength});
+    }
+
+    return builder.Build();
 }
 
-std::shared_ptr<Menu> BuildPlayerPicker(PlayerManager& players, PlayerPicker spec)
+std::shared_ptr<Menu> BuildConfirmMenu(ConfirmMenu spec)
 {
-    MenuBuilder builder(spec.Title);
-    AppendPlayerRows(builder, players, spec);
+    MenuBuilder builder(std::move(spec.Title));
+
+    for (const auto& line : spec.Lines)
+        builder.Text(line);
+
+    builder.Button(std::move(spec.ConfirmLabel), [confirm = std::move(spec.Confirm)](int slot) {
+        if (confirm)
+            confirm(slot);
+    });
+
+    // Built by hand rather than as a ButtonRow: cancel with no callback of its own closes the
+    // menus, and the session to close them through is the one handed to Activate.
+    builder.Add(MenuItem{.Describe = [label = std::move(spec.CancelLabel)](int) { return MenuRow{.Label = label}; },
+                         .Activate =
+                             [cancel = std::move(spec.Cancel)](int slot, MenuSession& session) {
+                                 if (cancel)
+                                     cancel(slot);
+                                 else
+                                     session.CloseAll(slot);
+                             }});
+
     return builder.Build();
 }
 

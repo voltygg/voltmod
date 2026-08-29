@@ -4,11 +4,11 @@
 
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Entities/Entity.hpp>
-#include <VoltMod/Entities/KeyValues.hpp>
 #include <VoltMod/Ui/UiPanel.hpp>
-#include <format>
 #include <utility>
+
+// The handle: ownership, the spawn gate every write sits behind, and the writes themselves. What
+// a panel remembers between calls is UiPanelState.cpp.
 
 namespace VoltMod
 {
@@ -19,126 +19,19 @@ static_assert(UiPanel::Everyone == kEveryone, "UiPanel::Everyone must be the UiF
 /** Reserved cache key for the input-capture flag, which is not a panel's dialog variable. */
 static constexpr std::string_view kCaptureName = "input capture";
 
-UiPanelState::UiPanelState(EntitySystem* entities, EntityOps* ops, SlotEvents* slots, Event<const UiClick&>* allClicks,
-                           std::string layout, std::string resource)
-    : Entities(entities),
-      Ops(ops),
-      AllClicks(allClicks),
-      Layout(std::move(layout)),
-      Resource(std::move(resource)),
-      Clicked({.OnFirst = [this] { return OnFirstSubscriber(); }, .OnLast = [this] { OnLastSubscriber(); }})
+/**
+ * The shape every write shares: an empty panel answers through the setter's own null path, and a
+ * write that reached an entity is recorded, so a per-slot failure drops what the cache just took
+ * down and says why once. @p write is handed the entity to address; @p what names the write for
+ * that one line. A template rather than a `std::function` so a frame of writes allocates nothing.
+ */
+template <class Write>
+static Status WriteThrough(UiPanelState* state, int slot, std::string_view what, Write write)
 {
-    if (!slots)
-        return;
+    if (!state)
+        return write(nullptr, EntityRef{});
 
-    Cache.Bind(*slots);
-
-    // A slot changing hands is the one thing that can make the entity too small, so it is also the
-    // only thing that lets a re-spawn happen.
-    PlayerChanges = slots->Changed += [this](int) { PlayersChanged = true; };
-}
-
-Status UiPanelState::Spawn()
-{
-    PlayersChanged = false;
-
-    // Nothing the old entity was told survives, so it goes before the new one arrives.
-    Remove();
-
-    if (Resource.empty())
-        return std::unexpected(Error::Invalid(std::format("'{}' is not a usable layout name", Layout)));
-    if (!Ops || !Entities)
-        return std::unexpected(Error::NotReady("this panel has no entity system behind it"));
-    if (!Ops->CanSpawn())
-        return std::unexpected(Error::Unsupported("entity spawning is unavailable"));
-
-    KeyValues kv;
-    kv.Set("layout", Resource);
-
-    CEntityInstance* entity = Ops->Spawn("custom_hud_layout", kv);
-    if (!entity)
-        return std::unexpected(Error::Engine("the engine refused to spawn custom_hud_layout"));
-
-    CurrentEntity = Entity(*Entities, entity).Ref();
-    return {};
-}
-
-void UiPanelState::Remove()
-{
-    if (Entities && Ops)
-    {
-        if (Entity entity = Entities->Resolve(CurrentEntity))
-            Ops->Remove(entity.Raw());
-    }
-    CurrentEntity = {};
-    Cache.ForgetAll();
-}
-
-bool UiPanelState::Covers(int slot) const
-{
-    return IsValidSlot(slot) && UiPlayerStateCount(Entities, CurrentEntity) > slot;
-}
-
-Status UiPanelState::RecordWrite(int slot, Status status, std::string_view what)
-{
-    if (status)
-        return status;
-
-    // The cache has already recorded the value this write was meant to install, so it has to be
-    // dropped or the next frame would skip the retry. Every write for the slot then fails the same
-    // way, which is worth exactly one line rather than one per frame.
-    Cache.Forget(slot);
-    if (Cache.FirstFailure(slot))
-        Log::Warn("UiPanel '{}': writing {} for slot {} failed ({}).", Layout, what, slot, status.error().Detail);
-
-    return status;
-}
-
-Event<int>& UiPanelState::Button(std::string_view id)
-{
-    if (auto it = Buttons.find(std::string(id)); it != Buttons.end())
-        return it->second;
-
-    return Buttons
-        .try_emplace(std::string(id), Event<int>::Lifecycle{.OnFirst = [this] { return OnFirstSubscriber(); },
-                                                            .OnLast = [this] { OnLastSubscriber(); }})
-        .first->second;
-}
-
-bool UiPanelState::OnFirstSubscriber()
-{
-    if (Subscribers == 0)
-    {
-        if (!AllClicks)
-            return false;
-
-        // The handler holds this state, never the panel: the state is on the heap, so routing keeps
-        // working after the panel moves, and ClickListener is declared last so the handler is
-        // retired before anything it reads goes away.
-        ClickListener = *AllClicks +=
-            [this](const UiClick& click) { Internal::RouteUiClick(click, CurrentEntity, Clicked, Buttons); };
-        if (!ClickListener)
-            return false;  // the hook refused; a later subscription is free to try again
-    }
-
-    ++Subscribers;
-    return true;
-}
-
-void UiPanelState::OnLastSubscriber()
-{
-    if (Subscribers > 0 && --Subscribers == 0)
-        ClickListener.Reset();
-}
-
-/** Spawn and say why it failed, once per attempt rather than once per frame. */
-static bool SpawnOrWarn(UiPanelState& state)
-{
-    const Status spawned = state.Spawn();
-    if (!spawned)
-        Log::Warn("UiPanel '{}': spawn failed ({}).", state.Layout, spawned.error().Detail);
-
-    return spawned.has_value();
+    return state->RecordWrite(slot, write(state->Entities, state->CurrentEntity), what);
 }
 
 UiPanel::~UiPanel()
@@ -182,7 +75,7 @@ bool UiPanel::Ensure(int slot)
         return false;
 
     UiPanelState& state = *_state;
-    if (!*this && !SpawnOrWarn(state))
+    if (!*this && !state.SpawnOrWarn())
         return false;
 
     // A global write needs the entity and nothing else.
@@ -196,7 +89,7 @@ bool UiPanel::Ensure(int slot)
     if (!state.PlayersChanged)
         return false;
 
-    return SpawnOrWarn(state) && state.Covers(slot);
+    return state.SpawnOrWarn() && state.Covers(slot);
 }
 
 bool UiPanel::Covers(int slot) const
@@ -206,66 +99,50 @@ bool UiPanel::Covers(int slot) const
 
 Status UiPanel::Text(int slot, std::string_view panelId, std::string_view variable, std::string_view value)
 {
-    if (!_state)
-        return UiWriteText(nullptr, {}, slot, panelId, variable, value);
+    UiPanelState* state = _state.get();
+    if (state && slot != Everyone && !state->Cache.Update(slot, UiProperty::Text, panelId, variable, value))
+        return {};  // the player already has this value
 
-    UiPanelState& state = *_state;
-    if (slot == Everyone)
-        return UiWriteText(state.Entities, state.CurrentEntity, Everyone, panelId, variable, value);
-
-    if (!state.Cache.Update(slot, UiProperty::Text, panelId, variable, value))
-        return {};
-
-    return state.RecordWrite(slot, UiWriteText(state.Entities, state.CurrentEntity, slot, panelId, variable, value),
-                             panelId);
+    return WriteThrough(state, slot, panelId, [&](EntitySystem* entities, EntityRef panel) {
+        return UiWriteText(entities, panel, slot, panelId, variable, value);
+    });
 }
 
 Status UiPanel::Class(int slot, std::string_view panelId, std::string_view className, bool on)
 {
-    if (!_state)
-        return UiWriteClass(nullptr, {}, slot, panelId, className, on);
-
-    UiPanelState& state = *_state;
-    if (slot == Everyone)
-        return UiWriteClass(state.Entities, state.CurrentEntity, Everyone, panelId, className, on);
-
-    if (!state.Cache.Update(slot, UiProperty::Class, panelId, className, on ? "1" : "0"))
+    UiPanelState* state = _state.get();
+    if (state && slot != Everyone && !state->Cache.Update(slot, UiProperty::Class, panelId, className, on ? "1" : "0"))
         return {};
 
-    return state.RecordWrite(slot, UiWriteClass(state.Entities, state.CurrentEntity, slot, panelId, className, on),
-                             panelId);
+    return WriteThrough(state, slot, panelId, [&](EntitySystem* entities, EntityRef panel) {
+        return UiWriteClass(entities, panel, slot, panelId, className, on);
+    });
 }
 
 Status UiPanel::ResetClass(int slot, std::string_view panelId, std::string_view className)
 {
-    if (!_state)
-        return UiResetClass(nullptr, {}, slot, panelId, className);
+    UiPanelState* state = _state.get();
+    const Status status = state ? UiResetClass(state->Entities, state->CurrentEntity, slot, panelId, className)
+                                : UiResetClass(nullptr, {}, slot, panelId, className);
 
-    UiPanelState& state = *_state;
-    const Status status = UiResetClass(state.Entities, state.CurrentEntity, slot, panelId, className);
-
-    // The markup, not the server, decides what the class is now, so everything the cache believes
-    // about this slot is a guess. Dropping it costs one redundant redraw and keeps the rest honest.
-    if (status && slot != Everyone)
-        state.Cache.Forget(slot);
+    // Not recorded like the writes above: the markup, not the server, decides what the class is
+    // now, so everything the cache believes about this slot is a guess. Dropping it costs one
+    // redundant redraw and keeps the rest honest.
+    if (state && status && slot != Everyone)
+        state->Cache.Forget(slot);
 
     return status;
 }
 
 Status UiPanel::InputCapture(int slot, bool enabled)
 {
-    if (!_state)
-        return UiWriteInputCapture(nullptr, {}, slot, enabled);
-
-    UiPanelState& state = *_state;
-    if (slot == Everyone)
-        return UiWriteInputCapture(state.Entities, state.CurrentEntity, Everyone, enabled);
-
-    if (!state.Cache.UpdateCapture(slot, enabled))
+    UiPanelState* state = _state.get();
+    if (state && slot != Everyone && !state->Cache.UpdateCapture(slot, enabled))
         return {};
 
-    return state.RecordWrite(slot, UiWriteInputCapture(state.Entities, state.CurrentEntity, slot, enabled),
-                             kCaptureName);
+    return WriteThrough(state, slot, kCaptureName, [&](EntitySystem* entities, EntityRef panel) {
+        return UiWriteInputCapture(entities, panel, slot, enabled);
+    });
 }
 
 Result<bool> UiPanel::InputCaptured(int slot) const

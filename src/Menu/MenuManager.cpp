@@ -1,22 +1,22 @@
 #include "Menu/CenterHtmlDriver.hpp"
+#include "Menu/MenuCursor.hpp"
 #include "Menu/MenuKeys.hpp"
 #include "Menu/PanoramaDriver.hpp"
 #include "Menu/PendingCommit.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/Time.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
-#include <algorithm>
 #include <format>
 #include <initializer_list>
 #include <memory>
 #include <utility>
 
+// The session half of the manager: which driver is drawing, what is on each player's stack, the
+// per-frame loop over open sessions, and the movement freeze. What a driver asks about a row -
+// and what a press does to it - is in MenuManagerRows.cpp.
+
 namespace VoltMod
 {
-
-/** What a breadcrumb puts between two titles. */
-static constexpr std::string_view kCrumbSeparator = " › ";
 
 MenuManager::MenuManager(const MenuServices& services)
     : _services(services),
@@ -24,10 +24,12 @@ MenuManager::MenuManager(const MenuServices& services)
           [&scheduler = services.Scheduler](int64_t delayMs, std::function<void()> callback) {
               return scheduler.Delay(delayMs, std::move(callback));
           })),
+      _cursor(std::make_unique<MenuCursor>()),
       _keys(std::make_unique<MenuKeys>(*this, _services)),
       _driver(std::make_unique<CenterHtmlDriver>(*this, _services))
 {
     _states.BindReset(services.Slots);
+    _cursor->BindReset(services.Slots);
     _pending->BindReset(services.Slots);
 }
 
@@ -130,6 +132,7 @@ void MenuManager::Close(int slot)
     {
         SetPlayerFrozen(slot, false);
         state.Reset();
+        _cursor->Select(slot, 0);
         _driver->Dismiss(slot);
         return;
     }
@@ -146,6 +149,7 @@ void MenuManager::CloseAll(int slot)
     _pending->Run(slot);
     SetPlayerFrozen(slot, false);
     _states[slot].Reset();
+    _cursor->Select(slot, 0);
     Log::Info("All menus closed for slot {}", slot);
     _driver->Dismiss(slot);
 }
@@ -183,198 +187,6 @@ void MenuManager::FreezeWhileOpen(bool enabled)
         if (_states[slot].MovementFrozen)
             SetPlayerFrozen(slot, false);
     }
-}
-
-bool MenuManager::IsCursorTarget(const MenuItem& item, int slot)
-{
-    if (!item.Describe)
-        return false;
-    const MenuRow row = item.Describe(slot);
-    return row.Enabled && row.Selectable;
-}
-
-void MenuManager::StepCursor(int slot, const std::vector<MenuItem>& items, int& idx, int step)
-{
-    int n = static_cast<int>(items.size());
-    if (n == 0)
-        return;
-
-    int attempts = n;
-    do
-    {
-        idx = ((idx + step) % n + n) % n;
-    }
-    while (!IsCursorTarget(items[idx], slot) && --attempts > 0);
-}
-
-void MenuManager::SelectFirst(int slot, int& index)
-{
-    auto* menu = Current(slot);
-    index = 0;
-    if (menu && !menu->Items.empty() && !IsCursorTarget(menu->Items[0], slot))
-        StepCursor(slot, menu->Items, index, +1);
-}
-
-void MenuManager::ResetCursor(int slot)
-{
-    if (!IsValidSlot(slot))
-        return;
-
-    auto& state = _states[slot];
-    state.LastInputTime = Time::MonotonicMs();
-    state.Rows.clear();
-    SelectFirst(slot, state.SelectedIndex);
-}
-
-int MenuManager::Selected(int slot) const
-{
-    return IsValidSlot(slot) ? _states[slot].SelectedIndex : 0;
-}
-
-void MenuManager::Select(int slot, int index)
-{
-    if (!IsValidSlot(slot))
-        return;
-
-    // Leaving a stepped row applies what it was left showing. Landing back on the row that is
-    // still waiting leaves it waiting, so W-then-S over one row is not an action.
-    if (!_pending->IsPending(slot, index))
-        _pending->Run(slot);
-
-    _states[slot].SelectedIndex = index;
-}
-
-void MenuManager::SelectOnPage(int slot, int page, int rowsPerPage)
-{
-    auto* menu = Current(slot);
-    if (!menu || menu->Items.empty() || rowsPerPage <= 0)
-        return;
-
-    const int items = static_cast<int>(menu->Items.size());
-    const int start = std::clamp(page * rowsPerPage, 0, items - 1);
-    const int end = std::min(items, start + rowsPerPage);
-
-    int index = start;
-    while (index < end && !IsCursorTarget(menu->Items[static_cast<std::size_t>(index)], slot))
-        ++index;
-
-    Select(slot, index < end ? index : start);
-}
-
-std::string MenuManager::Crumbs(int slot) const
-{
-    if (!IsValidSlot(slot))
-        return {};
-
-    // Everything under the top menu, which is the path taken to reach what is on screen; the
-    // current title is drawn on its own and would only repeat itself here.
-    const auto& stack = _states[slot].MenuStack;
-    std::string crumbs;
-    for (std::size_t i = 0; i + 1 < stack.size(); ++i)
-    {
-        if (!crumbs.empty())
-            crumbs += kCrumbSeparator;
-        crumbs += stack[i]->Title;
-    }
-    return crumbs;
-}
-
-bool MenuManager::KeyboardEnabled(int slot) const
-{
-    return IsValidSlot(slot) && _states[slot].Keyboard;
-}
-
-bool MenuManager::HandleKeys(int slot, MenuDriver& driver)
-{
-    return _keys->Handle(slot, driver);
-}
-
-MenuRow MenuManager::Describe(int slot, int index)
-{
-    auto* menu = Current(slot);
-    if (!menu || index < 0 || index >= static_cast<int>(menu->Items.size()))
-        return MenuRow{.Enabled = false, .Selectable = false};
-
-    // An item with no Describe is malformed; it draws as an inert line rather than a row the
-    // cursor could land on.
-    const MenuItem& item = menu->Items[static_cast<std::size_t>(index)];
-    MenuRow row = item.Describe ? item.Describe(slot) : MenuRow{.Enabled = false, .Selectable = false};
-
-    auto& state = _states[slot];
-    if (state.Rows.size() != menu->Items.size())
-        state.Rows.assign(menu->Items.size(), MenuRowMemory{});
-
-    const int64_t now = Time::MonotonicMs();
-    MenuRowMemory& memory = state.Rows[static_cast<std::size_t>(index)];
-    if (memory.Value != row.Value)
-    {
-        // Arriving on screen is not a change: only a value that moves under a row already drawn
-        // is worth flashing.
-        if (memory.Drawn)
-            memory.ChangedAt = now;
-        memory.Value = row.Value;
-        memory.Drawn = true;
-    }
-
-    row.Changed = memory.ChangedAt != 0 && now - memory.ChangedAt < ChangedMs;
-    row.Pending = _pending->IsPending(slot, index);
-    return row;
-}
-
-void MenuManager::Activate(int slot, int index)
-{
-    if (!IsValidSlot(slot))
-        return;
-
-    // A row whose activation *is* its commit - a ChoiceRow's E - would apply the value twice if
-    // the held one ran as well, so pressing the pending row cancels the wait and lets the
-    // activation apply it. Any other row runs what is held first, then does its own thing.
-    if (_pending->IsPending(slot, index))
-        _pending->Cancel(slot);
-    else
-        _pending->Run(slot);
-
-    // Re-read: running a commit may have closed or replaced the menu.
-    auto* menu = Current(slot);
-    if (!menu || index < 0 || index >= static_cast<int>(menu->Items.size()))
-        return;
-
-    // Copies out of the vector, not references into it: a row that closes or reopens the menu
-    // destroys the Menu, and with it the item whose handler is still running.
-    const MenuItem item = menu->Items[static_cast<std::size_t>(index)];
-    if (item.Activate && IsCursorTarget(item, slot))
-        item.Activate(slot, *this);
-}
-
-bool MenuManager::Step(int slot, int index, int direction)
-{
-    auto* menu = Current(slot);
-    if (!IsValidSlot(slot) || !menu || index < 0 || index >= static_cast<int>(menu->Items.size()))
-        return false;
-
-    // Copied for the same reason as in Activate: a step that persists may rebuild the menu.
-    const MenuItem item = menu->Items[static_cast<std::size_t>(index)];
-    if (!item.Step || !item.Describe || !item.Describe(slot).Enabled)
-        return false;
-    if (!item.Step(slot, direction))
-        return false;
-
-    // The row now shows a value nothing has applied. Holding the commit is what turns a burst of
-    // presses into one action; the row draws as pending until it runs.
-    if (item.Commit)
-        _pending->Arm(slot, index, [commit = item.Commit, slot] { commit(slot); });
-
-    return true;
-}
-
-Menu* MenuManager::Current(int slot)
-{
-    return IsValidSlot(slot) ? _states[slot].GetCurrentMenu() : nullptr;
-}
-
-int MenuManager::Depth(int slot) const
-{
-    return IsValidSlot(slot) ? static_cast<int>(_states[slot].MenuStack.size()) : 0;
 }
 
 void MenuManager::OnGameFrame()

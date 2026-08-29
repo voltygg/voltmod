@@ -170,8 +170,12 @@ if(BUILD_TESTING)
             # behind it, so rows, flows, the center-HTML markup and the layout's id contract all
             # recompile here against a fake session.
             src/Menu/MenuBuilder.cpp
+            src/Menu/MenuPresets.cpp
             src/Menu/CenterHtmlRender.cpp
             src/Menu/PanoramaIds.cpp
+            # The cursor is index arithmetic over rows that answer whether they take it, so it
+            # runs here against a table rather than a session.
+            src/Menu/MenuCursor.cpp
             # The step debounce takes its delay as a callable, so the policy runs here against a
             # hand-fired clock rather than a scheduler.
             src/Menu/PendingCommit.cpp
