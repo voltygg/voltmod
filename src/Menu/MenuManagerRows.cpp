@@ -37,23 +37,9 @@ bool MenuManager::HandleKeys(int slot, MenuDriver& driver)
     return _keys->Handle(slot, driver);
 }
 
-std::string MenuManager::Breadcrumb(int slot) const
+std::string_view MenuManager::Breadcrumb(int slot) const
 {
-    if (!IsValidSlot(slot))
-        return {};
-
-    // Rebuilt per draw rather than cached on the session: one std::string per slot would add
-    // 2 KB to sizeof(Runtime), and this struct's layout has a history of turning latent
-    // out-of-bounds writes into a load-time crash. A root menu returns empty without allocating.
-    const auto& stack = _states[slot].MenuStack;
-    std::string breadcrumb;
-    for (std::size_t i = 0; i + 1 < stack.size(); ++i)
-    {
-        if (!breadcrumb.empty())
-            breadcrumb += kBreadcrumbSeparator;
-        breadcrumb += stack[i]->Title;
-    }
-    return breadcrumb;
+    return IsValidSlot(slot) ? std::string_view(_states[slot].Breadcrumb) : std::string_view{};
 }
 
 int MenuManager::Selected(int slot) const
@@ -91,6 +77,16 @@ void MenuManager::ResetCursor(int slot)
     auto& state = _states[slot];
     state.LastInputTime = Time::MonotonicMs();
     state.Rows.clear();
+
+    // Everything under the top menu, which is the path taken to reach what is on screen; the
+    // current title is drawn on its own and would only repeat itself here.
+    state.Breadcrumb.clear();
+    for (std::size_t i = 0; i + 1 < state.MenuStack.size(); ++i)
+    {
+        if (!state.Breadcrumb.empty())
+            state.Breadcrumb += kBreadcrumbSeparator;
+        state.Breadcrumb += state.MenuStack[i]->Title;
+    }
 
     auto* menu = state.GetCurrentMenu();
     _cursor->Select(slot, menu ? MenuCursor::First(CursorRowsOf(menu->Items, slot)) : 0);

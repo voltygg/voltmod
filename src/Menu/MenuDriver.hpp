@@ -81,8 +81,9 @@ protected:
     /** Put @p slot's cursor on the first row it may land on within @p page of this driver. */
     void SelectOnPage(int slot, int page) const { _menus.SelectOnPage(slot, page, RowsPerPage()); }
 
-    /** The titles under the current menu, joined with ` > `; empty at the root. */
-    [[nodiscard]] std::string Breadcrumb(int slot) const { return _menus.Breadcrumb(slot); }
+    /** The titles under the current menu, joined with ` > `; empty at the root. Valid until
+     *  @p slot's stack moves, which outlasts any one draw. */
+    [[nodiscard]] std::string_view Breadcrumb(int slot) const { return _menus.Breadcrumb(slot); }
 
     /** Whether keys drive @p slot's session (@ref MenuOptions::Keyboard). */
     [[nodiscard]] bool KeyboardEnabled(int slot) const { return _menus.KeyboardEnabled(slot); }

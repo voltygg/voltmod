@@ -27,8 +27,8 @@ struct CenterHtmlView
     /** Row @p index as @ref MenuManager::Describe fills it in, so @ref MenuRow::Pending and
      *  @ref MenuRow::Changed are already answered. */
     std::function<MenuRow(int index)> Describe;
-    /** The titles under this menu, joined; empty at the root. */
-    std::string Breadcrumb;
+    /** The titles under this menu, joined; empty at the root. Borrowed for the render call. */
+    std::string_view Breadcrumb;
     int Slot = 0;
     int SelectedIndex = 0;
     bool IsSubmenu = false;
