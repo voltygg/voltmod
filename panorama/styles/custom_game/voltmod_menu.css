@@ -26,6 +26,7 @@
 */
 #vm_root {
   width: 480px;
+  height: fit-children;
   horizontal-align: center;
   vertical-align: center;
   flow-children: down;
@@ -48,6 +49,7 @@
 
 .Header {
   width: 100%;
+  height: fit-children;
   flow-children: down;
   padding: 10px 14px 8px 14px;
   background-color: gradient(
@@ -95,6 +97,7 @@
 
 .Rows {
   width: 460px;
+  height: fit-children;
   horizontal-align: center;
   flow-children: down;
   margin-top: 8px;
@@ -177,10 +180,13 @@
   background-color: rgba(255, 255, 255, 0.03);
 }
 
-/* One column, no flow: the kind glyphs stack on the same spot and only one is ever visible. */
+/* One column, no flow: the kind glyphs stack on the same spot and only one is ever visible. The
+   margin is the gap to the label: the switch fills this column edge to edge, so without it a
+   toggle sits flush against its text while the narrower glyphs look spaced. */
 .Glyphs {
   width: 26px;
   height: 100%;
+  margin-right: 8px;
 }
 
 .Glyph {
