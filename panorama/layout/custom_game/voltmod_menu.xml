@@ -1,12 +1,16 @@
 <root>
   <!--
-    Driven by VoltMod::MenuManager's Panorama driver. The ids are the contract
-    (docs/custom-ui.md); everything else is yours. Text is dialog variables on vm_root, which the
-    labels inherit.
+    Driven by VoltMod::MenuManager's Panorama driver. The ids below are the contract
+    (docs/custom-ui.md); the nesting, the artwork and the animation are ours. All text is dialog
+    variables on vm_root, which the labels inherit: vm_title, vm_crumbs, vm_subtitle, vm_page,
+    vm_prompt_text, vm_prompt_hint and the per-row vm_row{i}_label / vm_row{i}_value.
 
-    Clickability: every panel on the click path has a resolved size, a Button never contains
-    another Button, and decorative panels are hittest="false". Eight rows, matching the driver's
-    page size; the server cannot read this file.
+    Clickability (each of these fails silently): every panel on the click path has a resolved
+    size, a Button never contains another Button, and decorative panels are hittest="false".
+    Eight rows, matching the driver's page size; the server cannot read this file.
+
+    Each row carries its own kind glyph set. Exactly one is uncollapsed by the row's Kind--*
+    class, and they stack on one 26px column so a row without a glyph still lines up.
   -->
   <styles>
     <include src="file://{resources}/styles/custom_game/voltmod_menu.css" />
@@ -15,74 +19,84 @@
   <Panel class="Root" hittest="false">
     <Panel id="vm_root" class="Menu Hidden" hittest="true">
       <Panel class="Header" hittest="false">
+        <Label class="Crumbs" text="{s:vm_crumbs}" />
         <Label class="Title" text="{s:vm_title}" />
         <Label id="vm_subtitle" class="Subtitle" text="{s:vm_subtitle}" />
       </Panel>
+      <Panel class="Rule" hittest="false" />
 
       <Panel class="Rows" hittest="true">
         <Panel id="vm_row0" class="Row Hidden" hittest="true">
+          <Panel class="Mark" hittest="false" />
           <Button id="vm_row0_btn" class="Row-btn">
+            <Panel class="Glyphs" hittest="false"><Label class="Glyph G--submenu" text="&#9654;" /><Label class="Glyph G--input" text="&#8230;" /><Label class="Glyph G--button" text="&#8226;" /><Label class="Glyph G--text" text="&#8211;" /><Panel class="Switch" hittest="false"><Panel class="Switch-knob" hittest="false" /></Panel></Panel>
             <Label class="Row-label" text="{s:vm_row0_label}" />
             <Label class="Row-value" text="{s:vm_row0_value}" />
           </Button>
-          <Button id="vm_row0_dec" class="Stepper"><Label text="&#9664;" /></Button>
-          <Button id="vm_row0_inc" class="Stepper"><Label text="&#9654;" /></Button>
+          <Panel class="Steps" hittest="true"><Button id="vm_row0_dec" class="Stepper"><Label text="&#9664;" /></Button><Button id="vm_row0_inc" class="Stepper"><Label text="&#9654;" /></Button></Panel>
         </Panel>
         <Panel id="vm_row1" class="Row Hidden" hittest="true">
+          <Panel class="Mark" hittest="false" />
           <Button id="vm_row1_btn" class="Row-btn">
+            <Panel class="Glyphs" hittest="false"><Label class="Glyph G--submenu" text="&#9654;" /><Label class="Glyph G--input" text="&#8230;" /><Label class="Glyph G--button" text="&#8226;" /><Label class="Glyph G--text" text="&#8211;" /><Panel class="Switch" hittest="false"><Panel class="Switch-knob" hittest="false" /></Panel></Panel>
             <Label class="Row-label" text="{s:vm_row1_label}" />
             <Label class="Row-value" text="{s:vm_row1_value}" />
           </Button>
-          <Button id="vm_row1_dec" class="Stepper"><Label text="&#9664;" /></Button>
-          <Button id="vm_row1_inc" class="Stepper"><Label text="&#9654;" /></Button>
+          <Panel class="Steps" hittest="true"><Button id="vm_row1_dec" class="Stepper"><Label text="&#9664;" /></Button><Button id="vm_row1_inc" class="Stepper"><Label text="&#9654;" /></Button></Panel>
         </Panel>
         <Panel id="vm_row2" class="Row Hidden" hittest="true">
+          <Panel class="Mark" hittest="false" />
           <Button id="vm_row2_btn" class="Row-btn">
+            <Panel class="Glyphs" hittest="false"><Label class="Glyph G--submenu" text="&#9654;" /><Label class="Glyph G--input" text="&#8230;" /><Label class="Glyph G--button" text="&#8226;" /><Label class="Glyph G--text" text="&#8211;" /><Panel class="Switch" hittest="false"><Panel class="Switch-knob" hittest="false" /></Panel></Panel>
             <Label class="Row-label" text="{s:vm_row2_label}" />
             <Label class="Row-value" text="{s:vm_row2_value}" />
           </Button>
-          <Button id="vm_row2_dec" class="Stepper"><Label text="&#9664;" /></Button>
-          <Button id="vm_row2_inc" class="Stepper"><Label text="&#9654;" /></Button>
+          <Panel class="Steps" hittest="true"><Button id="vm_row2_dec" class="Stepper"><Label text="&#9664;" /></Button><Button id="vm_row2_inc" class="Stepper"><Label text="&#9654;" /></Button></Panel>
         </Panel>
         <Panel id="vm_row3" class="Row Hidden" hittest="true">
+          <Panel class="Mark" hittest="false" />
           <Button id="vm_row3_btn" class="Row-btn">
+            <Panel class="Glyphs" hittest="false"><Label class="Glyph G--submenu" text="&#9654;" /><Label class="Glyph G--input" text="&#8230;" /><Label class="Glyph G--button" text="&#8226;" /><Label class="Glyph G--text" text="&#8211;" /><Panel class="Switch" hittest="false"><Panel class="Switch-knob" hittest="false" /></Panel></Panel>
             <Label class="Row-label" text="{s:vm_row3_label}" />
             <Label class="Row-value" text="{s:vm_row3_value}" />
           </Button>
-          <Button id="vm_row3_dec" class="Stepper"><Label text="&#9664;" /></Button>
-          <Button id="vm_row3_inc" class="Stepper"><Label text="&#9654;" /></Button>
+          <Panel class="Steps" hittest="true"><Button id="vm_row3_dec" class="Stepper"><Label text="&#9664;" /></Button><Button id="vm_row3_inc" class="Stepper"><Label text="&#9654;" /></Button></Panel>
         </Panel>
         <Panel id="vm_row4" class="Row Hidden" hittest="true">
+          <Panel class="Mark" hittest="false" />
           <Button id="vm_row4_btn" class="Row-btn">
+            <Panel class="Glyphs" hittest="false"><Label class="Glyph G--submenu" text="&#9654;" /><Label class="Glyph G--input" text="&#8230;" /><Label class="Glyph G--button" text="&#8226;" /><Label class="Glyph G--text" text="&#8211;" /><Panel class="Switch" hittest="false"><Panel class="Switch-knob" hittest="false" /></Panel></Panel>
             <Label class="Row-label" text="{s:vm_row4_label}" />
             <Label class="Row-value" text="{s:vm_row4_value}" />
           </Button>
-          <Button id="vm_row4_dec" class="Stepper"><Label text="&#9664;" /></Button>
-          <Button id="vm_row4_inc" class="Stepper"><Label text="&#9654;" /></Button>
+          <Panel class="Steps" hittest="true"><Button id="vm_row4_dec" class="Stepper"><Label text="&#9664;" /></Button><Button id="vm_row4_inc" class="Stepper"><Label text="&#9654;" /></Button></Panel>
         </Panel>
         <Panel id="vm_row5" class="Row Hidden" hittest="true">
+          <Panel class="Mark" hittest="false" />
           <Button id="vm_row5_btn" class="Row-btn">
+            <Panel class="Glyphs" hittest="false"><Label class="Glyph G--submenu" text="&#9654;" /><Label class="Glyph G--input" text="&#8230;" /><Label class="Glyph G--button" text="&#8226;" /><Label class="Glyph G--text" text="&#8211;" /><Panel class="Switch" hittest="false"><Panel class="Switch-knob" hittest="false" /></Panel></Panel>
             <Label class="Row-label" text="{s:vm_row5_label}" />
             <Label class="Row-value" text="{s:vm_row5_value}" />
           </Button>
-          <Button id="vm_row5_dec" class="Stepper"><Label text="&#9664;" /></Button>
-          <Button id="vm_row5_inc" class="Stepper"><Label text="&#9654;" /></Button>
+          <Panel class="Steps" hittest="true"><Button id="vm_row5_dec" class="Stepper"><Label text="&#9664;" /></Button><Button id="vm_row5_inc" class="Stepper"><Label text="&#9654;" /></Button></Panel>
         </Panel>
         <Panel id="vm_row6" class="Row Hidden" hittest="true">
+          <Panel class="Mark" hittest="false" />
           <Button id="vm_row6_btn" class="Row-btn">
+            <Panel class="Glyphs" hittest="false"><Label class="Glyph G--submenu" text="&#9654;" /><Label class="Glyph G--input" text="&#8230;" /><Label class="Glyph G--button" text="&#8226;" /><Label class="Glyph G--text" text="&#8211;" /><Panel class="Switch" hittest="false"><Panel class="Switch-knob" hittest="false" /></Panel></Panel>
             <Label class="Row-label" text="{s:vm_row6_label}" />
             <Label class="Row-value" text="{s:vm_row6_value}" />
           </Button>
-          <Button id="vm_row6_dec" class="Stepper"><Label text="&#9664;" /></Button>
-          <Button id="vm_row6_inc" class="Stepper"><Label text="&#9654;" /></Button>
+          <Panel class="Steps" hittest="true"><Button id="vm_row6_dec" class="Stepper"><Label text="&#9664;" /></Button><Button id="vm_row6_inc" class="Stepper"><Label text="&#9654;" /></Button></Panel>
         </Panel>
         <Panel id="vm_row7" class="Row Hidden" hittest="true">
+          <Panel class="Mark" hittest="false" />
           <Button id="vm_row7_btn" class="Row-btn">
+            <Panel class="Glyphs" hittest="false"><Label class="Glyph G--submenu" text="&#9654;" /><Label class="Glyph G--input" text="&#8230;" /><Label class="Glyph G--button" text="&#8226;" /><Label class="Glyph G--text" text="&#8211;" /><Panel class="Switch" hittest="false"><Panel class="Switch-knob" hittest="false" /></Panel></Panel>
             <Label class="Row-label" text="{s:vm_row7_label}" />
             <Label class="Row-value" text="{s:vm_row7_value}" />
           </Button>
-          <Button id="vm_row7_dec" class="Stepper"><Label text="&#9664;" /></Button>
-          <Button id="vm_row7_inc" class="Stepper"><Label text="&#9654;" /></Button>
+          <Panel class="Steps" hittest="true"><Button id="vm_row7_dec" class="Stepper"><Label text="&#9664;" /></Button><Button id="vm_row7_inc" class="Stepper"><Label text="&#9654;" /></Button></Panel>
         </Panel>
       </Panel>
 
@@ -92,15 +106,21 @@
         <Button id="vm_next" class="Arrow"><Label text="&#9654;" /></Button>
       </Panel>
 
-      <Panel class="Footer" hittest="true">
-        <Button id="vm_back" class="Nav Hidden"><Label text="Back" /></Button>
-        <Button id="vm_close" class="Nav"><Label text="Close" /></Button>
-      </Panel>
-
       <!-- Shown while a chat-input prompt is open; the driver ignores row presses meanwhile. -->
       <Panel id="vm_prompt" class="Prompt Hidden" hittest="true">
         <Label class="Prompt-text" text="{s:vm_prompt_text}" />
-        <Button id="vm_cancel" class="Nav"><Label text="Cancel" /></Button>
+        <Label class="Prompt-hint" text="{s:vm_prompt_hint}" />
+        <Button id="vm_cancel" class="Nav Nav--narrow"><Label text="Cancel" /></Button>
+      </Panel>
+
+      <!-- Back and Close are always laid out; at the root, Back is drawn inert instead of hidden.
+           The hint line keeps its box and fades, so showing it never reflows the footer. -->
+      <Panel class="Foot" hittest="true">
+        <Panel class="Nav-row" hittest="true">
+          <Button id="vm_back" class="Nav"><Label text="Back" /></Button>
+          <Button id="vm_close" class="Nav"><Label text="Close" /></Button>
+        </Panel>
+        <Label class="Hints" text="[W/S] Navigate &#183; [A/D] Change &#183; [E] Select &#183; [R] Back" />
       </Panel>
     </Panel>
   </Panel>

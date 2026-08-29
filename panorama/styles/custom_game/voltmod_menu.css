@@ -1,7 +1,17 @@
 /*
-	Panorama CSS, not web CSS - see docs/custom-ui.md. Selectors are flat, and every panel on the
-	click path has a resolved size. The server only sets classes - Hidden, Disabled, HasValue,
-	HasSteppers, Kind--* - so a restyle is this file alone.
+	VoltMod's Panorama menu. Panorama CSS, not web CSS - see docs/custom-ui.md: selectors are
+	flat (no nesting, no &), there is no flexbox, and every panel on the click path keeps a
+	resolved size, because a container sized around its children renders its buttons where you
+	expect and then does not take clicks there.
+
+	Palette - the whole sheet is these three colours plus white and black washes:
+		background  rgba(12, 13, 16, 0.96)  panel body; bands are white washes over it
+		ink         #e8e6e0                 primary text, #8a8778 when it is secondary
+		accent      #c8a24a                 title, selection, values, pressed states
+
+	The server only ever sets classes, so a restyle is this file alone. The vocabulary is
+	Hidden / Disabled / Selected / Changed / Pending / HasValue / HasSteppers / On and one
+	Kind--* on a row, and Hidden / Prompting / KeyHints / Root on #vm_root.
 */
 
 .Root {
@@ -9,57 +19,99 @@
   height: 100%;
 }
 
+/*
+	No padding here: the header band and the footer run to the panel edge, and every block inside
+	is a fixed width centred in the 480px body, so the panel's own height is the only box that has
+	to be measured from its children.
+*/
 #vm_root {
-  width: 460px;
+  width: 480px;
   horizontal-align: center;
   vertical-align: center;
   flow-children: down;
-  padding: 16px;
-  background-color: rgba(18, 20, 26, 0.93);
-  border: 1px solid #c8a24a;
+  background-color: rgba(12, 13, 16, 0.96);
+  border: 1px solid rgba(200, 162, 74, 0.45);
   color: #e8e6e0;
-  transition-property: opacity;
-  transition-duration: 0.12s;
   opacity: 1;
+  transform: translateY(0px);
+  transition-property: opacity, transform;
+  transition-duration: 0.14s;
+  transition-timing-function: ease-out;
 }
 
 /* Collapse as well as fade: a merely transparent panel still takes clicks. */
 #vm_root.Hidden {
   visibility: collapse;
   opacity: 0;
+  transform: translateY(8px);
 }
 
 .Header {
   width: 100%;
   flow-children: down;
-  margin-bottom: 10px;
+  padding: 10px 14px 8px 14px;
+  background-color: gradient( linear, 0% 0%, 0% 100%, from( #ffffff12 ), to( #ffffff05 ) );
+}
+
+/* Fixed height: the trail is empty at the root and CSS cannot test that, so it holds its line. */
+.Crumbs {
+  width: 100%;
+  height: 14px;
+  font-size: 12px;
+  color: #8a8778;
+  text-overflow: ellipsis;
 }
 
 .Title {
-  font-size: 24px;
+  width: 100%;
+  font-size: 22px;
   font-weight: bold;
   color: #c8a24a;
+  text-overflow: ellipsis;
 }
 
 .Subtitle {
-  font-size: 14px;
+  width: 100%;
+  font-size: 13px;
   color: #8a8778;
+  text-overflow: ellipsis;
 }
 
 #vm_subtitle.Hidden {
   visibility: collapse;
 }
 
-.Rows {
+.Rule {
   width: 100%;
+  height: 1px;
+  background-color: #c8a24a;
+}
+
+.Rows {
+  width: 460px;
+  horizontal-align: center;
   flow-children: down;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  opacity: 1;
+  transition-property: opacity;
+  transition-duration: 0.12s;
+}
+
+/* The driver ignores row presses while a chat prompt is up; this is what says so. */
+#vm_root.Prompting .Rows {
+  opacity: 0.35;
+}
+
+#vm_root.Prompting .Pager {
+  opacity: 0.35;
 }
 
 .Row {
   width: 100%;
-  height: 30px;
+  height: 34px;
   flow-children: right;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
 
 .Row.Hidden {
@@ -68,32 +120,147 @@
 
 /* Styling only; a disabled row still reports its press. */
 .Row.Disabled {
-  color: #55535080;
+  opacity: 0.4;
+}
+
+/* Keyboard cursor. Always laid out, so moving the cursor moves colour and not geometry. */
+.Mark {
+  width: 3px;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.05);
+  transition-property: background-color;
+  transition-duration: 0.1s;
+}
+
+.Row.Selected .Mark {
+  background-color: #c8a24a;
 }
 
 .Row-btn {
   width: fill-parent-flow(1);
   height: 100%;
   flow-children: right;
-  padding: 0px 8px;
-  background-color: rgba(255, 255, 255, 0.02);
+  padding: 0px 10px 0px 4px;
+  background-color: rgba(255, 255, 255, 0.03);
+  transition-property: background-color;
+  transition-duration: 0.25s;
 }
 
 .Row-btn:hover {
-  background-color: rgba(200, 162, 74, 0.18);
+  background-color: rgba(200, 162, 74, 0.16);
+}
+
+.Row-btn:active {
+  background-color: rgba(200, 162, 74, 0.32);
+}
+
+.Row.Selected .Row-btn {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* The driver drops Changed after ~150ms, so the transition above is the pulse fading back out. */
+.Row.Changed .Row-btn {
+  background-color: rgba(200, 162, 74, 0.38);
+}
+
+.Row.Disabled .Row-btn:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.Row.Disabled .Row-btn:active {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+/* One column, no flow: the kind glyphs stack on the same spot and only one is ever visible. */
+.Glyphs {
+  width: 26px;
+  height: 100%;
+}
+
+.Glyph {
+  horizontal-align: center;
+  vertical-align: center;
+  font-size: 13px;
+  color: #8a8778;
+  visibility: collapse;
+}
+
+.Row.Selected .Glyph {
+  color: #c8a24a;
+}
+
+.Kind--submenu .G--submenu {
+  visibility: visible;
+}
+
+.Kind--input .G--input {
+  visibility: visible;
+}
+
+.Kind--button .G--button {
+  visibility: visible;
+}
+
+.Kind--text .G--text {
+  visibility: visible;
+}
+
+/* A toggle is a switch, not a value: that is what tells it apart from a choice at a glance. */
+.Switch {
+  width: 26px;
+  height: 14px;
+  horizontal-align: center;
+  vertical-align: center;
+  border-radius: 7px;
+  background-color: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  visibility: collapse;
+  transition-property: background-color;
+  transition-duration: 0.12s;
+}
+
+.Kind--toggle .Switch {
+  visibility: visible;
+}
+
+.Kind--toggle.On .Switch {
+  background-color: #c8a24a;
+  border: 1px solid #c8a24a;
+}
+
+.Switch-knob {
+  width: 10px;
+  height: 10px;
+  margin-left: 2px;
+  vertical-align: center;
+  border-radius: 5px;
+  background-color: #8a8778;
+  transform: translateX(0px);
+  transition-property: transform, background-color;
+  transition-duration: 0.12s;
+  transition-timing-function: ease-out;
+}
+
+.Kind--toggle.On .Switch-knob {
+  background-color: #12141a;
+  transform: translateX(10px);
 }
 
 .Row-label {
   width: fill-parent-flow(1);
   vertical-align: center;
-  font-size: 17px;
+  font-size: 16px;
+  text-overflow: ellipsis;
 }
 
-/* Collapsed unless the row carries a value, so a plain button row has no empty column. */
+/* Fixed column, right aligned, so a long label never pushes the values out of line. */
 .Row-value {
+  width: 120px;
   vertical-align: center;
-  font-size: 17px;
+  text-align: right;
+  font-size: 15px;
   color: #c8a24a;
+  text-overflow: ellipsis;
   visibility: collapse;
 }
 
@@ -101,13 +268,55 @@
   visibility: visible;
 }
 
+.Kind--submenu .Row-value {
+  color: #8a8778;
+}
+
+/* The switch already says on or off; the words would only repeat it. Three classes, so this
+   outweighs the HasValue rule above rather than tying with it. */
+.Row.Kind--toggle .Row-value {
+  visibility: collapse;
+}
+
+/* A stepped value the driver has not committed yet. */
+.Row.Pending .Row-value {
+  color: #c8a24a;
+  opacity: 0.55;
+  font-style: italic;
+}
+
+/* Informational row: readable, but it should not look pressable. */
+.Kind--text .Row-btn {
+  background-color: rgba(255, 255, 255, 0.0);
+}
+
+.Kind--text .Row-btn:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.Kind--text .Row-label {
+  font-size: 15px;
+  color: #8a8778;
+}
+
+/*
+	The stepper column keeps its width on every row, so a choice row's label and value sit exactly
+	where a toggle row's do. Collapsing the buttons inside it is what makes them unclickable -
+	hittest is markup, not CSS - while the reserved box stops the rest of the row shifting.
+*/
+.Steps {
+  width: 76px;
+  height: 100%;
+  flow-children: right;
+}
+
 /* Siblings of the row button: a Button in a Button loses the inner press. */
 .Stepper {
-  width: 26px;
+  width: 36px;
   height: 100%;
   margin-left: 2px;
-  background-color: rgba(255, 255, 255, 0.04);
-  font-size: 13px;
+  background-color: rgba(255, 255, 255, 0.05);
+  font-size: 12px;
   color: #8a8778;
   visibility: collapse;
 }
@@ -122,26 +331,24 @@
 }
 
 .Stepper:hover {
-  background-color: rgba(200, 162, 74, 0.18);
+  background-color: rgba(200, 162, 74, 0.22);
   color: #c8a24a;
 }
 
-/* Row kinds: the server sets exactly one per row and leaves the look to this file. */
-.Kind--text {
-  color: #8a8778;
-  font-size: 15px;
-}
-
-.Kind--submenu .Row-value {
-  visibility: visible;
-  color: #8a8778;
+.Stepper:active {
+  background-color: #c8a24a;
+  color: #12141a;
 }
 
 .Pager {
-  width: 100%;
-  height: 28px;
+  width: 460px;
+  height: 24px;
+  horizontal-align: center;
   flow-children: right;
-  margin-top: 10px;
+  margin-bottom: 8px;
+  opacity: 1;
+  transition-property: opacity;
+  transition-duration: 0.12s;
 }
 
 .Pager.Hidden {
@@ -149,11 +356,11 @@
 }
 
 .Arrow {
-  width: 44px;
-  height: 26px;
-  font-size: 15px;
-  color: #e8e6e0;
-  background-color: rgba(255, 255, 255, 0.08);
+  width: 36px;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.05);
+  font-size: 12px;
+  color: #8a8778;
 }
 
 .Arrow Label {
@@ -162,6 +369,11 @@
 }
 
 .Arrow:hover {
+  background-color: rgba(200, 162, 74, 0.22);
+  color: #c8a24a;
+}
+
+.Arrow:active {
   background-color: #c8a24a;
   color: #12141a;
 }
@@ -170,24 +382,64 @@
   width: fill-parent-flow(1);
   vertical-align: center;
   text-align: center;
-  font-size: 15px;
+  font-size: 13px;
   color: #8a8778;
 }
 
-.Footer {
+/*
+	Fixed height: Cancel has to stay clickable, and this is the one block whose height would
+	otherwise be measured from however long a prompt happens to be.
+*/
+.Prompt {
+  width: 460px;
+  height: 112px;
+  horizontal-align: center;
+  flow-children: down;
+  margin-bottom: 8px;
+  padding: 10px;
+  background-color: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(200, 162, 74, 0.55);
+}
+
+.Prompt.Hidden {
+  visibility: collapse;
+}
+
+.Prompt-text {
   width: 100%;
-  height: 28px;
+  height: 40px;
+  font-size: 15px;
+}
+
+.Prompt-hint {
+  width: 100%;
+  height: 16px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: #8a8778;
+}
+
+.Foot {
+  width: 460px;
+  height: 54px;
+  horizontal-align: center;
+  flow-children: down;
+  margin-bottom: 10px;
+}
+
+.Nav-row {
+  width: 100%;
+  height: 30px;
   flow-children: right;
-  margin-top: 10px;
 }
 
 .Nav {
   width: fill-parent-flow(1);
-  height: 26px;
+  height: 100%;
   margin-right: 4px;
-  font-size: 15px;
+  background-color: rgba(255, 255, 255, 0.07);
+  font-size: 14px;
   color: #e8e6e0;
-  background-color: rgba(255, 255, 255, 0.08);
 }
 
 .Nav Label {
@@ -200,30 +452,48 @@
   color: #12141a;
 }
 
-.Nav.Hidden {
-  visibility: collapse;
+.Nav:active {
+  background-color: #e0bb63;
+  color: #12141a;
 }
 
-/* Shown below the rows while the player is answering in chat. */
-.Prompt {
-  width: 100%;
-  flow-children: down;
-  margin-top: 10px;
-  padding: 10px;
-  background-color: rgba(0, 0, 0, 0.8);
-  border: 1px solid #c8a24a;
+#vm_close {
+  margin-right: 0px;
 }
 
-.Prompt.Hidden {
-  visibility: collapse;
-}
-
-.Prompt-text {
-  font-size: 16px;
-  margin-bottom: 8px;
-}
-
-.Prompt .Nav {
+.Nav--narrow {
   width: 120px;
+  height: 26px;
   horizontal-align: center;
+}
+
+/*
+	At the root there is nowhere to go back to, so Back is drawn inert rather than removed and the
+	footer keeps its shape between menus. The driver still sets Hidden on vm_back there for older
+	layouts, so nothing here styles .Nav.Hidden - it would take Back away again.
+*/
+#vm_root.Root #vm_back {
+  opacity: 0.35;
+}
+
+#vm_root.Root #vm_back:hover {
+  background-color: rgba(255, 255, 255, 0.07);
+  color: #e8e6e0;
+}
+
+/* Keeps its box and fades, so turning the hints on does not move the panel. */
+.Hints {
+  width: 100%;
+  height: 16px;
+  margin-top: 8px;
+  text-align: center;
+  font-size: 11px;
+  color: #8a8778;
+  opacity: 0;
+  transition-property: opacity;
+  transition-duration: 0.12s;
+}
+
+#vm_root.KeyHints .Hints {
+  opacity: 1;
 }
