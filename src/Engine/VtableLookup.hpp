@@ -28,6 +28,13 @@ struct VTableSlot
  * primary table never holds, and cannot be off by one: the slot holds the address or it is not
  * the slot.
  *
+ * @p instance is walked blind: its first eight words are each tried as a vptr, and each candidate
+ * table is walked until a slot holds something that is not code. Both are reads of foreign memory
+ * whose extent this cannot know, so it requires a real engine object - one at least eight words
+ * long, whose vtables are followed by readable non-executable data, which every module's `.rdata`
+ * satisfies. Do not call it on a small stack struct; nothing here can tell that apart from an
+ * object that simply has fewer bases.
+ *
  * @param originalOf what an entry held before a hook patched it (SourceHook's
  *                   `GetOrigVfnPtrEntry`), or nullptr; without it another plugin's hook hides
  *                   @p function. Injected to keep this file SDK-free.

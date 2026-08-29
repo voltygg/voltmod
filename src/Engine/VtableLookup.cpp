@@ -270,6 +270,12 @@ std::optional<VTableSlot> FindVTableSlot(const void* instance, const void* funct
     {
         const int baseOffset = table * static_cast<int>(sizeof(void*));
 
+        // The object's own bytes, before reading them. Every other check here validates a pointer
+        // the object holds; this one validates the read that fetches it, so an instance whose
+        // mapping ends inside the scanned span stops the walk instead of faulting.
+        if (!IsReadableAddress(object + baseOffset, sizeof(void*)))
+            break;
+
         void** candidate = nullptr;
         std::memcpy(&candidate, object + baseOffset, sizeof(candidate));
 
