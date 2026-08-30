@@ -186,15 +186,100 @@ std::string Strings::EscapeHtml(std::string_view text)
     return out;
 }
 
+std::string Strings::SanitizeUtf8(std::string_view text, std::string_view replacement)
+{
+    std::string out;
+    out.reserve(text.size());
+
+    const auto* bytes = reinterpret_cast<const unsigned char*>(text.data());
+    const std::size_t size = text.size();
+
+    for (std::size_t i = 0; i < size;)
+    {
+        const unsigned char lead = bytes[i];
+
+        // How many continuation bytes this lead announces, and the smallest code point it may
+        // legally encode. Rejecting an overlong encoding matters: a two-byte encoding of NUL
+        // would otherwise slip past a later check that only inspects the decoded string.
+        std::size_t extra = 0;
+        char32_t code = 0;
+        char32_t lowest = 0;
+        if (lead < 0x80)
+        {
+            out.push_back(static_cast<char>(lead));
+            ++i;
+            continue;
+        }
+        else if ((lead & 0xE0) == 0xC0)
+        {
+            extra = 1;
+            code = lead & 0x1Fu;
+            lowest = 0x80;
+        }
+        else if ((lead & 0xF0) == 0xE0)
+        {
+            extra = 2;
+            code = lead & 0x0Fu;
+            lowest = 0x800;
+        }
+        else if ((lead & 0xF8) == 0xF0)
+        {
+            extra = 3;
+            code = lead & 0x07u;
+            lowest = 0x10000;
+        }
+        else
+        {
+            // A continuation byte with no lead, or one of the 5/6-byte forms UTF-8 never had.
+            out.append(replacement);
+            ++i;
+            continue;
+        }
+
+        if (i + extra >= size)
+        {
+            // Truncated sequence: the string ends mid-character.
+            out.append(replacement);
+            ++i;
+            continue;
+        }
+
+        bool wellFormed = true;
+        for (std::size_t k = 1; k <= extra; ++k)
+        {
+            const unsigned char continuation = bytes[i + k];
+            if ((continuation & 0xC0) != 0x80)
+            {
+                wellFormed = false;
+                break;
+            }
+            code = (code << 6) | (continuation & 0x3Fu);
+        }
+
+        // Surrogates are unencodable in UTF-8, and nothing above U+10FFFF exists.
+        if (!wellFormed || code < lowest || (code >= 0xD800 && code <= 0xDFFF) || code > 0x10FFFF)
+        {
+            out.append(replacement);
+            ++i;
+            continue;
+        }
+
+        out.append(text.substr(i, extra + 1));
+        i += extra + 1;
+    }
+
+    return out;
+}
+
 std::string Strings::TruncateUtf8(std::string_view text, std::size_t maxBytes, std::string_view ellipsis)
 {
     if (text.size() <= maxBytes)
-        return std::string(text);
+        return SanitizeUtf8(text);
     std::size_t end = maxBytes;
     // Back up past UTF-8 continuation bytes so the cut never splits a multibyte sequence.
     while (end > 0 && (static_cast<unsigned char>(text[end]) & 0xC0) == 0x80)
         --end;
-    return std::string(text.substr(0, end)).append(ellipsis);
+    return SanitizeUtf8(text.substr(0, end)).append(ellipsis);
 }
 
 bool Strings::IsNumeric(std::string_view str)
