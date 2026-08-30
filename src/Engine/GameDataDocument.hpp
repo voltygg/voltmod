@@ -33,8 +33,9 @@ struct GameDataDocument
         std::optional<Pattern> Linux;
     };
 
-    /** `addresses.<key>.rel32At` carries the platform columns; the entry itself does not. */
-    struct Rel32
+    /** A bare per-platform integer: `messages`, and `addresses.<key>.rel32At` whose columns live
+     *  here rather than on the entry. */
+    struct Columns
     {
         std::optional<int> Windows;
         std::optional<int> Linux;
@@ -43,20 +44,13 @@ struct GameDataDocument
     struct Address
     {
         std::string signature;
-        std::optional<Rel32> rel32At;
+        std::optional<Columns> rel32At;
     };
 
     struct VTable
     {
         std::string Class;
         std::string library = "server";
-        std::optional<int> Windows;
-        std::optional<int> Linux;
-    };
-
-    /** `messages`: a bare per-platform integer id. */
-    struct Columns
-    {
         std::optional<int> Windows;
         std::optional<int> Linux;
     };
@@ -103,13 +97,6 @@ struct glz::meta<VoltMod::GameDataDocument::Signature>
 {
     using T = VoltMod::GameDataDocument::Signature;
     static constexpr auto value = glz::object("library", &T::library, "windows", &T::Windows, "linux", &T::Linux);
-};
-
-template <>
-struct glz::meta<VoltMod::GameDataDocument::Rel32>
-{
-    using T = VoltMod::GameDataDocument::Rel32;
-    static constexpr auto value = glz::object("windows", &T::Windows, "linux", &T::Linux);
 };
 
 template <>

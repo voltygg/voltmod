@@ -2,13 +2,11 @@
 
 #include "Engine/GameDataDocument.hpp"
 
-#include <VoltMod/Core/Paths.hpp>
+#include <VoltMod/Core/File.hpp>
 #include <VoltMod/Engine/OffsetCheck.hpp>
 #include <algorithm>
 #include <cctype>
 #include <format>
-#include <fstream>
-#include <iterator>
 #include <map>
 #include <string>
 #include <string_view>
@@ -86,15 +84,29 @@ static Status ClaimKey(SectionContext& ctx, const std::string& key, std::string_
     return {};
 }
 
+/** @p platform's column on @p entry. Every columned entry type spells the pair the same way, so
+ *  this is the one place the platform-to-member mapping lives. */
+template <class TEntry>
+static const auto& ColumnOf(const TEntry& entry, GamePlatform platform)
+{
+    return platform == GamePlatform::Windows ? entry.Windows : entry.Linux;
+}
+
 /** Whether @p entry carries @p platform's column. An entry type with no columns of its own
  *  (`addresses`, whose columns live on `rel32At`) never has one. */
 template <class TEntry>
 static bool HasColumn(const TEntry& entry, GamePlatform platform)
 {
     if constexpr (requires { entry.Windows; })
-        return platform == GamePlatform::Windows ? entry.Windows.has_value() : entry.Linux.has_value();
+        return ColumnOf(entry, platform).has_value();
     else
         return false;
+}
+
+/** The diagnostic every column reader shares when @p key has no column for @p platform. */
+static std::unexpected<Error> NoColumn(std::string_view section, const std::string& key, GamePlatform platform)
+{
+    return Malformed(std::format("{}.{} has no '{}' entry", section, key, PlatformKey(platform)));
 }
 
 /**
@@ -120,18 +132,18 @@ template <class TEntry>
 static Result<int> PlatformColumn(const TEntry& entry, GamePlatform platform, std::string_view section,
                                   const std::string& key)
 {
-    const auto& column = platform == GamePlatform::Windows ? entry.Windows : entry.Linux;
+    const auto& column = ColumnOf(entry, platform);
     if (!column.has_value())
-        return Malformed(std::format("{}.{} has no '{}' entry", section, key, PlatformKey(platform)));
+        return NoColumn(section, key, platform);
     return *column;
 }
 
 static Status ReadSignature(SectionContext& ctx, const std::string& key, const GameDataDocument::Signature& entry)
 {
     const std::string_view column = PlatformKey(ctx.Platform);
-    const auto& pattern = ctx.Platform == GamePlatform::Windows ? entry.Windows : entry.Linux;
+    const auto& pattern = ColumnOf(entry, ctx.Platform);
     if (!pattern.has_value())
-        return Malformed(std::format("signatures.{} has no '{}' entry", key, column));
+        return NoColumn("signatures", key, ctx.Platform);
 
     SignatureEntry signature;
     signature.Library = entry.library;
@@ -287,13 +299,11 @@ Result<GameDataFile> GameDataFile::Parse(std::string_view text, GamePlatform pla
 
 Result<GameDataFile> GameDataFile::Load(std::string_view path, GamePlatform platform)
 {
-    auto resolved = ResolvePath(path);
-    std::ifstream file(resolved);
-    if (!file.is_open())
-        return std::unexpected(Error::NotFound(std::format("gamedata file not found: {}", resolved.string())));
+    auto text = ReadAllText(path);
+    if (!text)
+        return std::unexpected(text.error());
 
-    std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    auto parsed = Parse(text, platform);
+    auto parsed = Parse(*text, platform);
     if (!parsed)
         return std::unexpected(Error::Invalid(std::format("{}: {}", path, parsed.error().Detail)));
     return parsed;

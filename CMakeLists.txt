@@ -27,6 +27,7 @@ add_library(voltmod-headers INTERFACE)
 add_library(VoltMod::Headers ALIAS voltmod-headers)
 target_include_directories(voltmod-headers INTERFACE "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
 target_link_libraries(voltmod-headers INTERFACE glaze::glaze magic_enum::magic_enum)
+target_compile_features(voltmod-headers INTERFACE cxx_std_23)
 
 # Runtime is every source module except Database.
 file(GLOB_RECURSE VOLTMOD_RUNTIME_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
@@ -135,6 +136,7 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Commands/Targeting.cpp
             src/Core/Capabilities.cpp
             src/Core/EffectManager.cpp
+            src/Core/File.cpp
             src/Core/LoadReport.cpp
             src/Core/Logger.cpp
             src/Core/Paths.cpp

@@ -263,21 +263,20 @@ void Runtime::RegisterStatusSections()
     });
 
     Status.RegisterSection("capabilities", [this] {
-        std::map<std::string, std::string> missing;
+        std::optional<std::map<std::string, std::string>> missing;
         int ok = 0;
         for (Capability capability : EnumValues<Capability>())
         {
             if (Capabilities.Has(capability))
                 ++ok;
             else
-                missing.emplace(std::string(Name(capability)), std::string(Capabilities.Reason(capability)));
+            {
+                if (!missing)
+                    missing.emplace();
+                missing->emplace(std::string(Name(capability)), std::string(Capabilities.Reason(capability)));
+            }
         }
-
-        std::map<std::string, glz::raw_json> section;
-        if (!missing.empty())
-            section["missing"] = glz::raw_json{Json::Write(missing)};
-        section["ok"] = glz::raw_json{std::to_string(ok)};
-        return Json::Write(section);
+        return Json::Write(glz::obj{"missing", missing, "ok", ok});
     });
 
     // Which menu driver is live is a plugin's own choice made at load, and a UsePanorama that was

@@ -1,14 +1,12 @@
 #pragma once
 
+#include <VoltMod/Core/File.hpp>
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/Paths.hpp>
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Strings.hpp>
 #include <cstdint>
 #include <format>
-#include <fstream>
 #include <glaze/json.hpp>
-#include <iterator>
 #include <map>
 #include <string>
 #include <string_view>
@@ -48,13 +46,11 @@ public:
     template <class T, auto Options = ReadOptions>
     static Result<T> ReadFile(std::string_view path)
     {
-        const auto resolved = ResolvePath(path);
-        std::ifstream file(resolved, std::ios::binary);
-        if (!file.is_open())
-            return std::unexpected(Error::NotFound(std::format("failed to open {}", resolved.string())));
+        auto text = ReadAllText(path);
+        if (!text)
+            return std::unexpected(text.error());
 
-        std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-        auto parsed = Read<T, Options>(text);
+        auto parsed = Read<T, Options>(*text);
         if (!parsed)
             return std::unexpected(Error::Invalid(std::format("{}: {}", path, parsed.error().Detail)));
         return parsed;

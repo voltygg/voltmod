@@ -1,6 +1,5 @@
 #include <VoltMod/Core/Json.hpp>
 #include <VoltMod/Core/Paths.hpp>
-#include <cstdio>
 #include <doctest/doctest.h>
 #include <filesystem>
 #include <fstream>

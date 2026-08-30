@@ -1,11 +1,10 @@
+#include <VoltMod/Core/File.hpp>
 #include <VoltMod/Core/Json.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Paths.hpp>
 #include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Core/Translations.hpp>
 #include <filesystem>
-#include <fstream>
-#include <iterator>
 #include <string>
 #include <string_view>
 
@@ -93,14 +92,13 @@ bool Translations::Load(std::string_view dirPath)
             continue;
 
         std::string langCode = entry.path().stem().string();
-        std::ifstream file(entry.path(), std::ios::binary);
-        if (!file.is_open())
+        auto text = ReadAllText(entry.path().string());
+        if (!text)
             continue;
 
-        const std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
         // A language file is plain JSON, not JSONC - unchanged from before, so a comment in one
         // still fails the same way rather than starting to work as a side effect of this swap.
-        auto data = Json::ParseDocument(text);
+        auto data = Json::ParseDocument(*text);
         if (!data)
         {
             // One bad file must not cost the other languages, so this warns and moves on.
