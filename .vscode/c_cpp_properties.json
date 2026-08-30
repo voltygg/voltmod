@@ -5,14 +5,20 @@
       "compileCommands": "${workspaceFolder}/build/windows-msvc-release/compile_commands.json",
       "cStandard": "c17",
       "cppStandard": "c++23",
-      "intelliSenseMode": "windows-msvc-x64"
+      "intelliSenseMode": "windows-msvc-x64",
+      "includePath": [
+        "${workspaceFolder}/include"
+      ]
     },
     {
       "name": "Linux",
       "compileCommands": "${workspaceFolder}/build/linux-steamrt-release/compile_commands.json",
       "cStandard": "c17",
       "cppStandard": "c++23",
-      "intelliSenseMode": "linux-gcc-x64"
+      "intelliSenseMode": "linux-gcc-x64",
+      "includePath": [
+        "${workspaceFolder}/include"
+      ]
     }
   ],
   "version": 4
