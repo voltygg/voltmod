@@ -122,9 +122,6 @@ class VoltModConan(ConanFile):
         self.cpp_info.builddirs = ["cmake"]
         # Export the plugin and test helpers as CMakeDeps build modules.
         self.cpp_info.set_property("cmake_build_modules", [
-            # Must precede the plugin helper: it strips Glaze's /Zc:preprocessor before any
-            # consumer target links glaze::glaze.
-            os.path.join("cmake", "VoltModGlaze.cmake"),
             os.path.join("cmake", "VoltModPlugin.cmake"),
             os.path.join("cmake", "VoltModTests.cmake"),
         ])

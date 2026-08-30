@@ -13,8 +13,7 @@ namespace VoltMod
  * @brief Owns one JSON-deserialized settings struct.
  *
  * @p TSettings is a plain aggregate: Glaze reflects its public members, so no registration is
- * needed. A missing key keeps the member's C++ initializer; an unknown key fails the load. Give
- * the root @ref VOLTMOD_SETTINGS_ROOT so it accepts the `"$schema"` key.
+ * needed. A missing key keeps the member's C++ initializer and unknown keys are ignored.
  *
  * Use it directly when loading is all you need. When a plugin has to validate or derive values,
  * **compose** it rather than subclassing, so nothing can observe a half-resolved configuration:
@@ -42,7 +41,7 @@ public:
     /** @brief Load and publish @p path (JSONC tolerated).
      *
      *  On failure the previously published settings stand, and the error carries a
-     *  position-aware message naming the offending key. */
+     *  parse error. */
     Status Load(std::string_view path)
     {
         auto loaded = Json::ReadFile<TSettings>(path);

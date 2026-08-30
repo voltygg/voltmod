@@ -53,19 +53,8 @@ public:
     static std::string EscapeHtml(std::string_view text);
 
     /**
-     * @brief Replace every byte that is not part of a well-formed UTF-8 sequence with @p replacement.
-     *
-     * Rejects lone continuation bytes, truncated sequences, overlong encodings, surrogates and
-     * anything above U+10FFFF. Player names arrive from the client and need not be valid UTF-8;
-     * a JSON writer passes the bytes straight through, so text bound for a webhook or a panel is
-     * sanitized here rather than at each call site. The default replacement is U+FFFD.
-     */
-    static std::string SanitizeUtf8(std::string_view text, std::string_view replacement = "\xEF\xBF\xBD");
-
-    /**
      * Truncate to at most `maxBytes` bytes plus `ellipsis`, cutting at a UTF-8 sequence
-     * boundary so multibyte text (e.g. Cyrillic) never renders a split character. Routes through
-     * @ref SanitizeUtf8, so already-malformed input is not handed back verbatim.
+     * boundary so multibyte text (e.g. Cyrillic) never renders a split character.
      */
     static std::string TruncateUtf8(std::string_view text, std::size_t maxBytes, std::string_view ellipsis = "...");
 

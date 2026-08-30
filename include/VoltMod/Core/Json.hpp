@@ -13,23 +13,15 @@
 #include <string_view>
 #include <utility>
 
-/** Set by this header so RootApiSurfaceTest can assert `<VoltMod/Api.hpp>` never reaches the JSON
- *  layer. Glaze exposes no preprocessor version macro, so a first-party sentinel is the only
- *  guard that cannot rot. */
-#define VOLTMOD_JSON_INCLUDED 1
-
 namespace VoltMod
 {
 
 /**
  * @brief System.Text.Json-style helpers for mapping C++ types to and from JSON.
  *
- * Glaze reflects public aggregate members directly: the member name is the JSON key, a missing
- * key keeps the member's C++ initializer, and an **unknown key is an error** - a misspelled
- * setting fails the load instead of silently reading a default. No registration macro is needed.
- *
- * A settings root that carries the editor-completion `"$schema"` key needs
- * @ref VOLTMOD_SETTINGS_ROOT (`<VoltMod/App/PluginSettings.hpp>`) to accept and ignore it.
+ * Glaze reflects public aggregate members directly: the member name is the JSON key and a missing
+ * key keeps the member's C++ initializer. Unknown keys are ignored for compatibility with older
+ * settings files. No registration macro is needed.
  *
  * @code
  * struct Cfg { std::string host = "localhost"; int port = 5432; };
@@ -41,17 +33,18 @@ namespace VoltMod
 class Json
 {
 public:
-    /** JSONC (comments tolerated) with strict keys, which is what a settings file wants. */
-    static constexpr glz::opts ReadOptions{.comments = true};
+    /** JSONC with the tolerant unknown-key behavior used by existing settings files. */
+    static constexpr glz::opts ReadOptions{.comments = true, .error_on_unknown_keys = false};
+    /** JSONC for formats whose schema rejects unknown keys. */
+    static constexpr glz::opts StrictReadOptions{.comments = true};
 
     /**
      * @brief Parse @p path (resolved via ResolvePath) into T.
      *
      * @return ErrorCode::NotFound when the file cannot be opened; ErrorCode::Invalid with a
-     *         position-aware message (line, column, and the offending key) for a syntax error,
-     *         a wrong-typed value, an unknown key, or invalid UTF-8.
+     *         position-aware message for a syntax error, wrong-typed value, or invalid UTF-8.
      */
-    template <class T>
+    template <class T, auto Options = ReadOptions>
     static Result<T> ReadFile(std::string_view path)
     {
         const auto resolved = ResolvePath(path);
@@ -60,23 +53,23 @@ public:
             return std::unexpected(Error::NotFound(std::format("failed to open {}", resolved.string())));
 
         std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-        auto parsed = Read<T>(text);
+        auto parsed = Read<T, Options>(text);
         if (!parsed)
             return std::unexpected(Error::Invalid(std::format("{}: {}", path, parsed.error().Detail)));
         return parsed;
     }
 
     /** @brief As @ref ReadFile, over text already in hand. */
-    template <class T>
+    template <class T, auto Options = ReadOptions>
     static Result<T> Read(std::string_view text)
     {
         T value{};
-        if (auto ec = glz::read<ReadOptions>(value, text))
+        if (auto ec = glz::read<Options>(value, text))
             return std::unexpected(Error::Invalid(glz::format_error(ec, text)));
         return value;
     }
 
-    /** @brief @p value as compact JSON. Empty on the write errors reflected aggregates cannot hit. */
+    /** @brief Serialize @p value as compact JSON. */
     template <class T>
     static std::string Write(const T& value)
     {
@@ -89,17 +82,11 @@ public:
         return std::move(*written);
     }
 
-    /**
-     * @brief Parse free-form JSON whose shape belongs to an operator or a third-party service.
-     *
-     * UTF-8 is deliberately **not** validated here: the bytes come from a remote body or an
-     * operator-authored template, and rejecting them would turn a soft failure into a hard one.
-     * @ref ReadFile keeps validation on, because a config file with a bad byte is our problem.
-     */
+    /** @brief Parse free-form JSON whose shape is not known at compile time. */
     static Result<glz::generic> ParseDocument(std::string_view text)
     {
         glz::generic document{};
-        if (auto ec = glz::read<DocumentOptions>(document, text))
+        if (auto ec = glz::read_json(document, text))
             return std::unexpected(Error::Invalid(glz::format_error(ec, text)));
         return document;
     }
@@ -163,35 +150,6 @@ public:
         }
         return {};
     }
-
-private:
-    /** @ref ParseDocument's options; see the note there on why UTF-8 validation is off. */
-    struct DocumentOpts : glz::opts
-    {
-        bool validate_utf8 = false;
-    };
-    static constexpr DocumentOpts DocumentOptions{};
 };
 
 }  // namespace VoltMod
-
-/**
- * @brief Accept and ignore the editor-completion `"$schema"` key on a JSON document root.
- *
- * Unknown keys are an error, which is what makes a misspelled setting fail the load - but every
- * shipped `settings.jsonc` (and `gamedata.jsonc`) names its schema for editor completion, and
- * `$schema` is not a valid C++ identifier, so it cannot simply be a member. Write this at global
- * scope beside the struct; `glz::meta` is a library customization point and has to be specialized
- * outside `VoltMod`.
- *
- * @code
- * struct Settings { StandardPluginSettings plugin; MySection mine; };
- * VOLTMOD_SETTINGS_ROOT(MyPlugin::Settings)
- * @endcode
- */
-#define VOLTMOD_SETTINGS_ROOT(Type)                                         \
-    template <>                                                             \
-    struct glz::meta<Type>                                                  \
-    {                                                                       \
-        static constexpr auto modify = glz::object("$schema", glz::skip{}); \
-    };

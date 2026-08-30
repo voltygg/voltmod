@@ -253,7 +253,7 @@ Result<GameDataFile> GameDataFile::Parse(std::string_view text, GamePlatform pla
     // Every shape error is reported as a value, so nothing can throw out of here into
     // Runtime::Start - the exception backstop this function used to carry is gone. An unknown key
     // is now rejected too, which is gamedata.schema.json's additionalProperties being enforced.
-    auto document = Json::Read<GameDataDocument>(text);
+    auto document = Json::Read<GameDataDocument, Json::StrictReadOptions>(text);
     if (!document)
         return Malformed(std::format("not valid JSON: {}", document.error().Detail));
 

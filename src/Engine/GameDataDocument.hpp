@@ -93,6 +93,12 @@ struct GameDataDocument
 // would leave the reflected spelling in place alongside the alias.
 
 template <>
+struct glz::meta<VoltMod::GameDataDocument>
+{
+    static constexpr auto modify = glz::object("$schema", glz::skip{});
+};
+
+template <>
 struct glz::meta<VoltMod::GameDataDocument::Signature>
 {
     using T = VoltMod::GameDataDocument::Signature;
@@ -128,6 +134,3 @@ struct glz::meta<VoltMod::GameDataDocument::Offset>
     static constexpr auto value =
         glz::object("windows", &T::Windows, "linux", &T::Linux, "max", &T::max, "align", &T::align);
 };
-
-/** gamedata.jsonc names its schema for editor completion, like every settings.jsonc. */
-VOLTMOD_SETTINGS_ROOT(VoltMod::GameDataDocument)

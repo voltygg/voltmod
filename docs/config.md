@@ -20,20 +20,15 @@ struct Settings
     VoltMod::StandardPluginSettings plugin;   // the framework-standard "plugin" section (locale)
     // one struct + member per additional section
 };
-VOLTMOD_SETTINGS_ROOT(Settings)   // accept the "$schema" key; see below
 
 using ConfigManager = VoltMod::JsonConfig<Settings>;
 ```
 
 Public members are reflected, so there is nothing to register: the member name
-*is* the JSON key. A missing key keeps the member's C++ initializer. A missing
-file, a parse error, a wrong value type, and **an unknown key** all fail the
-load - a misspelled setting says so instead of silently reading a default, and
-the error names the key with its line and column. JSONC comments are accepted.
-
-Because the member name is the key, renaming a member renames the setting. There
-is no macro left to catch that, so a test that parses the shipped
-`settings.jsonc` is worth its few lines.
+*is* the JSON key. A missing key keeps the member's C++ initializer. Missing
+files, parse errors, and wrong value types fail the load. JSONC comments and
+unknown keys are accepted, so older files may retain settings a newer build no
+longer uses.
 
 A settings struct must have external linkage - reflection reads member names off
 the type - so declare it at namespace scope, never inside a function or an
@@ -44,13 +39,9 @@ anonymous namespace.
 ### Editor validation with a JSON Schema
 
 Ship `settings.schema.json` beside the JSONC file and reference it with a
-relative `$schema` as the first key. `$schema` is not a valid C++ identifier, so
-it cannot be a member; @ref VOLTMOD_SETTINGS_ROOT is what makes the reader accept
-and ignore it. Write it at global scope beside the struct, once per settings
-root. Without it, `$schema` is rejected like any other unknown key.
-
-Give the schema `additionalProperties: false` so the editor and the runtime agree
-about which keys exist. Keep it synchronized with the settings struct.
+relative `$schema` as the first key. The runtime ignores `$schema` with other
+unknown keys. Give the schema `additionalProperties: false` for editor-side typo
+detection and keep it synchronized with the settings struct.
 
 ```cpp
 bool MyPlugin::OnLoad(VoltMod::Runtime& runtime)
@@ -102,9 +93,8 @@ private:
 
 Resolving into a value that has not been published yet is the point: a failed
 reload leaves the previous configuration whole, and no caller can observe a
-half-validated one. `Get()` should keep returning the effective settings, because
-`LoadStandardConfig` reads `Get().plugin.locale` through @ref
-VoltMod::HasPluginSection.
+half-validated one. `Get()` should keep returning the effective settings because
+`LoadStandardConfig` reads `Get().plugin.locale` when that section exists.
 
 `VoltMod/Core/Validation.hpp` (`VoltMod::Validation`) has the common resolution helpers:
 

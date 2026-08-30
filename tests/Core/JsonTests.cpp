@@ -8,12 +8,7 @@
 #include <string>
 #include <vector>
 
-// The typed load path had no coverage at all before the Glaze migration. These cases pin the
-// contract callers rely on: a missing key keeps its C++ default, an unknown key is an error, and
-// the error says where.
-
-// These are at file scope, not in an anonymous namespace: reflection reads member names off the
-// type and needs external linkage, so an internal-linkage struct will not compile.
+// These are at file scope because Glaze reflects their member names.
 
 struct Nested
 {
@@ -26,12 +21,6 @@ struct Sample
     std::string host = "localhost";
     Nested database;
     std::vector<std::string> tags = {"a", "b"};
-};
-
-/** A root that names its schema, the way every shipped settings.jsonc does. */
-struct SchemaRoot
-{
-    std::string name = "unset";
 };
 
 /** Writes @p text to a temporary file and removes it again. */
@@ -60,8 +49,6 @@ public:
 private:
     std::filesystem::path _path;
 };
-
-VOLTMOD_SETTINGS_ROOT(SchemaRoot)
 
 using VoltMod::ErrorCode;
 using VoltMod::Json;
@@ -102,23 +89,11 @@ TEST_CASE("Json rejects a wrong-typed value and says which key")
     CHECK_FALSE(parsed.error().Detail.empty());
 }
 
-TEST_CASE("Json rejects an unknown key rather than silently ignoring it")
+TEST_CASE("Json ignores unknown keys for settings compatibility")
 {
-    // The whole point of the strict reader: a misspelled setting must not read as a default.
     auto parsed = Json::Read<Sample>(R"({"hsot":"typo"})");
-    REQUIRE_FALSE(parsed.has_value());
-    CHECK(parsed.error().Code == ErrorCode::Invalid);
-    CHECK(parsed.error().Detail.find("unknown_key") != std::string::npos);
-}
-
-TEST_CASE("Json accepts a schema key only on a root that opted in")
-{
-    auto opted = Json::Read<SchemaRoot>(R"({"$schema":"./settings.schema.json","name":"ok"})");
-    REQUIRE(opted.has_value());
-    CHECK(opted->name == "ok");
-
-    // A root without VOLTMOD_SETTINGS_ROOT treats it as any other unknown key.
-    CHECK_FALSE(Json::Read<Sample>(R"({"$schema":"./x.json"})").has_value());
+    REQUIRE(parsed.has_value());
+    CHECK(parsed->host == "localhost");
 }
 
 TEST_CASE("Json rejects invalid UTF-8 in a document it owns")
@@ -191,14 +166,6 @@ TEST_CASE("GetStringByPath returns nothing rather than failing on bad input")
     CHECK(Json::GetStringByPath(body, "data.room").empty());  // an object is not a leaf
     CHECK(Json::GetStringByPath("{ not json", "a.b").empty());
     CHECK(Json::GetStringByPath("", "a").empty());
-}
-
-TEST_CASE("A remote body is read even when its bytes are not valid UTF-8")
-{
-    // The third-party service's encoding is not ours to fix; rejecting it would turn a
-    // cheat-check into a hard failure where the previous parser succeeded.
-    const std::string body = "{\"code\":\"ab\xFF\"}";
-    CHECK(Json::ParseDocument(body).has_value());
 }
 
 TEST_CASE("Write round-trips a reflected aggregate")

@@ -26,17 +26,6 @@ class GameSessionConfiguration_t
 namespace VoltMod
 {
 
-/** The `build` status section. Serialized rather than formatted: every field is free text from
- *  the plugin's build metadata. At namespace scope because reflection cannot see a type declared
- *  inside a lambda. */
-struct StatusBuildSection
-{
-    std::string name;
-    std::string version;
-    std::string commit;
-    std::string date;
-};
-
 SH_DECL_HOOK3_void(IServerGameDLL, GameFrame, SH_NOATTRIB, 0, bool, bool, bool);
 SH_DECL_HOOK3_void(INetworkServerService, StartupServer, SH_NOATTRIB, 0, const GameSessionConfiguration_t&,
                    ISource2WorldSession*, const char*);
@@ -72,7 +61,7 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
 
     _runtime->Status.RegisterSection("build", [info = _info] {
         return Json::Write(
-            StatusBuildSection{.name = info.Name, .version = info.Version, .commit = info.Commit, .date = info.Date});
+            glz::obj{"name", info.Name, "version", info.Version, "commit", info.Commit, "date", info.Date});
     });
 
     RegisterStandardHooks();

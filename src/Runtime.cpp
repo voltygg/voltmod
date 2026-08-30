@@ -25,31 +25,6 @@
 namespace VoltMod
 {
 
-// Fixed-shape status payloads. At namespace scope because reflection reads member names off the
-// type, which a struct declared inside a lambda does not give it.
-
-struct StatusGameDataSection
-{
-    std::string verified;
-    size_t signatures = 0;
-    size_t addresses = 0;
-    size_t vtables = 0;
-    size_t offsets = 0;
-    /** Absent rather than empty when everything resolved. */
-    std::optional<std::vector<std::string>> failed;
-};
-
-struct StatusMenuSection
-{
-    std::string driver;
-    std::string layout;
-};
-
-struct StatusUptimeSection
-{
-    long long seconds = 0;
-};
-
 static constexpr std::string_view DefaultGameDataPath = "addons/voltmod/gamedata/gamedata.jsonc";
 
 // Every service is wired by its default member initializer in Runtime.hpp, where the dependency
@@ -258,19 +233,21 @@ void Runtime::RegisterStatusSections()
     });
 
     Status.RegisterSection("gamedata", [this] {
-        StatusGameDataSection section{
-            .verified = std::string(Unsafe.GameData.VerifiedOn()),
-            .signatures = Unsafe.GameData.CountOf(GameData::Kind::Signature),
-            .addresses = Unsafe.GameData.CountOf(GameData::Kind::Address),
-            .vtables = Unsafe.GameData.CountOf(GameData::Kind::VTable),
-            .offsets = Unsafe.GameData.CountOf(GameData::Kind::Offset),
-        };
+        std::optional<std::vector<std::string>> failed;
         for (const auto& [name, entry] : Unsafe.GameData.Resolutions())
         {
             if (!entry.Error.empty())
-                section.failed.emplace().push_back(name);
+            {
+                if (!failed)
+                    failed.emplace();
+                failed->push_back(name);
+            }
         }
-        return Json::Write(section);
+        return Json::Write(glz::obj{"verified", Unsafe.GameData.VerifiedOn(),
+                                    "signatures", Unsafe.GameData.CountOf(GameData::Kind::Signature),
+                                    "addresses", Unsafe.GameData.CountOf(GameData::Kind::Address),
+                                    "vtables", Unsafe.GameData.CountOf(GameData::Kind::VTable),
+                                    "offsets", Unsafe.GameData.CountOf(GameData::Kind::Offset), "failed", failed});
     });
 
     Status.RegisterSection("capabilities", [this] {
@@ -294,13 +271,13 @@ void Runtime::RegisterStatusSections()
     // Which menu driver is live is a plugin's own choice made at load, and a UsePanorama that was
     // refused leaves no other trace once the log line has scrolled.
     Status.RegisterSection("menus", [this] {
-        return Json::Write(StatusMenuSection{.driver = Menus.IsPanorama() ? "panorama" : "center-html",
-                                             .layout = std::string(Menus.Layout())});
+        return Json::Write(glz::obj{"driver", Menus.IsPanorama() ? "panorama" : "center-html", "layout",
+                                    Menus.Layout()});
     });
 
     Status.RegisterSection("uptime", [start = std::chrono::steady_clock::now()] {
         const auto uptime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start);
-        return Json::Write(StatusUptimeSection{.seconds = uptime.count()});
+        return Json::Write(glz::obj{"seconds", uptime.count()});
     });
 }
 

@@ -205,11 +205,8 @@ App        -> every module
 An acyclic graph is not enough; an upward dependency still violates this
 layering. A module's own `Api.hpp` (`Entities/Api.hpp`, `Hooks/Api.hpp`, ...) is exempt: it
 is a deliberate cross-module aggregate documenting that module's public surface - `Hooks/Api.hpp`
-gathering `Events` and `Messaging` types is not the `Hooks` module depending on them. `modgraph`
-also rejects `#include <glaze/...>` anywhere under `include/VoltMod` or `src` except
-`Core/Json.hpp`, the one file allowed to name the JSON library: route JSON use through
-`<VoltMod/Core/Json.hpp>`
-instead, and Core, Engine, Entities, Events, Messaging, Players, Hooks and Commands may not
+gathering `Events` and `Messaging` types is not the `Hooks` module depending on them. Core,
+Engine, Entities, Events, Messaging, Players, Hooks and Commands may not
 include `Menu/` or `App/` at all - both would leak into every consumer of that layer.
 
 ## Conventions

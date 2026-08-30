@@ -1,30 +1,27 @@
 include_guard(GLOBAL)
 
 # Consumer plugin API:
-#   voltmod_add_plugin(<name> [SOURCES ...] [INCLUDE_DIRS ...] [LIBRARIES ...]
-#                  [FEATURES ...] [PCH_HEADERS ...]
-#                  VERSION <v> [DESCRIPTION <text>])
+#   voltmod_add_plugin(<name> VERSION <v> [SOURCES ...] [FEATURES ...])
 
 # VoltModCommon defines the shared paths and warning helper.
 include("${CMAKE_CURRENT_LIST_DIR}/VoltModCommon.cmake")
-# VoltModGlaze strips the /Zc:preprocessor that Glaze would otherwise push onto the SDK sources.
-include("${CMAKE_CURRENT_LIST_DIR}/VoltModGlaze.cmake")
 
 # Create a Metamod MODULE. SOURCES defaults to `src/*.cpp`.
 #
 # FEATURES DATABASE adds VoltMod::Database and libpqxx. Runtime is always linked.
 #
-# VERSION is required; it and DESCRIPTION become the plugin's build metadata.
+# VERSION is required and becomes the plugin's build metadata.
 function(voltmod_add_plugin target_name)
-    cmake_parse_arguments(ARG "" "VERSION;DESCRIPTION"
-        "SOURCES;INCLUDE_DIRS;LIBRARIES;FEATURES;PCH_HEADERS" ${ARGN})
+    cmake_parse_arguments(ARG "" "VERSION" "SOURCES;FEATURES" ${ARGN})
+
+    if(ARG_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR
+            "voltmod_add_plugin(${target_name}): unknown arguments: ${ARG_UNPARSED_ARGUMENTS}")
+    endif()
 
     if(NOT ARG_VERSION)
         message(FATAL_ERROR "voltmod_add_plugin(${target_name}) requires VERSION")
     endif()
-
-    # Idempotent, and cheap: by now the consumer's find_package(voltmod) has pulled glaze in.
-    voltmod_normalize_glaze()
 
     if(NOT COMMAND hl2sdk_attach_plugin_support)
         message(FATAL_ERROR
@@ -49,12 +46,10 @@ function(voltmod_add_plugin target_name)
 
     hl2sdk_attach_plugin_support("${target_name}")
 
-    target_include_directories("${target_name}" PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/src"
-        ${ARG_INCLUDE_DIRS}
-    )
+    target_include_directories("${target_name}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
     set(kit_targets VoltMod::Runtime)
+    set(pch_headers "<VoltMod/Api.hpp>")
     foreach(feature IN LISTS ARG_FEATURES)
         if(feature STREQUAL "DATABASE")
             if(NOT TARGET VoltMod::Database)
@@ -63,6 +58,7 @@ function(voltmod_add_plugin target_name)
                     "without Postgres. Set -o voltmod/*:with_postgres=True.")
             endif()
             list(APPEND kit_targets VoltMod::Database)
+            list(APPEND pch_headers "<pqxx/pqxx>")
         else()
             message(FATAL_ERROR
                 "voltmod_add_plugin(${target_name} FEATURES ${feature}): no such feature. "
@@ -70,16 +66,10 @@ function(voltmod_add_plugin target_name)
         endif()
     endforeach()
 
-    target_link_libraries("${target_name}" PRIVATE
-        ${kit_targets}
-        ${ARG_LIBRARIES}
-    )
+    target_link_libraries("${target_name}" PRIVATE ${kit_targets})
 
     if(NOT VOLTMOD_DISABLE_PCH)
-        target_precompile_headers("${target_name}" PRIVATE
-            "<VoltMod/Api.hpp>"
-            ${ARG_PCH_HEADERS}
-        )
+        target_precompile_headers("${target_name}" PRIVATE ${pch_headers})
     endif()
 
     voltmod_set_warnings("${target_name}")
