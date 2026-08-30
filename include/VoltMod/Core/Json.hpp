@@ -4,6 +4,7 @@
 #include <VoltMod/Core/Paths.hpp>
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Strings.hpp>
+#include <cstdint>
 #include <format>
 #include <fstream>
 #include <glaze/json.hpp>
@@ -69,11 +70,31 @@ public:
         return value;
     }
 
-    /** @brief Serialize @p value as compact JSON. */
+    /** Glaze reads `indentation_width` off the options type only when it declares one, so the
+     *  two-space indentation this repo's JSON files use needs its own options struct. */
+    struct PrettyOpts : glz::opts
+    {
+        uint8_t indentation_width = 2;
+    };
+    static constexpr PrettyOpts PrettyOptions{{.prettify = true}};
+
+    /**
+     * @brief Serialize @p value as prettified JSON.
+     *
+     * For a file a human reviews: one value per line keeps a `git diff` of a regenerated
+     * artifact down to the values that actually changed.
+     */
     template <class T>
+    static std::string WritePretty(const T& value)
+    {
+        return Write<T, PrettyOptions>(value);
+    }
+
+    /** @brief Serialize @p value as compact JSON. */
+    template <class T, auto Options = glz::opts{}>
     static std::string Write(const T& value)
     {
-        auto written = glz::write_json(value);
+        auto written = glz::write<Options>(value);
         if (!written)
         {
             Log::Error("Json: failed to serialize: {}", glz::format_error(written.error()));
