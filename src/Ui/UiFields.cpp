@@ -204,7 +204,7 @@ Status UiWriteInputCapture(EntitySystem* entities, EntityRef ref, int slot, bool
     MarkChanged(
         *entity,
         FieldRef{
-            .Offset = offset, .Size = capture.Size, .Networked = state.Networked, .ChainOffset = state.ChainOffset});
+            .Offset = offset, .Size = capture.Size, .ChainOffset = state.ChainOffset});
     return {};
 }
 

@@ -26,7 +26,7 @@ static FieldQueryResult FakeQuery(std::string_view klass, std::string_view field
     if (!g_available)
         return {};
     if (klass == "CBaseEntity" && field == "m_iHealth")
-        return {.Available = true, .Found = true, .Ref = {.Offset = 0x344, .Size = 4, .Networked = true}};
+        return {.Available = true, .Found = true, .Ref = {.Offset = 0x344, .Size = 4}};
     return {.Available = true, .Found = false, .Ref = {}};
 }
 
@@ -80,7 +80,6 @@ TEST_CASE("ResolveField answers pending and caches nothing before the schema sys
     const FieldRef& third = ResolveField("CBaseEntity", "m_iHealth", 4);
     CHECK(&third != &PendingField());
     CHECK(third.Offset == 0x344);
-    CHECK(third.Networked);
 
     Reset(false);
 }

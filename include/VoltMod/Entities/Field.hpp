@@ -25,7 +25,6 @@ struct FieldRef
 {
     int32_t Offset = -1;       ///< Byte offset from the entity, or -1 when unresolved.
     int32_t Size = 0;          ///< The engine's own size for the field, for the drift check.
-    bool Networked = false;    ///< The field replicates, so a write must dirty it.
     int32_t ChainOffset = -1;  ///< `__m_pChainEntity` on the class, or -1 when it has none.
 
     explicit operator bool() const noexcept { return Offset >= 0; }
@@ -58,9 +57,9 @@ struct FieldRef
  * Resolve @p field on @p klass, searching its base classes. The search does not descend into
  * derived classes.
  *
- * Hits and misses are cached for the process. A lookup made before schema and network metadata are
- * ready returns @ref PendingField without caching, so a later call can retry. If @p expectedSize
- * is non-zero, the first resolved lookup warns when the schema size differs. Game-thread only.
+ * Hits and misses are cached for the process. A lookup made before schema is ready returns
+ * @ref PendingField without caching, so a later call can retry. If @p expectedSize is non-zero,
+ * the first resolved lookup warns when the schema size differs. Game-thread only.
  *
  * @return A reference stable for the process lifetime.
  */
@@ -72,8 +71,7 @@ const FieldRef& ResolveField(std::string_view klass, std::string_view field, siz
 const FieldRef& PendingField() noexcept;
 
 /**
- * Mark a networked field for the next snapshot. Does nothing for a null entity, unresolved field,
- * or non-networked field.
+ * Mark a field for the next snapshot. Does nothing for a null entity or unresolved field.
  */
 void MarkChanged(CEntityInstance* entity, const FieldRef& ref);
 
@@ -226,8 +224,9 @@ struct CharBuf
  * one resolved @ref SchemaField and each proxy stores only its entity pointer. The proxy is
  * frame-local and must not be stored.
  *
- * Writes mark networked fields for replication. Reads from a null entity or missing field return
- * `T{}`; writes do nothing. A const proxy can still modify the entity, like a const pointer value.
+ * Writes notify the engine so replicated fields reach clients. Reads from a null entity or missing
+ * field return `T{}`; writes do nothing. A const proxy can still modify the entity, like a const
+ * pointer value.
  *
  * @tparam ExpectedSize Expected schema size. Pass 0 when T reads only the leading value of a
  *         larger field.
@@ -248,9 +247,7 @@ public:
     {
         if (!_schema.Set(_owner, value))
             return;
-        const FieldRef& ref = Ref();
-        if (ref.Networked)
-            MarkChanged(_owner, ref);
+        MarkChanged(_owner, Ref());
     }
 
     const Field& operator=(const T& value) const

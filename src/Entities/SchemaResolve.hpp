@@ -11,10 +11,9 @@ namespace VoltMod
 /**
  * @brief One schema query's answer, as the backend sees it.
  *
- * `Available == false` means the engine cannot answer yet - the schema system or the entity
- * system's network serializer database is missing. That is "ask again later", never a miss, and
- * @ref ResolveField must not cache it. `Available && !Found` is a real miss and is cached like a
- * hit.
+ * `Available == false` means the schema system cannot answer yet. That is "ask again later",
+ * never a miss, and @ref ResolveField must not cache it. `Available && !Found` is a real miss and
+ * is cached like a hit.
  */
 struct FieldQueryResult
 {

@@ -3,11 +3,8 @@
 
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Engine/MemoryAccess.hpp>
-#include <cstring>
 #include <entity2/entityclass.h>
 #include <entity2/entityinstance.h>
-#include <entity2/entitysystem.h>
-#include <networksystem/inetworkserializer.h>
 #include <schemasystem/schemasystem.h>
 #include <string>
 #include <string_view>
@@ -34,40 +31,6 @@ static constexpr std::string_view ChainField = "__m_pChainEntity";
  */
 static ISchemaSystem* g_schema = nullptr;
 
-/**
- * The network serializer database, shared by every entity class.
- *
- * Whether a field replicates is not in the schema - the shipped server binary carries no
- * `MNetworkEnable` metadata on its fields, so asking the schema always answers "no". The
- * serializer database is the authority, and it is reachable only once the engine has created the
- * entity system, which is why an unavailable database means "ask again later" rather than
- * "not networked": caching a false there would silently stop every write from replicating.
- */
-static CNetworkSerializerCodeGenDatabase* SerializerDatabase()
-{
-    auto* system = ::GameEntitySystem();
-    if (!system)
-        return nullptr;
-
-    // Any registered class reaches the same database; CBaseEntity is the one always present.
-    CEntityClass* anchor = system->FindClassByName("CBaseEntity");
-    if (!anchor || !anchor->m_NetworkSerializerInfo)
-        return nullptr;
-    return anchor->m_NetworkSerializerInfo->m_pDatabase;
-}
-
-static bool IsNetworked(CNetworkSerializerCodeGenDatabase& database, std::string_view className,
-                        std::string_view fieldName)
-{
-    // The dict and the field lookup both take C strings; this runs once per field per process.
-    const int index = database.m_ClassInfos.Find(std::string(className).c_str());
-    if (index == database.m_ClassInfos.InvalidIndex())
-        return false;
-
-    CNetworkSerializerClassInfo* info = database.m_ClassInfos[index];
-    return info != nullptr && info->FindField(std::string(fieldName).c_str()) != nullptr;
-}
-
 /** The class's own `__m_pChainEntity`, walking single inheritance up until one turns up. */
 static int32_t FindChainOffset(const CSchemaClassInfo* klass)
 {
@@ -84,46 +47,33 @@ static int32_t FindChainOffset(const CSchemaClassInfo* klass)
 }
 
 /**
- * Find @p field on @p klass or the classes it derives from, most-derived first, so a field the
- * schema declares on a base (m_angEyeAngles on CCSPlayerPawnBase) answers when asked for on the
- * derived class and the other way round. The offsets the schema reports are already flattened for
- * single inheritance, so a base class's offset is usable as-is on the derived object.
+ * Find @p field on @p klass or its base classes, most-derived first. The offsets the schema reports
+ * are already flattened for single inheritance, so a base class's offset is usable as-is on the
+ * derived object.
  */
-struct FoundField
-{
-    const SchemaClassFieldData_t* Field = nullptr;
-    /** The class that declares it - the name the serializer database is keyed by, which is not
-     *  necessarily the class the caller asked about. */
-    const CSchemaClassInfo* Owner = nullptr;
-};
-
-static FoundField FindField(const CSchemaClassInfo* klass, std::string_view field)
+static const SchemaClassFieldData_t* FindField(const CSchemaClassInfo* klass, std::string_view field)
 {
     if (!klass)
-        return {};
+        return nullptr;
 
     for (uint16_t i = 0; i < klass->m_nFieldCount; ++i)
     {
         const char* name = klass->m_pFields[i].m_pszName;
         if (name && field == name)
-            return {&klass->m_pFields[i], klass};
+            return &klass->m_pFields[i];
     }
 
     for (uint8_t i = 0; i < klass->m_nBaseClassCount; ++i)
     {
-        if (FoundField found = FindField(klass->m_pBaseClasses[i].m_pClass, field); found.Field)
+        if (const auto* found = FindField(klass->m_pBaseClasses[i].m_pClass, field))
             return found;
     }
-    return {};
+    return nullptr;
 }
 
 static FieldQueryResult QuerySchema(std::string_view klass, std::string_view field)
 {
     if (!g_schema)
-        return {};
-
-    CNetworkSerializerCodeGenDatabase* database = SerializerDatabase();
-    if (!database)
         return {};
 
     const std::string moduleName = PlatformModuleName("server");
@@ -144,20 +94,19 @@ static FieldQueryResult QuerySchema(std::string_view klass, std::string_view fie
         return {.Available = true, .Found = false, .Ref = {}};
     }
 
-    const FoundField found = FindField(info, field);
-    if (!found.Field)
+    const SchemaClassFieldData_t* found = FindField(info, field);
+    if (!found)
         return {.Available = true, .Found = false, .Ref = {}};
 
     int size = 0;
     uint8_t alignment = 0;
-    if (found.Field->m_pType)
-        found.Field->m_pType->GetSizeAndAlignment(size, alignment);
+    if (found->m_pType)
+        found->m_pType->GetSizeAndAlignment(size, alignment);
 
     return {.Available = true,
             .Found = true,
-            .Ref = {.Offset = found.Field->m_nSingleInheritanceOffset,
+            .Ref = {.Offset = found->m_nSingleInheritanceOffset,
                     .Size = size,
-                    .Networked = IsNetworked(*database, found.Owner->m_pszName, found.Field->m_pszName),
                     .ChainOffset = FindChainOffset(info)}};
 }
 
@@ -174,7 +123,7 @@ Status BindSchemaSystem(ISchemaSystem* system)
 
 void MarkChanged(CEntityInstance* entity, const FieldRef& ref)
 {
-    if (!entity || !ref || !ref.Networked)
+    if (!entity || !ref)
         return;
 
     if (ref.ChainOffset >= 0)
