@@ -64,12 +64,11 @@ voltmod_add_plugin(my-plugin VERSION 1.0.0)
 
 The framework builds two libraries:
 
-- `VoltMod::Runtime` contains Core, Engine, Entities, Events, Messaging, Players,
-  Hooks, Ui, Unsafe, Commands, Menu, HTTP, and App.
+- `VoltMod::Runtime` contains every source module except Database.
 - `VoltMod::Database` contains the optional PostgreSQL layer.
 
-`VoltMod::VoltMod` is the umbrella target. A plugin gets only Runtime by
-default; `FEATURES DATABASE` adds Database. `voltmod_add_plugin` also configures
+`VoltMod::Headers` is the SDK-free include target that test binaries link. A
+plugin gets only Runtime by default; `FEATURES DATABASE` adds Database. `voltmod_add_plugin` also configures
 SDK glue, PCH, output layout, build metadata, VDF generation, and install
 components.
 

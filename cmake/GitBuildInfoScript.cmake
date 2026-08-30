@@ -1,5 +1,4 @@
-# Run through `cmake -P` on each build. Values use repository state so unchanged
-# builds do not rewrite the header.
+# `cmake -P` on each build; the header only changes when the repository does.
 # Inputs: TEMPLATE_FILE, OUTPUT_FILE, VERSION, REPO_DIR.
 
 find_program(GIT_EXECUTABLE git)
@@ -23,22 +22,14 @@ function(_voltmod_git out_var default)
     endif()
 endfunction()
 
-set(version_base "${VERSION}")
-
-_voltmod_git(repo_commit "" -C "${REPO_DIR}" rev-parse --short HEAD)
-if(repo_commit STREQUAL "" AND DEFINED ENV{GITHUB_SHA})
-    string(SUBSTRING "$ENV{GITHUB_SHA}" 0 7 repo_commit)
-endif()
-if(repo_commit STREQUAL "")
-    set(repo_commit "unknown")
-endif()
-
+_voltmod_git(repo_commit "unknown" -C "${REPO_DIR}" rev-parse --short HEAD)
 _voltmod_git(commit_date "unknown" -C "${REPO_DIR}" log -1 --format=%cI)
 
-# A modified submodule shows up here as ` M vendor/...`, so this covers the framework too.
-_voltmod_git(status_output "" -C "${REPO_DIR}" status --porcelain --untracked-files=no)
+# An editable checkout under vendor/ is a build input, `ignore = all` or not.
+_voltmod_git(status_output "" -C "${REPO_DIR}" status --porcelain --untracked-files=no
+    --ignore-submodules=none)
 
-set(VOLTMOD_BI_VERSION "${version_base}")
+set(VOLTMOD_BI_VERSION "${VERSION}")
 if(NOT repo_commit STREQUAL "unknown")
     string(APPEND VOLTMOD_BI_VERSION "+${repo_commit}")
     if(NOT status_output STREQUAL "")

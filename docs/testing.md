@@ -142,21 +142,18 @@ TEST_CASE_TEMPLATE("Trim accepts any string-like input", T, const char*, std::st
 
 ## Adding tests to a plugin
 
-`voltmod_add_tests()` (from `cmake/VoltModTests.cmake`, included by the framework's root CMakeLists) owns
-the wiring: it globs `tests/**/*.cpp`, supplies doctest's `main`, links `doctest::doctest`,
-adds the framework's include dir, and registers the cases with CTest. `SOURCES` is the list of
-SDK-free TUs to recompile. Test binaries never link the plugin module or the framework, so
-nothing drags in Metamod.
+`voltmod_add_tests()` (from `cmake/VoltModTests.cmake`, a build module of the Conan package)
+owns the wiring: it globs `tests/**/*.cpp`, supplies doctest's `main`, links `doctest::doctest`
+and `VoltMod::Headers` (the framework's include dir plus glaze and magic_enum), adds the
+plugin's `src/`, and registers the cases with CTest. It is a no-op when `BUILD_TESTING` is off.
+`SOURCES` is the list of SDK-free TUs to recompile. Test binaries never link the plugin module
+or the framework, so nothing drags in Metamod.
 
 ```cmake
-if(BUILD_TESTING)
-    voltmod_add_tests(myplugin-tests
-        SOURCES
-            src/Detectors/AimSnapCore.cpp
-        INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src"
-        LIBRARIES glaze::glaze
-    )
-endif()
+voltmod_add_tests(myplugin-tests
+    SOURCES
+        src/Detectors/AimSnapCore.cpp
+)
 ```
 
 The Conan side is one line in `conanfile.py`:

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 4.3)
 project(voltmod-test LANGUAGES CXX)
 
 # Pulls VoltMod::VoltMod / HL2SDK / Metamod plus the build modules behind voltmod_add_plugin,

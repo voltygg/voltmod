@@ -80,15 +80,16 @@ Each plugin registers itself with `voltmod_add_plugin`.
 
 ## Components
 
-The framework ships as two libraries, declared as Conan components:
+The framework ships as Conan components matching its CMake targets:
 
 ```text
-runtime  database
+headers  runtime  database
 ```
 
-`VoltMod::VoltMod` includes every component enabled in the package. Source
-modules are architecture boundaries, not Conan components. Plugins select the
-optional database feature explicitly:
+`VoltMod::Headers` is the include directory with glaze and magic_enum behind it (what a test
+binary links); `VoltMod::Runtime` and `VoltMod::Database` are the libraries. `VoltMod::VoltMod`
+includes every component enabled in the package. Source modules are architecture boundaries,
+not Conan components. Plugins select the optional database feature explicitly:
 
 ```cmake
 voltmod_add_plugin(bhop VERSION 1.0.0)          # runtime only, so no libpqxx

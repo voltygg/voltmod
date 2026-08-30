@@ -82,39 +82,5 @@
     { "name": "linux-steamrt-debug", "inherits": "test-base", "configurePreset": "linux-steamrt-debug" },
     { "name": "windows-msvc-release", "inherits": "test-base", "configurePreset": "windows-msvc-release" },
     { "name": "windows-msvc-debug", "inherits": "test-base", "configurePreset": "windows-msvc-debug" }
-  ],
-  "workflowPresets": [
-    {
-      "name": "linux-steamrt-release",
-      "steps": [
-        { "type": "configure", "name": "linux-steamrt-release" },
-        { "type": "build", "name": "linux-steamrt-release" },
-        { "type": "test", "name": "linux-steamrt-release" }
-      ]
-    },
-    {
-      "name": "linux-steamrt-debug",
-      "steps": [
-        { "type": "configure", "name": "linux-steamrt-debug" },
-        { "type": "build", "name": "linux-steamrt-debug" },
-        { "type": "test", "name": "linux-steamrt-debug" }
-      ]
-    },
-    {
-      "name": "windows-msvc-release",
-      "steps": [
-        { "type": "configure", "name": "windows-msvc-release" },
-        { "type": "build", "name": "windows-msvc-release" },
-        { "type": "test", "name": "windows-msvc-release" }
-      ]
-    },
-    {
-      "name": "windows-msvc-debug",
-      "steps": [
-        { "type": "configure", "name": "windows-msvc-debug" },
-        { "type": "build", "name": "windows-msvc-debug" },
-        { "type": "test", "name": "windows-msvc-debug" }
-      ]
-    }
   ]
 }

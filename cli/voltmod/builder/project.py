@@ -69,11 +69,10 @@ def build(
 
     if ccache:
         subprocess.run(["ccache", "-z"], check=False)
+    run_tool("cmake", "--preset", preset)
+    run_tool("cmake", "--build", "--preset", preset)
     if run_tests:
-        run_tool("cmake", "--workflow", "--preset", preset)
-    else:
-        run_tool("cmake", "--preset", preset)
-        run_tool("cmake", "--build", "--preset", preset)
+        run_tool("ctest", "--preset", preset)
     if ccache:
         subprocess.run(["ccache", "-s", "-v"], check=False)
     if relock:

@@ -2,8 +2,8 @@
 # pyright: reportAttributeAccessIssue=false, reportCallIssue=false
 
 import os
+import shutil
 
-# The sibling conan/ directory shadows the package during mypy resolution.
 from conan import ConanFile  # type: ignore[attr-defined]
 from conan.errors import ConanInvalidConfiguration
 from conan.tools.build import check_min_cppstd
@@ -101,6 +101,9 @@ class VoltModConan(ConanFile):
         toolchain = CMakeToolchain(self)
         toolchain.user_presets_path = False
         toolchain.variables["CMAKE_POSITION_INDEPENDENT_CODE"] = True
+        # Via the toolchain so `cmake --preset`, `conan build` and `conan create` all get it.
+        if shutil.which("ccache"):
+            toolchain.variables["CMAKE_CXX_COMPILER_LAUNCHER"] = "ccache"
         toolchain.variables["VOLTMOD_ENABLE_POSTGRES"] = bool(self.options.with_postgres)
         # hl2sdk-cs2's build module owns VOLTMOD_HL2SDK_DIR.
         if not self._source_checkout():
@@ -126,22 +129,24 @@ class VoltModConan(ConanFile):
             os.path.join("cmake", "VoltModTests.cmake"),
         ])
 
-        # Components match the two CMake libraries. Source modules are internal
-        # architecture, not packaging units.
-        # Relative to the package folder, which for an editable checkout is the checkout itself:
-        # its libraries sit in the preset's build tree rather than in lib/.
+        # Components match the CMake targets. An editable checkout's libraries sit in its
+        # preset build tree, not lib/.
         libdirs = [self.folders.build] if self._source_checkout() else ["lib"]
+
+        # All a test binary links.
+        headers = self.cpp_info.components["headers"]
+        headers.set_property("cmake_target_name", "VoltMod::Headers")
+        headers.includedirs = ["include"]
+        headers.requires = ["glaze::glaze", "magic_enum::magic_enum"]
 
         runtime = self.cpp_info.components["runtime"]
         runtime.set_property("cmake_target_name", "VoltMod::Runtime")
         runtime.libs = ["voltmod-runtime"]
         runtime.libdirs = libdirs
-        runtime.includedirs = ["include"]
         runtime.requires = [
+            "headers",
             "hl2sdk-cs2::hl2sdk-cs2",
             "metamod-source::metamod-source",
-            "glaze::glaze",
-            "magic_enum::magic_enum",
             "cpr::cpr",
         ]
         if self.settings.os == "Windows":
@@ -152,7 +157,6 @@ class VoltModConan(ConanFile):
             db.set_property("cmake_target_name", "VoltMod::Database")
             db.libs = ["voltmod-database"]
             db.libdirs = libdirs
-            db.includedirs = ["include"]
             db.requires = ["runtime", "libpqxx::libpqxx"]
             # Consumer feature checks and Database/Api.hpp's guard read this.
             db.defines = ["VOLTMOD_ENABLE_POSTGRES=1"]
