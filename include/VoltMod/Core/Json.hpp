@@ -74,9 +74,9 @@ public:
      *  two-space indentation this repo's JSON files use needs its own options struct. */
     struct PrettyOpts : glz::opts
     {
-        uint8_t indentation_width = 2;
+        uint8_t indentation_width;
     };
-    static constexpr PrettyOpts PrettyOptions{{.prettify = true}};
+    static constexpr PrettyOpts PrettyOptions{{.prettify = true}, 2};
 
     /**
      * @brief Serialize @p value as prettified JSON.
