@@ -99,9 +99,9 @@ class EntitySystem;
  *
  *  Player.hpp declares `Controller Ctrl()` and `Pawn GetPawn()` from these two as
  *  well. A return type in a declaration may be incomplete, and including the
- *  wrappers instead would put a `Field<Vector, ...>` - whose default ExpectedSize
- *  is `sizeof(Vector)` - in every translation unit that names a Player, which
- *  means the SDK's mathlib in the SDK-free unit tests. */
+ *  wrappers instead would pull the generated schema headers - and through them the
+ *  SDK's mathlib, which `Vector`-returning accessors need by value - into every
+ *  translation unit that names a Player, including the SDK-free unit tests. */
 class Controller;
 class Pawn;
 

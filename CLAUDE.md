@@ -106,10 +106,10 @@ There is no ambient accessor for the runtime; everything is injected:
 - A file-static is only for engine callbacks that carry no user data (set and
   cleared by the service that owns it), for process-wide file-statics set once at load,
   such as the `Log::Handler` and the base directory, or for state that is genuinely
-  process-wide rather than per-load: the schema field cache
-  (`src/Entities/SchemaResolve.cpp`) is the one of those, because a class and
-  field name resolve to the same offset for every plugin, Runtime and map in the
-  process.
+  process-wide rather than per-load: the schema system the layout verifier holds
+  (`g_schema` in `src/Schema/Verify.cpp`) is the one of those, because it is a
+  single engine object and the offsets it reports are constants of the loaded
+  binary rather than per-load state.
 
 Use these patterns throughout the framework:
 

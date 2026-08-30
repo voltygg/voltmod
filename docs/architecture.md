@@ -59,14 +59,15 @@ cycle. Most services are direct members. Engine operations live under
 ```cpp
 runtime.Players.Get(slot);
 runtime.Messages.Reply(slot, "done");
-runtime.Entities.PawnOf(slot).Health = 100;
+runtime.Entities.PawnOf(slot).SetHealth(100);
 runtime.World.Precache.Add("models/props/mine.vmdl");
 runtime.Hooks.Movement.Pre += [](int slot) { /* ... */ };
 ```
 
-Schema offsets are not a service. A `Field` resolves its own offset once per
-`(class, field)` for the **process**, not once per load, so nothing has to be
-threaded through a constructor to read `m_iHealth`. See
+Schema offsets are not a service. They are baked into the generated accessors at
+build time by `voltmod schemagen`, so nothing has to be threaded through a
+constructor to read `m_iHealth`, and `Runtime::Start` aborts the load if the baked
+layout and the live schema disagree. See
 @ref sdk_players_guide "Entities and players".
 
 **Your `App`** holds everything the plugin owns for one load cycle. Build it in

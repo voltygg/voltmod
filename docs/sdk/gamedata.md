@@ -145,8 +145,8 @@ Lookup returns null on failure. The gamedata entry still supplies the slot.
 
 ## Schema fields
 
-The engine publishes schema offsets at runtime, so they need no gamedata. @ref VoltMod::Field
-resolves and caches each `(class, field)` pair:
+Schema offsets need no gamedata: `voltmod schemagen` bakes them into the generated accessors,
+and `Runtime::Start` verifies the whole layout against the live schema once at load:
 
 ```cpp
 runtime.Entities.PawnOf(slot).SetHealth(100);   // writes CBaseEntity::m_iHealth at a baked offset
