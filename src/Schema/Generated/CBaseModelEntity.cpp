@@ -27,8 +27,7 @@ void CBaseModelEntity::SetViewOffset(Vector value) const
         return;
 
     *MemberPtr<Vector>(_base, kCBaseModelEntity_ViewOffset) = value;
-    if (_owner)
-        NotifyEntity(_owner, _ownerOffset + kCBaseModelEntity_ViewOffset);
+    NotifyEntity(_owner, _ownerOffset + kCBaseModelEntity_ViewOffset);
 }
 
 RenderMode_t CBaseModelEntity::RenderMode() const
@@ -45,8 +44,7 @@ void CBaseModelEntity::SetRenderMode(RenderMode_t value) const
         return;
 
     *MemberPtr<RenderMode_t>(_base, kCBaseModelEntity_RenderMode) = value;
-    if (_owner)
-        NotifyEntity(_owner, _ownerOffset + kCBaseModelEntity_RenderMode);
+    NotifyEntity(_owner, _ownerOffset + kCBaseModelEntity_RenderMode);
 }
 
 uint32_t CBaseModelEntity::RenderColor() const
@@ -63,8 +61,7 @@ void CBaseModelEntity::SetRenderColor(uint32_t value) const
         return;
 
     *MemberPtr<uint32_t>(_base, kCBaseModelEntity_RenderColor) = value;
-    if (_owner)
-        NotifyEntity(_owner, _ownerOffset + kCBaseModelEntity_RenderColor);
+    NotifyEntity(_owner, _ownerOffset + kCBaseModelEntity_RenderColor);
 }
 
 extern const FieldLayout CBaseModelEntity_kFields[3];

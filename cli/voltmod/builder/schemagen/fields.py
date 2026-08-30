@@ -35,6 +35,14 @@ ATOMIC_VALUES = {
 }
 
 
+# The header a mapped C++ type needs. Keyed by the C++ spelling rather than the schema one, so a
+# manifest `:CppType` override picks its include up the same way a table entry does.
+CPP_INCLUDES = {
+    "Vector": "<VoltMod/Engine/EngineTypes.hpp>",
+    "QAngle": "<VoltMod/Engine/EngineTypes.hpp>",
+}
+
+
 def describe(entry: str, raw: dict[str, Any], dump: dict[str, Any]) -> Member:
     """Turn one dump field into a generated member, or mark it skipped."""
     schema_name, rename, cpp_override = parse_entry(entry)

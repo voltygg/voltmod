@@ -189,3 +189,21 @@ def ensure_msvc_env() -> None:
 
     if not shutil.which("cl"):
         die("cl still not on PATH after vcvars.")
+
+
+def chunk_by_length(files: list[str], budget: int) -> list[list[str]]:
+    """Split `files` into batches whose joined length stays under `budget` characters.
+
+    Windows caps a command line at 32767 characters, so any tool invoked with a whole file
+    tree - clang-format, in practice - has to be handed the list in batches.
+    """
+    batches: list[list[str]] = [[]]
+    used = 0
+    for f in files:
+        cost = len(f) + 3  # quotes and separator
+        if batches[-1] and used + cost > budget:
+            batches.append([])
+            used = 0
+        batches[-1].append(f)
+        used += cost
+    return [b for b in batches if b]

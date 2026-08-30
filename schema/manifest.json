@@ -55,7 +55,7 @@
       "m_vecClassNames>ClassNames",
       "m_vecDialogVariableNames>DialogVariableNames",
       "m_globalLayoutState>GlobalLayoutState",
-      "m_vecPlayerLayoutStates>PlayerLayoutStates",
+      "m_vecPlayerLayoutStates>PlayerLayoutStates:int32_t",
       "m_strLayout>Layout"
     ],
     "CCSCustomHudLayoutState": ["m_bInputCaptureEnabled>InputCaptureEnabled"],

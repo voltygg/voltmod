@@ -5,6 +5,7 @@ from typing import Any
 from voltmod.tools import die
 
 from .accessors import declarations, definitions, forwarders
+from .fields import CPP_INCLUDES
 from .model import (
     BANNER,
     ENTITY_ROOT,
@@ -30,12 +31,11 @@ def _header_includes(klass: Klass) -> list[str]:
         if member.kind == "enum":
             includes.add("<VoltMod/Schema/Generated/Enums.hpp>")
         if member.kind == "chars":
-            includes.add("<VoltMod/Core/CharBuf.hpp>")
             includes.add("<string_view>")
-        if member.kind in ("array", "chars"):
+        if member.kind == "array":
             includes.add("<cstddef>")
-        if member.kind == "value" and member.cpp in ("Vector", "QAngle"):
-            includes.add("<VoltMod/Engine/EngineTypes.hpp>")
+        if member.kind == "value" and member.cpp in CPP_INCLUDES:
+            includes.add(CPP_INCLUDES[member.cpp])
     return [f"#include {inc}" for inc in sorted(includes)]
 
 
@@ -150,7 +150,7 @@ def _source_includes(klass: Klass) -> list[str]:
         if member.kind == "view":
             includes.add(f"<VoltMod/Schema/Generated/{member.view}.hpp>")
         if member.kind == "chars":
-            includes.add("<cstring>")
+            includes.add("<VoltMod/Core/CharBuf.hpp>")
     return [f"#include {inc}" for inc in sorted(includes)]
 
 

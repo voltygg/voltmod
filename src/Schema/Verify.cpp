@@ -1,4 +1,5 @@
-#include <VoltMod/Core/Log.hpp>
+#include "Engine/SigScanner.hpp"
+
 #include <VoltMod/Schema/Layout.hpp>
 #include <format>
 #include <schemasystem/schemasystem.h>
@@ -13,15 +14,6 @@ namespace VoltMod::Schema
 // system is one engine object shared by every plugin, and the offsets it reports are constants
 // of the loaded binary rather than per-load state.
 static ISchemaSystem* g_schema = nullptr;
-
-static std::string ServerModuleName()
-{
-#ifdef _WIN32
-    return "server.dll";
-#else
-    return "libserver.so";
-#endif
-}
 
 /**
  * Find @p field on @p klass or its bases, most-derived first.
@@ -53,7 +45,7 @@ Status VerifySchemaLayout()
     if (!g_schema || !g_schema->SchemaSystemIsReady())
         return std::unexpected(Error::NotReady("schema system not ready"));
 
-    const std::string moduleName = ServerModuleName();
+    const std::string moduleName = PlatformModuleName("server");
     CSchemaSystemTypeScope* server = g_schema->FindTypeScopeForModule(moduleName.c_str());
     CSchemaSystemTypeScope* global = g_schema->GlobalTypeScope();
     if (!server)

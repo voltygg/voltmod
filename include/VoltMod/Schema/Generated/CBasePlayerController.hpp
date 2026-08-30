@@ -2,10 +2,8 @@
 
 #pragma once
 
-#include <VoltMod/Core/CharBuf.hpp>
 #include <VoltMod/Schema/Generated/CBaseEntity.hpp>
 #include <VoltMod/Schema/View.hpp>
-#include <cstddef>
 #include <cstdint>
 #include <string_view>
 

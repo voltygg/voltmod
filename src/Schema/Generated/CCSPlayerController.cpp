@@ -27,8 +27,7 @@ void CCSPlayerController::SetPlayerPawnHandle(uint32_t value) const
         return;
 
     *MemberPtr<uint32_t>(_base, kCCSPlayerController_PlayerPawnHandle) = value;
-    if (_owner)
-        NotifyEntity(_owner, _ownerOffset + kCCSPlayerController_PlayerPawnHandle);
+    NotifyEntity(_owner, _ownerOffset + kCCSPlayerController_PlayerPawnHandle);
 }
 
 CCSPlayerController_InGameMoneyServices CCSPlayerController::InGameMoneyServices() const

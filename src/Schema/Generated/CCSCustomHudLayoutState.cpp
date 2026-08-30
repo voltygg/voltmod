@@ -25,8 +25,7 @@ void CCSCustomHudLayoutState::SetInputCaptureEnabled(bool value) const
         return;
 
     *MemberPtr<bool>(_base, kCCSCustomHudLayoutState_InputCaptureEnabled) = value;
-    if (_owner)
-        NotifyEntity(_owner, _ownerOffset + kCCSCustomHudLayoutState_InputCaptureEnabled);
+    NotifyEntity(_owner, _ownerOffset + kCCSCustomHudLayoutState_InputCaptureEnabled);
 }
 
 extern const FieldLayout CCSCustomHudLayoutState_kFields[1];

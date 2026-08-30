@@ -34,6 +34,14 @@ static int TableCount(void* table)
     return table ? static_cast<const StringTable*>(table)->Count() : -1;
 }
 
+/** Per-player layout state count, or -1 when the entity is gone. */
+static int PlayerStateCount(const Schema::CCSCustomHudLayout& layout)
+{
+    // CUtlVectorEmbeddedNetworkVar keeps its count first, which is exactly what the engine's own
+    // IsInputCaptureEnabled reads before indexing; the manifest reads that leading int32.
+    return layout ? layout.PlayerLayoutStates() : -1;
+}
+
 /**
  * Fill @p out with @p text.
  *
@@ -79,7 +87,7 @@ static Result<CEntityInstance*> ReadyForWrite(EntitySystem* entities, EntityRef 
 
     // The engine's *ForPlayer setters compare the slot against m_vecPlayerLayoutStates and return
     // silently when it is out of range, so an empty vector would look exactly like success.
-    const int states = UiPlayerStateCount(entities, ref);
+    const int states = PlayerStateCount(layout);
     if (states <= slot)
         return std::unexpected(
             Error::Failed(std::format("slot {} has no per-player layout state (the entity holds {})", slot, states)));
@@ -119,11 +127,7 @@ static Status WriteClassState(EntitySystem* entities, EntityRef ref, int slot, s
 int UiPlayerStateCount(EntitySystem* entities, EntityRef ref)
 {
     Entity entity = entities ? entities->Resolve(ref) : Entity{};
-
-    // CUtlVectorEmbeddedNetworkVar keeps its count first, which is exactly what the engine's own
-    // IsInputCaptureEnabled reads before indexing.
-    void* states = Schema::CCSCustomHudLayout{entity.Raw()}.PlayerLayoutStates();
-    return states ? *static_cast<const int32_t*>(states) : -1;
+    return PlayerStateCount(Schema::CCSCustomHudLayout{entity.Raw()});
 }
 
 Status UiWriteText(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId, std::string_view variable,

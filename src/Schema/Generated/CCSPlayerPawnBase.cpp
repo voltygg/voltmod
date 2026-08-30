@@ -26,8 +26,7 @@ void CCSPlayerPawnBase::SetFlashDuration(float value) const
         return;
 
     *MemberPtr<float>(_base, kCCSPlayerPawnBase_FlashDuration) = value;
-    if (_owner)
-        NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawnBase_FlashDuration);
+    NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawnBase_FlashDuration);
 }
 
 float CCSPlayerPawnBase::FlashMaxAlpha() const
@@ -44,8 +43,7 @@ void CCSPlayerPawnBase::SetFlashMaxAlpha(float value) const
         return;
 
     *MemberPtr<float>(_base, kCCSPlayerPawnBase_FlashMaxAlpha) = value;
-    if (_owner)
-        NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawnBase_FlashMaxAlpha);
+    NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawnBase_FlashMaxAlpha);
 }
 
 extern const FieldLayout CCSPlayerPawnBase_kFields[2];

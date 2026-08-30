@@ -34,8 +34,7 @@ void CBaseEntity::SetHealth(int32_t value) const
         return;
 
     *MemberPtr<int32_t>(_base, kCBaseEntity_Health) = value;
-    if (_owner)
-        NotifyEntity(_owner, _ownerOffset + kCBaseEntity_Health);
+    NotifyEntity(_owner, _ownerOffset + kCBaseEntity_Health);
 }
 
 uint8_t CBaseEntity::Team() const
@@ -52,8 +51,7 @@ void CBaseEntity::SetTeam(uint8_t value) const
         return;
 
     *MemberPtr<uint8_t>(_base, kCBaseEntity_Team) = value;
-    if (_owner)
-        NotifyEntity(_owner, _ownerOffset + kCBaseEntity_Team);
+    NotifyEntity(_owner, _ownerOffset + kCBaseEntity_Team);
 }
 
 uint8_t CBaseEntity::LifeState() const
@@ -70,8 +68,7 @@ void CBaseEntity::SetLifeState(uint8_t value) const
         return;
 
     *MemberPtr<uint8_t>(_base, kCBaseEntity_LifeState) = value;
-    if (_owner)
-        NotifyEntity(_owner, _ownerOffset + kCBaseEntity_LifeState);
+    NotifyEntity(_owner, _ownerOffset + kCBaseEntity_LifeState);
 }
 
 uint32_t CBaseEntity::Flags() const
@@ -88,8 +85,7 @@ void CBaseEntity::SetFlags(uint32_t value) const
         return;
 
     *MemberPtr<uint32_t>(_base, kCBaseEntity_Flags) = value;
-    if (_owner)
-        NotifyEntity(_owner, _ownerOffset + kCBaseEntity_Flags);
+    NotifyEntity(_owner, _ownerOffset + kCBaseEntity_Flags);
 }
 
 Vector CBaseEntity::Velocity() const
@@ -106,8 +102,7 @@ void CBaseEntity::SetVelocity(Vector value) const
         return;
 
     *MemberPtr<Vector>(_base, kCBaseEntity_Velocity) = value;
-    if (_owner)
-        NotifyEntity(_owner, _ownerOffset + kCBaseEntity_Velocity);
+    NotifyEntity(_owner, _ownerOffset + kCBaseEntity_Velocity);
 }
 
 MoveType_t CBaseEntity::MoveTypeRaw() const
@@ -124,8 +119,7 @@ void CBaseEntity::SetMoveTypeRaw(MoveType_t value) const
         return;
 
     *MemberPtr<MoveType_t>(_base, kCBaseEntity_MoveTypeRaw) = value;
-    if (_owner)
-        NotifyEntity(_owner, _ownerOffset + kCBaseEntity_MoveTypeRaw);
+    NotifyEntity(_owner, _ownerOffset + kCBaseEntity_MoveTypeRaw);
 }
 
 MoveType_t CBaseEntity::ActualMoveTypeRaw() const
@@ -142,8 +136,7 @@ void CBaseEntity::SetActualMoveTypeRaw(MoveType_t value) const
         return;
 
     *MemberPtr<MoveType_t>(_base, kCBaseEntity_ActualMoveTypeRaw) = value;
-    if (_owner)
-        NotifyEntity(_owner, _ownerOffset + kCBaseEntity_ActualMoveTypeRaw);
+    NotifyEntity(_owner, _ownerOffset + kCBaseEntity_ActualMoveTypeRaw);
 }
 
 uint32_t CBaseEntity::GroundEntity() const
@@ -160,8 +153,7 @@ void CBaseEntity::SetGroundEntity(uint32_t value) const
         return;
 
     *MemberPtr<uint32_t>(_base, kCBaseEntity_GroundEntity) = value;
-    if (_owner)
-        NotifyEntity(_owner, _ownerOffset + kCBaseEntity_GroundEntity);
+    NotifyEntity(_owner, _ownerOffset + kCBaseEntity_GroundEntity);
 }
 
 CBodyComponent CBaseEntity::BodyComponent() const

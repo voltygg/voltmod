@@ -28,8 +28,7 @@ void CCSPlayerPawn::SetArmor(int32_t value) const
         return;
 
     *MemberPtr<int32_t>(_base, kCCSPlayerPawn_Armor) = value;
-    if (_owner)
-        NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawn_Armor);
+    NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawn_Armor);
 }
 
 QAngle CCSPlayerPawn::EyeAngles() const
@@ -46,8 +45,7 @@ void CCSPlayerPawn::SetEyeAngles(QAngle value) const
         return;
 
     *MemberPtr<QAngle>(_base, kCCSPlayerPawn_EyeAngles) = value;
-    if (_owner)
-        NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawn_EyeAngles);
+    NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawn_EyeAngles);
 }
 
 float CCSPlayerPawn::SpeedModifier() const
@@ -64,8 +62,7 @@ void CCSPlayerPawn::SetSpeedModifier(float value) const
         return;
 
     *MemberPtr<float>(_base, kCCSPlayerPawn_SpeedModifier) = value;
-    if (_owner)
-        NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawn_SpeedModifier);
+    NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawn_SpeedModifier);
 }
 
 bool CCSPlayerPawn::OnGroundLastTick() const
@@ -82,8 +79,7 @@ void CCSPlayerPawn::SetOnGroundLastTick(bool value) const
         return;
 
     *MemberPtr<bool>(_base, kCCSPlayerPawn_OnGroundLastTick) = value;
-    if (_owner)
-        NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawn_OnGroundLastTick);
+    NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawn_OnGroundLastTick);
 }
 
 extern const FieldLayout CCSPlayerPawn_kFields[4];

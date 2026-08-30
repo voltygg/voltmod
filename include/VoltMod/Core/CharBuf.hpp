@@ -9,16 +9,6 @@
 namespace VoltMod
 {
 
-template <size_t N>
-struct FixedString
-{
-    char Value[N]{};
-
-    constexpr FixedString(const char (&text)[N]) { std::copy_n(text, N, Value); }
-
-    [[nodiscard]] constexpr std::string_view View() const { return {Value, N - 1}; }
-};
-
 /**
  * @brief A value for a fixed engine character array (`char m_name[N]`).
  *

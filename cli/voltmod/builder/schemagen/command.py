@@ -6,13 +6,16 @@ from typing import Annotated, Any
 
 import typer
 
-from voltmod.tools import die, run_tool
+from voltmod.tools import chunk_by_length, die, run_tool
 
 from . import emit
 from .model import Klass, sorted_classes
 from .resolve import build_classes, collect_enums, trimmed_dump
 
 app = typer.Typer(help="Generate the schema accessor layer.")
+
+# Leave room below Windows' 32767-character command-line limit.
+MAX_COMMAND_LINE = 24000
 
 HEADER_DIR = Path("include/VoltMod/Schema")
 # Generated headers sit in their own directory so what is hand-written is obvious.
@@ -67,7 +70,8 @@ def generate(repo: Path, dump: dict[str, Any], manifest: dict[str, Any]) -> str:
 
     written = sorted(headers.rglob("*.hpp")) + sorted(generated.rglob("*.inc"))
     written += sorted(sources.glob("*.cpp"))
-    run_tool("clang-format", "-i", *(str(f) for f in written))
+    for batch in chunk_by_length([str(f) for f in written], MAX_COMMAND_LINE):
+        run_tool("clang-format", "-i", *batch)
 
     return _summary(classes, enums)
 

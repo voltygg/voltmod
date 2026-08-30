@@ -42,9 +42,21 @@ CCSCustomHudLayoutState CCSCustomHudLayout::GlobalLayoutState() const
                                    _ownerOffset + kCCSCustomHudLayout_GlobalLayoutState};
 }
 
-void* CCSCustomHudLayout::PlayerLayoutStates() const
+int32_t CCSCustomHudLayout::PlayerLayoutStates() const
 {
-    return _base ? MemberPtr<void>(_base, kCCSCustomHudLayout_PlayerLayoutStates) : nullptr;
+    if (!_base)
+        return {};
+
+    return *MemberPtr<int32_t>(_base, kCCSCustomHudLayout_PlayerLayoutStates);
+}
+
+void CCSCustomHudLayout::SetPlayerLayoutStates(int32_t value) const
+{
+    if (!_base)
+        return;
+
+    *MemberPtr<int32_t>(_base, kCCSCustomHudLayout_PlayerLayoutStates) = value;
+    NotifyEntity(_owner, _ownerOffset + kCCSCustomHudLayout_PlayerLayoutStates);
 }
 
 const char* CCSCustomHudLayout::Layout() const
@@ -61,8 +73,7 @@ void CCSCustomHudLayout::SetLayout(const char* value) const
         return;
 
     *MemberPtr<const char*>(_base, kCCSCustomHudLayout_Layout) = value;
-    if (_owner)
-        NotifyEntity(_owner, _ownerOffset + kCCSCustomHudLayout_Layout);
+    NotifyEntity(_owner, _ownerOffset + kCCSCustomHudLayout_Layout);
 }
 
 extern const FieldLayout CCSCustomHudLayout_kFields[6];

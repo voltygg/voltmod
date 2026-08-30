@@ -36,13 +36,14 @@ def empty_klass(dump: dict[str, Any], name: str) -> Klass:
 
 
 def _with_bases(dump: dict[str, Any], wanted: dict[str, Any]) -> dict[str, Any]:
-    """Bases must exist as generated types so the C++ inheritance matches the schema's."""
-    pending = list(wanted)
-    while pending:
-        for base in bases_of(dump, pending.pop()):
-            if base not in wanted:
-                wanted[base] = []
-                pending.append(base)
+    """Bases must exist as generated types so the C++ inheritance matches the schema's.
+
+    One pass is the whole closure: `bases_of` walks to the root, so a base's own ancestors are
+    a suffix of the chain that pulled it in and are already here.
+    """
+    for name in list(wanted):
+        for base in bases_of(dump, name):
+            wanted.setdefault(base, [])
     return wanted
 
 

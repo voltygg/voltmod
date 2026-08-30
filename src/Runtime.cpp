@@ -132,16 +132,22 @@ bool Runtime::InitializeServices(const LoadContext& context)
         return StageResult::Ok();
     });
 
-    const auto messages = report.Run("Messages", [&] {
-        if (auto ready = Messages.Initialize(); !ready)
-            return StageResult::Failed(ready.error().Detail);
-        return StageResult::Ok();
-    });
-    if (messages == StageStatus::Failed)
-    {
+    // A stage the load cannot continue without: the failure reaches Metamod and aborts, rather
+    // than degrading a capability the way the stages below do. False means stop.
+    auto fatal = [&](std::string_view name, auto&& init) {
+        const auto status = report.Run(name, [&] {
+            auto ready = init();
+            return ready ? StageResult::Ok() : StageResult::Failed(ready.error().Detail);
+        });
+        if (status != StageStatus::Failed)
+            return true;
+
         context.Ismm->Format(context.Error, context.MaxLen, "%s", report.FirstFailure().c_str());
         return false;
-    }
+    };
+
+    if (!fatal("Messages", [&] { return Messages.Initialize(); }))
+        return false;
 
     // The remaining subsystems all report the same way: the setup's error degrades the load stage
     // and turns off the capability it backs, with the same reason on both.
@@ -163,16 +169,9 @@ bool Runtime::InitializeServices(const LoadContext& context)
     // only thing standing between that and silent memory corruption, so it aborts the load rather
     // than degrading like the stages around it.
     Schema::BindSchemaVerification(Unsafe.Interfaces.SchemaSystem);
-    const auto schemaLayout = report.Run("SchemaLayout", [&] {
-        if (auto verified = Schema::VerifySchemaLayout(); !verified)
-            return StageResult::Failed(verified.error().Detail);
-        return StageResult::Ok();
-    });
-    if (schemaLayout == StageStatus::Failed)
-    {
-        context.Ismm->Format(context.Error, context.MaxLen, "%s", report.FirstFailure().c_str());
+    if (!fatal("SchemaLayout", [&] { return Schema::VerifySchemaLayout(); }))
         return false;
-    }
+
     report.Run("Entities", [&] {
         auto ready = Entities.Initialize();
         if (!ready)

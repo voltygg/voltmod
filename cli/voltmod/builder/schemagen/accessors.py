@@ -83,11 +83,9 @@ def _read(member: Member, acc: Accessor, constant: str) -> Read:
             made = f"{member.view}{{*MemberPtr<void*>(_base, {constant})}}"
         return Read(guard="!_base", expr=made)
     if kind == "chars":
-        return Read(
-            guard="!_base",
-            prelude=(f"const char* text = MemberPtr<const char>(_base, {constant});",),
-            expr=f"std::string_view(text, ::strnlen(text, {member.extent} - 1))",
-        )
+        # CharBuf is what a fixed engine char[N] means; the setter already writes through it.
+        held = f"CharBuf<{member.extent}>"
+        return Read(guard="!_base", expr=f"MemberPtr<{held}>(_base, {constant})->View()")
     if kind == "array":
         return Read(
             guard=f"!_base || index >= {member.extent}",
@@ -96,9 +94,12 @@ def _read(member: Member, acc: Accessor, constant: str) -> Read:
     return Read(guard="!_base", expr=f"*MemberPtr<{acc.ret.inner}>(_base, {constant})")
 
 
-def _write(member: Member, acc: Accessor, constant: str) -> Write | None:
-    if acc.value is None:
-        return None
+def has_setter(klass: Klass, acc: Accessor) -> bool:
+    """Whether a member gets a setter: assignable, and with a route to dirty the write."""
+    return acc.value is not None and klass.writable
+
+
+def _write(member: Member, acc: Accessor, constant: str) -> Write:
     cpp = acc.ret.inner
     if member.kind == "array":
         return Write(
@@ -143,7 +144,7 @@ def declarations(klass: Klass, member: Member) -> list[str]:
         return [f"// skipped: {member.schema_name} ({member.skip_reason})"]
 
     out = [f"{getter_decl(member, acc)};"]
-    if acc.value is not None and klass.writable:
+    if has_setter(klass, acc):
         out.append(f"{setter_decl(member, acc)};")
     return out
 
@@ -153,8 +154,8 @@ def notify_call(klass: Klass, offset: str) -> list[str]:
     if klass.chain_offset >= 0:
         return [f"    NotifyThroughChain(_base, {klass.name}_kChainOffset, {offset});"]
     # An entity view owns itself at offset 0, so this covers both the entity and the
-    # embedded-in-an-entity case with one branch.
-    return ["    if (_owner)", f"        NotifyEntity(_owner, _ownerOffset + {offset});"]
+    # embedded-in-an-entity case with one call. NotifyEntity ignores a null owner.
+    return [f"    NotifyEntity(_owner, _ownerOffset + {offset});"]
 
 
 def definitions(klass: Klass, member: Member) -> list[str]:
@@ -173,7 +174,7 @@ def definitions(klass: Klass, member: Member) -> list[str]:
     out += [f"    {line}" for line in read.prelude]
     out += [f"    return {read.expr};", "}", ""]
 
-    write = _write(member, acc, constant) if klass.writable else None
+    write = _write(member, acc, constant) if has_setter(klass, acc) else None
     if write:
         out += [
             f"void {klass.name}::Set{member.accessor}({setter_params(acc)}) const",
@@ -199,7 +200,7 @@ def forwarders(klass: Klass, member: Member) -> list[str]:
     name = member.accessor
     args = "index" if acc.index else ""
     out = [f"{getter_decl(member, acc, outer=True)} {{ return {view}.{name}({args}); }}"]
-    if acc.value is not None and klass.writable:
+    if has_setter(klass, acc):
         passed = "index, value" if acc.index else "value"
         out.append(
             f"{setter_decl(member, acc, outer=True)} {{ {view}.Set{name}({passed}); }}"

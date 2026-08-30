@@ -65,8 +65,7 @@ void CBasePlayerPawn::SetControllerHandle(uint32_t value) const
         return;
 
     *MemberPtr<uint32_t>(_base, kCBasePlayerPawn_ControllerHandle) = value;
-    if (_owner)
-        NotifyEntity(_owner, _ownerOffset + kCBasePlayerPawn_ControllerHandle);
+    NotifyEntity(_owner, _ownerOffset + kCBasePlayerPawn_ControllerHandle);
 }
 
 extern const FieldLayout CBasePlayerPawn_kFields[5];

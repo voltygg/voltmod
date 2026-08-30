@@ -24,7 +24,8 @@ public:
 
     CCSCustomHudLayoutState GlobalLayoutState() const;
 
-    void* PlayerLayoutStates() const;
+    int32_t PlayerLayoutStates() const;
+    void SetPlayerLayoutStates(int32_t value) const;
 
     const char* Layout() const;
     void SetLayout(const char* value) const;

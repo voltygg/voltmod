@@ -7,6 +7,7 @@ from pathlib import Path
 
 from ..tools import (
     SDK_BUILD_EXCLUSIONS,
+    chunk_by_length,
     die,
     ensure_msvc_env,
     ensure_remote,
@@ -103,7 +104,7 @@ def format_sources(repo_root: Path, dirs: list[str]) -> None:
     if not files:
         print("No C++ sources found.")
         return
-    for batch in _chunk_by_length(files, MAX_COMMAND_LINE):
+    for batch in chunk_by_length(files, MAX_COMMAND_LINE):
         run_tool("clang-format", "-i", *batch)
     print(f"clang-format formatted {len(files)} file(s).")
 
@@ -116,17 +117,3 @@ def _prepare_ccache(repo_root: Path) -> bool:
         os.environ.setdefault(key, value)
     os.environ.setdefault("CCACHE_BASEDIR", str(repo_root))
     return True
-
-
-def _chunk_by_length(files: list[str], budget: int) -> list[list[str]]:
-    """Split `files` into batches whose joined length stays under `budget` characters."""
-    batches: list[list[str]] = [[]]
-    used = 0
-    for f in files:
-        cost = len(f) + 3  # quotes and separator
-        if batches[-1] and used + cost > budget:
-            batches.append([])
-            used = 0
-        batches[-1].append(f)
-        used += cost
-    return [b for b in batches if b]
