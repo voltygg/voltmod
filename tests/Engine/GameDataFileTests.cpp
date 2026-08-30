@@ -249,8 +249,27 @@ TEST_CASE("IsValidBytePattern accepts hex bytes and wildcards and nothing else")
     CHECK_FALSE(IsValidBytePattern("48 ???"));
 }
 
-// Parse is called from Runtime::Start. Before these, only a JSON *syntax* error was caught, so
-// structurally-wrong-but-syntactically-valid input threw nlohmann's type_error out of the load.
+// Parse is called from Runtime::Start, so nothing it does may throw. It no longer can: every
+// shape error is a parse error reported as a value, which is also why an unknown key - what
+// gamedata.schema.json calls additionalProperties: false - is now rejected rather than ignored.
+
+TEST_CASE("An unknown key is rejected rather than silently ignored")
+{
+    // The schema has always said additionalProperties: false; now the reader agrees.
+    const std::string rootKey = R"({"version": 2, "buidl": {"game": "cs2"}})";
+    CHECK_FALSE(GameDataFile::Parse(rootKey, GamePlatform::Windows).has_value());
+
+    const std::string entryKey = R"({"version": 2, "offsets": {"Field": {"windows": 16, "linux": 24, "mxa": 512}}})";
+    auto parsed = GameDataFile::Parse(entryKey, GamePlatform::Windows);
+    REQUIRE_FALSE(parsed.has_value());
+    CHECK(parsed.error().Code == ErrorCode::Invalid);
+}
+
+TEST_CASE("The schema key every gamedata file carries is accepted")
+{
+    const std::string withSchema = R"({"$schema": "./gamedata.schema.json", "version": 2})";
+    CHECK(GameDataFile::Parse(withSchema, GamePlatform::Windows).has_value());
+}
 
 TEST_CASE("A section that is not an object is rejected rather than thrown out of")
 {
