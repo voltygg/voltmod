@@ -4,6 +4,7 @@
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Hooks/Movement.hpp>
+#include <VoltMod/Schema/Api.hpp>
 #include <VoltMod/Unsafe/VtableHook.hpp>
 #include <algorithm>
 #include <cs_usercmd.pb.h>
@@ -48,7 +49,7 @@ bool Movement::OnFirstSubscriber()
 
         auto hook = VtableHook::OnVTable<VoltMod_MovementRunCommandHook>(
             "Movement RunCommand", _bindings.RunCommand, this, &Movement::Hook_RunCommandPre,
-            &Movement::Hook_RunCommandPost, LiveMovementServices().Raw());
+            &Movement::Hook_RunCommandPost, LiveMovementServices());
         if (!hook)
         {
             Log::Warn("Movement: {}; movement handlers will not fire.", hook.error().Detail);
@@ -70,15 +71,15 @@ void Movement::OnLastSubscriber()
     }
 }
 
-SchemaPtr Movement::LiveMovementServices() const
+void* Movement::LiveMovementServices() const
 {
     for (int slot = 0; slot < MaxPlayers; ++slot)
-        if (SchemaPtr instance = _entities.MovementServices(slot))
-            return instance;
-    return {};
+        if (Schema::CPlayer_MovementServices instance = _entities.MovementServices(slot))
+            return instance.Base();
+    return nullptr;
 }
 
-int Movement::SlotFromMovementServices(SchemaPtr movementServices) const
+int Movement::SlotFromMovementServices(void* movementServices) const
 {
     if (!movementServices)
         return -1;
@@ -86,13 +87,14 @@ int Movement::SlotFromMovementServices(SchemaPtr movementServices) const
     // Validate cached pointers before reuse.
     auto& entities = _entities;
     for (int slot = 0; slot < MaxPlayers; ++slot)
-        if (_movementServices[slot] == movementServices && entities.MovementServices(slot) == movementServices)
+        if (_movementServices[slot] == movementServices
+            && entities.MovementServices(slot).Base() == movementServices)
             return slot;
 
     int found = -1;
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
-        _movementServices[slot] = entities.MovementServices(slot);
+        _movementServices[slot] = entities.MovementServices(slot).Base();
         if (_movementServices[slot] == movementServices)
             found = slot;
     }
@@ -167,7 +169,7 @@ void Movement::DecodeUserCmd(void* userCmd)
 
 void* Movement::Hook_RunCommandPre(void* userCmd)
 {
-    _preSlot = SlotFromMovementServices(SchemaPtr{META_IFACEPTR(void)});
+    _preSlot = SlotFromMovementServices(META_IFACEPTR(void));
     if (!PreCmd.Empty() || !FilterCmd.Empty())
         DecodeUserCmd(userCmd);
     // Filters run before observers see the command.

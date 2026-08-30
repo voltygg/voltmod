@@ -2,17 +2,16 @@
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Entities/Items.hpp>
 #include <VoltMod/Entities/PawnOps.hpp>
+#include <VoltMod/Schema/Api.hpp>
 #include <cstdint>
 #include <string>
 
 namespace VoltMod
 {
 
-SchemaPtr Items::ItemServices(const Pawn& pawn)
+Schema::CPlayer_ItemServices Items::ItemServices(const Pawn& pawn)
 {
-    static const SchemaField<void*> services{"CBasePlayerPawn", "m_pItemServices"};
-
-    return SchemaPtr{pawn.Raw()}.Follow(services);
+    return Schema::CBasePlayerPawn{pawn.Raw()}.ItemServices();
 }
 
 bool Items::Give(const Pawn& pawn, std::string_view item)
@@ -23,26 +22,26 @@ bool Items::Give(const Pawn& pawn, std::string_view item)
     // GiveNamedItem looks the classname up during the call; the copy only has to outlive it.
     const std::string classname(item);
 
-    SchemaPtr services = ItemServices(pawn);
+    Schema::CPlayer_ItemServices services = ItemServices(pawn);
     if (!services)
         return false;
 
     if (!_bindings.GiveNamedItem)
         return false;
 
-    if (_bindings.GiveNamedItem.Call(services.Raw(), classname.c_str()))
+    if (_bindings.GiveNamedItem.Call(services.Base(), classname.c_str()))
         return true;
 
     // A refusal is usually the weapon belonging to the other team's buy list. Retry once with
     // the pawn flipped, then put the team back before anything else can observe it.
-    const auto team = static_cast<uint8_t>(pawn.Team);
+    const auto team = static_cast<uint8_t>(pawn.Team());
     const auto other = static_cast<uint8_t>(team == TeamT ? TeamCT : (team == TeamCT ? TeamT : 0));
     if (other == 0)
         return false;
 
-    pawn.Team = other;
-    bool given = _bindings.GiveNamedItem.Call(services.Raw(), classname.c_str()) != nullptr;
-    pawn.Team = team;
+    pawn.SetTeam(other);
+    bool given = _bindings.GiveNamedItem.Call(services.Base(), classname.c_str()) != nullptr;
+    pawn.SetTeam(team);
 
     if (!given)
         Log::Warn("Items::Give: the engine refused '{}' for both teams.", item);
@@ -51,14 +50,14 @@ bool Items::Give(const Pawn& pawn, std::string_view item)
 
 bool Items::StripWeapons(const Pawn& pawn, bool removeSuit)
 {
-    SchemaPtr services = ItemServices(pawn);
+    Schema::CPlayer_ItemServices services = ItemServices(pawn);
     if (!services)
         return false;
 
     if (!_bindings.RemoveAllItems)
         return false;
 
-    _bindings.RemoveAllItems.Call(services.Raw(), removeSuit);
+    _bindings.RemoveAllItems.Call(services.Base(), removeSuit);
     return true;
 }
 

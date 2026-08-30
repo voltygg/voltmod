@@ -206,12 +206,13 @@ dependencies as well as cycles.
 ```text
 Core       -> nothing
 Engine     -> Core
-Entities   -> Core, Engine
+Schema     -> Core, Engine
+Entities   -> Core, Engine, Schema
 Events     -> Core, Engine, Entities
 Messaging  -> Core, Engine, Entities, Events
 Players    -> Core, Engine, Entities
-Hooks      -> Core, Engine, Entities, Events, Players, Unsafe
-Ui         -> Core, Engine, Entities, Unsafe
+Hooks      -> Core, Engine, Schema, Entities, Events, Players, Unsafe
+Ui         -> Core, Engine, Schema, Entities, Unsafe
 Workshop   -> Core, Engine, Players, Unsafe
 Commands   -> Core, Engine, Entities, Messaging, Players
 Menu       -> Core, Engine, Entities, Messaging, Players, Hooks, Ui

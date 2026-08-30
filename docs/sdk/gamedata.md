@@ -149,26 +149,22 @@ The engine publishes schema offsets at runtime, so they need no gamedata. @ref V
 resolves and caches each `(class, field)` pair:
 
 ```cpp
-runtime.Entities.PawnOf(slot).Health = 100;   // resolves CBaseEntity::m_iHealth once, then writes
+runtime.Entities.PawnOf(slot).SetHealth(100);   // writes CBaseEntity::m_iHealth at a baked offset
 ```
 
-`Field` compares `sizeof(T)` with the engine field size and warns once on mismatch.
+Gamedata and the schema answer different questions, and both are baked rather than searched at
+each call:
 
-For fields without wrappers, declare a typed `static` @ref VoltMod::SchemaField
-beside the access and apply it with a @ref VoltMod::SchemaPtr.
+| | says where | source | checked |
+| --- | --- | --- | --- |
+| `gamedata/gamedata.jsonc` | functions, vtables, interfaces | hand-maintained | at load, per entry |
+| `schema/server.json` | entity field offsets | dumped from the engine | at load, whole layout |
+
+Schema fields are generated accessors, so a sub-object is a hop rather than a follow:
 
 ```cpp
-static const VoltMod::SchemaField<void*> kMoneyServices{"CCSPlayerController", "m_pInGameMoneyServices"};
-static const VoltMod::SchemaField<int> kAccount{"CCSPlayerController_InGameMoneyServices", "m_iAccount"};
-
-int money = VoltMod::SchemaPtr{controller.Raw()}.Follow(kMoneyServices).Get(kAccount);
+int money = controller.InGameMoneyServices().Account();
 ```
 
-The field type is written once and inferred by `Get`, `Set`, and `Ptr`; use `T[]` for an array and
-`void` for an inline object with no C++ type. `Follow` traverses a pointer field and `At` steps into
-an inline object. Every accessor answers harmlessly when the pointer is null or the field did not
-resolve. A `SchemaPtr` write does not dirty anything for replication, so pair it with
-@ref VoltMod::MarkChanged on the owning entity's own field, or use a @ref VoltMod::Field where the
-entity has a wrapper.
-
-Both retry until schema is ready. Use them only on the game thread.
+Every accessor answers harmlessly on a falsy view, and a `Set` dirties the field for replication
+on its own. Use them only on the game thread.

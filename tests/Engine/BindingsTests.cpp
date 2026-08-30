@@ -216,5 +216,5 @@ TEST_CASE("Capabilities summary counts what is on and explains what is not")
     caps.Set(Capability::Movement, true);
     CHECK(caps.Has(Capability::Movement));
     CHECK(caps.Reason(Capability::Movement).empty());
-    CHECK(caps.Summary().find("1/16 ok") != std::string::npos);
+    CHECK(caps.Summary().find("1/15 ok") != std::string::npos);
 }

@@ -150,10 +150,13 @@ Use these patterns throughout the framework:
 - `Entity`, `Pawn` and `Controller` are frame-local wrappers, not handles to keep.
   `explicit operator bool()` is the only validity check, they copy but do not
   assign, and anything stored is an `EntityRef` or a `PlayerRef` re-resolved
-  through `EntitySystem`. A schema field is a `Field<T, "Class", "m_name">` member
-  that resolves its own offset once per process, walks base classes, and dirties a
-  networked write - there is no schema service to inject, and no string-pair
-  lookup on a call path.
+  through `EntitySystem`. A schema field is a generated accessor pair (`Health()` /
+  `SetHealth()`) whose offset is baked in at build time by `voltmod schemagen` from
+  `schema/manifest.json` plus a dump, and whose setter dirties the write through the
+  entity, a `__m_pChainEntity` chainer, or the entity a struct is embedded in. There
+  is no schema service to inject, no runtime resolution, and no string-pair lookup on
+  a call path; `Runtime::Start` aborts the load when the baked layout and the live
+  schema disagree.
 - `gamedata/gamedata.jsonc` (version 2) says only *where* something is; C++ owns every
   prototype, vtable signature and field type in `Engine/Bindings.hpp`. A service takes
   `const Bindings&` and reads a typed field - never a string lookup on a call path. Parsing
@@ -186,12 +189,13 @@ Use these patterns throughout the framework:
 ```text
 Core       -> nothing
 Engine     -> Core
-Entities   -> Core, Engine
+Schema     -> Core, Engine
+Entities   -> Core, Engine, Schema
 Events     -> Core, Engine, Entities
 Messaging  -> Core, Engine, Entities, Events
 Players    -> Core, Engine, Entities
-Hooks      -> Core, Engine, Entities, Events, Players, Unsafe
-Ui         -> Core, Engine, Entities, Unsafe
+Hooks      -> Core, Engine, Schema, Entities, Events, Players, Unsafe
+Ui         -> Core, Engine, Schema, Entities, Unsafe
 Workshop   -> Core, Engine, Players, Unsafe
 Commands   -> Core, Engine, Entities, Messaging, Players
 Menu       -> Core, Engine, Entities, Messaging, Players, Hooks, Ui

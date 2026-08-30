@@ -21,7 +21,7 @@ static float Rand(float lo, float hi)
 Vector ClearedDestination(const Pawn& anchor, float clearance)
 {
     Vector origin = anchor.Origin();
-    float yawRad = anchor.EyeAngles.Get().y * std::numbers::pi_v<float> / 180.0f;
+    float yawRad = anchor.EyeAngles().y * std::numbers::pi_v<float> / 180.0f;
     origin.x += std::cos(yawRad) * clearance;
     origin.y += std::sin(yawRad) * clearance;
     return origin;
@@ -60,15 +60,15 @@ bool ToggleFreeze(const Pawn& pawn)
 
 bool HasGodmode(const Pawn& pawn)
 {
-    return (pawn.Flags.Get() & FL_GODMODE) != 0;
+    return (pawn.Flags() & FL_GODMODE) != 0;
 }
 
 void SetGodmode(const Pawn& pawn, bool enable)
 {
     if (enable)
-        pawn.Flags |= FL_GODMODE;
+        pawn.SetFlags(pawn.Flags() | FL_GODMODE);
     else
-        pawn.Flags &= ~FL_GODMODE;
+        pawn.SetFlags(pawn.Flags() & ~FL_GODMODE);
 }
 
 bool ToggleGodmode(const Pawn& pawn)
@@ -107,7 +107,8 @@ void Pawns::Slap(const Pawn& pawn, float upward, float horizontal, int fallProte
     // Write velocity directly on the pawn rather than through the Teleport vfunc.
     // Teleport(nullptr origin, ...) was crashing the server in CS2 builds we tested;
     // m_vecAbsVelocity is the conventional path for velocity-only changes.
-    pawn.Velocity = Vector{PawnOps::Rand(-horizontal, horizontal), PawnOps::Rand(-horizontal, horizontal), upward};
+    pawn.SetVelocity(
+        Vector{PawnOps::Rand(-horizontal, horizontal), PawnOps::Rand(-horizontal, horizontal), upward});
 
     // Only toggle godmode for fall protection if the target wasn't already in godmode, otherwise
     // the delayed clear below would silently strip an externally applied godmode.

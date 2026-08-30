@@ -3,10 +3,9 @@
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Entities/EntityRef.hpp>
-#include <VoltMod/Entities/Field.hpp>
+#include <VoltMod/Schema/Generated/CBaseEntity.hpp>
 #include <cstdint>
-// Field.hpp only forward-declares Vector (via EngineTypes.hpp); Velocity below needs the
-// complete type.
+// EngineTypes.hpp only forward-declares Vector; the generated accessors return it by value.
 #include <mathlib/vector.h>
 #include <optional>
 #include <string_view>
@@ -88,17 +87,15 @@ public:
     /** Designer classname, or empty. Borrowed from the engine; it dies with the entity. */
     [[nodiscard]] std::string_view ClassName() const;
 
-    /** @name CBaseEntity fields, carried by every entity. */
+    /** @name CBaseEntity fields, carried by every entity.
+     *
+     *  Generated from `schema/manifest.json`; the offsets are baked in and checked against the
+     *  live schema once at load. On a pawn prefer @ref Pawn::Move and @ref Pawn::SetMove over
+     *  `SetMoveType` - writing only one of the two move-type fields lets the engine revert it
+     *  next tick.
+     */
     /** @{ */
-    Field<int, "CBaseEntity", "m_iHealth"> Health{_e};
-    Field<uint8_t, "CBaseEntity", "m_iTeamNum"> Team{_e};
-    Field<uint8_t, "CBaseEntity", "m_lifeState"> LifeState{_e};
-    Field<uint32_t, "CBaseEntity", "m_fFlags"> Flags{_e};
-    Field<Vector, "CBaseEntity", "m_vecAbsVelocity"> Velocity{_e};
-    /** Raw `m_MoveType`. On a pawn prefer @ref Pawn::Move and @ref Pawn::SetMove, which keep this
-     *  and `m_nActualMoveType` in step - writing only one lets the engine revert it next tick. */
-    Field<uint8_t, "CBaseEntity", "m_MoveType"> MoveTypeRaw{_e};
-    Field<uint8_t, "CBaseEntity", "m_nActualMoveType"> ActualMoveTypeRaw{_e};
+#include <VoltMod/Schema/Generated/Wrappers/Entity.inc>
     /** @} */
 
     /** World position. Origin and rotation are not CBaseEntity schema fields in CS2; both live on

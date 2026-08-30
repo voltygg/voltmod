@@ -2,12 +2,12 @@
 
 #include <VoltMod/Engine/ConVarOverrides.hpp>
 #include <VoltMod/Engine/ConVars.hpp>
+#include <VoltMod/Core/CharBuf.hpp>
 #include <VoltMod/Entities/Controller.hpp>
 #include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Entities/EntityRef.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
-#include <VoltMod/Entities/Field.hpp>
 #include <VoltMod/Entities/HitGroup.hpp>
 #include <VoltMod/Entities/Items.hpp>
 #include <VoltMod/Entities/KeyValues.hpp>
@@ -18,4 +18,3 @@
 #include <VoltMod/Entities/PawnPredicates.hpp>
 #include <VoltMod/Entities/Pawns.hpp>
 #include <VoltMod/Entities/Render.hpp>
-#include <VoltMod/Entities/SchemaPtr.hpp>

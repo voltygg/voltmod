@@ -16,7 +16,7 @@ from ..tools import (
 )
 from . import framework
 
-CPP_EXTS = (".cpp", ".hpp")
+CPP_EXTS = (".cpp", ".hpp", ".inc")
 # Leave room below Windows' 32767-character command-line limit.
 MAX_COMMAND_LINE = 24000
 

@@ -3,7 +3,7 @@
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Entities/Pawn.hpp>
-#include <VoltMod/Entities/SchemaPtr.hpp>
+#include <VoltMod/Schema/Generated/CPlayer_ItemServices.hpp>
 #include <string_view>
 
 namespace VoltMod
@@ -47,7 +47,7 @@ public:
 
 private:
     /** The pawn's CCSPlayer_ItemServices, or null. */
-    static SchemaPtr ItemServices(const Pawn& pawn);
+    static Schema::CPlayer_ItemServices ItemServices(const Pawn& pawn);
 
     const Bindings& _bindings;
 };

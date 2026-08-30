@@ -9,6 +9,7 @@
 #include <VoltMod/Events/EventTypes.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/Vote.hpp>
+#include <VoltMod/Schema/Api.hpp>
 #include <engine/igameeventsystem.h>
 #include <format>
 #include <google/protobuf/descriptor.h>
@@ -21,7 +22,6 @@ namespace VoltMod
 {
 
 static constexpr std::string_view ControllerClass = "vote_controller";
-static constexpr std::string_view VoteControllerSchema = "CVoteController";
 
 // The engine's yes/no issue index; option 0 is Yes, option 1 is No, 3 means "not voted".
 static constexpr int YesNoIssueIndex = 2;
@@ -30,13 +30,6 @@ static constexpr int OptionNo = 1;
 static constexpr int VoteUncast = 3;
 static constexpr int OptionSlots = 5;
 static constexpr int AllTeams = -1;
-
-static const SchemaField<int[]> kOptionCount{VoteControllerSchema, "m_nVoteOptionCount"};
-static const SchemaField<int[]> kVotesCast{VoteControllerSchema, "m_nVotesCast"};
-static const SchemaField<int> kPotentialVotes{VoteControllerSchema, "m_nPotentialVotes"};
-static const SchemaField<bool> kIsYesNoVote{VoteControllerSchema, "m_bIsYesNoVote"};
-static const SchemaField<int> kActiveIssueIndex{VoteControllerSchema, "m_iActiveIssueIndex"};
-static const SchemaField<int> kOnlyTeamToVote{VoteControllerSchema, "m_iOnlyTeamToVote"};
 
 static ProtoMessage* AsProto(CNetMessage* message)
 {
@@ -82,7 +75,7 @@ Vote::Vote(Interfaces& interfaces, EntitySystem& entities, GameEvents& events, S
 bool Vote::FindController()
 {
     // The controller is a map entity, so it is a different object after every map change.
-    _controller = SchemaPtr{_entities.FindByClassName({}, ControllerClass).Raw()};
+    _controller = Schema::CVoteController{_entities.FindByClassName({}, ControllerClass).Raw()};
     return static_cast<bool>(_controller);
 }
 
@@ -97,22 +90,20 @@ MultiRecipientFilter Vote::Recipients() const
     return filter;
 }
 
-// m_nVoteOptionCount and m_nVotesCast are both int arrays on the controller, so the field resolves
-// to the array head and the caller indexes it.
+// m_nVoteOptionCount and m_nVotesCast are int arrays on the controller; the generated accessors
+// bounds-check the index against the extent the schema reports.
 int Vote::OptionCount(int option) const
 {
-    const int* counts = _controller.Ptr(kOptionCount);
-    if (!counts || option < 0 || option >= OptionSlots)
+    if (option < 0 || option >= OptionSlots)
         return 0;
-    return counts[option];
+    return _controller.VoteOptionCount(static_cast<size_t>(option));
 }
 
 void Vote::SetOptionCount(int option, int value)
 {
-    int* counts = _controller.Ptr(kOptionCount);
-    if (!counts || option < 0 || option >= OptionSlots)
+    if (option < 0 || option >= OptionSlots)
         return;
-    counts[option] = value;
+    _controller.SetVoteOptionCount(static_cast<size_t>(option), value);
 }
 
 void Vote::ResetBallots()
@@ -120,11 +111,10 @@ void Vote::ResetBallots()
     for (int option = 0; option < OptionSlots; ++option)
         SetOptionCount(option, 0);
 
-    int* ballots = _controller.Ptr(kVotesCast);
-    if (!ballots)
+    if (!_controller)
         return;
     for (int slot = 0; slot < MaxPlayers; ++slot)
-        ballots[slot] = VoteUncast;
+        _controller.SetVotesCast(static_cast<size_t>(slot), VoteUncast);
 }
 
 bool Vote::StartVote(std::string_view title, std::string_view detail, float durationSec, int callerSlot,
@@ -160,11 +150,11 @@ bool Vote::StartVote(std::string_view title, std::string_view detail, float dura
 
     ResetBallots();
 
-    _controller.Set(kPotentialVotes, _eligible);
-    _controller.Set(kIsYesNoVote, true);
-    _controller.Set(kActiveIssueIndex, YesNoIssueIndex);
+    _controller.SetPotentialVotes(_eligible);
+    _controller.SetIsYesNoVote(true);
+    _controller.SetActiveIssueIndex(YesNoIssueIndex);
     // Who may vote is decided by the recipients of the VoteStart message, not by this field.
-    _controller.Set(kOnlyTeamToVote, AllTeams);
+    _controller.SetOnlyTeamToVote(AllTeams);
 
     _inProgress = true;
     _title = title;
@@ -225,7 +215,7 @@ void Vote::FinishVote(VoteEndReason reason)
 
     SendVoteOutcome(passed);
 
-    _controller.Set(kActiveIssueIndex, -1);
+    _controller.SetActiveIssueIndex(-1);
     _controller = {};
 
     auto finished = std::move(_onFinished);

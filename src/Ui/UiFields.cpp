@@ -2,7 +2,7 @@
 
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Entities/Entity.hpp>
-#include <VoltMod/Entities/SchemaPtr.hpp>
+#include <VoltMod/Schema/Api.hpp>
 #include <cstdint>
 #include <format>
 #include <string>
@@ -14,12 +14,6 @@ namespace VoltMod
 {
 using StringTable = CUtlVector<CUtlString>;
 
-static const SchemaField<StringTable> kPanelIds{"CCSCustomHudLayout", "m_vecPanelIds", 24};
-static const SchemaField<StringTable> kClassNames{"CCSCustomHudLayout", "m_vecClassNames", 24};
-static const SchemaField<StringTable> kDialogVarNames{"CCSCustomHudLayout", "m_vecDialogVariableNames", 24};
-static const SchemaField<void> kGlobalState{"CCSCustomHudLayout", "m_globalLayoutState", 408};
-static const SchemaField<int32_t> kPlayerStates{"CCSCustomHudLayout", "m_vecPlayerLayoutStates", 104};
-static const SchemaField<bool> kInputCapture{"CCSCustomHudLayoutState", "m_bInputCaptureEnabled"};
 
 /** EHudPanelClassStatus_t. Undefined defers to whatever the layout markup itself says. */
 static constexpr int32_t kClassUndefined = -1;
@@ -32,11 +26,13 @@ static constexpr int kTableCap = 1024;
 /** Headroom kept below @ref kTableCap so a runaway caller cannot fill the tables permanently. */
 static constexpr int kTableHeadroom = 64;
 
-/** Count of one networked string table, or -1 when the field is unresolved. */
-static int TableCount(CEntityInstance* entity, const SchemaField<StringTable>& field)
+/** Count of one networked string table, or -1 when the entity is gone.
+ *
+ *  The generated accessor bakes the vector's offset and returns its address; the element type
+ *  stays here so no SDK container reaches a generated header. */
+static int TableCount(void* table)
 {
-    const StringTable* table = SchemaPtr{entity}.Ptr(field);
-    return table ? table->Count() : -1;
+    return table ? static_cast<const StringTable*>(table)->Count() : -1;
 }
 
 /**
@@ -65,10 +61,12 @@ static Result<CEntityInstance*> ReadyForWrite(EntitySystem* entities, EntityRef 
 
     // Interning past the engine's cap is refused game-side; stopping short keeps a caller in a
     // loop from filling the tables for the rest of the map.
-    for (const auto& [name, field] : {std::pair{"panel id", &kPanelIds}, std::pair{"class name", &kClassNames},
-                                      std::pair{"dialog variable", &kDialogVarNames}})
+    const Schema::CCSCustomHudLayout layout{entity.Raw()};
+    for (const auto& [name, table] : {std::pair{"panel id", layout.PanelIds()},
+                                      std::pair{"class name", layout.ClassNames()},
+                                      std::pair{"dialog variable", layout.DialogVariableNames()}})
     {
-        const int count = TableCount(entity.Raw(), *field);
+        const int count = TableCount(table);
         if (count >= kTableCap - kTableHeadroom)
             return std::unexpected(
                 Error::Failed(std::format("the {} table is nearly full ({}/{})", name, count, kTableCap)));
@@ -82,10 +80,7 @@ static Result<CEntityInstance*> ReadyForWrite(EntitySystem* entities, EntityRef 
 
     // The engine's *ForPlayer setters compare the slot against m_vecPlayerLayoutStates and return
     // silently when it is out of range, so an empty vector would look exactly like success.
-    if (!kPlayerStates)
-        return std::unexpected(Error::NotReady("the CustomUi per-player state field did not resolve"));
-
-    const int states = SchemaPtr{entity.Raw()}.Get(kPlayerStates);
+    const int states = UiPlayerStateCount(entities, ref);
     if (states <= slot)
         return std::unexpected(
             Error::Failed(std::format("slot {} has no per-player layout state (the entity holds {})", slot, states)));
@@ -128,8 +123,8 @@ int UiPlayerStateCount(EntitySystem* entities, EntityRef ref)
 
     // CUtlVectorEmbeddedNetworkVar keeps its count first, which is exactly what the engine's own
     // IsInputCaptureEnabled reads before indexing.
-    const int32_t* count = SchemaPtr{entity.Raw()}.Ptr(kPlayerStates);
-    return count ? *count : -1;
+    void* states = Schema::CCSCustomHudLayout{entity.Raw()}.PlayerLayoutStates();
+    return states ? *static_cast<const int32_t*>(states) : -1;
 }
 
 Status UiWriteText(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId, std::string_view variable,
@@ -191,20 +186,10 @@ Status UiWriteInputCapture(EntitySystem* entities, EntityRef ref, int slot, bool
     // No engine setter takes the global state, so this one is written directly. It is safe to:
     // m_bInputCaptureEnabled is a plain bool inside an embedded struct, with no container and no
     // shadow hash index behind it - the reason every other write here goes through a setter.
-    const FieldRef& state = kGlobalState.Ref();
-    const FieldRef& capture = kInputCapture.Ref();
-    if (!state || !capture)
-        return std::unexpected(Error::NotReady("the CustomUi input capture field did not resolve"));
-
-    const int32_t offset = state.Offset + capture.Offset;
-    WriteAt<bool>(*entity, offset, enabled);
-
-    // The chainer lives on the entity and the engine wants the absolute offset of what changed, so
-    // the outer field's ref carries both with the summed offset substituted in.
-    MarkChanged(
-        *entity,
-        FieldRef{
-            .Offset = offset, .Size = capture.Size, .ChainOffset = state.ChainOffset});
+    //
+    // The embedded view carries the owning entity and its own offset within it, so the generated
+    // setter dirties the entity at the summed offset without any of that being spelled out here.
+    Schema::CCSCustomHudLayout{*entity}.GlobalLayoutState().SetInputCaptureEnabled(enabled);
     return {};
 }
 

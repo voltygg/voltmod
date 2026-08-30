@@ -1,5 +1,4 @@
 #include "Engine/ConsoleLogger.hpp"
-#include "Entities/SchemaResolve.hpp"
 
 #include <ISmmAPI.h>
 #include <VoltMod/Core/EnumNames.hpp>
@@ -7,6 +6,7 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Paths.hpp>
 #include <VoltMod/Runtime.hpp>
+#include <VoltMod/Schema/Layout.hpp>
 #include <chrono>
 #include <eiface.h>
 #include <engine/igameeventsystem.h>
@@ -158,9 +158,21 @@ bool Runtime::InitializeServices(const LoadContext& context)
         });
     };
 
-    // One process-wide file-static, not a per-Runtime service: the schema system is a single
-    // engine object and the offsets it answers with are constants of the loaded binary.
-    degradable("Schema", Capability::Schema, [&] { return BindSchemaSystem(Unsafe.Interfaces.SchemaSystem); });
+    // Field offsets are baked into the generated accessors at build time, so a CS2 update that
+    // moves a used class turns every one of them into a wrong-address read or write. This is the
+    // only thing standing between that and silent memory corruption, so it aborts the load rather
+    // than degrading like the stages around it.
+    Schema::BindSchemaVerification(Unsafe.Interfaces.SchemaSystem);
+    const auto schemaLayout = report.Run("SchemaLayout", [&] {
+        if (auto verified = Schema::VerifySchemaLayout(); !verified)
+            return StageResult::Failed(verified.error().Detail);
+        return StageResult::Ok();
+    });
+    if (schemaLayout == StageStatus::Failed)
+    {
+        context.Ismm->Format(context.Error, context.MaxLen, "%s", report.FirstFailure().c_str());
+        return false;
+    }
     report.Run("Entities", [&] {
         auto ready = Entities.Initialize();
         if (!ready)

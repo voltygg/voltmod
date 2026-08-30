@@ -26,7 +26,7 @@ std::string Player::Name() const
         // controller, and the engine also reports an empty name for a moment around connect.
         if (Controller controller = _entities->Controller(_slot))
         {
-            std::string live = controller.Name.Get().Str();
+            std::string live(controller.Name());
             if (!live.empty())
                 return live;
         }

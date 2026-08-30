@@ -43,7 +43,7 @@ void GlowVision::CreatePair(int slot, GlowPair& pair)
         return;
 
     std::string model = pawn.ModelName();
-    const int team = pawn.Team;
+    const int team = pawn.Team();
     if (model.empty())
         return;
 
@@ -91,7 +91,7 @@ void GlowVision::Reconcile()
         auto& pair = _pairs[slot];
 
         Pawn pawn = _entities.PawnOf(slot);
-        const int team = pawn ? static_cast<int>(pawn.Team) : 0;
+        const int team = pawn ? static_cast<int>(pawn.Team()) : 0;
         // Ghosted pawns never transmit to the beneficiary, so a clone would follow nothing.
         bool desired = slot != _beneficiarySlot && pawn && pawn.IsAlive() && (team == TeamT || team == TeamCT) &&
                        !_transmit.IsPawnHidden(slot) && (!_config.Filter || _config.Filter(slot));

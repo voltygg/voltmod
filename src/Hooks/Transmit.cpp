@@ -1,6 +1,6 @@
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
-#include <VoltMod/Entities/SchemaPtr.hpp>
+#include <VoltMod/Schema/Api.hpp>
 #include <VoltMod/Hooks/Transmit.hpp>
 #include <checktransmitinfo.h>
 #include <cstdint>
@@ -21,12 +21,6 @@ struct HandleVectorView
     const uint32_t* Elements;
 };
 
-// Sub-object fields with no wrapper of their own; resolved once for the process on first use.
-static const SchemaField<void*> kObserverServices{"CBasePlayerPawn", "m_pObserverServices"};
-static const SchemaField<uint32_t> kObserverTarget{"CPlayer_ObserverServices", "m_hObserverTarget"};
-static const SchemaField<void*> kWeaponServices{"CBasePlayerPawn", "m_pWeaponServices"};
-static const SchemaField<HandleVectorView> kMyWeapons{"CPlayer_WeaponServices", "m_hMyWeapons", 0};
-static const SchemaField<HandleVectorView> kMyWearables{"CBaseCombatCharacter", "m_hMyWearables", 0};
 
 struct HiddenPlayer
 {
@@ -43,10 +37,11 @@ static void AddIndex(HiddenPlayer& player, int index)
         player.PawnIndices[player.IndexCount++] = index;
 }
 
-static void AddHandleVector(EntitySystem& entities, HiddenPlayer& player, SchemaPtr base,
-                            const SchemaField<HandleVectorView>& field)
+// The generated accessor bakes the vector's offset and hands back its address; the element
+// layout stays here, where the one struct that describes it lives.
+static void AddHandleVector(EntitySystem& entities, HiddenPlayer& player, void* vector)
 {
-    const auto* view = base.Ptr(field);
+    const auto* view = static_cast<const HandleVectorView*>(vector);
     if (!view || !view->Elements)
         return;
     for (int32_t i = 0; i < view->Count && i < MaxIndicesPerPlayer; ++i)
@@ -60,9 +55,11 @@ static CEntityInstance* GetObserverTarget(EntitySystem& entities, int recipientS
 {
     // Possessed(), not GetPawn(): while dead or spectating the observer pawn carries the camera.
     Pawn pawn = entities.Controller(recipientSlot).Possessed();
-    const uint32_t target = SchemaPtr{pawn.Raw()}.Follow(kObserverServices).Get(kObserverTarget, InvalidEntityHandle);
+    const Schema::CPlayer_ObserverServices services = pawn.ObserverServices();
+    if (!services)
+        return nullptr;
 
-    return entities.Resolve(EntityRef{target}).Raw();
+    return entities.Resolve(EntityRef{services.ObserverTarget()}).Raw();
 }
 
 static void CollectHiddenPlayer(EntitySystem& entities, int slot, bool pawnHidden, bool controllerHidden,
@@ -87,8 +84,8 @@ static void CollectHiddenPlayer(EntitySystem& entities, int slot, bool pawnHidde
     out.Pawn = pawn.Raw();
     AddIndex(out, pawn.Index());
 
-    AddHandleVector(entities, out, SchemaPtr{out.Pawn}.Follow(kWeaponServices), kMyWeapons);
-    AddHandleVector(entities, out, SchemaPtr{out.Pawn}, kMyWearables);
+    AddHandleVector(entities, out, pawn.WeaponServices().MyWeapons());
+    AddHandleVector(entities, out, pawn.MyWearables());
 }
 
 Transmit::Transmit(EntitySystem& entities, const Bindings& bindings, SlotEvents& slots)

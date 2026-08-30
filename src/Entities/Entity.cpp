@@ -3,6 +3,7 @@
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/Render.hpp>
+#include <VoltMod/Schema/Api.hpp>
 #include <eiface.h>
 #include <entity2/entityidentity.h>
 #include <entity2/entityinstance.h>
@@ -13,12 +14,9 @@ namespace VoltMod
 
 // Origin and rotation are not schema fields of CBaseEntity in CS2; they live on the entity's
 // CGameSceneNode, reached via m_CBodyComponent -> m_pSceneNode.
-static SchemaPtr SceneNode(CEntityInstance* entity)
+static Schema::CGameSceneNode SceneNode(CEntityInstance* entity)
 {
-    static const SchemaField<void> body{"CBaseEntity", "m_CBodyComponent"};
-    static const SchemaField<void*> node{"CBodyComponent", "m_pSceneNode"};
-
-    return SchemaPtr{entity}.At(body).Follow(node);
+    return Schema::CBaseEntity{entity}.BodyComponent().SceneNode();
 }
 
 int Entity::Index() const
@@ -41,15 +39,15 @@ std::string_view Entity::ClassName() const
 
 Vector Entity::Origin() const
 {
-    static const SchemaField<Vector> origin{"CGameSceneNode", "m_vecAbsOrigin"};
     // Spelled out rather than left to `Vector{}`: the SDK's default constructor does not zero.
-    return SceneNode(_e).Get(origin, Vector(0.0f, 0.0f, 0.0f));
+    const Schema::CGameSceneNode node = SceneNode(_e);
+    return node ? node.AbsOrigin() : Vector(0.0f, 0.0f, 0.0f);
 }
 
 QAngle Entity::Angles() const
 {
-    static const SchemaField<QAngle> rotation{"CGameSceneNode", "m_angAbsRotation"};
-    return SceneNode(_e).Get(rotation, QAngle(0.0f, 0.0f, 0.0f));
+    const Schema::CGameSceneNode node = SceneNode(_e);
+    return node ? node.AbsRotation() : QAngle(0.0f, 0.0f, 0.0f);
 }
 
 Status Entity::Teleport(std::optional<Vector> origin, std::optional<QAngle> angles,
@@ -68,14 +66,14 @@ Status Entity::Teleport(std::optional<Vector> origin, std::optional<QAngle> angl
 
 Vector Pawn::EyePosition() const
 {
-    return Origin() + ViewOffset.Get();
+    return Origin() + ViewOffset();
 }
 
 void Pawn::SetMove(MoveType type) const
 {
-    const auto value = static_cast<uint8_t>(type);
-    MoveTypeRaw = value;
-    ActualMoveTypeRaw = value;
+    const auto value = static_cast<Schema::MoveType_t>(type);
+    SetMoveTypeRaw(value);
+    SetActualMoveTypeRaw(value);
 }
 
 Status Pawn::Slay() const
@@ -91,26 +89,19 @@ Status Pawn::Slay() const
     return {};
 }
 
-// The observer mode lives on a sub-object the pawn points at, so it is a method rather than a
-// Field: there is no fixed offset from the pawn to reach it.
-static SchemaPtr ObserverServices(CEntityInstance* pawn)
-{
-    static const SchemaField<void*> services{"CBasePlayerPawn", "m_pObserverServices"};
-    return SchemaPtr{pawn}.Follow(services);
-}
-
-static const SchemaField<uint8_t> kObserverMode{"CPlayer_ObserverServices", "m_iObserverMode"};
-
 ObserverMode_t Pawn::GetObserverMode() const
 {
-    return static_cast<ObserverMode_t>(
-        ObserverServices(_e).Get(kObserverMode, static_cast<uint8_t>(ObserverMode_t::None)));
+    const Schema::CPlayer_ObserverServices services = ObserverServices();
+    return services ? static_cast<ObserverMode_t>(services.ObserverMode()) : ObserverMode_t::None;
 }
 
 Status Pawn::SetObserverMode(ObserverMode_t value) const
 {
-    if (!ObserverServices(_e).Set(kObserverMode, static_cast<uint8_t>(value)))
+    const Schema::CPlayer_ObserverServices services = ObserverServices();
+    if (!services)
         return std::unexpected(Error::NotReady("observer services unavailable"));
+
+    services.SetObserverMode(static_cast<uint8_t>(value));
     return {};
 }
 
@@ -118,10 +109,11 @@ std::string Pawn::ModelName() const
 {
     // The pawn's scene node is a CSkeletonInstance; the model path is the CUtlSymbolLarge inside
     // its embedded CModelState (an interned string pointer).
-    static const SchemaField<void> state{"CSkeletonInstance", "m_modelState"};
-    static const SchemaField<const char*> name{"CModelState", "m_ModelName"};
+    const Schema::CSkeletonInstance skeleton{SceneNode(_e).Base()};
+    if (!skeleton)
+        return {};
 
-    const char* path = SceneNode(_e).At(state).Get(name, nullptr);
+    const char* path = skeleton.ModelState().ModelName();
     return path ? std::string(path) : std::string{};
 }
 
@@ -153,9 +145,7 @@ int Pawn::Slot() const
 
 Controller::Controller(EntitySystem& entities, CEntityInstance* raw, int slot) : Entity(entities, raw), _slot(slot)
 {
-    static const SchemaField<uint32_t> playerPawn{"CCSPlayerController", "m_hPlayerPawn"};
-
-    _pawn = entities.Resolve(EntityRef{SchemaPtr{_e}.Get(playerPawn, InvalidEntityHandle)}).Raw();
+    _pawn = entities.Resolve(EntityRef{PlayerPawnHandle()}).Raw();
 }
 
 Pawn Controller::GetPawn() const
@@ -165,32 +155,26 @@ Pawn Controller::GetPawn() const
 
 Pawn Controller::Possessed() const
 {
-    static const SchemaField<uint32_t> possessedPawn{"CBasePlayerController", "m_hPawn"};
-
     if (!_sys)
         return {};
-    return Pawn{*_sys, _sys->Resolve(EntityRef{SchemaPtr{_e}.Get(possessedPawn, InvalidEntityHandle)}).Raw()};
+    return Pawn{*_sys, _sys->Resolve(EntityRef{PawnHandle()}).Raw()};
 }
-
-// The balance lives in a sub-object the controller points at, so it needs the same two-step reach
-// as the observer mode above.
-static const SchemaField<void*> kMoneyServices{"CCSPlayerController", "m_pInGameMoneyServices"};
-static const SchemaField<int> kAccount{"CCSPlayerController_InGameMoneyServices", "m_iAccount"};
 
 int Controller::Money() const
 {
-    return SchemaPtr{_e}.Follow(kMoneyServices).Get(kAccount);
+    const Schema::CCSPlayerController_InGameMoneyServices money = InGameMoneyServices();
+    return money ? money.Account() : 0;
 }
 
 Status Controller::SetMoney(int amount) const
 {
-    if (!SchemaPtr{_e}.Follow(kMoneyServices).Set(kAccount, amount))
+    // The money services carry their own __m_pChainEntity, so the generated setter dirties the
+    // controller through that chainer; there is no outer pointer field to mark by hand.
+    const Schema::CCSPlayerController_InGameMoneyServices money = InGameMoneyServices();
+    if (!money)
         return std::unexpected(Error::NotReady("money services unavailable"));
 
-    // The write is inside a sub-object, so it is invisible to the client on its own. Dirty the
-    // controller's own pointer field, which is what the entity actually replicates through; the
-    // HUD picks the new value up on the next update.
-    MarkChanged(_e, *kMoneyServices);
+    money.SetAccount(amount);
     return {};
 }
 

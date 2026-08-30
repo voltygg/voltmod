@@ -7,7 +7,7 @@ from typing import Annotated
 import typer
 
 from . import localdev, tools
-from .builder import package, panorama, project
+from .builder import package, panorama, project, schemagen
 from .checks import doctor, modgraph
 from .scaffold import init_project, new_plugin
 
@@ -20,6 +20,7 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 app.add_typer(package.app, name="package")
+app.add_typer(schemagen.app, name="schemagen")
 
 ServerPath = Annotated[
     str,

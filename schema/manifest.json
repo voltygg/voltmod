@@ -1,0 +1,69 @@
+{
+  "_comment": [
+    "A framework build input, not a plugin manifest: it names the schema classes and fields the",
+    "generated accessor layer covers. Offsets never appear here - they come from server.json.",
+    "Field syntax: \"m_name\", \"m_name>Accessor\" to rename, \"m_name:CppType\" to read the field",
+    "as that C++ type (a leading-value read), or both as \"m_name>Accessor:CppType\".",
+    "A class value of \"*\" takes every field the dump reports.",
+    "After editing, regenerate with `uv run voltmod schemagen --dump <server.json>`."
+  ],
+  "classes": {
+    "CBaseEntity": [
+      "m_iHealth>Health",
+      "m_iTeamNum>Team",
+      "m_lifeState",
+      "m_fFlags>Flags",
+      "m_vecAbsVelocity>Velocity",
+      "m_MoveType>MoveTypeRaw",
+      "m_nActualMoveType>ActualMoveTypeRaw",
+      "m_hGroundEntity",
+      "m_CBodyComponent>BodyComponent"
+    ],
+    "CBaseModelEntity": [
+      "m_vecViewOffset>ViewOffset:Vector",
+      "m_nRenderMode",
+      "m_clrRender>RenderColor"
+    ],
+    "CBasePlayerController": ["m_iszPlayerName>Name", "m_hPawn>PawnHandle"],
+    "CBasePlayerPawn": [
+      "m_pObserverServices>ObserverServices",
+      "m_pItemServices>ItemServices",
+      "m_pMovementServices>MovementServices",
+      "m_pWeaponServices>WeaponServices",
+      "m_hController>ControllerHandle"
+    ],
+    "CBaseCombatCharacter": ["m_hMyWearables>MyWearables"],
+    "CBodyComponent": ["m_pSceneNode>SceneNode"],
+    "CCSPlayerController": ["m_hPlayerPawn>PlayerPawnHandle", "m_pInGameMoneyServices>InGameMoneyServices"],
+    "CCSPlayerController_InGameMoneyServices": ["m_iAccount>Account"],
+    "CCSPlayerPawn": [
+      "m_ArmorValue>Armor",
+      "m_angEyeAngles>EyeAngles",
+      "m_flVelocityModifier>SpeedModifier",
+      "m_bOnGroundLastTick"
+    ],
+    "CCSPlayerPawnBase": ["m_flFlashDuration", "m_flFlashMaxAlpha"],
+    "CGameSceneNode": ["m_vecAbsOrigin>AbsOrigin", "m_angAbsRotation>AbsRotation"],
+    "CInButtonState": ["m_pButtonStates>ButtonStates"],
+    "CModelState": ["m_ModelName>ModelName"],
+    "CPlayer_MovementServices": ["m_nButtons>Buttons"],
+    "CPlayer_ObserverServices": ["m_iObserverMode>ObserverMode", "m_hObserverTarget"],
+    "CPlayer_WeaponServices": ["m_hMyWeapons>MyWeapons"],
+    "CSkeletonInstance": ["m_modelState>ModelState"],
+    "CCSCustomHudLayout": [
+      "m_vecPanelIds>PanelIds",
+      "m_vecClassNames>ClassNames",
+      "m_vecDialogVariableNames>DialogVariableNames",
+      "m_globalLayoutState>GlobalLayoutState",
+      "m_vecPlayerLayoutStates>PlayerLayoutStates",
+      "m_strLayout>Layout"
+    ],
+    "CCSCustomHudLayoutState": ["m_bInputCaptureEnabled>InputCaptureEnabled"],
+    "CVoteController": "*"
+  },
+  "wrappers": {
+    "Entity": ["CBaseEntity"],
+    "Pawn": ["CCSPlayerPawn", "CCSPlayerPawnBase", "CBasePlayerPawn", "CBaseCombatCharacter", "CBaseModelEntity"],
+    "Controller": ["CCSPlayerController", "CBasePlayerController"]
+  }
+}

@@ -25,18 +25,15 @@ ops.EmitSound(entity, "SoundEventName");   // .vsndevts event name, not a file p
 Never `delete` an entity. Use `Remove` immediately or `RemoveDelayed` through
 the engine's I/O queue.
 
-For unwrapped entities, use a typed `static` @ref VoltMod::SchemaField through a
-@ref VoltMod::SchemaPtr. Notify live writes with @ref VoltMod::MarkChanged.
+For an entity with no curated wrapper, add its class to `schema/manifest.json`, regenerate, and
+use the generated view. The setter dirties the field itself:
 
 ```cpp
-static const VoltMod::SchemaField<float> kWidth{"CBeam", "m_fWidth"};
-
-if (VoltMod::SchemaPtr{beam}.Set(kWidth, 2.0f))
-    VoltMod::MarkChanged(beam, *kWidth);   // unnecessary before DispatchSpawn
+VoltMod::Schema::CBeam{beam}.SetWidth(2.0f);
 ```
 
 Fields written before `DispatchSpawn` go out with the first snapshot on their own, so the
-notification is only needed for a live entity.
+notification a live entity needs costs nothing here.
 
 ## Precache
 

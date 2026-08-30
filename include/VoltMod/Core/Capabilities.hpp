@@ -12,7 +12,6 @@ namespace VoltMod
 /** Features whose availability depends on engine state or gamedata. */
 enum class Capability : uint16_t
 {
-    Schema,       ///< Entity field offsets from the engine's schema system.
     Entities,     ///< CGameEntitySystem and everything reached through it.
     EntityOps,    ///< Creating and spawning entities. Other entity operations guard themselves.
     GameEvents,   ///< IGameEventManager2: game event listeners and center HTML.

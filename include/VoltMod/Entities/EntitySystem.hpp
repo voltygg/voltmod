@@ -6,7 +6,7 @@
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Entities/Controller.hpp>
-#include <VoltMod/Entities/SchemaPtr.hpp>
+#include <VoltMod/Schema/Generated/CPlayer_MovementServices.hpp>
 #include <cstdint>
 #include <string_view>
 
@@ -92,9 +92,9 @@ public:
      *  so they arrive while dead or spectating too. */
     uint64_t Buttons(int slot);
 
-    /** The player pawn's CPlayer_MovementServices for @p slot, or null (no pawn, offsets
-     *  unresolved). */
-    SchemaPtr MovementServices(int slot);
+    /** The player pawn's CPlayer_MovementServices for @p slot, or a falsy view when the slot
+     *  has no pawn. */
+    Schema::CPlayer_MovementServices MovementServices(int slot);
 
     bool IsPlayerSlotValid(int slot);
 

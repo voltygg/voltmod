@@ -58,27 +58,40 @@ not safe, which is why wrappers must never be stored.
 
 ## Fields
 
-A member declared as @ref VoltMod::Field is a schema field used as if it were a data member. It
-converts to its type on read, takes its type on write, and compares directly:
+Schema fields are accessor methods, generated from `schema/manifest.json` with the offsets baked
+in at build time:
 
 ```cpp
-if (pawn.Team == VoltMod::TeamCT && pawn.Flags.Get() & VoltMod::FL_ONGROUND)
-    pawn.SpeedModifier = 1.5f;
+if (pawn.Team() == VoltMod::TeamCT && (pawn.Flags() & VoltMod::FL_ONGROUND))
+    pawn.SetSpeedModifier(1.5f);
 ```
 
-Compared with a raw offset, `Field`:
+Nothing resolves at runtime. `voltmod schemagen` reads a schema dump and writes
+`include/VoltMod/Schema/Generated/`, and the wrappers pick those accessors up through a generated
+fragment included in their class body, so adding a field to the manifest reaches plugins with no
+hand-written line anywhere. A `Set` dirties the field for the next snapshot: an entity notifies
+itself, a component with a `__m_pChainEntity` notifies through its chainer, and a struct embedded
+in an entity notifies the entity at the summed offset. A field with no such route generates no
+setter at all.
 
-1. **Resolves once per process.** Each `(class, field)` lookup is cached for the
-   server process.
-2. **Walks base classes.** A field declared on a base resolves from its derived
-   entity class.
-3. **Replicates networked writes.** The field is dirtied for the next snapshot.
+Because the offsets are baked, a CS2 update that moves a used class would turn every accessor into
+a wrong-address read. `Runtime::Start` therefore compares the whole generated layout against the
+live schema and **aborts the load** on any mismatch, naming the field:
 
-`Field::Ref()` exposes the resolved @ref VoltMod::FieldRef (offset, size, networked, chain), and
-`Get()` / `Set()` are there when the conversion operators read badly at a call site.
+```text
+schema drift (regenerate with voltmod schemagen):
+  CCSPlayerPawn::m_ArmorValue: offset 4828 -> 4820
+```
 
-For a field with no wrapper to hang it on, declare a typed `static` @ref VoltMod::SchemaField and reach
-it through a @ref VoltMod::SchemaPtr - see @ref sdk_gamedata_guide "Gamedata".
+Update day is one pass: run `schema_dump` on a live server, `voltmod schemagen --dump <path>`,
+review the `git diff` of the generated code, rebuild.
+
+For a class with no curated wrapper, construct its generated view directly:
+
+```cpp
+VoltMod::Schema::CCSPlayerPawn view{pawn.Raw()};
+view.SetArmor(100);
+```
 
 ## EntitySystem
 

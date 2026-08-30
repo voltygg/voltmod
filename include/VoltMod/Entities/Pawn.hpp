@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoltMod/Entities/Entity.hpp>
+#include <VoltMod/Schema/Generated/CCSPlayerPawn.hpp>
 #include <VoltMod/Entities/MoveType.hpp>
 #include <VoltMod/Entities/ObserverMode.hpp>
 #include <VoltMod/Entities/Render.hpp>
@@ -25,38 +26,27 @@ class Pawn : public Entity
 public:
     using Entity::Entity;
 
-    /** @name CCSPlayerPawn / CBaseModelEntity fields. */
+    /** @name CCSPlayerPawn, CBasePlayerPawn and CBaseModelEntity fields.
+     *
+     *  Generated from `schema/manifest.json`. Notes worth keeping in mind:
+     *  - `EyeAngles` is declared on CCSPlayerPawn, not on CCSPlayerPawnBase.
+     *  - `SpeedModifier` decays toward 1.0 (e.g. after firing), so it is a nudge, not a setting.
+     *  - `GroundEntity` is @ref InvalidEntityHandle when airborne.
+     *  - `FlashMaxAlpha` of 255 means the last flash was a full blind; for blind-time bookkeeping
+     *    prefer the typed `PlayerBlind` game event, which carries the duration directly.
+     *  - `ViewOffset` reads the leading Vector of a 40-byte CNetworkViewOffsetVector.
+     *  - `RenderColor` is RGBA; the low byte is R and the high byte is A.
+     */
     /** @{ */
-    Field<int, "CCSPlayerPawn", "m_ArmorValue"> Armor{_e};
-    /** Networked aim angles. CS2 declares this on CCSPlayerPawn, not on CCSPlayerPawnBase: the
-     *  resolver walks toward base classes, so a field the schema puts on the *derived* class only
-     *  answers under that name. */
-    Field<QAngle, "CCSPlayerPawn", "m_angEyeAngles"> EyeAngles{_e};
-    /** Movement-speed multiplier; 1.0 is normal. The game decays it toward 1.0 (e.g. after
-     *  firing), so it is a nudge and not a setting. */
-    Field<float, "CCSPlayerPawn", "m_flVelocityModifier"> SpeedModifier{_e};
-    /** EHandle of whatever the pawn is standing on; @ref InvalidEntityHandle when airborne. */
-    Field<uint32_t, "CBaseEntity", "m_hGroundEntity"> GroundEntity{_e};
-    Field<bool, "CCSPlayerPawn", "m_bOnGroundLastTick"> OnGroundLastTick{_e};
-    /** Remaining full-blind fade seconds set by the last flashbang. For blind-time bookkeeping
-     *  prefer the typed `PlayerBlind` game event, which carries the duration directly. */
-    Field<float, "CCSPlayerPawnBase", "m_flFlashDuration"> FlashDuration{_e};
-    /** 255 means the last flash was a full blind. */
-    Field<float, "CCSPlayerPawnBase", "m_flFlashMaxAlpha"> FlashMaxAlpha{_e};
-    /** Eye height above the origin. The engine field is a 40-byte CNetworkViewOffsetVector led by
-     *  this Vector, so the size check is switched off. */
-    Field<Vector, "CBaseModelEntity", "m_vecViewOffset", 0> ViewOffset{_e};
-    Field<uint8_t, "CBaseModelEntity", "m_nRenderMode"> RenderMode{_e};
-    /** RGBA; low byte is R, high byte is A. */
-    Field<uint32_t, "CBaseModelEntity", "m_clrRender"> RenderColor{_e};
+#include <VoltMod/Schema/Generated/Wrappers/Pawn.inc>
     /** @} */
 
-    [[nodiscard]] bool IsAlive() const { return _e != nullptr && LifeState.Get() == 0; }
+    [[nodiscard]] bool IsAlive() const { return _e != nullptr && LifeState() == 0; }
 
     /** Where this pawn's shots originate: the origin plus @ref ViewOffset. */
     [[nodiscard]] Vector EyePosition() const;
 
-    [[nodiscard]] MoveType Move() const { return static_cast<MoveType>(MoveTypeRaw.Get()); }
+    [[nodiscard]] MoveType Move() const { return static_cast<MoveType>(MoveTypeRaw()); }
 
     /** Writes both `m_MoveType` and `m_nActualMoveType`; setting only one lets the engine revert
      *  it on the next tick. */

@@ -143,8 +143,6 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Core/SteamId.cpp
             src/Core/Time.cpp
             src/Core/Translations.cpp
-            # SchemaQuery.cpp is not.
-            src/Entities/SchemaResolve.cpp
             src/Players/PlayerManager.cpp
             src/Players/Policy.cpp
             src/Hooks/ClientCvarPending.cpp

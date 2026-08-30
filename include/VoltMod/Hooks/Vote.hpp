@@ -7,6 +7,7 @@
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/RecipientFilter.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
+#include <VoltMod/Schema/Generated/CVoteController.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <cstdint>
 #include <functional>
@@ -107,7 +108,7 @@ private:
     INetworkMessageInternal* _votePassInternal = nullptr;
     INetworkMessageInternal* _voteFailedInternal = nullptr;
     /** The map's vote_controller, re-acquired per vote: a new map is a new entity. */
-    SchemaPtr _controller;
+    Schema::CVoteController _controller;
     bool _inProgress = false;
     /** Bumped per vote so a timeout cannot end the vote that replaced it. */
     uint64_t _voteId = 0;

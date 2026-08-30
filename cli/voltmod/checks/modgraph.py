@@ -4,18 +4,19 @@ import re
 from pathlib import Path
 
 SOURCE_DIRS = ("include/VoltMod", "src")
-SOURCE_SUFFIXES = {".hpp", ".cpp"}
+SOURCE_SUFFIXES = {".hpp", ".cpp", ".inc"}
 
 # Transitive dependencies are explicit because this map defines the layering.
 ALLOWED: dict[str, set[str]] = {
     "Core": set(),
     "Engine": {"Core"},
-    "Entities": {"Core", "Engine"},
+    "Schema": {"Core", "Engine"},
+    "Entities": {"Core", "Engine", "Schema"},
     "Events": {"Core", "Engine", "Entities"},
     "Messaging": {"Core", "Engine", "Entities", "Events"},
     "Players": {"Core", "Engine", "Entities"},
-    "Hooks": {"Core", "Engine", "Entities", "Events", "Players", "Unsafe"},
-    "Ui": {"Core", "Engine", "Entities", "Unsafe"},
+    "Hooks": {"Core", "Engine", "Schema", "Entities", "Events", "Players", "Unsafe"},
+    "Ui": {"Core", "Engine", "Schema", "Entities", "Unsafe"},
     "Workshop": {"Core", "Engine", "Players", "Unsafe"},
     "Commands": {"Core", "Engine", "Entities", "Players", "Messaging"},
     "Menu": {"Core", "Engine", "Entities", "Players", "Messaging", "Hooks", "Ui"},
@@ -25,6 +26,7 @@ ALLOWED: dict[str, set[str]] = {
     "App": {
         "Core",
         "Engine",
+        "Schema",
         "Entities",
         "Events",
         "Messaging",

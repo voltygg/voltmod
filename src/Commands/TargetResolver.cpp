@@ -25,7 +25,7 @@ std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(PlayerManager&
             .Slot = player->Slot(),
             .SteamId = player->SteamId(),
             .Name = player->Name(),
-            .Team = pawn ? static_cast<int>(pawn.Team) : 0,
+            .Team = pawn ? static_cast<int>(pawn.Team()) : 0,
             .Alive = pawn && pawn.IsAlive(),
             .Bot = player->IsBot(),
             // The command permission was already checked; this gate only checks the target.

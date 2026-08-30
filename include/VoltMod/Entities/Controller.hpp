@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoltMod/Entities/Pawn.hpp>
+#include <VoltMod/Schema/Generated/CCSPlayerController.hpp>
 #include <cstdint>
 #include <string_view>
 
@@ -30,10 +31,16 @@ public:
     Controller(const Controller&) = default;
     Controller& operator=(const Controller&) = delete;
 
-    /** Scoreboard name (`m_iszPlayerName`, a 128-byte fixed buffer). Assigning truncates to 127
-     *  characters plus NUL. Replication piggybacks on the next state-change broadcast, so pair a
-     *  write with @ref ChangeTeam or similar when the scoreboard has to refresh now. */
-    Field<CharBuf<128>, "CBasePlayerController", "m_iszPlayerName"> Name{_e};
+    /** @name CCSPlayerController and CBasePlayerController fields.
+     *
+     *  Generated from `schema/manifest.json`. `Name` is `m_iszPlayerName`, a 128-byte fixed
+     *  buffer: `SetName` truncates to 127 characters plus NUL, and replication piggybacks on the
+     *  next state-change broadcast, so pair a write with @ref ChangeTeam or similar when the
+     *  scoreboard has to refresh now.
+     */
+    /** @{ */
+#include <VoltMod/Schema/Generated/Wrappers/Controller.inc>
+    /** @} */
 
     /** The slot this controller occupies, or -1. */
     [[nodiscard]] int Slot() const noexcept { return _slot; }

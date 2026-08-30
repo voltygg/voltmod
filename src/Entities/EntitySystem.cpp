@@ -2,6 +2,7 @@
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
+#include <VoltMod/Schema/Api.hpp>
 #include <entity2/concreteentitylist.h>
 #include <entity2/entityidentity.h>
 #include <entity2/entityinstance.h>
@@ -151,10 +152,7 @@ Pawn EntitySystem::PawnOf(int slot)
 
 int EntitySystem::SlotOf(const Pawn& pawn)
 {
-    static const SchemaField<uint32_t> controllerHandle{"CBasePlayerPawn", "m_hController"};
-
-    const uint32_t handle = SchemaPtr{pawn.Raw()}.Get(controllerHandle, InvalidEntityHandle);
-    Entity controller = Resolve(EntityRef{handle});
+    Entity controller = Resolve(EntityRef{Schema::CBasePlayerPawn{pawn.Raw()}.ControllerHandle()});
     if (!controller)
         return -1;
 
@@ -163,28 +161,25 @@ int EntitySystem::SlotOf(const Pawn& pawn)
     return IsValidSlot(slot) ? slot : -1;
 }
 
-// The movement services live on a sub-object the pawn points at, so reaching them is a follow
-// rather than a fixed offset. Which pawn to start from is the caller's choice.
-static SchemaPtr MovementServicesOf(CEntityInstance* pawn)
+// The movement services live on a sub-object the pawn points at. Which pawn to start from is
+// the caller's choice.
+static Schema::CPlayer_MovementServices MovementServicesOf(CEntityInstance* pawn)
 {
-    static const SchemaField<void*> movement{"CBasePlayerPawn", "m_pMovementServices"};
-
-    return SchemaPtr{pawn}.Follow(movement);
+    return Schema::CBasePlayerPawn{pawn}.MovementServices();
 }
 
 uint64_t EntitySystem::Buttons(int slot)
 {
     // m_nButtons is an embedded CInButtonState; m_pButtonStates inside it is uint64[3]:
     // [0] held, [1] changed, [2] scroll.
-    static const SchemaField<void> buttons{"CPlayer_MovementServices", "m_nButtons"};
-    static const SchemaField<uint64_t[]> states{"CInButtonState", "m_pButtonStates"};
-
+    //
     // The possessed pawn, not MovementServices(): while dead the observer pawn takes the input.
-    const uint64_t* held = MovementServicesOf(Controller(slot).Possessed().Raw()).At(buttons).Ptr(states);
-    return held ? held[0] : 0;
+    const Schema::CPlayer_MovementServices services =
+        MovementServicesOf(Controller(slot).Possessed().Raw());
+    return services ? services.Buttons().ButtonStates(0) : 0;
 }
 
-SchemaPtr EntitySystem::MovementServices(int slot)
+Schema::CPlayer_MovementServices EntitySystem::MovementServices(int slot)
 {
     return MovementServicesOf(PawnOf(slot).Raw());
 }

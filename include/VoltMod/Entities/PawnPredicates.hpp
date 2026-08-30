@@ -20,7 +20,7 @@ inline auto InMoveType(MoveType activeType)
 /** An m_fFlags bit is set on the pawn (e.g. FL_GODMODE). */
 inline auto HasPawnFlag(uint32_t flag)
 {
-    return [flag](const Pawn& pawn) { return (pawn.Flags.Get() & flag) != 0; };
+    return [flag](const Pawn& pawn) { return (pawn.Flags() & flag) != 0; };
 }
 
 }  // namespace VoltMod
