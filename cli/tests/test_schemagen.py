@@ -135,7 +135,7 @@ def test_an_entity_notifies_itself_and_a_chained_component_uses_its_chainer():
 def test_a_struct_embedded_in_an_entity_keeps_its_setters():
     _, classes = build()
     assert classes["CEmbedded"].embeds_in_entity is True
-    assert "void SetFlag(bool value) const" in schemagen.emit_header(classes["CEmbedded"], classes)
+    assert "void SetFlag(bool value) const" in schemagen.emit_header(classes["CEmbedded"])
 
 
 def test_a_class_with_no_replication_route_is_read_only():
@@ -144,7 +144,7 @@ def test_a_class_with_no_replication_route_is_read_only():
     d["classes"]["CBaseEntity"]["bases"] = []  # no longer an entity
     classes = schemagen.build_classes(d, manifest())
     assert classes["CEmbedded"].embeds_in_entity is False
-    header = schemagen.emit_header(classes["CEmbedded"], classes)
+    header = schemagen.emit_header(classes["CEmbedded"])
     assert "bool Flag() const" in header
     assert "SetFlag" not in header
 
@@ -164,7 +164,7 @@ def test_a_pointer_field_starts_a_fresh_view_with_no_owner():
 
 def test_each_category_maps_to_the_intended_c_plus_plus_shape():
     _, classes = build()
-    header = schemagen.emit_header(classes["CBaseEntity"], classes)
+    header = schemagen.emit_header(classes["CBaseEntity"])
     assert "int32_t Health() const" in header
     assert "MoveType_t MoveType() const" in header
     assert "uint32_t GroundEntity() const" in header, "a CHandle reads as its raw handle"
@@ -176,7 +176,7 @@ def test_each_category_maps_to_the_intended_c_plus_plus_shape():
 
 def test_the_offset_lands_in_the_source_and_never_in_the_header():
     _, classes = build()
-    assert "720" not in schemagen.emit_header(classes["CBaseEntity"], classes)
+    assert "720" not in schemagen.emit_header(classes["CBaseEntity"])
     assert "static constexpr int32_t kCBaseEntity_Health = 720;" in schemagen.emit_class_source(
         classes["CBaseEntity"]
     )
@@ -214,7 +214,7 @@ def test_a_manifest_field_the_dump_does_not_have_is_a_hard_error():
 
 def test_a_type_override_reads_the_leading_value_of_a_larger_field():
     _, classes = build({"CBaseEntity": ["m_state>Offset:Vector"]})
-    header = schemagen.emit_header(classes["CBaseEntity"], classes)
+    header = schemagen.emit_header(classes["CBaseEntity"])
     assert "Vector Offset() const" in header
 
 
@@ -246,9 +246,7 @@ def test_generating_twice_from_one_dump_gives_identical_text():
     _, second = build()
     for name in first:
         assert schemagen.emit_class_source(first[name]) == schemagen.emit_class_source(second[name])
-        assert schemagen.emit_header(first[name], first) == schemagen.emit_header(
-            second[name], second
-        )
+        assert schemagen.emit_header(first[name]) == schemagen.emit_header(second[name])
 
 
 def test_the_trimmed_baseline_keeps_only_what_the_generator_read():
