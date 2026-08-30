@@ -1,0 +1,14 @@
+{
+  "cmd.noPermission": "You do not have permission to use this command.",
+  "cmd.usage": "Usage: {usage}",
+  "cmd.usage.target": "target",
+  "cmd.usage.targets": "targets",
+  "cmd.usage.duration": "duration",
+  "cmd.usage.steamId": "steamId",
+  "cmd.usage.playerOrSteamId": "target|steamId",
+  "cmd.usage.int": "number",
+  "cmd.usage.word": "value",
+  "cmd.usage.rest": "reason",
+  "cmd.dumpWritten": "Wrote {classes} classes, {enums} enums, {fields} fields ({overrides} redefined by the server scope) to {path}",
+  "cmd.dumpFailed": "Schema dump failed: {reason}"
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "schema-dump settings.jsonc",
+  "description": "Runtime configuration for the schema-dump plugin. Extend alongside the Settings struct in src/Config.hpp - missing keys fall back to their C++ defaults.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "plugin": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "locale": {
+          "type": "string",
+          "default": "en",
+          "description": "Translation language; matches a file in configs/translations."
+        }
+      }
+    }
+  }
+}

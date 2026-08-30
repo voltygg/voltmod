@@ -9,7 +9,8 @@
       "binaryDir": "${sourceDir}/build/${presetName}",
       "toolchainFile": "${sourceDir}/build/${presetName}/generators/conan_toolchain.cmake",
       "cacheVariables": {
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "VOLTMOD_BUILD_TOOLS": "ON"
       }
     },
     {

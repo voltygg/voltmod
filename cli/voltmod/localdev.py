@@ -36,12 +36,23 @@ def default_preset() -> str:
     return os.environ.get("CS2_BUILD_PRESET") or tools.default_preset()
 
 
+# `tools/` holds dev-only plugins: installable by name, never by a bare `voltmod install`.
+PLUGIN_DIRS = ("plugins", "tools")
+
+
+def plugin_dir(root: Path, name: str) -> Path | None:
+    """Where `name`'s sources live, or None."""
+    return next((d for p in PLUGIN_DIRS if (d := root / p / name).is_dir()), None)
+
+
 def plugin_names(root: Path, requested: str) -> list[str]:
     """Resolve the requested plugin, or every plugin under `plugins/`."""
     if requested:
-        if not (root / "plugins" / requested).is_dir():
-            die(f"plugin 'plugins/{requested}' not found")
+        if plugin_dir(root, requested) is None:
+            searched = " or ".join(f"{parent}/{requested}" for parent in PLUGIN_DIRS)
+            die(f"plugin not found: no {searched}")
         return [requested]
+
     plugins = root / "plugins"
     if not plugins.is_dir():
         die(f"no plugins directory at {plugins}")
@@ -104,7 +115,8 @@ def install_plugin(root: Path, name: str, csgo: Path, preset: str, *, named: boo
     print("  -> addons/ (binary, vdf, configs, panorama sources, voltmod gamedata)")
 
     # Preserve operator-edited settings after the first install.
-    settings_src = root / "plugins" / name / "configs" / "settings.jsonc"
+    plugin_root = plugin_dir(root, name) or root / "plugins" / name
+    settings_src = plugin_root / "configs" / "settings.jsonc"
     settings_dst = csgo / "addons" / name / "configs" / "settings.jsonc"
     if settings_src.is_file():
         if settings_dst.is_file():

@@ -14,6 +14,7 @@ include(VoltModTests)
 find_package(cpr CONFIG REQUIRED)
 find_package(glaze CONFIG REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
+
 if(VOLTMOD_ENABLE_POSTGRES)
     find_package(libpqxx CONFIG REQUIRED)
 endif()
@@ -35,6 +36,7 @@ file(GLOB_RECURSE VOLTMOD_DATABASE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SO
 
 add_library(voltmod-runtime STATIC ${VOLTMOD_RUNTIME_SOURCES})
 add_library(VoltMod::Runtime ALIAS voltmod-runtime)
+
 voltmod_set_cxx_defaults(voltmod-runtime)
 target_include_directories(voltmod-runtime PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 # cpr stays out of public headers.
@@ -44,6 +46,7 @@ target_link_libraries(voltmod-runtime
 )
 hl2sdk_attach_engine_sources(voltmod-runtime)
 hl2sdk_attach_generated_sources(voltmod-runtime)
+
 if(WIN32)
     target_link_libraries(voltmod-runtime PUBLIC psapi)
 endif()
@@ -97,6 +100,12 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/gamedata/" DESTINATION gamedata)
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/panorama/" DESTINATION panorama)
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/templates/plugin/" DESTINATION templates/plugin)
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE" DESTINATION licenses)
+
+# Dev-only plugins under tools/. Off so Conan builds never compile or install one; our presets set it.
+option(VOLTMOD_BUILD_TOOLS "Build the dev-only tool plugins under tools/." OFF)
+if(VOLTMOD_BUILD_TOOLS)
+    add_subdirectory(tools/schema-dump)
+endif()
 
 # Cache builds have no tests/ and BUILD_TESTING off.
 if(PROJECT_IS_TOP_LEVEL)
