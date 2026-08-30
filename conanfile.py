@@ -30,7 +30,7 @@ class VoltModConan(ConanFile):
 
     options = {"with_postgres": [True, False]}
 
-    # cpr is header-private. nlohmann_json is public through Api.hpp.
+    # cpr is header-private. glaze is public through App/Config.hpp, never through Api.hpp.
     requires = ("cpr/1.11.2",)
 
     default_options = {
@@ -56,14 +56,10 @@ class VoltModConan(ConanFile):
         return os.path.isfile(os.path.join(self.recipe_folder, "CMakePresets.json"))
 
     def requirements(self):
-        # Plugins include SDK and JSON headers through Api.hpp and link the SDK libraries.
-        self.requires("nlohmann_json/3.11.3", transitive_headers=True)
-        # Core/EnumNames.hpp is public and header-only, so consumers compile magic_enum too.
+        self.requires("glaze/8.0.0", transitive_headers=True)
         self.requires("magic_enum/0.9.7", transitive_headers=True)
-        # The lockfile pins builds while the range avoids recipe edits for SDK updates.
         self.requires("hl2sdk-cs2/[>=2026 <2028]",
                       transitive_headers=True, transitive_libs=True)
-        # minor_mode lets compatible Metamod updates reuse VoltMod binaries.
         self.requires("metamod-source/[>=2.0 <3]",
                       transitive_headers=True, package_id_mode="minor_mode")
         if self.options.with_postgres:
@@ -126,6 +122,9 @@ class VoltModConan(ConanFile):
         self.cpp_info.builddirs = ["cmake"]
         # Export the plugin and test helpers as CMakeDeps build modules.
         self.cpp_info.set_property("cmake_build_modules", [
+            # Must precede the plugin helper: it strips Glaze's /Zc:preprocessor before any
+            # consumer target links glaze::glaze.
+            os.path.join("cmake", "VoltModGlaze.cmake"),
             os.path.join("cmake", "VoltModPlugin.cmake"),
             os.path.join("cmake", "VoltModTests.cmake"),
         ])
@@ -144,7 +143,7 @@ class VoltModConan(ConanFile):
         runtime.requires = [
             "hl2sdk-cs2::hl2sdk-cs2",
             "metamod-source::metamod-source",
-            "nlohmann_json::nlohmann_json",
+            "glaze::glaze",
             "magic_enum::magic_enum",
             "cpr::cpr",
         ]

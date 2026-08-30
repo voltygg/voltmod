@@ -1,6 +1,8 @@
 #include <VoltMod/App/StatusService.hpp>
 #include <VoltMod/Core/Json.hpp>
 #include <format>
+#include <map>
+#include <string>
 #include <string_view>
 #include <tier0/dbg.h>
 #include <tier1/convar.h>
@@ -30,18 +32,18 @@ bool StatusService::IsHealthy() const
 
 std::string StatusService::BuildJson() const
 {
-    // Parse each provider as a value. Replacing discarded values keeps STATUS_JSON valid and names
-    // the failing section for tooling.
-    auto out = nlohmann::json::object();
+    // Providers already return serialized text, so their output is spliced in as raw JSON rather
+    // than parsed into a document and written back out. Invalid output is replaced so one bad
+    // provider cannot invalidate the whole STATUS_JSON line, and names itself for tooling.
+    std::map<std::string, glz::raw_json> out;
     for (const auto& [name, provider] : _sections)
     {
-        auto section = nlohmann::json::parse(provider(), nullptr, /*allow_exceptions=*/false);
-        if (section.is_discarded())
-            section = nlohmann::json{{"error", "provider returned invalid JSON"}};
-        out[name] = std::move(section);
+        std::string section = provider();
+        out[name] = glz::validate_json(section) ? glz::raw_json{R"({"error":"provider returned invalid JSON"})"}
+                                                : glz::raw_json{std::move(section)};
     }
-    out["healthy"] = IsHealthy();
-    return out.dump();
+    out["healthy"] = glz::raw_json{IsHealthy() ? "true" : "false"};
+    return Json::Write(out);
 }
 
 std::string StatusService::BuildText() const
@@ -51,17 +53,23 @@ std::string StatusService::BuildText() const
     {
         out += name;
         out += ":\n";
-        const auto section = nlohmann::json::parse(provider(), nullptr, /*allow_exceptions=*/false);
-        if (section.is_discarded())
-            out += "  <invalid JSON from provider>\n";
-        else if (section.is_object())
+        const auto section = Json::ParseDocument(provider());
+        if (!section)
         {
-            for (const auto& [key, value] : section.items())
-                out += std::format("  {}: {}\n", key, value.is_string() ? value.get<std::string>() : value.dump());
+            out += "  <invalid JSON from provider>\n";
+        }
+        else if (section->is_object())
+        {
+            for (const auto& [key, value] : section->get_object())
+            {
+                // A string reads as itself; anything else is rendered as the JSON it is.
+                std::string rendered = value.is_string() ? value.get_string() : value.dump().value_or(std::string{});
+                out += std::format("  {}: {}\n", key, rendered);
+            }
         }
         else
         {
-            out += std::format("  {}\n", section.dump());
+            out += std::format("  {}\n", section->dump().value_or(std::string{}));
         }
     }
     if (!out.empty() && out.back() == '\n')

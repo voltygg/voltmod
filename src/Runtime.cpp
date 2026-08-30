@@ -13,14 +13,42 @@
 #include <format>
 #include <icvar.h>
 #include <interfaces/interfaces.h>
+#include <map>
 #include <networksystem/inetworkmessages.h>
+#include <optional>
 #include <schemasystem/schemasystem.h>
 #include <string>
 #include <string_view>
 #include <tier1/convar.h>
+#include <vector>
 
 namespace VoltMod
 {
+
+// Fixed-shape status payloads. At namespace scope because reflection reads member names off the
+// type, which a struct declared inside a lambda does not give it.
+
+struct StatusGameDataSection
+{
+    std::string verified;
+    size_t signatures = 0;
+    size_t addresses = 0;
+    size_t vtables = 0;
+    size_t offsets = 0;
+    /** Absent rather than empty when everything resolved. */
+    std::optional<std::vector<std::string>> failed;
+};
+
+struct StatusMenuSection
+{
+    std::string driver;
+    std::string layout;
+};
+
+struct StatusUptimeSection
+{
+    long long seconds = 0;
+};
 
 static constexpr std::string_view DefaultGameDataPath = "addons/voltmod/gamedata/gamedata.jsonc";
 
@@ -208,59 +236,71 @@ void Runtime::RegisterStatusSections()
 {
     // Framework status sections; plugins add theirs in OnLoad. Providers capture `this` - the
     // runtime outlives them (both live for one Load/Unload cycle).
+    // A section whose keys are data (a status name, a capability name) is spliced from
+    // already-serialized parts; one with a fixed shape is a local struct. Either way the values
+    // are serialized rather than formatted - a capability's Reason is free text.
     Status.RegisterSection("load", [this] {
-        auto names = nlohmann::json::object();
+        std::map<StageStatus, std::vector<std::string>> byStatus;
         int ok = 0;
         for (const auto& stage : LoadReport.Stages())
         {
             if (stage.Status == StageStatus::Ok)
                 ++ok;
             else
-                names[std::string(Name(stage.Status))].push_back(stage.Name);
+                byStatus[stage.Status].push_back(stage.Name);
         }
-        names["ok"] = ok;
-        return names.dump();
+
+        std::map<std::string, glz::raw_json> section;
+        for (const auto& [status, names] : byStatus)
+            section[std::string(Name(status))] = glz::raw_json{Json::Write(names)};
+        section["ok"] = glz::raw_json{std::to_string(ok)};
+        return Json::Write(section);
     });
 
     Status.RegisterSection("gamedata", [this] {
-        auto section = nlohmann::json{{"verified", Unsafe.GameData.VerifiedOn()},
-                                      {"signatures", Unsafe.GameData.CountOf(GameData::Kind::Signature)},
-                                      {"addresses", Unsafe.GameData.CountOf(GameData::Kind::Address)},
-                                      {"vtables", Unsafe.GameData.CountOf(GameData::Kind::VTable)},
-                                      {"offsets", Unsafe.GameData.CountOf(GameData::Kind::Offset)}};
+        StatusGameDataSection section{
+            .verified = std::string(Unsafe.GameData.VerifiedOn()),
+            .signatures = Unsafe.GameData.CountOf(GameData::Kind::Signature),
+            .addresses = Unsafe.GameData.CountOf(GameData::Kind::Address),
+            .vtables = Unsafe.GameData.CountOf(GameData::Kind::VTable),
+            .offsets = Unsafe.GameData.CountOf(GameData::Kind::Offset),
+        };
         for (const auto& [name, entry] : Unsafe.GameData.Resolutions())
         {
             if (!entry.Error.empty())
-                section["failed"].push_back(name);
+                section.failed.emplace().push_back(name);
         }
-        return section.dump();
+        return Json::Write(section);
     });
 
     Status.RegisterSection("capabilities", [this] {
-        auto section = nlohmann::json::object();
+        std::map<std::string, std::string> missing;
         int ok = 0;
         for (Capability capability : EnumValues<Capability>())
         {
             if (Capabilities.Has(capability))
                 ++ok;
             else
-                section["missing"][std::string(Name(capability))] = Capabilities.Reason(capability);
+                missing.emplace(std::string(Name(capability)), std::string(Capabilities.Reason(capability)));
         }
-        section["ok"] = ok;
-        return section.dump();
+
+        std::map<std::string, glz::raw_json> section;
+        if (!missing.empty())
+            section["missing"] = glz::raw_json{Json::Write(missing)};
+        section["ok"] = glz::raw_json{std::to_string(ok)};
+        return Json::Write(section);
     });
 
     // Which menu driver is live is a plugin's own choice made at load, and a UsePanorama that was
     // refused leaves no other trace once the log line has scrolled.
     Status.RegisterSection("menus", [this] {
-        return nlohmann::json{{"driver", Menus.IsPanorama() ? "panorama" : "center-html"},
-                              {"layout", std::string(Menus.Layout())}}
-            .dump();
+        return Json::Write(StatusMenuSection{.driver = Menus.IsPanorama() ? "panorama" : "center-html",
+                                             .layout = std::string(Menus.Layout())});
     });
 
     Status.RegisterSection("uptime", [start = std::chrono::steady_clock::now()] {
         const auto uptime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start);
-        return nlohmann::json{{"seconds", uptime.count()}}.dump();
+        return Json::Write(StatusUptimeSection{.seconds = uptime.count()});
     });
 }
 

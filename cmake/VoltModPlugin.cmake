@@ -7,6 +7,8 @@ include_guard(GLOBAL)
 
 # VoltModCommon defines the shared paths and warning helper.
 include("${CMAKE_CURRENT_LIST_DIR}/VoltModCommon.cmake")
+# VoltModGlaze strips the /Zc:preprocessor that Glaze would otherwise push onto the SDK sources.
+include("${CMAKE_CURRENT_LIST_DIR}/VoltModGlaze.cmake")
 
 # Create a Metamod MODULE. SOURCES defaults to `src/*.cpp`.
 #
@@ -20,6 +22,9 @@ function(voltmod_add_plugin target_name)
     if(NOT ARG_VERSION)
         message(FATAL_ERROR "voltmod_add_plugin(${target_name}) requires VERSION")
     endif()
+
+    # Idempotent, and cheap: by now the consumer's find_package(voltmod) has pulled glaze in.
+    voltmod_normalize_glaze()
 
     if(NOT COMMAND hl2sdk_attach_plugin_support)
         message(FATAL_ERROR

@@ -12,12 +12,14 @@ set(CMAKE_FIND_PACKAGE_TARGETS_GLOBAL ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(VoltModCommon)
+include(VoltModGlaze)
 include(VoltModLibrary)
 include(VoltModPlugin)
 include(VoltModTests)
 
 find_package(cpr CONFIG REQUIRED)
-find_package(nlohmann_json CONFIG REQUIRED)
+find_package(glaze CONFIG REQUIRED)
+voltmod_normalize_glaze()
 find_package(magic_enum CONFIG REQUIRED)
 if(VOLTMOD_ENABLE_POSTGRES)
     find_package(libpqxx CONFIG REQUIRED)
@@ -52,7 +54,7 @@ file(GLOB_RECURSE VOLTMOD_Http_SOURCES CONFIGURE_DEPENDS
 
 voltmod_add_library(Runtime
     SOURCES ${VOLTMOD_RUNTIME_SOURCES}
-    LIBS VoltMod::Metamod VoltMod::HL2SDK nlohmann_json::nlohmann_json magic_enum::magic_enum
+    LIBS VoltMod::Metamod VoltMod::HL2SDK glaze::glaze magic_enum::magic_enum
     PRIVATE_LIBS cpr::cpr)
 
 hl2sdk_attach_engine_sources(voltmod-runtime)
@@ -100,7 +102,7 @@ if(VOLTMOD_BUILD_STANDALONE)
     # Conan excludes tests/ and disables BUILD_TESTING for cache builds.
     if(BUILD_TESTING)
         # Verify each Api.hpp compiles alone and the root API does not expose
-        # nlohmann or Menu builders. Runtime supplies their build settings and
+        # Glaze or Menu builders. Runtime supplies their build settings and
         # generated HL2SDK headers, but they do not call it; compiling is the test.
         add_library(voltmod-api-surface-check OBJECT
             tests/Api/RootApiSurfaceTest.cpp
@@ -124,7 +126,7 @@ endif()
 # Recompile pure logic without linking HL2SDK or Metamod.
 if(BUILD_TESTING)
     # SDK-free gamedata and module scanning still need the OS loader.
-    set(VOLTMOD_TEST_LIBRARIES nlohmann_json::nlohmann_json magic_enum::magic_enum)
+    set(VOLTMOD_TEST_LIBRARIES glaze::glaze magic_enum::magic_enum)
     if(WIN32)
         list(APPEND VOLTMOD_TEST_LIBRARIES psapi)
     endif()
@@ -186,4 +188,9 @@ if(BUILD_TESTING)
         INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src"
         LIBRARIES ${VOLTMOD_TEST_LIBRARIES}
     )
+
+    # The shipped gamedata file is parsed by the test suite, so a key that the reader would now
+    # reject (unknown keys are errors) fails here rather than at server load.
+    target_compile_definitions(voltmod-utils-tests PRIVATE
+        VOLTMOD_GAMEDATA_JSONC="${CMAKE_CURRENT_SOURCE_DIR}/gamedata/gamedata.jsonc")
 endif()

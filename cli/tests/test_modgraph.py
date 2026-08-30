@@ -103,14 +103,14 @@ def test_core_may_not_reach_the_sdk(tmp_path):
     assert scan(tmp_path)["engine"]
 
 
-def test_nlohmann_outside_the_allowlist_is_a_violation(tmp_path):
-    write(tmp_path, "src/Core/Thing.cpp", "#include <nlohmann/json.hpp>\n")
-    assert scan(tmp_path)["nlohmann"]
+def test_glaze_outside_the_allowlist_is_a_violation(tmp_path):
+    write(tmp_path, "src/Core/Thing.cpp", "#include <glaze/json.hpp>\n")
+    assert scan(tmp_path)["glaze"]
 
 
-def test_nlohmann_inside_the_allowlist_is_not(tmp_path):
-    write(tmp_path, "include/VoltMod/Core/Json.hpp", "#include <nlohmann/json.hpp>\n")
-    assert not scan(tmp_path)["nlohmann"]
+def test_glaze_inside_the_allowlist_is_not(tmp_path):
+    write(tmp_path, "include/VoltMod/Core/Json.hpp", "#include <glaze/json.hpp>\n")
+    assert not scan(tmp_path)["glaze"]
 
 
 def test_only_app_may_include_the_composition_root(tmp_path):

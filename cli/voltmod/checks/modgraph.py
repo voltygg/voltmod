@@ -47,14 +47,12 @@ AGGREGATE_HEADER = re.compile(r"^include/VoltMod/[A-Za-z0-9_]+/Api\.hpp$")
 ROOT_HEADERS = re.compile(r'#\s*include\s*[<"]VoltMod/(Runtime|Api)\.hpp[>"]')
 ROOT_EXEMPT = {"App"}
 
-NLOHMANN_INCLUDE = re.compile(r'#\s*include\s*[<"]nlohmann/')
-NLOHMANN_ALLOWED = {
+GLAZE_INCLUDE = re.compile(r'#\s*include\s*[<"]glaze/')
+# Core/Json.hpp is the one file that names Glaze. Everything else - including the settings
+# helpers and the gamedata reader - reaches it through <VoltMod/Core/Json.hpp>, which is what
+# keeps the JSON library swappable and out of <VoltMod/Api.hpp>.
+GLAZE_ALLOWED = {
     "include/VoltMod/Core/Json.hpp",
-    "include/VoltMod/App/Config.hpp",
-    "include/VoltMod/App/JsonConfig.hpp",
-    "include/VoltMod/App/PluginSettings.hpp",
-    "src/Engine/GameDataFile.hpp",
-    "src/Engine/GameDataFile.cpp",
 }
 
 CORE_PATHS = ("include/VoltMod/Core/", "src/Core/")
@@ -146,7 +144,7 @@ def scan(files, decl_homes=None):
     @p decl_homes is the set of relative paths allowed to forward-declare, or None to accept any
     `*Types.hpp` - which is all a consumer's arbitrary layout lets us say.
     """
-    found = {"nlohmann": [], "forwards": [], "anonymous": [], "directives": [], "engine": []}
+    found = {"glaze": [], "forwards": [], "anonymous": [], "directives": [], "engine": []}
     for rel, _, text in files:
         header = rel.endswith(".hpp")
         if decl_homes is None:
@@ -154,11 +152,11 @@ def scan(files, decl_homes=None):
         else:
             declaration_home = rel in decl_homes
         core = rel.startswith(CORE_PATHS)
-        allows_nlohmann = rel in NLOHMANN_ALLOWED
+        allows_glaze = rel in GLAZE_ALLOWED
 
         for number, line in enumerate(text.splitlines(), 1):
-            if not allows_nlohmann and NLOHMANN_INCLUDE.search(line):
-                found["nlohmann"].append((rel, number))
+            if not allows_glaze and GLAZE_INCLUDE.search(line):
+                found["glaze"].append((rel, number))
             declared = FORWARD_DECL.match(line)
             if header and not declaration_home and declared:
                 pattern = DEFINITION.format(re.escape(declared.group(1)))
@@ -247,7 +245,7 @@ def check(root: Path) -> int:
     ]
     rooted_headers, rooted_sources = root_includes(files, known)
     found = scan(files, FRAMEWORK_DECL_HOMES)
-    engine_hits, nlohmann_hits = found["engine"], found["nlohmann"]
+    engine_hits, glaze_hits = found["engine"], found["glaze"]
     convention_errors = report_conventions(found, "framework")
 
     if not (
@@ -255,7 +253,7 @@ def check(root: Path) -> int:
         or rooted_headers
         or rooted_sources
         or engine_hits
-        or nlohmann_hits
+        or glaze_hits
         or convention_errors
     ):
         print("\nLayering holds.")
@@ -286,9 +284,9 @@ def check(root: Path) -> int:
             print(f"  {rel}:{number}: {header}")
         print("      Move engine-dependent code to Engine.")
 
-    if nlohmann_hits:
-        print(f"\n{len(nlohmann_hits)} direct nlohmann include(s) outside the allowlist:")
-        for rel, number in nlohmann_hits:
+    if glaze_hits:
+        print(f"\n{len(glaze_hits)} direct glaze include(s) outside the allowlist:")
+        for rel, number in glaze_hits:
             print(f"  {rel}:{number}")
         print("      Include VoltMod/Core/Json.hpp instead.")
     return 1

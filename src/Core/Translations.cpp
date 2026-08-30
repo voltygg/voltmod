@@ -5,6 +5,8 @@
 #include <VoltMod/Core/Translations.hpp>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
+#include <string>
 #include <string_view>
 
 namespace VoltMod
@@ -13,16 +15,19 @@ namespace VoltMod
 // Flatten nested objects into dotted keys (`category.punish`), so callers can group keys in
 // the JSON without changing the flat lookup model. Leaf string values are stored; non-string
 // leaves are ignored.
-static void FlattenInto(const nlohmann::json& node, const std::string& prefix,
+static void FlattenInto(const glz::generic& node, const std::string& prefix,
                         std::unordered_map<std::string, std::string>& out)
 {
-    for (auto& [key, value] : node.items())
+    if (!node.is_object())
+        return;
+
+    for (const auto& [key, value] : node.get_object())
     {
         std::string full = prefix.empty() ? key : prefix + "." + key;
         if (value.is_object())
             FlattenInto(value, full, out);
         else if (value.is_string())
-            out[full] = value.get<std::string>();
+            out[full] = value.get_string();
     }
 }
 /**
@@ -88,23 +93,26 @@ bool Translations::Load(std::string_view dirPath)
             continue;
 
         std::string langCode = entry.path().stem().string();
-        try
-        {
-            std::ifstream file(entry.path());
-            if (!file.is_open())
-                continue;
+        std::ifstream file(entry.path(), std::ios::binary);
+        if (!file.is_open())
+            continue;
 
-            auto data = nlohmann::json::parse(file);
-            auto& langMap = _translations[langCode];
-            FlattenInto(data, "", langMap);
-
-            ++loaded;
-            Log::Info("Loaded translations: {} ({} keys)", langCode, langMap.size());
-        }
-        catch (const std::exception& e)
+        const std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        // A language file is plain JSON, not JSONC - unchanged from before, so a comment in one
+        // still fails the same way rather than starting to work as a side effect of this swap.
+        auto data = Json::ParseDocument(text);
+        if (!data)
         {
-            Log::Warn("Failed to parse {}: {}", entry.path().string(), e.what());
+            // One bad file must not cost the other languages, so this warns and moves on.
+            Log::Warn("Failed to parse {}: {}", entry.path().string(), data.error().Detail);
+            continue;
         }
+
+        auto& langMap = _translations[langCode];
+        FlattenInto(*data, "", langMap);
+
+        ++loaded;
+        Log::Info("Loaded translations: {} ({} keys)", langCode, langMap.size());
     }
 
     Log::Info("Loaded {} language(s).", loaded);

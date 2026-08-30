@@ -18,9 +18,9 @@ namespace VoltMod
  * VoltMod registers its own sections (build, load, gamedata, uptime) during load;
  * plugins add theirs in OnLoad and expose the report with @ref InstallCommand.
  * Providers run on demand, in registration order. Each provider returns its section's
- * payload as compact JSON text - build it with `VoltMod::Json` or `nlohmann::json{...}.dump()`
- * (`<VoltMod/Core/Json.hpp>`) - so this header, reachable from every `<VoltMod/Api.hpp>`
- * translation unit through Runtime, never has to include nlohmann itself.
+ * payload as compact JSON text - build it with `VoltMod::Json::Write` (`<VoltMod/Core/Json.hpp>`)
+ * - so this header, reachable from every `<VoltMod/Api.hpp>` translation unit through Runtime,
+ * never has to include a JSON library itself.
  */
 class StatusService
 {

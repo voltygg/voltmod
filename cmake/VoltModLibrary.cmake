@@ -12,7 +12,7 @@ set(VOLTMOD_PCH_HEADERS
     <entity2/entitysystem.h>
     <tier1/convar.h>
     <google/protobuf/message.h>
-    <nlohmann/json.hpp>
+    <glaze/json.hpp>
     <chrono>
     <format>
     <functional>
