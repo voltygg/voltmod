@@ -147,11 +147,6 @@ Status UiPanel::InputCapture(int slot, bool enabled)
     });
 }
 
-Result<bool> UiPanel::InputCaptured(int slot) const
-{
-    return UiReadInputCapture(_state ? _state->Entities : nullptr, _state ? _state->CurrentEntity : EntityRef{}, slot);
-}
-
 void UiPanel::Forget(int slot)
 {
     if (_state)

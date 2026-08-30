@@ -18,7 +18,7 @@ namespace VoltMod
  * session, shared with the Panorama driver, and this driver's page is only ever the cursor's.
  *
  * @ref PanoramaDriver is the alternative - a real clickable panel, at the cost of shipping a
- * layout to clients and a Windows-only capability.
+ * layout to clients and two signature-bound capabilities.
  */
 class CenterHtmlDriver final : public MenuDriver
 {

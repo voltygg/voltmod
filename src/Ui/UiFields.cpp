@@ -208,17 +208,4 @@ Status UiWriteInputCapture(EntitySystem* entities, EntityRef ref, int slot, bool
     return {};
 }
 
-Result<bool> UiReadInputCapture(EntitySystem* entities, EntityRef ref, int slot)
-{
-    Entity entity = entities ? entities->Resolve(ref) : Entity{};
-    if (!entity)
-        return std::unexpected(Error::NotFound("the custom_hud_layout entity no longer exists"));
-
-    const auto& get = entities->BindingsRef().CustomHudIsInputCapture;
-    if (!get)
-        return std::unexpected(Error::Unsupported("the CustomUi input capture reader did not bind"));
-
-    return get(entity.Raw(), slot);
-}
-
 }  // namespace VoltMod

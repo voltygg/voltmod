@@ -165,14 +165,13 @@ Status Bindings::Bind(const GameData& data, Capabilities& caps)
     bind(FindEntityByName, "CGameEntitySystem_FindEntityByName");
     bind.Signature(LegacyGameEventListener, "LegacyGameEventListener");
 
-    // All six under one capability, so a partial match disables writes rather than letting one
-    // through a null address. Windows-only patterns today; on Linux they resolve as absent.
+    // All five under one capability, so a partial match disables writes rather than letting one
+    // through a null address.
     bind(CustomHudSetHasClass, "CustomHudSetHasClass", Capability::CustomUi);
     bind(CustomHudSetHasClassForPlayer, "CustomHudSetHasClassForPlayer", Capability::CustomUi);
     bind(CustomHudSetDialogVariable, "CustomHudSetDialogVariable", Capability::CustomUi);
     bind(CustomHudSetDialogVariableForPlayer, "CustomHudSetDialogVariableForPlayer", Capability::CustomUi);
     bind(CustomHudSetInputCapture, "CustomHudSetInputCapture", Capability::CustomUi);
-    bind(CustomHudIsInputCapture, "CustomHudIsInputCapture", Capability::CustomUi);
     bind.Signature(FilterMessage, "FilterMessage", Capability::UiClicks);
     bind.Message(CustomHudClicked, "CustomHudClicked", Capability::UiClicks);
 

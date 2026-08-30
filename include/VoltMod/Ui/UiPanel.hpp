@@ -96,9 +96,6 @@ public:
      *  the game keeps mouse-look and the panel never sees a pointer. */
     Status InputCapture(int slot, bool enabled);
 
-    /** Whether @p slot currently has a cursor. Reads the entity, not the cache. */
-    [[nodiscard]] Result<bool> InputCaptured(int slot) const;
-
     /** Forget what @p slot was last told, so the next write goes through whatever its value. */
     void Forget(int slot);
 

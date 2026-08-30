@@ -19,8 +19,9 @@ either center HTML or Panorama.
 | Needs | nothing | @ref VoltMod::Capability::CustomUi, @ref VoltMod::Capability::UiClicks, and the layout on the client |
 | Styling | eight hardcoded colors | a stylesheet you can replace |
 
-**Center HTML is the default and needs no client addon.** Keep it as the fallback
-because custom UI is currently Windows-only.
+**Center HTML is the default and needs no client addon.** Keep it as the fallback:
+it is what a player without the layout sees, and what a dead or spectating one is
+drawn on.
 
 **Panorama provides a clickable, styleable panel.** Clients need the compiled
 layout, delivered manually during development or through a workshop addon.

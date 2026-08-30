@@ -42,7 +42,4 @@ Status UiResetClass(EntitySystem* entities, EntityRef ref, int slot, std::string
 /** Give a player (or everyone) a cursor over the layout. */
 Status UiWriteInputCapture(EntitySystem* entities, EntityRef ref, int slot, bool enabled);
 
-/** Whether @p slot currently has a cursor. */
-Result<bool> UiReadInputCapture(EntitySystem* entities, EntityRef ref, int slot);
-
 }  // namespace VoltMod

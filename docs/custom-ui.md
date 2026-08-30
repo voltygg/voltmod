@@ -316,11 +316,12 @@ Ask @ref VoltMod::Capabilities before relying on either feature:
 
 | Capability | Off means |
 | --- | --- |
-| `CustomUi` | the six `CCSCustomHudLayout` setters did not bind; spawning still works, writes fail |
+| `CustomUi` | the five `CCSCustomHudLayout` setters did not bind; spawning still works, writes fail |
 | `UiClicks` | `FilterMessage` did not bind; presses never arrive |
 
-Both are located by byte pattern in `server.dll` / `engine2` and are **Windows
-only** today, so they report off on Linux until the patterns are located there.
+Both are located by byte pattern in `server.dll` / `engine2`, on Windows and on
+Linux. A capability reports off when a pattern stops matching after a game
+update - re-verify `gamedata/gamedata.jsonc` before looking anywhere else.
 
 ## Why writes are calls, not netvar pokes
 
