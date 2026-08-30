@@ -255,11 +255,11 @@ void Runtime::RegisterStatusSections()
                 failed->push_back(name);
             }
         }
-        return Json::Write(glz::obj{"verified", Unsafe.GameData.VerifiedOn(),
-                                    "signatures", Unsafe.GameData.CountOf(GameData::Kind::Signature),
-                                    "addresses", Unsafe.GameData.CountOf(GameData::Kind::Address),
-                                    "vtables", Unsafe.GameData.CountOf(GameData::Kind::VTable),
-                                    "offsets", Unsafe.GameData.CountOf(GameData::Kind::Offset), "failed", failed});
+        return Json::Write(glz::obj{"verified", Unsafe.GameData.VerifiedOn(), "signatures",
+                                    Unsafe.GameData.CountOf(GameData::Kind::Signature), "addresses",
+                                    Unsafe.GameData.CountOf(GameData::Kind::Address), "vtables",
+                                    Unsafe.GameData.CountOf(GameData::Kind::VTable), "offsets",
+                                    Unsafe.GameData.CountOf(GameData::Kind::Offset), "failed", failed});
     });
 
     Status.RegisterSection("capabilities", [this] {
@@ -282,8 +282,8 @@ void Runtime::RegisterStatusSections()
     // Which menu driver is live is a plugin's own choice made at load, and a UsePanorama that was
     // refused leaves no other trace once the log line has scrolled.
     Status.RegisterSection("menus", [this] {
-        return Json::Write(glz::obj{"driver", Menus.IsPanorama() ? "panorama" : "center-html", "layout",
-                                    Menus.Layout()});
+        return Json::Write(
+            glz::obj{"driver", Menus.IsPanorama() ? "panorama" : "center-html", "layout", Menus.Layout()});
     });
 
     Status.RegisterSection("uptime", [start = std::chrono::steady_clock::now()] {

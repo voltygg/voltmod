@@ -76,8 +76,7 @@ Status VerifySchemaLayout()
         }
 
         if (live->m_nSize != expected.Size)
-            drift.push_back(
-                std::format("{}: size {} -> {}", expected.Name, expected.Size, live->m_nSize));
+            drift.push_back(std::format("{}: size {} -> {}", expected.Name, expected.Size, live->m_nSize));
 
         for (const FieldLayout& want : expected.Fields)
         {
@@ -90,18 +89,16 @@ Status VerifySchemaLayout()
 
             if (found->m_nSingleInheritanceOffset != want.Offset)
             {
-                drift.push_back(std::format("{}::{}: offset {} -> {}", expected.Name, want.Name,
-                                            want.Offset, found->m_nSingleInheritanceOffset));
+                drift.push_back(std::format("{}::{}: offset {} -> {}", expected.Name, want.Name, want.Offset,
+                                            found->m_nSingleInheritanceOffset));
                 continue;
             }
 
             int size = 0;
             uint8_t alignment = 0;
-            if (found->m_pType && found->m_pType->GetSizeAndAlignment(size, alignment)
-                && size != want.Size)
+            if (found->m_pType && found->m_pType->GetSizeAndAlignment(size, alignment) && size != want.Size)
             {
-                drift.push_back(std::format("{}::{}: size {} -> {}", expected.Name, want.Name,
-                                            want.Size, size));
+                drift.push_back(std::format("{}::{}: size {} -> {}", expected.Name, want.Name, want.Size, size));
             }
         }
     }

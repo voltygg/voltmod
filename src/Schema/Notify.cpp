@@ -32,8 +32,7 @@ void NotifyThroughChain(void* component, int32_t chainOffset, int32_t offset)
     if (!chainer->Entity)
         return;
 
-    chainer->Entity->NetworkStateChanged(
-        NetworkStateChangedData(static_cast<uint32>(offset), -1, chainer->PathIndex));
+    chainer->Entity->NetworkStateChanged(NetworkStateChangedData(static_cast<uint32>(offset), -1, chainer->PathIndex));
 }
 
 }  // namespace VoltMod::Schema

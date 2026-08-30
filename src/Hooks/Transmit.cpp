@@ -1,7 +1,7 @@
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
-#include <VoltMod/Schema/Api.hpp>
 #include <VoltMod/Hooks/Transmit.hpp>
+#include <VoltMod/Schema/Api.hpp>
 #include <checktransmitinfo.h>
 #include <cstdint>
 #include <entity2/entityinstance.h>
@@ -20,7 +20,6 @@ struct HandleVectorView
     int32_t _pad;
     const uint32_t* Elements;
 };
-
 
 struct HiddenPlayer
 {

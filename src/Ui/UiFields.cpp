@@ -14,7 +14,6 @@ namespace VoltMod
 {
 using StringTable = CUtlVector<CUtlString>;
 
-
 /** EHudPanelClassStatus_t. Undefined defers to whatever the layout markup itself says. */
 static constexpr int32_t kClassUndefined = -1;
 static constexpr int32_t kClassAbsent = 0;
@@ -62,9 +61,9 @@ static Result<CEntityInstance*> ReadyForWrite(EntitySystem* entities, EntityRef 
     // Interning past the engine's cap is refused game-side; stopping short keeps a caller in a
     // loop from filling the tables for the rest of the map.
     const Schema::CCSCustomHudLayout layout{entity.Raw()};
-    for (const auto& [name, table] : {std::pair{"panel id", layout.PanelIds()},
-                                      std::pair{"class name", layout.ClassNames()},
-                                      std::pair{"dialog variable", layout.DialogVariableNames()}})
+    for (const auto& [name, table] :
+         {std::pair{"panel id", layout.PanelIds()}, std::pair{"class name", layout.ClassNames()},
+          std::pair{"dialog variable", layout.DialogVariableNames()}})
     {
         const int count = TableCount(table);
         if (count >= kTableCap - kTableHeadroom)

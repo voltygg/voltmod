@@ -1,8 +1,8 @@
 #pragma once
 
+#include <VoltMod/Core/CharBuf.hpp>
 #include <VoltMod/Engine/ConVarOverrides.hpp>
 #include <VoltMod/Engine/ConVars.hpp>
-#include <VoltMod/Core/CharBuf.hpp>
 #include <VoltMod/Entities/Controller.hpp>
 #include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Entities/EntityOps.hpp>

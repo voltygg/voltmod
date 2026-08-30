@@ -1,10 +1,10 @@
 #pragma once
 
 #include <VoltMod/Entities/Entity.hpp>
-#include <VoltMod/Schema/Generated/CCSPlayerPawn.hpp>
 #include <VoltMod/Entities/MoveType.hpp>
 #include <VoltMod/Entities/ObserverMode.hpp>
 #include <VoltMod/Entities/Render.hpp>
+#include <VoltMod/Schema/Generated/CCSPlayerPawn.hpp>
 #include <cstdint>
 #include <string>
 

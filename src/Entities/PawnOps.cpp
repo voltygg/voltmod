@@ -107,8 +107,7 @@ void Pawns::Slap(const Pawn& pawn, float upward, float horizontal, int fallProte
     // Write velocity directly on the pawn rather than through the Teleport vfunc.
     // Teleport(nullptr origin, ...) was crashing the server in CS2 builds we tested;
     // m_vecAbsVelocity is the conventional path for velocity-only changes.
-    pawn.SetVelocity(
-        Vector{PawnOps::Rand(-horizontal, horizontal), PawnOps::Rand(-horizontal, horizontal), upward});
+    pawn.SetVelocity(Vector{PawnOps::Rand(-horizontal, horizontal), PawnOps::Rand(-horizontal, horizontal), upward});
 
     // Only toggle godmode for fall protection if the target wasn't already in godmode, otherwise
     // the delayed clear below would silently strip an externally applied godmode.

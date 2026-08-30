@@ -87,8 +87,7 @@ int Movement::SlotFromMovementServices(void* movementServices) const
     // Validate cached pointers before reuse.
     auto& entities = _entities;
     for (int slot = 0; slot < MaxPlayers; ++slot)
-        if (_movementServices[slot] == movementServices
-            && entities.MovementServices(slot).Base() == movementServices)
+        if (_movementServices[slot] == movementServices && entities.MovementServices(slot).Base() == movementServices)
             return slot;
 
     int found = -1;

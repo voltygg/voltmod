@@ -174,8 +174,7 @@ uint64_t EntitySystem::Buttons(int slot)
     // [0] held, [1] changed, [2] scroll.
     //
     // The possessed pawn, not MovementServices(): while dead the observer pawn takes the input.
-    const Schema::CPlayer_MovementServices services =
-        MovementServicesOf(Controller(slot).Possessed().Raw());
+    const Schema::CPlayer_MovementServices services = MovementServicesOf(Controller(slot).Possessed().Raw());
     return services ? services.Buttons().ButtonStates(0) : 0;
 }
 

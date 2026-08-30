@@ -7,8 +7,8 @@
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/RecipientFilter.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
-#include <VoltMod/Schema/Generated/CVoteController.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
+#include <VoltMod/Schema/Generated/CVoteController.hpp>
 #include <cstdint>
 #include <functional>
 #include <string>
