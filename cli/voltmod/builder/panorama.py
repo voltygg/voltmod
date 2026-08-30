@@ -8,8 +8,6 @@ a reconnect is the whole iteration.
 Getting a layout to *other* players is a workshop addon instead - see the workshop guide.
 """
 
-from __future__ import annotations
-
 import re
 import shutil
 import subprocess

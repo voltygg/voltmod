@@ -1,7 +1,5 @@
 """Read-only checks for a VoltMod development environment."""
 
-from __future__ import annotations
-
 import shutil
 import subprocess
 import sys
