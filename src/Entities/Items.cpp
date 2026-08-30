@@ -11,7 +11,7 @@ namespace VoltMod
 
 Schema::CPlayer_ItemServices Items::ItemServices(const Pawn& pawn)
 {
-    return Schema::CBasePlayerPawn{pawn.Raw()}.ItemServices();
+    return pawn.ItemServices();
 }
 
 bool Items::Give(const Pawn& pawn, std::string_view item)

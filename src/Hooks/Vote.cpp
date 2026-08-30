@@ -90,8 +90,9 @@ MultiRecipientFilter Vote::Recipients() const
     return filter;
 }
 
-// m_nVoteOptionCount and m_nVotesCast are int arrays on the controller; the generated accessors
-// bounds-check the index against the extent the schema reports.
+// m_nVoteOptionCount and m_nVotesCast are int arrays on the controller. The generated accessors
+// bounds-check too, but OptionSlots is the vote UI's own limit - it also drives the loops below -
+// and the accessor takes a size_t, so a negative option has to be rejected here.
 int Vote::OptionCount(int option) const
 {
     if (option < 0 || option >= OptionSlots)

@@ -14,9 +14,9 @@ namespace VoltMod
 
 // Origin and rotation are not schema fields of CBaseEntity in CS2; they live on the entity's
 // CGameSceneNode, reached via m_CBodyComponent -> m_pSceneNode.
-static Schema::CGameSceneNode SceneNode(CEntityInstance* entity)
+static Schema::CGameSceneNode SceneNode(const Entity& entity)
 {
-    return Schema::CBaseEntity{entity}.BodyComponent().SceneNode();
+    return entity.BodyComponent().SceneNode();
 }
 
 int Entity::Index() const
@@ -40,13 +40,13 @@ std::string_view Entity::ClassName() const
 Vector Entity::Origin() const
 {
     // Spelled out rather than left to `Vector{}`: the SDK's default constructor does not zero.
-    const Schema::CGameSceneNode node = SceneNode(_e);
+    const Schema::CGameSceneNode node = SceneNode(*this);
     return node ? node.AbsOrigin() : Vector(0.0f, 0.0f, 0.0f);
 }
 
 QAngle Entity::Angles() const
 {
-    const Schema::CGameSceneNode node = SceneNode(_e);
+    const Schema::CGameSceneNode node = SceneNode(*this);
     return node ? node.AbsRotation() : QAngle(0.0f, 0.0f, 0.0f);
 }
 
@@ -109,7 +109,7 @@ std::string Pawn::ModelName() const
 {
     // The pawn's scene node is a CSkeletonInstance; the model path is the CUtlSymbolLarge inside
     // its embedded CModelState (an interned string pointer).
-    const Schema::CSkeletonInstance skeleton{SceneNode(_e).Base()};
+    const Schema::CSkeletonInstance skeleton{SceneNode(*this).Base()};
     if (!skeleton)
         return {};
 

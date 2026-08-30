@@ -152,7 +152,7 @@ Pawn EntitySystem::PawnOf(int slot)
 
 int EntitySystem::SlotOf(const Pawn& pawn)
 {
-    Entity controller = Resolve(EntityRef{Schema::CBasePlayerPawn{pawn.Raw()}.ControllerHandle()});
+    Entity controller = Resolve(EntityRef{pawn.ControllerHandle()});
     if (!controller)
         return -1;
 
@@ -161,26 +161,19 @@ int EntitySystem::SlotOf(const Pawn& pawn)
     return IsValidSlot(slot) ? slot : -1;
 }
 
-// The movement services live on a sub-object the pawn points at. Which pawn to start from is
-// the caller's choice.
-static Schema::CPlayer_MovementServices MovementServicesOf(CEntityInstance* pawn)
-{
-    return Schema::CBasePlayerPawn{pawn}.MovementServices();
-}
-
 uint64_t EntitySystem::Buttons(int slot)
 {
     // m_nButtons is an embedded CInButtonState; m_pButtonStates inside it is uint64[3]:
     // [0] held, [1] changed, [2] scroll.
     //
     // The possessed pawn, not MovementServices(): while dead the observer pawn takes the input.
-    const Schema::CPlayer_MovementServices services = MovementServicesOf(Controller(slot).Possessed().Raw());
+    const Schema::CPlayer_MovementServices services = Controller(slot).Possessed().MovementServices();
     return services ? services.Buttons().ButtonStates(0) : 0;
 }
 
 Schema::CPlayer_MovementServices EntitySystem::MovementServices(int slot)
 {
-    return MovementServicesOf(PawnOf(slot).Raw());
+    return PawnOf(slot).MovementServices();
 }
 
 bool EntitySystem::IsPlayerSlotValid(int slot)
