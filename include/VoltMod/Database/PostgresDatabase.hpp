@@ -4,6 +4,7 @@
 #include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Database/DbResult.hpp>
 #include <VoltMod/Database/Migrator.hpp>
+#include <VoltMod/Database/PostgresConfig.hpp>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -23,22 +24,6 @@
 
 namespace VoltMod
 {
-
-/** PostgreSQL connection parameters. Field names are lowercase so a consumer's JSON config
- *  section can map onto them directly (e.g. via nlohmann's non-intrusive macros). */
-struct PostgresConfig
-{
-    std::string host = "localhost";
-    int port = 5432;
-    std::string database = "voltmod_server";
-    std::string username = "voltmod_plugin";
-    std::string password;
-    std::string sslMode = "prefer";
-    /** Bounds every (re)connect attempt so a dead database can't hang queries or unload. */
-    int connectTimeoutSec = 5;
-
-    std::string GetConnectionString() const;
-};
 
 /**
  * @brief Async-first PostgreSQL access layer.
