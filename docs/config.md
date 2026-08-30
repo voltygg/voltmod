@@ -6,8 +6,8 @@ Represent settings with a default-initialized struct that mirrors the JSON file,
 then load it through @ref VoltMod::JsonConfig.
 
 Include `<VoltMod/App/Config.hpp>` in the plugin's `Config.hpp`. It provides the
-VoltMod configuration types and nlohmann mapping macros without adding nlohmann
-to the main API umbrella.
+VoltMod configuration types and the JSON layer without adding either to the main
+API umbrella.
 
 ## Declaring settings
 
@@ -20,25 +20,37 @@ struct Settings
     VoltMod::StandardPluginSettings plugin;   // the framework-standard "plugin" section (locale)
     // one struct + member per additional section
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Settings, plugin)
+VOLTMOD_SETTINGS_ROOT(Settings)   // accept the "$schema" key; see below
 
 using ConfigManager = VoltMod::JsonConfig<Settings>;
 ```
 
-Member names must match JSON keys. With `_WITH_DEFAULT`, missing keys retain
-their defaults. Missing files, parse errors, and wrong value types fail the
-load. JSONC comments and unknown keys are accepted, so removing a key needs no
-configuration migration.
+Public members are reflected, so there is nothing to register: the member name
+*is* the JSON key. A missing key keeps the member's C++ initializer. A missing
+file, a parse error, a wrong value type, and **an unknown key** all fail the
+load - a misspelled setting says so instead of silently reading a default, and
+the error names the key with its line and column. JSONC comments are accepted.
+
+Because the member name is the key, renaming a member renames the setting. There
+is no macro left to catch that, so a test that parses the shipped
+`settings.jsonc` is worth its few lines.
+
+A settings struct must have external linkage - reflection reads member names off
+the type - so declare it at namespace scope, never inside a function or an
+anonymous namespace.
 
 @ref VoltMod::StandardPluginSettings is the framework-owned "plugin" section; embedding it is what lets `LoadStandardConfig` apply `plugin.locale` to `runtime.Translations` automatically (see @ref plugin_guide).
 
 ### Editor validation with a JSON Schema
 
 Ship `settings.schema.json` beside the JSONC file and reference it with a
-relative `$schema` as the first key. The schema may reject unknown keys with
-`additionalProperties: false` even though the runtime ignores them. This gives
-editors useful validation without making upgrades brittle. Keep the generated
-starter schema synchronized with the settings struct.
+relative `$schema` as the first key. `$schema` is not a valid C++ identifier, so
+it cannot be a member; @ref VOLTMOD_SETTINGS_ROOT is what makes the reader accept
+and ignore it. Write it at global scope beside the struct, once per settings
+root. Without it, `$schema` is rejected like any other unknown key.
+
+Give the schema `additionalProperties: false` so the editor and the runtime agree
+about which keys exist. Keep it synchronized with the settings struct.
 
 ```cpp
 bool MyPlugin::OnLoad(VoltMod::Runtime& runtime)
@@ -51,36 +63,61 @@ bool MyPlugin::OnLoad(VoltMod::Runtime& runtime)
 
 ## Post-load validation
 
-When raw settings need parsing or clamping (duration strings, tag sanitizing, dropping invalid list entries), subclass `JsonConfig` and resolve once after `Load`. Name the entry point `LoadSettings` and `LoadStandardConfig` picks it up instead of `Load`:
+When raw settings need parsing or clamping (duration strings, tag sanitizing,
+dropping invalid list entries), **compose** `Json::ReadFile` rather than
+subclassing `JsonConfig`, and publish the validated result in one assignment.
+Name the entry point `LoadSettings` and `LoadStandardConfig` picks it up instead
+of `Load`:
 
 ```cpp
-class ConfigManager : public VoltMod::JsonConfig<Settings>
+class ConfigManager
 {
 public:
-    bool LoadSettings(const std::string& path)
+    VoltMod::Status LoadSettings(std::string_view path)
     {
-        if (!Load(path))
-            return false;
-        Resolve();
-        return true;
+        auto raw = VoltMod::Json::ReadFile<Settings>(path);
+        if (!raw)
+            return std::unexpected(raw.error());
+
+        // Validate a local copy, then publish it whole.
+        _snapshot = BuildSnapshot(std::move(*raw));
+        return {};
     }
 
-    const std::vector<int>& GetMenuDurations() const { return _menuDurationSecs; }
+    const Settings& Get() const { return _snapshot.Values; }
+    const std::vector<int>& GetMenuDurations() const { return _snapshot.MenuDurationSecs; }
 
 private:
-    void Resolve();
-    std::vector<int> _menuDurationSecs;
+    struct ConfigSnapshot
+    {
+        Settings Values;
+        std::vector<int> MenuDurationSecs;
+    };
+
+    static ConfigSnapshot BuildSnapshot(Settings raw);
+
+    ConfigSnapshot _snapshot;
 };
 ```
 
+Resolving into a value that has not been published yet is the point: a failed
+reload leaves the previous configuration whole, and no caller can observe a
+half-validated one. `Get()` should keep returning the effective settings, because
+`LoadStandardConfig` reads `Get().plugin.locale` through @ref
+VoltMod::HasPluginSection.
+
 `VoltMod/Core/Validation.hpp` (`VoltMod::Validation`) has the common resolution helpers:
+
+`BuildSnapshot` takes the raw settings by value and returns the snapshot, so
+every helper below mutates a local:
 
 ```cpp
 namespace Validation = VoltMod::Validation;
 
-void ConfigManager::Resolve()
+ConfigManager::ConfigSnapshot ConfigManager::BuildSnapshot(Settings raw)
 {
-    auto& s = Mutable();
+    ConfigSnapshot result{.Values = std::move(raw)};
+    auto& s = result.Values;
 
     // Clamp + fall back with a logged warning; "server.tag" names the field in the log line.
     Validation::NormalizeTag(s.server.tag, 32, "default", "server.tag");
@@ -96,21 +133,19 @@ void ConfigManager::Resolve()
 
     // "5m"/"1h"/"perm" strings -> seconds (0 = permanent); invalid entries logged and skipped,
     // falling back to the struct defaults if nothing valid remains.
-    _menuDurationSecs = Validation::ParseDurations(s.punishments.menuDurations,
-                                                   PunishmentSettings{}.menuDurations, "punishments.menuDurations");
+    result.MenuDurationSecs = Validation::ParseDurations(
+        s.punishments.menuDurations, PunishmentSettings{}.menuDurations, "punishments.menuDurations");
+
+    return result;
 }
 ```
 
 ## Framework types in your settings
 
-`PostgresConfig` uses lowercase field names precisely so a JSON section maps onto it. The framework header stays nlohmann-free, so define the mapper in your plugin, inside the `VoltMod` namespace where ADL finds it:
+`PostgresConfig` uses lowercase field names precisely so a JSON section maps onto
+it. Reflection needs no mapper, so embedding it is all there is to do:
 
 ```cpp
-namespace VoltMod
-{
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(PostgresConfig, host, port, database, username, password, sslMode)
-}
-
 struct Settings
 {
     VoltMod::PostgresConfig database;   // "database": { "host": ..., "port": ... }

@@ -8,7 +8,7 @@ from conan.tools.cmake import CMakeDeps, CMakeToolchain
 class ProjectConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
 
-    # cpr and nlohmann_json arrive transitively through voltmod.
+    # cpr and glaze arrive transitively through voltmod.
     requires = ("voltmod/[~1]",)
 
     default_options = {

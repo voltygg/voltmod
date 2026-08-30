@@ -154,4 +154,4 @@ Plugins sharing a database need distinct table names *and* distinct lock keys. T
 
 ## Config
 
-`PostgresConfig` fields are lowercase so a JSON section maps onto them directly; define the nlohmann mapper in your plugin, inside the `VoltMod` namespace where ADL finds it (see @ref config_guide). `sslMode` defaults to `prefer`.
+`PostgresConfig` fields are lowercase so a JSON section maps onto them directly, and reflection needs no mapper - embedding it in your settings struct is all there is to do (see @ref config_guide). `sslMode` defaults to `prefer`, and `connectTimeoutSec` (default 5) bounds every reconnect attempt.

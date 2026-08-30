@@ -172,7 +172,7 @@ Use these patterns throughout the framework:
   scheduler per-frame delivery.
 - `<VoltMod/Api.hpp>` gathers the core vocabulary, `Runtime`, players, commands, and
   plugin plumbing; every name it reaches is already spelled `VoltMod::Thing`. It never
-  reaches nlohmann or the Menu-building surface - `<VoltMod/Entities/Api.hpp>`,
+  reaches the JSON layer or the Menu-building surface - `<VoltMod/Entities/Api.hpp>`,
   `<VoltMod/Hooks/Api.hpp>`, `<VoltMod/Menu/Api.hpp>` and `<VoltMod/Unsafe/Api.hpp>` gather
   the rest of those modules' public surfaces, and `<VoltMod/App/Config.hpp>` gathers
   `JsonConfig`, `StandardPluginSettings` and `Json` for a plugin's own `Config.hpp`.
@@ -206,9 +206,9 @@ An acyclic graph is not enough; an upward dependency still violates this
 layering. A module's own `Api.hpp` (`Entities/Api.hpp`, `Hooks/Api.hpp`, ...) is exempt: it
 is a deliberate cross-module aggregate documenting that module's public surface - `Hooks/Api.hpp`
 gathering `Events` and `Messaging` types is not the `Hooks` module depending on them. `modgraph`
-also rejects `#include <nlohmann/...>` anywhere under `include/VoltMod` or `src` except
-`Core/Json.hpp`, `App/Config.hpp`, `App/JsonConfig.hpp`, `App/PluginSettings.hpp`,
-`Engine/GameDataFile.*`: route JSON use through `<VoltMod/Core/Json.hpp>`
+also rejects `#include <glaze/...>` anywhere under `include/VoltMod` or `src` except
+`Core/Json.hpp`, the one file allowed to name the JSON library: route JSON use through
+`<VoltMod/Core/Json.hpp>`
 instead, and Core, Engine, Entities, Events, Messaging, Players, Hooks and Commands may not
 include `Menu/` or `App/` at all - both would leak into every consumer of that layer.
 

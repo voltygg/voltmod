@@ -224,7 +224,7 @@ handler. Include a module aggregate only where that translation unit needs it:
 | `<VoltMod/Unsafe/Api.hpp>` | Raw interfaces, gamedata, `MemoryAccess`, and vtable hooking - opt in only where you need it |
 | `<VoltMod/Database/Api.hpp>` | The PostgreSQL vocabulary (see @ref database_guide) |
 
-These aggregates do not include nlohmann. A plugin's own `Config.hpp` includes
+These aggregates do not include the JSON layer. A plugin's own `Config.hpp` includes
 `<VoltMod/App/Config.hpp>` for `JsonConfig` and `StandardPluginSettings` (see
 @ref config_guide), keeping settings JSON out of unrelated translation units.
 

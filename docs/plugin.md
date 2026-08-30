@@ -200,7 +200,7 @@ the report through a console command:
 
 ```cpp
 Runtime.Status.RegisterSection("db", [this] {
-    return nlohmann::json{{"connected", Db.IsConnected()}}.dump();
+    return VoltMod::Json::Write(DbSection{.connected = Db.IsConnected()});
 });
 
 Runtime.Status.InstallCommand("my_status", "Report plugin health; 'my_status json' emits STATUS_JSON.",

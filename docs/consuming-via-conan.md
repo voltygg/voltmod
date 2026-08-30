@@ -38,7 +38,7 @@ voltmod_add_plugin(my-plugin VERSION 1.0.0)
 | `hl2sdk-cs2/<yyyy.mm.dd>` | Trimmed HL2SDK in mirror layout: headers, prebuilt Valve libs, the generated `.pb.h`/`.pb.cc`, and the source-only TUs `voltmod_add_plugin` compiles per plugin. Versioned by the upstream commit date. |
 | `metamod-source/2.0.0.<yyyymmdd>` | Metamod core + SourceHook headers (header-only). |
 
-Third-party dependencies (cpr, nlohmann_json, libpqxx, openssl, ...) come from
+Third-party dependencies (cpr, glaze, libpqxx, openssl, ...) come from
 Conan Center as *recipes*, and compile locally: nobody publishes binaries for the
 gcc-14 / old-libstdc++-ABI profile the Valve libs force. That is a one-time cost
 per machine, and CI caches the Conan home.

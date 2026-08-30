@@ -154,7 +154,7 @@ if(BUILD_TESTING)
         SOURCES
             src/Detectors/AimSnapCore.cpp
         INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src"
-        LIBRARIES nlohmann_json::nlohmann_json
+        LIBRARIES glaze::glaze
     )
 endif()
 ```
@@ -170,7 +170,7 @@ def build_requirements(self):
 
 Each `Api.hpp` aggregate must compile as the only VoltMod include in a
 translation unit. `RootApiSurfaceTest.cpp` also verifies that the main umbrella
-does not include nlohmann or the menu-building surface. These files are
+does not include the JSON layer or the menu-building surface. These files are
 compile-only tests.
 
 They compile into `voltmod-api-surface-check`, an object library defined in the root
