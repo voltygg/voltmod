@@ -41,7 +41,7 @@ cmake/               Plugin, test, library, and build-stamp helpers
 gamedata/            gamedata.jsonc: where the engine keeps things, plus its schema
 conan/               Canonical profiles and public remote configuration
 recipes/             HL2SDK and Metamod Conan recipes
-scripts/voltmod/     The `voltmod` Python CLI
+cli/voltmod/         The `voltmod` Python CLI; its tests are in `cli/tests/`
 templates/plugin/    Files copied by `voltmod new-plugin`
 templates/project/   Files copied by `voltmod init`
 test_package/        Conan package smoke test
@@ -182,7 +182,7 @@ Use these patterns throughout the framework:
 ## Module rules
 
 `uv run poe modgraph` enforces the include allowlist in
-`scripts/voltmod/checks/modgraph.py`:
+`cli/voltmod/checks/modgraph.py`:
 
 ```text
 Core       -> nothing

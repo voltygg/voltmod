@@ -77,7 +77,7 @@ def layering_table() -> str:
     """@ref ALLOWED rendered as the fenced block the docs quote.
 
     The map is the only copy of the layering that runs; a doc that restates it by hand drifts
-    silently. `scripts/tests/test_modgraph.py` asserts both copies still match this.
+    silently. `cli/tests/test_modgraph.py` asserts both copies still match this.
     """
     lines = []
     for module, allowed in ALLOWED.items():

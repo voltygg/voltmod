@@ -23,7 +23,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["scripts/voltmod"]
+packages = ["cli/voltmod"]
 
 # Ship the repository-level scaffold trees beside the Python package.
 [tool.hatch.build.targets.wheel.force-include]
@@ -48,11 +48,11 @@ _ruff = "ruff check ."
 
 modgraph = "voltmod modgraph"
 panorama = "voltmod panorama"
-test-tools = "pytest scripts/tests"
+test-tools = "pytest cli/tests"
 format = "voltmod format"
 
 [tool.pytest.ini_options]
-pythonpath = ["scripts"]
+pythonpath = ["cli"]
 
 [tool.ruff]
 line-length = 100
