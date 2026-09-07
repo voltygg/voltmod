@@ -24,8 +24,8 @@ namespace VoltMod
  */
 
 /** Visit every column of @p T in declaration order. */
-template <class T, class Fn>
-constexpr void ForEachColumn(Fn&& fn)
+template <class T>
+constexpr void ForEachColumn(auto&& fn)
 {
     std::apply([&](const auto&... columns) { (fn(columns), ...); }, T::Columns());
 }
@@ -36,8 +36,8 @@ constexpr void ForEachColumn(Fn&& fn)
  * @ref InsertSql and @ref InsertParams both walk this, so the column list and the value list
  * cannot disagree about which columns are in play or what order they come in.
  */
-template <class T, class Fn>
-constexpr void ForEachInsertColumn(Fn&& fn)
+template <class T>
+constexpr void ForEachInsertColumn(auto&& fn)
 {
     ForEachColumn<T>([&](const auto& column) {
         if (std::string_view(column.Name) != T::Key)

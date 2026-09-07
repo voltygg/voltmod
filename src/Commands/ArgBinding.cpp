@@ -116,6 +116,8 @@ std::expected<std::vector<BoundArg>, ArgError> BindArgs(const CommandDefinition&
                                                         std::span<const std::string> tokens, Player* caller,
                                                         ArgBinder& binder)
 {
+    using enum ArgKind;
+
     std::vector<BoundArg> bound;
     bound.reserve(def.Args.size());
     size_t i = 0;
@@ -134,31 +136,31 @@ std::expected<std::vector<BoundArg>, ArgError> BindArgs(const CommandDefinition&
 
         switch (arg.Kind)
         {
-        case ArgKind::Target:
+        case Target:
             failed = Store(BindTarget(binder, token, caller), bound);
             break;
-        case ArgKind::Targets:
+        case Targets:
             failed = Store(BindTargets(binder, token, caller), bound);
             break;
-        case ArgKind::PlayerOrSteamId:
+        case PlayerOrSteamId:
             failed = Store(BindPlayerOrSteamId(binder, token, caller), bound);
             break;
-        case ArgKind::Duration:
+        case Duration:
             failed = Store(BindDuration(token), bound);
             break;
-        case ArgKind::SteamId:
+        case SteamId:
             failed = Store(BindSteamId(token), bound);
             break;
-        case ArgKind::Int:
+        case Int:
             failed = Store(BindInt(token), bound);
             break;
-        case ArgKind::U64:
+        case U64:
             failed = Store(BindU64(token), bound);
             break;
-        case ArgKind::Word:
+        case Word:
             bound.emplace_back(Args::Word{.Value = token});
             break;
-        case ArgKind::Rest:
+        case Rest:
         {
             // A Rest swallows the remainder, so it is the last argument by construction.
             std::vector<std::string> rest(tokens.begin() + static_cast<std::ptrdiff_t>(i), tokens.end());

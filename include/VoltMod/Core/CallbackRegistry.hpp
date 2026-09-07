@@ -2,8 +2,10 @@
 
 #include <VoltMod/Core/Subscription.hpp>
 #include <array>
+#include <concepts>
 #include <cstdint>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace VoltMod
@@ -75,8 +77,7 @@ public:
      * events by name) filter here instead of snapshotting for itself. A handful of entries is the
      * normal size, so the snapshot stays on the stack unless it has to grow.
      */
-    template <class Pred, class Fn>
-    void DispatchIf(Pred&& pred, Fn&& fn)
+    void DispatchIf(std::predicate<const T&> auto&& pred, std::invocable<T&> auto&& fn)
     {
         if (_items.empty())
             return;
@@ -107,10 +108,9 @@ public:
     }
 
     /** @ref DispatchIf over every stored item. */
-    template <class Fn>
-    void Dispatch(Fn&& fn)
+    void Dispatch(std::invocable<T&> auto&& fn)
     {
-        DispatchIf([](const T&) { return true; }, std::forward<Fn>(fn));
+        DispatchIf([](const T&) { return true; }, std::forward<decltype(fn)>(fn));
     }
 
 private:

@@ -158,12 +158,12 @@ void ClientCvars::Impl::Deliver(int slot, const CNetMessagePB<CCLCMsg_RespondCva
 
     // Validate all client-controlled fields before dispatch.
     const int status = msg.status_code();
-    if (status < static_cast<int>(ClientCvarStatus::ValueIntact) ||
-        status > static_cast<int>(ClientCvarStatus::CvarProtected))
+    if (status < std::to_underlying(ClientCvarStatus::ValueIntact) ||
+        status > std::to_underlying(ClientCvarStatus::CvarProtected))
         return;
 
     std::string_view value;
-    if (status == static_cast<int>(ClientCvarStatus::ValueIntact))
+    if (status == std::to_underlying(ClientCvarStatus::ValueIntact))
     {
         if (!msg.has_value() || msg.value().find('\0') != std::string::npos)
             return;

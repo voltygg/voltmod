@@ -109,7 +109,7 @@ concept HasOneCallOperator = requires { &std::remove_reference_t<F>::operator();
 template <class F>
 struct CommandHandlerArgs
 {
-    static_assert(HasOneCallOperator<F>,
+    static_assert(false,
                   "A command handler takes (Caller, Args::...) and returns Result<Reply>. A generic lambda "
                   "cannot be one: its parameter list is the argument specification, so the types have to be "
                   "written out.");

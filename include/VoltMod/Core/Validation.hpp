@@ -28,10 +28,9 @@ inline void NormalizeTag(std::string& value, std::size_t maxLen, std::string_vie
     value = std::string(fallback);
 }
 
-/** Keep only items where @p validate(item, index) returns nullopt; each rejection logs its reason.
- *  @p validate: `std::optional<std::string>(const T&, std::size_t index)`. */
-template <class T, class Fn>
-void FilterValid(std::vector<T>& items, Fn&& validate, std::string_view what)
+/** Keep only items where @p validate returns nullopt; each rejection logs the reason it returned. */
+template <class T>
+void FilterValid(std::vector<T>& items, std::invocable<const T&, std::size_t> auto&& validate, std::string_view what)
 {
     std::vector<T> kept;
     kept.reserve(items.size());
@@ -58,12 +57,11 @@ bool FallbackIfEmpty(std::vector<T>& items, const std::vector<T>& defaults, std:
     return true;
 }
 
-/** As above, but @p makeDefaults is only called when the fallback is actually needed, and its
- *  result is moved rather than copied. Prefer this when building the defaults costs anything -
- *  passing them by value forces every caller to build a list it almost always discards.
- *  @p makeDefaults: `std::vector<T>()`. */
-template <class T, std::invocable Fn>
-bool FallbackIfEmpty(std::vector<T>& items, Fn&& makeDefaults, std::string_view what)
+/** As above, but @p makeDefaults runs only when the fallback is needed and its result is moved
+ *  rather than copied. Prefer it when building the defaults costs anything - passing them by value
+ *  makes every caller build a list it almost always discards. */
+template <class T>
+bool FallbackIfEmpty(std::vector<T>& items, std::invocable auto&& makeDefaults, std::string_view what)
 {
     if (!items.empty())
         return false;
