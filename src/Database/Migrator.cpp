@@ -1,3 +1,4 @@
+#include <VoltMod/Core/File.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Paths.hpp>
 #include <VoltMod/Database/Migrator.hpp>
@@ -5,8 +6,6 @@
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
-#include <fstream>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -30,14 +29,6 @@ static bool IsValidTableName(const std::string& name)
     if (!std::isalpha(static_cast<unsigned char>(name.front())) && name.front() != '_')
         return false;
     return std::all_of(name.begin(), name.end(), [](unsigned char c) { return std::isalnum(c) || c == '_'; });
-}
-
-static std::string ReadFile(const fs::path& path)
-{
-    std::ifstream file(path, std::ios::binary);
-    std::ostringstream buffer;
-    buffer << file.rdbuf();
-    return buffer.str();
 }
 
 MigrationResult RunMigrations(PostgresDatabase& db, std::string_view dir, const MigrationOptions& options)
@@ -112,10 +103,20 @@ MigrationResult RunMigrations(PostgresDatabase& db, std::string_view dir, const 
         {
             if (m.Version <= current)
                 continue;
+            // An unreadable file must not be recorded as applied: libpqxx treats an empty query
+            // as success, so executing "" would commit the version row having run nothing.
+            auto sql = ReadAllText(m.Path.string());
+            if (!sql)
+            {
+                Log::Error("Migration {} ({}) unreadable: {}", m.Version, m.Name, sql.error().Detail);
+                ok = false;
+                break;
+            }
+
             try
             {
                 pqxx::work txn(conn);
-                txn.exec(ReadFile(m.Path));
+                txn.exec(*sql);
                 txn.exec("INSERT INTO " + table + " (version, name) VALUES ($1, $2)", pqxx::params{m.Version, m.Name});
                 txn.commit();
                 ++applied;
