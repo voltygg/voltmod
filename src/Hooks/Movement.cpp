@@ -60,6 +60,8 @@ bool Movement::OnFirstSubscriber()
             return false;
         }
         _hook = std::move(*hook);
+        // A retry that installs must not leave the capability reading false against a live hook.
+        _capabilities.Set(Capability::Movement, true);
     }
     ++_subscribers;
     return true;
