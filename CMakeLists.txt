@@ -141,6 +141,7 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Core/Logger.cpp
             src/Core/Paths.cpp
             src/Core/Scheduler.cpp
+            src/Core/SharedSource.cpp
             src/Core/Strings.cpp
             src/Core/SteamId.cpp
             src/Core/Time.cpp

@@ -129,10 +129,12 @@ Use these patterns throughout the framework:
   way to subscribe to one; `Raise` belongs to the owner. Game events go through
   `GameEvents::On<T>` and must have a struct in `Events/EventTypes.hpp` - there is
   no string form.
-- An `Event` whose source costs something to run takes a `Lifecycle`: the first
-  subscription installs it, the last one to drop removes it, and `OnFirst`
+- An `Event` whose source costs something to run takes an `EventLifecycle`: the
+  first subscription installs it, the last one to drop removes it, and `OnFirst`
   returning false refuses the subscription after logging why. Services do not
-  expose `Install()`/`Enable()` alongside it.
+  expose `Install()`/`Enable()` alongside it. When one source feeds several events,
+  the service holds a `SharedSource` and hands each event a lifecycle from it
+  rather than counting subscribers itself.
 - A vtable hook is a `VOLTMOD_VHOOK*` declaration at file scope plus a
   `VtableHook` member (`<VoltMod/Unsafe/VtableHook.hpp>`): the declaration is one
   hooked vfunc per translation unit - `SH_MANUALHOOK_RECONFIGURE` mutates the

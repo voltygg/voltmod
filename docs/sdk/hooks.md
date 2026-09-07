@@ -171,7 +171,8 @@ reconfigure a live hook to the wrong slot.
 - `Reset()` remains safe after instance destruction because removal uses hook ids.
 - An optional live instance detects a mismatched class table.
 - Slot correctness still requires manual verification; see @ref sdk_gamedata_guide.
-- Use `Event::Lifecycle` for hooks that should exist only while subscribed.
+- Use an `EventLifecycle` for a hook that should exist only while subscribed, or a
+  `SharedSource` when several events share the one hook.
 - Keep `VtableHook` beside the handler state so their lifetimes match.
 
 ## ServerCommand

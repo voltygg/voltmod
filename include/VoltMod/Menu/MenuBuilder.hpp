@@ -2,6 +2,7 @@
 
 #include <VoltMod/Menu/Menu.hpp>
 #include <algorithm>
+#include <concepts>
 #include <functional>
 #include <memory>
 #include <string>
@@ -12,10 +13,13 @@
 namespace VoltMod
 {
 
-// The row specs below carry no engine dependency: a spec is text plus callbacks, and the two that
-// reach the menu session (InputRow, SubmenuRow) reach it through MenuSession, which is SDK-free
-// itself. Every name here is spelled `<Kind>Row` so a spec never collides with the builder method
-// of the same kind.
+/** A row spec: anything that turns itself into a @ref MenuItem. A concept rather than one
+ *  @ref MenuBuilder::Add overload per spec, so a plugin can write its own row without a framework
+ *  change. */
+template <class T>
+concept MenuRowSpec = requires(const T& row) {
+    { row.ToItem() } -> std::same_as<MenuItem>;
+};
 
 /** A plain action row. @ref Activate runs on E or a click. */
 struct ButtonRow
@@ -161,19 +165,8 @@ public:
         return *this;
     }
 
-    /** @{ Append one of the row specs. */
-    MenuBuilder& Add(const ButtonRow& row) { return Add(row.ToItem()); }
-    MenuBuilder& Add(const ToggleRow& row) { return Add(row.ToItem()); }
-    MenuBuilder& Add(const InputRow& row) { return Add(row.ToItem()); }
-    MenuBuilder& Add(const SubmenuRow& row) { return Add(row.ToItem()); }
-    MenuBuilder& Add(const TextRow& row) { return Add(row.ToItem()); }
-
-    template <class T>
-    MenuBuilder& Add(const ChoiceRow<T>& row)
-    {
-        return Add(row.ToItem());
-    }
-    /** @} */
+    /** Append any row spec: the ones above, and any a plugin writes with the same `ToItem()`. */
+    MenuBuilder& Add(const MenuRowSpec auto& row) { return Add(row.ToItem()); }
 
     /** @ref ButtonRow with nothing but a label and a callback. */
     MenuBuilder& Button(std::string label, std::function<void(int slot)> activate)

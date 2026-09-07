@@ -11,28 +11,41 @@ namespace VoltMod
 {
 
 /**
+ * @brief Starting and stopping an @ref Event source, driven by whether anything is listening.
+ *
+ * @ref OnFirst runs before the first handler is stored; false refuses the subscription, and the
+ * owner is expected to have said why. @ref OnLast runs after the last handler is removed. Both run
+ * on the game thread, and OnLast may run from inside @ref Event::Raise when the last handler drops
+ * itself.
+ */
+struct EventLifecycle
+{
+    std::function<bool()> OnFirst;
+    std::function<void()> OnLast;
+};
+
+/**
  * @brief A multicast signal with a fixed handler signature: the one way to subscribe in VoltMod.
  *
- * The owner declares the event as a public member and is the only caller of @ref Raise; everyone
- * else adds a handler with `+=` and keeps the returned @ref Subscription beside the state the
- * handler captured:
+ * The owner declares it as a public member and is the only caller of @ref Raise. Everyone else
+ * adds a handler with `+=` and keeps the returned @ref Subscription beside the state that handler
+ * captured:
  *
  * @code
  * _spawnSub = runtime.Slots.Changed += [this](int slot) { _cache.Reset(slot); };
  * @endcode
  *
- * A handler is never invoked after its Subscription drops, including from inside the @ref Raise
- * that is already running.
+ * A handler never runs after its Subscription drops, not even from inside a @ref Raise already
+ * under way.
  *
- * **Lifetime.** The Subscription holds a raw pointer to the event, so the event must outlive it.
- * Declaring the subscription as a member of the object that owns the handler's state gives that
- * for free; a subscription stored above the service it points at does not.
+ * **Lifetime.** The Subscription points at the event, so the event has to outlive it. Declaring
+ * the subscription in the object that owns the handler state gives that for free; storing it above
+ * the service it points at does not.
  *
  * **Lazy install.** An event whose source costs something to run - a vtable hook, an engine-wide
- * callback - is constructed with a @ref Lifecycle. @ref Lifecycle::OnFirst runs before the first
- * handler is stored and may refuse (returning false yields an empty Subscription and stores
- * nothing); @ref Lifecycle::OnLast runs after the last handler is removed. Nothing else installs
- * the source, so subscribing starts it and removing the last subscription stops it.
+ * callback - takes an @ref EventLifecycle. Subscribing starts the source and dropping the last
+ * subscription stops it; nothing else installs it. Several events fed by one source share a
+ * @ref SharedSource.
  *
  * Not copyable or movable: subscriptions point at one address for their whole life.
  */
@@ -41,19 +54,8 @@ class Event
 {
 public:
     using Handler = std::function<void(Args...)>;
-
-    /**
-     * @brief Engine-side install/remove driven by whether anything is listening.
-     *
-     * @ref OnFirst returns false to reject the subscription; the owner is expected to have said
-     * why (a log line today, a capability record later). Both run on the game thread, and
-     * @ref OnLast may run from inside @ref Raise when the last handler drops itself.
-     */
-    struct Lifecycle
-    {
-        std::function<bool()> OnFirst;
-        std::function<void()> OnLast;
-    };
+    /** @ref EventLifecycle, reachable as `Event<...>::Lifecycle` where that reads better. */
+    using Lifecycle = EventLifecycle;
 
     Event() = default;
     explicit Event(Lifecycle lifecycle) : _lifecycle(std::move(lifecycle)) {}

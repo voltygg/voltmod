@@ -5,6 +5,7 @@
 
 #include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Core/Result.hpp>
+#include <VoltMod/Core/SharedSource.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Entities/EntityOps.hpp>
@@ -59,11 +60,10 @@ struct UiPanelState
     /** The event for one Button id, created on first use. */
     Event<int>& Button(std::string_view id);
 
-    /** @ref Event::Lifecycle shared by @ref Clicked and every @ref Buttons entry: one subscription
-     *  to @ref CustomUi::Clicked, counted across all of them. False when the hook refused, which
-     *  refuses the subscription that asked and leaves a later one free to try again. */
-    bool OnFirstSubscriber();
-    void OnLastSubscriber();
+    /** Take and drop the one subscription to @ref CustomUi::Clicked that feeds @ref Clicked and
+     *  every @ref Buttons entry. False means the hook refused; a later subscriber may retry. */
+    bool StartClickRouting();
+    void StopClickRouting();
 
     EntitySystem* Entities = nullptr;
     EntityOps* Ops = nullptr;
@@ -84,12 +84,13 @@ struct UiPanelState
     bool PlayersChanged = true;
 
     UiWriteCache Cache;
+
+    /** Declared before the events it feeds, so it outlives them. @ref ClickListener is taken
+     *  while any of @ref Clicked and the @ref Buttons entries is listening, and only once. */
+    SharedSource ClickRouting;
+
     Event<const UiClick&> Clicked;
     Internal::UiButtonEvents Buttons;
-
-    /** Live subscriptions across @ref Clicked and @ref Buttons, so @ref ClickListener is taken
-     *  once however many handlers there are. */
-    int Subscribers = 0;
 
     /** Declared last: their handlers touch the members above them, so dropping them here retires
      *  those handlers before the state they read goes away. */

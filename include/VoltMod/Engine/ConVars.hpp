@@ -5,10 +5,10 @@
 #include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
+#include <concepts>
 #include <cstdint>
 #include <string>
 #include <string_view>
-#include <type_traits>
 #include <utility>
 
 namespace VoltMod
@@ -22,6 +22,18 @@ struct ConVarChange
     std::string_view NewValue;
 };
 
+/** The value types a @ref ConVar handle supports. Naming one the engine does not store this way
+ *  fails at the `Find` call rather than at link time. */
+template <class T>
+concept ConVarValue =
+    std::same_as<T, bool> || std::same_as<T, int> || std::same_as<T, float> || std::same_as<T, std::string>;
+
+/** A @ref ConVarValue whose storage can be written behind the engine's back: everything but a
+ *  string, which has no fixed-width slot to poke. @ref ConVar::RawScope and the raw writes it
+ *  depends on are limited to these. */
+template <class T>
+concept RawConVarValue = ConVarValue<T> && !std::same_as<T, std::string>;
+
 template <class T>
 class ConVar;
 
@@ -32,7 +44,7 @@ class ConVarRawScope
 public:
     /** Set now and restore the current value on destruction. */
     ConVarRawScope(ConVar<T>& cvar, const T& value)
-        requires(!std::is_same_v<T, std::string>);
+        requires RawConVarValue<T>;
     ~ConVarRawScope();
 
     ConVarRawScope(const ConVarRawScope&) = delete;
@@ -76,7 +88,7 @@ public:
 
     /** Set without callbacks or networking until the returned scope is destroyed. */
     [[nodiscard]] ConVarRawScope<T> RawScope(const T& value)
-        requires(!std::is_same_v<T, std::string>)
+        requires RawConVarValue<T>
     {
         return ConVarRawScope<T>(*this, value);
     }
@@ -90,7 +102,7 @@ private:
     friend class ConVars;
 
     Status SetRaw(const T& value)
-        requires(!std::is_same_v<T, std::string>);
+        requires RawConVarValue<T>;
 
     ConVars* _service = nullptr;
     std::string _name;
@@ -112,7 +124,7 @@ public:
     Status Initialize();
 
     /** Resolve by name. Returns NotFound when absent and Invalid on a type mismatch. */
-    template <class T>
+    template <ConVarValue T>
     Result<ConVar<T>> Find(std::string_view name);
 
     /** Queue a server console line. Returns Error::NotReady when IVEngineServer2 is unavailable. */

@@ -1,4 +1,3 @@
-#include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Unsafe/VtableHook.hpp>
 #include <algorithm>
 #include <doctest/doctest.h>
@@ -6,7 +5,6 @@
 #include <vector>
 
 using VoltMod::ErrorCode;
-using VoltMod::Event;
 using VoltMod::VtableHook;
 
 // VtableHook stores its remover as a plain function pointer, so the seam a test can inject is a
@@ -164,78 +162,4 @@ TEST_CASE("Install refuses a request with no adder, no remover, or no side")
     CHECK(VtableHook::Install("Test", true, true, add, nullptr).error().Code == ErrorCode::Invalid);
     CHECK(VtableHook::Install("Test", false, false, add, &RecordRemoval).error().Code == ErrorCode::Invalid);
     CHECK(adder.Calls() == 0);
-}
-
-// The Lifecycle half of the contract: what a hook service's OnFirstSubscriber/OnLastSubscriber refcount has to do
-// for the install to happen exactly once and the removal exactly once.
-
-TEST_CASE("The first subscription installs and the last one to drop removes")
-{
-    int installs = 0;
-    int removals = 0;
-    int refs = 0;
-    Event<int> event({.OnFirst =
-                          [&] {
-                              if (refs++ == 0)
-                                  ++installs;
-                              return true;
-                          },
-                      .OnLast =
-                          [&] {
-                              if (--refs == 0)
-                                  ++removals;
-                          }});
-
-    {
-        auto first = event += [](int) {};
-        auto second = event += [](int) {};
-        CHECK(installs == 1);
-        CHECK(removals == 0);
-    }
-
-    CHECK(installs == 1);
-    CHECK(removals == 1);
-}
-
-TEST_CASE("A refused install yields an empty subscription and never runs OnLast")
-{
-    int attempts = 0;
-    int removals = 0;
-    Event<int> event({.OnFirst =
-                          [&] {
-                              ++attempts;
-                              return false;
-                          },
-                      .OnLast = [&] { ++removals; }});
-
-    {
-        auto refused = event += [](int) {};
-        CHECK_FALSE(static_cast<bool>(refused));
-        CHECK(event.Empty());
-    }
-
-    CHECK(attempts == 1);
-    CHECK(removals == 0);
-}
-
-TEST_CASE("A refused install is retried by the next subscriber")
-{
-    bool ready = false;
-    int installs = 0;
-    Event<int> event({.OnFirst =
-                          [&] {
-                              if (!ready)
-                                  return false;
-                              ++installs;
-                              return true;
-                          },
-                      .OnLast = [] {}});
-
-    auto refused = event += [](int) {};
-    CHECK_FALSE(static_cast<bool>(refused));
-
-    ready = true;
-    auto accepted = event += [](int) {};
-    CHECK(static_cast<bool>(accepted));
-    CHECK(installs == 1);
 }

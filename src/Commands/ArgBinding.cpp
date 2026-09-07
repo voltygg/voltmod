@@ -27,12 +27,12 @@ static ArgError TargetKey(const TargetFailure& failure, const std::string& token
 }
 
 /** One token to the single player it names, or the key explaining why it named none. */
-static std::expected<Player*, ArgError> BindTarget(ArgBinder& binder, const std::string& token, Player* caller)
+static std::expected<Args::Target, ArgError> BindTarget(ArgBinder& binder, const std::string& token, Player* caller)
 {
     auto resolved = binder.Resolve(token, caller, TargetRules{});
     if (!resolved)
         return std::unexpected(TargetKey(resolved.error(), token));
-    return resolved->front();
+    return Args::Target{.Value = resolved->front()};
 }
 
 /** One token to every player it names. `AllowMultiple` is what separates this from BindTarget. */
@@ -135,10 +135,7 @@ std::expected<std::vector<BoundArg>, ArgError> BindArgs(const CommandDefinition&
         switch (arg.Kind)
         {
         case ArgKind::Target:
-            if (auto player = BindTarget(binder, token, caller))
-                bound.emplace_back(Args::Target{.Value = *player});
-            else
-                failed = std::move(player.error());
+            failed = Store(BindTarget(binder, token, caller), bound);
             break;
         case ArgKind::Targets:
             failed = Store(BindTargets(binder, token, caller), bound);

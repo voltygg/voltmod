@@ -65,16 +65,15 @@ public:
     const std::unordered_map<uint64_t, T>& Items() const { return _items; }
 
     /**
-     * Invoke @p fn(item) for every stored item @p pred accepts, safe against a callback that adds
-     * or removes registrations while it runs - including one that drops its own Subscription.
+     * Invoke @p fn(item) for every stored item @p pred accepts. Safe against a callback that adds
+     * or removes registrations while it runs, including one dropping its own Subscription.
      *
-     * Handles are snapshotted first, then re-found one at a time, because invoking rehashes or
-     * erases and would otherwise invalidate a live iterator. The item is copied out before the
-     * call for the same reason: running a callback can destroy the stored copy of itself. @p pred
-     * is applied to the stored item, so entries it rejects never pay for that copy - which is what
-     * lets a registry keyed by something other than the handle (game events by name) filter here
-     * rather than hand-rolling its own snapshot. Registries here hold a handful of entries at
-     * most, so the snapshot stays on the stack unless it has to grow.
+     * Handles are snapshotted, then re-found one at a time: invoking can rehash or erase, which
+     * would invalidate a live iterator, and can destroy the stored callback mid-call, so the item
+     * is copied out first. @p pred runs against the stored item, so entries it rejects never pay
+     * for that copy - which is what lets a registry keyed by something other than the handle (game
+     * events by name) filter here instead of snapshotting for itself. A handful of entries is the
+     * normal size, so the snapshot stays on the stack unless it has to grow.
      */
     template <class Pred, class Fn>
     void DispatchIf(Pred&& pred, Fn&& fn)

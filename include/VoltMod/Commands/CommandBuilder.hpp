@@ -94,32 +94,65 @@ template <class... A>
 struct CommandArgList
 {};
 
+/** A callable with exactly one `operator()` to name: a plain lambda or functor, but not a generic
+ *  one (`auto` parameters) and not one carrying overloads. */
+template <class F>
+concept HasOneCallOperator = requires { &std::remove_reference_t<F>::operator(); };
+
 /**
  * @brief The parameter list of a handler, after the leading @ref Caller.
  *
- * `Run` deduces `A...` from the callable, so the signature is the argument specification.
+ * @ref CommandBuilder::Run deduces `A...` from the callable, so the signature is the argument
+ * specification. The specializations below cover the shapes a handler is written in - a lambda, a
+ * functor, a function - and anything else lands on the primary and says so.
  */
 template <class F>
-struct CommandHandlerArgs : CommandHandlerArgs<decltype(&std::remove_reference_t<F>::operator())>
+struct CommandHandlerArgs
+{
+    static_assert(HasOneCallOperator<F>,
+                  "A command handler takes (Caller, Args::...) and returns Result<Reply>. A generic lambda "
+                  "cannot be one: its parameter list is the argument specification, so the types have to be "
+                  "written out.");
+};
+
+/** A lambda or functor, through the one `operator()` it has. */
+template <HasOneCallOperator F>
+struct CommandHandlerArgs<F> : CommandHandlerArgs<decltype(&std::remove_reference_t<F>::operator())>
+{};
+
+/** The one place the list is named; every shape below reduces to this. */
+template <class R, class... A>
+struct CommandHandlerArgs<R(Caller, A...)>
+{
+    using List = CommandArgList<A...>;
+};
+
+/** @{ A lambda's `operator()`, and a function pointer. `Run` decays the callable first, so a
+ *  function passed by name arrives here as a pointer. */
+template <class C, class R, class... A>
+struct CommandHandlerArgs<R (C::*)(Caller, A...) const> : CommandHandlerArgs<R(Caller, A...)>
 {};
 
 template <class C, class R, class... A>
-struct CommandHandlerArgs<R (C::*)(Caller, A...) const>
-{
-    using List = CommandArgList<A...>;
-};
+struct CommandHandlerArgs<R (C::*)(Caller, A...) const noexcept> : CommandHandlerArgs<R(Caller, A...)>
+{};
 
 template <class C, class R, class... A>
-struct CommandHandlerArgs<R (C::*)(Caller, A...)>
-{
-    using List = CommandArgList<A...>;
-};
+struct CommandHandlerArgs<R (C::*)(Caller, A...)> : CommandHandlerArgs<R(Caller, A...)>
+{};
+
+template <class C, class R, class... A>
+struct CommandHandlerArgs<R (C::*)(Caller, A...) noexcept> : CommandHandlerArgs<R(Caller, A...)>
+{};
 
 template <class R, class... A>
-struct CommandHandlerArgs<R (*)(Caller, A...)>
-{
-    using List = CommandArgList<A...>;
-};
+struct CommandHandlerArgs<R (*)(Caller, A...)> : CommandHandlerArgs<R(Caller, A...)>
+{};
+
+template <class R, class... A>
+struct CommandHandlerArgs<R (*)(Caller, A...) noexcept> : CommandHandlerArgs<R(Caller, A...)>
+{};
+/** @} */
 
 /**
  * @brief Fluent command registration, returned by @ref CommandManager::Add.
@@ -205,7 +238,7 @@ public:
     template <class F>
     void Run(F&& handler)
     {
-        Bind(std::forward<F>(handler), typename CommandHandlerArgs<std::remove_cvref_t<F>>::List{});
+        Bind(std::forward<F>(handler), typename CommandHandlerArgs<std::decay_t<F>>::List{});
     }
 
 private:

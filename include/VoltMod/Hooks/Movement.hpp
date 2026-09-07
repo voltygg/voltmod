@@ -3,6 +3,7 @@
 #include <VoltMod/Core/Capabilities.hpp>
 #include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Core/Result.hpp>
+#include <VoltMod/Core/SharedSource.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
@@ -54,6 +55,12 @@ public:
     Movement(const Movement&) = delete;
     Movement& operator=(const Movement&) = delete;
 
+private:
+    /** Declared before the events so it is constructed first: all four take a lifecycle from it
+     *  and share the one RunCommand hook it starts. */
+    SharedSource _source;
+
+public:
     /** Before this player's movement runs. */
     Event<int> Pre;
     /** After it ran - where a Pre-time state flip is restored. */
@@ -67,10 +74,10 @@ public:
     int SlotFromMovementServices(void* movementServices) const;
 
 private:
-    /** One shared install behind four events: the first subscription across all of them binds the
-     *  vtable and the last one to drop unbinds it. */
-    bool OnFirstSubscriber();
-    void OnLastSubscriber();
+    /** The hook behind all four events. @ref _source runs these when the first of them starts
+     *  listening and when the last one goes quiet. */
+    bool StartHook();
+    void StopHook();
 
     /** Any connected player's movement services, for the install-time vtable cross-check. */
     void* LiveMovementServices() const;
@@ -82,7 +89,6 @@ private:
     EntitySystem& _entities;
     Capabilities& _capabilities;
     const Bindings& _bindings;
-    int _subscribers = 0;  // live subscriptions across all four events
     UserCmdView _cmdView;  // decoded once per RunCommand, reused across pre/post dispatch
     VtableHook _hook;      // the pre/post pair; removed by dropping it
     int _preSlot = -1;     // slot resolved in the pre hook, reused by the immediately-following post

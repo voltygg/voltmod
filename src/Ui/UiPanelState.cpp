@@ -20,7 +20,9 @@ UiPanelState::UiPanelState(EntitySystem* entities, EntityOps* ops, SlotEvents* s
       AllClicks(allClicks),
       Layout(std::move(layout)),
       Resource(std::move(resource)),
-      Clicked({.OnFirst = [this] { return OnFirstSubscriber(); }, .OnLast = [this] { OnLastSubscriber(); }})
+      ClickRouting(
+          "UiPanel", [this] { return StartClickRouting(); }, [this] { StopClickRouting(); }),
+      Clicked(ClickRouting.Lifecycle())
 {
     if (!slots)
         return;
@@ -98,35 +100,26 @@ Event<int>& UiPanelState::Button(std::string_view id)
     if (auto it = Buttons.find(std::string(id)); it != Buttons.end())
         return it->second;
 
-    return Buttons
-        .try_emplace(std::string(id), Event<int>::Lifecycle{.OnFirst = [this] { return OnFirstSubscriber(); },
-                                                            .OnLast = [this] { OnLastSubscriber(); }})
-        .first->second;
+    return Buttons.try_emplace(std::string(id), ClickRouting.Lifecycle()).first->second;
 }
 
-bool UiPanelState::OnFirstSubscriber()
+bool UiPanelState::StartClickRouting()
 {
-    if (Subscribers == 0)
-    {
-        if (!AllClicks)
-            return false;
+    if (!AllClicks)
+        return false;
 
-        // Capture heap-owned state so routing survives panel moves. ClickListener is destroyed
-        // before the state it reads.
-        ClickListener = *AllClicks +=
-            [this](const UiClick& click) { Internal::RouteUiClick(click, CurrentEntity, Clicked, Buttons); };
-        if (!ClickListener)
-            return false;  // the hook refused; a later subscription is free to try again
-    }
+    // Capture heap-owned state so routing survives panel moves. ClickListener is destroyed
+    // before the state it reads.
+    ClickListener = *AllClicks +=
+        [this](const UiClick& click) { Internal::RouteUiClick(click, CurrentEntity, Clicked, Buttons); };
 
-    ++Subscribers;
-    return true;
+    // Empty means the hook refused; a later subscription is free to try again.
+    return static_cast<bool>(ClickListener);
 }
 
-void UiPanelState::OnLastSubscriber()
+void UiPanelState::StopClickRouting()
 {
-    if (Subscribers > 0 && --Subscribers == 0)
-        ClickListener.Reset();
+    ClickListener.Reset();
 }
 
 }  // namespace VoltMod

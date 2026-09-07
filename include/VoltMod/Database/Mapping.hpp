@@ -14,79 +14,94 @@ namespace VoltMod
 {
 
 /**
- * @brief Row/SQL generation over an entity's Column table (see Column.hpp for the contract).
+ * @brief Row parsing and SQL generation from an entity's column table (see Column.hpp).
  *
- * The entity declares each column once; these helpers derive field-by-field row
- * parsing (@ref FromRow), result mapping
- * (@ref FromResult), the INSERT statement with its placeholder list (@ref InsertSql +
- * @ref InsertParams, key column excluded), and explicit-column SELECTs (@ref SelectSql).
- * `std::optional` members map to nullable columns. Bespoke UPDATE/WHERE SQL stays hand-written -
- * that is the part worth reading at the call site.
+ * The entity declares each column once; these helpers derive row parsing (@ref FromRow,
+ * @ref FromResult), the INSERT statement and its parameters (@ref InsertSql, @ref InsertParams),
+ * and explicit-column SELECTs (@ref SelectSql). A `std::optional` member maps to a nullable
+ * column. Bespoke UPDATE and WHERE clauses stay hand-written - those are the part worth reading at
+ * the call site.
  */
 
+/** Visit every column of @p T in declaration order. */
+template <class T, class Fn>
+constexpr void ForEachColumn(Fn&& fn)
+{
+    std::apply([&](const auto&... columns) { (fn(columns), ...); }, T::Columns());
+}
+
+/**
+ * Visit every column an INSERT writes: all of them but the key, which the database generates.
+ *
+ * @ref InsertSql and @ref InsertParams both walk this, so the column list and the value list
+ * cannot disagree about which columns are in play or what order they come in.
+ */
+template <class T, class Fn>
+constexpr void ForEachInsertColumn(Fn&& fn)
+{
+    ForEachColumn<T>([&](const auto& column) {
+        if (std::string_view(column.Name) != T::Key)
+            fn(column);
+    });
+}
+
+/** How many columns an INSERT writes. */
+template <class T>
+constexpr std::size_t InsertColumnCount()
+{
+    std::size_t count = 0;
+    ForEachInsertColumn<T>([&](const auto&) { ++count; });
+    return count;
+}
+
+/** Whether a mapped member is nullable. */
 template <class M>
 inline constexpr bool IsOptionalColumn = false;
 template <class M>
 inline constexpr bool IsOptionalColumn<std::optional<M>> = true;
 
+/** Read one column of @p row into its member, leaving a nullable one empty when the field is null. */
 template <class T, class M>
-void AssignColumn(T& out, const Column<T, M>& col, const pqxx::row& row)
+void AssignColumn(T& out, const Column<T, M>& column, const pqxx::row& row)
 {
-    const pqxx::field field = row[col.Name];
+    const pqxx::field field = row[column.Name];
     if constexpr (IsOptionalColumn<M>)
     {
         if (field.is_null())
-            out.*(col.Member) = std::nullopt;
+            out.*(column.Member) = std::nullopt;
         else
-            out.*(col.Member) = field.template as<typename M::value_type>();
+            out.*(column.Member) = field.template as<typename M::value_type>();
     }
     else
     {
-        out.*(col.Member) = field.template as<M>();
+        out.*(column.Member) = field.template as<M>();
     }
 }
 
+/** Comma-separated column names, for a SELECT list or an INSERT column list. */
 template <class T>
-std::string JoinColumnNames(bool excludeKey)
+std::string ColumnNames(bool excludeKey)
 {
     std::string out;
-    std::apply(
-        [&](const auto&... cols) {
-            auto add = [&](const auto& col) {
-                if (excludeKey && std::string_view(col.Name) == T::Key)
-                    return;
-                if (!out.empty())
-                    out += ", ";
-                out += col.Name;
-            };
-            (add(cols), ...);
-        },
-        T::Columns());
+    auto append = [&](const auto& column) {
+        if (!out.empty())
+            out += ", ";
+        out += column.Name;
+    };
+
+    if (excludeKey)
+        ForEachInsertColumn<T>(append);
+    else
+        ForEachColumn<T>(append);
     return out;
 }
 
-template <class T>
-std::size_t CountInsertColumns()
-{
-    std::size_t count = 0;
-    std::apply(
-        [&](const auto&... cols) {
-            auto add = [&](const auto& col) {
-                if (std::string_view(col.Name) != T::Key)
-                    ++count;
-            };
-            (add(cols), ...);
-        },
-        T::Columns());
-    return count;
-}
-
-/** Map one row into a default-constructed T, column by column (optionals are null-aware). */
+/** Map one row into a default-constructed T, column by column. */
 template <class T>
 T FromRow(const pqxx::row& row)
 {
     T out{};
-    std::apply([&](const auto&... cols) { (AssignColumn(out, cols, row), ...); }, T::Columns());
+    ForEachColumn<T>([&](const auto& column) { AssignColumn(out, column, row); });
     return out;
 }
 
@@ -101,40 +116,30 @@ std::vector<T> FromResult(const pqxx::result& result)
     return out;
 }
 
-/** "INSERT INTO {table} (c1..cn) VALUES ($1..$n) RETURNING {key}" - key column excluded. */
+/** "INSERT INTO {table} (c1..cn) VALUES ($1..$n) RETURNING {key}" - the key column excluded. */
 template <class T>
 const std::string& InsertSql()
 {
     static const std::string sql = [] {
         std::string placeholders;
-        const std::size_t count = CountInsertColumns<T>();
-        for (std::size_t i = 1; i <= count; ++i)
+        for (std::size_t i = 1; i <= InsertColumnCount<T>(); ++i)
         {
             if (i > 1)
                 placeholders += ", ";
             placeholders += std::format("${}", i);
         }
-        return std::format("INSERT INTO {} ({}) VALUES ({}) RETURNING {}", T::Table, JoinColumnNames<T>(true),
-                           placeholders, T::Key);
+        return std::format("INSERT INTO {} ({}) VALUES ({}) RETURNING {}", T::Table, ColumnNames<T>(true), placeholders,
+                           T::Key);
     }();
     return sql;
 }
 
-/** The values for @ref InsertSql, in column-table order with the key excluded. */
+/** The values for @ref InsertSql, in the same order its placeholders are numbered. */
 template <class T>
 pqxx::params InsertParams(const T& entity)
 {
     pqxx::params params;
-    std::apply(
-        [&](const auto&... cols) {
-            auto add = [&](const auto& col) {
-                if (std::string_view(col.Name) == T::Key)
-                    return;
-                params.append(entity.*(col.Member));
-            };
-            (add(cols), ...);
-        },
-        T::Columns());
+    ForEachInsertColumn<T>([&](const auto& column) { params.append(entity.*(column.Member)); });
     return params;
 }
 
@@ -142,7 +147,7 @@ pqxx::params InsertParams(const T& entity)
 template <class T>
 std::string SelectSql(std::string_view where = {})
 {
-    std::string sql = std::format("SELECT {} FROM {}", JoinColumnNames<T>(false), T::Table);
+    std::string sql = std::format("SELECT {} FROM {}", ColumnNames<T>(false), T::Table);
     if (!where.empty())
     {
         sql += " WHERE ";

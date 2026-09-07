@@ -17,7 +17,7 @@ static_assert(static_cast<int>(ConVarType::Float32) == EConVarType_Float32);
 static_assert(static_cast<int>(ConVarType::String) == EConVarType_String);
 static_assert(static_cast<int>(ConVarType::VectorWS) == EConVarType_VectorWS);
 
-template <class T>
+template <ConVarValue T>
 Result<ConVar<T>> ConVars::Find(std::string_view name)
 {
     const std::string owned(name);
@@ -95,7 +95,7 @@ Status ConVar<T>::Set(const T& value)
 
 template <class T>
 Status ConVar<T>::SetRaw(const T& value)
-    requires(!std::is_same_v<T, std::string>)
+    requires RawConVarValue<T>
 {
     if (!_storage)
         return std::unexpected(Error::NotReady("convar handle is unresolved"));
@@ -141,7 +141,7 @@ Status ConVar<T>::SetFor(int slot, const T& value) const
 
 template <class T>
 ConVarRawScope<T>::ConVarRawScope(ConVar<T>& cvar, const T& value)
-    requires(!std::is_same_v<T, std::string>)
+    requires RawConVarValue<T>
     : _cvar(&cvar), _previous(cvar.Get())
 {
     if (!cvar.SetRaw(value))
@@ -155,8 +155,9 @@ ConVarRawScope<T>::~ConVarRawScope()
         (void)_cvar->SetRaw(_previous);
 }
 
-// The complete set of supported handle types: the templates above are defined only here, so a `T`
-// missing from this list is a link error at the consumer, not a silently different handle.
+// The templates above are defined only here, so these instantiations are what makes the handles
+// exist. The lists mirror the ConVarValue and RawConVarValue concepts; a type in a concept but not
+// here is a link error at the consumer rather than a silently different handle.
 template class ConVar<bool>;
 template class ConVar<int>;
 template class ConVar<float>;

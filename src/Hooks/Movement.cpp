@@ -16,65 +16,58 @@ namespace VoltMod
 // Hooks CPlayer_MovementServices::RunCommand for every player. The opaque types are unused.
 VOLTMOD_VHOOK1(VoltMod_MovementRunCommand, void*, void*);
 
-// All movement events share one hook installation.
+// All four events share one hook, started and stopped by _source.
 Movement::Movement(EntitySystem& entities, const Bindings& bindings, Capabilities& capabilities)
-    : Pre({.OnFirst = [this] { return OnFirstSubscriber(); }, .OnLast = [this] { OnLastSubscriber(); }}),
-      Post({.OnFirst = [this] { return OnFirstSubscriber(); }, .OnLast = [this] { OnLastSubscriber(); }}),
-      PreCmd({.OnFirst = [this] { return OnFirstSubscriber(); }, .OnLast = [this] { OnLastSubscriber(); }}),
-      FilterCmd({.OnFirst = [this] { return OnFirstSubscriber(); }, .OnLast = [this] { OnLastSubscriber(); }}),
+    : _source(
+          "Movement", [this] { return StartHook(); }, [this] { StopHook(); }),
+      Pre(_source.Lifecycle()),
+      Post(_source.Lifecycle()),
+      PreCmd(_source.Lifecycle()),
+      FilterCmd(_source.Lifecycle()),
       _entities(entities),
       _capabilities(capabilities),
       _bindings(bindings)
 {}
 
-Movement::~Movement()
-{
-    // Never leave a hook pointing into an unloaded module.
-    if (_subscribers != 0)
-        Log::Error("Movement: {} subscription(s) outlived the hook; a movement handler may dangle.", _subscribers);
-}
+// A hook left pointing into an unloaded module can only come from a subscription that outlived
+// this object; _source logs that case.
+Movement::~Movement() = default;
 
-bool Movement::OnFirstSubscriber()
+bool Movement::StartHook()
 {
-    if (_subscribers == 0)
+    if (!_bindings.UserCmdPB)
+        Log::Warn("Movement: no usable 'UserCmdPB' offset; cmd listeners get Valid=false views.");
+
+    if (!_bindings.UserCmdNumber)
+        Log::Warn(
+            "Movement: no usable 'UserCmdNumber' offset; falling back to the protobuf's "
+            "legacy_command_number, which the live client leaves at 0.");
+
+    _movementServices.fill({});
+
+    auto hook = VtableHook::OnVTable<VoltMod_MovementRunCommandHook>(
+        "Movement RunCommand", _bindings.RunCommand, this, &Movement::Hook_RunCommandPre,
+        &Movement::Hook_RunCommandPost, LiveMovementServices());
+    if (!hook)
     {
-        if (!_bindings.UserCmdPB)
-            Log::Warn("Movement: no usable 'UserCmdPB' offset; cmd listeners get Valid=false views.");
-
-        if (!_bindings.UserCmdNumber)
-            Log::Warn(
-                "Movement: no usable 'UserCmdNumber' offset; falling back to the protobuf's "
-                "legacy_command_number, which the live client leaves at 0.");
-
-        _movementServices.fill({});
-
-        auto hook = VtableHook::OnVTable<VoltMod_MovementRunCommandHook>(
-            "Movement RunCommand", _bindings.RunCommand, this, &Movement::Hook_RunCommandPre,
-            &Movement::Hook_RunCommandPost, LiveMovementServices());
-        if (!hook)
-        {
-            // Bindings marked the capability usable from gamedata alone; the install is the
-            // second half of that promise, so a failure here has to retract it.
-            Log::Warn("Movement: {}; movement handlers will not fire.", hook.error().Detail);
-            _capabilities.Set(Capability::Movement, false, hook.error().Detail);
-            return false;
-        }
-        _hook = std::move(*hook);
-        // A retry that installs must not leave the capability reading false against a live hook.
-        _capabilities.Set(Capability::Movement, true);
+        // Bindings marked the capability usable from gamedata alone; the install is the
+        // second half of that promise, so a failure here has to retract it.
+        Log::Warn("Movement: {}; movement handlers will not fire.", hook.error().Detail);
+        _capabilities.Set(Capability::Movement, false, hook.error().Detail);
+        return false;
     }
-    ++_subscribers;
+
+    _hook = std::move(*hook);
+    // A retry that installs must not leave the capability reading false against a live hook.
+    _capabilities.Set(Capability::Movement, true);
     return true;
 }
 
-void Movement::OnLastSubscriber()
+void Movement::StopHook()
 {
-    if (_subscribers > 0 && --_subscribers == 0)
-    {
-        _hook.Reset();
-        // Pawn pointers may be stale after reinstall.
-        _movementServices.fill({});
-    }
+    _hook.Reset();
+    // Pawn pointers may be stale after reinstall.
+    _movementServices.fill({});
 }
 
 void* Movement::LiveMovementServices() const
