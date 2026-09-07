@@ -77,7 +77,9 @@ public:
      */
     void Stop();
 
-    /** Enqueue a request. `onComplete` runs on the game thread on a later dispatch. */
+    /** Enqueue a request. `onComplete` runs on the game thread on a later dispatch, except after
+     *  @ref Stop: the request is dropped and its completion never runs, because Stop happens
+     *  during teardown and no later dispatch is coming. */
     void Send(HttpRequest request, HttpCompletion onComplete);
 
     /** Convenience helpers over Send. Use Send directly for less common request shapes. */
