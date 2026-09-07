@@ -4,8 +4,6 @@
 namespace VoltMod
 {
 
-// Keep SourceHook macros in VOLTMOD_VHOOK traits so this policy remains SDK-free and testable.
-
 VtableHook::~VtableHook()
 {
     Reset();

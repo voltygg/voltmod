@@ -216,8 +216,6 @@ struct Bindings
      *  nothing in the engine's registry or the SDK's protos names this message. -1 when unbound. */
     int32_t CustomHudClicked = -1;
 
-    // Addresses
-
     /** IGameEventManager2** inside CSource2Server. */
     Address GameEventManager;
     /** CBaseGameSystemFactory** list head. */
@@ -226,8 +224,6 @@ struct Bindings
     Address GameSystemEventDispatcher;
     /** CUtlVector<AddedGameSystem_t>* used to remove systems on unload. */
     Address GameSystemList;
-
-    // Virtual functions
 
     /** CBasePlayerPawn::CommitSuicide(bool explode, bool force) */
     VFn<void(bool, bool)> CommitSuicide;
@@ -248,8 +244,6 @@ struct Bindings
     /** CServerSideClient::SendNetMessage(const CNetMessage*, NetChannelBufType_t), hooked on
      *  CServerSideClient. The buf type is an enum the SDK declares, so it is taken as int here. */
     VHookBinding<bool(const void*, int)> SendNetMessage;
-
-    // Offsets
 
     /** The CGameEntitySystem* cached inside IGameResourceService. */
     OffsetOf<CGameEntitySystem*> GameEntitySystem;

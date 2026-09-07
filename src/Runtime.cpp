@@ -27,17 +27,14 @@ namespace VoltMod
 
 static constexpr std::string_view DefaultGameDataPath = "addons/voltmod/gamedata/gamedata.jsonc";
 
-// Every service is wired by its default member initializer in Runtime.hpp, where the dependency
-// order is visible.
+// Runtime.hpp wires services in dependency order through their default member initializers.
 Runtime::Runtime() = default;
 
-// Every service tears itself down in its own destructor, in reverse declaration order. Only these
-// two cannot wait for that.
+// Services otherwise stop in reverse declaration order through their destructors.
 Runtime::~Runtime()
 {
-    // Both must precede member destruction: Http.Stop() joins the workers, whose final log lines
-    // are queued for the game thread, and OnGameFrame never runs again once the hooks are gone -
-    // so this second delivery is the only thing that keeps shutdown diagnostics from being dropped.
+    // Join HTTP workers before member destruction. Deliver their game-thread log queue now because
+    // OnGameFrame stops after hooks are removed.
     Http.Stop();
     Log::DeliverPending();
 }
@@ -77,9 +74,8 @@ bool Runtime::ResolveInterfaces(const LoadContext& context)
 
     auto& gi = Unsafe.Interfaces;
 
-    // Resolve each required interface, erroring out on the first one that is missing. The macro
-    // keeps this type-safe (decltype, no void** punning) while collapsing the per-interface
-    // resolve-and-check boilerplate to one line each.
+    // Resolve required interfaces in order and stop at the first missing one. decltype keeps each
+    // assignment type-safe without void** casts.
 #define VOLTMOD_RESOLVE(field, factory, version)                                              \
     gi.field = static_cast<decltype(gi.field)>(factory(version));                             \
     if (!gi.field)                                                                            \
@@ -101,8 +97,8 @@ bool Runtime::ResolveInterfaces(const LoadContext& context)
 
 #undef VOLTMOD_RESOLVE
 
-    // Set g_pCVar and flush pending registrations; without ConVar_Register, tier1 ConCommands
-    // (VoltMod::ServerCommand) construct but never register, so the engine reports "Unknown command".
+    // Set g_pCVar and register pending tier1 ConCommands. Without ConVar_Register,
+    // VoltMod::ServerCommand instances remain unknown to the engine.
     g_pCVar = gi.CVar;
     ConVar_Register(FCVAR_RELEASE | FCVAR_CLIENT_CAN_EXECUTE | FCVAR_SERVER_CAN_EXECUTE | FCVAR_GAMEDLL);
     return true;
@@ -110,9 +106,8 @@ bool Runtime::ResolveInterfaces(const LoadContext& context)
 
 bool Runtime::InitializeServices(const LoadContext& context)
 {
-    // Load game data and initialize SDK subsystems as named, timed stages. Only the message
-    // system is load-aborting; MetamodPlugin logs the summary and surfaces FirstFailure() in
-    // Metamod's error buffer.
+    // Record initialization as named, timed stages. MetamodPlugin logs the summary and places the
+    // first fatal failure in Metamod's error buffer.
     auto& report = LoadReport;
 
     report.Run("GameData", [&] {
@@ -124,16 +119,14 @@ bool Runtime::InitializeServices(const LoadContext& context)
                                            Unsafe.GameData.VerifiedOn()));
     });
 
-    // Bindings must run even when GameData degraded: it is what records every capability, and a
-    // capability nobody records reads as off with "not initialized" rather than with the reason.
+    // Bindings must run after degraded GameData so every disabled capability records its reason.
     report.Run("Bindings", [&] {
         if (auto bound = Unsafe.Bindings.Bind(Unsafe.GameData, Capabilities); !bound)
             return StageResult::Degraded(bound.error().Detail);
         return StageResult::Ok();
     });
 
-    // A stage the load cannot continue without: the failure reaches Metamod and aborts, rather
-    // than degrading a capability the way the stages below do. False means stop.
+    // A fatal stage writes its first failure to Metamod and returns false to abort the load.
     auto fatal = [&](std::string_view name, auto&& init) {
         const auto status = report.Run(name, [&] {
             auto ready = init();
@@ -149,8 +142,7 @@ bool Runtime::InitializeServices(const LoadContext& context)
     if (!fatal("Messages", [&] { return Messages.Initialize(); }))
         return false;
 
-    // The remaining subsystems all report the same way: the setup's error degrades the load stage
-    // and turns off the capability it backs, with the same reason on both.
+    // A degradable stage stays loaded but disables its capability with the same failure reason.
     auto degradable = [&](std::string_view name, Capability capability, auto&& init) {
         report.Run(name, [&] {
             auto ready = init();
@@ -164,13 +156,13 @@ bool Runtime::InitializeServices(const LoadContext& context)
         });
     };
 
-    // Field offsets are baked into the generated accessors at build time, so a CS2 update that
-    // moves a used class turns every one of them into a wrong-address read or write. This is the
-    // only thing standing between that and silent memory corruption, so it aborts the load rather
-    // than degrading like the stages around it.
+    // Generated accessors contain build-time field offsets. Abort if the live CS2 layout differs
+    // so stale offsets cannot silently corrupt memory.
     Schema::BindSchemaVerification(Unsafe.Interfaces.SchemaSystem);
     if (!fatal("SchemaLayout", [&] { return Schema::VerifySchemaLayout(); }))
+    {
         return false;
+    }
 
     report.Run("Entities", [&] {
         auto ready = Entities.Initialize();
@@ -182,11 +174,11 @@ bool Runtime::InitializeServices(const LoadContext& context)
         if (Entities.GetEntitySystem())
             return StageResult::Ok();
 
-        // A load that runs before the engine creates CGameEntitySystem; StartupServer resolves it.
+        // StartupServer resolves CGameEntitySystem when runtime load precedes engine creation.
         return StageResult::Ok("resolves at the first map load");
     });
-    // EntityOps and Transmit have no setup of their own: Bindings already decided both, so the
-    // stage only reports what the capability already says.
+
+    // Bindings already determines EntityOps and Transmit; these stages only report those results.
     auto alreadyDecided = [&](std::string_view name, Capability capability) {
         report.Run(name, [&] {
             return Capabilities.Has(capability) ? StageResult::Ok()
@@ -206,8 +198,6 @@ bool Runtime::InitializeServices(const LoadContext& context)
     degradable("GameEvents", Capability::GameEvents, [&] { return GameEvents.Initialize(); });
     degradable("ClientCvars", Capability::ClientCvars, [&] { return Hooks.ClientCvars.Initialize(); });
 
-    // The last four have no gamedata or engine setup to fail: Vote and Menus ride on the services
-    // above, and Http owns its own worker pool.
     Capabilities.Set(Capability::Vote,
                      Capabilities.Has(Capability::GameEvents) && Capabilities.Has(Capability::Entities),
                      "needs GameEvents and Entities");
@@ -220,11 +210,10 @@ bool Runtime::InitializeServices(const LoadContext& context)
 
 void Runtime::RegisterStatusSections()
 {
-    // Framework status sections; plugins add theirs in OnLoad. Providers capture `this` - the
-    // runtime outlives them (both live for one Load/Unload cycle).
-    // A section whose keys are data (a status name, a capability name) is spliced from
-    // already-serialized parts; one with a fixed shape is a local struct. Either way the values
-    // are serialized rather than formatted - a capability's Reason is free text.
+    // Plugins add status sections in OnLoad. These providers may capture `this` because the runtime
+    // outlives them within the same Load/Unload cycle.
+    // Serialize fixed shapes as local structs and data-derived keys from raw JSON parts. Values
+    // must be serialized, not formatted, because capability reasons are free text.
     Status.RegisterSection("load", [this] {
         std::map<StageStatus, std::vector<std::string>> byStatus;
         int ok = 0;
@@ -278,8 +267,7 @@ void Runtime::RegisterStatusSections()
         return Json::Write(glz::obj{"missing", missing, "ok", ok});
     });
 
-    // Which menu driver is live is a plugin's own choice made at load, and a UsePanorama that was
-    // refused leaves no other trace once the log line has scrolled.
+    // Expose the selected menu driver because a refused UsePanorama leaves no persistent trace.
     Status.RegisterSection("menus", [this] {
         return Json::Write(
             glz::obj{"driver", Menus.IsPanorama() ? "panorama" : "center-html", "layout", Menus.Layout()});
