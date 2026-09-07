@@ -30,9 +30,6 @@ bool FindModuleImage(const char* moduleName, ModuleImage& image);
  */
 ScanResult FindPatternEx(const char* moduleName, const std::string& pattern);
 
-/** First-match convenience wrapper over FindPatternEx. */
-void* FindPattern(const char* moduleName, const std::string& pattern);
-
 /**
  * Resolve a RIP-relative address inside @p image: reads the 32-bit displacement at
  * @p matchAddress + @p ripOffset and returns the absolute target

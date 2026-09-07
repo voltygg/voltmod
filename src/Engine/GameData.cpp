@@ -56,7 +56,6 @@ Status GameData::Load(std::string_view path)
     // Everything, not just the resolutions: a reload that kept the previous build stamp or a
     // stale entry would report a file it is no longer running on.
     _resolved.clear();
-    _game.clear();
     _verified.clear();
 
     auto file = GameDataFile::Load(path, HostPlatform);
@@ -66,7 +65,6 @@ Status GameData::Load(std::string_view path)
         return std::unexpected(file.error());
     }
 
-    _game = file->Build.Game;
     _verified = file->Build.Verified;
 
     // Signatures first: an address entry is resolved from its signature's match.

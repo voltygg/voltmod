@@ -100,11 +100,6 @@ ScanResult FindPatternEx(const char* moduleName, const std::string& pattern)
     return {const_cast<uint8_t*>(first), true, std::move(image)};
 }
 
-void* FindPattern(const char* moduleName, const std::string& pattern)
-{
-    return FindPatternEx(moduleName, pattern).Address;
-}
-
 uintptr_t ResolveRelativeAddress(const ModuleImage& image, uintptr_t matchAddress, int ripOffset, int ripSize)
 {
     if (matchAddress == 0 || !image.Base)

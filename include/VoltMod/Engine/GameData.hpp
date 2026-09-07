@@ -71,7 +71,6 @@ public:
 
 private:
     std::map<std::string, Resolution> _resolved;
-    std::string _game;
     std::string _verified;
 };
 

@@ -69,12 +69,10 @@ struct ParamAction
 class ActionDispatcher
 {
 public:
-    /** @p policy, @p players and @p entities must outlive the dispatcher. Cheap to construct
-     *  (three references), so a call site may build one per dispatch or hold one as a long-lived
+    /** @p policy and @p entities must outlive the dispatcher. Cheap to construct (two
+     *  references), so a call site may build one per dispatch or hold one as a long-lived
      *  member (see @ref ActionRows, which holds one for its context rows). */
-    ActionDispatcher(Policy& policy, PlayerManager& players, EntitySystem& entities)
-        : _policy(policy), _players(players), _entities(entities)
-    {}
+    ActionDispatcher(Policy& policy, EntitySystem& entities) : _policy(policy), _entities(entities) {}
 
     /**
      * Authorize a caller+target pair and build the context for it.
@@ -98,7 +96,6 @@ public:
 
 private:
     Policy& _policy;
-    PlayerManager& _players;
     EntitySystem& _entities;
 };
 
