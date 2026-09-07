@@ -6,7 +6,7 @@
 `custom_hud_layout` entities. Panels use compiled XML and CSS and may contain
 clickable buttons.
 
-A layout has two halves, and both are needed:
+A layout has two required parts:
 
 - **Content** - an `.xml` layout and a `.css` stylesheet, compiled and shipped to
   clients. The server never renders it.

@@ -3,8 +3,8 @@
 [TOC]
 
 `VoltMod/Database/` is an optional asynchronous PostgreSQL layer. One worker
-owns the connection, while completions return to the game thread. Column tables
-can generate row parsing and common `INSERT` or `SELECT` SQL.
+owns the connection, and completions return to the game thread. Column tables
+can generate row parsing and common `INSERT` and `SELECT` SQL.
 
 Compiled only when `VOLTMOD_ENABLE_POSTGRES` is `ON` (default `OFF`); plugins without a database never pull libpqxx.
 
@@ -36,12 +36,14 @@ if (!Db.Start(Config.Get().database))
 }
 ```
 
-`Start` spawns the worker and verifies connectivity with a ping. It returns `false` when the database is unreachable, so you can degrade instead of queueing into the void.
+`Start` spawns the worker and verifies connectivity with a ping. It returns
+`false` when the database is unreachable, so the plugin can degrade instead of
+queueing work that cannot run.
 
 Call `Stop` from your `App` destructor rather than next to `Start`. It lets
-queued writes finish (a ban issued just before unload must land) and drops undispatched
-completions, so it must run after the managers those callbacks would touch have
-been destroyed.
+queued writes, such as a ban issued just before unload, finish and drops
+undispatched completions. Run it after the managers those callbacks would touch
+have been destroyed.
 
 `Stop(stopDeadline = 5s)` rejects new work and lets queued jobs finish until the
 deadline. It then releases blocked waiters with failures and discards
@@ -67,7 +69,8 @@ db.Query("count_recent_bans",
          });
 ```
 
-The name doubles as the prepared-statement key (prepared once per connection) and the log label. Never put secrets in it.
+The name is both the prepared-statement key (prepared once per connection) and
+the log label. Never put secrets in it.
 
 Load-time variants: `QueryBlocking(name, sql, params)` returns the `DbResult` directly; `WithConnection(fn)` hands `fn` the live connection on the worker for multi-statement work that manages its own transactions (this is what the migration runner uses).
 

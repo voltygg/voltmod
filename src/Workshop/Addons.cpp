@@ -19,8 +19,7 @@
 namespace VoltMod
 {
 
-// Hooks CServerSideClient::SendNetMessage, the outgoing message path. The buffer type is an SDK
-// enum passed by value, taken as int here.
+// Hooks CServerSideClient::SendNetMessage. The SDK buffer enum is passed as int here.
 VOLTMOD_VHOOK2(VoltMod_SendNetMessage, bool, const CNetMessage*, int);
 
 /** Requirements and per-client progress; see AddonRequirements.hpp for the rules. */
@@ -88,8 +87,7 @@ Status Addons::Install()
     if (_hook)
         return {};
 
-    // A listen server's own client already has whatever the host has, and there is no download
-    // step to drive.
+    // A listen server host needs no download step.
     if (!_interfaces.Engine || !_interfaces.Engine->IsDedicatedServer())
         return std::unexpected(Error::Unsupported("addon downloads need a dedicated server"));
 
@@ -101,7 +99,7 @@ Status Addons::Install()
 
     _hook = std::move(*hook);
 
-    // A reconnect is the only signal that a download finished, so the roster drives the credit.
+    // A reconnect is the only download-complete signal.
     _connectListener = _players.Connected += [this](Player& player) { OnConnected(player); };
     return {};
 }
@@ -131,8 +129,7 @@ void Addons::KickLater(int slot, int64_t steamId)
         return;
 
     _pendingKick[slot] = _scheduler.NextTick([this, slot, steamId] {
-        // The seat can change hands before the deferred kick lands; dropping whoever took it is
-        // not what the declined download says.
+        // The slot may change hands before the deferred kick runs.
         if (!_players.Get(PlayerRef{slot, steamId}) || !_interfaces.Engine)
             return;
 
@@ -149,7 +146,7 @@ bool Addons::Hook_SendNetMessage(const CNetMessage* message, int)
 
 void Addons::HandleSignon(const CNetMessage* message, void* client)
 {
-    // Every outgoing message to every client lands here, so the cheap rejections come first.
+    // Reject unrelated messages before inspecting their payload.
     INetworkMessageInternal* info = message ? message->GetNetMessage() : nullptr;
     if (!info || info->GetNetMessageInfo()->m_MessageId != net_SignonState)
         return;
@@ -158,14 +155,11 @@ void Addons::HandleSignon(const CNetMessage* message, void* client)
     if (!SteamId::IsValid(steamId))
         return;
 
-    // The engine owns this message and is about to serialize it; rewriting it in place is what
-    // redirects the client, which is why the const is cast away here rather than in the signature.
+    // The engine serializes this owned message next, so rewrite it in place.
     auto* signon = const_cast<CNetMessage*>(message)->ToPB<CNETMsg_SignonState>();
     const double now = Time::MonotonicSeconds();
 
-    // A changelevel signon is the engine's own, and when the server mounts several addons it names
-    // all of them - which the client cannot act on, leaving it in limbo with none downloaded. Cut
-    // it to the first and credit that one, so it is not offered again afterwards.
+    // The client handles only the first addon, so trim the list and credit it for the next cycle.
     if (signon->signon_state() == SIGNONSTATE_CHANGELEVEL)
     {
         const std::vector<uint64_t> listed = ParseAddonList(signon->addons());

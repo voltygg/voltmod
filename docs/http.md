@@ -25,8 +25,9 @@ runtime.Http.Post(
     {"Content-Type: application/json"}, 8000);
 ```
 
-`HttpResult::Ok` reflects transport success only - a 404 still answered. `HttpResult::IsSuccess()`
-is the verdict most callers want: transport succeeded *and* the status is 2xx.
+`HttpResult::Ok` reports transport success only. A 404 still answered, but
+`HttpResult::IsSuccess()` is false unless transport succeeded *and* the status
+is 2xx.
 
 For other request shapes, construct `HttpRequest` and call `Send`. `AddHeader`
 formats a header line. `AddAuth` omits authentication for an empty key and sends

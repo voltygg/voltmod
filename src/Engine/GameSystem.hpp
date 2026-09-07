@@ -72,7 +72,7 @@ public:
     {
         // The engine matches a reallocating system's GetName() against the factory names to find
         // its factory, so the two must agree; CGameSystemStaticFactory names the system here for
-        // the same reason. Without it the lookup fails on level teardown and the engine faults on
+        // the same reason. Without it the lookup fails during level shutdown and the engine faults on
         // the miss. @p name must outlive this factory.
         _system->SetName(name);
         *listHead = this;

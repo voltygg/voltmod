@@ -8,7 +8,6 @@
 namespace VoltMod
 {
 
-// Engine team indices (mirrors TeamT/TeamCT/TeamSpectator without the SDK include).
 static constexpr int TeamSpectator = 1;
 static constexpr int TeamT = 2;
 static constexpr int TeamCT = 3;
@@ -48,8 +47,7 @@ TargetQuery ParseTargetToken(std::string_view token)
 
     if (raw.size() > 1 && raw[0] == '#')
     {
-        // in_range before the cast: a value above INT_MAX would otherwise wrap to an
-        // arbitrary slot and match whoever occupies it.
+        // Check the range before casting to avoid wrapping into another slot.
         if (auto slot = ParseInt64(std::string_view(raw).substr(1)); slot && std::in_range<int>(*slot) && *slot >= 0)
             return {.Kind = Kind::Slot, .Slot = static_cast<int>(*slot)};
     }
@@ -80,7 +78,6 @@ std::expected<std::vector<int>, TargetFailure> FilterRoster(std::span<const Play
 {
     using Kind = TargetKind;
 
-    // 1. Collect candidates by query kind.
     std::vector<const PlayerView*> candidates;
     auto collect = [&](auto&& pred) {
         for (const auto& p : roster)
@@ -124,8 +121,7 @@ std::expected<std::vector<int>, TargetFailure> FilterRoster(std::span<const Play
         break;
     case Kind::Name:
     {
-        // Tiered matching: an exact name wins outright, then prefixes, then substrings -
-        // so "bob" targets Bob even when "bobby" is also online.
+        // Prefer exact names, then prefixes, then substrings.
         auto tier = [&](auto&& pred) {
             candidates.clear();
             collect(pred);
@@ -141,7 +137,6 @@ std::expected<std::vector<int>, TargetFailure> FilterRoster(std::span<const Play
     if (candidates.empty())
         return std::unexpected(TargetFailure{TargetError::NoMatch});
 
-    // 2. Apply command rules, tracking which filter emptied the set.
     auto drop = [&](auto&& pred) { std::erase_if(candidates, pred); };
 
     if (!rules.AllowBots)
@@ -157,20 +152,18 @@ std::expected<std::vector<int>, TargetFailure> FilterRoster(std::span<const Play
             return std::unexpected(TargetFailure{TargetError::DeadNotAllowed});
     }
 
-    // 3. Immunity policy: skip blocked players; error only when it blocked everyone.
+    // Blocked players are removed; report immunity only when none remain.
     drop([](const PlayerView* p) { return !p->Targetable; });
     if (candidates.empty())
         return std::unexpected(TargetFailure{TargetError::Immune});
 
-    // 4. Random kinds resolve to exactly one entry.
     if (query.Kind == Kind::Random || query.Kind == Kind::RandomTeam)
     {
         std::size_t pick = randomIndex ? randomIndex(candidates.size()) % candidates.size() : 0;
         candidates = {candidates[pick]};
     }
 
-    // 5. Single-target commands reject multi results: a name fragment is ambiguous (narrowable),
-    //    a deliberate multi-selector is simply not allowed here.
+    // Single-target commands reject ambiguous names and multi-selectors.
     if (candidates.size() > 1 && !rules.AllowMultiple)
     {
         auto error = (query.Kind == Kind::Name) ? TargetError::Ambiguous : TargetError::MultiNotAllowed;

@@ -1,13 +1,13 @@
 # schema-dump
 
-Dev-only plugin that writes the engine's schema to JSON. The file is the sole input to
-`voltmod schemagen`, which generates the framework's schema accessor layer with offsets baked in.
+Dev-only plugin that writes the engine's schema to JSON. The dump is the sole input to
+`voltmod schemagen`, which generates schema accessors with baked-in offsets.
 
 Never deploy this to a live server: it is a developer tool, and a dump is a multi-megabyte write.
 
-It lives here rather than in a consumer repo because its output format and `voltmod schemagen`
-have to version together. It builds only when `VOLTMOD_BUILD_TOOLS=ON`, which this repo's CMake
-presets set and Conan does not, so a package or editable consumer build never compiles it.
+It lives here because its output format and `voltmod schemagen` must version together. It builds
+only when `VOLTMOD_BUILD_TOOLS=ON`, which this repo's CMake presets set and Conan does not. A
+package or editable consumer build therefore does not compile it.
 
 ## Use
 

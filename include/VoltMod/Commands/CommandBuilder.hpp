@@ -32,8 +32,8 @@ struct Reply
 /**
  * @brief Who invoked the command, and how to answer them.
  *
- * A handler's first parameter. @ref Player is null and @ref Slot is -1 for console commands.
- * Reply helpers localize in the caller's language.
+ * A handler's first parameter. @ref Player is null and @ref Slot is -1 for console commands;
+ * reply helpers use the caller's language.
  */
 struct Caller
 {
@@ -45,7 +45,7 @@ struct Caller
     /** Sends a reply to chat or the console for the duration of the handler call. */
     std::function<void(const std::string&)> Send;
 
-    /** @p key localized for this caller, with `{token}` substitution. */
+    /** Return localized @p key with `{token}` substitution. */
     std::string Text(std::string_view key, Tokens tokens = {}) const;
 
     /** Succeed, replying with @p key localized for this caller. */
@@ -54,15 +54,12 @@ struct Caller
     /**
      * Fail, replying with @p key localized for this caller.
      *
-     * The failure is an @ref Error, so it cannot be mistaken for a success. `Error::Key` names
-     * the key; the already-localized line rides in `Error::Detail`, because @ref Error has
-     * nowhere to carry @p tokens to reply time. An `Error` from anywhere else - a
-     * `Policy::Authorize` denial, say - carries only a `Key`, and dispatch localizes that.
+     * The error stores the key and, when tokens were supplied, the localized line in `Detail`.
+     * Errors from other services carry only a key and are localized by dispatch.
      */
     std::unexpected<Error> Fail(std::string_view key, Tokens tokens = {}) const;
 
-    /** Send one extra line now, localized for this caller. Multi-line output is a run of these
-     *  followed by an `Ok` or a `Reply::Silent`. */
+    /** Send one extra localized line; finish a multi-line reply with `Ok` or `Reply::Silent`. */
     void Say(std::string_view key, Tokens tokens = {}) const;
 
     /** Send @p line verbatim: an already-formatted row that has no translation of its own. */
@@ -72,8 +69,8 @@ struct Caller
 /**
  * @brief One command as the builder assembled it.
  *
- * The seam between the public builder and the engine-free router. Plugins do not build one;
- * @ref CommandBuilder does, and hands it to @ref CommandManager to install.
+ * The engine-free command definition built by @ref CommandBuilder and installed by
+ * @ref CommandManager.
  */
 struct CommandDefinition
 {
@@ -176,16 +173,14 @@ public:
         return *this;
     }
 
-    /** Also register a tier1 ConCommand of the same name, for rcon, cfg files and
-     *  `ExecuteServerCommand`. The command stays typeable in chat. */
+    /** Also register a tier1 ConCommand for rcon, cfg files, and `ExecuteServerCommand`. */
     CommandBuilder& Console()
     {
         _def.Console = true;
         return *this;
     }
 
-    /** Register only the ConCommand. Operator commands that carry no permission belong here:
-     *  the console is the server itself, chat is not. */
+    /** Register only the ConCommand for an operator-only command. */
     CommandBuilder& ConsoleOnly()
     {
         _def.Console = true;
@@ -202,9 +197,8 @@ public:
     }
 
     /**
-     * Install the command. @p handler takes a @ref Caller and then one `Args::` value per
-     * argument; that list is the argument spec - arity, order, parsing and the usage line all
-     * come from it.
+     * Install the command. The handler takes a @ref Caller and one `Args::` value per argument;
+     * that list defines arity, parsing, and usage.
      *
      * The command is unregistered when @ref CommandManager is destroyed.
      */

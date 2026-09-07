@@ -10,9 +10,6 @@
 #include <format>
 #include <utility>
 
-// What a panel keeps between calls: the entity, the write cache behind every per-slot write, and
-// the one click subscription its events share. The handle in front of it is UiPanel.cpp.
-
 namespace VoltMod
 {
 
@@ -30,8 +27,7 @@ UiPanelState::UiPanelState(EntitySystem* entities, EntityOps* ops, SlotEvents* s
 
     Cache.Bind(*slots);
 
-    // A slot changing hands is the one thing that can make the entity too small, so it is also the
-    // only thing that lets a re-spawn happen.
+    // A changed slot may exceed the entity's fixed per-player capacity.
     PlayerChanges = slots->Changed += [this](int) { PlayersChanged = true; };
 }
 
@@ -39,7 +35,6 @@ Status UiPanelState::Spawn()
 {
     PlayersChanged = false;
 
-    // Nothing the old entity was told survives, so it goes before the new one arrives.
     Remove();
 
     if (Resource.empty())
@@ -87,14 +82,10 @@ bool UiPanelState::Covers(int slot) const
 
 Status UiPanelState::RecordWrite(int slot, Status status, std::string_view what)
 {
-    // A global write has no per-slot memory to drop and nothing to retry against, so it is the
-    // caller's answer whichever way it went.
     if (status || !IsValidSlot(slot))
         return status;
 
-    // The cache has already recorded the value this write was meant to install, so it has to be
-    // dropped or the next frame would skip the retry. Every write for the slot then fails the same
-    // way, which is worth exactly one line rather than one per frame.
+    // Drop the failed value so the next frame retries it, but log only once per slot.
     Cache.Forget(slot);
     if (Cache.FirstFailure(slot))
         Log::Warn("UiPanel '{}': writing {} for slot {} failed ({}).", Layout, what, slot, status.error().Detail);
@@ -120,9 +111,8 @@ bool UiPanelState::OnFirstSubscriber()
         if (!AllClicks)
             return false;
 
-        // The handler holds this state, never the panel: the state is on the heap, so routing keeps
-        // working after the panel moves, and ClickListener is declared last so the handler is
-        // retired before anything it reads goes away.
+        // Capture heap-owned state so routing survives panel moves. ClickListener is destroyed
+        // before the state it reads.
         ClickListener = *AllClicks +=
             [this](const UiClick& click) { Internal::RouteUiClick(click, CurrentEntity, Clicked, Buttons); };
         if (!ClickListener)

@@ -15,11 +15,9 @@
 #include <string_view>
 #include <vector>
 
-// PLUGIN_GLOBALVARS ships in MetamodPlugin.hpp; the definitions come from
-// each plugin's VOLTMOD_PLUGIN.
+// PLUGIN_GLOBALVARS is defined by each plugin's VOLTMOD_PLUGIN.
 
-// The SDK only forward-declares this (iloopmode.h keeps the real one commented out). SourceHook's
-// param table needs a complete type; the hook receives it by reference and never looks inside.
+// SourceHook needs a complete type for this by-reference hook parameter.
 class GameSessionConfiguration_t
 {};
 
@@ -45,9 +43,8 @@ MetamodPlugin::~MetamodPlugin() = default;
 bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, bool late)
 {
     PLUGIN_SAVEVARS();
-    _info = Info();  // capture once; the ISmmPlugin getters read this copy
+    _info = Info();
 
-    // Unload destroys this runtime so reload starts clean.
     _runtime = std::make_unique<Runtime>();
 
     const LoadContext context{.Ismm = ismm, .Error = error, .MaxLen = maxlen, .LogPrefix = _info.LogTag};
@@ -69,7 +66,7 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
 
     if (!OnLoad(*_runtime))
     {
-        // A bare `return false` still gets a named failure in the report and error buffer.
+        // Give a bare false return a useful load-report entry.
         if (_runtime->LoadReport.FirstFailure().empty())
             _runtime->LoadReport.Run("OnLoad", [] { return StageResult::Failed("OnLoad returned false"); });
         Log::Info("{}", _runtime->LoadReport.Summary());
@@ -79,8 +76,7 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
         return false;
     }
 
-    // Plugins register commands during OnLoad. Report missing permission policy now
-    // instead of waiting for the first invocation.
+    // Report permission-gated commands with no policy before the first invocation.
     _runtime->LoadReport.Run("Commands", [this] {
         const std::vector<std::string> missing = _runtime->Commands.CommandsMissingPolicy();
         if (missing.empty())
@@ -101,9 +97,7 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
     return true;
 }
 
-// Plugin hooks and commands may access the plugin graph, so remove them before releasing it. Then
-// release standard hooks and the runtime. Failed loads use the same path, so no hook survives an
-// OnLoad failure.
+// Remove custom hooks and commands before plugin state, then standard hooks and the runtime.
 void MetamodPlugin::Shutdown()
 {
     _customHooks.Clear();
@@ -122,9 +116,7 @@ bool MetamodPlugin::Unload(char* error, size_t maxlen)
 
 bool MetamodPlugin::OnPlayerChat(Player* player, std::string_view message, bool /*teamChat*/)
 {
-    // A pending menu capture owns the line before command parsing does: it is the player's
-    // answer to a prompt, not a chat message. Menu input rows are a framework feature, so consuming
-    // for them belongs here rather than in every plugin that happens to use one.
+    // Menu input consumes the line before command parsing.
     if (_runtime->Hooks.ChatInput.TryConsume(player->Slot(), message))
         return true;
 
@@ -135,8 +127,7 @@ void MetamodPlugin::RegisterStandardHooks()
 {
     auto& gi = _runtime->Unsafe.Interfaces;
 
-    // VOLTMOD_SCOPED_HOOK installs each hook and yields the Subscription that removes it, so the
-    // add and remove lists cannot drift apart. Reset in Unload, before the runtime goes away.
+    // Each scoped hook owns its removal subscription; clear them before the runtime.
     _standardHooks.Add(VOLTMOD_SCOPED_HOOK(IServerGameDLL, GameFrame, gi.ServerGameDLL,
                                            SH_MEMBER(this, &MetamodPlugin::Hook_GameFrame), true));
     _standardHooks.Add(VOLTMOD_SCOPED_HOOK(INetworkServerService, StartupServer, gi.NetworkServerService,
@@ -151,7 +142,7 @@ void MetamodPlugin::RegisterStandardHooks()
                                            SH_MEMBER(this, &MetamodPlugin::Hook_ClientSettingsChanged), true));
     _standardHooks.Add(VOLTMOD_SCOPED_HOOK(ICvar, DispatchConCommand, gi.CVar,
                                            SH_MEMBER(this, &MetamodPlugin::Hook_DispatchConCommand), false));
-    // Post hook: the game has filled the per-client transmit bitvecs; the filter clears bits.
+    // The post hook filters the bit vectors after the game fills them.
     _standardHooks.Add(VOLTMOD_SCOPED_HOOK(ISource2GameEntities, CheckTransmit, gi.GameEntities,
                                            SH_MEMBER(this, &MetamodPlugin::Hook_CheckTransmit), true));
 
@@ -167,8 +158,7 @@ void MetamodPlugin::Hook_StartupServer(const GameSessionConfiguration_t&, ISourc
 {
     Log::Info("Server startup: map '{}'.", mapName ? mapName : "<none>");
     _runtime->Map.SetCurrent(mapName ? mapName : "");
-    // First: the map's new CGameEntitySystem must be published before the plugin's
-    // OnServerStartup override below runs, since that is free to touch entities.
+    // Publish the new entity system before calling the plugin callback.
     _runtime->Entities.OnServerStartup();
     _runtime->GameEvents.OnServerStartup();
     _runtime->Hooks.Teleport.OnServerStartup();
@@ -185,17 +175,14 @@ void MetamodPlugin::Hook_CheckTransmit(CCheckTransmitInfo** infoList, int infoCo
 void MetamodPlugin::Hook_OnClientConnected(CPlayerSlot slot, const char* name, uint64 xuid, const char* networkId,
                                            const char* address, bool fakePlayer)
 {
-    // The engine's `name` here is not yet meaningful - ClientFullyConnect is the first point it
-    // is - so it is kept only as Player::Name's fallback. The address is the opposite: this is
-    // the one callback that carries it.
+    // At this callback `name` is only a fallback; `address` is available here first.
     _runtime->Players.Add(slot.Get(), static_cast<int64_t>(xuid), name ? name : "", address ? address : "");
 }
 
 void MetamodPlugin::Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconnectionReason reason, const char* name,
                                           uint64 xuid, const char* networkId)
 {
-    // Remove raises Players.Disconnected and then the slot change; every service holding per-slot
-    // state listens for one or the other.
+    // Remove raises Disconnected before the slot is reused.
     _runtime->Players.Remove(slot.Get());
 }
 
@@ -280,8 +267,7 @@ const char* MetamodPlugin::GetLogTag()
 
 void* MetamodPlugin::OnMetamodQuery(const char* iface, int* ret)
 {
-    // Metamod asks every loaded plugin on each MetaFactory query, so an unknown iface is
-    // routine, not an error. After Unload the container is gone - that is how peers see us go.
+    // Unknown interfaces are normal; after unload the exchange is empty.
     void* impl = _runtime ? _runtime->Exchange.Find(iface) : nullptr;
 
     if (ret)

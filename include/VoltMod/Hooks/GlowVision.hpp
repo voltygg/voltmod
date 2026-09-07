@@ -19,7 +19,7 @@ namespace VoltMod
  * Each glowing player gets two prop_dynamic clones following their pawn - an invisible relay and
  * a glow prop parented to it (the indirection renders only the outline) - both transmit-filtered
  * to the beneficiary alone. Call @ref Reconcile on a repeating tick (see @ref ReconcileIntervalMs)
- * to track spawns, deaths, team/model changes, and round restarts; call @ref Destroy to tear down.
+ * to track spawns, deaths, team/model changes, and round restarts; call @ref Destroy to remove it.
  */
 /** Colors and the optional per-slot veto for a @ref GlowVision. A top-level type rather than a
  *  nested one so it is complete where GlowVision's constructor defaults it (GCC requires that). */
@@ -51,7 +51,7 @@ public:
     /** Create/refresh/destroy glow clone pairs to match the current live players. */
     void Reconcile();
 
-    /** Tear down all pairs (transmit-filter entries + surviving clone entities). */
+    /** Remove all transmit-filter entries and surviving clone entities. */
     void Destroy();
 
 private:

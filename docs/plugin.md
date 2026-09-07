@@ -38,7 +38,7 @@ VOLTMOD_PLUGIN(MyPlugin);
 ```
 
 `VOLTMOD_PLUGIN` expands the per-plugin SourceHook globals (`PLUGIN_EXPOSE`)
-used by the base. The matching extern declarations are in
+used by the base. Matching extern declarations are in
 `MetamodPlugin.hpp`, so the plugin header needs no additional declarations.
 
 `<VoltMod/Api.hpp>` covers the base class, runtime, players, commands, and core
@@ -71,7 +71,9 @@ struct App
 };
 ```
 
-Nothing survives `OnUnload`, so a `meta reload` starts from clean state. Because the `App` is destroyed before the `Runtime`, every subscription it holds is removed while the service it points at is still alive.
+Nothing survives `OnUnload`, so `meta reload` starts from clean state. Because
+`App` is destroyed before `Runtime`, its subscriptions are removed while their
+services are still alive.
 
 ## Load order
 
@@ -121,9 +123,9 @@ void App::InstallPolicy()
 }
 ```
 
-Commands with no permission stay available without a policy. Ask the gate yourself
-with `Runtime.Policy.Authorize(callerRef, targetRef, permission)` wherever your own
-code needs the same answer - never re-implement its steps. The full outcome table
+Commands with no permission stay available without a policy. Call
+`Runtime.Policy.Authorize(callerRef, targetRef, permission)` wherever plugin code
+needs the same decision; do not reimplement its steps. The full outcome table
 is in @ref players_guide "Players".
 
 `LoadStandardConfig` uses your config type's `LoadSettings` when it has one

@@ -23,13 +23,14 @@ msg.ReplyKey(slot, "cmd.banSuccess", {{"name", targetName}});
 ```
 
 `Reply` sends a chat message to one player. `runtime.Policy.Reply` usually
-forwards to it.
+forwards to this method.
 
 Chat output keeps an existing leading color or prepends the default so it cannot
 inherit color from a previous line. CS2 requires `TextMsg` for server-originated
 chat and drops `SayText2` from non-player sources.
 
-For a *sticky* center panel that survives the client's aggressive HUD clearing, use @ref VoltMod::CenterHtml; see @ref sdk_messaging_guide.
+For a *sticky* center panel that survives the client's aggressive HUD clearing,
+use @ref VoltMod::CenterHtml; see @ref sdk_messaging_guide.
 
 ## Color constants
 

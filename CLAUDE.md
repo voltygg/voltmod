@@ -21,16 +21,15 @@ uv run poe new-plugin <name>
 voltmod init
 ```
 
-`voltmod build` configures and compiles one preset; `voltmod test` brings that
-build up to date and runs its CTest preset (`-R` filters cases). `voltmod
-install [plugin]` merges a built plugin into a local CS2 server at
-`CS2_SERVER_PATH`, `voltmod serve` runs that server, and `voltmod build
---install <plugin> --start` does all three. `voltmod panorama` compiles every
-`panorama/` directory in the project with the CS2 Workshop Tools and installs the
-result into your own client at `CS2_CLIENT_PATH` - Windows only, and the step a
-custom UI shows nothing without. All CLI commands operate on the
-current working directory, so run scaffolding commands from the consumer
-repository.
+`voltmod build` configures and compiles one preset. `voltmod test` updates that
+build and runs its CTest preset (`-R` filters cases). `voltmod install [plugin]`
+merges a built plugin into the local CS2 server at `CS2_SERVER_PATH`, and
+`voltmod serve` runs that server. `voltmod build --install <plugin> --start`
+does all three. `voltmod panorama` compiles every `panorama/` directory with
+the CS2 Workshop Tools and installs the result into the client at
+`CS2_CLIENT_PATH`; it is Windows-only and required before custom UI is visible.
+All CLI commands use the current working directory, so run scaffolding commands
+from the consumer repository.
 
 ## Repository map
 
@@ -50,7 +49,7 @@ docs/                Doxygen guides
 ```
 
 HL2SDK and Metamod are Conan packages. The HL2SDK build module attaches the SDK
-translation units that consumers must compile. There are no submodules.
+translation units consumers must compile. There are no submodules.
 
 ## Package and build model
 
@@ -67,10 +66,10 @@ The framework builds two libraries:
 - `VoltMod::Runtime` contains every source module except Database.
 - `VoltMod::Database` contains the optional PostgreSQL layer.
 
-`VoltMod::Headers` is the SDK-free include target that test binaries link. A
-plugin gets only Runtime by default; `FEATURES DATABASE` adds Database. `voltmod_add_plugin` also configures
-SDK glue, PCH, output layout, build metadata, VDF generation, and install
-components.
+`VoltMod::Headers` is the SDK-free include target linked by test binaries. A
+plugin gets Runtime by default; `FEATURES DATABASE` adds Database.
+`voltmod_add_plugin` also configures SDK glue, PCH, output layout, build
+metadata, VDF generation, and install components.
 
 The public presets are `windows-msvc-{release,debug}` and
 `linux-steamrt-{release,debug}`. Treat their names as consumer API.

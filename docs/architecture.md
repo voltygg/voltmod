@@ -28,26 +28,24 @@ VoltMod
 
 These are source layers, not separate link units. The framework exposes
 `VoltMod::Runtime` and the optional `VoltMod::Database` library. `voltmod
-modgraph` rejects dependencies outside the allowed layer graph.
+modgraph` rejects dependencies outside the layer graph.
 
 ## Design rules
 
-- **Game thread only.** Metamod hooks arrive on the main thread, and framework
-  code runs there. The database worker and HTTP pool are the exceptions: they
-  queue completions and replay them on the game thread through per-frame delivery, so
-  callbacks do not race game code.
+- **Game thread only.** Metamod hooks and framework code run on the main thread.
+  Database and HTTP workers queue completions and replay them there through
+  per-frame delivery, so callbacks do not race game code.
 - **One load-cycle lifetime.** Every service belongs to one @ref VoltMod::Runtime,
-  created on load and destroyed on unload. A `meta reload` starts clean.
-- **Data over glue.** Effects and menu rows are described as structs
-  (`EffectDescriptor` and context rows), and a command's handler signature is its
-  argument spec. The framework owns the resolve, check, dispatch, and reply
-  pipeline around them.
+  created on load and destroyed on unload. `meta reload` starts clean.
+- **Data over glue.** Effects and menu rows are structs (`EffectDescriptor` and
+  context rows), and a command's handler signature is its argument spec. The
+  framework owns resolution, checks, dispatch, and replies around them.
 - **Policy is injected once.** The framework has no admin model. Your plugin fills in
   `runtime.Policy` in `OnLoad`, and one gate - `Policy::Authorize` - applies it
   everywhere. Anything that declares a permission is denied when
   `HasPermission` is unset.
 - **Dependencies arrive through constructors.** `OnLoad` receives the runtime;
-  your objects receive only the services they need.
+  objects receive only the services they need.
 
 ## Two objects, same lifetime
 

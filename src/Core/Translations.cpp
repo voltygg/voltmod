@@ -11,9 +11,7 @@
 namespace VoltMod
 {
 
-// Flatten nested objects into dotted keys (`category.punish`), so callers can group keys in
-// the JSON without changing the flat lookup model. Leaf string values are stored; non-string
-// leaves are ignored.
+// Flatten nested JSON objects into dotted keys and keep only string leaves.
 static void FlattenInto(const glz::generic& node, const std::string& prefix,
                         std::unordered_map<std::string, std::string>& out)
 {
@@ -59,11 +57,7 @@ static const std::unordered_map<std::string, std::string>& KitDefaults()
         {"target.ambiguous", "'{token}' matches {count} players - be more specific."},
         {"target.dead", "'{token}' is not alive."},
         {"target.bot", "'{token}' is a bot."},
-        // Raised by Flow when a step cannot build its menu; the flow aborts rather than
-        // silently leaving the player on the previous one.
         {"menu.stepFailed", "That menu could not be opened."},
-        // Written by ActionRows onto every toggle row it builds, so a consumer that ships no
-        // effectState.* keys reads "ON"/"OFF" rather than the dotted key.
         {"effectState.on", "ON"},
         {"effectState.off", "OFF"},
     };
@@ -71,9 +65,8 @@ static const std::unordered_map<std::string, std::string>& KitDefaults()
 }
 
 Translations::Translations(SlotEvents& slots)
-    // SlotEvents is raised from AddPlayer as well as RemovePlayer, but AddPlayer raises it
-    // before the plugin's OnPlayerConnect runs, which is where a language gets set - so clearing
-    // on arrival drops nothing, and one event covers both edges.
+    // SlotEvents covers both arrival and departure; arrival happens before OnPlayerConnect sets
+    // the language.
     : _slotListener(slots.Changed += [this](int slot) { ClearPlayerLanguage(slot); })
 {}
 
@@ -101,12 +94,11 @@ bool Translations::Load(std::string_view dirPath)
         if (!text)
             continue;
 
-        // A language file is plain JSON, not JSONC - unchanged from before, so a comment in one
-        // still fails the same way rather than starting to work as a side effect of this swap.
+        // Language files remain strict JSON, not JSONC.
         auto data = Json::ParseDocument(*text);
         if (!data)
         {
-            // One bad file must not cost the other languages, so this warns and moves on.
+            // Skip one invalid language without discarding the others.
             Log::Warn("Failed to parse {}: {}", entry.path().string(), data.error().Detail);
             continue;
         }
@@ -120,8 +112,7 @@ bool Translations::Load(std::string_view dirPath)
 
     Log::Info("Loaded {} language(s).", loaded);
 
-    // Surface per-language key gaps at load time, rather than silently rendering the raw key at runtime.
-    // "en" is the reference set when present.
+    // Report missing keys at load time, using "en" as the reference when present.
     if (auto en = _translations.find("en"); en != _translations.end() && _translations.size() > 1)
     {
         for (const auto& [code, keys] : _translations)
@@ -202,7 +193,7 @@ std::optional<std::string_view> Translations::LookupIn(const std::string& lang, 
 
 std::string Translations::Get(std::string_view key) const
 {
-    return Get(key, -1);  // negative slot skips the per-player lookup, resolving against the active language
+    return Get(key, -1);  // negative slot uses the active language
 }
 
 std::optional<std::string_view> Translations::Resolve(const std::string& key, int slot) const

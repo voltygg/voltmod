@@ -5,8 +5,8 @@
 ## What gamedata is for
 
 `Runtime::Start()` loads `gamedata/gamedata.jsonc` before plugin `OnLoad`.
-Gamedata records where engine members are; @ref VoltMod::Bindings defines their
-C++ types.
+Gamedata records engine locations; @ref VoltMod::Bindings defines their C++
+types.
 
 ```cpp
 // include/VoltMod/Engine/Bindings.hpp
@@ -76,8 +76,8 @@ The parser rejects the file before scanning when it has:
 - a vtable index outside `[0, 500)`;
 - an offset above its `max`, or not a multiple of its `align`.
 
-Resolution failures do not reject the file. `GameData::FailureSummary()` reports them, and affected
-capabilities carry the same reason.
+Resolution failures do not reject the file. `GameData::FailureSummary()` reports
+them, and affected capabilities carry the same reason.
 
 `FailureSummary()` cannot include a missing key because no entry was loaded.
 `Bindings::Bind` reports it through its capability or a warning that names the
@@ -97,8 +97,8 @@ safe to call and return `Error::NotReady`, an empty `Subscription`, or no result
 
 ## Re-verify after an engine update
 
-Every entry can drift after a CS2 update. Treat an older `build.verified` date as
-unverified.
+Every entry can drift after a CS2 update. Treat an older `build.verified` date
+as unverified.
 
 1. **Read the load and capability reports.** Listed entries are broken; unlisted entries still need
    verification.

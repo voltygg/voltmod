@@ -4,9 +4,9 @@
 [![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://voltygg.github.io/voltmod/)
 
 VoltMod is a native C++23 framework for Counter-Strike 2 plugins on
-Metamod:Source. It provides engine integration, load-cycle ownership, common
-server services, and reproducible CMake and Conan builds. Plugins keep control
-of permissions and game behavior. VoltMod does not host a scripting runtime.
+Metamod:Source. It provides engine integration, load-cycle ownership, server
+services, and reproducible CMake and Conan builds. Plugins retain control of
+permissions and game behavior; VoltMod does not host a scripting runtime.
 
 > VoltMod is under active development. Public APIs may change between
 > versions.
@@ -21,9 +21,9 @@ of permissions and game behavior. VoltMod does not host a scripting runtime.
 - JSONC configuration, startup diagnostics, and typed cross-plugin services.
 - Project scaffolding, pinned build tools, tests, and server-ready install bundles.
 
-VoltMod supplies infrastructure rather than an admin model. A plugin injects
-its own permission and immunity policy into the shared command, targeting,
-menu, and message pipelines.
+VoltMod supplies infrastructure, not an admin model. A plugin injects its
+permission and immunity policy into the shared command, targeting, menu, and
+message pipelines.
 
 ## Create a project
 

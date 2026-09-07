@@ -10,8 +10,7 @@ bool EffectManager::IsActive(int slot, int effectId) const
     if (!IsValidSlot(slot))
         return false;
     auto it = _effects[slot].find(effectId);
-    // A self-expired effect (durationMs elapsed) leaves its entry behind until reclaimed; its
-    // timers report stopped, so treat that as not-active without touching the map.
+    // Self-expired effects remain until reclaimed; stopped timers are inactive.
     return it != _effects[slot].end() && !it->second.Stopped;
 }
 
@@ -32,11 +31,8 @@ void EffectManager::Apply(int slot, int effectId, EffectInstance instance, Effec
 
     if (durationMs > 0)
     {
-        // The map may grow (another Apply for a different id) between now and the timer firing,
-        // which can reallocate the unordered_map's buckets - but never invalidates a reference to
-        // an existing element, so capturing `&active` across that is safe. A subsequent Cancel for
-        // this same id (from re-apply or a plugin call) runs Stop() and the erase below only
-        // happens after that, so this timer never fires against a stale, already-stopped entry.
+        // Reapplying the same id stops it before this callback erases the entry; references to
+        // existing unordered_map elements remain valid when other entries grow the map.
         active.Expiry = _scheduler.Delay(durationMs, [&active]() { active.Stop(); });
     }
 }
@@ -49,8 +45,7 @@ void EffectManager::Cancel(int slot, int effectId)
     if (it == _effects[slot].end())
         return;
 
-    // Detach before stopping so a re-entrant Apply sees a clean slot. Stop() runs OnStop once
-    // (a no-op if the effect already self-expired).
+    // Detach before stopping so re-entrant Apply sees a clean slot. Stop runs OnStop once.
     ActiveEffect entry = std::move(it->second);
     _effects[slot].erase(it);
     entry.Stop();

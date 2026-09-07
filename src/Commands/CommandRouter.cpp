@@ -12,8 +12,7 @@
 namespace VoltMod
 {
 
-/** `cmd.usage.<argKind>`: the enumerator's own name, first letter lowered, so a new @ref ArgKind
- *  needs a translation key and no switch. */
+/** Translation key for an argument kind's usage placeholder. */
 static std::string UsagePlaceholderKey(ArgKind kind)
 {
     std::string key = "cmd.usage.";
@@ -41,7 +40,7 @@ bool CommandRouter::Add(CommandDefinition def)
         return false;
     }
 
-    // Index aliases once and reject collisions, so lookup is deterministic.
+    // Index aliases once so lookup is deterministic.
     for (const std::string& alias : def.Aliases)
     {
         std::string key = Strings::ToLower(alias);
@@ -109,7 +108,7 @@ bool CommandRouter::HasRest(const CommandDefinition& def)
 
 Tokens CommandRouter::UsageTokens(const CommandDefinition& def, int slot, Origin origin) const
 {
-    // The prefix belongs to the surface being answered, not to the command: the console types none.
+    // Only chat usage includes a prefix.
     std::string prefix = origin == Origin::Chat ? std::string(CommandSyntax::ChatPrefix()) : std::string{};
 
     std::string args;
@@ -140,15 +139,14 @@ std::string CommandRouter::Usage(const CommandDefinition& def, int slot, Origin 
 void CommandRouter::Dispatch(const CommandDefinition& def, Player* caller, std::span<const std::string> tokens,
                              Origin origin, ArgBinder& binder, const std::function<void(const std::string&)>& say) const
 {
-    // The console has no player and so no language of its own; slot -1 is the server language.
+    // Slot -1 selects the server language for console calls.
     const int slot = caller ? caller->Slot() : -1;
     const auto reply = [&say](const std::string& line) {
         if (!line.empty())
             say(line);
     };
 
-    // Permissions say which players may do this, and the one gate answers it. The console is the
-    // server itself: no SteamID to check, and nothing above it to deny it.
+    // Apply the permission gate to player callers; the console is the server.
     if (caller && !def.PermissionName.empty())
     {
         auto authorized = _policy.Authorize(caller->Ref(), std::nullopt, def.PermissionName);
@@ -159,7 +157,7 @@ void CommandRouter::Dispatch(const CommandDefinition& def, Player* caller, std::
         }
     }
 
-    // Refuse extra tokens rather than dropping them, so a malformed command cannot look successful.
+    // Reject extra tokens unless the final argument consumes the remainder.
     if (!HasRest(def) && tokens.size() > def.Args.size())
     {
         reply(_translations.Get("cmd.tooManyArgs", slot, UsageTokens(def, slot, origin)));
@@ -187,7 +185,7 @@ void CommandRouter::Dispatch(const CommandDefinition& def, Player* caller, std::
     if (result)
         reply(result->Text);
     else
-        // Caller::Fail localized as it built the error; anything else carries only a key.
+        // Caller::Fail already localized its error; other errors carry a key.
         reply(result.error().Detail.empty() ? _translations.Get(result.error().Key, slot) : result.error().Detail);
 }
 

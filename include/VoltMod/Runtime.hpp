@@ -66,18 +66,23 @@ public:
     /** Drive the scheduler. Called once per frame from the GameFrame hook. */
     void OnGameFrame();
 
-    // Core services.
     /** Named, timed load stages recorded by Start and by the plugin's OnLoad. */
     VoltMod::LoadReport LoadReport;
+
     /** What this load can do and why anything missing is missing. Written only by Start. */
     VoltMod::Capabilities Capabilities;
+
     /** Status sections for diagnostics commands; framework sections registered by Start. */
     StatusService Status{LoadReport};
+
     /** "This slot changed hands", raised by the roster and consumed by per-slot caches. */
     SlotEvents Slots;
+
     /** Per-frame delivery, timers and delayed work. Pending timers die with it, never run, so
      *  what a timer captures may only point at members declared above. */
     VoltMod::Scheduler Scheduler;
+
+    /** Translations service that provides localized strings. */
     VoltMod::Translations Translations{Slots};
 
     /** The opt-in engine-access tier (Interfaces, GameData, Bindings). Populated by Start. */
@@ -88,32 +93,43 @@ public:
 
     /** The roster and the connection lifecycle events. */
     PlayerManager Players{Slots, &Entities};
+
     /** Plugin-supplied permission, targeting and reply rules, and the one gate that applies
      *  them (`Policy::Authorize`). Fill the members you enforce in OnLoad. */
     VoltMod::Policy Policy{Players};
 
+    /** Console variables service for managing CVars. */
     VoltMod::ConVars ConVars{Unsafe.Interfaces};
+
     /** Map validation and level changes. The current map is captured from StartupServer, so it
      *  is empty after a late load until the next map change. */
     VoltMod::Map Map{Unsafe.Interfaces, ConVars};
+
+    /** Game events */
     VoltMod::GameEvents GameEvents{Unsafe.Interfaces, Unsafe.Bindings};
+
+    /** Messages services */
     VoltMod::Messages Messages{Unsafe.Interfaces, Unsafe.Bindings, GameEvents, Translations};
+
     /** The engine's simulation clock (tick and curtime). */
     VoltMod::Clock Clock{Unsafe.Interfaces};
 
     /** Entity IO, weapon give/strip, precaching, pawn manipulation, per-client net reads. */
     WorldServices World{Entities, Unsafe.Bindings, Scheduler, Slots, Unsafe.Interfaces};
+
     /** The per-tick and per-event engine hooks. */
     HookServices Hooks{Entities,   Unsafe.Bindings,   Slots,           Scheduler,
                        GameEvents, Unsafe.Interfaces, World.EntityOps, Capabilities};
+
     /** Custom Panorama HUD layouts and the button presses coming back from them. */
     VoltMod::CustomUi Ui{Entities, World.EntityOps, Unsafe.Bindings, Unsafe.Interfaces, Slots, Scheduler};
+
     /** Workshop addons connecting clients are told to download. */
     VoltMod::Addons Addons{Unsafe.Interfaces, Unsafe.Bindings, Players, Scheduler};
 
-    // Composition-root services.
     /** Interfaces offered to, and borrowed from, other plugins. */
     ServiceExchange Exchange;
+
     /** Player menus: the per-player session, and the driver drawing it. Center HTML until a
      *  plugin calls `Menus.UsePanorama(...)`; costs nothing per frame while nothing is open. */
     MenuManager Menus{MenuServices{.Scheduler = Scheduler,
@@ -125,12 +141,15 @@ public:
                                    .Messages = Messages,
                                    .Ui = Ui,
                                    .Capabilities = Capabilities}};
+
+    /** Command manager for handling in-game commands. */
     VoltMod::CommandManager Commands{Policy, Translations, Players, Entities, Messages};
-    /** Completions replay on the game thread from a per-frame subscription it registers itself. */
+
+    /** HTTP client for making web requests. Completions are replayed on the game thread from a per-frame subscription
+     * it registers itself. */
     HttpClient Http{Scheduler};
 
 private:
-    // Start's jobs in call order; a false return has already written the reason into context.Error.
     void InstallLogger(const LoadContext& context);
     bool ResolveInterfaces(const LoadContext& context);
     bool InitializeServices(const LoadContext& context);

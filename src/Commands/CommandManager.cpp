@@ -13,7 +13,7 @@
 namespace VoltMod
 {
 
-/** The engine-facing half: the router plus what only a running server can provide. */
+/** Engine-facing command state. */
 struct CommandManager::Impl
 {
     Impl(Policy& policy, Translations& translations, PlayerManager& players, EntitySystem& entities, Messages& messages)
@@ -29,7 +29,7 @@ struct CommandManager::Impl
     Messages& Notify;
     EngineArgBinder Binder;
     CommandRouter Router;
-    /** Lowercased command name -> its ConCommand, for commands that asked for the console. */
+    /** Lowercased names of commands exposed to the console. */
     std::unordered_map<std::string, std::unique_ptr<ServerCommand>> ConsoleCommands;
 };
 
@@ -64,25 +64,23 @@ void CommandManager::InstallConsoleCommand(const std::string& name)
     if (!def)
         return;
 
-    // The console types no prefix, so a derived help line must not claim one.
+    // Console usage has no chat prefix.
     const std::string help =
         def->Description.empty() ? _impl->Router.Usage(*def, -1, Origin::Console) : def->Description;
 
     _impl->ConsoleCommands.emplace(
         name, std::make_unique<ServerCommand>(name.c_str(), help.c_str(), [this, name](const CCommand& args) {
-            // Re-resolved per invocation: the command can be unregistered while the ConCommand
-            // is still being torn down. `name` is already the canonical key.
+            // Resolve on each call because shutdown can unregister the command first.
             const CommandDefinition* current = _impl->Router.Find(name);
             if (!current || !current->Console)
                 return;
 
-            // The engine already split and unquoted the line for us.
             std::vector<std::string> tokens;
             tokens.reserve(static_cast<size_t>(args.ArgC()));
             for (int i = 1; i < args.ArgC(); ++i)
                 tokens.emplace_back(args.Arg(i));
 
-            // The console has no chat window to reply into, and no language of its own.
+            // Console replies use the server language.
             _impl->Router.Dispatch(*current, nullptr, tokens, Origin::Console, _impl->Binder,
                                    [](const std::string& line) { Log::Info("{}", line); });
         }));
@@ -101,9 +99,7 @@ bool CommandManager::HandleChatMessage(Player* caller, std::string_view message)
     if (parts.empty())
         return false;
 
-    // A command that did not ask for the chat surface is not typeable in chat at all, which is
-    // what keeps an operator command - one with no permission, because the console needs none -
-    // out of every player's reach.
+    // Commands without a chat surface remain console-only.
     const CommandDefinition* def = _impl->Router.Find(parts.front());
     if (!def || !def->Chat)
         return false;

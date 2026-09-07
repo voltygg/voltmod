@@ -7,23 +7,18 @@
 #include <VoltMod/Ui/UiPanel.hpp>
 #include <utility>
 
-// The handle: ownership, the spawn gate every write sits behind, and the writes themselves. What
-// a panel remembers between calls is UiPanelState.cpp.
-
 namespace VoltMod
 {
 
-// The public spelling of what UiFields calls kEveryone; they index the same engine setters.
+// UiPanel::Everyone and kEveryone address the same global state.
 static_assert(UiPanel::Everyone == kEveryone, "UiPanel::Everyone must be the UiFields global-state slot.");
 
 /** Reserved cache key for the input-capture flag, which is not a panel's dialog variable. */
 static constexpr std::string_view kCaptureName = "input capture";
 
 /**
- * The shape every write shares: an empty panel answers through the setter's own null path, and a
- * write that reached an entity is recorded, so a per-slot failure drops what the cache just took
- * down and says why once. @p write is handed the entity to address; @p what names the write for
- * that one line. A template rather than a `std::function` so a frame of writes allocates nothing.
+ * Empty panels use the setter's null path. Writes that reach an entity are cached so failed
+ * per-slot writes can retry and log once. The template avoids per-frame allocations.
  */
 template <class Write>
 static Status WriteThrough(UiPanelState* state, int slot, std::string_view what, Write write)
@@ -78,14 +73,10 @@ bool UiPanel::Ensure(int slot)
     if (!*this && !state.SpawnOrWarn())
         return false;
 
-    // A global write needs the entity and nothing else.
     if (slot == Everyone || state.Covers(slot))
         return true;
 
-    // The per-player state count is fixed when the entity spawns, so a server that has since
-    // grown past it needs a new entity. If a spawn made for these players still does not cover the
-    // slot, this build has no per-player layout state and retrying every frame would only churn
-    // entities.
+    // Per-player capacity is fixed at spawn; respawn only after the roster grows.
     if (!state.PlayersChanged)
         return false;
 
@@ -122,14 +113,11 @@ Status UiPanel::Class(int slot, std::string_view panelId, std::string_view class
 Status UiPanel::ResetClass(int slot, std::string_view panelId, std::string_view className)
 {
     UiPanelState* state = _state.get();
-    // The UiFields calls take a null system and a dead ref by design, so the moved-from panel
-    // takes the same call rather than a second spelling of it.
+    // UiFields accepts a null system and dead ref for moved-from panels.
     const Status status = UiResetClass(state ? state->Entities : nullptr, state ? state->CurrentEntity : EntityRef{},
                                        slot, panelId, className);
 
-    // Not recorded like the writes above: the markup, not the server, decides what the class is
-    // now, so everything the cache believes about this slot is a guess. Dropping it costs one
-    // redundant redraw and keeps the rest honest.
+    // The markup owns the current class state, so discard cached per-slot values.
     if (state && status && slot != Everyone)
         state->Cache.Forget(slot);
 
@@ -174,8 +162,7 @@ void UiPanel::SetLayout(std::string layout)
     state.Layout = std::move(layout);
     state.Resource = resource ? std::move(*resource) : std::string{};
 
-    // The old entity is gone and the new one has not been asked for; without this a spawn only
-    // happens the next time a player connects or disconnects.
+    // Request a new spawn on the next write instead of waiting for a roster change.
     state.PlayersChanged = true;
 }
 
@@ -191,8 +178,7 @@ Event<int>& UiPanel::Button(std::string_view id)
 
 UiPanelState& UiPanel::State()
 {
-    // A moved-from or default-constructed panel still has to hand out a live event to subscribe
-    // to; one with no engine behind it simply never raises.
+    // Keep events usable on moved-from and default-constructed panels.
     if (!_state)
         _state = std::make_shared<UiPanelState>();
 

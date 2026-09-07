@@ -4,8 +4,7 @@
 
 A command combines metadata, an optional permission, and a handler. Parameters
 after @ref VoltMod::Caller define the argument list. The framework parses and
-validates them before calling the handler, then localizes any error for the
-caller.
+validates them before calling the handler, then localizes errors for the caller.
 
 ## A complete command
 
@@ -31,7 +30,7 @@ commands.Add("ban")
     });
 ```
 
-`Run` installs the command and hands nothing back. A command lives as long as
+`Run` installs the command and returns no registration handle. A command lives as long as
 the @ref VoltMod::CommandManager that owns it, and `MetamodPlugin` drops every
 one of them before `OnUnload`, so a handler cannot outlive the plugin state it
 captured. There is no way to unregister one command on its own. The builder is
@@ -70,8 +69,8 @@ the signature:
 - Only trailing arguments may be `Args::Opt`.
 - `Args::Rest` must be last, because it swallows the remainder of the line.
 
-The handler does not run until every required argument resolves, which is why
-`Args::Target::Value` is a plain pointer nothing needs to null-check.
+The handler does not run until every required argument resolves. Therefore
+`Args::Target::Value` is a plain pointer and needs no null check.
 `Args::Opt<T>` is the only argument that can be absent, and a default belongs in
 the handler:
 

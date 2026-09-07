@@ -4,7 +4,7 @@
 
 ## GameEvents
 
-Subscribe with `On<T>`, using a typed event from
+Subscribe with `On<T>` and a typed event from
 `VoltMod/Events/EventTypes.hpp`. Each type names the engine event and decodes its
 fields.
 
@@ -20,8 +20,8 @@ auto death = events.On<PlayerDeath>([](const PlayerDeath& e) {
 // Keep `death` beside the state captured by the handler.
 ```
 
-There is no string subscription API. Add an event type with `Name`, fields, and
-a `From(IGameEvent&)` decoder:
+There is no string subscription API. Add an event type with `Name`, its fields,
+and a `From(IGameEvent&)` decoder:
 
 ```cpp
 struct BombPlanted

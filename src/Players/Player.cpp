@@ -4,10 +4,6 @@
 namespace VoltMod
 {
 
-// This translation unit is the engine-facing half of Player and is deliberately absent from the
-// SDK-free test build: the identity half (constructor, Slot, SteamId, Ip, Playtime, Ref) is
-// inline in the header so PlayerManager can be unit-tested with a null EntitySystem.
-
 Controller Player::Ctrl() const
 {
     return _entities ? _entities->Controller(_slot) : Controller{};

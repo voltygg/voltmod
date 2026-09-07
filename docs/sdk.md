@@ -45,8 +45,8 @@ auto* schema = gi.SchemaSystem; // ISchemaSystem*
 // ... etc.
 ```
 
-Framework services use this holder internally. Plugin code normally uses the
-typed runtime services instead. Schema fields resolve their own offsets once per
+Framework services use this holder internally. Plugin code normally uses typed
+runtime services instead. Schema fields resolve their own offsets once per
 process.
 
 ## Capabilities

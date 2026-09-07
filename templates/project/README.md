@@ -15,7 +15,7 @@ uv run poe bootstrap
 ```
 
 `doctor` checks the environment without changing it. `bootstrap` installs the
-Conan profiles and remote, resolves dependencies, builds, and runs the tests.
+Conan profiles and remote, resolves dependencies, builds, and runs tests.
 
 Bootstrap is already the first build. Use this afterward:
 
@@ -36,7 +36,7 @@ uv run poe build --install $plugin --start
 ```
 
 `--install` merges the server-ready `addons/` tree into `game/csgo` without
-overwriting edited settings. `--start` then launches the server. Run `meta list`,
+overwriting edited settings. `--start` launches the server. Run `meta list`,
 confirm `$plugin` appears, join, and enter `!ping`.
 
 To install without rebuilding, or to launch on its own:

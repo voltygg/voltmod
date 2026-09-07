@@ -3,8 +3,8 @@
 [TOC]
 
 Unit tests use [doctest](https://github.com/doctest/doctest) and remain SDK-free.
-They cover logic such as parsing, targeting, and score calculations without
-loading Metamod or HL2SDK.
+They cover parsing, targeting, score calculations, and other logic that does
+not require Metamod or HL2SDK.
 
 ## Running
 
@@ -14,8 +14,8 @@ ctest --preset windows-msvc-release   # tests only
 ctest --preset windows-msvc-release --output-on-failure
 ```
 
-Each test case is its own CTest entry, so `ctest -R` can filter it and CI failure
-reports identify the exact case:
+Each test case is its own CTest entry. `ctest -R` can filter cases, and CI
+reports identify the failing case:
 
 ```bash
 ctest --preset windows-msvc-release -R "SteamId"

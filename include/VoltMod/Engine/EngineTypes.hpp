@@ -16,7 +16,6 @@
 //    cycle, because the owner holds the namer by value. Each one says which
 //    pair it belongs to.
 
-// --- (1) Engine and Metamod ---------------------------------------------------
 
 class CCheckTransmitInfo;
 class CCommand;
@@ -58,7 +57,6 @@ class ISmmAPI;
 namespace VoltMod
 {
 
-// --- (2) Framework internals, defined under src/ ------------------------------
 
 /** Manifest-time precache hook. Defined in src/Engine/GameSystem.hpp. */
 class PrecacheGameSystem;
@@ -85,7 +83,6 @@ class MenuCursor;
  *  reaches the debounce policy. Defined in src/Menu/PendingCommit.hpp. */
 class PendingCommit;
 
-// --- (3) Mutually recursive with their owning header --------------------------
 
 /** Entity.hpp holds an EntitySystem* so a wrapper's verbs can reach Bindings and
  *  the entity system, while EntitySystem.hpp returns Entity, Pawn and Controller

@@ -4,8 +4,7 @@
 namespace VoltMod
 {
 
-// SDK-free on purpose: everything that has to name a SourceHook macro lives in the
-// VOLTMOD_VHOOK traits, so the install policy below is compiled straight into the unit tests.
+// Keep SourceHook macros in VOLTMOD_VHOOK traits so this policy remains SDK-free and testable.
 
 VtableHook::~VtableHook()
 {
@@ -32,9 +31,7 @@ VtableHook& VtableHook::operator=(VtableHook&& other) noexcept
 
 void VtableHook::Reset() noexcept
 {
-    // Removal is by id: SourceHook resolves it from what it recorded at add time and never
-    // dereferences the hooked object, so this is safe even after a map change has destroyed
-    // every instance the hook was bound to.
+    // SourceHook removes by id and does not dereference the hooked object.
     if (_remove)
     {
         if (_preId != 0)
@@ -58,8 +55,7 @@ Result<VtableHook> VtableHook::Install(std::string_view what, bool wantPre, bool
 
     if (wantPre)
         hook._preId = add(false);
-    // A post that brackets a pre which was never added has nothing to bracket, so do not spend
-    // the add at all once pre came back refused.
+    // Do not add the post hook when its pre hook was refused.
     if (wantPost && (!wantPre || hook._preId != 0))
         hook._postId = add(true);
 
@@ -71,8 +67,7 @@ Result<VtableHook> VtableHook::Install(std::string_view what, bool wantPre, bool
 
     if (refused)
     {
-        // Pair-or-nothing: a surviving half would run against state its counterpart never
-        // established, and the handler cannot see that the other side is missing.
+        // Install or remove the pair together; handlers assume both halves exist.
         hook.Reset();
         return std::unexpected(Error::Engine(std::format("SourceHook refused the {} {} hook", what, refused)));
     }

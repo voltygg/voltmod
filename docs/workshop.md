@@ -22,8 +22,8 @@ the content. Requirements are reference counted, and `RequireFor(steamId, id)`
 adds a player-specific requirement.
 
 Requirements take effect on a client's next connect; already-connected players
-are not disturbed. `Require` fails rather than quietly doing nothing when the
-capability is off or the server is a listen server, so a plugin can say so.
+are not disturbed. `Require` returns an error when the capability is off or the
+server is a listen server, so the plugin can report the reason.
 
 ## How it works
 
@@ -31,14 +31,14 @@ CS2 handles one addon per connection cycle. @ref VoltMod::Addons rewrites each
 signon message with the next missing addon. After the final reconnect, the client
 joins normally and @ref VoltMod::Addons::Ready fires.
 
-So **each addon costs the joining client one reconnect**, including the first:
+Each addon costs the joining client one reconnect, including the first:
 the server's own addon string is left alone, and the extras only ride the signon
 cycle.
 
-They cannot be batched. The field is a comma-separated list and the engine does
-put several in it when the server itself mounts more than one, but a client
-handles exactly one addon per connection cycle and stalls with none downloaded
-when handed several - the same behaviour
+Addons cannot be batched. The field is a comma-separated list and the engine
+puts several entries in it when the server mounts more than one. A client
+handles exactly one addon per connection cycle and stalls without downloading
+when it receives several. The same behavior is what
 [MultiAddonManager](https://github.com/Source2ZE/MultiAddonManager) works around.
 VoltMod reduces such a message to its first addon and credits that one, so the
 client makes progress instead of stalling.

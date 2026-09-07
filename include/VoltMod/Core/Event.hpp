@@ -32,7 +32,7 @@ namespace VoltMod
  * callback - is constructed with a @ref Lifecycle. @ref Lifecycle::OnFirst runs before the first
  * handler is stored and may refuse (returning false yields an empty Subscription and stores
  * nothing); @ref Lifecycle::OnLast runs after the last handler is removed. Nothing else installs
- * the source, so subscribing is the only trigger and the last unsubscribe is the only teardown.
+ * the source, so subscribing starts it and removing the last subscription stops it.
  *
  * Not copyable or movable: subscriptions point at one address for their whole life.
  */

@@ -66,7 +66,7 @@ struct ActiveEffect
  * semantics.
  *
  * Deliberately plugin-owned rather than a framework service: `OnStop` closures touch pawns and
- * timers, so the owning plugin must control when CancelAll runs relative to engine teardown.
+ * timers, so the owning plugin must control when CancelAll runs relative to engine shutdown.
  */
 class EffectManager
 {

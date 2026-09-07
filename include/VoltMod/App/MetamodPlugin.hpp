@@ -16,8 +16,7 @@
 namespace VoltMod
 {
 
-/** Plugin metadata returned by MetamodPlugin::Info(). Use BuildInfo.hpp for
- *  version, date, and commit fields when build identification matters. */
+/** Metadata returned by MetamodPlugin::Info(). BuildInfo.hpp supplies build identity fields. */
 struct PluginInfo
 {
     const char* Name = "VoltMod Plugin";
@@ -34,8 +33,8 @@ struct PluginInfo
 /**
  * @brief Base class that owns Metamod integration, standard hooks, and players.
  *
- * The base creates one Runtime per load and passes it to OnLoad. Subclasses must
- * release their load-cycle state in OnUnload so `meta reload` starts clean.
+ * The base creates one Runtime per load and passes it to OnLoad. Release load-cycle state in
+ * OnUnload so `meta reload` starts clean.
  */
 class MetamodPlugin : public ISmmPlugin, public IMetamodListener
 {
@@ -58,12 +57,12 @@ public:
     void* OnMetamodQuery(const char* iface, int* ret) override;
 
 protected:
-    /** @brief Return your plugin's metadata. Called by the base to answer the Metamod info getters. */
+    /** @brief Return metadata used by the Metamod info getters. */
     virtual PluginInfo Info() const = 0;
 
     /**
      * @brief Build load-cycle state, load configuration, and register commands.
-     * Return false to abort the load.
+     * @return false to abort the load.
      */
     virtual bool OnLoad(Runtime& runtime) = 0;
 
@@ -72,38 +71,27 @@ protected:
 
     /**
      * @brief Called at each map start after game-event listeners are attached.
-     * The engine resets convars and runs game-mode cfgs around this callback, so
-     * plugins may need to reapply load-time values.
+     * Reapply load-time convar values here because the engine runs game-mode cfgs around it.
      */
     virtual void OnServerStartup(std::string_view mapName) {}
-
-    // The connection lifecycle is not a set of virtuals: subscribe to `runtime.Players.Connected`,
-    // `.Disconnected`, `.FullyConnected` and `.SettingsChanged` in OnLoad and keep the
-    // Subscriptions beside the state their handlers touch. Every one of them hands you a live
-    // `Player&` rather than a pointer that might be null.
 
     /**
      * @brief A player sent a `say` or `say_team` message.
      *
-     * The default consumes pending chat input, then dispatches registered `!` and
-     * `.` commands. An override replaces that behavior and must consume input
-     * itself when the plugin uses menu prompts.
+     * The default consumes pending menu input, then dispatches registered `!` and `.` commands.
+     * An override must consume menu prompts itself.
      *
      * @return true to swallow it (the message won't appear in chat), false to let it through.
      */
     virtual bool OnPlayerChat(Player* player, std::string_view message, bool teamChat);
 
-    /** @brief Install your own SourceHook hooks here; the base already installs the common ones.
-     *  Hand each VOLTMOD_SCOPED_HOOK subscription to OwnHook(). */
+    /** @brief Install custom SourceHook hooks. Pass each VOLTMOD_SCOPED_HOOK to OwnHook(). */
     virtual void OnRegisterHooks(Runtime& runtime) {}
 
     /**
      * @brief Take ownership of a custom hook subscription for this load cycle.
      *
-     * Removed before OnUnload runs, so a hook body cannot fire into plugin state that OnUnload
-     * has already released. A subscription kept in a derived member instead outlives the plugin's
-     * own graph - the derived object is the VOLTMOD_PLUGIN global, so its members are not
-     * destroyed until the process is.
+     * Hooks are removed before OnUnload so they cannot call released plugin state.
      */
     void OwnHook(Subscription hook) { _customHooks.Add(std::move(hook)); }
 
@@ -125,16 +113,15 @@ protected:
 private:
     void RegisterStandardHooks();
 
-    /** Release plugin state, standard hooks, and runtime in that order. */
+    /** Release custom state, standard hooks, and runtime in dependency order. */
     void Shutdown();
 
-    // Runtime first so implicit destruction also removes the hooks before the services they
-    // call into go away - the same order Shutdown() enforces explicitly. Custom hooks last of
-    // the three, so they are the first to go.
+    // Declaration order makes runtime destruction remove standard hooks before their services;
+    // custom hooks are destroyed first.
     std::unique_ptr<VoltMod::Runtime> _runtime;
     Subscriptions _standardHooks;
     Subscriptions _customHooks;
-    PluginInfo _info;  // cached copy of Info() captured at load; backs the ISmmPlugin getters
+    PluginInfo _info;  // copy captured at load for the ISmmPlugin getters
 };
 
 }  // namespace VoltMod

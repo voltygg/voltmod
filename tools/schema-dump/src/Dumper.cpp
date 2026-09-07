@@ -22,18 +22,14 @@ using VoltMod::Result;
 namespace SchemaDump
 {
 
-// The chain object every replicated sub-object hangs off; the generator turns a non-negative
-// chain offset into a NotifyThroughChain setter.
+// A non-negative chain offset becomes a NotifyThroughChain setter.
 static constexpr std::string_view ChainField = "__m_pChainEntity";
-
-// ---- The JSON IR. Public aggregates, so Glaze reflects them with no registration. ----------
 
 /**
  * A field's type, as the schema itself spells it.
  *
- * `atomic` is carried separately from `category` because every CUtlVector is SCHEMA_TYPE_ATOMIC:
- * the category alone cannot tell a collection from a plain atomic, and a collection hangs its
- * element type off a different member than a pointer or a fixed array does.
+ * `atomic` distinguishes CUtlVector collections from plain atomic types; their element type is
+ * stored in a different member.
  */
 struct TypeInfo
 {
@@ -79,7 +75,7 @@ struct EnumInfo
     std::vector<EnumItem> items;
 };
 
-/** Ordered maps keep the emitted file stable across runs, so `git diff` is the drift report. */
+/** Ordered maps keep generated output stable across runs. */
 struct SchemaDoc
 {
     int format = 1;
@@ -88,9 +84,7 @@ struct SchemaDoc
     std::map<std::string, EnumInfo> enums;
 };
 
-// ---- Schema walk ---------------------------------------------------------------------------
-
-/** The framework's PlatformModuleName lives in its private Engine module, so spell it here. */
+/** Return the platform-specific server module name. */
 static std::string ServerModuleName()
 {
 #ifdef _WIN32
@@ -149,7 +143,7 @@ static std::string TypeName(CSchemaType* type)
     return type->m_sTypeName.Get();
 }
 
-/** Describe @p type for the generator, naming the one inner type each category hangs elsewhere. */
+/** Describe @p type, including its category-specific inner type. */
 static TypeInfo DescribeType(CSchemaType* type)
 {
     TypeInfo out;
@@ -176,7 +170,7 @@ static TypeInfo DescribeType(CSchemaType* type)
     case SCHEMA_TYPE_ATOMIC:
     {
         out.atomic = std::string(AtomicName(type->m_eAtomicCategory));
-        // Only the templated atomics carry an element type; a plain one has none.
+        // Only templated atomics have an element type.
         const bool templated = type->m_eAtomicCategory == SCHEMA_ATOMIC_T ||
                                type->m_eAtomicCategory == SCHEMA_ATOMIC_COLLECTION_OF_T ||
                                type->m_eAtomicCategory == SCHEMA_ATOMIC_TT;
@@ -200,7 +194,7 @@ static TypeInfo DescribeType(CSchemaType* type)
     return out;
 }
 
-/** The class's own `__m_pChainEntity`, walking single inheritance up until one turns up. */
+/** Find `__m_pChainEntity` through single inheritance. */
 static int32_t FindChainOffset(const CSchemaClassInfo* klass)
 {
     for (; klass; klass = klass->m_nBaseClassCount > 0 ? klass->m_pBaseClasses[0].m_pClass : nullptr)
@@ -266,10 +260,7 @@ static EnumInfo DescribeEnum(const CSchemaEnumInfo* enumeration)
 }
 
 /**
- * Snapshot a CUtlTSHash's elements.
- *
- * The iteration API differs across SDK revisions; this is pinned to the conan hl2sdk headers
- * (Count / GetElements / Element). CUtlTSHash publishes no element typedef, so @p T names it.
+ * Snapshot a CUtlTSHash using the Conan HL2SDK API (Count/GetElements/Element).
  */
 template <class T, class Hash>
 static std::vector<T> HashElements(Hash& hash)
@@ -305,10 +296,8 @@ Result<DumpStats> WriteSchemaDump(VoltMod::Runtime& runtime, const std::filesyst
     SchemaDoc doc;
     DumpStats stats;
 
-    // The server scope alone is not self-contained: MoveType_t, HitGroup_t, CNetworkVarChainer
-    // and the CPlayerPawnComponent base of the services classes all live in the global scope.
-    // The server scope is walked last so a name it defines wins over the global one, and is
-    // labelled "server" rather than the platform module name so a Linux dump stays identical.
+    // Merge global definitions first because server types depend on them; server definitions win
+    // on name collisions.
     for (const auto& [name, source] :
          {std::pair<const char*, CSchemaSystemTypeScope*>{"global", schema->GlobalTypeScope()}, {"server", scope}})
     {
@@ -347,7 +336,7 @@ Result<DumpStats> WriteSchemaDump(VoltMod::Runtime& runtime, const std::filesyst
     std::error_code ec;
     std::filesystem::create_directories(output.parent_path(), ec);
 
-    // Binary, so the committed baseline is byte-identical on Windows and Linux.
+    // Binary mode keeps the baseline identical on Windows and Linux.
     std::ofstream file(output, std::ios::binary | std::ios::trunc);
     if (!file.is_open())
         return std::unexpected(Error::Invalid(std::format("failed to open {}", output.string())));
