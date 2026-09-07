@@ -231,6 +231,6 @@ templates such as `Flow<TState>` and `PerSlot<T>` also avoid the composition
 root so consumer translation units stay narrow.
 
 File-static state is reserved for engine callbacks that cannot carry user data
-and for process-wide values such as the log handler, base directory, and schema
-field cache. The service that owns a callback also sets and clears its static
-bridge.
+and for process-wide values such as the log handler, base directory, and the
+schema system used to verify the generated layout at load. The service that owns
+a callback also sets and clears its static bridge.

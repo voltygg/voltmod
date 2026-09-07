@@ -36,9 +36,8 @@ constexpr uint32_t FL_NOTARGET = 32768;
  * - Never store a wrapper. Store an @ref EntityRef (any entity) or a @ref PlayerRef (a player) and
  *   resolve it again where it is needed: `runtime.Entities.Resolve(ref)`,
  *   `runtime.Entities.PawnOf(slot)`.
- * - Wrappers copy but do not assign. Copying rebinds a whole wrapper to the same entity, while
- *   assigning through a single @ref Field writes that field's value into the entity, and the two
- *   must not look alike at a call site.
+ * - Wrappers copy but do not assign. Copying rebinds a whole wrapper to the same entity, so
+ *   letting one be assigned would read like writing a field rather than rebinding.
  *
  * Reading a field of a falsy wrapper yields a zero value and writing it does nothing, so a
  * wrapper that was never resolved degrades rather than crashing. A stale non-null one does not,
@@ -46,16 +45,15 @@ constexpr uint32_t FL_NOTARGET = 32768;
  *
  * ### Fields
  *
- * Members declared as @ref Field are the entity's schema fields, used as if they were data
- * members. Writes to networked fields replicate on their own. `Entity` carries the CBaseEntity
- * fields every entity has; @ref Pawn and @ref Controller add theirs.
+ * Schema fields are generated accessor pairs, not data members: `pawn.Health()` reads and
+ * `pawn.SetHealth(100)` writes and replicates. `voltmod schemagen` bakes the offsets in from the
+ * schema dump and the load aborts if they no longer match the engine, so a stale offset is a
+ * startup failure rather than a bad read. `Entity` carries the CBaseEntity fields every entity
+ * has; @ref Pawn and @ref Controller add theirs.
  */
 class Entity
 {
 protected:
-    /** These two are declared first because every Field below captures @ref _e in its initializer,
-     *  and members initialize in declaration order. */
-
     /** The service graph the verbs below reach the engine through. Null only for a
      *  default-constructed wrapper, which is falsy anyway. */
     EntitySystem* _sys = nullptr;
