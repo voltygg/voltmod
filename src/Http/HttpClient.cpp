@@ -63,13 +63,11 @@ struct HttpClient::Impl
     std::vector<Pending> Items;
     std::deque<Queued> Waiting;
 
-    /** Set by Stop to abort transfers from their progress callbacks. Shared with the workers,
+    /** Set by Stop to abort transfers from their progress callbacks, and never cleared: once
+     *  stopped the client stays stopped, because a load cycle that is tearing down must not
+     *  start another thread that could return into an unmapped DLL. Shared with the workers,
      *  which may outlive this Impl by the moment it takes them to notice. */
     std::shared_ptr<std::atomic_bool> Cancelled = std::make_shared<std::atomic_bool>(false);
-
-    /** Once stopped the client stays stopped: a load cycle that is tearing down must not start
-     *  another thread that could return into an unmapped DLL. */
-    bool Stopped = false;
 
     /** Queued requests are started only by StartWaiting, which enforces the in-flight cap. */
     void Launch(Queued&& queued)
@@ -104,7 +102,6 @@ void HttpClient::Stop()
     // Ask in-flight transfers to abort before waiting on them. std::async's future blocks on
     // destruction regardless, so without this a single stalled endpoint holds unload for the
     // whole request timeout.
-    _impl->Stopped = true;
     _impl->Cancelled->store(true, std::memory_order_relaxed);
 
     // Join workers during plugin unload, then discard completions they did not deliver. This keeps
@@ -117,7 +114,7 @@ void HttpClient::Stop()
 
 void HttpClient::Send(HttpRequest request, HttpCompletion onComplete)
 {
-    if (_impl->Stopped)
+    if (_impl->Cancelled->load(std::memory_order_relaxed))
     {
         // Dropped rather than queued: the completion would have nowhere safe to run.
         Log::Warn("http: dropping request to '{}' - the client is stopped.", request.Url);
