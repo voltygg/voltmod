@@ -494,3 +494,39 @@ TEST_CASE("An Int argument accepts the whole int range and rejects what is outsi
         CHECK(f.Lines.size() == 1);
     }
 }
+
+TEST_CASE("Targets binds every player a selector names, where Target rejects the same token")
+{
+    Fixture f;
+    Player& first = f.AddPlayer(1, 76561198000000001LL);
+    Player& second = f.AddPlayer(2, 76561198000000002LL);
+    f.Binder.Roster = {&first, &second};
+
+    SUBCASE("Args::Targets asks for a multi-selector and keeps every match")
+    {
+        std::vector<BoundArg> seen;
+        f.Router.Add(Echo("slayall", {{ArgKind::Targets}}, &seen));
+
+        f.Run("slayall", {"@all"}, nullptr);
+
+        CHECK(f.Binder.LastAllowedMultiple);
+        REQUIRE(seen.size() == 1);
+        const auto& bound = std::get<Args::Targets>(seen[0]);
+        REQUIRE(bound.Value.size() == 2);
+        CHECK(bound.Value[0] == &first);
+        CHECK(bound.Value[1] == &second);
+    }
+
+    SUBCASE("Args::Target still refuses to collapse a multi-selector to one player")
+    {
+        f.Router.Add(Echo("slay", {{ArgKind::Target}}, nullptr));
+        const CommandDefinition* slay = f.Router.Find("slay");
+        f.Binder.Succeed = false;
+        f.Binder.Failure = {TargetError::MultiNotAllowed};
+
+        const std::vector<std::string> token{"@all"};
+        CHECK(!f.Binder.LastAllowedMultiple);
+        // MultiNotAllowed shares the ambiguous key: both mean "this named more than one player".
+        CHECK(BindArgs(*slay, token, nullptr, f.Binder).error().Key == "target.ambiguous");
+    }
+}

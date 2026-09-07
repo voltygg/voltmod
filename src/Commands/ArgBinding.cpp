@@ -35,6 +35,15 @@ static std::expected<Player*, ArgError> BindTarget(ArgBinder& binder, const std:
     return resolved->front();
 }
 
+/** One token to every player it names. `AllowMultiple` is what separates this from BindTarget. */
+static std::expected<Args::Targets, ArgError> BindTargets(ArgBinder& binder, const std::string& token, Player* caller)
+{
+    auto resolved = binder.Resolve(token, caller, TargetRules{.AllowMultiple = true});
+    if (!resolved)
+        return std::unexpected(TargetKey(resolved.error(), token));
+    return Args::Targets{.Value = std::move(*resolved)};
+}
+
 /**
  * One token to a player if anybody online answers to it, otherwise to a bare SteamID64.
  *
@@ -130,6 +139,9 @@ std::expected<std::vector<BoundArg>, ArgError> BindArgs(const CommandDefinition&
                 bound.emplace_back(Args::Target{.Value = *player});
             else
                 failed = std::move(player.error());
+            break;
+        case ArgKind::Targets:
+            failed = Store(BindTargets(binder, token, caller), bound);
             break;
         case ArgKind::PlayerOrSteamId:
             failed = Store(BindPlayerOrSteamId(binder, token, caller), bound);

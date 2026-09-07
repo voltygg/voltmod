@@ -34,6 +34,18 @@ struct Target
     Player* Value = nullptr;
 };
 
+/**
+ * Every online player one token names, filtered by `Policy::Authorize`.
+ *
+ * The multi-target counterpart of @ref Target: `@all`, `@t`, `@ct` and the rest bind here,
+ * where @ref Target rejects them because it can only yield one player. Never empty - a
+ * selector that matches nobody the caller may act on fails to bind instead.
+ */
+struct Targets
+{
+    std::vector<Player*> Value;
+};
+
 /** The @ref ParseDuration grammar (`30s`/`5m`/`2h`/`7d`/`perm`). A bare number is minutes, and
  *  zero means permanent. */
 struct Duration
@@ -103,6 +115,7 @@ struct Opt
 enum class ArgKind : uint8_t
 {
     Target,
+    Targets,
     Duration,
     SteamId,
     PlayerOrSteamId,
@@ -120,8 +133,8 @@ struct ArgDesc
 };
 
 /** One bound argument. `std::monostate` is an optional argument the caller omitted. */
-using BoundArg = std::variant<std::monostate, Args::Target, Args::Duration, Args::SteamId, Args::PlayerOrSteamId,
-                              Args::Int, Args::U64, Args::Word, Args::Rest>;
+using BoundArg = std::variant<std::monostate, Args::Target, Args::Targets, Args::Duration, Args::SteamId,
+                              Args::PlayerOrSteamId, Args::Int, Args::U64, Args::Word, Args::Rest>;
 
 /**
  * @brief What one handler parameter type means to the framework.
@@ -138,6 +151,14 @@ struct ArgTrait<Args::Target>
     static constexpr ArgKind Kind = ArgKind::Target;
     static constexpr bool Optional = false;
     using Bound = Args::Target;
+};
+
+template <>
+struct ArgTrait<Args::Targets>
+{
+    static constexpr ArgKind Kind = ArgKind::Targets;
+    static constexpr bool Optional = false;
+    using Bound = Args::Targets;
 };
 
 template <>
