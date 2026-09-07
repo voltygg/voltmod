@@ -525,8 +525,8 @@ TEST_CASE("Targets binds every player a selector names, where Target rejects the
         f.Binder.Failure = {TargetError::MultiNotAllowed};
 
         const std::vector<std::string> token{"@all"};
-        CHECK(!f.Binder.LastAllowedMultiple);
         // MultiNotAllowed shares the ambiguous key: both mean "this named more than one player".
         CHECK(BindArgs(*slay, token, nullptr, f.Binder).error().Key == "target.ambiguous");
+        CHECK(!f.Binder.LastAllowedMultiple);
     }
 }
