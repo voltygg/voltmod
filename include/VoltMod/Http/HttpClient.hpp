@@ -68,7 +68,13 @@ public:
     HttpClient(const HttpClient&) = delete;
     HttpClient& operator=(const HttpClient&) = delete;
 
-    /** Wait out any in-flight requests and drop their (unrun) completions. Idempotent. */
+    /**
+     * Cancel and join any in-flight requests, then drop their (unrun) completions. Idempotent.
+     *
+     * Workers are asked to abort mid-transfer rather than merely waited on, so unload is not
+     * held for the request timeout by one stalled endpoint. After this, @ref Send drops
+     * requests instead of starting a thread into an unloading module.
+     */
     void Stop();
 
     /** Enqueue a request. `onComplete` runs on the game thread on a later dispatch. */

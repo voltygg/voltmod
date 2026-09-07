@@ -141,10 +141,10 @@ void PostgresDatabase::Enqueue(Job job)
 
     Log::Warn("db: '{}' failed - database not running.", job.Name);
 
-    // Query callbacks always run. If delivery is unavailable, invoke the failure callback outside
-    // the lock; callbacks may enqueue another query.
-    if (job.OnDone)
-        job.OnDone(std::unexpected(std::string("database not running")));
+    // Queued for the next dispatch rather than invoked here. Every other completion reaches the
+    // caller on a later frame, and a caller that is mid-iteration over its own container when it
+    // enqueues must not be re-entered on this stack.
+    FinishJob(job, std::unexpected(std::string("database not running")), false);
 }
 
 void PostgresDatabase::WorkerMain()

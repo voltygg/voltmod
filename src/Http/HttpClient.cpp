@@ -1,4 +1,6 @@
+#include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Http/HttpClient.hpp>
+#include <atomic>
 #include <chrono>
 #include <cpr/cpr.h>
 #include <deque>
@@ -61,6 +63,14 @@ struct HttpClient::Impl
     std::vector<Pending> Items;
     std::deque<Queued> Waiting;
 
+    /** Set by Stop to abort transfers from their progress callbacks. Shared with the workers,
+     *  which may outlive this Impl by the moment it takes them to notice. */
+    std::shared_ptr<std::atomic_bool> Cancelled = std::make_shared<std::atomic_bool>(false);
+
+    /** Once stopped the client stays stopped: a load cycle that is tearing down must not start
+     *  another thread that could return into an unmapped DLL. */
+    bool Stopped = false;
+
     /** Queued requests are started only by StartWaiting, which enforces the in-flight cap. */
     void Launch(Queued&& queued)
     {
@@ -91,6 +101,12 @@ HttpClient::~HttpClient()
 
 void HttpClient::Stop()
 {
+    // Ask in-flight transfers to abort before waiting on them. std::async's future blocks on
+    // destruction regardless, so without this a single stalled endpoint holds unload for the
+    // whole request timeout.
+    _impl->Stopped = true;
+    _impl->Cancelled->store(true, std::memory_order_relaxed);
+
     // Join workers during plugin unload, then discard completions they did not deliver. This keeps
     // meta reload from leaving threads pointing into the unmapped DLL.
     for (auto& p : _impl->Items)
@@ -101,25 +117,39 @@ void HttpClient::Stop()
 
 void HttpClient::Send(HttpRequest request, HttpCompletion onComplete)
 {
+    if (_impl->Stopped)
+    {
+        // Dropped rather than queued: the completion would have nowhere safe to run.
+        Log::Warn("http: dropping request to '{}' - the client is stopped.", request.Url);
+        return;
+    }
+
     // The worker touches only CPR + strings, never engine state; the callback is replayed on the
     // game thread in DispatchCompletions().
-    auto task = [request = std::move(request)]() -> HttpResult {
+    auto task = [request = std::move(request), cancelled = _impl->Cancelled]() -> HttpResult {
         const cpr::Url url{request.Url};
         const cpr::Header headers = ParseHeaderLines(request.Headers);
         const cpr::Timeout timeout{std::chrono::milliseconds{request.TimeoutMs}};
 
+        // Returning false from the progress callback aborts the transfer, which is what lets
+        // Stop() interrupt a request that would otherwise run to its timeout.
+        const cpr::ProgressCallback progress{
+            [cancelled](cpr::cpr_pf_arg_t, cpr::cpr_pf_arg_t, cpr::cpr_pf_arg_t, cpr::cpr_pf_arg_t, intptr_t) {
+                return !cancelled->load(std::memory_order_relaxed);
+            }};
+
         switch (request.Method)
         {
         case HttpMethod::Get:
-            return ToHttpResult(cpr::Get(url, headers, timeout));
+            return ToHttpResult(cpr::Get(url, headers, timeout, progress));
         case HttpMethod::Post:
-            return ToHttpResult(cpr::Post(url, cpr::Body{request.Body}, headers, timeout));
+            return ToHttpResult(cpr::Post(url, cpr::Body{request.Body}, headers, timeout, progress));
         case HttpMethod::Put:
-            return ToHttpResult(cpr::Put(url, cpr::Body{request.Body}, headers, timeout));
+            return ToHttpResult(cpr::Put(url, cpr::Body{request.Body}, headers, timeout, progress));
         case HttpMethod::Patch:
-            return ToHttpResult(cpr::Patch(url, cpr::Body{request.Body}, headers, timeout));
+            return ToHttpResult(cpr::Patch(url, cpr::Body{request.Body}, headers, timeout, progress));
         case HttpMethod::Delete:
-            return ToHttpResult(cpr::Delete(url, cpr::Body{request.Body}, headers, timeout));
+            return ToHttpResult(cpr::Delete(url, cpr::Body{request.Body}, headers, timeout, progress));
         }
 
         return {.Error = "unsupported HTTP method"};
