@@ -118,6 +118,15 @@ public:
     /** Queue a server console line. Returns Error::NotReady when IVEngineServer2 is unavailable. */
     Status ExecuteServerCommand(std::string_view command);
 
+    /**
+     * @brief Assign a convar over the console, quoting the value.
+     *
+     * The one place the `name value` console line is built, so the quoting rule is not
+     * rediscovered per call site: a space would truncate the value and a `;` would start a
+     * second command. A replicated payload sent straight to a client stays unquoted.
+     */
+    Status SetByConsole(std::string_view name, std::string_view value);
+
     /** All engine convar changes. The global callback exists only while this event has subscribers. */
     Event<const ConVarChange&> Changed;
 

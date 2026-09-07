@@ -1,9 +1,11 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Engine/ConVars.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/RecipientFilter.hpp>
 #include <engine/igameeventsystem.h>
+#include <format>
 #include <icvar.h>
 #include <networkbasetypes.pb.h>
 #include <networksystem/inetworkmessages.h>
@@ -71,6 +73,11 @@ Status ConVars::ExecuteServerCommand(std::string_view command)
 
     engine->ServerCommand(line.c_str());
     return {};
+}
+
+Status ConVars::SetByConsole(std::string_view name, std::string_view value)
+{
+    return ExecuteServerCommand(std::format("{} {}", name, Strings::QuoteConsoleArg(value)));
 }
 
 INetworkMessageInternal* ConVars::SetConVarMessage()
