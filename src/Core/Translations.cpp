@@ -29,6 +29,7 @@ static void FlattenInto(const glz::generic& node, const std::string& prefix,
             out[full] = value.get_string();
     }
 }
+
 /**
  * English text for the keys the framework itself emits. Translations::Get returns the raw key on a
  * miss, so without this every plugin had to hand-copy all of them into every language file or
@@ -42,6 +43,7 @@ static const std::unordered_map<std::string, std::string>& KitDefaults()
         {"cmd.tooManyArgs", "Too many arguments. Usage: {usage}"},
         {"cmd.usage", "Usage: {usage}"},
         {"cmd.usage.target", "target"},
+        {"cmd.usage.targets", "targets"},
         {"cmd.usage.duration", "duration"},
         {"cmd.usage.steamId", "steamId"},
         {"cmd.usage.playerOrSteamId", "target|steamId"},
@@ -57,6 +59,9 @@ static const std::unordered_map<std::string, std::string>& KitDefaults()
         {"target.ambiguous", "'{token}' matches {count} players - be more specific."},
         {"target.dead", "'{token}' is not alive."},
         {"target.bot", "'{token}' is a bot."},
+        // Raised by Flow when a step cannot build its menu; the flow aborts rather than
+        // silently leaving the player on the previous one.
+        {"menu.stepFailed", "That menu could not be opened."},
         // Written by ActionRows onto every toggle row it builds, so a consumer that ships no
         // effectState.* keys reads "ON"/"OFF" rather than the dotted key.
         {"effectState.on", "ON"},
@@ -208,7 +213,13 @@ std::optional<std::string_view> Translations::Resolve(const std::string& key, in
     // dropped and re-resolved as missing.
     if (auto v = LookupIn(lang, key))
         return v;
-    if (lang != "en")
+
+    // The server language sits between the player's and English: a key the player's file omits
+    // should read in the language the rest of the server speaks before falling back to English.
+    if (lang != _activeLang)
+        if (auto v = LookupIn(_activeLang, key))
+            return v;
+    if (lang != "en" && _activeLang != "en")
         if (auto v = LookupIn("en", key))
             return v;
     if (auto it = KitDefaults().find(key); it != KitDefaults().end())
