@@ -3,7 +3,7 @@
 #include "Config.hpp"
 
 #include <VoltMod/Api.hpp>
-#include <VoltMod/Core/Subscriptions.hpp>
+#include <VoltMod/Core/SubscriptionScope.hpp>
 
 namespace SchemaDump
 {
@@ -29,7 +29,7 @@ private:
     /** Event, hook and timer registrations, released together. Declared last: reverse member
      *  destruction stops the handlers before the state they capture goes away. Commands are
      *  not in here - CommandManager owns those and drops them before OnUnload. */
-    VoltMod::Subscriptions _subs;
+    VoltMod::SubscriptionScope _subs;
 };
 
 }  // namespace SchemaDump

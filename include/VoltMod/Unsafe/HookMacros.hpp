@@ -7,10 +7,10 @@
 // is usually SH_MEMBER(this, &MyPlugin::Hook_Fn).
 //
 //   SH_DECL_HOOK3(IVEngineServer2, SetClientListening, SH_NOATTRIB, 0, bool, CPlayerSlot, CPlayerSlot, bool);
-//   void MyPlugin::OnRegisterHooks(VoltMod::Runtime& runtime)
+//   void MyPlugin::OnRegisterHooks(VoltMod::Runtime& runtime, VoltMod::SubscriptionScope& hooks)
 //   {
-//       _listening = VOLTMOD_SCOPED_HOOK(IVEngineServer2, SetClientListening, runtime.Unsafe.Interfaces.Engine,
-//                                       SH_MEMBER(this, &MyPlugin::Hook_SetClientListening), false);
+//       hooks.Add(VOLTMOD_SCOPED_HOOK(IVEngineServer2, SetClientListening, runtime.Unsafe.Interfaces.Engine,
+//                                     SH_MEMBER(this, &MyPlugin::Hook_SetClientListening), false));
 //   }
 #define VOLTMOD_SCOPED_HOOK(Iface, Func, ifacePtr, handler, post)                                              \
     ([&] {                                                                                                     \

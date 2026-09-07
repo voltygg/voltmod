@@ -62,7 +62,7 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
     });
 
     RegisterStandardHooks();
-    OnRegisterHooks(*_runtime);
+    OnRegisterHooks(*_runtime, _customHooks);
 
     if (!OnLoad(*_runtime))
     {
@@ -89,7 +89,7 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
     });
 
     Log::Info("{}", _runtime->LoadReport.Summary());
-    if (_info.Commit != nullptr && *_info.Commit != '\0')
+    if (!_info.Commit.empty())
         Log::Info("Loaded {} v{} ({}, committed {}){}.", _info.Name, _info.Version, _info.Commit, _info.Date,
                   late ? " (late)" : "");
     else
@@ -234,35 +234,35 @@ void MetamodPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandCon
 
 const char* MetamodPlugin::GetAuthor()
 {
-    return _info.Author;
+    return _info.Author.c_str();
 }
 const char* MetamodPlugin::GetName()
 {
-    return _info.Name;
+    return _info.Name.c_str();
 }
 const char* MetamodPlugin::GetDescription()
 {
-    return _info.Description;
+    return _info.Description.c_str();
 }
 const char* MetamodPlugin::GetURL()
 {
-    return _info.Url;
+    return _info.Url.c_str();
 }
 const char* MetamodPlugin::GetLicense()
 {
-    return _info.License;
+    return _info.License.c_str();
 }
 const char* MetamodPlugin::GetVersion()
 {
-    return _info.Version;
+    return _info.Version.c_str();
 }
 const char* MetamodPlugin::GetDate()
 {
-    return _info.Date;
+    return _info.Date.c_str();
 }
 const char* MetamodPlugin::GetLogTag()
 {
-    return _info.LogTag;
+    return _info.LogTag.c_str();
 }
 
 void* MetamodPlugin::OnMetamodQuery(const char* iface, int* ret)

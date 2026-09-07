@@ -170,12 +170,12 @@ See @ref workshop_guide for what that costs and what it does not do.
 ## Reacting to a click
 
 A button press arrives as @ref VoltMod::UiClick. Subscribing is what installs the
-hook, so keep what subscribing returns - @ref VoltMod::Subscriptions is the bag for
-several handlers that live and die together:
+hook, so keep what subscribing returns - @ref VoltMod::SubscriptionScope holds several
+handlers that live and die together:
 
 ```cpp
-_subs.On(_panel.Button("accept"), [this](int slot) { Accept(slot); });
-_subs.On(_panel.Clicked(), [this](const UiClick& click) { Log(click.ButtonId); });
+_subs.Add(_panel.Button("accept") += [this](int slot) { Accept(slot); });
+_subs.Add(_panel.Clicked() += [this](const UiClick& click) { Log(click.ButtonId); });
 ```
 
 @ref VoltMod::UiPanel::Button filters on both the layout and the button id, so two

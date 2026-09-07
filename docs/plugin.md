@@ -79,7 +79,7 @@ services are still alive.
 
 1. The base saves Metamod globals, creates the runtime, and starts each framework
    subsystem as a `LoadReport` stage.
-2. It installs standard hooks, then calls `OnRegisterHooks(runtime)`.
+2. It installs standard hooks, then calls `OnRegisterHooks(runtime, hooks)`.
 3. It calls `OnLoad(runtime)`. Returning `false` runs `OnUnload`, removes hooks,
    and destroys the runtime. If no failed stage exists, the base records an
    `OnLoad` failure so `meta list` still has a reason.
@@ -229,7 +229,7 @@ Keep JSON sections compact (counts and names, not full lists), because RCON's co
 | `OnUnload()` | On unload, before the runtime is destroyed | Drop whatever `OnLoad` built |
 | `OnServerStartup(mapName)` | Each map start, after event listeners are attached | The engine has just reset convars and run the game-mode cfgs |
 | `OnPlayerChat(Player*, string_view, bool team)` | On `say`/`say_team` | Default dispatches registered chat commands and swallows handled ones; override to customize (an override replaces the dispatch wholesale, as admin-style chat services do) |
-| `OnRegisterHooks(runtime)` | Once during load | Custom SourceHook hooks |
+| `OnRegisterHooks(runtime, hooks)` | Once during load | Custom SourceHook hooks |
 
 The connection lifecycle is **not** an override. Subscribe to
 `runtime.Players.Connected`, `.FullyConnected`, `.SettingsChanged` and
@@ -290,14 +290,14 @@ For per-tick player movement you don't need a custom hook at all: the framework 
 
 SH_DECL_HOOK3(IVEngineServer2, SetClientListening, SH_NOATTRIB, 0, bool, CPlayerSlot, CPlayerSlot, bool);
 
-void MyPlugin::OnRegisterHooks(VoltMod::Runtime& runtime)
+void MyPlugin::OnRegisterHooks(VoltMod::Runtime& runtime, VoltMod::SubscriptionScope& hooks)
 {
-    OwnHook(VOLTMOD_SCOPED_HOOK(IVEngineServer2, SetClientListening, runtime.Unsafe.Interfaces.Engine,
-                                SH_MEMBER(this, &MyPlugin::Hook_SetClientListening), false));
+    hooks.Add(VOLTMOD_SCOPED_HOOK(IVEngineServer2, SetClientListening, runtime.Unsafe.Interfaces.Engine,
+                                  SH_MEMBER(this, &MyPlugin::Hook_SetClientListening), false));
 }
 ```
 
-Hand the subscription to `OwnHook`, do not keep it in a member of your plugin class. The base
+Add the subscription to `hooks`, do not keep it in a member of your plugin class. The base
 removes custom hooks before `OnUnload` runs, so a hook body cannot fire into state `OnUnload`
 has already released - including after an `OnLoad` that returned false. A subscription held in a
 derived member would instead outlive the whole plugin graph, because the derived object is the

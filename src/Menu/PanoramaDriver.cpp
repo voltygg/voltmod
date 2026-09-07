@@ -26,7 +26,7 @@ PanoramaDriver::PanoramaDriver(MenuManager& menus, const MenuServices& services,
     // The entity's per-player state belongs to the slot, not the player, so a player who left with
     // a menu open would hand it to the next occupant. The stack itself is cleared by the manager's
     // own PerSlot; this is the screen half of the same reset.
-    _subs.On(services.Slots.Changed, [this](int slot) { Dismiss(slot); });
+    _subs.Add(services.Slots.Changed += [this](int slot) { Dismiss(slot); });
 }
 
 PanoramaDriver::~PanoramaDriver() = default;

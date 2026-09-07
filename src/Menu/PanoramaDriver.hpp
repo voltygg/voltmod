@@ -4,7 +4,7 @@
 
 #include <VoltMod/Core/PerSlot.hpp>
 #include <VoltMod/Core/Subscription.hpp>
-#include <VoltMod/Core/Subscriptions.hpp>
+#include <VoltMod/Core/SubscriptionScope.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Ui/UiClick.hpp>
@@ -134,7 +134,7 @@ private:
      *  drags it along through @ref ShowPage. */
     PerSlot<int> _pages;
     /** Declared after everything their handlers touch. */
-    Subscriptions _subs;
+    SubscriptionScope _subs;
     /** The one press handler, taken on the first draw. */
     Subscription _clicks;
 };

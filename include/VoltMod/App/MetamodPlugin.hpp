@@ -1,7 +1,6 @@
 #pragma once
 
-#include <VoltMod/Core/Subscription.hpp>
-#include <VoltMod/Core/Subscriptions.hpp>
+#include <VoltMod/Core/SubscriptionScope.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Players/Player.hpp>
@@ -11,6 +10,7 @@
 #include <functional>
 #include <icvar.h>
 #include <memory>
+#include <string>
 #include <string_view>
 
 namespace VoltMod
@@ -19,15 +19,15 @@ namespace VoltMod
 /** Metadata returned by MetamodPlugin::Info(). BuildInfo.hpp supplies build identity fields. */
 struct PluginInfo
 {
-    const char* Name = "VoltMod Plugin";
-    const char* Author = "";
-    const char* Description = "";
-    const char* Url = "";
-    const char* License = "MIT";
-    const char* Version = "1.0.0";
-    const char* Date = __DATE__;
-    const char* Commit = "";
-    const char* LogTag = "VoltMod";
+    std::string Name = "VoltMod Plugin";
+    std::string Author;
+    std::string Description;
+    std::string Url;
+    std::string License = "MIT";
+    std::string Version = "1.0.0";
+    std::string Date = __DATE__;
+    std::string Commit;
+    std::string LogTag = "VoltMod";
 };
 
 /**
@@ -85,17 +85,15 @@ protected:
      */
     virtual bool OnPlayerChat(Player* player, std::string_view message, bool teamChat);
 
-    /** @brief Install custom SourceHook hooks. Pass each VOLTMOD_SCOPED_HOOK to OwnHook(). */
-    virtual void OnRegisterHooks(Runtime& runtime) {}
-
     /**
-     * @brief Take ownership of a custom hook subscription for this load cycle.
+     * @brief Add custom SourceHook hooks, each a VOLTMOD_SCOPED_HOOK, to @p hooks.
      *
-     * Hooks are removed before OnUnload so they cannot call released plugin state.
+     * @p hooks is released before OnUnload, so a hook bound to this plugin cannot fire against
+     * state OnUnload has already dropped.
      */
-    void OwnHook(Subscription hook) { _customHooks.Add(std::move(hook)); }
+    virtual void OnRegisterHooks(Runtime& runtime, SubscriptionScope& hooks) {}
 
-    // Standard hook callbacks; subclasses use the virtual callbacks above.
+private:
     void Hook_GameFrame(bool simulating, bool firstTick, bool lastTick);
     void Hook_StartupServer(const GameSessionConfiguration_t& config, ISource2WorldSession* session,
                             const char* mapName);
@@ -110,7 +108,6 @@ protected:
                             CBitVec<16384>& unused, const Entity2Networkable_t** networkables,
                             const uint16* entityIndices, int entityCount);
 
-private:
     void RegisterStandardHooks();
 
     /** Release custom state, standard hooks, and runtime in dependency order. */
@@ -119,8 +116,8 @@ private:
     // Declaration order makes runtime destruction remove standard hooks before their services;
     // custom hooks are destroyed first.
     std::unique_ptr<VoltMod::Runtime> _runtime;
-    Subscriptions _standardHooks;
-    Subscriptions _customHooks;
+    SubscriptionScope _standardHooks;
+    SubscriptionScope _customHooks;
     PluginInfo _info;  // copy captured at load for the ISmmPlugin getters
 };
 

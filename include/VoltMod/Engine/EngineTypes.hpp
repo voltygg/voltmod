@@ -16,7 +16,6 @@
 //    cycle, because the owner holds the namer by value. Each one says which
 //    pair it belongs to.
 
-
 class CCheckTransmitInfo;
 class CCommand;
 class CEntityIdentity;
@@ -57,7 +56,6 @@ class ISmmAPI;
 namespace VoltMod
 {
 
-
 /** Manifest-time precache hook. Defined in src/Engine/GameSystem.hpp. */
 class PrecacheGameSystem;
 /** Stand-in for the SDK game-system factory. Defined in src/Engine/GameSystem.hpp. */
@@ -82,7 +80,6 @@ class MenuCursor;
 /** A MenuManager's held-back row commits, one per player. Held by unique_ptr so no public header
  *  reaches the debounce policy. Defined in src/Menu/PendingCommit.hpp. */
 class PendingCommit;
-
 
 /** Entity.hpp holds an EntitySystem* so a wrapper's verbs can reach Bindings and
  *  the entity system, while EntitySystem.hpp returns Entity, Pawn and Controller

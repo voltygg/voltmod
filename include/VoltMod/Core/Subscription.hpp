@@ -27,7 +27,7 @@ namespace VoltMod
  * Move-only. The registry must outlive its Subscription; reverse declaration order provides this
  * when both are members of one object.
  *
- * `<VoltMod/Core/Subscriptions.hpp>` holds several of them in one member, for an object that
+ * `<VoltMod/Core/SubscriptionScope.hpp>` holds several of them in one member, for an object that
  * subscribes to a handful of things at once.
  */
 class Subscription
