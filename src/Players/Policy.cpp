@@ -30,6 +30,17 @@ Status Policy::CheckPermission(const Player& caller, std::string_view permission
     return {};
 }
 
+Status Policy::CheckImmunity(const Player& caller, int64_t targetSteamId) const
+{
+    if (targetSteamId == caller.SteamId() || !CanTarget)
+        return {};
+
+    if (!CanTarget(caller.SteamId(), targetSteamId))
+        return std::unexpected(Error::Immune("target.immune"));
+
+    return {};
+}
+
 Result<Authorized> Policy::Authorize(PlayerRef caller, std::optional<PlayerRef> target,
                                      std::string_view permission) const
 {
@@ -48,12 +59,9 @@ Result<Authorized> Policy::Authorize(PlayerRef caller, std::optional<PlayerRef> 
     if (auto allowed = CheckPermission(*callerPlayer, permission); !allowed)
         return std::unexpected(allowed.error());
 
-    // Self-targeting is the framework's rule, not the plugin's: an immunity comparison has
-    // nothing sensible to say about a player and themselves, and every gate used to answer it
-    // differently.
-    if (targetPlayer && targetPlayer != callerPlayer && CanTarget &&
-        !CanTarget(callerPlayer->SteamId(), targetPlayer->SteamId()))
-        return std::unexpected(Error::Immune("target.immune"));
+    if (targetPlayer)
+        if (auto allowed = CheckImmunity(*callerPlayer, targetPlayer->SteamId()); !allowed)
+            return std::unexpected(allowed.error());
 
     return Authorized{.Caller = *callerPlayer, .Target = targetPlayer};
 }
@@ -67,12 +75,7 @@ Status Policy::AuthorizeSteamId(PlayerRef caller, int64_t targetSteamId, std::st
     if (auto allowed = CheckPermission(*callerPlayer, permission); !allowed)
         return std::unexpected(allowed.error());
 
-    // Same rule as Authorize: targeting yourself is always allowed, so CanTarget only ever
-    // answers "may this caller act on somebody else".
-    if (targetSteamId != callerPlayer->SteamId() && CanTarget && !CanTarget(callerPlayer->SteamId(), targetSteamId))
-        return std::unexpected(Error::Immune("target.immune"));
-
-    return {};
+    return CheckImmunity(*callerPlayer, targetSteamId);
 }
 
 }  // namespace VoltMod

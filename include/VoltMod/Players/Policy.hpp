@@ -106,6 +106,11 @@ private:
      *  mean one thing for an online target and another for an offline one. */
     Status CheckPermission(const Player& caller, std::string_view permission) const;
 
+    /** The immunity half of both entry points. Self-targeting is the framework's rule, not the
+     *  plugin's: an immunity comparison has nothing sensible to say about a player and
+     *  themselves, and every gate used to answer it differently. */
+    Status CheckImmunity(const Player& caller, int64_t targetSteamId) const;
+
     PlayerManager& _players;
     /** Set once the missing-HasPermission denial has been logged, so it does not repeat for
      *  every command a player types. */
