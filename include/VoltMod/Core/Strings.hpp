@@ -53,6 +53,17 @@ public:
     static std::string EscapeHtml(std::string_view text);
 
     /**
+     * Quote @p value as a single console-command argument: wrapped in `"`, with `"` and `\`
+     * escaped.
+     *
+     * The engine's command parser splits on whitespace and treats `;` as a command separator,
+     * so an unquoted value containing either is truncated or runs a second command. A newline
+     * cannot be escaped by quoting at all - it always ends the line - which is why
+     * @ref ConVars::ExecuteServerCommand rejects one outright rather than relying on this.
+     */
+    static std::string QuoteConsoleArg(std::string_view value);
+
+    /**
      * Truncate to at most `maxBytes` bytes plus `ellipsis`, cutting at a UTF-8 sequence
      * boundary so multibyte text (e.g. Cyrillic) never renders a split character.
      */

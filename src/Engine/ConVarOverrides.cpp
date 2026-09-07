@@ -1,3 +1,4 @@
+#include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Engine/ConVarOverrides.hpp>
 #include <VoltMod/Engine/ConVars.hpp>
 #include <algorithm>
@@ -26,8 +27,9 @@ void ConVarOverrides::RestoreAll()
 
 void ConVarOverrides::Write(std::string_view name, std::string_view value)
 {
-    // Restoration is best effort during engine shutdown.
-    (void)_conVars.ExecuteServerCommand(std::format("{} {}", name, value));
+    // Quoted for the same reason as ConVar::Set: a snapshot restores whatever the value was,
+    // spaces and semicolons included. Restoration is best effort during engine shutdown.
+    (void)_conVars.ExecuteServerCommand(std::format("{} {}", name, Strings::QuoteConsoleArg(value)));
 }
 
 }  // namespace VoltMod

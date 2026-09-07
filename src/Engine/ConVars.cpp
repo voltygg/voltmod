@@ -59,6 +59,11 @@ Status ConVars::ExecuteServerCommand(std::string_view command)
     if (!engine)
         return std::unexpected(Error::NotReady("IVEngineServer2 is not available"));
 
+    // A newline cannot be quoted away - it ends the line and whatever follows runs as its
+    // own command - so an injected one is refused rather than escaped.
+    if (command.find_first_of("\r\n") != std::string_view::npos)
+        return std::unexpected(Error::Invalid("command contains an embedded newline"));
+
     // ServerCommand adds no separator between buffered commands.
     std::string line(command);
     if (line.empty() || line.back() != '\n')

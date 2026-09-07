@@ -1,5 +1,6 @@
 #include "Engine/ConVarTypes.hpp"
 
+#include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Engine/ConVars.hpp>
 #include <format>
 #include <string>
@@ -88,7 +89,10 @@ Status ConVar<T>::Set(const T& value)
     if (!_storage || !_service)
         return std::unexpected(Error::NotReady("convar handle is unresolved"));
 
-    return _service->ExecuteServerCommand(std::format("{} {}", _name, ConVarText(value)));
+    // Quoted here rather than in ConVarText: this is the console path, where a space would
+    // truncate the value and a `;` would start a second command. The replicated payload at
+    // SendToClient below must stay unquoted.
+    return _service->ExecuteServerCommand(std::format("{} {}", _name, Strings::QuoteConsoleArg(ConVarText(value))));
 }
 
 template <class T>

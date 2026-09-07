@@ -104,3 +104,16 @@ TEST_CASE("Strings::TruncateUtf8")
 
     CHECK_EQ(Strings::TruncateUtf8("abcdef", 4, ""), std::string("abcd"));  // custom ellipsis
 }
+
+TEST_CASE("Strings::QuoteConsoleArg")
+{
+    // A bare space truncates the value at the console; a `;` starts a second command.
+    CHECK_EQ(Strings::QuoteConsoleArg("de_dust2"), std::string("\"de_dust2\""));
+    CHECK_EQ(Strings::QuoteConsoleArg("two words"), std::string("\"two words\""));
+    CHECK_EQ(Strings::QuoteConsoleArg("a; say pwned"), std::string("\"a; say pwned\""));
+    CHECK_EQ(Strings::QuoteConsoleArg(""), std::string("\"\""));
+
+    // The quote and the escape character both have to survive being re-parsed.
+    CHECK_EQ(Strings::QuoteConsoleArg("say \"hi\""), std::string("\"say \\\"hi\\\"\""));
+    CHECK_EQ(Strings::QuoteConsoleArg("back\\slash"), std::string("\"back\\\\slash\""));
+}

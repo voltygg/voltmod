@@ -186,6 +186,21 @@ std::string Strings::EscapeHtml(std::string_view text)
     return out;
 }
 
+std::string Strings::QuoteConsoleArg(std::string_view value)
+{
+    std::string out;
+    out.reserve(value.size() + 2);
+    out += '"';
+    for (char c : value)
+    {
+        if (c == '"' || c == '\\')
+            out += '\\';
+        out += c;
+    }
+    out += '"';
+    return out;
+}
+
 std::string Strings::TruncateUtf8(std::string_view text, std::size_t maxBytes, std::string_view ellipsis)
 {
     if (text.size() <= maxBytes)

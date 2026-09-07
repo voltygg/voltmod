@@ -51,6 +51,9 @@ std::string ConVarText<float>(const float& value)
 template <>
 std::string ConVarText<std::string>(const std::string& value)
 {
+    // Raw on purpose. This is also the replicated netmessage payload, which the client's own
+    // parser reads verbatim, and the value ConVarOverrides snapshots. Console quoting happens
+    // at the command boundary instead - see ConVar<T>::Set and ConVarOverrides::Write.
     return value;
 }
 
