@@ -208,20 +208,12 @@ std::string Translations::Get(std::string_view key) const
 std::optional<std::string_view> Translations::Resolve(const std::string& key, int slot) const
 {
     const std::string& lang = (IsValidSlot(slot) && !_playerLangs[slot].empty()) ? _playerLangs[slot] : _activeLang;
+    static const std::string kEnglish = "en";
 
-    // Engaged-vs-nullopt (not an empty string) so a key deliberately mapped to "" is honored, not
-    // dropped and re-resolved as missing.
-    if (auto v = LookupIn(lang, key))
-        return v;
+    for (const std::string* candidate : {&lang, &_activeLang, &kEnglish})
+        if (auto v = LookupIn(*candidate, key))
+            return v;
 
-    // The server language sits between the player's and English: a key the player's file omits
-    // should read in the language the rest of the server speaks before falling back to English.
-    if (lang != _activeLang)
-        if (auto v = LookupIn(_activeLang, key))
-            return v;
-    if (lang != "en" && _activeLang != "en")
-        if (auto v = LookupIn("en", key))
-            return v;
     if (auto it = KitDefaults().find(key); it != KitDefaults().end())
         return it->second;
     return std::nullopt;
