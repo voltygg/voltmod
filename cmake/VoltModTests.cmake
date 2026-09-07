@@ -42,7 +42,10 @@ function(voltmod_add_tests target_name)
         "${VOLTMOD_ROOT_DIR}/cmake/DoctestMain.cpp"
         ${ARG_SOURCES}
     )
-    target_include_directories("${target_name}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_include_directories("${target_name}" PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests"
+    )
     target_link_libraries("${target_name}" PRIVATE doctest::doctest VoltMod::Headers)
 
     doctest_discover_tests("${target_name}")

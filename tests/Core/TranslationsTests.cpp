@@ -1,53 +1,21 @@
+#include "Support/TempPath.hpp"
+
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Translations.hpp>
 #include <doctest/doctest.h>
-#include <filesystem>
-#include <format>
-#include <fstream>
 #include <string>
 
 using VoltMod::SlotEvents;
 using VoltMod::Translations;
-
-/** A directory of `<lang>.json` files, removed again when the test ends. */
-class TempLangDir
-{
-public:
-    TempLangDir()
-        : _path(std::filesystem::temp_directory_path() /
-                std::format("voltmod-langs-{}", reinterpret_cast<uintptr_t>(this)))
-    {
-        std::filesystem::create_directories(_path);
-    }
-
-    ~TempLangDir()
-    {
-        std::error_code ignored;
-        std::filesystem::remove_all(_path, ignored);
-    }
-
-    TempLangDir(const TempLangDir&) = delete;
-    TempLangDir& operator=(const TempLangDir&) = delete;
-
-    void Write(std::string_view lang, std::string_view json) const
-    {
-        std::ofstream out(_path / std::format("{}.json", lang), std::ios::binary);
-        out << json;
-    }
-
-    std::string Path() const { return _path.string(); }
-
-private:
-    std::filesystem::path _path;
-};
+using VoltModTests::TempDir;
 
 TEST_CASE("A key missing from the player's language falls back to the active one before English")
 {
-    TempLangDir dir;
+    TempDir dir("langs");
     // Only "en" carries every key; "de" is the server language and "ru" the player's.
-    dir.Write("en", R"({"greet": "hello", "onlyEn": "english"})");
-    dir.Write("de", R"({"greet": "hallo", "shared": "geteilt"})");
-    dir.Write("ru", R"({"greet": "privet"})");
+    dir.Write("en.json", R"({"greet": "hello", "onlyEn": "english"})");
+    dir.Write("de.json", R"({"greet": "hallo", "shared": "geteilt"})");
+    dir.Write("ru.json", R"({"greet": "privet"})");
 
     SlotEvents slots;
     Translations texts{slots};
@@ -71,9 +39,9 @@ TEST_CASE("A key missing from the player's language falls back to the active one
 
 TEST_CASE("With no player language the active language answers, then English")
 {
-    TempLangDir dir;
-    dir.Write("en", R"({"greet": "hello", "onlyEn": "english"})");
-    dir.Write("de", R"({"greet": "hallo"})");
+    TempDir dir("langs");
+    dir.Write("en.json", R"({"greet": "hello", "onlyEn": "english"})");
+    dir.Write("de.json", R"({"greet": "hallo"})");
 
     SlotEvents slots;
     Translations texts{slots};

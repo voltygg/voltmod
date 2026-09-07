@@ -1,4 +1,5 @@
 #include "Engine/GameDataFile.hpp"
+#include "Support/TempPath.hpp"
 
 #include <VoltMod/Core/Capabilities.hpp>
 #include <VoltMod/Core/Log.hpp>
@@ -6,13 +7,10 @@
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/GameData.hpp>
 #include <algorithm>
-#include <cstdio>
 #include <doctest/doctest.h>
-#include <filesystem>
-#include <fstream>
+#include <format>
 #include <string>
 #include <string_view>
-#include <system_error>
 #include <vector>
 
 using VoltMod::Bindings;
@@ -24,32 +22,22 @@ using VoltMod::GameData;
 // Which column of the fabricated file this build reads.
 static constexpr bool OnWindows = VoltMod::HostPlatform == VoltMod::GamePlatform::Windows;
 
-/** Temporary real gamedata file used to test key-to-member mapping. */
+/** Temporary real gamedata file used to test key-to-member mapping. The version and build header
+ *  is supplied here so each case writes only the entries it is about. */
 class TempGameData
 {
 public:
     explicit TempGameData(std::string_view body)
-    {
-        _path = std::filesystem::temp_directory_path() /
-                std::filesystem::path("voltmod-bindings-" + std::to_string(++_counter) + ".jsonc");
-        std::ofstream file(_path);
-        file << "{ \"version\": 2, \"build\": { \"game\": \"cs2\", \"verified\": \"2026-08-26\" },\n" << body << "\n}";
-    }
+        : _file(std::format("{{ \"version\": 2, \"build\": {{ \"game\": \"cs2\", \"verified\": \"2026-08-26\" }},\n"
+                            "{}\n}}",
+                            body),
+                "bindings", ".jsonc")
+    {}
 
-    ~TempGameData()
-    {
-        std::error_code ignored;
-        std::filesystem::remove(_path, ignored);
-    }
-
-    TempGameData(const TempGameData&) = delete;
-    TempGameData& operator=(const TempGameData&) = delete;
-
-    std::string Path() const { return _path.string(); }
+    std::string Path() const { return _file.Path(); }
 
 private:
-    std::filesystem::path _path;
-    static inline int _counter = 0;
+    VoltModTests::TempFile _file;
 };
 
 class LogCapture

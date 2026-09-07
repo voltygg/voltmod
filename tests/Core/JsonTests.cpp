@@ -1,8 +1,8 @@
+#include "Support/TempPath.hpp"
+
 #include <VoltMod/Core/Json.hpp>
 #include <VoltMod/Core/Paths.hpp>
 #include <doctest/doctest.h>
-#include <filesystem>
-#include <fstream>
 #include <map>
 #include <string>
 #include <vector>
@@ -22,35 +22,9 @@ struct Sample
     std::vector<std::string> tags = {"a", "b"};
 };
 
-/** Writes @p text to a temporary file and removes it again. */
-class TempFile
-{
-public:
-    explicit TempFile(std::string_view text)
-        : _path(std::filesystem::temp_directory_path() /
-                std::format("voltmod-json-{}.jsonc", reinterpret_cast<uintptr_t>(this)))
-    {
-        std::ofstream out(_path, std::ios::binary);
-        out << text;
-    }
-
-    ~TempFile()
-    {
-        std::error_code ignored;
-        std::filesystem::remove(_path, ignored);
-    }
-
-    TempFile(const TempFile&) = delete;
-    TempFile& operator=(const TempFile&) = delete;
-
-    std::string Path() const { return _path.string(); }
-
-private:
-    std::filesystem::path _path;
-};
-
 using VoltMod::ErrorCode;
 using VoltMod::Json;
+using VoltModTests::TempFile;
 
 TEST_CASE("Json reads a well-formed document into its struct")
 {
@@ -107,7 +81,7 @@ TEST_CASE("Json distinguishes a missing file from a malformed one")
     REQUIRE_FALSE(missing.has_value());
     CHECK(missing.error().Code == ErrorCode::NotFound);
 
-    const TempFile bad(R"({ not json)");
+    const TempFile bad(R"({ not json)", "json", ".jsonc");
     auto malformed = Json::ReadFile<Sample>(bad.Path());
     REQUIRE_FALSE(malformed.has_value());
     CHECK(malformed.error().Code == ErrorCode::Invalid);
@@ -115,7 +89,7 @@ TEST_CASE("Json distinguishes a missing file from a malformed one")
 
 TEST_CASE("Json reads a file through the resolved path")
 {
-    const TempFile file(R"({"host":"from-file"})");
+    const TempFile file(R"({"host":"from-file"})", "json", ".jsonc");
     auto parsed = Json::ReadFile<Sample>(file.Path());
     REQUIRE(parsed.has_value());
     CHECK(parsed->host == "from-file");
