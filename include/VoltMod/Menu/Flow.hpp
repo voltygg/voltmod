@@ -248,8 +248,15 @@ private:
             if (_steps[i].Applies && !_steps[i].Applies(_state))
                 continue;
             _stepIndex = i;
-            if (auto menu = _steps[i].Build(*this))
-                _menus->Open(_slot, std::move(menu));
+            auto menu = _steps[i].Build(*this);
+            if (!menu)
+            {
+                // A step that cannot build has nothing to show; leaving the admin on the previous
+                // menu would look like the click was ignored, so abort the flow as validation does.
+                _menus->CloseAll(_slot, "menu.stepFailed");
+                return;
+            }
+            _menus->Open(_slot, std::move(menu));
             return;
         }
 

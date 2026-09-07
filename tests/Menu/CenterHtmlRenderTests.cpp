@@ -17,6 +17,7 @@ using VoltMod::ItemsPerPage;
 using VoltMod::Menu;
 using VoltMod::MenuBuilder;
 using VoltMod::MenuRow;
+using VoltMod::RenderCaptureOverlay;
 using VoltMod::RenderMenuHtml;
 using VoltMod::SlotEvents;
 using VoltMod::ToggleRow;
@@ -190,4 +191,17 @@ TEST_CASE("CenterHtmlRender: row text is escaped, so a player name cannot inject
     std::string html = RenderMenuHtml(menu.get(), ViewOf(*menu, 0, false), translations);
     CHECK(html.find("&lt;b&gt;Bold&lt;/b&gt; &amp; Co") != std::string::npos);
     CHECK(html.find("<b>Bold</b>") == std::string::npos);
+}
+
+TEST_CASE("The capture overlay escapes the title and prompt like every other rendered string")
+{
+    // A menu title routinely carries a player name, so markup in one must not reach the panel.
+    const std::string html = RenderCaptureOverlay("<b>Bob</b> & co", "Say <i>what</i>?");
+
+    CHECK(html.find("&lt;b&gt;Bob&lt;/b&gt; &amp; co") != std::string::npos);
+    CHECK(html.find("Say &lt;i&gt;what&lt;/i&gt;?") != std::string::npos);
+
+    // The only markup left is the overlay's own.
+    CHECK(html.find("<b>Bob") == std::string::npos);
+    CHECK(html.find("<i>what") == std::string::npos);
 }

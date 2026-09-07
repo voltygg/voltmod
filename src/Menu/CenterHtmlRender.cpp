@@ -211,8 +211,10 @@ std::string RenderMenuHtml(const Menu* menu, const CenterHtmlView& view, Transla
 std::string RenderCaptureOverlay(const std::string& menuTitle, std::string_view prompt)
 {
     std::ostringstream html;
-    html << "<font color='" << Theme::Gold << "'><b>" << menuTitle << "</b></font><br>"
-         << "<font color='" << Theme::WarmWhite << "'>" << prompt << "</font><br>"
+    // Escaped like every other caller-supplied string here: a title routinely carries a player
+    // name, and the prompt comes from the plugin that opened the capture.
+    html << "<font color='" << Theme::Gold << "'><b>" << Strings::EscapeHtml(menuTitle) << "</b></font><br>"
+         << "<font color='" << Theme::WarmWhite << "'>" << Strings::EscapeHtml(prompt) << "</font><br>"
          << "<font class='fontSize-s' color='" << Theme::WarmGray << "'>Type your answer in chat</font><br>"
          << "<font class='fontSize-s'>"
          << "<font color='" << Theme::NavClose << "'>[R]</font> "
