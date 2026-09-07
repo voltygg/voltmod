@@ -104,7 +104,8 @@ public:
     /** Entity IO, weapon give/strip, precaching, pawn manipulation, per-client net reads. */
     WorldServices World{Entities, Unsafe.Bindings, Scheduler, Slots, Unsafe.Interfaces};
     /** The per-tick and per-event engine hooks. */
-    HookServices Hooks{Entities, Unsafe.Bindings, Slots, Scheduler, GameEvents, Unsafe.Interfaces, World.EntityOps};
+    HookServices Hooks{Entities,   Unsafe.Bindings,   Slots,           Scheduler,
+                       GameEvents, Unsafe.Interfaces, World.EntityOps, Capabilities};
     /** Custom Panorama HUD layouts and the button presses coming back from them. */
     VoltMod::CustomUi Ui{Entities, World.EntityOps, Unsafe.Bindings, Unsafe.Interfaces, Slots, Scheduler};
     /** Workshop addons connecting clients are told to download. */

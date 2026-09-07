@@ -1,5 +1,6 @@
 #pragma once
 
+#include <VoltMod/Core/Capabilities.hpp>
 #include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Slot.hpp>
@@ -45,8 +46,10 @@ class Movement
 {
 public:
     /** @p entities resolves the owning slot per usercmd, @p bindings the vtable index, the class
-     *  vtable and the byte offsets. Both must outlive this hook; the Runtime declares them above. */
-    Movement(EntitySystem& entities, const Bindings& bindings);
+     *  vtable and the byte offsets, and @p capabilities records a failed install so
+     *  `Capabilities::Has(Capability::Movement)` cannot claim a hook that is not there. All three
+     *  must outlive this hook; the Runtime declares them above. */
+    Movement(EntitySystem& entities, const Bindings& bindings, Capabilities& capabilities);
     ~Movement();
     Movement(const Movement&) = delete;
     Movement& operator=(const Movement&) = delete;
@@ -77,6 +80,7 @@ private:
     void DecodeUserCmd(void* userCmd);
 
     EntitySystem& _entities;
+    Capabilities& _capabilities;
     const Bindings& _bindings;
     int _subscribers = 0;  // live subscriptions across all four events
     UserCmdView _cmdView;  // decoded once per RunCommand, reused across pre/post dispatch

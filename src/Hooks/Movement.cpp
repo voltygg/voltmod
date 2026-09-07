@@ -17,12 +17,13 @@ namespace VoltMod
 VOLTMOD_VHOOK1(VoltMod_MovementRunCommand, void*, void*);
 
 // All movement events share one hook installation.
-Movement::Movement(EntitySystem& entities, const Bindings& bindings)
+Movement::Movement(EntitySystem& entities, const Bindings& bindings, Capabilities& capabilities)
     : Pre({.OnFirst = [this] { return OnFirstSubscriber(); }, .OnLast = [this] { OnLastSubscriber(); }}),
       Post({.OnFirst = [this] { return OnFirstSubscriber(); }, .OnLast = [this] { OnLastSubscriber(); }}),
       PreCmd({.OnFirst = [this] { return OnFirstSubscriber(); }, .OnLast = [this] { OnLastSubscriber(); }}),
       FilterCmd({.OnFirst = [this] { return OnFirstSubscriber(); }, .OnLast = [this] { OnLastSubscriber(); }}),
       _entities(entities),
+      _capabilities(capabilities),
       _bindings(bindings)
 {}
 
@@ -52,7 +53,10 @@ bool Movement::OnFirstSubscriber()
             &Movement::Hook_RunCommandPost, LiveMovementServices());
         if (!hook)
         {
+            // Bindings marked the capability usable from gamedata alone; the install is the
+            // second half of that promise, so a failure here has to retract it.
             Log::Warn("Movement: {}; movement handlers will not fire.", hook.error().Detail);
+            _capabilities.Set(Capability::Movement, false, hook.error().Detail);
             return false;
         }
         _hook = std::move(*hook);

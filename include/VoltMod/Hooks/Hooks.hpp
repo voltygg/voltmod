@@ -1,5 +1,6 @@
 #pragma once
 
+#include <VoltMod/Core/Capabilities.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
@@ -29,8 +30,8 @@ namespace VoltMod
 struct HookServices
 {
     HookServices(EntitySystem& entities, Bindings& bindings, SlotEvents& slots, Scheduler& scheduler,
-                 GameEvents& gameEvents, Interfaces& interfaces, EntityOps& entityOps)
-        : Movement(entities, bindings),
+                 GameEvents& gameEvents, Interfaces& interfaces, EntityOps& entityOps, Capabilities& capabilities)
+        : Movement(entities, bindings, capabilities),
           Transmit(entities, bindings, slots),
           Visibility(entities, entityOps, Transmit),
           ChatInput(scheduler, slots),
@@ -40,7 +41,7 @@ struct HookServices
     {}
 
     /** Dormant until something subscribes; the last subscription dropped removes the vtable
-     *  hook. Depends on: Entities, Bindings. */
+     *  hook. Depends on: Entities, Bindings, Capabilities. */
     VoltMod::Movement Movement;
     /** Depends on: Entities, Bindings, Slots. */
     VoltMod::Transmit Transmit;
