@@ -49,9 +49,14 @@ public:
     /** Does @p steamId hold @p permission? Unset denies every permission-gated action. */
     std::function<bool(int64_t steamId, std::string_view permission)> HasPermission;
 
-    /** May @p caller act on @p target (immunity, same-team rules)? Never consulted for the
-     *  server console, which has no caller, nor for a caller targeting themselves. */
-    std::function<bool(const Player& caller, const Player& target)> CanTarget;
+    /**
+     * May the caller act on the target (immunity, same-team rules)? Never consulted for the
+     * server console, which has no caller, nor for a caller targeting themselves.
+     *
+     * Takes SteamIDs rather than `Player&` so the same rule answers for an offline target -
+     * see @ref AuthorizeSteamId. An immunity comparison never needed the connected object.
+     */
+    std::function<bool(int64_t callerSteamId, int64_t targetSteamId)> CanTarget;
 
     /** Deliver a command result or error line (e.g. as a colored chat reply); unset falls back
      *  to a plain `runtime.Messages.Reply`. */
@@ -83,7 +88,24 @@ public:
      */
     Result<Authorized> Authorize(PlayerRef caller, std::optional<PlayerRef> target, std::string_view permission) const;
 
+    /**
+     * @brief @ref Authorize for a target that may be offline, addressed by SteamID.
+     *
+     * Same decision order minus the target-connected check. Returns @ref Status rather than
+     * @ref Authorized because an offline target has no `Player` to hand back: the answer is
+     * "allowed" or the @ref Error saying why not, and there is nothing to act *on* that the
+     * caller did not already have.
+     *
+     * Use this wherever a command binds `Args::PlayerOrSteamId` or a bare SteamID. Reaching
+     * past it to a plugin's own immunity table is what let offline targets skip the gate.
+     */
+    Status AuthorizeSteamId(PlayerRef caller, int64_t targetSteamId, std::string_view permission) const;
+
 private:
+    /** The permission half of both entry points, so "no HasPermission installed" cannot come to
+     *  mean one thing for an online target and another for an offline one. */
+    Status CheckPermission(const Player& caller, std::string_view permission) const;
+
     PlayerManager& _players;
     /** Set once the missing-HasPermission denial has been logged, so it does not repeat for
      *  every command a player types. */

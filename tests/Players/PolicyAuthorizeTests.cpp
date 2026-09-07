@@ -145,7 +145,7 @@ TEST_CASE("A target the caller may not act on is immune")
     Player& admin = gate.AddAdmin();
     Player& target = gate.AddTarget();
 
-    gate.Rules.CanTarget = [](const Player&, const Player&) { return false; };
+    gate.Rules.CanTarget = [](int64_t, int64_t) { return false; };
 
     auto result = gate.Rules.Authorize(admin.Ref(), target.Ref(), "");
     REQUIRE(!result);
@@ -160,9 +160,7 @@ TEST_CASE("An authorized pair carries both players")
     Player& target = gate.AddTarget();
 
     gate.Rules.HasPermission = [](int64_t, std::string_view) { return true; };
-    gate.Rules.CanTarget = [](const Player& caller, const Player& other) {
-        return caller.SteamId() == AdminId && other.SteamId() == TargetId;
-    };
+    gate.Rules.CanTarget = [](int64_t caller, int64_t other) { return caller == AdminId && other == TargetId; };
 
     auto result = gate.Rules.Authorize(admin.Ref(), target.Ref(), "slay");
     REQUIRE(result);
@@ -176,7 +174,7 @@ TEST_CASE("Targeting yourself never reaches CanTarget")
     Player& admin = gate.AddAdmin();
 
     bool asked = false;
-    gate.Rules.CanTarget = [&](const Player&, const Player&) {
+    gate.Rules.CanTarget = [&](int64_t, int64_t) {
         asked = true;
         return false;
     };
