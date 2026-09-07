@@ -1,9 +1,5 @@
 #pragma once
 
-// Core vocabulary, Runtime, and common plugin plumbing. Include each module's Api.hpp when
-// using its wider surface. JSON-backed configuration belongs in <VoltMod/App/Config.hpp>,
-// which keeps Glaze out of translation units that only need this umbrella.
-
 #include <VoltMod/App/MetamodPlugin.hpp>
 #include <VoltMod/App/ServiceExchange.hpp>
 #include <VoltMod/App/StandardLoad.hpp>
