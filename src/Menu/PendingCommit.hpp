@@ -31,11 +31,10 @@ public:
     /** Run @p callback after @p delayMs; dropping the returned subscription cancels it. */
     using Timer = std::function<Subscription(int64_t delayMs, std::function<void()> callback)>;
 
-    /** How long stepping is given to settle. Long enough to ride out a burst of presses, short
-     *  enough that a player who steps once and looks away still sees the value land. */
+    /** Delay used to coalesce stepped values. */
     static constexpr int64_t DelayMs = 400;
 
-    /** @p timer is stored and called on every @ref Arm. */
+    /** Store the timer used by @ref Arm. */
     explicit PendingCommit(Timer timer);
 
     /** Drop a slot's pending commit unrun when the slot changes hands. @p slots must outlive
@@ -46,7 +45,7 @@ public:
      *  arming a different one applies what the previous row was holding first. */
     void Arm(int slot, int index, std::function<void()> commit);
 
-    /** The row @p slot has a commit waiting for, or -1. */
+    /** Pending row for @p slot, or -1. */
     [[nodiscard]] int Index(int slot) const;
 
     /** True while @p slot's pending commit belongs to row @p index. */
@@ -55,7 +54,7 @@ public:
     /** Apply @p slot's pending commit now, if it has one, and cancel its timer. */
     void Run(int slot);
 
-    /** Apply every player's pending commit, for a driver swap that ends every session at once. */
+    /** Apply all pending commits. */
     void RunAll();
 
     /** Drop @p slot's pending commit unrun. */

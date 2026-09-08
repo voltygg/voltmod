@@ -1,4 +1,4 @@
-#include "Menu/OpenMenus.hpp"
+#include "Menu/ActiveMenus.hpp"
 
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/Time.hpp>
@@ -11,29 +11,13 @@ namespace VoltMod
 
 static constexpr std::string_view kBreadcrumbSeparator = " › ";
 
-void OpenMenus::BindReset(SlotEvents& slots)
+void ActiveMenus::BindReset(SlotEvents& slots)
 {
     _states.BindReset(slots);
-    _cursor.BindReset(slots);
     _pending.BindReset(slots);
 }
 
-Menu* OpenMenus::Current(int slot)
-{
-    return IsValidSlot(slot) ? _states[slot].GetCurrentMenu() : nullptr;
-}
-
-int OpenMenus::Depth(int slot) const
-{
-    return IsValidSlot(slot) ? static_cast<int>(_states[slot].MenuStack.size()) : 0;
-}
-
-bool OpenMenus::IsOpen(int slot) const
-{
-    return IsValidSlot(slot) && _states[slot].HasMenu();
-}
-
-bool OpenMenus::AnyOpen() const
+bool ActiveMenus::AnyOpen() const
 {
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
@@ -43,17 +27,7 @@ bool OpenMenus::AnyOpen() const
     return false;
 }
 
-bool OpenMenus::KeyboardEnabled(int slot) const
-{
-    return IsValidSlot(slot) && _states[slot].Keyboard;
-}
-
-std::string_view OpenMenus::Breadcrumb(int slot) const
-{
-    return IsValidSlot(slot) ? std::string_view(_states[slot].Breadcrumb) : std::string_view{};
-}
-
-void OpenMenus::Push(int slot, std::shared_ptr<Menu> menu)
+void ActiveMenus::Push(int slot, std::shared_ptr<Menu> menu)
 {
     if (!IsValidSlot(slot))
         return;
@@ -62,12 +36,12 @@ void OpenMenus::Push(int slot, std::shared_ptr<Menu> menu)
     ResetCursor(slot);
 }
 
-bool OpenMenus::Pop(int slot)
+bool ActiveMenus::Pop(int slot)
 {
     if (!IsValidSlot(slot))
         return false;
 
-    // Before the stack moves: a value stepped and left showing is applied, not dropped.
+    // Apply a stepped value before changing the stack.
     _pending.Run(slot);
 
     auto& state = _states[slot];
@@ -78,7 +52,6 @@ bool OpenMenus::Pop(int slot)
     if (state.MenuStack.empty())
     {
         state.Reset();
-        _cursor.Select(slot, 0);
         return true;
     }
 
@@ -86,29 +59,22 @@ bool OpenMenus::Pop(int slot)
     return false;
 }
 
-void OpenMenus::Clear(int slot)
+void ActiveMenus::Clear(int slot)
 {
     if (!IsValidSlot(slot))
         return;
 
     _pending.Run(slot);
     _states[slot].Reset();
-    _cursor.Select(slot, 0);
 }
 
-void OpenMenus::RunPending()
-{
-    _pending.RunAll();
-}
-
-void OpenMenus::ResetCursor(int slot)
+void ActiveMenus::ResetCursor(int slot)
 {
     auto& state = _states[slot];
     state.LastInputTime = Time::MonotonicMs();
     state.Rows.clear();
 
-    // Everything under the top menu, which is the path taken to reach what is on screen; the
-    // current title is drawn on its own.
+    // Build the path leading to the current menu.
     state.Breadcrumb.clear();
     for (std::size_t i = 0; i + 1 < state.MenuStack.size(); ++i)
     {
@@ -117,17 +83,16 @@ void OpenMenus::ResetCursor(int slot)
         state.Breadcrumb += state.MenuStack[i]->Title;
     }
 
-    _cursor.Select(slot, state.GetCurrentMenu() ? MenuCursor::First(Rows(slot)) : 0);
+    state.Selected = state.GetCurrentMenu() ? MenuCursor::First(Rows(slot)) : 0;
 }
 
-MenuRow OpenMenus::Describe(int slot, int index)
+MenuRow ActiveMenus::Describe(int slot, int index)
 {
     auto* menu = Current(slot);
     if (!menu || index < 0 || index >= static_cast<int>(menu->Items.size()))
         return MenuRow{.Enabled = false, .Selectable = false};
 
-    // An item with no Describe is malformed; it draws as an inert line rather than a row the
-    // cursor could land on.
+    // A malformed item is shown as an inert line.
     const MenuItem& item = menu->Items[static_cast<std::size_t>(index)];
     MenuRow row = item.Describe ? item.Describe(slot) : MenuRow{.Enabled = false, .Selectable = false};
 
@@ -159,7 +124,7 @@ MenuRow OpenMenus::Describe(int slot, int index)
     return row;
 }
 
-CursorRows OpenMenus::Rows(int slot)
+CursorRows ActiveMenus::Rows(int slot)
 {
     auto* menu = Current(slot);
     if (!menu)
@@ -170,31 +135,24 @@ CursorRows OpenMenus::Rows(int slot)
             }};
 }
 
-int OpenMenus::Selected(int slot) const
-{
-    return _cursor.Selected(slot);
-}
-
-void OpenMenus::Select(int slot, int index)
+void ActiveMenus::Select(int slot, int index)
 {
     if (!IsValidSlot(slot))
         return;
 
-    // A press naming a row this menu does not have - a page that moved under a click, an id a
-    // client made up - is dropped rather than parking the cursor past the end.
+    // Ignore stale or client-forged row indexes.
     auto* menu = Current(slot);
     if (index < 0 || !menu || index >= static_cast<int>(menu->Items.size()))
         return;
 
-    // Leaving a stepped row applies what it was left showing. Landing back on the row that is
-    // still waiting leaves it waiting, so W-then-S over one row is not an action.
+    // Leaving a stepped row applies its pending value. Returning to it leaves the value pending.
     if (!_pending.IsPending(slot, index))
         _pending.Run(slot);
 
-    _cursor.Select(slot, index);
+    _states[slot].Selected = index;
 }
 
-void OpenMenus::SelectOnPage(int slot, int page, int rowsPerPage)
+void ActiveMenus::SelectOnPage(int slot, int page, int rowsPerPage)
 {
     auto* menu = Current(slot);
     if (!menu || menu->Items.empty() || rowsPerPage <= 0)
@@ -203,7 +161,7 @@ void OpenMenus::SelectOnPage(int slot, int page, int rowsPerPage)
     Select(slot, MenuCursor::OnPage(Rows(slot), page, rowsPerPage));
 }
 
-void OpenMenus::Activate(int slot, int index)
+void ActiveMenus::Activate(int slot, int index)
 {
     if (!IsValidSlot(slot))
         return;
@@ -216,26 +174,24 @@ void OpenMenus::Activate(int slot, int index)
     else
         _pending.Run(slot);
 
-    // Re-read: running a commit may have closed or replaced the menu.
+    // The callback may close or replace the menu, so read the session again.
     auto* menu = Current(slot);
     if (!menu || index < 0 || index >= static_cast<int>(menu->Items.size()))
         return;
 
-    // Copied out of the vector, not referenced into it: a row that closes or reopens the menu
-    // destroys the Menu, and with it the item whose handler is still running.
+    // Copy the item because its handler may close or reopen the menu.
     const MenuItem item = menu->Items[static_cast<std::size_t>(index)];
     if (item.Activate && IsCursorTarget(item, slot))
         item.Activate(slot, _session);
 }
 
-bool OpenMenus::Step(int slot, int index, int direction)
+bool ActiveMenus::Step(int slot, int index, int direction)
 {
     auto* menu = Current(slot);
     if (!IsValidSlot(slot) || !menu || index < 0 || index >= static_cast<int>(menu->Items.size()))
         return false;
 
-    // Copied for the same reason as in Activate, and the menu held so it cannot be freed and
-    // another allocated at the same address while the step runs.
+    // Copy the item and keep the menu alive while its step handler runs.
     const std::shared_ptr<Menu> held = _states[slot].MenuStack.back();
     const MenuItem item = menu->Items[static_cast<std::size_t>(index)];
     if (!item.Step || !item.Describe || !item.Describe(slot).Enabled)
@@ -243,9 +199,7 @@ bool OpenMenus::Step(int slot, int index, int direction)
     if (!item.Step(slot, direction))
         return false;
 
-    // Holding the commit turns a burst of presses into one action; the row draws as pending until
-    // it runs. Unless the step replaced the menu, in which case the row it belonged to is gone and
-    // arming by index would aim at whatever now sits there.
+    // Coalesce a burst of presses. Do not re-arm by index if the step replaced the menu.
     if (item.Commit && Current(slot) == held.get())
         _pending.Arm(slot, index, [commit = item.Commit, slot] { commit(slot); });
 

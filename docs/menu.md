@@ -2,7 +2,7 @@
 
 [TOC]
 
-A menu is a list of rows and callbacks, independent of its rendering. @ref
+A menu is a list of rows and callbacks, independent of its renderer. @ref
 VoltMod::MenuBuilder creates common row types, @ref VoltMod::ActionRows builds
 admin and target actions, and @ref VoltMod::Flow handles multi-step menus.
 `runtime.Menus` owns each player's session and renders the same model through
@@ -37,8 +37,8 @@ if (auto status = runtime.Menus.UsePanorama(layout); !status)
 leaves center HTML active and returns the reason. With no layout name, it uses
 the framework's `voltmod_menu` layout.
 
-Switching closes every open session first, because one that straddled two drivers
-would leave half its state on the wrong screen. `runtime.Menus.IsPanorama()` and
+Switching closes every open session first, because a session cannot span two drivers
+without leaving part of its state on the wrong screen. `runtime.Menus.IsPanorama()` and
 `runtime.Menus.Layout()` report which driver is drawing.
 
 Both drivers read the same keys over one cursor; see @ref menu_feedback_keys.
@@ -89,8 +89,8 @@ form above already does.
 
 ### Enabled
 
-Every `.Enabled` is a @ref VoltMod::Condition: a `bool`, or a `bool(int slot)` check
-re-asked on every redraw. The check also refuses activation and stepping, so a
+Every `.Enabled` is a @ref VoltMod::EnabledCondition: a `bool`, or a `bool(int slot)` check
+run on every redraw. The check also refuses activation and stepping, so a
 permission revoked while the menu is open greys the row out *and* refuses the press:
 
 ```cpp
@@ -99,8 +99,7 @@ permission revoked while the menu is open greys the row out *and* refuses the pr
                .Enabled = [&](int slot) { return MayRestart(slot); }})
 ```
 
-Do not re-check the same permission inside the handler; that second check is what this
-replaces.
+Do not repeat the same permission check inside the handler.
 
 A `ToggleRow` reports its state and none of the words for it - the framework spells
 those from `menu.on` / `menu.off` (falling back to `ON` / `OFF`), and a Panorama layout
@@ -166,13 +165,12 @@ MenuBuilder(title)
 ```
 
 Context rows translate labels for the admin and use `Policy::Authorize` to set
-their enabled state. `ActionRows::Services` must outlive the rows, which is
-normally guaranteed by the load cycle.
+their enabled state. Objects referenced by `ActionRows::Services` must outlive
+the rows, which is normally guaranteed by the load cycle.
 
-`rows.Allows(permission)` is that authorization as a @ref VoltMod::Condition, for a
-custom callback appended alongside context rows; `rows.Allowed(permission)` is the same
-question answered once. Context rows authorize again when pressed either way, using
-stored `PlayerRef` values so slot reuse cannot change the caller or target.
+`rows.Allows(permission)` provides that authorization as a @ref VoltMod::EnabledCondition for
+custom callbacks. Context rows authorize again when pressed, using stored `PlayerRef`
+values so slot reuse cannot change the caller or target.
 
 ```cpp
 MenuBuilder(title)
@@ -283,7 +281,7 @@ A menu longer than its driver's page paginates automatically - five rows for cen
 HTML, eight for the Panorama menu - with a `(2/3)` indicator. The page size belongs to
 the driver, not to the model.
 
-A/D pages when the row under the cursor has no value to step, so highlight a
+A/D pages when the row under the cursor has no value to step. Highlight a
 Button or Submenu row to page instead. Paging keeps the cursor's offset within the
 page. The Panorama menu also has explicit prev/next buttons, and the cursor
 follows a page turned that way onto the first row it may land on.
@@ -306,7 +304,7 @@ looks like, so styling is a driver question, not a builder one:
 and movement state on disconnect. Per-frame work starts with the first open menu
 and stops when the last stack closes.
 
-`runtime.Menus.FreezeWhileOpen(true)` freezes players while a menu is open. Center HTML needs it so WASD does not also walk them around; the Panorama menu needs it because a cursor takes mouse-look, and being shoved around while clicking is worse rather than better. During a chat-input capture center HTML honors only R, and the Panorama menu shows a prompt overlay and ignores row presses, so neither drifts while the player types.
+`runtime.Menus.FreezeWhileOpen(true)` freezes players while a menu is open. Center HTML needs it so WASD does not also move them; Panorama needs it because its cursor takes mouse-look. During a chat-input capture center HTML honors only R, and the Panorama menu shows a prompt overlay and ignores row presses, so neither drifts while the player types.
 
 A capture belongs to the session that started it, so closing the menu drops it - the player's next chat line is a chat line again rather than an answer to a prompt nobody can see.
 

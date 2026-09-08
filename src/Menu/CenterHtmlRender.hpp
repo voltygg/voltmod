@@ -9,9 +9,7 @@
 namespace VoltMod
 {
 
-/** Rows one center-HTML page shows before the menu paginates. Small on purpose: the HUD gives a
- *  handful of lines before the footer scrolls out of the visible area. The Panorama driver has a
- *  page size of its own, so this is the renderer's rather than the menu model's. */
+/** Rows shown on one center-HTML page. This is a renderer limit, not a menu-model limit. */
 inline constexpr int ItemsPerPage = 5;
 
 /** The header block: what the menu is called, where it sits, and which page is showing. */
@@ -25,8 +23,7 @@ struct CenterHtmlHeader
     int Pages = 1;
 };
 
-/** What a menu looks like to the renderer beyond its rows: whose screen it is, where the cursor
- *  sits, and how a row describes itself right now. */
+/** Menu state needed by the renderer. */
 struct CenterHtmlView
 {
     /** Row @p index as @ref MenuManager::Describe fills it in, so @ref MenuRow::Pending and

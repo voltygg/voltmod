@@ -27,15 +27,14 @@ std::string DefaultHeader(const CenterHtmlHeader& header)
 {
     std::ostringstream html;
 
-    // The path taken to get here, ahead of the title and dimmer than it, so a submenu says where
-    // it sits without the title having to repeat it.
+    // Show the path before the submenu title.
     if (!header.Breadcrumb.empty())
     {
         html << "<font class='fontSize-s' color='" << Theme::WarmGray << "'>" << Strings::EscapeHtml(header.Breadcrumb)
              << " › </font>";
     }
 
-    // Titles routinely interpolate a player name, so the one place they become markup escapes them.
+    // Titles may contain player input, so escape them before inserting markup.
     html << "<font color='" << Theme::Gold << "'><b>" << Strings::EscapeHtml(header.Title) << "</b></font>";
 
     if (!header.Subtitle.empty())
@@ -64,7 +63,7 @@ static std::string FooterChunk(std::string_view keyColor, std::string_view keyTe
 
 std::string DefaultFooter(bool isSubmenu, bool isPaginated, bool usesHorizontal, int slot, Translations& translations)
 {
-    // Fall back to the English literal so consumers that don't ship nav.* keys still render cleanly.
+    // Keep rendering when a consumer has no nav.* translation.
     auto label = [&](std::string_view key, std::string_view fallback) {
         return translations.GetOr(key, slot, fallback);
     };
@@ -211,8 +210,7 @@ std::string RenderMenuHtml(const Menu* menu, const CenterHtmlView& view, Transla
 std::string RenderCaptureOverlay(const std::string& menuTitle, std::string_view prompt)
 {
     std::ostringstream html;
-    // Escaped like every other caller-supplied string here: a title routinely carries a player
-    // name, and the prompt comes from the plugin that opened the capture.
+    // Escape the title and prompt before inserting caller-supplied text into markup.
     html << "<font color='" << Theme::Gold << "'><b>" << Strings::EscapeHtml(menuTitle) << "</b></font><br>"
          << "<font color='" << Theme::WarmWhite << "'>" << Strings::EscapeHtml(prompt) << "</font><br>"
          << "<font class='fontSize-s' color='" << Theme::WarmGray << "'>Type your answer in chat</font><br>"

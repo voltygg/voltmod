@@ -1,6 +1,5 @@
+#include "Menu/ActiveMenus.hpp"
 #include "Menu/CenterHtmlDriver.hpp"
-#include "Menu/MenuKeys.hpp"
-#include "Menu/OpenMenus.hpp"
 #include "Menu/PanoramaDriver.hpp"
 
 #include <VoltMod/Core/Log.hpp>
@@ -15,13 +14,12 @@ namespace VoltMod
 
 MenuManager::MenuManager(const MenuServices& services)
     : _services(services),
-      _menus(std::make_unique<OpenMenus>(
+      _menus(std::make_unique<ActiveMenus>(
           *this, _services.Translations,
           [&scheduler = services.Scheduler](int64_t delayMs, std::function<void()> callback) {
               return scheduler.Delay(delayMs, std::move(callback));
           })),
-      _keys(std::make_unique<MenuKeys>(*_menus, *this, _services)),
-      _driver(std::make_unique<CenterHtmlDriver>(*_menus, *_keys, *this, _services))
+      _driver(std::make_unique<CenterHtmlDriver>(*_menus, *this, _services))
 {
     _menus->BindReset(services.Slots);
 }
@@ -30,8 +28,7 @@ MenuManager::~MenuManager() = default;
 
 Status MenuManager::UsePanorama(std::string_view layout)
 {
-    // Both capabilities first, then the name: nothing changes until every check has passed, so a
-    // plugin that logs the error and carries on is still on a working center-HTML session.
+    // Validate both capabilities before changing the active driver.
     for (Capability needed : {Capability::CustomUi, Capability::UiClicks})
     {
         if (!_services.Capabilities.Has(needed))
@@ -47,8 +44,8 @@ Status MenuManager::UsePanorama(std::string_view layout)
 
     CloseAllSessions();
     _layout = std::string(layout);
-    _driver = std::make_unique<PanoramaDriver>(*_menus, *_keys, *this, _services, std::move(*panel));
-    _fallback = std::make_unique<CenterHtmlDriver>(*_menus, *_keys, *this, _services);
+    _driver = std::make_unique<PanoramaDriver>(*_menus, *this, _services, std::move(*panel));
+    _fallback = std::make_unique<CenterHtmlDriver>(*_menus, *this, _services);
     Log::Info("Menus draw into the '{}' Panorama layout.", _layout);
     return {};
 }
@@ -60,21 +57,9 @@ void MenuManager::UseCenterHtml()
 
     CloseAllSessions();
     _layout.clear();
-    _driver = std::make_unique<CenterHtmlDriver>(*_menus, *_keys, *this, _services);
+    _driver = std::make_unique<CenterHtmlDriver>(*_menus, *this, _services);
     _fallback.reset();
     Log::Info("Menus draw as center HTML.");
-}
-
-bool MenuManager::IsPanorama() const noexcept
-{
-    // A Panorama layout name is never empty - ResolveLayoutName refuses one - so the name is also
-    // the answer to which driver is drawing.
-    return !_layout.empty();
-}
-
-std::string_view MenuManager::Layout() const noexcept
-{
-    return _layout;
 }
 
 void MenuManager::Open(int slot, std::shared_ptr<Menu> menu, MenuOptions options)
@@ -111,8 +96,7 @@ void MenuManager::Open(int slot, std::shared_ptr<Menu> menu)
 void MenuManager::Push(int slot, std::shared_ptr<Menu> menu)
 {
     _menus->Push(slot, std::move(menu));
-    // No SyncDriver here: OnGameFrame picks the driver before the first Present, and resetting
-    // twice on a frame that also flips the driver is what this leaves out.
+    // OnGameFrame selects the driver before Present; avoid resetting twice during a swap.
     DriverOf(slot).Reset(slot);
 
     if (auto* current = _menus->Current(slot))
@@ -130,8 +114,7 @@ void MenuManager::Close(int slot)
     if (!IsValidSlot(slot))
         return;
 
-    // The prompt belongs to the menu that opened it: left armed, it would swallow the player's
-    // next chat line for a row nobody can see.
+    // Clear prompts for menus that are closing so they cannot consume later chat input.
     _services.ChatInput.CancelCapture(slot);
 
     if (!_menus->IsOpen(slot))
@@ -221,15 +204,14 @@ void MenuManager::OnGameFrame()
             DriverOf(slot).Present(slot);
     }
 
-    // A slot changing hands empties a stack without going through Close, so this - rather than
-    // each close path - is what stops the per-frame cost once nothing is open.
+    // Slot reset clears stacks without going through Close, so stop per-frame work here.
     if (!_menus->AnyOpen())
         _onFrame.Reset();
 }
 
 void MenuManager::CloseAllSessions()
 {
-    // Before any session goes: a driver swap is not a reason to drop a value a player picked.
+    // Preserve values selected before a driver swap.
     _menus->RunPending();
 
     for (int slot = 0; slot < MaxPlayers; ++slot)

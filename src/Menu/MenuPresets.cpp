@@ -31,8 +31,7 @@ std::shared_ptr<Menu> BuildDurationMenu(DurationMenu spec)
         });
     }
 
-    // An empty label means "no custom row", so a caller can gate it on config without splitting
-    // the call.
+    // An empty label omits the custom row.
     if (!spec.CustomLabel.empty())
     {
         builder.Add(InputRow{.Label = std::move(spec.CustomLabel),
@@ -59,7 +58,7 @@ std::shared_ptr<Menu> BuildConfirmMenu(ConfirmMenu spec)
     for (const auto& line : spec.Lines)
         builder.Text(line);
 
-    // Last resort: Flow translates both labels before it builds this.
+    // Flow normally translates both labels before building this row.
     if (spec.ConfirmLabel.empty())
         spec.ConfirmLabel = "Confirm";
     if (spec.CancelLabel.empty())
@@ -70,8 +69,7 @@ std::shared_ptr<Menu> BuildConfirmMenu(ConfirmMenu spec)
             confirm(slot);
     });
 
-    // Built by hand rather than as a ButtonRow: cancel with no callback of its own closes the
-    // menus, and the session to close them through is the one handed to Activate.
+    // Cancel closes through the session passed to Activate.
     builder.Add(MenuItem{.Describe = [label = std::move(spec.CancelLabel)](int) { return MenuRow{.Label = label}; },
                          .Activate =
                              [cancel = std::move(spec.Cancel)](int slot, MenuSession& session) {

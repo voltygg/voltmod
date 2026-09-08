@@ -1,6 +1,5 @@
 #include "Menu/MenuCursor.hpp"
 
-#include <VoltMod/Core/Slot.hpp>
 #include <algorithm>
 #include <cstddef>
 
@@ -16,18 +15,7 @@ bool IsCursorTarget(const MenuItem& item, int slot)
     return row.Enabled && row.Selectable;
 }
 
-int MenuCursor::Selected(int slot) const
-{
-    return IsValidSlot(slot) ? _selected[slot] : 0;
-}
-
-void MenuCursor::Select(int slot, int index)
-{
-    if (IsValidSlot(slot))
-        _selected[slot] = index;
-}
-
-bool MenuCursor::Landable(const CursorRows& rows, int index)
+static bool Landable(const CursorRows& rows, int index)
 {
     if (index < 0 || index >= rows.Count)
         return false;
@@ -40,8 +28,7 @@ int MenuCursor::Step(const CursorRows& rows, int index, int step)
     if (rows.Count <= 0)
         return index;
 
-    // One attempt per row: a menu whose rows are all disabled walks the whole way round and comes
-    // back to where it started rather than looping forever.
+    // Bound the search so an all-disabled menu cannot loop forever.
     int attempts = rows.Count;
     do
     {
@@ -85,8 +72,7 @@ int MenuCursor::JumpPage(const CursorRows& rows, int index, int rowsPerPage, int
     const int start = page * rowsPerPage;
     const int end = std::min(rows.Count, start + rowsPerPage);
 
-    // The offset within the page is preserved, then the cursor skips forward over rows it may
-    // not land on within the new page.
+    // Preserve the page offset, then skip rows that cannot be selected.
     int landed = std::min(start + index % rowsPerPage, end - 1);
     for (int attempts = end - start; attempts > 0; --attempts)
     {

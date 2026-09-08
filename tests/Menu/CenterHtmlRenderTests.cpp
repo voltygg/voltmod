@@ -148,7 +148,7 @@ TEST_CASE("CenterHtmlRender: a toggle draws its value as a switch")
 
     auto menu = MenuBuilder("Test Menu").Add(ToggleRow{.Label = "Prefix", .Get = [](int) { return true; }}).Build();
 
-    // The spec reports state and no words; OpenMenus::Describe spells them before a driver ever
+    // The spec reports state and no words; ActiveMenus::Describe spells them before a driver ever
     // sees the row, so the view stands in for that here.
     const CenterHtmlView view{.Describe =
                                   [&menu](int index) {

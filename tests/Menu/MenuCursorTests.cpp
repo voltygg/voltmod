@@ -4,7 +4,7 @@
 #include <set>
 
 using VoltMod::CursorRows;
-using VoltMod::MenuCursor;
+namespace MenuCursor = VoltMod::MenuCursor;
 
 static CursorRows Rows(int count, std::set<int> landable)
 {
@@ -15,22 +15,6 @@ static CursorRows Rows(int count, std::set<int> landable)
 static CursorRows AllRows(int count)
 {
     return {.Count = count};
-}
-
-TEST_CASE("MenuCursor: Selected starts at the first row and Select moves it")
-{
-    MenuCursor cursor;
-
-    CHECK(cursor.Selected(0) == 0);
-
-    cursor.Select(0, 3);
-    CHECK(cursor.Selected(0) == 3);
-    CHECK(cursor.Selected(1) == 0);
-
-    // A slot no player can occupy answers rather than indexing out of range.
-    CHECK(cursor.Selected(-1) == 0);
-    cursor.Select(-1, 3);
-    CHECK(cursor.Selected(-1) == 0);
 }
 
 TEST_CASE("MenuCursor: Step wraps in both directions")

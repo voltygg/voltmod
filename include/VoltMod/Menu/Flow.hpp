@@ -16,29 +16,7 @@
 namespace VoltMod
 {
 
-/**
- * @brief Runs an ordered set of menus for one player while collecting a state value.
- *
- * Each applicable step is opened in order. Validate runs before every step and before Finish;
- * its returned translation key aborts the flow and is replied in the player's language. An
- * optional confirmation menu summarizes the state before Finish runs.
- *
- * @code
- * Flow<PendingPunishment>::Create(runtime.Menus, adminSlot, std::move(pending))
- *     ->Validate(StillPunishable)
- *     ->AddDurationStep({.Title = tr("punish.duration"),
- *                        .Presets = durations,
- *                        .Set = [](PendingPunishment& s, int sec) { s.DurationSec = sec; },
- *                        .CustomLabel = tr("punish.custom"),
- *                        .CustomPrompt = tr("punish.customPrompt"),
- *                        .Applies = [](const PendingPunishment& s) { return IsTimed(s.Type); }})
- *     ->Confirm({.Title = tr("punish.confirm"), .Summary = Summarize})
- *     ->Finish([](PendingPunishment& s) { Issue(s); })
- *     ->Start();
- * @endcode
- *
- * Open-menu callbacks own the flow while it is displayed; steps keep weak references.
- */
+/** Runs a sequence of menus while collecting state for one player. */
 template <class TState>
 class Flow : public std::enable_shared_from_this<Flow<TState>>
 {
@@ -49,8 +27,7 @@ public:
     /** Step predicate over the current state; a false skips the step. */
     using AppliesFn = std::function<bool(const TState&)>;
 
-    /** A row per (label, seconds) preset, plus a chat-input row parsed by @ref ParseDuration when
-     *  @ref CustomLabel is set. */
+    /** Duration presets with optional chat input. */
     struct DurationStep
     {
         std::string Title;
@@ -62,15 +39,7 @@ public:
         AppliesFn Applies;
     };
 
-    /**
-     * A row per option, plus a free-text row (empty input re-prompts) when @ref CustomLabel is set.
-     *
-     * Each option is a (label, value) pair: the label is what the player reads, the value is the
-     * caller's stable identity for the row (a preset code, say). @ref Set receives both, so a
-     * state that stores the code and the display text separately does not have to recover one
-     * from the other. When a row has no separate identity, pass the label as the value. The
-     * custom row reports @ref CustomValue, defaulting to the typed text.
-     */
+    /** Labeled options with optional free-text input. */
     struct OptionsStep
     {
         std::string Title;
@@ -82,8 +51,7 @@ public:
         AppliesFn Applies;
     };
 
-    /** The summary dialog the flow ends with. Supplying @ref Summary is what turns it on; the
-     *  button labels default to `menu.confirm` / `menu.cancel`. */
+    /** Optional summary shown before finishing. */
     struct ConfirmSpec
     {
         std::string Title;
@@ -92,8 +60,7 @@ public:
         std::string CancelLabel;
     };
 
-    /** @p menus opens every step for @p slot and closes them on abort or finish; it must outlive
-     *  the flow, which one Load/Unload cycle guarantees. */
+    /** @p menus must outlive the flow. */
     static Ptr Create(MenuSession& menus, int slot, TState initial)
     {
         return Ptr(new Flow(menus, slot, std::move(initial)));
@@ -110,7 +77,7 @@ public:
     Ptr AddDurationStep(DurationStep step)
     {
         auto weak = this->weak_from_this();
-        // Keep the predicate in Step rather than retaining a second copy in the callback.
+        // Keep the predicate in Step instead of copying it into the callback.
         auto applies = std::move(step.Applies);
         return AddStep(
             [weak, step = std::move(step)](Flow&) -> std::shared_ptr<Menu> {
@@ -145,8 +112,7 @@ public:
             std::move(applies));
     }
 
-    /** Re-run before every step and before finish; return a translation key to abort (the key
-     *  is resolved in the player's language, replied, and all their menus close). */
+    /** Runs before each step and finish. Return a translation key to abort. */
     Ptr Validate(std::function<std::optional<std::string>(const TState&)> check)
     {
         _validate = std::move(check);
@@ -188,7 +154,7 @@ private:
         auto self = this->shared_from_this();
         MenuBuilder builder(step.Title);
 
-        // Share one setter because each open row retains its callback.
+        // Share one setter because each open row retains the callback.
         auto set = std::make_shared<const decltype(step.Set)>(step.Set);
 
         for (const auto& [label, value] : step.Options)
@@ -218,8 +184,6 @@ private:
         return builder.Build();
     }
 
-    /** The summary dialog, as @ref VoltMod::BuildConfirmMenu draws it. Cancel is left empty, so
-     *  it closes through the session the dialog is drawn in - the one this flow opened on. */
     std::shared_ptr<Menu> BuildSummary()
     {
         auto self = this->shared_from_this();
@@ -254,8 +218,8 @@ private:
             auto menu = _steps[i].Build(*this);
             if (!menu)
             {
-                // A step that cannot build has nothing to show; leaving the admin on the previous
-                // menu would look like the click was ignored, so abort the flow as validation does.
+                // A step that cannot build has nothing to show, so abort like a validation failure
+                // instead of leaving the previous menu open.
                 _menus->CloseAll(_slot, "menu.stepFailed");
                 return;
             }
@@ -271,7 +235,7 @@ private:
 
     void RunFinish()
     {
-        // Revalidate after the confirmation dialog.
+        // Check again after the confirmation dialog.
         if (!RunValidation())
             return;
         if (_finish)

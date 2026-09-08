@@ -12,10 +12,7 @@ std::string MenuRowId(int row)
     return std::format("{}{}", MenuIds::RowPrefix, row);
 }
 
-// The row index as the layout writes it: decimal digits and nothing else, so "01", "+1", "-1" and
-// "1x" are all refused rather than rounded to a row a press could land on. from_chars would take
-// the sign and stop short of trailing junk, so the first character is checked here and the whole
-// view is required below.
+// Accept only unsigned decimal row indexes. Reject signs, leading zeros, and trailing text.
 static bool ParseRowIndex(std::string_view text, int& row)
 {
     if (text.empty() || text.front() < '0' || text.front() > '9')

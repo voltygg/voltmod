@@ -5,9 +5,6 @@
 #include <cstddef>
 #include <format>
 
-// Everything the Panorama driver writes into its layout: the dialog, the rows, and what a row
-// that is not drawn this frame is told instead. Input and paging are in PanoramaDriver.cpp.
-
 namespace VoltMod
 {
 
@@ -47,8 +44,7 @@ void PanoramaDriver::Present(int slot)
     int& page = _pages[slot];
     page = std::clamp(page, 0, pages - 1);
 
-    // Every write below discards its Status: the panel logs the first failure for a slot itself,
-    // and the next frame redraws anyway.
+    // The panel logs write failures; the next frame redraws the state.
     (void)_panel.Text(slot, RootId, TitleVar, menu->Title);
     (void)_panel.Text(slot, RootId, SubtitleVar, menu->Subtitle);
     (void)_panel.Text(slot, RootId, BreadcrumbVar, _menus.Breadcrumb(slot));
@@ -60,7 +56,7 @@ void PanoramaDriver::Present(int slot)
     if (prompt)
     {
         (void)_panel.Text(slot, RootId, PromptVar, *prompt);
-        (void)_panel.Text(slot, RootId, PromptHintVar, Translate("menu.promptHint", "Answer in chat", slot));
+        (void)_panel.Text(slot, RootId, PromptHintVar, _session.Translate(slot, "menu.promptHint", "Answer in chat"));
     }
 
     if (items == 0)
@@ -81,8 +77,7 @@ void PanoramaDriver::Present(int slot)
     (void)_panel.Text(slot, RootId, PageVar, std::format("{}/{}", page + 1, pages));
     (void)_panel.Class(slot, PagerId, Css::Hidden, pages <= 1);
 
-    // Two ways to say the same thing: `Root` lets the stylesheet draw Back disabled in place,
-    // and the older `Hidden` on the button itself keeps a layout that hides it working.
+    // Set both properties for compatibility with layouts that hide the button.
     const bool atRoot = _menus.Depth(slot) <= 1;
     (void)_panel.Class(slot, RootId, Css::Root, atRoot);
     (void)_panel.Class(slot, BackId, Css::Hidden, atRoot);
@@ -101,7 +96,8 @@ void PanoramaDriver::DrawRow(int slot, int row, int index)
 
 void PanoramaDriver::DrawEmpty(int slot)
 {
-    WriteRow(slot, 0, MenuRow{.Label = Translate("menu.empty", "Nothing here", slot), .Kind = MenuRowKind::Text},
+    WriteRow(slot, 0,
+             MenuRow{.Label = _session.Translate(slot, "menu.empty", "Nothing here"), .Kind = MenuRowKind::Text},
              false);
     HideRowsFrom(slot, 1);
 }
@@ -110,7 +106,7 @@ void PanoramaDriver::WriteRow(int slot, int row, const MenuRow& described, bool 
 {
     const RowIds& ids = _rows[static_cast<std::size_t>(row)];
 
-    // Variables on the root panel; the labels reading them carry no ids.
+    // Variables live on the root panel; labels resolve them through their ancestors.
     (void)_panel.Text(slot, RootId, ids.Label, described.Label);
     (void)_panel.Text(slot, RootId, ids.Value, described.Value);
 

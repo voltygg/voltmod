@@ -5,15 +5,11 @@
 #include <format>
 #include <utility>
 
-// The driver's lifecycle and input: the row ids it writes through, the presses coming back from
-// the layout, and the page each player is on. The writes themselves are in PanoramaDraw.cpp.
-
 namespace VoltMod
 {
 
-PanoramaDriver::PanoramaDriver(OpenMenus& menus, MenuKeys& keys, MenuSession& session, const MenuServices& services,
-                               UiPanel panel)
-    : MenuDriver(menus, keys, session, services), _panel(std::move(panel))
+PanoramaDriver::PanoramaDriver(ActiveMenus& menus, MenuSession& session, const MenuServices& services, UiPanel panel)
+    : MenuDriver(menus, session, services), _panel(std::move(panel))
 {
     _rows.reserve(RowsPerPageCount);
     for (int i = 0; i < RowsPerPageCount; ++i)
@@ -24,9 +20,7 @@ PanoramaDriver::PanoramaDriver(OpenMenus& menus, MenuKeys& keys, MenuSession& se
 
     _pages.BindReset(services.Slots);
 
-    // The entity's per-player state belongs to the slot, not the player, so a player who left with
-    // a menu open would hand it to the next occupant. The stack itself is cleared by the manager's
-    // own PerSlot; this is the screen half of the same reset.
+    // Reset screen state as well as the manager's per-slot menu state.
     _subs.Add(services.Slots.Changed += [this](int slot) { Dismiss(slot); });
 }
 
@@ -39,8 +33,7 @@ bool PanoramaDriver::HandleInput(int slot)
 
 void PanoramaDriver::Reset(int slot)
 {
-    // The cursor's page, not page zero: the first row it may land on can be past the first page,
-    // and a session coming back from the center-HTML fallback keeps the page it was on.
+    // Preserve the cursor's page, including after a center-HTML fallback.
     const int selected = _menus.Selected(slot);
     _pages[slot] = selected > 0 ? selected / RowsPerPageCount : 0;
 }
@@ -71,8 +64,7 @@ void PanoramaDriver::OnClick(const UiClick& click)
 
     const MenuPress press = ParseMenuButton(click.ButtonId);
 
-    // Cancel is the one press a chat prompt honours; Back and Close stay live because a player
-    // who wants out of the menu should not have to answer the prompt first.
+    // Captures honor Cancel; Back and Close remain available to leave the menu.
     switch (press.Button)
     {
     case MenuButton::None:
@@ -99,12 +91,11 @@ void PanoramaDriver::OnClick(const UiClick& click)
         return;
     }
 
-    // Everything left is a row press, which is the only kind that carries a row index.
+    // Remaining presses are row presses and carry a row index.
     if (press.Row < 0 || press.Row >= RowsPerPageCount)
         return;
 
-    // A click moves the cursor there too, so the keyboard carries on from what was pressed rather
-    // than from wherever it was left.
+    // Keep keyboard navigation at the clicked row.
     const int index = ItemIndex(slot, press.Row);
     _menus.Select(slot, index);
 
@@ -132,8 +123,8 @@ void PanoramaDriver::TurnPage(int slot, int delta)
 
     const int pages = PageCount(static_cast<int>(menu->Items.size()), RowsPerPageCount);
     _pages[slot] = WrapIndex(_pages[slot] + delta, pages);
-    // The cursor follows the page rather than sitting on a row that is no longer drawn.
-    SelectOnPage(slot, _pages[slot]);
+    // Keep the cursor on the page being drawn.
+    _menus.SelectOnPage(slot, _pages[slot], RowsPerPageCount);
 }
 
 void PanoramaDriver::Dismiss(int slot)

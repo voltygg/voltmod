@@ -68,15 +68,10 @@ struct UiPanelState;
 /** The FilterMessage hook behind CustomUi::Clicked. Held by unique_ptr so no public header
  *  reaches VtableHook.hpp. Defined in src/Ui/UiClicks.hpp. */
 class UiClicks;
-/** How a MenuManager draws: center HTML, or the Panorama layout. Held by unique_ptr so no public
- *  header reaches a driver and a plugin cannot name one. Defined in src/Menu/MenuDriver.hpp. */
+/** Internal menu renderer. */
 class MenuDriver;
-/** The keys both menu drivers read, held by unique_ptr for the same reason as MenuDriver: it
- *  names a driver, which no public header may. Defined in src/Menu/MenuKeys.hpp. */
-class MenuKeys;
-/** The menu stacks, cursors and rows every driver reads. Held by unique_ptr so no public header
- *  reaches the cursor arithmetic or the commit debounce. Defined in src/Menu/OpenMenus.hpp. */
-class OpenMenus;
+/** Internal menu state. */
+class ActiveMenus;
 
 /** Entity.hpp holds an EntitySystem* so a wrapper's verbs can reach Bindings and
  *  the entity system, while EntitySystem.hpp returns Entity, Pawn and Controller

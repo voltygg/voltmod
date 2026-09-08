@@ -4,8 +4,8 @@
 namespace VoltMod
 {
 
-/** The Describe every spec shares; @p live is what a row with a value adds on each redraw. */
-static std::function<MenuRow(int)> Describer(std::string label, MenuRowKind kind, Condition enabled,
+/** Shared description callback for menu specs. */
+static std::function<MenuRow(int)> Describer(std::string label, MenuRowKind kind, EnabledCondition enabled,
                                              std::function<void(int slot, MenuRow& row)> live = {})
 {
     return [label = std::move(label), kind, enabled = std::move(enabled), live = std::move(live)](int slot) {
@@ -21,7 +21,8 @@ static std::function<MenuRow(int)> Describer(std::string label, MenuRowKind kind
 }
 
 /** @p action, run only while @p enabled takes the slot. */
-static std::function<void(int, MenuSession&)> Gated(Condition enabled, std::function<void(int, MenuSession&)> action)
+static std::function<void(int, MenuSession&)> Gated(EnabledCondition enabled,
+                                                    std::function<void(int, MenuSession&)> action)
 {
     return [enabled = std::move(enabled), action = std::move(action)](int slot, MenuSession& session) {
         if (action && enabled(slot))
@@ -43,7 +44,7 @@ MenuItem ButtonRow::ToItem() &&
 
 MenuItem ToggleRow::ToItem() &&
 {
-    // No on/off words here: the row reports its state and OpenMenus::Describe spells it.
+    // ActiveMenus::Describe supplies the localized state text.
     return MenuItem{
         .Describe = Describer(std::move(Label), MenuRowKind::Toggle, Enabled,
                               [get = Get](int slot, MenuRow& row) {
@@ -78,9 +79,7 @@ MenuItem InputRow::ToItem() &&
             std::move(Enabled),
             [prompt = std::move(Prompt), set = std::move(Set), maxLength = MaxLength](int slot, MenuSession& session) {
                 session.Prompt(slot, prompt, [set, maxLength](int s, std::string_view text) {
-                    // Over-long text re-prompts rather than reaching the setter: a chat
-                    // line is whatever the player typed, and the row said how much of it
-                    // it wants.
+                    // Reject over-long client input before calling the setter.
                     if (maxLength > 0 && static_cast<int>(text.size()) > maxLength)
                         return false;
                     return set ? set(s, text) : true;

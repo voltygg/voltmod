@@ -10,20 +10,19 @@
 namespace VoltMod
 {
 
-/** Pages @p items need at @p perPage each, never less than one so an empty menu still draws. */
+/** Returns the number of pages needed for @p items, with at least one page. */
 constexpr int PageCount(int items, int perPage)
 {
     return items <= 0 ? 1 : (items + perPage - 1) / perPage;
 }
 
-/** @p value wrapped into `[0, count)`, so stepping off either end comes back round. Handles a
- *  negative @p value, which the plain `%` does not. */
+/** Wraps @p value into `[0, count)`, including when @p value is negative. */
 constexpr int WrapIndex(int value, int count)
 {
     return count <= 0 ? 0 : ((value % count) + count) % count;
 }
 
-/** What a row *is*, for a driver that styles rows rather than spelling them out in their text. */
+/** Row type used by renderers. */
 enum class MenuRowKind
 {
     Text,     ///< Not selectable; a caption or a summary line.
@@ -34,55 +33,30 @@ enum class MenuRowKind
     Input     ///< Carries a value the player types in chat.
 };
 
-/**
- * @brief One row as a driver draws it: what it is called, what it is set to, and how it behaves.
- *
- * Produced by @ref MenuItem::Describe on every redraw, so every field is live - a row that greys
- * out while the menu is open greys out on the next frame.
- *
- * Plain text throughout: escaping belongs to whichever driver needs it. Center HTML composes the
- * two halves into one line (`"Speed: &lt; 100% &gt;"`); a Panorama layout has a panel for each
- * half and a stylesheet for the decoration.
- */
+/** Current display state of a menu row. Text is unescaped. */
 struct MenuRow
 {
-    /** What the row is called: `"Speed"`. */
     std::string Label;
-    /** What it is set to: `"100%"`, `"ON"`. Empty for a row that carries no value. */
+    /** Empty when the row has no value. */
     std::string Value;
     MenuRowKind Kind = MenuRowKind::Button;
     /** Disabled rows are drawn greyed out, skipped by the cursor, and refuse activation. */
     bool Enabled = true;
-    /** False for a row the cursor may not land on (Text). */
+    /** Whether the cursor may land on the row. */
     bool Selectable = true;
-    /** True when A/D - or the row's steppers - change the value rather than paging. */
+    /** Whether A/D or a row stepper changes the value instead of paging. */
     bool Steppable = false;
-    /** An on/off row's state, so a driver can draw a switch instead of reading @ref Value. A
-     *  Toggle that leaves @ref Value empty has it spelled from this. */
+    /** Toggle state, used to render a switch or supply the default value text. */
     std::optional<bool> State;
 
-    /** @{ Filled in by the menu service when it describes the row for a driver, not by
-     *  @ref MenuItem::Describe - whatever an item puts here is overwritten.
-     *
-     *  @ref Pending is true while the row's @ref MenuItem::Commit is waiting out the step
-     *  debounce, so a driver can say "not applied yet". @ref Changed is true for a moment after
-     *  the row's @ref Value moved, so a driver can flash it. */
+    /** Set by the menu service, not by @ref MenuItem::Describe. */
     bool Pending = false;
     bool Changed = false;
-    /** @} */
 };
 
 struct Menu;
 
-/**
- * @brief What a row may do to the session it is drawn in.
- *
- * Implemented by @ref MenuManager, and named here rather than there so a row - and the
- * @ref MenuBuilder and @ref Flow that produce rows - stays plain values with no engine behind it.
- * That is what lets both be unit-tested against a session that only records what it was asked for.
- *
- * A session runs from the first menu opened for a player until their stack empties.
- */
+/** Operations available to a row callback. */
 class MenuSession
 {
 public:
@@ -91,79 +65,50 @@ public:
     MenuSession(const MenuSession&) = delete;
     MenuSession& operator=(const MenuSession&) = delete;
 
-    /** Push @p menu onto @p slot's stack and start showing it. */
+    /** Pushes @p menu onto @p slot's stack and shows it. */
     virtual void Open(int slot, std::shared_ptr<Menu> menu) = 0;
 
-    /** Pop the top menu, falling back to the parent if one exists. */
+    /** Pops the top menu, returning to its parent when one exists. */
     virtual void Close(int slot) = 0;
 
-    /** Clear the entire stack and take the menu off the player's screen. */
+    /** Clears the stack and removes the menu from the player's screen. */
     virtual void CloseAll(int slot) = 0;
 
-    /** Abort with an explanation: @p replyKey is translated in the player's language and sent
-     *  through `Policy::Reply`, then every menu closes. The abort path for a flow whose
-     *  preconditions stopped holding. */
+    /** Translates and sends @p replyKey, then closes every menu. */
     virtual void CloseAll(int slot, std::string_view replyKey) = 0;
 
-    /** Route the player's next chat line to @p callback, showing @p prompt over the open menu.
-     *  Rows use this instead of reaching for the runtime's ChatInput themselves. Closing the menu
-     *  drops the capture. */
+    /** Routes the next chat line to @p callback. Closing the menu cancels it. */
     virtual void Prompt(int slot, std::string prompt,
                         std::function<bool(int slot, std::string_view text)> callback) = 0;
 
-    /** @p key in @p slot's language, or @p fallback when the table has no entry for it. A menu
-     *  carries text rather than keys, so this is where a label the framework supplies itself (a
-     *  confirm button, a toggle's on/off word) becomes words. */
+    /** Translates @p key for @p slot, using @p fallback when missing. */
     [[nodiscard]] virtual std::string Translate(int slot, std::string_view key, std::string_view fallback) const = 0;
 
 protected:
     MenuSession() = default;
 };
 
-/**
- * @brief One row's behaviour, as values.
- *
- * A row is data, not a subclass: @ref MenuBuilder's row specs produce these, and a consumer with
- * a shape the specs do not cover fills one in itself.
- *
- * @ref Describe is required and runs on every redraw. The rest may be empty: a row with no
- * @ref Activate does nothing when pressed (a Text row), and one with no @ref Step leaves A/D to
- * the driver, which pages instead.
- */
+/** Row callbacks. Only @ref Describe is required. */
 struct MenuItem
 {
-    /** This row, right now. Called every redraw, so it is safe to read live state. */
+    /** Describes the row's current state. Called on every redraw. */
     std::function<MenuRow(int slot)> Describe;
 
-    /** E, or a click. @p session is the session showing the row, so a row can push a submenu or
-     *  start a chat prompt without reaching for a global. */
+    /** Runs on E or a click. */
     std::function<void(int slot, MenuSession& session)> Activate;
 
-    /** A/D, or a stepper press: @p direction is -1 or +1. Return true to consume the input;
-     *  false (or an empty callback) lets the driver page instead. */
+    /** Runs on A/D or a stepper. Return true to consume the input. */
     std::function<bool(int slot, int direction)> Step;
 
-    /** Apply whatever @ref Step left the row showing. Empty when stepping already applied it,
-     *  or when the row must not apply until it is activated.
-     *
-     *  A row that has one applies by *stepping*: the menu service holds the commit for a moment
-     *  after the last step and then runs it, so a burst of A/D presses is one action rather than
-     *  one per press. Activating the row, closing the menu or moving the cursor off it runs what
-     *  is held instead of dropping it. */
+    /** Applies a stepped value after input settles. */
     std::function<void(int slot)> Commit;
 };
 
-/**
- * @brief A menu, however @ref MenuManager is drawing menus right now. Build with MenuBuilder.
- *
- * One menu belongs to one player: a @ref ChoiceRow with no external binding keeps its index in the
- * item, so sharing a `Menu` would share the selection. Build a fresh one per open.
- */
+/** A menu model. Build a separate instance for each player. */
 struct Menu
 {
     std::string Title;
-    /** Shown next to the title, smaller and dimmer: a version, a breadcrumb, a target's name.
-     *  Plain text - it is markup in neither driver. */
+    /** Optional plain-text detail shown with the title. */
     std::string Subtitle;
     std::vector<MenuItem> Items;
 };

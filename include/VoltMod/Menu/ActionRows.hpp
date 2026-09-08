@@ -22,36 +22,11 @@
 namespace VoltMod
 {
 
-/**
- * @brief The admin-panel rows: one admin, one target, and the services a row press runs through.
- *
- * Each method returns a @ref MenuItem, so these mix with the plain specs in one builder chain:
- *
- * @code
- * ActionRows rows({.Actions = app.Actions, .Policy = runtime.Policy, .Translations = runtime.Translations,
- *                  .Players = runtime.Players, .Entities = runtime.Entities, .Menus = runtime.Menus,
- *                  .Effects = &app.Effects},
- *                 adminRef, targetRef);
- *
- * MenuBuilder(title)
- *     .Add(rows.Action("action.kill", Actions::Kill))
- *     .Add(rows.StateToggle("action.freeze", InMoveType(MoveType::None), Actions::Freeze))
- *     .Add(rows.Presets({.LabelKey = "action.health", .Unit = "HP", .Presets = HealthPresets,
- *                        .Action = Actions::SetHealth}))
- *     .Add(rows.Effect(Effects::Ghost))
- *     .Build();
- * @endcode
- *
- * Labels are translation keys resolved in the admin's language. A row's enabled state is one
- * @ref Policy::Authorize call, re-asked on every redraw. The same check runs again through the
- * dispatcher when the row is pressed - against the two @ref PlayerRef values, so a departed admin
- * or a reused target slot is refused rather than retargeted.
- */
+/** Builds common admin actions for one admin and optional target. */
 class ActionRows
 {
 public:
-    /** Everything a row press reaches. All must outlive the rows, which one Load/Unload cycle
-     *  guarantees; @ref Effects may be null for a panel with no effect rows. */
+    /** Referenced objects must outlive the generated rows. Effects may be null. */
     struct Services
     {
         ActionDispatcher& Actions;
@@ -63,20 +38,16 @@ public:
         EffectManager* Effects = nullptr;
     };
 
-    /** @p target is empty for a panel with no target yet; its rows then deny, because
-     *  @ref Policy::Authorize is asked about a reference that names nobody. */
+    /** Rows requiring a target are disabled when @p target is empty. */
     ActionRows(const Services& services, PlayerRef admin, std::optional<PlayerRef> target);
 
-    /** Whether @p permission is granted for this admin/target pair right now. */
-    [[nodiscard]] bool Allowed(std::string_view permission) const;
+    /** Checks the permission each time the row is drawn or used. */
+    [[nodiscard]] EnabledCondition Allows(std::string_view permission) const;
 
-    /** @ref Allowed as a row's condition, so the answer is the live one on every redraw. */
-    [[nodiscard]] Condition Allows(std::string_view permission) const;
-
-    /** @p key in the admin's language, with `{token}` substitutions. */
+    /** Translates @p key for the admin. */
     [[nodiscard]] std::string Tr(std::string_view key, Tokens tokens = {}) const;
 
-    /** A button row running a single-target @ref VoltMod::Action against the pair. */
+    /** A button that runs a single-target action. */
     [[nodiscard]] MenuItem Action(std::string_view labelKey, const VoltMod::Action& action);
 
     /**
@@ -86,11 +57,11 @@ public:
     [[nodiscard]] MenuItem StateToggle(std::string_view labelKey, std::function<bool(const Pawn&)> isActive,
                                        const VoltMod::Action& action);
 
-    /** A choice row over a fixed list of numbers. @ref Unit is appended to each label. */
+    /** A choice row over a fixed list of numbers. */
     struct PresetSpec
     {
         std::string_view LabelKey;
-        /** Appended to every preset: `"100 HP"`. */
+        /** Appended to each preset, for example `"100 HP"`. */
         std::string_view Unit;
         std::span<const int> Presets;
         const ParamAction& Action;
@@ -98,42 +69,26 @@ public:
         int Index = 0;
     };
 
-    /** A/D picks a preset and applies it once the stepping stops, so a burst of presses is one
-     *  action. The menu stays open, so a value can be tried, adjusted and applied again without
-     *  reopening the panel. */
+    /** Applies the selected preset after stepping stops. */
     [[nodiscard]] MenuItem Presets(const PresetSpec& spec);
 
-    /** An on/off row for a data-defined effect, read from and written through the
-     *  @ref EffectManager in @ref Services::Effects. Inert when that is null. */
+    /** An on/off row for a data-defined effect. */
     [[nodiscard]] MenuItem Effect(const EffectDescriptor& effect);
 
-    /** A submenu over @ref EffectDescriptor::Choices, with a reset row when `ResetLabelKey` is
-     *  set. Picking a choice applies it and closes the panel. */
+    /** A submenu over an effect's choices. */
     [[nodiscard]] MenuItem EffectPicker(const EffectDescriptor& effect);
 
 private:
-    /** The picker @ref EffectPicker opens, built when the row is pressed so it names whoever the
-     *  target is by then. Null when the target has left. */
-    std::shared_ptr<Menu> BuildPicker(const EffectDescriptor& effect, Condition allowed) const;
+    std::shared_ptr<Menu> BuildPicker(const EffectDescriptor& effect, EnabledCondition allowed) const;
 
-    /** Effect rows go through one of these - two references, so built per call rather than held.
-     *  Only reached through a row @ref EffectAllows let through, which is what makes
-     *  @ref Services::Effects safe to dereference. */
     [[nodiscard]] EffectDispatcher Effects() const;
 
-    /** @ref Allows for an effect, and always false on a panel with no @ref Services::Effects:
-     *  better greyed out than live and inert. */
-    [[nodiscard]] Condition EffectAllows(const EffectDescriptor& effect) const;
+    [[nodiscard]] EnabledCondition EffectAllows(const EffectDescriptor& effect) const;
 
-    /** The target as a dispatcher takes it: an absent one is a reference naming nobody, which
-     *  @ref Policy::Authorize refuses. */
     [[nodiscard]] PlayerRef TargetRef() const { return _target.value_or(PlayerRef{}); }
 
-    /** Copied once and shared, so the rows a builder chain produces do not depend on the caller's
-     *  spec outliving them. Behind a shared_ptr because every row callback below captures it and
-     *  is then stored on the menu: by value, each of the dozen closures would carry its own copy
-     *  of the bag - and push itself past what a std::function holds inline. The references inside
-     *  it must still outlive the rows. */
+    /** Shared by row callbacks so each menu stores one copy. The referenced services must still
+     *  outlive the rows. */
     std::shared_ptr<const Services> _services;
     PlayerRef _admin;
     std::optional<PlayerRef> _target;

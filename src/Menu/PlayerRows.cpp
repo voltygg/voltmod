@@ -2,10 +2,6 @@
 #include <VoltMod/Menu/MenuPresets.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 
-// The one preset that reads the roster, and the reason it is not in MenuPresets.cpp: a name comes
-// off a controller, which puts this translation unit on the far side of the SDK from the dialogs
-// the unit tests recompile.
-
 namespace VoltMod
 {
 
@@ -14,15 +10,14 @@ void AppendPlayerRows(MenuBuilder& builder, PlayerManager& players, const Player
     auto connected = players.All();
     for (auto* player : connected)
     {
-        // Who the row was drawn for, not where they were sitting: a slot that changes hands
-        // resolves to nobody rather than to whoever took it.
+        // Resolve the original player, not a later occupant of the slot.
         const PlayerRef target = player->Ref();
 
-        Condition enabled =
-            spec.Enabled ? Condition([check = spec.Enabled, target](int) { return check(target); }) : Condition(true);
+        EnabledCondition enabled = spec.Enabled
+                                       ? EnabledCondition([check = spec.Enabled, target](int) { return check(target); })
+                                       : EnabledCondition(true);
 
-        // The name goes in raw: a row carries plain text and whichever driver renders it escapes
-        // for its own output.
+        // Drivers escape this plain-text name for their output format.
         if (spec.Open)
         {
             builder.Add(SubmenuRow{.Label = player->Name(),

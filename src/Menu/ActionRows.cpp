@@ -11,15 +11,12 @@ ActionRows::ActionRows(const Services& services, PlayerRef admin, std::optional<
     : _services(std::make_shared<const Services>(services)), _admin(admin), _target(std::move(target))
 {}
 
-bool ActionRows::Allowed(std::string_view permission) const
+EnabledCondition ActionRows::Allows(std::string_view permission) const
 {
-    return _services->Policy.Authorize(_admin, _target, permission).has_value();
-}
-
-Condition ActionRows::Allows(std::string_view permission) const
-{
-    return Condition([services = _services, admin = _admin, target = _target, permission = std::string(permission)](
-                         int) { return services->Policy.Authorize(admin, target, permission).has_value(); });
+    return EnabledCondition(
+        [services = _services, admin = _admin, target = _target, permission = std::string(permission)](int) {
+            return services->Policy.Authorize(admin, target, permission).has_value();
+        });
 }
 
 EffectDispatcher ActionRows::Effects() const
@@ -34,9 +31,7 @@ std::string ActionRows::Tr(std::string_view key, Tokens tokens) const
 
 MenuItem ActionRows::Action(std::string_view labelKey, const VoltMod::Action& action)
 {
-    // The shared services handle and the refs by value into the callback, the descriptor by
-    // pointer: an Action is static plugin data, while the row may outlive the ActionRows that
-    // produced it.
+    // Actions are static plugin data; rows may outlive the ActionRows that created them.
     return ButtonRow{
         .Label = Tr(labelKey),
         .Activate = [services = _services, admin = _admin, target = TargetRef(),
@@ -73,8 +68,7 @@ MenuItem ActionRows::Presets(const PresetSpec& spec)
     return ChoiceRow<int>{
         .Label = Tr(spec.LabelKey),
         .Choices = std::move(choices),
-        // The menu stays open: a preset is a value to try, adjust and apply again, and the
-        // manager holds the commit so a burst of steps is one action.
+        // Keep the menu open so a preset can be adjusted and applied again.
         .Commit = [services = _services, admin = _admin, target = TargetRef(), act = &spec.Action](
                       int, const int& value) { services->Actions.Run(admin, target, value, *act); },
         .Index = spec.Index,
@@ -83,9 +77,9 @@ MenuItem ActionRows::Presets(const PresetSpec& spec)
         .ToItem();
 }
 
-Condition ActionRows::EffectAllows(const EffectDescriptor& effect) const
+EnabledCondition ActionRows::EffectAllows(const EffectDescriptor& effect) const
 {
-    return _services->Effects ? Allows(effect.Permission) : Condition(false);
+    return _services->Effects ? Allows(effect.Permission) : EnabledCondition(false);
 }
 
 MenuItem ActionRows::Effect(const EffectDescriptor& effect)
@@ -101,10 +95,9 @@ MenuItem ActionRows::Effect(const EffectDescriptor& effect)
         .ToItem();
 }
 
-std::shared_ptr<Menu> ActionRows::BuildPicker(const EffectDescriptor& effect, Condition allowed) const
+std::shared_ptr<Menu> ActionRows::BuildPicker(const EffectDescriptor& effect, EnabledCondition allowed) const
 {
-    // Get(PlayerRef), not Get(slot): a picker built for a player who has since left must not
-    // reopen against whoever took the slot.
+    // Resolve the captured player, not a later occupant of the slot.
     if (!_target)
         return nullptr;
     auto* targetPlayer = _services->Players.Get(*_target);
@@ -141,7 +134,7 @@ std::shared_ptr<Menu> ActionRows::BuildPicker(const EffectDescriptor& effect, Co
 
 MenuItem ActionRows::EffectPicker(const EffectDescriptor& effect)
 {
-    Condition allowed = EffectAllows(effect);
+    EnabledCondition allowed = EffectAllows(effect);
     return SubmenuRow{
         .Label = Tr(effect.NameKey),
         .Build = [self = *this, e = &effect, allowed](int) -> std::shared_ptr<Menu> {
