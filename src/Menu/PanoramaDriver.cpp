@@ -2,14 +2,16 @@
 
 #include "Menu/PanoramaIds.hpp"
 
+#include <VoltMod/Core/Log.hpp>
 #include <format>
 #include <utility>
 
 namespace VoltMod
 {
 
-PanoramaDriver::PanoramaDriver(ActiveMenus& menus, MenuSession& session, const MenuServices& services, UiPanel panel)
-    : MenuDriver(menus, session, services), _panel(std::move(panel))
+PanoramaDriver::PanoramaDriver(ActiveMenus& menus, MenuSession& session, const MenuServices& services,
+                               std::string layout)
+    : MenuDriver(menus, session, services), _layout(std::move(layout))
 {
     _rows.reserve(RowsPerPageCount);
     for (int i = 0; i < RowsPerPageCount; ++i)
@@ -19,12 +21,25 @@ PanoramaDriver::PanoramaDriver(ActiveMenus& menus, MenuSession& session, const M
     }
 
     _pages.BindReset(services.Slots);
-
-    // Reset screen state as well as the manager's per-slot menu state.
-    _subs.Add(services.Slots.Changed += [this](int slot) { Dismiss(slot); });
+    _panels.BindReset(services.Slots);
 }
 
 PanoramaDriver::~PanoramaDriver() = default;
+
+UiPanel& PanoramaDriver::PanelFor(int slot)
+{
+    UiPanel& panel = _panels[slot];
+    if (panel.Viewer() == slot)
+        return panel;
+
+    auto made = _services.Ui.Panel(_layout, slot);
+    if (made)
+        panel = std::move(*made);
+    else
+        Log::Warn("Menu: no private panel for slot {} ({}).", slot, made.error().Detail);
+
+    return panel;
+}
 
 bool PanoramaDriver::HandleInput(int slot)
 {
@@ -53,13 +68,18 @@ void PanoramaDriver::BindClicks()
     if (_clicks)
         return;
 
-    _clicks = _panel.Clicked() += [this](const UiClick& click) { OnClick(click); };
+    _clicks = _services.Ui.Clicked += [this](const UiClick& click) { OnClick(click); };
 }
 
 void PanoramaDriver::OnClick(const UiClick& click)
 {
     const int slot = click.Slot;
     if (!IsValidSlot(slot) || !_menus.Current(slot))
+        return;
+
+    // Only presses on this player's own panel.
+    const EntityRef own = _panels[slot].Ref();
+    if (!own || click.Layout != own)
         return;
 
     const MenuPress press = ParseMenuButton(click.ButtonId);
@@ -132,13 +152,14 @@ void PanoramaDriver::Dismiss(int slot)
     // Written straight from here rather than deferred to the next frame: presses are delivered on
     // the game frame, so a close that came from a row handler is already outside the engine's
     // inbound message path and may write to the entity.
-    if (!_panel.Covers(slot))
+    UiPanel& panel = _panels[slot];
+    if (!panel.Covers(slot))
         return;
 
-    (void)_panel.Class(slot, RootId, Css::Hidden, true);
-    (void)_panel.InputCapture(slot, false);
+    (void)panel.Class(slot, RootId, Css::Hidden, true);
+    (void)panel.InputCapture(slot, false);
 
-    _panel.Forget(slot);
+    panel.Forget(slot);
 }
 
 }  // namespace VoltMod

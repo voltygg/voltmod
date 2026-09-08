@@ -133,31 +133,40 @@ bool Transmit::IsControllerHidden(int slot) const
     return IsValidSlot(slot) && _state[slot].ControllerHidden;
 }
 
-void Transmit::SetEntityExclusive(int entityIndex, int beneficiarySlot)
+void Transmit::SetEntityExclusive(EntityRef entity, int beneficiarySlot)
 {
-    if (entityIndex <= 0 || !IsValidSlot(beneficiarySlot))
+    if (!entity || !IsValidSlot(beneficiarySlot))
         return;
 
     for (auto& entry : _exclusive)
     {
-        if (entry.EntityIndex == entityIndex)
+        if (entry.Entity == entity)
         {
             entry.BeneficiarySlot = beneficiarySlot;
             return;
         }
     }
-    _exclusive.push_back({entityIndex, beneficiarySlot});
+    _exclusive.push_back({.Entity = entity, .BeneficiarySlot = beneficiarySlot});
 }
 
-void Transmit::ClearEntityExclusive(int entityIndex)
+void Transmit::ClearEntityExclusive(EntityRef entity)
 {
-    std::erase_if(_exclusive, [entityIndex](const ExclusiveEntity& e) { return e.EntityIndex == entityIndex; });
+    std::erase_if(_exclusive, [entity](const ExclusiveEntity& e) { return e.Entity == entity; });
 }
 
 void Transmit::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
 {
     if ((_activeCount == 0 && _exclusive.empty()) || !_bindings.CheckTransmitPlayerSlot || !infoList)
         return;
+
+    // Resolved once per snapshot, and an entry whose entity is gone is dropped here: the engine
+    // recycles indices, so a stale entry would filter whatever entity is handed that index next.
+    for (auto& entry : _exclusive)
+    {
+        const Entity entity = _entities.Resolve(entry.Entity);
+        entry.Index = entity ? entity.Index() : -1;
+    }
+    std::erase_if(_exclusive, [](const ExclusiveEntity& e) { return e.Index <= 0; });
 
     // Entity indices are the same for every recipient (only the self/observer
     // exemptions differ per client), so gather them once per snapshot.
@@ -198,7 +207,7 @@ void Transmit::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
         for (const auto& entry : _exclusive)
         {
             if (entry.BeneficiarySlot != recipient)
-                info->m_pTransmitEntity->Clear(entry.EntityIndex);
+                info->m_pTransmitEntity->Clear(entry.Index);
         }
     }
 }

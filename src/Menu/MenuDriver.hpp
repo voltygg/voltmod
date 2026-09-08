@@ -18,7 +18,9 @@ public:
     MenuDriver(const MenuDriver&) = delete;
     MenuDriver& operator=(const MenuDriver&) = delete;
 
-    virtual void Present(int slot) = 0;
+    /** Draw the menu at the top of @p slot's stack. False means this driver cannot show it for
+     *  that player right now, which is the manager's cue to fall back to center HTML. */
+    virtual bool Present(int slot) = 0;
 
     /** Remove this driver's UI for @p slot. */
     virtual void Dismiss(int slot) = 0;

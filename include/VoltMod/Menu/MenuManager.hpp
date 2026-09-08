@@ -40,8 +40,9 @@ struct MenuServices
 /**
  * @brief Stores per-player sessions and draws their menus.
  *
- * Center HTML is the default. Panorama sessions fall back to center HTML while the player is dead
- * or spectating. The current stack and cursor survive that switch.
+ * Center HTML is the default. A Panorama session is drawn on a panel private to its player, which
+ * stays with them through death and spectating; it falls back to center HTML only when that panel
+ * cannot be shown. The current stack and cursor survive that switch.
  */
 class MenuManager final : public MenuSession
 {
@@ -53,7 +54,8 @@ public:
     /**
      * Draw menus into the Panorama layout @p layout from now on.
      *
-     * Requires @ref Capability::CustomUi and @ref Capability::UiClicks. On success, closes open
+     * Requires @ref Capability::CustomUi, @ref Capability::UiClicks and @ref Capability::Transmit -
+     * the last because each player's menu is an entity only they receive. On success, closes open
      * sessions and switches drivers. On failure, returns an error without changing the driver.
      */
     Status UsePanorama(std::string_view layout = "voltmod_menu");
@@ -92,7 +94,8 @@ private:
 
     [[nodiscard]] MenuDriver& DriverOf(int slot);
 
-    void SyncDriver(int slot, const Pawn& pawn);
+    /** Draw @p slot's session as center HTML from now on, because Panorama could not. */
+    void FallBack(int slot);
 
     void OnGameFrame();
 

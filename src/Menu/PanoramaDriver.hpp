@@ -4,7 +4,6 @@
 
 #include <VoltMod/Core/PerSlot.hpp>
 #include <VoltMod/Core/Subscription.hpp>
-#include <VoltMod/Core/SubscriptionScope.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
 #include <VoltMod/Ui/UiClick.hpp>
@@ -16,17 +15,23 @@
 namespace VoltMod
 {
 
-/** Renders clickable Panorama menus. @see @ref custom_ui_guide for the layout contract. */
+/**
+ * Renders clickable Panorama menus. @see @ref custom_ui_guide for the layout contract.
+ *
+ * Each player's menu is a private @ref UiPanel: an entity only they receive, so it stays up while
+ * they are dead or spectating and never shows on the pawn they are watching.
+ */
 class PanoramaDriver final : public MenuDriver
 {
 public:
-    PanoramaDriver(ActiveMenus& menus, MenuSession& session, const MenuServices& services, UiPanel panel);
+    PanoramaDriver(ActiveMenus& menus, MenuSession& session, const MenuServices& services, std::string layout);
     ~PanoramaDriver() override;
 
     /** Rows one page shows. The layout has to declare exactly this many `vm_row{i}` runs. */
     static constexpr int RowsPerPageCount = 8;
 
-    void Present(int slot) override;
+    /** False when @p slot's private panel could not be made or spawned. */
+    bool Present(int slot) override;
     void Dismiss(int slot) override;
     void Reset(int slot) override;
     bool HandleInput(int slot) override;
@@ -83,19 +88,21 @@ private:
 
     static std::string_view ClassFor(MenuRowKind kind);
 
-    void DrawRow(int slot, int row, int index);
+    /** @p slot's own panel, made on first use; empty (and logged) when it could not be. */
+    UiPanel& PanelFor(int slot);
+
+    void DrawRow(UiPanel& panel, int slot, int row, int index);
 
     /** Write @p described into row @p row for @p slot, drawing it selected when @p selected.
      *  Every class the vocabulary has is written here, whether or not this row carries it. */
-    void WriteRow(int slot, int row, const MenuRow& described, bool selected);
+    void WriteRow(UiPanel& panel, int slot, int row, const MenuRow& described, bool selected);
 
-    void DrawEmpty(int slot);
+    void DrawEmpty(UiPanel& panel, int slot);
 
-    void HideRowsFrom(int slot, int row);
+    void HideRowsFrom(UiPanel& panel, int slot, int row);
 
-    /** Subscribe to presses. Deferred to the first draw, not taken in the constructor:
-     *  subscribing is what installs the click hook, and a menu nobody has opened should not
-     *  arm one. */
+    /** Deferred to the first draw: subscribing installs the click hook, and a menu nobody has
+     *  opened should not arm one. */
     void BindClicks();
 
     void OnClick(const UiClick& click);
@@ -103,10 +110,11 @@ private:
 
     [[nodiscard]] int ItemIndex(int slot, int row) const;
 
-    UiPanel _panel;
+    std::string _layout;
+    /** One private panel per player, dropped with the slot. */
+    PerSlot<UiPanel> _panels;
     std::vector<RowIds> _rows;
     PerSlot<int> _pages;
-    SubscriptionScope _subs;
     Subscription _clicks;
 };
 

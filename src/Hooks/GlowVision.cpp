@@ -23,10 +23,8 @@ void GlowVision::DestroyPair(GlowPair& pair)
     if (!pair.Active())
         return;
 
-    // Unregister before removal: a recycled index still registered would filter
-    // whatever entity the engine hands that index to next.
-    _transmit.ClearEntityExclusive(pair.RelayIndex);
-    _transmit.ClearEntityExclusive(pair.GlowIndex);
+    _transmit.ClearEntityExclusive(pair.Relay);
+    _transmit.ClearEntityExclusive(pair.Glow);
 
     if (Entity glow = _entities.Resolve(pair.Glow))
         _ops.Remove(glow.Raw());
@@ -75,13 +73,11 @@ void GlowVision::CreatePair(int slot, GlowPair& pair)
     Entity glowEntity{_entities, glow};
     pair.Relay = relayEntity.Ref();
     pair.Glow = glowEntity.Ref();
-    pair.RelayIndex = relayEntity.Index();
-    pair.GlowIndex = glowEntity.Index();
     pair.Team = team;
     pair.Model = std::move(model);
 
-    _transmit.SetEntityExclusive(pair.RelayIndex, _beneficiarySlot);
-    _transmit.SetEntityExclusive(pair.GlowIndex, _beneficiarySlot);
+    _transmit.SetEntityExclusive(pair.Relay, _beneficiarySlot);
+    _transmit.SetEntityExclusive(pair.Glow, _beneficiarySlot);
 }
 
 void GlowVision::Reconcile()

@@ -15,7 +15,7 @@ class CenterHtmlDriver final : public MenuDriver
 public:
     CenterHtmlDriver(ActiveMenus& menus, MenuSession& session, const MenuServices& services);
 
-    void Present(int slot) override;
+    bool Present(int slot) override;
     void Dismiss(int slot) override;
 
     [[nodiscard]] int RowsPerPage() const override { return ItemsPerPage; }

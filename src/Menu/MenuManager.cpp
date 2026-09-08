@@ -28,8 +28,8 @@ MenuManager::~MenuManager() = default;
 
 Status MenuManager::UsePanorama(std::string_view layout)
 {
-    // Validate both capabilities before changing the active driver.
-    for (Capability needed : {Capability::CustomUi, Capability::UiClicks})
+    // Transmit is what keeps each player's panel theirs alone.
+    for (Capability needed : {Capability::CustomUi, Capability::UiClicks, Capability::Transmit})
     {
         if (!_services.Capabilities.Has(needed))
         {
@@ -38,13 +38,13 @@ Status MenuManager::UsePanorama(std::string_view layout)
         }
     }
 
-    auto panel = _services.Ui.Panel(layout);
-    if (!panel)
+    // Refuse a bad layout name once here rather than once per player.
+    if (auto panel = _services.Ui.Panel(layout); !panel)
         return std::unexpected(panel.error());
 
     CloseAllSessions();
     _layout = std::string(layout);
-    _driver = std::make_unique<PanoramaDriver>(*_menus, *this, _services, std::move(*panel));
+    _driver = std::make_unique<PanoramaDriver>(*_menus, *this, _services, _layout);
     _fallback = std::make_unique<CenterHtmlDriver>(*_menus, *this, _services);
     Log::Info("Menus draw into the '{}' Panorama layout.", _layout);
     return {};
@@ -73,6 +73,8 @@ void MenuManager::Open(int slot, std::shared_ptr<Menu> menu, MenuOptions options
     auto& state = _menus->State(slot);
     state.Keyboard = options.Keyboard;
     state.FreezeMovement = options.FreezeMovement;
+    // A new session gets Panorama another try.
+    state.OnFallback = false;
     if (options.FreezeMovement)
         SetPlayerFrozen(slot, true, _services.Entities.PawnOf(slot));
 
@@ -194,14 +196,11 @@ void MenuManager::OnGameFrame()
         if (!_menus->IsOpen(slot))
             continue;
 
-        // One resolve for the frame: the freeze and the driver choice ask about the same body.
-        const Pawn pawn = _services.Entities.PawnOf(slot);
-        SyncFreeze(slot, pawn);
-        SyncDriver(slot, pawn);
+        SyncFreeze(slot, _services.Entities.PawnOf(slot));
         DriverOf(slot).HandleInput(slot);
         // Input may have activated a row that closed the menu it was about to draw.
-        if (_menus->IsOpen(slot))
-            DriverOf(slot).Present(slot);
+        if (_menus->IsOpen(slot) && !DriverOf(slot).Present(slot))
+            FallBack(slot);
     }
 
     // Slot reset clears stacks without going through Close, so stop per-frame work here.
@@ -271,17 +270,17 @@ MenuDriver& MenuManager::DriverOf(int slot)
     return _menus->State(slot).OnFallback && _fallback ? *_fallback : *_driver;
 }
 
-void MenuManager::SyncDriver(int slot, const Pawn& pawn)
+void MenuManager::FallBack(int slot)
 {
     auto& state = _menus->State(slot);
-    const bool fallback = IsPanorama() && !(pawn && pawn.IsAlive());
-    if (fallback == state.OnFallback)
+    if (state.OnFallback || !_fallback)
         return;
 
-    DriverOf(slot).Dismiss(slot);
-    state.OnFallback = fallback;
-    DriverOf(slot).Reset(slot);
-    Log::Info("Menu for slot {} drawn as {}.", slot, fallback ? "center HTML (not alive)" : "Panorama");
+    _driver->Dismiss(slot);
+    state.OnFallback = true;
+    _fallback->Reset(slot);
+    (void)_fallback->Present(slot);
+    Log::Info("Menu for slot {} drawn as center HTML: its Panorama panel could not be shown.", slot);
 }
 
 }  // namespace VoltMod

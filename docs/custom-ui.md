@@ -211,7 +211,28 @@ A client shows the per-player state of the **pawn it is viewing**: a spectator s
 the observed player's classes and variables, and a spectated player shares theirs
 with every spectator. Only input capture follows the viewer's own slot. A per-slot
 write is therefore that player's HUD, and reaches the player themselves only while
-they are alive; @ref VoltMod::MenuManager falls back to center HTML otherwise.
+they are alive.
+
+## Private panels
+
+A panel one player should keep whatever they are looking at - a menu, anything
+that must survive death and spectating - is a private panel:
+
+```cpp
+auto panel = runtime.Ui.Panel("card", slot);    // needs Capability::Transmit
+if (panel && panel->Ensure(slot))
+    panel->Text(slot, "title", "name", "Only you see this");
+```
+
+The entity is networked to that one client through the Transmit filter, and its
+writes land in the layout's global state, which a client shows regardless of the
+pawn it is viewing. Input capture still goes to the viewer's own per-player state,
+the one the client reads for itself. Writes name the viewer or
+@ref VoltMod::UiPanel::Everyone; any other slot is refused. The panel removes its
+entity when the slot changes hands, and @ref VoltMod::CustomUi::Panel refuses to
+make one while the filter is inert. It costs one entity per viewer, so make one
+when something opens rather than one per connected player. This is how
+@ref VoltMod::MenuManager draws its Panorama menus.
 
 The per-player state count is fixed when the entity spawns, so a player who
 connected later is only reachable through a new one.
@@ -318,6 +339,7 @@ Ask @ref VoltMod::Capabilities before relying on either feature:
 | --- | --- |
 | `CustomUi` | the five `CCSCustomHudLayout` setters did not bind; spawning still works, writes fail |
 | `UiClicks` | `FilterMessage` did not bind; presses never arrive |
+| `Transmit` | `CheckTransmitPlayerSlot` is missing; a private panel is refused, shared panels are unaffected |
 
 Both are located by byte pattern in `server.dll` / `engine2`, on Windows and on
 Linux. A capability reports off when a pattern stops matching after a game

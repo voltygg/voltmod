@@ -10,6 +10,7 @@
 #include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Entities/EntityRef.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
+#include <VoltMod/Hooks/Transmit.hpp>
 #include <VoltMod/Ui/UiClick.hpp>
 #include <memory>
 #include <string>
@@ -29,6 +30,12 @@ namespace VoltMod
  * A write is either global (@ref Everyone) or for one slot. A per-slot write goes through a cache:
  * the value a player already has is not sent again, which is what makes redrawing a layout every
  * frame affordable - unlike center HTML, a networked layout stays on screen without re-sending.
+ *
+ * A panel is shared or private. A shared panel is one entity every client receives, and a per-slot
+ * write is that player's HUD, which a client shows for the pawn it is *viewing*. A private panel
+ * (@ref CustomUi::Panel with a slot) is an entity only that viewer receives, written through the
+ * global state, so it stays on screen while they are dead or spectating. Its writes name the
+ * viewer or @ref Everyone; any other slot is refused.
  *
  * A write never spawns. @ref Ensure is the one spawn point, so a burst of writes for one player
  * costs one check rather than one per write, and a slot the entity does not cover fails with a
@@ -64,6 +71,9 @@ public:
 
     /** The entity behind this panel, for logging or comparing against a @ref UiClick. */
     [[nodiscard]] EntityRef Ref() const noexcept;
+
+    /** The one slot a private panel is networked to, or @ref Everyone for a shared panel. */
+    [[nodiscard]] int Viewer() const noexcept;
 
     /** How many per-player states the entity carries, or -1 when there is no entity. Zero leaves
      *  only @ref Everyone writes. */
@@ -154,7 +164,7 @@ class CustomUi
 public:
     /** All must outlive this service; the Runtime declares them above it. */
     CustomUi(EntitySystem& entities, EntityOps& ops, const Bindings& bindings, Interfaces& interfaces,
-             SlotEvents& slots, Scheduler& scheduler);
+             SlotEvents& slots, Scheduler& scheduler, Transmit& transmit);
     ~CustomUi();
 
     CustomUi(const CustomUi&) = delete;
@@ -167,12 +177,16 @@ public:
      * `panorama/layout/custom_game/` with its **source** `.xml` extension - the one directory the
      * addon whitelist allows, and the client rejects anything else silently. Refusing the name
      * here is the point: a bad one renders nothing and says so only on the client console.
+     *
+     * With a @p viewer the panel is private to that slot: networked to that client alone
+     * (@ref Capability::Transmit; refused while the filter is inert, since the entity would then
+     * reach everyone) and removed when the slot changes hands.
      */
-    Result<UiPanel> Panel(std::string_view layout);
+    Result<UiPanel> Panel(std::string_view layout, int viewer = UiPanel::Everyone);
 
     /** @ref Panel plus the spawn, for a panel driven by global writes: the same errors, plus the
      *  engine's reason for refusing the entity. */
-    Result<UiPanel> Spawn(std::string_view layout);
+    Result<UiPanel> Spawn(std::string_view layout, int viewer = UiPanel::Everyone);
 
     /**
      * Presses from **every** layout, including one another plugin spawned - diagnostics, and the
@@ -189,7 +203,9 @@ public:
 private:
     EntitySystem& _entities;
     EntityOps& _ops;
+    const Bindings& _bindings;
     SlotEvents& _slots;
+    Transmit& _transmit;
     /** Declared after @ref Clicked so the hook is gone before the event it raises into. */
     std::unique_ptr<UiClicks> _clicks;
 };

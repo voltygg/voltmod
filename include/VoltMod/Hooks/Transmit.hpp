@@ -5,6 +5,7 @@
 #include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Entities/EntityRef.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <array>
 #include <vector>
@@ -28,7 +29,9 @@ namespace VoltMod
  *   or voice from a player whose controller they never received.
  *
  * Exclusive entities are the inverse: an entity transmits only to its beneficiary
- * slot, cleared from every other recipient (per-viewer effects like glow clones).
+ * slot, cleared from every other recipient (per-viewer effects like glow clones and
+ * private HUD panels). Entries are keyed by @ref EntityRef, so one whose entity is
+ * gone drops itself rather than filtering whatever entity is handed that index next.
  *
  * Sounds (footsteps, gunfire) are networked separately and are not affected.
  */
@@ -50,11 +53,12 @@ public:
     bool IsPawnHidden(int slot) const;
     bool IsControllerHidden(int slot) const;
 
-    /** Transmit `entityIndex` only to `beneficiarySlot`. Re-registering updates the beneficiary. */
-    void SetEntityExclusive(int entityIndex, int beneficiarySlot);
+    /** Transmit `entity` only to `beneficiarySlot`. Re-registering updates the beneficiary. */
+    void SetEntityExclusive(EntityRef entity, int beneficiarySlot);
 
-    /** Stop filtering `entityIndex`; it transmits normally again. Safe on unknown indices. */
-    void ClearEntityExclusive(int entityIndex);
+    /** Stop filtering `entity`; it transmits normally again. Safe on unknown refs, and not
+     *  needed for an entity that is being removed: its entry goes with it. */
+    void ClearEntityExclusive(EntityRef entity);
 
     /** Post-hook body for ISource2GameEntities::CheckTransmit; called by MetamodPlugin. */
     void OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount);
@@ -68,8 +72,9 @@ private:
 
     struct ExclusiveEntity
     {
-        int EntityIndex;
+        EntityRef Entity;
         int BeneficiarySlot;
+        int Index = -1;  ///< resolved once per snapshot by OnCheckTransmit
     };
 
     void SetFlag(int slot, bool SlotState::* flag, bool value);

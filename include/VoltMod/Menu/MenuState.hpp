@@ -50,7 +50,8 @@ struct PlayerMenuState
     MoveType PrevMoveType = MoveType::Walk;
     /** @ref MenuOptions::Keyboard for this session. */
     bool Keyboard = true;
-    /** Drawn as center HTML while the player is not alive (see @ref MenuManager). */
+    /** Drawn as center HTML because the Panorama panel could not be shown to this player; cleared
+     *  when a session starts (see @ref MenuManager). */
     bool OnFallback = false;
 
     /** Buttons held last frame, for edge detection. */

@@ -40,11 +40,11 @@ The hidden player still receives their own entities, and a client actively obser
 Arbitrary entities can also be made exclusive to a single client, which is the building block for per-viewer effects like GlowVision below (`runtime.Hooks.Visibility` wraps this one up for you):
 
 ```cpp
-transmit.SetEntityExclusive(entityIndex, beneficiarySlot);  // only this client receives it
-transmit.ClearEntityExclusive(entityIndex);                 // transmits normally again
+transmit.SetEntityExclusive(entity.Ref(), beneficiarySlot);  // only this client receives it
+transmit.ClearEntityExclusive(entity.Ref());                 // transmits normally again
 ```
 
-Clear the registration *before* removing the entity: a recycled index still registered would filter whatever entity the engine hands that index to next.
+Entries are keyed by @ref VoltMod::EntityRef: one whose entity is gone drops itself at the next snapshot, so removing the entity is enough. Clear an entry to hand a live entity back to everyone. Private @ref VoltMod::UiPanel panels are built on this.
 
 Requires the `CheckTransmitPlayerSlot` gamedata offset (the recipient slot inside the partially-reversed `CCheckTransmitInfo`); if it is missing the service logs a warning at load and becomes inert.
 

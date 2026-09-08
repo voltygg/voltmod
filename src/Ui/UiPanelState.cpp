@@ -1,7 +1,5 @@
 #include "Ui/UiPanelState.hpp"
 
-#include "Ui/UiFields.hpp"
-
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Entities/Entity.hpp>
@@ -14,12 +12,14 @@ namespace VoltMod
 {
 
 UiPanelState::UiPanelState(EntitySystem* entities, EntityOps* ops, SlotEvents* slots, Event<const UiClick&>* allClicks,
-                           std::string layout, std::string resource)
+                           std::string layout, std::string resource, Transmit* transmit, int viewer)
     : Entities(entities),
       Ops(ops),
       AllClicks(allClicks),
       Layout(std::move(layout)),
       Resource(std::move(resource)),
+      Exclusive(transmit),
+      Viewer(viewer),
       ClickRouting(
           "UiPanel", [this] { return StartClickRouting(); }, [this] { StopClickRouting(); }),
       Clicked(ClickRouting.Lifecycle())
@@ -29,8 +29,11 @@ UiPanelState::UiPanelState(EntitySystem* entities, EntityOps* ops, SlotEvents* s
 
     Cache.Bind(*slots);
 
-    // A changed slot may exceed the entity's fixed per-player capacity.
-    PlayerChanges = slots->Changed += [this](int) { PlayersChanged = true; };
+    PlayerChanges = slots->Changed += [this](int slot) {
+        PlayersChanged = true;  // the entity's per-player capacity is fixed at spawn
+        if (slot == Viewer)     // a private panel goes with its viewer
+            Remove();
+    };
 }
 
 Status UiPanelState::Spawn()
@@ -54,6 +57,8 @@ Status UiPanelState::Spawn()
         return std::unexpected(Error::Engine("the engine refused to spawn custom_hud_layout"));
 
     CurrentEntity = Entity(*Entities, entity).Ref();
+    if (IsPrivate() && Exclusive)
+        Exclusive->SetEntityExclusive(CurrentEntity, Viewer);
     return {};
 }
 
@@ -68,6 +73,8 @@ bool UiPanelState::SpawnOrWarn()
 
 void UiPanelState::Remove()
 {
+    if (Exclusive)
+        Exclusive->ClearEntityExclusive(CurrentEntity);
     if (Entities && Ops)
     {
         if (Entity entity = Entities->Resolve(CurrentEntity))
@@ -79,6 +86,8 @@ void UiPanelState::Remove()
 
 bool UiPanelState::Covers(int slot) const
 {
+    if (IsPrivate() && slot != Viewer)
+        return false;
     return IsValidSlot(slot) && UiPlayerStateCount(Entities, CurrentEntity) > slot;
 }
 

@@ -16,12 +16,12 @@ either center HTML or Panorama.
 | Drawn as | center HTML, re-sent every tick | a Panorama `custom_hud_layout` |
 | Input | WASD / E / R | clicks, and the same keys |
 | Rows a page | 5 | 8 |
-| Needs | nothing | @ref VoltMod::Capability::CustomUi, @ref VoltMod::Capability::UiClicks, and the layout on the client |
+| Needs | nothing | @ref VoltMod::Capability::CustomUi, @ref VoltMod::Capability::UiClicks, @ref VoltMod::Capability::Transmit, and the layout on the client |
 | Styling | eight hardcoded colors | a stylesheet you can replace |
 
 **Center HTML is the default and needs no client addon.** Keep it as the fallback:
-it is what a player without the layout sees, and what a dead or spectating one is
-drawn on.
+it is what a player without the layout sees, and what a session is drawn on when
+its Panorama panel cannot be spawned.
 
 **Panorama provides a clickable, styleable panel.** Clients need the compiled
 layout, delivered manually during development or through a workshop addon.
@@ -33,7 +33,7 @@ if (auto status = runtime.Menus.UsePanorama(layout); !status)
     Log::Info("center HTML: {}", status.error().Detail);
 ```
 
-`UsePanorama` validates both UI capabilities and the layout name. On failure it
+`UsePanorama` validates the three capabilities and the layout name. On failure it
 leaves center HTML active and returns the reason. With no layout name, it uses
 the framework's `voltmod_menu` layout.
 
@@ -312,11 +312,11 @@ The freeze is a global switch, but a single session can opt out: `Open(slot, men
 
 A session survives death and spectating. Only a live pawn is frozen and only that
 pawn is restored, so a respawn is frozen afresh rather than handed a dead body's
-move type, and keys are read from the pawn the player is driving. While the player
-is not alive the session is drawn as center HTML even under `UsePanorama`: the
-client shows a layout's per-player state for the pawn it is viewing, so a Panorama
-menu reaches only a player looking at their own pawn. The switch happens in place;
-the stack, cursor and keys carry over.
+move type, and keys are read from the pawn the player is driving. The Panorama
+menu is a private panel (see @ref custom_ui_guide), so it stays up while the
+player is dead or spectating; only when that panel cannot be spawned is the
+session drawn as center HTML. The switch happens in place; the stack, cursor and
+keys carry over.
 
 ## Presets
 

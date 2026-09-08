@@ -9,17 +9,17 @@ CenterHtmlDriver::CenterHtmlDriver(ActiveMenus& menus, MenuSession& session, con
     : MenuDriver(menus, session, services)
 {}
 
-void CenterHtmlDriver::Present(int slot)
+bool CenterHtmlDriver::Present(int slot)
 {
     auto* menu = _menus.Current(slot);
     if (!menu)
-        return;
+        return true;
 
     // A pending capture replaces the item list with its prompt.
     if (auto prompt = _services.ChatInput.GetPrompt(slot))
     {
         _services.Messages.SendCenterHtml(slot, RenderCaptureOverlay(menu->Title, *prompt));
-        return;
+        return true;
     }
 
     const CenterHtmlView view{
@@ -30,6 +30,7 @@ void CenterHtmlDriver::Present(int slot)
         .IsSubmenu = _menus.Depth(slot) > 1,
     };
     _services.Messages.SendCenterHtml(slot, RenderMenuHtml(menu, view, _services.Translations));
+    return true;
 }
 
 void CenterHtmlDriver::Dismiss(int slot)

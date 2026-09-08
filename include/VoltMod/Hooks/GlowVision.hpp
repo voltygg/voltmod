@@ -59,8 +59,6 @@ private:
     {
         EntityRef Relay;
         EntityRef Glow;
-        int RelayIndex = -1;
-        int GlowIndex = -1;
         int Team = 0;
         std::string Model;
 

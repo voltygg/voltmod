@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Ui/UiClickRouting.hpp"
+#include "Ui/UiFields.hpp"
 #include "Ui/UiWriteCache.hpp"
 
 #include <VoltMod/Core/Event.hpp>
@@ -11,6 +12,7 @@
 #include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Entities/EntityRef.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
+#include <VoltMod/Hooks/Transmit.hpp>
 #include <VoltMod/Ui/UiClick.hpp>
 #include <string>
 #include <string_view>
@@ -31,11 +33,12 @@ struct UiPanelState
      * Pointers rather than references because an empty panel has no engine behind it and must
      * still answer every call. @p slots may be null, in which case nothing resets the write cache
      * when a slot changes hands. Everything non-null must outlive the panel, which the Runtime's
-     * declaration order gives.
+     * declaration order gives. A @p viewer other than @ref kEveryone makes the panel private to
+     * that slot, which needs @p transmit.
      */
     explicit UiPanelState(EntitySystem* entities = nullptr, EntityOps* ops = nullptr, SlotEvents* slots = nullptr,
                           Event<const UiClick&>* allClicks = nullptr, std::string layout = {},
-                          std::string resource = {});
+                          std::string resource = {}, Transmit* transmit = nullptr, int viewer = kEveryone);
 
     UiPanelState(const UiPanelState&) = delete;
     UiPanelState& operator=(const UiPanelState&) = delete;
@@ -49,8 +52,11 @@ struct UiPanelState
     /** Remove the entity and forget what every player was told about it. Idempotent. */
     void Remove();
 
-    /** Whether the entity exists and carries per-player state for @p slot. */
+    /** Whether the entity exists and carries per-player state for @p slot. On a private panel,
+     *  only the viewer is ever covered. */
     [[nodiscard]] bool Covers(int slot) const;
+
+    [[nodiscard]] bool IsPrivate() const noexcept { return Viewer != kEveryone; }
 
     /** Pass @p status through, and on a per-slot failure drop what the cache just recorded so the
      *  next frame retries - saying why once per generation rather than once per frame. A write for
@@ -73,6 +79,11 @@ struct UiPanelState
     /** The layout as it was named, and the resource name that goes on the entity. */
     std::string Layout;
     std::string Resource;
+
+    /** The filter a private panel's entity is registered with, so only @ref Viewer receives it. */
+    Transmit* Exclusive = nullptr;
+    /** The one slot a private panel is networked to, or @ref kEveryone for a shared one. */
+    int Viewer = kEveryone;
 
     /** The entity handlers filter on. Cleared by @ref Remove and replaced by @ref Spawn, which is
      *  what makes a subscription survive a re-spawn. */

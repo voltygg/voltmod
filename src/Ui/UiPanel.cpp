@@ -5,6 +5,7 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Ui/UiPanel.hpp>
+#include <format>
 #include <utility>
 
 namespace VoltMod
@@ -15,6 +16,28 @@ static_assert(UiPanel::Everyone == kEveryone, "UiPanel::Everyone must be the UiF
 
 /** Reserved cache key for the input-capture flag, which is not a panel's dialog variable. */
 static constexpr std::string_view kCaptureName = "input capture";
+
+/** Where one write lands: the slot its value is cached under, and the slot the engine is given. */
+struct WriteTarget
+{
+    int Cache;
+    int Write;
+};
+
+/** A private panel has one audience: the viewer and @ref UiPanel::Everyone are the same request,
+ *  cached under the viewer and written to the global state, which a client shows whatever pawn it
+ *  is viewing. Input capture (@p perPlayer) stays on the viewer's own state, which the client reads
+ *  for itself. Any other slot is refused. */
+static Result<WriteTarget> TargetOf(const UiPanelState* state, int slot, bool perPlayer = false)
+{
+    if (!state || !state->IsPrivate())
+        return WriteTarget{.Cache = slot, .Write = slot};
+
+    if (slot != UiPanel::Everyone && slot != state->Viewer)
+        return std::unexpected(Error::Invalid(std::format("this panel is private to slot {}", state->Viewer)));
+
+    return WriteTarget{.Cache = state->Viewer, .Write = perPlayer ? state->Viewer : kEveryone};
+}
 
 /**
  * Empty panels use the setter's null path. Writes that reach an entity are cached so failed
@@ -59,6 +82,11 @@ EntityRef UiPanel::Ref() const noexcept
     return _state ? _state->CurrentEntity : EntityRef{};
 }
 
+int UiPanel::Viewer() const noexcept
+{
+    return _state ? _state->Viewer : Everyone;
+}
+
 int UiPanel::PlayerStateCount() const
 {
     return _state ? UiPlayerStateCount(_state->Entities, _state->CurrentEntity) : -1;
@@ -70,6 +98,12 @@ bool UiPanel::Ensure(int slot)
         return false;
 
     UiPanelState& state = *_state;
+    // A private panel's input capture is per-player, so the entity has to cover the viewer.
+    const auto target = TargetOf(&state, slot, /*perPlayer=*/true);
+    if (!target)
+        return false;
+    slot = target->Cache;
+
     if (!*this && !state.SpawnOrWarn())
         return false;
 
@@ -91,35 +125,49 @@ bool UiPanel::Covers(int slot) const
 Status UiPanel::Text(int slot, std::string_view panelId, std::string_view variable, std::string_view value)
 {
     UiPanelState* state = _state.get();
-    if (state && slot != Everyone && !state->Cache.Update(slot, UiProperty::Text, panelId, variable, value))
+    const auto target = TargetOf(state, slot);
+    if (!target)
+        return std::unexpected(target.error());
+
+    if (state && target->Cache != Everyone &&
+        !state->Cache.Update(target->Cache, UiProperty::Text, panelId, variable, value))
         return {};  // the player already has this value
 
-    return WriteThrough(state, slot, panelId, [&](EntitySystem* entities, EntityRef panel) {
-        return UiWriteText(entities, panel, slot, panelId, variable, value);
+    return WriteThrough(state, target->Cache, panelId, [&](EntitySystem* entities, EntityRef panel) {
+        return UiWriteText(entities, panel, target->Write, panelId, variable, value);
     });
 }
 
 Status UiPanel::Class(int slot, std::string_view panelId, std::string_view className, bool on)
 {
     UiPanelState* state = _state.get();
-    if (state && slot != Everyone && !state->Cache.Update(slot, UiProperty::Class, panelId, className, on ? "1" : "0"))
+    const auto target = TargetOf(state, slot);
+    if (!target)
+        return std::unexpected(target.error());
+
+    if (state && target->Cache != Everyone &&
+        !state->Cache.Update(target->Cache, UiProperty::Class, panelId, className, on ? "1" : "0"))
         return {};
 
-    return WriteThrough(state, slot, panelId, [&](EntitySystem* entities, EntityRef panel) {
-        return UiWriteClass(entities, panel, slot, panelId, className, on);
+    return WriteThrough(state, target->Cache, panelId, [&](EntitySystem* entities, EntityRef panel) {
+        return UiWriteClass(entities, panel, target->Write, panelId, className, on);
     });
 }
 
 Status UiPanel::ResetClass(int slot, std::string_view panelId, std::string_view className)
 {
     UiPanelState* state = _state.get();
+    const auto target = TargetOf(state, slot);
+    if (!target)
+        return std::unexpected(target.error());
+
     // UiFields accepts a null system and dead ref for moved-from panels.
     const Status status = UiResetClass(state ? state->Entities : nullptr, state ? state->CurrentEntity : EntityRef{},
-                                       slot, panelId, className);
+                                       target->Write, panelId, className);
 
     // The markup owns the current class state, so discard cached per-slot values.
-    if (state && status && slot != Everyone)
-        state->Cache.Forget(slot);
+    if (state && status && target->Cache != Everyone)
+        state->Cache.Forget(target->Cache);
 
     return status;
 }
@@ -127,11 +175,15 @@ Status UiPanel::ResetClass(int slot, std::string_view panelId, std::string_view 
 Status UiPanel::InputCapture(int slot, bool enabled)
 {
     UiPanelState* state = _state.get();
-    if (state && slot != Everyone && !state->Cache.UpdateCapture(slot, enabled))
+    const auto target = TargetOf(state, slot, /*perPlayer=*/true);
+    if (!target)
+        return std::unexpected(target.error());
+
+    if (state && target->Cache != Everyone && !state->Cache.UpdateCapture(target->Cache, enabled))
         return {};
 
-    return WriteThrough(state, slot, kCaptureName, [&](EntitySystem* entities, EntityRef panel) {
-        return UiWriteInputCapture(entities, panel, slot, enabled);
+    return WriteThrough(state, target->Cache, kCaptureName, [&](EntitySystem* entities, EntityRef panel) {
+        return UiWriteInputCapture(entities, panel, target->Write, enabled);
     });
 }
 
