@@ -219,12 +219,12 @@ A panel one player should keep whatever they are looking at - a menu, anything
 that must survive death and spectating - is a private panel:
 
 ```cpp
-auto panel = runtime.Ui.Panel("card", slot);    // needs Capability::Transmit
+auto panel = runtime.Ui.Panel("card", slot);    // needs Capability::Visibility
 if (panel && panel->Ensure(slot))
     panel->Text(slot, "title", "name", "Only you see this");
 ```
 
-The entity is networked to that one client through the Transmit filter, and its
+The entity is networked to that one client through the Visibility filter, and its
 writes land in the layout's global state, which a client shows regardless of the
 pawn it is viewing. Input capture still goes to the viewer's own per-player state,
 the one the client reads for itself. Writes name the viewer or
@@ -339,7 +339,7 @@ Ask @ref VoltMod::Capabilities before relying on either feature:
 | --- | --- |
 | `CustomUi` | the five `CCSCustomHudLayout` setters did not bind; spawning still works, writes fail |
 | `UiClicks` | `FilterMessage` did not bind; presses never arrive |
-| `Transmit` | `CheckTransmitPlayerSlot` is missing; a private panel is refused, shared panels are unaffected |
+| `Visibility` | `CheckTransmitPlayerSlot` is missing; a private panel is refused, shared panels are unaffected |
 
 Both are located by byte pattern in `server.dll` / `engine2`, on Windows and on
 Linux. A capability reports off when a pattern stops matching after a game

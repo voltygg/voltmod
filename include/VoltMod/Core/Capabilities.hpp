@@ -17,8 +17,8 @@ enum class Capability : uint16_t
     GameEvents,   ///< IGameEventManager2: game event listeners and center HTML.
     Movement,     ///< The RunCommand hook and its usercmd feed.
     Teleport,     ///< CBaseEntity::Teleport, both the hook and the direct call.
-    Transmit,     ///< Per-recipient entity transmit filtering.
-    ClientCvars,  ///< Asking a connected client what one of its own convars is set to.
+    Visibility,     ///< Per-recipient entity visibility filtering.
+    ClientConVars,  ///< Asking a connected client what one of its own convars is set to.
     Precache,     ///< Adding resources to the session manifest.
     Vote,         ///< The game's own yes/no vote panel.
     Items,        ///< Giving and stripping weapons through CCSPlayer_ItemServices.

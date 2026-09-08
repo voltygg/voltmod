@@ -123,7 +123,7 @@ public:
 
     /** Custom Panorama HUD layouts and the button presses coming back from them. */
     VoltMod::CustomUi Ui{Entities, World.EntityOps, Unsafe.Bindings, Unsafe.Interfaces,
-                         Slots,    Scheduler,       Hooks.Transmit};
+                         Slots,    Scheduler,       Hooks.Visibility};
 
     /** Workshop addons connecting clients are told to download. */
     VoltMod::Addons Addons{Unsafe.Interfaces, Unsafe.Bindings, Players, Scheduler};

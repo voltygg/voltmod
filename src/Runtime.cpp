@@ -178,7 +178,7 @@ bool Runtime::InitializeServices(const LoadContext& context)
         return StageResult::Ok("resolves at the first map load");
     });
 
-    // Bindings already determines EntityOps and Transmit; these stages only report those results.
+    // Bindings already determines EntityOps and Visibility; these stages only report those results.
     auto alreadyDecided = [&](std::string_view name, Capability capability) {
         report.Run(name, [&] {
             return Capabilities.Has(capability) ? StageResult::Ok()
@@ -186,7 +186,7 @@ bool Runtime::InitializeServices(const LoadContext& context)
         });
     };
     alreadyDecided("EntityOps", Capability::EntityOps);
-    alreadyDecided("Transmit", Capability::Transmit);
+    alreadyDecided("Visibility", Capability::Visibility);
     degradable("Precache", Capability::Precache,
                [&] { return World.Precache.Initialize(std::format("{}_VoltModPrecache", context.LogPrefix)); });
     degradable("GameEventManager", Capability::GameEvents, [&] { return Messages.InitGameEventManager(); });
@@ -196,7 +196,7 @@ bool Runtime::InitializeServices(const LoadContext& context)
         return StageResult::Ok();
     });
     degradable("GameEvents", Capability::GameEvents, [&] { return GameEvents.Initialize(); });
-    degradable("ClientCvars", Capability::ClientCvars, [&] { return Hooks.ClientCvars.Initialize(); });
+    degradable("ClientConVars", Capability::ClientConVars, [&] { return Hooks.ClientConVars.Initialize(); });
 
     Capabilities.Set(Capability::Vote,
                      Capabilities.Has(Capability::GameEvents) && Capabilities.Has(Capability::Entities),

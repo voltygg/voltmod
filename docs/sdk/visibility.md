@@ -20,28 +20,28 @@ runtime.Entities.PawnOf(slot).SetVisible(false);   // the pawn body
 
 `m_clrRender` is RGBA packed as `(A << 24) | (B << 16) | (G << 8) | R`. `ColorInvisible` (`0x00FFFFFF`) is white at zero alpha.
 
-Render tricks only affect the pawn body; held weapons, wearables and gloves are separate networked entities. For true invisibility use the Transmit filter instead.
+Render tricks only affect the pawn body; held weapons, wearables and gloves are separate networked entities. For true invisibility use the Visibility filter instead.
 
-## Transmit
+## Visibility
 
-Per-recipient transmit filtering hooks
+Per-recipient visibility filtering hooks
 `ISource2GameEntities::CheckTransmit`. A hidden pawn and its related entities
 are not sent to other clients. Controller visibility is controlled separately:
 
 ```cpp
-auto& transmit = runtime.Hooks.Transmit;
+auto& visibility = runtime.Hooks.Visibility;
 
-transmit.SetPawnHidden(slot, true);        // pawn + weapons + wearables vanish for everyone else
-transmit.SetControllerHidden(slot, true);  // removes the player's scoreboard row
+visibility.SetPawnHidden(slot, true);        // pawn + weapons + wearables vanish for everyone else
+visibility.SetControllerHidden(slot, true);  // removes the player's scoreboard row
 ```
 
 The hidden player still receives their own entities, and a client actively observing the hidden pawn keeps receiving it (dropping it would break the spectator camera). Sounds (footsteps, gunfire) are networked separately and are not filtered. State is cleared automatically when the player disconnects.
 
-Arbitrary entities can also be made exclusive to a single client, which is the building block for per-viewer effects like GlowVision below (`runtime.Hooks.Visibility` wraps this one up for you):
+Any entity can also be shown to a single client, which is the building block for per-viewer effects like GlowVision below:
 
 ```cpp
-transmit.SetEntityExclusive(entity.Ref(), beneficiarySlot);  // only this client receives it
-transmit.ClearEntityExclusive(entity.Ref());                 // transmits normally again
+visibility.ShowOnlyTo(entity.Ref(), viewerSlot);  // only this client receives it
+visibility.ShowToEveryone(entity.Ref());           // networked normally again
 ```
 
 Entries are keyed by @ref VoltMod::EntityRef: one whose entity is gone drops itself at the next snapshot, so removing the entity is enough. Clear an entry to hand a live entity back to everyone. Private @ref VoltMod::UiPanel panels are built on this.
@@ -50,7 +50,7 @@ Requires the `CheckTransmitPlayerSlot` gamedata offset (the recipient slot insid
 
 ## GlowVision
 
-GlowVision builds per-viewer outlines on the transmit filter. Only the selected
+GlowVision builds per-viewer outlines on the visibility filter. Only the selected
 client receives the two helper entities that follow each visible pawn; other
 clients and GOTV never receive them.
 
@@ -58,15 +58,15 @@ clients and GOTV never receive them.
 using VoltMod::GlowVision;
 
 auto glow = runtime.Hooks.Visibility.CreateGlow(viewerSlot);
-glow->Reconcile();  // build the clones immediately
+glow->Refresh();  // build the clones immediately
 
 // Then drive it from a repeating tick, e.g. an EffectManager spec:
 //   .TickIntervalMs = GlowVision::ReconcileIntervalMs,
-//   .OnTick = [glow] { glow->Reconcile(); },
+//   .OnTick = [glow] { glow->Refresh(); },
 //   .OnStop = [glow] { glow->Destroy(); },
 ```
 
-`Reconcile` tracks spawns, deaths, and team/model changes, and rebuilds clones the engine destroyed on a round restart. It skips the beneficiary, dead and spectating players, and pawns hidden via the Transmit filter (a ghosted pawn never transmits, so a clone would follow nothing). `Destroy` clears the transmit-filter entries and removes any surviving clones.
+`Refresh` tracks spawns, deaths, and team/model changes, and rebuilds clones the engine destroyed on a round restart. It skips the beneficiary, dead and spectating players, and pawns hidden via the Visibility filter (a ghosted pawn never transmits, so a clone would follow nothing). `Destroy` clears the visibility-filter entries and removes any surviving clones.
 
 Team colors and the glow set are configurable; the optional `Filter` veto runs on top of the built-in checks:
 
@@ -80,4 +80,4 @@ GlowConfig config{
 auto glow = runtime.Hooks.Visibility.CreateGlow(viewerSlot, std::move(config));
 ```
 
-Costs two entities per glowing player and inherits the Transmit filter's gamedata requirement. Without the `CheckTransmitPlayerSlot` offset the clones would be visible to everyone, so do not use it when the filter is inert.
+Costs two entities per glowing player and inherits the Visibility filter's gamedata requirement. Without the `CheckTransmitPlayerSlot` offset the clones would be visible to everyone, so do not use it when the filter is inert.

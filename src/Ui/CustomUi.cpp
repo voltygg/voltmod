@@ -13,12 +13,12 @@ namespace VoltMod
 {
 
 CustomUi::CustomUi(EntitySystem& entities, EntityOps& ops, const Bindings& bindings, Interfaces& interfaces,
-                   SlotEvents& slots, Scheduler& scheduler, Transmit& transmit)
+                   SlotEvents& slots, Scheduler& scheduler, Visibility& visibility)
     : Clicked({.OnFirst = [this] { return _clicks->Install(); }, .OnLast = [this] { _clicks->Remove(); }}),
       _entities(entities),
       _ops(ops),
       _slots(slots),
-      _transmit(transmit),
+      _visibility(visibility),
       _clicks(std::make_unique<UiClicks>(interfaces, bindings, slots, entities, scheduler, Clicked))
 {}
 
@@ -36,12 +36,12 @@ Result<UiPanel> CustomUi::Panel(std::string_view layout, int viewer)
             return std::unexpected(Error::Invalid(std::format("slot {} is not a player slot", viewer)));
 
         // Without the filter the entity reaches every client - the opposite of the promise.
-        if (!_transmit.IsActive())
-            return std::unexpected(Error::Unsupported("a private panel needs the Transmit filter, which is inert"));
+        if (!_visibility.IsActive())
+            return std::unexpected(Error::Unsupported("a private panel needs the Visibility filter, which is inert"));
     }
 
     return UiPanel(std::make_shared<UiPanelState>(&_entities, &_ops, &_slots, &Clicked, std::string(layout),
-                                                  std::move(*resource), &_transmit, viewer));
+                                                  std::move(*resource), &_visibility, viewer));
 }
 
 Result<UiPanel> CustomUi::Spawn(std::string_view layout, int viewer)

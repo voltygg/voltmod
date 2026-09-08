@@ -28,7 +28,7 @@ renames it. `include/VoltMod/<Module>/` is where a header lives, and the
 | Entities | `VoltMod/Entities/` | Entity lookup, the typed player controller, schema fields, items, and pawn operations |
 | Events | `VoltMod/Events/` | The game event listener service and its typed event structs |
 | Messaging | `VoltMod/Messaging/` | Chat and center-HTML messages, sticky panels, chat colors, and the vote panel |
-| Hooks | `VoltMod/Hooks/` | Movement, transmit, teleport, chat-input, client-convar, visibility, and vote hooks |
+| Hooks | `VoltMod/Hooks/` | Movement, visibility, teleport, chat-input, client-convar, and vote hooks |
 | Workshop | `VoltMod/Workshop/` | Workshop addon requirements for connecting clients |
 | Ui | `VoltMod/Ui/` | Panorama `custom_hud_layout` panels and the button presses they send back |
 | Unsafe | `VoltMod/Unsafe/` | Opt-in raw hooking: `VOLTMOD_SCOPED_HOOK`, and `VOLTMOD_VHOOK` + `VtableHook` for a vtable slot |

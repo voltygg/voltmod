@@ -54,7 +54,7 @@ public:
     /**
      * Draw menus into the Panorama layout @p layout from now on.
      *
-     * Requires @ref Capability::CustomUi, @ref Capability::UiClicks and @ref Capability::Transmit -
+     * Requires @ref Capability::CustomUi, @ref Capability::UiClicks and @ref Capability::Visibility -
      * the last because each player's menu is an entity only they receive. On success, closes open
      * sessions and switches drivers. On failure, returns an error without changing the driver.
      */

@@ -1,10 +1,12 @@
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
-#include <VoltMod/Hooks/Transmit.hpp>
+#include <VoltMod/Hooks/GlowVision.hpp>
+#include <VoltMod/Hooks/Visibility.hpp>
 #include <VoltMod/Schema/Api.hpp>
 #include <checktransmitinfo.h>
 #include <cstdint>
 #include <entity2/entityinstance.h>
+#include <utility>
 
 namespace VoltMod
 {
@@ -48,9 +50,8 @@ static void AddHandleVector(EntitySystem& entities, HiddenPlayer& player, void* 
 }
 
 // What `recipientSlot` is currently spectating, or nullptr. An observed pawn must keep
-// transmitting to that client or its spectator camera breaks. The answer depends only on the
-// recipient, so the caller resolves it once per recipient rather than once per hidden pawn.
-static CEntityInstance* GetObserverTarget(EntitySystem& entities, int recipientSlot)
+// transmitting to that client or its spectator camera breaks.
+static CEntityInstance* ObserverTarget(EntitySystem& entities, int recipientSlot)
 {
     // Possessed(), not GetPawn(): while dead or spectating the observer pawn carries the camera.
     Pawn pawn = entities.Controller(recipientSlot).Possessed();
@@ -87,97 +88,95 @@ static void CollectHiddenPlayer(EntitySystem& entities, int slot, bool pawnHidde
     AddHandleVector(entities, out, pawn.MyWearables());
 }
 
-Transmit::Transmit(EntitySystem& entities, const Bindings& bindings, SlotEvents& slots)
-    : _entities(entities), _bindings(bindings)
+Visibility::Visibility(EntitySystem& entities, const Bindings& bindings, SlotEvents& slots, EntityOps& ops)
+    : _entities(entities), _bindings(bindings), _ops(ops)
 {
     // SlotEvents fires when a slot is filled as well as emptied; a fresh occupant has nothing
     // hidden, so clearing on both edges covers "left" without a dedicated event.
     _slotListener = slots.Changed += [this](int slot) {
-        SetPawnHidden(slot, false);
-        SetControllerHidden(slot, false);
-        // The owning effect normally cleans up first (effect cancel runs before this);
-        // this catches entries whose beneficiary vanished without cleanup.
-        std::erase_if(_exclusive, [slot](const ExclusiveEntity& e) { return e.BeneficiarySlot == slot; });
+        if (!IsValidSlot(slot))
+            return;
+        _state[slot] = {};
+        // The owning effect normally cleans up first; this catches entries whose viewer vanished.
+        std::erase_if(_private, [slot](const PrivateEntity& e) { return e.Viewer == slot; });
     };
 }
 
-void Transmit::SetFlag(int slot, bool SlotState::* flag, bool value)
+void Visibility::SetPawnHidden(int slot, bool hidden)
 {
-    if (!IsValidSlot(slot))
-        return;
-
-    auto& state = _state[slot];
-    bool wasActive = state.PawnHidden || state.ControllerHidden;
-    state.*flag = value;
-    bool isActive = state.PawnHidden || state.ControllerHidden;
-    _activeCount += static_cast<int>(isActive) - static_cast<int>(wasActive);
+    if (IsValidSlot(slot))
+        _state[slot].PawnHidden = hidden;
 }
 
-void Transmit::SetPawnHidden(int slot, bool hidden)
+void Visibility::SetControllerHidden(int slot, bool hidden)
 {
-    SetFlag(slot, &SlotState::PawnHidden, hidden);
+    if (IsValidSlot(slot))
+        _state[slot].ControllerHidden = hidden;
 }
 
-void Transmit::SetControllerHidden(int slot, bool hidden)
-{
-    SetFlag(slot, &SlotState::ControllerHidden, hidden);
-}
-
-bool Transmit::IsPawnHidden(int slot) const
+bool Visibility::IsPawnHidden(int slot) const
 {
     return IsValidSlot(slot) && _state[slot].PawnHidden;
 }
 
-bool Transmit::IsControllerHidden(int slot) const
+bool Visibility::IsControllerHidden(int slot) const
 {
     return IsValidSlot(slot) && _state[slot].ControllerHidden;
 }
 
-void Transmit::SetEntityExclusive(EntityRef entity, int beneficiarySlot)
+void Visibility::ShowOnlyTo(EntityRef entity, int slot)
 {
-    if (!entity || !IsValidSlot(beneficiarySlot))
+    if (!entity || !IsValidSlot(slot))
         return;
 
-    for (auto& entry : _exclusive)
+    for (auto& entry : _private)
     {
         if (entry.Entity == entity)
         {
-            entry.BeneficiarySlot = beneficiarySlot;
+            entry.Viewer = slot;
             return;
         }
     }
-    _exclusive.push_back({.Entity = entity, .BeneficiarySlot = beneficiarySlot});
+    _private.push_back({.Entity = entity, .Viewer = slot});
 }
 
-void Transmit::ClearEntityExclusive(EntityRef entity)
+void Visibility::ShowToEveryone(EntityRef entity)
 {
-    std::erase_if(_exclusive, [entity](const ExclusiveEntity& e) { return e.Entity == entity; });
+    std::erase_if(_private, [entity](const PrivateEntity& e) { return e.Entity == entity; });
 }
 
-void Transmit::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
+std::shared_ptr<GlowVision> Visibility::CreateGlow(int viewerSlot, GlowConfig config)
 {
-    if ((_activeCount == 0 && _exclusive.empty()) || !_bindings.CheckTransmitPlayerSlot || !infoList)
+    return std::make_shared<GlowVision>(_entities, _ops, *this, viewerSlot, std::move(config));
+}
+
+void Visibility::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
+{
+    if (!IsActive() || !infoList)
         return;
 
     // Resolved once per snapshot, and an entry whose entity is gone is dropped here: the engine
     // recycles indices, so a stale entry would filter whatever entity is handed that index next.
-    for (auto& entry : _exclusive)
+    for (auto& entry : _private)
     {
         const Entity entity = _entities.Resolve(entry.Entity);
         entry.Index = entity ? entity.Index() : -1;
     }
-    std::erase_if(_exclusive, [](const ExclusiveEntity& e) { return e.Index <= 0; });
+    std::erase_if(_private, [](const PrivateEntity& e) { return e.Index <= 0; });
 
-    // Entity indices are the same for every recipient (only the self/observer
-    // exemptions differ per client), so gather them once per snapshot.
+    // Entity indices are the same for every recipient (only the self/observer exemptions differ
+    // per client), so gather them once per snapshot.
     std::array<HiddenPlayer, MaxPlayers> hidden;
     int hiddenCount = 0;
-    for (int slot = 0; slot < MaxPlayers && hiddenCount < _activeCount; ++slot)
+    for (int slot = 0; slot < MaxPlayers; ++slot)
     {
         const auto& state = _state[slot];
-        if (state.PawnHidden || state.ControllerHidden)
+        if (state.Any())
             CollectHiddenPlayer(_entities, slot, state.PawnHidden, state.ControllerHidden, hidden[hiddenCount++]);
     }
+
+    if (hiddenCount == 0 && _private.empty())
+        return;
 
     for (int i = 0; i < infoCount; ++i)
     {
@@ -185,8 +184,8 @@ void Transmit::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
         if (!info || !info->m_pTransmitEntity)
             continue;
 
-        int recipient = static_cast<int>(_bindings.CheckTransmitPlayerSlot.Read(info));
-        CEntityInstance* observed = hiddenCount > 0 ? GetObserverTarget(_entities, recipient) : nullptr;
+        const int recipient = static_cast<int>(_bindings.CheckTransmitPlayerSlot.Read(info));
+        CEntityInstance* observed = hiddenCount > 0 ? ObserverTarget(_entities, recipient) : nullptr;
 
         for (int h = 0; h < hiddenCount; ++h)
         {
@@ -194,21 +193,17 @@ void Transmit::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
             if (player.Slot == recipient)
                 continue;
 
-            if (player.IndexCount > 0 && observed != player.Pawn)
-            {
+            if (observed != player.Pawn)
                 for (int n = 0; n < player.IndexCount; ++n)
                     info->m_pTransmitEntity->Clear(player.PawnIndices[n]);
-            }
 
             if (player.ControllerIndex > 0)
                 info->m_pTransmitEntity->Clear(player.ControllerIndex);
         }
 
-        for (const auto& entry : _exclusive)
-        {
-            if (entry.BeneficiarySlot != recipient)
+        for (const auto& entry : _private)
+            if (entry.Viewer != recipient)
                 info->m_pTransmitEntity->Clear(entry.Index);
-        }
     }
 }
 

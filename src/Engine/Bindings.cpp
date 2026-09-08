@@ -189,13 +189,13 @@ Status Bindings::Bind(const GameData& data, Capabilities& caps)
     bind(GiveNamedItem, "GiveNamedItem", Capability::Items);
     bind(RemoveAllItems, "RemoveAllItems", Capability::Items);
     bind(RunCommand, "RunCommand", Capability::Movement);
-    bind(ProcessRespondCvarValue, "ProcessRespondCvarValue", Capability::ClientCvars);
+    bind(ProcessRespondCvarValue, "ProcessRespondCvarValue", Capability::ClientConVars);
     bind(SendNetMessage, "SendNetMessage", Capability::Addons);
 
     // Offsets
     bind(GameEntitySystem, "GameEntitySystem", Capability::Entities);
-    bind(CheckTransmitPlayerSlot, "CheckTransmitPlayerSlot", Capability::Transmit);
-    bind(ServerSideClientSlot, "ServerSideClientSlot", Capability::ClientCvars);
+    bind(CheckTransmitPlayerSlot, "CheckTransmitPlayerSlot", Capability::Visibility);
+    bind(ServerSideClientSlot, "ServerSideClientSlot", Capability::ClientConVars);
     // The same offsets read by more than one feature; each records its own capability so a missing
     // entry names every feature it takes down rather than only the first.
     bind(ServerSideClientSlot, "ServerSideClientSlot", Capability::UiClicks);

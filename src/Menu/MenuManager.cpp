@@ -29,8 +29,8 @@ MenuManager::~MenuManager() = default;
 
 Status MenuManager::UsePanorama(std::string_view layout)
 {
-    // Transmit is what keeps each player's panel theirs alone.
-    for (Capability needed : {Capability::CustomUi, Capability::UiClicks, Capability::Transmit})
+    // Visibility is what keeps each player's panel theirs alone.
+    for (Capability needed : {Capability::CustomUi, Capability::UiClicks, Capability::Visibility})
     {
         if (!_services.Capabilities.Has(needed))
         {

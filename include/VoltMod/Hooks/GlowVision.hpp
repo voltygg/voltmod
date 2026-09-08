@@ -1,13 +1,11 @@
 #pragma once
 
-#include <Color.h>
 #include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
-#include <VoltMod/Hooks/Transmit.hpp>
+#include <VoltMod/Hooks/Visibility.hpp>
 #include <array>
-#include <cstdint>
-#include <functional>
 #include <string>
+#include <utility>
 
 namespace VoltMod
 {
@@ -17,41 +15,31 @@ namespace VoltMod
  * outlines through walls, while every other client (and GOTV) never receives the glow entities.
  *
  * Each glowing player gets two prop_dynamic clones following their pawn - an invisible relay and
- * a glow prop parented to it (the indirection renders only the outline) - both transmit-filtered
- * to the beneficiary alone. Call @ref Reconcile on a repeating tick (see @ref ReconcileIntervalMs)
- * to track spawns, deaths, team/model changes, and round restarts; call @ref Destroy to remove it.
+ * a glow prop parented to it (the indirection renders only the outline) - both shown to the
+ * viewer alone. Call @ref Refresh on a repeating tick (see @ref RefreshIntervalMs) to track
+ * spawns, deaths, team/model changes, and round restarts; call @ref Destroy to remove it.
  */
-/** Colors and the optional per-slot veto for a @ref GlowVision. A top-level type rather than a
- *  nested one so it is complete where GlowVision's constructor defaults it (GCC requires that). */
-struct GlowConfig
-{
-    Color TerroristColor{255, 128, 0, 255};
-    Color CtColor{0, 160, 255, 255};
-    /** Extra per-slot veto on top of the built-in live/team/visibility checks (empty = all). */
-    std::function<bool(int slot)> Filter;
-};
-
 class GlowVision
 {
 public:
-    /** Suggested tick interval for @ref Reconcile. */
-    static constexpr int ReconcileIntervalMs = 500;
+    /** Suggested tick interval for @ref Refresh. */
+    static constexpr int RefreshIntervalMs = 500;
 
-    /** All three services must outlive this object; the Runtime owns them.
-     *  `runtime.Visibility.CreateGlow(beneficiarySlot)` is the normal entry point - it passes
-     *  `runtime.Entities`, `runtime.EntityOps` and `runtime.Transmit` for you. */
-    GlowVision(EntitySystem& entities, EntityOps& ops, Transmit& transmit, int beneficiarySlot, GlowConfig config = {})
+    /** All three services must outlive this object; `runtime.Hooks.Visibility.CreateGlow(slot)`
+     *  is the normal entry point and passes them for you. */
+    GlowVision(EntitySystem& entities, EntityOps& ops, Visibility& visibility, int viewerSlot,
+               GlowConfig config = {})
         : _entities(entities),
           _ops(ops),
-          _transmit(transmit),
-          _beneficiarySlot(beneficiarySlot),
+          _visibility(visibility),
+          _viewerSlot(viewerSlot),
           _config(std::move(config))
     {}
 
     /** Create/refresh/destroy glow clone pairs to match the current live players. */
-    void Reconcile();
+    void Refresh();
 
-    /** Remove all transmit-filter entries and surviving clone entities. */
+    /** Remove all private-entity entries and surviving clone entities. */
     void Destroy();
 
 private:
@@ -71,8 +59,8 @@ private:
 
     EntitySystem& _entities;
     EntityOps& _ops;
-    Transmit& _transmit;
-    int _beneficiarySlot;
+    Visibility& _visibility;
+    int _viewerSlot;
     GlowConfig _config;
     std::array<GlowPair, MaxPlayers> _pairs{};
 };

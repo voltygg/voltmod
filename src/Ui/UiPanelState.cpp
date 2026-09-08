@@ -12,13 +12,13 @@ namespace VoltMod
 {
 
 UiPanelState::UiPanelState(EntitySystem* entities, EntityOps* ops, SlotEvents* slots, Event<const UiClick&>* allClicks,
-                           std::string layout, std::string resource, Transmit* transmit, int viewer)
+                           std::string layout, std::string resource, Visibility* visibility, int viewer)
     : Entities(entities),
       Ops(ops),
       AllClicks(allClicks),
       Layout(std::move(layout)),
       Resource(std::move(resource)),
-      Exclusive(transmit),
+      Exclusive(visibility),
       Viewer(viewer),
       ClickRouting(
           "UiPanel", [this] { return StartClickRouting(); }, [this] { StopClickRouting(); }),
@@ -58,7 +58,7 @@ Status UiPanelState::Spawn()
 
     CurrentEntity = Entity(*Entities, entity).Ref();
     if (IsPrivate() && Exclusive)
-        Exclusive->SetEntityExclusive(CurrentEntity, Viewer);
+        Exclusive->ShowOnlyTo(CurrentEntity, Viewer);
     return {};
 }
 
@@ -74,7 +74,7 @@ bool UiPanelState::SpawnOrWarn()
 void UiPanelState::Remove()
 {
     if (Exclusive)
-        Exclusive->ClearEntityExclusive(CurrentEntity);
+        Exclusive->ShowToEveryone(CurrentEntity);
     if (Entities && Ops)
     {
         if (Entity entity = Entities->Resolve(CurrentEntity))

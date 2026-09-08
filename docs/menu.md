@@ -16,7 +16,7 @@ either center HTML or Panorama.
 | Drawn as | center HTML, re-sent every tick | a Panorama `custom_hud_layout` |
 | Input | WASD / E / R | clicks, and the same keys |
 | Rows a page | 5 | 8 |
-| Needs | nothing | @ref VoltMod::Capability::CustomUi, @ref VoltMod::Capability::UiClicks, @ref VoltMod::Capability::Transmit, and the layout on the client |
+| Needs | nothing | @ref VoltMod::Capability::CustomUi, @ref VoltMod::Capability::UiClicks, @ref VoltMod::Capability::Visibility, and the layout on the client |
 | Styling | eight hardcoded colors | a stylesheet you can replace |
 
 **Center HTML is the default and needs no client addon.** Keep it as the fallback:

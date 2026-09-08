@@ -212,9 +212,9 @@ Effect MakeGhost(VoltMod::Runtime& runtime)
         .Scope = EffectScope::Persistent,      // or Round: auto-cancel on round end
         .Setup = [&runtime](const VoltMod::ActionContext& ctx, int) -> EffectInstance {
             int slot = ctx.Target().Slot();
-            auto& transmit = runtime.Hooks.Transmit;
-            transmit.SetPawnHidden(slot, true);
-            return {.OnStop = [&transmit, slot] { transmit.SetPawnHidden(slot, false); }};
+            auto& visibility = runtime.Hooks.Visibility;
+            visibility.SetPawnHidden(slot, true);
+            return {.OnStop = [&visibility, slot] { visibility.SetPawnHidden(slot, false); }};
         },
     };
 }

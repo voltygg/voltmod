@@ -10,7 +10,7 @@
 #include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Entities/EntityRef.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
-#include <VoltMod/Hooks/Transmit.hpp>
+#include <VoltMod/Hooks/Visibility.hpp>
 #include <VoltMod/Ui/UiClick.hpp>
 #include <memory>
 #include <string>
@@ -164,7 +164,7 @@ class CustomUi
 public:
     /** All must outlive this service; the Runtime declares them above it. */
     CustomUi(EntitySystem& entities, EntityOps& ops, const Bindings& bindings, Interfaces& interfaces,
-             SlotEvents& slots, Scheduler& scheduler, Transmit& transmit);
+             SlotEvents& slots, Scheduler& scheduler, Visibility& visibility);
     ~CustomUi();
 
     CustomUi(const CustomUi&) = delete;
@@ -179,7 +179,7 @@ public:
      * here is the point: a bad one renders nothing and says so only on the client console.
      *
      * With a @p viewer the panel is private to that slot: networked to that client alone
-     * (@ref Capability::Transmit; refused while the filter is inert, since the entity would then
+     * (@ref Capability::Visibility; refused while the filter is inert, since the entity would then
      * reach everyone) and removed when the slot changes hands.
      */
     Result<UiPanel> Panel(std::string_view layout, int viewer = UiPanel::Everyone);
@@ -204,7 +204,7 @@ private:
     EntitySystem& _entities;
     EntityOps& _ops;
     SlotEvents& _slots;
-    Transmit& _transmit;
+    Visibility& _visibility;
     /** Declared after @ref Clicked so the hook is gone before the event it raises into. */
     std::unique_ptr<UiClicks> _clicks;
 };

@@ -162,14 +162,14 @@ void MetamodPlugin::Hook_StartupServer(const GameSessionConfiguration_t&, ISourc
     _runtime->Entities.OnServerStartup();
     _runtime->GameEvents.OnServerStartup();
     _runtime->Hooks.Teleport.OnServerStartup();
-    _runtime->Hooks.ClientCvars.OnServerStartup();
+    _runtime->Hooks.ClientConVars.OnServerStartup();
     OnServerStartup(mapName ? std::string_view(mapName) : std::string_view{});
 }
 
 void MetamodPlugin::Hook_CheckTransmit(CCheckTransmitInfo** infoList, int infoCount, CBitVec<16384>&, CBitVec<16384>&,
                                        const Entity2Networkable_t**, const uint16*, int)
 {
-    _runtime->Hooks.Transmit.OnCheckTransmit(infoList, infoCount);
+    _runtime->Hooks.Visibility.OnCheckTransmit(infoList, infoCount);
 }
 
 void MetamodPlugin::Hook_OnClientConnected(CPlayerSlot slot, const char* name, uint64 xuid, const char* networkId,
@@ -188,7 +188,7 @@ void MetamodPlugin::Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconnectio
 
 void MetamodPlugin::Hook_ClientFullyConnect(CPlayerSlot slot)
 {
-    _runtime->Hooks.ClientCvars.OnClientFullyConnect(slot.Get());
+    _runtime->Hooks.ClientConVars.OnClientFullyConnect(slot.Get());
     _runtime->Players.OnClientFullyConnected(slot.Get());
 }
 

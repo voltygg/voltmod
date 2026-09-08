@@ -158,7 +158,7 @@ void PanoramaDriver::Dismiss(int slot)
         (void)panel.InputCapture(slot, false);
     }
 
-    // A closed menu costs nothing: this removes the entity and its Transmit entry, and the next
+    // A closed menu costs nothing: this removes the entity and its Visibility entry, and the next
     // Present makes a fresh panel.
     _panels[slot] = {};
 }

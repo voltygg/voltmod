@@ -3,7 +3,7 @@
 #include <VoltMod/Entities/KeyValues.hpp>
 #include <VoltMod/Entities/PawnOps.hpp>
 #include <VoltMod/Hooks/GlowVision.hpp>
-#include <VoltMod/Hooks/Transmit.hpp>
+#include <VoltMod/Hooks/Visibility.hpp>
 #include <utility>
 
 namespace VoltMod
@@ -23,8 +23,8 @@ void GlowVision::DestroyPair(GlowPair& pair)
     if (!pair.Active())
         return;
 
-    _transmit.ClearEntityExclusive(pair.Relay);
-    _transmit.ClearEntityExclusive(pair.Glow);
+    _visibility.ShowToEveryone(pair.Relay);
+    _visibility.ShowToEveryone(pair.Glow);
 
     if (Entity glow = _entities.Resolve(pair.Glow))
         _ops.Remove(glow.Raw());
@@ -69,18 +69,16 @@ void GlowVision::CreatePair(int slot, GlowPair& pair)
     _ops.AcceptInput(relay, "FollowEntity", "!activator", pawn.Raw());
     _ops.AcceptInput(glow, "FollowEntity", "!activator", relay);
 
-    Entity relayEntity{_entities, relay};
-    Entity glowEntity{_entities, glow};
-    pair.Relay = relayEntity.Ref();
-    pair.Glow = glowEntity.Ref();
+    pair.Relay = Entity{_entities, relay}.Ref();
+    pair.Glow = Entity{_entities, glow}.Ref();
     pair.Team = team;
     pair.Model = std::move(model);
 
-    _transmit.SetEntityExclusive(pair.Relay, _beneficiarySlot);
-    _transmit.SetEntityExclusive(pair.Glow, _beneficiarySlot);
+    _visibility.ShowOnlyTo(pair.Relay, _viewerSlot);
+    _visibility.ShowOnlyTo(pair.Glow, _viewerSlot);
 }
 
-void GlowVision::Reconcile()
+void GlowVision::Refresh()
 {
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
@@ -88,9 +86,9 @@ void GlowVision::Reconcile()
 
         Pawn pawn = _entities.PawnOf(slot);
         const int team = pawn ? static_cast<int>(pawn.Team()) : 0;
-        // Ghosted pawns never transmit to the beneficiary, so a clone would follow nothing.
-        bool desired = slot != _beneficiarySlot && pawn && pawn.IsAlive() && (team == TeamT || team == TeamCT) &&
-                       !_transmit.IsPawnHidden(slot) && (!_config.Filter || _config.Filter(slot));
+        // Hidden pawns never reach the viewer, so a clone would follow nothing.
+        bool desired = slot != _viewerSlot && pawn && pawn.IsAlive() && (team == TeamT || team == TeamCT) &&
+                       !_visibility.IsPawnHidden(slot) && (!_config.Filter || _config.Filter(slot));
 
         if (pair.Active())
         {

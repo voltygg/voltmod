@@ -15,7 +15,7 @@ it does not:
 | Header | Brings in |
 |---|---|
 | `<VoltMod/Entities/Api.hpp>` | Every frame-local wrapper (`Entity`, `Pawn`, `Controller`, `EntityRef`, ...), `EntitySystem`, `EntityOps`, `Items`, `Render`, and `ConVar`/`ConVarOverrides` |
-| `<VoltMod/Hooks/Api.hpp>` | Every hook (`Movement`, `Teleport`, `Transmit`, `Visibility`, `ChatInput`, `ClientCvars`, `GlowVision`, `UserCmd`), game events, and `Messages`/`CenterHtml` |
+| `<VoltMod/Hooks/Api.hpp>` | Every hook (`Movement`, `Teleport`, `Visibility`, `ChatInput`, `ClientConVars`, `GlowVision`, `PlayerInput`), game events, and `Messages`/`CenterHtml` |
 | `<VoltMod/Unsafe/Api.hpp>` | `Interfaces`, `GameData`, `Bindings`, `MemoryAccess`, `RecipientFilter`, and the vtable-hook macros - opt in only where a plugin pokes at the engine directly |
 
 The guide is split by topic:
@@ -23,7 +23,7 @@ The guide is split by topic:
 - @subpage sdk_gamedata_guide - the gamedata file, typed `Bindings`, capabilities, and runtime schema fields
 - @subpage sdk_players_guide - entity lookup, the typed player wrapper, common pawn operations, and weapons
 - @subpage sdk_entity_ops_guide - entity creation, entity IO, one-shot world effects, and resource precaching
-- @subpage sdk_visibility_guide - render mode/color tricks, per-recipient transmit filtering, and per-viewer glow vision
+- @subpage sdk_visibility_guide - render mode/color tricks, per-recipient visibility filtering, and per-viewer glow vision
 - @subpage sdk_messaging_guide - chat/center-HTML messages, sticky panels, chat input capture, and the yes/no vote panel
 - @subpage sdk_events_guide - typed ConVar access, game event listeners, and level changes
 - @subpage sdk_hooks_guide - movement hooks, teleport tracking, custom vtable hooks, and server console commands
@@ -58,14 +58,14 @@ separate readiness flags.
 ```cpp
 using VoltMod::Capability;
 
-if (!runtime.Capabilities.Has(Capability::ClientCvars))
-    Log::Warn("no client convar queries: {}", runtime.Capabilities.Reason(Capability::ClientCvars));
+if (!runtime.Capabilities.Has(Capability::ClientConVars))
+    Log::Warn("no client convar queries: {}", runtime.Capabilities.Reason(Capability::ClientConVars));
 
 Log::Info("{}", runtime.Capabilities.Summary());  // "12/14 ok; Movement: ..."
 ```
 
 The enumerators are `Schema`, `Entities`, `EntityOps`, `GameEvents`, `Movement`,
-`Teleport`, `Transmit`, `ClientCvars`, `Precache`, `Vote`, `Items`, `Menus`,
+`Teleport`, `Visibility`, `ClientConVars`, `Precache`, `Vote`, `Items`, `Menus`,
 `Http`, `CustomUi`, `UiClicks`, and `Addons`. A disabled service remains safe to
 call and reports not-ready status, an empty subscription, or no result. The load
 log and `capabilities` status section show the same state.

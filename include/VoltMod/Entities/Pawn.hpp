@@ -66,8 +66,8 @@ public:
 
     /**
      * Apply transparency to the pawn body. Weapons and wearables are unaffected - CS2 routes
-     * those through systems a server plugin cannot reach. For real invisibility use the transmit
-     * filter (@ref Transmit) instead.
+     * those through systems a server plugin cannot reach. For real invisibility use the visibility
+     * filter (@ref Visibility) instead.
      *
      * @param visible true restores the opaque default; false hides the body.
      * @param alpha   alpha byte applied when @p visible is false. 0 is fully invisible.

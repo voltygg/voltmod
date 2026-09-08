@@ -116,11 +116,11 @@ The entries most likely to bite, and how each one fails:
 | --- | --- | --- | --- |
 | `RunCommand` | vtables | @ref VoltMod::Movement | Crash on the first movement tick, unless the executable-section check catches it first |
 | `Teleport` | vtables | @ref VoltMod::Teleport | Missing: subscribing to `Teleported` is refused and `Capability::Teleport` is off |
-| `ProcessRespondCvarValue` | vtables | @ref VoltMod::ClientCvars | `Capability::ClientCvars` off; client convar queries unavailable |
+| `ProcessRespondCvarValue` | vtables | @ref VoltMod::ClientConVars | `Capability::ClientConVars` off; client convar queries unavailable |
 | `UserCmdPB` | offsets | `Movement` cmd events | Missing: `Valid=false` views. Stale: garbage viewangles and buttons |
-| `UserCmdNumber` | offsets | `UserCmdView::CommandNumber` | Missing: falls back to the protobuf's `legacy_command_number`, which live clients leave at 0. Stale: a counter that never increments by 1 |
-| `ServerSideClientSlot` | offsets | `ClientCvars` | Stale: a client's answer is attributed to the wrong player |
-| `CheckTransmitPlayerSlot` | offsets | @ref VoltMod::Transmit | Stale: the wrong recipient is filtered |
+| `UserCmdNumber` | offsets | `PlayerInput::CommandNumber` | Missing: falls back to the protobuf's `legacy_command_number`, which live clients leave at 0. Stale: a counter that never increments by 1 |
+| `ServerSideClientSlot` | offsets | `ClientConVars` | Stale: a client's answer is attributed to the wrong player |
+| `CheckTransmitPlayerSlot` | offsets | @ref VoltMod::Visibility | Stale: the wrong recipient is filtered |
 | `GameEventManager` | addresses | @ref VoltMod::Messages | Center HTML does not display |
 
 ## Signature scanning

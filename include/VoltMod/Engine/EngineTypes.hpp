@@ -68,6 +68,9 @@ struct UiPanelState;
 /** The FilterMessage hook behind CustomUi::Clicked. Held by unique_ptr so no public header
  *  reaches VtableHook.hpp. Defined in src/Ui/UiClicks.hpp. */
 class UiClicks;
+/** The queries ClientConVars has in flight, kept SDK-free for its tests. Defined in
+ *  src/Hooks/PendingConVarQueries.hpp. */
+class PendingConVarQueries;
 /** Internal menu renderer. */
 class MenuDriver;
 /** Internal menu state. */
@@ -90,5 +93,9 @@ class EntitySystem;
  *  translation unit that names a Player, including the SDK-free unit tests. */
 class Controller;
 class Pawn;
+
+/** Visibility.hpp returns GlowVision by shared_ptr from Visibility::CreateGlow, and
+ *  GlowVision.hpp includes Visibility.hpp for the reference it holds. */
+class GlowVision;
 
 }  // namespace VoltMod

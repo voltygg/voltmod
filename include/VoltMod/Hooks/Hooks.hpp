@@ -9,10 +9,9 @@
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>
-#include <VoltMod/Hooks/ClientCvars.hpp>
+#include <VoltMod/Hooks/ClientConVars.hpp>
 #include <VoltMod/Hooks/Movement.hpp>
 #include <VoltMod/Hooks/Teleport.hpp>
-#include <VoltMod/Hooks/Transmit.hpp>
 #include <VoltMod/Hooks/Visibility.hpp>
 #include <VoltMod/Hooks/Vote.hpp>
 
@@ -21,7 +20,7 @@ namespace VoltMod
 
 /**
  * @brief The per-tick and per-event engine hooks, grouped because every one of them is dormant
- * until a plugin subscribes - or, for ClientCvars, until Runtime::Start calls its Initialize().
+ * until a plugin subscribes - or, for ClientConVars, until Runtime::Start calls its Initialize().
  *
  * Declared once by Runtime, after @ref WorldServices (Visibility needs its EntityOps) and
  * @ref GameEvents (Teleport and Vote need it); each member below takes exactly the sibling
@@ -32,30 +31,27 @@ struct HookServices
     HookServices(EntitySystem& entities, Bindings& bindings, SlotEvents& slots, Scheduler& scheduler,
                  GameEvents& gameEvents, Interfaces& interfaces, EntityOps& entityOps, Capabilities& capabilities)
         : Movement(entities, bindings, capabilities),
-          Transmit(entities, bindings, slots),
-          Visibility(entities, entityOps, Transmit),
+          Visibility(entities, bindings, slots, entityOps),
           ChatInput(scheduler, slots),
           Teleport(entities, bindings, gameEvents, slots),
-          ClientCvars(interfaces, bindings, slots),
+          ClientConVars(interfaces, bindings, slots),
           Vote(interfaces, entities, gameEvents, scheduler)
     {}
 
     /** Dormant until something subscribes; the last subscription dropped removes the vtable
      *  hook. Depends on: Entities, Bindings, Capabilities. */
     VoltMod::Movement Movement;
-    /** Depends on: Entities, Bindings, Slots. */
-    VoltMod::Transmit Transmit;
-    /** Builds per-viewer visibility effects (GlowVision). Depends on: Entities, EntityOps,
-     *  Transmit. */
+    /** Who receives which entities, plus the per-viewer glow built on it. Depends on: Entities,
+     *  Bindings, Slots, EntityOps. */
     VoltMod::Visibility Visibility;
     /** Depends on: Scheduler, Slots. */
     VoltMod::ChatInput ChatInput;
     /** Dormant until something subscribes to Teleported; per-pawn Teleport hook re-bound on
      *  PlayerSpawn. Depends on: Entities, Bindings, GameEvents, Slots. */
     VoltMod::Teleport Teleport;
-    /** Async client-side convar reads. Inert when Capability::ClientCvars is off.
+    /** Async client-side convar reads. Inert when Capability::ClientConVars is off.
      *  Depends on: Interfaces, Bindings, Slots. */
-    VoltMod::ClientCvars ClientCvars;
+    VoltMod::ClientConVars ClientConVars;
     /** The game's own yes/no vote panel. Subscribes on the first StartVote().
      *  Depends on: Interfaces, Entities, GameEvents, Scheduler. */
     VoltMod::Vote Vote;

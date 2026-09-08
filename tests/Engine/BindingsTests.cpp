@@ -113,7 +113,7 @@ TEST_CASE("Bind fills offsets and vtable indices from their gamedata keys")
 
     // Offsets and indices do not require a loaded module.
     CHECK(caps.Has(Capability::Entities));
-    CHECK(caps.Has(Capability::Transmit));
+    CHECK(caps.Has(Capability::Visibility));
     CHECK(caps.Has(Capability::Items));
     CHECK(caps.Has(Capability::Teleport));
 }
@@ -158,8 +158,8 @@ TEST_CASE("Bind records a missing key as the capability's reason and leaves the 
 
     CHECK_FALSE(static_cast<bool>(bindings.CheckTransmitPlayerSlot));
     CHECK(bindings.CheckTransmitPlayerSlot.Value() == -1);
-    CHECK_FALSE(caps.Has(Capability::Transmit));
-    CHECK(caps.Reason(Capability::Transmit) == "'CheckTransmitPlayerSlot' is not in gamedata");
+    CHECK_FALSE(caps.Has(Capability::Visibility));
+    CHECK(caps.Reason(Capability::Visibility) == "'CheckTransmitPlayerSlot' is not in gamedata");
 
     // Present keys still bind.
     CHECK(caps.Has(Capability::Entities));
@@ -186,7 +186,7 @@ TEST_CASE("A binding no capability gates still says why its key did not bind")
     CHECK_FALSE(static_cast<bool>(bindings.UserCmdNumber));
 
     CHECK_FALSE(log.Mentions("'CheckTransmitPlayerSlot'"));
-    CHECK(caps.Reason(Capability::Transmit) == "'CheckTransmitPlayerSlot' is not in gamedata");
+    CHECK(caps.Reason(Capability::Visibility) == "'CheckTransmitPlayerSlot' is not in gamedata");
 
     CHECK_FALSE(log.Mentions("'GameEntitySystem'"));
     CHECK(caps.Has(Capability::Entities));
