@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Core/Result.hpp>
@@ -23,10 +23,8 @@ namespace VoltMod
  * moves the player, **a spawn raises the event too**. Filter spawns yourself if you only care
  * about mid-life teleports.
  *
- * The hook is all this owns. It keeps no history: a teleport breaks continuity - origin and view
- * angles jump discontinuously, so anything measuring motion across ticks reads the following frame
- * as impossible - and how long that window lasts, and in what clock, is the consumer's question,
- * not this service's.
+ * The hook is all this owns. It keeps no history: how long the discontinuity after a teleport
+ * matters, and in what clock, is the consumer's question.
  *
  * @code
  * _teleports = runtime.Hooks.Teleport.Teleported += [this](int slot) { _lastTeleport[slot] = _clock.Time(); };
@@ -36,8 +34,8 @@ class Teleport
 {
 public:
     /** @p entities resolves each slot's pawn, @p bindings supplies the Teleport vtable index,
-     *  @p events the PlayerSpawn re-bind. @p slots tells this tracker when a slot changes hands,
-     *  without it needing the roster. All four must outlive it; the Runtime declares them above. */
+     *  @p events the PlayerSpawn re-bind, and @p slots says when a slot changes hands. All four
+     *  must outlive it; the Runtime declares them above. */
     Teleport(EntitySystem& entities, const Bindings& bindings, GameEvents& events, SlotEvents& slots);
     ~Teleport();
     Teleport(const Teleport&) = delete;
@@ -51,8 +49,8 @@ public:
     void OnServerStartup();
 
 private:
-    /** Bind every live pawn and start listening for the spawns and slot changes that invalidate a
-     *  binding; the reverse drops all of it. Driven only by Teleported's Lifecycle. */
+    /** Bind every live pawn and listen for the spawns and slot changes that invalidate a binding;
+     *  the reverse drops all of it. Driven only by Teleported's lifecycle. */
     void BindAll();
     void UnbindAll();
 
@@ -61,7 +59,7 @@ private:
     /** Rebind @p slot to its current pawn (no-op without one), replacing any previous binding. */
     void Bind(int slot);
     void Unbind(int slot);
-    int SlotFromPawn(const void* pawn) const;
+    int SlotOf(const void* pawn) const;
 
     EntitySystem& _entities;
     const Bindings& _bindings;
@@ -71,7 +69,6 @@ private:
     std::array<VtableHook, MaxPlayers> _hooks;  // one per bound pawn; empty when unbound
     Subscription _spawnListener;
     Subscription _slotListener;
-    bool _installed = false;
 };
 
 }  // namespace VoltMod

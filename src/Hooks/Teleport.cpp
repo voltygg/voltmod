@@ -13,9 +13,8 @@
 namespace VoltMod
 {
 
-// CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*). Bound per pawn
-// (Hook_Normal), so the handler runs only for the instance it was added on - one call per
-// teleport, no matter how many are bound.
+// CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*). Bound per pawn, so the
+// handler runs once per teleport however many pawns are bound.
 VOLTMOD_VHOOK3_VOID(VoltMod_EntityTeleport, const Vector*, const QAngle*, const Vector*);
 
 Teleport::Teleport(EntitySystem& entities, const Bindings& bindings, GameEvents& events, SlotEvents& slots)
@@ -48,7 +47,6 @@ Teleport::~Teleport()
 
 void Teleport::BindAll()
 {
-    _installed = true;
     for (int slot = 0; slot < MaxPlayers; ++slot)
         Bind(slot);
 
@@ -65,12 +63,9 @@ void Teleport::BindAll()
 
 void Teleport::UnbindAll()
 {
-    for (int slot = 0; slot < MaxPlayers; ++slot)
-        Unbind(slot);
-
+    OnServerStartup();
     _spawnListener.Reset();
     _slotListener.Reset();
-    _installed = false;
 }
 
 void Teleport::OnServerStartup()
@@ -84,22 +79,21 @@ void Teleport::OnServerStartup()
 
 void Teleport::Bind(int slot)
 {
-    if (!_installed || !IsValidSlot(slot))
+    if (!IsValidSlot(slot))
         return;
-
-    Unbind(slot);
 
     void* pawn = _entities.PawnOf(slot).Raw();
+
+    // A freed pawn's address can be handed straight to another player's new one, and nothing
+    // tells us the old object died. Drop every slot still claiming this address, this one
+    // included: a stale claim would route this pawn's teleports to that slot and fire the
+    // handler twice.
+    for (int other = 0; other < MaxPlayers; ++other)
+        if (other == slot || (pawn && _pawns[other] == pawn))
+            Unbind(other);
+
     if (!pawn)
         return;
-
-    // A freed pawn's address can be handed straight to another player's new one, and nothing tells
-    // us the old object died. Drop any slot still claiming this address first: leaving it would make
-    // SlotFromPawn resolve every teleport of this pawn to that stale slot, and leave a per-instance
-    // hook registered on the address that fires the handler a second time.
-    for (int other = 0; other < MaxPlayers; ++other)
-        if (other != slot && _pawns[other] == pawn)
-            Unbind(other);
 
     auto hook = VtableHook::OnInstance<VoltMod_EntityTeleportHook>("Teleport", pawn, _bindings.Teleport.Index(), this,
                                                                    &Teleport::Hook_Teleport, true);
@@ -119,7 +113,7 @@ void Teleport::Unbind(int slot)
     _pawns[slot] = nullptr;
 }
 
-int Teleport::SlotFromPawn(const void* pawn) const
+int Teleport::SlotOf(const void* pawn) const
 {
     if (!pawn)
         return -1;
@@ -133,7 +127,7 @@ int Teleport::SlotFromPawn(const void* pawn) const
 
 void Teleport::Hook_Teleport(const Vector*, const QAngle*, const Vector*)
 {
-    Teleported.Raise(SlotFromPawn(META_IFACEPTR(void)));
+    Teleported.Raise(SlotOf(META_IFACEPTR(void)));
     RETURN_META(MRES_IGNORED);
 }
 
