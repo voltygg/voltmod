@@ -10,8 +10,13 @@ namespace VoltMod::Schema
 {
 
 // ---- CPlayer_MovementServices, 600 bytes --------------------------
-static constexpr int32_t CPlayer_MovementServices_kChainOffset = 8;
+static constexpr int32_t CPlayer_MovementServices_kOwnerLinkOffset = 8;
 static constexpr int32_t kCPlayer_MovementServices_Buttons = 80;  // CInButtonState
+
+::CEntityInstance* CPlayer_MovementServices::OwnerEntity() const
+{
+    return ComponentOwner(_base, CPlayer_MovementServices_kOwnerLinkOffset);
+}
 
 CInButtonState CPlayer_MovementServices::Buttons() const
 {

@@ -9,9 +9,14 @@ namespace VoltMod::Schema
 {
 
 // ---- CPlayer_ObserverServices, 88 bytes --------------------------
-static constexpr int32_t CPlayer_ObserverServices_kChainOffset = 8;
+static constexpr int32_t CPlayer_ObserverServices_kOwnerLinkOffset = 8;
 static constexpr int32_t kCPlayer_ObserverServices_ObserverMode = 72;    // uint8
 static constexpr int32_t kCPlayer_ObserverServices_ObserverTarget = 76;  // CHandle< CBaseEntity >
+
+::CEntityInstance* CPlayer_ObserverServices::OwnerEntity() const
+{
+    return ComponentOwner(_base, CPlayer_ObserverServices_kOwnerLinkOffset);
+}
 
 uint8_t CPlayer_ObserverServices::ObserverMode() const
 {
@@ -27,7 +32,7 @@ void CPlayer_ObserverServices::SetObserverMode(uint8_t value) const
         return;
 
     *MemberPtr<uint8_t>(_base, kCPlayer_ObserverServices_ObserverMode) = value;
-    NotifyThroughChain(_base, CPlayer_ObserverServices_kChainOffset, kCPlayer_ObserverServices_ObserverMode);
+    NotifyComponentOwner(_base, CPlayer_ObserverServices_kOwnerLinkOffset, kCPlayer_ObserverServices_ObserverMode);
 }
 
 uint32_t CPlayer_ObserverServices::ObserverTarget() const
@@ -44,7 +49,7 @@ void CPlayer_ObserverServices::SetObserverTarget(uint32_t value) const
         return;
 
     *MemberPtr<uint32_t>(_base, kCPlayer_ObserverServices_ObserverTarget) = value;
-    NotifyThroughChain(_base, CPlayer_ObserverServices_kChainOffset, kCPlayer_ObserverServices_ObserverTarget);
+    NotifyComponentOwner(_base, CPlayer_ObserverServices_kOwnerLinkOffset, kCPlayer_ObserverServices_ObserverTarget);
 }
 
 extern const FieldLayout CPlayer_ObserverServices_kFields[2];

@@ -16,6 +16,9 @@ class CBodyComponent : public CEntityComponent
 public:
     using CEntityComponent::CEntityComponent;
 
+    /** The entity that owns this component, or nullptr. */
+    ::CEntityInstance* OwnerEntity() const;
+
     CGameSceneNode SceneNode() const;
 };
 

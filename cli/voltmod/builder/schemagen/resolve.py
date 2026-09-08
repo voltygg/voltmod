@@ -29,7 +29,7 @@ def empty_klass(dump: dict[str, Any], name: str) -> Klass:
     return Klass(
         name=name,
         size=raw["size"],
-        chain_offset=raw["chain_offset"],
+        owner_link_offset=raw["chain_offset"],
         base=chain[0] if chain else None,
         entity_rooted=name == ENTITY_ROOT or ENTITY_ROOT in chain,
     )

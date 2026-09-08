@@ -17,7 +17,7 @@ namespace VoltMod::Schema
  * sits inside it. An entity view is its own owner at offset 0; a sub-object embedded by value
  * inherits the owner and adds its offset, so a write deep inside a struct still dirties the right
  * field of the right entity. A sub-object reached through a pointer has no owner - it lives
- * elsewhere in memory - and replicates through its own `__m_pChainEntity` instead.
+ * elsewhere in memory - and replicates through its own owner link (`__m_pChainEntity`) instead.
  */
 class View
 {

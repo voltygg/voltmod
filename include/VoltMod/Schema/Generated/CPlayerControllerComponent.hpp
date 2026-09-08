@@ -13,6 +13,9 @@ class CPlayerControllerComponent : public View
 {
 public:
     using View::View;
+
+    /** The entity that owns this component, or nullptr. */
+    ::CEntityInstance* OwnerEntity() const;
 };
 
 }  // namespace VoltMod::Schema

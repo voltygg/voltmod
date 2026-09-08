@@ -151,8 +151,8 @@ def declarations(klass: Klass, member: Member) -> list[str]:
 
 def notify_call(klass: Klass, offset: str) -> list[str]:
     """How a write on this class reaches the engine's dirty tracking."""
-    if klass.chain_offset >= 0:
-        return [f"    NotifyThroughChain(_base, {klass.name}_kChainOffset, {offset});"]
+    if klass.owner_link_offset >= 0:
+        return [f"    NotifyComponentOwner(_base, {klass.name}_kOwnerLinkOffset, {offset});"]
     # An entity view owns itself at offset 0, so this covers both the entity and the
     # embedded-in-an-entity case with one call. NotifyEntity ignores a null owner.
     return [f"    NotifyEntity(_owner, _ownerOffset + {offset});"]

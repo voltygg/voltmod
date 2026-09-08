@@ -5,15 +5,16 @@
 namespace VoltMod::Schema
 {
 
-// The chain object every replicated sub-object hangs off. Only the two fields the notification
-// needs are named; the padding is the engine's layout, re-verify after a CS2 update.
-struct NetworkVarChainer
+// The engine's CNetworkVarChainer: the link from a replicated sub-object to its owner. Only the
+// two fields the notification needs are named; the padding is the engine's layout, re-verify
+// after a CS2 update.
+struct OwnerLink
 {
     CEntityInstance* Entity;
     uint8_t Pad[24];
     ChangeAccessorFieldPathIndex_t PathIndex;
 };
-static_assert(offsetof(NetworkVarChainer, PathIndex) == 0x20);
+static_assert(offsetof(OwnerLink, PathIndex) == 0x20);
 
 void NotifyEntity(CEntityInstance* entity, int32_t offset)
 {
@@ -23,16 +24,24 @@ void NotifyEntity(CEntityInstance* entity, int32_t offset)
     entity->NetworkStateChanged(NetworkStateChangedData(static_cast<uint32>(offset)));
 }
 
-void NotifyThroughChain(void* component, int32_t chainOffset, int32_t offset)
+void NotifyComponentOwner(void* component, int32_t ownerLinkOffset, int32_t offset)
 {
-    if (!component || chainOffset < 0)
+    if (!component || ownerLinkOffset < 0)
         return;
 
-    auto* chainer = MemberPtr<NetworkVarChainer>(component, chainOffset);
-    if (!chainer->Entity)
+    auto* link = MemberPtr<OwnerLink>(component, ownerLinkOffset);
+    if (!link->Entity)
         return;
 
-    chainer->Entity->NetworkStateChanged(NetworkStateChangedData(static_cast<uint32>(offset), -1, chainer->PathIndex));
+    link->Entity->NetworkStateChanged(NetworkStateChangedData(static_cast<uint32>(offset), -1, link->PathIndex));
+}
+
+CEntityInstance* ComponentOwner(const void* component, int32_t ownerLinkOffset)
+{
+    if (!component || ownerLinkOffset < 0)
+        return nullptr;
+    // MemberPtr takes a mutable base; the read here never writes through it.
+    return MemberPtr<const OwnerLink>(const_cast<void*>(component), ownerLinkOffset)->Entity;
 }
 
 }  // namespace VoltMod::Schema

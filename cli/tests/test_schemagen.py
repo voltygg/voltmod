@@ -34,22 +34,49 @@ def dump():
                 "fields": [
                     field("m_iHealth", 720, 4, builtin("int32")),
                     field("m_lifeState", 728, 1, builtin("uint8")),
-                    field("m_MoveType", 755, 1, builtin("MoveType_t", "declared_enum",
-                                                        declared="enum")),
-                    field("m_hGroundEntity", 1004, 4,
-                          builtin("CHandle< CBaseEntity >", "atomic", atomic="t",
-                                  inner="CBaseEntity")),
-                    field("m_pServices", 40, 8,
-                          builtin("CMoneyServices*", "pointer", inner="CMoneyServices")),
-                    field("m_state", 300, 8,
-                          builtin("CEmbedded", "declared_class", declared="class")),
-                    field("m_vecStuff", 400, 24,
-                          builtin("CUtlVector< int >", "atomic", atomic="collection_of_t",
-                                  inner="int32")),
-                    field("m_szName", 500, 32,
-                          builtin("char[32]", "fixed_array", inner="char", extent=32)),
-                    field("m_nSlots", 600, 20,
-                          builtin("int32[5]", "fixed_array", inner="int32", extent=5)),
+                    field(
+                        "m_MoveType",
+                        755,
+                        1,
+                        builtin("MoveType_t", "declared_enum", declared="enum"),
+                    ),
+                    field(
+                        "m_hGroundEntity",
+                        1004,
+                        4,
+                        builtin(
+                            "CHandle< CBaseEntity >", "atomic", atomic="t", inner="CBaseEntity"
+                        ),
+                    ),
+                    field(
+                        "m_pServices",
+                        40,
+                        8,
+                        builtin("CMoneyServices*", "pointer", inner="CMoneyServices"),
+                    ),
+                    field(
+                        "m_state", 300, 8, builtin("CEmbedded", "declared_class", declared="class")
+                    ),
+                    field(
+                        "m_vecStuff",
+                        400,
+                        24,
+                        builtin(
+                            "CUtlVector< int >", "atomic", atomic="collection_of_t", inner="int32"
+                        ),
+                    ),
+                    field(
+                        "m_szName",
+                        500,
+                        32,
+                        builtin("char[32]", "fixed_array", inner="char", extent=32),
+                    ),
+                    field(
+                        "m_nSlots",
+                        600,
+                        20,
+                        builtin("int32[5]", "fixed_array", inner="int32", extent=5),
+                    ),
                     field("m_bits", 700, 4, builtin("bitfield:3", "bitfield")),
                 ],
             },
@@ -73,8 +100,13 @@ def dump():
             },
         },
         "enums": {
-            "MoveType_t": {"size": 1, "items": [{"name": "MOVETYPE_NONE", "value": 0},
-                                                {"name": "MOVETYPE_WALK", "value": 2}]},
+            "MoveType_t": {
+                "size": 1,
+                "items": [
+                    {"name": "MOVETYPE_NONE", "value": 0},
+                    {"name": "MOVETYPE_WALK", "value": 2},
+                ],
+            },
             "Unused_t": {"size": 4, "items": [{"name": "UNUSED", "value": 0}]},
         },
     }
@@ -128,8 +160,19 @@ def test_an_entity_notifies_itself_and_a_chained_component_uses_its_chainer():
     money = schemagen.emit_class_source(classes["CMoneyServices"])
 
     assert "NotifyEntity(_owner, _ownerOffset + kCBaseEntity_Health)" in entity
-    assert "NotifyThroughChain(_base, CMoneyServices_kChainOffset" in money
+    assert "NotifyComponentOwner(_base, CMoneyServices_kOwnerLinkOffset" in money
     assert "NotifyEntity" not in money
+
+
+def test_a_chained_component_exposes_its_owner_entity():
+    _, classes = build()
+    assert "::CEntityInstance* OwnerEntity() const;" in schemagen.emit_header(
+        classes["CMoneyServices"]
+    )
+    assert "ComponentOwner(_base, CMoneyServices_kOwnerLinkOffset)" in schemagen.emit_class_source(
+        classes["CMoneyServices"]
+    )
+    assert "OwnerEntity" not in schemagen.emit_header(classes["CBaseEntity"])
 
 
 def test_a_struct_embedded_in_an_entity_keeps_its_setters():
@@ -235,8 +278,8 @@ def test_the_layout_table_names_the_arrays_each_class_defines():
     _, classes = build()
     layout = schemagen.emit_layout_source(classes)
     assert "extern const FieldLayout CBaseEntity_kFields[9];" in layout, "the bitfield is skipped"
-    assert '{.Name = "CMoneyServices", .Size = 88, .ChainOffset = 8' in layout
-    empty = '.Name = "CEntityInstance", .Size = 48, .ChainOffset = -1, .Fields = {}'
+    assert '{.Name = "CMoneyServices", .Size = 88, .OwnerLinkOffset = 8' in layout
+    empty = '.Name = "CEntityInstance", .Size = 48, .OwnerLinkOffset = -1, .Fields = {}'
     assert empty in layout
 
 

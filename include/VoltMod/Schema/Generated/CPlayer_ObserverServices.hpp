@@ -15,6 +15,9 @@ class CPlayer_ObserverServices : public CPlayerPawnComponent
 public:
     using CPlayerPawnComponent::CPlayerPawnComponent;
 
+    /** The entity that owns this component, or nullptr. */
+    ::CEntityInstance* OwnerEntity() const;
+
     uint8_t ObserverMode() const;
     void SetObserverMode(uint8_t value) const;
 

@@ -14,6 +14,9 @@ class CPlayer_ItemServices : public CPlayerPawnComponent
 {
 public:
     using CPlayerPawnComponent::CPlayerPawnComponent;
+
+    /** The entity that owns this component, or nullptr. */
+    ::CEntityInstance* OwnerEntity() const;
 };
 
 }  // namespace VoltMod::Schema

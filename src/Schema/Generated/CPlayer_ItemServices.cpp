@@ -9,6 +9,11 @@ namespace VoltMod::Schema
 {
 
 // ---- CPlayer_ItemServices, 72 bytes ------------------------------
-static constexpr int32_t CPlayer_ItemServices_kChainOffset = 8;
+static constexpr int32_t CPlayer_ItemServices_kOwnerLinkOffset = 8;
+
+::CEntityInstance* CPlayer_ItemServices::OwnerEntity() const
+{
+    return ComponentOwner(_base, CPlayer_ItemServices_kOwnerLinkOffset);
+}
 
 }  // namespace VoltMod::Schema

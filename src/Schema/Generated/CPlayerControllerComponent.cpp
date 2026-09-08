@@ -9,6 +9,11 @@ namespace VoltMod::Schema
 {
 
 // ---- CPlayerControllerComponent, 64 bytes ------------------------
-static constexpr int32_t CPlayerControllerComponent_kChainOffset = 8;
+static constexpr int32_t CPlayerControllerComponent_kOwnerLinkOffset = 8;
+
+::CEntityInstance* CPlayerControllerComponent::OwnerEntity() const
+{
+    return ComponentOwner(_base, CPlayerControllerComponent_kOwnerLinkOffset);
+}
 
 }  // namespace VoltMod::Schema

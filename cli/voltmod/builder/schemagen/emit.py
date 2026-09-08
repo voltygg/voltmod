@@ -73,6 +73,12 @@ def emit_header(klass: Klass) -> str:
     lines += _constructors(klass)
 
     body: list[str] = []
+    if klass.owner_link_offset >= 0:
+        body += [
+            "",
+            "/** The entity that owns this component, or nullptr. */",
+            f"::{ENTITY_ROOT}* OwnerEntity() const;",
+        ]
     for member in klass.members:
         body.append("")
         body += declarations(klass, member)
@@ -84,8 +90,16 @@ def emit_header(klass: Klass) -> str:
 
 def emit_enums(enums: dict[str, Any]) -> str:
     """`include/VoltMod/Schema/Generated/Enums.hpp`."""
-    lines = [BANNER, "#pragma once", "", "#include <cstdint>", "",
-             "namespace VoltMod::Schema", "{", ""]
+    lines = [
+        BANNER,
+        "#pragma once",
+        "",
+        "#include <cstdint>",
+        "",
+        "namespace VoltMod::Schema",
+        "{",
+        "",
+    ]
     for name, info in enums.items():
         lines.append(f"/** Schema enum {name}. */")
         lines.append(f"enum class {cpp_identifier(name)} : {enum_underlying(info['size'])}")
@@ -156,8 +170,10 @@ def _source_includes(klass: Klass) -> list[str]:
 
 def _offset_constants(klass: Klass) -> list[str]:
     lines = [f"// ---- {klass.name}, {klass.size} bytes " + "-" * max(0, 50 - len(klass.name))]
-    if klass.chain_offset >= 0:
-        lines.append(f"static constexpr int32_t {klass.name}_kChainOffset = {klass.chain_offset};")
+    if klass.owner_link_offset >= 0:
+        lines.append(
+            f"static constexpr int32_t {klass.name}_kOwnerLinkOffset = {klass.owner_link_offset};"
+        )
     lines += [
         f"static constexpr int32_t {offset_constant(klass, m)} = {m.offset};  // {m.note}"
         for m in klass.fields
@@ -193,6 +209,14 @@ def emit_class_source(klass: Klass) -> str:
     lines += _source_includes(klass)
     lines += ["", "namespace VoltMod::Schema", "{", ""]
     lines += _offset_constants(klass)
+    if klass.owner_link_offset >= 0:
+        lines += [
+            f"::{ENTITY_ROOT}* {klass.name}::OwnerEntity() const",
+            "{",
+            f"    return ComponentOwner(_base, {klass.name}_kOwnerLinkOffset);",
+            "}",
+            "",
+        ]
     for member in klass.members:
         lines += definitions(klass, member)
     lines += _field_layout(klass)
@@ -223,7 +247,7 @@ def emit_layout_source(classes: dict[str, Klass]) -> str:
         span = f"{{{klass.name}_kFields, {len(klass.fields)}}}" if klass.fields else "{}"
         lines.append(
             f'    {{.Name = "{klass.name}", .Size = {klass.size}, '
-            f".ChainOffset = {klass.chain_offset}, .Fields = {span}}},"
+            f".OwnerLinkOffset = {klass.owner_link_offset}, .Fields = {span}}},"
         )
     lines += ["};", ""]
 

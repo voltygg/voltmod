@@ -16,6 +16,9 @@ class CPlayer_MovementServices : public CPlayerPawnComponent
 public:
     using CPlayerPawnComponent::CPlayerPawnComponent;
 
+    /** The entity that owns this component, or nullptr. */
+    ::CEntityInstance* OwnerEntity() const;
+
     CInButtonState Buttons() const;
 };
 

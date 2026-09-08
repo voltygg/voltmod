@@ -44,7 +44,7 @@ class Klass:
 
     name: str
     size: int
-    chain_offset: int
+    owner_link_offset: int
     base: str | None
     entity_rooted: bool = False
     embeds_in_entity: bool = False
@@ -53,7 +53,7 @@ class Klass:
     @property
     def writable(self) -> bool:
         """Whether a write on this class has a route to the engine's dirty tracking."""
-        return self.entity_rooted or self.chain_offset >= 0 or self.embeds_in_entity
+        return self.entity_rooted or self.owner_link_offset >= 0 or self.embeds_in_entity
 
     @property
     def fields(self) -> list[Member]:

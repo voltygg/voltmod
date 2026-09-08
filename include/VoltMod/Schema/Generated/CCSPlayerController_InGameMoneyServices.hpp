@@ -15,6 +15,9 @@ class CCSPlayerController_InGameMoneyServices : public CPlayerControllerComponen
 public:
     using CPlayerControllerComponent::CPlayerControllerComponent;
 
+    /** The entity that owns this component, or nullptr. */
+    ::CEntityInstance* OwnerEntity() const;
+
     int32_t Account() const;
     void SetAccount(int32_t value) const;
 };

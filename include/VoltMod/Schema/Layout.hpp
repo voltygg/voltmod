@@ -22,7 +22,7 @@ struct ClassLayout
 {
     std::string_view Name;
     int32_t Size = 0;
-    int32_t ChainOffset = -1;
+    int32_t OwnerLinkOffset = -1;
     std::span<const FieldLayout> Fields;
 };
 

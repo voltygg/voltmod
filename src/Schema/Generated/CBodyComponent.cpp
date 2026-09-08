@@ -10,8 +10,13 @@ namespace VoltMod::Schema
 {
 
 // ---- CBodyComponent, 120 bytes ------------------------------------
-static constexpr int32_t CBodyComponent_kChainOffset = 72;
+static constexpr int32_t CBodyComponent_kOwnerLinkOffset = 72;
 static constexpr int32_t kCBodyComponent_SceneNode = 8;  // CGameSceneNode*
+
+::CEntityInstance* CBodyComponent::OwnerEntity() const
+{
+    return ComponentOwner(_base, CBodyComponent_kOwnerLinkOffset);
+}
 
 CGameSceneNode CBodyComponent::SceneNode() const
 {

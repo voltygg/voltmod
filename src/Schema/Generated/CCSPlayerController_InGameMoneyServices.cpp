@@ -9,8 +9,13 @@ namespace VoltMod::Schema
 {
 
 // ---- CCSPlayerController_InGameMoneyServices, 88 bytes -----------
-static constexpr int32_t CCSPlayerController_InGameMoneyServices_kChainOffset = 8;
+static constexpr int32_t CCSPlayerController_InGameMoneyServices_kOwnerLinkOffset = 8;
 static constexpr int32_t kCCSPlayerController_InGameMoneyServices_Account = 72;  // int32
+
+::CEntityInstance* CCSPlayerController_InGameMoneyServices::OwnerEntity() const
+{
+    return ComponentOwner(_base, CCSPlayerController_InGameMoneyServices_kOwnerLinkOffset);
+}
 
 int32_t CCSPlayerController_InGameMoneyServices::Account() const
 {
@@ -26,8 +31,8 @@ void CCSPlayerController_InGameMoneyServices::SetAccount(int32_t value) const
         return;
 
     *MemberPtr<int32_t>(_base, kCCSPlayerController_InGameMoneyServices_Account) = value;
-    NotifyThroughChain(_base, CCSPlayerController_InGameMoneyServices_kChainOffset,
-                       kCCSPlayerController_InGameMoneyServices_Account);
+    NotifyComponentOwner(_base, CCSPlayerController_InGameMoneyServices_kOwnerLinkOffset,
+                         kCCSPlayerController_InGameMoneyServices_Account);
 }
 
 extern const FieldLayout CCSPlayerController_InGameMoneyServices_kFields[1];

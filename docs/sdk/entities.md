@@ -141,7 +141,7 @@ there is no fixed offset from the pawn to reach it.
 
 `SetVisible` toggles transparency on the pawn body. Weapons, gloves and grenades stay visible
 because they are separate networked entities; for full invisibility use the
-@ref sdk_visibility_guide "transmit filter" instead.
+@ref sdk_visibility_guide "visibility filter" instead.
 
 ```cpp
 pawn.SetVisible(false);          // body fully invisible (alpha = 0)

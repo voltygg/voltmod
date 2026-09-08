@@ -15,6 +15,9 @@ class CPlayer_WeaponServices : public CPlayerPawnComponent
 public:
     using CPlayerPawnComponent::CPlayerPawnComponent;
 
+    /** The entity that owns this component, or nullptr. */
+    ::CEntityInstance* OwnerEntity() const;
+
     void* MyWeapons() const;
 };
 

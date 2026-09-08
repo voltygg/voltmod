@@ -9,9 +9,14 @@ namespace VoltMod::Schema
 {
 
 // ---- CPlayer_WeaponServices, 176 bytes ----------------------------
-static constexpr int32_t CPlayer_WeaponServices_kChainOffset = 8;
+static constexpr int32_t CPlayer_WeaponServices_kOwnerLinkOffset = 8;
 static constexpr int32_t kCPlayer_WeaponServices_MyWeapons =
     72;  // CNetworkUtlVectorBase< CHandle< CBasePlayerWeapon > >
+
+::CEntityInstance* CPlayer_WeaponServices::OwnerEntity() const
+{
+    return ComponentOwner(_base, CPlayer_WeaponServices_kOwnerLinkOffset);
+}
 
 void* CPlayer_WeaponServices::MyWeapons() const
 {
