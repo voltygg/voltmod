@@ -8,17 +8,17 @@ namespace VoltMod
 {
 
 /**
- * @brief One engine-side source shared by several events, started and stopped on demand.
+ * @brief One start/stop pair shared by several events: an @ref EventLifecycle for a group.
  *
  * A service with a single event gives @ref Event an @ref EventLifecycle directly. A service whose
- * events all come from one source - three movement events behind one RunCommand hook, a panel's
+ * events all come from one hook - three movement events behind one RunCommand hook, a panel's
  * Clicked plus one event per button behind one click subscription - needs that source running
  * while *any* of them is listening:
  *
  * @code
  * Movement::Movement(...)
- *     : _source("Movement", [this] { return StartHook(); }, [this] { StopHook(); }),
- *       Rewrite(_source.Lifecycle()), Before(_source.Lifecycle()), After(_source.Lifecycle())
+ *     : _lifecycle("Movement", [this] { return StartHook(); }, [this] { StopHook(); }),
+ *       Rewrite(_lifecycle.ForEvent()), Before(_lifecycle.ForEvent()), After(_lifecycle.ForEvent())
  * @endcode
  *
  * It starts when the first of those events gains a handler and stops when the last one still
@@ -32,7 +32,7 @@ namespace VoltMod
  * point at events which are going away, and for a vtable hook that means a live hook into an
  * unloading module. It logs, naming @p what.
  */
-class SharedSource
+class SharedLifecycle
 {
 public:
     /**
@@ -41,14 +41,14 @@ public:
      *              having said why.
      * @param stop Runs when the last listening event goes quiet.
      */
-    SharedSource(std::string what, std::function<bool()> start, std::function<void()> stop);
-    ~SharedSource();
+    SharedLifecycle(std::string what, std::function<bool()> start, std::function<void()> stop);
+    ~SharedLifecycle();
 
-    SharedSource(const SharedSource&) = delete;
-    SharedSource& operator=(const SharedSource&) = delete;
+    SharedLifecycle(const SharedLifecycle&) = delete;
+    SharedLifecycle& operator=(const SharedLifecycle&) = delete;
 
-    /** A lifecycle for one event. Give one of these to every event fed from this source. */
-    [[nodiscard]] EventLifecycle Lifecycle();
+    /** The lifecycle for one event. Give one of these to every event this hook feeds. */
+    [[nodiscard]] EventLifecycle ForEvent();
 
     /**
      * How many events fed from here are listening; the source is running while this is above zero.
@@ -59,16 +59,16 @@ public:
      *
      * Diagnostics and tests only - what a service can do is @ref Capabilities, not a flag here.
      */
-    [[nodiscard]] int Subscribers() const noexcept { return _subscribers; }
+    [[nodiscard]] int ListeningEvents() const noexcept { return _listening; }
 
 private:
-    bool AddSubscriber();
-    void RemoveSubscriber();
+    bool AddListener();
+    void RemoveListener();
 
     std::string _what;
     std::function<bool()> _start;
     std::function<void()> _stop;
-    int _subscribers = 0;
+    int _listening = 0;
 };
 
 }  // namespace VoltMod

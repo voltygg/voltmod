@@ -178,7 +178,7 @@ SourceHook installs the same lifetime.
 Expensive event sources take an `EventLifecycle`: the first subscriber installs
 the source and the last removal uninstalls it. If a hook cannot resolve, the
 subscription is empty and the reason is logged. Several events fed by one source
-share a `SharedSource`, which counts subscribers across all of them so the source
+share a `SharedLifecycle`, which counts subscribers across all of them so the source
 is installed once. See @ref sdk_hooks_guide for custom vtable hooks.
 
 Operations that can fail meaningfully return `Result<T>` or @ref VoltMod::Status, an

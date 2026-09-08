@@ -22,7 +22,7 @@ UiPanelState::UiPanelState(EntitySystem* entities, EntityOps* ops, SlotEvents* s
       Viewer(viewer),
       ClickRouting(
           "UiPanel", [this] { return StartClickRouting(); }, [this] { StopClickRouting(); }),
-      Clicked(ClickRouting.Lifecycle())
+      Clicked(ClickRouting.ForEvent())
 {
     if (!slots)
         return;
@@ -109,7 +109,7 @@ Event<int>& UiPanelState::Button(std::string_view id)
     if (auto it = Buttons.find(std::string(id)); it != Buttons.end())
         return it->second;
 
-    return Buttons.try_emplace(std::string(id), ClickRouting.Lifecycle()).first->second;
+    return Buttons.try_emplace(std::string(id), ClickRouting.ForEvent()).first->second;
 }
 
 bool UiPanelState::StartClickRouting()

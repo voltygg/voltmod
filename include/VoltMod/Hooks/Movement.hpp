@@ -2,7 +2,7 @@
 
 #include <VoltMod/Core/Capabilities.hpp>
 #include <VoltMod/Core/Event.hpp>
-#include <VoltMod/Core/SharedSource.hpp>
+#include <VoltMod/Core/SharedLifecycle.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Hooks/PlayerInput.hpp>
@@ -40,7 +40,7 @@ public:
 
 private:
     /** Declared before the events: all three take a lifecycle from it. */
-    SharedSource _source;
+    SharedLifecycle _lifecycle;
 
 public:
     /** Edit the decoded command before any Before handler reads it. Only the snapshot changes;

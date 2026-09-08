@@ -1,40 +1,40 @@
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/SharedSource.hpp>
+#include <VoltMod/Core/SharedLifecycle.hpp>
 #include <utility>
 
 namespace VoltMod
 {
 
-SharedSource::SharedSource(std::string what, std::function<bool()> start, std::function<void()> stop)
+SharedLifecycle::SharedLifecycle(std::string what, std::function<bool()> start, std::function<void()> stop)
     : _what(std::move(what)), _start(std::move(start)), _stop(std::move(stop))
 {}
 
-SharedSource::~SharedSource()
+SharedLifecycle::~SharedLifecycle()
 {
     // Never leave a handler pointing into state that is going away.
-    if (_subscribers != 0)
+    if (_listening != 0)
         Log::Error("{}: {} event(s) still had handlers when the source went away; one may dangle.", _what,
-                   _subscribers);
+                   _listening);
 }
 
-EventLifecycle SharedSource::Lifecycle()
+EventLifecycle SharedLifecycle::ForEvent()
 {
-    return {.OnFirst = [this] { return AddSubscriber(); }, .OnLast = [this] { RemoveSubscriber(); }};
+    return {.OnFirst = [this] { return AddListener(); }, .OnLast = [this] { RemoveListener(); }};
 }
 
-bool SharedSource::AddSubscriber()
+bool SharedLifecycle::AddListener()
 {
     // A refused start leaves the count at zero, so the next subscriber retries.
-    if (_subscribers == 0 && _start && !_start())
+    if (_listening == 0 && _start && !_start())
         return false;
 
-    ++_subscribers;
+    ++_listening;
     return true;
 }
 
-void SharedSource::RemoveSubscriber()
+void SharedLifecycle::RemoveListener()
 {
-    if (_subscribers > 0 && --_subscribers == 0 && _stop)
+    if (_listening > 0 && --_listening == 0 && _stop)
         _stop();
 }
 

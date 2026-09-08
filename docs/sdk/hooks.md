@@ -161,7 +161,7 @@ reconfigure a live hook to the wrong slot.
 - An optional live instance detects a mismatched class table.
 - Slot correctness still requires manual verification; see @ref sdk_gamedata_guide.
 - Use an `EventLifecycle` for a hook that should exist only while subscribed, or a
-  `SharedSource` when several events share the one hook.
+  `SharedLifecycle` when several events share the one hook.
 - Keep `VtableHook` beside the handler state so their lifetimes match.
 
 ## ServerCommand

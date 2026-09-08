@@ -16,17 +16,17 @@ namespace VoltMod
 VOLTMOD_VHOOK1(VoltMod_MovementRunCommand, void*, void*);
 
 Movement::Movement(EntitySystem& entities, const Bindings& bindings, Capabilities& capabilities)
-    : _source(
+    : _lifecycle(
           "Movement", [this] { return StartHook(); }, [this] { StopHook(); }),
-      Rewrite(_source.Lifecycle()),
-      Before(_source.Lifecycle()),
-      After(_source.Lifecycle()),
+      Rewrite(_lifecycle.ForEvent()),
+      Before(_lifecycle.ForEvent()),
+      After(_lifecycle.ForEvent()),
       _entities(entities),
       _capabilities(capabilities),
       _bindings(bindings)
 {}
 
-// A subscription that outlives this object leaves a hook into an unloaded module; _source logs it.
+// A subscription that outlives this object leaves a hook into an unloaded module; _lifecycle logs it.
 Movement::~Movement() = default;
 
 bool Movement::StartHook()

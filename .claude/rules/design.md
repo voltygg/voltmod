@@ -28,7 +28,7 @@ The shapes the framework already uses. New code follows them instead of adding a
 - `PlayerManager` owns the roster and raises `Connected`, `FullyConnected`, `SettingsChanged`, `Disconnected`. No lifecycle virtuals on `MetamodPlugin`.
 - A signal is a public `Event<Args...>` member. `+=` is the only way to subscribe; `Raise` belongs to the owner.
 - Game events go through `GameEvents::On<T>` with a struct in `Events/EventTypes.hpp`. No string form.
-- An `Event` whose source costs something takes an `EventLifecycle`: first subscription installs, last drop removes, and `OnFirst` returning false refuses after logging why. One source feeding several events uses a `SharedSource` instead of counting subscribers itself.
+- An `Event` whose source costs something takes an `EventLifecycle`: first subscription installs, last drop removes, and `OnFirst` returning false refuses after logging why. One source feeding several events uses a `SharedLifecycle` instead of counting subscribers itself.
 
 ## Capabilities
 

@@ -6,7 +6,7 @@
 
 #include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Core/Result.hpp>
-#include <VoltMod/Core/SharedSource.hpp>
+#include <VoltMod/Core/SharedLifecycle.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Entities/EntityOps.hpp>
@@ -98,7 +98,7 @@ struct UiPanelState
 
     /** Declared before the events it feeds, so it outlives them. @ref ClickListener is taken
      *  while any of @ref Clicked and the @ref Buttons entries is listening, and only once. */
-    SharedSource ClickRouting;
+    SharedLifecycle ClickRouting;
 
     Event<const UiClick&> Clicked;
     Internal::UiButtonEvents Buttons;
