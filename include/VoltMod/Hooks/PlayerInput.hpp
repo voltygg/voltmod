@@ -31,13 +31,12 @@ struct InputHistorySample
 
 /**
  * @brief Protobuf-free snapshot of the CUserCmd handed to
- * CPlayer_MovementServices::RunCommand, decoded by Movement for its
- * cmd events (Movement::PreCmd).
+ * CPlayer_MovementServices::RunCommand, decoded once per command by @ref Movement.
  *
  * Valid is false when the usercmd pointer was null or the "UserCmdPB" gamedata
  * offset is missing - fields then hold their defaults and must not be trusted.
  */
-struct UserCmdView
+struct PlayerInput
 {
     bool Valid = false;
     int32_t ClientTick = 0;

@@ -8,40 +8,29 @@ availability.
 
 ## Movement
 
-@ref VoltMod::Movement hooks `CCSPlayer_MovementServices::RunCommand`. `Pre` and `Post` bracket one
-player's movement and suit scoped state changes such as @ref VoltMod::ConVar::RawScope.
+@ref VoltMod::Movement hooks `CCSPlayer_MovementServices::RunCommand`. `Before` and `After`
+bracket one player's movement, and both carry the decoded @ref VoltMod::PlayerInput:
 
 ```cpp
 // Keep each Subscription beside the state captured by its handler.
-_pre  = runtime.Hooks.Movement.Pre  += [this](int slot) { /* before movement runs */ };
-_post = runtime.Hooks.Movement.Post += [this](int slot) { /* after it ran: restore */ };
+_before = runtime.Hooks.Movement.Before += [this](int slot, const VoltMod::PlayerInput& cmd) {
+    if (!cmd.Valid)
+        return;  // null usercmd or missing gamedata offset
+    // cmd.ViewYaw, cmd.MouseDx, cmd.ButtonsHeld, cmd.SubtickMoves[0].YawDelta, ...
+};
+_after = runtime.Hooks.Movement.After += [this](int slot, const VoltMod::PlayerInput&) { /* restore */ };
 ```
 
 Hook contracts:
 
 - The DVP hook binds the class vtable and covers current and future players.
 - Unresolved gamedata returns an empty `Subscription` and logs the reason.
-- Pre and post install atomically.
+- Pre and post install atomically, and the command is decoded once per RunCommand.
 - The slot is `-1` when its owner cannot be resolved.
 - Removal by hook id remains safe after pawn destruction.
 - Re-verify the `RunCommand` class and slot after CS2 updates. A wrong slot can crash.
-
-### Cmd events: reading the usercmd
-
-`PreCmd` also provides a @ref VoltMod::UserCmdView. It decodes view angles,
-button masks, mouse deltas, and per-subtick angle changes from the
-`CSGOUserCmdPB` payload:
-
-```cpp
-_preCmd = runtime.Hooks.Movement.PreCmd += [](int slot, const VoltMod::UserCmdView& cmd) {
-    if (!cmd.Valid)
-        return;  // null usercmd or missing gamedata offset
-    // cmd.ViewYaw, cmd.MouseDx, cmd.ButtonsHeld, cmd.SubtickMoves[0].YawDelta, ...
-};
-```
-
-Decoding runs only for `PreCmd` or `FilterCmd` subscribers. Re-verify the `UserCmdPB` offset after
-CS2 updates. A missing offset yields `Valid=false`; a stale offset can read garbage.
+- Re-verify the `UserCmdPB` offset too. A missing offset yields `Valid=false`; a stale one reads
+  garbage.
 
 Important fields:
 
@@ -71,13 +60,13 @@ else if (index >= 0)
 
 Compare against `InputHistoryTotalCount` to distinguish absent, invalid, and capped samples.
 
-### FilterCmd: editing the decoded usercmd
+### Rewrite: editing the decoded command
 
-`FilterCmd` receives a mutable `UserCmdView&` after decoding and before all
-`Pre` and `PreCmd` handlers. Later handlers observe its edits:
+`Rewrite` receives a mutable `PlayerInput&` after decoding and before every `Before` handler.
+Later handlers observe its edits:
 
 ```cpp
-_filter = runtime.Hooks.Movement.FilterCmd += [](int slot, VoltMod::UserCmdView& cmd) {
+_rewrite = runtime.Hooks.Movement.Rewrite += [](int slot, VoltMod::PlayerInput& cmd) {
     cmd.ViewYaw += 90.0f;  // every downstream reader now sees the rotated view
 };
 ```

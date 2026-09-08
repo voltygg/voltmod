@@ -14,7 +14,7 @@ VoltMod
 ├── Events      The game event service and its typed event structs
 ├── Messaging   Chat and center-HTML messages, chat colors, the vote panel
 ├── Players     The roster, the Policy gate, action and effect dispatch
-├── Hooks       Movement, transmit, teleport, chat input, client convars
+├── Hooks       Movement, visibility, teleport, chat input, client convars
 ├── Ui          Panorama custom_hud_layout panels and the button presses they send back
 ├── Workshop    Workshop addon delivery: what connecting clients are told to download
 ├── Commands    Chat and console commands: the fluent builder, typed Args, the router
@@ -59,7 +59,7 @@ runtime.Players.Get(slot);
 runtime.Messages.Reply(slot, "done");
 runtime.Entities.PawnOf(slot).SetHealth(100);
 runtime.World.Precache.Add("models/props/mine.vmdl");
-runtime.Hooks.Movement.Pre += [](int slot) { /* ... */ };
+runtime.Hooks.Movement.Before += [](int slot, const PlayerInput&) { /* ... */ };
 ```
 
 Schema offsets are not a service. They are baked into the generated accessors at

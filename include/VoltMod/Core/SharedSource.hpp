@@ -11,15 +11,14 @@ namespace VoltMod
  * @brief One engine-side source shared by several events, started and stopped on demand.
  *
  * A service with a single event gives @ref Event an @ref EventLifecycle directly. A service whose
- * events all come from one source - four movement events behind one RunCommand hook, a panel's
+ * events all come from one source - three movement events behind one RunCommand hook, a panel's
  * Clicked plus one event per button behind one click subscription - needs that source running
  * while *any* of them is listening:
  *
  * @code
  * Movement::Movement(...)
  *     : _source("Movement", [this] { return StartHook(); }, [this] { StopHook(); }),
- *       Pre(_source.Lifecycle()), Post(_source.Lifecycle()),
- *       PreCmd(_source.Lifecycle()), FilterCmd(_source.Lifecycle())
+ *       Rewrite(_source.Lifecycle()), Before(_source.Lifecycle()), After(_source.Lifecycle())
  * @endcode
  *
  * It starts when the first of those events gains a handler and stops when the last one still

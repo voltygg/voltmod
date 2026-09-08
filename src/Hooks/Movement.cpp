@@ -2,7 +2,6 @@
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
-#include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Hooks/Movement.hpp>
 #include <VoltMod/Schema/Api.hpp>
 #include <VoltMod/Unsafe/VtableHook.hpp>
@@ -16,49 +15,42 @@ namespace VoltMod
 // Hooks CPlayer_MovementServices::RunCommand for every player. The opaque types are unused.
 VOLTMOD_VHOOK1(VoltMod_MovementRunCommand, void*, void*);
 
-// All four events share one hook, started and stopped by _source.
 Movement::Movement(EntitySystem& entities, const Bindings& bindings, Capabilities& capabilities)
     : _source(
           "Movement", [this] { return StartHook(); }, [this] { StopHook(); }),
-      Pre(_source.Lifecycle()),
-      Post(_source.Lifecycle()),
-      PreCmd(_source.Lifecycle()),
-      FilterCmd(_source.Lifecycle()),
+      Rewrite(_source.Lifecycle()),
+      Before(_source.Lifecycle()),
+      After(_source.Lifecycle()),
       _entities(entities),
       _capabilities(capabilities),
       _bindings(bindings)
 {}
 
-// A hook left pointing into an unloaded module can only come from a subscription that outlived
-// this object; _source logs that case.
+// A subscription that outlives this object leaves a hook into an unloaded module; _source logs it.
 Movement::~Movement() = default;
 
 bool Movement::StartHook()
 {
     if (!_bindings.UserCmdPB)
-        Log::Warn("Movement: no usable 'UserCmdPB' offset; cmd listeners get Valid=false views.");
+        Log::Warn("Movement: no usable 'UserCmdPB' offset; handlers get Valid=false commands.");
 
     if (!_bindings.UserCmdNumber)
         Log::Warn(
             "Movement: no usable 'UserCmdNumber' offset; falling back to the protobuf's "
             "legacy_command_number, which the live client leaves at 0.");
 
-    _movementServices.fill({});
-
     auto hook = VtableHook::OnVTable<VoltMod_MovementRunCommandHook>(
         "Movement RunCommand", _bindings.RunCommand, this, &Movement::Hook_RunCommandPre,
         &Movement::Hook_RunCommandPost, LiveMovementServices());
     if (!hook)
     {
-        // Bindings marked the capability usable from gamedata alone; the install is the
-        // second half of that promise, so a failure here has to retract it.
+        // Bindings marked the capability usable from gamedata alone; a failed install retracts it.
         Log::Warn("Movement: {}; movement handlers will not fire.", hook.error().Detail);
         _capabilities.Set(Capability::Movement, false, hook.error().Detail);
         return false;
     }
 
     _hook = std::move(*hook);
-    // A retry that installs must not leave the capability reading false against a live hook.
     _capabilities.Set(Capability::Movement, true);
     return true;
 }
@@ -66,11 +58,9 @@ bool Movement::StartHook()
 void Movement::StopHook()
 {
     _hook.Reset();
-    // Pawn pointers may be stale after reinstall.
-    _movementServices.fill({});
 }
 
-void* Movement::LiveMovementServices() const
+void* Movement::LiveMovementServices()
 {
     for (int slot = 0; slot < MaxPlayers; ++slot)
         if (Schema::CPlayer_MovementServices instance = _entities.MovementServices(slot))
@@ -78,68 +68,50 @@ void* Movement::LiveMovementServices() const
     return nullptr;
 }
 
-int Movement::SlotFromMovementServices(void* movementServices) const
+int Movement::SlotOf(void* movementServices)
 {
-    if (!movementServices)
-        return -1;
-
-    // Validate cached pointers before reuse.
-    auto& entities = _entities;
-    for (int slot = 0; slot < MaxPlayers; ++slot)
-        if (_movementServices[slot] == movementServices && entities.MovementServices(slot).Base() == movementServices)
-            return slot;
-
-    int found = -1;
-    for (int slot = 0; slot < MaxPlayers; ++slot)
-    {
-        _movementServices[slot] = entities.MovementServices(slot).Base();
-        if (_movementServices[slot] == movementServices)
-            found = slot;
-    }
-    return found;
+    // The component's owner is the pawn, and the pawn knows its controller: no roster scan.
+    CEntityInstance* pawn = Schema::CPlayer_MovementServices{movementServices}.OwnerEntity();
+    return pawn ? Pawn{_entities, pawn}.Slot() : -1;
 }
 
-void Movement::DecodeUserCmd(void* userCmd)
+void Movement::Decode(const void* userCmd)
 {
-    _cmdView = {};
+    _cmd = {};
     if (!userCmd || !_bindings.UserCmdPB)
         return;
 
     const auto* pb = static_cast<const CSGOUserCmdPB*>(_bindings.UserCmdPB.Ptr(userCmd));
     const auto& base = pb->base();
 
-    _cmdView.Valid = true;
-    _cmdView.ClientTick = base.client_tick();
+    _cmd.Valid = true;
+    _cmd.ClientTick = base.client_tick();
     // Live clients keep the command number in the wrapper, not the protobuf payload.
-    if (_bindings.UserCmdNumber)
-        _cmdView.CommandNumber = _bindings.UserCmdNumber.Read(userCmd);
-    else
-        _cmdView.CommandNumber = base.legacy_command_number();
-    _cmdView.HasViewAngles = base.has_viewangles();
-    if (_cmdView.HasViewAngles)
+    _cmd.CommandNumber = _bindings.UserCmdNumber ? _bindings.UserCmdNumber.Read(userCmd) : base.legacy_command_number();
+    _cmd.HasViewAngles = base.has_viewangles();
+    if (_cmd.HasViewAngles)
     {
-        _cmdView.ViewPitch = base.viewangles().x();
-        _cmdView.ViewYaw = base.viewangles().y();
-        _cmdView.ViewRoll = base.viewangles().z();
+        _cmd.ViewPitch = base.viewangles().x();
+        _cmd.ViewYaw = base.viewangles().y();
+        _cmd.ViewRoll = base.viewangles().z();
     }
-    _cmdView.ForwardMove = base.forwardmove();
-    _cmdView.LeftMove = base.leftmove();
+    _cmd.ForwardMove = base.forwardmove();
+    _cmd.LeftMove = base.leftmove();
     if (base.has_buttons_pb())
     {
-        _cmdView.ButtonsHeld = base.buttons_pb().buttonstate1();
-        _cmdView.ButtonsChanged = base.buttons_pb().buttonstate2();
+        _cmd.ButtonsHeld = base.buttons_pb().buttonstate1();
+        _cmd.ButtonsChanged = base.buttons_pb().buttonstate2();
     }
-    _cmdView.MouseDx = base.mousedx();
-    _cmdView.MouseDy = base.mousedy();
-    _cmdView.Attack1StartHistoryIndex = pb->attack1_start_history_index();
-    _cmdView.Attack2StartHistoryIndex = pb->attack2_start_history_index();
+    _cmd.MouseDx = base.mousedx();
+    _cmd.MouseDy = base.mousedy();
+    _cmd.Attack1StartHistoryIndex = pb->attack1_start_history_index();
+    _cmd.Attack2StartHistoryIndex = pb->attack2_start_history_index();
 
-    int count = std::min(base.subtick_moves_size(), UserCmdView::MaxSubtickMoves);
-    _cmdView.SubtickMoveCount = count;
-    for (int i = 0; i < count; ++i)
+    _cmd.SubtickMoveCount = std::min(base.subtick_moves_size(), PlayerInput::MaxSubtickMoves);
+    for (int i = 0; i < _cmd.SubtickMoveCount; ++i)
     {
         const auto& move = base.subtick_moves(i);
-        _cmdView.SubtickMoves[i] = {
+        _cmd.SubtickMoves[i] = {
             .Button = move.button(),
             .Pressed = move.pressed(),
             .When = move.when(),
@@ -148,13 +120,12 @@ void Movement::DecodeUserCmd(void* userCmd)
         };
     }
 
-    _cmdView.InputHistoryTotalCount = pb->input_history_size();
-    int history = std::min(_cmdView.InputHistoryTotalCount, UserCmdView::MaxInputHistory);
-    _cmdView.InputHistorySampleCount = history;
-    for (int i = 0; i < history; ++i)
+    _cmd.InputHistoryTotalCount = pb->input_history_size();
+    _cmd.InputHistorySampleCount = std::min(_cmd.InputHistoryTotalCount, PlayerInput::MaxInputHistory);
+    for (int i = 0; i < _cmd.InputHistorySampleCount; ++i)
     {
         const auto& entry = pb->input_history(i);
-        auto& sample = _cmdView.InputHistorySamples[i];
+        auto& sample = _cmd.InputHistorySamples[i];
         sample.TargetEntIndex = entry.target_ent_index();
         if (entry.has_view_angles())
         {
@@ -167,20 +138,16 @@ void Movement::DecodeUserCmd(void* userCmd)
 
 void* Movement::Hook_RunCommandPre(void* userCmd)
 {
-    _preSlot = SlotFromMovementServices(META_IFACEPTR(void));
-    if (!PreCmd.Empty() || !FilterCmd.Empty())
-        DecodeUserCmd(userCmd);
-    // Filters run before observers see the command.
-    FilterCmd.Raise(_preSlot, _cmdView);
-    Pre.Raise(_preSlot);
-    PreCmd.Raise(_preSlot, _cmdView);
+    _slot = SlotOf(META_IFACEPTR(void));
+    Decode(userCmd);
+    Rewrite.Raise(_slot, _cmd);
+    Before.Raise(_slot, _cmd);
     RETURN_META_VALUE(MRES_IGNORED, nullptr);
 }
 
 void* Movement::Hook_RunCommandPost(void* /*userCmd*/)
 {
-    // RunCommand is non-nested, so post reuses the slot resolved by pre.
-    Post.Raise(_preSlot);
+    After.Raise(_slot, _cmd);
     RETURN_META_VALUE(MRES_IGNORED, nullptr);
 }
 
