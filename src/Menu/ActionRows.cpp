@@ -16,14 +16,20 @@ bool ActionRows::Allowed(std::string_view permission) const
     return _services->Policy.Authorize(_admin, _target, permission).has_value();
 }
 
+Condition ActionRows::Allows(std::string_view permission) const
+{
+    return Condition([services = _services, admin = _admin, target = _target, permission = std::string(permission)](
+                         int) { return services->Policy.Authorize(admin, target, permission).has_value(); });
+}
+
+EffectDispatcher ActionRows::Effects() const
+{
+    return EffectDispatcher{_services->Actions, *_services->Effects};
+}
+
 std::string ActionRows::Tr(std::string_view key, Tokens tokens) const
 {
     return _services->Translations.Get(key, _admin.Slot, tokens);
-}
-
-ActionRows::ToggleText ActionRows::StateLabels() const
-{
-    return {.On = Tr("effectState.on"), .Off = Tr("effectState.off")};
 }
 
 MenuItem ActionRows::Action(std::string_view labelKey, const VoltMod::Action& action)
@@ -35,7 +41,7 @@ MenuItem ActionRows::Action(std::string_view labelKey, const VoltMod::Action& ac
         .Label = Tr(labelKey),
         .Activate = [services = _services, admin = _admin, target = TargetRef(),
                      act = &action](int) { services->Actions.Run(admin, target, *act); },
-        .Enabled = Allowed(action.Permission),
+        .Enabled = Allows(action.Permission),
     }
         .ToItem();
 }
@@ -43,11 +49,8 @@ MenuItem ActionRows::Action(std::string_view labelKey, const VoltMod::Action& ac
 MenuItem ActionRows::StateToggle(std::string_view labelKey, std::function<bool(const Pawn&)> isActive,
                                  const VoltMod::Action& action)
 {
-    ToggleText state = StateLabels();
     return ToggleRow{
         .Label = Tr(labelKey),
-        .On = std::move(state.On),
-        .Off = std::move(state.Off),
         .Get =
             [services = _services, target = TargetRef(), isActive = std::move(isActive)](int) {
                 Pawn pawn = services->Entities.PawnOf(target.Slot);
@@ -55,7 +58,7 @@ MenuItem ActionRows::StateToggle(std::string_view labelKey, std::function<bool(c
             },
         .Flip = [services = _services, admin = _admin, target = TargetRef(),
                  act = &action](int) { services->Actions.Run(admin, target, *act); },
-        .Enabled = Allowed(action.Permission),
+        .Enabled = Allows(action.Permission),
     }
         .ToItem();
 }
@@ -75,31 +78,30 @@ MenuItem ActionRows::Presets(const PresetSpec& spec)
         .Commit = [services = _services, admin = _admin, target = TargetRef(), act = &spec.Action](
                       int, const int& value) { services->Actions.Run(admin, target, value, *act); },
         .Index = spec.Index,
-        .Enabled = Allowed(spec.Action.Permission),
+        .Enabled = Allows(spec.Action.Permission),
     }
         .ToItem();
+}
+
+Condition ActionRows::EffectAllows(const EffectDescriptor& effect) const
+{
+    return _services->Effects ? Allows(effect.Permission) : Condition(false);
 }
 
 MenuItem ActionRows::Effect(const EffectDescriptor& effect)
 {
-    ToggleText state = StateLabels();
     return ToggleRow{
         .Label = Tr(effect.NameKey),
-        .On = std::move(state.On),
-        .Off = std::move(state.Off),
         .Get = [effects = _services->Effects, target = TargetRef(),
                 id = effect.Id](int) { return effects && effects->IsActive(target.Slot, id); },
-        .Flip =
-            [services = _services, admin = _admin, target = TargetRef(), e = &effect](int) {
-                if (services->Effects)
-                    EffectDispatcher{services->Actions, *services->Effects}.Toggle(admin, target, *e);
-            },
-        .Enabled = Allowed(effect.Permission),
+        .Flip = [self = *this, target = TargetRef(),
+                 e = &effect](int) { self.Effects().Toggle(self._admin, target, *e); },
+        .Enabled = EffectAllows(effect),
     }
         .ToItem();
 }
 
-std::shared_ptr<Menu> ActionRows::BuildPicker(const EffectDescriptor& effect, bool allowed) const
+std::shared_ptr<Menu> ActionRows::BuildPicker(const EffectDescriptor& effect, Condition allowed) const
 {
     // Get(PlayerRef), not Get(slot): a picker built for a player who has since left must not
     // reopen against whoever took the slot.
@@ -111,10 +113,9 @@ std::shared_ptr<Menu> ActionRows::BuildPicker(const EffectDescriptor& effect, bo
 
     MenuBuilder builder(std::format("{}: {}", Tr(effect.NameKey), targetPlayer->Name()));
 
-    auto apply = [services = _services, admin = _admin, target = *_target, e = &effect](int slot, int param) {
-        if (services->Effects)
-            EffectDispatcher{services->Actions, *services->Effects}.Apply(admin, target, *e, param);
-        services->Menus.CloseAll(slot);
+    auto apply = [self = *this, target = *_target, e = &effect](int slot, int param) {
+        self.Effects().Apply(self._admin, target, *e, param);
+        self._services->Menus.CloseAll(slot);
     };
 
     for (const auto& choice : effect.Choices ? effect.Choices() : std::vector<EffectChoice>{})
@@ -128,11 +129,9 @@ std::shared_ptr<Menu> ActionRows::BuildPicker(const EffectDescriptor& effect, bo
     {
         builder.Add(ButtonRow{.Label = Tr(effect.ResetLabelKey),
                               .Activate =
-                                  [services = _services, admin = _admin, target = *_target, e = &effect](int slot) {
-                                      if (services->Effects)
-                                          EffectDispatcher{services->Actions, *services->Effects}.Clear(admin, target,
-                                                                                                        *e);
-                                      services->Menus.CloseAll(slot);
+                                  [self = *this, target = *_target, e = &effect](int slot) {
+                                      self.Effects().Clear(self._admin, target, *e);
+                                      self._services->Menus.CloseAll(slot);
                                   },
                               .Enabled = allowed});
     }
@@ -142,7 +141,7 @@ std::shared_ptr<Menu> ActionRows::BuildPicker(const EffectDescriptor& effect, bo
 
 MenuItem ActionRows::EffectPicker(const EffectDescriptor& effect)
 {
-    const bool allowed = Allowed(effect.Permission);
+    Condition allowed = EffectAllows(effect);
     return SubmenuRow{
         .Label = Tr(effect.NameKey),
         .Build = [self = *this, e = &effect, allowed](int) -> std::shared_ptr<Menu> {

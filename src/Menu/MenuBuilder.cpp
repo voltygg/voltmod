@@ -4,43 +4,60 @@
 namespace VoltMod
 {
 
-// Every spec is copied into its callbacks by value: a row outlives the spec value the caller
-// wrote it from, and a menu is routinely built from locals inside a factory lambda.
-
-MenuItem ButtonRow::ToItem() const
+/** The Describe every spec shares; @p live is what a row with a value adds on each redraw. */
+static std::function<MenuRow(int)> Describer(std::string label, MenuRowKind kind, Condition enabled,
+                                             std::function<void(int slot, MenuRow& row)> live = {})
 {
-    return MenuItem{
-        .Describe = [label = Label, enabled = Enabled](
-                        int) { return MenuRow{.Label = label, .Kind = MenuRowKind::Button, .Enabled = enabled}; },
-        .Activate =
-            [activate = Activate, enabled = Enabled](int slot, MenuSession&) {
-                if (enabled && activate)
-                    activate(slot);
-            },
+    return [label = std::move(label), kind, enabled = std::move(enabled), live = std::move(live)](int slot) {
+        MenuRow row{.Label = label,
+                    .Kind = kind,
+                    .Enabled = enabled(slot),
+                    // Only a caption refuses the cursor.
+                    .Selectable = kind != MenuRowKind::Text};
+        if (live)
+            live(slot, row);
+        return row;
     };
 }
 
-MenuItem ToggleRow::ToItem() const
+/** @p action, run only while @p enabled takes the slot. */
+static std::function<void(int, MenuSession&)> Gated(Condition enabled, std::function<void(int, MenuSession&)> action)
+{
+    return [enabled = std::move(enabled), action = std::move(action)](int slot, MenuSession& session) {
+        if (action && enabled(slot))
+            action(slot, session);
+    };
+}
+
+MenuItem ButtonRow::ToItem() &&
 {
     return MenuItem{
-        .Describe =
-            [label = Label, on = On, off = Off, get = Get, enabled = Enabled](int slot) {
-                const bool state = get && get(slot);
-                return MenuRow{.Label = label,
-                               .Value = state ? on : off,
-                               .Kind = MenuRowKind::Toggle,
-                               .Enabled = enabled,
-                               .Steppable = true,
-                               .State = state};
-            },
-        .Activate =
-            [flip = Flip, enabled = Enabled](int slot, MenuSession&) {
-                if (enabled && flip)
-                    flip(slot);
-            },
+        .Describe = Describer(std::move(Label), MenuRowKind::Button, Enabled),
+        .Activate = Gated(std::move(Enabled),
+                          [activate = std::move(Activate)](int slot, MenuSession&) {
+                              if (activate)
+                                  activate(slot);
+                          }),
+    };
+}
+
+MenuItem ToggleRow::ToItem() &&
+{
+    // No on/off words here: the row reports its state and OpenMenus::Describe spells it.
+    return MenuItem{
+        .Describe = Describer(std::move(Label), MenuRowKind::Toggle, Enabled,
+                              [get = Get](int slot, MenuRow& row) {
+                                  row.Steppable = true;
+                                  row.State = get && get(slot);
+                              }),
+        .Activate = Gated(Enabled,
+                          [flip = Flip](int slot, MenuSession&) {
+                              if (flip)
+                                  flip(slot);
+                          }),
         .Step =
-            [flip = Flip, enabled = Enabled](int slot, int) {
-                if (!enabled || !flip)
+            [flip = std::move(Flip), enabled = std::move(Enabled)](int slot, int) {
+                if (!flip || !enabled(slot))
                     return false;
                 flip(slot);
                 return true;
@@ -48,54 +65,47 @@ MenuItem ToggleRow::ToItem() const
     };
 }
 
-MenuItem InputRow::ToItem() const
+MenuItem InputRow::ToItem() &&
 {
     return MenuItem{
-        .Describe =
-            [label = Label, get = Get, enabled = Enabled](int slot) {
-                std::string value = get ? get(slot) : std::string{};
-                // An unset value still needs to look like a field waiting for one.
-                return MenuRow{.Label = label,
-                               .Value = value.empty() ? "…" : std::move(value),
-                               .Kind = MenuRowKind::Input,
-                               .Enabled = enabled};
-            },
-        .Activate =
-            [prompt = Prompt, set = Set, maxLength = MaxLength, enabled = Enabled](int slot, MenuSession& session) {
-                if (!enabled)
-                    return;
+        .Describe = Describer(std::move(Label), MenuRowKind::Input, Enabled,
+                              [get = std::move(Get)](int slot, MenuRow& row) {
+                                  // An unset value still needs to look like a field waiting for one.
+                                  std::string value = get ? get(slot) : std::string{};
+                                  row.Value = value.empty() ? "…" : std::move(value);
+                              }),
+        .Activate = Gated(
+            std::move(Enabled),
+            [prompt = std::move(Prompt), set = std::move(Set), maxLength = MaxLength](int slot, MenuSession& session) {
                 session.Prompt(slot, prompt, [set, maxLength](int s, std::string_view text) {
-                    // Over-long text re-prompts rather than reaching the setter: a chat line is
-                    // whatever the player typed, and the row said how much of it it wants.
+                    // Over-long text re-prompts rather than reaching the setter: a chat
+                    // line is whatever the player typed, and the row said how much of it
+                    // it wants.
                     if (maxLength > 0 && static_cast<int>(text.size()) > maxLength)
                         return false;
                     return set ? set(s, text) : true;
                 });
-            },
+            }),
     };
 }
 
-MenuItem SubmenuRow::ToItem() const
+MenuItem SubmenuRow::ToItem() &&
 {
     return MenuItem{
-        .Describe = [label = Label, enabled = Enabled](
-                        int) { return MenuRow{.Label = label, .Kind = MenuRowKind::Submenu, .Enabled = enabled}; },
-        .Activate =
-            [build = Build, enabled = Enabled](int slot, MenuSession& session) {
-                if (!enabled || !build)
-                    return;
-                if (auto submenu = build(slot))
-                    session.Open(slot, std::move(submenu));
-            },
+        .Describe = Describer(std::move(Label), MenuRowKind::Submenu, Enabled),
+        .Activate = Gated(std::move(Enabled),
+                          [build = std::move(Build)](int slot, MenuSession& session) {
+                              if (!build)
+                                  return;
+                              if (auto submenu = build(slot))
+                                  session.Open(slot, std::move(submenu));
+                          }),
     };
 }
 
-MenuItem TextRow::ToItem() const
+MenuItem TextRow::ToItem() &&
 {
-    return MenuItem{
-        .Describe =
-            [label = Label](int) { return MenuRow{.Label = label, .Kind = MenuRowKind::Text, .Selectable = false}; },
-    };
+    return MenuItem{.Describe = Describer(std::move(Label), MenuRowKind::Text, true)};
 }
 
 }  // namespace VoltMod

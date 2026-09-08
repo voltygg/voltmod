@@ -10,9 +10,6 @@
 namespace VoltMod
 {
 
-/** Maximum items shown per page before the menu paginates. */
-inline constexpr int ItemsPerPage = 5;
-
 /** Pages @p items need at @p perPage each, never less than one so an empty menu still draws. */
 constexpr int PageCount(int items, int perPage)
 {
@@ -60,10 +57,11 @@ struct MenuRow
     bool Selectable = true;
     /** True when A/D - or the row's steppers - change the value rather than paging. */
     bool Steppable = false;
-    /** An on/off row's state, so a driver can draw a switch instead of reading @ref Value. */
+    /** An on/off row's state, so a driver can draw a switch instead of reading @ref Value. A
+     *  Toggle that leaves @ref Value empty has it spelled from this. */
     std::optional<bool> State;
 
-    /** @{ Filled in by @ref MenuManager when it describes the row for a driver, not by
+    /** @{ Filled in by the menu service when it describes the row for a driver, not by
      *  @ref MenuItem::Describe - whatever an item puts here is overwritten.
      *
      *  @ref Pending is true while the row's @ref MenuItem::Commit is waiting out the step
@@ -74,9 +72,6 @@ struct MenuRow
     /** @} */
 };
 
-// Declared here and defined at the bottom of this header: a row hands its Activate a session, and
-// a session opens a menu made of rows, so the three have to be written in one file whichever way
-// round they go.
 struct Menu;
 
 /**
@@ -111,9 +106,15 @@ public:
     virtual void CloseAll(int slot, std::string_view replyKey) = 0;
 
     /** Route the player's next chat line to @p callback, showing @p prompt over the open menu.
-     *  Rows use this instead of reaching for the runtime's ChatInput themselves. */
+     *  Rows use this instead of reaching for the runtime's ChatInput themselves. Closing the menu
+     *  drops the capture. */
     virtual void Prompt(int slot, std::string prompt,
                         std::function<bool(int slot, std::string_view text)> callback) = 0;
+
+    /** @p key in @p slot's language, or @p fallback when the table has no entry for it. A menu
+     *  carries text rather than keys, so this is where a label the framework supplies itself (a
+     *  confirm button, a toggle's on/off word) becomes words. */
+    [[nodiscard]] virtual std::string Translate(int slot, std::string_view key, std::string_view fallback) const = 0;
 
 protected:
     MenuSession() = default;
@@ -145,14 +146,19 @@ struct MenuItem
     /** Apply whatever @ref Step left the row showing. Empty when stepping already applied it,
      *  or when the row must not apply until it is activated.
      *
-     *  A row that has one applies by *stepping*: @ref MenuManager holds the commit for a moment
+     *  A row that has one applies by *stepping*: the menu service holds the commit for a moment
      *  after the last step and then runs it, so a burst of A/D presses is one action rather than
      *  one per press. Activating the row, closing the menu or moving the cursor off it runs what
      *  is held instead of dropping it. */
     std::function<void(int slot)> Commit;
 };
 
-/** A menu, however @ref MenuManager is drawing menus right now. Build with MenuBuilder. */
+/**
+ * @brief A menu, however @ref MenuManager is drawing menus right now. Build with MenuBuilder.
+ *
+ * One menu belongs to one player: a @ref ChoiceRow with no external binding keeps its index in the
+ * item, so sharing a `Menu` would share the selection. Build a fresh one per open.
+ */
 struct Menu
 {
     std::string Title;

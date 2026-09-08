@@ -36,4 +36,20 @@ std::string Strip(std::string_view text)
     return out;
 }
 
+std::vector<std::pair<std::string, std::string>> PaletteChoices(
+    std::function<std::string(std::string_view canonicalName)> labelFor)
+{
+    std::vector<std::pair<std::string, std::string>> choices;
+    choices.reserve(Palette.size());
+
+    for (const auto& entry : Palette)
+    {
+        std::string label = labelFor ? labelFor(entry.Name) : std::string{};
+        if (label.empty())
+            label = std::string(entry.Name);
+        choices.emplace_back(std::move(label), std::string(entry.Name));
+    }
+    return choices;
+}
+
 }  // namespace VoltMod::ChatColors

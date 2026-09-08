@@ -4,7 +4,6 @@
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <functional>
-#include <vector>
 
 namespace VoltMod
 {
@@ -27,10 +26,6 @@ struct CursorRows
 /** True when the cursor may land on @p item as it describes itself to @p slot. A row with no
  *  @ref MenuItem::Describe is malformed and refuses it, as a disabled or Text row does. */
 [[nodiscard]] bool IsCursorTarget(const MenuItem& item, int slot);
-
-/** @p items as rows a cursor moves over, asking each one how it describes itself to @p slot.
- *  @p items must outlive the returned value, which one call's worth of moves gives. */
-[[nodiscard]] CursorRows CursorRowsOf(const std::vector<MenuItem>& items, int slot);
 
 /**
  * @brief Where each player's cursor is, and where a step, a page turn or a new menu puts it.

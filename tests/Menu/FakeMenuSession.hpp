@@ -20,6 +20,9 @@ namespace VoltModTests
 class FakeMenuSession final : public VoltMod::MenuSession
 {
 public:
+    /** Every key Translate was asked for, in order. */
+    mutable std::vector<std::string> Translated;
+
     void Open(int slot, std::shared_ptr<VoltMod::Menu> menu) override
     {
         Slots.push_back(slot);
@@ -41,6 +44,14 @@ public:
         ++Prompts;
         LastPrompt = std::move(prompt);
         LastInput = std::move(callback);
+    }
+
+    /** No translation table here, so a key always resolves to the framework's own fallback -
+     *  which is what makes the default confirm labels observable in a test. */
+    [[nodiscard]] std::string Translate(int, std::string_view key, std::string_view fallback) const override
+    {
+        Translated.emplace_back(key);
+        return std::string(fallback);
     }
 
     /** The menu on top of what has been opened, or null when nothing has been. */

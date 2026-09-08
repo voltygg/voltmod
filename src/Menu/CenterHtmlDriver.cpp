@@ -5,7 +5,9 @@
 namespace VoltMod
 {
 
-CenterHtmlDriver::CenterHtmlDriver(MenuManager& menus, const MenuServices& services) : MenuDriver(menus, services) {}
+CenterHtmlDriver::CenterHtmlDriver(OpenMenus& menus, MenuKeys& keys, MenuSession& session, const MenuServices& services)
+    : MenuDriver(menus, keys, session, services)
+{}
 
 bool CenterHtmlDriver::HandleInput(int slot)
 {
@@ -16,7 +18,7 @@ bool CenterHtmlDriver::HandleInput(int slot)
 
 void CenterHtmlDriver::Present(int slot)
 {
-    auto* menu = Current(slot);
+    auto* menu = _menus.Current(slot);
     if (!menu)
         return;
 
@@ -28,11 +30,11 @@ void CenterHtmlDriver::Present(int slot)
     }
 
     const CenterHtmlView view{
-        .Describe = [this, slot](int index) { return Describe(slot, index); },
-        .Breadcrumb = Breadcrumb(slot),
+        .Describe = [this, slot](int index) { return _menus.Describe(slot, index); },
+        .Breadcrumb = _menus.Breadcrumb(slot),
         .Slot = slot,
-        .SelectedIndex = Selected(slot),
-        .IsSubmenu = Depth(slot) > 1,
+        .SelectedIndex = _menus.Selected(slot),
+        .IsSubmenu = _menus.Depth(slot) > 1,
     };
     _services.Messages.SendCenterHtml(slot, RenderMenuHtml(menu, view, _services.Translations));
 }

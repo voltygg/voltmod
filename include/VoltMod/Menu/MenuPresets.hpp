@@ -3,6 +3,7 @@
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
+#include <VoltMod/Players/PlayerRef.hpp>
 #include <functional>
 #include <memory>
 #include <string>
@@ -14,24 +15,24 @@ namespace VoltMod
 {
 
 /**
- * @brief Reusable, content-agnostic menu building blocks.
+ * The player list @ref AppendPlayerRows and @ref BuildPlayerPicker draw.
  *
- * These take every human-facing string as a parameter, so they carry no localization of their
- * own - the caller supplies already-translated text - and each takes the single service it needs
- * (`runtime.Players`) rather than the runtime.
+ * A row reports a @ref PlayerRef, not a slot: a menu can sit open across a disconnect, and a bare
+ * slot would hand the press to whoever took it. `PlayerManager::Get` answers with nobody instead.
  */
-
-/** The player list @ref AppendPlayerRows and @ref BuildPlayerPicker draw. */
 struct PlayerPicker
 {
     /** Only @ref BuildPlayerPicker uses it; @ref AppendPlayerRows appends into a titled builder. */
     std::string Title;
-    /** Runs with the picked player's slot. The viewer is whoever the caller built this for. */
-    std::function<void(int targetSlot)> Pick;
+    /** Runs with the picked player. The viewer is whoever the caller built this for. */
+    std::function<void(PlayerRef target)> Pick;
+    /** The menu a pick opens, pushed onto the session. Takes precedence over @ref Pick; a null
+     *  return pushes nothing, for a target that has gone. */
+    std::function<std::shared_ptr<Menu>(PlayerRef target)> Open;
     /** Shown as one disabled row when nobody is connected; empty appends nothing. */
     std::string EmptyLabel;
-    /** Per-row: false renders that player disabled. Unset enables every row. */
-    std::function<bool(int targetSlot)> Enabled;
+    /** Per-row, re-asked on every redraw: false renders that player disabled. */
+    std::function<bool(PlayerRef target)> Enabled;
 };
 
 /** Append one row per connected player to @p builder, so a caller can put its own rows above the
@@ -66,6 +67,30 @@ struct DurationMenu
  *  it refuses re-prompts rather than picking a value nobody asked for. */
 std::shared_ptr<Menu> BuildDurationMenu(DurationMenu spec);
 
+/** The lines a confirm dialog lists before its two buttons. */
+class SummaryRows
+{
+public:
+    /** `"{label}: {value}"`, or just `"{label}"` when @p value is empty. */
+    SummaryRows& Add(std::string label, std::string value = {})
+    {
+        _rows.emplace_back(std::move(label), std::move(value));
+        return *this;
+    }
+
+    /** @ref Add only when @p condition holds - a duration line for a punishment that has one. */
+    SummaryRows& AddIf(bool condition, std::string label, std::string value = {})
+    {
+        return condition ? Add(std::move(label), std::move(value)) : *this;
+    }
+
+    /** The rows, formatted one per line. Consumes them. */
+    [[nodiscard]] std::vector<std::string> Take() &&;
+
+private:
+    std::vector<std::pair<std::string, std::string>> _rows;
+};
+
 /**
  * @brief A confirm dialog: what is about to happen, then a confirm row and a cancel row.
  *
@@ -78,6 +103,7 @@ struct ConfirmMenu
     /** Drawn above the two rows, one inert line each. Already formatted: the dialog adds no
      *  punctuation of its own. */
     std::vector<std::string> Lines;
+    /** Empty falls back to "Confirm" / "Cancel"; @ref Flow translates them before it gets here. */
     std::string ConfirmLabel;
     std::string CancelLabel;
     std::function<void(int slot)> Confirm;
@@ -88,13 +114,5 @@ struct ConfirmMenu
 
 /** The menu @ref ConfirmMenu describes. */
 std::shared_ptr<Menu> BuildConfirmMenu(ConfirmMenu spec);
-
-/**
- * @ref ChatColors::Palette as choice-row entries (value = canonical color name), so color pickers
- * grow as the palette does. @p labelFor supplies the localized label for each canonical name;
- * returning "" falls back to the name itself.
- */
-std::vector<std::pair<std::string, std::string>> BuildPaletteChoices(
-    std::function<std::string(std::string_view canonicalName)> labelFor);
 
 }  // namespace VoltMod

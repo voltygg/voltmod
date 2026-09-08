@@ -32,8 +32,7 @@ namespace VoltMod
  *                        .CustomLabel = tr("punish.custom"),
  *                        .CustomPrompt = tr("punish.customPrompt"),
  *                        .Applies = [](const PendingPunishment& s) { return IsTimed(s.Type); }})
- *     ->Confirm({.Title = tr("punish.confirm"), .Summary = SummaryRows,
- *                .ConfirmLabel = tr("nav.confirm"), .CancelLabel = tr("nav.cancel")})
+ *     ->Confirm({.Title = tr("punish.confirm"), .Summary = Summarize})
  *     ->Finish([](PendingPunishment& s) { Issue(s); })
  *     ->Start();
  * @endcode
@@ -83,11 +82,12 @@ public:
         AppliesFn Applies;
     };
 
-    /** The summary dialog the flow ends with; rows render as "{label}: {value}". */
+    /** The summary dialog the flow ends with. Supplying @ref Summary is what turns it on; the
+     *  button labels default to `menu.confirm` / `menu.cancel`. */
     struct ConfirmSpec
     {
         std::string Title;
-        std::function<std::vector<std::pair<std::string, std::string>>(const TState&)> Summary;
+        std::function<void(const TState& state, SummaryRows& rows)> Summary;
         std::string ConfirmLabel;
         std::string CancelLabel;
     };
@@ -224,17 +224,20 @@ private:
     {
         auto self = this->shared_from_this();
 
-        std::vector<std::string> lines;
+        SummaryRows rows;
         if (_confirm.Summary)
-        {
-            for (const auto& [label, value] : _confirm.Summary(_state))
-                lines.push_back(value.empty() ? label : std::format("{}: {}", label, value));
-        }
+            _confirm.Summary(_state, rows);
+
+        // Resolved here because the flow knows which player it runs for.
+        std::string confirmLabel =
+            _confirm.ConfirmLabel.empty() ? _menus->Translate(_slot, "menu.confirm", "Confirm") : _confirm.ConfirmLabel;
+        std::string cancelLabel =
+            _confirm.CancelLabel.empty() ? _menus->Translate(_slot, "menu.cancel", "Cancel") : _confirm.CancelLabel;
 
         return BuildConfirmMenu({.Title = _confirm.Title,
-                                 .Lines = std::move(lines),
-                                 .ConfirmLabel = _confirm.ConfirmLabel,
-                                 .CancelLabel = _confirm.CancelLabel,
+                                 .Lines = std::move(rows).Take(),
+                                 .ConfirmLabel = std::move(confirmLabel),
+                                 .CancelLabel = std::move(cancelLabel),
                                  .Confirm = [self](int) { self->RunFinish(); }});
     }
 

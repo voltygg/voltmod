@@ -33,7 +33,7 @@ std::string_view PanoramaDriver::ClassFor(MenuRowKind kind)
 
 void PanoramaDriver::Present(int slot)
 {
-    auto* menu = Current(slot);
+    auto* menu = _menus.Current(slot);
     if (!menu)
         return;
 
@@ -51,7 +51,7 @@ void PanoramaDriver::Present(int slot)
     // and the next frame redraws anyway.
     (void)_panel.Text(slot, RootId, TitleVar, menu->Title);
     (void)_panel.Text(slot, RootId, SubtitleVar, menu->Subtitle);
-    (void)_panel.Text(slot, RootId, BreadcrumbVar, Breadcrumb(slot));
+    (void)_panel.Text(slot, RootId, BreadcrumbVar, _menus.Breadcrumb(slot));
     (void)_panel.Class(slot, SubtitleId, Css::Hidden, menu->Subtitle.empty());
 
     const auto prompt = _services.ChatInput.GetPrompt(slot);
@@ -83,11 +83,11 @@ void PanoramaDriver::Present(int slot)
 
     // Two ways to say the same thing: `Root` lets the stylesheet draw Back disabled in place,
     // and the older `Hidden` on the button itself keeps a layout that hides it working.
-    const bool atRoot = Depth(slot) <= 1;
+    const bool atRoot = _menus.Depth(slot) <= 1;
     (void)_panel.Class(slot, RootId, Css::Root, atRoot);
     (void)_panel.Class(slot, BackId, Css::Hidden, atRoot);
 
-    (void)_panel.Class(slot, RootId, Css::KeyHints, KeyboardEnabled(slot));
+    (void)_panel.Class(slot, RootId, Css::KeyHints, _menus.KeyboardEnabled(slot));
     (void)_panel.Class(slot, RootId, Css::Hidden, false);
     (void)_panel.InputCapture(slot, true);
 }
@@ -96,7 +96,7 @@ void PanoramaDriver::DrawRow(int slot, int row, int index)
 {
     // Only while keys move it: a click-only session would leave the highlight wherever the cursor
     // happened to start, which reads as a selection the player did not make.
-    WriteRow(slot, row, Describe(slot, index), KeyboardEnabled(slot) && index == Selected(slot));
+    WriteRow(slot, row, _menus.Describe(slot, index), _menus.KeyboardEnabled(slot) && index == _menus.Selected(slot));
 }
 
 void PanoramaDriver::DrawEmpty(int slot)

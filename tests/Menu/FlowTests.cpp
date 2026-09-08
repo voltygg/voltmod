@@ -144,14 +144,12 @@ TEST_CASE("Flow: the confirm dialog summarizes the state and its confirm row fin
 
     auto flow = TestFlow::Create(session, 0, FlowTestState{});
     flow->AddStep(StepNamed("first"))
-        ->Confirm({.Title = "Confirm",
-                   .Summary =
-                       [](const FlowTestState& state) {
-                           return std::vector<std::pair<std::string, std::string>>{
-                               {"Steps", std::to_string(state.Visited.size())}};
-                       },
-                   .ConfirmLabel = "Yes",
-                   .CancelLabel = "No"})
+        ->Confirm(
+            {.Title = "Confirm",
+             .Summary = [](const FlowTestState& state,
+                           VoltMod::SummaryRows& rows) { rows.Add("Steps", std::to_string(state.Visited.size())); },
+             .ConfirmLabel = "Yes",
+             .CancelLabel = "No"})
         ->Finish([](FlowTestState& state) { ++state.Finished; })
         ->Start();
 
@@ -175,7 +173,7 @@ TEST_CASE("Flow: the confirm dialog's cancel row closes without finishing")
 
     auto flow = TestFlow::Create(session, 0, FlowTestState{});
     flow->Confirm({.Title = "Confirm",
-                   .Summary = [](const FlowTestState&) { return std::vector<std::pair<std::string, std::string>>{}; },
+                   .Summary = [](const FlowTestState&, VoltMod::SummaryRows&) {},
                    .ConfirmLabel = "Yes",
                    .CancelLabel = "No"})
         ->Finish([](FlowTestState& state) { ++state.Finished; })
@@ -185,4 +183,28 @@ TEST_CASE("Flow: the confirm dialog's cancel row closes without finishing")
     session.Press(1);
     CHECK(flow->State().Finished == 0);
     CHECK(session.CloseAlls == 1);
+}
+
+TEST_CASE("Flow: a confirm dialog with no labels of its own asks the session for the words")
+{
+    FakeMenuSession session;
+
+    auto flow = TestFlow::Create(session, 0, FlowTestState{});
+    flow->Confirm({.Title = "Confirm",
+                   .Summary =
+                       [](const FlowTestState&, VoltMod::SummaryRows& rows) {
+                           rows.Add("Target", "Bob").AddIf(false, "Duration", "5m").Add("Permanent");
+                       }})
+        ->Finish([](FlowTestState& state) { ++state.Finished; })
+        ->Start();
+
+    REQUIRE(session.Opened.size() == 1);
+    const VoltMod::Menu* confirm = session.Last();
+    REQUIRE(confirm->Items.size() == 4);
+    CHECK(confirm->Items[0].Describe(0).Label == "Target: Bob");
+    // AddIf(false) drops its line, and a row with no value is the label on its own.
+    CHECK(confirm->Items[1].Describe(0).Label == "Permanent");
+    CHECK(confirm->Items[2].Describe(0).Label == "Confirm");
+    CHECK(confirm->Items[3].Describe(0).Label == "Cancel");
+    CHECK(session.Translated == std::vector<std::string>{"menu.confirm", "menu.cancel"});
 }

@@ -35,7 +35,7 @@ class PanoramaDriver final : public MenuDriver
 public:
     /** @p panel is the layout to drive, already validated by @ref CustomUi::Panel. Nothing is
      *  spawned until the first @ref Present. */
-    PanoramaDriver(MenuManager& menus, const MenuServices& services, UiPanel panel);
+    PanoramaDriver(OpenMenus& menus, MenuKeys& keys, MenuSession& session, const MenuServices& services, UiPanel panel);
     ~PanoramaDriver() override;
 
     /** Rows one page shows. The layout has to declare exactly this many `vm_row{i}` runs. */

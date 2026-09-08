@@ -4,6 +4,7 @@
 #include <VoltMod/Core/Translations.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
+#include <cstddef>
 #include <doctest/doctest.h>
 #include <memory>
 #include <string>
@@ -147,7 +148,17 @@ TEST_CASE("CenterHtmlRender: a toggle draws its value as a switch")
 
     auto menu = MenuBuilder("Test Menu").Add(ToggleRow{.Label = "Prefix", .Get = [](int) { return true; }}).Build();
 
-    CHECK(RenderMenuHtml(menu.get(), ViewOf(*menu, 0, false), translations).find("Prefix: [ON]") != std::string::npos);
+    // The spec reports state and no words; OpenMenus::Describe spells them before a driver ever
+    // sees the row, so the view stands in for that here.
+    const CenterHtmlView view{.Describe =
+                                  [&menu](int index) {
+                                      MenuRow row = menu->Items[static_cast<std::size_t>(index)].Describe(0);
+                                      row.Value = row.State.value_or(false) ? "ON" : "OFF";
+                                      return row;
+                                  },
+                              .Slot = 0};
+
+    CHECK(RenderMenuHtml(menu.get(), view, translations).find("Prefix: [ON]") != std::string::npos);
 }
 
 TEST_CASE("CenterHtmlRender: a choice row keeps the arrows that say A and D change it")

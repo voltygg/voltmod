@@ -1,8 +1,7 @@
 #include "Menu/CenterHtmlDriver.hpp"
-#include "Menu/MenuCursor.hpp"
 #include "Menu/MenuKeys.hpp"
+#include "Menu/OpenMenus.hpp"
 #include "Menu/PanoramaDriver.hpp"
-#include "Menu/PendingCommit.hpp"
 
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
@@ -11,26 +10,20 @@
 #include <memory>
 #include <utility>
 
-// The session half of the manager: which driver is drawing, what is on each player's stack, the
-// per-frame loop over open sessions, and the movement freeze. What a driver asks about a row -
-// and what a press does to it - is in MenuManagerRows.cpp.
-
 namespace VoltMod
 {
 
 MenuManager::MenuManager(const MenuServices& services)
     : _services(services),
-      _pending(std::make_unique<PendingCommit>(
+      _menus(std::make_unique<OpenMenus>(
+          *this, _services.Translations,
           [&scheduler = services.Scheduler](int64_t delayMs, std::function<void()> callback) {
               return scheduler.Delay(delayMs, std::move(callback));
           })),
-      _cursor(std::make_unique<MenuCursor>()),
-      _keys(std::make_unique<MenuKeys>(*this, _services)),
-      _driver(std::make_unique<CenterHtmlDriver>(*this, _services))
+      _keys(std::make_unique<MenuKeys>(*_menus, *this, _services)),
+      _driver(std::make_unique<CenterHtmlDriver>(*_menus, *_keys, *this, _services))
 {
-    _states.BindReset(services.Slots);
-    _cursor->BindReset(services.Slots);
-    _pending->BindReset(services.Slots);
+    _menus->BindReset(services.Slots);
 }
 
 MenuManager::~MenuManager() = default;
@@ -54,8 +47,8 @@ Status MenuManager::UsePanorama(std::string_view layout)
 
     CloseAllSessions();
     _layout = std::string(layout);
-    _driver = std::make_unique<PanoramaDriver>(*this, _services, std::move(*panel));
-    _fallback = std::make_unique<CenterHtmlDriver>(*this, _services);
+    _driver = std::make_unique<PanoramaDriver>(*_menus, *_keys, *this, _services, std::move(*panel));
+    _fallback = std::make_unique<CenterHtmlDriver>(*_menus, *_keys, *this, _services);
     Log::Info("Menus draw into the '{}' Panorama layout.", _layout);
     return {};
 }
@@ -67,7 +60,7 @@ void MenuManager::UseCenterHtml()
 
     CloseAllSessions();
     _layout.clear();
-    _driver = std::make_unique<CenterHtmlDriver>(*this, _services);
+    _driver = std::make_unique<CenterHtmlDriver>(*_menus, *_keys, *this, _services);
     _fallback.reset();
     Log::Info("Menus draw as center HTML.");
 }
@@ -89,10 +82,10 @@ void MenuManager::Open(int slot, std::shared_ptr<Menu> menu, MenuOptions options
     if (!IsValidSlot(slot) || !menu)
         return;
 
-    if (_states[slot].HasMenu())
+    if (_menus->IsOpen(slot))
         CloseAll(slot);
 
-    auto& state = _states[slot];
+    auto& state = _menus->State(slot);
     state.Keyboard = options.Keyboard;
     state.FreezeMovement = options.FreezeMovement;
     if (options.FreezeMovement)
@@ -106,7 +99,7 @@ void MenuManager::Open(int slot, std::shared_ptr<Menu> menu)
     if (!IsValidSlot(slot) || !menu)
         return;
 
-    if (!_states[slot].HasMenu())
+    if (!_menus->IsOpen(slot))
     {
         Open(slot, std::move(menu), {});
         return;
@@ -117,16 +110,16 @@ void MenuManager::Open(int slot, std::shared_ptr<Menu> menu)
 
 void MenuManager::Push(int slot, std::shared_ptr<Menu> menu)
 {
-    auto& state = _states[slot];
-    state.MenuStack.push_back(std::move(menu));
-    ResetCursor(slot);
+    _menus->Push(slot, std::move(menu));
     // No SyncDriver here: OnGameFrame picks the driver before the first Present, and resetting
     // twice on a frame that also flips the driver is what this leaves out.
     DriverOf(slot).Reset(slot);
 
-    if (auto* current = state.GetCurrentMenu())
+    if (auto* current = _menus->Current(slot))
+    {
         Log::Info("Menu opened for slot {} (title: {}, depth: {}, items: {})", slot, current->Title,
-                  state.MenuStack.size(), current->Items.size());
+                  _menus->Depth(slot), current->Items.size());
+    }
 
     if (!_onFrame)
         _onFrame = _services.Scheduler.EveryFrame([this] { OnGameFrame(); });
@@ -137,28 +130,24 @@ void MenuManager::Close(int slot)
     if (!IsValidSlot(slot))
         return;
 
-    // Before the stack moves: a value stepped and left showing is applied, not dropped.
-    _pending->Run(slot);
+    // The prompt belongs to the menu that opened it: left armed, it would swallow the player's
+    // next chat line for a row nobody can see.
+    _services.ChatInput.CancelCapture(slot);
 
-    auto& state = _states[slot];
-    if (state.MenuStack.empty())
+    if (!_menus->IsOpen(slot))
         return;
 
-    state.MenuStack.pop_back();
-    Log::Info("Menu closed for slot {} ({} left on the stack)", slot, state.MenuStack.size());
-
-    if (state.MenuStack.empty())
+    MenuDriver& driver = DriverOf(slot);
+    if (!_menus->Pop(slot))
     {
-        MenuDriver& driver = DriverOf(slot);
-        SetPlayerFrozen(slot, false, _services.Entities.PawnOf(slot));
-        state.Reset();
-        _cursor->Select(slot, 0);
-        driver.Dismiss(slot);
+        Log::Info("Menu closed for slot {} ({} left on the stack)", slot, _menus->Depth(slot));
+        driver.Reset(slot);
         return;
     }
 
-    ResetCursor(slot);
-    DriverOf(slot).Reset(slot);
+    Log::Info("Menu closed for slot {} (0 left on the stack)", slot);
+    SetPlayerFrozen(slot, false, _services.Entities.PawnOf(slot));
+    driver.Dismiss(slot);
 }
 
 void MenuManager::CloseAll(int slot)
@@ -166,11 +155,11 @@ void MenuManager::CloseAll(int slot)
     if (!IsValidSlot(slot))
         return;
 
-    _pending->Run(slot);
+    _services.ChatInput.CancelCapture(slot);
+
     MenuDriver& driver = DriverOf(slot);
+    _menus->Clear(slot);
     SetPlayerFrozen(slot, false, _services.Entities.PawnOf(slot));
-    _states[slot].Reset();
-    _cursor->Select(slot, 0);
     Log::Info("All menus closed for slot {}", slot);
     driver.Dismiss(slot);
 }
@@ -189,9 +178,14 @@ void MenuManager::Prompt(int slot, std::string prompt, std::function<bool(int, s
     _services.ChatInput.BeginCapture(slot, std::move(prompt), std::move(callback));
 }
 
+std::string MenuManager::Translate(int slot, std::string_view key, std::string_view fallback) const
+{
+    return _services.Translations.GetOr(key, slot, fallback);
+}
+
 bool MenuManager::IsOpen(int slot) const
 {
-    return IsValidSlot(slot) && _states[slot].HasMenu();
+    return _menus->IsOpen(slot);
 }
 
 void MenuManager::FreezeWhileOpen(bool enabled)
@@ -205,7 +199,7 @@ void MenuManager::FreezeWhileOpen(bool enabled)
     // until they close a menu they may not know is open is not a defensible reading of "off".
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
-        if (_states[slot].FrozenPawn)
+        if (_menus->State(slot).FrozenPawn)
             SetPlayerFrozen(slot, false, _services.Entities.PawnOf(slot));
     }
 }
@@ -214,7 +208,7 @@ void MenuManager::OnGameFrame()
 {
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
-        if (!_states[slot].HasMenu())
+        if (!_menus->IsOpen(slot))
             continue;
 
         // One resolve for the frame: the freeze and the driver choice ask about the same body.
@@ -223,34 +217,24 @@ void MenuManager::OnGameFrame()
         SyncDriver(slot, pawn);
         DriverOf(slot).HandleInput(slot);
         // Input may have activated a row that closed the menu it was about to draw.
-        if (_states[slot].HasMenu())
+        if (_menus->IsOpen(slot))
             DriverOf(slot).Present(slot);
     }
 
     // A slot changing hands empties a stack without going through Close, so this - rather than
     // each close path - is what stops the per-frame cost once nothing is open.
-    if (!AnyOpen())
+    if (!_menus->AnyOpen())
         _onFrame.Reset();
-}
-
-bool MenuManager::AnyOpen() const
-{
-    for (int slot = 0; slot < MaxPlayers; ++slot)
-    {
-        if (_states[slot].HasMenu())
-            return true;
-    }
-    return false;
 }
 
 void MenuManager::CloseAllSessions()
 {
     // Before any session goes: a driver swap is not a reason to drop a value a player picked.
-    _pending->RunAll();
+    _menus->RunPending();
 
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
-        if (_states[slot].HasMenu())
+        if (_menus->IsOpen(slot))
             CloseAll(slot);
     }
 }
@@ -263,7 +247,7 @@ void MenuManager::SetPlayerFrozen(int slot, bool frozen, const Pawn& pawn)
     if (frozen && !_freezePlayer)
         return;
 
-    auto& state = _states[slot];
+    auto& state = _menus->State(slot);
 
     // Skip redundant transitions so a freeze isn't double-applied (which would capture
     // MOVETYPE_NONE as the "previous" type) and an unfreeze isn't run on a never-frozen slot.
@@ -288,7 +272,7 @@ void MenuManager::SetPlayerFrozen(int slot, bool frozen, const Pawn& pawn)
 
 void MenuManager::SyncFreeze(int slot, const Pawn& pawn)
 {
-    auto& state = _states[slot];
+    auto& state = _menus->State(slot);
     if (!_freezePlayer || !state.FreezeMovement)
         return;
 
@@ -302,12 +286,12 @@ void MenuManager::SyncFreeze(int slot, const Pawn& pawn)
 
 MenuDriver& MenuManager::DriverOf(int slot)
 {
-    return _states[slot].OnFallback && _fallback ? *_fallback : *_driver;
+    return _menus->State(slot).OnFallback && _fallback ? *_fallback : *_driver;
 }
 
 void MenuManager::SyncDriver(int slot, const Pawn& pawn)
 {
-    auto& state = _states[slot];
+    auto& state = _menus->State(slot);
     const bool fallback = IsPanorama() && !(pawn && pawn.IsAlive());
     if (fallback == state.OnFallback)
         return;

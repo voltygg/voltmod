@@ -14,16 +14,30 @@ void AppendPlayerRows(MenuBuilder& builder, PlayerManager& players, const Player
     auto connected = players.All();
     for (auto* player : connected)
     {
-        int targetSlot = player->Slot();
+        // Who the row was drawn for, not where they were sitting: a slot that changes hands
+        // resolves to nobody rather than to whoever took it.
+        const PlayerRef target = player->Ref();
+
+        Condition enabled =
+            spec.Enabled ? Condition([check = spec.Enabled, target](int) { return check(target); }) : Condition(true);
+
         // The name goes in raw: a row carries plain text and whichever driver renders it escapes
         // for its own output.
+        if (spec.Open)
+        {
+            builder.Add(SubmenuRow{.Label = player->Name(),
+                                   .Build = [open = spec.Open, target](int) { return open(target); },
+                                   .Enabled = std::move(enabled)});
+            continue;
+        }
+
         builder.Add(ButtonRow{.Label = player->Name(),
                               .Activate =
-                                  [targetSlot, pick = spec.Pick](int) {
+                                  [pick = spec.Pick, target](int) {
                                       if (pick)
-                                          pick(targetSlot);
+                                          pick(target);
                                   },
-                              .Enabled = spec.Enabled ? spec.Enabled(targetSlot) : true});
+                              .Enabled = std::move(enabled)});
     }
 
     if (connected.empty() && !spec.EmptyLabel.empty())

@@ -1,16 +1,23 @@
 #include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
 #include <VoltMod/Menu/MenuPresets.hpp>
-#include <VoltMod/Messaging/ChatColors.hpp>
+#include <format>
 #include <string>
 #include <string_view>
 #include <utility>
 
-// The presets that are rows and callbacks and nothing else. The player list needs the roster and
-// lives in PlayerRows.cpp; everything here is SDK-free and recompiled by the unit tests.
-
 namespace VoltMod
 {
+
+std::vector<std::string> SummaryRows::Take() &&
+{
+    std::vector<std::string> lines;
+    lines.reserve(_rows.size());
+    for (auto& [label, value] : _rows)
+        lines.push_back(value.empty() ? std::move(label) : std::format("{}: {}", label, value));
+
+    return lines;
+}
 
 std::shared_ptr<Menu> BuildDurationMenu(DurationMenu spec)
 {
@@ -52,6 +59,12 @@ std::shared_ptr<Menu> BuildConfirmMenu(ConfirmMenu spec)
     for (const auto& line : spec.Lines)
         builder.Text(line);
 
+    // Last resort: Flow translates both labels before it builds this.
+    if (spec.ConfirmLabel.empty())
+        spec.ConfirmLabel = "Confirm";
+    if (spec.CancelLabel.empty())
+        spec.CancelLabel = "Cancel";
+
     builder.Button(std::move(spec.ConfirmLabel), [confirm = std::move(spec.Confirm)](int slot) {
         if (confirm)
             confirm(slot);
@@ -69,22 +82,6 @@ std::shared_ptr<Menu> BuildConfirmMenu(ConfirmMenu spec)
                              }});
 
     return builder.Build();
-}
-
-std::vector<std::pair<std::string, std::string>> BuildPaletteChoices(
-    std::function<std::string(std::string_view canonicalName)> labelFor)
-{
-    std::vector<std::pair<std::string, std::string>> choices;
-    choices.reserve(ChatColors::Palette.size());
-
-    for (const auto& entry : ChatColors::Palette)
-    {
-        std::string label = labelFor ? labelFor(entry.Name) : std::string{};
-        if (label.empty())
-            label = std::string(entry.Name);
-        choices.emplace_back(std::move(label), std::string(entry.Name));
-    }
-    return choices;
 }
 
 }  // namespace VoltMod

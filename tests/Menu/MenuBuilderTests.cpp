@@ -63,26 +63,40 @@ TEST_CASE("MenuBuilder: a toggle carries its state and flips on both activate an
 
     MenuRow row = item.Describe(0);
     CHECK(row.Kind == MenuRowKind::Toggle);
-    CHECK(row.Value == "OFF");
     CHECK(row.Steppable);
     REQUIRE(row.State.has_value());
     CHECK_FALSE(*row.State);
+    // The words are the menu service's, so the spec itself reports state and no text.
+    CHECK(row.Value.empty());
 
     item.Activate(0, session);
     row = item.Describe(0);
-    CHECK(row.Value == "ON");
     CHECK(*row.State);
 
     CHECK(item.Step(0, -1));
-    CHECK(item.Describe(0).Value == "OFF");
+    CHECK_FALSE(*item.Describe(0).State);
 }
 
-TEST_CASE("MenuBuilder: a toggle uses the labels it was given")
+TEST_CASE("MenuBuilder: a gate is asked on every redraw, and shuts the row's behaviour too")
 {
-    MenuItem item =
-        ToggleRow{.Label = "Mode", .On = "Enabled", .Off = "Disabled", .Get = [](int) { return true; }}.ToItem();
+    FakeMenuSession session;
 
-    CHECK(item.Describe(0).Value == "Enabled");
+    bool allowed = true;
+    int ran = 0;
+    MenuItem item =
+        ButtonRow{.Label = "Kick", .Activate = [&](int) { ++ran; }, .Enabled = [&allowed](int) { return allowed; }}
+            .ToItem();
+
+    CHECK(item.Describe(0).Enabled);
+    item.Activate(0, session);
+    CHECK(ran == 1);
+
+    // A permission revoked while the menu is open greys the row out and refuses the press, with
+    // no second check written into the handler.
+    allowed = false;
+    CHECK_FALSE(item.Describe(0).Enabled);
+    item.Activate(0, session);
+    CHECK(ran == 1);
 }
 
 TEST_CASE("MenuBuilder: a choice row wraps in both directions and shows the current label")
@@ -162,14 +176,38 @@ TEST_CASE("MenuBuilder: a choice row round-trips an external index")
     int index = 0;
     MenuItem item = ChoiceRow<int>{.Label = "HP",
                                    .Choices = {{"1 HP", 1}, {"100 HP", 100}, {"999 HP", 999}},
-                                   .GetIndex = [&](int) { return index; },
-                                   .SetIndex = [&](int, int value) { index = value; }}
+                                   .Bind = VoltMod::ChoiceIndex{.Get = [&](int) { return index; },
+                                                                .Set = [&](int, int value) { index = value; }}}
                         .ToItem();
 
     CHECK(item.Step(0, +1));
     CHECK(index == 1);
     index = 2;
     CHECK(item.Describe(0).Value == "999 HP");
+}
+
+TEST_CASE("MenuBuilder: an empty choice row pages instead of offering a value to change")
+{
+    MenuItem item = ChoiceRow<int>{.Label = "HP"}.ToItem();
+
+    const MenuRow row = item.Describe(0);
+    CHECK(row.Value.empty());
+    // Nothing to cycle, so A/D must fall through to the driver's paging - and the footer must not
+    // offer to change a value that is not there.
+    CHECK_FALSE(row.Steppable);
+    CHECK_FALSE(item.Step(0, +1));
+}
+
+TEST_CASE("MenuBuilder: EmptyText draws only when nothing else was added")
+{
+    auto empty = MenuBuilder("Bans").EmptyText("No bans").Build();
+    REQUIRE(empty->Items.size() == 1);
+    CHECK(empty->Items[0].Describe(0).Label == "No bans");
+    CHECK(empty->Items[0].Describe(0).Kind == MenuRowKind::Text);
+
+    auto filled = MenuBuilder("Bans").EmptyText("No bans").Button("Alice", [](int) {}).Build();
+    REQUIRE(filled->Items.size() == 1);
+    CHECK(filled->Items[0].Describe(0).Label == "Alice");
 }
 
 TEST_CASE("MenuBuilder: an input row rejects text over its maximum without reaching the setter")

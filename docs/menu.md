@@ -79,14 +79,37 @@ behind it - is SDK-free.
 | --- | --- |
 | `TextRow{.Label}` | A heading or divider. Not selectable. |
 | `ButtonRow{.Label, .Activate, .Enabled}` | Runs `Activate(slot)` on E or a click. |
-| `ToggleRow{.Label, .On, .Off, .Get, .Flip, .Enabled}` | Reads `Get` every redraw; E and A/D both run `Flip`. |
-| `ChoiceRow<T>{.Label, .Choices, .Commit, .GetIndex, .SetIndex, .Index, .Enabled, .Apply}` | A/D walks the `{label, value}` list (wrapping) and applies what it lands on. |
+| `ToggleRow{.Label, .Get, .Flip, .Enabled}` | Reads `Get` every redraw; E and A/D both run `Flip`. |
+| `ChoiceRow<T>{.Label, .Choices, .Commit, .Bind, .Index, .Enabled, .Apply}` | A/D walks the `{label, value}` list (wrapping) and applies what it lands on. |
 | `InputRow{.Label, .Prompt, .Get, .Set, .MaxLength, .Enabled}` | E routes the player's next chat line into `Set`. |
 | `SubmenuRow{.Label, .Build, .Enabled}` | Runs `Build(slot)` lazily on E and pushes the result. |
 
-`ChoiceRow` keeps its own index unless `GetIndex`/`SetIndex` put it somewhere the rest
-of the menu can read. With no `Commit`, E steps forward like D, which suits a
-pick-a-value row something else reads live:
+`ToItem` consumes the spec, so pass one as a temporary - which the designated-initializer
+form above already does.
+
+### Enabled
+
+Every `.Enabled` is a @ref VoltMod::Condition: a `bool`, or a `bool(int slot)` check
+re-asked on every redraw. The check also refuses activation and stepping, so a
+permission revoked while the menu is open greys the row out *and* refuses the press:
+
+```cpp
+.Add(ButtonRow{.Label = "Restart round",
+               .Activate = [&](int) { RestartRound(); },
+               .Enabled = [&](int slot) { return MayRestart(slot); }})
+```
+
+Do not re-check the same permission inside the handler; that second check is what this
+replaces.
+
+A `ToggleRow` reports its state and none of the words for it - the framework spells
+those from `menu.on` / `menu.off` (falling back to `ON` / `OFF`), and a Panorama layout
+draws the switch and shows no text.
+
+`ChoiceRow` keeps its own index unless `.Bind` puts it somewhere the rest of the menu
+can read; the binding carries both halves, so a getter without a setter is not
+writable. With no `Commit`, E steps forward like D, which suits a pick-a-value row
+something else reads live:
 
 ```cpp
 .Add(ChoiceRow<int>{.Label = "HP", .Choices = {{"1 HP", 1}, {"100 HP", 100}, {"999 HP", 999}},
@@ -103,6 +126,16 @@ everyone each time it lands.
 `InputRow` re-prompts when `Set` returns false or the line is longer than `MaxLength`;
 R cancels. It is backed by @ref VoltMod::ChatInput, so your chat hook must call
 `runtime.Hooks.ChatInput.TryConsume` first (see @ref sdk_messaging_guide).
+
+`EmptyText` is the one line a menu draws if nothing else was added, so a list that
+filtered down to nothing is never a dead-end page:
+
+```cpp
+MenuBuilder builder("Active bans");
+builder.EmptyText("No active bans");
+for (const auto& ban : bans)
+    builder.Button(ban.Name, ...);
+```
 
 A shape the specs do not cover is a @ref VoltMod::MenuItem written by hand and passed
 to `Add`: `Describe` is required and runs on every redraw, `Activate` receives the
@@ -136,23 +169,24 @@ Context rows translate labels for the admin and use `Policy::Authorize` to set
 their enabled state. `ActionRows::Services` must outlive the rows, which is
 normally guaranteed by the load cycle.
 
-`Allowed` only controls presentation. Context rows authorize again when pressed,
-using stored `PlayerRef` values so slot reuse cannot change the caller or target.
-A custom callback must perform its own authorization:
+`rows.Allows(permission)` is that authorization as a @ref VoltMod::Condition, for a
+custom callback appended alongside context rows; `rows.Allowed(permission)` is the same
+question answered once. Context rows authorize again when pressed either way, using
+stored `PlayerRef` values so slot reuse cannot change the caller or target.
 
 ```cpp
 MenuBuilder(title)
     .Add(ButtonRow{.Label = rows.Tr("action.callCheck"),
                    .Activate = [&](int) { StartCheck(...); },
-                   .Enabled = rows.Allowed("s")})
+                   .Enabled = rows.Allows("s")})
 ```
 
 `StateToggle` re-reads its predicate every redraw, so the same row shows
 "Freeze"/"Unfreeze" reality and doubles as the undo control. The pawn predicates
 (`InMoveType`, `HasPawnFlag`) live in `Entities/PawnPredicates.hpp`. `Presets` leaves
-the menu open after applying, so a value can be adjusted and applied again. Effect rows
-read on/off labels from the reserved keys `effectState.on` / `effectState.off`; the
-descriptor itself is covered in @ref players_guide.
+the menu open after applying, so a value can be adjusted and applied again. An effect
+row on a panel built without `Services::Effects` is drawn disabled rather than live and
+inert; the descriptor itself is covered in @ref players_guide.
 
 ## Flow: multistep wizards
 
@@ -180,8 +214,12 @@ Flow::Create(runtime.Menus, adminSlot, std::move(pending))
                       .Set = [](PendingPunishment& s, const std::string& label, const std::string&) {
                           s.Reason = label;
                       }})
-    ->Confirm({.Title = tr("punish.confirm"), .Summary = SummaryRows,
-               .ConfirmLabel = tr("nav.confirm"), .CancelLabel = tr("nav.cancel")})
+    ->Confirm({.Title = tr("punish.confirmTitle"),
+               .Summary = [](const PendingPunishment& s, VoltMod::SummaryRows& rows) {
+                   rows.Add(tr("punish.target"), s.TargetName)
+                       .AddIf(IsTimed(s.Type), tr("punish.duration"), DurationLabel(s.DurationSec))
+                       .Add(tr("punish.reason"), s.Reason);
+               }})
     ->Finish([](PendingPunishment& s) { Issue(s); })
     ->Start();
 ```
@@ -194,6 +232,8 @@ Flow behavior:
 - A step's `Applies` skips it for a state it does not fit, and an empty `CustomLabel` omits that step's free-text row, so a caller can gate either on config without splitting the chain.
 - Menu rows own the flow while one of its menus is open; no separate cleanup is needed.
 - `AddStep(build, applies)` is the escape hatch for a fully custom step: build any menu, mutate `flow.State()`, and call `flow.Advance()`.
+- `Summary` fills a @ref VoltMod::SummaryRows: `Add(label, value)` renders `"{label}: {value}"`, `Add(label)` the label alone, and `AddIf(condition, ...)` a line that only some states have. Supplying a `Summary` is what turns the dialog on.
+- `ConfirmLabel` and `CancelLabel` default to the session's `menu.confirm` / `menu.cancel` (falling back to `Confirm` / `Cancel`), so name them only for a button that needs its own wording.
 
 ## Feedback and keys {#menu_feedback_keys}
 
@@ -239,8 +279,9 @@ they look like; see @ref custom_ui_guide for the whole class vocabulary.
 
 ## Pagination
 
-A menu longer than its driver's page paginates automatically - `ItemsPerPage` (5)
-rows for center HTML, eight rows for the Panorama menu - with a `(2/3)` indicator.
+A menu longer than its driver's page paginates automatically - five rows for center
+HTML, eight for the Panorama menu - with a `(2/3)` indicator. The page size belongs to
+the driver, not to the model.
 
 A/D pages when the row under the cursor has no value to step, so highlight a
 Button or Submenu row to page instead. Paging keeps the cursor's offset within the
@@ -267,6 +308,8 @@ and stops when the last stack closes.
 
 `runtime.Menus.FreezeWhileOpen(true)` freezes players while a menu is open. Center HTML needs it so WASD does not also walk them around; the Panorama menu needs it because a cursor takes mouse-look, and being shoved around while clicking is worse rather than better. During a chat-input capture center HTML honors only R, and the Panorama menu shows a prompt overlay and ignores row presses, so neither drifts while the player types.
 
+A capture belongs to the session that started it, so closing the menu drops it - the player's next chat line is a chat line again rather than an answer to a prompt nobody can see.
+
 The freeze is a global switch, but a single session can opt out: `Open(slot, menu, {.FreezeMovement = false})`. That suits menus ordinary players reach mid-round, where being held still is worse than the stray movement the freeze prevents. @ref VoltMod::MenuOptions applies to the call that opens the stack; submenus and Flow steps pushed onto a live session inherit it, so an unfrozen session stays unfrozen for its whole flow. `Keyboard` is the other option it carries, and behaves the same way.
 
 A session survives death and spectating. Only a live pawn is frozen and only that
@@ -283,23 +326,29 @@ the stack, cursor and keys carry over.
 human-facing string is a parameter, and each takes the one service it needs:
 
 ```cpp
-using VoltMod::BuildPaletteChoices;
 using VoltMod::BuildPlayerPicker;
 
 // Paginated list of connected players; the optional predicate greys out rows.
 auto picker = BuildPlayerPicker(runtime.Players,
     {.Title = "Select player",
-     .Pick = [adminSlot](int target) { OpenActionsFor(adminSlot, target); },
+     // A row that opens another menu says so, rather than opening one itself.
+     .Open = [&](VoltMod::PlayerRef target) { return BuildActionsFor(adminRef, target); },
      .EmptyLabel = "No players available",
-     .Enabled = [adminSlot](int target) { return target != adminSlot; }});
-
-// ChatColors::Palette as ChoiceRow choices for color pickers.
-auto choices = BuildPaletteChoices([&](std::string_view name) { return LabelFor(name); });
+     .Enabled = [adminSlot](VoltMod::PlayerRef target) { return target.Slot != adminSlot; }});
 ```
 
 `AppendPlayerRows(builder, players, spec)` is the same player list appended into a
-builder you already have rows in. The picked slot is the only thing a `PlayerPicker`
-reports; the viewer is whoever the caller built it for, captured in `Pick`.
+builder you already have rows in. The viewer is whoever the caller built it for. A pick
+reports a @ref VoltMod::PlayerRef rather than a slot - a menu can sit open across a
+disconnect, and a bare slot would hand the press to whoever took it - so resolve it with
+`Players.Get(ref)`, which answers with nobody in that case.
+
+Use `.Open` for a pick that opens another menu and `.Pick` for one that just acts;
+`.Open` wins if both are set, and returning null pushes nothing.
+
+Colour pickers come from the palette itself rather than from this header:
+`ChatColors::PaletteChoices(labelFor)` in `<VoltMod/Messaging/ChatColors.hpp>` returns
+`(label, canonical name)` pairs shaped for a `ChoiceRow<std::string>`.
 
 Duration pickers and confirm dialogs are presets too, so a plugin can put one in
 front of a single action without building a whole `Flow`:
@@ -317,13 +366,12 @@ runtime.Menus.Open(adminSlot, BuildDurationMenu(
      .CustomLabel = "Custom…",
      .CustomPrompt = "Type a duration"}));
 
-// Lines above, then confirm and cancel. An empty Cancel closes every menu
-// through the session the dialog is drawn in.
+// Lines above, then confirm and cancel. Empty labels fall back to "Confirm" and
+// "Cancel"; an empty Cancel callback closes every menu through the session the
+// dialog is drawn in.
 runtime.Menus.Open(adminSlot, BuildConfirmMenu(
     {.Title = "Restart the map?",
      .Lines = {"Map: de_dust2"},
-     .ConfirmLabel = "Yes",
-     .CancelLabel = "No",
      .Confirm = [](int slot) { RestartMap(slot); }}));
 ```
 
@@ -338,7 +386,8 @@ Include the specific menu headers a translation unit uses, or
 `MenuBuilder.hpp`, `Flow.hpp` and the row model behind them are SDK-free: a row is
 text and callbacks, and the two calls a row makes into a live session (a submenu's
 `Open`, an input row's `Prompt`) go through @ref VoltMod::MenuSession, an abstract
-class in `Menu.hpp` with no engine behind it. That is what lets
+class in `Menu.hpp` with no engine behind it, which also spells the words the framework
+supplies for a row through `MenuSession::Translate`. That is what lets
 `tests/Menu/MenuBuilderTests.cpp`, `tests/Menu/FlowTests.cpp` and
 `tests/Menu/CenterHtmlRenderTests.cpp` drive real rows and real flows against a fake
 session in the SDK-free suite. `MenuManager.hpp` and `ActionRows.hpp` are not SDK-free

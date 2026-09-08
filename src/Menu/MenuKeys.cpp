@@ -8,14 +8,16 @@
 namespace VoltMod
 {
 
-MenuKeys::MenuKeys(MenuManager& menus, const MenuServices& services) : _menus(menus), _services(services) {}
+MenuKeys::MenuKeys(OpenMenus& menus, MenuSession& session, const MenuServices& services)
+    : _menus(menus), _session(session), _services(services)
+{}
 
 bool MenuKeys::Handle(int slot, MenuDriver& driver)
 {
     if (!_menus.Current(slot))
         return false;
 
-    PlayerMenuState& state = _menus._states[slot];
+    PlayerMenuState& state = _menus.State(slot);
     const uint64_t buttons = _services.Entities.Buttons(slot);
     const uint64_t pressed = buttons & ~state.PrevButtons;
     state.PrevButtons = buttons;
@@ -45,7 +47,7 @@ bool MenuKeys::Handle(int slot, MenuDriver& driver)
     // Written after the fact rather than up front: an input the menu had no use for should not
     // start a debounce window the next one has to wait out. Re-read, because acting on the key
     // may have replaced the session this started in.
-    _menus._states[slot].LastInputTime = now;
+    _menus.State(slot).LastInputTime = now;
     return true;
 }
 
@@ -54,7 +56,7 @@ bool MenuKeys::Act(int slot, MenuDriver& driver, uint64_t pressed)
     // Before the row count: an empty menu still has to be closable.
     if (pressed & IN_RELOAD)
     {
-        _menus.Close(slot);
+        _session.Close(slot);
         return true;
     }
 
@@ -93,11 +95,10 @@ bool MenuKeys::Act(int slot, MenuDriver& driver, uint64_t pressed)
 
 void MenuKeys::MoveCursor(int slot, MenuDriver& driver, int step)
 {
-    Menu* menu = _menus.Current(slot);
-    if (!menu)
+    if (!_menus.Current(slot))
         return;
 
-    const int index = MenuCursor::Step(CursorRowsOf(menu->Items, slot), _menus.Selected(slot), step);
+    const int index = MenuCursor::Step(_menus.Rows(slot), _menus.Selected(slot), step);
     _menus.Select(slot, index);
     driver.ShowPage(slot, index / driver.RowsPerPage());
 }
@@ -109,7 +110,7 @@ void MenuKeys::JumpPage(int slot, MenuDriver& driver, int delta)
         return;
 
     const int rows = driver.RowsPerPage();
-    const int landed = MenuCursor::JumpPage(CursorRowsOf(menu->Items, slot), _menus.Selected(slot), rows, delta);
+    const int landed = MenuCursor::JumpPage(_menus.Rows(slot), _menus.Selected(slot), rows, delta);
 
     // The landing row is inside the page it was computed for, so the page follows from it.
     _menus.Select(slot, landed);

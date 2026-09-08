@@ -16,13 +16,6 @@ bool IsCursorTarget(const MenuItem& item, int slot)
     return row.Enabled && row.Selectable;
 }
 
-CursorRows CursorRowsOf(const std::vector<MenuItem>& items, int slot)
-{
-    return {.Count = static_cast<int>(items.size()), .Landable = [&items, slot](int index) {
-                return IsCursorTarget(items[static_cast<std::size_t>(index)], slot);
-            }};
-}
-
 int MenuCursor::Selected(int slot) const
 {
     return IsValidSlot(slot) ? _selected[slot] : 0;

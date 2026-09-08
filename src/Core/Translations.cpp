@@ -58,8 +58,10 @@ static const std::unordered_map<std::string, std::string>& KitDefaults()
         {"target.dead", "'{token}' is not alive."},
         {"target.bot", "'{token}' is a bot."},
         {"menu.stepFailed", "That menu could not be opened."},
-        {"effectState.on", "ON"},
-        {"effectState.off", "OFF"},
+        {"menu.on", "ON"},
+        {"menu.off", "OFF"},
+        {"menu.confirm", "Confirm"},
+        {"menu.cancel", "Cancel"},
     };
     return defaults;
 }

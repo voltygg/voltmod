@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Menu/CenterHtmlRender.hpp"
 #include "Menu/MenuDriver.hpp"
 
 #include <VoltMod/Menu/Menu.hpp>
@@ -23,7 +24,7 @@ namespace VoltMod
 class CenterHtmlDriver final : public MenuDriver
 {
 public:
-    CenterHtmlDriver(MenuManager& menus, const MenuServices& services);
+    CenterHtmlDriver(OpenMenus& menus, MenuKeys& keys, MenuSession& session, const MenuServices& services);
 
     void Present(int slot) override;
     void Dismiss(int slot) override;

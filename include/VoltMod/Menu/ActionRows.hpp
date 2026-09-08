@@ -5,8 +5,10 @@
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/Pawn.hpp>
 #include <VoltMod/Menu/Menu.hpp>
+#include <VoltMod/Menu/MenuBuilder.hpp>
 #include <VoltMod/Players/ActionDispatcher.hpp>
 #include <VoltMod/Players/EffectDescriptor.hpp>
+#include <VoltMod/Players/EffectDispatcher.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/PlayerRef.hpp>
 #include <VoltMod/Players/Policy.hpp>
@@ -41,10 +43,9 @@ namespace VoltMod
  * @endcode
  *
  * Labels are translation keys resolved in the admin's language. A row's enabled state is one
- * @ref Policy::Authorize call taken when the row is built, and the same check runs again through
- * the dispatcher when the row is pressed - against the two @ref PlayerRef values, not whoever
- * occupies their slots by then, so a departed admin or a reused target slot is refused rather
- * than retargeted.
+ * @ref Policy::Authorize call, re-asked on every redraw. The same check runs again through the
+ * dispatcher when the row is pressed - against the two @ref PlayerRef values, so a departed admin
+ * or a reused target slot is refused rather than retargeted.
  */
 class ActionRows
 {
@@ -68,6 +69,9 @@ public:
 
     /** Whether @p permission is granted for this admin/target pair right now. */
     [[nodiscard]] bool Allowed(std::string_view permission) const;
+
+    /** @ref Allowed as a row's condition, so the answer is the live one on every redraw. */
+    [[nodiscard]] Condition Allows(std::string_view permission) const;
 
     /** @p key in the admin's language, with `{token}` substitutions. */
     [[nodiscard]] std::string Tr(std::string_view key, Tokens tokens = {}) const;
@@ -110,15 +114,16 @@ public:
 private:
     /** The picker @ref EffectPicker opens, built when the row is pressed so it names whoever the
      *  target is by then. Null when the target has left. */
-    std::shared_ptr<Menu> BuildPicker(const EffectDescriptor& effect, bool allowed) const;
+    std::shared_ptr<Menu> BuildPicker(const EffectDescriptor& effect, Condition allowed) const;
 
-    /** The on/off text every toggle row here shares, in the admin's language. */
-    struct ToggleText
-    {
-        std::string On;
-        std::string Off;
-    };
-    [[nodiscard]] ToggleText StateLabels() const;
+    /** Effect rows go through one of these - two references, so built per call rather than held.
+     *  Only reached through a row @ref EffectAllows let through, which is what makes
+     *  @ref Services::Effects safe to dereference. */
+    [[nodiscard]] EffectDispatcher Effects() const;
+
+    /** @ref Allows for an effect, and always false on a panel with no @ref Services::Effects:
+     *  better greyed out than live and inert. */
+    [[nodiscard]] Condition EffectAllows(const EffectDescriptor& effect) const;
 
     /** The target as a dispatcher takes it: an absent one is a reference naming nobody, which
      *  @ref Policy::Authorize refuses. */

@@ -11,8 +11,9 @@
 namespace VoltMod
 {
 
-PanoramaDriver::PanoramaDriver(MenuManager& menus, const MenuServices& services, UiPanel panel)
-    : MenuDriver(menus, services), _panel(std::move(panel))
+PanoramaDriver::PanoramaDriver(OpenMenus& menus, MenuKeys& keys, MenuSession& session, const MenuServices& services,
+                               UiPanel panel)
+    : MenuDriver(menus, keys, session, services), _panel(std::move(panel))
 {
     _rows.reserve(RowsPerPageCount);
     for (int i = 0; i < RowsPerPageCount; ++i)
@@ -33,12 +34,15 @@ PanoramaDriver::~PanoramaDriver() = default;
 
 bool PanoramaDriver::HandleInput(int slot)
 {
-    return KeyboardEnabled(slot) && HandleKeys(slot);
+    return _menus.KeyboardEnabled(slot) && HandleKeys(slot);
 }
 
 void PanoramaDriver::Reset(int slot)
 {
-    _pages[slot] = 0;
+    // The cursor's page, not page zero: the first row it may land on can be past the first page,
+    // and a session coming back from the center-HTML fallback keeps the page it was on.
+    const int selected = _menus.Selected(slot);
+    _pages[slot] = selected > 0 ? selected / RowsPerPageCount : 0;
 }
 
 void PanoramaDriver::ShowPage(int slot, int page)
@@ -62,7 +66,7 @@ void PanoramaDriver::BindClicks()
 void PanoramaDriver::OnClick(const UiClick& click)
 {
     const int slot = click.Slot;
-    if (!IsValidSlot(slot) || !Current(slot))
+    if (!IsValidSlot(slot) || !_menus.Current(slot))
         return;
 
     const MenuPress press = ParseMenuButton(click.ButtonId);
@@ -77,10 +81,10 @@ void PanoramaDriver::OnClick(const UiClick& click)
         _services.ChatInput.CancelCapture(slot);
         return;
     case MenuButton::Back:
-        _menus.Close(slot);
+        _session.Close(slot);
         return;
     case MenuButton::Close:
-        _menus.CloseAll(slot);
+        _session.CloseAll(slot);
         return;
     default:
         break;
@@ -102,18 +106,18 @@ void PanoramaDriver::OnClick(const UiClick& click)
     // A click moves the cursor there too, so the keyboard carries on from what was pressed rather
     // than from wherever it was left.
     const int index = ItemIndex(slot, press.Row);
-    Select(slot, index);
+    _menus.Select(slot, index);
 
     switch (press.Button)
     {
     case MenuButton::Row:
-        Activate(slot, index);
+        _menus.Activate(slot, index);
         break;
     case MenuButton::RowDec:
-        (void)Step(slot, index, -1);
+        (void)_menus.Step(slot, index, -1);
         break;
     case MenuButton::RowInc:
-        (void)Step(slot, index, +1);
+        (void)_menus.Step(slot, index, +1);
         break;
     default:
         break;
@@ -122,7 +126,7 @@ void PanoramaDriver::OnClick(const UiClick& click)
 
 void PanoramaDriver::TurnPage(int slot, int delta)
 {
-    auto* menu = Current(slot);
+    auto* menu = _menus.Current(slot);
     if (!menu)
         return;
 
