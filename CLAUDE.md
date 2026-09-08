@@ -61,7 +61,7 @@ Menu       -> Core, Engine, Entities, Messaging, Players, Hooks, Ui
 Http       -> Core
 Database   -> Core
 Unsafe     -> Core, Engine
-App        -> everything
+App        -> every module
 ```
 
 A module's own `Api.hpp` is exempt (deliberate aggregate). Nothing below Menu includes
