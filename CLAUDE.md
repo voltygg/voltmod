@@ -1,191 +1,49 @@
-# VoltMod repository
+# VoltMod
 
-VoltMod is a C++23 framework for Counter-Strike 2 Metamod:Source plugins. This
-directory is its own Git repository; when it is nested in `cs2-plugins`, inspect
-and validate it separately from the parent worktree.
+C++23 framework for Counter-Strike 2 Metamod:Source plugins. This is its own Git
+repo; when nested in `cs2-plugins`, inspect and validate it separately.
+
+## Comments and names
+
+MUST:
+
+- Comment only where the code cannot say it: intent, ownership, lifetime, threading, compatibility.
+- One line inside a function. A public contract may take a few lines of Doxygen. No essays.
+- Names are plain words a new developer understands. If a name needs a comment to decode it, rename it.
 
 ## Commands
 
 ```bash
-uv sync
 uv run poe doctor
-uv run poe build
-uv run poe build windows-msvc-release
-uv run poe build-linux
-uv run poe test
-uv run poe lint
-uv run poe format
-uv run poe modgraph
-uv run poe panorama
-uv run poe new-plugin <name>
-voltmod init
+uv run poe build [preset]      # windows-msvc-{release,debug}, linux-steamrt-{release,debug}
+uv run poe test                # build, then CTest (-R filters)
+uv run poe lint | format | modgraph
+uv run poe build --install <plugin> --start   # install to CS2_SERVER_PATH and launch
+uv run poe panorama            # compile panorama/ UI into the client (Windows)
+voltmod init | new-plugin <name>              # run from the consumer repo
+voltmod package <build|publish|tag|prune|watch>
 ```
 
-`voltmod build` configures and compiles one preset. `voltmod test` updates that
-build and runs its CTest preset (`-R` filters cases). `voltmod install [plugin]`
-merges a built plugin into the local CS2 server at `CS2_SERVER_PATH`, and
-`voltmod serve` runs that server. `voltmod build --install <plugin> --start`
-does all three. `voltmod panorama` compiles every `panorama/` directory with
-the CS2 Workshop Tools and installs the result into the client at
-`CS2_CLIENT_PATH`; it is Windows-only and required before custom UI is visible.
-All CLI commands use the current working directory, so run scaffolding commands
-from the consumer repository.
+Preset names are consumer API.
 
-## Repository map
+## Layout
 
 ```text
-include/VoltMod/     Public C++ API by module
-src/                 Framework implementation
-cmake/               Plugin, test, library, and build-stamp helpers
-gamedata/            gamedata.jsonc: where the engine keeps things, plus its schema
-conan/               Canonical profiles and public remote configuration
-recipes/             HL2SDK and Metamod Conan recipes
-cli/voltmod/         The `voltmod` Python CLI; its tests are in `cli/tests/`
-templates/plugin/    Files copied by `voltmod new-plugin`
-templates/project/   Files copied by `voltmod init`
-test_package/        Conan package smoke test
-tests/               HL2SDK-free doctest suite, grouped by module
-docs/                Doxygen guides
+include/VoltMod/  Public API by module     src/        Implementation
+cmake/            Plugin and test helpers  gamedata/   gamedata.jsonc + schema
+conan/            Profiles and remote      recipes/    HL2SDK and Metamod recipes
+cli/voltmod/      Python CLI (tests: cli/tests/)   templates/  new-plugin and init files
+tests/            SDK-free doctest suite   docs/       Doxygen guides
 ```
 
-HL2SDK and Metamod are Conan packages. The HL2SDK build module attaches the SDK
-translation units consumers must compile. There are no submodules.
+Consumers call `find_package(voltmod CONFIG REQUIRED)` and `voltmod_add_plugin(name VERSION v)`
+(`FEATURES DATABASE` for PostgreSQL). Targets: `VoltMod::Runtime`, `VoltMod::Database`,
+`VoltMod::Headers` (SDK-free, for tests). Versions: framework in `conanfile.py`, SDK in each
+recipe's `conandata.yml`, tools in `pyproject.toml`.
 
-## Package and build model
+## Module layering
 
-Consumers require the package, then call the CMake helpers delivered as Conan
-build modules:
-
-```cmake
-find_package(voltmod CONFIG REQUIRED)
-voltmod_add_plugin(my-plugin VERSION 1.0.0)
-```
-
-The framework builds two libraries:
-
-- `VoltMod::Runtime` contains every source module except Database.
-- `VoltMod::Database` contains the optional PostgreSQL layer.
-
-`VoltMod::Headers` is the SDK-free include target linked by test binaries. A
-plugin gets Runtime by default; `FEATURES DATABASE` adds Database.
-`voltmod_add_plugin` also configures SDK glue, PCH, output layout, build
-metadata, VDF generation, and install components.
-
-The public presets are `windows-msvc-{release,debug}` and
-`linux-steamrt-{release,debug}`. Treat their names as consumer API.
-
-`voltmod package <build|publish|tag|prune|watch>` owns releases. Framework
-versioning lives in `conanfile.py`; SDK revisions live in each recipe's
-`conandata.yml`; remotes and ABI profiles live under `conan/`; tool versions live
-in `pyproject.toml`.
-
-## Runtime and API design
-
-`VoltMod::MetamodPlugin` owns Metamod entry points, standard hooks, player
-tracking, and one `VoltMod::Runtime` per load cycle. It passes the runtime to
-`OnLoad(Runtime&)`. Consumers must destroy their own load-cycle state
-in `OnUnload`.
-
-The runtime is a flat service container. Services are accessed directly, such
-as `runtime.Messages` and `runtime.Players`, so moving a service between source
-modules does not rename the consumer API.
-
-There is no ambient accessor for the runtime; everything is injected:
-
-- `Core`, `Engine`, `Entities`, `Events`, `Messaging`, `Hooks`, `Http`, and
-  `Database` never name `Runtime`. They take the sibling services they use.
-  `modgraph` fails a `.cpp` in those modules that includes
-  `VoltMod/Runtime.hpp`.
-- `Commands` and `App` may take `Runtime&`, or the narrowest service that does the job.
-  `Players` and `Menu` take the narrowest service directly - `ActionDispatcher(Policy&,
-  PlayerManager&, EntitySystem&)`, `EffectDispatcher(ActionDispatcher&, EffectManager&)`,
-  `MenuManager(const MenuServices&)` - never `Runtime&`.
-- Header templates plugins instantiate (`Flow<TState>`, `PerSlot<T>`) take one
-  service, so including them does not pull in the composition root.
-- A file-static is only for engine callbacks that carry no user data (set and
-  cleared by the service that owns it), for process-wide file-statics set once at load,
-  such as the `Log::Handler` and the base directory, or for state that is genuinely
-  process-wide rather than per-load: the schema system the layout verifier holds
-  (`g_schema` in `src/Schema/Verify.cpp`) is the one of those, because it is a
-  single engine object and the offsets it reports are constants of the loaded
-  binary rather than per-load state.
-
-Use these patterns throughout the framework:
-
-- Plain-data descriptors such as `Action` and menu context rows are registered
-  explicitly during load, and a command is registered through the fluent
-  `Commands.Add(name)...Run(handler)` builder whose handler signature is its
-  argument spec. Do not self-register at static init.
-- Consumers inject permission, targeting, reply, and broadcast behavior once
-  through `Runtime::Policy`, and `Policy::Authorize(caller, target, permission)`
-  is the only place the framework applies it. Commands, actions, effects and menu
-  rows call that one gate; nothing repeats its steps, and denial is a
-  `Result<Authorized>` error rather than a nulled-out field.
-- `PlayerRef` is what a slot is stored as, `Player&` is who is connected now, and
-  `Controller`/`Pawn` are this frame's entities. `PlayerManager` owns the roster
-  and raises `Connected`, `FullyConnected`, `SettingsChanged` and `Disconnected`;
-  there are no player-lifecycle virtuals on `MetamodPlugin`.
-- A fixed-signature signal is a public `Event<Args...>` member and `+=` is the only
-  way to subscribe to one; `Raise` belongs to the owner. Game events go through
-  `GameEvents::On<T>` and must have a struct in `Events/EventTypes.hpp` - there is
-  no string form.
-- An `Event` whose source costs something to run takes an `EventLifecycle`: the
-  first subscription installs it, the last one to drop removes it, and `OnFirst`
-  returning false refuses the subscription after logging why. Services do not
-  expose `Install()`/`Enable()` alongside it. When one source feeds several events,
-  the service holds a `SharedSource` and hands each event a lifecycle from it
-  rather than counting subscribers itself.
-- A vtable hook is a `VOLTMOD_VHOOK*` declaration at file scope plus a
-  `VtableHook` member (`<VoltMod/Unsafe/VtableHook.hpp>`): the declaration is one
-  hooked vfunc per translation unit - `SH_MANUALHOOK_RECONFIGURE` mutates the
-  file-static it creates - and the member owns the pre/post pair, installs
-  pair-or-nothing, and removes by id when it is dropped. No service repeats the
-  reconfigure/add/id bookkeeping, and no SourceHook `SH_*` add or remove macro
-  appears outside that one macro.
-- Event, game-event, scheduler, and hook registrations return a `[[nodiscard]]
-  Subscription`. Store it beside the state its handler captures. Dropping one
-  unsubscribes, and a `Scheduler` one-shot is cancelled the same way. Commands
-  are owned by `CommandManager` for the load cycle.
-- Fallible operations return `Result<T>`/`Status` over `Error`: `ErrorCode` to
-  branch on, `Detail` for the log, `Key` for a player-facing reply.
-- `Entity`, `Pawn` and `Controller` are frame-local wrappers, not handles to keep.
-  `explicit operator bool()` is the only validity check, they copy but do not
-  assign, and anything stored is an `EntityRef` or a `PlayerRef` re-resolved
-  through `EntitySystem`. A schema field is a generated accessor pair (`Health()` /
-  `SetHealth()`) whose offset is baked in at build time by `voltmod schemagen` from
-  `schema/manifest.json` plus a dump, and whose setter dirties the write through the
-  entity, a `__m_pChainEntity` chainer, or the entity a struct is embedded in. There
-  is no schema service to inject, no runtime resolution, and no string-pair lookup on
-  a call path; `Runtime::Start` aborts the load when the baked layout and the live
-  schema disagree.
-- `gamedata/gamedata.jsonc` (version 2) says only *where* something is; C++ owns every
-  prototype, vtable signature and field type in `Engine/Bindings.hpp`. A service takes
-  `const Bindings&` and reads a typed field - never a string lookup on a call path. Parsing
-  lives in `src/Engine/GameDataFile.*` and is SDK-free so it is unit-tested.
-- Whether a feature works this load is `Runtime::Capabilities`, recorded once by
-  `Runtime::Start` with the reason it is off. Services do not carry their own
-  `Available()`/`IsResolved()`/`Installed()`/`Enabled()` flags, and one whose capability is off
-  must be inert and safe to call.
-- Enumerator names come from `Core/EnumNames.hpp` (`Name(value)`, `Parse<E>(text)`), not from
-  hand-written switches.
-- One convar is one `ConVar<T>` handle, resolved by name once. `Set` uses a cfg line so replicated
-  values reach clients; `RawScope` temporarily pokes storage without callbacks or networking.
-- Constructor injection is the default. Do not add process-lifetime singletons.
-- Database and HTTP workers replay completions on the game thread through
-  scheduler per-frame delivery.
-- `<VoltMod/Api.hpp>` gathers the core vocabulary, `Runtime`, players, commands, and
-  plugin plumbing; every name it reaches is already spelled `VoltMod::Thing`. It never
-  reaches the JSON layer or the Menu-building surface - `<VoltMod/Entities/Api.hpp>`,
-  `<VoltMod/Hooks/Api.hpp>`, `<VoltMod/Menu/Api.hpp>` and `<VoltMod/Unsafe/Api.hpp>` gather
-  the rest of those modules' public surfaces, and `<VoltMod/App/Config.hpp>` gathers
-  `JsonConfig`, `StandardPluginSettings` and `Json` for a plugin's own `Config.hpp`.
-  Database names stay in `<VoltMod/Database/Api.hpp>` so ordinary translation units do
-  not include libpqxx.
-
-## Module rules
-
-`uv run poe modgraph` enforces the include allowlist in
-`cli/voltmod/checks/modgraph.py`:
+`uv run poe modgraph` enforces what each module may include:
 
 ```text
 Core       -> nothing
@@ -203,57 +61,10 @@ Menu       -> Core, Engine, Entities, Messaging, Players, Hooks, Ui
 Http       -> Core
 Database   -> Core
 Unsafe     -> Core, Engine
-App        -> every module
+App        -> everything
 ```
 
-An acyclic graph is not enough; an upward dependency still violates this
-layering. A module's own `Api.hpp` (`Entities/Api.hpp`, `Hooks/Api.hpp`, ...) is exempt: it
-is a deliberate cross-module aggregate documenting that module's public surface - `Hooks/Api.hpp`
-gathering `Events` and `Messaging` types is not the `Hooks` module depending on them. Core,
-Engine, Entities, Events, Messaging, Players, Hooks and Commands may not
-include `Menu/` or `App/` at all - both would leak into every consumer of that layer.
+A module's own `Api.hpp` is exempt (deliberate aggregate). Nothing below Menu includes
+`Menu/` or `App/`. Only `Commands` and `App` may name `Runtime`.
 
-## Conventions
-
-- Use C++23 and `.hpp` headers.
-- Use `PascalCase` for types and methods and `_camelCase` for members.
-- Use `std::format`, designated initializers, and `std::function` callbacks.
-- Every public name lives in one namespace, `VoltMod`. Modules are directories and
-  layers, not namespaces. The only nested namespaces are small groups of free
-  functions with a common noun (`VoltMod::Log`, `VoltMod::ChatColors`,
-  `VoltMod::Validation`, `VoltMod::PawnOps`), `VoltMod::Args` - the command
-  argument types, whose names (`Target`, `Int`, `Word`, `Rest`) are too generic
-  to carry at `VoltMod::` scope and appear nowhere but a handler's parameter
-  list - and `VoltMod::Internal`, which may only appear under `src/`.
-- Do not forward-declare a framework type in a header. Include the header that
-  defines it. `include/VoltMod/Engine/EngineTypes.hpp` is the one place a forward
-  declaration belongs - modgraph names that path, so a new home is a tooling
-  change - and it says why for each name; a new one needs the same justification -
-  an SDK type, a type defined under `src/`, or a pair that owns one another. A header
-  declaring a name it goes on to define itself (a primary template before its partial
-  specializations) is ordering its own contents, not standing in for an include.
-- Do not use anonymous namespaces. A file-local helper is a `static` function or
-  constant at the top of the .cpp, or a private static member when it needs class
-  state.
-- Do not use using-directives. A .cpp may name what it uses with targeted
-  using-declarations (`using VoltMod::Player;`); a header may not.
-- Keep templates buildable and documentation examples aligned with the public
-  headers.
-
-`uv run poe modgraph` enforces the last four alongside the layering.
-
-## Commenting and documentation
-
-- Comment only to explain contracts, ownership, lifetime, concurrency, module
-  boundaries, build behavior, or compatibility. Keep comments near the code
-  and remove stale or obvious narration.
-- Use Doxygen for non-obvious public contracts and preserve exact symbols and
-  tags. Keep `docs/` task-first, current, and explicit about commands, paths,
-  and expected results.
-- Keep examples and `templates/` synchronized with the public headers and
-  generated output. Use plain English and sentence-case headings; call VoltMod
-  the framework and reserve "library" for actual libraries or CMake targets.
-
-Tests use doctest and must remain HL2SDK-free unless a separate integration-test
-surface is added. Each test case becomes a CTest entry; names must not contain
-`[`, `]`, or `;`.
+Design rules and conventions are in `.claude/rules/` and load per file path.
