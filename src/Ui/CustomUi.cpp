@@ -17,7 +17,6 @@ CustomUi::CustomUi(EntitySystem& entities, EntityOps& ops, const Bindings& bindi
     : Clicked({.OnFirst = [this] { return _clicks->Install(); }, .OnLast = [this] { _clicks->Remove(); }}),
       _entities(entities),
       _ops(ops),
-      _bindings(bindings),
       _slots(slots),
       _transmit(transmit),
       _clicks(std::make_unique<UiClicks>(interfaces, bindings, slots, entities, scheduler, Clicked))
@@ -36,9 +35,8 @@ Result<UiPanel> CustomUi::Panel(std::string_view layout, int viewer)
         if (!IsValidSlot(viewer))
             return std::unexpected(Error::Invalid(std::format("slot {} is not a player slot", viewer)));
 
-        // The same binding that decides Capability::Transmit. Without it the entity would reach
-        // every client, which is the opposite of what a private panel promises.
-        if (!_bindings.CheckTransmitPlayerSlot)
+        // Without the filter the entity reaches every client - the opposite of the promise.
+        if (!_transmit.IsActive())
             return std::unexpected(Error::Unsupported("a private panel needs the Transmit filter, which is inert"));
     }
 

@@ -1,6 +1,7 @@
 #include "Menu/ActiveMenus.hpp"
 #include "Menu/CenterHtmlDriver.hpp"
 #include "Menu/PanoramaDriver.hpp"
+#include "Ui/LayoutName.hpp"
 
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
@@ -38,9 +39,9 @@ Status MenuManager::UsePanorama(std::string_view layout)
         }
     }
 
-    // Refuse a bad layout name once here rather than once per player.
-    if (auto panel = _services.Ui.Panel(layout); !panel)
-        return std::unexpected(panel.error());
+    // Refuse a bad layout name once here; the driver makes the real panels, one per player.
+    if (auto resource = ResolveLayoutName(layout); !resource)
+        return std::unexpected(resource.error());
 
     CloseAllSessions();
     _layout = std::string(layout);

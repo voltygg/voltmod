@@ -111,7 +111,7 @@ private:
     [[nodiscard]] int ItemIndex(int slot, int row) const;
 
     std::string _layout;
-    /** One private panel per player, dropped with the slot. */
+    /** One private panel per player with a menu open, dropped by @ref Dismiss and with the slot. */
     PerSlot<UiPanel> _panels;
     std::vector<RowIds> _rows;
     PerSlot<int> _pages;

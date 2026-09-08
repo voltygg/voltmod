@@ -63,6 +63,10 @@ public:
     /** Post-hook body for ISource2GameEntities::CheckTransmit; called by MetamodPlugin. */
     void OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount);
 
+    /** Whether the filter runs. False means the gamedata offset is missing and every registration
+     *  is accepted but inert. */
+    [[nodiscard]] bool IsActive() const noexcept { return static_cast<bool>(_bindings.CheckTransmitPlayerSlot); }
+
 private:
     struct SlotState
     {

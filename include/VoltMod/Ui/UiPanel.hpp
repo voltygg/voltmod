@@ -203,7 +203,6 @@ public:
 private:
     EntitySystem& _entities;
     EntityOps& _ops;
-    const Bindings& _bindings;
     SlotEvents& _slots;
     Transmit& _transmit;
     /** Declared after @ref Clicked so the hook is gone before the event it raises into. */

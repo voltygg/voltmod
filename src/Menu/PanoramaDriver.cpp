@@ -149,17 +149,18 @@ void PanoramaDriver::TurnPage(int slot, int delta)
 
 void PanoramaDriver::Dismiss(int slot)
 {
-    // Written straight from here rather than deferred to the next frame: presses are delivered on
-    // the game frame, so a close that came from a row handler is already outside the engine's
-    // inbound message path and may write to the entity.
+    // Safe to write from here: presses arrive on the game frame, outside the engine's inbound
+    // message path. The capture goes before the entity does, so nobody is left holding one.
     UiPanel& panel = _panels[slot];
-    if (!panel.Covers(slot))
-        return;
+    if (panel.Covers(slot))
+    {
+        (void)panel.Class(slot, RootId, Css::Hidden, true);
+        (void)panel.InputCapture(slot, false);
+    }
 
-    (void)panel.Class(slot, RootId, Css::Hidden, true);
-    (void)panel.InputCapture(slot, false);
-
-    panel.Forget(slot);
+    // A closed menu costs nothing: this removes the entity and its Transmit entry, and the next
+    // Present makes a fresh panel.
+    _panels[slot] = {};
 }
 
 }  // namespace VoltMod

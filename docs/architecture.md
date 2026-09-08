@@ -212,7 +212,7 @@ Events     -> Core, Engine, Entities
 Messaging  -> Core, Engine, Entities, Events
 Players    -> Core, Engine, Entities
 Hooks      -> Core, Engine, Schema, Entities, Events, Players, Unsafe
-Ui         -> Core, Engine, Schema, Entities, Unsafe
+Ui         -> Core, Engine, Schema, Entities, Hooks, Unsafe
 Workshop   -> Core, Engine, Players, Unsafe
 Commands   -> Core, Engine, Entities, Messaging, Players
 Menu       -> Core, Engine, Entities, Messaging, Players, Hooks, Ui
