@@ -30,7 +30,7 @@ struct AddonDecision
  * @brief Which workshop addons each client still owes, and what to send it next.
  *
  * Split out of @ref Addons so the merge, credit and retry rules are testable without the engine.
- * Time is caller-supplied (seconds, any monotonic origin), as in @ref ClientCvarPendingTable.
+ * Time is caller-supplied (seconds, any monotonic origin), as in @ref PendingConVarQueries.
  *
  * Requirements are reference counted: two features may need the same addon, and an id stops being
  * required only when the last holder releases it. Progress is keyed by SteamID, not slot, because

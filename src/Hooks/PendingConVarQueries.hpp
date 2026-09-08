@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Hooks/ClientCvars.hpp>
+#include <VoltMod/Hooks/ClientConVars.hpp>
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -13,16 +13,16 @@ namespace VoltMod
 {
 
 /** @brief One outstanding client convar query, identified by the cookie sent to the client. */
-struct PendingCvarQuery
+struct PendingConVarQuery
 {
     std::string Name;                     ///< Convar name the query asked for.
-    ClientCvars::QueryCallback Callback;  ///< Invoked once, when a matching answer arrives.
+    ClientConVars::QueryCallback Callback;  ///< Invoked once, when a matching answer arrives.
     double SentAtSec = 0.0;               ///< Caller-supplied monotonic timestamp of the send.
     int Cookie = -1;                      ///< Cookie sent to the client; matched on the answer.
 };
 
 /**
- * @brief Bookkeeping for @ref ClientCvars: per-slot, cookie-keyed queries awaiting an answer.
+ * @brief Bookkeeping for @ref ClientConVars: per-slot, cookie-keyed queries awaiting an answer.
  *
  * Split out of the service so the matching and expiry rules are testable without the SDK. Time is
  * caller-supplied (seconds, any monotonic origin) and expiry is lazy: nothing is dropped until the
@@ -31,7 +31,7 @@ struct PendingCvarQuery
  * A client need never answer, so the table is capped per slot - beyond @ref MaxPendingPerSlot,
  * queries are refused rather than queued behind a silent client.
  */
-class ClientCvarPendingTable
+class PendingConVarQueries
 {
 public:
     /** Outstanding queries allowed per slot before Query() starts refusing. */
@@ -51,7 +51,7 @@ public:
      * previous callback. False when nothing is in flight, leaving @p callback untouched so the
      * caller can send a new query.
      */
-    bool Retarget(int slot, std::string_view name, ClientCvars::QueryCallback& callback);
+    bool Retarget(int slot, std::string_view name, ClientConVars::QueryCallback& callback);
 
     /** True when @p slot has no room for another query. */
     bool Full(int slot) const;
@@ -62,13 +62,13 @@ public:
      */
     int NextCookie(int slot);
 
-    void Add(int slot, int cookie, std::string name, ClientCvars::QueryCallback callback, double now);
+    void Add(int slot, int cookie, std::string name, ClientConVars::QueryCallback callback, double now);
 
     /**
      * Remove and return @p slot's query @p cookie, but only when @p name matches the convar it
      * asked for: a client answering with a different name is answering a question nobody posed.
      */
-    std::optional<PendingCvarQuery> Take(int slot, int cookie, std::string_view name);
+    std::optional<PendingConVarQuery> Take(int slot, int cookie, std::string_view name);
 
     void Clear(int slot);
     void ClearAll();
@@ -78,7 +78,7 @@ public:
 private:
     // A slot holds at most MaxPendingPerSlot entries, so a flat vector beats a keyed container on
     // every operation here - all of which already scan.
-    std::array<std::vector<PendingCvarQuery>, MaxPlayers> _slots;
+    std::array<std::vector<PendingConVarQuery>, MaxPlayers> _slots;
     uint32_t _cookieCounter = 0;
 };
 

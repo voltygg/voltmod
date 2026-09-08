@@ -1,22 +1,22 @@
-#include "Hooks/ClientCvarPending.hpp"
+#include "Hooks/PendingConVarQueries.hpp"
 
 #include <cstdint>
 #include <doctest/doctest.h>
 #include <string>
 
-using VoltMod::ClientCvarPendingTable;
-using VoltMod::ClientCvars;
-using VoltMod::ClientCvarStatus;
+using VoltMod::PendingConVarQueries;
+using VoltMod::ClientConVars;
+using VoltMod::ClientConVarStatus;
 
 /** Callback that records the value it was handed, so tests can tell two callbacks apart. */
-static ClientCvars::QueryCallback Recorder(std::string& into)
+static ClientConVars::QueryCallback Recorder(std::string& into)
 {
-    return [&into](int, ClientCvarStatus, std::string_view, std::string_view value) { into = value; };
+    return [&into](int, ClientConVarStatus, std::string_view, std::string_view value) { into = value; };
 }
 
 /** Add one query and return its cookie. */
-static int AddQuery(ClientCvarPendingTable& table, int slot, const std::string& name,
-                    ClientCvars::QueryCallback callback, double now)
+static int AddQuery(PendingConVarQueries& table, int slot, const std::string& name,
+                    ClientConVars::QueryCallback callback, double now)
 {
     const int cookie = table.NextCookie(slot);
     table.Add(slot, cookie, name, std::move(callback), now);
@@ -25,7 +25,7 @@ static int AddQuery(ClientCvarPendingTable& table, int slot, const std::string& 
 
 TEST_CASE("Take returns the query matching both cookie and name")
 {
-    ClientCvarPendingTable table;
+    PendingConVarQueries table;
     std::string seen;
     const int cookie = AddQuery(table, 3, "sensitivity", Recorder(seen), 100.0);
 
@@ -34,13 +34,13 @@ TEST_CASE("Take returns the query matching both cookie and name")
     CHECK(query->Name == "sensitivity");
     CHECK(query->SentAtSec == doctest::Approx(100.0));
 
-    query->Callback(3, ClientCvarStatus::ValueIntact, "sensitivity", "2.5");
+    query->Callback(3, ClientConVarStatus::Answered, "sensitivity", "2.5");
     CHECK(seen == "2.5");
 }
 
 TEST_CASE("Take removes the entry it hands back")
 {
-    ClientCvarPendingTable table;
+    PendingConVarQueries table;
     std::string seen;
     const int cookie = AddQuery(table, 0, "fps_max", Recorder(seen), 0.0);
 
@@ -51,7 +51,7 @@ TEST_CASE("Take removes the entry it hands back")
 
 TEST_CASE("Take rejects an answer naming a different convar")
 {
-    ClientCvarPendingTable table;
+    PendingConVarQueries table;
     std::string seen;
     const int cookie = AddQuery(table, 0, "m_yaw", Recorder(seen), 0.0);
 
@@ -61,7 +61,7 @@ TEST_CASE("Take rejects an answer naming a different convar")
 
 TEST_CASE("Take rejects an unknown cookie and an out of range slot")
 {
-    ClientCvarPendingTable table;
+    PendingConVarQueries table;
     std::string seen;
     AddQuery(table, 0, "cl_showpos", Recorder(seen), 0.0);
 
@@ -72,7 +72,7 @@ TEST_CASE("Take rejects an unknown cookie and an out of range slot")
 
 TEST_CASE("A cookie is only valid on the slot it was issued for")
 {
-    ClientCvarPendingTable table;
+    PendingConVarQueries table;
     std::string seen;
     const int cookie = AddQuery(table, 5, "sensitivity", Recorder(seen), 0.0);
 
@@ -82,13 +82,13 @@ TEST_CASE("A cookie is only valid on the slot it was issued for")
 
 TEST_CASE("Prune drops queries at or past the timeout and keeps younger ones")
 {
-    ClientCvarPendingTable table;
+    PendingConVarQueries table;
     std::string seen;
     const int old = AddQuery(table, 1, "old", Recorder(seen), 0.0);
     const int borderline = AddQuery(table, 1, "borderline", Recorder(seen), 0.5);
     const int fresh = AddQuery(table, 1, "fresh", Recorder(seen), 5.0);
 
-    table.Prune(1, ClientCvarPendingTable::TimeoutSec + 0.5);
+    table.Prune(1, PendingConVarQueries::TimeoutSec + 0.5);
 
     CHECK_FALSE(table.Take(1, old, "old").has_value());
     CHECK_FALSE(table.Take(1, borderline, "borderline").has_value());
@@ -97,7 +97,7 @@ TEST_CASE("Prune drops queries at or past the timeout and keeps younger ones")
 
 TEST_CASE("Prune only touches the slot it is given")
 {
-    ClientCvarPendingTable table;
+    PendingConVarQueries table;
     std::string seen;
     AddQuery(table, 1, "a", Recorder(seen), 0.0);
     AddQuery(table, 2, "b", Recorder(seen), 0.0);
@@ -110,7 +110,7 @@ TEST_CASE("Prune only touches the slot it is given")
 
 TEST_CASE("Retarget replaces the callback of the query already in flight")
 {
-    ClientCvarPendingTable table;
+    PendingConVarQueries table;
     std::string first;
     std::string second;
     const int cookie = AddQuery(table, 4, "sensitivity", Recorder(first), 0.0);
@@ -121,14 +121,14 @@ TEST_CASE("Retarget replaces the callback of the query already in flight")
 
     auto query = table.Take(4, cookie, "sensitivity");
     REQUIRE(query.has_value());
-    query->Callback(4, ClientCvarStatus::ValueIntact, "sensitivity", "1.0");
+    query->Callback(4, ClientConVarStatus::Answered, "sensitivity", "1.0");
     CHECK(first.empty());
     CHECK(second == "1.0");
 }
 
 TEST_CASE("Retarget reports false when no query for that convar is outstanding")
 {
-    ClientCvarPendingTable table;
+    PendingConVarQueries table;
     std::string seen;
     AddQuery(table, 4, "sensitivity", Recorder(seen), 0.0);
 
@@ -140,22 +140,22 @@ TEST_CASE("Retarget reports false when no query for that convar is outstanding")
 
 TEST_CASE("The per slot cap refuses further queries until one is answered")
 {
-    ClientCvarPendingTable table;
+    PendingConVarQueries table;
     std::string seen;
-    for (size_t i = 0; i < ClientCvarPendingTable::MaxPendingPerSlot; ++i)
+    for (size_t i = 0; i < PendingConVarQueries::MaxPendingPerSlot; ++i)
         AddQuery(table, 7, "cvar" + std::to_string(i), Recorder(seen), 0.0);
 
     CHECK(table.Full(7));
     CHECK_FALSE(table.Full(8));
-    CHECK(table.Count(7) == ClientCvarPendingTable::MaxPendingPerSlot);
+    CHECK(table.Count(7) == PendingConVarQueries::MaxPendingPerSlot);
 }
 
 TEST_CASE("The cap frees up once queries are answered or expire")
 {
-    ClientCvarPendingTable table;
+    PendingConVarQueries table;
     std::string seen;
     int firstCookie = -1;
-    for (size_t i = 0; i < ClientCvarPendingTable::MaxPendingPerSlot; ++i)
+    for (size_t i = 0; i < PendingConVarQueries::MaxPendingPerSlot; ++i)
     {
         const int cookie = AddQuery(table, 7, "cvar" + std::to_string(i), Recorder(seen), 0.0);
         if (i == 0)
@@ -165,45 +165,45 @@ TEST_CASE("The cap frees up once queries are answered or expire")
     CHECK(table.Take(7, firstCookie, "cvar0").has_value());
     CHECK_FALSE(table.Full(7));
 
-    table.Prune(7, ClientCvarPendingTable::TimeoutSec);
+    table.Prune(7, PendingConVarQueries::TimeoutSec);
     CHECK(table.Count(7) == 0);
 }
 
 TEST_CASE("Cookies increase and never collide with one still outstanding")
 {
-    ClientCvarPendingTable table;
+    PendingConVarQueries table;
     std::string seen;
     int previous = 0;
-    for (size_t i = 0; i < ClientCvarPendingTable::MaxPendingPerSlot; ++i)
+    for (size_t i = 0; i < PendingConVarQueries::MaxPendingPerSlot; ++i)
     {
         const int cookie = AddQuery(table, 2, "cvar" + std::to_string(i), Recorder(seen), 0.0);
         CHECK(cookie > previous);
         previous = cookie;
     }
-    CHECK(table.Count(2) == ClientCvarPendingTable::MaxPendingPerSlot);
+    CHECK(table.Count(2) == PendingConVarQueries::MaxPendingPerSlot);
 }
 
 TEST_CASE("Cookies stay within the protobuf int32 range")
 {
-    ClientCvarPendingTable table;
+    PendingConVarQueries table;
     for (int i = 0; i < 32; ++i)
     {
         const int cookie = table.NextCookie(0);
         CHECK(cookie > 0);
-        CHECK(static_cast<uint32_t>(cookie) <= ClientCvarPendingTable::MaxCookie);
+        CHECK(static_cast<uint32_t>(cookie) <= PendingConVarQueries::MaxCookie);
     }
 }
 
 TEST_CASE("NextCookie refuses an out of range slot")
 {
-    ClientCvarPendingTable table;
+    PendingConVarQueries table;
     CHECK(table.NextCookie(-1) == -1);
     CHECK(table.NextCookie(VoltMod::MaxPlayers) == -1);
 }
 
 TEST_CASE("Clear drops one slot and ClearAll drops every slot")
 {
-    ClientCvarPendingTable table;
+    PendingConVarQueries table;
     std::string seen;
     AddQuery(table, 0, "a", Recorder(seen), 0.0);
     AddQuery(table, 1, "b", Recorder(seen), 0.0);
@@ -218,7 +218,7 @@ TEST_CASE("Clear drops one slot and ClearAll drops every slot")
 
 TEST_CASE("Adding to an out of range slot is a no op")
 {
-    ClientCvarPendingTable table;
+    PendingConVarQueries table;
     std::string seen;
     table.Add(-1, 1, "a", Recorder(seen), 0.0);
     table.Add(VoltMod::MaxPlayers, 1, "a", Recorder(seen), 0.0);

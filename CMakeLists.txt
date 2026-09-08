@@ -148,7 +148,7 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Core/Translations.cpp
             src/Players/PlayerManager.cpp
             src/Players/Policy.cpp
-            src/Hooks/ClientCvarPending.cpp
+            src/Hooks/PendingConVarQueries.cpp
             src/Workshop/AddonRequirements.cpp
             src/Ui/LayoutName.cpp
             src/Ui/UiWriteCache.cpp

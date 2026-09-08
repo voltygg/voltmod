@@ -1,4 +1,4 @@
-#include "Hooks/ClientCvarPending.hpp"
+#include "Hooks/PendingConVarQueries.hpp"
 
 #include <algorithm>
 #include <utility>
@@ -6,21 +6,21 @@
 namespace VoltMod
 {
 
-void ClientCvarPendingTable::Prune(int slot, double now)
+void PendingConVarQueries::Prune(int slot, double now)
 {
     if (!IsValidSlot(slot))
         return;
 
     auto& queries = _slots[slot];
-    std::erase_if(queries, [&](const PendingCvarQuery& query) { return now - query.SentAtSec >= TimeoutSec; });
+    std::erase_if(queries, [&](const PendingConVarQuery& query) { return now - query.SentAtSec >= TimeoutSec; });
 }
 
-bool ClientCvarPendingTable::Retarget(int slot, std::string_view name, ClientCvars::QueryCallback& callback)
+bool PendingConVarQueries::Retarget(int slot, std::string_view name, ClientConVars::QueryCallback& callback)
 {
     if (!IsValidSlot(slot))
         return false;
 
-    for (PendingCvarQuery& query : _slots[slot])
+    for (PendingConVarQuery& query : _slots[slot])
     {
         if (query.Name == name)
         {
@@ -31,12 +31,12 @@ bool ClientCvarPendingTable::Retarget(int slot, std::string_view name, ClientCva
     return false;
 }
 
-bool ClientCvarPendingTable::Full(int slot) const
+bool PendingConVarQueries::Full(int slot) const
 {
     return Count(slot) >= MaxPendingPerSlot;
 }
 
-int ClientCvarPendingTable::NextCookie(int slot)
+int PendingConVarQueries::NextCookie(int slot)
 {
     if (!IsValidSlot(slot))
         return -1;
@@ -50,59 +50,59 @@ int ClientCvarPendingTable::NextCookie(int slot)
 
         const int cookie = static_cast<int>(_cookieCounter);
         if (std::none_of(queries.begin(), queries.end(),
-                         [&](const PendingCvarQuery& query) { return query.Cookie == cookie; }))
+                         [&](const PendingConVarQuery& query) { return query.Cookie == cookie; }))
             return cookie;
     }
     return -1;
 }
 
-void ClientCvarPendingTable::Add(int slot, int cookie, std::string name, ClientCvars::QueryCallback callback,
+void PendingConVarQueries::Add(int slot, int cookie, std::string name, ClientConVars::QueryCallback callback,
                                  double now)
 {
     if (!IsValidSlot(slot) || cookie < 0)
         return;
 
     auto& queries = _slots[slot];
-    PendingCvarQuery query{
+    PendingConVarQuery query{
         .Name = std::move(name), .Callback = std::move(callback), .SentAtSec = now, .Cookie = cookie};
 
     auto existing = std::find_if(queries.begin(), queries.end(),
-                                 [&](const PendingCvarQuery& stored) { return stored.Cookie == cookie; });
+                                 [&](const PendingConVarQuery& stored) { return stored.Cookie == cookie; });
     if (existing != queries.end())
         *existing = std::move(query);
     else
         queries.push_back(std::move(query));
 }
 
-std::optional<PendingCvarQuery> ClientCvarPendingTable::Take(int slot, int cookie, std::string_view name)
+std::optional<PendingConVarQuery> PendingConVarQueries::Take(int slot, int cookie, std::string_view name)
 {
     if (!IsValidSlot(slot))
         return std::nullopt;
 
     auto& queries = _slots[slot];
     auto it = std::find_if(queries.begin(), queries.end(),
-                           [&](const PendingCvarQuery& query) { return query.Cookie == cookie; });
+                           [&](const PendingConVarQuery& query) { return query.Cookie == cookie; });
     if (it == queries.end() || it->Name != name)
         return std::nullopt;
 
-    PendingCvarQuery query = std::move(*it);
+    PendingConVarQuery query = std::move(*it);
     queries.erase(it);
     return query;
 }
 
-void ClientCvarPendingTable::Clear(int slot)
+void PendingConVarQueries::Clear(int slot)
 {
     if (IsValidSlot(slot))
         _slots[slot].clear();
 }
 
-void ClientCvarPendingTable::ClearAll()
+void PendingConVarQueries::ClearAll()
 {
     for (auto& queries : _slots)
         queries.clear();
 }
 
-size_t ClientCvarPendingTable::Count(int slot) const
+size_t PendingConVarQueries::Count(int slot) const
 {
     return IsValidSlot(slot) ? _slots[slot].size() : 0;
 }

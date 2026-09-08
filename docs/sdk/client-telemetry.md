@@ -39,21 +39,21 @@ if (const char* sens = net.GetUserInfoCvar(slot, "sensitivity"))
 - `EngineLatency` returns `0` for "no channel", which is indistinguishable from a genuine zero RTT on a listen server, so pair it with `GetNetInfo(slot) != nullptr` when the difference matters.
 - `GetUserInfoCvar` only sees cvars the client *replicates* (`FCVAR_USERINFO`: `name`, `sensitivity`, `m_yaw`, `cl_interp_ratio`, ...). The returned string is engine-owned and valid only until the next engine call, so copy anything you keep. Everything outside that set needs a cvar query.
 
-## ClientCvars
+## ClientConVars
 
-`runtime.Hooks.ClientCvars` queries a convar on one connected client. The
+`runtime.Hooks.ClientConVars` queries a convar on one connected client. The
 framework matches the asynchronous response to its request and invokes the
 callback without changing the engine's own response handling.
 
 ```cpp
-runtime.Hooks.ClientCvars.Query(slot, "cl_interp_ratio",
-    [](int slot, VoltMod::ClientCvarStatus status, std::string_view name, std::string_view value) {
-        if (status == VoltMod::ClientCvarStatus::ValueIntact)
+runtime.Hooks.ClientConVars.Query(slot, "cl_interp_ratio",
+    [](int slot, VoltMod::ClientConVarStatus status, std::string_view name, std::string_view value) {
+        if (status == VoltMod::ClientConVarStatus::Answered)
             Log::Info("{} answered {} = {}", slot, name, value);
     });
 ```
 
-`ClientCvarStatus` mirrors the protocol's status code: `ValueIntact` (the only case carrying a value), `CvarNotFound`, `NotACvar`, `CvarProtected`. `VoltMod::Name(status)` gives the enumerator's identifier for logs.
+`ClientConVarStatus` mirrors the protocol's status code: `Answered` (the only case carrying a value), `NotFound`, `NotAConVar`, `Protected`. `VoltMod::Name(status)` gives the enumerator's identifier for logs.
 
 ### No timeout callback
 
@@ -73,24 +73,24 @@ Distinct convars queue up to `MaxPendingPerSlot` (11) outstanding per slot; past
 
 ### Borrowed strings and trust
 
-`name` and `value` borrow the decoded message and are valid **only for the duration of the call**, so copy what you keep. `value` is empty unless `status` is `ValueIntact`.
+`name` and `value` borrow the decoded message and are valid **only for the duration of the call**, so copy what you keep. `value` is empty unless `status` is `Answered`.
 
 Responses are client-controlled, so the service drops anything malformed before your callback runs: unknown status codes, a name that does not match what that cookie asked for, and values containing embedded NULs (which would truncate anywhere they are treated as a C string). What survives is still a value a modified client chose to send, so treat it as evidence rather than proof.
 
 ### Availability and gamedata drift
 
-The service is a **degradable load stage** (`ClientCvars`). It needs two gamedata offsets and an RTTI/symbol lookup of the `CServerSideClient` vtable:
+The service is a **degradable load stage** (`ClientConVars`). It needs two gamedata offsets and an RTTI/symbol lookup of the `CServerSideClient` vtable:
 
 | Offset | What it is | If it drifts |
 |--------|------------|--------------|
 | `ProcessRespondCvarValue` | vtable index of the response handler | Rejected at lookup, so the stage degrades instead of hooking an unrelated vfunc |
 | `ServerSideClientSlot` | byte offset of the player slot inside `CServerSideClient` | Rejected at lookup too; unchecked it would attribute answers to the wrong player |
 
-Both drift with engine updates; see @ref sdk_gamedata_guide. When any part of the setup fails the framework logs one warning, the load continues, `Capability::ClientCvars` is off and carries the reason, and every `Query()` returns false. Check the capability once at load rather than treating each `false` from `Query()` as a per-call failure:
+Both drift with engine updates; see @ref sdk_gamedata_guide. When any part of the setup fails the framework logs one warning, the load continues, `Capability::ClientConVars` is off and carries the reason, and every `Query()` returns false. Check the capability once at load rather than treating each `false` from `Query()` as a per-call failure:
 
 ```cpp
-if (!runtime.Capabilities.Has(VoltMod::Capability::ClientCvars))
-    Log::Warn("no client convar queries: {}", runtime.Capabilities.Reason(VoltMod::Capability::ClientCvars));
+if (!runtime.Capabilities.Has(VoltMod::Capability::ClientConVars))
+    Log::Warn("no client convar queries: {}", runtime.Capabilities.Reason(VoltMod::Capability::ClientConVars));
 ```
 
 Unlike the movement, damage and teleport hooks, this one is not lazily installed: it is a load stage, because the service is a query API with no event of its own to subscribe to. `Runtime::Start` installs it and records the outcome; a successful install logs `Client convar response hook installed on CServerSideClient vtable (index N).` followed by `Client convar queries enabled (slot offset N).`

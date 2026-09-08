@@ -4,7 +4,9 @@
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
+#include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
+#include <VoltMod/Unsafe/VtableHook.hpp>
 #include <cstddef>
 #include <functional>
 #include <memory>
@@ -15,12 +17,12 @@ namespace VoltMod
 {
 
 /** @brief How the client answered a convar query (CCLCMsg_RespondCvarValue::status_code). */
-enum class ClientCvarStatus
+enum class ClientConVarStatus
 {
-    ValueIntact = 0,  ///< The client reported the convar's current value.
-    CvarNotFound,     ///< The client has no convar by that name.
-    NotACvar,         ///< The name exists on the client but is a command, not a convar.
-    CvarProtected     ///< The convar is marked protected; the client withholds its value.
+    Answered = 0,  ///< The client reported the convar's current value.
+    NotFound,      ///< The client has no convar by that name.
+    NotAConVar,    ///< The name exists on the client but is a command, not a convar.
+    Protected      ///< The convar is marked protected; the client withholds its value.
 };
 
 /**
@@ -34,34 +36,35 @@ enum class ClientCvarStatus
  * A modified client can answer with anything, so treat the result as evidence, not proof.
  *
  * Degradable load stage: it depends on the `ProcessRespondCvarValue` vtable slot, the
- * `ServerSideClientSlot` offset and an RTTI/symbol lookup of the `CServerSideClient` vtable, all of which
- * drift with engine updates. On failure Capability::ClientCvars is off and carries the reason.
+ * `ServerSideClientSlot` offset and an RTTI/symbol lookup of the `CServerSideClient` vtable, all
+ * of which drift with engine updates. On failure Capability::ClientConVars is off and carries the
+ * reason.
  *
  * @code
- * runtime.ClientCvars.Query(slot, "sensitivity",
- *     [](int slot, ClientCvarStatus status, std::string_view name, std::string_view value) {
- *         if (status == ClientCvarStatus::ValueIntact)
+ * runtime.Hooks.ClientConVars.Query(slot, "sensitivity",
+ *     [](int slot, ClientConVarStatus status, std::string_view name, std::string_view value) {
+ *         if (status == ClientConVarStatus::Answered)
  *             Log::Info("{} = {}", name, value);
  *     });
  * @endcode
  */
-class ClientCvars
+class ClientConVars
 {
 public:
     /**
      * Invoked on the game thread when the client answers. @p name and @p value borrow the decoded
-     * message, so copy what you keep. @p value is empty unless @p status is ValueIntact.
+     * message, so copy what you keep. @p value is empty unless @p status is Answered.
      */
     using QueryCallback =
-        std::function<void(int slot, ClientCvarStatus status, std::string_view name, std::string_view value)>;
+        std::function<void(int slot, ClientConVarStatus status, std::string_view name, std::string_view value)>;
 
-    /** @p interfaces and @p bindings drive the response hook and the query send path. @p slots tells
-     *  the service when a slot changes hands, so an answer can never be routed to the callback of
+    /** @p interfaces and @p bindings drive the response hook and the query send path. @p slots
+     *  tells the service when a slot changes hands, so an answer can never reach the callback of
      *  whoever held the slot before. All three must outlive it; the Runtime declares them above. */
-    ClientCvars(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots);
-    ~ClientCvars();
-    ClientCvars(const ClientCvars&) = delete;
-    ClientCvars& operator=(const ClientCvars&) = delete;
+    ClientConVars(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots);
+    ~ClientConVars();
+    ClientConVars(const ClientConVars&) = delete;
+    ClientConVars& operator=(const ClientConVars&) = delete;
 
     /** Install the response hook. Idempotent; an error leaves the service inert. */
     Status Initialize();
@@ -70,7 +73,7 @@ public:
     void Shutdown();
 
     /**
-     * Ask @p slot for its value of @p cvarName. False when Capability::ClientCvars is off, the
+     * Ask @p slot for its value of @p cvarName. False when Capability::ClientConVars is off, the
      * slot holds a bot or nobody, the per-slot pending cap is reached, or the message could not
      * be sent.
      *
@@ -90,9 +93,20 @@ public:
     void OnServerStartup();
 
 private:
-    class Impl;
-    std::unique_ptr<Impl> _impl;
-    /** Declared after _impl so it unregisters before the pending table its callback clears. */
+    /** The hooked CServerSideClient::ProcessRespondCvarValue; @p message is the
+     *  CNetMessagePB<CCLCMsg_RespondCvarValue> the SDK header names. */
+    bool Hook_ProcessRespondCvarValue(const void* message);
+
+    /** Sends a query to one connected human client. */
+    bool Send(int slot, const std::string& cvarName, int cookie);
+
+    Interfaces& _interfaces;
+    const Bindings& _bindings;
+    /** Behind a pointer only so its header stays under src/, where its tests live. */
+    std::unique_ptr<PendingConVarQueries> _pending;
+    INetworkMessageInternal* _getCvarValue = nullptr;
+    VtableHook _hook;
+    /** Declared after _pending so it unregisters before the table its callback clears. */
     Subscription _slotListener;
 };
 
