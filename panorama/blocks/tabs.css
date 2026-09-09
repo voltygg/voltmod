@@ -1,0 +1,22 @@
+/* Layout only. A screen sets height, colour and radius after including this. */
+.Tabs {
+  width: 100%;
+  flow-children: right;
+}
+
+.Tab {
+  width: fill-parent-flow(1);
+  height: 100%;
+  margin-right: 2px;
+}
+
+.Tab.Hidden {
+  visibility: collapse;
+}
+
+.Tab-label {
+  horizontal-align: center;
+  vertical-align: center;
+  font-size: 12px;
+  text-overflow: ellipsis;
+}

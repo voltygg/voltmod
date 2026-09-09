@@ -1,0 +1,47 @@
+{#- One row of a list: an optional accent stripe, a lead column, two lines of text, a value, and
+    optional steppers. The row panel, the press target and each stepper carry their own id, so a
+    driver can hide the row, read a press and read a step separately.
+
+    `glyphs` is a list of `(name, mark)` pairs stacked in the lead column, all collapsed by
+    default; the screen's stylesheet uncollapses one, usually per `Kind--<name>` on the row. Pass
+    `switch=true` for a toggle track the screen shows the same way. -#}
+{% macro listrow(id, glyphs=[], switch=false, hint=false, value=true, steppers=false, accent=false) -%}
+<Panel id="{{screen}}_{{id}}" class="Row Hidden" hittest="true">
+  {%- if accent %}
+  <Panel id="{{screen}}_{{id}}_accent" class="Accent" hittest="false" />
+  {%- endif %}
+  <Button id="{{screen}}_{{id}}_btn" class="Row-hit">
+    {%- if glyphs or switch %}
+    <Panel class="Row-lead" hittest="false">
+      {%- for name, mark in glyphs %}
+      <Label class="Glyph Glyph-{{name}}" text="{{mark}}" hittest="false" />
+      {%- endfor %}
+      {%- if switch %}
+      <Panel class="Switch" hittest="false">
+        <Panel class="Switch-knob" hittest="false" />
+      </Panel>
+      {%- endif %}
+    </Panel>
+    {%- endif %}
+    <Panel class="Row-body" hittest="false">
+      <Label class="Row-label" text="{s:{{id}}_label}" hittest="false" />
+      {%- if hint %}
+      <Label class="Row-hint" text="{s:{{id}}_hint}" hittest="false" />
+      {%- endif %}
+    </Panel>
+    {%- if value %}
+    <Label class="Row-value" text="{s:{{id}}_value}" hittest="false" />
+    {%- endif %}
+  </Button>
+  {%- if steppers %}
+  <Panel class="Steppers" hittest="true">
+    <Button id="{{screen}}_{{id}}_dec" class="Stepper">
+      <Label text="&#9664;" hittest="false" />
+    </Button>
+    <Button id="{{screen}}_{{id}}_inc" class="Stepper">
+      <Label text="&#9654;" hittest="false" />
+    </Button>
+  </Panel>
+  {%- endif %}
+</Panel>
+{%- endmacro %}

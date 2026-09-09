@@ -1,0 +1,19 @@
+{#- A centred panel with a header and a body slot. Call it, do not import it:
+
+      {% call blocks.dialog("panel") %}...rows, pager, footer...{% endcall %}
+
+    The header reads three dialog variables off the root: `<id>_crumb`, `<id>_title` and
+    `<id>_subtitle`. A crumb keeps its line when empty so the title does not jump. -#}
+{% macro dialog(id) -%}
+<Panel id="{{screen}}_{{id}}" class="Dialog" hittest="true">
+  <Panel class="Dialog-header" hittest="false">
+    <Label class="Dialog-crumb" text="{s:{{id}}_crumb}" hittest="false" />
+    <Label class="Dialog-title" text="{s:{{id}}_title}" hittest="false" />
+    <Label id="{{screen}}_{{id}}_subtitle" class="Dialog-subtitle" text="{s:{{id}}_subtitle}" hittest="false" />
+  </Panel>
+  <Panel class="Dialog-rule" hittest="false" />
+  <Panel class="Dialog-body" hittest="true">
+    {{ caller() | indent(4) }}
+  </Panel>
+</Panel>
+{%- endmacro %}

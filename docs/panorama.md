@@ -184,6 +184,23 @@ constexpr std::array<Card, 2> Cards{ /* one entry per card */ };
 | `icons` | `icons(id, set)` | one `<Image>` per PNG in the icon set, stacked; pair with `icons.css`'s `show_rules(set)` macro so each `Icon--<name>` class uncollapses its own image |
 | `accent` | `accent(id)` | a colour stripe; the screen defines its own `.Accent--<name>` rules |
 | `toast` | `toast(id)` | a notice that fades in when the driver puts class `Show` on it |
+| `button` | `button(id, text, variant="")` | a labelled Button; `variant` adds a `Btn-<variant>` modifier |
+| `dialog` | `dialog(id)`, called not imported | a centred panel with a crumb/title/subtitle header and a body slot |
+| `listrow` | `listrow(id, glyphs=[], switch, hint, value, steppers, accent)` | one row of a list: accent stripe, lead column, two lines of text, a value, steppers |
+| `tabs` | `tabs(id, count)` | a strip of hidden-by-default tabs, each reading `{s:<id><i>}` |
+| `pager` | `pager(id)` | previous, a `{s:<id>}` label, next |
+
+`dialog` takes its body through `{% call %}` rather than an argument:
+
+```
+{% call shell.dialog("panel") %}
+  ...rows, pager, footer...
+{% endcall %}
+```
+
+A block's CSS carries layout only - sizes, flow, alignment. Colour, radius and state belong to
+the screen that includes it, which is what lets two screens share a row and still look different.
+A static modifier uses one dash (`Btn-ghost`): `--` reads as a server-written class family.
 
 ## Images and icon sets {#panorama_guide_images}
 

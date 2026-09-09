@@ -1,0 +1,23 @@
+/* Layout only. A screen sets height, colour and radius after including this. */
+.Pager {
+  width: 100%;
+  flow-children: right;
+}
+
+.Pager.Hidden {
+  visibility: collapse;
+}
+
+.Pager-arrow {
+  width: 28px;
+  height: 100%;
+  font-size: 11px;
+}
+
+.Pager-label {
+  width: fill-parent-flow(1);
+  horizontal-align: center;
+  vertical-align: center;
+  text-align: center;
+  font-size: 12px;
+}

@@ -1,0 +1,90 @@
+/* Layout only. A screen sets height, colour and radius after including this. */
+.Row {
+  width: 100%;
+  flow-children: right;
+}
+
+.Row.Hidden {
+  visibility: collapse;
+}
+
+.Row-hit {
+  width: fill-parent-flow(1);
+  height: 100%;
+  flow-children: right;
+  padding: 0px 10px;
+}
+
+/* One column, no flow: the glyphs and the switch stack, and only one shows. */
+.Row-lead {
+  width: 26px;
+  height: 100%;
+  margin-right: 8px;
+}
+
+.Glyph {
+  horizontal-align: center;
+  vertical-align: center;
+  font-size: 13px;
+  visibility: collapse;
+}
+
+.Switch {
+  width: 26px;
+  height: 14px;
+  horizontal-align: center;
+  vertical-align: center;
+  border-radius: 7px;
+  visibility: collapse;
+}
+
+.Switch-knob {
+  width: 10px;
+  height: 10px;
+  margin-left: 2px;
+  vertical-align: center;
+  border-radius: 5px;
+  transform: translateX(0px);
+  transition-property: transform, background-color;
+  transition-duration: 0.12s;
+  transition-timing-function: ease-out;
+}
+
+.Row-body {
+  width: fill-parent-flow(1);
+  height: 100%;
+  flow-children: down;
+  vertical-align: center;
+}
+
+.Row-label {
+  width: 100%;
+  font-size: 14px;
+  text-overflow: ellipsis;
+}
+
+.Row-hint {
+  width: 100%;
+  font-size: 11px;
+  text-overflow: ellipsis;
+}
+
+.Row-value {
+  vertical-align: center;
+  margin-left: 8px;
+  font-size: 13px;
+  text-overflow: ellipsis;
+}
+
+.Steppers {
+  width: 52px;
+  height: 100%;
+  flow-children: right;
+  visibility: collapse;
+}
+
+.Stepper {
+  width: 26px;
+  height: 100%;
+  font-size: 11px;
+}

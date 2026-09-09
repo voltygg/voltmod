@@ -1,0 +1,16 @@
+/* Layout only. A screen restyles .Btn after including this. */
+.Btn {
+  height: 28px;
+  padding: 0px 12px;
+  flow-children: right;
+}
+
+.Btn-label {
+  horizontal-align: center;
+  vertical-align: center;
+  font-size: 13px;
+}
+
+.Btn.Hidden {
+  visibility: collapse;
+}

@@ -1,0 +1,11 @@
+{#- A strip of `count` tabs. Each reads `{s:<id><i>}` and starts hidden, so a driver shows only
+    the ones it has a label for and puts `Selected` on the open one. -#}
+{% macro tabs(id, count) -%}
+<Panel class="Tabs" hittest="true">
+  {%- for index in range(count) %}
+  <Button id="{{screen}}_{{id}}{{index}}" class="Tab Hidden">
+    <Label class="Tab-label" text="{s:{{id}}{{index}}}" hittest="false" />
+  </Button>
+  {%- endfor %}
+</Panel>
+{%- endmacro %}
