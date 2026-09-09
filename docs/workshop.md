@@ -25,6 +25,13 @@ Requirements take effect on a client's next connect; already-connected players
 are not disturbed. `Require` returns an error when the capability is off or the
 server is a listen server, so the plugin can report the reason.
 
+## Building the addon's content
+
+`voltmod panorama publish DIR [OWNER...]` renders and copies an owner's
+`panorama/` tree into `DIR`, paths intact - the content directory the CS2
+Workshop Tools build an addon from. See @ref panorama_guide for what gets
+rendered.
+
 ## How it works
 
 CS2 handles one addon per connection cycle. @ref VoltMod::Addons rewrites each

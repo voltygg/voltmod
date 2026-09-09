@@ -140,15 +140,19 @@ panorama/layout/hud/welcome.xml             rejected: outside the whitelisted di
 and expand a bare name, so a mistake here is an `Error::Invalid` rather than a panel
 that renders nothing and explains itself only on the client console.
 
-Compiling is `voltmod panorama`, which runs the CS2 Workshop Tools over every
-`panorama/` directory in the project and installs the results into your own
-client:
+Hand-authoring is one way to get a layout and stylesheet; most screens are
+generated instead - see @ref panorama_guide for the Jinja pipeline, the block
+library, and the derived C++ binding.
+
+Compiling is `voltmod panorama compile`, which renders first, then runs the CS2
+Workshop Tools over every owner's rendered tree and installs the results into
+your own client:
 
 ```bash
-uv run poe panorama                 # every layout this project has
-uv run poe panorama voltmod         # just the framework's own layouts
-uv run poe panorama ui-lab          # just one plugin's
-uv run poe panorama --no-deploy     # compile only, leave the client alone
+uv run poe panorama                          # every owner this project has
+voltmod panorama compile voltmod             # just the framework's own screens
+voltmod panorama compile ui-lab              # just one plugin's
+voltmod panorama compile --no-deploy         # compile only, leave the client alone
 ```
 
 It finds the client through Steam's library list; set `CS2_CLIENT_PATH` in
@@ -158,8 +162,10 @@ compiled resources copied into `csgo/panorama/{layout,styles}/custom_game/` -
 which is why a reconnect is enough to see a change, with no addon involved. The
 Workshop Tools are Windows only, so this is too.
 
-Reaching *other* players is a workshop addon: put the same compiled files in one,
-publish it, and require its id so joining clients download it.
+Reaching *other* players is a workshop addon: `voltmod panorama publish DIR`
+copies the rendered tree into an addon content directory for the Workshop Tools
+to build from, and the plugin requires the built addon's id so joining clients
+download it.
 
 ```cpp
 _addon = runtime.Addons.Require(3401234567);   // keep the lease; see the workshop guide
@@ -273,7 +279,8 @@ Icon.Write(screen.Panel(), slot, Icon.Find("awp"));   // -1 turns every class of
 
 You do not write those constants by hand: rendering a screen derives them from its
 own ids and classes into `build/panorama/<plugin>/include/Ui/<Screen>.hpp`, which
-`voltmod_add_plugin` puts on the plugin's include path.
+`voltmod_add_plugin` puts on the plugin's include path. See @ref panorama_guide for
+the templates that produce a layout and stylesheet, and the exact derivation rules.
 
 ## Naming panels and classes
 

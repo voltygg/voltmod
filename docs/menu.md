@@ -5,10 +5,11 @@
 A menu is a list of rows and callbacks, independent of its renderer. @ref
 VoltMod::MenuBuilder creates common row types, @ref VoltMod::ActionRows builds
 admin and target actions, and @ref VoltMod::Flow handles multi-step menus.
-`runtime.Menus` owns each player's session and draws it as center HTML, re-sent
-every tick and read with WASD / E / R; see @ref menu_feedback_keys. It needs
-nothing on the client. A clickable Panorama menu is a separate host built on the
-same session, documented in the Panorama menu guide (coming).
+`runtime.Menus` owns each player's session and draws it on whichever surface
+that player can use: center HTML by default, re-sent every tick and read with
+WASD / E / R (see @ref menu_feedback_keys), needing nothing on the client; or,
+once @ref VoltMod::MenuManager::UsePanorama has been called, a clickable
+Panorama panel for players who can use one - see @ref panorama_menus.
 
 ## Building a menu
 
@@ -248,6 +249,58 @@ say what they *are* (@ref VoltMod::MenuRowKind). The renderer decides what that
 looks like, so styling is a renderer question, not a builder one: center HTML
 renders from a fixed palette in `src/Menu/CenterHtmlRender.cpp`.
 
+## Panorama menus {#panorama_menus}
+
+```cpp
+runtime.Menus.UsePanorama({.Rows = 8, .Nav = 6});
+```
+
+Call this once, during startup, to turn on the second surface. From then on, a
+session opened for a player who has @ref VoltMod::Capability::CustomUi, @ref
+VoltMod::Capability::UiClicks and @ref VoltMod::Capability::Visibility on, has
+finished downloading the addon that carries the menu screen
+(`Addons.Pending(slot)` is empty), and gets a private panel, draws on a
+clickable Panorama panel instead. Everyone else keeps center HTML - nothing on
+their end needs the addon. A session already open keeps the surface it started
+on; only the next `Open` picks a surface.
+
+If the panel is lost mid-session - the player dropped a capability, say - the
+next frame that fails to draw on it moves the session to center HTML for the
+rest of that session, forcing `Keyboard` on so the player can still close it.
+
+### Shipping the layout
+
+Panorama draws through the framework's own screen,
+`panorama/screens/voltmod_menu.xml.j2` - see @ref panorama_guide. A player needs
+it on disk before `UsePanorama` can do anything for them, so the workshop addon
+your plugins ship has to carry it:
+
+```bash
+voltmod panorama publish DIR voltmod   # copies the framework's rendered screen into your addon content
+```
+
+`panorama/skin/voltmod_menu.css` at the project root restyles it without
+touching the framework's own template - see @ref panorama_guide_skin.
+
+### Rows and tabs
+
+`.Rows` clamps to the layout's row pool (10). `.Nav` adds a tab strip over the
+root menu's submenu rows, clamped to the layout's tab pool (8); `0`, the
+default, draws no tabs. A tab press closes back to the root and opens the
+submenu it stands for; the tab whose submenu is open is drawn `Selected`.
+
+### Prompts
+
+An open `InputRow` capture is drawn as its own panel with a Cancel button
+instead of a placeholder row; the root's `Prompting` class dims the rows and
+pager behind it while it is up.
+
+### Wording
+
+Four keys the layout draws for itself, on top of the row-kind wording
+`MenuBuilder` and `ActionRows` already use: `nav.back`, `nav.close`,
+`nav.cancel`, `menu.promptHint`.
+
 ## Lifetime and input
 
 @ref VoltMod::MenuManager clears each player's stack, cursor, pending commit,
@@ -262,7 +315,9 @@ The freeze is a global switch, but a single session can opt out: `Open(slot, men
 
 A session survives death and spectating. Only a live pawn is frozen and only that
 pawn is restored, so a respawn is frozen afresh rather than handed a dead body's
-move type, and keys are read from the pawn the player is driving.
+move type, and keys are read from the pawn the player is driving. All of this
+lives on @ref VoltMod::MenuManager and its session state, so it applies the same
+whether the session is drawn on center HTML or Panorama.
 
 ## Presets
 
@@ -336,4 +391,5 @@ supplies for a row through `MenuSession::Translate`. That is what lets
 `tests/Menu/CenterHtmlRenderTests.cpp` drive real rows and real flows against a fake
 session in the SDK-free suite. `MenuManager.hpp` and `ActionRows.hpp` are not SDK-free
 and do not try to be: the manager freezes a pawn, and an `Action` carries an
-`ActionContext` holding a `Controller` by value.
+`ActionContext` holding a `Controller` by value. `MenuManager.hpp` is also where
+`UsePanorama` and `PanoramaMenuOptions` live - see @ref panorama_menus.

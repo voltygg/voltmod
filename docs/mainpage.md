@@ -46,6 +46,7 @@ renames it. `include/VoltMod/<Module>/` is where a header lives, and the
 - @subpage commands_guide - commands and targeting
 - @subpage menus_guide - menus and multi-step flows
 - @subpage custom_ui_guide - Panorama UI layouts and button presses
+- @subpage panorama_guide - Jinja screens, derived bindings, and the render/check/compile/publish pipeline
 - @subpage workshop_guide - making clients download workshop addons
 - @subpage players_guide - players, actions, and effects
 - @subpage chat_guide - messages, replies, and chat colors
