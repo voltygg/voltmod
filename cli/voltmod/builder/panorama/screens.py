@@ -14,6 +14,7 @@ from xml.etree import ElementTree
 
 from jinja2 import ChoiceLoader, Environment, FileSystemLoader, StrictUndefined, TemplateError
 
+from voltmod.localdev import PLUGIN_DIRS
 from voltmod.tools import die
 
 from . import bind
@@ -42,14 +43,14 @@ class Owner:
 
 def find_owners(root: Path) -> dict[str, Owner]:
     """Every plugin `panorama/` tree this project renders, keyed by plugin name."""
-    plugins = root / "plugins"
-    if not plugins.is_dir():
-        return {}
-    return {
+    found = {
         plugin.name: Owner(plugin.name, plugin / "panorama")
-        for plugin in sorted(plugins.iterdir())
+        for parent in PLUGIN_DIRS
+        if (root / parent).is_dir()
+        for plugin in sorted((root / parent).iterdir())
         if (plugin / "panorama").is_dir()
     }
+    return dict(sorted(found.items()))
 
 
 def select(owners: dict[str, Owner], names: list[str]) -> dict[str, Owner]:
@@ -91,11 +92,7 @@ def render(root: Path, kit_root: Path, names: list[str], out: Path | None = None
 
 def screen(owner: Owner, kit_root: Path, name: str) -> tuple[str, str]:
     """One screen rendered in memory: its layout and its stylesheet."""
-    icons = _icon_sets(owner)
-    environment = _environment(owner, kit_root, icons, name)
-    layout = owner.source / SCREENS_DIR / f"{name}{SUFFIX}"
-    style = owner.source / SCREENS_DIR / f"{name}.css"
-    return _render(environment, layout), _render(environment, style)
+    return _screen(_environment(owner, kit_root, _icon_sets(owner)), owner, name)
 
 
 def put(path: Path, text: str) -> list[Path]:
@@ -114,16 +111,21 @@ def write(path: Path, data: bytes) -> list[Path]:
 def _owner(owner: Owner, root: Path, kit_root: Path, out: Path | None) -> list[Path]:
     target = output(root, owner, out)
 
+    # One environment and one icon scan for the whole owner: every screen shares the block
+    # library, and re-reading it per screen re-compiles every block.
+    icons = _icon_sets(owner)
+    environment = _environment(owner, kit_root, icons)
+
     written: list[Path] = []
     for source in sources(owner):
         name = source.name.removesuffix(SUFFIX)
-        layout, stylesheet = screen(owner, kit_root, name)
+        layout, stylesheet = _screen(environment, owner, name)
 
         written += put(target / "layout/custom_game" / f"{name}.xml", layout)
         written += put(target / "styles/custom_game" / f"{name}.css", stylesheet)
         written += _header(owner, root, out, source, layout, stylesheet)
 
-    return written + _icons(owner, kit_root, target)
+    return written + _icons(owner, kit_root, target, icons)
 
 
 def _header(
@@ -140,13 +142,20 @@ def _header(
     return put(includes(root, owner, out) / HEADERS_DIR / f"{name}.hpp", text)
 
 
-def _environment(
-    owner: Owner, kit_root: Path, images: dict[str, list[str]], name: str
-) -> Environment:
+def _screen(environment: Environment, owner: Owner, name: str) -> tuple[str, str]:
+    # Global rather than a render argument: a block reached through `{% import %}` builds ids
+    # from the screen name too, and an import does not see the caller's locals.
+    environment.globals["screen"] = name
+    layout = owner.source / SCREENS_DIR / f"{name}{SUFFIX}"
+    style = owner.source / SCREENS_DIR / f"{name}.css"
+    return _render(environment, layout), _render(environment, style)
+
+
+def _environment(owner: Owner, kit_root: Path, images: dict[str, list[str]]) -> Environment:
     """Templates resolve against the owner's screens first, then the framework's block library.
 
-    The context is global rather than passed per render so that a block imported with
-    `{% import %}` sees the icon sets and the screen name too.
+    The icon sets and the screen name are globals rather than render arguments so that a block
+    reached through `{% import %}` sees them too.
     """
     # utf-8-sig: an editor's byte order mark would otherwise reach the client as a parse error.
     environment = Environment(
@@ -160,7 +169,7 @@ def _environment(
         keep_trailing_newline=True,
         autoescape=False,
     )
-    environment.globals.update(images=images, screen=name)
+    environment.globals.update(images=images)
     return environment
 
 
@@ -183,9 +192,8 @@ def _icon_sets(owner: Owner) -> dict[str, list[str]]:
     return {name: pngs for name, pngs in found.items() if pngs}
 
 
-def _icons(owner: Owner, kit_root: Path, target: Path) -> list[Path]:
+def _icons(owner: Owner, kit_root: Path, target: Path, sets: dict[str, list[str]]) -> list[Path]:
     """Copy each icon into the rendered tree beside the descriptor that names it."""
-    sets = _icon_sets(owner)
     if not sets:
         return []
 

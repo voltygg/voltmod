@@ -19,7 +19,7 @@ from xml.etree import ElementTree
 from voltmod.tools import die
 
 from . import bind
-from .screens import BUILD_DIR, IMAGES_DIR, SUFFIX, Owner, find_owners, sources
+from .screens import BUILD_DIR, IMAGES_DIR, SUFFIX, Owner, find_owners, select, sources
 from .screens import screen as render_screen
 
 PREVIEW_DIR = "preview"
@@ -43,9 +43,6 @@ _PASSTHROUGH = {
 _PASSTHROUGH_PREFIXES = ("margin", "padding", "border", "transition-")
 
 _FILL_FLOW = re.compile(r"^fill-parent-flow\((\d+)\)$")
-#: Unlike bind's, this keeps the declaration body: the preview translates it, not just reads it.
-_RULE = re.compile(r"([^{}]+)\{([^{}]*)\}", re.DOTALL)
-_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
 
 
 def preview(root: Path, kit_root: Path, target: str) -> Path:
@@ -80,10 +77,7 @@ def _resolve(root: Path, target: str) -> tuple[Owner, str]:
     if len(parts) != 2 or not all(parts):
         die(f"'{target}' is not OWNER/SCREEN")
 
-    owners = find_owners(root)
-    if parts[0] not in owners:
-        die(f"no panorama sources for {parts[0]}\nKnown: {', '.join(sorted(owners)) or 'none'}")
-    owner = owners[parts[0]]
+    owner = select(find_owners(root), [parts[0]])[parts[0]]
 
     names = [source.name.removesuffix(SUFFIX) for source in sources(owner)]
     if parts[1] not in names:
@@ -136,9 +130,7 @@ def _image(node: ElementTree.Element, owner: Owner) -> str:
 
 def _translate_css(stylesheet: str) -> str:
     rules = []
-    for selector, body in _RULE.findall(_COMMENT.sub("", stylesheet)):
-        if not (selector := selector.strip()):
-            continue
+    for selector, body in bind.rules(stylesheet):
         declarations = [
             translated
             for raw in body.split(";")

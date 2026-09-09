@@ -25,7 +25,7 @@ IMAGE_SRC = re.compile(r"^s2r://panorama/images/custom_game/([^/]+)/([^/]+)\.vte
 NAMESPACE = re.compile(r"\{#-?\s*namespace:\s*([A-Za-z_][A-Za-z0-9_:]*)\s*-?#\}")
 
 _IDENTIFIER = re.compile(r"^[A-Za-z_]\w*$")
-_RULE = re.compile(r"([^{}]*)\{[^{}]*\}", re.DOTALL)
+_RULE = re.compile(r"([^{}]*)\{([^{}]*)\}", re.DOTALL)
 _COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
 
 #: Wide enough for a constant per line; a longer array is broken up item per item.
@@ -138,11 +138,24 @@ def _collect(families: dict[str, list[str]], classes: list[str]) -> None:
             variants.append(found.group(2))
 
 
+def rules(stylesheet: str) -> list[tuple[str, str]]:
+    """Every rule as (selector, declarations), in source order, comments stripped.
+
+    The one place a stylesheet is tokenized, so what binds a screen and what previews it cannot
+    read the same file differently.
+    """
+    return [
+        (selector.strip(), body)
+        for selector, body in _RULE.findall(_COMMENT.sub(" ", stylesheet))
+        if selector.strip()
+    ]
+
+
 def _selector_classes(stylesheet: str) -> list[str]:
     """Every class named by a selector, in rule order. Declarations are skipped so a decimal in
     a value cannot be read as a class."""
     found: list[str] = []
-    for selector in _RULE.findall(_COMMENT.sub(" ", stylesheet)):
+    for selector, _ in rules(stylesheet):
         found += CLASS.findall(selector)
     return found
 
