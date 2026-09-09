@@ -77,6 +77,7 @@ voltmod build                            # renders panorama/screens/ before conf
 voltmod panorama render [OWNER...]       # write layouts, stylesheets, images and bindings
 voltmod panorama check [OWNER...]        # read-only: the same checks the client applies silently
 voltmod panorama compile [OWNER...]      # render, run resourcecompiler, install into your client (Windows)
+voltmod panorama preview OWNER/SCREEN    # write an HTML approximation for a browser
 voltmod panorama publish DIR [OWNER...]  # render, copy the rendered trees into an addon content directory
 ```
 
@@ -95,6 +96,19 @@ derive a binding. It writes nothing, and it is part of `uv run poe lint`.
 `compile` and `publish` render first, then compile with `resourcecompiler.exe` and
 install into your own client, or copy the rendered tree into an addon content
 directory for the Workshop Tools to build from - see [Publishing](#panorama_guide_publish).
+
+## Preview {#panorama_guide_preview}
+
+`voltmod panorama preview OWNER/SCREEN [--open]` writes a self-contained HTML file to
+`build/panorama/preview/<screen>.html` - open it in any browser, no Workshop Tools,
+compile, or client reconnect needed. A side panel lists every dialog variable as a
+text box, every flag as a checkbox, and every class family as a dropdown, wired to
+the same ids the derived C++ binding uses.
+
+It approximates: Panorama CSS is translated property by property into ordinary web
+CSS (`flow-children` to flex, `fill-parent-flow`/`fit-children` to flex sizing,
+alignment to auto margins), so spacing, fonts, and anything CSS cannot express are
+close but not exact. It is a layout sketch, not the client.
 
 ## Build tree outputs
 

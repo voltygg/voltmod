@@ -10,6 +10,7 @@ from voltmod import tools
 from . import check as checker
 from . import compile as compiler
 from . import find_owners, select
+from . import preview as previewer
 from . import render as renderer
 
 app = typer.Typer(help="Render, compile, and publish Panorama screens.")
@@ -91,3 +92,17 @@ def check_command(owners: Owners = None) -> None:
     selected = select(find_owners(ROOT, KIT_ROOT), owners or [])
     count = sum(len(renderer.sources(owner)) for owner in selected.values())
     print(f"Checked {count} screen(s)")
+
+
+@app.command("preview")
+def preview_command(
+    target: Annotated[str, typer.Argument(help="OWNER/SCREEN to preview")],
+    open_browser: Annotated[
+        bool, typer.Option("--open", help="Open the written HTML in a browser")
+    ] = False,
+) -> None:
+    """Write a self-contained HTML approximation of a screen; no client needed."""
+    out = previewer.preview(ROOT, KIT_ROOT, target)
+    if open_browser:
+        previewer.open_in_browser(out)
+    print(out)
