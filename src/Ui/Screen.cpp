@@ -6,59 +6,68 @@
 namespace VoltMod
 {
 
-Screen::Screen(CustomUi& ui, SlotEvents& slots, std::string_view layout, std::string_view rootId, int viewer)
-    : _root(rootId)
+Screen::Screen(CustomUi& ui, std::string_view layout, std::string_view rootId)
+    : _ui(ui), _layout(layout), _root(rootId), _perViewer(false)
 {
-    _shown.BindReset(slots);
+    if (auto panel = ui.Panel(_layout, UiPanel::Everyone))
+        _shared = std::move(*panel);
+    else
+        Log::Warn("Screen '{}': {}", _layout, panel.error().Detail);
+}
 
-    Result<UiPanel> panel = ui.Panel(layout, viewer);
+Screen::Screen(CustomUi& ui, SlotEvents& slots, std::string_view layout, std::string_view rootId)
+    : _ui(ui), _layout(layout), _root(rootId), _perViewer(true)
+{
+    _private.BindReset(slots);
+}
+
+UiPanel& Screen::Panel(int slot)
+{
+    if (!_perViewer || !IsValidSlot(slot))
+        return _shared;
+
+    UiPanel& panel = _private[slot];
     if (!panel)
     {
-        Log::Warn("Screen '{}': {}", layout, panel.error().Detail);
-        return;
+        if (auto made = _ui.Panel(_layout, slot))
+            panel = std::move(*made);
+        else
+            Log::Warn("Screen '{}' for slot {}: {}", _layout, slot, made.error().Detail);
     }
-    _panel = std::move(*panel);
+    return panel;
 }
 
 bool Screen::Show(int slot, bool capture)
 {
-    if (!_panel.Ensure(slot))
+    // A private screen has no panel to spawn for the global viewer.
+    if (_perViewer && !IsValidSlot(slot))
         return false;
 
-    _panel.Class(slot, _root, "Hidden", false);
-    if (capture)
-        _panel.InputCapture(slot, true);
+    UiPanel& panel = Panel(slot);
+    if (!panel.Ensure(slot))
+        return false;
 
-    if (IsValidSlot(slot))
-        _shown[slot] = true;
+    panel.Class(slot, _root, "Hidden", false);
+    if (capture)
+        panel.InputCapture(slot, true);
     return true;
 }
 
 void Screen::Hide(int slot)
 {
-    _panel.Class(slot, _root, "Hidden", true);
+    UiPanel& panel = Panel(slot);
+    if (!panel)
+        return;
+
+    // Capture is per-player whatever the panel is, so only a real slot ever holds one.
     if (IsValidSlot(slot))
-        _shown[slot] = false;
-}
-
-bool Screen::Shown(int slot) const
-{
-    return IsValidSlot(slot) && _shown[slot];
-}
-
-UiPanel& Screen::Panel()
-{
-    return _panel;
-}
-
-Event<int>& Screen::Button(std::string_view id)
-{
-    return _panel.Button(id);
+        panel.InputCapture(slot, false);
+    panel.Class(slot, _root, "Hidden", true);
 }
 
 std::string_view Screen::Layout() const noexcept
 {
-    return _panel.Name();
+    return _layout;
 }
 
 }  // namespace VoltMod

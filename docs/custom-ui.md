@@ -246,16 +246,32 @@ player rather than paying for the check on each. A write for a slot the entity d
 not cover fails with a reason instead of looking like it worked, and
 @ref VoltMod::UiPanel::Covers asks the same question without the spawn.
 
-Per-player writes are cached, so unchanged values are not resent. @ref
-VoltMod::UiPanel::Forget invalidates the cache when another system changes the
-panel state.
+Writes are cached, so unchanged values are not resent. A shared panel dedupes in
+its own bucket, apart from every slot, so a per-tick redraw of a screen everyone
+sees costs nothing while nothing changes. @ref VoltMod::UiPanel::Forget
+invalidates a slot's cache when another system changes the panel state.
 
 ## Screens and writers
 
-@ref VoltMod::Screen owns one generated layout: its panel, whether each player
-currently has it up, and its Buttons. @ref VoltMod::Screen::Show ensures the panel
-for a slot and unhides its root; @ref VoltMod::Screen::Hide hides the root without
-tearing the entity down.
+@ref VoltMod::Screen owns one generated layout and the panel it draws on. Build it
+one of two ways: shared, one panel everyone sees, or per-player, a panel spawned
+for each viewer on first use. Use the per-player form wherever a spectator must
+see their own screen rather than the one belonging to the pawn they are watching.
+
+@ref VoltMod::Screen::Show ensures the panel for a slot and unhides its root;
+@ref VoltMod::Screen::Hide hides the root and drops the cursor without tearing the
+entity down. Show re-ensures on every call, which is what recovers from a map
+change, and repeat calls are free - the write cache drops an unhide it has already
+sent, so there is no reason to track whether a screen is up.
+
+```cpp
+// Everyone sees the same HUD.
+Screen hud{runtime.Ui, Cs2Ui::Hud::Layout, Cs2Ui::Hud::RootId};
+
+// Each player gets their own menu.
+Screen menu{runtime.Ui, runtime.Slots, AdminUi::Menu::Layout, AdminUi::Menu::RootId};
+menu.Show(slot, /*capture=*/true);
+```
 
 Three small writer types turn a layout's ids into typed calls instead of raw
 `Text`/`Class` strings:
@@ -271,9 +287,9 @@ constexpr Text CardTitle{.Root = "card", .Var = "title"};
 constexpr Flag CardHidden{.Id = "card", .Class = "Hidden"};
 constexpr Choice Icon{.Id = "card_icon", .Classes = Hud::IconClasses};
 
-CardTitle.Write(screen.Panel(), slot, "Round 2");
-CardHidden.Write(screen.Panel(), slot, false);
-Icon.Write(screen.Panel(), slot, Icon.Find("awp"));   // -1 turns every class off
+CardTitle.Write(screen.Panel(slot), slot, "Round 2");
+CardHidden.Write(screen.Panel(slot), slot, false);
+Icon.Write(screen.Panel(slot), slot, Icon.Find("awp"));  // -1 turns every class off
 ```
 
 The ids, dialog-variable names and class families they point at are not written by
