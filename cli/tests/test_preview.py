@@ -20,14 +20,15 @@ def test_the_card_fixture_previews_its_variables_flags_families_and_image(tmp_pa
 
     assert out == root / "build/panorama/preview/hud.html"
     assert '<span data-var="slot0_title">slot0_title</span>' in text
+    assert 'data-pv-var="slot0_title"' in text
     assert '<span data-var="slot0_subtitle">' in text
     assert '<span data-var="slot0_value">' in text
-    assert "pvFlag('hud_slot0', 'Hidden'" in text
+    assert 'data-pv-flag="Hidden" data-pv-id="hud_slot0"' in text
     assert 'type="checkbox"' in text
     # A family is offered with a panel picker: which panel carries it is the plugin's business.
-    assert "pvPick('Icon')" in text and 'id="pv-Icon-panel"' in text
+    assert 'data-pv-family="Icon" data-pv-role="panel"' in text
+    assert 'data-pv-family="Step" data-pv-role="variant"' in text
     assert 'value="hud_slot0_icon"' in text
-    assert "pvPick('Step')" in text and 'id="pv-Step-variant"' in text
     assert "data:image/png;base64," in text
     assert "display: flex" in text
     assert "{{" not in text

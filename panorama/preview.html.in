@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>%TITLE% preview</title>
+<style>
+/* html/body need a real height for a screen's own `height: 100%` chain to resolve against, and
+   flex-by-default on every div is what makes the translated margin-auto centering actually
+   centre: Panorama positions every panel within its parent regardless of flow, which is closer
+   to flex than to block. */
+html, body { height: 100%; }
+body { margin: 0; background: #222; }
+div { position: relative; display: flex; flex-direction: row; box-sizing: border-box;
+  min-width: 0; }
+.pv-button { cursor: pointer; }
+
+#pv-panel { position: fixed; top: 0; right: 0; width: 280px; max-height: 100vh; overflow-y: auto;
+  background: #111; color: #eee; font: 12px/1.4 monospace; padding: 10px; z-index: 9999; }
+#pv-panel h2 { font-size: 13px; margin: 0 0 10px; word-break: break-all; }
+#pv-panel label { display: block; margin-bottom: 8px; }
+#pv-panel summary { cursor: pointer; margin-bottom: 8px; }
+#pv-panel details label { margin-left: 8px; }
+#pv-panel input, #pv-panel select { width: 100%; }
+
+/* The screen's own stylesheet, translated from Panorama CSS. */
+%CSS%
+</style>
+</head>
+<body>
+%BODY%
+<aside id="pv-panel">
+<h2>%TITLE%</h2>
+%CONTROLS%
+</aside>
+<script>
+// Every control carries what it drives in a data attribute, so the page wires itself up and
+// nothing has to escape a name into a JavaScript literal.
+
+function pvSetFamily(id, family, variant) {
+  const panel = document.getElementById(id);
+  if (!panel) return;
+  [...panel.classList].filter(c => c.startsWith(family + "--")).forEach(c => panel.classList.remove(c));
+  if (variant) panel.classList.add(family + "--" + variant);
+}
+
+document.querySelectorAll("[data-pv-var]").forEach(control => {
+  control.addEventListener("input", () => {
+    const name = control.dataset.pvVar;
+    document.querySelectorAll(`[data-var="${name}"]`).forEach(label => (label.textContent = control.value));
+  });
+});
+
+document.querySelectorAll("[data-pv-flag]").forEach(control => {
+  control.addEventListener("change", () => {
+    const panel = document.getElementById(control.dataset.pvId);
+    if (panel) panel.classList.toggle(control.dataset.pvFlag, control.checked);
+  });
+});
+
+// A family is a panel picker plus a variant picker; moving the panel clears the one it left.
+const pvLastPanel = {};
+document.querySelectorAll("[data-pv-family]").forEach(control => {
+  control.addEventListener("change", () => {
+    const family = control.dataset.pvFamily;
+    const pick = role => document.querySelector(`[data-pv-family="${family}"][data-pv-role="${role}"]`).value;
+    const panel = pick("panel");
+    if (pvLastPanel[family] && pvLastPanel[family] !== panel) pvSetFamily(pvLastPanel[family], family, "");
+    pvLastPanel[family] = panel;
+    pvSetFamily(panel, family, pick("variant"));
+  });
+});
+</script>
+</body>
+</html>

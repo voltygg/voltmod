@@ -99,14 +99,21 @@ directory for the Workshop Tools to build from - see [Publishing](#panorama_guid
 
 `voltmod panorama preview OWNER/SCREEN [--open]` writes a self-contained HTML file to
 `build/panorama/preview/<screen>.html` - open it in any browser, no Workshop Tools,
-compile, or client reconnect needed. A side panel lists every dialog variable as a
-text box, every flag as a checkbox, and every class family as a dropdown, wired to
-the same ids the derived C++ binding uses.
+compile, or client reconnect needed. A side panel drives the screen: a text box per
+dialog variable, a dropdown per class family with a picker for the panel to write it
+on, and a folded list of `Hidden` checkboxes, one per panel.
+
+The page shell, its base stylesheet and the script wiring those controls up live in
+`panorama/preview.html.in`, so the tool's own look is edited as HTML rather than as
+strings in Python.
 
 It approximates: Panorama CSS is translated property by property into ordinary web
 CSS (`flow-children` to flex, `fill-parent-flow`/`fit-children` to flex sizing,
 alignment to auto margins), so spacing, fonts, and anything CSS cannot express are
-close but not exact. It is a layout sketch, not the client.
+close but not exact. The gap worth knowing is a panel with no `flow-children` at all:
+Panorama stacks its children, the preview lays them in a row, so a stacked column of
+glyphs or a switch reads wrong here and right in game. It is a layout sketch, not the
+client.
 
 ## Build tree outputs
 
