@@ -150,15 +150,18 @@ def test_a_family_comes_from_the_children_of_an_icon_set():
     assert 'inline constexpr CardPanel Card{\n    {"s_card_icon", IconClasses},\n};' in header
 
 
-def test_one_odd_child_is_not_a_family():
+def test_only_images_make_a_child_family():
     header = derive(
-        """<root><Panel id="s"><Panel id="s_prompt" class="Prompt">
-             <Label text="{s:prompt_text}" /><Button class="Nav Nav--narrow" />
-           </Panel></Panel></root>""",
+        """<root><Panel id="s">
+             <Panel class="Region Region--top" /><Panel class="Region Region--bottom" />
+             <Panel id="s_prompt" class="Prompt">
+               <Label text="{s:prompt_text}" /><Button class="Nav Nav--narrow" />
+             </Panel>
+           </Panel></root>""",
         ".Prompt { width: 100%; }",
     )
 
-    assert "Nav" not in header
+    assert "Region" not in header and "Nav" not in header
 
 
 def test_a_step_family_gets_classes_but_no_enum():

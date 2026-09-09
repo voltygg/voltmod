@@ -55,11 +55,17 @@ class Slot:
 
 @dataclass(slots=True)
 class Screen:
-    """What one rendered screen offers: its root id, its writers, and its class families."""
+    """What one rendered screen offers: its root id, its writers, and its class families.
+
+    @p panels and @p variables are the same reading in id-order rather than placed into a
+    struct tree - what `preview` wants to build a control panel from.
+    """
 
     name: str
     widgets: list[Widget] = field(default_factory=list)
     families: dict[str, list[str]] = field(default_factory=dict)
+    panels: dict[str, list[str]] = field(default_factory=dict)
+    variables: list[str] = field(default_factory=list)
 
 
 def header(layout: str, stylesheet: str, template: str, source: str) -> str:
@@ -73,6 +79,16 @@ def header(layout: str, stylesheet: str, template: str, source: str) -> str:
     return _emit(screen, tree, namespace)
 
 
+def read(layout: str, stylesheet: str, source: str) -> Screen:
+    """The screen's parsed model: same reading `header()` derives its struct from.
+
+    Public so a tool that wants the same inventory - `voltmod panorama preview` builds its
+    control panel from @p Screen.panels, @p Screen.families and @p Screen.variables - does not
+    parse the layout and stylesheet a second way.
+    """
+    return _read(layout, stylesheet, source)
+
+
 def pascal(name: str) -> str:
     """`voltmod_menu` -> `VoltmodMenu`, the name CMake spells for the same screen."""
     return "".join(word[:1].upper() + word[1:] for word in name.split("_") if word)
@@ -83,15 +99,13 @@ def _read(layout: str, stylesheet: str, source: str) -> Screen:
     nodes = list(_parse(layout, source).iter())
     screen = Screen(_screen_name(nodes, source))
     compounds = _compounds(stylesheet)
-    variables: set[str] = set()
-    checked: list[tuple[str, list[str]]] = []
 
     for node in nodes:
         # A dialog variable is named by the label that reads it, whether or not it has an id.
         variable = _VAR.match(node.get("text", ""))
-        if variable and variable.group(1) not in variables:
+        if variable and variable.group(1) not in screen.variables:
             name = variable.group(1)
-            variables.add(name)
+            screen.variables.append(name)
             widget = Widget(_path(name, source), "Text", "VoltMod::Text", f'RootId, "{name}"')
             screen.widgets.append(widget)
 
@@ -105,13 +119,15 @@ def _read(layout: str, stylesheet: str, source: str) -> Screen:
             screen.widgets.append(Widget(path, "Id", "std::string_view", f'"{identifier}"'))
 
         states = _states(node, compounds) + _child_variants(node)
-        checked.append((identifier, states))
+        screen.panels[identifier] = states
         _panel(screen, identifier, path, states, source)
 
         if not path and "Hidden" in node.get("class", "").split():
             screen.widgets.append(Widget((), "Hidden", "VoltMod::Flag", 'RootId, "Hidden"'))
+            if "Hidden" not in screen.panels[identifier]:
+                screen.panels[identifier].append("Hidden")
 
-    _verify_families(screen, checked, source)
+    _verify_families(screen, source)
     return _sized(screen)
 
 
@@ -205,24 +221,20 @@ def _states(node: ElementTree.Element, compounds: list[list[str]]) -> list[str]:
 
 
 def _child_variants(node: ElementTree.Element) -> list[str]:
-    """A family every direct child belongs to: how an icon set names its icons.
-
-    Every child has to carry one, so a lone `Nav--narrow` button among plain ones is not a family.
-    """
-    families: dict[str, list[str]] = {}
+    """The family an icon set's Images spell, one class per image; other children never count."""
+    classes: list[str] = []
     for child in node:
+        if child.tag != "Image":
+            continue
         for cls in child.get("class", "").split():
-            found = _FAMILY.match(cls)
-            if found and cls not in families.setdefault(found.group(1), []):
-                families[found.group(1)].append(cls)
-
-    children = len(list(node))
-    return [cls for classes in families.values() if len(classes) == children for cls in classes]
+            if _FAMILY.match(cls) and cls not in classes:
+                classes.append(cls)
+    return classes
 
 
-def _verify_families(screen: Screen, checked: list[tuple[str, list[str]]], source: str) -> None:
+def _verify_families(screen: Screen, source: str) -> None:
     """Two panels may share a family, but not disagree about what is in it."""
-    for identifier, states in checked:
+    for identifier, states in screen.panels.items():
         mine: dict[str, list[str]] = {}
         for state in states:
             found = _FAMILY.match(state)
