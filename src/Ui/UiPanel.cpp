@@ -13,6 +13,7 @@ namespace VoltMod
 
 // UiPanel::Everyone and kEveryone address the same global state.
 static_assert(UiPanel::Everyone == kEveryone, "UiPanel::Everyone must be the UiFields global-state slot.");
+static_assert(UiPanel::Everyone == UiWriteCache::Shared, "A shared panel must dedupe in the cache's shared bucket.");
 
 /** Reserved cache key for the input-capture flag, which is not a panel's dialog variable. */
 static constexpr std::string_view kCaptureName = "input capture";
@@ -129,9 +130,8 @@ Status UiPanel::Text(int slot, std::string_view panelId, std::string_view variab
     if (!target)
         return std::unexpected(target.error());
 
-    if (state && target->Cache != Everyone &&
-        !state->Cache.Update(target->Cache, UiProperty::Text, panelId, variable, value))
-        return {};  // the player already has this value
+    if (state && !state->Cache.Update(target->Cache, UiProperty::Text, panelId, variable, value))
+        return {};  // the viewer already has this value
 
     return WriteThrough(state, target->Cache, panelId, [&](EntitySystem* entities, EntityRef panel) {
         return UiWriteText(entities, panel, target->Write, panelId, variable, value);
@@ -145,8 +145,7 @@ Status UiPanel::Class(int slot, std::string_view panelId, std::string_view class
     if (!target)
         return std::unexpected(target.error());
 
-    if (state && target->Cache != Everyone &&
-        !state->Cache.Update(target->Cache, UiProperty::Class, panelId, className, on ? "1" : "0"))
+    if (state && !state->Cache.Update(target->Cache, UiProperty::Class, panelId, className, on ? "1" : "0"))
         return {};
 
     return WriteThrough(state, target->Cache, panelId, [&](EntitySystem* entities, EntityRef panel) {
@@ -165,8 +164,8 @@ Status UiPanel::ResetClass(int slot, std::string_view panelId, std::string_view 
     const Status status = UiResetClass(state ? state->Entities : nullptr, state ? state->CurrentEntity : EntityRef{},
                                        target->Write, panelId, className);
 
-    // The markup owns the current class state, so discard cached per-slot values.
-    if (state && status && target->Cache != Everyone)
+    // The markup owns the current class state, so discard what the cache thinks was written.
+    if (state && status)
         state->Cache.Forget(target->Cache);
 
     return status;
@@ -179,7 +178,7 @@ Status UiPanel::InputCapture(int slot, bool enabled)
     if (!target)
         return std::unexpected(target.error());
 
-    if (state && target->Cache != Everyone && !state->Cache.UpdateCapture(target->Cache, enabled))
+    if (state && !state->Cache.UpdateCapture(target->Cache, enabled))
         return {};
 
     return WriteThrough(state, target->Cache, kCaptureName, [&](EntitySystem* entities, EntityRef panel) {

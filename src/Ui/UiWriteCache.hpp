@@ -32,11 +32,15 @@ enum class UiProperty
 class UiWriteCache
 {
 public:
+    /** The bucket a shared panel's writes are tracked in, matching @ref UiPanel::Everyone. */
+    static constexpr int Shared = -1;
+
     /** Reset a slot's memory when a player joins or leaves it. Idempotent. */
     void Bind(SlotEvents& slots) { _slots.BindReset(slots); }
 
-    /** Record @p value under (@p kind, @p panelId, @p name) for @p slot; true when it is new or
-     *  different. @p kind keeps a dialog variable and a CSS class of the same name apart. */
+    /** Record @p value under (@p kind, @p panelId, @p name) for @p slot, or for @ref Shared; true
+     *  when it is new or different. @p kind keeps a dialog variable and a class of the same name
+     *  apart. */
     bool Update(int slot, UiProperty kind, std::string_view panelId, std::string_view name, std::string_view value);
 
     /** Record @p enabled as @p slot's input-capture state; true when it changed. */
@@ -61,11 +65,15 @@ private:
         bool Failed = false;
     };
 
+    /** @p slot's bucket, or the shared one; null for a slot that is neither. */
+    SlotState* At(int slot);
+
     /** (kind, panelId, name) joined into one key, in a buffer reused across calls. */
     const std::string& Key(UiProperty kind, std::string_view panelId, std::string_view name);
 
     std::string _scratch;
     PerSlot<SlotState> _slots;
+    SlotState _shared;
 };
 
 }  // namespace VoltMod

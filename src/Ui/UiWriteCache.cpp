@@ -6,13 +6,21 @@ namespace VoltMod
 /** Separates the parts of a key; not legal in a panel id or a variable name. */
 static constexpr char kKeySeparator = '\x1f';
 
+UiWriteCache::SlotState* UiWriteCache::At(int slot)
+{
+    if (slot == Shared)
+        return &_shared;
+    return IsValidSlot(slot) ? &_slots[slot] : nullptr;
+}
+
 bool UiWriteCache::Update(int slot, UiProperty kind, std::string_view panelId, std::string_view name,
                           std::string_view value)
 {
-    if (!IsValidSlot(slot))
+    SlotState* state = At(slot);
+    if (!state)
         return false;
 
-    auto& values = _slots[slot].Values;
+    auto& values = state->Values;
     const std::string& key = Key(kind, panelId, name);
     if (auto it = values.find(key); it != values.end())
     {
@@ -29,43 +37,41 @@ bool UiWriteCache::Update(int slot, UiProperty kind, std::string_view panelId, s
 
 bool UiWriteCache::UpdateCapture(int slot, bool enabled)
 {
-    if (!IsValidSlot(slot))
+    SlotState* state = At(slot);
+    if (!state)
         return false;
 
-    auto& capture = _slots[slot].Capture;
-    if (capture == enabled)
+    if (state->Capture == enabled)
         return false;
 
-    capture = enabled;
+    state->Capture = enabled;
     return true;
 }
 
 bool UiWriteCache::FirstFailure(int slot)
 {
-    if (!IsValidSlot(slot))
+    SlotState* state = At(slot);
+    if (!state || state->Failed)
         return false;
 
-    bool& failed = _slots[slot].Failed;
-    if (failed)
-        return false;
-
-    failed = true;
+    state->Failed = true;
     return true;
 }
 
 void UiWriteCache::Forget(int slot)
 {
-    if (!IsValidSlot(slot))
+    SlotState* state = At(slot);
+    if (!state)
         return;
 
-    SlotState& state = _slots[slot];
-    state.Values.clear();
-    state.Capture.reset();
+    state->Values.clear();
+    state->Capture.reset();
 }
 
 void UiWriteCache::ForgetAll()
 {
     _slots.ResetAll();
+    _shared = {};
 }
 
 const std::string& UiWriteCache::Key(UiProperty kind, std::string_view panelId, std::string_view name)
