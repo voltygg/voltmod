@@ -1,11 +1,12 @@
-"""Compile Panorama sources with the CS2 Workshop Tools and drop them into a client.
+"""Compile rendered Panorama screens with the CS2 Workshop Tools and drop them into a client.
 
-A client renders a layout only if it already has the *compiled* resource on disk, so a
-`custom_hud_layout` shows nothing until `resourcecompiler.exe` has run over its `.xml` and `.css`.
-This is the local half of that: compile, then install into your own client, so a `meta reload` and
-a reconnect is the whole iteration.
+A client renders a layout only if it already has the *compiled* resource on disk, so a screen
+shows nothing until `resourcecompiler.exe` has run over its `.xml` and `.css`. This is the local
+half of that: compile, then install into your own client, so a `meta reload` and a reconnect is
+the whole iteration.
 
-Getting a layout to *other* players is a workshop addon instead - see the workshop guide.
+Getting a layout to *other* players is a workshop addon instead: `publish` writes the tree the
+Workshop Tools expect.
 """
 
 import re
@@ -13,13 +14,18 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from ..tools import WINDOWS, die
+from voltmod.tools import WINDOWS, die
+
+from . import find_owners, output, select
 
 #: Source extension -> what resourcecompiler writes for it.
-COMPILED_SUFFIX = {".xml": ".vxml_c", ".css": ".vcss_c"}
+COMPILED_SUFFIX = {".xml": ".vxml_c", ".css": ".vcss_c", ".vtex": ".vtex_c"}
+
+#: Staged beside its .vtex descriptor, which is what names it; the compiler is never given one.
+STAGED_ONLY = (".png",)
 
 #: The only panorama subdirectories gameinfo.gi's addon whitelist allows a custom layout under.
-PANORAMA_DIRS = ("layout/custom_game", "styles/custom_game")
+PANORAMA_DIRS = ("layout/custom_game", "styles/custom_game", "images/custom_game")
 
 #: Where the compiler sits inside a client installation.
 _COMPILER = "game/bin/win64/resourcecompiler.exe"
@@ -67,37 +73,20 @@ def find_client(client_path: str) -> Path:
     die("no CS2 client found; set CS2_CLIENT_PATH in .env or pass --client-path")
 
 
-def find_sources(root: Path, kit_root: Path) -> dict[str, Path]:
-    """Every `panorama/` directory this project can compile, keyed by whoever owns it."""
-    found: dict[str, Path] = {}
+def _rendered_files(rendered: Path) -> list[Path]:
+    """What one rendered tree holds, in the whitelisted subdirectories.
 
-    # The framework's own, whether this is the framework checkout or a consumer vendoring it.
-    for directory in (root / "panorama", root / "vendor/voltmod/panorama", kit_root / "panorama"):
-        if directory.is_dir():
-            found["voltmod"] = directory
-            break
-
-    plugins = root / "plugins"
-    if plugins.is_dir():
-        for plugin in sorted(plugins.iterdir()):
-            directory = plugin / "panorama"
-            if directory.is_dir():
-                found[plugin.name] = directory
-
-    return found
-
-
-def _source_files(panorama: Path) -> list[Path]:
-    """The compilable sources under a `panorama/` directory, in the whitelisted subdirectories."""
+    Icon sets nest one directory deeper than layouts and styles, so this walks rather than globs.
+    """
     files: list[Path] = []
     for subdir in PANORAMA_DIRS:
-        for path in sorted((panorama / subdir).glob("*")):
-            if path.suffix in COMPILED_SUFFIX:
+        for path in sorted((rendered / subdir).rglob("*")):
+            if path.is_file() and path.suffix in (*COMPILED_SUFFIX, *STAGED_ONLY):
                 files.append(path)
     return files
 
 
-def _stage(sources: list[Path], panorama: Path, content: Path) -> list[Path]:
+def _stage(sources: list[Path], rendered: Path, content: Path) -> list[Path]:
     """Copy sources into the addon's content tree, keeping the `panorama/` prefix.
 
     The prefix is load-bearing, not cosmetic: a layout's `<include src="file://{resources}/...">`
@@ -105,7 +94,7 @@ def _stage(sources: list[Path], panorama: Path, content: Path) -> list[Path]:
     """
     staged = []
     for source in sources:
-        target = content / source.relative_to(panorama.parent)
+        target = content / source.relative_to(rendered.parent)
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, target)
         staged.append(target)
@@ -136,24 +125,25 @@ def _compile(client: Path, addon: str, staged: list[Path], content: Path) -> Non
         info.parent.mkdir(parents=True, exist_ok=True)
         info.write_text('"AddonInfo"\n{\n}\n', encoding="utf-8")
 
+    compilable = [path for path in staged if path.suffix in COMPILED_SUFFIX]
     command = [str(compiler), "-nop4", "-f", "-game", str(client / "game/csgo")]
-    for path in staged:
+    for path in compilable:
         command += ["-i", str(path)]
 
     result = subprocess.run(command, cwd=compiler.parent, capture_output=True, text=True)
-    output = f"{result.stdout}{result.stderr}"
+    output_text = f"{result.stdout}{result.stderr}"
 
     # It exits 0 whether or not anything compiled, and its console tally is prose that any tools
     # update may reword, so the artifacts it was asked to produce are what decide.
     built = client / "game/csgo_addons" / addon
-    missing = [path for path in staged if not _compiled_path(built, path, content).is_file()]
+    missing = [path for path in compilable if not _compiled_path(built, path, content).is_file()]
     if result.returncode != 0 or missing:
-        print(output.strip())
+        print(output_text.strip())
         if missing:
             die("resourcecompiler produced no output for: " + ", ".join(p.name for p in missing))
         die(f"resourcecompiler exited {result.returncode}")
 
-    print(f"  compiled {len(staged)} resource(s)")
+    print(f"  compiled {len(compilable)} resource(s)")
 
 
 def _deploy(client: Path, addon: str, staged: list[Path], content: Path) -> int:
@@ -163,6 +153,8 @@ def _deploy(client: Path, addon: str, staged: list[Path], content: Path) -> int:
     count = 0
 
     for source in staged:
+        if source.suffix not in COMPILED_SUFFIX:
+            continue
         relative = source.relative_to(content)
         compiled = _compiled_path(built, source, content)
         target = csgo / relative.parent / compiled.name
@@ -174,30 +166,20 @@ def _deploy(client: Path, addon: str, staged: list[Path], content: Path) -> int:
     return count
 
 
-def build(
+def install(
     root: Path,
     kit_root: Path,
-    targets: list[str],
+    names: list[str],
     client_path: str,
     addon: str,
     deploy: bool,
 ) -> None:
-    """Compile the named targets' Panorama sources, and install them into the client."""
+    """Compile the named owners' rendered screens and install them into the client."""
     if not WINDOWS:
         die("the CS2 Workshop Tools are Windows only; compile the layouts there")
 
     client = find_client(client_path)
-    available = find_sources(root, kit_root)
-    if not available:
-        die(f"no panorama/ directory found under {root}")
-
-    if targets:
-        unknown = [name for name in targets if name not in available]
-        if unknown:
-            die(f"no panorama sources for {', '.join(unknown)}\nAvailable: {', '.join(available)}")
-        selected = {name: available[name] for name in targets}
-    else:
-        selected = available
+    owners = select(find_owners(root, kit_root), names)
 
     print(f"Client:  {client}")
     print(f"Addon:   csgo_addons/{addon}")
@@ -205,27 +187,45 @@ def build(
     content = client / "content/csgo_addons" / addon
     deployed = 0
 
-    # Every target stages into the same addon tree, so they compile in one launch: resourcecompiler
-    # startup dominates the run for this many files, and paying it per target adds nothing.
-    by_target: list[tuple[str, list[Path]]] = []
-    for name, panorama in selected.items():
-        sources = _source_files(panorama)
+    # Every owner stages into the same addon tree, so they compile in one launch: resourcecompiler
+    # startup dominates the run for this many files, and paying it per owner adds nothing.
+    by_owner: list[tuple[str, list[Path]]] = []
+    for owner in owners.values():
+        rendered = output(root, owner)
+        sources = _rendered_files(rendered)
         if not sources:
-            print(f"\n--- {name} ---\n  (nothing to compile under {panorama})")
+            print(f"\n--- {owner.name} ---\n  (nothing rendered under {rendered})")
             continue
-        by_target.append((name, _stage(sources, panorama, content)))
+        by_owner.append((owner.name, _stage(sources, rendered, content)))
 
-    staged = [path for _, paths in by_target for path in paths]
+    staged = [path for _, paths in by_owner for path in paths]
     if staged:
-        print(f"\nStaged {len(staged)} source(s) from {', '.join(name for name, _ in by_target)}")
+        print(f"\nStaged {len(staged)} source(s) from {', '.join(name for name, _ in by_owner)}")
         _compile(client, addon, staged, content)
 
     if deploy:
-        for name, paths in by_target:
+        for name, paths in by_owner:
             print(f"\n--- {name} ---")
             deployed += _deploy(client, addon, paths, content)
-
-    if deploy:
         print(f"\nInstalled {deployed} resource(s). Reconnect to pick them up.")
     else:
         print(f"\nCompiled into {client / 'game/csgo_addons' / addon}; not installed.")
+
+
+def publish(root: Path, kit_root: Path, names: list[str], directory: Path) -> int:
+    """Copy the named owners' rendered trees into @p directory, `panorama/` prefix intact.
+
+    No client and no compiler: this is what a workshop addon's content directory wants.
+    """
+    owners = select(find_owners(root, kit_root), names)
+    count = 0
+
+    for owner in owners.values():
+        rendered = output(root, owner)
+        for source in _rendered_files(rendered):
+            target = directory / source.relative_to(rendered.parent)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+            count += 1
+
+    return count

@@ -114,13 +114,6 @@ function(voltmod_install_plugin target_name)
         )
     endif()
 
-    # Compiled by Workshop Tools and mounted by the client.
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/panorama")
-        install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/panorama/"
-            DESTINATION "addons/${target_name}/panorama"
-            COMPONENT "${target_name}")
-    endif()
-
     if(EXISTS "${VOLTMOD_GAMEDATA_DIR}")
         install(DIRECTORY "${VOLTMOD_GAMEDATA_DIR}/"
             DESTINATION "addons/voltmod/gamedata"

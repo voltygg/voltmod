@@ -1,0 +1,483 @@
+/* The full-screen layer the menu is centred in. */
+.Layer {
+  width: 100%;
+  height: 100%;
+}
+
+.Screen {
+  width: 480px;
+  height: fit-children;
+  horizontal-align: center;
+  vertical-align: center;
+  flow-children: down;
+  background-color: {{surface.base}};
+  border: 1px solid {{hairline}};
+  color: {{text.primary}};
+  opacity: 1;
+  transform: translateY(0px);
+  transition-property: opacity, transform;
+  transition-duration: {{motion.fast}};
+  transition-timing-function: ease-out;
+}
+
+/* Collapse as well as fade: a transparent panel still takes clicks. */
+.Screen.Hidden {
+  visibility: collapse;
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.Header {
+  width: 100%;
+  height: fit-children;
+  flow-children: down;
+  padding: 10px 14px 8px 14px;
+  background-color: {{fill.weak}};
+}
+
+/* Fixed height: empty at the root, and CSS cannot test that, so it holds its line. */
+.Breadcrumb {
+  width: 100%;
+  height: 14px;
+  font-size: 12px;
+  color: {{text.secondary}};
+  text-overflow: ellipsis;
+}
+
+.Title {
+  width: 100%;
+  font-size: 22px;
+  font-weight: bold;
+  color: {{primary}};
+  text-overflow: ellipsis;
+}
+
+.Subtitle {
+  width: 100%;
+  font-size: 13px;
+  color: {{text.secondary}};
+  text-overflow: ellipsis;
+}
+
+.Subtitle.Hidden {
+  visibility: collapse;
+}
+
+.Rule {
+  width: 100%;
+  height: 1px;
+  background-color: {{primary}};
+}
+
+.Navstrip {
+  width: 460px;
+  height: 26px;
+  horizontal-align: center;
+  flow-children: right;
+  margin-top: 6px;
+}
+
+.Nav-tab {
+  width: fill-parent-flow(1);
+  height: 100%;
+  margin-right: 2px;
+  background-color: {{fill.weak}};
+  font-size: 13px;
+  color: {{text.primary}};
+}
+
+.Nav-tab.Selected {
+  background-color: {{primary}};
+  color: {{text.inverse}};
+}
+
+.Nav-tab.Hidden {
+  visibility: collapse;
+}
+
+.Rows {
+  width: 460px;
+  height: fit-children;
+  horizontal-align: center;
+  flow-children: down;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  opacity: 1;
+  transition-property: opacity;
+  transition-duration: {{motion.fast}};
+}
+
+/* The driver ignores row presses while a prompt is up; this says so. */
+.Screen.Prompting .Rows {
+  opacity: 0.35;
+}
+
+.Screen.Prompting .Pager {
+  opacity: 0.35;
+}
+
+.Row {
+  width: 100%;
+  height: 34px;
+  flow-children: right;
+  margin-bottom: 3px;
+  background-color: {{surface.raised}};
+  transition-property: background-color;
+  transition-duration: {{motion.slow}};
+}
+
+.Row.Hidden {
+  visibility: collapse;
+}
+
+/* Styling only; a disabled row still reports its press. */
+.Row.Disabled {
+  opacity: 0.4;
+}
+
+/* Keyboard cursor. Always laid out, so moving it moves colour, not geometry. */
+.Mark {
+  width: 3px;
+  height: 100%;
+  background-color: {{fill.weak}};
+  transition-property: background-color;
+  transition-duration: {{motion.fast}};
+}
+
+.Row.Selected .Mark {
+  background-color: {{primary}};
+}
+
+.Row-btn {
+  width: fill-parent-flow(1);
+  height: 100%;
+  flow-children: right;
+  padding: 0px 10px 0px 4px;
+  background-color: rgba(255, 255, 255, 0);
+  transition-property: background-color;
+  transition-duration: {{motion.slow}};
+}
+
+.Row-btn:hover {
+  background-color: {{fill.hover}};
+}
+
+.Row-btn:active {
+  background-color: {{fill.active}};
+}
+
+.Row.Selected {
+  background-color: {{fill.strong}};
+}
+
+/* The driver drops Changed after ~150ms; the transition above is the pulse fading out. */
+.Row.Changed {
+  background-color: {{fill.active}};
+}
+
+.Row.Disabled .Row-btn:hover {
+  background-color: rgba(255, 255, 255, 0);
+}
+
+/* One column, no flow: the kind glyphs stack and only one shows. */
+.Glyphs {
+  width: 26px;
+  height: 100%;
+  margin-right: 8px;
+}
+
+.Glyph {
+  horizontal-align: center;
+  vertical-align: center;
+  font-size: 13px;
+  color: {{text.secondary}};
+  visibility: collapse;
+}
+
+.Row.Selected .Glyph {
+  color: {{primary}};
+}
+
+.Kind--submenu .G--submenu {
+  visibility: visible;
+}
+
+.Kind--input .G--input {
+  visibility: visible;
+}
+
+.Kind--button .G--button {
+  visibility: visible;
+}
+
+.Kind--text .G--text {
+  visibility: visible;
+}
+
+/* A switch, not a value: what tells a toggle from a choice at a glance. */
+.Switch {
+  width: 26px;
+  height: 14px;
+  horizontal-align: center;
+  vertical-align: center;
+  border-radius: {{radius.large}};
+  background-color: {{fill.strong}};
+  border: 1px solid {{fill.strong}};
+  visibility: collapse;
+  transition-property: background-color;
+  transition-duration: {{motion.fast}};
+}
+
+.Kind--toggle .Switch {
+  visibility: visible;
+}
+
+.Kind--toggle.On .Switch {
+  background-color: {{primary}};
+  border: 1px solid {{primary}};
+}
+
+.Switch-knob {
+  width: 10px;
+  height: 10px;
+  margin-left: 2px;
+  vertical-align: center;
+  border-radius: 5px;
+  background-color: {{text.secondary}};
+  transform: translateX(0px);
+  transition-property: transform, background-color;
+  transition-duration: {{motion.fast}};
+  transition-timing-function: ease-out;
+}
+
+.Kind--toggle.On .Switch-knob {
+  background-color: {{text.inverse}};
+  transform: translateX(10px);
+}
+
+.Row-label {
+  width: fill-parent-flow(1);
+  vertical-align: center;
+  font-size: 16px;
+  text-overflow: ellipsis;
+}
+
+/* Fixed column, right aligned, so a long label never pushes values out of line. */
+.Row-value {
+  width: 120px;
+  vertical-align: center;
+  text-align: right;
+  font-size: 15px;
+  color: {{primary}};
+  text-overflow: ellipsis;
+  visibility: collapse;
+}
+
+.Row.HasValue .Row-value {
+  visibility: visible;
+}
+
+.Kind--submenu .Row-value {
+  color: {{text.secondary}};
+}
+
+/* The switch already says on or off. Three classes, so this outweighs HasValue above. */
+.Row.Kind--toggle .Row-value {
+  visibility: collapse;
+}
+
+/* A stepped value the driver has not committed yet. */
+.Row.Pending .Row-value {
+  color: {{primary}};
+  opacity: 0.55;
+  font-style: italic;
+}
+
+/* Informational row: readable, but it should not look pressable. */
+.Row.Kind--text {
+  background-color: rgba(255, 255, 255, 0);
+}
+
+.Kind--text .Row-label {
+  font-size: 15px;
+  color: {{text.secondary}};
+}
+
+/* Reserved on every row so labels and values line up across kinds. */
+.Steps {
+  width: 76px;
+  height: 100%;
+  flow-children: right;
+}
+
+/* Siblings of the row button: a Button in a Button loses the inner press. */
+.Stepper {
+  width: 36px;
+  height: 100%;
+  margin-left: 2px;
+  background-color: {{fill.weak}};
+  font-size: 12px;
+  color: {{text.secondary}};
+  visibility: collapse;
+}
+
+.Row.HasSteppers .Stepper {
+  visibility: visible;
+}
+
+.Stepper Label {
+  horizontal-align: center;
+  vertical-align: center;
+}
+
+.Stepper:hover {
+  background-color: {{fill.hover}};
+  color: {{primary}};
+}
+
+.Stepper:active {
+  background-color: {{primary}};
+  color: {{text.inverse}};
+}
+
+.Pager {
+  width: 460px;
+  height: 24px;
+  horizontal-align: center;
+  flow-children: right;
+  margin-bottom: 8px;
+  opacity: 1;
+  transition-property: opacity;
+  transition-duration: {{motion.fast}};
+}
+
+.Pager.Hidden {
+  visibility: collapse;
+}
+
+.Arrow {
+  width: 36px;
+  height: 100%;
+  background-color: {{fill.weak}};
+  font-size: 12px;
+  color: {{text.secondary}};
+}
+
+.Arrow Label {
+  horizontal-align: center;
+  vertical-align: center;
+}
+
+.Arrow:hover {
+  background-color: {{fill.hover}};
+  color: {{primary}};
+}
+
+.Arrow:active {
+  background-color: {{primary}};
+  color: {{text.inverse}};
+}
+
+.Pager-label {
+  width: fill-parent-flow(1);
+  vertical-align: center;
+  text-align: center;
+  font-size: 13px;
+  color: {{text.secondary}};
+}
+
+/* Fixed height: Cancel must stay clickable, and a prompt is any length. */
+.Prompt {
+  width: 460px;
+  height: 112px;
+  horizontal-align: center;
+  flow-children: down;
+  margin-bottom: 8px;
+  padding: 10px;
+  background-color: {{surface.sunken}};
+  border: 1px solid {{hairline}};
+}
+
+.Prompt.Hidden {
+  visibility: collapse;
+}
+
+.Prompt-text {
+  width: 100%;
+  height: 40px;
+  font-size: 15px;
+}
+
+.Prompt-hint {
+  width: 100%;
+  height: 16px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: {{text.secondary}};
+}
+
+.Foot {
+  width: 460px;
+  height: 54px;
+  horizontal-align: center;
+  flow-children: down;
+  margin-bottom: 10px;
+}
+
+.Nav-row {
+  width: 100%;
+  height: 30px;
+  flow-children: right;
+}
+
+.Nav {
+  width: fill-parent-flow(1);
+  height: 100%;
+  margin-right: 4px;
+  background-color: {{fill.weak}};
+  font-size: 14px;
+  color: {{text.primary}};
+}
+
+.Nav Label {
+  horizontal-align: center;
+  vertical-align: center;
+}
+
+.Nav:hover {
+  background-color: {{primary}};
+  color: {{text.inverse}};
+}
+
+.Nav--narrow {
+  width: 120px;
+  height: 26px;
+  horizontal-align: center;
+}
+
+/* At the root there is nowhere to go back to, so Back is drawn inert rather than removed. */
+.Screen.Root .Nav--back {
+  opacity: 0.35;
+}
+
+.Screen.Root .Nav--back:hover {
+  background-color: {{fill.weak}};
+  color: {{text.primary}};
+}
+
+/* Keeps its box and fades, so turning the hints on does not move the panel. */
+.Hints {
+  width: 100%;
+  height: 16px;
+  margin-top: 8px;
+  text-align: center;
+  font-size: 11px;
+  color: {{text.secondary}};
+  opacity: 0;
+  transition-property: opacity;
+  transition-duration: {{motion.fast}};
+}
+
+.Screen.KeyHints .Hints {
+  opacity: 1;
+}

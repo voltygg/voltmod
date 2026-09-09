@@ -1,0 +1,6 @@
+{#- A meter. The driver picks the fill width by writing `Step--k` on it, k of the steps its stylesheet declares. -#}
+{% macro bar(id) -%}
+<Panel class="Bar" hittest="false">
+  <Panel id="{{screen}}_{{id}}" class="Bar-fill" hittest="false" />
+</Panel>
+{%- endmacro %}

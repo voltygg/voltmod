@@ -1,0 +1,12 @@
+.Accent {
+  width: 4px;
+  height: 100%;
+  background-color: {{fill.weak}};
+}
+
+/* One rule per accent in the theme, so a panel picks its colour by class. */
+{% for entry in accents %}
+.Accent--{{entry.name}} {
+  background-color: {{entry.color}};
+}
+{% endfor %}

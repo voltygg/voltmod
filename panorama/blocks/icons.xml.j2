@@ -1,0 +1,8 @@
+{#- Every icon in a set, stacked. The set's own class on the panel uncollapses one of them. -#}
+{% macro icons(id, set) -%}
+<Panel id="{{screen}}_{{id}}" class="Icons" hittest="false">
+  {%- for name in images[set] %}
+  <Image class="Icon--{{name}}" src="s2r://panorama/images/custom_game/{{set}}/{{name}}.vtex" hittest="false" />
+  {%- endfor %}
+</Panel>
+{%- endmacro %}

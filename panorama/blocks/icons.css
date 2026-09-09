@@ -1,0 +1,14 @@
+.Icons Image {
+  width: 100%;
+  height: 100%;
+  visibility: collapse;
+}
+
+{#- An icon shows only while its own class is on the panel that holds the whole set. -#}
+{% macro show_rules(set) %}
+{% for name in images[set] %}
+.Icon--{{name}} .Icon--{{name}} {
+  visibility: visible;
+}
+{% endfor %}
+{%- endmacro %}

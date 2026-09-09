@@ -1,0 +1,24 @@
+{% import "accent.xml.j2" as accents %}
+{% import "bar.xml.j2" as bars %}
+{% import "icons.xml.j2" as icons %}
+
+{#- A row of a list: optional stripe and icon, two lines of text, a value, an optional bar.
+    Ids carry the screen name, the dialog variables the driver writes do not. -#}
+{% macro card(id, icon_set=none, bar=false, accent=false) -%}
+<Panel id="{{screen}}_{{id}}" class="Card" hittest="false">
+  {%- if accent %}
+  {{ accents.accent(id ~ "_accent") }}
+  {%- endif %}
+  {%- if icon_set %}
+  {{ icons.icons(id ~ "_icon", icon_set) | indent(2) }}
+  {%- endif %}
+  <Panel class="Card-body" hittest="false">
+    <Label class="Card-title" text="{s:{{id}}_title}" hittest="false" />
+    <Label class="Card-subtitle" text="{s:{{id}}_subtitle}" hittest="false" />
+  </Panel>
+  <Label class="Card-value" text="{s:{{id}}_value}" hittest="false" />
+  {%- if bar %}
+  {{ bars.bar(id ~ "_bar") | indent(2) }}
+  {%- endif %}
+</Panel>
+{%- endmacro %}

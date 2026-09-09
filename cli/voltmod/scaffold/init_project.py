@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from ..tools import templates_dir
+from ..tools import kit_root
 from . import new_plugin
 
 REPO_ROOT = Path.cwd()
@@ -10,7 +10,7 @@ REPO_ROOT = Path.cwd()
 
 def create(name: str, plugin: str) -> int:
     """Render templates/project into the working directory, then its first plugin."""
-    template_dir = templates_dir() / "project"
+    template_dir = kit_root() / "templates/project"
     if not template_dir.is_dir():
         print(f"error: template tree missing at {template_dir}.")
         return 1

@@ -1,0 +1,19 @@
+.Bar {
+  width: 120px;
+  height: 6px;
+  background-color: {{fill.weak}};
+}
+
+.Bar-fill {
+  height: 100%;
+  background-color: {{primary}};
+}
+
+{#- The step count is per bar rather than per stylesheet, so the widths are emitted per bar. -#}
+{% macro fill_rules(cls, steps) %}
+{% for step in range(steps + 1) %}
+.{{cls}}.Step--{{step}} {
+  width: {{ (step * 100 / steps) | round(1) }}%;
+}
+{% endfor %}
+{%- endmacro %}

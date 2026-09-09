@@ -5,7 +5,6 @@ include_guard(GLOBAL)
 # Not cached: a cached path outlives the package it pointed at.
 get_filename_component(VOLTMOD_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/.." REALPATH)
 set(VOLTMOD_GAMEDATA_DIR "${VOLTMOD_ROOT_DIR}/gamedata")
-set(VOLTMOD_PANORAMA_DIR "${VOLTMOD_ROOT_DIR}/panorama")
 
 if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(FATAL_ERROR "Only x86_64 builds are supported.")

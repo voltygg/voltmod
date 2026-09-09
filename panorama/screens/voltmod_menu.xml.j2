@@ -1,0 +1,91 @@
+<root>
+  <!--
+    The screen VoltMod's Panorama menu driver writes to. Ids are the contract (docs/menu.md):
+    the driver spells `voltmod_menu_row<i>_btn`, `_dec`, `_inc`, `voltmod_menu_nav<i>`, and the
+    labels arrive as dialog variables on the root, named without the screen prefix.
+
+    Clickability, each failing silently: every panel on the click path needs a resolved size, a
+    Button never nests a Button, and decorative panels are hittest="false".
+  -->
+  <styles>
+    <include src="file://{resources}/styles/custom_game/{{screen}}.css" />
+  </styles>
+
+  <Panel class="Layer" hittest="false">
+    <Panel id="{{screen}}" class="Screen Hidden" hittest="true">
+      <Panel class="Header" hittest="false">
+        <Label class="Breadcrumb" text="{s:breadcrumb}" hittest="false" />
+        <Label class="Title" text="{s:title}" hittest="false" />
+        <Label id="{{screen}}_subtitle" class="Subtitle" text="{s:subtitle}" hittest="false" />
+      </Panel>
+      <Panel class="Rule" hittest="false" />
+
+      <Panel class="Navstrip" hittest="true">
+        {%- for tab in range(8) %}
+        <Button id="{{screen}}_nav{{tab}}" class="Nav-tab">
+          <Label text="{s:nav{{tab}}}" hittest="false" />
+        </Button>
+        {%- endfor %}
+      </Panel>
+
+      <Panel class="Rows" hittest="true">
+        {%- for row in range(10) %}
+        <Panel id="{{screen}}_row{{row}}" class="Row Hidden" hittest="true">
+          <Panel class="Mark" hittest="false" />
+          <Button id="{{screen}}_row{{row}}_btn" class="Row-btn">
+            <Panel class="Glyphs" hittest="false">
+              <Label class="Glyph G--submenu" text="&#9654;" hittest="false" />
+              <Label class="Glyph G--input" text="&#8230;" hittest="false" />
+              <Label class="Glyph G--button" text="&#8226;" hittest="false" />
+              <Label class="Glyph G--text" text="&#8211;" hittest="false" />
+              <Panel class="Switch" hittest="false">
+                <Panel class="Switch-knob" hittest="false" />
+              </Panel>
+            </Panel>
+            <Label class="Row-label" text="{s:row{{row}}_label}" hittest="false" />
+            <Label class="Row-value" text="{s:row{{row}}_value}" hittest="false" />
+          </Button>
+          <Panel class="Steps" hittest="true">
+            <Button id="{{screen}}_row{{row}}_dec" class="Stepper">
+              <Label text="&#9664;" hittest="false" />
+            </Button>
+            <Button id="{{screen}}_row{{row}}_inc" class="Stepper">
+              <Label text="&#9654;" hittest="false" />
+            </Button>
+          </Panel>
+        </Panel>
+        {%- endfor %}
+      </Panel>
+
+      <Panel id="{{screen}}_pager" class="Pager Hidden" hittest="true">
+        <Button id="{{screen}}_prev" class="Arrow">
+          <Label text="&#9664;" hittest="false" />
+        </Button>
+        <Label class="Pager-label" text="{s:page}" hittest="false" />
+        <Button id="{{screen}}_next" class="Arrow">
+          <Label text="&#9654;" hittest="false" />
+        </Button>
+      </Panel>
+
+      <Panel id="{{screen}}_prompt" class="Prompt Hidden" hittest="true">
+        <Label class="Prompt-text" text="{s:prompt_text}" hittest="false" />
+        <Label class="Prompt-hint" text="{s:prompt_hint}" hittest="false" />
+        <Button id="{{screen}}_cancel" class="Nav Nav--narrow">
+          <Label text="{s:cancel}" hittest="false" />
+        </Button>
+      </Panel>
+
+      <Panel class="Foot" hittest="true">
+        <Panel class="Nav-row" hittest="true">
+          <Button id="{{screen}}_back" class="Nav Nav--back">
+            <Label text="{s:back}" hittest="false" />
+          </Button>
+          <Button id="{{screen}}_close" class="Nav">
+            <Label text="{s:close}" hittest="false" />
+          </Button>
+        </Panel>
+        <Label class="Hints" text="[W/S] Navigate &#183; [A/D] Change &#183; [E] Select &#183; [R] Back" hittest="false" />
+      </Panel>
+    </Panel>
+  </Panel>
+</root>

@@ -1,0 +1,12 @@
+{% import "accent.xml.j2" as accents %}
+
+{#- A notice that fades in when the driver puts `Show` on it. -#}
+{% macro toast(id) -%}
+<Panel id="{{screen}}_{{id}}" class="Toast" hittest="false">
+  <Panel class="Toast-body" hittest="false">
+    <Label class="Toast-title" text="{s:{{id}}_title}" hittest="false" />
+    <Label class="Toast-text" text="{s:{{id}}_description}" hittest="false" />
+  </Panel>
+  {{ accents.accent(id ~ "_accent") }}
+</Panel>
+{%- endmacro %}

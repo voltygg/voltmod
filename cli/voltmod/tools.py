@@ -31,10 +31,10 @@ def default_preset() -> str:
     return "windows-msvc-release" if WINDOWS else "linux-steamrt-release"
 
 
-def templates_dir() -> Path:
-    """Return scaffold templates from the installed wheel or repository."""
-    packaged = Path(__file__).resolve().parent / "templates"
-    return packaged if packaged.is_dir() else Path(__file__).resolve().parents[2] / "templates"
+def kit_root() -> Path:
+    """Where the framework's own trees (templates/, panorama/) sit: the wheel, or a checkout."""
+    package = Path(__file__).resolve().parent
+    return package if (package / "templates").is_dir() else package.parents[1]
 
 
 def resolve_tool(tool: str) -> tuple[list[str], dict[str, str]]:

@@ -11,6 +11,7 @@ dependencies = [
     "conan>=2.29.1",
     "ninja>=1.13.0",
     "clang-format==22.1.5",
+    "jinja2>=3.1",
     "typer>=0.27.1",
     "pyyaml>=6.0",
 ]
@@ -25,9 +26,10 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["cli/voltmod"]
 
-# Ship the repository-level scaffold trees beside the Python package.
+# Ship the repository-level trees the CLI reads beside the Python package.
 [tool.hatch.build.targets.wheel.force-include]
 "templates" = "voltmod/templates"
+"panorama" = "voltmod/panorama"
 
 [dependency-groups]
 dev = [
@@ -47,7 +49,7 @@ lint = ["_ruff", "test-tools"]
 _ruff = "ruff check ."
 
 modgraph = "voltmod modgraph"
-panorama = "voltmod panorama"
+panorama = "voltmod panorama compile"
 test-tools = "pytest cli/tests"
 format = "voltmod format"
 
