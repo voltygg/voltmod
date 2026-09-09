@@ -13,6 +13,9 @@ from voltmod.tools import die
 #: Rendered trees live here, one directory per owner, under the project's build tree.
 BUILD_DIR = "build/panorama"
 
+#: The framework itself. It ships screens but has no plugin of its own to bind them into.
+KIT_OWNER = "voltmod"
+
 
 @dataclass(frozen=True, slots=True)
 class Owner:
@@ -25,10 +28,10 @@ class Owner:
 def find_owners(root: Path, kit_root: Path) -> dict[str, Owner]:
     """Every `panorama/` tree this project renders, keyed by its owner.
 
-    The project's own `panorama/` is not one: it holds the theme and the skin stylesheets that
-    every owner's screens are rendered against.
+    The project's own `panorama/` is not one: it holds the skin stylesheets appended to an
+    owner's screens.
     """
-    owners = {"voltmod": Owner("voltmod", kit_root / "panorama")}
+    owners = {KIT_OWNER: Owner(KIT_OWNER, kit_root / "panorama")}
 
     plugins = root / "plugins"
     if plugins.is_dir():
@@ -57,3 +60,8 @@ def output(root: Path, owner: Owner, out: Path | None = None) -> Path:
     resolves against it, so it survives into the addon and into a publish directory.
     """
     return (out or root / BUILD_DIR) / owner.name / "panorama"
+
+
+def includes(root: Path, owner: Owner, out: Path | None = None) -> Path:
+    """Where @p owner's derived screen headers go: what a plugin puts on its include path."""
+    return (out or root / BUILD_DIR) / owner.name / "include"

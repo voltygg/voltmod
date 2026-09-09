@@ -69,6 +69,13 @@ function(voltmod_add_plugin target_name)
 
     voltmod_stamp_build_info("${target_name}" "${ARG_VERSION}")
 
+    # `voltmod build` renders panorama/screens/ there first; nothing generated is committed.
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/panorama/screens")
+        get_filename_component(owner "${CMAKE_CURRENT_SOURCE_DIR}" NAME)
+        target_include_directories("${target_name}" PRIVATE
+            "${CMAKE_SOURCE_DIR}/build/panorama/${owner}/include")
+    endif()
+
     set(output_dir "${CMAKE_BINARY_DIR}/plugins/${target_name}/${VOLTMOD_PLATFORM_ARCH}")
     set_target_properties("${target_name}" PROPERTIES
         PREFIX ""

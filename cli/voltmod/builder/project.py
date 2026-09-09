@@ -12,10 +12,12 @@ from ..tools import (
     ensure_msvc_env,
     ensure_remote,
     host_profile,
+    kit_root,
     require_build_tools,
     run_tool,
 )
 from . import framework
+from .panorama import render as panorama
 
 CPP_EXTS = (".cpp", ".hpp", ".inc")
 # Leave room below Windows' 32767-character command-line limit.
@@ -67,6 +69,10 @@ def build(
         "--build=missing", *SDK_BUILD_EXCLUSIONS, *lock_args, *(options or []),
         "--profile:host", str(profile), "--profile:build", str(profile), *settings,
     )
+
+    # Screens become layouts, stylesheets and the C++ bindings a plugin includes. Write-if-changed,
+    # so an unchanged screen touches nothing CMake would rebuild for.
+    panorama.render(repo_root, kit_root(), [])
 
     if ccache:
         subprocess.run(["ccache", "-z"], check=False)

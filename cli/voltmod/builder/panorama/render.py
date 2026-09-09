@@ -1,21 +1,23 @@
 """Render an owner's screens into the build tree.
 
-One screen is `screens/<name>.xml.j2` plus `screens/<name>.css`, both Jinja templates over the
-theme, plus whatever `panorama/skin/<name>.css` the project appends. Icon PNGs are copied beside
-a generated `.vtex`, because resourcecompiler compiles the descriptor and never the image.
+One screen is `screens/<name>.xml.j2` plus `screens/<name>.css`, Jinja over the framework's block
+library, plus whatever plain `panorama/skin/<name>.css` the project appends. Rendering a screen
+also derives its C++ binding, so a plugin's header cannot drift from the layout it names. Icon
+PNGs are copied beside a generated `.vtex`, because resourcecompiler compiles the descriptor and
+never the image.
 """
 
 from pathlib import Path
-from typing import Any
 
 from jinja2 import ChoiceLoader, Environment, FileSystemLoader, StrictUndefined, TemplateError
 
 from voltmod.tools import die
 
-from . import Owner, find_owners, output, select
-from . import theme as theme_module
+from . import KIT_OWNER, Owner, find_owners, includes, output, select
+from . import bind as binder
 
 SCREENS_DIR = "screens"
+HEADERS_DIR = "Ui"
 BLOCKS_DIR = "panorama/blocks"
 SKIN_DIR = "panorama/skin"
 IMAGES_DIR = "images/custom_game"
@@ -77,55 +79,75 @@ VTEX = """<!-- dmx encoding keyvalues2_noids 1 format vtex 1 -->
 def render(root: Path, kit_root: Path, names: list[str], out: Path | None = None) -> list[Path]:
     """Render the named owners' screens, and return what was written."""
     owners = select(find_owners(root, kit_root), names)
-    palette = theme_module.load(root, kit_root)
 
     written: list[Path] = []
     for owner in owners.values():
-        written += _owner(owner, root, kit_root, palette, out)
+        written += _owner(owner, root, kit_root, out)
     return written
 
 
-def _owner(
-    owner: Owner, root: Path, kit_root: Path, palette: dict[str, Any], out: Path | None
-) -> list[Path]:
+def sources(owner: Owner) -> list[Path]:
+    """Every screen template @p owner ships."""
+    return sorted((owner.source / SCREENS_DIR).glob(f"*{SUFFIX}"))
+
+
+def screen(owner: Owner, root: Path, kit_root: Path, name: str) -> tuple[str, str]:
+    """One screen rendered in memory: its layout and its stylesheet, without the banners."""
+    environment = _environment(owner, kit_root, _icon_sets(owner), name)
+    source = owner.source / SCREENS_DIR / f"{name}{SUFFIX}"
+    return _render(environment, source.name, source), _stylesheet(environment, owner, root, name)
+
+
+def _owner(owner: Owner, root: Path, kit_root: Path, out: Path | None) -> list[Path]:
     target = output(root, owner, out)
-    images = _icon_sets(owner)
 
     written: list[Path] = []
-    for source in sorted((owner.source / SCREENS_DIR).glob(f"*{SUFFIX}")):
-        screen = source.name.removesuffix(SUFFIX)
-        environment = _environment(owner, kit_root, palette, images, screen)
-        written += _put(
-            target / "layout/custom_game" / f"{screen}.xml",
-            f"<!-- {BANNER} -->\n" + _render(environment, source.name, source),
+    for source in sources(owner):
+        name = source.name.removesuffix(SUFFIX)
+        layout, stylesheet = screen(owner, root, kit_root, name)
+        written += put(
+            target / "layout/custom_game" / f"{name}.xml", f"<!-- {BANNER} -->\n{layout}"
         )
-        written += _put(
-            target / "styles/custom_game" / f"{screen}.css",
-            f"/* {BANNER} */\n" + _stylesheet(environment, owner, root, screen),
+        written += put(
+            target / "styles/custom_game" / f"{name}.css", f"/* {BANNER} */\n{stylesheet}"
         )
+        written += _binding(owner, root, out, source, layout, stylesheet)
 
-    return written + _icons(owner, target, images)
+    return written + _icons(owner, target, _icon_sets(owner))
+
+
+def _binding(
+    owner: Owner, root: Path, out: Path | None, source: Path, layout: str, stylesheet: str
+) -> list[Path]:
+    """The screen's C++ binding. The framework has no plugin of its own to bind one into."""
+    if owner.name == KIT_OWNER:
+        return []
+
+    name = binder.pascal(source.name.removesuffix(SUFFIX))
+    text = binder.header(layout, stylesheet, source.read_text(encoding="utf-8-sig"), source.name)
+    return put(includes(root, owner, out) / HEADERS_DIR / f"{name}.hpp", text)
 
 
 def _stylesheet(environment: Environment, owner: Owner, root: Path, screen: str) -> str:
-    """The screen's own stylesheet, with the project's skin for it appended."""
+    """The screen's own stylesheet, with the project's plain-CSS skin for it appended."""
     source = owner.source / SCREENS_DIR / f"{screen}.css"
     text = _render(environment, source.name, source)
 
     skin = root / SKIN_DIR / f"{screen}.css"
     if skin.is_file():
-        rendered = _render_text(environment, skin.read_text(encoding="utf-8-sig"), skin)
-        text = f"{text.rstrip()}\n\n/* {SKIN_DIR}/{screen}.css */\n{rendered}"
+        text = f"{text.rstrip()}\n\n/* {SKIN_DIR}/{screen}.css */\n" + skin.read_text(
+            encoding="utf-8-sig"
+        )
     return text
 
 
 def _environment(
-    owner: Owner, kit_root: Path, palette: dict[str, Any], images: dict[str, list[str]], screen: str
+    owner: Owner, kit_root: Path, images: dict[str, list[str]], screen: str
 ) -> Environment:
     """Templates resolve against the owner's screens first, then the framework's block library.
 
     The context is global rather than passed per render so that a block imported with
-    `{% import %}` sees the theme, the icon sets, and the screen name too.
+    `{% import %}` sees the icon sets and the screen name too.
     """
     # utf-8-sig: an editor's byte order mark would otherwise reach the client as a parse error.
     environment = Environment(
@@ -139,20 +161,13 @@ def _environment(
         keep_trailing_newline=True,
         autoescape=False,
     )
-    environment.globals.update(palette, images=images, screen=screen)
+    environment.globals.update(images=images, screen=screen)
     return environment
 
 
 def _render(environment: Environment, name: str, where: Path) -> str:
     try:
         return environment.get_template(name).render()
-    except TemplateError as error:
-        die(f"{where}: {error}")
-
-
-def _render_text(environment: Environment, text: str, where: Path) -> str:
-    try:
-        return environment.from_string(text).render()
     except TemplateError as error:
         die(f"{where}: {error}")
 
@@ -180,11 +195,12 @@ def _icons(owner: Owner, target: Path, images: dict[str, list[str]]) -> list[Pat
             out = target / IMAGES_DIR / icon_set / f"{name}.png"
             written += _write(out, png.read_bytes())
             source = f"panorama/{IMAGES_DIR}/{icon_set}/{name}.png"
-            written += _put(out.with_suffix(".vtex"), VTEX.format(source=source))
+            written += put(out.with_suffix(".vtex"), VTEX.format(source=source))
     return written
 
 
-def _put(path: Path, text: str) -> list[Path]:
+def put(path: Path, text: str) -> list[Path]:
+    """Write @p text unless it is already there, so a second run touches nothing."""
     return _write(path, text.encode("utf-8"))
 
 

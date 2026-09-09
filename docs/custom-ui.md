@@ -257,22 +257,23 @@ Three small writer types turn a layout's ids into typed calls instead of raw
 
 - @ref VoltMod::Text - one dialog variable on the layout root.
 - @ref VoltMod::Flag - one class on one panel, on or off.
-- @ref VoltMod::OneOf - exactly one of N classes on, the rest off (a tab, an icon
-  set, a bar step).
+- @ref VoltMod::OneOf - one panel, N classes, exactly one of them on (an icon set,
+  an accent colour, a bar step). N panels sharing one class - tab selection - is an
+  array of `Flag`.
 
 ```cpp
 constexpr Text CardTitle{.Root = "card", .Var = "title"};
 constexpr Flag CardHidden{.Id = "card", .Class = "Hidden"};
-constexpr OneOf<3> Tabs{.Ids = {"tab0", "tab1", "tab2"}, .Classes = {"Selected", "Selected", "Selected"}};
+constexpr OneOf<3> Icon{.Id = "card_icon", .Classes = {"Icon--ak47", "Icon--awp", "Icon--m4a1"}};
 
 CardTitle.Write(screen.Panel(), slot, "Round 2");
 CardHidden.Write(screen.Panel(), slot, false);
-Tabs.Write(screen.Panel(), slot, 1);
+Icon.Write(screen.Panel(), slot, Icon.Find("awp"));   // -1 turns every class off
 ```
 
-The Panorama generator (coming in the next change) emits ids like these as
-constexpr constants alongside the layout, so a plugin never spells a panel id or
-class name by hand.
+You do not write those constants by hand: rendering a screen derives them from its
+own ids and classes into `build/panorama/<plugin>/include/Ui/<Screen>.hpp`, which
+`voltmod_add_plugin` puts on the plugin's include path.
 
 ## Naming panels and classes
 

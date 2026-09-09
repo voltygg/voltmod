@@ -1,12 +1,12 @@
 .Bar {
   width: 120px;
   height: 6px;
-  background-color: {{fill.weak}};
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .Bar-fill {
   height: 100%;
-  background-color: {{primary}};
+  background-color: #c8a24a;
 }
 
 {#- The step count is per bar rather than per stylesheet, so the widths are emitted per bar. -#}

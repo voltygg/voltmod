@@ -1,45 +1,18 @@
 #include <VoltMod/Ui/Widgets.hpp>
 
+#include "Support/FakePanel.hpp"
+
 #include <doctest/doctest.h>
 #include <string>
 #include <tuple>
-#include <vector>
 
 using VoltMod::Flag;
 using VoltMod::OneOf;
 using VoltMod::Status;
 using VoltMod::Text;
+using VoltModTests::FakePanel;
 
-namespace
-{
-
-/** Records what a widget wrote instead of driving a real panel. */
-struct FakePanel
-{
-    std::vector<std::tuple<int, std::string, std::string, std::string>> Texts;
-    std::vector<std::tuple<int, std::string, std::string, bool>> Classes;
-    /** Set to fail the next N `Class` calls, in order. */
-    std::vector<bool> ClassFails;
-    int ClassCalls = 0;
-
-    Status Text(int slot, std::string_view id, std::string_view var, std::string_view value)
-    {
-        Texts.emplace_back(slot, std::string(id), std::string(var), std::string(value));
-        return {};
-    }
-
-    Status Class(int slot, std::string_view id, std::string_view cls, bool on)
-    {
-        Classes.emplace_back(slot, std::string(id), std::string(cls), on);
-        const bool fail = ClassCalls < static_cast<int>(ClassFails.size()) && ClassFails[ClassCalls];
-        ++ClassCalls;
-        if (fail)
-            return std::unexpected(VoltMod::Error::Failed("boom"));
-        return {};
-    }
-};
-
-}  // namespace
+constexpr OneOf<3> Icons{.Id = "card_icon", .Classes = {"Icon--ak47", "Icon--awp", "Icon--m4a1"}};
 
 TEST_CASE("Text writes the root panel's dialog variable")
 {
@@ -63,48 +36,44 @@ TEST_CASE("Flag toggles one class on and off")
     CHECK(panel.Classes[1] == std::make_tuple(1, std::string("card"), std::string("Hidden"), false));
 }
 
-TEST_CASE("OneOf turns on only the selected index and clears the rest")
+TEST_CASE("OneOf turns on only the selected class and clears the rest")
 {
     FakePanel panel;
-    OneOf<3> widget{.Ids = {"icon0", "icon1", "icon2"}, .Classes = {"Selected", "Selected", "Selected"}};
 
-    CHECK(widget.Write(panel, 0, 1));
+    CHECK(Icons.Write(panel, 0, 1));
     REQUIRE(panel.Classes.size() == 3);
-    CHECK(panel.Classes[0] == std::make_tuple(0, std::string("icon0"), std::string("Selected"), false));
-    CHECK(panel.Classes[1] == std::make_tuple(0, std::string("icon1"), std::string("Selected"), true));
-    CHECK(panel.Classes[2] == std::make_tuple(0, std::string("icon2"), std::string("Selected"), false));
+    CHECK(panel.Classes[0] == std::make_tuple(0, std::string("card_icon"), std::string("Icon--ak47"), false));
+    CHECK(panel.Classes[1] == std::make_tuple(0, std::string("card_icon"), std::string("Icon--awp"), true));
+    CHECK(panel.Classes[2] == std::make_tuple(0, std::string("card_icon"), std::string("Icon--m4a1"), false));
 }
 
-TEST_CASE("OneOf with -1 leaves every entry off")
+TEST_CASE("OneOf with -1 leaves every class off")
 {
     FakePanel panel;
-    OneOf<3> widget{.Ids = {"icon0", "icon1", "icon2"}, .Classes = {"Selected", "Selected", "Selected"}};
 
-    CHECK(widget.Write(panel, 0, -1));
+    CHECK(Icons.Write(panel, 0, -1));
     REQUIRE(panel.Classes.size() == 3);
     for (const auto& [slot, id, cls, on] : panel.Classes)
         CHECK_FALSE(on);
 }
 
-TEST_CASE("OneOf across three panels sharing one class name selects a single tab")
-{
-    FakePanel panel;
-    OneOf<3> widget{.Ids = {"tab0", "tab1", "tab2"}, .Classes = {"Selected", "Selected", "Selected"}};
+static_assert(Icons.Count == 3);
+static_assert(Icons.Find("awp") == 1);
 
-    CHECK(widget.Write(panel, 2, 2));
-    REQUIRE(panel.Classes.size() == 3);
-    CHECK(std::get<3>(panel.Classes[2]));
-    CHECK_FALSE(std::get<3>(panel.Classes[0]));
-    CHECK_FALSE(std::get<3>(panel.Classes[1]));
+TEST_CASE("OneOf finds an index by class or by variant name")
+{
+    CHECK(Icons.Find("Icon--awp") == 1);
+    CHECK(Icons.Find("awp") == 1);
+    CHECK(Icons.Find("Icon--nope") == -1);
+    CHECK(Icons.Find("") == -1);
 }
 
-TEST_CASE("OneOf returns the first failing status but still writes every entry")
+TEST_CASE("OneOf returns the first failing status but still writes every class")
 {
     FakePanel panel;
     panel.ClassFails = {false, true, true};
-    OneOf<3> widget{.Ids = {"icon0", "icon1", "icon2"}, .Classes = {"Selected", "Selected", "Selected"}};
 
-    const Status result = widget.Write(panel, 0, 0);
+    const Status result = Icons.Write(panel, 0, 0);
     REQUIRE_FALSE(result);
     CHECK(result.error().Detail == "boom");
     CHECK(panel.Classes.size() == 3);  // the second failure did not stop the third write

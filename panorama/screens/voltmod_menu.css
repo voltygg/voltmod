@@ -10,13 +10,13 @@
   horizontal-align: center;
   vertical-align: center;
   flow-children: down;
-  background-color: {{surface.base}};
-  border: 1px solid {{hairline}};
-  color: {{text.primary}};
+  background-color: rgba(12, 13, 16, 0.96);
+  border: 1px solid rgba(200, 162, 74, 0.45);
+  color: #e8e6e0;
   opacity: 1;
   transform: translateY(0px);
   transition-property: opacity, transform;
-  transition-duration: {{motion.fast}};
+  transition-duration: 0.12s;
   transition-timing-function: ease-out;
 }
 
@@ -32,7 +32,7 @@
   height: fit-children;
   flow-children: down;
   padding: 10px 14px 8px 14px;
-  background-color: {{fill.weak}};
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 /* Fixed height: empty at the root, and CSS cannot test that, so it holds its line. */
@@ -40,7 +40,7 @@
   width: 100%;
   height: 14px;
   font-size: 12px;
-  color: {{text.secondary}};
+  color: #8a8778;
   text-overflow: ellipsis;
 }
 
@@ -48,14 +48,14 @@
   width: 100%;
   font-size: 22px;
   font-weight: bold;
-  color: {{primary}};
+  color: #c8a24a;
   text-overflow: ellipsis;
 }
 
 .Subtitle {
   width: 100%;
   font-size: 13px;
-  color: {{text.secondary}};
+  color: #8a8778;
   text-overflow: ellipsis;
 }
 
@@ -66,7 +66,7 @@
 .Rule {
   width: 100%;
   height: 1px;
-  background-color: {{primary}};
+  background-color: #c8a24a;
 }
 
 .Navstrip {
@@ -81,14 +81,14 @@
   width: fill-parent-flow(1);
   height: 100%;
   margin-right: 2px;
-  background-color: {{fill.weak}};
+  background-color: rgba(255, 255, 255, 0.05);
   font-size: 13px;
-  color: {{text.primary}};
+  color: #e8e6e0;
 }
 
 .Nav-tab.Selected {
-  background-color: {{primary}};
-  color: {{text.inverse}};
+  background-color: #c8a24a;
+  color: #12141a;
 }
 
 .Nav-tab.Hidden {
@@ -104,7 +104,7 @@
   margin-bottom: 8px;
   opacity: 1;
   transition-property: opacity;
-  transition-duration: {{motion.fast}};
+  transition-duration: 0.12s;
 }
 
 /* The driver ignores row presses while a prompt is up; this says so. */
@@ -121,9 +121,9 @@
   height: 34px;
   flow-children: right;
   margin-bottom: 3px;
-  background-color: {{surface.raised}};
+  background-color: rgba(255, 255, 255, 0.05);
   transition-property: background-color;
-  transition-duration: {{motion.slow}};
+  transition-duration: 0.25s;
 }
 
 .Row.Hidden {
@@ -139,13 +139,13 @@
 .Mark {
   width: 3px;
   height: 100%;
-  background-color: {{fill.weak}};
+  background-color: rgba(255, 255, 255, 0.05);
   transition-property: background-color;
-  transition-duration: {{motion.fast}};
+  transition-duration: 0.12s;
 }
 
 .Row.Selected .Mark {
-  background-color: {{primary}};
+  background-color: #c8a24a;
 }
 
 .Row-btn {
@@ -155,24 +155,24 @@
   padding: 0px 10px 0px 4px;
   background-color: rgba(255, 255, 255, 0);
   transition-property: background-color;
-  transition-duration: {{motion.slow}};
+  transition-duration: 0.25s;
 }
 
 .Row-btn:hover {
-  background-color: {{fill.hover}};
+  background-color: rgba(200, 162, 74, 0.22);
 }
 
 .Row-btn:active {
-  background-color: {{fill.active}};
+  background-color: rgba(200, 162, 74, 0.38);
 }
 
 .Row.Selected {
-  background-color: {{fill.strong}};
+  background-color: rgba(255, 255, 255, 0.12);
 }
 
 /* The driver drops Changed after ~150ms; the transition above is the pulse fading out. */
 .Row.Changed {
-  background-color: {{fill.active}};
+  background-color: rgba(200, 162, 74, 0.38);
 }
 
 .Row.Disabled .Row-btn:hover {
@@ -190,12 +190,12 @@
   horizontal-align: center;
   vertical-align: center;
   font-size: 13px;
-  color: {{text.secondary}};
+  color: #8a8778;
   visibility: collapse;
 }
 
 .Row.Selected .Glyph {
-  color: {{primary}};
+  color: #c8a24a;
 }
 
 .Kind--submenu .G--submenu {
@@ -220,12 +220,12 @@
   height: 14px;
   horizontal-align: center;
   vertical-align: center;
-  border-radius: {{radius.large}};
-  background-color: {{fill.strong}};
-  border: 1px solid {{fill.strong}};
+  border-radius: 7px;
+  background-color: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   visibility: collapse;
   transition-property: background-color;
-  transition-duration: {{motion.fast}};
+  transition-duration: 0.12s;
 }
 
 .Kind--toggle .Switch {
@@ -233,8 +233,8 @@
 }
 
 .Kind--toggle.On .Switch {
-  background-color: {{primary}};
-  border: 1px solid {{primary}};
+  background-color: #c8a24a;
+  border: 1px solid #c8a24a;
 }
 
 .Switch-knob {
@@ -243,15 +243,15 @@
   margin-left: 2px;
   vertical-align: center;
   border-radius: 5px;
-  background-color: {{text.secondary}};
+  background-color: #8a8778;
   transform: translateX(0px);
   transition-property: transform, background-color;
-  transition-duration: {{motion.fast}};
+  transition-duration: 0.12s;
   transition-timing-function: ease-out;
 }
 
 .Kind--toggle.On .Switch-knob {
-  background-color: {{text.inverse}};
+  background-color: #12141a;
   transform: translateX(10px);
 }
 
@@ -268,7 +268,7 @@
   vertical-align: center;
   text-align: right;
   font-size: 15px;
-  color: {{primary}};
+  color: #c8a24a;
   text-overflow: ellipsis;
   visibility: collapse;
 }
@@ -278,7 +278,7 @@
 }
 
 .Kind--submenu .Row-value {
-  color: {{text.secondary}};
+  color: #8a8778;
 }
 
 /* The switch already says on or off. Three classes, so this outweighs HasValue above. */
@@ -288,7 +288,7 @@
 
 /* A stepped value the driver has not committed yet. */
 .Row.Pending .Row-value {
-  color: {{primary}};
+  color: #c8a24a;
   opacity: 0.55;
   font-style: italic;
 }
@@ -300,7 +300,7 @@
 
 .Kind--text .Row-label {
   font-size: 15px;
-  color: {{text.secondary}};
+  color: #8a8778;
 }
 
 /* Reserved on every row so labels and values line up across kinds. */
@@ -315,9 +315,9 @@
   width: 36px;
   height: 100%;
   margin-left: 2px;
-  background-color: {{fill.weak}};
+  background-color: rgba(255, 255, 255, 0.05);
   font-size: 12px;
-  color: {{text.secondary}};
+  color: #8a8778;
   visibility: collapse;
 }
 
@@ -331,13 +331,13 @@
 }
 
 .Stepper:hover {
-  background-color: {{fill.hover}};
-  color: {{primary}};
+  background-color: rgba(200, 162, 74, 0.22);
+  color: #c8a24a;
 }
 
 .Stepper:active {
-  background-color: {{primary}};
-  color: {{text.inverse}};
+  background-color: #c8a24a;
+  color: #12141a;
 }
 
 .Pager {
@@ -348,7 +348,7 @@
   margin-bottom: 8px;
   opacity: 1;
   transition-property: opacity;
-  transition-duration: {{motion.fast}};
+  transition-duration: 0.12s;
 }
 
 .Pager.Hidden {
@@ -358,9 +358,9 @@
 .Arrow {
   width: 36px;
   height: 100%;
-  background-color: {{fill.weak}};
+  background-color: rgba(255, 255, 255, 0.05);
   font-size: 12px;
-  color: {{text.secondary}};
+  color: #8a8778;
 }
 
 .Arrow Label {
@@ -369,13 +369,13 @@
 }
 
 .Arrow:hover {
-  background-color: {{fill.hover}};
-  color: {{primary}};
+  background-color: rgba(200, 162, 74, 0.22);
+  color: #c8a24a;
 }
 
 .Arrow:active {
-  background-color: {{primary}};
-  color: {{text.inverse}};
+  background-color: #c8a24a;
+  color: #12141a;
 }
 
 .Pager-label {
@@ -383,7 +383,7 @@
   vertical-align: center;
   text-align: center;
   font-size: 13px;
-  color: {{text.secondary}};
+  color: #8a8778;
 }
 
 /* Fixed height: Cancel must stay clickable, and a prompt is any length. */
@@ -394,8 +394,8 @@
   flow-children: down;
   margin-bottom: 8px;
   padding: 10px;
-  background-color: {{surface.sunken}};
-  border: 1px solid {{hairline}};
+  background-color: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(200, 162, 74, 0.45);
 }
 
 .Prompt.Hidden {
@@ -413,7 +413,7 @@
   height: 16px;
   margin-bottom: 6px;
   font-size: 12px;
-  color: {{text.secondary}};
+  color: #8a8778;
 }
 
 .Foot {
@@ -434,9 +434,9 @@
   width: fill-parent-flow(1);
   height: 100%;
   margin-right: 4px;
-  background-color: {{fill.weak}};
+  background-color: rgba(255, 255, 255, 0.05);
   font-size: 14px;
-  color: {{text.primary}};
+  color: #e8e6e0;
 }
 
 .Nav Label {
@@ -445,8 +445,8 @@
 }
 
 .Nav:hover {
-  background-color: {{primary}};
-  color: {{text.inverse}};
+  background-color: #c8a24a;
+  color: #12141a;
 }
 
 .Nav--narrow {
@@ -461,8 +461,8 @@
 }
 
 .Screen.Root .Nav--back:hover {
-  background-color: {{fill.weak}};
-  color: {{text.primary}};
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #e8e6e0;
 }
 
 /* Keeps its box and fades, so turning the hints on does not move the panel. */
@@ -472,10 +472,10 @@
   margin-top: 8px;
   text-align: center;
   font-size: 11px;
-  color: {{text.secondary}};
+  color: #8a8778;
   opacity: 0;
   transition-property: opacity;
-  transition-duration: {{motion.fast}};
+  transition-duration: 0.12s;
 }
 
 .Screen.KeyHints .Hints {

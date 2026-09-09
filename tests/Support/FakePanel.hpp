@@ -1,0 +1,48 @@
+#pragma once
+
+#include <VoltMod/Core/Result.hpp>
+#include <string>
+#include <string_view>
+#include <tuple>
+#include <vector>
+
+namespace VoltModTests
+{
+
+/** Records what a widget wrote instead of driving a real panel. */
+struct FakePanel
+{
+    std::vector<std::tuple<int, std::string, std::string, std::string>> Texts;
+    std::vector<std::tuple<int, std::string, std::string, bool>> Classes;
+    /** Set to fail the next N `Class` calls, in order. */
+    std::vector<bool> ClassFails;
+    int ClassCalls = 0;
+
+    VoltMod::Status Text(int slot, std::string_view id, std::string_view var, std::string_view value)
+    {
+        Texts.emplace_back(slot, std::string(id), std::string(var), std::string(value));
+        return {};
+    }
+
+    VoltMod::Status Class(int slot, std::string_view id, std::string_view cls, bool on)
+    {
+        Classes.emplace_back(slot, std::string(id), std::string(cls), on);
+        const bool fail = ClassCalls < static_cast<int>(ClassFails.size()) && ClassFails[ClassCalls];
+        ++ClassCalls;
+        if (fail)
+            return std::unexpected(VoltMod::Error::Failed("boom"));
+        return {};
+    }
+
+    /** The class writes that turned something on, in order. */
+    [[nodiscard]] std::vector<std::string> Enabled() const
+    {
+        std::vector<std::string> found;
+        for (const auto& [slot, id, cls, on] : Classes)
+            if (on)
+                found.push_back(id + "." + cls);
+        return found;
+    }
+};
+
+}  // namespace VoltModTests

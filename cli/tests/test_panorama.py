@@ -1,7 +1,7 @@
 """Cover the Panorama renderer against small hand-built projects.
 
 Nothing rendered is committed, so a regression here ships as a layout that renders nothing.
-Most cases run against the framework's real `panorama/`, so a broken block or theme fails here.
+Most cases run against the framework's real `panorama/`, so a broken block fails here.
 """
 
 from pathlib import Path
@@ -29,10 +29,13 @@ HUD_XML = """{% import "card.xml.j2" as blocks %}
 </root>
 """
 
+#: The least a screen can be and still bind: an id to name it, a class the driver toggles.
+BARE_SCREEN = '<root><Panel id="{{screen}}" class="Screen Hidden" /></root>'
+
 HUD_CSS = """{% import "bar.css" as bar %}
 .Screen {
-  color: {{text.primary}};
-  background-color: {{surface.raised}};
+  color: #e8e6e0;
+  background-color: rgba(255, 255, 255, 0.05);
 }
 {% include "card.css" %}
 {{ bar.fill_rules("Bar-fill", 4) }}
@@ -52,10 +55,9 @@ def plugin(root: Path, xml: str = HUD_XML, css: str = HUD_CSS, name: str = "hud"
     return root
 
 
-def fake_kit(path: Path, theme: str = "primary: '#ffffff'\n", screen: str = "") -> Path:
-    """A framework tree with a theme and, when asked, one screen of its own."""
+def fake_kit(path: Path, screen: str = "") -> Path:
+    """A framework tree with, when asked, one screen of its own."""
     (path / "panorama").mkdir(parents=True, exist_ok=True)
-    (path / "panorama/theme.yaml").write_text(theme, encoding="utf-8")
     if screen:
         (path / "panorama/screens").mkdir(exist_ok=True)
         (path / "panorama/screens/frame.xml.j2").write_text(screen, encoding="utf-8")
@@ -85,6 +87,7 @@ def test_plugin_screen_renders_layout_styles_and_icons(tmp_path):
         out / "styles/custom_game/hud.css",
         out / "images/custom_game/weapons/ak47.png",
         out / "images/custom_game/weapons/ak47.vtex",
+        tmp_path / "build/panorama/ui-lab/include/Ui/Hud.hpp",
     }
     assert 'id="hud_slot0"' in xml and 'id="hud_slot0_bar"' in xml
     assert "{s:slot0_title}" in xml
@@ -118,37 +121,23 @@ def test_unknown_token_names_the_file_and_the_token(tmp_path):
     assert "hud.xml.j2" in message and "nonesuch" in message
 
 
-def test_project_theme_merges_over_the_framework_theme(tmp_path):
-    kit = fake_kit(tmp_path / "kit", theme="primary: '#111111'\nsurface:\n  base: '#222222'\n")
-    root = plugin(tmp_path / "repo", xml="<root>{{primary}} {{surface.base}}</root>", css="")
-    (root / "panorama").mkdir(parents=True, exist_ok=True)
-    (root / "panorama/theme.yaml").write_text("primary: '#abcdef'\n", encoding="utf-8")
-
-    render.render(root, kit, [])
-
-    xml = (rendered(root) / "layout/custom_game/hud.xml").read_text(encoding="utf-8")
-    assert "#abcdef" in xml and "#222222" in xml
-
-
 def test_skin_is_appended_to_the_screen_stylesheet(tmp_path):
     kit = fake_kit(tmp_path / "kit")
-    root = plugin(tmp_path / "repo", xml="<root />", css=".Screen {\n  width: 100%;\n}\n")
+    root = plugin(tmp_path / "repo", xml=BARE_SCREEN, css=".Screen {\n  width: 100%;\n}\n")
     (root / "panorama/skin").mkdir(parents=True, exist_ok=True)
     (root / "panorama/skin/hud.css").write_text(
-        ".Screen {\n  color: {{primary}};\n}\n", encoding="utf-8"
+        ".Screen {\n  color: #abcdef;\n}\n", encoding="utf-8"
     )
 
     render.render(root, kit, [])
 
     css = (rendered(root) / "styles/custom_game/hud.css").read_text(encoding="utf-8")
-    assert "width: 100%;" in css and "color: #ffffff;" in css
+    assert "width: 100%;" in css and "color: #abcdef;" in css
 
 
-def test_framework_owner_survives_a_project_theme(tmp_path):
+def test_the_framework_owns_its_own_screens_beside_the_plugins(tmp_path):
     kit = fake_kit(tmp_path / "kit", screen="<root>{{screen}}</root>")
-    root = plugin(tmp_path / "repo", xml="<root />", css="")
-    (root / "panorama").mkdir(parents=True, exist_ok=True)
-    (root / "panorama/theme.yaml").write_text("primary: '#abcdef'\n", encoding="utf-8")
+    root = plugin(tmp_path / "repo", xml=BARE_SCREEN, css="")
 
     owners = find_owners(root, kit)
 
