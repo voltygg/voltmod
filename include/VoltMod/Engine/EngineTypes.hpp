@@ -73,6 +73,8 @@ class UiClicks;
 class PendingConVarQueries;
 /** Internal menu session plumbing. Defined in src/Menu/MenuCore.hpp. */
 class MenuCore;
+/** One surface a menu is drawn on, held by MenuManager. Defined in src/Menu/MenuRenderer.hpp. */
+class MenuRenderer;
 /** Internal menu state. */
 class ActiveMenus;
 

@@ -167,6 +167,7 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Unsafe/VtableHook.cpp
             # Run against a fake MenuSession.
             src/Menu/MenuBuilder.cpp
+            src/Menu/MenuLayout.cpp
             src/Menu/MenuPresets.cpp
             src/Menu/CenterHtmlRender.cpp
             src/Menu/MenuCursor.cpp

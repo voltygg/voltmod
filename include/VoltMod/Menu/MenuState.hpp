@@ -18,9 +18,9 @@ struct MenuOptions
      *  for menus players reach mid-round, where being held still is worse than stray movement. */
     bool FreezeMovement = true;
 
-    /** Whether W/S/A/D/E/R drive this session. @ref MenuManager ignores it - keys are the only
-     *  input center HTML has - so it turns the keyboard off for a `PanoramaMenu` session, where
-     *  the player has a cursor and the rows are buttons. */
+    /** Whether W/S/A/D/E/R drive this session. Ignored for a session drawn as center HTML, where
+     *  keys are the only input; turn it off for a Panorama session, where the player has a cursor
+     *  and the rows are buttons. */
     bool Keyboard = true;
 };
 

@@ -19,7 +19,7 @@ ALLOWED: dict[str, set[str]] = {
     "Ui": {"Core", "Engine", "Schema", "Entities", "Hooks", "Unsafe"},
     "Workshop": {"Core", "Engine", "Players", "Unsafe"},
     "Commands": {"Core", "Engine", "Entities", "Players", "Messaging"},
-    "Menu": {"Core", "Engine", "Entities", "Players", "Messaging", "Hooks", "Ui"},
+    "Menu": {"Core", "Engine", "Entities", "Players", "Messaging", "Hooks", "Ui", "Workshop"},
     "Http": {"Core"},
     "Database": {"Core"},
     "Unsafe": {"Core", "Engine"},
