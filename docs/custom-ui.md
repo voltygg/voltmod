@@ -245,6 +245,35 @@ Per-player writes are cached, so unchanged values are not resent. @ref
 VoltMod::UiPanel::Forget invalidates the cache when another system changes the
 panel state.
 
+## Screens and writers
+
+@ref VoltMod::Screen owns one generated layout: its panel, whether each player
+currently has it up, and its Buttons. @ref VoltMod::Screen::Show ensures the panel
+for a slot and unhides its root; @ref VoltMod::Screen::Hide hides the root without
+tearing the entity down.
+
+Three small writer types turn a layout's ids into typed calls instead of raw
+`Text`/`Class` strings:
+
+- @ref VoltMod::Text - one dialog variable on the layout root.
+- @ref VoltMod::Flag - one class on one panel, on or off.
+- @ref VoltMod::OneOf - exactly one of N classes on, the rest off (a tab, an icon
+  set, a bar step).
+
+```cpp
+constexpr Text CardTitle{.Root = "card", .Var = "title"};
+constexpr Flag CardHidden{.Id = "card", .Class = "Hidden"};
+constexpr OneOf<3> Tabs{.Ids = {"tab0", "tab1", "tab2"}, .Classes = {"Selected", "Selected", "Selected"}};
+
+CardTitle.Write(screen.Panel(), slot, "Round 2");
+CardHidden.Write(screen.Panel(), slot, false);
+Tabs.Write(screen.Panel(), slot, 1);
+```
+
+The Panorama generator (coming in the next change) emits ids like these as
+constexpr constants alongside the layout, so a plugin never spells a panel id or
+class name by hand.
+
 ## Naming panels and classes
 
 Reuse panel ids, class names, and dialog-variable names. Each distinct name is
