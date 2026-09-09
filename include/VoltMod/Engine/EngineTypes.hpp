@@ -71,11 +71,8 @@ class UiClicks;
 /** The queries ClientConVars has in flight, kept SDK-free for its tests. Defined in
  *  src/Hooks/PendingConVarQueries.hpp. */
 class PendingConVarQueries;
-/** Internal menu session plumbing. Defined in src/Menu/MenuCore.hpp. */
-class MenuCore;
-/** One surface a menu is drawn on, held by MenuManager. Defined in src/Menu/MenuRenderer.hpp. */
-class MenuRenderer;
-/** Internal menu state. */
+/** Internal menu state: the per-player stacks MenuManager holds. Defined in
+ *  src/Menu/ActiveMenus.hpp. */
 class ActiveMenus;
 
 /** Entity.hpp holds an EntitySystem* so a wrapper's verbs can reach Bindings and

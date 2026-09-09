@@ -54,9 +54,6 @@ public:
     /** Apply @p slot's pending commit now, if it has one, and cancel its timer. */
     void Run(int slot);
 
-    /** Apply all pending commits. */
-    void RunAll();
-
     /** Drop @p slot's pending commit unrun. */
     void Cancel(int slot);
 

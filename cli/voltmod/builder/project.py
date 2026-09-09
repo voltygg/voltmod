@@ -17,7 +17,7 @@ from ..tools import (
     run_tool,
 )
 from . import framework
-from .panorama import render as panorama
+from .panorama import screens as panorama
 
 CPP_EXTS = (".cpp", ".hpp", ".inc")
 # Leave room below Windows' 32767-character command-line limit.

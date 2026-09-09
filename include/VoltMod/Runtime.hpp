@@ -131,18 +131,15 @@ public:
     /** Interfaces offered to, and borrowed from, other plugins. */
     ServiceExchange Exchange;
 
-    /** Player menus: the per-player session, drawn as a Panorama panel for players who can see
-     *  one and as center HTML for everyone else; costs nothing per frame while nothing is open. */
+    /** Player menus: the per-player session, drawn as center HTML; costs nothing per frame
+     *  while nothing is open. */
     MenuManager Menus{MenuServices{.Scheduler = Scheduler,
                                    .Slots = Slots,
                                    .Entities = Entities,
                                    .ChatInput = Hooks.ChatInput,
                                    .Translations = Translations,
                                    .Policy = Policy,
-                                   .Messages = Messages,
-                                   .Ui = Ui,
-                                   .Capabilities = Capabilities,
-                                   .Addons = Addons}};
+                                   .Messages = Messages}};
 
     /** Command manager for handling in-game commands. */
     VoltMod::CommandManager Commands{Policy, Translations, Players, Entities, Messages};

@@ -51,7 +51,6 @@ TEST_CASE("MenuCursor: an empty menu leaves every move where it started")
 
     CHECK(MenuCursor::Step(rows, 0, +1) == 0);
     CHECK(MenuCursor::First(rows) == 0);
-    CHECK(MenuCursor::OnPage(rows, 1, 4) == 0);
     CHECK(MenuCursor::JumpPage(rows, 0, 4, +1) == 0);
 }
 
@@ -59,21 +58,6 @@ TEST_CASE("MenuCursor: First lands on the first row the cursor may land on")
 {
     CHECK(MenuCursor::First(AllRows(3)) == 0);
     CHECK(MenuCursor::First(Rows(4, {2, 3})) == 2);
-}
-
-TEST_CASE("MenuCursor: OnPage lands on the first target of the page")
-{
-    const CursorRows rows = Rows(10, {0, 5, 6});
-
-    CHECK(MenuCursor::OnPage(rows, 0, 5) == 0);
-    CHECK(MenuCursor::OnPage(rows, 1, 5) == 5);
-
-    // A page whose rows are all disabled still puts the cursor inside it, not on the last page's
-    // selection.
-    CHECK(MenuCursor::OnPage(Rows(10, {0}), 1, 5) == 5);
-
-    // Past the last page clamps into range rather than selecting a row that is not there.
-    CHECK(MenuCursor::OnPage(rows, 9, 5) == 9);
 }
 
 TEST_CASE("MenuCursor: JumpPage keeps the offset within the page")

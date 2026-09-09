@@ -152,15 +152,6 @@ void ActiveMenus::Select(int slot, int index)
     _states[slot].Selected = index;
 }
 
-void ActiveMenus::SelectOnPage(int slot, int page, int rowsPerPage)
-{
-    auto* menu = Current(slot);
-    if (!menu || menu->Items.empty() || rowsPerPage <= 0)
-        return;
-
-    Select(slot, MenuCursor::OnPage(Rows(slot), page, rowsPerPage));
-}
-
 void ActiveMenus::Activate(int slot, int index)
 {
     if (!IsValidSlot(slot))

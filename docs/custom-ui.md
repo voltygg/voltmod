@@ -149,8 +149,7 @@ Workshop Tools over every owner's rendered tree and installs the results into
 your own client:
 
 ```bash
-uv run poe panorama                          # every owner this project has
-voltmod panorama compile voltmod             # just the framework's own screens
+uv run poe panorama                          # every plugin that ships a screen
 voltmod panorama compile ui-lab              # just one plugin's
 voltmod panorama compile --no-deploy         # compile only, leave the client alone
 ```
@@ -263,24 +262,27 @@ Three small writer types turn a layout's ids into typed calls instead of raw
 
 - @ref VoltMod::Text - one dialog variable on the layout root.
 - @ref VoltMod::Flag - one class on one panel, on or off.
-- @ref VoltMod::OneOf - one panel, N classes, exactly one of them on (an icon set,
-  an accent colour, a bar step). N panels sharing one class - tab selection - is an
-  array of `Flag`.
+- @ref VoltMod::Choice - one panel, a family of classes, exactly one of them on (an
+  icon set, an accent colour, a bar step). N panels sharing one class - tab selection
+  - is an array of `Flag`.
 
 ```cpp
 constexpr Text CardTitle{.Root = "card", .Var = "title"};
 constexpr Flag CardHidden{.Id = "card", .Class = "Hidden"};
-constexpr OneOf<3> Icon{.Id = "card_icon", .Classes = {"Icon--ak47", "Icon--awp", "Icon--m4a1"}};
+constexpr Choice Icon{.Id = "card_icon", .Classes = Hud::IconClasses};
 
 CardTitle.Write(screen.Panel(), slot, "Round 2");
 CardHidden.Write(screen.Panel(), slot, false);
 Icon.Write(screen.Panel(), slot, Icon.Find("awp"));   // -1 turns every class off
 ```
 
-You do not write those constants by hand: rendering a screen derives them from its
-own ids and classes into `build/panorama/<plugin>/include/Ui/<Screen>.hpp`, which
-`voltmod_add_plugin` puts on the plugin's include path. See @ref panorama_guide for
-the templates that produce a layout and stylesheet, and the exact derivation rules.
+The ids, dialog-variable names and class families they point at are not written by
+hand: rendering a screen emits a constant for each into
+`build/panorama/<plugin>/include/Ui/<Screen>.hpp`, which `voltmod_add_plugin` puts
+on the plugin's include path. Assembling those constants into writers is the
+plugin's own code, so the shape it wants - an array of cards, a toast struct - is
+declared where a reader can see it. See @ref panorama_guide for the templates and
+what the header holds.
 
 ## Naming panels and classes
 

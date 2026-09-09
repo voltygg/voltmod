@@ -7,11 +7,9 @@ import typer
 
 from voltmod import tools
 
-from . import check as checker
 from . import compile as compiler
-from . import find_owners, select
 from . import preview as previewer
-from . import render as renderer
+from . import screens
 
 app = typer.Typer(help="Render, compile, and publish Panorama screens.")
 
@@ -22,8 +20,7 @@ Owners = Annotated[
     list[str] | None,
     typer.Argument(
         metavar="[OWNER]...",
-        help="Whose screens: a plugin name, or 'voltmod' for the framework's own. "
-        "Default: every one found.",
+        help="Whose screens: a plugin name. Default: every plugin that ships some.",
     ),
 ]
 
@@ -37,7 +34,7 @@ def render_command(
     ] = None,
 ) -> None:
     """Render panorama/screens/ into the build tree."""
-    written = renderer.render(ROOT, KIT_ROOT, owners or [], out)
+    written = screens.render(ROOT, KIT_ROOT, owners or [], out)
     print(f"Rendered {len(written)} file(s)")
 
 
@@ -65,8 +62,8 @@ def compile_command(
     ] = True,
 ) -> None:
     """Render, compile with the Workshop Tools, and install into your client."""
-    renderer.render(ROOT, KIT_ROOT, owners or [])
-    compiler.install(ROOT, KIT_ROOT, owners or [], client_path, addon, deploy)
+    screens.render(ROOT, KIT_ROOT, owners or [])
+    compiler.install(ROOT, owners or [], client_path, addon, deploy)
 
 
 @app.command("publish")
@@ -75,22 +72,22 @@ def publish_command(
     owners: Owners = None,
 ) -> None:
     """Render, then copy the panorama/ trees into an addon content directory."""
-    renderer.render(ROOT, KIT_ROOT, owners or [])
-    count = compiler.publish(ROOT, KIT_ROOT, owners or [], directory.expanduser())
+    screens.render(ROOT, KIT_ROOT, owners or [])
+    count = compiler.publish(ROOT, owners or [], directory.expanduser())
     print(f"Published {count} file(s) into {directory}; point the Workshop Tools at it.")
 
 
 @app.command("check")
 def check_command(owners: Owners = None) -> None:
     """Validate rendered screens against the rules the CS2 client enforces silently."""
-    findings = checker.check(ROOT, KIT_ROOT, owners or [])
+    findings = screens.check(ROOT, KIT_ROOT, owners or [])
     if findings:
         for finding in findings:
             print(finding)
         raise typer.Exit(1)
 
-    selected = select(find_owners(ROOT, KIT_ROOT), owners or [])
-    count = sum(len(renderer.sources(owner)) for owner in selected.values())
+    selected = screens.select(screens.find_owners(ROOT), owners or [])
+    count = sum(len(screens.sources(owner)) for owner in selected.values())
     print(f"Checked {count} screen(s)")
 
 

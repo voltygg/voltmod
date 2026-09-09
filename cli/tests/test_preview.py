@@ -1,6 +1,6 @@
-"""Cover `voltmod panorama preview` against the shared card fixture and the framework's own menu.
+"""Cover `voltmod panorama preview` against the shared card fixture.
 
-Reuses `plugin()` from test_panorama.py, so a passing test has actually rendered and bound the
+Reuses `plugin()` from test_panorama.py, so a passing test has actually rendered and read the
 fixture screen, not a mock of it.
 """
 
@@ -24,20 +24,12 @@ def test_the_card_fixture_previews_its_variables_flags_families_and_image(tmp_pa
     assert '<span data-var="slot0_value">' in text
     assert "pvFlag('hud_slot0', 'Hidden'" in text
     assert 'type="checkbox"' in text
-    assert "pvFamily('hud_slot0_icon', 'Icon'" in text
-    assert "pvFamily('hud_slot0_bar', 'Step'" in text
-    assert "<select" in text
+    # A family is offered with a panel picker: which panel carries it is the plugin's business.
+    assert "pvPick('Icon')" in text and 'id="pv-Icon-panel"' in text
+    assert 'value="hud_slot0_icon"' in text
+    assert "pvPick('Step')" in text and 'id="pv-Step-variant"' in text
     assert "data:image/png;base64," in text
     assert "display: flex" in text
-    assert "{{" not in text
-
-
-def test_the_framework_menu_previews_without_error(tmp_path):
-    out = previewer.preview(tmp_path, KIT, "voltmod/voltmod_menu")
-    text = out.read_text(encoding="utf-8")
-
-    assert out == tmp_path / "build/panorama/preview/voltmod_menu.html"
-    assert 'id="voltmod_menu_row9_btn"' in text
     assert "{{" not in text
 
 
@@ -50,7 +42,7 @@ def test_a_bad_target_format_dies_with_a_message(tmp_path):
 def test_an_unknown_owner_lists_the_known_ones(tmp_path):
     with pytest.raises(SystemExit) as error:
         previewer.preview(plugin(tmp_path), KIT, "nope/hud")
-    assert "voltmod" in str(error.value) and "ui-lab" in str(error.value)
+    assert "nope" in str(error.value) and "ui-lab" in str(error.value)
 
 
 def test_an_unknown_screen_lists_the_owners_own(tmp_path):

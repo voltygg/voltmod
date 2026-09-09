@@ -27,9 +27,6 @@ namespace MenuCursor
 /** First selectable row. */
 [[nodiscard]] int First(const CursorRows& rows);
 
-/** First selectable row on @p page, or the page's first row. */
-[[nodiscard]] int OnPage(const CursorRows& rows, int page, int rowsPerPage);
-
 /** Moves @p index by @p delta pages while preserving its page offset. */
 [[nodiscard]] int JumpPage(const CursorRows& rows, int index, int rowsPerPage, int delta);
 }  // namespace MenuCursor

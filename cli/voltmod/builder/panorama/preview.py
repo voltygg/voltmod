@@ -14,16 +14,14 @@ from xml.etree import ElementTree
 
 from voltmod.tools import die
 
-from . import BUILD_DIR, Owner, find_owners
-from . import bind as binder
-from . import render as renderer
+from . import bind
+from .screens import BUILD_DIR, IMAGES_DIR, SUFFIX, Owner, find_owners, sources
+from .screens import screen as render_screen
 
 PREVIEW_DIR = "preview"
 
-_VAR = re.compile(r"^\{s:(\w+)\}$")
-_FAMILY = re.compile(r"^(\w+)--(\w+)$")
-_IMAGE_SRC = re.compile(r"^s2r://panorama/images/custom_game/([^/]+)/([^/]+)\.vtex$")
 _FILL_FLOW = re.compile(r"^fill-parent-flow\((\d+)\)$")
+#: Unlike bind's, this keeps the declaration body: the preview translates it, not just reads it.
 _RULE = re.compile(r"([^{}]+)\{([^{}]*)\}", re.DOTALL)
 _COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
 
@@ -75,28 +73,35 @@ function pvFamily(id, prefix, variant) {
   stale.forEach(cls => el.classList.remove(cls));
   if (variant) el.classList.add(prefix + '--' + variant);
 }
+// A family control is a panel picker plus a variant picker; moving the panel clears the old one.
+var pvLast = {};
+function pvPick(prefix) {
+  var where = document.getElementById('pv-' + prefix + '-panel').value;
+  var variant = document.getElementById('pv-' + prefix + '-variant').value;
+  if (pvLast[prefix] && pvLast[prefix] !== where) pvFamily(pvLast[prefix], prefix, '');
+  pvLast[prefix] = where;
+  pvFamily(where, prefix, variant);
+}
 """
 
 
 def preview(root: Path, kit_root: Path, target: str) -> Path:
     """Write OWNER/SCREEN as an HTML approximation and return where it landed."""
     owner_name, screen_name = _split(target)
-    owners = find_owners(root, kit_root)
+    owners = find_owners(root)
     if owner_name not in owners:
         die(f"no panorama sources for {owner_name}\nKnown: {', '.join(sorted(owners))}")
     owner = owners[owner_name]
 
-    names = [source.name.removesuffix(renderer.SUFFIX) for source in renderer.sources(owner)]
+    names = [source.name.removesuffix(SUFFIX) for source in sources(owner)]
     if screen_name not in names:
         die(f"{owner_name} has no screen '{screen_name}'\nKnown: {', '.join(names)}")
 
-    layout, stylesheet = renderer.screen(owner, root, kit_root, screen_name)
-    model = binder.read(layout, stylesheet, f"{screen_name}.xml.j2")
-    tree = ElementTree.fromstring(layout)
+    layout, stylesheet = render_screen(owner, kit_root, screen_name)
+    model = bind.read(layout, stylesheet)
 
-    body = "".join(_convert(child, owner) for child in tree)
-    classes = _classes_by_id(tree)
-    document = _document(screen_name, body, _translate_css(stylesheet), _sidebar(model, classes))
+    body = "".join(_convert(child, owner) for child in model.tree)
+    document = _document(screen_name, body, _translate_css(stylesheet), _sidebar(model))
 
     out = root / BUILD_DIR / PREVIEW_DIR / f"{screen_name}.html"
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -107,16 +112,6 @@ def preview(root: Path, kit_root: Path, target: str) -> Path:
 def open_in_browser(path: Path) -> None:
     """Open a written preview in the default browser."""
     webbrowser.open(path.as_uri())
-
-
-def _classes_by_id(tree: ElementTree.Element) -> dict[str, list[str]]:
-    """Every id'd panel's current static classes, for seeding the side panel's controls."""
-    found: dict[str, list[str]] = {}
-    for node in tree.iter():
-        identifier = node.get("id")
-        if identifier:
-            found[identifier] = node.get("class", "").split()
-    return found
 
 
 def _split(target: str) -> tuple[str, str]:
@@ -151,7 +146,7 @@ def _attrs(node: ElementTree.Element, extra_class: str = "") -> str:
 
 def _label_text(node: ElementTree.Element) -> str:
     text = node.get("text", "")
-    match = _VAR.match(text)
+    match = bind.VAR.match(text)
     if not match:
         return html.escape(text)
     name = match.group(1)
@@ -159,11 +154,11 @@ def _label_text(node: ElementTree.Element) -> str:
 
 
 def _image(node: ElementTree.Element, owner: Owner) -> str:
-    match = _IMAGE_SRC.match(node.get("src", ""))
+    match = bind.IMAGE_SRC.match(node.get("src", ""))
     src = ""
     if match:
         icon_set, name = match.groups()
-        png = owner.source / renderer.IMAGES_DIR / icon_set / f"{name}.png"
+        png = owner.source / IMAGES_DIR / icon_set / f"{name}.png"
         if png.is_file():
             data = base64.b64encode(png.read_bytes()).decode("ascii")
             src = f"data:image/png;base64,{data}"
@@ -216,21 +211,16 @@ def _align(value: str, near: str, near_margin: str, far_margin: str) -> list[str
     return [f"{far_margin}: auto"] if value == near else [f"{near_margin}: auto"]
 
 
-def _sidebar(model: binder.Screen, classes: dict[str, list[str]]) -> str:
+def _sidebar(model: bind.Screen) -> str:
+    """Controls for everything the server can write: a variable, a Hidden flag, a class family.
+
+    Which family belongs on which panel is the plugin's business, not the layout's, so a family
+    is offered with a panel picker rather than guessed at.
+    """
     rows = [_variable_row(name) for name in model.variables]
-    for identifier, states in model.panels.items():
-        current = classes.get(identifier, [])
-        prefixes: list[str] = []
-        for state in states:
-            found = _FAMILY.match(state)
-            if not found:
-                rows.append(_flag_row(identifier, state, state in current))
-            elif found.group(1) not in prefixes:
-                prefixes.append(found.group(1))
-        for prefix in prefixes:
-            variants = model.families[prefix]
-            selected = next((v for v in variants if f"{prefix}--{v}" in current), "")
-            rows.append(_family_row(identifier, prefix, variants, selected))
+    panels = [model.name, *model.ids]
+    rows += [_flag_row(identifier, "Hidden") for identifier in panels]
+    rows += [_family_row(prefix, variants, panels) for prefix, variants in model.families.items()]
     return "\n".join(rows)
 
 
@@ -241,24 +231,30 @@ def _variable_row(name: str) -> str:
     )
 
 
-def _flag_row(identifier: str, cls: str, checked: bool) -> str:
-    mark = " checked" if checked else ""
+def _flag_row(identifier: str, cls: str) -> str:
     return (
-        f'<label><input type="checkbox"{mark} '
+        f'<label><input type="checkbox" '
         f'onchange="pvFlag({_js(identifier)}, {_js(cls)}, this.checked)"> '
         f"{html.escape(identifier)}.{html.escape(cls)}</label>"
     )
 
 
-def _family_row(identifier: str, prefix: str, variants: list[str], selected: str) -> str:
-    options = ['<option value="">none</option>']
-    for variant in variants:
-        mark = " selected" if variant == selected else ""
-        options.append(f'<option value="{variant}"{mark}>{html.escape(variant)}</option>')
+def _family_row(prefix: str, variants: list[str], panels: list[str]) -> str:
+    """One family: which panel to write it on, and which variant to put there."""
+    where = _options(panels)
+    variant = _options(variants, none=True)
+    pick = f"pvPick({_js(prefix)})"
     return (
-        f"<label>{html.escape(identifier)}.{html.escape(prefix)}<br>"
-        f'<select onchange="pvFamily({_js(identifier)}, {_js(prefix)}, this.value)">'
-        f"{''.join(options)}</select></label>"
+        f"<label>{html.escape(prefix)}<br>"
+        f'<select id="pv-{prefix}-panel" onchange="{pick}">{where}</select>'
+        f'<select id="pv-{prefix}-variant" onchange="{pick}">{variant}</select></label>'
+    )
+
+
+def _options(values: list[str], none: bool = False) -> str:
+    head = '<option value="">none</option>' if none else ""
+    return head + "".join(
+        f'<option value="{html.escape(value)}">{html.escape(value)}</option>' for value in values
     )
 
 

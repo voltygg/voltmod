@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoltMod/Core/Result.hpp>
-#include <array>
+#include <span>
 #include <string_view>
 
 namespace VoltMod
@@ -34,26 +34,26 @@ struct Flag
 };
 
 /**
- * @brief One panel, N classes, exactly one of them on: an index into @ref Classes, -1 for none.
+ * @brief One panel, a family of classes, exactly one of them on: an index into @ref Classes,
+ * -1 for none.
  *
- * A `Prefix--variant` family - an icon set, a bar's steps, an accent colour. Writes all N so a
- * stale one clears; the panel's cache makes unchanged writes free. N panels sharing one class
- * (tab selection) are an array of @ref Flag instead.
+ * A `Prefix--variant` family - an icon set, a bar's steps, an accent colour. @ref Classes points
+ * at the family's generated `inline constexpr` array rather than copying it, so a call site never
+ * spells the variant count. Writes all of them so a stale one clears; the panel's write cache
+ * makes the ones that did not change free. N panels sharing one class (tab selection) are an
+ * array of @ref Flag instead.
  */
-template <int N>
-struct OneOf
+struct Choice
 {
-    static_assert(N > 0);
-
     std::string_view Id;
-    std::array<std::string_view, N> Classes;
+    std::span<const std::string_view> Classes;
 
-    static constexpr int Count = N;
+    [[nodiscard]] constexpr int Count() const { return static_cast<int>(Classes.size()); }
 
     /** The index of @p name: a class as written, or the variant after its `--`. -1 for neither. */
     [[nodiscard]] constexpr int Find(std::string_view name) const
     {
-        for (int i = 0; i < N; ++i)
+        for (int i = 0; i < Count(); ++i)
         {
             const std::string_view cls = Classes[i];
             const auto dashes = cls.find("--");
@@ -67,7 +67,7 @@ struct OneOf
     Status Write(Panel& panel, int slot, int index) const
     {
         Status result;
-        for (int i = 0; i < N; ++i)
+        for (int i = 0; i < Count(); ++i)
         {
             Status status = panel.Class(slot, Id, Classes[i], i == index);
             if (!status && result)

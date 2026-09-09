@@ -17,11 +17,6 @@ struct MenuOptions
     /** Whether the global movement freeze (@ref MenuManager::FreezeWhileOpen) applies. Pass false
      *  for menus players reach mid-round, where being held still is worse than stray movement. */
     bool FreezeMovement = true;
-
-    /** Whether W/S/A/D/E/R drive this session. Ignored for a session drawn as center HTML, where
-     *  keys are the only input; turn it off for a Panorama session, where the player has a cursor
-     *  and the rows are buttons. */
-    bool Keyboard = true;
 };
 
 /** Previous row state used for change feedback. */
@@ -48,8 +43,6 @@ struct PlayerMenuState
     EntityRef FrozenPawn;
     /** MoveType captured before freezing, restored when the menu closes. */
     MoveType PrevMoveType = MoveType::Walk;
-    /** @ref MenuOptions::Keyboard for this session. */
-    bool Keyboard = true;
 
     /** Buttons held last frame, for edge detection. */
     uint64_t PrevButtons = 0;

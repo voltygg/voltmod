@@ -186,7 +186,7 @@ TEST_CASE("PendingCommit: one player's pending value is not another's")
     CHECK(second == 0);
     CHECK(pending.IsPending(5, 1));
 
-    pending.RunAll();
+    pending.Run(5);
     CHECK(first == 1);
     CHECK(second == 1);
 }
@@ -198,7 +198,6 @@ TEST_CASE("PendingCommit: running an empty slot does nothing")
 
     pending.Run(0);
     pending.Cancel(0);
-    pending.RunAll();
 
     CHECK(pending.Index(0) == -1);
     CHECK_FALSE(pending.IsPending(0, -1));

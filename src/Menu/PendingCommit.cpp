@@ -53,12 +53,6 @@ void PendingCommit::Run(int slot)
         taken.Commit();
 }
 
-void PendingCommit::RunAll()
-{
-    for (int slot = 0; slot < MaxPlayers; ++slot)
-        Run(slot);
-}
-
 void PendingCommit::Cancel(int slot)
 {
     if (IsValidSlot(slot))

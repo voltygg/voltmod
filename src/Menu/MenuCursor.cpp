@@ -47,21 +47,6 @@ int MenuCursor::First(const CursorRows& rows)
     return Step(rows, 0, +1);
 }
 
-int MenuCursor::OnPage(const CursorRows& rows, int page, int rowsPerPage)
-{
-    if (rows.Count <= 0 || rowsPerPage <= 0)
-        return 0;
-
-    const int start = std::clamp(page * rowsPerPage, 0, rows.Count - 1);
-    const int end = std::min(rows.Count, start + rowsPerPage);
-
-    int index = start;
-    while (index < end && !Landable(rows, index))
-        ++index;
-
-    return index < end ? index : start;
-}
-
 int MenuCursor::JumpPage(const CursorRows& rows, int index, int rowsPerPage, int delta)
 {
     if (rows.Count <= 0 || rowsPerPage <= 0)

@@ -41,9 +41,6 @@ public:
     [[nodiscard]] bool IsOpen(int slot) const { return IsValidSlot(slot) && _states[slot].HasMenu(); }
     [[nodiscard]] bool AnyOpen() const;
 
-    /** Whether keys drive @p slot's session (@ref MenuOptions::Keyboard). */
-    [[nodiscard]] bool KeyboardEnabled(int slot) const { return IsValidSlot(slot) && _states[slot].Keyboard; }
-
     /** Parent menu titles joined as a breadcrumb. Valid until the stack changes. */
     [[nodiscard]] std::string_view Breadcrumb(int slot) const
     {
@@ -58,8 +55,6 @@ public:
 
     /** Clear the whole stack, applying whatever a stepped row was left showing. */
     void Clear(int slot);
-
-    void RunPending() { _pending.RunAll(); }
 
     /** Row @p index as it describes itself, with @ref MenuRow::Pending and @ref MenuRow::Changed
      *  filled in and a Toggle's on/off word spelled. An index with no row behind it describes as
@@ -86,9 +81,6 @@ public:
     /** Put @p slot's cursor on row @p index, applying whatever the row it leaves was holding. An
      *  index the current menu does not have is dropped. */
     void Select(int slot, int index);
-
-    /** Move the cursor onto @p page. */
-    void SelectOnPage(int slot, int page, int rowsPerPage);
 
 private:
     void ResetCursor(int slot);

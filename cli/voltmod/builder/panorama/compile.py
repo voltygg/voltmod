@@ -16,7 +16,7 @@ from pathlib import Path
 
 from voltmod.tools import WINDOWS, die
 
-from . import find_owners, output, select
+from .screens import find_owners, output, select
 
 #: Source extension -> what resourcecompiler writes for it.
 COMPILED_SUFFIX = {".xml": ".vxml_c", ".css": ".vcss_c", ".vtex": ".vtex_c"}
@@ -166,20 +166,13 @@ def _deploy(client: Path, addon: str, staged: list[Path], content: Path) -> int:
     return count
 
 
-def install(
-    root: Path,
-    kit_root: Path,
-    names: list[str],
-    client_path: str,
-    addon: str,
-    deploy: bool,
-) -> None:
+def install(root: Path, names: list[str], client_path: str, addon: str, deploy: bool) -> None:
     """Compile the named owners' rendered screens and install them into the client."""
     if not WINDOWS:
         die("the CS2 Workshop Tools are Windows only; compile the layouts there")
 
     client = find_client(client_path)
-    owners = select(find_owners(root, kit_root), names)
+    owners = select(find_owners(root), names)
 
     print(f"Client:  {client}")
     print(f"Addon:   csgo_addons/{addon}")
@@ -212,12 +205,12 @@ def install(
         print(f"\nCompiled into {client / 'game/csgo_addons' / addon}; not installed.")
 
 
-def publish(root: Path, kit_root: Path, names: list[str], directory: Path) -> int:
+def publish(root: Path, names: list[str], directory: Path) -> int:
     """Copy the named owners' rendered trees into @p directory, `panorama/` prefix intact.
 
     No client and no compiler: this is what a workshop addon's content directory wants.
     """
-    owners = select(find_owners(root, kit_root), names)
+    owners = select(find_owners(root), names)
     count = 0
 
     for owner in owners.values():
