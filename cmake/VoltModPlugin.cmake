@@ -121,13 +121,6 @@ function(voltmod_install_plugin target_name)
             COMPONENT "${target_name}")
     endif()
 
-    # Shared menu layout; a plugin may ship an id-compatible one and pick it with Menus.UsePanorama.
-    if(EXISTS "${VOLTMOD_PANORAMA_DIR}")
-        install(DIRECTORY "${VOLTMOD_PANORAMA_DIR}/"
-            DESTINATION "addons/voltmod/panorama"
-            COMPONENT "${target_name}")
-    endif()
-
     if(EXISTS "${VOLTMOD_GAMEDATA_DIR}")
         install(DIRECTORY "${VOLTMOD_GAMEDATA_DIR}/"
             DESTINATION "addons/voltmod/gamedata"

@@ -131,8 +131,8 @@ public:
     /** Interfaces offered to, and borrowed from, other plugins. */
     ServiceExchange Exchange;
 
-    /** Player menus: the per-player session, and the driver drawing it. Center HTML until a
-     *  plugin calls `Menus.UsePanorama(...)`; costs nothing per frame while nothing is open. */
+    /** Player menus: the per-player session, drawn as center HTML; costs nothing per frame
+     *  while nothing is open. */
     MenuManager Menus{MenuServices{.Scheduler = Scheduler,
                                    .Slots = Slots,
                                    .Entities = Entities,

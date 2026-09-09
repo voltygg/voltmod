@@ -146,7 +146,7 @@ client:
 
 ```bash
 uv run poe panorama                 # every layout this project has
-uv run poe panorama voltmod         # just the framework's menu layout
+uv run poe panorama voltmod         # just the framework's own layouts
 uv run poe panorama ui-lab          # just one plugin's
 uv run poe panorama --no-deploy     # compile only, leave the client alone
 ```
@@ -231,8 +231,7 @@ the one the client reads for itself. Writes name the viewer or
 @ref VoltMod::UiPanel::Everyone; any other slot is refused. The panel removes its
 entity when the slot changes hands, and @ref VoltMod::CustomUi::Panel refuses to
 make one while the filter is inert. It costs one entity per viewer, so make one
-when something opens rather than one per connected player. This is how
-@ref VoltMod::MenuManager draws its Panorama menus.
+when something opens rather than one per connected player.
 
 The per-player state count is fixed when the entity spawns, so a player who
 connected later is only reachable through a new one.
@@ -251,85 +250,6 @@ panel state.
 Reuse panel ids, class names, and dialog-variable names. Each distinct name is
 permanently interned in a 1024-entry entity table; generating names during
 redraw eventually stops panel updates.
-
-## Reusing the menu layout
-
-@ref VoltMod::MenuManager's Panorama driver (see @ref menus_guide) drives
-`panorama/layout/custom_game/voltmod_menu.xml`, which ships with the framework and
-installs to `addons/voltmod/panorama`. There are three levels of reuse:
-
-1. **Restyle.** Ship your own `voltmod_menu.css`. The server only ever sets
-   classes, and the table below is the whole vocabulary you are styling against.
-   No C++ changes.
-2. **Re-lay-out.** Ship your own `.xml` declaring the same ids and call
-   `runtime.Menus.UsePanorama("my_menu")`. The contract is the ids below and
-   nothing else - the nesting, the artwork and the animation are yours.
-3. **Build something else.** Spawn your own @ref VoltMod::UiPanel and write your
-   own ids. Layouts are independent entities, so your panel coexists with the admin
-   menu rather than replacing it - which is the path for a scoreboard, a welcome
-   card or a vote panel.
-
-The menu layout's id contract - what the framework's menu driver writes, and so what
-a replacement layout has to declare:
-
-| Block | Ids |
-| --- | --- |
-| root | `vm_root` - `Hidden` in markup, unhidden per viewer |
-| header | `vm_subtitle` |
-| rows | `vm_row{0..7}` plus `_btn`, `_dec`, `_inc` |
-| pager | `vm_pager`, `vm_prev`, `vm_next` |
-| nav | `vm_back`, `vm_close` |
-| prompt | `vm_prompt`, `vm_cancel` |
-
-Text arrives as dialog variables, all of them on `vm_root` because a `Label`
-resolves `{s:name}` through its ancestors:
-
-| Variable | Carries |
-| --- | --- |
-| `vm_title` | the menu's title |
-| `vm_subtitle` | its second line; `vm_subtitle` the *panel* is `Hidden` when empty |
-| `vm_breadcrumb` | the titles this menu was reached through, joined with ` › `; empty at the root |
-| `vm_page` | the page counter, always written as `n/m`; the pager panel is `Hidden` when `m` is 1 |
-| `vm_prompt_text` | the chat prompt's question |
-| `vm_prompt_hint` | how to answer it ("Answer in chat", translation key `menu.promptHint`) |
-| `vm_row{i}_label` | the row's name |
-| `vm_row{i}_value` | what it is set to |
-
-Each row `vm_row{i}` is a `Panel` carrying the classes below. Its main `Button`
-`vm_row{i}_btn` and the steppers `vm_row{i}_dec` and `vm_row{i}_inc` are siblings
-of each other, not nested, because a `Button` inside another `Button` loses the
-inner press.
-
-| Row class | Set when |
-| --- | --- |
-| `Hidden` | the row is past the end of the page |
-| `Disabled` | the row refuses activation |
-| `Selected` | the keyboard cursor is on it (never while the session has keys off) |
-| `Changed` | its value moved in the last 150 ms |
-| `Pending` | a stepped value is waiting to be applied |
-| `HasValue` | it carries a value at all |
-| `HasSteppers` | it is a Choice - the only kind that cycles a list |
-| `On` | it is a switch that is on |
-| `Kind--text` `Kind--button` `Kind--submenu` `Kind--toggle` `Kind--choice` `Kind--input` | what the row is; exactly one is on |
-
-The root carries four of its own:
-
-| Root class | Set when |
-| --- | --- |
-| `Hidden` | no menu is open for this viewer |
-| `Prompting` | a chat prompt is up - row presses are ignored, so dim the rows |
-| `KeyHints` | keys drive this session, so the footer's key hints are worth showing |
-| `Root` | the stack is one deep, which is what draws Back disabled rather than gone |
-
-`Root` is the new way to say it; `vm_back` still gets `Hidden` at the root too, so
-a layout that hides the button keeps working.
-
-An empty menu is drawn as one `Kind--text` row reading "Nothing here"
-(translation key `menu.empty`) rather than as a header over blank space.
-
-The row count must match the eight rows the Panorama driver draws a page from. The
-server cannot read your layout, so a layout with fewer rows silently loses the ones
-off the end of a page.
 
 ## Availability
 

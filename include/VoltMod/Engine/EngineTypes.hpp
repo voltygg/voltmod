@@ -71,8 +71,8 @@ class UiClicks;
 /** The queries ClientConVars has in flight, kept SDK-free for its tests. Defined in
  *  src/Hooks/PendingConVarQueries.hpp. */
 class PendingConVarQueries;
-/** Internal menu renderer. */
-class MenuDriver;
+/** Internal menu session plumbing. Defined in src/Menu/MenuCore.hpp. */
+class MenuCore;
 /** Internal menu state. */
 class ActiveMenus;
 

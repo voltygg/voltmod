@@ -267,12 +267,6 @@ void Runtime::RegisterStatusSections()
         return Json::Write(glz::obj{"missing", missing, "ok", ok});
     });
 
-    // Expose the selected menu driver because a refused UsePanorama leaves no persistent trace.
-    Status.RegisterSection("menus", [this] {
-        return Json::Write(
-            glz::obj{"driver", Menus.IsPanorama() ? "panorama" : "center-html", "layout", Menus.Layout()});
-    });
-
     Status.RegisterSection("uptime", [start = std::chrono::steady_clock::now()] {
         const auto uptime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start);
         return Json::Write(glz::obj{"seconds", uptime.count()});

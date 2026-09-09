@@ -15,7 +15,7 @@ permissions and game behavior; VoltMod does not host a scripting runtime.
 
 - One `Runtime` and deterministic cleanup per Metamod load cycle.
 - Typed chat and console commands with targeting and injected permission policy.
-- WASD center-HTML and clickable Panorama menus, including multi-step flows.
+- WASD center-HTML menus, including multi-step flows.
 - Player tracking, translations, scheduled effects, and typed engine wrappers.
 - Asynchronous HTTP and optional PostgreSQL with game-thread completions.
 - JSONC configuration, startup diagnostics, and typed cross-plugin services.

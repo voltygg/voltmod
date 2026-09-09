@@ -5,46 +5,10 @@
 A menu is a list of rows and callbacks, independent of its renderer. @ref
 VoltMod::MenuBuilder creates common row types, @ref VoltMod::ActionRows builds
 admin and target actions, and @ref VoltMod::Flow handles multi-step menus.
-`runtime.Menus` owns each player's session and renders the same model through
-either center HTML or Panorama.
-
-## Choosing the driver
-
-| | Center HTML | Panorama |
-| --- | --- | --- |
-| Selected by | the default | `runtime.Menus.UsePanorama(...)` |
-| Drawn as | center HTML, re-sent every tick | a Panorama `custom_hud_layout` |
-| Input | WASD / E / R | clicks, and the same keys |
-| Rows a page | 5 | 8 |
-| Needs | nothing | @ref VoltMod::Capability::CustomUi, @ref VoltMod::Capability::UiClicks, @ref VoltMod::Capability::Visibility, and the layout on the client |
-| Styling | eight hardcoded colors | a stylesheet you can replace |
-
-**Center HTML is the default and needs no client addon.** Keep it as the fallback:
-it is what a player without the layout sees, and what a session is drawn on when
-its Panorama panel cannot be spawned.
-
-**Panorama provides a clickable, styleable panel.** Clients need the compiled
-layout, delivered manually during development or through a workshop addon.
-
-Ask for it once, at load, and carry on either way:
-
-```cpp
-if (auto status = runtime.Menus.UsePanorama(layout); !status)
-    Log::Info("center HTML: {}", status.error().Detail);
-```
-
-`UsePanorama` validates the three capabilities and the layout name. On failure it
-leaves center HTML active and returns the reason. With no layout name, it uses
-the framework's `voltmod_menu` layout.
-
-Switching closes every open session first, because a session cannot span two drivers
-without leaving part of its state on the wrong screen. `runtime.Menus.IsPanorama()` and
-`runtime.Menus.Layout()` report which driver is drawing.
-
-Both drivers read the same keys over one cursor; see @ref menu_feedback_keys.
-The Panorama menu adds buttons for all
-of it (rows, steppers, paging, back and close) and turns the player's cursor on
-and off around the session.
+`runtime.Menus` owns each player's session and draws it as center HTML, re-sent
+every tick and read with WASD / E / R; see @ref menu_feedback_keys. It needs
+nothing on the client. A clickable Panorama menu is a separate host built on the
+same session, documented in the Panorama menu guide (coming).
 
 ## Building a menu
 
@@ -56,7 +20,7 @@ using VoltMod::MenuBuilder;
 using VoltMod::ToggleRow;
 
 auto menu = MenuBuilder("Admin Panel")
-    .Subtitle("v1.0")                                   // optional second line; both drivers show it
+    .Subtitle("v1.0")                                   // optional second line
     .Text("Session")                                    // heading; the cursor skips it
     .Button("Kick Player", [](int slot) { /* ... */ })   // label + callback
     .Add(ButtonRow{.Label = "Disabled", .Enabled = false})
@@ -102,8 +66,7 @@ permission revoked while the menu is open greys the row out *and* refuses the pr
 Do not repeat the same permission check inside the handler.
 
 A `ToggleRow` reports its state and none of the words for it - the framework spells
-those from `menu.on` / `menu.off` (falling back to `ON` / `OFF`), and a Panorama layout
-draws the switch and shows no text.
+those from `menu.on` / `menu.off` (falling back to `ON` / `OFF`).
 
 `ChoiceRow` keeps its own index unless `.Bind` puts it somewhere the rest of the menu
 can read; the binding carries both halves, so a getter without a setter is not
@@ -235,8 +198,7 @@ Flow behavior:
 
 ## Feedback and keys {#menu_feedback_keys}
 
-Both drivers read one key table over one cursor, and the cursor belongs to the
-session rather than to whichever driver is drawing it:
+Keys drive one cursor, and the cursor belongs to the session:
 
 | Key | Action |
 | --- | --- |
@@ -245,11 +207,9 @@ session rather than to whichever driver is drawing it:
 | **A** / **D** | Step a value row (Toggle / Choice); otherwise turn the page |
 | **R** | Close (root) / back (submenu). Cancels an active chat-input capture. |
 
-Keys are debounced by 200 ms. Panorama buttons remain the primary input because
-keyboard events may not reach the server while the cursor is active.
-`Open(slot, menu, {.Keyboard = false})` turns the reading off for one Panorama
-session; center HTML ignores the option, because a menu nobody can navigate is a
-menu nobody can close.
+Keys are debounced by 200 ms. `Open(slot, menu, {.Keyboard = false})` turns the
+reading off for one session, which center HTML ignores because a menu nobody can
+navigate is a menu nobody can close.
 
 ### Stepping applies the value
 
@@ -257,7 +217,7 @@ A row that carries a `Commit` - a `ChoiceRow`, an `ActionRows::Presets` row -
 applies what stepping left it showing, once the stepping stops. The commit is
 held for 400 ms and re-held on each further step, so a burst of A/D is one
 action and one broadcast. Activating the row, closing the menu, moving the cursor
-off it, or switching drivers runs what is held rather than dropping it; a player
+off it runs what is held rather than dropping it; a player
 leaving the slot cancels it, because nobody is left to have asked for it.
 `ChoiceApply::OnSelect` opts a row out and waits for E.
 
@@ -266,37 +226,27 @@ leaving the slot cancels it, because nobody is left to have asked for it.
 Three pieces of state ride on a row while it is drawn, filled in by the manager
 rather than by the row's own `Describe`:
 
-| State | Means | Center HTML | Panorama |
-| --- | --- | --- | --- |
-| Selected | the cursor is on this row | a `>` before the label | `Selected` class |
-| Changed | the row's value moved in the last 150 ms | `*` after the row | `Changed` class |
-| Pending | a stepped value is still waiting to be applied | `…` after the value | `Pending` class |
-
-The Panorama driver writes them as CSS classes and the stylesheet decides what
-they look like; see @ref custom_ui_guide for the whole class vocabulary.
+| State | Means | Center HTML |
+| --- | --- | --- |
+| Selected | the cursor is on this row | a `>` before the label |
+| Changed | the row's value moved in the last 150 ms | `*` after the row |
+| Pending | a stepped value is still waiting to be applied | `…` after the value |
 
 ## Pagination
 
-A menu longer than its driver's page paginates automatically - five rows for center
-HTML, eight for the Panorama menu - with a `(2/3)` indicator. The page size belongs to
-the driver, not to the model.
+A menu longer than one page paginates automatically - five rows for center HTML -
+with a `(2/3)` indicator. The page size belongs to the renderer, not to the model.
 
 A/D pages when the row under the cursor has no value to step. Highlight a
 Button or Submenu row to page instead. Paging keeps the cursor's offset within the
-page. The Panorama menu also has explicit prev/next buttons, and the cursor
-follows a page turned that way onto the first row it may land on.
+page.
 
 ## Styling
 
 A menu carries no markup - only a `Title`, an optional `Subtitle`, and rows that
-say what they *are* (@ref VoltMod::MenuRowKind). Each driver decides what that
-looks like, so styling is a driver question, not a builder one:
-
-- Center HTML renders from a fixed palette in `src/Menu/CenterHtmlRender.cpp`.
-- The Panorama menu puts the row kind and how the row stands on it as CSS classes, so a plugin
-  restyles the whole menu by shipping its own stylesheet, or re-lays it out by
-  shipping an id-compatible layout and passing its name to
-  `Menus.UsePanorama(name)`. See @ref custom_ui_guide for the id contract.
+say what they *are* (@ref VoltMod::MenuRowKind). The renderer decides what that
+looks like, so styling is a renderer question, not a builder one: center HTML
+renders from a fixed palette in `src/Menu/CenterHtmlRender.cpp`.
 
 ## Lifetime and input
 
@@ -304,7 +254,7 @@ looks like, so styling is a driver question, not a builder one:
 and movement state on disconnect. Per-frame work starts with the first open menu
 and stops when the last stack closes.
 
-`runtime.Menus.FreezeWhileOpen(true)` freezes players while a menu is open. Center HTML needs it so WASD does not also move them; Panorama needs it because its cursor takes mouse-look. During a chat-input capture center HTML honors only R, and the Panorama menu shows a prompt overlay and ignores row presses, so neither drifts while the player types.
+`runtime.Menus.FreezeWhileOpen(true)` freezes players while a menu is open, so WASD does not also move them. During a chat-input capture only R is honored, so nobody drifts while they type.
 
 A capture belongs to the session that started it, so closing the menu drops it - the player's next chat line is a chat line again rather than an answer to a prompt nobody can see.
 
@@ -312,11 +262,7 @@ The freeze is a global switch, but a single session can opt out: `Open(slot, men
 
 A session survives death and spectating. Only a live pawn is frozen and only that
 pawn is restored, so a respawn is frozen afresh rather than handed a dead body's
-move type, and keys are read from the pawn the player is driving. The Panorama
-menu is a private panel (see @ref custom_ui_guide), so it stays up while the
-player is dead or spectating; only when that panel cannot be spawned is the
-session drawn as center HTML. The switch happens in place; the stack, cursor and
-keys carry over.
+move type, and keys are read from the pawn the player is driving.
 
 ## Presets
 

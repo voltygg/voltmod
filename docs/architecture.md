@@ -18,7 +18,7 @@ VoltMod
 ├── Ui          Panorama custom_hud_layout panels and the button presses they send back
 ├── Workshop    Workshop addon delivery: what connecting clients are told to download
 ├── Commands    Chat and console commands: the fluent builder, typed Args, the router
-├── Menu        Menu model and Flow wizard, with center-HTML and Panorama drivers
+├── Menu        Menu model and Flow wizard, drawn as center HTML
 ├── Database    Async PostgreSQL + row mapping (VOLTMOD_ENABLE_POSTGRES)
 ├── Http        Async HTTP client + JSON REST helpers
 ├── Unsafe      Opt-in raw hooking: VOLTMOD_SCOPED_HOOK (HookMacros.hpp) and

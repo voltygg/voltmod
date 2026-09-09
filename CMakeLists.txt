@@ -98,7 +98,9 @@ endif()
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/" DESTINATION include)
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/" DESTINATION cmake)
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/gamedata/" DESTINATION gamedata)
-install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/panorama/" DESTINATION panorama)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/panorama")
+    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/panorama/" DESTINATION panorama)
+endif()
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/templates/plugin/" DESTINATION templates/plugin)
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE" DESTINATION licenses)
 
@@ -170,7 +172,6 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Menu/MenuBuilder.cpp
             src/Menu/MenuPresets.cpp
             src/Menu/CenterHtmlRender.cpp
-            src/Menu/PanoramaIds.cpp
             src/Menu/MenuCursor.cpp
             src/Menu/PendingCommit.cpp
     )

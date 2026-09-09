@@ -18,9 +18,9 @@ struct MenuOptions
      *  for menus players reach mid-round, where being held still is worse than stray movement. */
     bool FreezeMovement = true;
 
-    /** Whether W/S/A/D/E/R drive this session. Center HTML ignores it - keys are the only input
-     *  it has - so it turns the keyboard off for a Panorama session, where the player has a
-     *  cursor and the rows are buttons. */
+    /** Whether W/S/A/D/E/R drive this session. @ref MenuManager ignores it - keys are the only
+     *  input center HTML has - so it turns the keyboard off for a `PanoramaMenu` session, where
+     *  the player has a cursor and the rows are buttons. */
     bool Keyboard = true;
 };
 
@@ -50,9 +50,6 @@ struct PlayerMenuState
     MoveType PrevMoveType = MoveType::Walk;
     /** @ref MenuOptions::Keyboard for this session. */
     bool Keyboard = true;
-    /** Drawn as center HTML because the Panorama panel could not be shown to this player; cleared
-     *  when a session starts (see @ref MenuManager). */
-    bool OnFallback = false;
 
     /** Buttons held last frame, for edge detection. */
     uint64_t PrevButtons = 0;
