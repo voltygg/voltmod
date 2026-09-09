@@ -82,6 +82,19 @@ std::vector<uint64_t> AddonRequirements::MissingFor(int64_t steamId) const
     return missing;
 }
 
+bool AddonRequirements::AnyMissingFor(int64_t steamId) const
+{
+    const auto found = _clients.find(steamId);
+    if (found == _clients.end())
+        return !_global.empty();
+
+    const auto& downloaded = found->second.Downloaded;
+    const auto missing = [&downloaded](const Requirement& requirement) {
+        return !std::ranges::contains(downloaded, requirement.Id);
+    };
+    return std::ranges::any_of(_global, missing) || std::ranges::any_of(found->second.Extra, missing);
+}
+
 AddonDecision AddonRequirements::NextFor(int64_t steamId, double now, int maxAttempts)
 {
     const std::vector<uint64_t> missing = MissingFor(steamId);

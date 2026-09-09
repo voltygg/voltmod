@@ -61,6 +61,9 @@ public:
     /** What @p steamId still has to fetch: the global list plus its own, minus what it has. */
     std::vector<uint64_t> MissingFor(int64_t steamId) const;
 
+    /** Whether @ref MissingFor would return anything, without building the list. */
+    [[nodiscard]] bool AnyMissingFor(int64_t steamId) const;
+
     /**
      * Decide what to send @p steamId now, counting this as one more attempt at the same addon.
      *

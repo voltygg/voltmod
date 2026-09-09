@@ -30,6 +30,26 @@ TEST_CASE("A required addon is missing until a reconnect credits it")
     CHECK(requirements.MissingFor(kSteam).empty());
 }
 
+TEST_CASE("AnyMissingFor agrees with MissingFor without building the list")
+{
+    AddonRequirements requirements;
+    CHECK_FALSE(requirements.AnyMissingFor(kSteam));
+
+    requirements.Require(100);
+    requirements.RequireFor(kSteam, 200);
+    CHECK(requirements.AnyMissingFor(kSteam));
+    CHECK(requirements.AnyMissingFor(kOther));
+
+    requirements.NextFor(kSteam, 10.0, kAttempts);
+    requirements.CreditReconnect(kSteam, 20.0, 30.0);
+    CHECK(requirements.AnyMissingFor(kSteam));  // the client-specific one is still owed
+
+    requirements.NextFor(kSteam, 30.0, kAttempts);
+    requirements.CreditReconnect(kSteam, 40.0, 30.0);
+    CHECK(requirements.MissingFor(kSteam).empty());
+    CHECK_FALSE(requirements.AnyMissingFor(kSteam));
+}
+
 TEST_CASE("A reconnect after the timeout does not credit the addon")
 {
     AddonRequirements requirements;

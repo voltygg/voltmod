@@ -70,6 +70,10 @@ public:
     /** Addons @p slot has still to fetch. Empty once it is fully loaded. */
     std::vector<uint64_t> Pending(int slot) const;
 
+    /** Whether @p slot is still fetching anything. For callers that only want the answer, on a
+     *  path where building the list would be the whole cost. */
+    [[nodiscard]] bool HasPending(int slot) const;
+
     /** A client finished the last addon it was missing and is joining normally. */
     Event<int /*slot*/> Ready;
 

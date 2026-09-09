@@ -82,6 +82,12 @@ std::vector<uint64_t> Addons::Pending(int slot) const
     return player ? _impl->Requirements.MissingFor(player->SteamId()) : std::vector<uint64_t>{};
 }
 
+bool Addons::HasPending(int slot) const
+{
+    Player* player = _players.Get(slot);
+    return player && _impl->Requirements.AnyMissingFor(player->SteamId());
+}
+
 Status Addons::Install()
 {
     if (_hook)
