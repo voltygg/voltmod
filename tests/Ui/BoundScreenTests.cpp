@@ -76,19 +76,19 @@ TEST_CASE("A screen writes through every widget built from its constants")
 {
     FakePanel panel;
 
-    CHECK(Hidden.Write(panel, 2, false));
-    CHECK(Card[0].Hidden.Write(panel, 2, true));
-    CHECK(Card[0].Title.Write(panel, 2, "AK-47"));
-    CHECK(Card[0].Subtitle.Write(panel, 2, "Rifle"));
-    CHECK(Card[0].Value.Write(panel, 2, "12"));
-    CHECK(Card[0].Accent.Write(panel, 2, static_cast<int>(LabUi::Accent::Good)));
-    CHECK(Card[0].Icon.Write(panel, 2, Card[0].Icon.Find("awp")));
-    CHECK(Card[0].Bar.Write(panel, 2, 4));
-    CHECK(Card[1].Title.Write(panel, 2, "AWP"));
-    CHECK(Toast.Show.Write(panel, 2, true));
-    CHECK(Toast.Title.Write(panel, 2, "Round over"));
-    CHECK(Toast.Description.Write(panel, 2, "Terrorists win"));
-    CHECK(Toast.Accent.Write(panel, 2, static_cast<int>(LabUi::Accent::Bad)));
+    Hidden.Write(panel, 2, false);
+    Card[0].Hidden.Write(panel, 2, true);
+    Card[0].Title.Write(panel, 2, "AK-47");
+    Card[0].Subtitle.Write(panel, 2, "Rifle");
+    Card[0].Value.Write(panel, 2, "12");
+    Card[0].Accent.Write(panel, 2, static_cast<int>(LabUi::Accent::Good));
+    Card[0].Icon.Write(panel, 2, Card[0].Icon.Find("awp"));
+    Card[0].Bar.Write(panel, 2, 4);
+    Card[1].Title.Write(panel, 2, "AWP");
+    Toast.Show.Write(panel, 2, true);
+    Toast.Title.Write(panel, 2, "Round over");
+    Toast.Description.Write(panel, 2, "Terrorists win");
+    Toast.Accent.Write(panel, 2, static_cast<int>(LabUi::Accent::Bad));
 
     const std::vector<std::string> enabled = panel.Enabled();
     CHECK(enabled
@@ -101,7 +101,7 @@ TEST_CASE("A text widget names the layout root, not the panel")
 {
     FakePanel panel;
 
-    CHECK(Card[1].Value.Write(panel, 0, "1"));
+    Card[1].Value.Write(panel, 0, "1");
 
     REQUIRE(panel.Texts.size() == 1);
     const auto& [slot, id, var, value] = panel.Texts[0];
@@ -115,7 +115,7 @@ TEST_CASE("A family clears the classes it is not on")
 {
     FakePanel panel;
 
-    CHECK(Card[0].Bar.Write(panel, 0, -1));
+    Card[0].Bar.Write(panel, 0, -1);
 
     CHECK(static_cast<int>(panel.Classes.size()) == Card[0].Bar.Count());
     CHECK(panel.Enabled().empty());

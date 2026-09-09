@@ -14,9 +14,6 @@ struct FakePanel
 {
     std::vector<std::tuple<int, std::string, std::string, std::string>> Texts;
     std::vector<std::tuple<int, std::string, std::string, bool>> Classes;
-    /** Set to fail the next N `Class` calls, in order. */
-    std::vector<bool> ClassFails;
-    int ClassCalls = 0;
 
     VoltMod::Status Text(int slot, std::string_view id, std::string_view var, std::string_view value)
     {
@@ -27,10 +24,6 @@ struct FakePanel
     VoltMod::Status Class(int slot, std::string_view id, std::string_view cls, bool on)
     {
         Classes.emplace_back(slot, std::string(id), std::string(cls), on);
-        const bool fail = ClassCalls < static_cast<int>(ClassFails.size()) && ClassFails[ClassCalls];
-        ++ClassCalls;
-        if (fail)
-            return std::unexpected(VoltMod::Error::Failed("boom"));
         return {};
     }
 

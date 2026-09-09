@@ -10,7 +10,6 @@
 
 using VoltMod::Flag;
 using VoltMod::Choice;
-using VoltMod::Status;
 using VoltMod::Text;
 using VoltModTests::FakePanel;
 
@@ -22,7 +21,7 @@ TEST_CASE("Text writes the root panel's dialog variable")
     FakePanel panel;
     Text widget{.Root = "card", .Var = "title"};
 
-    CHECK(widget.Write(panel, 3, "Round 2"));
+    widget.Write(panel, 3, "Round 2");
     REQUIRE(panel.Texts.size() == 1);
     CHECK(panel.Texts[0] == std::make_tuple(3, std::string("card"), std::string("title"), std::string("Round 2")));
 }
@@ -32,8 +31,8 @@ TEST_CASE("Flag toggles one class on and off")
     FakePanel panel;
     Flag widget{.Id = "card", .Class = "Hidden"};
 
-    CHECK(widget.Write(panel, 1, true));
-    CHECK(widget.Write(panel, 1, false));
+    widget.Write(panel, 1, true);
+    widget.Write(panel, 1, false);
     REQUIRE(panel.Classes.size() == 2);
     CHECK(panel.Classes[0] == std::make_tuple(1, std::string("card"), std::string("Hidden"), true));
     CHECK(panel.Classes[1] == std::make_tuple(1, std::string("card"), std::string("Hidden"), false));
@@ -43,7 +42,7 @@ TEST_CASE("Choice turns on only the selected class and clears the rest")
 {
     FakePanel panel;
 
-    CHECK(Icons.Write(panel, 0, 1));
+    Icons.Write(panel, 0, 1);
     REQUIRE(panel.Classes.size() == 3);
     CHECK(panel.Classes[0] == std::make_tuple(0, std::string("card_icon"), std::string("Icon--ak47"), false));
     CHECK(panel.Classes[1] == std::make_tuple(0, std::string("card_icon"), std::string("Icon--awp"), true));
@@ -54,7 +53,7 @@ TEST_CASE("Choice with -1 leaves every class off")
 {
     FakePanel panel;
 
-    CHECK(Icons.Write(panel, 0, -1));
+    Icons.Write(panel, 0, -1);
     REQUIRE(panel.Classes.size() == 3);
     for (const auto& [slot, id, cls, on] : panel.Classes)
         CHECK_FALSE(on);
@@ -71,13 +70,9 @@ TEST_CASE("Choice finds an index by class or by variant name")
     CHECK(Icons.Find("") == -1);
 }
 
-TEST_CASE("Choice returns the first failing status but still writes every class")
+TEST_CASE("Choice writes every class so a stale one clears")
 {
     FakePanel panel;
-    panel.ClassFails = {false, true, true};
-
-    const Status result = Icons.Write(panel, 0, 0);
-    REQUIRE_FALSE(result);
-    CHECK(result.error().Detail == "boom");
-    CHECK(panel.Classes.size() == 3);  // the second failure did not stop the third write
+    Icons.Write(panel, 0, 0);
+    CHECK(panel.Classes.size() == 3);
 }

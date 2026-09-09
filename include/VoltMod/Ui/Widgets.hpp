@@ -1,6 +1,5 @@
 #pragma once
 
-#include <VoltMod/Core/Result.hpp>
 #include <span>
 #include <string_view>
 
@@ -14,9 +13,9 @@ struct Text
     std::string_view Var;
 
     template <class Panel>
-    Status Write(Panel& panel, int slot, std::string_view value) const
+    void Write(Panel& panel, int slot, std::string_view value) const
     {
-        return panel.Text(slot, Root, Var, value);
+        panel.Text(slot, Root, Var, value);
     }
 };
 
@@ -27,9 +26,9 @@ struct Flag
     std::string_view Class;
 
     template <class Panel>
-    Status Write(Panel& panel, int slot, bool on) const
+    void Write(Panel& panel, int slot, bool on) const
     {
-        return panel.Class(slot, Id, Class, on);
+        panel.Class(slot, Id, Class, on);
     }
 };
 
@@ -42,6 +41,8 @@ struct Flag
  * spells the variant count. Writes all of them so a stale one clears; the panel's write cache
  * makes the ones that did not change free. N panels sharing one class (tab selection) are an
  * array of @ref Flag instead.
+ *
+ * A failed write is the panel's to report, not the caller's: it logs once and keeps going.
  */
 struct Choice
 {
@@ -64,16 +65,10 @@ struct Choice
     }
 
     template <class Panel>
-    Status Write(Panel& panel, int slot, int index) const
+    void Write(Panel& panel, int slot, int index) const
     {
-        Status result;
         for (int i = 0; i < Count(); ++i)
-        {
-            Status status = panel.Class(slot, Id, Classes[i], i == index);
-            if (!status && result)
-                result = status;  // first failure wins, remaining writes still happen
-        }
-        return result;
+            panel.Class(slot, Id, Classes[i], i == index);
     }
 };
 
