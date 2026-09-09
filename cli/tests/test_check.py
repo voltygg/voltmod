@@ -7,7 +7,7 @@ not a mock of it - a check that passes here has actually rendered and bound the 
 from pathlib import Path
 
 from test_panorama import plugin
-from voltmod.builder.panorama import screens
+from voltmod.builder.panorama import check as checker
 
 KIT = Path(__file__).resolve().parents[2]
 
@@ -130,43 +130,43 @@ def second_owner(root: Path, name: str = "hud") -> Path:
 
 def test_disallowed_element_is_flagged(tmp_path):
     root = plugin(tmp_path, xml=SCRIPT_XML, css=HIDDEN_CSS, name="hud")
-    findings = screens.check(root, KIT, ["ui-lab"])
+    findings = checker.check(root, KIT, ["ui-lab"])
     assert any("<script>" in finding for finding in findings)
 
 
 def test_button_without_id_is_flagged(tmp_path):
     root = plugin(tmp_path, xml=BUTTON_NO_ID_XML, css=HIDDEN_CSS, name="hud")
-    findings = screens.check(root, KIT, ["ui-lab"])
+    findings = checker.check(root, KIT, ["ui-lab"])
     assert any("<Button> has no id" in finding for finding in findings)
 
 
 def test_button_nested_in_button_is_flagged(tmp_path):
     root = plugin(tmp_path, xml=NESTED_BUTTON_XML, css=HIDDEN_CSS, name="hud")
-    findings = screens.check(root, KIT, ["ui-lab"])
+    findings = checker.check(root, KIT, ["ui-lab"])
     assert any("nested inside another Button" in finding for finding in findings)
 
 
 def test_duplicate_id_is_flagged(tmp_path):
     root = plugin(tmp_path, xml=DUPLICATE_ID_XML, css=HIDDEN_CSS, name="hud")
-    findings = screens.check(root, KIT, ["ui-lab"])
+    findings = checker.check(root, KIT, ["ui-lab"])
     assert any("used more than once" in finding for finding in findings)
 
 
 def test_id_outside_the_screen_prefix_is_flagged(tmp_path):
     root = plugin(tmp_path, xml=STRAY_ID_XML, css=HIDDEN_CSS, name="hud")
-    findings = screens.check(root, KIT, ["ui-lab"])
+    findings = checker.check(root, KIT, ["ui-lab"])
     assert any("does not start with" in finding for finding in findings)
 
 
 def test_missing_stylesheet_include_is_flagged(tmp_path):
     root = plugin(tmp_path, xml=WRONG_INCLUDE_XML, css=HIDDEN_CSS, name="hud")
-    findings = screens.check(root, KIT, ["ui-lab"])
+    findings = checker.check(root, KIT, ["ui-lab"])
     assert any("expected one style include" in finding for finding in findings)
 
 
 def test_unknown_image_is_flagged(tmp_path):
     root = plugin(tmp_path, xml=UNKNOWN_IMAGE_XML, css=HIDDEN_CSS, name="hud")
-    findings = screens.check(root, KIT, ["ui-lab"])
+    findings = checker.check(root, KIT, ["ui-lab"])
     assert any("has no weapons/missing.png" in finding for finding in findings)
 
 
@@ -174,7 +174,7 @@ def test_two_owners_rendering_the_same_resource_are_named(tmp_path):
     root = plugin(tmp_path, xml=CLEAN_XML, css=CLEAN_CSS, name="hud")
     second_owner(root, name="hud")
 
-    findings = screens.check(root, KIT, ["ui-lab", "ui-second"])
+    findings = checker.check(root, KIT, ["ui-lab", "ui-second"])
 
     assert any(
         "layout/custom_game/hud.xml" in finding
@@ -187,9 +187,9 @@ def test_two_owners_rendering_the_same_resource_are_named(tmp_path):
 
 def test_a_shared_dialog_variable_is_not_flagged(tmp_path):
     root = plugin(tmp_path, xml=SHARED_VAR_XML, css=HIDDEN_CSS, name="hud")
-    assert screens.check(root, KIT, ["ui-lab"]) == []
+    assert checker.check(root, KIT, ["ui-lab"]) == []
 
 
 def test_a_clean_screen_has_no_findings(tmp_path):
     root = plugin(tmp_path, xml=CLEAN_XML, css=CLEAN_CSS, name="hud")
-    assert screens.check(root, KIT, ["ui-lab"]) == []
+    assert checker.check(root, KIT, ["ui-lab"]) == []

@@ -79,8 +79,6 @@ def test_plugin_screen_renders_layout_styles_and_icons(tmp_path):
     assert 'id="hud_slot0"' in xml and 'id="hud_slot0_bar"' in xml
     assert "{s:slot0_title}" in xml
     assert 'src="s2r://panorama/images/custom_game/weapons/ak47.vtex"' in xml
-    assert "Do not edit" in xml.splitlines()[0]
-    assert "Do not edit" in css.splitlines()[0]
     assert ".Card-title" in css and "color: #e8e6e0;" in css
     assert ".Bar-fill.Step--4 {\n  width: 100.0%;\n}" in css
     vtex = (out / "images/custom_game/weapons/ak47.vtex").read_text(encoding="utf-8")

@@ -31,8 +31,6 @@ _COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
 #: Wide enough for a constant per line; a longer array is broken up item per item.
 COLUMNS = 100
 
-BANNER = "Rendered by `voltmod panorama render` from panorama/screens/{name}.xml.j2. Do not edit."
-
 
 @dataclass(slots=True)
 class Screen:
@@ -77,7 +75,6 @@ def header(screen: Screen, template: str) -> str:
     namespace = found.group(1) if found else f"Screens::{pascal(screen.name)}"
 
     lines = [
-        f"// {BANNER.format(name=screen.name)}",
         "#pragma once",
         "",
         "#include <array>",

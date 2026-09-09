@@ -7,6 +7,7 @@ import typer
 
 from voltmod import tools
 
+from . import check as checker
 from . import compile as compiler
 from . import preview as previewer
 from . import screens
@@ -80,7 +81,7 @@ def publish_command(
 @app.command("check")
 def check_command(owners: Owners = None) -> None:
     """Validate rendered screens against the rules the CS2 client enforces silently."""
-    findings = screens.check(ROOT, KIT_ROOT, owners or [])
+    findings = checker.check(ROOT, KIT_ROOT, owners or [])
     if findings:
         for finding in findings:
             print(finding)

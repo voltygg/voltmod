@@ -1,4 +1,3 @@
-// Rendered by `voltmod panorama render` from panorama/screens/lab.xml.j2. Do not edit.
 #pragma once
 
 #include <array>
