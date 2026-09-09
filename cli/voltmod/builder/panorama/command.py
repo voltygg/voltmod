@@ -7,7 +7,9 @@ import typer
 
 from voltmod import tools
 
+from . import check as checker
 from . import compile as compiler
+from . import find_owners, select
 from . import render as renderer
 
 app = typer.Typer(help="Render, compile, and publish Panorama screens.")
@@ -75,3 +77,17 @@ def publish_command(
     renderer.render(ROOT, KIT_ROOT, owners or [])
     count = compiler.publish(ROOT, KIT_ROOT, owners or [], directory.expanduser())
     print(f"Published {count} file(s) into {directory}; point the Workshop Tools at it.")
+
+
+@app.command("check")
+def check_command(owners: Owners = None) -> None:
+    """Validate rendered screens against the rules the CS2 client enforces silently."""
+    findings = checker.check(ROOT, KIT_ROOT, owners or [])
+    if findings:
+        for finding in findings:
+            print(finding)
+        raise typer.Exit(1)
+
+    selected = select(find_owners(ROOT, KIT_ROOT), owners or [])
+    count = sum(len(renderer.sources(owner)) for owner in selected.values())
+    print(f"Checked {count} screen(s)")

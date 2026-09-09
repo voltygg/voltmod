@@ -45,8 +45,9 @@ build-linux = "voltmod build linux-steamrt-release"
 test = "voltmod test"
 doctor = "voltmod doctor"
 new-plugin = "voltmod new-plugin"
-lint = ["_ruff", "test-tools"]
+lint = ["_ruff", "test-tools", "_panorama-check"]
 _ruff = "ruff check ."
+_panorama-check = "voltmod panorama check"
 
 modgraph = "voltmod modgraph"
 panorama = "voltmod panorama compile"
