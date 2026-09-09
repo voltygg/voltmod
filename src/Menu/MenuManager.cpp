@@ -140,7 +140,7 @@ void MenuManager::FreezeWhileOpen(bool enabled)
     // until they close a menu they may not know is open is not a defensible reading of "off".
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
-        if (_menus->State(slot).FrozenPawn)
+        if (_menus->State(slot).Freeze)
             SetPlayerFrozen(slot, false, _services.Entities.PawnOf(slot));
     }
 }
@@ -289,27 +289,11 @@ void MenuManager::SetPlayerFrozen(int slot, bool frozen, const Pawn& pawn)
     if (frozen && !_freezePlayer)
         return;
 
-    auto& state = _menus->State(slot);
-
-    // Skip redundant transitions so a freeze isn't double-applied (which would capture
-    // MOVETYPE_NONE as the "previous" type) and an unfreeze isn't run on a never-frozen slot.
-    if (frozen == static_cast<bool>(state.FrozenPawn))
-        return;
-
+    MovementFreeze& freeze = _menus->State(slot).Freeze;
     if (frozen)
-    {
-        if (!pawn || !pawn.IsAlive())
-            return;
-
-        state.PrevMoveType = pawn.Move();
-        state.FrozenPawn = pawn.Ref();
-        pawn.SetMove(MoveType::None);
-        return;
-    }
-
-    if (pawn && pawn.Ref() == state.FrozenPawn)
-        pawn.SetMove(state.PrevMoveType);
-    state.FrozenPawn = {};
+        freeze.Hold(pawn);
+    else
+        freeze.Release(pawn);
 }
 
 void MenuManager::SyncFreeze(int slot, const Pawn& pawn)
@@ -318,12 +302,7 @@ void MenuManager::SyncFreeze(int slot, const Pawn& pawn)
     if (!_freezePlayer || !state.FreezeMovement)
         return;
 
-    // A pawn that died or was replaced is let go without a write: its move type must not reach
-    // the next body.
-    if (state.FrozenPawn && (!pawn || !pawn.IsAlive() || pawn.Ref() != state.FrozenPawn))
-        state.FrozenPawn = {};
-
-    SetPlayerFrozen(slot, true, pawn);
+    state.Freeze.Sync(pawn);
 }
 
 }  // namespace VoltMod

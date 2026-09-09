@@ -1,7 +1,6 @@
 #pragma once
 
-#include <VoltMod/Entities/EntityRef.hpp>
-#include <VoltMod/Entities/MoveType.hpp>
+#include <VoltMod/Entities/MovementFreeze.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <cstdint>
 #include <memory>
@@ -38,11 +37,8 @@ struct PlayerMenuState
 
     /** @ref MenuOptions::FreezeMovement for this session. */
     bool FreezeMovement = true;
-    /** The pawn held frozen, or unset. Only this pawn is ever given @ref PrevMoveType back; a
-     *  respawn gets a fresh freeze instead of a dead body's move type. */
-    EntityRef FrozenPawn;
-    /** MoveType captured before freezing, restored when the menu closes. */
-    MoveType PrevMoveType = MoveType::Walk;
+    /** The pawn this session is holding still, if any. */
+    MovementFreeze Freeze;
 
     /** Buttons held last frame, for edge detection. */
     uint64_t PrevButtons = 0;

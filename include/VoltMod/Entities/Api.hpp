@@ -10,6 +10,7 @@
 #include <VoltMod/Entities/HitGroup.hpp>
 #include <VoltMod/Entities/Items.hpp>
 #include <VoltMod/Entities/KeyValues.hpp>
+#include <VoltMod/Entities/MovementFreeze.hpp>
 #include <VoltMod/Entities/MoveType.hpp>
 #include <VoltMod/Entities/ObserverMode.hpp>
 #include <VoltMod/Entities/Pawn.hpp>
