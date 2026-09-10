@@ -95,10 +95,31 @@ class Screen:
     variables: list[str] = field(default_factory=list)
     #: Family prefix -> its variants, both in first-appearance order.
     families: dict[str, list[str]] = field(default_factory=dict)
+    _cached_groups: list[Group] | None = field(default=None, compare=False, repr=False)
 
     def groups(self) -> list[Group]:
         """The repeated blocks: every stem whose copies are indexed 0..K-1 (K >= 2) and alike."""
-        return _groups(self)
+        if self._cached_groups is None:
+            self._cached_groups = _groups(self)
+        return self._cached_groups
+
+    def grouped_ids(self) -> set[str]:
+        """The panel ids the repeated blocks already spell, which no flat constant repeats."""
+        return {
+            name
+            for group in self.groups()
+            for i in range(group.count)
+            for name in group.ids(self.name, i)
+        }
+
+    def grouped_variables(self) -> set[str]:
+        """The dialog variables the repeated blocks already spell."""
+        return {
+            name
+            for group in self.groups()
+            for i in range(group.count)
+            for name in group.variables(i)
+        }
 
 
 def read(layout: str, stylesheet: str) -> Screen:
@@ -118,7 +139,7 @@ def read(layout: str, stylesheet: str) -> Screen:
     # the stylesheet, which is the only place an Accent or Step family is ever declared.
     for node in nodes:
         _collect(screen.families, node.get("class", "").split())
-    _collect(screen.families, _selector_classes(stylesheet))
+    _collect(screen.families, selector_classes(stylesheet))
 
     return screen
 
@@ -143,12 +164,8 @@ def header(screen: Screen, template: str) -> str:
     ]
 
     groups = screen.groups()
-    grouped_ids = {
-        name for group in groups for i in range(group.count) for name in group.ids(screen.name, i)
-    }
-    grouped_vars = {
-        name for group in groups for i in range(group.count) for name in group.variables(i)
-    }
+    grouped_ids = screen.grouped_ids()
+    grouped_vars = screen.grouped_variables()
 
     flat_ids = [name for name in screen.ids if name not in grouped_ids]
     if flat_ids:
@@ -278,7 +295,7 @@ def rules(stylesheet: str) -> list[tuple[str, str]]:
     ]
 
 
-def _selector_classes(stylesheet: str) -> list[str]:
+def selector_classes(stylesheet: str) -> list[str]:
     """Every class named by a selector, in rule order. Declarations are skipped so a decimal in
     a value cannot be read as a class."""
     found: list[str] = []

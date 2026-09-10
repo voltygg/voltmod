@@ -106,12 +106,7 @@ def _names(screen: bind.Screen, source: Path) -> list[str]:
     findings: list[str] = []
     taken = {"Layout": "the screen itself", "RootId": "the screen itself"}
 
-    grouped = {
-        name
-        for group in screen.groups()
-        for i in range(group.count)
-        for name in group.ids(screen.name, i)
-    }
+    grouped = screen.grouped_ids()
     for identifier in screen.ids:
         if not bind.spellable(identifier.removeprefix(f"{screen.name}_")):
             findings.append(f"{source}: id '{identifier}' cannot be spelled in C++")
@@ -184,8 +179,7 @@ def _budget(screen: bind.Screen, stylesheet: str, source: Path) -> list[str]:
     names = {screen.name, *screen.ids, *screen.variables}
     for node in screen.tree.iter():
         names.update(node.get("class", "").split())
-    for selector, _ in bind.rules(stylesheet):
-        names.update(bind.CLASS.findall(selector))
+    names.update(bind.selector_classes(stylesheet))
     if len(names) <= NAME_BUDGET:
         return []
     return [f"{source}: {len(names)} interned names, over the budget of {NAME_BUDGET}"]
