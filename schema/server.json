@@ -2041,7 +2041,7 @@
       ]
     },
     "CCSCustomHudLayout": {
-      "size": 2024,
+      "size": 2032,
       "bases": [
         {
           "name": "CBaseEntity",
@@ -2061,8 +2061,17 @@
           }
         },
         {
-          "name": "m_vecPlayerLayoutStates",
+          "name": "m_bObservable",
           "offset": 1200,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_vecPlayerLayoutStates",
+          "offset": 1208,
           "size": 104,
           "type": {
             "name": "CUtlVectorEmbeddedNetworkVar< CCSCustomHudLayoutState >",
@@ -2073,7 +2082,7 @@
         },
         {
           "name": "m_globalLayoutState",
-          "offset": 1304,
+          "offset": 1312,
           "size": 408,
           "type": {
             "name": "CCSCustomHudLayoutState",
@@ -2083,7 +2092,7 @@
         },
         {
           "name": "m_vecPanelIds",
-          "offset": 1712,
+          "offset": 1720,
           "size": 24,
           "type": {
             "name": "CNetworkUtlVectorBase< CUtlString >",
@@ -2094,7 +2103,7 @@
         },
         {
           "name": "m_vecClassNames",
-          "offset": 1736,
+          "offset": 1744,
           "size": 24,
           "type": {
             "name": "CNetworkUtlVectorBase< CUtlString >",
@@ -2105,7 +2114,7 @@
         },
         {
           "name": "m_vecDialogVariableNames",
-          "offset": 1760,
+          "offset": 1768,
           "size": 24,
           "type": {
             "name": "CNetworkUtlVectorBase< CUtlString >",

@@ -38,7 +38,7 @@ static const ClassLayout kClasses[] = {
      .Fields = {CBasePlayerController_kFields, 2}},
     {.Name = "CBasePlayerPawn", .Size = 3040, .OwnerLinkOffset = -1, .Fields = {CBasePlayerPawn_kFields, 5}},
     {.Name = "CBodyComponent", .Size = 120, .OwnerLinkOffset = 72, .Fields = {CBodyComponent_kFields, 1}},
-    {.Name = "CCSCustomHudLayout", .Size = 2024, .OwnerLinkOffset = -1, .Fields = {CCSCustomHudLayout_kFields, 6}},
+    {.Name = "CCSCustomHudLayout", .Size = 2032, .OwnerLinkOffset = -1, .Fields = {CCSCustomHudLayout_kFields, 6}},
     {.Name = "CCSCustomHudLayoutState",
      .Size = 408,
      .OwnerLinkOffset = -1,

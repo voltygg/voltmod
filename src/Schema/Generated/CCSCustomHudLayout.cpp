@@ -9,13 +9,13 @@
 namespace VoltMod::Schema
 {
 
-// ---- CCSCustomHudLayout, 2024 bytes --------------------------------
-static constexpr int32_t kCCSCustomHudLayout_PanelIds = 1712;             // CNetworkUtlVectorBase< CUtlString >
-static constexpr int32_t kCCSCustomHudLayout_ClassNames = 1736;           // CNetworkUtlVectorBase< CUtlString >
-static constexpr int32_t kCCSCustomHudLayout_DialogVariableNames = 1760;  // CNetworkUtlVectorBase< CUtlString >
-static constexpr int32_t kCCSCustomHudLayout_GlobalLayoutState = 1304;    // CCSCustomHudLayoutState
+// ---- CCSCustomHudLayout, 2032 bytes --------------------------------
+static constexpr int32_t kCCSCustomHudLayout_PanelIds = 1720;             // CNetworkUtlVectorBase< CUtlString >
+static constexpr int32_t kCCSCustomHudLayout_ClassNames = 1744;           // CNetworkUtlVectorBase< CUtlString >
+static constexpr int32_t kCCSCustomHudLayout_DialogVariableNames = 1768;  // CNetworkUtlVectorBase< CUtlString >
+static constexpr int32_t kCCSCustomHudLayout_GlobalLayoutState = 1312;    // CCSCustomHudLayoutState
 static constexpr int32_t kCCSCustomHudLayout_PlayerLayoutStates =
-    1200;                                                    // CUtlVectorEmbeddedNetworkVar< CCSCustomHudLayoutState >
+    1208;                                                    // CUtlVectorEmbeddedNetworkVar< CCSCustomHudLayoutState >
 static constexpr int32_t kCCSCustomHudLayout_Layout = 1192;  // CUtlSymbolLarge
 
 void* CCSCustomHudLayout::PanelIds() const
