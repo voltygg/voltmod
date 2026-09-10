@@ -57,7 +57,7 @@ ownership.
 .Accent.Accent--good { background-color: #4caf50; }
 .Accent.Accent--bad { background-color: #f44336; }
 
-{{ bar.fill_rules("Bar-fill", 4) }}
+{{ bar.fill_rules("Bar", 4) }}
 {{ icons.show_rules("weapons") }}
 ```
 
@@ -196,7 +196,7 @@ constexpr auto Cards = VoltMod::MakeWriters(LabUi::Cards, MakeCard);
 | Block | Signature | Draws |
 | --- | --- | --- |
 | `card` | `card(id, icon_set=none, bar=false, accent=false)` | a row: optional accent stripe and icon set, two lines of text, a value, an optional bar |
-| `bar` | `bar(id)` | a meter panel; pair with `bar.css`'s `fill_rules(cls, steps)` macro for the `Step--0`..`Step--<steps>` width rules |
+| `bar` | `bar(id)` | a meter panel; pair with `bar.css`'s `fill_rules(cls, steps)` macro for the `Step--0`..`Step--<steps>` width rules; `Hidden` on the bar takes it away |
 | `icons` | `icons(id, set)` | one `<Image>` per PNG in the icon set, stacked; pair with `icons.css`'s `show_rules(set)` macro so each `Icon--<name>` class uncollapses its own image |
 | `accent` | `accent(id)` | a colour stripe; the screen defines its own `.Accent--<name>` rules |
 | `toast` | `toast(id)` | a notice that fades in when the driver puts class `Show` on it |

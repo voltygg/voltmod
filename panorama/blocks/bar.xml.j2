@@ -1,6 +1,7 @@
-{#- A meter. The driver picks the fill width by writing `Step--k` on it, k of the steps its stylesheet declares. -#}
+{#- A meter. The driver picks the fill width by writing `Step--k` on the bar, k of the steps its
+    stylesheet declares, and takes the whole bar away with `Hidden`. -#}
 {% macro bar(id) -%}
-<Panel class="Bar" hittest="false">
-  <Panel id="{{screen}}_{{id}}" class="Bar-fill" hittest="false" />
+<Panel id="{{screen}}_{{id}}" class="Bar" hittest="false">
+  <Panel class="Bar-fill" hittest="false" />
 </Panel>
 {%- endmacro %}

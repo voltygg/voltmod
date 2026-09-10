@@ -35,7 +35,7 @@ HUD_CSS = """{% import "bar.css" as bar %}
   background-color: rgba(255, 255, 255, 0.05);
 }
 {% include "card.css" %}
-{{ bar.fill_rules("Bar-fill", 4) }}
+{{ bar.fill_rules("Bar", 4) }}
 """
 
 

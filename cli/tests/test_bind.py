@@ -53,7 +53,7 @@ LAB_CSS = """{% import "bar.css" as bar %}
   background-color: #f44336;
 }
 
-{{ bar.fill_rules("Bar-fill", 4) }}
+{{ bar.fill_rules("Bar", 4) }}
 {{ icons.show_rules("weapons") }}
 """
 

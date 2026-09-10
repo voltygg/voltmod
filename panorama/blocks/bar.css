@@ -4,15 +4,20 @@
   background-color: rgba(255, 255, 255, 0.05);
 }
 
+.Bar.Hidden {
+  visibility: collapse;
+}
+
 .Bar-fill {
   height: 100%;
   background-color: #c8a24a;
 }
 
-{#- The step count is per bar rather than per stylesheet, so the widths are emitted per bar. -#}
+{#- The step count is per bar rather than per stylesheet, so the widths are emitted per bar.
+    `cls` is the bar's own class, `Bar` unless the screen renames it. -#}
 {% macro fill_rules(cls, steps) %}
 {% for step in range(steps + 1) %}
-.{{cls}}.Step--{{step}} {
+.{{cls}}.Step--{{step}} .Bar-fill {
   width: {{ (step * 100 / steps) | round(1) }}%;
 }
 {% endfor %}
