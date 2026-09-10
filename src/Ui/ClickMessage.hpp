@@ -9,10 +9,10 @@ namespace VoltMod
 {
 
 /** The two fields a custom HUD Button press carries. */
-struct ClickPayload
+struct ClickMessage
 {
-    uint32_t Layout = 0;  ///< field 1, varint: the custom_hud_layout's EHANDLE.
-    std::string Button;   ///< field 2, length-delimited: the Button's `id` attribute.
+    uint32_t LayoutHandle = 0;  ///< field 1, varint: the custom_hud_layout's EHANDLE.
+    std::string ButtonId;       ///< field 2, length-delimited: the Button's `id` attribute.
 };
 
 /**
@@ -29,6 +29,6 @@ struct ClickPayload
  * @return Error::Invalid when the bytes are not well-formed protobuf, a length runs past the end,
  *         or either field is missing or carries the wrong wire type.
  */
-Result<ClickPayload> ParseClickPayload(std::string_view bytes);
+Result<ClickMessage> ParseClickMessage(std::string_view bytes);
 
 }  // namespace VoltMod

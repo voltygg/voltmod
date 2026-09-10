@@ -6,4 +6,5 @@
 #include <VoltMod/Ui/Screen.hpp>
 #include <VoltMod/Ui/UiClick.hpp>
 #include <VoltMod/Ui/UiPanel.hpp>
+#include <VoltMod/Ui/UiPanels.hpp>
 #include <VoltMod/Ui/Writers.hpp>

@@ -18,7 +18,7 @@ struct TextVar
     template <class Panel>
     void Write(Panel& panel, int slot, std::string_view value) const
     {
-        panel.Text(slot, Root, Var, value);
+        panel.SetText(slot, Root, Var, value);
     }
 };
 
@@ -31,7 +31,7 @@ struct ClassFlag
     template <class Panel>
     void Write(Panel& panel, int slot, bool on) const
     {
-        panel.Class(slot, Id, Class, on);
+        panel.SetClass(slot, Id, Class, on);
     }
 };
 
@@ -74,7 +74,7 @@ struct ClassChoice
     void Write(Panel& panel, int slot, int index) const
     {
         for (int i = 0; i < Count(); ++i)
-            panel.Class(slot, Id, Classes[i], i == index);
+            panel.SetClass(slot, Id, Classes[i], i == index);
     }
 };
 

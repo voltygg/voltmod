@@ -20,12 +20,12 @@ Result<std::string> ResolveLayoutName(std::string_view layout)
             return std::unexpected(Error::Invalid(
                 std::format("'{}' must name the layout's source .xml, not the compiled resource", layout)));
 
-        return std::format("{}{}{}", kLayoutRoot, layout, isSourceXml ? "" : ".xml");
+        return std::format("{}{}{}", LayoutDirectory, layout, isSourceXml ? "" : ".xml");
     }
 
-    if (!layout.starts_with(kLayoutRoot))
+    if (!layout.starts_with(LayoutDirectory))
         return std::unexpected(Error::Invalid(std::format(
-            "'{}' is outside {}, the only directory the addon whitelist allows layouts in", layout, kLayoutRoot)));
+            "'{}' is outside {}, the only directory the addon whitelist allows layouts in", layout, LayoutDirectory)));
 
     if (!isSourceXml)
         return std::unexpected(

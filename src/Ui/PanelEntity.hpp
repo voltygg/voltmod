@@ -10,7 +10,7 @@ namespace VoltMod
 {
 
 /**
- * @file UiFields.hpp
+ * @file PanelEntity.hpp
  * @brief The `CCSCustomHudLayout` half of @ref UiPanel: schema fields in, engine setters out.
  *
  * Everything here takes the layout as `(entities, ref)` and resolves it per call, so nothing holds
@@ -23,21 +23,21 @@ namespace VoltMod
  */
 
 /** How many per-player states the entity carries, or -1 when it or the field is unavailable. */
-int UiPlayerStateCount(EntitySystem* entities, EntityRef ref);
+int PanelPlayerStateCount(EntitySystem* entities, EntityRef ref);
 
 /** Set the dialog variable a `text="{s:variable}"` attribute reads. */
-Status UiWriteText(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId, std::string_view variable,
+Status WritePanelText(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId, std::string_view variable,
                    std::string_view value);
 
 /** Add (@p on) or remove @p className on @p panelId. */
-Status UiWriteClass(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId,
+Status WritePanelClass(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId,
                     std::string_view className, bool on);
 
 /** Hand @p className back to whatever the layout markup itself says. */
-Status UiResetClass(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId,
+Status RestorePanelClass(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId,
                     std::string_view className);
 
 /** Give a player (or everyone) a cursor over the layout. */
-Status UiWriteInputCapture(EntitySystem* entities, EntityRef ref, int slot, bool enabled);
+Status WritePanelInputCapture(EntitySystem* entities, EntityRef ref, int slot, bool enabled);
 
 }  // namespace VoltMod

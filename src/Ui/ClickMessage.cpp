@@ -1,4 +1,4 @@
-#include "Ui/ClickPayload.hpp"
+#include "Ui/ClickMessage.hpp"
 
 #include <format>
 #include <utility>
@@ -73,9 +73,9 @@ static Status SkipField(std::string_view bytes, size_t& at, uint32_t wireType)
     return {};
 }
 
-Result<ClickPayload> ParseClickPayload(std::string_view bytes)
+Result<ClickMessage> ParseClickMessage(std::string_view bytes)
 {
-    ClickPayload out;
+    ClickMessage out;
     bool haveLayout = false;
     bool haveButton = false;
 
@@ -95,7 +95,7 @@ Result<ClickPayload> ParseClickPayload(std::string_view bytes)
             if (!layout)
                 return std::unexpected(layout.error());
 
-            out.Layout = static_cast<uint32_t>(*layout);
+            out.LayoutHandle = static_cast<uint32_t>(*layout);
             haveLayout = true;
             continue;
         }
@@ -108,7 +108,7 @@ Result<ClickPayload> ParseClickPayload(std::string_view bytes)
             if (*length > bytes.size() - at)
                 return std::unexpected(Error::Invalid("the button id runs past the end of the payload"));
 
-            out.Button.assign(bytes, at, static_cast<size_t>(*length));
+            out.ButtonId.assign(bytes, at, static_cast<size_t>(*length));
             at += static_cast<size_t>(*length);
             haveButton = true;
             continue;

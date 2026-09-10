@@ -18,7 +18,7 @@ UiPanelState::UiPanelState(EntitySystem* entities, EntityOps* ops, SlotEvents* s
       AllClicks(allClicks),
       Layout(std::move(layout)),
       Resource(std::move(resource)),
-      Exclusive(visibility),
+      VisibilityFilter(visibility),
       Viewer(viewer),
       ClickRouting(
           "UiPanel", [this] { return StartClickRouting(); }, [this] { StopClickRouting(); }),
@@ -27,10 +27,10 @@ UiPanelState::UiPanelState(EntitySystem* entities, EntityOps* ops, SlotEvents* s
     if (!slots)
         return;
 
-    Cache.Bind(*slots);
+    Sent.BindReset(*slots);
 
     PlayerChanges = slots->Changed += [this](int slot) {
-        PlayersChanged = true;  // the entity's per-player capacity is fixed at spawn
+        RosterChangedSinceSpawn = true;  // the entity's per-player capacity is fixed at spawn
         if (slot == Viewer)     // a private panel goes with its viewer
             Remove();
     };
@@ -38,7 +38,7 @@ UiPanelState::UiPanelState(EntitySystem* entities, EntityOps* ops, SlotEvents* s
 
 Status UiPanelState::Spawn()
 {
-    PlayersChanged = false;
+    RosterChangedSinceSpawn = false;
 
     Remove();
 
@@ -57,8 +57,8 @@ Status UiPanelState::Spawn()
         return std::unexpected(Error::Engine("the engine refused to spawn custom_hud_layout"));
 
     CurrentEntity = Entity(*Entities, entity).Ref();
-    if (IsPrivate() && Exclusive)
-        Exclusive->ShowOnlyTo(CurrentEntity, Viewer);
+    if (IsPrivate() && VisibilityFilter)
+        VisibilityFilter->ShowOnlyTo(CurrentEntity, Viewer);
     return {};
 }
 
@@ -73,22 +73,22 @@ bool UiPanelState::SpawnOrWarn()
 
 void UiPanelState::Remove()
 {
-    if (Exclusive)
-        Exclusive->ShowToEveryone(CurrentEntity);
+    if (VisibilityFilter)
+        VisibilityFilter->ShowToEveryone(CurrentEntity);
     if (Entities && Ops)
     {
         if (Entity entity = Entities->Resolve(CurrentEntity))
             Ops->Remove(entity.Raw());
     }
     CurrentEntity = {};
-    Cache.ForgetAll();
+    Sent.ForgetAll();
 }
 
-bool UiPanelState::Covers(int slot) const
+bool UiPanelState::CanWrite(int slot) const
 {
     if (IsPrivate() && slot != Viewer)
         return false;
-    return IsValidSlot(slot) && UiPlayerStateCount(Entities, CurrentEntity) > slot;
+    return IsValidSlot(slot) && PanelPlayerStateCount(Entities, CurrentEntity) > slot;
 }
 
 Status UiPanelState::RecordWrite(int slot, Status status, std::string_view what)
@@ -97,19 +97,19 @@ Status UiPanelState::RecordWrite(int slot, Status status, std::string_view what)
         return status;
 
     // Drop the failed value so the next frame retries it, but log only once per slot.
-    Cache.Forget(slot);
-    if (Cache.FirstFailure(slot))
+    Sent.Forget(slot);
+    if (Sent.IsFirstFailure(slot))
         Log::Warn("UiPanel '{}': writing {} for slot {} failed ({}).", Layout, what, slot, status.error().Detail);
 
     return status;
 }
 
-Event<int>& UiPanelState::Button(std::string_view id)
+Event<int>& UiPanelState::Pressed(std::string_view id)
 {
-    if (auto it = Buttons.find(std::string(id)); it != Buttons.end())
+    if (auto it = PressedById.find(std::string(id)); it != PressedById.end())
         return it->second;
 
-    return Buttons.try_emplace(std::string(id), ClickRouting.ForEvent()).first->second;
+    return PressedById.try_emplace(std::string(id), ClickRouting.ForEvent()).first->second;
 }
 
 bool UiPanelState::StartClickRouting()
@@ -120,7 +120,7 @@ bool UiPanelState::StartClickRouting()
     // Capture heap-owned state so routing survives panel moves. ClickListener is destroyed
     // before the state it reads.
     ClickListener = *AllClicks +=
-        [this](const UiClick& click) { Internal::RouteUiClick(click, CurrentEntity, Clicked, Buttons); };
+        [this](const UiClick& click) { Internal::RouteUiClick(click, CurrentEntity, Clicked, PressedById); };
 
     // Empty means the hook refused; a later subscription is free to try again.
     return static_cast<bool>(ClickListener);

@@ -1,4 +1,4 @@
-#include "Ui/UiFields.hpp"
+#include "Ui/PanelEntity.hpp"
 
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Entities/Entity.hpp>
@@ -112,25 +112,25 @@ static Status WriteClassState(EntitySystem* entities, EntityRef ref, int slot, s
     {
         const auto& set = bindings.CustomHudSetHasClass;
         if (!set)
-            return std::unexpected(Error::Unsupported("the CustomUi class setter did not bind"));
+            return std::unexpected(Error::Unsupported("the custom HUD class setter did not bind"));
         set(*entity, &panel, &name, state);
         return {};
     }
 
     const auto& set = bindings.CustomHudSetHasClassForPlayer;
     if (!set)
-        return std::unexpected(Error::Unsupported("the CustomUi per-player class setter did not bind"));
+        return std::unexpected(Error::Unsupported("the custom HUD per-player class setter did not bind"));
     set(*entity, slot, &panel, &name, state);
     return {};
 }
 
-int UiPlayerStateCount(EntitySystem* entities, EntityRef ref)
+int PanelPlayerStateCount(EntitySystem* entities, EntityRef ref)
 {
     Entity entity = entities ? entities->Resolve(ref) : Entity{};
     return PlayerStateCount(Schema::CCSCustomHudLayout{entity.Raw()});
 }
 
-Status UiWriteText(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId, std::string_view variable,
+Status WritePanelText(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId, std::string_view variable,
                    std::string_view value)
 {
     auto entity = ReadyForWrite(entities, ref, slot);
@@ -147,31 +147,31 @@ Status UiWriteText(EntitySystem* entities, EntityRef ref, int slot, std::string_
     {
         const auto& set = bindings.CustomHudSetDialogVariable;
         if (!set)
-            return std::unexpected(Error::Unsupported("the CustomUi dialog variable setter did not bind"));
+            return std::unexpected(Error::Unsupported("the custom HUD dialog variable setter did not bind"));
         set(*entity, &panel, &name, &text);
         return {};
     }
 
     const auto& set = bindings.CustomHudSetDialogVariableForPlayer;
     if (!set)
-        return std::unexpected(Error::Unsupported("the CustomUi per-player dialog variable setter did not bind"));
+        return std::unexpected(Error::Unsupported("the custom HUD per-player dialog variable setter did not bind"));
     set(*entity, slot, &panel, &name, &text);
     return {};
 }
 
-Status UiWriteClass(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId,
+Status WritePanelClass(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId,
                     std::string_view className, bool on)
 {
     return WriteClassState(entities, ref, slot, panelId, className, on ? kClassPresent : kClassAbsent);
 }
 
-Status UiResetClass(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId,
+Status RestorePanelClass(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId,
                     std::string_view className)
 {
     return WriteClassState(entities, ref, slot, panelId, className, kClassUndefined);
 }
 
-Status UiWriteInputCapture(EntitySystem* entities, EntityRef ref, int slot, bool enabled)
+Status WritePanelInputCapture(EntitySystem* entities, EntityRef ref, int slot, bool enabled)
 {
     auto entity = ReadyForWrite(entities, ref, slot);
     if (!entity)
@@ -181,7 +181,7 @@ Status UiWriteInputCapture(EntitySystem* entities, EntityRef ref, int slot, bool
     {
         const auto& set = entities->BindingsRef().CustomHudSetInputCapture;
         if (!set)
-            return std::unexpected(Error::Unsupported("the CustomUi input capture setter did not bind"));
+            return std::unexpected(Error::Unsupported("the custom HUD input capture setter did not bind"));
         set(*entity, slot, enabled);
         return {};
     }

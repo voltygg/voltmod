@@ -6,8 +6,8 @@
 namespace VoltMod
 {
 
-Screen::Screen(CustomUi& ui, std::string_view layout, std::string_view rootId)
-    : _ui(ui), _layout(layout), _root(rootId), _perViewer(false)
+Screen::Screen(UiPanels& ui, std::string_view layout, std::string_view rootId)
+    : _ui(ui), _layout(layout), _root(rootId), _perPlayer(false)
 {
     if (auto panel = ui.Panel(_layout, UiPanel::Everyone))
         _shared = std::move(*panel);
@@ -15,15 +15,15 @@ Screen::Screen(CustomUi& ui, std::string_view layout, std::string_view rootId)
         Log::Warn("Screen '{}': {}", _layout, panel.error().Detail);
 }
 
-Screen::Screen(CustomUi& ui, SlotEvents& slots, std::string_view layout, std::string_view rootId)
-    : _ui(ui), _layout(layout), _root(rootId), _perViewer(true)
+Screen::Screen(UiPanels& ui, SlotEvents& slots, std::string_view layout, std::string_view rootId)
+    : _ui(ui), _layout(layout), _root(rootId), _perPlayer(true)
 {
     _private.BindReset(slots);
 }
 
 UiPanel& Screen::Panel(int slot)
 {
-    if (!_perViewer || !IsValidSlot(slot))
+    if (!_perPlayer || !IsValidSlot(slot))
         return _shared;
 
     UiPanel& panel = _private[slot];
@@ -40,16 +40,16 @@ UiPanel& Screen::Panel(int slot)
 bool Screen::Show(int slot, bool capture)
 {
     // A private screen has no panel to spawn for the global viewer.
-    if (_perViewer && !IsValidSlot(slot))
+    if (_perPlayer && !IsValidSlot(slot))
         return false;
 
     UiPanel& panel = Panel(slot);
-    if (!panel.Ensure(slot))
+    if (!panel.Prepare(slot))
         return false;
 
-    panel.Class(slot, _root, "Hidden", false);
+    panel.SetClass(slot, _root, "Hidden", false);
     if (capture)
-        panel.InputCapture(slot, true);
+        panel.SetInputCapture(slot, true);
     return true;
 }
 
@@ -61,8 +61,8 @@ void Screen::Hide(int slot)
 
     // Capture is per-player whatever the panel is, so only a real slot ever holds one.
     if (IsValidSlot(slot))
-        panel.InputCapture(slot, false);
-    panel.Class(slot, _root, "Hidden", true);
+        panel.SetInputCapture(slot, false);
+    panel.SetClass(slot, _root, "Hidden", true);
 }
 
 std::string_view Screen::Layout() const noexcept

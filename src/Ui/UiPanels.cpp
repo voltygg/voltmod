@@ -1,9 +1,9 @@
 #include "Ui/LayoutName.hpp"
-#include "Ui/UiClicks.hpp"
+#include "Ui/UiClickHook.hpp"
 #include "Ui/UiPanelState.hpp"
 
 #include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Ui/UiPanel.hpp>
+#include <VoltMod/Ui/UiPanels.hpp>
 #include <format>
 #include <memory>
 #include <string>
@@ -12,19 +12,19 @@
 namespace VoltMod
 {
 
-CustomUi::CustomUi(EntitySystem& entities, EntityOps& ops, const Bindings& bindings, Interfaces& interfaces,
+UiPanels::UiPanels(EntitySystem& entities, EntityOps& ops, const Bindings& bindings, Interfaces& interfaces,
                    SlotEvents& slots, Scheduler& scheduler, Visibility& visibility)
     : Clicked({.OnFirst = [this] { return _clicks->Install(); }, .OnLast = [this] { _clicks->Remove(); }}),
       _entities(entities),
       _ops(ops),
       _slots(slots),
       _visibility(visibility),
-      _clicks(std::make_unique<UiClicks>(interfaces, bindings, slots, entities, scheduler, Clicked))
+      _clicks(std::make_unique<UiClickHook>(interfaces, bindings, slots, entities, scheduler, Clicked))
 {}
 
-CustomUi::~CustomUi() = default;
+UiPanels::~UiPanels() = default;
 
-Result<UiPanel> CustomUi::Panel(std::string_view layout, int viewer)
+Result<UiPanel> UiPanels::Panel(std::string_view layout, int viewer)
 {
     auto resource = ResolveLayoutName(layout);
     if (!resource)
@@ -37,20 +37,20 @@ Result<UiPanel> CustomUi::Panel(std::string_view layout, int viewer)
 
         // Without the filter the entity reaches every client - the opposite of the promise.
         if (!_visibility.IsActive())
-            return std::unexpected(Error::Unsupported("a private panel needs the Visibility filter, which is inert"));
+            return std::unexpected(Error::Unsupported("a private panel needs the Visibility filter, which is off"));
     }
 
     return UiPanel(std::make_shared<UiPanelState>(&_entities, &_ops, &_slots, &Clicked, std::string(layout),
                                                   std::move(*resource), &_visibility, viewer));
 }
 
-Result<UiPanel> CustomUi::Spawn(std::string_view layout, int viewer)
+Result<UiPanel> UiPanels::Spawn(std::string_view layout, int viewer)
 {
     auto panel = Panel(layout, viewer);
     if (!panel)
         return panel;
 
-    // Ensure only says whether it worked, and a caller asking for the entity now wants the reason
+    // Prepare only says whether it worked, and a caller asking for the entity now wants the reason
     // it did not, so the state's own spawn is what runs here.
     if (Status spawned = panel->State().Spawn(); !spawned)
         return std::unexpected(spawned.error());

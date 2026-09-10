@@ -21,7 +21,7 @@
 #include <VoltMod/Messaging/Messages.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/Policy.hpp>
-#include <VoltMod/Ui/UiPanel.hpp>
+#include <VoltMod/Ui/UiPanels.hpp>
 #include <VoltMod/Unsafe/Unsafe.hpp>
 #include <VoltMod/Workshop/Addons.hpp>
 #include <cstddef>
@@ -122,7 +122,7 @@ public:
                        GameEvents, Unsafe.Interfaces, World.EntityOps, Capabilities};
 
     /** Custom Panorama HUD layouts and the button presses coming back from them. */
-    VoltMod::CustomUi Ui{Entities, World.EntityOps, Unsafe.Bindings, Unsafe.Interfaces,
+    VoltMod::UiPanels Ui{Entities, World.EntityOps, Unsafe.Bindings, Unsafe.Interfaces,
                          Slots,    Scheduler,       Hooks.Visibility};
 
     /** Workshop addons connecting clients are told to download. */

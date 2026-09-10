@@ -3,11 +3,11 @@
 namespace VoltMod::Internal
 {
 
-bool RouteUiClick(const UiClick& click, EntityRef layout, Event<const UiClick&>& clicked, UiButtonEvents& buttons)
+bool RouteUiClick(const UiClick& click, EntityRef layout, Event<const UiClick&>& clicked, PressedEvents& buttons)
 {
     // An empty ref matches nothing: a panel that has not spawned, or has been removed, is silent
     // rather than catching every other layout's presses.
-    if (!layout || click.Layout != layout)
+    if (!layout || click.LayoutEntity != layout)
         return false;
 
     clicked.Raise(click);

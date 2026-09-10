@@ -101,7 +101,7 @@
     // CServerSideClient::FilterMessage, the inbound client-message filter. It is bound by signature
     // rather than by index because it is declared on a third base
     // (INetworkMessageProcessingPreFilter) and so lives in a secondary vtable, which
-    // FindVirtualTable cannot return; UiClicks searches a live client for this address to find the
+    // FindVirtualTable cannot return; UiClickHook searches a live client for this address to find the
     // slot. Patterns from SwiftlyS2.
     "FilterMessage": {
       "library": "engine2",

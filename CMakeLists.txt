@@ -150,9 +150,9 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Hooks/PendingConVarQueries.cpp
             src/Workshop/AddonRequirements.cpp
             src/Ui/LayoutName.cpp
-            src/Ui/UiWriteCache.cpp
+            src/Ui/SentWrites.cpp
             src/Ui/UiClickRouting.cpp
-            src/Ui/ClickPayload.cpp
+            src/Ui/ClickMessage.cpp
             src/Engine/Bindings.cpp
             src/Engine/ConVarTypes.cpp
             src/Engine/GameData.cpp

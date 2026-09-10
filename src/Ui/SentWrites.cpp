@@ -1,4 +1,4 @@
-#include "Ui/UiWriteCache.hpp"
+#include "Ui/SentWrites.hpp"
 
 namespace VoltMod
 {
@@ -6,14 +6,14 @@ namespace VoltMod
 /** Separates the parts of a key; not legal in a panel id or a variable name. */
 static constexpr char kKeySeparator = '\x1f';
 
-UiWriteCache::SlotState* UiWriteCache::At(int slot)
+SentWrites::SlotState* SentWrites::At(int slot)
 {
     if (slot == EveryoneSlot)
         return &_shared;
     return IsValidSlot(slot) ? &_slots[slot] : nullptr;
 }
 
-bool UiWriteCache::Update(int slot, UiProperty kind, std::string_view panelId, std::string_view name,
+bool SentWrites::Changed(int slot, WriteKind kind, std::string_view panelId, std::string_view name,
                           std::string_view value)
 {
     SlotState* state = At(slot);
@@ -21,7 +21,7 @@ bool UiWriteCache::Update(int slot, UiProperty kind, std::string_view panelId, s
         return false;
 
     auto& values = state->Values;
-    const std::string& key = Key(kind, panelId, name);
+    const std::string& key = KeyFor(kind, panelId, name);
     if (auto it = values.find(key); it != values.end())
     {
         if (it->second == value)
@@ -35,7 +35,7 @@ bool UiWriteCache::Update(int slot, UiProperty kind, std::string_view panelId, s
     return true;
 }
 
-bool UiWriteCache::UpdateCapture(int slot, bool enabled)
+bool SentWrites::CaptureChanged(int slot, bool enabled)
 {
     SlotState* state = At(slot);
     if (!state)
@@ -48,7 +48,7 @@ bool UiWriteCache::UpdateCapture(int slot, bool enabled)
     return true;
 }
 
-bool UiWriteCache::FirstFailure(int slot)
+bool SentWrites::IsFirstFailure(int slot)
 {
     SlotState* state = At(slot);
     if (!state || state->Failed)
@@ -58,7 +58,7 @@ bool UiWriteCache::FirstFailure(int slot)
     return true;
 }
 
-void UiWriteCache::Forget(int slot)
+void SentWrites::Forget(int slot)
 {
     SlotState* state = At(slot);
     if (!state)
@@ -68,13 +68,13 @@ void UiWriteCache::Forget(int slot)
     state->Capture.reset();
 }
 
-void UiWriteCache::ForgetAll()
+void SentWrites::ForgetAll()
 {
     _slots.ResetAll();
     _shared = {};
 }
 
-const std::string& UiWriteCache::Key(UiProperty kind, std::string_view panelId, std::string_view name)
+const std::string& SentWrites::KeyFor(WriteKind kind, std::string_view panelId, std::string_view name)
 {
     _scratch.assign(1, static_cast<char>(kind));
     _scratch += kKeySeparator;

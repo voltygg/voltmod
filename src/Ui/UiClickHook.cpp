@@ -1,9 +1,9 @@
-#include "Ui/UiClicks.hpp"
+#include "Ui/UiClickHook.hpp"
 
 #include "Engine/ProtoReflect.hpp"
 #include "Engine/ServerSideClients.hpp"
 #include "Engine/VtableLookup.hpp"
-#include "Ui/ClickPayload.hpp"
+#include "Ui/ClickMessage.hpp"
 
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
@@ -44,7 +44,7 @@ static const UserMessageFields& FieldsOf(const ProtoMessage& proto)
     static const UserMessageFields fields = [&proto] {
         const UserMessageFields resolved{.Type = ProtoField(proto, "msg_type"), .Data = ProtoField(proto, "msg_data")};
         if (!resolved)
-            Log::Warn("UiClicks: {} has no 'msg_type'/'msg_data' field; ignoring presses.", kUserMessage);
+            Log::Warn("UiClickHook: {} has no 'msg_type'/'msg_data' field; ignoring presses.", kUserMessage);
         return resolved;
     }();
     return fields;
@@ -76,7 +76,7 @@ static EntityRef ResolveLayout(EntitySystem& entities, uint32_t networked)
     return {};
 }
 
-UiClicks::UiClicks(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots, EntitySystem& entities,
+UiClickHook::UiClickHook(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots, EntitySystem& entities,
                    Scheduler& scheduler, Event<const UiClick&>& clicked)
     : _interfaces(interfaces),
       _bindings(bindings),
@@ -86,24 +86,24 @@ UiClicks::UiClicks(Interfaces& interfaces, const Bindings& bindings, SlotEvents&
       _clicked(clicked)
 {}
 
-UiClicks::~UiClicks()
+UiClickHook::~UiClickHook()
 {
     // Remove() runs when the last subscription drops, so a hook still up here means one outlived
     // the Runtime - and would point into an unloaded module.
     if (_hook)
-        Log::Error("UiClicks: a click subscription outlived the hook; a click handler may dangle.");
+        Log::Error("UiClickHook: a click subscription outlived the hook; a click handler may dangle.");
 }
 
-bool UiClicks::Install()
+bool UiClickHook::Install()
 {
     if (!_bindings.FilterMessage)
     {
-        Log::Warn("UiClicks: FilterMessage did not bind; button presses will not arrive.");
+        Log::Warn("UiClickHook: FilterMessage did not bind; button presses will not arrive.");
         return false;
     }
     if (_bindings.CustomHudClicked < 0)
     {
-        Log::Warn("UiClicks: no custom HUD click message id in gamedata; button presses will not arrive.");
+        Log::Warn("UiClickHook: no custom HUD click message id in gamedata; button presses will not arrive.");
         return false;
     }
     if (auto* message = _interfaces.NetworkMessages
@@ -112,33 +112,33 @@ bool UiClicks::Install()
         _messageId = message->GetNetMessageInfo()->m_MessageId;
     if (_messageId < 0)
     {
-        Log::Warn("UiClicks: the engine does not know {}; button presses will not arrive.", kUserMessage);
+        Log::Warn("UiClickHook: the engine does not know {}; button presses will not arrive.", kUserMessage);
         return false;
     }
 
     // Nobody connected yet is the ordinary case at load: keep the subscription and bind on the
     // first connect instead of refusing it.
-    if (!HookClient())
+    if (!HookConnectedClient())
     {
         _connectListener = _slots.Changed += [this](int) {
-            if (!_hook && HookClient())
+            if (!_hook && HookConnectedClient())
                 _connectListener.Reset();
         };
     }
     return true;
 }
 
-void UiClicks::Remove()
+void UiClickHook::Remove()
 {
     _connectListener.Reset();
     _hook.Reset();
     _onFrame.Reset();
-    _pending.clear();
+    _queued.clear();
     _messageId = -1;
-    _baseOffset = 0;
+    _subobjectOffset = 0;
 }
 
-bool UiClicks::HookClient()
+bool UiClickHook::HookConnectedClient()
 {
     void* client = AnyServerSideClient(_interfaces, _bindings);
     if (!client)
@@ -151,7 +151,7 @@ bool UiClicks::HookClient()
     });
     if (!slot)
     {
-        Log::Warn("UiClicks: FilterMessage is in none of CServerSideClient's vtables; not hooking.");
+        Log::Warn("UiClickHook: FilterMessage is in none of CServerSideClient's vtables; not hooking.");
         _connectListener.Reset();  // a retry cannot change this
         return false;
     }
@@ -163,30 +163,30 @@ bool UiClicks::HookClient()
                                           .Table = VTableRef("CServerSideClient", slot->Table)};
 
     auto hook = VtableHook::OnVTable<VoltMod_FilterMessageHook>("Custom HUD clicks", binding, this,
-                                                                &UiClicks::Hook_FilterMessage, nullptr);
+                                                                &UiClickHook::Hook_FilterMessage, nullptr);
     if (!hook)
     {
-        Log::Warn("UiClicks: {}; button presses will not arrive.", hook.error().Detail);
+        Log::Warn("UiClickHook: {}; button presses will not arrive.", hook.error().Detail);
         return false;
     }
 
     _hook = std::move(*hook);
-    _baseOffset = slot->BaseOffset;
-    _onFrame = _scheduler.EveryFrame([this] { DeliverPending(); });
-    Log::Info("UiClicks: hooked FilterMessage at index {} (+{} from the client), user message id {}, click type {}.",
-              slot->Index, _baseOffset, _messageId, _bindings.CustomHudClicked);
+    _subobjectOffset = slot->BaseOffset;
+    _onFrame = _scheduler.EveryFrame([this] { RaiseQueued(); });
+    Log::Info("UiClickHook: hooked FilterMessage at index {} (+{} from the client), user message id {}, click type {}.",
+              slot->Index, _subobjectOffset, _messageId, _bindings.CustomHudClicked);
     return true;
 }
 
-bool UiClicks::Hook_FilterMessage(const CNetMessage* message, void*)
+bool UiClickHook::Hook_FilterMessage(const CNetMessage* message, void*)
 {
     // Reading a press never changes the verdict, so the hook itself is one unconditional
     // MRES_IGNORED and every early-out below is a plain return.
-    HandleMessage(message, META_IFACEPTR(void));
+    QueuePress(message, META_IFACEPTR(void));
     RETURN_META_VALUE(MRES_IGNORED, true);
 }
 
-void UiClicks::HandleMessage(const CNetMessage* message, void* self)
+void UiClickHook::QueuePress(const CNetMessage* message, void* self)
 {
     // Every inbound message from every client lands here, so the id check comes first.
     INetworkMessageInternal* info = message ? message->GetNetMessage() : nullptr;
@@ -207,39 +207,39 @@ void UiClicks::HandleMessage(const CNetMessage* message, void* self)
         return;
 
     // A DVP hook on a secondary vtable is called with that subobject, not the client.
-    const void* client = self ? static_cast<uint8_t*>(self) - _baseOffset : nullptr;
+    const void* client = self ? static_cast<uint8_t*>(self) - _subobjectOffset : nullptr;
     const int slot = SlotOfServerSideClient(_bindings, client);
     if (!IsValidSlot(slot))
         return;
 
-    auto payload = ParseClickPayload(reflection->GetString(*proto, fields.Data));
+    auto payload = ParseClickMessage(reflection->GetString(*proto, fields.Data));
     if (!payload)
     {
-        Log::Warn("UiClicks: a press from slot {} did not parse ({}).", slot, payload.error().Detail);
+        Log::Warn("UiClickHook: a press from slot {} did not parse ({}).", slot, payload.error().Detail);
         return;
     }
 
     // Client-controlled text: an embedded NUL would truncate it anywhere it is formatted.
-    if (payload->Button.find('\0') != std::string::npos)
+    if (payload->ButtonId.find('\0') != std::string::npos)
         return;
 
-    _pending.push_back({.Slot = slot, .Layout = payload->Layout, .Button = std::move(payload->Button)});
+    _queued.push_back({.Slot = slot, .LayoutHandle = payload->LayoutHandle, .ButtonId = std::move(payload->ButtonId)});
 }
 
-void UiClicks::DeliverPending()
+void UiClickHook::RaiseQueued()
 {
-    // Swapped out first: a handler may drop the last subscription, which disarms and clears the
-    // queue.
-    std::vector<Pending> presses;
-    presses.swap(_pending);
+    // Swapped out first: a handler may drop the last subscription, which removes the hook and
+    // clears the queue.
+    std::vector<QueuedPress> presses;
+    presses.swap(_queued);
 
-    for (Pending& press : presses)
+    for (QueuedPress& press : presses)
     {
-        EntityRef layout = ResolveLayout(_entities, press.Layout);
+        EntityRef layout = ResolveLayout(_entities, press.LayoutHandle);
         if (!layout)
             continue;  // stale press from a layout that has since been removed
 
-        _clicked.Raise(UiClick{.Slot = press.Slot, .Layout = layout, .ButtonId = std::move(press.Button)});
+        _clicked.Raise(UiClick{.Slot = press.Slot, .LayoutEntity = layout, .ButtonId = std::move(press.ButtonId)});
     }
 }
 

@@ -2,7 +2,7 @@
 
 #include <VoltMod/Core/PerSlot.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
-#include <VoltMod/Ui/UiPanel.hpp>
+#include <VoltMod/Ui/UiPanels.hpp>
 #include <string>
 #include <string_view>
 
@@ -22,13 +22,13 @@ namespace VoltMod
 class Screen
 {
 public:
-    /** One panel for everyone. A @ref CustomUi::Panel failure is logged here, leaving an empty
+    /** One panel for everyone. A @ref UiPanels::Panel failure is logged here, leaving an empty
      *  panel that fails every later @ref Show the same way. */
-    Screen(CustomUi& ui, std::string_view layout, std::string_view rootId);
+    Screen(UiPanels& ui, std::string_view layout, std::string_view rootId);
 
     /** A panel per player, spawned on first @ref Show. @p slots drops a departing player's panel
      *  so it does not leak into whoever takes the slot next. */
-    Screen(CustomUi& ui, SlotEvents& slots, std::string_view layout, std::string_view rootId);
+    Screen(UiPanels& ui, SlotEvents& slots, std::string_view layout, std::string_view rootId);
 
     /** Make the layout exist for @p slot and unhide its root; @p capture also gives that slot the
      *  cursor. False when it cannot be shown - the panel already logged why. */
@@ -43,11 +43,11 @@ public:
     [[nodiscard]] std::string_view Layout() const noexcept;
 
 private:
-    CustomUi& _ui;
+    UiPanels& _ui;
     std::string _layout;
     std::string _root;
     /** True when each player draws on their own panel. */
-    bool _perViewer;
+    bool _perPlayer;
     UiPanel _shared;
     PerSlot<UiPanel> _private;
 };

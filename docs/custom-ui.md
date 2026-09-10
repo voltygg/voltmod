@@ -2,7 +2,7 @@
 
 [TOC]
 
-@ref VoltMod::CustomUi drives CS2 Panorama panels through
+@ref VoltMod::UiPanels drives CS2 Panorama panels through
 `custom_hud_layout` entities. Panels use compiled XML and CSS and may contain
 clickable buttons.
 
@@ -25,12 +25,12 @@ if (!panel)
     return false;             // the name was refused, or the engine would not spawn it
 
 _panel = std::move(*panel);
-_panel.Text(UiPanel::Everyone, "title", "name", "Welcome");
-_panel.Class(UiPanel::Everyone, "card", "Hidden", false);  // show it
-_panel.InputCapture(UiPanel::Everyone, true);              // make it clickable
+_panel.SetText(UiPanel::Everyone, "title", "name", "Welcome");
+_panel.SetClass(UiPanel::Everyone, "card", "Hidden", false);  // show it
+_panel.SetInputCapture(UiPanel::Everyone, true);              // make it clickable
 
 // Later, from a command or an event:
-_panel.Text(UiPanel::Everyone, "title", "name", "Round 2");
+_panel.SetText(UiPanel::Everyone, "title", "name", "Round 2");
 ```
 
 Every write names a slot first. @ref VoltMod::UiPanel::Everyone is the layout's
@@ -45,9 +45,9 @@ on the next frame.
 member instead of storing its @ref VoltMod::EntityRef. Calls re-resolve the
 entity, so a panel becomes falsy after a map change.
 
-@ref VoltMod::CustomUi::Spawn creates the entity now. @ref VoltMod::CustomUi::Panel
+@ref VoltMod::UiPanels::Spawn creates the entity now. @ref VoltMod::UiPanels::Panel
 is the same thing without the entity: it checks the name and hands back a panel
-that spawns on its first @ref VoltMod::UiPanel::Ensure, which is what a panel that
+that spawns on its first @ref VoltMod::UiPanel::Prepare, which is what a panel that
 only appears when something opens it wants.
 
 Several layouts can exist at once and are independent, so one plugin's panel does
@@ -136,7 +136,7 @@ panorama/layout/custom_game/welcome.vxml_c  rejected: name the source, not the c
 panorama/layout/hud/welcome.xml             rejected: outside the whitelisted directory
 ```
 
-@ref VoltMod::CustomUi::Spawn and @ref VoltMod::CustomUi::Panel enforce both rules
+@ref VoltMod::UiPanels::Spawn and @ref VoltMod::UiPanels::Panel enforce both rules
 and expand a bare name, so a mistake here is an `Error::Invalid` rather than a panel
 that renders nothing and explains itself only on the client console.
 
@@ -179,7 +179,7 @@ hook, so keep what subscribing returns - @ref VoltMod::SubscriptionScope holds s
 handlers that live and die together:
 
 ```cpp
-_subs.Add(_panel.Button("accept") += [this](int slot) { Accept(slot); });
+_subs.Add(_panel.Pressed("accept") += [this](int slot) { Accept(slot); });
 _subs.Add(_panel.Clicked() += [this](const UiClick& click) { Log(click.ButtonId); });
 ```
 
@@ -187,7 +187,7 @@ _subs.Add(_panel.Clicked() += [this](const UiClick& click) { Log(click.ButtonId)
 layouts that both have an `accept` button do not trigger each other's handler, and
 @ref VoltMod::UiPanel::Clicked is every press in that one layout. Both match on
 whichever entity is carrying the layout now, so they survive a re-spawn.
-@ref VoltMod::CustomUi::Clicked is the unfiltered form, for a plugin that wants
+@ref VoltMod::UiPanels::Clicked is the unfiltered form, for a plugin that wants
 presses from layouts it did not spawn.
 
 A press is raised on the game frame after it arrives, not from inside the engine's
@@ -195,7 +195,7 @@ inbound message processing, so a handler may write to the panel - hide it, relea
 the cursor - and the write reaches the client.
 
 Nothing is clickable until that player has a cursor, which is
-`InputCapture(slot, true)`. Without it the game keeps mouse-look and the panel
+`SetInputCapture(slot, true)`. Without it the game keeps mouse-look and the panel
 never sees a pointer - the usual reason a layout renders but does nothing.
 
 `ButtonId` is client-controlled text. Compare it against ids you authored rather
@@ -208,8 +208,8 @@ player, which the engine networks through a single-slot recipient filter - so on
 entity can show different content to every player:
 
 ```cpp
-if (_panel.Ensure(slot))                              // spawns on demand; false means fall back
-    _panel.Text(slot, "title", "name", player.Name());
+if (_panel.Prepare(slot))                             // spawns on demand; false means fall back
+    _panel.SetText(slot, "title", "name", player.Name());
 ```
 
 A client shows the per-player state of the **pawn it is viewing**: a spectator sees
@@ -225,8 +225,8 @@ that must survive death and spectating - is a private panel:
 
 ```cpp
 auto panel = runtime.Ui.Panel("card", slot);    // needs Capability::Visibility
-if (panel && panel->Ensure(slot))
-    panel->Text(slot, "title", "name", "Only you see this");
+if (panel && panel->Prepare(slot))
+    panel->SetText(slot, "title", "name", "Only you see this");
 ```
 
 The entity is networked to that one client through the Visibility filter, and its
@@ -234,22 +234,22 @@ writes land in the layout's global state, which a client shows regardless of the
 pawn it is viewing. Input capture still goes to the viewer's own per-player state,
 the one the client reads for itself. Writes name the viewer or
 @ref VoltMod::UiPanel::Everyone; any other slot is refused. The panel removes its
-entity when the slot changes hands, and @ref VoltMod::CustomUi::Panel refuses to
+entity when the slot changes hands, and @ref VoltMod::UiPanels::Panel refuses to
 make one while the filter is inert. It costs one entity per viewer, so make one
 when something opens rather than one per connected player.
 
 The per-player state count is fixed when the entity spawns, so a player who
 connected later is only reachable through a new one.
-@ref VoltMod::UiPanel::Ensure is where that re-spawn happens, and the only place it
+@ref VoltMod::UiPanel::Prepare is where that re-spawn happens, and the only place it
 happens: a write never spawns, so call it once before a burst of writes for one
 player rather than paying for the check on each. A write for a slot the entity does
 not cover fails with a reason instead of looking like it worked, and
-@ref VoltMod::UiPanel::Covers asks the same question without the spawn.
+@ref VoltMod::UiPanel::CanWrite asks the same question without the spawn.
 
 Writes are cached, so unchanged values are not resent. A shared panel dedupes in
 its own bucket, apart from every slot, so a per-tick redraw of a screen everyone
-sees costs nothing while nothing changes. @ref VoltMod::UiPanel::Forget
-invalidates a slot's cache when another system changes the panel state.
+sees costs nothing while nothing changes. @ref VoltMod::UiPanel::ForgetWrites
+drops what a slot was last sent when another system changes the panel state.
 
 ## Screens and writers
 

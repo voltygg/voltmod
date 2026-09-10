@@ -10,14 +10,14 @@ using VoltMod::Event;
 using VoltMod::Subscription;
 using VoltMod::UiClick;
 using VoltMod::Internal::RouteUiClick;
-using VoltMod::Internal::UiButtonEvents;
+using VoltMod::Internal::PressedEvents;
 
 /** The pieces a UiPanel hands the router, with no entity system in sight. */
 struct RoutingFixture
 {
     EntityRef Layout{.Handle = 7};
     Event<const UiClick&> Clicked;
-    UiButtonEvents Buttons;
+    PressedEvents Buttons;
 
     /** Subscribe to one button id the way UiPanel::Button does. */
     Subscription OnButton(const std::string& id, std::function<void(int)> handler)
@@ -37,7 +37,7 @@ TEST_CASE("A press raises the panel event and the button it names")
     const Subscription all = panel.Clicked += [&](const UiClick& click) { seen.push_back(click.ButtonId); };
     const Subscription accept = panel.OnButton("accept", [&](int slot) { pressedBy = slot; });
 
-    CHECK(panel.Route(UiClick{.Slot = 3, .Layout = EntityRef{.Handle = 7}, .ButtonId = "accept"}));
+    CHECK(panel.Route(UiClick{.Slot = 3, .LayoutEntity = EntityRef{.Handle = 7}, .ButtonId = "accept"}));
 
     CHECK(seen == std::vector<std::string>{"accept"});
     CHECK(pressedBy == 3);
@@ -51,7 +51,7 @@ TEST_CASE("A press in another layout is not this panel's")
     const Subscription all = panel.Clicked += [&](const UiClick&) { anything = true; };
     const Subscription accept = panel.OnButton("accept", [&](int) { anything = true; });
 
-    CHECK_FALSE(panel.Route(UiClick{.Slot = 3, .Layout = EntityRef{.Handle = 9}, .ButtonId = "accept"}));
+    CHECK_FALSE(panel.Route(UiClick{.Slot = 3, .LayoutEntity = EntityRef{.Handle = 9}, .ButtonId = "accept"}));
     CHECK_FALSE(anything);
 }
 
@@ -63,7 +63,7 @@ TEST_CASE("A press before the panel has spawned matches nothing")
 
     const Subscription all = panel.Clicked += [&](const UiClick&) { anything = true; };
 
-    CHECK_FALSE(panel.Route(UiClick{.Slot = 3, .Layout = EntityRef{}, .ButtonId = "accept"}));
+    CHECK_FALSE(panel.Route(UiClick{.Slot = 3, .LayoutEntity = EntityRef{}, .ButtonId = "accept"}));
     CHECK_FALSE(anything);
 }
 
@@ -76,7 +76,7 @@ TEST_CASE("A button id nobody subscribed to still raises the panel event")
     const Subscription all = panel.Clicked += [&](const UiClick&) { ++panelEvents; };
     const Subscription accept = panel.OnButton("accept", [&](int) { ++acceptPresses; });
 
-    CHECK(panel.Route(UiClick{.Slot = 3, .Layout = EntityRef{.Handle = 7}, .ButtonId = "decline"}));
+    CHECK(panel.Route(UiClick{.Slot = 3, .LayoutEntity = EntityRef{.Handle = 7}, .ButtonId = "decline"}));
 
     CHECK(panelEvents == 1);
     CHECK(acceptPresses == 0);
@@ -89,8 +89,8 @@ TEST_CASE("A button subscription taken before any press still fires")
 
     const Subscription accept = panel.OnButton("accept", [&](int slot) { slots.push_back(slot); });
 
-    CHECK(panel.Route(UiClick{.Slot = 1, .Layout = EntityRef{.Handle = 7}, .ButtonId = "accept"}));
-    CHECK(panel.Route(UiClick{.Slot = 2, .Layout = EntityRef{.Handle = 7}, .ButtonId = "accept"}));
+    CHECK(panel.Route(UiClick{.Slot = 1, .LayoutEntity = EntityRef{.Handle = 7}, .ButtonId = "accept"}));
+    CHECK(panel.Route(UiClick{.Slot = 2, .LayoutEntity = EntityRef{.Handle = 7}, .ButtonId = "accept"}));
 
     CHECK(slots == std::vector<int>{1, 2});
 }
@@ -102,9 +102,9 @@ TEST_CASE("Dropping a button subscription stops its handler")
 
     {
         const Subscription accept = panel.OnButton("accept", [&](int) { ++presses; });
-        CHECK(panel.Route(UiClick{.Slot = 1, .Layout = EntityRef{.Handle = 7}, .ButtonId = "accept"}));
+        CHECK(panel.Route(UiClick{.Slot = 1, .LayoutEntity = EntityRef{.Handle = 7}, .ButtonId = "accept"}));
     }
 
-    CHECK(panel.Route(UiClick{.Slot = 1, .Layout = EntityRef{.Handle = 7}, .ButtonId = "accept"}));
+    CHECK(panel.Route(UiClick{.Slot = 1, .LayoutEntity = EntityRef{.Handle = 7}, .ButtonId = "accept"}));
     CHECK(presses == 1);
 }

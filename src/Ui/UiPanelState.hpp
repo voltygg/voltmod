@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Ui/UiClickRouting.hpp"
-#include "Ui/UiFields.hpp"
-#include "Ui/UiWriteCache.hpp"
+#include "Ui/PanelEntity.hpp"
+#include "Ui/SentWrites.hpp"
 
 #include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Core/Result.hpp>
@@ -54,7 +54,7 @@ struct UiPanelState
 
     /** Whether the entity exists and carries per-player state for @p slot. On a private panel,
      *  only the viewer is ever covered. */
-    [[nodiscard]] bool Covers(int slot) const;
+    [[nodiscard]] bool CanWrite(int slot) const;
 
     [[nodiscard]] bool IsPrivate() const noexcept { return Viewer != EveryoneSlot; }
 
@@ -64,16 +64,16 @@ struct UiPanelState
     Status RecordWrite(int slot, Status status, std::string_view what);
 
     /** The event for one Button id, created on first use. */
-    Event<int>& Button(std::string_view id);
+    Event<int>& Pressed(std::string_view id);
 
-    /** Take and drop the one subscription to @ref CustomUi::Clicked that feeds @ref Clicked and
-     *  every @ref Buttons entry. False means the hook refused; a later subscriber may retry. */
+    /** Take and drop the one subscription to @ref UiPanels::Clicked that feeds @ref Clicked and
+     *  every @ref PressedById entry. False means the hook refused; a later subscriber may retry. */
     bool StartClickRouting();
     void StopClickRouting();
 
     EntitySystem* Entities = nullptr;
     EntityOps* Ops = nullptr;
-    /** @ref CustomUi::Clicked: every press, filtered down to this layout by @ref ClickListener. */
+    /** @ref UiPanels::Clicked: every press, filtered down to this layout by @ref ClickListener. */
     Event<const UiClick&>* AllClicks = nullptr;
 
     /** The layout as it was named, and the resource name that goes on the entity. */
@@ -81,7 +81,7 @@ struct UiPanelState
     std::string Resource;
 
     /** The filter a private panel's entity is registered with, so only @ref Viewer receives it. */
-    Visibility* Exclusive = nullptr;
+    Visibility* VisibilityFilter = nullptr;
     /** The one slot a private panel is networked to, or @ref EveryoneSlot for a shared one. */
     int Viewer = EveryoneSlot;
 
@@ -92,16 +92,16 @@ struct UiPanelState
     /** A player has connected or disconnected since the last spawn. The per-player state count is
      *  fixed when the entity spawns, so a slot that connected later is only reachable through a new
      *  entity - and re-spawning on any other trigger would retry a hopeless spawn every frame. */
-    bool PlayersChanged = true;
+    bool RosterChangedSinceSpawn = true;
 
-    UiWriteCache Cache;
+    SentWrites Sent;
 
     /** Declared before the events it feeds, so it outlives them. @ref ClickListener is taken
-     *  while any of @ref Clicked and the @ref Buttons entries is listening, and only once. */
+     *  while any of @ref Clicked and the @ref PressedById entries is listening, and only once. */
     SharedLifecycle ClickRouting;
 
     Event<const UiClick&> Clicked;
-    Internal::UiButtonEvents Buttons;
+    Internal::PressedEvents PressedById;
 
     /** Declared last: their handlers touch the members above them, so dropping them here retires
      *  those handlers before the state they read goes away. */

@@ -15,13 +15,13 @@ struct FakePanel
     std::vector<std::tuple<int, std::string, std::string, std::string>> Texts;
     std::vector<std::tuple<int, std::string, std::string, bool>> Classes;
 
-    VoltMod::Status Text(int slot, std::string_view id, std::string_view var, std::string_view value)
+    VoltMod::Status SetText(int slot, std::string_view id, std::string_view var, std::string_view value)
     {
         Texts.emplace_back(slot, std::string(id), std::string(var), std::string(value));
         return {};
     }
 
-    VoltMod::Status Class(int slot, std::string_view id, std::string_view cls, bool on)
+    VoltMod::Status SetClass(int slot, std::string_view id, std::string_view cls, bool on)
     {
         Classes.emplace_back(slot, std::string(id), std::string(cls), on);
         return {};

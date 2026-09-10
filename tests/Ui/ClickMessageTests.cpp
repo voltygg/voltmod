@@ -1,10 +1,10 @@
-#include "Ui/ClickPayload.hpp"
+#include "Ui/ClickMessage.hpp"
 
 #include <doctest/doctest.h>
 #include <string>
 
 using VoltMod::ErrorCode;
-using VoltMod::ParseClickPayload;
+using VoltMod::ParseClickMessage;
 
 /** A protobuf key byte: field number in the high bits, wire type in the low three. */
 static char Key(int field, int wireType)
@@ -26,10 +26,10 @@ static std::string Press(unsigned char layout, const std::string& button)
 
 TEST_CASE("A press carries the layout handle and the button id")
 {
-    auto parsed = ParseClickPayload(Press(7, "vm_row3"));
+    auto parsed = ParseClickMessage(Press(7, "vm_row3"));
     REQUIRE(parsed.has_value());
-    CHECK(parsed->Layout == 7);
-    CHECK(parsed->Button == "vm_row3");
+    CHECK(parsed->LayoutHandle == 7);
+    CHECK(parsed->ButtonId == "vm_row3");
 }
 
 TEST_CASE("A multi-byte handle is decoded as a varint, not a byte")
@@ -43,10 +43,10 @@ TEST_CASE("A multi-byte handle is decoded as a varint, not a byte")
     bytes += static_cast<char>(2);
     bytes += "ok";
 
-    auto parsed = ParseClickPayload(bytes);
+    auto parsed = ParseClickMessage(bytes);
     REQUIRE(parsed.has_value());
-    CHECK(parsed->Layout == 150);
-    CHECK(parsed->Button == "ok");
+    CHECK(parsed->LayoutHandle == 150);
+    CHECK(parsed->ButtonId == "ok");
 }
 
 TEST_CASE("The fields are read wherever they sit")
@@ -58,17 +58,17 @@ TEST_CASE("The fields are read wherever they sit")
     bytes += Key(1, 0);
     bytes += static_cast<char>(9);
 
-    auto parsed = ParseClickPayload(bytes);
+    auto parsed = ParseClickMessage(bytes);
     REQUIRE(parsed.has_value());
-    CHECK(parsed->Layout == 9);
-    CHECK(parsed->Button == "accept");
+    CHECK(parsed->LayoutHandle == 9);
+    CHECK(parsed->ButtonId == "accept");
 }
 
 TEST_CASE("An empty button id is a value, not a failure")
 {
-    auto parsed = ParseClickPayload(Press(1, ""));
+    auto parsed = ParseClickMessage(Press(1, ""));
     REQUIRE(parsed.has_value());
-    CHECK(parsed->Button.empty());
+    CHECK(parsed->ButtonId.empty());
 }
 
 TEST_CASE("A field CS2 adds later is skipped rather than refused")
@@ -95,10 +95,10 @@ TEST_CASE("A field CS2 adds later is skipped rather than refused")
         }
 
         CAPTURE(wireType);
-        auto parsed = ParseClickPayload(bytes);
+        auto parsed = ParseClickMessage(bytes);
         REQUIRE(parsed.has_value());
-        CHECK(parsed->Layout == 4);
-        CHECK(parsed->Button == "decline");
+        CHECK(parsed->LayoutHandle == 4);
+        CHECK(parsed->ButtonId == "decline");
     }
 }
 
@@ -107,15 +107,15 @@ TEST_CASE("A payload missing either field is refused")
     std::string layoutOnly;
     layoutOnly += Key(1, 0);
     layoutOnly += static_cast<char>(3);
-    CHECK(ParseClickPayload(layoutOnly).error().Code == ErrorCode::Invalid);
+    CHECK(ParseClickMessage(layoutOnly).error().Code == ErrorCode::Invalid);
 
     std::string buttonOnly;
     buttonOnly += Key(2, 2);
     buttonOnly += static_cast<char>(2);
     buttonOnly += "hi";
-    CHECK(ParseClickPayload(buttonOnly).error().Code == ErrorCode::Invalid);
+    CHECK(ParseClickMessage(buttonOnly).error().Code == ErrorCode::Invalid);
 
-    CHECK(ParseClickPayload("").error().Code == ErrorCode::Invalid);
+    CHECK(ParseClickMessage("").error().Code == ErrorCode::Invalid);
 }
 
 TEST_CASE("A length that runs past the end is refused rather than read")
@@ -127,7 +127,7 @@ TEST_CASE("A length that runs past the end is refused rather than read")
     bytes += static_cast<char>(64);  // claims 64 bytes and supplies two
     bytes += "hi";
 
-    CHECK(ParseClickPayload(bytes).error().Code == ErrorCode::Invalid);
+    CHECK(ParseClickMessage(bytes).error().Code == ErrorCode::Invalid);
 }
 
 TEST_CASE("A truncated varint is refused rather than read past the end")
@@ -136,7 +136,7 @@ TEST_CASE("A truncated varint is refused rather than read past the end")
     bytes += Key(1, 0);
     bytes += static_cast<char>(0x80);  // continuation bit set, nothing follows
 
-    CHECK(ParseClickPayload(bytes).error().Code == ErrorCode::Invalid);
+    CHECK(ParseClickMessage(bytes).error().Code == ErrorCode::Invalid);
 }
 
 TEST_CASE("A wire type that carries no length is refused, since the rest cannot be found")
@@ -144,15 +144,15 @@ TEST_CASE("A wire type that carries no length is refused, since the rest cannot 
     std::string bytes = Press(1, "ok");
     bytes += Key(9, 3);  // a proto2 group, which proto3 does not emit
 
-    CHECK(ParseClickPayload(bytes).error().Code == ErrorCode::Invalid);
+    CHECK(ParseClickMessage(bytes).error().Code == ErrorCode::Invalid);
 }
 
 TEST_CASE("A button id holding a NUL is returned intact, for the caller to reject")
 {
     std::string button("a\0b", 3);
-    auto parsed = ParseClickPayload(Press(2, button));
+    auto parsed = ParseClickMessage(Press(2, button));
     REQUIRE(parsed.has_value());
-    CHECK(parsed->Button.size() == 3);
+    CHECK(parsed->ButtonId.size() == 3);
 }
 
 TEST_CASE("A skipped field claiming a huge length is refused, not wrapped around")
@@ -163,5 +163,5 @@ TEST_CASE("A skipped field claiming a huge length is refused, not wrapped around
     bytes.append(9, static_cast<char>(0xFF));
     bytes += static_cast<char>(0x01);
 
-    CHECK(ParseClickPayload(bytes).error().Code == ErrorCode::Invalid);
+    CHECK(ParseClickMessage(bytes).error().Code == ErrorCode::Invalid);
 }
