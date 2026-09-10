@@ -80,7 +80,7 @@ def test_plugin_screen_renders_layout_styles_and_icons(tmp_path):
     assert "{s:slot0_title}" in xml
     assert 'src="s2r://panorama/images/custom_game/weapons/ak47.vtex"' in xml
     assert ".Card-title" in css and "color: #e8e6e0;" in css
-    assert ".Bar-fill.Step--4 {\n  width: 100.0%;\n}" in css
+    assert ".Bar.Step--4 .Bar-fill {\n  width: 100.0%;\n}" in css
     vtex = (out / "images/custom_game/weapons/ak47.vtex").read_text(encoding="utf-8")
     assert vtex.startswith("<!-- dmx encoding")
     assert '"panorama/images/custom_game/weapons/ak47.png"' in vtex
