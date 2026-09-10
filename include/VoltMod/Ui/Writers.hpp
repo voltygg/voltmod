@@ -7,7 +7,7 @@ namespace VoltMod
 {
 
 /** One dialog variable on the layout root, what a `text="{s:var}"` Label reads. */
-struct Text
+struct TextVar
 {
     std::string_view Root;
     std::string_view Var;
@@ -20,7 +20,7 @@ struct Text
 };
 
 /** One class on one panel, on or off. */
-struct Flag
+struct ClassFlag
 {
     std::string_view Id;
     std::string_view Class;
@@ -34,24 +34,27 @@ struct Flag
 
 /**
  * @brief One panel, a family of classes, exactly one of them on: an index into @ref Classes,
- * -1 for none.
+ * or @ref None.
  *
  * A `Prefix--variant` family - an icon set, a bar's steps, an accent colour. @ref Classes points
  * at the family's generated `inline constexpr` array rather than copying it, so a call site never
  * spells the variant count. Writes all of them so a stale one clears; the panel's write cache
  * makes the ones that did not change free. N panels sharing one class (tab selection) are an
- * array of @ref Flag instead.
+ * array of @ref ClassFlag instead.
  *
  * A failed write is the panel's to report, not the caller's: it logs once and keeps going.
  */
-struct Choice
+struct ClassChoice
 {
+    /** The index that turns every class off. */
+    static constexpr int None = -1;
+
     std::string_view Id;
     std::span<const std::string_view> Classes;
 
     [[nodiscard]] constexpr int Count() const { return static_cast<int>(Classes.size()); }
 
-    /** The index of @p name: a class as written, or the variant after its `--`. -1 for neither. */
+    /** The index of @p name: a class as written, or the variant after its `--`. @ref None for neither. */
     [[nodiscard]] constexpr int Find(std::string_view name) const
     {
         for (int i = 0; i < Count(); ++i)
@@ -61,7 +64,7 @@ struct Choice
             if (cls == name || (dashes != std::string_view::npos && cls.substr(dashes + 2) == name))
                 return i;
         }
-        return -1;
+        return None;
     }
 
     template <class Panel>

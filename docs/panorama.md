@@ -168,15 +168,15 @@ what `tests/Ui/BoundScreenTests.cpp` and the `ui` plugin's `Hud.cpp` both do:
 ```cpp
 struct Card
 {
-    VoltMod::Text Title, Subtitle, Value;
-    VoltMod::Choice Icon, Bar, Accent;
-    VoltMod::Flag Hidden;
+    VoltMod::TextVar Title, Subtitle, Value;
+    VoltMod::ClassChoice Icon, Bar, Accent;
+    VoltMod::ClassFlag Hidden;
 };
 
 constexpr std::array<Card, 2> Cards{ /* one entry per card */ };
 ```
 
-`Text`, `Flag` and `Choice` are `VoltMod/Ui/Widgets.hpp` writers - see
+`TextVar`, `ClassFlag` and `ClassChoice` are `VoltMod/Ui/Writers.hpp` writers - see
 @ref custom_ui_guide's "Screens and writers" section for how to call them.
 
 ## Block library

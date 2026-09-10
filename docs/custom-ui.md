@@ -276,20 +276,20 @@ menu.Show(slot, /*capture=*/true);
 Three small writer types turn a layout's ids into typed calls instead of raw
 `Text`/`Class` strings:
 
-- @ref VoltMod::Text - one dialog variable on the layout root.
-- @ref VoltMod::Flag - one class on one panel, on or off.
-- @ref VoltMod::Choice - one panel, a family of classes, exactly one of them on (an
+- @ref VoltMod::TextVar - one dialog variable on the layout root.
+- @ref VoltMod::ClassFlag - one class on one panel, on or off.
+- @ref VoltMod::ClassChoice - one panel, a family of classes, exactly one of them on (an
   icon set, an accent colour, a bar step). N panels sharing one class - tab selection
-  - is an array of `Flag`.
+  - is an array of `ClassFlag`.
 
 ```cpp
-constexpr Text CardTitle{.Root = "card", .Var = "title"};
-constexpr Flag CardHidden{.Id = "card", .Class = "Hidden"};
-constexpr Choice Icon{.Id = "card_icon", .Classes = Hud::IconClasses};
+constexpr TextVar CardTitle{.Root = "card", .Var = "title"};
+constexpr ClassFlag CardHidden{.Id = "card", .Class = "Hidden"};
+constexpr ClassChoice Icon{.Id = "card_icon", .Classes = Hud::IconClasses};
 
 CardTitle.Write(screen.Panel(slot), slot, "Round 2");
 CardHidden.Write(screen.Panel(slot), slot, false);
-Icon.Write(screen.Panel(slot), slot, Icon.Find("awp"));  // -1 turns every class off
+Icon.Write(screen.Panel(slot), slot, Icon.Find("awp"));  // ClassChoice::None turns every class off
 ```
 
 The ids, dialog-variable names and class families they point at are not written by
