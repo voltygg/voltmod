@@ -170,7 +170,7 @@ values so slot reuse cannot change the caller or target.
 
 ```cpp
 MenuBuilder(title)
-    .Add(ButtonRow{.Label = rows.Tr("action.callCheck"),
+    .Add(ButtonRow{.Label = rows.Translate("action.callCheck"),
                    .Activate = [&](int) { StartCheck(...); },
                    .Enabled = rows.Allows("s")})
 ```

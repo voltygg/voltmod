@@ -2,19 +2,19 @@
     optional steppers. The row panel, the press target and each stepper carry their own id, so a
     driver can hide the row, read a press and read a step separately.
 
-    `glyphs` is a list of `(name, mark)` pairs stacked in the lead column, all collapsed by
+    `marks` is a list of `(name, text)` pairs stacked in the lead column, all collapsed by
     default; the screen's stylesheet uncollapses one, usually per `Kind--<name>` on the row. Pass
     `switch=true` for a toggle track the screen shows the same way. -#}
-{% macro listrow(id, glyphs=[], switch=false, hint=false, value=true, steppers=false, accent=false) -%}
+{% macro listrow(id, marks=[], switch=false, hint=false, value=true, steppers=false, accent=false) -%}
 <Panel id="{{screen}}_{{id}}" class="Row Hidden" hittest="true">
   {%- if accent %}
   <Panel id="{{screen}}_{{id}}_accent" class="Accent" hittest="false" />
   {%- endif %}
   <Button id="{{screen}}_{{id}}_btn" class="Row-hit">
-    {%- if glyphs or switch %}
+    {%- if marks or switch %}
     <Panel class="Row-lead" hittest="false">
-      {%- for name, mark in glyphs %}
-      <Label class="Glyph Glyph-{{name}}" text="{{mark}}" hittest="false" />
+      {%- for name, text in marks %}
+      <Label class="Mark Mark-{{name}}" text="{{text}}" hittest="false" />
       {%- endfor %}
       {%- if switch %}
       <Panel class="Switch" hittest="false">

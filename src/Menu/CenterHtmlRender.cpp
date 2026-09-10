@@ -149,7 +149,7 @@ static std::string RenderItems(const CenterHtmlView& view, int pageStart, int pa
         }
         else if (!selectable)
         {
-            // Rendered without a cursor glyph - the row is informational, not a target.
+            // Rendered without a cursor mark - the row is informational, not a target.
             html << "<font color='" << Theme::WarmGray << "'>" << title << "</font><br>";
         }
         else if (i == view.SelectedIndex)

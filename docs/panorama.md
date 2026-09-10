@@ -112,7 +112,7 @@ CSS (`flow-children` to flex, `fill-parent-flow`/`fit-children` to flex sizing,
 alignment to auto margins), so spacing, fonts, and anything CSS cannot express are
 close but not exact. The gap worth knowing is a panel with no `flow-children` at all:
 Panorama stacks its children, the preview lays them in a row, so a stacked column of
-glyphs or a switch reads wrong here and right in game. It is a layout sketch, not the
+marks or a switch reads wrong here and right in game. It is a layout sketch, not the
 client.
 
 ## Build tree outputs
@@ -202,7 +202,7 @@ constexpr auto Cards = VoltMod::MakeWriters(LabUi::Cards, MakeCard);
 | `toast` | `toast(id)` | a notice that fades in when the driver puts class `Show` on it |
 | `button` | `button(id, text, variant="")` | a labelled Button; `variant` adds a `Btn-<variant>` modifier |
 | `dialog` | `dialog(id)`, called not imported | a centred panel with a crumb/title/subtitle header and a body slot |
-| `listrow` | `listrow(id, glyphs=[], switch, hint, value, steppers, accent)` | one row of a list: accent stripe, lead column, two lines of text, a value, steppers |
+| `listrow` | `listrow(id, marks=[], switch, hint, value, steppers, accent)` | one row of a list: accent stripe, lead column, two lines of text, a value, steppers |
 | `tabs` | `tabs(id, count)` | a strip of hidden-by-default tabs, each reading `{s:<id><i>}` |
 | `pager` | `pager(id)` | previous, a `{s:<id>}` label, next |
 

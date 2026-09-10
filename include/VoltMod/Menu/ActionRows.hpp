@@ -45,7 +45,7 @@ public:
     [[nodiscard]] EnabledCondition Allows(std::string_view permission) const;
 
     /** Translates @p key for the admin. */
-    [[nodiscard]] std::string Tr(std::string_view key, Tokens tokens = {}) const;
+    [[nodiscard]] std::string Translate(std::string_view key, Tokens tokens = {}) const;
 
     /** A button that runs a single-target action. */
     [[nodiscard]] MenuItem Action(std::string_view labelKey, const VoltMod::Action& action);

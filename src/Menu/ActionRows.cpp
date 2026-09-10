@@ -24,7 +24,7 @@ EffectDispatcher ActionRows::Effects() const
     return EffectDispatcher{_services->Actions, *_services->Effects};
 }
 
-std::string ActionRows::Tr(std::string_view key, Tokens tokens) const
+std::string ActionRows::Translate(std::string_view key, Tokens tokens) const
 {
     return _services->Translations.Get(key, _admin.Slot, tokens);
 }
@@ -33,7 +33,7 @@ MenuItem ActionRows::Action(std::string_view labelKey, const VoltMod::Action& ac
 {
     // Actions are static plugin data; rows may outlive the ActionRows that created them.
     return ButtonRow{
-        .Label = Tr(labelKey),
+        .Label = Translate(labelKey),
         .Activate = [services = _services, admin = _admin, target = TargetRef(),
                      act = &action](int) { services->Actions.Run(admin, target, *act); },
         .Enabled = Allows(action.Permission),
@@ -45,7 +45,7 @@ MenuItem ActionRows::StateToggle(std::string_view labelKey, std::function<bool(c
                                  const VoltMod::Action& action)
 {
     return ToggleRow{
-        .Label = Tr(labelKey),
+        .Label = Translate(labelKey),
         .Get =
             [services = _services, target = TargetRef(), isActive = std::move(isActive)](int) {
                 Pawn pawn = services->Entities.PawnOf(target.Slot);
@@ -66,7 +66,7 @@ MenuItem ActionRows::Presets(const PresetSpec& spec)
         choices.emplace_back(std::format("{} {}", value, spec.Unit), value);
 
     return ChoiceRow<int>{
-        .Label = Tr(spec.LabelKey),
+        .Label = Translate(spec.LabelKey),
         .Choices = std::move(choices),
         // Keep the menu open so a preset can be adjusted and applied again.
         .Commit = [services = _services, admin = _admin, target = TargetRef(), act = &spec.Action](
@@ -85,7 +85,7 @@ EnabledCondition ActionRows::EffectAllows(const EffectDescriptor& effect) const
 MenuItem ActionRows::Effect(const EffectDescriptor& effect)
 {
     return ToggleRow{
-        .Label = Tr(effect.NameKey),
+        .Label = Translate(effect.NameKey),
         .Get = [effects = _services->Effects, target = TargetRef(),
                 id = effect.Id](int) { return effects && effects->IsActive(target.Slot, id); },
         .Flip = [self = *this, target = TargetRef(),
@@ -104,7 +104,7 @@ std::shared_ptr<Menu> ActionRows::BuildPicker(const EffectDescriptor& effect, En
     if (!targetPlayer)
         return nullptr;
 
-    MenuBuilder builder(std::format("{}: {}", Tr(effect.NameKey), targetPlayer->Name()));
+    MenuBuilder builder(std::format("{}: {}", Translate(effect.NameKey), targetPlayer->Name()));
 
     auto apply = [self = *this, target = *_target, e = &effect](int slot, int param) {
         self.Effects().Apply(self._admin, target, *e, param);
@@ -120,7 +120,7 @@ std::shared_ptr<Menu> ActionRows::BuildPicker(const EffectDescriptor& effect, En
 
     if (!effect.ResetLabelKey.empty())
     {
-        builder.Add(ButtonRow{.Label = Tr(effect.ResetLabelKey),
+        builder.Add(ButtonRow{.Label = Translate(effect.ResetLabelKey),
                               .Activate =
                                   [self = *this, target = *_target, e = &effect](int slot) {
                                       self.Effects().Clear(self._admin, target, *e);
@@ -136,7 +136,7 @@ MenuItem ActionRows::EffectPicker(const EffectDescriptor& effect)
 {
     EnabledCondition allowed = EffectAllows(effect);
     return SubmenuRow{
-        .Label = Tr(effect.NameKey),
+        .Label = Translate(effect.NameKey),
         .Build = [self = *this, e = &effect, allowed](int) -> std::shared_ptr<Menu> {
             return self.BuildPicker(*e, allowed);
         },

@@ -15,14 +15,14 @@
   padding: 0px 10px;
 }
 
-/* One column, no flow: the glyphs and the switch stack, and only one shows. */
+/* One column, no flow: the marks and the switch stack, and only one shows. */
 .Row-lead {
   width: 26px;
   height: 100%;
   margin-right: 8px;
 }
 
-.Glyph {
+.Mark {
   horizontal-align: center;
   vertical-align: center;
   font-size: 13px;
