@@ -87,7 +87,7 @@ before it builds, and CI never needs the CS2 Workshop Tools.
 disallowed element type, a `Button` without an id or nested inside another
 `Button`, a stylesheet included by anything but its source name, an `<Image src>`
 that does not resolve to a real PNG under `images/custom_game/<set>/`, more than
-900 interned names (see [The name budget](#panorama_guide_budget)), two owners
+too many interned names (see [The name budget](#panorama_guide_budget)), two owners
 writing the same resource path, and a screen whose layout and stylesheet do not
 derive a binding. It writes nothing, and it is part of `uv run poe lint`.
 
@@ -230,10 +230,12 @@ directly.
 ## The name budget {#panorama_guide_budget}
 
 The client permanently interns every panel id, class name and dialog variable it
-sees into a 1024-entry table. `voltmod panorama check` refuses a single screen
-that would use more than 900 of them, which is what a runaway loop looks like.
-Reuse ids and classes - a block's own macros already do this - rather than
-generating a new name per instance.
+sees into a 1024-entry table, and that table is shared by every screen it loads.
+`voltmod panorama check` counts the names of all the screens it builds and
+refuses the set once it passes 1024, naming the biggest screens first. It also
+refuses any single screen past 400 names on its own, which is what a runaway
+loop looks like rather than a design. Reuse ids and classes - a block's own
+macros already do this - rather than generating a new name per instance.
 
 ## Publishing {#panorama_guide_publish}
 

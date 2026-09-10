@@ -17,9 +17,13 @@ from .screens import Owner
 #: What the client's Panorama parser accepts anywhere in a layout.
 ALLOWED_TAGS = {"root", "styles", "include", "Panel", "Label", "Image", "Button"}
 
-#: Every distinct id, variable and class name a screen uses is interned for good in the client's
-#: 1024-entry table. One screen past this many is a runaway loop, not a design.
-NAME_BUDGET = 900
+#: Every distinct id, variable and class name is interned for good in the client's table, and the
+#: table is shared by every screen it loads. Overflowing it breaks rendering on a player's machine,
+#: where no build step can see it.
+NAME_TABLE = 1024
+
+#: One screen past this many names is a runaway loop, not a design.
+RUNAWAY_NAMES = 400
 
 
 def check(root: Path, kit_root: Path, names: list[str]) -> list[str]:
@@ -27,17 +31,24 @@ def check(root: Path, kit_root: Path, names: list[str]) -> list[str]:
     owners = screens.select(screens.find_owners(root), names)
     findings: list[str] = []
     claimed: dict[str, str] = {}
+    interned: dict[Path, set[str]] = {}
 
     for owner in owners.values():
         for resource in _owner_images(owner):
             findings += _claim(resource, owner, claimed)
         for source in screens.sources(owner):
-            findings += _screen(owner, kit_root, source, claimed)
+            findings += _screen(owner, kit_root, source, claimed, interned)
 
-    return findings
+    return findings + _table(interned)
 
 
-def _screen(owner: Owner, kit_root: Path, source: Path, claimed: dict[str, str]) -> list[str]:
+def _screen(
+    owner: Owner,
+    kit_root: Path,
+    source: Path,
+    claimed: dict[str, str],
+    interned: dict[Path, set[str]],
+) -> list[str]:
     name = source.name.removesuffix(screens.SUFFIX)
     findings = _claim(f"layout/custom_game/{name}.xml", owner, claimed)
     findings += _claim(f"styles/custom_game/{name}.css", owner, claimed)
@@ -56,7 +67,7 @@ def _screen(owner: Owner, kit_root: Path, source: Path, claimed: dict[str, str])
         + _names(parsed, source)
         + _stylesheet_include(parsed, name, source)
         + _images(owner, parsed, source)
-        + _budget(parsed, stylesheet, source)
+        + _budget(parsed, stylesheet, source, interned)
     )
 
 
@@ -174,15 +185,32 @@ def _images(owner: Owner, screen: bind.Screen, source: Path) -> list[str]:
     return findings
 
 
-def _budget(screen: bind.Screen, stylesheet: str, source: Path) -> list[str]:
-    """One screen may not use more than @ref NAME_BUDGET distinct names."""
+def _budget(
+    screen: bind.Screen, stylesheet: str, source: Path, interned: dict[Path, set[str]]
+) -> list[str]:
+    """Record what @p screen interns, and flag a screen that has clearly run away on its own."""
     names = {screen.name, *screen.ids, *screen.variables}
     for node in screen.tree.iter():
         names.update(node.get("class", "").split())
     names.update(bind.selector_classes(stylesheet))
-    if len(names) <= NAME_BUDGET:
+    interned[source] = names
+
+    if len(names) <= RUNAWAY_NAMES:
         return []
-    return [f"{source}: {len(names)} interned names, over the budget of {NAME_BUDGET}"]
+    return [f"{source}: {len(names)} interned names, over the per-screen limit of {RUNAWAY_NAMES}"]
+
+
+def _table(interned: dict[Path, set[str]]) -> list[str]:
+    """The client interns one table for every screen it loads, so the total is what overflows."""
+    total = set().union(*interned.values()) if interned else set()
+    if len(total) <= NAME_TABLE:
+        return []
+
+    worst = sorted(interned.items(), key=lambda pair: len(pair[1]), reverse=True)
+    blame = ", ".join(f"{source} {len(names)}" for source, names in worst)
+    return [
+        f"{len(total)} interned names across all screens, over the client's {NAME_TABLE}: {blame}"
+    ]
 
 
 def _owner_images(owner: Owner) -> list[str]:

@@ -224,8 +224,38 @@ RUNAWAY_XML = """<root>
 </root>
 """
 
+#: Well under the per-screen limit on its own; three of these overflow the client's table.
+CROWDED_XML = """<root>
+  <styles>
+    <include src="file://{resources}/styles/custom_game/{{screen}}.css" />
+  </styles>
+  <Panel id="{{screen}}" class="Screen Hidden">
+    {%- for index in range(350) %}
+    <Panel id="{{screen}}_p{{index}}" />
+    {%- endfor %}
+  </Panel>
+</root>
+"""
 
-def test_a_screen_over_the_name_budget_is_flagged(tmp_path):
+
+def test_a_screen_over_the_per_screen_limit_is_flagged(tmp_path):
     root = plugin(tmp_path, xml=RUNAWAY_XML, css=HIDDEN_CSS, name="hud")
     findings = checker.check(root, KIT, ["ui-lab"])
-    assert any("interned names" in finding for finding in findings)
+    assert any("per-screen limit" in finding for finding in findings)
+
+
+def test_screens_that_each_pass_still_overflow_the_client_table(tmp_path):
+    root = tmp_path
+    for name in ("hud", "menu", "panel"):
+        root = plugin(root, xml=CROWDED_XML, css=HIDDEN_CSS, name=name)
+
+    findings = checker.check(root, KIT, ["ui-lab"])
+
+    assert not any("per-screen limit" in finding for finding in findings)
+    assert any("across all screens" in finding for finding in findings)
+
+
+def test_screens_within_the_client_table_are_not_flagged(tmp_path):
+    root = plugin(tmp_path, xml=CROWDED_XML, css=HIDDEN_CSS, name="hud")
+    findings = checker.check(root, KIT, ["ui-lab"])
+    assert not any("interned names" in finding for finding in findings)
