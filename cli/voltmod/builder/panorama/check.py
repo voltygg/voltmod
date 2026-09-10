@@ -188,7 +188,7 @@ def _budget(screen: bind.Screen, stylesheet: str, source: Path) -> list[str]:
         names.update(bind.CLASS.findall(selector))
     if len(names) <= NAME_BUDGET:
         return []
-    return [f"{source}: {len(names)} interned names; the client holds 1024, check allows {NAME_BUDGET}"]
+    return [f"{source}: {len(names)} interned names, over the budget of {NAME_BUDGET}"]
 
 
 def _owner_images(owner: Owner) -> list[str]:
