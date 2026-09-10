@@ -12,8 +12,8 @@ struct CursorRows
     /** Number of rows. */
     int Count = 0;
 
-    /** True when the cursor may land on @p index. Unset means every row takes it. */
-    std::function<bool(int index)> Landable;
+    /** True when the cursor may stop on @p index. Unset means every row takes it. */
+    std::function<bool(int index)> Selectable;
 };
 
 namespace MenuCursor

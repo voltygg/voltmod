@@ -6,12 +6,12 @@
 namespace VoltMod
 {
 
-static bool Landable(const CursorRows& rows, int index)
+static bool IsSelectable(const CursorRows& rows, int index)
 {
     if (index < 0 || index >= rows.Count)
         return false;
 
-    return !rows.Landable || rows.Landable(index);
+    return !rows.Selectable || rows.Selectable(index);
 }
 
 int MenuCursor::Step(const CursorRows& rows, int index, int step)
@@ -25,14 +25,14 @@ int MenuCursor::Step(const CursorRows& rows, int index, int step)
     {
         index = WrapIndex(index + step, rows.Count);
     }
-    while (!Landable(rows, index) && --attempts > 0);
+    while (!IsSelectable(rows, index) && --attempts > 0);
 
     return index;
 }
 
 int MenuCursor::First(const CursorRows& rows)
 {
-    if (rows.Count <= 0 || Landable(rows, 0))
+    if (rows.Count <= 0 || IsSelectable(rows, 0))
         return 0;
 
     return Step(rows, 0, +1);
@@ -52,7 +52,7 @@ int MenuCursor::JumpPage(const CursorRows& rows, int index, int rowsPerPage, int
     int landed = std::min(start + index % rowsPerPage, end - 1);
     for (int attempts = end - start; attempts > 0; --attempts)
     {
-        if (Landable(rows, landed))
+        if (IsSelectable(rows, landed))
             break;
         landed = (landed + 1 < end) ? landed + 1 : start;
     }

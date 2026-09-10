@@ -1,3 +1,4 @@
+// Apart from MenuPresets.cpp on purpose: Player::Name() is engine-side, and that file is in the SDK-free tests.
 #include <VoltMod/Menu/MenuBuilder.hpp>
 #include <VoltMod/Menu/MenuPresets.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>

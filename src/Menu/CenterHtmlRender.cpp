@@ -23,7 +23,7 @@ constexpr std::string_view NavClose = "#AA4422";
 constexpr std::string_view NavBack = "#AA8833";
 }  // namespace Theme
 
-std::string DefaultHeader(const CenterHtmlHeader& header)
+std::string RenderHeader(const CenterHtmlHeader& header)
 {
     std::ostringstream html;
 
@@ -61,7 +61,7 @@ static std::string FooterChunk(std::string_view keyColor, std::string_view keyTe
     return html.str();
 }
 
-std::string DefaultFooter(bool isSubmenu, bool isPaginated, bool usesHorizontal, int slot, Translations& translations)
+std::string RenderFooter(bool isSubmenu, bool isPaginated, bool selectedRowSteps, int slot, Translations& translations)
 {
     // Keep rendering when a consumer has no nav.* translation.
     auto label = [&](std::string_view key, std::string_view fallback) {
@@ -75,14 +75,14 @@ std::string DefaultFooter(bool isSubmenu, bool isPaginated, bool usesHorizontal,
     std::ostringstream row1;
     row1 << FooterChunk(Theme::NavGold, "[W/S]", label("nav.navigate", "Navigate"));
 
-    bool hasHorizontalHint = usesHorizontal || isPaginated;
-    if (usesHorizontal)
+    bool hasStepHint = selectedRowSteps || isPaginated;
+    if (selectedRowSteps)
         row1 << " · " << FooterChunk(Theme::NavGold, "[A/D]", label("nav.change", "Change"));
     else if (isPaginated)
         row1 << " · " << FooterChunk(Theme::NavGold, "[A/D]", label("nav.page", "Page"));
 
-    const std::string_view selectKey = usesHorizontal ? "nav.confirm" : "nav.select";
-    const std::string_view selectFallback = usesHorizontal ? "Confirm" : "Select";
+    const std::string_view selectKey = selectedRowSteps ? "nav.confirm" : "nav.select";
+    const std::string_view selectFallback = selectedRowSteps ? "Confirm" : "Select";
     row1 << " · " << FooterChunk(Theme::Gold, "[E]", label(selectKey, selectFallback));
 
     std::string closeChunk = FooterChunk(closeColor, "[R]", closeLabel);
@@ -92,7 +92,7 @@ std::string DefaultFooter(bool isSubmenu, bool isPaginated, bool usesHorizontal,
 
     // With an A/D hint there are four chunks - splitting onto two short rows is more reliable
     // than relying on the HUD's word wrap, which sometimes pushes [R] past the visible area.
-    if (hasHorizontalHint)
+    if (hasStepHint)
         html << "<br>" << closeChunk;
     else
         html << " · " << closeChunk;
@@ -175,14 +175,14 @@ std::string RenderMenuHtml(const Menu* menu, const CenterHtmlView& view, Transla
     }
 
     int itemCount = static_cast<int>(menu->Items.size());
-    int totalPages = PageCount(itemCount, ItemsPerPage);
-    int currentPage = itemCount == 0 ? 0 : view.SelectedIndex / ItemsPerPage;
-    int pageStart = currentPage * ItemsPerPage;
-    int pageEnd = std::min(itemCount, pageStart + ItemsPerPage);
+    int totalPages = PageCount(itemCount, CenterHtmlRowsPerPage);
+    int currentPage = itemCount == 0 ? 0 : view.SelectedIndex / CenterHtmlRowsPerPage;
+    int pageStart = currentPage * CenterHtmlRowsPerPage;
+    int pageEnd = std::min(itemCount, pageStart + CenterHtmlRowsPerPage);
 
     std::ostringstream html;
 
-    html << DefaultHeader({.Title = menu->Title,
+    html << RenderHeader({.Title = menu->Title,
                            .Subtitle = menu->Subtitle,
                            .Breadcrumb = view.Breadcrumb,
                            .Page = currentPage,
@@ -201,7 +201,7 @@ std::string RenderMenuHtml(const Menu* menu, const CenterHtmlView& view, Transla
         html << RenderItems(view, pageStart, pageEnd, selected);
     }
 
-    html << DefaultFooter(view.IsSubmenu, totalPages > 1, selected.Enabled && selected.Steppable, view.Slot,
+    html << RenderFooter(view.IsSubmenu, totalPages > 1, selected.Enabled && selected.Steppable, view.Slot,
                           translations);
 
     return html.str();

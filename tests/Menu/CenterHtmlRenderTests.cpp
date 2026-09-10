@@ -12,9 +12,9 @@
 using VoltMod::ButtonRow;
 using VoltMod::CenterHtmlView;
 using VoltMod::ChoiceRow;
-using VoltMod::DefaultFooter;
-using VoltMod::DefaultHeader;
-using VoltMod::ItemsPerPage;
+using VoltMod::RenderFooter;
+using VoltMod::RenderHeader;
+using VoltMod::CenterHtmlRowsPerPage;
 using VoltMod::Menu;
 using VoltMod::MenuBuilder;
 using VoltMod::MenuRow;
@@ -39,27 +39,27 @@ static CenterHtmlView ViewOf(const Menu& menu, int selectedIndex, bool isSubmenu
     };
 }
 
-TEST_CASE("CenterHtmlRender: DefaultHeader shows the title and hides the page count for one page")
+TEST_CASE("CenterHtmlRender: RenderHeader shows the title and hides the page count for one page")
 {
-    CHECK(DefaultHeader({.Title = "Admin Panel"}).find("Admin Panel") != std::string::npos);
-    CHECK(DefaultHeader({.Title = "Admin Panel"}).find("(1/1)") == std::string::npos);
-    CHECK(DefaultHeader({.Title = "Admin Panel", .Page = 1, .Pages = 3}).find("(2/3)") != std::string::npos);
+    CHECK(RenderHeader({.Title = "Admin Panel"}).find("Admin Panel") != std::string::npos);
+    CHECK(RenderHeader({.Title = "Admin Panel"}).find("(1/1)") == std::string::npos);
+    CHECK(RenderHeader({.Title = "Admin Panel", .Page = 1, .Pages = 3}).find("(2/3)") != std::string::npos);
 }
 
 TEST_CASE("CenterHtmlRender: a subtitle rides next to the title, and an empty one adds nothing")
 {
-    const std::string bare = DefaultHeader({.Title = "Admin Panel"});
-    const std::string withSubtitle = DefaultHeader({.Title = "Admin Panel", .Subtitle = "v1.2.0"});
+    const std::string bare = RenderHeader({.Title = "Admin Panel"});
+    const std::string withSubtitle = RenderHeader({.Title = "Admin Panel", .Subtitle = "v1.2.0"});
 
     CHECK(withSubtitle.find("v1.2.0") != std::string::npos);
-    CHECK(bare == DefaultHeader({.Title = "Admin Panel"}));
+    CHECK(bare == RenderHeader({.Title = "Admin Panel"}));
     CHECK(bare.length() < withSubtitle.length());
 }
 
 TEST_CASE("CenterHtmlRender: the breadcrumb draws ahead of the title, and the root has none")
 {
-    const std::string root = DefaultHeader({.Title = "Punish"});
-    const std::string nested = DefaultHeader({.Title = "Punish", .Breadcrumb = "Admin Panel"});
+    const std::string root = RenderHeader({.Title = "Punish"});
+    const std::string nested = RenderHeader({.Title = "Punish", .Breadcrumb = "Admin Panel"});
 
     CHECK(nested.find("Admin Panel") != std::string::npos);
     CHECK(nested.find("Admin Panel") < nested.find("Punish"));
@@ -115,7 +115,7 @@ TEST_CASE("CenterHtmlRender: pagination footer appears only once a menu spans mu
     Translations translations(slots);
 
     MenuBuilder builder("Multi-row Menu");
-    for (int i = 0; i < ItemsPerPage; ++i)
+    for (int i = 0; i < CenterHtmlRowsPerPage; ++i)
         builder.Button("Row", [](int) {});
     auto menu = builder.Build();
 

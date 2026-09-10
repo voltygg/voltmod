@@ -6,10 +6,10 @@
 using VoltMod::CursorRows;
 namespace MenuCursor = VoltMod::MenuCursor;
 
-static CursorRows Rows(int count, std::set<int> landable)
+static CursorRows Rows(int count, std::set<int> selectable)
 {
     return {.Count = count,
-            .Landable = [landable = std::move(landable)](int index) { return landable.contains(index); }};
+            .Selectable = [selectable = std::move(selectable)](int index) { return selectable.contains(index); }};
 }
 
 static CursorRows AllRows(int count)

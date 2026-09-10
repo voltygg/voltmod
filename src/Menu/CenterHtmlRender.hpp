@@ -9,8 +9,8 @@
 namespace VoltMod
 {
 
-/** Rows shown on one center-HTML page. This is a renderer limit, not a menu-model limit. */
-inline constexpr int ItemsPerPage = 5;
+/** Rows one center-HTML page holds. A renderer limit, not a menu-model limit. */
+inline constexpr int CenterHtmlRowsPerPage = 5;
 
 /** The header block: what the menu is called, where it sits, and which page is showing. */
 struct CenterHtmlHeader
@@ -43,18 +43,18 @@ std::string RenderMenuHtml(const Menu* menu, const CenterHtmlView& view, Transla
 /** Renders the chat-input capture overlay shown while a player is typing a value. */
 std::string RenderCaptureOverlay(const std::string& menuTitle, std::string_view prompt);
 
-/** Generates the default header HTML for a menu. Empty parts of @p header add nothing. */
-std::string DefaultHeader(const CenterHtmlHeader& header);
+/** The header HTML for a menu. Empty parts of @p header add nothing. */
+std::string RenderHeader(const CenterHtmlHeader& header);
 
 /**
- * Generates the default footer HTML for a menu.
+ * The footer HTML for a menu: the key hints.
  * @param isSubmenu True if this menu is a submenu (shows "Back" hint), false if it's a root menu (shows "Close" hint).
  * @param isPaginated True if the menu has multiple pages of items (shows page navigation hints)
- * @param usesHorizontal True if the selected row's A/D edits its value (shows "Change"/"Confirm" hints).
+ * @param selectedRowSteps True when A/D steps the selected row's value rather than paging (shows "Change"/"Confirm" hints).
  * @param slot Player slot used to look up the nav-label translations.
  * @param translations Table the nav labels are looked up in.
  * @return The generated HTML string for the menu footer.
  */
-std::string DefaultFooter(bool isSubmenu, bool isPaginated, bool usesHorizontal, int slot, Translations& translations);
+std::string RenderFooter(bool isSubmenu, bool isPaginated, bool selectedRowSteps, int slot, Translations& translations);
 
 }  // namespace VoltMod

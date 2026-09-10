@@ -18,7 +18,7 @@ static CursorRows CursorRowsFor(Menu* menu, int slot)
     if (!menu)
         return {};
 
-    return {.Count = static_cast<int>(menu->Items.size()), .Landable = [menu, slot](int index) {
+    return {.Count = static_cast<int>(menu->Items.size()), .Selectable = [menu, slot](int index) {
                 return IsRowActionable(menu->Items[static_cast<std::size_t>(index)], slot);
             }};
 }
@@ -286,7 +286,7 @@ bool CenterHtmlMenu::RunKey(int slot, uint64_t pressed)
         const int direction = (pressed & IN_MOVELEFT) ? -1 : +1;
         if (_stack.Step(slot, _cursors[slot].Selected, direction))
             return true;
-        if (itemCount <= ItemsPerPage)
+        if (itemCount <= CenterHtmlRowsPerPage)
             return false;
         JumpPage(slot, direction);
         return true;
@@ -314,7 +314,7 @@ void CenterHtmlMenu::JumpPage(int slot, int delta)
     if (!menu || menu->Items.empty())
         return;
 
-    Select(slot, MenuCursor::JumpPage(CursorRowsFor(menu, slot), _cursors[slot].Selected, ItemsPerPage, delta));
+    Select(slot, MenuCursor::JumpPage(CursorRowsFor(menu, slot), _cursors[slot].Selected, CenterHtmlRowsPerPage, delta));
 }
 
 void CenterHtmlMenu::SetPlayerFrozen(int slot, bool frozen, const Pawn& pawn)
