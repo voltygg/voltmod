@@ -16,9 +16,6 @@ struct CursorRows
     std::function<bool(int index)> Landable;
 };
 
-/** True when the cursor may land on @p item. */
-[[nodiscard]] bool IsCursorTarget(const MenuItem& item, int slot);
-
 namespace MenuCursor
 {
 /** @p index moved by @p step, wrapping over @p rows and skipping what it may not land on. */

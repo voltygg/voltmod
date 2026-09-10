@@ -4,8 +4,10 @@
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Core/Translations.hpp>
+#include <VoltMod/Core/PerSlot.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
+#include <VoltMod/Entities/MovementFreeze.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuState.hpp>
@@ -93,8 +95,16 @@ private:
 
     void SyncFreeze(int slot, const Pawn& pawn);
 
+    /** What one session asked for, and the pawn it is actually holding. */
+    struct SessionFreeze
+    {
+        bool Wanted = true;
+        MovementFreeze Held;
+    };
+
     MenuServices _services;
     bool _freezePlayer = false;
+    PerSlot<SessionFreeze> _freezes;
     /** Held by pointer: ActiveMenus is internal to the framework. */
     std::unique_ptr<ActiveMenus> _menus;
     /** Declared last: per-frame delivery drops before the state it touches. */

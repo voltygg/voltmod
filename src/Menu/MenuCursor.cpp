@@ -6,15 +6,6 @@
 namespace VoltMod
 {
 
-bool IsCursorTarget(const MenuItem& item, int slot)
-{
-    if (!item.Describe)
-        return false;
-
-    const MenuRow row = item.Describe(slot);
-    return row.Enabled && row.Selectable;
-}
-
 static bool Landable(const CursorRows& rows, int index)
 {
     if (index < 0 || index >= rows.Count)

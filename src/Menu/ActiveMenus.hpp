@@ -1,14 +1,13 @@
 #pragma once
 
 #include "Menu/MenuCursor.hpp"
-#include "Menu/PendingCommit.hpp"
 
 #include <VoltMod/Core/PerSlot.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Translations.hpp>
 #include <VoltMod/Menu/Menu.hpp>
-#include <VoltMod/Menu/MenuState.hpp>
+#include <VoltMod/Menu/MenuStack.hpp>
 #include <cstdint>
 #include <memory>
 #include <string_view>
@@ -17,81 +16,72 @@
 namespace VoltMod
 {
 
-/** Per-player menu stacks, cursors, and row actions. */
+/**
+ * @brief A @ref MenuStack read with a cursor and movement keys.
+ *
+ * The half of a center-HTML session the surface owns: which row is selected, which buttons were
+ * held last frame, and when the last press was acted on. Everything a Panorama surface would also
+ * need lives in the stack underneath and is reached through it.
+ */
 class ActiveMenus
 {
 public:
     /** Referenced objects must outlive this instance. */
     ActiveMenus(MenuSession& session, Translations& translations, PendingCommit::Timer timer)
-        : _session(session), _translations(translations), _pending(std::move(timer))
+        : _stack(session, translations, std::move(timer))
     {}
 
     /** Clear a slot when it changes hands. */
     void BindReset(SlotEvents& slots);
 
-    [[nodiscard]] PlayerMenuState& State(int slot) { return _states[slot]; }
+    /** The renderer-agnostic half: stack, breadcrumb, Describe, Activate and Step. */
+    [[nodiscard]] MenuStack& Stack() { return _stack; }
 
-    /** Top menu, or null when none is open. */
-    [[nodiscard]] Menu* Current(int slot) { return IsValidSlot(slot) ? _states[slot].GetCurrentMenu() : nullptr; }
+    [[nodiscard]] Menu* Current(int slot) { return _stack.Current(slot); }
+    [[nodiscard]] int Depth(int slot) const { return _stack.Depth(slot); }
+    [[nodiscard]] bool IsOpen(int slot) const { return _stack.IsOpen(slot); }
+    [[nodiscard]] bool AnyOpen() const { return _stack.AnyOpen(); }
+    [[nodiscard]] std::string_view Breadcrumb(int slot) const { return _stack.Breadcrumb(slot); }
+    [[nodiscard]] MenuRow Describe(int slot, int index) { return _stack.Describe(slot, index); }
+    void Activate(int slot, int index) { _stack.Activate(slot, index); }
+    bool Step(int slot, int index, int direction) { return _stack.Step(slot, index, direction); }
 
-    [[nodiscard]] int Depth(int slot) const
-    {
-        return IsValidSlot(slot) ? static_cast<int>(_states[slot].MenuStack.size()) : 0;
-    }
-    [[nodiscard]] bool IsOpen(int slot) const { return IsValidSlot(slot) && _states[slot].HasMenu(); }
-    [[nodiscard]] bool AnyOpen() const;
-
-    /** Parent menu titles joined as a breadcrumb. Valid until the stack changes. */
-    [[nodiscard]] std::string_view Breadcrumb(int slot) const
-    {
-        return IsValidSlot(slot) ? std::string_view(_states[slot].Breadcrumb) : std::string_view{};
-    }
-
+    /** Push @p menu and put the cursor on its first selectable row. */
     void Push(int slot, std::shared_ptr<Menu> menu);
 
-    /** Pop the top menu, applying whatever a stepped row was left showing. True when the stack is
-     *  now empty, which is the caller's cue to unfreeze and dismiss. */
+    /** @copydoc MenuStack::Pop. The cursor follows the menu that is showing again. */
     bool Pop(int slot);
 
-    /** Clear the whole stack, applying whatever a stepped row was left showing. */
     void Clear(int slot);
 
-    /** Row @p index as it describes itself, with @ref MenuRow::Pending and @ref MenuRow::Changed
-     *  filled in and a Toggle's on/off word spelled. An index with no row behind it describes as
-     *  an inert, unselectable line. */
-    [[nodiscard]] MenuRow Describe(int slot, int index);
+    /** Buttons held last frame, for edge detection. */
+    [[nodiscard]] uint64_t& PrevButtons(int slot) { return _cursors[slot].PrevButtons; }
+
+    /** Monotonic milliseconds of the last key this session acted on. */
+    [[nodiscard]] int64_t& LastInputTime(int slot) { return _cursors[slot].LastInputTime; }
 
     /** Cursor input for the current menu. Valid for one move. */
     [[nodiscard]] CursorRows Rows(int slot);
 
-    /** Run row @p index, as if it had been selected and confirmed. Ignores rows that are disabled,
-     *  unselectable, or out of range.
-     *
-     *  Runs a commit held for another row first, and cancels one held for *this* row: a row whose
-     *  activation is its own commit would otherwise apply the value twice. */
-    void Activate(int slot, int index);
-
-    /** Nudge row @p index's value by @p direction (-1 or +1). True when the row consumed it, which
-     *  is what tells a keyboard driver to page instead. A row with a @ref MenuItem::Commit is
-     *  stepped, not applied: the commit is held so a burst of presses runs one action. */
-    bool Step(int slot, int index, int direction);
-
-    [[nodiscard]] int Selected(int slot) const { return IsValidSlot(slot) ? _states[slot].Selected : 0; }
+    [[nodiscard]] int Selected(int slot) const { return IsValidSlot(slot) ? _cursors[slot].Selected : 0; }
 
     /** Put @p slot's cursor on row @p index, applying whatever the row it leaves was holding. An
      *  index the current menu does not have is dropped. */
     void Select(int slot, int index);
 
 private:
+    struct Cursor
+    {
+        int Selected = 0;
+        uint64_t PrevButtons = 0;
+        int64_t LastInputTime = 0;
+    };
+
+    /** Put the cursor back on the first selectable row of whatever is now on top. */
     void ResetCursor(int slot);
 
-    static constexpr int64_t ChangedMs = 150;
-
-    MenuSession& _session;
-    Translations& _translations;
-
-    PerSlot<PlayerMenuState> _states;
-    PendingCommit _pending;
+    MenuStack _stack;
+    PerSlot<Cursor> _cursors;
 };
 
 }  // namespace VoltMod

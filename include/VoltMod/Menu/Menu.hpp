@@ -104,6 +104,17 @@ struct MenuItem
     std::function<void(int slot)> Commit;
 };
 
+/** True when @p item is one a player may act on right now: it describes itself as both enabled
+ *  and selectable. A cursor lands only on these, and only these activate. */
+[[nodiscard]] inline bool IsRowActionable(const MenuItem& item, int slot)
+{
+    if (!item.Describe)
+        return false;
+
+    const MenuRow row = item.Describe(slot);
+    return row.Enabled && row.Selectable;
+}
+
 /** A menu model. Build a separate instance for each player. */
 struct Menu
 {

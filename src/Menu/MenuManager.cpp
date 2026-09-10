@@ -20,6 +20,7 @@ MenuManager::MenuManager(const MenuServices& services)
           }))
 {
     _menus->BindReset(services.Slots);
+    _freezes.BindReset(services.Slots);
 }
 
 MenuManager::~MenuManager() = default;
@@ -31,7 +32,7 @@ void MenuManager::Open(int slot, std::shared_ptr<Menu> menu, MenuOptions options
 
     CloseAll(slot);
 
-    _menus->State(slot).FreezeMovement = options.FreezeMovement;
+    _freezes[slot].Wanted = options.FreezeMovement;
     if (options.FreezeMovement)
         SetPlayerFrozen(slot, true, _services.Entities.PawnOf(slot));
 
@@ -140,7 +141,7 @@ void MenuManager::FreezeWhileOpen(bool enabled)
     // until they close a menu they may not know is open is not a defensible reading of "off".
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
-        if (_menus->State(slot).Freeze)
+        if (_freezes[slot].Held)
             SetPlayerFrozen(slot, false, _services.Entities.PawnOf(slot));
     }
 }
@@ -193,16 +194,15 @@ bool MenuManager::HandleKeys(int slot)
     if (!_menus->Current(slot))
         return false;
 
-    PlayerMenuState& state = _menus->State(slot);
     const uint64_t buttons = _services.Entities.Buttons(slot);
-    const uint64_t pressed = buttons & ~state.PrevButtons;
-    state.PrevButtons = buttons;
+    const uint64_t pressed = buttons & ~_menus->PrevButtons(slot);
+    _menus->PrevButtons(slot) = buttons;
 
     if (pressed == 0)
         return false;
 
     const int64_t now = Time::MonotonicMs();
-    if (now - state.LastInputTime < InputDebounceMs)
+    if (now - _menus->LastInputTime(slot) < InputDebounceMs)
         return false;
 
     if (_services.ChatInput.IsCapturing(slot))
@@ -211,7 +211,7 @@ bool MenuManager::HandleKeys(int slot)
             return false;
 
         _services.ChatInput.CancelCapture(slot);
-        state.LastInputTime = now;
+        _menus->LastInputTime(slot) = now;
         return true;
     }
 
@@ -219,7 +219,7 @@ bool MenuManager::HandleKeys(int slot)
         return false;
 
     // The action may have replaced the session.
-    _menus->State(slot).LastInputTime = now;
+    _menus->LastInputTime(slot) = now;
     return true;
 }
 
@@ -289,20 +289,19 @@ void MenuManager::SetPlayerFrozen(int slot, bool frozen, const Pawn& pawn)
     if (frozen && !_freezePlayer)
         return;
 
-    MovementFreeze& freeze = _menus->State(slot).Freeze;
+    MovementFreeze& held = _freezes[slot].Held;
     if (frozen)
-        freeze.Hold(pawn);
+        held.Hold(pawn);
     else
-        freeze.Release(pawn);
+        held.Release(pawn);
 }
 
 void MenuManager::SyncFreeze(int slot, const Pawn& pawn)
 {
-    auto& state = _menus->State(slot);
-    if (!_freezePlayer || !state.FreezeMovement)
+    if (!_freezePlayer || !_freezes[slot].Wanted)
         return;
 
-    state.Freeze.Sync(pawn);
+    _freezes[slot].Held.Sync(pawn);
 }
 
 }  // namespace VoltMod
