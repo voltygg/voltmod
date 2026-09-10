@@ -183,10 +183,10 @@ std::string RenderMenuHtml(const Menu* menu, const CenterHtmlView& view, Transla
     std::ostringstream html;
 
     html << RenderHeader({.Title = menu->Title,
-                           .Subtitle = menu->Subtitle,
-                           .Breadcrumb = view.Breadcrumb,
-                           .Page = currentPage,
-                           .Pages = totalPages});
+                          .Subtitle = menu->Subtitle,
+                          .Breadcrumb = view.Breadcrumb,
+                          .Page = currentPage,
+                          .Pages = totalPages});
 
     // Only the branch that draws it pays for it: the empty line is looked up here rather than by
     // every caller on every frame, and the cursor's row comes back from the page that drew it.
@@ -202,7 +202,7 @@ std::string RenderMenuHtml(const Menu* menu, const CenterHtmlView& view, Transla
     }
 
     html << RenderFooter(view.IsSubmenu, totalPages > 1, selected.Enabled && selected.Steppable, view.Slot,
-                          translations);
+                         translations);
 
     return html.str();
 }

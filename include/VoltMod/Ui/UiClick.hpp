@@ -14,9 +14,9 @@ namespace VoltMod
  */
 struct UiClick
 {
-    int Slot = -1;         ///< who clicked
-    EntityRef LayoutEntity;      ///< the custom_hud_layout the Button belongs to, already resolved
-    std::string ButtonId;  ///< the Button's `id` attribute; client-controlled text
+    int Slot = -1;           ///< who clicked
+    EntityRef LayoutEntity;  ///< the custom_hud_layout the Button belongs to, already resolved
+    std::string ButtonId;    ///< the Button's `id` attribute; client-controlled text
 };
 
 }  // namespace VoltMod

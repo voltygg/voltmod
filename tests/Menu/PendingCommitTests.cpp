@@ -1,9 +1,8 @@
 #include "FakeTimers.hpp"
 
-#include <VoltMod/Menu/PendingCommit.hpp>
-
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Menu/PendingCommit.hpp>
 #include <cstdint>
 #include <doctest/doctest.h>
 #include <utility>
@@ -11,7 +10,6 @@
 using VoltMod::PendingCommit;
 using VoltMod::SlotEvents;
 using VoltMod::Subscription;
-
 
 using VoltModTests::FakeTimers;
 

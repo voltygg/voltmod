@@ -2,9 +2,9 @@
 #include "Ui/Fixtures/Lab.hpp"
 
 #include <VoltMod/Ui/Writers.hpp>
-#include <doctest/doctest.h>
 #include <array>
 #include <cstddef>
+#include <doctest/doctest.h>
 #include <ostream>
 #include <string>
 #include <string_view>
@@ -88,10 +88,9 @@ TEST_CASE("A screen writes through every writer built from its constants")
     w.Set(Toast.Accent, static_cast<int>(LabUi::Accent::Bad));
 
     const std::vector<std::string> enabled = panel.Enabled();
-    CHECK(enabled
-          == std::vector<std::string>{"lab_card0.Hidden", "lab_card0_accent.Accent--good",
-                                      "lab_card0_icon.Icon--awp", "lab_card0_bar.Step--4",
-                                      "lab_toast.Show", "lab_toast_accent.Accent--bad"});
+    CHECK(enabled == std::vector<std::string>{"lab_card0.Hidden", "lab_card0_accent.Accent--good",
+                                              "lab_card0_icon.Icon--awp", "lab_card0_bar.Step--4", "lab_toast.Show",
+                                              "lab_toast_accent.Accent--bad"});
 }
 
 TEST_CASE("A text writer names the layout root, not the panel")

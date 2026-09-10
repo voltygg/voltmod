@@ -41,7 +41,7 @@ public:
     /** All references must outlive this hook; @ref UiPanels holds it below the event and the
      *  Runtime declares the rest above the service. */
     UiClickHook(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots, EntitySystem& entities,
-             Scheduler& scheduler, Event<const UiClick&>& clicked);
+                Scheduler& scheduler, Event<const UiClick&>& clicked);
     ~UiClickHook();
     UiClickHook(const UiClickHook&) = delete;
     UiClickHook& operator=(const UiClickHook&) = delete;

@@ -11,8 +11,8 @@ static constexpr std::string_view kBreadcrumbSeparator = " › ";
 
 MenuStack::MenuStack(MenuSurface& surface, Translations& translations, Scheduler& scheduler)
     : MenuStack(surface, translations, PendingCommit::Timer([&scheduler](int64_t delayMs, std::function<void()> run) {
-          return scheduler.Delay(delayMs, std::move(run));
-      }))
+                    return scheduler.Delay(delayMs, std::move(run));
+                }))
 {}
 
 MenuStack::MenuStack(MenuSurface& surface, Translations& translations, PendingCommit::Timer timer)

@@ -10,15 +10,15 @@
 #include <string>
 
 using VoltMod::ButtonRow;
+using VoltMod::CenterHtmlRowsPerPage;
 using VoltMod::CenterHtmlView;
 using VoltMod::ChoiceRow;
-using VoltMod::RenderFooter;
-using VoltMod::RenderHeader;
-using VoltMod::CenterHtmlRowsPerPage;
 using VoltMod::Menu;
 using VoltMod::MenuBuilder;
 using VoltMod::MenuRow;
 using VoltMod::RenderCaptureOverlay;
+using VoltMod::RenderFooter;
+using VoltMod::RenderHeader;
 using VoltMod::RenderMenuHtml;
 using VoltMod::SlotEvents;
 using VoltMod::ToggleRow;

@@ -130,8 +130,8 @@ int PanelPlayerStateCount(EntitySystem* entities, EntityRef ref)
     return PlayerStateCount(Schema::CCSCustomHudLayout{entity.Raw()});
 }
 
-Status WritePanelText(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId, std::string_view variable,
-                   std::string_view value)
+Status WritePanelText(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId,
+                      std::string_view variable, std::string_view value)
 {
     auto entity = ReadyForWrite(entities, ref, slot);
     if (!entity)
@@ -160,13 +160,13 @@ Status WritePanelText(EntitySystem* entities, EntityRef ref, int slot, std::stri
 }
 
 Status WritePanelClass(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId,
-                    std::string_view className, bool on)
+                       std::string_view className, bool on)
 {
     return WriteClassState(entities, ref, slot, panelId, className, on ? kClassPresent : kClassAbsent);
 }
 
 Status RestorePanelClass(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId,
-                    std::string_view className)
+                         std::string_view className)
 {
     return WriteClassState(entities, ref, slot, panelId, className, kClassUndefined);
 }

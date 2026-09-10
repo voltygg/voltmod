@@ -1,9 +1,8 @@
-#include <VoltMod/Ui/Writers.hpp>
-
 #include "Support/FakePanel.hpp"
 
-#include <doctest/doctest.h>
+#include <VoltMod/Ui/Writers.hpp>
 #include <array>
+#include <doctest/doctest.h>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -110,9 +109,8 @@ struct LabelWriters
 };
 
 constexpr std::array<LabelId, 2> Labels{LabelId{"s_tab0", "tab0"}, LabelId{"s_tab1", "tab1"}};
-constexpr auto TabWriters = VoltMod::MakeWriters(Labels, [](const LabelId& tab) {
-    return LabelWriters{.Label = {"s", tab.Var}, .Hidden = {tab.Id, "Hidden"}};
-});
+constexpr auto TabWriters = VoltMod::MakeWriters(
+    Labels, [](const LabelId& tab) { return LabelWriters{.Label = {"s", tab.Var}, .Hidden = {tab.Id, "Hidden"}}; });
 
 static_assert(TabWriters.size() == 2);
 static_assert(TabWriters[1].Hidden.Id == "s_tab1");

@@ -31,7 +31,7 @@ UiPanelState::UiPanelState(EntitySystem* entities, EntityOps* ops, SlotEvents* s
 
     PlayerChanges = slots->Changed += [this](int slot) {
         RosterChangedSinceSpawn = true;  // the entity's per-player capacity is fixed at spawn
-        if (slot == Viewer)     // a private panel goes with its viewer
+        if (slot == Viewer)              // a private panel goes with its viewer
             Remove();
     };
 }

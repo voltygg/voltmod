@@ -50,7 +50,8 @@ std::string RenderHeader(const CenterHtmlHeader& header);
  * The footer HTML for a menu: the key hints.
  * @param isSubmenu True if this menu is a submenu (shows "Back" hint), false if it's a root menu (shows "Close" hint).
  * @param isPaginated True if the menu has multiple pages of items (shows page navigation hints)
- * @param selectedRowSteps True when A/D steps the selected row's value rather than paging (shows "Change"/"Confirm" hints).
+ * @param selectedRowSteps True when A/D steps the selected row's value rather than paging (shows "Change"/"Confirm"
+ * hints).
  * @param slot Player slot used to look up the nav-label translations.
  * @param translations Table the nav labels are looked up in.
  * @return The generated HTML string for the menu footer.

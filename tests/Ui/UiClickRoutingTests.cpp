@@ -9,8 +9,8 @@ using VoltMod::EntityRef;
 using VoltMod::Event;
 using VoltMod::Subscription;
 using VoltMod::UiClick;
-using VoltMod::Internal::RouteUiClick;
 using VoltMod::Internal::PressedEvents;
+using VoltMod::Internal::RouteUiClick;
 
 /** The pieces a UiPanel hands the router, with no entity system in sight. */
 struct RoutingFixture

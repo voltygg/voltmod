@@ -157,8 +157,9 @@ Status UiPanel::RestoreClass(int slot, std::string_view panelId, std::string_vie
         return std::unexpected(target.error());
 
     // PanelEntity accepts a null system and dead ref for moved-from panels.
-    const Status status = RestorePanelClass(state ? state->Entities : nullptr, state ? state->CurrentEntity : EntityRef{},
-                                       target->EngineSlot, panelId, className);
+    const Status status =
+        RestorePanelClass(state ? state->Entities : nullptr, state ? state->CurrentEntity : EntityRef{},
+                          target->EngineSlot, panelId, className);
 
     // The markup owns the current class state, so forget what was last sent.
     if (state && status)

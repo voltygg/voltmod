@@ -1,6 +1,5 @@
-#include <VoltMod/Menu/PendingCommit.hpp>
-
 #include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Menu/PendingCommit.hpp>
 #include <utility>
 
 namespace VoltMod

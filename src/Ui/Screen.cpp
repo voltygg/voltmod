@@ -1,7 +1,6 @@
-#include <VoltMod/Ui/Screen.hpp>
-
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Ui/Screen.hpp>
 
 namespace VoltMod
 {

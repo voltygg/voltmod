@@ -134,12 +134,12 @@ public:
     /** Player menus: the per-player session, drawn as center HTML; costs nothing per frame
      *  while nothing is open. */
     CenterHtmlMenu Menus{CenterHtmlMenu::Services{.Scheduler = Scheduler,
-                                   .Slots = Slots,
-                                   .Entities = Entities,
-                                   .ChatInput = Hooks.ChatInput,
-                                   .Translations = Translations,
-                                   .Policy = Policy,
-                                   .Messages = Messages}};
+                                                  .Slots = Slots,
+                                                  .Entities = Entities,
+                                                  .ChatInput = Hooks.ChatInput,
+                                                  .Translations = Translations,
+                                                  .Policy = Policy,
+                                                  .Messages = Messages}};
 
     /** Command manager for handling in-game commands. */
     VoltMod::CommandManager Commands{Policy, Translations, Players, Entities, Messages};

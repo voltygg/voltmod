@@ -24,8 +24,7 @@ static CursorRows CursorRowsFor(Menu* menu, int slot)
 }
 
 CenterHtmlMenu::CenterHtmlMenu(const Services& services)
-    : _services(services),
-      _stack(*this, _services.Translations, services.Scheduler)
+    : _services(services), _stack(*this, _services.Translations, services.Scheduler)
 {
     _stack.BindReset(services.Slots);
     _cursors.BindReset(services.Slots);
@@ -314,7 +313,8 @@ void CenterHtmlMenu::JumpPage(int slot, int delta)
     if (!menu || menu->Items.empty())
         return;
 
-    Select(slot, MenuCursor::JumpPage(CursorRowsFor(menu, slot), _cursors[slot].Selected, CenterHtmlRowsPerPage, delta));
+    Select(slot,
+           MenuCursor::JumpPage(CursorRowsFor(menu, slot), _cursors[slot].Selected, CenterHtmlRowsPerPage, delta));
 }
 
 void CenterHtmlMenu::SetPlayerFrozen(int slot, bool frozen, const Pawn& pawn)

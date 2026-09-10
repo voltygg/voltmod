@@ -14,7 +14,7 @@ SentWrites::SlotState* SentWrites::At(int slot)
 }
 
 bool SentWrites::Changed(int slot, WriteKind kind, std::string_view panelId, std::string_view name,
-                          std::string_view value)
+                         std::string_view value)
 {
     SlotState* state = At(slot);
     if (!state)

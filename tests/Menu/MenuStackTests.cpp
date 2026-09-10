@@ -99,9 +99,9 @@ TEST_CASE("MenuStack: a toggle with no words of its own is given them")
 {
     MenuStackFixture f;
     bool on = true;
-    f.Stack.Push(kSlot, Screen("Admin", {{.Describe = [&on](int) {
-                                             return MenuRow{.Kind = MenuRowKind::Toggle, .State = on};
-                                         }}}));
+    f.Stack.Push(
+        kSlot,
+        Screen("Admin", {{.Describe = [&on](int) { return MenuRow{.Kind = MenuRowKind::Toggle, .State = on}; }}}));
 
     CHECK(f.Stack.Describe(kSlot, 0).Value == "ON");
     on = false;
@@ -123,11 +123,16 @@ TEST_CASE("MenuStack: a stepped row is marked pending until the commit runs")
     MenuStackFixture f;
     int value = 0;
     int commits = 0;
-    f.Stack.Push(kSlot, Screen("Admin", {{
-                                   .Describe = [&value](int) { return MenuRow{.Value = std::to_string(value)}; },
-                                   .Step = [&value](int, int direction) { value += direction; return true; },
-                                   .Commit = [&commits](int) { ++commits; },
-                               }}));
+    f.Stack.Push(kSlot,
+                 Screen("Admin", {{
+                                     .Describe = [&value](int) { return MenuRow{.Value = std::to_string(value)}; },
+                                     .Step =
+                                         [&value](int, int direction) {
+                                             value += direction;
+                                             return true;
+                                         },
+                                     .Commit = [&commits](int) { ++commits; },
+                                 }}));
 
     CHECK(f.Stack.Step(kSlot, 0, +1));
     CHECK(f.Stack.Step(kSlot, 0, +1));
@@ -146,10 +151,10 @@ TEST_CASE("MenuStack: leaving the session applies what a stepped row was showing
     MenuStackFixture f;
     int commits = 0;
     f.Stack.Push(kSlot, Screen("Admin", {{
-                                   .Describe = [](int) { return MenuRow{}; },
-                                   .Step = [](int, int) { return true; },
-                                   .Commit = [&commits](int) { ++commits; },
-                               }}));
+                                            .Describe = [](int) { return MenuRow{}; },
+                                            .Step = [](int, int) { return true; },
+                                            .Commit = [&commits](int) { ++commits; },
+                                        }}));
 
     f.Stack.Step(kSlot, 0, +1);
     f.Stack.Clear(kSlot);
@@ -162,11 +167,15 @@ TEST_CASE("MenuStack: activating the pending row applies its value once, not twi
     int commits = 0;
     int activations = 0;
     f.Stack.Push(kSlot, Screen("Admin", {{
-                                   .Describe = [](int) { return MenuRow{}; },
-                                   .Activate = [&](int, VoltMod::MenuSurface&) { ++activations; ++commits; },
-                                   .Step = [](int, int) { return true; },
-                                   .Commit = [&commits](int) { ++commits; },
-                               }}));
+                                            .Describe = [](int) { return MenuRow{}; },
+                                            .Activate =
+                                                [&](int, VoltMod::MenuSurface&) {
+                                                    ++activations;
+                                                    ++commits;
+                                                },
+                                            .Step = [](int, int) { return true; },
+                                            .Commit = [&commits](int) { ++commits; },
+                                        }}));
 
     f.Stack.Step(kSlot, 0, +1);
     f.Stack.Activate(kSlot, 0);
@@ -182,9 +191,9 @@ TEST_CASE("MenuStack: a disabled row does not activate")
     MenuStackFixture f;
     int activations = 0;
     f.Stack.Push(kSlot, Screen("Admin", {{
-                                   .Describe = [](int) { return MenuRow{.Enabled = false}; },
-                                   .Activate = [&activations](int, VoltMod::MenuSurface&) { ++activations; },
-                               }}));
+                                            .Describe = [](int) { return MenuRow{.Enabled = false}; },
+                                            .Activate = [&activations](int, VoltMod::MenuSurface&) { ++activations; },
+                                        }}));
 
     f.Stack.Activate(kSlot, 0);
     CHECK(activations == 0);
@@ -197,17 +206,16 @@ TEST_CASE("MenuStack: a slot changing hands drops its session unrun")
 
     int commits = 0;
     f.Stack.Push(kSlot, Screen("Admin", {{
-                                   .Describe = [](int) { return MenuRow{}; },
-                                   .Step = [](int, int) { return true; },
-                                   .Commit = [&commits](int) { ++commits; },
-                               }}));
+                                            .Describe = [](int) { return MenuRow{}; },
+                                            .Step = [](int, int) { return true; },
+                                            .Commit = [&commits](int) { ++commits; },
+                                        }}));
     f.Stack.Step(kSlot, 0, +1);
 
     f.Slots.Raise(kSlot);
     CHECK_FALSE(f.Stack.IsOpen(kSlot));
     CHECK(commits == 0);  // nobody is left to have asked for it
 }
-
 
 TEST_CASE("MenuStack: a Scheduler is accepted as the timer")
 {
@@ -218,10 +226,14 @@ TEST_CASE("MenuStack: a Scheduler is accepted as the timer")
     MenuStack stack(surface, strings, scheduler);
 
     int committed = 0;
-    stack.Push(kSlot, Screen("Admin", {VoltMod::MenuItem{
-                                 .Describe = [](int) { return VoltMod::MenuRow{.Kind = VoltMod::MenuRowKind::Choice, .Steppable = true}; },
-                                 .Step = [](int, int) { return true; },
-                                 .Commit = [&](int) { ++committed; }}}));
+    stack.Push(kSlot, Screen("Admin", {VoltMod::MenuItem{.Describe =
+                                                             [](int) {
+                                                                 return VoltMod::MenuRow{
+                                                                     .Kind = VoltMod::MenuRowKind::Choice,
+                                                                     .Steppable = true};
+                                                             },
+                                                         .Step = [](int, int) { return true; },
+                                                         .Commit = [&](int) { ++committed; }}}));
 
     CHECK(stack.Step(kSlot, 0, +1));
     CHECK(stack.IsPending(kSlot, 0));

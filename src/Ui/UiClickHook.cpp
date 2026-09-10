@@ -77,7 +77,7 @@ static EntityRef ResolveLayout(EntitySystem& entities, uint32_t networked)
 }
 
 UiClickHook::UiClickHook(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots, EntitySystem& entities,
-                   Scheduler& scheduler, Event<const UiClick&>& clicked)
+                         Scheduler& scheduler, Event<const UiClick&>& clicked)
     : _interfaces(interfaces),
       _bindings(bindings),
       _slots(slots),

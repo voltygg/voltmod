@@ -1,10 +1,10 @@
 #pragma once
 
+#include <VoltMod/Core/PerSlot.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Core/Translations.hpp>
-#include <VoltMod/Core/PerSlot.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/MovementFreeze.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>

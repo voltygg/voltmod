@@ -3,9 +3,9 @@
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <doctest/doctest.h>
 
+using VoltMod::SentWrites;
 using VoltMod::SlotEvents;
 using VoltMod::WriteKind;
-using VoltMod::SentWrites;
 
 TEST_CASE("The first write of a value is new, and repeating it is not")
 {

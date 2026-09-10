@@ -26,16 +26,16 @@ namespace VoltMod
 int PanelPlayerStateCount(EntitySystem* entities, EntityRef ref);
 
 /** Set the dialog variable a `text="{s:variable}"` attribute reads. */
-Status WritePanelText(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId, std::string_view variable,
-                   std::string_view value);
+Status WritePanelText(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId,
+                      std::string_view variable, std::string_view value);
 
 /** Add (@p on) or remove @p className on @p panelId. */
 Status WritePanelClass(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId,
-                    std::string_view className, bool on);
+                       std::string_view className, bool on);
 
 /** Hand @p className back to whatever the layout markup itself says. */
 Status RestorePanelClass(EntitySystem* entities, EntityRef ref, int slot, std::string_view panelId,
-                    std::string_view className);
+                         std::string_view className);
 
 /** Give a player (or everyone) a cursor over the layout. */
 Status WritePanelInputCapture(EntitySystem* entities, EntityRef ref, int slot, bool enabled);
