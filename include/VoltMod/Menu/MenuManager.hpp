@@ -5,11 +5,11 @@
 #include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Core/Translations.hpp>
 #include <VoltMod/Core/PerSlot.hpp>
-#include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/MovementFreeze.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>
 #include <VoltMod/Menu/Menu.hpp>
+#include <VoltMod/Menu/MenuStack.hpp>
 #include <VoltMod/Menu/MenuState.hpp>
 #include <VoltMod/Messaging/Messages.hpp>
 #include <VoltMod/Players/Policy.hpp>
@@ -48,7 +48,6 @@ class MenuManager final : public MenuSurface
 public:
     /** Objects referenced by @p services must outlive the manager. */
     explicit MenuManager(const MenuServices& services);
-    ~MenuManager() override;
 
     /** Start a session for @p slot showing @p menu, closing any session the player already has.
      *  What a command calls; a submenu goes through the one-argument @ref MenuSurface::Open. */
@@ -72,17 +71,34 @@ public:
     void FreezeWhileOpen(bool enabled);
 
 private:
+    /** Presses closer together than this are ignored. */
     static constexpr int64_t InputDebounceMs = 200;
 
-    /** Push @p menu onto an open session and arm the per-frame work. */
+    /** Where one player is in the menu on top: the selected row, the buttons held last frame for
+     *  edge detection, and when the last press was acted on. */
+    struct Cursor
+    {
+        int Selected = 0;
+        uint64_t PrevButtons = 0;
+        int64_t LastInputTime = 0;
+    };
+
+    /** Push @p menu onto an open session and start the per-frame work. */
     void Push(int slot, std::shared_ptr<Menu> menu);
+
+    /** Put the cursor back on the first selectable row of whatever is now on top. */
+    void ResetCursor(int slot);
+
+    /** Put @p slot's cursor on row @p index, applying whatever the row it leaves was holding. An
+     *  index the current menu does not have is dropped. */
+    void Select(int slot, int index);
 
     /** Send the player's current menu, or its pending chat prompt, as center HTML. */
     void Present(int slot);
 
     void OnGameFrame();
 
-    /** The W/S/A/D/E/R controls for @p slot, debounced. True when a press was consumed. */
+    /** The W/S/A/D/E/R controls for @p slot. True when a press was consumed. */
     bool HandleKeys(int slot);
     bool HandlePressed(int slot, uint64_t pressed);
     void MoveCursor(int slot, int step);
@@ -105,8 +121,9 @@ private:
     MenuServices _services;
     bool _freezePlayer = false;
     PerSlot<SessionFreeze> _freezes;
-    /** Held by pointer: ActiveMenus is internal to the framework. */
-    std::unique_ptr<ActiveMenus> _menus;
+    /** The half every menu surface shares: stack, breadcrumb, Describe, Activate and Step. */
+    MenuStack _stack;
+    PerSlot<Cursor> _cursors;
     /** Declared last: per-frame delivery drops before the state it touches. */
     Subscription _onFrame;
 };

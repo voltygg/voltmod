@@ -148,7 +148,7 @@ TEST_CASE("CenterHtmlRender: a toggle draws its value as a switch")
 
     auto menu = MenuBuilder("Test Menu").Add(ToggleRow{.Label = "Prefix", .Get = [](int) { return true; }}).Build();
 
-    // The spec reports state and no words; ActiveMenus::Describe spells them before a driver ever
+    // The spec reports state and no words; MenuStack::Describe spells them before a driver ever
     // sees the row, so the view stands in for that here.
     const CenterHtmlView view{.Describe =
                                   [&menu](int index) {
@@ -179,7 +179,7 @@ TEST_CASE("CenterHtmlRender: a pending row trails an ellipsis and a changed row 
 
     auto menu = MenuBuilder("Test Menu").Add(ChoiceRow<int>{.Label = "HP", .Choices = {{"150 HP", 150}}}).Build();
 
-    // What MenuManager::Describe hands a driver while a stepped value is waiting to be applied.
+    // What MenuStack::Describe hands a driver while a stepped value is waiting to be applied.
     CenterHtmlView view = ViewOf(*menu, 0, false);
     view.Describe = [&menu](int index) {
         MenuRow row = menu->Items[static_cast<std::size_t>(index)].Describe(0);

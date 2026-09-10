@@ -44,7 +44,7 @@ MenuItem ButtonRow::ToItem() &&
 
 MenuItem ToggleRow::ToItem() &&
 {
-    // ActiveMenus::Describe supplies the localized state text.
+    // MenuStack::Describe supplies the localized state text.
     return MenuItem{
         .Describe = Describer(std::move(Label), MenuRowKind::Toggle, Enabled,
                               [get = Get](int slot, MenuRow& row) {

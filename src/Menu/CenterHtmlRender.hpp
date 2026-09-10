@@ -26,7 +26,7 @@ struct CenterHtmlHeader
 /** Menu state needed by the renderer. */
 struct CenterHtmlView
 {
-    /** Row @p index as @ref MenuManager::Describe fills it in, so @ref MenuRow::Pending and
+    /** Row @p index as @ref MenuStack::Describe fills it in, so @ref MenuRow::Pending and
      *  @ref MenuRow::Changed are already answered. */
     std::function<MenuRow(int index)> Describe;
     /** The titles under this menu, joined; empty at the root. Borrowed for the render call. */

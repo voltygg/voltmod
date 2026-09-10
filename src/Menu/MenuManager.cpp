@@ -1,4 +1,3 @@
-#include "Menu/ActiveMenus.hpp"
 #include "Menu/CenterHtmlRender.hpp"
 #include "Menu/MenuCursor.hpp"
 
@@ -6,24 +5,35 @@
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/Time.hpp>
 #include <VoltMod/Menu/MenuManager.hpp>
+#include <cstddef>
 #include <memory>
 #include <utility>
 
 namespace VoltMod
 {
 
-MenuManager::MenuManager(const MenuServices& services)
-    : _services(services),
-      _menus(std::make_unique<ActiveMenus>(
-          *this, _services.Translations, [&scheduler = services.Scheduler](int64_t delayMs, std::function<void()> callback) {
-              return scheduler.Delay(delayMs, std::move(callback));
-          }))
+/** The rows of @p menu as the cursor sees them: how many, and which it may land on. */
+static CursorRows CursorRowsFor(Menu* menu, int slot)
 {
-    _menus->BindReset(services.Slots);
-    _freezes.BindReset(services.Slots);
+    if (!menu)
+        return {};
+
+    return {.Count = static_cast<int>(menu->Items.size()), .Landable = [menu, slot](int index) {
+                return IsRowActionable(menu->Items[static_cast<std::size_t>(index)], slot);
+            }};
 }
 
-MenuManager::~MenuManager() = default;
+MenuManager::MenuManager(const MenuServices& services)
+    : _services(services),
+      _stack(*this, _services.Translations,
+             [&scheduler = services.Scheduler](int64_t delayMs, std::function<void()> callback) {
+                 return scheduler.Delay(delayMs, std::move(callback));
+             })
+{
+    _stack.BindReset(services.Slots);
+    _cursors.BindReset(services.Slots);
+    _freezes.BindReset(services.Slots);
+}
 
 void MenuManager::Open(int slot, std::shared_ptr<Menu> menu, MenuOptions options)
 {
@@ -44,7 +54,7 @@ void MenuManager::Open(int slot, std::shared_ptr<Menu> menu)
     if (!IsValidSlot(slot) || !menu)
         return;
 
-    if (!_menus->IsOpen(slot))
+    if (!_stack.IsOpen(slot))
     {
         Open(slot, std::move(menu), {});
         return;
@@ -55,16 +65,39 @@ void MenuManager::Open(int slot, std::shared_ptr<Menu> menu)
 
 void MenuManager::Push(int slot, std::shared_ptr<Menu> menu)
 {
-    _menus->Push(slot, std::move(menu));
+    _stack.Push(slot, std::move(menu));
+    ResetCursor(slot);
 
-    if (auto* current = _menus->Current(slot))
+    if (auto* current = _stack.Current(slot))
     {
-        Log::Info("Menu opened for slot {} (title: {}, depth: {}, items: {})", slot, current->Title, _menus->Depth(slot),
+        Log::Info("Menu opened for slot {} (title: {}, depth: {}, items: {})", slot, current->Title, _stack.Depth(slot),
                   current->Items.size());
     }
 
     if (!_onFrame)
         _onFrame = _services.Scheduler.EveryFrame([this] { OnGameFrame(); });
+}
+
+void MenuManager::ResetCursor(int slot)
+{
+    Cursor& cursor = _cursors[slot];
+    cursor.LastInputTime = Time::MonotonicMs();
+    Menu* menu = _stack.Current(slot);
+    cursor.Selected = menu ? MenuCursor::First(CursorRowsFor(menu, slot)) : 0;
+}
+
+void MenuManager::Select(int slot, int index)
+{
+    // Ignore stale or client-forged row indexes.
+    Menu* menu = _stack.Current(slot);
+    if (index < 0 || !menu || index >= static_cast<int>(menu->Items.size()))
+        return;
+
+    // Leaving a stepped row applies its pending value. Returning to it leaves the value pending.
+    if (!_stack.IsPending(slot, index))
+        _stack.RunPending(slot);
+
+    _cursors[slot].Selected = index;
 }
 
 void MenuManager::Close(int slot)
@@ -75,16 +108,18 @@ void MenuManager::Close(int slot)
     // Clear prompts for menus that are closing so they cannot consume later chat input.
     _services.ChatInput.CancelCapture(slot);
 
-    if (!_menus->IsOpen(slot))
+    if (!_stack.IsOpen(slot))
         return;
 
     // A parent menu is showing again; the next frame draws it.
-    if (!_menus->Pop(slot))
+    if (!_stack.Pop(slot))
     {
-        Log::Info("Menu closed for slot {} ({} left on the stack)", slot, _menus->Depth(slot));
+        ResetCursor(slot);
+        Log::Info("Menu closed for slot {} ({} left on the stack)", slot, _stack.Depth(slot));
         return;
     }
 
+    _cursors[slot] = {};
     Log::Info("Menu closed for slot {} (0 left on the stack)", slot);
     SetPlayerFrozen(slot, false, _services.Entities.PawnOf(slot));
     _services.Messages.ClearCenterHtml(slot);
@@ -97,10 +132,11 @@ void MenuManager::CloseAll(int slot)
 
     _services.ChatInput.CancelCapture(slot);
 
-    if (!_menus->IsOpen(slot))
+    if (!_stack.IsOpen(slot))
         return;
 
-    _menus->Clear(slot);
+    _stack.Clear(slot);
+    _cursors[slot] = {};
     SetPlayerFrozen(slot, false, _services.Entities.PawnOf(slot));
     Log::Info("All menus closed for slot {}", slot);
     _services.Messages.ClearCenterHtml(slot);
@@ -127,7 +163,7 @@ std::string MenuManager::Translate(int slot, std::string_view key, std::string_v
 
 bool MenuManager::IsOpen(int slot) const
 {
-    return _menus->IsOpen(slot);
+    return _stack.IsOpen(slot);
 }
 
 void MenuManager::FreezeWhileOpen(bool enabled)
@@ -148,7 +184,7 @@ void MenuManager::FreezeWhileOpen(bool enabled)
 
 void MenuManager::Present(int slot)
 {
-    Menu* menu = _menus->Current(slot);
+    Menu* menu = _stack.Current(slot);
     if (!menu)
         return;
 
@@ -160,11 +196,11 @@ void MenuManager::Present(int slot)
     }
 
     const CenterHtmlView view{
-        .Describe = [this, slot](int index) { return _menus->Describe(slot, index); },
-        .Breadcrumb = _menus->Breadcrumb(slot),
+        .Describe = [this, slot](int index) { return _stack.Describe(slot, index); },
+        .Breadcrumb = _stack.Breadcrumb(slot),
         .Slot = slot,
-        .SelectedIndex = _menus->Selected(slot),
-        .IsSubmenu = _menus->Depth(slot) > 1,
+        .SelectedIndex = _cursors[slot].Selected,
+        .IsSubmenu = _stack.Depth(slot) > 1,
     };
     _services.Messages.SendCenterHtml(slot, RenderMenuHtml(menu, view, _services.Translations));
 }
@@ -173,36 +209,37 @@ void MenuManager::OnGameFrame()
 {
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
-        if (!_menus->IsOpen(slot))
+        if (!_stack.IsOpen(slot))
             continue;
 
         SyncFreeze(slot, _services.Entities.PawnOf(slot));
         HandleKeys(slot);
 
         // Input may have activated a row that closed the menu it was about to draw.
-        if (_menus->IsOpen(slot))
+        if (_stack.IsOpen(slot))
             Present(slot);
     }
 
     // Slot reset clears stacks without going through Close, so stop per-frame work here.
-    if (!_menus->AnyOpen())
+    if (!_stack.AnyOpen())
         _onFrame.Reset();
 }
 
 bool MenuManager::HandleKeys(int slot)
 {
-    if (!_menus->Current(slot))
+    if (!_stack.Current(slot))
         return false;
 
+    Cursor& cursor = _cursors[slot];
     const uint64_t buttons = _services.Entities.Buttons(slot);
-    const uint64_t pressed = buttons & ~_menus->PrevButtons(slot);
-    _menus->PrevButtons(slot) = buttons;
+    const uint64_t pressed = buttons & ~cursor.PrevButtons;
+    cursor.PrevButtons = buttons;
 
     if (pressed == 0)
         return false;
 
     const int64_t now = Time::MonotonicMs();
-    if (now - _menus->LastInputTime(slot) < InputDebounceMs)
+    if (now - cursor.LastInputTime < InputDebounceMs)
         return false;
 
     if (_services.ChatInput.IsCapturing(slot))
@@ -211,15 +248,15 @@ bool MenuManager::HandleKeys(int slot)
             return false;
 
         _services.ChatInput.CancelCapture(slot);
-        _menus->LastInputTime(slot) = now;
+        cursor.LastInputTime = now;
         return true;
     }
 
     if (!HandlePressed(slot, pressed))
         return false;
 
-    // The action may have replaced the session.
-    _menus->LastInputTime(slot) = now;
+    // The action may have replaced the session, so read the cursor again.
+    _cursors[slot].LastInputTime = now;
     return true;
 }
 
@@ -231,7 +268,7 @@ bool MenuManager::HandlePressed(int slot, uint64_t pressed)
         return true;
     }
 
-    Menu* menu = _menus->Current(slot);
+    Menu* menu = _stack.Current(slot);
     const int itemCount = menu ? static_cast<int>(menu->Items.size()) : 0;
     if (itemCount == 0)
         return false;
@@ -249,7 +286,7 @@ bool MenuManager::HandlePressed(int slot, uint64_t pressed)
     if (pressed & (IN_MOVELEFT | IN_MOVERIGHT))
     {
         const int direction = (pressed & IN_MOVELEFT) ? -1 : +1;
-        if (_menus->Step(slot, _menus->Selected(slot), direction))
+        if (_stack.Step(slot, _cursors[slot].Selected, direction))
             return true;
         if (itemCount <= ItemsPerPage)
             return false;
@@ -258,7 +295,7 @@ bool MenuManager::HandlePressed(int slot, uint64_t pressed)
     }
     if (pressed & IN_USE)
     {
-        _menus->Activate(slot, _menus->Selected(slot));
+        _stack.Activate(slot, _cursors[slot].Selected);
         return true;
     }
     return false;
@@ -266,19 +303,20 @@ bool MenuManager::HandlePressed(int slot, uint64_t pressed)
 
 void MenuManager::MoveCursor(int slot, int step)
 {
-    if (!_menus->Current(slot))
+    Menu* menu = _stack.Current(slot);
+    if (!menu)
         return;
 
-    _menus->Select(slot, MenuCursor::Step(_menus->Rows(slot), _menus->Selected(slot), step));
+    Select(slot, MenuCursor::Step(CursorRowsFor(menu, slot), _cursors[slot].Selected, step));
 }
 
 void MenuManager::JumpPage(int slot, int delta)
 {
-    Menu* menu = _menus->Current(slot);
+    Menu* menu = _stack.Current(slot);
     if (!menu || menu->Items.empty())
         return;
 
-    _menus->Select(slot, MenuCursor::JumpPage(_menus->Rows(slot), _menus->Selected(slot), ItemsPerPage, delta));
+    Select(slot, MenuCursor::JumpPage(CursorRowsFor(menu, slot), _cursors[slot].Selected, ItemsPerPage, delta));
 }
 
 void MenuManager::SetPlayerFrozen(int slot, bool frozen, const Pawn& pawn)
