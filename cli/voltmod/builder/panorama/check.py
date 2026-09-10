@@ -17,6 +17,10 @@ from .screens import Owner
 #: What the client's Panorama parser accepts anywhere in a layout.
 ALLOWED_TAGS = {"root", "styles", "include", "Panel", "Label", "Image", "Button"}
 
+#: Every distinct id, variable and class name a screen uses is interned for good in the client's
+#: 1024-entry table. One screen past this many is a runaway loop, not a design.
+NAME_BUDGET = 900
+
 
 def check(root: Path, kit_root: Path, names: list[str]) -> list[str]:
     """Every problem the named owners' screens would fail on, as `<file>: <problem>` lines."""
@@ -52,6 +56,7 @@ def _screen(owner: Owner, kit_root: Path, source: Path, claimed: dict[str, str])
         + _names(parsed, source)
         + _stylesheet_include(parsed, name, source)
         + _images(owner, parsed, source)
+        + _budget(parsed, stylesheet, source)
     )
 
 
@@ -172,6 +177,18 @@ def _images(owner: Owner, screen: bind.Screen, source: Path) -> list[str]:
         if not (owner.source / screens.IMAGES_DIR / icon_set / f"{name}.png").is_file():
             findings.append(f"{source}: Image src '{src}' has no {icon_set}/{name}.png")
     return findings
+
+
+def _budget(screen: bind.Screen, stylesheet: str, source: Path) -> list[str]:
+    """One screen may not use more than @ref NAME_BUDGET distinct names."""
+    names = {screen.name, *screen.ids, *screen.variables}
+    for node in screen.tree.iter():
+        names.update(node.get("class", "").split())
+    for selector, _ in bind.rules(stylesheet):
+        names.update(bind.CLASS.findall(selector))
+    if len(names) <= NAME_BUDGET:
+        return []
+    return [f"{source}: {len(names)} interned names; the client holds 1024, check allows {NAME_BUDGET}"]
 
 
 def _owner_images(owner: Owner) -> list[str]:

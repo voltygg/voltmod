@@ -210,3 +210,22 @@ def test_an_id_spelling_a_repeated_blocks_array_is_flagged(tmp_path):
     root = plugin(tmp_path, xml=ARRAY_CLASH_XML, css=HIDDEN_CSS, name="hud")
     findings = checker.check(root, KIT, ["ui-lab"])
     assert any("both spell Rows" in finding for finding in findings)
+
+
+RUNAWAY_XML = """<root>
+  <styles>
+    <include src="file://{resources}/styles/custom_game/{{screen}}.css" />
+  </styles>
+  <Panel id="{{screen}}" class="Screen Hidden">
+    {%- for index in range(901) %}
+    <Panel id="{{screen}}_p{{index}}" />
+    {%- endfor %}
+  </Panel>
+</root>
+"""
+
+
+def test_a_screen_over_the_name_budget_is_flagged(tmp_path):
+    root = plugin(tmp_path, xml=RUNAWAY_XML, css=HIDDEN_CSS, name="hud")
+    findings = checker.check(root, KIT, ["ui-lab"])
+    assert any("interned names" in finding for finding in findings)
