@@ -13,6 +13,7 @@ the same `Screen` this returns so the two cannot disagree about what a layout sa
 
 import re
 from dataclasses import dataclass, field
+from functools import cached_property
 from xml.etree import ElementTree
 
 #: A Label reading a dialog variable off the layout root.
@@ -36,7 +37,11 @@ _COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
 COLUMNS = 100
 
 
-@dataclass(slots=True)
+def _suffixed(base: str, suffix: str) -> str:
+    return f"{base}_{suffix}" if suffix else base
+
+
+@dataclass(frozen=True, slots=True)
 class Group:
     """A block the layout repeats with an index: `row0`..`row7`, alike in every copy.
 
@@ -63,26 +68,19 @@ class Group:
 
     def members(self) -> list[str]:
         """The struct's member names, ids first, in the order the layout names them."""
-        ids = ["Id" if suffix == "" else pascal(suffix) for suffix in self.id_suffixes]
-        variables = [
-            "Var" if suffix == "" else f"{pascal(suffix)}Var" for suffix in self.var_suffixes
-        ]
+        ids = [pascal(suffix) or "Id" for suffix in self.id_suffixes]
+        variables = [f"{pascal(suffix)}Var" for suffix in self.var_suffixes]
         return ids + variables
 
     def ids(self, screen: str, index: int) -> list[str]:
         """The panel ids copy @p index carries, as the layout spells them."""
-        return [
-            f"{screen}_{self.stem}{index}" + (f"_{suffix}" if suffix else "")
-            for suffix in self.id_suffixes
-        ]
+        return [_suffixed(f"{screen}_{self.stem}{index}", suffix) for suffix in self.id_suffixes]
 
     def variables(self, index: int) -> list[str]:
-        return [
-            f"{self.stem}{index}" + (f"_{suffix}" if suffix else "") for suffix in self.var_suffixes
-        ]
+        return [_suffixed(f"{self.stem}{index}", suffix) for suffix in self.var_suffixes]
 
 
-@dataclass(slots=True)
+@dataclass
 class Screen:
     """What one rendered screen offers, in the order its layout and stylesheet name it."""
 
@@ -95,31 +93,21 @@ class Screen:
     variables: list[str] = field(default_factory=list)
     #: Family prefix -> its variants, both in first-appearance order.
     families: dict[str, list[str]] = field(default_factory=dict)
-    _cached_groups: list[Group] | None = field(default=None, compare=False, repr=False)
 
+    @cached_property
     def groups(self) -> list[Group]:
         """The repeated blocks: every stem whose copies are indexed 0..K-1 (K >= 2) and alike."""
-        if self._cached_groups is None:
-            self._cached_groups = _groups(self)
-        return self._cached_groups
+        return _groups(self)
 
+    @cached_property
     def grouped_ids(self) -> set[str]:
         """The panel ids the repeated blocks already spell, which no flat constant repeats."""
-        return {
-            name
-            for group in self.groups()
-            for i in range(group.count)
-            for name in group.ids(self.name, i)
-        }
+        return {n for g in self.groups for i in range(g.count) for n in g.ids(self.name, i)}
 
+    @cached_property
     def grouped_variables(self) -> set[str]:
         """The dialog variables the repeated blocks already spell."""
-        return {
-            name
-            for group in self.groups()
-            for i in range(group.count)
-            for name in group.variables(i)
-        }
+        return {n for g in self.groups for i in range(g.count) for n in g.variables(i)}
 
 
 def read(layout: str, stylesheet: str) -> Screen:
@@ -130,14 +118,12 @@ def read(layout: str, stylesheet: str) -> Screen:
     ids = [node.get("id", "") for node in nodes if node.get("id")]
     screen = Screen(name=ids[0] if ids else "", tree=tree, ids=ids[1:])
 
+    # The layout before the stylesheet, so an icon set's families keep the order its Images are
+    # stacked in; the stylesheet is the only place an Accent or Step family is ever declared.
     for node in nodes:
         found = VAR.match(node.get("text", ""))
         if found and found.group(1) not in screen.variables:
             screen.variables.append(found.group(1))
-
-    # The layout first, so an icon set's families keep the order its Images are stacked in; then
-    # the stylesheet, which is the only place an Accent or Step family is ever declared.
-    for node in nodes:
         _collect(screen.families, node.get("class", "").split())
     _collect(screen.families, selector_classes(stylesheet))
 
@@ -163,11 +149,7 @@ def header(screen: Screen, template: str) -> str:
         "",
     ]
 
-    groups = screen.groups()
-    grouped_ids = screen.grouped_ids()
-    grouped_vars = screen.grouped_variables()
-
-    flat_ids = [name for name in screen.ids if name not in grouped_ids]
+    flat_ids = [name for name in screen.ids if name not in screen.grouped_ids]
     if flat_ids:
         lines.append("// Panel ids.")
         for name in flat_ids:
@@ -175,19 +157,19 @@ def header(screen: Screen, template: str) -> str:
             lines.append(f'inline constexpr std::string_view {spelled} = "{name}";')
         lines.append("")
 
-    flat_vars = [name for name in screen.variables if name not in grouped_vars]
+    flat_vars = [name for name in screen.variables if name not in screen.grouped_variables]
     if flat_vars:
         lines.append("// Dialog variables, written through RootId.")
         for name in flat_vars:
             lines.append(f'inline constexpr std::string_view {pascal(name)}Var = "{name}";')
         lines.append("")
 
-    if groups:
-        lines.append(
-            "// Repeated blocks: one struct per block, one array entry per index. Variables are"
-        )
-        lines.append("// written through RootId.")
-        for group in groups:
+    if screen.groups:
+        lines += [
+            "// Repeated blocks: one struct per block, one array entry per index. Variables are",
+            "// written through RootId.",
+        ]
+        for group in screen.groups:
             lines += _group(group, screen.name)
 
     for prefix, variants in screen.families.items():
@@ -216,72 +198,6 @@ def enumerated(variants: list[str]) -> bool:
     return not all(variant.isdigit() for variant in variants)
 
 
-def _groups(screen: Screen) -> list[Group]:
-    """See `Screen.groups`. A stem whose copies differ, or skip an index, stays flat."""
-    ids: dict[str, dict[int, list[str]]] = {}
-    variables: dict[str, dict[int, list[str]]] = {}
-    order: list[str] = []
-
-    def add(table: dict[str, dict[int, list[str]]], name: str) -> None:
-        found = INDEXED.match(name)
-        if not found:
-            return
-        stem, index, suffix = found.group(1), int(found.group(2)), found.group(3) or ""
-        if stem not in ids and stem not in variables:
-            order.append(stem)
-        table.setdefault(stem, {}).setdefault(index, []).append(suffix)
-
-    for name in screen.ids:
-        add(ids, name.removeprefix(f"{screen.name}_"))
-    for name in screen.variables:
-        add(variables, name)
-
-    groups: list[Group] = []
-    for stem in order:
-        by_index_ids = ids.get(stem, {})
-        by_index_vars = variables.get(stem, {})
-        indices = sorted(set(by_index_ids) | set(by_index_vars))
-        if len(indices) < 2 or indices != list(range(len(indices))):
-            continue
-        first_ids, first_vars = by_index_ids.get(0, []), by_index_vars.get(0, [])
-        alike = all(
-            sorted(by_index_ids.get(i, [])) == sorted(first_ids)
-            and sorted(by_index_vars.get(i, [])) == sorted(first_vars)
-            for i in indices
-        )
-        if alike:
-            groups.append(Group(stem, len(indices), first_ids, first_vars))
-    return groups
-
-
-def _group(group: Group, screen: str) -> list[str]:
-    """The struct and the array for one repeated block."""
-    lines = [f"struct {group.struct}", "{"]
-    lines += [f"    std::string_view {name};" for name in group.members()]
-    lines += ["};", f"inline constexpr std::array<{group.struct}, {group.count}> {group.array}{{"]
-    for index in range(group.count):
-        values = [f'"{name}"' for name in group.ids(screen, index) + group.variables(index)]
-        one = f"    {group.struct}{{{', '.join(values)}}},"
-        if len(one) <= COLUMNS:
-            lines.append(one)
-        else:
-            lines += (
-                [f"    {group.struct}{{"] + [f"        {value}," for value in values] + ["    },"]
-            )
-    return lines + ["};", ""]
-
-
-def _collect(families: dict[str, list[str]], classes: list[str]) -> None:
-    """Add whatever `Prefix--variant` classes @p classes holds, keeping first-seen order."""
-    for cls in classes:
-        found = FAMILY.match(cls)
-        if not found:
-            continue
-        variants = families.setdefault(found.group(1), [])
-        if found.group(2) not in variants:
-            variants.append(found.group(2))
-
-
 def rules(stylesheet: str) -> list[tuple[str, str]]:
     """Every rule as (selector, declarations), in source order, comments stripped.
 
@@ -298,10 +214,56 @@ def rules(stylesheet: str) -> list[tuple[str, str]]:
 def selector_classes(stylesheet: str) -> list[str]:
     """Every class named by a selector, in rule order. Declarations are skipped so a decimal in
     a value cannot be read as a class."""
-    found: list[str] = []
-    for selector, _ in rules(stylesheet):
-        found += CLASS.findall(selector)
-    return found
+    return [cls for selector, _ in rules(stylesheet) for cls in CLASS.findall(selector)]
+
+
+def _groups(screen: Screen) -> list[Group]:
+    """See `Screen.groups`. A stem whose copies differ, or skip an index, stays flat."""
+    # stem -> index -> (id suffixes, variable suffixes), stems in first-appearance order.
+    copies: dict[str, dict[int, tuple[list[str], list[str]]]] = {}
+
+    def add(name: str, slot: int) -> None:
+        if found := INDEXED.match(name):
+            stem, index, suffix = found.group(1), int(found.group(2)), found.group(3) or ""
+            copies.setdefault(stem, {}).setdefault(index, ([], []))[slot].append(suffix)
+
+    for name in screen.ids:
+        add(name.removeprefix(f"{screen.name}_"), 0)
+    for name in screen.variables:
+        add(name, 1)
+
+    groups: list[Group] = []
+    for stem, by_index in copies.items():
+        if len(by_index) < 2 or sorted(by_index) != list(range(len(by_index))):
+            continue
+        first_ids, first_vars = by_index[0]
+        alike = all(
+            sorted(ids) == sorted(first_ids) and sorted(variables) == sorted(first_vars)
+            for ids, variables in by_index.values()
+        )
+        if alike:
+            groups.append(Group(stem, len(by_index), first_ids, first_vars))
+    return groups
+
+
+def _group(group: Group, screen: str) -> list[str]:
+    """The struct and the array for one repeated block."""
+    lines = [f"struct {group.struct}", "{"]
+    lines += [f"    std::string_view {name};" for name in group.members()]
+    lines += ["};", f"inline constexpr std::array<{group.struct}, {group.count}> {group.array}{{"]
+    for index in range(group.count):
+        values = [f'"{name}"' for name in group.ids(screen, index) + group.variables(index)]
+        lines += _braced(group.struct, values, ",", indent="    ")
+    return lines + ["};", ""]
+
+
+def _collect(families: dict[str, list[str]], classes: list[str]) -> None:
+    """Add whatever `Prefix--variant` classes @p classes holds, keeping first-seen order."""
+    for cls in classes:
+        if found := FAMILY.match(cls):
+            variants = families.setdefault(found.group(1), [])
+            if found.group(2) not in variants:
+                variants.append(found.group(2))
 
 
 def _family(prefix: str, variants: list[str]) -> list[str]:
@@ -312,15 +274,18 @@ def _family(prefix: str, variants: list[str]) -> list[str]:
         lines += [f"    {pascal(variant)}," for variant in variants]
         lines += ["};"]
         lines += _array(f"{prefix}Names", [f'"{variant}"' for variant in variants])
-
-    classes = _array(f"{prefix}Classes", [f'"{prefix}--{variant}"' for variant in variants])
-    return lines + classes + [""]
+    return lines + _array(f"{prefix}Classes", [f'"{prefix}--{v}"' for v in variants]) + [""]
 
 
 def _array(name: str, items: list[str]) -> list[str]:
-    """One line when it fits the column limit, otherwise one item per line."""
     head = f"inline constexpr std::array<std::string_view, {len(items)}> {name}"
-    one = f"{head}{{{', '.join(items)}}};"
+    return _braced(head, items, ";")
+
+
+def _braced(head: str, items: list[str], tail: str, indent: str = "") -> list[str]:
+    """`head{items}tail` on one line when it fits the column limit, else one item per line."""
+    one = f"{indent}{head}{{{', '.join(items)}}}{tail}"
     if len(one) <= COLUMNS:
         return [one]
-    return [f"{head}{{"] + [f"    {item}," for item in items] + ["};"]
+    items = [f"{indent}    {item}," for item in items]
+    return [f"{indent}{head}{{", *items, f"{indent}}}{tail}"]

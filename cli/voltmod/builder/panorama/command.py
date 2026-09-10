@@ -87,9 +87,8 @@ def check_command(owners: Owners = None) -> None:
             print(finding)
         raise typer.Exit(1)
 
-    selected = screens.select(screens.find_owners(ROOT), owners or [])
-    count = sum(len(screens.sources(owner)) for owner in selected.values())
-    print(f"Checked {count} screen(s)")
+    selected = screens.select(screens.find_owners(ROOT), owners or []).values()
+    print(f"Checked {sum(len(screens.sources(owner)) for owner in selected)} screen(s)")
 
 
 @app.command("preview")

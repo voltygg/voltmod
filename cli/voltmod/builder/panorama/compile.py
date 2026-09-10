@@ -43,6 +43,10 @@ _CS2_IN_LIBRARY = "steamapps/common/Counter-Strike Global Offensive"
 _LIBRARY_PATH_RE = re.compile(r'"path"\s+"([^"]+)"')
 
 
+def _is_client(root: Path) -> bool:
+    return (root / "game/csgo/gameinfo.gi").is_file()
+
+
 def _library_paths(steam: Path) -> list[Path]:
     """Every Steam library on this machine, so a client on a second drive is still found."""
     libraries = [steam]
@@ -57,18 +61,16 @@ def find_client(client_path: str) -> Path:
     """Locate a CS2 client installation, or say how to name one."""
     if client_path:
         root = Path(client_path).expanduser()
-        if not (root / "game/csgo/gameinfo.gi").is_file():
+        if not _is_client(root):
             die(f"no CS2 client at {root}\nExpected {root / 'game/csgo/gameinfo.gi'}")
         return root
 
     for candidate in _STEAM_ROOTS:
         steam = Path(candidate).expanduser()
-        if not steam.is_dir():
-            continue
-        for library in _library_paths(steam):
-            root = library / _CS2_IN_LIBRARY
-            if (root / "game/csgo/gameinfo.gi").is_file():
-                return root
+        if steam.is_dir():
+            for library in _library_paths(steam):
+                if _is_client(library / _CS2_IN_LIBRARY):
+                    return library / _CS2_IN_LIBRARY
 
     die("no CS2 client found; set CS2_CLIENT_PATH in .env or pass --client-path")
 
@@ -78,22 +80,22 @@ def _rendered_files(rendered: Path) -> list[Path]:
 
     Icon sets nest one directory deeper than layouts and styles, so this walks rather than globs.
     """
-    files: list[Path] = []
-    for subdir in PANORAMA_DIRS:
-        for path in sorted((rendered / subdir).rglob("*")):
-            if path.is_file() and path.suffix in (*COMPILED_SUFFIX, *STAGED_ONLY):
-                files.append(path)
-    return files
+    return [
+        path
+        for subdir in PANORAMA_DIRS
+        for path in sorted((rendered / subdir).rglob("*"))
+        if path.is_file() and path.suffix in (*COMPILED_SUFFIX, *STAGED_ONLY)
+    ]
 
 
-def _stage(sources: list[Path], rendered: Path, content: Path) -> list[Path]:
-    """Copy sources into the addon's content tree, keeping the `panorama/` prefix.
+def _stage(rendered: Path, content: Path) -> list[Path]:
+    """Copy a rendered tree into @p content, keeping the `panorama/` prefix.
 
     The prefix is load-bearing, not cosmetic: a layout's `<include src="file://{resources}/...">`
     resolves against the addon root, so a stylesheet staged without it is reported missing.
     """
     staged = []
-    for source in sources:
+    for source in _rendered_files(rendered):
         target = content / source.relative_to(rendered.parent)
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, target)
@@ -101,12 +103,16 @@ def _stage(sources: list[Path], rendered: Path, content: Path) -> list[Path]:
     return staged
 
 
+def _compilable(staged: list[Path]) -> list[Path]:
+    return [path for path in staged if path.suffix in COMPILED_SUFFIX]
+
+
 def _compiled_path(built: Path, staged: Path, content: Path) -> Path:
     """Where resourcecompiler writes the artifact for a staged source."""
     return (built / staged.relative_to(content)).with_suffix(COMPILED_SUFFIX[staged.suffix])
 
 
-def _compile(client: Path, addon: str, staged: list[Path], content: Path) -> None:
+def _compile(client: Path, built: Path, staged: list[Path], content: Path) -> None:
     """Run resourcecompiler over the staged sources.
 
     Files are passed one `-i` at a time rather than as a wildcard: the compiler documents
@@ -120,25 +126,23 @@ def _compile(client: Path, addon: str, staged: list[Path], content: Path) -> Non
         )
 
     # The tools do not treat a directory without addoninfo.txt as an addon.
-    info = client / "game/csgo_addons" / addon / "addoninfo.txt"
+    info = built / "addoninfo.txt"
     if not info.is_file():
         info.parent.mkdir(parents=True, exist_ok=True)
         info.write_text('"AddonInfo"\n{\n}\n', encoding="utf-8")
 
-    compilable = [path for path in staged if path.suffix in COMPILED_SUFFIX]
+    compilable = _compilable(staged)
     command = [str(compiler), "-nop4", "-f", "-game", str(client / "game/csgo")]
     for path in compilable:
         command += ["-i", str(path)]
 
     result = subprocess.run(command, cwd=compiler.parent, capture_output=True, text=True)
-    output_text = f"{result.stdout}{result.stderr}"
 
     # It exits 0 whether or not anything compiled, and its console tally is prose that any tools
     # update may reword, so the artifacts it was asked to produce are what decide.
-    built = client / "game/csgo_addons" / addon
     missing = [path for path in compilable if not _compiled_path(built, path, content).is_file()]
     if result.returncode != 0 or missing:
-        print(output_text.strip())
+        print(f"{result.stdout}{result.stderr}".strip())
         if missing:
             die("resourcecompiler produced no output for: " + ", ".join(p.name for p in missing))
         die(f"resourcecompiler exited {result.returncode}")
@@ -146,24 +150,17 @@ def _compile(client: Path, addon: str, staged: list[Path], content: Path) -> Non
     print(f"  compiled {len(compilable)} resource(s)")
 
 
-def _deploy(client: Path, addon: str, staged: list[Path], content: Path) -> int:
+def _deploy(client: Path, built: Path, staged: list[Path], content: Path) -> int:
     """Copy the compiled resources into the client's own csgo tree."""
-    built = client / "game/csgo_addons" / addon
     csgo = client / "game/csgo"
-    count = 0
-
-    for source in staged:
-        if source.suffix not in COMPILED_SUFFIX:
-            continue
-        relative = source.relative_to(content)
+    compilable = _compilable(staged)
+    for source in compilable:
         compiled = _compiled_path(built, source, content)
-        target = csgo / relative.parent / compiled.name
+        target = csgo / source.relative_to(content).parent / compiled.name
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(compiled, target)
         print(f"  -> {target.relative_to(client)}")
-        count += 1
-
-    return count
+    return len(compilable)
 
 
 def install(root: Path, names: list[str], client_path: str, addon: str, deploy: bool) -> None:
@@ -172,37 +169,37 @@ def install(root: Path, names: list[str], client_path: str, addon: str, deploy: 
         die("the CS2 Workshop Tools are Windows only; compile the layouts there")
 
     client = find_client(client_path)
-    owners = select(find_owners(root), names)
+    content = client / "content/csgo_addons" / addon
+    built = client / "game/csgo_addons" / addon
 
     print(f"Client:  {client}")
     print(f"Addon:   csgo_addons/{addon}")
 
-    content = client / "content/csgo_addons" / addon
-    deployed = 0
-
     # Every owner stages into the same addon tree, so they compile in one launch: resourcecompiler
     # startup dominates the run for this many files, and paying it per owner adds nothing.
     by_owner: list[tuple[str, list[Path]]] = []
-    for owner in owners.values():
+    for owner in select(find_owners(root), names).values():
         rendered = output(root, owner)
-        sources = _rendered_files(rendered)
-        if not sources:
+        staged = _stage(rendered, content)
+        if staged:
+            by_owner.append((owner.name, staged))
+        else:
             print(f"\n--- {owner.name} ---\n  (nothing rendered under {rendered})")
-            continue
-        by_owner.append((owner.name, _stage(sources, rendered, content)))
 
     staged = [path for _, paths in by_owner for path in paths]
     if staged:
         print(f"\nStaged {len(staged)} source(s) from {', '.join(name for name, _ in by_owner)}")
-        _compile(client, addon, staged, content)
+        _compile(client, built, staged, content)
 
-    if deploy:
-        for name, paths in by_owner:
-            print(f"\n--- {name} ---")
-            deployed += _deploy(client, addon, paths, content)
-        print(f"\nInstalled {deployed} resource(s). Reconnect to pick them up.")
-    else:
-        print(f"\nCompiled into {client / 'game/csgo_addons' / addon}; not installed.")
+    if not deploy:
+        print(f"\nCompiled into {built}; not installed.")
+        return
+
+    deployed = 0
+    for name, paths in by_owner:
+        print(f"\n--- {name} ---")
+        deployed += _deploy(client, built, paths, content)
+    print(f"\nInstalled {deployed} resource(s). Reconnect to pick them up.")
 
 
 def publish(root: Path, names: list[str], directory: Path) -> int:
@@ -210,15 +207,5 @@ def publish(root: Path, names: list[str], directory: Path) -> int:
 
     No client and no compiler: this is what a workshop addon's content directory wants.
     """
-    owners = select(find_owners(root), names)
-    count = 0
-
-    for owner in owners.values():
-        rendered = output(root, owner)
-        for source in _rendered_files(rendered):
-            target = directory / source.relative_to(rendered.parent)
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source, target)
-            count += 1
-
-    return count
+    owners = select(find_owners(root), names).values()
+    return sum(len(_stage(output(root, owner), directory)) for owner in owners)

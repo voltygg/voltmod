@@ -28,32 +28,32 @@ RUNAWAY_NAMES = 400
 
 def check(root: Path, kit_root: Path, names: list[str]) -> list[str]:
     """Every problem the named owners' screens would fail on, as `<file>: <problem>` lines."""
-    owners = screens.select(screens.find_owners(root), names)
     findings: list[str] = []
     claimed: dict[str, str] = {}
     interned: dict[Path, set[str]] = {}
 
-    for owner in owners.values():
-        for resource in _owner_images(owner):
-            findings += _claim(resource, owner, claimed)
+    for owner in screens.select(screens.find_owners(root), names).values():
+        renderer = screens.Renderer(owner, kit_root)
+        for icon_set, icons in renderer.icons.items():
+            for icon in icons:
+                findings += _claim(f"images/custom_game/{icon_set}/{icon}.*", owner, claimed)
         for source in screens.sources(owner):
-            findings += _screen(owner, kit_root, source, claimed, interned)
+            findings += _screen(renderer, source, claimed, interned)
 
     return findings + _table(interned)
 
 
 def _screen(
-    owner: Owner,
-    kit_root: Path,
+    renderer: screens.Renderer,
     source: Path,
     claimed: dict[str, str],
     interned: dict[Path, set[str]],
 ) -> list[str]:
-    name = source.name.removesuffix(screens.SUFFIX)
+    owner, name = renderer.owner, screens.stem(source)
     findings = _claim(f"layout/custom_game/{name}.xml", owner, claimed)
     findings += _claim(f"styles/custom_game/{name}.css", owner, claimed)
 
-    layout, stylesheet = screens.screen(owner, kit_root, name)
+    layout, stylesheet = renderer.screen(name)
     try:
         parsed = bind.read(layout, stylesheet)
     except ElementTree.ParseError as error:
@@ -117,27 +117,20 @@ def _names(screen: bind.Screen, source: Path) -> list[str]:
     findings: list[str] = []
     taken = {"Layout": "the screen itself", "RootId": "the screen itself"}
 
-    grouped = screen.grouped_ids()
+    def take(spelled: str, what: str) -> None:
+        if spelled in taken:
+            findings.append(f"{source}: {taken[spelled]} and {what} both spell {spelled}")
+        taken[spelled] = what
+
     for identifier in screen.ids:
         if not bind.spellable(identifier.removeprefix(f"{screen.name}_")):
             findings.append(f"{source}: id '{identifier}' cannot be spelled in C++")
-            continue
-        if identifier in grouped:
-            continue
-        spelled = bind.member(identifier, screen.name)
-        if spelled in taken:
-            clash = taken[spelled]
-            findings.append(f"{source}: id '{identifier}' and {clash} both spell {spelled}")
-        taken[spelled] = f"id '{identifier}'"
+        elif identifier not in screen.grouped_ids:
+            take(bind.member(identifier, screen.name), f"id '{identifier}'")
 
-    for group in screen.groups():
-        for spelled, what in (
-            (group.struct, f"the {group.stem} block"),
-            (group.array, f"the {group.stem} block's array"),
-        ):
-            if spelled in taken:
-                findings.append(f"{source}: {taken[spelled]} and {what} both spell {spelled}")
-            taken[spelled] = what
+    for group in screen.groups:
+        take(group.struct, f"the {group.stem} block")
+        take(group.array, f"the {group.stem} block's array")
         members = group.members()
         for name in sorted(set(members)):
             if members.count(name) > 1:
@@ -148,14 +141,9 @@ def _names(screen: bind.Screen, source: Path) -> list[str]:
         named = bind.enumerated(variants)
         if not bind.spellable(prefix) or (named and not all(bind.spellable(v) for v in variants)):
             findings.append(f"{source}: class family '{prefix}--*' cannot be spelled in C++")
-        for spelled in (
-            (prefix, f"{prefix}Names", f"{prefix}Classes") if named else (f"{prefix}Classes",)
-        ):
-            if spelled in taken:
-                findings.append(
-                    f"{source}: {taken[spelled]} and the {prefix} family both spell {spelled}"
-                )
-            taken[spelled] = f"the {prefix} family"
+        spelled = (prefix, f"{prefix}Names", f"{prefix}Classes") if named else (f"{prefix}Classes",)
+        for one in spelled:
+            take(one, f"the {prefix} family")
     return findings
 
 
@@ -178,9 +166,8 @@ def _images(owner: Owner, screen: bind.Screen, source: Path) -> list[str]:
                 f"{source}: Image src '{src}' is not "
                 "s2r://panorama/images/custom_game/<set>/<name>.vtex"
             )
-            continue
-        icon_set, name = match.groups()
-        if not (owner.source / screens.IMAGES_DIR / icon_set / f"{name}.png").is_file():
+        elif not screens.icon(owner, *match.groups()).is_file():
+            icon_set, name = match.groups()
             findings.append(f"{source}: Image src '{src}' has no {icon_set}/{name}.png")
     return findings
 
@@ -189,10 +176,9 @@ def _budget(
     screen: bind.Screen, stylesheet: str, source: Path, interned: dict[Path, set[str]]
 ) -> list[str]:
     """Record what @p screen interns, and flag a screen that has clearly run away on its own."""
-    names = {screen.name, *screen.ids, *screen.variables}
+    names = {screen.name, *screen.ids, *screen.variables, *bind.selector_classes(stylesheet)}
     for node in screen.tree.iter():
         names.update(node.get("class", "").split())
-    names.update(bind.selector_classes(stylesheet))
     interned[source] = names
 
     if len(names) <= RUNAWAY_NAMES:
@@ -202,7 +188,7 @@ def _budget(
 
 def _table(interned: dict[Path, set[str]]) -> list[str]:
     """The client interns one table for every screen it loads, so the total is what overflows."""
-    total = set().union(*interned.values()) if interned else set()
+    total = set().union(*interned.values())
     if len(total) <= NAME_TABLE:
         return []
 
@@ -213,22 +199,9 @@ def _table(interned: dict[Path, set[str]]) -> list[str]:
     ]
 
 
-def _owner_images(owner: Owner) -> list[str]:
-    """Every image resource @p owner renders, regardless of which screen references it."""
-    directory = owner.source / screens.IMAGES_DIR
-    if not directory.is_dir():
-        return []
-    return [
-        f"images/custom_game/{icon_set.name}/{png.stem}.*"
-        for icon_set in sorted(path for path in directory.iterdir() if path.is_dir())
-        for png in sorted(icon_set.glob("*.png"))
-    ]
-
-
 def _claim(resource: str, owner: Owner, claimed: dict[str, str]) -> list[str]:
     """The first owner to render @p resource keeps it; a second owner is a finding."""
-    holder = claimed.get(resource)
-    if holder and holder != owner.name:
-        return [f"{resource}: rendered by both {holder} and {owner.name}"]
-    claimed[resource] = owner.name
-    return []
+    holder = claimed.setdefault(resource, owner.name)
+    if holder == owner.name:
+        return []
+    return [f"{resource}: rendered by both {holder} and {owner.name}"]

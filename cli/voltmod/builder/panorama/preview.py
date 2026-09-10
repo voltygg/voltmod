@@ -18,9 +18,8 @@ from xml.etree import ElementTree
 
 from voltmod.tools import die
 
-from . import bind
-from .screens import BUILD_DIR, IMAGES_DIR, SUFFIX, Owner, find_owners, select, sources
-from .screens import screen as render_screen
+from . import bind, screens
+from .screens import BUILD_DIR, Owner
 
 PREVIEW_DIR = "preview"
 SHELL = "panorama/preview.html.in"
@@ -48,7 +47,7 @@ _FILL_FLOW = re.compile(r"^fill-parent-flow\((\d+)\)$")
 def preview(root: Path, kit_root: Path, target: str) -> Path:
     """Write OWNER/SCREEN as an HTML approximation and return where it landed."""
     owner, name = _resolve(root, target)
-    layout, stylesheet = render_screen(owner, kit_root, name)
+    layout, stylesheet = screens.screen(owner, kit_root, name)
     screen = bind.read(layout, stylesheet)
 
     page = (kit_root / SHELL).read_text(encoding="utf-8")
@@ -77,9 +76,9 @@ def _resolve(root: Path, target: str) -> tuple[Owner, str]:
     if len(parts) != 2 or not all(parts):
         die(f"'{target}' is not OWNER/SCREEN")
 
-    owner = select(find_owners(root), [parts[0]])[parts[0]]
+    owner = screens.select(screens.find_owners(root), [parts[0]])[parts[0]]
 
-    names = [source.name.removesuffix(SUFFIX) for source in sources(owner)]
+    names = [screens.stem(source) for source in screens.sources(owner)]
     if parts[1] not in names:
         die(f"{parts[0]} has no screen '{parts[1]}'\nKnown: {', '.join(names) or 'none'}")
     return owner, parts[1]
@@ -95,7 +94,7 @@ def _convert(node: ElementTree.Element, owner: Owner) -> str:
         return f"<div {_attrs(node)}>{_label(node)}</div>"
 
     inner = "".join(_convert(child, owner) for child in node)
-    return f'<div {_attrs(node, "pv-button" if node.tag == "Button" else "")}>{inner}</div>'
+    return f"<div {_attrs(node, 'pv-button' if node.tag == 'Button' else '')}>{inner}</div>"
 
 
 def _attrs(node: ElementTree.Element, extra_class: str = "") -> str:
@@ -121,8 +120,7 @@ def _image(node: ElementTree.Element, owner: Owner) -> str:
     match = bind.IMAGE_SRC.match(node.get("src", ""))
     if not match:
         return ""
-    icon_set, name = match.groups()
-    png = owner.source / IMAGES_DIR / icon_set / f"{name}.png"
+    png = screens.icon(owner, *match.groups())
     if not png.is_file():
         return ""
     return f"data:image/png;base64,{base64.b64encode(png.read_bytes()).decode('ascii')}"
@@ -137,7 +135,7 @@ def _translate_css(stylesheet: str) -> str:
             if ":" in raw
             for translated in _declaration(*raw.split(":", 1))
         ]
-        rules.append(selector + " {\n  " + ";\n  ".join(declarations) + ";\n}")
+        rules.append(f"{selector} {{\n  " + ";\n  ".join(declarations) + ";\n}")
     return "\n".join(rules)
 
 
@@ -192,10 +190,7 @@ def _controls(screen: bind.Screen) -> str:
 
 def _variable(name: str) -> str:
     quoted = html.escape(name, quote=True)
-    return (
-        f"<label>{html.escape(name)}<br>"
-        f'<input data-pv-var="{quoted}" value="{quoted}"></label>'
-    )
+    return f'<label>{html.escape(name)}<br><input data-pv-var="{quoted}" value="{quoted}"></label>'
 
 
 def _flag(panel: str) -> str:
