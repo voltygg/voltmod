@@ -20,7 +20,7 @@ namespace VoltMod
  *
  * The half of a menu session that has nothing to do with how it is drawn: the stack, the
  * breadcrumb, how a row describes itself, what activating a row does, and how a stepped value is
- * held back so a burst of presses is one action. @ref MenuManager draws this as center HTML; a
+ * held back so a burst of presses is one action. @ref CenterHtmlMenu draws this as center HTML; a
  * plugin drawing its own Panorama screen holds one too, so the same @ref Menu behaves the same
  * way whichever surface a player is on.
  *

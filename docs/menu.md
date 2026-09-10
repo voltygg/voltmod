@@ -285,7 +285,7 @@ renders from a fixed palette in `src/Menu/CenterHtmlRender.cpp`.
 
 ## Lifetime and input
 
-@ref VoltMod::MenuManager clears each player's stack, cursor, pending commit,
+@ref VoltMod::CenterHtmlMenu clears each player's stack, cursor, pending commit,
 and movement state on disconnect. Per-frame work starts with the first open menu
 and stops when the last stack closes.
 
@@ -298,7 +298,7 @@ The freeze is a global switch, but a single session can opt out: `Open(slot, men
 A session survives death and spectating. Only a live pawn is frozen and only that
 pawn is restored, so a respawn is frozen afresh rather than handed a dead body's
 move type, and keys are read from the pawn the player is driving. All of this
-lives on @ref VoltMod::MenuManager and its session state.
+lives on @ref VoltMod::CenterHtmlMenu and its session state.
 
 ## Presets
 
@@ -370,6 +370,6 @@ class in `Menu.hpp` with no engine behind it, which also spells the words the fr
 supplies for a row through `MenuSurface::Translate`. That is what lets
 `tests/Menu/MenuBuilderTests.cpp`, `tests/Menu/FlowTests.cpp` and
 `tests/Menu/CenterHtmlRenderTests.cpp` drive real rows and real flows against a fake
-session in the SDK-free suite. `MenuManager.hpp` and `ActionRows.hpp` are not SDK-free
+session in the SDK-free suite. `CenterHtmlMenu.hpp` and `ActionRows.hpp` are not SDK-free
 and do not try to be: the manager freezes a pawn, and an `Action` carries an
 `ActionContext` holding a `Controller` by value.

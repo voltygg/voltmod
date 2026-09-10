@@ -91,7 +91,7 @@ TEST_CASE("CenterHtmlRender: a non-selectable Text row renders without a cursor"
 
     auto menu = MenuBuilder("Test Menu").Text("Just a heading").Button("Pick me", [](int) {}).Build();
 
-    // Selection lands on index 1: MenuManager::Open skips non-selectable rows when it opens a
+    // Selection lands on index 1: CenterHtmlMenu::Open skips non-selectable rows when it opens a
     // menu, and this render call mirrors that already-adjusted index.
     std::string html = RenderMenuHtml(menu.get(), ViewOf(*menu, 1, false), translations);
     CHECK(html.find("Just a heading") != std::string::npos);

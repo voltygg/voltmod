@@ -9,7 +9,7 @@ namespace VoltMod
 /** Options for a menu session. Submenus inherit them. */
 struct MenuOptions
 {
-    /** Whether the global movement freeze (@ref MenuManager::FreezeWhileOpen) applies. Pass false
+    /** Whether the global movement freeze (@ref CenterHtmlMenu::FreezeWhileOpen) applies. Pass false
      *  for menus players reach mid-round, where being held still is worse than stray movement. */
     bool FreezeMovement = true;
 };

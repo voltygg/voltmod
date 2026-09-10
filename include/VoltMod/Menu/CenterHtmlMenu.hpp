@@ -22,20 +22,8 @@
 namespace VoltMod
 {
 
-/** Services used by menu sessions. They must outlive the manager. */
-struct MenuServices
-{
-    VoltMod::Scheduler& Scheduler;
-    SlotEvents& Slots;
-    EntitySystem& Entities;
-    VoltMod::ChatInput& ChatInput;
-    VoltMod::Translations& Translations;
-    VoltMod::Policy& Policy;
-    VoltMod::Messages& Messages;
-};
-
 /**
- * @brief Per-player menu sessions, drawn as center HTML.
+ * @brief The menu surface every player has: their open menus drawn as center HTML.
  *
  * Center HTML needs no client addon and is read with W/S/A/D/E/R, so every player can be drawn
  * to. A session survives death and spectating.
@@ -43,11 +31,22 @@ struct MenuServices
  * A plugin that wants a clickable menu builds its own Panorama screen on @ref Screen and the
  * block library instead; the framework ships the pieces, not a fixed menu layout.
  */
-class MenuManager final : public MenuSurface
+class CenterHtmlMenu final : public MenuSurface
 {
 public:
-    /** Objects referenced by @p services must outlive the manager. */
-    explicit MenuManager(const MenuServices& services);
+    /** The services a center-HTML menu draws and listens through. All must outlive this. */
+    struct Services
+    {
+        VoltMod::Scheduler& Scheduler;
+        SlotEvents& Slots;
+        EntitySystem& Entities;
+        VoltMod::ChatInput& ChatInput;
+        VoltMod::Translations& Translations;
+        VoltMod::Policy& Policy;
+        VoltMod::Messages& Messages;
+    };
+
+    explicit CenterHtmlMenu(const Services& services);
 
     /** Start a session for @p slot showing @p menu, closing any session the player already has.
      *  What a command calls; a submenu goes through the one-argument @ref MenuSurface::Open. */
@@ -94,13 +93,13 @@ private:
     void Select(int slot, int index);
 
     /** Send the player's current menu, or its pending chat prompt, as center HTML. */
-    void Present(int slot);
+    void Draw(int slot);
 
     void OnGameFrame();
 
     /** The W/S/A/D/E/R controls for @p slot. True when a press was consumed. */
-    bool HandleKeys(int slot);
-    bool HandlePressed(int slot, uint64_t pressed);
+    bool ReadKeys(int slot);
+    bool RunKey(int slot, uint64_t pressed);
     void MoveCursor(int slot, int step);
     void JumpPage(int slot, int delta);
 
@@ -111,16 +110,16 @@ private:
 
     void SyncFreeze(int slot, const Pawn& pawn);
 
-    /** What one session asked for, and the pawn it is actually holding. */
-    struct SessionFreeze
+    /** Whether this session asked to be held still, and the pawn it is holding. */
+    struct FreezeState
     {
-        bool Wanted = true;
-        MovementFreeze Held;
+        bool Requested = true;
+        MovementFreeze Movement;
     };
 
-    MenuServices _services;
-    bool _freezePlayer = false;
-    PerSlot<SessionFreeze> _freezes;
+    Services _services;
+    bool _freezeWhileOpen = false;
+    PerSlot<FreezeState> _freezes;
     /** The half every menu surface shares: stack, breadcrumb, Describe, Activate and Step. */
     MenuStack _stack;
     PerSlot<Cursor> _cursors;

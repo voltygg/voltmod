@@ -12,7 +12,7 @@ The shapes the framework already uses. New code follows them instead of adding a
 
 - `MetamodPlugin` owns the Metamod entry points and one `Runtime` per load cycle, passed to `OnLoad(Runtime&)`. Consumers release their state in `OnUnload`.
 - `Runtime` is a flat service container (`runtime.Players`, `runtime.Messages`), so moving a service between modules does not rename the consumer API.
-- No ambient accessor. Constructor-inject the narrowest service that does the job: `MenuManager(const MenuServices&)`, `ActionDispatcher(Policy&, PlayerManager&, EntitySystem&)`, never `Runtime&`. Only `Commands` and `App` may take `Runtime&`.
+- No ambient accessor. Constructor-inject the narrowest service that does the job: `CenterHtmlMenu(const CenterHtmlMenu::Services&)`, `ActionDispatcher(Policy&, PlayerManager&, EntitySystem&)`, never `Runtime&`. Only `Commands` and `App` may take `Runtime&`.
 - Header templates plugins instantiate (`Flow<TState>`, `PerSlot<T>`) take one service, so including them does not pull in the composition root.
 - No process-lifetime singletons.
 

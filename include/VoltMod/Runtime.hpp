@@ -17,7 +17,7 @@
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/Hooks.hpp>
 #include <VoltMod/Http/HttpClient.hpp>
-#include <VoltMod/Menu/MenuManager.hpp>
+#include <VoltMod/Menu/CenterHtmlMenu.hpp>
 #include <VoltMod/Messaging/Messages.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/Policy.hpp>
@@ -133,7 +133,7 @@ public:
 
     /** Player menus: the per-player session, drawn as center HTML; costs nothing per frame
      *  while nothing is open. */
-    MenuManager Menus{MenuServices{.Scheduler = Scheduler,
+    CenterHtmlMenu Menus{CenterHtmlMenu::Services{.Scheduler = Scheduler,
                                    .Slots = Slots,
                                    .Entities = Entities,
                                    .ChatInput = Hooks.ChatInput,

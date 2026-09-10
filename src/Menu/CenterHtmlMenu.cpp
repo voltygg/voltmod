@@ -4,7 +4,7 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/Time.hpp>
-#include <VoltMod/Menu/MenuManager.hpp>
+#include <VoltMod/Menu/CenterHtmlMenu.hpp>
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -23,7 +23,7 @@ static CursorRows CursorRowsFor(Menu* menu, int slot)
             }};
 }
 
-MenuManager::MenuManager(const MenuServices& services)
+CenterHtmlMenu::CenterHtmlMenu(const Services& services)
     : _services(services),
       _stack(*this, _services.Translations,
              [&scheduler = services.Scheduler](int64_t delayMs, std::function<void()> callback) {
@@ -35,21 +35,21 @@ MenuManager::MenuManager(const MenuServices& services)
     _freezes.BindReset(services.Slots);
 }
 
-void MenuManager::Open(int slot, std::shared_ptr<Menu> menu, MenuOptions options)
+void CenterHtmlMenu::Open(int slot, std::shared_ptr<Menu> menu, MenuOptions options)
 {
     if (!IsValidSlot(slot) || !menu)
         return;
 
     CloseAll(slot);
 
-    _freezes[slot].Wanted = options.FreezeMovement;
+    _freezes[slot].Requested = options.FreezeMovement;
     if (options.FreezeMovement)
         SetPlayerFrozen(slot, true, _services.Entities.PawnOf(slot));
 
     Push(slot, std::move(menu));
 }
 
-void MenuManager::Open(int slot, std::shared_ptr<Menu> menu)
+void CenterHtmlMenu::Open(int slot, std::shared_ptr<Menu> menu)
 {
     if (!IsValidSlot(slot) || !menu)
         return;
@@ -63,7 +63,7 @@ void MenuManager::Open(int slot, std::shared_ptr<Menu> menu)
     Push(slot, std::move(menu));
 }
 
-void MenuManager::Push(int slot, std::shared_ptr<Menu> menu)
+void CenterHtmlMenu::Push(int slot, std::shared_ptr<Menu> menu)
 {
     _stack.Push(slot, std::move(menu));
     ResetCursor(slot);
@@ -78,7 +78,7 @@ void MenuManager::Push(int slot, std::shared_ptr<Menu> menu)
         _onFrame = _services.Scheduler.EveryFrame([this] { OnGameFrame(); });
 }
 
-void MenuManager::ResetCursor(int slot)
+void CenterHtmlMenu::ResetCursor(int slot)
 {
     Cursor& cursor = _cursors[slot];
     cursor.LastInputTime = Time::MonotonicMs();
@@ -86,7 +86,7 @@ void MenuManager::ResetCursor(int slot)
     cursor.Selected = menu ? MenuCursor::First(CursorRowsFor(menu, slot)) : 0;
 }
 
-void MenuManager::Select(int slot, int index)
+void CenterHtmlMenu::Select(int slot, int index)
 {
     // Ignore stale or client-forged row indexes.
     Menu* menu = _stack.Current(slot);
@@ -100,7 +100,7 @@ void MenuManager::Select(int slot, int index)
     _cursors[slot].Selected = index;
 }
 
-void MenuManager::Close(int slot)
+void CenterHtmlMenu::Close(int slot)
 {
     if (!IsValidSlot(slot))
         return;
@@ -125,7 +125,7 @@ void MenuManager::Close(int slot)
     _services.Messages.ClearCenterHtml(slot);
 }
 
-void MenuManager::CloseAll(int slot)
+void CenterHtmlMenu::CloseAll(int slot)
 {
     if (!IsValidSlot(slot))
         return;
@@ -142,7 +142,7 @@ void MenuManager::CloseAll(int slot)
     _services.Messages.ClearCenterHtml(slot);
 }
 
-void MenuManager::CloseAll(int slot, std::string_view replyKey)
+void CenterHtmlMenu::CloseAll(int slot, std::string_view replyKey)
 {
     // Reply before closing: it is addressed to a player whose menus are about to go.
     if (auto& reply = _services.Policy.Reply; reply)
@@ -151,24 +151,24 @@ void MenuManager::CloseAll(int slot, std::string_view replyKey)
     CloseAll(slot);
 }
 
-void MenuManager::Prompt(int slot, std::string prompt, std::function<bool(int, std::string_view)> callback)
+void CenterHtmlMenu::Prompt(int slot, std::string prompt, std::function<bool(int, std::string_view)> callback)
 {
     _services.ChatInput.BeginCapture(slot, std::move(prompt), std::move(callback));
 }
 
-std::string MenuManager::Translate(int slot, std::string_view key, std::string_view fallback) const
+std::string CenterHtmlMenu::Translate(int slot, std::string_view key, std::string_view fallback) const
 {
     return _services.Translations.GetOr(key, slot, fallback);
 }
 
-bool MenuManager::IsOpen(int slot) const
+bool CenterHtmlMenu::IsOpen(int slot) const
 {
     return _stack.IsOpen(slot);
 }
 
-void MenuManager::FreezeWhileOpen(bool enabled)
+void CenterHtmlMenu::FreezeWhileOpen(bool enabled)
 {
-    _freezePlayer = enabled;
+    _freezeWhileOpen = enabled;
 
     if (enabled)
         return;
@@ -177,12 +177,12 @@ void MenuManager::FreezeWhileOpen(bool enabled)
     // until they close a menu they may not know is open is not a defensible reading of "off".
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
-        if (_freezes[slot].Held)
+        if (_freezes[slot].Movement)
             SetPlayerFrozen(slot, false, _services.Entities.PawnOf(slot));
     }
 }
 
-void MenuManager::Present(int slot)
+void CenterHtmlMenu::Draw(int slot)
 {
     Menu* menu = _stack.Current(slot);
     if (!menu)
@@ -205,7 +205,7 @@ void MenuManager::Present(int slot)
     _services.Messages.SendCenterHtml(slot, RenderMenuHtml(menu, view, _services.Translations));
 }
 
-void MenuManager::OnGameFrame()
+void CenterHtmlMenu::OnGameFrame()
 {
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
@@ -213,11 +213,11 @@ void MenuManager::OnGameFrame()
             continue;
 
         SyncFreeze(slot, _services.Entities.PawnOf(slot));
-        HandleKeys(slot);
+        ReadKeys(slot);
 
         // Input may have activated a row that closed the menu it was about to draw.
         if (_stack.IsOpen(slot))
-            Present(slot);
+            Draw(slot);
     }
 
     // Slot reset clears stacks without going through Close, so stop per-frame work here.
@@ -225,7 +225,7 @@ void MenuManager::OnGameFrame()
         _onFrame.Reset();
 }
 
-bool MenuManager::HandleKeys(int slot)
+bool CenterHtmlMenu::ReadKeys(int slot)
 {
     if (!_stack.Current(slot))
         return false;
@@ -252,7 +252,7 @@ bool MenuManager::HandleKeys(int slot)
         return true;
     }
 
-    if (!HandlePressed(slot, pressed))
+    if (!RunKey(slot, pressed))
         return false;
 
     // The action may have replaced the session, so read the cursor again.
@@ -260,7 +260,7 @@ bool MenuManager::HandleKeys(int slot)
     return true;
 }
 
-bool MenuManager::HandlePressed(int slot, uint64_t pressed)
+bool CenterHtmlMenu::RunKey(int slot, uint64_t pressed)
 {
     if (pressed & IN_RELOAD)
     {
@@ -301,7 +301,7 @@ bool MenuManager::HandlePressed(int slot, uint64_t pressed)
     return false;
 }
 
-void MenuManager::MoveCursor(int slot, int step)
+void CenterHtmlMenu::MoveCursor(int slot, int step)
 {
     Menu* menu = _stack.Current(slot);
     if (!menu)
@@ -310,7 +310,7 @@ void MenuManager::MoveCursor(int slot, int step)
     Select(slot, MenuCursor::Step(CursorRowsFor(menu, slot), _cursors[slot].Selected, step));
 }
 
-void MenuManager::JumpPage(int slot, int delta)
+void CenterHtmlMenu::JumpPage(int slot, int delta)
 {
     Menu* menu = _stack.Current(slot);
     if (!menu || menu->Items.empty())
@@ -319,27 +319,27 @@ void MenuManager::JumpPage(int slot, int delta)
     Select(slot, MenuCursor::JumpPage(CursorRowsFor(menu, slot), _cursors[slot].Selected, ItemsPerPage, delta));
 }
 
-void MenuManager::SetPlayerFrozen(int slot, bool frozen, const Pawn& pawn)
+void CenterHtmlMenu::SetPlayerFrozen(int slot, bool frozen, const Pawn& pawn)
 {
     // Only the freeze direction is gated. Releasing must always run: gating both meant turning
     // the setting off while sessions were open stranded whoever was already frozen, with no
     // path back short of a reconnect.
-    if (frozen && !_freezePlayer)
+    if (frozen && !_freezeWhileOpen)
         return;
 
-    MovementFreeze& held = _freezes[slot].Held;
+    MovementFreeze& movement = _freezes[slot].Movement;
     if (frozen)
-        held.Hold(pawn);
+        movement.Hold(pawn);
     else
-        held.Release(pawn);
+        movement.Release(pawn);
 }
 
-void MenuManager::SyncFreeze(int slot, const Pawn& pawn)
+void CenterHtmlMenu::SyncFreeze(int slot, const Pawn& pawn)
 {
-    if (!_freezePlayer || !_freezes[slot].Wanted)
+    if (!_freezeWhileOpen || !_freezes[slot].Requested)
         return;
 
-    _freezes[slot].Held.Sync(pawn);
+    _freezes[slot].Movement.Sync(pawn);
 }
 
 }  // namespace VoltMod
