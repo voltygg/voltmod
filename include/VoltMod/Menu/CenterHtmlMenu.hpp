@@ -6,9 +6,9 @@
 #include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Core/Translations.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
-#include <VoltMod/Entities/MovementFreeze.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>
 #include <VoltMod/Menu/Menu.hpp>
+#include <VoltMod/Menu/MenuFreeze.hpp>
 #include <VoltMod/Menu/MenuStack.hpp>
 #include <VoltMod/Messaging/Messages.hpp>
 #include <VoltMod/Players/Policy.hpp>
@@ -39,6 +39,7 @@ public:
         VoltMod::Scheduler& Scheduler;
         SlotEvents& Slots;
         EntitySystem& Entities;
+        VoltMod::MenuFreeze& Freeze;
         VoltMod::ChatInput& ChatInput;
         VoltMod::Translations& Translations;
         VoltMod::Policy& Policy;
@@ -60,13 +61,6 @@ public:
     [[nodiscard]] std::string Translate(int slot, std::string_view key, std::string_view fallback) const override;
 
     [[nodiscard]] bool IsOpen(int slot) const;
-
-    /**
-     * Freeze movement for the duration of a session, so navigating does not also walk the player
-     * around. The original MoveType is restored when the last menu closes. Disabled by default;
-     * turning it off also releases whoever the previous setting had already frozen.
-     */
-    void FreezeWhileOpen(bool enabled);
 
 private:
     /** Presses closer together than this are ignored. */
@@ -102,23 +96,7 @@ private:
     void MoveCursor(int slot, int step);
     void JumpPage(int slot, int delta);
 
-    /** Freeze (true) or restore (false) @p pawn's movement; no-op unless freeze is enabled.
-     *  Only a live pawn is frozen, and only the pawn that was frozen is restored. The body is a
-     *  parameter because the per-frame path already holds it. */
-    void SetPlayerFrozen(int slot, bool frozen, const Pawn& pawn);
-
-    void SyncFreeze(int slot, const Pawn& pawn);
-
-    /** Whether this session asked to be held still, and the pawn it is holding. */
-    struct FreezeState
-    {
-        bool Requested = true;
-        MovementFreeze Movement;
-    };
-
     Services _services;
-    bool _freezeWhileOpen = false;
-    PerSlot<FreezeState> _freezes;
     /** The half every menu surface shares: stack, breadcrumb, Describe, Activate and Step. */
     MenuStack _stack;
     PerSlot<Cursor> _cursors;

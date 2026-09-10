@@ -28,7 +28,6 @@ CenterHtmlMenu::CenterHtmlMenu(const Services& services)
 {
     _stack.BindReset(services.Slots);
     _cursors.BindReset(services.Slots);
-    _freezes.BindReset(services.Slots);
 }
 
 void CenterHtmlMenu::Open(int slot, std::shared_ptr<Menu> menu, MenuOptions options)
@@ -38,9 +37,7 @@ void CenterHtmlMenu::Open(int slot, std::shared_ptr<Menu> menu, MenuOptions opti
 
     CloseAll(slot);
 
-    _freezes[slot].Requested = options.FreezeMovement;
-    if (options.FreezeMovement)
-        SetPlayerFrozen(slot, true, _services.Entities.PawnOf(slot));
+    _services.Freeze.Open(slot, options.FreezeMovement);
 
     Push(slot, std::move(menu));
 }
@@ -117,7 +114,7 @@ void CenterHtmlMenu::Close(int slot)
 
     _cursors[slot] = {};
     Log::Info("Menu closed for slot {} (0 left on the stack)", slot);
-    SetPlayerFrozen(slot, false, _services.Entities.PawnOf(slot));
+    _services.Freeze.Close(slot);
     _services.Messages.ClearCenterHtml(slot);
 }
 
@@ -133,7 +130,7 @@ void CenterHtmlMenu::CloseAll(int slot)
 
     _stack.Clear(slot);
     _cursors[slot] = {};
-    SetPlayerFrozen(slot, false, _services.Entities.PawnOf(slot));
+    _services.Freeze.Close(slot);
     Log::Info("All menus closed for slot {}", slot);
     _services.Messages.ClearCenterHtml(slot);
 }
@@ -160,22 +157,6 @@ std::string CenterHtmlMenu::Translate(int slot, std::string_view key, std::strin
 bool CenterHtmlMenu::IsOpen(int slot) const
 {
     return _stack.IsOpen(slot);
-}
-
-void CenterHtmlMenu::FreezeWhileOpen(bool enabled)
-{
-    _freezeWhileOpen = enabled;
-
-    if (enabled)
-        return;
-
-    // Turning it off releases whoever the previous setting already froze; leaving them stuck
-    // until they close a menu they may not know is open is not a defensible reading of "off".
-    for (int slot = 0; slot < MaxPlayers; ++slot)
-    {
-        if (_freezes[slot].Movement)
-            SetPlayerFrozen(slot, false, _services.Entities.PawnOf(slot));
-    }
 }
 
 void CenterHtmlMenu::Draw(int slot)
@@ -208,7 +189,6 @@ void CenterHtmlMenu::OnGameFrame()
         if (!_stack.IsOpen(slot))
             continue;
 
-        SyncFreeze(slot, _services.Entities.PawnOf(slot));
         ReadKeys(slot);
 
         // Input may have activated a row that closed the menu it was about to draw.
@@ -309,29 +289,6 @@ void CenterHtmlMenu::JumpPage(int slot, int delta)
 
     Select(slot,
            MenuCursor::JumpPage(CursorRowsFor(menu, slot), _cursors[slot].Selected, CenterHtmlRowsPerPage, delta));
-}
-
-void CenterHtmlMenu::SetPlayerFrozen(int slot, bool frozen, const Pawn& pawn)
-{
-    // Only the freeze direction is gated. Releasing must always run: gating both meant turning
-    // the setting off while sessions were open stranded whoever was already frozen, with no
-    // path back short of a reconnect.
-    if (frozen && !_freezeWhileOpen)
-        return;
-
-    MovementFreeze& movement = _freezes[slot].Movement;
-    if (frozen)
-        movement.Hold(pawn);
-    else
-        movement.Release(pawn);
-}
-
-void CenterHtmlMenu::SyncFreeze(int slot, const Pawn& pawn)
-{
-    if (!_freezeWhileOpen || !_freezes[slot].Requested)
-        return;
-
-    _freezes[slot].Movement.Sync(pawn);
 }
 
 }  // namespace VoltMod

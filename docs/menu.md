@@ -286,7 +286,7 @@ renders from a fixed palette in `src/Menu/CenterHtmlRender.cpp`.
 and movement state on disconnect. Per-frame work starts with the first open menu
 and stops when the last stack closes.
 
-`runtime.Menus.FreezeWhileOpen(true)` freezes players while a menu is open, so WASD does not also move them. During a chat-input capture only R is honored, so nobody drifts while they type.
+`runtime.Freeze.Enable(true)` freezes players while a menu is open, so WASD does not also move them. The setting is server-wide and every menu surface honours it, including a plugin's own Panorama screen; a session opting out passes `MenuOptions::FreezeMovement`. During a chat-input capture only R is honored, so nobody drifts while they type.
 
 A capture belongs to the session that started it, so closing the menu drops it - the player's next chat line is a chat line again rather than an answer to a prompt nobody can see.
 

@@ -5,5 +5,6 @@
 #include <VoltMod/Menu/Flow.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
+#include <VoltMod/Menu/MenuFreeze.hpp>
 #include <VoltMod/Menu/MenuPresets.hpp>
 #include <VoltMod/Menu/MenuStack.hpp>

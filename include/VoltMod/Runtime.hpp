@@ -131,11 +131,15 @@ public:
     /** Interfaces offered to, and borrowed from, other plugins. */
     ServiceExchange Exchange;
 
+    /** Holding players still while a menu is open, whichever surface drew it. Off by default. */
+    VoltMod::MenuFreeze Freeze{Entities, Scheduler, Slots};
+
     /** Player menus: the per-player session, drawn as center HTML; costs nothing per frame
      *  while nothing is open. */
     CenterHtmlMenu Menus{CenterHtmlMenu::Services{.Scheduler = Scheduler,
                                                   .Slots = Slots,
                                                   .Entities = Entities,
+                                                  .Freeze = Freeze,
                                                   .ChatInput = Hooks.ChatInput,
                                                   .Translations = Translations,
                                                   .Policy = Policy,

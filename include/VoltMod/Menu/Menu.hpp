@@ -57,8 +57,8 @@ struct MenuRow
 /** Options for a menu session. Submenus inherit them. */
 struct MenuOptions
 {
-    /** Whether the global movement freeze (@ref CenterHtmlMenu::FreezeWhileOpen) applies. Pass false
-     *  for menus players reach mid-round, where being held still is worse than stray movement. */
+    /** Whether the server-wide movement freeze (@ref MenuFreeze::Enable) applies. Pass false for
+     *  menus players reach mid-round, where being held still is worse than stray movement. */
     bool FreezeMovement = true;
 };
 
