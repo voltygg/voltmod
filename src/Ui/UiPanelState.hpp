@@ -33,12 +33,12 @@ struct UiPanelState
      * Pointers rather than references because an empty panel has no engine behind it and must
      * still answer every call. @p slots may be null, in which case nothing resets the write cache
      * when a slot changes hands. Everything non-null must outlive the panel, which the Runtime's
-     * declaration order gives. A @p viewer other than @ref kEveryone makes the panel private to
+     * declaration order gives. A @p viewer other than @ref EveryoneSlot makes the panel private to
      * that slot, which needs @p visibility.
      */
     explicit UiPanelState(EntitySystem* entities = nullptr, EntityOps* ops = nullptr, SlotEvents* slots = nullptr,
                           Event<const UiClick&>* allClicks = nullptr, std::string layout = {},
-                          std::string resource = {}, Visibility* visibility = nullptr, int viewer = kEveryone);
+                          std::string resource = {}, Visibility* visibility = nullptr, int viewer = EveryoneSlot);
 
     UiPanelState(const UiPanelState&) = delete;
     UiPanelState& operator=(const UiPanelState&) = delete;
@@ -56,7 +56,7 @@ struct UiPanelState
      *  only the viewer is ever covered. */
     [[nodiscard]] bool Covers(int slot) const;
 
-    [[nodiscard]] bool IsPrivate() const noexcept { return Viewer != kEveryone; }
+    [[nodiscard]] bool IsPrivate() const noexcept { return Viewer != EveryoneSlot; }
 
     /** Pass @p status through, and on a per-slot failure drop what the cache just recorded so the
      *  next frame retries - saying why once per generation rather than once per frame. A write for
@@ -82,8 +82,8 @@ struct UiPanelState
 
     /** The filter a private panel's entity is registered with, so only @ref Viewer receives it. */
     Visibility* Exclusive = nullptr;
-    /** The one slot a private panel is networked to, or @ref kEveryone for a shared one. */
-    int Viewer = kEveryone;
+    /** The one slot a private panel is networked to, or @ref EveryoneSlot for a shared one. */
+    int Viewer = EveryoneSlot;
 
     /** The entity handlers filter on. Cleared by @ref Remove and replaced by @ref Spawn, which is
      *  what makes a subscription survive a re-spawn. */

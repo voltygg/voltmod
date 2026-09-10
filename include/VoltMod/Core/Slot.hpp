@@ -6,6 +6,9 @@ namespace VoltMod
 /** Maximum player slots on a CS2 server (slots 0..MaxPlayers-1). */
 inline constexpr int MaxPlayers = 64;
 
+/** The slot value meaning everyone: a layout's global state rather than one player's. */
+inline constexpr int EveryoneSlot = -1;
+
 /** True if @p slot is a valid player-slot index. */
 inline constexpr bool IsValidSlot(int slot)
 {

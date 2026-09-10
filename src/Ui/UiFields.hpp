@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoltMod/Core/Result.hpp>
+#include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Entities/EntityRef.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <string_view>
@@ -16,13 +17,10 @@ namespace VoltMod
  * an entity pointer across a frame. `entities` may be null and `ref` may be dead - both come back
  * as `Error::NotFound` rather than a crash, which is what lets an empty @ref UiPanel answer every call.
  *
- * A @p slot of @ref kEveryone writes the layout's global state; any other value writes one
+ * A @p slot of @ref EveryoneSlot writes the layout's global state; any other value writes one
  * player's, which the engine networks through a single-slot recipient filter. Internal to `src/`:
  * plugins drive this through @ref UiPanel.
  */
-
-/** Slot value meaning "write the global state", not one player's. */
-inline constexpr int kEveryone = -1;
 
 /** How many per-player states the entity carries, or -1 when it or the field is unavailable. */
 int UiPlayerStateCount(EntitySystem* entities, EntityRef ref);

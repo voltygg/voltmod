@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoltMod/Core/PerSlot.hpp>
+#include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <optional>
 #include <string>
@@ -32,13 +33,10 @@ enum class UiProperty
 class UiWriteCache
 {
 public:
-    /** The bucket a shared panel's writes are tracked in, matching @ref UiPanel::Everyone. */
-    static constexpr int Shared = -1;
-
     /** Reset a slot's memory when a player joins or leaves it. Idempotent. */
     void Bind(SlotEvents& slots) { _slots.BindReset(slots); }
 
-    /** Record @p value under (@p kind, @p panelId, @p name) for @p slot, or for @ref Shared; true
+    /** Record @p value under (@p kind, @p panelId, @p name) for @p slot, or for @ref EveryoneSlot; true
      *  when it is new or different. @p kind keeps a dialog variable and a class of the same name
      *  apart. */
     bool Update(int slot, UiProperty kind, std::string_view panelId, std::string_view name, std::string_view value);

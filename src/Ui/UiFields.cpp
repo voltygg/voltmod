@@ -58,7 +58,7 @@ static void SetStr(CUtlString& out, std::string_view text)
 /**
  * The entity behind @p ref, or the reason it cannot be written to.
  *
- * @p slot may be @ref kEveryone, which skips the per-player range check.
+ * @p slot may be @ref EveryoneSlot, which skips the per-player range check.
  */
 static Result<CEntityInstance*> ReadyForWrite(EntitySystem* entities, EntityRef ref, int slot)
 {
@@ -79,7 +79,7 @@ static Result<CEntityInstance*> ReadyForWrite(EntitySystem* entities, EntityRef 
                 Error::Failed(std::format("the {} table is nearly full ({}/{})", name, count, kTableCap)));
     }
 
-    if (slot == kEveryone)
+    if (slot == EveryoneSlot)
         return entity.Raw();
 
     if (!IsValidSlot(slot))
@@ -108,7 +108,7 @@ static Status WriteClassState(EntitySystem* entities, EntityRef ref, int slot, s
     SetStr(panel, panelId);
     SetStr(name, className);
 
-    if (slot == kEveryone)
+    if (slot == EveryoneSlot)
     {
         const auto& set = bindings.CustomHudSetHasClass;
         if (!set)
@@ -143,7 +143,7 @@ Status UiWriteText(EntitySystem* entities, EntityRef ref, int slot, std::string_
     SetStr(name, variable);
     SetStr(text, value);
 
-    if (slot == kEveryone)
+    if (slot == EveryoneSlot)
     {
         const auto& set = bindings.CustomHudSetDialogVariable;
         if (!set)
@@ -177,7 +177,7 @@ Status UiWriteInputCapture(EntitySystem* entities, EntityRef ref, int slot, bool
     if (!entity)
         return std::unexpected(entity.error());
 
-    if (slot != kEveryone)
+    if (slot != EveryoneSlot)
     {
         const auto& set = entities->BindingsRef().CustomHudSetInputCapture;
         if (!set)

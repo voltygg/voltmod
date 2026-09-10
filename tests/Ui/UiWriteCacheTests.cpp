@@ -76,15 +76,15 @@ TEST_CASE("An out-of-range slot is never worth writing")
 TEST_CASE("A shared panel dedupes in its own bucket, apart from every slot")
 {
     UiWriteCache cache;
-    CHECK(cache.Update(UiWriteCache::Shared, UiProperty::Text, "vm_title", "text", "Admin Panel"));
-    CHECK_FALSE(cache.Update(UiWriteCache::Shared, UiProperty::Text, "vm_title", "text", "Admin Panel"));
+    CHECK(cache.Update(VoltMod::EveryoneSlot, UiProperty::Text, "vm_title", "text", "Admin Panel"));
+    CHECK_FALSE(cache.Update(VoltMod::EveryoneSlot, UiProperty::Text, "vm_title", "text", "Admin Panel"));
 
     // A slot has been told nothing by the shared writes, and forgetting one leaves the other.
     CHECK(cache.Update(0, UiProperty::Text, "vm_title", "text", "Admin Panel"));
     cache.Forget(0);
-    CHECK_FALSE(cache.Update(UiWriteCache::Shared, UiProperty::Text, "vm_title", "text", "Admin Panel"));
-    cache.Forget(UiWriteCache::Shared);
-    CHECK(cache.Update(UiWriteCache::Shared, UiProperty::Text, "vm_title", "text", "Admin Panel"));
+    CHECK_FALSE(cache.Update(VoltMod::EveryoneSlot, UiProperty::Text, "vm_title", "text", "Admin Panel"));
+    cache.Forget(VoltMod::EveryoneSlot);
+    CHECK(cache.Update(VoltMod::EveryoneSlot, UiProperty::Text, "vm_title", "text", "Admin Panel"));
 }
 
 TEST_CASE("Forget makes the next write go through again")

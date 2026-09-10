@@ -11,10 +11,6 @@
 namespace VoltMod
 {
 
-// UiPanel::Everyone and kEveryone address the same global state.
-static_assert(UiPanel::Everyone == kEveryone, "UiPanel::Everyone must be the UiFields global-state slot.");
-static_assert(UiPanel::Everyone == UiWriteCache::Shared, "A shared panel must dedupe in the cache's shared bucket.");
-
 /** Reserved cache key for the input-capture flag, which is not a panel's dialog variable. */
 static constexpr std::string_view kCaptureName = "input capture";
 
@@ -37,7 +33,7 @@ static Result<WriteTarget> TargetOf(const UiPanelState* state, int slot, bool pe
     if (slot != UiPanel::Everyone && slot != state->Viewer)
         return std::unexpected(Error::Invalid(std::format("this panel is private to slot {}", state->Viewer)));
 
-    return WriteTarget{.Cache = state->Viewer, .Write = perPlayer ? state->Viewer : kEveryone};
+    return WriteTarget{.Cache = state->Viewer, .Write = perPlayer ? state->Viewer : EveryoneSlot};
 }
 
 /**

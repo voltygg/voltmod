@@ -3,6 +3,7 @@
 #include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
+#include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
@@ -47,8 +48,8 @@ namespace VoltMod
 class UiPanel
 {
 public:
-    /** Slot value meaning "the layout's global state", not one player's. */
-    static constexpr int Everyone = -1;
+    /** @ref EveryoneSlot: the layout's global state, not one player's. */
+    static constexpr int Everyone = EveryoneSlot;
 
     /** An empty panel: falsy, owns nothing, and fails every write with @ref ErrorCode::NotFound. */
     UiPanel() = default;

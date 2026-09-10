@@ -8,7 +8,7 @@ static constexpr char kKeySeparator = '\x1f';
 
 UiWriteCache::SlotState* UiWriteCache::At(int slot)
 {
-    if (slot == Shared)
+    if (slot == EveryoneSlot)
         return &_shared;
     return IsValidSlot(slot) ? &_slots[slot] : nullptr;
 }
