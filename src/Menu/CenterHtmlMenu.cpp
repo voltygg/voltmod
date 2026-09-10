@@ -78,8 +78,7 @@ void CenterHtmlMenu::ResetCursor(int slot)
 {
     Cursor& cursor = _cursors[slot];
     cursor.LastInputTime = Time::MonotonicMs();
-    Menu* menu = _stack.Current(slot);
-    cursor.Selected = menu ? MenuCursor::First(CursorRowsFor(menu, slot)) : 0;
+    cursor.Selected = MenuCursor::First(CursorRowsFor(_stack.Current(slot), slot));
 }
 
 void CenterHtmlMenu::Select(int slot, int index)
@@ -252,8 +251,7 @@ bool CenterHtmlMenu::ReadKeys(int slot)
     if (!RunKey(slot, pressed))
         return false;
 
-    // The action may have replaced the session, so read the cursor again.
-    _cursors[slot].LastInputTime = now;
+    cursor.LastInputTime = now;
     return true;
 }
 
@@ -300,11 +298,7 @@ bool CenterHtmlMenu::RunKey(int slot, uint64_t pressed)
 
 void CenterHtmlMenu::MoveCursor(int slot, int step)
 {
-    Menu* menu = _stack.Current(slot);
-    if (!menu)
-        return;
-
-    Select(slot, MenuCursor::Step(CursorRowsFor(menu, slot), _cursors[slot].Selected, step));
+    Select(slot, MenuCursor::Step(CursorRowsFor(_stack.Current(slot), slot), _cursors[slot].Selected, step));
 }
 
 void CenterHtmlMenu::JumpPage(int slot, int delta)
