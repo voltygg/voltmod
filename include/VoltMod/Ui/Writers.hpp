@@ -1,7 +1,10 @@
 #pragma once
 
+#include <array>
+#include <cstddef>
 #include <span>
 #include <string_view>
+#include <type_traits>
 
 namespace VoltMod
 {
@@ -74,5 +77,43 @@ struct ClassChoice
             panel.Class(slot, Id, Classes[i], i == index);
     }
 };
+
+/**
+ * @brief A panel and a slot named once, so a redraw reads as writer-value lines.
+ *
+ * Any writer with `Write(panel, slot, value)` fits. Templated on the panel type so tests drive a
+ * fake; a plugin spells `PanelWriter<UiPanel>`.
+ */
+template <class Panel>
+class PanelWriter
+{
+public:
+    constexpr PanelWriter(Panel& panel, int slot) : _panel(panel), _slot(slot) {}
+
+    template <class Writer, class Value>
+    void Set(const Writer& writer, const Value& value) const
+    {
+        writer.Write(_panel, _slot, value);
+    }
+
+    [[nodiscard]] constexpr int Slot() const { return _slot; }
+
+private:
+    Panel& _panel;
+    int _slot;
+};
+
+/**
+ * One writer bundle per entry of a generated array: `MakeWriters(Hud::Cards, MakeCard)` turns the
+ * `Cards` array a screen header emits into the plugin's own `std::array<CardWriters, N>`.
+ */
+template <class Entry, std::size_t N, class Make>
+constexpr auto MakeWriters(const std::array<Entry, N>& entries, Make make)
+{
+    std::array<std::invoke_result_t<Make&, const Entry&>, N> made{};
+    for (std::size_t i = 0; i < N; ++i)
+        made[i] = make(entries[i]);
+    return made;
+}
 
 }  // namespace VoltMod

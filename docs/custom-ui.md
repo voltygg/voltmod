@@ -292,6 +292,14 @@ CardHidden.Write(screen.Panel(slot), slot, false);
 Icon.Write(screen.Panel(slot), slot, Icon.Find("awp"));  // ClassChoice::None turns every class off
 ```
 
+A redraw names the panel and slot once through @ref VoltMod::PanelWriter:
+
+```cpp
+const PanelWriter<UiPanel> w{screen.Panel(slot), slot};
+w.Set(CardTitle, "Round 2");
+w.Set(CardHidden, false);
+```
+
 The ids, dialog-variable names and class families they point at are not written by
 hand: rendering a screen emits a constant for each into
 `build/panorama/<plugin>/include/Ui/<Screen>.hpp`, which `voltmod_add_plugin` puts

@@ -7,6 +7,7 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <vector>
 
 using VoltMod::ClassChoice;
 using VoltMod::ClassFlag;
@@ -75,4 +76,51 @@ TEST_CASE("ClassChoice writes every class so a stale one clears")
     FakePanel panel;
     Icons.Write(panel, 0, 0);
     CHECK(panel.Classes.size() == 3);
+}
+
+TEST_CASE("PanelWriter names the panel and slot once")
+{
+    FakePanel panel;
+    const VoltMod::PanelWriter<FakePanel> writer{panel, 3};
+    const TextVar title{.Root = "card", .Var = "title"};
+    const ClassFlag hidden{.Id = "card", .Class = "Hidden"};
+
+    writer.Set(title, "Round 2");
+    writer.Set(hidden, false);
+    writer.Set(Icons, 2);
+
+    CHECK(writer.Slot() == 3);
+    REQUIRE(panel.Texts.size() == 1);
+    CHECK(std::get<0>(panel.Texts[0]) == 3);
+    REQUIRE(panel.Classes.size() == 4);
+    for (const auto& [slot, id, cls, on] : panel.Classes)
+        CHECK(slot == 3);
+}
+
+struct LabelId
+{
+    std::string_view Id;
+    std::string_view Var;
+};
+
+struct LabelWriters
+{
+    TextVar Label;
+    ClassFlag Hidden;
+};
+
+constexpr std::array<LabelId, 2> Labels{LabelId{"s_tab0", "tab0"}, LabelId{"s_tab1", "tab1"}};
+constexpr auto TabWriters = VoltMod::MakeWriters(Labels, [](const LabelId& tab) {
+    return LabelWriters{.Label = {"s", tab.Var}, .Hidden = {tab.Id, "Hidden"}};
+});
+
+static_assert(TabWriters.size() == 2);
+static_assert(TabWriters[1].Hidden.Id == "s_tab1");
+static_assert(TabWriters[1].Label.Var == "tab1");
+
+TEST_CASE("MakeWriters builds one bundle per generated entry")
+{
+    FakePanel panel;
+    TabWriters[0].Hidden.Write(panel, 0, true);
+    CHECK(panel.Enabled() == std::vector<std::string>{"s_tab0.Hidden"});
 }
