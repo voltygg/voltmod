@@ -14,15 +14,15 @@ namespace VoltMod
  * the stepping stops.
  *
  * A stepped row shows its new value the moment A/D or a stepper is pressed, but running its
- * action on every press would make five taps five actions and five broadcasts. @ref Arm holds the
- * commit for @ref DelayMs and replaces whatever the slot was holding, so a burst commits once.
+ * action on every press would make five taps five actions and five broadcasts. @ref Hold keeps the
+ * commit back for @ref DelayMs and replaces whatever the slot was holding, so a burst commits once.
  *
  * Every other way out of the row runs what is held rather than dropping it - activating the row,
  * closing the menu, moving the cursor off it - because a value the player picked and watched
  * appear is a value they asked for. A slot changing hands is the one case that cancels: nobody is
  * left to have asked for it.
  *
- * SDK-free. The delay arrives as a @ref Timer, which is `Scheduler::Delay` in the manager and a
+ * SDK-free. The delay arrives as a @ref Timer, which is `Scheduler::Delay` in the framework and a
  * hand-fired one in the tests, so the policy is unit-tested without an engine or a real clock.
  */
 class PendingCommit
@@ -31,19 +31,19 @@ public:
     /** Run @p callback after @p delayMs; dropping the returned subscription cancels it. */
     using Timer = std::function<Subscription(int64_t delayMs, std::function<void()> callback)>;
 
-    /** Delay used to coalesce stepped values. */
+    /** How long a stepped value waits before it is applied. */
     static constexpr int64_t DelayMs = 400;
 
-    /** Store the timer used by @ref Arm. */
+    /** Store the timer used by @ref Hold. */
     explicit PendingCommit(Timer timer);
 
     /** Drop a slot's pending commit unrun when the slot changes hands. @p slots must outlive
      *  this. */
     void BindReset(SlotEvents& slots);
 
-    /** Hold @p commit for row @p index of @p slot. Re-arming the same row restarts the delay;
-     *  arming a different one applies what the previous row was holding first. */
-    void Arm(int slot, int index, std::function<void()> commit);
+    /** Hold @p commit for row @p index of @p slot. Holding the same row again restarts the delay;
+     *  holding a different one applies what the previous row was holding first. */
+    void Hold(int slot, int index, std::function<void()> commit);
 
     /** Pending row for @p slot, or -1. */
     [[nodiscard]] int Index(int slot) const;
@@ -51,18 +51,18 @@ public:
     /** True while @p slot's pending commit belongs to row @p index. */
     [[nodiscard]] bool IsPending(int slot, int index) const;
 
-    /** Apply @p slot's pending commit now, if it has one, and cancel its timer. */
-    void Run(int slot);
+    /** Apply @p slot's pending commit now, if it has one, and stop its timer. */
+    void Apply(int slot);
 
-    /** Drop @p slot's pending commit unrun. */
-    void Cancel(int slot);
+    /** Drop @p slot's pending commit without applying it. */
+    void Drop(int slot);
 
 private:
     struct Entry
     {
         int Index = -1;
         std::function<void()> Commit;
-        /** Declared last: dropping it cancels the timer that would have run @ref Commit. */
+        /** Declared last: dropping it stops the timer that would have run @ref Commit. */
         Subscription Timer;
     };
 

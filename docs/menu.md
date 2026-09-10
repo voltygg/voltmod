@@ -28,15 +28,12 @@ the page shape, freezing, and prompts. Build one by implementing
 ```cpp
 class ClickMenu final : public MenuSurface
 {
-    // Rows call Activate with this session, so the stack takes *this.
-    MenuStack _stack{*this, runtime.Translations,
-                     [&s = runtime.Scheduler](int64_t ms, std::function<void()> run) {
-                         return s.Delay(ms, std::move(run));
-                     }};
+    // Rows call Activate with this surface, so the stack takes *this.
+    MenuStack _stack{*this, runtime.Translations, runtime.Scheduler};
 };
 
 void ClickMenu::Open(int slot, std::shared_ptr<Menu> menu)  { _stack.Push(slot, std::move(menu)); Draw(slot); }
-void ClickMenu::Close(int slot) { if (_stack.Pop(slot)) Dismiss(slot); else Draw(slot); }
+void ClickMenu::Close(int slot) { _stack.Pop(slot); if (_stack.IsOpen(slot)) Draw(slot); else Hide(slot); }
 void ClickMenu::OnPress(int slot, int row) { _stack.Activate(slot, row); Draw(slot); }
 ```
 

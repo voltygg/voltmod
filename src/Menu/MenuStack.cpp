@@ -9,6 +9,12 @@ namespace VoltMod
 
 static constexpr std::string_view kBreadcrumbSeparator = " › ";
 
+MenuStack::MenuStack(MenuSurface& surface, Translations& translations, Scheduler& scheduler)
+    : MenuStack(surface, translations, PendingCommit::Timer([&scheduler](int64_t delayMs, std::function<void()> run) {
+          return scheduler.Delay(delayMs, std::move(run));
+      }))
+{}
+
 MenuStack::MenuStack(MenuSurface& surface, Translations& translations, PendingCommit::Timer timer)
     : _surface(surface), _translations(translations), _pending(std::move(timer))
 {}
@@ -67,27 +73,20 @@ void MenuStack::Push(int slot, std::shared_ptr<Menu> menu)
     Rebuild(slot);
 }
 
-bool MenuStack::Pop(int slot)
+void MenuStack::Pop(int slot)
 {
-    if (!IsValidSlot(slot))
-        return false;
+    if (!IsValidSlot(slot) || _states[slot].Menus.empty())
+        return;
 
     // Apply a stepped value before changing the stack.
-    RunPending(slot);
+    ApplyPending(slot);
 
     State& state = _states[slot];
-    if (state.Menus.empty())
-        return true;
-
     state.Menus.pop_back();
     if (state.Menus.empty())
-    {
         state = {};
-        return true;
-    }
-
-    Rebuild(slot);
-    return false;
+    else
+        Rebuild(slot);
 }
 
 void MenuStack::Clear(int slot)
@@ -95,16 +94,16 @@ void MenuStack::Clear(int slot)
     if (!IsValidSlot(slot))
         return;
 
-    RunPending(slot);
+    ApplyPending(slot);
     _states[slot] = {};
 }
 
-void MenuStack::Rewind(int slot)
+void MenuStack::PopToRoot(int slot)
 {
     if (!IsValidSlot(slot) || _states[slot].Menus.empty())
         return;
 
-    RunPending(slot);
+    ApplyPending(slot);
     _states[slot].Menus.resize(1);
     Rebuild(slot);
 }
@@ -171,9 +170,9 @@ void MenuStack::Activate(int slot, int index)
     // the held one ran as well, so pressing the pending row cancels the wait and lets the
     // activation apply it. Any other row runs what is held first.
     if (_pending.IsPending(slot, index))
-        _pending.Cancel(slot);
+        _pending.Drop(slot);
     else
-        _pending.Run(slot);
+        _pending.Apply(slot);
 
     // The callback may close or replace the menu, so read the stack again.
     Menu* menu = Current(slot);
@@ -200,9 +199,9 @@ bool MenuStack::Step(int slot, int index, int direction)
     if (!item.Step(slot, direction))
         return false;
 
-    // Coalesce a burst of presses. Do not re-arm by index if the step replaced the menu.
+    // A burst of presses is one commit. Do not hold by index if the step replaced the menu.
     if (item.Commit && Current(slot) == held.get())
-        _pending.Arm(slot, index, [this, commit = item.Commit, slot] {
+        _pending.Hold(slot, index, [this, commit = item.Commit, slot] {
             commit(slot);
             Committed.Raise(slot);
         });
@@ -210,9 +209,9 @@ bool MenuStack::Step(int slot, int index, int direction)
     return true;
 }
 
-void MenuStack::RunPending(int slot)
+void MenuStack::ApplyPending(int slot)
 {
-    _pending.Run(slot);
+    _pending.Apply(slot);
 }
 
 bool MenuStack::IsPending(int slot, int index) const

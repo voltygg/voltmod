@@ -14,8 +14,8 @@ namespace VoltModTests
 /**
  * @brief The scheduler seam a `PendingCommit` takes, with the clock in the test's hands.
  *
- * Armed callbacks sit here until @ref Elapse runs them, which is the delay passing; dropping the
- * subscription the arm returned forgets one, which is the timer being cancelled. Held behind a
+ * Callbacks wait here until @ref Elapse runs them, which is the delay passing; dropping the
+ * subscription the timer returned forgets one, which is the timer being stopped. Held behind a
  * shared_ptr so a subscription released after this object is gone still has somewhere to write.
  */
 class FakeTimers
@@ -24,29 +24,29 @@ public:
     /** The @ref PendingCommit::Timer to construct the subject with. */
     VoltMod::PendingCommit::Timer Bind()
     {
-        auto armed = _armed;
+        auto running = _running;
         auto next = _next;
-        return [armed, next](int64_t delayMs, std::function<void()> callback) {
+        return [running, next](int64_t delayMs, std::function<void()> callback) {
             const uint64_t id = (*next)++;
-            (*armed)[id] = {delayMs, std::move(callback)};
-            return VoltMod::Subscription([armed, id] { armed->erase(id); });
+            (*running)[id] = {delayMs, std::move(callback)};
+            return VoltMod::Subscription([running, id] { running->erase(id); });
         };
     }
 
-    /** Run every armed callback, as the scheduler would once its delay had passed. */
+    /** Run every waiting callback, as the scheduler would once its delay had passed. */
     void Elapse()
     {
-        auto due = *_armed;
-        _armed->clear();
+        auto due = *_running;
+        _running->clear();
         for (auto& [id, timer] : due)
             timer.Callback();
     }
 
     /** How many commits are waiting on a timer. */
-    [[nodiscard]] int Armed() const { return static_cast<int>(_armed->size()); }
+    [[nodiscard]] int Running() const { return static_cast<int>(_running->size()); }
 
-    /** The delay the most recent arm asked for. */
-    [[nodiscard]] int64_t LastDelay() const { return _armed->empty() ? -1 : _armed->rbegin()->second.DelayMs; }
+    /** The delay the most recent timer asked for. */
+    [[nodiscard]] int64_t LastDelay() const { return _running->empty() ? -1 : _running->rbegin()->second.DelayMs; }
 
 private:
     struct Timer
@@ -55,7 +55,7 @@ private:
         std::function<void()> Callback;
     };
 
-    std::shared_ptr<std::map<uint64_t, Timer>> _armed = std::make_shared<std::map<uint64_t, Timer>>();
+    std::shared_ptr<std::map<uint64_t, Timer>> _running = std::make_shared<std::map<uint64_t, Timer>>();
     std::shared_ptr<uint64_t> _next = std::make_shared<uint64_t>(1);
 };
 

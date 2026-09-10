@@ -2,6 +2,7 @@
 
 #include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Core/PerSlot.hpp>
+#include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Translations.hpp>
 #include <VoltMod/Menu/Menu.hpp>
@@ -27,14 +28,17 @@ namespace VoltMod
  * What stays outside: the cursor, page shape, key or click routing, freezing, and prompts. Those
  * differ per surface, and a surface that has no cursor should not be made to carry one.
  *
- * SDK-free. The delay arrives as a @ref PendingCommit::Timer, which is `Scheduler::Delay` in the
- * framework and a hand-fired one in the tests.
+ * SDK-free. A surface hands it the @ref Scheduler; the tests hand it a @ref PendingCommit::Timer
+ * they fire by hand.
  */
 class MenuStack
 {
 public:
     /** @p surface is what a row's Activate callback is handed: the surface owning this stack.
-     *  Both references and the timer's target must outlive this instance. */
+     *  Every reference must outlive this instance. */
+    MenuStack(MenuSurface& surface, Translations& translations, Scheduler& scheduler);
+
+    /** The same, with the held commit's delay driven by @p timer instead of a Scheduler. */
     MenuStack(MenuSurface& surface, Translations& translations, PendingCommit::Timer timer);
 
     /** Drop a slot's stack when it changes hands. @p slots must outlive this. */
@@ -55,16 +59,16 @@ public:
 
     void Push(int slot, std::shared_ptr<Menu> menu);
 
-    /** Pop the top menu, applying whatever a stepped row was left showing. True when the stack is
-     *  now empty, which is the caller's cue to unfreeze and take the menu off screen. */
-    bool Pop(int slot);
+    /** Pop the top menu, applying whatever a stepped row was left showing. Ask @ref IsOpen after
+     *  it: an empty stack is the caller's cue to unfreeze and take the menu off screen. */
+    void Pop(int slot);
 
     /** Clear the whole stack, applying whatever a stepped row was left showing. */
     void Clear(int slot);
 
-    /** Unwind to the root without closing the session, for a surface where entering a branch is a
-     *  jump rather than a push. Does nothing when nothing is open. */
-    void Rewind(int slot);
+    /** Pop every menu but the root without closing the session, for a surface where entering a
+     *  branch is a jump rather than a push. Does nothing when nothing is open. */
+    void PopToRoot(int slot);
 
     /** Row @p index as it describes itself, with @ref MenuRow::Pending and @ref MenuRow::Changed
      *  filled in and a Toggle's on/off word spelled. An index with no row behind it describes as
@@ -78,14 +82,14 @@ public:
      *  activation is its own commit would otherwise apply the value twice. */
     void Activate(int slot, int index);
 
-    /** Nudge row @p index's value by @p direction (-1 or +1). True when the row consumed it, which
+    /** Step row @p index's value by @p direction (-1 or +1). True when the row consumed it, which
      *  is what tells a keyboard surface to page instead. A row with a @ref MenuItem::Commit is
      *  stepped, not applied: the commit is held so a burst of presses runs one action. */
     bool Step(int slot, int index, int direction);
 
     /** Apply whatever a stepped row was left showing, and forget it. Every way out of a row that
      *  is not another step goes through here. */
-    void RunPending(int slot);
+    void ApplyPending(int slot);
 
     /** True while @p slot is holding a stepped value for row @p index. */
     [[nodiscard]] bool IsPending(int slot, int index) const;

@@ -25,10 +25,7 @@ static CursorRows CursorRowsFor(Menu* menu, int slot)
 
 CenterHtmlMenu::CenterHtmlMenu(const Services& services)
     : _services(services),
-      _stack(*this, _services.Translations,
-             [&scheduler = services.Scheduler](int64_t delayMs, std::function<void()> callback) {
-                 return scheduler.Delay(delayMs, std::move(callback));
-             })
+      _stack(*this, _services.Translations, services.Scheduler)
 {
     _stack.BindReset(services.Slots);
     _cursors.BindReset(services.Slots);
@@ -95,7 +92,7 @@ void CenterHtmlMenu::Select(int slot, int index)
 
     // Leaving a stepped row applies its pending value. Returning to it leaves the value pending.
     if (!_stack.IsPending(slot, index))
-        _stack.RunPending(slot);
+        _stack.ApplyPending(slot);
 
     _cursors[slot].Selected = index;
 }
@@ -111,8 +108,9 @@ void CenterHtmlMenu::Close(int slot)
     if (!_stack.IsOpen(slot))
         return;
 
-    // A parent menu is showing again; the next frame draws it.
-    if (!_stack.Pop(slot))
+    // A parent menu still showing is drawn next frame.
+    _stack.Pop(slot);
+    if (_stack.IsOpen(slot))
     {
         ResetCursor(slot);
         Log::Info("Menu closed for slot {} ({} left on the stack)", slot, _stack.Depth(slot));

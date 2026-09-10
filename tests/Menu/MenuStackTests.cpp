@@ -72,22 +72,23 @@ TEST_CASE("MenuStack: popping the last menu empties the session")
     f.Stack.Push(kSlot, Screen("Admin"));
     f.Stack.Push(kSlot, Screen("Players"));
 
-    CHECK_FALSE(f.Stack.Pop(kSlot));  // a parent is showing again
+    f.Stack.Pop(kSlot);
+    CHECK(f.Stack.IsOpen(kSlot));  // a parent is showing again
     CHECK(f.Stack.Current(kSlot)->Title == "Admin");
 
-    CHECK(f.Stack.Pop(kSlot));  // nothing left
-    CHECK_FALSE(f.Stack.IsOpen(kSlot));
+    f.Stack.Pop(kSlot);
+    CHECK_FALSE(f.Stack.IsOpen(kSlot));  // nothing left
     CHECK(f.Stack.Current(kSlot) == nullptr);
 }
 
-TEST_CASE("MenuStack: Rewind unwinds to the root without closing the session")
+TEST_CASE("MenuStack: PopToRoot leaves the root open")
 {
     MenuStackFixture f;
     f.Stack.Push(kSlot, Screen("Admin"));
     f.Stack.Push(kSlot, Screen("Players"));
     f.Stack.Push(kSlot, Screen("Ban"));
 
-    f.Stack.Rewind(kSlot);
+    f.Stack.PopToRoot(kSlot);
     CHECK(f.Stack.Depth(kSlot) == 1);
     CHECK(f.Stack.IsOpen(kSlot));
     CHECK(f.Stack.Current(kSlot)->Title == "Admin");
@@ -207,3 +208,22 @@ TEST_CASE("MenuStack: a slot changing hands drops its session unrun")
     CHECK(commits == 0);  // nobody is left to have asked for it
 }
 
+
+TEST_CASE("MenuStack: a Scheduler is accepted as the timer")
+{
+    SlotEvents slots;
+    Translations strings{slots};
+    FakeMenuSurface surface;
+    VoltMod::Scheduler scheduler;
+    MenuStack stack(surface, strings, scheduler);
+
+    int committed = 0;
+    stack.Push(kSlot, Screen("Admin", {VoltMod::MenuItem{
+                                 .Describe = [](int) { return VoltMod::MenuRow{.Kind = VoltMod::MenuRowKind::Choice, .Steppable = true}; },
+                                 .Step = [](int, int) { return true; },
+                                 .Commit = [&](int) { ++committed; }}}));
+
+    CHECK(stack.Step(kSlot, 0, +1));
+    CHECK(stack.IsPending(kSlot, 0));
+    CHECK(committed == 0);
+}
