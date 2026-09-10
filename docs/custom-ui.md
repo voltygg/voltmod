@@ -25,15 +25,15 @@ if (!panel)
     return false;             // the name was refused, or the engine would not spawn it
 
 _panel = std::move(*panel);
-_panel.SetText(UiPanel::Everyone, "title", "name", "Welcome");
-_panel.SetClass(UiPanel::Everyone, "card", "Hidden", false);  // show it
-_panel.SetInputCapture(UiPanel::Everyone, true);              // make it clickable
+_panel.SetText(EveryoneSlot, "title", "name", "Welcome");
+_panel.SetClass(EveryoneSlot, "card", "Hidden", false);  // show it
+_panel.SetInputCapture(EveryoneSlot, true);              // make it clickable
 
 // Later, from a command or an event:
-_panel.SetText(UiPanel::Everyone, "title", "name", "Round 2");
+_panel.SetText(EveryoneSlot, "title", "name", "Round 2");
 ```
 
-Every write names a slot first. @ref VoltMod::UiPanel::Everyone is the layout's
+Every write names a slot first. @ref VoltMod::EveryoneSlot is the layout's
 global state, which is what a panel showing everybody the same thing wants; a real
 slot writes one player's, which the next section covers.
 
@@ -203,7 +203,7 @@ than parsing anything out of it.
 
 ## Per-player content
 
-Passing a slot instead of @ref VoltMod::UiPanel::Everyone narrows a write to one
+Passing a slot instead of @ref VoltMod::EveryoneSlot narrows a write to one
 player, which the engine networks through a single-slot recipient filter - so one
 entity can show different content to every player:
 
@@ -233,7 +233,7 @@ The entity is networked to that one client through the Visibility filter, and it
 writes land in the layout's global state, which a client shows regardless of the
 pawn it is viewing. Input capture still goes to the viewer's own per-player state,
 the one the client reads for itself. Writes name the viewer or
-@ref VoltMod::UiPanel::Everyone; any other slot is refused. The panel removes its
+@ref VoltMod::EveryoneSlot; any other slot is refused. The panel removes its
 entity when the slot changes hands, and @ref VoltMod::UiPanels::Panel refuses to
 make one while the filter is off. It costs one entity per viewer, so make one
 when something opens rather than one per connected player.
@@ -295,7 +295,7 @@ Icon.Write(screen.Panel(slot), slot, Icon.Find("awp"));  // ClassChoice::None tu
 A redraw names the panel and slot once through @ref VoltMod::PanelWriter:
 
 ```cpp
-const PanelWriter<UiPanel> w{screen.Panel(slot), slot};
+const UiPanelWriter w{screen.Panel(slot), slot};
 w.Set(CardTitle, "Round 2");
 w.Set(CardHidden, false);
 ```
@@ -337,7 +337,7 @@ so the next engine-side call misses the hash, appends a duplicate, and the state
 silently desyncs. Every write therefore goes through the game's own setter, which
 interns, dedupes and notifies correctly.
 
-The one exception is input capture for @ref VoltMod::UiPanel::Everyone. No engine
+The one exception is input capture for @ref VoltMod::EveryoneSlot. No engine
 setter takes the global state, and `m_bInputCaptureEnabled` is a plain `bool` in an embedded
 struct with no container and no shadow index behind it, so it is written
 directly.

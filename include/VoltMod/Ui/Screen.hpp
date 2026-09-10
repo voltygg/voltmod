@@ -38,7 +38,7 @@ public:
     void Hide(int slot);
 
     /** The panel @p slot draws on. Empty when it could not be spawned. */
-    UiPanel& Panel(int slot = UiPanel::Everyone);
+    UiPanel& Panel(int slot = EveryoneSlot);
 
     [[nodiscard]] std::string_view Layout() const noexcept;
 

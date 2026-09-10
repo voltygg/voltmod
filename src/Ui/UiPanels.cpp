@@ -30,7 +30,7 @@ Result<UiPanel> UiPanels::Panel(std::string_view layout, int viewer)
     if (!resource)
         return std::unexpected(resource.error());
 
-    if (viewer != UiPanel::Everyone)
+    if (viewer != EveryoneSlot)
     {
         if (!IsValidSlot(viewer))
             return std::unexpected(Error::Invalid(std::format("slot {} is not a player slot", viewer)));

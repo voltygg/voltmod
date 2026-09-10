@@ -8,7 +8,7 @@ namespace VoltMod
 Screen::Screen(UiPanels& ui, std::string_view layout, std::string_view rootId)
     : _ui(ui), _layout(layout), _root(rootId), _perPlayer(false)
 {
-    if (auto panel = ui.Panel(_layout, UiPanel::Everyone))
+    if (auto panel = ui.Panel(_layout, EveryoneSlot))
         _shared = std::move(*panel);
     else
         Log::Warn("Screen '{}': {}", _layout, panel.error().Detail);

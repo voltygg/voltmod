@@ -21,7 +21,7 @@ struct WriteTarget
     int EngineSlot;
 };
 
-/** A private panel has one audience: the viewer and @ref UiPanel::Everyone are the same request,
+/** A private panel has one audience: the viewer and @ref EveryoneSlot are the same request,
  *  cached under the viewer and written to the global state, which a client shows whatever pawn it
  *  is viewing. Input capture (@p perPlayer) stays on the viewer's own state, which the client reads
  *  for itself. Any other slot is refused. */
@@ -30,7 +30,7 @@ static Result<WriteTarget> ResolveTarget(const UiPanelState* state, int slot, bo
     if (!state || !state->IsPrivate())
         return WriteTarget{.CacheSlot = slot, .EngineSlot = slot};
 
-    if (slot != UiPanel::Everyone && slot != state->Viewer)
+    if (slot != EveryoneSlot && slot != state->Viewer)
         return std::unexpected(Error::Invalid(std::format("this panel is private to slot {}", state->Viewer)));
 
     return WriteTarget{.CacheSlot = state->Viewer, .EngineSlot = perPlayer ? state->Viewer : EveryoneSlot};
@@ -81,7 +81,7 @@ EntityRef UiPanel::Entity() const noexcept
 
 int UiPanel::Viewer() const noexcept
 {
-    return _state ? _state->Viewer : Everyone;
+    return _state ? _state->Viewer : EveryoneSlot;
 }
 
 int UiPanel::PlayerStateCount() const
@@ -91,7 +91,7 @@ int UiPanel::PlayerStateCount() const
 
 bool UiPanel::Prepare(int slot)
 {
-    if (!_state || (slot != Everyone && !IsValidSlot(slot)))
+    if (!_state || (slot != EveryoneSlot && !IsValidSlot(slot)))
         return false;
 
     UiPanelState& state = *_state;
@@ -104,7 +104,7 @@ bool UiPanel::Prepare(int slot)
     if (!*this && !state.SpawnOrWarn())
         return false;
 
-    if (slot == Everyone || state.CanWrite(slot))
+    if (slot == EveryoneSlot || state.CanWrite(slot))
         return true;
 
     // Per-player capacity is fixed at spawn; respawn only after the roster grows.

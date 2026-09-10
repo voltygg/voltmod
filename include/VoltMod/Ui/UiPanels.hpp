@@ -46,11 +46,11 @@ public:
      * (@ref Capability::Visibility; refused while the filter is off, since the entity would then
      * reach everyone) and removed when the slot changes hands.
      */
-    Result<UiPanel> Panel(std::string_view layout, int viewer = UiPanel::Everyone);
+    Result<UiPanel> Panel(std::string_view layout, int viewer = EveryoneSlot);
 
     /** @ref Panel plus the spawn, for a panel driven by global writes: the same errors, plus the
      *  engine's reason for refusing the entity. */
-    Result<UiPanel> Spawn(std::string_view layout, int viewer = UiPanel::Everyone);
+    Result<UiPanel> Spawn(std::string_view layout, int viewer = EveryoneSlot);
 
     /**
      * Presses from **every** layout, including one another plugin spawned - diagnostics, and the

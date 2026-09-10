@@ -82,7 +82,7 @@ struct ClassChoice
  * @brief A panel and a slot named once, so a redraw reads as writer-value lines.
  *
  * Any writer with `Write(panel, slot, value)` fits. Templated on the panel type so tests drive a
- * fake; a plugin spells `PanelWriter<UiPanel>`.
+ * fake; a plugin spells @ref UiPanelWriter.
  */
 template <class Panel>
 class PanelWriter

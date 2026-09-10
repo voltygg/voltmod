@@ -60,7 +60,7 @@ struct UiPanelState
 
     /** Pass @p status through, and on a per-slot failure drop what the cache just recorded so the
      *  next frame retries - saying why once per generation rather than once per frame. A write for
-     *  @ref UiPanel::Everyone has no such memory and passes straight through. */
+     *  @ref EveryoneSlot has no such memory and passes straight through. */
     Status RecordWrite(int slot, Status status, std::string_view what);
 
     /** The event for one Button id, created on first use. */

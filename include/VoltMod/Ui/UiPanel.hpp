@@ -6,6 +6,7 @@
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Entities/EntityRef.hpp>
 #include <VoltMod/Ui/UiClick.hpp>
+#include <VoltMod/Ui/Writers.hpp>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -21,7 +22,7 @@ namespace VoltMod
  * `meta reload`. Move-only, and every call re-resolves the entity, so a map change leaves the
  * panel empty and its destructor a no-op.
  *
- * A write is either global (@ref Everyone) or for one slot. A per-slot write goes through a cache:
+ * A write is either global (@ref EveryoneSlot) or for one slot. A per-slot write goes through a cache:
  * the value a player already has is not sent again, which is what makes redrawing a layout every
  * frame affordable - unlike center HTML, a networked layout stays on screen without re-sending.
  *
@@ -29,7 +30,7 @@ namespace VoltMod
  * write is that player's HUD, which a client shows for the pawn it is *viewing*. A private panel
  * (@ref UiPanels::Panel with a slot) is an entity only that viewer receives, written through the
  * global state, so it stays on screen while they are dead or spectating. Its writes name the
- * viewer or @ref Everyone; any other slot is refused.
+ * viewer or @ref EveryoneSlot; any other slot is refused.
  *
  * A write never spawns. @ref Prepare is the one spawn point, so a burst of writes for one player
  * costs one check rather than one per write, and a slot the entity does not cover fails with a
@@ -41,9 +42,6 @@ namespace VoltMod
 class UiPanel
 {
 public:
-    /** @ref EveryoneSlot: the layout's global state, not one player's. */
-    static constexpr int Everyone = EveryoneSlot;
-
     /** An empty panel: owns nothing, and fails every write with @ref ErrorCode::NotFound. */
     UiPanel() = default;
 
@@ -66,16 +64,16 @@ public:
     /** The entity behind this panel, for logging or comparing against a @ref UiClick. */
     [[nodiscard]] EntityRef Entity() const noexcept;
 
-    /** The one slot a private panel is networked to, or @ref Everyone for a shared panel. */
+    /** The one slot a private panel is networked to, or @ref EveryoneSlot for a shared panel. */
     [[nodiscard]] int Viewer() const noexcept;
 
     /** How many per-player states the entity carries, or -1 when there is no entity. Zero leaves
-     *  only @ref Everyone writes. */
+     *  only @ref EveryoneSlot writes. */
     [[nodiscard]] int PlayerStateCount() const;
 
     /**
      * Make the entity exist and cover @p slot, spawning or re-spawning as needed. Call it before a
-     * burst of writes for one player, or with @ref Everyone to spawn for global writes only; the
+     * burst of writes for one player, or with @ref EveryoneSlot to spawn for global writes only; the
      * writes themselves do not spawn. False means the slot cannot be written to, and the reason is
      * logged once per spawn attempt rather than once per frame.
      */
@@ -86,17 +84,17 @@ public:
     [[nodiscard]] bool CanWrite(int slot) const;
 
     /** Set the dialog variable a `text="{s:variable}"` attribute reads, for @p slot or
-     *  @ref Everyone. Fails rather than spawning when the entity does not cover @p slot. */
+     *  @ref EveryoneSlot. Fails rather than spawning when the entity does not cover @p slot. */
     Status SetText(int slot, std::string_view panelId, std::string_view variable, std::string_view value);
 
-    /** Add (@p on) or remove @p className on @p panelId, for @p slot or @ref Everyone. */
+    /** Add (@p on) or remove @p className on @p panelId, for @p slot or @ref EveryoneSlot. */
     Status SetClass(int slot, std::string_view panelId, std::string_view className, bool on);
 
     /** Hand @p className back to whatever the layout markup itself says. Not cached: it is a
      *  correction, so it goes out whenever it is asked for. */
     Status RestoreClass(int slot, std::string_view panelId, std::string_view className);
 
-    /** Give @p slot (or @ref Everyone) a cursor. Nothing in a layout is clickable without this:
+    /** Give @p slot (or @ref EveryoneSlot) a cursor. Nothing in a layout is clickable without this:
      *  the game keeps mouse-look and the panel never sees a pointer. */
     Status SetInputCapture(int slot, bool enabled);
 
@@ -147,5 +145,8 @@ private:
      *  empty or moved-from panel, which is what every call above checks for. */
     std::shared_ptr<UiPanelState> _state;
 };
+
+/** What a plugin writes a panel through: the one real @ref PanelWriter. */
+using UiPanelWriter = PanelWriter<UiPanel>;
 
 }  // namespace VoltMod
