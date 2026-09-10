@@ -13,6 +13,39 @@ A clickable menu is a plugin's own Panorama screen rather than a framework
 feature. The framework ships the pieces - @ref VoltMod::Screen, the widget
 writers and the block library - and @ref panorama_guide covers building one.
 
+## What a surface owns, and what it does not {#menu_surface_split}
+
+Only half of a session depends on how it is drawn. @ref VoltMod::MenuStack owns
+the other half: the stack of open menus, the breadcrumb, how a row describes
+itself, what activating a row does, and how a stepped value is held back so a
+burst of presses is one action. Center HTML and a plugin's own screen both hold
+one, which is why the same @ref VoltMod::Menu behaves the same way on either.
+
+A surface owns what the stack deliberately leaves out: the cursor or click ids,
+the page shape, freezing, and prompts. Build one by implementing
+@ref VoltMod::MenuSession, holding a `MenuStack`, and forwarding to it:
+
+```cpp
+class ClickMenu final : public MenuSession
+{
+    // Rows call Activate with this session, so the stack takes *this.
+    MenuStack _stack{*this, runtime.Translations,
+                     [&s = runtime.Scheduler](int64_t ms, std::function<void()> run) {
+                         return s.Delay(ms, std::move(run));
+                     }};
+};
+
+void ClickMenu::Open(int slot, std::shared_ptr<Menu> menu)  { _stack.Push(slot, std::move(menu)); Draw(slot); }
+void ClickMenu::Close(int slot) { if (_stack.Pop(slot)) Dismiss(slot); else Draw(slot); }
+void ClickMenu::OnPress(int slot, int row) { _stack.Activate(slot, row); Draw(slot); }
+```
+
+@ref VoltMod::MenuStack::Describe is what a row is drawn from: it fills in
+`Pending` and `Changed` and spells a toggle's on/off word, so a surface never
+works those out for itself. A surface that redraws every frame can ignore
+@ref VoltMod::MenuStack::Committed; one that draws on demand subscribes to it,
+because a held commit lands on a timer rather than on a press.
+
 ## Building a menu
 
 ```cpp
