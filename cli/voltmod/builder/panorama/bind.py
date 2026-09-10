@@ -2,8 +2,10 @@
 
 A screen offers three things a plugin has to spell: the panel ids in its layout, the dialog
 variables its `text="{s:var}"` Labels read, and the `Prefix--variant` class families its
-stylesheet declares. This emits one constant for each and stops there. How those are assembled
-into `Text`, `Flag` and `Choice` writers is the plugin's own code, where it reads plainly.
+stylesheet declares. This emits one constant for each. A block a template repeats - `row0` to
+`row7`, each with the same children and variables - is emitted once as a struct plus an array,
+so the plugin indexes it instead of spelling every copy. How those constants are assembled into
+`TextVar`, `ClassFlag` and `ClassChoice` writers is the plugin's own code, where it reads plainly.
 
 Nothing here validates or reports: `check.py` owns every rule a screen has to follow, and reads
 the same `Screen` this returns so the two cannot disagree about what a layout says.
@@ -23,6 +25,8 @@ CLASS = re.compile(r"\.([A-Za-z0-9_-]+)")
 IMAGE_SRC = re.compile(r"^s2r://panorama/images/custom_game/([^/]+)/([^/]+)\.vtex$")
 #: The C++ namespace a template asks for, as `{# namespace: Some::Name #}`.
 NAMESPACE = re.compile(r"\{#-?\s*namespace:\s*([A-Za-z_][A-Za-z0-9_:]*)\s*-?#\}")
+#: A name that belongs to a repeated block: `<stem><index>` with an optional `_<suffix>`.
+INDEXED = re.compile(r"^([a-z][a-z_]*?)(\d+)(?:_(\w+))?$")
 
 _IDENTIFIER = re.compile(r"^[A-Za-z_]\w*$")
 _RULE = re.compile(r"([^{}]*)\{([^{}]*)\}", re.DOTALL)
@@ -30,6 +34,52 @@ _COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
 
 #: Wide enough for a constant per line; a longer array is broken up item per item.
 COLUMNS = 100
+
+
+@dataclass(slots=True)
+class Group:
+    """A block the layout repeats with an index: `row0`..`row7`, alike in every copy.
+
+    Emitted as `struct <Stem>` with one `std::string_view` per member and `std::array<<Stem>, count>
+    <Stem>s`. The array is the struct name plus `s`; a stem that already ends in `s` should be
+    renamed in the template rather than pluralised here.
+    """
+
+    #: `row` for `row0`..`row7`.
+    stem: str
+    count: int
+    #: Id suffixes in document order; `""` is the block's own panel.
+    id_suffixes: list[str]
+    #: Dialog-variable suffixes in document order; `""` is a bare `<stem><index>` variable.
+    var_suffixes: list[str]
+
+    @property
+    def struct(self) -> str:
+        return pascal(self.stem)
+
+    @property
+    def array(self) -> str:
+        return f"{self.struct}s"
+
+    def members(self) -> list[str]:
+        """The struct's member names, ids first, in the order the layout names them."""
+        ids = ["Id" if suffix == "" else pascal(suffix) for suffix in self.id_suffixes]
+        variables = [
+            "Var" if suffix == "" else f"{pascal(suffix)}Var" for suffix in self.var_suffixes
+        ]
+        return ids + variables
+
+    def ids(self, screen: str, index: int) -> list[str]:
+        """The panel ids copy @p index carries, as the layout spells them."""
+        return [
+            f"{screen}_{self.stem}{index}" + (f"_{suffix}" if suffix else "")
+            for suffix in self.id_suffixes
+        ]
+
+    def variables(self, index: int) -> list[str]:
+        return [
+            f"{self.stem}{index}" + (f"_{suffix}" if suffix else "") for suffix in self.var_suffixes
+        ]
 
 
 @dataclass(slots=True)
@@ -45,6 +95,10 @@ class Screen:
     variables: list[str] = field(default_factory=list)
     #: Family prefix -> its variants, both in first-appearance order.
     families: dict[str, list[str]] = field(default_factory=dict)
+
+    def groups(self) -> list[Group]:
+        """The repeated blocks: every stem whose copies are indexed 0..K-1 (K >= 2) and alike."""
+        return _groups(self)
 
 
 def read(layout: str, stylesheet: str) -> Screen:
@@ -88,18 +142,36 @@ def header(screen: Screen, template: str) -> str:
         "",
     ]
 
-    if screen.ids:
+    groups = screen.groups()
+    grouped_ids = {
+        name for group in groups for i in range(group.count) for name in group.ids(screen.name, i)
+    }
+    grouped_vars = {
+        name for group in groups for i in range(group.count) for name in group.variables(i)
+    }
+
+    flat_ids = [name for name in screen.ids if name not in grouped_ids]
+    if flat_ids:
         lines.append("// Panel ids.")
-        for name in screen.ids:
+        for name in flat_ids:
             spelled = member(name, screen.name)
             lines.append(f'inline constexpr std::string_view {spelled} = "{name}";')
         lines.append("")
 
-    if screen.variables:
+    flat_vars = [name for name in screen.variables if name not in grouped_vars]
+    if flat_vars:
         lines.append("// Dialog variables, written through RootId.")
-        for name in screen.variables:
+        for name in flat_vars:
             lines.append(f'inline constexpr std::string_view {pascal(name)}Var = "{name}";')
         lines.append("")
+
+    if groups:
+        lines.append(
+            "// Repeated blocks: one struct per block, one array entry per index. Variables are"
+        )
+        lines.append("// written through RootId.")
+        for group in groups:
+            lines += _group(group, screen.name)
 
     for prefix, variants in screen.families.items():
         lines += _family(prefix, variants)
@@ -125,6 +197,61 @@ def spellable(name: str) -> bool:
 def enumerated(variants: list[str]) -> bool:
     """Whether a family gets an `enum class`. Step numbers do not; named variants do."""
     return not all(variant.isdigit() for variant in variants)
+
+
+def _groups(screen: Screen) -> list[Group]:
+    """See `Screen.groups`. A stem whose copies differ, or skip an index, stays flat."""
+    ids: dict[str, dict[int, list[str]]] = {}
+    variables: dict[str, dict[int, list[str]]] = {}
+    order: list[str] = []
+
+    def add(table: dict[str, dict[int, list[str]]], name: str) -> None:
+        found = INDEXED.match(name)
+        if not found:
+            return
+        stem, index, suffix = found.group(1), int(found.group(2)), found.group(3) or ""
+        if stem not in ids and stem not in variables:
+            order.append(stem)
+        table.setdefault(stem, {}).setdefault(index, []).append(suffix)
+
+    for name in screen.ids:
+        add(ids, name.removeprefix(f"{screen.name}_"))
+    for name in screen.variables:
+        add(variables, name)
+
+    groups: list[Group] = []
+    for stem in order:
+        by_index_ids = ids.get(stem, {})
+        by_index_vars = variables.get(stem, {})
+        indices = sorted(set(by_index_ids) | set(by_index_vars))
+        if len(indices) < 2 or indices != list(range(len(indices))):
+            continue
+        first_ids, first_vars = by_index_ids.get(0, []), by_index_vars.get(0, [])
+        alike = all(
+            sorted(by_index_ids.get(i, [])) == sorted(first_ids)
+            and sorted(by_index_vars.get(i, [])) == sorted(first_vars)
+            for i in indices
+        )
+        if alike:
+            groups.append(Group(stem, len(indices), first_ids, first_vars))
+    return groups
+
+
+def _group(group: Group, screen: str) -> list[str]:
+    """The struct and the array for one repeated block."""
+    lines = [f"struct {group.struct}", "{"]
+    lines += [f"    std::string_view {name};" for name in group.members()]
+    lines += ["};", f"inline constexpr std::array<{group.struct}, {group.count}> {group.array}{{"]
+    for index in range(group.count):
+        values = [f'"{name}"' for name in group.ids(screen, index) + group.variables(index)]
+        one = f"    {group.struct}{{{', '.join(values)}}},"
+        if len(one) <= COLUMNS:
+            lines.append(one)
+        else:
+            lines += (
+                [f"    {group.struct}{{"] + [f"        {value}," for value in values] + ["    },"]
+            )
+    return lines + ["};", ""]
 
 
 def _collect(families: dict[str, list[str]], classes: list[str]) -> None:

@@ -101,9 +101,17 @@ def _names(screen: bind.Screen, source: Path) -> list[str]:
     findings: list[str] = []
     taken = {"Layout": "the screen itself", "RootId": "the screen itself"}
 
+    grouped = {
+        name
+        for group in screen.groups()
+        for i in range(group.count)
+        for name in group.ids(screen.name, i)
+    }
     for identifier in screen.ids:
         if not bind.spellable(identifier.removeprefix(f"{screen.name}_")):
             findings.append(f"{source}: id '{identifier}' cannot be spelled in C++")
+            continue
+        if identifier in grouped:
             continue
         spelled = bind.member(identifier, screen.name)
         if spelled in taken:
@@ -111,11 +119,32 @@ def _names(screen: bind.Screen, source: Path) -> list[str]:
             findings.append(f"{source}: id '{identifier}' and {clash} both spell {spelled}")
         taken[spelled] = f"id '{identifier}'"
 
+    for group in screen.groups():
+        for spelled, what in (
+            (group.struct, f"the {group.stem} block"),
+            (group.array, f"the {group.stem} block's array"),
+        ):
+            if spelled in taken:
+                findings.append(f"{source}: {taken[spelled]} and {what} both spell {spelled}")
+            taken[spelled] = what
+        members = group.members()
+        for name in sorted(set(members)):
+            if members.count(name) > 1:
+                findings.append(f"{source}: the {group.stem} block names {name} twice")
+
     for prefix, variants in screen.families.items():
         # A digit-only family gets no enum, so its variants never have to be C++ names.
         named = bind.enumerated(variants)
         if not bind.spellable(prefix) or (named and not all(bind.spellable(v) for v in variants)):
             findings.append(f"{source}: class family '{prefix}--*' cannot be spelled in C++")
+        for spelled in (
+            (prefix, f"{prefix}Names", f"{prefix}Classes") if named else (f"{prefix}Classes",)
+        ):
+            if spelled in taken:
+                findings.append(
+                    f"{source}: {taken[spelled]} and the {prefix} family both spell {spelled}"
+                )
+            taken[spelled] = f"the {prefix} family"
     return findings
 
 

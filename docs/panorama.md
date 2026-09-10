@@ -141,6 +141,7 @@ how those constants become writers is the plugin's own code.
 | the outermost id | `Layout` and `RootId`; every other id must start with `<screen>_` |
 | every other `id="..."` | a `std::string_view` named by what follows the screen prefix - `lab_card0_bar` becomes `Card0Bar` |
 | `text="{s:var}"` | a `std::string_view` named `<Var>Var` |
+| a block the template repeats - ids `<screen>_<stem><N>[_<suffix>]` and variables `<stem><N>[_<suffix>]` for N = 0..K-1 (K >= 2), alike in every copy | `struct <Stem>` with one `std::string_view` per member (`Id`, `<Suffix>`, `<Suffix>Var`, or `Var` for a bare variable) and `std::array<<Stem>, K> <Stem>s`; those names get no flat constant |
 | a `Prefix--variant` class, in the layout or the stylesheet | a `PrefixClasses` array, plus `enum class Prefix` and `PrefixNames` unless every variant is a step number |
 
 A family is found by a plain scan for `.Prefix--variant`, in layout order first and
@@ -153,27 +154,35 @@ the example above (two cards and a toast):
 
 ```cpp
 inline constexpr std::string_view RootId = "lab";
-inline constexpr std::string_view Card0 = "lab_card0";
-inline constexpr std::string_view Card0Bar = "lab_card0_bar";
-inline constexpr std::string_view Card0TitleVar = "card0_title";
+inline constexpr std::string_view Toast = "lab_toast";
+inline constexpr std::string_view ToastTitleVar = "toast_title";
+
+struct Card { std::string_view Id, Accent, Icon, Bar, TitleVar, SubtitleVar, ValueVar; };
+inline constexpr std::array<Card, 2> Cards{ Card{"lab_card0", "lab_card0_accent", ...}, Card{"lab_card1", ...} };
 
 enum class Accent { Good, Bad };
 inline constexpr std::array<std::string_view, 2> AccentNames{"good", "bad"};
 inline constexpr std::array<std::string_view, 2> AccentClasses{"Accent--good", "Accent--bad"};
 ```
 
-The plugin declares the shape it wants and fills it from those constants, which is
-what `tests/Ui/BoundScreenTests.cpp` and the `ui` plugin's `Hud.cpp` both do:
+The plugin declares the writers it wants and builds one set per array entry with
+@ref VoltMod::MakeWriters, which is what `tests/Ui/BoundScreenTests.cpp` and the `ui`
+plugin's `Hud.cpp` both do:
 
 ```cpp
-struct Card
+struct CardWriters
 {
     VoltMod::TextVar Title, Subtitle, Value;
     VoltMod::ClassChoice Icon, Bar, Accent;
     VoltMod::ClassFlag Hidden;
 };
 
-constexpr std::array<Card, 2> Cards{ /* one entry per card */ };
+constexpr CardWriters MakeCard(const LabUi::Card& card)
+{
+    return {.Title = {LabUi::RootId, card.TitleVar}, /* ... */ .Hidden = {card.Id, "Hidden"}};
+}
+
+constexpr auto Cards = VoltMod::MakeWriters(LabUi::Cards, MakeCard);
 ```
 
 `TextVar`, `ClassFlag` and `ClassChoice` are `VoltMod/Ui/Writers.hpp` writers - see

@@ -177,9 +177,7 @@ def test_two_owners_rendering_the_same_resource_are_named(tmp_path):
     findings = checker.check(root, KIT, ["ui-lab", "ui-second"])
 
     assert any(
-        "layout/custom_game/hud.xml" in finding
-        and "ui-lab" in finding
-        and "ui-second" in finding
+        "layout/custom_game/hud.xml" in finding and "ui-lab" in finding and "ui-second" in finding
         for finding in findings
     )
     assert any("styles/custom_game/hud.css" in finding for finding in findings)
@@ -193,3 +191,22 @@ def test_a_shared_dialog_variable_is_not_flagged(tmp_path):
 def test_a_clean_screen_has_no_findings(tmp_path):
     root = plugin(tmp_path, xml=CLEAN_XML, css=CLEAN_CSS, name="hud")
     assert checker.check(root, KIT, ["ui-lab"]) == []
+
+
+ARRAY_CLASH_XML = """<root>
+  <styles>
+    <include src="file://{resources}/styles/custom_game/{{screen}}.css" />
+  </styles>
+  <Panel id="{{screen}}" class="Screen Hidden">
+    <Panel id="{{screen}}_row0" />
+    <Panel id="{{screen}}_row1" />
+    <Panel id="{{screen}}_rows" />
+  </Panel>
+</root>
+"""
+
+
+def test_an_id_spelling_a_repeated_blocks_array_is_flagged(tmp_path):
+    root = plugin(tmp_path, xml=ARRAY_CLASH_XML, css=HIDDEN_CSS, name="hud")
+    findings = checker.check(root, KIT, ["ui-lab"])
+    assert any("both spell Rows" in finding for finding in findings)

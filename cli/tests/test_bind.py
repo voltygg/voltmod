@@ -183,3 +183,62 @@ def test_the_checked_in_fixture_header_is_what_the_binder_writes(tmp_path):
         fixture.write_text(header, encoding="utf-8")
 
     assert header == fixture.read_text(encoding="utf-8")
+
+
+ROW_XML = (
+    '<Panel id="s_row{i}"><Panel id="s_row{i}_accent" />'
+    '<Button id="s_row{i}_btn"><Label text="{{s:row{i}_label}}" /></Button></Panel>'
+)
+ROWS_XML = '<root><Panel id="s">' + ROW_XML.format(i=0) + ROW_XML.format(i=1) + "</Panel></root>"
+
+
+def test_a_repeated_block_becomes_a_struct_and_an_array():
+    header = derive(ROWS_XML)
+
+    assert "struct Row\n{\n    std::string_view Id;\n    std::string_view Accent;\n" in header
+    assert "    std::string_view Btn;\n    std::string_view LabelVar;\n};" in header
+    assert "inline constexpr std::array<Row, 2> Rows{" in header
+    assert '    Row{"s_row0", "s_row0_accent", "s_row0_btn", "row0_label"},' in header
+    assert "Row0Accent" not in header and "Row0LabelVar" not in header
+
+
+def test_a_bare_indexed_variable_becomes_var():
+    header = derive(
+        '<root><Panel id="s"><Button id="s_tab0"><Label text="{s:tab0}" /></Button>'
+        '<Button id="s_tab1"><Label text="{s:tab1}" /></Button></Panel></root>'
+    )
+
+    assert "struct Tab\n{\n    std::string_view Id;\n    std::string_view Var;\n};" in header
+    assert 'Tab{"s_tab1", "tab1"}' in header
+
+
+def test_a_single_copy_stays_flat():
+    header = derive(
+        '<root><Panel id="s"><Panel id="s_card0"><Panel id="s_card0_bar" /></Panel></Panel></root>'
+    )
+
+    assert "struct Card" not in header
+    assert 'std::string_view Card0Bar = "s_card0_bar";' in header
+
+
+def test_a_gap_in_the_indices_stays_flat():
+    header = derive('<root><Panel id="s"><Panel id="s_row0" /><Panel id="s_row2" /></Panel></root>')
+
+    assert "struct Row" not in header
+    assert 'std::string_view Row2 = "s_row2";' in header
+
+
+def test_copies_that_differ_stay_flat():
+    header = derive(
+        '<root><Panel id="s"><Panel id="s_row0"><Panel id="s_row0_accent" /></Panel>'
+        '<Panel id="s_row1" /></Panel></root>'
+    )
+
+    assert "struct Row" not in header
+    assert 'std::string_view Row0Accent = "s_row0_accent";' in header
+
+
+def test_the_array_follows_index_order_not_document_order():
+    header = derive('<root><Panel id="s"><Panel id="s_row1" /><Panel id="s_row0" /></Panel></root>')
+
+    assert header.index('Row{"s_row0"}') < header.index('Row{"s_row1"}')
