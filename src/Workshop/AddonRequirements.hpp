@@ -39,8 +39,8 @@ struct AddonDecision
 class AddonRequirements
 {
 public:
-    /** Require @p id of every client. False when @p id is 0. Idempotent per holder: each call
-     *  takes one reference. */
+    /** Require @p id of every client. False when @p id is 0. Each call takes one reference, so
+     *  a holder may call it again. */
     bool Require(uint64_t id);
 
     /** Release one reference taken by @ref Require. */

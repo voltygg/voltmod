@@ -5,7 +5,7 @@ namespace VoltMod
 {
 
 /** Shared description callback for menu specs. */
-static std::function<MenuRow(int)> Describer(std::string label, MenuRowKind kind, EnabledCondition enabled,
+static std::function<MenuRow(int)> DescribeRow(std::string label, MenuRowKind kind, EnabledCondition enabled,
                                              std::function<void(int slot, MenuRow& row)> live = {})
 {
     return [label = std::move(label), kind, enabled = std::move(enabled), live = std::move(live)](int slot) {
@@ -21,7 +21,7 @@ static std::function<MenuRow(int)> Describer(std::string label, MenuRowKind kind
 }
 
 /** @p action, run only while @p enabled takes the slot. */
-static std::function<void(int, MenuSurface&)> Gated(EnabledCondition enabled,
+static std::function<void(int, MenuSurface&)> WhenEnabled(EnabledCondition enabled,
                                                     std::function<void(int, MenuSurface&)> action)
 {
     return [enabled = std::move(enabled), action = std::move(action)](int slot, MenuSurface& surface) {
@@ -33,8 +33,8 @@ static std::function<void(int, MenuSurface&)> Gated(EnabledCondition enabled,
 MenuItem ButtonRow::ToItem() &&
 {
     return MenuItem{
-        .Describe = Describer(std::move(Label), MenuRowKind::Button, Enabled),
-        .Activate = Gated(std::move(Enabled),
+        .Describe = DescribeRow(std::move(Label), MenuRowKind::Button, Enabled),
+        .Activate = WhenEnabled(std::move(Enabled),
                           [activate = std::move(Activate)](int slot, MenuSurface&) {
                               if (activate)
                                   activate(slot);
@@ -46,12 +46,12 @@ MenuItem ToggleRow::ToItem() &&
 {
     // MenuStack::Describe supplies the localized state text.
     return MenuItem{
-        .Describe = Describer(std::move(Label), MenuRowKind::Toggle, Enabled,
+        .Describe = DescribeRow(std::move(Label), MenuRowKind::Toggle, Enabled,
                               [get = Get](int slot, MenuRow& row) {
                                   row.Steppable = true;
                                   row.State = get && get(slot);
                               }),
-        .Activate = Gated(Enabled,
+        .Activate = WhenEnabled(Enabled,
                           [flip = Flip](int slot, MenuSurface&) {
                               if (flip)
                                   flip(slot);
@@ -69,13 +69,13 @@ MenuItem ToggleRow::ToItem() &&
 MenuItem InputRow::ToItem() &&
 {
     return MenuItem{
-        .Describe = Describer(std::move(Label), MenuRowKind::Input, Enabled,
+        .Describe = DescribeRow(std::move(Label), MenuRowKind::Input, Enabled,
                               [get = std::move(Get)](int slot, MenuRow& row) {
                                   // An unset value still needs to look like a field waiting for one.
                                   std::string value = get ? get(slot) : std::string{};
                                   row.Value = value.empty() ? "…" : std::move(value);
                               }),
-        .Activate = Gated(
+        .Activate = WhenEnabled(
             std::move(Enabled),
             [prompt = std::move(Prompt), set = std::move(Set), maxLength = MaxLength](int slot, MenuSurface& surface) {
                 surface.Prompt(slot, prompt, [set, maxLength](int s, std::string_view text) {
@@ -91,8 +91,8 @@ MenuItem InputRow::ToItem() &&
 MenuItem SubmenuRow::ToItem() &&
 {
     return MenuItem{
-        .Describe = Describer(std::move(Label), MenuRowKind::Submenu, Enabled),
-        .Activate = Gated(std::move(Enabled),
+        .Describe = DescribeRow(std::move(Label), MenuRowKind::Submenu, Enabled),
+        .Activate = WhenEnabled(std::move(Enabled),
                           [build = std::move(Build)](int slot, MenuSurface& surface) {
                               if (!build)
                                   return;
@@ -104,7 +104,7 @@ MenuItem SubmenuRow::ToItem() &&
 
 MenuItem TextRow::ToItem() &&
 {
-    return MenuItem{.Describe = Describer(std::move(Label), MenuRowKind::Text, true)};
+    return MenuItem{.Describe = DescribeRow(std::move(Label), MenuRowKind::Text, true)};
 }
 
 }  // namespace VoltMod

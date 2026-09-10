@@ -49,7 +49,7 @@ struct UiPanelState
     /** @ref Spawn, saying why it failed once per attempt rather than once per frame. */
     bool SpawnOrWarn();
 
-    /** Remove the entity and forget what every player was told about it. Idempotent. */
+    /** Remove the entity and forget what every player was told about it. Safe to call again. */
     void Remove();
 
     /** Whether the entity exists and carries per-player state for @p slot. On a private panel,

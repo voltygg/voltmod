@@ -6,18 +6,18 @@
 such as Panorama layouts, models, or sounds.
 
 ```cpp
-auto lease = runtime.Addons.Require(3401234567);    // of everyone
-if (!lease)
+auto required = runtime.Addons.Require(3401234567); // of everyone
+if (!required)
     return false;                                   // no dedicated server, or the hook is off
 
-_addon = std::move(*lease);                         // required until this Subscription drops
+_addon = std::move(*required);                      // required until this Subscription drops
 
 _subs.push_back(runtime.Addons.Ready += [](int slot) {
     // this client has everything and is joining normally
 });
 ```
 
-The returned lease owns the requirement. Keep it beside the feature that needs
+The returned Subscription owns the requirement. Keep it beside the feature that needs
 the content. Requirements are reference counted, and `RequireFor(steamId, id)`
 adds a player-specific requirement.
 
@@ -91,7 +91,7 @@ Give one plugin the addon list and let the others ask it, rather than calling
 
 ## Availability
 
-Inert on a listen server - there is no download step - and when
+Does nothing on a listen server - there is no download step - and when
 @ref VoltMod::Capability::Addons is off, which means the
 `CServerSideClient::SendNetMessage` vtable entry or one of the two client offsets
 did not bind. Either way @ref VoltMod::Addons::Require returns

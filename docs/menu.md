@@ -180,7 +180,7 @@ MenuBuilder(title)
 (`InMoveType`, `HasPawnFlag`) live in `Entities/PawnPredicates.hpp`. `Presets` leaves
 the menu open after applying, so a value can be adjusted and applied again. An effect
 row on a panel built without `Services::Effects` is drawn disabled rather than live and
-inert; the descriptor itself is covered in @ref players_guide.
+doing nothing; the descriptor itself is covered in @ref players_guide.
 
 ## Flow: multistep wizards
 
@@ -240,7 +240,7 @@ Keys drive one cursor, and the cursor belongs to the session:
 | **A** / **D** | Step a value row (Toggle / Choice); otherwise turn the page |
 | **R** | Close (root) / back (submenu). Cancels an active chat-input capture. |
 
-Keys are debounced by 200 ms. They are the only input a menu has, so there is no
+Presses closer together than 200 ms are ignored. Keys are the only input a menu has, so there is no
 switching them off: a menu nobody can navigate is a menu nobody can close.
 
 ### Stepping applies the value

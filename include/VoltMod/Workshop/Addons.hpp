@@ -25,18 +25,18 @@ namespace VoltMod
  * mounted on the server.
  *
  * ```cpp
- * auto lease = runtime.Addons.Require(3401234567);
- * if (!lease)
- *     Log::Warn("addons unavailable: {}", lease.error().Detail);
+ * auto required = runtime.Addons.Require(3401234567);
+ * if (!required)
+ *     Log::Warn("addons unavailable: {}", required.error().Detail);
  * else
- *     _addon = std::move(*lease);   // required until this Subscription drops
+ *     _addon = std::move(*required);   // required until this Subscription drops
  * ```
  *
  * **One plugin should own the addon list.** The framework is a static library, so each plugin has
  * its own Runtime, its own instance of this and its own hook; two plugins requiring different
  * addons rewrite the same message and only one wins.
  *
- * Inert on a listen server (there is no download step) and when @ref Capability::Addons is off;
+ * Does nothing on a listen server (there is no download step) and when @ref Capability::Addons is off;
  * @ref Require reports either as an error rather than silently doing nothing. Everything here runs
  * on the game thread.
  */
@@ -55,7 +55,7 @@ public:
      * Requirements are reference counted, so two callers may require the same addon independently.
      * Already-connected clients are not disturbed; a change takes effect on their next connect.
      *
-     * @return the lease, or why nothing was required: @ref ErrorCode::Invalid for id 0,
+     * @return the requirement, kept as a Subscription, or why nothing was required: @ref ErrorCode::Invalid for id 0,
      *         @ref ErrorCode::Unsupported on a listen server or when the hook could not install.
      */
     [[nodiscard]] Result<Subscription> Require(uint64_t id);

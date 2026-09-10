@@ -70,7 +70,7 @@ public:
 
 private:
     /** Presses closer together than this are ignored. */
-    static constexpr int64_t InputDebounceMs = 200;
+    static constexpr int64_t PressGapMs = 200;
 
     /** Where one player is in the menu on top: the selected row, the buttons held last frame for
      *  edge detection, and when the last press was acted on. */

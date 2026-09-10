@@ -237,7 +237,7 @@ bool CenterHtmlMenu::ReadKeys(int slot)
         return false;
 
     const int64_t now = Time::MonotonicMs();
-    if (now - cursor.LastInputTime < InputDebounceMs)
+    if (now - cursor.LastInputTime < PressGapMs)
         return false;
 
     if (_services.ChatInput.IsCapturing(slot))

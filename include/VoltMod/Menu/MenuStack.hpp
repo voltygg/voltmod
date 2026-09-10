@@ -72,7 +72,7 @@ public:
 
     /** Row @p index as it describes itself, with @ref MenuRow::Pending and @ref MenuRow::Changed
      *  filled in and a Toggle's on/off word spelled. An index with no row behind it describes as
-     *  an inert, unselectable line. */
+     *  a disabled, unselectable line. */
     [[nodiscard]] MenuRow Describe(int slot, int index);
 
     /** Run row @p index, as if it had been selected and confirmed. Ignores rows that are disabled,

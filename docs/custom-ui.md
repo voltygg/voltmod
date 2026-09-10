@@ -43,7 +43,7 @@ on the next frame.
 
 @ref VoltMod::UiPanel owns and removes its entity. Keep the move-only panel as a
 member instead of storing its @ref VoltMod::EntityRef. Calls re-resolve the
-entity, so a panel becomes falsy after a map change.
+entity, so a panel becomes empty after a map change.
 
 @ref VoltMod::UiPanels::Spawn creates the entity now. @ref VoltMod::UiPanels::Panel
 is the same thing without the entity: it checks the name and hands back a panel
@@ -167,7 +167,7 @@ to build from, and the plugin requires the built addon's id so joining clients
 download it.
 
 ```cpp
-_addon = runtime.Addons.Require(3401234567);   // keep the lease; see the workshop guide
+_addon = runtime.Addons.Require(3401234567);   // keep the Subscription; see the workshop guide
 ```
 
 See @ref workshop_guide for what that costs and what it does not do.
@@ -235,7 +235,7 @@ pawn it is viewing. Input capture still goes to the viewer's own per-player stat
 the one the client reads for itself. Writes name the viewer or
 @ref VoltMod::UiPanel::Everyone; any other slot is refused. The panel removes its
 entity when the slot changes hands, and @ref VoltMod::UiPanels::Panel refuses to
-make one while the filter is inert. It costs one entity per viewer, so make one
+make one while the filter is off. It costs one entity per viewer, so make one
 when something opens rather than one per connected player.
 
 The per-player state count is fixed when the entity spawns, so a player who

@@ -129,7 +129,7 @@ MenuRow MenuStack::Describe(int slot, int index)
     if (!menu || index < 0 || index >= static_cast<int>(menu->Items.size()))
         return MenuRow{.Enabled = false, .Selectable = false};
 
-    // A malformed item is shown as an inert line.
+    // A malformed item is shown as a disabled line.
     const MenuItem& item = menu->Items[static_cast<std::size_t>(index)];
     MenuRow row = item.Describe ? item.Describe(slot) : MenuRow{.Enabled = false, .Selectable = false};
 

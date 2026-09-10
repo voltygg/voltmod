@@ -16,7 +16,7 @@ namespace VoltMod
  * a spectating admin sees their own screen rather than the one belonging to the pawn they watch.
  *
  * @ref Show re-ensures the panel on every call, which is what recovers from a map change: the
- * panel goes falsy then, and the next Show re-spawns it rather than needing a reconnect handler.
+ * panel goes empty then, and the next Show re-spawns it rather than needing a reconnect handler.
  * Repeat calls cost nothing - the panel's write cache drops the unhide it has already sent.
  */
 class Screen

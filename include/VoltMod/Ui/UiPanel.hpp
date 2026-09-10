@@ -104,7 +104,7 @@ public:
     void ForgetWrites(int slot);
 
     /** Remove the entity now instead of at destruction, and forget what every player was told.
-     *  Idempotent; the next @ref Prepare spawns a fresh one. */
+     *  Safe to call again; the next @ref Prepare spawns a fresh one. */
     void Remove();
 
     /** Drive a different layout resource from here on, dropping the current entity. The panel
