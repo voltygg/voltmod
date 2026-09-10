@@ -59,10 +59,10 @@ struct ToggleRow
 /** When a @ref ChoiceRow runs its `Commit`. */
 enum class ChoiceApply
 {
-    /** Apply shortly after stepping stops. */
-    OnStep,
-    /** Apply only on E or a click. */
-    OnSelect
+    /** About 400 ms after the last step, so a burst of presses applies once. */
+    AfterStep,
+    /** Only on E or a click; stepping just changes what the row shows. */
+    OnActivate
 };
 
 /** External storage for a @ref ChoiceRow selection. */
@@ -85,7 +85,7 @@ struct ChoiceRow
     /** Where an unbound row starts. */
     int Index = 0;
     EnabledCondition Enabled;
-    ChoiceApply Apply = ChoiceApply::OnStep;
+    ChoiceApply Apply = ChoiceApply::AfterStep;
 
     [[nodiscard]] MenuItem ToItem() &&;
 };
@@ -234,7 +234,7 @@ MenuItem ChoiceRow<T>::ToItem() &&
                                                .Enabled = std::move(Enabled),
                                                .Own = Index});
 
-    const bool holdsCommit = Apply != ChoiceApply::OnSelect;
+    const bool holdsCommit = Apply == ChoiceApply::AfterStep;
 
     return MenuItem{
         .Describe =
@@ -259,7 +259,7 @@ MenuItem ChoiceRow<T>::ToItem() &&
                     (void)state->Step(slot, +1);
             },
         .Step = [state](int slot, int direction) { return state->Enabled(slot) && state->Step(slot, direction); },
-        // An empty commit tells the manager that OnSelect applies only on activation.
+        // No commit callback tells the stack that OnActivate applies only on activation.
         .Commit = holdsCommit ? std::function<void(int)>([state](int slot) {
             if (state->Enabled(slot))
                 state->Apply(slot);

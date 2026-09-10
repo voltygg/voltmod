@@ -139,7 +139,7 @@ TEST_CASE("MenuBuilder: a choice row commits the current value on activate and o
     CHECK(committed[1] == 1);
 }
 
-TEST_CASE("MenuBuilder: an OnSelect choice row carries no commit for the manager to hold")
+TEST_CASE("MenuBuilder: an OnActivate choice row carries no commit for the stack to hold")
 {
     FakeMenuSurface session;
 
@@ -147,7 +147,7 @@ TEST_CASE("MenuBuilder: an OnSelect choice row carries no commit for the manager
     MenuItem item = ChoiceRow<int>{.Label = "HP",
                                    .Choices = {{"1 HP", 1}, {"100 HP", 100}},
                                    .Commit = [&](int, const int& value) { committed.push_back(value); },
-                                   .Apply = VoltMod::ChoiceApply::OnSelect}
+                                   .Apply = VoltMod::ChoiceApply::OnActivate}
                         .ToItem();
 
     // No MenuItem::Commit is what tells the manager this row does not apply while it is cycled.

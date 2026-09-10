@@ -113,7 +113,7 @@ something else reads live:
 
 Stepping such a row **applies** it: the value lands a moment after the presses
 stop, so five taps on D are one action rather than five (see @ref
-menu_feedback_keys). `.Apply = ChoiceApply::OnSelect` takes
+menu_feedback_keys). `.Apply = ChoiceApply::OnActivate` takes
 that back and waits for E instead - for a value that must not be tried on the way
 past, because applying it costs something, cannot be undone, or is announced to
 everyone each time it lands.
@@ -251,7 +251,7 @@ held for 400 ms and re-held on each further step, so a burst of A/D is one
 action and one broadcast. Activating the row, closing the menu, moving the cursor
 off it runs what is held rather than dropping it; a player
 leaving the slot cancels it, because nobody is left to have asked for it.
-`ChoiceApply::OnSelect` opts a row out and waits for E.
+`ChoiceApply::OnActivate` opts a row out and waits for E.
 
 ### What a row says about itself
 
