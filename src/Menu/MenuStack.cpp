@@ -143,10 +143,10 @@ MenuRow MenuStack::Describe(int slot, int index)
 
     State& state = _states[slot];
     if (state.Rows.size() != menu->Items.size())
-        state.Rows.assign(menu->Items.size(), MenuRowMemory{});
+        state.Rows.assign(menu->Items.size(), RowMemory{});
 
     const int64_t now = Time::MonotonicMs();
-    MenuRowMemory& memory = state.Rows[static_cast<std::size_t>(index)];
+    RowMemory& memory = state.Rows[static_cast<std::size_t>(index)];
     if (memory.Value != row.Value)
     {
         // Arriving on screen is not a change: only a value that moves under a row already drawn

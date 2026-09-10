@@ -5,8 +5,8 @@
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Translations.hpp>
 #include <VoltMod/Menu/Menu.hpp>
-#include <VoltMod/Menu/MenuState.hpp>
 #include <VoltMod/Menu/PendingCommit.hpp>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -98,11 +98,21 @@ private:
     /** How long a stepped value waits before it is applied. */
     static constexpr int64_t ChangedMs = 150;
 
+    /** What a row last showed, so a value that moves under it can flash as changed. */
+    struct RowMemory
+    {
+        std::string Value;
+        /** Monotonic milliseconds of the last change; 0 until one happens. */
+        int64_t ChangedAt = 0;
+        /** False until the row has described itself once: arriving on screen is not a change. */
+        bool Drawn = false;
+    };
+
     struct State
     {
         std::vector<std::shared_ptr<Menu>> Menus;
         /** One entry per row of the current menu, rebuilt when the menu changes. */
-        std::vector<MenuRowMemory> Rows;
+        std::vector<RowMemory> Rows;
         std::string Breadcrumb;
     };
 

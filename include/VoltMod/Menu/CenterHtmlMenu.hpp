@@ -10,7 +10,6 @@
 #include <VoltMod/Hooks/ChatInput.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuStack.hpp>
-#include <VoltMod/Menu/MenuState.hpp>
 #include <VoltMod/Messaging/Messages.hpp>
 #include <VoltMod/Players/Policy.hpp>
 #include <cstdint>
