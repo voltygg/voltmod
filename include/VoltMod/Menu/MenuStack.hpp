@@ -33,9 +33,9 @@ namespace VoltMod
 class MenuStack
 {
 public:
-    /** @p session is what a row's Activate callback is handed, so it is the surface owning this.
+    /** @p surface is what a row's Activate callback is handed: the surface owning this stack.
      *  Both references and the timer's target must outlive this instance. */
-    MenuStack(MenuSession& session, Translations& translations, PendingCommit::Timer timer);
+    MenuStack(MenuSurface& surface, Translations& translations, PendingCommit::Timer timer);
 
     /** Drop a slot's stack when it changes hands. @p slots must outlive this. */
     void BindReset(SlotEvents& slots);
@@ -109,7 +109,7 @@ private:
     /** Re-derive what depends on which menu is on top. */
     void Rebuild(int slot);
 
-    MenuSession& _session;
+    MenuSurface& _surface;
     Translations& _translations;
     PerSlot<State> _states;
     PendingCommit _pending;

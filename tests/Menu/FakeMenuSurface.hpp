@@ -11,13 +11,13 @@ namespace VoltModTests
 {
 
 /**
- * @brief A `MenuSession` that records what it was asked for instead of drawing anything.
+ * @brief A `MenuSurface` that records what it was asked for instead of drawing anything.
  *
- * `MenuSession` is SDK-free by design, which is what lets rows, `MenuBuilder` and `Flow` be driven
+ * `MenuSurface` is SDK-free by design, which is what lets rows, `MenuBuilder` and `Flow` be driven
  * here without an engine: a submenu row's factory, an input row's validation and a whole flow's
  * step order are all observable as calls on one of these.
  */
-class FakeMenuSession final : public VoltMod::MenuSession
+class FakeMenuSurface final : public VoltMod::MenuSurface
 {
 public:
     /** Every key Translate was asked for, in order. */
@@ -77,7 +77,7 @@ public:
     std::string LastPrompt;
     /** The reply key the last aborting `CloseAll` was given. */
     std::string ReplyKey;
-    /** The callback an input row handed the session; call it with a chat line. */
+    /** The callback an input row handed the surface; call it with a chat line. */
     std::function<bool(int, std::string_view)> LastInput;
 };
 

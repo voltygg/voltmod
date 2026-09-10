@@ -1,4 +1,4 @@
-#include "FakeMenuSession.hpp"
+#include "FakeMenuSurface.hpp"
 
 #include <VoltMod/Menu/Flow.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-using VoltModTests::FakeMenuSession;
+using VoltModTests::FakeMenuSurface;
 
 /** The state a test flow threads through its steps. */
 struct FlowTestState
@@ -39,7 +39,7 @@ static TestFlow::BuildFn StepNamed(std::string name)
 
 TEST_CASE("Flow: steps open in order, one at a time")
 {
-    FakeMenuSession session;
+    FakeMenuSurface session;
 
     auto flow = TestFlow::Create(session, 0, FlowTestState{});
     flow->AddStep(StepNamed("first"))
@@ -61,7 +61,7 @@ TEST_CASE("Flow: steps open in order, one at a time")
 
 TEST_CASE("Flow: a step whose Applies is false is skipped")
 {
-    FakeMenuSession session;
+    FakeMenuSurface session;
 
     auto flow = TestFlow::Create(session, 0, FlowTestState{.Timed = false});
     flow->AddStep(StepNamed("duration"), [](const FlowTestState& state) { return state.Timed; })
@@ -75,7 +75,7 @@ TEST_CASE("Flow: a step whose Applies is false is skipped")
 
 TEST_CASE("Flow: with no steps and no confirm, Start finishes straight away")
 {
-    FakeMenuSession session;
+    FakeMenuSurface session;
 
     auto flow = TestFlow::Create(session, 0, FlowTestState{});
     flow->Finish([](FlowTestState& state) { ++state.Finished; })->Start();
@@ -88,7 +88,7 @@ TEST_CASE("Flow: with no steps and no confirm, Start finishes straight away")
 
 TEST_CASE("Flow: advancing past the last step finishes")
 {
-    FakeMenuSession session;
+    FakeMenuSurface session;
 
     auto flow = TestFlow::Create(session, 0, FlowTestState{});
     flow->AddStep(StepNamed("only"))->Finish([](FlowTestState& state) { ++state.Finished; })->Start();
@@ -101,7 +101,7 @@ TEST_CASE("Flow: advancing past the last step finishes")
 
 TEST_CASE("Flow: a Validate key aborts before the first step, replied and closed")
 {
-    FakeMenuSession session;
+    FakeMenuSurface session;
 
     auto flow = TestFlow::Create(session, 0, FlowTestState{});
     flow->Validate([](const FlowTestState&) { return std::optional<std::string>("cmd.targetLost"); })
@@ -117,7 +117,7 @@ TEST_CASE("Flow: a Validate key aborts before the first step, replied and closed
 
 TEST_CASE("Flow: a Validate key that only starts holding later aborts before finish")
 {
-    FakeMenuSession session;
+    FakeMenuSurface session;
 
     bool valid = true;
     auto flow = TestFlow::Create(session, 0, FlowTestState{});
@@ -140,7 +140,7 @@ TEST_CASE("Flow: a Validate key that only starts holding later aborts before fin
 
 TEST_CASE("Flow: the confirm dialog summarizes the state and its confirm row finishes")
 {
-    FakeMenuSession session;
+    FakeMenuSurface session;
 
     auto flow = TestFlow::Create(session, 0, FlowTestState{});
     flow->AddStep(StepNamed("first"))
@@ -169,7 +169,7 @@ TEST_CASE("Flow: the confirm dialog summarizes the state and its confirm row fin
 
 TEST_CASE("Flow: the confirm dialog's cancel row closes without finishing")
 {
-    FakeMenuSession session;
+    FakeMenuSurface session;
 
     auto flow = TestFlow::Create(session, 0, FlowTestState{});
     flow->Confirm({.Title = "Confirm",
@@ -187,7 +187,7 @@ TEST_CASE("Flow: the confirm dialog's cancel row closes without finishing")
 
 TEST_CASE("Flow: a confirm dialog with no labels of its own asks the session for the words")
 {
-    FakeMenuSession session;
+    FakeMenuSurface session;
 
     auto flow = TestFlow::Create(session, 0, FlowTestState{});
     flow->Confirm({.Title = "Confirm",

@@ -34,7 +34,7 @@ public:
         Translations& Translations;
         PlayerManager& Players;
         EntitySystem& Entities;
-        MenuSession& Menus;
+        MenuSurface& Menus;
         EffectManager* Effects = nullptr;
     };
 

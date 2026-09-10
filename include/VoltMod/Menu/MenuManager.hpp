@@ -43,7 +43,7 @@ struct MenuServices
  * A plugin that wants a clickable menu builds its own Panorama screen on @ref Screen and the
  * block library instead; the framework ships the pieces, not a fixed menu layout.
  */
-class MenuManager final : public MenuSession
+class MenuManager final : public MenuSurface
 {
 public:
     /** Objects referenced by @p services must outlive the manager. */
@@ -51,7 +51,7 @@ public:
     ~MenuManager() override;
 
     /** Start a session for @p slot showing @p menu, closing any session the player already has.
-     *  What a command calls; a submenu goes through the one-argument @ref MenuSession::Open. */
+     *  What a command calls; a submenu goes through the one-argument @ref MenuSurface::Open. */
     void Open(int slot, std::shared_ptr<Menu> menu, MenuOptions options);
 
     /** Push @p menu onto the player's session, starting one with default options if none is open. */

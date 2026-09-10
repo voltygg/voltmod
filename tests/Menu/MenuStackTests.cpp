@@ -1,4 +1,4 @@
-#include "FakeMenuSession.hpp"
+#include "FakeMenuSurface.hpp"
 #include "FakeTimers.hpp"
 
 #include <VoltMod/Core/SlotEvents.hpp>
@@ -16,7 +16,7 @@ using VoltMod::MenuRowKind;
 using VoltMod::MenuStack;
 using VoltMod::SlotEvents;
 using VoltMod::Translations;
-using VoltModTests::FakeMenuSession;
+using VoltModTests::FakeMenuSurface;
 using VoltModTests::FakeTimers;
 
 static constexpr int kSlot = 0;
@@ -39,11 +39,11 @@ static std::shared_ptr<Menu> Screen(std::string title, std::vector<VoltMod::Menu
  *  one binary, so a bare `Fixture` here would collide with another file's. */
 struct MenuStackFixture
 {
-    MenuStackFixture() : Stack(Session, Strings, Timers.Bind()) {}
+    MenuStackFixture() : Stack(Surface, Strings, Timers.Bind()) {}
 
     SlotEvents Slots;
     Translations Strings{Slots};
-    FakeMenuSession Session;
+    FakeMenuSurface Surface;
     FakeTimers Timers;
     MenuStack Stack;
 };
@@ -162,7 +162,7 @@ TEST_CASE("MenuStack: activating the pending row applies its value once, not twi
     int activations = 0;
     f.Stack.Push(kSlot, Screen("Admin", {{
                                    .Describe = [](int) { return MenuRow{}; },
-                                   .Activate = [&](int, VoltMod::MenuSession&) { ++activations; ++commits; },
+                                   .Activate = [&](int, VoltMod::MenuSurface&) { ++activations; ++commits; },
                                    .Step = [](int, int) { return true; },
                                    .Commit = [&commits](int) { ++commits; },
                                }}));
@@ -182,7 +182,7 @@ TEST_CASE("MenuStack: a disabled row does not activate")
     int activations = 0;
     f.Stack.Push(kSlot, Screen("Admin", {{
                                    .Describe = [](int) { return MenuRow{.Enabled = false}; },
-                                   .Activate = [&activations](int, VoltMod::MenuSession&) { ++activations; },
+                                   .Activate = [&activations](int, VoltMod::MenuSurface&) { ++activations; },
                                }}));
 
     f.Stack.Activate(kSlot, 0);

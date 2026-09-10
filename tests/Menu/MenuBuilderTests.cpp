@@ -1,4 +1,4 @@
-#include "FakeMenuSession.hpp"
+#include "FakeMenuSurface.hpp"
 
 #include <VoltMod/Menu/MenuBuilder.hpp>
 #include <doctest/doctest.h>
@@ -17,11 +17,11 @@ using VoltMod::MenuRowKind;
 using VoltMod::SubmenuRow;
 using VoltMod::TextRow;
 using VoltMod::ToggleRow;
-using VoltModTests::FakeMenuSession;
+using VoltModTests::FakeMenuSurface;
 
 TEST_CASE("MenuBuilder: a button row describes itself as a button and runs on activate")
 {
-    FakeMenuSession session;
+    FakeMenuSurface session;
 
     int ran = 0;
     MenuItem item = ButtonRow{.Label = "Kick", .Activate = [&](int slot) { ran = slot; }}.ToItem();
@@ -42,7 +42,7 @@ TEST_CASE("MenuBuilder: a button row describes itself as a button and runs on ac
 
 TEST_CASE("MenuBuilder: a disabled button describes itself disabled and does not run")
 {
-    FakeMenuSession session;
+    FakeMenuSurface session;
 
     int ran = 0;
     MenuItem item = ButtonRow{.Label = "Kick", .Activate = [&](int) { ++ran; }, .Enabled = false}.ToItem();
@@ -54,7 +54,7 @@ TEST_CASE("MenuBuilder: a disabled button describes itself disabled and does not
 
 TEST_CASE("MenuBuilder: a toggle carries its state and flips on both activate and step")
 {
-    FakeMenuSession session;
+    FakeMenuSurface session;
 
     bool state = false;
     MenuItem item =
@@ -79,7 +79,7 @@ TEST_CASE("MenuBuilder: a toggle carries its state and flips on both activate an
 
 TEST_CASE("MenuBuilder: a gate is asked on every redraw, and shuts the row's behaviour too")
 {
-    FakeMenuSession session;
+    FakeMenuSurface session;
 
     bool allowed = true;
     int ran = 0;
@@ -116,7 +116,7 @@ TEST_CASE("MenuBuilder: a choice row wraps in both directions and shows the curr
 
 TEST_CASE("MenuBuilder: a choice row commits the current value on activate and on commit")
 {
-    FakeMenuSession session;
+    FakeMenuSurface session;
 
     std::vector<int> committed;
     MenuItem item = ChoiceRow<int>{.Label = "HP",
@@ -141,7 +141,7 @@ TEST_CASE("MenuBuilder: a choice row commits the current value on activate and o
 
 TEST_CASE("MenuBuilder: an OnSelect choice row carries no commit for the manager to hold")
 {
-    FakeMenuSession session;
+    FakeMenuSurface session;
 
     std::vector<int> committed;
     MenuItem item = ChoiceRow<int>{.Label = "HP",
@@ -163,7 +163,7 @@ TEST_CASE("MenuBuilder: an OnSelect choice row carries no commit for the manager
 
 TEST_CASE("MenuBuilder: a choice row with no commit callback steps forward on activate")
 {
-    FakeMenuSession session;
+    FakeMenuSurface session;
 
     MenuItem item = ChoiceRow<std::string>{.Label = "Color", .Choices = {{"Red", "red"}, {"Blue", "blue"}}}.ToItem();
 
@@ -212,7 +212,7 @@ TEST_CASE("MenuBuilder: EmptyText draws only when nothing else was added")
 
 TEST_CASE("MenuBuilder: an input row rejects text over its maximum without reaching the setter")
 {
-    FakeMenuSession session;
+    FakeMenuSurface session;
 
     int sets = 0;
     MenuItem item = InputRow{.Label = "Reason",
@@ -249,7 +249,7 @@ TEST_CASE("MenuBuilder: an input row with no value shows a placeholder")
 
 TEST_CASE("MenuBuilder: a submenu row opens what its factory built, and nothing when it built none")
 {
-    FakeMenuSession session;
+    FakeMenuSurface session;
 
     MenuItem item = SubmenuRow{.Label = "More", .Build = [](int) { return MenuBuilder("Submenu").Build(); }}.ToItem();
 

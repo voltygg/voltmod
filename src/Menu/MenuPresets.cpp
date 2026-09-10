@@ -69,14 +69,14 @@ std::shared_ptr<Menu> BuildConfirmMenu(ConfirmMenu spec)
             confirm(slot);
     });
 
-    // Cancel closes through the session passed to Activate.
+    // Cancel closes through the surface passed to Activate.
     builder.Add(MenuItem{.Describe = [label = std::move(spec.CancelLabel)](int) { return MenuRow{.Label = label}; },
                          .Activate =
-                             [cancel = std::move(spec.Cancel)](int slot, MenuSession& session) {
+                             [cancel = std::move(spec.Cancel)](int slot, MenuSurface& surface) {
                                  if (cancel)
                                      cancel(slot);
                                  else
-                                     session.CloseAll(slot);
+                                     surface.CloseAll(slot);
                              }});
 
     return builder.Build();

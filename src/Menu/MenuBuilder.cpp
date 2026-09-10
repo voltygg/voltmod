@@ -21,12 +21,12 @@ static std::function<MenuRow(int)> Describer(std::string label, MenuRowKind kind
 }
 
 /** @p action, run only while @p enabled takes the slot. */
-static std::function<void(int, MenuSession&)> Gated(EnabledCondition enabled,
-                                                    std::function<void(int, MenuSession&)> action)
+static std::function<void(int, MenuSurface&)> Gated(EnabledCondition enabled,
+                                                    std::function<void(int, MenuSurface&)> action)
 {
-    return [enabled = std::move(enabled), action = std::move(action)](int slot, MenuSession& session) {
+    return [enabled = std::move(enabled), action = std::move(action)](int slot, MenuSurface& surface) {
         if (action && enabled(slot))
-            action(slot, session);
+            action(slot, surface);
     };
 }
 
@@ -35,7 +35,7 @@ MenuItem ButtonRow::ToItem() &&
     return MenuItem{
         .Describe = Describer(std::move(Label), MenuRowKind::Button, Enabled),
         .Activate = Gated(std::move(Enabled),
-                          [activate = std::move(Activate)](int slot, MenuSession&) {
+                          [activate = std::move(Activate)](int slot, MenuSurface&) {
                               if (activate)
                                   activate(slot);
                           }),
@@ -52,7 +52,7 @@ MenuItem ToggleRow::ToItem() &&
                                   row.State = get && get(slot);
                               }),
         .Activate = Gated(Enabled,
-                          [flip = Flip](int slot, MenuSession&) {
+                          [flip = Flip](int slot, MenuSurface&) {
                               if (flip)
                                   flip(slot);
                           }),
@@ -77,8 +77,8 @@ MenuItem InputRow::ToItem() &&
                               }),
         .Activate = Gated(
             std::move(Enabled),
-            [prompt = std::move(Prompt), set = std::move(Set), maxLength = MaxLength](int slot, MenuSession& session) {
-                session.Prompt(slot, prompt, [set, maxLength](int s, std::string_view text) {
+            [prompt = std::move(Prompt), set = std::move(Set), maxLength = MaxLength](int slot, MenuSurface& surface) {
+                surface.Prompt(slot, prompt, [set, maxLength](int s, std::string_view text) {
                     // Reject over-long client input before calling the setter.
                     if (maxLength > 0 && static_cast<int>(text.size()) > maxLength)
                         return false;
@@ -93,11 +93,11 @@ MenuItem SubmenuRow::ToItem() &&
     return MenuItem{
         .Describe = Describer(std::move(Label), MenuRowKind::Submenu, Enabled),
         .Activate = Gated(std::move(Enabled),
-                          [build = std::move(Build)](int slot, MenuSession& session) {
+                          [build = std::move(Build)](int slot, MenuSurface& surface) {
                               if (!build)
                                   return;
                               if (auto submenu = build(slot))
-                                  session.Open(slot, std::move(submenu));
+                                  surface.Open(slot, std::move(submenu));
                           }),
     };
 }

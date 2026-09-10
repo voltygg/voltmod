@@ -249,7 +249,7 @@ MenuItem ChoiceRow<T>::ToItem() &&
                     .Steppable = has};
             },
         .Activate =
-            [state](int slot, MenuSession&) {
+            [state](int slot, MenuSurface&) {
                 if (!state->Enabled(slot))
                     return;
                 // Without a commit callback, E advances like D for a live pick-a-value row.

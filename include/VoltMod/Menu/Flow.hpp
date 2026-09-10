@@ -61,7 +61,7 @@ public:
     };
 
     /** @p menus must outlive the flow. */
-    static Ptr Create(MenuSession& menus, int slot, TState initial)
+    static Ptr Create(MenuSurface& menus, int slot, TState initial)
     {
         return Ptr(new Flow(menus, slot, std::move(initial)));
     }
@@ -141,7 +141,7 @@ public:
     TState& State() { return _state; }
 
 private:
-    Flow(MenuSession& menus, int slot, TState initial) : _menus(&menus), _slot(slot), _state(std::move(initial)) {}
+    Flow(MenuSurface& menus, int slot, TState initial) : _menus(&menus), _slot(slot), _state(std::move(initial)) {}
 
     struct Step
     {
@@ -256,7 +256,7 @@ private:
         return false;
     }
 
-    MenuSession* _menus;
+    MenuSurface* _menus;
     int _slot;
     TState _state;
     std::vector<Step> _steps;

@@ -9,8 +9,8 @@ namespace VoltMod
 
 static constexpr std::string_view kBreadcrumbSeparator = " › ";
 
-MenuStack::MenuStack(MenuSession& session, Translations& translations, PendingCommit::Timer timer)
-    : _session(session), _translations(translations), _pending(std::move(timer))
+MenuStack::MenuStack(MenuSurface& surface, Translations& translations, PendingCommit::Timer timer)
+    : _surface(surface), _translations(translations), _pending(std::move(timer))
 {}
 
 void MenuStack::BindReset(SlotEvents& slots)
@@ -183,7 +183,7 @@ void MenuStack::Activate(int slot, int index)
     // Copy the item because its handler may close or reopen the menu.
     const MenuItem item = menu->Items[static_cast<std::size_t>(index)];
     if (item.Activate && IsRowActionable(item, slot))
-        item.Activate(slot, _session);
+        item.Activate(slot, _surface);
 }
 
 bool MenuStack::Step(int slot, int index, int direction)

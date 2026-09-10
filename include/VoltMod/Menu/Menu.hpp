@@ -56,14 +56,14 @@ struct MenuRow
 
 struct Menu;
 
-/** Operations available to a row callback. */
-class MenuSession
+/** The surface a menu is drawn on, and what a row callback may ask of it. */
+class MenuSurface
 {
 public:
-    virtual ~MenuSession() = default;
+    virtual ~MenuSurface() = default;
 
-    MenuSession(const MenuSession&) = delete;
-    MenuSession& operator=(const MenuSession&) = delete;
+    MenuSurface(const MenuSurface&) = delete;
+    MenuSurface& operator=(const MenuSurface&) = delete;
 
     /** Pushes @p menu onto @p slot's stack and shows it. */
     virtual void Open(int slot, std::shared_ptr<Menu> menu) = 0;
@@ -85,7 +85,7 @@ public:
     [[nodiscard]] virtual std::string Translate(int slot, std::string_view key, std::string_view fallback) const = 0;
 
 protected:
-    MenuSession() = default;
+    MenuSurface() = default;
 };
 
 /** Row callbacks. Only @ref Describe is required. */
@@ -95,7 +95,7 @@ struct MenuItem
     std::function<MenuRow(int slot)> Describe;
 
     /** Runs on E or a click. */
-    std::function<void(int slot, MenuSession& session)> Activate;
+    std::function<void(int slot, MenuSurface& surface)> Activate;
 
     /** Runs on A/D or a stepper. Return true to consume the input. */
     std::function<bool(int slot, int direction)> Step;

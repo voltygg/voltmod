@@ -27,8 +27,8 @@ class ActiveMenus
 {
 public:
     /** Referenced objects must outlive this instance. */
-    ActiveMenus(MenuSession& session, Translations& translations, PendingCommit::Timer timer)
-        : _stack(session, translations, std::move(timer))
+    ActiveMenus(MenuSurface& surface, Translations& translations, PendingCommit::Timer timer)
+        : _stack(surface, translations, std::move(timer))
     {}
 
     /** Clear a slot when it changes hands. */

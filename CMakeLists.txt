@@ -165,7 +165,7 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Engine/VtableLookup.cpp
             # VOLTMOD_VHOOK owns the SourceHook half.
             src/Unsafe/VtableHook.cpp
-            # Run against a fake MenuSession.
+            # Run against a fake MenuSurface.
             src/Menu/MenuBuilder.cpp
             src/Menu/MenuPresets.cpp
             src/Menu/CenterHtmlRender.cpp

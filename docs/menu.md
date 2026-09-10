@@ -23,10 +23,10 @@ one, which is why the same @ref VoltMod::Menu behaves the same way on either.
 
 A surface owns what the stack deliberately leaves out: the cursor or click ids,
 the page shape, freezing, and prompts. Build one by implementing
-@ref VoltMod::MenuSession, holding a `MenuStack`, and forwarding to it:
+@ref VoltMod::MenuSurface, holding a `MenuStack`, and forwarding to it:
 
 ```cpp
-class ClickMenu final : public MenuSession
+class ClickMenu final : public MenuSurface
 {
     // Rows call Activate with this session, so the stack takes *this.
     MenuStack _stack{*this, runtime.Translations,
@@ -67,7 +67,7 @@ runtime.Menus.Open(playerSlot, menu, {});   // start a session, replacing any th
 ```
 
 The three-argument `Open` starts a session, closing any the player already has; a
-command calls it. The two-argument @ref VoltMod::MenuSession::Open pushes a submenu
+command calls it. The two-argument @ref VoltMod::MenuSurface::Open pushes a submenu
 onto the open session, which is what a row calls.
 
 Each kind of row is a spec struct filled with designated initializers, and `Add`
@@ -137,7 +137,7 @@ for (const auto& ban : bans)
 
 A shape the specs do not cover is a @ref VoltMod::MenuItem written by hand and passed
 to `Add`: `Describe` is required and runs on every redraw, `Activate` receives the
-@ref VoltMod::MenuSession showing the row (so it can `Open` a submenu or `Prompt` for a
+@ref VoltMod::MenuSurface showing the row (so it can `Open` a submenu or `Prompt` for a
 line of chat), `Step` consumes A/D, and `Commit` applies whatever `Step` left showing.
 
 ## Context rows
@@ -223,8 +223,8 @@ Flow::Create(runtime.Menus, adminSlot, std::move(pending))
 
 Flow behavior:
 
-- `Create` takes the @ref VoltMod::MenuSession and player slot. The flow needs no other service and can run against a test double.
-- The `Validate` result is a translation key. On failure the flow calls `MenuSession::CloseAll(slot, key)`, which replies through `Policy::Reply` and closes the menus.
+- `Create` takes the @ref VoltMod::MenuSurface and player slot. The flow needs no other service and can run against a test double.
+- The `Validate` result is a translation key. On failure the flow calls `MenuSurface::CloseAll(slot, key)`, which replies through `Policy::Reply` and closes the menus.
 - A confirm-only flow may call `Confirm` without earlier steps.
 - A step's `Applies` skips it for a state it does not fit, and an empty `CustomLabel` omits that step's free-text row, so a caller can gate either on config without splitting the chain.
 - Menu rows own the flow while one of its menus is open; no separate cleanup is needed.
@@ -365,9 +365,9 @@ Include the specific menu headers a translation unit uses, or
 
 `MenuBuilder.hpp`, `Flow.hpp` and the row model behind them are SDK-free: a row is
 text and callbacks, and the two calls a row makes into a live session (a submenu's
-`Open`, an input row's `Prompt`) go through @ref VoltMod::MenuSession, an abstract
+`Open`, an input row's `Prompt`) go through @ref VoltMod::MenuSurface, an abstract
 class in `Menu.hpp` with no engine behind it, which also spells the words the framework
-supplies for a row through `MenuSession::Translate`. That is what lets
+supplies for a row through `MenuSurface::Translate`. That is what lets
 `tests/Menu/MenuBuilderTests.cpp`, `tests/Menu/FlowTests.cpp` and
 `tests/Menu/CenterHtmlRenderTests.cpp` drive real rows and real flows against a fake
 session in the SDK-free suite. `MenuManager.hpp` and `ActionRows.hpp` are not SDK-free
