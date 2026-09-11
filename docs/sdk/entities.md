@@ -79,12 +79,15 @@ a wrong-address read. `Runtime::Start` therefore compares the whole generated la
 live schema and **aborts the load** on any mismatch, naming the field:
 
 ```text
-schema drift (regenerate with voltmod schemagen):
+schema drift (accessors generated from game build 1999xxx, server is 2000908);
+regenerate with voltmod schemagen:
   CCSPlayerPawn::m_ArmorValue: offset 4828 -> 4820
 ```
 
-Update day is one pass: run `schema_dump` on a live server, `voltmod schemagen --dump <path>`,
-review the `git diff` of the generated code, rebuild.
+The server writes the dump the fix needs on its way to that failure, so update day is: start the
+server, let the plugins refuse, run `voltmod schemagen`, review the `git diff` of the generated
+code, rebuild. The dump lands in `addons/voltmod/schema/server.json`, which is where `schemagen`
+looks when `--dump` is not given.
 
 For a class with no curated wrapper, construct its generated view directly:
 

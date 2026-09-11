@@ -1,8 +1,7 @@
-"""Cover the schema generator against a hand-built dump.
+"""Cover the schema generator against a synthetic dump.
 
-The generated code is committed, so a regression here ships as wrong offsets or a silently
-missing accessor rather than as a build failure. These run against a tiny synthetic dump so a
-CS2 update cannot make them fail for the wrong reason.
+The generated code is committed, so a regression ships as wrong offsets or a missing accessor
+rather than as a build failure.
 """
 
 import json
@@ -23,7 +22,6 @@ def field(name, offset, size, type_):
 def dump():
     """An entity, a chained component, an embedded struct and the types they reach."""
     return {
-        "format": 1,
         "scopes": ["global", "server"],
         "classes": {
             "CEntityInstance": {"size": 48, "bases": [], "chain_offset": -1, "fields": []},
@@ -182,9 +180,9 @@ def test_a_struct_embedded_in_an_entity_keeps_its_setters():
 
 
 def test_a_class_with_no_replication_route_is_read_only():
-    """CEmbedded reached only from a non-entity holder has nowhere to send a write."""
+    """A class without an entity route cannot replicate writes."""
     d = dump()
-    d["classes"]["CBaseEntity"]["bases"] = []  # no longer an entity
+    d["classes"]["CBaseEntity"]["bases"] = []  # Remove the entity root for this case.
     classes = schemagen.build_classes(d, manifest())
     assert classes["CEmbedded"].embeds_in_entity is False
     header = schemagen.emit_header(classes["CEmbedded"])
@@ -276,11 +274,12 @@ def test_the_wrapper_fragment_forwards_through_a_view_over_the_wrappers_own_enti
 
 def test_the_layout_table_names_the_arrays_each_class_defines():
     _, classes = build()
-    layout = schemagen.emit_layout_source(classes)
+    layout = schemagen.emit_layout_source(classes, "2000908")
     assert "extern const FieldLayout CBaseEntity_kFields[9];" in layout, "the bitfield is skipped"
     assert '{.Name = "CMoneyServices", .Size = 88, .OwnerLinkOffset = 8' in layout
     empty = '.Name = "CEntityInstance", .Size = 48, .OwnerLinkOffset = -1, .Fields = {}'
     assert empty in layout
+    assert 'return "2000908";' in layout, "the fatal drift message names the build it was cut from"
 
 
 def test_generating_twice_from_one_dump_gives_identical_text():
@@ -298,7 +297,6 @@ def test_the_trimmed_baseline_keeps_only_what_the_generator_read():
     trimmed = schemagen.trimmed_dump(d, classes, enums)
     assert set(trimmed["classes"]) == set(classes)
     assert set(trimmed["enums"]) == {"MoveType_t"}
-    assert trimmed["format"] == 1
 
 
 def test_the_shipped_manifest_and_baseline_agree_with_each_other():

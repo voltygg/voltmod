@@ -1,4 +1,4 @@
-"""What one generated file looks like."""
+"""Render generated schema headers and sources."""
 
 from typing import Any
 
@@ -44,8 +44,7 @@ def _constructors(klass: Klass) -> list[str]:
         parent = klass.base or "View"
         return [f"    using {parent}::{parent};"]
 
-    # An entity is its own notification target, so a write anywhere inside it - including
-    # inside a struct it embeds - knows which entity to dirty and at what offset.
+    # An entity owns notifications for writes in itself and embedded structs, with their offsets.
     return [
         f"    {klass.name}() = default;",
         "",
@@ -132,11 +131,9 @@ def emit_api(classes: dict[str, Klass]) -> str:
 
 
 def emit_wrapper(wrapper: str, class_names: list[str], classes: dict[str, Klass]) -> str:
-    """One `include/VoltMod/Schema/Generated/Wrappers/<Wrapper>.inc`.
+    """Render a wrapper fragment included inside the wrapper's class body.
 
-    Included inside the wrapper's class body, so it is a fragment rather than a header: the
-    forwarders read the wrapper's own `_e`, and every schema field reaches plugins without a
-    hand-written line here.
+    Forwarders use the wrapper's `_e` and expose each selected schema field.
     """
     lines = [
         BANNER.rstrip("\n"),
@@ -183,14 +180,13 @@ def _offset_constants(klass: Klass) -> list[str]:
 
 
 def _field_layout(klass: Klass) -> list[str]:
-    """The class's slice of the verifier's table, defined beside the offsets it restates."""
+    """Render the class's verifier table beside its offset constants."""
     fields = klass.fields
     if not fields:
         return []
 
-    # `extern` on the definition because a namespace-scope const is internal by default;
-    # Layout.cpp names this array so the offsets stay defined once, beside the accessors
-    # that use them, rather than being restated in the table.
+    # Namespace-scope const has internal linkage; Layout.cpp names this array so each offset
+    # remains defined once beside the accessors that use it.
     lines = [
         f"extern const FieldLayout {klass.name}_kFields[{len(fields)}];",
         f"const FieldLayout {klass.name}_kFields[{len(fields)}] = {{",
@@ -224,7 +220,7 @@ def emit_class_source(klass: Klass) -> str:
     return _unit(lines)
 
 
-def emit_layout_source(classes: dict[str, Klass]) -> str:
+def emit_layout_source(classes: dict[str, Klass], game_build: str) -> str:
     """`src/Schema/Generated/Layout.cpp`: the table the load-time verifier walks."""
     ordered = sorted_classes(classes)
     lines = [
@@ -255,6 +251,11 @@ def emit_layout_source(classes: dict[str, Klass]) -> str:
         "std::span<const ClassLayout> GeneratedLayout()",
         "{",
         "    return kClasses;",
+        "}",
+        "",
+        "std::string_view GeneratedFromBuild()",
+        "{",
+        f'    return "{game_build}";',
         "}",
         "",
         "}  // namespace VoltMod::Schema",

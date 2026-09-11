@@ -80,4 +80,9 @@ std::span<const ClassLayout> GeneratedLayout()
     return kClasses;
 }
 
+std::string_view GeneratedFromBuild()
+{
+    return "2000908";
+}
+
 }  // namespace VoltMod::Schema

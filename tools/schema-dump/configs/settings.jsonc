@@ -1,6 +1,0 @@
-{
-  "$schema": "./settings.schema.json",
-  "plugin": {
-    "locale": "en"
-  }
-}

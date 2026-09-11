@@ -9,7 +9,7 @@
 namespace VoltMod::Schema
 {
 
-/** One baked field: what the generator read out of the dump. */
+/** A field layout emitted by the generator. */
 struct FieldLayout
 {
     std::string_view Name;
@@ -17,7 +17,7 @@ struct FieldLayout
     int32_t Size = 0;
 };
 
-/** One baked class, with the fields the generated accessors reach. */
+/** A class layout and the fields used by generated accessors. */
 struct ClassLayout
 {
     std::string_view Name;
@@ -26,10 +26,13 @@ struct ClassLayout
     std::span<const FieldLayout> Fields;
 };
 
-/** The layout the generated accessors were built against. */
+/** The layout used to build generated accessors. */
 std::span<const ClassLayout> GeneratedLayout();
 
-/** Hand the schema system to the verifier. Called once by Runtime::Start. */
+/** The game build represented by @ref GeneratedLayout. */
+std::string_view GeneratedFromBuild();
+
+/** Set the schema system used by verification. Called once by Runtime::Start. */
 void BindSchemaVerification(ISchemaSystem* system);
 
 /**

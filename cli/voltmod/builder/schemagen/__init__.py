@@ -1,12 +1,8 @@
-"""Generate the C++ schema accessor layer from a schema dump and a manifest.
+"""Generate C++ schema accessors from a schema dump and manifest.
 
-The dump comes from the `schema_dump` console command (tools/schema-dump). This turns the
-classes and fields the manifest names into plain C++ with the offsets baked in, plus the layout
-table the load-time verifier compares against the live schema.
-
-The work splits four ways: `model` is the resolved shape of a class and the naming rules,
-`fields` maps a dumped schema type onto a member, `accessors` says what one member looks like
-in C++, and `emit` says what one file looks like. `command` wires them to the CLI.
+The runtime writes the dump during schema verification. The generator emits selected classes with
+baked-in offsets and a layout table for load-time checks. `model`, `fields`, `accessors`, and `emit`
+resolve, describe, and render the output; `command` exposes the CLI.
 """
 
 from .command import app, generate

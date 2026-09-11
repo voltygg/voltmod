@@ -36,10 +36,9 @@ def empty_klass(dump: dict[str, Any], name: str) -> Klass:
 
 
 def _with_bases(dump: dict[str, Any], wanted: dict[str, Any]) -> dict[str, Any]:
-    """Bases must exist as generated types so the C++ inheritance matches the schema's.
+    """Include every base needed to mirror schema inheritance in C++.
 
-    One pass is the whole closure: `bases_of` walks to the root, so a base's own ancestors are
-    a suffix of the chain that pulled it in and are already here.
+    `bases_of` walks to the root, so one pass closes the set.
     """
     for name in list(wanted):
         for base in bases_of(dump, name):
@@ -77,7 +76,7 @@ def _resolve(dump: dict[str, Any], name: str, entries: Any) -> Klass:
 
 
 def _pull_in_views(dump: dict[str, Any], classes: dict[str, Klass]) -> None:
-    """Views a member returns must be generated too, so pull them in - and their bases."""
+    """Include generated view types returned by members, along with their bases."""
     while True:
         missing = {
             m.view
@@ -94,8 +93,7 @@ def _pull_in_views(dump: dict[str, Any], classes: dict[str, Klass]) -> None:
 
 
 def _mark_embedded(classes: dict[str, Klass]) -> None:
-    """A struct embedded by value replicates through whatever holds it, so it may only expose
-    setters when every holder is itself entity-rooted."""
+    """Allow embedded setters only when every holder is rooted in an entity."""
     holders: dict[str, list[str]] = {}
     for klass in classes.values():
         for member in klass.members:
@@ -131,7 +129,7 @@ def trimmed_dump(
 ) -> dict[str, Any]:
     """The dump reduced to what the generator read, for committing beside the output."""
     return {
-        "format": dump["format"],
+        "build": dump.get("build", ""),
         "scopes": dump["scopes"],
         "classes": {name: dump["classes"][name] for name in sorted(classes)},
         "enums": dict(sorted(enums.items())),

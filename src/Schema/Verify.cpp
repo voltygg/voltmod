@@ -1,43 +1,93 @@
 #include "Engine/SigScanner.hpp"
+#include "Schema/ClassFields.hpp"
+#include "Schema/Dump.hpp"
 
+#include <VoltMod/Core/File.hpp>
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/Paths.hpp>
+#include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Schema/Layout.hpp>
+#include <filesystem>
 #include <format>
+#include <fstream>
 #include <schemasystem/schemasystem.h>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace VoltMod::Schema
 {
 
-// Set once by BindSchemaVerification. A process-wide file-static is right here: the schema
-// system is one engine object shared by every plugin, and the offsets it reports are constants
-// of the loaded binary rather than per-load state.
+// One engine schema object is shared by every plugin; its offsets are process-wide constants.
 static ISchemaSystem* g_schema = nullptr;
-
-/**
- * Find @p field on @p klass or its bases, most-derived first.
- *
- * The offsets the schema reports are already flattened for single inheritance, so a base
- * class's offset is usable as-is on the derived object.
- */
-static const SchemaClassFieldData_t* FindField(const CSchemaClassInfo* klass, std::string_view field)
-{
-    for (; klass; klass = klass->m_nBaseClassCount > 0 ? klass->m_pBaseClasses[0].m_pClass : nullptr)
-    {
-        for (uint16_t i = 0; i < klass->m_nFieldCount; ++i)
-        {
-            const char* name = klass->m_pFields[i].m_pszName;
-            if (name && field == name)
-                return &klass->m_pFields[i];
-        }
-    }
-    return nullptr;
-}
 
 void BindSchemaVerification(ISchemaSystem* system)
 {
     g_schema = system;
+}
+
+/** Output read by `voltmod schemagen`. */
+static constexpr std::string_view DumpPath = "addons/voltmod/schema/server.json";
+
+/** Read the game's build number from steam.inf beside the addons tree. */
+static std::string_view GameBuild()
+{
+    static const std::string build = [] {
+        constexpr std::string_view key = "ServerVersion=";
+        auto text = ReadAllText("steam.inf");
+        const size_t at = text ? text->find(key) : std::string::npos;
+        if (at == std::string::npos)
+            return std::string("unknown");
+
+        const size_t start = at + key.size();
+        return Strings::Trim(std::string_view(*text).substr(start, text->find_first_of("\r\n", start) - start));
+    }();
+    return build;
+}
+
+/** Build stamped on an existing dump, or empty. Reads the document's first key, not all of it. */
+static std::string DumpedBuild(const std::filesystem::path& path)
+{
+    std::ifstream file(path, std::ios::binary);
+    if (!file.is_open())
+        return {};
+
+    std::string head(256, '\0');
+    file.read(head.data(), static_cast<std::streamsize>(head.size()));
+    head.resize(static_cast<size_t>(file.gcount()));
+
+    constexpr std::string_view key = "\"build\":";
+    const size_t at = head.find(key);
+    if (at == std::string::npos)
+        return {};
+
+    const size_t open = head.find('"', at + key.size());
+    const size_t close = open == std::string::npos ? std::string::npos : head.find('"', open + 1);
+    return close == std::string::npos ? std::string() : head.substr(open + 1, close - open - 1);
+}
+
+/**
+ * Write the dump needed for regeneration while the live schema is available.
+ *
+ * Write once per process because all plugins share one schema object. Failure is non-fatal because
+ * the addons tree may be read-only.
+ */
+static void WriteDump(CSchemaSystemTypeScope* global, CSchemaSystemTypeScope* server)
+{
+    static bool written = false;
+    if (std::exchange(written, true))
+        return;
+
+    const std::filesystem::path output = ResolvePath(DumpPath);
+    auto stats = WriteSchemaDump(global, server, output, GameBuild());
+    if (!stats)
+    {
+        Log::Warn("Schema: no dump written to {}: {}", output.string(), stats.error().Detail);
+        return;
+    }
+    Log::Info("Schema: dumped game build {} to {} ({} classes, {} enums, {} fields).", GameBuild(), output.string(),
+              stats->Classes, stats->Enums, stats->Fields);
 }
 
 Status VerifySchemaLayout()
@@ -51,8 +101,7 @@ Status VerifySchemaLayout()
     if (!server)
         return std::unexpected(Error::NotReady(std::format("no type scope for {} yet", moduleName)));
 
-    // Every mismatch is collected rather than reported one at a time: after a CS2 update a
-    // whole class usually shifts at once, and the first line alone would understate the work.
+    // Collect all mismatches so one shifted class does not hide the remaining drift.
     std::vector<std::string> drift;
     for (const ClassLayout& expected : GeneratedLayout())
     {
@@ -95,10 +144,17 @@ Status VerifySchemaLayout()
         }
     }
 
+    // One invariant: the dump on disk describes the running build. A plugin loaded earlier may
+    // already have written it, and a stale one would regenerate accessors for the previous build.
+    if (DumpedBuild(ResolvePath(DumpPath)) != GameBuild())
+        WriteDump(global, server);
+
     if (drift.empty())
         return {};
 
-    std::string message = "schema drift (regenerate with voltmod schemagen):";
+    std::string message = std::format("schema drift (accessors generated from game build {}, server is {}); "
+                                      "regenerate with voltmod schemagen:",
+                                      GeneratedFromBuild(), GameBuild());
     for (const std::string& line : drift)
         message += std::format("\n  {}", line);
     return std::unexpected(Error::Invalid(message));
