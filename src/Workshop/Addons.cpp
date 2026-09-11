@@ -140,9 +140,9 @@ void Addons::KickLater(int slot, int64_t steamId)
     });
 }
 
-KHook::Return<bool> Addons::Hook_SendNetMessage(VtableObject* client, const void* message, int)
+KHook::Return<bool> Addons::Hook_SendNetMessage(VtableObject* client, const CNetMessage* message, int)
 {
-    HandleSignon(static_cast<const CNetMessage*>(message), client);
+    HandleSignon(message, client);
     return {KHook::Action::Ignore, true};
 }
 

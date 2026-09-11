@@ -234,7 +234,7 @@ struct Bindings
     VHookBinding<bool(const void*)> ProcessRespondCvarValue;
     /** CServerSideClient::SendNetMessage(const CNetMessage*, NetChannelBufType_t), hooked on
      *  CServerSideClient. The SDK enum is represented as int here. */
-    VHookBinding<bool(const void*, int)> SendNetMessage;
+    VHookBinding<bool(const CNetMessage*, int)> SendNetMessage;
 
     /** CGameEntitySystem* cached inside IGameResourceService. */
     OffsetOf<CGameEntitySystem*> GameEntitySystem;
