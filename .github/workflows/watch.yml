@@ -39,8 +39,11 @@ jobs:
           git commit -m "$title"
           git push --force origin "$branch"
           body=$(git show --stat --format= HEAD)
-          gh pr create --head "$branch" --title "$title" --body "$body" 2>/dev/null \
-            || gh pr edit "$branch" --body "$body"
+          if gh pr view "$branch" --json number >/dev/null 2>&1; then
+            gh pr edit "$branch" --body "$body"
+          else
+            gh pr create --head "$branch" --title "$title" --body "$body"
+          fi
 
   prune:
     name: Prune superseded artifacts
