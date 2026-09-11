@@ -5,7 +5,7 @@
 #include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
-#include <VoltMod/Engine/RecipientFilter.hpp>
+#include <VoltMod/Engine/Net/RecipientFilter.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Schema/Generated/CVoteController.hpp>

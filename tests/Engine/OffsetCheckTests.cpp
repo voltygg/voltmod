@@ -1,4 +1,4 @@
-#include <VoltMod/Engine/OffsetCheck.hpp>
+#include <VoltMod/Engine/Memory/OffsetCheck.hpp>
 #include <doctest/doctest.h>
 
 using VoltMod::IsAlignedOffset;

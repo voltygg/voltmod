@@ -1,7 +1,7 @@
 #pragma once
 
-#include <VoltMod/Engine/Bindings.hpp>
-#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Engine/GameData/Bindings.hpp>
+#include <VoltMod/Engine/GameData/GameData.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 
 namespace VoltMod

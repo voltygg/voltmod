@@ -1,10 +1,10 @@
-#include "Engine/ServerSideClients.hpp"
+#include "Engine/Net/ServerSideClients.hpp"
 #include "Hooks/PendingConVarQueries.hpp"
 
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/Time.hpp>
-#include <VoltMod/Engine/Bindings.hpp>
+#include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Hooks/ClientConVars.hpp>

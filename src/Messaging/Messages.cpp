@@ -1,15 +1,15 @@
-#include "Engine/NetMessage.hpp"
-#include "Engine/SigScanner.hpp"
+#include "Engine/Net/NetMessage.hpp"
+#include "Engine/Memory/SigScanner.hpp"
 
 #include <igameevents.h>
 
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/Translations.hpp>
-#include <VoltMod/Engine/Bindings.hpp>
+#include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
-#include <VoltMod/Engine/MemoryAccess.hpp>
-#include <VoltMod/Engine/RecipientFilter.hpp>
+#include <VoltMod/Engine/Memory/MemoryAccess.hpp>
+#include <VoltMod/Engine/Net/RecipientFilter.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Messaging/ChatColors.hpp>
 #include <VoltMod/Messaging/Messages.hpp>

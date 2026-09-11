@@ -1,5 +1,5 @@
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Engine/Bindings.hpp>
+#include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/Render.hpp>

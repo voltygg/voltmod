@@ -147,18 +147,18 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Ui/SentWrites.cpp
             src/Ui/UiClickRouting.cpp
             src/Ui/ClickMessage.cpp
-            src/Engine/Bindings.cpp
-            src/Engine/ConVarTypes.cpp
-            src/Engine/GameData.cpp
-            src/Engine/GameDataFile.cpp
-            src/Engine/BytePattern.cpp
-            src/Engine/SigScanner.cpp
-            src/Engine/VtableLookup.cpp
+            src/Engine/ConVars/ConVarTypes.cpp
+            src/Engine/GameData/Bindings.cpp
+            src/Engine/GameData/GameData.cpp
+            src/Engine/GameData/GameDataFile.cpp
+            src/Engine/Memory/BytePattern.cpp
+            src/Engine/Memory/SigScanner.cpp
+            src/Engine/Memory/VtableLookup.cpp
             # One file in each pair is empty on this platform.
-            src/Engine/ModuleImage_Windows.cpp
-            src/Engine/ModuleImage_Linux.cpp
-            src/Engine/VtableLookup_Windows.cpp
-            src/Engine/VtableLookup_Linux.cpp
+            src/Engine/Memory/ModuleImage_Windows.cpp
+            src/Engine/Memory/ModuleImage_Linux.cpp
+            src/Engine/Memory/VtableLookup_Windows.cpp
+            src/Engine/Memory/VtableLookup_Linux.cpp
             # VOLTMOD_VHOOK owns the SourceHook integration.
             src/Unsafe/VtableHook.cpp
             # Use a fake MenuSurface.

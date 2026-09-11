@@ -1,4 +1,4 @@
-#include <VoltMod/Engine/RelativeAddress.hpp>
+#include <VoltMod/Engine/Memory/RelativeAddress.hpp>
 #include <cstdint>
 #include <doctest/doctest.h>
 

@@ -152,7 +152,7 @@ def emit_wrapper(wrapper: str, class_names: list[str], classes: dict[str, Klass]
 
 def _source_includes(klass: Klass) -> list[str]:
     includes = {
-        "<VoltMod/Engine/MemoryAccess.hpp>",
+        "<VoltMod/Engine/Memory/MemoryAccess.hpp>",
         f"<VoltMod/Schema/Generated/{klass.name}.hpp>",
         "<VoltMod/Schema/Layout.hpp>",
         "<VoltMod/Schema/Notify.hpp>",

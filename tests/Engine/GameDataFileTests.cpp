@@ -1,4 +1,4 @@
-#include "Engine/GameDataFile.hpp"
+#include "Engine/GameData/GameDataFile.hpp"
 
 #include <doctest/doctest.h>
 #include <string>

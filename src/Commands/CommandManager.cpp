@@ -4,7 +4,7 @@
 #include <VoltMod/Commands/CommandManager.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Strings.hpp>
-#include <VoltMod/Engine/ServerCommand.hpp>
+#include <VoltMod/Engine/Server/ServerCommand.hpp>
 #include <convar.h>
 #include <memory>
 #include <unordered_map>

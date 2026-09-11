@@ -3,7 +3,7 @@
 #include <VoltMod/Core/Capabilities.hpp>
 #include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Core/SharedLifecycle.hpp>
-#include <VoltMod/Engine/Bindings.hpp>
+#include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Hooks/PlayerInput.hpp>
 #include <VoltMod/Unsafe/VtableHook.hpp>

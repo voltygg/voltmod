@@ -1,4 +1,4 @@
-#include "Engine/SigScanner.hpp"
+#include "Engine/Memory/SigScanner.hpp"
 #include "Schema/ClassFields.hpp"
 #include "Schema/Dump.hpp"
 

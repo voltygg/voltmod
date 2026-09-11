@@ -1,6 +1,6 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Engine/Bindings.hpp>
+#include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Hooks/Movement.hpp>
 #include <VoltMod/Schema/Api.hpp>

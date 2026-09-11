@@ -2,7 +2,7 @@
 
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Result.hpp>
-#include <VoltMod/Engine/Bindings.hpp>
+#include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <format>
 #include <functional>
 #include <string_view>

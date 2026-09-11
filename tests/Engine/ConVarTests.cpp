@@ -1,6 +1,6 @@
-#include "Engine/ConVarTypes.hpp"
+#include "Engine/ConVars/ConVarTypes.hpp"
 
-#include <VoltMod/Engine/ConVars.hpp>
+#include <VoltMod/Engine/ConVars/ConVars.hpp>
 #include <doctest/doctest.h>
 #include <string>
 

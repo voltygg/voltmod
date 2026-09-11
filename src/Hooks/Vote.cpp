@@ -1,10 +1,10 @@
-#include "Engine/NetMessage.hpp"
-#include "Engine/ProtoReflect.hpp"
+#include "Engine/Net/NetMessage.hpp"
+#include "Engine/Net/ProtoReflect.hpp"
 
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
-#include <VoltMod/Engine/RecipientFilter.hpp>
+#include <VoltMod/Engine/Net/RecipientFilter.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Events/EventTypes.hpp>
 #include <VoltMod/Events/GameEvents.hpp>

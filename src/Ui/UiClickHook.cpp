@@ -1,8 +1,8 @@
 #include "Ui/UiClickHook.hpp"
 
-#include "Engine/ProtoReflect.hpp"
-#include "Engine/ServerSideClients.hpp"
-#include "Engine/VtableLookup.hpp"
+#include "Engine/Net/ProtoReflect.hpp"
+#include "Engine/Net/ServerSideClients.hpp"
+#include "Engine/Memory/VtableLookup.hpp"
 #include "Ui/ClickMessage.hpp"
 
 #include <VoltMod/Core/Log.hpp>

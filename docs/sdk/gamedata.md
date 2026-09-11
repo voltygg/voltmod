@@ -9,7 +9,7 @@ Gamedata records engine locations; @ref VoltMod::Bindings defines their C++
 types.
 
 ```cpp
-// include/VoltMod/Engine/Bindings.hpp
+// include/VoltMod/Engine/GameData/Bindings.hpp
 Fn<CEntityInstance*(const char*, int)> CreateEntityByName;   // signatures.CreateEntityByName
 VFn<void(int)> ChangeTeam;                                   // vtables.ChangeTeam
 OffsetOf<int> ServerSideClientSlot;                          // offsets.ServerSideClientSlot

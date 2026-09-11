@@ -1,5 +1,5 @@
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Engine/Bindings.hpp>
+#include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Entities/Items.hpp>
 #include <VoltMod/Entities/PawnOps.hpp>
 #include <VoltMod/Schema/Api.hpp>

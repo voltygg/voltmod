@@ -8,10 +8,10 @@
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Translations.hpp>
-#include <VoltMod/Engine/Clock.hpp>
-#include <VoltMod/Engine/ConVars.hpp>
+#include <VoltMod/Engine/Server/Clock.hpp>
+#include <VoltMod/Engine/ConVars/ConVars.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Engine/Map.hpp>
+#include <VoltMod/Engine/Server/Map.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/World.hpp>
 #include <VoltMod/Events/GameEvents.hpp>

@@ -3,7 +3,7 @@
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Subscription.hpp>
-#include <VoltMod/Engine/Bindings.hpp>
+#include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Unsafe/VtableHook.hpp>

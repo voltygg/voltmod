@@ -1,4 +1,4 @@
-#include <VoltMod/Engine/MemoryAccess.hpp>
+#include <VoltMod/Engine/Memory/MemoryAccess.hpp>
 #include <VoltMod/Schema/Notify.hpp>
 #include <entity2/entityinstance.h>
 

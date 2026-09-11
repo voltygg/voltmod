@@ -1,4 +1,4 @@
-#include "Engine/BytePattern.hpp"
+#include "Engine/Memory/BytePattern.hpp"
 
 #include <cstdint>
 #include <doctest/doctest.h>

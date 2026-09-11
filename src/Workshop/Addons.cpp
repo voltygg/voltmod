@@ -1,4 +1,4 @@
-#include "Engine/ServerSideClients.hpp"
+#include "Engine/Net/ServerSideClients.hpp"
 #include "Workshop/AddonRequirements.hpp"
 
 #include <VoltMod/Core/Log.hpp>

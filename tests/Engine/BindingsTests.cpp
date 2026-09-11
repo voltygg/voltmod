@@ -1,11 +1,11 @@
-#include "Engine/GameDataFile.hpp"
+#include "Engine/GameData/GameDataFile.hpp"
 #include "Support/TempPath.hpp"
 
 #include <VoltMod/Core/Capabilities.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Paths.hpp>
-#include <VoltMod/Engine/Bindings.hpp>
-#include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Engine/GameData/Bindings.hpp>
+#include <VoltMod/Engine/GameData/GameData.hpp>
 #include <algorithm>
 #include <doctest/doctest.h>
 #include <format>

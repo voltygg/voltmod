@@ -3,7 +3,7 @@
 #include <VoltMod/Core/Capabilities.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
-#include <VoltMod/Engine/Bindings.hpp>
+#include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>

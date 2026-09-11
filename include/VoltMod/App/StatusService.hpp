@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoltMod/Core/LoadReport.hpp>
-#include <VoltMod/Engine/ServerCommand.hpp>
+#include <VoltMod/Engine/Server/ServerCommand.hpp>
 #include <functional>
 #include <memory>
 #include <string>

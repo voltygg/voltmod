@@ -1,4 +1,4 @@
-#include "Engine/ConsoleLogger.hpp"
+#include "Engine/Server/ConsoleLogger.hpp"
 
 #include <ISmmAPI.h>
 #include <VoltMod/Core/EnumNames.hpp>

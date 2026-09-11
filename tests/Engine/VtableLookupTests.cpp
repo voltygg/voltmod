@@ -1,5 +1,5 @@
-#include "Engine/SigScanner.hpp"
-#include "Engine/VtableLookup.hpp"
+#include "Engine/Memory/SigScanner.hpp"
+#include "Engine/Memory/VtableLookup.hpp"
 
 #include <cstdint>
 #include <doctest/doctest.h>
