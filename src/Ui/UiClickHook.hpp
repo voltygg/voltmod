@@ -1,8 +1,5 @@
 #pragma once
 
-// Internal to src/: this is what pulls VtableHook.hpp - and the SDK behind it - into a translation
-// unit, so no public header includes it. UiPanels holds it by unique_ptr for that reason.
-
 #include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
@@ -11,7 +8,6 @@
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Ui/UiClick.hpp>
-#include <VoltMod/Unsafe/VtableHook.hpp>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -58,9 +54,9 @@ private:
      *  retried from the slot listener rather than treated as a failure. */
     bool HookConnectedClient();
 
-    bool Hook_FilterMessage(const CNetMessage* message, void* channel);
+    KHook::Return<bool> Hook_FilterMessage(VtableObject* client, const CNetMessage* message, void* channel);
 
-    /** The hook's actual work, so the hook itself is one unconditional MRES_IGNORED. @p self is
+    /** The hook's actual work, so the hook itself never changes the outcome. @p self is
      *  the hooked subobject, @ref _subobjectOffset bytes into the client. Only queues. */
     void QueuePress(const CNetMessage* message, void* self);
 
@@ -88,7 +84,7 @@ private:
     Subscription _connectListener;  // retries HookConnectedClient() until a client is there to read it from
     std::vector<QueuedPress> _queued;
     Subscription _onFrame;  // raises _queued each frame while the hook is up
-    VtableHook _hook;
+    Subscription _hook;
 };
 
 }  // namespace VoltMod

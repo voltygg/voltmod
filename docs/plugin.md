@@ -37,7 +37,7 @@ private:
 VOLTMOD_PLUGIN(MyPlugin);
 ```
 
-`VOLTMOD_PLUGIN` expands the per-plugin SourceHook globals (`PLUGIN_EXPOSE`)
+`VOLTMOD_PLUGIN` expands the per-plugin Metamod globals (`PLUGIN_EXPOSE`)
 used by the base. Matching extern declarations are in
 `MetamodPlugin.hpp`, so the plugin header needs no additional declarations.
 
@@ -229,7 +229,7 @@ Keep JSON sections compact (counts and names, not full lists), because RCON's co
 | `OnUnload()` | On unload, before the runtime is destroyed | Drop whatever `OnLoad` built |
 | `OnServerStartup(mapName)` | Each map start, after event listeners are attached | The engine has just reset convars and run the game-mode cfgs |
 | `OnPlayerChat(Player*, string_view, bool team)` | On `say`/`say_team` | Default dispatches registered chat commands and swallows handled ones; override to customize (an override replaces the dispatch wholesale, as admin-style chat services do) |
-| `OnRegisterHooks(runtime, hooks)` | Once during load | Custom SourceHook hooks |
+| `OnRegisterHooks(runtime, hooks)` | Once during load | Custom engine hooks |
 
 The connection lifecycle is **not** an override. Subscribe to
 `runtime.Players.Connected`, `.FullyConnected`, `.SettingsChanged` and
@@ -237,7 +237,7 @@ The connection lifecycle is **not** an override. Subscribe to
 owns the state - see @ref players_guide "Players".
 
 A hook body reaches the runtime through the state `OnLoad` built, not through the
-base: SourceHook calls these without a runtime argument, so keep whatever `OnLoad`
+base: Metamod calls these without a runtime argument, so keep whatever `OnLoad`
 handed you on the object that needs it.
 
 ## Cleanup on unload
@@ -281,21 +281,34 @@ There is no string form: consuming an unmodeled event means adding its struct to
 
 ## Custom hooks
 
-`SH_DECL_HOOKn` must still appear once at namespace scope in your .cpp (it expands to hook-manager classes; no helper can wrap it). The add/remove pairing *is* automated: `VOLTMOD_SCOPED_HOOK` installs the hook and yields a `Subscription` that removes it.
+Nothing has to be declared at namespace scope. `VoltMod::HookInterface` reads the vtable slot
+from the member function pointer, installs the hook, and yields a `Subscription` that removes it.
+
+A handler takes the hooked object as its first parameter and returns `KHook::Return<Ret>`. Pass
+`nullptr` for the side you do not want; here the pre-hook runs and there is no post-hook.
 
 For per-tick player movement you don't need a custom hook at all: the framework ships @ref VoltMod::Movement (see @ref sdk_hooks_guide).
 
 ```cpp
-#include <VoltMod/Unsafe/HookMacros.hpp>
+#include <VoltMod/Unsafe/Hook.hpp>
 
-SH_DECL_HOOK3(IVEngineServer2, SetClientListening, SH_NOATTRIB, 0, bool, CPlayerSlot, CPlayerSlot, bool);
+KHook::Return<bool> MyPlugin::Hook_SetClientListening(IVEngineServer2*, CPlayerSlot receiver,
+                                                      CPlayerSlot sender, bool listen)
+{
+    if (Muted(receiver, sender))
+        return {KHook::Action::Supersede, false};
+    return {KHook::Action::Ignore, listen};
+}
 
 void MyPlugin::OnRegisterHooks(VoltMod::Runtime& runtime, VoltMod::SubscriptionScope& hooks)
 {
-    hooks.Add(VOLTMOD_SCOPED_HOOK(IVEngineServer2, SetClientListening, runtime.Unsafe.Interfaces.Engine,
-                                  SH_MEMBER(this, &MyPlugin::Hook_SetClientListening), false));
+    hooks.Add(VoltMod::HookInterface(&IVEngineServer2::SetClientListening, runtime.Unsafe.Interfaces.Engine,
+                                     this, &MyPlugin::Hook_SetClientListening, nullptr));
 }
 ```
+
+`Action::Ignore` leaves the engine's own result in place, `Override` replaces the return value but
+still calls the original, and `Supersede` replaces it and skips the original.
 
 Add the subscription to `hooks`, do not keep it in a member of your plugin class. The base
 removes custom hooks before `OnUnload` runs, so a hook body cannot fire into state `OnUnload`

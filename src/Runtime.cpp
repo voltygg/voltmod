@@ -108,7 +108,7 @@ bool Runtime::InitializeServices(const LoadContext& context)
     auto& report = LoadReport;
 
     report.Run("GameData", [&] {
-        // Earlier plugins may patch class tables. Resolve the original slot through SourceHook.
+        // Earlier plugins may patch class tables. Resolve the original slot through KHook.
         if (auto loaded = Unsafe.GameData.Load(DefaultGameDataPath, OriginalVfnPtr); !loaded)
             return StageResult::Degraded(loaded.error().Detail);
         if (auto failures = Unsafe.GameData.FailureSummary(); !failures.empty())

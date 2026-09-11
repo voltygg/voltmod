@@ -60,7 +60,7 @@ static void* OriginalSlot(void* table, int index, const OriginalVfn& originalOf)
     if (!originalOf)
         return slots[index];
 
-    const void* original = originalOf(&slots[index]);
+    const void* original = originalOf(slots, index);
     return original ? const_cast<void*>(original) : slots[index];
 }
 

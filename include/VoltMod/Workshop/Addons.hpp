@@ -8,7 +8,6 @@
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
-#include <VoltMod/Unsafe/VtableHook.hpp>
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -91,9 +90,9 @@ private:
     void Remove();
 
     void OnConnected(Player& player);
-    bool Hook_SendNetMessage(const CNetMessage* message, int bufType);
+    KHook::Return<bool> Hook_SendNetMessage(VtableObject* client, const void* message, int bufType);
 
-    /** The hook's actual work, so the hook itself is one unconditional MRES_IGNORED. */
+    /** The hook's actual work, so the hook itself never changes the outcome. */
     void HandleSignon(const CNetMessage* message, void* client);
 
     /** Drop @p slot next frame, if @p steamId still holds it; see @ref _pendingKick. */
@@ -113,7 +112,7 @@ private:
     /** One pending drop per slot. Kicking from inside the SendNetMessage hook crashes on Windows,
      *  so it happens a frame later; re-queuing a slot cancels the one-shot already queued for it. */
     PerSlot<Subscription> _pendingKick;
-    VtableHook _hook;
+    Subscription _hook;
 };
 
 }  // namespace VoltMod

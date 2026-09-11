@@ -8,7 +8,7 @@
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Hooks/ClientConVars.hpp>
-#include <VoltMod/Unsafe/VtableHook.hpp>
+#include <VoltMod/Unsafe/Hook.hpp>
 #include <cstdint>
 #include <engine/igameeventsystem.h>
 #include <inetchannel.h>
@@ -19,11 +19,6 @@
 
 namespace VoltMod
 {
-
-// Hooks CServerSideClient::ProcessRespondCvarValue for every client. The engine passes the
-// message by reference, which is a pointer on the wire; taking it opaque keeps the SDK type out
-// of the public header.
-VOLTMOD_VHOOK1(VoltMod_ProcessRespondCvarValue, bool, const void*);
 
 ClientConVars::ClientConVars(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots)
     : _interfaces(interfaces), _bindings(bindings), _pending(std::make_unique<PendingConVarQueries>())
@@ -53,9 +48,8 @@ Status ClientConVars::Initialize()
     if (!getCvarValue)
         return std::unexpected(Error::Engine("the engine does not provide CSVCMsg_GetCvarValue"));
 
-    auto hook = VtableHook::OnVTable<VoltMod_ProcessRespondCvarValueHook>(
-        "Client convar response", _bindings.ProcessRespondCvarValue, this, nullptr,
-        &ClientConVars::Hook_ProcessRespondCvarValue);
+    auto hook = HookVTable("Client convar response", _bindings.ProcessRespondCvarValue, this, nullptr,
+                           &ClientConVars::Hook_ProcessRespondCvarValue);
     if (!hook)
         return std::unexpected(hook.error());
 
@@ -137,27 +131,27 @@ bool ClientConVars::Send(int slot, const std::string& cvarName, int cookie)
     return true;
 }
 
-bool ClientConVars::Hook_ProcessRespondCvarValue(const void* message)
+KHook::Return<bool> ClientConVars::Hook_ProcessRespondCvarValue(VtableObject* client, const void* message)
 {
     // The SDK omits CServerSideClient's layout, so gamedata supplies the slot offset; -1 comes
     // back when it did not bind.
-    const int slot = SlotOfServerSideClient(_bindings, META_IFACEPTR(void));
+    const int slot = SlotOfServerSideClient(_bindings, client);
     const auto& msg = *static_cast<const CNetMessagePB<CCLCMsg_RespondCvarValue>*>(message);
 
     if (!IsValidSlot(slot) || !msg.has_cookie() || !msg.has_status_code() || !msg.has_name())
-        RETURN_META_VALUE(MRES_IGNORED, true);
+        return {KHook::Action::Ignore, true};
 
     // Validate all client-controlled fields before dispatch.
     const int status = msg.status_code();
     if (status < std::to_underlying(ClientConVarStatus::Answered) ||
         status > std::to_underlying(ClientConVarStatus::Protected))
-        RETURN_META_VALUE(MRES_IGNORED, true);
+        return {KHook::Action::Ignore, true};
 
     std::string_view value;
     if (status == std::to_underlying(ClientConVarStatus::Answered))
     {
         if (!msg.has_value() || msg.value().find('\0') != std::string::npos)
-            RETURN_META_VALUE(MRES_IGNORED, true);
+            return {KHook::Action::Ignore, true};
         value = msg.value();
     }
 
@@ -166,7 +160,7 @@ bool ClientConVars::Hook_ProcessRespondCvarValue(const void* message)
     if (query && query->Callback)
         query->Callback(slot, static_cast<ClientConVarStatus>(status), msg.name(), value);
 
-    RETURN_META_VALUE(MRES_IGNORED, true);
+    return {KHook::Action::Ignore, true};
 }
 
 }  // namespace VoltMod

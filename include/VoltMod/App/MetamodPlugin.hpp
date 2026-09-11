@@ -86,7 +86,7 @@ protected:
     virtual bool OnPlayerChat(Player* player, std::string_view message, bool teamChat);
 
     /**
-     * @brief Add custom SourceHook hooks, each a VOLTMOD_SCOPED_HOOK, to @p hooks.
+     * @brief Add custom hooks, each a VoltMod::HookInterface, to @p hooks.
      *
      * @p hooks is released before OnUnload, so a hook bound to this plugin cannot fire against
      * state OnUnload has already dropped.
@@ -94,19 +94,24 @@ protected:
     virtual void OnRegisterHooks(Runtime& runtime, SubscriptionScope& hooks) {}
 
 private:
-    void Hook_GameFrame(bool simulating, bool firstTick, bool lastTick);
-    void Hook_StartupServer(const GameSessionConfiguration_t& config, ISource2WorldSession* session,
-                            const char* mapName);
-    void Hook_OnClientConnected(CPlayerSlot slot, const char* name, uint64 xuid, const char* networkId,
-                                const char* address, bool fakePlayer);
-    void Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconnectionReason reason, const char* name, uint64 xuid,
-                               const char* networkId);
-    void Hook_ClientFullyConnect(CPlayerSlot slot);
-    void Hook_ClientSettingsChanged(CPlayerSlot slot);
-    void Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext& ctx, const CCommand& args);
-    void Hook_CheckTransmit(CCheckTransmitInfo** infoList, int infoCount, CBitVec<16384>& unionTransmitEdicts,
-                            CBitVec<16384>& unused, const Entity2Networkable_t** networkables,
-                            const uint16* entityIndices, int entityCount);
+    KHook::Return<void> Hook_GameFrame(IServerGameDLL* server, bool simulating, bool firstTick, bool lastTick);
+    KHook::Return<void> Hook_StartupServer(INetworkServerService* service, const GameSessionConfiguration_t& config,
+                                           ISource2WorldSession* session, const char* mapName);
+    KHook::Return<void> Hook_OnClientConnected(IServerGameClients* clients, CPlayerSlot slot, const char* name,
+                                               uint64 xuid, const char* networkId, const char* address,
+                                               bool fakePlayer);
+    KHook::Return<void> Hook_ClientDisconnect(IServerGameClients* clients, CPlayerSlot slot,
+                                              ENetworkDisconnectionReason reason, const char* name, uint64 xuid,
+                                              const char* networkId);
+    KHook::Return<void> Hook_ClientFullyConnect(IServerGameClients* clients, CPlayerSlot slot);
+    KHook::Return<void> Hook_ClientSettingsChanged(IServerGameClients* clients, CPlayerSlot slot);
+    KHook::Return<void> Hook_DispatchConCommand(ICvar* cvar, ConCommandRef cmd, const CCommandContext& ctx,
+                                                const CCommand& args);
+    KHook::Return<void> Hook_CheckTransmit(ISource2GameEntities* entities, CCheckTransmitInfo** infoList,
+                                           int infoCount, CBitVec<16384>& unionTransmitEdicts,
+                                           CBitVec<16384>& unionTransmitEntities,
+                                           const Entity2Networkable_t** networkables, const uint16* entityIndices,
+                                           int entityCount);
 
     void RegisterStandardHooks();
 

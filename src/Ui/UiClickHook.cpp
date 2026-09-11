@@ -9,7 +9,7 @@
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Entities/Entity.hpp>
-#include <VoltMod/Unsafe/VtableHook.hpp>
+#include <VoltMod/Unsafe/Hook.hpp>
 #include <cstdint>
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
@@ -20,9 +20,6 @@
 
 namespace VoltMod
 {
-
-// Hooks CServerSideClient::FilterMessage. The channel argument is unused and remains opaque.
-VOLTMOD_VHOOK2(VoltMod_FilterMessage, bool, const CNetMessage*, void*);
 
 // Presses ride in CSVCMsg_UserMessage::msg_data, tagged by msg_type. The engine registry and SDK
 // do not expose CS_UM_CustomHudClicked, so keep its protocol value here.
@@ -149,8 +146,7 @@ bool UiClickHook::HookConnectedClient()
     const VHookBinding<FilterSig> binding{.Method = VFn<FilterSig>(slot->Index),
                                           .Table = VTableRef("CServerSideClient", slot->Table)};
 
-    auto hook = VtableHook::OnVTable<VoltMod_FilterMessageHook>("Custom HUD clicks", binding, this,
-                                                                &UiClickHook::Hook_FilterMessage, nullptr);
+    auto hook = HookVTable("Custom HUD clicks", binding, this, &UiClickHook::Hook_FilterMessage, nullptr);
     if (!hook)
     {
         Log::Warn("UiClickHook: {}; button presses will not arrive.", hook.error().Detail);
@@ -165,11 +161,11 @@ bool UiClickHook::HookConnectedClient()
     return true;
 }
 
-bool UiClickHook::Hook_FilterMessage(const CNetMessage* message, void*)
+KHook::Return<bool> UiClickHook::Hook_FilterMessage(VtableObject* client, const CNetMessage* message, void*)
 {
     // This observer never changes the verdict.
-    QueuePress(message, META_IFACEPTR(void));
-    RETURN_META_VALUE(MRES_IGNORED, true);
+    QueuePress(message, client);
+    return {KHook::Action::Ignore, true};
 }
 
 void UiClickHook::QueuePress(const CNetMessage* message, void* self)

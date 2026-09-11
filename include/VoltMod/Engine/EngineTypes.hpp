@@ -54,8 +54,21 @@ namespace SourceMM
 class ISmmAPI;
 }
 
+namespace KHook
+{
+/** What a hook handler returns. Declared here so a public header can name it without reaching
+ *  KHook itself; <VoltMod/Unsafe/Hook.hpp> is what brings in the definition. */
+template <class Ret>
+struct Return;
+}  // namespace KHook
+
 namespace VoltMod
 {
+
+/** The hooked object in a gamedata-bound vtable hook. KHook wants a class; the slot is all we know. */
+class VtableObject
+{
+};
 
 /** Manifest-time precache hook. Defined in src/Engine/GameSystem.hpp. */
 class PrecacheGameSystem;
@@ -67,7 +80,7 @@ class GameSystemFactory;
  *  src/Ui/UiPanelState.hpp. */
 struct UiPanelState;
 /** The FilterMessage hook behind UiPanels::Clicked. Held by unique_ptr so no public header
- *  reaches VtableHook.hpp. Defined in src/Ui/UiClickHook.hpp. */
+ *  reaches Hook.hpp. Defined in src/Ui/UiClickHook.hpp. */
 class UiClickHook;
 /** The queries ClientConVars has in flight, kept SDK-free for its tests. Defined in
  *  src/Hooks/PendingConVarQueries.hpp. */

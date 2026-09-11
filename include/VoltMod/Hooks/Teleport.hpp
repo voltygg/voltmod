@@ -8,7 +8,7 @@
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
-#include <VoltMod/Unsafe/VtableHook.hpp>
+#include <VoltMod/Core/Subscription.hpp>
 #include <array>
 
 namespace VoltMod
@@ -54,7 +54,8 @@ private:
     void BindAll();
     void UnbindAll();
 
-    void Hook_Teleport(const Vector* origin, const QAngle* angles, const Vector* velocity);
+    KHook::Return<void> Hook_Teleport(VtableObject* pawn, const Vector* origin, const QAngle* angles,
+                                      const Vector* velocity);
 
     /** Rebind @p slot to its current pawn (no-op without one), replacing any previous binding. */
     void Bind(int slot);
@@ -66,7 +67,7 @@ private:
     GameEvents& _events;
     SlotEvents& _slots;
     std::array<void*, MaxPlayers> _pawns{};     // the instance each slot's hook is bound to
-    std::array<VtableHook, MaxPlayers> _hooks;  // one per bound pawn; empty when unbound
+    std::array<Subscription, MaxPlayers> _hooks;  // one per bound pawn; empty when unbound
     Subscription _spawnListener;
     Subscription _slotListener;
 };

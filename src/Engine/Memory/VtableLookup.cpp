@@ -42,7 +42,7 @@ std::optional<int> FindSlotInTable(void* table, const void* function, const Orig
         if (!IsReadableAddress(&slots[index], sizeof(void*)) || !IsExecutableAddress(slots[index]))
             break;
         // Match either the installed hook or the original function it replaced.
-        if (slots[index] == function || (originalOf && originalOf(&slots[index]) == function))
+        if (slots[index] == function || (originalOf && originalOf(slots, index) == function))
             return index;
     }
     return std::nullopt;

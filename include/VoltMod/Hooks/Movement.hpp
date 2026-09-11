@@ -6,7 +6,7 @@
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Hooks/PlayerInput.hpp>
-#include <VoltMod/Unsafe/VtableHook.hpp>
+#include <VoltMod/Core/Subscription.hpp>
 
 namespace VoltMod
 {
@@ -61,14 +61,14 @@ private:
     /** Slot whose pawn owns @p movementServices, or -1. */
     int SlotOf(void* movementServices);
 
-    void* Hook_RunCommandPre(void* userCmd);
-    void* Hook_RunCommandPost(void* userCmd);
+    KHook::Return<void*> Hook_RunCommandPre(VtableObject* services, void* userCmd);
+    KHook::Return<void*> Hook_RunCommandPost(VtableObject* services, void* userCmd);
     void Decode(const void* userCmd);
 
     EntitySystem& _entities;
     Capabilities& _capabilities;
     const Bindings& _bindings;
-    VtableHook _hook;
+    Subscription _hook;
     PlayerInput _cmd;  // decoded in the pre hook, reused by the post hook
     int _slot = -1;    // resolved in the pre hook; RunCommand does not nest
 };

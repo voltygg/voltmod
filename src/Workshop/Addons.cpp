@@ -7,7 +7,7 @@
 #include <VoltMod/Core/Time.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Players/Player.hpp>
-#include <VoltMod/Unsafe/VtableHook.hpp>
+#include <VoltMod/Unsafe/Hook.hpp>
 #include <VoltMod/Workshop/Addons.hpp>
 #include <eiface.h>
 #include <networkbasetypes.pb.h>
@@ -18,9 +18,6 @@
 
 namespace VoltMod
 {
-
-// Hooks CServerSideClient::SendNetMessage. The SDK buffer enum is passed as int here.
-VOLTMOD_VHOOK2(VoltMod_SendNetMessage, bool, const CNetMessage*, int);
 
 /** Requirements and per-client progress; see AddonRequirements.hpp for the rules. */
 class Addons::Impl
@@ -97,9 +94,8 @@ Status Addons::Install()
     if (!_interfaces.Engine || !_interfaces.Engine->IsDedicatedServer())
         return std::unexpected(Error::Unsupported("addon downloads need a dedicated server"));
 
-    auto hook = VtableHook::OnVTable<VoltMod_SendNetMessageHook>("Workshop addon delivery", _bindings.SendNetMessage,
-                                                                 this, &Addons::Hook_SendNetMessage, nullptr,
-                                                                 AnyServerSideClient(_interfaces, _bindings));
+    auto hook = HookVTable("Workshop addon delivery", _bindings.SendNetMessage, this, &Addons::Hook_SendNetMessage,
+                           nullptr, AnyServerSideClient(_interfaces, _bindings));
     if (!hook)
         return std::unexpected(Error::Unsupported(hook.error().Detail));
 
@@ -144,10 +140,10 @@ void Addons::KickLater(int slot, int64_t steamId)
     });
 }
 
-bool Addons::Hook_SendNetMessage(const CNetMessage* message, int)
+KHook::Return<bool> Addons::Hook_SendNetMessage(VtableObject* client, const void* message, int)
 {
-    HandleSignon(message, META_IFACEPTR(void));
-    RETURN_META_VALUE(MRES_IGNORED, true);
+    HandleSignon(static_cast<const CNetMessage*>(message), client);
+    return {KHook::Action::Ignore, true};
 }
 
 void Addons::HandleSignon(const CNetMessage* message, void* client)

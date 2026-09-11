@@ -46,7 +46,7 @@ uintptr_t ResolveRelativeAddress(const ModuleImage& image, uintptr_t matchAddres
  * `/proc/self/maps` on Linux).
  *
  * Deliberately not "inside this module's code section": a vtable slot another plugin has already
- * hooked points at a SourceHook trampoline in allocated memory, which is code and is correct. What
+ * hooked points at a hook trampoline in allocated memory, which is code and is correct. What
  * this rules out is a slot holding data - RTTI, a string, the tail of a shorter table - which is
  * what a drifted class name or an index past the end of the real table produces.
  */

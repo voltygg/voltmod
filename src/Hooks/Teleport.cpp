@@ -6,16 +6,12 @@
 #include <VoltMod/Events/EventTypes.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/Teleport.hpp>
-#include <VoltMod/Unsafe/VtableHook.hpp>
+#include <VoltMod/Unsafe/Hook.hpp>
 #include <mathlib/vector.h>
 #include <utility>
 
 namespace VoltMod
 {
-
-// CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*). Bound per pawn, so the
-// handler runs once per teleport however many pawns are bound.
-VOLTMOD_VHOOK3_VOID(VoltMod_EntityTeleport, const Vector*, const QAngle*, const Vector*);
 
 Teleport::Teleport(EntitySystem& entities, const Bindings& bindings, GameEvents& events, SlotEvents& slots)
     : Teleported({.OnFirst =
@@ -71,8 +67,7 @@ void Teleport::UnbindAll()
 void Teleport::OnServerStartup()
 {
     // Every pawn from the previous map is gone, so drop the bindings before their addresses are
-    // recycled. Removal is by hook id, which SourceHook resolves without touching the freed
-    // instance.
+    // recycled. Removal never dereferences the pawn.
     for (int slot = 0; slot < MaxPlayers; ++slot)
         Unbind(slot);
 }
@@ -95,8 +90,7 @@ void Teleport::Bind(int slot)
     if (!pawn)
         return;
 
-    auto hook = VtableHook::OnInstance<VoltMod_EntityTeleportHook>("Teleport", pawn, _bindings.Teleport.Index(), this,
-                                                                   &Teleport::Hook_Teleport, true);
+    auto hook = HookInstance("Teleport", pawn, _bindings.Teleport, this, nullptr, &Teleport::Hook_Teleport);
     if (!hook)
         return;
 
@@ -125,10 +119,10 @@ int Teleport::SlotOf(const void* pawn) const
     return -1;
 }
 
-void Teleport::Hook_Teleport(const Vector*, const QAngle*, const Vector*)
+KHook::Return<void> Teleport::Hook_Teleport(VtableObject* pawn, const Vector*, const QAngle*, const Vector*)
 {
-    Teleported.Raise(SlotOf(META_IFACEPTR(void)));
-    RETURN_META(MRES_IGNORED);
+    Teleported.Raise(SlotOf(pawn));
+    return {KHook::Action::Ignore};
 }
 
 }  // namespace VoltMod

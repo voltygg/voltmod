@@ -22,10 +22,10 @@ TEST_CASE("Operator factories set the code and carry the detail")
     CHECK(Error::NotReady("database still connecting").Code == ErrorCode::NotReady);
     CHECK(Error::Invalid("duration does not parse").Code == ErrorCode::Invalid);
     CHECK(Error::Unsupported("gamedata has no 'RunCommand' index").Code == ErrorCode::Unsupported);
-    CHECK(Error::Engine("SourceHook refused the hook").Code == ErrorCode::Engine);
+    CHECK(Error::Engine("the engine refused the hook").Code == ErrorCode::Engine);
     CHECK(Error::Failed("something else").Code == ErrorCode::Failed);
 
-    CHECK(Error::Engine("SourceHook refused the hook").Key.empty());
+    CHECK(Error::Engine("the engine refused the hook").Key.empty());
 }
 
 TEST_CASE("The player-facing factories carry a translation key instead")

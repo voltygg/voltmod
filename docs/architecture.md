@@ -21,8 +21,8 @@ VoltMod
 ├── Menu        Menu model and Flow wizard, drawn as center HTML
 ├── Database    Async PostgreSQL + row mapping (VOLTMOD_ENABLE_POSTGRES)
 ├── Http        Async HTTP client + JSON REST helpers
-├── Unsafe      Opt-in raw hooking: VOLTMOD_SCOPED_HOOK (HookMacros.hpp) and
-│               VOLTMOD_VHOOK + VtableHook (VtableHook.hpp)
+├── Unsafe      Opt-in raw hooking: HookInterface, HookVTable and HookInstance
+│               (Hook.hpp), each returning a Subscription
 └── App         The composition root: Runtime, MetamodPlugin, ServiceExchange
 ```
 
@@ -172,8 +172,8 @@ _slots = runtime.Slots.Changed += [this](int slot) { _state.Reset(slot); };
 ```
 
 Both return a move-only, `[[nodiscard]]` @ref VoltMod::Subscription
-"Subscription" that unregisters on destruction. `VOLTMOD_SCOPED_HOOK` gives
-SourceHook installs the same lifetime.
+"Subscription" that unregisters on destruction. `HookInterface` gives engine
+hooks the same lifetime.
 
 Expensive event sources take an `EventLifecycle`: the first subscriber installs
 the source and the last removal uninstalls it. If a hook cannot resolve, the

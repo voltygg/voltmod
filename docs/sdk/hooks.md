@@ -102,31 +102,31 @@ Semantics worth knowing:
 
 ## Hooking a vfunc the framework does not cover
 
-Use `<VoltMod/Unsafe/VtableHook.hpp>` for vfuncs the framework does not expose.
+Use `<VoltMod/Unsafe/Hook.hpp>` for vfuncs the framework does not expose.
 An incorrect slot can call unrelated code and crash the server.
 
 Custom hooks use two pieces:
 
-- `VOLTMOD_VHOOK*` at namespace scope declares the hook and its traits.
-- @ref VoltMod::VtableHook owns the installed SourceHook ids and removes them on destruction.
+- `VoltMod::HookVTable` installs on every object sharing a class vtable; `VoltMod::HookInstance`
+  installs on one live object.
+- Both return a @ref VoltMod::Subscription that removes the hook when it is dropped.
+
+The slot comes from gamedata rather than from a member function pointer, so the handler names its
+object as the opaque `VoltMod::VtableObject`.
 
 ```cpp
-#include <VoltMod/Engine/MetamodGlobals.hpp>   // the SourceHook globals
-#include <VoltMod/Unsafe/VtableHook.hpp>
-
-// void* CPlayer_MovementServices::RunCommand(CUserCmd*)
-VOLTMOD_VHOOK1(MyPlugin_RunCommand, void*, void*);
+#include <VoltMod/Unsafe/Hook.hpp>
 
 class CommandWatcher
 {
     VoltMod::Runtime& _rt;
-    VoltMod::VtableHook _hook;
+    VoltMod::Subscription _hook;
 
     void Install()
     {
-        auto hook = VoltMod::VtableHook::OnVTable<MyPlugin_RunCommandHook>(
-            "MyPlugin RunCommand", _rt.Unsafe.Bindings.RunCommand,
-            this, &CommandWatcher::Hook_RunCommand, nullptr);
+        // void* CPlayer_MovementServices::RunCommand(CUserCmd*)
+        auto hook = VoltMod::HookVTable("MyPlugin RunCommand", _rt.Unsafe.Bindings.RunCommand,
+                                        this, &CommandWatcher::Hook_RunCommand, nullptr);
         if (!hook)
         {
             VoltMod::Log::Warn("command watch off: {}", hook.error().Detail);
@@ -135,10 +135,10 @@ class CommandWatcher
         _hook = std::move(*hook);
     }
 
-    void* Hook_RunCommand(void* userCmd)
+    KHook::Return<void*> Hook_RunCommand(VoltMod::VtableObject* services, void* userCmd)
     {
-        Record(META_IFACEPTR(void), userCmd);
-        RETURN_META_VALUE(MRES_IGNORED, nullptr);
+        Record(services, userCmd);
+        return {KHook::Action::Ignore, nullptr};
     }
 };
 ```
@@ -146,23 +146,17 @@ class CommandWatcher
 `VHookBinding` keeps the slot and class table from one gamedata entry together. Direct calls use
 `VFn` to dispatch through an instance.
 
-`OnInstance` hooks one live object. Rebind when that object is replaced.
-
-### One hooked vfunc per translation unit
-
-`VOLTMOD_VHOOK*` emits namespace-scope definitions and a mutable SourceHook descriptor. Give each
-hook a unique name and keep one hooked vfunc per translation unit. Sharing a declaration can
-reconfigure a live hook to the wrong slot.
+`HookInstance` hooks one live object. Rebind when that object is replaced.
 
 ### What it does for you, and what it does not
 
-- A requested pre/post pair installs atomically.
-- `Reset()` remains safe after instance destruction because removal uses hook ids.
+- Pre and post ride one hook, so there is no half-installed pair to unwind.
+- `Reset()` remains safe after the hooked object is destroyed; removal never dereferences it.
 - An optional live instance detects a mismatched class table.
 - Slot correctness still requires manual verification; see @ref sdk_gamedata_guide.
 - Use an `EventLifecycle` for a hook that should exist only while subscribed, or a
   `SharedLifecycle` when several events share the one hook.
-- Keep `VtableHook` beside the handler state so their lifetimes match.
+- Keep the `Subscription` beside the handler state so their lifetimes match.
 
 ## ServerCommand
 

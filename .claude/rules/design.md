@@ -37,7 +37,7 @@ The shapes the framework already uses. New code follows them instead of adding a
 
 ## Hooks and subscriptions
 
-- A vtable hook is `VOLTMOD_VHOOK*` at file scope plus a `VtableHook` member, one vfunc per TU (`SH_MANUALHOOK_RECONFIGURE` mutates a file-static). The member installs the pre/post pair or nothing and removes by id when dropped. No `SH_*` add/remove macro appears outside that macro.
+- A vtable hook is a `HookVTable` or `HookInstance` call from `<VoltMod/Unsafe/Hook.hpp>` plus the `Subscription` it returns, which removes the hook when dropped. Handlers take the hooked object first and return `KHook::Return`. Only a .cpp reaches `Hook.hpp`; a header that holds a hook needs `<VoltMod/Core/Subscription.hpp>` alone.
 - Event, game-event, scheduler, and hook registrations return `[[nodiscard]] Subscription`. Dropping it unsubscribes; a scheduler one-shot is cancelled the same way.
 - Commands are owned by `CommandManager` for the load cycle.
 

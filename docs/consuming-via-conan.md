@@ -36,7 +36,7 @@ voltmod_add_plugin(my-plugin VERSION 1.0.0)
 | --- | --- |
 | `voltmod/x.y.z` | Runtime and optional Database static libraries, public headers, CMake helpers, gamedata, and plugin templates. `with_postgres` controls the Database component and libpqxx. |
 | `hl2sdk-cs2/<yyyy.mm.dd>` | Trimmed HL2SDK in mirror layout: headers, prebuilt Valve libs, the generated `.pb.h`/`.pb.cc`, and the source-only TUs `voltmod_add_plugin` compiles per plugin. Versioned by the upstream commit date. |
-| `metamod-source/2.0.0.<yyyymmdd>` | Metamod core + SourceHook headers (header-only). |
+| `metamod-source/2.0.0.<yyyymmdd>` | Metamod core + KHook headers (header-only). KHook arrives as an upstream submodule the recipe fetches. |
 
 Third-party dependencies (cpr, glaze, libpqxx, openssl, and others) come from
 Conan Center as recipes and compile locally. No binaries are published for the

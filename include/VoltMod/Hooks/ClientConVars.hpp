@@ -6,7 +6,6 @@
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
-#include <VoltMod/Unsafe/VtableHook.hpp>
 #include <cstddef>
 #include <functional>
 #include <memory>
@@ -95,7 +94,7 @@ public:
 private:
     /** The hooked CServerSideClient::ProcessRespondCvarValue; @p message is the
      *  CNetMessagePB<CCLCMsg_RespondCvarValue> the SDK header names. */
-    bool Hook_ProcessRespondCvarValue(const void* message);
+    KHook::Return<bool> Hook_ProcessRespondCvarValue(VtableObject* client, const void* message);
 
     /** Sends a query to one connected human client. */
     bool Send(int slot, const std::string& cvarName, int cookie);
@@ -105,7 +104,7 @@ private:
     /** Behind a pointer only so its header stays under src/, where its tests live. */
     std::unique_ptr<PendingConVarQueries> _pending;
     INetworkMessageInternal* _getCvarValue = nullptr;
-    VtableHook _hook;
+    Subscription _hook;
     /** Declared after _pending so it unregisters before the table its callback clears. */
     Subscription _slotListener;
 };

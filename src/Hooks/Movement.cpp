@@ -4,16 +4,13 @@
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Hooks/Movement.hpp>
 #include <VoltMod/Schema/Api.hpp>
-#include <VoltMod/Unsafe/VtableHook.hpp>
+#include <VoltMod/Unsafe/Hook.hpp>
 #include <algorithm>
 #include <cs_usercmd.pb.h>
 #include <utility>
 
 namespace VoltMod
 {
-
-// Hooks CPlayer_MovementServices::RunCommand for every player. The opaque types are unused.
-VOLTMOD_VHOOK1(VoltMod_MovementRunCommand, void*, void*);
 
 Movement::Movement(EntitySystem& entities, const Bindings& bindings, Capabilities& capabilities)
     : _lifecycle(
@@ -39,9 +36,8 @@ bool Movement::StartHook()
             "Movement: no usable 'UserCmdNumber' offset; falling back to the protobuf's "
             "legacy_command_number, which the live client leaves at 0.");
 
-    auto hook = VtableHook::OnVTable<VoltMod_MovementRunCommandHook>(
-        "Movement RunCommand", _bindings.RunCommand, this, &Movement::Hook_RunCommandPre,
-        &Movement::Hook_RunCommandPost, LiveMovementServices());
+    auto hook = HookVTable("Movement RunCommand", _bindings.RunCommand, this, &Movement::Hook_RunCommandPre,
+                           &Movement::Hook_RunCommandPost, LiveMovementServices());
     if (!hook)
     {
         // Bindings marked the capability usable from gamedata alone; a failed install retracts it.
@@ -136,19 +132,19 @@ void Movement::Decode(const void* userCmd)
     }
 }
 
-void* Movement::Hook_RunCommandPre(void* userCmd)
+KHook::Return<void*> Movement::Hook_RunCommandPre(VtableObject* services, void* userCmd)
 {
-    _slot = SlotOf(META_IFACEPTR(void));
+    _slot = SlotOf(services);
     Decode(userCmd);
     Rewrite.Raise(_slot, _cmd);
     Before.Raise(_slot, _cmd);
-    RETURN_META_VALUE(MRES_IGNORED, nullptr);
+    return {KHook::Action::Ignore, nullptr};
 }
 
-void* Movement::Hook_RunCommandPost(void* /*userCmd*/)
+KHook::Return<void*> Movement::Hook_RunCommandPost(VtableObject*, void* /*userCmd*/)
 {
     After.Raise(_slot, _cmd);
-    RETURN_META_VALUE(MRES_IGNORED, nullptr);
+    return {KHook::Action::Ignore, nullptr};
 }
 
 }  // namespace VoltMod

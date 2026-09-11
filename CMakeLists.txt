@@ -159,8 +159,6 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Engine/Memory/ModuleImage_Linux.cpp
             src/Engine/Memory/VtableLookup_Windows.cpp
             src/Engine/Memory/VtableLookup_Linux.cpp
-            # VOLTMOD_VHOOK owns the SourceHook integration.
-            src/Unsafe/VtableHook.cpp
             # Use a fake MenuSurface.
             src/Menu/MenuBuilder.cpp
             src/Menu/MenuPresets.cpp

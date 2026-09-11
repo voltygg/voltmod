@@ -22,7 +22,7 @@ namespace VoltMod
  * @endcode
  *
  * The cleanup callable may hold any registry handle, including non-handle-based registrations
- * such as SourceHook installs (see VOLTMOD_SCOPED_HOOK).
+ * such as hook installs (see VoltMod::HookInterface).
  *
  * Move-only. The registry must outlive its Subscription; reverse declaration order provides this
  * when both are members of one object.
