@@ -13,30 +13,22 @@ TEST_CASE("AddHeader writes the Key: Value line the client parses back")
     CHECK(request.Headers[0] == "Content-Type: application/json");
 }
 
-TEST_CASE("AddAuth prefixes the scheme")
+TEST_CASE("AddAuth prefixes the scheme, and adds nothing without a key")
 {
-    HttpRequest request;
-    request.AddAuth("Authorization", "Bearer", "abc123");
+    HttpRequest bearer;
+    bearer.AddAuth("Authorization", "Bearer", "abc123");
+    REQUIRE(bearer.Headers.size() == 1);
+    CHECK(bearer.Headers[0] == "Authorization: Bearer abc123");
 
-    REQUIRE(request.Headers.size() == 1);
-    CHECK(request.Headers[0] == "Authorization: Bearer abc123");
-}
+    // An empty scheme is how an API-key header is sent.
+    HttpRequest apiKey;
+    apiKey.AddAuth("X-Api-Key", "", "abc123");
+    REQUIRE(apiKey.Headers.size() == 1);
+    CHECK(apiKey.Headers[0] == "X-Api-Key: abc123");
 
-TEST_CASE("An empty scheme sends the key verbatim")
-{
-    HttpRequest request;
-    request.AddAuth("X-Api-Key", "", "abc123");
-
-    REQUIRE(request.Headers.size() == 1);
-    CHECK(request.Headers[0] == "X-Api-Key: abc123");
-}
-
-TEST_CASE("An empty key adds no header at all")
-{
-    HttpRequest request;
-    request.AddAuth("Authorization", "Bearer", "");
-
-    CHECK(request.Headers.empty());
+    HttpRequest none;
+    none.AddAuth("Authorization", "Bearer", "");
+    CHECK(none.Headers.empty());
 }
 
 TEST_CASE("IsSuccess needs both transport success and a 2xx status")

@@ -63,26 +63,13 @@ TEST_CASE("One source is shared across events with different handler signatures"
     CHECK(stops == 1);
 }
 
-TEST_CASE("A refused start yields an empty subscription and never stops")
-{
-    int stops = 0;
-    SharedLifecycle lifecycle("Test", [] { return false; }, [&] { ++stops; });
-    Event<int> event(lifecycle.ForEvent());
-
-    {
-        auto refused = event += [](int) {};
-        CHECK_FALSE(static_cast<bool>(refused));
-        CHECK(event.Empty());
-        CHECK(lifecycle.ListeningEvents() == 0);
-    }
-
-    CHECK(stops == 0);
-}
-
-TEST_CASE("A refused start is retried by the next subscriber")
+// Event's own Lifecycle refusal is covered in EventTests; what matters here is that a refusal
+// leaves the shared source with no listeners and is retried by whoever subscribes next.
+TEST_CASE("A refused start counts no listener and is retried by the next subscriber")
 {
     bool ready = false;
     int starts = 0;
+    int stops = 0;
     SharedLifecycle lifecycle(
         "Test",
         [&] {
@@ -91,15 +78,20 @@ TEST_CASE("A refused start is retried by the next subscriber")
             ++starts;
             return true;
         },
-        [] {});
+        [&] { ++stops; });
     Event<int> event(lifecycle.ForEvent());
 
-    auto refused = event += [](int) {};
-    CHECK_FALSE(static_cast<bool>(refused));
-    CHECK(starts == 0);
+    {
+        auto refused = event += [](int) {};
+        CHECK_FALSE(static_cast<bool>(refused));
+        CHECK(starts == 0);
+        CHECK(lifecycle.ListeningEvents() == 0);
+    }
+    CHECK(stops == 0);
 
     ready = true;
     auto accepted = event += [](int) {};
     CHECK(static_cast<bool>(accepted));
     CHECK(starts == 1);
+    CHECK(lifecycle.ListeningEvents() == 1);
 }

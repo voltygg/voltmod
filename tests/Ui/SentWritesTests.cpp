@@ -17,7 +17,7 @@ TEST_CASE("The first write of a value is new, and repeating it is not")
     CHECK_FALSE(cache.Changed(0, WriteKind::Variable, "vm_row0_label", "text", "Ban"));
 }
 
-TEST_CASE("Panels and variables are remembered apart")
+TEST_CASE("Panels and variables are remembered apart, even when they concatenate alike")
 {
     SentWrites cache;
     CHECK(cache.Changed(0, WriteKind::Variable, "vm_row0_label", "text", "Kick"));
@@ -25,11 +25,8 @@ TEST_CASE("Panels and variables are remembered apart")
     // Same value, different panel, and same panel, different variable: both are unwritten.
     CHECK(cache.Changed(0, WriteKind::Variable, "vm_row1_label", "text", "Kick"));
     CHECK(cache.Changed(0, WriteKind::Variable, "vm_row0_label", "other", "Kick"));
-}
 
-TEST_CASE("A panel and a variable that concatenate the same way stay distinct")
-{
-    SentWrites cache;
+    // The two halves must not be run together into one key.
     CHECK(cache.Changed(0, WriteKind::Variable, "row", "0_label", "Kick"));
     CHECK(cache.Changed(0, WriteKind::Variable, "row0", "_label", "Kick"));
     CHECK(cache.Changed(0, WriteKind::Variable, "row0_", "label", "Kick"));
@@ -87,27 +84,17 @@ TEST_CASE("A shared panel dedupes in its own bucket, apart from every slot")
     CHECK(cache.Changed(VoltMod::EveryoneSlot, WriteKind::Variable, "vm_title", "text", "Admin Panel"));
 }
 
-TEST_CASE("Forget makes the next write go through again")
+TEST_CASE("Forget makes the next write go through again, and leaves other slots alone")
 {
     SentWrites cache;
     CHECK(cache.Changed(0, WriteKind::Variable, "vm_title", "text", "Admin Panel"));
     CHECK(cache.CaptureChanged(0, true));
-
-    cache.Forget(0);
-
-    CHECK(cache.Changed(0, WriteKind::Variable, "vm_title", "text", "Admin Panel"));
-    CHECK(cache.CaptureChanged(0, true));
-}
-
-TEST_CASE("Forget leaves other slots alone")
-{
-    SentWrites cache;
-    CHECK(cache.Changed(0, WriteKind::Variable, "vm_title", "text", "Admin Panel"));
     CHECK(cache.Changed(1, WriteKind::Variable, "vm_title", "text", "Admin Panel"));
 
     cache.Forget(0);
 
     CHECK(cache.Changed(0, WriteKind::Variable, "vm_title", "text", "Admin Panel"));
+    CHECK(cache.CaptureChanged(0, true));
     CHECK_FALSE(cache.Changed(1, WriteKind::Variable, "vm_title", "text", "Admin Panel"));
 }
 

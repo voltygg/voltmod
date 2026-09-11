@@ -20,19 +20,7 @@ struct Sample
     char Name[16];
 };
 
-TEST_CASE("MemoryAccess::ReadAt reads fields at their offsets")
-{
-    Sample s{};
-    s.Mode = 0x12;
-    s.Color = 0xAABBCCDDu;
-    s.Buttons = 0x1122334455667788ull;
-
-    CHECK_EQ(ReadAt<uint8_t>(&s, offsetof(Sample, Mode)), static_cast<uint8_t>(0x12));
-    CHECK_EQ(ReadAt<uint32_t>(&s, offsetof(Sample, Color)), 0xAABBCCDDu);
-    CHECK_EQ(ReadAt<uint64_t>(&s, offsetof(Sample, Buttons)), 0x1122334455667788ull);
-}
-
-TEST_CASE("MemoryAccess::WriteAt writes fields at their offsets")
+TEST_CASE("MemoryAccess::ReadAt and WriteAt reach fields at their offsets, whatever the width")
 {
     Sample s{};
     WriteAt<uint8_t>(&s, offsetof(Sample, Mode), static_cast<uint8_t>(0x7F));
@@ -42,17 +30,23 @@ TEST_CASE("MemoryAccess::WriteAt writes fields at their offsets")
     CHECK_EQ(s.Mode, static_cast<uint8_t>(0x7F));
     CHECK_EQ(s.Color, 0xDEADBEEFu);
     CHECK_EQ(s.Buttons, 0xFEEDFACECAFEBEEFull);
+
+    CHECK_EQ(ReadAt<uint8_t>(&s, offsetof(Sample, Mode)), static_cast<uint8_t>(0x7F));
+    CHECK_EQ(ReadAt<uint32_t>(&s, offsetof(Sample, Color)), 0xDEADBEEFu);
+    CHECK_EQ(ReadAt<uint64_t>(&s, offsetof(Sample, Buttons)), 0xFEEDFACECAFEBEEFull);
 }
 
-TEST_CASE("MemoryAccess::MemberPtr yields a pointer into the object")
+TEST_CASE("MemoryAccess::MemberPtr points into the object itself")
 {
     Sample s{};
+    std::memcpy(s.Name, "hello", 6);
 
-    auto* p = MemberPtr<uint32_t>(&s, offsetof(Sample, Color));
-    CHECK(p == &s.Color);
-
-    *p = 0x99u;
+    auto* color = MemberPtr<uint32_t>(&s, offsetof(Sample, Color));
+    CHECK(color == &s.Color);
+    *color = 0x99u;
     CHECK_EQ(s.Color, 0x99u);
+
+    CHECK_EQ(std::string(MemberPtr<const char>(&s, offsetof(Sample, Name))), std::string("hello"));
 }
 
 TEST_CASE("MemoryAccess::ReadAt/WriteAt round-trip a pointer field")
@@ -66,13 +60,4 @@ TEST_CASE("MemoryAccess::ReadAt/WriteAt round-trip a pointer field")
     auto* got = ReadAt<void*>(&s, offsetof(Sample, Next));
     CHECK(got == &target);
     CHECK_EQ(*static_cast<int*>(got), 42);
-}
-
-TEST_CASE("MemoryAccess::MemberPtr<const char> reads a string field")
-{
-    Sample s{};
-    std::memcpy(s.Name, "hello", 6);
-
-    const char* p = MemberPtr<const char>(&s, offsetof(Sample, Name));
-    CHECK_EQ(std::string(p), std::string("hello"));
 }

@@ -107,21 +107,12 @@ TEST_CASE("A text writer names the layout root, not the panel")
     CHECK(value == "1");
 }
 
-TEST_CASE("A family clears the classes it is not on")
-{
-    FakePanel panel;
-
-    Cards[0].Bar.Write(panel, 0, ClassChoice::None);
-
-    CHECK(static_cast<int>(panel.Classes.size()) == Cards[0].Bar.Count());
-    CHECK(panel.Enabled().empty());
-}
-
-TEST_CASE("A family finds its index by variant name")
+// ClassChoice's own write and lookup rules are covered in WritersTests; what is checked here is
+// that the generated enums and name tables line up with the class families they were emitted from.
+TEST_CASE("A generated family's enumerators index its own classes")
 {
     CHECK(Toast.Accent.Find("bad") == static_cast<int>(LabUi::Accent::Bad));
-    CHECK(Toast.Accent.Find("Accent--good") == 0);
-    CHECK(Cards[0].Icon.Find(LabUi::IconNames[1]) == 1);
+    CHECK(Cards[0].Icon.Find(LabUi::IconNames[1]) == static_cast<int>(LabUi::Icon::Awp));
     CHECK(Cards[0].Bar.Find("3") == 3);
     CHECK(Cards[0].Icon.Find("famas") == ClassChoice::None);
 }

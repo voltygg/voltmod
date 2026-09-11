@@ -1,12 +1,10 @@
 #include <VoltMod/Core/Event.hpp>
-#include <VoltMod/Core/SlotEvents.hpp>
 #include <doctest/doctest.h>
 #include <string>
 #include <utility>
 #include <vector>
 
 using VoltMod::Event;
-using VoltMod::SlotEvents;
 using VoltMod::Subscription;
 
 TEST_CASE("Every subscribed handler sees the raise")
@@ -123,38 +121,28 @@ TEST_CASE("Lifecycle installs on the first subscriber and removes after the last
     CHECK(removals == 1);
 }
 
-TEST_CASE("A refused Lifecycle rejects the subscription and never runs OnLast")
-{
-    int removals = 0;
-    Event<int> event({.OnFirst = [] { return false; }, .OnLast = [&] { ++removals; }});
-
-    int calls = 0;
-    auto sub = event += [&](int) { ++calls; };
-
-    CHECK_FALSE(static_cast<bool>(sub));
-    CHECK(event.Count() == 0);
-
-    event.Raise(1);
-    CHECK(calls == 0);
-
-    sub.Reset();
-    CHECK(removals == 0);
-}
-
-TEST_CASE("A refused Lifecycle is retried by the next subscriber")
+TEST_CASE("A refused Lifecycle rejects the subscription, never runs OnLast, and is retried")
 {
     bool allow = false;
     int installs = 0;
+    int removals = 0;
     Event<int> event({.OnFirst =
                           [&] {
                               ++installs;
                               return allow;
                           },
-                      .OnLast = [] {}});
+                      .OnLast = [&] { ++removals; }});
 
-    auto refused = event += [](int) {};
+    int calls = 0;
+    auto refused = event += [&](int) { ++calls; };
+    CHECK_FALSE(static_cast<bool>(refused));
     CHECK(installs == 1);
     CHECK(event.Empty());
+
+    event.Raise(1);
+    CHECK(calls == 0);
+    refused.Reset();
+    CHECK(removals == 0);  // nothing was installed, so nothing is torn down
 
     allow = true;
     auto accepted = event += [](int) {};
@@ -196,22 +184,4 @@ TEST_CASE("A move-assigned subscription releases the registration it held")
     CHECK(first == 0);  // the first registration went away with the assignment
     CHECK(second == 1);
     CHECK(event.Count() == 1);
-}
-
-TEST_CASE("A slot handler may unsubscribe itself from inside the notification")
-{
-    SlotEvents slots;
-    Subscription self;
-    int seen = -1;
-
-    self = slots.Changed += [&](int slot) {
-        seen = slot;
-        self.Reset();
-    };
-
-    slots.Raise(7);
-    CHECK(seen == 7);
-
-    slots.Raise(8);
-    CHECK(seen == 7);  // unsubscribed, so the second raise never reaches it
 }

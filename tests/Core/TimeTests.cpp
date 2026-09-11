@@ -1,3 +1,5 @@
+// Time::ParseDuration delegates to VoltMod::ParseDuration; its grammar is covered by
+// ParseDurationTests.
 #include <VoltMod/Core/Time.hpp>
 #include <cstdint>
 #include <doctest/doctest.h>
@@ -5,38 +7,14 @@
 
 using VoltMod::Time;
 
-TEST_CASE("Time::ParseDuration suffixes")
+TEST_CASE("Time::ParseDuration delegates to the shared grammar")
 {
-    CHECK_EQ(Time::ParseDuration("30s"), static_cast<int64_t>(30));
     CHECK_EQ(Time::ParseDuration("5m"), static_cast<int64_t>(300));
-    CHECK_EQ(Time::ParseDuration("2h"), static_cast<int64_t>(7200));
-    CHECK_EQ(Time::ParseDuration("7d"), static_cast<int64_t>(604800));
-    CHECK_EQ(Time::ParseDuration("1w"), static_cast<int64_t>(604800));
-}
-
-TEST_CASE("Time::ParseDuration case-insensitive and bare seconds")
-{
-    CHECK_EQ(Time::ParseDuration("5M"), static_cast<int64_t>(300));
-    CHECK_EQ(Time::ParseDuration("2H"), static_cast<int64_t>(7200));
-    CHECK_EQ(Time::ParseDuration("3600"), static_cast<int64_t>(3600));
-}
-
-TEST_CASE("Time::ParseDuration permanent literals")
-{
-    CHECK_EQ(Time::ParseDuration("0"), static_cast<int64_t>(0));
     CHECK_EQ(Time::ParseDuration("perm"), static_cast<int64_t>(0));
-    CHECK_EQ(Time::ParseDuration("permanent"), static_cast<int64_t>(0));
-    CHECK_EQ(Time::ParseDuration("PERM"), static_cast<int64_t>(0));
-}
-
-TEST_CASE("Time::ParseDuration invalid -> -1 (canonical grammar)")
-{
-    CHECK_EQ(Time::ParseDuration(""), static_cast<int64_t>(-1));
     CHECK_EQ(Time::ParseDuration("garbage"), static_cast<int64_t>(-1));
-    CHECK_EQ(Time::ParseDuration("-5"), static_cast<int64_t>(-1));
 }
 
-TEST_CASE("Time::FormatDuration")
+TEST_CASE("Time::FormatDuration names the largest unit that divides exactly")
 {
     CHECK_EQ(Time::FormatDuration(0), std::string("Permanent"));
     CHECK_EQ(Time::FormatDuration(1), std::string("1 second"));
@@ -48,10 +26,6 @@ TEST_CASE("Time::FormatDuration")
     CHECK_EQ(Time::FormatDuration(86400), std::string("1 day"));
     CHECK_EQ(Time::FormatDuration(604800), std::string("1 week"));
     CHECK_EQ(Time::FormatDuration(1209600), std::string("2 weeks"));
-}
-
-TEST_CASE("Time::FormatDuration prefers largest exact unit")
-{
     // 90 minutes is not an exact hour, so it falls back to minutes.
     CHECK_EQ(Time::FormatDuration(5400), std::string("90 minutes"));
 }

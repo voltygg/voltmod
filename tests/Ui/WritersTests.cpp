@@ -38,25 +38,21 @@ TEST_CASE("ClassFlag toggles one class on and off")
     CHECK(panel.Classes[1] == std::make_tuple(1, std::string("card"), std::string("Hidden"), false));
 }
 
-TEST_CASE("ClassChoice turns on only the selected class and clears the rest")
+TEST_CASE("ClassChoice writes every class, turning on only the selected one")
 {
     FakePanel panel;
 
+    // Every class is written, not just the new one, so whichever was on last frame clears.
     Icons.Write(panel, 0, 1);
     REQUIRE(panel.Classes.size() == 3);
     CHECK(panel.Classes[0] == std::make_tuple(0, std::string("card_icon"), std::string("Icon--ak47"), false));
     CHECK(panel.Classes[1] == std::make_tuple(0, std::string("card_icon"), std::string("Icon--awp"), true));
     CHECK(panel.Classes[2] == std::make_tuple(0, std::string("card_icon"), std::string("Icon--m4a1"), false));
-}
 
-TEST_CASE("ClassChoice with None leaves every class off")
-{
-    FakePanel panel;
-
+    panel.Classes.clear();
     Icons.Write(panel, 0, ClassChoice::None);
     REQUIRE(panel.Classes.size() == 3);
-    for (const auto& [slot, id, cls, on] : panel.Classes)
-        CHECK_FALSE(on);
+    CHECK(panel.Enabled().empty());
 }
 
 static_assert(Icons.Count() == 3);
@@ -68,13 +64,6 @@ TEST_CASE("ClassChoice finds an index by class or by variant name")
     CHECK(Icons.Find("awp") == 1);
     CHECK(Icons.Find("Icon--nope") == ClassChoice::None);
     CHECK(Icons.Find("") == ClassChoice::None);
-}
-
-TEST_CASE("ClassChoice writes every class so a stale one clears")
-{
-    FakePanel panel;
-    Icons.Write(panel, 0, 0);
-    CHECK(panel.Classes.size() == 3);
 }
 
 TEST_CASE("PanelWriter names the panel and slot once")

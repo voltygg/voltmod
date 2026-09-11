@@ -5,13 +5,7 @@
 using VoltMod::PairThrottle;
 using VoltMod::Throttle;
 
-TEST_CASE("Throttle: first acquire always succeeds")
-{
-    Throttle<int> throttle(60);
-    CHECK(throttle.TryAcquire(3, 1000));
-}
-
-TEST_CASE("Throttle: re-acquire blocked inside interval, allowed after")
+TEST_CASE("Throttle: the first acquire takes, and the next waits out the interval")
 {
     Throttle<int> throttle(60);
     CHECK(throttle.TryAcquire(3, 1000));
