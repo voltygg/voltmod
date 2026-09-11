@@ -10,29 +10,19 @@ from conan.tools.scm import Git
 
 
 class Hl2SdkCs2Conan(ConanFile):
-    """Package the AlliedModders CS2 HL2SDK for VoltMod.
-
-    The package preserves the upstream layout and includes headers, prebuilt Valve
-    libraries, protobuf inputs and outputs, and consumer-compiled translation units.
-    `cmake/hl2sdk-sources.cmake` attaches those units. `conandata.yml` pins the
-    version and commit.
-    """
-
     name = "hl2sdk-cs2"
     description = ("HL2SDK (CS2 branch): headers, prebuilt libs, generated protobufs, "
                    "source-only TUs")
     license = "LicenseRef-Valve-Source-SDK"
     homepage = "https://github.com/alliedmodders/hl2sdk/tree/cs2"
     package_type = "static-library"
-    # Valve libraries have no compiler or build type. Generated protobuf sources are
-    # identical across toolchains.
+    # Prebuilt libraries and generated protobufs are toolchain-independent.
     settings = "os", "arch"
     exports = "cmake/hl2sdk-sources.cmake"
 
     HEADER_TREES = ["public", "game/shared", "game/server", "common"]
     PROTOBUF_SRC = "thirdparty/protobuf-3.21.8/src"
-    # VoltMod compiles six files. Each plugin compiles convar.cpp for its own ConVar
-    # state and memoverride.cpp for the global allocation operators.
+    # The last two files provide module-local ConVar and allocator state.
     SOURCE_ONLY = [
         "entity2/entityidentity.cpp",
         "entity2/entitykeyvalues.cpp",
@@ -66,7 +56,7 @@ class Hl2SdkCs2Conan(ConanFile):
             "names": ["usermessages", "usercmd", "gameevents"],
         },
         {
-            # Resolve cs_usercmd.proto flat so its header sits beside usercmd.pb.h.
+            # Generate cs_usercmd.pb.h beside usercmd.pb.h in the flat game-shared output.
             "src": "game/shared/cs",
             "out": "game-shared",
             "paths": ["game/shared/cs", "game/shared", "common", PROTOBUF_SRC],
@@ -100,7 +90,6 @@ class Hl2SdkCs2Conan(ConanFile):
         return path
 
     def build(self):
-        # Generate once here because the package pins both protoc and its inputs.
         protoc = self._protoc()
         for batch in self.PROTO_BATCHES:
             out_dir = os.path.join(self.build_folder, "generated", batch["out"])
@@ -121,14 +110,12 @@ class Hl2SdkCs2Conan(ConanFile):
         for rel in self.SOURCE_ONLY:
             copy(self, os.path.basename(rel), os.path.join(src, os.path.dirname(rel)),
                  os.path.join(dst, os.path.dirname(rel)))
-        # Package the generated sources, but not the build-only protoc executable.
         copy(self, "*", os.path.join(self.build_folder, "generated"),
              os.path.join(dst, "generated"))
         if self.settings.os == "Linux":
             lib_dir = os.path.join(dst, "lib/linux64")
             copy(self, "*", os.path.join(src, "lib/linux64"), lib_dir)
-            # Add the lib prefix required by CMake's Linux library search. Keep the
-            # originals for path-based linking.
+            # CMake needs lib-prefixed names; retain originals for path-based linking.
             for stem in ("mathlib", "interfaces"):
                 plain = os.path.join(lib_dir, f"{stem}.a")
                 if os.path.isfile(plain):
@@ -141,7 +128,6 @@ class Hl2SdkCs2Conan(ConanFile):
         copy(self, "LICENSE*", src, os.path.join(dst, "licenses"))
 
     def package_info(self):
-        # Keep all SDK usage requirements in this package.
         self.cpp_info.set_property("cmake_file_name", "hl2sdk-cs2")
         self.cpp_info.set_property("cmake_target_name", "VoltMod::HL2SDK")
         self.cpp_info.includedirs = [
@@ -186,7 +172,7 @@ class Hl2SdkCs2Conan(ConanFile):
             ]
             self.cpp_info.cxxflags = ["-fno-strict-aliasing"]
             self.cpp_info.libdirs = ["lib/linux64", "lib/linux64/release"]
-            # Link order, not alphabetical: GNU ld resolves static archives left to right.
+            # Keep this link order. GNU ld resolves static archives from left to right.
             self.cpp_info.libs = ["mathlib", "interfaces", "protobuf", "tier0"]
             self.cpp_info.system_libs = ["m"]
             self.cpp_info.sharedlinkflags = ["-static-libstdc++", "-static-libgcc"]

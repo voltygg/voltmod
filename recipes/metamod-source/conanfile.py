@@ -8,13 +8,6 @@ from conan.tools.scm import Git
 
 
 class MetamodSourceConan(ConanFile):
-    """Package Metamod:Source 2.0 headers for CS2 plugins.
-
-    Plugins implement ISmmPlugin, and the server provides the loader. CMakeDeps supplies
-    the header-only usage requirements, so no *-vars.cmake file is needed.
-    `conandata.yml` pins the version and commit.
-    """
-
     name = "metamod-source"
     description = "Metamod:Source 2.0 headers (core + SourceHook) for CS2 plugins"
     license = "Zlib"

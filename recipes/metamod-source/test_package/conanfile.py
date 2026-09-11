@@ -18,5 +18,4 @@ class MetamodSourceTestConan(ConanFile):
         cmake.build()
 
     def test(self):
-        # Compilation is the test. VoltMod's test package adds the required HL2SDK headers.
         pass

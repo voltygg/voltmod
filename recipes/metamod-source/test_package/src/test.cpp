@@ -1,4 +1,3 @@
-// Proves the include layout (core/ + core/sourcehook/) matches what VoltModSdk.cmake expects.
 #include <sourcehook.h>
 
 int SourceHookHeaderCompiles()
