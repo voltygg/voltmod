@@ -113,7 +113,7 @@ def _recipe_version(name: str) -> str:
     data = yaml.safe_load((ROOT / "recipes" / name / "conandata.yml").read_text(encoding="utf-8"))
     sources = data["sources"]
     if len(sources) != 1:
-        tools.die(f"recipes/{name}/conandata.yml must pin exactly one version")
+        tools.abort(f"recipes/{name}/conandata.yml must pin exactly one version")
     return next(iter(sources))
 
 
@@ -122,7 +122,7 @@ def _kit_version() -> str:
     metadata = json.loads(_conan("inspect", str(ROOT), "--format=json", capture=True))
     version = metadata.get("version")
     if not version:
-        tools.die("the voltmod Conan recipe has no version")
+        tools.abort("the voltmod Conan recipe has no version")
     return version
 
 
@@ -182,7 +182,7 @@ def _check_release_tag() -> None:
         return
     declared = _kit_version()
     if ref[1:] != declared:
-        tools.die(f"tag {ref} does not match conanfile.py ({declared})")
+        tools.abort(f"tag {ref} does not match conanfile.py ({declared})")
 
 
 @app.command("version")
@@ -208,7 +208,7 @@ def _login() -> None:
     user = os.environ.get("CLOUDSMITH_USERNAME")
     key = os.environ.get("CLOUDSMITH_API_KEY")
     if not user or not key:
-        tools.die("CLOUDSMITH_USERNAME and CLOUDSMITH_API_KEY are required to publish")
+        tools.abort("CLOUDSMITH_USERNAME and CLOUDSMITH_API_KEY are required to publish")
     tools.ensure_remote()
     _conan("remote", "login", tools.CONAN_REMOTE, user, "-p", key)
 
@@ -239,7 +239,7 @@ def _reachable_revisions(keep_versions: int) -> set[str]:
         for ref, body in listing.items():
             revisions = body.get("revisions")
             if revisions is None:
-                tools.die(f"unexpected conan list output for {ref}: no 'revisions' key")
+                tools.abort(f"unexpected conan list output for {ref}: no 'revisions' key")
             versions.setdefault(ref.split("/", 1)[1], {}).update(revisions)
 
         for version in sorted(versions)[-keep_versions:]:
@@ -271,7 +271,7 @@ def prune(
     """Delete artifacts no consumer can resolve."""
     token = os.environ.get("CLOUDSMITH_API_KEY", "")
     if not token and not dry_run:
-        tools.die("CLOUDSMITH_API_KEY is required to delete")
+        tools.abort("CLOUDSMITH_API_KEY is required to delete")
 
     reachable = _reachable_revisions(keep)
     print(f"{len(reachable)} reachable revisions")
@@ -302,7 +302,7 @@ def _git_tip(url: str, branch: str) -> str:
         capture_output=True,
     ).stdout
     if not out.strip():
-        tools.die(f"{url} has no branch {branch}")
+        tools.abort(f"{url} has no branch {branch}")
     return out.split()[0]
 
 

@@ -3,7 +3,7 @@
 import re
 from pathlib import Path
 
-from voltmod.tools import die
+from voltmod.tools import abort
 
 #: Library paths relative to a CS2 install, by platform.
 MODULES = {
@@ -23,7 +23,7 @@ def detect_platform(game_dir: Path) -> str:
     for platform, modules in MODULES.items():
         if any((game_dir / rel).is_file() for rel in modules.values()):
             return platform
-    die(f"no CS2 server or engine2 binary under {game_dir}")
+    abort(f"no CS2 server or engine2 binary under {game_dir}")
 
 
 def pattern_regex(pattern: str) -> re.Pattern[bytes]:
@@ -51,13 +51,13 @@ class Modules:
         if library not in self._data:
             relative = MODULES[self.platform].get(library)
             if relative is None:
-                die(f"unknown gamedata library '{library}'")
+                abort(f"unknown gamedata library '{library}'")
             path = self.game_dir / relative
             # Linux binaries copied from the deploy image may be supplied in a flat directory.
             if not path.is_file():
                 path = self.game_dir / Path(relative).name
             if not path.is_file():
-                die(f"no {library} binary at {self.game_dir / relative}")
+                abort(f"no {library} binary at {self.game_dir / relative}")
             self._data[library] = path.read_bytes()
         return self._data[library]
 

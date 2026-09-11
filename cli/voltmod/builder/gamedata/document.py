@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from voltmod.tools import die
+from voltmod.tools import abort
 
 _COMMENT = re.compile(r"^\s*//.*$", re.MULTILINE)
 
@@ -17,7 +17,7 @@ def parse(text: str) -> dict[str, Any]:
 
 def read(path: Path) -> tuple[str, dict[str, Any]]:
     if not path.is_file():
-        die(f"no gamedata at {path}")
+        abort(f"no gamedata at {path}")
     text = path.read_text(encoding="utf-8")
     return text, parse(text)
 
@@ -26,10 +26,10 @@ def set_pattern(text: str, key: str, old: str, new: str) -> str:
     """Replace one byte pattern while preserving comments and layout."""
     at = text.find(f'"{key}"')
     if at < 0:
-        die(f"gamedata has no entry named {key}")
+        abort(f"gamedata has no entry named {key}")
     quoted = f'"{old}"'
     if text.count(quoted) != 1:
-        die(f"the pattern for {key} is not unique in the file; edit it by hand")
+        abort(f"the pattern for {key} is not unique in the file; edit it by hand")
     return text.replace(quoted, f'"{new}"')
 
 

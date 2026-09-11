@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from voltmod.tools import die
+from voltmod.tools import abort
 
 from .accessors import declarations, definitions, forwarders
 from .fields import CPP_INCLUDES
@@ -142,7 +142,7 @@ def emit_wrapper(wrapper: str, class_names: list[str], classes: dict[str, Klass]
     for name in class_names:
         klass = classes.get(name)
         if klass is None:
-            die(f"manifest wrapper '{wrapper}' names class '{name}', which is not generated")
+            abort(f"manifest wrapper '{wrapper}' names class '{name}', which is not generated")
         emitted = [line for m in klass.members for line in forwarders(klass, m)]
         if emitted:
             lines += ["", f"// {klass.name}"] + emitted

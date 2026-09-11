@@ -11,7 +11,7 @@ import subprocess
 from pathlib import Path
 
 from . import tools
-from .tools import WINDOWS, die
+from .tools import WINDOWS, abort
 
 #: Server-relative paths to the dedicated server executable, most likely first.
 _EXECUTABLES = ("game/bin/win64/cs2.exe", "game/bin/linuxsteamrt64/cs2")
@@ -50,27 +50,27 @@ def plugin_names(root: Path, requested: str) -> list[str]:
     if requested:
         if plugin_dir(root, requested) is None:
             searched = " or ".join(f"{parent}/{requested}" for parent in PLUGIN_DIRS)
-            die(f"plugin not found: no {searched}")
+            abort(f"plugin not found: no {searched}")
         return [requested]
 
     plugins = root / "plugins"
     if not plugins.is_dir():
-        die(f"no plugins directory at {plugins}")
+        abort(f"no plugins directory at {plugins}")
     names = sorted(
         path.name for path in plugins.iterdir() if path.is_dir() and (path / "src").is_dir()
     )
     if not names:
-        die("no plugins found under plugins/")
+        abort("no plugins found under plugins/")
     return names
 
 
 def server_root(server_path: str) -> Path:
     """Validate a CS2 server installation root."""
     if not server_path:
-        die("no CS2 server path; set CS2_SERVER_PATH in .env or pass --server-path")
+        abort("no CS2 server path; set CS2_SERVER_PATH in .env or pass --server-path")
     root = Path(server_path).expanduser()
     if not (root / "game/csgo").is_dir():
-        die(
+        abort(
             f"CS2 server not found at {root / 'game/csgo'}\n"
             "Set CS2_SERVER_PATH in .env or pass --server-path"
         )
@@ -83,7 +83,7 @@ def install_plugin(root: Path, name: str, csgo: Path, preset: str, *, named: boo
     build_dir = root / "build" / preset
     if not build_dir.is_dir():
         if named:
-            die(f"no build at {build_dir}\nBuild first: voltmod build {preset}")
+            abort(f"no build at {build_dir}\nBuild first: voltmod build {preset}")
         print(f"  (skipped - no build at {build_dir})")
         return
 
@@ -101,14 +101,14 @@ def install_plugin(root: Path, name: str, csgo: Path, preset: str, *, named: boo
         )
     except subprocess.CalledProcessError:
         if named:
-            die(f"cmake --install failed for {name} (is it built?)")
+            abort(f"cmake --install failed for {name} (is it built?)")
         print(f"  (skipped - cmake --install produced nothing for {name})")
         return
 
     try:
         shutil.copytree(staging / "addons", csgo / "addons", dirs_exist_ok=True)
     except (shutil.Error, PermissionError) as exc:
-        die(
+        abort(
             f"could not replace the installed files for {name}: {exc}\n"
             "A running CS2 server holds the plugin binary open; stop it and try again."
         )
@@ -189,7 +189,7 @@ def serve(
     executable = next((server / rel for rel in _EXECUTABLES if (server / rel).is_file()), None)
     if executable is None:
         expected = _EXECUTABLES[0] if WINDOWS else _EXECUTABLES[1]
-        die(f"CS2 executable not found: {server / expected}")
+        abort(f"CS2 executable not found: {server / expected}")
 
     command = [
         str(executable),

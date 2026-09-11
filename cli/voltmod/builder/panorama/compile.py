@@ -14,7 +14,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from voltmod.tools import WINDOWS, die
+from voltmod.tools import WINDOWS, abort
 
 from .screens import find_owners, output, select
 
@@ -62,7 +62,7 @@ def find_client(client_path: str) -> Path:
     if client_path:
         root = Path(client_path).expanduser()
         if not _is_client(root):
-            die(f"no CS2 client at {root}\nExpected {root / 'game/csgo/gameinfo.gi'}")
+            abort(f"no CS2 client at {root}\nExpected {root / 'game/csgo/gameinfo.gi'}")
         return root
 
     for candidate in _STEAM_ROOTS:
@@ -72,7 +72,7 @@ def find_client(client_path: str) -> Path:
                 if _is_client(library / _CS2_IN_LIBRARY):
                     return library / _CS2_IN_LIBRARY
 
-    die("no CS2 client found; set CS2_CLIENT_PATH in .env or pass --client-path")
+    abort("no CS2 client found; set CS2_CLIENT_PATH in .env or pass --client-path")
 
 
 def _rendered_files(rendered: Path) -> list[Path]:
@@ -120,7 +120,7 @@ def _compile(client: Path, built: Path, staged: list[Path], content: Path) -> No
     """
     compiler = client / _COMPILER
     if not compiler.is_file():
-        die(
+        abort(
             f"CS2 Workshop Tools not found at {compiler}\n"
             "Install them from Steam: Library > Tools > Counter-Strike 2 Workshop Tools."
         )
@@ -144,8 +144,8 @@ def _compile(client: Path, built: Path, staged: list[Path], content: Path) -> No
     if result.returncode != 0 or missing:
         print(f"{result.stdout}{result.stderr}".strip())
         if missing:
-            die("resourcecompiler produced no output for: " + ", ".join(p.name for p in missing))
-        die(f"resourcecompiler exited {result.returncode}")
+            abort("resourcecompiler produced no output for: " + ", ".join(p.name for p in missing))
+        abort(f"resourcecompiler exited {result.returncode}")
 
     print(f"  compiled {len(compilable)} resource(s)")
 
@@ -166,7 +166,7 @@ def _deploy(client: Path, built: Path, staged: list[Path], content: Path) -> int
 def install(root: Path, names: list[str], client_path: str, addon: str, deploy: bool) -> None:
     """Compile the named owners' rendered screens and install them into the client."""
     if not WINDOWS:
-        die("the CS2 Workshop Tools are Windows only; compile the layouts there")
+        abort("the CS2 Workshop Tools are Windows only; compile the layouts there")
 
     client = find_client(client_path)
     content = client / "content/csgo_addons" / addon

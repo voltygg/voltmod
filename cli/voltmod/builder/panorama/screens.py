@@ -15,7 +15,7 @@ from xml.etree import ElementTree
 from jinja2 import ChoiceLoader, Environment, FileSystemLoader, StrictUndefined, TemplateError
 
 from voltmod.localdev import PLUGIN_DIRS
-from voltmod.tools import die
+from voltmod.tools import abort
 
 from . import bind
 
@@ -59,7 +59,7 @@ def select(owners: dict[str, Owner], names: list[str]) -> dict[str, Owner]:
         return owners
     unknown = [name for name in names if name not in owners]
     if unknown:
-        die(f"no panorama sources for {', '.join(unknown)}\nKnown: {', '.join(owners) or 'none'}")
+        abort(f"no panorama sources for {', '.join(unknown)}\nKnown: {', '.join(owners) or 'none'}")
     return {name: owners[name] for name in names}
 
 
@@ -179,7 +179,7 @@ class Renderer:
         try:
             return self.environment.get_template(template).render()
         except TemplateError as error:
-            die(f"{self.owner.source / SCREENS_DIR / template}: {error}")
+            abort(f"{self.owner.source / SCREENS_DIR / template}: {error}")
 
     def _icons(self, target: Path) -> list[Path]:
         """Copy each icon into the rendered tree beside the descriptor that names it."""
@@ -201,5 +201,5 @@ def _header(source: Path, layout: str, stylesheet: str) -> str:
     try:
         parsed = bind.read(layout, stylesheet)
     except ElementTree.ParseError as error:
-        die(f"{source}: the rendered layout is not well-formed XML: {error}")
+        abort(f"{source}: the rendered layout is not well-formed XML: {error}")
     return bind.header(parsed, source.read_text(encoding="utf-8-sig"))

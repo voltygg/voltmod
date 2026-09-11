@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from voltmod.tools import die
+from voltmod.tools import abort
 
 from .fields import describe
 from .model import ENTITY_ROOT, Klass, parse_entry
@@ -50,7 +50,7 @@ def _resolve(dump: dict[str, Any], name: str, entries: Any) -> Klass:
     """One manifest class with its selected fields described and its accessors checked unique."""
     raw = dump["classes"].get(name)
     if raw is None:
-        die(f"manifest names class '{name}', which the dump does not have")
+        abort(f"manifest names class '{name}', which the dump does not have")
 
     by_name = {f["name"]: f for f in raw["fields"]}
     klass = empty_klass(dump, name)
@@ -60,13 +60,13 @@ def _resolve(dump: dict[str, Any], name: str, entries: Any) -> Klass:
         schema_name, _, _ = parse_entry(entry)
         found = by_name.get(schema_name)
         if found is None:
-            die(f"manifest names {name}::{schema_name}, which the dump does not have")
+            abort(f"manifest names {name}::{schema_name}, which the dump does not have")
         klass.members.append(describe(entry, found, dump))
 
     seen: dict[str, str] = {}
     for member in klass.members:
         if member.accessor in seen:
-            die(
+            abort(
                 f"{name}: '{member.schema_name}' and '{seen[member.accessor]}' both map to "
                 f"{member.accessor}(); rename one with '>' in the manifest"
             )
@@ -119,7 +119,7 @@ def collect_enums(dump: dict[str, Any], classes: dict[str, Klass]) -> dict[str, 
     for name in sorted(names):
         found = dump["enums"].get(name)
         if found is None:
-            die(f"a generated field returns enum '{name}', which the dump does not have")
+            abort(f"a generated field returns enum '{name}', which the dump does not have")
         out[name] = found
     return out
 

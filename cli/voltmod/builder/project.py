@@ -7,8 +7,8 @@ from pathlib import Path
 
 from ..tools import (
     SDK_BUILD_EXCLUSIONS,
+    abort,
     chunk_by_length,
-    die,
     ensure_msvc_env,
     ensure_remote,
     host_profile,
@@ -91,7 +91,7 @@ def build(
 def test(repo_root: Path, preset: str, *, filter_: str = "") -> None:
     """Bring the build up to date, then run its CTest preset."""
     if not (repo_root / "build" / preset).is_dir():
-        die(f"no build at build/{preset}; run `voltmod build {preset}` first")
+        abort(f"no build at build/{preset}; run `voltmod build {preset}` first")
     # Never run stale test binaries.
     ensure_msvc_env()
     run_tool("cmake", "--build", "--preset", preset)

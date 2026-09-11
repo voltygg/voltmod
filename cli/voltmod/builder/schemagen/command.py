@@ -7,7 +7,7 @@ from typing import Annotated, Any
 import typer
 
 from voltmod import localdev
-from voltmod.tools import chunk_by_length, die, run_tool
+from voltmod.tools import abort, chunk_by_length, run_tool
 
 from . import emit
 from .model import Klass, sorted_classes
@@ -41,7 +41,7 @@ def _server_dump(server_path: str) -> Path:
 
 def _read_json(path: Path, what: str) -> dict[str, Any]:
     if not path.is_file():
-        die(f"no {what} at {path}")
+        abort(f"no {what} at {path}")
     return json.loads(path.read_text(encoding="utf-8"))
 
 

@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from ..tools import SDK_BUILD_EXCLUSIONS, conan_home, die, ensure_msvc_env, host_profile, run_tool
+from ..tools import SDK_BUILD_EXCLUSIONS, abort, conan_home, ensure_msvc_env, host_profile, run_tool
 
 
 def _voltmod_entry(entries: dict) -> Path | None:
@@ -64,7 +64,7 @@ def relock(repo_root: Path, preset: str) -> str:
     """
     checkout = editable()
     if checkout is None:
-        die("no editable voltmod checkout; register one with `conan editable add <path>`")
+        abort("no editable voltmod checkout; register one with `conan editable add <path>`")
     build(repo_root, checkout, preset)
     run_tool("conan", "editable", "remove", str(checkout), check=False)
 
@@ -115,4 +115,4 @@ def verify(repo_root: Path, preset: str, package_folder: str) -> None:
     for data in generators.glob("voltmod-*-data.cmake"):
         if expected in data.read_text(encoding="utf-8").replace("\\", "/").lower():
             return
-    die(f"build/{preset} is not configured against {package_folder}; delete it and rebuild")
+    abort(f"build/{preset} is not configured against {package_folder}; delete it and rebuild")

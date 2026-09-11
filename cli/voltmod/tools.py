@@ -21,7 +21,7 @@ SDK_BUILD_EXCLUSIONS = (
 MINIMUM_VERSIONS = {"cmake": (4, 3, 4), "conan": (2, 29, 1)}
 
 
-def die(message: str) -> NoReturn:
+def abort(message: str) -> NoReturn:
     """Exit with an error message."""
     raise SystemExit(f"ERROR: {message}")
 
@@ -49,7 +49,7 @@ def resolve_tool(tool: str) -> tuple[list[str], dict[str, str]]:
         return ["uv", "run", tool], dict(os.environ)
     if shutil.which(tool):
         return [tool], dict(os.environ)
-    die(
+    abort(
         f"'{tool}' was not found on PATH. Install CMake 4.3.4+, Conan 2.29.1+, and "
         "Ninja, or install uv and run `uv sync`."
     )
@@ -74,7 +74,7 @@ def tool_version(tool: str) -> tuple[str, tuple[int, ...]]:
     result = run_tool(tool, "--version", capture=True, check=False)
     lines = (result.stdout or result.stderr).strip().splitlines()
     if result.returncode != 0 or not lines:
-        die(f"`{tool} --version` failed")
+        abort(f"`{tool} --version` failed")
     match = re.search(r"\b\d+(?:\.\d+)+", lines[0])
     return lines[0], (tuple(map(int, match.group().split("."))) if match else ())
 
@@ -87,7 +87,7 @@ def require_build_tools() -> None:
         if actual < minimum:
             want = ".".join(map(str, minimum))
             got = ".".join(map(str, actual)) or "unknown"
-            die(f"{tool} {want} or newer is required, found {got}.")
+            abort(f"{tool} {want} or newer is required, found {got}.")
 
 
 def remote_url() -> str:
@@ -98,7 +98,7 @@ def remote_url() -> str:
             for entry in json.loads(remotes.read_text(encoding="utf-8"))["remotes"]:
                 if entry["name"] == CONAN_REMOTE:
                     return entry["url"]
-    die(f"no '{CONAN_REMOTE}' entry in any conan/remotes.json")
+    abort(f"no '{CONAN_REMOTE}' entry in any conan/remotes.json")
 
 
 def ensure_remote() -> None:
@@ -128,21 +128,21 @@ def host_profile(repo_root: Path, preset: str) -> tuple[Path, list[str]]:
     build_type = "Debug" if "debug" in preset else "Release"
     profiles = next((path for path in profile_dirs(repo_root) if path.is_dir()), None)
     if profiles is None:
-        die("no Conan profiles found; run `voltmod bootstrap` or the setup-toolchain action")
+        abort("no Conan profiles found; run `voltmod bootstrap` or the setup-toolchain action")
     settings = ["-s", f"build_type={build_type}"]
     if preset.startswith("linux-"):
         return profiles / "linux-steamrt.txt", settings
     if preset.startswith("windows-"):
         settings += ["-s", f"compiler.runtime_type={build_type}"]
         return profiles / "windows-msvc.txt", settings
-    die(f"Unknown preset: {preset}")
+    abort(f"Unknown preset: {preset}")
 
 
 def _vswhere(*args: str) -> list[str]:
     """Query the newest Visual Studio installation; one line per result."""
     path = Path(os.environ["ProgramFiles(x86)"]) / "Microsoft Visual Studio/Installer/vswhere.exe"
     if not path.is_file():
-        die("vswhere not found; install Visual Studio with C++ tools.")
+        abort("vswhere not found; install Visual Studio with C++ tools.")
     query = [str(path), "-latest", "-products", "*", *args]
     return subprocess.run(query, check=True, text=True, capture_output=True).stdout.splitlines()
 
@@ -151,15 +151,15 @@ def msvc_version() -> str:
     """Return the newest installed cl version in Conan form, such as ``195``."""
     found = _vswhere("-find", r"VC\Tools\MSVC\*\bin\Hostx64\x64\cl.exe")
     if not found:
-        die("no cl.exe found")
+        abort("no cl.exe found")
     # cl prints its version to stderr.
     banner = subprocess.run([sorted(found)[-1]], text=True, capture_output=True).stderr
     match = re.search(r"Version (\d+)\.(\d+)", banner)
     if not match:
-        die("could not parse the cl version banner")
+        abort("could not parse the cl version banner")
     version = f"{match.group(1)}{match.group(2)[0]}"
     if int(version) < 193:
-        die(f"cl {version} predates C++23 support")
+        abort(f"cl {version} predates C++23 support")
     return version
 
 
@@ -175,7 +175,7 @@ def ensure_msvc_env() -> None:
     vs_path = found[0].strip() if found else ""
     vcvars = Path(vs_path) / "VC/Auxiliary/Build/vcvars64.bat"
     if not vs_path or not vcvars.is_file():
-        die("vcvars64.bat not found; install the VC++ x64 toolset.")
+        abort("vcvars64.bat not found; install the VC++ x64 toolset.")
 
     print(f"==> Loading MSVC environment ({vs_path})")
     # A string preserves the quoted vcvars path; list2cmdline does not.
@@ -188,7 +188,7 @@ def ensure_msvc_env() -> None:
             os.environ[key] = value
 
     if not shutil.which("cl"):
-        die("cl still not on PATH after vcvars.")
+        abort("cl still not on PATH after vcvars.")
 
 
 def chunk_by_length(files: list[str], budget: int) -> list[list[str]]:

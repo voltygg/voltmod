@@ -7,7 +7,7 @@ from typing import Annotated, Any
 
 import typer
 
-from voltmod.tools import die, kit_root
+from voltmod.tools import abort, kit_root
 
 from . import document, resolve
 from .image import Modules, detect_platform
@@ -34,7 +34,7 @@ def _framework() -> Path:
     for candidate in (ROOT, kit_root(), ROOT / "vendor/voltmod"):
         if (candidate / GAMEDATA).is_file():
             return candidate
-    die(f"no {GAMEDATA} in {ROOT} or {kit_root()}")
+    abort(f"no {GAMEDATA} in {ROOT} or {kit_root()}")
 
 
 def _game_build(game_dir: Path) -> str:
@@ -54,11 +54,11 @@ def _schema(repo: Path) -> dict[str, Any]:
 
 def _collect(game_dir: str, platform: str) -> tuple[Path, str, list[resolve.Finding]]:
     if not game_dir:
-        die("no game directory; set CS2_SERVER_PATH in .env or pass --game-dir")
+        abort("no game directory; set CS2_SERVER_PATH in .env or pass --game-dir")
 
     root = Path(game_dir).expanduser()
     if not root.is_dir():
-        die(f"no game directory at {root}")
+        abort(f"no game directory at {root}")
 
     repo = _framework()
     text, parsed = document.read(repo / GAMEDATA)

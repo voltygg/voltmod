@@ -16,7 +16,7 @@ import webbrowser
 from pathlib import Path
 from xml.etree import ElementTree
 
-from voltmod.tools import die
+from voltmod.tools import abort
 
 from . import bind, screens
 from .screens import BUILD_DIR, Owner
@@ -74,13 +74,13 @@ def _resolve(root: Path, target: str) -> tuple[Owner, str]:
     """`OWNER/SCREEN` as the owner that ships it and the screen's name."""
     parts = target.split("/")
     if len(parts) != 2 or not all(parts):
-        die(f"'{target}' is not OWNER/SCREEN")
+        abort(f"'{target}' is not OWNER/SCREEN")
 
     owner = screens.select(screens.find_owners(root), [parts[0]])[parts[0]]
 
     names = [screens.stem(source) for source in screens.sources(owner)]
     if parts[1] not in names:
-        die(f"{parts[0]} has no screen '{parts[1]}'\nKnown: {', '.join(names) or 'none'}")
+        abort(f"{parts[0]} has no screen '{parts[1]}'\nKnown: {', '.join(names) or 'none'}")
     return owner, parts[1]
 
 
