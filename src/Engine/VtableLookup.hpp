@@ -1,20 +1,24 @@
 #pragma once
 
-#include <functional>
+#include "Engine/ModuleImage.hpp"
+
+#include <VoltMod/Engine/OriginalVfn.hpp>
 #include <optional>
 
 namespace VoltMod
 {
 
 /**
- * `className`'s primary vtable inside the loaded module `moduleName` ("engine2" -> engine2.dll /
- * libengine2.so), as an instance carries it in its vptr, or nullptr. Found through the compiler's
- * class metadata rather than a byte signature: MSVC RTTI on Windows (top-level, non-template
- * classes only), the Itanium `_ZTV` symbol on Linux (absent from a stripped library).
+ * Find `className`'s primary vtable in loaded `moduleName`, or nullptr. Uses compiler metadata:
+ * MSVC RTTI on Windows (top-level, non-template classes only) and the Itanium `_ZTV` symbol on
+ * Linux (unavailable in a stripped library).
  */
 void* FindVirtualTable(const char* moduleName, const char* className);
 
-/** Where a virtual function was found in an object's vtables. See @ref FindVTableSlot. */
+/** Find @p className's primary vtable in an already-located @p image, or nullptr. */
+void* FindVirtualTableIn(const ModuleImage& image, const char* className);
+
+/** Location of a virtual function in an object's vtables. See @ref FindVTableSlot. */
 struct VTableSlot
 {
     void* Table = nullptr;  ///< the vtable holding the function, as a hook binds to it
@@ -23,25 +27,25 @@ struct VTableSlot
 };
 
 /**
- * Locate @p function among the vtables a live @p instance carries, by address. Reaches virtuals a
- * secondary base contributes (`CServerSideClient::FilterMessage`), which @ref FindVirtualTable's
- * primary table never holds, and cannot be off by one: the slot holds the address or it is not
- * the slot.
+ * Find @p function's slot in @p table, or nothing.
  *
- * @p instance is walked blind: its first eight words are each tried as a vptr, and each candidate
- * table is walked until a slot holds something that is not code. Both are reads of foreign memory
- * whose extent this cannot know, so it requires a real engine object - one at least eight words
- * long, whose vtables are followed by readable non-executable data, which every module's `.rdata`
- * satisfies. Do not call it on a small stack struct; nothing here can tell that apart from an
- * object that simply has fewer bases.
+ * @param maxSlots how far to read before giving up. A caller holding a real class table can afford
+ *                 @ref MaxVtableIndex; a blind walk over an unknown object must stay small.
+ */
+std::optional<int> FindSlotInTable(void* table, const void* function, const OriginalVfn& originalOf = {},
+                                   int maxSlots = 16);
+
+/**
+ * Locate @p function among the vtables carried by a live @p instance, including secondary bases
+ * such as `CServerSideClient::FilterMessage` that @ref FindVirtualTable cannot return.
  *
- * @param originalOf what an entry held before a hook patched it (SourceHook's
- *                   `GetOrigVfnPtrEntry`), or nullptr; without it another plugin's hook hides
- *                   @p function. Injected to keep this file SDK-free.
- * @return the slot, or nothing. A hook on a secondary table is called with the subobject, so
- *         `BaseOffset` is what a handler subtracts to reach the object.
+ * The blind walk tries the first eight object words as vptrs and each table until a non-code slot.
+ * These are foreign-memory reads, so pass a real engine object at least eight words long whose
+ * vtables are followed by readable non-executable data, not a small stack struct.
+ *
+ * @return the slot, or nothing. `BaseOffset` lets a secondary-table handler recover the object.
  */
 std::optional<VTableSlot> FindVTableSlot(const void* instance, const void* function,
-                                         const std::function<const void*(void* entry)>& originalOf = {});
+                                         const OriginalVfn& originalOf = {});
 
 }  // namespace VoltMod

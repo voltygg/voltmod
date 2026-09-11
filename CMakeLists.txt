@@ -22,14 +22,14 @@ endif()
 find_package(hl2sdk-cs2 CONFIG REQUIRED)
 find_package(metamod-source CONFIG REQUIRED)
 
-# Include dir plus the header-only deps; all a test binary links.
+# Header-only dependencies used by tests.
 add_library(voltmod-headers INTERFACE)
 add_library(VoltMod::Headers ALIAS voltmod-headers)
 target_include_directories(voltmod-headers INTERFACE "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
 target_link_libraries(voltmod-headers INTERFACE glaze::glaze magic_enum::magic_enum)
 target_compile_features(voltmod-headers INTERFACE cxx_std_23)
 
-# Runtime is every source module except Database.
+# Runtime includes every source module except Database.
 file(GLOB_RECURSE VOLTMOD_RUNTIME_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 list(FILTER VOLTMOD_RUNTIME_SOURCES EXCLUDE REGEX "/src/Database/")
 file(GLOB_RECURSE VOLTMOD_HTTP_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Http/*.cpp")
@@ -40,7 +40,7 @@ add_library(VoltMod::Runtime ALIAS voltmod-runtime)
 
 voltmod_set_cxx_defaults(voltmod-runtime)
 target_include_directories(voltmod-runtime PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
-# cpr stays out of public headers.
+# Keep cpr out of public headers.
 target_link_libraries(voltmod-runtime
     PUBLIC VoltMod::Headers VoltMod::Metamod VoltMod::HL2SDK
     PRIVATE cpr::cpr
@@ -53,7 +53,7 @@ if(WIN32)
 endif()
 
 if(NOT VOLTMOD_DISABLE_PCH)
-    # No framework headers, so edits keep the PCH; protobuf's stable header, not generated ones.
+    # Exclude framework headers so source edits do not invalidate the PCH. Use protobuf's stable header.
     target_precompile_headers(voltmod-runtime PRIVATE
         <ISmmPlugin.h>
         <eiface.h>
@@ -82,14 +82,14 @@ if(VOLTMOD_ENABLE_POSTGRES)
     voltmod_set_cxx_defaults(voltmod-database)
     target_include_directories(voltmod-database PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
     target_link_libraries(voltmod-database PUBLIC VoltMod::Runtime libpqxx::pqxx)
-    # Guards the pqxx-dependent API in Database/Api.hpp.
+    # Enable the pqxx-dependent API in Database/Api.hpp.
     target_compile_definitions(voltmod-database PUBLIC VOLTMOD_ENABLE_POSTGRES=1)
     if(NOT VOLTMOD_DISABLE_PCH)
         target_precompile_headers(voltmod-database PRIVATE <pqxx/pqxx> <format> <string> <vector>)
     endif()
 endif()
 
-# CMakeDeps generates the package config, so do not install an export set.
+# CMakeDeps generates the package config; no export set is needed.
 install(TARGETS voltmod-runtime ARCHIVE DESTINATION lib)
 if(TARGET voltmod-database)
     install(TARGETS voltmod-database ARCHIVE DESTINATION lib)
@@ -101,19 +101,13 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/gamedata/" DESTINATION gamedata)
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/templates/plugin/" DESTINATION templates/plugin)
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE" DESTINATION licenses)
 
-# Dev-only plugins under tools/. Off so Conan builds never compile or install one; our presets set it.
-option(VOLTMOD_BUILD_TOOLS "Build the dev-only tool plugins under tools/." OFF)
-if(VOLTMOD_BUILD_TOOLS)
-    add_subdirectory(tools/schema-dump)
-endif()
-
-# Cache builds have no tests/ and BUILD_TESTING off.
+# Cache builds have no tests and disable BUILD_TESTING.
 if(PROJECT_IS_TOP_LEVEL)
     include(CTest)
 endif()
 
 if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
-    # Each Api.hpp must compile alone; compiling is the test.
+    # Each Api.hpp must compile on its own.
     file(GLOB VOLTMOD_API_CHECKS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/Api/*.cpp")
     if(NOT VOLTMOD_ENABLE_POSTGRES)
         list(FILTER VOLTMOD_API_CHECKS EXCLUDE REGEX "/DatabaseApiSurfaceTest\\.cpp$")
@@ -125,7 +119,7 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
         target_link_libraries(voltmod-api-surface-check PRIVATE VoltMod::Database)
     endif()
 
-    # The SDK-free TUs; everything else needs HL2SDK or pqxx.
+    # SDK-free translation units. Other sources need HL2SDK or pqxx.
     voltmod_add_tests(voltmod-utils-tests
         SOURCES
             src/Commands/CommandBuilder.cpp
@@ -159,13 +153,15 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Engine/GameDataFile.cpp
             src/Engine/BytePattern.cpp
             src/Engine/SigScanner.cpp
-            # One of these is empty on this platform.
+            src/Engine/VtableLookup.cpp
+            # One file in each pair is empty on this platform.
             src/Engine/ModuleImage_Windows.cpp
             src/Engine/ModuleImage_Linux.cpp
-            src/Engine/VtableLookup.cpp
-            # VOLTMOD_VHOOK owns the SourceHook half.
+            src/Engine/VtableLookup_Windows.cpp
+            src/Engine/VtableLookup_Linux.cpp
+            # VOLTMOD_VHOOK owns the SourceHook integration.
             src/Unsafe/VtableHook.cpp
-            # Run against a fake MenuSurface.
+            # Use a fake MenuSurface.
             src/Menu/MenuBuilder.cpp
             src/Menu/MenuPresets.cpp
             src/Menu/CenterHtmlRender.cpp
@@ -173,7 +169,7 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Menu/MenuStack.cpp
             src/Menu/PendingCommit.cpp
     )
-    # Module scanning needs the OS loader.
+    # Module scanning needs the platform loader library.
     if(WIN32)
         target_link_libraries(voltmod-utils-tests PRIVATE psapi)
     endif()
