@@ -1,23 +1,24 @@
 {
   "$schema": "./gamedata.schema.json",
-  "version": 2,
 
-  // Everything here drifts with CS2. `verified` is the day the file was last walked entry by
-  // entry; docs/sdk/gamedata.md has the procedure.
+  // These entries drift with CS2. `verified` records the last full review; see docs/sdk/gamedata.md.
   "build": {
     "game": "cs2",
-    "verified": "2026-08-26",
-    "note": "re-verify after every CS2 engine update"
+    "verified": "2026-09-11"
   },
 
-  // Byte patterns scanned in a loaded module; `?` and `??` are wildcards. The match address is the
-  // binding, unless an "addresses" entry turns it into a rel32 target.
+  // Patterns are scanned in a loaded module; `?` and `??` are wildcards. An "addresses" entry can
+  // turn the match into a rel32 target.
   "signatures": {
-    // Code referencing CSource2Server::g_GameEventManager; the pointer comes from addresses.
+    // Code referencing CSource2Server::g_GameEventManager; the pointer comes from `addresses`.
     "GameEventManagerSig": {
       "library": "server",
-      "windows": { "pattern": "48 83 EC ? 48 83 3D ? ? ? ? ? 74 ? 33 C9 E8 ? ? ? ? FF 15 ? ? ? ?" },
-      "linux": { "pattern": "55 48 89 E5 41 55 41 54 53 48 83 EC 08 48 8D 05 ? ? ? ? 48 83 38 00" }
+      "windows": {
+        "pattern": "48 83 EC ? 48 83 3D ? ? ? ? ? 74 ? 33 C9 E8 ? ? ? ? FF 15 ? ? ? ?"
+      },
+      "linux": {
+        "pattern": "55 48 89 E5 41 55 41 54 53 48 83 EC 08 48 8D 05 ? ? ? ? 48 83 38 00"
+      }
     },
 
     // CBaseGameSystemFactory** sm_pFirst.
@@ -27,48 +28,46 @@
       "linux": { "pattern": "4C 8B 35 ? ? ? ? 4D 85 F6 75 ? E9" }
     },
 
-    // CGameSystemEventDispatcher**; the framework detaches from it on unload.
+    // CGameSystemEventDispatcher**; the framework detaches on unload.
     "GameSystemEventDispatcherSig": {
       "library": "server",
       "windows": { "pattern": "48 39 1D ? ? ? ? 74 ? 39 05" },
       "linux": { "pattern": "4C 8B 25 ? ? ? ? 48 8B 05 ? ? ? ? 8B 35" }
     },
 
-    // CUtlVector<AddedGameSystem_t>* s_GameSystems; the framework removes its own on unload.
+    // CUtlVector<AddedGameSystem_t>* s_GameSystems; the framework removes its entry on unload.
     "GameSystemListSig": {
       "library": "server",
       "windows": { "pattern": "8B 05 ? ? ? ? 83 E8 ? 48 63 F8 0F 88" },
-      "linux": { "pattern": "8B 05 ? ? ? ? 89 C2 83 EA ? 0F 88 ? ? ? ? 4C 8D 3D" }
+      "linux": {
+        "pattern": "8B 05 ? ? ? ? 89 C2 83 EA ? 0F 88 ? ? ? ? 4C 8D 3D"
+      }
     },
 
-    // CCSCustomHudLayout's setters. Called rather than poked by hand because server-only hash
-    // indexes shadow the tables they append to - see docs/custom-ui.md. Windows patterns from
-    // server.dll build 24934554, each matching once in .text; Linux patterns from SwiftlyS2.
-
-    // void (self, const CUtlString* panelId, const CUtlString* className,
-    //       EHudPanelClassStatus_t status)
+    // CCSCustomHudLayout setters. Call them because server-only hash indexes shadow their tables;
+    // see docs/custom-ui.md. Windows patterns cut from server.dll build 24934554, each matching
+    // once in .text; Linux patterns from SwiftlyS2.
     "CustomHudSetHasClass": {
       "library": "server",
       "windows": {
         "pattern": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 30 49 8B F0 33 ED 4C 8D 44 24 24 66 89 6C 24 24 41 8B F9 48 8B D9 E8 ? ? ? ? 84 C0 74 33"
       },
-      "linux": { "pattern": "55 48 89 E5 41 57 49 89 D7 41 56 48 8D 55 ? 41 55" }
+      "linux": {
+        "pattern": "55 48 89 E5 41 57 49 89 D7 41 56 48 8D 55 ? 41 55"
+      }
     },
 
-    // void (self, int32 slot, const CUtlString* panelId, const CUtlString* className, status).
-    // Identical to SetDialogVariableForPlayer but for the tail (`44 8B` / `45 89 C6`), so neither
-    // pattern may be shortened.
+    // Same body as SetDialogVariableForPlayer, but with a `44 8B` / `45 89 C6` tail. Keep both tails.
     "CustomHudSetHasClassForPlayer": {
       "library": "server",
       "windows": {
-        "pattern": "40 53 56 57 48 83 EC 20 48 63 DA 49 8B F1 49 8B C0 48 8B F9 3B 99 B0 04 00 00 7D 5E 48 89 6C 24 50 4C 8D 44 24 40 33 ED 48 8B D0 66 89 6C 24 40 E8 ? ? ? ? 84 C0 74 3C 4C 8D 44 24 48 66 89 6C 24 48 48 8B D6 48 8B CF E8 ? ? ? ? 84 C0 74 23 44 8B"
+        "pattern": "40 53 56 57 48 83 EC 20 48 63 DA 49 8B F1 49 8B C0 48 8B F9 3B 99 ? ? ? ? 7D 5E 48 89 6C 24 50 4C 8D 44 24 40 33 ED 48 8B D0 66 89 6C 24 40 E8 ? ? ? ? 84 C0 74 3C 4C 8D 44 24 48 66 89 6C 24 48 48 8B D6 48 8B CF E8 ? ? ? ? 84 C0 74 23 44 8B"
       },
       "linux": {
         "pattern": "55 48 89 E5 41 56 41 55 41 54 41 89 F4 53 48 83 EC ? 3B B7 ? ? ? ? 7C ? 48 83 C4 ? 5B 41 5C 41 5D 41 5E 5D C3 66 0F 1F 84 00 ? ? ? ? 48 89 D6 31 D2 48 89 FB 66 89 55 ? 48 8D 55 ? 49 89 CD 45 89 C6"
       }
     },
 
-    // void (self, const CUtlString* panelId, const CUtlString* varName, const CUtlString* value)
     "CustomHudSetDialogVariable": {
       "library": "server",
       "windows": {
@@ -77,32 +76,28 @@
       "linux": { "pattern": "55 48 89 E5 41 55 49 89 CD 41 54 49 89 D4 31 D2" }
     },
 
-    // void (self, int32 slot, const CUtlString* panelId, const CUtlString* varName,
-    //       const CUtlString* value). The twin of SetHasClassForPlayer; its tail is `4C 8B` /
-    //       `4D 89 C6`.
+    // Twin of SetHasClassForPlayer with a `4C 8B` / `4D 89 C6` tail.
     "CustomHudSetDialogVariableForPlayer": {
       "library": "server",
       "windows": {
-        "pattern": "40 53 56 57 48 83 EC 20 48 63 DA 49 8B F1 49 8B C0 48 8B F9 3B 99 B0 04 00 00 7D 5E 48 89 6C 24 50 4C 8D 44 24 40 33 ED 48 8B D0 66 89 6C 24 40 E8 ? ? ? ? 84 C0 74 3C 4C 8D 44 24 48 66 89 6C 24 48 48 8B D6 48 8B CF E8 ? ? ? ? 84 C0 74 23 4C 8B"
+        "pattern": "40 53 56 57 48 83 EC 20 48 63 DA 49 8B F1 49 8B C0 48 8B F9 3B 99 ? ? ? ? 7D 5E 48 89 6C 24 50 4C 8D 44 24 40 33 ED 48 8B D0 66 89 6C 24 40 E8 ? ? ? ? 84 C0 74 3C 4C 8D 44 24 48 66 89 6C 24 48 48 8B D6 48 8B CF E8 ? ? ? ? 84 C0 74 23 4C 8B"
       },
       "linux": {
         "pattern": "55 48 89 E5 41 56 41 55 41 54 41 89 F4 53 48 83 EC ? 3B B7 ? ? ? ? 7C ? 48 83 C4 ? 5B 41 5C 41 5D 41 5E 5D C3 66 0F 1F 84 00 ? ? ? ? 48 89 D6 31 D2 48 89 FB 66 89 55 ? 48 8D 55 ? 49 89 CD 4D 89 C6"
       }
     },
 
-    // void (self, int32 slot, bool enabled). The Linux entry point is the slot compare, not a
-    // prologue - that build sets up a frame only after the range check.
+    // Linux starts at the slot compare and sets up a frame after the range check.
     "CustomHudSetInputCapture": {
       "library": "server",
-      "windows": { "pattern": "40 57 48 83 EC 20 41 0F B6 F8 3B 91 B0 04 00 00 7D 39" },
+      "windows": {
+        "pattern": "40 57 48 83 EC 20 41 0F B6 F8 3B 91 ? ? ? ? 7D 39"
+      },
       "linux": { "pattern": "3B B7 ? ? ? ? 0F 8D ? ? ? ? 55" }
     },
 
-    // CServerSideClient::FilterMessage, the inbound client-message filter. It is bound by signature
-    // rather than by index because it is declared on a third base
-    // (INetworkMessageProcessingPreFilter) and so lives in a secondary vtable, which
-    // FindVirtualTable cannot return; UiClickHook searches a live client for this address to find the
-    // slot. Patterns from SwiftlyS2.
+    // CServerSideClient::FilterMessage is on the third base, so it lives in a secondary vtable.
+    // Bind by signature; UiClickHook searches a live client for the slot. Patterns from SwiftlyS2.
     "FilterMessage": {
       "library": "engine2",
       "windows": { "pattern": "40 53 48 83 EC ? 48 8B 02 48 8B D9 48 8B CA" },
@@ -111,40 +106,42 @@
       }
     },
 
-    // GetLegacyGameEventListener: IGameEventListener2* (CPlayerSlot). The match is the function.
     "LegacyGameEventListener": {
       "library": "server",
       "windows": { "pattern": "48 8B 15 ? ? ? ? 48 85 D2 74 ? 85 C9" },
-      "linux": { "pattern": "48 8B 05 ? ? ? ? 48 85 C0 74 ? 83 FF ? 77 ? 48 63 FF 48 C1 E7 ? 48 8D 44 38" }
+      "linux": {
+        "pattern": "48 8B 05 ? ? ? ? 48 85 C0 74 ? 83 FF ? 77 ? 48 63 FF 48 C1 E7 ? 48 8D 44 38"
+      }
     },
 
     // Everything below is copied from CS2Fixes gamedata (github.com/Source2ZE/CS2Fixes) under the
     // same names; re-sync from there after a CS2 update.
-
-    // CBaseEntity* (const char* className, int forceEdictIndex /* -1 */)
     "CreateEntityByName": {
       "library": "server",
       "windows": { "pattern": "48 83 EC 48 C6 44 24 30 00" },
       "linux": { "pattern": "48 8D 05 ? ? ? ? 55 48 89 FA" }
     },
 
-    // void (CBaseEntity*, CEntityKeyValues* /* may be null */)
     "DispatchSpawn": {
       "library": "server",
-      "windows": { "pattern": "48 89 5C 24 10 57 48 83 EC 30 48 8B DA 48 8B F9 48 85 C9" },
+      "windows": {
+        "pattern": "48 89 5C 24 10 57 48 83 EC 30 48 8B DA 48 8B F9 48 85 C9"
+      },
       "linux": { "pattern": "48 85 FF 74 ? 55 48 89 E5 41 55 41 54 49 89 FC" }
     },
 
-    // void (CEntityInstance*, const char* input, activator, caller, variant_t*, int outputId, void*).
     // Not a vtable call in CS2.
     "CEntityInstance_AcceptInput": {
       "library": "server",
-      "windows": { "pattern": "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 49 8B F0 48 8B D9 48 8B 0D" },
-      "linux": { "pattern": "55 48 89 F0 48 89 E5 41 57 49 89 FF 41 56 48 8D 7D" }
+      "windows": {
+        "pattern": "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 49 8B F0 48 8B D9 48 8B 0D"
+      },
+      "linux": {
+        "pattern": "55 48 89 F0 48 89 E5 41 57 49 89 FF 41 56 48 8D 7D"
+      }
     },
 
-    // Deferred entity IO - delayed inputs and "Kill" cleanup:
-    // void (CEntitySystem*, target, input, activator, caller, variant_t*, float delay, int outputId, void*, void*)
+    // Deferred entity IO, including delayed inputs and "Kill" cleanup.
     "CEntitySystem_AddEntityIOEvent": {
       "library": "server",
       "windows": {
@@ -153,15 +150,14 @@
       "linux": { "pattern": "55 48 89 E5 41 55 49 89 CD 41 54 49 89 FC 53 BB" }
     },
 
-    // void (CEntityInstance*), removing now rather than through the IO queue above.
+    // Remove immediately instead of using the IO queue above.
     "UTIL_Remove": {
       "library": "server",
       "windows": { "pattern": "48 85 C9 74 ? 48 8B D1 48 8B 0D ? ? ? ?" },
       "linux": { "pattern": "48 89 FE 48 85 FF 74 ? 48 8D 05 ? ? ? ? 48" }
     },
 
-    // void (CBaseEntity*, const char* soundEvent, int pitch, float volume, float delay).
-    // A vscript binding, so it can disappear between builds; EmitSoundFilter is the sturdier one.
+    // Vscript binding that can disappear between builds; EmitSoundFilter is more stable.
     "CBaseEntity_EmitSoundParams": {
       "library": "server",
       "windows": {
@@ -170,16 +166,17 @@
       "linux": { "pattern": "48 B8 ? ? ? ? ? ? ? ? 55 0F 28 D0" }
     },
 
-    // StartSoundEventInfo (IRecipientFilter&, CEntityIndex, const EmitSound_t&)
+    // The engine names this function StartSoundEventInfo.
     "CBaseEntity_EmitSoundFilter": {
       "library": "server",
-      "windows": { "pattern": "40 53 48 83 EC ? 4C 89 4C 24 ? 48 8B D9 45 8B C8" },
+      "windows": {
+        "pattern": "40 53 48 83 EC ? 4C 89 4C 24 ? 48 8B D9 45 8B C8"
+      },
       "linux": {
         "pattern": "55 48 89 E5 53 48 89 FB 48 83 EC ? E8 ? ? ? ? 48 89 D8 48 8B 5D ? C9 C3 CC CC CC CC CC CC 48 B8"
       }
     },
 
-    // void (CBaseModelEntity*, const char* modelPath)
     "CBaseModelEntity_SetModel": {
       "library": "server",
       "windows": {
@@ -190,14 +187,14 @@
       }
     },
 
-    // CBaseEntity* (CEntitySystem*, CEntityInstance* startAfter, const char* className)
     "CGameEntitySystem_FindEntityByClassName": {
       "library": "server",
       "windows": { "pattern": "48 83 EC 68 45 33 C9" },
-      "linux": { "pattern": "55 45 31 C0 31 C9 48 89 E5 53 48 8D 5D ? 48 83 EC ? 48 89 DF" }
+      "linux": {
+        "pattern": "55 45 31 C0 31 C9 48 89 E5 53 48 8D 5D ? 48 83 EC ? 48 89 DF"
+      }
     },
 
-    // CBaseEntity* (CEntitySystem*, startAfter, name, searching, activator, caller, IEntityFindFilter*)
     "CGameEntitySystem_FindEntityByName": {
       "library": "server",
       "windows": { "pattern": "48 81 EC 88 ? ? ? 4D 85 C0" },
@@ -205,8 +202,8 @@
     }
   },
 
-  // A pointer reached through a rel32 displacement inside a matched signature. `rel32At` is the
-  // byte distance from the match to the 4-byte little-endian displacement.
+  // Pointers reached through a rel32 displacement in a matched signature. `rel32At` is the byte
+  // distance to the 4-byte little-endian displacement.
   "addresses": {
     // IGameEventManager2**.
     "GameEventManager": {
@@ -227,38 +224,50 @@
     }
   },
 
-  // Vtable slots. `class` is the RTTI/ELF class owning the table: what a DVP hook binds to, and
-  // what the index counts from. A wrong index calls an unrelated vfunc and crashes.
+  // Vtable slots. `class` owns the table and is the origin for the index. A wrong index can crash.
   "vtables": {
-    // CBasePlayerPawn::CommitSuicide (SwiftlyS2 v1.4.5). Called on the pawn, whose most derived
-    // class is CCSPlayerPawn.
+    // CBasePlayerPawn::CommitSuicide, called on a CCSPlayerPawn. From SwiftlyS2 v1.4.5.
     "CommitSuicide": { "class": "CCSPlayerPawn", "windows": 384, "linux": 384 },
-    // CCSPlayerController::ChangeTeam (SwiftlyS2).
-    "ChangeTeam": { "class": "CCSPlayerController", "windows": 103, "linux": 102 },
-    // CCSPlayerController::Respawn (SwiftlyS2 v1.4.5).
+    // From SwiftlyS2.
+    "ChangeTeam": {
+      "class": "CCSPlayerController",
+      "windows": 103,
+      "linux": 102
+    },
+    // From SwiftlyS2 v1.4.5.
     "Respawn": { "class": "CCSPlayerController", "windows": 270, "linux": 272 },
-    // CBaseEntity::Teleport(origin, angles, velocity) (SwiftlyS2). Hooked per pawn by
-    // Hooks::Teleport, called directly by Entity::Teleport.
+    // CBaseEntity::Teleport. Hooked per pawn by Hooks::Teleport, called directly by
+    // Entity::Teleport. From SwiftlyS2.
     "Teleport": { "class": "CCSPlayerPawn", "windows": 163, "linux": 162 },
-    // CPlayer_MovementServices::RunCommand (SwiftlyS2 v1.4.5). Hooks::Movement DVP-hooks the
-    // concrete class every player pawn instantiates, which is the one named here.
-    "RunCommand": { "class": "CCSPlayer_MovementServices", "windows": 25, "linux": 26 },
-    // CCSPlayer_ItemServices::GiveNamedItem (SwiftlyS2 / s2sdk). Called on the pawn's
-    // m_pItemServices.
-    "GiveNamedItem": { "class": "CCSPlayer_ItemServices", "windows": 23, "linux": 24 },
-    // CCSPlayer_ItemServices::RemoveAllItems (SwiftlyS2 / s2sdk).
-    "RemoveAllItems": { "class": "CCSPlayer_ItemServices", "windows": 27, "linux": 28 },
-    // CServerSideClient::ProcessRespondCvarValue (CS2AC).
+    // Hooks::Movement targets the concrete movement-services class instantiated by each pawn.
+    // From SwiftlyS2 v1.4.5.
+    "RunCommand": {
+      "class": "CCSPlayer_MovementServices",
+      "windows": 25,
+      "linux": 26
+    },
+    // Called on the pawn's m_pItemServices. From SwiftlyS2 / s2sdk.
+    "GiveNamedItem": {
+      "class": "CCSPlayer_ItemServices",
+      "windows": 23,
+      "linux": 24
+    },
+    // From SwiftlyS2 / s2sdk.
+    "RemoveAllItems": {
+      "class": "CCSPlayer_ItemServices",
+      "windows": 27,
+      "linux": 28
+    },
+    // From CS2AC.
     "ProcessRespondCvarValue": {
       "class": "CServerSideClient",
       "library": "engine2",
       "windows": 38,
       "linux": 40
     },
-    // CServerSideClient::SendNetMessage (SwiftlyS2). Addons rewrites the outgoing signon message
-    // through it. This one is in the primary vtable, unlike FilterMessage: counting the virtuals in
-    // serversideclient.h from here only reaches ProcessRespondCvarValue at 38 with FilterMessage
-    // left out, which is how we know they are in different tables.
+    // CServerSideClient::SendNetMessage handles outgoing signon rewrites. It is in the primary
+    // vtable, unlike FilterMessage; the primary count reaches ProcessRespondCvarValue at 38.
+    // From SwiftlyS2.
     "SendNetMessage": {
       "class": "CServerSideClient",
       "library": "engine2",
@@ -267,41 +276,51 @@
     }
   },
 
-  // Byte offsets into layouts the SDK headers do not declare. `max` and `align` describe the field
-  // read there, so a hand-edited or drifted value is rejected at load instead of becoming a read of
-  // unrelated memory.
+  // Offsets absent from SDK layouts. `max` and `align` validate each read and reject drift at load.
   "offsets": {
-    // The CGameEntitySystem* cached inside IGameResourceService.
+    // CGameEntitySystem* cached inside IGameResourceService.
     "GameEntitySystem": { "windows": 88, "linux": 80, "max": 4096, "align": 8 },
 
-    // Recipient player slot in CCheckTransmitInfo, of which the SDK declares only the two leading
-    // bitvec pointers. From CS2Fixes gamedata; read as one byte.
-    "CheckTransmitPlayerSlot": { "windows": 576, "linux": 576, "max": 4096, "align": 1 },
+    // Recipient slot in CCheckTransmitInfo. The SDK declares only its two leading bitvec pointers;
+    // read this field as one byte. From CS2Fixes gamedata.
+    "CheckTransmitPlayerSlot": {
+      "windows": 576,
+      "linux": 576,
+      "max": 4096,
+      "align": 1
+    },
 
-    // CSGOUserCmdPB embedded in CUserCmd; checked against CS2Fixes and SwiftlyS2.
+    // CSGOUserCmdPB embedded in CUserCmd. Checked against CS2Fixes and SwiftlyS2.
     "UserCmdPB": { "windows": 16, "linux": 16, "max": 4096, "align": 8 },
-    // Native command counter in CUserCmd (CS2AC). Read instead of
-    // CBaseUserCmdPB.legacy_command_number, which the live client leaves unpopulated.
+    // Native counter in CUserCmd. Use it because the live client leaves
+    // CBaseUserCmdPB.legacy_command_number empty. From CS2AC.
     "UserCmdNumber": { "windows": 8, "linux": 8, "max": 4096, "align": 4 },
 
-    // Player slot in CServerSideClient (CS2AC ClientSlotOffset).
-    "ServerSideClientSlot": { "windows": 72, "linux": 72, "max": 4096, "align": 4 },
+    // From CS2AC (ClientSlotOffset).
+    "ServerSideClientSlot": {
+      "windows": 72,
+      "linux": 72,
+      "max": 4096,
+      "align": 4
+    },
 
-    // CServerSideClientBase::m_SteamID (SwiftlyS2 v1.4.5), in the same block as the slot above and
-    // anchored on it. It follows a run of bools and so is unaligned, hence align 1 and a memcpy
-    // read. Addons keys on it rather than the slot: a client cycling through downloads reconnects,
-    // which changes its slot but not its SteamID.
-    "ServerSideClientSteamId": { "windows": 171, "linux": 171, "max": 4096, "align": 1 },
+    // CServerSideClientBase::m_SteamID follows bools and is unaligned, so read it with memcpy.
+    // Addons key on it because reconnects can change a client's slot but not its SteamID.
+    // From SwiftlyS2 v1.4.5.
+    "ServerSideClientSteamId": {
+      "windows": 171,
+      "linux": 171,
+      "max": 4096,
+      "align": 1
+    },
 
-    // CNetworkGameServer::m_Clients, a CUtlVector<CServerSideClient*> indexed by slot (SwiftlyS2
-    // v1.4.5). Reached from INetworkServerService::GetIGameServer(); the SDK offers no accessor.
-    "NetworkGameServerClients": { "windows": 584, "linux": 584, "max": 4096, "align": 8 }
-  },
-
-  "messages": {
-    // msg_type of a custom HUD Button press inside CSVCMsg_UserMessage. It has no name anywhere -
-    // not in the engine's registry, and past the SDK proto's last id (389) - so the number is all
-    // there is to match on. Read off the wire on build 14178.
-    "CustomHudClicked": { "windows": 390, "linux": 390 }
+    // CNetworkGameServer::m_Clients, indexed by slot. Reach it through
+    // INetworkServerService::GetIGameServer(); the SDK has no accessor. From SwiftlyS2 v1.4.5.
+    "NetworkGameServerClients": {
+      "windows": 584,
+      "linux": 584,
+      "max": 4096,
+      "align": 8
+    }
   }
 }

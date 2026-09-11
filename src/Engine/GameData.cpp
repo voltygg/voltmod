@@ -1,17 +1,21 @@
 #include "Engine/GameDataFile.hpp"
 #include "Engine/SigScanner.hpp"
+#include "Engine/VtableLookup.hpp"
 
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Engine/GameData.hpp>
+#include <VoltMod/Engine/OriginalVfn.hpp>
+#include <cstdint>
 #include <format>
+#include <map>
+#include <string>
 #include <utility>
 #include <vector>
 
 namespace VoltMod
 {
 
-/** Scan one signature pattern and record the match. */
 static GameData::Resolution ScanSignature(const SignatureEntry& entry, ScanResult& scan)
 {
     GameData::Resolution out{.Section = GameData::Kind::Signature, .Library = entry.Library};
@@ -21,14 +25,12 @@ static GameData::Resolution ScanSignature(const SignatureEntry& entry, ScanResul
         out.Error = std::format("module '{}' is not loaded", entry.Library);
     else if (!scan.Address)
         out.Error = "pattern not found";
-    // Which of several matches is "the" match is arbitrary, so an ambiguous pattern is an
-    // error, not a warning: Bindings gates on Error, so nothing binds or derives from it.
+    // Ambiguous matches are errors because Bindings rejects them and dependent addresses cannot be trusted.
     else if (!scan.Unique)
         out.Error = "pattern matched more than once";
     return out;
 }
 
-/** Turn a signature match into the rel32 target it points at. */
 static GameData::Resolution ResolveAddress(const AddressEntry& entry, const GameData::Resolution& signature,
                                            const ModuleImage& image)
 {
@@ -51,10 +53,103 @@ static GameData::Resolution ResolveAddress(const AddressEntry& entry, const Game
     return out;
 }
 
-Status GameData::Load(std::string_view path)
+/** Return the original function in @p table's @p index, when a hook has replaced that slot. */
+static void* OriginalSlot(void* table, int index, const OriginalVfn& originalOf)
 {
-    // Everything, not just the resolutions: a reload that kept the previous build stamp or a
-    // stale entry would report a file it is no longer running on.
+    void** slots = static_cast<void**>(table);
+    if (!originalOf)
+        return slots[index];
+
+    const void* original = originalOf(&slots[index]);
+    return original ? const_cast<void*>(original) : slots[index];
+}
+
+/** What every vtable entry in one load shares: the entries resolved before them, and the tables found so far. */
+struct VTablePass
+{
+    const GameData::ResolutionMap& Resolved;
+    const OriginalVfn& Original;
+    std::map<std::pair<std::string, std::string>, void*> Tables;  ///< keyed by library and class
+};
+
+/** Locate a class vtable once per library and class; several entries share one table. */
+static void* VTableFor(const VTableEntry& entry, VTablePass& pass)
+{
+    auto [at, added] = pass.Tables.try_emplace({entry.Library, entry.Class}, nullptr);
+    if (added)
+        at->second = FindVirtualTable(entry.Library.c_str(), entry.Class.c_str());
+    return at->second;
+}
+
+/** Resolve by signature to survive vtable index shifts, falling back to the configured index. */
+static GameData::Resolution ResolveVTable(const std::string& key, const VTableEntry& entry, VTablePass& pass)
+{
+    GameData::Resolution out{
+        .Section = GameData::Kind::VTable, .Index = entry.Index, .Class = entry.Class, .Library = entry.Library};
+
+    out.Table = VTableFor(entry, pass);
+    if (!out.Table)
+    {
+        if (!entry.Signature.empty())
+            Log::Warn("GameData: {} keeps index {}; no vtable for {}.", key, entry.Index, entry.Class);
+        return out;
+    }
+
+    if (!entry.Signature.empty())
+    {
+        const GameData::Resolution& signature = pass.Resolved.at(entry.Signature);
+        std::string keeps;
+        if (!signature.Error.empty() || !signature.Address)
+        {
+            keeps = std::format("signature '{}' did not resolve", entry.Signature);
+        }
+        else if (const auto found = FindSlotInTable(out.Table, signature.Address, pass.Original, MaxVtableIndex))
+        {
+            if (*found != entry.Index)
+                Log::Warn("GameData: {} moved from index {} to {}; update gamedata.jsonc.", key, entry.Index, *found);
+            out.Index = *found;
+        }
+        else
+        {
+            keeps = std::format("'{}' is in no slot of {}", entry.Signature, entry.Class);
+        }
+
+        if (!keeps.empty())
+            Log::Warn("GameData: {} keeps index {}; {}.", key, entry.Index, keeps);
+    }
+
+    if (void* held = OriginalSlot(out.Table, out.Index, pass.Original); IsExecutableAddress(held))
+        out.Address = held;
+    return out;
+}
+
+/** Format resolved vtable addresses as `key=library+offset` for minidump comparison. */
+static std::string VTableAddresses(const GameData::ResolutionMap& resolved)
+{
+    std::map<std::string, ModuleImage> images;
+    std::vector<std::string> bound;
+    for (const auto& [key, entry] : resolved)
+    {
+        if (entry.Section != GameData::Kind::VTable || !entry.Address)
+            continue;
+
+        auto [image, first] = images.try_emplace(entry.Library);
+        if (first)
+            FindModuleImage(entry.Library.c_str(), image->second);
+
+        // Hook trampolines outside the module have no useful module-relative offset.
+        if (!image->second.Contains(entry.Address))
+            continue;
+
+        const auto* at = static_cast<const uint8_t*>(entry.Address);
+        bound.push_back(std::format("{}={}+{:#x}", key, entry.Library, at - image->second.Base));
+    }
+    return Strings::Join(bound, ", ");
+}
+
+Status GameData::Load(std::string_view path, const OriginalVfn& originalOf)
+{
+    // Clear the verification date as well as resolutions so reloads cannot retain stale state.
     _resolved.clear();
     _verified.clear();
 
@@ -67,7 +162,6 @@ Status GameData::Load(std::string_view path)
 
     _verified = file->Build.Verified;
 
-    // Signatures first: an address entry is resolved from its signature's match.
     std::map<std::string, ModuleImage> images;
     for (const auto& [key, entry] : file->Signatures)
     {
@@ -79,26 +173,21 @@ Status GameData::Load(std::string_view path)
     for (const auto& [key, entry] : file->Addresses)
         _resolved.emplace(key, ResolveAddress(entry, _resolved.at(entry.Signature), images.at(entry.Signature)));
 
-    // A vtable index needs no scanning; the class vtable it is counted in is only located for the
-    // entries a DVP hook binds to, which Bindings::Bind does from Class and Library.
+    VTablePass vtables{.Resolved = _resolved, .Original = originalOf};
     for (const auto& [key, entry] : file->VTables)
-        _resolved.emplace(
-            key,
-            Resolution{.Section = Kind::VTable, .Index = entry.Index, .Class = entry.Class, .Library = entry.Library});
+        _resolved.emplace(key, ResolveVTable(key, entry, vtables));
 
     for (const auto& [key, entry] : file->Offsets)
         _resolved.emplace(key, Resolution{.Section = Kind::Offset, .Index = entry.Value});
 
-    for (const auto& [key, id] : file->Messages)
-        _resolved.emplace(key, Resolution{.Section = Kind::Message, .Index = id});
+    Log::Info("GameData loaded from {} (verified {}): {} signatures, {} addresses, {} vtables, {} offsets.", path,
+              _verified.empty() ? "?" : _verified, file->Signatures.size(), file->Addresses.size(),
+              file->VTables.size(), file->Offsets.size());
 
-    Log::Info(
-        "GameData loaded from {} (verified {}): {} signatures, {} addresses, {} vtables, {} offsets, "
-        "{} messages.",
-        path, _verified.empty() ? "?" : _verified, file->Signatures.size(), file->Addresses.size(),
-        file->VTables.size(), file->Offsets.size(), file->Messages.size());
+    if (const std::string bound = VTableAddresses(_resolved); !bound.empty())
+        Log::Info("GameData: vtable slots hold {}.", bound);
 
-    // Said once here, because downstream each of these only reads as "not in gamedata".
+    // Report these once because downstream bindings only see an absent key.
     if (!file->OtherPlatformOnly.empty())
         Log::Info("GameData: {} entries are located for the other platform only and unavailable here: {}.",
                   file->OtherPlatformOnly.size(), Strings::Join(file->OtherPlatformOnly, ", "));

@@ -8,16 +8,22 @@
 namespace VoltMod
 {
 
-/** A loaded module's mapped image. */
+/** A loaded module's mapped image and backing path. */
 struct ModuleImage
 {
     const uint8_t* Base = nullptr;  // mapped base address
     size_t Size = 0;                // mapped span in bytes
     std::string Path;               // full path of the file backing the mapping
+
+    /** Whether @p address lies inside this mapping. */
+    bool Contains(const void* address) const
+    {
+        const auto* at = static_cast<const uint8_t*>(address);
+        return Base && at >= Base && at < Base + Size;
+    }
 };
 
-// A mapped region to scan: the whole image on Windows, one PT_LOAD segment on Linux (so we never
-// read across an unmapped `-z separate-code` gap).
+// Scan the whole image on Windows and each PT_LOAD segment on Linux to avoid unmapped gaps.
 struct ScanRange
 {
     const uint8_t* Base;
@@ -25,13 +31,12 @@ struct ScanRange
 };
 
 /**
- * The module's image and the ranges to scan, from one enumeration of the process.
+ * Enumerate @p fileName once, returning its image and scan ranges.
  *
- * @param fileName the platform file name, as @ref PlatformModuleName spells it.
- * @return false when no such module is mapped, leaving both outputs untouched.
+ * @param fileName platform file name, as @ref PlatformModuleName spells it.
+ * @return false when the module is not mapped; both outputs remain unchanged.
  *
- * Implemented once per platform - `ModuleImage_Windows.cpp` and `ModuleImage_Linux.cpp` - because
- * the two ask the loader entirely different questions.
+ * Each platform has a separate implementation because its loader exposes different metadata.
  */
 bool FindImageAndRanges(const char* fileName, ModuleImage& image, std::vector<ScanRange>& ranges);
 

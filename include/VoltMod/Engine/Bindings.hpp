@@ -19,7 +19,7 @@ namespace VoltMod
  * @brief Typed engine ABIs resolved from gamedata locations.
  */
 
-/** Address for an ABI that can only be named in its implementation file. */
+/** Opaque address for an ABI declared only in its implementation file. */
 class Address
 {
 public:
@@ -56,7 +56,7 @@ private:
     void* _address = nullptr;
 };
 
-/** Typed virtual function. The signature excludes the explicit instance passed to @ref Call. */
+/** Typed virtual function. Its signature omits the instance passed to @ref Call. */
 template <class Sig>
 class VFn;
 
@@ -83,7 +83,7 @@ private:
     int _index = -1;
 };
 
-/** Primary class vtable and its diagnostic name for DVP hooks. */
+/** Primary class vtable and its class name for DVP hooks. */
 class VTableRef
 {
 public:
@@ -99,7 +99,7 @@ private:
     void* _table = nullptr;
 };
 
-/** DVP hook slot and class table from one gamedata entry. */
+/** DVP hook slot and class table resolved from one gamedata entry. */
 template <class Sig>
 struct VHookBinding
 {
@@ -109,7 +109,7 @@ struct VHookBinding
     explicit operator bool() const noexcept { return static_cast<bool>(Method) && static_cast<bool>(Table); }
 };
 
-/** Typed byte offset. Unbound access is inert; `memcpy` permits unaligned access. */
+/** Typed byte offset. Unbound access is inert and reads/writes support unaligned fields. */
 template <class T>
 class OffsetOf
 {
@@ -138,7 +138,7 @@ private:
     int _value = -1;
 };
 
-/** Byte offset for an embedded type named only by its implementation file. */
+/** Byte offset for an embedded type declared only in an implementation file. */
 template <>
 class OffsetOf<void>
 {
@@ -166,39 +166,35 @@ struct Bindings
     /** Resolve all members. Returns NotReady when @p data is empty. */
     Status Bind(const GameData& data, Capabilities& caps);
 
-    // Signatures
-
-    /** CBaseEntity* (const char* className, int forceEdictIndex) */
+    /** ABI: CBaseEntity* (const char* className, int forceEdictIndex). */
     Fn<CEntityInstance*(const char*, int)> CreateEntityByName;
-    /** void (CBaseEntity*, CEntityKeyValues*), with nullable keyvalues. */
+    /** ABI: void (CBaseEntity*, CEntityKeyValues*); keyvalues may be null. */
     Fn<void(CEntityInstance*, CEntityKeyValues*)> DispatchSpawn;
-    /** void (CEntityInstance*, const char* input, activator, caller, variant_t*, int outputId, void*) */
+    /** ABI: void (CEntityInstance*, const char* input, activator, caller, variant_t*, int outputId, void*). */
     Fn<void(CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, void*, int, void*)> AcceptInput;
-    /** void (CEntitySystem*, target, input, activator, caller, variant_t*, float delay, int outputId, void*, void*) */
+    /** ABI: void (CEntitySystem*, target, input, activator, caller, variant_t*, float delay, int outputId, void*, void*). */
     Fn<void(void*, CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, void*, float, int, void*, void*)>
         AddEntityIOEvent;
-    /** void (CEntityInstance*) */
+    /** ABI: void (CEntityInstance*). */
     Fn<void(CEntityInstance*)> UtilRemove;
-    /** void (CBaseModelEntity*, const char* modelPath) */
+    /** ABI: void (CBaseModelEntity*, const char* modelPath). */
     Fn<void(CEntityInstance*, const char*)> SetModel;
-    /** void (CBaseEntity*, const char* soundEvent, int pitch, float volume, float delay) */
+    /** ABI: void (CBaseEntity*, const char* soundEvent, int pitch, float volume, float delay). */
     Fn<void(CEntityInstance*, const char*, int, float, float)> EmitSoundParams;
-    /** StartSoundEventInfo (IRecipientFilter&, CEntityIndex, const EmitSound_t&), defined in EntityOps.cpp. */
+    /** ABI: StartSoundEventInfo (IRecipientFilter&, CEntityIndex, const EmitSound_t&), defined in EntityOps.cpp. */
     Address EmitSoundFilter;
-    /** CBaseEntity* (CEntitySystem*, CEntityInstance* startAfter, const char* className) */
+    /** ABI: CBaseEntity* (CEntitySystem*, CEntityInstance* startAfter, const char* className). */
     Fn<CEntityInstance*(void*, CEntityInstance*, const char*)> FindEntityByClassName;
-    /** CBaseEntity* (CEntitySystem*, startAfter, name, searching, activator, caller, IEntityFindFilter*) */
+    /** ABI: CBaseEntity* (CEntitySystem*, startAfter, name, searching, activator, caller, IEntityFindFilter*). */
     Fn<CEntityInstance*(void*, CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, CEntityInstance*,
                         void*)>
         FindEntityByName;
-    /** IGameEventListener2* (CPlayerSlot), defined in GameEvents.cpp. */
+    /** ABI: IGameEventListener2* (CPlayerSlot), defined in GameEvents.cpp. */
     Address LegacyGameEventListener;
 
-    /** @defgroup CustomHudSetters CCSCustomHudLayout setters, called by @ref UiPanels.
-     *  `self` is the entity. The `const CUtlString*` parameters are the real ABI; strings are
-     *  never passed as `const char*` here. All five bind together or none does - a half-bound set
-     *  would let a call through a null address - which @ref Capability::CustomUi reports.
-     *  @{ */
+    /** @defgroup CustomHudSetters CCSCustomHudLayout setters called by @ref UiPanels.
+     *  `self` is the entity. The real ABI uses `const CUtlString*`, never `const char*`. All five
+     *  bind together or not at all; @ref Capability::CustomUi reports failure. @{ */
     Fn<void(void*, const CUtlString*, const CUtlString*, int32_t)> CustomHudSetHasClass;
     Fn<void(void*, int32_t, const CUtlString*, const CUtlString*, int32_t)> CustomHudSetHasClassForPlayer;
     Fn<void(void*, const CUtlString*, const CUtlString*, const CUtlString*)> CustomHudSetDialogVariable;
@@ -207,55 +203,50 @@ struct Bindings
     Fn<void(void*, int32_t, bool)> CustomHudSetInputCapture;
     /** @} */
 
-    /** CServerSideClient::FilterMessage, bound by signature rather than vtable index because it
-     *  lives in a secondary vtable. @ref UiClickHook turns this address into a hookable slot
-     *  with FindVTableSlot; see the gamedata comment for why there is no index. */
+    /** CServerSideClient::FilterMessage. It is in a secondary vtable, so @ref UiClickHook finds
+     *  its slot from this signature with FindVTableSlot instead of using an index. */
     Address FilterMessage;
-
-    /** The user-message type a custom HUD Button press arrives as. A bare number from gamedata:
-     *  nothing in the engine's registry or the SDK's protos names this message. -1 when unbound. */
-    int32_t CustomHudClicked = -1;
 
     /** IGameEventManager2** inside CSource2Server. */
     Address GameEventManager;
     /** CBaseGameSystemFactory** list head. */
     Address GameSystemFactoryList;
-    /** CGameSystemEventDispatcher** used to detach on unload. */
+    /** CGameSystemEventDispatcher** used to detach systems on unload. */
     Address GameSystemEventDispatcher;
     /** CUtlVector<AddedGameSystem_t>* used to remove systems on unload. */
     Address GameSystemList;
 
-    /** CBasePlayerPawn::CommitSuicide(bool explode, bool force) */
+    /** CBasePlayerPawn::CommitSuicide(bool explode, bool force). */
     VFn<void(bool, bool)> CommitSuicide;
-    /** CCSPlayerController::ChangeTeam(int team) */
+    /** CCSPlayerController::ChangeTeam(int team). */
     VFn<void(int)> ChangeTeam;
-    /** CCSPlayerController::Respawn() */
+    /** CCSPlayerController::Respawn(). */
     VFn<void()> Respawn;
-    /** CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*) */
+    /** CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*). */
     VFn<void(const Vector*, const QAngle*, const Vector*)> Teleport;
     /** CPlayer_MovementServices::RunCommand(CUserCmd*), hooked on CCSPlayer_MovementServices. */
     VHookBinding<void*(void*)> RunCommand;
-    /** CCSPlayer_ItemServices::GiveNamedItem(const char* classname) */
+    /** CCSPlayer_ItemServices::GiveNamedItem(const char* classname). */
     VFn<void*(const char*)> GiveNamedItem;
-    /** CCSPlayer_ItemServices::RemoveAllItems(bool removeSuit) */
+    /** CCSPlayer_ItemServices::RemoveAllItems(bool removeSuit). */
     VFn<void(bool)> RemoveAllItems;
     /** CServerSideClient::ProcessRespondCvarValue(...), hooked on CServerSideClient. */
     VHookBinding<bool(const void*)> ProcessRespondCvarValue;
     /** CServerSideClient::SendNetMessage(const CNetMessage*, NetChannelBufType_t), hooked on
-     *  CServerSideClient. The buf type is an enum the SDK declares, so it is taken as int here. */
+     *  CServerSideClient. The SDK enum is represented as int here. */
     VHookBinding<bool(const void*, int)> SendNetMessage;
 
-    /** The CGameEntitySystem* cached inside IGameResourceService. */
+    /** CGameEntitySystem* cached inside IGameResourceService. */
     OffsetOf<CGameEntitySystem*> GameEntitySystem;
-    /** The recipient player slot inside CCheckTransmitInfo. */
+    /** Recipient player slot inside CCheckTransmitInfo. */
     OffsetOf<uint8_t> CheckTransmitPlayerSlot;
-    /** The player slot inside CServerSideClient. */
+    /** Player slot inside CServerSideClient. */
     OffsetOf<int> ServerSideClientSlot;
     /** CNetworkGameServer::m_Clients, the slot-indexed client vector. See ServerSideClients.hpp. */
     OffsetOf<void> NetworkGameServerClients;
-    /** The SteamID inside CServerSideClient. Unaligned; read through memcpy. */
+    /** SteamID inside CServerSideClient. Unaligned; read through memcpy. */
     OffsetOf<int64_t> ServerSideClientSteamId;
-    /** The CSGOUserCmdPB payload embedded in CUserCmd. */
+    /** CSGOUserCmdPB payload embedded in CUserCmd. */
     OffsetOf<void> UserCmdPB;
     /** CUserCmd command counter; live clients leave the protobuf counter at zero. */
     OffsetOf<int32_t> UserCmdNumber;

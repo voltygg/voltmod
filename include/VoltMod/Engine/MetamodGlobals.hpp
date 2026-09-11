@@ -10,3 +10,14 @@
 // In Engine rather than beside the plugin base: hooking is an engine-level concern, and
 // the hook services that install vtable hooks must not depend on the composition root.
 PLUGIN_GLOBALVARS();
+
+namespace VoltMod
+{
+
+/** What a vtable entry held before a hook patched it, or nullptr. Pass where `originalOf` is asked for. */
+inline const void* OriginalVfnPtr(void* entry)
+{
+    return g_SHPtr ? g_SHPtr->GetOrigVfnPtrEntry(entry) : nullptr;
+}
+
+}  // namespace VoltMod

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoltMod/Core/Result.hpp>
+#include <VoltMod/Engine/OriginalVfn.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <map>
@@ -11,66 +12,64 @@ namespace VoltMod
 {
 
 /**
- * @brief Resolves one gamedata file against the loaded modules, once per load.
+ * @brief Resolves one gamedata file against the loaded modules once per load.
  *
- * The file says *where* things are (a byte pattern, a rel32 displacement, a vtable slot, a field
- * offset); C++ owns *what* they are. @ref Bindings is the typed view built on top of this, and is
- * what services take - nothing looks an entry up by string on a call path.
- *
- * @ref Load parses, clears every previous result, and resolves every entry eagerly, so a failure
- * is a load-time diagnostic naming the key rather than a null pointer discovered later.
+ * Gamedata supplies locations; @ref Bindings exposes their typed engine ABIs. @ref Load clears
+ * previous results and resolves every entry eagerly, reporting failures by key at load time.
  */
 class GameData
 {
 public:
-    /** Which section an entry came from, and therefore which fields of @ref Resolution matter. */
+    /** Section that produced a resolution, determining which fields of @ref Resolution apply. */
     enum class Kind : uint8_t
     {
         Signature,  ///< Address is the pattern match.
         Address,    ///< Address is the rel32 target derived from a signature match.
         VTable,     ///< Index is the slot, Class and Library name the table it is counted in.
-        Offset,     ///< Index is a validated byte offset.
-        Message     ///< Index is a network message type id.
+        Offset      ///< Index is a validated byte offset.
     };
 
-    /** What one gamedata key resolved to, or why it did not. */
+    /** Resolved value for one gamedata key, or its failure reason. */
     struct Resolution
     {
         Kind Section = Kind::Signature;
-        void* Address = nullptr;  ///< Signature match, or rel32 target.
-        int Index = -1;           ///< VTable: slot index. Offset: byte offset.
-        std::string Class;        ///< VTable: the RTTI/ELF class the table belongs to.
-        std::string Library;      ///< Signature and VTable: the module to look in.
-        std::string Error;        ///< Empty when the entry resolved.
+        void* Address = nullptr;  ///< Signature match, rel32 target, or the code a vtable slot holds.
+        void* Table = nullptr;    ///< VTable located at load, so binding does not scan for it again.
+        int Index = -1;           ///< VTable slot or byte offset.
+        std::string Class;        ///< VTable class whose table owns the slot.
+        std::string Library;      ///< Module containing a signature or vtable.
+        std::string Error;        ///< Empty when resolved.
     };
 
     GameData() = default;
     GameData(const GameData&) = delete;
     GameData& operator=(const GameData&) = delete;
 
+    /** Every gamedata key with what it resolved to, keyed by the name the file gives it. */
+    using ResolutionMap = std::map<std::string, Resolution>;
+
     /**
      * Parse @p path and resolve every entry against the loaded modules.
      *
-     * Clears all previous state first, so a reload cannot leave a stale resolution behind. An
-     * entry that fails to resolve is recorded with its reason and does not fail the load; only a
-     * missing or malformed file does.
+     * Clears previous state before resolving, so reloads cannot retain stale results. Resolution
+     * failures are recorded by key; only a missing or malformed file fails the load.
      */
-    Status Load(std::string_view path);
+    Status Load(std::string_view path, const OriginalVfn& originalOf = {});
 
-    /** Every key, resolved or not. Diagnostics and @ref Bindings::Bind read this. */
-    const std::map<std::string, Resolution>& Resolutions() const { return _resolved; }
+    /** Every key, resolved or not. Used by diagnostics and @ref Bindings::Bind. */
+    const ResolutionMap& Resolutions() const { return _resolved; }
 
-    /** How many entries came from @p kind's section. */
+    /** Number of entries resolved from @p kind. */
     size_t CountOf(Kind kind) const;
 
-    /** "N/M entries failed: a, b" - empty when every entry resolved. */
+    /** Returns `N/M entries failed: a, b`, or empty when all entries resolved. */
     std::string FailureSummary() const;
 
-    /** The date the loaded file says its entries were last verified against the game. */
+    /** Date recorded by the gamedata file as its last verification against the game. */
     std::string_view VerifiedOn() const { return _verified; }
 
 private:
-    std::map<std::string, Resolution> _resolved;
+    ResolutionMap _resolved;
     std::string _verified;
 };
 

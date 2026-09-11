@@ -9,11 +9,10 @@ using VoltMod::GameDataFile;
 using VoltMod::GamePlatform;
 using VoltMod::IsValidBytePattern;
 
-/** A minimal but complete v2 document, so each test can vary exactly one thing. */
+/** Minimal complete document; each test varies one thing. */
 static std::string Document(std::string_view sections)
 {
     return std::string(R"({
-  "version": 2,
   "build": { "game": "cs2", "verified": "2026-08-26", "note": "n" },
 )") + std::string(sections) +
            "\n}";
@@ -41,7 +40,6 @@ TEST_CASE("GameDataFile parses every section and keeps the requested platform")
 
     auto windows = GameDataFile::Parse(text, GamePlatform::Windows);
     REQUIRE(windows.has_value());
-    CHECK(windows->Version == 2);
     CHECK(windows->Build.Game == "cs2");
     CHECK(windows->Build.Verified == "2026-08-26");
     CHECK(windows->EntryCount() == 4);
@@ -56,28 +54,13 @@ TEST_CASE("GameDataFile parses every section and keeps the requested platform")
     CHECK(windows->Offsets.at("Field").Max == 512);
     CHECK(windows->Offsets.at("Field").Align == 8);
 
-    // Not named `linux`: GCC predefines that as a macro on the platform this column describes.
+    // Use `elf` because GCC predefines `linux` as a macro.
     auto elf = GameDataFile::Parse(text, GamePlatform::Linux);
     REQUIRE(elf.has_value());
     CHECK(elf->Signatures.at("Sig").Pattern == "55 48");
     CHECK(elf->Addresses.at("Addr").Rel32At == 7);
     CHECK(elf->VTables.at("Slot").Index == 26);
     CHECK(elf->Offsets.at("Field").Value == 24);
-}
-
-TEST_CASE("GameDataFile rejects a document with no version")
-{
-    auto parsed = GameDataFile::Parse(R"({ "build": { "game": "cs2" } })", GamePlatform::Windows);
-    REQUIRE_FALSE(parsed.has_value());
-    CHECK(parsed.error().Code == ErrorCode::Invalid);
-    CHECK(Detail(parsed.error()).find("version") != std::string::npos);
-}
-
-TEST_CASE("GameDataFile rejects an unsupported version")
-{
-    auto parsed = GameDataFile::Parse(R"({ "version": 1 })", GamePlatform::Windows);
-    REQUIRE_FALSE(parsed.has_value());
-    CHECK(Detail(parsed.error()).find("unsupported version 1") != std::string::npos);
 }
 
 TEST_CASE("GameDataFile rejects a key declared in two sections")
@@ -91,8 +74,7 @@ TEST_CASE("GameDataFile rejects a key declared in two sections")
     CHECK(Detail(parsed.error()).find("'Both' is declared in both 'signatures' and 'offsets'") != std::string::npos);
 }
 
-// gamedata.schema.json requires one platform column, not both: something located on Windows only
-// is a capability that is off on Linux, not a file that fails to parse there.
+// A one-platform entry is unavailable on the other platform, not malformed.
 TEST_CASE("GameDataFile keeps a single-platform entry out of the other platform's maps")
 {
     const auto text = Document(R"(  "offsets": { "WindowsOnly": { "windows": 8 } })");
@@ -105,7 +87,6 @@ TEST_CASE("GameDataFile keeps a single-platform entry out of the other platform'
     auto linux = GameDataFile::Parse(text, GamePlatform::Linux);
     REQUIRE(linux.has_value());
     CHECK_FALSE(linux->Offsets.contains("WindowsOnly"));
-    // Named, so an unavailable feature can say more than "not in gamedata".
     REQUIRE(linux->OtherPlatformOnly.size() == 1);
     CHECK(linux->OtherPlatformOnly.front() == "WindowsOnly");
 }
@@ -119,8 +100,7 @@ TEST_CASE("GameDataFile rejects an entry with no column for either platform")
     CHECK(Detail(parsed.error()).find("has no 'windows' entry") != std::string::npos);
 }
 
-// An address is resolved from its signature's match, so it has to go wherever that signature goes
-// rather than read as a reference to a signature nobody wrote.
+// An address follows its signature's platform availability.
 TEST_CASE("GameDataFile drops an address whose signature is for the other platform")
 {
     const auto text =
@@ -186,25 +166,42 @@ TEST_CASE("GameDataFile rejects a vtable entry with no class")
     CHECK(Detail(parsed.error()).find("has no 'class'") != std::string::npos);
 }
 
-// The five sections are one table driven by one loop, so `messages` - the only one with no other
-// case here - is also the only one that could silently drop out of it.
-TEST_CASE("GameDataFile parses messages and refuses a negative id")
+TEST_CASE("GameDataFile keeps a vtable's signature and rejects one nothing declares")
 {
-    const auto text = Document(R"(  "messages": { "Clicked": { "windows": 452, "linux": 453 } })");
+    const auto text = Document(R"(  "signatures": {
+    "Sig": { "windows": { "pattern": "48 8B" }, "linux": { "pattern": "55 48" } }
+  },
+  "vtables": {
+    "Slot": { "class": "CFoo", "signature": "Sig", "windows": 25, "linux": 26 }
+  })");
 
-    auto windows = GameDataFile::Parse(text, GamePlatform::Windows);
-    REQUIRE(windows.has_value());
-    CHECK(windows->EntryCount() == 1);
-    CHECK(windows->Messages.at("Clicked") == 452);
+    auto parsed = GameDataFile::Parse(text, GamePlatform::Windows);
+    REQUIRE(parsed.has_value());
+    CHECK(parsed->VTables.at("Slot").Signature == "Sig");
+    CHECK(parsed->VTables.at("Slot").Index == 25);
 
-    auto elf = GameDataFile::Parse(text, GamePlatform::Linux);
-    REQUIRE(elf.has_value());
-    CHECK(elf->Messages.at("Clicked") == 453);
+    const auto unknown = Document(R"(  "vtables": {
+    "Slot": { "class": "CFoo", "signature": "Nope", "windows": 25, "linux": 26 }
+  })");
+    auto missing = GameDataFile::Parse(unknown, GamePlatform::Windows);
+    REQUIRE_FALSE(missing.has_value());
+    CHECK(Detail(missing.error()).find("unknown signature 'Nope'") != std::string::npos);
+}
 
-    const auto negative = Document(R"(  "messages": { "Clicked": { "windows": -1, "linux": 1 } })");
-    auto parsed = GameDataFile::Parse(negative, GamePlatform::Windows);
-    REQUIRE_FALSE(parsed.has_value());
-    CHECK(Detail(parsed.error()).find("is negative") != std::string::npos);
+// A vtable keeps its index when its signature belongs to the other platform.
+TEST_CASE("GameDataFile keeps a vtable whose signature is the other platform's")
+{
+    const auto text = Document(R"(  "signatures": {
+    "Sig": { "linux": { "pattern": "55 48" } }
+  },
+  "vtables": {
+    "Slot": { "class": "CFoo", "signature": "Sig", "windows": 25, "linux": 26 }
+  })");
+
+    auto parsed = GameDataFile::Parse(text, GamePlatform::Windows);
+    REQUIRE(parsed.has_value());
+    CHECK(parsed->VTables.at("Slot").Signature.empty());
+    CHECK(parsed->VTables.at("Slot").Index == 25);
 }
 
 TEST_CASE("GameDataFile rejects an offset above its own max")
@@ -249,17 +246,12 @@ TEST_CASE("IsValidBytePattern accepts hex bytes and wildcards and nothing else")
     CHECK_FALSE(IsValidBytePattern("48 ???"));
 }
 
-// Parse is called from Runtime::Start, so nothing it does may throw. It no longer can: every
-// shape error is a parse error reported as a value, which is also why an unknown key - what
-// gamedata.schema.json calls additionalProperties: false - is now rejected rather than ignored.
-
 TEST_CASE("An unknown key is rejected rather than silently ignored")
 {
-    // The schema has always said additionalProperties: false; now the reader agrees.
-    const std::string rootKey = R"({"version": 2, "buidl": {"game": "cs2"}})";
+    const std::string rootKey = R"({"buidl": {"game": "cs2"}})";
     CHECK_FALSE(GameDataFile::Parse(rootKey, GamePlatform::Windows).has_value());
 
-    const std::string entryKey = R"({"version": 2, "offsets": {"Field": {"windows": 16, "linux": 24, "mxa": 512}}})";
+    const std::string entryKey = R"({"offsets": {"Field": {"windows": 16, "linux": 24, "mxa": 512}}})";
     auto parsed = GameDataFile::Parse(entryKey, GamePlatform::Windows);
     REQUIRE_FALSE(parsed.has_value());
     CHECK(parsed.error().Code == ErrorCode::Invalid);
@@ -267,7 +259,7 @@ TEST_CASE("An unknown key is rejected rather than silently ignored")
 
 TEST_CASE("The schema key every gamedata file carries is accepted")
 {
-    const std::string withSchema = R"({"$schema": "./gamedata.schema.json", "version": 2})";
+    const std::string withSchema = R"({"$schema": "./gamedata.schema.json"})";
     CHECK(GameDataFile::Parse(withSchema, GamePlatform::Windows).has_value());
 }
 

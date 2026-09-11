@@ -24,6 +24,7 @@ class CEntityKeyValues;
 class CGameEntitySystem;
 class CGlobalVars;
 class CNetMessage;
+class CSchemaSystemTypeScope;
 // tier1's ref-counted string. Named only as `const CUtlString*` in the UiPanels setter
 // prototypes, which is the real ABI of those functions rather than a convenience.
 class CUtlString;

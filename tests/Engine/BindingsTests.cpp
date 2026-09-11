@@ -19,16 +19,15 @@ using VoltMod::Capability;
 using VoltMod::ErrorCode;
 using VoltMod::GameData;
 
-// Which column of the fabricated file this build reads.
+// Select the host platform column in the fabricated file.
 static constexpr bool OnWindows = VoltMod::HostPlatform == VoltMod::GamePlatform::Windows;
 
-/** Temporary real gamedata file used to test key-to-member mapping. The version and build header
- *  is supplied here so each case writes only the entries it is about. */
+/** Temporary gamedata file for key-to-member tests; each case supplies only its entries. */
 class TempGameData
 {
 public:
     explicit TempGameData(std::string_view body)
-        : _file(std::format("{{ \"version\": 2, \"build\": {{ \"game\": \"cs2\", \"verified\": \"2026-08-26\" }},\n"
+        : _file(std::format("{{ \"build\": {{ \"game\": \"cs2\", \"verified\": \"2026-08-26\" }},\n"
                             "{}\n}}",
                             body),
                 "bindings", ".jsonc")
@@ -111,7 +110,6 @@ TEST_CASE("Bind fills offsets and vtable indices from their gamedata keys")
     CHECK(bindings.RemoveAllItems.Index() == (OnWindows ? 27 : 28));
     CHECK(bindings.Teleport.Index() == (OnWindows ? 163 : 162));
 
-    // Offsets and indices do not require a loaded module.
     CHECK(caps.Has(Capability::Entities));
     CHECK(caps.Has(Capability::Visibility));
     CHECK(caps.Has(Capability::Items));
@@ -128,12 +126,10 @@ TEST_CASE("Bind leaves a signature empty and names the module when it cannot be 
     Bindings bindings;
     REQUIRE(bindings.Bind(data, caps).has_value());
 
-    // Unit tests do not map the game module.
     CHECK_FALSE(static_cast<bool>(bindings.CreateEntityByName));
     CHECK_FALSE(caps.Has(Capability::EntityOps));
     CHECK(std::string(caps.Reason(Capability::EntityOps)).find("CreateEntityByName") != std::string::npos);
 
-    // Hooks require both the index and class table.
     CHECK(static_cast<bool>(bindings.RunCommand.Method));
     CHECK_FALSE(static_cast<bool>(bindings.RunCommand.Table));
     CHECK_FALSE(static_cast<bool>(bindings.RunCommand));
@@ -143,7 +139,6 @@ TEST_CASE("Bind leaves a signature empty and names the module when it cannot be 
 
 TEST_CASE("Bind records a missing key as the capability's reason and leaves the member empty")
 {
-    // Remove CheckTransmitPlayerSlot from the same document.
     TempGameData file(R"(
   "offsets": {
     "GameEntitySystem": { "windows": 88, "linux": 80, "align": 8 }
@@ -161,14 +156,12 @@ TEST_CASE("Bind records a missing key as the capability's reason and leaves the 
     CHECK_FALSE(caps.Has(Capability::Visibility));
     CHECK(caps.Reason(Capability::Visibility) == "'CheckTransmitPlayerSlot' is not in gamedata");
 
-    // Present keys still bind.
     CHECK(caps.Has(Capability::Entities));
     CHECK(caps.Reason(Capability::Entities).empty());
 }
 
 TEST_CASE("A binding no capability gates still says why its key did not bind")
 {
-    // Missing entries were never loaded into GameData's failure summary.
     TempGameData file(R"(
   "offsets": {
     "GameEntitySystem": { "windows": 88, "linux": 80, "align": 8 }

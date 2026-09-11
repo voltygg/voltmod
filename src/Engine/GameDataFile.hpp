@@ -9,7 +9,7 @@
 namespace VoltMod
 {
 
-/** Which platform's column of a gamedata entry to keep. Selected once, at parse time. */
+/** Platform column retained during parsing. */
 enum class GamePlatform
 {
     Windows,
@@ -22,44 +22,42 @@ inline constexpr GamePlatform HostPlatform = GamePlatform::Windows;
 inline constexpr GamePlatform HostPlatform = GamePlatform::Linux;
 #endif
 
-/** The only `version` this parser accepts. A bump is a breaking format change, never a fallback. */
-inline constexpr int GameDataFormatVersion = 2;
-
-/** Ceilings far above every real value that still catch drifted or hand-edited gamedata. */
+/** Bounds that catch drifted or hand-edited gamedata. */
 inline constexpr int MaxVtableIndex = 500;
 inline constexpr int MaxByteOffset = 4096;
 
-/** Provenance of one gamedata file, for diagnostics and the re-verification procedure. */
+/** Gamedata provenance used for diagnostics and re-verification. */
 struct GameDataBuild
 {
     std::string Game;
-    std::string Verified;  ///< YYYY-MM-DD the file was last walked entry by entry.
+    std::string Verified;  ///< YYYY-MM-DD date of the last entry-by-entry verification.
     std::string Note;
 };
 
-/** A byte pattern to scan for in one module. */
+/** Byte pattern to scan in one module. */
 struct SignatureEntry
 {
     std::string Library = "server";
     std::string Pattern;
 };
 
-/** A pointer reached through a rel32 displacement inside a matched signature. */
+/** Pointer reached through a rel32 displacement in a matched signature. */
 struct AddressEntry
 {
-    std::string Signature;  ///< Key in GameDataFile::Signatures this derives from.
-    int Rel32At = 0;        ///< Byte distance from the match to the 4-byte displacement.
+    std::string Signature;  ///< Key in GameDataFile::Signatures used as the base match.
+    int Rel32At = 0;        ///< Byte distance to the 4-byte displacement.
 };
 
-/** One virtual function table slot, and the class whose table the index is counted in. */
+/** Virtual function table slot and the class whose table owns its index. */
 struct VTableEntry
 {
     std::string Class;
     std::string Library = "server";
-    int Index = -1;
+    int Index = -1;         ///< Fallback when Signature is empty or absent from the table.
+    std::string Signature;  ///< Key in GameDataFile::Signatures naming this slot's function.
 };
 
-/** A byte offset into a layout the SDK does not declare, with the bounds it must satisfy. */
+/** Byte offset into an SDK-undeclared layout, with validation bounds. */
 struct OffsetEntry
 {
     int Value = -1;
@@ -70,52 +68,42 @@ struct OffsetEntry
 /**
  * @brief One parsed gamedata file: plain data, already narrowed to the host platform.
  *
- * Parsing is separated from scanning so the format - versioning, cross-section key collisions,
- * bounds, and the signature references `addresses` depends on - can be checked with no engine
- * loaded. @ref GameData consumes the result and resolves it against live module memory.
+ * Parsing is separate from scanning so cross-section keys, bounds, and signature references can be
+ * checked without a loaded engine. @ref GameData resolves the result against live module memory.
  */
 struct GameDataFile
 {
-    int Version = 0;
     GameDataBuild Build;
     std::map<std::string, SignatureEntry> Signatures;
     std::map<std::string, AddressEntry> Addresses;
     std::map<std::string, VTableEntry> VTables;
     std::map<std::string, OffsetEntry> Offsets;
-    /** Network message type ids, keyed the same way; see the section's schema description. */
-    std::map<std::string, int> Messages;
 
-    /** Keys the file carries for the other platform only, so they are absent from the maps above.
-     *  gamedata.schema.json requires one platform column, not both, and a feature that has only
-     *  been located on one of them is a capability that is off there - not a malformed file.
-     *  Naming them keeps that distinct from a key nobody wrote. */
+    /** Keys present only for the other platform. Keeping their names distinguishes unavailable
+     *  entries from missing ones. */
     std::vector<std::string> OtherPlatformOnly;
 
-    /** Total entries across every section; each one is a key @ref Bindings can name. */
-    size_t EntryCount() const
-    {
-        return Signatures.size() + Addresses.size() + VTables.size() + Offsets.size() + Messages.size();
-    }
+    /** Total entries across all sections. */
+    size_t EntryCount() const { return Signatures.size() + Addresses.size() + VTables.size() + Offsets.size(); }
 
     /**
      * Parse @p text (JSONC) keeping @p platform's column of every entry.
      *
-     * An entry carrying only the *other* platform's column is not an error: its key is recorded in
-     * @ref OtherPlatformOnly and left out of the maps, so it resolves as absent.
+     * An entry carrying only the *other* platform's column is recorded in @ref OtherPlatformOnly
+     * and left out of the maps, so it resolves as absent.
      *
-     * @return Error::Invalid naming the offending key for: a missing or unsupported `version`, a
-     *         key used in more than one section, an entry with no column for either platform, a
-     *         malformed pattern, a negative `rel32At`, an `addresses` entry naming a signature
-     *         that does not exist, a vtable index outside [0, @ref MaxVtableIndex), or an offset
-     *         above its `max` or not a multiple of its `align`.
+     * @return Error::Invalid naming the offending key for duplicate sections, missing platform
+     *         columns, malformed patterns, negative `rel32At`, unknown signatures referenced by
+     *         `addresses` or `vtables`, vtable indices outside [0, @ref MaxVtableIndex), or offsets
+     *         above `max` or not aligned to `align`.
      */
     static Result<GameDataFile> Parse(std::string_view text, GamePlatform platform);
 
-    /** @ref Parse over a file, with the path resolved through ResolvePath. */
+    /** Run @ref Parse after reading @p path through ResolvePath. */
     static Result<GameDataFile> Load(std::string_view path, GamePlatform platform);
 };
 
-/** True when @p pattern is space-separated hex bytes and `?`/`??` wildcards, and not empty. */
+/** Whether @p pattern is non-empty space-separated hex bytes with `?`/`??` wildcards. */
 bool IsValidBytePattern(std::string_view pattern);
 
 }  // namespace VoltMod

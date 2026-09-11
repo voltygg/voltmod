@@ -7,20 +7,15 @@
 #include <optional>
 #include <string>
 
-// gamedata.jsonc exactly as it is written, before any validation. Reflection maps public members
-// onto JSON keys, so an unknown key is rejected here rather than silently ignored - which is
-// gamedata.schema.json's `additionalProperties: false` finally being enforced by the parser.
-//
-// These are the document's shape; GameDataFile is the validated model the rest of the framework
-// reads. They are nested so the document's vocabulary (`Signature`, `Address`, `Offset`) does not
-// have to be qualified out of collision at VoltMod scope.
+// This mirrors gamedata.jsonc before validation. Strict reflection rejects unknown keys, matching
+// gamedata.schema.json's `additionalProperties: false`; nested types keep document names local.
 
 namespace VoltMod
 {
 
 struct GameDataDocument
 {
-    /** One platform's byte pattern, under `signatures.<key>.<platform>`. */
+    /** One platform's byte pattern under `signatures.<key>.<platform>`. */
     struct Pattern
     {
         std::string pattern;
@@ -33,8 +28,7 @@ struct GameDataDocument
         std::optional<Pattern> Linux;
     };
 
-    /** A bare per-platform integer: `messages`, and `addresses.<key>.rel32At` whose columns live
-     *  here rather than on the entry. */
+    /** Per-platform integer columns for `addresses.<key>.rel32At`. */
     struct Columns
     {
         std::optional<int> Windows;
@@ -51,6 +45,7 @@ struct GameDataDocument
     {
         std::string Class;
         std::string library = "server";
+        std::string signature;
         std::optional<int> Windows;
         std::optional<int> Linux;
     };
@@ -70,21 +65,17 @@ struct GameDataDocument
         std::string note;
     };
 
-    /** Optional so an absent key reads as "no integer 'version'" rather than version 0. */
-    std::optional<int> version;
     Build build;
     std::map<std::string, Signature> signatures;
     std::map<std::string, Address> addresses;
     std::map<std::string, VTable> vtables;
-    std::map<std::string, Columns> messages;
     std::map<std::string, Offset> offsets;
 };
 
 }  // namespace VoltMod
 
-// Explicit key maps for the members whose JSON key is a C++ keyword (`class`) or a name better not
-// left to reflection (`windows`/`linux`). Each lists every member on purpose: a partial rename
-// would leave the reflected spelling in place alongside the alias.
+// Explicit maps preserve JSON keys that are C++ keywords or differ in case from member names.
+// Map every member because partial maps leave reflected aliases active.
 
 template <>
 struct glz::meta<VoltMod::GameDataDocument>
@@ -103,8 +94,8 @@ template <>
 struct glz::meta<VoltMod::GameDataDocument::VTable>
 {
     using T = VoltMod::GameDataDocument::VTable;
-    static constexpr auto value =
-        glz::object("class", &T::Class, "library", &T::library, "windows", &T::Windows, "linux", &T::Linux);
+    static constexpr auto value = glz::object("class", &T::Class, "library", &T::library, "signature", &T::signature,
+                                              "windows", &T::Windows, "linux", &T::Linux);
 };
 
 template <>

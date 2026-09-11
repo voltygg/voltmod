@@ -21,16 +21,15 @@
 namespace VoltMod
 {
 
-// Hooks CServerSideClient::FilterMessage, the inbound client-message filter. The channel is
-// unused, so it stays opaque.
+// Hooks CServerSideClient::FilterMessage. The channel argument is unused and remains opaque.
 VOLTMOD_VHOOK2(VoltMod_FilterMessage, bool, const CNetMessage*, void*);
 
-// A press is not its own registered message: it rides inside CSVCMsg_UserMessage's `msg_data`,
-// tagged with the unnamed `msg_type` bound as Bindings::CustomHudClicked.
+// Presses ride in CSVCMsg_UserMessage::msg_data, tagged by msg_type. The engine registry and SDK
+// do not expose CS_UM_CustomHudClicked, so keep its protocol value here.
 static constexpr std::string_view kUserMessage = "CSVCMsg_UserMessage";
+static constexpr int32_t kCustomHudClicked = 390;
 
-/** The two CSVCMsg_UserMessage fields a press is read out of, resolved once per process: field
- *  descriptors belong to the engine's pool, not to any load cycle. */
+/** Press fields resolved once per process from the engine's descriptor pool. */
 struct UserMessageFields
 {
     const ProtoFieldDescriptor* Type = nullptr;
@@ -50,16 +49,15 @@ static const UserMessageFields& FieldsOf(const ProtoMessage& proto)
     return fields;
 }
 
-/** Bits of the layout handle as the client sends it: 14 of index, low 10 of the serial. */
+/** Layout-handle bits sent by the client: 14 for the index and 10 for the serial. */
 static constexpr uint32_t kNetworkIndexMask = (1u << 14) - 1;
 static constexpr uint32_t kNetworkSerialMask = (1u << 10) - 1;
 
 /**
- * The layout entity a networked handle names, found among the live `custom_hud_layout` entities.
+ * Find the live `custom_hud_layout` named by a networked handle.
  *
- * The client sends only 24 of the handle's bits, so this walks the layouts - always a handful -
- * instead of trusting the handle: a stale or forged one matches nothing, and whatever matches is
- * guaranteed to actually be a layout.
+ * The client sends only 24 handle bits, so walk the live layouts instead of trusting the handle.
+ * A stale or forged handle then matches nothing.
  */
 static EntityRef ResolveLayout(EntitySystem& entities, uint32_t networked)
 {
@@ -88,8 +86,7 @@ UiClickHook::UiClickHook(Interfaces& interfaces, const Bindings& bindings, SlotE
 
 UiClickHook::~UiClickHook()
 {
-    // Remove() runs when the last subscription drops, so a hook still up here means one outlived
-    // the Runtime - and would point into an unloaded module.
+    // A remaining hook outlives Runtime and may point into an unloaded module.
     if (_hook)
         Log::Error("UiClickHook: a click subscription outlived the hook; a click handler may dangle.");
 }
@@ -99,11 +96,6 @@ bool UiClickHook::Install()
     if (!_bindings.FilterMessage)
     {
         Log::Warn("UiClickHook: FilterMessage did not bind; button presses will not arrive.");
-        return false;
-    }
-    if (_bindings.CustomHudClicked < 0)
-    {
-        Log::Warn("UiClickHook: no custom HUD click message id in gamedata; button presses will not arrive.");
         return false;
     }
     if (auto* message = _interfaces.NetworkMessages
@@ -116,8 +108,7 @@ bool UiClickHook::Install()
         return false;
     }
 
-    // Nobody connected yet is the ordinary case at load: keep the subscription and bind on the
-    // first connect instead of refusing it.
+    // If no client exists yet, bind when the first client connects.
     if (!HookConnectedClient())
     {
         _connectListener = _slots.Changed += [this](int) {
@@ -144,11 +135,8 @@ bool UiClickHook::HookConnectedClient()
     if (!client)
         return false;
 
-    // FilterMessage lives in a secondary vtable, so the slot is found by searching a live client's
-    // tables for the signature's address - see FindVTableSlot.
-    const auto slot = FindVTableSlot(client, _bindings.FilterMessage.Ptr(), [](void* entry) -> const void* {
-        return g_SHPtr ? g_SHPtr->GetOrigVfnPtrEntry(entry) : nullptr;
-    });
+    // FilterMessage is in a secondary vtable; find its slot by searching a live client.
+    const auto slot = FindVTableSlot(client, _bindings.FilterMessage.Ptr(), OriginalVfnPtr);
     if (!slot)
     {
         Log::Warn("UiClickHook: FilterMessage is in none of CServerSideClient's vtables; not hooking.");
@@ -156,8 +144,7 @@ bool UiClickHook::HookConnectedClient()
         return false;
     }
 
-    // Built here rather than taken from Bindings: this binding's table and index come from the
-    // instance search above, not from a gamedata index.
+    // The table and index come from the live-client search, not gamedata.
     using FilterSig = bool(const CNetMessage*, void*);
     const VHookBinding<FilterSig> binding{.Method = VFn<FilterSig>(slot->Index),
                                           .Table = VTableRef("CServerSideClient", slot->Table)};
@@ -174,21 +161,20 @@ bool UiClickHook::HookConnectedClient()
     _subobjectOffset = slot->BaseOffset;
     _onFrame = _scheduler.EveryFrame([this] { RaiseQueued(); });
     Log::Info("UiClickHook: hooked FilterMessage at index {} (+{} from the client), user message id {}, click type {}.",
-              slot->Index, _subobjectOffset, _messageId, _bindings.CustomHudClicked);
+              slot->Index, _subobjectOffset, _messageId, kCustomHudClicked);
     return true;
 }
 
 bool UiClickHook::Hook_FilterMessage(const CNetMessage* message, void*)
 {
-    // Reading a press never changes the verdict, so the hook itself is one unconditional
-    // MRES_IGNORED and every early-out below is a plain return.
+    // This observer never changes the verdict.
     QueuePress(message, META_IFACEPTR(void));
     RETURN_META_VALUE(MRES_IGNORED, true);
 }
 
 void UiClickHook::QueuePress(const CNetMessage* message, void* self)
 {
-    // Every inbound message from every client lands here, so the id check comes first.
+    // Filter all inbound messages by id before parsing.
     INetworkMessageInternal* info = message ? message->GetNetMessage() : nullptr;
     if (!info || info->GetNetMessageInfo()->m_MessageId != _messageId)
         return;
@@ -201,12 +187,12 @@ void UiClickHook::QueuePress(const CNetMessage* message, void* self)
     if (!fields)
         return;
 
-    // Every user message shares this wrapper, so the type is what narrows it to a press.
+    // The type narrows the shared wrapper to a HUD press.
     const auto* reflection = proto->GetReflection();
-    if (reflection->GetInt32(*proto, fields.Type) != _bindings.CustomHudClicked)
+    if (reflection->GetInt32(*proto, fields.Type) != kCustomHudClicked)
         return;
 
-    // A DVP hook on a secondary vtable is called with that subobject, not the client.
+    // A secondary-vtable hook receives its subobject, not the client object.
     const void* client = self ? static_cast<uint8_t*>(self) - _subobjectOffset : nullptr;
     const int slot = SlotOfServerSideClient(_bindings, client);
     if (!IsValidSlot(slot))
@@ -219,7 +205,7 @@ void UiClickHook::QueuePress(const CNetMessage* message, void* self)
         return;
     }
 
-    // Client-controlled text: an embedded NUL would truncate it anywhere it is formatted.
+    // Reject embedded NULs in client-controlled text before formatting it.
     if (payload->ButtonId.find('\0') != std::string::npos)
         return;
 
@@ -228,8 +214,7 @@ void UiClickHook::QueuePress(const CNetMessage* message, void* self)
 
 void UiClickHook::RaiseQueued()
 {
-    // Swapped out first: a handler may drop the last subscription, which removes the hook and
-    // clears the queue.
+    // Swap before dispatch so a handler can remove the hook and clear the queue safely.
     std::vector<QueuedPress> presses;
     presses.swap(_queued);
 

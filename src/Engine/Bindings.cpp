@@ -1,6 +1,3 @@
-#include "Engine/SigScanner.hpp"
-#include "Engine/VtableLookup.hpp"
-
 #include <VoltMod/Core/EnumNames.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Engine/Bindings.hpp>
@@ -14,21 +11,20 @@
 namespace VoltMod
 {
 
-/** Resolve a class vtable and verify that the configured slot contains code. */
+/** Take the vtable GameData located at load, once it reports the slot holds code. */
 static Result<VTableRef> BindVTable(const GameData::Resolution& entry)
 {
-    void* table = FindVirtualTable(entry.Library.c_str(), entry.Class.c_str());
-    if (!table)
+    if (!entry.Table)
         return std::unexpected(Error::Engine(std::format("no vtable for '{}' in '{}'", entry.Class, entry.Library)));
 
-    // Accept executable trampolines installed by other hooks.
-    if (!IsExecutableAddress(static_cast<void**>(table)[entry.Index]))
+    // GameData::Address is the slot's code, read through any hook that replaced it.
+    if (!entry.Address)
         return std::unexpected(Error::Engine(std::format("{}::[{}] does not hold code", entry.Class, entry.Index)));
 
-    return VTableRef(entry.Class, table);
+    return VTableRef(entry.Class, entry.Table);
 }
 
-/** Binds each member and records the first failure for each capability. */
+/** Binds members and records the first failure for each capability. */
 class Binder
 {
 public:
@@ -53,12 +49,6 @@ public:
     {
         if (const auto* entry = Claim(key, GameData::Kind::Offset, capability))
             member = OffsetOf<T>(entry->Index);
-    }
-
-    void Message(int32_t& member, std::string_view key, std::optional<Capability> capability = {})
-    {
-        if (const auto* entry = Claim(key, GameData::Kind::Message, capability))
-            member = entry->Index;
     }
 
     void Signature(Address& member, std::string_view key, std::optional<Capability> capability = {})
@@ -152,7 +142,6 @@ Status Bindings::Bind(const GameData& data, Capabilities& caps)
 
     Binder bind(data, caps);
 
-    // Signatures
     bind(CreateEntityByName, "CreateEntityByName", Capability::EntityOps);
     bind(DispatchSpawn, "DispatchSpawn", Capability::EntityOps);
     bind(AcceptInput, "CEntityInstance_AcceptInput");
@@ -165,23 +154,19 @@ Status Bindings::Bind(const GameData& data, Capabilities& caps)
     bind(FindEntityByName, "CGameEntitySystem_FindEntityByName");
     bind.Signature(LegacyGameEventListener, "LegacyGameEventListener");
 
-    // All five under one capability, so a partial match disables writes rather than letting one
-    // through a null address.
+    // These five share one capability, so a partial match disables all custom HUD writes.
     bind(CustomHudSetHasClass, "CustomHudSetHasClass", Capability::CustomUi);
     bind(CustomHudSetHasClassForPlayer, "CustomHudSetHasClassForPlayer", Capability::CustomUi);
     bind(CustomHudSetDialogVariable, "CustomHudSetDialogVariable", Capability::CustomUi);
     bind(CustomHudSetDialogVariableForPlayer, "CustomHudSetDialogVariableForPlayer", Capability::CustomUi);
     bind(CustomHudSetInputCapture, "CustomHudSetInputCapture", Capability::CustomUi);
     bind.Signature(FilterMessage, "FilterMessage", Capability::UiClicks);
-    bind.Message(CustomHudClicked, "CustomHudClicked", Capability::UiClicks);
 
-    // Addresses
     bind.Global(GameEventManager, "GameEventManager", Capability::GameEvents);
     bind.Global(GameSystemFactoryList, "GameSystemFactoryList", Capability::Precache);
     bind.Global(GameSystemEventDispatcher, "GameSystemEventDispatcher", Capability::Precache);
     bind.Global(GameSystemList, "GameSystemList", Capability::Precache);
 
-    // Virtual functions
     bind(CommitSuicide, "CommitSuicide");
     bind(ChangeTeam, "ChangeTeam");
     bind(Respawn, "Respawn");
@@ -192,12 +177,10 @@ Status Bindings::Bind(const GameData& data, Capabilities& caps)
     bind(ProcessRespondCvarValue, "ProcessRespondCvarValue", Capability::ClientConVars);
     bind(SendNetMessage, "SendNetMessage", Capability::Addons);
 
-    // Offsets
     bind(GameEntitySystem, "GameEntitySystem", Capability::Entities);
     bind(CheckTransmitPlayerSlot, "CheckTransmitPlayerSlot", Capability::Visibility);
+    // Shared offsets bind once per capability so each disabled feature records its reason.
     bind(ServerSideClientSlot, "ServerSideClientSlot", Capability::ClientConVars);
-    // The same offsets read by more than one feature; each records its own capability so a missing
-    // entry names every feature it takes down rather than only the first.
     bind(ServerSideClientSlot, "ServerSideClientSlot", Capability::UiClicks);
     bind(ServerSideClientSlot, "ServerSideClientSlot", Capability::Addons);
     bind(NetworkGameServerClients, "NetworkGameServerClients", Capability::UiClicks);
