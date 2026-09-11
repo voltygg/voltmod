@@ -66,3 +66,7 @@ select = ["E", "F", "W", "I", "UP"]
 
 [tool.ruff.lint.isort]
 known-third-party = ["conan"]
+
+[[tool.mypy.overrides]]
+module = ["conan.*", "yaml"]
+ignore_missing_imports = true
