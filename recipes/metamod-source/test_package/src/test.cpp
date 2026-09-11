@@ -1,7 +1,6 @@
-#include <sourcehook.h>
+#include <khook.hpp>
 
-int SourceHookHeaderCompiles()
+int KHookHeaderCompiles()
 {
-    SourceHook::ISourceHook* hook = nullptr;
-    return hook == nullptr ? 1 : 0;
+    return KHook::INVALID_HOOK == static_cast<KHook::HookID_t>(-1) ? 1 : 0;
 }
