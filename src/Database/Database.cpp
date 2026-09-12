@@ -27,9 +27,12 @@ static std::optional<PostgresSslMode> ParseSslMode(const std::string& mode)
     return std::nullopt;
 }
 
+/** MariaDB takes a bool, not a mode: "require" and stricter mean the connection must use TLS. */
 static bool WantsTls(const std::string& sslMode)
 {
-    return sslMode == "require" || sslMode == "verify-ca" || sslMode == "verify-full";
+    const PostgresSslMode mode = ParseSslMode(sslMode).value_or(PostgresSslMode::prefer);
+    return mode == PostgresSslMode::require || mode == PostgresSslMode::verify_ca ||
+           mode == PostgresSslMode::verify_full;
 }
 
 static sqlpp::postgresql::connection_config PostgresSettings(const DatabaseConfig& config)
