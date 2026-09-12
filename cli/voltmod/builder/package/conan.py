@@ -29,8 +29,8 @@ class Database(StrEnum):
         return ("True" if self is Database.ON else "False",)
 
 
-def run(*args: str, capture: bool = False, check: bool = True) -> str:
-    result = tools.run_tool("conan", *args, capture=capture, check=check)
+def run(*args: str, capture: bool = False) -> str:
+    result = tools.run_tool("conan", *args, capture=capture)
     return result.stdout or ""
 
 
