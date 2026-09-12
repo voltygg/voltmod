@@ -10,22 +10,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
-    name: Lint and module graph
+  lint:
+    name: Lint and module layering
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v8.2.0
+        uses: astral-sh/setup-uv@v10
 
       - name: Ruff
         run: uv run poe lint
 
-
-      - name: Module layering holds
+      - name: Check the module layering
         run: uv run poe modgraph
 
+  # Both jobs below compile the framework, against the SDK binaries the lockfile pins, so they run
+  # side by side rather than one after another.
   build:
     name: Build and test (linux-steamrt)
     runs-on: ubuntu-latest
@@ -33,19 +34,28 @@ jobs:
       image: registry.gitlab.steamos.cloud/steamrt/sniper/sdk:latest
     steps:
       - uses: actions/checkout@v7
-
       - uses: ./.github/actions/setup-toolchain
 
-      - name: Build the SDK packages
-        run: voltmod package build sdk
-
-      # `conan create` cannot run these: tests/ is outside exports_sources and the recipe forces
-      # BUILD_TESTING off for a cache build, so the suite needs a source-checkout build of its own.
+      # `conan create` cannot run the suite: tests/ is outside exports_sources, and a cache build
+      # forces BUILD_TESTING off.
       - name: Build the framework from source, with tests
-        run: voltmod build linux-steamrt-release --no-lockfile
+        run: voltmod build linux-steamrt-release
 
       - name: Run the test suite
         run: voltmod test linux-steamrt-release
 
-      - name: Build voltmod against them
-        run: voltmod package build kit --no-lockfile
+  package:
+    name: Conan package (database=${{ matrix.database }})
+    runs-on: ubuntu-latest
+    container:
+      image: registry.gitlab.steamos.cloud/steamrt/sniper/sdk:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        database: ["off", "on"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-toolchain
+
+      - name: Create the Conan package
+        run: voltmod package build framework --database ${{ matrix.database }}

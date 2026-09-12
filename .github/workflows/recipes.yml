@@ -1,0 +1,29 @@
+name: SDK recipes
+
+# A recipe change is the only reason to rebuild the SDKs; CI otherwise uses the binaries the
+# lockfile pins. Publishing the same change to main is publish.yml's sdk job.
+
+on:
+  pull_request:
+    paths: ["recipes/**"]
+  workflow_dispatch:
+
+concurrency:
+  group: recipes-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build the SDK packages and the framework
+    runs-on: ubuntu-latest
+    container:
+      image: registry.gitlab.steamos.cloud/steamrt/sniper/sdk:latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-toolchain
+
+      # Without the lockfile: it pins the published SDK revisions, not the ones built here.
+      - name: Build the SDK packages, then the framework against them
+        run: |
+          voltmod package build sdk
+          voltmod package build framework --no-lockfile --database on

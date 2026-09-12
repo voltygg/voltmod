@@ -21,14 +21,13 @@ jobs:
       CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
     steps:
       - uses: actions/checkout@v7
-
       - uses: ./.github/actions/setup-toolchain
 
       - name: Build and upload the SDK packages
         run: voltmod package publish sdk
 
-      - name: Rebuild voltmod against them
-        run: voltmod package build kit --no-lockfile
+      - name: Rebuild the framework against them
+        run: voltmod package build framework --no-lockfile
 
   tag:
     name: Tag the SDK versions
@@ -39,35 +38,45 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-toolchain
+        with:
+          cache: "false"
       - name: Tag each pinned version
         run: voltmod package tag
 
-  kit:
-    name: Release voltmod
+  # One job per variant: each is a full compile, and they share no work.
+  release:
+    name: Release voltmod (database=${{ matrix.database }})
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     container:
       image: registry.gitlab.steamos.cloud/steamrt/sniper/sdk:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        database: ["off", "on"]
     env:
       CLOUDSMITH_USERNAME: ${{ secrets.CLOUDSMITH_USERNAME }}
       CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-toolchain
-      - name: Build and upload voltmod
-        run: voltmod package publish kit --no-lockfile
 
-  smoke:
-    name: Consume from the remote (anonymous)
-    needs: [kit]
+      - name: Build and upload voltmod
+        run: voltmod package publish framework --no-lockfile --database ${{ matrix.database }}
+
+  verify-download:
+    name: Install from the remote as a consumer
+    needs: [release]
     runs-on: ubuntu-latest
     container:
       image: registry.gitlab.steamos.cloud/steamrt/sniper/sdk:latest
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-toolchain
+        with:
+          cache: "false"
 
-      - name: Fresh consume of voltmod from the remote
+      - name: Build the test package against the uploaded binaries
         env:
           CONAN_HOME: ${{ runner.temp }}/conan-fresh
         run: |

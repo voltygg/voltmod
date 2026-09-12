@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-action.json
 name: Set up the voltmod toolchain
-description: Install build tools, Voltmod, and the canonical Conan configuration.
+description: Install build tools, Voltmod, the canonical Conan configuration, and the build caches.
 
 inputs:
   voltmod-source:
@@ -11,10 +11,14 @@ inputs:
     description: Repository root containing conan; @action uses this action's checkout
     required: false
     default: "."
+  cache:
+    description: Keep the build caches between runs; off for a job that compiles nothing
+    required: false
+    default: "true"
 runs:
   using: composite
   steps:
-    - name: Bootstrap the SteamRT container
+    - name: Install the container's compiler and build tools
       if: runner.os == 'Linux'
       shell: bash
       run: |
@@ -27,7 +31,7 @@ runs:
         rm -rf /var/lib/apt/lists/*
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v8.2.0
+      uses: astral-sh/setup-uv@v10
 
     - name: Install voltmod (Linux)
       if: runner.os == 'Linux'
@@ -67,3 +71,38 @@ runs:
         fi
         conan profile detect --force >/dev/null 2>&1 || true
         conan config install "$CONAN_SOURCE" -sf conan
+
+    - name: Resolve the cache paths
+      shell: bash
+      run: |
+        {
+          echo "CONAN_HOME=${CONAN_HOME:-$HOME/.conan2}"
+          echo "CCACHE_DIR=${CCACHE_DIR:-$HOME/.cache/ccache}"
+          echo "CCACHE_MAXSIZE=2G"
+          echo "CCACHE_SLOPPINESS=pch_defines,time_macros,locale,include_file_ctime,include_file_mtime"
+          # Conan builds every package id under its own path, so the path stays out of the hash.
+          echo "CCACHE_BASEDIR=/"
+          echo "CCACHE_NOHASHDIR=1"
+        } >> "$GITHUB_ENV"
+
+    # Nothing in the dependency closure has a prebuilt binary for this toolchain - gcc-14 with the
+    # SDK's old libstdc++ ABI - so an uncached job spends five minutes on OpenSSL and libpq first.
+    - name: Cache the dependency binaries
+      if: inputs.cache == 'true'
+      uses: actions/cache@v6
+      with:
+        path: |
+          ${{ env.CONAN_HOME }}/p
+          !${{ env.CONAN_HOME }}/p/b
+        key: conan-${{ runner.os }}-${{ hashFiles('conan.lock', 'conanfile.py', 'recipes/**/conandata.yml', 'conan/profiles/*') }}
+        restore-keys: conan-${{ runner.os }}-
+
+    - name: Cache the compiled objects
+      if: inputs.cache == 'true'
+      uses: actions/cache@v6
+      with:
+        path: ${{ env.CCACHE_DIR }}
+        key: ccache-${{ runner.os }}-${{ github.job }}-${{ github.sha }}
+        restore-keys: |
+          ccache-${{ runner.os }}-${{ github.job }}-
+          ccache-${{ runner.os }}-
