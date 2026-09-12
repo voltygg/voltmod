@@ -36,7 +36,7 @@ public:
     Subscription() = default;
 
     /** Run @p cleanup on destruction; it captures whatever handle the registry issued. */
-    explicit Subscription(std::function<void()> cleanup) : _cleanup(std::move(cleanup)) {}
+    explicit Subscription(std::move_only_function<void()> cleanup) : _cleanup(std::move(cleanup)) {}
 
     ~Subscription() { Reset(); }
 
@@ -66,7 +66,7 @@ public:
     explicit operator bool() const noexcept { return static_cast<bool>(_cleanup); }
 
 private:
-    std::function<void()> _cleanup;
+    std::move_only_function<void()> _cleanup;
 };
 
 }  // namespace VoltMod
