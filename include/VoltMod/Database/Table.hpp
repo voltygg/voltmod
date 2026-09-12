@@ -1,9 +1,6 @@
 #pragma once
 
-#include <sqlpp23/core/basic/table.h>
-#include <sqlpp23/core/basic/table_columns.h>
-#include <sqlpp23/core/name/create_name_tag.h>
-#include <sqlpp23/core/type_traits.h>
+#include <sqlpp23/sqlpp23.h>
 
 /**
  * @brief Declare one column of a sqlpp23 table spec.
