@@ -27,7 +27,7 @@ jobs:
         run: voltmod package publish sdk
 
       - name: Rebuild the framework against them
-        run: voltmod package build framework --no-lockfile
+        run: voltmod package build framework --no-lockfile --database on
 
   tag:
     name: Tag the SDK versions
