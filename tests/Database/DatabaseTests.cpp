@@ -33,6 +33,22 @@ struct T_
 };
 using T = sqlpp::table_t<T_>;
 
+// COUNT(*) over a table named at runtime, so the row checks below read as one line each.
+int CountRows(Database& db, const std::string& table, const std::string& where = {})
+{
+    auto count = db.RunBlocking("count-rows", [&](auto& conn) {
+        auto select = sqlpp::select(sqlpp::verbatim<sqlpp::integral>("COUNT(*)").as(sqlpp::alias::a))
+                          .from(sqlpp::verbatim_table(table))
+                          .where(sqlpp::verbatim<sqlpp::boolean>(where.empty() ? "1 = 1" : where));
+        int rows = 0;
+        for (const auto& row : conn(select))
+            rows = static_cast<int>(row.a.value_or(0));
+        return rows;
+    });
+    REQUIRE(count.has_value());
+    return *count;
+}
+
 }  // namespace
 
 TEST_CASE("Database: Start against in-memory sqlite succeeds and connects")
@@ -138,15 +154,7 @@ TEST_CASE("Database: a job that throws yields an error, the next job still succe
     CHECK(!failed.has_value());
 
     // The connection dropped and reopens here; the table created before the failure survives it.
-    auto rowCount = db.RunBlocking("count-rows", [](auto& conn) {
-        int count = 0;
-        for (const auto& row :
-             conn(sqlpp::select(sqlpp::verbatim<sqlpp::integral>("COUNT(*)").as(sqlpp::alias::a)).from(sqlpp::verbatim_table("t"))))
-            count = static_cast<int>(row.a.value_or(0));
-        return count;
-    });
-    REQUIRE(rowCount.has_value());
-    CHECK_EQ(*rowCount, 0);
+    CHECK_EQ(CountRows(db, "t"), 0);
 }
 
 TEST_CASE("Database: Run after Stop delivers an error only on the next DispatchCompletions")
@@ -191,16 +199,7 @@ TEST_CASE("RunMigrations: applies migrations in order, is idempotent, and stops 
     CHECK_EQ(first.CurrentVersion, 2);
 
     auto tableExists = [&](const std::string& name) {
-        auto found = db.RunBlocking("table-exists", [&](auto& conn) {
-            int count = 0;
-            for (const auto& row : conn(sqlpp::select(sqlpp::verbatim<sqlpp::integral>("COUNT(*)").as(sqlpp::alias::a))
-                                             .from(sqlpp::verbatim_table("sqlite_master"))
-                                             .where(sqlpp::verbatim<sqlpp::boolean>("name = '" + name + "'"))))
-                count = static_cast<int>(row.a.value_or(0));
-            return count;
-        });
-        REQUIRE(found.has_value());
-        return *found > 0;
+        return CountRows(db, "sqlite_master", "name = '" + name + "'") > 0;
     };
     CHECK(tableExists("a"));
     CHECK(tableExists("b"));
@@ -216,16 +215,7 @@ TEST_CASE("RunMigrations: applies migrations in order, is idempotent, and stops 
     CHECK_EQ(bad.CurrentVersion, 2);
     CHECK(!tableExists("typo"));
 
-    auto versionThreeRow = db.RunBlocking("version-three-row", [](auto& conn) {
-        int count = 0;
-        for (const auto& row : conn(sqlpp::select(sqlpp::verbatim<sqlpp::integral>("COUNT(*)").as(sqlpp::alias::a))
-                                         .from(sqlpp::verbatim_table("schema_migrations"))
-                                         .where(sqlpp::verbatim<sqlpp::boolean>("version = 3"))))
-            count = static_cast<int>(row.a.value_or(0));
-        return count;
-    });
-    REQUIRE(versionThreeRow.has_value());
-    CHECK_EQ(*versionThreeRow, 0);
+    CHECK_EQ(CountRows(db, "schema_migrations", "version = 3"), 0);
 }
 
 TEST_CASE("RunMigrations: a missing driver folder is a successful no-op")
