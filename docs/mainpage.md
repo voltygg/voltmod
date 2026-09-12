@@ -6,7 +6,7 @@
 VoltMod is a native C++23 framework for Counter-Strike 2 server plugins on
 Metamod:Source. It provides one @ref VoltMod::Runtime per plugin load and
 shared services for commands, players, menus, messages, engine access, HTTP,
-and optional PostgreSQL.
+and an optional database (Postgres, MariaDB, or SQLite).
 
 Start with @ref getting_started to generate a plugin that builds, loads, and
 answers `!ping`.
@@ -32,7 +32,7 @@ renames it. `include/VoltMod/<Module>/` is where a header lives, and the
 | Workshop | `VoltMod/Workshop/` | Workshop addon requirements for connecting clients |
 | Ui | `VoltMod/Ui/` | Panorama `custom_hud_layout` panels and the button presses they send back |
 | Unsafe | `VoltMod/Unsafe/` | Opt-in raw hooking: `HookInterface` for an interface method, `HookVTable` for a gamedata-bound class slot |
-| Database | `VoltMod/Database/` | Optional async PostgreSQL, migrations, and row mapping |
+| Database | `VoltMod/Database/` | Optional async Postgres/MariaDB/SQLite and migrations |
 | Http | `VoltMod/Http/` | Async HTTP and configured JSON endpoints |
 | App | `VoltMod/App/` | Metamod lifecycle, JSONC loading, status, and cross-plugin services |
 
@@ -57,7 +57,7 @@ headers at the module root are SDK plumbing every other module needs: `EngineTyp
 - @subpage players_guide - players, actions, and effects
 - @subpage chat_guide - messages, replies, and chat colors
 - @subpage sdk_guide - engine wrappers
-- @subpage database_guide - PostgreSQL
+- @subpage database_guide - Postgres, MariaDB, and SQLite
 - @subpage http_guide - HTTP and JSON endpoints
 - @subpage testing_guide - SDK-free doctest tests
 

@@ -17,7 +17,7 @@ permissions and game behavior; VoltMod does not host a scripting runtime.
 - Typed chat and console commands with targeting and injected permission policy.
 - WASD center-HTML menus, including multi-step flows.
 - Player tracking, translations, scheduled effects, and typed engine wrappers.
-- Asynchronous HTTP and optional PostgreSQL with game-thread completions.
+- Asynchronous HTTP and an optional database (Postgres, MariaDB, or SQLite) with game-thread completions.
 - JSONC configuration, startup diagnostics, and typed cross-plugin services.
 - Project scaffolding, pinned build tools, tests, and server-ready install bundles.
 
@@ -115,7 +115,7 @@ voltmod_add_plugin(my-plugin VERSION 1.0.0)
 ```
 
 The helper configures the native module, SDK glue, output layout, generated VDF,
-build stamp, and install component. Enable PostgreSQL in the consumer recipe:
+build stamp, and install component. Enable the database module in the consumer recipe:
 
 ```python
 default_options = {"voltmod/*:with_database": True}
@@ -151,7 +151,7 @@ The generated guides and API reference are published at
 - [Messages and chat](docs/chat.md)
 - [Configuration](docs/config.md)
 - [SDK wrappers](docs/sdk.md)
-- [PostgreSQL](docs/database.md)
+- [Database](docs/database.md)
 - [HTTP](docs/http.md)
 - [Testing](docs/testing.md)
 

@@ -194,7 +194,7 @@ module, links the SDK and framework, enables the configured warning policy,
 sets hidden symbol visibility, creates the build stamp and VDF, and defines the
 install component.
 
-Enable PostgreSQL in `conanfile.py`:
+Enable the database module in `conanfile.py`:
 
 ```python
 default_options = {"voltmod/*:with_database": True}
@@ -222,7 +222,7 @@ handler. Include a module aggregate only where that translation unit needs it:
 | `<VoltMod/Hooks/Api.hpp>` | The per-tick hooks (`Movement`, `Teleport`, ...), game events, and messaging |
 | `<VoltMod/Menu/Api.hpp>` | `CenterHtmlMenu` (`runtime.Menus`), `MenuBuilder` and its row specs, `ActionRows`, `Flow`, presets |
 | `<VoltMod/Unsafe/Api.hpp>` | Raw interfaces, gamedata, `MemoryAccess`, and vtable hooking - opt in only where you need it |
-| `<VoltMod/Database/Api.hpp>` | The PostgreSQL vocabulary (see @ref database_guide) |
+| `<VoltMod/Database/Api.hpp>` | The Postgres/MariaDB/SQLite database vocabulary (see @ref database_guide) |
 
 These aggregates do not include the JSON layer. A plugin's own `Config.hpp` includes
 `<VoltMod/App/Config.hpp>` for `JsonConfig` and `StandardPluginSettings` (see

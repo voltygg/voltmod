@@ -50,7 +50,7 @@ types. Add module headers only where needed:
 | More of Entities (`EntityRef`, `Items`, `ConVar`) or Hooks (`Movement`, `Teleport`, game events) | `<VoltMod/Entities/Api.hpp>`, `<VoltMod/Hooks/Api.hpp>` |
 | A JsonConfig-backed settings struct | `<VoltMod/App/Config.hpp>` (see @ref config_guide) |
 | Raw interfaces, gamedata, or vtable hooking | `<VoltMod/Unsafe/Api.hpp>` |
-| PostgreSQL | `<VoltMod/Database/Api.hpp>` (see @ref database_guide) |
+| Database (Postgres/MariaDB/SQLite) | `<VoltMod/Database/Api.hpp>` (see @ref database_guide) |
 
 See @ref getting_started "Getting started" for the full table.
 
@@ -66,7 +66,7 @@ struct App
 
     VoltMod::Runtime& Runtime;
     ConfigManager Config;
-    VoltMod::PostgresDatabase Db{Runtime.Scheduler};
+    VoltMod::Database Db{Runtime.Scheduler};
     AdminManager Admins{Db, Config};
 };
 ```

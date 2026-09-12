@@ -34,15 +34,15 @@ voltmod_add_plugin(my-plugin VERSION 1.0.0)
 
 | Package | Contents |
 | --- | --- |
-| `voltmod/x.y.z` | Runtime and optional Database static libraries, public headers, CMake helpers, gamedata, and plugin templates. `with_postgres` controls the Database component and libpqxx. |
+| `voltmod/x.y.z` | Runtime and optional Database static libraries, public headers, CMake helpers, gamedata, and plugin templates. `with_database` controls the Database component and sqlpp23. |
 | `hl2sdk-cs2/<yyyy.mm.dd>` | Trimmed HL2SDK in mirror layout: headers, prebuilt Valve libs, the generated `.pb.h`/`.pb.cc`, and the source-only TUs `voltmod_add_plugin` compiles per plugin. Versioned by the upstream commit date. |
 | `metamod-source/2.0.0.<yyyymmdd>` | Metamod core + KHook headers (header-only). KHook arrives as an upstream submodule the recipe fetches. |
 | `sqlpp23/<x.yy>` | sqlpp23 headers (header-only) and the `sqlpp23-ddl2cpp` generator. The `with_postgresql`, `with_mariadb`, and `with_sqlite3` options add the matching connector component and client library. |
 
-Third-party dependencies (cpr, glaze, libpqxx, openssl, and others) come from
-Conan Center as recipes and compile locally. No binaries are published for the
-gcc-14 and old-libstdc++ ABI profile required by the Valve libraries. This costs
-each machine once; CI caches the Conan home.
+Third-party dependencies (cpr, glaze, libpq, mariadb-connector-c, sqlite3,
+openssl, and others) come from Conan Center as recipes and compile locally. No
+binaries are published for the gcc-14 and old-libstdc++ ABI profile required
+by the Valve libraries. This costs each machine once; CI caches the Conan home.
 
 CI publishes Linux Release binaries for VoltMod and the SDK packages. Windows
 and Debug builds compile missing packages locally through `--build=missing`.
@@ -93,7 +93,7 @@ includes every component enabled in the package. Source modules are architecture
 not Conan components. Plugins select the optional database feature explicitly:
 
 ```cmake
-voltmod_add_plugin(bhop VERSION 1.0.0)          # runtime only, so no libpqxx
+voltmod_add_plugin(bhop VERSION 1.0.0)          # runtime only, so no sqlpp23
 voltmod_add_plugin(admin-system VERSION 1.0.0 FEATURES DATABASE)
 ```
 

@@ -132,16 +132,18 @@ ConfigManager::ConfigSnapshot ConfigManager::BuildSnapshot(Settings raw)
 
 ## Framework types in your settings
 
-`PostgresConfig` uses lowercase field names precisely so a JSON section maps onto
+`DatabaseConfig` uses lowercase field names precisely so a JSON section maps onto
 it. Reflection needs no mapper, so embedding it is all there is to do:
 
 ```cpp
 struct Settings
 {
-    VoltMod::PostgresConfig database;   // "database": { "host": ..., "port": ... }
+    VoltMod::DatabaseConfig database;   // "database": { "driver": ..., "host": ..., "port": ... }
     // ...
 };
 ```
+
+See @ref database_guide for the full field list and one JSON example per driver.
 
 ## Translations
 

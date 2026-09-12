@@ -19,7 +19,7 @@ VoltMod
 ├── Workshop    Workshop addon delivery: what connecting clients are told to download
 ├── Commands    Chat and console commands: the fluent builder, typed Args, the router
 ├── Menu        Menu model and Flow wizard, drawn as center HTML
-├── Database    Async PostgreSQL + row mapping (VOLTMOD_ENABLE_DATABASE)
+├── Database    Async Postgres/MariaDB/SQLite, chosen at runtime (VOLTMOD_ENABLE_DATABASE)
 ├── Http        Async HTTP client + JSON REST helpers
 ├── Unsafe      Opt-in raw hooking: HookInterface and HookVTable (Hook.hpp),
 │               each returning the Subscription that removes the hook
@@ -222,7 +222,7 @@ Unsafe     -> Core, Engine
 App        -> every module
 ```
 
-`Database` adds libpqxx and is compiled only with
+`Database` adds sqlpp23 and its connectors, and is compiled only with
 `VOLTMOD_ENABLE_DATABASE`. `App` is the composition root and may reach every
 module. Other modules take their narrowest dependencies through constructors or
 parameters; only `App` may include `Runtime.hpp` or `Api.hpp`. Header-only
