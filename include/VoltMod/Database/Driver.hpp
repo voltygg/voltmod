@@ -1,8 +1,10 @@
 #pragma once
 
+#include <VoltMod/Core/EnumNames.hpp>
+#include <VoltMod/Core/Strings.hpp>
 #include <optional>
+#include <string>
 #include <string_view>
-#include <utility>
 
 namespace VoltMod
 {
@@ -18,28 +20,13 @@ enum class Driver
 /** Parse a config `driver` value ("postgres", "mariadb", "sqlite"); nullopt for anything else. */
 inline std::optional<Driver> ParseDriver(std::string_view name)
 {
-    if (name == "postgres")
-        return Driver::Postgres;
-    if (name == "mariadb")
-        return Driver::MariaDb;
-    if (name == "sqlite")
-        return Driver::Sqlite;
-    return std::nullopt;
+    return Parse<Driver>(name);
 }
 
 /** The config spelling of @p driver; also the per-dialect migrations folder name. */
-inline std::string_view DriverName(Driver driver)
+inline std::string DriverName(Driver driver)
 {
-    switch (driver)
-    {
-    case Driver::Postgres:
-        return "postgres";
-    case Driver::MariaDb:
-        return "mariadb";
-    case Driver::Sqlite:
-        return "sqlite";
-    }
-    std::unreachable();
+    return Strings::ToLower(Name(driver));
 }
 
 }  // namespace VoltMod

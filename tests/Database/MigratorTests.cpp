@@ -64,14 +64,19 @@ TEST_CASE("ParseDriver and DriverName round trip")
     CHECK_EQ(ParseDriver("postgres"), VoltMod::Driver::Postgres);
     CHECK_EQ(ParseDriver("mariadb"), VoltMod::Driver::MariaDb);
     CHECK_EQ(ParseDriver("sqlite"), VoltMod::Driver::Sqlite);
-    CHECK_EQ(std::string(DriverName(VoltMod::Driver::Postgres)), "postgres");
-    CHECK_EQ(std::string(DriverName(VoltMod::Driver::MariaDb)), "mariadb");
-    CHECK_EQ(std::string(DriverName(VoltMod::Driver::Sqlite)), "sqlite");
+    CHECK_EQ(DriverName(VoltMod::Driver::Postgres), "postgres");
+    CHECK_EQ(DriverName(VoltMod::Driver::MariaDb), "mariadb");
+    CHECK_EQ(DriverName(VoltMod::Driver::Sqlite), "sqlite");
+}
+
+TEST_CASE("ParseDriver: case-insensitive, like every other config enum")
+{
+    CHECK_EQ(ParseDriver("Postgres"), VoltMod::Driver::Postgres);
+    CHECK_EQ(ParseDriver("MariaDB"), VoltMod::Driver::MariaDb);
 }
 
 TEST_CASE("ParseDriver: unknown name -> nullopt")
 {
-    CHECK(!ParseDriver("Postgres").has_value());
     CHECK(!ParseDriver("mysql").has_value());
     CHECK(!ParseDriver("").has_value());
 }
