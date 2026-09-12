@@ -30,8 +30,8 @@ public:
     struct Services
     {
         ActionDispatcher& Actions;
-        Policy& Policy;
-        Translations& Translations;
+        VoltMod::Policy& Policy;
+        VoltMod::Translations& Translations;
         PlayerManager& Players;
         EntitySystem& Entities;
         MenuSurface& Menus;
