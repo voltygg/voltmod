@@ -108,12 +108,13 @@ TEST_CASE("Bind fills offsets and vtable indices from their gamedata keys")
     CHECK(bindings.UserCmdNumber.Value() == 8);
     CHECK(static_cast<bool>(bindings.GiveNamedItem));
     CHECK(bindings.RemoveAllItems.Index() == (OnWindows ? 27 : 28));
-    CHECK(bindings.Teleport.Index() == (OnWindows ? 163 : 162));
+    CHECK(bindings.Teleport.Method.Index() == (OnWindows ? 163 : 162));
 
     CHECK(caps.Has(Capability::Entities));
     CHECK(caps.Has(Capability::Visibility));
     CHECK(caps.Has(Capability::Items));
-    CHECK(caps.Has(Capability::Teleport));
+    CHECK_FALSE(caps.Has(Capability::Teleport));
+    CHECK_FALSE(caps.Has(Capability::Movement));
 }
 
 TEST_CASE("Bind leaves a signature empty and names the module when it cannot be scanned")

@@ -56,7 +56,8 @@ Status Entity::Teleport(std::optional<Vector> origin, std::optional<QAngle> angl
     if (!_e || !_sys)
         return std::unexpected(Error::NotReady("no entity"));
 
-    const auto& teleport = _sys->BindingsRef().Teleport;
+    // The index alone carries a direct call; the class table it also binds is only the hook's.
+    const auto& teleport = _sys->BindingsRef().Teleport.Method;
     if (!teleport)
         return std::unexpected(Error::Unsupported("gamedata has no 'Teleport' vtable index"));
 

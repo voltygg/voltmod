@@ -63,8 +63,8 @@ public:
             member = Address(entry->Address);
     }
 
-    template <class Sig>
-    void operator()(VHookBinding<Sig>& member, std::string_view key, Capability capability)
+    template <class Object, class Sig>
+    void operator()(VHookBinding<Object, Sig>& member, std::string_view key, Capability capability)
     {
         const auto* entry = Claim(key, GameData::Kind::VTable, capability);
         if (!entry)

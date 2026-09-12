@@ -54,19 +54,31 @@ namespace SourceMM
 class ISmmAPI;
 }
 
-namespace KHook
-{
-/** What a hook handler returns. Declared here so a public header can name it without reaching
- *  KHook itself; <VoltMod/Unsafe/Hook.hpp> is what brings in the definition. */
-template <class Ret>
-struct Return;
-}  // namespace KHook
-
 namespace VoltMod
 {
 
-/** The hooked object in a gamedata-bound vtable hook. KHook wants a class; the slot is all we know. */
-class VtableObject
+// Which engine class a gamedata-bound hook dispatches on. Each stands in for a class whose layout
+// the SDK does not give us, so the compiler can tell a pawn from a client; none is ever
+// dereferenced as itself. The hook casts the raw pointer at the boundary.
+
+/** CCSPlayerPawn and the pawn classes sharing its vtable. */
+class HookedPawn
+{
+};
+
+/** CServerSideClient, the engine's per-connection object. */
+class HookedClient
+{
+};
+
+/** The secondary-vtable subobject CServerSideClient::FilterMessage dispatches on. Not the client:
+ *  reaching that means subtracting the subobject offset found at install time. */
+class HookedClientChannel
+{
+};
+
+/** CCSPlayer_MovementServices, the per-pawn movement component. */
+class HookedMovementServices
 {
 };
 

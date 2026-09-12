@@ -99,8 +99,9 @@ private:
     void* _table = nullptr;
 };
 
-/** DVP hook slot and class table resolved from one gamedata entry. */
-template <class Sig>
+/** DVP hook slot and class table resolved from one gamedata entry. @p Object names which engine
+ *  class the slot dispatches on, so a handler cannot be handed the wrong kind of object. */
+template <class Object, class Sig>
 struct VHookBinding
 {
     VFn<Sig> Method;
@@ -222,19 +223,20 @@ struct Bindings
     VFn<void(int)> ChangeTeam;
     /** CCSPlayerController::Respawn(). */
     VFn<void()> Respawn;
-    /** CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*). */
-    VFn<void(const Vector*, const QAngle*, const Vector*)> Teleport;
+    /** CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*), hooked on CCSPlayerPawn.
+     *  A direct call only needs Method; the table is what the hook adds. */
+    VHookBinding<HookedPawn, void(const Vector*, const QAngle*, const Vector*)> Teleport;
     /** CPlayer_MovementServices::RunCommand(CUserCmd*), hooked on CCSPlayer_MovementServices. */
-    VHookBinding<void*(void*)> RunCommand;
+    VHookBinding<HookedMovementServices, void*(void*)> RunCommand;
     /** CCSPlayer_ItemServices::GiveNamedItem(const char* classname). */
     VFn<void*(const char*)> GiveNamedItem;
     /** CCSPlayer_ItemServices::RemoveAllItems(bool removeSuit). */
     VFn<void(bool)> RemoveAllItems;
     /** CServerSideClient::ProcessRespondCvarValue(...), hooked on CServerSideClient. */
-    VHookBinding<bool(const void*)> ProcessRespondCvarValue;
+    VHookBinding<HookedClient, bool(const void*)> ProcessRespondCvarValue;
     /** CServerSideClient::SendNetMessage(const CNetMessage*, NetChannelBufType_t), hooked on
      *  CServerSideClient. The SDK enum is represented as int here. */
-    VHookBinding<bool(const CNetMessage*, int)> SendNetMessage;
+    VHookBinding<HookedClient, bool(const CNetMessage*, int)> SendNetMessage;
 
     /** CGameEntitySystem* cached inside IGameResourceService. */
     OffsetOf<CGameEntitySystem*> GameEntitySystem;
