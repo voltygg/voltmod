@@ -8,6 +8,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -20,7 +21,10 @@ class EnabledCondition
 public:
     EnabledCondition() = default;
     EnabledCondition(bool value) : _fixed(value) {}
-    EnabledCondition(std::function<bool(int slot)> predicate) : _predicate(std::move(predicate)) {}
+    template <std::predicate<int> Predicate>
+        requires(!std::same_as<std::remove_cvref_t<Predicate>, EnabledCondition>)
+    EnabledCondition(Predicate predicate) : _predicate(std::move(predicate))
+    {}
 
     [[nodiscard]] bool operator()(int slot) const { return _predicate ? _predicate(slot) : _fixed; }
 
