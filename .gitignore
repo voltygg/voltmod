@@ -425,7 +425,7 @@ objdir/
 build/
 CMakeUserPresets.json
 .conan/
-package/
+/package/
 
 # uv
 .venv/
