@@ -183,4 +183,14 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
     if(WIN32)
         target_link_libraries(voltmod-utils-tests PRIVATE psapi)
     endif()
+
+    if(VOLTMOD_ENABLE_DATABASE)
+        target_sources(voltmod-utils-tests PRIVATE src/Database/Database.cpp src/Database/Migrator.cpp)
+        target_link_libraries(voltmod-utils-tests PRIVATE sqlpp23::postgresql sqlpp23::mysql sqlpp23::sqlite3)
+        # NOMINMAX/WIN32_LEAN_AND_MEAN keep the MariaDB header's winsock2.h usable (see voltmod-database).
+        target_compile_definitions(voltmod-utils-tests PRIVATE
+            VOLTMOD_ENABLE_DATABASE=1
+            $<$<PLATFORM_ID:Windows>:NOMINMAX WIN32_LEAN_AND_MEAN>
+        )
+    endif()
 endif()
