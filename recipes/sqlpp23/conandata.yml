@@ -1,0 +1,4 @@
+sources:
+  "0.70":
+    url: "https://github.com/rbock/sqlpp23.git"
+    commit: "fe28be1da87232df16bb89f9c19dad7fb375d119"

@@ -16,8 +16,11 @@ from .. import tools
 ROOT = Path.cwd()
 
 # Package names in dependency order: the SDKs, then the framework that consumes them.
-SDK_PACKAGES = ("metamod-source", "hl2sdk-cs2")
+SDK_PACKAGES = ("metamod-source", "hl2sdk-cs2", "sqlpp23")
 KIT_PACKAGE = "voltmod"
+
+# Their package ID is platform-neutral, so only one runner may publish a revision.
+HEADER_ONLY_PACKAGES = frozenset({"metamod-source", "sqlpp23"})
 
 # Upstream branches watch() follows, and how each package's version is spelled.
 UPSTREAM = {
@@ -165,8 +168,7 @@ def publish(
     if target in (BuildTarget.SDK, BuildTarget.ALL):
         _build_sdks()
         for name in SDK_PACKAGES:
-            # Its platform-neutral package ID must only receive one published revision.
-            if name == "metamod-source" and tools.WINDOWS:
+            if name in HEADER_ONLY_PACKAGES and tools.WINDOWS:
                 continue
             _upload(f"{name}/*")
     if target in (BuildTarget.KIT, BuildTarget.ALL):
