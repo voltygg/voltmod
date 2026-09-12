@@ -1,7 +1,5 @@
 """Migration rendering and table-spec generation."""
 
-from . import command
+from .command import app
 
-app = command.app
-
-__all__ = ["app", "command"]
+__all__ = ["app"]

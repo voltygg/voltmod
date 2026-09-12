@@ -119,15 +119,15 @@ MigrationResult RunMigrations(Database& db, std::string_view dir, const Migratio
                 break;
             }
 
-            const std::string resolved = ResolveDialect(*sql, driver);
-            if (const std::string_view unknown = FindPlaceholder(resolved); !unknown.empty())
+            const auto resolved = ResolveDialect(*sql, driver);
+            if (!resolved)
             {
-                Log::Error("Migration {} ({}) uses unknown placeholder {}.", m.Version, m.Name, unknown);
+                Log::Error("Migration {} ({}): {}.", m.Version, m.Name, resolved.error().Detail);
                 result.Success = false;
                 break;
             }
 
-            const auto statements = SplitStatements(resolved);
+            const auto statements = SplitStatements(*resolved);
 
             try
             {

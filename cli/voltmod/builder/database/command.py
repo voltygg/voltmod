@@ -99,13 +99,13 @@ def tables(
     ddl = render(Path(migrations), "postgres")
     generated = generate(repo, ddl, namespace, target.name)
 
-    current = target.read_text(encoding="utf-8") if target.is_file() else ""
     if not check:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(generated, encoding="utf-8", newline="\n")
         print(f"Generated {target}.")
         return
 
+    current = target.read_text(encoding="utf-8") if target.is_file() else ""
     if current != generated:
         sys.stdout.writelines(
             difflib.unified_diff(

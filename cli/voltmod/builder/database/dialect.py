@@ -6,8 +6,6 @@ the table specs. `tests/test_database.py` fails when the two drift.
 
 import re
 
-DRIVERS = ("postgres", "mariadb", "sqlite")
-
 #: Driver -> placeholder -> replacement. `ON_CONFLICT` is handled in `resolve`: only Postgres
 #: renders a clause for it.
 DIALECTS: dict[str, dict[str, str]] = {
@@ -35,7 +33,9 @@ DIALECTS: dict[str, dict[str, str]] = {
     },
 }
 
-_TOKEN = re.compile(r"@([A-Z_]+(?:\([^)@]*\))?)@")
+DRIVERS = tuple(DIALECTS)
+
+_TOKEN =re.compile(r"@([A-Z_]+(?:\([^)@]*\))?)@")
 
 
 def resolve(sql: str, driver: str) -> str:
