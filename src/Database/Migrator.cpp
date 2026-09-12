@@ -49,12 +49,12 @@ static void ApplyMigration(Conn& conn, const std::string& table, const Migration
 
 MigrationResult RunMigrations(Database& db, std::string_view dir, const MigrationOptions& options)
 {
-    if (!IsValidTableName(options.TableName))
+    if (!IsValidTableName(options.HistoryTable))
     {
-        Log::Error("Invalid migration table name '{}'; refusing to run migrations.", options.TableName);
+        Log::Error("Invalid migration table name '{}'; refusing to run migrations.", options.HistoryTable);
         return {};
     }
-    const std::string& table = options.TableName;
+    const std::string& table = options.HistoryTable;
 
     // Relative paths must resolve against the game dir, not the server process cwd.
     const fs::path resolvedDir = ResolvePath(dir) / DriverName(db.GetDriver());
@@ -82,10 +82,10 @@ MigrationResult RunMigrations(Database& db, std::string_view dir, const Migratio
     std::sort(migrations.begin(), migrations.end(),
               [](const Migration& a, const Migration& b) { return a.Version < b.Version; });
 
-    // Runs on the database worker via the blocking RunBlocking - load-time only.
-    auto outcome = db.RunBlocking("migrations", [&](auto& conn) -> MigrationResult {
+    // Runs on the database worker via the blocking Run - load-time only.
+    auto outcome = db.Run("migrations", [&](auto& conn) -> MigrationResult {
         using Conn = std::remove_cvref_t<decltype(conn)>;
-        const std::string lockKey = std::to_string(options.AdvisoryLockKey);
+        const std::string lockKey = std::to_string(options.LockKey);
 
         conn(HistoryTableDdl(table));
 
@@ -165,7 +165,7 @@ MigrationResult RunMigrations(Database& db, std::string_view dir, const Migratio
 
     if (!outcome)
     {
-        Log::Error("Migration runner failed: {}", outcome.error());
+        Log::Error("Migration runner failed: {}", outcome.error().Detail);
         return {};
     }
     return *outcome;

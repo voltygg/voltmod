@@ -84,21 +84,27 @@ A job is a callable taking `auto& conn`, compiled once per connection type; it
 must return the same type on every driver, so dialect differences go in
 `if constexpr` branches on `IsPostgres`, `IsMariaDb`, `IsSqlite`.
 
-- `Run(name, fn, onDone)` is the gameplay path: enqueue and return immediately;
-  `onDone` runs on the game thread once the worker finishes.
-- `RunBlocking(name, fn)` enqueues the same way but waits for the result.
-  Use it only at load time - `OnLoad`, migrations, an explicit admin reload -
-  never on a per-frame or per-event path.
+A bare name blocks, an `Async` name returns first:
 
-Both return `VoltMod::DbResult<T>` (`std::expected<T, std::string>`): the
-value on success, an error message on failure.
+- `RunAsync(name, fn, onDone)` is the gameplay path: enqueue and return
+  immediately; `onDone` runs on the game thread once the worker finishes. Pass a
+  callback taking the value alone and it fires only on success, the failure
+  having already been logged; take the whole `Result<T>` to see it.
+- `Run(name, fn)` enqueues the same way but waits. Use it only at load time -
+  `OnLoad`, migrations, an explicit admin reload - never on a per-frame or
+  per-event path. `RunOr(name, fn, fallback)` folds a failure into a value.
+
+`Run` returns `VoltMod::Result<T>` over `Error`, the same type the rest of the
+framework uses. A job that never ran, because the database is stopping or the
+connection is down, carries `ErrorCode::NotReady`; one that threw carries
+`ErrorCode::Failed` with the driver's message in `Error::Detail`.
 
 ```cpp
-db.Run("audit_insert",
-       [steamId, action](auto& conn) { conn("INSERT INTO admin_activity (admin_id, action) VALUES (" +
-                                             std::to_string(steamId) + ", '" + conn.escape(action) + "')"); });
+db.RunAsync("audit_insert",
+            [steamId, action](auto& conn) { conn("INSERT INTO admin_activity (admin_id, action) VALUES (" +
+                                                 std::to_string(steamId) + ", '" + conn.escape(action) + "')"); });
 
-auto count = db.RunBlocking("count_recent_bans", [&](auto& conn) {
+auto count = db.Run("count_recent_bans", [&](auto& conn) {
     int total = 0;
     for (const auto& row : conn(select(count(t.id)).from(t).where(t.adminId == steamId && t.createdAt > windowStart)))
         total = static_cast<int>(row.count);
@@ -108,14 +114,22 @@ auto count = db.RunBlocking("count_recent_bans", [&](auto& conn) {
 
 ## Declaring tables
 
-Declare each table's columns with `VOLTMOD_COLUMN` (from `<VoltMod/Database/Table.hpp>`):
+Generate them. The sqlpp23 package ships `sqlpp23-ddl2cpp`, which reads a
+`CREATE TABLE` script and emits the specs; it skips the indexes and inserts it
+cannot parse, so point it at the migration itself and keep one source of truth.
+admin-system does this from a `poe schema` task and commits the result, with a
+`poe lint` check that fails when the two drift. Its `schema/` directory is the
+worked example.
+
+Hand-write a spec only where there is no DDL to read, using `VOLTMOD_COLUMN`
+from `<VoltMod/Database/Table.hpp>`:
 
 ```cpp
 struct Bans_
 {
-    VOLTMOD_COLUMN(id, id, sqlpp::integral, std::true_type);
-    VOLTMOD_COLUMN(steamId, steam_id, sqlpp::text, std::false_type);
-    VOLTMOD_COLUMN(reason, reason, std::optional<sqlpp::text>, std::true_type);
+    VOLTMOD_COLUMN(id, id, sqlpp::integral, VoltMod::HasDefault);
+    VOLTMOD_COLUMN(steamId, steam_id, sqlpp::text, VoltMod::Required);
+    VOLTMOD_COLUMN(reason, reason, std::optional<sqlpp::text>, VoltMod::HasDefault);
 
     SQLPP_CREATE_NAME_TAG_FOR_SQL_AND_CPP(bans, bans);
     template <typename T>
@@ -126,43 +140,45 @@ using Bans = sqlpp::table_t<Bans_>;
 ```
 
 Wrap the data type in `std::optional` for a nullable column (`reason` above).
-The last argument is `has_default`: `std::true_type` when the column may be
-left out of an insert (an id, or anything with a database-side default),
-`std::false_type` when the insert must supply it.
+The last argument is `VoltMod::HasDefault` when an insert may leave the column
+out, an id or anything with a database-side default, and `VoltMod::Required`
+when it must not.
 
 ## Queries
 
-Gameplay queries go through `Run`, so the tick never waits on the database.
+Gameplay queries go through `RunAsync`, so the tick never waits on the database.
 Capture by value: the job outlives the call that enqueued it.
 
 ```cpp
 Bans t;
 
 // Typed select; the rows arrive on the game thread.
-db.Run("bans_active",
-       [t](auto& conn) {
-           std::vector<int64_t> ids;
-           for (const auto& row : conn(select(all_of(t)).from(t).where(t.reason.is_null())))
-               ids.push_back(row.id);
-           return ids;
-       },
-       [](VoltMod::DbResult<std::vector<int64_t>> ids) { /* announce the active bans */ });
+db.RunAsync("bans_active",
+            [t](auto& conn) {
+                std::vector<int64_t> ids;
+                for (const auto& row : conn(select(all_of(t)).from(t).where(t.reason.is_null())))
+                    ids.push_back(row.id);
+                return ids;
+            },
+            [](std::vector<int64_t> ids) { /* announce the active bans */ });
 
 // Insert returning the id: Postgres reads the SERIAL sequence, the others report last-insert-id
-db.Run("ban_insert",
-       [t, steamId, reason](auto& conn) {
-           return VoltMod::InsertReturningId(conn, insert_into(t).set(t.steamId = steamId, t.reason = reason), "bans");
-       },
-       [](VoltMod::DbResult<int64_t> id) { /* record the ban id */ });
+db.RunAsync("ban_insert",
+            [t, steamId, reason](auto& conn) {
+                return VoltMod::Insert(conn, insert_into(t).set(t.steamId = steamId, t.reason = reason), "bans");
+            },
+            [](int64_t id) { /* record the ban id */ });
 
 // Update, with nothing to report back
-db.Run("ban_lift", [t, banId](auto& conn) { conn(update(t).set(t.reason = std::nullopt).where(t.id == banId)); });
+db.RunAsync("ban_lift", [t, banId](auto& conn) { conn(update(t).set(t.reason = std::nullopt).where(t.id == banId)); });
 ```
 
-MariaDB has neither `RETURNING` nor `ON CONFLICT`; a portable upsert is
-update-then-insert instead (update by the natural key, insert only if nothing
-matched). Reach for `IsPostgres`/`IsMariaDb`/`IsSqlite` only for a genuine
-dialect quirk like this, not as a default style.
+MariaDB has neither `RETURNING` nor `ON CONFLICT`, so a portable upsert is
+update-then-insert: `VoltMod::Upsert(conn, update, insert)` runs the update and
+inserts only when nothing matched. It is not atomic, so back the natural key
+with a UNIQUE constraint and a race fails one job rather than duplicating a row.
+Reach for `IsPostgres`/`IsMariaDb`/`IsSqlite` only for a genuine dialect quirk
+like this, not as a default style.
 
 ## Raw SQL
 
@@ -175,20 +191,26 @@ Migration files live under `<dir>/<driver>/NNNN_name.sql` (`postgres/`,
 `mariadb/`, `sqlite/`), one statement per `;`. Procedure bodies are not
 supported: MariaDB and SQLite run raw SQL one statement at a time.
 
+Writing the schema three times is not the intent. admin-system keeps one
+dialect-free `schema.sql.in` and renders the three copies from it, resolving a
+few placeholders for the only places the dialects disagree: the auto-increment
+key, the current-epoch default, the boolean literals, and the insert-if-absent
+idiom. Copy that arrangement rather than maintaining three schemas by hand.
+
 ```cpp
 if (!VoltMod::RunMigrations(db, "addons/my-plugin/configs/migrations",
-                           {.TableName = "schema_migrations", .AdvisoryLockKey = 727274}))
+                           {.HistoryTable = "schema_migrations", .LockKey = 727274}))
     return false;   // don't run against an out-of-date schema
 ```
 
 Each file runs in its own transaction (MariaDB DDL auto-commits regardless -
 a failed file there leaves the tables it already created, with the version
-row as the source of truth). A history table (`MigrationOptions::TableName`,
+row as the source of truth). A history table (`MigrationOptions::HistoryTable`,
 interpolated into SQL and validated against `[A-Za-z_][A-Za-z0-9_]*`) records
 applied versions; a session lock (Postgres advisory lock, MariaDB named lock,
 SQLite's own write lock) serializes two plugin loads racing on the same
-database. Plugins sharing a database need distinct table names *and* distinct
-lock keys.
+database. Plugins sharing a database need distinct history tables *and*
+distinct lock keys.
 
 `RunMigrations` returns `MigrationResult` (`Success`, `Applied`,
 `CurrentVersion`), contextually convertible to bool. A missing directory is a

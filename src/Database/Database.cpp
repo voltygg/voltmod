@@ -128,7 +128,7 @@ bool Database::Start(const DatabaseConfig& config)
 
     // Verify connectivity up front so the plugin can degrade instead of queueing into the void.
     // Typed, not raw: a raw SELECT leaves an unread result set on MariaDB.
-    auto ping = RunBlocking("db_ping", [](auto& conn) {
+    auto ping = Run("db_ping", [](auto& conn) {
         for (const auto& row : conn(sqlpp::select(sqlpp::value(1).as(sqlpp::alias::a))))
             (void)row;
     });
@@ -205,7 +205,7 @@ void Database::Enqueue(Job job)
     // Async failures are queued for the next dispatch rather than invoked here. Every other
     // completion reaches the caller on a later frame, and a caller that is mid-iteration over its
     // own container when it enqueues must not be re-entered on this stack.
-    job.Fail("database not running");
+    job.OnFail(Error::NotReady("database not running"));
 }
 
 void Database::WorkerMain()
@@ -226,7 +226,7 @@ void Database::WorkerMain()
                 for (auto& dropped : _queue)
                 {
                     Log::Warn("db: dropping queued '{}' - shutdown stop deadline reached.", dropped.Name);
-                    dropped.Fail("shutdown");
+                    dropped.OnFail(Error::NotReady("shutdown"));
                 }
                 _queue.clear();
                 break;
@@ -239,19 +239,19 @@ void Database::WorkerMain()
         if (!EnsureOpen())
         {
             Log::Error("db: '{}' failed - no database connection.", job.Name);
-            job.Fail("no database connection");
+            job.OnFail(Error::NotReady("no database connection"));
             continue;
         }
 
         try
         {
-            job.Body(_connection);
+            job.Run(_connection);
         }
         catch (const std::exception& e)
         {
             Log::Error("db: {} failed: {}", job.Name, e.what());
             DropConnection();  // the connection state is unknown; reopen on the next job
-            job.Fail(e.what());
+            job.OnFail(Error::Failed(e.what()));
         }
     }
 

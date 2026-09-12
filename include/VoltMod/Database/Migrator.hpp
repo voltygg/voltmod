@@ -18,12 +18,12 @@ namespace VoltMod
 struct MigrationOptions
 {
     /** Migration-history table. Must match `[A-Za-z_][A-Za-z0-9_]*` - it is interpolated into SQL. */
-    std::string TableName = "schema_migrations";
+    std::string HistoryTable = "schema_migrations";
 
     /** Lock key serializing concurrent loads that share a database (a Postgres advisory lock, a
      *  MariaDB named lock; SQLite relies on its own write lock). Plugins sharing one database
      *  should use distinct table names AND distinct lock keys. */
-    int64_t AdvisoryLockKey = 727274;
+    int64_t LockKey = 727274;
 };
 
 /** Outcome of @ref RunMigrations. Contextually convertible to bool (success). */

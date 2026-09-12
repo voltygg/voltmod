@@ -12,8 +12,10 @@
 #include "Support/TempPath.hpp"
 
 using VoltMod::Database;
-using VoltMod::DbResult;
 using VoltMod::Driver;
+using VoltMod::Error;
+using VoltMod::ErrorCode;
+using VoltMod::Result;
 using VoltMod::RunMigrations;
 using VoltMod::Scheduler;
 
@@ -23,8 +25,8 @@ namespace
 // A small table spec, shaped the way a plugin's own table header would declare one.
 struct T_
 {
-    VOLTMOD_COLUMN(id, id, sqlpp::integral, std::true_type);
-    VOLTMOD_COLUMN(name, name, sqlpp::text, std::false_type);
+    VOLTMOD_COLUMN(id, id, sqlpp::integral, VoltMod::HasDefault);
+    VOLTMOD_COLUMN(name, name, sqlpp::text, VoltMod::Required);
 
     SQLPP_CREATE_NAME_TAG_FOR_SQL_AND_CPP(t, t);
     template <typename Table>
@@ -36,7 +38,7 @@ using T = sqlpp::table_t<T_>;
 // COUNT(*) over a table named at runtime, so the row checks below read as one line each.
 int CountRows(Database& db, const std::string& table, const std::string& where = {})
 {
-    auto count = db.RunBlocking("count-rows", [&](auto& conn) {
+    auto count = db.Run("count-rows", [&](auto& conn) {
         auto select = sqlpp::select(sqlpp::verbatim<sqlpp::integral>("COUNT(*)").as(sqlpp::alias::a))
                           .from(sqlpp::verbatim_table(table))
                           .where(sqlpp::verbatim<sqlpp::boolean>(where.empty() ? "1 = 1" : where));
@@ -77,24 +79,24 @@ TEST_CASE("Database: Start fails on sqlite with an empty path")
     CHECK(!db.Start({.driver = "sqlite", .path = ""}));
 }
 
-TEST_CASE("Database: RunBlocking runs a raw create, a typed insert, and a typed select")
+TEST_CASE("Database: Run runs a raw create, a typed insert, and a typed select")
 {
     Scheduler scheduler;
     Database db(scheduler);
     REQUIRE(db.Start({.driver = "sqlite", .path = ":memory:"}));
 
-    auto created = db.RunBlocking(
+    auto created = db.Run(
         "create-table", [](auto& conn) { conn("CREATE TABLE t (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL)"); });
     REQUIRE(created.has_value());
 
     const T t;
-    auto insertedId = db.RunBlocking("insert-row", [&](auto& conn) {
-        return VoltMod::InsertReturningId(conn, sqlpp::insert_into(t).set(t.name = "widget"), "t");
+    auto insertedId = db.Run("insert-row", [&](auto& conn) {
+        return VoltMod::Insert(conn, sqlpp::insert_into(t).set(t.name = "widget"), "t");
     });
     REQUIRE(insertedId.has_value());
     CHECK_EQ(*insertedId, 1);
 
-    auto name = db.RunBlocking("select-row", [&](auto& conn) -> std::string {
+    auto name = db.Run("select-row", [&](auto& conn) -> std::string {
         std::string found;
         for (const auto& row : conn(sqlpp::select(sqlpp::all_of(t)).from(t).where(t.id == 1)))
             found = row.name;
@@ -104,22 +106,22 @@ TEST_CASE("Database: RunBlocking runs a raw create, a typed insert, and a typed 
     CHECK_EQ(*name, "widget");
 }
 
-TEST_CASE("Database: Run delivers its result only through DispatchCompletions")
+TEST_CASE("Database: RunAsync delivers its result only through DispatchCompletions")
 {
     Scheduler scheduler;
     Database db(scheduler);
     REQUIRE(db.Start({.driver = "sqlite", .path = ":memory:"}));
 
     bool done = false;
-    DbResult<int> result = std::unexpected("never ran");
-    db.Run(
+    Result<int> result = std::unexpected(Error::Failed("never ran"));
+    db.RunAsync(
         "ping-async",
         [](auto& conn) -> int {
             for (const auto& row : conn(sqlpp::select(sqlpp::value(1).as(sqlpp::alias::a))))
                 (void)row;
             return 1;
         },
-        [&](DbResult<int> r) {
+        [&](Result<int> r) {
             done = true;
             result = std::move(r);
         });
@@ -144,10 +146,10 @@ TEST_CASE("Database: a job that throws yields an error, the next job still succe
     VoltModTests::TempFile file("", "database-reopen", ".sqlite3");
     REQUIRE(db.Start({.driver = "sqlite", .path = file.Path()}));
 
-    auto created = db.RunBlocking("create-table", [](auto& conn) { conn("CREATE TABLE t (id INTEGER PRIMARY KEY)"); });
+    auto created = db.Run("create-table", [](auto& conn) { conn("CREATE TABLE t (id INTEGER PRIMARY KEY)"); });
     REQUIRE(created.has_value());
 
-    auto failed = db.RunBlocking("select-missing", [](auto& conn) -> bool {
+    auto failed = db.Run("select-missing", [](auto& conn) -> bool {
         conn("SELECT * FROM this_table_does_not_exist");
         return true;
     });
@@ -157,7 +159,7 @@ TEST_CASE("Database: a job that throws yields an error, the next job still succe
     CHECK_EQ(CountRows(db, "t"), 0);
 }
 
-TEST_CASE("Database: Run after Stop delivers an error only on the next DispatchCompletions")
+TEST_CASE("Database: RunAsync after Stop delivers an error only on the next DispatchCompletions")
 {
     Scheduler scheduler;
     Database db(scheduler);
@@ -165,10 +167,10 @@ TEST_CASE("Database: Run after Stop delivers an error only on the next DispatchC
     db.Stop();
 
     bool done = false;
-    DbResult<int> result = std::unexpected("never ran");
-    db.Run(
+    Result<int> result = std::unexpected(Error::Failed("never ran"));
+    db.RunAsync(
         "after-stop", [](auto&) -> int { return 1; },
-        [&](DbResult<int> r) {
+        [&](Result<int> r) {
             done = true;
             result = std::move(r);
         });
@@ -177,7 +179,8 @@ TEST_CASE("Database: Run after Stop delivers an error only on the next DispatchC
     db.DispatchCompletions();
     REQUIRE(done);
     REQUIRE(!result.has_value());
-    CHECK_EQ(result.error(), "database not running");
+    CHECK_EQ(result.error().Code, ErrorCode::NotReady);
+    CHECK_EQ(result.error().Detail, "database not running");
 }
 
 TEST_CASE("RunMigrations: applies migrations in order, is idempotent, and stops on a bad file")

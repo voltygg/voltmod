@@ -1,14 +1,15 @@
 #pragma once
 
+#include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Database/Connection.hpp>
 #include <VoltMod/Database/DatabaseConfig.hpp>
-#include <VoltMod/Database/DbResult.hpp>
 #include <VoltMod/Database/Driver.hpp>
 #include <VoltMod/Database/Migrator.hpp>
 #include <atomic>
 #include <chrono>
+#include <concepts>
 #include <condition_variable>
 #include <deque>
 #include <functional>
@@ -28,25 +29,16 @@ namespace VoltMod
 {
 
 /**
- * @brief Async-first database access layer over Postgres, MariaDB and SQLite.
+ * @brief Async database access over Postgres, MariaDB and SQLite.
  *
- * One worker thread owns the ONLY connection (opened lazily, reopened on failure); the game
- * thread never blocks on the database during play. Jobs run FIFO, so a write enqueued before a
- * read is visible to it. Completions are queued and replayed on the game thread (a per-frame
- * subscription self-registers in Start), so callbacks may touch engine and plugin state freely.
+ * One worker thread owns the only connection, opened lazily and reopened on failure. Jobs run
+ * FIFO, and completions replay on the game thread, so a callback may touch engine state.
  *
- * A job is a generic callable taking `auto& conn`: it is compiled for all three connection types
- * and must return the same type from each, so dialect differences go in `if constexpr` branches
- * on @ref IsPostgres and friends.
+ * A job is a callable over `auto& conn`, compiled for all three connection types and returning
+ * the same type from each; dialect differences go in `if constexpr` branches on @ref IsPostgres
+ * and friends.
  *
- * - `Run` is the gameplay path: fire, and receive the result later on the game thread.
- * - `RunBlocking` enqueues the same way but waits for the worker - use it ONLY at load time
- *   (OnLoad, migrations, `!admin_reload`); never on a per-frame or per-event path.
- *
- * Shutdown (`Stop`): new work is dropped with a log line, the already-queued jobs get to finish
- * within `stopDeadline` (a ban written just before unload must land), anything past the deadline
- * is dropped with a warning, blocked waiters are released with a failed result, and undispatched
- * completions are destroyed unrun - the state they would touch is going away.
+ * @ref Run blocks and is load-time only; anything per-frame or per-event uses @ref RunAsync.
  */
 class Database
 {
@@ -54,7 +46,8 @@ public:
     /** The worker's connection; monostate before the first successful open and after a drop. */
     using AnyConnection = std::variant<std::monostate, PostgresConnection, MariaDbConnection, SqliteConnection>;
 
-    /** What a job returns. Instantiated on one connection type; all three must agree. */
+    /** What a job returns. @ref CheckJob makes all three drivers agree, so SQLite is an
+     *  arbitrary pick. */
     template <class Fn>
     using ResultOf = std::invoke_result_t<Fn&, SqliteConnection&>;
 
@@ -64,97 +57,119 @@ public:
     Database(const Database&) = delete;
     Database& operator=(const Database&) = delete;
 
-    /**
-     * Parse the driver, spawn the worker, verify connectivity with a ping, and register
-     * per-frame completion delivery with the framework scheduler. Returns false (worker stopped
-     * again) on an invalid config or an unreachable database, so the plugin can degrade instead
-     * of queueing into the void.
-     */
+    /** Spawn the worker and ping. False on a bad config or an unreachable database, so a
+     *  plugin can degrade rather than queue into the void. */
     bool Start(const DatabaseConfig& config);
 
-    /** Let queued jobs finish, then join the worker (see class docs). Idempotent; also runs from
-     *  the destructor. */
+    /**
+     * Let queued jobs finish within @p stopDeadline, then join the worker, so a ban written just
+     * before unload still lands. Past the deadline jobs are dropped and waiters get a failure;
+     * undispatched completions are destroyed unrun, since the state they touch is going away.
+     * Idempotent, and the destructor calls it.
+     */
     void Stop(std::chrono::milliseconds stopDeadline = std::chrono::seconds(5));
 
     /** Run @p fn on the worker; @p onDone runs on the game thread later. @p name is a log label. */
     template <class Fn>
-    void Run(std::string name, Fn fn, std::move_only_function<void(DbResult<ResultOf<Fn>>)> onDone = {})
+    void RunAsync(std::string name, Fn fn, std::move_only_function<void(Result<ResultOf<Fn>>)> onDone = {})
     {
-        using Result = ResultOf<Fn>;
+        using Value = ResultOf<Fn>;
         CheckJob<Fn>();
 
         Job job;
         job.Name = std::move(name);
         if (!onDone)
         {
-            job.Body = [fn = std::move(fn)](AnyConnection& conn) mutable { Invoke(conn, fn); };
-            job.Fail = [](std::string) {};
+            job.Run = [fn = std::move(fn)](AnyConnection& conn) mutable { Invoke(conn, fn); };
+            job.OnFail = [](Error) {};
             Enqueue(std::move(job));
             return;
         }
 
         // Shared because exactly one of the two paths runs, and a move-only callback cannot be
         // captured by both.
-        auto callback = std::make_shared<std::move_only_function<void(DbResult<Result>)>>(std::move(onDone));
-        job.Body = [this, fn = std::move(fn), callback](AnyConnection& conn) mutable {
-            if constexpr (std::is_void_v<Result>)
+        auto callback = std::make_shared<std::move_only_function<void(Result<Value>)>>(std::move(onDone));
+        job.Run = [this, fn = std::move(fn), callback](AnyConnection& conn) mutable {
+            if constexpr (std::is_void_v<Value>)
             {
                 Invoke(conn, fn);
-                PushCompletion([callback] { (*callback)(DbResult<void>{}); });
+                PushCompletion([callback] { (*callback)(Result<void>{}); });
             }
             else
             {
                 PushCompletion([callback, value = Invoke(conn, fn)]() mutable {
-                    (*callback)(DbResult<Result>{std::move(value)});
+                    (*callback)(Result<Value>{std::move(value)});
                 });
             }
         };
-        job.Fail = [this, callback](std::string message) {
-            PushCompletion([callback, message = std::move(message)]() mutable {
-                (*callback)(std::unexpected(std::move(message)));
-            });
+        job.OnFail = [this, callback](Error error) {
+            PushCompletion(
+                [callback, error = std::move(error)]() mutable { (*callback)(std::unexpected(std::move(error))); });
         };
         Enqueue(std::move(job));
     }
 
-    /** Blocking variant of @ref Run - load time only. */
-    template <class Fn>
-    DbResult<ResultOf<Fn>> RunBlocking(std::string name, Fn fn)
+    /** @ref RunAsync for a callback wanting the value alone; a failure is dropped, the worker
+     *  having logged it. Taking the whole `Result` selects the overload above instead. */
+    template <class Fn, class OnValue>
+        requires(!std::is_void_v<ResultOf<Fn>> && std::invocable<OnValue&, ResultOf<Fn>> &&
+                 !std::invocable<OnValue&, Result<ResultOf<Fn>>>)
+    void RunAsync(std::string name, Fn fn, OnValue onValue)
     {
-        using Result = ResultOf<Fn>;
+        RunAsync(std::move(name), std::move(fn),
+                 std::move_only_function<void(Result<ResultOf<Fn>>)>(
+                     [onValue = std::move(onValue)](Result<ResultOf<Fn>> result) mutable {
+                         // std::function callbacks are optional at several call sites.
+                         if constexpr (requires { static_cast<bool>(onValue); })
+                             if (!onValue)
+                                 return;
+                         if (result)
+                             onValue(std::move(*result));
+                     }));
+    }
+
+    /** Blocking variant of @ref RunAsync - load time only. */
+    template <class Fn>
+    Result<ResultOf<Fn>> Run(std::string name, Fn fn)
+    {
+        using Value = ResultOf<Fn>;
         CheckJob<Fn>();
 
-        auto promise = std::make_shared<std::promise<DbResult<Result>>>();
-        std::future<DbResult<Result>> answer = promise->get_future();
+        auto promise = std::make_shared<std::promise<Result<Value>>>();
+        std::future<Result<Value>> answer = promise->get_future();
 
         Job job;
         job.Name = std::move(name);
-        job.Body = [fn = std::move(fn), promise](AnyConnection& conn) mutable {
-            if constexpr (std::is_void_v<Result>)
+        job.Run = [fn = std::move(fn), promise](AnyConnection& conn) mutable {
+            if constexpr (std::is_void_v<Value>)
             {
                 Invoke(conn, fn);
-                promise->set_value(DbResult<void>{});
+                promise->set_value(Result<void>{});
             }
             else
             {
-                promise->set_value(DbResult<Result>{Invoke(conn, fn)});
+                promise->set_value(Result<Value>{Invoke(conn, fn)});
             }
         };
-        job.Fail = [promise](std::string message) { promise->set_value(std::unexpected(std::move(message))); };
+        job.OnFail = [promise](Error error) { promise->set_value(std::unexpected(std::move(error))); };
         Enqueue(std::move(job));
 
         return answer.get();
     }
 
+    /** @ref Run, falling back to @p fallback when the job fails. */
+    template <class Fn>
+    ResultOf<Fn> RunOr(std::string name, Fn fn, ResultOf<Fn> fallback = {})
+    {
+        auto result = Run(std::move(name), std::move(fn));
+        return result ? std::move(*result) : std::move(fallback);
+    }
+
     /** Invoke all ready completions on the calling (game) thread. Start self-registers this. */
     void DispatchCompletions();
 
-    /**
-     * Whether the worker's connection was live as of its last job - safe to read from the game
-     * thread, and the only runtime health signal there is. It is a report, not a reservation: the
-     * connection can drop before the next job, so use it for diagnostics and fast-fail, never as
-     * a guarantee that an about-to-be-enqueued write will land.
-     */
+    /** Whether the connection was live as of the worker's last job. It can drop before the
+     *  next one, so this is a diagnostic, never a guarantee. */
     bool IsConnected() const { return _connected.load(std::memory_order_relaxed); }
 
     /** The driver @ref Start parsed from the config. Meaningless before a successful Start. */
@@ -164,8 +179,8 @@ private:
     struct Job
     {
         std::string Name;  ///< log label only
-        std::move_only_function<void(AnyConnection&)> Body;
-        std::move_only_function<void(std::string)> Fail;
+        std::move_only_function<void(AnyConnection&)> Run;
+        std::move_only_function<void(Error)> OnFail;
     };
 
     /** A job must compile and return the same type on every driver. */
