@@ -31,16 +31,10 @@ static bool IsValidTableName(const std::string& name)
     return std::all_of(name.begin(), name.end(), [](unsigned char c) { return std::isalnum(c) || c == '_'; });
 }
 
-template <class Conn>
 static std::string HistoryTableDdl(const std::string& table)
 {
-    if constexpr (IsPostgres<Conn>)
-        return "CREATE TABLE IF NOT EXISTS " + table +
-               " (version INTEGER PRIMARY KEY, name TEXT NOT NULL, "
-               "applied_at BIGINT NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())::BIGINT)";
-    else
-        return "CREATE TABLE IF NOT EXISTS " + table +
-               " (version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at BIGINT NOT NULL)";
+    return "CREATE TABLE IF NOT EXISTS " + table +
+           " (version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at BIGINT NOT NULL)";
 }
 
 template <class Conn>
@@ -48,7 +42,7 @@ static void ApplyMigration(Conn& conn, const std::string& table, const Migration
 {
     for (const std::string& statement : SplitStatements(sql))
         conn(statement);
-    // The timestamp is written explicitly: only Postgres has a portable DEFAULT for it.
+    // The timestamp is written explicitly: no DEFAULT for it is portable across the drivers.
     conn("INSERT INTO " + table + " (version, name, applied_at) VALUES (" + std::to_string(migration.Version) + ", '" +
          conn.escape(migration.Name) + "', " + std::to_string(Time::Now()) + ")");
 }
@@ -89,14 +83,11 @@ MigrationResult RunMigrations(Database& db, std::string_view dir, const Migratio
               [](const Migration& a, const Migration& b) { return a.Version < b.Version; });
 
     // Runs on the database worker via the blocking RunBlocking - load-time only.
-    // The result fields are filled through these captures (RunBlocking blocks).
-    int appliedTotal = 0;
-    int finalVersion = 0;
-    auto outcome = db.RunBlocking("migrations", [&](auto& conn) -> bool {
+    auto outcome = db.RunBlocking("migrations", [&](auto& conn) -> MigrationResult {
         using Conn = std::remove_cvref_t<decltype(conn)>;
         const std::string lockKey = std::to_string(options.AdvisoryLockKey);
 
-        conn(HistoryTableDdl<Conn>(table));
+        conn(HistoryTableDdl(table));
 
         // Session-level lock held across the per-file transactions below; released when the
         // connection drops. Serializes two plugin loads that race on the same database. SQLite
@@ -110,10 +101,8 @@ MigrationResult RunMigrations(Database& db, std::string_view dir, const Migratio
         for (const auto& row : conn(sqlpp::select(sqlpp::verbatim<sqlpp::integral>("MAX(version)").as(sqlpp::alias::a))
                                         .from(sqlpp::verbatim_table(table))))
             current = static_cast<int>(row.a.value_or(0));
-        finalVersion = current;
 
-        int applied = 0;
-        bool ok = true;
+        MigrationResult result{.Success = true, .CurrentVersion = current};
         for (const Migration& m : migrations)
         {
             if (m.Version <= current)
@@ -124,7 +113,7 @@ MigrationResult RunMigrations(Database& db, std::string_view dir, const Migratio
             if (!sql)
             {
                 Log::Error("Migration {} ({}) unreadable: {}", m.Version, m.Name, sql.error().Detail);
-                ok = false;
+                result.Success = false;
                 break;
             }
 
@@ -152,35 +141,34 @@ MigrationResult RunMigrations(Database& db, std::string_view dir, const Migratio
                     ApplyMigration(conn, table, m, *sql);
                     transaction.commit();
                 }
-                ++applied;
-                finalVersion = m.Version;
+                ++result.Applied;
+                result.CurrentVersion = m.Version;
                 Log::Info("Applied migration {} ({}).", m.Version, m.Name);
             }
             catch (const std::exception& e)
             {
                 Log::Error("Migration {} ({}) failed: {}", m.Version, m.Name, e.what());
-                ok = false;
+                result.Success = false;
                 break;
             }
         }
-        appliedTotal = applied;
 
         if constexpr (IsPostgres<Conn>)
             conn("SELECT pg_advisory_unlock(" + lockKey + ")");
         else if constexpr (IsMariaDb<Conn>)
             conn("DO RELEASE_LOCK('voltmod_migrations_" + lockKey + "')");
 
-        if (applied > 0)
-            Log::Info("Database schema up to date ({} migration(s) applied).", applied);
-        return ok;
+        if (result.Applied > 0)
+            Log::Info("Database schema up to date ({} migration(s) applied).", result.Applied);
+        return result;
     });
 
     if (!outcome)
     {
         Log::Error("Migration runner failed: {}", outcome.error());
-        return {.Applied = appliedTotal, .CurrentVersion = finalVersion};
+        return {};
     }
-    return {.Success = *outcome, .Applied = appliedTotal, .CurrentVersion = finalVersion};
+    return *outcome;
 }
 
 }  // namespace VoltMod
