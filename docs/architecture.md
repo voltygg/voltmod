@@ -21,8 +21,8 @@ VoltMod
 ├── Menu        Menu model and Flow wizard, drawn as center HTML
 ├── Database    Async PostgreSQL + row mapping (VOLTMOD_ENABLE_POSTGRES)
 ├── Http        Async HTTP client + JSON REST helpers
-├── Unsafe      Opt-in raw hooking: HookInterface, HookVTable and HookInstance
-│               (Hook.hpp), each returning a Subscription
+├── Unsafe      Opt-in raw hooking: HookInterface and HookVTable (Hook.hpp),
+│               each returning the Subscription that removes the hook
 └── App         The composition root: Runtime, MetamodPlugin, ServiceExchange
 ```
 

@@ -282,33 +282,34 @@ There is no string form: consuming an unmodeled event means adding its struct to
 ## Custom hooks
 
 Nothing has to be declared at namespace scope. `VoltMod::HookInterface` reads the vtable slot
-from the member function pointer, installs the hook, and yields a `Subscription` that removes it.
+from the member function pointer and installs the hook, handing back the `Subscription` that
+removes it.
 
-A handler takes the hooked object as its first parameter and returns `KHook::Return<Ret>`. Pass
-`nullptr` for the side you do not want; here the pre-hook runs and there is no post-hook.
+A handler is any callable taking the hooked object as its first parameter. A pre-handler returns
+`VoltMod::HookResult<Ret>`, or nothing at all when it only observes. Pass `nullptr` for the side
+you do not want; here the pre-hook runs and there is no post-hook.
 
 For per-tick player movement you don't need a custom hook at all: the framework ships @ref VoltMod::Movement (see @ref sdk_hooks_guide).
 
 ```cpp
 #include <VoltMod/Unsafe/Hook.hpp>
 
-KHook::Return<bool> MyPlugin::Hook_SetClientListening(IVEngineServer2*, CPlayerSlot receiver,
-                                                      CPlayerSlot sender, bool listen)
-{
-    if (Muted(receiver, sender))
-        return {KHook::Action::Supersede, false};
-    return {KHook::Action::Ignore, listen};
-}
-
-void MyPlugin::OnRegisterHooks(VoltMod::Runtime& runtime, VoltMod::SubscriptionScope& hooks)
+void MyPlugin::OnRegisterHooks(VoltMod::Runtime& runtime, VoltMod::Subscriptions& hooks)
 {
     hooks.Add(VoltMod::HookInterface(&IVEngineServer2::SetClientListening, runtime.Unsafe.Interfaces.Engine,
-                                     this, &MyPlugin::Hook_SetClientListening, nullptr));
+                                     [this](IVEngineServer2& engine, CPlayerSlot receiver, CPlayerSlot sender,
+                                            bool listen) -> VoltMod::HookResult<bool> {
+                                         if (!Muted(receiver, sender))
+                                             return {};
+                                         return VoltMod::HookResult<bool>::Block(false);
+                                     }));
 }
 ```
 
-`Action::Ignore` leaves the engine's own result in place, `Override` replaces the return value but
-still calls the original, and `Supersede` replaces it and skips the original.
+A default-constructed `HookResult`, which is what `return {}` gives you, leaves the engine's own
+result in place. `Replace` substitutes the return value but still calls the original, and `Block`
+substitutes it and skips the original. `VoltMod::CallOriginal` runs the engine's own
+implementation from inside a handler when you need its side effects as well.
 
 Add the subscription to `hooks`, do not keep it in a member of your plugin class. The base
 removes custom hooks before `OnUnload` runs, so a hook body cannot fire into state `OnUnload`

@@ -31,7 +31,7 @@ renames it. `include/VoltMod/<Module>/` is where a header lives, and the
 | Hooks | `VoltMod/Hooks/` | Movement, visibility, teleport, chat-input, client-convar, and vote hooks |
 | Workshop | `VoltMod/Workshop/` | Workshop addon requirements for connecting clients |
 | Ui | `VoltMod/Ui/` | Panorama `custom_hud_layout` panels and the button presses they send back |
-| Unsafe | `VoltMod/Unsafe/` | Opt-in raw hooking: `HookInterface` for an interface method, `HookVTable` and `HookInstance` for a gamedata-bound slot |
+| Unsafe | `VoltMod/Unsafe/` | Opt-in raw hooking: `HookInterface` for an interface method, `HookVTable` for a gamedata-bound class slot |
 | Database | `VoltMod/Database/` | Optional async PostgreSQL, migrations, and row mapping |
 | Http | `VoltMod/Http/` | Async HTTP and configured JSON endpoints |
 | App | `VoltMod/App/` | Metamod lifecycle, JSONC loading, status, and cross-plugin services |

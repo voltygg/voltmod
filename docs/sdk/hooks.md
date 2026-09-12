@@ -82,7 +82,7 @@ diagnostics, not gameplay.
 The service keeps no history; consumers define and store their own grace window:
 
 ```cpp
-// Subscribing is what installs the per-pawn hook. PerSlot clears a stamp when the seat changes hands.
+// Subscribing is what installs the hook. PerSlot clears a stamp when the seat changes hands.
 _lastTeleport.BindReset(runtime.Slots);
 _teleports = runtime.Hooks.Teleport.Teleported += [this](int slot) {
     if (VoltMod::IsValidSlot(slot))
@@ -95,24 +95,29 @@ if (!JustTeleported(slot))       // your own window, against your own clock
 
 Semantics worth knowing:
 
-- The first subscription hooks every live pawn; missing gamedata returns an empty subscription.
-- The slot is `-1` for non-player pawns.
-- Respawns rebind the new pawn and also raise the event.
-- Map startup clears bindings. `runtime.Clock` also restarts with the map.
+- The first subscription hooks the pawn class vtable, so every pawn is covered at once; missing
+  gamedata refuses the subscription after logging why.
+- The slot is resolved per call from the pawn's controller, and is `-1` for non-player pawns.
+- Respawns need no rebinding: a new pawn shares the class vtable. A spawn also raises the event.
+- The hook spans map changes. `runtime.Clock` restarts with the map.
 
 ## Hooking a vfunc the framework does not cover
 
 Use `<VoltMod/Unsafe/Hook.hpp>` for vfuncs the framework does not expose.
 An incorrect slot can call unrelated code and crash the server.
 
-Custom hooks use two pieces:
+Custom hooks use two entry points, both yielding the @ref VoltMod::Subscription that removes the
+hook when it is dropped:
 
-- `VoltMod::HookVTable` installs on every object sharing a class vtable; `VoltMod::HookInstance`
-  installs on one live object.
-- Both return a @ref VoltMod::Subscription that removes the hook when it is dropped.
+- `VoltMod::HookInterface` takes a member function pointer and hooks that one interface object.
+- `VoltMod::HookVTable` takes a gamedata @ref VoltMod::VHookBinding and hooks every object sharing
+  the class vtable. It reports a missing slot or table as an error rather than installing nothing.
 
-The slot comes from gamedata rather than from a member function pointer, so the handler names its
-object as the opaque `VoltMod::VtableObject`.
+A handler is any callable. It takes the hooked object first, as a reference to the class the slot
+dispatches on: an engine interface, or one of the `Hooked*` stand-ins in `EngineTypes.hpp` for a
+class whose layout the SDK omits. A stand-in is an identity, not a layout, so never dereference
+one. A pre-handler returns @ref VoltMod::HookResult, or nothing at all when it only observes; a
+post-handler returns nothing and is handed the value the call is about to return.
 
 ```cpp
 #include <VoltMod/Unsafe/Hook.hpp>
@@ -126,7 +131,9 @@ class CommandWatcher
     {
         // void* CPlayer_MovementServices::RunCommand(CUserCmd*)
         auto hook = VoltMod::HookVTable("MyPlugin RunCommand", _rt.Unsafe.Bindings.RunCommand,
-                                        this, &CommandWatcher::Hook_RunCommand, nullptr);
+                                        [this](VoltMod::HookedMovementServices& services, void* userCmd) {
+                                            Record(&services, userCmd);
+                                        });
         if (!hook)
         {
             VoltMod::Log::Warn("command watch off: {}", hook.error().Detail);
@@ -134,25 +141,18 @@ class CommandWatcher
         }
         _hook = std::move(*hook);
     }
-
-    KHook::Return<void*> Hook_RunCommand(VoltMod::VtableObject* services, void* userCmd)
-    {
-        Record(services, userCmd);
-        return {KHook::Action::Ignore, nullptr};
-    }
 };
 ```
 
-`VHookBinding` keeps the slot and class table from one gamedata entry together. Direct calls use
-`VFn` to dispatch through an instance.
-
-`HookInstance` hooks one live object. Rebind when that object is replaced.
+`VHookBinding` keeps the slot, the class table and the class identity from one gamedata entry
+together. Direct calls use its `Method`, a `VFn`, to dispatch through an instance.
 
 ### What it does for you, and what it does not
 
 - Pre and post ride one hook, so there is no half-installed pair to unwind.
 - `Reset()` remains safe after the hooked object is destroyed; removal never dereferences it.
 - An optional live instance detects a mismatched class table.
+- The object type is checked at compile time, so a pawn cannot be passed where a client belongs.
 - Slot correctness still requires manual verification; see @ref sdk_gamedata_guide.
 - Use an `EventLifecycle` for a hook that should exist only while subscribed, or a
   `SharedLifecycle` when several events share the one hook.

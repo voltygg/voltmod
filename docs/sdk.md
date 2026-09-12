@@ -16,7 +16,7 @@ it does not:
 |---|---|
 | `<VoltMod/Entities/Api.hpp>` | Every frame-local wrapper (`Entity`, `Pawn`, `Controller`, `EntityRef`, ...), `EntitySystem`, `EntityOps`, `Items`, `Render`, and `ConVar`/`ConVarOverrides` |
 | `<VoltMod/Hooks/Api.hpp>` | Every hook (`Movement`, `Teleport`, `Visibility`, `ChatInput`, `ClientConVars`, `GlowVision`, `PlayerInput`), game events, and `Messages`/`CenterHtml` |
-| `<VoltMod/Unsafe/Api.hpp>` | `Interfaces`, `GameData`, `Bindings`, `MemoryAccess`, `RecipientFilter`, and the vtable-hook macros - opt in only where a plugin pokes at the engine directly |
+| `<VoltMod/Unsafe/Api.hpp>` | `Interfaces`, `GameData`, `Bindings`, `MemoryAccess`, `RecipientFilter`, and the vtable hooks - opt in only where a plugin pokes at the engine directly |
 
 The guide is split by topic:
 

@@ -37,7 +37,7 @@ The shapes the framework already uses. New code follows them instead of adding a
 
 ## Hooks and subscriptions
 
-- A vtable hook is a `HookVTable` or `HookInstance` call from `<VoltMod/Unsafe/Hook.hpp>` plus the `Subscription` it returns, which removes the hook when dropped. Handlers take the hooked object first and return `KHook::Return`. Only a .cpp reaches `Hook.hpp`; a header that holds a hook needs `<VoltMod/Core/Subscription.hpp>` alone.
+- A vtable hook is a `HookInterface` or `HookVTable` call from `<VoltMod/Unsafe/Hook.hpp>`, yielding the `Subscription` that removes it. Handlers are callables taking the hooked object first; a pre returns `HookResult` or nothing, a post observes and is handed the value the call will return. `HookResult` lives in `<VoltMod/Core/HookResult.hpp>` and is safe in any header. Only a .cpp, or a header under `src/`, reaches `Hook.hpp`; a public header that holds a hook keeps the `Subscription` and needs `<VoltMod/Core/Subscription.hpp>` alone.
 - Event, game-event, scheduler, and hook registrations return `[[nodiscard]] Subscription`. Dropping it unsubscribes; a scheduler one-shot is cancelled the same way.
 - Commands are owned by `CommandManager` for the load cycle.
 

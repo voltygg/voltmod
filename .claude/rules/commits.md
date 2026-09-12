@@ -3,7 +3,7 @@
 The message is one sentence: `<type>[!]: <summary>`. No body, no trailers.
 
 ```
-refactor!: rename Subscriptions to SubscriptionScope
+refactor!: return a Subscription from HookVTable
 ```
 
 - Imperative, lowercase, no period, under 72 chars. `!` when consumers must change something; that commit may add one body line saying what.
