@@ -1,6 +1,5 @@
-# Windows MSVC (local dev; deploy path is Linux). compiler.version=195 = cl 19.5x
-# (VS 2022/2026); older VS: override -s compiler.version=193|194.
-# build_type and compiler.runtime_type are passed per build, so one profile serves both.
+# Local dev; the deploy path is Linux. compiler.version=195 is cl 19.5x (VS 2022/2026);
+# on older VS pass -s compiler.version=193|194. build_type and runtime_type are passed per build.
 [settings]
 os=Windows
 arch=x86_64
@@ -11,3 +10,11 @@ compiler.cppstd=23
 
 [conf]
 tools.cmake.cmaketoolchain:generator=Ninja
+
+# Every recipe here shares one dependency graph; disagreeing on these builds a second OpenSSL.
+[options]
+*/*:shared=False
+openssl/*:no_apps=True
+openssl/*:no_fips=True
+libpq/*:with_openssl=True
+mariadb-connector-c/*:with_curl=False

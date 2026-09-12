@@ -1,6 +1,5 @@
-# Linux Steam Runtime (sniper): pinned gcc-14 for C++23 + Valve SDK ABI.
-# libstdc++ (not libstdc++11) matches the SDK's _GLIBCXX_USE_CXX11_ABI=0.
-# build_type is passed per build (-s build_type=...), so one profile serves both.
+# Steam Runtime (sniper). libstdc++, not libstdc++11: the SDK is built with
+# _GLIBCXX_USE_CXX11_ABI=0. build_type is passed per build.
 [settings]
 os=Linux
 arch=x86_64
@@ -19,3 +18,11 @@ ninja/1.13.2
 [conf]
 tools.cmake.cmaketoolchain:generator=Ninja
 tools.build:compiler_executables={"c": "gcc-14", "cpp": "g++-14"}
+
+# Every recipe here shares one dependency graph; disagreeing on these builds a second OpenSSL.
+[options]
+*/*:shared=False
+openssl/*:no_apps=True
+openssl/*:no_fips=True
+libpq/*:with_openssl=True
+mariadb-connector-c/*:with_curl=False
