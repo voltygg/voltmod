@@ -130,8 +130,9 @@ def _kit_version() -> str:
 
 
 def _build_sdks() -> None:
+    # sqlpp23's client libraries come from conancenter and rarely have prebuilt binaries.
     for name in SDK_PACKAGES:
-        _create(ROOT / "recipes" / name)
+        _create(ROOT / "recipes" / name, extra=["--build=missing"])
 
 
 def _build_kit(use_lockfile: bool) -> None:
