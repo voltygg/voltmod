@@ -21,7 +21,7 @@ runs:
         grep -q steamrt /etc/os-release || exit 0
         echo 'deb https://repo.steampowered.com/steamrt3/apt sniper_beta main contrib non-free' \
           > /etc/apt/sources.list.d/steamrt-beta.list
-        apt-get update
+        apt-get -o Acquire::Check-Valid-Until=false update
         DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
           ca-certificates ccache gcc-14-monolithic git ninja-build
         rm -rf /var/lib/apt/lists/*
