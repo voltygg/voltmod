@@ -2,7 +2,6 @@ include_guard(GLOBAL)
 
 # Shared paths, platform names, and first-party compile settings.
 
-# Not cached: a cached path outlives the package it pointed at.
 get_filename_component(VOLTMOD_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/.." REALPATH)
 set(VOLTMOD_GAMEDATA_DIR "${VOLTMOD_ROOT_DIR}/gamedata")
 
@@ -20,6 +19,28 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 else()
     message(FATAL_ERROR "Only Windows and Linux builds are supported.")
 endif()
+
+# Validate a FEATURES list, appending each feature's target to link_var and defining what its
+# headers need. caller names the public function so diagnostics quote what the author wrote.
+function(voltmod_apply_features caller target features link_var)
+    set(link_targets ${${link_var}})
+    foreach(feature IN LISTS features)
+        if(feature STREQUAL "DATABASE")
+            if(NOT TARGET VoltMod::Database)
+                message(FATAL_ERROR
+                    "${caller}(${target} FEATURES DATABASE): voltmod was built "
+                    "without the database module. Set -o voltmod/*:with_database=True.")
+            endif()
+            list(APPEND link_targets VoltMod::Database)
+            target_compile_definitions("${target}" PRIVATE
+                $<$<PLATFORM_ID:Windows>:NOMINMAX WIN32_LEAN_AND_MEAN>)
+        else()
+            message(FATAL_ERROR
+                "${caller}(${target} FEATURES ${feature}): no such feature. Known: DATABASE.")
+        endif()
+    endforeach()
+    set(${link_var} ${link_targets} PARENT_SCOPE)
+endfunction()
 
 # First-party targets only; SDK usage requirements set none of this.
 # /Z7, not /Zi: ccache can cache it and framework frames land in plugin PDBs.
