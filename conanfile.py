@@ -67,10 +67,7 @@ class VoltModConan(ConanFile):
         if self.options.with_database:
             # All three connectors: the driver is chosen at runtime from config. Linking them
             # statically makes the LGPL MariaDB connector a relinkable-object obligation.
-            self.requires("sqlpp23/0.70", transitive_headers=True, transitive_libs=True,
-                          options={"with_postgresql": True,
-                                   "with_mariadb": True,
-                                   "with_sqlite3": True})
+            self.requires("sqlpp23/0.70", transitive_headers=True, transitive_libs=True)
 
     def build_requirements(self):
         self.test_requires("doctest/2.5.2")

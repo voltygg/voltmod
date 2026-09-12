@@ -22,9 +22,9 @@ class Sqlpp23Conan(ConanFile):
         "with_sqlite3": [True, False],
     }
     default_options = {
-        "with_postgresql": False,
-        "with_mariadb": False,
-        "with_sqlite3": False,
+        "with_postgresql": True,
+        "with_mariadb": True,
+        "with_sqlite3": True,
     }
 
     def set_version(self):
