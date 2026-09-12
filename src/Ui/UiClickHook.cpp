@@ -143,10 +143,14 @@ bool UiClickHook::HookConnectedClient()
 
     // The table and index come from the live-client search, not gamedata.
     using FilterSig = bool(const CNetMessage*, void*);
-    const VHookBinding<FilterSig> binding{.Method = VFn<FilterSig>(slot->Index),
-                                          .Table = VTableRef("CServerSideClient", slot->Table)};
+    const VHookBinding<HookedClientChannel, FilterSig> binding{.Method = VFn<FilterSig>(slot->Index),
+                                                               .Table = VTableRef("CServerSideClient", slot->Table)};
 
-    auto hook = HookVTable("Custom HUD clicks", binding, this, &UiClickHook::Hook_FilterMessage, nullptr);
+    auto hook = HookVTable("Custom HUD clicks", binding,
+                           [this](HookedClientChannel& channel, const CNetMessage* message, void*) {
+                               // This observer never changes the verdict.
+                               QueuePress(message, &channel);
+                           });
     if (!hook)
     {
         Log::Warn("UiClickHook: {}; button presses will not arrive.", hook.error().Detail);
@@ -159,13 +163,6 @@ bool UiClickHook::HookConnectedClient()
     Log::Info("UiClickHook: hooked FilterMessage at index {} (+{} from the client), user message id {}, click type {}.",
               slot->Index, _subobjectOffset, _messageId, kCustomHudClicked);
     return true;
-}
-
-KHook::Return<bool> UiClickHook::Hook_FilterMessage(VtableObject* client, const CNetMessage* message, void*)
-{
-    // This observer never changes the verdict.
-    QueuePress(message, client);
-    return {KHook::Action::Ignore, true};
 }
 
 void UiClickHook::QueuePress(const CNetMessage* message, void* self)

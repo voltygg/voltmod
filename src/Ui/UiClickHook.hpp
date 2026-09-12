@@ -54,8 +54,6 @@ private:
      *  retried from the slot listener rather than treated as a failure. */
     bool HookConnectedClient();
 
-    KHook::Return<bool> Hook_FilterMessage(VtableObject* client, const CNetMessage* message, void* channel);
-
     /** The hook's actual work, so the hook itself never changes the outcome. @p self is
      *  the hooked subobject, @ref _subobjectOffset bytes into the client. Only queues. */
     void QueuePress(const CNetMessage* message, void* self);

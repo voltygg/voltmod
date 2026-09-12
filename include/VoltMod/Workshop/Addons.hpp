@@ -90,7 +90,6 @@ private:
     void Remove();
 
     void OnConnected(Player& player);
-    KHook::Return<bool> Hook_SendNetMessage(VtableObject* client, const CNetMessage* message, int bufType);
 
     /** The hook's actual work, so the hook itself never changes the outcome. */
     void HandleSignon(const CNetMessage* message, void* client);

@@ -1,6 +1,7 @@
 #pragma once
 
-#include <VoltMod/Core/SubscriptionScope.hpp>
+#include <VoltMod/Core/HookResult.hpp>
+#include <VoltMod/Core/Subscriptions.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Players/Player.hpp>
@@ -86,32 +87,20 @@ protected:
     virtual bool OnPlayerChat(Player* player, std::string_view message, bool teamChat);
 
     /**
-     * @brief Add custom hooks, each a VoltMod::HookInterface, to @p hooks.
+     * @brief Add custom hooks, each a VoltMod::HookInterface or VoltMod::HookVTable, to @p hooks.
      *
      * @p hooks is released before OnUnload, so a hook bound to this plugin cannot fire against
      * state OnUnload has already dropped.
      */
-    virtual void OnRegisterHooks(Runtime& runtime, SubscriptionScope& hooks) {}
+    virtual void OnRegisterHooks(Runtime& runtime, Subscriptions& hooks) {}
 
 private:
-    KHook::Return<void> Hook_GameFrame(IServerGameDLL* server, bool simulating, bool firstTick, bool lastTick);
-    KHook::Return<void> Hook_StartupServer(INetworkServerService* service, const GameSessionConfiguration_t& config,
-                                           ISource2WorldSession* session, const char* mapName);
-    KHook::Return<void> Hook_OnClientConnected(IServerGameClients* clients, CPlayerSlot slot, const char* name,
-                                               uint64 xuid, const char* networkId, const char* address,
-                                               bool fakePlayer);
-    KHook::Return<void> Hook_ClientDisconnect(IServerGameClients* clients, CPlayerSlot slot,
-                                              ENetworkDisconnectionReason reason, const char* name, uint64 xuid,
-                                              const char* networkId);
-    KHook::Return<void> Hook_ClientFullyConnect(IServerGameClients* clients, CPlayerSlot slot);
-    KHook::Return<void> Hook_ClientSettingsChanged(IServerGameClients* clients, CPlayerSlot slot);
-    KHook::Return<void> Hook_DispatchConCommand(ICvar* cvar, ConCommandRef cmd, const CCommandContext& ctx,
-                                                const CCommand& args);
-    KHook::Return<void> Hook_CheckTransmit(ISource2GameEntities* entities, CCheckTransmitInfo** infoList,
-                                           int infoCount, CBitVec<16384>& unionTransmitEdicts,
-                                           CBitVec<16384>& unionTransmitEntities,
-                                           const Entity2Networkable_t** networkables, const uint16* entityIndices,
-                                           int entityCount);
+    /** Republish the entity system and the per-map state, then tell the plugin. */
+    void HandleServerStartup(const char* mapName);
+
+    /** Route a say/say_team command to OnPlayerChat, blocking it once handled so the line does
+     *  not reach the game's own say handler too. */
+    HookResult<void> HandleConCommand(ConCommandRef cmd, const CCommandContext& ctx, const CCommand& args);
 
     void RegisterStandardHooks();
 
@@ -121,8 +110,8 @@ private:
     // Declaration order makes runtime destruction remove standard hooks before their services;
     // custom hooks are destroyed first.
     std::unique_ptr<VoltMod::Runtime> _runtime;
-    SubscriptionScope _standardHooks;
-    SubscriptionScope _customHooks;
+    Subscriptions _standardHooks;
+    Subscriptions _customHooks;
     PluginInfo _info;  // copy captured at load for the ISmmPlugin getters
 };
 

@@ -17,7 +17,7 @@ namespace VoltMod
  *
  * @code
  * Movement::Movement(...)
- *     : _lifecycle("Movement", [this] { return StartHook(); }, [this] { StopHook(); }),
+ *     : _lifecycle("Movement", [this] { return Install(); }, [this] { _hook.Reset(); }),
  *       Rewrite(_lifecycle.ForEvent()), Before(_lifecycle.ForEvent()), After(_lifecycle.ForEvent())
  * @endcode
  *

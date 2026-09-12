@@ -24,9 +24,6 @@ class GameSessionConfiguration_t
 namespace VoltMod
 {
 
-/** Let the engine's own handler run unchanged. */
-constexpr KHook::Return<void> Pass{KHook::Action::Ignore};
-
 MetamodPlugin::MetamodPlugin() = default;
 MetamodPlugin::~MetamodPlugin() = default;
 
@@ -116,102 +113,80 @@ bool MetamodPlugin::OnPlayerChat(Player* player, std::string_view message, bool 
 void MetamodPlugin::RegisterStandardHooks()
 {
     auto& gi = _runtime->Unsafe.Interfaces;
+    auto add = [this](Subscription hook) { _standardHooks.Add(std::move(hook)); };
 
-    // Each hook owns its removal subscription; clear them before the runtime.
-    _standardHooks.Add(HookInterface(&IServerGameDLL::GameFrame, gi.ServerGameDLL, this, nullptr,
-                                     &MetamodPlugin::Hook_GameFrame));
-    _standardHooks.Add(HookInterface(&INetworkServerService::StartupServer, gi.NetworkServerService, this, nullptr,
-                                     &MetamodPlugin::Hook_StartupServer));
-    _standardHooks.Add(HookInterface(&IServerGameClients::OnClientConnected, gi.ServerGameClients, this,
-                                     &MetamodPlugin::Hook_OnClientConnected, nullptr));
-    _standardHooks.Add(HookInterface(&IServerGameClients::ClientDisconnect, gi.ServerGameClients, this, nullptr,
-                                     &MetamodPlugin::Hook_ClientDisconnect));
-    _standardHooks.Add(HookInterface(&IServerGameClients::ClientFullyConnect, gi.ServerGameClients, this, nullptr,
-                                     &MetamodPlugin::Hook_ClientFullyConnect));
-    _standardHooks.Add(HookInterface(&IServerGameClients::ClientSettingsChanged, gi.ServerGameClients, this, nullptr,
-                                     &MetamodPlugin::Hook_ClientSettingsChanged));
-    _standardHooks.Add(HookInterface(&ICvar::DispatchConCommand, gi.CVar, this,
-                                     &MetamodPlugin::Hook_DispatchConCommand, nullptr));
+    add(HookInterface(&IServerGameDLL::GameFrame, gi.ServerGameDLL, nullptr,
+                      [this](IServerGameDLL&, bool, bool, bool) { _runtime->OnGameFrame(); }));
+
+    add(HookInterface(&INetworkServerService::StartupServer, gi.NetworkServerService, nullptr,
+                      [this](INetworkServerService&, const GameSessionConfiguration_t&, ISource2WorldSession*,
+                             const char* mapName) { HandleServerStartup(mapName); }));
+
+    add(HookInterface(&IServerGameClients::OnClientConnected, gi.ServerGameClients,
+                      [this](IServerGameClients&, CPlayerSlot slot, const char* name, uint64 xuid, const char*,
+                             const char* address, bool) {
+                          // Here `name` is only a fallback, but `address` is available nowhere earlier.
+                          _runtime->Players.Add(slot.Get(), static_cast<int64_t>(xuid), name ? name : "",
+                                                address ? address : "");
+                      }));
+
+    add(HookInterface(&IServerGameClients::ClientDisconnect, gi.ServerGameClients, nullptr,
+                      [this](IServerGameClients&, CPlayerSlot slot, ENetworkDisconnectionReason, const char*, uint64,
+                             const char*) {
+                          // Remove raises Disconnected before the slot is reused.
+                          _runtime->Players.Remove(slot.Get());
+                      }));
+
+    add(HookInterface(&IServerGameClients::ClientFullyConnect, gi.ServerGameClients, nullptr,
+                      [this](IServerGameClients&, CPlayerSlot slot) {
+                          _runtime->Hooks.ClientConVars.OnClientFullyConnect(slot.Get());
+                          _runtime->Players.OnClientFullyConnected(slot.Get());
+                      }));
+
+    add(HookInterface(&IServerGameClients::ClientSettingsChanged, gi.ServerGameClients, nullptr,
+                      [this](IServerGameClients&, CPlayerSlot slot) {
+                          _runtime->Players.OnClientSettingsChanged(slot.Get());
+                      }));
+
+    add(HookInterface(&ICvar::DispatchConCommand, gi.CVar,
+                      [this](ICvar&, ConCommandRef cmd, const CCommandContext& ctx, const CCommand& args) {
+                          return HandleConCommand(cmd, ctx, args);
+                      }));
+
     // The post hook filters the bit vectors after the game fills them.
-    _standardHooks.Add(HookInterface(&ISource2GameEntities::CheckTransmit, gi.GameEntities, this, nullptr,
-                                     &MetamodPlugin::Hook_CheckTransmit));
+    add(HookInterface(&ISource2GameEntities::CheckTransmit, gi.GameEntities, nullptr,
+                      [this](ISource2GameEntities&, CCheckTransmitInfo** infoList, int infoCount, CBitVec<16384>&,
+                             CBitVec<16384>&, const Entity2Networkable_t**, const uint16*, int) {
+                          _runtime->Hooks.Visibility.OnCheckTransmit(infoList, infoCount);
+                      }));
 
     Log::Info("Hooks registered.");
 }
 
-KHook::Return<void> MetamodPlugin::Hook_GameFrame(IServerGameDLL*, bool simulating, bool firstTick, bool lastTick)
-{
-    _runtime->OnGameFrame();
-    return Pass;
-}
-
-KHook::Return<void> MetamodPlugin::Hook_StartupServer(INetworkServerService*, const GameSessionConfiguration_t&,
-                                                      ISource2WorldSession*, const char* mapName)
+void MetamodPlugin::HandleServerStartup(const char* mapName)
 {
     Log::Info("Server startup: map '{}'.", mapName ? mapName : "<none>");
     _runtime->Map.SetCurrent(mapName ? mapName : "");
     // Publish the new entity system before calling the plugin callback.
     _runtime->Entities.OnServerStartup();
     _runtime->GameEvents.OnServerStartup();
-    _runtime->Hooks.Teleport.OnServerStartup();
     _runtime->Hooks.ClientConVars.OnServerStartup();
     OnServerStartup(mapName ? std::string_view(mapName) : std::string_view{});
-    return Pass;
 }
 
-KHook::Return<void> MetamodPlugin::Hook_CheckTransmit(ISource2GameEntities*, CCheckTransmitInfo** infoList,
-                                                      int infoCount, CBitVec<16384>&, CBitVec<16384>&,
-                                                      const Entity2Networkable_t**, const uint16*, int)
-{
-    _runtime->Hooks.Visibility.OnCheckTransmit(infoList, infoCount);
-    return Pass;
-}
-
-KHook::Return<void> MetamodPlugin::Hook_OnClientConnected(IServerGameClients*, CPlayerSlot slot, const char* name,
-                                                          uint64 xuid, const char* networkId, const char* address,
-                                                          bool fakePlayer)
-{
-    // At this callback `name` is only a fallback; `address` is available here first.
-    _runtime->Players.Add(slot.Get(), static_cast<int64_t>(xuid), name ? name : "", address ? address : "");
-    return Pass;
-}
-
-KHook::Return<void> MetamodPlugin::Hook_ClientDisconnect(IServerGameClients*, CPlayerSlot slot,
-                                                         ENetworkDisconnectionReason reason, const char* name,
-                                                         uint64 xuid, const char* networkId)
-{
-    // Remove raises Disconnected before the slot is reused.
-    _runtime->Players.Remove(slot.Get());
-    return Pass;
-}
-
-KHook::Return<void> MetamodPlugin::Hook_ClientFullyConnect(IServerGameClients*, CPlayerSlot slot)
-{
-    _runtime->Hooks.ClientConVars.OnClientFullyConnect(slot.Get());
-    _runtime->Players.OnClientFullyConnected(slot.Get());
-    return Pass;
-}
-
-KHook::Return<void> MetamodPlugin::Hook_ClientSettingsChanged(IServerGameClients*, CPlayerSlot slot)
-{
-    _runtime->Players.OnClientSettingsChanged(slot.Get());
-    return Pass;
-}
-
-KHook::Return<void> MetamodPlugin::Hook_DispatchConCommand(ICvar*, ConCommandRef cmd, const CCommandContext& ctx,
-                                                           const CCommand& args)
+HookResult<void> MetamodPlugin::HandleConCommand(ConCommandRef cmd, const CCommandContext& ctx, const CCommand& args)
 {
     const char* cmdName = cmd.GetName();
     if (!cmdName)
-        return Pass;
+        return {};
 
     bool isSay = (strcmp(cmdName, "say") == 0);
     bool isSayTeam = (strcmp(cmdName, "say_team") == 0);
     if (!isSay && !isSayTeam)
-        return Pass;
+        return {};
 
     if (args.ArgC() < 2)
-        return Pass;
+        return {};
 
     std::string_view message = args.Arg(1);
     if (message.size() >= 2 && message.front() == '"' && message.back() == '"')
@@ -220,20 +195,20 @@ KHook::Return<void> MetamodPlugin::Hook_DispatchConCommand(ICvar*, ConCommandRef
         message.remove_suffix(1);
     }
     if (message.empty())
-        return Pass;
+        return {};
 
     int slotIdx = ctx.GetPlayerSlot().Get();
     if (!IsValidSlot(slotIdx))
-        return Pass;
+        return {};
 
     Player* player = _runtime->Players.Get(slotIdx);
     if (!player)
-        return Pass;
+        return {};
 
     // Swallowing the command keeps a handled chat line out of the game's own say handler.
     if (OnPlayerChat(player, message, isSayTeam))
-        return {KHook::Action::Supersede};
-    return Pass;
+        return HookResult<void>::Block();
+    return {};
 }
 
 const char* MetamodPlugin::GetAuthor()

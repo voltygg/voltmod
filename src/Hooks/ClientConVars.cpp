@@ -48,8 +48,10 @@ Status ClientConVars::Initialize()
     if (!getCvarValue)
         return std::unexpected(Error::Engine("the engine does not provide CSVCMsg_GetCvarValue"));
 
-    auto hook = HookVTable("Client convar response", _bindings.ProcessRespondCvarValue, this, nullptr,
-                           &ClientConVars::Hook_ProcessRespondCvarValue);
+    auto hook = HookVTable("Client convar response", _bindings.ProcessRespondCvarValue, nullptr,
+                           [this](HookedClient& client, const void* message, bool /*result*/) {
+                               OnRespondCvarValue(&client, message);
+                           });
     if (!hook)
         return std::unexpected(hook.error());
 
@@ -131,7 +133,7 @@ bool ClientConVars::Send(int slot, const std::string& cvarName, int cookie)
     return true;
 }
 
-KHook::Return<bool> ClientConVars::Hook_ProcessRespondCvarValue(VtableObject* client, const void* message)
+void ClientConVars::OnRespondCvarValue(const void* client, const void* message)
 {
     // The SDK omits CServerSideClient's layout, so gamedata supplies the slot offset; -1 comes
     // back when it did not bind.
@@ -139,19 +141,19 @@ KHook::Return<bool> ClientConVars::Hook_ProcessRespondCvarValue(VtableObject* cl
     const auto& msg = *static_cast<const CNetMessagePB<CCLCMsg_RespondCvarValue>*>(message);
 
     if (!IsValidSlot(slot) || !msg.has_cookie() || !msg.has_status_code() || !msg.has_name())
-        return {KHook::Action::Ignore, true};
+        return;
 
     // Validate all client-controlled fields before dispatch.
     const int status = msg.status_code();
     if (status < std::to_underlying(ClientConVarStatus::Answered) ||
         status > std::to_underlying(ClientConVarStatus::Protected))
-        return {KHook::Action::Ignore, true};
+        return;
 
     std::string_view value;
     if (status == std::to_underlying(ClientConVarStatus::Answered))
     {
         if (!msg.has_value() || msg.value().find('\0') != std::string::npos)
-            return {KHook::Action::Ignore, true};
+            return;
         value = msg.value();
     }
 
@@ -159,8 +161,6 @@ KHook::Return<bool> ClientConVars::Hook_ProcessRespondCvarValue(VtableObject* cl
     auto query = _pending->Take(slot, msg.cookie(), msg.name());
     if (query && query->Callback)
         query->Callback(slot, static_cast<ClientConVarStatus>(status), msg.name(), value);
-
-    return {KHook::Action::Ignore, true};
 }
 
 }  // namespace VoltMod

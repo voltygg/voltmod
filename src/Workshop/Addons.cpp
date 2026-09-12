@@ -94,8 +94,10 @@ Status Addons::Install()
     if (!_interfaces.Engine || !_interfaces.Engine->IsDedicatedServer())
         return std::unexpected(Error::Unsupported("addon downloads need a dedicated server"));
 
-    auto hook = HookVTable("Workshop addon delivery", _bindings.SendNetMessage, this, &Addons::Hook_SendNetMessage,
-                           nullptr, AnyServerSideClient(_interfaces, _bindings));
+    auto hook = HookVTable(
+        "Workshop addon delivery", _bindings.SendNetMessage,
+        [this](HookedClient& client, const CNetMessage* message, int) { HandleSignon(message, &client); }, nullptr,
+        AnyServerSideClient(_interfaces, _bindings));
     if (!hook)
         return std::unexpected(Error::Unsupported(hook.error().Detail));
 
@@ -138,12 +140,6 @@ void Addons::KickLater(int slot, int64_t steamId)
         _interfaces.Engine->DisconnectClient(CPlayerSlot(slot), NETWORK_DISCONNECT_TIMEDOUT,
                                              "Required workshop addon download was declined");
     });
-}
-
-KHook::Return<bool> Addons::Hook_SendNetMessage(VtableObject* client, const CNetMessage* message, int)
-{
-    HandleSignon(message, client);
-    return {KHook::Action::Ignore, true};
 }
 
 void Addons::HandleSignon(const CNetMessage* message, void* client)

@@ -52,8 +52,8 @@ public:
     Event<int, const PlayerInput&> After;
 
 private:
-    bool StartHook();
-    void StopHook();
+    /** Install the class hook, or refuse the subscription after saying why. */
+    bool Install();
 
     /** Any connected player's movement services, for the install-time vtable cross-check. */
     void* LiveMovementServices();
@@ -61,8 +61,6 @@ private:
     /** Slot whose pawn owns @p movementServices, or -1. */
     int SlotOf(void* movementServices);
 
-    KHook::Return<void*> Hook_RunCommandPre(VtableObject* services, void* userCmd);
-    KHook::Return<void*> Hook_RunCommandPost(VtableObject* services, void* userCmd);
     void Decode(const void* userCmd);
 
     EntitySystem& _entities;

@@ -92,9 +92,8 @@ public:
     void OnServerStartup();
 
 private:
-    /** The hooked CServerSideClient::ProcessRespondCvarValue; @p message is the
-     *  CNetMessagePB<CCLCMsg_RespondCvarValue> the SDK header names. */
-    KHook::Return<bool> Hook_ProcessRespondCvarValue(VtableObject* client, const void* message);
+    /** Deliver one CCLCMsg_RespondCvarValue, the message type the response hook carries. */
+    void OnRespondCvarValue(const void* client, const void* message);
 
     /** Sends a query to one connected human client. */
     bool Send(int slot, const std::string& cvarName, int cookie);

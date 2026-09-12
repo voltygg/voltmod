@@ -14,7 +14,7 @@ namespace VoltMod
 
 Movement::Movement(EntitySystem& entities, const Bindings& bindings, Capabilities& capabilities)
     : _lifecycle(
-          "Movement", [this] { return StartHook(); }, [this] { StopHook(); }),
+          "Movement", [this] { return Install(); }, [this] { _hook.Reset(); }),
       Rewrite(_lifecycle.ForEvent()),
       Before(_lifecycle.ForEvent()),
       After(_lifecycle.ForEvent()),
@@ -26,7 +26,7 @@ Movement::Movement(EntitySystem& entities, const Bindings& bindings, Capabilitie
 // A subscription that outlives this object leaves a hook into an unloaded module; _lifecycle logs it.
 Movement::~Movement() = default;
 
-bool Movement::StartHook()
+bool Movement::Install()
 {
     if (!_bindings.UserCmdPB)
         Log::Warn("Movement: no usable 'UserCmdPB' offset; handlers get Valid=false commands.");
@@ -36,8 +36,16 @@ bool Movement::StartHook()
             "Movement: no usable 'UserCmdNumber' offset; falling back to the protobuf's "
             "legacy_command_number, which the live client leaves at 0.");
 
-    auto hook = HookVTable("Movement RunCommand", _bindings.RunCommand, this, &Movement::Hook_RunCommandPre,
-                           &Movement::Hook_RunCommandPost, LiveMovementServices());
+    auto hook = HookVTable(
+        "Movement RunCommand", _bindings.RunCommand,
+        [this](HookedMovementServices& services, void* userCmd) {
+            _slot = SlotOf(&services);
+            Decode(userCmd);
+            Rewrite.Raise(_slot, _cmd);
+            Before.Raise(_slot, _cmd);
+        },
+        [this](HookedMovementServices&, void* /*userCmd*/, void* /*result*/) { After.Raise(_slot, _cmd); },
+        LiveMovementServices());
     if (!hook)
     {
         // Bindings marked the capability usable from gamedata alone; a failed install retracts it.
@@ -49,11 +57,6 @@ bool Movement::StartHook()
     _hook = std::move(*hook);
     _capabilities.Set(Capability::Movement, true);
     return true;
-}
-
-void Movement::StopHook()
-{
-    _hook.Reset();
 }
 
 void* Movement::LiveMovementServices()
@@ -130,21 +133,6 @@ void Movement::Decode(const void* userCmd)
             sample.ViewYaw = entry.view_angles().y();
         }
     }
-}
-
-KHook::Return<void*> Movement::Hook_RunCommandPre(VtableObject* services, void* userCmd)
-{
-    _slot = SlotOf(services);
-    Decode(userCmd);
-    Rewrite.Raise(_slot, _cmd);
-    Before.Raise(_slot, _cmd);
-    return {KHook::Action::Ignore, nullptr};
-}
-
-KHook::Return<void*> Movement::Hook_RunCommandPost(VtableObject*, void* /*userCmd*/)
-{
-    After.Raise(_slot, _cmd);
-    return {KHook::Action::Ignore, nullptr};
 }
 
 }  // namespace VoltMod
