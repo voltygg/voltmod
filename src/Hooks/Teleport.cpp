@@ -3,8 +3,6 @@
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
-#include <VoltMod/Events/EventTypes.hpp>
-#include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/Teleport.hpp>
 #include <VoltMod/Unsafe/Hook.hpp>
 #include <mathlib/vector.h>
@@ -13,116 +11,36 @@
 namespace VoltMod
 {
 
-Teleport::Teleport(EntitySystem& entities, const Bindings& bindings, GameEvents& events, SlotEvents& slots)
-    : Teleported({.OnFirst =
-                      [this] {
-                          if (!_bindings.Teleport)
-                          {
-                              Log::Warn(
-                                  "Teleport: the Teleport vtable index did not bind; teleports will not be tracked.");
-                              return false;
-                          }
-                          BindAll();
-                          return true;
-                      },
-                  .OnLast = [this] { UnbindAll(); }}),
+Teleport::Teleport(EntitySystem& entities, const Bindings& bindings)
+    : Teleported({.OnFirst = [this] { return Install(); }, .OnLast = [this] { _hook.Reset(); }}),
       _entities(entities),
-      _bindings(bindings),
-      _events(events),
-      _slots(slots)
+      _bindings(bindings)
 {}
 
 Teleport::~Teleport()
 {
-    // A Subscription that outlives this service would leave per-pawn hooks live across a
-    // meta reload, calling a handler in an unloaded module.
+    // A Subscription that outlives this service would leave the hook live across a meta reload,
+    // calling a handler in an unloaded module.
     if (!Teleported.Empty())
         Log::Error("Teleport: {} subscription(s) outlived the tracker; a handler may dangle.", Teleported.Count());
-    UnbindAll();
 }
 
-void Teleport::BindAll()
+bool Teleport::Install()
 {
-    for (int slot = 0; slot < MaxPlayers; ++slot)
-        Bind(slot);
-
-    // Spawning hands the player a new pawn object, so the old binding is stale - and the spawn
-    // placement is itself a teleport worth reporting.
-    _spawnListener = _events.On<PlayerSpawn>([this](const PlayerSpawn& e) {
-        Bind(e.Slot);
-        Teleported.Raise(e.Slot);
-    });
-    _slotListener = _slots.Changed += [this](int slot) { Unbind(slot); };
-
-    Log::Info("Teleport tracking enabled (vtable index {}).", _bindings.Teleport.Index());
-}
-
-void Teleport::UnbindAll()
-{
-    OnServerStartup();
-    _spawnListener.Reset();
-    _slotListener.Reset();
-}
-
-void Teleport::OnServerStartup()
-{
-    // Every pawn from the previous map is gone, so drop the bindings before their addresses are
-    // recycled. Removal never dereferences the pawn.
-    for (int slot = 0; slot < MaxPlayers; ++slot)
-        Unbind(slot);
-}
-
-void Teleport::Bind(int slot)
-{
-    if (!IsValidSlot(slot))
-        return;
-
-    void* pawn = _entities.PawnOf(slot).Raw();
-
-    // A freed pawn's address can be handed straight to another player's new one, and nothing
-    // tells us the old object died. Drop every slot still claiming this address, this one
-    // included: a stale claim would route this pawn's teleports to that slot and fire the
-    // handler twice.
-    for (int other = 0; other < MaxPlayers; ++other)
-        if (other == slot || (pawn && _pawns[other] == pawn))
-            Unbind(other);
-
-    if (!pawn)
-        return;
-
-    auto hook = HookInstance("Teleport", pawn, _bindings.Teleport, this, nullptr, &Teleport::Hook_Teleport);
+    auto hook = HookVTable("Teleport", _bindings.Teleport,
+                           [this](HookedPawn& pawn, const Vector*, const QAngle*, const Vector*) {
+                               // Resolved per call through the pawn's controller, so a recycled
+                               // pawn address cannot report the previous owner's slot.
+                               Teleported.Raise(Pawn{_entities, reinterpret_cast<CEntityInstance*>(&pawn)}.Slot());
+                           });
     if (!hook)
-        return;
+    {
+        Log::Warn("Teleport: {}; teleports will not be tracked.", hook.error().Detail);
+        return false;
+    }
 
-    _pawns[slot] = pawn;
-    _hooks[slot] = std::move(*hook);
-}
-
-void Teleport::Unbind(int slot)
-{
-    if (!IsValidSlot(slot))
-        return;
-
-    _hooks[slot].Reset();
-    _pawns[slot] = nullptr;
-}
-
-int Teleport::SlotOf(const void* pawn) const
-{
-    if (!pawn)
-        return -1;
-
-    for (int slot = 0; slot < MaxPlayers; ++slot)
-        if (_pawns[slot] == pawn)
-            return slot;
-
-    return -1;
-}
-
-KHook::Return<void> Teleport::Hook_Teleport(VtableObject* pawn, const Vector*, const QAngle*, const Vector*)
-{
-    Teleported.Raise(SlotOf(pawn));
-    return {KHook::Action::Ignore};
+    _hook = std::move(*hook);
+    return true;
 }
 
 }  // namespace VoltMod

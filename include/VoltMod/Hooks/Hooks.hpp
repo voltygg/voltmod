@@ -33,7 +33,7 @@ struct HookServices
         : Movement(entities, bindings, capabilities),
           Visibility(entities, bindings, slots, entityOps),
           ChatInput(scheduler, slots),
-          Teleport(entities, bindings, gameEvents, slots),
+          Teleport(entities, bindings),
           ClientConVars(interfaces, bindings, slots),
           Vote(interfaces, entities, gameEvents, scheduler)
     {}
@@ -46,8 +46,8 @@ struct HookServices
     VoltMod::Visibility Visibility;
     /** Depends on: Scheduler, Slots. */
     VoltMod::ChatInput ChatInput;
-    /** Dormant until something subscribes to Teleported; per-pawn Teleport hook re-bound on
-     *  PlayerSpawn. Depends on: Entities, Bindings, GameEvents, Slots. */
+    /** Dormant until something subscribes to Teleported; one Teleport hook on the pawn class
+     *  vtable. Depends on: Entities, Bindings. */
     VoltMod::Teleport Teleport;
     /** Async client-side convar reads. Inert when Capability::ClientConVars is off.
      *  Depends on: Interfaces, Bindings, Slots. */
