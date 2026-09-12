@@ -9,6 +9,7 @@
 #include <VoltMod/Core/Capabilities.hpp>
 #include <VoltMod/Core/EnumNames.hpp>
 #include <VoltMod/Core/Event.hpp>
+#include <VoltMod/Core/HookResult.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/PerSlot.hpp>
 #include <VoltMod/Core/Result.hpp>
