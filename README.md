@@ -118,7 +118,7 @@ The helper configures the native module, SDK glue, output layout, generated VDF,
 build stamp, and install component. Enable PostgreSQL in the consumer recipe:
 
 ```python
-default_options = {"voltmod/*:with_postgres": True}
+default_options = {"voltmod/*:with_database": True}
 ```
 
 Then request it from the plugin:

@@ -138,11 +138,11 @@ def _build_kit(use_lockfile: bool) -> None:
     extra = ["--build=missing", *tools.SDK_BUILD_EXCLUSIONS]
     if not use_lockfile:
         extra.append("--lockfile=")
-    for postgres in ("False", "True"):
+    for database in ("False", "True"):
         _create(
             ROOT,
             extra=extra,
-            options=["-o", f"voltmod/*:with_postgres={postgres}"],
+            options=["-o", f"voltmod/*:with_database={database}"],
         )
 
 

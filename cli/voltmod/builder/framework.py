@@ -44,7 +44,7 @@ def _build_args(repo_root: Path, checkout: Path, preset: str) -> list[str]:
     return [
         str(checkout),
         "--profile:all", str(profile), *settings,
-        "-o", "voltmod/*:with_postgres=True",
+        "-o", "voltmod/*:with_database=True",
         *([f"--lockfile={lock}", "--lockfile-partial"] if lock.is_file() else []),
     ]
 

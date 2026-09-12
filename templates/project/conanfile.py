@@ -16,7 +16,7 @@ class ProjectConan(ConanFile):
         "openssl/*:no_apps": True,
         "openssl/*:no_fips": True,
         # Set to True to enable PostgreSQL and pull in libpqxx.
-        "voltmod/*:with_postgres": False,
+        "voltmod/*:with_database": False,
     }
 
     def build_requirements(self):

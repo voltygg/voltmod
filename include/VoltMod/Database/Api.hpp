@@ -2,8 +2,8 @@
 
 // Database APIs. This header is separate because it includes <pqxx/pqxx>.
 
-#ifndef VOLTMOD_ENABLE_POSTGRES
-#error "VoltMod/Database requires the framework to be built with VOLTMOD_ENABLE_POSTGRES"
+#ifndef VOLTMOD_ENABLE_DATABASE
+#error "VoltMod/Database requires the framework to be built with VOLTMOD_ENABLE_DATABASE"
 #endif
 
 #include <VoltMod/Database/DbResult.hpp>

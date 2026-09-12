@@ -172,7 +172,7 @@ compile-only tests.
 
 They compile into `voltmod-api-surface-check`, an object library defined in the root
 `CMakeLists.txt` and linked against `VoltMod::Runtime` (and `VoltMod::Database` when
-`VOLTMOD_ENABLE_POSTGRES` is on) so they see the same include paths and generated HL2SDK headers
+`VOLTMOD_ENABLE_DATABASE` is on) so they see the same include paths and generated HL2SDK headers
 the framework itself needs - that's also why they live outside `voltmod-utils-tests` and are
 excluded from its `tests/**/*.cpp` glob.
 

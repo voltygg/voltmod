@@ -6,11 +6,11 @@
 owns the connection, and completions return to the game thread. Column tables
 can generate row parsing and common `INSERT` and `SELECT` SQL.
 
-Compiled only when `VOLTMOD_ENABLE_POSTGRES` is `ON` (default `OFF`); plugins without a database never pull libpqxx.
+Compiled only when `VOLTMOD_ENABLE_DATABASE` is `ON` (default `OFF`); plugins without a database never pull libpqxx.
 
 ```python
 # conanfile.py
-default_options = {"voltmod/*:with_postgres": True}
+default_options = {"voltmod/*:with_database": True}
 ```
 
 ## The threading model

@@ -75,5 +75,5 @@ then registers it in the root `CMakeLists.txt`.
 
 ## PostgreSQL
 
-Set `voltmod/*:with_postgres` to `True` in `conanfile.py`, then add
+Set `voltmod/*:with_database` to `True` in `conanfile.py`, then add
 `FEATURES DATABASE` to the plugin's `voltmod_add_plugin` call.

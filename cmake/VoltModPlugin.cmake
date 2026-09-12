@@ -50,7 +50,7 @@ function(voltmod_add_plugin target_name)
             if(NOT TARGET VoltMod::Database)
                 message(FATAL_ERROR
                     "voltmod_add_plugin(${target_name} FEATURES DATABASE): voltmod was built "
-                    "without Postgres. Set -o voltmod/*:with_postgres=True.")
+                    "without the database module. Set -o voltmod/*:with_database=True.")
             endif()
             list(APPEND kit_targets VoltMod::Database)
             list(APPEND pch_headers "<pqxx/pqxx>")

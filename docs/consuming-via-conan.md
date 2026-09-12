@@ -119,7 +119,7 @@ link order) is ordinary `package_info()`.
 Everything publishes from this repo, through `voltmod package`:
 
 - voltmod goes out from `.github/workflows/publish.yml` on every `v*` tag, which must
-  match the version in `conanfile.py`. It uploads Linux Release for both `with_postgres`
+  match the version in `conanfile.py`. It uploads Linux Release for both `with_database`
   values, and a `smoke` job re-consumes the result anonymously on a clean runner,
   refusing to build voltmod or either SDK locally.
 - The SDK packages publish Linux binaries from the recipes in `recipes/` on a push to

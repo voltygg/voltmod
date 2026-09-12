@@ -197,7 +197,7 @@ install component.
 Enable PostgreSQL in `conanfile.py`:
 
 ```python
-default_options = {"voltmod/*:with_postgres": True}
+default_options = {"voltmod/*:with_database": True}
 ```
 
 Then request the feature:
