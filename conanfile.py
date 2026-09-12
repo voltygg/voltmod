@@ -21,7 +21,7 @@ class VoltModConan(ConanFile):
 
     name = "voltmod"
     author = "Sukhrob Ilyosbekov (suxrobgm@gmail.com)"
-    version = "1.3.0"
+    version = "1.4.0"
     description = "C++23 library for CS2 Metamod:Source plugins"
     license = "MIT"
     homepage = "https://github.com/voltygg/voltmod"
@@ -38,6 +38,8 @@ class VoltModConan(ConanFile):
         "*:shared": False,
         "openssl/*:no_apps": True,
         "openssl/*:no_fips": True,
+        "libpq/*:with_openssl": True,
+        "mariadb-connector-c/*:with_curl": False,
     }
 
     exports_sources = (
@@ -63,7 +65,12 @@ class VoltModConan(ConanFile):
         self.requires("metamod-source/[>=2.0 <3]",
                       transitive_headers=True, package_id_mode="minor_mode")
         if self.options.with_database:
-            self.requires("libpqxx/7.10.0", transitive_headers=True, transitive_libs=True)
+            # All three connectors: the driver is chosen at runtime from config. Linking them
+            # statically makes the LGPL MariaDB connector a relinkable-object obligation.
+            self.requires("sqlpp23/0.70", transitive_headers=True, transitive_libs=True,
+                          options={"with_postgresql": True,
+                                   "with_mariadb": True,
+                                   "with_sqlite3": True})
 
     def build_requirements(self):
         self.test_requires("doctest/2.5.2")
@@ -157,7 +164,7 @@ class VoltModConan(ConanFile):
             db.set_property("cmake_target_name", "VoltMod::Database")
             db.libs = ["voltmod-database"]
             db.libdirs = libdirs
-            db.requires = ["runtime", "libpqxx::libpqxx"]
+            db.requires = ["runtime", "sqlpp23::postgresql", "sqlpp23::mysql", "sqlpp23::sqlite3"]
             # Consumer feature checks and Database/Api.hpp's guard read this.
             db.defines = ["VOLTMOD_ENABLE_DATABASE=1"]
 

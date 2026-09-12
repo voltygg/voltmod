@@ -53,7 +53,16 @@ function(voltmod_add_plugin target_name)
                     "without the database module. Set -o voltmod/*:with_database=True.")
             endif()
             list(APPEND kit_targets VoltMod::Database)
-            list(APPEND pch_headers "<pqxx/pqxx>")
+            # Ahead of any framework header: the MariaDB connector needs winsock2.h before the
+            # windows.h an SDK header pulls in.
+            list(PREPEND pch_headers
+                "<sqlpp23/sqlpp23.h>"
+                "<sqlpp23/postgresql/postgresql.h>"
+                "<sqlpp23/mysql/mysql.h>"
+                "<sqlpp23/sqlite3/sqlite3.h>"
+            )
+            target_compile_definitions("${target_name}" PRIVATE
+                $<$<PLATFORM_ID:Windows>:NOMINMAX WIN32_LEAN_AND_MEAN>)
         else()
             message(FATAL_ERROR
                 "voltmod_add_plugin(${target_name} FEATURES ${feature}): no such feature. "

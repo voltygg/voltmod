@@ -66,4 +66,4 @@ The shapes the framework already uses. New code follows them instead of adding a
 
 - `<VoltMod/Api.hpp>` gathers the core vocabulary, `Runtime`, players, commands, and plugin plumbing. It never reaches the JSON layer or the menu-building surface.
 - Module surfaces: `<VoltMod/Entities/Api.hpp>`, `<VoltMod/Hooks/Api.hpp>`, `<VoltMod/Menu/Api.hpp>`, `<VoltMod/Unsafe/Api.hpp>`. `<VoltMod/App/Config.hpp>` gathers `JsonConfig`, `StandardPluginSettings`, and `Json` for a plugin's `Config.hpp`.
-- Database names stay in `<VoltMod/Database/Api.hpp>` so ordinary TUs never include libpqxx.
+- Database names stay in `<VoltMod/Database/Api.hpp>` so ordinary TUs never include sqlpp23.

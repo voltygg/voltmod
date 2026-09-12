@@ -73,7 +73,8 @@ then registers it in the root `CMakeLists.txt`.
 | `uv run poe new-plugin <name>` | Scaffold and register another plugin |
 | `uv run poe format` | Apply the pinned C++ formatting |
 
-## PostgreSQL
+## Database
 
 Set `voltmod/*:with_database` to `True` in `conanfile.py`, then add
-`FEATURES DATABASE` to the plugin's `voltmod_add_plugin` call.
+`FEATURES DATABASE` to the plugin's `voltmod_add_plugin` call. The driver (PostgreSQL,
+MariaDB or SQLite) is chosen at runtime from config.
