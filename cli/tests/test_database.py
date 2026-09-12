@@ -17,8 +17,8 @@ MEMBERS = ("ID", "NOW", "TRUE", "FALSE", "INSERT_IF_ABSENT")
 CPP_DRIVER_NAMES = {"Postgres": "postgres", "MariaDb": "mariadb", "Sqlite": "sqlite"}
 
 
-def cpp_dialects():
-    """Read the replacement text out of `DialectFor` in the C++ header."""
+def cpp_dialects() -> dict[str, tuple[dict[str, str], bool]]:
+    """Read `DialectFor` out of the C++ header: each driver's replacement text and conflict flag."""
     source = MIGRATOR_HPP.read_text(encoding="utf-8")
     body = source[source.index("inline Dialect DialectFor") :]
     body = body[: body.index("\n}")]
@@ -28,12 +28,30 @@ def cpp_dialects():
     out = {}
     for arm, values in arms:
         literals = re.findall(r'"([^"]*)"', values)
-        out[CPP_DRIVER_NAMES[arm]] = dict(zip(MEMBERS, literals, strict=True))
+        flag = re.search(r"\b(true|false)\s*$", values.strip())
+        assert flag, f"no NeedsConflictClause in the {arm} arm"
+        out[CPP_DRIVER_NAMES[arm]] = (
+            dict(zip(MEMBERS, literals, strict=True)),
+            flag.group(1) == "true",
+        )
     return out
 
 
 def test_python_and_cpp_dialect_tables_agree():
-    assert cpp_dialects() == dialect.DIALECTS
+    assert {driver: text for driver, (text, _) in cpp_dialects().items()} == dialect.DIALECTS
+
+
+def test_python_and_cpp_agree_on_which_drivers_render_the_conflict_clause():
+    renders = {
+        driver: bool(dialect.resolve("@ON_CONFLICT(a)@", driver)) for driver in dialect.DRIVERS
+    }
+    assert {driver: flag for driver, (_, flag) in cpp_dialects().items()} == renders
+
+
+def test_an_at_sign_that_is_not_a_placeholder_is_text():
+    sql = "VALUES ('someone@example.com'), @TRUE@"
+    assert dialect.resolve(sql, "sqlite") == "VALUES ('someone@example.com'), 1"
+    assert dialect.resolve("a @ b @ c @(x)@", "postgres") == "a @ b @ c @(x)@"
 
 
 @pytest.mark.parametrize("driver", dialect.DRIVERS)
