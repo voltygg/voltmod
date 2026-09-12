@@ -24,7 +24,7 @@ namespace VoltMod
  * @brief Everything a @ref UiPanel keeps between calls.
  *
  * Held by `shared_ptr` from the panel: moving a panel moves the pointer, so the events handlers
- * hold SubscriptionScope to - and the entity ref those handlers filter on - stay where they are.
+ * hold Subscriptions to - and the entity ref those handlers filter on - stay where they are.
  * Nothing outside `src/` names this type; @ref UiPanel is the whole surface.
  */
 struct UiPanelState

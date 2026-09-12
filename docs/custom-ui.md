@@ -175,7 +175,7 @@ See @ref workshop_guide for what that costs and what it does not do.
 ## Reacting to a click
 
 A button press arrives as @ref VoltMod::UiClick. Subscribing is what installs the
-hook, so keep what subscribing returns - @ref VoltMod::SubscriptionScope holds several
+hook, so keep what subscribing returns - @ref VoltMod::Subscriptions holds several
 handlers that live and die together:
 
 ```cpp
