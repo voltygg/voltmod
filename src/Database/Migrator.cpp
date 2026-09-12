@@ -38,9 +38,10 @@ static std::string HistoryTableDdl(const std::string& table)
 }
 
 template <class Conn>
-static void ApplyMigration(Conn& conn, const std::string& table, const Migration& migration, const std::string& sql)
+static void ApplyMigration(Conn& conn, const std::string& table, const Migration& migration,
+                           const std::vector<std::string>& statements)
 {
-    for (const std::string& statement : SplitStatements(sql))
+    for (const std::string& statement : statements)
         conn(statement);
     // The timestamp is written explicitly: no DEFAULT for it is portable across the drivers.
     conn("INSERT INTO " + table + " (version, name, applied_at) VALUES (" + std::to_string(migration.Version) + ", '" +
@@ -57,7 +58,8 @@ MigrationResult RunMigrations(Database& db, std::string_view dir, const Migratio
     const std::string& table = options.HistoryTable;
 
     // Relative paths must resolve against the game dir, not the server process cwd.
-    const fs::path resolvedDir = ResolvePath(dir) / DriverName(db.GetDriver());
+    const fs::path resolvedDir = ResolvePath(dir);
+    const Driver driver = db.GetDriver();
 
     std::error_code ec;
     if (!fs::exists(resolvedDir, ec))
@@ -117,6 +119,16 @@ MigrationResult RunMigrations(Database& db, std::string_view dir, const Migratio
                 break;
             }
 
+            const std::string resolved = ResolveDialect(*sql, driver);
+            if (const std::string_view unknown = FindPlaceholder(resolved); !unknown.empty())
+            {
+                Log::Error("Migration {} ({}) uses unknown placeholder {}.", m.Version, m.Name, unknown);
+                result.Success = false;
+                break;
+            }
+
+            const auto statements = SplitStatements(resolved);
+
             try
             {
                 // MariaDB auto-commits every DDL statement, so a failed file there leaves the
@@ -126,7 +138,7 @@ MigrationResult RunMigrations(Database& db, std::string_view dir, const Migratio
                     conn("BEGIN IMMEDIATE");
                     try
                     {
-                        ApplyMigration(conn, table, m, *sql);
+                        ApplyMigration(conn, table, m, statements);
                         conn("COMMIT");
                     }
                     catch (...)
@@ -138,7 +150,7 @@ MigrationResult RunMigrations(Database& db, std::string_view dir, const Migratio
                 else
                 {
                     auto transaction = sqlpp::start_transaction(conn);
-                    ApplyMigration(conn, table, m, *sql);
+                    ApplyMigration(conn, table, m, statements);
                     transaction.commit();
                 }
                 ++result.Applied;

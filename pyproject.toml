@@ -12,6 +12,7 @@ dependencies = [
     "ninja>=1.13.0",
     "clang-format==22.1.5",
     "jinja2>=3.1",
+    "pyparsing>=3.3",
     "typer>=0.27.1",
     "pyyaml>=6.0",
 ]
@@ -32,11 +33,7 @@ packages = ["cli/voltmod"]
 "panorama" = "voltmod/panorama"
 
 [dependency-groups]
-dev = [
-    "ruff>=0.14.0",
-    "poethepoet>=0.47.0",
-    "pytest>=8.4.0",
-]
+dev = ["ruff>=0.14.0", "poethepoet>=0.47.0", "pytest>=8.4.0"]
 
 
 [tool.poe.tasks]

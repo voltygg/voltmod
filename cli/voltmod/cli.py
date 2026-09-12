@@ -7,7 +7,7 @@ from typing import Annotated
 import typer
 
 from . import localdev, tools
-from .builder import gamedata, package, project, schemagen
+from .builder import database, gamedata, package, project, schemagen
 from .builder.panorama import command as panorama
 from .checks import doctor, modgraph
 from .scaffold import init_project, new_plugin
@@ -20,6 +20,7 @@ app = typer.Typer(
     help="Build and scaffolding tooling for CS2 Metamod:Source plugin projects.",
     no_args_is_help=True,
 )
+app.add_typer(database.app, name="database")
 app.add_typer(gamedata.app, name="gamedata")
 app.add_typer(package.app, name="package")
 app.add_typer(panorama.app, name="panorama")

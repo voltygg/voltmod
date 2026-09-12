@@ -114,12 +114,20 @@ auto count = db.Run("count_recent_bans", [&](auto& conn) {
 
 ## Declaring tables
 
-Generate them. The sqlpp23 package ships `sqlpp23-ddl2cpp`, which reads a
-`CREATE TABLE` script and emits the specs; it skips the indexes and inserts it
-cannot parse, so point it at the migration itself and keep one source of truth.
-admin-system does this from a `poe schema` task and commits the result, with a
-`poe lint` check that fails when the two drift. Its `schema/` directory is the
-worked example.
+Generate them from the migrations:
+
+```bash
+voltmod database tables --migrations <plugin>/configs/migrations \
+    --header <plugin>/src/Database/Tables/Schema.hpp \
+    --namespace MyPlugin::Database::Tables
+```
+
+It renders the migrations for Postgres, runs the `sqlpp23-ddl2cpp` script the
+sqlpp23 package ships, and writes the header. The generator skips the indexes
+and inserts its grammar cannot parse, so the migrations stay the one source of
+truth. Commit the header, and run the same command with `--check` in your lint
+task so a schema change that skips the generator fails the build. admin-system
+is the worked example.
 
 Hand-write a spec only where there is no DDL to read, using `VOLTMOD_COLUMN`
 from `<VoltMod/Database/Table.hpp>`:
@@ -187,15 +195,41 @@ like this, not as a default style.
 
 ## Migrations
 
-Migration files live under `<dir>/<driver>/NNNN_name.sql` (`postgres/`,
-`mariadb/`, `sqlite/`), one statement per `;`. Procedure bodies are not
-supported: MariaDB and SQLite run raw SQL one statement at a time.
+Migration files live at `<dir>/NNNN_name.sql`, one statement per `;`. Procedure
+bodies are not supported: MariaDB and SQLite run raw SQL one statement at a
+time.
 
-Writing the schema three times is not the intent. admin-system keeps one
-dialect-free `schema.sql.in` and renders the three copies from it, resolving a
-few placeholders for the only places the dialects disagree: the auto-increment
-key, the current-epoch default, the boolean literals, and the insert-if-absent
-idiom. Copy that arrangement rather than maintaining three schemas by hand.
+Write each file once, in dialect-free SQL. The runner substitutes a placeholder
+wherever the three drivers disagree, which is a closed set of five:
+
+| Placeholder | Postgres | MariaDB | SQLite |
+| --- | --- | --- | --- |
+| `@ID@` | `BIGSERIAL PRIMARY KEY` | `BIGINT AUTO_INCREMENT PRIMARY KEY` | `INTEGER PRIMARY KEY AUTOINCREMENT` |
+| `@NOW@` | `EXTRACT(EPOCH FROM NOW())::BIGINT` | `(UNIX_TIMESTAMP())` | `(strftime('%s','now'))` |
+| `@TRUE@` / `@FALSE@` | `TRUE` / `FALSE` | `TRUE` / `FALSE` | `1` / `0` |
+| `@INSERT_IF_ABSENT@` | `INSERT INTO` | `INSERT IGNORE INTO` | `INSERT OR IGNORE INTO` |
+| `@ON_CONFLICT(cols)@` | `ON CONFLICT (cols) DO NOTHING` | *(nothing)* | *(nothing)* |
+
+The last two go together, because Postgres puts its clause at the end of the
+statement and the other two carry the same meaning in their `INSERT` verb:
+
+```sql
+CREATE TABLE IF NOT EXISTS bans (
+  id @ID@,
+  steam_id BIGINT UNIQUE NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT @TRUE@,
+  created_at BIGINT NOT NULL DEFAULT @NOW@
+);
+
+@INSERT_IF_ABSENT@ bans (steam_id) VALUES (76561198000000000)
+@ON_CONFLICT(steam_id)@;
+```
+
+An unknown `@TOKEN@` fails the migration rather than applying a statement with
+a hole in it. Anything the set does not cover belongs in a driver-specific
+migration, not in another placeholder. `voltmod database sql <file-or-dir>
+--driver <name>` prints what a driver will actually run, which is also how an
+operator applies a hand-run seed file.
 
 ```cpp
 if (!VoltMod::RunMigrations(db, "addons/my-plugin/configs/migrations",

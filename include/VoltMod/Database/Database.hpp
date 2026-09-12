@@ -238,11 +238,16 @@ private:
 };
 
 /**
- * Apply pending forward-only migrations to `db` from `dir`/<driver name>. Reads files named
- * `NNNN_*.sql` (the leading integer is the version), and applies every file whose version exceeds
- * the max recorded in the history table, in ascending order, each in its own transaction, under a
- * lock so two concurrent plugin loads cannot race. A missing directory is a successful no-op
- * (logged). On failure the database is left at the last successfully applied version.
+ * Apply pending forward-only migrations to `db` from `dir`.
+ *
+ * Reads files named `NNNN_*.sql` (the leading integer is the version) and applies every file whose
+ * version exceeds the max recorded in the history table, in ascending order, each in its own
+ * transaction, under a lock so two concurrent plugin loads cannot race. Each file is written once
+ * in dialect-free SQL: @ref ResolveDialect substitutes the placeholders for the live driver, and an
+ * unknown one fails the migration rather than applying a statement with a hole in it.
+ *
+ * A missing directory is a successful no-op (logged). On failure the database is left at the last
+ * successfully applied version.
  */
 MigrationResult RunMigrations(Database& db, std::string_view dir, const MigrationOptions& options = {});
 

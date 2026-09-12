@@ -190,11 +190,9 @@ TEST_CASE("RunMigrations: applies migrations in order, is idempotent, and stops 
     REQUIRE(db.Start({.driver = "sqlite", .path = ":memory:"}));
 
     VoltModTests::TempDir dir("run-migrations");
-    std::filesystem::create_directories(std::filesystem::path(dir.Path()) / "sqlite");
-    dir.Write("sqlite/0001_a.sql",
-              "CREATE TABLE a (id INTEGER PRIMARY KEY, note TEXT NOT NULL DEFAULT 'x;y'); -- seed table\n"
-              "INSERT INTO a (note) VALUES ('seed');\n");
-    dir.Write("sqlite/0002_b.sql", "CREATE TABLE b (id INTEGER PRIMARY KEY);\n");
+    dir.Write("0001_a.sql", "CREATE TABLE a (id @ID@, note TEXT NOT NULL DEFAULT 'x;y'); -- seed table\n"
+                            "INSERT INTO a (note) VALUES ('seed');\n");
+    dir.Write("0002_b.sql", "CREATE TABLE b (id INTEGER PRIMARY KEY);\n");
 
     auto first = RunMigrations(db, dir.Path());
     CHECK(first.Success);
@@ -212,7 +210,7 @@ TEST_CASE("RunMigrations: applies migrations in order, is idempotent, and stops 
     CHECK_EQ(rerun.Applied, 0);
     CHECK_EQ(rerun.CurrentVersion, 2);
 
-    dir.Write("sqlite/0003_c.sql", "CREATE TBLE typo (id INTEGER);\n");
+    dir.Write("0003_c.sql", "CREATE TBLE typo (id INTEGER);\n");
     auto bad = RunMigrations(db, dir.Path());
     CHECK(!bad.Success);
     CHECK_EQ(bad.CurrentVersion, 2);
@@ -221,7 +219,7 @@ TEST_CASE("RunMigrations: applies migrations in order, is idempotent, and stops 
     CHECK_EQ(CountRows(db, "schema_migrations", "version = 3"), 0);
 }
 
-TEST_CASE("RunMigrations: a missing driver folder is a successful no-op")
+TEST_CASE("RunMigrations: a missing directory is a successful no-op")
 {
     Scheduler scheduler;
     Database db(scheduler);
@@ -231,6 +229,21 @@ TEST_CASE("RunMigrations: a missing driver folder is a successful no-op")
     auto result = RunMigrations(db, dir.Path());
     CHECK(result.Success);
     CHECK_EQ(result.Applied, 0);
+}
+
+TEST_CASE("RunMigrations: an unknown placeholder fails the file without recording it")
+{
+    Scheduler scheduler;
+    Database db(scheduler);
+    REQUIRE(db.Start({.driver = "sqlite", .path = ":memory:"}));
+
+    VoltModTests::TempDir dir("run-migrations-placeholder");
+    dir.Write("0001_a.sql", "CREATE TABLE a (id @ID@, flag BOOLEAN NOT NULL DEFAULT @MADE_UP@);\n");
+
+    auto result = RunMigrations(db, dir.Path());
+    CHECK(!result.Success);
+    CHECK_EQ(result.Applied, 0);
+    CHECK_EQ(CountRows(db, "sqlite_master", "name = 'a'"), 0);
 }
 
 #endif  // VOLTMOD_ENABLE_DATABASE

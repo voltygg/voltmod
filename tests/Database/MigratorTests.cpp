@@ -3,9 +3,12 @@
 #include <doctest/doctest.h>
 #include <string>
 
+using VoltMod::Driver;
 using VoltMod::DriverName;
+using VoltMod::FindPlaceholder;
 using VoltMod::ParseDriver;
 using VoltMod::ParseMigrationVersion;
+using VoltMod::ResolveDialect;
 using VoltMod::SplitStatements;
 
 TEST_CASE("ParseMigrationVersion: leading integer")
@@ -79,4 +82,48 @@ TEST_CASE("ParseDriver: unknown name -> nullopt")
 {
     CHECK(!ParseDriver("mysql").has_value());
     CHECK(!ParseDriver("").has_value());
+}
+
+TEST_CASE("ResolveDialect: every driver gets its own key, epoch and boolean spellings")
+{
+    const std::string sql = "id @ID@, at BIGINT DEFAULT @NOW@, ok BOOLEAN DEFAULT @TRUE@, no BOOLEAN DEFAULT @FALSE@";
+
+    CHECK_EQ(ResolveDialect(sql, Driver::Postgres),
+             "id BIGSERIAL PRIMARY KEY, at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW())::BIGINT, "
+             "ok BOOLEAN DEFAULT TRUE, no BOOLEAN DEFAULT FALSE");
+    CHECK_EQ(ResolveDialect(sql, Driver::MariaDb),
+             "id BIGINT AUTO_INCREMENT PRIMARY KEY, at BIGINT DEFAULT (UNIX_TIMESTAMP()), "
+             "ok BOOLEAN DEFAULT TRUE, no BOOLEAN DEFAULT FALSE");
+    CHECK_EQ(ResolveDialect(sql, Driver::Sqlite),
+             "id INTEGER PRIMARY KEY AUTOINCREMENT, at BIGINT DEFAULT (strftime('%s','now')), "
+             "ok BOOLEAN DEFAULT 1, no BOOLEAN DEFAULT 0");
+}
+
+TEST_CASE("ResolveDialect: insert-if-absent is a verb on two drivers and a clause on Postgres")
+{
+    const std::string sql = "@INSERT_IF_ABSENT@ groups (name) VALUES ('root') @ON_CONFLICT(name)@";
+
+    CHECK_EQ(ResolveDialect(sql, Driver::Postgres),
+             "INSERT INTO groups (name) VALUES ('root') ON CONFLICT (name) DO NOTHING");
+    CHECK_EQ(ResolveDialect(sql, Driver::MariaDb), "INSERT IGNORE INTO groups (name) VALUES ('root') ");
+    CHECK_EQ(ResolveDialect(sql, Driver::Sqlite), "INSERT OR IGNORE INTO groups (name) VALUES ('root') ");
+}
+
+TEST_CASE("ResolveDialect: a multi-column conflict target keeps its column list")
+{
+    CHECK_EQ(ResolveDialect("@ON_CONFLICT(a, b)@", Driver::Postgres), "ON CONFLICT (a, b) DO NOTHING");
+}
+
+TEST_CASE("ResolveDialect: an unknown placeholder is left for the runner to report")
+{
+    const std::string resolved = ResolveDialect("a @ID@ b @MADE_UP@", Driver::Sqlite);
+    CHECK_EQ(resolved, "a INTEGER PRIMARY KEY AUTOINCREMENT b @MADE_UP@");
+    CHECK_EQ(std::string(FindPlaceholder(resolved)), "@MADE_UP@");
+}
+
+TEST_CASE("FindPlaceholder: ordinary SQL, including a stray @, reports nothing")
+{
+    CHECK(FindPlaceholder("CREATE TABLE t (id INTEGER)").empty());
+    CHECK(FindPlaceholder("INSERT INTO t (mail) VALUES ('someone@example.com')").empty());
+    CHECK(FindPlaceholder("").empty());
 }

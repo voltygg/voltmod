@@ -1,15 +1,12 @@
 #pragma once
 
+#include <VoltMod/Database/Driver.hpp>
 #include <charconv>
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
-
-// Migration vocabulary only: no database client, so a translation unit can parse a migration
-// filename without one. @ref RunMigrations, which needs a live connection, is declared in
-// <VoltMod/Database/Database.hpp>.
 
 namespace VoltMod
 {
@@ -46,6 +43,105 @@ inline std::optional<int> ParseMigrationVersion(std::string_view filename)
     if (ec != std::errc{} || ptr == begin)
         return std::nullopt;
     return version;
+}
+
+/**
+ * @brief The DDL spellings the three drivers disagree on, one per migration placeholder.
+ *
+ * The set is closed: anything beyond it belongs in a driver-specific migration.
+ */
+struct Dialect
+{
+    std::string_view AutoIncrementKey;  ///< `@ID@`
+    std::string_view EpochNow;          ///< `@NOW@`
+    std::string_view True;              ///< `@TRUE@`
+    std::string_view False;             ///< `@FALSE@`
+    std::string_view InsertIfAbsent;    ///< `@INSERT_IF_ABSENT@`
+    /** Whether `@ON_CONFLICT(cols)@` renders. Postgres puts it at the end of the statement; the
+     *  others carry the same meaning in their INSERT verb. */
+    bool NeedsConflictClause;
+};
+
+/** The spellings @p driver wants. */
+inline Dialect DialectFor(Driver driver)
+{
+    switch (driver)
+    {
+    case Driver::Postgres:
+        return {"BIGSERIAL PRIMARY KEY", "EXTRACT(EPOCH FROM NOW())::BIGINT", "TRUE", "FALSE", "INSERT INTO", true};
+    case Driver::MariaDb:
+        return {
+            "BIGINT AUTO_INCREMENT PRIMARY KEY", "(UNIX_TIMESTAMP())", "TRUE", "FALSE", "INSERT IGNORE INTO", false};
+    case Driver::Sqlite:
+        // 1/0 rather than TRUE/FALSE: it is what an existing database's stored schema text says.
+        return {
+            "INTEGER PRIMARY KEY AUTOINCREMENT", "(strftime('%s','now'))", "1", "0", "INSERT OR IGNORE INTO", false};
+    }
+    return {};
+}
+
+/** Substitute every dialect placeholder in @p sql for @p driver. An unknown one is copied
+ *  through for @ref FindPlaceholder to report. */
+inline std::string ResolveDialect(std::string_view sql, Driver driver)
+{
+    static constexpr std::string_view ConflictToken = "ON_CONFLICT(";
+    const Dialect dialect = DialectFor(driver);
+
+    std::string out;
+    out.reserve(sql.size());
+    for (size_t i = 0; i < sql.size();)
+    {
+        const size_t close = sql[i] == '@' ? sql.find('@', i + 1) : std::string_view::npos;
+        if (close == std::string_view::npos)
+        {
+            out.push_back(sql[i++]);
+            continue;
+        }
+
+        const std::string_view token = sql.substr(i + 1, close - i - 1);
+        if (token == "ID")
+            out.append(dialect.AutoIncrementKey);
+        else if (token == "NOW")
+            out.append(dialect.EpochNow);
+        else if (token == "TRUE")
+            out.append(dialect.True);
+        else if (token == "FALSE")
+            out.append(dialect.False);
+        else if (token == "INSERT_IF_ABSENT")
+            out.append(dialect.InsertIfAbsent);
+        else if (token.starts_with(ConflictToken) && token.ends_with(')'))
+        {
+            if (dialect.NeedsConflictClause)
+            {
+                const std::string_view columns =
+                    token.substr(ConflictToken.size(), token.size() - ConflictToken.size() - 1);
+                out.append("ON CONFLICT (").append(columns).append(") DO NOTHING");
+            }
+        }
+        else
+        {
+            out.append(sql.substr(i, close - i + 1));  // unknown: leave it for the caller to report
+        }
+        i = close + 1;
+    }
+    return out;
+}
+
+/** The first `@TOKEN@` left in @p sql, empty when @ref ResolveDialect knew them all. Only a
+ *  placeholder-shaped token counts, so a stray `@` in a literal is not mistaken for one. */
+inline std::string_view FindPlaceholder(std::string_view sql)
+{
+    static constexpr std::string_view Allowed = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_(),. ";
+    for (size_t open = sql.find('@'); open != std::string_view::npos; open = sql.find('@', open + 1))
+    {
+        const size_t close = sql.find('@', open + 1);
+        if (close == std::string_view::npos)
+            return {};
+        const std::string_view token = sql.substr(open + 1, close - open - 1);
+        if (!token.empty() && token.find_first_not_of(Allowed) == std::string_view::npos)
+            return sql.substr(open, close - open + 1);
+    }
+    return {};
 }
 
 /**
