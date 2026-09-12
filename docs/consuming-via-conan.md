@@ -120,7 +120,7 @@ Everything publishes from this repo, through `voltmod package`:
 
 - voltmod goes out from `.github/workflows/publish.yml` on every `v*` tag, which must
   match the version in `conanfile.py`. It uploads Linux Release for both `with_database`
-  values, and a `smoke` job re-consumes the result anonymously on a clean runner,
+  values, one job each, and a last job installs the result anonymously on a clean runner,
   refusing to build voltmod or either SDK locally.
 - The SDK packages publish Linux binaries from the recipes in `recipes/` on a push to
   `main` that touches them. A daily job watches both upstreams and opens
@@ -133,8 +133,9 @@ read-only).
 Local escape hatch if the remote is unreachable:
 
 ```sh
-voltmod package build sdk    # conan create both recipes
-voltmod package build kit          # ... then the framework against them
+voltmod package build sdk                        # conan create both recipes
+voltmod package build framework                  # ... then the framework against them
+voltmod package build framework --database on    # one with_database variant
 ```
 
 ## Working on voltmod and a plugin together

@@ -6,10 +6,10 @@ from pathlib import Path
 
 import typer
 
-from ..tools import kit_root
+from ..tools import framework_root
 
 REPO_ROOT = Path.cwd()
-TEMPLATE_DIR = kit_root() / "templates/plugin"
+TEMPLATE_DIR = framework_root() / "templates/plugin"
 
 NAME_RE = re.compile(r"^[a-z][a-z0-9]*(-[a-z0-9]+)*$")
 

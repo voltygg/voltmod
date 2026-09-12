@@ -104,17 +104,19 @@ def icon(owner: Owner, icon_set: str, name: str) -> Path:
     return owner.source / IMAGES_DIR / icon_set / f"{name}.png"
 
 
-def render(root: Path, kit_root: Path, names: list[str], out: Path | None = None) -> list[Path]:
+def render(
+    root: Path, framework_root: Path, names: list[str], out: Path | None = None
+) -> list[Path]:
     """Render the named owners' screens, and return what was written."""
     written: list[Path] = []
     for owner in select(find_owners(root), names).values():
-        written += Renderer(owner, kit_root).write_all(root, out)
+        written += Renderer(owner, framework_root).write_all(root, out)
     return written
 
 
-def screen(owner: Owner, kit_root: Path, name: str) -> tuple[str, str]:
+def screen(owner: Owner, framework_root: Path, name: str) -> tuple[str, str]:
     """One screen rendered in memory: its layout and its stylesheet."""
-    return Renderer(owner, kit_root).screen(name)
+    return Renderer(owner, framework_root).screen(name)
 
 
 def write(path: Path, data: bytes | str) -> list[Path]:
@@ -135,16 +137,16 @@ class Renderer:
     so anything rendering more than one screen of an owner should hold one of these.
     """
 
-    def __init__(self, owner: Owner, kit_root: Path) -> None:
+    def __init__(self, owner: Owner, framework_root: Path) -> None:
         self.owner = owner
-        self.kit_root = kit_root
+        self.framework_root = framework_root
         self.icons = icon_sets(owner)
         # utf-8-sig: an editor's byte order mark would otherwise reach the client as a parse error.
         self.environment = Environment(
             loader=ChoiceLoader(
                 [
                     FileSystemLoader(owner.source / SCREENS_DIR, encoding="utf-8-sig"),
-                    FileSystemLoader(kit_root / BLOCKS_DIR, encoding="utf-8-sig"),
+                    FileSystemLoader(framework_root / BLOCKS_DIR, encoding="utf-8-sig"),
                 ]
             ),
             undefined=StrictUndefined,
@@ -185,7 +187,7 @@ class Renderer:
         """Copy each icon into the rendered tree beside the descriptor that names it."""
         if not self.icons:
             return []
-        descriptor = (self.kit_root / VTEX_TEMPLATE).read_text(encoding="utf-8")
+        descriptor = (self.framework_root / VTEX_TEMPLATE).read_text(encoding="utf-8")
         written: list[Path] = []
         for icon_set, names in self.icons.items():
             for name in names:

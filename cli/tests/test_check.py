@@ -9,7 +9,7 @@ from pathlib import Path
 from test_panorama import plugin
 from voltmod.builder.panorama import check as checker
 
-KIT = Path(__file__).resolve().parents[2]
+FRAMEWORK = Path(__file__).resolve().parents[2]
 
 #: A state class on the root, so a screen has something for the header to name.
 HIDDEN_CSS = ".Screen.Hidden {\n  visibility: collapse;\n}\n"
@@ -130,43 +130,43 @@ def second_owner(root: Path, name: str = "hud") -> Path:
 
 def test_disallowed_element_is_flagged(tmp_path):
     root = plugin(tmp_path, xml=SCRIPT_XML, css=HIDDEN_CSS, name="hud")
-    findings = checker.check(root, KIT, ["ui-lab"])
+    findings = checker.check(root, FRAMEWORK, ["ui-lab"])
     assert any("<script>" in finding for finding in findings)
 
 
 def test_button_without_id_is_flagged(tmp_path):
     root = plugin(tmp_path, xml=BUTTON_NO_ID_XML, css=HIDDEN_CSS, name="hud")
-    findings = checker.check(root, KIT, ["ui-lab"])
+    findings = checker.check(root, FRAMEWORK, ["ui-lab"])
     assert any("<Button> has no id" in finding for finding in findings)
 
 
 def test_button_nested_in_button_is_flagged(tmp_path):
     root = plugin(tmp_path, xml=NESTED_BUTTON_XML, css=HIDDEN_CSS, name="hud")
-    findings = checker.check(root, KIT, ["ui-lab"])
+    findings = checker.check(root, FRAMEWORK, ["ui-lab"])
     assert any("nested inside another Button" in finding for finding in findings)
 
 
 def test_duplicate_id_is_flagged(tmp_path):
     root = plugin(tmp_path, xml=DUPLICATE_ID_XML, css=HIDDEN_CSS, name="hud")
-    findings = checker.check(root, KIT, ["ui-lab"])
+    findings = checker.check(root, FRAMEWORK, ["ui-lab"])
     assert any("used more than once" in finding for finding in findings)
 
 
 def test_id_outside_the_screen_prefix_is_flagged(tmp_path):
     root = plugin(tmp_path, xml=STRAY_ID_XML, css=HIDDEN_CSS, name="hud")
-    findings = checker.check(root, KIT, ["ui-lab"])
+    findings = checker.check(root, FRAMEWORK, ["ui-lab"])
     assert any("does not start with" in finding for finding in findings)
 
 
 def test_missing_stylesheet_include_is_flagged(tmp_path):
     root = plugin(tmp_path, xml=WRONG_INCLUDE_XML, css=HIDDEN_CSS, name="hud")
-    findings = checker.check(root, KIT, ["ui-lab"])
+    findings = checker.check(root, FRAMEWORK, ["ui-lab"])
     assert any("expected one style include" in finding for finding in findings)
 
 
 def test_unknown_image_is_flagged(tmp_path):
     root = plugin(tmp_path, xml=UNKNOWN_IMAGE_XML, css=HIDDEN_CSS, name="hud")
-    findings = checker.check(root, KIT, ["ui-lab"])
+    findings = checker.check(root, FRAMEWORK, ["ui-lab"])
     assert any("has no weapons/missing.png" in finding for finding in findings)
 
 
@@ -174,7 +174,7 @@ def test_two_owners_rendering_the_same_resource_are_named(tmp_path):
     root = plugin(tmp_path, xml=CLEAN_XML, css=CLEAN_CSS, name="hud")
     second_owner(root, name="hud")
 
-    findings = checker.check(root, KIT, ["ui-lab", "ui-second"])
+    findings = checker.check(root, FRAMEWORK, ["ui-lab", "ui-second"])
 
     assert any(
         "layout/custom_game/hud.xml" in finding and "ui-lab" in finding and "ui-second" in finding
@@ -185,12 +185,12 @@ def test_two_owners_rendering_the_same_resource_are_named(tmp_path):
 
 def test_a_shared_dialog_variable_is_not_flagged(tmp_path):
     root = plugin(tmp_path, xml=SHARED_VAR_XML, css=HIDDEN_CSS, name="hud")
-    assert checker.check(root, KIT, ["ui-lab"]) == []
+    assert checker.check(root, FRAMEWORK, ["ui-lab"]) == []
 
 
 def test_a_clean_screen_has_no_findings(tmp_path):
     root = plugin(tmp_path, xml=CLEAN_XML, css=CLEAN_CSS, name="hud")
-    assert checker.check(root, KIT, ["ui-lab"]) == []
+    assert checker.check(root, FRAMEWORK, ["ui-lab"]) == []
 
 
 ARRAY_CLASH_XML = """<root>
@@ -208,7 +208,7 @@ ARRAY_CLASH_XML = """<root>
 
 def test_an_id_spelling_a_repeated_blocks_array_is_flagged(tmp_path):
     root = plugin(tmp_path, xml=ARRAY_CLASH_XML, css=HIDDEN_CSS, name="hud")
-    findings = checker.check(root, KIT, ["ui-lab"])
+    findings = checker.check(root, FRAMEWORK, ["ui-lab"])
     assert any("both spell Rows" in finding for finding in findings)
 
 
@@ -240,7 +240,7 @@ CROWDED_XML = """<root>
 
 def test_a_screen_over_the_per_screen_limit_is_flagged(tmp_path):
     root = plugin(tmp_path, xml=RUNAWAY_XML, css=HIDDEN_CSS, name="hud")
-    findings = checker.check(root, KIT, ["ui-lab"])
+    findings = checker.check(root, FRAMEWORK, ["ui-lab"])
     assert any("per-screen limit" in finding for finding in findings)
 
 
@@ -249,7 +249,7 @@ def test_screens_that_each_pass_still_overflow_the_client_table(tmp_path):
     for name in ("hud", "menu", "panel"):
         root = plugin(root, xml=CROWDED_XML, css=HIDDEN_CSS, name=name)
 
-    findings = checker.check(root, KIT, ["ui-lab"])
+    findings = checker.check(root, FRAMEWORK, ["ui-lab"])
 
     assert not any("per-screen limit" in finding for finding in findings)
     assert any("across all screens" in finding for finding in findings)
@@ -257,5 +257,5 @@ def test_screens_that_each_pass_still_overflow_the_client_table(tmp_path):
 
 def test_screens_within_the_client_table_are_not_flagged(tmp_path):
     root = plugin(tmp_path, xml=CROWDED_XML, css=HIDDEN_CSS, name="hud")
-    findings = checker.check(root, KIT, ["ui-lab"])
+    findings = checker.check(root, FRAMEWORK, ["ui-lab"])
     assert not any("interned names" in finding for finding in findings)

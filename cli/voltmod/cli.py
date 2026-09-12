@@ -13,7 +13,7 @@ from .checks import doctor, modgraph
 from .scaffold import init_project, new_plugin
 
 ROOT = Path.cwd()
-KIT_ROOT = tools.kit_root()
+FRAMEWORK_ROOT = tools.framework_root()
 CONFIG_SOURCE = "https://github.com/voltygg/voltmod.git"
 
 app = typer.Typer(
@@ -212,7 +212,7 @@ def format_command(
     ] = None,
 ) -> None:
     """Rewrite C++ sources in the pinned clang-format style."""
-    selected = dirs or (["src", "include", "tests"] if ROOT == KIT_ROOT else ["plugins"])
+    selected = dirs or (["src", "include", "tests"] if ROOT == FRAMEWORK_ROOT else ["plugins"])
     project.format_sources(ROOT, selected)
 
 

@@ -10,12 +10,12 @@ import pytest
 from test_panorama import plugin
 from voltmod.builder.panorama import preview as previewer
 
-KIT = Path(__file__).resolve().parents[2]
+FRAMEWORK = Path(__file__).resolve().parents[2]
 
 
 def test_the_card_fixture_previews_its_variables_flags_families_and_image(tmp_path):
     root = plugin(tmp_path)
-    out = previewer.preview(root, KIT, "ui-lab/hud")
+    out = previewer.preview(root, FRAMEWORK, "ui-lab/hud")
     text = out.read_text(encoding="utf-8")
 
     assert out == root / "build/panorama/preview/hud.html"
@@ -36,17 +36,17 @@ def test_the_card_fixture_previews_its_variables_flags_families_and_image(tmp_pa
 
 def test_a_bad_target_format_dies_with_a_message(tmp_path):
     with pytest.raises(SystemExit) as error:
-        previewer.preview(plugin(tmp_path), KIT, "hud")
+        previewer.preview(plugin(tmp_path), FRAMEWORK, "hud")
     assert "OWNER/SCREEN" in str(error.value)
 
 
 def test_an_unknown_owner_lists_the_known_ones(tmp_path):
     with pytest.raises(SystemExit) as error:
-        previewer.preview(plugin(tmp_path), KIT, "nope/hud")
+        previewer.preview(plugin(tmp_path), FRAMEWORK, "nope/hud")
     assert "nope" in str(error.value) and "ui-lab" in str(error.value)
 
 
 def test_an_unknown_screen_lists_the_owners_own(tmp_path):
     with pytest.raises(SystemExit) as error:
-        previewer.preview(plugin(tmp_path), KIT, "ui-lab/nope")
+        previewer.preview(plugin(tmp_path), FRAMEWORK, "ui-lab/nope")
     assert "hud" in str(error.value)

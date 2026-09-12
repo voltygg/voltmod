@@ -15,7 +15,7 @@ from . import screens
 app = typer.Typer(help="Render, compile, and publish Panorama screens.")
 
 ROOT = Path.cwd()
-KIT_ROOT = tools.kit_root()
+FRAMEWORK_ROOT = tools.framework_root()
 
 Owners = Annotated[
     list[str] | None,
@@ -35,7 +35,7 @@ def render_command(
     ] = None,
 ) -> None:
     """Render panorama/screens/ into the build tree."""
-    written = screens.render(ROOT, KIT_ROOT, owners or [], out)
+    written = screens.render(ROOT, FRAMEWORK_ROOT, owners or [], out)
     print(f"Rendered {len(written)} file(s)")
 
 
@@ -63,7 +63,7 @@ def compile_command(
     ] = True,
 ) -> None:
     """Render, compile with the Workshop Tools, and install into your client."""
-    screens.render(ROOT, KIT_ROOT, owners or [])
+    screens.render(ROOT, FRAMEWORK_ROOT, owners or [])
     compiler.install(ROOT, owners or [], client_path, addon, deploy)
 
 
@@ -73,7 +73,7 @@ def publish_command(
     owners: Owners = None,
 ) -> None:
     """Render, then copy the panorama/ trees into an addon content directory."""
-    screens.render(ROOT, KIT_ROOT, owners or [])
+    screens.render(ROOT, FRAMEWORK_ROOT, owners or [])
     count = compiler.publish(ROOT, owners or [], directory.expanduser())
     print(f"Published {count} file(s) into {directory}; point the Workshop Tools at it.")
 
@@ -81,7 +81,7 @@ def publish_command(
 @app.command("check")
 def check_command(owners: Owners = None) -> None:
     """Validate rendered screens against the rules the CS2 client enforces silently."""
-    findings = checker.check(ROOT, KIT_ROOT, owners or [])
+    findings = checker.check(ROOT, FRAMEWORK_ROOT, owners or [])
     if findings:
         for finding in findings:
             print(finding)
@@ -99,7 +99,7 @@ def preview_command(
     ] = False,
 ) -> None:
     """Write a self-contained HTML approximation of a screen; no client needed."""
-    out = previewer.preview(ROOT, KIT_ROOT, target)
+    out = previewer.preview(ROOT, FRAMEWORK_ROOT, target)
     if open_browser:
         previewer.open_in_browser(out)
     print(out)

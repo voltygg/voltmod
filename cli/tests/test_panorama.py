@@ -10,7 +10,7 @@ import pytest
 from voltmod.builder.panorama import compile as compiler
 from voltmod.builder.panorama import screens
 
-KIT = Path(__file__).resolve().parents[2]
+FRAMEWORK = Path(__file__).resolve().parents[2]
 
 #: A 1x1 transparent PNG, so an icon set has a real file in it.
 PNG = bytes.fromhex(
@@ -56,14 +56,14 @@ def rendered(root: Path, owner: str = "ui-lab") -> Path:
     return root / "build/panorama" / owner / "panorama"
 
 
-def fails(root: Path, kit: Path) -> str:
+def fails(root: Path, framework: Path) -> str:
     with pytest.raises(SystemExit) as error:
-        screens.render(root, kit, [])
+        screens.render(root, framework, [])
     return str(error.value)
 
 
 def test_plugin_screen_renders_layout_styles_and_icons(tmp_path):
-    written = screens.render(plugin(tmp_path), KIT, ["ui-lab"])
+    written = screens.render(plugin(tmp_path), FRAMEWORK, ["ui-lab"])
 
     out = rendered(tmp_path)
     xml = (out / "layout/custom_game/hud.xml").read_text(encoding="utf-8")
@@ -88,7 +88,7 @@ def test_plugin_screen_renders_layout_styles_and_icons(tmp_path):
 
 def test_unknown_token_names_the_file_and_the_token(tmp_path):
     root = plugin(tmp_path, xml="<root>{{ nonesuch }}</root>")
-    message = fails(root, KIT)
+    message = fails(root, FRAMEWORK)
     assert "hud.xml.j2" in message and "nonesuch" in message
 
 
@@ -97,24 +97,24 @@ def test_the_framework_is_not_an_owner(tmp_path):
     owners = screens.find_owners(plugin(tmp_path))
 
     assert set(owners) == {"ui-lab"}
-    assert not (KIT / "panorama/screens").exists()
+    assert not (FRAMEWORK / "panorama/screens").exists()
 
 
 def test_second_render_writes_nothing(tmp_path):
     root = plugin(tmp_path)
-    assert screens.render(root, KIT, [])
-    assert screens.render(root, KIT, []) == []
+    assert screens.render(root, FRAMEWORK, [])
+    assert screens.render(root, FRAMEWORK, []) == []
 
 
 def test_unknown_owner_lists_the_known_ones(tmp_path):
     with pytest.raises(SystemExit) as error:
-        screens.render(plugin(tmp_path), KIT, ["nope"])
+        screens.render(plugin(tmp_path), FRAMEWORK, ["nope"])
     assert "nope" in str(error.value) and "ui-lab" in str(error.value)
 
 
 def test_publish_copies_the_rendered_tree(tmp_path):
     root = plugin(tmp_path)
-    screens.render(root, KIT, ["ui-lab"])
+    screens.render(root, FRAMEWORK, ["ui-lab"])
 
     directory = tmp_path / "addon"
     count = compiler.publish(root, ["ui-lab"], directory)

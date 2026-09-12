@@ -44,13 +44,13 @@ _PASSTHROUGH_PREFIXES = ("margin", "padding", "border", "transition-")
 _FILL_FLOW = re.compile(r"^fill-parent-flow\((\d+)\)$")
 
 
-def preview(root: Path, kit_root: Path, target: str) -> Path:
+def preview(root: Path, framework_root: Path, target: str) -> Path:
     """Write OWNER/SCREEN as an HTML approximation and return where it landed."""
     owner, name = _resolve(root, target)
-    layout, stylesheet = screens.screen(owner, kit_root, name)
+    layout, stylesheet = screens.screen(owner, framework_root, name)
     screen = bind.read(layout, stylesheet)
 
-    page = (kit_root / SHELL).read_text(encoding="utf-8")
+    page = (framework_root / SHELL).read_text(encoding="utf-8")
     for slot, value in [
         ("%CSS%", _translate_css(stylesheet)),
         ("%BODY%", "".join(_convert(child, owner) for child in screen.tree)),

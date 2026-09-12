@@ -11,8 +11,8 @@ from ..tools import (
     chunk_by_length,
     ensure_msvc_env,
     ensure_remote,
+    framework_root,
     host_profile,
-    kit_root,
     require_build_tools,
     run_tool,
 )
@@ -60,8 +60,7 @@ def build(
     if checkout and checkout.resolve() != repo_root.resolve():
         framework.build(repo_root, checkout, preset)
 
-    # CI builds against SDK packages it just created from the HEAD recipes, whose revisions the
-    # committed lockfile does not pin yet; `package build kit --no-lockfile` skips it the same way.
+    # After an SDK bump the lockfile does not pin the new revisions yet, so CI builds without it.
     lock = repo_root / "conan.lock"
     lock_args = ["--lockfile", str(lock)] if use_lockfile and lock.is_file() else []
     run_tool(
@@ -72,7 +71,7 @@ def build(
 
     # Screens become layouts, stylesheets and the C++ bindings a plugin includes. Write-if-changed,
     # so an unchanged screen touches nothing CMake would rebuild for.
-    panorama.render(repo_root, kit_root(), [])
+    panorama.render(repo_root, framework_root(), [])
 
     if ccache:
         subprocess.run(["ccache", "-z"], check=False)

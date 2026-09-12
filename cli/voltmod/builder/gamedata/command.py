@@ -7,7 +7,7 @@ from typing import Annotated, Any
 
 import typer
 
-from voltmod.tools import abort, kit_root
+from voltmod.tools import abort, framework_root
 
 from . import document, resolve
 from .image import Modules, detect_platform
@@ -31,10 +31,10 @@ Platform = Annotated[
 
 def _framework() -> Path:
     """Find the framework checkout from the framework or a consumer repository."""
-    for candidate in (ROOT, kit_root(), ROOT / "vendor/voltmod"):
+    for candidate in (ROOT, framework_root(), ROOT / "vendor/voltmod"):
         if (candidate / GAMEDATA).is_file():
             return candidate
-    abort(f"no {GAMEDATA} in {ROOT} or {kit_root()}")
+    abort(f"no {GAMEDATA} in {ROOT} or {framework_root()}")
 
 
 def _game_build(game_dir: Path) -> str:

@@ -12,7 +12,7 @@ from pathlib import Path
 
 from voltmod.builder.panorama import bind, screens
 
-KIT = Path(__file__).resolve().parents[2]
+FRAMEWORK = Path(__file__).resolve().parents[2]
 
 #: The screen the checked-in C++ fixture header is derived from.
 LAB_XML = """{# namespace: LabUi #}
@@ -162,22 +162,23 @@ def test_rendering_a_plugin_screen_writes_its_header(tmp_path):
     plugin(tmp_path)
     header_path = tmp_path / "build/panorama/ui-lab/include/Ui/Lab.hpp"
 
-    written = screens.render(tmp_path, KIT, ["ui-lab"])
+    written = screens.render(tmp_path, FRAMEWORK, ["ui-lab"])
 
     assert header_path in written
     assert "namespace LabUi" in header_path.read_text(encoding="utf-8")
-    assert screens.render(tmp_path, KIT, ["ui-lab"]) == []  # write-if-changed, like the layouts
+    # write-if-changed, like the layouts
+    assert screens.render(tmp_path, FRAMEWORK, ["ui-lab"]) == []
 
 
 def test_the_checked_in_fixture_header_is_what_the_binder_writes(tmp_path):
     """Set VOLTMOD_REFRESH_FIXTURES=1 to rewrite the fixture after a deliberate change."""
     directory = plugin(tmp_path)
     owner = screens.Owner("ui-lab", directory / "panorama")
-    layout, stylesheet = screens.screen(owner, KIT, "lab")
+    layout, stylesheet = screens.screen(owner, FRAMEWORK, "lab")
     template = (directory / "panorama/screens/lab.xml.j2").read_text(encoding="utf-8")
 
     header = bind.header(bind.read(layout, stylesheet), template)
-    fixture = KIT / "tests/Ui/Fixtures/Lab.hpp"
+    fixture = FRAMEWORK / "tests/Ui/Fixtures/Lab.hpp"
     if os.environ.get("VOLTMOD_REFRESH_FIXTURES"):
         fixture.parent.mkdir(parents=True, exist_ok=True)
         fixture.write_text(header, encoding="utf-8")

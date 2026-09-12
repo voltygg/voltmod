@@ -43,7 +43,7 @@ function(voltmod_add_plugin target_name)
 
     target_include_directories("${target_name}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
-    set(kit_targets VoltMod::Runtime)
+    set(framework_targets VoltMod::Runtime)
     set(pch_headers "<VoltMod/Api.hpp>")
     foreach(feature IN LISTS ARG_FEATURES)
         if(feature STREQUAL "DATABASE")
@@ -52,7 +52,7 @@ function(voltmod_add_plugin target_name)
                     "voltmod_add_plugin(${target_name} FEATURES DATABASE): voltmod was built "
                     "without the database module. Set -o voltmod/*:with_database=True.")
             endif()
-            list(APPEND kit_targets VoltMod::Database)
+            list(APPEND framework_targets VoltMod::Database)
             # Ahead of any framework header: the MariaDB connector needs winsock2.h before the
             # windows.h an SDK header pulls in.
             list(PREPEND pch_headers
@@ -70,7 +70,7 @@ function(voltmod_add_plugin target_name)
         endif()
     endforeach()
 
-    target_link_libraries("${target_name}" PRIVATE ${kit_targets})
+    target_link_libraries("${target_name}" PRIVATE ${framework_targets})
 
     if(NOT VOLTMOD_DISABLE_PCH)
         target_precompile_headers("${target_name}" PRIVATE ${pch_headers})

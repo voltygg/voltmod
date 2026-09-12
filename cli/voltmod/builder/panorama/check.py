@@ -26,14 +26,14 @@ NAME_TABLE = 1024
 RUNAWAY_NAMES = 400
 
 
-def check(root: Path, kit_root: Path, names: list[str]) -> list[str]:
+def check(root: Path, framework_root: Path, names: list[str]) -> list[str]:
     """Every problem the named owners' screens would fail on, as `<file>: <problem>` lines."""
     findings: list[str] = []
     claimed: dict[str, str] = {}
     interned: dict[Path, set[str]] = {}
 
     for owner in screens.select(screens.find_owners(root), names).values():
-        renderer = screens.Renderer(owner, kit_root)
+        renderer = screens.Renderer(owner, framework_root)
         for icon_set, icons in renderer.icons.items():
             for icon in icons:
                 findings += _claim(f"images/custom_game/{icon_set}/{icon}.*", owner, claimed)

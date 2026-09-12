@@ -31,7 +31,7 @@ def default_preset() -> str:
     return "windows-msvc-release" if WINDOWS else "linux-steamrt-release"
 
 
-def kit_root() -> Path:
+def framework_root() -> Path:
     """Where the framework's own trees (templates/, panorama/) sit: the wheel, or a checkout."""
     package = Path(__file__).resolve().parent
     return package if (package / "templates").is_dir() else package.parents[1]
