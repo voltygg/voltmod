@@ -132,24 +132,31 @@ left out of an insert (an id, or anything with a database-side default),
 
 ## Queries
 
+Gameplay queries go through `Run`, so the tick never waits on the database.
+Capture by value: the job outlives the call that enqueued it.
+
 ```cpp
 Bans t;
 
-// Typed select
-auto active = db.RunBlocking("bans_active", [&](auto& conn) {
-    std::vector<int64_t> ids;
-    for (const auto& row : conn(select(all_of(t)).from(t).where(t.reason.is_null())))
-        ids.push_back(row.id);
-    return ids;
-});
+// Typed select; the rows arrive on the game thread.
+db.Run("bans_active",
+       [t](auto& conn) {
+           std::vector<int64_t> ids;
+           for (const auto& row : conn(select(all_of(t)).from(t).where(t.reason.is_null())))
+               ids.push_back(row.id);
+           return ids;
+       },
+       [](VoltMod::DbResult<std::vector<int64_t>> ids) { /* announce the active bans */ });
 
 // Insert returning the id: Postgres reads the SERIAL sequence, the others report last-insert-id
-int64_t id = db.RunBlocking("ban_insert", [&](auto& conn) {
-    return VoltMod::InsertReturningId(conn, insert_into(t).set(t.steamId = steamId, t.reason = reason), "bans");
-}).value_or(0);
+db.Run("ban_insert",
+       [t, steamId, reason](auto& conn) {
+           return VoltMod::InsertReturningId(conn, insert_into(t).set(t.steamId = steamId, t.reason = reason), "bans");
+       },
+       [](VoltMod::DbResult<int64_t> id) { /* record the ban id */ });
 
-// Update
-db.Run("ban_lift", [&, banId](auto& conn) { conn(update(t).set(t.reason = std::nullopt).where(t.id == banId)); });
+// Update, with nothing to report back
+db.Run("ban_lift", [t, banId](auto& conn) { conn(update(t).set(t.reason = std::nullopt).where(t.id == banId)); });
 ```
 
 MariaDB has neither `RETURNING` nor `ON CONFLICT`; a portable upsert is
