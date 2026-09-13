@@ -1,8 +1,16 @@
-{#- Every icon in a set, stacked. The set's own class on the panel uncollapses one of them. -#}
+{#- Every icon in a set, stacked. The set's own class on the panel uncollapses one of them. `set`
+    names a PNG set under images/custom_game/, or is a list of `(name, icon)` pairs naming the
+    client's own icons/ui/<icon>.vsvg. -#}
 {% macro icons(id, set) -%}
 <Panel id="{{screen}}_{{id}}" class="Icons" hittest="false">
+  {%- if set is string %}
   {%- for name in images[set] %}
   <Image class="Icon--{{name}}" src="s2r://panorama/images/custom_game/{{set}}/{{name}}.vtex" hittest="false" />
   {%- endfor %}
+  {%- else %}
+  {%- for name, icon in set %}
+  <Image class="Icon--{{name}}" src="s2r://panorama/images/icons/ui/{{icon}}.vsvg" textureheight="32" hittest="false" />
+  {%- endfor %}
+  {%- endif %}
 </Panel>
 {%- endmacro %}

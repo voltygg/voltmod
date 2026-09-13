@@ -39,7 +39,7 @@ struct ClassFlag
  * @brief One panel, a family of classes, exactly one of them on: an index into @ref Classes,
  * or @ref None.
  *
- * A `Prefix--variant` family - an icon set, a bar's steps, a row kind. @ref Classes points
+ * A `Prefix--variant` family - an icon set, a bar's steps. @ref Classes points
  * at the family's generated `inline constexpr` array rather than copying it, so a call site never
  * spells the variant count. Writes all of them so a stale one clears; the panel's write cache
  * makes the ones that did not change free. N panels sharing one class (tab selection) are an

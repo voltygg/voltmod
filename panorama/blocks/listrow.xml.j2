@@ -1,8 +1,8 @@
-{#- One row of a list: two lines of text, a value, an optional switch, and optional steppers. The
-    row panel, the press target and each stepper carry their own id, so a driver can hide the row,
-    read a press and read a step separately. The switch starts collapsed; the screen's stylesheet
-    shows it, usually per `Kind--toggle` on the row. -#}
-{% macro listrow(id, switch=false, hint=false, value=true, steppers=false) -%}
+{#- One row of a list: two lines of text, a value, an optional switch and chevron, and optional
+    steppers. The row panel, the press target and each stepper carry their own id, so a driver can
+    hide the row, read a press and read a step separately. The switch and chevron start collapsed;
+    the screen's stylesheet shows them per a class the driver puts on the row. -#}
+{% macro listrow(id, switch=false, hint=false, value=true, steppers=false, chevron=false) -%}
 <Panel id="{{screen}}_{{id}}" class="Row Hidden" hittest="true">
   <Button id="{{screen}}_{{id}}_btn" class="Row-hit">
     <Panel class="Row-body" hittest="false">
@@ -18,6 +18,9 @@
     <Panel class="Switch" hittest="false">
       <Panel class="Switch-knob" hittest="false" />
     </Panel>
+    {%- endif %}
+    {%- if chevron %}
+    <Label class="Row-chevron" text="&#8250;" hittest="false" />
     {%- endif %}
   </Button>
   {%- if steppers %}

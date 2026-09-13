@@ -193,11 +193,11 @@ constexpr auto Cards = VoltMod::MakeWriters(LabUi::Cards, MakeCard);
 | --- | --- | --- |
 | `card` | `card(id, icon_set=none, bar=false)` | a row: an optional icon set, two lines of text, a value, an optional bar along the bottom; starts `Hidden`, and the icon takes room only while the driver puts `HasIcon` on the card |
 | `bar` | `bar(id)` | a meter panel; pair with `bar.css.j2`'s `fill_rules(cls, steps)` macro for the `Step--0`..`Step--<steps>` width rules; `Hidden` on the bar takes it away |
-| `icons` | `icons(id, set)` | one `<Image>` per PNG in the icon set, stacked; pair with `icons.css.j2`'s `show_rules(set)` macro so each `Icon--<name>` class uncollapses its own image |
+| `icons` | `icons(id, set)` | one `<Image>` per PNG in the icon set, or per `(name, icon)` pair of client icons, stacked; pair with `icons.css.j2`'s `show_rules(set)` macro so each `Icon--<name>` class uncollapses its own image |
 | `toast` | `toast(id)` | a notice that fades in when the driver puts class `Show` on it |
 | `button` | `button(id, text, variant="")` | a labelled Button; `variant` adds a `Btn-<variant>` modifier |
 | `dialog` | `dialog(id)`, called not imported | a centred panel with a crumb/title/subtitle header and a body slot |
-| `listrow` | `listrow(id, switch, hint, value, steppers)` | one row of a list: two lines of text, a value, a collapsed switch the screen shows per row kind, steppers |
+| `listrow` | `listrow(id, switch, hint, value, steppers, chevron)` | one row of a list: two lines of text, a value, a collapsed switch and chevron the screen shows per row class, steppers |
 | `tabs` | `tabs(id, count)` | a strip of hidden-by-default tabs, each reading `{s:<id><i>}` |
 | `pager` | `pager(id)` | previous, a `{s:<id>}` label, next |
 
@@ -225,7 +225,8 @@ directly.
 The client's own icons need no files at all. Point an `<Image>` at
 `s2r://panorama/images/icons/ui/<name>.vsvg` (`settings`, `player`, `message`, ...) and
 tint it with `wash-color`; they are vectors, so give them `textureheight="32"` to rasterise
-sharply at menu sizes.
+sharply at menu sizes. The `icons` block does all three when `set` is a list of
+`(name, icon)` pairs.
 
 ## The name budget {#panorama_guide_budget}
 

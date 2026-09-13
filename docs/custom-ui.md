@@ -279,7 +279,7 @@ Three small writer types turn a layout's ids into typed calls instead of raw
 - @ref VoltMod::TextVar - one dialog variable on the layout root.
 - @ref VoltMod::ClassFlag - one class on one panel, on or off.
 - @ref VoltMod::ClassChoice - one panel, a family of classes, exactly one of them on (an
-  icon set, a row kind, a bar step). N panels sharing one class - tab selection
+  icon set, a bar step). N panels sharing one class - tab selection
   - is an array of `ClassFlag`.
 
 ```cpp
