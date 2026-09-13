@@ -1,0 +1,55 @@
+---
+name: release
+description: Release a new voltmod version - bump conanfile.py, write the CHANGELOG entry, tag v<version> so the Publish workflow uploads the Conan package, then relock consumers. Use for "release", "cut a release", "bump voltmod to X", "publish voltmod".
+---
+
+# Release voltmod
+
+A release is a `v<version>` tag on `main`. Pushing the tag runs
+`.github/workflows/publish.yml`: it refuses a tag that differs from `conanfile.py`,
+uploads Linux Release for both `with_database` values to the `volty` remote, and
+installs the result on a clean runner. Background: `docs/consuming-via-conan.md`,
+"Publishing (maintainers)".
+
+The user names the version. Consumers pin a range (cs2-plugins: `voltmod/[~1.4]`,
+so 1.4.x only): a patch keeps it, a minor or major means every consumer edits its
+range. Point out `!` commits since the last tag before bumping only the patch.
+
+## Steps
+
+1. **Check the start.** Clean tree on `main`, level with `origin/main`, the tag
+   unused (`git tag -l v<version>`), and CI green on HEAD:
+   `gh run list -R voltygg/voltmod --workflow ci.yml -b main -L 1`. Red or running: stop.
+2. **Collect the changes:** `git log --format='%h %s%n%b' v<last>..HEAD`. The body
+   line of a `!` commit says what consumers change; reuse its names.
+3. **Write the CHANGELOG entry** at the top of `CHANGELOG.md`:
+   `## [<version>] - YYYY-MM-DD`, then `### Breaking`, `### Added`, `### Fixed`
+   (omit empty groups). One line per change a consumer can notice, in plain words.
+   Leave out ci, test, style and internal refactors; fold follow-up commits into one line.
+4. **Bump** `version` in `conanfile.py`, then confirm `uv run poe release version`
+   prints it.
+5. **Commit and push:** stage `conanfile.py` and `CHANGELOG.md` by name,
+   `chore: release <version>`, `git push origin main`.
+6. **Wait for CI** on that commit (`gh run watch <id> -R voltygg/voltmod`). Only a
+   green run gets tagged.
+7. **Tag:** `git tag v<version> && git push origin v<version>`.
+8. **Watch Publish:** `gh run list -R voltygg/voltmod --workflow publish.yml -L 1`,
+   then `gh run watch`. Every job must pass, including "Install from the remote as a
+   consumer".
+9. **Confirm the remote** and note the revision:
+   `uv run conan list "voltmod/<version>#*" -r volty`.
+10. **Relock cs2-plugins** (MSVC dev shell, see its `/build-local` skill), with
+    `vendor/voltmod` checked out at the tag:
+    - `uv run conan editable add vendor/voltmod` if `conan editable list` is empty
+    - `uv run poe build --relock`
+    - the `voltmod/<version>#<revision>` in `conan.lock` must equal step 9's revision;
+      a different one exists only locally and CI cannot resolve it
+    - `uv lock --upgrade-package voltmod`
+    - commit `conan.lock` and `uv.lock` as `chore: bump voltmod to <version>` via `/commit`
+
+## Never
+
+- Tag a commit that is not on `origin/main` or whose CI is not green.
+- Move, delete or re-push a pushed tag. A broken release is fixed by the next patch.
+- Upload from a local machine; the tag's workflow owns publishing.
+- Commit a consumer `conan.lock` naming a revision the remote does not list.

@@ -154,6 +154,7 @@ The generated guides and API reference are published at
 - [Database](docs/database.md)
 - [HTTP](docs/http.md)
 - [Testing](docs/testing.md)
+- [Changelog](CHANGELOG.md)
 
 ## Contributing
 
