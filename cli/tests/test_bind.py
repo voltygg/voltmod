@@ -30,8 +30,8 @@ LAB_XML = """{# namespace: LabUi #}
 </root>
 """
 
-LAB_CSS = """{% import "bar.css" as bar %}
-{% import "icons.css" as icons %}
+LAB_CSS = """{% import "bar.css.j2" as bar %}
+{% import "icons.css.j2" as icons %}
 .Screen {
   width: 420px;
   flow-children: down;
@@ -41,9 +41,9 @@ LAB_CSS = """{% import "bar.css" as bar %}
   visibility: collapse;
 }
 
-{% include "card.css" %}
-{% include "toast.css" %}
-{% include "accent.css" %}
+{% include "card.css.j2" %}
+{% include "toast.css.j2" %}
+{% include "accent.css.j2" %}
 
 .Accent.Accent--good {
   background-color: #4caf50;
@@ -70,7 +70,7 @@ def plugin(root: Path, xml: str = LAB_XML, css: str = LAB_CSS, name: str = "lab"
     panorama_dir = root / "plugins/ui-lab/panorama"
     (panorama_dir / "screens").mkdir(parents=True, exist_ok=True)
     (panorama_dir / "screens" / f"{name}.xml.j2").write_text(xml, encoding="utf-8")
-    (panorama_dir / "screens" / f"{name}.css").write_text(css, encoding="utf-8")
+    (panorama_dir / "screens" / f"{name}.css.j2").write_text(css, encoding="utf-8")
 
     weapons = panorama_dir / "images/custom_game/weapons"
     weapons.mkdir(parents=True, exist_ok=True)

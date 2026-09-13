@@ -9,7 +9,7 @@ derives its C++ binding, so a plugin's header cannot drift from the layout it na
 
 ## Where a screen lives
 
-One screen is `panorama/screens/<name>.xml.j2` plus `panorama/screens/<name>.css`,
+One screen is `panorama/screens/<name>.xml.j2` plus `panorama/screens/<name>.css.j2`,
 both Jinja templates, under the owning plugin's `plugins/<name>/panorama` tree.
 The plugin's directory name is its owner name.
 
@@ -39,8 +39,8 @@ ownership.
 ```
 
 ```css
-{% import "bar.css" as bar %}
-{% import "icons.css" as icons %}
+{% import "bar.css.j2" as bar %}
+{% import "icons.css.j2" as icons %}
 .Screen {
   width: 420px;
   flow-children: down;
@@ -50,9 +50,9 @@ ownership.
   visibility: collapse;
 }
 
-{% include "card.css" %}
-{% include "toast.css" %}
-{% include "accent.css" %}
+{% include "card.css.j2" %}
+{% include "toast.css.j2" %}
+{% include "accent.css.j2" %}
 
 .Accent.Accent--good { background-color: #4caf50; }
 .Accent.Accent--bad { background-color: #f44336; }
@@ -103,8 +103,8 @@ compile, or client reconnect needed. A side panel drives the screen: a text box 
 dialog variable, a dropdown per class family with a picker for the panel to write it
 on, and a folded list of `Hidden` checkboxes, one per panel.
 
-The page shell, its base stylesheet and the script wiring those controls up live in
-`panorama/preview.html.in`, so the tool's own look is edited as HTML rather than as
+The page, its side panel and the script wiring those controls up live in
+`panorama/preview.html.j2`, so the tool's own look is edited as HTML rather than as
 strings in Python.
 
 It approximates: Panorama CSS is translated property by property into ordinary web
@@ -191,13 +191,13 @@ constexpr auto Cards = VoltMod::MakeWriters(LabUi::Cards, MakeCard);
 ## Block library
 
 `panorama/blocks/` in the framework ships these macros. Import the `.xml.j2` with
-`{% import %}` and pull in its default CSS with `{% include "<name>.css" %}`.
+`{% import %}` and pull in its default CSS with `{% include "<name>.css.j2" %}`.
 
 | Block | Signature | Draws |
 | --- | --- | --- |
 | `card` | `card(id, icon_set=none, bar=false, accent=false)` | a row: optional accent stripe and icon set, two lines of text, a value, an optional bar |
-| `bar` | `bar(id)` | a meter panel; pair with `bar.css`'s `fill_rules(cls, steps)` macro for the `Step--0`..`Step--<steps>` width rules; `Hidden` on the bar takes it away |
-| `icons` | `icons(id, set)` | one `<Image>` per PNG in the icon set, stacked; pair with `icons.css`'s `show_rules(set)` macro so each `Icon--<name>` class uncollapses its own image |
+| `bar` | `bar(id)` | a meter panel; pair with `bar.css.j2`'s `fill_rules(cls, steps)` macro for the `Step--0`..`Step--<steps>` width rules; `Hidden` on the bar takes it away |
+| `icons` | `icons(id, set)` | one `<Image>` per PNG in the icon set, stacked; pair with `icons.css.j2`'s `show_rules(set)` macro so each `Icon--<name>` class uncollapses its own image |
 | `accent` | `accent(id)` | a colour stripe; the screen defines its own `.Accent--<name>` rules |
 | `toast` | `toast(id)` | a notice that fades in when the driver puts class `Show` on it |
 | `button` | `button(id, text, variant="")` | a labelled Button; `variant` adds a `Btn-<variant>` modifier |

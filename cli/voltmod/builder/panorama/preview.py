@@ -4,9 +4,8 @@ Panorama CSS is not web CSS (docs/custom-ui.md), so this is a rough stand-in for
 a client: font metrics, the true no-flow default, and anything client-side differ. It costs
 neither the Workshop Tools, a compile, nor a client reconnect - open the file and reload it.
 
-The page shell, its base stylesheet and the script driving the side panel live in
-`panorama/preview.html.in`. Everything here fills four slots in it: the screen's markup, its
-translated stylesheet, the controls, and the title.
+The page, its side panel of controls and the script driving them live in
+`panorama/preview.html.j2`. This module supplies the screen's markup and translated stylesheet.
 """
 
 import base64
@@ -22,7 +21,6 @@ from . import bind, screens
 from .screens import BUILD_DIR, Owner
 
 PREVIEW_DIR = "preview"
-SHELL = "panorama/preview.html.in"
 
 #: Passed through verbatim regardless of value; the exhaustive list from the preview spec.
 _PASSTHROUGH = {
@@ -50,14 +48,14 @@ def preview(root: Path, framework_root: Path, target: str) -> Path:
     layout, stylesheet = screens.screen(owner, framework_root, name)
     screen = bind.read(layout, stylesheet)
 
-    page = (framework_root / SHELL).read_text(encoding="utf-8")
-    for slot, value in [
-        ("%CSS%", _translate_css(stylesheet)),
-        ("%BODY%", "".join(_convert(child, owner) for child in screen.tree)),
-        ("%CONTROLS%", _controls(screen)),
-        ("%TITLE%", html.escape(name)),
-    ]:
-        page = page.replace(slot, value)
+    page = screens.framework_template(framework_root, "preview.html.j2").render(
+        title=name,
+        css=_translate_css(stylesheet),
+        body="".join(_convert(child, owner) for child in screen.tree),
+        variables=screen.variables,
+        families=screen.families,
+        panels=[screen.name, *screen.ids],
+    )
 
     out = root / BUILD_DIR / PREVIEW_DIR / f"{name}.html"
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -168,51 +166,3 @@ def _align(value: str, near: str, near_margin: str, far_margin: str) -> list[str
     if value == "center":
         return [f"{near_margin}: auto", f"{far_margin}: auto"]
     return [f"{far_margin}: auto"] if value == near else [f"{near_margin}: auto"]
-
-
-def _controls(screen: bind.Screen) -> str:
-    """A control for everything the server can write: a variable, a Hidden flag, a class family.
-
-    Which family belongs on which panel is the plugin's business, not the layout's, so a family
-    is offered with a panel picker rather than guessed at. Each control names what it drives in a
-    data attribute and the shell's script wires the behaviour up, so nothing here has to escape a
-    name into a JavaScript literal.
-    """
-    panels = [screen.name, *screen.ids]
-    rows = [_variable(name) for name in screen.variables]
-    rows += [_family(name, variants, panels) for name, variants in screen.families.items()]
-
-    # One per panel is a long list on a real screen, so it starts folded away.
-    flags = "\n".join(_flag(panel) for panel in panels)
-    rows.append(f"<details><summary>Hidden ({len(panels)})</summary>\n{flags}\n</details>")
-    return "\n".join(rows)
-
-
-def _variable(name: str) -> str:
-    quoted = html.escape(name, quote=True)
-    return f'<label>{html.escape(name)}<br><input data-pv-var="{quoted}" value="{quoted}"></label>'
-
-
-def _flag(panel: str) -> str:
-    return (
-        f'<label><input type="checkbox" data-pv-flag="Hidden" '
-        f'data-pv-id="{html.escape(panel, quote=True)}"> {html.escape(panel)}.Hidden</label>'
-    )
-
-
-def _family(name: str, variants: list[str], panels: list[str]) -> str:
-    quoted = html.escape(name, quote=True)
-    return (
-        f"<label>{html.escape(name)}<br>"
-        f'<select data-pv-family="{quoted}" data-pv-role="panel">{_options(panels)}</select>'
-        f'<select data-pv-family="{quoted}" data-pv-role="variant">'
-        f"{_options(variants, none=True)}</select></label>"
-    )
-
-
-def _options(values: list[str], none: bool = False) -> str:
-    head = '<option value="">none</option>' if none else ""
-    return head + "".join(
-        f'<option value="{html.escape(value, quote=True)}">{html.escape(value)}</option>'
-        for value in values
-    )

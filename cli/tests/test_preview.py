@@ -31,7 +31,9 @@ def test_the_card_fixture_previews_its_variables_flags_families_and_image(tmp_pa
     assert 'value="hud_slot0_icon"' in text
     assert "data:image/png;base64," in text
     assert "display: flex" in text
-    assert "{{" not in text
+    # The screen's own rules, which only reach the page through the template's css slot.
+    assert "flex-shrink: 0" in text
+    assert "{{" not in text and "{ {" not in text
 
 
 def test_a_bad_target_format_dies_with_a_message(tmp_path):

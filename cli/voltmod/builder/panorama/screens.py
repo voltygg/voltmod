@@ -1,6 +1,6 @@
 """Find a plugin's Panorama screens and render them into the build tree.
 
-One screen is `panorama/screens/<name>.xml.j2` plus `panorama/screens/<name>.css`, Jinja over the
+One screen is `panorama/screens/<name>.xml.j2` plus `panorama/screens/<name>.css.j2`, Jinja over the
 framework's block library. Rendering writes a layout, a stylesheet, the icons a screen references,
 and the C++ header naming its parts. Nothing rendered is committed.
 
@@ -12,7 +12,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from xml.etree import ElementTree
 
-from jinja2 import ChoiceLoader, Environment, FileSystemLoader, StrictUndefined, TemplateError
+from jinja2 import (
+    ChoiceLoader,
+    Environment,
+    FileSystemLoader,
+    StrictUndefined,
+    Template,
+    TemplateError,
+    select_autoescape,
+)
 
 from voltmod.localdev import PLUGIN_DIRS
 from voltmod.tools import abort
@@ -27,10 +35,11 @@ HEADERS_DIR = "Ui"
 BLOCKS_DIR = "panorama/blocks"
 IMAGES_DIR = "images/custom_game"
 
-SUFFIX = ".xml.j2"
+LAYOUT_SUFFIX = ".xml.j2"
+STYLESHEET_SUFFIX = ".css.j2"
 
-#: resourcecompiler compiles this descriptor, never the PNG, so both go into the rendered tree.
-VTEX_TEMPLATE = "panorama/icon.vtex.in"
+#: The framework's own templates: the preview page and the icon descriptor.
+FRAMEWORK_TEMPLATES_DIR = "panorama"
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,12 +88,25 @@ def includes(root: Path, owner: Owner, out: Path | None = None) -> Path:
 
 def sources(owner: Owner) -> list[Path]:
     """Every screen template @p owner ships."""
-    return sorted((owner.source / SCREENS_DIR).glob(f"*{SUFFIX}"))
+    return sorted((owner.source / SCREENS_DIR).glob(f"*{LAYOUT_SUFFIX}"))
 
 
 def stem(source: Path) -> str:
     """The screen name a template file carries: `hud.xml.j2` -> `hud`."""
-    return source.name.removesuffix(SUFFIX)
+    return source.name.removesuffix(LAYOUT_SUFFIX)
+
+
+def framework_template(framework_root: Path, name: str) -> Template:
+    """One of the framework's own templates; only the HTML ones escape what they are given."""
+    environment = Environment(
+        loader=FileSystemLoader(framework_root / FRAMEWORK_TEMPLATES_DIR, encoding="utf-8-sig"),
+        undefined=StrictUndefined,
+        keep_trailing_newline=True,
+        trim_blocks=True,
+        lstrip_blocks=True,
+        autoescape=select_autoescape(["html.j2"]),
+    )
+    return environment.get_template(name)
 
 
 def icon_sets(owner: Owner) -> dict[str, list[str]]:
@@ -160,7 +182,7 @@ class Renderer:
     def screen(self, name: str) -> tuple[str, str]:
         """@p name rendered in memory: its layout and its stylesheet."""
         self.environment.globals["screen"] = name
-        return self._render(f"{name}{SUFFIX}"), self._render(f"{name}.css")
+        return self._render(f"{name}{LAYOUT_SUFFIX}"), self._render(f"{name}{STYLESHEET_SUFFIX}")
 
     def write_all(self, root: Path, out: Path | None) -> list[Path]:
         """Render every screen and icon into the build tree, and return what changed."""
@@ -184,17 +206,20 @@ class Renderer:
             abort(f"{self.owner.source / SCREENS_DIR / template}: {error}")
 
     def _icons(self, target: Path) -> list[Path]:
-        """Copy each icon into the rendered tree beside the descriptor that names it."""
+        """Copy each icon into the rendered tree beside the descriptor that names it.
+
+        resourcecompiler compiles the descriptor, never the PNG, so both go into the rendered tree.
+        """
         if not self.icons:
             return []
-        descriptor = (self.framework_root / VTEX_TEMPLATE).read_text(encoding="utf-8")
+        descriptor = framework_template(self.framework_root, "icon.vtex.j2")
         written: list[Path] = []
         for icon_set, names in self.icons.items():
             for name in names:
                 out = target / IMAGES_DIR / icon_set / f"{name}.png"
                 source = f"panorama/{IMAGES_DIR}/{icon_set}/{name}.png"
                 written += write(out, icon(self.owner, icon_set, name).read_bytes())
-                written += write(out.with_suffix(".vtex"), descriptor.replace("%SOURCE%", source))
+                written += write(out.with_suffix(".vtex"), descriptor.render(source=source))
         return written
 
 

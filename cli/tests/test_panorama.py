@@ -29,12 +29,12 @@ HUD_XML = """{% import "card.xml.j2" as blocks %}
 </root>
 """
 
-HUD_CSS = """{% import "bar.css" as bar %}
+HUD_CSS = """{% import "bar.css.j2" as bar %}
 .Screen {
   color: #e8e6e0;
   background-color: rgba(255, 255, 255, 0.05);
 }
-{% include "card.css" %}
+{% include "card.css.j2" %}
 {{ bar.fill_rules("Bar", 4) }}
 """
 
@@ -44,7 +44,7 @@ def plugin(root: Path, xml: str = HUD_XML, css: str = HUD_CSS, name: str = "hud"
     panorama = root / "plugins/ui-lab/panorama"
     (panorama / "screens").mkdir(parents=True, exist_ok=True)
     (panorama / "screens" / f"{name}.xml.j2").write_text(xml, encoding="utf-8")
-    (panorama / "screens" / f"{name}.css").write_text(css, encoding="utf-8")
+    (panorama / "screens" / f"{name}.css.j2").write_text(css, encoding="utf-8")
 
     weapons = panorama / "images/custom_game/weapons"
     weapons.mkdir(parents=True, exist_ok=True)

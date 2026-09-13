@@ -124,7 +124,7 @@ def second_owner(root: Path, name: str = "hud") -> Path:
     panorama = root / "plugins/ui-second/panorama"
     (panorama / "screens").mkdir(parents=True, exist_ok=True)
     (panorama / "screens" / f"{name}.xml.j2").write_text(CLEAN_XML, encoding="utf-8")
-    (panorama / "screens" / f"{name}.css").write_text(CLEAN_CSS, encoding="utf-8")
+    (panorama / "screens" / f"{name}.css.j2").write_text(CLEAN_CSS, encoding="utf-8")
     return root
 
 

@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>{{ title }} preview</title>
+  <style>
+    html,
+    body {
+      height: 100%;
+    }
+
+    body {
+      margin: 0;
+      background: #222;
+    }
+
+    div {
+      position: relative;
+      display: flex;
+      flex-direction: row;
+      box-sizing: border-box;
+      min-width: 0;
+    }
+
+    .pv-button {
+      cursor: pointer;
+    }
+
+    #pv-panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 280px;
+      max-height: 100vh;
+      overflow-y: auto;
+      background: #111;
+      color: #eee;
+      font: 12px/1.4 monospace;
+      padding: 10px;
+      z-index: 9999;
+    }
+
+    #pv-panel h2 {
+      font-size: 13px;
+      margin: 0 0 10px;
+      word-break: break-all;
+    }
+
+    #pv-panel label {
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    #pv-panel summary {
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+
+    #pv-panel details label {
+      margin-left: 8px;
+    }
+
+    #pv-panel input,
+    #pv-panel select {
+      width: 100%;
+    }
+
+    /* The screen's own stylesheet, translated from Panorama CSS. */
+    {{ css | safe }}
+  </style>
+</head>
+
+<body>
+  {{ body | safe }}
+  <aside id="pv-panel">
+    <h2>{{ title }}</h2>
+    {% for name in variables %}
+    <label>{{ name }}<br><input data-pv-var="{{ name }}" value="{{ name }}"></label>
+    {% endfor %}
+    {# Which panel carries a family is the plugin's business, so it is picked rather than guessed. #}
+    {% for family, variants in families.items() %}
+    <label>{{ family }}<br>
+      <select data-pv-family="{{ family }}" data-pv-role="panel">
+        {% for panel in panels %}
+        <option value="{{ panel }}">{{ panel }}</option>
+        {% endfor %}
+      </select>
+      <select data-pv-family="{{ family }}" data-pv-role="variant">
+        <option value="">none</option>
+        {% for variant in variants %}
+        <option value="{{ variant }}">{{ variant }}</option>
+        {% endfor %}
+      </select></label>
+    {% endfor %}
+    <details>
+      <summary>Hidden ({{ panels | length }})</summary>
+      {% for panel in panels %}
+      <label><input type="checkbox" data-pv-flag="Hidden" data-pv-id="{{ panel }}"> {{ panel }}.Hidden</label>
+      {% endfor %}
+    </details>
+  </aside>
+  <script>
+    function pvSetFamily(id, family, variant) {
+      const panel = document.getElementById(id);
+      if (!panel) return;
+      [...panel.classList].filter(c => c.startsWith(family + "--")).forEach(c => panel.classList.remove(c));
+      if (variant) panel.classList.add(family + "--" + variant);
+    }
+
+    document.querySelectorAll("[data-pv-var]").forEach(control => {
+      control.addEventListener("input", () => {
+        const name = control.dataset.pvVar;
+        document.querySelectorAll(`[data-var="${name}"]`).forEach(label => (label.textContent = control.value));
+      });
+    });
+
+    document.querySelectorAll("[data-pv-flag]").forEach(control => {
+      control.addEventListener("change", () => {
+        const panel = document.getElementById(control.dataset.pvId);
+        if (panel) panel.classList.toggle(control.dataset.pvFlag, control.checked);
+      });
+    });
+
+    // A family is a panel picker plus a variant picker; moving the panel clears the one it left.
+    const pvLastPanel = {};
+    document.querySelectorAll("[data-pv-family]").forEach(control => {
+      control.addEventListener("change", () => {
+        const family = control.dataset.pvFamily;
+        const pick = role => document.querySelector(`[data-pv-family="${family}"][data-pv-role="${role}"]`).value;
+        const panel = pick("panel");
+        if (pvLastPanel[family] && pvLastPanel[family] !== panel) pvSetFamily(pvLastPanel[family], family, "");
+        pvLastPanel[family] = panel;
+        pvSetFamily(panel, family, pick("variant"));
+      });
+    });
+  </script>
+</body>
+
+</html>

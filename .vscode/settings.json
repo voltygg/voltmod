@@ -15,7 +15,8 @@
 
   "files.associations": {
     "AMBuilder": "python",
-    "AMBuildScript": "python"
+    "AMBuildScript": "python",
+    "*.vtex.j2": "jinja"
   },
   "files.exclude": {
     "**/build": true,
@@ -39,6 +40,10 @@
   "[xml]": {
     "editor.tabSize": 2,
     "editor.defaultFormatter": "redhat.vscode-xml"
+  },
+  "[jinja-html][jinja-css][jinja-xml]": {
+    "editor.tabSize": 2,
+    "editor.formatOnSave": false
   },
   "css.lint.unknownProperties": "ignore",
   "xml.format.maxLineWidth": 0,
