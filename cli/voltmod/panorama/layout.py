@@ -3,7 +3,10 @@
 import re
 from dataclasses import dataclass, field
 from functools import cached_property
+from pathlib import Path
 from xml.etree import ElementTree
+
+from voltmod.errors import VoltmodError
 
 # A Label reading a dialog variable off the layout root.
 DIALOG_VARIABLE = re.compile(r"^\{s:(\w+)\}$")
@@ -98,9 +101,13 @@ class Screen:
         return [name for name in self.variables if name not in self.block_variables]
 
 
-def read_screen(layout: str, stylesheet: str) -> Screen:
-    """Parse one rendered screen; raises `ElementTree.ParseError` on a malformed layout."""
-    tree = ElementTree.fromstring(layout)
+def read_screen(layout: str, stylesheet: str, source: Path | None = None) -> Screen:
+    """Parse one rendered screen; a malformed layout raises a VoltmodError naming @p source."""
+    try:
+        tree = ElementTree.fromstring(layout)
+    except ElementTree.ParseError as error:
+        where = f"{source}: " if source else ""
+        raise VoltmodError(f"{where}the rendered layout is not well-formed XML: {error}") from None
     nodes = list(tree.iter())
 
     ids = [node.get("id", "") for node in nodes if node.get("id")]

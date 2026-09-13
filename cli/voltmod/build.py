@@ -9,14 +9,10 @@ from voltmod.conan import SDK_BUILD_EXCLUSIONS, ensure_remote, find_editable_fra
 from voltmod.errors import VoltmodError
 from voltmod.framework_checkout import build_checkout, check_build_uses_package, relock_framework
 from voltmod.panorama.render import render_screens
-from voltmod.process import find_tool, load_msvc_environment, require_build_tools, run_tool
+from voltmod.process import load_msvc_environment, require_build_tools, run_tool
 from voltmod.project import Project
 
 FRAMEWORK_REPOSITORY = "https://github.com/voltygg/voltmod.git"
-CPP_SUFFIXES = (".cpp", ".hpp", ".inc")
-
-# Stay well under Windows' 32767-character command-line limit.
-MAX_COMMAND_LINE = 24000
 
 # Lets ccache reuse objects built with force-included precompiled headers.
 CCACHE_SETTINGS = {
@@ -63,7 +59,7 @@ def build(
     )
 
     # Writes only what changed, so unchanged screens trigger no rebuild.
-    render_screens(project.root, [])
+    render_screens(project.root)
 
     if uses_ccache:
         subprocess.run(["ccache", "-z"], check=False)
@@ -98,42 +94,6 @@ def bootstrap(project: Project) -> None:
     print("==> [2/2] Building with Conan + CMake")
     build(project, project.resolve_preset())
     print("\nBootstrap complete: build/<preset>/plugins/")
-
-
-def find_cpp_sources(root: Path, dirs: list[str]) -> list[Path]:
-    return sorted(
-        path
-        for name in dirs
-        if (root / name).is_dir()
-        for path in (root / name).rglob("*")
-        if path.suffix in CPP_SUFFIXES
-    )
-
-
-def format_cpp_files(files: list[Path]) -> None:
-    """Run clang-format in place, in batches that fit on a Windows command line."""
-    batch: list[str] = []
-    length = 0
-    for file in map(str, files):
-        if batch and length + len(file) + 3 > MAX_COMMAND_LINE:
-            run_tool("clang-format", "-i", *batch)
-            batch, length = [], 0
-        batch.append(file)
-        length += len(file) + 3  # quotes and a separator
-    if batch:
-        run_tool("clang-format", "-i", *batch)
-
-
-def format_cpp_text(text: str, path: Path) -> str:
-    """@p text as clang-format writes it at @p path, using the nearest .clang-format."""
-    # Bytes, so Windows newline translation cannot change what clang-format reads.
-    result = subprocess.run(
-        [find_tool("clang-format"), f"--assume-filename={path}"],
-        input=text.encode("utf-8"),
-        capture_output=True,
-        check=True,
-    )
-    return result.stdout.decode("utf-8")
 
 
 def _configure_ccache(root: Path) -> bool:

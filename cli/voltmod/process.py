@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import sysconfig
+from collections.abc import Callable
 from pathlib import Path
 
 from voltmod.errors import VoltmodError
@@ -15,13 +16,28 @@ WINDOWS = sys.platform == "win32"
 # cmake, ctest, conan, ninja and clang-format are voltmod dependencies, installed here.
 TOOLS_DIR = Path(sysconfig.get_path("scripts"))
 
-# Both `voltmod build` and `voltmod doctor` judge a toolchain against this one table.
+# Both `voltmod build` and `voltmod doctor` judge a toolchain against these.
+BUILD_TOOLS = ("cmake", "conan", "ninja")
 MINIMUM_VERSIONS = {"cmake": (4, 3, 4), "conan": (2, 29, 1)}
 
 
 def put_tools_first_on_path() -> None:
     """Make child processes (conan calling cmake, cmake calling ninja) use the pinned tools."""
     os.environ["PATH"] = f"{TOOLS_DIR}{os.pathsep}{os.environ.get('PATH', '')}"
+
+
+def run_with_error_messages(main: Callable[[], object]) -> None:
+    """Run @p main, reporting a VoltmodError or a failed tool as one line and exit code 1."""
+    put_tools_first_on_path()
+    try:
+        main()
+    except VoltmodError as error:
+        print(f"error: {error}", file=sys.stderr)
+        sys.exit(1)
+    except subprocess.CalledProcessError as error:
+        command = error.cmd if isinstance(error.cmd, str) else " ".join(map(str, error.cmd))
+        print(f"error: `{command}` exited with {error.returncode}", file=sys.stderr)
+        sys.exit(1)
 
 
 def find_tool(tool: str) -> str:
@@ -62,7 +78,7 @@ def check_tool_version(tool: str) -> tuple[str, str]:
 
 
 def require_build_tools() -> None:
-    for tool in ("ninja", *MINIMUM_VERSIONS):
+    for tool in BUILD_TOOLS:
         _, problem = check_tool_version(tool)
         if problem:
             raise VoltmodError(f"{tool}: {problem}")

@@ -6,7 +6,7 @@ from pathlib import Path
 
 from voltmod.cs2_install import RESOURCE_COMPILER, find_client
 from voltmod.errors import VoltmodError
-from voltmod.panorama.render import find_screen_owners, rendered_dir, select_owners
+from voltmod.panorama.render import rendered_dir, screen_owners
 from voltmod.process import WINDOWS
 
 # Source suffix -> what resourcecompiler writes for it.
@@ -20,7 +20,7 @@ PANORAMA_DIRS = ("layout/custom_game", "styles/custom_game", "images/custom_game
 
 
 def compile_and_install(
-    root: Path, names: list[str], client_path: str, addon: str, deploy: bool
+    root: Path, names: list[str] | None, client_path: str, addon: str, deploy: bool
 ) -> None:
     """Compile the named owners' rendered screens, and install them into your client."""
     if not WINDOWS:
@@ -34,7 +34,7 @@ def compile_and_install(
 
     # One compiler launch for every owner: its startup dominates a run this size.
     staged_by_owner: list[tuple[str, list[Path]]] = []
-    for owner in select_owners(find_screen_owners(root), names).values():
+    for owner in screen_owners(root, names):
         rendered = rendered_dir(root, owner)
         staged = _stage_files(rendered, content)
         if staged:
@@ -59,9 +59,9 @@ def compile_and_install(
     print(f"\nInstalled {installed} resource(s). Reconnect to pick them up.")
 
 
-def publish_screens(root: Path, names: list[str], directory: Path) -> int:
+def publish_screens(root: Path, names: list[str] | None, directory: Path) -> int:
     """Copy the named owners' rendered trees into a workshop addon's content directory."""
-    owners = select_owners(find_screen_owners(root), names).values()
+    owners = screen_owners(root, names)
     return sum(len(_stage_files(rendered_dir(root, owner), directory)) for owner in owners)
 
 

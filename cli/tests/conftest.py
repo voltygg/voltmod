@@ -33,20 +33,22 @@ HUD_CSS = """{% import "bar.css.j2" as bar %}
 
 @pytest.fixture
 def make_screen_project(tmp_path: Path):
-    """Write one screen and a `weapons` icon set into plugins/ui-lab; returns the repo root."""
+    """Write one screen and a `weapons` icon set into plugins/<plugin>; returns the repo root."""
 
     def create(
         xml: str = HUD_XML,
         css: str = HUD_CSS,
         name: str = "hud",
         icons: tuple[str, ...] = ("ak47",),
+        plugin: str = "ui-lab",
     ) -> Path:
-        screens = tmp_path / "plugins/ui-lab/panorama/screens"
+        panorama = tmp_path / "plugins" / plugin / "panorama"
+        screens = panorama / "screens"
         screens.mkdir(parents=True, exist_ok=True)
         (screens / f"{name}.xml.j2").write_text(xml, encoding="utf-8")
         (screens / f"{name}.css.j2").write_text(css, encoding="utf-8")
 
-        weapons = tmp_path / "plugins/ui-lab/panorama/images/custom_game/weapons"
+        weapons = panorama / "images/custom_game/weapons"
         weapons.mkdir(parents=True, exist_ok=True)
         for icon in icons:
             (weapons / f"{icon}.png").write_bytes(PNG)

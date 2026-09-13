@@ -1,6 +1,5 @@
 """The install and serve commands for a local CS2 server."""
 
-from dataclasses import replace
 from typing import Annotated
 
 import typer
@@ -53,15 +52,13 @@ def serve_command(
     ] = False,
 ) -> None:
     """Run the local CS2 dedicated server in the foreground."""
-    defaults = Project.load().settings
-    settings = replace(
-        defaults,
-        server_path=server_path or defaults.server_path,
-        steamcmd_path=steamcmd_path or defaults.steamcmd_path,
-        map_name=map_name or defaults.map_name,
-        port=port or defaults.port,
-        max_players=max_players or defaults.max_players,
-        gslt_token=gslt_token or defaults.gslt_token,
-        rcon_password=rcon_password or defaults.rcon_password,
+    settings = Project.load().settings.with_options(
+        server_path=server_path,
+        steamcmd_path=steamcmd_path,
+        map_name=map_name,
+        port=port,
+        max_players=max_players,
+        gslt_token=gslt_token,
+        rcon_password=rcon_password,
     )
     run_server(settings, check_update=check_update)

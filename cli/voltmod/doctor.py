@@ -7,9 +7,9 @@ from pathlib import Path
 
 from voltmod.check_results import CheckResult, Status
 from voltmod.conan import REMOTE, has_remote, profile_dirs
-from voltmod.cs2_install import METAMOD_BINARIES, SERVER_EXECUTABLES
+from voltmod.cs2_install import METAMOD_BINARIES, server_executable
 from voltmod.errors import VoltmodError
-from voltmod.process import WINDOWS, check_tool_version, msvc_version, tool_version
+from voltmod.process import BUILD_TOOLS, WINDOWS, check_tool_version, msvc_version, tool_version
 from voltmod.project import Project
 
 PROJECT_FILES = ("CMakeLists.txt", "CMakePresets.json", "conanfile.py", "pyproject.toml")
@@ -30,7 +30,7 @@ def _passed(message: str) -> CheckResult:
 
 
 def _check_tools() -> Iterator[CheckResult]:
-    for tool in ("cmake", "conan", "ninja"):
+    for tool in BUILD_TOOLS:
         try:
             banner, problem = check_tool_version(tool)
         except VoltmodError as error:
@@ -86,7 +86,7 @@ def _check_server(server: Path) -> Iterator[CheckResult]:
         return
     yield _passed(f"CS2 server: {server}")
 
-    if any((server / path).is_file() for path in SERVER_EXECUTABLES):
+    if server_executable(server) is not None:
         yield _passed("CS2 dedicated-server executable found")
     else:
         yield CheckResult("CS2 dedicated-server executable not found")

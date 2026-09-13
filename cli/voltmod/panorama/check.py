@@ -1,9 +1,9 @@
 """Checks for the rules the CS2 client enforces on a screen without saying so."""
 
 from pathlib import Path
-from xml.etree import ElementTree
 
 from voltmod.check_results import CheckResult
+from voltmod.errors import VoltmodError
 from voltmod.panorama.layout import (
     IMAGE_SOURCE,
     Screen,
@@ -16,11 +16,10 @@ from voltmod.panorama.layout import (
 from voltmod.panorama.render import (
     ScreenOwner,
     ScreenRenderer,
-    find_screen_owners,
     icon_path,
     screen_name,
+    screen_owners,
     screen_sources,
-    select_owners,
 )
 
 # What the client's Panorama parser accepts anywhere in a layout.
@@ -34,13 +33,13 @@ NAME_TABLE_SIZE = 1024
 MAX_NAMES_PER_SCREEN = 400
 
 
-def check_screens(root: Path, names: list[str]) -> list[CheckResult]:
+def check_screens(root: Path, names: list[str] | None = None) -> list[CheckResult]:
     """Every problem the named owners' screens would fail on in the client."""
     problems: list[str] = []
     claimed: dict[str, str] = {}
     interned: dict[Path, set[str]] = {}
 
-    for owner in select_owners(find_screen_owners(root), names).values():
+    for owner in screen_owners(root, names):
         renderer = ScreenRenderer(owner)
         for icon_set, icons in renderer.icons.items():
             for icon in icons:
@@ -65,9 +64,9 @@ def _check_screen(
 
     layout, stylesheet = renderer.render(name)
     try:
-        screen = read_screen(layout, stylesheet)
-    except ElementTree.ParseError as error:
-        return problems + [f"{source}: the rendered layout is not well-formed XML: {error}"]
+        screen = read_screen(layout, stylesheet, source)
+    except VoltmodError as error:
+        return problems + [str(error)]
 
     return (
         problems

@@ -1,7 +1,6 @@
 """Framework release automation: `python -m tools.release <command>` from the repo root."""
 
 import os
-import subprocess
 from enum import StrEnum
 from typing import Annotated
 
@@ -21,12 +20,13 @@ from tools.release.conan_packages import (
     upload_packages,
 )
 from tools.release.sdk_updates import SdkPackage, recipe_version, update_sdk_pins
-from voltmod.cli import run_with_error_messages
 from voltmod.errors import VoltmodError
-from voltmod.process import WINDOWS
+from voltmod.process import WINDOWS, run_tool, run_with_error_messages
 from voltmod.project import Project
 
-app = typer.Typer(help="Build, publish, and maintain VoltMod's Conan packages.", no_args_is_help=True)
+app = typer.Typer(
+    help="Build, publish, and maintain VoltMod's Conan packages.", no_args_is_help=True
+)
 
 
 class Packages(StrEnum):
@@ -92,11 +92,11 @@ def tag() -> None:
     root = Project.load().root
     for name in SDK_PACKAGES:
         label = f"sdk/{name}/{recipe_version(root, name)}"
-        created = subprocess.run(["git", "tag", label], capture_output=True, text=True)
+        created = run_tool("git", "tag", label, capture=True, check=False)
         if created.returncode:
             print(f"{label} already exists")
             continue
-        subprocess.run(["git", "push", "origin", label], check=True)
+        run_tool("git", "push", "origin", label)
         print(f"tagged {label}")
 
 

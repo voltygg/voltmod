@@ -1,7 +1,7 @@
 """The project voltmod runs in: its root, .env settings, plugins, and the bundled templates."""
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import cache
 from pathlib import Path
 
@@ -72,6 +72,11 @@ class Settings:
             rcon_password=os.environ.get("RCON_PASSWORD", ""),
         )
 
+    def with_options(self, **options: str | int | None) -> Settings:
+        """These settings overridden by each option the command line was given."""
+        given = {name: value for name, value in options.items() if value not in (None, "")}
+        return replace(self, **given)
+
 
 @dataclass(frozen=True, slots=True)
 class Project:
@@ -91,8 +96,11 @@ class Project:
         return self.root / "conan.lock"
 
     @property
-    def is_framework_repo(self) -> bool:
-        return (self.root / "include/VoltMod").is_dir()
+    def cpp_source_dirs(self) -> list[str]:
+        """The framework's own source trees, or a consumer's plugins."""
+        if (self.root / "include/VoltMod").is_dir():
+            return ["src", "include", "tests"]
+        return ["plugins"]
 
     def resolve_preset(self, requested: str | None = None) -> str:
         return requested or self.settings.build_preset or default_preset()

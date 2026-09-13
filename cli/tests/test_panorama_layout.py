@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from voltmod.panorama.layout import read_screen
-from voltmod.panorama.render import ScreenOwner, render_screen, screen_header
+from voltmod.panorama.render import ScreenRenderer, screen_header, screen_owners
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -63,10 +63,9 @@ def header_for(xml: str, css: str = "", template_source: str = "") -> str:
 def test_the_checked_in_fixture_header_is_what_rendering_writes(make_screen_project):
     """Set VOLTMOD_REFRESH_FIXTURES=1 to rewrite the fixture after a deliberate change."""
     root = make_screen_project(xml=LAB_XML, css=LAB_CSS, name="lab", icons=("ak47", "awp"))
-    owner = ScreenOwner("ui-lab", root / "plugins/ui-lab/panorama")
-    layout, stylesheet = render_screen(owner, "lab")
+    layout, stylesheet = ScreenRenderer(screen_owners(root, ["ui-lab"])[0]).render("lab")
 
-    header = screen_header(read_screen(layout, stylesheet), LAB_XML)
+    header = header_for(layout, stylesheet, LAB_XML)
     fixture = REPO_ROOT / "tests/Ui/Fixtures/Lab.hpp"
     if os.environ.get("VOLTMOD_REFRESH_FIXTURES"):
         fixture.write_text(header, encoding="utf-8", newline="\n")

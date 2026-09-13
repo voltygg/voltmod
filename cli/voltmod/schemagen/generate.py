@@ -1,13 +1,14 @@
 """Rendering the schema accessor layer from a dump and manifest, then writing or checking it."""
 
 import json
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from voltmod.build import format_cpp_text
+from voltmod.cpp_sources import CPP_SUFFIXES, format_cpp_files
 from voltmod.errors import VoltmodError
-from voltmod.files import write_or_check
+from voltmod.files import write_if_changed, write_or_check
 from voltmod.project import load_template
 from voltmod.schemagen.accessors import AccessorCode, accessor_code
 from voltmod.schemagen.fields import CPP_INCLUDES
@@ -27,7 +28,6 @@ GENERATED_HEADER_DIR = HEADER_DIR / "Generated"
 GENERATED_SOURCE_DIR = Path("src/Schema/Generated")
 MANIFEST = Path("schema/manifest.json")
 BASELINE = Path("schema/server.json")
-CPP_SUFFIXES = (".hpp", ".cpp", ".inc")
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,12 +42,15 @@ def render_outputs(dump: dict[str, Any], manifest: dict[str, Any]) -> SchemaOutp
     ordered = [classes[name] for name in sorted(classes)]
     game_build = dump.get("build", "unknown")
 
+    codes = {
+        name: [accessor_code(schema_class, field) for field in schema_class.fields]
+        for name, schema_class in classes.items()
+    }
     files: dict[Path, str] = {}
     for schema_class in ordered:
-        fields = [(field, accessor_code(schema_class, field)) for field in schema_class.fields]
         shared = {
             "schema_class": schema_class,
-            "fields": fields,
+            "fields": list(zip(schema_class.fields, codes[schema_class.name])),
             "entity_root": ENTITY_ROOT,
             "offset_constant": offset_constant,
         }
@@ -63,8 +66,9 @@ def render_outputs(dump: dict[str, Any], manifest: dict[str, Any]) -> SchemaOutp
         "layout.cpp.j2", classes=ordered, game_build=game_build
     )
     for wrapper, names in manifest.get("wrappers", {}).items():
+        wrapped = _wrapped_classes(wrapper, names, codes, classes)
         files[GENERATED_HEADER_DIR / "Wrappers" / f"{wrapper}.inc"] = _render(
-            "wrapper.inc.j2", wrapper=wrapper, classes=_wrapped_classes(wrapper, names, classes)
+            "wrapper.inc.j2", wrapper=wrapper, classes=wrapped
         )
     files[BASELINE] = json.dumps(baseline_dump(dump, classes, enums), indent=2) + "\n"
     return SchemaOutput(files, _summary(classes, enums, game_build))
@@ -79,11 +83,27 @@ def write_outputs(repo: Path, files: dict[Path, str], *, check: bool = False) ->
     for path in stale:
         path.unlink()
 
-    for relative, text in files.items():
-        path = repo / relative
-        if path.suffix in CPP_SUFFIXES:
-            text = format_cpp_text(text, path)
-        write_or_check(path, text, check=check)
+    for relative, text in _format_cpp(repo, files).items():
+        write_or_check(repo / relative, text, check=check)
+
+
+def _format_cpp(repo: Path, files: dict[Path, str]) -> dict[Path, str]:
+    """@p files with the C++ ones formatted by one clang-format run."""
+    scratch_parent = repo / "build"
+    scratch_parent.mkdir(exist_ok=True)
+    # Inside the repo, so clang-format finds the .clang-format the real paths would.
+    with tempfile.TemporaryDirectory(dir=scratch_parent) as scratch:
+        staged = {
+            relative: Path(scratch) / relative
+            for relative in files
+            if relative.suffix in CPP_SUFFIXES
+        }
+        for relative, path in staged.items():
+            write_if_changed(path, files[relative])
+        format_cpp_files(list(staged.values()))
+        # Bytes, so Windows newline translation cannot change what clang-format wrote.
+        formatted = {relative: path.read_bytes().decode() for relative, path in staged.items()}
+    return files | formatted
 
 
 def _render(template: str, **fields: Any) -> str:
@@ -149,16 +169,17 @@ def _enum_listings(enums: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _wrapped_classes(
-    wrapper: str, names: list[str], classes: dict[str, SchemaClass]
+    wrapper: str,
+    names: list[str],
+    codes: dict[str, list[AccessorCode | None]],
+    classes: dict[str, SchemaClass],
 ) -> list[tuple[SchemaClass, list[AccessorCode]]]:
     wrapped = []
     for name in names:
         if name not in classes:
             raise VoltmodError(f"wrapper '{wrapper}' names '{name}', which is not generated")
-        schema_class = classes[name]
-        codes = [accessor_code(schema_class, field) for field in schema_class.fields]
-        if generated := [code for code in codes if code]:
-            wrapped.append((schema_class, generated))
+        if generated := [code for code in codes[name] if code]:
+            wrapped.append((classes[name], generated))
     return wrapped
 
 

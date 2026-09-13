@@ -10,10 +10,10 @@ from voltmod.files import read_json
 from voltmod.project import Project
 from voltmod.schemagen.generate import MANIFEST, render_outputs, write_outputs
 
-schemagen_commands = typer.Typer(help="Generate the schema accessor layer.")
+schemagen_commands = typer.Typer()
 
 
-@schemagen_commands.callback(invoke_without_command=True)
+@schemagen_commands.command("schemagen")
 def schemagen_command(
     dump_path: Annotated[
         str, typer.Option("--dump", help="Schema dump (default: the one the local server wrote)")

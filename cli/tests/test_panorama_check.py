@@ -89,10 +89,7 @@ def test_a_dialog_variable_shared_by_two_labels_is_not_flagged(make_screen_proje
 
 def test_two_owners_rendering_the_same_resource_are_named(make_screen_project):
     root = make_screen_project(xml=screen(CLEAN_BODY), css=CLEAN_CSS)
-    second = root / "plugins/ui-second/panorama/screens"
-    second.mkdir(parents=True)
-    (second / "hud.xml.j2").write_text(screen(CLEAN_BODY), encoding="utf-8")
-    (second / "hud.css.j2").write_text(CLEAN_CSS, encoding="utf-8")
+    make_screen_project(xml=screen(CLEAN_BODY), css=CLEAN_CSS, plugin="ui-second")
 
     found = messages(root, ("ui-lab", "ui-second"))
 

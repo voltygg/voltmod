@@ -9,7 +9,7 @@ from voltmod.gamedata import (
     SignatureResult,
     SignatureStatus,
     check_gamedata,
-    replace_pattern,
+    write_repairs,
 )
 from voltmod.project import Project
 
@@ -54,10 +54,8 @@ def resolve_command(
             print(f"{len(repaired)} entries would be rewritten (pass --write)")
         raise typer.Exit(1 if drifted else 0)
 
-    for result in repaired:
-        text = replace_pattern(text, result.key, result.old_pattern, result.new_pattern)
     if repaired:
-        (project.root / GAMEDATA_FILE).write_text(text, encoding="utf-8", newline="\n")
+        write_repairs(project.root, text, repaired)
         print(f"wrote {GAMEDATA_FILE} ({len(repaired)} patterns)")
 
     print("A unique match is not proof of behaviour: exercise each feature on a live server.")

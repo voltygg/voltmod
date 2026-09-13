@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from xml.etree import ElementTree
 
 from jinja2 import ChoiceLoader, Environment, FileSystemLoader, StrictUndefined, TemplateError
 
@@ -34,27 +33,24 @@ class ScreenOwner:
     source: Path
 
 
-def find_screen_owners(root: Path) -> dict[str, ScreenOwner]:
+def screen_owners(root: Path, names: list[str] | None = None) -> list[ScreenOwner]:
+    """The named plugins that ship a panorama/ tree, or all of them when none is named."""
     found = {
         plugin.name: ScreenOwner(plugin.name, plugin / "panorama")
         for parent in PLUGIN_DIRS
         if (root / parent).is_dir()
-        for plugin in sorted((root / parent).iterdir())
+        for plugin in (root / parent).iterdir()
         if (plugin / "panorama").is_dir()
     }
-    return dict(sorted(found.items()))
-
-
-def select_owners(owners: dict[str, ScreenOwner], names: list[str]) -> dict[str, ScreenOwner]:
-    """The named owners, or all of them when none is named."""
+    known = sorted(found)
     if not names:
-        return owners
-    unknown = [name for name in names if name not in owners]
+        return [found[name] for name in known]
+    unknown = [name for name in names if name not in found]
     if unknown:
         raise VoltmodError(
-            f"no panorama sources for {', '.join(unknown)}\nKnown: {', '.join(owners) or 'none'}"
+            f"no panorama sources for {', '.join(unknown)}\nKnown: {', '.join(known) or 'none'}"
         )
-    return {name: owners[name] for name in names}
+    return [found[name] for name in names]
 
 
 def rendered_dir(root: Path, owner: ScreenOwner, out: Path | None = None) -> Path:
@@ -93,17 +89,14 @@ def icon_path(owner: ScreenOwner, icon_set: str, name: str) -> Path:
     return owner.source / IMAGES_DIR / icon_set / f"{name}.png"
 
 
-def render_screens(root: Path, names: list[str], out: Path | None = None) -> list[Path]:
+def render_screens(
+    root: Path, names: list[str] | None = None, out: Path | None = None
+) -> list[Path]:
     """Render the named owners' screens, and return the files that changed."""
     written: list[Path] = []
-    for owner in select_owners(find_screen_owners(root), names).values():
+    for owner in screen_owners(root, names):
         written += ScreenRenderer(owner).write_all(root, out)
     return written
-
-
-def render_screen(owner: ScreenOwner, name: str) -> tuple[str, str]:
-    """One screen rendered in memory, as its layout and its stylesheet."""
-    return ScreenRenderer(owner).render(name)
 
 
 def screen_header(screen: Screen, template_source: str) -> str:
@@ -156,7 +149,8 @@ class ScreenRenderer:
             layout, stylesheet = self.render(name)
             written += _write(target / "layout/custom_game" / f"{name}.xml", layout)
             written += _write(target / "styles/custom_game" / f"{name}.css", stylesheet)
-            header = _header_for(source, layout, stylesheet)
+            screen = read_screen(layout, stylesheet, source)
+            header = screen_header(screen, source.read_text(encoding="utf-8-sig"))
             written += _write(headers / f"{pascal_case(name)}.hpp", header)
         return written + self._write_icons(target)
 
@@ -181,12 +175,3 @@ class ScreenRenderer:
 
 def _write(path: Path, data: str | bytes) -> list[Path]:
     return [path] if write_if_changed(path, data) else []
-
-
-def _header_for(source: Path, layout: str, stylesheet: str) -> str:
-    try:
-        screen = read_screen(layout, stylesheet)
-    except ElementTree.ParseError as error:
-        message = f"{source}: the rendered layout is not well-formed XML: {error}"
-        raise VoltmodError(message) from None
-    return screen_header(screen, source.read_text(encoding="utf-8-sig"))

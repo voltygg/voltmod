@@ -1,5 +1,6 @@
 """The `voltmod panorama` commands: render, compile, publish, check and preview screens."""
 
+import webbrowser
 from pathlib import Path
 from typing import Annotated
 
@@ -8,13 +9,8 @@ import typer
 from voltmod.check_results import print_results
 from voltmod.panorama.check import check_screens
 from voltmod.panorama.compiler import compile_and_install, publish_screens
-from voltmod.panorama.preview import open_in_browser, write_preview
-from voltmod.panorama.render import (
-    find_screen_owners,
-    render_screens,
-    screen_sources,
-    select_owners,
-)
+from voltmod.panorama.preview import write_preview
+from voltmod.panorama.render import render_screens, screen_owners, screen_sources
 from voltmod.project import Project
 
 panorama_commands = typer.Typer(help="Render, compile, and publish Panorama screens.")
@@ -37,7 +33,7 @@ def render_command(
     ] = None,
 ) -> None:
     """Render panorama/screens/ into the build tree."""
-    written = render_screens(Project.load().root, owners or [], out)
+    written = render_screens(Project.load().root, owners, out)
     print(f"Rendered {len(written)} file(s)")
 
 
@@ -63,9 +59,9 @@ def compile_command(
 ) -> None:
     """Render, compile with the Workshop Tools, and install into your client."""
     project = Project.load()
-    render_screens(project.root, owners or [])
+    render_screens(project.root, owners)
     client_path = client_path or project.settings.client_path
-    compile_and_install(project.root, owners or [], client_path, addon, deploy)
+    compile_and_install(project.root, owners, client_path, addon, deploy)
 
 
 @panorama_commands.command("publish")
@@ -75,8 +71,8 @@ def publish_command(
 ) -> None:
     """Render, then copy the panorama/ trees into an addon content directory."""
     root = Project.load().root
-    render_screens(root, owners or [])
-    count = publish_screens(root, owners or [], directory.expanduser())
+    render_screens(root, owners)
+    count = publish_screens(root, owners, directory.expanduser())
     print(f"Published {count} file(s) into {directory}; point the Workshop Tools at it.")
 
 
@@ -84,10 +80,10 @@ def publish_command(
 def check_command(owners: Owners = None) -> None:
     """Validate rendered screens against the rules the CS2 client enforces silently."""
     root = Project.load().root
-    if print_results(check_screens(root, owners or [])):
+    if print_results(check_screens(root, owners)):
         raise typer.Exit(1)
-    selected = select_owners(find_screen_owners(root), owners or []).values()
-    print(f"Checked {sum(len(screen_sources(owner)) for owner in selected)} screen(s)")
+    count = sum(len(screen_sources(owner)) for owner in screen_owners(root, owners))
+    print(f"Checked {count} screen(s)")
 
 
 @panorama_commands.command("preview")
@@ -100,5 +96,5 @@ def preview_command(
     """Write a self-contained HTML approximation of a screen; no client needed."""
     out = write_preview(Project.load().root, target)
     if open_browser:
-        open_in_browser(out)
+        webbrowser.open(out.as_uri())
     print(out)

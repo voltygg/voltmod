@@ -9,9 +9,9 @@ from typing import Any
 
 from voltmod.cs2_install import GAME_LIBRARIES, game_build
 from voltmod.errors import VoltmodError
+from voltmod.schemagen.generate import BASELINE
 
 GAMEDATA_FILE = Path("gamedata/gamedata.jsonc")
-SCHEMA_BASELINE = Path("schema/server.json")
 
 # Four literal bytes reading as a little-endian integer this small may be a struct offset.
 MAX_DISPLACEMENT = 0xFFFF
@@ -98,7 +98,7 @@ def check_gamedata(root: Path, game_dir: str, platform: str) -> tuple[str, list[
     text = path.read_text(encoding="utf-8")
 
     binaries = GameBinaries(game, platform or detect_platform(game))
-    baseline = root / SCHEMA_BASELINE
+    baseline = root / BASELINE
     schema = json.loads(baseline.read_text(encoding="utf-8")) if baseline.is_file() else {}
 
     print(f"==> gamedata {binaries.platform} (game build {game_build(game)})")
@@ -182,6 +182,13 @@ def replace_pattern(text: str, key: str, old_pattern: str, new_pattern: str) -> 
     if text.count(quoted) != 1:
         raise VoltmodError(f"the pattern for {key} is not unique in the file; edit it by hand")
     return text.replace(quoted, f'"{new_pattern}"')
+
+
+def write_repairs(root: Path, text: str, repaired: list[SignatureResult]) -> None:
+    """Patch each repaired pattern into @p text and write it back as the gamedata file."""
+    for result in repaired:
+        text = replace_pattern(text, result.key, result.old_pattern, result.new_pattern)
+    (root / GAMEDATA_FILE).write_text(text, encoding="utf-8", newline="\n")
 
 
 def _displacements(tokens: list[str]) -> list[tuple[int, int]]:

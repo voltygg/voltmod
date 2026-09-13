@@ -1,7 +1,6 @@
-"""Following the SDK upstreams: find a branch's new tip, and pin it in the recipe's conandata.yml."""
+"""Following the SDK upstreams: find a branch's new tip, and pin it in its recipe's conandata."""
 
 import os
-import subprocess
 from enum import StrEnum
 from pathlib import Path
 
@@ -9,6 +8,7 @@ import yaml
 
 from tools.release.conan_packages import is_published
 from voltmod.errors import VoltmodError
+from voltmod.process import run_tool
 
 # The branches followed, and how each package spells its version.
 UPSTREAMS = {
@@ -71,10 +71,7 @@ def _read_conandata(root: Path, name: str) -> dict:
 
 
 def _branch_tip(url: str, branch: str) -> str:
-    output = subprocess.run(
-        ["git", "ls-remote", url, f"refs/heads/{branch}"],
-        check=True, text=True, capture_output=True,
-    ).stdout
+    output = run_tool("git", "ls-remote", url, f"refs/heads/{branch}", capture=True).stdout
     if not output.strip():
         raise VoltmodError(f"{url} has no branch {branch}")
     return output.split()[0]
@@ -82,9 +79,9 @@ def _branch_tip(url: str, branch: str) -> str:
 
 def _commit_day(url: str, commit: str) -> str:
     repository = url.removeprefix("https://github.com/").removesuffix(".git")
-    committed = subprocess.run(
-        ["gh", "api", f"repos/{repository}/commits/{commit}", "--jq", ".commit.committer.date"],
-        check=True, text=True, capture_output=True,
+    committed = run_tool(
+        "gh", "api", f"repos/{repository}/commits/{commit}", "--jq", ".commit.committer.date",
+        capture=True,
     ).stdout
     return committed.split("T")[0]
 

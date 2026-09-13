@@ -1,11 +1,11 @@
 """The build, test, format and bootstrap commands."""
 
-from dataclasses import replace
 from typing import Annotated
 
 import typer
 
-from voltmod.build import bootstrap, build, find_cpp_sources, format_cpp_files, run_tests
+from voltmod.build import bootstrap, build, run_tests
+from voltmod.cpp_sources import find_cpp_sources, format_cpp_files
 from voltmod.cs2_install import find_server
 from voltmod.project import Project
 from voltmod.server import install_plugins, run_server
@@ -66,7 +66,7 @@ def build_command(
     if install:
         install_plugins(project, server_path, install, preset)
     if start:
-        run_server(replace(project.settings, server_path=server_path))
+        run_server(project.settings.with_options(server_path=server_path))
 
 
 @build_commands.command("test")
@@ -90,8 +90,7 @@ def format_command(
 ) -> None:
     """Rewrite C++ sources in the pinned clang-format style."""
     project = Project.load()
-    default_dirs = ["src", "include", "tests"] if project.is_framework_repo else ["plugins"]
-    files = find_cpp_sources(project.root, dirs or default_dirs)
+    files = find_cpp_sources(project.root, dirs or project.cpp_source_dirs)
     if not files:
         print("No C++ sources found.")
         return

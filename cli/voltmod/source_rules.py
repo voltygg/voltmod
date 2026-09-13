@@ -6,10 +6,10 @@ from pathlib import Path
 from typing import NamedTuple
 
 from voltmod.check_results import CheckResult
+from voltmod.cpp_sources import CPP_SUFFIXES
 from voltmod.errors import VoltmodError
 
 FRAMEWORK_SOURCE_DIRS = ("include/VoltMod", "src")
-SOURCE_SUFFIXES = {".hpp", ".cpp", ".inc"}
 
 # Transitive dependencies are listed too: this table is the layering.
 ALLOWED_DEPENDENCIES: dict[str, set[str]] = {
@@ -82,7 +82,7 @@ def read_sources(root: Path, bases: Iterable[str]) -> Iterator[SourceFile]:
         if not directory.is_dir():
             continue
         for path in sorted(directory.rglob("*")):
-            if path.suffix not in SOURCE_SUFFIXES:
+            if path.suffix not in CPP_SUFFIXES:
                 continue
             parts = path.relative_to(directory).parts
             yield SourceFile(
