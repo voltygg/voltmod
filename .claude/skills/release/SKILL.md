@@ -39,6 +39,9 @@ range. Point out `!` commits since the last tag before bumping only the patch.
    `uv run conan list "voltmod/<version>#*" -r volty`.
 10. **Relock cs2-plugins** (MSVC dev shell, see its `/build-local` skill), with
     `vendor/voltmod` checked out at the tag:
+    - in `vendor/voltmod`, `git ls-files --eol` must list no `w/crlf` or `w/mixed` file;
+      Conan hashes the bytes on disk, so re-checkout any it lists (`rm <file>` then
+      `git checkout -- <file>`)
     - `uv run conan editable add vendor/voltmod` if `conan editable list` is empty
     - `uv run poe build --relock`
     - the `voltmod/<version>#<revision>` in `conan.lock` must equal step 9's revision;
