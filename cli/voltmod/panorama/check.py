@@ -176,7 +176,8 @@ def _check_images(owner: ScreenOwner, screen: Screen, source: Path) -> list[str]
         match = IMAGE_SOURCE.match(src)
         if not match:
             problems.append(
-                f"{source}: Image src '{src}' is neither s2r://panorama/images/custom_game/<set>/<name>.vtex "
+                f"{source}: Image src '{src}' is neither "
+                "s2r://panorama/images/custom_game/<set>/<name>.vtex "
                 "nor a game icon under s2r://panorama/images/icons/"
             )
         elif not icon_path(owner, *match.groups()).is_file():
