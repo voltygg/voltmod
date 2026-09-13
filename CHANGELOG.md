@@ -2,6 +2,16 @@
 
 What changed in each VoltMod release. Older history is in git.
 
+## 1.4.2 (2026-09-13)
+
+- **Breaking:** Database `Run` now blocks and is for plugin load only; use `RunAsync`
+  everywhere else. Failed jobs return a `Result`.
+- **Breaking:** Migrations use one folder for every database, as `0001_name.sql`.
+- **Breaking:** Panorama stylesheets are `.css.j2` files, and the accent options are gone.
+- **Breaking:** `voltmod package` is now `uv run poe release`.
+- **New:** Menu rows can show icons.
+- **Fixed:** The toast border is back.
+
 ## 1.4.1 (2026-09-12)
 
 - **Fixed:** Linux builds with gcc-14, including the database clients.
