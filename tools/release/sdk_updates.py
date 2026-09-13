@@ -10,24 +10,25 @@ from tools.release.conan_packages import is_published
 from voltmod.errors import VoltmodError
 from voltmod.process import run_tool
 
+
+class SdkPackage(StrEnum):
+    HL2SDK = "hl2sdk-cs2"
+    METAMOD = "metamod-source"
+
+
 # The branches followed, and how each package spells its version.
 UPSTREAMS = {
-    "hl2sdk-cs2": {
+    SdkPackage.HL2SDK: {
         "url": "https://github.com/alliedmodders/hl2sdk.git",
         "branch": "cs2",
         "version_style": "date",  # 2026.07.23
     },
-    "metamod-source": {
+    SdkPackage.METAMOD: {
         "url": "https://github.com/alliedmodders/metamod-source.git",
         "branch": "master",
         "version_style": "metamod",  # 2.0.0.20260711
     },
 }
-
-
-class SdkPackage(StrEnum):
-    HL2SDK = "hl2sdk-cs2"
-    METAMOD = "metamod-source"
 
 
 def recipe_version(root: Path, name: str) -> str:
@@ -41,7 +42,7 @@ def recipe_version(root: Path, name: str) -> str:
 def update_sdk_pins(root: Path, package: SdkPackage | None) -> None:
     """Rewrite conandata.yml for each selected package whose upstream branch has moved."""
     changed = False
-    for name in (package.value,) if package else UPSTREAMS:
+    for name in (package,) if package else UPSTREAMS:
         upstream = UPSTREAMS[name]
         current = next(iter(_read_conandata(root, name)["sources"].values()))["commit"]
 

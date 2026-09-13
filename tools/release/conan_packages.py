@@ -53,11 +53,9 @@ def log_in(root: Path) -> None:
 
 
 def is_published(name: str, version: str) -> bool:
-    listing = run_tool(
-        "conan", "list", f"{name}/{version}", "-r", REMOTE, "--format=json",
-        capture=True, check=False,
-    )
-    return listing.returncode == 0 and f'"{name}/' in listing.stdout
+    # A missing recipe still exits 0, listed as an "error" entry instead of a reference.
+    listing = run_conan_json("list", f"{name}/{version}", "-r", REMOTE).get(REMOTE, {})
+    return any(reference.startswith(f"{name}/") for reference in listing)
 
 
 def build_sdks(root: Path) -> None:
