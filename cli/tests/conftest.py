@@ -15,7 +15,7 @@ HUD_XML = """{% import "card.xml.j2" as blocks %}
 <root>
   <Panel class="Layer" hittest="false">
     <Panel id="{{screen}}" class="Screen" hittest="false">
-      {{ blocks.card("slot0", icon_set="weapons", bar=true, accent=true) }}
+      {{ blocks.card("slot0", icon_set="weapons", bar=true) }}
     </Panel>
   </Panel>
 </root>

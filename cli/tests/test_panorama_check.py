@@ -78,6 +78,12 @@ def test_a_clean_screen_has_no_findings(make_screen_project):
     assert messages(root) == []
 
 
+def test_a_game_icon_needs_no_png(make_screen_project):
+    body = '<Image src="s2r://panorama/images/icons/ui/settings.vsvg" />'
+    root = make_screen_project(xml=screen(body), css=HIDDEN_CSS)
+    assert messages(root) == []
+
+
 def test_a_dialog_variable_shared_by_two_labels_is_not_flagged(make_screen_project):
     body = (
         '<Panel id="{{screen}}_a"><Label text="{s:label}" /></Panel>\n'

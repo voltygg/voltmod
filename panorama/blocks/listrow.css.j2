@@ -12,47 +12,13 @@
   width: fill-parent-flow(1);
   height: 100%;
   flow-children: right;
-  padding: 0px 10px;
+  padding: 0px 12px;
 }
 
-/* One column, no flow: the marks and the switch stack, and only one shows. */
-.Row-lead {
-  width: 26px;
-  height: 100%;
-  margin-right: 8px;
-}
-
-.Mark {
-  horizontal-align: center;
-  vertical-align: center;
-  font-size: 13px;
-  visibility: collapse;
-}
-
-.Switch {
-  width: 26px;
-  height: 14px;
-  horizontal-align: center;
-  vertical-align: center;
-  border-radius: 7px;
-  visibility: collapse;
-}
-
-.Switch-knob {
-  width: 10px;
-  height: 10px;
-  margin-left: 2px;
-  vertical-align: center;
-  border-radius: 5px;
-  transform: translateX(0px);
-  transition-property: transform, background-color;
-  transition-duration: 0.12s;
-  transition-timing-function: ease-out;
-}
-
+/* Fit, not 100%: a full-height column starts its lines at the top instead of centring them. */
 .Row-body {
   width: fill-parent-flow(1);
-  height: 100%;
+  height: fit-children;
   flow-children: down;
   vertical-align: center;
 }
@@ -76,6 +42,27 @@
   text-overflow: ellipsis;
 }
 
+.Switch {
+  width: 36px;
+  height: 20px;
+  vertical-align: center;
+  margin-left: 10px;
+  border-radius: 10px;
+  visibility: collapse;
+}
+
+.Switch-knob {
+  width: 14px;
+  height: 14px;
+  margin-left: 3px;
+  vertical-align: center;
+  border-radius: 7px;
+  transform: translateX(0px);
+  transition-property: transform;
+  transition-duration: 0.12s;
+  transition-timing-function: ease-out;
+}
+
 .Steppers {
   width: 52px;
   height: 100%;
@@ -87,4 +74,10 @@
   width: 26px;
   height: 100%;
   font-size: 11px;
+}
+
+/* A Label in a Button sits top-left unless told otherwise. */
+.Stepper-glyph {
+  horizontal-align: center;
+  vertical-align: center;
 }

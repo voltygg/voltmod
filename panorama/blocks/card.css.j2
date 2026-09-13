@@ -1,7 +1,7 @@
 .Card {
   width: 100%;
-  height: 44px;
-  flow-children: right;
+  height: fit-children;
+  flow-children: down;
   margin-bottom: 4px;
   background-color: rgba(255, 255, 255, 0.05);
 }
@@ -10,11 +10,28 @@
   visibility: collapse;
 }
 
+/* Fixed height, so the stripe's 100% has something to measure and two lines always fit. */
+.Card-main {
+  width: 100%;
+  height: 48px;
+  flow-children: right;
+}
+
+/* An empty icon slot would still take its width; the driver writes HasIcon. */
+.Card .Icons {
+  visibility: collapse;
+}
+
+.Card.HasIcon .Icons {
+  visibility: visible;
+}
+
 .Card-body {
   width: fill-parent-flow(1);
-  height: 100%;
+  height: fit-children;
   flow-children: down;
-  padding: 4px 8px;
+  vertical-align: center;
+  padding: 0px 10px;
 }
 
 .Card-title {
@@ -37,4 +54,9 @@
   text-align: right;
   font-size: 15px;
   color: #c8a24a;
+}
+
+.Card .Bar {
+  width: 100%;
+  height: 3px;
 }

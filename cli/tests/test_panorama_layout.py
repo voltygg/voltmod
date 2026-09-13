@@ -20,7 +20,7 @@ LAB_XML = """{# namespace: LabUi #}
   <Panel class="Layer" hittest="false">
     <Panel id="{{screen}}" class="Screen Hidden" hittest="false">
       {%- for index in range(2) %}
-      {{ cards.card("card" ~ index, icon_set="weapons", bar=true, accent=true) }}
+      {{ cards.card("card" ~ index, icon_set="weapons", bar=true) }}
       {%- endfor %}
       {{ toasts.toast("toast") }}
     </Panel>
@@ -41,15 +41,6 @@ LAB_CSS = """{% import "bar.css.j2" as bar %}
 
 {% include "card.css.j2" %}
 {% include "toast.css.j2" %}
-{% include "accent.css.j2" %}
-
-.Accent.Accent--good {
-  background-color: #4caf50;
-}
-
-.Accent.Accent--bad {
-  background-color: #f44336;
-}
 
 {{ bar.fill_rules("Bar", 4) }}
 {{ icons.show_rules("weapons") }}

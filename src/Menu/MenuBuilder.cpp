@@ -91,7 +91,8 @@ MenuItem InputRow::ToItem() &&
 MenuItem SubmenuRow::ToItem() &&
 {
     return MenuItem{
-        .Describe = DescribeRow(std::move(Label), MenuRowKind::Submenu, Enabled),
+        .Describe = DescribeRow(std::move(Label), MenuRowKind::Submenu, Enabled,
+                                [icon = std::move(Icon)](int, MenuRow& row) { row.Icon = icon; }),
         .Activate = WhenEnabled(std::move(Enabled),
                                 [build = std::move(Build)](int slot, MenuSurface& surface) {
                                     if (!build)

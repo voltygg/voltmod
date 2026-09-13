@@ -48,6 +48,8 @@ struct MenuRow
     bool Steppable = false;
     /** Toggle state, used to render a switch or supply the default value text. */
     std::optional<bool> State;
+    /** An icon name for a surface that draws icons; center HTML ignores it. Empty for none. */
+    std::string Icon;
 
     /** Set by the menu service, not by @ref MenuItem::Describe. */
     bool Pending = false;

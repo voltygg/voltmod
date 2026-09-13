@@ -10,12 +10,15 @@ from voltmod.errors import VoltmodError
 
 # A Label reading a dialog variable off the layout root.
 DIALOG_VARIABLE = re.compile(r"^\{s:(\w+)\}$")
+
 # One class of a `Prefix--variant` family.
 CLASS_FAMILY = re.compile(r"^([A-Za-z_]\w*)--([A-Za-z0-9_]+)$")
 SELECTOR_CLASS = re.compile(r"\.([A-Za-z0-9_-]+)")
 IMAGE_SOURCE = re.compile(r"^s2r://panorama/images/custom_game/([^/]+)/([^/]+)\.vtex$")
+
 # The C++ namespace a template asks for, as `{# namespace: Some::Name #}`.
 NAMESPACE_DIRECTIVE = re.compile(r"\{#-?\s*namespace:\s*([A-Za-z_][A-Za-z0-9_:]*)\s*-?#\}")
+
 # A name inside a repeated block: `<name><index>`, with an optional `_<suffix>`.
 INDEXED_NAME = re.compile(r"^([a-z][a-z_]*?)(\d+)(?:_(\w+))?$")
 

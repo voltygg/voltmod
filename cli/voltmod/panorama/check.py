@@ -22,6 +22,9 @@ from voltmod.panorama.render import (
     screen_sources,
 )
 
+# Icons the client ships itself; there is no file of ours to resolve.
+GAME_ICONS = "s2r://panorama/images/icons/"
+
 # What the client's Panorama parser accepts anywhere in a layout.
 ALLOWED_ELEMENTS = {"root", "styles", "include", "Panel", "Label", "Image", "Button"}
 
@@ -168,10 +171,13 @@ def _check_images(owner: ScreenOwner, screen: Screen, source: Path) -> list[str]
     problems: list[str] = []
     for image in screen.tree.iter("Image"):
         src = image.get("src", "")
+        if src.startswith(GAME_ICONS):
+            continue
         match = IMAGE_SOURCE.match(src)
         if not match:
             problems.append(
-                f"{source}: Image src '{src}' is not s2r://panorama/images/custom_game/<set>/<name>.vtex"
+                f"{source}: Image src '{src}' is neither s2r://panorama/images/custom_game/<set>/<name>.vtex "
+                "nor a game icon under s2r://panorama/images/icons/"
             )
         elif not icon_path(owner, *match.groups()).is_file():
             icon_set, name = match.groups()

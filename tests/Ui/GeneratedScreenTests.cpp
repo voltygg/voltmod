@@ -30,7 +30,6 @@ struct CardWriters
     TextVar Value;
     ClassChoice Icon;
     ClassChoice Bar;
-    ClassChoice Accent;
     ClassFlag Hidden;
 };
 
@@ -42,7 +41,6 @@ constexpr CardWriters MakeCard(const LabUi::Card& card)
         .Value = {LabUi::RootId, card.ValueVar},
         .Icon = {card.Icon, LabUi::IconClasses},
         .Bar = {card.Bar, LabUi::StepClasses},
-        .Accent = {card.Accent, LabUi::AccentClasses},
         .Hidden = {card.Id, "Hidden"},
     };
 }
@@ -53,7 +51,6 @@ constexpr struct
 {
     TextVar Title{LabUi::RootId, LabUi::ToastTitleVar};
     TextVar Description{LabUi::RootId, LabUi::ToastDescriptionVar};
-    ClassChoice Accent{LabUi::ToastAccent, LabUi::AccentClasses};
     ClassFlag Show{LabUi::Toast, "Show"};
 } Toast;
 
@@ -78,19 +75,16 @@ TEST_CASE("A screen writes through every writer built from its constants")
     w.Set(Cards[0].Title, "AK-47");
     w.Set(Cards[0].Subtitle, "Rifle");
     w.Set(Cards[0].Value, "12");
-    w.Set(Cards[0].Accent, static_cast<int>(LabUi::Accent::Good));
     w.Set(Cards[0].Icon, Cards[0].Icon.Find("awp"));
     w.Set(Cards[0].Bar, 4);
     w.Set(Cards[1].Title, "AWP");
     w.Set(Toast.Show, true);
     w.Set(Toast.Title, "Round over");
     w.Set(Toast.Description, "Terrorists win");
-    w.Set(Toast.Accent, static_cast<int>(LabUi::Accent::Bad));
 
     const std::vector<std::string> enabled = panel.Enabled();
-    CHECK(enabled == std::vector<std::string>{"lab_card0.Hidden", "lab_card0_accent.Accent--good",
-                                              "lab_card0_icon.Icon--awp", "lab_card0_bar.Step--4", "lab_toast.Show",
-                                              "lab_toast_accent.Accent--bad"});
+    CHECK(enabled == std::vector<std::string>{"lab_card0.Hidden", "lab_card0_icon.Icon--awp", "lab_card0_bar.Step--4",
+                                              "lab_toast.Show"});
 }
 
 TEST_CASE("A text writer names the layout root, not the panel")
@@ -111,7 +105,6 @@ TEST_CASE("A text writer names the layout root, not the panel")
 // that the generated enums and name tables line up with the class families they were emitted from.
 TEST_CASE("A generated family's enumerators index its own classes")
 {
-    CHECK(Toast.Accent.Find("bad") == static_cast<int>(LabUi::Accent::Bad));
     CHECK(Cards[0].Icon.Find(LabUi::IconNames[1]) == static_cast<int>(LabUi::Icon::Awp));
     CHECK(Cards[0].Bar.Find("3") == 3);
     CHECK(Cards[0].Icon.Find("famas") == ClassChoice::None);

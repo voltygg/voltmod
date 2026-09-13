@@ -116,6 +116,8 @@ struct SubmenuRow
     std::string Label;
     std::function<std::shared_ptr<Menu>(int slot)> Build;
     EnabledCondition Enabled;
+    /** Reported as @ref MenuRow::Icon. */
+    std::string Icon;
 
     [[nodiscard]] MenuItem ToItem() &&;
 };
@@ -190,17 +192,17 @@ private:
 template <class T>
 MenuItem ChoiceRow<T>::ToItem() &&
 {
-    // Share Choices across callbacks so the open menu keeps one copy.
+    // One shared copy, so every callback of the open menu sees the same selection.
     struct State
     {
+        std::string Label;
         std::vector<std::pair<std::string, T>> Choices;
         std::function<void(int slot, const T& value)> Commit;
         std::optional<ChoiceIndex> Bind;
-        std::string Label;
         EnabledCondition Enabled;
         int Own;
 
-        [[nodiscard]] int Read(int slot) const
+        [[nodiscard]] int Selected(int slot) const
         {
             if (Choices.empty())
                 return 0;
@@ -208,7 +210,7 @@ MenuItem ChoiceRow<T>::ToItem() &&
             return std::clamp(index, 0, static_cast<int>(Choices.size()) - 1);
         }
 
-        void Write(int slot, int index)
+        void Select(int slot, int index)
         {
             if (Bind)
                 Bind->Set(slot, index);
@@ -219,57 +221,57 @@ MenuItem ChoiceRow<T>::ToItem() &&
         void Apply(int slot) const
         {
             if (Commit && !Choices.empty())
-                Commit(slot, Choices[static_cast<std::size_t>(Read(slot))].second);
+                Commit(slot, Choices[static_cast<std::size_t>(Selected(slot))].second);
         }
 
         bool Step(int slot, int direction)
         {
             if (Choices.empty())
                 return false;
-            Write(slot, WrapIndex(Read(slot) + direction, static_cast<int>(Choices.size())));
+            Select(slot, WrapIndex(Selected(slot) + direction, static_cast<int>(Choices.size())));
             return true;
         }
     };
 
-    auto state = std::make_shared<State>(State{.Choices = std::move(Choices),
+    auto state = std::make_shared<State>(State{.Label = std::move(Label),
+                                               .Choices = std::move(Choices),
                                                .Commit = std::move(Commit),
                                                .Bind = std::move(Bind),
-                                               .Label = std::move(Label),
                                                .Enabled = std::move(Enabled),
                                                .Own = Index});
 
-    const bool holdsCommit = Apply == ChoiceApply::AfterStep;
-
-    return MenuItem{
-        .Describe =
-            [state](int slot) {
-                const bool has = !state->Choices.empty();
-                return MenuRow{
-                    .Label = state->Label,
-                    .Value = has ? state->Choices[static_cast<std::size_t>(state->Read(slot))].first : std::string{},
-                    .Kind = MenuRowKind::Choice,
-                    .Enabled = state->Enabled(slot),
-                    // An empty list cannot step, so A/D pages instead.
-                    .Steppable = has};
-            },
-        .Activate =
-            [state](int slot, MenuSurface&) {
-                if (!state->Enabled(slot))
-                    return;
-                // Without a commit callback, E advances like D for a live pick-a-value row.
-                if (state->Commit)
-                    state->Apply(slot);
-                else
-                    (void)state->Step(slot, +1);
-            },
+    MenuItem item{
+        .Describe = [state](int slot) {
+            MenuRow row{.Label = state->Label, .Kind = MenuRowKind::Choice, .Enabled = state->Enabled(slot)};
+            // An empty list cannot step, so A/D pages instead.
+            if (!state->Choices.empty())
+            {
+                row.Value = state->Choices[static_cast<std::size_t>(state->Selected(slot))].first;
+                row.Steppable = true;
+            }
+            return row;
+        },
+        .Activate = [state](int slot, MenuSurface&) {
+            if (!state->Enabled(slot))
+                return;
+            // Without a commit callback, E advances like D for a live pick-a-value row.
+            if (state->Commit)
+                state->Apply(slot);
+            else
+                state->Step(slot, +1);
+        },
         .Step = [state](int slot, int direction) { return state->Enabled(slot) && state->Step(slot, direction); },
-        // No commit callback tells the stack that OnActivate applies only on activation.
-        .Commit = holdsCommit ? std::function<void(int)>([state](int slot) {
+    };
+
+    // Left empty for OnActivate: a row without Commit is applied only when activated.
+    if (Apply == ChoiceApply::AfterStep)
+    {
+        item.Commit = [state](int slot) {
             if (state->Enabled(slot))
                 state->Apply(slot);
-        })
-                              : std::function<void(int)>{},
-    };
+        };
+    }
+    return item;
 }
 
 }  // namespace VoltMod
