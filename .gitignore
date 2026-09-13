@@ -23,6 +23,7 @@ mono_crash.*
 [Rr]elease/
 [Rr]eleases/
 !tools/release/
+!.claude/skills/release/
 x64/
 x86/
 [Ww][Ii][Nn]32/

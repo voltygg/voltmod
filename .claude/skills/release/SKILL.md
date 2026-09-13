@@ -21,15 +21,15 @@ range. Point out `!` commits since the last tag before bumping only the patch.
    unused (`git tag -l v<version>`), and CI green on HEAD:
    `gh run list -R voltygg/voltmod --workflow ci.yml -b main -L 1`. Red or running: stop.
 2. **Collect the changes:** `git log --format='%h %s%n%b' v<last>..HEAD`. The body
-   line of a `!` commit says what consumers change; reuse its names.
-3. **Write the CHANGELOG entry** at the top of `CHANGELOG.md`:
-   `## [<version>] - YYYY-MM-DD`, then `### Breaking`, `### Added`, `### Fixed`
-   (omit empty groups). One line per change a consumer can notice, in plain words.
-   Leave out ci, test, style and internal refactors; fold follow-up commits into one line.
-4. **Bump** `version` in `conanfile.py`, then confirm `uv run poe release version`
-   prints it.
-5. **Commit and push:** stage `conanfile.py` and `CHANGELOG.md` by name,
-   `chore: release <version>`, `git push origin main`.
+   line of a `!` commit says what consumers change.
+3. **Write the CHANGELOG entry** at the top of `CHANGELOG.md` as
+   `## <version> (YYYY-MM-DD)` and a handful of short bullets, each starting with
+   `**Breaking:**`, `**New:**` or `**Fixed:**`. Say what a plugin author notices or must
+   do, in plain words. Skip ci, tests, style and internal refactors.
+4. **Bump** `version` in `conanfile.py` and `pyproject.toml` to the same value, run
+   `uv lock`, then confirm `uv run poe release version` prints it.
+5. **Commit and push:** stage `conanfile.py`, `pyproject.toml`, `uv.lock` and
+   `CHANGELOG.md` by name, `chore: release <version>`, `git push origin main`.
 6. **Wait for CI** on that commit (`gh run watch <id> -R voltygg/voltmod`). Only a
    green run gets tagged.
 7. **Tag:** `git tag v<version> && git push origin v<version>`.
