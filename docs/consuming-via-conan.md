@@ -44,8 +44,9 @@ openssl, and others) come from Conan Center as recipes and compile locally. No
 binaries are published for the gcc-14 and old-libstdc++ ABI profile required
 by the Valve libraries. This costs each machine once; CI caches the Conan home.
 
-CI publishes Linux Release binaries for VoltMod and the SDK packages. Windows
-and Debug builds compile missing packages locally through `--build=missing`.
+CI publishes Linux Release binaries for the SDK packages and for VoltMod with
+`with_database=True`. Windows, Debug and `with_database=False` builds compile
+missing packages locally through `--build=missing`.
 
 ## Setup
 
@@ -119,9 +120,9 @@ link order) is ordinary `package_info()`.
 Everything publishes from this repo, through `uv run poe release` (`tools/release`):
 
 - voltmod goes out from `.github/workflows/publish.yml` on every `v*` tag, which must
-  match the version in `conanfile.py`. It uploads Linux Release for both `with_database`
-  values, one job each, and a last job installs the result anonymously on a clean runner,
-  refusing to build voltmod or either SDK locally.
+  match the version in `conanfile.py`. It uploads Linux Release with `with_database=True`,
+  and a last job installs the result anonymously on a clean runner, refusing to build
+  voltmod or either SDK locally.
 - The SDK packages publish Linux binaries from the recipes in `recipes/` on a push to
   `main` that touches them. A daily job watches both upstreams and opens
   a PR when a branch tip moves; the PR gate builds the new SDK *and* this framework

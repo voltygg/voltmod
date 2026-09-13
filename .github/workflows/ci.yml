@@ -45,17 +45,13 @@ jobs:
         run: voltmod test linux-steamrt-release
 
   package:
-    name: Conan package (database=${{ matrix.database }})
+    name: Conan package
     runs-on: ubuntu-latest
     container:
       image: registry.gitlab.steamos.cloud/steamrt/sniper/sdk:latest
-    strategy:
-      fail-fast: false
-      matrix:
-        database: ["off", "on"]
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-toolchain
 
       - name: Create the Conan package
-        run: python -m tools.release build framework --database ${{ matrix.database }}
+        run: python -m tools.release build framework --database on
