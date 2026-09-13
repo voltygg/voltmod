@@ -77,7 +77,8 @@ def publish(
     if target in (Packages.FRAMEWORK, Packages.ALL):
         check_release_tag(root)
         build_framework(root, use_lockfile=not no_lockfile, database=database)
-        upload_packages(f"{FRAMEWORK_PACKAGE}/*")
+        # A restored CI cache can hold other voltmod revisions; upload only the one just built.
+        upload_packages(f"{FRAMEWORK_PACKAGE}/{framework_version(root)}#latest")
 
 
 @app.command()

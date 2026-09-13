@@ -94,8 +94,11 @@ runs:
         path: |
           ${{ env.CONAN_HOME }}/p
           !${{ env.CONAN_HOME }}/p/b
-        key: conan-${{ runner.os }}-${{ hashFiles('conan.lock', 'conanfile.py', 'recipes/**/conandata.yml', 'conan/profiles/*') }}
-        restore-keys: conan-${{ runner.os }}-
+        # Per job: jobs resolve different options, and one shared key saves whichever job ends first.
+        key: conan-${{ runner.os }}-${{ github.job }}-${{ hashFiles('conan.lock', 'conanfile.py', 'recipes/**/conandata.yml', 'conan/profiles/*') }}
+        restore-keys: |
+          conan-${{ runner.os }}-${{ github.job }}-
+          conan-${{ runner.os }}-
 
     - name: Cache the compiled objects
       if: inputs.cache == 'true'
