@@ -23,8 +23,8 @@ range. Point out `!` commits since the last tag before bumping only the patch.
 2. **Collect the changes:** `git log --format='%h %s%n%b' v<last>..HEAD`. The body
    line of a `!` commit says what consumers change.
 3. **Write the CHANGELOG entry** at the top of `CHANGELOG.md` as
-   `## <version> (YYYY-MM-DD)` and a handful of short bullets, each starting with
-   `**Breaking:**`, `**New:**` or `**Fixed:**`. Say what a plugin author notices or must
+   `## <version> (YYYY-MM-DD)` with `### Breaking`, `### New` and `### Fixed` sections
+   (omit empty ones), each a few short bullets. Say what a plugin author notices or must
    do, in plain words. Skip ci, tests, style and internal refactors.
 4. **Bump** `version` in `conanfile.py` and `pyproject.toml` to the same value, run
    `uv lock`, then confirm `uv run poe release version` prints it.
