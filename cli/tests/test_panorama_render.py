@@ -1,0 +1,56 @@
+"""Cover the Panorama renderer against the framework's real block library."""
+
+import pytest
+
+from voltmod.errors import VoltmodError
+from voltmod.panorama.compiler import publish_screens
+from voltmod.panorama.render import render_screens
+
+
+def test_a_screen_renders_its_layout_styles_icons_and_header(make_screen_project):
+    root = make_screen_project()
+    written = render_screens(root, ["ui-lab"])
+
+    out = root / "build/panorama/ui-lab/panorama"
+    xml = (out / "layout/custom_game/hud.xml").read_text(encoding="utf-8")
+    css = (out / "styles/custom_game/hud.css").read_text(encoding="utf-8")
+
+    assert set(written) == {
+        out / "layout/custom_game/hud.xml",
+        out / "styles/custom_game/hud.css",
+        out / "images/custom_game/weapons/ak47.png",
+        out / "images/custom_game/weapons/ak47.vtex",
+        root / "build/panorama/ui-lab/include/Ui/Hud.hpp",
+    }
+    assert 'id="hud_slot0"' in xml and 'id="hud_slot0_bar"' in xml
+    assert "{s:slot0_title}" in xml
+    assert 'src="s2r://panorama/images/custom_game/weapons/ak47.vtex"' in xml
+    assert ".Card-title" in css and "color: #e8e6e0;" in css
+    assert ".Bar.Step--4 .Bar-fill {\n  width: 100.0%;\n}" in css
+    vtex = (out / "images/custom_game/weapons/ak47.vtex").read_text(encoding="utf-8")
+    assert vtex.startswith("<!-- dmx encoding")
+    assert '"panorama/images/custom_game/weapons/ak47.png"' in vtex
+
+
+def test_an_unknown_token_names_the_file_and_the_token(make_screen_project):
+    root = make_screen_project(xml="<root>{{ nonesuch }}</root>")
+    with pytest.raises(VoltmodError) as error:
+        render_screens(root, [])
+    assert "hud.xml.j2" in str(error.value) and "nonesuch" in str(error.value)
+
+
+def test_a_second_render_writes_nothing(make_screen_project):
+    root = make_screen_project()
+    assert render_screens(root, [])
+    assert render_screens(root, []) == []
+
+
+def test_publish_copies_the_rendered_tree(make_screen_project, tmp_path):
+    root = make_screen_project()
+    render_screens(root, ["ui-lab"])
+
+    addon = tmp_path / "addon"
+    assert publish_screens(root, ["ui-lab"], addon) == 4
+    assert (addon / "panorama/layout/custom_game/hud.xml").is_file()
+    assert (addon / "panorama/styles/custom_game/hud.css").is_file()
+    assert (addon / "panorama/images/custom_game/weapons/ak47.vtex").is_file()

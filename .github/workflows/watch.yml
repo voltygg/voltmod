@@ -25,7 +25,7 @@ jobs:
 
       - name: Resolve the upstream tips
         id: watch
-        run: voltmod package watch
+        run: python -m tools.release watch
 
       - name: Open or update the PR
         if: steps.watch.outputs.changed == 'true'
@@ -56,4 +56,4 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-toolchain
       - name: Prune
-        run: voltmod package prune --keep 3
+        run: python -m tools.release prune --keep 3

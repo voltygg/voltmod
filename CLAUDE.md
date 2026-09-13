@@ -24,7 +24,7 @@ voltmod panorama render | check | preview | publish   # screens: docs/panorama.m
 voltmod gamedata check | resolve --write      # after a CS2 update: docs/sdk/gamedata.md
 voltmod schemagen                             # regenerate accessors from the server's own dump
 voltmod init | new-plugin <name>              # run from the consumer repo
-voltmod package <build|publish|tag|prune|watch>
+uv run poe release <build|publish|version|tag|prune|watch>   # framework packages; tools/release
 ```
 
 Preset names are consumer API.

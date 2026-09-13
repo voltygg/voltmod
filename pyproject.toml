@@ -12,9 +12,10 @@ dependencies = [
     "ninja>=1.13.0",
     "clang-format==22.1.5",
     "jinja2>=3.1",
+    # sqlpp23-ddl2cpp runs under this interpreter and needs pyparsing.
     "pyparsing>=3.3",
+    "python-dotenv>=1.2.0",
     "typer>=0.27.1",
-    "pyyaml>=6.0",
 ]
 
 [project.scripts]
@@ -29,8 +30,8 @@ packages = ["cli/voltmod"]
 
 # Ship the repository-level trees the CLI reads beside the Python package.
 [tool.hatch.build.targets.wheel.force-include]
-"templates" = "voltmod/templates"
-"panorama" = "voltmod/panorama"
+"templates" = "voltmod/bundled/templates"
+"panorama" = "voltmod/bundled/panorama"
 
 [dependency-groups]
 dev = ["ruff>=0.14.0", "poethepoet>=0.47.0", "pytest>=8.4.0"]
@@ -49,6 +50,7 @@ modgraph = "voltmod modgraph"
 panorama = "voltmod panorama compile"
 test-tools = "pytest cli/tests"
 format = "voltmod format"
+release = "python -m tools.release"
 
 [tool.pytest.ini_options]
 pythonpath = ["cli"]
@@ -59,9 +61,13 @@ target-version = "py314"
 extend-exclude = ["templates"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP"]
+select = ["E", "F", "W", "I", "UP", "TID"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
 
 [tool.ruff.lint.isort]
+known-first-party = ["voltmod", "tools"]
 known-third-party = ["conan"]
 
 [[tool.mypy.overrides]]

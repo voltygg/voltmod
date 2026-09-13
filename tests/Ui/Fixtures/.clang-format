@@ -1,4 +1,4 @@
 ---
-# Derived by `voltmod panorama bind` and compared byte for byte by cli/tests/test_bind.py.
+# Written by `voltmod panorama render`; compared byte for byte by cli/tests/test_panorama_layout.py.
 DisableFormat: true
 SortIncludes: Never

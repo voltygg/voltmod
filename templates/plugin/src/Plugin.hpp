@@ -10,7 +10,7 @@
  * hooks, player tracking and chat-command dispatch; this class adds the metadata and owns
  * the plugin's object graph for one load cycle.
  */
-class $klass final : public VoltMod::MetamodPlugin
+class $plugin_class final : public VoltMod::MetamodPlugin
 {
 protected:
     VoltMod::PluginInfo Info() const override;
@@ -18,5 +18,5 @@ protected:
     void OnUnload() override { _app.reset(); }
 
 private:
-    std::optional<$ns::App> _app;
+    std::optional<$namespace::App> _app;
 };

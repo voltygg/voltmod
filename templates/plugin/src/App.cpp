@@ -2,7 +2,7 @@
 
 #include <VoltMod/Api.hpp>
 
-namespace $ns
+namespace $namespace
 {
 
 void RegisterCommands(VoltMod::CommandManager& commands);
@@ -17,4 +17,4 @@ bool App::Start()
     return true;
 }
 
-}  // namespace $ns
+}  // namespace $namespace

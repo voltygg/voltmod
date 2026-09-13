@@ -200,7 +200,7 @@ corrupts a neighbouring member rather than failing.
 
 ## Module layering
 
-`cli/voltmod/checks/modgraph.py` enforces the allowed edges. It rejects upward
+`cli/voltmod/source_rules.py` (`voltmod modgraph`) enforces the allowed edges. It rejects upward
 dependencies as well as cycles.
 
 ```text

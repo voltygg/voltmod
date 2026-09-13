@@ -116,7 +116,7 @@ link order) is ordinary `package_info()`.
 
 ## Publishing (maintainers)
 
-Everything publishes from this repo, through `voltmod package`:
+Everything publishes from this repo, through `uv run poe release` (`tools/release`):
 
 - voltmod goes out from `.github/workflows/publish.yml` on every `v*` tag, which must
   match the version in `conanfile.py`. It uploads Linux Release for both `with_database`
@@ -133,9 +133,9 @@ read-only).
 Local escape hatch if the remote is unreachable:
 
 ```sh
-voltmod package build sdk                        # conan create both recipes
-voltmod package build framework                  # ... then the framework against them
-voltmod package build framework --database on    # one with_database variant
+uv run poe release build sdk                        # conan create both recipes
+uv run poe release build framework                  # ... then the framework against them
+uv run poe release build framework --database on    # one with_database variant
 ```
 
 ## Working on voltmod and a plugin together

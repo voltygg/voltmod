@@ -1,0 +1,58 @@
+{% macro string_list(values, prefix="") %}{{ "{" }}{% for value in values %}"{{ prefix }}{{ value }}"{{ ", " if not loop.last else "" }}{% endfor %}{{ "}" }}{% endmacro %}
+#pragma once
+
+#include <array>
+#include <string_view>
+
+namespace {{ namespace }}
+{
+
+inline constexpr std::string_view Layout = "{{ screen.name }}";
+inline constexpr std::string_view RootId = "{{ screen.name }}";
+
+{% if screen.flat_ids %}
+// Panel ids.
+{% for id in screen.flat_ids %}
+inline constexpr std::string_view {{ member_name(id, screen.name) }} = "{{ id }}";
+{% endfor %}
+
+{% endif %}
+{% if screen.flat_variables %}
+// Dialog variables, written through RootId.
+{% for variable in screen.flat_variables %}
+inline constexpr std::string_view {{ pascal_case(variable) }}Var = "{{ variable }}";
+{% endfor %}
+
+{% endif %}
+{% if screen.blocks %}
+// Repeated blocks: one struct per block, one array entry per index. Variables are
+// written through RootId.
+{% for block in screen.blocks %}
+struct {{ block.struct_name }}
+{
+{% for member in block.members() %}
+    std::string_view {{ member }};
+{% endfor %}
+};
+inline constexpr std::array<{{ block.struct_name }}, {{ block.count }}> {{ block.array_name }}{
+{% for index in range(block.count) %}
+    {{ block.struct_name }}{{ string_list(block.ids(screen.name, index) + block.variables(index)) }},
+{% endfor %}
+};
+
+{% endfor %}
+{% endif %}
+{% for family, variants in screen.families.items() %}
+{% if needs_enum(variants) %}
+enum class {{ family }}
+{
+{% for variant in variants %}
+    {{ pascal_case(variant) }},
+{% endfor %}
+};
+inline constexpr std::array<std::string_view, {{ variants | length }}> {{ family }}Names{{ string_list(variants) }};
+{% endif %}
+inline constexpr std::array<std::string_view, {{ variants | length }}> {{ family }}Classes{{ string_list(variants, family ~ "--") }};
+
+{% endfor %}
+}  // namespace {{ namespace }}

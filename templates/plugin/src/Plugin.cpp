@@ -5,9 +5,9 @@
 #include <VoltMod/Api.hpp>
 #include <VoltMod/App/PluginInfoStamp.hpp>
 
-VOLTMOD_PLUGIN($klass);
+VOLTMOD_PLUGIN($plugin_class);
 
-VoltMod::PluginInfo $klass::Info() const
+VoltMod::PluginInfo $plugin_class::Info() const
 {
     return VoltMod::WithBuildInfo({
         .Name = "$title",
@@ -17,7 +17,7 @@ VoltMod::PluginInfo $klass::Info() const
     });
 }
 
-bool $klass::OnLoad(VoltMod::Runtime& runtime)
+bool $plugin_class::OnLoad(VoltMod::Runtime& runtime)
 {
     _app.emplace(runtime);
     return _app->Start();

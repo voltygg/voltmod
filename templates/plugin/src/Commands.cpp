@@ -9,7 +9,7 @@ using VoltMod::Result;
 
 namespace Args = VoltMod::Args;
 
-namespace $ns
+namespace $namespace
 {
 
 // Register commands from Start. The handler parameter list declares parsed and
@@ -21,4 +21,4 @@ void RegisterCommands(VoltMod::CommandManager& commands)
                 .Run([](Caller c) -> Result<Reply> { return c.Ok("cmd.pong"); });
 }
 
-}  // namespace $ns
+}  // namespace $namespace

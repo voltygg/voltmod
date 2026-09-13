@@ -30,24 +30,8 @@ struct Card
     std::string_view ValueVar;
 };
 inline constexpr std::array<Card, 2> Cards{
-    Card{
-        "lab_card0",
-        "lab_card0_accent",
-        "lab_card0_icon",
-        "lab_card0_bar",
-        "card0_title",
-        "card0_subtitle",
-        "card0_value",
-    },
-    Card{
-        "lab_card1",
-        "lab_card1_accent",
-        "lab_card1_icon",
-        "lab_card1_bar",
-        "card1_title",
-        "card1_subtitle",
-        "card1_value",
-    },
+    Card{"lab_card0", "lab_card0_accent", "lab_card0_icon", "lab_card0_bar", "card0_title", "card0_subtitle", "card0_value"},
+    Card{"lab_card1", "lab_card1_accent", "lab_card1_icon", "lab_card1_bar", "card1_title", "card1_subtitle", "card1_value"},
 };
 
 enum class Icon
@@ -66,12 +50,6 @@ enum class Accent
 inline constexpr std::array<std::string_view, 2> AccentNames{"good", "bad"};
 inline constexpr std::array<std::string_view, 2> AccentClasses{"Accent--good", "Accent--bad"};
 
-inline constexpr std::array<std::string_view, 5> StepClasses{
-    "Step--0",
-    "Step--1",
-    "Step--2",
-    "Step--3",
-    "Step--4",
-};
+inline constexpr std::array<std::string_view, 5> StepClasses{"Step--0", "Step--1", "Step--2", "Step--3", "Step--4"};
 
 }  // namespace LabUi

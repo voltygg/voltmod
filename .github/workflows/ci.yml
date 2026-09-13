@@ -58,4 +58,4 @@ jobs:
       - uses: ./.github/actions/setup-toolchain
 
       - name: Create the Conan package
-        run: voltmod package build framework --database ${{ matrix.database }}
+        run: python -m tools.release build framework --database ${{ matrix.database }}

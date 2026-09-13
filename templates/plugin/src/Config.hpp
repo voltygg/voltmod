@@ -3,7 +3,7 @@
 #include <VoltMod/Api.hpp>
 #include <VoltMod/App/Config.hpp>
 
-namespace $ns
+namespace $namespace
 {
 
 /** Root of settings.jsonc; add a struct + a member here for each new section. Public members are
@@ -18,5 +18,5 @@ struct Settings
  *  that has not been published yet is what keeps a failed reload from leaving half-applied state. */
 using ConfigManager = VoltMod::JsonConfig<Settings>;
 
-}  // namespace $ns
+}  // namespace $namespace
 

@@ -5,7 +5,7 @@
 #include <VoltMod/Api.hpp>
 #include <VoltMod/Core/Subscriptions.hpp>
 
-namespace $ns
+namespace $namespace
 {
 
 /**
@@ -32,4 +32,4 @@ private:
     VoltMod::Subscriptions _subs;
 };
 
-}  // namespace $ns
+}  // namespace $namespace

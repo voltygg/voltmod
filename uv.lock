@@ -366,6 +366,15 @@ wheels = [
 ]
 
 [[package]]
+name = "python-dotenv"
+version = "1.2.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6a/53/ed9d74092561d4b01a2ef1349d52cdbc135e526c245f366b089cfca6de49/python_dotenv-1.2.3.tar.gz", hash = "sha256:a20a594dabeaa385725aa239d5244871c143ecb356add8a20fcf23773a6c3a35", size = 58945, upload-time = "2026-08-16T16:54:54.067Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0d/17/c5c6b53ddc18f297992099b3d9ec16c855c0ccc83263a21fe4d1c625ec6c/python_dotenv-1.2.3-py3-none-any.whl", hash = "sha256:904552145e8bfed22162c09dab1c2b9b54fefa7b23ba780f4f26ca0316b0f0d9", size = 22780, upload-time = "2026-08-16T16:54:52.473Z" },
+]
+
+[[package]]
 name = "pyyaml"
 version = "6.0.3"
 source = { registry = "https://pypi.org/simple" }
@@ -497,7 +506,7 @@ dependencies = [
     { name = "jinja2" },
     { name = "ninja" },
     { name = "pyparsing" },
-    { name = "pyyaml" },
+    { name = "python-dotenv" },
     { name = "typer" },
 ]
 
@@ -516,7 +525,7 @@ requires-dist = [
     { name = "jinja2", specifier = ">=3.1" },
     { name = "ninja", specifier = ">=1.13.0" },
     { name = "pyparsing", specifier = ">=3.3" },
-    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "python-dotenv", specifier = ">=1.2.0" },
     { name = "typer", specifier = ">=0.27.1" },
 ]
 

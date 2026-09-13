@@ -24,10 +24,10 @@ jobs:
       - uses: ./.github/actions/setup-toolchain
 
       - name: Build and upload the SDK packages
-        run: voltmod package publish sdk
+        run: python -m tools.release publish sdk
 
       - name: Rebuild the framework against them
-        run: voltmod package build framework --no-lockfile --database on
+        run: python -m tools.release build framework --no-lockfile --database on
 
   tag:
     name: Tag the SDK versions
@@ -41,7 +41,7 @@ jobs:
         with:
           cache: "false"
       - name: Tag each pinned version
-        run: voltmod package tag
+        run: python -m tools.release tag
 
   # One job per variant: each is a full compile, and they share no work.
   release:
@@ -62,7 +62,7 @@ jobs:
       - uses: ./.github/actions/setup-toolchain
 
       - name: Build and upload voltmod
-        run: voltmod package publish framework --no-lockfile --database ${{ matrix.database }}
+        run: python -m tools.release publish framework --no-lockfile --database ${{ matrix.database }}
 
   verify-download:
     name: Install from the remote as a consumer
@@ -80,7 +80,7 @@ jobs:
         env:
           CONAN_HOME: ${{ runner.temp }}/conan-fresh
         run: |
-          version="$(voltmod package version)"
+          version="$(python -m tools.release version)"
           conan profile detect --force >/dev/null 2>&1 || true
           conan config install ./conan
           conan test test_package "voltmod/$version" \
