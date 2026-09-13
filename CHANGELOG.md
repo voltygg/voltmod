@@ -13,8 +13,6 @@ What changed in each VoltMod release. Older history is in git.
 - Migrations use one folder for every database, as `0001_name.sql`.
 - Panorama stylesheets are `.css.j2` files, and the accent options are gone.
 - `voltmod package` is now `uv run poe release`.
-- Only the database-enabled package is prebuilt; building with `with_database=False`
-  compiles VoltMod from source.
 
 ### New
 

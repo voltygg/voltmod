@@ -43,13 +43,17 @@ jobs:
       - name: Tag each pinned version
         run: python -m tools.release tag
 
-  # Only with_database=True is prebuilt; consumers of the other variant build it from source.
+  # One job per variant: each is a full compile, and they share no work.
   release:
-    name: Release voltmod
+    name: Release voltmod (database=${{ matrix.database }})
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     container:
       image: registry.gitlab.steamos.cloud/steamrt/sniper/sdk:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        database: ["off", "on"]
     env:
       CLOUDSMITH_USERNAME: ${{ secrets.CLOUDSMITH_USERNAME }}
       CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
@@ -58,7 +62,7 @@ jobs:
       - uses: ./.github/actions/setup-toolchain
 
       - name: Build and upload voltmod
-        run: python -m tools.release publish framework --no-lockfile --database on
+        run: python -m tools.release publish framework --no-lockfile --database ${{ matrix.database }}
 
   verify-download:
     name: Install from the remote as a consumer

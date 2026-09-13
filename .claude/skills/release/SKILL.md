@@ -7,7 +7,7 @@ description: Release a new voltmod version - bump conanfile.py, write the CHANGE
 
 A release is a `v<version>` tag on `main`. Pushing the tag runs
 `.github/workflows/publish.yml`: it refuses a tag that differs from `conanfile.py`,
-uploads the Linux Release `with_database=True` package to the `volty` remote, and
+uploads Linux Release for both `with_database` values to the `volty` remote, and
 installs the result on a clean runner.
 
 The user names the version. Consumers pin a range (cs2-plugins: `voltmod/[~1.4]`,
