@@ -97,6 +97,9 @@ class UiClickHook;
 /** The queries ClientConVars has in flight, kept SDK-free for its tests. Defined in
  *  src/Hooks/PendingConVarQueries.hpp. */
 class PendingConVarQueries;
+/** Which addons each client still owes, kept engine-free for its tests. Defined in
+ *  src/Workshop/AddonDownloads.hpp. */
+class AddonDownloads;
 
 /** Entity.hpp holds an EntitySystem* so a wrapper's verbs can reach Bindings and
  *  the entity system, while EntitySystem.hpp returns Entity, Pawn and Controller

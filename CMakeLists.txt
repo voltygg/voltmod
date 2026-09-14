@@ -163,7 +163,7 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Players/PlayerManager.cpp
             src/Players/Policy.cpp
             src/Hooks/PendingConVarQueries.cpp
-            src/Workshop/AddonRequirements.cpp
+            src/Workshop/AddonDownloads.cpp
             src/Ui/LayoutName.cpp
             src/Ui/SentWrites.cpp
             src/Ui/UiClickRouting.cpp

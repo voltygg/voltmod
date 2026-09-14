@@ -5,6 +5,7 @@
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
@@ -16,85 +17,72 @@ namespace VoltMod
 {
 
 /**
- * @brief Workshop addons that connecting clients are told to download.
+ * @brief Workshop addons connecting clients must download.
  *
- * A CS2 client fetches one addon per connection cycle, so a client needing several reconnects once
- * per addon - see @ref workshop_guide for how that is driven and what it costs. This is for
- * content only the client renders (Panorama layouts, models, sounds); nothing is downloaded or
- * mounted on the server.
+ * For content only the client uses (Panorama layouts, models, sounds); nothing is mounted on the
+ * server. A client downloads one addon per reconnect - see @ref workshop_guide.
  *
  * ```cpp
- * auto required = runtime.Addons.Require(3401234567);
- * if (!required)
- *     Log::Warn("addons unavailable: {}", required.error().Detail);
- * else
+ * if (auto required = runtime.Addons.Require(3401234567))
  *     _addon = std::move(*required);   // required until this Subscription drops
+ * else
+ *     Log::Warn("addons unavailable: {}", required.error().Detail);
  * ```
  *
- * **One plugin should own the addon list.** The framework is a static library, so each plugin has
- * its own Runtime, its own instance of this and its own hook; two plugins requiring different
- * addons rewrite the same message and only one wins.
- *
- * Does nothing on a listen server (there is no download step) and when @ref Capability::Addons is off;
- * @ref Require reports either as an error rather than silently doing nothing. Everything here runs
- * on the game thread.
+ * Several plugins may require addons: a plugin's hook leaves alone a message an earlier plugin
+ * already pointed at an addon. @ref Downloaded, @ref Missing and the retry settings cover this
+ * plugin's requirements only. Game thread only.
  */
 class Addons
 {
 public:
-    /** All four must outlive this service; the Runtime declares them above it. */
+    /** All four must outlive this service. */
     Addons(Interfaces& interfaces, const Bindings& bindings, PlayerManager& players, Scheduler& scheduler);
     ~Addons();
     Addons(const Addons&) = delete;
     Addons& operator=(const Addons&) = delete;
 
     /**
-     * Require @p id of every client until the returned Subscription drops.
+     * Require @p id of every client until the returned Subscription drops. Reference counted;
+     * connected clients are not disturbed and pick it up on their next connect.
      *
-     * Requirements are reference counted, so two callers may require the same addon independently.
-     * Already-connected clients are not disturbed; a change takes effect on their next connect.
-     *
-     * @return the requirement, kept as a Subscription, or why nothing was required: @ref ErrorCode::Invalid for id 0,
-     *         @ref ErrorCode::Unsupported on a listen server or when the hook could not install.
+     * @return @ref ErrorCode::Invalid for id 0; @ref ErrorCode::Unsupported on a listen server or
+     *         when the hook could not install.
      */
     [[nodiscard]] Result<Subscription> Require(uint64_t id);
 
-    /** @copydoc Require. Of one client only, on top of the global list. Keyed by SteamID because
-     *  a client cycling through downloads has no stable slot. */
+    /** Like @ref Require, for the client with @p steamId only. */
     [[nodiscard]] Result<Subscription> RequireFor(int64_t steamId, uint64_t id);
 
-    /** What every client is required to have, in the order they are sent. */
+    /** What every client must have, in send order. */
     std::vector<uint64_t> Required() const;
 
-    /** Addons @p slot has still to fetch. Empty once it is fully loaded. */
-    std::vector<uint64_t> Pending(int slot) const;
+    /** What @p slot has still to download. */
+    std::vector<uint64_t> Missing(int slot) const;
 
-    /** Whether @p slot is still fetching anything. For callers that only want the answer, on a
-     *  path where building the list would be the whole cost. */
-    [[nodiscard]] bool HasPending(int slot) const;
+    /** Whether @p slot has anything left to download, without building the list. */
+    [[nodiscard]] bool HasMissing(int slot) const;
 
-    /** A client finished the last addon it was missing and is joining normally. */
-    Event<int /*slot*/> Ready;
+    /** A client connected with every addon this plugin requires. Fires again after a reconnect
+     *  caused by another plugin's addon. */
+    Event<int /*slot*/> Downloaded;
 
-    /** How soon a client must reconnect for its last addon to count as downloaded. Raise it for
-     *  large addons or slow connections; a client returning later than this starts over. */
+    /** How soon a client must reconnect for its addon to count as downloaded. */
     double DownloadTimeoutSeconds = 30.0;
 
-    /** How many times one addon is offered to the same client before it is dropped. This is the
-     *  loop breaker: a client that declines the download otherwise reconnects forever. */
+    /** How often one addon is offered to a client before it is dropped, so a client that declines
+     *  does not reconnect forever. */
     int MaxDownloadAttempts = 3;
 
 private:
-    /** Install on the first requirement, remove when nothing is required. */
-    Status Install();
-    void Remove();
+    /** Hook on the first requirement; unhook once nothing is required. */
+    Status EnsureHook();
+    void UnhookIfUnused();
 
     void OnConnected(Player& player);
+    void OnJoinMessage(const CNetMessage* message, void* client);
 
-    /** The hook's actual work, so the hook itself never changes the outcome. */
-    void HandleSignon(const CNetMessage* message, void* client);
-
-    /** Drop @p slot next frame, if @p steamId still holds it; see @ref _pendingKick. */
+    /** Kicking inside the send hook crashes on Windows, so it waits a tick. */
     void KickLater(int slot, int64_t steamId);
 
     Interfaces& _interfaces;
@@ -102,15 +90,10 @@ private:
     PlayerManager& _players;
     Scheduler& _scheduler;
 
-    /** Requirements and per-client progress, defined under src/: a plugin has no business
-     *  reaching the table, and it keeps this header free of it. */
-    class Impl;
-    std::unique_ptr<Impl> _impl;
+    std::unique_ptr<AddonDownloads> _downloads;
 
     Subscription _connectListener;
-    /** One pending drop per slot. Kicking from inside the SendNetMessage hook crashes on Windows,
-     *  so it happens a frame later; re-queuing a slot cancels the one-shot already queued for it. */
-    PerSlot<Subscription> _pendingKick;
+    PerSlot<Subscription> _pendingKick;  ///< one queued kick per slot; queuing again replaces it
     Subscription _hook;
 };
 
