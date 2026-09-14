@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Targeting.hpp"
+#include "Commands/Targeting.hpp"
 
 #include <VoltMod/Commands/CommandBuilder.hpp>
 #include <VoltMod/Core/Translations.hpp>

@@ -1,9 +1,8 @@
 #pragma once
 
-#include "HttpResult.hpp"
-
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Http/HttpResult.hpp>
 #include <memory>
 #include <string>
 #include <string_view>

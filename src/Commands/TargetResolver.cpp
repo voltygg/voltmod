@@ -1,5 +1,5 @@
 #include "Commands/ArgBinding.hpp"
-#include "Targeting.hpp"
+#include "Commands/Targeting.hpp"
 
 #include <VoltMod/Core/Random.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>

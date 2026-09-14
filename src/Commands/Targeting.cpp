@@ -1,4 +1,4 @@
-#include "Targeting.hpp"
+#include "Commands/Targeting.hpp"
 
 #include <VoltMod/Core/SteamId.hpp>
 #include <VoltMod/Core/Strings.hpp>

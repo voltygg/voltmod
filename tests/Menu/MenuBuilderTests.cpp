@@ -1,4 +1,4 @@
-#include "FakeMenuSurface.hpp"
+#include "Menu/FakeMenuSurface.hpp"
 
 #include <VoltMod/Menu/MenuBuilder.hpp>
 #include <doctest/doctest.h>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ArgBinding.hpp"
+#include "Commands/ArgBinding.hpp"
 
 #include <VoltMod/Commands/CommandBuilder.hpp>
 #include <VoltMod/Core/Translations.hpp>

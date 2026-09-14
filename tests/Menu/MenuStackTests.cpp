@@ -1,5 +1,5 @@
-#include "FakeMenuSurface.hpp"
-#include "FakeTimers.hpp"
+#include "Menu/FakeMenuSurface.hpp"
+#include "Menu/FakeTimers.hpp"
 
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Translations.hpp>
