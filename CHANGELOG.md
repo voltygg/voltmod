@@ -4,6 +4,26 @@
 
 What changed in each VoltMod release. Older history is in git.
 
+## 1.4.6 (2026-09-14)
+
+### Breaking
+
+- `runtime.Ui`, `UiPanel`, `UiPanels`, `UiClick` and the writer types are gone. Draw with
+  `runtime.Screens` and `Screen`; presses arrive as `ButtonPress`. `Capability::UiClicks` is
+  `Capability::ButtonPresses`.
+- `runtime.Menus` is now a `MenuRouter` and center HTML is `runtime.CenterHtml`. Start a menu with
+  `Menus.Start(slot, menu, options)` instead of `Open(slot, menu, options)`. A custom
+  `MenuSurface` must implement `Start` and `IsOpen`.
+- Remove `voltmod/*:with_database` from consumer recipes. The Database library always ships;
+  plugins still opt in with `FEATURES DATABASE`.
+- `voltmod panorama preview` is gone.
+
+### New
+
+- `PanoramaMenu` draws menus on a plugin's own `MenuLayout`, with clicks and sidebar tabs. Hand it
+  to `runtime.Menus.Prefer`; players who cannot see the layout get center HTML.
+- `PlayerScreens` creates a layout's screen for a player the first time something draws for them.
+
 ## 1.4.5 (2026-09-14)
 
 ### Breaking
