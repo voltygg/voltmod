@@ -193,7 +193,7 @@ struct Bindings
     /** ABI: IGameEventListener2* (CPlayerSlot), defined in GameEvents.cpp. */
     Address LegacyGameEventListener;
 
-    /** @defgroup CustomHudSetters CCSCustomHudLayout setters called by @ref UiPanels.
+    /** @defgroup CustomHudSetters CCSCustomHudLayout setters called for a @ref Screen.
      *  `self` is the entity. The real ABI uses `const CUtlString*`, never `const char*`. All five
      *  bind together or not at all; @ref Capability::CustomUi reports failure. @{ */
     Fn<void(void*, const CUtlString*, const CUtlString*, int32_t)> CustomHudSetHasClass;
@@ -204,7 +204,7 @@ struct Bindings
     Fn<void(void*, int32_t, bool)> CustomHudSetInputCapture;
     /** @} */
 
-    /** CServerSideClient::FilterMessage(const CNetMessage*, INetChannel*). Hooked by @ref UiClickHook. */
+    /** CServerSideClient::FilterMessage(const CNetMessage*, INetChannel*). Hooked for @ref ScreenManager::Pressed. */
     Fn<bool(EngineMessageFilter*, const CNetMessage*, void*)> FilterMessage;
     /** CNetworkGameServer::ReplyConnection(CServerSideClient*), which names the addons a client
      *  mounts. Hooked by @ref Addons. */

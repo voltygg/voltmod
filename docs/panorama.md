@@ -4,8 +4,8 @@
 
 A screen is native Panorama XML and CSS - the rules in @ref custom_ui_guide apply -
 written as [Jinja](https://jinja.palletsprojects.com/) templates so repetition (rows,
-tabs, a bar, an icon set) is a loop instead of copy-paste. Rendering a screen also
-derives its C++ binding, so a plugin's header cannot drift from the layout it names.
+tabs, an icon set) is a loop instead of copy-paste. Rendering a screen also emits a
+C++ header naming its ids, so a plugin's code cannot drift from the layout it writes.
 
 ## Where a screen lives
 
@@ -19,27 +19,28 @@ ownership.
 
 ## A screen
 
-```
-{# namespace: ArenaUi::Hud #}
-{% import "card.xml.j2" as cards %}
-{% import "toast.xml.j2" as toasts %}
+```text
+{# namespace: ArenaLayout #}
+{% import "button.xml.j2" as controls %}
+{% import "icons.xml.j2" as icons %}
+{% import "listrow.xml.j2" as list %}
 <root>
   <styles>
     <include src="file://{resources}/styles/custom_game/{{screen}}.css" />
   </styles>
   <Panel class="Layer" hittest="false">
     <Panel id="{{screen}}" class="Screen Hidden" hittest="false">
+      {{ icons.icons("icon", "weapons") }}
       {%- for index in range(3) %}
-      {{ cards.card("card" ~ index, icon_set="weapons", bar=true) }}
+      {{ list.listrow("row" ~ index, hint=true, chevron=true) }}
       {%- endfor %}
-      {{ toasts.toast("toast") }}
+      {{ controls.button("close", "{s:close}") }}
     </Panel>
   </Panel>
 </root>
 ```
 
 ```css
-{% import "bar.css.j2" as bar %}
 {% import "icons.css.j2" as icons %}
 .Screen {
   width: 420px;
@@ -50,10 +51,9 @@ ownership.
   visibility: collapse;
 }
 
-{% include "card.css.j2" %}
-{% include "toast.css.j2" %}
+{% include "listrow.css.j2" %}
+{% include "button.css.j2" %}
 
-{{ bar.fill_rules("Bar", 4) }}
 {{ icons.show_rules("weapons") }}
 ```
 
@@ -61,58 +61,37 @@ The template context is `screen` (the file's own name) and `images` (every icon 
 the owner ships, see [Images and icon sets](#panorama_guide_images)). Block macros
 from the framework's `panorama/blocks/` are pulled in with `{% import %}`; their
 default CSS is pulled in with `{% include %}`, once, in the screen's own stylesheet.
-`{# namespace: X::Y #}` as the template's first line names the binding's C++
-namespace; without it the namespace is `Screens::<Pascal>` (`hud.xml.j2` ->
-`Screens::Hud`).
+`{# namespace: X #}` as the template's first line names the header's C++ namespace;
+without it the namespace is `Screens::<Pascal>` (`hud.xml.j2` -> `Screens::Hud`).
 
 ## Commands
 
 ```bash
 voltmod build                            # renders panorama/screens/ before configuring
-voltmod panorama render [OWNER...]       # write layouts, stylesheets, images and bindings
+voltmod panorama render [OWNER...]       # write layouts, stylesheets, images and headers
 voltmod panorama check [OWNER...]        # read-only: the same checks the client applies silently
 voltmod panorama compile [OWNER...]      # render, run resourcecompiler, install into your client (Windows)
-voltmod panorama preview OWNER/SCREEN    # write an HTML approximation for a browser
 ```
 
-`OWNER` is a plugin name; omitted, every plugin that ships a screen renders. Nothing rendered is committed - a checkout renders
-before it builds, and CI never needs the CS2 Workshop Tools.
+`OWNER` is a plugin name; omitted, every plugin that ships a screen renders. Nothing
+rendered is committed - a checkout renders before it builds, and CI never needs the
+CS2 Workshop Tools.
 
 `check` refuses what the client would otherwise reject silently on load: a
 disallowed element type, a `Button` without an id or nested inside another
 `Button`, a stylesheet included by anything but its source name, an `<Image src>`
-that is neither a game icon nor a real PNG under `images/custom_game/<set>/`, more than
-too many interned names (see [The name budget](#panorama_guide_budget)), two owners
-writing the same resource path, and a screen whose layout and stylesheet do not
-derive a binding. It writes nothing, and it is part of `uv run poe lint`.
+that is neither a game icon nor a real PNG under `images/custom_game/<set>/`, too
+many interned names (see [The name budget](#panorama_guide_budget)), two owners
+writing the same resource path, and a screen whose names cannot be spelled in C++.
+It writes nothing, and it is part of `uv run poe lint`.
 
 `compile` renders first, then compiles with `resourcecompiler.exe` and installs
 into your own client. `--no-deploy` leaves the client alone, which is how a
 workshop addon is built - see [Publishing](#panorama_guide_publish).
 
-## Preview {#panorama_guide_preview}
-
-`voltmod panorama preview OWNER/SCREEN [--open]` writes a self-contained HTML file to
-`build/panorama/preview/<screen>.html` - open it in any browser, no Workshop Tools,
-compile, or client reconnect needed. A side panel drives the screen: a text box per
-dialog variable, a dropdown per class family with a picker for the panel to write it
-on, and a folded list of `Hidden` checkboxes, one per panel.
-
-The page, its side panel and the script wiring those controls up live in
-`templates/panorama/preview.html.j2`, so the tool's own look is edited as HTML rather than as
-strings in Python.
-
-It approximates: Panorama CSS is translated property by property into ordinary web
-CSS (`flow-children` to flex, `fill-parent-flow`/`fit-children` to flex sizing,
-alignment to auto margins), so spacing, fonts, and anything CSS cannot express are
-close but not exact. The gap worth knowing is a panel with no `flow-children` at all:
-Panorama stacks its children, the preview lays them in a row, so a stacked column of
-marks or a switch reads wrong here and right in game. It is a layout sketch, not the
-client.
-
 ## Build tree outputs
 
-```
+```text
 build/panorama/<owner>/panorama/layout/custom_game/<name>.xml
 build/panorama/<owner>/panorama/styles/custom_game/<name>.css
 build/panorama/<owner>/panorama/images/custom_game/<set>/<icon>.png
@@ -120,68 +99,50 @@ build/panorama/<owner>/panorama/images/custom_game/<set>/<icon>.vtex
 build/panorama/<owner>/include/Ui/<Pascal>.hpp
 ```
 
-`cmake/VoltModPlugin.cmake` adds
-`build/panorama/<owner>/include` as a private include directory for a plugin whose
-own source tree has a `panorama/screens/` - so `#include <Ui/<Pascal>.hpp>`
-resolves once `voltmod build` has rendered.
+`cmake/VoltModPlugin.cmake` adds `build/panorama/<owner>/include` as a private
+include directory for a plugin whose own source tree has a `panorama/screens/` - so
+`#include <Ui/<Pascal>.hpp>` resolves once `voltmod build` has rendered.
 
 ## What the header holds
 
 `voltmod panorama render` reads a screen's rendered layout and stylesheet and emits
-one constant for each name a plugin has to spell. It infers nothing beyond that:
-how those constants become writers is the plugin's own code.
+one constant for each name a plugin has to spell. A plugin writes those names
+through @ref VoltMod::Screen.
 
 | In the screen | In the header |
 | --- | --- |
 | the outermost id | `Layout` and `RootId`; every other id must start with `<screen>_` |
-| every other `id="..."` | a `std::string_view` named by what follows the screen prefix - `lab_card0_bar` becomes `Card0Bar` |
+| every other `id="..."` | a `std::string_view` named by what follows the screen prefix - `lab_close` becomes `Close` |
 | `text="{s:var}"` | a `std::string_view` named `<Var>Var` |
 | a block the template repeats - ids `<screen>_<stem><N>[_<suffix>]` and variables `<stem><N>[_<suffix>]` for N = 0..K-1 (K >= 2), alike in every copy | `struct <Stem>` with one `std::string_view` per member (`Id`, `<Suffix>`, `<Suffix>Var`, or `Var` for a bare variable) and `std::array<<Stem>, K> <Stem>s`; those names get no flat constant |
-| a `Prefix--variant` class, in the layout or the stylesheet | a `PrefixClasses` array, plus `enum class Prefix` and `PrefixNames` unless every variant is a step number |
+| a `Prefix--variant` class, in the layout or the stylesheet | a `PrefixClasses` array |
 
 A family is found by a plain scan for `.Prefix--variant`, in layout order first and
-then stylesheet order. The stylesheet half is not optional: a `Step--*` family is
-declared only there, never in the layout.
+then stylesheet order. The stylesheet half matters: a family only selectors use is
+declared nowhere in the layout.
 
 `tests/Ui/Fixtures/Lab.hpp` is a real header, checked in and regenerated by
-`cli/tests/test_panorama_layout.py` so the two never drift. It comes from a screen shaped like
-the example above (two cards and a toast):
+`cli/tests/test_panorama_layout.py` so the two never drift. It comes from a screen
+shaped like the example above, with two rows:
 
 ```cpp
 inline constexpr std::string_view RootId = "lab";
-inline constexpr std::string_view Toast = "lab_toast";
-inline constexpr std::string_view ToastTitleVar = "toast_title";
+inline constexpr std::string_view Close = "lab_close";
+inline constexpr std::string_view CloseVar = "close";
 
-struct Card { std::string_view Id, Icon, Bar, TitleVar, SubtitleVar, ValueVar; };
-inline constexpr std::array<Card, 2> Cards{ Card{"lab_card0", "lab_card0_icon", ...}, Card{"lab_card1", ...} };
+struct Row { std::string_view Id, Button, Decrease, Increase, LabelVar, HintVar, ValueVar; };
+inline constexpr std::array<Row, 2> Rows{ Row{"lab_row0", "lab_row0_button", ...}, Row{"lab_row1", ...} };
 
-enum class Icon { Ak47, Awp };
-inline constexpr std::array<std::string_view, 2> IconNames{"ak47", "awp"};
 inline constexpr std::array<std::string_view, 2> IconClasses{"Icon--ak47", "Icon--awp"};
 ```
 
-The plugin declares the writers it wants and builds one set per array entry with
-@ref VoltMod::MakeWriters, which is what `tests/Ui/BoundScreenTests.cpp` and the `ui`
-plugin's `Hud.cpp` both do:
+Writing one row of it:
 
 ```cpp
-struct CardWriters
-{
-    VoltMod::TextVar Title, Subtitle, Value;
-    VoltMod::ClassChoice Icon, Bar;
-    VoltMod::ClassFlag Hidden;
-};
-
-constexpr CardWriters MakeCard(const LabUi::Card& card)
-{
-    return {.Title = {LabUi::RootId, card.TitleVar}, /* ... */ .Hidden = {card.Id, "Hidden"}};
-}
-
-constexpr auto Cards = VoltMod::MakeWriters(LabUi::Cards, MakeCard);
+const LabUi::Row& row = LabUi::Rows[index];
+screen.SetClass(slot, row.Id, "Hidden", false);
+screen.SetText(slot, row.LabelVar, "Kick");
 ```
-
-`TextVar`, `ClassFlag` and `ClassChoice` are `VoltMod/Ui/Writers.hpp` writers - see
-@ref custom_ui_guide's "Screens and writers" section for how to call them.
 
 ## Block library
 
@@ -190,27 +151,28 @@ constexpr auto Cards = VoltMod::MakeWriters(LabUi::Cards, MakeCard);
 
 | Block | Signature | Draws |
 | --- | --- | --- |
-| `card` | `card(id, icon_set=none, bar=false)` | a row: an optional icon set, two lines of text, a value, an optional bar along the bottom; starts `Hidden`, and the icon takes room only while the driver puts `HasIcon` on the card |
-| `bar` | `bar(id)` | a meter panel; pair with `bar.css.j2`'s `fill_rules(cls, steps)` macro for the `Step--0`..`Step--<steps>` width rules; `Hidden` on the bar takes it away |
+| `card` | `card(id, icon_set=none, bar=false)` | a HUD row: an optional icon set, two lines of text, a value, an optional bar along the bottom; starts `Hidden`, and the icon takes room only while `HasIcon` is on the card |
+| `bar` | `bar(id)` | a meter; pair with `bar.css.j2`'s `fill_rules(cls, steps)` macro for the `Step--0`..`Step--<steps>` width rules; `Hidden` on the bar takes it away |
+| `toast` | `toast(id)` | a notice that fades in while class `Show` is on it |
 | `icons` | `icons(id, set)` | one `<Image>` per PNG in the icon set, or per `(name, icon)` pair of client icons, stacked; pair with `icons.css.j2`'s `show_rules(set)` macro so each `Icon--<name>` class uncollapses its own image |
-| `toast` | `toast(id)` | a notice that fades in when the driver puts class `Show` on it |
-| `button` | `button(id, text, variant="")` | a labelled Button; `variant` adds a `Btn-<variant>` modifier |
-| `dialog` | `dialog(id)`, called not imported | a centred panel with a crumb/title/subtitle header and a body slot |
-| `listrow` | `listrow(id, switch, hint, value, steppers, chevron)` | one row of a list: two lines of text, a value, a collapsed switch and chevron the screen shows per row class, steppers |
+| `button` | `button(id, text, variant="")` | a labelled Button; `variant` adds a `Button-<variant>` modifier |
+| `dialog` | `dialog(id)`, called not imported | a centred panel with a breadcrumb/title/subtitle header and a body slot |
+| `listrow` | `listrow(id, switch, hint, value, steppers, chevron)` | one row of a list: two lines of text, a value, a collapsed switch and chevron the screen shows per row class, and steppers; its ids end `_button`, `_decrease` and `_increase` |
 | `tabs` | `tabs(id, count)` | a strip of hidden-by-default tabs, each reading `{s:<id><i>}` |
-| `pager` | `pager(id)` | previous, a `{s:<id>}` label, next |
+| `pager` | `pager(id)` | previous (`_previous`), a `{s:<id>}` label, next (`_next`) |
 
 `dialog` takes its body through `{% call %}` rather than an argument:
 
-```
+```text
 {% call shell.dialog("panel") %}
   ...rows, pager, footer...
 {% endcall %}
 ```
 
-A block's CSS carries layout only - sizes, flow, alignment. Colour, radius and state belong to
-the screen that includes it, which is what lets two screens share a row and still look different.
-A static modifier uses one dash (`Btn-ghost`): `--` reads as a server-written class family.
+A block's CSS carries layout only - sizes, flow, alignment. Colour, radius and state
+belong to the screen that includes it, which is what lets two screens share a row and
+still look different. A static modifier uses one dash (`Button-ghost`): `--` reads as
+a server-written class family.
 
 ## Images and icon sets {#panorama_guide_images}
 
@@ -229,8 +191,8 @@ sharply at menu sizes. The `icons` block does all three when `set` is a list of
 
 ## The name budget {#panorama_guide_budget}
 
-The client permanently interns every panel id, class name and dialog variable it
-sees into a 1024-entry table, and that table is shared by every screen it loads.
+The client permanently interns every element id, class name and variable it sees
+into a 1024-entry table, and that table is shared by every screen it loads.
 `voltmod panorama check` counts the names of all the screens it builds and
 refuses the set once it passes 1024, naming the biggest screens first. It also
 refuses any single screen past 400 names on its own, which is what a runaway

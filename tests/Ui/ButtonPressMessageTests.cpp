@@ -1,10 +1,10 @@
-#include "Ui/ClickMessage.hpp"
+#include "Ui/ButtonPressMessage.hpp"
 
 #include <doctest/doctest.h>
 #include <string>
 
+using VoltMod::ButtonPressMessage;
 using VoltMod::ErrorCode;
-using VoltMod::ParseClickMessage;
 
 /** A protobuf key byte: field number in the high bits, wire type in the low three. */
 static char Key(int field, int wireType)
@@ -26,7 +26,7 @@ static std::string Press(unsigned char layout, const std::string& button)
 
 TEST_CASE("A press carries the layout handle and the button id")
 {
-    auto parsed = ParseClickMessage(Press(7, "vm_row3"));
+    auto parsed = ButtonPressMessage::Parse(Press(7, "vm_row3"));
     REQUIRE(parsed.has_value());
     CHECK(parsed->LayoutHandle == 7);
     CHECK(parsed->ButtonId == "vm_row3");
@@ -43,7 +43,7 @@ TEST_CASE("A multi-byte handle is decoded as a varint, not a byte")
     bytes += static_cast<char>(2);
     bytes += "ok";
 
-    auto parsed = ParseClickMessage(bytes);
+    auto parsed = ButtonPressMessage::Parse(bytes);
     REQUIRE(parsed.has_value());
     CHECK(parsed->LayoutHandle == 150);
     CHECK(parsed->ButtonId == "ok");
@@ -58,7 +58,7 @@ TEST_CASE("The fields are read wherever they sit")
     bytes += Key(1, 0);
     bytes += static_cast<char>(9);
 
-    auto parsed = ParseClickMessage(bytes);
+    auto parsed = ButtonPressMessage::Parse(bytes);
     REQUIRE(parsed.has_value());
     CHECK(parsed->LayoutHandle == 9);
     CHECK(parsed->ButtonId == "accept");
@@ -66,7 +66,7 @@ TEST_CASE("The fields are read wherever they sit")
 
 TEST_CASE("An empty button id is a value, not a failure")
 {
-    auto parsed = ParseClickMessage(Press(1, ""));
+    auto parsed = ButtonPressMessage::Parse(Press(1, ""));
     REQUIRE(parsed.has_value());
     CHECK(parsed->ButtonId.empty());
 }
@@ -95,7 +95,7 @@ TEST_CASE("A field CS2 adds later is skipped rather than refused")
         }
 
         CAPTURE(wireType);
-        auto parsed = ParseClickMessage(bytes);
+        auto parsed = ButtonPressMessage::Parse(bytes);
         REQUIRE(parsed.has_value());
         CHECK(parsed->LayoutHandle == 4);
         CHECK(parsed->ButtonId == "decline");
@@ -107,15 +107,15 @@ TEST_CASE("A payload missing either field is refused")
     std::string layoutOnly;
     layoutOnly += Key(1, 0);
     layoutOnly += static_cast<char>(3);
-    CHECK(ParseClickMessage(layoutOnly).error().Code == ErrorCode::Invalid);
+    CHECK(ButtonPressMessage::Parse(layoutOnly).error().Code == ErrorCode::Invalid);
 
     std::string buttonOnly;
     buttonOnly += Key(2, 2);
     buttonOnly += static_cast<char>(2);
     buttonOnly += "hi";
-    CHECK(ParseClickMessage(buttonOnly).error().Code == ErrorCode::Invalid);
+    CHECK(ButtonPressMessage::Parse(buttonOnly).error().Code == ErrorCode::Invalid);
 
-    CHECK(ParseClickMessage("").error().Code == ErrorCode::Invalid);
+    CHECK(ButtonPressMessage::Parse("").error().Code == ErrorCode::Invalid);
 }
 
 TEST_CASE("A length that runs past the end is refused rather than read")
@@ -127,7 +127,7 @@ TEST_CASE("A length that runs past the end is refused rather than read")
     bytes += static_cast<char>(64);  // claims 64 bytes and supplies two
     bytes += "hi";
 
-    CHECK(ParseClickMessage(bytes).error().Code == ErrorCode::Invalid);
+    CHECK(ButtonPressMessage::Parse(bytes).error().Code == ErrorCode::Invalid);
 }
 
 TEST_CASE("A truncated varint is refused rather than read past the end")
@@ -136,7 +136,7 @@ TEST_CASE("A truncated varint is refused rather than read past the end")
     bytes += Key(1, 0);
     bytes += static_cast<char>(0x80);  // continuation bit set, nothing follows
 
-    CHECK(ParseClickMessage(bytes).error().Code == ErrorCode::Invalid);
+    CHECK(ButtonPressMessage::Parse(bytes).error().Code == ErrorCode::Invalid);
 }
 
 TEST_CASE("A wire type that carries no length is refused, since the rest cannot be found")
@@ -144,13 +144,13 @@ TEST_CASE("A wire type that carries no length is refused, since the rest cannot 
     std::string bytes = Press(1, "ok");
     bytes += Key(9, 3);  // a proto2 group, which proto3 does not emit
 
-    CHECK(ParseClickMessage(bytes).error().Code == ErrorCode::Invalid);
+    CHECK(ButtonPressMessage::Parse(bytes).error().Code == ErrorCode::Invalid);
 }
 
 TEST_CASE("A button id holding a NUL is returned intact, for the caller to reject")
 {
     std::string button("a\0b", 3);
-    auto parsed = ParseClickMessage(Press(2, button));
+    auto parsed = ButtonPressMessage::Parse(Press(2, button));
     REQUIRE(parsed.has_value());
     CHECK(parsed->ButtonId.size() == 3);
 }
@@ -159,9 +159,9 @@ TEST_CASE("A skipped field claiming a huge length is refused, not wrapped around
 {
     std::string bytes = Press(1, "ok");
     bytes += Key(9, 2);
-    // A 10-byte varint of all-ones: 2^64-1, which would wrap the cursor if it were simply added.
+    // A 10-byte varint of all ones: 2^64-1, which would wrap the cursor if simply added.
     bytes.append(9, static_cast<char>(0xFF));
     bytes += static_cast<char>(0x01);
 
-    CHECK(ParseClickMessage(bytes).error().Code == ErrorCode::Invalid);
+    CHECK(ButtonPressMessage::Parse(bytes).error().Code == ErrorCode::Invalid);
 }

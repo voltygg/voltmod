@@ -11,7 +11,6 @@ from voltmod.panorama.layout import (
     Screen,
     header_namespace,
     member_name,
-    needs_enum,
     pascal_case,
     read_screen,
 )
@@ -106,7 +105,6 @@ def screen_header(screen: Screen, template_source: str) -> str:
         namespace=header_namespace(screen, template_source),
         member_name=member_name,
         pascal_case=pascal_case,
-        needs_enum=needs_enum,
     )
 
 

@@ -9,7 +9,6 @@ from voltmod.panorama.layout import (
     Screen,
     is_cpp_name,
     member_name,
-    needs_enum,
     read_screen,
     selector_classes,
 )
@@ -147,14 +146,10 @@ def _check_cpp_names(screen: Screen, source: Path) -> list[str]:
             if members.count(member) > 1:
                 problems.append(f"{source}: the {block.name} block names {member} twice")
 
-    for family, variants in screen.families.items():
-        # Step-number families get no enum, so their variants need not be C++ names.
-        named = needs_enum(variants)
-        if not is_cpp_name(family) or (named and not all(is_cpp_name(v) for v in variants)):
+    for family in screen.families:
+        if not is_cpp_name(family):
             problems.append(f"{source}: class family '{family}--*' cannot be spelled in C++")
-        spelled = (family, f"{family}Names", f"{family}Classes") if named else (f"{family}Classes",)
-        for one in spelled:
-            take(one, f"the {family} family")
+        take(f"{family}Classes", f"the {family} family")
     return problems
 
 

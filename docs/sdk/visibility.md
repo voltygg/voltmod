@@ -44,7 +44,7 @@ visibility.ShowOnlyTo(entity.Ref(), viewerSlot);  // only this client receives i
 visibility.ShowToEveryone(entity.Ref());           // networked normally again
 ```
 
-Entries are keyed by @ref VoltMod::EntityRef: one whose entity is gone drops itself at the next snapshot, so removing the entity is enough. Clear an entry to hand a live entity back to everyone. Private @ref VoltMod::UiPanel panels are built on this.
+Entries are keyed by @ref VoltMod::EntityRef: one whose entity is gone drops itself at the next snapshot, so removing the entity is enough. Clear an entry to hand a live entity back to everyone. Player screens from @ref VoltMod::ScreenManager::ForPlayer are built on this.
 
 Requires the `CheckTransmitPlayerSlot` gamedata offset (the recipient slot inside the partially-reversed `CCheckTransmitInfo`); if it is missing the service logs a warning at load and becomes inert.
 

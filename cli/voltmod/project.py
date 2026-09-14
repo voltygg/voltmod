@@ -27,7 +27,7 @@ def default_preset() -> str:
 
 
 def load_template(name: str) -> Template:
-    """One of the bundled Jinja templates, such as `panorama/preview.html.j2`."""
+    """One of the bundled Jinja templates, such as `panorama/screen.hpp.j2`."""
     return _template_environment().get_template(name)
 
 

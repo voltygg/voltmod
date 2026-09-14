@@ -146,11 +146,6 @@ def is_cpp_name(name: str) -> bool:
     return bool(_CPP_IDENTIFIER.match(pascal_case(name)))
 
 
-def needs_enum(variants: list[str]) -> bool:
-    """Named variants get an `enum class`; step numbers do not."""
-    return not all(variant.isdigit() for variant in variants)
-
-
 def css_rules(stylesheet: str) -> list[tuple[str, str]]:
     """Every rule as (selector, declarations), in source order, comments stripped."""
     return [

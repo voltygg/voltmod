@@ -10,8 +10,8 @@ every tick, read with WASD / E / R (see @ref menu_feedback_keys), and needing
 nothing on the client.
 
 A clickable menu is a plugin's own Panorama screen rather than a framework
-feature. The framework ships the pieces - @ref VoltMod::Screen, the widget
-writers and the block library - and @ref panorama_guide covers building one.
+feature. The framework ships the pieces - @ref VoltMod::Screen and the block
+library - and @ref panorama_guide covers building one.
 
 ## What a surface owns, and what it does not {#menu_surface_split}
 

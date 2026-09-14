@@ -25,7 +25,7 @@ class CGameEntitySystem;
 class CGlobalVars;
 class CNetMessage;
 class CSchemaSystemTypeScope;
-// tier1's ref-counted string. Named only as `const CUtlString*` in the UiPanels setter
+// tier1's ref-counted string. Named only as `const CUtlString*` in the custom HUD setter
 // prototypes, which is the real ABI of those functions rather than a convenience.
 class CUtlString;
 class Color;
@@ -82,13 +82,12 @@ class PrecacheGameSystem;
 /** Stand-in for the SDK game-system factory. Defined in src/Engine/GameSystem.hpp. */
 class GameSystemFactory;
 
-/** Everything a UiPanel keeps between calls: the entity, what each player was sent and the click routing.
- *  Held by shared_ptr so a move does not move the events handlers point at. Defined in
- *  src/Ui/UiPanelState.hpp. */
-struct UiPanelState;
-/** The FilterMessage hook behind UiPanels::Clicked. Held by unique_ptr so no public header
- *  reaches Hook.hpp. Defined in src/Ui/UiClickHook.hpp. */
-class UiClickHook;
+/** The entity behind a Screen, held by unique_ptr so no public header reaches the SDK string
+ *  types. Defined in src/Ui/ScreenEntity.hpp. */
+class ScreenEntity;
+/** The FilterMessage hook behind ScreenManager::Pressed. Held by unique_ptr so no public header
+ *  reaches Hook.hpp. Defined in src/Ui/ButtonPressHook.hpp. */
+class ButtonPressHook;
 /** The queries ClientConVars has in flight, kept SDK-free for its tests. Defined in
  *  src/Hooks/PendingConVarQueries.hpp. */
 class PendingConVarQueries;

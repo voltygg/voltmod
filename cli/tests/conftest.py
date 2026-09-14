@@ -11,23 +11,25 @@ PNG = bytes.fromhex(
     "49454e44ae426082"
 )
 
-HUD_XML = """{% import "card.xml.j2" as blocks %}
+HUD_XML = """{% import "icons.xml.j2" as icons %}
+{% import "listrow.xml.j2" as list %}
 <root>
   <Panel class="Layer" hittest="false">
     <Panel id="{{screen}}" class="Screen" hittest="false">
-      {{ blocks.card("slot0", icon_set="weapons", bar=true) }}
+      {{ icons.icons("slot0_icon", "weapons") }}
+      {{ list.listrow("slot0", hint=true) }}
     </Panel>
   </Panel>
 </root>
 """
 
-HUD_CSS = """{% import "bar.css.j2" as bar %}
+HUD_CSS = """{% import "icons.css.j2" as icons %}
 .Screen {
   color: #e8e6e0;
   background-color: rgba(255, 255, 255, 0.05);
 }
-{% include "card.css.j2" %}
-{{ bar.fill_rules("Bar", 4) }}
+{% include "listrow.css.j2" %}
+{{ icons.show_rules("weapons") }}
 """
 
 

@@ -1,10 +1,8 @@
 #pragma once
 
-// UI panels and the button events they emit. Runtime includes these types, but this header
-// documents the module-level include explicitly.
+// Screens and the button presses coming back from them. Runtime includes these types; this header
+// is the module-level include.
 
+#include <VoltMod/Ui/ButtonPress.hpp>
 #include <VoltMod/Ui/Screen.hpp>
-#include <VoltMod/Ui/UiClick.hpp>
-#include <VoltMod/Ui/UiPanel.hpp>
-#include <VoltMod/Ui/UiPanels.hpp>
-#include <VoltMod/Ui/Writers.hpp>
+#include <VoltMod/Ui/ScreenManager.hpp>

@@ -1,6 +1,5 @@
-"""The `voltmod panorama` commands: render, compile, check and preview screens."""
+"""The `voltmod panorama` commands: render, compile and check screens."""
 
-import webbrowser
 from pathlib import Path
 from typing import Annotated
 
@@ -9,11 +8,10 @@ import typer
 from voltmod.check_results import print_results
 from voltmod.panorama.check import check_screens
 from voltmod.panorama.compiler import compile_and_install
-from voltmod.panorama.preview import write_preview
 from voltmod.panorama.render import render_screens, screen_owners, screen_sources
 from voltmod.project import Project
 
-panorama_commands = typer.Typer(help="Render, check, compile, and preview Panorama screens.")
+panorama_commands = typer.Typer(help="Render, check and compile Panorama screens.")
 
 Owners = Annotated[
     list[str] | None,
@@ -75,17 +73,3 @@ def check_command(owners: Owners = None) -> None:
         raise typer.Exit(1)
     count = sum(len(screen_sources(owner)) for owner in screen_owners(root, owners))
     print(f"Checked {count} screen(s)")
-
-
-@panorama_commands.command("preview")
-def preview_command(
-    target: Annotated[str, typer.Argument(help="OWNER/SCREEN to preview")],
-    open_browser: Annotated[
-        bool, typer.Option("--open", help="Open the written HTML in a browser")
-    ] = False,
-) -> None:
-    """Write a self-contained HTML approximation of a screen; no client needed."""
-    out = write_preview(Project.load().root, target)
-    if open_browser:
-        webbrowser.open(out.as_uri())
-    print(out)

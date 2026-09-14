@@ -43,15 +43,6 @@ inline constexpr std::array<{{ block.struct_name }}, {{ block.count }}> {{ block
 {% endfor %}
 {% endif %}
 {% for family, variants in screen.families.items() %}
-{% if needs_enum(variants) %}
-enum class {{ family }}
-{
-{% for variant in variants %}
-    {{ pascal_case(variant) }},
-{% endfor %}
-};
-inline constexpr std::array<std::string_view, {{ variants | length }}> {{ family }}Names{{ string_list(variants) }};
-{% endif %}
 inline constexpr std::array<std::string_view, {{ variants | length }}> {{ family }}Classes{{ string_list(variants, family ~ "--") }};
 
 {% endfor %}

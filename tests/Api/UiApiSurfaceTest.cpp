@@ -1,8 +1,9 @@
 #include <VoltMod/Ui/Api.hpp>
 
-void VoltmodApiSurface_UiLinks(VoltMod::UiPanel& panel, VoltMod::UiPanels& ui, const VoltMod::UiClick& click)
+void VoltmodApiSurface_UiLinks(VoltMod::Screen& screen, VoltMod::ScreenManager& screens,
+                               const VoltMod::ButtonPress& press)
 {
-    (void)panel;
-    (void)ui;
-    (void)click;
+    (void)screen;
+    (void)screens;
+    (void)press;
 }

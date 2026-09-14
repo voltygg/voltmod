@@ -14,22 +14,23 @@ from voltmod.panorama.render import ScreenRenderer, screen_header, screen_owners
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 LAB_XML = """{# namespace: LabUi #}
-{% import "card.xml.j2" as cards %}
-{% import "toast.xml.j2" as toasts %}
+{% import "button.xml.j2" as controls %}
+{% import "icons.xml.j2" as icons %}
+{% import "listrow.xml.j2" as list %}
 <root>
   <Panel class="Layer" hittest="false">
     <Panel id="{{screen}}" class="Screen Hidden" hittest="false">
+      {{ icons.icons("icon", "weapons") }}
       {%- for index in range(2) %}
-      {{ cards.card("card" ~ index, icon_set="weapons", bar=true) }}
+      {{ list.listrow("row" ~ index, switch=true, hint=true, steppers=true, chevron=true) }}
       {%- endfor %}
-      {{ toasts.toast("toast") }}
+      {{ controls.button("close", "{s:close}") }}
     </Panel>
   </Panel>
 </root>
 """
 
-LAB_CSS = """{% import "bar.css.j2" as bar %}
-{% import "icons.css.j2" as icons %}
+LAB_CSS = """{% import "icons.css.j2" as icons %}
 .Screen {
   width: 420px;
   flow-children: down;
@@ -39,10 +40,9 @@ LAB_CSS = """{% import "bar.css.j2" as bar %}
   visibility: collapse;
 }
 
-{% include "card.css.j2" %}
-{% include "toast.css.j2" %}
+{% include "listrow.css.j2" %}
+{% include "button.css.j2" %}
 
-{{ bar.fill_rules("Bar", 4) }}
 {{ icons.show_rules("weapons") }}
 """
 
@@ -80,7 +80,7 @@ def test_a_family_keeps_the_order_it_was_declared_in():
 
 def test_a_decimal_in_a_declaration_is_not_read_as_a_family():
     header = header_for('<root><Panel id="s" /></root>', ".Bar { width: 33.3--4%; }\n")
-    assert "enum class" not in header
+    assert "Classes" not in header
 
 
 def test_without_a_directive_the_namespace_comes_from_the_screen():

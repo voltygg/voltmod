@@ -9,7 +9,7 @@ namespace VoltMod
  * @file ServerSideClients.hpp
  * @brief The engine's connected-client objects, for the hooks that run on one.
  *
- * `CServerSideClient` is the per-connection object `UiClickHook` and `Addons` hook into. The SDK
+ * `CServerSideClient` is the per-connection object `ButtonPressHook` and `Addons` hook into. The SDK
  * exposes no accessor for it, so it is reached by gamedata offsets. Deliberately internal to
  * `src/`: a plugin has `PlayerRef` and `Player` for everything it should be doing with a
  * connection, and nothing in the public API needs a raw client pointer.

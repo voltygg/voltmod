@@ -1,55 +1,63 @@
 #pragma once
 
-#include <VoltMod/Core/PerSlot.hpp>
-#include <VoltMod/Core/SlotEvents.hpp>
-#include <VoltMod/Ui/UiPanels.hpp>
-#include <string>
+#include <VoltMod/Core/Result.hpp>
+#include <VoltMod/Engine/EngineTypes.hpp>
+#include <memory>
 #include <string_view>
 
 namespace VoltMod
 {
 
 /**
- * @brief One generated layout, owned: the panel it draws on and whether its root is hidden.
+ * @brief One spawned Panorama layout, from @ref ScreenManager: shared by everyone, or owned by one player.
  *
- * Either shared - one panel everyone sees - or private, a panel per player made on first use, so
- * a spectating admin sees their own screen rather than the one belonging to the pawn they watch.
+ * A shared screen writes for @ref EveryoneSlot or one player. A player screen is networked to its
+ * owner alone and stays visible while they are dead or spectating; its writes take the owner's slot
+ * or @ref EveryoneSlot.
  *
- * @ref Show re-ensures the panel on every call, which is what recovers from a map change: the
- * panel goes empty then, and the next Show re-spawns it rather than needing a reconnect handler.
- * Repeat calls cost nothing - the panel's write cache drops the unhide it has already sent.
+ * Writes never spawn: call @ref EnsureSpawned before a redraw. It also recovers after a map change
+ * removed the entity. Unchanged values are not re-sent, so redrawing everything is cheap. Destroying
+ * the screen removes the entity. Does nothing unless @ref Capability::CustomUi is on.
  */
 class Screen
 {
 public:
-    /** One panel for everyone. A @ref UiPanels::Panel failure is logged here, leaving an empty
-     *  panel that fails every later @ref Show the same way. */
-    Screen(UiPanels& ui, std::string_view layout, std::string_view rootId);
+    /** An empty screen: every write fails with Error::NotFound. */
+    Screen();
+    ~Screen();
 
-    /** A panel per player, spawned on first @ref Show. @p slots drops a departing player's panel
-     *  so it does not leak into whoever takes the slot next. */
-    Screen(UiPanels& ui, SlotEvents& slots, std::string_view layout, std::string_view rootId);
+    Screen(Screen&&) noexcept;
+    /** Removes what this screen held before taking the other one's entity. */
+    Screen& operator=(Screen&&) noexcept;
+    Screen(const Screen&) = delete;
+    Screen& operator=(const Screen&) = delete;
 
-    /** Make the layout exist for @p slot and unhide its root; @p capture also gives that slot the
-     *  cursor. False when it cannot be shown - the panel already logged why. */
-    bool Show(int slot, bool capture = false);
+    /** Whether the entity exists right now. */
+    explicit operator bool() const;
 
-    /** Hide the root for @p slot and drop its cursor. Keeps the entity and its other state. */
-    void Hide(int slot);
+    /** Spawn or respawn until @p slot can be written to. False logs why once per attempt. */
+    bool EnsureSpawned(int slot);
 
-    /** The panel @p slot draws on. Empty when it could not be spawned. */
-    UiPanel& Panel(int slot = EveryoneSlot);
+    /** Set the text a `text="{s:variable}"` Label shows, for @p slot or @ref EveryoneSlot. */
+    Status SetText(int slot, std::string_view variable, std::string_view value);
 
-    [[nodiscard]] std::string_view Layout() const noexcept;
+    /** Add (@p on) or remove @p className on the element with @p elementId. */
+    Status SetClass(int slot, std::string_view elementId, std::string_view className, bool on);
+
+    /** Give @p slot a mouse cursor over the layout. Nothing in it is clickable without one. */
+    Status ShowCursor(int slot, bool shown);
+
+    /** Remove the entity now instead of at destruction. The next @ref EnsureSpawned spawns a fresh one. */
+    void Remove();
 
 private:
-    UiPanels& _ui;
-    std::string _layout;
-    std::string _root;
-    /** True when each player draws on their own panel. */
-    bool _perPlayer;
-    UiPanel _shared;
-    PerSlot<UiPanel> _private;
+    friend class ScreenManager;
+
+    explicit Screen(std::unique_ptr<ScreenEntity> entity);
+
+    static Error Empty();
+
+    std::unique_ptr<ScreenEntity> _entity;
 };
 
 }  // namespace VoltMod

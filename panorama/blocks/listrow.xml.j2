@@ -1,10 +1,10 @@
 {#- One row of a list: two lines of text, a value, an optional switch and chevron, and optional
-    steppers. The row panel, the press target and each stepper carry their own id, so a driver can
-    hide the row, read a press and read a step separately. The switch and chevron start collapsed;
-    the screen's stylesheet shows them per a class the driver puts on the row. -#}
+    steppers. The row, its button and each stepper carry their own id, so a screen can hide the
+    row, read a press and read a step separately. The switch and chevron start collapsed; the
+    screen's stylesheet shows them per a class written on the row. -#}
 {% macro listrow(id, switch=false, hint=false, value=true, steppers=false, chevron=false) -%}
 <Panel id="{{screen}}_{{id}}" class="Row Hidden" hittest="true">
-  <Button id="{{screen}}_{{id}}_btn" class="Row-hit">
+  <Button id="{{screen}}_{{id}}_button" class="Row-button">
     <Panel class="Row-body" hittest="false">
       <Label class="Row-label" text="{s:{{id}}_label}" hittest="false" />
       {%- if hint %}
@@ -25,10 +25,10 @@
   </Button>
   {%- if steppers %}
   <Panel class="Steppers" hittest="true">
-    <Button id="{{screen}}_{{id}}_dec" class="Stepper">
+    <Button id="{{screen}}_{{id}}_decrease" class="Stepper">
       <Label class="Stepper-glyph" text="&#9664;" hittest="false" />
     </Button>
-    <Button id="{{screen}}_{{id}}_inc" class="Stepper">
+    <Button id="{{screen}}_{{id}}_increase" class="Stepper">
       <Label class="Stepper-glyph" text="&#9654;" hittest="false" />
     </Button>
   </Panel>

@@ -21,7 +21,7 @@
 #include <VoltMod/Messaging/Messages.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/Policy.hpp>
-#include <VoltMod/Ui/UiPanels.hpp>
+#include <VoltMod/Ui/ScreenManager.hpp>
 #include <VoltMod/Unsafe/Unsafe.hpp>
 #include <VoltMod/Workshop/Addons.hpp>
 #include <cstddef>
@@ -46,7 +46,7 @@ struct LoadContext
  *
  * Services are flat members grouped by role, such as `runtime.Hooks.Movement`. Declaration order
  * is dependency order: members initialize from earlier members and are destroyed before them.
- * Unsafe comes early because most services use its bindings; Ui and Addons follow the hook tiers
+ * Unsafe comes early because most services use its bindings; Screens and Addons follow the hook tiers
  * because their vtable hooks must be removed first.
  */
 class Runtime
@@ -121,9 +121,9 @@ public:
     HookServices Hooks{Entities,   Unsafe.Bindings,   Slots,           Scheduler,
                        GameEvents, Unsafe.Interfaces, World.EntityOps, Capabilities};
 
-    /** Custom Panorama HUD layouts and the button presses coming back from them. */
-    VoltMod::UiPanels Ui{Entities, World.EntityOps, Unsafe.Bindings, Unsafe.Interfaces,
-                         Slots,    Scheduler,       Hooks.Visibility};
+    /** Panorama screens and the button presses coming back from them. */
+    VoltMod::ScreenManager Screens{Entities, World.EntityOps, Unsafe.Bindings, Unsafe.Interfaces,
+                                   Slots,    Scheduler,       Hooks.Visibility};
 
     /** Workshop addons connecting clients are told to download. */
     VoltMod::Addons Addons{Unsafe.Interfaces, Unsafe.Bindings, Players, Scheduler};

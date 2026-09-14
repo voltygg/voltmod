@@ -1,72 +1,55 @@
-#include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/Slot.hpp>
+#include "Ui/ScreenEntity.hpp"
+
 #include <VoltMod/Ui/Screen.hpp>
+#include <utility>
 
 namespace VoltMod
 {
 
-Screen::Screen(UiPanels& ui, std::string_view layout, std::string_view rootId)
-    : _ui(ui), _layout(layout), _root(rootId), _perPlayer(false)
+Screen::Screen() = default;
+
+Screen::Screen(std::unique_ptr<ScreenEntity> entity) : _entity(std::move(entity)) {}
+
+Screen::~Screen() = default;
+
+Screen::Screen(Screen&&) noexcept = default;
+
+Screen& Screen::operator=(Screen&&) noexcept = default;
+
+Screen::operator bool() const
 {
-    if (auto panel = ui.Panel(_layout, EveryoneSlot))
-        _shared = std::move(*panel);
-    else
-        Log::Warn("Screen '{}': {}", _layout, panel.error().Detail);
+    return _entity && _entity->Exists();
 }
 
-Screen::Screen(UiPanels& ui, SlotEvents& slots, std::string_view layout, std::string_view rootId)
-    : _ui(ui), _layout(layout), _root(rootId), _perPlayer(true)
+bool Screen::EnsureSpawned(int slot)
 {
-    _private.BindReset(slots);
+    return _entity && _entity->EnsureSpawned(slot);
 }
 
-UiPanel& Screen::Panel(int slot)
+Status Screen::SetText(int slot, std::string_view variable, std::string_view value)
 {
-    if (!_perPlayer || !IsValidSlot(slot))
-        return _shared;
-
-    UiPanel& panel = _private[slot];
-    if (!panel)
-    {
-        if (auto made = _ui.Panel(_layout, slot))
-            panel = std::move(*made);
-        else
-            Log::Warn("Screen '{}' for slot {}: {}", _layout, slot, made.error().Detail);
-    }
-    return panel;
+    return _entity ? _entity->WriteText(slot, variable, value) : std::unexpected(Empty());
 }
 
-bool Screen::Show(int slot, bool capture)
+Status Screen::SetClass(int slot, std::string_view elementId, std::string_view className, bool on)
 {
-    // A private screen has no panel to spawn for the global viewer.
-    if (_perPlayer && !IsValidSlot(slot))
-        return false;
-
-    UiPanel& panel = Panel(slot);
-    if (!panel.Prepare(slot))
-        return false;
-
-    panel.SetClass(slot, _root, "Hidden", false);
-    if (capture)
-        panel.SetInputCapture(slot, true);
-    return true;
+    return _entity ? _entity->WriteClass(slot, elementId, className, on) : std::unexpected(Empty());
 }
 
-void Screen::Hide(int slot)
+Status Screen::ShowCursor(int slot, bool shown)
 {
-    UiPanel& panel = Panel(slot);
-    if (!panel)
-        return;
-
-    // Capture is per-player whatever the panel is, so only a real slot ever holds one.
-    if (IsValidSlot(slot))
-        panel.SetInputCapture(slot, false);
-    panel.SetClass(slot, _root, "Hidden", true);
+    return _entity ? _entity->WriteCursor(slot, shown) : std::unexpected(Empty());
 }
 
-std::string_view Screen::Layout() const noexcept
+void Screen::Remove()
 {
-    return _layout;
+    if (_entity)
+        _entity->Remove();
+}
+
+Error Screen::Empty()
+{
+    return Error::NotFound("this screen was never created by ScreenManager");
 }
 
 }  // namespace VoltMod

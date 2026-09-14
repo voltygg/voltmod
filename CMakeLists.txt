@@ -146,10 +146,9 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Players/Policy.cpp
             src/Hooks/PendingConVarQueries.cpp
             src/Workshop/AddonDownloads.cpp
-            src/Ui/LayoutName.cpp
-            src/Ui/SentWrites.cpp
-            src/Ui/UiClickRouting.cpp
-            src/Ui/ClickMessage.cpp
+            src/Ui/LayoutPath.cpp
+            src/Ui/WriteCache.cpp
+            src/Ui/ButtonPressMessage.cpp
             src/Engine/ConVars/ConVarTypes.cpp
             src/Engine/GameData/Bindings.cpp
             src/Engine/GameData/GameData.cpp

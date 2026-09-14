@@ -20,7 +20,7 @@ uv run poe test                # build, then CTest (-R filters)
 uv run poe lint | format | modgraph
 uv run poe build --install <plugin> --start   # install to CS2_SERVER_PATH and launch
 uv run poe panorama            # compile panorama/ UI into the client (Windows)
-voltmod panorama render | check | preview             # screens: docs/panorama.md
+voltmod panorama render | check                       # screens: docs/panorama.md
 voltmod gamedata check | resolve --write      # after a CS2 update: docs/sdk/gamedata.md
 voltmod schemagen                             # regenerate accessors from the server's own dump
 voltmod init | new-plugin <name>              # run from the consumer repo
