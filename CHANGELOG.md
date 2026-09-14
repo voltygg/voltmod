@@ -4,6 +4,21 @@
 
 What changed in each VoltMod release. Older history is in git.
 
+## 1.4.4 (2026-09-14)
+
+### Breaking
+
+- Workshop `Addons` members are renamed: `Pending`, `HasPending` and `Ready` are now
+  `Missing`, `HasMissing` and `Downloaded`.
+- `voltmod panorama publish` is gone. Build a workshop addon with
+  `voltmod panorama compile --addon NAME --no-deploy`.
+- `Schema/Layout.hpp` and `Schema/Notify.hpp` are no longer public; include
+  `<VoltMod/Schema/Api.hpp>`.
+
+### Fixed
+
+- Setting a field the engine does not network no longer sends a network update.
+
 ## 1.4.3 (2026-09-14)
 
 ### Fixed
