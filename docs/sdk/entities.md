@@ -69,25 +69,27 @@ if (pawn.Team() == VoltMod::TeamCT && (pawn.Flags() & VoltMod::FL_ONGROUND))
 Nothing resolves at runtime. `voltmod schemagen` reads a schema dump and writes
 `include/VoltMod/Schema/Generated/`, and the wrappers pick those accessors up through a generated
 fragment included in their class body, so adding a field to the manifest reaches plugins with no
-hand-written line anywhere. A `Set` dirties the field for the next snapshot: an entity notifies
-itself, a component with a `__m_pChainEntity` notifies through its chainer, and a struct embedded
-in an entity notifies the entity at the summed offset. A field with no such route generates no
-setter at all.
+hand-written line anywhere. A `Set` on a networked field dirties it for the next snapshot: an
+entity notifies itself, a component with a `__m_pChainEntity` notifies through its chainer, and a
+struct embedded in an entity notifies the entity at the summed offset. A field the engine does not
+network is written without a notify, because the engine rejects one and stops updating that entity
+for its clients. A field with no route to notify generates no setter at all.
 
 Because the offsets are baked, a CS2 update that moves a used class would turn every accessor into
 a wrong-address read. `Runtime::Start` therefore compares the whole generated layout against the
 live schema and **aborts the load** on any mismatch, naming the field:
 
 ```text
-schema drift (accessors generated from game build 1999xxx, server is 2000908);
-regenerate with voltmod schemagen:
+schema drift (accessors generated from game build 1999xxx, server is 2000908); load a plugin into
+a running map to write the dump, then regenerate with voltmod schemagen:
   CCSPlayerPawn::m_ArmorValue: offset 4828 -> 4820
 ```
 
-The server writes the dump the fix needs on its way to that failure, so update day is: start the
-server, let the plugins refuse, run `voltmod schemagen`, review the `git diff` of the generated
-code, rebuild. The dump lands in `addons/voltmod/schema/server.json`, which is where `schemagen`
-looks when `--dump` is not given.
+The dump needs a running map, and a cold start refuses the plugins before any map loads. So update
+day is: start the server, let the plugins refuse, load one again with `meta retry <id>` so it writes
+the dump on its way to the same refusal, run `voltmod schemagen`, review the `git diff` of the
+generated code, rebuild. The dump lands in `addons/voltmod/schema/server.json`, which is where
+`schemagen` looks when `--dump` is not given.
 
 Windows and Linux lay entity classes out differently, so each platform has its own baseline in
 `schema/server.<platform>.json` and sources in `src/Schema/Generated/<platform>/`. Run `schemagen`

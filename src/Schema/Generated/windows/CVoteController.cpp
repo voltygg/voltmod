@@ -152,7 +152,6 @@ void CVoteController::SetVotesCast(size_t index, int32_t value) const
         return;
 
     MemberPtr<int32_t>(_base, kCVoteController_VotesCast)[index] = value;
-    NotifyEntity(_owner, _ownerOffset + kCVoteController_VotesCast + static_cast<int32_t>(index * sizeof(int32_t)));
 }
 
 int32_t CVoteController::PlayerHoldingVote() const
@@ -169,7 +168,6 @@ void CVoteController::SetPlayerHoldingVote(int32_t value) const
         return;
 
     *MemberPtr<int32_t>(_base, kCVoteController_PlayerHoldingVote) = value;
-    NotifyEntity(_owner, _ownerOffset + kCVoteController_PlayerHoldingVote);
 }
 
 int32_t CVoteController::PlayerOverrideForVote() const
@@ -186,7 +184,6 @@ void CVoteController::SetPlayerOverrideForVote(int32_t value) const
         return;
 
     *MemberPtr<int32_t>(_base, kCVoteController_PlayerOverrideForVote) = value;
-    NotifyEntity(_owner, _ownerOffset + kCVoteController_PlayerOverrideForVote);
 }
 
 int32_t CVoteController::HighestCountIndex() const
@@ -203,7 +200,6 @@ void CVoteController::SetHighestCountIndex(int32_t value) const
         return;
 
     *MemberPtr<int32_t>(_base, kCVoteController_HighestCountIndex) = value;
-    NotifyEntity(_owner, _ownerOffset + kCVoteController_HighestCountIndex);
 }
 
 void* CVoteController::PotentialIssues() const

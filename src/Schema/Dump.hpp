@@ -3,6 +3,7 @@
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <filesystem>
+#include <networksystem/inetworkserializer.h>
 #include <string_view>
 
 namespace VoltMod::Schema
@@ -14,22 +15,17 @@ struct DumpStats
     int Classes = 0;
     int Enums = 0;
     int Fields = 0;
-    /** Number of server definitions that replaced global definitions. */
-    int Overrides = 0;
+    int Overrides = 0;  // server definitions that replaced global ones
 };
 
 /**
- * Walk @p server (merged over @p global) and write the schema IR to @p output, stamped with
- * @p gameBuild.
- *
- * The IR is the sole input to `voltmod schemagen`, as documented in docs/sdk/gamedata.md. Only
- * generator inputs are written, so the baseline changes only when the schema changes.
- *
- * The caller resolves the scopes, so readiness is decided once by the verification stage.
+ * Write @p server merged over @p global to @p output as `voltmod schemagen` input, stamped with
+ * @p gameBuild; @p network marks the fields the engine sends to clients.
  *
  * @return ErrorCode::NotReady when @p server is null.
  */
-Result<DumpStats> WriteSchemaDump(CSchemaSystemTypeScope* global, CSchemaSystemTypeScope* server,
-                                  const std::filesystem::path& output, std::string_view gameBuild);
+Result<DumpStats> WriteDumpFile(CSchemaSystemTypeScope* global, CSchemaSystemTypeScope* server,
+                                const CNetworkSerializerCodeGenDatabase& network, const std::filesystem::path& output,
+                                std::string_view gameBuild);
 
 }  // namespace VoltMod::Schema

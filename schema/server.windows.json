@@ -23,7 +23,8 @@
             "name": "CAnimGraphControllerManager",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_pMainGraphController",
@@ -33,7 +34,8 @@
             "name": "CAnimGraphControllerPtr",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bInitiallyPopulateInterpHistory",
@@ -42,7 +44,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_OnLayerCycleUpdated",
@@ -53,7 +56,8 @@
             "category": "atomic",
             "atomic": "t",
             "inner": "float32"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_OnExternalChoreoGraphChanged",
@@ -63,7 +67,8 @@
             "name": "CEntityIOOutput",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_pChoreoServices",
@@ -73,7 +78,8 @@
             "name": "IChoreoServices*",
             "category": "pointer",
             "inner": "IChoreoServices"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bAnimGraphUpdateEnabled",
@@ -82,7 +88,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bAnimationUpdateScheduled",
@@ -91,7 +98,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_vecForce",
@@ -101,7 +109,8 @@
             "name": "Vector",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nForceBone",
@@ -110,7 +119,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_pRagdollControl",
@@ -120,7 +130,8 @@
             "name": "IPhysicsRagdollControl*",
             "category": "pointer",
             "inner": "IPhysicsRagdollControl"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_RagdollPose",
@@ -130,7 +141,8 @@
             "name": "PhysicsRagdollPose_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bRagdollEnabled",
@@ -139,7 +151,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bRagdollClientSide",
@@ -148,7 +161,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_xParentedRagdollRootInEntitySpace",
@@ -158,7 +172,8 @@
             "name": "CTransform",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         }
       ]
     },
@@ -179,7 +194,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_hMyWearables",
@@ -190,7 +206,8 @@
             "category": "atomic",
             "atomic": "collection_of_t",
             "inner": "CHandle< CEconWearable >"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_impactEnergyScale",
@@ -199,7 +216,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bApplyStressDamage",
@@ -208,7 +226,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bDeathEventsDispatched",
@@ -217,7 +236,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_vecRelationships",
@@ -228,7 +248,8 @@
             "category": "atomic",
             "atomic": "collection_of_t",
             "inner": "RelationshipOverride_t"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_strRelationships",
@@ -238,7 +259,8 @@
             "name": "CUtlSymbolLarge",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_eHull",
@@ -248,7 +270,8 @@
             "name": "Hull_t",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nNavHullIdx",
@@ -257,7 +280,8 @@
           "type": {
             "name": "uint32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_movementStats",
@@ -267,7 +291,8 @@
             "name": "CMovementStatsProperty",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         }
       ]
     },
@@ -289,7 +314,8 @@
             "name": "CBodyComponent*",
             "category": "pointer",
             "inner": "CBodyComponent"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_NetworkTransmitComponent",
@@ -299,7 +325,8 @@
             "name": "CNetworkTransmitComponent",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_aThinkFunctions",
@@ -310,7 +337,8 @@
             "category": "atomic",
             "atomic": "collection_of_t",
             "inner": "thinkfunc_t"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iCurrentThinkContext",
@@ -319,7 +347,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nLastThinkTick",
@@ -329,7 +358,8 @@
             "name": "GameTick_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bDisabledContextThinks",
@@ -338,7 +368,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_isSteadyState",
@@ -348,7 +379,8 @@
             "name": "CTypedBitVec< 64 >",
             "category": "atomic",
             "atomic": "i"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_lastNetworkChange",
@@ -357,7 +389,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_think",
@@ -367,7 +400,8 @@
             "name": "BASEPTR",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_ResponseContexts",
@@ -378,7 +412,8 @@
             "category": "atomic",
             "atomic": "collection_of_t",
             "inner": "ResponseContext_t"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iszResponseContext",
@@ -388,7 +423,8 @@
             "name": "CUtlSymbolLarge",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_pfnTouch",
@@ -398,7 +434,8 @@
             "name": "ENTITYFUNCPTR",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_pfnUse",
@@ -408,7 +445,8 @@
             "name": "USEPTR",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_pfnBlocked",
@@ -418,7 +456,8 @@
             "name": "ENTITYFUNCPTR",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_pfnMoveDone",
@@ -428,7 +467,8 @@
             "name": "BASEPTR",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iHealth",
@@ -437,7 +477,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iMaxHealth",
@@ -446,7 +487,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_lifeState",
@@ -455,7 +497,8 @@
           "type": {
             "name": "uint8",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flDamageAccumulator",
@@ -464,7 +507,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bTakesDamage",
@@ -473,7 +517,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nTakeDamageFlags",
@@ -483,7 +528,8 @@
             "name": "TakeDamageFlags_t",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nPlatformType",
@@ -493,7 +539,8 @@
             "name": "EntityPlatformTypes_t",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_MoveCollide",
@@ -503,7 +550,8 @@
             "name": "MoveCollide_t",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_MoveType",
@@ -513,7 +561,8 @@
             "name": "MoveType_t",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nPreviouslySetMoveType",
@@ -523,7 +572,8 @@
             "name": "MoveType_t",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nActualMoveType",
@@ -533,7 +583,8 @@
             "name": "MoveType_t",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nWaterTouch",
@@ -542,7 +593,8 @@
           "type": {
             "name": "uint8",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nSlimeTouch",
@@ -551,7 +603,8 @@
           "type": {
             "name": "uint8",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bRestoreInHierarchy",
@@ -560,7 +613,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_target",
@@ -570,7 +624,8 @@
             "name": "CUtlSymbolLarge",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_hDamageFilter",
@@ -581,7 +636,8 @@
             "category": "atomic",
             "atomic": "t",
             "inner": "CBaseFilter"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iszDamageFilterName",
@@ -591,7 +647,8 @@
             "name": "CUtlSymbolLarge",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flMoveDoneTime",
@@ -600,7 +657,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nSubclassID",
@@ -610,7 +668,8 @@
             "name": "CUtlStringToken",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flAnimTime",
@@ -619,7 +678,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flSimulationTime",
@@ -628,7 +688,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flCreateTime",
@@ -638,7 +699,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bClientSideRagdoll",
@@ -647,7 +709,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_ubInterpolationFrame",
@@ -656,7 +719,8 @@
           "type": {
             "name": "uint8",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_vPrevVPhysicsUpdatePos",
@@ -666,7 +730,8 @@
             "name": "VectorWS",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iTeamNum",
@@ -675,7 +740,8 @@
           "type": {
             "name": "uint8",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iGlobalname",
@@ -685,7 +751,8 @@
             "name": "CUtlSymbolLarge",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iSentToClients",
@@ -694,7 +761,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_sUniqueHammerID",
@@ -704,7 +772,8 @@
             "name": "CUtlString",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_spawnflags",
@@ -713,7 +782,8 @@
           "type": {
             "name": "uint32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nNextThinkTick",
@@ -723,7 +793,8 @@
             "name": "GameTick_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nSimulationTick",
@@ -732,7 +803,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_OnKilled",
@@ -742,7 +814,8 @@
             "name": "CEntityIOOutput",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_fFlags",
@@ -751,7 +824,8 @@
           "type": {
             "name": "uint32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_vecAbsVelocity",
@@ -761,7 +835,8 @@
             "name": "Vector",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_vecVelocity",
@@ -771,7 +846,8 @@
             "name": "CNetworkVelocityVector",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_vecBaseVelocity",
@@ -781,7 +857,8 @@
             "name": "Vector",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nPushEnumCount",
@@ -790,7 +867,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_pCollision",
@@ -800,7 +878,8 @@
             "name": "CCollisionProperty*",
             "category": "pointer",
             "inner": "CCollisionProperty"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_hEffectEntity",
@@ -811,7 +890,8 @@
             "category": "atomic",
             "atomic": "t",
             "inner": "CBaseEntity"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_hOwnerEntity",
@@ -822,7 +902,8 @@
             "category": "atomic",
             "atomic": "t",
             "inner": "CBaseEntity"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_fEffects",
@@ -831,7 +912,8 @@
           "type": {
             "name": "uint32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_hGroundEntity",
@@ -842,7 +924,8 @@
             "category": "atomic",
             "atomic": "t",
             "inner": "CBaseEntity"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nGroundBodyIndex",
@@ -851,7 +934,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flFriction",
@@ -860,7 +944,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flElasticity",
@@ -869,7 +954,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flGravityScale",
@@ -878,7 +964,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flTimeScale",
@@ -887,7 +974,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flWaterLevel",
@@ -896,7 +984,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bGravityDisabled",
@@ -905,7 +994,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bAnimatedEveryTick",
@@ -914,7 +1004,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flActualGravityScale",
@@ -923,7 +1014,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bGravityActuallyDisabled",
@@ -932,7 +1024,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bDisableLowViolence",
@@ -941,7 +1034,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nWaterType",
@@ -950,7 +1044,8 @@
           "type": {
             "name": "uint8",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iEFlags",
@@ -959,7 +1054,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_OnUser1",
@@ -969,7 +1065,8 @@
             "name": "CEntityIOOutput",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_OnUser2",
@@ -979,7 +1076,8 @@
             "name": "CEntityIOOutput",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_OnUser3",
@@ -989,7 +1087,8 @@
             "name": "CEntityIOOutput",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_OnUser4",
@@ -999,7 +1098,8 @@
             "name": "CEntityIOOutput",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iInitialTeamNum",
@@ -1008,7 +1108,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flNavIgnoreUntilTime",
@@ -1018,7 +1119,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_vecAngVelocity",
@@ -1028,7 +1130,8 @@
             "name": "QAngle",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bNetworkQuantizeOriginAndAngles",
@@ -1037,7 +1140,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bLagCompensate",
@@ -1046,7 +1150,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_pBlocker",
@@ -1057,7 +1162,8 @@
             "category": "atomic",
             "atomic": "t",
             "inner": "CBaseEntity"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flLocalTime",
@@ -1066,7 +1172,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flVPhysicsUpdateLocalTime",
@@ -1075,7 +1182,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nBloodType",
@@ -1085,7 +1193,8 @@
             "name": "BloodType",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_pPulseGraphInstance",
@@ -1095,7 +1204,8 @@
             "name": "CPulseGraphInstance_ServerEntity*",
             "category": "pointer",
             "inner": "CPulseGraphInstance_ServerEntity"
-          }
+          },
+          "networked": false
         }
       ]
     },
@@ -1117,7 +1227,8 @@
             "name": "CRenderComponent*",
             "category": "pointer",
             "inner": "CRenderComponent"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_CHitboxComponent",
@@ -1127,7 +1238,8 @@
             "name": "CHitboxComponent",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_pChoreoComponent",
@@ -1137,7 +1249,8 @@
             "name": "CChoreoComponent*",
             "category": "pointer",
             "inner": "CChoreoComponent"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nDestructiblePartInitialStateDestructed0",
@@ -1147,7 +1260,8 @@
             "name": "HitGroup_t",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nDestructiblePartInitialStateDestructed1",
@@ -1157,7 +1271,8 @@
             "name": "HitGroup_t",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nDestructiblePartInitialStateDestructed2",
@@ -1167,7 +1282,8 @@
             "name": "HitGroup_t",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nDestructiblePartInitialStateDestructed3",
@@ -1177,7 +1293,8 @@
             "name": "HitGroup_t",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nDestructiblePartInitialStateDestructed4",
@@ -1187,7 +1304,8 @@
             "name": "HitGroup_t",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nDestructiblePartInitialStateDestructed0_PartIndex",
@@ -1196,7 +1314,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nDestructiblePartInitialStateDestructed1_PartIndex",
@@ -1205,7 +1324,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nDestructiblePartInitialStateDestructed2_PartIndex",
@@ -1214,7 +1334,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nDestructiblePartInitialStateDestructed3_PartIndex",
@@ -1223,7 +1344,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nDestructiblePartInitialStateDestructed4_PartIndex",
@@ -1232,7 +1354,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bDestructiblePartInitialStateDestructed0_GenerateBreakpieces",
@@ -1241,7 +1364,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bDestructiblePartInitialStateDestructed1_GenerateBreakpieces",
@@ -1250,7 +1374,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bDestructiblePartInitialStateDestructed2_GenerateBreakpieces",
@@ -1259,7 +1384,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bDestructiblePartInitialStateDestructed3_GenerateBreakpieces",
@@ -1268,7 +1394,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bDestructiblePartInitialStateDestructed4_GenerateBreakpieces",
@@ -1277,7 +1404,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_pDestructiblePartsSystemComponent",
@@ -1287,7 +1415,8 @@
             "name": "CDestructiblePartsComponent*",
             "category": "pointer",
             "inner": "CDestructiblePartsComponent"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_OnDestructibleHitGroupDamageLevelChanged",
@@ -1298,7 +1427,8 @@
             "category": "atomic",
             "atomic": "t",
             "inner": "CBaseModelEntity::OnDamageLevelChangedArgs_t"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flDissolveStartTime",
@@ -1308,7 +1438,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_OnIgnite",
@@ -1318,7 +1449,8 @@
             "name": "CEntityIOOutput",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nRenderMode",
@@ -1328,7 +1460,8 @@
             "name": "RenderMode_t",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nRenderFX",
@@ -1338,7 +1471,8 @@
             "name": "RenderFx_t",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bAllowFadeInView",
@@ -1347,7 +1481,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_clrRender",
@@ -1357,7 +1492,8 @@
             "name": "Color",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_vecRenderAttributes",
@@ -1368,7 +1504,8 @@
             "category": "atomic",
             "atomic": "collection_of_t",
             "inner": "EntityRenderAttribute_t"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bRenderToCubemaps",
@@ -1377,7 +1514,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bNoInterpolate",
@@ -1386,7 +1524,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_Collision",
@@ -1396,7 +1535,8 @@
             "name": "CCollisionProperty",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_Glow",
@@ -1406,7 +1546,8 @@
             "name": "CGlowProperty",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flGlowBackfaceMult",
@@ -1415,7 +1556,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_fadeMinDist",
@@ -1424,7 +1566,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_fadeMaxDist",
@@ -1433,7 +1576,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flFadeScale",
@@ -1442,7 +1586,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flShadowStrength",
@@ -1451,7 +1596,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nObjectCulling",
@@ -1460,7 +1606,8 @@
           "type": {
             "name": "uint8",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bodyGroupChoices",
@@ -1471,7 +1618,8 @@
             "category": "atomic",
             "atomic": "tt",
             "inner": "CGlobalSymbol"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_vecViewOffset",
@@ -1481,7 +1629,8 @@
             "name": "CNetworkViewOffsetVector",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bvDisabledHitGroups",
@@ -1492,7 +1641,8 @@
             "category": "fixed_array",
             "inner": "uint32",
             "extent": 1
-          }
+          },
+          "networked": true
         }
       ]
     },
@@ -1513,7 +1663,8 @@
           "type": {
             "name": "uint64",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nTickBase",
@@ -1522,7 +1673,8 @@
           "type": {
             "name": "uint32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_hPawn",
@@ -1533,7 +1685,8 @@
             "category": "atomic",
             "atomic": "t",
             "inner": "CBasePlayerPawn"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bKnownTeamMismatch",
@@ -1542,7 +1695,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nSplitScreenSlot",
@@ -1552,7 +1706,8 @@
             "name": "CSplitScreenSlot",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_hSplitOwner",
@@ -1563,7 +1718,8 @@
             "category": "atomic",
             "atomic": "t",
             "inner": "CBasePlayerController"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_hSplitScreenPlayers",
@@ -1574,7 +1730,8 @@
             "category": "atomic",
             "atomic": "collection_of_t",
             "inner": "CHandle< CBasePlayerController >"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bIsHLTV",
@@ -1583,7 +1740,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iConnected",
@@ -1593,7 +1751,8 @@
             "name": "PlayerConnectedState",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iMostConnected",
@@ -1603,7 +1762,8 @@
             "name": "PlayerConnectedState",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iszPlayerName",
@@ -1614,7 +1774,8 @@
             "category": "fixed_array",
             "inner": "char",
             "extent": 128
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_szNetworkIDString",
@@ -1624,7 +1785,8 @@
             "name": "CUtlString",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_fLerpTime",
@@ -1633,7 +1795,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bLagCompensation",
@@ -1642,7 +1805,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bPredict",
@@ -1651,7 +1815,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bIsLowViolence",
@@ -1660,7 +1825,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bGamePaused",
@@ -1669,7 +1835,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iIgnoreGlobalChat",
@@ -1679,7 +1846,8 @@
             "name": "ChatIgnoreType_t",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flLastPlayerTalkTime",
@@ -1688,7 +1856,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flLastEntitySteadyState",
@@ -1697,7 +1866,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nAvailableEntitySteadyState",
@@ -1706,7 +1876,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bHasAnySteadyStateEnts",
@@ -1715,7 +1886,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_steamID",
@@ -1724,7 +1896,8 @@
           "type": {
             "name": "uint64",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bNoClipEnabled",
@@ -1733,7 +1906,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iDesiredFOV",
@@ -1742,7 +1916,8 @@
           "type": {
             "name": "uint32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         }
       ]
     },
@@ -1764,7 +1939,8 @@
             "name": "CPlayer_WeaponServices*",
             "category": "pointer",
             "inner": "CPlayer_WeaponServices"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_pItemServices",
@@ -1774,7 +1950,8 @@
             "name": "CPlayer_ItemServices*",
             "category": "pointer",
             "inner": "CPlayer_ItemServices"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_pAutoaimServices",
@@ -1784,7 +1961,8 @@
             "name": "CPlayer_AutoaimServices*",
             "category": "pointer",
             "inner": "CPlayer_AutoaimServices"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_pObserverServices",
@@ -1794,7 +1972,8 @@
             "name": "CPlayer_ObserverServices*",
             "category": "pointer",
             "inner": "CPlayer_ObserverServices"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_pWaterServices",
@@ -1804,7 +1983,8 @@
             "name": "CPlayer_WaterServices*",
             "category": "pointer",
             "inner": "CPlayer_WaterServices"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_pUseServices",
@@ -1814,7 +1994,8 @@
             "name": "CPlayer_UseServices*",
             "category": "pointer",
             "inner": "CPlayer_UseServices"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_pFlashlightServices",
@@ -1824,7 +2005,8 @@
             "name": "CPlayer_FlashlightServices*",
             "category": "pointer",
             "inner": "CPlayer_FlashlightServices"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_pCameraServices",
@@ -1834,7 +2016,8 @@
             "name": "CPlayer_CameraServices*",
             "category": "pointer",
             "inner": "CPlayer_CameraServices"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_pMovementServices",
@@ -1844,7 +2027,8 @@
             "name": "CPlayer_MovementServices*",
             "category": "pointer",
             "inner": "CPlayer_MovementServices"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_ServerViewAngleChanges",
@@ -1855,7 +2039,8 @@
             "category": "atomic",
             "atomic": "collection_of_t",
             "inner": "ViewAngleServerChange_t"
-          }
+          },
+          "networked": true
         },
         {
           "name": "v_angle",
@@ -1865,7 +2050,8 @@
             "name": "QAngle",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "v_anglePrevious",
@@ -1875,7 +2061,8 @@
             "name": "QAngle",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iHideHUD",
@@ -1884,7 +2071,8 @@
           "type": {
             "name": "uint32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_skybox3d",
@@ -1894,7 +2082,8 @@
             "name": "sky3dparams_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_fTimeLastHurt",
@@ -1904,7 +2093,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flDeathTime",
@@ -1914,7 +2104,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_fNextSuicideTime",
@@ -1924,7 +2115,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_fInitHUD",
@@ -1933,7 +2125,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_pExpresser",
@@ -1943,7 +2136,8 @@
             "name": "CAI_Expresser*",
             "category": "pointer",
             "inner": "CAI_Expresser"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_hController",
@@ -1954,7 +2148,8 @@
             "category": "atomic",
             "atomic": "t",
             "inner": "CBasePlayerController"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_hDefaultController",
@@ -1965,7 +2160,8 @@
             "category": "atomic",
             "atomic": "t",
             "inner": "CBasePlayerController"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_fHltvReplayDelay",
@@ -1974,7 +2170,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_fHltvReplayEnd",
@@ -1983,7 +2180,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iHltvReplayEntity",
@@ -1993,7 +2191,8 @@
             "name": "CEntityIndex",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_sndOpvarLatchData",
@@ -2004,7 +2203,8 @@
             "category": "atomic",
             "atomic": "collection_of_t",
             "inner": "sndopvarlatchdata_t"
-          }
+          },
+          "networked": false
         }
       ]
     },
@@ -2026,7 +2226,8 @@
             "name": "CGameSceneNode*",
             "category": "pointer",
             "inner": "CGameSceneNode"
-          }
+          },
+          "networked": false
         },
         {
           "name": "__m_pChainEntity",
@@ -2036,7 +2237,8 @@
             "name": "CNetworkVarChainer",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         }
       ]
     },
@@ -2058,7 +2260,8 @@
             "name": "CUtlSymbolLarge",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bObservable",
@@ -2067,7 +2270,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_vecPlayerLayoutStates",
@@ -2078,7 +2282,8 @@
             "category": "atomic",
             "atomic": "collection_of_t",
             "inner": "CCSCustomHudLayoutState"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_globalLayoutState",
@@ -2088,7 +2293,8 @@
             "name": "CCSCustomHudLayoutState",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_vecPanelIds",
@@ -2099,7 +2305,8 @@
             "category": "atomic",
             "atomic": "collection_of_t",
             "inner": "CUtlString"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_vecClassNames",
@@ -2110,7 +2317,8 @@
             "category": "atomic",
             "atomic": "collection_of_t",
             "inner": "CUtlString"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_vecDialogVariableNames",
@@ -2121,7 +2329,8 @@
             "category": "atomic",
             "atomic": "collection_of_t",
             "inner": "CUtlString"
-          }
+          },
+          "networked": true
         }
       ]
     },
@@ -2138,7 +2347,8 @@
             "name": "CPlayerSlot",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bInputCaptureEnabled",
@@ -2147,7 +2357,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_vecHasClasses",
@@ -2158,7 +2369,8 @@
             "category": "atomic",
             "atomic": "collection_of_t",
             "inner": "HUDPanelHasClass_t"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_vecDialogVariableStrings",
@@ -2169,7 +2381,8 @@
             "category": "atomic",
             "atomic": "collection_of_t",
             "inner": "HUDPanelDialogVariableString_t"
-          }
+          },
+          "networked": true
         }
       ]
     },
@@ -2191,7 +2404,8 @@
             "name": "CCSPlayerController_InGameMoneyServices*",
             "category": "pointer",
             "inner": "CCSPlayerController_InGameMoneyServices"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_pInventoryServices",
@@ -2201,7 +2415,8 @@
             "name": "CCSPlayerController_InventoryServices*",
             "category": "pointer",
             "inner": "CCSPlayerController_InventoryServices"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_pActionTrackingServices",
@@ -2211,7 +2426,8 @@
             "name": "CCSPlayerController_ActionTrackingServices*",
             "category": "pointer",
             "inner": "CCSPlayerController_ActionTrackingServices"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_pDamageServices",
@@ -2221,7 +2437,8 @@
             "name": "CCSPlayerController_DamageServices*",
             "category": "pointer",
             "inner": "CCSPlayerController_DamageServices"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iPing",
@@ -2230,7 +2447,8 @@
           "type": {
             "name": "uint32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bHasCommunicationAbuseMute",
@@ -2239,7 +2457,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_uiCommunicationMuteFlags",
@@ -2248,7 +2467,8 @@
           "type": {
             "name": "uint32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_szCrosshairCodes",
@@ -2258,7 +2478,8 @@
             "name": "CUtlSymbolLarge",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iPendingTeamNum",
@@ -2267,7 +2488,8 @@
           "type": {
             "name": "uint8",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flForceTeamTime",
@@ -2277,7 +2499,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iCompTeammateColor",
@@ -2286,7 +2509,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bEverPlayedOnTeam",
@@ -2295,7 +2519,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bAttemptedToGetColor",
@@ -2304,7 +2529,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iTeammatePreferredColor",
@@ -2313,7 +2539,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bTeamChanged",
@@ -2322,7 +2549,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bInSwitchTeam",
@@ -2331,7 +2559,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bHasSeenJoinGame",
@@ -2340,7 +2569,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bJustBecameSpectator",
@@ -2349,7 +2579,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bSwitchTeamsOnNextRoundReset",
@@ -2358,7 +2589,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bRemoveAllItemsOnNextRoundReset",
@@ -2367,7 +2599,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flLastJoinTeamTime",
@@ -2377,7 +2610,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_szClan",
@@ -2387,7 +2621,8 @@
             "name": "CUtlSymbolLarge",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iCoachingTeam",
@@ -2396,7 +2631,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nPlayerDominated",
@@ -2405,7 +2641,8 @@
           "type": {
             "name": "uint64",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nPlayerDominatingMe",
@@ -2414,7 +2651,8 @@
           "type": {
             "name": "uint64",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iCompetitiveRanking",
@@ -2423,7 +2661,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iCompetitiveWins",
@@ -2432,7 +2671,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iCompetitiveRankType",
@@ -2441,7 +2681,8 @@
           "type": {
             "name": "int8",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iCompetitiveRankingPredicted_Win",
@@ -2450,7 +2691,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iCompetitiveRankingPredicted_Loss",
@@ -2459,7 +2701,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iCompetitiveRankingPredicted_Tie",
@@ -2468,7 +2711,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nEndMatchNextMapVote",
@@ -2477,7 +2721,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_unActiveQuestId",
@@ -2486,7 +2731,8 @@
           "type": {
             "name": "uint16",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_rtActiveMissionPeriod",
@@ -2495,7 +2741,8 @@
           "type": {
             "name": "uint32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nQuestProgressReason",
@@ -2505,7 +2752,8 @@
             "name": "QuestProgress::Reason",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_unPlayerTvControlFlags",
@@ -2514,7 +2762,8 @@
           "type": {
             "name": "uint32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iDraftIndex",
@@ -2523,7 +2772,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_msQueuedModeDisconnectionTimestamp",
@@ -2532,7 +2782,8 @@
           "type": {
             "name": "uint32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_uiAbandonRecordedReason",
@@ -2541,7 +2792,8 @@
           "type": {
             "name": "uint32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_eNetworkDisconnectionReason",
@@ -2550,7 +2802,8 @@
           "type": {
             "name": "uint32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bCannotBeKicked",
@@ -2559,7 +2812,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bEverFullyConnected",
@@ -2568,7 +2822,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bAbandonAllowsSurrender",
@@ -2577,7 +2832,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bAbandonOffersInstantSurrender",
@@ -2586,7 +2842,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bDisconnection1MinWarningPrinted",
@@ -2595,7 +2852,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bScoreReported",
@@ -2604,7 +2862,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nDisconnectionTick",
@@ -2613,7 +2872,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bControllingBot",
@@ -2622,7 +2882,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bHasControlledBotThisRound",
@@ -2631,7 +2892,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bHasBeenControlledByPlayerThisRound",
@@ -2640,7 +2902,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nBotsControlledThisRound",
@@ -2649,7 +2912,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bCanControlObservedBot",
@@ -2658,7 +2922,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_hPlayerPawn",
@@ -2669,7 +2934,8 @@
             "category": "atomic",
             "atomic": "t",
             "inner": "CCSPlayerPawn"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_hObserverPawn",
@@ -2680,7 +2946,8 @@
             "category": "atomic",
             "atomic": "t",
             "inner": "CCSObserverPawn"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_DesiredObserverMode",
@@ -2689,7 +2956,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_hDesiredObserverTarget",
@@ -2699,7 +2967,8 @@
             "name": "CEntityHandle",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bPawnIsAlive",
@@ -2708,7 +2977,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iPawnHealth",
@@ -2717,7 +2987,8 @@
           "type": {
             "name": "uint32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iPawnArmor",
@@ -2726,7 +2997,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bPawnHasDefuser",
@@ -2735,7 +3007,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bPawnHasHelmet",
@@ -2744,7 +3017,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nPawnCharacterDefIndex",
@@ -2753,7 +3027,8 @@
           "type": {
             "name": "uint16",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iPawnLifetimeStart",
@@ -2762,7 +3037,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iPawnLifetimeEnd",
@@ -2771,7 +3047,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iPawnBotDifficulty",
@@ -2780,7 +3057,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_hOriginalControllerOfCurrentPawn",
@@ -2791,7 +3069,8 @@
             "category": "atomic",
             "atomic": "t",
             "inner": "CCSPlayerController"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iScore",
@@ -2800,7 +3079,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iRoundScore",
@@ -2809,7 +3089,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iRoundsWon",
@@ -2818,7 +3099,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_recentKillQueue",
@@ -2829,7 +3111,8 @@
             "category": "fixed_array",
             "inner": "uint8",
             "extent": 8
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nFirstKill",
@@ -2838,7 +3121,8 @@
           "type": {
             "name": "uint8",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nKillCount",
@@ -2847,7 +3131,8 @@
           "type": {
             "name": "uint8",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bMvpNoMusic",
@@ -2856,7 +3141,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_eMvpReason",
@@ -2865,7 +3151,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iMusicKitID",
@@ -2874,7 +3161,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iMusicKitMVPs",
@@ -2883,7 +3171,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iMVPs",
@@ -2892,7 +3181,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nUpdateCounter",
@@ -2901,7 +3191,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flSmoothedPing",
@@ -2910,7 +3201,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_lastHeldVoteTimer",
@@ -2920,7 +3212,8 @@
             "name": "IntervalTimer",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bShowHints",
@@ -2929,7 +3222,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iNextTimeCheck",
@@ -2938,7 +3232,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bJustDidTeamKill",
@@ -2947,7 +3242,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bPunishForTeamKill",
@@ -2956,7 +3252,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bGaveTeamDamageWarning",
@@ -2965,7 +3262,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bGaveTeamDamageWarningThisRound",
@@ -2974,7 +3272,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_dblLastReceivedPacketPlatFloatTime",
@@ -2983,7 +3282,8 @@
           "type": {
             "name": "float64",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_LastTeamDamageWarningTime",
@@ -2993,7 +3293,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_LastTimePlayerWasDisconnectedForPawnsRemove",
@@ -3003,7 +3304,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nSuspiciousHitCount",
@@ -3012,7 +3314,8 @@
           "type": {
             "name": "uint32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nNonSuspiciousHitStreak",
@@ -3021,7 +3324,8 @@
           "type": {
             "name": "uint32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bFireBulletsSeedSynchronized",
@@ -3030,7 +3334,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         }
       ]
     },
@@ -3051,7 +3356,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iMoneyEarnedForNextRound",
@@ -3060,7 +3366,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iAccount",
@@ -3069,7 +3376,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iStartAccount",
@@ -3078,7 +3386,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iTotalCashSpent",
@@ -3087,7 +3396,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iCashSpentThisRound",
@@ -3096,7 +3406,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         }
       ]
     },
@@ -3118,7 +3429,8 @@
             "name": "CCSPlayer_BulletServices*",
             "category": "pointer",
             "inner": "CCSPlayer_BulletServices"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_pHostageServices",
@@ -3128,7 +3440,8 @@
             "name": "CCSPlayer_HostageServices*",
             "category": "pointer",
             "inner": "CCSPlayer_HostageServices"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_pBuyServices",
@@ -3138,7 +3451,8 @@
             "name": "CCSPlayer_BuyServices*",
             "category": "pointer",
             "inner": "CCSPlayer_BuyServices"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_pActionTrackingServices",
@@ -3148,7 +3462,8 @@
             "name": "CCSPlayer_ActionTrackingServices*",
             "category": "pointer",
             "inner": "CCSPlayer_ActionTrackingServices"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_pAimPunchServices",
@@ -3158,7 +3473,8 @@
             "name": "CCSPlayer_AimPunchServices*",
             "category": "pointer",
             "inner": "CCSPlayer_AimPunchServices"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_pRadioServices",
@@ -3168,7 +3484,8 @@
             "name": "CCSPlayer_RadioServices*",
             "category": "pointer",
             "inner": "CCSPlayer_RadioServices"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_pDamageReactServices",
@@ -3178,7 +3495,8 @@
             "name": "CCSPlayer_DamageReactServices*",
             "category": "pointer",
             "inner": "CCSPlayer_DamageReactServices"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nCharacterDefIndex",
@@ -3187,7 +3505,8 @@
           "type": {
             "name": "uint16",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bHasFemaleVoice",
@@ -3196,7 +3515,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_strVOPrefix",
@@ -3206,7 +3526,8 @@
             "name": "CUtlString",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_szLastPlaceName",
@@ -3217,7 +3538,8 @@
             "category": "fixed_array",
             "inner": "char",
             "extent": 18
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bInHostageResetZone",
@@ -3226,7 +3548,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bInBuyZone",
@@ -3235,7 +3558,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_TouchingBuyZones",
@@ -3246,7 +3570,8 @@
             "category": "atomic",
             "atomic": "collection_of_t",
             "inner": "CHandle< CBaseEntity >"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bWasInBuyZone",
@@ -3255,7 +3580,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bInHostageRescueZone",
@@ -3264,7 +3590,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bInBombZone",
@@ -3273,7 +3600,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bWasInHostageRescueZone",
@@ -3282,7 +3610,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iRetakesOffering",
@@ -3291,7 +3620,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iRetakesOfferingCard",
@@ -3300,7 +3630,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bRetakesHasDefuseKit",
@@ -3309,7 +3640,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bRetakesMVPLastRound",
@@ -3318,7 +3650,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iRetakesMVPBoostItem",
@@ -3327,7 +3660,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_RetakesMVPBoostExtraUtility",
@@ -3337,7 +3671,8 @@
             "name": "loadout_slot_t",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flHealthShotBoostExpirationTime",
@@ -3347,7 +3682,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flLandingTimeSeconds",
@@ -3356,7 +3692,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bIsBuyMenuOpen",
@@ -3365,7 +3702,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_lastLandTime",
@@ -3375,7 +3713,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bOnGroundLastTick",
@@ -3384,7 +3723,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iPlayerLocked",
@@ -3393,7 +3733,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flTimeOfLastInjury",
@@ -3403,7 +3744,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flNextSprayDecalTime",
@@ -3413,7 +3755,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bNextSprayDecalTimeExpedited",
@@ -3422,7 +3765,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nRagdollDamageBone",
@@ -3431,7 +3775,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_vRagdollDamageForce",
@@ -3441,7 +3786,8 @@
             "name": "Vector",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_szRagdollDamageWeaponName",
@@ -3452,7 +3798,8 @@
             "category": "fixed_array",
             "inner": "char",
             "extent": 64
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bRagdollDamageHeadshot",
@@ -3461,7 +3808,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_vRagdollServerOrigin",
@@ -3471,7 +3819,8 @@
             "name": "VectorWS",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_EconGloves",
@@ -3481,7 +3830,8 @@
             "name": "CEconItemView",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nEconGlovesChanged",
@@ -3490,7 +3840,8 @@
           "type": {
             "name": "uint8",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_qDeathEyeAngles",
@@ -3500,7 +3851,8 @@
             "name": "QAngle",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bLeftHanded",
@@ -3509,7 +3861,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_fSwitchedHandednessTime",
@@ -3519,7 +3872,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flViewmodelOffsetX",
@@ -3528,7 +3882,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flViewmodelOffsetY",
@@ -3537,7 +3892,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flViewmodelOffsetZ",
@@ -3546,7 +3902,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flViewmodelFOV",
@@ -3555,7 +3912,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bIsWalking",
@@ -3564,7 +3922,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_fLastGivenDefuserTime",
@@ -3573,7 +3932,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_fLastGivenBombTime",
@@ -3582,7 +3942,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flDealtDamageToEnemyMostRecentTimestamp",
@@ -3591,7 +3952,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iDisplayHistoryBits",
@@ -3600,7 +3962,8 @@
           "type": {
             "name": "uint32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flLastAttackedTeammate",
@@ -3609,7 +3972,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_allowAutoFollowTime",
@@ -3619,7 +3983,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bResetArmorNextSpawn",
@@ -3628,7 +3993,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nLastKillerIndex",
@@ -3638,7 +4004,8 @@
             "name": "CEntityIndex",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_entitySpottedState",
@@ -3648,7 +4015,8 @@
             "name": "EntitySpottedState_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nSpotRules",
@@ -3657,7 +4025,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bIsScoped",
@@ -3666,7 +4035,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bResumeZoom",
@@ -3675,7 +4045,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bIsDefusing",
@@ -3684,7 +4055,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bIsGrabbingHostage",
@@ -3693,7 +4065,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iBlockingUseActionInProgress",
@@ -3703,7 +4076,8 @@
             "name": "CSPlayerBlockingUseAction_t",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flEmitSoundTime",
@@ -3713,7 +4087,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bInNoDefuseArea",
@@ -3722,7 +4097,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iBombSiteIndex",
@@ -3732,7 +4108,8 @@
             "name": "CEntityIndex",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nWhichBombZone",
@@ -3741,7 +4118,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bInBombZoneTrigger",
@@ -3750,7 +4128,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bWasInBombZoneTrigger",
@@ -3759,7 +4138,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iShotsFired",
@@ -3768,7 +4148,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flFlinchStack",
@@ -3777,7 +4158,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flVelocityModifier",
@@ -3786,7 +4168,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_vecTotalBulletForce",
@@ -3796,7 +4179,8 @@
             "name": "Vector",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bWaitForNoAttack",
@@ -3805,7 +4189,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_ignoreLadderJumpTime",
@@ -3814,7 +4199,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bKilledByHeadshot",
@@ -3823,7 +4209,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_LastHitBox",
@@ -3832,7 +4219,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_pBot",
@@ -3842,7 +4230,8 @@
             "name": "CCSBot*",
             "category": "pointer",
             "inner": "CCSBot"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bBotAllowActive",
@@ -3851,7 +4240,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nLastPickupPriority",
@@ -3860,7 +4250,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flLastPickupPriorityTime",
@@ -3869,7 +4260,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_ArmorValue",
@@ -3878,7 +4270,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_unCurrentEquipmentValue",
@@ -3887,7 +4280,8 @@
           "type": {
             "name": "uint16",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_unRoundStartEquipmentValue",
@@ -3896,7 +4290,8 @@
           "type": {
             "name": "uint16",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_unFreezetimeEndEquipmentValue",
@@ -3905,7 +4300,8 @@
           "type": {
             "name": "uint16",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iLastWeaponFireUsercmd",
@@ -3914,7 +4310,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bIsSpawning",
@@ -3923,7 +4320,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iDeathFlags",
@@ -3932,7 +4330,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bHasDeathInfo",
@@ -3941,7 +4340,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flDeathInfoTime",
@@ -3950,7 +4350,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_vecDeathInfoOrigin",
@@ -3960,7 +4361,8 @@
             "name": "VectorWS",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_vecPlayerPatchEconIndices",
@@ -3971,7 +4373,8 @@
             "category": "fixed_array",
             "inner": "uint32",
             "extent": 5
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_GunGameImmunityColor",
@@ -3981,7 +4384,8 @@
             "name": "Color",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_grenadeParameterStashTime",
@@ -3991,7 +4395,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bGrenadeParametersStashed",
@@ -4000,7 +4405,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_angStashedShootAngles",
@@ -4010,7 +4416,8 @@
             "name": "QAngle",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_vecStashedGrenadeThrowPosition",
@@ -4020,7 +4427,8 @@
             "name": "VectorWS",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_vecStashedGrenadeThrowPawnCenter",
@@ -4030,7 +4438,8 @@
             "name": "VectorWS",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_vecStashedVelocity",
@@ -4040,7 +4449,8 @@
             "name": "Vector",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bCommittingSuicideOnTeamChange",
@@ -4049,7 +4459,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_wasNotKilledNaturally",
@@ -4058,7 +4469,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_fImmuneToGunGameDamageTime",
@@ -4068,7 +4480,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bGunGameImmunity",
@@ -4077,7 +4490,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_fMolotovDamageTime",
@@ -4086,7 +4500,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_angEyeAngles",
@@ -4096,7 +4511,8 @@
             "name": "QAngle",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": true
         }
       ]
     },
@@ -4118,7 +4534,8 @@
             "name": "CTouchExpansionComponent",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_pPingServices",
@@ -4128,7 +4545,8 @@
             "name": "CCSPlayer_PingServices*",
             "category": "pointer",
             "inner": "CCSPlayer_PingServices"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_blindUntilTime",
@@ -4138,7 +4556,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_blindStartTime",
@@ -4148,7 +4567,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_iPlayerState",
@@ -4158,7 +4578,8 @@
             "name": "CSPlayerState",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bRespawning",
@@ -4167,7 +4588,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bHasMovedSinceSpawn",
@@ -4176,7 +4598,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iNumSpawns",
@@ -4185,7 +4608,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flIdleTimeSinceLastAction",
@@ -4194,7 +4618,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_fNextRadarUpdateTime",
@@ -4203,7 +4628,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flFlashDuration",
@@ -4212,7 +4638,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flFlashMaxAlpha",
@@ -4221,7 +4648,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flProgressBarStartTime",
@@ -4230,7 +4658,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iProgressBarDuration",
@@ -4239,7 +4668,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_hOriginalController",
@@ -4250,7 +4680,8 @@
             "category": "atomic",
             "atomic": "t",
             "inner": "CCSPlayerController"
-          }
+          },
+          "networked": true
         }
       ]
     },
@@ -4273,7 +4704,8 @@
             "name": "CUtlSymbolLarge",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_pEntity",
@@ -4283,7 +4715,8 @@
             "name": "CEntityIdentity*",
             "category": "pointer",
             "inner": "CEntityIdentity"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_CScriptComponent",
@@ -4293,7 +4726,8 @@
             "name": "CScriptComponent*",
             "category": "pointer",
             "inner": "CScriptComponent"
-          }
+          },
+          "networked": false
         }
       ]
     },
@@ -4310,7 +4744,8 @@
             "name": "CTransformWS",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_pOwner",
@@ -4320,7 +4755,8 @@
             "name": "CEntityInstance*",
             "category": "pointer",
             "inner": "CEntityInstance"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_pParent",
@@ -4330,7 +4766,8 @@
             "name": "CGameSceneNode*",
             "category": "pointer",
             "inner": "CGameSceneNode"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_pChild",
@@ -4340,7 +4777,8 @@
             "name": "CGameSceneNode*",
             "category": "pointer",
             "inner": "CGameSceneNode"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_pNextSibling",
@@ -4350,7 +4788,8 @@
             "name": "CGameSceneNode*",
             "category": "pointer",
             "inner": "CGameSceneNode"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_hParent",
@@ -4360,7 +4799,8 @@
             "name": "CGameSceneNodeHandle",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_vecOrigin",
@@ -4370,7 +4810,8 @@
             "name": "CNetworkOriginCellCoordQuantizedVector",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_angRotation",
@@ -4380,7 +4821,8 @@
             "name": "QAngle",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flScale",
@@ -4389,7 +4831,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_vecAbsOrigin",
@@ -4399,7 +4842,8 @@
             "name": "VectorWS",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_angAbsRotation",
@@ -4409,7 +4853,8 @@
             "name": "QAngle",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flAbsScale",
@@ -4418,7 +4863,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nParentAttachmentOrBone",
@@ -4427,7 +4873,8 @@
           "type": {
             "name": "int16",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bDebugAbsOriginChanges",
@@ -4436,7 +4883,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bDormant",
@@ -4445,7 +4893,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bForceParentToBeNetworked",
@@ -4454,7 +4903,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bDirtyHierarchy",
@@ -4463,7 +4913,8 @@
           "type": {
             "name": "bitfield:1",
             "category": "bitfield"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bDirtyBoneMergeInfo",
@@ -4472,7 +4923,8 @@
           "type": {
             "name": "bitfield:1",
             "category": "bitfield"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bNetworkedPositionChanged",
@@ -4481,7 +4933,8 @@
           "type": {
             "name": "bitfield:1",
             "category": "bitfield"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bNetworkedAnglesChanged",
@@ -4490,7 +4943,8 @@
           "type": {
             "name": "bitfield:1",
             "category": "bitfield"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bNetworkedScaleChanged",
@@ -4499,7 +4953,8 @@
           "type": {
             "name": "bitfield:1",
             "category": "bitfield"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bWillBeCallingPostDataUpdate",
@@ -4508,7 +4963,8 @@
           "type": {
             "name": "bitfield:1",
             "category": "bitfield"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bBoneMergeFlex",
@@ -4517,7 +4973,8 @@
           "type": {
             "name": "bitfield:1",
             "category": "bitfield"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nLatchAbsOrigin",
@@ -4526,7 +4983,8 @@
           "type": {
             "name": "bitfield:2",
             "category": "bitfield"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bDirtyBoneMergeBoneToRoot",
@@ -4535,7 +4993,8 @@
           "type": {
             "name": "bitfield:1",
             "category": "bitfield"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nHierarchicalDepth",
@@ -4544,7 +5003,8 @@
           "type": {
             "name": "uint8",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nHierarchyType",
@@ -4553,7 +5013,8 @@
           "type": {
             "name": "uint8",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nDoNotSetAnimTimeInInvalidatePhysicsCount",
@@ -4562,7 +5023,8 @@
           "type": {
             "name": "uint8",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_name",
@@ -4572,7 +5034,8 @@
             "name": "CUtlStringToken",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_hierarchyAttachName",
@@ -4582,7 +5045,8 @@
             "name": "CUtlStringToken",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flClientLocalScale",
@@ -4591,7 +5055,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         }
       ]
     },
@@ -4609,7 +5074,8 @@
             "category": "fixed_array",
             "inner": "uint64",
             "extent": 3
-          }
+          },
+          "networked": false
         }
       ]
     },
@@ -4627,7 +5093,8 @@
             "category": "atomic",
             "atomic": "t",
             "inner": "InfoForResourceTypeCModel"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_ModelName",
@@ -4637,7 +5104,8 @@
             "name": "CUtlSymbolLarge",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_pVPhysicsAggregate",
@@ -4647,7 +5115,8 @@
             "name": "IPhysAggregateInstance*",
             "category": "pointer",
             "inner": "IPhysAggregateInstance"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flRootBoneOffset_x",
@@ -4656,7 +5125,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flRootBoneOffset_y",
@@ -4665,7 +5135,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flRootBoneOffset_z",
@@ -4674,7 +5145,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nRootBoneOffsetResetSerialNumber",
@@ -4683,7 +5155,8 @@
           "type": {
             "name": "uint8",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bClientClothCreationSuppressed",
@@ -4692,7 +5165,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nAnimStateNoInterpSerialNumber",
@@ -4701,7 +5175,8 @@
           "type": {
             "name": "uint8",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_MeshGroupMask",
@@ -4710,7 +5185,8 @@
           "type": {
             "name": "uint64",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nBodyGroupChoices",
@@ -4721,7 +5197,8 @@
             "category": "atomic",
             "atomic": "collection_of_t",
             "inner": "int32"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nIdealMotionType",
@@ -4730,7 +5207,8 @@
           "type": {
             "name": "int8",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nForceLOD",
@@ -4739,7 +5217,8 @@
           "type": {
             "name": "int8",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nClothUpdateFlags",
@@ -4748,7 +5227,8 @@
           "type": {
             "name": "int8",
             "category": "builtin"
-          }
+          },
+          "networked": false
         }
       ]
     },
@@ -4765,7 +5245,8 @@
             "name": "CNetworkVarChainer",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         }
       ]
     },
@@ -4782,7 +5263,8 @@
             "name": "CNetworkVarChainer",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_pComponentGraphController",
@@ -4792,7 +5274,8 @@
             "name": "CAnimGraphControllerPtr",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         }
       ]
     },
@@ -4824,7 +5307,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nButtons",
@@ -4834,7 +5318,8 @@
             "name": "CInButtonState",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nQueuedButtonDownMask",
@@ -4843,7 +5328,8 @@
           "type": {
             "name": "uint64",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nQueuedButtonChangeMask",
@@ -4852,7 +5338,8 @@
           "type": {
             "name": "uint64",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nButtonDoublePressed",
@@ -4861,7 +5348,8 @@
           "type": {
             "name": "uint64",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_pButtonPressedCmdNumber",
@@ -4872,7 +5360,8 @@
             "category": "fixed_array",
             "inner": "uint32",
             "extent": 64
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nLastCommandNumberProcessed",
@@ -4881,7 +5370,8 @@
           "type": {
             "name": "uint32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nToggleButtonDownMask",
@@ -4890,7 +5380,8 @@
           "type": {
             "name": "uint64",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flCmdForwardMove",
@@ -4899,7 +5390,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flCmdLeftMove",
@@ -4908,7 +5400,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flCmdUpMove",
@@ -4917,7 +5410,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flMaxspeed",
@@ -4926,7 +5420,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_arrForceSubtickMoveWhen",
@@ -4937,7 +5432,8 @@
             "category": "fixed_array",
             "inner": "float32",
             "extent": 4
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_flForwardMove",
@@ -4946,7 +5442,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flLeftMove",
@@ -4955,7 +5452,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_flUpMove",
@@ -4964,7 +5462,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_vecLastMovementImpulses",
@@ -4974,7 +5473,8 @@
             "name": "Vector",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_vecOldViewAngles",
@@ -4984,7 +5484,8 @@
             "name": "QAngle",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         }
       ]
     },
@@ -5005,7 +5506,8 @@
           "type": {
             "name": "uint8",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_hObserverTarget",
@@ -5016,7 +5518,8 @@
             "category": "atomic",
             "atomic": "t",
             "inner": "CBaseEntity"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iObserverLastMode",
@@ -5026,7 +5529,8 @@
             "name": "ObserverMode_t",
             "category": "declared_enum",
             "declared": "enum"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bForcedObserverMode",
@@ -5035,7 +5539,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         }
       ]
     },
@@ -5058,7 +5563,8 @@
             "category": "atomic",
             "atomic": "collection_of_t",
             "inner": "CHandle< CBasePlayerWeapon >"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_hActiveWeapon",
@@ -5069,7 +5575,8 @@
             "category": "atomic",
             "atomic": "t",
             "inner": "CBasePlayerWeapon"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_hLastWeapon",
@@ -5080,7 +5587,8 @@
             "category": "atomic",
             "atomic": "t",
             "inner": "CBasePlayerWeapon"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iAmmo",
@@ -5091,7 +5599,8 @@
             "category": "fixed_array",
             "inner": "uint16",
             "extent": 32
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bPreventWeaponPickup",
@@ -5100,7 +5609,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         }
       ]
     },
@@ -5122,7 +5632,8 @@
             "name": "CModelState",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bUseParentRenderBounds",
@@ -5131,7 +5642,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bDisableSolidCollisionsForHierarchy",
@@ -5140,7 +5652,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bDirtyMotionType",
@@ -5149,7 +5662,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_bIsGeneratingLatchedParentSpaceState",
@@ -5158,7 +5672,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_materialGroup",
@@ -5168,7 +5683,8 @@
             "name": "CUtlStringToken",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nHitboxSet",
@@ -5177,7 +5693,8 @@
           "type": {
             "name": "uint8",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bForceServerConstraintsEnabled",
@@ -5186,7 +5703,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": false
         }
       ]
     },
@@ -5207,7 +5725,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_iOnlyTeamToVote",
@@ -5216,7 +5735,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nVoteOptionCount",
@@ -5227,7 +5747,8 @@
             "category": "fixed_array",
             "inner": "int32",
             "extent": 5
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nPotentialVotes",
@@ -5236,7 +5757,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_bIsYesNoVote",
@@ -5245,7 +5767,8 @@
           "type": {
             "name": "bool",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_acceptingVotesTimer",
@@ -5255,7 +5778,8 @@
             "name": "CountdownTimer",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_executeCommandTimer",
@@ -5265,7 +5789,8 @@
             "name": "CountdownTimer",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_resetVoteTimer",
@@ -5275,7 +5800,8 @@
             "name": "CountdownTimer",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nVotesCast",
@@ -5286,7 +5812,8 @@
             "category": "fixed_array",
             "inner": "int32",
             "extent": 64
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_playerHoldingVote",
@@ -5296,7 +5823,8 @@
             "name": "CPlayerSlot",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_playerOverrideForVote",
@@ -5306,7 +5834,8 @@
             "name": "CPlayerSlot",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_nHighestCountIndex",
@@ -5315,7 +5844,8 @@
           "type": {
             "name": "int32",
             "category": "builtin"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_potentialIssues",
@@ -5326,7 +5856,8 @@
             "category": "atomic",
             "atomic": "collection_of_t",
             "inner": "CBaseIssue*"
-          }
+          },
+          "networked": false
         },
         {
           "name": "m_VoteOptions",
@@ -5337,7 +5868,8 @@
             "category": "atomic",
             "atomic": "collection_of_t",
             "inner": "char*"
-          }
+          },
+          "networked": false
         }
       ]
     },
@@ -5353,7 +5885,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_timestamp",
@@ -5363,7 +5896,8 @@
             "name": "GameTime_t",
             "category": "declared_class",
             "declared": "class"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_timescale",
@@ -5372,7 +5906,8 @@
           "type": {
             "name": "float32",
             "category": "builtin"
-          }
+          },
+          "networked": true
         },
         {
           "name": "m_nWorldGroupId",
@@ -5382,7 +5917,8 @@
             "name": "WorldGroupId_t",
             "category": "atomic",
             "atomic": "plain"
-          }
+          },
+          "networked": true
         }
       ]
     }

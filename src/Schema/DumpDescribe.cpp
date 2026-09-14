@@ -8,7 +8,7 @@
 namespace VoltMod::Schema
 {
 
-// A non-negative offset enables a NotifyThroughChain setter.
+// A non-negative offset enables a NotifyComponentOwner setter.
 static constexpr std::string_view ChainField = "__m_pChainEntity";
 
 static std::string_view CategoryName(SchemaTypeCategory_t category)
@@ -116,7 +116,7 @@ static int32_t FindChainOffset(const CSchemaClassInfo* klass)
     return found ? found->m_nSingleInheritanceOffset : -1;
 }
 
-ClassInfo DescribeClass(const CSchemaClassInfo* klass)
+ClassInfo DescribeClass(const CSchemaClassInfo* klass, const CNetworkSerializerClassInfo* network)
 {
     ClassInfo out;
     out.size = klass->m_nSize;
@@ -144,7 +144,8 @@ ClassInfo DescribeClass(const CSchemaClassInfo* klass)
         out.fields.push_back({.name = field.m_pszName,
                               .offset = field.m_nSingleInheritanceOffset,
                               .size = size,
-                              .type = DescribeType(field.m_pType)});
+                              .type = DescribeType(field.m_pType),
+                              .networked = network && network->FindField(field.m_pszName)});
     }
 
     return out;

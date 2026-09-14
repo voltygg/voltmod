@@ -9,6 +9,7 @@ from voltmod.errors import VoltmodError
 from voltmod.schemagen.generate import (
     BASELINES,
     GENERATED_HEADER_DIR,
+    GENERATED_SOURCE_DIR,
     MANIFEST,
     render_outputs,
     write_outputs,
@@ -23,8 +24,8 @@ def type_info(name, category="builtin", **extra):
     return {"name": name, "category": category, **extra}
 
 
-def dumped_field(name, offset, size, info):
-    return {"name": name, "offset": offset, "size": size, "type": info}
+def dumped_field(name, offset, size, info, networked=True):
+    return {"name": name, "offset": offset, "size": size, "type": info, "networked": networked}
 
 
 def dump():
@@ -169,6 +170,17 @@ def test_an_unmapped_type_is_skipped_visibly():
 def test_a_struct_embedded_in_an_entity_keeps_its_setters():
     assert resolve_classes(dump(), manifest())["CEmbedded"].embeds_in_entity is True
     assert "void SetFlag(bool value) const" in class_header(dump(), manifest(), "CEmbedded")
+
+
+def test_a_field_the_engine_does_not_network_is_written_without_a_notify():
+    dumped = dump()
+    dumped["classes"]["CBaseEntity"]["fields"][1]["networked"] = False
+    source = render_outputs(dumped, manifest(), "windows").files[
+        GENERATED_SOURCE_DIR / "windows" / "CBaseEntity.cpp"
+    ]
+    assert "*MemberPtr<uint8_t>(_base, kCBaseEntity_LifeState) = value;" in source
+    assert "_ownerOffset + kCBaseEntity_LifeState" not in source
+    assert "_ownerOffset + kCBaseEntity_Health" in source
 
 
 def test_a_class_with_no_route_to_replicate_writes_is_read_only():

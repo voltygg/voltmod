@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <map>
+#include <networksystem/inetworkserializer.h>
 #include <optional>
 #include <schemasystem/schematypes.h>
 #include <string>
@@ -12,12 +13,7 @@
 namespace VoltMod::Schema
 {
 
-/**
- * A field type as reported by the schema.
- *
- * `atomic` distinguishes CUtlVector collections from plain atomic types. Their element type is
- * stored in `inner`.
- */
+/** A field type as the schema reports it; `inner` is a pointer, array or templated atomic's element type. */
 struct TypeInfo
 {
     std::string name;
@@ -34,6 +30,7 @@ struct FieldInfo
     int32_t offset = 0;
     int32_t size = 0;
     TypeInfo type;
+    bool networked = false;
 };
 
 struct BaseInfo
@@ -65,15 +62,14 @@ struct EnumInfo
 /** Ordered maps keep generated output stable. */
 struct SchemaDoc
 {
-    /** steam.inf's ServerVersion used to identify the generated build. */
-    std::string build;
+    std::string build;  // steam.inf ServerVersion
     std::vector<std::string> scopes;
     std::map<std::string, ClassInfo> classes;
     std::map<std::string, EnumInfo> enums;
 };
 
-/** Describe @p klass as IR. */
-ClassInfo DescribeClass(const CSchemaClassInfo* klass);
+/** Describe @p klass as IR; @p network is null for a class the engine does not network. */
+ClassInfo DescribeClass(const CSchemaClassInfo* klass, const CNetworkSerializerClassInfo* network);
 
 /** Describe @p enumeration as IR. */
 EnumInfo DescribeEnum(const CSchemaEnumInfo* enumeration);

@@ -40,7 +40,9 @@ void {{ schema_class.name }}::Set{{ code.name }}({{ code.setter_params }}) const
         return;
 
     {{ code.write_statement }}
+{% if code.notify_statement %}
     {{ code.notify_statement }}
+{% endif %}
 }
 
 {% endif %}

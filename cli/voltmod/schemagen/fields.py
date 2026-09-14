@@ -54,6 +54,7 @@ def describe_field(entry: str, dumped: dict[str, Any], dump: dict[str, Any]) -> 
             size=dumped["size"],
             kind=kind,
             schema_type=type_name,
+            networked=dumped["networked"],
             **extra,
         )
 

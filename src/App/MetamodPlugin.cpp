@@ -6,6 +6,7 @@
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Runtime.hpp>
+#include <VoltMod/Schema/Layout.hpp>
 #include <VoltMod/Unsafe/Hook.hpp>
 #include <cstdio>
 #include <cstring>
@@ -169,6 +170,7 @@ void MetamodPlugin::HandleServerStartup(const char* mapName)
     _runtime->Map.SetCurrent(mapName ? mapName : "");
     // Publish the new entity system before calling the plugin callback.
     _runtime->Entities.OnServerStartup();
+    Schema::WriteSchemaDump(_runtime->Entities.GetEntitySystem());
     _runtime->GameEvents.OnServerStartup();
     _runtime->Hooks.ClientConVars.OnServerStartup();
     OnServerStartup(mapName ? std::string_view(mapName) : std::string_view{});

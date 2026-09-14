@@ -79,7 +79,6 @@ void CCSPlayerPawn::SetOnGroundLastTick(bool value) const
         return;
 
     *MemberPtr<bool>(_base, kCCSPlayerPawn_OnGroundLastTick) = value;
-    NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawn_OnGroundLastTick);
 }
 
 extern const FieldLayout CCSPlayerPawn_kFields[4];

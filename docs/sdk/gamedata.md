@@ -180,12 +180,11 @@ Lookup returns null on failure. The gamedata entry still supplies the slot.
 ## Schema fields
 
 Schema offsets need no gamedata: `voltmod schemagen` bakes them into the generated accessors,
-and `Runtime::Start` verifies the whole layout against the live schema once at load. When that
-check fails, the same stage writes `addons/voltmod/schema/server.json` before it refuses the load,
-so the input `schemagen` needs is already there. The dump is rewritten whenever the one on disk was
-not stamped with the running game build, which also covers the first load on a server that has none
-and skips the write when a plugin loaded earlier already did it. It writes once per process and
-never fails a load over it.
+and `Runtime::Start` verifies the whole layout against the live schema once at load. The input
+`schemagen` needs, `addons/voltmod/schema/server.json`, also records which fields the engine sends
+to clients. That comes from the engine's network serializers, which exist only while a map runs, so
+a plugin writes the dump at map start, or at load when it loads into a running map, and skips it
+when the dump on disk already carries the running game build. A failed write never fails a load.
 
 ```cpp
 runtime.Entities.PawnOf(slot).SetHealth(100);   // writes CBaseEntity::m_iHealth at a baked offset

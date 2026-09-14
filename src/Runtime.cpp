@@ -154,9 +154,12 @@ bool Runtime::InitializeServices(const LoadContext& context)
         });
     };
 
-    // Abort when the live CS2 layout differs from generated offsets.
+    // Abort on schema drift. A load into a running map writes the dump first, so a refusal still leaves one.
     Schema::BindSchemaVerification(Unsafe.Interfaces.SchemaSystem);
-    if (!fatal("SchemaLayout", [&] { return Schema::VerifySchemaLayout(); }))
+    if (!fatal("SchemaLayout", [&] {
+            Schema::WriteSchemaDump(Entities.GetEntitySystem());
+            return Schema::VerifySchemaLayout();
+        }))
     {
         return false;
     }

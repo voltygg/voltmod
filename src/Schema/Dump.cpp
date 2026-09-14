@@ -15,7 +15,7 @@
 namespace VoltMod::Schema
 {
 
-/** Snapshot a CUtlTSHash through the HL2SDK Count/GetElements/Element API. */
+/** Copy a CUtlTSHash's elements out. */
 template <class T, class Hash>
 static std::vector<T> HashElements(Hash& hash)
 {
@@ -33,8 +33,15 @@ static std::vector<T> HashElements(Hash& hash)
     return out;
 }
 
-/** Add a scope's classes and enums, counting redefinitions. */
-static void MergeScope(SchemaDoc& doc, DumpStats& stats, std::string_view name, CSchemaSystemTypeScope* scope)
+static const CNetworkSerializerClassInfo* NetworkClass(const CNetworkSerializerCodeGenDatabase& network,
+                                                       const char* name)
+{
+    const auto index = network.m_ClassInfos.Find(name);
+    return index == network.m_ClassInfos.InvalidIndex() ? nullptr : network.m_ClassInfos.Element(index);
+}
+
+static void MergeScope(SchemaDoc& doc, DumpStats& stats, std::string_view name, CSchemaSystemTypeScope* scope,
+                       const CNetworkSerializerCodeGenDatabase& network)
 {
     doc.scopes.emplace_back(name);
     for (CSchemaClassInfo* klass : HashElements<CSchemaClassInfo*>(scope->m_ClassBindings))
@@ -42,7 +49,7 @@ static void MergeScope(SchemaDoc& doc, DumpStats& stats, std::string_view name, 
         if (!klass || !klass->m_pszName)
             continue;
 
-        ClassInfo info = DescribeClass(klass);
+        ClassInfo info = DescribeClass(klass, NetworkClass(network, klass->m_pszName));
         stats.Fields += static_cast<int>(info.fields.size());
         if (!doc.classes.insert_or_assign(klass->m_pszName, std::move(info)).second)
             ++stats.Overrides;
@@ -58,7 +65,7 @@ static void MergeScope(SchemaDoc& doc, DumpStats& stats, std::string_view name, 
     }
 }
 
-/** Write @p text to @p output, creating its directory. Binary mode keeps output identical across platforms. */
+/** Binary mode keeps the file byte-identical across platforms. */
 static Status WriteFile(const std::filesystem::path& output, std::string_view text)
 {
     std::error_code ec;
@@ -75,8 +82,9 @@ static Status WriteFile(const std::filesystem::path& output, std::string_view te
     return {};
 }
 
-Result<DumpStats> WriteSchemaDump(CSchemaSystemTypeScope* global, CSchemaSystemTypeScope* server,
-                                  const std::filesystem::path& output, std::string_view gameBuild)
+Result<DumpStats> WriteDumpFile(CSchemaSystemTypeScope* global, CSchemaSystemTypeScope* server,
+                                const CNetworkSerializerCodeGenDatabase& network, const std::filesystem::path& output,
+                                std::string_view gameBuild)
 {
     if (!server)
         return std::unexpected(Error::NotReady("no server type scope"));
@@ -84,10 +92,10 @@ Result<DumpStats> WriteSchemaDump(CSchemaSystemTypeScope* global, CSchemaSystemT
     SchemaDoc doc{.build = std::string(gameBuild)};
     DumpStats stats;
 
-    // Merge global first because server types depend on it; server definitions override collisions.
+    // Server definitions override global ones.
     if (global)
-        MergeScope(doc, stats, "global", global);
-    MergeScope(doc, stats, "server", server);
+        MergeScope(doc, stats, "global", global, network);
+    MergeScope(doc, stats, "server", server, network);
 
     stats.Classes = static_cast<int>(doc.classes.size());
     stats.Enums = static_cast<int>(doc.enums.size());

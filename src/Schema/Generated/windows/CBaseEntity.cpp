@@ -102,7 +102,6 @@ void CBaseEntity::SetVelocity(Vector value) const
         return;
 
     *MemberPtr<Vector>(_base, kCBaseEntity_Velocity) = value;
-    NotifyEntity(_owner, _ownerOffset + kCBaseEntity_Velocity);
 }
 
 MoveType_t CBaseEntity::MoveTypeRaw() const
@@ -136,7 +135,6 @@ void CBaseEntity::SetActualMoveTypeRaw(MoveType_t value) const
         return;
 
     *MemberPtr<MoveType_t>(_base, kCBaseEntity_ActualMoveTypeRaw) = value;
-    NotifyEntity(_owner, _ownerOffset + kCBaseEntity_ActualMoveTypeRaw);
 }
 
 uint32_t CBaseEntity::GroundEntity() const

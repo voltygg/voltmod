@@ -7,13 +7,14 @@
 #include <VoltMod/Core/Paths.hpp>
 #include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Schema/Layout.hpp>
+#include <entity2/entityclass.h>
+#include <entity2/entitysystem.h>
 #include <filesystem>
 #include <format>
 #include <fstream>
 #include <schemasystem/schemasystem.h>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
 namespace VoltMod::Schema
@@ -30,7 +31,7 @@ void BindSchemaVerification(ISchemaSystem* system)
 /** Output read by `voltmod schemagen`. */
 static constexpr std::string_view DumpPath = "addons/voltmod/schema/server.json";
 
-/** Read the game's build number from steam.inf beside the addons tree. */
+/** steam.inf's ServerVersion. */
 static std::string_view GameBuild()
 {
     static const std::string build = [] {
@@ -46,7 +47,7 @@ static std::string_view GameBuild()
     return build;
 }
 
-/** Build stamped on an existing dump, or empty. Reads the document's first key, not all of it. */
+/** The build stamped on the dump at @p path, or empty; reads only the file's head. */
 static std::string DumpedBuild(const std::filesystem::path& path)
 {
     std::ifstream file(path, std::ios::binary);
@@ -67,20 +68,26 @@ static std::string DumpedBuild(const std::filesystem::path& path)
     return close == std::string::npos ? std::string() : head.substr(open + 1, close - open - 1);
 }
 
-/**
- * Write the dump needed for regeneration while the live schema is available.
- *
- * Write once per process because all plugins share one schema object. Failure is non-fatal because
- * the addons tree may be read-only.
- */
-static void WriteDump(CSchemaSystemTypeScope* global, CSchemaSystemTypeScope* server)
+void WriteSchemaDump(CGameEntitySystem* entities)
 {
-    static bool written = false;
-    if (std::exchange(written, true))
+    static bool attempted = false;  // one try per plugin; the build stamp stops the rest
+    if (attempted || !entities || !g_schema || !g_schema->SchemaSystemIsReady())
         return;
 
     const std::filesystem::path output = ResolvePath(DumpPath);
-    auto stats = WriteSchemaDump(global, server, output, GameBuild());
+    if (DumpedBuild(output) == GameBuild())
+        return;
+
+    // One serializer database covers every networked class; any entity class reaches it.
+    const CEntityClass* entityClass = entities->FindClassByName("CBaseEntity");
+    const CNetworkSerializerClassInfo* serializer = entityClass ? entityClass->m_NetworkSerializerInfo : nullptr;
+    const std::string moduleName = PlatformModuleName("server");
+    CSchemaSystemTypeScope* server = g_schema->FindTypeScopeForModule(moduleName.c_str());
+    if (!serializer || !serializer->m_pDatabase || !server)
+        return;
+
+    attempted = true;
+    auto stats = WriteDumpFile(g_schema->GlobalTypeScope(), server, *serializer->m_pDatabase, output, GameBuild());
     if (!stats)
     {
         Log::Warn("Schema: no dump written to {}: {}", output.string(), stats.error().Detail);
@@ -144,17 +151,14 @@ Status VerifySchemaLayout()
         }
     }
 
-    // One invariant: the dump on disk describes the running build. A plugin loaded earlier may
-    // already have written it, and a stale one would regenerate accessors for the previous build.
-    if (DumpedBuild(ResolvePath(DumpPath)) != GameBuild())
-        WriteDump(global, server);
-
     if (drift.empty())
         return {};
 
-    std::string message = std::format("schema drift (accessors generated from game build {}, server is {}); "
-                                      "regenerate with voltmod schemagen:",
-                                      GeneratedFromBuild(), GameBuild());
+    std::string message = std::format(
+        "schema drift (accessors generated from game build {}, server is {}); "
+        "load a plugin into a running map to write the dump, then regenerate "
+        "with voltmod schemagen:",
+        GeneratedFromBuild(), GameBuild());
     for (const std::string& line : drift)
         message += std::format("\n  {}", line);
     return std::unexpected(Error::Invalid(message));

@@ -32,19 +32,22 @@ std::span<const ClassLayout> GeneratedLayout();
 /** The game build represented by @ref GeneratedLayout. */
 std::string_view GeneratedFromBuild();
 
-/** Set the schema system used by verification. Called once by Runtime::Start. */
+/** The schema system that verification and the dump read. Set once by Runtime::Start. */
 void BindSchemaVerification(ISchemaSystem* system);
 
 /**
- * @brief Compare @ref GeneratedLayout against the schema the running engine reports.
+ * @brief Compare @ref GeneratedLayout with the live schema.
  *
- * Offsets are baked at build time, so a CS2 update that moves a used class turns every
- * generated accessor into a wrong-address read or write. This is the one check that catches
- * that, and it is why the load aborts rather than degrades on a mismatch.
- *
- * @return Every mismatch in one message, or ErrorCode::NotReady when the schema system has
- *         not populated the server scope yet.
+ * Stale baked offsets would read and write wrong addresses, so a mismatch aborts the load.
+ * @return Every mismatch in one message, or ErrorCode::NotReady before the server scope exists.
  */
 Status VerifySchemaLayout();
+
+/**
+ * @brief Write `addons/voltmod/schema/server.json` for `voltmod schemagen` unless it matches this build.
+ *
+ * Networked fields come from the engine's serializers, which exist only with @p entities; null writes nothing.
+ */
+void WriteSchemaDump(CGameEntitySystem* entities);
 
 }  // namespace VoltMod::Schema

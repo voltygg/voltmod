@@ -77,7 +77,7 @@ def accessor_code(schema_class: SchemaClass, schema_field: SchemaField) -> Acces
         setter_arguments="index, value" if takes_index else "value",
         write_guard=write_guard,
         write_statement=write_statement,
-        notify_statement=_notify_statement(schema_class, written_offset),
+        notify_statement=_notify_statement(schema_class, schema_field, written_offset),
     )
 
 
@@ -114,7 +114,10 @@ def _write(schema_field: SchemaField, cpp_type: str, constant: str) -> tuple[str
     return "!_base", f"*MemberPtr<{stored}>(_base, {constant}) = value;", constant
 
 
-def _notify_statement(schema_class: SchemaClass, offset: str) -> str:
+def _notify_statement(schema_class: SchemaClass, schema_field: SchemaField, offset: str) -> str:
+    # The engine rejects a change reported for a field it does not network.
+    if not schema_field.networked:
+        return ""
     if schema_class.owner_link_offset >= 0:
         return f"NotifyComponentOwner(_base, {schema_class.name}_kOwnerLinkOffset, {offset});"
     # An entity view owns itself at offset 0, so this one call also covers structs embedded in it.

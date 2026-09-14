@@ -39,6 +39,7 @@ class SchemaField:
     embedded: bool = False  # a view held by value rather than behind a pointer
     extent: int = 0
     schema_type: str = ""  # the dump's type spelling, for the offset comment
+    networked: bool = False
     skip_reason: str = ""
 
     @property
