@@ -28,8 +28,9 @@ range. Point out `!` commits since the last tag before bumping only the patch.
    `uv lock`, then confirm `uv run poe release version` prints it.
 5. **Commit and push:** stage `conanfile.py`, `pyproject.toml`, `uv.lock` and
    `CHANGELOG.md` by name, `chore: release <version>`, `git push origin main`.
-6. **Wait for CI** on that commit (`gh run watch <id> -R voltygg/voltmod`). Only a
-   green run gets tagged.
+6. **Wait for CI** on that commit (`gh run watch <id> -R voltygg/voltmod`), then check it
+   packages: `gh workflow run release.yml -R voltygg/voltmod --ref main` builds both variants
+   without uploading; watch that run too. Only a commit green on both gets tagged.
 7. **Tag:** `git tag v<version> && git push origin v<version>`.
 8. **Watch Release:** `gh run list -R voltygg/voltmod --workflow release.yml -L 1`,
    then `gh run watch`. Both jobs must pass.

@@ -25,8 +25,7 @@ jobs:
       - name: Check the module layering
         run: uv run poe modgraph
 
-  # Both jobs below compile the framework, against the SDK binaries the lockfile pins, so they run
-  # side by side rather than one after another.
+  # Packaging is checked by a manual Release run before tagging, not on every push.
   build:
     name: Build and test (linux-steamrt)
     runs-on: ubuntu-latest
@@ -43,15 +42,3 @@ jobs:
 
       - name: Run the test suite
         run: voltmod test linux-steamrt-release
-
-  package:
-    name: Conan package
-    runs-on: ubuntu-latest
-    container:
-      image: registry.gitlab.steamos.cloud/steamrt/sniper/sdk:latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup-toolchain
-
-      - name: Create the Conan package
-        run: python -m tools.release build framework --database on
