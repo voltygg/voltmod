@@ -4,19 +4,23 @@
 
 #include <VoltMod/Engine/Memory/OriginalVfn.hpp>
 #include <optional>
+#include <span>
 
 namespace VoltMod
 {
 
 /**
  * Find `className`'s primary vtable in loaded `moduleName`, or nullptr. Uses compiler metadata:
- * MSVC RTTI on Windows (top-level, non-template classes only) and the Itanium `_ZTV` symbol on
- * Linux (unavailable in a stripped library).
+ * MSVC RTTI on Windows (top-level, non-template classes only), and on Linux the Itanium `_ZTV`
+ * symbol, or the Itanium RTTI when the library hides that symbol.
  */
 void* FindVirtualTable(const char* moduleName, const char* className);
 
 /** Find @p className's primary vtable in an already-located @p image, or nullptr. */
 void* FindVirtualTableIn(const ModuleImage& image, const char* className);
+
+/** Find @p className's primary vtable through Itanium RTTI in readable @p ranges, or nullptr. */
+void* FindVirtualTableByTypeName(std::span<const ScanRange> ranges, const char* className);
 
 /** Location of a virtual function in an object's vtables. See @ref FindVTableSlot. */
 struct VTableSlot

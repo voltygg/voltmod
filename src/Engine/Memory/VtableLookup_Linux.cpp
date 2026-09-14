@@ -6,10 +6,12 @@
 #include <cstring>
 #include <elf.h>
 #include <fcntl.h>
+#include <filesystem>
 #include <string>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <vector>
 
 namespace VoltMod
 {
@@ -106,18 +108,22 @@ void* FindVirtualTableIn(const ModuleImage& image, const char* className)
     if (image.Path.empty())
         return nullptr;
 
-    MappedFile elf(image.Path);
-    if (!elf)
-        return nullptr;
+    if (MappedFile elf(image.Path); elf)
+    {
+        // Itanium ABI vtable symbols use _ZTV<length><name>.
+        const std::string symbol = "_ZTV" + std::to_string(std::strlen(className)) + className;
+        // Object vptrs point past offset-to-top and typeinfo.
+        if (const uint64_t value = FindSymbolValue(elf, symbol))
+            return const_cast<uint8_t*>(image.Base + value + 2 * sizeof(void*));
+    }
 
-    // Itanium ABI vtable symbols use _ZTV<length><name>.
-    const std::string symbol = "_ZTV" + std::to_string(std::strlen(className)) + className;
-    const uint64_t value = FindSymbolValue(elf, symbol);
-    if (value == 0)
+    // The game's libraries hide their vtable symbols but keep RTTI, so search the mapped segments.
+    ModuleImage mapped;
+    std::vector<ScanRange> ranges;
+    const std::string fileName = std::filesystem::path(image.Path).filename().string();
+    if (!FindImageAndRanges(fileName.c_str(), mapped, ranges))
         return nullptr;
-
-    // Object vptrs point past offset-to-top and typeinfo.
-    return const_cast<uint8_t*>(image.Base + value + 2 * sizeof(void*));
+    return FindVirtualTableByTypeName(ranges, className);
 }
 
 }  // namespace VoltMod

@@ -3,8 +3,13 @@
 #include "Engine/Memory/SigScanner.hpp"
 
 #include <VoltMod/Core/Log.hpp>
+#include <cctype>
 #include <cstdint>
 #include <cstring>
+#include <span>
+#include <string>
+#include <string_view>
+#include <vector>
 
 namespace VoltMod
 {
@@ -25,6 +30,59 @@ void* FindVirtualTable(const char* moduleName, const char* className)
     if (!vtable)
         Log::Warn("VtableLookup: '{}' vtable not found in '{}'.", className, PlatformModuleName(moduleName));
     return vtable;
+}
+
+static uintptr_t ReadWord(uintptr_t address)
+{
+    uintptr_t word = 0;
+    std::memcpy(&word, reinterpret_cast<const void*>(address), sizeof(word));
+    return word;
+}
+
+/** Every aligned word in @p ranges holding @p value, with a readable word on each side. */
+static std::vector<uintptr_t> FindWords(std::span<const ScanRange> ranges, uintptr_t value)
+{
+    std::vector<uintptr_t> found;
+    for (const ScanRange& range : ranges)
+    {
+        const auto begin = reinterpret_cast<uintptr_t>(range.Base);
+        const uintptr_t first = ((begin + sizeof(void*) - 1) & ~uintptr_t{sizeof(void*) - 1}) + sizeof(void*);
+        for (uintptr_t at = first; at + 2 * sizeof(void*) <= begin + range.Size; at += sizeof(void*))
+        {
+            if (ReadWord(at) == value)
+                found.push_back(at);
+        }
+    }
+    return found;
+}
+
+void* FindVirtualTableByTypeName(std::span<const ScanRange> ranges, const char* className)
+{
+    // The type name is "<length><name>\0"; a typeinfo is {vptr, name}; a vtable is {offset-to-top, typeinfo, slots}.
+    const std::string typeName = std::to_string(std::strlen(className)) + className;
+    const std::string_view needle(typeName.c_str(), typeName.size() + 1);
+    for (const ScanRange& range : ranges)
+    {
+        const std::string_view memory(reinterpret_cast<const char*>(range.Base), range.Size);
+        for (size_t at = memory.find(needle); at != std::string_view::npos; at = memory.find(needle, at + 1))
+        {
+            // Preceded by a name character, the match is the tail of a longer mangled name.
+            if (at > 0 && (std::isalnum(static_cast<unsigned char>(memory[at - 1])) || memory[at - 1] == '_'))
+                continue;
+
+            for (uintptr_t name : FindWords(ranges, reinterpret_cast<uintptr_t>(range.Base) + at))
+            {
+                for (uintptr_t typeInfo : FindWords(ranges, name - sizeof(void*)))
+                {
+                    // The primary table has a zero offset-to-top and code in its first slot.
+                    if (ReadWord(typeInfo - sizeof(void*)) == 0 &&
+                        IsExecutableAddress(reinterpret_cast<const void*>(ReadWord(typeInfo + sizeof(void*)))))
+                        return reinterpret_cast<void*>(typeInfo + sizeof(void*));
+                }
+            }
+        }
+    }
+    return nullptr;
 }
 
 /** How many object words the blind walk tries as vptrs. */
