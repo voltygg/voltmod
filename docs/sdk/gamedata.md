@@ -172,8 +172,8 @@ resolved table with its slot.
   the result is always the class's primary vtable, never a base subobject's. The name has to be the
   top-level class name exactly: a `struct` (`.?AU`), a nested class, or a namespaced one resolves to
   null.
-- Linux: reads `_ZTV<mangled>` from the ELF `.symtab`, falling back to `.dynsym`. A fully stripped
-  module has neither.
+- Linux: reads `_ZTV<mangled>` from the ELF `.symtab`, falling back to `.dynsym`. The game's
+  libraries hide those symbols, so it then walks the Itanium RTTI in the mapped module.
 
 Lookup returns null on failure. The gamedata entry still supplies the slot.
 
@@ -197,7 +197,7 @@ each call:
 | | says where | source | checked |
 | --- | --- | --- | --- |
 | `gamedata/gamedata.jsonc` | functions, vtables, interfaces | hand-maintained | at load, per entry |
-| `schema/server.json` | entity field offsets | dumped from the engine | at load, whole layout |
+| `schema/server.<platform>.json` | entity field offsets | dumped from the engine | at load, whole layout |
 
 Schema fields are generated accessors, so a sub-object is a hop rather than a follow:
 

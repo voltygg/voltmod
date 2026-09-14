@@ -32,6 +32,14 @@ target_compile_features(voltmod-headers INTERFACE cxx_std_23)
 # Runtime includes every source module except Database.
 file(GLOB_RECURSE VOLTMOD_RUNTIME_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 list(FILTER VOLTMOD_RUNTIME_SOURCES EXCLUDE REGEX "/src/Database/")
+
+# Schema offsets differ between the Windows and Linux builds of the game.
+if(WIN32)
+    list(FILTER VOLTMOD_RUNTIME_SOURCES EXCLUDE REGEX "/src/Schema/Generated/linux/")
+else()
+    list(FILTER VOLTMOD_RUNTIME_SOURCES EXCLUDE REGEX "/src/Schema/Generated/windows/")
+endif()
+
 file(GLOB_RECURSE VOLTMOD_HTTP_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Http/*.cpp")
 file(GLOB_RECURSE VOLTMOD_DATABASE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Database/*.cpp")
 

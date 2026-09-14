@@ -7,7 +7,7 @@ import pytest
 
 from voltmod.errors import VoltmodError
 from voltmod.schemagen.generate import (
-    BASELINE,
+    BASELINES,
     GENERATED_HEADER_DIR,
     MANIFEST,
     render_outputs,
@@ -132,14 +132,16 @@ def manifest(classes=None):
 
 
 def class_header(dumped, selected, name):
-    return render_outputs(dumped, selected).files[GENERATED_HEADER_DIR / f"{name}.hpp"]
+    return render_outputs(dumped, selected, "windows").files[GENERATED_HEADER_DIR / f"{name}.hpp"]
 
 
-def test_the_committed_generated_tree_is_what_the_generator_writes():
+@pytest.mark.parametrize("platform", list(BASELINES))
+def test_the_committed_generated_tree_is_what_the_generator_writes(platform):
     """The committed baseline and manifest must regenerate every committed file byte for byte."""
-    baseline = json.loads((REPO_ROOT / BASELINE).read_text(encoding="utf-8"))
+    baseline = json.loads((REPO_ROOT / BASELINES[platform]).read_text(encoding="utf-8"))
     shipped = json.loads((REPO_ROOT / MANIFEST).read_text(encoding="utf-8"))
-    write_outputs(REPO_ROOT, render_outputs(baseline, shipped).files, check=True)
+    files = render_outputs(baseline, shipped, platform).files
+    write_outputs(REPO_ROOT, files, platform, check=True)
 
 
 def test_the_closure_pulls_in_bases_and_returned_types_but_nothing_else():

@@ -1,0 +1,5474 @@
+{
+  "build": "2000908",
+  "scopes": [
+    "global",
+    "server"
+  ],
+  "classes": {
+    "CBaseAnimGraph": {
+      "size": 3136,
+      "bases": [
+        {
+          "name": "CBaseModelEntity",
+          "offset": 0
+        }
+      ],
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_graphControllerManager",
+          "offset": 2640,
+          "size": 152,
+          "type": {
+            "name": "CAnimGraphControllerManager",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_pMainGraphController",
+          "offset": 2792,
+          "size": 8,
+          "type": {
+            "name": "CAnimGraphControllerPtr",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_bInitiallyPopulateInterpHistory",
+          "offset": 2800,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_OnLayerCycleUpdated",
+          "offset": 2808,
+          "size": 32,
+          "type": {
+            "name": "CEntityOutputTemplate< float32 >",
+            "category": "atomic",
+            "atomic": "t",
+            "inner": "float32"
+          }
+        },
+        {
+          "name": "m_OnExternalChoreoGraphChanged",
+          "offset": 2840,
+          "size": 24,
+          "type": {
+            "name": "CEntityIOOutput",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_pChoreoServices",
+          "offset": 2864,
+          "size": 8,
+          "type": {
+            "name": "IChoreoServices*",
+            "category": "pointer",
+            "inner": "IChoreoServices"
+          }
+        },
+        {
+          "name": "m_bAnimGraphUpdateEnabled",
+          "offset": 2872,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bAnimationUpdateScheduled",
+          "offset": 2873,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_vecForce",
+          "offset": 2876,
+          "size": 12,
+          "type": {
+            "name": "Vector",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_nForceBone",
+          "offset": 2888,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_pRagdollControl",
+          "offset": 2904,
+          "size": 8,
+          "type": {
+            "name": "IPhysicsRagdollControl*",
+            "category": "pointer",
+            "inner": "IPhysicsRagdollControl"
+          }
+        },
+        {
+          "name": "m_RagdollPose",
+          "offset": 2912,
+          "size": 40,
+          "type": {
+            "name": "PhysicsRagdollPose_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_bRagdollEnabled",
+          "offset": 2952,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bRagdollClientSide",
+          "offset": 2953,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_xParentedRagdollRootInEntitySpace",
+          "offset": 2960,
+          "size": 32,
+          "type": {
+            "name": "CTransform",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        }
+      ]
+    },
+    "CBaseCombatCharacter": {
+      "size": 3344,
+      "bases": [
+        {
+          "name": "CBaseAnimGraph",
+          "offset": 0
+        }
+      ],
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_bForceServerRagdoll",
+          "offset": 3136,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_hMyWearables",
+          "offset": 3144,
+          "size": 24,
+          "type": {
+            "name": "CNetworkUtlVectorBase< CHandle< CEconWearable > >",
+            "category": "atomic",
+            "atomic": "collection_of_t",
+            "inner": "CHandle< CEconWearable >"
+          }
+        },
+        {
+          "name": "m_impactEnergyScale",
+          "offset": 3168,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bApplyStressDamage",
+          "offset": 3172,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bDeathEventsDispatched",
+          "offset": 3173,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_vecRelationships",
+          "offset": 3240,
+          "size": 24,
+          "type": {
+            "name": "CUtlVector< RelationshipOverride_t >",
+            "category": "atomic",
+            "atomic": "collection_of_t",
+            "inner": "RelationshipOverride_t"
+          }
+        },
+        {
+          "name": "m_strRelationships",
+          "offset": 3264,
+          "size": 8,
+          "type": {
+            "name": "CUtlSymbolLarge",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_eHull",
+          "offset": 3272,
+          "size": 4,
+          "type": {
+            "name": "Hull_t",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_nNavHullIdx",
+          "offset": 3276,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_movementStats",
+          "offset": 3280,
+          "size": 64,
+          "type": {
+            "name": "CMovementStatsProperty",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        }
+      ]
+    },
+    "CBaseEntity": {
+      "size": 1928,
+      "bases": [
+        {
+          "name": "CEntityInstance",
+          "offset": 0
+        }
+      ],
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_CBodyComponent",
+          "offset": 48,
+          "size": 8,
+          "type": {
+            "name": "CBodyComponent*",
+            "category": "pointer",
+            "inner": "CBodyComponent"
+          }
+        },
+        {
+          "name": "m_NetworkTransmitComponent",
+          "offset": 56,
+          "size": 816,
+          "type": {
+            "name": "CNetworkTransmitComponent",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_aThinkFunctions",
+          "offset": 1280,
+          "size": 24,
+          "type": {
+            "name": "CUtlVector< thinkfunc_t >",
+            "category": "atomic",
+            "atomic": "collection_of_t",
+            "inner": "thinkfunc_t"
+          }
+        },
+        {
+          "name": "m_iCurrentThinkContext",
+          "offset": 1304,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nLastThinkTick",
+          "offset": 1308,
+          "size": 4,
+          "type": {
+            "name": "GameTick_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_bDisabledContextThinks",
+          "offset": 1312,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_isSteadyState",
+          "offset": 1328,
+          "size": 8,
+          "type": {
+            "name": "CTypedBitVec< 64 >",
+            "category": "atomic",
+            "atomic": "i"
+          }
+        },
+        {
+          "name": "m_lastNetworkChange",
+          "offset": 1336,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_think",
+          "offset": 1344,
+          "size": 16,
+          "type": {
+            "name": "BASEPTR",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_ResponseContexts",
+          "offset": 1360,
+          "size": 24,
+          "type": {
+            "name": "CUtlVector< ResponseContext_t >",
+            "category": "atomic",
+            "atomic": "collection_of_t",
+            "inner": "ResponseContext_t"
+          }
+        },
+        {
+          "name": "m_iszResponseContext",
+          "offset": 1384,
+          "size": 8,
+          "type": {
+            "name": "CUtlSymbolLarge",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_pfnTouch",
+          "offset": 1392,
+          "size": 16,
+          "type": {
+            "name": "ENTITYFUNCPTR",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_pfnUse",
+          "offset": 1408,
+          "size": 16,
+          "type": {
+            "name": "USEPTR",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_pfnBlocked",
+          "offset": 1424,
+          "size": 16,
+          "type": {
+            "name": "ENTITYFUNCPTR",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_pfnMoveDone",
+          "offset": 1440,
+          "size": 16,
+          "type": {
+            "name": "BASEPTR",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_iHealth",
+          "offset": 1456,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iMaxHealth",
+          "offset": 1460,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_lifeState",
+          "offset": 1464,
+          "size": 1,
+          "type": {
+            "name": "uint8",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flDamageAccumulator",
+          "offset": 1468,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bTakesDamage",
+          "offset": 1472,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nTakeDamageFlags",
+          "offset": 1480,
+          "size": 8,
+          "type": {
+            "name": "TakeDamageFlags_t",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_nPlatformType",
+          "offset": 1488,
+          "size": 1,
+          "type": {
+            "name": "EntityPlatformTypes_t",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_MoveCollide",
+          "offset": 1490,
+          "size": 1,
+          "type": {
+            "name": "MoveCollide_t",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_MoveType",
+          "offset": 1491,
+          "size": 1,
+          "type": {
+            "name": "MoveType_t",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_nPreviouslySetMoveType",
+          "offset": 1492,
+          "size": 1,
+          "type": {
+            "name": "MoveType_t",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_nActualMoveType",
+          "offset": 1493,
+          "size": 1,
+          "type": {
+            "name": "MoveType_t",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_nWaterTouch",
+          "offset": 1494,
+          "size": 1,
+          "type": {
+            "name": "uint8",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nSlimeTouch",
+          "offset": 1495,
+          "size": 1,
+          "type": {
+            "name": "uint8",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bRestoreInHierarchy",
+          "offset": 1496,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_target",
+          "offset": 1504,
+          "size": 8,
+          "type": {
+            "name": "CUtlSymbolLarge",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_hDamageFilter",
+          "offset": 1512,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CBaseFilter >",
+            "category": "atomic",
+            "atomic": "t",
+            "inner": "CBaseFilter"
+          }
+        },
+        {
+          "name": "m_iszDamageFilterName",
+          "offset": 1520,
+          "size": 8,
+          "type": {
+            "name": "CUtlSymbolLarge",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_flMoveDoneTime",
+          "offset": 1528,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nSubclassID",
+          "offset": 1532,
+          "size": 4,
+          "type": {
+            "name": "CUtlStringToken",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_flAnimTime",
+          "offset": 1544,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flSimulationTime",
+          "offset": 1548,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flCreateTime",
+          "offset": 1552,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_bClientSideRagdoll",
+          "offset": 1556,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_ubInterpolationFrame",
+          "offset": 1557,
+          "size": 1,
+          "type": {
+            "name": "uint8",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_vPrevVPhysicsUpdatePos",
+          "offset": 1560,
+          "size": 12,
+          "type": {
+            "name": "VectorWS",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_iTeamNum",
+          "offset": 1572,
+          "size": 1,
+          "type": {
+            "name": "uint8",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iGlobalname",
+          "offset": 1576,
+          "size": 8,
+          "type": {
+            "name": "CUtlSymbolLarge",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_iSentToClients",
+          "offset": 1584,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_sUniqueHammerID",
+          "offset": 1592,
+          "size": 8,
+          "type": {
+            "name": "CUtlString",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_spawnflags",
+          "offset": 1600,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nNextThinkTick",
+          "offset": 1604,
+          "size": 4,
+          "type": {
+            "name": "GameTick_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_nSimulationTick",
+          "offset": 1608,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_OnKilled",
+          "offset": 1616,
+          "size": 24,
+          "type": {
+            "name": "CEntityIOOutput",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_fFlags",
+          "offset": 1640,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_vecAbsVelocity",
+          "offset": 1644,
+          "size": 12,
+          "type": {
+            "name": "Vector",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_vecVelocity",
+          "offset": 1656,
+          "size": 40,
+          "type": {
+            "name": "CNetworkVelocityVector",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_vecBaseVelocity",
+          "offset": 1704,
+          "size": 12,
+          "type": {
+            "name": "Vector",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_nPushEnumCount",
+          "offset": 1716,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_pCollision",
+          "offset": 1720,
+          "size": 8,
+          "type": {
+            "name": "CCollisionProperty*",
+            "category": "pointer",
+            "inner": "CCollisionProperty"
+          }
+        },
+        {
+          "name": "m_hEffectEntity",
+          "offset": 1728,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CBaseEntity >",
+            "category": "atomic",
+            "atomic": "t",
+            "inner": "CBaseEntity"
+          }
+        },
+        {
+          "name": "m_hOwnerEntity",
+          "offset": 1732,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CBaseEntity >",
+            "category": "atomic",
+            "atomic": "t",
+            "inner": "CBaseEntity"
+          }
+        },
+        {
+          "name": "m_fEffects",
+          "offset": 1736,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_hGroundEntity",
+          "offset": 1740,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CBaseEntity >",
+            "category": "atomic",
+            "atomic": "t",
+            "inner": "CBaseEntity"
+          }
+        },
+        {
+          "name": "m_nGroundBodyIndex",
+          "offset": 1744,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flFriction",
+          "offset": 1748,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flElasticity",
+          "offset": 1752,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flGravityScale",
+          "offset": 1756,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flTimeScale",
+          "offset": 1760,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flWaterLevel",
+          "offset": 1764,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bGravityDisabled",
+          "offset": 1768,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bAnimatedEveryTick",
+          "offset": 1769,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flActualGravityScale",
+          "offset": 1772,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bGravityActuallyDisabled",
+          "offset": 1776,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bDisableLowViolence",
+          "offset": 1777,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nWaterType",
+          "offset": 1778,
+          "size": 1,
+          "type": {
+            "name": "uint8",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iEFlags",
+          "offset": 1780,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_OnUser1",
+          "offset": 1784,
+          "size": 24,
+          "type": {
+            "name": "CEntityIOOutput",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_OnUser2",
+          "offset": 1808,
+          "size": 24,
+          "type": {
+            "name": "CEntityIOOutput",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_OnUser3",
+          "offset": 1832,
+          "size": 24,
+          "type": {
+            "name": "CEntityIOOutput",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_OnUser4",
+          "offset": 1856,
+          "size": 24,
+          "type": {
+            "name": "CEntityIOOutput",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_iInitialTeamNum",
+          "offset": 1880,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flNavIgnoreUntilTime",
+          "offset": 1884,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_vecAngVelocity",
+          "offset": 1888,
+          "size": 12,
+          "type": {
+            "name": "QAngle",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_bNetworkQuantizeOriginAndAngles",
+          "offset": 1900,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bLagCompensate",
+          "offset": 1901,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_pBlocker",
+          "offset": 1904,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CBaseEntity >",
+            "category": "atomic",
+            "atomic": "t",
+            "inner": "CBaseEntity"
+          }
+        },
+        {
+          "name": "m_flLocalTime",
+          "offset": 1908,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flVPhysicsUpdateLocalTime",
+          "offset": 1912,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nBloodType",
+          "offset": 1916,
+          "size": 4,
+          "type": {
+            "name": "BloodType",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_pPulseGraphInstance",
+          "offset": 1920,
+          "size": 8,
+          "type": {
+            "name": "CPulseGraphInstance_ServerEntity*",
+            "category": "pointer",
+            "inner": "CPulseGraphInstance_ServerEntity"
+          }
+        }
+      ]
+    },
+    "CBaseModelEntity": {
+      "size": 2640,
+      "bases": [
+        {
+          "name": "CBaseEntity",
+          "offset": 0
+        }
+      ],
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_CRenderComponent",
+          "offset": 1928,
+          "size": 8,
+          "type": {
+            "name": "CRenderComponent*",
+            "category": "pointer",
+            "inner": "CRenderComponent"
+          }
+        },
+        {
+          "name": "m_CHitboxComponent",
+          "offset": 1936,
+          "size": 24,
+          "type": {
+            "name": "CHitboxComponent",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_pChoreoComponent",
+          "offset": 1960,
+          "size": 8,
+          "type": {
+            "name": "CChoreoComponent*",
+            "category": "pointer",
+            "inner": "CChoreoComponent"
+          }
+        },
+        {
+          "name": "m_nDestructiblePartInitialStateDestructed0",
+          "offset": 1968,
+          "size": 4,
+          "type": {
+            "name": "HitGroup_t",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_nDestructiblePartInitialStateDestructed1",
+          "offset": 1972,
+          "size": 4,
+          "type": {
+            "name": "HitGroup_t",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_nDestructiblePartInitialStateDestructed2",
+          "offset": 1976,
+          "size": 4,
+          "type": {
+            "name": "HitGroup_t",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_nDestructiblePartInitialStateDestructed3",
+          "offset": 1980,
+          "size": 4,
+          "type": {
+            "name": "HitGroup_t",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_nDestructiblePartInitialStateDestructed4",
+          "offset": 1984,
+          "size": 4,
+          "type": {
+            "name": "HitGroup_t",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_nDestructiblePartInitialStateDestructed0_PartIndex",
+          "offset": 1988,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nDestructiblePartInitialStateDestructed1_PartIndex",
+          "offset": 1992,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nDestructiblePartInitialStateDestructed2_PartIndex",
+          "offset": 1996,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nDestructiblePartInitialStateDestructed3_PartIndex",
+          "offset": 2000,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nDestructiblePartInitialStateDestructed4_PartIndex",
+          "offset": 2004,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bDestructiblePartInitialStateDestructed0_GenerateBreakpieces",
+          "offset": 2008,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bDestructiblePartInitialStateDestructed1_GenerateBreakpieces",
+          "offset": 2009,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bDestructiblePartInitialStateDestructed2_GenerateBreakpieces",
+          "offset": 2010,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bDestructiblePartInitialStateDestructed3_GenerateBreakpieces",
+          "offset": 2011,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bDestructiblePartInitialStateDestructed4_GenerateBreakpieces",
+          "offset": 2012,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_pDestructiblePartsSystemComponent",
+          "offset": 2016,
+          "size": 8,
+          "type": {
+            "name": "CDestructiblePartsComponent*",
+            "category": "pointer",
+            "inner": "CDestructiblePartsComponent"
+          }
+        },
+        {
+          "name": "m_OnDestructibleHitGroupDamageLevelChanged",
+          "offset": 2024,
+          "size": 40,
+          "type": {
+            "name": "CEntityOutputTemplate< CBaseModelEntity::OnDamageLevelChangedArgs_t >",
+            "category": "atomic",
+            "atomic": "t",
+            "inner": "CBaseModelEntity::OnDamageLevelChangedArgs_t"
+          }
+        },
+        {
+          "name": "m_flDissolveStartTime",
+          "offset": 2064,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_OnIgnite",
+          "offset": 2072,
+          "size": 24,
+          "type": {
+            "name": "CEntityIOOutput",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_nRenderMode",
+          "offset": 2096,
+          "size": 1,
+          "type": {
+            "name": "RenderMode_t",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_nRenderFX",
+          "offset": 2097,
+          "size": 1,
+          "type": {
+            "name": "RenderFx_t",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_bAllowFadeInView",
+          "offset": 2098,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_clrRender",
+          "offset": 2128,
+          "size": 4,
+          "type": {
+            "name": "Color",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_vecRenderAttributes",
+          "offset": 2136,
+          "size": 104,
+          "type": {
+            "name": "CUtlVectorEmbeddedNetworkVar< EntityRenderAttribute_t >",
+            "category": "atomic",
+            "atomic": "collection_of_t",
+            "inner": "EntityRenderAttribute_t"
+          }
+        },
+        {
+          "name": "m_bRenderToCubemaps",
+          "offset": 2240,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bNoInterpolate",
+          "offset": 2241,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_Collision",
+          "offset": 2248,
+          "size": 184,
+          "type": {
+            "name": "CCollisionProperty",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_Glow",
+          "offset": 2432,
+          "size": 88,
+          "type": {
+            "name": "CGlowProperty",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_flGlowBackfaceMult",
+          "offset": 2520,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_fadeMinDist",
+          "offset": 2524,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_fadeMaxDist",
+          "offset": 2528,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flFadeScale",
+          "offset": 2532,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flShadowStrength",
+          "offset": 2536,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nObjectCulling",
+          "offset": 2540,
+          "size": 1,
+          "type": {
+            "name": "uint8",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bodyGroupChoices",
+          "offset": 2544,
+          "size": 40,
+          "type": {
+            "name": "CUtlOrderedMap< CGlobalSymbol, int32 >",
+            "category": "atomic",
+            "atomic": "tt",
+            "inner": "CGlobalSymbol"
+          }
+        },
+        {
+          "name": "m_vecViewOffset",
+          "offset": 2584,
+          "size": 40,
+          "type": {
+            "name": "CNetworkViewOffsetVector",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_bvDisabledHitGroups",
+          "offset": 2632,
+          "size": 4,
+          "type": {
+            "name": "uint32[1]",
+            "category": "fixed_array",
+            "inner": "uint32",
+            "extent": 1
+          }
+        }
+      ]
+    },
+    "CBasePlayerController": {
+      "size": 2728,
+      "bases": [
+        {
+          "name": "CBaseEntity",
+          "offset": 0
+        }
+      ],
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_nInButtonsWhichAreToggles",
+          "offset": 1936,
+          "size": 8,
+          "type": {
+            "name": "uint64",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nTickBase",
+          "offset": 1944,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_hPawn",
+          "offset": 1984,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CBasePlayerPawn >",
+            "category": "atomic",
+            "atomic": "t",
+            "inner": "CBasePlayerPawn"
+          }
+        },
+        {
+          "name": "m_bKnownTeamMismatch",
+          "offset": 1988,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nSplitScreenSlot",
+          "offset": 1992,
+          "size": 4,
+          "type": {
+            "name": "CSplitScreenSlot",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_hSplitOwner",
+          "offset": 1996,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CBasePlayerController >",
+            "category": "atomic",
+            "atomic": "t",
+            "inner": "CBasePlayerController"
+          }
+        },
+        {
+          "name": "m_hSplitScreenPlayers",
+          "offset": 2000,
+          "size": 24,
+          "type": {
+            "name": "CUtlVector< CHandle< CBasePlayerController > >",
+            "category": "atomic",
+            "atomic": "collection_of_t",
+            "inner": "CHandle< CBasePlayerController >"
+          }
+        },
+        {
+          "name": "m_bIsHLTV",
+          "offset": 2024,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iConnected",
+          "offset": 2028,
+          "size": 4,
+          "type": {
+            "name": "PlayerConnectedState",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_iMostConnected",
+          "offset": 2032,
+          "size": 4,
+          "type": {
+            "name": "PlayerConnectedState",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_iszPlayerName",
+          "offset": 2036,
+          "size": 128,
+          "type": {
+            "name": "char[128]",
+            "category": "fixed_array",
+            "inner": "char",
+            "extent": 128
+          }
+        },
+        {
+          "name": "m_szNetworkIDString",
+          "offset": 2168,
+          "size": 8,
+          "type": {
+            "name": "CUtlString",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_fLerpTime",
+          "offset": 2176,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bLagCompensation",
+          "offset": 2180,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bPredict",
+          "offset": 2181,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bIsLowViolence",
+          "offset": 2188,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bGamePaused",
+          "offset": 2189,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iIgnoreGlobalChat",
+          "offset": 2496,
+          "size": 4,
+          "type": {
+            "name": "ChatIgnoreType_t",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_flLastPlayerTalkTime",
+          "offset": 2500,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flLastEntitySteadyState",
+          "offset": 2504,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nAvailableEntitySteadyState",
+          "offset": 2508,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bHasAnySteadyStateEnts",
+          "offset": 2512,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_steamID",
+          "offset": 2528,
+          "size": 8,
+          "type": {
+            "name": "uint64",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bNoClipEnabled",
+          "offset": 2536,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iDesiredFOV",
+          "offset": 2540,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "builtin"
+          }
+        }
+      ]
+    },
+    "CBasePlayerPawn": {
+      "size": 3776,
+      "bases": [
+        {
+          "name": "CBaseCombatCharacter",
+          "offset": 0
+        }
+      ],
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_pWeaponServices",
+          "offset": 3344,
+          "size": 8,
+          "type": {
+            "name": "CPlayer_WeaponServices*",
+            "category": "pointer",
+            "inner": "CPlayer_WeaponServices"
+          }
+        },
+        {
+          "name": "m_pItemServices",
+          "offset": 3352,
+          "size": 8,
+          "type": {
+            "name": "CPlayer_ItemServices*",
+            "category": "pointer",
+            "inner": "CPlayer_ItemServices"
+          }
+        },
+        {
+          "name": "m_pAutoaimServices",
+          "offset": 3360,
+          "size": 8,
+          "type": {
+            "name": "CPlayer_AutoaimServices*",
+            "category": "pointer",
+            "inner": "CPlayer_AutoaimServices"
+          }
+        },
+        {
+          "name": "m_pObserverServices",
+          "offset": 3368,
+          "size": 8,
+          "type": {
+            "name": "CPlayer_ObserverServices*",
+            "category": "pointer",
+            "inner": "CPlayer_ObserverServices"
+          }
+        },
+        {
+          "name": "m_pWaterServices",
+          "offset": 3376,
+          "size": 8,
+          "type": {
+            "name": "CPlayer_WaterServices*",
+            "category": "pointer",
+            "inner": "CPlayer_WaterServices"
+          }
+        },
+        {
+          "name": "m_pUseServices",
+          "offset": 3384,
+          "size": 8,
+          "type": {
+            "name": "CPlayer_UseServices*",
+            "category": "pointer",
+            "inner": "CPlayer_UseServices"
+          }
+        },
+        {
+          "name": "m_pFlashlightServices",
+          "offset": 3392,
+          "size": 8,
+          "type": {
+            "name": "CPlayer_FlashlightServices*",
+            "category": "pointer",
+            "inner": "CPlayer_FlashlightServices"
+          }
+        },
+        {
+          "name": "m_pCameraServices",
+          "offset": 3400,
+          "size": 8,
+          "type": {
+            "name": "CPlayer_CameraServices*",
+            "category": "pointer",
+            "inner": "CPlayer_CameraServices"
+          }
+        },
+        {
+          "name": "m_pMovementServices",
+          "offset": 3408,
+          "size": 8,
+          "type": {
+            "name": "CPlayer_MovementServices*",
+            "category": "pointer",
+            "inner": "CPlayer_MovementServices"
+          }
+        },
+        {
+          "name": "m_ServerViewAngleChanges",
+          "offset": 3424,
+          "size": 104,
+          "type": {
+            "name": "CUtlVectorEmbeddedNetworkVar< ViewAngleServerChange_t >",
+            "category": "atomic",
+            "atomic": "collection_of_t",
+            "inner": "ViewAngleServerChange_t"
+          }
+        },
+        {
+          "name": "v_angle",
+          "offset": 3528,
+          "size": 12,
+          "type": {
+            "name": "QAngle",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "v_anglePrevious",
+          "offset": 3540,
+          "size": 12,
+          "type": {
+            "name": "QAngle",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_iHideHUD",
+          "offset": 3552,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_skybox3d",
+          "offset": 3560,
+          "size": 144,
+          "type": {
+            "name": "sky3dparams_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_fTimeLastHurt",
+          "offset": 3704,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_flDeathTime",
+          "offset": 3708,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_fNextSuicideTime",
+          "offset": 3712,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_fInitHUD",
+          "offset": 3716,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_pExpresser",
+          "offset": 3720,
+          "size": 8,
+          "type": {
+            "name": "CAI_Expresser*",
+            "category": "pointer",
+            "inner": "CAI_Expresser"
+          }
+        },
+        {
+          "name": "m_hController",
+          "offset": 3728,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CBasePlayerController >",
+            "category": "atomic",
+            "atomic": "t",
+            "inner": "CBasePlayerController"
+          }
+        },
+        {
+          "name": "m_hDefaultController",
+          "offset": 3732,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CBasePlayerController >",
+            "category": "atomic",
+            "atomic": "t",
+            "inner": "CBasePlayerController"
+          }
+        },
+        {
+          "name": "m_fHltvReplayDelay",
+          "offset": 3740,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_fHltvReplayEnd",
+          "offset": 3744,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iHltvReplayEntity",
+          "offset": 3748,
+          "size": 4,
+          "type": {
+            "name": "CEntityIndex",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_sndOpvarLatchData",
+          "offset": 3752,
+          "size": 24,
+          "type": {
+            "name": "CUtlVector< sndopvarlatchdata_t >",
+            "category": "atomic",
+            "atomic": "collection_of_t",
+            "inner": "sndopvarlatchdata_t"
+          }
+        }
+      ]
+    },
+    "CBodyComponent": {
+      "size": 120,
+      "bases": [
+        {
+          "name": "CEntityComponent",
+          "offset": 0
+        }
+      ],
+      "chain_offset": 72,
+      "fields": [
+        {
+          "name": "m_pSceneNode",
+          "offset": 8,
+          "size": 8,
+          "type": {
+            "name": "CGameSceneNode*",
+            "category": "pointer",
+            "inner": "CGameSceneNode"
+          }
+        },
+        {
+          "name": "__m_pChainEntity",
+          "offset": 72,
+          "size": 40,
+          "type": {
+            "name": "CNetworkVarChainer",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        }
+      ]
+    },
+    "CCSCustomHudLayout": {
+      "size": 2768,
+      "bases": [
+        {
+          "name": "CBaseEntity",
+          "offset": 0
+        }
+      ],
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_strLayout",
+          "offset": 1928,
+          "size": 8,
+          "type": {
+            "name": "CUtlSymbolLarge",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_bObservable",
+          "offset": 1936,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_vecPlayerLayoutStates",
+          "offset": 1944,
+          "size": 104,
+          "type": {
+            "name": "CUtlVectorEmbeddedNetworkVar< CCSCustomHudLayoutState >",
+            "category": "atomic",
+            "atomic": "collection_of_t",
+            "inner": "CCSCustomHudLayoutState"
+          }
+        },
+        {
+          "name": "m_globalLayoutState",
+          "offset": 2048,
+          "size": 408,
+          "type": {
+            "name": "CCSCustomHudLayoutState",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_vecPanelIds",
+          "offset": 2456,
+          "size": 24,
+          "type": {
+            "name": "CNetworkUtlVectorBase< CUtlString >",
+            "category": "atomic",
+            "atomic": "collection_of_t",
+            "inner": "CUtlString"
+          }
+        },
+        {
+          "name": "m_vecClassNames",
+          "offset": 2480,
+          "size": 24,
+          "type": {
+            "name": "CNetworkUtlVectorBase< CUtlString >",
+            "category": "atomic",
+            "atomic": "collection_of_t",
+            "inner": "CUtlString"
+          }
+        },
+        {
+          "name": "m_vecDialogVariableNames",
+          "offset": 2504,
+          "size": 24,
+          "type": {
+            "name": "CNetworkUtlVectorBase< CUtlString >",
+            "category": "atomic",
+            "atomic": "collection_of_t",
+            "inner": "CUtlString"
+          }
+        }
+      ]
+    },
+    "CCSCustomHudLayoutState": {
+      "size": 408,
+      "bases": [],
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_playerSlot",
+          "offset": 48,
+          "size": 4,
+          "type": {
+            "name": "CPlayerSlot",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_bInputCaptureEnabled",
+          "offset": 52,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_vecHasClasses",
+          "offset": 56,
+          "size": 96,
+          "type": {
+            "name": "CNetworkUtlVectorBase< HUDPanelHasClass_t >",
+            "category": "atomic",
+            "atomic": "collection_of_t",
+            "inner": "HUDPanelHasClass_t"
+          }
+        },
+        {
+          "name": "m_vecDialogVariableStrings",
+          "offset": 152,
+          "size": 96,
+          "type": {
+            "name": "CNetworkUtlVectorBase< HUDPanelDialogVariableString_t >",
+            "category": "atomic",
+            "atomic": "collection_of_t",
+            "inner": "HUDPanelDialogVariableString_t"
+          }
+        }
+      ]
+    },
+    "CCSPlayerController": {
+      "size": 3456,
+      "bases": [
+        {
+          "name": "CBasePlayerController",
+          "offset": 0
+        }
+      ],
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_pInGameMoneyServices",
+          "offset": 2744,
+          "size": 8,
+          "type": {
+            "name": "CCSPlayerController_InGameMoneyServices*",
+            "category": "pointer",
+            "inner": "CCSPlayerController_InGameMoneyServices"
+          }
+        },
+        {
+          "name": "m_pInventoryServices",
+          "offset": 2752,
+          "size": 8,
+          "type": {
+            "name": "CCSPlayerController_InventoryServices*",
+            "category": "pointer",
+            "inner": "CCSPlayerController_InventoryServices"
+          }
+        },
+        {
+          "name": "m_pActionTrackingServices",
+          "offset": 2760,
+          "size": 8,
+          "type": {
+            "name": "CCSPlayerController_ActionTrackingServices*",
+            "category": "pointer",
+            "inner": "CCSPlayerController_ActionTrackingServices"
+          }
+        },
+        {
+          "name": "m_pDamageServices",
+          "offset": 2768,
+          "size": 8,
+          "type": {
+            "name": "CCSPlayerController_DamageServices*",
+            "category": "pointer",
+            "inner": "CCSPlayerController_DamageServices"
+          }
+        },
+        {
+          "name": "m_iPing",
+          "offset": 2776,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bHasCommunicationAbuseMute",
+          "offset": 2780,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_uiCommunicationMuteFlags",
+          "offset": 2784,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_szCrosshairCodes",
+          "offset": 2792,
+          "size": 8,
+          "type": {
+            "name": "CUtlSymbolLarge",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_iPendingTeamNum",
+          "offset": 2800,
+          "size": 1,
+          "type": {
+            "name": "uint8",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flForceTeamTime",
+          "offset": 2804,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_iCompTeammateColor",
+          "offset": 2808,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bEverPlayedOnTeam",
+          "offset": 2812,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bAttemptedToGetColor",
+          "offset": 2813,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iTeammatePreferredColor",
+          "offset": 2816,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bTeamChanged",
+          "offset": 2820,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bInSwitchTeam",
+          "offset": 2821,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bHasSeenJoinGame",
+          "offset": 2822,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bJustBecameSpectator",
+          "offset": 2823,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bSwitchTeamsOnNextRoundReset",
+          "offset": 2824,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bRemoveAllItemsOnNextRoundReset",
+          "offset": 2825,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flLastJoinTeamTime",
+          "offset": 2828,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_szClan",
+          "offset": 2832,
+          "size": 8,
+          "type": {
+            "name": "CUtlSymbolLarge",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_iCoachingTeam",
+          "offset": 2840,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nPlayerDominated",
+          "offset": 2848,
+          "size": 8,
+          "type": {
+            "name": "uint64",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nPlayerDominatingMe",
+          "offset": 2856,
+          "size": 8,
+          "type": {
+            "name": "uint64",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iCompetitiveRanking",
+          "offset": 2864,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iCompetitiveWins",
+          "offset": 2868,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iCompetitiveRankType",
+          "offset": 2872,
+          "size": 1,
+          "type": {
+            "name": "int8",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iCompetitiveRankingPredicted_Win",
+          "offset": 2876,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iCompetitiveRankingPredicted_Loss",
+          "offset": 2880,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iCompetitiveRankingPredicted_Tie",
+          "offset": 2884,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nEndMatchNextMapVote",
+          "offset": 2888,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_unActiveQuestId",
+          "offset": 2892,
+          "size": 2,
+          "type": {
+            "name": "uint16",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_rtActiveMissionPeriod",
+          "offset": 2896,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nQuestProgressReason",
+          "offset": 2900,
+          "size": 4,
+          "type": {
+            "name": "QuestProgress::Reason",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_unPlayerTvControlFlags",
+          "offset": 2904,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iDraftIndex",
+          "offset": 2952,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_msQueuedModeDisconnectionTimestamp",
+          "offset": 2956,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_uiAbandonRecordedReason",
+          "offset": 2960,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_eNetworkDisconnectionReason",
+          "offset": 2964,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bCannotBeKicked",
+          "offset": 2968,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bEverFullyConnected",
+          "offset": 2969,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bAbandonAllowsSurrender",
+          "offset": 2970,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bAbandonOffersInstantSurrender",
+          "offset": 2971,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bDisconnection1MinWarningPrinted",
+          "offset": 2972,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bScoreReported",
+          "offset": 2973,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nDisconnectionTick",
+          "offset": 2976,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bControllingBot",
+          "offset": 2992,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bHasControlledBotThisRound",
+          "offset": 2993,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bHasBeenControlledByPlayerThisRound",
+          "offset": 2994,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nBotsControlledThisRound",
+          "offset": 2996,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bCanControlObservedBot",
+          "offset": 3000,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_hPlayerPawn",
+          "offset": 3004,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CCSPlayerPawn >",
+            "category": "atomic",
+            "atomic": "t",
+            "inner": "CCSPlayerPawn"
+          }
+        },
+        {
+          "name": "m_hObserverPawn",
+          "offset": 3008,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CCSObserverPawn >",
+            "category": "atomic",
+            "atomic": "t",
+            "inner": "CCSObserverPawn"
+          }
+        },
+        {
+          "name": "m_DesiredObserverMode",
+          "offset": 3012,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_hDesiredObserverTarget",
+          "offset": 3016,
+          "size": 4,
+          "type": {
+            "name": "CEntityHandle",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_bPawnIsAlive",
+          "offset": 3020,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iPawnHealth",
+          "offset": 3024,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iPawnArmor",
+          "offset": 3028,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bPawnHasDefuser",
+          "offset": 3032,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bPawnHasHelmet",
+          "offset": 3033,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nPawnCharacterDefIndex",
+          "offset": 3034,
+          "size": 2,
+          "type": {
+            "name": "uint16",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iPawnLifetimeStart",
+          "offset": 3036,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iPawnLifetimeEnd",
+          "offset": 3040,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iPawnBotDifficulty",
+          "offset": 3044,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_hOriginalControllerOfCurrentPawn",
+          "offset": 3048,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CCSPlayerController >",
+            "category": "atomic",
+            "atomic": "t",
+            "inner": "CCSPlayerController"
+          }
+        },
+        {
+          "name": "m_iScore",
+          "offset": 3052,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iRoundScore",
+          "offset": 3056,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iRoundsWon",
+          "offset": 3060,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_recentKillQueue",
+          "offset": 3064,
+          "size": 8,
+          "type": {
+            "name": "uint8[8]",
+            "category": "fixed_array",
+            "inner": "uint8",
+            "extent": 8
+          }
+        },
+        {
+          "name": "m_nFirstKill",
+          "offset": 3072,
+          "size": 1,
+          "type": {
+            "name": "uint8",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nKillCount",
+          "offset": 3073,
+          "size": 1,
+          "type": {
+            "name": "uint8",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bMvpNoMusic",
+          "offset": 3074,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_eMvpReason",
+          "offset": 3076,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iMusicKitID",
+          "offset": 3080,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iMusicKitMVPs",
+          "offset": 3084,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iMVPs",
+          "offset": 3088,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nUpdateCounter",
+          "offset": 3092,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flSmoothedPing",
+          "offset": 3096,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_lastHeldVoteTimer",
+          "offset": 3104,
+          "size": 16,
+          "type": {
+            "name": "IntervalTimer",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_bShowHints",
+          "offset": 3128,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iNextTimeCheck",
+          "offset": 3132,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bJustDidTeamKill",
+          "offset": 3136,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bPunishForTeamKill",
+          "offset": 3137,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bGaveTeamDamageWarning",
+          "offset": 3138,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bGaveTeamDamageWarningThisRound",
+          "offset": 3139,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_dblLastReceivedPacketPlatFloatTime",
+          "offset": 3144,
+          "size": 8,
+          "type": {
+            "name": "float64",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_LastTeamDamageWarningTime",
+          "offset": 3152,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_LastTimePlayerWasDisconnectedForPawnsRemove",
+          "offset": 3156,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_nSuspiciousHitCount",
+          "offset": 3160,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nNonSuspiciousHitStreak",
+          "offset": 3164,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bFireBulletsSeedSynchronized",
+          "offset": 3329,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        }
+      ]
+    },
+    "CCSPlayerController_InGameMoneyServices": {
+      "size": 88,
+      "bases": [
+        {
+          "name": "CPlayerControllerComponent",
+          "offset": 0
+        }
+      ],
+      "chain_offset": 8,
+      "fields": [
+        {
+          "name": "m_bReceivesMoneyNextRound",
+          "offset": 64,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iMoneyEarnedForNextRound",
+          "offset": 68,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iAccount",
+          "offset": 72,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iStartAccount",
+          "offset": 76,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iTotalCashSpent",
+          "offset": 80,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iCashSpentThisRound",
+          "offset": 84,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        }
+      ]
+    },
+    "CCSPlayerPawn": {
+      "size": 5712,
+      "bases": [
+        {
+          "name": "CCSPlayerPawnBase",
+          "offset": 0
+        }
+      ],
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_pBulletServices",
+          "offset": 4104,
+          "size": 8,
+          "type": {
+            "name": "CCSPlayer_BulletServices*",
+            "category": "pointer",
+            "inner": "CCSPlayer_BulletServices"
+          }
+        },
+        {
+          "name": "m_pHostageServices",
+          "offset": 4112,
+          "size": 8,
+          "type": {
+            "name": "CCSPlayer_HostageServices*",
+            "category": "pointer",
+            "inner": "CCSPlayer_HostageServices"
+          }
+        },
+        {
+          "name": "m_pBuyServices",
+          "offset": 4120,
+          "size": 8,
+          "type": {
+            "name": "CCSPlayer_BuyServices*",
+            "category": "pointer",
+            "inner": "CCSPlayer_BuyServices"
+          }
+        },
+        {
+          "name": "m_pActionTrackingServices",
+          "offset": 4128,
+          "size": 8,
+          "type": {
+            "name": "CCSPlayer_ActionTrackingServices*",
+            "category": "pointer",
+            "inner": "CCSPlayer_ActionTrackingServices"
+          }
+        },
+        {
+          "name": "m_pAimPunchServices",
+          "offset": 4136,
+          "size": 8,
+          "type": {
+            "name": "CCSPlayer_AimPunchServices*",
+            "category": "pointer",
+            "inner": "CCSPlayer_AimPunchServices"
+          }
+        },
+        {
+          "name": "m_pRadioServices",
+          "offset": 4144,
+          "size": 8,
+          "type": {
+            "name": "CCSPlayer_RadioServices*",
+            "category": "pointer",
+            "inner": "CCSPlayer_RadioServices"
+          }
+        },
+        {
+          "name": "m_pDamageReactServices",
+          "offset": 4152,
+          "size": 8,
+          "type": {
+            "name": "CCSPlayer_DamageReactServices*",
+            "category": "pointer",
+            "inner": "CCSPlayer_DamageReactServices"
+          }
+        },
+        {
+          "name": "m_nCharacterDefIndex",
+          "offset": 4160,
+          "size": 2,
+          "type": {
+            "name": "uint16",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bHasFemaleVoice",
+          "offset": 4162,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_strVOPrefix",
+          "offset": 4168,
+          "size": 8,
+          "type": {
+            "name": "CUtlString",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_szLastPlaceName",
+          "offset": 4176,
+          "size": 18,
+          "type": {
+            "name": "char[18]",
+            "category": "fixed_array",
+            "inner": "char",
+            "extent": 18
+          }
+        },
+        {
+          "name": "m_bInHostageResetZone",
+          "offset": 4416,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bInBuyZone",
+          "offset": 4417,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_TouchingBuyZones",
+          "offset": 4424,
+          "size": 24,
+          "type": {
+            "name": "CUtlVector< CHandle< CBaseEntity > >",
+            "category": "atomic",
+            "atomic": "collection_of_t",
+            "inner": "CHandle< CBaseEntity >"
+          }
+        },
+        {
+          "name": "m_bWasInBuyZone",
+          "offset": 4448,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bInHostageRescueZone",
+          "offset": 4449,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bInBombZone",
+          "offset": 4450,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bWasInHostageRescueZone",
+          "offset": 4451,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iRetakesOffering",
+          "offset": 4452,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iRetakesOfferingCard",
+          "offset": 4456,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bRetakesHasDefuseKit",
+          "offset": 4460,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bRetakesMVPLastRound",
+          "offset": 4461,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iRetakesMVPBoostItem",
+          "offset": 4464,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_RetakesMVPBoostExtraUtility",
+          "offset": 4468,
+          "size": 4,
+          "type": {
+            "name": "loadout_slot_t",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_flHealthShotBoostExpirationTime",
+          "offset": 4472,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_flLandingTimeSeconds",
+          "offset": 4476,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bIsBuyMenuOpen",
+          "offset": 4480,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_lastLandTime",
+          "offset": 4536,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_bOnGroundLastTick",
+          "offset": 4540,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iPlayerLocked",
+          "offset": 4544,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flTimeOfLastInjury",
+          "offset": 4552,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_flNextSprayDecalTime",
+          "offset": 4556,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_bNextSprayDecalTimeExpedited",
+          "offset": 4560,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nRagdollDamageBone",
+          "offset": 4564,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_vRagdollDamageForce",
+          "offset": 4568,
+          "size": 12,
+          "type": {
+            "name": "Vector",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_szRagdollDamageWeaponName",
+          "offset": 4580,
+          "size": 64,
+          "type": {
+            "name": "char[64]",
+            "category": "fixed_array",
+            "inner": "char",
+            "extent": 64
+          }
+        },
+        {
+          "name": "m_bRagdollDamageHeadshot",
+          "offset": 4644,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_vRagdollServerOrigin",
+          "offset": 4648,
+          "size": 12,
+          "type": {
+            "name": "VectorWS",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_EconGloves",
+          "offset": 4664,
+          "size": 680,
+          "type": {
+            "name": "CEconItemView",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_nEconGlovesChanged",
+          "offset": 5344,
+          "size": 1,
+          "type": {
+            "name": "uint8",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_qDeathEyeAngles",
+          "offset": 5348,
+          "size": 12,
+          "type": {
+            "name": "QAngle",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_bLeftHanded",
+          "offset": 5360,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_fSwitchedHandednessTime",
+          "offset": 5364,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_flViewmodelOffsetX",
+          "offset": 5368,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flViewmodelOffsetY",
+          "offset": 5372,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flViewmodelOffsetZ",
+          "offset": 5376,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flViewmodelFOV",
+          "offset": 5380,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bIsWalking",
+          "offset": 5384,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_fLastGivenDefuserTime",
+          "offset": 5388,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_fLastGivenBombTime",
+          "offset": 5392,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flDealtDamageToEnemyMostRecentTimestamp",
+          "offset": 5396,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iDisplayHistoryBits",
+          "offset": 5400,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flLastAttackedTeammate",
+          "offset": 5404,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_allowAutoFollowTime",
+          "offset": 5408,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_bResetArmorNextSpawn",
+          "offset": 5412,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nLastKillerIndex",
+          "offset": 5416,
+          "size": 4,
+          "type": {
+            "name": "CEntityIndex",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_entitySpottedState",
+          "offset": 5424,
+          "size": 24,
+          "type": {
+            "name": "EntitySpottedState_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_nSpotRules",
+          "offset": 5448,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bIsScoped",
+          "offset": 5452,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bResumeZoom",
+          "offset": 5453,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bIsDefusing",
+          "offset": 5454,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bIsGrabbingHostage",
+          "offset": 5455,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iBlockingUseActionInProgress",
+          "offset": 5456,
+          "size": 4,
+          "type": {
+            "name": "CSPlayerBlockingUseAction_t",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_flEmitSoundTime",
+          "offset": 5460,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_bInNoDefuseArea",
+          "offset": 5464,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iBombSiteIndex",
+          "offset": 5468,
+          "size": 4,
+          "type": {
+            "name": "CEntityIndex",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_nWhichBombZone",
+          "offset": 5472,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bInBombZoneTrigger",
+          "offset": 5476,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bWasInBombZoneTrigger",
+          "offset": 5477,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iShotsFired",
+          "offset": 5480,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flFlinchStack",
+          "offset": 5484,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flVelocityModifier",
+          "offset": 5488,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_vecTotalBulletForce",
+          "offset": 5492,
+          "size": 12,
+          "type": {
+            "name": "Vector",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_bWaitForNoAttack",
+          "offset": 5504,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_ignoreLadderJumpTime",
+          "offset": 5508,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bKilledByHeadshot",
+          "offset": 5512,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_LastHitBox",
+          "offset": 5516,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_pBot",
+          "offset": 5520,
+          "size": 8,
+          "type": {
+            "name": "CCSBot*",
+            "category": "pointer",
+            "inner": "CCSBot"
+          }
+        },
+        {
+          "name": "m_bBotAllowActive",
+          "offset": 5528,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nLastPickupPriority",
+          "offset": 5532,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flLastPickupPriorityTime",
+          "offset": 5536,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_ArmorValue",
+          "offset": 5540,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_unCurrentEquipmentValue",
+          "offset": 5544,
+          "size": 2,
+          "type": {
+            "name": "uint16",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_unRoundStartEquipmentValue",
+          "offset": 5546,
+          "size": 2,
+          "type": {
+            "name": "uint16",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_unFreezetimeEndEquipmentValue",
+          "offset": 5548,
+          "size": 2,
+          "type": {
+            "name": "uint16",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iLastWeaponFireUsercmd",
+          "offset": 5552,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bIsSpawning",
+          "offset": 5556,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iDeathFlags",
+          "offset": 5568,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bHasDeathInfo",
+          "offset": 5572,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flDeathInfoTime",
+          "offset": 5576,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_vecDeathInfoOrigin",
+          "offset": 5580,
+          "size": 12,
+          "type": {
+            "name": "VectorWS",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_vecPlayerPatchEconIndices",
+          "offset": 5592,
+          "size": 20,
+          "type": {
+            "name": "uint32[5]",
+            "category": "fixed_array",
+            "inner": "uint32",
+            "extent": 5
+          }
+        },
+        {
+          "name": "m_GunGameImmunityColor",
+          "offset": 5612,
+          "size": 4,
+          "type": {
+            "name": "Color",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_grenadeParameterStashTime",
+          "offset": 5616,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_bGrenadeParametersStashed",
+          "offset": 5620,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_angStashedShootAngles",
+          "offset": 5624,
+          "size": 12,
+          "type": {
+            "name": "QAngle",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_vecStashedGrenadeThrowPosition",
+          "offset": 5636,
+          "size": 12,
+          "type": {
+            "name": "VectorWS",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_vecStashedGrenadeThrowPawnCenter",
+          "offset": 5648,
+          "size": 12,
+          "type": {
+            "name": "VectorWS",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_vecStashedVelocity",
+          "offset": 5660,
+          "size": 12,
+          "type": {
+            "name": "Vector",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_bCommittingSuicideOnTeamChange",
+          "offset": 5680,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_wasNotKilledNaturally",
+          "offset": 5681,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_fImmuneToGunGameDamageTime",
+          "offset": 5684,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_bGunGameImmunity",
+          "offset": 5688,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_fMolotovDamageTime",
+          "offset": 5692,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_angEyeAngles",
+          "offset": 5696,
+          "size": 12,
+          "type": {
+            "name": "QAngle",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        }
+      ]
+    },
+    "CCSPlayerPawnBase": {
+      "size": 4096,
+      "bases": [
+        {
+          "name": "CBasePlayerPawn",
+          "offset": 0
+        }
+      ],
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_CTouchExpansionComponent",
+          "offset": 3784,
+          "size": 80,
+          "type": {
+            "name": "CTouchExpansionComponent",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_pPingServices",
+          "offset": 3864,
+          "size": 8,
+          "type": {
+            "name": "CCSPlayer_PingServices*",
+            "category": "pointer",
+            "inner": "CCSPlayer_PingServices"
+          }
+        },
+        {
+          "name": "m_blindUntilTime",
+          "offset": 3872,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_blindStartTime",
+          "offset": 3876,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_iPlayerState",
+          "offset": 3880,
+          "size": 4,
+          "type": {
+            "name": "CSPlayerState",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_bRespawning",
+          "offset": 4056,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bHasMovedSinceSpawn",
+          "offset": 4057,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iNumSpawns",
+          "offset": 4060,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flIdleTimeSinceLastAction",
+          "offset": 4068,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_fNextRadarUpdateTime",
+          "offset": 4072,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flFlashDuration",
+          "offset": 4076,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flFlashMaxAlpha",
+          "offset": 4080,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flProgressBarStartTime",
+          "offset": 4084,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iProgressBarDuration",
+          "offset": 4088,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_hOriginalController",
+          "offset": 4092,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CCSPlayerController >",
+            "category": "atomic",
+            "atomic": "t",
+            "inner": "CCSPlayerController"
+          }
+        }
+      ]
+    },
+    "CEntityComponent": {
+      "size": 8,
+      "bases": [],
+      "chain_offset": -1,
+      "fields": []
+    },
+    "CEntityInstance": {
+      "size": 48,
+      "bases": [],
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_iszPrivateVScripts",
+          "offset": 8,
+          "size": 8,
+          "type": {
+            "name": "CUtlSymbolLarge",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_pEntity",
+          "offset": 16,
+          "size": 8,
+          "type": {
+            "name": "CEntityIdentity*",
+            "category": "pointer",
+            "inner": "CEntityIdentity"
+          }
+        },
+        {
+          "name": "m_CScriptComponent",
+          "offset": 40,
+          "size": 8,
+          "type": {
+            "name": "CScriptComponent*",
+            "category": "pointer",
+            "inner": "CScriptComponent"
+          }
+        }
+      ]
+    },
+    "CGameSceneNode": {
+      "size": 288,
+      "bases": [],
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_nodeToWorld",
+          "offset": 16,
+          "size": 32,
+          "type": {
+            "name": "CTransformWS",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_pOwner",
+          "offset": 48,
+          "size": 8,
+          "type": {
+            "name": "CEntityInstance*",
+            "category": "pointer",
+            "inner": "CEntityInstance"
+          }
+        },
+        {
+          "name": "m_pParent",
+          "offset": 56,
+          "size": 8,
+          "type": {
+            "name": "CGameSceneNode*",
+            "category": "pointer",
+            "inner": "CGameSceneNode"
+          }
+        },
+        {
+          "name": "m_pChild",
+          "offset": 64,
+          "size": 8,
+          "type": {
+            "name": "CGameSceneNode*",
+            "category": "pointer",
+            "inner": "CGameSceneNode"
+          }
+        },
+        {
+          "name": "m_pNextSibling",
+          "offset": 72,
+          "size": 8,
+          "type": {
+            "name": "CGameSceneNode*",
+            "category": "pointer",
+            "inner": "CGameSceneNode"
+          }
+        },
+        {
+          "name": "m_hParent",
+          "offset": 112,
+          "size": 16,
+          "type": {
+            "name": "CGameSceneNodeHandle",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_vecOrigin",
+          "offset": 128,
+          "size": 48,
+          "type": {
+            "name": "CNetworkOriginCellCoordQuantizedVector",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_angRotation",
+          "offset": 184,
+          "size": 12,
+          "type": {
+            "name": "QAngle",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_flScale",
+          "offset": 196,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_vecAbsOrigin",
+          "offset": 200,
+          "size": 12,
+          "type": {
+            "name": "VectorWS",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_angAbsRotation",
+          "offset": 212,
+          "size": 12,
+          "type": {
+            "name": "QAngle",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_flAbsScale",
+          "offset": 224,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nParentAttachmentOrBone",
+          "offset": 228,
+          "size": 2,
+          "type": {
+            "name": "int16",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bDebugAbsOriginChanges",
+          "offset": 230,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bDormant",
+          "offset": 231,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bForceParentToBeNetworked",
+          "offset": 232,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bDirtyHierarchy",
+          "offset": 0,
+          "size": 0,
+          "type": {
+            "name": "bitfield:1",
+            "category": "bitfield"
+          }
+        },
+        {
+          "name": "m_bDirtyBoneMergeInfo",
+          "offset": 0,
+          "size": 0,
+          "type": {
+            "name": "bitfield:1",
+            "category": "bitfield"
+          }
+        },
+        {
+          "name": "m_bNetworkedPositionChanged",
+          "offset": 0,
+          "size": 0,
+          "type": {
+            "name": "bitfield:1",
+            "category": "bitfield"
+          }
+        },
+        {
+          "name": "m_bNetworkedAnglesChanged",
+          "offset": 0,
+          "size": 0,
+          "type": {
+            "name": "bitfield:1",
+            "category": "bitfield"
+          }
+        },
+        {
+          "name": "m_bNetworkedScaleChanged",
+          "offset": 0,
+          "size": 0,
+          "type": {
+            "name": "bitfield:1",
+            "category": "bitfield"
+          }
+        },
+        {
+          "name": "m_bWillBeCallingPostDataUpdate",
+          "offset": 0,
+          "size": 0,
+          "type": {
+            "name": "bitfield:1",
+            "category": "bitfield"
+          }
+        },
+        {
+          "name": "m_bBoneMergeFlex",
+          "offset": 0,
+          "size": 0,
+          "type": {
+            "name": "bitfield:1",
+            "category": "bitfield"
+          }
+        },
+        {
+          "name": "m_nLatchAbsOrigin",
+          "offset": 0,
+          "size": 0,
+          "type": {
+            "name": "bitfield:2",
+            "category": "bitfield"
+          }
+        },
+        {
+          "name": "m_bDirtyBoneMergeBoneToRoot",
+          "offset": 0,
+          "size": 0,
+          "type": {
+            "name": "bitfield:1",
+            "category": "bitfield"
+          }
+        },
+        {
+          "name": "m_nHierarchicalDepth",
+          "offset": 235,
+          "size": 1,
+          "type": {
+            "name": "uint8",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nHierarchyType",
+          "offset": 236,
+          "size": 1,
+          "type": {
+            "name": "uint8",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nDoNotSetAnimTimeInInvalidatePhysicsCount",
+          "offset": 237,
+          "size": 1,
+          "type": {
+            "name": "uint8",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_name",
+          "offset": 240,
+          "size": 4,
+          "type": {
+            "name": "CUtlStringToken",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_hierarchyAttachName",
+          "offset": 264,
+          "size": 4,
+          "type": {
+            "name": "CUtlStringToken",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_flClientLocalScale",
+          "offset": 268,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        }
+      ]
+    },
+    "CInButtonState": {
+      "size": 32,
+      "bases": [],
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_pButtonStates",
+          "offset": 8,
+          "size": 24,
+          "type": {
+            "name": "uint64[3]",
+            "category": "fixed_array",
+            "inner": "uint64",
+            "extent": 3
+          }
+        }
+      ]
+    },
+    "CModelState": {
+      "size": 672,
+      "bases": [],
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_hModel",
+          "offset": 160,
+          "size": 8,
+          "type": {
+            "name": "CStrongHandle< InfoForResourceTypeCModel >",
+            "category": "atomic",
+            "atomic": "t",
+            "inner": "InfoForResourceTypeCModel"
+          }
+        },
+        {
+          "name": "m_ModelName",
+          "offset": 168,
+          "size": 8,
+          "type": {
+            "name": "CUtlSymbolLarge",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_pVPhysicsAggregate",
+          "offset": 224,
+          "size": 8,
+          "type": {
+            "name": "IPhysAggregateInstance*",
+            "category": "pointer",
+            "inner": "IPhysAggregateInstance"
+          }
+        },
+        {
+          "name": "m_flRootBoneOffset_x",
+          "offset": 232,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flRootBoneOffset_y",
+          "offset": 236,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flRootBoneOffset_z",
+          "offset": 240,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nRootBoneOffsetResetSerialNumber",
+          "offset": 244,
+          "size": 1,
+          "type": {
+            "name": "uint8",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bClientClothCreationSuppressed",
+          "offset": 245,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nAnimStateNoInterpSerialNumber",
+          "offset": 480,
+          "size": 1,
+          "type": {
+            "name": "uint8",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_MeshGroupMask",
+          "offset": 488,
+          "size": 8,
+          "type": {
+            "name": "uint64",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nBodyGroupChoices",
+          "offset": 584,
+          "size": 24,
+          "type": {
+            "name": "CNetworkUtlVectorBase< int32 >",
+            "category": "atomic",
+            "atomic": "collection_of_t",
+            "inner": "int32"
+          }
+        },
+        {
+          "name": "m_nIdealMotionType",
+          "offset": 658,
+          "size": 1,
+          "type": {
+            "name": "int8",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nForceLOD",
+          "offset": 659,
+          "size": 1,
+          "type": {
+            "name": "int8",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nClothUpdateFlags",
+          "offset": 660,
+          "size": 1,
+          "type": {
+            "name": "int8",
+            "category": "builtin"
+          }
+        }
+      ]
+    },
+    "CPlayerControllerComponent": {
+      "size": 64,
+      "bases": [],
+      "chain_offset": 8,
+      "fields": [
+        {
+          "name": "__m_pChainEntity",
+          "offset": 8,
+          "size": 40,
+          "type": {
+            "name": "CNetworkVarChainer",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        }
+      ]
+    },
+    "CPlayerPawnComponent": {
+      "size": 72,
+      "bases": [],
+      "chain_offset": 8,
+      "fields": [
+        {
+          "name": "__m_pChainEntity",
+          "offset": 8,
+          "size": 40,
+          "type": {
+            "name": "CNetworkVarChainer",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_pComponentGraphController",
+          "offset": 48,
+          "size": 8,
+          "type": {
+            "name": "CAnimGraphControllerPtr",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        }
+      ]
+    },
+    "CPlayer_ItemServices": {
+      "size": 72,
+      "bases": [
+        {
+          "name": "CPlayerPawnComponent",
+          "offset": 0
+        }
+      ],
+      "chain_offset": 8,
+      "fields": []
+    },
+    "CPlayer_MovementServices": {
+      "size": 600,
+      "bases": [
+        {
+          "name": "CPlayerPawnComponent",
+          "offset": 0
+        }
+      ],
+      "chain_offset": 8,
+      "fields": [
+        {
+          "name": "m_nImpulse",
+          "offset": 72,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nButtons",
+          "offset": 80,
+          "size": 32,
+          "type": {
+            "name": "CInButtonState",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_nQueuedButtonDownMask",
+          "offset": 112,
+          "size": 8,
+          "type": {
+            "name": "uint64",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nQueuedButtonChangeMask",
+          "offset": 120,
+          "size": 8,
+          "type": {
+            "name": "uint64",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nButtonDoublePressed",
+          "offset": 128,
+          "size": 8,
+          "type": {
+            "name": "uint64",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_pButtonPressedCmdNumber",
+          "offset": 136,
+          "size": 256,
+          "type": {
+            "name": "uint32[64]",
+            "category": "fixed_array",
+            "inner": "uint32",
+            "extent": 64
+          }
+        },
+        {
+          "name": "m_nLastCommandNumberProcessed",
+          "offset": 392,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nToggleButtonDownMask",
+          "offset": 400,
+          "size": 8,
+          "type": {
+            "name": "uint64",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flCmdForwardMove",
+          "offset": 416,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flCmdLeftMove",
+          "offset": 420,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flCmdUpMove",
+          "offset": 424,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flMaxspeed",
+          "offset": 428,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_arrForceSubtickMoveWhen",
+          "offset": 432,
+          "size": 16,
+          "type": {
+            "name": "float32[4]",
+            "category": "fixed_array",
+            "inner": "float32",
+            "extent": 4
+          }
+        },
+        {
+          "name": "m_flForwardMove",
+          "offset": 448,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flLeftMove",
+          "offset": 452,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_flUpMove",
+          "offset": 456,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_vecLastMovementImpulses",
+          "offset": 460,
+          "size": 12,
+          "type": {
+            "name": "Vector",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_vecOldViewAngles",
+          "offset": 576,
+          "size": 12,
+          "type": {
+            "name": "QAngle",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        }
+      ]
+    },
+    "CPlayer_ObserverServices": {
+      "size": 88,
+      "bases": [
+        {
+          "name": "CPlayerPawnComponent",
+          "offset": 0
+        }
+      ],
+      "chain_offset": 8,
+      "fields": [
+        {
+          "name": "m_iObserverMode",
+          "offset": 72,
+          "size": 1,
+          "type": {
+            "name": "uint8",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_hObserverTarget",
+          "offset": 76,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CBaseEntity >",
+            "category": "atomic",
+            "atomic": "t",
+            "inner": "CBaseEntity"
+          }
+        },
+        {
+          "name": "m_iObserverLastMode",
+          "offset": 80,
+          "size": 4,
+          "type": {
+            "name": "ObserverMode_t",
+            "category": "declared_enum",
+            "declared": "enum"
+          }
+        },
+        {
+          "name": "m_bForcedObserverMode",
+          "offset": 84,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        }
+      ]
+    },
+    "CPlayer_WeaponServices": {
+      "size": 176,
+      "bases": [
+        {
+          "name": "CPlayerPawnComponent",
+          "offset": 0
+        }
+      ],
+      "chain_offset": 8,
+      "fields": [
+        {
+          "name": "m_hMyWeapons",
+          "offset": 72,
+          "size": 24,
+          "type": {
+            "name": "CNetworkUtlVectorBase< CHandle< CBasePlayerWeapon > >",
+            "category": "atomic",
+            "atomic": "collection_of_t",
+            "inner": "CHandle< CBasePlayerWeapon >"
+          }
+        },
+        {
+          "name": "m_hActiveWeapon",
+          "offset": 96,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CBasePlayerWeapon >",
+            "category": "atomic",
+            "atomic": "t",
+            "inner": "CBasePlayerWeapon"
+          }
+        },
+        {
+          "name": "m_hLastWeapon",
+          "offset": 100,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CBasePlayerWeapon >",
+            "category": "atomic",
+            "atomic": "t",
+            "inner": "CBasePlayerWeapon"
+          }
+        },
+        {
+          "name": "m_iAmmo",
+          "offset": 104,
+          "size": 64,
+          "type": {
+            "name": "uint16[32]",
+            "category": "fixed_array",
+            "inner": "uint16",
+            "extent": 32
+          }
+        },
+        {
+          "name": "m_bPreventWeaponPickup",
+          "offset": 168,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        }
+      ]
+    },
+    "CSkeletonInstance": {
+      "size": 1136,
+      "bases": [
+        {
+          "name": "CGameSceneNode",
+          "offset": 0
+        }
+      ],
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_modelState",
+          "offset": 288,
+          "size": 672,
+          "type": {
+            "name": "CModelState",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_bUseParentRenderBounds",
+          "offset": 960,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bDisableSolidCollisionsForHierarchy",
+          "offset": 961,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bDirtyMotionType",
+          "offset": 962,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bIsGeneratingLatchedParentSpaceState",
+          "offset": 963,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_materialGroup",
+          "offset": 968,
+          "size": 4,
+          "type": {
+            "name": "CUtlStringToken",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_nHitboxSet",
+          "offset": 972,
+          "size": 1,
+          "type": {
+            "name": "uint8",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bForceServerConstraintsEnabled",
+          "offset": 1068,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        }
+      ]
+    },
+    "CVoteController": {
+      "size": 2360,
+      "bases": [
+        {
+          "name": "CBaseEntity",
+          "offset": 0
+        }
+      ],
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_iActiveIssueIndex",
+          "offset": 1928,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_iOnlyTeamToVote",
+          "offset": 1932,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nVoteOptionCount",
+          "offset": 1936,
+          "size": 20,
+          "type": {
+            "name": "int32[5]",
+            "category": "fixed_array",
+            "inner": "int32",
+            "extent": 5
+          }
+        },
+        {
+          "name": "m_nPotentialVotes",
+          "offset": 1956,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_bIsYesNoVote",
+          "offset": 1960,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_acceptingVotesTimer",
+          "offset": 1968,
+          "size": 24,
+          "type": {
+            "name": "CountdownTimer",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_executeCommandTimer",
+          "offset": 1992,
+          "size": 24,
+          "type": {
+            "name": "CountdownTimer",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_resetVoteTimer",
+          "offset": 2016,
+          "size": 24,
+          "type": {
+            "name": "CountdownTimer",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_nVotesCast",
+          "offset": 2040,
+          "size": 256,
+          "type": {
+            "name": "int32[64]",
+            "category": "fixed_array",
+            "inner": "int32",
+            "extent": 64
+          }
+        },
+        {
+          "name": "m_playerHoldingVote",
+          "offset": 2296,
+          "size": 4,
+          "type": {
+            "name": "CPlayerSlot",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_playerOverrideForVote",
+          "offset": 2300,
+          "size": 4,
+          "type": {
+            "name": "CPlayerSlot",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        },
+        {
+          "name": "m_nHighestCountIndex",
+          "offset": 2304,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_potentialIssues",
+          "offset": 2312,
+          "size": 24,
+          "type": {
+            "name": "CUtlVector< CBaseIssue* >",
+            "category": "atomic",
+            "atomic": "collection_of_t",
+            "inner": "CBaseIssue*"
+          }
+        },
+        {
+          "name": "m_VoteOptions",
+          "offset": 2336,
+          "size": 24,
+          "type": {
+            "name": "CUtlVector< char* >",
+            "category": "atomic",
+            "atomic": "collection_of_t",
+            "inner": "char*"
+          }
+        }
+      ]
+    },
+    "CountdownTimer": {
+      "size": 24,
+      "bases": [],
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_duration",
+          "offset": 8,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_timestamp",
+          "offset": 12,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "declared_class",
+            "declared": "class"
+          }
+        },
+        {
+          "name": "m_timescale",
+          "offset": 16,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "builtin"
+          }
+        },
+        {
+          "name": "m_nWorldGroupId",
+          "offset": 20,
+          "size": 4,
+          "type": {
+            "name": "WorldGroupId_t",
+            "category": "atomic",
+            "atomic": "plain"
+          }
+        }
+      ]
+    }
+  },
+  "enums": {
+    "MoveType_t": {
+      "size": 1,
+      "items": [
+        {
+          "name": "MOVETYPE_NONE",
+          "value": 0
+        },
+        {
+          "name": "MOVETYPE_OBSOLETE",
+          "value": 1
+        },
+        {
+          "name": "MOVETYPE_WALK",
+          "value": 2
+        },
+        {
+          "name": "MOVETYPE_FLY",
+          "value": 3
+        },
+        {
+          "name": "MOVETYPE_FLYGRAVITY",
+          "value": 4
+        },
+        {
+          "name": "MOVETYPE_VPHYSICS",
+          "value": 5
+        },
+        {
+          "name": "MOVETYPE_PUSH",
+          "value": 6
+        },
+        {
+          "name": "MOVETYPE_NOCLIP",
+          "value": 7
+        },
+        {
+          "name": "MOVETYPE_OBSERVER",
+          "value": 8
+        },
+        {
+          "name": "MOVETYPE_LADDER",
+          "value": 9
+        },
+        {
+          "name": "MOVETYPE_CUSTOM",
+          "value": 10
+        },
+        {
+          "name": "MOVETYPE_LAST",
+          "value": 11
+        },
+        {
+          "name": "MOVETYPE_INVALID",
+          "value": 11
+        },
+        {
+          "name": "MOVETYPE_MAX_BITS",
+          "value": 5
+        }
+      ]
+    },
+    "RenderMode_t": {
+      "size": 1,
+      "items": [
+        {
+          "name": "kRenderNormal",
+          "value": 0
+        },
+        {
+          "name": "kRenderTransAlpha",
+          "value": 1
+        },
+        {
+          "name": "kRenderNone",
+          "value": 2
+        },
+        {
+          "name": "kRenderModeCount",
+          "value": 3
+        }
+      ]
+    }
+  }
+}

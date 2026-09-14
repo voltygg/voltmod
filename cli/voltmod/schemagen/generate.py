@@ -27,7 +27,8 @@ HEADER_DIR = Path("include/VoltMod/Schema")
 GENERATED_HEADER_DIR = HEADER_DIR / "Generated"
 GENERATED_SOURCE_DIR = Path("src/Schema/Generated")
 MANIFEST = Path("schema/manifest.json")
-BASELINE = Path("schema/server.json")
+# The Windows and Linux builds of one game version lay classes out differently.
+BASELINES = {platform: Path(f"schema/server.{platform}.json") for platform in ("windows", "linux")}
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,7 +37,7 @@ class SchemaOutput:
     summary: str
 
 
-def render_outputs(dump: dict[str, Any], manifest: dict[str, Any]) -> SchemaOutput:
+def render_outputs(dump: dict[str, Any], manifest: dict[str, Any], platform: str) -> SchemaOutput:
     classes = resolve_classes(dump, manifest)
     enums = collect_enums(dump, classes)
     ordered = [classes[name] for name in sorted(classes)]
@@ -57,12 +58,12 @@ def render_outputs(dump: dict[str, Any], manifest: dict[str, Any]) -> SchemaOutp
         files[GENERATED_HEADER_DIR / f"{schema_class.name}.hpp"] = _render(
             "class.hpp.j2", includes=_header_includes(schema_class), **shared
         )
-        files[GENERATED_SOURCE_DIR / f"{schema_class.name}.cpp"] = _render(
+        files[GENERATED_SOURCE_DIR / platform / f"{schema_class.name}.cpp"] = _render(
             "class.cpp.j2", includes=_source_includes(schema_class), **shared
         )
     files[GENERATED_HEADER_DIR / "Enums.hpp"] = _render("enums.hpp.j2", enums=_enum_listings(enums))
     files[HEADER_DIR / "Api.hpp"] = _render("api.hpp.j2", classes=ordered)
-    files[GENERATED_SOURCE_DIR / "Layout.cpp"] = _render(
+    files[GENERATED_SOURCE_DIR / platform / "Layout.cpp"] = _render(
         "layout.cpp.j2", classes=ordered, game_build=game_build
     )
     for wrapper, names in manifest.get("wrappers", {}).items():
@@ -70,14 +71,16 @@ def render_outputs(dump: dict[str, Any], manifest: dict[str, Any]) -> SchemaOutp
         files[GENERATED_HEADER_DIR / "Wrappers" / f"{wrapper}.inc"] = _render(
             "wrapper.inc.j2", wrapper=wrapper, classes=wrapped
         )
-    files[BASELINE] = json.dumps(baseline_dump(dump, classes, enums), indent=2) + "\n"
+    files[BASELINES[platform]] = json.dumps(baseline_dump(dump, classes, enums), indent=2) + "\n"
     return SchemaOutput(files, _summary(classes, enums, game_build))
 
 
-def write_outputs(repo: Path, files: dict[Path, str], *, check: bool = False) -> None:
+def write_outputs(
+    repo: Path, files: dict[Path, str], platform: str, *, check: bool = False
+) -> None:
     """Format and write @p files, deleting stale ones; with @p check, fail on any difference."""
     expected = {repo / relative for relative in files}
-    stale = [path for path in _existing_generated_files(repo) if path not in expected]
+    stale = [path for path in _existing_generated_files(repo, platform) if path not in expected]
     if check and stale:
         raise VoltmodError(f"stale generated files: {', '.join(map(str, stale))}")
     for path in stale:
@@ -110,9 +113,9 @@ def _render(template: str, **fields: Any) -> str:
     return load_template(f"schemagen/{template}").render(**fields)
 
 
-def _existing_generated_files(repo: Path) -> list[Path]:
+def _existing_generated_files(repo: Path, platform: str) -> list[Path]:
     headers = [path for path in (repo / GENERATED_HEADER_DIR).rglob("*") if path.is_file()]
-    return headers + sorted((repo / GENERATED_SOURCE_DIR).glob("*.cpp"))
+    return headers + sorted((repo / GENERATED_SOURCE_DIR / platform).glob("*.cpp"))
 
 
 def _header_includes(schema_class: SchemaClass) -> list[str]:

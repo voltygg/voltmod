@@ -89,6 +89,10 @@ server, let the plugins refuse, run `voltmod schemagen`, review the `git diff` o
 code, rebuild. The dump lands in `addons/voltmod/schema/server.json`, which is where `schemagen`
 looks when `--dump` is not given.
 
+Windows and Linux lay entity classes out differently, so each platform has its own baseline in
+`schema/server.<platform>.json` and sources in `src/Schema/Generated/<platform>/`. Run `schemagen`
+once per platform; `--platform linux` takes a dump copied off a Linux server.
+
 For a class with no curated wrapper, construct its generated view directly:
 
 ```cpp
