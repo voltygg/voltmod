@@ -26,11 +26,6 @@ function(voltmod_apply_features caller target features link_var)
     set(link_targets ${${link_var}})
     foreach(feature IN LISTS features)
         if(feature STREQUAL "DATABASE")
-            if(NOT TARGET VoltMod::Database)
-                message(FATAL_ERROR
-                    "${caller}(${target} FEATURES DATABASE): voltmod was built "
-                    "without the database module. Set -o voltmod/*:with_database=True.")
-            endif()
             list(APPEND link_targets VoltMod::Database)
             target_compile_definitions("${target}" PRIVATE
                 $<$<PLATFORM_ID:Windows>:NOMINMAX WIN32_LEAN_AND_MEAN>)

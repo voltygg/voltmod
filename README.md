@@ -115,13 +115,7 @@ voltmod_add_plugin(my-plugin VERSION 1.0.0)
 ```
 
 The helper configures the native module, SDK glue, output layout, generated VDF,
-build stamp, and install component. Enable the database module in the consumer recipe:
-
-```python
-default_options = {"voltmod/*:with_database": True}
-```
-
-Then request it from the plugin:
+build stamp, and install component. A plugin that uses the database module requests it:
 
 ```cmake
 voltmod_add_plugin(my-plugin VERSION 1.0.0 FEATURES DATABASE)

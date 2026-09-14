@@ -2,18 +2,17 @@
 
 [TOC]
 
-`VoltMod::Database` is an optional asynchronous database layer over Postgres,
+`VoltMod::Database` is an asynchronous database layer over Postgres,
 MariaDB, or SQLite, chosen at runtime from config. One worker thread owns the
 connection; jobs run FIFO on it, and completions are queued and delivered back
 on the game thread each frame, so callbacks may touch players, menus, and
 plugin managers freely.
 
-Compiled only when `VOLTMOD_ENABLE_DATABASE` is on (default off); plugins
-without a database never pull sqlpp23 or its connectors.
+The package always ships it. A plugin links it, and the sqlpp23 connectors with
+it, only when it asks:
 
-```python
-# conanfile.py
-default_options = {"voltmod/*:with_database": True}
+```cmake
+voltmod_add_plugin(my-plugin VERSION 1.0.0 FEATURES DATABASE)
 ```
 
 ## Config

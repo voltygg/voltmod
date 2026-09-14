@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 4.3)
 
 project(voltmod LANGUAGES CXX)
 
-option(VOLTMOD_ENABLE_DATABASE "Build the VoltMod::Database module (requires sqlpp23)" OFF)
 option(VOLTMOD_DISABLE_PCH "Disable precompiled headers (e.g. to favor ccache hits over PCH on MSVC)" OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -14,10 +13,7 @@ include(VoltModTests)
 find_package(cpr CONFIG REQUIRED)
 find_package(glaze CONFIG REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
-
-if(VOLTMOD_ENABLE_DATABASE)
-    find_package(Sqlpp23 CONFIG REQUIRED)
-endif()
+find_package(Sqlpp23 CONFIG REQUIRED)
 
 find_package(hl2sdk-cs2 CONFIG REQUIRED)
 find_package(metamod-source CONFIG REQUIRED)
@@ -84,37 +80,29 @@ if(NOT VOLTMOD_DISABLE_PCH)
     set_source_files_properties(${VOLTMOD_HTTP_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 endif()
 
-if(VOLTMOD_ENABLE_DATABASE)
-    add_library(voltmod-sqlpp INTERFACE)
-    target_link_libraries(voltmod-sqlpp INTERFACE sqlpp23::postgresql sqlpp23::mysql sqlpp23::sqlite3)
-    target_compile_definitions(voltmod-sqlpp INTERFACE
-        VOLTMOD_ENABLE_DATABASE=1
-        $<$<PLATFORM_ID:Windows>:NOMINMAX WIN32_LEAN_AND_MEAN>
-    )
+add_library(voltmod-sqlpp INTERFACE)
+target_link_libraries(voltmod-sqlpp INTERFACE sqlpp23::postgresql sqlpp23::mysql sqlpp23::sqlite3)
+target_compile_definitions(voltmod-sqlpp INTERFACE $<$<PLATFORM_ID:Windows>:NOMINMAX WIN32_LEAN_AND_MEAN>)
 
-    add_library(voltmod-database STATIC ${VOLTMOD_DATABASE_SOURCES})
-    add_library(VoltMod::Database ALIAS voltmod-database)
-    voltmod_set_cxx_defaults(voltmod-database)
-    target_include_directories(voltmod-database PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
-    target_link_libraries(voltmod-database PUBLIC VoltMod::Runtime voltmod-sqlpp)
-    if(NOT VOLTMOD_DISABLE_PCH)
-        target_precompile_headers(voltmod-database PRIVATE
-            <sqlpp23/sqlpp23.h>
-            <sqlpp23/postgresql/postgresql.h>
-            <sqlpp23/mysql/mysql.h>
-            <sqlpp23/sqlite3/sqlite3.h>
-            <format>
-            <string>
-            <vector>
-        )
-    endif()
+add_library(voltmod-database STATIC ${VOLTMOD_DATABASE_SOURCES})
+add_library(VoltMod::Database ALIAS voltmod-database)
+voltmod_set_cxx_defaults(voltmod-database)
+target_include_directories(voltmod-database PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_link_libraries(voltmod-database PUBLIC VoltMod::Runtime voltmod-sqlpp)
+if(NOT VOLTMOD_DISABLE_PCH)
+    target_precompile_headers(voltmod-database PRIVATE
+        <sqlpp23/sqlpp23.h>
+        <sqlpp23/postgresql/postgresql.h>
+        <sqlpp23/mysql/mysql.h>
+        <sqlpp23/sqlite3/sqlite3.h>
+        <format>
+        <string>
+        <vector>
+    )
 endif()
 
 # CMakeDeps generates the package config; no export set is needed.
-install(TARGETS voltmod-runtime ARCHIVE DESTINATION lib)
-if(TARGET voltmod-database)
-    install(TARGETS voltmod-database ARCHIVE DESTINATION lib)
-endif()
+install(TARGETS voltmod-runtime voltmod-database ARCHIVE DESTINATION lib)
 
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/" DESTINATION include)
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/" DESTINATION cmake)
@@ -130,15 +118,9 @@ endif()
 if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
     # Each Api.hpp must compile on its own.
     file(GLOB VOLTMOD_API_CHECKS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/Api/*.cpp")
-    if(NOT VOLTMOD_ENABLE_DATABASE)
-        list(FILTER VOLTMOD_API_CHECKS EXCLUDE REGEX "/DatabaseApiSurfaceTest\\.cpp$")
-    endif()
     add_library(voltmod-api-surface-check OBJECT ${VOLTMOD_API_CHECKS})
     target_compile_definitions(voltmod-api-surface-check PRIVATE VOLTMOD_API_SURFACE_CHECK)
-    target_link_libraries(voltmod-api-surface-check PRIVATE VoltMod::Runtime)
-    if(VOLTMOD_ENABLE_DATABASE)
-        target_link_libraries(voltmod-api-surface-check PRIVATE VoltMod::Database)
-    endif()
+    target_link_libraries(voltmod-api-surface-check PRIVATE VoltMod::Runtime VoltMod::Database)
 
     # SDK-free translation units. Other sources need HL2SDK or a database client.
     voltmod_add_tests(voltmod-utils-tests
@@ -193,8 +175,6 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
         target_link_libraries(voltmod-utils-tests PRIVATE psapi)
     endif()
 
-    if(VOLTMOD_ENABLE_DATABASE)
-        target_sources(voltmod-utils-tests PRIVATE ${VOLTMOD_DATABASE_SOURCES})
-        target_link_libraries(voltmod-utils-tests PRIVATE voltmod-sqlpp)
-    endif()
+    target_sources(voltmod-utils-tests PRIVATE ${VOLTMOD_DATABASE_SOURCES})
+    target_link_libraries(voltmod-utils-tests PRIVATE voltmod-sqlpp)
 endif()

@@ -7,7 +7,7 @@ description: Release a new voltmod version - bump conanfile.py, write the CHANGE
 
 A release is a `v<version>` tag on `main`. Pushing the tag runs
 `.github/workflows/release.yml`: it refuses a tag that differs from `conanfile.py`
-and uploads Linux Release for both `with_database` values to the `volty` remote.
+uploads the Linux Release package to the `volty` remote, then creates the GitHub release.
 
 The user names the version. Consumers pin a range (cs2-plugins: `voltmod/[~1.4]`,
 so 1.4.x only): a patch keeps it, a minor or major means every consumer edits its
@@ -29,7 +29,7 @@ range. Point out `!` commits since the last tag before bumping only the patch.
 5. **Commit and push:** stage `conanfile.py`, `pyproject.toml`, `uv.lock` and
    `CHANGELOG.md` by name, `chore: release <version>`, `git push origin main`.
 6. **Wait for CI** on that commit (`gh run watch <id> -R voltygg/voltmod`), then check it
-   packages: `gh workflow run release.yml -R voltygg/voltmod --ref main` builds both variants
+   packages: `gh workflow run release.yml -R voltygg/voltmod --ref main` builds the package
    without uploading; watch that run too. Only a commit green on both gets tagged.
 7. **Tag:** `git tag v<version> && git push origin v<version>`.
 8. **Watch Release:** `gh run list -R voltygg/voltmod --workflow release.yml -L 1`,

@@ -194,13 +194,7 @@ module, links the SDK and framework, enables the configured warning policy,
 sets hidden symbol visibility, creates the build stamp and VDF, and defines the
 install component.
 
-Enable the database module in `conanfile.py`:
-
-```python
-default_options = {"voltmod/*:with_database": True}
-```
-
-Then request the feature:
+A plugin that uses the database module requests it:
 
 ```cmake
 voltmod_add_plugin(my-plugin VERSION 1.0.0 FEATURES DATABASE)

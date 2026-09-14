@@ -1,7 +1,6 @@
 """The Conan packages this repository publishes, and how each is built and uploaded."""
 
 import os
-from enum import StrEnum
 from pathlib import Path
 
 from voltmod.conan import REMOTE, SDK_BUILD_EXCLUSIONS, ensure_remote, profile_args, run_conan_json
@@ -15,18 +14,6 @@ FRAMEWORK_PACKAGE = "voltmod"
 
 # Their package id is platform-neutral, so only one runner may publish a revision.
 HEADER_ONLY_PACKAGES = frozenset({"metamod-source", "sqlpp23"})
-
-
-class DatabaseVariants(StrEnum):
-    OFF = "off"
-    ON = "on"
-    BOTH = "both"
-
-    def option_values(self) -> tuple[str, ...]:
-        """The `with_database` values this choice builds."""
-        if self is DatabaseVariants.BOTH:
-            return ("False", "True")
-        return ("True" if self is DatabaseVariants.ON else "False",)
 
 
 def create_package(root: Path, recipe: Path, *args: str) -> None:
@@ -64,12 +51,11 @@ def build_sdks(root: Path) -> None:
         create_package(root, root / "recipes" / name, "--build=missing")
 
 
-def build_framework(root: Path, *, use_lockfile: bool, database: DatabaseVariants) -> None:
+def build_framework(root: Path, *, use_lockfile: bool) -> None:
     args = ["--build=missing", *SDK_BUILD_EXCLUSIONS]
     if not use_lockfile:
         args.append("--lockfile=")
-    for value in database.option_values():
-        create_package(root, root, *args, "-o", f"voltmod/*:with_database={value}")
+    create_package(root, root, *args)
 
 
 def framework_version(root: Path) -> str:

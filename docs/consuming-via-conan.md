@@ -34,7 +34,7 @@ voltmod_add_plugin(my-plugin VERSION 1.0.0)
 
 | Package | Contents |
 | --- | --- |
-| `voltmod/x.y.z` | Runtime and optional Database static libraries, public headers, CMake helpers, gamedata, and plugin templates. `with_database` controls the Database component and sqlpp23. |
+| `voltmod/x.y.z` | Runtime and Database static libraries, public headers, CMake helpers, gamedata, and plugin templates. |
 | `hl2sdk-cs2/<yyyy.mm.dd>` | Trimmed HL2SDK in mirror layout: headers, prebuilt Valve libs, the generated `.pb.h`/`.pb.cc`, and the source-only TUs `voltmod_add_plugin` compiles per plugin. Versioned by the upstream commit date. |
 | `metamod-source/2.0.0.<yyyymmdd>` | Metamod core + KHook headers (header-only). KHook arrives as an upstream submodule the recipe fetches. |
 | `sqlpp23/<x.yy>` | sqlpp23 headers (header-only) and the `sqlpp23-ddl2cpp` generator. The `with_postgresql`, `with_mariadb`, and `with_sqlite3` options add the matching connector component and client library. |
@@ -89,11 +89,11 @@ headers  runtime  database
 
 `VoltMod::Headers` is the include directory with glaze and magic_enum behind it (what a test
 binary links); `VoltMod::Runtime` and `VoltMod::Database` are the libraries. `VoltMod::VoltMod`
-includes every component enabled in the package. Source modules are architecture boundaries,
-not Conan components. Plugins select the optional database feature explicitly:
+includes every component. Source modules are architecture boundaries, not Conan components.
+Plugins select the database feature explicitly:
 
 ```cmake
-voltmod_add_plugin(bhop VERSION 1.0.0)          # runtime only, so no sqlpp23
+voltmod_add_plugin(bhop VERSION 1.0.0)          # runtime only; sqlpp23 is not linked
 voltmod_add_plugin(admin-system VERSION 1.0.0 FEATURES DATABASE)
 ```
 
@@ -119,8 +119,8 @@ link order) is ordinary `package_info()`.
 Everything publishes from this repo, through `uv run poe release` (`tools/release`):
 
 - voltmod goes out from `.github/workflows/release.yml` on every `v*` tag, which must
-  match the version in `conanfile.py`. It uploads Linux Release for both `with_database`
-  values, one job each.
+  match the version in `conanfile.py`. It uploads Linux Release, then creates the GitHub
+  release from the `CHANGELOG.md` entry.
 - The SDK packages publish Linux binaries from the recipes in `recipes/` through
   `.github/workflows/sdk.yml`, on a push to `main` that touches them. A daily job watches both upstreams and opens
   a PR when a branch tip moves; the PR gate builds the new SDK *and* this framework
@@ -132,9 +132,8 @@ read-only).
 Local escape hatch if the remote is unreachable:
 
 ```sh
-uv run poe release build sdk                        # conan create both recipes
-uv run poe release build framework                  # ... then the framework against them
-uv run poe release build framework --database on    # one with_database variant
+uv run poe release build sdk          # conan create the SDK recipes
+uv run poe release build framework    # ... then the framework against them
 ```
 
 ## Working on voltmod and a plugin together

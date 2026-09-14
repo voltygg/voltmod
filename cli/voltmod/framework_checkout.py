@@ -64,7 +64,6 @@ def _checkout_args(project: Project, checkout: Path, preset: str) -> list[str]:
     return [
         str(checkout),
         *profile_args(checkout, preset),
-        "-o", "voltmod/*:with_database=True",
         *lock_args,
     ]
 

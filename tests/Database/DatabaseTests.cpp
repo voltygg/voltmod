@@ -1,5 +1,3 @@
-#if VOLTMOD_ENABLE_DATABASE
-
 #include <VoltMod/Database/Api.hpp>
 #include <doctest/doctest.h>
 #include <chrono>
@@ -245,5 +243,3 @@ TEST_CASE("RunMigrations: an unknown placeholder fails the file without recordin
     CHECK_EQ(result.Applied, 0);
     CHECK_EQ(CountRows(db, "sqlite_master", "name = 'a'"), 0);
 }
-
-#endif  // VOLTMOD_ENABLE_DATABASE

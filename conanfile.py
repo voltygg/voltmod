@@ -28,13 +28,10 @@ class VoltModConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     package_type = "static-library"
 
-    options = {"with_database": [True, False]}
-
     # cpr is header-private. glaze is public through App/Config.hpp, never through Api.hpp.
     requires = ("cpr/1.11.2",)
 
     default_options = {
-        "with_database": False,
         "*:shared": False,
         "openssl/*:no_apps": True,
         "openssl/*:no_fips": True,
@@ -64,10 +61,9 @@ class VoltModConan(ConanFile):
                       transitive_headers=True, transitive_libs=True)
         self.requires("metamod-source/[>=2.0 <3]",
                       transitive_headers=True, package_id_mode="minor_mode")
-        if self.options.with_database:
-            # All three connectors: the driver is chosen at runtime from config. Linking them
-            # statically makes the LGPL MariaDB connector a relinkable-object obligation.
-            self.requires("sqlpp23/0.70", transitive_headers=True, transitive_libs=True)
+        # All three connectors: the driver is chosen at runtime from config. Linking them
+        # statically makes the LGPL MariaDB connector a relinkable-object obligation.
+        self.requires("sqlpp23/0.70", transitive_headers=True, transitive_libs=True)
 
     def build_requirements(self):
         self.test_requires("doctest/2.5.2")
@@ -108,7 +104,6 @@ class VoltModConan(ConanFile):
         # Via the toolchain so `cmake --preset`, `conan build` and `conan create` all get it.
         if shutil.which("ccache"):
             toolchain.variables["CMAKE_CXX_COMPILER_LAUNCHER"] = "ccache"
-        toolchain.variables["VOLTMOD_ENABLE_DATABASE"] = bool(self.options.with_database)
         # hl2sdk-cs2's build module owns VOLTMOD_HL2SDK_DIR.
         if not self._source_checkout():
             toolchain.variables["BUILD_TESTING"] = False
@@ -156,16 +151,14 @@ class VoltModConan(ConanFile):
         if self.settings.os == "Windows":
             runtime.system_libs = ["psapi"]
 
-        if self.options.with_database:
-            db = self.cpp_info.components["database"]
-            db.set_property("cmake_target_name", "VoltMod::Database")
-            db.libs = ["voltmod-database"]
-            db.libdirs = libdirs
-            db.requires = ["runtime", "sqlpp23::postgresql", "sqlpp23::mysql", "sqlpp23::sqlite3"]
-            # Consumer feature checks and Database/Api.hpp's guard read this.
-            db.defines = ["VOLTMOD_ENABLE_DATABASE=1"]
+        # Plugins link it only with FEATURES DATABASE.
+        db = self.cpp_info.components["database"]
+        db.set_property("cmake_target_name", "VoltMod::Database")
+        db.libs = ["voltmod-database"]
+        db.libdirs = libdirs
+        db.requires = ["runtime", "sqlpp23::postgresql", "sqlpp23::mysql", "sqlpp23::sqlite3"]
 
-        # voltmod_add_plugin links this component by default.
+        # Every component, for a project that links the package without voltmod_add_plugin.
         umbrella = self.cpp_info.components["voltmod"]
         umbrella.set_property("cmake_target_name", "VoltMod::VoltMod")
-        umbrella.requires = ["runtime"] + (["database"] if self.options.with_database else [])
+        umbrella.requires = ["runtime", "database"]

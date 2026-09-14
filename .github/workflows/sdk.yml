@@ -34,7 +34,7 @@ jobs:
 
       # Without the lockfile: it pins the published SDK revisions, not the ones built here.
       - name: Rebuild the framework against them
-        run: python -m tools.release build framework --no-lockfile --database on
+        run: python -m tools.release build framework --no-lockfile
 
   tag:
     name: Tag the SDK versions

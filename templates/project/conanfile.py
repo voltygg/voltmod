@@ -15,8 +15,6 @@ class ProjectConan(ConanFile):
         "*:shared": False,
         "openssl/*:no_apps": True,
         "openssl/*:no_fips": True,
-        # Set to True to enable the database module and pull in sqlpp23.
-        "voltmod/*:with_database": False,
     }
 
     def build_requirements(self):

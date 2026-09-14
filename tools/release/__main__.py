@@ -11,7 +11,6 @@ from tools.release.conan_packages import (
     FRAMEWORK_PACKAGE,
     HEADER_ONLY_PACKAGES,
     SDK_PACKAGES,
-    DatabaseVariants,
     build_framework,
     build_sdks,
     check_release_tag,
@@ -39,32 +38,20 @@ Target = Annotated[Packages, typer.Argument(help="Which packages to act on")]
 NoLockfile = Annotated[
     bool, typer.Option("--no-lockfile", help="Build VoltMod without the lockfile after an SDK bump")
 ]
-Database = Annotated[
-    DatabaseVariants,
-    typer.Option("--database", help="Which with_database variants to build; one per CI job"),
-]
 
 
 @app.command()
-def build(
-    target: Target = Packages.ALL,
-    no_lockfile: NoLockfile = False,
-    database: Database = DatabaseVariants.BOTH,
-) -> None:
+def build(target: Target = Packages.ALL, no_lockfile: NoLockfile = False) -> None:
     """Create the packages locally."""
     root = Project.load().root
     if target in (Packages.SDK, Packages.ALL):
         build_sdks(root)
     if target in (Packages.FRAMEWORK, Packages.ALL):
-        build_framework(root, use_lockfile=not no_lockfile, database=database)
+        build_framework(root, use_lockfile=not no_lockfile)
 
 
 @app.command()
-def publish(
-    target: Target = Packages.ALL,
-    no_lockfile: NoLockfile = False,
-    database: Database = DatabaseVariants.BOTH,
-) -> None:
+def publish(target: Target = Packages.ALL, no_lockfile: NoLockfile = False) -> None:
     """Create and upload the packages this repository owns."""
     root = Project.load().root
     log_in(root)
@@ -76,7 +63,7 @@ def publish(
             upload_packages(f"{name}/*")
     if target in (Packages.FRAMEWORK, Packages.ALL):
         check_release_tag(root)
-        build_framework(root, use_lockfile=not no_lockfile, database=database)
+        build_framework(root, use_lockfile=not no_lockfile)
         # A restored CI cache can hold other voltmod revisions; upload only the one just built.
         upload_packages(f"{FRAMEWORK_PACKAGE}/{framework_version(root)}#latest")
 

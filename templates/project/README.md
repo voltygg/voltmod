@@ -75,6 +75,5 @@ then registers it in the root `CMakeLists.txt`.
 
 ## Database
 
-Set `voltmod/*:with_database` to `True` in `conanfile.py`, then add
-`FEATURES DATABASE` to the plugin's `voltmod_add_plugin` call. The driver (PostgreSQL,
+Add `FEATURES DATABASE` to the plugin's `voltmod_add_plugin` call. The driver (PostgreSQL,
 MariaDB or SQLite) is chosen at runtime from config.
