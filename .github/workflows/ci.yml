@@ -25,7 +25,7 @@ jobs:
       - name: Check the module layering
         run: uv run poe modgraph
 
-  # Packaging is checked by a manual Release run before tagging, not on every push.
+  # Packaging runs only in the tag's Release workflow, not on every push.
   build:
     name: Build and test (linux-steamrt)
     runs-on: ubuntu-latest
