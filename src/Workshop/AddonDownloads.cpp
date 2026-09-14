@@ -2,6 +2,7 @@
 
 #include <VoltMod/Core/Strings.hpp>
 #include <algorithm>
+#include <string>
 #include <utility>
 
 namespace VoltMod
@@ -62,21 +63,45 @@ std::vector<uint64_t> AddonDownloads::Required() const
     return ids;
 }
 
-std::vector<uint64_t> AddonDownloads::MissingFor(int64_t steamId) const
+std::vector<uint64_t> AddonDownloads::RequiredFor(int64_t steamId) const
 {
-    std::vector<uint64_t> missing = Required();
+    std::vector<uint64_t> ids = Required();
 
     if (const auto found = _clients.find(steamId); found != _clients.end())
     {
         for (const Requirement& own : found->second.Required)
-            if (!std::ranges::contains(missing, own.Id))
-                missing.push_back(own.Id);
+            if (!std::ranges::contains(ids, own.Id))
+                ids.push_back(own.Id);
+    }
 
+    return ids;
+}
+
+std::vector<uint64_t> AddonDownloads::MissingFor(int64_t steamId) const
+{
+    std::vector<uint64_t> missing = RequiredFor(steamId);
+
+    if (const auto found = _clients.find(steamId); found != _clients.end())
+    {
         for (uint64_t downloaded : found->second.Downloaded)
             std::erase(missing, downloaded);
     }
 
     return missing;
+}
+
+std::vector<uint64_t> AddonDownloads::ToMount(int64_t steamId) const
+{
+    const auto found = _clients.find(steamId);
+    if (found == _clients.end())
+        return {};
+
+    const Client& client = found->second;
+    std::vector<uint64_t> ids = RequiredFor(steamId);
+    std::erase_if(ids, [&client](uint64_t id) {
+        return id != client.Sending && !std::ranges::contains(client.Downloaded, id);
+    });
+    return ids;
 }
 
 bool AddonDownloads::HasMissing(int64_t steamId) const
@@ -104,7 +129,7 @@ AddonDecision AddonDownloads::NextToSend(int64_t steamId, double now, int maxAtt
     // The same addon coming round again means the last offer was not taken.
     client.Attempts = (client.Sending == next) ? client.Attempts + 1 : 1;
     if (client.Attempts > maxAttempts)
-        return {.Action = AddonAction::DropClient, .Id = next};
+        return {.Action = AddonAction::Kick, .Id = next};
 
     client.Sending = next;
     client.SentAt = now;
@@ -125,7 +150,7 @@ AddonDecision AddonDownloads::DecideJoinMessage(int64_t steamId, bool reconnect,
     MarkSending(steamId, listed.front(), now);
     if (listed.size() == 1)
         return {};
-    return {.Action = AddonAction::KeepFirst, .Id = listed.front(), .Remaining = listed.size() - 1};
+    return {.Action = AddonAction::TrimToFirst, .Id = listed.front(), .Remaining = listed.size() - 1};
 }
 
 void AddonDownloads::MarkSending(int64_t steamId, uint64_t id, double now)
@@ -189,6 +214,49 @@ std::vector<uint64_t> ParseAddonList(std::string_view field)
     }
 
     return ids;
+}
+
+std::vector<uint64_t> AppendToAddonList(std::string& field, const std::vector<uint64_t>& ids)
+{
+    const std::vector<uint64_t> named = ParseAddonList(field);
+    std::vector<uint64_t> appended;
+
+    for (uint64_t id : ids)
+    {
+        if (id == 0 || std::ranges::contains(named, id) || std::ranges::contains(appended, id))
+            continue;
+
+        if (!field.empty())
+            field += ',';
+        field += std::to_string(id);
+        appended.push_back(id);
+    }
+
+    return appended;
+}
+
+void RemoveFromAddonList(std::string& field, const std::vector<uint64_t>& ids)
+{
+    if (field.empty())
+        return;
+
+    std::vector<std::string> entries;
+    for (std::string_view rest = field;;)
+    {
+        const size_t comma = rest.find(',');
+        entries.emplace_back(rest.substr(0, comma));
+        if (comma == std::string_view::npos)
+            break;
+        rest.remove_prefix(comma + 1);
+    }
+
+    for (uint64_t id : ids)
+    {
+        if (const auto at = std::ranges::find(entries, std::to_string(id)); at != entries.end())
+            entries.erase(at);
+    }
+
+    field = Strings::Join(entries, ",");
 }
 
 }  // namespace VoltMod

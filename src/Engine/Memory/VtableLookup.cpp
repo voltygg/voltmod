@@ -85,9 +85,6 @@ void* FindVirtualTableByTypeName(std::span<const ScanRange> ranges, const char* 
     return nullptr;
 }
 
-/** How many object words the blind walk tries as vptrs. */
-static constexpr int MaxBases = 8;
-
 std::optional<int> FindSlotInTable(void* table, const void* function, const OriginalVfn& originalOf, int maxSlots)
 {
     if (!table || !function)
@@ -102,33 +99,6 @@ std::optional<int> FindSlotInTable(void* table, const void* function, const Orig
         // Match either the installed hook or the original function it replaced.
         if (slots[index] == function || (originalOf && originalOf(slots, index) == function))
             return index;
-    }
-    return std::nullopt;
-}
-
-std::optional<VTableSlot> FindVTableSlot(const void* instance, const void* function, const OriginalVfn& originalOf)
-{
-    if (!instance || !function)
-        return std::nullopt;
-
-    const auto* const object = static_cast<const uint8_t*>(instance);
-    for (int table = 0; table < MaxBases; ++table)
-    {
-        const int baseOffset = table * static_cast<int>(sizeof(void*));
-
-        // Validate the object memory before reading each possible vptr.
-        if (!IsReadableAddress(object + baseOffset, sizeof(void*)))
-            break;
-
-        void** candidate = nullptr;
-        std::memcpy(&candidate, object + baseOffset, sizeof(candidate));
-
-        // A candidate may be any data member, so validate its pointer and first executable slot.
-        if (!candidate || !IsReadableAddress(candidate, sizeof(void*)) || !IsExecutableAddress(candidate[0]))
-            continue;
-
-        if (auto index = FindSlotInTable(static_cast<void*>(candidate), function, originalOf))
-            return VTableSlot{.Table = static_cast<void*>(candidate), .Index = *index, .BaseOffset = baseOffset};
     }
     return std::nullopt;
 }

@@ -12,7 +12,7 @@ namespace VoltMod
 {
 
 /** Take the vtable GameData located at load, once it reports the slot holds code. */
-static Result<VTableRef> BindVTable(const GameData::Resolution& entry)
+static Result<ClassVTable> BindClassVTable(const GameData::Resolution& entry)
 {
     if (!entry.Table)
         return std::unexpected(Error::Engine(std::format("no vtable for '{}' in '{}'", entry.Class, entry.Library)));
@@ -21,7 +21,7 @@ static Result<VTableRef> BindVTable(const GameData::Resolution& entry)
     if (!entry.Address)
         return std::unexpected(Error::Engine(std::format("{}::[{}] does not hold code", entry.Class, entry.Index)));
 
-    return VTableRef(entry.Class, entry.Table);
+    return ClassVTable(entry.Class, entry.Table);
 }
 
 /** Binds members and records the first failure for each capability. */
@@ -38,10 +38,10 @@ public:
     }
 
     template <class Sig>
-    void operator()(VFn<Sig>& member, std::string_view key, std::optional<Capability> capability = {})
+    void operator()(VirtualFn<Sig>& member, std::string_view key, std::optional<Capability> capability = {})
     {
         if (const auto* entry = Claim(key, GameData::Kind::VTable, capability))
-            member = VFn<Sig>(entry->Index);
+            member = VirtualFn<Sig>(entry->Index);
     }
 
     template <class T>
@@ -64,14 +64,14 @@ public:
     }
 
     template <class Object, class Sig>
-    void operator()(VHookBinding<Object, Sig>& member, std::string_view key, Capability capability)
+    void operator()(ClassSlot<Object, Sig>& member, std::string_view key, Capability capability)
     {
         const auto* entry = Claim(key, GameData::Kind::VTable, capability);
         if (!entry)
             return;
 
-        member.Method = VFn<Sig>(entry->Index);
-        if (auto table = BindVTable(*entry))
+        member.Function = VirtualFn<Sig>(entry->Index);
+        if (auto table = BindClassVTable(*entry))
             member.Table = std::move(*table);
         else
             Fail(capability, std::move(table.error().Detail));
@@ -144,51 +144,53 @@ Status Bindings::Bind(const GameData& data, Capabilities& caps)
 
     bind(CreateEntityByName, "CreateEntityByName", Capability::EntityOps);
     bind(DispatchSpawn, "DispatchSpawn", Capability::EntityOps);
-    bind(AcceptInput, "CEntityInstance_AcceptInput");
-    bind(AddEntityIOEvent, "CEntitySystem_AddEntityIOEvent");
+    bind(AcceptInput, "CEntityInstance::AcceptInput");
+    bind(AddEntityIOEvent, "CEntitySystem::AddEntityIOEvent");
     bind(UtilRemove, "UTIL_Remove");
-    bind(SetModel, "CBaseModelEntity_SetModel");
-    bind(EmitSoundParams, "CBaseEntity_EmitSoundParams");
-    bind.Signature(EmitSoundFilter, "CBaseEntity_EmitSoundFilter");
-    bind(FindEntityByClassName, "CGameEntitySystem_FindEntityByClassName");
-    bind(FindEntityByName, "CGameEntitySystem_FindEntityByName");
-    bind.Signature(LegacyGameEventListener, "LegacyGameEventListener");
+    bind(SetModel, "CBaseModelEntity::SetModel");
+    bind(EmitSoundParams, "CBaseEntity::EmitSoundParams");
+    bind.Signature(EmitSoundFilter, "CBaseEntity::EmitSoundFilter");
+    bind(FindEntityByClassName, "CGameEntitySystem::FindEntityByClassName");
+    bind(FindEntityByName, "CGameEntitySystem::FindEntityByName");
+    bind.Signature(LegacyGameEventListener, "GetLegacyGameEventListener");
 
     // These five share one capability, so a partial match disables all custom HUD writes.
-    bind(CustomHudSetHasClass, "CustomHudSetHasClass", Capability::CustomUi);
-    bind(CustomHudSetHasClassForPlayer, "CustomHudSetHasClassForPlayer", Capability::CustomUi);
-    bind(CustomHudSetDialogVariable, "CustomHudSetDialogVariable", Capability::CustomUi);
-    bind(CustomHudSetDialogVariableForPlayer, "CustomHudSetDialogVariableForPlayer", Capability::CustomUi);
-    bind(CustomHudSetInputCapture, "CustomHudSetInputCapture", Capability::CustomUi);
-    bind.Signature(FilterMessage, "FilterMessage", Capability::UiClicks);
+    bind(CustomHudSetHasClass, "CCSCustomHudLayout::SetHasClass", Capability::CustomUi);
+    bind(CustomHudSetHasClassForPlayer, "CCSCustomHudLayout::SetHasClassForPlayer", Capability::CustomUi);
+    bind(CustomHudSetDialogVariable, "CCSCustomHudLayout::SetDialogVariableString", Capability::CustomUi);
+    bind(CustomHudSetDialogVariableForPlayer, "CCSCustomHudLayout::SetDialogVariableStringForPlayer", Capability::CustomUi);
+    bind(CustomHudSetInputCapture, "CCSCustomHudLayout::SetInputCaptureEnabled", Capability::CustomUi);
+    bind(FilterMessage, "INetworkMessageProcessingPreFilter::FilterMessage", Capability::UiClicks);
+    bind(ReplyConnection, "CNetworkGameServer::ReplyConnection", Capability::Addons);
 
-    bind.Global(GameEventManager, "GameEventManager", Capability::GameEvents);
-    bind.Global(GameSystemFactoryList, "GameSystemFactoryList", Capability::Precache);
-    bind.Global(GameSystemEventDispatcher, "GameSystemEventDispatcher", Capability::Precache);
-    bind.Global(GameSystemList, "GameSystemList", Capability::Precache);
+    bind.Global(GameEventManager, "CSource2Server::g_GameEventManager", Capability::GameEvents);
+    bind.Global(GameSystemFactoryList, "CBaseGameSystemFactory::sm_pFirst", Capability::Precache);
+    bind.Global(GameSystemEventDispatcher, "IGameSystem::pEventDispatcher", Capability::Precache);
+    bind.Global(GameSystemList, "IGameSystem::s_GameSystems", Capability::Precache);
 
-    bind(CommitSuicide, "CommitSuicide");
-    bind(ChangeTeam, "ChangeTeam");
-    bind(Respawn, "Respawn");
-    bind(Teleport, "Teleport", Capability::Teleport);
-    bind(GiveNamedItem, "GiveNamedItem", Capability::Items);
-    bind(RemoveAllItems, "RemoveAllItems", Capability::Items);
-    bind(RunCommand, "RunCommand", Capability::Movement);
-    bind(ProcessRespondCvarValue, "ProcessRespondCvarValue", Capability::ClientConVars);
-    bind(SendNetMessage, "SendNetMessage", Capability::Addons);
+    bind(CommitSuicide, "CBasePlayerPawn::CommitSuicide");
+    bind(ChangeTeam, "CCSPlayerController::ChangeTeam");
+    bind(Respawn, "CCSPlayerController::Respawn");
+    bind(Teleport, "CBaseEntity::Teleport", Capability::Teleport);
+    bind(GiveNamedItem, "CCSPlayer_ItemServices::GiveNamedItem", Capability::Items);
+    bind(RemoveAllItems, "CCSPlayer_ItemServices::RemoveAllItems", Capability::Items);
+    bind(RunCommand, "CPlayer_MovementServices::RunCommand", Capability::Movement);
+    bind(ProcessRespondCvarValue, "CServerSideClient::ProcessRespondCvarValue", Capability::ClientConVars);
+    bind(SendNetMessage, "CServerSideClient::SendNetMessage", Capability::Addons);
 
     bind(GameEntitySystem, "GameEntitySystem", Capability::Entities);
-    bind(CheckTransmitPlayerSlot, "CheckTransmitPlayerSlot", Capability::Visibility);
+    bind(VisibilityRecipientSlot, "CheckTransmitPlayerSlot", Capability::Visibility);
     // Shared offsets bind once per capability so each disabled feature records its reason.
-    bind(ServerSideClientSlot, "ServerSideClientSlot", Capability::ClientConVars);
-    bind(ServerSideClientSlot, "ServerSideClientSlot", Capability::UiClicks);
-    bind(ServerSideClientSlot, "ServerSideClientSlot", Capability::Addons);
-    bind(NetworkGameServerClients, "NetworkGameServerClients", Capability::UiClicks);
-    bind(NetworkGameServerClients, "NetworkGameServerClients", Capability::Addons);
-    bind(ServerSideClientSteamId, "ServerSideClientSteamId", Capability::Addons);
-    bind(UserCmdPB, "UserCmdPB", Capability::Movement);
+    bind(ClientSlot, "CServerSideClientBase::m_nClientSlot", Capability::ClientConVars);
+    bind(ClientSlot, "CServerSideClientBase::m_nClientSlot", Capability::UiClicks);
+    bind(ClientSlot, "CServerSideClientBase::m_nClientSlot", Capability::Addons);
+    bind(ClientMessageFilter, "CServerSideClient::INetworkMessageProcessingPreFilter", Capability::UiClicks);
+    bind(ServerClients, "CNetworkGameServer::m_Clients", Capability::Addons);
+    bind(ClientSteamId, "CServerSideClientBase::m_SteamID", Capability::Addons);
+    bind(ServerAddons, "CNetworkGameServer::m_szAddons", Capability::Addons);
+    bind(UserCmdProto, "CUserCmd::CSGOUserCmdPB", Capability::Movement);
     // Optional: movement can use the protobuf counter instead.
-    bind(UserCmdNumber, "UserCmdNumber");
+    bind(UserCmdNumber, "CUserCmdBase::cmdNum");
 
     bind.Finish();
     return {};

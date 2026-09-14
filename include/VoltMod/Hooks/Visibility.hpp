@@ -82,7 +82,7 @@ public:
 
     /** Whether the filter runs. False means the gamedata offset is missing and every call above
      *  is accepted but inert. */
-    [[nodiscard]] bool IsActive() const noexcept { return static_cast<bool>(_bindings.CheckTransmitPlayerSlot); }
+    [[nodiscard]] bool IsActive() const noexcept { return static_cast<bool>(_bindings.VisibilityRecipientSlot); }
 
 private:
     struct SlotState

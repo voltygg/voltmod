@@ -14,7 +14,7 @@ namespace VoltMod
 /**
  * @brief Raises @ref Teleported whenever a player's pawn is moved by CBaseEntity::Teleport.
  *
- * Dormant until something subscribes: it then hooks the "Teleport" slot on the CCSPlayerPawn class
+ * Dormant until something subscribes: it then hooks the "CBaseEntity::Teleport" slot on the CCSPlayerPawn class
  * vtable, so every pawn sharing it is covered, respawns included. A spawn also moves the player, so
  * **a spawn raises the event too**. Filter spawns yourself if you only care about mid-life
  * teleports.

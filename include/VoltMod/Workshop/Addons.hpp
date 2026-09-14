@@ -19,8 +19,8 @@ namespace VoltMod
 /**
  * @brief Workshop addons connecting clients must download.
  *
- * For content only the client uses (Panorama layouts, models, sounds); nothing is mounted on the
- * server. A client downloads one addon per reconnect - see @ref workshop_guide.
+ * For client-only content (Panorama layouts, models, sounds); the server mounts nothing. One addon
+ * downloads per reconnect - see @ref workshop_guide.
  *
  * ```cpp
  * if (auto required = runtime.Addons.Require(3401234567))
@@ -29,8 +29,7 @@ namespace VoltMod
  *     Log::Warn("addons unavailable: {}", required.error().Detail);
  * ```
  *
- * Several plugins may require addons: a plugin's hook leaves alone a message an earlier plugin
- * already pointed at an addon. @ref Downloaded, @ref Missing and the retry settings cover this
+ * Plugins share the hooks safely. @ref Downloaded, @ref Missing and the retry settings cover this
  * plugin's requirements only. Game thread only.
  */
 class Addons
@@ -43,11 +42,11 @@ public:
     Addons& operator=(const Addons&) = delete;
 
     /**
-     * Require @p id of every client until the returned Subscription drops. Reference counted;
-     * connected clients are not disturbed and pick it up on their next connect.
+     * Require @p id of every client until the Subscription drops. Reference counted; connected
+     * clients pick it up on their next connect.
      *
      * @return @ref ErrorCode::Invalid for id 0; @ref ErrorCode::Unsupported on a listen server or
-     *         when the hook could not install.
+     *         when the hooks could not install.
      */
     [[nodiscard]] Result<Subscription> Require(uint64_t id);
 
@@ -63,26 +62,28 @@ public:
     /** Whether @p slot has anything left to download, without building the list. */
     [[nodiscard]] bool HasMissing(int slot) const;
 
-    /** A client connected with every addon this plugin requires. Fires again after a reconnect
-     *  caused by another plugin's addon. */
+    /** A client connected with every addon this plugin requires. May fire again on a later reconnect. */
     Event<int /*slot*/> Downloaded;
 
     /** How soon a client must reconnect for its addon to count as downloaded. */
     double DownloadTimeoutSeconds = 30.0;
 
-    /** How often one addon is offered to a client before it is dropped, so a client that declines
-     *  does not reconnect forever. */
+    /** Offers of one addon before a declining client is dropped. */
     int MaxDownloadAttempts = 3;
 
 private:
     /** Hook on the first requirement; unhook once nothing is required. */
-    Status EnsureHook();
-    void UnhookIfUnused();
+    Status InstallHooks();
+    void RemoveHooksIfUnused();
 
     void OnConnected(Player& player);
     void OnJoinMessage(const CNetMessage* message, void* client);
 
-    /** Kicking inside the send hook crashes on Windows, so it waits a tick. */
+    /** Add @p client's addons to the server's list for its connection reply, then remove them. */
+    void AddToReply(EngineServer& server, const EngineClient* client);
+    void RestoreReply(EngineServer& server);
+
+    /** Waits a tick: kicking inside the send hook crashes on Windows. */
     void KickLater(int slot, int64_t steamId);
 
     Interfaces& _interfaces;
@@ -93,8 +94,10 @@ private:
     std::unique_ptr<AddonDownloads> _downloads;
 
     Subscription _connectListener;
-    PerSlot<Subscription> _pendingKick;  ///< one queued kick per slot; queuing again replaces it
-    Subscription _hook;
+    PerSlot<Subscription> _pendingKick;  ///< at most one queued kick per slot
+    Subscription _joinMessageHook;       ///< tells a client what to download
+    Subscription _connectionReplyHook;   ///< tells a client what to mount
+    std::vector<uint64_t> _addedToReply;
 };
 
 }  // namespace VoltMod

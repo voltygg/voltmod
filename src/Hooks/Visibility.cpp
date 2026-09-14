@@ -184,7 +184,7 @@ void Visibility::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
         if (!info || !info->m_pTransmitEntity)
             continue;
 
-        const int recipient = static_cast<int>(_bindings.CheckTransmitPlayerSlot.Read(info));
+        const int recipient = static_cast<int>(_bindings.VisibilityRecipientSlot.Read(info));
         CEntityInstance* observed = hiddenCount > 0 ? ObserverTarget(_entities, recipient) : nullptr;
 
         for (int h = 0; h < hiddenCount; ++h)

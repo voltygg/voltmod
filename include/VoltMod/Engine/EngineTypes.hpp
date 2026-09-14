@@ -57,30 +57,25 @@ class ISmmAPI;
 namespace VoltMod
 {
 
-// Which engine class a gamedata-bound hook dispatches on. Each stands in for a class whose layout
-// the SDK does not give us, so the compiler can tell a pawn from a client; none is ever
-// dereferenced as itself. The hook casts the raw pointer at the boundary.
-
 /** CCSPlayerPawn and the pawn classes sharing its vtable. */
-class HookedPawn
-{
-};
+class EnginePawn
+{};
 
 /** CServerSideClient, the engine's per-connection object. */
-class HookedClient
-{
-};
+class EngineClient
+{};
 
-/** The secondary-vtable subobject CServerSideClient::FilterMessage dispatches on. Not the client:
- *  reaching that means subtracting the subobject offset found at install time. */
-class HookedClientChannel
-{
-};
+/** CServerSideClient's message-filter base, where FilterMessage runs. Not the client itself. */
+class EngineMessageFilter
+{};
+
+/** CNetworkGameServer, the engine's server object. */
+class EngineServer
+{};
 
 /** CCSPlayer_MovementServices, the per-pawn movement component. */
-class HookedMovementServices
-{
-};
+class EngineMovementServices
+{};
 
 /** Manifest-time precache hook. Defined in src/Engine/GameSystem.hpp. */
 class PrecacheGameSystem;

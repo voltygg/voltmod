@@ -33,7 +33,7 @@ struct InputHistorySample
  * @brief Protobuf-free snapshot of the CUserCmd handed to
  * CPlayer_MovementServices::RunCommand, decoded once per command by @ref Movement.
  *
- * Valid is false when the usercmd pointer was null or the "UserCmdPB" gamedata
+ * Valid is false when the usercmd pointer was null or the "CUserCmd::CSGOUserCmdPB" gamedata
  * offset is missing - fields then hold their defaults and must not be trusted.
  */
 struct PlayerInput
@@ -41,7 +41,7 @@ struct PlayerInput
     bool Valid = false;
     int32_t ClientTick = 0;
 
-    // Client command counter from gamedata "UserCmdNumber". Missing gamedata falls
+    // Client command counter from gamedata "CUserCmdBase::cmdNum". Missing gamedata falls
     // back to legacy_command_number, which live clients leave at zero.
     int32_t CommandNumber = 0;
 

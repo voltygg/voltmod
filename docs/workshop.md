@@ -8,7 +8,7 @@ such as Panorama layouts, models, or sounds.
 ```cpp
 auto required = runtime.Addons.Require(3401234567); // of everyone
 if (!required)
-    return false;                                   // no dedicated server, or the hook is off
+    return false;                                   // no dedicated server, or the hooks are off
 
 _addon = std::move(*required);                      // required until this Subscription drops
 
@@ -33,18 +33,25 @@ See @ref panorama_guide_publish for the steps.
 
 ## How it works
 
-CS2 handles one addon per connection cycle. @ref VoltMod::Addons rewrites each
-join message (`CNETMsg_SignonState`) with the next missing addon. After the final
-reconnect, the client joins normally and @ref VoltMod::Addons::Downloaded fires.
+Two engine messages carry an addon, and a client needs both:
 
-Each addon costs the joining client one reconnect, including the first:
-the server's own addon string is left alone, and the extras only ride the join
-messages.
+- **The join message** (`CNETMsg_SignonState`) sends the client away to download an
+  addon and reconnect. @ref VoltMod::Addons rewrites it with the next missing addon.
+- **The connection reply** (`CNetworkGameServer::ReplyConnection`) names the addons
+  the client mounts for the session. The reply copies the server's own addon list,
+  so for the length of that call @ref VoltMod::Addons appends the addons this client
+  has downloaded, and the one on its way, then takes them back out.
 
-Addons cannot be batched. The field is a comma-separated list and the engine
-puts several entries in it when the server mounts more than one. A client
-handles exactly one addon per connection cycle and stalls without downloading
-when it receives several. The same behavior is what
+A client that downloaded an addon but was not told to mount it has the files and no
+content; a menu drawn on that layout is invisible. After the final reconnect the
+client joins normally and @ref VoltMod::Addons::Downloaded fires.
+
+Each addon costs the joining client one reconnect, including the first.
+
+Addons cannot be batched. The join message's field is a comma-separated list and the
+engine puts several entries in it when the server mounts more than one. A client
+handles exactly one addon per connection cycle and stalls without downloading when it
+receives several. The same behavior is what
 [MultiAddonManager](https://github.com/Source2ZE/MultiAddonManager) works around.
 VoltMod reduces such a message to its first addon and counts that one as sending, so the
 client makes progress instead of stalling.
@@ -56,12 +63,9 @@ the content - a custom map, models the server-side code touches - install and
 mount it the usual way; a workshop map still goes through
 @ref VoltMod::Map::ChangeToWorkshop.
 
-This is deliberate. Server-side downloading needs `ISteamUGC`, which the SDK does
-not link, and the handshake rewrite that would save the first reconnect needs
-inline detours, which the framework does not have. The subset here is the one
-that works with vtable hooks alone, and it is the same subset
-[MultiAddonManager](https://github.com/Source2ZE/MultiAddonManager) exposes as
-`mm_client_extra_addons`.
+Server-side downloading needs `ISteamUGC`, which the SDK does not link. The subset
+here is the one [MultiAddonManager](https://github.com/Source2ZE/MultiAddonManager)
+exposes as `mm_client_extra_addons`.
 
 ## The one guess it makes
 
@@ -80,11 +84,15 @@ downloads reconnects and its slot changes.
 ## Several plugins
 
 The framework is a static library, so each plugin has its own `Runtime`, its own
-@ref VoltMod::Addons and its own hook on the same message. Metamod runs those
-hooks one after another on that message, and a hook leaves alone a message an
-earlier one already pointed at an addon, counting that addon as sending instead.
-A client owing addons to two plugins gets one plugin's, reconnects, then gets the
-other's: one addon per reconnect, the same as one plugin requiring both.
+@ref VoltMod::Addons and its own hooks on the same messages. Metamod runs those
+hooks one after another, and a join-message hook leaves alone a message an earlier
+one already pointed at an addon, counting that addon as sending instead. A client
+owing addons to two plugins gets one plugin's, reconnects, then gets the other's:
+one addon per reconnect, the same as one plugin requiring both.
+
+Each plugin appends its own addons to the connection reply and takes back only
+those it appended, so the reply names every plugin's addons whichever order the
+hooks run in.
 
 Each plugin's @ref VoltMod::Addons::Downloaded, @ref VoltMod::Addons::Missing,
 `DownloadTimeoutSeconds` and `MaxDownloadAttempts` cover its own requirements. A
@@ -94,8 +102,8 @@ download, and that reconnect, ahead of it; `Downloaded` fires again after it.
 ## Availability
 
 Does nothing on a listen server - there is no download step - and when
-@ref VoltMod::Capability::Addons is off, which means the
-`CServerSideClient::SendNetMessage` vtable entry or one of the two client offsets
-did not bind. Either way @ref VoltMod::Addons::Require returns
-`ErrorCode::Unsupported` with the reason. @ref VoltMod::Addons::Missing reports
-what a connected client still owes.
+@ref VoltMod::Capability::Addons is off. That means one of these did not bind: the
+`CServerSideClient::SendNetMessage` vtable entry, the `CNetworkGameServer::ReplyConnection`
+signature, or the client and server offsets they read. Either way @ref VoltMod::Addons::Require
+returns `ErrorCode::Unsupported` with the reason. @ref VoltMod::Addons::Missing
+reports what a connected client still owes.

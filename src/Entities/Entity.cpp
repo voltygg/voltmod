@@ -57,9 +57,9 @@ Status Entity::Teleport(std::optional<Vector> origin, std::optional<QAngle> angl
         return std::unexpected(Error::NotReady("no entity"));
 
     // The index alone carries a direct call; the class table it also binds is only the hook's.
-    const auto& teleport = _sys->BindingsRef().Teleport.Method;
+    const auto& teleport = _sys->BindingsRef().Teleport.Function;
     if (!teleport)
-        return std::unexpected(Error::Unsupported("gamedata has no 'Teleport' vtable index"));
+        return std::unexpected(Error::Unsupported("gamedata has no 'CBaseEntity::Teleport' vtable index"));
 
     teleport.Call(_e, origin ? &*origin : nullptr, angles ? &*angles : nullptr, velocity ? &*velocity : nullptr);
     return {};
@@ -84,7 +84,7 @@ Status Pawn::Slay() const
 
     const auto& suicide = _sys->BindingsRef().CommitSuicide;
     if (!suicide)
-        return std::unexpected(Error::Unsupported("gamedata has no 'CommitSuicide' vtable index"));
+        return std::unexpected(Error::Unsupported("gamedata has no 'CBasePlayerPawn::CommitSuicide' vtable index"));
 
     suicide.Call(_e, false, true);
     return {};
@@ -201,7 +201,7 @@ Status Controller::ChangeTeam(int team) const
 
     const auto& changeTeam = _sys->BindingsRef().ChangeTeam;
     if (!changeTeam)
-        return std::unexpected(Error::Unsupported("gamedata has no 'ChangeTeam' vtable index"));
+        return std::unexpected(Error::Unsupported("gamedata has no 'CCSPlayerController::ChangeTeam' vtable index"));
 
     changeTeam.Call(_e, team);
     return {};
@@ -214,7 +214,7 @@ Status Controller::Respawn() const
 
     const auto& respawn = _sys->BindingsRef().Respawn;
     if (!respawn)
-        return std::unexpected(Error::Unsupported("gamedata has no 'Respawn' vtable index"));
+        return std::unexpected(Error::Unsupported("gamedata has no 'CCSPlayerController::Respawn' vtable index"));
 
     respawn.Call(_e);
     return {};

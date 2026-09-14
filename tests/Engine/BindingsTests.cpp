@@ -65,19 +65,19 @@ static constexpr std::string_view FullBody = R"(
   "signatures": {
     "CreateEntityByName": { "windows": { "pattern": "48 83 EC 48" }, "linux": { "pattern": "48 8D 05" } },
     "DispatchSpawn": { "windows": { "pattern": "48 89 5C 24" }, "linux": { "pattern": "48 85 FF" } },
-    "CEntityInstance_AcceptInput": { "windows": { "pattern": "48 89 5C 24 ?" }, "linux": { "pattern": "55 48 89 F0" } }
+    "CEntityInstance::AcceptInput": { "windows": { "pattern": "48 89 5C 24 ?" }, "linux": { "pattern": "55 48 89 F0" } }
   },
   "vtables": {
-    "RunCommand": { "class": "CCSPlayer_MovementServices", "windows": 25, "linux": 26 },
-    "GiveNamedItem": { "class": "CCSPlayer_ItemServices", "windows": 23, "linux": 24 },
-    "RemoveAllItems": { "class": "CCSPlayer_ItemServices", "windows": 27, "linux": 28 },
-    "Teleport": { "class": "CCSPlayerPawn", "windows": 163, "linux": 162 }
+    "CPlayer_MovementServices::RunCommand": { "class": "CCSPlayer_MovementServices", "windows": 25, "linux": 26 },
+    "CCSPlayer_ItemServices::GiveNamedItem": { "class": "CCSPlayer_ItemServices", "windows": 23, "linux": 24 },
+    "CCSPlayer_ItemServices::RemoveAllItems": { "class": "CCSPlayer_ItemServices", "windows": 27, "linux": 28 },
+    "CBaseEntity::Teleport": { "class": "CCSPlayerPawn", "windows": 163, "linux": 162 }
   },
   "offsets": {
     "GameEntitySystem": { "windows": 88, "linux": 80, "align": 8 },
     "CheckTransmitPlayerSlot": { "windows": 576, "linux": 576 },
-    "UserCmdPB": { "windows": 16, "linux": 16, "align": 8 },
-    "UserCmdNumber": { "windows": 8, "linux": 8, "align": 4 }
+    "CUserCmd::CSGOUserCmdPB": { "windows": 16, "linux": 16, "align": 8 },
+    "CUserCmdBase::cmdNum": { "windows": 8, "linux": 8, "align": 4 }
   })";
 
 TEST_CASE("Bind refuses an empty gamedata set")
@@ -103,12 +103,12 @@ TEST_CASE("Bind fills offsets and vtable indices from their gamedata keys")
     REQUIRE(bindings.Bind(data, caps).has_value());
 
     CHECK(bindings.GameEntitySystem.Value() == (OnWindows ? 88 : 80));
-    CHECK(bindings.CheckTransmitPlayerSlot.Value() == 576);
-    CHECK(bindings.UserCmdPB.Value() == 16);
+    CHECK(bindings.VisibilityRecipientSlot.Value() == 576);
+    CHECK(bindings.UserCmdProto.Value() == 16);
     CHECK(bindings.UserCmdNumber.Value() == 8);
     CHECK(static_cast<bool>(bindings.GiveNamedItem));
     CHECK(bindings.RemoveAllItems.Index() == (OnWindows ? 27 : 28));
-    CHECK(bindings.Teleport.Method.Index() == (OnWindows ? 163 : 162));
+    CHECK(bindings.Teleport.Function.Index() == (OnWindows ? 163 : 162));
 
     CHECK(caps.Has(Capability::Entities));
     CHECK(caps.Has(Capability::Visibility));
@@ -131,7 +131,7 @@ TEST_CASE("Bind leaves a signature empty and names the module when it cannot be 
     CHECK_FALSE(caps.Has(Capability::EntityOps));
     CHECK(std::string(caps.Reason(Capability::EntityOps)).find("CreateEntityByName") != std::string::npos);
 
-    CHECK(static_cast<bool>(bindings.RunCommand.Method));
+    CHECK(static_cast<bool>(bindings.RunCommand.Function));
     CHECK_FALSE(static_cast<bool>(bindings.RunCommand.Table));
     CHECK_FALSE(static_cast<bool>(bindings.RunCommand));
     CHECK_FALSE(caps.Has(Capability::Movement));
@@ -152,8 +152,8 @@ TEST_CASE("Bind records a missing key as the capability's reason and leaves the 
     Bindings bindings;
     REQUIRE(bindings.Bind(data, caps).has_value());
 
-    CHECK_FALSE(static_cast<bool>(bindings.CheckTransmitPlayerSlot));
-    CHECK(bindings.CheckTransmitPlayerSlot.Value() == -1);
+    CHECK_FALSE(static_cast<bool>(bindings.VisibilityRecipientSlot));
+    CHECK(bindings.VisibilityRecipientSlot.Value() == -1);
     CHECK_FALSE(caps.Has(Capability::Visibility));
     CHECK(caps.Reason(Capability::Visibility) == "'CheckTransmitPlayerSlot' is not in gamedata");
 
@@ -176,7 +176,7 @@ TEST_CASE("A binding no capability gates still says why its key did not bind")
     Bindings bindings;
     REQUIRE(bindings.Bind(data, caps).has_value());
 
-    CHECK(log.Mentions("'UserCmdNumber' is not in gamedata"));
+    CHECK(log.Mentions("'CUserCmdBase::cmdNum' is not in gamedata"));
     CHECK_FALSE(static_cast<bool>(bindings.UserCmdNumber));
 
     CHECK_FALSE(log.Mentions("'CheckTransmitPlayerSlot'"));

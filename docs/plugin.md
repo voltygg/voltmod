@@ -285,9 +285,9 @@ Nothing has to be declared at namespace scope. `VoltMod::HookInterface` reads th
 from the member function pointer and installs the hook, handing back the `Subscription` that
 removes it.
 
-A handler is any callable taking the hooked object as its first parameter. A pre-handler returns
-`VoltMod::HookResult<Ret>`, or nothing at all when it only observes. Pass `nullptr` for the side
-you do not want; here the pre-hook runs and there is no post-hook.
+A handler is any callable taking the hooked object as its first parameter. A before-handler returns
+`VoltMod::HookResult<Ret>`, or nothing at all when it only observes. Pass `nullptr` for the handler
+you do not want; here only the before-handler runs.
 
 For per-tick player movement you don't need a custom hook at all: the framework ships @ref VoltMod::Movement (see @ref sdk_hooks_guide).
 

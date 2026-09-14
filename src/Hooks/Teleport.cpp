@@ -27,12 +27,12 @@ Teleport::~Teleport()
 
 bool Teleport::Install()
 {
-    auto hook = HookVTable("Teleport", _bindings.Teleport,
-                           [this](HookedPawn& pawn, const Vector*, const QAngle*, const Vector*) {
-                               // Resolved per call through the pawn's controller, so a recycled
-                               // pawn address cannot report the previous owner's slot.
-                               Teleported.Raise(Pawn{_entities, reinterpret_cast<CEntityInstance*>(&pawn)}.Slot());
-                           });
+    auto hook = HookClassSlot(
+        "Teleport", _bindings.Teleport, [this](EnginePawn& pawn, const Vector*, const QAngle*, const Vector*) {
+            // Resolved per call through the pawn's controller, so a recycled
+            // pawn address cannot report the previous owner's slot.
+            Teleported.Raise(Pawn{_entities, reinterpret_cast<CEntityInstance*>(&pawn)}.Slot());
+        });
     if (!hook)
     {
         Log::Warn("Teleport: {}; teleports will not be tracked.", hook.error().Detail);

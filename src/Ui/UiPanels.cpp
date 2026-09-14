@@ -19,7 +19,7 @@ UiPanels::UiPanels(EntitySystem& entities, EntityOps& ops, const Bindings& bindi
       _ops(ops),
       _slots(slots),
       _visibility(visibility),
-      _clicks(std::make_unique<UiClickHook>(interfaces, bindings, slots, entities, scheduler, Clicked))
+      _clicks(std::make_unique<UiClickHook>(interfaces, bindings, entities, scheduler, Clicked))
 {}
 
 UiPanels::~UiPanels() = default;

@@ -210,7 +210,7 @@ new occupant.
 ## Items
 
 @ref VoltMod::Items gives and strips weapons through the pawn's `CCSPlayer_ItemServices`. Both
-operations are vtable calls whose indices live in gamedata (`GiveNamedItem`, `RemoveAllItems`), so
+operations are vtable calls whose indices live in gamedata (`CCSPlayer_ItemServices::GiveNamedItem`, `CCSPlayer_ItemServices::RemoveAllItems`), so
 a game update is a gamedata edit rather than a rebuild.
 
 ```cpp

@@ -69,7 +69,7 @@ public:
      * The client's own subscription handle, not a framework listener: firing an event at it delivers to
      * that one client (how @ref Messages sends center HTML), and it is what
      * @ref ClientListensTo interrogates. nullptr when the slot has no client or the
-     * "LegacyGameEventListener" gamedata signature did not resolve.
+     * "GetLegacyGameEventListener" gamedata signature did not resolve.
      */
     IGameEventListener2* GetClientLegacyListener(int slot) const;
 

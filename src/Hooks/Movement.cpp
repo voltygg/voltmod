@@ -28,23 +28,23 @@ Movement::~Movement() = default;
 
 bool Movement::Install()
 {
-    if (!_bindings.UserCmdPB)
-        Log::Warn("Movement: no usable 'UserCmdPB' offset; handlers get Valid=false commands.");
+    if (!_bindings.UserCmdProto)
+        Log::Warn("Movement: no usable 'CUserCmd::CSGOUserCmdPB' offset; handlers get Valid=false commands.");
 
     if (!_bindings.UserCmdNumber)
         Log::Warn(
-            "Movement: no usable 'UserCmdNumber' offset; falling back to the protobuf's "
+            "Movement: no usable 'CUserCmdBase::cmdNum' offset; falling back to the protobuf's "
             "legacy_command_number, which the live client leaves at 0.");
 
-    auto hook = HookVTable(
+    auto hook = HookClassSlot(
         "Movement RunCommand", _bindings.RunCommand,
-        [this](HookedMovementServices& services, void* userCmd) {
+        [this](EngineMovementServices& services, void* userCmd) {
             _slot = SlotOf(&services);
             Decode(userCmd);
             Rewrite.Raise(_slot, _cmd);
             Before.Raise(_slot, _cmd);
         },
-        [this](HookedMovementServices&, void* /*userCmd*/, void* /*result*/) { After.Raise(_slot, _cmd); },
+        [this](EngineMovementServices&, void* /*userCmd*/, void* /*result*/) { After.Raise(_slot, _cmd); },
         LiveMovementServices());
     if (!hook)
     {
@@ -77,10 +77,10 @@ int Movement::SlotOf(void* movementServices)
 void Movement::Decode(const void* userCmd)
 {
     _cmd = {};
-    if (!userCmd || !_bindings.UserCmdPB)
+    if (!userCmd || !_bindings.UserCmdProto)
         return;
 
-    const auto* pb = static_cast<const CSGOUserCmdPB*>(_bindings.UserCmdPB.Ptr(userCmd));
+    const auto* pb = static_cast<const CSGOUserCmdPB*>(_bindings.UserCmdProto.Ptr(userCmd));
     const auto& base = pb->base();
 
     _cmd.Valid = true;

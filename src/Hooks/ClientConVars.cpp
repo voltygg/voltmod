@@ -40,24 +40,24 @@ Status ClientConVars::Initialize()
     if (!_interfaces.Engine || !_interfaces.NetworkMessages || !_interfaces.GameEventSystem)
         return std::unexpected(Error::NotReady("engine interfaces unavailable"));
 
-    if (!_bindings.ServerSideClientSlot)
-        return std::unexpected(Error::Unsupported("the ServerSideClientSlot offset did not bind"));
+    if (!_bindings.ClientSlot)
+        return std::unexpected(Error::Unsupported("the ClientSlot offset did not bind"));
 
     INetworkMessageInternal* getCvarValue =
         _interfaces.NetworkMessages->FindNetworkMessagePartial("CSVCMsg_GetCvarValue");
     if (!getCvarValue)
         return std::unexpected(Error::Engine("the engine does not provide CSVCMsg_GetCvarValue"));
 
-    auto hook = HookVTable("Client convar response", _bindings.ProcessRespondCvarValue, nullptr,
-                           [this](HookedClient& client, const void* message, bool /*result*/) {
-                               OnRespondCvarValue(&client, message);
-                           });
+    auto hook = HookClassSlot("Client convar response", _bindings.ProcessRespondCvarValue, nullptr,
+                              [this](EngineClient& client, const void* message, bool /*result*/) {
+                                  OnRespondCvarValue(&client, message);
+                              });
     if (!hook)
         return std::unexpected(hook.error());
 
     _hook = std::move(*hook);
     _getCvarValue = getCvarValue;
-    Log::Info("Client convar queries enabled (slot offset {}).", _bindings.ServerSideClientSlot.Value());
+    Log::Info("Client convar queries enabled (slot offset {}).", _bindings.ClientSlot.Value());
     return {};
 }
 
@@ -137,7 +137,7 @@ void ClientConVars::OnRespondCvarValue(const void* client, const void* message)
 {
     // The SDK omits CServerSideClient's layout, so gamedata supplies the slot offset; -1 comes
     // back when it did not bind.
-    const int slot = SlotOfServerSideClient(_bindings, client);
+    const int slot = SlotOfClient(_bindings, client);
     const auto& msg = *static_cast<const CNetMessagePB<CCLCMsg_RespondCvarValue>*>(message);
 
     if (!IsValidSlot(slot) || !msg.has_cookie() || !msg.has_status_code() || !msg.has_name())

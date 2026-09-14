@@ -10,9 +10,9 @@ types.
 
 ```cpp
 // include/VoltMod/Engine/GameData/Bindings.hpp
-Fn<CEntityInstance*(const char*, int)> CreateEntityByName;   // signatures.CreateEntityByName
-VFn<void(int)> ChangeTeam;                                   // vtables.ChangeTeam
-OffsetOf<int> ServerSideClientSlot;                          // offsets.ServerSideClientSlot
+Fn<CEntityInstance*(const char*, int)> CreateEntityByName;   // signatures."CreateEntityByName"
+VirtualFn<void(int)> ChangeTeam;                            // vtables."CCSPlayerController::ChangeTeam"
+OffsetOf<int> ClientSlot;                                   // offsets."CServerSideClientBase::m_nClientSlot"
 ```
 
 Services use `const Bindings&`, avoiding string lookup on runtime call paths.
@@ -20,7 +20,9 @@ Binding failures are reported during load.
 
 ## `gamedata.jsonc` format
 
-Four sections, each keyed by the name `Bindings` uses. A key may appear in only one of them.
+Four sections. Each key is the engine's own name for the symbol, `Class::member` where it has one, so
+it can be looked up in upstream gamedata and in the binary; `Bindings::Bind` maps it to a plain C++
+name. A key may appear in only one section.
 
 ```jsonc
 {
@@ -38,8 +40,8 @@ Four sections, each keyed by the name `Bindings` uses. A key may appear in only 
 
   // A pointer reached through a rel32 displacement inside a matched signature.
   "addresses": {
-    "GameEventManager": {
-      "signature": "GameEventManagerSig",                    // must exist in "signatures"
+    "CSource2Server::g_GameEventManager": {
+      "signature": "CSource2Server::Init",                   // must exist in "signatures"
       "rel32At": { "windows": 98, "linux": 106 }             // bytes from the match to the rel32
     }
   },
@@ -48,8 +50,8 @@ Four sections, each keyed by the name `Bindings` uses. A key may appear in only 
   // slot is found by searching that class's table for the function the pattern matched, and the
   // index is only the fallback.
   "vtables": {
-    "RunCommand": { "class": "CCSPlayer_MovementServices", "signature": "RunCommandSig", "windows": 25, "linux": 26 },
-    "ProcessRespondCvarValue": { "class": "CServerSideClient", "library": "engine2", "windows": 38, "linux": 40 }
+    "CPlayer_MovementServices::RunCommand": { "class": "CCSPlayer_MovementServices", "windows": 25, "linux": 26 },
+    "CServerSideClient::ProcessRespondCvarValue": { "class": "CServerSideClient", "library": "engine2", "windows": 38, "linux": 40 }
   },
 
   // A byte offset into a layout the SDK headers do not declare.
@@ -124,14 +126,18 @@ The entries most likely to bite, and how each one fails:
 
 | Entry | Section | Used by | Drift symptom |
 | --- | --- | --- | --- |
-| `RunCommand` | vtables | @ref VoltMod::Movement | Crash on the first movement tick, unless the entry's `signature` finds the slot again or the executable-section check catches it |
-| `Teleport` | vtables | @ref VoltMod::Teleport | Missing: subscribing to `Teleported` is refused and `Capability::Teleport` is off |
-| `ProcessRespondCvarValue` | vtables | @ref VoltMod::ClientConVars | `Capability::ClientConVars` off; client convar queries unavailable |
-| `UserCmdPB` | offsets | `Movement` cmd events | Missing: `Valid=false` views. Stale: garbage viewangles and buttons |
-| `UserCmdNumber` | offsets | `PlayerInput::CommandNumber` | Missing: falls back to the protobuf's `legacy_command_number`, which live clients leave at 0. Stale: a counter that never increments by 1 |
-| `ServerSideClientSlot` | offsets | `ClientConVars` | Stale: a client's answer is attributed to the wrong player |
+| `CPlayer_MovementServices::RunCommand` | vtables | @ref VoltMod::Movement | Crash on the first movement tick, unless the entry's `signature` finds the slot again or the executable-section check catches it |
+| `CBaseEntity::Teleport` | vtables | @ref VoltMod::Teleport | Missing: subscribing to `Teleported` is refused and `Capability::Teleport` is off |
+| `CServerSideClient::ProcessRespondCvarValue` | vtables | @ref VoltMod::ClientConVars | `Capability::ClientConVars` off; client convar queries unavailable |
+| `CUserCmd::CSGOUserCmdPB` | offsets | `Movement` cmd events | Missing: `Valid=false` views. Stale: garbage viewangles and buttons |
+| `CUserCmdBase::cmdNum` | offsets | `PlayerInput::CommandNumber` | Missing: falls back to the protobuf's `legacy_command_number`, which live clients leave at 0. Stale: a counter that never increments by 1 |
+| `CServerSideClientBase::m_nClientSlot` | offsets | `ClientConVars`, `UiClicks` | Stale: a client's answer is attributed to the wrong player |
+| `INetworkMessageProcessingPreFilter::FilterMessage` | signatures | @ref VoltMod::UiPanels clicks | Missing: `Capability::UiClicks` off; presses never arrive |
+| `CServerSideClient::INetworkMessageProcessingPreFilter` | offsets | @ref VoltMod::UiPanels clicks | Stale: a press is attributed to the wrong player, or dropped |
+| `CNetworkGameServer::ReplyConnection` | signatures | @ref VoltMod::Addons | Missing: `Capability::Addons` off; `Require` is refused |
+| `CNetworkGameServer::m_szAddons` | offsets | @ref VoltMod::Addons | Stale: clients download addons but mount none, or a corrupted reply |
 | `CheckTransmitPlayerSlot` | offsets | @ref VoltMod::Visibility | Stale: the wrong recipient is filtered |
-| `GameEventManager` | addresses | @ref VoltMod::Messages | Center HTML does not display |
+| `CSource2Server::g_GameEventManager` | addresses | @ref VoltMod::Messages | Center HTML does not display |
 
 ## Checking and repairing offline
 
@@ -164,8 +170,9 @@ Plugins use it through gamedata rather than directly.
 
 ### Vtable lookup by class name
 
-`FindVirtualTable(moduleName, className)` resolves primary class tables. `VHookBinding` keeps each
-resolved table with its slot.
+`FindVirtualTable(moduleName, className)` resolves primary class tables. `ClassSlot` keeps each
+resolved table with its slot. A function on a secondary base has no primary slot, so it is bound
+by signature and hooked with `HookFunction` instead.
 
 - Windows: walks the module's RTTI: the type descriptor for `.?AV<class>@@`, the complete object
   locator referencing it, then the vtable that follows. Only a locator at offset 0 is accepted, so

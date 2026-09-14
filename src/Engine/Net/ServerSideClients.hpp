@@ -8,7 +8,7 @@ namespace VoltMod
 
 /**
  * @file ServerSideClients.hpp
- * @brief The engine's connected-client objects, for the two hooks that need one.
+ * @brief The engine's connected-client objects, for the hooks that run on one.
  *
  * `CServerSideClient` is the per-connection object `UiClickHook` and `Addons` hook, but the
  * SDK's `INetworkGameServer` exposes no accessor for it, so the vector is reached by a gamedata
@@ -21,9 +21,9 @@ namespace VoltMod
  */
 
 /** Any connected client, for bootstrapping a hook that needs a live instance. */
-void* AnyServerSideClient(const Interfaces& interfaces, const Bindings& bindings);
+void* AnyClient(const Interfaces& interfaces, const Bindings& bindings);
 
 /** @p client's player slot, or -1 when it or the offset is unavailable. */
-int SlotOfServerSideClient(const Bindings& bindings, const void* client);
+int SlotOfClient(const Bindings& bindings, const void* client);
 
 }  // namespace VoltMod

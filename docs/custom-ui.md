@@ -321,7 +321,7 @@ Ask @ref VoltMod::Capabilities before relying on either feature:
 | Capability | Off means |
 | --- | --- |
 | `CustomUi` | the five `CCSCustomHudLayout` setters did not bind; spawning still works, writes fail |
-| `UiClicks` | `FilterMessage` did not bind; presses never arrive |
+| `UiClicks` | `INetworkMessageProcessingPreFilter::FilterMessage` or `CServerSideClient::INetworkMessageProcessingPreFilter` did not bind; presses never arrive |
 | `Visibility` | `CheckTransmitPlayerSlot` is missing; a private panel is refused, shared panels are unaffected |
 
 Both are located by byte pattern in `server.dll` / `engine2`, on Windows and on

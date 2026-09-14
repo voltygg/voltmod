@@ -25,12 +25,13 @@ Hook contracts:
 
 - The DVP hook binds the class vtable and covers current and future players.
 - Unresolved gamedata returns an empty `Subscription` and logs the reason.
-- Pre and post install atomically, and the command is decoded once per RunCommand.
+- Before and After install together, and the command is decoded once per RunCommand.
 - The slot is `-1` when its owner cannot be resolved.
 - Removal by hook id remains safe after pawn destruction.
-- Re-verify the `RunCommand` class and slot after CS2 updates. A wrong slot can crash.
-- Re-verify the `UserCmdPB` offset too. A missing offset yields `Valid=false`; a stale one reads
-  garbage.
+- Re-verify the `CPlayer_MovementServices::RunCommand` class and slot after CS2 updates. A wrong
+  slot can crash.
+- Re-verify the `CUserCmd::CSGOUserCmdPB` offset too. A missing offset yields `Valid=false`; a stale
+  one reads garbage.
 
 Important fields:
 
@@ -106,18 +107,25 @@ Semantics worth knowing:
 Use `<VoltMod/Unsafe/Hook.hpp>` for vfuncs the framework does not expose.
 An incorrect slot can call unrelated code and crash the server.
 
-Custom hooks use two entry points, both yielding the @ref VoltMod::Subscription that removes the
+Custom hooks use three entry points, each yielding the @ref VoltMod::Subscription that removes the
 hook when it is dropped:
 
 - `VoltMod::HookInterface` takes a member function pointer and hooks that one interface object.
-- `VoltMod::HookVTable` takes a gamedata @ref VoltMod::VHookBinding and hooks every object sharing
+- `VoltMod::HookClassSlot` takes a gamedata @ref VoltMod::ClassSlot and hooks every object sharing
   the class vtable. It reports a missing slot or table as an error rather than installing nothing.
+- `VoltMod::HookFunction` takes a gamedata signature, a `Fn` whose first parameter is the object,
+  and hooks the function where its code starts. Use it for a function no class vtable reaches: one
+  that is not virtual, or one on a secondary base.
+
+Prefer `HookClassSlot` for a virtual function. A hook where the code starts catches every caller,
+and the compiler often gives many classes one shared body - a slot that returns `false` can be the
+same code in hundreds of unrelated classes.
 
 A handler is any callable. It takes the hooked object first, as a reference to the class the slot
-dispatches on: an engine interface, or one of the `Hooked*` stand-ins in `EngineTypes.hpp` for a
+dispatches on: an engine interface, or one of the `Engine*` stand-ins in `EngineTypes.hpp` for a
 class whose layout the SDK omits. A stand-in is an identity, not a layout, so never dereference
-one. A pre-handler returns @ref VoltMod::HookResult, or nothing at all when it only observes; a
-post-handler returns nothing and is handed the value the call is about to return.
+one. A before-handler returns @ref VoltMod::HookResult, or nothing at all when it only observes; an
+after-handler returns nothing and is handed the value the call is about to return.
 
 ```cpp
 #include <VoltMod/Unsafe/Hook.hpp>
@@ -130,10 +138,10 @@ class CommandWatcher
     void Install()
     {
         // void* CPlayer_MovementServices::RunCommand(CUserCmd*)
-        auto hook = VoltMod::HookVTable("MyPlugin RunCommand", _rt.Unsafe.Bindings.RunCommand,
-                                        [this](VoltMod::HookedMovementServices& services, void* userCmd) {
-                                            Record(&services, userCmd);
-                                        });
+        auto hook = VoltMod::HookClassSlot("MyPlugin RunCommand", _rt.Unsafe.Bindings.RunCommand,
+                                           [this](VoltMod::EngineMovementServices& services, void* userCmd) {
+                                               Record(&services, userCmd);
+                                           });
         if (!hook)
         {
             VoltMod::Log::Warn("command watch off: {}", hook.error().Detail);
@@ -144,12 +152,12 @@ class CommandWatcher
 };
 ```
 
-`VHookBinding` keeps the slot, the class table and the class identity from one gamedata entry
-together. Direct calls use its `Method`, a `VFn`, to dispatch through an instance.
+`ClassSlot` keeps the slot, the class table and the class identity from one gamedata entry
+together. Direct calls use its `Function`, a `VirtualFn`, to dispatch through an instance.
 
 ### What it does for you, and what it does not
 
-- Pre and post ride one hook, so there is no half-installed pair to unwind.
+- Both handlers ride one hook, so there is no half-installed pair to unwind.
 - `Reset()` remains safe after the hooked object is destroyed; removal never dereferences it.
 - An optional live instance detects a mismatched class table.
 - The object type is checked at compile time, so a pawn cannot be passed where a client belongs.

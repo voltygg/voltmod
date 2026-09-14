@@ -34,8 +34,8 @@ enum class ClientConVarStatus
  *
  * A modified client can answer with anything, so treat the result as evidence, not proof.
  *
- * Degradable load stage: it depends on the `ProcessRespondCvarValue` vtable slot, the
- * `ServerSideClientSlot` offset and an RTTI/symbol lookup of the `CServerSideClient` vtable, all
+ * Degradable load stage: it depends on the `CServerSideClient::ProcessRespondCvarValue` vtable slot, the
+ * `CServerSideClientBase::m_nClientSlot` offset and an RTTI/symbol lookup of the `CServerSideClient` vtable, all
  * of which drift with engine updates. On failure Capability::ClientConVars is off and carries the
  * reason.
  *

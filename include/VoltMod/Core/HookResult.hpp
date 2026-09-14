@@ -7,7 +7,7 @@
 namespace VoltMod
 {
 
-/** What a pre-handler decides should happen to the call it intercepted. */
+/** What a before-handler decides should happen to the call it intercepted. */
 enum class HookAction : uint8_t
 {
     Allow = 0,  ///< Let the engine's own handler run and keep its return value.
@@ -16,7 +16,7 @@ enum class HookAction : uint8_t
 };
 
 /**
- * @brief A hook pre-handler's verdict.
+ * @brief A hook before-handler's verdict.
  *
  * Default-constructs to @ref HookAction::Allow, so `return {};` passes the call through. A handler
  * that returns nothing at all is treated the same way.

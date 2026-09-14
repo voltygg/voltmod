@@ -58,14 +58,14 @@ private:
 
 /** Typed virtual function. Its signature omits the instance passed to @ref Call. */
 template <class Sig>
-class VFn;
+class VirtualFn;
 
 template <class Ret, class... Args>
-class VFn<Ret(Args...)>
+class VirtualFn<Ret(Args...)>
 {
 public:
-    VFn() = default;
-    explicit constexpr VFn(int index) noexcept : _index(index) {}
+    VirtualFn() = default;
+    explicit constexpr VirtualFn(int index) noexcept : _index(index) {}
 
     explicit constexpr operator bool() const noexcept { return _index >= 0; }
 
@@ -83,31 +83,31 @@ private:
     int _index = -1;
 };
 
-/** Primary class vtable and its class name for DVP hooks. */
-class VTableRef
+/** A class's primary vtable and its name. */
+class ClassVTable
 {
 public:
-    VTableRef() = default;
-    VTableRef(std::string className, void* table) : _class(std::move(className)), _table(table) {}
+    ClassVTable() = default;
+    ClassVTable(std::string className, void* table) : _className(std::move(className)), _table(table) {}
 
     explicit operator bool() const noexcept { return _table != nullptr; }
-    void* Table() const noexcept { return _table; }
-    std::string_view Class() const noexcept { return _class; }
+    void* Ptr() const noexcept { return _table; }
+    std::string_view ClassName() const noexcept { return _className; }
 
 private:
-    std::string _class;
+    std::string _className;
     void* _table = nullptr;
 };
 
-/** DVP hook slot and class table resolved from one gamedata entry. @p Object names which engine
- *  class the slot dispatches on, so a handler cannot be handed the wrong kind of object. */
+/** One virtual function's slot in a class vtable, from one gamedata entry. @p Object is the engine
+ *  class it runs on, so a hook handler cannot be handed the wrong kind of object. */
 template <class Object, class Sig>
-struct VHookBinding
+struct ClassSlot
 {
-    VFn<Sig> Method;
-    VTableRef Table;
+    VirtualFn<Sig> Function;
+    ClassVTable Table;
 
-    explicit operator bool() const noexcept { return static_cast<bool>(Method) && static_cast<bool>(Table); }
+    explicit operator bool() const noexcept { return static_cast<bool>(Function) && static_cast<bool>(Table); }
 };
 
 /** Typed byte offset. Unbound access is inert and reads/writes support unaligned fields. */
@@ -204,9 +204,11 @@ struct Bindings
     Fn<void(void*, int32_t, bool)> CustomHudSetInputCapture;
     /** @} */
 
-    /** CServerSideClient::FilterMessage. It is in a secondary vtable, so @ref UiClickHook finds
-     *  its slot from this signature with FindVTableSlot instead of using an index. */
-    Address FilterMessage;
+    /** CServerSideClient::FilterMessage(const CNetMessage*, INetChannel*). Hooked by @ref UiClickHook. */
+    Fn<bool(EngineMessageFilter*, const CNetMessage*, void*)> FilterMessage;
+    /** CNetworkGameServer::ReplyConnection(CServerSideClient*), which names the addons a client
+     *  mounts. Hooked by @ref Addons. */
+    Fn<void(EngineServer*, EngineClient*)> ReplyConnection;
 
     /** IGameEventManager2** inside CSource2Server. */
     Address GameEventManager;
@@ -218,38 +220,42 @@ struct Bindings
     Address GameSystemList;
 
     /** CBasePlayerPawn::CommitSuicide(bool explode, bool force). */
-    VFn<void(bool, bool)> CommitSuicide;
+    VirtualFn<void(bool, bool)> CommitSuicide;
     /** CCSPlayerController::ChangeTeam(int team). */
-    VFn<void(int)> ChangeTeam;
+    VirtualFn<void(int)> ChangeTeam;
     /** CCSPlayerController::Respawn(). */
-    VFn<void()> Respawn;
+    VirtualFn<void()> Respawn;
     /** CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*), hooked on CCSPlayerPawn.
-     *  A direct call only needs Method; the table is what the hook adds. */
-    VHookBinding<HookedPawn, void(const Vector*, const QAngle*, const Vector*)> Teleport;
+     *  A direct call needs only Function; the hook also needs the table. */
+    ClassSlot<EnginePawn, void(const Vector*, const QAngle*, const Vector*)> Teleport;
     /** CPlayer_MovementServices::RunCommand(CUserCmd*), hooked on CCSPlayer_MovementServices. */
-    VHookBinding<HookedMovementServices, void*(void*)> RunCommand;
+    ClassSlot<EngineMovementServices, void*(void*)> RunCommand;
     /** CCSPlayer_ItemServices::GiveNamedItem(const char* classname). */
-    VFn<void*(const char*)> GiveNamedItem;
+    VirtualFn<void*(const char*)> GiveNamedItem;
     /** CCSPlayer_ItemServices::RemoveAllItems(bool removeSuit). */
-    VFn<void(bool)> RemoveAllItems;
+    VirtualFn<void(bool)> RemoveAllItems;
     /** CServerSideClient::ProcessRespondCvarValue(...), hooked on CServerSideClient. */
-    VHookBinding<HookedClient, bool(const void*)> ProcessRespondCvarValue;
+    ClassSlot<EngineClient, bool(const void*)> ProcessRespondCvarValue;
     /** CServerSideClient::SendNetMessage(const CNetMessage*, NetChannelBufType_t), hooked on
      *  CServerSideClient. The SDK enum is represented as int here. */
-    VHookBinding<HookedClient, bool(const CNetMessage*, int)> SendNetMessage;
+    ClassSlot<EngineClient, bool(const CNetMessage*, int)> SendNetMessage;
 
     /** CGameEntitySystem* cached inside IGameResourceService. */
     OffsetOf<CGameEntitySystem*> GameEntitySystem;
     /** Recipient player slot inside CCheckTransmitInfo. */
-    OffsetOf<uint8_t> CheckTransmitPlayerSlot;
+    OffsetOf<uint8_t> VisibilityRecipientSlot;
     /** Player slot inside CServerSideClient. */
-    OffsetOf<int> ServerSideClientSlot;
+    OffsetOf<int> ClientSlot;
     /** CNetworkGameServer::m_Clients, the slot-indexed client vector. See ServerSideClients.hpp. */
-    OffsetOf<void> NetworkGameServerClients;
+    OffsetOf<void> ServerClients;
     /** SteamID inside CServerSideClient. Unaligned; read through memcpy. */
-    OffsetOf<int64_t> ServerSideClientSteamId;
+    OffsetOf<int64_t> ClientSteamId;
+    /** Bytes from CServerSideClient to the base FilterMessage runs on. */
+    OffsetOf<void> ClientMessageFilter;
+    /** CNetworkGameServer::m_szAddons (CUtlString), copied into each connection reply. */
+    OffsetOf<void> ServerAddons;
     /** CSGOUserCmdPB payload embedded in CUserCmd. */
-    OffsetOf<void> UserCmdPB;
+    OffsetOf<void> UserCmdProto;
     /** CUserCmd command counter; live clients leave the protobuf counter at zero. */
     OffsetOf<int32_t> UserCmdNumber;
 };

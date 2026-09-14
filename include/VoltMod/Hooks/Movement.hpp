@@ -13,14 +13,14 @@ namespace VoltMod
 
 /**
  * @brief Vtable hook on CCSPlayer_MovementServices::RunCommand - the per-tick, per-player
- * movement entry point (gamedata vtable "RunCommand").
+ * movement entry point (gamedata vtable "CPlayer_MovementServices::RunCommand").
  *
  * The class vtable is located by RTTI on Windows and by ELF symbol on Linux, so the hook installs
  * with no player connected and covers every player from then on. The first subscription to any
  * of the three events installs it; dropping the last one removes it.
  *
  * Every event carries the owning slot (-1 when unresolved) and the command decoded from the
- * CSGOUserCmdPB payload (gamedata offset "UserCmdPB"). The command is decoded once per
+ * CSGOUserCmdPB payload (gamedata offset "CUserCmd::CSGOUserCmdPB"). The command is decoded once per
  * RunCommand; its Valid flag is false when the offset is missing or the pointer is null.
  *
  * The vtable index drifts with CS2 updates. A wrong index calls an unrelated vfunc and crashes,

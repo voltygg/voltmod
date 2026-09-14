@@ -13,7 +13,7 @@ using ClientVector = CUtlVector<void*>;
 /** The slot-indexed client vector, or nullptr when the server or the offset is unavailable. */
 static ClientVector* Clients(const Interfaces& interfaces, const Bindings& bindings)
 {
-    if (!interfaces.NetworkServerService || !bindings.NetworkGameServerClients)
+    if (!interfaces.NetworkServerService || !bindings.ServerClients)
         return nullptr;
 
     // Null between map loads, which is ordinary rather than an error.
@@ -21,10 +21,10 @@ static ClientVector* Clients(const Interfaces& interfaces, const Bindings& bindi
     if (!server)
         return nullptr;
 
-    return MemberPtr<ClientVector>(server, bindings.NetworkGameServerClients.Value());
+    return MemberPtr<ClientVector>(server, bindings.ServerClients.Value());
 }
 
-void* AnyServerSideClient(const Interfaces& interfaces, const Bindings& bindings)
+void* AnyClient(const Interfaces& interfaces, const Bindings& bindings)
 {
     ClientVector* clients = Clients(interfaces, bindings);
     if (!clients)
@@ -36,11 +36,11 @@ void* AnyServerSideClient(const Interfaces& interfaces, const Bindings& bindings
     return nullptr;
 }
 
-int SlotOfServerSideClient(const Bindings& bindings, const void* client)
+int SlotOfClient(const Bindings& bindings, const void* client)
 {
-    if (!client || !bindings.ServerSideClientSlot)
+    if (!client || !bindings.ClientSlot)
         return -1;
-    return bindings.ServerSideClientSlot.Read(client);
+    return bindings.ClientSlot.Read(client);
 }
 
 }  // namespace VoltMod
