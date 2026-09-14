@@ -4,6 +4,17 @@
 
 What changed in each VoltMod release. Older history is in git.
 
+## 1.4.3 (2026-09-14)
+
+### Fixed
+
+- Plugins load on Linux servers. Windows and Linux lay entity classes out differently, so each
+  has its own schema offsets; regenerate the Linux ones with
+  `voltmod schemagen --platform linux --dump <server.json>`.
+- Vtable hooks resolve on Linux, where the game's libraries hide their vtable symbols.
+- The Linux patterns for `CEntityInstance_AcceptInput` and `CustomHudSetHasClass` match
+  build 2000908.
+
 ## 1.4.2 (2026-09-13)
 
 ### Breaking
