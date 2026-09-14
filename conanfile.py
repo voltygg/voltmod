@@ -21,7 +21,7 @@ class VoltModConan(ConanFile):
 
     name = "voltmod"
     author = "Sukhrob Ilyosbekov (suxrobgm@gmail.com)"
-    version = "1.4.4"
+    version = "1.4.5"
     description = "C++23 library for CS2 Metamod:Source plugins"
     license = "MIT"
     homepage = "https://github.com/voltygg/voltmod"

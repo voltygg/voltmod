@@ -4,6 +4,27 @@
 
 What changed in each VoltMod release. Older history is in git.
 
+## 1.4.5 (2026-09-14)
+
+### Breaking
+
+- `HookVTable` is now `HookClassSlot`. Its binding `VHookBinding` is `ClassSlot`, whose `Method` is
+  `Function`, and `VFn` is `VirtualFn`.
+- The `Hooked*` stand-in types are `Engine*`: `EnginePawn`, `EngineClient`, `EngineMovementServices`.
+- An after-handler no longer receives the return value; it takes the same arguments as the
+  before-handler. `HookClassSlot` has no live-instance parameter.
+- Gamedata keys are named after the engine symbol, so `RunCommand` is
+  `CPlayer_MovementServices::RunCommand`. Rename the keys in a custom `gamedata.jsonc`.
+
+### New
+
+- `HookFunction` hooks a signature-bound function where its code starts, for a function no class
+  vtable reaches.
+
+### Fixed
+
+- Clients now mount the workshop addons `Addons` requires, not only download them.
+
 ## 1.4.4 (2026-09-14)
 
 ### Breaking

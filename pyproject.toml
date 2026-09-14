@@ -1,6 +1,6 @@
 [project]
 name = "voltmod"
-version = "1.4.4"
+version = "1.4.5"
 description = "Build and scaffolding tooling for CS2 Metamod:Source plugin projects"
 readme = "README.md"
 requires-python = ">=3.14"
