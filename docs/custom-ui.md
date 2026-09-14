@@ -161,13 +161,13 @@ compiled resources copied into `csgo/panorama/{layout,styles}/custom_game/` -
 which is why a reconnect is enough to see a change, with no addon involved. The
 Workshop Tools are Windows only, so this is too.
 
-Reaching *other* players is a workshop addon: `voltmod panorama publish DIR`
-copies the rendered tree into an addon content directory for the Workshop Tools
-to build from, and the plugin requires the built addon's id so joining clients
-download it.
+Reaching *other* players is a workshop addon: `voltmod panorama compile --addon
+NAME --no-deploy` builds one without touching your client, and the plugin
+requires the published id so joining clients download it.
 
 ```cpp
-_addon = runtime.Addons.Require(3401234567);   // keep the Subscription; see the workshop guide
+if (auto required = runtime.Addons.Require(3401234567))
+    _addon = std::move(*required);   // keep the Subscription; see the workshop guide
 ```
 
 See @ref workshop_guide for what that costs and what it does not do.

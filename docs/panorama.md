@@ -73,7 +73,6 @@ voltmod panorama render [OWNER...]       # write layouts, stylesheets, images an
 voltmod panorama check [OWNER...]        # read-only: the same checks the client applies silently
 voltmod panorama compile [OWNER...]      # render, run resourcecompiler, install into your client (Windows)
 voltmod panorama preview OWNER/SCREEN    # write an HTML approximation for a browser
-voltmod panorama publish DIR [OWNER...]  # render, copy the rendered trees into an addon content directory
 ```
 
 `OWNER` is a plugin name; omitted, every plugin that ships a screen renders. Nothing rendered is committed - a checkout renders
@@ -87,9 +86,9 @@ too many interned names (see [The name budget](#panorama_guide_budget)), two own
 writing the same resource path, and a screen whose layout and stylesheet do not
 derive a binding. It writes nothing, and it is part of `uv run poe lint`.
 
-`compile` and `publish` render first, then compile with `resourcecompiler.exe` and
-install into your own client, or copy the rendered tree into an addon content
-directory for the Workshop Tools to build from - see [Publishing](#panorama_guide_publish).
+`compile` renders first, then compiles with `resourcecompiler.exe` and installs
+into your own client. `--no-deploy` leaves the client alone, which is how a
+workshop addon is built - see [Publishing](#panorama_guide_publish).
 
 ## Preview {#panorama_guide_preview}
 
@@ -240,7 +239,15 @@ macros already do this - rather than generating a new name per instance.
 
 ## Publishing {#panorama_guide_publish}
 
-`voltmod panorama publish DIR [OWNER...]` renders, then copies the rendered
-`panorama/` trees into `DIR` with their paths intact - the content directory the
-CS2 Workshop Tools build an addon from. See @ref workshop_guide for what a
-workshop addon costs a connecting client and how to require one.
+Other players get the screens from a workshop addon:
+
+1. `voltmod panorama compile [OWNER...] --addon NAME --no-deploy` compiles into
+   `game/csgo_addons/NAME/` without touching your client.
+2. Open NAME in the CS2 Workshop Tools, then the Workshop Manager, and submit it as
+   Public or Unlisted. A private item does not download for anyone else.
+3. Require the published id from the plugin.
+
+Delete what an earlier `compile` installed under your client's
+`game/csgo/panorama/*/custom_game/` before testing the download, or the client
+keeps using those files. See @ref workshop_guide for what an addon costs a
+connecting client.

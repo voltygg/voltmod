@@ -1,4 +1,4 @@
-"""Compiling rendered screens with the CS2 Workshop Tools, then installing or publishing them."""
+"""Compiling rendered screens with the CS2 Workshop Tools, then installing them."""
 
 import shutil
 import subprocess
@@ -57,12 +57,6 @@ def compile_and_install(
         print(f"\n--- {name} ---")
         installed += _copy_into_client(client, built, paths, content)
     print(f"\nInstalled {installed} resource(s). Reconnect to pick them up.")
-
-
-def publish_screens(root: Path, names: list[str] | None, directory: Path) -> int:
-    """Copy the named owners' rendered trees into a workshop addon's content directory."""
-    owners = screen_owners(root, names)
-    return sum(len(_stage_files(rendered_dir(root, owner), directory)) for owner in owners)
 
 
 def _stage_files(rendered: Path, content: Path) -> list[Path]:

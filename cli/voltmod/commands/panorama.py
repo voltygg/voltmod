@@ -1,4 +1,4 @@
-"""The `voltmod panorama` commands: render, compile, publish, check and preview screens."""
+"""The `voltmod panorama` commands: render, compile, check and preview screens."""
 
 import webbrowser
 from pathlib import Path
@@ -8,12 +8,12 @@ import typer
 
 from voltmod.check_results import print_results
 from voltmod.panorama.check import check_screens
-from voltmod.panorama.compiler import compile_and_install, publish_screens
+from voltmod.panorama.compiler import compile_and_install
 from voltmod.panorama.preview import write_preview
 from voltmod.panorama.render import render_screens, screen_owners, screen_sources
 from voltmod.project import Project
 
-panorama_commands = typer.Typer(help="Render, compile, and publish Panorama screens.")
+panorama_commands = typer.Typer(help="Render, check, compile, and preview Panorama screens.")
 
 Owners = Annotated[
     list[str] | None,
@@ -48,7 +48,10 @@ def compile_command(
         ),
     ] = "",
     addon: Annotated[
-        str, typer.Option("--addon", help="csgo_addons folder to compile through")
+        str,
+        typer.Option(
+            "--addon", help="csgo_addons folder to compile into; the Workshop Manager uploads it"
+        ),
     ] = "voltmod",
     deploy: Annotated[
         bool,
@@ -62,18 +65,6 @@ def compile_command(
     render_screens(project.root, owners)
     client_path = client_path or project.settings.client_path
     compile_and_install(project.root, owners, client_path, addon, deploy)
-
-
-@panorama_commands.command("publish")
-def publish_command(
-    directory: Annotated[Path, typer.Argument(help="Addon content directory to copy into")],
-    owners: Owners = None,
-) -> None:
-    """Render, then copy the panorama/ trees into an addon content directory."""
-    root = Project.load().root
-    render_screens(root, owners)
-    count = publish_screens(root, owners, directory.expanduser())
-    print(f"Published {count} file(s) into {directory}; point the Workshop Tools at it.")
 
 
 @panorama_commands.command("check")

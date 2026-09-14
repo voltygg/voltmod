@@ -3,7 +3,6 @@
 import pytest
 
 from voltmod.errors import VoltmodError
-from voltmod.panorama.compiler import publish_screens
 from voltmod.panorama.render import render_screens
 
 
@@ -43,14 +42,3 @@ def test_a_second_render_writes_nothing(make_screen_project):
     root = make_screen_project()
     assert render_screens(root, [])
     assert render_screens(root, []) == []
-
-
-def test_publish_copies_the_rendered_tree(make_screen_project, tmp_path):
-    root = make_screen_project()
-    render_screens(root, ["ui-lab"])
-
-    addon = tmp_path / "addon"
-    assert publish_screens(root, ["ui-lab"], addon) == 4
-    assert (addon / "panorama/layout/custom_game/hud.xml").is_file()
-    assert (addon / "panorama/styles/custom_game/hud.css").is_file()
-    assert (addon / "panorama/images/custom_game/weapons/ak47.vtex").is_file()
