@@ -11,9 +11,8 @@ namespace VoltMod
  * @brief One start/stop pair shared by several events: an @ref EventLifecycle for a group.
  *
  * A service with a single event gives @ref Event an @ref EventLifecycle directly. A service whose
- * events all come from one hook - three movement events behind one RunCommand hook, a panel's
- * Clicked plus one event per button behind one click subscription - needs that source running
- * while *any* of them is listening:
+ * events all come from one hook - three movement events behind one RunCommand hook - needs that
+ * source running while *any* of them is listening:
  *
  * @code
  * Movement::Movement(...)

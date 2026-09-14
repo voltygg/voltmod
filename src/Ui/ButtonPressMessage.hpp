@@ -1,7 +1,6 @@
 #pragma once
 
 #include <VoltMod/Core/Result.hpp>
-#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -25,10 +24,6 @@ public:
 
     uint32_t LayoutHandle = 0;  ///< field 1, varint: the custom_hud_layout's EHANDLE
     std::string ButtonId;       ///< field 2, length-delimited: the Button's `id` attribute
-
-private:
-    static Result<uint64_t> ReadVarint(std::string_view bytes, size_t& at);
-    static Status SkipField(std::string_view bytes, size_t& at, uint32_t wireType);
 };
 
 }  // namespace VoltMod

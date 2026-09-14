@@ -239,7 +239,7 @@ It costs one entity per player, so create one when something opens rather than o
 per connected player, and keep them per slot:
 
 ```cpp
-VoltMod::PerSlot<std::optional<VoltMod::Screen>> _screens;   // BindReset(runtime.Slots) once
+VoltMod::PerSlot<std::optional<VoltMod::Screen>> _screens;   // created on first open
 ```
 
 Put the writes a screen needs behind a class of your own - `SetRow(slot, index, row)`

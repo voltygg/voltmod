@@ -51,18 +51,14 @@ public:
     Status WriteCursor(int slot, bool shown);
 
 private:
-    /** Where a write lands: the slot its value is cached under, and the slot the engine is given. */
-    struct Target
-    {
-        int CacheSlot;
-        int EngineSlot;
-    };
-
     [[nodiscard]] bool IsForPlayer() const noexcept { return _owner != EveryoneSlot; }
 
-    /** A player screen accepts only its owner or @ref EveryoneSlot. @p ownSlot keeps the engine
-     *  write on the owner's slot, which the cursor needs; everything else goes global. */
-    [[nodiscard]] Result<Target> TargetFor(int slot, bool ownSlot) const;
+    /** The slot a write is cached under, which the cursor is also sent to. A player screen accepts
+     *  only its owner or @ref EveryoneSlot. */
+    [[nodiscard]] Result<int> CacheSlotFor(int slot) const;
+
+    /** The slot text and classes are sent to: global on a player screen. */
+    [[nodiscard]] int ContentSlotFor(int cacheSlot) const noexcept;
 
     Status Spawn();
     bool SpawnOrWarn();

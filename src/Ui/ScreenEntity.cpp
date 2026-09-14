@@ -23,6 +23,12 @@ static constexpr int32_t ClassPresent = 1;
 static constexpr int StringTableCap = 1024;
 static constexpr int StringTableHeadroom = 64;
 
+/** Assigned in place: CUtlString allocates inside tier0, the allocator the engine frees with. */
+static void SetStr(CUtlString& out, std::string_view text)
+{
+    out.SetDirect(text.data(), static_cast<int>(text.size()));
+}
+
 ScreenEntity::ScreenEntity(EntitySystem& entities, EntityOps& ops, SlotEvents& slots, Visibility& visibility,
                            LayoutPath layout, int owner)
     : _entities(entities), _ops(ops), _visibility(visibility), _layout(std::move(layout)), _owner(owner)
@@ -50,21 +56,21 @@ bool ScreenEntity::EnsureSpawned(int slot)
     if (slot != EveryoneSlot && !IsValidSlot(slot))
         return false;
 
-    const auto target = TargetFor(slot, /*ownSlot=*/true);
+    const auto target = CacheSlotFor(slot);
     if (!target)
         return false;
 
     if (!Exists() && !SpawnOrWarn())
         return false;
 
-    if (target->CacheSlot == EveryoneSlot || Covers(target->CacheSlot))
+    if (*target == EveryoneSlot || Covers(*target))
         return true;
 
     // Respawning for any other reason would retry a hopeless spawn every frame.
     if (!_playersChangedSinceSpawn)
         return false;
 
-    return SpawnOrWarn() && Covers(target->CacheSlot);
+    return SpawnOrWarn() && Covers(*target);
 }
 
 void ScreenEntity::Remove()
@@ -80,46 +86,52 @@ void ScreenEntity::Remove()
 
 Status ScreenEntity::WriteText(int slot, std::string_view variable, std::string_view value)
 {
-    const auto target = TargetFor(slot, /*ownSlot=*/false);
+    const auto target = CacheSlotFor(slot);
     if (!target)
         return std::unexpected(target.error());
-    if (!_written.Changed(target->CacheSlot, WriteKind::Text, _layout.Name(), variable, value))
+    // One entity holds one layout, so the variable alone names the text.
+    if (!_written.Changed(*target, WriteKind::Text, {}, variable, value))
         return {};
 
-    return Record(target->CacheSlot, SendText(target->EngineSlot, variable, value), variable);
+    return Record(*target, SendText(ContentSlotFor(*target), variable, value), variable);
 }
 
 Status ScreenEntity::WriteClass(int slot, std::string_view elementId, std::string_view className, bool on)
 {
-    const auto target = TargetFor(slot, /*ownSlot=*/false);
+    const auto target = CacheSlotFor(slot);
     if (!target)
         return std::unexpected(target.error());
-    if (!_written.Changed(target->CacheSlot, WriteKind::Class, elementId, className, on ? "1" : "0"))
+    if (!_written.Changed(*target, WriteKind::Class, elementId, className, on ? "1" : "0"))
         return {};
 
-    return Record(target->CacheSlot, SendClass(target->EngineSlot, elementId, className, on), elementId);
+    return Record(*target, SendClass(ContentSlotFor(*target), elementId, className, on), elementId);
 }
 
 Status ScreenEntity::WriteCursor(int slot, bool shown)
 {
-    const auto target = TargetFor(slot, /*ownSlot=*/true);
+    const auto target = CacheSlotFor(slot);
     if (!target)
         return std::unexpected(target.error());
-    if (!_written.CursorChanged(target->CacheSlot, shown))
+    if (!_written.CursorChanged(*target, shown))
         return {};
 
-    return Record(target->CacheSlot, SendCursor(target->EngineSlot, shown), "the cursor");
+    return Record(*target, SendCursor(*target, shown), "the cursor");
 }
 
-Result<ScreenEntity::Target> ScreenEntity::TargetFor(int slot, bool ownSlot) const
+Result<int> ScreenEntity::CacheSlotFor(int slot) const
 {
     if (!IsForPlayer())
-        return Target{.CacheSlot = slot, .EngineSlot = slot};
+        return slot;
 
     if (slot != EveryoneSlot && slot != _owner)
         return std::unexpected(Error::Invalid(std::format("this screen belongs to slot {}", _owner)));
 
-    return Target{.CacheSlot = _owner, .EngineSlot = ownSlot ? _owner : EveryoneSlot};
+    return _owner;
+}
+
+int ScreenEntity::ContentSlotFor(int cacheSlot) const noexcept
+{
+    return IsForPlayer() ? EveryoneSlot : cacheSlot;
 }
 
 Status ScreenEntity::Spawn()
@@ -160,8 +172,6 @@ int ScreenEntity::PlayerStateCount() const
 
 bool ScreenEntity::Covers(int slot) const
 {
-    if (IsForPlayer() && slot != _owner)
-        return false;
     return IsValidSlot(slot) && PlayerStateCount() > slot;
 }
 
@@ -199,11 +209,10 @@ Status ScreenEntity::SendText(int engineSlot, std::string_view variable, std::st
     if (!entity)
         return std::unexpected(entity.error());
 
-    // Assigned in place: CUtlString allocates inside tier0, the allocator the engine frees with.
     CUtlString root, name, text;
-    root.SetDirect(_layout.Name().data(), static_cast<int>(_layout.Name().size()));
-    name.SetDirect(variable.data(), static_cast<int>(variable.size()));
-    text.SetDirect(value.data(), static_cast<int>(value.size()));
+    SetStr(root, _layout.Name());
+    SetStr(name, variable);
+    SetStr(text, value);
 
     const Bindings& bindings = _entities.BindingsRef();
     if (engineSlot == EveryoneSlot)
@@ -227,8 +236,8 @@ Status ScreenEntity::SendClass(int engineSlot, std::string_view elementId, std::
         return std::unexpected(entity.error());
 
     CUtlString element, name;
-    element.SetDirect(elementId.data(), static_cast<int>(elementId.size()));
-    name.SetDirect(className.data(), static_cast<int>(className.size()));
+    SetStr(element, elementId);
+    SetStr(name, className);
     const int32_t state = on ? ClassPresent : ClassAbsent;
 
     const Bindings& bindings = _entities.BindingsRef();

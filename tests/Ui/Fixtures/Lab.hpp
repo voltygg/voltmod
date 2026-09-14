@@ -13,11 +13,10 @@ inline constexpr std::string_view RootId = "lab";
 inline constexpr std::string_view Icon = "lab_icon";
 inline constexpr std::string_view Close = "lab_close";
 
-// Dialog variables, written through RootId.
+// Dialog variables.
 inline constexpr std::string_view CloseVar = "close";
 
-// Repeated blocks: one struct per block, one array entry per index. Variables are
-// written through RootId.
+// Repeated blocks: one struct per block, one array entry per index.
 struct Row
 {
     std::string_view Id;
