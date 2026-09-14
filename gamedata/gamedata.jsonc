@@ -322,15 +322,6 @@
       "align": 1
     },
 
-    // Indexed by slot. Reach it through INetworkServerService::GetIGameServer(); the SDK has no
-    // accessor. From SwiftlyS2 v1.4.5.
-    "CNetworkGameServer::m_Clients": {
-      "windows": 584,
-      "linux": 584,
-      "max": 4096,
-      "align": 8
-    },
-
     // From MultiAddonManager; Windows checked on build 2000908.
     "CNetworkGameServer::m_szAddons": {
       "windows": 344,

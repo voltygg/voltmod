@@ -63,13 +63,19 @@ std::vector<uint64_t> AddonDownloads::Required() const
     return ids;
 }
 
-std::vector<uint64_t> AddonDownloads::RequiredFor(int64_t steamId) const
+const AddonDownloads::Client* AddonDownloads::FindClient(int64_t steamId) const
+{
+    const auto found = _clients.find(steamId);
+    return found != _clients.end() ? &found->second : nullptr;
+}
+
+std::vector<uint64_t> AddonDownloads::RequiredFor(const Client* client) const
 {
     std::vector<uint64_t> ids = Required();
 
-    if (const auto found = _clients.find(steamId); found != _clients.end())
+    if (client)
     {
-        for (const Requirement& own : found->second.Required)
+        for (const Requirement& own : client->Required)
             if (!std::ranges::contains(ids, own.Id))
                 ids.push_back(own.Id);
     }
@@ -79,42 +85,36 @@ std::vector<uint64_t> AddonDownloads::RequiredFor(int64_t steamId) const
 
 std::vector<uint64_t> AddonDownloads::MissingFor(int64_t steamId) const
 {
-    std::vector<uint64_t> missing = RequiredFor(steamId);
-
-    if (const auto found = _clients.find(steamId); found != _clients.end())
-    {
-        for (uint64_t downloaded : found->second.Downloaded)
-            std::erase(missing, downloaded);
-    }
-
+    const Client* client = FindClient(steamId);
+    std::vector<uint64_t> missing = RequiredFor(client);
+    if (client)
+        std::erase_if(missing, [client](uint64_t id) { return std::ranges::contains(client->Downloaded, id); });
     return missing;
 }
 
 std::vector<uint64_t> AddonDownloads::ToMount(int64_t steamId) const
 {
-    const auto found = _clients.find(steamId);
-    if (found == _clients.end())
+    const Client* client = FindClient(steamId);
+    if (!client)
         return {};
 
-    const Client& client = found->second;
-    std::vector<uint64_t> ids = RequiredFor(steamId);
-    std::erase_if(ids, [&client](uint64_t id) {
-        return id != client.Sending && !std::ranges::contains(client.Downloaded, id);
+    std::vector<uint64_t> ids = RequiredFor(client);
+    std::erase_if(ids, [client](uint64_t id) {
+        return id != client->Sending && !std::ranges::contains(client->Downloaded, id);
     });
     return ids;
 }
 
 bool AddonDownloads::HasMissing(int64_t steamId) const
 {
-    const auto found = _clients.find(steamId);
-    if (found == _clients.end())
+    const Client* client = FindClient(steamId);
+    if (!client)
         return !_everyone.empty();
 
-    const auto& downloaded = found->second.Downloaded;
-    const auto missing = [&downloaded](const Requirement& requirement) {
-        return !std::ranges::contains(downloaded, requirement.Id);
+    const auto missing = [client](const Requirement& requirement) {
+        return !std::ranges::contains(client->Downloaded, requirement.Id);
     };
-    return std::ranges::any_of(_everyone, missing) || std::ranges::any_of(found->second.Required, missing);
+    return std::ranges::any_of(_everyone, missing) || std::ranges::any_of(client->Required, missing);
 }
 
 AddonDecision AddonDownloads::NextToSend(int64_t steamId, double now, int maxAttempts)
@@ -196,23 +196,34 @@ void AddonDownloads::ClearProgress()
     }
 }
 
-std::vector<uint64_t> ParseAddonList(std::string_view field)
+/** The comma-separated entries of @p field, verbatim; none for an empty field. */
+static std::vector<std::string_view> SplitAddonList(std::string_view field)
 {
-    std::vector<uint64_t> ids;
+    std::vector<std::string_view> entries;
 
     while (!field.empty())
     {
         const size_t comma = field.find(',');
-        const std::string_view token = field.substr(0, comma);
-
-        if (auto id = ParseUInt64(token); id && *id != 0)
-            ids.push_back(*id);
+        entries.push_back(field.substr(0, comma));
 
         if (comma == std::string_view::npos)
             break;
         field.remove_prefix(comma + 1);
+        if (field.empty())
+            entries.emplace_back();
     }
 
+    return entries;
+}
+
+std::vector<uint64_t> ParseAddonList(std::string_view field)
+{
+    std::vector<uint64_t> ids;
+    for (std::string_view entry : SplitAddonList(field))
+    {
+        if (auto id = ParseUInt64(entry); id && *id != 0)
+            ids.push_back(*id);
+    }
     return ids;
 }
 
@@ -237,26 +248,24 @@ std::vector<uint64_t> AppendToAddonList(std::string& field, const std::vector<ui
 
 void RemoveFromAddonList(std::string& field, const std::vector<uint64_t>& ids)
 {
-    if (field.empty())
-        return;
-
-    std::vector<std::string> entries;
-    for (std::string_view rest = field;;)
-    {
-        const size_t comma = rest.find(',');
-        entries.emplace_back(rest.substr(0, comma));
-        if (comma == std::string_view::npos)
-            break;
-        rest.remove_prefix(comma + 1);
-    }
-
+    std::vector<std::string_view> entries = SplitAddonList(field);
     for (uint64_t id : ids)
     {
-        if (const auto at = std::ranges::find(entries, std::to_string(id)); at != entries.end())
+        const auto at =
+            std::ranges::find_if(entries, [id](std::string_view entry) { return ParseUInt64(entry) == id; });
+        if (at != entries.end())
             entries.erase(at);
     }
 
-    field = Strings::Join(entries, ",");
+    std::string kept;
+    kept.reserve(field.size());
+    for (size_t i = 0; i < entries.size(); ++i)
+    {
+        if (i > 0)
+            kept += ',';
+        kept += entries[i];
+    }
+    field = std::move(kept);
 }
 
 }  // namespace VoltMod

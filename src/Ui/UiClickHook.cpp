@@ -78,9 +78,9 @@ UiClickHook::~UiClickHook()
 
 bool UiClickHook::Install()
 {
-    if (!_bindings.FilterMessage || !_bindings.ClientMessageFilter)
+    if (!_bindings.ClientMessageFilter)
     {
-        Log::Warn("UiClickHook: FilterMessage or its client offset did not bind; button presses will not arrive.");
+        Log::Warn("UiClickHook: the FilterMessage client offset did not bind; button presses will not arrive.");
         return false;
     }
     if (auto* message = _interfaces.NetworkMessages
@@ -138,9 +138,7 @@ void UiClickHook::QueuePress(const CNetMessage* message, const EngineMessageFilt
     if (reflection->GetInt32(*proto, fields.Type) != CustomHudClickType)
         return;
 
-    // FilterMessage's `this` is a base inside the client.
-    const auto* client = reinterpret_cast<const uint8_t*>(&filter) - _bindings.ClientMessageFilter.Value();
-    const int slot = SlotOfClient(_bindings, client);
+    const int slot = SlotOfClient(_bindings, ClientOfFilter(_bindings, filter));
     if (!IsValidSlot(slot))
         return;
 

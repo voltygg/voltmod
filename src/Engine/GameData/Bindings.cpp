@@ -185,7 +185,6 @@ Status Bindings::Bind(const GameData& data, Capabilities& caps)
     bind(ClientSlot, "CServerSideClientBase::m_nClientSlot", Capability::UiClicks);
     bind(ClientSlot, "CServerSideClientBase::m_nClientSlot", Capability::Addons);
     bind(ClientMessageFilter, "CServerSideClient::INetworkMessageProcessingPreFilter", Capability::UiClicks);
-    bind(ServerClients, "CNetworkGameServer::m_Clients", Capability::Addons);
     bind(ClientSteamId, "CServerSideClientBase::m_SteamID", Capability::Addons);
     bind(ServerAddons, "CNetworkGameServer::m_szAddons", Capability::Addons);
     bind(UserCmdProto, "CUserCmd::CSGOUserCmdPB", Capability::Movement);

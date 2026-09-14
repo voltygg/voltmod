@@ -55,9 +55,6 @@ private:
     /** Install the class hook, or refuse the subscription after saying why. */
     bool Install();
 
-    /** Any connected player's movement services, for the install-time vtable cross-check. */
-    void* LiveMovementServices();
-
     /** Slot whose pawn owns @p movementServices, or -1. */
     int SlotOf(void* movementServices);
 

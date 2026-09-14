@@ -92,8 +92,10 @@ private:
     static bool AddHolder(std::vector<Requirement>& list, uint64_t id);
     static void RemoveHolder(std::vector<Requirement>& list, uint64_t id);
 
-    /** Everyone's requirements, then @p steamId's own, each once. */
-    std::vector<uint64_t> RequiredFor(int64_t steamId) const;
+    const Client* FindClient(int64_t steamId) const;
+
+    /** Everyone's requirements, then @p client's own, each once. */
+    std::vector<uint64_t> RequiredFor(const Client* client) const;
 
     // A handful of entries kept in send order, so flat vectors.
     std::vector<Requirement> _everyone;

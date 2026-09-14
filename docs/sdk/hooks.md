@@ -125,7 +125,7 @@ A handler is any callable. It takes the hooked object first, as a reference to t
 dispatches on: an engine interface, or one of the `Engine*` stand-ins in `EngineTypes.hpp` for a
 class whose layout the SDK omits. A stand-in is an identity, not a layout, so never dereference
 one. A before-handler returns @ref VoltMod::HookResult, or nothing at all when it only observes; an
-after-handler returns nothing and is handed the value the call is about to return.
+after-handler takes the same arguments and returns nothing.
 
 ```cpp
 #include <VoltMod/Unsafe/Hook.hpp>
@@ -159,7 +159,6 @@ together. Direct calls use its `Function`, a `VirtualFn`, to dispatch through an
 
 - Both handlers ride one hook, so there is no half-installed pair to unwind.
 - `Reset()` remains safe after the hooked object is destroyed; removal never dereferences it.
-- An optional live instance detects a mismatched class table.
 - The object type is checked at compile time, so a pawn cannot be passed where a client belongs.
 - Slot correctness still requires manual verification; see @ref sdk_gamedata_guide.
 - Use an `EventLifecycle` for a hook that should exist only while subscribed, or a

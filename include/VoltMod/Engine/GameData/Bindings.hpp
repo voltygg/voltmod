@@ -246,8 +246,6 @@ struct Bindings
     OffsetOf<uint8_t> VisibilityRecipientSlot;
     /** Player slot inside CServerSideClient. */
     OffsetOf<int> ClientSlot;
-    /** CNetworkGameServer::m_Clients, the slot-indexed client vector. See ServerSideClients.hpp. */
-    OffsetOf<void> ServerClients;
     /** SteamID inside CServerSideClient. Unaligned; read through memcpy. */
     OffsetOf<int64_t> ClientSteamId;
     /** Bytes from CServerSideClient to the base FilterMessage runs on. */

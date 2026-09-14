@@ -88,11 +88,12 @@ Status Addons::InstallHooks()
     // A listen server host needs no download step.
     if (!_interfaces.Engine || !_interfaces.Engine->IsDedicatedServer())
         return std::unexpected(Error::Unsupported("addon downloads need a dedicated server"));
+    if (!_bindings.ClientSteamId || !_bindings.ServerAddons)
+        return std::unexpected(Error::Unsupported("the client SteamID or server addons offset did not bind"));
 
     auto join = HookClassSlot(
         "Workshop addon download", _bindings.SendNetMessage,
-        [this](EngineClient& client, const CNetMessage* message, int) { OnJoinMessage(message, &client); }, nullptr,
-        AnyClient(_interfaces, _bindings));
+        [this](EngineClient& client, const CNetMessage* message, int) { OnJoinMessage(message, &client); });
     if (!join)
         return std::unexpected(Error::Unsupported(join.error().Detail));
 
@@ -124,18 +125,25 @@ void Addons::RemoveHooksIfUnused()
     _downloads->ClearProgress();
 }
 
+static CUtlString* AddonList(const Bindings& bindings, EngineServer& server)
+{
+    return MemberPtr<CUtlString>(&server, bindings.ServerAddons.Value());
+}
+
 void Addons::AddToReply(EngineServer& server, const EngineClient* client)
 {
-    _addedToReply.clear();
+    const int64_t steamId = _bindings.ClientSteamId.Read(client);
+    if (!SteamId::IsValid(steamId))
+        return;
 
-    const int64_t steamId = client ? _bindings.ClientSteamId.Read(client) : 0;
-    if (!SteamId::IsValid(steamId) || !_bindings.ServerAddons)
+    const std::vector<uint64_t> toMount = _downloads->ToMount(steamId);
+    if (toMount.empty())
         return;
 
     // The client mounts only what the connection reply names.
-    auto* list = MemberPtr<CUtlString>(&server, _bindings.ServerAddons.Value());
+    CUtlString* list = AddonList(_bindings, server);
     std::string field = list->Get();
-    _addedToReply = AppendToAddonList(field, _downloads->ToMount(steamId));
+    _addedToReply = AppendToAddonList(field, toMount);
     if (_addedToReply.empty())
         return;
 
@@ -149,7 +157,7 @@ void Addons::RestoreReply(EngineServer& server)
         return;
 
     // Only our entries; other plugins' and the map's stay.
-    auto* list = MemberPtr<CUtlString>(&server, _bindings.ServerAddons.Value());
+    CUtlString* list = AddonList(_bindings, server);
     std::string field = list->Get();
     RemoveFromAddonList(field, _addedToReply);
     list->Set(field.c_str());
@@ -185,7 +193,7 @@ void Addons::OnJoinMessage(const CNetMessage* message, void* client)
     if (!info || info->GetNetMessageInfo()->m_MessageId != net_SignonState)
         return;
 
-    const int64_t steamId = client ? _bindings.ClientSteamId.Read(client) : 0;
+    const int64_t steamId = _bindings.ClientSteamId.Read(client);
     if (!SteamId::IsValid(steamId))
         return;
 

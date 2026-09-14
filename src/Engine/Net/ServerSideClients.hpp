@@ -1,7 +1,6 @@
 #pragma once
 
 #include <VoltMod/Engine/GameData/Bindings.hpp>
-#include <VoltMod/Engine/Interfaces.hpp>
 
 namespace VoltMod
 {
@@ -10,18 +9,14 @@ namespace VoltMod
  * @file ServerSideClients.hpp
  * @brief The engine's connected-client objects, for the hooks that run on one.
  *
- * `CServerSideClient` is the per-connection object `UiClickHook` and `Addons` hook, but the
- * SDK's `INetworkGameServer` exposes no accessor for it, so the vector is reached by a gamedata
- * offset into `CNetworkGameServer`. Deliberately internal to `src/`: a plugin has `PlayerRef` and
- * `Player` for everything it should be doing with a connection, and nothing in the public API
- * needs a raw client pointer.
- *
- * Both accessors return nullptr rather than asserting when the server is down, the offset did not
- * bind, or the client is already torn down.
+ * `CServerSideClient` is the per-connection object `UiClickHook` and `Addons` hook into. The SDK
+ * exposes no accessor for it, so it is reached by gamedata offsets. Deliberately internal to
+ * `src/`: a plugin has `PlayerRef` and `Player` for everything it should be doing with a
+ * connection, and nothing in the public API needs a raw client pointer.
  */
 
-/** Any connected client, for bootstrapping a hook that needs a live instance. */
-void* AnyClient(const Interfaces& interfaces, const Bindings& bindings);
+/** The client @p filter is the `INetworkMessageProcessingPreFilter` base of; nullptr if the offset did not bind. */
+const void* ClientOfFilter(const Bindings& bindings, const EngineMessageFilter& filter);
 
 /** @p client's player slot, or -1 when it or the offset is unavailable. */
 int SlotOfClient(const Bindings& bindings, const void* client);

@@ -44,8 +44,7 @@ bool Movement::Install()
             Rewrite.Raise(_slot, _cmd);
             Before.Raise(_slot, _cmd);
         },
-        [this](EngineMovementServices&, void* /*userCmd*/, void* /*result*/) { After.Raise(_slot, _cmd); },
-        LiveMovementServices());
+        [this](EngineMovementServices&, void* /*userCmd*/) { After.Raise(_slot, _cmd); });
     if (!hook)
     {
         // Bindings marked the capability usable from gamedata alone; a failed install retracts it.
@@ -57,14 +56,6 @@ bool Movement::Install()
     _hook = std::move(*hook);
     _capabilities.Set(Capability::Movement, true);
     return true;
-}
-
-void* Movement::LiveMovementServices()
-{
-    for (int slot = 0; slot < MaxPlayers; ++slot)
-        if (Schema::CPlayer_MovementServices instance = _entities.MovementServices(slot))
-            return instance.Base();
-    return nullptr;
 }
 
 int Movement::SlotOf(void* movementServices)
