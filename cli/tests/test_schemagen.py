@@ -20,7 +20,7 @@ from voltmod.schemagen.resolve import baseline_dump, collect_enums, resolve_clas
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
-def type_info(name, category="builtin", **extra):
+def type_info(name, category="SCHEMA_TYPE_BUILTIN", **extra):
     return {"name": name, "category": category, **extra}
 
 
@@ -31,66 +31,71 @@ def dumped_field(name, offset, size, info, networked=True):
 def dump():
     """An entity, a chained component, an embedded struct and the types they reach."""
     return {
-        "scopes": ["global", "server"],
         "classes": {
-            "CEntityInstance": {"size": 48, "bases": [], "chain_offset": -1, "fields": []},
+            "CEntityInstance": {"size": 48, "base": "", "chain_offset": -1, "fields": []},
             "CBaseEntity": {
                 "size": 1192,
-                "bases": [{"name": "CEntityInstance", "offset": 0}],
+                "base": "CEntityInstance",
                 "chain_offset": -1,
                 "fields": [
                     dumped_field("m_iHealth", 720, 4, type_info("int32")),
                     dumped_field("m_lifeState", 728, 1, type_info("uint8")),
                     dumped_field(
                         "m_MoveType", 755, 1,
-                        type_info("MoveType_t", "declared_enum", declared="enum"),
+                        type_info("MoveType_t", "SCHEMA_TYPE_DECLARED_ENUM"),
                     ),
                     dumped_field(
                         "m_hGroundEntity", 1004, 4,
                         type_info(
-                            "CHandle< CBaseEntity >", "atomic", atomic="t", inner="CBaseEntity"
+                            "CHandle< CBaseEntity >",
+                            "SCHEMA_TYPE_ATOMIC",
+                            atomic="SCHEMA_ATOMIC_T",
+                            inner="CBaseEntity",
                         ),
                     ),
                     dumped_field(
                         "m_pServices", 40, 8,
-                        type_info("CMoneyServices*", "pointer", inner="CMoneyServices"),
+                        type_info("CMoneyServices*", "SCHEMA_TYPE_POINTER", inner="CMoneyServices"),
                     ),
                     dumped_field(
                         "m_state", 300, 8,
-                        type_info("CEmbedded", "declared_class", declared="class"),
+                        type_info("CEmbedded", "SCHEMA_TYPE_DECLARED_CLASS"),
                     ),
                     dumped_field(
                         "m_vecStuff", 400, 24,
                         type_info(
-                            "CUtlVector< int >", "atomic", atomic="collection_of_t", inner="int32"
+                            "CUtlVector< int >",
+                            "SCHEMA_TYPE_ATOMIC",
+                            atomic="SCHEMA_ATOMIC_COLLECTION_OF_T",
+                            inner="int32",
                         ),
                     ),
                     dumped_field(
                         "m_szName", 500, 32,
-                        type_info("char[32]", "fixed_array", inner="char", extent=32),
+                        type_info("char[32]", "SCHEMA_TYPE_FIXED_ARRAY", inner="char", extent=32),
                     ),
                     dumped_field(
                         "m_nSlots", 600, 20,
-                        type_info("int32[5]", "fixed_array", inner="int32", extent=5),
+                        type_info("int32[5]", "SCHEMA_TYPE_FIXED_ARRAY", inner="int32", extent=5),
                     ),
-                    dumped_field("m_bits", 700, 4, type_info("bitfield:3", "bitfield")),
+                    dumped_field("m_bits", 700, 4, type_info("bitfield:3", "SCHEMA_TYPE_BITFIELD")),
                 ],
             },
             "CMoneyServices": {
                 "size": 88,
-                "bases": [],
+                "base": "",
                 "chain_offset": 8,
                 "fields": [dumped_field("m_iAccount", 72, 4, type_info("int32"))],
             },
             "CEmbedded": {
                 "size": 8,
-                "bases": [],
+                "base": "",
                 "chain_offset": -1,
                 "fields": [dumped_field("m_bFlag", 4, 1, type_info("bool"))],
             },
             "CLonely": {
                 "size": 16,
-                "bases": [],
+                "base": "",
                 "chain_offset": -1,
                 "fields": [dumped_field("m_iValue", 0, 4, type_info("int32"))],
             },
@@ -185,7 +190,7 @@ def test_a_field_the_engine_does_not_network_is_written_without_a_notify():
 
 def test_a_class_with_no_route_to_replicate_writes_is_read_only():
     dumped = dump()
-    dumped["classes"]["CBaseEntity"]["bases"] = []
+    dumped["classes"]["CBaseEntity"]["base"] = ""
     header = class_header(dumped, manifest(), "CEmbedded")
     assert "bool Flag() const" in header
     assert "SetFlag" not in header

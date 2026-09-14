@@ -30,6 +30,4 @@
 #include <VoltMod/Schema/Generated/CVoteController.hpp>
 #include <VoltMod/Schema/Generated/CountdownTimer.hpp>
 #include <VoltMod/Schema/Generated/Enums.hpp>
-#include <VoltMod/Schema/Layout.hpp>
-#include <VoltMod/Schema/Notify.hpp>
 #include <VoltMod/Schema/View.hpp>

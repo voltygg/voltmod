@@ -32,22 +32,19 @@ std::span<const ClassLayout> GeneratedLayout();
 /** The game build represented by @ref GeneratedLayout. */
 std::string_view GeneratedFromBuild();
 
-/** The schema system that verification and the dump read. Set once by Runtime::Start. */
-void BindSchemaVerification(ISchemaSystem* system);
-
 /**
  * @brief Compare @ref GeneratedLayout with the live schema.
  *
  * Stale baked offsets would read and write wrong addresses, so a mismatch aborts the load.
  * @return Every mismatch in one message, or ErrorCode::NotReady before the server scope exists.
  */
-Status VerifySchemaLayout();
+Status VerifySchemaLayout(ISchemaSystem* schema);
 
 /**
  * @brief Write `addons/voltmod/schema/server.json` for `voltmod schemagen` unless it matches this build.
  *
  * Networked fields come from the engine's serializers, which exist only with @p entities; null writes nothing.
  */
-void WriteSchemaDump(CGameEntitySystem* entities);
+void WriteSchemaDump(ISchemaSystem* schema, CGameEntitySystem* entities);
 
 }  // namespace VoltMod::Schema

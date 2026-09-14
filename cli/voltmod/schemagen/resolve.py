@@ -13,9 +13,9 @@ def base_chain(dump: dict[str, Any], name: str) -> list[str]:
     current = name
     while True:
         dumped = dump["classes"].get(current)
-        if not dumped or not dumped["bases"]:
+        if not dumped or not dumped["base"]:
             return chain
-        current = dumped["bases"][0]["name"]
+        current = dumped["base"]
         if current in chain:
             return chain
         chain.append(current)
@@ -57,7 +57,6 @@ def baseline_dump(
     """The dump reduced to what the generator read, committed beside its output."""
     return {
         "build": dump.get("build", ""),
-        "scopes": dump["scopes"],
         "classes": {name: dump["classes"][name] for name in sorted(classes)},
         "enums": dict(sorted(enums.items())),
     }

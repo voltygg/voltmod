@@ -17,4 +17,11 @@ namespace VoltMod
  */
 Result<std::string> ReadAllText(std::string_view path);
 
+/**
+ * @brief Write @p text to @p path (resolved via ResolvePath), creating its directory.
+ *
+ * Binary mode, so the file is byte-identical on every platform.
+ */
+Status WriteAllText(std::string_view path, std::string_view text);
+
 }  // namespace VoltMod

@@ -12,7 +12,7 @@ METAMOD_BINARIES = (
     "game/csgo/addons/metamod/bin/linuxsteamrt64/server.so",
 )
 
-# Written by a server running voltmod when it verifies the schema.
+# Written by a server running voltmod once a map runs.
 SCHEMA_DUMP = "game/csgo/addons/voltmod/schema/server.json"
 
 GAME_LIBRARIES = {

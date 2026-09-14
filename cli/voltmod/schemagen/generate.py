@@ -141,8 +141,8 @@ def _source_includes(schema_class: SchemaClass) -> list[str]:
     includes = {
         "<VoltMod/Engine/Memory/MemoryAccess.hpp>",
         f"<VoltMod/Schema/Generated/{schema_class.name}.hpp>",
-        "<VoltMod/Schema/Layout.hpp>",
-        "<VoltMod/Schema/Notify.hpp>",
+        '"Schema/Layout.hpp"',
+        '"Schema/Notify.hpp"',
     }
     for field in schema_class.fields:
         if field.kind is FieldKind.VIEW:

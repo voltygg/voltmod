@@ -6,6 +6,9 @@
 namespace VoltMod::Schema
 {
 
+/** The owner link field a replicated component carries. */
+inline constexpr std::string_view ChainField = "__m_pChainEntity";
+
 /**
  * Find @p field on @p klass or its bases, most-derived first.
  *

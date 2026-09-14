@@ -3,8 +3,6 @@
 #pragma once
 
 #include <VoltMod/Schema/Generated/Enums.hpp>
-#include <VoltMod/Schema/Layout.hpp>
-#include <VoltMod/Schema/Notify.hpp>
 #include <VoltMod/Schema/View.hpp>
 {% for schema_class in classes %}
 #include <VoltMod/Schema/Generated/{{ schema_class.name }}.hpp>

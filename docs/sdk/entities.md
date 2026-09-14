@@ -75,6 +75,9 @@ struct embedded in an entity notifies the entity at the summed offset. A field t
 network is written without a notify, because the engine rejects one and stops updating that entity
 for its clients. A field with no route to notify generates no setter at all.
 
+A manifest entry is `m_name`, `m_name>Accessor` to rename it, `m_name:CppType` to read it as that
+type, or `m_name>Accessor:CppType`; a class set to `"*"` takes every field the dump reports.
+
 Because the offsets are baked, a CS2 update that moves a used class would turn every accessor into
 a wrong-address read. `Runtime::Start` therefore compares the whole generated layout against the
 live schema and **aborts the load** on any mismatch, naming the field:

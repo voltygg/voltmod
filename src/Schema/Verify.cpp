@@ -1,12 +1,12 @@
 #include "Engine/Memory/SigScanner.hpp"
 #include "Schema/ClassFields.hpp"
 #include "Schema/Dump.hpp"
+#include "Schema/Layout.hpp"
 
 #include <VoltMod/Core/File.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Paths.hpp>
 #include <VoltMod/Core/Strings.hpp>
-#include <VoltMod/Schema/Layout.hpp>
 #include <entity2/entityclass.h>
 #include <entity2/entitysystem.h>
 #include <filesystem>
@@ -19,14 +19,6 @@
 
 namespace VoltMod::Schema
 {
-
-// One engine schema object is shared by every plugin; its offsets are process-wide constants.
-static ISchemaSystem* g_schema = nullptr;
-
-void BindSchemaVerification(ISchemaSystem* system)
-{
-    g_schema = system;
-}
 
 /** Output read by `voltmod schemagen`. */
 static constexpr std::string_view DumpPath = "addons/voltmod/schema/server.json";
@@ -68,45 +60,48 @@ static std::string DumpedBuild(const std::filesystem::path& path)
     return close == std::string::npos ? std::string() : head.substr(open + 1, close - open - 1);
 }
 
-void WriteSchemaDump(CGameEntitySystem* entities)
+static CSchemaSystemTypeScope* ServerScope(ISchemaSystem* schema)
+{
+    if (!schema || !schema->SchemaSystemIsReady())
+        return nullptr;
+    const std::string moduleName = PlatformModuleName("server");
+    return schema->FindTypeScopeForModule(moduleName.c_str());
+}
+
+void WriteSchemaDump(ISchemaSystem* schema, CGameEntitySystem* entities)
 {
     static bool attempted = false;  // one try per plugin; the build stamp stops the rest
-    if (attempted || !entities || !g_schema || !g_schema->SchemaSystemIsReady())
+    if (attempted || !entities)
         return;
 
+    CSchemaSystemTypeScope* server = ServerScope(schema);
     const std::filesystem::path output = ResolvePath(DumpPath);
-    if (DumpedBuild(output) == GameBuild())
+    if (!server || DumpedBuild(output) == GameBuild())
         return;
 
     // One serializer database covers every networked class; any entity class reaches it.
     const CEntityClass* entityClass = entities->FindClassByName("CBaseEntity");
     const CNetworkSerializerClassInfo* serializer = entityClass ? entityClass->m_NetworkSerializerInfo : nullptr;
-    const std::string moduleName = PlatformModuleName("server");
-    CSchemaSystemTypeScope* server = g_schema->FindTypeScopeForModule(moduleName.c_str());
-    if (!serializer || !serializer->m_pDatabase || !server)
+    if (!serializer || !serializer->m_pDatabase)
         return;
 
     attempted = true;
-    auto stats = WriteDumpFile(g_schema->GlobalTypeScope(), server, *serializer->m_pDatabase, output, GameBuild());
-    if (!stats)
+    const Status written =
+        WriteDumpFile(schema->GlobalTypeScope(), server, *serializer->m_pDatabase, DumpPath, GameBuild());
+    if (!written)
     {
-        Log::Warn("Schema: no dump written to {}: {}", output.string(), stats.error().Detail);
+        Log::Warn("Schema: no dump written to {}: {}", output.string(), written.error().Detail);
         return;
     }
-    Log::Info("Schema: dumped game build {} to {} ({} classes, {} enums, {} fields).", GameBuild(), output.string(),
-              stats->Classes, stats->Enums, stats->Fields);
+    Log::Info("Schema: dumped game build {} to {}.", GameBuild(), output.string());
 }
 
-Status VerifySchemaLayout()
+Status VerifySchemaLayout(ISchemaSystem* schema)
 {
-    if (!g_schema || !g_schema->SchemaSystemIsReady())
-        return std::unexpected(Error::NotReady("schema system not ready"));
-
-    const std::string moduleName = PlatformModuleName("server");
-    CSchemaSystemTypeScope* server = g_schema->FindTypeScopeForModule(moduleName.c_str());
-    CSchemaSystemTypeScope* global = g_schema->GlobalTypeScope();
+    CSchemaSystemTypeScope* server = ServerScope(schema);
     if (!server)
-        return std::unexpected(Error::NotReady(std::format("no type scope for {} yet", moduleName)));
+        return std::unexpected(Error::NotReady("the server schema scope is not ready"));
+    CSchemaSystemTypeScope* global = schema->GlobalTypeScope();
 
     // Collect all mismatches so one shifted class does not hide the remaining drift.
     std::vector<std::string> drift;
@@ -125,6 +120,15 @@ Status VerifySchemaLayout()
 
         if (live->m_nSize != expected.Size)
             drift.push_back(std::format("{}: size {} -> {}", expected.Name, expected.Size, live->m_nSize));
+
+        if (expected.OwnerLinkOffset >= 0)
+        {
+            const SchemaClassFieldData_t* link = FindField(live, ChainField);
+            const int32_t offset = link ? link->m_nSingleInheritanceOffset : -1;
+            if (offset != expected.OwnerLinkOffset)
+                drift.push_back(
+                    std::format("{}: owner link offset {} -> {}", expected.Name, expected.OwnerLinkOffset, offset));
+        }
 
         for (const FieldLayout& want : expected.Fields)
         {

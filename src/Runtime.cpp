@@ -1,4 +1,5 @@
 #include "Engine/Server/ConsoleLogger.hpp"
+#include "Schema/Layout.hpp"
 
 #include <ISmmAPI.h>
 #include <VoltMod/Core/EnumNames.hpp>
@@ -7,7 +8,6 @@
 #include <VoltMod/Core/Paths.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Runtime.hpp>
-#include <VoltMod/Schema/Layout.hpp>
 #include <chrono>
 #include <eiface.h>
 #include <engine/igameeventsystem.h>
@@ -155,10 +155,9 @@ bool Runtime::InitializeServices(const LoadContext& context)
     };
 
     // Abort on schema drift. A load into a running map writes the dump first, so a refusal still leaves one.
-    Schema::BindSchemaVerification(Unsafe.Interfaces.SchemaSystem);
     if (!fatal("SchemaLayout", [&] {
-            Schema::WriteSchemaDump(Entities.GetEntitySystem());
-            return Schema::VerifySchemaLayout();
+            Schema::WriteSchemaDump(Unsafe.Interfaces.SchemaSystem, Entities.GetEntitySystem());
+            return Schema::VerifySchemaLayout(Unsafe.Interfaces.SchemaSystem);
         }))
     {
         return false;

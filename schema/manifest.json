@@ -1,12 +1,4 @@
 {
-  "_comment": [
-    "A framework build input, not a plugin manifest: it names the schema classes and fields the",
-    "generated accessor layer covers. Offsets never appear here - they come from server.json.",
-    "Field syntax: \"m_name\", \"m_name>Accessor\" to rename, \"m_name:CppType\" to read the field",
-    "as that C++ type (a leading-value read), or both as \"m_name>Accessor:CppType\".",
-    "A class value of \"*\" takes every field the dump reports.",
-    "After editing, regenerate with `uv run voltmod schemagen --dump <server.json>`."
-  ],
   "classes": {
     "CBaseEntity": [
       "m_iHealth>Health",

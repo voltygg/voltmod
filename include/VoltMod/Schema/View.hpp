@@ -7,17 +7,11 @@ namespace VoltMod::Schema
 {
 
 /**
- * @brief Base of every generated schema view: the object, plus how to dirty it.
+ * @brief Base of every generated schema view: a frame-local pointer into engine memory, never stored.
  *
- * A view is a frame-local pointer wrapper over engine memory, never a value to store. Field
- * offsets are baked in at build time by `voltmod schemagen` and checked against the live schema
- * once at load, so a view never resolves anything.
- *
- * @ref Owner and @ref OwnerOffset carry the entity a write has to notify and where this object
- * sits inside it. An entity view is its own owner at offset 0; a sub-object embedded by value
- * inherits the owner and adds its offset, so a write deep inside a struct still dirties the right
- * field of the right entity. A sub-object reached through a pointer has no owner - it lives
- * elsewhere in memory - and replicates through its own owner link (`__m_pChainEntity`) instead.
+ * The owner is the entity a write notifies, at the owner offset: an entity owns itself at 0, a struct
+ * embedded by value adds its offset, and a sub-object behind a pointer has no owner and notifies
+ * through its own `__m_pChainEntity` link.
  */
 class View
 {
