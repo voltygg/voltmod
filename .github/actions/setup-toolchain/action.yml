@@ -1,25 +1,13 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-action.json
 name: Set up the voltmod toolchain
-description: Install build tools, Voltmod, the canonical Conan configuration, and the build caches.
+description: Install voltmod and its Conan configuration from this action's repository; in the steamrt container, also the compiler and the build caches.
 
-inputs:
-  voltmod-source:
-    description: Package source to install; @action uses this action's checkout
-    required: false
-    default: "."
-  conan-source:
-    description: Repository root containing conan; @action uses this action's checkout
-    required: false
-    default: "."
-  cache:
-    description: Keep the build caches between runs; off for a job that compiles nothing
-    required: false
-    default: "true"
 runs:
   using: composite
   steps:
-    - name: Install the container's compiler and build tools
-      if: runner.os == 'Linux'
+    # Only the steamrt container compiles, so a plain runner skips this and the caches.
+    - name: Install the compiler and build tools
+      id: compiler
       shell: bash
       run: |
         grep -q steamrt /etc/os-release || exit 0
@@ -29,55 +17,10 @@ runs:
         DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
           ca-certificates ccache gcc-14-monolithic git ninja-build
         rm -rf /var/lib/apt/lists/*
-
-    - name: Install uv
-      uses: astral-sh/setup-uv@v10.1.0
-
-    - name: Install voltmod (Linux)
-      if: runner.os == 'Linux'
-      shell: bash
-      env:
-        VOLTMOD_SOURCE: ${{ inputs.voltmod-source }}
-      run: |
-        if [ "$VOLTMOD_SOURCE" = "@action" ]; then
-          VOLTMOD_SOURCE="$GITHUB_ACTION_PATH/../../.."
-        fi
-        uv venv --python 3.14 "$RUNNER_TEMP/voltmod"
-        uv pip install --python "$RUNNER_TEMP/voltmod/bin/python" --no-cache "$VOLTMOD_SOURCE"
-        echo "$RUNNER_TEMP/voltmod/bin" >> "$GITHUB_PATH"
-        echo "VIRTUAL_ENV=$RUNNER_TEMP/voltmod" >> "$GITHUB_ENV"
-
-    - name: Install voltmod (Windows)
-      if: runner.os == 'Windows'
-      shell: pwsh
-      env:
-        VOLTMOD_SOURCE: ${{ inputs.voltmod-source }}
-      run: |
-        if ($env:VOLTMOD_SOURCE -eq "@action") {
-          $env:VOLTMOD_SOURCE = "$env:GITHUB_ACTION_PATH\..\..\.."
-        }
-        uv venv --python 3.14 "$env:RUNNER_TEMP\voltmod"
-        uv pip install --python "$env:RUNNER_TEMP\voltmod\Scripts\python.exe" --no-cache "$env:VOLTMOD_SOURCE"
-        Add-Content -Path $env:GITHUB_PATH -Value "$env:RUNNER_TEMP\voltmod\Scripts"
-        Add-Content -Path $env:GITHUB_ENV -Value "VIRTUAL_ENV=$env:RUNNER_TEMP\voltmod"
-
-    - name: Install the canonical Conan profiles and remotes
-      shell: bash
-      env:
-        CONAN_SOURCE: ${{ inputs.conan-source }}
-      run: |
-        if [ "$CONAN_SOURCE" = "@action" ]; then
-          CONAN_SOURCE="$GITHUB_ACTION_PATH/../../.."
-        fi
-        conan profile detect --force >/dev/null 2>&1 || true
-        conan config install "$CONAN_SOURCE" -sf conan
-
-    - name: Resolve the cache paths
-      shell: bash
-      run: |
+        echo "steamrt=true" >> "$GITHUB_OUTPUT"
         {
-          echo "CONAN_HOME=${CONAN_HOME:-$HOME/.conan2}"
-          echo "CCACHE_DIR=${CCACHE_DIR:-$HOME/.cache/ccache}"
+          echo "CONAN_HOME=$HOME/.conan2"
+          echo "CCACHE_DIR=$HOME/.cache/ccache"
           echo "CCACHE_MAXSIZE=2G"
           echo "CCACHE_SLOPPINESS=pch_defines,time_macros,locale,include_file_ctime,include_file_mtime"
           # Conan builds every package id under its own path, so the path stays out of the hash.
@@ -85,23 +28,46 @@ runs:
           echo "CCACHE_NOHASHDIR=1"
         } >> "$GITHUB_ENV"
 
-    # Nothing in the dependency closure has a prebuilt binary for this toolchain - gcc-14 with the
-    # SDK's old libstdc++ ABI - so an uncached job spends five minutes on OpenSSL and libpq first.
+    - uses: astral-sh/setup-uv@v10.1.0
+
+    - name: Install voltmod and its Conan configuration
+      shell: bash
+      run: |
+        root="$GITHUB_ACTION_PATH/../../.."
+        venv="$RUNNER_TEMP/voltmod"
+        uv venv --python 3.14 "$venv"
+        uv pip install --python "$venv/bin/python" --no-cache "$root"
+        export PATH="$venv/bin:$PATH"
+        conan profile detect --force >/dev/null 2>&1 || true
+        conan config install "$root" -sf conan
+        echo "$venv/bin" >> "$GITHUB_PATH"
+        echo "VIRTUAL_ENV=$venv" >> "$GITHUB_ENV"
+
+    # Per-job keys (options differ); a tag push only restores, since a tag's cache is visible to that tag alone.
     - name: Cache the dependency binaries
-      if: inputs.cache == 'true'
+      if: steps.compiler.outputs.steamrt == 'true' && github.ref_type != 'tag'
       uses: actions/cache@v6
       with:
         path: |
           ${{ env.CONAN_HOME }}/p
           !${{ env.CONAN_HOME }}/p/b
-        # Per job: jobs resolve different options, and one shared key saves whichever job ends first.
         key: conan-${{ runner.os }}-${{ github.job }}-${{ hashFiles('conan.lock', 'conanfile.py', 'recipes/**/conandata.yml', 'conan/profiles/*') }}
         restore-keys: |
           conan-${{ runner.os }}-${{ github.job }}-
           conan-${{ runner.os }}-
 
+    - name: Restore the dependency binaries
+      if: steps.compiler.outputs.steamrt == 'true' && github.ref_type == 'tag'
+      uses: actions/cache/restore@v6
+      with:
+        path: |
+          ${{ env.CONAN_HOME }}/p
+          !${{ env.CONAN_HOME }}/p/b
+        key: conan-${{ runner.os }}-${{ github.job }}-
+        restore-keys: conan-${{ runner.os }}-
+
     - name: Cache the compiled objects
-      if: inputs.cache == 'true'
+      if: steps.compiler.outputs.steamrt == 'true' && github.ref_type != 'tag'
       uses: actions/cache@v6
       with:
         path: ${{ env.CCACHE_DIR }}
@@ -109,3 +75,11 @@ runs:
         restore-keys: |
           ccache-${{ runner.os }}-${{ github.job }}-
           ccache-${{ runner.os }}-
+
+    - name: Restore the compiled objects
+      if: steps.compiler.outputs.steamrt == 'true' && github.ref_type == 'tag'
+      uses: actions/cache/restore@v6
+      with:
+        path: ${{ env.CCACHE_DIR }}
+        key: ccache-${{ runner.os }}-${{ github.job }}-
+        restore-keys: ccache-${{ runner.os }}-

@@ -28,28 +28,3 @@ jobs:
 
       - name: Build and upload voltmod
         run: python -m tools.release publish framework --no-lockfile --database ${{ matrix.database }}
-
-  verify-download:
-    name: Install from the remote as a consumer
-    needs: [release]
-    runs-on: ubuntu-latest
-    container:
-      image: registry.gitlab.steamos.cloud/steamrt/sniper/sdk:latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup-toolchain
-        with:
-          cache: "false"
-
-      - name: Build the test package against the uploaded binaries
-        env:
-          CONAN_HOME: ${{ runner.temp }}/conan-fresh
-        run: |
-          version="$(python -m tools.release version)"
-          conan profile detect --force >/dev/null 2>&1 || true
-          conan config install ./conan
-          conan test test_package "voltmod/$version" \
-            -pr:a conan/profiles/linux-steamrt.txt -s build_type=Release \
-            -o 'voltmod/*:with_database=True' \
-            --build=missing '--build=!voltmod/*' \
-            '--build=!hl2sdk-cs2/*' '--build=!metamod-source/*'

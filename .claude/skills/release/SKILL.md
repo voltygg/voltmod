@@ -6,9 +6,8 @@ description: Release a new voltmod version - bump conanfile.py, write the CHANGE
 # Release voltmod
 
 A release is a `v<version>` tag on `main`. Pushing the tag runs
-`.github/workflows/release.yml`: it refuses a tag that differs from `conanfile.py`,
-uploads Linux Release for both `with_database` values to the `volty` remote, and
-installs the result on a clean runner.
+`.github/workflows/release.yml`: it refuses a tag that differs from `conanfile.py`
+and uploads Linux Release for both `with_database` values to the `volty` remote.
 
 The user names the version. Consumers pin a range (cs2-plugins: `voltmod/[~1.4]`,
 so 1.4.x only): a patch keeps it, a minor or major means every consumer edits its
@@ -33,8 +32,7 @@ range. Point out `!` commits since the last tag before bumping only the patch.
    green run gets tagged.
 7. **Tag:** `git tag v<version> && git push origin v<version>`.
 8. **Watch Release:** `gh run list -R voltygg/voltmod --workflow release.yml -L 1`,
-   then `gh run watch`. Every job must pass, including "Install from the remote as a
-   consumer".
+   then `gh run watch`. Both jobs must pass.
 9. **Confirm the remote** and note the revision:
    `uv run conan list "voltmod/<version>#*" -r volty`.
 10. **Relock cs2-plugins** (MSVC dev shell, see its `/build-local` skill), with

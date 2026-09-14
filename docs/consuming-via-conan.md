@@ -120,8 +120,7 @@ Everything publishes from this repo, through `uv run poe release` (`tools/releas
 
 - voltmod goes out from `.github/workflows/release.yml` on every `v*` tag, which must
   match the version in `conanfile.py`. It uploads Linux Release for both `with_database`
-  values, one job each, and a last job installs the result anonymously on a clean runner,
-  refusing to build voltmod or either SDK locally.
+  values, one job each.
 - The SDK packages publish Linux binaries from the recipes in `recipes/` through
   `.github/workflows/sdk.yml`, on a push to `main` that touches them. A daily job watches both upstreams and opens
   a PR when a branch tip moves; the PR gate builds the new SDK *and* this framework

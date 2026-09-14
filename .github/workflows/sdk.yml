@@ -46,7 +46,5 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-toolchain
-        with:
-          cache: "false"
       - name: Tag each pinned version
         run: python -m tools.release tag
