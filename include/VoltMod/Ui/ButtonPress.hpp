@@ -1,6 +1,5 @@
 #pragma once
 
-#include <VoltMod/Entities/EntityRef.hpp>
 #include <string>
 
 namespace VoltMod
@@ -14,9 +13,8 @@ namespace VoltMod
  */
 struct ButtonPress
 {
-    int Slot = -1;          ///< the client that pressed, whatever pawn it is watching
-    EntityRef Layout;       ///< the custom_hud_layout the Button belongs to
-    std::string ButtonId;   ///< the Button's `id` attribute; client-controlled text
+    int Slot = -1;         ///< the client that pressed, whatever pawn it is watching
+    std::string ButtonId;  ///< the Button's `id` attribute; client-controlled text
 };
 
 }  // namespace VoltMod

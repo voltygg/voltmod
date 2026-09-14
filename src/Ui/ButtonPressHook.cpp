@@ -6,11 +6,9 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
-#include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Unsafe/Hook.hpp>
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
-#include <optional>
 #include <string_view>
 #include <utility>
 
@@ -21,13 +19,9 @@ namespace VoltMod
 static constexpr std::string_view UserMessageName = "CSVCMsg_UserMessage";
 static constexpr int32_t CustomHudClickType = 390;
 
-/** Layout-handle bits the client sends: 14 for the index and 10 for the serial. */
-static constexpr uint32_t HandleIndexMask = (1u << 14) - 1;
-static constexpr uint32_t HandleSerialMask = (1u << 10) - 1;
-
-ButtonPressHook::ButtonPressHook(Interfaces& interfaces, const Bindings& bindings, EntitySystem& entities,
-                                 Scheduler& scheduler, Event<const ButtonPress&>& pressed)
-    : _interfaces(interfaces), _bindings(bindings), _entities(entities), _scheduler(scheduler), _pressed(pressed)
+ButtonPressHook::ButtonPressHook(Interfaces& interfaces, const Bindings& bindings, Scheduler& scheduler,
+                                 Event<const ButtonPress&>& pressed)
+    : _interfaces(interfaces), _bindings(bindings), _scheduler(scheduler), _pressed(pressed)
 {}
 
 ButtonPressHook::~ButtonPressHook()
@@ -124,38 +118,17 @@ void ButtonPressHook::Queue(const CNetMessage* message, const EngineMessageFilte
     if (payload->ButtonId.find('\0') != std::string::npos)
         return;
 
-    _queued.push_back({.Slot = slot, .LayoutHandle = payload->LayoutHandle, .ButtonId = std::move(payload->ButtonId)});
+    _queued.push_back({.Slot = slot, .ButtonId = std::move(payload->ButtonId)});
 }
 
 void ButtonPressHook::RaiseQueued()
 {
     // Swapped out first so a handler may remove the hook and clear the queue.
-    std::vector<QueuedPress> presses;
+    std::vector<ButtonPress> presses;
     presses.swap(_queued);
 
-    for (QueuedPress& press : presses)
-    {
-        EntityRef layout = FindLayout(press.LayoutHandle);
-        if (!layout)
-            continue;
-
-        _pressed.Raise(ButtonPress{.Slot = press.Slot, .Layout = layout, .ButtonId = std::move(press.ButtonId)});
-    }
-}
-
-EntityRef ButtonPressHook::FindLayout(uint32_t networkedHandle) const
-{
-    std::optional<Entity> cursor(_entities.FindByClassName({}, "custom_hud_layout"));
-    while (*cursor)
-    {
-        const EntityRef ref = cursor->Ref();
-        if ((ref.Handle & HandleIndexMask) == (networkedHandle & HandleIndexMask) &&
-            ((ref.Handle >> 15) & HandleSerialMask) == ((networkedHandle >> 14) & HandleSerialMask))
-            return ref;
-
-        cursor.emplace(_entities.FindByClassName(*cursor, "custom_hud_layout"));
-    }
-    return {};
+    for (const ButtonPress& press : presses)
+        _pressed.Raise(press);
 }
 
 }  // namespace VoltMod

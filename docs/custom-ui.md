@@ -29,8 +29,8 @@ if (!_welcome.EnsureSpawned(VoltMod::EveryoneSlot))
     return false;             // the engine would not spawn it
 
 _welcome.SetText(VoltMod::EveryoneSlot, "name", "Welcome");
-_welcome.SetClass(VoltMod::EveryoneSlot, "welcome_card", "Hidden", false);  // show it
-_welcome.ShowCursor(VoltMod::EveryoneSlot, true);                           // make it clickable
+_welcome.SetHidden(VoltMod::EveryoneSlot, "welcome_card", false);  // show it
+_welcome.ShowCursor(VoltMod::EveryoneSlot, true);                  // make it clickable
 
 // Later, from a command or an event:
 _welcome.SetText(VoltMod::EveryoneSlot, "name", "Round 2");
@@ -235,16 +235,25 @@ state, the one the client reads for itself. Writes name the owner or
 entity when the slot changes hands, and `ForPlayer` refuses while the filter is
 off.
 
-It costs one entity per player, so create one when something opens rather than one
-per connected player, and keep them per slot:
+It costs one entity per player, so create one when something first draws for a
+player rather than one per connected player. @ref VoltMod::PlayerScreens does that
+for one layout:
 
 ```cpp
-VoltMod::PerSlot<std::optional<VoltMod::Screen>> _screens;   // created on first open
+VoltMod::PlayerScreens _menus{runtime.Screens, "admin_menu"};
+
+VoltMod::Screen& screen = _menus.For(slot);   // created on first use
+if (screen.EnsureSpawned(slot))
+    screen.SetHidden(slot, "admin_menu", false);
 ```
+
+A screen `ForPlayer` refuses is logged once and stays empty, so its writes fail
+quietly.
 
 Put the writes a screen needs behind a class of your own - `SetRow(slot, index, row)`
 reads better at a call site than raw element ids, and the generated header
-(@ref panorama_guide) supplies every id it uses.
+(@ref panorama_guide) supplies every id it uses. A clickable menu on a player screen
+is @ref VoltMod::PanoramaMenu drawing through such a class (see @ref menu_panorama).
 
 ## Naming elements and classes
 
@@ -259,7 +268,7 @@ Ask @ref VoltMod::Capabilities before relying on these:
 | Capability | Off means |
 | --- | --- |
 | `CustomUi` | the five `CCSCustomHudLayout` setters did not bind; spawning still works, writes fail |
-| `UiClicks` | `INetworkMessageProcessingPreFilter::FilterMessage` or `CServerSideClient::INetworkMessageProcessingPreFilter` did not bind; presses never arrive |
+| `ButtonPresses` | `INetworkMessageProcessingPreFilter::FilterMessage` or `CServerSideClient::INetworkMessageProcessingPreFilter` did not bind; presses never arrive |
 | `Visibility` | `CheckTransmitPlayerSlot` is missing; a player screen is refused, shared screens are unaffected |
 
 All are located by byte pattern in `server.dll` / `engine2`, on Windows and on

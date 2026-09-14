@@ -50,7 +50,7 @@ public:
      *
      * The hook installs on the first subscription and is removed with the last. It sits in a vtable
      * only a connected client exposes, so subscribing on an empty server hooks on the next connect.
-     * Refused after saying why when @ref Capability::UiClicks is off.
+     * Refused after saying why when @ref Capability::ButtonPresses is off.
      */
     Event<const ButtonPress&> Pressed;
 

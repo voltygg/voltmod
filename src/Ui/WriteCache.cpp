@@ -10,7 +10,13 @@ WriteCache::Sent* WriteCache::For(int slot)
 {
     if (slot == EveryoneSlot)
         return &_everyone;
-    return IsValidSlot(slot) ? &_slots[slot] : nullptr;
+    if (!IsValidSlot(slot))
+        return nullptr;
+
+    std::optional<Sent>& sent = _slots[slot];
+    if (!sent)
+        sent.emplace();
+    return &*sent;
 }
 
 bool WriteCache::Changed(int slot, WriteKind kind, std::string_view elementId, std::string_view name,
@@ -62,6 +68,11 @@ void WriteCache::Forget(int slot)
 
     sent->Values.clear();
     sent->Cursor.reset();
+}
+
+void WriteCache::Reset(int slot)
+{
+    _slots.Reset(slot);
 }
 
 void WriteCache::ForgetAll()

@@ -160,7 +160,7 @@ Status Bindings::Bind(const GameData& data, Capabilities& caps)
     bind(CustomHudSetDialogVariable, "CCSCustomHudLayout::SetDialogVariableString", Capability::CustomUi);
     bind(CustomHudSetDialogVariableForPlayer, "CCSCustomHudLayout::SetDialogVariableStringForPlayer", Capability::CustomUi);
     bind(CustomHudSetInputCapture, "CCSCustomHudLayout::SetInputCaptureEnabled", Capability::CustomUi);
-    bind(FilterMessage, "INetworkMessageProcessingPreFilter::FilterMessage", Capability::UiClicks);
+    bind(FilterMessage, "INetworkMessageProcessingPreFilter::FilterMessage", Capability::ButtonPresses);
     bind(ReplyConnection, "CNetworkGameServer::ReplyConnection", Capability::Addons);
 
     bind.Global(GameEventManager, "CSource2Server::g_GameEventManager", Capability::GameEvents);
@@ -182,9 +182,9 @@ Status Bindings::Bind(const GameData& data, Capabilities& caps)
     bind(VisibilityRecipientSlot, "CheckTransmitPlayerSlot", Capability::Visibility);
     // Shared offsets bind once per capability so each disabled feature records its reason.
     bind(ClientSlot, "CServerSideClientBase::m_nClientSlot", Capability::ClientConVars);
-    bind(ClientSlot, "CServerSideClientBase::m_nClientSlot", Capability::UiClicks);
+    bind(ClientSlot, "CServerSideClientBase::m_nClientSlot", Capability::ButtonPresses);
     bind(ClientSlot, "CServerSideClientBase::m_nClientSlot", Capability::Addons);
-    bind(ClientMessageFilter, "CServerSideClient::INetworkMessageProcessingPreFilter", Capability::UiClicks);
+    bind(ClientMessageFilter, "CServerSideClient::INetworkMessageProcessingPreFilter", Capability::ButtonPresses);
     bind(ClientSteamId, "CServerSideClientBase::m_SteamID", Capability::Addons);
     bind(ServerAddons, "CNetworkGameServer::m_szAddons", Capability::Addons);
     bind(UserCmdProto, "CUserCmd::CSGOUserCmdPB", Capability::Movement);

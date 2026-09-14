@@ -166,6 +166,7 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Menu/MenuPresets.cpp
             src/Menu/CenterHtmlRender.cpp
             src/Menu/MenuCursor.cpp
+            src/Menu/MenuRouter.cpp
             src/Menu/MenuStack.cpp
             src/Menu/PendingCommit.cpp
     )

@@ -115,7 +115,7 @@ through @ref VoltMod::Screen.
 | every other `id="..."` | a `std::string_view` named by what follows the screen prefix - `lab_close` becomes `Close` |
 | `text="{s:var}"` | a `std::string_view` named `<Var>Var` |
 | a block the template repeats - ids `<screen>_<stem><N>[_<suffix>]` and variables `<stem><N>[_<suffix>]` for N = 0..K-1 (K >= 2), alike in every copy | `struct <Stem>` with one `std::string_view` per member (`Id`, `<Suffix>`, `<Suffix>Var`, or `Var` for a bare variable) and `std::array<<Stem>, K> <Stem>s`; those names get no flat constant |
-| a `Prefix--variant` class, in the layout or the stylesheet | a `PrefixClasses` array |
+| a `Prefix--variant` class, in the layout or the stylesheet | a `PrefixClasses` array, and a `PrefixNames` array of the variants alone in the same order |
 
 A family is found by a plain scan for `.Prefix--variant`, in layout order first and
 then stylesheet order. The stylesheet half matters: a family only selectors use is
@@ -134,13 +134,14 @@ struct Row { std::string_view Id, Button, Decrease, Increase, LabelVar, HintVar,
 inline constexpr std::array<Row, 2> Rows{ Row{"lab_row0", "lab_row0_button", ...}, Row{"lab_row1", ...} };
 
 inline constexpr std::array<std::string_view, 2> IconClasses{"Icon--ak47", "Icon--awp"};
+inline constexpr std::array<std::string_view, 2> IconNames{"ak47", "awp"};
 ```
 
 Writing one row of it:
 
 ```cpp
 const LabUi::Row& row = LabUi::Rows[index];
-screen.SetClass(slot, row.Id, "Hidden", false);
+screen.SetHidden(slot, row.Id, false);
 screen.SetText(slot, row.LabelVar, "Kick");
 ```
 

@@ -24,17 +24,16 @@ static std::string Press(unsigned char layout, const std::string& button)
     return bytes;
 }
 
-TEST_CASE("A press carries the layout handle and the button id")
+TEST_CASE("A press carries the button id")
 {
     auto parsed = ButtonPressMessage::Parse(Press(7, "vm_row3"));
     REQUIRE(parsed.has_value());
-    CHECK(parsed->LayoutHandle == 7);
     CHECK(parsed->ButtonId == "vm_row3");
 }
 
-TEST_CASE("A multi-byte handle is decoded as a varint, not a byte")
+TEST_CASE("A multi-byte varint ahead of the button id is skipped whole")
 {
-    // 0x96 0x01 is 150: the low seven bits of each byte, least significant first.
+    // 0x96 0x01 is one varint: the first byte's high bit says another follows.
     std::string bytes;
     bytes += Key(1, 0);
     bytes += static_cast<char>(0x96);
@@ -45,7 +44,6 @@ TEST_CASE("A multi-byte handle is decoded as a varint, not a byte")
 
     auto parsed = ButtonPressMessage::Parse(bytes);
     REQUIRE(parsed.has_value());
-    CHECK(parsed->LayoutHandle == 150);
     CHECK(parsed->ButtonId == "ok");
 }
 
@@ -60,7 +58,6 @@ TEST_CASE("The fields are read wherever they sit")
 
     auto parsed = ButtonPressMessage::Parse(bytes);
     REQUIRE(parsed.has_value());
-    CHECK(parsed->LayoutHandle == 9);
     CHECK(parsed->ButtonId == "accept");
 }
 
@@ -97,25 +94,30 @@ TEST_CASE("A field CS2 adds later is skipped rather than refused")
         CAPTURE(wireType);
         auto parsed = ButtonPressMessage::Parse(bytes);
         REQUIRE(parsed.has_value());
-        CHECK(parsed->LayoutHandle == 4);
         CHECK(parsed->ButtonId == "decline");
     }
 }
 
-TEST_CASE("A payload missing either field is refused")
+TEST_CASE("A payload without a button id is refused")
 {
     std::string layoutOnly;
     layoutOnly += Key(1, 0);
     layoutOnly += static_cast<char>(3);
     CHECK(ButtonPressMessage::Parse(layoutOnly).error().Code == ErrorCode::Invalid);
 
+    CHECK(ButtonPressMessage::Parse("").error().Code == ErrorCode::Invalid);
+}
+
+TEST_CASE("A button id with nothing else around it is enough")
+{
     std::string buttonOnly;
     buttonOnly += Key(2, 2);
     buttonOnly += static_cast<char>(2);
     buttonOnly += "hi";
-    CHECK(ButtonPressMessage::Parse(buttonOnly).error().Code == ErrorCode::Invalid);
 
-    CHECK(ButtonPressMessage::Parse("").error().Code == ErrorCode::Invalid);
+    auto parsed = ButtonPressMessage::Parse(buttonOnly);
+    REQUIRE(parsed.has_value());
+    CHECK(parsed->ButtonId == "hi");
 }
 
 TEST_CASE("A length that runs past the end is refused rather than read")

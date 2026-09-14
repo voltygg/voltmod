@@ -66,6 +66,6 @@ Log::Info("{}", runtime.Capabilities.Summary());  // "12/14 ok; Movement: ..."
 
 The enumerators are `Schema`, `Entities`, `EntityOps`, `GameEvents`, `Movement`,
 `Teleport`, `Visibility`, `ClientConVars`, `Precache`, `Vote`, `Items`, `Menus`,
-`Http`, `CustomUi`, `UiClicks`, and `Addons`. A disabled service remains safe to
+`Http`, `CustomUi`, `ButtonPresses`, and `Addons`. A disabled service remains safe to
 call and reports not-ready status, an empty subscription, or no result. The load
 log and `capabilities` status section show the same state.

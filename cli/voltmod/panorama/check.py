@@ -150,6 +150,7 @@ def _check_cpp_names(screen: Screen, source: Path) -> list[str]:
         if not is_cpp_name(family):
             problems.append(f"{source}: class family '{family}--*' cannot be spelled in C++")
         take(f"{family}Classes", f"the {family} family")
+        take(f"{family}Names", f"the {family} family's names")
     return problems
 
 

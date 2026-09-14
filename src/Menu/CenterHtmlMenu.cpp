@@ -30,16 +30,17 @@ CenterHtmlMenu::CenterHtmlMenu(const Services& services)
     _cursors.BindReset(services.Slots);
 }
 
-void CenterHtmlMenu::Open(int slot, std::shared_ptr<Menu> menu, MenuOptions options)
+bool CenterHtmlMenu::Start(int slot, std::shared_ptr<Menu> menu, MenuOptions options)
 {
     if (!IsValidSlot(slot) || !menu)
-        return;
+        return false;
 
     CloseAll(slot);
 
     _services.Freeze.Open(slot, options.FreezeMovement);
 
     Push(slot, std::move(menu));
+    return true;
 }
 
 void CenterHtmlMenu::Open(int slot, std::shared_ptr<Menu> menu)
@@ -49,7 +50,7 @@ void CenterHtmlMenu::Open(int slot, std::shared_ptr<Menu> menu)
 
     if (!_stack.IsOpen(slot))
     {
-        Open(slot, std::move(menu), {});
+        Start(slot, std::move(menu), {});
         return;
     }
 

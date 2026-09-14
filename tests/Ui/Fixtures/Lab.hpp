@@ -33,5 +33,6 @@ inline constexpr std::array<Row, 2> Rows{
 };
 
 inline constexpr std::array<std::string_view, 2> IconClasses{"Icon--ak47", "Icon--awp"};
+inline constexpr std::array<std::string_view, 2> IconNames{"ak47", "awp"};
 
 }  // namespace LabUi

@@ -18,6 +18,7 @@
 #include <VoltMod/Hooks/Hooks.hpp>
 #include <VoltMod/Http/HttpClient.hpp>
 #include <VoltMod/Menu/CenterHtmlMenu.hpp>
+#include <VoltMod/Menu/MenuRouter.hpp>
 #include <VoltMod/Messaging/Messages.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/Policy.hpp>
@@ -134,16 +135,20 @@ public:
     /** Holding players still while a menu is open, whichever surface drew it. Off by default. */
     VoltMod::MenuFreeze Freeze{Entities, Scheduler, Slots};
 
-    /** Player menus: the per-player session, drawn as center HTML; costs nothing per frame
+    /** Player menus drawn as center HTML, which every player can see; costs nothing per frame
      *  while nothing is open. */
-    CenterHtmlMenu Menus{CenterHtmlMenu::Services{.Scheduler = Scheduler,
-                                                  .Slots = Slots,
-                                                  .Entities = Entities,
-                                                  .Freeze = Freeze,
-                                                  .ChatInput = Hooks.ChatInput,
-                                                  .Translations = Translations,
-                                                  .Policy = Policy,
-                                                  .Messages = Messages}};
+    CenterHtmlMenu CenterHtml{CenterHtmlMenu::Services{.Scheduler = Scheduler,
+                                                       .Slots = Slots,
+                                                       .Entities = Entities,
+                                                       .Freeze = Freeze,
+                                                       .ChatInput = Hooks.ChatInput,
+                                                       .Translations = Translations,
+                                                       .Policy = Policy,
+                                                       .Messages = Messages}};
+
+    /** Where menus start and row callbacks reach: center HTML, or the surface a plugin prefers
+     *  for the players who can see it (@ref MenuRouter::Prefer). */
+    MenuRouter Menus{CenterHtml};
 
     /** Command manager for handling in-game commands. */
     VoltMod::CommandManager Commands{Policy, Translations, Players, Entities, Messages};

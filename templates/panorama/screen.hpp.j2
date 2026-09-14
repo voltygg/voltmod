@@ -43,6 +43,7 @@ inline constexpr std::array<{{ block.struct_name }}, {{ block.count }}> {{ block
 {% endif %}
 {% for family, variants in screen.families.items() %}
 inline constexpr std::array<std::string_view, {{ variants | length }}> {{ family }}Classes{{ string_list(variants, family ~ "--") }};
+inline constexpr std::array<std::string_view, {{ variants | length }}> {{ family }}Names{{ string_list(variants) }};
 
 {% endfor %}
 }  // namespace {{ namespace }}

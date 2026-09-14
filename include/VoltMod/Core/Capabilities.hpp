@@ -25,7 +25,7 @@ enum class Capability : uint16_t
     Menus,        ///< The rendered player menu.
     Http,         ///< The HTTP client and its worker pool.
     CustomUi,     ///< Driving a custom_hud_layout: dialog variables, classes, input capture.
-    UiClicks,     ///< Receiving Button presses from a custom HUD layout.
+    ButtonPresses,  ///< Receiving Button presses from a custom HUD layout.
     Addons        ///< Telling connecting clients which workshop addons to download.
 };
 

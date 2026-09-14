@@ -7,19 +7,18 @@ VoltMod::MenuBuilder creates common row types, @ref VoltMod::ActionRows builds
 admin and target actions, and @ref VoltMod::Flow handles multi-step menus.
 `runtime.Menus` owns each player's session and draws it as center HTML: re-sent
 every tick, read with WASD / E / R (see @ref menu_feedback_keys), and needing
-nothing on the client.
-
-A clickable menu is a plugin's own Panorama screen rather than a framework
-feature. The framework ships the pieces - @ref VoltMod::Screen and the block
-library - and @ref panorama_guide covers building one.
+nothing on the client. A plugin with its own Panorama layout can have sessions
+start on a clickable menu instead, for the players who can see it (see
+@ref menu_panorama).
 
 ## What a surface owns, and what it does not {#menu_surface_split}
 
 Only half of a session depends on how it is drawn. @ref VoltMod::MenuStack owns
 the other half: the stack of open menus, the breadcrumb, how a row describes
 itself, what activating a row does, and how a stepped value is held back so a
-burst of presses is one action. Center HTML and a plugin's own screen both hold
-one, which is why the same @ref VoltMod::Menu behaves the same way on either.
+burst of presses is one action. @ref VoltMod::CenterHtmlMenu and
+@ref VoltMod::PanoramaMenu both hold one, which is why the same @ref VoltMod::Menu
+behaves the same way on either.
 
 A surface owns what the stack deliberately leaves out: the cursor or click ids,
 the page shape, freezing, and prompts. Build one by implementing
@@ -43,6 +42,31 @@ works those out for itself. A surface that redraws every frame can ignore
 @ref VoltMod::MenuStack::Committed; one that draws on demand subscribes to it,
 because a held commit lands on a timer rather than on a press.
 
+## Clickable Panorama menus {#menu_panorama}
+
+@ref VoltMod::PanoramaMenu draws the same sessions on a Panorama layout and takes
+clicks instead of keys. The layout is the plugin's own screen (see
+@ref panorama_guide). The plugin tells the menu how to draw on it by implementing
+@ref VoltMod::MenuLayout, which knows element ids and nothing about menus. The root
+menu's submenus become the layout's sidebar tabs.
+
+```cpp
+// App.hpp
+AdminMenuScreen _layout{runtime.Screens};        // : VoltMod::MenuLayout, on VoltMod::PlayerScreens
+std::optional<VoltMod::PanoramaMenu> _panorama;
+VoltMod::Subscription _preferPanorama;           // after the menu, so it lets go first
+
+// App::Start, when settings turn Panorama on
+_panorama.emplace(VoltMod::PanoramaMenu::Services{/* runtime services */}, _layout, addonId);
+_preferPanorama = runtime.Menus.Prefer(*_panorama);
+```
+
+While the preference is held, `runtime.Menus.Start` tries the Panorama menu first
+and falls back to center HTML for a player who cannot see the layout: a capability
+it needs is off, or the client is still downloading the addon. Every later call
+follows the surface holding that player's session, and starting a session closes
+the one the player had on the other surface.
+
 ## Building a menu
 
 ```cpp
@@ -60,12 +84,12 @@ auto menu = MenuBuilder("Admin Panel")
     .Add(ToggleRow{.Label = "God mode", .Get = IsGod, .Flip = FlipGod})
     .Build();
 
-runtime.Menus.Open(playerSlot, menu, {});   // start a session, replacing any the player has open
+runtime.Menus.Start(playerSlot, menu, {});   // start a session, replacing any the player has open
 ```
 
-The three-argument `Open` starts a session, closing any the player already has; a
-command calls it. The two-argument @ref VoltMod::MenuSurface::Open pushes a submenu
-onto the open session, which is what a row calls.
+@ref VoltMod::MenuSurface::Start starts a session, closing any the player already
+has; a command calls it. @ref VoltMod::MenuSurface::Open pushes a submenu onto the
+open session, which is what a row calls.
 
 Each kind of row is a spec struct filled with designated initializers, and `Add`
 appends it. `Button`, `Submenu` and `Text` also have two-argument conveniences for

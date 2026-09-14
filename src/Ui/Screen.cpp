@@ -36,6 +36,11 @@ Status Screen::SetClass(int slot, std::string_view elementId, std::string_view c
     return _entity ? _entity->WriteClass(slot, elementId, className, on) : std::unexpected(Empty());
 }
 
+Status Screen::SetHidden(int slot, std::string_view elementId, bool hidden)
+{
+    return SetClass(slot, elementId, "Hidden", hidden);
+}
+
 Status Screen::ShowCursor(int slot, bool shown)
 {
     return _entity ? _entity->WriteCursor(slot, shown) : std::unexpected(Empty());

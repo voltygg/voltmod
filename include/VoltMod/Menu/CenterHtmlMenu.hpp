@@ -25,10 +25,8 @@ namespace VoltMod
  * @brief The menu surface every player has: their open menus drawn as center HTML.
  *
  * Center HTML needs no client addon and is read with W/S/A/D/E/R, so every player can be drawn
- * to. A session survives death and spectating.
- *
- * A plugin that wants a clickable menu builds its own Panorama screen on @ref Screen and the
- * block library instead; the framework ships the pieces, not a fixed menu layout.
+ * to. A session survives death and spectating. `runtime.Menus` falls back to this whenever a
+ * preferred surface such as @ref PanoramaMenu cannot draw for a player.
  */
 class CenterHtmlMenu final : public MenuSurface
 {
@@ -48,19 +46,14 @@ public:
 
     explicit CenterHtmlMenu(const Services& services);
 
-    /** Start a session for @p slot showing @p menu, closing any session the player already has.
-     *  What a command calls; a submenu goes through the one-argument @ref MenuSurface::Open. */
-    void Open(int slot, std::shared_ptr<Menu> menu, MenuOptions options);
-
-    /** Push @p menu onto the player's session, starting one with default options if none is open. */
+    bool Start(int slot, std::shared_ptr<Menu> menu, MenuOptions options) override;
     void Open(int slot, std::shared_ptr<Menu> menu) override;
+    [[nodiscard]] bool IsOpen(int slot) const override;
     void Close(int slot) override;
     void CloseAll(int slot) override;
     void CloseAll(int slot, std::string_view replyKey) override;
     void Prompt(int slot, std::string prompt, std::function<bool(int slot, std::string_view text)> callback) override;
     [[nodiscard]] std::string Translate(int slot, std::string_view key, std::string_view fallback) const override;
-
-    [[nodiscard]] bool IsOpen(int slot) const;
 
 private:
     /** Presses closer together than this are ignored. */

@@ -75,8 +75,15 @@ public:
     MenuSurface(const MenuSurface&) = delete;
     MenuSurface& operator=(const MenuSurface&) = delete;
 
-    /** Pushes @p menu onto @p slot's stack and shows it. */
+    /** Starts a session for @p slot showing @p menu, closing any the player has open here. What a
+     *  command calls. False when this surface cannot draw for @p slot; nothing is left open then. */
+    virtual bool Start(int slot, std::shared_ptr<Menu> menu, MenuOptions options) = 0;
+
+    /** Pushes @p menu onto @p slot's session and shows it, starting one with default options when
+     *  none is open. What a row calls. */
     virtual void Open(int slot, std::shared_ptr<Menu> menu) = 0;
+
+    [[nodiscard]] virtual bool IsOpen(int slot) const = 0;
 
     /** Pops the top menu, returning to its parent when one exists. */
     virtual void Close(int slot) = 0;

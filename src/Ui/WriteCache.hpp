@@ -2,7 +2,6 @@
 
 #include <VoltMod/Core/PerSlot.hpp>
 #include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Core/SlotEvents.hpp>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -22,14 +21,11 @@ enum class WriteKind
  * @brief What each player, or everyone, was last sent on one screen, so an unchanged write is skipped.
  *
  * A networked layout stays on screen without re-sending, so this turns a full redraw into writes
- * for only what changed. A slot changing hands forgets that slot. SDK-free for its tests.
+ * for only what changed. SDK-free for its tests.
  */
 class WriteCache
 {
 public:
-    /** Forget a slot when a player joins or leaves it. */
-    void BindReset(SlotEvents& slots) { _slots.BindReset(slots); }
-
     /** True when @p value differs from what @p slot (or @ref EveryoneSlot) was last sent, remembering it. */
     bool Changed(int slot, WriteKind kind, std::string_view elementId, std::string_view name, std::string_view value);
 
@@ -42,6 +38,9 @@ public:
     /** Drop what @p slot was sent, so the next write goes through. Keeps the failure flag. */
     void Forget(int slot);
 
+    /** Drop everything about @p slot, failure flag included: another player took it. */
+    void Reset(int slot);
+
     /** Drop everything, failure flags included: a new entity has been told nothing. */
     void ForgetAll();
 
@@ -53,14 +52,15 @@ private:
         bool Failed = false;
     };
 
-    /** @p slot's record, the shared one for @ref EveryoneSlot, or null for neither. */
+    /** @p slot's record, made on first use; the shared one for @ref EveryoneSlot; null for neither. */
     Sent* For(int slot);
 
     /** (kind, element, name) joined into one key, in a buffer reused across calls. */
     const std::string& KeyFor(WriteKind kind, std::string_view elementId, std::string_view name);
 
     std::string _key;
-    PerSlot<Sent> _slots;
+    /** Made on first use: a player screen only ever writes for its owner. */
+    PerSlot<std::optional<Sent>> _slots;
     Sent _everyone;
 };
 

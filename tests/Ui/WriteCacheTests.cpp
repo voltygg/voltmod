@@ -1,9 +1,7 @@
 #include "Ui/WriteCache.hpp"
 
-#include <VoltMod/Core/SlotEvents.hpp>
 #include <doctest/doctest.h>
 
-using VoltMod::SlotEvents;
 using VoltMod::WriteCache;
 using VoltMod::WriteKind;
 
@@ -128,15 +126,13 @@ TEST_CASE("A new entity has been told nothing, failures included")
 
 TEST_CASE("A slot changing hands forgets what its last occupant was told")
 {
-    SlotEvents slots;
     WriteCache cache;
-    cache.BindReset(slots);
 
     CHECK(cache.Changed(3, WriteKind::Text, "vm_title", "text", "Admin Panel"));
     CHECK(cache.IsFirstFailure(3));
     CHECK(cache.Changed(4, WriteKind::Text, "vm_title", "text", "Admin Panel"));
 
-    slots.Raise(3);
+    cache.Reset(3);
 
     CHECK(cache.Changed(3, WriteKind::Text, "vm_title", "text", "Admin Panel"));
     CHECK(cache.IsFirstFailure(3));

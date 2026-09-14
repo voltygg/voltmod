@@ -4,5 +4,6 @@
 // is the module-level include.
 
 #include <VoltMod/Ui/ButtonPress.hpp>
+#include <VoltMod/Ui/PlayerScreens.hpp>
 #include <VoltMod/Ui/Screen.hpp>
 #include <VoltMod/Ui/ScreenManager.hpp>

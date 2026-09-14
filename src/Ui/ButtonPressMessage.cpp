@@ -73,7 +73,6 @@ static Status SkipField(std::string_view bytes, size_t& at, uint32_t wireType)
 Result<ButtonPressMessage> ButtonPressMessage::Parse(std::string_view bytes)
 {
     ButtonPressMessage out;
-    bool haveLayout = false;
     bool haveButton = false;
 
     size_t at = 0;
@@ -85,17 +84,6 @@ Result<ButtonPressMessage> ButtonPressMessage::Parse(std::string_view bytes)
 
         const auto field = static_cast<uint32_t>(*key >> 3);
         const auto wireType = static_cast<uint32_t>(*key & 0x7u);
-
-        if (field == 1 && wireType == WireVarint)
-        {
-            auto layout = ReadVarint(bytes, at);
-            if (!layout)
-                return std::unexpected(layout.error());
-
-            out.LayoutHandle = static_cast<uint32_t>(*layout);
-            haveLayout = true;
-            continue;
-        }
 
         if (field == 2 && wireType == WireLengthDelimited)
         {
@@ -115,8 +103,8 @@ Result<ButtonPressMessage> ButtonPressMessage::Parse(std::string_view bytes)
             return std::unexpected(skipped.error());
     }
 
-    if (!haveLayout || !haveButton)
-        return std::unexpected(Error::Invalid("the payload carries no layout handle or no button id"));
+    if (!haveButton)
+        return std::unexpected(Error::Invalid("the payload carries no button id"));
 
     return out;
 }

@@ -131,8 +131,8 @@ The entries most likely to bite, and how each one fails:
 | `CServerSideClient::ProcessRespondCvarValue` | vtables | @ref VoltMod::ClientConVars | `Capability::ClientConVars` off; client convar queries unavailable |
 | `CUserCmd::CSGOUserCmdPB` | offsets | `Movement` cmd events | Missing: `Valid=false` views. Stale: garbage viewangles and buttons |
 | `CUserCmdBase::cmdNum` | offsets | `PlayerInput::CommandNumber` | Missing: falls back to the protobuf's `legacy_command_number`, which live clients leave at 0. Stale: a counter that never increments by 1 |
-| `CServerSideClientBase::m_nClientSlot` | offsets | `ClientConVars`, `UiClicks` | Stale: a client's answer is attributed to the wrong player |
-| `INetworkMessageProcessingPreFilter::FilterMessage` | signatures | @ref VoltMod::ScreenManager::Pressed | Missing: `Capability::UiClicks` off; presses never arrive |
+| `CServerSideClientBase::m_nClientSlot` | offsets | `ClientConVars`, `ButtonPresses` | Stale: a client's answer is attributed to the wrong player |
+| `INetworkMessageProcessingPreFilter::FilterMessage` | signatures | @ref VoltMod::ScreenManager::Pressed | Missing: `Capability::ButtonPresses` off; presses never arrive |
 | `CServerSideClient::INetworkMessageProcessingPreFilter` | offsets | @ref VoltMod::ScreenManager::Pressed | Stale: a press is attributed to the wrong player, or dropped |
 | `CNetworkGameServer::ReplyConnection` | signatures | @ref VoltMod::Addons | Missing: `Capability::Addons` off; `Require` is refused |
 | `CNetworkGameServer::m_szAddons` | offsets | @ref VoltMod::Addons | Stale: clients download addons but mount none, or a corrupted reply |

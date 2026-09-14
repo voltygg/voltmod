@@ -44,6 +44,9 @@ public:
     /** Add (@p on) or remove @p className on the element with @p elementId. */
     Status SetClass(int slot, std::string_view elementId, std::string_view className, bool on);
 
+    /** Add or remove `Hidden`, the class every block and layout root collapses on. */
+    Status SetHidden(int slot, std::string_view elementId, bool hidden);
+
     /** Give @p slot a mouse cursor over the layout. Nothing in it is clickable without one. */
     Status ShowCursor(int slot, bool shown);
 

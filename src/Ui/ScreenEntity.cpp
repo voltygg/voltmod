@@ -33,11 +33,12 @@ ScreenEntity::ScreenEntity(EntitySystem& entities, EntityOps& ops, SlotEvents& s
                            LayoutPath layout, int owner)
     : _entities(entities), _ops(ops), _visibility(visibility), _layout(std::move(layout)), _owner(owner)
 {
-    _written.BindReset(slots);
     _slotChanges = slots.Changed += [this](int slot) {
         _playersChangedSinceSpawn = true;
         if (slot == _owner)  // a player screen leaves with its owner
             Remove();
+        else
+            _written.Reset(slot);
     };
 }
 

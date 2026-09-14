@@ -18,7 +18,7 @@ ScreenManager::ScreenManager(EntitySystem& entities, EntityOps& ops, const Bindi
       _ops(ops),
       _slots(slots),
       _visibility(visibility),
-      _hook(std::make_unique<ButtonPressHook>(interfaces, bindings, entities, scheduler, Pressed))
+      _hook(std::make_unique<ButtonPressHook>(interfaces, bindings, scheduler, Pressed))
 {}
 
 ScreenManager::~ScreenManager() = default;

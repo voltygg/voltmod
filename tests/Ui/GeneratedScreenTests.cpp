@@ -20,6 +20,7 @@ static_assert(LabUi::Rows[0].LabelVar == "row0_label");
 
 static_assert(LabUi::IconClasses.size() == 2);
 static_assert(LabUi::IconClasses[1] == "Icon--awp");
+static_assert(LabUi::IconNames[1] == "awp");
 
 TEST_CASE("Every repeated row names its own elements and variables")
 {

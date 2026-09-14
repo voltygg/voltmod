@@ -3,6 +3,7 @@
 #include <VoltMod/Menu/Menu.hpp>
 #include <functional>
 #include <memory>
+#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -23,15 +24,32 @@ public:
     /** Every key Translate was asked for, in order. */
     mutable std::vector<std::string> Translated;
 
+    bool Start(int slot, std::shared_ptr<VoltMod::Menu> menu, VoltMod::MenuOptions) override
+    {
+        if (!Accepts)
+            return false;
+
+        ++Starts;
+        Open(slot, std::move(menu));
+        return true;
+    }
+
     void Open(int slot, std::shared_ptr<VoltMod::Menu> menu) override
     {
         Slots.push_back(slot);
+        OpenSlots.insert(slot);
         Opened.push_back(std::move(menu));
     }
 
+    [[nodiscard]] bool IsOpen(int slot) const override { return OpenSlots.contains(slot); }
+
     void Close(int) override { ++Closes; }
 
-    void CloseAll(int) override { ++CloseAlls; }
+    void CloseAll(int slot) override
+    {
+        ++CloseAlls;
+        OpenSlots.erase(slot);
+    }
 
     void CloseAll(int slot, std::string_view replyKey) override
     {
@@ -69,8 +87,14 @@ public:
             item.Activate(0, *this);
     }
 
+    /** False makes Start refuse, as a surface that cannot draw for the player does. */
+    bool Accepts = true;
+
     std::vector<std::shared_ptr<VoltMod::Menu>> Opened;
     std::vector<int> Slots;
+    /** Slots with a session: opened and not closed with CloseAll. */
+    std::set<int> OpenSlots;
+    int Starts = 0;
     int Closes = 0;
     int CloseAlls = 0;
     int Prompts = 0;
