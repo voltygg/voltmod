@@ -64,6 +64,9 @@ private:
 
     EntitySystem& _entities;
     const Bindings& _bindings;
+    const void* _commandTable = nullptr;  // CSGOUserCmdPB's vtable, found at install
+    bool _commandChecked = false;         // the first command has been checked against it
+    bool _wrongCommand = false;           // the usercmd offset reaches something else
     Subscription _hook;
     PlayerInput _cmd;  // decoded in the pre hook, reused by the post hook
     int _slot = -1;    // resolved in the pre hook; RunCommand does not nest

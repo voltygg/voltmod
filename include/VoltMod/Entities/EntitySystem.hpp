@@ -123,6 +123,8 @@ private:
 
     Interfaces& _interfaces;
     const Bindings& _bindings;
+    bool _systemChecked = false;  // the first pointer read has been checked against its vtable
+    bool _wrongSystem = false;    // that check failed; the offset reaches some other object
 };
 
 }  // namespace VoltMod

@@ -29,6 +29,9 @@ void* FindVirtualTableByTypeName(std::span<const ScanRange> ranges, const char* 
  *  through other plugins' hooks. */
 std::optional<int> FindSlotInTable(void* table, const void* function, const OriginalVfn& originalOf, int maxSlots);
 
+/** Whether @p object is readable and its vptr is @p table, so it really is that class. */
+bool IsInstanceOf(const void* object, const void* table);
+
 /** A base class inside a complete object: where it starts, and its own vtable when it has one. */
 struct BaseSubobject
 {

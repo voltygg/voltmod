@@ -1,3 +1,5 @@
+#include "Engine/Memory/VtableLookup.hpp"
+
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
@@ -44,10 +46,24 @@ void EntitySystem::SetEntitySystem(CGameEntitySystem* system)
 CGameEntitySystem* EntitySystem::ReadEntitySystemPointer()
 {
     // Runs per call until the pointer resolves, so it stays a plain read.
-    if (!_interfaces.GameResourceService)
+    if (!_interfaces.GameResourceService || _wrongSystem)
         return nullptr;
 
-    return _bindings.GameEntitySystem.Read(_interfaces.GameResourceService);
+    CGameEntitySystem* system = _bindings.GameEntitySystem.Read(_interfaces.GameResourceService);
+    // A drifted offset reads some other object; its vtable says so before anything reads through it.
+    if (system && !_systemChecked)
+    {
+        _systemChecked = true;
+        const void* table = FindVirtualTable("server", "CGameEntitySystem");
+        _wrongSystem = table && !IsInstanceOf(system, table);
+        if (_wrongSystem)
+        {
+            Log::Error("The GameEntitySystem offset {} does not reach a CGameEntitySystem; entity lookups are off.",
+                       _bindings.GameEntitySystem.Value());
+            return nullptr;
+        }
+    }
+    return system;
 }
 
 Status EntitySystem::Initialize()

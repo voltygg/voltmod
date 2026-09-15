@@ -111,6 +111,12 @@ std::optional<int> FindSlotInTable(void* table, const void* function, const Orig
     return std::nullopt;
 }
 
+bool IsInstanceOf(const void* object, const void* table)
+{
+    return table && IsReadableAddress(object, sizeof(void*)) &&
+           ReadWord(reinterpret_cast<uintptr_t>(object)) == reinterpret_cast<uintptr_t>(table);
+}
+
 // Itanium typeinfo layouts: {vptr, name}; one base adds {base}; several add {flags, count, {base, offset_flags}...}.
 static constexpr size_t TypeInfoBase = 2 * sizeof(void*);
 static constexpr size_t TypeInfoFlags = 2 * sizeof(void*);

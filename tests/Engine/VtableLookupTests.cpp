@@ -207,6 +207,24 @@ TEST_CASE("A secondary Itanium vtable is found by its typeinfo and offset-to-top
     CHECK(FindVirtualTableByTypeInfo(ranges, fake.Derived, -48) == nullptr);
 }
 
+TEST_CASE("An object is an instance of the class whose table its vptr holds")
+{
+    using VoltMod::IsInstanceOf;
+
+    void* table[] = {reinterpret_cast<void*>(&Slot0), nullptr};
+    void* otherTable[] = {reinterpret_cast<void*>(&Slot1), nullptr};
+    struct
+    {
+        void* Vptr;
+        int Field;
+    } object{table, 7};
+
+    CHECK(IsInstanceOf(&object, table));
+    CHECK_FALSE(IsInstanceOf(&object, otherTable));
+    CHECK_FALSE(IsInstanceOf(nullptr, table));
+    CHECK_FALSE(IsInstanceOf(&object, nullptr));
+}
+
 #ifdef _WIN32
 
 using VoltMod::FindBaseInRtti;

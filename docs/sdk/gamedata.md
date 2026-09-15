@@ -142,7 +142,8 @@ The entries most likely to bite, and how each one fails:
 | `CPlayer_MovementServices::RunCommand` | vtables | @ref VoltMod::Movement | Crash on the first movement tick, unless the slot check catches it |
 | `CBaseEntity::Teleport` | vtables | @ref VoltMod::Teleport | Missing: subscribing to `Teleported` is refused and `Teleport::Available` says why |
 | `CServerSideClient::ProcessRespondCvarValue` | vtables | @ref VoltMod::ClientConVars | `ClientConVars::Available` fails; client convar queries unavailable |
-| `CUserCmd::CSGOUserCmdPB` | offsets | `Movement` cmd events | Missing: `Valid=false` views. Stale: garbage viewangles and buttons |
+| `CUserCmd::CSGOUserCmdPB` | offsets | `Movement` cmd events | Missing: `Valid=false` views. Stale: the first command's vtable disagrees, commands turn invalid and `Movement::Available` says why |
+| `GameEntitySystem` | offsets | @ref VoltMod::EntitySystem | Stale: the pointer read is not a `CGameEntitySystem`, so entity lookups return nothing and the load log says so |
 | `CUserCmdBase::cmdNum` | offsets | `PlayerInput::CommandNumber` | Missing: falls back to the protobuf's `legacy_command_number`, which live clients leave at 0. Stale: a counter that never increments by 1 |
 | `CServerSideClientBase::m_nClientSlot` | offsets | `ClientConVars`, `ButtonPresses` | Stale: a client's answer is attributed to the wrong player |
 | `INetworkMessageProcessingPreFilter::FilterMessage` | functions | @ref VoltMod::ScreenManager::Pressed | Missing: `ScreenManager::Available` fails; presses never arrive |

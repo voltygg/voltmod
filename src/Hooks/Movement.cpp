@@ -1,3 +1,5 @@
+#include "Engine/Memory/VtableLookup.hpp"
+
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
@@ -35,6 +37,10 @@ bool Movement::Install()
             "Movement: no usable 'CUserCmdBase::cmdNum' offset; falling back to the protobuf's "
             "legacy_command_number, which the live client leaves at 0.");
 
+    // Found here, once, so the first command only compares a pointer.
+    if (!_commandTable && _bindings.UserCmdProto)
+        _commandTable = FindVirtualTable("server", "CSGOUserCmdPB");
+
     auto hook = HookVirtual(
         "Movement RunCommand", _bindings.RunCommand,
         [this](EngineMovementServices& services, void* userCmd) {
@@ -60,6 +66,8 @@ Status Movement::Available() const
         return std::unexpected(Error::Unsupported("the CPlayer_MovementServices::RunCommand vtable slot did not bind"));
     if (!_bindings.UserCmdProto)
         return std::unexpected(Error::Unsupported("the CUserCmd::CSGOUserCmdPB offset did not bind"));
+    if (_wrongCommand)
+        return std::unexpected(Error::Unsupported("the CUserCmd::CSGOUserCmdPB offset does not reach a CSGOUserCmdPB"));
     return {};
 }
 
@@ -73,10 +81,23 @@ int Movement::SlotOf(void* movementServices)
 void Movement::Decode(const void* userCmd)
 {
     _cmd = {};
-    if (!userCmd || !_bindings.UserCmdProto)
+    if (!userCmd || !_bindings.UserCmdProto || _wrongCommand)
         return;
 
     const auto* pb = static_cast<const CSGOUserCmdPB*>(_bindings.UserCmdProto.Ptr(userCmd));
+    // A drifted offset reaches some other part of the command; its vtable says so on the first one.
+    if (!_commandChecked)
+    {
+        _commandChecked = true;
+        _wrongCommand = _commandTable && !IsInstanceOf(pb, _commandTable);
+        if (_wrongCommand)
+        {
+            Log::Error("Movement: 'CUserCmd::CSGOUserCmdPB' ({}) does not reach a CSGOUserCmdPB; commands are invalid.",
+                       _bindings.UserCmdProto.Value());
+            return;
+        }
+    }
+
     const auto& base = pb->base();
 
     _cmd.Valid = true;
