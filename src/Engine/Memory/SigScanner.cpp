@@ -9,6 +9,7 @@
 #include <cstring>
 #include <fstream>
 #include <map>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -116,18 +117,29 @@ uintptr_t ResolveRelativeAddress(const LoadedModule& loaded, uintptr_t matchAddr
     return Rel32Target(site, displacement, ripSize);
 }
 
-bool IsExecutableAddress(const void* address)
+/** The committed mapping holding an address: where it ends and what it allows. */
+struct MemoryRegion
 {
-    if (!address)
-        return false;
+    const uint8_t* End = nullptr;
+    bool Readable = false;
+    bool Executable = false;
+};
 
+/** The mapping holding @p address; empty when nothing is committed there or it is a guard page. */
+static std::optional<MemoryRegion> QueryRegion(const void* address)
+{
 #ifdef _WIN32
     MEMORY_BASIC_INFORMATION info{};
-    if (VirtualQuery(address, &info, sizeof(info)) != sizeof(info) || info.State != MEM_COMMIT)
-        return false;
+    if (VirtualQuery(address, &info, sizeof(info)) != sizeof(info) || info.State != MEM_COMMIT ||
+        (info.Protect & PAGE_GUARD) != 0)
+        return std::nullopt;
 
+    constexpr DWORD readable = PAGE_READONLY | PAGE_READWRITE | PAGE_WRITECOPY | PAGE_EXECUTE_READ |
+                               PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
     constexpr DWORD executable = PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
-    return (info.Protect & executable) != 0 && (info.Protect & PAGE_GUARD) == 0;
+    return MemoryRegion{.End = static_cast<const uint8_t*>(info.BaseAddress) + info.RegionSize,
+                        .Readable = (info.Protect & readable) != 0,
+                        .Executable = (info.Protect & executable) != 0};
 #else
     const auto target = reinterpret_cast<unsigned long>(address);
     std::ifstream maps("/proc/self/maps");
@@ -140,10 +152,21 @@ bool IsExecutableAddress(const void* address)
         if (std::sscanf(line.c_str(), "%lx-%lx %4s", &start, &end, perms) != 3)
             continue;
         if (target >= start && target < end)
-            return perms[2] == 'x';
+            return MemoryRegion{.End = reinterpret_cast<const uint8_t*>(end),
+                                .Readable = perms[0] == 'r',
+                                .Executable = perms[2] == 'x'};
     }
-    return false;
+    return std::nullopt;
 #endif
+}
+
+bool IsExecutableAddress(const void* address)
+{
+    if (!address)
+        return false;
+
+    const auto region = QueryRegion(address);
+    return region && region->Executable;
 }
 
 bool IsReadableAddress(const void* address, size_t bytes)
@@ -151,37 +174,10 @@ bool IsReadableAddress(const void* address, size_t bytes)
     if (!address || bytes == 0)
         return false;
 
-#ifdef _WIN32
-    MEMORY_BASIC_INFORMATION info{};
-    if (VirtualQuery(address, &info, sizeof(info)) != sizeof(info) || info.State != MEM_COMMIT)
-        return false;
-
-    constexpr DWORD readable = PAGE_READONLY | PAGE_READWRITE | PAGE_WRITECOPY | PAGE_EXECUTE_READ |
-                               PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
-    if ((info.Protect & readable) == 0 || (info.Protect & PAGE_GUARD) != 0)
-        return false;
-
-    // VirtualQuery answers for the region containing `address`; a span running past its end may
-    // continue into memory that is not mapped at all.
-    const auto* start = static_cast<const uint8_t*>(address);
-    const auto* regionEnd = static_cast<const uint8_t*>(info.BaseAddress) + info.RegionSize;
-    return bytes <= static_cast<size_t>(regionEnd - start);
-#else
-    const auto target = reinterpret_cast<unsigned long>(address);
-    std::ifstream maps("/proc/self/maps");
-    std::string line;
-    while (std::getline(maps, line))
-    {
-        unsigned long start = 0;
-        unsigned long end = 0;
-        char perms[5] = {};
-        if (std::sscanf(line.c_str(), "%lx-%lx %4s", &start, &end, perms) != 3)
-            continue;
-        if (target >= start && target < end)
-            return perms[0] == 'r' && target + bytes <= end;
-    }
-    return false;
-#endif
+    // The span must end inside this mapping; the next one along may not be mapped at all.
+    const auto region = QueryRegion(address);
+    return region && region->Readable &&
+           bytes <= static_cast<size_t>(region->End - static_cast<const uint8_t*>(address));
 }
 
 }  // namespace VoltMod
