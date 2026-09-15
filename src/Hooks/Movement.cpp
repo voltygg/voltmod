@@ -35,7 +35,7 @@ bool Movement::Install()
             "Movement: no usable 'CUserCmdBase::cmdNum' offset; falling back to the protobuf's "
             "legacy_command_number, which the live client leaves at 0.");
 
-    auto hook = HookClassSlot(
+    auto hook = HookVirtual(
         "Movement RunCommand", _bindings.RunCommand,
         [this](EngineMovementServices& services, void* userCmd) {
             _slot = SlotOf(&services);

@@ -11,7 +11,7 @@ types.
 ```cpp
 // include/VoltMod/Engine/GameData/Bindings.hpp
 Fn<CEntityInstance*(const char*, int)> CreateEntityByName;   // signatures."CreateEntityByName"
-VirtualFn<void(int)> ChangeTeam;                            // vtables."CCSPlayerController::ChangeTeam"
+VirtualFn<void(CEntityInstance*, int)> ChangeTeam;          // vtables."CCSPlayerController::ChangeTeam"
 OffsetOf<int> ClientSlot;                                   // offsets."CServerSideClientBase::m_nClientSlot"
 ```
 
@@ -169,7 +169,7 @@ Plugins use it through gamedata rather than directly.
 
 ### Vtable lookup by class name
 
-`FindVirtualTable(moduleName, className)` resolves primary class tables. `ClassSlot` keeps each
+`FindVirtualTable(moduleName, className)` resolves primary class tables. `VirtualFn` keeps each
 resolved table with its slot. A function on a secondary base has no primary slot, so it is bound
 by signature and hooked with `HookFunction` instead.
 

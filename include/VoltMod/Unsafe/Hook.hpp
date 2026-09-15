@@ -145,32 +145,29 @@ template <class Iface, class Ret, class... Args, class Before, class After = std
 }
 
 /**
- * @brief Hook a gamedata-bound slot on every object sharing a class vtable.
+ * @brief Hook a gamedata-bound virtual function on every object sharing its class vtable.
  *
  * Catches only calls through that table, even when the slot's code is shared with other classes.
  *
  * @param name Names the hook in the log and in any error.
- * @param slot The vtable index and class table gamedata resolved.
+ * @param function The slot and class table gamedata resolved; its first parameter is the object.
  */
 template <class Object, class Ret, class... Args, class Before, class After = std::nullptr_t>
-[[nodiscard]] Result<Subscription> HookClassSlot(std::string_view name, const ClassSlot<Object, Ret(Args...)>& slot,
-                                                 Before&& before, After&& after = nullptr)
+[[nodiscard]] Result<Subscription> HookVirtual(std::string_view name, const VirtualFn<Ret(Object*, Args...)>& function,
+                                               Before&& before, After&& after = nullptr)
 {
-    const int index = slot.Function.Index();
-    if (index < 0)
-        return std::unexpected(Error::Unsupported(std::format("the {} vtable index did not bind", name)));
-    if (!slot.Table)
-        return std::unexpected(Error::Engine(std::format("the {} class vtable did not bind", name)));
+    if (!function)
+        return std::unexpected(Error::Unsupported(std::format("the {} vtable slot did not bind", name)));
 
     using Installed = Detail::InstalledHook<KHook::Virtual, Object, Ret, Args...>;
     auto hook = std::make_unique<Installed>(std::forward<Before>(before), std::forward<After>(after));
-    hook->Hook.Configure(index);
+    hook->Hook.Configure(function.Index());
 
     // KHook reads the vtable out of the object it is given, and the table is all we have.
-    void* asObject = slot.Table.Ptr();
+    void* asObject = function.Table();
     hook->Hook.AddGlobal(reinterpret_cast<Object*>(&asObject));
 
-    Log::Info("{} hook installed on {} vtable (index {}).", name, slot.Table.ClassName(), index);
+    Log::Info("{} hook installed (vtable index {}).", name, function.Index());
     return Detail::ToSubscription(std::move(hook));
 }
 

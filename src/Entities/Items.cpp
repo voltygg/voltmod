@@ -29,7 +29,7 @@ bool Items::Give(const Pawn& pawn, std::string_view item)
     if (!_bindings.GiveNamedItem)
         return false;
 
-    if (_bindings.GiveNamedItem.Call(services.Base(), classname.c_str()))
+    if (_bindings.GiveNamedItem(services.Base(), classname.c_str()))
         return true;
 
     // A refusal is usually the weapon belonging to the other team's buy list. Retry once with
@@ -40,7 +40,7 @@ bool Items::Give(const Pawn& pawn, std::string_view item)
         return false;
 
     pawn.SetTeam(other);
-    bool given = _bindings.GiveNamedItem.Call(services.Base(), classname.c_str()) != nullptr;
+    bool given = _bindings.GiveNamedItem(services.Base(), classname.c_str()) != nullptr;
     pawn.SetTeam(team);
 
     if (!given)
@@ -57,7 +57,7 @@ bool Items::StripWeapons(const Pawn& pawn, bool removeSuit)
     if (!_bindings.RemoveAllItems)
         return false;
 
-    _bindings.RemoveAllItems.Call(services.Base(), removeSuit);
+    _bindings.RemoveAllItems(services.Base(), removeSuit);
     return true;
 }
 

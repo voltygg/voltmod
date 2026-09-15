@@ -56,12 +56,11 @@ Status Entity::Teleport(std::optional<Vector> origin, std::optional<QAngle> angl
     if (!_e || !_sys)
         return std::unexpected(Error::NotReady("no entity"));
 
-    // The index alone carries a direct call; the class table it also binds is only the hook's.
-    const auto& teleport = _sys->BindingsRef().Teleport.Function;
+    const auto& teleport = _sys->BindingsRef().Teleport;
     if (!teleport)
-        return std::unexpected(Error::Unsupported("gamedata has no 'CBaseEntity::Teleport' vtable index"));
+        return std::unexpected(Error::Unsupported("gamedata has no 'CBaseEntity::Teleport' vtable slot"));
 
-    teleport.Call(_e, origin ? &*origin : nullptr, angles ? &*angles : nullptr, velocity ? &*velocity : nullptr);
+    teleport(_e, origin ? &*origin : nullptr, angles ? &*angles : nullptr, velocity ? &*velocity : nullptr);
     return {};
 }
 
@@ -86,7 +85,7 @@ Status Pawn::Slay() const
     if (!suicide)
         return std::unexpected(Error::Unsupported("gamedata has no 'CBasePlayerPawn::CommitSuicide' vtable index"));
 
-    suicide.Call(_e, false, true);
+    suicide(_e, false, true);
     return {};
 }
 
@@ -203,7 +202,7 @@ Status Controller::ChangeTeam(int team) const
     if (!changeTeam)
         return std::unexpected(Error::Unsupported("gamedata has no 'CCSPlayerController::ChangeTeam' vtable index"));
 
-    changeTeam.Call(_e, team);
+    changeTeam(_e, team);
     return {};
 }
 
@@ -216,7 +215,7 @@ Status Controller::Respawn() const
     if (!respawn)
         return std::unexpected(Error::Unsupported("gamedata has no 'CCSPlayerController::Respawn' vtable index"));
 
-    respawn.Call(_e);
+    respawn(_e);
     return {};
 }
 

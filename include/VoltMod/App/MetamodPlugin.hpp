@@ -87,7 +87,7 @@ protected:
     virtual bool OnPlayerChat(Player* player, std::string_view message, bool teamChat);
 
     /**
-     * @brief Add custom hooks, each a VoltMod::HookInterface, HookClassSlot or HookFunction, to @p hooks.
+     * @brief Add custom hooks, each a VoltMod::HookInterface, HookVirtual or HookFunction, to @p hooks.
      *
      * @p hooks is released before OnUnload, so a hook bound to this plugin cannot fire against
      * state OnUnload has already dropped.

@@ -4,24 +4,10 @@
 #include <format>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
 namespace VoltMod
 {
-
-/** Take the vtable GameData located at load, once it reports the slot holds code. */
-static Result<ClassVTable> BindClassVTable(const GameData::Resolution& entry)
-{
-    if (!entry.Table)
-        return std::unexpected(Error::Engine(std::format("no vtable for '{}' in '{}'", entry.Class, entry.Library)));
-
-    // GameData::Address is the slot's code, read through any hook that replaced it.
-    if (!entry.Address)
-        return std::unexpected(Error::Engine(std::format("{}::[{}] does not hold code", entry.Class, entry.Index)));
-
-    return ClassVTable(entry.Class, entry.Table);
-}
 
 /** Binds members, naming every key that does not bind. */
 class Binder
@@ -39,8 +25,17 @@ public:
     template <class Sig>
     void operator()(VirtualFn<Sig>& member, std::string_view key)
     {
-        if (const auto* entry = Claim(key, GameData::Kind::VTable))
-            member = VirtualFn<Sig>(entry->Index);
+        const auto* entry = Claim(key, GameData::Kind::VTable);
+        if (!entry)
+            return;
+
+        // GameData::Address is the slot's code, read through any hook that replaced it.
+        const bool holdsCode = entry->Table && entry->Address;
+        member = VirtualFn<Sig>(entry->Index, holdsCode ? entry->Table : nullptr);
+        if (!entry->Table)
+            _failures.push_back(std::format("{}: no vtable for '{}' in '{}'", key, entry->Class, entry->Library));
+        else if (!entry->Address)
+            _failures.push_back(std::format("{}: {}::[{}] does not hold code", key, entry->Class, entry->Index));
     }
 
     template <class T>
@@ -60,20 +55,6 @@ public:
     {
         if (const auto* entry = Claim(key, GameData::Kind::Address))
             member = Address(entry->Address);
-    }
-
-    template <class Object, class Sig>
-    void operator()(ClassSlot<Object, Sig>& member, std::string_view key)
-    {
-        const auto* entry = Claim(key, GameData::Kind::VTable);
-        if (!entry)
-            return;
-
-        member.Function = VirtualFn<Sig>(entry->Index);
-        if (auto table = BindClassVTable(*entry))
-            member.Table = std::move(*table);
-        else
-            _failures.push_back(std::format("{}: {}", key, table.error().Detail));
     }
 
 private:

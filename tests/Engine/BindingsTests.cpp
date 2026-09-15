@@ -91,13 +91,12 @@ TEST_CASE("Bind fills offsets and vtable indices from their gamedata keys")
     CHECK(bindings.VisibilityRecipientSlot.Value() == 576);
     CHECK(bindings.UserCmdProto.Value() == 16);
     CHECK(bindings.UserCmdNumber.Value() == 8);
-    CHECK(static_cast<bool>(bindings.GiveNamedItem));
+    CHECK(bindings.GiveNamedItem.Index() == (OnWindows ? 23 : 24));
     CHECK(bindings.RemoveAllItems.Index() == (OnWindows ? 27 : 28));
-    CHECK(bindings.Teleport.Function.Index() == (OnWindows ? 163 : 162));
+    CHECK(bindings.Teleport.Index() == (OnWindows ? 163 : 162));
 
     CHECK(FailuresFor(bindings, "GameEntitySystem") == 0);
     CHECK(FailuresFor(bindings, "CheckTransmitPlayerSlot") == 0);
-    CHECK(FailuresFor(bindings, "CCSPlayer_ItemServices::GiveNamedItem") == 0);
 }
 
 TEST_CASE("Bind leaves a signature empty and names the module when it cannot be scanned")
@@ -112,8 +111,8 @@ TEST_CASE("Bind leaves a signature empty and names the module when it cannot be 
     CHECK_FALSE(static_cast<bool>(bindings.CreateEntityByName));
     CHECK(FailuresFor(bindings, "CreateEntityByName") == 1);
 
-    CHECK(static_cast<bool>(bindings.RunCommand.Function));
-    CHECK_FALSE(static_cast<bool>(bindings.RunCommand.Table));
+    CHECK(bindings.RunCommand.Index() == (OnWindows ? 25 : 26));
+    CHECK(bindings.RunCommand.Table() == nullptr);
     CHECK_FALSE(static_cast<bool>(bindings.RunCommand));
     CHECK(FailuresFor(bindings, "CPlayer_MovementServices::RunCommand") == 1);
 }

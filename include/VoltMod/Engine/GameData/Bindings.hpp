@@ -7,7 +7,6 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -56,58 +55,36 @@ private:
     void* _address = nullptr;
 };
 
-/** Typed virtual function. Its signature omits the instance passed to @ref Call. */
+/**
+ * Typed virtual function: its slot and the class vtable the slot is counted in. The first parameter
+ * is the object it runs on, so a hook handler cannot be handed the wrong kind of object. Calling an
+ * unbound function is undefined.
+ */
 template <class Sig>
 class VirtualFn;
 
-template <class Ret, class... Args>
-class VirtualFn<Ret(Args...)>
+template <class Ret, class Object, class... Args>
+class VirtualFn<Ret(Object*, Args...)>
 {
 public:
     VirtualFn() = default;
-    explicit constexpr VirtualFn(int index) noexcept : _index(index) {}
+    VirtualFn(int index, void* table) noexcept : _index(index), _table(table) {}
 
-    explicit constexpr operator bool() const noexcept { return _index >= 0; }
+    /** Bound once the slot is known to hold code in a located class table. */
+    explicit operator bool() const noexcept { return _index >= 0 && _table != nullptr; }
+    int Index() const noexcept { return _index; }
+    void* Table() const noexcept { return _table; }
 
-    /** Vtable slot used by hook setup. */
-    constexpr int Index() const noexcept { return _index; }
-
-    /** Dispatch on @p instance. Both the binding and instance must be valid. */
-    Ret Call(void* instance, Args... args) const
+    /** Dispatch through @p object's own vtable. */
+    Ret operator()(Object* object, Args... args) const
     {
-        auto* vtable = *reinterpret_cast<void***>(instance);
-        return std::bit_cast<Ret (*)(void*, Args...)>(vtable[_index])(instance, std::forward<Args>(args)...);
+        auto* vtable = *reinterpret_cast<void***>(object);
+        return std::bit_cast<Ret (*)(Object*, Args...)>(vtable[_index])(object, std::forward<Args>(args)...);
     }
 
 private:
     int _index = -1;
-};
-
-/** A class's primary vtable and its name. */
-class ClassVTable
-{
-public:
-    ClassVTable() = default;
-    ClassVTable(std::string className, void* table) : _className(std::move(className)), _table(table) {}
-
-    explicit operator bool() const noexcept { return _table != nullptr; }
-    void* Ptr() const noexcept { return _table; }
-    std::string_view ClassName() const noexcept { return _className; }
-
-private:
-    std::string _className;
     void* _table = nullptr;
-};
-
-/** One virtual function's slot in a class vtable, from one gamedata entry. @p Object is the engine
- *  class it runs on, so a hook handler cannot be handed the wrong kind of object. */
-template <class Object, class Sig>
-struct ClassSlot
-{
-    VirtualFn<Sig> Function;
-    ClassVTable Table;
-
-    explicit operator bool() const noexcept { return static_cast<bool>(Function) && static_cast<bool>(Table); }
 };
 
 /** Typed byte offset. Unbound access is inert and reads/writes support unaligned fields. */
@@ -223,26 +200,25 @@ struct Bindings
     /** CUtlVector<AddedGameSystem_t>* used to remove systems on unload. */
     Address GameSystemList;
 
-    /** CBasePlayerPawn::CommitSuicide(bool explode, bool force). */
-    VirtualFn<void(bool, bool)> CommitSuicide;
+    /** CBasePlayerPawn::CommitSuicide(bool explode, bool force), counted in CCSPlayerPawn. */
+    VirtualFn<void(CEntityInstance*, bool, bool)> CommitSuicide;
     /** CCSPlayerController::ChangeTeam(int team). */
-    VirtualFn<void(int)> ChangeTeam;
+    VirtualFn<void(CEntityInstance*, int)> ChangeTeam;
     /** CCSPlayerController::Respawn(). */
-    VirtualFn<void()> Respawn;
-    /** CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*), hooked on CCSPlayerPawn.
-     *  A direct call needs only Function; the hook also needs the table. */
-    ClassSlot<EnginePawn, void(const Vector*, const QAngle*, const Vector*)> Teleport;
+    VirtualFn<void(CEntityInstance*)> Respawn;
+    /** CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*), hooked on CCSPlayerPawn. */
+    VirtualFn<void(CEntityInstance*, const Vector*, const QAngle*, const Vector*)> Teleport;
     /** CPlayer_MovementServices::RunCommand(CUserCmd*), hooked on CCSPlayer_MovementServices. */
-    ClassSlot<EngineMovementServices, void*(void*)> RunCommand;
+    VirtualFn<void*(EngineMovementServices*, void*)> RunCommand;
     /** CCSPlayer_ItemServices::GiveNamedItem(const char* classname). */
-    VirtualFn<void*(const char*)> GiveNamedItem;
+    VirtualFn<void*(void*, const char*)> GiveNamedItem;
     /** CCSPlayer_ItemServices::RemoveAllItems(bool removeSuit). */
-    VirtualFn<void(bool)> RemoveAllItems;
+    VirtualFn<void(void*, bool)> RemoveAllItems;
     /** CServerSideClient::ProcessRespondCvarValue(...), hooked on CServerSideClient. */
-    ClassSlot<EngineClient, bool(const void*)> ProcessRespondCvarValue;
+    VirtualFn<bool(EngineClient*, const void*)> ProcessRespondCvarValue;
     /** CServerSideClient::SendNetMessage(const CNetMessage*, NetChannelBufType_t), hooked on
      *  CServerSideClient. The SDK enum is represented as int here. */
-    ClassSlot<EngineClient, bool(const CNetMessage*, int)> SendNetMessage;
+    VirtualFn<bool(EngineClient*, const CNetMessage*, int)> SendNetMessage;
 
     /** CGameEntitySystem* cached inside IGameResourceService. */
     OffsetOf<CGameEntitySystem*> GameEntitySystem;

@@ -6,7 +6,7 @@
 
 ```
 VoltMod
-├── Core        Primitives: events and subscriptions, results, capabilities, policy,
+├── Core        Primitives: events and subscriptions, results, load steps, policy,
 │               scheduler, slot events, translations, parsing, per-slot caches, helpers
 ├── Engine      Interfaces, gamedata + typed Bindings, ConVar<T>, clock, maps, precache, commands
 ├── Entities    Entity lookup, the Entity/Pawn/Controller wrappers, schema fields, items,
@@ -21,7 +21,7 @@ VoltMod
 ├── Menu        Menu model and Flow wizard, drawn as center HTML
 ├── Database    Async Postgres/MariaDB/SQLite, chosen at runtime
 ├── Http        Async HTTP client + JSON REST helpers
-├── Unsafe      Opt-in raw hooking: HookInterface, HookClassSlot, HookFunction (Hook.hpp),
+├── Unsafe      Opt-in raw hooking: HookInterface, HookVirtual, HookFunction (Hook.hpp),
 │               each returning the Subscription that removes the hook
 └── App         The composition root: Runtime, MetamodPlugin, ServiceExchange
 ```

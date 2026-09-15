@@ -110,13 +110,13 @@ Custom hooks use three entry points, each yielding the @ref VoltMod::Subscriptio
 hook when it is dropped:
 
 - `VoltMod::HookInterface` takes a member function pointer and hooks that one interface object.
-- `VoltMod::HookClassSlot` takes a gamedata @ref VoltMod::ClassSlot and hooks every object sharing
-  the class vtable. It reports a missing slot or table as an error rather than installing nothing.
+- `VoltMod::HookVirtual` takes a gamedata @ref VoltMod::VirtualFn and hooks every object sharing
+  its class vtable. It reports an unbound slot as an error rather than installing nothing.
 - `VoltMod::HookFunction` takes a gamedata signature, a `Fn` whose first parameter is the object,
   and hooks the function where its code starts. Use it for a function no class vtable reaches: one
   that is not virtual, or one on a secondary base.
 
-Prefer `HookClassSlot` for a virtual function. A hook where the code starts catches every caller,
+Prefer `HookVirtual` for a virtual function. A hook where the code starts catches every caller,
 and the compiler often gives many classes one shared body - a slot that returns `false` can be the
 same code in hundreds of unrelated classes.
 
@@ -137,10 +137,10 @@ class CommandWatcher
     void Install()
     {
         // void* CPlayer_MovementServices::RunCommand(CUserCmd*)
-        auto hook = VoltMod::HookClassSlot("MyPlugin RunCommand", _rt.Unsafe.Bindings.RunCommand,
-                                           [this](VoltMod::EngineMovementServices& services, void* userCmd) {
-                                               Record(&services, userCmd);
-                                           });
+        auto hook = VoltMod::HookVirtual("MyPlugin RunCommand", _rt.Unsafe.Bindings.RunCommand,
+                                         [this](VoltMod::EngineMovementServices& services, void* userCmd) {
+                                             Record(&services, userCmd);
+                                         });
         if (!hook)
         {
             VoltMod::Log::Warn("command watch off: {}", hook.error().Detail);
@@ -151,8 +151,8 @@ class CommandWatcher
 };
 ```
 
-`ClassSlot` keeps the slot, the class table and the class identity from one gamedata entry
-together. Direct calls use its `Function`, a `VirtualFn`, to dispatch through an instance.
+A `VirtualFn` keeps the slot, the class table and the object type from one gamedata entry
+together. Calling it dispatches through the object's own vtable.
 
 ### What it does for you, and what it does not
 

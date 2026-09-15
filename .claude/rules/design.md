@@ -37,7 +37,7 @@ The shapes the framework already uses. New code follows them instead of adding a
 
 ## Hooks and subscriptions
 
-- An engine hook is a `HookInterface`, `HookClassSlot` or `HookFunction` call from `<VoltMod/Unsafe/Hook.hpp>`, yielding the `Subscription` that removes it. `HookFunction` is for a signature-bound function no class vtable reaches; a virtual function uses a vtable hook. Handlers are callables taking the hooked object first; a before-handler returns `HookResult` or nothing, an after-handler observes and is handed the value the call will return. `HookResult` lives in `<VoltMod/Core/HookResult.hpp>` and is safe in any header. Only a .cpp, or a header under `src/`, reaches `Hook.hpp`; a public header that holds a hook keeps the `Subscription` and needs `<VoltMod/Core/Subscription.hpp>` alone.
+- An engine hook is a `HookInterface`, `HookVirtual` or `HookFunction` call from `<VoltMod/Unsafe/Hook.hpp>`, yielding the `Subscription` that removes it. `HookFunction` is for a signature-bound function no class vtable reaches; a virtual function uses a vtable hook. Handlers are callables taking the hooked object first; a before-handler returns `HookResult` or nothing, an after-handler observes and is handed the value the call will return. `HookResult` lives in `<VoltMod/Core/HookResult.hpp>` and is safe in any header. Only a .cpp, or a header under `src/`, reaches `Hook.hpp`; a public header that holds a hook keeps the `Subscription` and needs `<VoltMod/Core/Subscription.hpp>` alone.
 - Event, game-event, scheduler, and hook registrations return `[[nodiscard]] Subscription`. Dropping it unsubscribes; a scheduler one-shot is cancelled the same way.
 - Commands are owned by `CommandManager` for the load cycle.
 
