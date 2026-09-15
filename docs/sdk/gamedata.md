@@ -48,18 +48,24 @@ Four sections, named after what they bind. Each key is the engine's own name for
     }
   },
 
-  // A vtable slot, counted in the primary table of `class`.
+  // A vtable slot, counted in the primary table of `class`, or in the table of its base `base`.
   "vtables": {
     "CPlayer_MovementServices::RunCommand": { "class": "CCSPlayer_MovementServices", "windows": 25, "linux": 26 },
     "CServerSideClient::ProcessRespondCvarValue": { "class": "CServerSideClient", "module": "engine2", "windows": 38, "linux": 40 }
   },
 
-  // A byte offset into a layout the SDK headers do not declare.
+  // A byte offset into a layout the SDK headers do not declare, or where a base sits in a class.
   "offsets": {
-    "CheckTransmitPlayerSlot": { "windows": 576, "linux": 576 }
+    "CheckTransmitPlayerSlot": { "windows": 576, "linux": 576 },
+    "CServerSideClient::INetworkMessageProcessingPreFilter": {
+      "class": "CServerSideClient", "base": "INetworkMessageProcessingPreFilter", "module": "engine2"
+    }
   }
 }
 ```
+
+A base offset and a `base` vtable are read from RTTI at load, so they need no per-platform number
+and cannot go stale. A base that appears more than once in the class, or a virtual base, is refused.
 
 Wildcard bytes are `?` or `??`. `gamedata.schema.json` sits next to the file with
 `additionalProperties: false` everywhere, so an editor flags a typo before the server sees it.
@@ -76,7 +82,9 @@ Then each member binds from its key, or fails with a line naming the key and the
 - a pattern is empty, its module is not loaded, or it matches nowhere or more than once;
 - a global's rel32 displacement, or the address it points at, is outside its module or unreadable;
 - an offset or index is negative;
-- a vtable's class table is not found, or its slot does not hold code.
+- a vtable's class table is not found, or its slot does not hold code;
+- a `base` is not in its class through RTTI, is in it more than once, is virtual, or has no vtable
+  of its own where a slot is counted in it.
 
 The `GameData` load step lists every failure, and each feature reports its own from
 `Available()`. An entry nothing binds is a warning, not a failure.
@@ -138,7 +146,7 @@ The entries most likely to bite, and how each one fails:
 | `CUserCmdBase::cmdNum` | offsets | `PlayerInput::CommandNumber` | Missing: falls back to the protobuf's `legacy_command_number`, which live clients leave at 0. Stale: a counter that never increments by 1 |
 | `CServerSideClientBase::m_nClientSlot` | offsets | `ClientConVars`, `ButtonPresses` | Stale: a client's answer is attributed to the wrong player |
 | `INetworkMessageProcessingPreFilter::FilterMessage` | functions | @ref VoltMod::ScreenManager::Pressed | Missing: `ScreenManager::Available` fails; presses never arrive |
-| `CServerSideClient::INetworkMessageProcessingPreFilter` | offsets | @ref VoltMod::ScreenManager::Pressed | Stale: a press is attributed to the wrong player, or dropped |
+| `CServerSideClient::INetworkMessageProcessingPreFilter` | offsets (RTTI) | @ref VoltMod::ScreenManager::Pressed | Missing: the base was renamed or its RTTI changed; `ScreenManager::Available` fails |
 | `CNetworkGameServer::ReplyConnection` | functions | @ref VoltMod::Addons | Missing: `Require` is refused with the reason |
 | `CNetworkGameServer::m_szAddons` | offsets | @ref VoltMod::Addons | Stale: clients download addons but mount none, or a corrupted reply |
 | `CheckTransmitPlayerSlot` | offsets | @ref VoltMod::Visibility | Stale: the wrong recipient is filtered |
@@ -175,17 +183,19 @@ module. Plugins use it through gamedata rather than directly.
 
 ### Vtable lookup by class name
 
-`FindVirtualTable(moduleName, className)` resolves primary class tables. `VirtualFn` keeps each
-resolved table with its slot. A function on a secondary base has no primary slot, so it is bound
-by pattern and hooked with `HookFunction` instead.
+`FindVirtualTable(moduleName, className)` resolves primary class tables, and `FindBaseIn` finds
+where a base sits in a class and that base's own table. `VirtualFn` keeps each resolved table with
+its slot.
 
-- Windows: walks the module's RTTI: the type descriptor for `.?AV<class>@@`, the complete object
-  locator referencing it, then the vtable that follows. Only a locator at offset 0 is accepted, so
-  the result is always the class's primary vtable, never a base subobject's. The name has to be the
-  top-level class name exactly: a `struct` (`.?AU`), a nested class, or a namespaced one resolves to
-  null.
+- Windows: walks the module's RTTI: the type descriptor for `.?AV<class>@@` or `.?AU<class>@@`,
+  the complete object locator referencing it (its signature and its own RVA must match), then the
+  vtable that follows. A base's offset comes from the class hierarchy's base list, and its table
+  follows the locator at that offset. The name has to be the top-level class name exactly: a nested
+  or namespaced class resolves to null.
 - Linux: reads `_ZTV<mangled>` from the ELF `.symtab`, falling back to `.dynsym`. The game's
-  libraries hide those symbols, so it then walks the Itanium RTTI in the mapped module.
+  modules hide those symbols, so it then walks the Itanium RTTI in the mapped module. A base's
+  offset is summed along the typeinfo base lists, and its table is the one whose offset-to-top is
+  minus that offset.
 
 When lookup fails, the entry does not bind.
 

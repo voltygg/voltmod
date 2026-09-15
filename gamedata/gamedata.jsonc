@@ -253,8 +253,11 @@
     // From MultiAddonManager; Windows checked on build 2000908.
     "CNetworkGameServer::m_szAddons": { "windows": 344, "linux": 344 },
 
-    // A base, not a field: FilterMessage's `this`. From SwiftlyS2; Windows checked against RTTI on
-    // build 2000908.
-    "CServerSideClient::INetworkMessageProcessingPreFilter": { "windows": 8, "linux": 48 }
+    // A base, not a field: FilterMessage's `this`, read from RTTI. Expect 8 on Windows, 48 on Linux.
+    "CServerSideClient::INetworkMessageProcessingPreFilter": {
+      "class": "CServerSideClient",
+      "base": "INetworkMessageProcessingPreFilter",
+      "module": "engine2"
+    }
   }
 }

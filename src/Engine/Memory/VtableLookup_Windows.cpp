@@ -5,12 +5,30 @@
 // The section walk below uses the IMAGE_* declarations.
 #include <windows.h>
 
+#include <array>
 #include <cstdint>
 #include <cstring>
+#include <format>
 #include <string>
+#include <string_view>
 
 namespace VoltMod
 {
+
+// MSVC x64 RTTI records, as offsets into each one. RVAs are relative to the module base.
+static constexpr size_t TypeDescriptorName = 0x10;
+static constexpr size_t LocatorOffset = 0x04;
+static constexpr size_t LocatorTypeDescriptor = 0x0C;
+static constexpr size_t LocatorHierarchy = 0x10;
+static constexpr size_t LocatorSelf = 0x14;
+static constexpr size_t LocatorSize = 0x18;
+static constexpr size_t HierarchyBaseCount = 0x08;
+static constexpr size_t HierarchyBaseList = 0x0C;
+static constexpr size_t HierarchySize = 0x10;
+static constexpr size_t BaseMemberOffset = 0x08;
+static constexpr size_t BaseVirtualOffset = 0x0C;
+static constexpr size_t BaseSize = 0x18;
+static constexpr uint32_t MaxBases = 1024;
 
 /** First `needle` in [begin, end), stepping `stride` bytes to preserve alignment. */
 static const uint8_t* FindValue(const uint8_t* begin, const uint8_t* end, const void* needle, size_t len, size_t stride)
@@ -26,13 +44,140 @@ static const uint8_t* FindValue(const uint8_t* begin, const uint8_t* end, const 
     return nullptr;
 }
 
-struct Section
+template <typename T>
+static T ReadAt(const uint8_t* address)
 {
-    const uint8_t* Begin = nullptr;
-    const uint8_t* End = nullptr;
-};
+    T value{};
+    std::memcpy(&value, address, sizeof(T));
+    return value;
+}
 
-static Section FindSection(const LoadedModule& loaded, const char* name)
+static const uint8_t* End(const ScanRange& range)
+{
+    return range.Base ? range.Base + range.Size : nullptr;
+}
+
+/** @p bytes at @p rva inside the module, or null when they run outside it. */
+static const uint8_t* AtRva(const PeRtti& rtti, int64_t rva, size_t bytes)
+{
+    if (rva < 0 || static_cast<uint64_t>(rva) > rtti.Size || rtti.Size - static_cast<size_t>(rva) < bytes)
+        return nullptr;
+    return rtti.Base + rva;
+}
+
+/** How MSVC names a class or a struct called @p name in RTTI. */
+static std::array<std::string, 2> MangledNames(std::string_view name)
+{
+    return {std::format(".?AV{}@@", name), std::format(".?AU{}@@", name)};
+}
+
+/** RVA of @p className's type descriptor, or 0. */
+static uint32_t FindTypeDescriptor(const PeRtti& rtti, std::string_view className)
+{
+    for (const std::string& mangled : MangledNames(className))
+    {
+        // Include the terminator so a longer name does not match.
+        const uint8_t* name = FindValue(rtti.Data.Base, End(rtti.Data), mangled.c_str(), mangled.size() + 1, 1);
+        if (name && static_cast<size_t>(name - rtti.Base) >= TypeDescriptorName)
+            return static_cast<uint32_t>(name - rtti.Base - TypeDescriptorName);
+    }
+    return 0;
+}
+
+/** Whether the type descriptor at @p rva names @p className. */
+static bool TypeDescriptorNames(const PeRtti& rtti, int32_t rva, std::string_view className)
+{
+    for (const std::string& mangled : MangledNames(className))
+    {
+        const uint8_t* name = AtRva(rtti, int64_t{rva} + TypeDescriptorName, mangled.size() + 1);
+        if (name && std::memcmp(name, mangled.c_str(), mangled.size() + 1) == 0)
+            return true;
+    }
+    return false;
+}
+
+/** The locator for the table at @p offset in the class @p typeDescriptor names. Its signature and
+ *  its own RVA must match, so a coincidental matching RVA is not taken. */
+static const uint8_t* FindLocator(const PeRtti& rtti, uint32_t typeDescriptor, uint32_t offset)
+{
+    const uint8_t* begin = rtti.ReadOnlyData.Base;
+    const uint8_t* end = End(rtti.ReadOnlyData);
+    for (const uint8_t* ref = FindValue(begin, end, &typeDescriptor, sizeof(uint32_t), 4); ref;
+         ref = FindValue(ref + 4, end, &typeDescriptor, sizeof(uint32_t), 4))
+    {
+        if (static_cast<size_t>(ref - begin) < LocatorTypeDescriptor ||
+            static_cast<size_t>(end - ref) < LocatorSize - LocatorTypeDescriptor)
+            continue;
+
+        const uint8_t* locator = ref - LocatorTypeDescriptor;
+        if (ReadAt<uint32_t>(locator) == 1 && ReadAt<uint32_t>(locator + LocatorOffset) == offset &&
+            ReadAt<uint32_t>(locator + LocatorSelf) == static_cast<uint32_t>(locator - rtti.Base))
+            return locator;
+    }
+    return nullptr;
+}
+
+/** The vtable whose first slot follows the `.rdata` word pointing at @p locator. */
+static void* TableAfter(const PeRtti& rtti, const uint8_t* locator)
+{
+    const uint8_t* word =
+        FindValue(rtti.ReadOnlyData.Base, End(rtti.ReadOnlyData), &locator, sizeof(void*), sizeof(void*));
+    return word ? const_cast<uint8_t*>(word + sizeof(void*)) : nullptr;
+}
+
+void* FindVirtualTableInRtti(const PeRtti& rtti, const char* className)
+{
+    const uint32_t typeDescriptor = FindTypeDescriptor(rtti, className);
+    const uint8_t* locator = typeDescriptor ? FindLocator(rtti, typeDescriptor, 0) : nullptr;
+    return locator ? TableAfter(rtti, locator) : nullptr;
+}
+
+Result<BaseSubobject> FindBaseInRtti(const PeRtti& rtti, const char* className, const char* baseName)
+{
+    const uint32_t typeDescriptor = FindTypeDescriptor(rtti, className);
+    const uint8_t* locator = typeDescriptor ? FindLocator(rtti, typeDescriptor, 0) : nullptr;
+    if (!locator)
+        return std::unexpected(Error::NotFound(std::format("no RTTI for '{}'", className)));
+
+    const uint8_t* hierarchy = AtRva(rtti, ReadAt<int32_t>(locator + LocatorHierarchy), HierarchySize);
+    const uint32_t count = hierarchy ? ReadAt<uint32_t>(hierarchy + HierarchyBaseCount) : 0;
+    const uint8_t* bases = hierarchy && count <= MaxBases
+                               ? AtRva(rtti, ReadAt<int32_t>(hierarchy + HierarchyBaseList), count * sizeof(int32_t))
+                               : nullptr;
+    if (!bases)
+        return std::unexpected(Error::Invalid(std::format("the RTTI base list of '{}' is unreadable", className)));
+
+    std::vector<int32_t> offsets;
+    size_t virtualBases = 0;
+    // The first entry is the class itself; the rest are every base, direct or not, with its offset.
+    for (uint32_t i = 1; i < count; ++i)
+    {
+        const uint8_t* base = AtRva(rtti, ReadAt<int32_t>(bases + i * sizeof(int32_t)), BaseSize);
+        if (!base || !TypeDescriptorNames(rtti, ReadAt<int32_t>(base), baseName))
+            continue;
+
+        if (ReadAt<int32_t>(base + BaseVirtualOffset) != -1)
+            ++virtualBases;
+        else
+            offsets.push_back(ReadAt<int32_t>(base + BaseMemberOffset));
+    }
+
+    if (offsets.size() + virtualBases > 1)
+        return std::unexpected(
+            Error::Invalid(std::format("'{}' is a base {} times", baseName, offsets.size() + virtualBases)));
+    if (virtualBases)
+        return std::unexpected(Error::Unsupported(std::format("'{}' is a virtual base", baseName)));
+    if (offsets.empty())
+        return std::unexpected(Error::NotFound(std::format("'{}' is not a base", baseName)));
+
+    const int32_t offset = offsets.front();
+    const uint8_t* baseLocator =
+        offset == 0 ? locator : FindLocator(rtti, typeDescriptor, static_cast<uint32_t>(offset));
+    return BaseSubobject{.Offset = offset, .Table = baseLocator ? TableAfter(rtti, baseLocator) : nullptr};
+}
+
+/** @p name's section in @p loaded, or an empty range. */
+static ScanRange FindSection(const LoadedModule& loaded, const char* name)
 {
     const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(loaded.Base);
     if (loaded.Size < sizeof(IMAGE_DOS_HEADER) || dos->e_magic != IMAGE_DOS_SIGNATURE)
@@ -55,55 +200,33 @@ static Section FindSection(const LoadedModule& loaded, const char* name)
         if (sections[i].VirtualAddress + static_cast<size_t>(size) > loaded.Size)
             return {};
 
-        const uint8_t* begin = loaded.Base + sections[i].VirtualAddress;
-        return {begin, begin + size};
+        return {loaded.Base + sections[i].VirtualAddress, size};
     }
     return {};
 }
 
-template <typename T>
-static T ReadAt(const uint8_t* address)
+static PeRtti RttiOf(const LoadedModule& loaded)
 {
-    T value{};
-    std::memcpy(&value, address, sizeof(T));
-    return value;
+    return {.Base = loaded.Base,
+            .Size = loaded.Size,
+            .Data = FindSection(loaded, ".data"),
+            .ReadOnlyData = FindSection(loaded, ".rdata")};
 }
 
 void* FindVirtualTableIn(const LoadedModule& loaded, const char* className)
 {
-    const Section data = FindSection(loaded, ".data");
-    const Section rdata = FindSection(loaded, ".rdata");
-    if (!data.Begin || !rdata.Begin)
+    const PeRtti rtti = RttiOf(loaded);
+    if (!rtti.Data.Base || !rtti.ReadOnlyData.Base)
         return nullptr;
+    return FindVirtualTableInRtti(rtti, className);
+}
 
-    // RTTITypeDescriptor stores the name at 0x10; include the terminator for exact matching.
-    const std::string mangled = ".?AV" + std::string(className) + "@@";
-    const uint8_t* mangledName = FindValue(data.Begin, data.End, mangled.c_str(), mangled.size() + 1, 1);
-    if (!mangledName || mangledName - loaded.Base < 0x10)
-        return nullptr;
-
-    const uint8_t* typeDescriptor = mangledName - 0x10;
-    const auto typeDescriptorRva = static_cast<uint32_t>(typeDescriptor - loaded.Base);
-
-    // RTTICompleteObjectLocator stores pTypeDescriptor at offset 0xC.
-    constexpr ptrdiff_t PTypeDescriptorOffset = 0xC;
-
-    for (const uint8_t* ref = FindValue(rdata.Begin, rdata.End, &typeDescriptorRva, sizeof(uint32_t), 4); ref;
-         ref = FindValue(ref + 4, rdata.End, &typeDescriptorRva, sizeof(uint32_t), 4))
-    {
-        if (ref - PTypeDescriptorOffset < rdata.Begin)
-            continue;
-
-        // Require an x64 complete-object locator, not a coincidental matching RVA.
-        const uint8_t* locator = ref - PTypeDescriptorOffset;
-        if (ReadAt<uint32_t>(locator) != 1 || ReadAt<uint32_t>(locator + 4) != 0)
-            continue;
-
-        // The locator pointer immediately precedes the first virtual function.
-        if (const uint8_t* slot = FindValue(rdata.Begin, rdata.End, &locator, sizeof(void*), sizeof(void*)))
-            return const_cast<uint8_t*>(slot + sizeof(void*));
-    }
-    return nullptr;
+Result<BaseSubobject> FindBaseIn(const LoadedModule& loaded, const char* className, const char* baseName)
+{
+    const PeRtti rtti = RttiOf(loaded);
+    if (!rtti.Data.Base || !rtti.ReadOnlyData.Base)
+        return std::unexpected(Error::NotFound("the module has no RTTI sections"));
+    return FindBaseInRtti(rtti, className, baseName);
 }
 
 }  // namespace VoltMod

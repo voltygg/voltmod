@@ -42,19 +42,24 @@ struct GameDataDocument
         std::optional<GlobalColumn> Linux;
     };
 
-    /** A slot counted in the primary vtable of `class`. */
+    /** A slot counted in the vtable of `class`, or of its base `base` when one is named. */
     struct VTable
     {
         std::string Class;
+        std::string Base;
         std::string Module = "server";
         std::optional<int> Windows;
         std::optional<int> Linux;
     };
 
+    /** A byte offset per platform, or, with `base`, where that base sits in `class` read from RTTI. */
     struct Offset
     {
         std::optional<int> Windows;
         std::optional<int> Linux;
+        std::string Class;
+        std::string Base;
+        std::string Module = "server";
     };
 
     Build build;
@@ -109,13 +114,14 @@ template <>
 struct glz::meta<VoltMod::GameDataDocument::VTable>
 {
     using T = VoltMod::GameDataDocument::VTable;
-    static constexpr auto value =
-        glz::object("class", &T::Class, "module", &T::Module, "windows", &T::Windows, "linux", &T::Linux);
+    static constexpr auto value = glz::object("class", &T::Class, "base", &T::Base, "module", &T::Module, "windows",
+                                              &T::Windows, "linux", &T::Linux);
 };
 
 template <>
 struct glz::meta<VoltMod::GameDataDocument::Offset>
 {
     using T = VoltMod::GameDataDocument::Offset;
-    static constexpr auto value = glz::object("windows", &T::Windows, "linux", &T::Linux);
+    static constexpr auto value = glz::object("windows", &T::Windows, "linux", &T::Linux, "class", &T::Class, "base",
+                                              &T::Base, "module", &T::Module);
 };

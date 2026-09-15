@@ -94,6 +94,8 @@ void GameDataResolver::LogSummary(std::string_view path) const
               _file.vtables.size(), _file.offsets.size());
     if (!_slotAddresses.empty())
         Log::Info("GameData: vtable slots hold {}.", Strings::Join(_slotAddresses, ", "));
+    if (!_baseOffsets.empty())
+        Log::Info("GameData: RTTI placed {}.", Strings::Join(_baseOffsets, ", "));
 
     std::vector<std::string> unused;
     for (const auto& [key, sections] : _sections)
@@ -104,10 +106,14 @@ void GameDataResolver::LogSummary(std::string_view path) const
     if (!unused.empty())
         Log::Warn("GameData: {} entries bind to nothing: {}.", unused.size(), Strings::Join(unused, ", "));
 
-    // A pattern proves itself by matching once; an index or offset cannot.
+    // A pattern or RTTI proves itself at load; a hand-kept index or offset cannot.
     if (_file.build.server != GameBuild())
+    {
+        const auto numbered =
+            std::ranges::count_if(_file.offsets, [](const auto& each) { return each.second.Base.empty(); });
         Log::Warn("GameData: verified on server {}, running {}: {} vtable indices and {} offsets are unchecked.",
-                  _file.build.server, GameBuild(), _file.vtables.size(), _file.offsets.size());
+                  _file.build.server, GameBuild(), _file.vtables.size(), numbered);
+    }
 }
 
 Result<std::string_view> GameDataResolver::Claim(std::string_view key, std::initializer_list<std::string_view> readable)
@@ -175,15 +181,25 @@ Result<VirtualSlot> GameDataResolver::FindSlot(const std::string& key)
     if (!loaded)
         return Unbound(std::format("module '{}' is not loaded", entry.Module));
 
-    void* table = Table(*loaded, entry.Module, entry.Class);
-    if (!table)
+    void* table = nullptr;
+    if (entry.Base.empty())
+        table = Table(*loaded, entry.Module, entry.Class);
+    else if (const auto base = FindBase(*loaded, entry.Module, entry.Class, entry.Base); !base)
+        return std::unexpected(base.error());
+    else
+        table = base->Table;
+
+    if (!table && entry.Base.empty())
         return Unbound(std::format("no vtable for '{}' in '{}'", entry.Class, entry.Module));
+    if (!table)
+        return Unbound(std::format("'{}' has no vtable of its own in '{}'", entry.Base, entry.Class));
 
     // A short table ends before the index, so the slot is checked before it is read.
     void** slot = static_cast<void**>(table) + *index;
     const void* code = IsReadableAddress(slot, sizeof(void*)) ? OriginalSlot(table, *index, _originalOf) : nullptr;
     if (!IsExecutableAddress(code))
-        return Unbound(std::format("{}::[{}] does not hold code", entry.Class, *index));
+        return Unbound(
+            std::format("{}::[{}] does not hold code", entry.Base.empty() ? entry.Class : entry.Base, *index));
 
     // Hook trampolines live outside the module and have no useful module offset.
     if (loaded->Contains(code))
@@ -194,7 +210,11 @@ Result<VirtualSlot> GameDataResolver::FindSlot(const std::string& key)
 
 Result<int> GameDataResolver::FindOffset(const std::string& key)
 {
-    const auto& value = PlatformColumn(_file.offsets.at(key));
+    const GameDataDocument::Offset& entry = _file.offsets.at(key);
+    if (!entry.Base.empty())
+        return FindBaseOffset(key, entry);
+
+    const auto& value = PlatformColumn(entry);
     if (!value)
         return Unbound(std::format("no {} offset", PlatformName));
     if (*value < 0)
@@ -202,6 +222,24 @@ Result<int> GameDataResolver::FindOffset(const std::string& key)
 
     _record.Offsets.emplace(key, *value);
     return *value;
+}
+
+Result<int> GameDataResolver::FindBaseOffset(const std::string& key, const GameDataDocument::Offset& entry)
+{
+    if (entry.Class.empty())
+        return Unbound(std::format("base '{}' names no class", entry.Base));
+
+    const LoadedModule* loaded = FindModule(entry.Module);
+    if (!loaded)
+        return Unbound(std::format("module '{}' is not loaded", entry.Module));
+
+    const auto base = FindBase(*loaded, entry.Module, entry.Class, entry.Base);
+    if (!base)
+        return std::unexpected(base.error());
+
+    _baseOffsets.push_back(std::format("{} at +{}", key, base->Offset));
+    _record.Offsets.emplace(key, base->Offset);
+    return base->Offset;
 }
 
 const LoadedModule* GameDataResolver::FindModule(const std::string& moduleName)
@@ -217,6 +255,16 @@ void* GameDataResolver::Table(const LoadedModule& loaded, const std::string& mod
     auto [it, added] = _tables.try_emplace({moduleName, className}, nullptr);
     if (added)
         it->second = FindVirtualTableIn(loaded, className.c_str());
+    return it->second;
+}
+
+Result<BaseSubobject> GameDataResolver::FindBase(const LoadedModule& loaded, const std::string& moduleName,
+                                                 const std::string& className, const std::string& baseName)
+{
+    auto key = std::tuple{moduleName, className, baseName};
+    auto it = _bases.find(key);
+    if (it == _bases.end())
+        it = _bases.emplace(std::move(key), FindBaseIn(loaded, className.c_str(), baseName.c_str())).first;
     return it->second;
 }
 

@@ -6,6 +6,7 @@
 #include <cctype>
 #include <cstdint>
 #include <cstring>
+#include <format>
 #include <span>
 #include <string>
 #include <string_view>
@@ -37,6 +38,13 @@ static uintptr_t ReadWord(uintptr_t address)
     uintptr_t word = 0;
     std::memcpy(&word, reinterpret_cast<const void*>(address), sizeof(word));
     return word;
+}
+
+static uint32_t ReadU32(uintptr_t address)
+{
+    uint32_t value = 0;
+    std::memcpy(&value, reinterpret_cast<const void*>(address), sizeof(value));
+    return value;
 }
 
 /** Every aligned word in @p ranges holding @p value, with a readable word on each side. */
@@ -101,6 +109,142 @@ std::optional<int> FindSlotInTable(void* table, const void* function, const Orig
             return index;
     }
     return std::nullopt;
+}
+
+// Itanium typeinfo layouts: {vptr, name}; one base adds {base}; several add {flags, count, {base, offset_flags}...}.
+static constexpr size_t TypeInfoBase = 2 * sizeof(void*);
+static constexpr size_t TypeInfoFlags = 2 * sizeof(void*);
+static constexpr size_t TypeInfoCount = TypeInfoFlags + sizeof(uint32_t);
+static constexpr size_t TypeInfoBaseList = 3 * sizeof(void*);
+static constexpr size_t BaseEntrySize = 2 * sizeof(void*);
+static constexpr uintptr_t VirtualBaseFlag = 1;
+
+/** Past these the bytes are not a real hierarchy. */
+static constexpr uint32_t MaxBases = 64;
+static constexpr int MaxDepth = 32;
+
+/** Whether @p address reads as a typeinfo: aligned, a vptr, then a pointer to a mangled name. */
+static bool LooksLikeTypeInfo(uintptr_t address)
+{
+    if (!address || address % alignof(void*) != 0 ||
+        !IsReadableAddress(reinterpret_cast<const void*>(address), 2 * sizeof(void*)))
+        return false;
+
+    const auto* name = reinterpret_cast<const char*>(ReadWord(address + sizeof(void*)));
+    if (!IsReadableAddress(name, 1))
+        return false;
+    return std::isdigit(static_cast<unsigned char>(*name)) || *name == 'N' || *name == '*';
+}
+
+/** Whether the typeinfo at @p address is named @p mangled. The typeinfo must be readable. */
+static bool NameIs(uintptr_t address, std::string_view mangled)
+{
+    const auto* name = reinterpret_cast<const char*>(ReadWord(address + sizeof(void*)));
+    return IsReadableAddress(name, mangled.size() + 1) && std::string_view(name, mangled.size()) == mangled &&
+           name[mangled.size()] == '\0';
+}
+
+static bool HasSingleBase(uintptr_t typeInfo, const TypeInfoKinds& kinds)
+{
+    if (kinds.SingleBase)
+        return ReadWord(typeInfo) == kinds.SingleBase;
+    return IsReadableAddress(reinterpret_cast<const void*>(typeInfo), TypeInfoBase + sizeof(void*)) &&
+           LooksLikeTypeInfo(ReadWord(typeInfo + TypeInfoBase));
+}
+
+/** How many bases a several-base typeinfo lists, or 0 when it is not one. */
+static uint32_t BaseCount(uintptr_t typeInfo, const TypeInfoKinds& kinds)
+{
+    if (kinds.MultipleBases && ReadWord(typeInfo) != kinds.MultipleBases)
+        return 0;
+    if (!IsReadableAddress(reinterpret_cast<const void*>(typeInfo), TypeInfoBaseList))
+        return 0;
+
+    const uint32_t count = ReadU32(typeInfo + TypeInfoCount);
+    if (count == 0 || count > MaxBases ||
+        !IsReadableAddress(reinterpret_cast<const void*>(typeInfo + TypeInfoBaseList), count * BaseEntrySize))
+        return 0;
+
+    // Without the real vptr, the flags (only two bits are defined) and the first base must look right.
+    if (!kinds.MultipleBases &&
+        (ReadU32(typeInfo + TypeInfoFlags) > 3 || !LooksLikeTypeInfo(ReadWord(typeInfo + TypeInfoBaseList))))
+        return 0;
+    return count;
+}
+
+struct FoundBase
+{
+    intptr_t Offset = 0;
+    bool Virtual = false;
+};
+
+/** Every base named @p mangled under @p typeInfo, which sits at @p offset in the complete object. */
+static void CollectBases(uintptr_t typeInfo, std::string_view mangled, FoundBase at, const TypeInfoKinds& kinds,
+                         int depth, std::vector<FoundBase>& found)
+{
+    if (depth > MaxDepth)
+        return;
+
+    const auto visit = [&](uintptr_t base, intptr_t offset, bool isVirtual) {
+        if (!LooksLikeTypeInfo(base))
+            return;
+
+        const FoundBase here{.Offset = at.Offset + offset, .Virtual = at.Virtual || isVirtual};
+        if (NameIs(base, mangled))
+            found.push_back(here);
+        else
+            CollectBases(base, mangled, here, kinds, depth + 1, found);
+    };
+
+    if (HasSingleBase(typeInfo, kinds))
+    {
+        visit(ReadWord(typeInfo + TypeInfoBase), 0, false);
+        return;
+    }
+
+    const uint32_t count = BaseCount(typeInfo, kinds);
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        const uintptr_t entry = typeInfo + TypeInfoBaseList + i * BaseEntrySize;
+        const auto offsetFlags = static_cast<intptr_t>(ReadWord(entry + sizeof(void*)));
+        visit(ReadWord(entry), offsetFlags >> 8, (static_cast<uintptr_t>(offsetFlags) & VirtualBaseFlag) != 0);
+    }
+}
+
+Result<int> FindBaseOffsetByTypeInfo(const void* typeInfo, const char* baseName, const TypeInfoKinds& kinds)
+{
+    const auto address = reinterpret_cast<uintptr_t>(typeInfo);
+    if (!LooksLikeTypeInfo(address))
+        return std::unexpected(Error::Invalid("the class has no readable typeinfo"));
+
+    const std::string mangled = std::to_string(std::strlen(baseName)) + baseName;
+    std::vector<FoundBase> found;
+    CollectBases(address, mangled, {}, kinds, 0, found);
+
+    if (found.empty())
+        return std::unexpected(Error::NotFound(std::format("'{}' is not a base", baseName)));
+    if (found.size() > 1)
+        return std::unexpected(Error::Invalid(std::format("'{}' is a base {} times", baseName, found.size())));
+    if (found.front().Virtual)
+        return std::unexpected(Error::Unsupported(std::format("'{}' is a virtual base", baseName)));
+    return static_cast<int>(found.front().Offset);
+}
+
+void* FindVirtualTableByTypeInfo(std::span<const ScanRange> ranges, const void* typeInfo, intptr_t offsetToTop)
+{
+    void* found = nullptr;
+    for (uintptr_t at : FindWords(ranges, reinterpret_cast<uintptr_t>(typeInfo)))
+    {
+        const uintptr_t table = at + sizeof(void*);
+        if (static_cast<intptr_t>(ReadWord(at - sizeof(void*))) != offsetToTop ||
+            !IsExecutableAddress(reinterpret_cast<const void*>(ReadWord(table))))
+            continue;
+
+        if (found)
+            return nullptr;
+        found = reinterpret_cast<void*>(table);
+    }
+    return found;
 }
 
 }  // namespace VoltMod

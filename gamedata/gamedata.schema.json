@@ -95,9 +95,10 @@
       "required": ["class"],
       "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }],
       "properties": {
-        "class": {
-          "type": "string",
-          "description": "Top-level RTTI/ELF class name owning the table (no namespace, no template)."
+        "class": { "$ref": "#/definitions/class" },
+        "base": {
+          "$ref": "#/definitions/class",
+          "description": "Count the index in this base's own vtable inside `class`, found through RTTI."
         },
         "module": { "$ref": "#/definitions/module" },
         "windows": { "type": "integer", "minimum": 0 },
@@ -107,11 +108,29 @@
     "offset": {
       "type": "object",
       "additionalProperties": false,
-      "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }],
+      "oneOf": [
+        {
+          "description": "A byte offset per platform.",
+          "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }],
+          "not": { "anyOf": [{ "required": ["class"] }, { "required": ["base"] }, { "required": ["module"] }] }
+        },
+        {
+          "description": "Where `base` sits inside `class`, read from RTTI at load.",
+          "required": ["class", "base"],
+          "not": { "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }] }
+        }
+      ],
       "properties": {
         "windows": { "type": "integer", "minimum": 0 },
-        "linux": { "type": "integer", "minimum": 0 }
+        "linux": { "type": "integer", "minimum": 0 },
+        "class": { "$ref": "#/definitions/class" },
+        "base": { "$ref": "#/definitions/class" },
+        "module": { "$ref": "#/definitions/module" }
       }
+    },
+    "class": {
+      "type": "string",
+      "description": "Top-level RTTI class name (no namespace, no template); a class or a struct."
     }
   }
 }

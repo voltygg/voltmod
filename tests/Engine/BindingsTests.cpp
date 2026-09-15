@@ -177,6 +177,20 @@ TEST_CASE("A negative offset or index is refused")
     CHECK_FALSE(static_cast<bool>(bindings.GameEntitySystem));
 }
 
+TEST_CASE("A base offset is looked up in its class's module, and needs a class")
+{
+    Bindings bindings;
+    CHECK_FALSE(LoadSections(bindings, R"("offsets": {
+    "CServerSideClient::INetworkMessageProcessingPreFilter": { "class": "CServerSideClient", "base": "INetworkMessageProcessingPreFilter", "module": "engine2" },
+    "GameEntitySystem": { "base": "IGameResourceService" }
+  })")
+                    .has_value());
+
+    CHECK(
+        HasFailure(bindings, "CServerSideClient::INetworkMessageProcessingPreFilter: module 'engine2' is not loaded"));
+    CHECK(HasFailure(bindings, "GameEntitySystem: base 'IGameResourceService' names no class"));
+}
+
 TEST_CASE("A missing file is NotFound and binds nothing")
 {
     Bindings bindings;

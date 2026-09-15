@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <dlfcn.h>
 #include <elf.h>
 #include <fcntl.h>
 #include <filesystem>
@@ -124,6 +125,44 @@ void* FindVirtualTableIn(const LoadedModule& loaded, const char* className)
     if (!FindModuleAndRanges(fileName.c_str(), mapped, ranges))
         return nullptr;
     return FindVirtualTableByTypeName(ranges, className);
+}
+
+/** The vptrs the cxxabi typeinfo classes give their instances, when this process exports them. */
+static TypeInfoKinds ExportedTypeInfoKinds()
+{
+    // A typeinfo's vptr points two words into its class's vtable.
+    const auto vptrOf = [](const char* symbol) -> uintptr_t {
+        void* table = dlsym(RTLD_DEFAULT, symbol);
+        return table ? reinterpret_cast<uintptr_t>(table) + 2 * sizeof(void*) : 0;
+    };
+
+    const TypeInfoKinds kinds{.SingleBase = vptrOf("_ZTVN10__cxxabiv120__si_class_type_infoE"),
+                              .MultipleBases = vptrOf("_ZTVN10__cxxabiv121__vmi_class_type_infoE")};
+    return kinds.SingleBase && kinds.MultipleBases ? kinds : TypeInfoKinds{};
+}
+
+Result<BaseSubobject> FindBaseIn(const LoadedModule& loaded, const char* className, const char* baseName)
+{
+    void* primary = FindVirtualTableIn(loaded, className);
+    if (!primary)
+        return std::unexpected(Error::NotFound(std::string("no vtable for '") + className + "'"));
+
+    const void* typeInfo = static_cast<void**>(primary)[-1];
+    Result<int> offset = FindBaseOffsetByTypeInfo(typeInfo, baseName, ExportedTypeInfoKinds());
+    // A module with its own static copy of the C++ runtime has other vptrs; read the shapes instead.
+    if (!offset && offset.error().Code == ErrorCode::NotFound)
+        offset = FindBaseOffsetByTypeInfo(typeInfo, baseName, {});
+    if (!offset)
+        return std::unexpected(offset.error());
+    if (*offset == 0)
+        return BaseSubobject{.Offset = 0, .Table = primary};
+
+    LoadedModule mapped;
+    std::vector<ScanRange> ranges;
+    const std::string fileName = std::filesystem::path(loaded.Path).filename().string();
+    if (!FindModuleAndRanges(fileName.c_str(), mapped, ranges))
+        return BaseSubobject{.Offset = *offset};
+    return BaseSubobject{.Offset = *offset, .Table = FindVirtualTableByTypeInfo(ranges, typeInfo, -*offset)};
 }
 
 }  // namespace VoltMod
