@@ -39,14 +39,12 @@ static bool HasFailure(const Bindings& bindings, std::string_view failure)
     return std::ranges::any_of(bindings.Failures, [&](const std::string& each) { return each == failure; });
 }
 
-/** How many of @p bindings' failures are about @p key: `'key' ...` or `key: ...`. */
+/** How many of @p bindings' failures are about @p key. */
 static size_t FailuresFor(const Bindings& bindings, std::string_view key)
 {
-    const std::string quoted = std::format("'{}'", key);
-    const std::string prefixed = std::format("{}: ", key);
-    return static_cast<size_t>(std::ranges::count_if(bindings.Failures, [&](const std::string& failure) {
-        return failure.starts_with(quoted) || failure.starts_with(prefixed);
-    }));
+    const std::string prefix = std::format("{}: ", key);
+    return static_cast<size_t>(std::ranges::count_if(
+        bindings.Failures, [&](const std::string& failure) { return failure.starts_with(prefix); }));
 }
 
 TEST_CASE("Load binds offsets from this platform's column")
@@ -77,7 +75,7 @@ TEST_CASE("Load names a key the file lacks and leaves its member unbound")
     const auto loaded = LoadSections(bindings, R"("offsets": { "GameEntitySystem": { "windows": 88, "linux": 80 } })");
 
     REQUIRE_FALSE(loaded.has_value());
-    CHECK(loaded.error().Detail.find("'CheckTransmitPlayerSlot' is not in gamedata") != std::string::npos);
+    CHECK(loaded.error().Detail.find("CheckTransmitPlayerSlot: not in gamedata") != std::string::npos);
     CHECK_FALSE(static_cast<bool>(bindings.VisibilityRecipientSlot));
     CHECK(FailuresFor(bindings, "CheckTransmitPlayerSlot") == 1);
     CHECK(FailuresFor(bindings, "CServerSideClientBase::m_nClientSlot") == 1);
@@ -106,7 +104,7 @@ TEST_CASE("A key in two sections binds from neither")
                     .has_value());
 
     CHECK_FALSE(static_cast<bool>(bindings.GameEntitySystem));
-    CHECK(HasFailure(bindings, "'GameEntitySystem' is in both 'functions' and 'offsets'"));
+    CHECK(HasFailure(bindings, "GameEntitySystem: in both 'functions' and 'offsets'"));
 }
 
 TEST_CASE("A key in a section its member does not bind from is named")
@@ -116,7 +114,7 @@ TEST_CASE("A key in a section its member does not bind from is named")
         LoadSections(bindings, R"("offsets": { "CreateEntityByName": { "windows": 8, "linux": 8 } })").has_value());
 
     CHECK_FALSE(static_cast<bool>(bindings.CreateEntityByName));
-    CHECK(HasFailure(bindings, "'CreateEntityByName' is in 'offsets', which this member does not bind from"));
+    CHECK(HasFailure(bindings, "CreateEntityByName: in 'offsets', which this member does not bind from"));
 }
 
 TEST_CASE("An address binds from a function or a global")
