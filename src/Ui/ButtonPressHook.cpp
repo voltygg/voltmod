@@ -48,10 +48,11 @@ bool ButtonPressHook::Install()
         return false;
     }
 
-    auto hook = HookFunction("Custom HUD button presses", _bindings.FilterMessage,
-                             [this](EngineMessageFilter& filter, const CNetMessage* message, void*) {
-                                 Queue(message, filter);
-                             });
+    // A slot hook, not a detour on the body: the caller hands over the filter base, and every
+    // plugin finds the same unpatched table.
+    auto hook =
+        HookVirtual("Custom HUD button presses", _bindings.FilterMessage,
+                    [this](EngineMessageFilter& filter, const CNetMessage* message, void*) { Queue(message, filter); });
     if (!hook)
     {
         Log::Warn("ButtonPressHook: {}; button presses will not arrive.", hook.error().Detail);

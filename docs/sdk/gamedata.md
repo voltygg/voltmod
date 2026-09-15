@@ -146,7 +146,7 @@ The entries most likely to bite, and how each one fails:
 | `GameEntitySystem` | offsets | @ref VoltMod::EntitySystem | Stale: the pointer read is not a `CGameEntitySystem`, so entity lookups return nothing and the load log says so |
 | `CUserCmdBase::cmdNum` | offsets | `PlayerInput::CommandNumber` | Missing: falls back to the protobuf's `legacy_command_number`, which live clients leave at 0. Stale: a counter that never increments by 1 |
 | `CServerSideClientBase::m_nClientSlot` | offsets | `ClientConVars`, `ButtonPresses` | Stale: a client's answer is attributed to the wrong player |
-| `INetworkMessageProcessingPreFilter::FilterMessage` | functions | @ref VoltMod::ScreenManager::Pressed | Missing: `ScreenManager::Available` fails; presses never arrive |
+| `INetworkMessageProcessingPreFilter::FilterMessage` | vtables (base) | @ref VoltMod::ScreenManager::Pressed | Missing: `ScreenManager::Available` fails; presses never arrive. Stale index: a different filter function is hooked |
 | `CServerSideClient::INetworkMessageProcessingPreFilter` | offsets (RTTI) | @ref VoltMod::ScreenManager::Pressed | Missing: the base was renamed or its RTTI changed; `ScreenManager::Available` fails |
 | `CNetworkGameServer::ReplyConnection` | functions | @ref VoltMod::Addons | Missing: `Require` is refused with the reason |
 | `CNetworkGameServer::m_szAddons` | offsets | @ref VoltMod::Addons | Stale: clients download addons but mount none, or a corrupted reply |

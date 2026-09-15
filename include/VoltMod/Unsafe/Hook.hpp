@@ -174,7 +174,7 @@ template <class Object, class Ret, class... Args, class Before, class After = st
 /**
  * @brief Hook a signature-bound function at its entry, catching every caller.
  *
- * For functions no primary vtable slot reaches: non-virtual, or on a secondary base. The code must
+ * For functions no vtable slot reaches, the non-virtual ones. The code must
  * belong to one class; a hook on code other classes share catches their calls too.
  *
  * @param name Names the hook in the log and in any error.

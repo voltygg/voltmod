@@ -191,8 +191,9 @@ struct Bindings
     Fn<void(void*, int32_t, bool)> CustomHudSetInputCapture;
     /** @} */
 
-    /** CServerSideClient::FilterMessage(const CNetMessage*, INetChannel*). Hooked for @ref ScreenManager::Pressed. */
-    Fn<bool(EngineMessageFilter*, const CNetMessage*, void*)> FilterMessage;
+    /** CServerSideClient::FilterMessage(const CNetMessage*, INetChannel*), counted in its message-filter base's
+     *  own vtable, so a hook receives that base on every platform. Hooked for @ref ScreenManager::Pressed. */
+    VirtualFn<bool(EngineMessageFilter*, const CNetMessage*, void*)> FilterMessage;
     /** CNetworkGameServer::ReplyConnection(CServerSideClient*), which names the addons a client
      *  mounts. Hooked by @ref Addons. */
     Fn<void(EngineServer*, EngineClient*)> ReplyConnection;
