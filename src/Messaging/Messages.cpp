@@ -6,9 +6,7 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/Translations.hpp>
-#include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
-#include <VoltMod/Engine/Memory/MemoryAccess.hpp>
 #include <VoltMod/Engine/Net/RecipientFilter.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Messaging/ChatColors.hpp>
@@ -47,8 +45,8 @@ static std::string Render(std::string_view message, MessageKind kind)
     return kind == MessageKind::Chat ? EnsureColorPrefix(message) : std::string(message);
 }
 
-Messages::Messages(Interfaces& interfaces, const Bindings& bindings, GameEvents& events, Translations& translations)
-    : _interfaces(interfaces), _bindings(bindings), _events(events), _translations(translations)
+Messages::Messages(Interfaces& interfaces, GameEvents& events, Translations& translations)
+    : _interfaces(interfaces), _events(events), _translations(translations)
 {}
 
 Status Messages::Initialize()
@@ -62,21 +60,6 @@ Status Messages::Initialize()
         return std::unexpected(Error::NotReady("INetworkMessages not available"));
 
     Log::Info("Message system initialized.");
-    return {};
-}
-
-Status Messages::InitGameEventManager()
-{
-    auto& interfaces = _interfaces;
-
-    if (!_bindings.GameEventManager)
-        return std::unexpected(Error::Unsupported("the GameEventManager address did not bind"));
-
-    interfaces.GameEventManager = ReadAt<IGameEventManager2*>(_bindings.GameEventManager.Ptr(), 0);
-    if (!interfaces.GameEventManager)
-        return std::unexpected(Error::Engine("the game event manager pointer is null"));
-
-    Log::Info("Game event manager resolved at {:#x}.", reinterpret_cast<uintptr_t>(interfaces.GameEventManager));
     return {};
 }
 

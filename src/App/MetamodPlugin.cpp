@@ -39,8 +39,8 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
     const LoadContext context{.Ismm = ismm, .Error = error, .MaxLen = maxlen, .LogPrefix = _info.LogTag};
     if (!_runtime->Start(context))
     {
-        if (!_runtime->LoadReport.Stages().empty())
-            Log::Info("{}", _runtime->LoadReport.Summary());
+        if (_runtime->LoadSteps.Count() > 0)
+            Log::Info("{}", _runtime->LoadSteps.Summary());
         _runtime.reset();
         return false;
     }
@@ -55,29 +55,29 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
 
     if (!OnLoad(*_runtime))
     {
-        // Give a bare false return a useful load-report entry.
-        if (_runtime->LoadReport.FirstFailure().empty())
-            _runtime->LoadReport.Run("OnLoad", [] { return StageResult::Failed("OnLoad returned false"); });
-        Log::Info("{}", _runtime->LoadReport.Summary());
-        const std::string failure = _runtime->LoadReport.FirstFailure();
+        // A bare false return still gives meta list a reason.
+        std::string failure = _runtime->LoadSteps.AbortReason();
+        if (failure.empty())
+            failure = "OnLoad returned false";
+        Log::Info("{}", _runtime->LoadSteps.Summary());
         snprintf(error, maxlen, "%s", failure.c_str());
         Shutdown();
         return false;
     }
 
     // Report permission-gated commands with no policy before the first invocation.
-    _runtime->LoadReport.Run("Commands", [this] {
+    _runtime->LoadSteps.Optional("Permissions", [this]() -> Status {
         const std::vector<std::string> missing = _runtime->Commands.CommandsMissingPolicy();
         if (missing.empty())
-            return StageResult::Ok();
-        return StageResult::Degraded(
-            std::format("{} command(s) gate on a permission with no HasPermission policy "
-                        "installed and will be denied ({}); set Runtime::Policy.HasPermission "
-                        "in OnLoad",
-                        missing.size(), Strings::Join(missing, ", ")));
+            return {};
+        return std::unexpected(
+            Error::Invalid(std::format("{} command(s) gate on a permission with no HasPermission policy "
+                                       "installed and will be denied ({}); set Runtime::Policy.HasPermission "
+                                       "in OnLoad",
+                                       missing.size(), Strings::Join(missing, ", "))));
     });
 
-    Log::Info("{}", _runtime->LoadReport.Summary());
+    Log::Info("{}", _runtime->LoadSteps.Summary());
     if (!_info.Commit.empty())
         Log::Info("Loaded {} v{} ({}, committed {}){}.", _info.Name, _info.Version, _info.Commit, _info.Date,
                   late ? " (late)" : "");

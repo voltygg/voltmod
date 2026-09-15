@@ -4,7 +4,7 @@
 #include <VoltMod/App/StatusService.hpp>
 #include <VoltMod/Commands/CommandManager.hpp>
 #include <VoltMod/Core/Capabilities.hpp>
-#include <VoltMod/Core/LoadReport.hpp>
+#include <VoltMod/Core/LoadSteps.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Translations.hpp>
@@ -59,7 +59,7 @@ public:
     Runtime& operator=(const Runtime&) = delete;
 
     /**
-     * Start every subsystem and record its @ref LoadReport stage.
+     * Start every subsystem as a step in @ref LoadSteps.
      * @return false when loading must abort; @p context.Error contains the reason.
      */
     bool Start(const LoadContext& context);
@@ -67,14 +67,14 @@ public:
     /** Drive the scheduler. Called once per frame from the GameFrame hook. */
     void OnGameFrame();
 
-    /** Named, timed load stages recorded by Start and by the plugin's OnLoad. */
-    VoltMod::LoadReport LoadReport;
+    /** The steps Start and the plugin's OnLoad run, remembering the ones that fail. */
+    VoltMod::LoadSteps LoadSteps;
 
     /** What this load can do and why anything missing is missing. Written only by Start. */
     VoltMod::Capabilities Capabilities;
 
     /** Status sections for diagnostics commands; framework sections registered by Start. */
-    StatusService Status{LoadReport};
+    StatusService Status;
 
     /** "This slot changed hands", raised by the roster and consumed by per-slot caches. */
     SlotEvents Slots;
@@ -110,7 +110,7 @@ public:
     VoltMod::GameEvents GameEvents{Unsafe.Interfaces, Unsafe.Bindings};
 
     /** Messages services */
-    VoltMod::Messages Messages{Unsafe.Interfaces, Unsafe.Bindings, GameEvents, Translations};
+    VoltMod::Messages Messages{Unsafe.Interfaces, GameEvents, Translations};
 
     /** The engine's simulation clock (tick and curtime). */
     VoltMod::Clock Clock{Unsafe.Interfaces};

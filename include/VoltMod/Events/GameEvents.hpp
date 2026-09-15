@@ -29,7 +29,7 @@ public:
     GameEvents(const GameEvents&) = delete;
     GameEvents& operator=(const GameEvents&) = delete;
 
-    /** Attach to IGameEventManager2. Error::NotReady when Messages did not resolve it. */
+    /** Read IGameEventManager2 from its gamedata address and attach. Error when it did not resolve. */
     Status Initialize();
 
     IGameEvent* CreateEvent(std::string_view name);

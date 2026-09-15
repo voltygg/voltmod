@@ -133,7 +133,7 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Core/Capabilities.cpp
             src/Core/EffectManager.cpp
             src/Core/File.cpp
-            src/Core/LoadReport.cpp
+            src/Core/LoadSteps.cpp
             src/Core/Logger.cpp
             src/Core/Paths.cpp
             src/Core/Scheduler.cpp

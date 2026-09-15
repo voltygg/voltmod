@@ -1,6 +1,5 @@
 #pragma once
 
-#include <VoltMod/Core/LoadReport.hpp>
 #include <VoltMod/Engine/Server/ServerCommand.hpp>
 #include <functional>
 #include <memory>
@@ -28,16 +27,13 @@ public:
     /** @brief Returns this section's payload as JSON text (an object or scalar). */
     using Provider = std::function<std::string()>;
 
-    /** @brief Plugin health condition, ANDed with the baseline (no Failed load stage). */
+    /** @brief Plugin health condition. A loaded plugin has no failed stage, so this is all there is. */
     using HealthCheck = std::function<bool()>;
-
-    /** @p loadReport supplies the baseline health signal and must outlive this service. */
-    explicit StatusService(LoadReport& loadReport) : _loadReport(loadReport) {}
 
     /** @brief Add a section, replacing any existing one with the same name. */
     void RegisterSection(std::string name, Provider provider);
 
-    /** @brief True when no load stage Failed and the plugin's HealthCheck (if any) agrees. */
+    /** @brief The plugin's HealthCheck, or true without one. */
     bool IsHealthy() const;
 
     /** @brief One JSON object with a key per section, plus a top-level `healthy` flag. */
@@ -57,7 +53,6 @@ public:
     void InstallCommand(std::string_view name, std::string_view helpText, HealthCheck healthy = {});
 
 private:
-    LoadReport& _loadReport;
     std::vector<std::pair<std::string, Provider>> _sections;
     HealthCheck _healthy;
     std::unique_ptr<ServerCommand> _command;

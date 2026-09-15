@@ -104,58 +104,45 @@ bool Runtime::ResolveInterfaces(const LoadContext& context)
 
 bool Runtime::InitializeServices(const LoadContext& context)
 {
-    // Run named, timed stages. MetamodPlugin logs the summary and reports the first fatal failure.
-    auto& report = LoadReport;
+    // MetamodPlugin logs the summary and reports why a required step failed.
+    auto& steps = LoadSteps;
 
-    report.Run("GameData", [&] {
+    steps.Optional("GameData", [&]() -> VoltMod::Status {
         // Earlier plugins may patch class tables. Resolve the original slot through KHook.
         if (auto loaded = Unsafe.GameData.Load(DefaultGameDataPath, OriginalVfnPtr); !loaded)
-            return StageResult::Degraded(loaded.error().Detail);
+            return loaded;
         if (auto failures = Unsafe.GameData.FailureSummary(); !failures.empty())
-            return StageResult::Degraded(std::move(failures));
-        return StageResult::Ok(std::format("{} entries resolved (verified {})", Unsafe.GameData.Resolutions().size(),
-                                           Unsafe.GameData.VerifiedOn()));
+            return std::unexpected(Error::Engine(std::move(failures)));
+        return {};
     });
 
     // Run after degraded GameData so disabled capabilities keep their reasons.
-    report.Run("Bindings", [&] {
-        if (auto bound = Unsafe.Bindings.Bind(Unsafe.GameData, Capabilities); !bound)
-            return StageResult::Degraded(bound.error().Detail);
-        return StageResult::Ok();
-    });
+    steps.Optional("Bindings", [&] { return Unsafe.Bindings.Bind(Unsafe.GameData, Capabilities); });
 
-    // Fatal stages write the first failure to Metamod and abort the load.
-    auto fatal = [&](std::string_view name, auto&& init) {
-        const auto status = report.Run(name, [&] {
-            auto ready = init();
-            return ready ? StageResult::Ok() : StageResult::Failed(ready.error().Detail);
-        });
-        if (status != StageStatus::Failed)
+    // A required step writes its failure to Metamod and aborts the load.
+    auto requiredStep = [&](std::string_view name, const std::function<VoltMod::Status()>& step) {
+        if (steps.Required(name, step))
             return true;
 
-        context.Ismm->Format(context.Error, context.MaxLen, "%s", report.FirstFailure().c_str());
+        context.Ismm->Format(context.Error, context.MaxLen, "%s", steps.AbortReason().c_str());
         return false;
     };
 
-    if (!fatal("Messages", [&] { return Messages.Initialize(); }))
+    if (!requiredStep("Messages", [&] { return Messages.Initialize(); }))
         return false;
 
-    // Degradable stages keep the load alive and record the failure on their capability.
-    auto degradable = [&](std::string_view name, Capability capability, auto&& init) {
-        report.Run(name, [&] {
-            auto ready = init();
-            if (!ready)
-            {
-                Capabilities.Set(capability, false, ready.error().Detail);
-                return StageResult::Degraded(ready.error().Detail);
-            }
-            Capabilities.Set(capability, true);
-            return StageResult::Ok();
+    // An optional step keeps the load alive and records the failure on its capability.
+    auto optionalStep = [&](std::string_view name, Capability capability,
+                            const std::function<VoltMod::Status()>& step) {
+        steps.Optional(name, [&] {
+            VoltMod::Status ready = step();
+            Capabilities.Set(capability, ready.has_value(), ready ? std::string() : ready.error().Detail);
+            return ready;
         });
     };
 
     // Abort on schema drift. A load into a running map writes the dump first, so a refusal still leaves one.
-    if (!fatal("SchemaLayout", [&] {
+    if (!requiredStep("SchemaLayout", [&] {
             Schema::WriteSchemaDump(Unsafe.Interfaces.SchemaSystem, Entities.GetEntitySystem());
             return Schema::VerifySchemaLayout(Unsafe.Interfaces.SchemaSystem);
         }))
@@ -163,39 +150,19 @@ bool Runtime::InitializeServices(const LoadContext& context)
         return false;
     }
 
-    report.Run("Entities", [&] {
-        auto ready = Entities.Initialize();
+    // Without an entity system yet, StartupServer resolves CGameEntitySystem at the first map load.
+    steps.Optional("Entities", [&] {
+        VoltMod::Status ready = Entities.Initialize();
         if (!ready)
-        {
             Capabilities.Set(Capability::Entities, false, ready.error().Detail);
-            return StageResult::Degraded(ready.error().Detail);
-        }
-        if (Entities.GetEntitySystem())
-            return StageResult::Ok();
-
-        // StartupServer resolves CGameEntitySystem if load precedes engine creation.
-        return StageResult::Ok("resolves at the first map load");
+        return ready;
     });
 
-    // Bindings already determines EntityOps and Visibility; report those results here.
-    auto alreadyDecided = [&](std::string_view name, Capability capability) {
-        report.Run(name, [&] {
-            return Capabilities.Has(capability) ? StageResult::Ok()
-                                                : StageResult::Degraded(std::string(Capabilities.Reason(capability)));
-        });
-    };
-    alreadyDecided("EntityOps", Capability::EntityOps);
-    alreadyDecided("Visibility", Capability::Visibility);
-    degradable("Precache", Capability::Precache,
-               [&] { return World.Precache.Initialize(std::format("{}_VoltModPrecache", context.LogPrefix)); });
-    degradable("GameEventManager", Capability::GameEvents, [&] { return Messages.InitGameEventManager(); });
-    report.Run("ConVars", [&] {
-        if (auto ready = ConVars.Initialize(); !ready)
-            return StageResult::Degraded(ready.error().Detail);
-        return StageResult::Ok();
-    });
-    degradable("GameEvents", Capability::GameEvents, [&] { return GameEvents.Initialize(); });
-    degradable("ClientConVars", Capability::ClientConVars, [&] { return Hooks.ClientConVars.Initialize(); });
+    optionalStep("Precache", Capability::Precache,
+                 [&] { return World.Precache.Initialize(std::format("{}_VoltModPrecache", context.LogPrefix)); });
+    steps.Optional("ConVars", [&] { return ConVars.Initialize(); });
+    optionalStep("GameEvents", Capability::GameEvents, [&] { return GameEvents.Initialize(); });
+    optionalStep("ClientConVars", Capability::ClientConVars, [&] { return Hooks.ClientConVars.Initialize(); });
 
     Capabilities.Set(Capability::Vote,
                      Capabilities.Has(Capability::GameEvents) && Capabilities.Has(Capability::Entities),
@@ -212,21 +179,10 @@ void Runtime::RegisterStatusSections()
     // Plugins add status sections in OnLoad. The runtime outlives them for the load cycle.
     // Serialize JSON values directly because capability reasons are free text.
     Status.RegisterSection("load", [this] {
-        std::map<StageStatus, std::vector<std::string>> byStatus;
-        int ok = 0;
-        for (const auto& stage : LoadReport.Stages())
-        {
-            if (stage.Status == StageStatus::Ok)
-                ++ok;
-            else
-                byStatus[stage.Status].push_back(stage.Name);
-        }
-
-        std::map<std::string, glz::raw_json> section;
-        for (const auto& [status, names] : byStatus)
-            section[std::string(Name(status))] = glz::raw_json{Json::Write(names)};
-        section["ok"] = glz::raw_json{std::to_string(ok)};
-        return Json::Write(section);
+        std::map<std::string, std::string> failed;
+        for (const FailedStep& step : LoadSteps.Failures())
+            failed.emplace(step.Name, step.Reason);
+        return Json::Write(glz::obj{"steps", LoadSteps.Count(), "failed", failed});
     });
 
     Status.RegisterSection("gamedata", [this] {

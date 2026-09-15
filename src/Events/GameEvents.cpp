@@ -2,8 +2,10 @@
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
+#include <VoltMod/Engine/Memory/MemoryAccess.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <bit>
+#include <cstdint>
 #include <playerslot.h>
 
 namespace VoltMod
@@ -25,10 +27,15 @@ Status GameEvents::Initialize()
     else
         Log::Warn("LegacyGameEventListener signature not found; per-client event delivery unavailable.");
 
-    if (!_interfaces.GameEventManager)
-        return std::unexpected(Error::NotReady("IGameEventManager2 not available"));
+    if (!_bindings.GameEventManager)
+        return std::unexpected(Error::Unsupported("the GameEventManager address did not bind"));
 
-    Log::Info("Game event service initialized.");
+    _interfaces.GameEventManager = ReadAt<IGameEventManager2*>(_bindings.GameEventManager.Ptr(), 0);
+    if (!_interfaces.GameEventManager)
+        return std::unexpected(Error::Engine("the game event manager pointer is null"));
+
+    Log::Info("Game event service initialized (manager at {:#x}).",
+              reinterpret_cast<uintptr_t>(_interfaces.GameEventManager));
     return {};
 }
 

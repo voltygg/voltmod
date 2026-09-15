@@ -78,13 +78,13 @@ services are still alive.
 ## Load order
 
 1. The base saves Metamod globals, creates the runtime, and starts each framework
-   subsystem as a `LoadReport` stage.
+   subsystem as a step in `runtime.LoadSteps`.
 2. It installs standard hooks, then calls `OnRegisterHooks(runtime, hooks)`.
 3. It calls `OnLoad(runtime)`. Returning `false` runs `OnUnload`, removes hooks,
-   and destroys the runtime. If no failed stage exists, the base records an
-   `OnLoad` failure so `meta list` still has a reason.
+   and destroys the runtime. `meta list` shows the first required step that failed,
+   or `OnLoad returned false`.
 
-The standard prelude (config plus translations, recorded as LoadReport stages) is one call:
+The standard prelude (settings as a required step, then translations) is one call:
 
 ```cpp
 bool App::Start()
@@ -160,39 +160,30 @@ void App::RegisterCommands()
 `CommandManager` owns registrations until unload. Event, timer, and hook
 subscriptions still belong in `_subs`, declared after the state they capture.
 
-## Load stages: LoadReport
+## Load steps: LoadSteps
 
-`runtime.LoadReport` records named, timed stages. `Runtime::Start` already runs
-the framework subsystems through it. Run plugin initialization through `Run()` as
-well; the base logs an aligned summary and copies `FirstFailure()` into
-Metamod's error buffer when `OnLoad` fails, so `meta list` shows the actual
-reason.
+`runtime.LoadSteps` runs named load steps and remembers only the ones that fail. `Runtime::Start`
+already runs the framework subsystems through it. A step returns `Status`:
+
+- `Optional(name, step)`: when it fails, the load continues without that feature.
+- `Required(name, step)`: when it fails, return `false` from `OnLoad`. The base copies the reason
+  into Metamod's error buffer, so `meta list` shows it.
+
+Both return whether the step succeeded, so a later step can depend on an earlier one:
 
 ```cpp
-auto& report = Runtime.LoadReport;
+auto& steps = Runtime.LoadSteps;
 
-const auto config = report.Run("Configuration", [this] {
-    if (!Config.Load("addons/my-plugin/configs/settings.jsonc"))
-        return VoltMod::StageResult::Failed("failed to load settings.jsonc");
-    return VoltMod::StageResult::Ok();
-});
-if (config == VoltMod::StageStatus::Failed)
-    return false;                        // base surfaces "Configuration: failed to load settings.jsonc"
+if (!steps.Required("Configuration", [this] { return Config.Load("addons/my-plugin/configs/settings.jsonc"); }))
+    return false;  // meta list: "Configuration: <reason>"
 
-report.Run("Database", [this] {
-    if (!Db.Start(Config.Get().database))
-        return VoltMod::StageResult::Degraded("unavailable");  // load continues, reduced functionality
-    return VoltMod::StageResult::Ok();
-});
-
-report.Run("Admins", [&] {
-    if (!report.IsOk("Database"))        // dependency-aware skip: no confusing secondary error
-        return VoltMod::StageResult::Skipped("database unavailable");
-    return LoadAdminData();
-});
+const bool database = steps.Optional("Database", [this] { return ConnectDatabase(); });
+if (database)
+    steps.Optional("Admins", [this] { return LoadAdminData(); });  // no second error while the database is down
 ```
 
-Statuses: `Ok`, `Degraded` (loaded with reduced functionality), `Skipped` (dependency not Ok), `Failed` (aborts the load when you return `false`). `IsOk()` is true only for `Ok`, so a degraded dependency skips its dependents.
+After `OnLoad`, the base logs the step count and load time, plus one line per failed step. Code
+that cannot fail does not need to be a step.
 
 ## Status sections: StatusService
 
@@ -210,9 +201,8 @@ Runtime.Status.InstallCommand("my_status", "Report plugin health; 'my_status jso
 ```
 
 `my_status` prints a human-readable report. `my_status json` emits one
-`STATUS_JSON {...}` line for RCON tooling. The top-level `healthy` value combines
-load-stage health with the optional predicate. The command unregisters on
-unload.
+`STATUS_JSON {...}` line for RCON tooling. The top-level `healthy` value is the
+predicate's answer, or `true` without one. The command unregisters on unload.
 
 Sections capture `this`, so keep them on an object the `Runtime` outlives. The `App` is
 destroyed first, and a section left holding a dangling pointer is a lifetime bug even if

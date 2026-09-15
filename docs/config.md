@@ -46,8 +46,8 @@ detection and keep it synchronized with the settings struct.
 ```cpp
 bool MyPlugin::OnLoad(VoltMod::Runtime& runtime)
 {
-    // Config + translations as LoadReport stages; uses LoadSettings when your
-    // ConfigManager defines one, plain Load otherwise.
+    // Settings as a required load step, then translations; uses LoadSettings when
+    // your ConfigManager defines one, plain Load otherwise.
     return VoltMod::LoadStandardConfig(runtime, Config, {.Addon = "my-plugin"});
 }
 ```

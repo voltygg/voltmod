@@ -25,8 +25,6 @@ void StatusService::RegisterSection(std::string name, Provider provider)
 
 bool StatusService::IsHealthy() const
 {
-    if (!_loadReport.FirstFailure().empty())
-        return false;
     return !_healthy || _healthy();
 }
 
