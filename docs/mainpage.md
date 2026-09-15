@@ -37,7 +37,7 @@ renames it. `include/VoltMod/<Module>/` is where a header lives, and the
 | App | `VoltMod/App/` | Metamod lifecycle, JSONC loading, status, and cross-plugin services |
 
 Engine is the one module large enough to group its headers further. `Memory/` reaches engine
-memory (field offsets, rel32 arithmetic, vtable entries), `GameData/` turns the gamedata file into
+memory (field offsets, vtable entries), `GameData/` turns the gamedata file into
 typed bindings, and `ConVars/`, `Net/` and `Server/` hold the live engine services. The three
 headers at the module root are SDK plumbing every other module needs: `EngineTypes.hpp`,
 `Interfaces.hpp` and `MetamodGlobals.hpp`.

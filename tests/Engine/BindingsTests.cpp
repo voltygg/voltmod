@@ -1,38 +1,43 @@
-#include "Engine/GameData/GameDataFile.hpp"
 #include "Support/TempPath.hpp"
 
 #include <VoltMod/Engine/GameData/Bindings.hpp>
-#include <VoltMod/Engine/GameData/GameData.hpp>
 #include <algorithm>
 #include <cstddef>
 #include <doctest/doctest.h>
 #include <format>
+#include <initializer_list>
 #include <string>
 #include <string_view>
 
 using VoltMod::Bindings;
 using VoltMod::ErrorCode;
-using VoltMod::GameData;
 
-// Select the host platform column in the fabricated file.
-static constexpr bool OnWindows = VoltMod::HostPlatform == VoltMod::GamePlatform::Windows;
+#ifdef _WIN32
+static constexpr std::string_view Here = "windows";
+static constexpr std::string_view Elsewhere = "linux";
+#else
+static constexpr std::string_view Here = "linux";
+static constexpr std::string_view Elsewhere = "windows";
+#endif
 
-/** Temporary gamedata file for key-to-member tests; each case supplies only its entries. */
-class TempGameData
+static constexpr bool OnWindows = Here == "windows";
+
+/** Load a gamedata file holding @p sections after the build stamp. */
+static VoltMod::Status LoadSections(Bindings& bindings, std::string_view sections)
 {
-public:
-    explicit TempGameData(std::string_view body)
-        : _file(std::format("{{ \"build\": {{ \"game\": \"cs2\", \"verified\": \"2026-08-26\" }},\n"
-                            "{}\n}}",
-                            body),
-                "bindings", ".jsonc")
-    {}
+    std::string text = R"({ "build": { "server": "1", "verified": "2026-09-11" })";
+    if (!sections.empty())
+        text += std::format(",\n{}", sections);
+    text += "\n}";
 
-    std::string Path() const { return _file.Path(); }
+    VoltModTests::TempFile file(text, "bindings", ".jsonc");
+    return bindings.Load(file.Path());
+}
 
-private:
-    VoltModTests::TempFile _file;
-};
+static bool HasFailure(const Bindings& bindings, std::string_view failure)
+{
+    return std::ranges::any_of(bindings.Failures, [&](const std::string& each) { return each == failure; });
+}
 
 /** How many of @p bindings' failures are about @p key: `'key' ...` or `key: ...`. */
 static size_t FailuresFor(const Bindings& bindings, std::string_view key)
@@ -44,105 +49,175 @@ static size_t FailuresFor(const Bindings& bindings, std::string_view key)
     }));
 }
 
-static constexpr std::string_view FullBody = R"(
-  "signatures": {
-    "CreateEntityByName": { "windows": { "pattern": "48 83 EC 48" }, "linux": { "pattern": "48 8D 05" } },
-    "DispatchSpawn": { "windows": { "pattern": "48 89 5C 24" }, "linux": { "pattern": "48 85 FF" } },
-    "CEntityInstance::AcceptInput": { "windows": { "pattern": "48 89 5C 24 ?" }, "linux": { "pattern": "55 48 89 F0" } }
-  },
-  "vtables": {
-    "CPlayer_MovementServices::RunCommand": { "class": "CCSPlayer_MovementServices", "windows": 25, "linux": 26 },
-    "CCSPlayer_ItemServices::GiveNamedItem": { "class": "CCSPlayer_ItemServices", "windows": 23, "linux": 24 },
-    "CCSPlayer_ItemServices::RemoveAllItems": { "class": "CCSPlayer_ItemServices", "windows": 27, "linux": 28 },
-    "CBaseEntity::Teleport": { "class": "CCSPlayerPawn", "windows": 163, "linux": 162 }
-  },
-  "offsets": {
-    "GameEntitySystem": { "windows": 88, "linux": 80, "align": 8 },
+TEST_CASE("Load binds offsets from this platform's column")
+{
+    Bindings bindings;
+    const auto loaded = LoadSections(bindings, R"("offsets": {
+    "GameEntitySystem": { "windows": 88, "linux": 80 },
     "CheckTransmitPlayerSlot": { "windows": 576, "linux": 576 },
-    "CUserCmd::CSGOUserCmdPB": { "windows": 16, "linux": 16, "align": 8 },
-    "CUserCmdBase::cmdNum": { "windows": 8, "linux": 8, "align": 4 }
-  })";
+    "CUserCmd::CSGOUserCmdPB": { "windows": 16, "linux": 16 },
+    "CUserCmdBase::cmdNum": { "windows": 8, "linux": 8 }
+  })");
 
-static constexpr std::string_view OneOffset = R"(
-  "offsets": {
-    "GameEntitySystem": { "windows": 88, "linux": 80, "align": 8 }
-  })";
-
-TEST_CASE("Bind refuses an empty gamedata set")
-{
-    GameData data;
-    Bindings bindings;
-
-    auto bound = bindings.Bind(data);
-    REQUIRE_FALSE(bound.has_value());
-    CHECK(bound.error().Code == ErrorCode::NotReady);
-}
-
-TEST_CASE("Bind fills offsets and vtable indices from their gamedata keys")
-{
-    TempGameData file(FullBody);
-    GameData data;
-    REQUIRE(data.Load(file.Path()).has_value());
-
-    Bindings bindings;
-    CHECK_FALSE(bindings.Bind(data).has_value());
+    // Everything else is missing from this file.
+    REQUIRE_FALSE(loaded.has_value());
+    CHECK(loaded.error().Code == ErrorCode::Engine);
 
     CHECK(bindings.GameEntitySystem.Value() == (OnWindows ? 88 : 80));
     CHECK(bindings.VisibilityRecipientSlot.Value() == 576);
     CHECK(bindings.UserCmdProto.Value() == 16);
     CHECK(bindings.UserCmdNumber.Value() == 8);
-    CHECK(bindings.GiveNamedItem.Index() == (OnWindows ? 23 : 24));
-    CHECK(bindings.RemoveAllItems.Index() == (OnWindows ? 27 : 28));
-    CHECK(bindings.Teleport.Index() == (OnWindows ? 163 : 162));
-
     CHECK(FailuresFor(bindings, "GameEntitySystem") == 0);
     CHECK(FailuresFor(bindings, "CheckTransmitPlayerSlot") == 0);
 }
 
-TEST_CASE("Bind leaves a signature empty and names the module when it cannot be scanned")
+TEST_CASE("Load names a key the file lacks and leaves its member unbound")
 {
-    TempGameData file(FullBody);
-    GameData data;
-    REQUIRE(data.Load(file.Path()).has_value());
-
     Bindings bindings;
-    CHECK_FALSE(bindings.Bind(data).has_value());
+    const auto loaded = LoadSections(bindings, R"("offsets": { "GameEntitySystem": { "windows": 88, "linux": 80 } })");
+
+    REQUIRE_FALSE(loaded.has_value());
+    CHECK(loaded.error().Detail.find("'CheckTransmitPlayerSlot' is not in gamedata") != std::string::npos);
+    CHECK_FALSE(static_cast<bool>(bindings.VisibilityRecipientSlot));
+    CHECK(FailuresFor(bindings, "CheckTransmitPlayerSlot") == 1);
+    CHECK(FailuresFor(bindings, "CServerSideClientBase::m_nClientSlot") == 1);
+}
+
+TEST_CASE("A missing platform column fails only an entry something binds")
+{
+    Bindings bindings;
+    const std::string sections = std::format(R"("offsets": {{
+    "GameEntitySystem": {{ "{0}": 88 }},
+    "NothingBindsThis": {{ "{0}": 8 }}
+  }})",
+                                             Elsewhere);
+    CHECK_FALSE(LoadSections(bindings, sections).has_value());
+
+    CHECK_FALSE(static_cast<bool>(bindings.GameEntitySystem));
+    CHECK(HasFailure(bindings, std::format("GameEntitySystem: no {} offset", Here)));
+    CHECK(FailuresFor(bindings, "NothingBindsThis") == 0);
+}
+
+TEST_CASE("A key in two sections binds from neither")
+{
+    Bindings bindings;
+    CHECK_FALSE(LoadSections(bindings, R"("functions": { "GameEntitySystem": { "windows": "48", "linux": "48" } },
+  "offsets": { "GameEntitySystem": { "windows": 88, "linux": 80 } })")
+                    .has_value());
+
+    CHECK_FALSE(static_cast<bool>(bindings.GameEntitySystem));
+    CHECK(HasFailure(bindings, "'GameEntitySystem' is in both 'functions' and 'offsets'"));
+}
+
+TEST_CASE("A key in a section its member does not bind from is named")
+{
+    Bindings bindings;
+    CHECK_FALSE(
+        LoadSections(bindings, R"("offsets": { "CreateEntityByName": { "windows": 8, "linux": 8 } })").has_value());
 
     CHECK_FALSE(static_cast<bool>(bindings.CreateEntityByName));
-    CHECK(FailuresFor(bindings, "CreateEntityByName") == 1);
-
-    CHECK(bindings.RunCommand.Index() == (OnWindows ? 25 : 26));
-    CHECK(bindings.RunCommand.Table() == nullptr);
-    CHECK_FALSE(static_cast<bool>(bindings.RunCommand));
-    CHECK(FailuresFor(bindings, "CPlayer_MovementServices::RunCommand") == 1);
+    CHECK(HasFailure(bindings, "'CreateEntityByName' is in 'offsets', which this member does not bind from"));
 }
 
-TEST_CASE("Bind names a key the file lacks and leaves its member empty")
+TEST_CASE("An address binds from a function or a global")
 {
-    TempGameData file(OneOffset);
-    GameData data;
-    REQUIRE(data.Load(file.Path()).has_value());
-
     Bindings bindings;
-    const auto bound = bindings.Bind(data);
-    REQUIRE_FALSE(bound.has_value());
-    CHECK(bound.error().Detail.find("'CheckTransmitPlayerSlot' is not in gamedata") != std::string::npos);
+    CHECK_FALSE(LoadSections(bindings, R"("globals": {
+    "CBaseEntity::EmitSoundFilter": { "windows": { "pattern": "48 8B", "rel32At": 3 }, "linux": { "pattern": "48 8B", "rel32At": 3 } }
+  })")
+                    .has_value());
 
-    CHECK_FALSE(static_cast<bool>(bindings.VisibilityRecipientSlot));
-    CHECK(bindings.VisibilityRecipientSlot.Value() == -1);
-    CHECK(FailuresFor(bindings, "CheckTransmitPlayerSlot") == 1);
-    CHECK(FailuresFor(bindings, "GameEntitySystem") == 0);
+    // Accepted from globals, then stopped only by the module this test process does not load.
+    CHECK(HasFailure(bindings, "CBaseEntity::EmitSoundFilter: module 'server' is not loaded"));
 }
 
-TEST_CASE("Bind names each failing key once, however many services use it")
+TEST_CASE("A function in a module that is not loaded names the module")
 {
-    TempGameData file(OneOffset);
-    GameData data;
-    REQUIRE(data.Load(file.Path()).has_value());
-
     Bindings bindings;
-    CHECK_FALSE(bindings.Bind(data).has_value());
+    CHECK_FALSE(LoadSections(bindings, R"("functions": {
+    "CreateEntityByName": { "library": "engine2", "windows": "48 83", "linux": "48 83" }
+  })")
+                    .has_value());
 
-    CHECK(FailuresFor(bindings, "CServerSideClientBase::m_nClientSlot") == 1);
-    CHECK(FailuresFor(bindings, "CUserCmdBase::cmdNum") == 1);
+    CHECK_FALSE(static_cast<bool>(bindings.CreateEntityByName));
+    CHECK(HasFailure(bindings, "CreateEntityByName: module 'engine2' is not loaded"));
+}
+
+TEST_CASE("An empty pattern is refused before any scan")
+{
+    Bindings bindings;
+    CHECK_FALSE(
+        LoadSections(bindings, R"("functions": { "CreateEntityByName": { "windows": "", "linux": "" } })").has_value());
+
+    CHECK(HasFailure(bindings, "CreateEntityByName: empty pattern"));
+}
+
+TEST_CASE("A vtable slot binds only with its class table")
+{
+    Bindings bindings;
+    CHECK_FALSE(LoadSections(bindings, R"("vtables": {
+    "CBaseEntity::Teleport": { "class": "CCSPlayerPawn", "windows": 163, "linux": 162 }
+  })")
+                    .has_value());
+
+    CHECK_FALSE(static_cast<bool>(bindings.Teleport));
+    CHECK(bindings.Teleport.Index() == -1);
+    CHECK(HasFailure(bindings, "CBaseEntity::Teleport: module 'server' is not loaded"));
+}
+
+TEST_CASE("A negative offset or index is refused")
+{
+    Bindings bindings;
+    CHECK_FALSE(LoadSections(bindings, R"("vtables": {
+    "CBaseEntity::Teleport": { "class": "CCSPlayerPawn", "windows": -1, "linux": -1 }
+  },
+  "offsets": { "GameEntitySystem": { "windows": -8, "linux": -8 } })")
+                    .has_value());
+
+    CHECK(HasFailure(bindings, "CBaseEntity::Teleport: index -1 is negative"));
+    CHECK(HasFailure(bindings, "GameEntitySystem: offset -8 is negative"));
+    CHECK_FALSE(static_cast<bool>(bindings.GameEntitySystem));
+}
+
+TEST_CASE("A missing file is NotFound and binds nothing")
+{
+    Bindings bindings;
+    const auto loaded = bindings.Load("voltmod-no-such-gamedata.jsonc");
+
+    REQUIRE_FALSE(loaded.has_value());
+    CHECK(loaded.error().Code == ErrorCode::NotFound);
+    CHECK(bindings.Failures.empty());
+}
+
+TEST_CASE("A malformed file is refused before anything binds")
+{
+    for (std::string_view sections : {
+             R"("offsets": { "GameEntitySystem": { "windows": 88, "linux": 80, "max": 4096 } })",
+             R"("signatures": {})",
+             R"("offsets": { "GameEntitySystem": { "windows": "88", "linux": 80 } })",
+             R"("vtables": [1, 2])",
+             R"("globals": { "CBaseGameSystemFactory::sm_pFirst": { "windows": "48 8B" } })",
+             R"("functions": { "CreateEntityByName": 7 })",
+         })
+    {
+        Bindings bindings;
+        const auto loaded = LoadSections(bindings, sections);
+
+        REQUIRE_FALSE(loaded.has_value());
+        CHECK(loaded.error().Code == ErrorCode::Invalid);
+        CHECK(bindings.Failures.empty());
+    }
+}
+
+TEST_CASE("The schema key every gamedata file carries is accepted")
+{
+    VoltModTests::TempFile file(
+        R"({ "$schema": "./gamedata.schema.json", "build": { "server": "1", "verified": "2026-09-11" } })", "bindings",
+        ".jsonc");
+    Bindings bindings;
+    const auto loaded = bindings.Load(file.Path());
+
+    // Read, then refused only because nothing is in it.
+    REQUIRE_FALSE(loaded.has_value());
+    CHECK(loaded.error().Code == ErrorCode::Engine);
 }

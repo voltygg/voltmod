@@ -1,4 +1,4 @@
-"""Checking gamedata signatures against the game binaries, and repairing moved struct offsets."""
+"""Checking gamedata patterns against the game binaries, and repairing moved struct offsets."""
 
 import json
 import re
@@ -13,13 +13,16 @@ from voltmod.schemagen.generate import BASELINES
 
 GAMEDATA_FILE = Path("gamedata/gamedata.jsonc")
 
+# The sections whose entries are found by a byte pattern.
+PATTERN_SECTIONS = ("functions", "globals")
+
 # Four literal bytes reading as a little-endian integer this small may be a struct offset.
 MAX_DISPLACEMENT = 0xFFFF
 
 _LINE_COMMENT = re.compile(r"^\s*//.*$", re.MULTILINE)
 
 
-class SignatureStatus(StrEnum):
+class PatternStatus(StrEnum):
     HOLDS = "holds"
     REPAIRED = "repaired"
     AMBIGUOUS = "ambiguous"
@@ -27,9 +30,10 @@ class SignatureStatus(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
-class SignatureResult:
+class PatternResult:
+    section: str
     key: str
-    status: SignatureStatus
+    status: PatternStatus
     detail: str = ""
     old_pattern: str = ""
     new_pattern: str = ""
@@ -84,8 +88,8 @@ def pattern_regex(pattern: str) -> re.Pattern[bytes]:
     return re.compile(b"".join(parts), re.DOTALL)
 
 
-def check_gamedata(root: Path, game_dir: str, platform: str) -> tuple[str, list[SignatureResult]]:
-    """The gamedata text in @p root, and every signature checked against the game at @p game_dir."""
+def check_gamedata(root: Path, game_dir: str, platform: str) -> tuple[str, list[PatternResult]]:
+    """The gamedata text in @p root, and every pattern checked against the game at @p game_dir."""
     if not game_dir:
         raise VoltmodError("no game directory; set CS2_SERVER_PATH in .env or pass --game-dir")
     game = Path(game_dir).expanduser()
@@ -102,7 +106,7 @@ def check_gamedata(root: Path, game_dir: str, platform: str) -> tuple[str, list[
     schema = json.loads(baseline.read_text(encoding="utf-8")) if baseline.is_file() else {}
 
     print(f"==> gamedata {binaries.platform} (game build {game_build(game)})")
-    return text, check_signatures(parse_gamedata(text), binaries, schema)
+    return text, check_patterns(parse_gamedata(text), binaries, schema)
 
 
 def parse_gamedata(text: str) -> dict[str, Any]:
@@ -110,43 +114,51 @@ def parse_gamedata(text: str) -> dict[str, Any]:
     return json.loads(_LINE_COMMENT.sub("", text))
 
 
-def check_signatures(
+def check_patterns(
     gamedata: dict[str, Any], binaries: GameBinaries, schema: dict[str, Any]
-) -> list[SignatureResult]:
-    """Check this platform's signatures, repairing those one moved displacement explains."""
+) -> list[PatternResult]:
+    """Check this platform's patterns, repairing those one moved displacement explains."""
     results = []
-    for key, entry in sorted(gamedata.get("signatures", {}).items()):
-        column = entry.get(binaries.platform)
-        if not column:
-            continue
-
-        library = entry.get("library", "server")
-        pattern = column["pattern"]
-        hits = binaries.find(library, pattern)
-        if len(hits) == 1:
-            results.append(SignatureResult(key, SignatureStatus.HOLDS))
-            continue
-        if len(hits) > 1:
-            results.append(SignatureResult(key, SignatureStatus.AMBIGUOUS, f"{len(hits)} matches"))
-            continue
-
-        repaired = repair_signature(binaries, library, pattern)
-        if repaired is None:
-            detail = "no match, and no single displacement explains it"
-            results.append(SignatureResult(key, SignatureStatus.BROKEN, detail))
-            continue
-
-        new_pattern, index, old_offset, new_offset = repaired
-        detail = f"bytes {index}-{index + 3}: {old_offset} -> {new_offset}, wildcarded"
-        if fields := schema_fields_at(schema, new_offset):
-            detail += f"\n{new_offset} is {', '.join(fields[:2])}"
-        results.append(
-            SignatureResult(key, SignatureStatus.REPAIRED, detail, pattern, new_pattern)
-        )
+    for section in PATTERN_SECTIONS:
+        for key, entry in sorted(gamedata.get(section, {}).items()):
+            column = entry.get(binaries.platform)
+            if not column:
+                continue
+            # A function's column is its pattern; a global's also carries rel32At.
+            pattern = column["pattern"] if isinstance(column, dict) else column
+            library = entry.get("library", "server")
+            results.append(check_pattern(binaries, section, key, library, pattern, schema))
     return results
 
 
-def repair_signature(
+def check_pattern(
+    binaries: GameBinaries,
+    section: str,
+    key: str,
+    library: str,
+    pattern: str,
+    schema: dict[str, Any],
+) -> PatternResult:
+    """Whether one pattern holds, matches twice, can be repaired, or is broken."""
+    hits = binaries.find(library, pattern)
+    if len(hits) == 1:
+        return PatternResult(section, key, PatternStatus.HOLDS)
+    if len(hits) > 1:
+        return PatternResult(section, key, PatternStatus.AMBIGUOUS, f"{len(hits)} matches")
+
+    repaired = repair_pattern(binaries, library, pattern)
+    if repaired is None:
+        detail = "no match, and no single displacement explains it"
+        return PatternResult(section, key, PatternStatus.BROKEN, detail)
+
+    new_pattern, index, old_offset, new_offset = repaired
+    detail = f"bytes {index}-{index + 3}: {old_offset} -> {new_offset}, wildcarded"
+    if fields := schema_fields_at(schema, new_offset):
+        detail += f"\n{new_offset} is {', '.join(fields[:2])}"
+    return PatternResult(section, key, PatternStatus.REPAIRED, detail, pattern, new_pattern)
+
+
+def repair_pattern(
     binaries: GameBinaries, library: str, pattern: str
 ) -> tuple[str, int, int, int] | None:
     """Wildcard the one displacement that restores a unique match: (pattern, index, old, new)."""
@@ -184,7 +196,7 @@ def replace_pattern(text: str, key: str, old_pattern: str, new_pattern: str) -> 
     return text.replace(quoted, f'"{new_pattern}"')
 
 
-def write_repairs(root: Path, text: str, repaired: list[SignatureResult]) -> None:
+def write_repairs(root: Path, text: str, repaired: list[PatternResult]) -> None:
     """Patch each repaired pattern into @p text and write it back as the gamedata file."""
     for result in repaired:
         text = replace_pattern(text, result.key, result.old_pattern, result.new_pattern)

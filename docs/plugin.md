@@ -188,7 +188,7 @@ that cannot fail does not need to be a step.
 ## Status sections: StatusService
 
 `runtime.Status` combines named diagnostic sections. The framework supplies
-build, load, gamedata, and uptime sections. Plugins may add their own and expose
+build, load, and uptime sections. Plugins may add their own and expose
 the report through a console command:
 
 ```cpp

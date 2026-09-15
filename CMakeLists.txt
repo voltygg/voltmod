@@ -132,6 +132,7 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Commands/Targeting.cpp
             src/Core/EffectManager.cpp
             src/Core/File.cpp
+            src/Core/GameBuild.cpp
             src/Core/LoadSteps.cpp
             src/Core/Logger.cpp
             src/Core/Paths.cpp
@@ -150,8 +151,6 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Ui/ButtonPressMessage.cpp
             src/Engine/ConVars/ConVarTypes.cpp
             src/Engine/GameData/Bindings.cpp
-            src/Engine/GameData/GameData.cpp
-            src/Engine/GameData/GameDataFile.cpp
             src/Engine/Memory/BytePattern.cpp
             src/Engine/Memory/SigScanner.cpp
             src/Engine/Memory/VtableLookup.cpp

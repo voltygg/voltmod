@@ -112,7 +112,7 @@ hook when it is dropped:
 - `VoltMod::HookInterface` takes a member function pointer and hooks that one interface object.
 - `VoltMod::HookVirtual` takes a gamedata @ref VoltMod::VirtualFn and hooks every object sharing
   its class vtable. It reports an unbound slot as an error rather than installing nothing.
-- `VoltMod::HookFunction` takes a gamedata signature, a `Fn` whose first parameter is the object,
+- `VoltMod::HookFunction` takes a gamedata function, a `Fn` whose first parameter is the object,
   and hooks the function where its code starts. Use it for a function no class vtable reaches: one
   that is not virtual, or one on a secondary base.
 

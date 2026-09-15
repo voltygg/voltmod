@@ -15,12 +15,10 @@
 #include <interfaces/interfaces.h>
 #include <map>
 #include <networksystem/inetworkmessages.h>
-#include <optional>
 #include <schemasystem/schemasystem.h>
 #include <string>
 #include <string_view>
 #include <tier1/convar.h>
-#include <vector>
 
 namespace VoltMod
 {
@@ -106,10 +104,8 @@ bool Runtime::InitializeServices(const LoadContext& context)
     // MetamodPlugin logs the summary and reports why a required step failed.
     auto& steps = LoadSteps;
 
-    // Earlier plugins may patch class tables. Resolve the original slot through KHook.
-    steps.Optional("GameData", [&] { return Unsafe.GameData.Load(DefaultGameDataPath, OriginalVfnPtr); });
-    // Names every entry that did not resolve and every key the file lacks.
-    steps.Optional("Bindings", [&] { return Unsafe.Bindings.Bind(Unsafe.GameData); });
+    // Names every entry that did not bind. Earlier plugins may hook class tables, so slots are read through KHook.
+    steps.Optional("GameData", [&] { return Unsafe.Bindings.Load(DefaultGameDataPath, OriginalVfnPtr); });
 
     // A required step writes its failure to Metamod and aborts the load.
     auto requiredStep = [&](std::string_view name, const std::function<VoltMod::Status()>& step) {
@@ -173,24 +169,6 @@ void Runtime::RegisterStatusSections()
             failed.emplace(step.Name, step.Reason);
         return Json::Write(
             glz::obj{"steps", LoadSteps.Count(), "failed", failed, "unavailable", UnavailableFeatures()});
-    });
-
-    Status.RegisterSection("gamedata", [this] {
-        std::optional<std::vector<std::string>> failed;
-        for (const auto& [name, entry] : Unsafe.GameData.Resolutions())
-        {
-            if (!entry.Error.empty())
-            {
-                if (!failed)
-                    failed.emplace();
-                failed->push_back(name);
-            }
-        }
-        return Json::Write(glz::obj{"verified", Unsafe.GameData.VerifiedOn(), "signatures",
-                                    Unsafe.GameData.CountOf(GameData::Kind::Signature), "addresses",
-                                    Unsafe.GameData.CountOf(GameData::Kind::Address), "vtables",
-                                    Unsafe.GameData.CountOf(GameData::Kind::VTable), "offsets",
-                                    Unsafe.GameData.CountOf(GameData::Kind::Offset), "failed", failed});
     });
 
     Status.RegisterSection("uptime", [start = std::chrono::steady_clock::now()] {

@@ -2,11 +2,12 @@
 
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Engine/GameData/GameData.hpp>
+#include <VoltMod/Engine/Memory/OriginalVfn.hpp>
 #include <bit>
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -15,7 +16,7 @@ namespace VoltMod
 
 /**
  * @file Bindings.hpp
- * @brief Typed engine ABIs resolved from gamedata locations.
+ * @brief Typed engine ABIs bound from gamedata locations.
  */
 
 /** Opaque address for an ABI declared only in its implementation file. */
@@ -141,11 +142,16 @@ private:
 /** Typed gamedata bindings shared by engine-facing services. */
 struct Bindings
 {
-    /** Resolve all members, naming each one that does not bind in @ref Failures. NotReady when
-     *  @p data is empty; otherwise an error when anything failed. */
-    Status Bind(const GameData& data);
+    /**
+     * Read the gamedata file at @p path and bind every member in one pass, clearing earlier results.
+     *
+     * @p originalOf reads a vtable slot through another plugin's hook. A missing or malformed file
+     * is an error and binds nothing; otherwise any member that did not bind is an error, each one
+     * named in @ref Failures.
+     */
+    Status Load(std::string_view path, const OriginalVfn& originalOf = {});
 
-    /** `key: reason` for every member the last @ref Bind left empty. */
+    /** `key: reason` for every member the last @ref Load left empty. */
     std::vector<std::string> Failures;
 
     /** ABI: CBaseEntity* (const char* className, int forceEdictIndex). */

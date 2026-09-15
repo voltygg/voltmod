@@ -83,7 +83,7 @@ public:
     /** Translations service that provides localized strings. */
     VoltMod::Translations Translations{Slots};
 
-    /** The opt-in engine-access tier (Interfaces, GameData, Bindings). Populated by Start. */
+    /** The opt-in engine-access tier (Interfaces, Bindings). Populated by Start. */
     UnsafeServices Unsafe;
 
     /** Schema field offsets resolve themselves, per process rather than per load - see @ref Field. */

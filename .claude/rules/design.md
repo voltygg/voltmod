@@ -54,7 +54,7 @@ The shapes the framework already uses. New code follows them instead of adding a
 ## Gamedata, convars, enums
 
 - `gamedata/gamedata.jsonc` says only *where* something is. `Engine/Bindings.hpp` owns every prototype, vtable signature, and field type; services take `const Bindings&` and read typed fields.
-- Parsing lives in `src/Engine/GameDataFile.*` and stays SDK-free so it is unit-tested.
+- `Bindings::Load` reads the file strictly and binds every member in one pass, SDK-free so it is unit-tested. The JSON schema checks structure; C++ checks only what memory safety needs.
 - One convar is one `ConVar<T>`, resolved by name once. `Set` uses a cfg line so replicated values reach clients; `RawScope` pokes storage without callbacks or networking.
 - Enumerator names come from `Core/EnumNames.hpp` (`Name(value)`, `Parse<E>(text)`), not hand-written switches.
 

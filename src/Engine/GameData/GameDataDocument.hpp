@@ -1,51 +1,53 @@
 #pragma once
 
-#include "Engine/GameData/GameDataFile.hpp"
-
 #include <VoltMod/Core/Json.hpp>
+#include <cstdint>
 #include <map>
 #include <optional>
 #include <string>
+#include <string_view>
 
-// This mirrors gamedata.jsonc before validation. Strict reflection rejects unknown keys, matching
-// gamedata.schema.json's `additionalProperties: false`; nested types keep document names local.
+// gamedata.jsonc as read. Strict reflection rejects unknown keys, matching the schema's
+// `additionalProperties: false`. Columns are `Windows`/`Linux` because GCC predefines `linux`.
 
 namespace VoltMod
 {
 
 struct GameDataDocument
 {
-    /** One platform's byte pattern under `signatures.<key>.<platform>`. */
-    struct Pattern
+    struct Build
     {
-        std::string pattern;
+        std::string server;    ///< steam.inf ServerVersion the entries were verified on.
+        std::string verified;  ///< YYYY-MM-DD of the last full review.
     };
 
-    struct Signature
+    /** A byte pattern matching the start of a function. */
+    struct Function
     {
         std::string library = "server";
-        std::optional<Pattern> Windows;
-        std::optional<Pattern> Linux;
+        std::optional<std::string> Windows;
+        std::optional<std::string> Linux;
     };
 
-    /** Per-platform integer columns for `addresses.<key>.rel32At`. */
-    struct Columns
+    /** A pattern, and the byte distance from its match to a rel32 displacement pointing at the global. */
+    struct GlobalColumn
     {
-        std::optional<int> Windows;
-        std::optional<int> Linux;
+        std::string pattern;
+        int rel32At = 0;
     };
 
-    struct Address
+    struct Global
     {
-        std::string signature;
-        std::optional<Columns> rel32At;
+        std::string library = "server";
+        std::optional<GlobalColumn> Windows;
+        std::optional<GlobalColumn> Linux;
     };
 
+    /** A slot counted in the primary vtable of `class`. */
     struct VTable
     {
         std::string Class;
         std::string library = "server";
-        std::string signature;
         std::optional<int> Windows;
         std::optional<int> Linux;
     };
@@ -54,28 +56,58 @@ struct GameDataDocument
     {
         std::optional<int> Windows;
         std::optional<int> Linux;
-        int max = MaxByteOffset;
-        int align = 1;
-    };
-
-    struct Build
-    {
-        std::string game;
-        std::string verified;
-        std::string note;
     };
 
     Build build;
-    std::map<std::string, Signature> signatures;
-    std::map<std::string, Address> addresses;
+    std::map<std::string, Function> functions;
+    std::map<std::string, Global> globals;
     std::map<std::string, VTable> vtables;
     std::map<std::string, Offset> offsets;
 };
 
+/** What a fully bound load resolved, as module-relative addresses, kept to compare builds offline. */
+struct ResolvedRecord
+{
+    struct Location
+    {
+        std::string library;
+        uint64_t rva = 0;
+    };
+
+    struct Slot
+    {
+        std::string library;
+        uint64_t table = 0;  ///< The class table's RVA.
+        int index = -1;
+    };
+
+    std::string build;
+    std::map<std::string, Location> functions;
+    std::map<std::string, Location> globals;
+    std::map<std::string, Slot> vtables;
+    std::map<std::string, int> offsets;
+};
+
+#ifdef _WIN32
+inline constexpr std::string_view PlatformName = "windows";
+#else
+inline constexpr std::string_view PlatformName = "linux";
+#endif
+
+/** This platform's column of @p entry. */
+template <class TEntry>
+const auto& PlatformColumn(const TEntry& entry)
+{
+#ifdef _WIN32
+    return entry.Windows;
+#else
+    return entry.Linux;
+#endif
+}
+
 }  // namespace VoltMod
 
-// Explicit maps preserve JSON keys that are C++ keywords or differ in case from member names.
-// Map every member because partial maps leave reflected aliases active.
+// Explicit maps keep JSON keys that are C++ keywords or differ in case from member names.
 
 template <>
 struct glz::meta<VoltMod::GameDataDocument>
@@ -84,9 +116,16 @@ struct glz::meta<VoltMod::GameDataDocument>
 };
 
 template <>
-struct glz::meta<VoltMod::GameDataDocument::Signature>
+struct glz::meta<VoltMod::GameDataDocument::Function>
 {
-    using T = VoltMod::GameDataDocument::Signature;
+    using T = VoltMod::GameDataDocument::Function;
+    static constexpr auto value = glz::object("library", &T::library, "windows", &T::Windows, "linux", &T::Linux);
+};
+
+template <>
+struct glz::meta<VoltMod::GameDataDocument::Global>
+{
+    using T = VoltMod::GameDataDocument::Global;
     static constexpr auto value = glz::object("library", &T::library, "windows", &T::Windows, "linux", &T::Linux);
 };
 
@@ -94,21 +133,13 @@ template <>
 struct glz::meta<VoltMod::GameDataDocument::VTable>
 {
     using T = VoltMod::GameDataDocument::VTable;
-    static constexpr auto value = glz::object("class", &T::Class, "library", &T::library, "signature", &T::signature,
-                                              "windows", &T::Windows, "linux", &T::Linux);
-};
-
-template <>
-struct glz::meta<VoltMod::GameDataDocument::Columns>
-{
-    using T = VoltMod::GameDataDocument::Columns;
-    static constexpr auto value = glz::object("windows", &T::Windows, "linux", &T::Linux);
+    static constexpr auto value =
+        glz::object("class", &T::Class, "library", &T::library, "windows", &T::Windows, "linux", &T::Linux);
 };
 
 template <>
 struct glz::meta<VoltMod::GameDataDocument::Offset>
 {
     using T = VoltMod::GameDataDocument::Offset;
-    static constexpr auto value =
-        glz::object("windows", &T::Windows, "linux", &T::Linux, "max", &T::max, "align", &T::align);
+    static constexpr auto value = glz::object("windows", &T::Windows, "linux", &T::Linux);
 };

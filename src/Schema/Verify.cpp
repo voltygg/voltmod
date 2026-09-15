@@ -1,12 +1,11 @@
+#include "Core/GameBuild.hpp"
 #include "Engine/Memory/SigScanner.hpp"
 #include "Schema/ClassFields.hpp"
 #include "Schema/Dump.hpp"
 #include "Schema/Layout.hpp"
 
-#include <VoltMod/Core/File.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Paths.hpp>
-#include <VoltMod/Core/Strings.hpp>
 #include <entity2/entityclass.h>
 #include <entity2/entitysystem.h>
 #include <filesystem>
@@ -22,22 +21,6 @@ namespace VoltMod::Schema
 
 /** Output read by `voltmod schemagen`. */
 static constexpr std::string_view DumpPath = "addons/voltmod/schema/server.json";
-
-/** steam.inf's ServerVersion. */
-static std::string_view GameBuild()
-{
-    static const std::string build = [] {
-        constexpr std::string_view key = "ServerVersion=";
-        auto text = ReadAllText("steam.inf");
-        const size_t at = text ? text->find(key) : std::string::npos;
-        if (at == std::string::npos)
-            return std::string("unknown");
-
-        const size_t start = at + key.size();
-        return Strings::Trim(std::string_view(*text).substr(start, text->find_first_of("\r\n", start) - start));
-    }();
-    return build;
-}
 
 /** The build stamped on the dump at @p path, or empty; reads only the file's head. */
 static std::string DumpedBuild(const std::filesystem::path& path)

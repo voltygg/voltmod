@@ -16,11 +16,11 @@ it does not:
 |---|---|
 | `<VoltMod/Entities/Api.hpp>` | Every frame-local wrapper (`Entity`, `Pawn`, `Controller`, `EntityRef`, ...), `EntitySystem`, `EntityOps`, `Items`, `Render`, and `ConVar`/`ConVarOverrides` |
 | `<VoltMod/Hooks/Api.hpp>` | Every hook (`Movement`, `Teleport`, `Visibility`, `ChatInput`, `ClientConVars`, `GlowVision`, `PlayerInput`), game events, and `Messages`/`CenterHtml` |
-| `<VoltMod/Unsafe/Api.hpp>` | `Interfaces`, `GameData`, `Bindings`, `MemoryAccess`, `RecipientFilter`, and the vtable hooks - opt in only where a plugin pokes at the engine directly |
+| `<VoltMod/Unsafe/Api.hpp>` | `Interfaces`, `Bindings`, `MemoryAccess`, `RecipientFilter`, and the vtable hooks - opt in only where a plugin pokes at the engine directly |
 
 The guide is split by topic:
 
-- @subpage sdk_gamedata_guide - the gamedata file, typed `Bindings`, capabilities, and runtime schema fields
+- @subpage sdk_gamedata_guide - the gamedata file, typed `Bindings`, availability, and baked schema fields
 - @subpage sdk_players_guide - entity lookup, the typed player wrapper, common pawn operations, and weapons
 - @subpage sdk_entity_ops_guide - entity creation, entity IO, one-shot world effects, and resource precaching
 - @subpage sdk_visibility_guide - render mode/color tricks, per-recipient visibility filtering, and per-viewer glow vision

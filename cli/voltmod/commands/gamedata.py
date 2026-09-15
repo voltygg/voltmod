@@ -1,4 +1,4 @@
-"""The `voltmod gamedata` commands: check signatures, and repair explained drift."""
+"""The `voltmod gamedata` commands: check patterns, and repair explained drift."""
 
 from typing import Annotated
 
@@ -6,8 +6,8 @@ import typer
 
 from voltmod.gamedata import (
     GAMEDATA_FILE,
-    SignatureResult,
-    SignatureStatus,
+    PatternResult,
+    PatternStatus,
     check_gamedata,
     write_repairs,
 )
@@ -28,7 +28,7 @@ Platform = Annotated[
 
 @gamedata_commands.command("check")
 def check_command(game_dir: GameDir = "", platform: Platform = "") -> None:
-    """Report which committed signatures no longer match the shipped binaries."""
+    """Report which committed patterns no longer match the shipped binaries."""
     project = Project.load()
     _, results = check_gamedata(project.root, game_dir or project.settings.server_path, platform)
     drifted = _print_drift(results)
@@ -43,12 +43,12 @@ def resolve_command(
     platform: Platform = "",
     write: Annotated[bool, typer.Option("--write", help="Patch gamedata.jsonc in place")] = False,
 ) -> None:
-    """Repair the signatures that drifted, leaving every entry that still matches alone."""
+    """Repair the patterns that drifted, leaving every entry that still matches alone."""
     project = Project.load()
     text, results = check_gamedata(project.root, game_dir or project.settings.server_path, platform)
     drifted = _print_drift(results)
 
-    repaired = [result for result in results if result.status is SignatureStatus.REPAIRED]
+    repaired = [result for result in results if result.status is PatternStatus.REPAIRED]
     if not write:
         if repaired:
             print(f"{len(repaired)} entries would be rewritten (pass --write)")
@@ -63,14 +63,14 @@ def resolve_command(
         raise typer.Exit(1)
 
 
-def _print_drift(results: list[SignatureResult]) -> int:
-    """Print every signature that no longer holds; return how many there are."""
-    held = sum(result.status is SignatureStatus.HOLDS for result in results)
-    print(f"    {held}/{len(results)} signatures hold")
+def _print_drift(results: list[PatternResult]) -> int:
+    """Print every pattern that no longer holds; return how many there are."""
+    held = sum(result.status is PatternStatus.HOLDS for result in results)
+    print(f"    {held}/{len(results)} patterns hold")
     for result in results:
-        if result.status is SignatureStatus.HOLDS:
+        if result.status is PatternStatus.HOLDS:
             continue
-        print(f"    {result.status.upper():9} signatures.{result.key}")
+        print(f"    {result.status.upper():9} {result.section}.{result.key}")
         for line in result.detail.splitlines():
             print(f"{'':14}{line}")
     return len(results) - held

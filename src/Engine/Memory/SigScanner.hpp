@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Engine/Memory/ModuleImage.hpp"
+#include "Engine/Memory/RelativeAddress.hpp"
 
-#include <VoltMod/Engine/Memory/RelativeAddress.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <string>

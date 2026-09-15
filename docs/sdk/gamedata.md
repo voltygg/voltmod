@@ -10,45 +10,45 @@ types.
 
 ```cpp
 // include/VoltMod/Engine/GameData/Bindings.hpp
-Fn<CEntityInstance*(const char*, int)> CreateEntityByName;   // signatures."CreateEntityByName"
+Fn<CEntityInstance*(const char*, int)> CreateEntityByName;   // functions."CreateEntityByName"
+Address GameEventManager;                                   // globals."CSource2Server::g_GameEventManager"
 VirtualFn<void(CEntityInstance*, int)> ChangeTeam;          // vtables."CCSPlayerController::ChangeTeam"
 OffsetOf<int> ClientSlot;                                   // offsets."CServerSideClientBase::m_nClientSlot"
 ```
 
 Services use `const Bindings&`, avoiding string lookup on runtime call paths.
-Binding failures are reported during load.
+`Bindings::Load` reads the file and binds every member in one pass.
 
 ## `gamedata.jsonc` format
 
-Four sections. Each key is the engine's own name for the symbol, `Class::member` where it has one, so
-it can be looked up in upstream gamedata and in the binary; `Bindings::Bind` maps it to a plain C++
-name. A key may appear in only one section.
+Four sections, named after what they bind. Each key is the engine's own name for the symbol,
+`Class::member` where it has one, so it can be looked up in upstream gamedata and in the binary;
+`Bindings::Load` maps it to a plain C++ name. A key belongs to one section.
 
 ```jsonc
 {
   "$schema": "./gamedata.schema.json",
-  "build": { "game": "cs2", "verified": "2026-08-26", "note": "re-verify after every CS2 engine update" },
+  // The steam.inf ServerVersion the entries were last checked on, and the date.
+  "build": { "server": "2000908", "verified": "2026-09-11" },
 
-  // A byte pattern scanned in one loaded module. The match address is the binding.
-  "signatures": {
+  // A byte pattern matching the start of a function. The match address is the binding.
+  "functions": {
     "CreateEntityByName": {
       "library": "server",                                  // default; "engine2" for engine code
-      "windows": { "pattern": "48 83 EC 48 C6 44 24 30 00" },
-      "linux":   { "pattern": "48 8D 05 ? ? ? ? 55 48 89 FA" }
+      "windows": "48 83 EC 48 C6 44 24 30 00",
+      "linux": "48 8D 05 ? ? ? ? 55 48 89 FA"
     }
   },
 
-  // A pointer reached through a rel32 displacement inside a matched signature.
-  "addresses": {
-    "CSource2Server::g_GameEventManager": {
-      "signature": "CSource2Server::Init",                   // must exist in "signatures"
-      "rel32At": { "windows": 98, "linux": 106 }             // bytes from the match to the rel32
+  // A global reached through the rel32 displacement `rel32At` bytes after a pattern's match.
+  "globals": {
+    "CBaseGameSystemFactory::sm_pFirst": {
+      "windows": { "pattern": "48 8B 1D ? ? ? ? 48 85 DB 0F 84 ? ? ? ? BD", "rel32At": 3 },
+      "linux": { "pattern": "4C 8B 35 ? ? ? ? 4D 85 F6 75 ? E9", "rel32At": 3 }
     }
   },
 
-  // A vtable slot, plus the class whose table the index is counted in. With a "signature", the
-  // slot is found by searching that class's table for the function the pattern matched, and the
-  // index is only the fallback.
+  // A vtable slot, counted in the primary table of `class`.
   "vtables": {
     "CPlayer_MovementServices::RunCommand": { "class": "CCSPlayer_MovementServices", "windows": 25, "linux": 26 },
     "CServerSideClient::ProcessRespondCvarValue": { "class": "CServerSideClient", "library": "engine2", "windows": 38, "linux": 40 }
@@ -56,37 +56,45 @@ name. A key may appear in only one section.
 
   // A byte offset into a layout the SDK headers do not declare.
   "offsets": {
-    "CheckTransmitPlayerSlot": { "windows": 576, "linux": 576, "max": 4096, "align": 1 }
+    "CheckTransmitPlayerSlot": { "windows": 576, "linux": 576 }
   }
 }
 ```
 
-Wildcard bytes are `?` or `??`. Optional `max` and `align` constraints reject invalid offsets;
-their defaults are `4096` and `1`.
-
-`gamedata.schema.json` sits next to the file with `additionalProperties: false` everywhere, so an
-editor squiggles a typo before the server ever sees it.
+Wildcard bytes are `?` or `??`. `gamedata.schema.json` sits next to the file with
+`additionalProperties: false` everywhere, so an editor flags a typo before the server sees it.
 
 ## What the loader checks
 
-The parser rejects the file before scanning when it has:
+The file is read strictly. An unknown key, a value of the wrong type, or a section that is not an
+object refuses the whole file, and nothing binds.
 
-- one key in two sections;
-- an entry with no column for the platform being loaded;
-- a malformed byte pattern;
-- a negative `rel32At`, or an `addresses` or `vtables` entry naming a signature that does not exist;
-- a vtable index outside `[0, 500)`;
-- an offset above its `max`, or not a multiple of its `align`.
+Then each member binds from its key, or fails with a line naming the key and the reason:
 
-Resolution failures do not reject the file. The `Bindings` load step names every entry that did
-not resolve, and the affected features report it from `Available()`.
+- the key is missing, is in two sections, or is in a section that member does not bind from;
+- the entry has no column for this platform (an entry nothing binds may leave it out);
+- a pattern is empty, its module is not loaded, or it matches nowhere or more than once;
+- a global's rel32 displacement, or the address it points at, is outside its module or unreadable;
+- an offset or index is negative;
+- a vtable's class table is not found, or its slot does not hold code.
 
-A vtable entry whose `signature` resolves keeps the slot that holds it, and warns when that is not
-the index in the file. The search reads through another plugin's hooks, so it does not matter which
-plugin loaded first. When the signature does not resolve, or its function is in no slot, the entry
-keeps its index and says so.
+The `GameData` load step lists every failure, and each feature reports its own from
+`Available()`. An entry nothing binds is a warning, not a failure.
 
-A key the file lacks is named by the same `Bindings` step.
+A pattern proves itself by matching once; a vtable index or an offset cannot. When `build.server`
+is not the running server's version, the load warns that the file's vtable indices and offsets are
+unchecked on this build.
+
+The log records where each vtable slot's code lives as `key=library+offset`, to match a crash dump
+against a binding.
+
+### The resolved record
+
+After a load where every member bound, the framework writes what resolved to
+`addons/voltmod/gamedata/resolved.<platform>.json`: the server build, module-relative addresses for
+functions, globals and class tables, and each slot index and offset. It is written once per server
+build, so the next plugin to load on that build leaves it alone, and a failed write never fails a
+load. Keep the record from a build that worked to compare against after an update.
 
 ## Availability
 
@@ -103,40 +111,38 @@ or no result.
 
 ## Re-verify after an engine update
 
-Every entry can drift after a CS2 update. Treat an older `build.verified` date
+Every entry can drift after a CS2 update. Treat a `build.server` that is not the running server's
 as unverified.
 
 1. **Run `voltmod gamedata check`.** It reports, against the installed binaries and in a second,
-   which signatures no longer match. Prefer it to the load report: it needs no server, and it says
-   why an entry drifted rather than only that it did.
+   which `functions` and `globals` patterns no longer match. Prefer it to the load log: it needs
+   no server, and it says why an entry drifted rather than only that it did.
 2. **Run `voltmod gamedata resolve --write`** to repair what it can, then read the diff. It only
    ever widens a struct displacement that moved, and only when exactly one such change brings the
    pattern back to a single match. Anything else it refuses, and those you re-sync by hand from
    the upstream named in `gamedata.jsonc`.
-3. **Re-check every vtable index that has no `signature`.** Executable-section validation catches
-   invalid slots, but not a valid slot that points to the wrong function. An entry with a
-   `signature` reports its own move in the load log instead; copy the new index into the file.
-4. **Re-check every byte offset.** Stale offsets can read plausible unrelated data. Keep `max` and
-   `align` tight.
+3. **Re-check every vtable index.** The slot check catches an index that lands on data, but not a
+   valid slot holding the wrong function.
+4. **Re-check every byte offset.** Stale offsets can read plausible unrelated data.
 5. **Exercise each feature on a live server.** Successful resolution does not prove correct behavior.
-6. **Update `build.verified`** in the same change.
+6. **Update `build.server` and `build.verified`** in the same change.
 
 The entries most likely to bite, and how each one fails:
 
 | Entry | Section | Used by | Drift symptom |
 | --- | --- | --- | --- |
-| `CPlayer_MovementServices::RunCommand` | vtables | @ref VoltMod::Movement | Crash on the first movement tick, unless the executable-section check catches it |
+| `CPlayer_MovementServices::RunCommand` | vtables | @ref VoltMod::Movement | Crash on the first movement tick, unless the slot check catches it |
 | `CBaseEntity::Teleport` | vtables | @ref VoltMod::Teleport | Missing: subscribing to `Teleported` is refused and `Teleport::Available` says why |
 | `CServerSideClient::ProcessRespondCvarValue` | vtables | @ref VoltMod::ClientConVars | `ClientConVars::Available` fails; client convar queries unavailable |
 | `CUserCmd::CSGOUserCmdPB` | offsets | `Movement` cmd events | Missing: `Valid=false` views. Stale: garbage viewangles and buttons |
 | `CUserCmdBase::cmdNum` | offsets | `PlayerInput::CommandNumber` | Missing: falls back to the protobuf's `legacy_command_number`, which live clients leave at 0. Stale: a counter that never increments by 1 |
 | `CServerSideClientBase::m_nClientSlot` | offsets | `ClientConVars`, `ButtonPresses` | Stale: a client's answer is attributed to the wrong player |
-| `INetworkMessageProcessingPreFilter::FilterMessage` | signatures | @ref VoltMod::ScreenManager::Pressed | Missing: `ScreenManager::Available` fails; presses never arrive |
+| `INetworkMessageProcessingPreFilter::FilterMessage` | functions | @ref VoltMod::ScreenManager::Pressed | Missing: `ScreenManager::Available` fails; presses never arrive |
 | `CServerSideClient::INetworkMessageProcessingPreFilter` | offsets | @ref VoltMod::ScreenManager::Pressed | Stale: a press is attributed to the wrong player, or dropped |
-| `CNetworkGameServer::ReplyConnection` | signatures | @ref VoltMod::Addons | Missing: `Require` is refused with the reason |
+| `CNetworkGameServer::ReplyConnection` | functions | @ref VoltMod::Addons | Missing: `Require` is refused with the reason |
 | `CNetworkGameServer::m_szAddons` | offsets | @ref VoltMod::Addons | Stale: clients download addons but mount none, or a corrupted reply |
 | `CheckTransmitPlayerSlot` | offsets | @ref VoltMod::Visibility | Stale: the wrong recipient is filtered |
-| `CSource2Server::g_GameEventManager` | addresses | @ref VoltMod::Messages | Center HTML does not display |
+| `CSource2Server::g_GameEventManager` | globals | @ref VoltMod::GameEvents | Center HTML does not display |
 
 ## Checking and repairing offline
 
@@ -156,22 +162,22 @@ What `resolve --write` will do, and what it will not:
 
 ```text
 ==> gamedata windows (game build 2000908)
-    18/21 signatures hold
-    REPAIRED  signatures.CustomHudSetInputCapture
+    21/22 patterns hold
+    REPAIRED  functions.CCSCustomHudLayout::SetInputCaptureEnabled
               bytes 12-15: 1200 -> 1208, wildcarded
               1208 is CCSCustomHudLayout::m_vecPlayerLayoutStates
 ```
 
-## Signature scanning
+## Pattern scanning
 
-The internal scanner rejects ambiguous patterns and out-of-bounds rel32 targets.
-Plugins use it through gamedata rather than directly.
+The internal scanner rejects ambiguous patterns, and a global's rel32 target must land inside its
+module. Plugins use it through gamedata rather than directly.
 
 ### Vtable lookup by class name
 
 `FindVirtualTable(moduleName, className)` resolves primary class tables. `VirtualFn` keeps each
 resolved table with its slot. A function on a secondary base has no primary slot, so it is bound
-by signature and hooked with `HookFunction` instead.
+by pattern and hooked with `HookFunction` instead.
 
 - Windows: walks the module's RTTI: the type descriptor for `.?AV<class>@@`, the complete object
   locator referencing it, then the vtable that follows. Only a locator at offset 0 is accepted, so
@@ -181,7 +187,7 @@ by signature and hooked with `HookFunction` instead.
 - Linux: reads `_ZTV<mangled>` from the ELF `.symtab`, falling back to `.dynsym`. The game's
   libraries hide those symbols, so it then walks the Itanium RTTI in the mapped module.
 
-Lookup returns null on failure. The gamedata entry still supplies the slot.
+When lookup fails, the entry does not bind.
 
 ## Schema fields
 
@@ -201,7 +207,7 @@ each call:
 
 | | says where | source | checked |
 | --- | --- | --- | --- |
-| `gamedata/gamedata.jsonc` | functions, vtables, interfaces | hand-maintained | at load, per entry |
+| `gamedata/gamedata.jsonc` | functions, globals, vtable slots, offsets | hand-maintained | at load, per entry |
 | `schema/server.<platform>.json` | entity field offsets | dumped from the engine | at load, whole layout |
 
 Schema fields are generated accessors, so a sub-object is a hop rather than a follow:

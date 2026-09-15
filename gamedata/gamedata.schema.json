@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "voltmod gamedata.jsonc",
-  "description": "Where the engine keeps things. C++ owns every ABI (prototypes, vtable signatures, field types) in VoltMod::Bindings; this file only says where to look. Fragile: re-verify after every CS2 engine update.",
+  "description": "Where the engine keeps things. C++ owns every ABI (prototypes, field types) in VoltMod::Bindings; this file only says where to look. Re-verify after every CS2 update.",
   "type": "object",
   "additionalProperties": false,
   "required": ["build"],
@@ -10,30 +10,33 @@
     "build": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["game", "verified"],
+      "required": ["server", "verified"],
       "properties": {
-        "game": { "type": "string", "description": "Game these entries were verified against." },
+        "server": {
+          "type": "string",
+          "pattern": "^[0-9]+$",
+          "description": "steam.inf ServerVersion the entries were last checked on. On any other build the load warns that vtable indices and offsets are unchecked."
+        },
         "verified": {
           "type": "string",
           "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
           "description": "Date the whole file was last walked entry by entry (YYYY-MM-DD)."
-        },
-        "note": { "type": "string" }
+        }
       }
     },
-    "signatures": {
+    "functions": {
       "type": "object",
-      "description": "Byte patterns scanned in a loaded module; the match address is the binding.",
-      "additionalProperties": { "$ref": "#/definitions/signature" }
+      "description": "Functions found by a byte pattern; the match address is the binding.",
+      "additionalProperties": { "$ref": "#/definitions/function" }
     },
-    "addresses": {
+    "globals": {
       "type": "object",
-      "description": "Pointers reached through a rel32 displacement inside a matched signature.",
-      "additionalProperties": { "$ref": "#/definitions/address" }
+      "description": "Globals reached through a rel32 displacement inside a pattern's match.",
+      "additionalProperties": { "$ref": "#/definitions/global" }
     },
     "vtables": {
       "type": "object",
-      "description": "Virtual function table slots, with the class whose table the index is counted in.",
+      "description": "Virtual function slots, with the class whose primary table the index is counted in.",
       "additionalProperties": { "$ref": "#/definitions/vtable" }
     },
     "offsets": {
@@ -53,42 +56,36 @@
       "pattern": "^([0-9A-Fa-f]{2}|\\?\\??)( ([0-9A-Fa-f]{2}|\\?\\??))*$",
       "description": "Space-separated hex bytes; \"?\" or \"??\" is a wildcard byte."
     },
-    "signature": {
+    "function": {
       "type": "object",
       "additionalProperties": false,
       "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }],
       "properties": {
         "library": { "$ref": "#/definitions/library" },
-        "windows": { "$ref": "#/definitions/platformSignature" },
-        "linux": { "$ref": "#/definitions/platformSignature" }
+        "windows": { "$ref": "#/definitions/pattern" },
+        "linux": { "$ref": "#/definitions/pattern" }
       }
     },
-    "platformSignature": {
+    "global": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["pattern"],
+      "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }],
       "properties": {
-        "pattern": { "$ref": "#/definitions/pattern" }
+        "library": { "$ref": "#/definitions/library" },
+        "windows": { "$ref": "#/definitions/globalColumn" },
+        "linux": { "$ref": "#/definitions/globalColumn" }
       }
     },
-    "address": {
+    "globalColumn": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["signature", "rel32At"],
+      "required": ["pattern", "rel32At"],
       "properties": {
-        "signature": {
-          "type": "string",
-          "description": "Key in \"signatures\" whose match this address is derived from."
-        },
+        "pattern": { "$ref": "#/definitions/pattern" },
         "rel32At": {
-          "type": "object",
-          "additionalProperties": false,
-          "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }],
-          "description": "Byte distance from the match to the 4-byte little-endian rel32 displacement.",
-          "properties": {
-            "windows": { "type": "integer", "minimum": 0 },
-            "linux": { "type": "integer", "minimum": 0 }
-          }
+          "type": "integer",
+          "minimum": 0,
+          "description": "Byte distance from the match to the 4-byte little-endian rel32 displacement."
         }
       }
     },
@@ -103,12 +100,8 @@
           "description": "Top-level RTTI/ELF class name owning the table (no namespace, no template)."
         },
         "library": { "$ref": "#/definitions/library" },
-        "signature": {
-          "type": "string",
-          "description": "Key in \"signatures\" matching the function this slot holds. The index is then the fallback, used only when the search does not find it."
-        },
-        "windows": { "type": "integer", "minimum": 0, "maximum": 499 },
-        "linux": { "type": "integer", "minimum": 0, "maximum": 499 }
+        "windows": { "type": "integer", "minimum": 0 },
+        "linux": { "type": "integer", "minimum": 0 }
       }
     },
     "offset": {
@@ -117,19 +110,7 @@
       "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }],
       "properties": {
         "windows": { "type": "integer", "minimum": 0 },
-        "linux": { "type": "integer", "minimum": 0 },
-        "max": {
-          "type": "integer",
-          "minimum": 0,
-          "default": 4096,
-          "description": "Largest plausible offset for this field; a larger value is a typo, not a field."
-        },
-        "align": {
-          "type": "integer",
-          "minimum": 1,
-          "default": 1,
-          "description": "Alignment the field the framework reads there requires."
-        }
+        "linux": { "type": "integer", "minimum": 0 }
       }
     }
   }

@@ -1,236 +1,179 @@
 {
   "$schema": "./gamedata.schema.json",
 
-  // These entries drift with CS2. `verified` records the last full review; see docs/sdk/gamedata.md.
+  // These entries drift with CS2. `server` is the steam.inf ServerVersion they were last checked
+  // on, `verified` the date; see docs/sdk/gamedata.md.
   "build": {
-    "game": "cs2",
+    "server": "2000908",
     "verified": "2026-09-11"
   },
 
-  // Patterns are scanned in a loaded module; `?` and `??` are wildcards. An "addresses" entry can
-  // turn the match into a rel32 target.
-  "signatures": {
-    // String: "gameeventmanager->Init()". References g_GameEventManager; the pointer comes from
-    // `addresses`. From s2sdk.
-    "CSource2Server::Init": {
-      "library": "server",
-      "windows": {
-        "pattern": "48 83 EC ? 48 83 3D ? ? ? ? ? 74 ? 33 C9 E8 ? ? ? ? FF 15 ? ? ? ?"
-      },
-      "linux": {
-        "pattern": "55 48 89 E5 41 55 41 54 53 48 83 EC 08 48 8D 05 ? ? ? ? 48 83 38 00"
-      }
-    },
-
-    // String: "Game System %s is defined twice!". The match references sm_pFirst. From CS2Fixes.
-    "IGameSystem::InitAllSystems": {
-      "library": "server",
-      "windows": { "pattern": "48 8B 1D ? ? ? ? 48 85 DB 0F 84 ? ? ? ? BD" },
-      "linux": { "pattern": "4C 8B 35 ? ? ? ? 4D 85 F6 75 ? E9" }
-    },
-
-    // References the event dispatcher, which the framework detaches on unload. From CS2Fixes.
-    "IGameSystem::LoopPostInitAllSystems": {
-      "library": "server",
-      "windows": { "pattern": "48 39 1D ? ? ? ? 74 ? 39 05" },
-      "linux": { "pattern": "4C 8B 25 ? ? ? ? 48 8B 05 ? ? ? ? 8B 35" }
-    },
-
-    // References s_GameSystems, a CUtlVector<AddedGameSystem_t>; the framework removes its entry on
-    // unload. From CS2Fixes.
-    "IGameSystem::LoopDestroyAllSystems": {
-      "library": "server",
-      "windows": { "pattern": "8B 05 ? ? ? ? 83 E8 ? 48 63 F8 0F 88" },
-      "linux": {
-        "pattern": "8B 05 ? ? ? ? 89 C2 83 EA ? 0F 88 ? ? ? ? 4C 8D 3D"
-      }
-    },
-
+  // A byte pattern matching the start of a function in a loaded module; `?` and `??` are wildcards.
+  "functions": {
     // CCSCustomHudLayout setters. Call them because server-only hash indexes shadow their tables;
     // see docs/custom-ui.md. Windows patterns cut from server.dll build 24934554, each matching
     // once in .text; Linux patterns from SwiftlyS2.
     "CCSCustomHudLayout::SetHasClass": {
       "library": "server",
-      "windows": {
-        "pattern": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 30 49 8B F0 33 ED 4C 8D 44 24 24 66 89 6C 24 24 41 8B F9 48 8B D9 E8 ? ? ? ? 84 C0 74 33"
-      },
-      "linux": {
-        "pattern": "55 48 89 E5 41 57 41 56 41 55 41 89 CD 41 54 49 89 D4 31 D2"
-      }
+      "windows": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 30 49 8B F0 33 ED 4C 8D 44 24 24 66 89 6C 24 24 41 8B F9 48 8B D9 E8 ? ? ? ? 84 C0 74 33",
+      "linux": "55 48 89 E5 41 57 41 56 41 55 41 89 CD 41 54 49 89 D4 31 D2"
     },
 
     // Same body as SetDialogVariableForPlayer, but with a `44 8B` / `45 89 C6` tail. Keep both tails.
     "CCSCustomHudLayout::SetHasClassForPlayer": {
       "library": "server",
-      "windows": {
-        "pattern": "40 53 56 57 48 83 EC 20 48 63 DA 49 8B F1 49 8B C0 48 8B F9 3B 99 ? ? ? ? 7D 5E 48 89 6C 24 50 4C 8D 44 24 40 33 ED 48 8B D0 66 89 6C 24 40 E8 ? ? ? ? 84 C0 74 3C 4C 8D 44 24 48 66 89 6C 24 48 48 8B D6 48 8B CF E8 ? ? ? ? 84 C0 74 23 44 8B"
-      },
-      "linux": {
-        "pattern": "55 48 89 E5 41 56 41 55 41 54 41 89 F4 53 48 83 EC ? 3B B7 ? ? ? ? 7C ? 48 83 C4 ? 5B 41 5C 41 5D 41 5E 5D C3 66 0F 1F 84 00 ? ? ? ? 48 89 D6 31 D2 48 89 FB 66 89 55 ? 48 8D 55 ? 49 89 CD 45 89 C6"
-      }
+      "windows": "40 53 56 57 48 83 EC 20 48 63 DA 49 8B F1 49 8B C0 48 8B F9 3B 99 ? ? ? ? 7D 5E 48 89 6C 24 50 4C 8D 44 24 40 33 ED 48 8B D0 66 89 6C 24 40 E8 ? ? ? ? 84 C0 74 3C 4C 8D 44 24 48 66 89 6C 24 48 48 8B D6 48 8B CF E8 ? ? ? ? 84 C0 74 23 44 8B",
+      "linux": "55 48 89 E5 41 56 41 55 41 54 41 89 F4 53 48 83 EC ? 3B B7 ? ? ? ? 7C ? 48 83 C4 ? 5B 41 5C 41 5D 41 5E 5D C3 66 0F 1F 84 00 ? ? ? ? 48 89 D6 31 D2 48 89 FB 66 89 55 ? 48 8D 55 ? 49 89 CD 45 89 C6"
     },
 
     "CCSCustomHudLayout::SetDialogVariableString": {
       "library": "server",
-      "windows": {
-        "pattern": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 30 49 8B F0 33 ED 4C 8D 44 24 24 66 89 6C 24 24 49 8B F9 48 8B D9 E8 ? ? ? ? 84 C0 74 33"
-      },
-      "linux": { "pattern": "55 48 89 E5 41 55 49 89 CD 41 54 49 89 D4 31 D2" }
+      "windows": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 30 49 8B F0 33 ED 4C 8D 44 24 24 66 89 6C 24 24 49 8B F9 48 8B D9 E8 ? ? ? ? 84 C0 74 33",
+      "linux": "55 48 89 E5 41 55 49 89 CD 41 54 49 89 D4 31 D2"
     },
 
     // Twin of SetHasClassForPlayer with a `4C 8B` / `4D 89 C6` tail.
     "CCSCustomHudLayout::SetDialogVariableStringForPlayer": {
       "library": "server",
-      "windows": {
-        "pattern": "40 53 56 57 48 83 EC 20 48 63 DA 49 8B F1 49 8B C0 48 8B F9 3B 99 ? ? ? ? 7D 5E 48 89 6C 24 50 4C 8D 44 24 40 33 ED 48 8B D0 66 89 6C 24 40 E8 ? ? ? ? 84 C0 74 3C 4C 8D 44 24 48 66 89 6C 24 48 48 8B D6 48 8B CF E8 ? ? ? ? 84 C0 74 23 4C 8B"
-      },
-      "linux": {
-        "pattern": "55 48 89 E5 41 56 41 55 41 54 41 89 F4 53 48 83 EC ? 3B B7 ? ? ? ? 7C ? 48 83 C4 ? 5B 41 5C 41 5D 41 5E 5D C3 66 0F 1F 84 00 ? ? ? ? 48 89 D6 31 D2 48 89 FB 66 89 55 ? 48 8D 55 ? 49 89 CD 4D 89 C6"
-      }
+      "windows": "40 53 56 57 48 83 EC 20 48 63 DA 49 8B F1 49 8B C0 48 8B F9 3B 99 ? ? ? ? 7D 5E 48 89 6C 24 50 4C 8D 44 24 40 33 ED 48 8B D0 66 89 6C 24 40 E8 ? ? ? ? 84 C0 74 3C 4C 8D 44 24 48 66 89 6C 24 48 48 8B D6 48 8B CF E8 ? ? ? ? 84 C0 74 23 4C 8B",
+      "linux": "55 48 89 E5 41 56 41 55 41 54 41 89 F4 53 48 83 EC ? 3B B7 ? ? ? ? 7C ? 48 83 C4 ? 5B 41 5C 41 5D 41 5E 5D C3 66 0F 1F 84 00 ? ? ? ? 48 89 D6 31 D2 48 89 FB 66 89 55 ? 48 8D 55 ? 49 89 CD 4D 89 C6"
     },
 
     // Linux starts at the slot compare and sets up a frame after the range check.
     "CCSCustomHudLayout::SetInputCaptureEnabled": {
       "library": "server",
-      "windows": {
-        "pattern": "40 57 48 83 EC 20 41 0F B6 F8 3B 91 ? ? ? ? 7D 39"
-      },
-      "linux": { "pattern": "3B B7 ? ? ? ? 0F 8D ? ? ? ? 55" }
+      "windows": "40 57 48 83 EC 20 41 0F B6 F8 3B 91 ? ? ? ? 7D 39",
+      "linux": "3B B7 ? ? ? ? 0F 8D ? ? ? ? 55"
     },
 
     // Implemented on CServerSideClient's secondary base. String: "Client %d(%s) tried to send a
     // RebroadcastSourceId msg." From SwiftlyS2.
     "INetworkMessageProcessingPreFilter::FilterMessage": {
       "library": "engine2",
-      "windows": { "pattern": "40 53 48 83 EC ? 48 8B 02 48 8B D9 48 8B CA" },
-      "linux": {
-        "pattern": "55 48 89 E5 41 54 53 ? ? ? 48 89 FB 48 89 F7 FF 50 ? 48 8D 15 ? ? ? ? 31 C9 ? ? ? 48 85 D2 74 ? 48 3B 42"
-      }
+      "windows": "40 53 48 83 EC ? 48 8B 02 48 8B D9 48 8B CA",
+      "linux": "55 48 89 E5 41 54 53 ? ? ? 48 89 FB 48 89 F7 FF 50 ? 48 8D 15 ? ? ? ? 31 C9 ? ? ? 48 85 D2 74 ? 48 3B 42"
     },
 
     // String: "Sending S2C_CONNECTION to %s [addons:'%s']".
     // From MultiAddonManager; Windows checked on build 2000908.
     "CNetworkGameServer::ReplyConnection": {
       "library": "engine2",
-      "windows": { "pattern": "48 8B C4 55 41 55 41 56" },
-      "linux": { "pattern": "55 B9 ? ? ? ? 41 B8" }
+      "windows": "48 8B C4 55 41 55 41 56",
+      "linux": "55 B9 ? ? ? ? 41 B8"
     },
 
     "GetLegacyGameEventListener": {
       "library": "server",
-      "windows": { "pattern": "48 8B 15 ? ? ? ? 48 85 D2 74 ? 85 C9" },
-      "linux": {
-        "pattern": "48 8B 05 ? ? ? ? 48 85 C0 74 ? 83 FF ? 77 ? 48 63 FF 48 C1 E7 ? 48 8D 44 38"
-      }
+      "windows": "48 8B 15 ? ? ? ? 48 85 D2 74 ? 85 C9",
+      "linux": "48 8B 05 ? ? ? ? 48 85 C0 74 ? 83 FF ? 77 ? 48 63 FF 48 C1 E7 ? 48 8D 44 38"
     },
 
     // Patterns below come from CS2Fixes gamedata (github.com/Source2ZE/CS2Fixes); re-sync from there
     // after a CS2 update.
     "CreateEntityByName": {
       "library": "server",
-      "windows": { "pattern": "48 83 EC 48 C6 44 24 30 00" },
-      "linux": { "pattern": "48 8D 05 ? ? ? ? 55 48 89 FA" }
+      "windows": "48 83 EC 48 C6 44 24 30 00",
+      "linux": "48 8D 05 ? ? ? ? 55 48 89 FA"
     },
 
     "DispatchSpawn": {
       "library": "server",
-      "windows": {
-        "pattern": "48 89 5C 24 10 57 48 83 EC 30 48 8B DA 48 8B F9 48 85 C9"
-      },
-      "linux": { "pattern": "48 85 FF 74 ? 55 48 89 E5 41 55 41 54 49 89 FC" }
+      "windows": "48 89 5C 24 10 57 48 83 EC 30 48 8B DA 48 8B F9 48 85 C9",
+      "linux": "48 85 FF 74 ? 55 48 89 E5 41 55 41 54 49 89 FC"
     },
 
     // Not a vtable call in CS2.
     "CEntityInstance::AcceptInput": {
       "library": "server",
-      "windows": {
-        "pattern": "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 49 8B F0 48 8B D9 48 8B 0D"
-      },
-      "linux": {
-        "pattern": "55 48 89 E5 41 56 49 89 FE 41 55 48 8D 7D"
-      }
+      "windows": "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 49 8B F0 48 8B D9 48 8B 0D",
+      "linux": "55 48 89 E5 41 56 49 89 FE 41 55 48 8D 7D"
     },
 
     // Deferred entity IO, including delayed inputs and "Kill" cleanup.
     "CEntitySystem::AddEntityIOEvent": {
       "library": "server",
-      "windows": {
-        "pattern": "48 89 5C 24 18 4C 89 4C 24 20 48 89 4C 24 08 55 56 57 41 54 41 55 41 56 41 57 48 83 EC 20"
-      },
-      "linux": { "pattern": "55 48 89 E5 41 55 49 89 CD 41 54 49 89 FC 53 BB" }
+      "windows": "48 89 5C 24 18 4C 89 4C 24 20 48 89 4C 24 08 55 56 57 41 54 41 55 41 56 41 57 48 83 EC 20",
+      "linux": "55 48 89 E5 41 55 49 89 CD 41 54 49 89 FC 53 BB"
     },
 
     // Remove immediately instead of using the IO queue above.
     "UTIL_Remove": {
       "library": "server",
-      "windows": { "pattern": "48 85 C9 74 ? 48 8B D1 48 8B 0D ? ? ? ?" },
-      "linux": { "pattern": "48 89 FE 48 85 FF 74 ? 48 8D 05 ? ? ? ? 48" }
+      "windows": "48 85 C9 74 ? 48 8B D1 48 8B 0D ? ? ? ?",
+      "linux": "48 89 FE 48 85 FF 74 ? 48 8D 05 ? ? ? ? 48"
     },
 
     // Vscript binding that can disappear between builds; EmitSoundFilter is more stable.
     "CBaseEntity::EmitSoundParams": {
       "library": "server",
-      "windows": {
-        "pattern": "48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 55 48 8B EC 48 81 EC ? ? ? ? 33 C0"
-      },
-      "linux": { "pattern": "48 B8 ? ? ? ? ? ? ? ? 55 0F 28 D0" }
+      "windows": "48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 55 48 8B EC 48 81 EC ? ? ? ? 33 C0",
+      "linux": "48 B8 ? ? ? ? ? ? ? ? 55 0F 28 D0"
     },
 
     // Returns StartSoundEventInfo.
     "CBaseEntity::EmitSoundFilter": {
       "library": "server",
-      "windows": {
-        "pattern": "40 53 48 83 EC ? 4C 89 4C 24 ? 48 8B D9 45 8B C8"
-      },
-      "linux": {
-        "pattern": "55 48 89 E5 53 48 89 FB 48 83 EC ? E8 ? ? ? ? 48 89 D8 48 8B 5D ? C9 C3 CC CC CC CC CC CC 48 B8"
-      }
+      "windows": "40 53 48 83 EC ? 4C 89 4C 24 ? 48 8B D9 45 8B C8",
+      "linux": "55 48 89 E5 53 48 89 FB 48 83 EC ? E8 ? ? ? ? 48 89 D8 48 8B 5D ? C9 C3 CC CC CC CC CC CC 48 B8"
     },
 
     "CBaseModelEntity::SetModel": {
       "library": "server",
-      "windows": {
-        "pattern": "40 53 48 83 EC ? 48 8B D9 4C 8B C2 48 8B 0D ? ? ? ? 48 8D 54 24 ? 48 8B 01 FF 50 ? 48 8B 54 24 ? 48 8B CB E8 ? ? ? ? 48 83 C4 ? 5B C3 CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC 48 89 5C 24"
-      },
-      "linux": {
-        "pattern": "55 48 89 E5 53 48 89 FB 48 83 EC ? 48 8D 05 ? ? ? ? 48 8B 38 48 8B 07 FF 50 ? 48 89 DF 48 8B 5D ? C9 48 89 C6 E9 ? ? ? ? CC CC CC CC 55"
-      }
+      "windows": "40 53 48 83 EC ? 48 8B D9 4C 8B C2 48 8B 0D ? ? ? ? 48 8D 54 24 ? 48 8B 01 FF 50 ? 48 8B 54 24 ? 48 8B CB E8 ? ? ? ? 48 83 C4 ? 5B C3 CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC 48 89 5C 24",
+      "linux": "55 48 89 E5 53 48 89 FB 48 83 EC ? 48 8D 05 ? ? ? ? 48 8B 38 48 8B 07 FF 50 ? 48 89 DF 48 8B 5D ? C9 48 89 C6 E9 ? ? ? ? CC CC CC CC 55"
     },
 
     "CGameEntitySystem::FindEntityByClassName": {
       "library": "server",
-      "windows": { "pattern": "48 83 EC 68 45 33 C9" },
-      "linux": {
-        "pattern": "55 45 31 C0 31 C9 48 89 E5 53 48 8D 5D ? 48 83 EC ? 48 89 DF"
-      }
+      "windows": "48 83 EC 68 45 33 C9",
+      "linux": "55 45 31 C0 31 C9 48 89 E5 53 48 8D 5D ? 48 83 EC ? 48 89 DF"
     },
 
     "CGameEntitySystem::FindEntityByName": {
       "library": "server",
-      "windows": { "pattern": "48 81 EC 88 ? ? ? 4D 85 C0" },
-      "linux": { "pattern": "55 48 89 E5 41 54 53 48 83 EC ? 48 85 D2" }
+      "windows": "48 81 EC 88 ? ? ? 4D 85 C0",
+      "linux": "55 48 89 E5 41 54 53 48 83 EC ? 48 85 D2"
     }
   },
 
-  // Pointers reached through a rel32 displacement in a matched signature. `rel32At` is the byte
-  // distance to the 4-byte little-endian displacement.
-  "addresses": {
-    // IGameEventManager2**.
+  // A global reached through a rel32 displacement: `pattern` matches the code referencing it, and
+  // `rel32At` is the byte distance from the match to the 4-byte little-endian displacement.
+  "globals": {
+    // IGameEventManager2**. The pattern is CSource2Server::Init; string: "gameeventmanager->Init()".
+    // From s2sdk.
     "CSource2Server::g_GameEventManager": {
-      "signature": "CSource2Server::Init",
-      "rel32At": { "windows": 98, "linux": 106 }
+      "library": "server",
+      "windows": {
+        "pattern": "48 83 EC ? 48 83 3D ? ? ? ? ? 74 ? 33 C9 E8 ? ? ? ? FF 15 ? ? ? ?",
+        "rel32At": 98
+      },
+      "linux": {
+        "pattern": "55 48 89 E5 41 55 41 54 53 48 83 EC 08 48 8D 05 ? ? ? ? 48 83 38 00",
+        "rel32At": 106
+      }
     },
+
+    // The pattern is IGameSystem::InitAllSystems; string: "Game System %s is defined twice!".
+    // From CS2Fixes.
     "CBaseGameSystemFactory::sm_pFirst": {
-      "signature": "IGameSystem::InitAllSystems",
-      "rel32At": { "windows": 3, "linux": 3 }
+      "library": "server",
+      "windows": { "pattern": "48 8B 1D ? ? ? ? 48 85 DB 0F 84 ? ? ? ? BD", "rel32At": 3 },
+      "linux": { "pattern": "4C 8B 35 ? ? ? ? 4D 85 F6 75 ? E9", "rel32At": 3 }
     },
+
+    // Detached on unload. The pattern is IGameSystem::LoopPostInitAllSystems. From CS2Fixes.
     "IGameSystem::pEventDispatcher": {
-      "signature": "IGameSystem::LoopPostInitAllSystems",
-      "rel32At": { "windows": 3, "linux": 3 }
+      "library": "server",
+      "windows": { "pattern": "48 39 1D ? ? ? ? 74 ? 39 05", "rel32At": 3 },
+      "linux": { "pattern": "4C 8B 25 ? ? ? ? 48 8B 05 ? ? ? ? 8B 35", "rel32At": 3 }
     },
+
+    // A CUtlVector<AddedGameSystem_t>; the framework removes its entry on unload. The pattern is
+    // IGameSystem::LoopDestroyAllSystems. From CS2Fixes.
     "IGameSystem::s_GameSystems": {
-      "signature": "IGameSystem::LoopDestroyAllSystems",
-      "rel32At": { "windows": 2, "linux": 2 }
+      "library": "server",
+      "windows": { "pattern": "8B 05 ? ? ? ? 83 E8 ? 48 63 F8 0F 88", "rel32At": 2 },
+      "linux": { "pattern": "8B 05 ? ? ? ? 89 C2 83 EA ? 0F 88 ? ? ? ? 4C 8D 3D", "rel32At": 2 }
     }
   },
 
@@ -284,59 +227,34 @@
     }
   },
 
-  // Offsets absent from SDK layouts. `max` and `align` validate each read and reject drift at load.
+  // Byte offsets into layouts the SDK does not declare. A stale offset reads plausible garbage.
   "offsets": {
     // CGameEntitySystem* cached inside IGameResourceService.
-    "GameEntitySystem": { "windows": 88, "linux": 80, "max": 4096, "align": 8 },
+    "GameEntitySystem": { "windows": 88, "linux": 80 },
 
     // Recipient slot in CCheckTransmitInfo. The SDK declares only its two leading bitvec pointers;
     // read this field as one byte. From CS2Fixes gamedata.
-    "CheckTransmitPlayerSlot": {
-      "windows": 576,
-      "linux": 576,
-      "max": 4096,
-      "align": 1
-    },
+    "CheckTransmitPlayerSlot": { "windows": 576, "linux": 576 },
 
     // The protobuf base of CUserCmd. Checked against CS2Fixes and SwiftlyS2.
-    "CUserCmd::CSGOUserCmdPB": { "windows": 16, "linux": 16, "max": 4096, "align": 8 },
+    "CUserCmd::CSGOUserCmdPB": { "windows": 16, "linux": 16 },
     // Native counter in CUserCmd. Use it because the live client leaves
     // CBaseUserCmdPB.legacy_command_number empty. From CS2AC.
-    "CUserCmdBase::cmdNum": { "windows": 8, "linux": 8, "max": 4096, "align": 4 },
+    "CUserCmdBase::cmdNum": { "windows": 8, "linux": 8 },
 
     // From CS2AC (ClientSlotOffset).
-    "CServerSideClientBase::m_nClientSlot": {
-      "windows": 72,
-      "linux": 72,
-      "max": 4096,
-      "align": 4
-    },
+    "CServerSideClientBase::m_nClientSlot": { "windows": 72, "linux": 72 },
 
     // Follows bools and is unaligned, so read it with memcpy.
     // Addons key on it because reconnects can change a client's slot but not its SteamID.
     // From SwiftlyS2 v1.4.5.
-    "CServerSideClientBase::m_SteamID": {
-      "windows": 171,
-      "linux": 171,
-      "max": 4096,
-      "align": 1
-    },
+    "CServerSideClientBase::m_SteamID": { "windows": 171, "linux": 171 },
 
     // From MultiAddonManager; Windows checked on build 2000908.
-    "CNetworkGameServer::m_szAddons": {
-      "windows": 344,
-      "linux": 344,
-      "max": 4096,
-      "align": 8
-    },
+    "CNetworkGameServer::m_szAddons": { "windows": 344, "linux": 344 },
 
     // A base, not a field: FilterMessage's `this`. From SwiftlyS2; Windows checked against RTTI on
     // build 2000908.
-    "CServerSideClient::INetworkMessageProcessingPreFilter": {
-      "windows": 8,
-      "linux": 48,
-      "max": 4096,
-      "align": 8
-    }
+    "CServerSideClient::INetworkMessageProcessingPreFilter": { "windows": 8, "linux": 48 }
   }
 }
