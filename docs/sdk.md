@@ -49,23 +49,17 @@ Framework services use this holder internally. Plugin code normally uses typed
 runtime services instead. Schema fields resolve their own offsets once per
 process.
 
-## Capabilities
+## Availability
 
-Engine updates may invalidate gamedata or remove an interface. `Runtime::Start`
-records each result in @ref VoltMod::Capabilities; services do not expose
-separate readiness flags.
+Engine updates may invalidate gamedata or remove an interface. A service whose engine pieces did
+not bind says so from `Available()`, with the reason:
 
 ```cpp
-using VoltMod::Capability;
-
-if (!runtime.Capabilities.Has(Capability::ClientConVars))
-    Log::Warn("no client convar queries: {}", runtime.Capabilities.Reason(Capability::ClientConVars));
-
-Log::Info("{}", runtime.Capabilities.Summary());  // "12/14 ok; Movement: ..."
+if (auto available = runtime.Hooks.ClientConVars.Available(); !available)
+    Log::Warn("no client convar queries: {}", available.error().Detail);
 ```
 
-The enumerators are `Schema`, `Entities`, `EntityOps`, `GameEvents`, `Movement`,
-`Teleport`, `Visibility`, `ClientConVars`, `Precache`, `Vote`, `Items`, `Menus`,
-`Http`, `CustomUi`, `ButtonPresses`, and `Addons`. A disabled service remains safe to
-call and reports not-ready status, an empty subscription, or no result. The load
-log and `capabilities` status section show the same state.
+`Available()` is on `Hooks.Movement`, `Hooks.Teleport`, `Hooks.Visibility`, `Hooks.ClientConVars`
+and `Screens`. Other services return an error from the call that cannot work. A service that is
+not available remains safe to call. The load log and the `load` status section list the
+unavailable features.

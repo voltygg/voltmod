@@ -1,6 +1,5 @@
 #pragma once
 
-#include <VoltMod/Core/Capabilities.hpp>
 #include <VoltMod/Core/PerSlot.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
@@ -47,14 +46,13 @@ public:
         VoltMod::Policy& Policy;
         ScreenManager& Screens;
         VoltMod::Addons& Addons;
-        const VoltMod::Capabilities& Capabilities;
     };
 
     /** @p layout must outlive this. @p addonId is the workshop addon shipping the layout, required of
      *  connecting clients while this lives; zero requires none, for a client compiled into by hand. */
     PanoramaMenu(const Services& services, MenuLayout& layout, uint64_t addonId);
 
-    /** Whether @p slot can see the layout: the engine pieces bound and every required addon downloaded. */
+    /** Whether @p slot can see the layout: the screens are available and every required addon downloaded. */
     [[nodiscard]] bool CanShow(int slot) const;
 
     bool Start(int slot, std::shared_ptr<Menu> menu, MenuOptions options) override;

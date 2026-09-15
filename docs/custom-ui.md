@@ -222,7 +222,7 @@ A layout one player keeps whatever they are watching - a menu, anything that mus
 survive death and spectating - is a player screen:
 
 ```cpp
-auto screen = runtime.Screens.ForPlayer("admin_menu", slot);   // needs Capability::Visibility
+auto screen = runtime.Screens.ForPlayer("admin_menu", slot);   // needs runtime.Hooks.Visibility.Available()
 if (screen && screen->EnsureSpawned(slot))
     screen->SetText(slot, "title", "Only you see this");
 ```
@@ -263,17 +263,18 @@ redraw eventually stops updates.
 
 ## Availability
 
-Ask @ref VoltMod::Capabilities before relying on these:
+`runtime.Screens.Available()` says whether player screens can be drawn and pressed, and names the
+first gamedata entry that did not bind:
 
-| Capability | Off means |
+| Entry | Missing means |
 | --- | --- |
-| `CustomUi` | the five `CCSCustomHudLayout` setters did not bind; spawning still works, writes fail |
-| `ButtonPresses` | `INetworkMessageProcessingPreFilter::FilterMessage` or `CServerSideClient::INetworkMessageProcessingPreFilter` did not bind; presses never arrive |
-| `Visibility` | `CheckTransmitPlayerSlot` is missing; a player screen is refused, shared screens are unaffected |
+| the five `CCSCustomHudLayout` setters | spawning still works, writes fail |
+| `INetworkMessageProcessingPreFilter::FilterMessage`, `CServerSideClient::INetworkMessageProcessingPreFilter` or `CServerSideClientBase::m_nClientSlot` | presses never arrive |
+| `CheckTransmitPlayerSlot` | a player screen is refused; shared screens are unaffected (`runtime.Hooks.Visibility.Available()`) |
 
-All are located by byte pattern in `server.dll` / `engine2`, on Windows and on
-Linux. A capability reports off when a pattern stops matching after a game
-update - re-verify `gamedata/gamedata.jsonc` before looking anywhere else.
+All are located in `server.dll` / `engine2`, on Windows and on Linux, and stop binding when a
+pattern stops matching after a game update - re-verify `gamedata/gamedata.jsonc` before looking
+anywhere else.
 
 ## Why writes are calls, not netvar pokes
 
@@ -292,5 +293,5 @@ directly.
 Schema fields resolve themselves by name, so an offset that moves in a CS2 update
 costs nothing here; the fields declare their expected **size** instead, and a
 mismatch warns once at resolve time. What does break is a byte-pattern signature,
-which @ref VoltMod::Capability::CustomUi reports with its reason - check that
+which `runtime.Screens.Available()` reports with its reason - check that
 first after an update.

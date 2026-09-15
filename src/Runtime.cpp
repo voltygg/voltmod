@@ -2,7 +2,6 @@
 #include "Schema/Layout.hpp"
 
 #include <ISmmAPI.h>
-#include <VoltMod/Core/EnumNames.hpp>
 #include <VoltMod/Core/Json.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Paths.hpp>
@@ -107,17 +106,10 @@ bool Runtime::InitializeServices(const LoadContext& context)
     // MetamodPlugin logs the summary and reports why a required step failed.
     auto& steps = LoadSteps;
 
-    steps.Optional("GameData", [&]() -> VoltMod::Status {
-        // Earlier plugins may patch class tables. Resolve the original slot through KHook.
-        if (auto loaded = Unsafe.GameData.Load(DefaultGameDataPath, OriginalVfnPtr); !loaded)
-            return loaded;
-        if (auto failures = Unsafe.GameData.FailureSummary(); !failures.empty())
-            return std::unexpected(Error::Engine(std::move(failures)));
-        return {};
-    });
-
-    // Run after degraded GameData so disabled capabilities keep their reasons.
-    steps.Optional("Bindings", [&] { return Unsafe.Bindings.Bind(Unsafe.GameData, Capabilities); });
+    // Earlier plugins may patch class tables. Resolve the original slot through KHook.
+    steps.Optional("GameData", [&] { return Unsafe.GameData.Load(DefaultGameDataPath, OriginalVfnPtr); });
+    // Names every entry that did not resolve and every key the file lacks.
+    steps.Optional("Bindings", [&] { return Unsafe.Bindings.Bind(Unsafe.GameData); });
 
     // A required step writes its failure to Metamod and aborts the load.
     auto requiredStep = [&](std::string_view name, const std::function<VoltMod::Status()>& step) {
@@ -131,16 +123,6 @@ bool Runtime::InitializeServices(const LoadContext& context)
     if (!requiredStep("Messages", [&] { return Messages.Initialize(); }))
         return false;
 
-    // An optional step keeps the load alive and records the failure on its capability.
-    auto optionalStep = [&](std::string_view name, Capability capability,
-                            const std::function<VoltMod::Status()>& step) {
-        steps.Optional(name, [&] {
-            VoltMod::Status ready = step();
-            Capabilities.Set(capability, ready.has_value(), ready ? std::string() : ready.error().Detail);
-            return ready;
-        });
-    };
-
     // Abort on schema drift. A load into a running map writes the dump first, so a refusal still leaves one.
     if (!requiredStep("SchemaLayout", [&] {
             Schema::WriteSchemaDump(Unsafe.Interfaces.SchemaSystem, Entities.GetEntitySystem());
@@ -151,38 +133,46 @@ bool Runtime::InitializeServices(const LoadContext& context)
     }
 
     // Without an entity system yet, StartupServer resolves CGameEntitySystem at the first map load.
-    steps.Optional("Entities", [&] {
-        VoltMod::Status ready = Entities.Initialize();
-        if (!ready)
-            Capabilities.Set(Capability::Entities, false, ready.error().Detail);
-        return ready;
-    });
-
-    optionalStep("Precache", Capability::Precache,
-                 [&] { return World.Precache.Initialize(std::format("{}_VoltModPrecache", context.LogPrefix)); });
+    steps.Optional("Entities", [&] { return Entities.Initialize(); });
+    steps.Optional("Precache",
+                   [&] { return World.Precache.Initialize(std::format("{}_VoltModPrecache", context.LogPrefix)); });
     steps.Optional("ConVars", [&] { return ConVars.Initialize(); });
-    optionalStep("GameEvents", Capability::GameEvents, [&] { return GameEvents.Initialize(); });
-    optionalStep("ClientConVars", Capability::ClientConVars, [&] { return Hooks.ClientConVars.Initialize(); });
+    steps.Optional("GameEvents", [&] { return GameEvents.Initialize(); });
+    steps.Optional("ClientConVars", [&] { return Hooks.ClientConVars.Initialize(); });
 
-    Capabilities.Set(Capability::Vote,
-                     Capabilities.Has(Capability::GameEvents) && Capabilities.Has(Capability::Entities),
-                     "needs GameEvents and Entities");
-    Capabilities.Set(Capability::Menus, Capabilities.Has(Capability::Entities), "needs Entities");
-    Capabilities.Set(Capability::Http, true);
-
-    Log::Info("Capabilities: {}", Capabilities.Summary());
+    for (const auto& [feature, reason] : UnavailableFeatures())
+        Log::Warn("{} is unavailable: {}", feature, reason);
     return true;
+}
+
+std::map<std::string, std::string> Runtime::UnavailableFeatures() const
+{
+    const std::pair<std::string_view, VoltMod::Status> features[] = {
+        {"Movement", Hooks.Movement.Available()},
+        {"Teleport", Hooks.Teleport.Available()},
+        {"Visibility", Hooks.Visibility.Available()},
+        {"ClientConVars", Hooks.ClientConVars.Available()},
+        {"Screens", Screens.Available()},
+    };
+
+    std::map<std::string, std::string> unavailable;
+    for (const auto& [feature, available] : features)
+    {
+        if (!available)
+            unavailable.emplace(feature, available.error().Detail);
+    }
+    return unavailable;
 }
 
 void Runtime::RegisterStatusSections()
 {
     // Plugins add status sections in OnLoad. The runtime outlives them for the load cycle.
-    // Serialize JSON values directly because capability reasons are free text.
     Status.RegisterSection("load", [this] {
         std::map<std::string, std::string> failed;
         for (const FailedStep& step : LoadSteps.Failures())
             failed.emplace(step.Name, step.Reason);
-        return Json::Write(glz::obj{"steps", LoadSteps.Count(), "failed", failed});
+        return Json::Write(
+            glz::obj{"steps", LoadSteps.Count(), "failed", failed, "unavailable", UnavailableFeatures()});
     });
 
     Status.RegisterSection("gamedata", [this] {
@@ -201,23 +191,6 @@ void Runtime::RegisterStatusSections()
                                     Unsafe.GameData.CountOf(GameData::Kind::Address), "vtables",
                                     Unsafe.GameData.CountOf(GameData::Kind::VTable), "offsets",
                                     Unsafe.GameData.CountOf(GameData::Kind::Offset), "failed", failed});
-    });
-
-    Status.RegisterSection("capabilities", [this] {
-        std::optional<std::map<std::string, std::string>> missing;
-        int ok = 0;
-        for (Capability capability : EnumValues<Capability>())
-        {
-            if (Capabilities.Has(capability))
-                ++ok;
-            else
-            {
-                if (!missing)
-                    missing.emplace();
-                missing->emplace(std::string(Name(capability)), std::string(Capabilities.Reason(capability)));
-            }
-        }
-        return Json::Write(glz::obj{"missing", missing, "ok", ok});
     });
 
     Status.RegisterSection("uptime", [start = std::chrono::steady_clock::now()] {

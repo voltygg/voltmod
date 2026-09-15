@@ -130,7 +130,6 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Commands/CommandSyntax.cpp
             src/Commands/ArgBinding.cpp
             src/Commands/Targeting.cpp
-            src/Core/Capabilities.cpp
             src/Core/EffectManager.cpp
             src/Core/File.cpp
             src/Core/LoadSteps.cpp

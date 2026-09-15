@@ -56,7 +56,7 @@ public:
      * empty-to-first and last-to-empty transitions, so a second handler on an event that already
      * had one is not a second subscriber here.
      *
-     * Diagnostics and tests only - what a service can do is @ref Capabilities, not a flag here.
+     * Diagnostics and tests only - what a service can do is its `Available()`, not a flag here.
      */
     [[nodiscard]] int ListeningEvents() const noexcept { return _listening; }
 

@@ -86,11 +86,11 @@ The service is a **degradable load stage** (`ClientConVars`). It needs two gamed
 | `CServerSideClient::ProcessRespondCvarValue` | vtable index of the response handler | Rejected at lookup, so the stage degrades instead of hooking an unrelated vfunc |
 | `CServerSideClientBase::m_nClientSlot` | byte offset of the player slot inside `CServerSideClient` | Rejected at lookup too; unchecked it would attribute answers to the wrong player |
 
-Both drift with engine updates; see @ref sdk_gamedata_guide. When any part of the setup fails the framework logs one warning, the load continues, `Capability::ClientConVars` is off and carries the reason, and every `Query()` returns false. Check the capability once at load rather than treating each `false` from `Query()` as a per-call failure:
+Both drift with engine updates; see @ref sdk_gamedata_guide. When any part of the setup fails the framework logs one warning, the load continues, `runtime.Hooks.ClientConVars.Available()` carries the reason, and every `Query()` returns false. Check it once at load rather than treating each `false` from `Query()` as a per-call failure:
 
 ```cpp
-if (!runtime.Capabilities.Has(VoltMod::Capability::ClientConVars))
-    Log::Warn("no client convar queries: {}", runtime.Capabilities.Reason(VoltMod::Capability::ClientConVars));
+if (auto available = runtime.Hooks.ClientConVars.Available(); !available)
+    Log::Warn("no client convar queries: {}", available.error().Detail);
 ```
 
-Unlike the movement, damage and teleport hooks, this one is not lazily installed: it is a load stage, because the service is a query API with no event of its own to subscribe to. `Runtime::Start` installs it and records the outcome; a successful install logs `Client convar response hook installed on CServerSideClient vtable (index N).` followed by `Client convar queries enabled (slot offset N).`
+Unlike the movement, damage and teleport hooks, this one is not lazily installed: it is a load step, because the service is a query API with no event of its own to subscribe to. `Runtime::Start` installs it and records the outcome; a successful install logs `Client convar response hook installed on CServerSideClient vtable (index N).` followed by `Client convar queries enabled (slot offset N).`

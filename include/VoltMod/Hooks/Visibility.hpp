@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Color.h>
+#include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Core/Subscription.hpp>
@@ -80,9 +81,14 @@ public:
     /** Post-hook body for ISource2GameEntities::CheckTransmit; called by MetamodPlugin. */
     void OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount);
 
-    /** Whether the filter runs. False means the gamedata offset is missing and every call above
-     *  is accepted but inert. */
-    [[nodiscard]] bool IsActive() const noexcept { return static_cast<bool>(_bindings.VisibilityRecipientSlot); }
+    /** Why the filter cannot run: the CheckTransmitPlayerSlot offset did not bind. Every call above
+     *  is then accepted but inert. */
+    Status Available() const
+    {
+        if (!_bindings.VisibilityRecipientSlot)
+            return std::unexpected(Error::Unsupported("the CheckTransmitPlayerSlot offset did not bind"));
+        return {};
+    }
 
 private:
     struct SlotState

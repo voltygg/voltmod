@@ -40,6 +40,9 @@ public:
      *  Subscribing installs the tracker. */
     Event<int> Teleported;
 
+    /** Why teleports cannot be tracked: the CBaseEntity::Teleport slot did not bind. */
+    Status Available() const;
+
 private:
     /** Install the class hook, or refuse the subscription after saying why. */
     bool Install();

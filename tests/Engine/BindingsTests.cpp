@@ -1,21 +1,16 @@
 #include "Engine/GameData/GameDataFile.hpp"
 #include "Support/TempPath.hpp"
 
-#include <VoltMod/Core/Capabilities.hpp>
-#include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/Paths.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/GameData/GameData.hpp>
 #include <algorithm>
+#include <cstddef>
 #include <doctest/doctest.h>
 #include <format>
 #include <string>
 #include <string_view>
-#include <vector>
 
 using VoltMod::Bindings;
-using VoltMod::Capabilities;
-using VoltMod::Capability;
 using VoltMod::ErrorCode;
 using VoltMod::GameData;
 
@@ -39,27 +34,15 @@ private:
     VoltModTests::TempFile _file;
 };
 
-class LogCapture
+/** How many of @p bindings' failures are about @p key: `'key' ...` or `key: ...`. */
+static size_t FailuresFor(const Bindings& bindings, std::string_view key)
 {
-public:
-    LogCapture()
-    {
-        VoltMod::Log::SetHandler([this](VoltMod::LogLevel, std::string_view line) { _lines.emplace_back(line); });
-    }
-    ~LogCapture() { VoltMod::Log::SetHandler({}); }
-
-    LogCapture(const LogCapture&) = delete;
-    LogCapture& operator=(const LogCapture&) = delete;
-
-    bool Mentions(std::string_view text) const
-    {
-        return std::ranges::any_of(_lines,
-                                   [text](const std::string& line) { return line.find(text) != std::string::npos; });
-    }
-
-private:
-    std::vector<std::string> _lines;
-};
+    const std::string quoted = std::format("'{}'", key);
+    const std::string prefixed = std::format("{}: ", key);
+    return static_cast<size_t>(std::ranges::count_if(bindings.Failures, [&](const std::string& failure) {
+        return failure.starts_with(quoted) || failure.starts_with(prefixed);
+    }));
+}
 
 static constexpr std::string_view FullBody = R"(
   "signatures": {
@@ -80,16 +63,19 @@ static constexpr std::string_view FullBody = R"(
     "CUserCmdBase::cmdNum": { "windows": 8, "linux": 8, "align": 4 }
   })";
 
+static constexpr std::string_view OneOffset = R"(
+  "offsets": {
+    "GameEntitySystem": { "windows": 88, "linux": 80, "align": 8 }
+  })";
+
 TEST_CASE("Bind refuses an empty gamedata set")
 {
     GameData data;
-    Capabilities caps;
     Bindings bindings;
 
-    auto bound = bindings.Bind(data, caps);
+    auto bound = bindings.Bind(data);
     REQUIRE_FALSE(bound.has_value());
     CHECK(bound.error().Code == ErrorCode::NotReady);
-    CHECK_FALSE(caps.Has(Capability::Entities));
 }
 
 TEST_CASE("Bind fills offsets and vtable indices from their gamedata keys")
@@ -98,9 +84,8 @@ TEST_CASE("Bind fills offsets and vtable indices from their gamedata keys")
     GameData data;
     REQUIRE(data.Load(file.Path()).has_value());
 
-    Capabilities caps;
     Bindings bindings;
-    REQUIRE(bindings.Bind(data, caps).has_value());
+    CHECK_FALSE(bindings.Bind(data).has_value());
 
     CHECK(bindings.GameEntitySystem.Value() == (OnWindows ? 88 : 80));
     CHECK(bindings.VisibilityRecipientSlot.Value() == 576);
@@ -110,11 +95,9 @@ TEST_CASE("Bind fills offsets and vtable indices from their gamedata keys")
     CHECK(bindings.RemoveAllItems.Index() == (OnWindows ? 27 : 28));
     CHECK(bindings.Teleport.Function.Index() == (OnWindows ? 163 : 162));
 
-    CHECK(caps.Has(Capability::Entities));
-    CHECK(caps.Has(Capability::Visibility));
-    CHECK(caps.Has(Capability::Items));
-    CHECK_FALSE(caps.Has(Capability::Teleport));
-    CHECK_FALSE(caps.Has(Capability::Movement));
+    CHECK(FailuresFor(bindings, "GameEntitySystem") == 0);
+    CHECK(FailuresFor(bindings, "CheckTransmitPlayerSlot") == 0);
+    CHECK(FailuresFor(bindings, "CCSPlayer_ItemServices::GiveNamedItem") == 0);
 }
 
 TEST_CASE("Bind leaves a signature empty and names the module when it cannot be scanned")
@@ -123,80 +106,44 @@ TEST_CASE("Bind leaves a signature empty and names the module when it cannot be 
     GameData data;
     REQUIRE(data.Load(file.Path()).has_value());
 
-    Capabilities caps;
     Bindings bindings;
-    REQUIRE(bindings.Bind(data, caps).has_value());
+    CHECK_FALSE(bindings.Bind(data).has_value());
 
     CHECK_FALSE(static_cast<bool>(bindings.CreateEntityByName));
-    CHECK_FALSE(caps.Has(Capability::EntityOps));
-    CHECK(std::string(caps.Reason(Capability::EntityOps)).find("CreateEntityByName") != std::string::npos);
+    CHECK(FailuresFor(bindings, "CreateEntityByName") == 1);
 
     CHECK(static_cast<bool>(bindings.RunCommand.Function));
     CHECK_FALSE(static_cast<bool>(bindings.RunCommand.Table));
     CHECK_FALSE(static_cast<bool>(bindings.RunCommand));
-    CHECK_FALSE(caps.Has(Capability::Movement));
-    CHECK_FALSE(std::string(caps.Reason(Capability::Movement)).empty());
+    CHECK(FailuresFor(bindings, "CPlayer_MovementServices::RunCommand") == 1);
 }
 
-TEST_CASE("Bind records a missing key as the capability's reason and leaves the member empty")
+TEST_CASE("Bind names a key the file lacks and leaves its member empty")
 {
-    TempGameData file(R"(
-  "offsets": {
-    "GameEntitySystem": { "windows": 88, "linux": 80, "align": 8 }
-  })");
-
+    TempGameData file(OneOffset);
     GameData data;
     REQUIRE(data.Load(file.Path()).has_value());
 
-    Capabilities caps;
     Bindings bindings;
-    REQUIRE(bindings.Bind(data, caps).has_value());
+    const auto bound = bindings.Bind(data);
+    REQUIRE_FALSE(bound.has_value());
+    CHECK(bound.error().Detail.find("'CheckTransmitPlayerSlot' is not in gamedata") != std::string::npos);
 
     CHECK_FALSE(static_cast<bool>(bindings.VisibilityRecipientSlot));
     CHECK(bindings.VisibilityRecipientSlot.Value() == -1);
-    CHECK_FALSE(caps.Has(Capability::Visibility));
-    CHECK(caps.Reason(Capability::Visibility) == "'CheckTransmitPlayerSlot' is not in gamedata");
-
-    CHECK(caps.Has(Capability::Entities));
-    CHECK(caps.Reason(Capability::Entities).empty());
+    CHECK(FailuresFor(bindings, "CheckTransmitPlayerSlot") == 1);
+    CHECK(FailuresFor(bindings, "GameEntitySystem") == 0);
 }
 
-TEST_CASE("A binding no capability gates still says why its key did not bind")
+TEST_CASE("Bind names each failing key once, however many services use it")
 {
-    TempGameData file(R"(
-  "offsets": {
-    "GameEntitySystem": { "windows": 88, "linux": 80, "align": 8 }
-  })");
-
+    TempGameData file(OneOffset);
     GameData data;
     REQUIRE(data.Load(file.Path()).has_value());
 
-    LogCapture log;
-    Capabilities caps;
     Bindings bindings;
-    REQUIRE(bindings.Bind(data, caps).has_value());
+    CHECK_FALSE(bindings.Bind(data).has_value());
 
-    CHECK(log.Mentions("'CUserCmdBase::cmdNum' is not in gamedata"));
-    CHECK_FALSE(static_cast<bool>(bindings.UserCmdNumber));
-
-    CHECK_FALSE(log.Mentions("'CheckTransmitPlayerSlot'"));
-    CHECK(caps.Reason(Capability::Visibility) == "'CheckTransmitPlayerSlot' is not in gamedata");
-
-    CHECK_FALSE(log.Mentions("'GameEntitySystem'"));
-    CHECK(caps.Has(Capability::Entities));
-}
-
-TEST_CASE("Capabilities summary counts what is on and explains what is not")
-{
-    Capabilities caps;
-    CHECK_FALSE(caps.Has(Capability::Movement));
-    CHECK(caps.Reason(Capability::Movement) == "not initialized");
-
-    caps.Set(Capability::Movement, false, "RunCommand vtable unresolved");
-    CHECK(caps.Summary().find("Movement: RunCommand vtable unresolved") != std::string::npos);
-
-    caps.Set(Capability::Movement, true);
-    CHECK(caps.Has(Capability::Movement));
-    CHECK(caps.Reason(Capability::Movement).empty());
-    CHECK(caps.Summary().find("1/15 ok") != std::string::npos);
+    CHECK(FailuresFor(bindings, "CServerSideClientBase::m_nClientSlot") == 1);
+    CHECK(FailuresFor(bindings, "CUserCmdBase::cmdNum") == 1);
 }

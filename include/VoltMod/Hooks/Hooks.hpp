@@ -1,6 +1,5 @@
 #pragma once
 
-#include <VoltMod/Core/Capabilities.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
@@ -29,8 +28,8 @@ namespace VoltMod
 struct HookServices
 {
     HookServices(EntitySystem& entities, Bindings& bindings, SlotEvents& slots, Scheduler& scheduler,
-                 GameEvents& gameEvents, Interfaces& interfaces, EntityOps& entityOps, Capabilities& capabilities)
-        : Movement(entities, bindings, capabilities),
+                 GameEvents& gameEvents, Interfaces& interfaces, EntityOps& entityOps)
+        : Movement(entities, bindings),
           Visibility(entities, bindings, slots, entityOps),
           ChatInput(scheduler, slots),
           Teleport(entities, bindings),
@@ -39,7 +38,7 @@ struct HookServices
     {}
 
     /** Dormant until something subscribes; the last subscription dropped removes the vtable
-     *  hook. Depends on: Entities, Bindings, Capabilities. */
+     *  hook. Depends on: Entities, Bindings. */
     VoltMod::Movement Movement;
     /** Who receives which entities, plus the per-viewer glow built on it. Depends on: Entities,
      *  Bindings, Slots, EntityOps. */
@@ -49,7 +48,7 @@ struct HookServices
     /** Dormant until something subscribes to Teleported; one Teleport hook on the pawn class
      *  vtable. Depends on: Entities, Bindings. */
     VoltMod::Teleport Teleport;
-    /** Async client-side convar reads. Inert when Capability::ClientConVars is off.
+    /** Async client-side convar reads. Inert while its Available() reports an error.
      *  Depends on: Interfaces, Bindings, Slots. */
     VoltMod::ClientConVars ClientConVars;
     /** The game's own yes/no vote panel. Subscribes on the first StartVote().

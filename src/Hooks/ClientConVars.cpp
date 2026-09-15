@@ -37,6 +37,21 @@ Status ClientConVars::Initialize()
     if (_hook)
         return {};
 
+    Status installed = Install();
+    if (!installed)
+        _failure = installed.error();
+    return installed;
+}
+
+Status ClientConVars::Available() const
+{
+    if (_hook)
+        return {};
+    return std::unexpected(_failure);
+}
+
+Status ClientConVars::Install()
+{
     if (!_interfaces.Engine || !_interfaces.NetworkMessages || !_interfaces.GameEventSystem)
         return std::unexpected(Error::NotReady("engine interfaces unavailable"));
 

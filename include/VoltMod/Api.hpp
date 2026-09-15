@@ -6,7 +6,6 @@
 #include <VoltMod/Commands/Args.hpp>
 #include <VoltMod/Commands/CommandBuilder.hpp>
 #include <VoltMod/Commands/CommandManager.hpp>
-#include <VoltMod/Core/Capabilities.hpp>
 #include <VoltMod/Core/EnumNames.hpp>
 #include <VoltMod/Core/Event.hpp>
 #include <VoltMod/Core/HookResult.hpp>

@@ -1,12 +1,11 @@
 #include <VoltMod/Core/EnumNames.hpp>
-#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/Strings.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
-#include <array>
 #include <format>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace VoltMod
 {
@@ -24,49 +23,49 @@ static Result<ClassVTable> BindClassVTable(const GameData::Resolution& entry)
     return ClassVTable(entry.Class, entry.Table);
 }
 
-/** Binds members and records the first failure for each capability. */
+/** Binds members, naming every key that does not bind. */
 class Binder
 {
 public:
-    Binder(const GameData& data, Capabilities& caps) : _data(data), _caps(caps) {}
+    Binder(const GameData& data, std::vector<std::string>& failures) : _data(data), _failures(failures) {}
 
     template <class Sig>
-    void operator()(Fn<Sig>& member, std::string_view key, std::optional<Capability> capability = {})
+    void operator()(Fn<Sig>& member, std::string_view key)
     {
-        if (const auto* entry = Claim(key, GameData::Kind::Signature, capability))
+        if (const auto* entry = Claim(key, GameData::Kind::Signature))
             member = Fn<Sig>(entry->Address);
     }
 
     template <class Sig>
-    void operator()(VirtualFn<Sig>& member, std::string_view key, std::optional<Capability> capability = {})
+    void operator()(VirtualFn<Sig>& member, std::string_view key)
     {
-        if (const auto* entry = Claim(key, GameData::Kind::VTable, capability))
+        if (const auto* entry = Claim(key, GameData::Kind::VTable))
             member = VirtualFn<Sig>(entry->Index);
     }
 
     template <class T>
-    void operator()(OffsetOf<T>& member, std::string_view key, std::optional<Capability> capability = {})
+    void operator()(OffsetOf<T>& member, std::string_view key)
     {
-        if (const auto* entry = Claim(key, GameData::Kind::Offset, capability))
+        if (const auto* entry = Claim(key, GameData::Kind::Offset))
             member = OffsetOf<T>(entry->Index);
     }
 
-    void Signature(Address& member, std::string_view key, std::optional<Capability> capability = {})
+    void Signature(Address& member, std::string_view key)
     {
-        if (const auto* entry = Claim(key, GameData::Kind::Signature, capability))
+        if (const auto* entry = Claim(key, GameData::Kind::Signature))
             member = Address(entry->Address);
     }
 
-    void Global(Address& member, std::string_view key, std::optional<Capability> capability = {})
+    void Global(Address& member, std::string_view key)
     {
-        if (const auto* entry = Claim(key, GameData::Kind::Address, capability))
+        if (const auto* entry = Claim(key, GameData::Kind::Address))
             member = Address(entry->Address);
     }
 
     template <class Object, class Sig>
-    void operator()(ClassSlot<Object, Sig>& member, std::string_view key, Capability capability)
+    void operator()(ClassSlot<Object, Sig>& member, std::string_view key)
     {
-        const auto* entry = Claim(key, GameData::Kind::VTable, capability);
+        const auto* entry = Claim(key, GameData::Kind::VTable);
         if (!entry)
             return;
 
@@ -74,76 +73,40 @@ public:
         if (auto table = BindClassVTable(*entry))
             member.Table = std::move(*table);
         else
-            Fail(capability, std::move(table.error().Detail));
-    }
-
-    void Finish()
-    {
-        for (Capability capability : EnumValues<Capability>())
-        {
-            const auto index = EnumIndex(capability);
-            auto& result = _results[index];
-            if (!result.Seen)
-                continue;
-
-            const bool ok = result.Error.empty();
-            _caps.Set(capability, ok, std::move(result.Error));
-        }
+            _failures.push_back(std::format("{}: {}", key, table.error().Detail));
     }
 
 private:
-    struct CapabilityResult
+    const GameData::Resolution* Claim(std::string_view key, GameData::Kind section)
     {
-        bool Seen = false;
-        std::string Error;
-    };
-
-    const GameData::Resolution* Claim(std::string_view key, GameData::Kind section,
-                                      std::optional<Capability> capability)
-    {
-        if (capability)
-            _results[EnumIndex(*capability)].Seen = true;
-
         const auto it = _data.Resolutions().find(std::string(key));
-        std::string error;
         if (it == _data.Resolutions().end())
-            error = std::format("'{}' is not in gamedata", key);
+            _failures.push_back(std::format("'{}' is not in gamedata", key));
         else if (it->second.Section != section)
-            error = std::format("'{}' is a {} entry, not a {} one", key, Name(it->second.Section), Name(section));
+            _failures.push_back(
+                std::format("'{}' is a {} entry, not a {} one", key, Name(it->second.Section), Name(section)));
         else if (!it->second.Error.empty())
-            error = std::format("{}: {}", key, it->second.Error);
+            _failures.push_back(std::format("{}: {}", key, it->second.Error));
         else
             return &it->second;
-
-        if (capability)
-            Fail(*capability, std::move(error));
-        else
-            Log::Warn("Bindings: {}", error);
 
         return nullptr;
     }
 
-    void Fail(Capability capability, std::string reason)
-    {
-        auto& result = _results[EnumIndex(capability)];
-        if (result.Error.empty())
-            result.Error = std::move(reason);
-    }
-
     const GameData& _data;
-    Capabilities& _caps;
-    std::array<CapabilityResult, EnumCount<Capability>> _results{};
+    std::vector<std::string>& _failures;
 };
 
-Status Bindings::Bind(const GameData& data, Capabilities& caps)
+Status Bindings::Bind(const GameData& data)
 {
+    Failures.clear();
     if (data.Resolutions().empty())
         return std::unexpected(Error::NotReady("gamedata is empty; nothing to bind"));
 
-    Binder bind(data, caps);
+    Binder bind(data, Failures);
 
-    bind(CreateEntityByName, "CreateEntityByName", Capability::EntityOps);
-    bind(DispatchSpawn, "DispatchSpawn", Capability::EntityOps);
+    bind(CreateEntityByName, "CreateEntityByName");
+    bind(DispatchSpawn, "DispatchSpawn");
     bind(AcceptInput, "CEntityInstance::AcceptInput");
     bind(AddEntityIOEvent, "CEntitySystem::AddEntityIOEvent");
     bind(UtilRemove, "UTIL_Remove");
@@ -154,45 +117,43 @@ Status Bindings::Bind(const GameData& data, Capabilities& caps)
     bind(FindEntityByName, "CGameEntitySystem::FindEntityByName");
     bind.Signature(LegacyGameEventListener, "GetLegacyGameEventListener");
 
-    // These five share one capability, so a partial match disables all custom HUD writes.
-    bind(CustomHudSetHasClass, "CCSCustomHudLayout::SetHasClass", Capability::CustomUi);
-    bind(CustomHudSetHasClassForPlayer, "CCSCustomHudLayout::SetHasClassForPlayer", Capability::CustomUi);
-    bind(CustomHudSetDialogVariable, "CCSCustomHudLayout::SetDialogVariableString", Capability::CustomUi);
-    bind(CustomHudSetDialogVariableForPlayer, "CCSCustomHudLayout::SetDialogVariableStringForPlayer", Capability::CustomUi);
-    bind(CustomHudSetInputCapture, "CCSCustomHudLayout::SetInputCaptureEnabled", Capability::CustomUi);
-    bind(FilterMessage, "INetworkMessageProcessingPreFilter::FilterMessage", Capability::ButtonPresses);
-    bind(ReplyConnection, "CNetworkGameServer::ReplyConnection", Capability::Addons);
+    bind(CustomHudSetHasClass, "CCSCustomHudLayout::SetHasClass");
+    bind(CustomHudSetHasClassForPlayer, "CCSCustomHudLayout::SetHasClassForPlayer");
+    bind(CustomHudSetDialogVariable, "CCSCustomHudLayout::SetDialogVariableString");
+    bind(CustomHudSetDialogVariableForPlayer, "CCSCustomHudLayout::SetDialogVariableStringForPlayer");
+    bind(CustomHudSetInputCapture, "CCSCustomHudLayout::SetInputCaptureEnabled");
+    bind(FilterMessage, "INetworkMessageProcessingPreFilter::FilterMessage");
+    bind(ReplyConnection, "CNetworkGameServer::ReplyConnection");
 
-    bind.Global(GameEventManager, "CSource2Server::g_GameEventManager", Capability::GameEvents);
-    bind.Global(GameSystemFactoryList, "CBaseGameSystemFactory::sm_pFirst", Capability::Precache);
-    bind.Global(GameSystemEventDispatcher, "IGameSystem::pEventDispatcher", Capability::Precache);
-    bind.Global(GameSystemList, "IGameSystem::s_GameSystems", Capability::Precache);
+    bind.Global(GameEventManager, "CSource2Server::g_GameEventManager");
+    bind.Global(GameSystemFactoryList, "CBaseGameSystemFactory::sm_pFirst");
+    bind.Global(GameSystemEventDispatcher, "IGameSystem::pEventDispatcher");
+    bind.Global(GameSystemList, "IGameSystem::s_GameSystems");
 
     bind(CommitSuicide, "CBasePlayerPawn::CommitSuicide");
     bind(ChangeTeam, "CCSPlayerController::ChangeTeam");
     bind(Respawn, "CCSPlayerController::Respawn");
-    bind(Teleport, "CBaseEntity::Teleport", Capability::Teleport);
-    bind(GiveNamedItem, "CCSPlayer_ItemServices::GiveNamedItem", Capability::Items);
-    bind(RemoveAllItems, "CCSPlayer_ItemServices::RemoveAllItems", Capability::Items);
-    bind(RunCommand, "CPlayer_MovementServices::RunCommand", Capability::Movement);
-    bind(ProcessRespondCvarValue, "CServerSideClient::ProcessRespondCvarValue", Capability::ClientConVars);
-    bind(SendNetMessage, "CServerSideClient::SendNetMessage", Capability::Addons);
+    bind(Teleport, "CBaseEntity::Teleport");
+    bind(GiveNamedItem, "CCSPlayer_ItemServices::GiveNamedItem");
+    bind(RemoveAllItems, "CCSPlayer_ItemServices::RemoveAllItems");
+    bind(RunCommand, "CPlayer_MovementServices::RunCommand");
+    bind(ProcessRespondCvarValue, "CServerSideClient::ProcessRespondCvarValue");
+    bind(SendNetMessage, "CServerSideClient::SendNetMessage");
 
-    bind(GameEntitySystem, "GameEntitySystem", Capability::Entities);
-    bind(VisibilityRecipientSlot, "CheckTransmitPlayerSlot", Capability::Visibility);
-    // Shared offsets bind once per capability so each disabled feature records its reason.
-    bind(ClientSlot, "CServerSideClientBase::m_nClientSlot", Capability::ClientConVars);
-    bind(ClientSlot, "CServerSideClientBase::m_nClientSlot", Capability::ButtonPresses);
-    bind(ClientSlot, "CServerSideClientBase::m_nClientSlot", Capability::Addons);
-    bind(ClientMessageFilter, "CServerSideClient::INetworkMessageProcessingPreFilter", Capability::ButtonPresses);
-    bind(ClientSteamId, "CServerSideClientBase::m_SteamID", Capability::Addons);
-    bind(ServerAddons, "CNetworkGameServer::m_szAddons", Capability::Addons);
-    bind(UserCmdProto, "CUserCmd::CSGOUserCmdPB", Capability::Movement);
+    bind(GameEntitySystem, "GameEntitySystem");
+    bind(VisibilityRecipientSlot, "CheckTransmitPlayerSlot");
+    bind(ClientSlot, "CServerSideClientBase::m_nClientSlot");
+    bind(ClientMessageFilter, "CServerSideClient::INetworkMessageProcessingPreFilter");
+    bind(ClientSteamId, "CServerSideClientBase::m_SteamID");
+    bind(ServerAddons, "CNetworkGameServer::m_szAddons");
+    bind(UserCmdProto, "CUserCmd::CSGOUserCmdPB");
     // Optional: movement can use the protobuf counter instead.
     bind(UserCmdNumber, "CUserCmdBase::cmdNum");
 
-    bind.Finish();
-    return {};
+    if (Failures.empty())
+        return {};
+    return std::unexpected(
+        Error::Engine(std::format("{} did not bind: {}", Failures.size(), Strings::Join(Failures, "; "))));
 }
 
 }  // namespace VoltMod

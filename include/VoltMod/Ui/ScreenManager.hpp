@@ -36,12 +36,16 @@ public:
     ScreenManager(const ScreenManager&) = delete;
     ScreenManager& operator=(const ScreenManager&) = delete;
 
+    /** Why player screens cannot be drawn or pressed: a custom HUD setter, the press hook or the
+     *  Visibility filter did not bind. */
+    Status Available() const;
+
     /** A screen every player receives. Spawned on its first @ref Screen::EnsureSpawned. */
     Result<Screen> Shared(std::string_view layout);
 
     /**
      * A screen only @p slot receives, removed when the slot changes hands. Refused while
-     * @ref Capability::Visibility is off, since the entity would then reach everyone.
+     * @ref Visibility::Available fails, since the entity would then reach everyone.
      */
     Result<Screen> ForPlayer(std::string_view layout, int slot);
 
@@ -50,7 +54,7 @@ public:
      *
      * The hook installs on the first subscription and is removed with the last. It sits in a vtable
      * only a connected client exposes, so subscribing on an empty server hooks on the next connect.
-     * Refused after saying why when @ref Capability::ButtonPresses is off.
+     * Refused after saying why when the press hook did not bind.
      */
     Event<const ButtonPress&> Pressed;
 
@@ -59,6 +63,7 @@ private:
 
     EntitySystem& _entities;
     EntityOps& _ops;
+    const Bindings& _bindings;
     SlotEvents& _slots;
     Visibility& _visibility;
     /** Declared after @ref Pressed so the hook is gone before the event it raises into. */

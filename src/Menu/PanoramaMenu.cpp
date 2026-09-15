@@ -32,12 +32,8 @@ PanoramaMenu::PanoramaMenu(const Services& services, MenuLayout& layout, uint64_
 
 bool PanoramaMenu::CanShow(int slot) const
 {
-    const Capabilities& capabilities = _services.Capabilities;
-
     // A client still fetching the addon has no layout to draw on yet.
-    return IsValidSlot(slot) && capabilities.Has(Capability::CustomUi) &&
-           capabilities.Has(Capability::ButtonPresses) && capabilities.Has(Capability::Visibility) &&
-           !_services.Addons.HasMissing(slot);
+    return IsValidSlot(slot) && _services.Screens.Available() && !_services.Addons.HasMissing(slot);
 }
 
 bool PanoramaMenu::Start(int slot, std::shared_ptr<Menu> menu, MenuOptions options)

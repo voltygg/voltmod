@@ -3,8 +3,7 @@
 [TOC]
 
 Hook services install for their first subscriber and uninstall after the last.
-Check @ref VoltMod::Capabilities "runtime.Capabilities" for gamedata
-availability.
+Each one's `Available()` says whether its gamedata bound, and why not.
 
 ## Movement
 

@@ -30,10 +30,10 @@ The shapes the framework already uses. New code follows them instead of adding a
 - Game events go through `GameEvents::On<T>` with a struct in `Events/EventTypes.hpp`. No string form.
 - An `Event` whose source costs something takes an `EventLifecycle`: first subscription installs, last drop removes, and `OnFirst` returning false refuses after logging why. One source feeding several events uses a `SharedLifecycle` instead of counting subscribers itself.
 
-## Capabilities
+## Availability
 
-- Services do not expose `Install()`, `Enable()`, `Available()`, or similar flags.
-- `Runtime::Start` records what works this load in `Runtime::Capabilities`, with the reason when it is off. A service whose capability is off is inert and safe to call.
+- Services do not expose `Install()`, `Enable()`, or similar switches.
+- A service whose engine pieces may not bind has `Status Available() const`, computed from its own bindings, with the reason when it cannot work. It stays inert and safe to call. There is no central flag table.
 
 ## Hooks and subscriptions
 

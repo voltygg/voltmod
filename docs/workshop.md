@@ -101,8 +101,8 @@ download, and that reconnect, ahead of it; `Downloaded` fires again after it.
 
 ## Availability
 
-Does nothing on a listen server - there is no download step - and when
-@ref VoltMod::Capability::Addons is off. That means one of these did not bind: the
+Does nothing on a listen server - there is no download step - and when one of these did not
+bind: the
 `CServerSideClient::SendNetMessage` vtable entry, the `CNetworkGameServer::ReplyConnection`
 signature, or the client and server offsets they read. Either way @ref VoltMod::Addons::Require
 returns `ErrorCode::Unsupported` with the reason. @ref VoltMod::Addons::Missing

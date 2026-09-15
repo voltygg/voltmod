@@ -152,7 +152,7 @@ std::shared_ptr<GlowVision> Visibility::CreateGlow(int viewerSlot, GlowConfig co
 
 void Visibility::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
 {
-    if (!IsActive() || !infoList)
+    if (!_bindings.VisibilityRecipientSlot || !infoList)
         return;
 
     // Resolved once per snapshot, and an entry whose entity is gone is dropped here: the engine

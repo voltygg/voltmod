@@ -17,7 +17,7 @@ namespace VoltMod
  * @brief The `FilterMessage` hook button presses come back through.
  *
  * Owned by @ref ScreenManager, whose Pressed event installs it only while something listens.
- * Presses are raised on the next game frame. Inert when @ref Capability::ButtonPresses is off.
+ * Presses are raised on the next game frame. Inert when the FilterMessage binding is missing.
  */
 class ButtonPressHook
 {

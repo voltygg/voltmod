@@ -43,4 +43,11 @@ bool Teleport::Install()
     return true;
 }
 
+Status Teleport::Available() const
+{
+    if (!_bindings.Teleport)
+        return std::unexpected(Error::Unsupported("the CBaseEntity::Teleport vtable slot did not bind"));
+    return {};
+}
+
 }  // namespace VoltMod

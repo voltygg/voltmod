@@ -1,6 +1,5 @@
 #pragma once
 
-#include <VoltMod/Core/Capabilities.hpp>
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/GameData/GameData.hpp>
@@ -10,6 +9,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace VoltMod
 {
@@ -164,8 +164,12 @@ private:
 /** Typed gamedata bindings shared by engine-facing services. */
 struct Bindings
 {
-    /** Resolve all members. Returns NotReady when @p data is empty. */
-    Status Bind(const GameData& data, Capabilities& caps);
+    /** Resolve all members, naming each one that does not bind in @ref Failures. NotReady when
+     *  @p data is empty; otherwise an error when anything failed. */
+    Status Bind(const GameData& data);
+
+    /** `key: reason` for every member the last @ref Bind left empty. */
+    std::vector<std::string> Failures;
 
     /** ABI: CBaseEntity* (const char* className, int forceEdictIndex). */
     Fn<CEntityInstance*(const char*, int)> CreateEntityByName;
@@ -194,8 +198,8 @@ struct Bindings
     Address LegacyGameEventListener;
 
     /** @defgroup CustomHudSetters CCSCustomHudLayout setters called for a @ref Screen.
-     *  `self` is the entity. The real ABI uses `const CUtlString*`, never `const char*`. All five
-     *  bind together or not at all; @ref Capability::CustomUi reports failure. @{ */
+     *  `self` is the entity. The real ABI uses `const CUtlString*`, never `const char*`.
+     *  @ref ScreenManager::Available needs all five. @{ */
     Fn<void(void*, const CUtlString*, const CUtlString*, int32_t)> CustomHudSetHasClass;
     Fn<void(void*, int32_t, const CUtlString*, const CUtlString*, int32_t)> CustomHudSetHasClassForPlayer;
     Fn<void(void*, const CUtlString*, const CUtlString*, const CUtlString*)> CustomHudSetDialogVariable;

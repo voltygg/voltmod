@@ -17,7 +17,7 @@ namespace VoltMod
  *
  * Writes never spawn: call @ref EnsureSpawned before a redraw. It also recovers after a map change
  * removed the entity. Unchanged values are not re-sent, so redrawing everything is cheap. Destroying
- * the screen removes the entity. Does nothing unless @ref Capability::CustomUi is on.
+ * the screen removes the entity. Does nothing unless @ref ScreenManager::Available succeeds.
  */
 class Screen
 {

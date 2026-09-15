@@ -1,7 +1,7 @@
 #pragma once
 
-#include <VoltMod/Core/Capabilities.hpp>
 #include <VoltMod/Core/Event.hpp>
+#include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/SharedLifecycle.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
@@ -30,10 +30,9 @@ namespace VoltMod
 class Movement
 {
 public:
-    /** @p entities resolves the owning slot, @p bindings the vtable and the byte offsets, and
-     *  @p capabilities records a failed install so `Capabilities::Has(Capability::Movement)`
-     *  cannot claim a hook that is not there. All three must outlive this hook. */
-    Movement(EntitySystem& entities, const Bindings& bindings, Capabilities& capabilities);
+    /** @p entities resolves the owning slot and @p bindings the vtable and the byte offsets. Both
+     *  must outlive this hook. */
+    Movement(EntitySystem& entities, const Bindings& bindings);
     ~Movement();
     Movement(const Movement&) = delete;
     Movement& operator=(const Movement&) = delete;
@@ -51,6 +50,9 @@ public:
     /** After it ran, with the same command. Where a Before-time state change is restored. */
     Event<int, const PlayerInput&> After;
 
+    /** Why movement events cannot fire: the RunCommand slot or the usercmd offset did not bind. */
+    Status Available() const;
+
 private:
     /** Install the class hook, or refuse the subscription after saying why. */
     bool Install();
@@ -61,7 +63,6 @@ private:
     void Decode(const void* userCmd);
 
     EntitySystem& _entities;
-    Capabilities& _capabilities;
     const Bindings& _bindings;
     Subscription _hook;
     PlayerInput _cmd;  // decoded in the pre hook, reused by the post hook

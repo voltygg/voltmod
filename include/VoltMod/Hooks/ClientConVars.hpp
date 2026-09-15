@@ -34,10 +34,9 @@ enum class ClientConVarStatus
  *
  * A modified client can answer with anything, so treat the result as evidence, not proof.
  *
- * Degradable load stage: it depends on the `CServerSideClient::ProcessRespondCvarValue` vtable slot, the
+ * An optional load step: it depends on the `CServerSideClient::ProcessRespondCvarValue` vtable slot, the
  * `CServerSideClientBase::m_nClientSlot` offset and an RTTI/symbol lookup of the `CServerSideClient` vtable, all
- * of which drift with engine updates. On failure Capability::ClientConVars is off and carries the
- * reason.
+ * of which drift with engine updates. On failure @ref Available carries the reason.
  *
  * @code
  * runtime.Hooks.ClientConVars.Query(slot, "sensitivity",
@@ -68,11 +67,14 @@ public:
     /** Install the response hook. Idempotent; an error leaves the service inert. */
     Status Initialize();
 
+    /** Why queries cannot be sent: the error Initialize returned, or that it has not run. */
+    Status Available() const;
+
     /** Remove the hook and drop every pending query. Idempotent; also runs from the destructor. */
     void Shutdown();
 
     /**
-     * Ask @p slot for its value of @p cvarName. False when Capability::ClientConVars is off, the
+     * Ask @p slot for its value of @p cvarName. False when the service is not @ref Available, the
      * slot holds a bot or nobody, the per-slot pending cap is reached, or the message could not
      * be sent.
      *
@@ -92,6 +94,8 @@ public:
     void OnServerStartup();
 
 private:
+    Status Install();
+
     /** Deliver one CCLCMsg_RespondCvarValue, the message type the response hook carries. */
     void OnRespondCvarValue(const void* client, const void* message);
 
@@ -103,6 +107,7 @@ private:
     /** Behind a pointer only so its header stays under src/, where its tests live. */
     std::unique_ptr<PendingConVarQueries> _pending;
     INetworkMessageInternal* _getCvarValue = nullptr;
+    Error _failure = Error::NotReady("client convar queries are not initialized");
     Subscription _hook;
     /** Declared after _pending so it unregisters before the table its callback clears. */
     Subscription _slotListener;

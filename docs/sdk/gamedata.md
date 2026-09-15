@@ -78,29 +78,28 @@ The parser rejects the file before scanning when it has:
 - a vtable index outside `[0, 500)`;
 - an offset above its `max`, or not a multiple of its `align`.
 
-Resolution failures do not reject the file. `GameData::FailureSummary()` reports
-them, and affected capabilities carry the same reason.
+Resolution failures do not reject the file. The `Bindings` load step names every entry that did
+not resolve, and the affected features report it from `Available()`.
 
 A vtable entry whose `signature` resolves keeps the slot that holds it, and warns when that is not
 the index in the file. The search reads through another plugin's hooks, so it does not matter which
 plugin loaded first. When the signature does not resolve, or its function is in no slot, the entry
 keeps its index and says so.
 
-`FailureSummary()` cannot include a missing key because no entry was loaded.
-`Bindings::Bind` reports it through its capability or a warning that names the
-missing key.
+A key the file lacks is named by the same `Bindings` step.
 
-## Capabilities, not readiness flags
+## Availability
 
-`Runtime::Start` records availability in @ref VoltMod::Capabilities.
+Each optional feature says whether it works this load, and why not:
 
 ```cpp
-if (!runtime.Capabilities.Has(Capability::Movement))
-    Log::Warn("no movement feed: {}", runtime.Capabilities.Reason(Capability::Movement));
+if (auto available = runtime.Hooks.Movement.Available(); !available)
+    Log::Warn("no movement feed: {}", available.error().Detail);
 ```
 
-Load logs and the `capabilities` status section report the same summary. Unavailable services remain
-safe to call and return `Error::NotReady`, an empty `Subscription`, or no result.
+The load log names every unavailable feature once, and the `load` status section lists the same.
+A service that is not available stays safe to call and returns an error, an empty `Subscription`,
+or no result.
 
 ## Re-verify after an engine update
 
@@ -127,14 +126,14 @@ The entries most likely to bite, and how each one fails:
 | Entry | Section | Used by | Drift symptom |
 | --- | --- | --- | --- |
 | `CPlayer_MovementServices::RunCommand` | vtables | @ref VoltMod::Movement | Crash on the first movement tick, unless the executable-section check catches it |
-| `CBaseEntity::Teleport` | vtables | @ref VoltMod::Teleport | Missing: subscribing to `Teleported` is refused and `Capability::Teleport` is off |
-| `CServerSideClient::ProcessRespondCvarValue` | vtables | @ref VoltMod::ClientConVars | `Capability::ClientConVars` off; client convar queries unavailable |
+| `CBaseEntity::Teleport` | vtables | @ref VoltMod::Teleport | Missing: subscribing to `Teleported` is refused and `Teleport::Available` says why |
+| `CServerSideClient::ProcessRespondCvarValue` | vtables | @ref VoltMod::ClientConVars | `ClientConVars::Available` fails; client convar queries unavailable |
 | `CUserCmd::CSGOUserCmdPB` | offsets | `Movement` cmd events | Missing: `Valid=false` views. Stale: garbage viewangles and buttons |
 | `CUserCmdBase::cmdNum` | offsets | `PlayerInput::CommandNumber` | Missing: falls back to the protobuf's `legacy_command_number`, which live clients leave at 0. Stale: a counter that never increments by 1 |
 | `CServerSideClientBase::m_nClientSlot` | offsets | `ClientConVars`, `ButtonPresses` | Stale: a client's answer is attributed to the wrong player |
-| `INetworkMessageProcessingPreFilter::FilterMessage` | signatures | @ref VoltMod::ScreenManager::Pressed | Missing: `Capability::ButtonPresses` off; presses never arrive |
+| `INetworkMessageProcessingPreFilter::FilterMessage` | signatures | @ref VoltMod::ScreenManager::Pressed | Missing: `ScreenManager::Available` fails; presses never arrive |
 | `CServerSideClient::INetworkMessageProcessingPreFilter` | offsets | @ref VoltMod::ScreenManager::Pressed | Stale: a press is attributed to the wrong player, or dropped |
-| `CNetworkGameServer::ReplyConnection` | signatures | @ref VoltMod::Addons | Missing: `Capability::Addons` off; `Require` is refused |
+| `CNetworkGameServer::ReplyConnection` | signatures | @ref VoltMod::Addons | Missing: `Require` is refused with the reason |
 | `CNetworkGameServer::m_szAddons` | offsets | @ref VoltMod::Addons | Stale: clients download addons but mount none, or a corrupted reply |
 | `CheckTransmitPlayerSlot` | offsets | @ref VoltMod::Visibility | Stale: the wrong recipient is filtered |
 | `CSource2Server::g_GameEventManager` | addresses | @ref VoltMod::Messages | Center HTML does not display |

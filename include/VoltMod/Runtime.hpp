@@ -3,7 +3,6 @@
 #include <VoltMod/App/ServiceExchange.hpp>
 #include <VoltMod/App/StatusService.hpp>
 #include <VoltMod/Commands/CommandManager.hpp>
-#include <VoltMod/Core/Capabilities.hpp>
 #include <VoltMod/Core/LoadSteps.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
 #include <VoltMod/Core/SlotEvents.hpp>
@@ -26,6 +25,7 @@
 #include <VoltMod/Unsafe/Unsafe.hpp>
 #include <VoltMod/Workshop/Addons.hpp>
 #include <cstddef>
+#include <map>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -69,9 +69,6 @@ public:
 
     /** The steps Start and the plugin's OnLoad run, remembering the ones that fail. */
     VoltMod::LoadSteps LoadSteps;
-
-    /** What this load can do and why anything missing is missing. Written only by Start. */
-    VoltMod::Capabilities Capabilities;
 
     /** Status sections for diagnostics commands; framework sections registered by Start. */
     StatusService Status;
@@ -119,8 +116,7 @@ public:
     WorldServices World{Entities, Unsafe.Bindings, Scheduler, Slots, Unsafe.Interfaces};
 
     /** The per-tick and per-event engine hooks. */
-    HookServices Hooks{Entities,   Unsafe.Bindings,   Slots,           Scheduler,
-                       GameEvents, Unsafe.Interfaces, World.EntityOps, Capabilities};
+    HookServices Hooks{Entities, Unsafe.Bindings, Slots, Scheduler, GameEvents, Unsafe.Interfaces, World.EntityOps};
 
     /** Panorama screens and the button presses coming back from them. */
     VoltMod::ScreenManager Screens{Entities, World.EntityOps, Unsafe.Bindings, Unsafe.Interfaces,
@@ -162,6 +158,8 @@ private:
     bool ResolveInterfaces(const LoadContext& context);
     bool InitializeServices(const LoadContext& context);
     void RegisterStatusSections();
+    /** Each optional feature that cannot work this load, with the reason. */
+    std::map<std::string, std::string> UnavailableFeatures() const;
 };
 
 }  // namespace VoltMod

@@ -12,14 +12,13 @@
 namespace VoltMod
 {
 
-Movement::Movement(EntitySystem& entities, const Bindings& bindings, Capabilities& capabilities)
+Movement::Movement(EntitySystem& entities, const Bindings& bindings)
     : _lifecycle(
           "Movement", [this] { return Install(); }, [this] { _hook.Reset(); }),
       Rewrite(_lifecycle.ForEvent()),
       Before(_lifecycle.ForEvent()),
       After(_lifecycle.ForEvent()),
       _entities(entities),
-      _capabilities(capabilities),
       _bindings(bindings)
 {}
 
@@ -47,15 +46,21 @@ bool Movement::Install()
         [this](EngineMovementServices&, void* /*userCmd*/) { After.Raise(_slot, _cmd); });
     if (!hook)
     {
-        // Bindings marked the capability usable from gamedata alone; a failed install retracts it.
         Log::Warn("Movement: {}; movement handlers will not fire.", hook.error().Detail);
-        _capabilities.Set(Capability::Movement, false, hook.error().Detail);
         return false;
     }
 
     _hook = std::move(*hook);
-    _capabilities.Set(Capability::Movement, true);
     return true;
+}
+
+Status Movement::Available() const
+{
+    if (!_bindings.RunCommand)
+        return std::unexpected(Error::Unsupported("the CPlayer_MovementServices::RunCommand vtable slot did not bind"));
+    if (!_bindings.UserCmdProto)
+        return std::unexpected(Error::Unsupported("the CUserCmd::CSGOUserCmdPB offset did not bind"));
+    return {};
 }
 
 int Movement::SlotOf(void* movementServices)
