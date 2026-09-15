@@ -103,25 +103,25 @@ static uint64_t FindSymbolValue(const MappedFile& elf, const std::string& symbol
     return 0;
 }
 
-void* FindVirtualTableIn(const ModuleImage& image, const char* className)
+void* FindVirtualTableIn(const LoadedModule& loaded, const char* className)
 {
-    if (image.Path.empty())
+    if (loaded.Path.empty())
         return nullptr;
 
-    if (MappedFile elf(image.Path); elf)
+    if (MappedFile elf(loaded.Path); elf)
     {
         // Itanium ABI vtable symbols use _ZTV<length><name>.
         const std::string symbol = "_ZTV" + std::to_string(std::strlen(className)) + className;
         // Object vptrs point past offset-to-top and typeinfo.
         if (const uint64_t value = FindSymbolValue(elf, symbol))
-            return const_cast<uint8_t*>(image.Base + value + 2 * sizeof(void*));
+            return const_cast<uint8_t*>(loaded.Base + value + 2 * sizeof(void*));
     }
 
-    // The game's libraries hide their vtable symbols but keep RTTI, so search the mapped segments.
-    ModuleImage mapped;
+    // The game's modules hide their vtable symbols but keep RTTI, so search the mapped segments.
+    LoadedModule mapped;
     std::vector<ScanRange> ranges;
-    const std::string fileName = std::filesystem::path(image.Path).filename().string();
-    if (!FindImageAndRanges(fileName.c_str(), mapped, ranges))
+    const std::string fileName = std::filesystem::path(loaded.Path).filename().string();
+    if (!FindModuleAndRanges(fileName.c_str(), mapped, ranges))
         return nullptr;
     return FindVirtualTableByTypeName(ranges, className);
 }

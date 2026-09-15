@@ -13,10 +13,10 @@ class FakeBinaries:
         self.platform = platform
         self._contents = contents
 
-    def find(self, library: str, pattern: str) -> list[int]:
+    def find(self, module: str, pattern: str) -> list[int]:
         return [match.start() for match in pattern_regex(pattern).finditer(self._contents)]
 
-    def read(self, library: str, offset: int, length: int) -> bytes:
+    def read(self, module: str, offset: int, length: int) -> bytes:
         return self._contents[offset : offset + length]
 
 

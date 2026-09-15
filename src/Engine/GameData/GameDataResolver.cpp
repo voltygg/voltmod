@@ -18,20 +18,20 @@ static std::unexpected<Error> Unbound(std::string reason)
     return std::unexpected(Error::NotFound(std::move(reason)));
 }
 
-static uint64_t Rva(const ModuleImage& image, const void* address)
+static uint64_t Rva(const LoadedModule& loaded, const void* address)
 {
-    return static_cast<uint64_t>(static_cast<const uint8_t*>(address) - image.Base);
+    return static_cast<uint64_t>(static_cast<const uint8_t*>(address) - loaded.Base);
 }
 
-/** The single match of @p pattern in @p library. */
-static Result<ScanResult> Scan(const std::string& library, const std::string& pattern)
+/** The single match of @p pattern in @p moduleName. */
+static Result<ScanResult> Scan(const std::string& moduleName, const std::string& pattern)
 {
     if (pattern.empty())
         return Unbound("empty pattern");
 
-    ScanResult match = FindPatternEx(library.c_str(), pattern);
-    if (!match.Image.Base)
-        return Unbound(std::format("module '{}' is not loaded", library));
+    ScanResult match = FindPatternEx(moduleName.c_str(), pattern);
+    if (!match.Module.Base)
+        return Unbound(std::format("module '{}' is not loaded", moduleName));
     if (!match.Address)
         return Unbound("pattern not found");
     if (!match.Unique)
@@ -132,11 +132,11 @@ Result<void*> GameDataResolver::FindFunction(const std::string& key)
     if (!pattern)
         return Unbound(std::format("no {} pattern", PlatformName));
 
-    const auto match = Scan(entry.library, *pattern);
+    const auto match = Scan(entry.Module, *pattern);
     if (!match)
         return std::unexpected(match.error());
 
-    _record.functions.emplace(key, ResolvedRecord::Location{entry.library, Rva(match->Image, match->Address)});
+    _record.Functions.emplace(key, ResolvedRecord::Location{entry.Module, Rva(match->Module, match->Address)});
     return match->Address;
 }
 
@@ -147,18 +147,18 @@ Result<void*> GameDataResolver::FindGlobal(const std::string& key)
     if (!column)
         return Unbound(std::format("no {} pattern", PlatformName));
 
-    const auto match = Scan(entry.library, column->pattern);
+    const auto match = Scan(entry.Module, column->pattern);
     if (!match)
         return std::unexpected(match.error());
 
     const uintptr_t target =
-        ResolveRelativeAddress(match->Image, reinterpret_cast<uintptr_t>(match->Address), column->rel32At);
+        ResolveRelativeAddress(match->Module, reinterpret_cast<uintptr_t>(match->Address), column->rel32At);
     auto* global = reinterpret_cast<void*>(target);
-    if (!target || !match->Image.Contains(global) || !IsReadableAddress(global, sizeof(void*)))
+    if (!target || !match->Module.Contains(global) || !IsReadableAddress(global, sizeof(void*)))
         return Unbound(
-            std::format("the rel32 at +{} does not point at readable memory in '{}'", column->rel32At, entry.library));
+            std::format("the rel32 at +{} does not point at readable memory in '{}'", column->rel32At, entry.Module));
 
-    _record.globals.emplace(key, ResolvedRecord::Location{entry.library, Rva(match->Image, global)});
+    _record.Globals.emplace(key, ResolvedRecord::Location{entry.Module, Rva(match->Module, global)});
     return global;
 }
 
@@ -171,13 +171,13 @@ Result<VirtualSlot> GameDataResolver::FindSlot(const std::string& key)
     if (*index < 0)
         return Unbound(std::format("index {} is negative", *index));
 
-    const ModuleImage* image = Image(entry.library);
-    if (!image)
-        return Unbound(std::format("module '{}' is not loaded", entry.library));
+    const LoadedModule* loaded = FindModule(entry.Module);
+    if (!loaded)
+        return Unbound(std::format("module '{}' is not loaded", entry.Module));
 
-    void* table = Table(*image, entry.library, entry.Class);
+    void* table = Table(*loaded, entry.Module, entry.Class);
     if (!table)
-        return Unbound(std::format("no vtable for '{}' in '{}'", entry.Class, entry.library));
+        return Unbound(std::format("no vtable for '{}' in '{}'", entry.Class, entry.Module));
 
     // A short table ends before the index, so the slot is checked before it is read.
     void** slot = static_cast<void**>(table) + *index;
@@ -186,9 +186,9 @@ Result<VirtualSlot> GameDataResolver::FindSlot(const std::string& key)
         return Unbound(std::format("{}::[{}] does not hold code", entry.Class, *index));
 
     // Hook trampolines live outside the module and have no useful module offset.
-    if (image->Contains(code))
-        _slotAddresses.push_back(std::format("{}={}+{:#x}", key, entry.library, Rva(*image, code)));
-    _record.vtables.emplace(key, ResolvedRecord::Slot{entry.library, Rva(*image, table), *index});
+    if (loaded->Contains(code))
+        _slotAddresses.push_back(std::format("{}={}+{:#x}", key, entry.Module, Rva(*loaded, code)));
+    _record.VTables.emplace(key, ResolvedRecord::Slot{entry.Module, Rva(*loaded, table), *index});
     return VirtualSlot{.Index = *index, .Table = table};
 }
 
@@ -200,23 +200,23 @@ Result<int> GameDataResolver::FindOffset(const std::string& key)
     if (*value < 0)
         return Unbound(std::format("offset {} is negative", *value));
 
-    _record.offsets.emplace(key, *value);
+    _record.Offsets.emplace(key, *value);
     return *value;
 }
 
-const ModuleImage* GameDataResolver::Image(const std::string& library)
+const LoadedModule* GameDataResolver::FindModule(const std::string& moduleName)
 {
-    auto [it, added] = _images.try_emplace(library);
+    auto [it, added] = _modules.try_emplace(moduleName);
     if (added)
-        FindModuleImage(library.c_str(), it->second);
+        FindLoadedModule(moduleName.c_str(), it->second);
     return it->second.Base ? &it->second : nullptr;
 }
 
-void* GameDataResolver::Table(const ModuleImage& image, const std::string& library, const std::string& className)
+void* GameDataResolver::Table(const LoadedModule& loaded, const std::string& moduleName, const std::string& className)
 {
-    auto [it, added] = _tables.try_emplace({library, className}, nullptr);
+    auto [it, added] = _tables.try_emplace({moduleName, className}, nullptr);
     if (added)
-        it->second = FindVirtualTableIn(image, className.c_str());
+        it->second = FindVirtualTableIn(loaded, className.c_str());
     return it->second;
 }
 

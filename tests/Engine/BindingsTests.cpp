@@ -133,7 +133,7 @@ TEST_CASE("A function in a module that is not loaded names the module")
 {
     Bindings bindings;
     CHECK_FALSE(LoadSections(bindings, R"("functions": {
-    "CreateEntityByName": { "library": "engine2", "windows": "48 83", "linux": "48 83" }
+    "CreateEntityByName": { "module": "engine2", "windows": "48 83", "linux": "48 83" }
   })")
                     .has_value());
 

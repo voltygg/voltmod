@@ -12,22 +12,22 @@ struct ResolvedRecord
 {
     struct Location
     {
-        std::string library;
-        uint64_t rva = 0;
+        std::string Module;
+        uint64_t Rva = 0;
     };
 
     struct Slot
     {
-        std::string library;
-        uint64_t table = 0;  ///< The class table's RVA.
-        int index = -1;
+        std::string Module;
+        uint64_t Table = 0;  ///< The class table's RVA.
+        int Index = -1;
     };
 
-    std::string build;
-    std::map<std::string, Location> functions;
-    std::map<std::string, Location> globals;
-    std::map<std::string, Slot> vtables;
-    std::map<std::string, int> offsets;
+    std::string Build;
+    std::map<std::string, Location> Functions;
+    std::map<std::string, Location> Globals;
+    std::map<std::string, Slot> VTables;
+    std::map<std::string, int> Offsets;
 };
 
 /**

@@ -157,8 +157,8 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Engine/Memory/SigScanner.cpp
             src/Engine/Memory/VtableLookup.cpp
             # One file in each pair is empty on this platform.
-            src/Engine/Memory/ModuleImage_Windows.cpp
-            src/Engine/Memory/ModuleImage_Linux.cpp
+            src/Engine/Memory/LoadedModule_Windows.cpp
+            src/Engine/Memory/LoadedModule_Linux.cpp
             src/Engine/Memory/VtableLookup_Windows.cpp
             src/Engine/Memory/VtableLookup_Linux.cpp
             # Use a fake MenuSurface.

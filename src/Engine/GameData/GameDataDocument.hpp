@@ -23,7 +23,7 @@ struct GameDataDocument
     /** A byte pattern matching the start of a function. */
     struct Function
     {
-        std::string library = "server";
+        std::string Module = "server";
         std::optional<std::string> Windows;
         std::optional<std::string> Linux;
     };
@@ -37,7 +37,7 @@ struct GameDataDocument
 
     struct Global
     {
-        std::string library = "server";
+        std::string Module = "server";
         std::optional<GlobalColumn> Windows;
         std::optional<GlobalColumn> Linux;
     };
@@ -46,7 +46,7 @@ struct GameDataDocument
     struct VTable
     {
         std::string Class;
-        std::string library = "server";
+        std::string Module = "server";
         std::optional<int> Windows;
         std::optional<int> Linux;
     };
@@ -95,14 +95,14 @@ template <>
 struct glz::meta<VoltMod::GameDataDocument::Function>
 {
     using T = VoltMod::GameDataDocument::Function;
-    static constexpr auto value = glz::object("library", &T::library, "windows", &T::Windows, "linux", &T::Linux);
+    static constexpr auto value = glz::object("module", &T::Module, "windows", &T::Windows, "linux", &T::Linux);
 };
 
 template <>
 struct glz::meta<VoltMod::GameDataDocument::Global>
 {
     using T = VoltMod::GameDataDocument::Global;
-    static constexpr auto value = glz::object("library", &T::library, "windows", &T::Windows, "linux", &T::Linux);
+    static constexpr auto value = glz::object("module", &T::Module, "windows", &T::Windows, "linux", &T::Linux);
 };
 
 template <>
@@ -110,7 +110,7 @@ struct glz::meta<VoltMod::GameDataDocument::VTable>
 {
     using T = VoltMod::GameDataDocument::VTable;
     static constexpr auto value =
-        glz::object("class", &T::Class, "library", &T::library, "windows", &T::Windows, "linux", &T::Linux);
+        glz::object("class", &T::Class, "module", &T::Module, "windows", &T::Windows, "linux", &T::Linux);
 };
 
 template <>

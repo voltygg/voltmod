@@ -1,4 +1,4 @@
-#include "Engine/Memory/ModuleImage.hpp"
+#include "Engine/Memory/LoadedModule.hpp"
 
 #ifndef _WIN32
 
@@ -24,7 +24,7 @@ struct ModuleScan
     const char* Name = nullptr;     // basename to match, e.g. "libserver.so"
     size_t BestSpan = 0;            // largest module span seen so far (selects the real lib)
     std::vector<ScanRange> Ranges;  // PT_LOAD segments of the selected module
-    ModuleImage Image;              // load bias, span and on-disk path of the selected module
+    LoadedModule Module;            // load bias, span and on-disk path of the selected module
 };
 
 // Multiple objects can share the basename "libserver.so" (a loader stub plus the real game
@@ -54,19 +54,19 @@ static int DlIterateCallback(struct dl_phdr_info* info, size_t /*size*/, void* d
         scan->Ranges = std::move(segments);
         // l_addr, not the first segment's mapped address: ELF symbol values are link-time
         // addresses that must be biased by exactly this to become runtime addresses.
-        scan->Image = {reinterpret_cast<const uint8_t*>(info->dlpi_addr), span, info->dlpi_name};
+        scan->Module = {reinterpret_cast<const uint8_t*>(info->dlpi_addr), span, info->dlpi_name};
     }
     return 0;  // keep iterating; the largest match wins
 }
 
-bool FindImageAndRanges(const char* fileName, ModuleImage& image, std::vector<ScanRange>& ranges)
+bool FindModuleAndRanges(const char* fileName, LoadedModule& loaded, std::vector<ScanRange>& ranges)
 {
     ModuleScan scan{.Name = fileName};
     dl_iterate_phdr(DlIterateCallback, &scan);
     if (scan.Ranges.empty())
         return false;
 
-    image = std::move(scan.Image);
+    loaded = std::move(scan.Module);
     ranges = std::move(scan.Ranges);
     return true;
 }

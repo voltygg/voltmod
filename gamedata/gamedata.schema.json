@@ -46,7 +46,7 @@
     }
   },
   "definitions": {
-    "library": {
+    "module": {
       "type": "string",
       "default": "server",
       "description": "Module to look in, without platform prefix/suffix (\"server\" -> server.dll / libserver.so)."
@@ -61,7 +61,7 @@
       "additionalProperties": false,
       "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }],
       "properties": {
-        "library": { "$ref": "#/definitions/library" },
+        "module": { "$ref": "#/definitions/module" },
         "windows": { "$ref": "#/definitions/pattern" },
         "linux": { "$ref": "#/definitions/pattern" }
       }
@@ -71,7 +71,7 @@
       "additionalProperties": false,
       "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }],
       "properties": {
-        "library": { "$ref": "#/definitions/library" },
+        "module": { "$ref": "#/definitions/module" },
         "windows": { "$ref": "#/definitions/globalColumn" },
         "linux": { "$ref": "#/definitions/globalColumn" }
       }
@@ -99,7 +99,7 @@
           "type": "string",
           "description": "Top-level RTTI/ELF class name owning the table (no namespace, no template)."
         },
-        "library": { "$ref": "#/definitions/library" },
+        "module": { "$ref": "#/definitions/module" },
         "windows": { "type": "integer", "minimum": 0 },
         "linux": { "type": "integer", "minimum": 0 }
       }

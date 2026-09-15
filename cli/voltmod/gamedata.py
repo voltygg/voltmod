@@ -40,9 +40,9 @@ class PatternResult:
 
 
 class GameBinaries:
-    """Game libraries read once and searched as files.
+    """Game modules read once and searched as files.
 
-    A file holds bytes the loaded image does not, so a pattern unique at runtime can look
+    A file holds bytes the loaded module does not, so a pattern unique at runtime can look
     ambiguous here; ambiguity is reported, never resolved.
     """
 
@@ -51,30 +51,30 @@ class GameBinaries:
         self.platform = platform
         self._contents: dict[str, bytes] = {}
 
-    def contents(self, library: str) -> bytes:
-        if library not in self._contents:
-            relative = GAME_LIBRARIES[self.platform].get(library)
+    def contents(self, module: str) -> bytes:
+        if module not in self._contents:
+            relative = GAME_LIBRARIES[self.platform].get(module)
             if relative is None:
-                raise VoltmodError(f"unknown gamedata library '{library}'")
+                raise VoltmodError(f"unknown gamedata module '{module}'")
             path = self.game_dir / relative
             # Linux binaries copied out of the deploy image may sit in one flat folder.
             if not path.is_file():
                 path = self.game_dir / Path(relative).name
             if not path.is_file():
-                raise VoltmodError(f"no {library} binary at {self.game_dir / relative}")
-            self._contents[library] = path.read_bytes()
-        return self._contents[library]
+                raise VoltmodError(f"no {module} binary at {self.game_dir / relative}")
+            self._contents[module] = path.read_bytes()
+        return self._contents[module]
 
-    def find(self, library: str, pattern: str) -> list[int]:
-        return [match.start() for match in pattern_regex(pattern).finditer(self.contents(library))]
+    def find(self, module: str, pattern: str) -> list[int]:
+        return [match.start() for match in pattern_regex(pattern).finditer(self.contents(module))]
 
-    def read(self, library: str, offset: int, length: int) -> bytes:
-        return self.contents(library)[offset : offset + length]
+    def read(self, module: str, offset: int, length: int) -> bytes:
+        return self.contents(module)[offset : offset + length]
 
 
 def detect_platform(game_dir: Path) -> str:
-    for platform, libraries in GAME_LIBRARIES.items():
-        if any((game_dir / path).is_file() for path in libraries.values()):
+    for platform, modules in GAME_LIBRARIES.items():
+        if any((game_dir / path).is_file() for path in modules.values()):
             return platform
     raise VoltmodError(f"no CS2 server or engine2 binary under {game_dir}")
 
@@ -126,8 +126,8 @@ def check_patterns(
                 continue
             # A function's column is its pattern; a global's also carries rel32At.
             pattern = column["pattern"] if isinstance(column, dict) else column
-            library = entry.get("library", "server")
-            results.append(check_pattern(binaries, section, key, library, pattern, schema))
+            module = entry.get("module", "server")
+            results.append(check_pattern(binaries, section, key, module, pattern, schema))
     return results
 
 
@@ -135,18 +135,18 @@ def check_pattern(
     binaries: GameBinaries,
     section: str,
     key: str,
-    library: str,
+    module: str,
     pattern: str,
     schema: dict[str, Any],
 ) -> PatternResult:
     """Whether one pattern holds, matches twice, can be repaired, or is broken."""
-    hits = binaries.find(library, pattern)
+    hits = binaries.find(module, pattern)
     if len(hits) == 1:
         return PatternResult(section, key, PatternStatus.HOLDS)
     if len(hits) > 1:
         return PatternResult(section, key, PatternStatus.AMBIGUOUS, f"{len(hits)} matches")
 
-    repaired = repair_pattern(binaries, library, pattern)
+    repaired = repair_pattern(binaries, module, pattern)
     if repaired is None:
         detail = "no match, and no single displacement explains it"
         return PatternResult(section, key, PatternStatus.BROKEN, detail)
@@ -159,7 +159,7 @@ def check_pattern(
 
 
 def repair_pattern(
-    binaries: GameBinaries, library: str, pattern: str
+    binaries: GameBinaries, module: str, pattern: str
 ) -> tuple[str, int, int, int] | None:
     """Wildcard the one displacement that restores a unique match: (pattern, index, old, new)."""
     # Only a displacement is widened; a function is never searched for anew.
@@ -169,9 +169,9 @@ def repair_pattern(
         widened = tokens.copy()
         widened[index : index + 4] = ["?"] * 4
         candidate = " ".join(widened)
-        hits = binaries.find(library, candidate)
+        hits = binaries.find(module, candidate)
         if len(hits) == 1:
-            new_offset = int.from_bytes(binaries.read(library, hits[0] + index, 4), "little")
+            new_offset = int.from_bytes(binaries.read(module, hits[0] + index, 4), "little")
             accepted.append((candidate, index, old_offset, new_offset))
     return accepted[0] if len(accepted) == 1 else None
 

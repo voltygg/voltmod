@@ -8,8 +8,8 @@
 namespace VoltMod
 {
 
-/** A loaded module's mapped image and backing path. */
-struct ModuleImage
+/** A module mapped into this process: where it starts, how far it spans, and the file behind it. */
+struct LoadedModule
 {
     const uint8_t* Base = nullptr;  // mapped base address
     size_t Size = 0;                // mapped span in bytes
@@ -23,7 +23,7 @@ struct ModuleImage
     }
 };
 
-// Scan the whole image on Windows and each PT_LOAD segment on Linux to avoid unmapped gaps.
+// Scan the whole module on Windows and each PT_LOAD segment on Linux to avoid unmapped gaps.
 struct ScanRange
 {
     const uint8_t* Base;
@@ -31,13 +31,13 @@ struct ScanRange
 };
 
 /**
- * Enumerate @p fileName once, returning its image and scan ranges.
+ * Enumerate @p fileName once, returning where it is loaded and its scan ranges.
  *
  * @param fileName platform file name, as @ref PlatformModuleName spells it.
- * @return false when the module is not mapped; both outputs remain unchanged.
+ * @return false when the module is not loaded; both outputs remain unchanged.
  *
  * Each platform has a separate implementation because its loader exposes different metadata.
  */
-bool FindImageAndRanges(const char* fileName, ModuleImage& image, std::vector<ScanRange>& ranges);
+bool FindModuleAndRanges(const char* fileName, LoadedModule& loaded, std::vector<ScanRange>& ranges);
 
 }  // namespace VoltMod

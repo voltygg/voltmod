@@ -32,14 +32,14 @@ struct Section
     const uint8_t* End = nullptr;
 };
 
-static Section FindSection(const ModuleImage& image, const char* name)
+static Section FindSection(const LoadedModule& loaded, const char* name)
 {
-    const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(image.Base);
-    if (image.Size < sizeof(IMAGE_DOS_HEADER) || dos->e_magic != IMAGE_DOS_SIGNATURE)
+    const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(loaded.Base);
+    if (loaded.Size < sizeof(IMAGE_DOS_HEADER) || dos->e_magic != IMAGE_DOS_SIGNATURE)
         return {};
 
-    const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS64*>(image.Base + dos->e_lfanew);
-    if (static_cast<size_t>(dos->e_lfanew) + sizeof(IMAGE_NT_HEADERS64) > image.Size ||
+    const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS64*>(loaded.Base + dos->e_lfanew);
+    if (static_cast<size_t>(dos->e_lfanew) + sizeof(IMAGE_NT_HEADERS64) > loaded.Size ||
         nt->Signature != IMAGE_NT_SIGNATURE)
         return {};
 
@@ -50,12 +50,12 @@ static Section FindSection(const ModuleImage& image, const char* name)
         if (std::strncmp(reinterpret_cast<const char*>(sections[i].Name), name, IMAGE_SIZEOF_SHORT_NAME) != 0)
             continue;
 
-        // This is a mapped image, so use virtual size; raw size covers a zero virtual size.
+        // The module is mapped, so use virtual size; raw size covers a zero virtual size.
         const DWORD size = sections[i].Misc.VirtualSize ? sections[i].Misc.VirtualSize : sections[i].SizeOfRawData;
-        if (sections[i].VirtualAddress + static_cast<size_t>(size) > image.Size)
+        if (sections[i].VirtualAddress + static_cast<size_t>(size) > loaded.Size)
             return {};
 
-        const uint8_t* begin = image.Base + sections[i].VirtualAddress;
+        const uint8_t* begin = loaded.Base + sections[i].VirtualAddress;
         return {begin, begin + size};
     }
     return {};
@@ -69,21 +69,21 @@ static T ReadAt(const uint8_t* address)
     return value;
 }
 
-void* FindVirtualTableIn(const ModuleImage& image, const char* className)
+void* FindVirtualTableIn(const LoadedModule& loaded, const char* className)
 {
-    const Section data = FindSection(image, ".data");
-    const Section rdata = FindSection(image, ".rdata");
+    const Section data = FindSection(loaded, ".data");
+    const Section rdata = FindSection(loaded, ".rdata");
     if (!data.Begin || !rdata.Begin)
         return nullptr;
 
     // RTTITypeDescriptor stores the name at 0x10; include the terminator for exact matching.
     const std::string mangled = ".?AV" + std::string(className) + "@@";
     const uint8_t* mangledName = FindValue(data.Begin, data.End, mangled.c_str(), mangled.size() + 1, 1);
-    if (!mangledName || mangledName - image.Base < 0x10)
+    if (!mangledName || mangledName - loaded.Base < 0x10)
         return nullptr;
 
     const uint8_t* typeDescriptor = mangledName - 0x10;
-    const auto typeDescriptorRva = static_cast<uint32_t>(typeDescriptor - image.Base);
+    const auto typeDescriptorRva = static_cast<uint32_t>(typeDescriptor - loaded.Base);
 
     // RTTICompleteObjectLocator stores pTypeDescriptor at offset 0xC.
     constexpr ptrdiff_t PTypeDescriptorOffset = 0xC;

@@ -19,14 +19,14 @@ void* FindVirtualTable(const char* moduleName, const char* className)
     if (!moduleName || !className || !*className)
         return nullptr;
 
-    ModuleImage image;
-    if (!FindModuleImage(moduleName, image))
+    LoadedModule loaded;
+    if (!FindLoadedModule(moduleName, loaded))
     {
         Log::Warn("VtableLookup: Module '{}' not found.", PlatformModuleName(moduleName));
         return nullptr;
     }
 
-    void* vtable = FindVirtualTableIn(image, className);
+    void* vtable = FindVirtualTableIn(loaded, className);
     if (!vtable)
         Log::Warn("VtableLookup: '{}' vtable not found in '{}'.", className, PlatformModuleName(moduleName));
     return vtable;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Engine/Memory/ModuleImage.hpp"
+#include "Engine/Memory/LoadedModule.hpp"
 #include "Engine/Memory/RelativeAddress.hpp"
 
 #include <cstddef>
@@ -14,14 +14,14 @@ struct ScanResult
 {
     void* Address = nullptr;  // first match, or nullptr
     bool Unique = true;       // false when the pattern matched more than once
-    ModuleImage Image;        // the module that was scanned; Base is null when it is not mapped
+    LoadedModule Module;      // the module that was scanned; Base is null when it is not loaded
 };
 
 /** Platform file name for a module: "engine2" -> "engine2.dll" / "libengine2.so". */
 std::string PlatformModuleName(const char* moduleName);
 
-/** Locate a loaded module by platform-agnostic name. False when it is not mapped. */
-bool FindModuleImage(const char* moduleName, ModuleImage& image);
+/** Locate a loaded module by platform-agnostic name. False when it is not loaded. */
+bool FindLoadedModule(const char* moduleName, LoadedModule& loaded);
 
 /**
  * Scan a loaded module's memory for a byte pattern (hex string with '?' wildcards).
@@ -31,14 +31,14 @@ bool FindModuleImage(const char* moduleName, ModuleImage& image);
 ScanResult FindPatternEx(const char* moduleName, const std::string& pattern);
 
 /**
- * Resolve a RIP-relative address inside @p image: reads the 32-bit displacement at
+ * Resolve a RIP-relative address inside @p loaded: reads the 32-bit displacement at
  * @p matchAddress + @p ripOffset and returns the absolute target
  * (@p matchAddress + @p ripOffset + @p ripSize + displacement).
  *
- * @return 0 when the displacement does not lie wholly inside the mapped image, which is the one
+ * @return 0 when the displacement does not lie wholly inside the module, which is the one
  *         failure that would otherwise be a read past the mapping rather than a wrong answer.
  */
-uintptr_t ResolveRelativeAddress(const ModuleImage& image, uintptr_t matchAddress, int ripOffset,
+uintptr_t ResolveRelativeAddress(const LoadedModule& loaded, uintptr_t matchAddress, int ripOffset,
                                  int ripSize = Rel32Size);
 
 /**

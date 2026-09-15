@@ -26,14 +26,14 @@ namespace VoltMod
  *
  * Process-wide rather than per-load, like the schema field cache: a mapped module's bytes do not
  * change while it is mapped, and every signature scanned against it wants the same answer. Keyed
- * by image base, which is what tells two mapped modules apart. Counted over the ranges rather than
- * the image span because on Linux that span covers unmapped gaps between PT_LOAD segments.
+ * by base address, which is what tells two mapped modules apart. Counted over the ranges rather
+ * than the module span because on Linux that span covers unmapped gaps between PT_LOAD segments.
  */
-static const ByteHistogram& FrequenciesOf(const ModuleImage& image, const std::vector<ScanRange>& ranges)
+static const ByteHistogram& FrequenciesOf(const LoadedModule& loaded, const std::vector<ScanRange>& ranges)
 {
     static std::map<const uint8_t*, ByteHistogram> cache;
 
-    const auto found = cache.find(image.Base);
+    const auto found = cache.find(loaded.Base);
     if (found != cache.end())
         return found->second;
 
@@ -41,7 +41,7 @@ static const ByteHistogram& FrequenciesOf(const ModuleImage& image, const std::v
     for (const auto& range : ranges)
         CountBytes(range.Base, range.Size, counts);
 
-    return cache.emplace(image.Base, counts).first->second;
+    return cache.emplace(loaded.Base, counts).first->second;
 }
 
 std::string PlatformModuleName(const char* moduleName)
@@ -53,26 +53,26 @@ std::string PlatformModuleName(const char* moduleName)
 #endif
 }
 
-bool FindModuleImage(const char* moduleName, ModuleImage& image)
+bool FindLoadedModule(const char* moduleName, LoadedModule& loaded)
 {
-    std::vector<ScanRange> ranges;  // unused; the image is what the caller asked for
-    return FindImageAndRanges(PlatformModuleName(moduleName).c_str(), image, ranges);
+    std::vector<ScanRange> ranges;  // unused; the module is what the caller asked for
+    return FindModuleAndRanges(PlatformModuleName(moduleName).c_str(), loaded, ranges);
 }
 
 ScanResult FindPatternEx(const char* moduleName, const std::string& pattern)
 {
     const std::string fullName = PlatformModuleName(moduleName);
 
-    ModuleImage image;
+    LoadedModule loaded;
     std::vector<ScanRange> ranges;
-    if (!FindImageAndRanges(fullName.c_str(), image, ranges))
+    if (!FindModuleAndRanges(fullName.c_str(), loaded, ranges))
     {
         Log::Error("SigScanner: Module '{}' not found.", fullName);
         return {};
     }
 
     const std::vector<PatternByte> bytes = ParsePattern(pattern);
-    const size_t anchor = AnchorOf(bytes, FrequenciesOf(image, ranges));
+    const size_t anchor = AnchorOf(bytes, FrequenciesOf(loaded, ranges));
 
     const uint8_t* first = nullptr;
     for (const auto& range : ranges)
@@ -88,7 +88,7 @@ ScanResult FindPatternEx(const char* moduleName, const std::string& pattern)
             if (first)
             {
                 Log::Warn("SigScanner: Pattern ambiguous in '{}' (2+ matches); refusing it.", fullName);
-                return {const_cast<uint8_t*>(first), false, std::move(image)};
+                return {const_cast<uint8_t*>(first), false, std::move(loaded)};
             }
             first = hit;
             at = static_cast<size_t>(hit - range.Base) + 1;
@@ -97,17 +97,17 @@ ScanResult FindPatternEx(const char* moduleName, const std::string& pattern)
 
     if (!first)
         Log::Warn("SigScanner: Pattern not found in '{}'.", fullName);
-    return {const_cast<uint8_t*>(first), true, std::move(image)};
+    return {const_cast<uint8_t*>(first), true, std::move(loaded)};
 }
 
-uintptr_t ResolveRelativeAddress(const ModuleImage& image, uintptr_t matchAddress, int ripOffset, int ripSize)
+uintptr_t ResolveRelativeAddress(const LoadedModule& loaded, uintptr_t matchAddress, int ripOffset, int ripSize)
 {
-    if (matchAddress == 0 || !image.Base)
+    if (matchAddress == 0 || !loaded.Base)
         return 0;
 
     // The displacement itself must be inside the mapping: a pattern that matched near the end of
     // the module, or a rel32At past the instruction, would otherwise read unmapped memory.
-    if (!Rel32ReadInBounds(reinterpret_cast<uintptr_t>(image.Base), image.Size, matchAddress, ripOffset))
+    if (!Rel32ReadInBounds(reinterpret_cast<uintptr_t>(loaded.Base), loaded.Size, matchAddress, ripOffset))
         return 0;
 
     const uintptr_t site = Rel32Site(matchAddress, ripOffset);

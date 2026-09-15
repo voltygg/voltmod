@@ -1,4 +1,4 @@
-#include "Engine/Memory/ModuleImage.hpp"
+#include "Engine/Memory/LoadedModule.hpp"
 
 #ifdef _WIN32
 
@@ -12,7 +12,7 @@
 namespace VoltMod
 {
 
-bool FindImageAndRanges(const char* fileName, ModuleImage& image, std::vector<ScanRange>& ranges)
+bool FindModuleAndRanges(const char* fileName, LoadedModule& loaded, std::vector<ScanRange>& ranges)
 {
     HANDLE process = GetCurrentProcess();
     HMODULE modules[1024];
@@ -21,7 +21,7 @@ bool FindImageAndRanges(const char* fileName, ModuleImage& image, std::vector<Sc
     if (!EnumProcessModules(process, modules, sizeof(modules), &needed))
         return false;
 
-    ModuleImage best;
+    LoadedModule best;
     for (DWORD i = 0; i < needed / sizeof(HMODULE); ++i)
     {
         char path[MAX_PATH];
@@ -44,8 +44,8 @@ bool FindImageAndRanges(const char* fileName, ModuleImage& image, std::vector<Sc
     if (!best.Base)
         return false;
 
-    image = std::move(best);
-    ranges.assign(1, ScanRange{image.Base, image.Size});
+    loaded = std::move(best);
+    ranges.assign(1, ScanRange{loaded.Base, loaded.Size});
     return true;
 }
 

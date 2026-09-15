@@ -2,7 +2,7 @@
 
 #include "Engine/GameData/GameDataDocument.hpp"
 #include "Engine/GameData/ResolvedRecord.hpp"
-#include "Engine/Memory/ModuleImage.hpp"
+#include "Engine/Memory/LoadedModule.hpp"
 
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Engine/Memory/OriginalVfn.hpp>
@@ -30,7 +30,7 @@ struct VirtualSlot
  * @brief Resolves gamedata keys against the loaded modules, one key at a time.
  *
  * A key that does not resolve yields an empty value and adds `key: reason` to @ref Failures.
- * Module images and class tables are found once and shared by every key that names them.
+ * Modules and class tables are found once and shared by every key that names them.
  */
 class GameDataResolver
 {
@@ -60,10 +60,10 @@ private:
     Result<VirtualSlot> FindSlot(const std::string& key);
     Result<int> FindOffset(const std::string& key);
 
-    /** One image per library. Null when the module is not loaded. */
-    const ModuleImage* Image(const std::string& library);
-    /** One table per library and class; several slots share it. */
-    void* Table(const ModuleImage& image, const std::string& library, const std::string& className);
+    /** Each module is looked up once. Null when it is not loaded. */
+    const LoadedModule* FindModule(const std::string& moduleName);
+    /** One table per module and class; several slots share it. */
+    void* Table(const LoadedModule& loaded, const std::string& moduleName, const std::string& className);
 
     /** @p resolved's value, or @p unbound after recording why @p key did not resolve. */
     template <class T>
@@ -73,7 +73,7 @@ private:
     const OriginalVfn& _originalOf;
     std::map<std::string, std::vector<std::string_view>, std::less<>> _sections;
     std::set<std::string, std::less<>> _used;
-    std::map<std::string, ModuleImage> _images;
+    std::map<std::string, LoadedModule> _modules;
     std::map<std::pair<std::string, std::string>, void*> _tables;
     std::vector<std::string> _slotAddresses;
     std::vector<std::string> _failures;

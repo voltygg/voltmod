@@ -34,7 +34,7 @@ Four sections, named after what they bind. Each key is the engine's own name for
   // A byte pattern matching the start of a function. The match address is the binding.
   "functions": {
     "CreateEntityByName": {
-      "library": "server",                                  // default; "engine2" for engine code
+      "module": "server",                                  // default; "engine2" for engine code
       "windows": "48 83 EC 48 C6 44 24 30 00",
       "linux": "48 8D 05 ? ? ? ? 55 48 89 FA"
     }
@@ -51,7 +51,7 @@ Four sections, named after what they bind. Each key is the engine's own name for
   // A vtable slot, counted in the primary table of `class`.
   "vtables": {
     "CPlayer_MovementServices::RunCommand": { "class": "CCSPlayer_MovementServices", "windows": 25, "linux": 26 },
-    "CServerSideClient::ProcessRespondCvarValue": { "class": "CServerSideClient", "library": "engine2", "windows": 38, "linux": 40 }
+    "CServerSideClient::ProcessRespondCvarValue": { "class": "CServerSideClient", "module": "engine2", "windows": 38, "linux": 40 }
   },
 
   // A byte offset into a layout the SDK headers do not declare.
@@ -85,7 +85,7 @@ A pattern proves itself by matching once; a vtable index or an offset cannot. Wh
 is not the running server's version, the load warns that the file's vtable indices and offsets are
 unchecked on this build.
 
-The log records where each vtable slot's code lives as `key=library+offset`, to match a crash dump
+The log records where each vtable slot's code lives as `key=module+offset`, to match a crash dump
 against a binding.
 
 ### The resolved record
