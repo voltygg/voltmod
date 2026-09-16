@@ -9,10 +9,8 @@ namespace VoltMod
  * fall - has no hitgroup at all and reads @ref Invalid; CTakeDamageInfo::m_iHitGroupId is not the
  * source, it reads -1 even for ordinary bullet damage.
  *
- * Deliberately kept in its own dependency-free header: consumers that only need the vocabulary
- * (damage rules, hit statistics) can include it without pulling in the hook, its callback
- * registry, or anything that has to be linked - which is what lets SDK-free translation units
- * share these values instead of restating them.
+ * The dependency-free header lets damage rules and statistics share these values without pulling
+ * in hooks or link-time dependencies.
  */
 enum class HitGroup : int
 {

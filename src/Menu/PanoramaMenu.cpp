@@ -15,7 +15,7 @@ PanoramaMenu::PanoramaMenu(const Services& services, MenuLayout& layout, uint64_
     _stack.BindReset(services.Slots);
     _sessions.BindReset(services.Slots);
 
-    // Without an addon only a hand-compiled client has the layout; say so rather than draw blanks.
+    // Without the addon, report that the layout is unavailable instead of drawing blanks.
     if (addonId == 0)
         Log::Warn("PanoramaMenu: no addon required. Only a client the layout was compiled into can see it.");
     else if (auto required = _services.Addons.Require(addonId))
@@ -26,13 +26,13 @@ PanoramaMenu::PanoramaMenu(const Services& services, MenuLayout& layout, uint64_
 
     _subs.Add(_services.Screens.Pressed += [this](const ButtonPress& press) { OnPress(press); });
 
-    // A held commit lands on a timer, not a press, so nothing else would redraw it.
+    // A held commit is applied by a timer, so redraw it here.
     _subs.Add(_stack.Committed += [this](int slot) { Draw(slot); });
 }
 
 bool PanoramaMenu::CanShow(int slot) const
 {
-    // A client still fetching the addon has no layout to draw on yet.
+    // A client still fetching the addon has no layout to draw.
     return IsValidSlot(slot) && _services.Screens.Available() && !_services.Addons.HasMissing(slot);
 }
 
@@ -45,7 +45,7 @@ bool PanoramaMenu::Start(int slot, std::shared_ptr<Menu> menu, MenuOptions optio
     _stack.Push(slot, std::move(menu));
     ReadTabs(slot);
 
-    // Draw closes the session again when the layout cannot be shown.
+    // Close the session when the layout cannot be shown.
     Draw(slot);
     if (!IsOpen(slot))
         return false;
@@ -102,7 +102,7 @@ void PanoramaMenu::CloseAll(int slot)
 
 void PanoramaMenu::CloseAll(int slot, std::string_view replyKey)
 {
-    // Reply first: it is addressed to a player whose menus are about to go.
+    // Reply before removing the player's menus.
     if (auto& reply = _services.Policy.Reply; reply)
         reply(slot, _services.Translations.Get(std::string(replyKey), slot));
 
@@ -127,7 +127,7 @@ int PanoramaMenu::ItemAt(int slot, int row) const
 
 void PanoramaMenu::ReadTabs(int slot)
 {
-    // Tabs are the root's submenus, read once per session rather than described on every draw.
+    // Cache the root's submenus for the session.
     std::vector<Tab>& tabs = _sessions[slot].Tabs;
     const int items = static_cast<int>(_stack.Root(slot)->Items.size());
     for (int index = 0; index < items && static_cast<int>(tabs.size()) < _layout.TabCount(); ++index)
@@ -143,11 +143,11 @@ void PanoramaMenu::Draw(int slot)
     if (!menu)
         return;
 
-    // Also what brings the screen back after a map change removed it.
+    // This also restores the screen after a map change removes it.
     if (!_layout.Show(slot))
         return CloseAll(slot);
 
-    // The root's subtitle already sits under the brand.
+    // The root subtitle already appears below the brand.
     const Menu& root = *_stack.Root(slot);
     _layout.SetHeader(slot, {.Brand = root.Title,
                              .BrandSubtitle = root.Subtitle,
@@ -168,7 +168,7 @@ void PanoramaMenu::DrawTabs(int slot)
     const Session& session = _sessions[slot];
     const int shown = static_cast<int>(session.Tabs.size());
 
-    // Without tabs the sidebar would hold only a copy of the title.
+    // Do not render a sidebar containing only the title.
     _layout.SetSidebarVisible(slot, shown > 0);
 
     for (int index = 0; index < _layout.TabCount(); ++index)
@@ -229,7 +229,7 @@ void PanoramaMenu::OnPress(const ButtonPress& press)
     if (!button)
         return;
 
-    // A prompt owns every press but its own Cancel: answering it is a chat line, not a click.
+    // A prompt handles presses except Cancel; its answer arrives as chat input.
     if (_services.ChatInput.IsCapturing(slot) && button->Kind != MenuButtonKind::Cancel)
         return;
 
@@ -259,7 +259,7 @@ void PanoramaMenu::OnPress(const ButtonPress& press)
 
 void PanoramaMenu::Activate(int slot, int index)
 {
-    // Entering a branch from the root records which tab it belongs to, so the tab stays lit.
+    // Record the branch's tab so it stays selected.
     Session& session = _sessions[slot];
     if (_stack.Depth(slot) == 1)
     {
@@ -267,7 +267,7 @@ void PanoramaMenu::Activate(int slot, int index)
         session.SelectedTab = found == session.Tabs.end() ? -1 : static_cast<int>(found - session.Tabs.begin());
     }
 
-    // Activation may open, replace or close the session; Draw skips one no longer here.
+    // Activation may replace or close the session, so redraw only if it remains active.
     _stack.Activate(slot, index);
     Draw(slot);
 }
@@ -284,7 +284,7 @@ void PanoramaMenu::OpenTab(int slot, int tab)
     if (tab < 0 || tab >= static_cast<int>(session.Tabs.size()))
         return;
 
-    // A tab is a jump, not a push: back to the root before entering the branch it stands for.
+    // A tab jumps from the root instead of pushing another menu.
     _stack.PopToRoot(slot);
     session.Page = 0;
     Activate(slot, session.Tabs[static_cast<std::size_t>(tab)].RootIndex);

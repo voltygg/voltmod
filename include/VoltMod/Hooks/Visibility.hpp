@@ -18,7 +18,7 @@
 namespace VoltMod
 {
 
-/** Colors and the optional per-slot veto for a @ref GlowVision. */
+/** Glow colors and an optional per-slot veto. */
 struct GlowConfig
 {
     Color TerroristColor{255, 128, 0, 255};
@@ -28,26 +28,15 @@ struct GlowConfig
 };
 
 /**
- * @brief Who receives which entities, decided per client in the CheckTransmit hook.
+ * @brief Control which clients receive entities in the CheckTransmit hook.
  *
- * Hiding a player here stops the server from networking the chosen entities to other clients
- * entirely. Unlike render-alpha tricks, the model, its weapons, wearables, gloves and shadow all
- * disappear, because the client never receives the entities at all. Two independent toggles per
- * slot:
+ * Pawn hiding removes the pawn, weapons, wearables, gloves, and shadow from other clients while
+ * preserving an observer's camera. Controller hiding removes the player's scoreboard row and
+ * prevents those clients from attributing the player's chat or voice.
  *
- * - Pawn hiding removes the pawn plus its weapons and wearables from everyone except the player
- *   themself and any client currently observing that pawn (dropping the pawn mid-spectate would
- *   break the observer's camera).
- * - Controller hiding removes the player's CCSPlayerController, which removes their row from the
- *   scoreboard. Side effect: clients cannot attribute chat or voice from a player whose controller
- *   they never received.
- *
- * @ref ShowOnlyTo is the inverse: an entity networked to one client and cleared from every other
- * (per-viewer effects like glow clones and private HUD panels). Entries are keyed by
- * @ref EntityRef, so one whose entity is gone drops itself rather than filtering whatever entity
- * is handed that index next.
- *
- * Sounds (footsteps, gunfire) are networked separately and are not affected.
+ * @ref ShowOnlyTo sends an entity to one client and clears it for all others. Entries use
+ * @ref EntityRef, so removing an entity cannot affect a later occupant of the same index. Sounds
+ * are networked separately and are unaffected.
  */
 class Visibility
 {
@@ -78,7 +67,7 @@ public:
      *  that captures it; call @ref GlowVision::Destroy before dropping the last owner. */
     std::shared_ptr<GlowVision> CreateGlow(int viewerSlot, GlowConfig config = {});
 
-    /** Post-hook body for ISource2GameEntities::CheckTransmit; called by MetamodPlugin. */
+    /** Apply the visibility filter after ISource2GameEntities::CheckTransmit. */
     void OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount);
 
     /** Why the filter cannot run: the CheckTransmitPlayerSlot offset did not bind. Every call above
@@ -111,7 +100,7 @@ private:
     EntityOps& _ops;
     std::array<SlotState, MaxPlayers> _state{};
     std::vector<PrivateEntity> _private;
-    /** Declared after the state above so it unregisters before its callback's targets go away. */
+    /** Declared last so it unregisters before its callback targets are destroyed. */
     Subscription _slotListener;
 };
 

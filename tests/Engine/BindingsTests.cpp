@@ -22,7 +22,7 @@ static constexpr std::string_view Elsewhere = "windows";
 
 static constexpr bool OnWindows = Here == "windows";
 
-/** Load a gamedata file holding @p sections after the build stamp. */
+/** Load a minimal gamedata file containing @p sections. */
 static VoltMod::Status LoadSections(Bindings& bindings, std::string_view sections)
 {
     std::string text = R"({ "build": { "server": "1", "verified": "2026-09-11" })";
@@ -39,7 +39,7 @@ static bool HasFailure(const Bindings& bindings, std::string_view failure)
     return std::ranges::any_of(bindings.Failures, [&](const std::string& each) { return each == failure; });
 }
 
-/** How many of @p bindings' failures are about @p key. */
+/** Count failures for @p key. */
 static size_t FailuresFor(const Bindings& bindings, std::string_view key)
 {
     const std::string prefix = std::format("{}: ", key);
@@ -57,7 +57,6 @@ TEST_CASE("Load binds offsets from this platform's column")
     "CUserCmdBase::cmdNum": { "windows": 8, "linux": 8 }
   })");
 
-    // Everything else is missing from this file.
     REQUIRE_FALSE(loaded.has_value());
     CHECK(loaded.error().Code == ErrorCode::Engine);
 
@@ -125,7 +124,6 @@ TEST_CASE("An address binds from a function or a global")
   })")
                     .has_value());
 
-    // Accepted from globals, then stopped only by the module this test process does not load.
     CHECK(HasFailure(bindings, "CBaseEntity::EmitSoundFilter: module 'server' is not loaded"));
 }
 
@@ -229,7 +227,6 @@ TEST_CASE("The schema key every gamedata file carries is accepted")
     Bindings bindings;
     const auto loaded = bindings.Load(file.Path());
 
-    // Read, then refused only because nothing is in it.
     REQUIRE_FALSE(loaded.has_value());
     CHECK(loaded.error().Code == ErrorCode::Engine);
 }

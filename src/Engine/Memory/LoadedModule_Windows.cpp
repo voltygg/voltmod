@@ -14,7 +14,6 @@
 namespace VoltMod
 {
 
-/** The file name in @p path, after the last separator. */
 static std::string_view BaseName(std::string_view path)
 {
     const size_t slash = path.find_last_of("\\/");

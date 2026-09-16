@@ -54,7 +54,7 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
 
     if (!OnLoad(*_runtime))
     {
-        // A bare false return still gives meta list a reason.
+        // Supply a reason when OnLoad returns false without recording one.
         std::string failure = _runtime->LoadSteps.AbortReason();
         if (failure.empty())
             failure = "OnLoad returned false";
@@ -64,7 +64,7 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
         return false;
     }
 
-    // Report permission-gated commands with no policy before the first invocation.
+    // Report permission-gated commands that have no policy.
     _runtime->LoadSteps.Optional("Permissions", [this]() -> Status {
         const std::vector<std::string> missing = _runtime->Commands.CommandsMissingPolicy();
         if (missing.empty())
@@ -85,7 +85,7 @@ bool MetamodPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen,
     return true;
 }
 
-// Remove custom hooks and commands before plugin state, then standard hooks and the runtime.
+// Stop callbacks into plugin state before OnUnload, then remove framework hooks and services.
 void MetamodPlugin::Shutdown()
 {
     _customHooks.Clear();
@@ -104,7 +104,7 @@ bool MetamodPlugin::Unload(char* error, size_t maxlen)
 
 bool MetamodPlugin::OnPlayerChat(Player* player, std::string_view message, bool /*teamChat*/)
 {
-    // Menu input consumes the line before command parsing.
+    // Menu input takes precedence over command parsing.
     if (_runtime->Hooks.ChatInput.TryConsume(player->Slot(), message))
         return true;
 
@@ -126,7 +126,7 @@ void MetamodPlugin::RegisterStandardHooks()
     add(HookInterface(&IServerGameClients::OnClientConnected, gi.ServerGameClients,
                       [this](IServerGameClients&, CPlayerSlot slot, const char* name, uint64 xuid, const char*,
                              const char* address, bool) {
-                          // Here `name` is only a fallback, but `address` is available nowhere earlier.
+                          // Capture the connection address while the engine still provides it.
                           _runtime->Players.Add(slot.Get(), static_cast<int64_t>(xuid), name ? name : "",
                                                 address ? address : "");
                       }));
@@ -134,7 +134,7 @@ void MetamodPlugin::RegisterStandardHooks()
     add(HookInterface(&IServerGameClients::ClientDisconnect, gi.ServerGameClients, nullptr,
                       [this](IServerGameClients&, CPlayerSlot slot, ENetworkDisconnectionReason, const char*, uint64,
                              const char*) {
-                          // Remove raises Disconnected before the slot is reused.
+                          // Remove raises Disconnected before the slot can be reused.
                           _runtime->Players.Remove(slot.Get());
                       }));
 
@@ -154,7 +154,7 @@ void MetamodPlugin::RegisterStandardHooks()
                           return HandleConCommand(cmd, ctx, args);
                       }));
 
-    // The post hook filters the bit vectors after the game fills them.
+    // Filter the bit vectors after the game fills them.
     add(HookInterface(&ISource2GameEntities::CheckTransmit, gi.GameEntities, nullptr,
                       [this](ISource2GameEntities&, CCheckTransmitInfo** infoList, int infoCount, CBitVec<16384>&,
                              CBitVec<16384>&, const Entity2Networkable_t**, const uint16*, int) {
@@ -168,7 +168,7 @@ void MetamodPlugin::HandleServerStartup(std::string_view mapName)
 {
     Log::Info("Server startup: map '{}'.", mapName.empty() ? std::string_view("<none>") : mapName);
     _runtime->Map.SetCurrent(std::string(mapName));
-    // Publish the new entity system before calling the plugin callback.
+    // Publish the new entity system before the plugin callback.
     _runtime->Entities.OnServerStartup();
     Schema::WriteSchemaDump(_runtime->Unsafe.Interfaces.SchemaSystem, _runtime->Entities.GetEntitySystem());
     _runtime->GameEvents.OnServerStartup();
@@ -208,7 +208,7 @@ HookResult<void> MetamodPlugin::HandleConCommand(ConCommandRef cmd, const CComma
     if (!player)
         return {};
 
-    // Swallowing the command keeps a handled chat line out of the game's own say handler.
+    // Keep handled chat lines out of the game's say handler.
     if (OnPlayerChat(player, message, isSayTeam))
         return HookResult<void>::Block();
     return {};

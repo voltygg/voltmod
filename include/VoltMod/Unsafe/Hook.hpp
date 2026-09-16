@@ -31,7 +31,7 @@ inline KHook::Action ToKHookAction(HookAction action)
     }
 }
 
-/** An Allow result still carries a default value, which KHook ignores. */
+/** KHook ignores the default value carried by an Allow result. */
 template <class Ret>
 KHook::Return<Ret> ToKHook(HookResult<Ret> result)
 {
@@ -44,10 +44,10 @@ inline KHook::Return<void> ToKHook(HookResult<void> result)
 }
 
 /**
- * One KHook hook and the two handlers it calls.
+ * KHook storage and the before/after handlers it invokes.
  *
- * Lives on the heap and is never polymorphic: KHook keys it by address and calls RunBefore and
- * RunAfter through raw member addresses.
+ * The object is heap allocated and non-polymorphic because KHook stores its address and invokes
+ * RunBefore and RunAfter through raw member addresses.
  *
  * @tparam HookKind KHook::Virtual or KHook::Member.
  */
@@ -65,7 +65,7 @@ public:
             !std::is_null_pointer_v<std::decay_t<BeforeHandler>> || !std::is_null_pointer_v<std::decay_t<AfterHandler>>,
             "a hook with neither handler would install nothing");
 
-        // KHook needs the context before the hook is configured.
+        // KHook requires the context before Configure is called.
         Hook.AddContext(this, &InstalledHook::RunBefore, &InstalledHook::RunAfter);
     }
 
@@ -76,7 +76,7 @@ private:
     using Before = std::move_only_function<HookResult<Ret>(Object&, Args...)>;
     using After = std::move_only_function<void(Object&, Args...)>;
 
-    /** A before-handler that returns nothing lets the call through. */
+    /** Adapt a void before-handler to an Allow result. */
     template <class Handler>
     static Before WrapBefore(Handler&& handler)
     {
@@ -107,10 +107,10 @@ private:
     After _after;
 
 public:
-    HookKind<Object, Ret, Args...> Hook;  // declared last, so it is removed before the handlers are destroyed
+    HookKind<Object, Ret, Args...> Hook;  // Destroyed before the handlers it invokes.
 };
 
-/** Dropping the Subscription destroys the hook, which removes it. */
+/** Return a subscription that removes the hook when destroyed. */
 template <class Hook>
 Subscription ToSubscription(std::unique_ptr<Hook> hook)
 {
@@ -120,11 +120,10 @@ Subscription ToSubscription(std::unique_ptr<Hook> hook)
 }  // namespace Detail
 
 /**
- * @brief Hook one virtual method of an engine interface, for as long as the Subscription lives.
+ * @brief Hook one virtual method of an engine interface for a subscription's lifetime.
  *
- * KHook reads the vtable slot straight from @p method. Only @p instance is hooked, not every object
- * sharing its vtable. Pass `nullptr` for a handler you do not want; a before-handler that only
- * observes returns nothing.
+ * Only @p instance is hooked, even when other objects share its vtable. Pass `nullptr` for an
+ * unused handler. A before-handler that only observes returns nothing.
  *
  * @code
  * hooks.Add(VoltMod::HookInterface(&IServerGameDLL::GameFrame, gi.ServerGameDLL, nullptr,
@@ -145,12 +144,15 @@ template <class Iface, class Ret, class... Args, class Before, class After = std
 }
 
 /**
- * @brief Hook a gamedata-bound virtual function on every object sharing its class vtable.
+ * @brief Hook a gamedata-bound virtual function on objects sharing its class vtable.
  *
- * Catches only calls through that table, even when the slot's code is shared with other classes.
+ * The hook catches calls through that table only, even when its slot code is shared by other
+ * classes.
  *
  * @param name Names the hook in the log and in any error.
- * @param function The slot and class table gamedata resolved; its first parameter is the object.
+ * @param function Gamedata-resolved slot and class table. Its first parameter is the object.
+ * @param before Handler invoked before the engine call, or nullptr.
+ * @param after Handler invoked after the engine call, or nullptr.
  */
 template <class Object, class Ret, class... Args, class Before, class After = std::nullptr_t>
 [[nodiscard]] Result<Subscription> HookVirtual(std::string_view name, const VirtualFn<Ret(Object*, Args...)>& function,
@@ -163,7 +165,7 @@ template <class Object, class Ret, class... Args, class Before, class After = st
     auto hook = std::make_unique<Installed>(std::forward<Before>(before), std::forward<After>(after));
     hook->Hook.Configure(function.Index());
 
-    // KHook reads the vtable out of the object it is given, and the table is all we have.
+    // The class table is the only object KHook can use for a global hook.
     void* asObject = function.Table();
     hook->Hook.AddGlobal(reinterpret_cast<Object*>(&asObject));
 
@@ -172,13 +174,15 @@ template <class Object, class Ret, class... Args, class Before, class After = st
 }
 
 /**
- * @brief Hook a signature-bound function at its entry, catching every caller.
+ * @brief Hook a signature-bound function at its entry.
  *
- * For functions no vtable slot reaches, the non-virtual ones. The code must
- * belong to one class; a hook on code other classes share catches their calls too.
+ * Use this for functions without a vtable slot. The hook affects every caller of the matched
+ * code, including callers from other classes that share it.
  *
  * @param name Names the hook in the log and in any error.
  * @param function The binding; its first parameter is the object the function runs on.
+ * @param before Handler invoked before the engine call, or nullptr.
+ * @param after Handler invoked after the engine call, or nullptr.
  */
 template <class Object, class Ret, class... Args, class Before, class After = std::nullptr_t>
 [[nodiscard]] Result<Subscription> HookFunction(std::string_view name, const Fn<Ret(Object*, Args...)>& function,

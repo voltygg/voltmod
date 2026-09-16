@@ -12,20 +12,19 @@ namespace VoltMod
 {
 
 /**
- * @brief Vtable hook on CCSPlayer_MovementServices::RunCommand - the per-tick, per-player
- * movement entry point (gamedata vtable "CPlayer_MovementServices::RunCommand").
+ * @brief Per-player movement events from CCSPlayer_MovementServices::RunCommand.
  *
- * The class vtable is located by RTTI on Windows and by ELF symbol on Linux, so the hook installs
- * with no player connected and covers every player from then on. The first subscription to any
- * of the three events installs it; dropping the last one removes it.
+ * The class vtable is located by RTTI on Windows and by ELF symbol on Linux. The hook therefore
+ * covers every player, including players who connect after installation, and remains installed
+ * only while at least one event has a subscriber.
  *
- * Every event carries the owning slot (-1 when unresolved) and the command decoded from the
- * CSGOUserCmdPB payload (gamedata offset "CUserCmd::CSGOUserCmdPB"). The command is decoded once per
- * RunCommand; its Valid flag is false when the offset is missing or the pointer is null.
+ * Each event carries the owning slot and a command decoded once per RunCommand from the
+ * CSGOUserCmdPB payload. The slot is -1 when unresolved, and PlayerInput::Valid is false when the
+ * gamedata offset or payload pointer is unavailable.
  *
- * The vtable index drifts with CS2 updates. A wrong index calls an unrelated vfunc and crashes,
- * and a wrong class name silently resolves nothing, so both are checked at install and a live
- * pawn that disagrees produces a warning.
+ * The vtable index and class name must match the running game. A mismatched index can call an
+ * unrelated function and crash; a mismatched class prevents installation. A live pawn with a
+ * different table produces a warning.
  */
 class Movement
 {
@@ -38,23 +37,18 @@ public:
     Movement& operator=(const Movement&) = delete;
 
 private:
-    /** Declared before the events: all three take a lifecycle from it. */
     SharedLifecycle _lifecycle;
 
 public:
-    /** Edit the decoded command before any Before handler reads it. Only the snapshot changes;
-     *  the usercmd the engine processes is untouched. For tests and diagnostics. */
+    /** Edit the decoded command seen by handlers. The engine's usercmd is unchanged. */
     Event<int, PlayerInput&> Rewrite;
-    /** Before this player's movement runs. */
     Event<int, const PlayerInput&> Before;
-    /** After it ran, with the same command. Where a Before-time state change is restored. */
     Event<int, const PlayerInput&> After;
 
     /** Why movement events cannot fire: the RunCommand slot or the usercmd offset did not bind. */
     Status Available() const;
 
 private:
-    /** Install the class hook, or refuse the subscription after saying why. */
     bool Install();
 
     /** Slot whose pawn owns @p movementServices, or -1. */

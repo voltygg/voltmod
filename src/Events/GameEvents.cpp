@@ -16,7 +16,7 @@ GameEvents::GameEvents(Interfaces& interfaces, const Bindings& bindings) : _inte
 
 GameEvents::~GameEvents()
 {
-    // The engine must stop dispatching into this listener before the object goes away.
+    // Remove the listener before destroying it.
     RemoveAllListeners();
 }
 
@@ -63,7 +63,7 @@ IGameEvent* GameEvents::CreateEvent(std::string_view name)
     if (!mgr || name.empty())
         return nullptr;
 
-    // The manager resolves the descriptor by name during the call; it keeps no pointer.
+    // The manager resolves the descriptor during the call and keeps no pointer.
     return mgr->CreateEvent(std::string(name).c_str());
 }
 
@@ -89,8 +89,7 @@ Subscription GameEvents::Add(std::string_view eventName, EventCallback callback)
     if (!mgr)
         return {};
 
-    // This attach only serves listens made while a map is live (late load, mid-map On<T>);
-    // the engine drops it during the next map startup, where OnServerStartup re-attaches.
+    // The engine drops this late attachment at the next map startup, where it is re-attached.
     std::string name(eventName);
     if (_registeredEvents.insert(name).second)
         mgr->AddListener(this, name.c_str(), true);
@@ -104,7 +103,7 @@ void GameEvents::OnServerStartup()
     if (!mgr || _registeredEvents.empty())
         return;
 
-    // Detach first so a listener that did survive is not registered twice (double dispatch).
+    // Detach first to avoid duplicate registration after a surviving listener.
     mgr->RemoveListener(this);
 
     int attached = 0;
@@ -120,7 +119,7 @@ void GameEvents::OnServerStartup()
 
 void GameEvents::RemoveAllListeners()
 {
-    // Idempotent: the runtime calls this explicitly and the destructor calls it again.
+    // Both Runtime and the destructor call this, so it must be idempotent.
     if (auto* mgr = _interfaces.GameEventManager; mgr && !_registeredEvents.empty())
         mgr->RemoveListener(this);  // detaches this listener from every event in one call
 
@@ -137,8 +136,7 @@ void GameEvents::FireGameEvent(IGameEvent* event)
     if (!eventName)
         return;
 
-    // DispatchIf owns the snapshot-and-re-find dance: a handler is free to subscribe or
-    // unsubscribe from inside this call.
+    // DispatchIf snapshots listeners so handlers may subscribe or unsubscribe during dispatch.
     _listeners.DispatchIf([&](const RegisteredListener& l) { return l.Callback && l.EventName == eventName; },
                           [&](RegisteredListener& l) { l.Callback(event); });
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "voltmod gamedata.jsonc",
-  "description": "Where the engine keeps things. C++ owns every ABI (prototypes, field types) in VoltMod::Bindings; this file only says where to look. Re-verify after every CS2 update.",
+  "description": "Engine locations for the ABIs declared in VoltMod::Bindings. Re-verify after every CS2 update.",
   "type": "object",
   "additionalProperties": false,
   "required": ["build"],
@@ -15,33 +15,33 @@
         "server": {
           "type": "string",
           "pattern": "^[0-9]+$",
-          "description": "steam.inf ServerVersion the entries were last checked on. On any other build the load warns that vtable indices and offsets are unchecked."
+          "description": "steam.inf ServerVersion used for the last check. Other builds warn that vtable indices and offsets are unchecked."
         },
         "verified": {
           "type": "string",
           "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
-          "description": "Date the whole file was last walked entry by entry (YYYY-MM-DD)."
+          "description": "Date of the last full file check (YYYY-MM-DD)."
         }
       }
     },
     "functions": {
       "type": "object",
-      "description": "Functions found by a byte pattern; the match address is the binding.",
+      "description": "Functions located by byte pattern; the match address is the binding.",
       "additionalProperties": { "$ref": "#/definitions/function" }
     },
     "globals": {
       "type": "object",
-      "description": "Globals reached through a rel32 displacement inside a pattern's match.",
+      "description": "Globals reached through a rel32 displacement in a pattern match.",
       "additionalProperties": { "$ref": "#/definitions/global" }
     },
     "vtables": {
       "type": "object",
-      "description": "Virtual function slots, with the class whose primary table the index is counted in.",
+      "description": "Virtual function slots and the class table that supplies each index.",
       "additionalProperties": { "$ref": "#/definitions/vtable" }
     },
     "offsets": {
       "type": "object",
-      "description": "Byte offsets into layouts the SDK headers do not declare.",
+      "description": "Byte offsets for fields absent from the SDK headers.",
       "additionalProperties": { "$ref": "#/definitions/offset" }
     }
   },
@@ -49,12 +49,12 @@
     "module": {
       "type": "string",
       "default": "server",
-      "description": "Module to look in, without platform prefix/suffix (\"server\" -> server.dll / libserver.so)."
+      "description": "Module to search, without platform prefix or suffix (\"server\" -> server.dll / libserver.so)."
     },
     "pattern": {
       "type": "string",
       "pattern": "^([0-9A-Fa-f]{2}|\\?\\??)( ([0-9A-Fa-f]{2}|\\?\\??))*$",
-      "description": "Space-separated hex bytes; \"?\" or \"??\" is a wildcard byte."
+      "description": "Space-separated hexadecimal bytes; \"?\" and \"??\" are wildcard bytes."
     },
     "function": {
       "type": "object",
@@ -98,7 +98,7 @@
         "class": { "$ref": "#/definitions/class" },
         "base": {
           "$ref": "#/definitions/class",
-          "description": "Count the index in this base's own vtable inside `class`, found through RTTI."
+          "description": "Count the index in `base`'s vtable inside `class`, found through RTTI."
         },
         "module": { "$ref": "#/definitions/module" },
         "windows": { "type": "integer", "minimum": 0 },
@@ -110,12 +110,12 @@
       "additionalProperties": false,
       "oneOf": [
         {
-          "description": "A byte offset per platform.",
+          "description": "Byte offset for each platform.",
           "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }],
           "not": { "anyOf": [{ "required": ["class"] }, { "required": ["base"] }, { "required": ["module"] }] }
         },
         {
-          "description": "Where `base` sits inside `class`, read from RTTI at load.",
+          "description": "Location of `base` inside `class`, read from RTTI at load.",
           "required": ["class", "base"],
           "not": { "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }] }
         }
@@ -130,7 +130,7 @@
     },
     "class": {
       "type": "string",
-      "description": "Top-level RTTI class name (no namespace, no template); a class or a struct."
+      "description": "Top-level RTTI class name without a namespace or template."
     }
   }
 }

@@ -65,8 +65,8 @@ struct ActiveEffect
  * integer id (cast your effect enum). Owns each effect's timers and its re-apply/replace
  * semantics.
  *
- * Deliberately plugin-owned rather than a framework service: `OnStop` closures touch pawns and
- * timers, so the owning plugin must control when CancelAll runs relative to engine shutdown.
+ * This remains plugin-owned so `CancelAll` can run before engine teardown; `OnStop` callbacks may
+ * access pawns and timers.
  */
 class EffectManager
 {

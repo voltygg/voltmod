@@ -15,7 +15,7 @@
 namespace VoltMod
 {
 
-// Presses arrive as CSVCMsg_UserMessage of type CS_UM_CustomHudClicked, which the SDK does not define.
+// The SDK does not define CS_UM_CustomHudClicked, so decode it as a generic user message.
 static constexpr std::string_view UserMessageName = "CSVCMsg_UserMessage";
 static constexpr int32_t CustomHudClickType = 390;
 
@@ -26,7 +26,7 @@ ButtonPressHook::ButtonPressHook(Interfaces& interfaces, const Bindings& binding
 
 ButtonPressHook::~ButtonPressHook()
 {
-    // A remaining hook outlives Runtime and may point into an unloaded module.
+    // A remaining hook may call into an unloaded module after Runtime is destroyed.
     if (_hook)
         Log::Error("ButtonPressHook: a press subscription outlived the hook; a handler may dangle.");
 }
@@ -48,8 +48,7 @@ bool ButtonPressHook::Install()
         return false;
     }
 
-    // A slot hook, not a detour on the body: the caller hands over the filter base, and every
-    // plugin finds the same unpatched table.
+    // Hook the filter's vtable slot. Every plugin must locate the same unpatched table.
     auto hook =
         HookVirtual("Custom HUD button presses", _bindings.FilterMessage,
                     [this](EngineMessageFilter& filter, const CNetMessage* message, void*) { Queue(message, filter); });
@@ -86,7 +85,7 @@ const ButtonPressHook::MessageFields& ButtonPressHook::FieldsOf(const ProtoMessa
 
 void ButtonPressHook::Queue(const CNetMessage* message, const EngineMessageFilter& filter)
 {
-    // Every inbound message passes here, so filter by id before parsing anything.
+    // Filter by message id before parsing the inbound message.
     INetworkMessageInternal* info = message ? message->GetNetMessage() : nullptr;
     if (!info || info->GetNetMessageInfo()->m_MessageId != _messageId)
         return;
@@ -103,7 +102,7 @@ void ButtonPressHook::Queue(const CNetMessage* message, const EngineMessageFilte
     if (reflection->GetInt32(*proto, fields.Type) != CustomHudClickType)
         return;
 
-    // The sending connection's slot, never the pawn it watches: a spectator's press stays theirs.
+    // Use the sending connection's slot so a spectator's press remains theirs.
     const int slot = SlotOfClient(_bindings, ClientOfFilter(_bindings, filter));
     if (!IsValidSlot(slot))
         return;
@@ -115,7 +114,7 @@ void ButtonPressHook::Queue(const CNetMessage* message, const EngineMessageFilte
         return;
     }
 
-    // Client-controlled text: refuse embedded NULs before anything formats it.
+    // Reject embedded NULs in client-controlled text before formatting it.
     if (payload->ButtonId.find('\0') != std::string::npos)
         return;
 
@@ -124,7 +123,7 @@ void ButtonPressHook::Queue(const CNetMessage* message, const EngineMessageFilte
 
 void ButtonPressHook::RaiseQueued()
 {
-    // Swapped out first so a handler may remove the hook and clear the queue.
+    // Swap the queue first so handlers may remove the hook and clear it.
     std::vector<ButtonPress> presses;
     presses.swap(_queued);
 

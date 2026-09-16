@@ -8,27 +8,22 @@ namespace VoltMod
 
 /**
  * @file RelativeAddress.hpp
- * @brief The RIP-relative arithmetic the signature scanner does, as pure functions.
+ * @brief Checked rel32 decoding for signature bindings.
  *
- * A rel32 operand encodes the distance from the *end* of the instruction to its target. Getting
- * the site, the operand width, or the bounds check wrong yields a plausible-looking pointer into
- * unrelated memory, so the arithmetic lives here where it can be checked without a loaded module.
+ * The displacement starts at `match + ripOffset` and is relative to the end of the instruction.
+ * Keeping the arithmetic pure makes malformed offsets testable without reading process memory.
  */
 
-/** Width of the displacement these helpers read. */
 inline constexpr int Rel32Size = 4;
 
-/** Address of the 4-byte displacement belonging to a match at @p matchAddress. */
 constexpr uintptr_t Rel32Site(uintptr_t matchAddress, int ripOffset) noexcept
 {
     return matchAddress + static_cast<uintptr_t>(ripOffset);
 }
 
 /**
- * Absolute target of the displacement read at @p site.
- *
- * @p ripSize is the distance from @p site to the first byte after the instruction - 4 for a plain
- * rel32 operand that ends the instruction.
+ * Resolve @p displacement from @p site. @p ripSize is the distance from the site to the end of the
+ * instruction and defaults to the four-byte displacement width.
  */
 constexpr uintptr_t Rel32Target(uintptr_t site, int32_t displacement, int ripSize = Rel32Size) noexcept
 {
@@ -36,11 +31,8 @@ constexpr uintptr_t Rel32Target(uintptr_t site, int32_t displacement, int ripSiz
 }
 
 /**
- * True when the whole 4-byte displacement for @p matchAddress lies inside the mapped image
- * [@p moduleBase, @p moduleBase + @p moduleSize).
- *
- * A pattern that matches near the end of a module, or a `rel32At` larger than the instruction, is
- * otherwise a read past the mapping.
+ * Whether the four-byte displacement at `matchAddress + ripOffset` fits entirely within the
+ * mapped image. Invalid and overflowing offsets return false before any read occurs.
  */
 constexpr bool Rel32ReadInBounds(uintptr_t moduleBase, size_t moduleSize, uintptr_t matchAddress,
                                  int ripOffset) noexcept
@@ -50,7 +42,7 @@ constexpr bool Rel32ReadInBounds(uintptr_t moduleBase, size_t moduleSize, uintpt
 
     const uintptr_t moduleEnd = moduleBase + moduleSize;
     const uintptr_t site = Rel32Site(matchAddress, ripOffset);
-    if (site < matchAddress || site >= moduleEnd)  // overflowed, or already past the end
+    if (site < matchAddress || site >= moduleEnd)
         return false;
 
     return moduleEnd - site >= static_cast<uintptr_t>(Rel32Size);

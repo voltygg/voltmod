@@ -24,7 +24,6 @@ static uint64_t Rva(const LoadedModule& module, const void* address)
     return static_cast<uint64_t>(static_cast<const uint8_t*>(address) - module.Base);
 }
 
-/** The single match of @p pattern in @p moduleName. */
 static Result<ScanResult> Scan(std::string_view moduleName, const std::string& pattern)
 {
     if (pattern.empty())
@@ -40,7 +39,6 @@ static Result<ScanResult> Scan(std::string_view moduleName, const std::string& p
     return match;
 }
 
-/** What @p table's @p index held before another plugin hooked it. The slot must be readable. */
 static const void* OriginalSlot(void* table, int index, const OriginalSlotLookup& originalOf)
 {
     void** slots = static_cast<void**>(table);
@@ -141,7 +139,7 @@ void GameDataResolver::LogSummary(std::string_view path) const
     if (!unused.empty())
         Log::Warn("GameData: {} entries bind to nothing: {}.", unused.size(), Strings::Join(unused, ", "));
 
-    // A pattern or RTTI proves itself at load; a hand-kept index or offset cannot.
+    // Patterns and RTTI are checked at load; hand-maintained indices and offsets are not.
     if (_file.build.server != GameBuild())
     {
         const auto numbered =
@@ -235,13 +233,13 @@ Result<VirtualSlot> GameDataResolver::FindSlot(const std::string& key)
         owner = entry.Base;
     }
 
-    // A short table ends before the index, so the slot is checked before it is read.
+    // Check the slot before reading it because a short table may end before the index.
     void** slot = static_cast<void**>(table) + *index;
     const void* code = IsReadableAddress(slot, sizeof(void*)) ? OriginalSlot(table, *index, _originalOf) : nullptr;
     if (!IsExecutableAddress(code))
         return Unbound(std::format("{}::[{}] does not hold code", owner, *index));
 
-    // Hook trampolines live outside the module and have no useful module offset.
+    // Hook trampolines can live outside the module, so they have no module-relative address.
     if (module->Contains(code))
         _slotAddresses.push_back(std::format("{}={}+{:#x}", key, entry.Module, Rva(*module, code)));
     _record.VTables.emplace(key, ResolvedRecord::Slot{entry.Module, Rva(*module, table), *index});

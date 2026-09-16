@@ -19,16 +19,16 @@ namespace VoltMod
 {
 
 /**
- * @brief Creates @ref Screen objects and reports the button presses coming back from them.
+ * @brief Create @ref Screen objects and report their button presses.
  *
- * @p layout is a bare name (`"welcome"`) or a full resource name under `panorama/layout/custom_game/`
- * with its source `.xml` extension; anything else is refused here, since the client would only
- * reject it silently.
+ * @p layout must be a bare name (`"welcome"`) or a resource name under
+ * `panorama/layout/custom_game/` with its source `.xml` extension. Other forms are rejected before
+ * reaching the client.
  */
 class ScreenManager
 {
 public:
-    /** All must outlive this service; the Runtime declares them above it. */
+    /** Constructor dependencies must outlive this service. */
     ScreenManager(EntitySystem& entities, EntityOps& ops, const Bindings& bindings, Interfaces& interfaces,
                   SlotEvents& slots, Scheduler& scheduler, Visibility& visibility);
     ~ScreenManager();
@@ -36,25 +36,24 @@ public:
     ScreenManager(const ScreenManager&) = delete;
     ScreenManager& operator=(const ScreenManager&) = delete;
 
-    /** Why player screens cannot be drawn or pressed: a custom HUD setter, the press hook or the
-     *  Visibility filter did not bind. */
+    /** Return the reason screens are unavailable, or success when all required bindings exist. */
     Status Available() const;
 
     /** A screen every player receives. Spawned on its first @ref Screen::EnsureSpawned. */
     Result<Screen> Shared(std::string_view layout);
 
     /**
-     * A screen only @p slot receives, removed when the slot changes hands. Refused while
-     * @ref Visibility::Available fails, since the entity would then reach everyone.
+     * A screen only @p slot receives, removed when the slot changes hands. This requires
+     * @ref Visibility::Available because otherwise the entity would reach everyone.
      */
     Result<Screen> ForPlayer(std::string_view layout, int slot);
 
     /**
-     * Every button press, from every layout. Filter on @ref ButtonPress::ButtonId.
+     * Reports every button press from every layout. Filter on @ref ButtonPress::ButtonId.
      *
-     * The hook installs on the first subscription and is removed with the last. It sits in a vtable
-     * only a connected client exposes, so subscribing on an empty server hooks on the next connect.
-     * Refused after saying why when the press hook did not bind.
+     * The hook installs for the first subscription and is removed after the last. Because only a
+     * connected client exposes the target vtable, an empty server defers installation until connect.
+     * Subscriptions are refused with an error when the hook cannot bind.
      */
     Event<const ButtonPress&> Pressed;
 
@@ -66,7 +65,7 @@ private:
     const Bindings& _bindings;
     SlotEvents& _slots;
     Visibility& _visibility;
-    /** Declared after @ref Pressed so the hook is gone before the event it raises into. */
+    /** Declared after @ref Pressed so the hook is destroyed before the event. */
     std::unique_ptr<ButtonPressHook> _hook;
 };
 

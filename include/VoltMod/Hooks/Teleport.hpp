@@ -12,15 +12,14 @@ namespace VoltMod
 {
 
 /**
- * @brief Raises @ref Teleported whenever a player's pawn is moved by CBaseEntity::Teleport.
+ * @brief Report player pawn moves through CBaseEntity::Teleport.
  *
- * Dormant until something subscribes: it then hooks the "CBaseEntity::Teleport" slot on the CCSPlayerPawn class
- * vtable, so every pawn sharing it is covered, respawns included. A spawn also moves the player, so
- * **a spawn raises the event too**. Filter spawns yourself if you only care about mid-life
- * teleports.
+ * The hook installs on the first subscription and covers every pawn sharing the CCSPlayerPawn
+ * vtable, including respawns. Spawning raises the event as well, so consumers interested only in
+ * mid-life teleports must filter spawn events.
  *
- * The hook is all this owns. It keeps no history: how long the discontinuity after a teleport
- * matters, and in what clock, is the consumer's question.
+ * The service keeps no teleport history. Consumers decide how long a teleport remains relevant and
+ * which clock to use.
  *
  * @code
  * _teleports = runtime.Hooks.Teleport.Teleported += [this](int slot) { _lastTeleport[slot] = _clock.Time(); };
@@ -36,15 +35,13 @@ public:
     Teleport(const Teleport&) = delete;
     Teleport& operator=(const Teleport&) = delete;
 
-    /** A pawn was teleported; the argument is its slot (-1 when it belongs to no player).
-     *  Subscribing installs the tracker. */
+    /** A pawn was teleported. The slot is -1 when it belongs to no player. */
     Event<int> Teleported;
 
     /** Why teleports cannot be tracked: the CBaseEntity::Teleport slot did not bind. */
     Status Available() const;
 
 private:
-    /** Install the class hook, or refuse the subscription after saying why. */
     bool Install();
 
     EntitySystem& _entities;

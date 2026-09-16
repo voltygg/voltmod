@@ -12,9 +12,8 @@ namespace VoltMod
  * reflection reads the members, so a plugin needs no mapper - embedding this in a settings
  * struct is all there is to do.
  *
- * Deliberately its own header, free of any database client: a plugin's settings struct embeds
- * this, and that struct is included by ordinary translation units and recompiled by SDK-free
- * tests. Neither should have to compile a client library to name a host and a port.
+ * The dependency-free header keeps settings structs usable in SDK-free tests and translation
+ * units that do not link a database client.
  */
 struct DatabaseConfig
 {

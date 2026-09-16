@@ -23,7 +23,7 @@ namespace VoltMod
 ClientConVars::ClientConVars(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots)
     : _interfaces(interfaces), _bindings(bindings), _pending(std::make_unique<PendingConVarQueries>())
 {
-    // Either slot transition invalidates requests for its previous occupant.
+    // A slot transition invalidates requests for its previous occupant.
     _slotListener = slots.Changed += [this](int slot) { _pending->Clear(slot); };
 }
 
@@ -90,7 +90,7 @@ bool ClientConVars::Query(int slot, const std::string& cvarName, QueryCallback c
     const double now = Time::MonotonicSeconds();
     _pending->Prune(slot, now);
 
-    // Share one client request among callbacks for the same convar.
+    // Share one request among callbacks for the same convar.
     if (_pending->Retarget(slot, cvarName, callback))
         return true;
 
@@ -149,15 +149,14 @@ bool ClientConVars::Send(int slot, const std::string& cvarName, int cookie)
 
 void ClientConVars::OnRespondCvarValue(const void* client, const void* message)
 {
-    // The SDK omits CServerSideClient's layout, so gamedata supplies the slot offset; -1 comes
-    // back when it did not bind.
+    // Gamedata supplies the SDK-missing client slot offset; -1 means it did not bind.
     const int slot = SlotOfClient(_bindings, client);
     const auto& msg = *static_cast<const CNetMessagePB<CCLCMsg_RespondCvarValue>*>(message);
 
     if (!IsValidSlot(slot) || !msg.has_cookie() || !msg.has_status_code() || !msg.has_name())
         return;
 
-    // Validate all client-controlled fields before dispatch.
+    // Validate every client-controlled field before dispatch.
     const int status = msg.status_code();
     if (status < std::to_underlying(ClientConVarStatus::Answered) ||
         status > std::to_underlying(ClientConVarStatus::Protected))
@@ -171,7 +170,7 @@ void ClientConVars::OnRespondCvarValue(const void* client, const void* message)
         value = msg.value();
     }
 
-    // Remove first so callbacks may query the same convar again.
+    // Remove before callbacks may query the same convar again.
     auto query = _pending->Take(slot, msg.cookie(), msg.name());
     if (query && query->Callback)
         query->Callback(slot, static_cast<ClientConVarStatus>(status), msg.name(), value);

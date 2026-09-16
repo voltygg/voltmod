@@ -7,12 +7,8 @@ namespace VoltMod
 {
 
 /**
- * The engine's convar value kinds, mirrored one-for-one from `EConVarType`.
- *
- * Mirrored rather than used directly so the two decisions that do not need a running engine - is
- * this convar's kind the C++ type the handle promises, and what text does a console line carry -
- * live in a translation unit that does not include the SDK. ConVar.cpp static_asserts that the
- * values still line up.
+ * SDK-free mirror of `EConVarType` used by handle validation and console parsing.
+ * ConVar.cpp verifies every value against the SDK with static_asserts.
  */
 enum class ConVarType : int16_t
 {
@@ -36,11 +32,10 @@ enum class ConVarType : int16_t
 };
 
 /**
- * Whether a convar of engine kind @p type can be read and written as @p T.
+ * Whether a handle for @p T can access engine kind @p type.
  *
- * Deliberately per-kind, not per-width: every integer kind matches `int` (the handle then reads
- * and writes through the engine's own width), but `int` never matches a `bool` convar - which is
- * the silent no-op this check exists to catch.
+ * All integer kinds use `int`; the engine accessor preserves their storage width. Bool remains a
+ * separate kind because accepting an `int` handle for it silently drops writes.
  */
 template <class T>
 bool ConVarTypeMatches(ConVarType type);

@@ -6,8 +6,8 @@
 #include <string>
 #include <string_view>
 
-// gamedata.jsonc as read. Strict reflection rejects unknown keys, matching the schema's
-// `additionalProperties: false`. Columns are `Windows`/`Linux` because GCC predefines `linux`.
+// In-memory representation of gamedata.jsonc. Strict reflection rejects unknown keys, and the
+// platform columns avoid the `linux` macro defined by GCC.
 
 namespace VoltMod
 {
@@ -20,7 +20,6 @@ struct GameDataDocument
         std::string verified;  ///< YYYY-MM-DD of the last full review.
     };
 
-    /** A byte pattern matching the start of a function. */
     struct Function
     {
         std::string Module = "server";
@@ -28,7 +27,7 @@ struct GameDataDocument
         std::optional<std::string> Linux;
     };
 
-    /** A pattern, and the byte distance from its match to a rel32 displacement pointing at the global. */
+    /** A pattern and the offset of its rel32 displacement. */
     struct GlobalColumn
     {
         std::string pattern;
@@ -42,7 +41,7 @@ struct GameDataDocument
         std::optional<GlobalColumn> Linux;
     };
 
-    /** A slot counted in the vtable of `class`, or of its base `base` when one is named. */
+    /** A vtable slot, counted in `class` or its named `base`. */
     struct VTable
     {
         std::string Class;
@@ -52,7 +51,7 @@ struct GameDataDocument
         std::optional<int> Linux;
     };
 
-    /** A byte offset per platform, or, with `base`, where that base sits in `class` read from RTTI. */
+    /** A platform offset, or the RTTI-derived location of `base` within `class`. */
     struct Offset
     {
         std::optional<int> Windows;
@@ -75,7 +74,6 @@ inline constexpr std::string_view PlatformName = "windows";
 inline constexpr std::string_view PlatformName = "linux";
 #endif
 
-/** This platform's column of @p entry. */
 template <class TEntry>
 const auto& PlatformColumn(const TEntry& entry)
 {
@@ -88,7 +86,7 @@ const auto& PlatformColumn(const TEntry& entry)
 
 }  // namespace VoltMod
 
-// Explicit maps keep JSON keys that are C++ keywords or differ in case from member names.
+// Explicit maps preserve JSON keys that differ from C++ member names.
 
 template <>
 struct glz::meta<VoltMod::GameDataDocument>

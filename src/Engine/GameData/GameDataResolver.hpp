@@ -20,7 +20,7 @@
 namespace VoltMod
 {
 
-/** A vtable slot and the class table it is counted in; Index is -1 when unbound. */
+/** A vtable slot and its class table. Index is -1 when unbound. */
 struct VirtualSlot
 {
     int Index = -1;
@@ -28,19 +28,13 @@ struct VirtualSlot
 };
 
 /**
- * @brief Locates modules, class vtables and base subobjects, remembering each answer.
- *
- * Every lookup costs a scan of the module's RTTI, and one load asks for the same class
- * several times, so each distinct question is answered once and shared.
+ * @brief Locates modules, class vtables, and base subobjects, caching each lookup.
  */
 class ModuleCache
 {
 public:
-    /** Each module is looked up once. Null when it is not loaded. */
     const LoadedModule* Module(const std::string& moduleName);
-    /** One table per module and class; several slots share it. */
     void* ClassTable(const LoadedModule& module, const std::string& moduleName, const std::string& className);
-    /** Where @p baseName sits in @p className, looked up once per module, class and base. */
     Result<BaseSubobject> Base(const LoadedModule& module, const std::string& moduleName, const std::string& className,
                                const std::string& baseName);
 
@@ -51,10 +45,9 @@ private:
 };
 
 /**
- * @brief Resolves gamedata keys against the loaded modules, one key at a time.
+ * @brief Resolve gamedata keys against loaded modules.
  *
- * A key that does not resolve yields an empty value and adds `key: reason` to @ref Failures.
- * Modules, class tables and base classes are found once and shared by every key that names them.
+ * An unresolved key yields an empty value and adds `key: reason` to @ref Failures.
  */
 class GameDataResolver
 {
@@ -62,21 +55,19 @@ public:
     GameDataResolver(const GameDataDocument& file, const OriginalSlotLookup& originalOf);
 
     void* Function(std::string_view key);
-    /** A function or a global, whichever section holds @p key. */
     void* FunctionOrGlobal(std::string_view key);
     VirtualSlot Slot(std::string_view key);
     int Offset(std::string_view key);
 
     const std::vector<std::string>& Failures() const { return _failures; }
 
-    /** Module-relative addresses of everything that resolved. */
     const ResolvedRecord& Record() const { return _record; }
 
-    /** Log the file's counts, where vtable slots point, RTTI offsets, unused keys, and a build mismatch. */
+    /** Log resolution counts, addresses, unused keys, and build mismatches. */
     void LogSummary(std::string_view path) const;
 
 private:
-    /** Mark @p key used, and fail unless the one section holding it is among @p allowed. */
+    /** Mark @p key used and require it to appear in one of @p allowed sections. */
     Status UseKey(std::string_view key, std::initializer_list<std::string_view> allowed);
 
     Result<void*> FindFunction(const std::string& key);
@@ -85,11 +76,10 @@ private:
     Result<int> FindOffset(const std::string& key);
     Result<int> FindBaseOffset(const std::string& key, const GameDataDocument::Offset& entry);
 
-    /** @p resolved's value, or @p unbound after recording why @p key did not bind. */
+    /** Return @p resolved's value, or @p unbound after recording its failure. */
     template <class T>
     T Bind(std::string_view key, const Result<T>& resolved, std::type_identity_t<T> unbound = {});
 
-    /** Where a key appears in the file, and whether any member asked for it. */
     struct Entry
     {
         std::vector<std::string_view> Sections;

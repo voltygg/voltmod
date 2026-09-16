@@ -11,11 +11,10 @@
 namespace VoltMod
 {
 
-// Pawn + 12 weapon slots + a handful of wearables is well within this.
+// The fixed capacity covers the pawn, weapons, and wearables.
 static constexpr int MaxIndicesPerPlayer = 24;
 
-// CNetworkUtlVectorBase<CHandle<T>>: element count at +0, element pointer at +8.
-// Only these two fields are read; the vector is never mutated.
+// CNetworkUtlVectorBase<CHandle<T>> stores count at +0 and the element pointer at +8. This view is read-only.
 struct HandleVectorView
 {
     int32_t Count;
@@ -38,8 +37,7 @@ static void AddIndex(HiddenPlayer& player, int index)
         player.PawnIndices[player.IndexCount++] = index;
 }
 
-// The generated accessor bakes the vector's offset and hands back its address; the element
-// layout stays here, where the one struct that describes it lives.
+// The generated accessor supplies the vector address. Keep its element layout local to this view.
 static void AddHandleVector(EntitySystem& entities, HiddenPlayer& player, void* vector)
 {
     const auto* view = static_cast<const HandleVectorView*>(vector);
@@ -49,11 +47,10 @@ static void AddHandleVector(EntitySystem& entities, HiddenPlayer& player, void* 
         AddIndex(player, entities.Resolve(EntityRef{view->Elements[i]}).Index());
 }
 
-// What `recipientSlot` is currently spectating, or nullptr. An observed pawn must keep
-// transmitting to that client or its spectator camera breaks.
+// Return the pawn watched by `recipientSlot`. It must remain transmissible to preserve spectator view.
 static CEntityInstance* ObserverTarget(EntitySystem& entities, int recipientSlot)
 {
-    // Possessed(), not GetPawn(): while dead or spectating the observer pawn carries the camera.
+    // Use Possessed(), because the observer pawn carries the camera while dead or spectating.
     Pawn pawn = entities.Controller(recipientSlot).Possessed();
     const Schema::CPlayer_ObserverServices services = pawn.ObserverServices();
     if (!services)
@@ -91,13 +88,12 @@ static void CollectHiddenPlayer(EntitySystem& entities, int slot, bool pawnHidde
 Visibility::Visibility(EntitySystem& entities, const Bindings& bindings, SlotEvents& slots, EntityOps& ops)
     : _entities(entities), _bindings(bindings), _ops(ops)
 {
-    // SlotEvents fires when a slot is filled as well as emptied; a fresh occupant has nothing
-    // hidden, so clearing on both edges covers "left" without a dedicated event.
+    // SlotEvents fires on both fill and empty, so clearing on both edges handles recycled slots.
     _slotListener = slots.Changed += [this](int slot) {
         if (!IsValidSlot(slot))
             return;
         _state[slot] = {};
-        // The owning effect normally cleans up first; this catches entries whose viewer vanished.
+        // The owning effect normally cleans up first; this handles a vanished viewer.
         std::erase_if(_private, [slot](const PrivateEntity& e) { return e.Viewer == slot; });
     };
 }
@@ -155,8 +151,7 @@ void Visibility::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
     if (!_bindings.VisibilityRecipientSlot || !infoList)
         return;
 
-    // Resolved once per snapshot, and an entry whose entity is gone is dropped here: the engine
-    // recycles indices, so a stale entry would filter whatever entity is handed that index next.
+    // Drop entries whose entity is gone because the engine recycles indices.
     for (auto& entry : _private)
     {
         const Entity entity = _entities.Resolve(entry.Entity);
@@ -164,8 +159,7 @@ void Visibility::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
     }
     std::erase_if(_private, [](const PrivateEntity& e) { return e.Index <= 0; });
 
-    // Entity indices are the same for every recipient (only the self/observer exemptions differ
-    // per client), so gather them once per snapshot.
+    // Entity indices are shared by recipients; only self and observer exemptions vary per client.
     std::array<HiddenPlayer, MaxPlayers> hidden;
     int hiddenCount = 0;
     for (int slot = 0; slot < MaxPlayers; ++slot)

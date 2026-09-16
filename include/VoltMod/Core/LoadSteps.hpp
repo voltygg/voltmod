@@ -11,33 +11,33 @@
 namespace VoltMod
 {
 
-/** A load step that returned an error. */
+/** A load step that failed. */
 struct FailedStep
 {
     std::string Name;
     std::string Reason;
-    bool Required = false;  ///< The load aborts.
+    bool Required = false;  ///< A required failure aborts the load.
 };
 
 /**
- * @brief The named steps of one plugin load, remembering only the ones that fail.
+ * @brief Named steps for one plugin load, retaining failed steps.
  *
- * `Runtime::Start` and plugin `OnLoad` run their work through @ref Optional and @ref Required.
- * MetamodPlugin logs @ref Summary and copies @ref AbortReason into Metamod's error buffer.
+ * `Runtime::Start` and plugin `OnLoad` run work through @ref Optional and @ref Required.
+ * MetamodPlugin logs @ref Summary and copies @ref AbortReason to Metamod's error buffer.
  */
 class LoadSteps
 {
 public:
-    /** Run @p step. When it fails the load continues without that feature. Returns whether it succeeded. */
+    /** Run @p step. A failure disables that feature and returns false. */
     bool Optional(std::string_view name, const std::function<Status()>& step);
 
-    /** Run @p step. When it fails, return false from OnLoad. Returns whether it succeeded. */
+    /** Run @p step. A failure returns false from OnLoad. */
     bool Required(std::string_view name, const std::function<Status()>& step);
 
-    /** `N load steps in X ms`, then one line per failed step. */
+    /** Return `N load steps in X ms`, followed by one line per failure. */
     std::string Summary() const;
 
-    /** `<name>: <reason>` of the first failed required step, or empty. Short enough for Metamod's error buffer. */
+    /** Return `<name>: <reason>` for the first required failure, or empty if none failed. */
     std::string AbortReason() const;
 
     const std::vector<FailedStep>& Failures() const { return _failures; }

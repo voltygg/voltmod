@@ -16,7 +16,7 @@
 #include <vector>
 
 #ifdef _WIN32
-// The page-protection probe below names VirtualQuery and the PAGE_* flags directly.
+// The page-protection probe uses the Windows API names directly.
 #include <windows.h>
 #endif
 
@@ -24,12 +24,8 @@ namespace VoltMod
 {
 
 /**
- * Byte frequencies across @p ranges, counted once per module.
- *
- * Process-wide rather than per-load, like the schema field cache: a mapped module's bytes do not
- * change while it is mapped, and every signature scanned against it wants the same answer. Keyed
- * by base address, which is what tells two mapped modules apart. Counted over the ranges rather
- * than the module span because on Linux that span covers unmapped gaps between PT_LOAD segments.
+ * Byte frequencies are stable for a mapped module, so cache them by base address. Count explicit
+ * scan ranges because a Linux module's overall span may include unmapped gaps.
  */
 static const ByteHistogram& FrequenciesOf(const LoadedModule& module, const std::vector<ScanRange>& ranges)
 {
@@ -57,7 +53,7 @@ std::string PlatformModuleName(std::string_view moduleName)
 
 bool FindLoadedModule(std::string_view moduleName, LoadedModule& module)
 {
-    std::vector<ScanRange> ranges;  // unused; the module is what the caller asked for
+    std::vector<ScanRange> ranges;
     return FindModuleAndRanges(PlatformModuleName(moduleName), module, ranges);
 }
 
@@ -79,8 +75,7 @@ ScanResult FindPatternEx(std::string_view moduleName, const std::string& pattern
     const uint8_t* first = nullptr;
     for (const auto& range : ranges)
     {
-        // Keep going after a hit rather than returning it: a pattern matching twice is ambiguous,
-        // and taking the first match would silently bind to whichever one the linker put first.
+        // Continue after a hit so an ambiguous pattern is not bound to the first match.
         for (size_t at = 0; at < range.Size;)
         {
             const uint8_t* hit = FindFirst(range.Base + at, range.Size - at, bytes, anchor);
@@ -107,8 +102,7 @@ uintptr_t ResolveRelativeAddress(const LoadedModule& module, uintptr_t matchAddr
     if (matchAddress == 0 || !module.Base)
         return 0;
 
-    // The displacement itself must be inside the mapping: a pattern that matched near the end of
-    // the module, or a rel32At past the instruction, would otherwise read unmapped memory.
+    // The displacement must be inside the mapping before it is read.
     if (!Rel32ReadInBounds(reinterpret_cast<uintptr_t>(module.Base), module.Size, matchAddress, ripOffset))
         return 0;
 
@@ -118,7 +112,6 @@ uintptr_t ResolveRelativeAddress(const LoadedModule& module, uintptr_t matchAddr
     return Rel32Target(site, displacement, ripSize);
 }
 
-/** The committed mapping holding an address: where it ends and what it allows. */
 struct MemoryRegion
 {
     const uint8_t* End = nullptr;
@@ -126,7 +119,6 @@ struct MemoryRegion
     bool Executable = false;
 };
 
-/** The mapping holding @p address; empty when nothing is committed there or it is a guard page. */
 static std::optional<MemoryRegion> QueryRegion(const void* address)
 {
 #ifdef _WIN32
@@ -175,7 +167,7 @@ bool IsReadableAddress(const void* address, size_t bytes)
     if (!address || bytes == 0)
         return false;
 
-    // The span must end inside this mapping; the next one along may not be mapped at all.
+    // Keep the span within one mapping because the next may be unmapped.
     const auto region = QueryRegion(address);
     return region && region->Readable &&
            bytes <= static_cast<size_t>(region->End - static_cast<const uint8_t*>(address));

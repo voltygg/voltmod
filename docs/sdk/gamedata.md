@@ -21,9 +21,9 @@ Services use `const Bindings&`, avoiding string lookup on runtime call paths.
 
 ## `gamedata.jsonc` format
 
-Four sections, named after what they bind. Each key is the engine's own name for the symbol,
-`Class::member` where it has one, so it can be looked up in upstream gamedata and in the binary;
-`Bindings::Load` maps it to a plain C++ name. A key belongs to one section.
+The file has four sections, named for what they bind. Each key uses the engine's name for the
+symbol, or `Class::member` when applicable, so it can be checked against upstream gamedata and the
+binary. `Bindings::Load` maps each key to a C++ member, and each key belongs to one section.
 
 ```jsonc
 {
@@ -64,16 +64,16 @@ Four sections, named after what they bind. Each key is the engine's own name for
 }
 ```
 
-A base offset and a `base` vtable are read from RTTI at load, so they need no per-platform number
-and cannot go stale. A base that appears more than once in the class, or a virtual base, is refused.
+The loader reads a base offset and a `base` vtable from RTTI, so they need no per-platform number.
+A base that appears more than once in the class or is virtual is refused.
 
 Wildcard bytes are `?` or `??`. `gamedata.schema.json` sits next to the file with
 `additionalProperties: false` everywhere, so an editor flags a typo before the server sees it.
 
 ## What the loader checks
 
-The file is read strictly. An unknown key, a value of the wrong type, or a section that is not an
-object refuses the whole file, and nothing binds.
+The file is read strictly. An unknown key, a wrong value type, or a section that is not an object
+rejects the whole file before binding starts.
 
 Then each member binds from its key, or fails with a line naming the key and the reason:
 
@@ -86,23 +86,23 @@ Then each member binds from its key, or fails with a line naming the key and the
 - a `base` is not in its class through RTTI, is in it more than once, is virtual, or has no vtable
   of its own where a slot is counted in it.
 
-The `GameData` load step lists every failure, and each feature reports its own from
-`Available()`. An entry nothing binds is a warning, not a failure.
+The `GameData` load step lists every failure, and each feature reports its own through
+`Available()`. An entry that binds nothing produces a warning rather than failing the load.
 
-A pattern proves itself by matching once; a vtable index or an offset cannot. When `build.server`
-is not the running server's version, the load warns that the file's vtable indices and offsets are
-unchecked on this build.
+A pattern is validated by a unique match; a vtable index or offset cannot be validated that way.
+When `build.server` does not match the running server, the load warns that the file's vtable
+indices and offsets are unchecked on this build.
 
 The log records where each vtable slot's code lives as `key=module+offset`, to match a crash dump
 against a binding.
 
 ### The resolved record
 
-After a load where every member bound, the framework writes what resolved to
-`addons/voltmod/gamedata/resolved.<platform>.json`: the server build, module-relative addresses for
-functions, globals and class tables, and each slot index and offset. It is written once per server
-build, so the next plugin to load on that build leaves it alone, and a failed write never fails a
-load. Keep the record from a build that worked to compare against after an update.
+After every member binds, the framework writes the resolved data to
+`addons/voltmod/gamedata/resolved.<platform>.json`. The record contains the server build,
+module-relative addresses for functions, globals, and class tables, plus slot indices and offsets.
+It is written once per server build; a failed write does not fail the load. Keep a record from a
+known-good build for comparison after an update.
 
 ## Availability
 
@@ -119,8 +119,8 @@ or no result.
 
 ## Re-verify after an engine update
 
-Every entry can drift after a CS2 update. Treat a `build.server` that is not the running server's
-as unverified.
+Every entry can drift after a CS2 update. Treat a `build.server` that does not match the running
+server as unverified.
 
 1. **Run `voltmod gamedata check`.** It reports, against the installed binaries and in a second,
    which `functions` and `globals` patterns no longer match. Prefer it to the load log: it needs
@@ -135,7 +135,7 @@ as unverified.
 5. **Exercise each feature on a live server.** Successful resolution does not prove correct behavior.
 6. **Update `build.server` and `build.verified`** in the same change.
 
-The entries most likely to bite, and how each one fails:
+Common failure points:
 
 | Entry | Section | Used by | Drift symptom |
 | --- | --- | --- | --- |
@@ -166,8 +166,8 @@ What `resolve --write` will do, and what it will not:
 - An entry that misses is repaired only by widening one struct displacement, the bytes a pattern
   should never have pinned, and only when exactly one such change brings it back to a single
   match. Two viable candidates means nothing can say which drifted, so it refuses.
-- It never searches for a function. Every binding is carried forward from one a human verified,
-  which is why the last step of the procedure above does not go away.
+- It never searches for a function. Verify each binding against the upstream named in
+  `gamedata.jsonc`.
 
 ```text
 ==> gamedata windows (game build 2000908)
@@ -179,14 +179,13 @@ What `resolve --write` will do, and what it will not:
 
 ## Pattern scanning
 
-The internal scanner rejects ambiguous patterns, and a global's rel32 target must land inside its
-module. Plugins use it through gamedata rather than directly.
+The internal scanner rejects ambiguous patterns. A global's rel32 target must land inside its
+module. Plugins access the scanner through gamedata rather than directly.
 
 ### Vtable lookup by class name
 
-`FindVirtualTable(moduleName, className)` resolves primary class tables, and `FindBaseIn` finds
-where a base sits in a class and that base's own table. `VirtualFn` keeps each resolved table with
-its slot.
+`FindVirtualTable(moduleName, className)` resolves primary class tables. `FindBaseIn` finds a base's
+position in a class and its own table. `VirtualFn` stores the resolved table and slot.
 
 - Windows: walks the module's RTTI: the type descriptor for `.?AV<class>@@` or `.?AU<class>@@`,
   the complete object locator referencing it (its signature and its own RVA must match), then the

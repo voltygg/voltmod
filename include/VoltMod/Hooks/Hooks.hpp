@@ -18,12 +18,10 @@ namespace VoltMod
 {
 
 /**
- * @brief The per-tick and per-event engine hooks, grouped because every one of them is dormant
- * until a plugin subscribes - or, for ClientConVars, until Runtime::Start calls its Initialize().
+ * @brief Engine hooks grouped by function.
  *
- * Declared once by Runtime, after @ref WorldServices (Visibility needs its EntityOps) and
- * @ref GameEvents (Teleport and Vote need it); each member below takes exactly the sibling
- * services it uses, stated once here rather than once per member on Runtime itself.
+ * Most hooks install on first subscription and remove after the last one. ClientConVars is
+ * initialized by Runtime::Start.
  */
 struct HookServices
 {
@@ -37,22 +35,11 @@ struct HookServices
           Vote(interfaces, entities, gameEvents, scheduler)
     {}
 
-    /** Dormant until something subscribes; the last subscription dropped removes the vtable
-     *  hook. Depends on: Entities, Bindings. */
     VoltMod::Movement Movement;
-    /** Who receives which entities, plus the per-viewer glow built on it. Depends on: Entities,
-     *  Bindings, Slots, EntityOps. */
     VoltMod::Visibility Visibility;
-    /** Depends on: Scheduler, Slots. */
     VoltMod::ChatInput ChatInput;
-    /** Dormant until something subscribes to Teleported; one Teleport hook on the pawn class
-     *  vtable. Depends on: Entities, Bindings. */
     VoltMod::Teleport Teleport;
-    /** Async client-side convar reads. Inert while its Available() reports an error.
-     *  Depends on: Interfaces, Bindings, Slots. */
     VoltMod::ClientConVars ClientConVars;
-    /** The game's own yes/no vote panel. Subscribes on the first StartVote().
-     *  Depends on: Interfaces, Entities, GameEvents, Scheduler. */
     VoltMod::Vote Vote;
 };
 

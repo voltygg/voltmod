@@ -3,11 +3,9 @@
 [TOC]
 
 Represent settings with a default-initialized struct that mirrors the JSON file,
-then load it through @ref VoltMod::JsonConfig.
-
-Include `<VoltMod/App/Config.hpp>` in the plugin's `Config.hpp`. It provides the
-VoltMod configuration types and the JSON layer without adding either to the main
-API umbrella.
+then load it through @ref VoltMod::JsonConfig. Include
+`<VoltMod/App/Config.hpp>` in the plugin's `Config.hpp`; it provides the
+configuration types and JSON layer without adding them to the main API umbrella.
 
 ## Declaring settings
 
@@ -24,17 +22,15 @@ struct Settings
 using ConfigManager = VoltMod::JsonConfig<Settings>;
 ```
 
-Public members are reflected, so there is nothing to register: the member name
-*is* the JSON key. A missing key keeps the member's C++ initializer. Missing
-files, parse errors, and wrong value types fail the load. JSONC comments and
-unknown keys are accepted, so older files may retain settings a newer build no
-longer uses.
+Reflection uses each public member name as its JSON key, so no registration is
+required. Missing keys keep their C++ initializers. Missing files, parse errors,
+and wrong value types fail the load; JSONC comments and unknown keys are accepted.
 
-A settings struct must have external linkage - reflection reads member names off
-the type - so declare it at namespace scope, never inside a function or an
-anonymous namespace.
-
-@ref VoltMod::StandardPluginSettings is the framework-owned "plugin" section; embedding it is what lets `LoadStandardConfig` apply `plugin.locale` to `runtime.Translations` automatically (see @ref plugin_guide).
+Reflection reads member names from the type, so the settings struct must have
+external linkage. Declare it at namespace scope, not inside a function or an
+anonymous namespace. Embedding @ref VoltMod::StandardPluginSettings provides the
+framework-owned `plugin` section and lets `LoadStandardConfig` apply
+`plugin.locale` to `runtime.Translations` (see @ref plugin_guide).
 
 ### Editor validation with a JSON Schema
 
@@ -46,19 +42,16 @@ detection and keep it synchronized with the settings struct.
 ```cpp
 bool MyPlugin::OnLoad(VoltMod::Runtime& runtime)
 {
-    // Settings as a required load step, then translations; uses LoadSettings when
-    // your ConfigManager defines one, plain Load otherwise.
     return VoltMod::LoadStandardConfig(runtime, Config, {.Addon = "my-plugin"});
 }
 ```
 
 ## Post-load validation
 
-When raw settings need parsing or clamping (duration strings, tag sanitizing,
-dropping invalid list entries), **compose** `Json::ReadFile` rather than
-subclassing `JsonConfig`, and publish the validated result in one assignment.
-Name the entry point `LoadSettings` and `LoadStandardConfig` picks it up instead
-of `Load`:
+When settings need parsing or clamping, compose `Json::ReadFile` instead of
+subclassing `JsonConfig`. Publish the validated result in one assignment and
+name the entry point `LoadSettings`; `LoadStandardConfig` uses it instead of
+`Load`:
 
 ```cpp
 class ConfigManager
@@ -91,15 +84,13 @@ private:
 };
 ```
 
-Resolving into a value that has not been published yet is the point: a failed
-reload leaves the previous configuration whole, and no caller can observe a
-half-validated one. `Get()` should keep returning the effective settings because
-`LoadStandardConfig` reads `Get().plugin.locale` when that section exists.
+Build the snapshot before publishing it. A failed reload then leaves the previous
+configuration intact, and callers never observe a partially validated value.
+`Get()` must return the effective settings because `LoadStandardConfig` reads
+`Get().plugin.locale` when that section exists.
 
-`VoltMod/Core/Validation.hpp` (`VoltMod::Validation`) has the common resolution helpers:
-
-`BuildSnapshot` takes the raw settings by value and returns the snapshot, so
-every helper below mutates a local:
+Use the common helpers in `VoltMod/Core/Validation.hpp`. `BuildSnapshot` takes the
+raw settings by value, so each helper below operates on a local copy:
 
 ```cpp
 namespace Validation = VoltMod::Validation;

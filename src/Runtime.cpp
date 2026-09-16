@@ -25,13 +25,11 @@ namespace VoltMod
 
 static constexpr std::string_view DefaultGameDataPath = "addons/voltmod/gamedata/gamedata.jsonc";
 
-// Member initializers wire services in dependency order.
 Runtime::Runtime() = default;
 
-// Service destructors stop them in reverse declaration order.
 Runtime::~Runtime()
 {
-    // Stop HTTP workers and deliver queued logs before OnGameFrame stops with hook removal.
+    // Stop HTTP workers and flush queued logs before removing frame hooks.
     Http.Stop();
     Log::DeliverPending();
 }
@@ -71,7 +69,7 @@ bool Runtime::ResolveInterfaces(const LoadContext& context)
 
     auto& gi = Unsafe.Interfaces;
 
-    // Resolve interfaces in order. decltype keeps assignments type-safe without void** casts.
+    // Resolve interfaces in order without unsafe void** casts.
 #define VOLTMOD_RESOLVE(field, factory, version)                                              \
     gi.field = static_cast<decltype(gi.field)>(factory(version));                             \
     if (!gi.field)                                                                            \
@@ -93,7 +91,7 @@ bool Runtime::ResolveInterfaces(const LoadContext& context)
 
 #undef VOLTMOD_RESOLVE
 
-    // Register pending tier1 ConCommands so the engine knows VoltMod::ServerCommand instances.
+    // Register pending tier1 ConCommands before the engine invokes ServerCommand instances.
     g_pCVar = gi.CVar;
     ConVar_Register(FCVAR_RELEASE | FCVAR_CLIENT_CAN_EXECUTE | FCVAR_SERVER_CAN_EXECUTE | FCVAR_GAMEDLL);
     return true;
@@ -101,13 +99,13 @@ bool Runtime::ResolveInterfaces(const LoadContext& context)
 
 bool Runtime::InitializeServices(const LoadContext& context)
 {
-    // MetamodPlugin logs the summary and reports why a required step failed.
+    // MetamodPlugin logs the summary and required-step failure.
     auto& steps = LoadSteps;
 
-    // Names every entry that did not bind. Earlier plugins may hook class tables, so slots are read through KHook.
+    // Log unbound entries. Earlier plugins may hook class tables, so read slots through KHook.
     steps.Optional("GameData", [&] { return Unsafe.Bindings.Load(DefaultGameDataPath, ReadOriginalSlot); });
 
-    // A required step writes its failure to Metamod and aborts the load.
+    // A required-step failure is reported to Metamod and aborts the load.
     auto requiredStep = [&](std::string_view name, const std::function<VoltMod::Status()>& step) {
         if (steps.Required(name, step))
             return true;
@@ -119,7 +117,7 @@ bool Runtime::InitializeServices(const LoadContext& context)
     if (!requiredStep("Messages", [&] { return Messages.Initialize(); }))
         return false;
 
-    // Abort on schema drift. A load into a running map writes the dump first, so a refusal still leaves one.
+    // Abort on schema drift. A running map writes the dump before refusing the load.
     if (!requiredStep("SchemaLayout", [&] {
             Schema::WriteSchemaDump(Unsafe.Interfaces.SchemaSystem, Entities.GetEntitySystem());
             return Schema::VerifySchemaLayout(Unsafe.Interfaces.SchemaSystem);
@@ -128,7 +126,7 @@ bool Runtime::InitializeServices(const LoadContext& context)
         return false;
     }
 
-    // Without an entity system yet, StartupServer resolves CGameEntitySystem at the first map load.
+    // StartupServer resolves CGameEntitySystem when the first map loads.
     steps.Optional("Entities", [&] { return Entities.Initialize(); });
     steps.Optional("Precache",
                    [&] { return World.Precache.Initialize(std::format("{}_VoltModPrecache", context.LogPrefix)); });
@@ -162,7 +160,7 @@ std::map<std::string, std::string> Runtime::UnavailableFeatures() const
 
 void Runtime::RegisterStatusSections()
 {
-    // Plugins add status sections in OnLoad. The runtime outlives them for the load cycle.
+    // Plugins add status sections during OnLoad; the runtime owns them for the load cycle.
     Status.RegisterSection("load", [this] {
         std::map<std::string, std::string> failed;
         for (const FailedStep& step : LoadSteps.Failures())

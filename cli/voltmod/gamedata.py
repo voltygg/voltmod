@@ -13,7 +13,6 @@ from voltmod.schemagen.generate import BASELINES
 
 GAMEDATA_FILE = Path("gamedata/gamedata.jsonc")
 
-# The sections whose entries are found by a byte pattern.
 PATTERN_SECTIONS = ("functions", "globals")
 
 # Four literal bytes reading as a little-endian integer this small may be a struct offset.
@@ -57,7 +56,7 @@ class GameBinaries:
             if relative is None:
                 raise VoltmodError(f"unknown gamedata module '{module}'")
             path = self.game_dir / relative
-            # Linux binaries copied out of the deploy image may sit in one flat folder.
+            # Deployment images may flatten Linux binaries into one directory.
             if not path.is_file():
                 path = self.game_dir / Path(relative).name
             if not path.is_file():
@@ -124,7 +123,6 @@ def check_patterns(
             column = entry.get(binaries.platform)
             if not column:
                 continue
-            # A function's column is its pattern; a global's also carries rel32At.
             pattern = column["pattern"] if isinstance(column, dict) else column
             module = entry.get("module", "server")
             results.append(check_pattern(binaries, section, key, module, pattern, schema))
@@ -162,7 +160,7 @@ def repair_pattern(
     binaries: GameBinaries, module: str, pattern: str
 ) -> tuple[str, int, int, int] | None:
     """Wildcard the one displacement that restores a unique match: (pattern, index, old, new)."""
-    # Only a displacement is widened; a function is never searched for anew.
+    # Widen only the displacement. Never search for a new function match.
     tokens = pattern.split()
     accepted = []
     for index, old_offset in _displacements(tokens):

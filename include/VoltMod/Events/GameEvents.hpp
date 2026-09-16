@@ -23,7 +23,7 @@ namespace VoltMod
 class GameEvents : public IGameEventListener2
 {
 public:
-    /** Both must outlive this service, which detaches from the engine in its destructor. */
+    /** Dependencies must outlive this service, which detaches from the engine on destruction. */
     GameEvents(Interfaces& interfaces, const Bindings& bindings);
     ~GameEvents() override;
     GameEvents(const GameEvents&) = delete;
@@ -39,9 +39,8 @@ public:
     /**
      * Subscribe to one game event for as long as the returned Subscription lives.
      *
-     * @p TEvent is a struct from `<VoltMod/Events/EventTypes.hpp>` carrying `Name` and `From`.
-     * There is no string form: an event nobody has modeled is one nobody decodes consistently,
-     * so consuming a new one means adding its struct there first.
+     * @p TEvent must be a struct from `<VoltMod/Events/EventTypes.hpp>` carrying `Name` and `From`.
+     * Add a struct there before consuming an event not already modeled.
      */
     template <class TEvent>
     [[nodiscard]] Subscription On(std::function<void(const TEvent&)> handler)
@@ -64,20 +63,19 @@ public:
     void OnServerStartup();
 
     /**
-     * @brief The engine-side listener object the game keeps for @p slot's client.
+     * @brief Return the engine-side listener object for @p slot's client.
      *
-     * The client's own subscription handle, not a framework listener: firing an event at it delivers to
-     * that one client (how @ref Messages sends center HTML), and it is what
-     * @ref ClientListensTo interrogates. nullptr when the slot has no client or the
-     * "GetLegacyGameEventListener" gamedata signature did not resolve.
+     * This is the client's own subscription handle, not a framework listener. Firing an event at it
+     * delivers to that client, and @ref ClientListensTo uses it. Returns nullptr when the slot has
+     * no client or the "GetLegacyGameEventListener" gamedata signature did not resolve.
      */
     IGameEventListener2* GetClientLegacyListener(int slot) const;
 
     /**
      * @brief Whether @p slot's client is subscribed to @p eventName engine-side.
      *
-     * A vanilla client subscribes only to events its HUD needs, so subscriptions it has no
-     * business holding are a fingerprint of injected client code.
+     * A vanilla client subscribes only to events its HUD needs. Unexpected subscriptions can
+     * indicate injected client code.
      */
     bool ClientListensTo(int slot, std::string_view eventName) const;
 
@@ -86,7 +84,6 @@ public:
 private:
     using EventCallback = std::function<void(IGameEvent*)>;
 
-    /** Store one raw-IGameEvent listener under @p eventName; @ref On is the only caller. */
     [[nodiscard]] Subscription Add(std::string_view eventName, EventCallback callback);
 
     struct RegisteredListener
@@ -100,7 +97,7 @@ private:
     Interfaces& _interfaces;
     const Bindings& _bindings;
     CallbackRegistry<RegisteredListener> _listeners;
-    std::set<std::string> _registeredEvents;  // every event name ever listened to; see OnServerStartup
+    std::set<std::string> _registeredEvents;  // Reattached by OnServerStartup.
     GetLegacyGameEventListenerFn _getLegacyListener = nullptr;
 };
 

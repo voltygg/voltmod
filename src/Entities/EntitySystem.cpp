@@ -12,13 +12,12 @@
 #include <string>
 
 /**
- * Published for ::GameEntitySystem() below, which the SDK calls with no context parameter to
- * reach a service through. Written and cleared by EntitySystem, so it never outlives a load cycle.
+ * The SDK calls ::GameEntitySystem() without context. EntitySystem owns this pointer and clears it
+ * before the load cycle ends.
  */
 static CGameEntitySystem* g_entitySystem = nullptr;
 
-// The SDK's entity2 sources (entitykeyvalues.cpp) link against this accessor;
-// route it to the framework's resolved entity system so both agree on the pointer.
+// entity2 sources link against this accessor, so return the framework's resolved system.
 CGameEntitySystem* GameEntitySystem()
 {
     return g_entitySystem;
@@ -45,12 +44,12 @@ void EntitySystem::SetEntitySystem(CGameEntitySystem* system)
 
 CGameEntitySystem* EntitySystem::ReadEntitySystemPointer()
 {
-    // Runs per call until the pointer resolves, so it stays a plain read.
+    // Retry until the pointer resolves; keep this path a plain read.
     if (!_interfaces.GameResourceService || _isRealSystem == false)
         return nullptr;
 
     CGameEntitySystem* system = _bindings.GameEntitySystem.Read(_interfaces.GameResourceService);
-    // A drifted offset reads some other object; its vtable says so before anything reads through it.
+    // Check the vtable before using a pointer from a drifted offset.
     if (system && !_isRealSystem)
     {
         const void* table = FindVirtualTable("server", "CGameEntitySystem");
@@ -74,16 +73,14 @@ Status EntitySystem::Initialize()
         return std::unexpected(Error::Unsupported("the GameEntitySystem offset did not bind"));
     Log::Info("Gamedata loaded (entity system offset: {}).", _bindings.GameEntitySystem.Value());
 
-    // The engine creates CGameEntitySystem during server startup, so a null read here is expected
-    // on a cold load and OnServerStartup picks it up. Whether it resolved is load policy, not the
-    // SDK's call: the caller reads GetEntitySystem() and decides.
+    // Null is expected before the first map; OnServerStartup retries and callers decide whether it is required.
     GetEntitySystem();
     return {};
 }
 
 void EntitySystem::OnServerStartup()
 {
-    // A new map gets a new CGameEntitySystem; keeping the old pointer would read freed memory.
+    // Each map creates a new system, so discard the old pointer before it is freed.
     SetEntitySystem(nullptr);
 
     if (GetEntitySystem())
@@ -94,8 +91,7 @@ void EntitySystem::OnServerStartup()
 
 CGameEntitySystem* EntitySystem::GetEntitySystem()
 {
-    // Null until the engine starts the first server, so an early load caches nothing and
-    // re-reads on the next call. OnServerStartup drops the cache for each new map.
+    // The cache stays empty until the first server starts and is cleared for each new map.
     if (!_interfaces.EntitySystem)
         SetEntitySystem(ReadEntitySystemPointer());
 
@@ -132,9 +128,7 @@ Entity EntitySystem::Resolve(EntityRef ref)
     if (!identity)
         return {};
 
-    // Validate index + serial on the identity itself (chunk memory, never freed) before
-    // touching m_pInstance: once the entity is destroyed the identity slot is recycled and
-    // m_pInstance dangles, so dereferencing the instance to validate is a use-after-free.
+    // Validate the identity before m_pInstance because a destroyed entity leaves a dangling pointer.
     if (static_cast<uint32_t>(identity->GetRefEHandle().ToInt()) != ref.Handle)
         return {};
 
@@ -147,7 +141,7 @@ CEntityInstance* EntitySystem::RawController(int slot)
     if (!system || slot < 0 || slot >= MaxPlayers)
         return nullptr;
 
-    // Controllers occupy entity indices 1..MaxPlayers (index 0 is worldspawn).
+    // Controllers occupy indices 1..MaxPlayers; index 0 is worldspawn.
     CEntityIdentity* identity = GetEntityIdentityByIndex(system, slot + 1);
     if (!identity)
         return nullptr;
@@ -171,17 +165,14 @@ int EntitySystem::SlotOf(const Pawn& pawn)
     if (!controller)
         return -1;
 
-    // Controllers occupy entity indices 1..MaxPlayers, the same mapping RawController uses.
+    // Keep controller indices consistent with RawController.
     int slot = controller.Index() - 1;
     return IsValidSlot(slot) ? slot : -1;
 }
 
 uint64_t EntitySystem::Buttons(int slot)
 {
-    // m_nButtons is an embedded CInButtonState; m_pButtonStates inside it is uint64[3]:
-    // [0] held, [1] changed, [2] scroll.
-    //
-    // The possessed pawn, not MovementServices(): while dead the observer pawn takes the input.
+    // m_pButtonStates is uint64[3]; read it from the possessed pawn because the observer owns input while dead.
     const Schema::CPlayer_MovementServices services = Controller(slot).Possessed().MovementServices();
     return services ? services.Buttons().ButtonStates(0) : 0;
 }
@@ -202,9 +193,7 @@ Entity EntitySystem::FindByClassName(const Entity& after, std::string_view class
     if (!_bindings.FindEntityByClassName || !system || className.empty())
         return {};
 
-    // The engine takes CEntitySystem*; the upcast happens here, where the complete types are in
-    // scope, rather than inside the binding's own void* parameter. It compares the name during the
-    // walk and does not keep it, so a NUL-terminated temporary is enough.
+    // Upcast where complete types are visible; the engine uses the temporary name only during lookup.
     const std::string name(className);
     return {*this, _bindings.FindEntityByClassName(static_cast<CEntitySystem*>(system), after.Raw(), name.c_str())};
 }

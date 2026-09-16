@@ -19,13 +19,12 @@
 namespace VoltMod
 {
 
-// TextMsg destination ids the client understands.
+// TextMsg destination ids supported by the client.
 static constexpr int DestChat = 3;
 static constexpr int DestCenter = 4;
 static constexpr int DestAlert = 6;
 
-// CS2 strips leading color escapes until a non-color byte. Prepend a space to
-// preserve a leading color, or Default to avoid color carryover from the prior line.
+// Prepend a space to preserve a leading color, or Default to prevent color carryover.
 static std::string EnsureColorPrefix(std::string_view message)
 {
     std::string_view prefix =
@@ -77,8 +76,7 @@ void Messages::SendCenterHtml(int slot, const std::string& html)
     pEvent->SetInt("userid", slot);
     pEvent->SetInt("duration", 5);
 
-    // Deliver to just this client when the engine exposes its listener. Otherwise the event
-    // broadcasts and every client renders the panel.
+    // Use the client's listener when available; otherwise the event broadcasts to every client.
     if (IGameEventListener2* listener = _events.GetClientLegacyListener(slot))
     {
         listener->FireGameEvent(pEvent);
@@ -107,16 +105,14 @@ void Messages::Broadcast(std::string_view message, MessageKind kind)
 
     if (kind == MessageKind::CenterHtml)
     {
-        // Per-slot, because each panel write targets one client's own event listener.
-        // A null listener means nobody is in that slot.
+        // Each panel write targets one client's listener; null means the slot is empty.
         for (int slot = 0; slot < MaxPlayers; ++slot)
             if (_events.GetClientLegacyListener(slot))
                 SendCenterHtml(slot, rendered);
         return;
     }
 
-    // One event for everyone rather than one per player: the engine drops slots with no
-    // client from the recipient bits, which is also how this avoids needing the roster.
+    // One event lets the engine remove empty slots from recipient bits without a roster scan.
     MultiRecipientFilter filter;
     for (int slot = 0; slot < MaxPlayers; ++slot)
         filter.AddRecipient(slot);
@@ -149,9 +145,7 @@ void Messages::SendTextMsg(int slot, int destination, const std::string& message
 
 void Messages::PostTextMsg(IRecipientFilter& filter, int destination, const std::string& message)
 {
-    // CS2 routes server-originated chat through TextMsg with dest=HUD_PRINTTALK rather than
-    // SayText2. SayText2 requires a real source player and silently drops messages whose
-    // entityindex doesn't resolve to a connected client.
+    // Server chat uses TextMsg with HUD_PRINTTALK; SayText2 requires a connected source player.
     PostUserMessage(_interfaces, _textMsgInternal, "TextMsg", filter, [&](CNetMessage* raw) {
         auto* textMsg = raw->ToPB<CUserMessageTextMsg>();
         if (!textMsg)

@@ -19,8 +19,7 @@ Teleport::Teleport(EntitySystem& entities, const Bindings& bindings)
 
 Teleport::~Teleport()
 {
-    // A Subscription that outlives this service would leave the hook live across a meta reload,
-    // calling a handler in an unloaded module.
+    // A surviving subscription would call into an unloaded module after meta reload.
     if (!Teleported.Empty())
         Log::Error("Teleport: {} subscription(s) outlived the tracker; a handler may dangle.", Teleported.Count());
 }
@@ -29,8 +28,7 @@ bool Teleport::Install()
 {
     auto hook = HookVirtual("Teleport", _bindings.Teleport,
                             [this](CEntityInstance& pawn, const Vector*, const QAngle*, const Vector*) {
-                                // Resolved per call through the pawn's controller, so a recycled
-                                // pawn address cannot report the previous owner's slot.
+                                // Resolve the slot through the controller so recycled pawn addresses cannot misidentify it.
                                 Teleported.Raise(Pawn{_entities, &pawn}.Slot());
                             });
     if (!hook)

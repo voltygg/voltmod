@@ -57,9 +57,8 @@ private:
 };
 
 /**
- * Typed virtual function: its slot and the class vtable the slot is counted in. The first parameter
- * is the object it runs on, so a hook handler cannot be handed the wrong kind of object. Calling an
- * unbound function is undefined.
+ * Typed virtual function. The first parameter identifies the object type, and the slot is counted
+ * in the bound class vtable. Calling an unbound function is undefined.
  */
 template <class Sig>
 class VirtualFn;
@@ -71,12 +70,10 @@ public:
     VirtualFn() = default;
     VirtualFn(int index, void* table) noexcept : _index(index), _table(table) {}
 
-    /** Bound once the slot is known to hold code in a located class table. */
     explicit operator bool() const noexcept { return _index >= 0 && _table != nullptr; }
     int Index() const noexcept { return _index; }
     void* Table() const noexcept { return _table; }
 
-    /** Dispatch through @p object's own vtable. */
     Ret operator()(Object* object, Args... args) const
     {
         auto* vtable = *reinterpret_cast<void***>(object);
@@ -143,15 +140,14 @@ private:
 struct Bindings
 {
     /**
-     * Read the gamedata file at @p path and bind every member in one pass, clearing earlier results.
+     * Read gamedata from @p path and bind every member in one pass, clearing earlier results.
      *
      * @p originalOf reads a vtable slot through another plugin's hook. A missing or malformed file
-     * is an error and binds nothing; otherwise any member that did not bind is an error, each one
-     * named in @ref Failures.
+     * binds nothing. Otherwise, each unbound member is reported in @ref Failures.
      */
     Status Load(std::string_view path, const OriginalSlotLookup& originalOf = {});
 
-    /** `key: reason` for every member the last @ref Load left empty. */
+    /** `key: reason` for each member left unbound by the last @ref Load. */
     std::vector<std::string> Failures;
 
     /** ABI: CBaseEntity* (const char* className, int forceEdictIndex). */
@@ -180,9 +176,9 @@ struct Bindings
     /** ABI: IGameEventListener2* (CPlayerSlot), defined in GameEvents.cpp. */
     Address LegacyGameEventListener;
 
-    /** @defgroup CustomHudSetters CCSCustomHudLayout setters called for a @ref Screen.
-     *  `self` is the entity. The real ABI uses `const CUtlString*`, never `const char*`.
-     *  @ref ScreenManager::Available needs all five. @{ */
+    /** @defgroup CustomHudSetters CCSCustomHudLayout setters used by @ref Screen.
+     *  `self` is the entity. The ABI uses `const CUtlString*`, not `const char*`.
+     *  @ref ScreenManager::Available requires all five. @{ */
     Fn<void(void*, const CUtlString*, const CUtlString*, int32_t)> CustomHudSetHasClass;
     Fn<void(void*, int32_t, const CUtlString*, const CUtlString*, int32_t)> CustomHudSetHasClassForPlayer;
     Fn<void(void*, const CUtlString*, const CUtlString*, const CUtlString*)> CustomHudSetDialogVariable;
@@ -191,8 +187,8 @@ struct Bindings
     Fn<void(void*, int32_t, bool)> CustomHudSetInputCapture;
     /** @} */
 
-    /** CServerSideClient::FilterMessage(const CNetMessage*, INetChannel*), counted in its message-filter base's
-     *  own vtable, so a hook receives that base on every platform. Hooked for @ref ScreenManager::Pressed. */
+    /** CServerSideClient::FilterMessage(const CNetMessage*, INetChannel*), counted in its message-filter
+     *  base's vtable. The hook receives that base on every platform. Used by @ref ScreenManager::Pressed. */
     VirtualFn<bool(EngineMessageFilter*, const CNetMessage*, void*)> FilterMessage;
     /** CNetworkGameServer::ReplyConnection(CServerSideClient*), which names the addons a client
      *  mounts. Hooked by @ref Addons. */

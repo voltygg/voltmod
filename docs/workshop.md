@@ -22,8 +22,8 @@ the content. Requirements are reference counted, and `RequireFor(steamId, id)`
 adds a player-specific requirement.
 
 Requirements take effect on a client's next connect; already-connected players
-are not disturbed. `Require` returns an error when the capability is off or the
-server is a listen server, so the plugin can report the reason.
+are not disturbed. `Require` returns an error when its bindings are unavailable or
+the server is a listen server, so the plugin can report the reason.
 
 ## Building the addon's content
 
@@ -39,8 +39,8 @@ Two engine messages carry an addon, and a client needs both:
   addon and reconnect. @ref VoltMod::Addons rewrites it with the next missing addon.
 - **The connection reply** (`CNetworkGameServer::ReplyConnection`) names the addons
   the client mounts for the session. The reply copies the server's own addon list,
-  so for the length of that call @ref VoltMod::Addons appends the addons this client
-  has downloaded, and the one on its way, then takes them back out.
+  so @ref VoltMod::Addons temporarily appends this client's downloaded addons and
+  the addon currently being downloaded, then removes its additions.
 
 A client that downloaded an addon but was not told to mount it has the files and no
 content; a menu drawn on that layout is invisible. After the final reconnect the
@@ -51,26 +51,26 @@ Each addon costs the joining client one reconnect, including the first.
 Addons cannot be batched. The join message's field is a comma-separated list and the
 engine puts several entries in it when the server mounts more than one. A client
 handles exactly one addon per connection cycle and stalls without downloading when it
-receives several. The same behavior is what
+receives several. This is the behavior that
 [MultiAddonManager](https://github.com/Source2ZE/MultiAddonManager) works around.
 VoltMod reduces such a message to its first addon and counts that one as sending, so the
 client makes progress instead of stalling.
 
-## What it does not do
+## Server-side content
 
 Nothing is downloaded or mounted **on the server**. If the server itself needs
 the content - a custom map, models the server-side code touches - install and
 mount it the usual way; a workshop map still goes through
 @ref VoltMod::Map::ChangeToWorkshop.
 
-Server-side downloading needs `ISteamUGC`, which the SDK does not link. The subset
-here is the one [MultiAddonManager](https://github.com/Source2ZE/MultiAddonManager)
-exposes as `mm_client_extra_addons`.
+Server-side downloading requires `ISteamUGC`, which the SDK does not link. The
+available subset is the `mm_client_extra_addons` interface exposed by
+[MultiAddonManager](https://github.com/Source2ZE/MultiAddonManager).
 
-## The one guess it makes
+## Download completion
 
-The server receives no download-complete signal. A reconnect within
-`Addons::DownloadTimeoutSeconds` (30 seconds by default) counts as success;
+The server receives no download-complete signal. It treats a reconnect within
+`Addons::DownloadTimeoutSeconds` (30 seconds by default) as success;
 later reconnects retry the addon. Increase the timeout for large downloads or
 slow clients.
 
@@ -101,8 +101,8 @@ download, and that reconnect, ahead of it; `Downloaded` fires again after it.
 
 ## Availability
 
-Does nothing on a listen server - there is no download step - and when one of these did not
-bind: the
+The service is inactive on a listen server, where no download step exists, or when one of these
+entries did not bind:
 `CServerSideClient::SendNetMessage` vtable entry, the `CNetworkGameServer::ReplyConnection`
 signature, or the client and server offsets they read. Either way @ref VoltMod::Addons::Require
 returns `ErrorCode::Unsupported` with the reason. @ref VoltMod::Addons::Missing

@@ -11,7 +11,6 @@
 namespace VoltMod
 {
 
-/** Assigns each typed member from the resolver, so the binding list reads as member and key. */
 class MemberBinder
 {
 public:
@@ -95,7 +94,7 @@ Status Bindings::Load(std::string_view path, const OriginalSlotLookup& originalO
     bind(ClientSteamId, "CServerSideClientBase::m_SteamID");
     bind(ServerAddons, "CNetworkGameServer::m_szAddons");
     bind(UserCmdProto, "CUserCmd::CSGOUserCmdPB");
-    // Optional: movement can use the protobuf counter instead.
+    // Movement can use the protobuf counter instead.
     bind(UserCmdNumber, "CUserCmdBase::cmdNum");
 
     resolver.LogSummary(path);

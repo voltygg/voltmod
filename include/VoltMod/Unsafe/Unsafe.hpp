@@ -7,18 +7,16 @@ namespace VoltMod
 {
 
 /**
- * @brief The opt-in engine-access tier: raw interface pointers and the typed gamedata bindings.
+ * @brief Opt-in access to raw engine interfaces and typed gamedata bindings.
  *
- * Populated by Runtime::Start, not by a constructor. Declared early in Runtime, ahead of almost
- * every other service, which reads @ref Bindings rather than resolving gamedata itself. A plugin
- * that pokes at the engine itself includes `<VoltMod/Unsafe/Api.hpp>` and writes
- * `runtime.Unsafe.Bindings`.
+ * Runtime::Start populates this before other services. Include `<VoltMod/Unsafe/Api.hpp>` when a
+ * plugin needs direct engine access through `runtime.Unsafe`.
  */
 struct UnsafeServices
 {
-    /** Plain interface-pointer holder; populated by Runtime::Start. */
+    /** Interface pointers populated by Runtime::Start. */
     VoltMod::Interfaces Interfaces;
-    /** Loaded from gamedata once by Runtime::Start and handed to every engine service. */
+    /** Bindings loaded once by Runtime::Start and shared by engine services. */
     VoltMod::Bindings Bindings;
 };
 

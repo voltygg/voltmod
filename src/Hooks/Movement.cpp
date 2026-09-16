@@ -22,7 +22,7 @@ Movement::Movement(EntitySystem& entities, const Bindings& bindings)
       _bindings(bindings)
 {}
 
-// A subscription that outlives this object leaves a hook into an unloaded module; _lifecycle logs it.
+// A surviving subscription would call into an unloaded module; _lifecycle reports the violation.
 Movement::~Movement() = default;
 
 bool Movement::Install()
@@ -65,7 +65,7 @@ Status Movement::Available() const
 
 int Movement::SlotOf(void* movementServices)
 {
-    // The component's owner is the pawn, and the pawn knows its controller: no roster scan.
+    // Resolve the controller from the pawn instead of scanning the roster.
     CEntityInstance* pawn = Schema::CPlayer_MovementServices{movementServices}.OwnerEntity();
     return pawn ? Pawn{_entities, pawn}.Slot() : -1;
 }
@@ -81,7 +81,7 @@ void Movement::Decode(const void* userCmd)
 
     _cmd.Valid = true;
     _cmd.ClientTick = base.client_tick();
-    // Live clients keep the command number in the wrapper, not the protobuf payload.
+    // Live clients store the command number in the wrapper, not the protobuf payload.
     _cmd.CommandNumber = _bindings.UserCmdNumber ? _bindings.UserCmdNumber.Read(userCmd) : base.legacy_command_number();
     _cmd.HasViewAngles = base.has_viewangles();
     if (_cmd.HasViewAngles)

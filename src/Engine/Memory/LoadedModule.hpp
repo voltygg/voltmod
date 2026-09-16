@@ -9,14 +9,13 @@
 namespace VoltMod
 {
 
-/** A module mapped into this process: where it starts, how far it spans, and the file behind it. */
+/** A process mapping and the file backing it. */
 struct LoadedModule
 {
-    const uint8_t* Base = nullptr;  // mapped base address
-    size_t Size = 0;                // mapped span in bytes
-    std::string Path;               // full path of the file backing the mapping
+    const uint8_t* Base = nullptr;
+    size_t Size = 0;
+    std::string Path;
 
-    /** Whether @p address lies inside this mapping. */
     bool Contains(const void* address) const
     {
         const auto* at = static_cast<const uint8_t*>(address);
@@ -24,7 +23,6 @@ struct LoadedModule
     }
 };
 
-// Scan the whole module on Windows and each PT_LOAD segment on Linux to avoid unmapped gaps.
 struct ScanRange
 {
     const uint8_t* Base;
@@ -32,12 +30,12 @@ struct ScanRange
 };
 
 /**
- * Enumerate @p fileName once, returning where it is loaded and its scan ranges.
+ * Locate the exact platform @p fileName and populate its mapping and readable scan ranges.
  *
- * @param fileName platform file name, as @ref PlatformModuleName spells it.
- * @return false when the module is not loaded; both outputs remain unchanged.
+ * Windows returns the mapped image as one range. Linux returns individual PT_LOAD segments because
+ * the full module span may contain unmapped gaps.
  *
- * Each platform has a separate implementation because its loader exposes different metadata.
+ * @return false when the module is not loaded. Both outputs remain unchanged.
  */
 bool FindModuleAndRanges(std::string_view fileName, LoadedModule& module, std::vector<ScanRange>& ranges);
 

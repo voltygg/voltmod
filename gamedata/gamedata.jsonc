@@ -1,25 +1,25 @@
 {
   "$schema": "./gamedata.schema.json",
 
-  // These entries drift with CS2. `server` is the steam.inf ServerVersion they were last checked
-  // on, `verified` the date; see docs/sdk/gamedata.md.
+  // Entries drift with CS2. `server` is the checked steam.inf ServerVersion and `verified` is the
+  // check date. See docs/sdk/gamedata.md.
   "build": {
     "server": "2000908",
     "verified": "2026-09-11"
   },
 
-  // A byte pattern matching the start of a function in a loaded module; `?` and `??` are wildcards.
+  // Byte patterns match function starts in a loaded module; `?` and `??` are wildcards.
   "functions": {
-    // CCSCustomHudLayout setters. Call them because server-only hash indexes shadow their tables;
-    // see docs/custom-ui.md. Windows patterns cut from server.dll build 24934554, each matching
-    // once in .text; Linux patterns from SwiftlyS2.
+    // CCSCustomHudLayout setters. Server-only hash indexes shadow their tables, so call these
+    // setters directly. See docs/custom-ui.md. Windows patterns are from server.dll build 24934554
+    // and match once in .text; Linux patterns are from SwiftlyS2.
     "CCSCustomHudLayout::SetHasClass": {
       "module": "server",
       "windows": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 30 49 8B F0 33 ED 4C 8D 44 24 24 66 89 6C 24 24 41 8B F9 48 8B D9 E8 ? ? ? ? 84 C0 74 33",
       "linux": "55 48 89 E5 41 57 41 56 41 55 41 89 CD 41 54 49 89 D4 31 D2"
     },
 
-    // Same body as SetDialogVariableForPlayer, but with a `44 8B` / `45 89 C6` tail. Keep both tails.
+    // Same body as SetDialogVariableForPlayer, with a `44 8B` / `45 89 C6` tail. Keep both tails.
     "CCSCustomHudLayout::SetHasClassForPlayer": {
       "module": "server",
       "windows": "40 53 56 57 48 83 EC 20 48 63 DA 49 8B F1 49 8B C0 48 8B F9 3B 99 ? ? ? ? 7D 5E 48 89 6C 24 50 4C 8D 44 24 40 33 ED 48 8B D0 66 89 6C 24 40 E8 ? ? ? ? 84 C0 74 3C 4C 8D 44 24 48 66 89 6C 24 48 48 8B D6 48 8B CF E8 ? ? ? ? 84 C0 74 23 44 8B",
@@ -32,14 +32,14 @@
       "linux": "55 48 89 E5 41 55 49 89 CD 41 54 49 89 D4 31 D2"
     },
 
-    // Twin of SetHasClassForPlayer with a `4C 8B` / `4D 89 C6` tail.
+    // Twin of SetHasClassForPlayer, with a `4C 8B` / `4D 89 C6` tail.
     "CCSCustomHudLayout::SetDialogVariableStringForPlayer": {
       "module": "server",
       "windows": "40 53 56 57 48 83 EC 20 48 63 DA 49 8B F1 49 8B C0 48 8B F9 3B 99 ? ? ? ? 7D 5E 48 89 6C 24 50 4C 8D 44 24 40 33 ED 48 8B D0 66 89 6C 24 40 E8 ? ? ? ? 84 C0 74 3C 4C 8D 44 24 48 66 89 6C 24 48 48 8B D6 48 8B CF E8 ? ? ? ? 84 C0 74 23 4C 8B",
       "linux": "55 48 89 E5 41 56 41 55 41 54 41 89 F4 53 48 83 EC ? 3B B7 ? ? ? ? 7C ? 48 83 C4 ? 5B 41 5C 41 5D 41 5E 5D C3 66 0F 1F 84 00 ? ? ? ? 48 89 D6 31 D2 48 89 FB 66 89 55 ? 48 8D 55 ? 49 89 CD 4D 89 C6"
     },
 
-    // Linux starts at the slot compare and sets up a frame after the range check.
+    // Linux starts at the slot comparison and sets up a frame after the range check.
     "CCSCustomHudLayout::SetInputCaptureEnabled": {
       "module": "server",
       "windows": "40 57 48 83 EC 20 41 0F B6 F8 3B 91 ? ? ? ? 7D 39",
@@ -60,7 +60,7 @@
       "linux": "48 8B 05 ? ? ? ? 48 85 C0 74 ? 83 FF ? 77 ? 48 63 FF 48 C1 E7 ? 48 8D 44 38"
     },
 
-    // Patterns below come from CS2Fixes gamedata (github.com/Source2ZE/CS2Fixes); re-sync from there
+    // These patterns come from CS2Fixes gamedata (github.com/Source2ZE/CS2Fixes). Re-sync them
     // after a CS2 update.
     "CreateEntityByName": {
       "module": "server",
@@ -95,7 +95,7 @@
       "linux": "48 89 FE 48 85 FF 74 ? 48 8D 05 ? ? ? ? 48"
     },
 
-    // Vscript binding that can disappear between builds; EmitSoundFilter is more stable.
+    // Vscript binding that can disappear between builds. EmitSoundFilter is more stable.
     "CBaseEntity::EmitSoundParams": {
       "module": "server",
       "windows": "48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 55 48 8B EC 48 81 EC ? ? ? ? 33 C0",
@@ -128,11 +128,11 @@
     }
   },
 
-  // A global reached through a rel32 displacement: `pattern` matches the code referencing it, and
-  // `rel32At` is the byte distance from the match to the 4-byte little-endian displacement.
+  // Globals use a pattern that references them through rel32. `rel32At` gives the byte distance
+  // from the match to the 4-byte little-endian displacement.
   "globals": {
-    // IGameEventManager2**. The pattern is CSource2Server::Init; string: "gameeventmanager->Init()".
-    // From s2sdk.
+    // IGameEventManager2** in CSource2Server::Init, matched by "gameeventmanager->Init()". From
+    // s2sdk.
     "CSource2Server::g_GameEventManager": {
       "module": "server",
       "windows": {
@@ -145,23 +145,22 @@
       }
     },
 
-    // The pattern is IGameSystem::InitAllSystems; string: "Game System %s is defined twice!".
-    // From CS2Fixes.
+    // IGameSystem::InitAllSystems, matched by "Game System %s is defined twice!". From CS2Fixes.
     "CBaseGameSystemFactory::sm_pFirst": {
       "module": "server",
       "windows": { "pattern": "48 8B 1D ? ? ? ? 48 85 DB 0F 84 ? ? ? ? BD", "rel32At": 3 },
       "linux": { "pattern": "4C 8B 35 ? ? ? ? 4D 85 F6 75 ? E9", "rel32At": 3 }
     },
 
-    // Detached on unload. The pattern is IGameSystem::LoopPostInitAllSystems. From CS2Fixes.
+    // IGameSystem::LoopPostInitAllSystems. Detached on unload. From CS2Fixes.
     "IGameSystem::pEventDispatcher": {
       "module": "server",
       "windows": { "pattern": "48 39 1D ? ? ? ? 74 ? 39 05", "rel32At": 3 },
       "linux": { "pattern": "4C 8B 25 ? ? ? ? 48 8B 05 ? ? ? ? 8B 35", "rel32At": 3 }
     },
 
-    // A CUtlVector<AddedGameSystem_t>; the framework removes its entry on unload. The pattern is
-    // IGameSystem::LoopDestroyAllSystems. From CS2Fixes.
+    // CUtlVector<AddedGameSystem_t> used by IGameSystem::LoopDestroyAllSystems; the framework
+    // removes its entry on unload. From CS2Fixes.
     "IGameSystem::s_GameSystems": {
       "module": "server",
       "windows": { "pattern": "8B 05 ? ? ? ? 83 E8 ? 48 63 F8 0F 88", "rel32At": 2 },
@@ -169,8 +168,8 @@
     }
   },
 
-  // Vtable slots. `class` owns the table and is the origin for the index, or `base` names the base
-  // whose own table inside `class` it is counted in. A wrong index can crash.
+  // Vtable slots. `class` owns the table and supplies the index origin. When present, `base` names
+  // the base table inside `class` where the index is counted. A wrong index can crash.
   "vtables": {
     // Called on a CCSPlayerPawn. From SwiftlyS2 v1.4.5.
     "CBasePlayerPawn::CommitSuicide": { "class": "CCSPlayerPawn", "windows": 384, "linux": 384 },
@@ -182,11 +181,11 @@
     },
     // From SwiftlyS2 v1.4.5.
     "CCSPlayerController::Respawn": { "class": "CCSPlayerController", "windows": 270, "linux": 272 },
-    // Hooked on the pawn class by Hooks::Teleport, called directly by Entity::Teleport. From
+    // Hooks::Teleport hooks this on the pawn class; Entity::Teleport calls it directly. From
     // SwiftlyS2.
     "CBaseEntity::Teleport": { "class": "CCSPlayerPawn", "windows": 163, "linux": 162 },
-    // Hooks::Movement targets the concrete movement-services class instantiated by each pawn.
-    // From SwiftlyS2 v1.4.5.
+    // Hooks::Movement targets the concrete movement-services class instantiated by each pawn. From
+    // SwiftlyS2 v1.4.5.
     "CPlayer_MovementServices::RunCommand": {
       "class": "CCSPlayer_MovementServices",
       "windows": 25,
@@ -218,8 +217,8 @@
       "windows": 15,
       "linux": 16
     },
-    // The interface's only virtual, so slot 0 of the base's own table; hooked there, a handler
-    // receives the base. Windows checked on build 2000908.
+    // The interface's only virtual, so slot 0 in the base table. The hook receives the base.
+    // Windows checked on build 2000908.
     "INetworkMessageProcessingPreFilter::FilterMessage": {
       "class": "CServerSideClient",
       "base": "INetworkMessageProcessingPreFilter",
@@ -229,7 +228,7 @@
     }
   },
 
-  // Byte offsets into layouts the SDK does not declare. A stale offset reads plausible garbage.
+  // Byte offsets for layout fields absent from the SDK. A stale offset reads plausible garbage.
   "offsets": {
     // CGameEntitySystem* cached inside IGameResourceService.
     "GameEntitySystem": { "windows": 88, "linux": 80 },
@@ -240,16 +239,16 @@
 
     // The protobuf base of CUserCmd. Checked against CS2Fixes and SwiftlyS2.
     "CUserCmd::CSGOUserCmdPB": { "windows": 16, "linux": 16 },
-    // Native counter in CUserCmd. Use it because the live client leaves
-    // CBaseUserCmdPB.legacy_command_number empty. From CS2AC.
+    // Native counter in CUserCmd. The live client leaves CBaseUserCmdPB.legacy_command_number
+    // empty. From CS2AC.
     "CUserCmdBase::cmdNum": { "windows": 8, "linux": 8 },
 
     // From CS2AC (ClientSlotOffset).
     "CServerSideClientBase::m_nClientSlot": { "windows": 72, "linux": 72 },
 
     // Follows bools and is unaligned, so read it with memcpy.
-    // Addons key on it because reconnects can change a client's slot but not its SteamID.
-    // From SwiftlyS2 v1.4.5.
+    // Addons key on it because reconnects can change a client's slot but not its SteamID. From
+    // SwiftlyS2 v1.4.5.
     "CServerSideClientBase::m_SteamID": { "windows": 171, "linux": 171 },
 
     // From MultiAddonManager; Windows checked on build 2000908.

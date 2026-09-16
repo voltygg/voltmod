@@ -14,29 +14,29 @@ namespace VoltMod
 {
 
 /**
- * @brief The `FilterMessage` hook button presses come back through.
+ * @brief Receives button presses through the `FilterMessage` hook.
  *
- * Owned by @ref ScreenManager, whose Pressed event installs it only while something listens.
- * Presses are raised on the next game frame. Inert when the FilterMessage binding is missing.
+ * @ref ScreenManager owns the hook and installs it while `Pressed` has subscribers. Presses are
+ * raised on the next game frame. The hook is inactive when its binding is missing.
  */
 class ButtonPressHook
 {
 public:
-    /** All references must outlive this hook. */
+    /** All referenced services must outlive this hook. */
     ButtonPressHook(Interfaces& interfaces, const Bindings& bindings, Scheduler& scheduler,
                     Event<const ButtonPress&>& pressed);
     ~ButtonPressHook();
     ButtonPressHook(const ButtonPressHook&) = delete;
     ButtonPressHook& operator=(const ButtonPressHook&) = delete;
 
-    /** Hook if gamedata and the message registry allow it. False logs why and refuses the subscription. */
+    /** Install the hook when gamedata and the message registry are available. */
     bool Install();
 
     /** Unhook after the last subscriber leaves. */
     void Remove();
 
 private:
-    /** The user-message fields a press is read from, resolved once per process. */
+    /** User-message fields used to decode a press, resolved once per process. */
     struct MessageFields
     {
         const ProtoFieldDescriptor* Type = nullptr;
@@ -47,7 +47,7 @@ private:
 
     static const MessageFields& FieldsOf(const ProtoMessage& proto);
 
-    /** Queue a press for the next frame; never changes the engine's verdict. */
+    /** Queue a press for the next frame without changing the engine's verdict. */
     void Queue(const CNetMessage* message, const EngineMessageFilter& filter);
     void RaiseQueued();
 

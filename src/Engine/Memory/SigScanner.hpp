@@ -14,53 +14,41 @@ namespace VoltMod
 struct ScanResult
 {
     void* Address = nullptr;  // first match, or nullptr
-    bool Unique = true;       // false when the pattern matched more than once
-    LoadedModule Module;      // the module that was scanned; Base is null when it is not loaded
+    bool Unique = true;       // false when another match exists
+    LoadedModule Module;      // scanned module; Base is null when it was not loaded
 };
 
-/** Platform file name for a module: "engine2" -> "engine2.dll" / "libengine2.so". */
 std::string PlatformModuleName(std::string_view moduleName);
 
-/** Locate a loaded module by platform-agnostic name. False when it is not loaded. */
 bool FindLoadedModule(std::string_view moduleName, LoadedModule& module);
 
 /**
- * Scan a loaded module's memory for a byte pattern (hex string with '?' wildcards).
- * Keeps scanning after the first hit so an ambiguous pattern is reported, not
- * silently taken.
+ * Scan a loaded module for a byte pattern with `?` wildcards. Address holds the first match, while
+ * Unique reports whether it is safe to bind.
  */
 ScanResult FindPatternEx(std::string_view moduleName, const std::string& pattern);
 
 /**
- * Resolve a RIP-relative address inside @p module: reads the 32-bit displacement at
- * @p matchAddress + @p ripOffset and returns the absolute target
- * (@p matchAddress + @p ripOffset + @p ripSize + displacement).
+ * Resolve the 32-bit displacement at `matchAddress + ripOffset` relative to the instruction end.
  *
- * @return 0 when the displacement does not lie wholly inside the module, which is the one
- *         failure that would otherwise be a read past the mapping rather than a wrong answer.
+ * @return 0 when the displacement is not wholly inside the module.
  */
 uintptr_t ResolveRelativeAddress(const LoadedModule& module, uintptr_t matchAddress, int ripOffset,
                                  int ripSize = Rel32Size);
 
 /**
- * True when @p address lies in committed, executable memory (page protection on Windows,
- * `/proc/self/maps` on Linux).
+ * Whether @p address lies in committed, executable memory.
  *
- * Deliberately not "inside this module's code section": a vtable slot another plugin has already
- * hooked points at a hook trampoline in allocated memory, which is code and is correct. What
- * this rules out is a slot holding data - RTTI, a string, the tail of a shorter table - which is
- * what a drifted class name or an index past the end of the real table produces.
+ * This accepts hook trampolines allocated outside a module while rejecting vtable slots that point
+ * at data, such as RTTI, strings, or the tail of a shorter table.
  */
 bool IsExecutableAddress(const void* address);
 
 /**
- * True when @p bytes bytes starting at @p address can be read without faulting.
+ * Whether the complete span [@p address, @p address + @p bytes) is readable in one mapping.
  *
- * For validating a pointer *before* dereferencing it. @ref IsExecutableAddress answers a question
- * about the value at an address, so asking it about `p[0]` has already dereferenced `p` - which is
- * a crash when `p` came out of arbitrary object bytes rather than from a known-good field.
- *
- * The span must lie inside one mapping: the next one along may be unmapped.
+ * Use this before dereferencing untrusted object bytes. Calling @ref IsExecutableAddress on `p[0]`
+ * is already too late because evaluating `p[0]` performs the unsafe read.
  */
 bool IsReadableAddress(const void* address, size_t bytes);
 

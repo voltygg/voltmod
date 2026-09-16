@@ -11,21 +11,21 @@
 namespace VoltMod
 {
 
-/** @brief Options for LoadStandardConfig; Addon is the plugin's addon folder name. */
+/** @brief Paths and translation behavior for LoadStandardConfig. */
 struct StandardLoadOptions
 {
     std::string_view Addon;
     std::string_view SettingsFile = "configs/settings.jsonc";
-    /** false when the addon ships no configs/translations directory. */
+    /** Whether to load configs/translations. */
     bool Translations = true;
 };
 
 /**
- * @brief The standard OnLoad prelude.
+ * @brief Run the standard configuration and translation load steps.
  *
- * Loads addons/<Addon>/<SettingsFile> as the required "Configuration" step, via
- * TConfig::LoadSettings when present and JsonConfig::Load otherwise. Then applies `plugin.locale`
- * when present and loads addons/<Addon>/configs/translations.
+ * The required "Configuration" step reads `addons/<Addon>/<SettingsFile>` through
+ * TConfig::LoadSettings when available, otherwise JsonConfig::Load. Translation loading then
+ * applies `plugin.locale` and reads `addons/<Addon>/configs/translations` when enabled.
  */
 template <class TConfig>
 bool LoadStandardConfig(Runtime& runtime, TConfig& config, const StandardLoadOptions& options)

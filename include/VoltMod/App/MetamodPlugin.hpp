@@ -32,10 +32,10 @@ struct PluginInfo
 };
 
 /**
- * @brief Base class that owns Metamod integration, standard hooks, and players.
+ * @brief Owns Metamod integration and one Runtime per load cycle.
  *
- * The base creates one Runtime per load and passes it to OnLoad. Release load-cycle state in
- * OnUnload so `meta reload` starts clean.
+ * OnLoad receives a fresh Runtime. Release plugin-owned state in OnUnload so `meta reload` starts
+ * with no references to the previous cycle.
  */
 class MetamodPlugin : public ISmmPlugin, public IMetamodListener
 {
@@ -87,10 +87,9 @@ protected:
     virtual bool OnPlayerChat(Player* player, std::string_view message, bool teamChat);
 
     /**
-     * @brief Add custom hooks, each a VoltMod::HookInterface, HookVirtual or HookFunction, to @p hooks.
+     * @brief Register custom hooks in @p hooks.
      *
-     * @p hooks is released before OnUnload, so a hook bound to this plugin cannot fire against
-     * state OnUnload has already dropped.
+     * The base clears @p hooks before OnUnload, preventing callbacks into state being released.
      */
     virtual void OnRegisterHooks(Runtime& runtime, Subscriptions& hooks) {}
 
@@ -107,12 +106,11 @@ private:
     /** Release custom state, standard hooks, and runtime in dependency order. */
     void Shutdown();
 
-    // Declaration order makes runtime destruction remove standard hooks before their services;
-    // custom hooks are destroyed first.
+    // Reverse destruction order: custom hooks, standard hooks, then their Runtime services.
     std::unique_ptr<VoltMod::Runtime> _runtime;
     Subscriptions _standardHooks;
     Subscriptions _customHooks;
-    PluginInfo _info;  // copy captured at load for the ISmmPlugin getters
+    PluginInfo _info;  // Captured at load for the ISmmPlugin getters.
 };
 
 }  // namespace VoltMod

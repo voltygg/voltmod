@@ -1,11 +1,9 @@
-// UserCmd.hpp is deliberately protobuf- and SDK-free so this TU compiles it standalone;
-// an include that drags in HL2SDK would fail to build here rather than silently pass.
+// Keep UserCmd.hpp protobuf- and SDK-free so this standalone test does not require HL2SDK.
 #include <VoltMod/Hooks/PlayerInput.hpp>
 #include <doctest/doctest.h>
 
 using VoltMod::PlayerInput;
 
-/** A view holding @p decoded decoded entries out of @p total the client sent. */
 static PlayerInput WithHistory(int decoded, int total)
 {
     PlayerInput cmd;
@@ -28,7 +26,6 @@ TEST_CASE("SampleAt returns the addressed entry inside the decoded range")
     CHECK(cmd.SampleAt(0)->ViewYaw == doctest::Approx(0.0f));
     REQUIRE(cmd.SampleAt(3).has_value());
     CHECK(cmd.SampleAt(3)->ViewYaw == doctest::Approx(3.0f));
-    // Addressing is by index into the decoded array, so the two must agree.
     CHECK(cmd.SampleAt(3)->ViewYaw == doctest::Approx(cmd.InputHistorySamples[3].ViewYaw));
 }
 
@@ -59,18 +56,15 @@ TEST_CASE("SampleAt on an empty history is always empty")
 
 TEST_CASE("A capped-away attack index reads as absent instead of clamping")
 {
-    // The client sent 20 entries and the cap kept the first MaxInputHistory of them.
     const PlayerInput cmd = WithHistory(PlayerInput::MaxInputHistory, 20);
 
     CHECK(cmd.InputHistoryTotalCount > cmd.InputHistorySampleCount);
     CHECK(!cmd.SampleAt(18).has_value());
-    // The last decoded entry is still addressable - the cap only drops the tail.
     CHECK(cmd.SampleAt(PlayerInput::MaxInputHistory - 1).has_value());
 }
 
 TEST_CASE("InputHistoryTotalCount separates a capped-away entry from one never sent")
 {
-    // 20 sent, MaxInputHistory decoded: 18 was dropped by the cap, 25 was never sent at all.
     const PlayerInput cmd = WithHistory(PlayerInput::MaxInputHistory, 20);
 
     CHECK(!cmd.SampleAt(18).has_value());

@@ -44,7 +44,7 @@ constexpr uint64_t IN_LOOK_AT_WEAPON = 0x800000000ULL;
 class EntitySystem
 {
 public:
-    /** Both must outlive this service; the Runtime declares them above it. */
+    /** @p interfaces and @p bindings must outlive this service. */
     EntitySystem(Interfaces& interfaces, const Bindings& bindings);
     ~EntitySystem();
     EntitySystem(const EntitySystem&) = delete;
@@ -65,10 +65,10 @@ public:
 
     CGameEntitySystem* GetEntitySystem();
 
-    /** The controller in @p slot. Falsy when the slot is empty. */
+    /** The controller in @p slot, or a falsy value when the slot is empty. */
     VoltMod::Controller Controller(int slot);
 
-    /** The player pawn of @p slot (@ref Controller::GetPawn). Falsy when there is none. */
+    /** The player pawn of @p slot, or a falsy value when there is none. */
     Pawn PawnOf(int slot);
 
     /**
@@ -112,19 +112,17 @@ public:
 private:
     CEntityIdentity* GetEntityIdentityByIndex(CGameEntitySystem* system, int index);
 
-    /** The raw controller entity for @p slot; the factories above wrap it. */
     CEntityInstance* RawController(int slot);
 
-    /** Read the CGameEntitySystem* out of IGameResourceService at the gamedata offset. nullptr if
-     *  either is unavailable. */
+    /** Read CGameEntitySystem* at the gamedata offset, or nullptr when it is unavailable. */
     CGameEntitySystem* ReadEntitySystemPointer();
 
-    /** Sole writer of the pointer: keeps the ::GameEntitySystem() global in step with the member. */
+    /** Sole writer for both this service and the ::GameEntitySystem() compatibility global. */
     void SetEntitySystem(CGameEntitySystem* system);
 
     Interfaces& _interfaces;
     const Bindings& _bindings;
-    /** Whether the first pointer read reached a real CGameEntitySystem; empty until one is read. */
+    /** Empty until the first pointer is validated as a CGameEntitySystem. */
     std::optional<bool> _isRealSystem;
 };
 

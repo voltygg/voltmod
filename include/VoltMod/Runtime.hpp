@@ -43,12 +43,10 @@ struct LoadContext
 };
 
 /**
- * @brief Framework services for one Load/Unload cycle.
+ * @brief Framework services for one load and unload cycle.
  *
- * Services are flat members grouped by role, such as `runtime.Hooks.Movement`. Declaration order
- * is dependency order: members initialize from earlier members and are destroyed before them.
- * Unsafe comes early because most services use its bindings; Screens and Addons follow the hook tiers
- * because their vtable hooks must be removed first.
+ * Members are declared in dependency order. Unsafe is initialized before services that use its
+ * bindings. Screens and Addons follow the hook tiers so their hooks are removed first.
  */
 class Runtime
 {
@@ -67,20 +65,18 @@ public:
     /** Drive the scheduler. Called once per frame from the GameFrame hook. */
     void OnGameFrame();
 
-    /** The steps Start and the plugin's OnLoad run, remembering the ones that fail. */
     VoltMod::LoadSteps LoadSteps;
 
-    /** Status sections for diagnostics commands; framework sections registered by Start. */
     StatusService Status;
 
-    /** "This slot changed hands", raised by the roster and consumed by per-slot caches. */
     SlotEvents Slots;
 
-    /** Per-frame delivery, timers and delayed work. Pending timers die with it, never run, so
-     *  what a timer captures may only point at members declared above. */
+    /**
+     * Per-frame delivery, timers, and delayed work. Pending timers are discarded on destruction;
+     * their callbacks may capture only members declared above Scheduler.
+     */
     VoltMod::Scheduler Scheduler;
 
-    /** Translations service that provides localized strings. */
     VoltMod::Translations Translations{Slots};
 
     /** The opt-in engine-access tier (Interfaces, Bindings). Populated by Start. */
@@ -89,50 +85,38 @@ public:
     /** Schema field offsets resolve themselves, per process rather than per load - see @ref Field. */
     EntitySystem Entities{Unsafe.Interfaces, Unsafe.Bindings};
 
-    /** The roster and the connection lifecycle events. */
     PlayerManager Players{Slots, &Entities};
 
     /** Plugin-supplied permission, targeting and reply rules, and the one gate that applies
      *  them (`Policy::Authorize`). Fill the members you enforce in OnLoad. */
     VoltMod::Policy Policy{Players};
 
-    /** Console variables service for managing CVars. */
     VoltMod::ConVars ConVars{Unsafe.Interfaces};
 
     /** Map validation and level changes. The current map is captured from StartupServer, so it
      *  is empty after a late load until the next map change. */
     VoltMod::Map Map{Unsafe.Interfaces, ConVars};
 
-    /** Game events */
     VoltMod::GameEvents GameEvents{Unsafe.Interfaces, Unsafe.Bindings};
 
-    /** Messages services */
     VoltMod::Messages Messages{Unsafe.Interfaces, GameEvents, Translations};
 
-    /** The engine's simulation clock (tick and curtime). */
     VoltMod::Clock Clock{Unsafe.Interfaces};
 
-    /** Entity IO, weapon give/strip, precaching, pawn manipulation, per-client net reads. */
     WorldServices World{Entities, Unsafe.Bindings, Scheduler, Slots, Unsafe.Interfaces};
 
-    /** The per-tick and per-event engine hooks. */
     HookServices Hooks{Entities, Unsafe.Bindings, Slots, Scheduler, GameEvents, Unsafe.Interfaces, World.EntityOps};
 
-    /** Panorama screens and the button presses coming back from them. */
     VoltMod::ScreenManager Screens{Entities, World.EntityOps, Unsafe.Bindings, Unsafe.Interfaces,
                                    Slots,    Scheduler,       Hooks.Visibility};
 
-    /** Workshop addons connecting clients are told to download. */
     VoltMod::Addons Addons{Unsafe.Interfaces, Unsafe.Bindings, Players, Scheduler};
 
-    /** Interfaces offered to, and borrowed from, other plugins. */
     ServiceExchange Exchange;
 
-    /** Holding players still while a menu is open, whichever surface drew it. Off by default. */
+    /** Holds players still while a menu is open. Disabled by default. */
     VoltMod::MenuFreeze Freeze{Entities, Scheduler, Slots};
 
-    /** Player menus drawn as center HTML, which every player can see; costs nothing per frame
-     *  while nothing is open. */
     CenterHtmlMenu CenterHtml{CenterHtmlMenu::Services{.Scheduler = Scheduler,
                                                        .Slots = Slots,
                                                        .Entities = Entities,
@@ -142,15 +126,12 @@ public:
                                                        .Policy = Policy,
                                                        .Messages = Messages}};
 
-    /** Where menus start and row callbacks reach: center HTML, or the surface a plugin prefers
-     *  for the players who can see it (@ref MenuRouter::Prefer). */
+    /** Routes menus to center HTML or a plugin-preferred surface. */
     MenuRouter Menus{CenterHtml};
 
-    /** Command manager for handling in-game commands. */
     VoltMod::CommandManager Commands{Policy, Translations, Players, Entities, Messages};
 
-    /** HTTP client for making web requests. Completions are replayed on the game thread from a per-frame subscription
-     * it registers itself. */
+    /** HTTP client. Completions are replayed on the game thread. */
     HttpClient Http{Scheduler};
 
 private:

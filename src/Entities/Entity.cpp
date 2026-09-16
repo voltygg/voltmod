@@ -12,8 +12,7 @@
 namespace VoltMod
 {
 
-// Origin and rotation are not schema fields of CBaseEntity in CS2; they live on the entity's
-// CGameSceneNode, reached via m_CBodyComponent -> m_pSceneNode.
+// CBaseEntity stores origin and rotation on CGameSceneNode via m_CBodyComponent -> m_pSceneNode.
 static Schema::CGameSceneNode SceneNode(const Entity& entity)
 {
     return entity.BodyComponent().SceneNode();
@@ -39,7 +38,7 @@ std::string_view Entity::ClassName() const
 
 Vector Entity::Origin() const
 {
-    // Spelled out rather than left to `Vector{}`: the SDK's default constructor does not zero.
+    // Vector's default constructor does not zero the value.
     const Schema::CGameSceneNode node = SceneNode(*this);
     return node ? node.AbsOrigin() : Vector(0.0f, 0.0f, 0.0f);
 }
@@ -107,8 +106,7 @@ Status Pawn::SetObserverMode(ObserverMode_t value) const
 
 std::string Pawn::ModelName() const
 {
-    // The pawn's scene node is a CSkeletonInstance; the model path is the CUtlSymbolLarge inside
-    // its embedded CModelState (an interned string pointer).
+    // The model path is the interned CUtlSymbolLarge in the pawn's embedded CModelState.
     const Schema::CSkeletonInstance skeleton{SceneNode(*this).Base()};
     if (!skeleton)
         return {};
@@ -119,14 +117,14 @@ std::string Pawn::ModelName() const
 
 void Pawn::SetRender(RenderMode_t mode, uint32_t color) const
 {
-    // Qualified: this member would otherwise hide the free function of the same name.
+    // Qualify the free function because the member has the same name.
     VoltMod::SetRender(_e, mode, color);
 }
 
 void Pawn::SetVisible(bool visible, uint8_t alpha) const
 {
     RenderMode_t mode = visible ? RenderMode_t::Normal : RenderMode_t::TransTexture;
-    // m_clrRender packs alpha in the top byte; the low three bytes stay opaque white.
+    // m_clrRender stores alpha in the top byte and opaque white in the low three.
     uint32_t color = visible ? ColorOpaqueWhite : ((static_cast<uint32_t>(alpha) << 24) | 0x00FFFFFFu);
     SetRender(mode, color);
 }
@@ -168,8 +166,7 @@ int Controller::Money() const
 
 Status Controller::SetMoney(int amount) const
 {
-    // The money services carry their own __m_pChainEntity, so the generated setter dirties the
-    // controller through that chainer; there is no outer pointer field to mark by hand.
+    // Money services own __m_pChainEntity, so the generated setter dirties the controller through it.
     const Schema::CCSPlayerController_InGameMoneyServices money = InGameMoneyServices();
     if (!money)
         return std::unexpected(Error::NotReady("money services unavailable"));
@@ -187,7 +184,7 @@ Status Controller::Kick(std::string_view reason) const
     if (!engine)
         return std::unexpected(Error::NotReady("IVEngineServer2 not available"));
 
-    // DisconnectClient takes a C string; the reason is short and this is not a hot path.
+    // DisconnectClient requires a null-terminated reason string.
     const std::string text(reason);
     engine->DisconnectClient(CPlayerSlot(_slot), NETWORK_DISCONNECT_KICKED, text.c_str());
     return {};
@@ -219,8 +216,7 @@ Status Controller::Respawn() const
     return {};
 }
 
-// Wrappers repeat the entity pointer in each Field and are passed by value. Keep these size checks
-// close to the fields so adding one requires an intentional update.
+// These wrappers are passed by value, so their field layout is part of the ABI.
 static_assert(sizeof(Pawn) <= 160, "Pawn is a frame-local value; keep the field list tight.");
 static_assert(sizeof(Controller) <= 104, "Controller is a frame-local value; keep the field list tight.");
 

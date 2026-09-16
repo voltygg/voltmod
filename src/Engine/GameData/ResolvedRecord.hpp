@@ -7,7 +7,7 @@
 namespace VoltMod
 {
 
-/** What a fully bound load resolved, as module-relative addresses, kept to compare builds offline. */
+/** Addresses and offsets from a successful load, normalized for comparison across builds. */
 struct ResolvedRecord
 {
     struct Location
@@ -31,9 +31,8 @@ struct ResolvedRecord
 };
 
 /**
- * Write @p record to `addons/voltmod/gamedata/resolved.<platform>.json`, stamped with the running
- * server build. Skipped when the file already carries that build, so later plugins leave it alone;
- * a failed write is logged, never returned.
+ * Write @p record to `addons/voltmod/gamedata/resolved.<platform>.json` once per server build.
+ * Write failures are logged and do not fail plugin loading.
  */
 void WriteResolvedRecord(const ResolvedRecord& record);
 

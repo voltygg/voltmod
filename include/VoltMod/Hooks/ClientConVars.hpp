@@ -27,16 +27,16 @@ enum class ClientConVarStatus
 /**
  * @brief Asks a connected client what one of its own convars is set to.
  *
- * The server sends `CSVCMsg_GetCvarValue` carrying a cookie; the client answers with
- * `CCLCMsg_RespondCvarValue` some round-trips later, intercepted through a vtable hook on
- * `CServerSideClient`. Queries are asynchronous, unordered, and never guaranteed to complete - a
- * client that disconnects or ignores the request produces no callback at all.
+ * The server sends `CSVCMsg_GetCvarValue` with a cookie. The client answers later with
+ * `CCLCMsg_RespondCvarValue`, intercepted through a vtable hook on `CServerSideClient`.
+ * Queries are asynchronous, unordered, and may never complete.
  *
  * A modified client can answer with anything, so treat the result as evidence, not proof.
  *
- * An optional load step: it depends on the `CServerSideClient::ProcessRespondCvarValue` vtable slot, the
- * `CServerSideClientBase::m_nClientSlot` offset and an RTTI/symbol lookup of the `CServerSideClient` vtable, all
- * of which drift with engine updates. On failure @ref Available carries the reason.
+ * This optional load step depends on the `CServerSideClient::ProcessRespondCvarValue` vtable slot,
+ * the `CServerSideClientBase::m_nClientSlot` offset, and an RTTI or symbol lookup of the
+ * `CServerSideClient` vtable. These values drift with engine updates. On failure @ref Available
+ * carries the reason.
  *
  * @code
  * runtime.Hooks.ClientConVars.Query(slot, "sensitivity",
@@ -64,7 +64,7 @@ public:
     ClientConVars(const ClientConVars&) = delete;
     ClientConVars& operator=(const ClientConVars&) = delete;
 
-    /** Install the response hook. Idempotent; an error leaves the service inert. */
+    /** Install the response hook. Idempotent; errors leave the service inert. */
     Status Initialize();
 
     /** Why queries cannot be sent: the error Initialize returned, or that it has not run. */
@@ -99,7 +99,7 @@ private:
     /** Deliver one CCLCMsg_RespondCvarValue, the message type the response hook carries. */
     void OnRespondCvarValue(const void* client, const void* message);
 
-    /** Sends a query to one connected human client. */
+    /** Send a query to one connected human client. */
     bool Send(int slot, const std::string& cvarName, int cookie);
 
     Interfaces& _interfaces;

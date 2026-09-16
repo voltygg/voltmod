@@ -19,10 +19,10 @@
 namespace VoltMod::Schema
 {
 
-/** Output read by `voltmod schemagen`. */
+/** Output consumed by `voltmod schemagen`. */
 static constexpr std::string_view DumpPath = "addons/voltmod/schema/server.json";
 
-/** The build stamped on the dump at @p path, or empty; reads only the file's head. */
+/** Read the build stamp from @p path, or return empty. */
 static std::string DumpedBuild(const std::filesystem::path& path)
 {
     std::ifstream file(path, std::ios::binary);
@@ -53,7 +53,7 @@ static CSchemaSystemTypeScope* ServerScope(ISchemaSystem* schema)
 
 void WriteSchemaDump(ISchemaSystem* schema, CGameEntitySystem* entities)
 {
-    static bool attempted = false;  // one try per plugin; the build stamp stops the rest
+    static bool attempted = false;  // one try per plugin; the build stamp prevents repeats
     if (attempted || !entities)
         return;
 
@@ -62,7 +62,7 @@ void WriteSchemaDump(ISchemaSystem* schema, CGameEntitySystem* entities)
     if (!server || DumpedBuild(output) == GameBuild())
         return;
 
-    // One serializer database covers every networked class; any entity class reaches it.
+    // One serializer database covers every networked class.
     const CEntityClass* entityClass = entities->FindClassByName("CBaseEntity");
     const CNetworkSerializerClassInfo* serializer = entityClass ? entityClass->m_NetworkSerializerInfo : nullptr;
     if (!serializer || !serializer->m_pDatabase)
@@ -86,7 +86,7 @@ Status VerifySchemaLayout(ISchemaSystem* schema)
         return std::unexpected(Error::NotReady("the server schema scope is not ready"));
     CSchemaSystemTypeScope* global = schema->GlobalTypeScope();
 
-    // Collect all mismatches so one shifted class does not hide the remaining drift.
+    // Report all mismatches so one shifted class does not hide the rest.
     std::vector<std::string> drift;
     for (const ClassLayout& expected : GeneratedLayout())
     {

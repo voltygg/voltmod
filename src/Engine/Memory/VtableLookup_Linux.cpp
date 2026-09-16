@@ -19,7 +19,6 @@
 namespace VoltMod
 {
 
-/** Read-only file mapping scoped to one lookup. */
 class MappedFile
 {
 public:
@@ -53,7 +52,6 @@ public:
 
     explicit operator bool() const { return _base != nullptr; }
 
-    /** Typed view of `count` records at `offset`, or nullptr if out of bounds. */
     template <typename T>
     const T* At(size_t offset, size_t count = 1) const
     {
@@ -67,7 +65,6 @@ private:
     size_t _size = 0;
 };
 
-/** Link-time value of `symbol`, or 0 when absent from both symbol tables. */
 static uint64_t FindSymbolValue(const MappedFile& elf, const std::string& symbol)
 {
     const auto* header = elf.At<Elf64_Ehdr>(0);
@@ -78,7 +75,7 @@ static uint64_t FindSymbolValue(const MappedFile& elf, const std::string& symbol
     if (!sections || header->e_shentsize != sizeof(Elf64_Shdr))
         return 0;
 
-    // .symtab is complete when present; .dynsym contains only exports.
+    // Use .symtab when present because .dynsym contains only exports.
     for (const Elf64_Word wanted : {Elf64_Word{SHT_SYMTAB}, Elf64_Word{SHT_DYNSYM}})
     {
         for (uint16_t i = 0; i < header->e_shnum; ++i)
@@ -106,7 +103,6 @@ static uint64_t FindSymbolValue(const MappedFile& elf, const std::string& symbol
     return 0;
 }
 
-/** @p module's mapped segments, found by the file name the loader knows it under. */
 static bool RangesOf(const LoadedModule& module, std::vector<ScanRange>& ranges)
 {
     LoadedModule mapped;
@@ -128,19 +124,18 @@ void* FindVirtualTableIn(const LoadedModule& module, std::string_view className)
             return const_cast<uint8_t*>(module.Base + value + 2 * sizeof(void*));
     }
 
-    // The game's modules hide their vtable symbols but keep RTTI, so search the mapped segments.
+    // Game modules hide vtable symbols but retain RTTI, so search mapped segments.
     std::vector<ScanRange> ranges;
     if (!RangesOf(module, ranges))
         return nullptr;
     return FindVirtualTableByTypeName(ranges, className);
 }
 
-/** The vptrs the cxxabi typeinfo classes give their instances, when this process exports them.
- *  Fixed for the process lifetime, so the symbol lookups run once. */
+/** The cxxabi typeinfo vptrs exported by this process, cached for its lifetime. */
 static const TypeInfoKinds& ExportedTypeInfoKinds()
 {
     static const TypeInfoKinds kinds = [] {
-        // A typeinfo's vptr points two words into its class's vtable.
+        // A typeinfo's vptr points two words into its class vtable.
         const auto vptrOf = [](const char* symbol) -> uintptr_t {
             void* table = dlsym(RTLD_DEFAULT, symbol);
             return table ? reinterpret_cast<uintptr_t>(table) + 2 * sizeof(void*) : 0;
@@ -161,7 +156,7 @@ Result<BaseSubobject> FindBaseIn(const LoadedModule& module, std::string_view cl
 
     const void* typeInfo = static_cast<void**>(primary)[-1];
     Result<int> offset = FindBaseOffsetByTypeInfo(typeInfo, baseName, ExportedTypeInfoKinds());
-    // A module with its own static copy of the C++ runtime has other vptrs; read the shapes instead.
+    // Modules with a private C++ runtime have different vptrs, so validate record shapes instead.
     if (!offset && offset.error().Code == ErrorCode::NotFound)
         offset = FindBaseOffsetByTypeInfo(typeInfo, baseName, {});
     if (!offset)

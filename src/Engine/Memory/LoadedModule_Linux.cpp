@@ -12,25 +12,22 @@
 namespace VoltMod
 {
 
-/** The file name in @p path, after the last separator. */
 static std::string_view BaseName(std::string_view path)
 {
     const size_t slash = path.rfind('/');
     return slash == std::string_view::npos ? path : path.substr(slash + 1);
 }
 
-/** The best match so far while walking the loaded objects; see @ref DlIterateCallback. */
 struct ModuleScan
 {
     std::string_view Name;          // basename to match, e.g. "libserver.so"
-    size_t BestSpan = 0;            // largest module span seen so far (selects the real lib)
+    size_t BestSpan = 0;            // largest span selects the real module
     std::vector<ScanRange> Ranges;  // PT_LOAD segments of the selected module
-    LoadedModule Module;            // load bias, span and on-disk path of the selected module
+    LoadedModule Module;            // selected module mapping and path
 };
 
-// Multiple objects can share the basename "libserver.so" (a loader stub plus the real game
-// library), and a substring + first-match scan picks the stub. Match the exact basename and keep
-// the largest-span mapping.
+// Multiple objects can share a basename. Match it exactly and keep the largest mapping to avoid
+// selecting a loader stub.
 static int DlIterateCallback(struct dl_phdr_info* info, size_t /*size*/, void* data)
 {
     auto* scan = static_cast<ModuleScan*>(data);
@@ -53,11 +50,10 @@ static int DlIterateCallback(struct dl_phdr_info* info, size_t /*size*/, void* d
     {
         scan->BestSpan = span;
         scan->Ranges = std::move(segments);
-        // l_addr, not the first segment's mapped address: ELF symbol values are link-time
-        // addresses that must be biased by exactly this to become runtime addresses.
+        // ELF symbol values are link-time addresses, so apply the loader's l_addr bias.
         scan->Module = {reinterpret_cast<const uint8_t*>(info->dlpi_addr), span, info->dlpi_name};
     }
-    return 0;  // keep iterating; the largest match wins
+    return 0;  // continue so the largest match wins
 }
 
 bool FindModuleAndRanges(std::string_view fileName, LoadedModule& module, std::vector<ScanRange>& ranges)

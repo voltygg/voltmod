@@ -33,30 +33,25 @@ TEST_CASE("A readable span is readable, and an impossible address is not")
     CHECK_FALSE(IsReadableAddress(nullptr, sizeof(void*)));
     CHECK_FALSE(IsReadableAddress(&local, 0));
 
-    // Neither null nor mapped.
     CHECK_FALSE(IsReadableAddress(reinterpret_cast<const void*>(~uintptr_t{0}), sizeof(void*)));
     CHECK_FALSE(IsReadableAddress(reinterpret_cast<const void*>(uintptr_t{8}), sizeof(void*)));
 }
 
 TEST_CASE("An Itanium vtable is found from its type name, past tables that are not the primary one")
 {
-    // "N3Foo" sits inside a nested name; only the second "3Foo" names the class.
     static const char names[] = "N3Foo\0"
                                 "3Foo";
     uintptr_t words[14]{};
-    words[0] = 1;  // the typeinfo's own vptr
+    words[0] = 1;
     words[1] = reinterpret_cast<uintptr_t>(&names[6]);
 
-    // A secondary table: nonzero offset-to-top.
     words[5] = static_cast<uintptr_t>(-16);
     words[6] = reinterpret_cast<uintptr_t>(&words[0]);
     words[7] = reinterpret_cast<uintptr_t>(&Slot0);
 
-    // A zero word before a typeinfo reference, but data after it.
     words[9] = reinterpret_cast<uintptr_t>(&words[0]);
     words[10] = reinterpret_cast<uintptr_t>(names);
 
-    // The primary table.
     words[12] = reinterpret_cast<uintptr_t>(&words[0]);
     words[13] = reinterpret_cast<uintptr_t>(&Slot1);
 
@@ -83,7 +78,7 @@ TEST_CASE("A type name inside a longer mangled name does not identify a class")
     CHECK(FindVirtualTableByTypeName(ranges, "Foo") == nullptr);
 }
 
-// Stand-ins for the cxxabi vtables a typeinfo's vptr points into; compared, never read.
+// Fake cxxabi vtable addresses. The lookup compares them but never dereferences them.
 static constexpr TypeInfoKinds FakeKinds{.SingleBase = 0x5100, .MultipleBases = 0x5200};
 static constexpr uintptr_t NoBases = 0x5000;
 
@@ -93,7 +88,7 @@ static const char FilterName[] = "6Filter";
 static const char OtherName[] = "5Other";
 static const char DerivedName[] = "7Derived";
 
-/** `__base_class_type_info::__offset_flags`: the offset above eight flag bits, marked public. */
+/** Encode an Itanium base offset with public and virtual flags. */
 static uintptr_t OffsetFlags(intptr_t offset, bool isVirtual = false)
 {
     return static_cast<uintptr_t>(offset * 256) | (isVirtual ? 1u : 0u) | 2u;
@@ -104,14 +99,14 @@ static uintptr_t Word(const void* address)
     return reinterpret_cast<uintptr_t>(address);
 }
 
-/** Itanium typeinfos for `Derived : Middle, Filter` with Middle at 0, Filter at 48, and `Filter : Root`. */
+/** Fake Itanium hierarchy used by the base-offset tests. */
 struct FakeHierarchy
 {
     uintptr_t Root[3] = {NoBases, Word(RootName), 0};
     uintptr_t Other[3] = {FakeKinds.SingleBase, Word(OtherName), Word(Root)};
     uintptr_t Middle[3] = {NoBases, Word(MiddleName), 0};
     uintptr_t Filter[3] = {FakeKinds.SingleBase, Word(FilterName), Word(Root)};
-    // Flags 1 keeps the {flags, count} word from reading as an aligned pointer.
+    // Keep the flags/count word from looking like an aligned pointer.
     uintptr_t Derived[7] = {FakeKinds.MultipleBases, Word(DerivedName), (uintptr_t{2} << 32) | 1, Word(Middle),
                             OffsetFlags(0),          Word(Filter),      OffsetFlags(48)};
 
@@ -149,7 +144,6 @@ TEST_CASE("A virtual or repeated Itanium base is refused")
     REQUIRE_FALSE(isVirtual.has_value());
     CHECK(isVirtual.error().Code == ErrorCode::Unsupported);
 
-    // Other and Filter each lead to a Root.
     FakeHierarchy repeated;
     repeated.Derived[3] = Word(repeated.Other);
     const auto twice = FindBaseOffsetByTypeInfo(repeated.Derived, "Root", FakeKinds);
@@ -163,7 +157,7 @@ TEST_CASE("A secondary Itanium vtable is found by its typeinfo and offset-to-top
     const uintptr_t typeInfo = Word(fake.Derived);
 
     uintptr_t words[12]{};
-    words[2] = typeInfo;  // primary: offset-to-top 0 in words[1]
+    words[2] = typeInfo;
     words[3] = Word(&Slot0);
     words[5] = static_cast<uintptr_t>(-48);
     words[6] = typeInfo;
@@ -174,7 +168,6 @@ TEST_CASE("A secondary Itanium vtable is found by its typeinfo and offset-to-top
     CHECK(FindVirtualTableByTypeInfo(ranges, fake.Derived, 0) == static_cast<void*>(&words[3]));
     CHECK(FindVirtualTableByTypeInfo(ranges, fake.Derived, -16) == nullptr);
 
-    // A second candidate means neither can be trusted.
     words[9] = static_cast<uintptr_t>(-48);
     words[10] = typeInfo;
     words[11] = Word(&Slot0);
@@ -205,10 +198,7 @@ using VoltMod::FindBaseInRtti;
 using VoltMod::FindVirtualTableInRtti;
 using VoltMod::PeRtti;
 
-/**
- * A fake MSVC module of 0x400 bytes: type descriptors in "data" below 0x100, and the locators,
- * class hierarchy and vtables of `Derived : Middle (struct, at 0), Filter (at 8)` in "rdata" above.
- */
+/** Fake PE image containing RTTI for Derived, Middle, and Filter. */
 class FakeMsvcModule
 {
 public:

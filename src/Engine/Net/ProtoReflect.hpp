@@ -9,22 +9,17 @@ namespace VoltMod
 
 /**
  * @file ProtoReflect.hpp
- * @brief Reaching a CS user message's fields by protobuf reflection.
+ * @brief Access CS user-message fields through protobuf reflection.
  *
- * The CS-specific user messages (`CCSUsrMsg_VoteStart`, `CCSUsrMsg_CustomHudClicked` and friends)
- * are declared in the SDK's cstrike15_usermessages.proto but are not generated into headers, and
- * consumer builds deliberately do not run protoc. The engine has registered their descriptors
- * though, so their fields are reached by name instead - no generated type, no build-system change,
- * and a renamed field degrades at runtime rather than miscompiling.
- *
- * Nothing here logs, because what a missing field costs is the caller's to say: a vote panel
- * renders incomplete, a HUD press is unreadable. Internal to `src/`.
+ * Consumer builds do not generate the CS-specific messages from cstrike15_usermessages.proto.
+ * Their engine-registered descriptors still support name-based lookup. A renamed field therefore
+ * appears missing at runtime, and each caller chooses its fallback.
  */
 
 using ProtoMessage = google::protobuf::Message;
 using ProtoFieldDescriptor = google::protobuf::FieldDescriptor;
 
-/** @p name's descriptor on @p message, or nullptr when the message carries no such field. */
+/** Descriptor for @p name, or nullptr when the field is absent. */
 const ProtoFieldDescriptor* ProtoField(const ProtoMessage& message, std::string_view name);
 
 }  // namespace VoltMod

@@ -146,9 +146,8 @@ Hand-authoring is one way to get a layout and stylesheet; most screens are
 generated instead - see @ref panorama_guide for the Jinja pipeline, the block
 library, and the generated C++ header.
 
-Compiling is `voltmod panorama compile`, which renders first, then runs the CS2
-Workshop Tools over every owner's rendered tree and installs the results into
-your own client:
+`voltmod panorama compile` renders the layouts, runs the CS2 Workshop Tools, and
+installs the results in your client:
 
 ```bash
 uv run poe panorama                          # every plugin that ships a screen
@@ -159,20 +158,20 @@ voltmod panorama compile --no-deploy         # compile only, leave the client al
 It finds the client through Steam's library list; set `CS2_CLIENT_PATH` in
 `.env` or pass `--client-path` when that guess is wrong. Sources are staged into
 `content/csgo_addons/voltmod/`, compiled to `game/csgo_addons/voltmod/`, and the
-compiled resources copied into `csgo/panorama/{layout,styles}/custom_game/` -
-which is why a reconnect is enough to see a change, with no addon involved. The
-Workshop Tools are Windows only, so this is too.
+compiled resources copied into `csgo/panorama/{layout,styles}/custom_game/`.
+Reconnect to see the change; no addon is required. The Workshop Tools run only on
+Windows.
 
-Reaching *other* players is a workshop addon: `voltmod panorama compile --addon
-NAME --no-deploy` builds one without touching your client, and the plugin
-requires the published id so joining clients download it.
+To reach *other* players, build a workshop addon with `voltmod panorama compile
+--addon NAME --no-deploy`. This leaves your client unchanged. The plugin must
+require the published id so joining clients download it.
 
 ```cpp
 if (auto required = runtime.Addons.Require(3401234567))
     _addon = std::move(*required);   // keep the Subscription; see the workshop guide
 ```
 
-See @ref workshop_guide for what that costs and what it does not do.
+See @ref workshop_guide for addon requirements and limitations.
 
 ## Reacting to a press
 
