@@ -22,8 +22,16 @@ range. Point out `!` commits since the last tag before bumping only the patch.
    line of a `!` commit says what consumers change.
 3. **Write the CHANGELOG entry** at the top of `CHANGELOG.md` as
    `## <version> (YYYY-MM-DD)` with `### Breaking`, `### New` and `### Fixed` sections
-   (omit empty ones), each a few short bullets. Say what a plugin author notices or must
-   do, in plain words. Skip ci, tests, style and internal refactors.
+   (omit empty ones). Release notes are for a plugin author deciding whether to upgrade,
+   not for someone reading the diff:
+   - One sentence per bullet, saying what they notice or what they must change. A breaking
+     bullet reads as an instruction, not as a report of what was refactored.
+   - Name a symbol only where they will type it. Group renames into one bullet instead of
+     listing every pair, and leave out anything they never touch.
+   - No mechanics: how the loader works, what a check rejects, why the change was made.
+     Point at the docs when the detail matters.
+   - Six or seven bullets across the whole entry is plenty. Skip ci, tests, style and
+     internal refactors, and skip a fix for something that never shipped.
 4. **Bump** `version` in `conanfile.py` and `pyproject.toml` to the same value, run
    `uv lock`, then confirm `uv run poe release version` prints it.
 5. **Commit and push:** stage `conanfile.py`, `pyproject.toml`, `uv.lock` and
