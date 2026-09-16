@@ -158,10 +158,10 @@ TEST_CASE("A secondary Itanium vtable is found by its typeinfo and offset-to-top
 
     uintptr_t words[12]{};
     words[2] = typeInfo;
-    words[3] = Word(&Slot0);
+    words[3] = reinterpret_cast<uintptr_t>(&Slot0);
     words[5] = static_cast<uintptr_t>(-48);
     words[6] = typeInfo;
-    words[7] = Word(&Slot1);
+    words[7] = reinterpret_cast<uintptr_t>(&Slot1);
 
     const ScanRange ranges[] = {{.Base = reinterpret_cast<const uint8_t*>(words), .Size = sizeof(words)}};
     CHECK(FindVirtualTableByTypeInfo(ranges, fake.Derived, -48) == static_cast<void*>(&words[7]));
@@ -170,7 +170,7 @@ TEST_CASE("A secondary Itanium vtable is found by its typeinfo and offset-to-top
 
     words[9] = static_cast<uintptr_t>(-48);
     words[10] = typeInfo;
-    words[11] = Word(&Slot0);
+    words[11] = reinterpret_cast<uintptr_t>(&Slot0);
     CHECK(FindVirtualTableByTypeInfo(ranges, fake.Derived, -48) == nullptr);
 }
 
