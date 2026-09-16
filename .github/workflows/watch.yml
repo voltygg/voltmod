@@ -19,7 +19,17 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
+      # An app identity, not GITHUB_TOKEN: Actions refuses to open a PR with it, and events it
+      # signs never start another workflow, so CI would skip the PR and every later push to it.
+      - uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: ./.github/actions/setup-toolchain
 
@@ -29,11 +39,14 @@ jobs:
 
       - name: Open or update the PR
         if: steps.watch.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           branch=bot/sdk-pins
           title="chore(sdk): follow upstream"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bot="${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config user.name "$bot"
+          git config user.email "$bot@users.noreply.github.com"
           git checkout -B "$branch"
           git add recipes/*/conandata.yml
           git commit -m "$title"
