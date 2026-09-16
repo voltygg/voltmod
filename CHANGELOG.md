@@ -8,37 +8,29 @@ What changed in each VoltMod release. Older history is in git.
 
 ### Breaking
 
-- `GameData` is gone. Call `Bindings::Load(path)`, which reads the file and binds every member in
-  one pass; unbound members are listed in `Bindings::Failures`.
-- `gamedata.jsonc` renames its sections and keys: `signatures` is `functions`, `addresses` is
-  `globals`, and an entry takes `module` where it took `library`. A `functions` pattern is now a
-  plain string per platform, a `globals` entry carries its own `pattern` and `rel32At`, and the
-  `max` and `align` constraints on an offset are gone.
-- `ClassSlot` and `HookClassSlot` are gone. A virtual binding is
-  `VirtualFn<Ret(Object*, Args...)>`, which carries the class table: call it directly and hook it
-  with `HookVirtual`.
-- `Runtime::Capabilities` is gone. Ask the service instead: `Hooks.Movement`, `Hooks.Teleport`,
-  `Hooks.Visibility`, `Hooks.ClientConVars` and `Screens` each have `Available()`, whose error
-  says why the feature is off.
-- `Runtime::LoadReport` is now `Runtime::LoadSteps`. `Run` and `Require` become `Optional` and
-  `Required`, each taking a step that returns `Status`; `StageResult`, `IsOk` and `Skipped` are
-  gone.
-- `Bindings::FilterMessage` is a `VirtualFn` hooked through its message-filter base, so gamedata
-  moves it out of `functions` into `vtables` with a `base`.
-- `OriginalVfn` is now `OriginalSlotLookup`, in `OriginalSlotLookup.hpp`.
+- Gamedata loads in one call: `Bindings::Load(path)` replaces `GameData`, and anything it could
+  not bind is listed in `Bindings::Failures`.
+- `gamedata.jsonc` renames its sections: `signatures` is `functions`, `addresses` is `globals`,
+  and an entry's `library` is `module`. The schema beside the file flags what you miss.
+- Hook a virtual function with `HookVirtual` and call it straight off its `VirtualFn`, which now
+  carries its own class table. `ClassSlot` and `HookClassSlot` are gone.
+- Ask a service whether it works instead of checking a capability: `Hooks.Movement`,
+  `Hooks.Teleport`, `Hooks.Visibility`, `Hooks.ClientConVars` and `Screens` each answer
+  `Available()`, and the error says why not.
+- `runtime.LoadReport` is `runtime.LoadSteps`; run work through `Optional` and `Required` instead
+  of `Run` and `Require`.
+- `OriginalVfn` is `OriginalSlotLookup`.
 
 ### New
 
-- The loader reads base classes from RTTI, so a `vtables` entry can count its slot in a `base`
-  and an `offsets` entry can name a `base` instead of a per-platform number. A base that is
-  virtual or appears twice is refused.
-- `gamedata.jsonc` records `build.server`, the `steam.inf` server version it was checked on. A
-  mismatch warns that the file's vtable indices and offsets are unchecked on this build.
-- Each load writes `addons/voltmod/gamedata/resolved.<platform>.json` once per server build, with
-  module-relative addresses, slot indices and offsets. Keep one from a known-good build to diff
-  against after an engine update.
-- `EntitySystem` checks that the pointer it reads really is a `CGameEntitySystem` before using it,
-  and turns entity lookups off with a reason instead of following a stale offset.
+- A gamedata entry can name a base class instead of a per-platform number, and VoltMod finds it
+  through RTTI.
+- `gamedata.jsonc` records the server build it was verified on, and the load warns when the
+  running server is a different one.
+- Every load writes `addons/voltmod/gamedata/resolved.<platform>.json`. Keep one from a working
+  build to compare against after a CS2 update.
+- Entity lookups switch off with a reason when the gamedata offset stops pointing at the entity
+  system, instead of reading whatever is there.
 
 ## 1.4.6 (2026-09-14)
 
