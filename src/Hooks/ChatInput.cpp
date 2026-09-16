@@ -60,21 +60,18 @@ bool ChatInput::TryConsume(int slot, std::string_view text)
     if (!opt.has_value())
         return false;
 
-    // Copy before invoking: a menu flow routinely chains prompts, so the callback can replace
-    // this very capture (BeginCapture) or drop it (CancelCapture).
-    auto cb = opt->Cb;
-    const uint64_t id = opt->Id;
+    // Taken before invoking, so a surface that redraws from the callback already sees no pending
+    // prompt and stops rendering one. It also leaves the callback free to chain its own capture.
+    Pending pending = std::move(*opt);
+    opt.reset();  // takes its pending timeout with it
 
-    bool accepted = cb && cb(slot, text);
+    const bool accepted = pending.Cb && pending.Cb(slot, text);
 
-    // Clear only if the capture we just ran is still the one installed. Without the id check a
-    // callback that chained a follow-up prompt had it deleted the moment it returned.
-    if (accepted)
-    {
-        auto& current = _pending[slot];
-        if (current.has_value() && current->Id == id)
-            current.reset();  // takes its pending timeout with it
-    }
+    // A rejected value keeps the player at the same prompt, so put it back - unless the callback
+    // has already moved them on to a different one.
+    if (!accepted && !_pending[slot].has_value())
+        _pending[slot] = std::move(pending);
+
     // Either way we suppress the chat broadcast - the player typed a value, not a chat message.
     return true;
 }

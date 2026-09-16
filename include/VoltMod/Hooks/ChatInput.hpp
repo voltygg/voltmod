@@ -45,9 +45,9 @@ public:
     /**
      * Begin capturing the next chat line from @p slot. If a previous capture is
      * still active, it is replaced (silently cancelled). The capture auto-cancels
-     * after @p timeoutMs without input.
+     * after @p timeoutMs without input - long enough to type a sentence, not to forget about it.
      */
-    void BeginCapture(int slot, std::string prompt, Callback callback, int timeoutMs = 30000);
+    void BeginCapture(int slot, std::string prompt, Callback callback, int timeoutMs = 60000);
 
     /** True if @p slot currently has a pending prompt. */
     bool IsCapturing(int slot) const;
