@@ -96,7 +96,7 @@ protected:
 
 private:
     /** Republish the entity system and the per-map state, then tell the plugin. */
-    void HandleServerStartup(const char* mapName);
+    void HandleServerStartup(std::string_view mapName);
 
     /** Route a say/say_team command to OnPlayerChat, blocking it once handled so the line does
      *  not reach the game's own say handler too. */

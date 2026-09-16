@@ -184,15 +184,15 @@ Result<BaseSubobject> FindBaseInRtti(const PeRtti& rtti, std::string_view classN
     return BaseSubobject{.Offset = offset, .Table = baseLocator ? TableAfter(rtti, baseLocator) : nullptr};
 }
 
-/** @p name's section in @p loaded, or an empty range. */
-static ScanRange FindSection(const LoadedModule& loaded, std::string_view name)
+/** @p name's section in @p module, or an empty range. */
+static ScanRange FindSection(const LoadedModule& module, std::string_view name)
 {
-    const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(loaded.Base);
-    if (loaded.Size < sizeof(IMAGE_DOS_HEADER) || dos->e_magic != IMAGE_DOS_SIGNATURE)
+    const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(module.Base);
+    if (module.Size < sizeof(IMAGE_DOS_HEADER) || dos->e_magic != IMAGE_DOS_SIGNATURE)
         return {};
 
-    const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS64*>(loaded.Base + dos->e_lfanew);
-    if (static_cast<size_t>(dos->e_lfanew) + sizeof(IMAGE_NT_HEADERS64) > loaded.Size ||
+    const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS64*>(module.Base + dos->e_lfanew);
+    if (static_cast<size_t>(dos->e_lfanew) + sizeof(IMAGE_NT_HEADERS64) > module.Size ||
         nt->Signature != IMAGE_NT_SIGNATURE)
         return {};
 
@@ -208,33 +208,33 @@ static ScanRange FindSection(const LoadedModule& loaded, std::string_view name)
 
         // The module is mapped, so use virtual size; raw size covers a zero virtual size.
         const DWORD size = sections[i].Misc.VirtualSize ? sections[i].Misc.VirtualSize : sections[i].SizeOfRawData;
-        if (sections[i].VirtualAddress + static_cast<size_t>(size) > loaded.Size)
+        if (sections[i].VirtualAddress + static_cast<size_t>(size) > module.Size)
             return {};
 
-        return {loaded.Base + sections[i].VirtualAddress, size};
+        return {module.Base + sections[i].VirtualAddress, size};
     }
     return {};
 }
 
-static PeRtti RttiOf(const LoadedModule& loaded)
+static PeRtti RttiOf(const LoadedModule& module)
 {
-    return {.Base = loaded.Base,
-            .Size = loaded.Size,
-            .Data = FindSection(loaded, ".data"),
-            .ReadOnlyData = FindSection(loaded, ".rdata")};
+    return {.Base = module.Base,
+            .Size = module.Size,
+            .Data = FindSection(module, ".data"),
+            .ReadOnlyData = FindSection(module, ".rdata")};
 }
 
-void* FindVirtualTableIn(const LoadedModule& loaded, std::string_view className)
+void* FindVirtualTableIn(const LoadedModule& module, std::string_view className)
 {
-    const PeRtti rtti = RttiOf(loaded);
+    const PeRtti rtti = RttiOf(module);
     if (!rtti.Data.Base || !rtti.ReadOnlyData.Base)
         return nullptr;
     return FindVirtualTableInRtti(rtti, className);
 }
 
-Result<BaseSubobject> FindBaseIn(const LoadedModule& loaded, std::string_view className, std::string_view baseName)
+Result<BaseSubobject> FindBaseIn(const LoadedModule& module, std::string_view className, std::string_view baseName)
 {
-    const PeRtti rtti = RttiOf(loaded);
+    const PeRtti rtti = RttiOf(module);
     if (!rtti.Data.Base || !rtti.ReadOnlyData.Base)
         return std::unexpected(Error::NotFound("the module has no RTTI sections"));
     return FindBaseInRtti(rtti, className, baseName);

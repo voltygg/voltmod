@@ -18,8 +18,8 @@ namespace VoltMod
  */
 void* FindVirtualTable(std::string_view moduleName, std::string_view className);
 
-/** Find @p className's primary vtable in the already-located module @p loaded, or nullptr. */
-void* FindVirtualTableIn(const LoadedModule& loaded, std::string_view className);
+/** Find @p className's primary vtable in the already-located @p module, or nullptr. */
+void* FindVirtualTableIn(const LoadedModule& module, std::string_view className);
 
 /** Find @p className's primary vtable through Itanium RTTI in readable @p ranges, or nullptr. */
 void* FindVirtualTableByTypeName(std::span<const ScanRange> ranges, std::string_view className);
@@ -38,12 +38,12 @@ struct BaseSubobject
 };
 
 /**
- * Find the base @p baseName inside @p className in @p loaded, through RTTI.
+ * Find the base @p baseName inside @p className in @p module, through RTTI.
  *
  * @return NotFound when either class is missing, Invalid when the base is in the class more than
  *         once, Unsupported for a virtual base. Table is null when the base has no vtable.
  */
-Result<BaseSubobject> FindBaseIn(const LoadedModule& loaded, std::string_view className, std::string_view baseName);
+Result<BaseSubobject> FindBaseIn(const LoadedModule& module, std::string_view className, std::string_view baseName);
 
 /**
  * The vptr values of Itanium `__si_class_type_info` (one base) and `__vmi_class_type_info`

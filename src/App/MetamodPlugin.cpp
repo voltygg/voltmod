@@ -10,7 +10,6 @@
 #include <VoltMod/Runtime.hpp>
 #include <VoltMod/Unsafe/Hook.hpp>
 #include <cstdio>
-#include <cstring>
 #include <format>
 #include <iserver.h>
 #include <string>
@@ -122,7 +121,7 @@ void MetamodPlugin::RegisterStandardHooks()
 
     add(HookInterface(&INetworkServerService::StartupServer, gi.NetworkServerService, nullptr,
                       [this](INetworkServerService&, const GameSessionConfiguration_t&, ISource2WorldSession*,
-                             const char* mapName) { HandleServerStartup(mapName); }));
+                             const char* mapName) { HandleServerStartup(mapName ? mapName : ""); }));
 
     add(HookInterface(&IServerGameClients::OnClientConnected, gi.ServerGameClients,
                       [this](IServerGameClients&, CPlayerSlot slot, const char* name, uint64 xuid, const char*,
@@ -165,26 +164,27 @@ void MetamodPlugin::RegisterStandardHooks()
     Log::Info("Hooks registered.");
 }
 
-void MetamodPlugin::HandleServerStartup(const char* mapName)
+void MetamodPlugin::HandleServerStartup(std::string_view mapName)
 {
-    Log::Info("Server startup: map '{}'.", mapName ? mapName : "<none>");
-    _runtime->Map.SetCurrent(mapName ? mapName : "");
+    Log::Info("Server startup: map '{}'.", mapName.empty() ? std::string_view("<none>") : mapName);
+    _runtime->Map.SetCurrent(std::string(mapName));
     // Publish the new entity system before calling the plugin callback.
     _runtime->Entities.OnServerStartup();
     Schema::WriteSchemaDump(_runtime->Unsafe.Interfaces.SchemaSystem, _runtime->Entities.GetEntitySystem());
     _runtime->GameEvents.OnServerStartup();
     _runtime->Hooks.ClientConVars.OnServerStartup();
-    OnServerStartup(mapName ? std::string_view(mapName) : std::string_view{});
+    OnServerStartup(mapName);
 }
 
 HookResult<void> MetamodPlugin::HandleConCommand(ConCommandRef cmd, const CCommandContext& ctx, const CCommand& args)
 {
-    const char* cmdName = cmd.GetName();
-    if (!cmdName)
+    const char* name = cmd.GetName();
+    if (!name)
         return {};
 
-    bool isSay = (strcmp(cmdName, "say") == 0);
-    bool isSayTeam = (strcmp(cmdName, "say_team") == 0);
+    const std::string_view cmdName = name;
+    const bool isSay = cmdName == "say";
+    const bool isSayTeam = cmdName == "say_team";
     if (!isSay && !isSayTeam)
         return {};
 

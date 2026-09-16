@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace VoltMod
@@ -38,6 +39,6 @@ struct ScanRange
  *
  * Each platform has a separate implementation because its loader exposes different metadata.
  */
-bool FindModuleAndRanges(const char* fileName, LoadedModule& loaded, std::vector<ScanRange>& ranges);
+bool FindModuleAndRanges(std::string_view fileName, LoadedModule& module, std::vector<ScanRange>& ranges);
 
 }  // namespace VoltMod

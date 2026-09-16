@@ -19,9 +19,9 @@ static std::unexpected<Error> Unbound(std::string reason)
     return std::unexpected(Error::NotFound(std::move(reason)));
 }
 
-static uint64_t Rva(const LoadedModule& loaded, const void* address)
+static uint64_t Rva(const LoadedModule& module, const void* address)
 {
-    return static_cast<uint64_t>(static_cast<const uint8_t*>(address) - loaded.Base);
+    return static_cast<uint64_t>(static_cast<const uint8_t*>(address) - module.Base);
 }
 
 /** The single match of @p pattern in @p moduleName. */
@@ -56,21 +56,21 @@ const LoadedModule* ModuleCache::Module(const std::string& moduleName)
     return it->second.Base ? &it->second : nullptr;
 }
 
-void* ModuleCache::ClassTable(const LoadedModule& loaded, const std::string& moduleName, const std::string& className)
+void* ModuleCache::ClassTable(const LoadedModule& module, const std::string& moduleName, const std::string& className)
 {
     auto [it, added] = _tables.try_emplace({moduleName, className}, nullptr);
     if (added)
-        it->second = FindVirtualTableIn(loaded, className);
+        it->second = FindVirtualTableIn(module, className);
     return it->second;
 }
 
-Result<BaseSubobject> ModuleCache::Base(const LoadedModule& loaded, const std::string& moduleName,
+Result<BaseSubobject> ModuleCache::Base(const LoadedModule& module, const std::string& moduleName,
                                         const std::string& className, const std::string& baseName)
 {
     auto key = std::tuple{moduleName, className, baseName};
     auto it = _bases.find(key);
     if (it == _bases.end())
-        it = _bases.emplace(std::move(key), FindBaseIn(loaded, className, baseName)).first;
+        it = _bases.emplace(std::move(key), FindBaseIn(module, className, baseName)).first;
     return it->second;
 }
 
@@ -212,21 +212,21 @@ Result<VirtualSlot> GameDataResolver::FindSlot(const std::string& key)
     if (*index < 0)
         return Unbound(std::format("index {} is negative", *index));
 
-    const LoadedModule* loaded = _cache.Module(entry.Module);
-    if (!loaded)
+    const LoadedModule* module = _cache.Module(entry.Module);
+    if (!module)
         return Unbound(std::format("module '{}' is not loaded", entry.Module));
 
     void* table = nullptr;
     std::string_view owner = entry.Class;
     if (entry.Base.empty())
     {
-        table = _cache.ClassTable(*loaded, entry.Module, entry.Class);
+        table = _cache.ClassTable(*module, entry.Module, entry.Class);
         if (!table)
             return Unbound(std::format("no vtable for '{}' in '{}'", entry.Class, entry.Module));
     }
     else
     {
-        const auto base = _cache.Base(*loaded, entry.Module, entry.Class, entry.Base);
+        const auto base = _cache.Base(*module, entry.Module, entry.Class, entry.Base);
         if (!base)
             return std::unexpected(base.error());
         if (!base->Table)
@@ -242,9 +242,9 @@ Result<VirtualSlot> GameDataResolver::FindSlot(const std::string& key)
         return Unbound(std::format("{}::[{}] does not hold code", owner, *index));
 
     // Hook trampolines live outside the module and have no useful module offset.
-    if (loaded->Contains(code))
-        _slotAddresses.push_back(std::format("{}={}+{:#x}", key, entry.Module, Rva(*loaded, code)));
-    _record.VTables.emplace(key, ResolvedRecord::Slot{entry.Module, Rva(*loaded, table), *index});
+    if (module->Contains(code))
+        _slotAddresses.push_back(std::format("{}={}+{:#x}", key, entry.Module, Rva(*module, code)));
+    _record.VTables.emplace(key, ResolvedRecord::Slot{entry.Module, Rva(*module, table), *index});
     return VirtualSlot{.Index = *index, .Table = table};
 }
 
@@ -269,11 +269,11 @@ Result<int> GameDataResolver::FindBaseOffset(const std::string& key, const GameD
     if (entry.Class.empty())
         return Unbound(std::format("base '{}' names no class", entry.Base));
 
-    const LoadedModule* loaded = _cache.Module(entry.Module);
-    if (!loaded)
+    const LoadedModule* module = _cache.Module(entry.Module);
+    if (!module)
         return Unbound(std::format("module '{}' is not loaded", entry.Module));
 
-    const auto base = _cache.Base(*loaded, entry.Module, entry.Class, entry.Base);
+    const auto base = _cache.Base(*module, entry.Module, entry.Class, entry.Base);
     if (!base)
         return std::unexpected(base.error());
 

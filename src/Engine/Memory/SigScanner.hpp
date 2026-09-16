@@ -22,7 +22,7 @@ struct ScanResult
 std::string PlatformModuleName(std::string_view moduleName);
 
 /** Locate a loaded module by platform-agnostic name. False when it is not loaded. */
-bool FindLoadedModule(std::string_view moduleName, LoadedModule& loaded);
+bool FindLoadedModule(std::string_view moduleName, LoadedModule& module);
 
 /**
  * Scan a loaded module's memory for a byte pattern (hex string with '?' wildcards).
@@ -32,14 +32,14 @@ bool FindLoadedModule(std::string_view moduleName, LoadedModule& loaded);
 ScanResult FindPatternEx(std::string_view moduleName, const std::string& pattern);
 
 /**
- * Resolve a RIP-relative address inside @p loaded: reads the 32-bit displacement at
+ * Resolve a RIP-relative address inside @p module: reads the 32-bit displacement at
  * @p matchAddress + @p ripOffset and returns the absolute target
  * (@p matchAddress + @p ripOffset + @p ripSize + displacement).
  *
  * @return 0 when the displacement does not lie wholly inside the module, which is the one
  *         failure that would otherwise be a read past the mapping rather than a wrong answer.
  */
-uintptr_t ResolveRelativeAddress(const LoadedModule& loaded, uintptr_t matchAddress, int ripOffset,
+uintptr_t ResolveRelativeAddress(const LoadedModule& module, uintptr_t matchAddress, int ripOffset,
                                  int ripSize = Rel32Size);
 
 /**

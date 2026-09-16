@@ -20,14 +20,14 @@ void* FindVirtualTable(std::string_view moduleName, std::string_view className)
     if (moduleName.empty() || className.empty())
         return nullptr;
 
-    LoadedModule loaded;
-    if (!FindLoadedModule(moduleName, loaded))
+    LoadedModule module;
+    if (!FindLoadedModule(moduleName, module))
     {
         Log::Warn("VtableLookup: Module '{}' not found.", PlatformModuleName(moduleName));
         return nullptr;
     }
 
-    void* vtable = FindVirtualTableIn(loaded, className);
+    void* vtable = FindVirtualTableIn(module, className);
     if (!vtable)
         Log::Warn("VtableLookup: '{}' vtable not found in '{}'.", className, PlatformModuleName(moduleName));
     return vtable;

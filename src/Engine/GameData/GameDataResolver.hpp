@@ -39,9 +39,9 @@ public:
     /** Each module is looked up once. Null when it is not loaded. */
     const LoadedModule* Module(const std::string& moduleName);
     /** One table per module and class; several slots share it. */
-    void* ClassTable(const LoadedModule& loaded, const std::string& moduleName, const std::string& className);
+    void* ClassTable(const LoadedModule& module, const std::string& moduleName, const std::string& className);
     /** Where @p baseName sits in @p className, looked up once per module, class and base. */
-    Result<BaseSubobject> Base(const LoadedModule& loaded, const std::string& moduleName, const std::string& className,
+    Result<BaseSubobject> Base(const LoadedModule& module, const std::string& moduleName, const std::string& className,
                                const std::string& baseName);
 
 private:

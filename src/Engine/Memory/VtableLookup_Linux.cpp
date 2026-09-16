@@ -106,31 +106,31 @@ static uint64_t FindSymbolValue(const MappedFile& elf, const std::string& symbol
     return 0;
 }
 
-/** @p loaded's mapped segments, found by the file name the loader knows it under. */
-static bool RangesOf(const LoadedModule& loaded, std::vector<ScanRange>& ranges)
+/** @p module's mapped segments, found by the file name the loader knows it under. */
+static bool RangesOf(const LoadedModule& module, std::vector<ScanRange>& ranges)
 {
     LoadedModule mapped;
-    const std::string fileName = std::filesystem::path(loaded.Path).filename().string();
-    return FindModuleAndRanges(fileName.c_str(), mapped, ranges);
+    const std::string fileName = std::filesystem::path(module.Path).filename().string();
+    return FindModuleAndRanges(fileName, mapped, ranges);
 }
 
-void* FindVirtualTableIn(const LoadedModule& loaded, std::string_view className)
+void* FindVirtualTableIn(const LoadedModule& module, std::string_view className)
 {
-    if (loaded.Path.empty())
+    if (module.Path.empty())
         return nullptr;
 
-    if (MappedFile elf(loaded.Path); elf)
+    if (MappedFile elf(module.Path); elf)
     {
         // Itanium ABI vtable symbols use _ZTV<length><name>.
         const std::string symbol = "_ZTV" + LengthPrefixedName(className);
         // Object vptrs point past offset-to-top and typeinfo.
         if (const uint64_t value = FindSymbolValue(elf, symbol))
-            return const_cast<uint8_t*>(loaded.Base + value + 2 * sizeof(void*));
+            return const_cast<uint8_t*>(module.Base + value + 2 * sizeof(void*));
     }
 
     // The game's modules hide their vtable symbols but keep RTTI, so search the mapped segments.
     std::vector<ScanRange> ranges;
-    if (!RangesOf(loaded, ranges))
+    if (!RangesOf(module, ranges))
         return nullptr;
     return FindVirtualTableByTypeName(ranges, className);
 }
@@ -153,9 +153,9 @@ static const TypeInfoKinds& ExportedTypeInfoKinds()
     return kinds;
 }
 
-Result<BaseSubobject> FindBaseIn(const LoadedModule& loaded, std::string_view className, std::string_view baseName)
+Result<BaseSubobject> FindBaseIn(const LoadedModule& module, std::string_view className, std::string_view baseName)
 {
-    void* primary = FindVirtualTableIn(loaded, className);
+    void* primary = FindVirtualTableIn(module, className);
     if (!primary)
         return std::unexpected(Error::NotFound(std::format("no vtable for '{}'", className)));
 
@@ -170,7 +170,7 @@ Result<BaseSubobject> FindBaseIn(const LoadedModule& loaded, std::string_view cl
         return BaseSubobject{.Offset = 0, .Table = primary};
 
     std::vector<ScanRange> ranges;
-    if (!RangesOf(loaded, ranges))
+    if (!RangesOf(module, ranges))
         return BaseSubobject{.Offset = *offset};
     return BaseSubobject{.Offset = *offset, .Table = FindVirtualTableByTypeInfo(ranges, typeInfo, -*offset)};
 }

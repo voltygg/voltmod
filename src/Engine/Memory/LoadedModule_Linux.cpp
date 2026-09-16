@@ -3,25 +3,26 @@
 #ifndef _WIN32
 
 #include <algorithm>
-#include <cstring>
 #include <dlfcn.h>
 #include <link.h>
+#include <string_view>
 #include <utility>
 #include <vector>
 
 namespace VoltMod
 {
 
-static const char* BaseName(const char* path)
+/** The file name in @p path, after the last separator. */
+static std::string_view BaseName(std::string_view path)
 {
-    const char* slash = strrchr(path, '/');
-    return slash ? slash + 1 : path;
+    const size_t slash = path.rfind('/');
+    return slash == std::string_view::npos ? path : path.substr(slash + 1);
 }
 
 /** The best match so far while walking the loaded objects; see @ref DlIterateCallback. */
 struct ModuleScan
 {
-    const char* Name = nullptr;     // basename to match, e.g. "libserver.so"
+    std::string_view Name;          // basename to match, e.g. "libserver.so"
     size_t BestSpan = 0;            // largest module span seen so far (selects the real lib)
     std::vector<ScanRange> Ranges;  // PT_LOAD segments of the selected module
     LoadedModule Module;            // load bias, span and on-disk path of the selected module
@@ -33,7 +34,7 @@ struct ModuleScan
 static int DlIterateCallback(struct dl_phdr_info* info, size_t /*size*/, void* data)
 {
     auto* scan = static_cast<ModuleScan*>(data);
-    if (!info->dlpi_name || strcmp(BaseName(info->dlpi_name), scan->Name) != 0)
+    if (!info->dlpi_name || BaseName(info->dlpi_name) != scan->Name)
         return 0;
 
     size_t span = 0;
@@ -59,14 +60,14 @@ static int DlIterateCallback(struct dl_phdr_info* info, size_t /*size*/, void* d
     return 0;  // keep iterating; the largest match wins
 }
 
-bool FindModuleAndRanges(const char* fileName, LoadedModule& loaded, std::vector<ScanRange>& ranges)
+bool FindModuleAndRanges(std::string_view fileName, LoadedModule& module, std::vector<ScanRange>& ranges)
 {
     ModuleScan scan{.Name = fileName};
     dl_iterate_phdr(DlIterateCallback, &scan);
     if (scan.Ranges.empty())
         return false;
 
-    loaded = std::move(scan.Module);
+    module = std::move(scan.Module);
     ranges = std::move(scan.Ranges);
     return true;
 }
