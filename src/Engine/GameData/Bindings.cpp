@@ -42,7 +42,7 @@ private:
     GameDataResolver& _resolver;
 };
 
-Status Bindings::Load(std::string_view path, const OriginalVfn& originalOf)
+Status Bindings::Load(std::string_view path, const OriginalSlotLookup& originalOf)
 {
     *this = Bindings{};
 

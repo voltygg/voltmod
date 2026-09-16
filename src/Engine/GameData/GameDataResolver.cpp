@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <format>
+#include <ranges>
 
 namespace VoltMod
 {
@@ -24,12 +25,12 @@ static uint64_t Rva(const LoadedModule& loaded, const void* address)
 }
 
 /** The single match of @p pattern in @p moduleName. */
-static Result<ScanResult> Scan(const std::string& moduleName, const std::string& pattern)
+static Result<ScanResult> Scan(std::string_view moduleName, const std::string& pattern)
 {
     if (pattern.empty())
         return Unbound("empty pattern");
 
-    ScanResult match = FindPatternEx(moduleName.c_str(), pattern);
+    ScanResult match = FindPatternEx(moduleName, pattern);
     if (!match.Module.Base)
         return Unbound(std::format("module '{}' is not loaded", moduleName));
     if (!match.Address)
@@ -40,51 +41,77 @@ static Result<ScanResult> Scan(const std::string& moduleName, const std::string&
 }
 
 /** What @p table's @p index held before another plugin hooked it. The slot must be readable. */
-static const void* OriginalSlot(void* table, int index, const OriginalVfn& originalOf)
+static const void* OriginalSlot(void* table, int index, const OriginalSlotLookup& originalOf)
 {
     void** slots = static_cast<void**>(table);
     const void* original = originalOf ? originalOf(slots, index) : nullptr;
     return original ? original : slots[index];
 }
 
-GameDataResolver::GameDataResolver(const GameDataDocument& file, const OriginalVfn& originalOf)
+const LoadedModule* ModuleCache::Module(const std::string& moduleName)
+{
+    auto [it, added] = _modules.try_emplace(moduleName);
+    if (added)
+        FindLoadedModule(moduleName, it->second);
+    return it->second.Base ? &it->second : nullptr;
+}
+
+void* ModuleCache::ClassTable(const LoadedModule& loaded, const std::string& moduleName, const std::string& className)
+{
+    auto [it, added] = _tables.try_emplace({moduleName, className}, nullptr);
+    if (added)
+        it->second = FindVirtualTableIn(loaded, className);
+    return it->second;
+}
+
+Result<BaseSubobject> ModuleCache::Base(const LoadedModule& loaded, const std::string& moduleName,
+                                        const std::string& className, const std::string& baseName)
+{
+    auto key = std::tuple{moduleName, className, baseName};
+    auto it = _bases.find(key);
+    if (it == _bases.end())
+        it = _bases.emplace(std::move(key), FindBaseIn(loaded, className, baseName)).first;
+    return it->second;
+}
+
+GameDataResolver::GameDataResolver(const GameDataDocument& file, const OriginalSlotLookup& originalOf)
     : _file(file), _originalOf(originalOf)
 {
-    for (const auto& [key, entry] : file.functions)
-        _sections[key].push_back("functions");
-    for (const auto& [key, entry] : file.globals)
-        _sections[key].push_back("globals");
-    for (const auto& [key, entry] : file.vtables)
-        _sections[key].push_back("vtables");
-    for (const auto& [key, entry] : file.offsets)
-        _sections[key].push_back("offsets");
+    const auto index = [this](const auto& section, std::string_view name) {
+        for (const auto& key : section | std::views::keys)
+            _sections[key].Sections.push_back(name);
+    };
+    index(file.functions, "functions");
+    index(file.globals, "globals");
+    index(file.vtables, "vtables");
+    index(file.offsets, "offsets");
 }
 
 void* GameDataResolver::Function(std::string_view key)
 {
-    const auto found =
-        Claim(key, {"functions"}).and_then([&](std::string_view) { return FindFunction(std::string(key)); });
-    return Keep(key, found);
+    const auto found = UseKey(key, {"functions"}).and_then([&] { return FindFunction(std::string(key)); });
+    return Bind(key, found);
 }
 
 void* GameDataResolver::FunctionOrGlobal(std::string_view key)
 {
-    const auto found = Claim(key, {"functions", "globals"}).and_then([&](std::string_view section) {
-        return section == "functions" ? FindFunction(std::string(key)) : FindGlobal(std::string(key));
+    const auto found = UseKey(key, {"functions", "globals"}).and_then([&] {
+        std::string name(key);
+        return _file.functions.contains(name) ? FindFunction(name) : FindGlobal(name);
     });
-    return Keep(key, found);
+    return Bind(key, found);
 }
 
 VirtualSlot GameDataResolver::Slot(std::string_view key)
 {
-    const auto found = Claim(key, {"vtables"}).and_then([&](std::string_view) { return FindSlot(std::string(key)); });
-    return Keep(key, found);
+    const auto found = UseKey(key, {"vtables"}).and_then([&] { return FindSlot(std::string(key)); });
+    return Bind(key, found);
 }
 
 int GameDataResolver::Offset(std::string_view key)
 {
-    const auto found = Claim(key, {"offsets"}).and_then([&](std::string_view) { return FindOffset(std::string(key)); });
-    return Keep(key, found, -1);
+    const auto found = UseKey(key, {"offsets"}).and_then([&] { return FindOffset(std::string(key)); });
+    return Bind(key, found, -1);
 }
 
 void GameDataResolver::LogSummary(std::string_view path) const
@@ -94,13 +121,21 @@ void GameDataResolver::LogSummary(std::string_view path) const
               _file.vtables.size(), _file.offsets.size());
     if (!_slotAddresses.empty())
         Log::Info("GameData: vtable slots hold {}.", Strings::Join(_slotAddresses, ", "));
-    if (!_baseOffsets.empty())
-        Log::Info("GameData: RTTI placed {}.", Strings::Join(_baseOffsets, ", "));
+
+    std::vector<std::string> baseOffsets;
+    for (const auto& [key, entry] : _file.offsets)
+    {
+        const auto placed = entry.Base.empty() ? _record.Offsets.end() : _record.Offsets.find(key);
+        if (placed != _record.Offsets.end())
+            baseOffsets.push_back(std::format("{} at +{}", key, placed->second));
+    }
+    if (!baseOffsets.empty())
+        Log::Info("GameData: RTTI placed {}.", Strings::Join(baseOffsets, ", "));
 
     std::vector<std::string> unused;
-    for (const auto& [key, sections] : _sections)
+    for (const auto& [key, entry] : _sections)
     {
-        if (!_used.contains(key))
+        if (!entry.Used)
             unused.push_back(key);
     }
     if (!unused.empty())
@@ -116,19 +151,19 @@ void GameDataResolver::LogSummary(std::string_view path) const
     }
 }
 
-Result<std::string_view> GameDataResolver::Claim(std::string_view key, std::initializer_list<std::string_view> readable)
+Status GameDataResolver::UseKey(std::string_view key, std::initializer_list<std::string_view> allowed)
 {
     const auto it = _sections.find(key);
     if (it == _sections.end())
         return Unbound("not in gamedata");
 
-    _used.insert(it->first);
-    const std::vector<std::string_view>& sections = it->second;
+    it->second.Used = true;
+    const std::vector<std::string_view>& sections = it->second.Sections;
     if (sections.size() > 1)
         return Unbound(std::format("in both '{}' and '{}'", sections[0], sections[1]));
-    if (!std::ranges::contains(readable, sections[0]))
+    if (!std::ranges::contains(allowed, sections[0]))
         return Unbound(std::format("in '{}', which this member does not bind from", sections[0]));
-    return sections[0];
+    return {};
 }
 
 Result<void*> GameDataResolver::FindFunction(const std::string& key)
@@ -177,29 +212,34 @@ Result<VirtualSlot> GameDataResolver::FindSlot(const std::string& key)
     if (*index < 0)
         return Unbound(std::format("index {} is negative", *index));
 
-    const LoadedModule* loaded = FindModule(entry.Module);
+    const LoadedModule* loaded = _cache.Module(entry.Module);
     if (!loaded)
         return Unbound(std::format("module '{}' is not loaded", entry.Module));
 
     void* table = nullptr;
+    std::string_view owner = entry.Class;
     if (entry.Base.empty())
-        table = Table(*loaded, entry.Module, entry.Class);
-    else if (const auto base = FindBase(*loaded, entry.Module, entry.Class, entry.Base); !base)
-        return std::unexpected(base.error());
+    {
+        table = _cache.ClassTable(*loaded, entry.Module, entry.Class);
+        if (!table)
+            return Unbound(std::format("no vtable for '{}' in '{}'", entry.Class, entry.Module));
+    }
     else
+    {
+        const auto base = _cache.Base(*loaded, entry.Module, entry.Class, entry.Base);
+        if (!base)
+            return std::unexpected(base.error());
+        if (!base->Table)
+            return Unbound(std::format("'{}' has no vtable of its own in '{}'", entry.Base, entry.Class));
         table = base->Table;
-
-    if (!table && entry.Base.empty())
-        return Unbound(std::format("no vtable for '{}' in '{}'", entry.Class, entry.Module));
-    if (!table)
-        return Unbound(std::format("'{}' has no vtable of its own in '{}'", entry.Base, entry.Class));
+        owner = entry.Base;
+    }
 
     // A short table ends before the index, so the slot is checked before it is read.
     void** slot = static_cast<void**>(table) + *index;
     const void* code = IsReadableAddress(slot, sizeof(void*)) ? OriginalSlot(table, *index, _originalOf) : nullptr;
     if (!IsExecutableAddress(code))
-        return Unbound(
-            std::format("{}::[{}] does not hold code", entry.Base.empty() ? entry.Class : entry.Base, *index));
+        return Unbound(std::format("{}::[{}] does not hold code", owner, *index));
 
     // Hook trampolines live outside the module and have no useful module offset.
     if (loaded->Contains(code))
@@ -229,47 +269,20 @@ Result<int> GameDataResolver::FindBaseOffset(const std::string& key, const GameD
     if (entry.Class.empty())
         return Unbound(std::format("base '{}' names no class", entry.Base));
 
-    const LoadedModule* loaded = FindModule(entry.Module);
+    const LoadedModule* loaded = _cache.Module(entry.Module);
     if (!loaded)
         return Unbound(std::format("module '{}' is not loaded", entry.Module));
 
-    const auto base = FindBase(*loaded, entry.Module, entry.Class, entry.Base);
+    const auto base = _cache.Base(*loaded, entry.Module, entry.Class, entry.Base);
     if (!base)
         return std::unexpected(base.error());
 
-    _baseOffsets.push_back(std::format("{} at +{}", key, base->Offset));
     _record.Offsets.emplace(key, base->Offset);
     return base->Offset;
 }
 
-const LoadedModule* GameDataResolver::FindModule(const std::string& moduleName)
-{
-    auto [it, added] = _modules.try_emplace(moduleName);
-    if (added)
-        FindLoadedModule(moduleName.c_str(), it->second);
-    return it->second.Base ? &it->second : nullptr;
-}
-
-void* GameDataResolver::Table(const LoadedModule& loaded, const std::string& moduleName, const std::string& className)
-{
-    auto [it, added] = _tables.try_emplace({moduleName, className}, nullptr);
-    if (added)
-        it->second = FindVirtualTableIn(loaded, className.c_str());
-    return it->second;
-}
-
-Result<BaseSubobject> GameDataResolver::FindBase(const LoadedModule& loaded, const std::string& moduleName,
-                                                 const std::string& className, const std::string& baseName)
-{
-    auto key = std::tuple{moduleName, className, baseName};
-    auto it = _bases.find(key);
-    if (it == _bases.end())
-        it = _bases.emplace(std::move(key), FindBaseIn(loaded, className.c_str(), baseName.c_str())).first;
-    return it->second;
-}
-
 template <class T>
-T GameDataResolver::Keep(std::string_view key, const Result<T>& resolved, std::type_identity_t<T> unbound)
+T GameDataResolver::Bind(std::string_view key, const Result<T>& resolved, std::type_identity_t<T> unbound)
 {
     if (resolved)
         return *resolved;

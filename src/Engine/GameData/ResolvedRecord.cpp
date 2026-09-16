@@ -33,17 +33,19 @@ struct glz::meta<VoltMod::ResolvedRecord>
 namespace VoltMod
 {
 
-void WriteResolvedRecord(ResolvedRecord record)
+void WriteResolvedRecord(const ResolvedRecord& record)
 {
     const std::string path = std::format("addons/voltmod/gamedata/resolved.{}.json", PlatformName);
-    record.Build = std::string(GameBuild());
-    if (const auto existing = Json::ReadFile<ResolvedRecord>(path); existing && existing->Build == record.Build)
+    const std::string build(GameBuild());
+    if (const auto existing = Json::ReadFile<ResolvedRecord>(path); existing && existing->Build == build)
         return;
 
-    if (const Status written = WriteAllText(path, Json::WritePretty(record)); !written)
+    ResolvedRecord stamped = record;
+    stamped.Build = build;
+    if (const Status written = WriteAllText(path, Json::WritePretty(stamped)); !written)
         Log::Warn("GameData: no record written to {}: {}", path, written.error().Detail);
     else
-        Log::Info("GameData: recorded what resolved on server {} in {}.", record.Build, path);
+        Log::Info("GameData: recorded what resolved on server {} in {}.", build, path);
 }
 
 }  // namespace VoltMod

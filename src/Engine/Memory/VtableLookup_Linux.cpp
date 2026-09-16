@@ -8,7 +8,9 @@
 #include <elf.h>
 #include <fcntl.h>
 #include <filesystem>
+#include <format>
 #include <string>
+#include <string_view>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -104,7 +106,15 @@ static uint64_t FindSymbolValue(const MappedFile& elf, const std::string& symbol
     return 0;
 }
 
-void* FindVirtualTableIn(const LoadedModule& loaded, const char* className)
+/** @p loaded's mapped segments, found by the file name the loader knows it under. */
+static bool RangesOf(const LoadedModule& loaded, std::vector<ScanRange>& ranges)
+{
+    LoadedModule mapped;
+    const std::string fileName = std::filesystem::path(loaded.Path).filename().string();
+    return FindModuleAndRanges(fileName.c_str(), mapped, ranges);
+}
+
+void* FindVirtualTableIn(const LoadedModule& loaded, std::string_view className)
 {
     if (loaded.Path.empty())
         return nullptr;
@@ -112,40 +122,42 @@ void* FindVirtualTableIn(const LoadedModule& loaded, const char* className)
     if (MappedFile elf(loaded.Path); elf)
     {
         // Itanium ABI vtable symbols use _ZTV<length><name>.
-        const std::string symbol = "_ZTV" + std::to_string(std::strlen(className)) + className;
+        const std::string symbol = "_ZTV" + LengthPrefixedName(className);
         // Object vptrs point past offset-to-top and typeinfo.
         if (const uint64_t value = FindSymbolValue(elf, symbol))
             return const_cast<uint8_t*>(loaded.Base + value + 2 * sizeof(void*));
     }
 
     // The game's modules hide their vtable symbols but keep RTTI, so search the mapped segments.
-    LoadedModule mapped;
     std::vector<ScanRange> ranges;
-    const std::string fileName = std::filesystem::path(loaded.Path).filename().string();
-    if (!FindModuleAndRanges(fileName.c_str(), mapped, ranges))
+    if (!RangesOf(loaded, ranges))
         return nullptr;
     return FindVirtualTableByTypeName(ranges, className);
 }
 
-/** The vptrs the cxxabi typeinfo classes give their instances, when this process exports them. */
-static TypeInfoKinds ExportedTypeInfoKinds()
+/** The vptrs the cxxabi typeinfo classes give their instances, when this process exports them.
+ *  Fixed for the process lifetime, so the symbol lookups run once. */
+static const TypeInfoKinds& ExportedTypeInfoKinds()
 {
-    // A typeinfo's vptr points two words into its class's vtable.
-    const auto vptrOf = [](const char* symbol) -> uintptr_t {
-        void* table = dlsym(RTLD_DEFAULT, symbol);
-        return table ? reinterpret_cast<uintptr_t>(table) + 2 * sizeof(void*) : 0;
-    };
+    static const TypeInfoKinds kinds = [] {
+        // A typeinfo's vptr points two words into its class's vtable.
+        const auto vptrOf = [](const char* symbol) -> uintptr_t {
+            void* table = dlsym(RTLD_DEFAULT, symbol);
+            return table ? reinterpret_cast<uintptr_t>(table) + 2 * sizeof(void*) : 0;
+        };
 
-    const TypeInfoKinds kinds{.SingleBase = vptrOf("_ZTVN10__cxxabiv120__si_class_type_infoE"),
-                              .MultipleBases = vptrOf("_ZTVN10__cxxabiv121__vmi_class_type_infoE")};
-    return kinds.SingleBase && kinds.MultipleBases ? kinds : TypeInfoKinds{};
+        const TypeInfoKinds found{.SingleBase = vptrOf("_ZTVN10__cxxabiv120__si_class_type_infoE"),
+                                  .MultipleBases = vptrOf("_ZTVN10__cxxabiv121__vmi_class_type_infoE")};
+        return found.SingleBase && found.MultipleBases ? found : TypeInfoKinds{};
+    }();
+    return kinds;
 }
 
-Result<BaseSubobject> FindBaseIn(const LoadedModule& loaded, const char* className, const char* baseName)
+Result<BaseSubobject> FindBaseIn(const LoadedModule& loaded, std::string_view className, std::string_view baseName)
 {
     void* primary = FindVirtualTableIn(loaded, className);
     if (!primary)
-        return std::unexpected(Error::NotFound(std::string("no vtable for '") + className + "'"));
+        return std::unexpected(Error::NotFound(std::format("no vtable for '{}'", className)));
 
     const void* typeInfo = static_cast<void**>(primary)[-1];
     Result<int> offset = FindBaseOffsetByTypeInfo(typeInfo, baseName, ExportedTypeInfoKinds());
@@ -157,10 +169,8 @@ Result<BaseSubobject> FindBaseIn(const LoadedModule& loaded, const char* classNa
     if (*offset == 0)
         return BaseSubobject{.Offset = 0, .Table = primary};
 
-    LoadedModule mapped;
     std::vector<ScanRange> ranges;
-    const std::string fileName = std::filesystem::path(loaded.Path).filename().string();
-    if (!FindModuleAndRanges(fileName.c_str(), mapped, ranges))
+    if (!RangesOf(loaded, ranges))
         return BaseSubobject{.Offset = *offset};
     return BaseSubobject{.Offset = *offset, .Table = FindVirtualTableByTypeInfo(ranges, typeInfo, -*offset)};
 }

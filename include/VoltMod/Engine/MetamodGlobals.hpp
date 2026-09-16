@@ -16,7 +16,7 @@ namespace VoltMod
 {
 
 /** What @p vtable's @p index held before a hook patched it, or nullptr. */
-inline const void* OriginalVfnPtr(void** vtable, int index)
+inline const void* ReadOriginalSlot(void** vtable, int index)
 {
     // Metamod hands the plugin its dispatcher during Load; before that there is nothing to ask.
     return KHook::__exported__khook ? KHook::FindOriginalVirtual(vtable, index) : nullptr;

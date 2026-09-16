@@ -35,6 +35,6 @@ struct ResolvedRecord
  * server build. Skipped when the file already carries that build, so later plugins leave it alone;
  * a failed write is logged, never returned.
  */
-void WriteResolvedRecord(ResolvedRecord record);
+void WriteResolvedRecord(const ResolvedRecord& record);
 
 }  // namespace VoltMod

@@ -15,9 +15,9 @@
 namespace VoltMod
 {
 
-void* FindVirtualTable(const char* moduleName, const char* className)
+void* FindVirtualTable(std::string_view moduleName, std::string_view className)
 {
-    if (!moduleName || !className || !*className)
+    if (moduleName.empty() || className.empty())
         return nullptr;
 
     LoadedModule loaded;
@@ -64,10 +64,15 @@ static std::vector<uintptr_t> FindWords(std::span<const ScanRange> ranges, uintp
     return found;
 }
 
-void* FindVirtualTableByTypeName(std::span<const ScanRange> ranges, const char* className)
+std::string LengthPrefixedName(std::string_view className)
+{
+    return std::to_string(className.size()) + std::string(className);
+}
+
+void* FindVirtualTableByTypeName(std::span<const ScanRange> ranges, std::string_view className)
 {
     // The type name is "<length><name>\0"; a typeinfo is {vptr, name}; a vtable is {offset-to-top, typeinfo, slots}.
-    const std::string typeName = std::to_string(std::strlen(className)) + className;
+    const std::string typeName = LengthPrefixedName(className);
     const std::string_view needle(typeName.c_str(), typeName.size() + 1);
     for (const ScanRange& range : ranges)
     {
@@ -91,24 +96,6 @@ void* FindVirtualTableByTypeName(std::span<const ScanRange> ranges, const char* 
         }
     }
     return nullptr;
-}
-
-std::optional<int> FindSlotInTable(void* table, const void* function, const OriginalVfn& originalOf, int maxSlots)
-{
-    if (!table || !function)
-        return std::nullopt;
-
-    auto** slots = static_cast<void**>(table);
-    for (int index = 0; index < maxSlots; ++index)
-    {
-        // Stop when the table ends or the current slot is not executable.
-        if (!IsReadableAddress(&slots[index], sizeof(void*)) || !IsExecutableAddress(slots[index]))
-            break;
-        // Match either the installed hook or the original function it replaced.
-        if (slots[index] == function || (originalOf && originalOf(slots, index) == function))
-            return index;
-    }
-    return std::nullopt;
 }
 
 bool IsInstanceOf(const void* object, const void* table)
@@ -142,12 +129,12 @@ static bool LooksLikeTypeInfo(uintptr_t address)
     return std::isdigit(static_cast<unsigned char>(*name)) || *name == 'N' || *name == '*';
 }
 
-/** Whether the typeinfo at @p address is named @p mangled. The typeinfo must be readable. */
-static bool NameIs(uintptr_t address, std::string_view mangled)
+/** Whether the typeinfo at @p address carries exactly @p wanted. The typeinfo must be readable. */
+static bool NameIs(uintptr_t address, std::string_view wanted)
 {
     const auto* name = reinterpret_cast<const char*>(ReadWord(address + sizeof(void*)));
-    return IsReadableAddress(name, mangled.size() + 1) && std::string_view(name, mangled.size()) == mangled &&
-           name[mangled.size()] == '\0';
+    return IsReadableAddress(name, wanted.size() + 1) && std::string_view(name, wanted.size()) == wanted &&
+           name[wanted.size()] == '\0';
 }
 
 static bool HasSingleBase(uintptr_t typeInfo, const TypeInfoKinds& kinds)
@@ -184,8 +171,8 @@ struct FoundBase
     bool Virtual = false;
 };
 
-/** Every base named @p mangled under @p typeInfo, which sits at @p offset in the complete object. */
-static void CollectBases(uintptr_t typeInfo, std::string_view mangled, FoundBase at, const TypeInfoKinds& kinds,
+/** Every base named @p wanted under @p typeInfo, which sits at @p at in the complete object. */
+static void CollectBases(uintptr_t typeInfo, std::string_view wanted, FoundBase at, const TypeInfoKinds& kinds,
                          int depth, std::vector<FoundBase>& found)
 {
     if (depth > MaxDepth)
@@ -196,10 +183,10 @@ static void CollectBases(uintptr_t typeInfo, std::string_view mangled, FoundBase
             return;
 
         const FoundBase here{.Offset = at.Offset + offset, .Virtual = at.Virtual || isVirtual};
-        if (NameIs(base, mangled))
+        if (NameIs(base, wanted))
             found.push_back(here);
         else
-            CollectBases(base, mangled, here, kinds, depth + 1, found);
+            CollectBases(base, wanted, here, kinds, depth + 1, found);
     };
 
     if (HasSingleBase(typeInfo, kinds))
@@ -217,15 +204,15 @@ static void CollectBases(uintptr_t typeInfo, std::string_view mangled, FoundBase
     }
 }
 
-Result<int> FindBaseOffsetByTypeInfo(const void* typeInfo, const char* baseName, const TypeInfoKinds& kinds)
+Result<int> FindBaseOffsetByTypeInfo(const void* typeInfo, std::string_view baseName, const TypeInfoKinds& kinds)
 {
     const auto address = reinterpret_cast<uintptr_t>(typeInfo);
     if (!LooksLikeTypeInfo(address))
         return std::unexpected(Error::Invalid("the class has no readable typeinfo"));
 
-    const std::string mangled = std::to_string(std::strlen(baseName)) + baseName;
+    const std::string wanted = LengthPrefixedName(baseName);
     std::vector<FoundBase> found;
-    CollectBases(address, mangled, {}, kinds, 0, found);
+    CollectBases(address, wanted, {}, kinds, 0, found);
 
     if (found.empty())
         return std::unexpected(Error::NotFound(std::format("'{}' is not a base", baseName)));

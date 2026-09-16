@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <format>
 #include <fstream>
 #include <map>
 #include <optional>
@@ -45,22 +46,22 @@ static const ByteHistogram& FrequenciesOf(const LoadedModule& loaded, const std:
     return cache.emplace(loaded.Base, counts).first->second;
 }
 
-std::string PlatformModuleName(const char* moduleName)
+std::string PlatformModuleName(std::string_view moduleName)
 {
 #ifdef _WIN32
-    return std::string(moduleName) + ".dll";
+    return std::format("{}.dll", moduleName);
 #else
-    return std::string("lib") + moduleName + ".so";
+    return std::format("lib{}.so", moduleName);
 #endif
 }
 
-bool FindLoadedModule(const char* moduleName, LoadedModule& loaded)
+bool FindLoadedModule(std::string_view moduleName, LoadedModule& loaded)
 {
     std::vector<ScanRange> ranges;  // unused; the module is what the caller asked for
     return FindModuleAndRanges(PlatformModuleName(moduleName).c_str(), loaded, ranges);
 }
 
-ScanResult FindPatternEx(const char* moduleName, const std::string& pattern)
+ScanResult FindPatternEx(std::string_view moduleName, const std::string& pattern)
 {
     const std::string fullName = PlatformModuleName(moduleName);
 

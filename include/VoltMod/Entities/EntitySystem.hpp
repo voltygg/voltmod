@@ -8,6 +8,7 @@
 #include <VoltMod/Entities/Controller.hpp>
 #include <VoltMod/Schema/Generated/CPlayer_MovementServices.hpp>
 #include <cstdint>
+#include <optional>
 #include <string_view>
 
 namespace VoltMod
@@ -123,8 +124,8 @@ private:
 
     Interfaces& _interfaces;
     const Bindings& _bindings;
-    bool _systemChecked = false;  // the first pointer read has been checked against its vtable
-    bool _wrongSystem = false;    // that check failed; the offset reaches some other object
+    /** Whether the first pointer read reached a real CGameEntitySystem; empty until one is read. */
+    std::optional<bool> _isRealSystem;
 };
 
 }  // namespace VoltMod

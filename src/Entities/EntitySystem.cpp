@@ -46,17 +46,16 @@ void EntitySystem::SetEntitySystem(CGameEntitySystem* system)
 CGameEntitySystem* EntitySystem::ReadEntitySystemPointer()
 {
     // Runs per call until the pointer resolves, so it stays a plain read.
-    if (!_interfaces.GameResourceService || _wrongSystem)
+    if (!_interfaces.GameResourceService || _isRealSystem == false)
         return nullptr;
 
     CGameEntitySystem* system = _bindings.GameEntitySystem.Read(_interfaces.GameResourceService);
     // A drifted offset reads some other object; its vtable says so before anything reads through it.
-    if (system && !_systemChecked)
+    if (system && !_isRealSystem)
     {
-        _systemChecked = true;
         const void* table = FindVirtualTable("server", "CGameEntitySystem");
-        _wrongSystem = table && !IsInstanceOf(system, table);
-        if (_wrongSystem)
+        _isRealSystem = !table || IsInstanceOf(system, table);
+        if (!*_isRealSystem)
         {
             Log::Error("The GameEntitySystem offset {} does not reach a CGameEntitySystem; entity lookups are off.",
                        _bindings.GameEntitySystem.Value());

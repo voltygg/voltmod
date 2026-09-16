@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 namespace VoltMod
 {
@@ -18,17 +19,17 @@ struct ScanResult
 };
 
 /** Platform file name for a module: "engine2" -> "engine2.dll" / "libengine2.so". */
-std::string PlatformModuleName(const char* moduleName);
+std::string PlatformModuleName(std::string_view moduleName);
 
 /** Locate a loaded module by platform-agnostic name. False when it is not loaded. */
-bool FindLoadedModule(const char* moduleName, LoadedModule& loaded);
+bool FindLoadedModule(std::string_view moduleName, LoadedModule& loaded);
 
 /**
  * Scan a loaded module's memory for a byte pattern (hex string with '?' wildcards).
  * Keeps scanning after the first hit so an ambiguous pattern is reported, not
  * silently taken.
  */
-ScanResult FindPatternEx(const char* moduleName, const std::string& pattern);
+ScanResult FindPatternEx(std::string_view moduleName, const std::string& pattern);
 
 /**
  * Resolve a RIP-relative address inside @p loaded: reads the 32-bit displacement at

@@ -7,7 +7,6 @@
 
 using VoltMod::ErrorCode;
 using VoltMod::FindBaseOffsetByTypeInfo;
-using VoltMod::FindSlotInTable;
 using VoltMod::FindVirtualTableByTypeInfo;
 using VoltMod::FindVirtualTableByTypeName;
 using VoltMod::IsReadableAddress;
@@ -27,8 +26,6 @@ static void Slot1()
     gSink += 2;
 }
 
-static constexpr int kMaxSlots = 16;
-
 TEST_CASE("A readable span is readable, and an impossible address is not")
 {
     int local = 0;
@@ -39,29 +36,6 @@ TEST_CASE("A readable span is readable, and an impossible address is not")
     // Neither null nor mapped.
     CHECK_FALSE(IsReadableAddress(reinterpret_cast<const void*>(~uintptr_t{0}), sizeof(void*)));
     CHECK_FALSE(IsReadableAddress(reinterpret_cast<const void*>(uintptr_t{8}), sizeof(void*)));
-}
-
-TEST_CASE("A function is found in the slot that holds it")
-{
-    void* table[] = {reinterpret_cast<void*>(&Slot0), reinterpret_cast<void*>(&Slot1), nullptr};
-
-    const auto found = FindSlotInTable(table, reinterpret_cast<const void*>(&Slot1), {}, kMaxSlots);
-    REQUIRE(found.has_value());
-    CHECK(*found == 1);
-}
-
-TEST_CASE("A table ends at the first slot holding no code")
-{
-    void* table[] = {reinterpret_cast<void*>(&Slot0), nullptr, reinterpret_cast<void*>(&Slot1), nullptr};
-
-    CHECK_FALSE(FindSlotInTable(table, reinterpret_cast<const void*>(&Slot1), {}, kMaxSlots).has_value());
-}
-
-TEST_CASE("Nothing is dereferenced without a table and a function")
-{
-    void* table[] = {reinterpret_cast<void*>(&Slot0), nullptr};
-    CHECK_FALSE(FindSlotInTable(nullptr, reinterpret_cast<const void*>(&Slot0), {}, kMaxSlots).has_value());
-    CHECK_FALSE(FindSlotInTable(table, nullptr, {}, kMaxSlots).has_value());
 }
 
 TEST_CASE("An Itanium vtable is found from its type name, past tables that are not the primary one")

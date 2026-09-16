@@ -2,7 +2,7 @@
 
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Engine/Memory/OriginalVfn.hpp>
+#include <VoltMod/Engine/Memory/OriginalSlotLookup.hpp>
 #include <bit>
 #include <cstdint>
 #include <cstring>
@@ -149,7 +149,7 @@ struct Bindings
      * is an error and binds nothing; otherwise any member that did not bind is an error, each one
      * named in @ref Failures.
      */
-    Status Load(std::string_view path, const OriginalVfn& originalOf = {});
+    Status Load(std::string_view path, const OriginalSlotLookup& originalOf = {});
 
     /** `key: reason` for every member the last @ref Load left empty. */
     std::vector<std::string> Failures;

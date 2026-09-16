@@ -105,7 +105,7 @@ bool Runtime::InitializeServices(const LoadContext& context)
     auto& steps = LoadSteps;
 
     // Names every entry that did not bind. Earlier plugins may hook class tables, so slots are read through KHook.
-    steps.Optional("GameData", [&] { return Unsafe.Bindings.Load(DefaultGameDataPath, OriginalVfnPtr); });
+    steps.Optional("GameData", [&] { return Unsafe.Bindings.Load(DefaultGameDataPath, ReadOriginalSlot); });
 
     // A required step writes its failure to Metamod and aborts the load.
     auto requiredStep = [&](std::string_view name, const std::function<VoltMod::Status()>& step) {

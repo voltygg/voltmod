@@ -9,8 +9,10 @@
 #include <cstdint>
 #include <cstring>
 #include <format>
+#include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace VoltMod
 {
@@ -65,8 +67,8 @@ static const uint8_t* AtRva(const PeRtti& rtti, int64_t rva, size_t bytes)
     return rtti.Base + rva;
 }
 
-/** How MSVC names a class or a struct called @p name in RTTI. */
-static std::array<std::string, 2> MangledNames(std::string_view name)
+/** The two spellings MSVC RTTI uses for @p name: one as a class, one as a struct. */
+static std::array<std::string, 2> ClassAndStructNames(std::string_view name)
 {
     return {std::format(".?AV{}@@", name), std::format(".?AU{}@@", name)};
 }
@@ -74,7 +76,7 @@ static std::array<std::string, 2> MangledNames(std::string_view name)
 /** RVA of @p className's type descriptor, or 0. */
 static uint32_t FindTypeDescriptor(const PeRtti& rtti, std::string_view className)
 {
-    for (const std::string& mangled : MangledNames(className))
+    for (const std::string& mangled : ClassAndStructNames(className))
     {
         // Include the terminator so a longer name does not match.
         const uint8_t* name = FindValue(rtti.Data.Base, End(rtti.Data), mangled.c_str(), mangled.size() + 1, 1);
@@ -84,10 +86,10 @@ static uint32_t FindTypeDescriptor(const PeRtti& rtti, std::string_view classNam
     return 0;
 }
 
-/** Whether the type descriptor at @p rva names @p className. */
-static bool TypeDescriptorNames(const PeRtti& rtti, int32_t rva, std::string_view className)
+/** Whether the type descriptor at @p rva carries one of @p names. */
+static bool TypeDescriptorMatches(const PeRtti& rtti, int32_t rva, std::span<const std::string> names)
 {
-    for (const std::string& mangled : MangledNames(className))
+    for (const std::string& mangled : names)
     {
         const uint8_t* name = AtRva(rtti, int64_t{rva} + TypeDescriptorName, mangled.size() + 1);
         if (name && std::memcmp(name, mangled.c_str(), mangled.size() + 1) == 0)
@@ -125,17 +127,22 @@ static void* TableAfter(const PeRtti& rtti, const uint8_t* locator)
     return word ? const_cast<uint8_t*>(word + sizeof(void*)) : nullptr;
 }
 
-void* FindVirtualTableInRtti(const PeRtti& rtti, const char* className)
+/** @p className's own type descriptor and the locator for its primary table; both null when absent. */
+static std::pair<uint32_t, const uint8_t*> PrimaryLocator(const PeRtti& rtti, std::string_view className)
 {
     const uint32_t typeDescriptor = FindTypeDescriptor(rtti, className);
-    const uint8_t* locator = typeDescriptor ? FindLocator(rtti, typeDescriptor, 0) : nullptr;
+    return {typeDescriptor, typeDescriptor ? FindLocator(rtti, typeDescriptor, 0) : nullptr};
+}
+
+void* FindVirtualTableInRtti(const PeRtti& rtti, std::string_view className)
+{
+    const uint8_t* locator = PrimaryLocator(rtti, className).second;
     return locator ? TableAfter(rtti, locator) : nullptr;
 }
 
-Result<BaseSubobject> FindBaseInRtti(const PeRtti& rtti, const char* className, const char* baseName)
+Result<BaseSubobject> FindBaseInRtti(const PeRtti& rtti, std::string_view className, std::string_view baseName)
 {
-    const uint32_t typeDescriptor = FindTypeDescriptor(rtti, className);
-    const uint8_t* locator = typeDescriptor ? FindLocator(rtti, typeDescriptor, 0) : nullptr;
+    const auto [typeDescriptor, locator] = PrimaryLocator(rtti, className);
     if (!locator)
         return std::unexpected(Error::NotFound(std::format("no RTTI for '{}'", className)));
 
@@ -147,13 +154,14 @@ Result<BaseSubobject> FindBaseInRtti(const PeRtti& rtti, const char* className, 
     if (!bases)
         return std::unexpected(Error::Invalid(std::format("the RTTI base list of '{}' is unreadable", className)));
 
+    const std::array<std::string, 2> wanted = ClassAndStructNames(baseName);
     std::vector<int32_t> offsets;
     size_t virtualBases = 0;
     // The first entry is the class itself; the rest are every base, direct or not, with its offset.
     for (uint32_t i = 1; i < count; ++i)
     {
         const uint8_t* base = AtRva(rtti, ReadAt<int32_t>(bases + i * sizeof(int32_t)), BaseSize);
-        if (!base || !TypeDescriptorNames(rtti, ReadAt<int32_t>(base), baseName))
+        if (!base || !TypeDescriptorMatches(rtti, ReadAt<int32_t>(base), wanted))
             continue;
 
         if (ReadAt<int32_t>(base + BaseVirtualOffset) != -1)
@@ -177,7 +185,7 @@ Result<BaseSubobject> FindBaseInRtti(const PeRtti& rtti, const char* className, 
 }
 
 /** @p name's section in @p loaded, or an empty range. */
-static ScanRange FindSection(const LoadedModule& loaded, const char* name)
+static ScanRange FindSection(const LoadedModule& loaded, std::string_view name)
 {
     const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(loaded.Base);
     if (loaded.Size < sizeof(IMAGE_DOS_HEADER) || dos->e_magic != IMAGE_DOS_SIGNATURE)
@@ -191,8 +199,11 @@ static ScanRange FindSection(const LoadedModule& loaded, const char* name)
     const IMAGE_SECTION_HEADER* sections = IMAGE_FIRST_SECTION(nt);
     for (WORD i = 0; i < nt->FileHeader.NumberOfSections; ++i)
     {
-        // Section names are eight bytes and may not be NUL-terminated.
-        if (std::strncmp(reinterpret_cast<const char*>(sections[i].Name), name, IMAGE_SIZEOF_SHORT_NAME) != 0)
+        // Section names are eight bytes, NUL-padded rather than NUL-terminated.
+        std::string_view actual(reinterpret_cast<const char*>(sections[i].Name), IMAGE_SIZEOF_SHORT_NAME);
+        if (const size_t padding = actual.find('\0'); padding != std::string_view::npos)
+            actual = actual.substr(0, padding);
+        if (actual != name)
             continue;
 
         // The module is mapped, so use virtual size; raw size covers a zero virtual size.
@@ -213,7 +224,7 @@ static PeRtti RttiOf(const LoadedModule& loaded)
             .ReadOnlyData = FindSection(loaded, ".rdata")};
 }
 
-void* FindVirtualTableIn(const LoadedModule& loaded, const char* className)
+void* FindVirtualTableIn(const LoadedModule& loaded, std::string_view className)
 {
     const PeRtti rtti = RttiOf(loaded);
     if (!rtti.Data.Base || !rtti.ReadOnlyData.Base)
@@ -221,7 +232,7 @@ void* FindVirtualTableIn(const LoadedModule& loaded, const char* className)
     return FindVirtualTableInRtti(rtti, className);
 }
 
-Result<BaseSubobject> FindBaseIn(const LoadedModule& loaded, const char* className, const char* baseName)
+Result<BaseSubobject> FindBaseIn(const LoadedModule& loaded, std::string_view className, std::string_view baseName)
 {
     const PeRtti rtti = RttiOf(loaded);
     if (!rtti.Data.Base || !rtti.ReadOnlyData.Base)
