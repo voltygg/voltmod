@@ -17,57 +17,50 @@ namespace VoltMod
 /**
  * @brief Per-player pending-prompt registry for menu free-text input.
  *
- * @ref MetamodPlugin::OnPlayerChat calls @ref TryConsume on every incoming
- * `say`/`say_team` message before its own command parsing - when a capture is
- * active for that slot, the message is routed to the registered callback and the
- * chat broadcast is suppressed. A plugin that overrides OnPlayerChat replaces that
- * default and must make the same call, or its menu input rows never complete.
+ * @ref MetamodPlugin::OnPlayerChat calls @ref TryConsume for every `say`/`say_team`
+ * message before command parsing. An active capture routes the message to its
+ * callback and suppresses the chat broadcast. Overrides must make the same call
+ * or menu text input will not complete.
  *
- * The service intentionally does *not* install its own chat hook: VoltMod cannot
- * suppress chat from a `player_say` listener (the broadcast has already
- * happened). Plumbing the consume call through the plugin's existing
- * `Hook_DispatchConCommand` is the only reliable suppression path.
+ * This service does not install a separate chat hook: `player_say` runs after the
+ * broadcast. The consume call must remain in `Hook_DispatchConCommand`.
  */
 class ChatInput
 {
 public:
-    /** @p scheduler runs the prompt timeouts. @p slots tells the registry when a slot changes
-     *  hands, so a prompt cannot outlive the player it was addressed to. Both must outlive it. */
+    /** Uses @p scheduler for timeouts and @p slots to clear recycled slots. Both must outlive this object. */
     ChatInput(Scheduler& scheduler, SlotEvents& slots);
-    /** Cancels every outstanding timeout, so none can fire into a destroyed registry. */
+    /** Cancels outstanding captures and their timeouts before the registry is destroyed. */
     ~ChatInput();
     ChatInput(const ChatInput&) = delete;
     ChatInput& operator=(const ChatInput&) = delete;
 
-    /** Validator return: true = accept and clear; false = re-prompt and keep waiting. */
+    /** The callback returns true to accept and clear input, or false to keep capturing. */
     using Callback = std::function<bool(int slot, std::string_view text)>;
 
     /**
-     * Begin capturing the next chat line from @p slot. If a previous capture is
-     * still active, it is replaced (silently cancelled). The capture auto-cancels
-     * after @p timeoutMs without input - long enough to type a sentence, not to forget about it.
+     * Begin capturing the next chat line from @p slot. Replaces and cancels any
+     * existing capture. A positive @p timeoutMs cancels the capture without input.
      */
     void BeginCapture(int slot, std::string prompt, Callback callback, int timeoutMs = 60000);
 
-    /** True if @p slot currently has a pending prompt. */
     bool IsCapturing(int slot) const;
 
     /**
      * Route a chat line to the active capture, if any. Returns true when the
-     * message was consumed (caller should suppress the chat broadcast).
+     * message was consumed, so the caller must suppress the chat broadcast.
+     * A rejected value restores the capture unless the callback installed a replacement.
      */
     bool TryConsume(int slot, std::string_view text);
 
     /** Cancel without firing the callback. */
     void CancelCapture(int slot);
 
-    /** The active prompt for @p slot, or nullopt if no capture is pending. By value: a capture
-     *  can be cancelled or replaced from the same frame that read it. */
+    /** Returns a copy of the active prompt, or nullopt. The copy remains valid if the capture changes. */
     std::optional<std::string> GetPrompt(int slot) const;
 
 private:
-    /** Cancel only if @p slot still holds the capture with @p id: a timeout must not take out
-     *  whatever replaced the prompt it was scheduled for. */
+    /** Cancel only if @p slot still holds @p id, so a timeout cannot cancel its replacement. */
     void CancelCaptureById(int slot, uint64_t id);
 
     struct Pending
@@ -75,14 +68,13 @@ private:
         std::string Prompt;
         Callback Cb;
         Subscription Timeout;
-        /** Distinguishes this capture from any that replaces it while its own callback runs. */
-        uint64_t Id = 0;
+        uint64_t Id = 0;  // Identifies the capture associated with its timeout.
     };
 
     Scheduler& _scheduler;
     std::array<std::optional<Pending>, MaxPlayers> _pending{};
     uint64_t _nextId = 1;
-    /** Declared after _pending so it unregisters before the captures its callback cancels. */
+    /** Declared after _pending so it unsubscribes before _pending is destroyed. */
     Subscription _slotListener;
 };
 

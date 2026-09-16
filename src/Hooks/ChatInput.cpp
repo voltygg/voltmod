@@ -7,8 +7,7 @@ namespace VoltMod
 
 ChatInput::ChatInput(Scheduler& scheduler, SlotEvents& slots)
     : _scheduler(scheduler),
-      // SlotEvents fires when a slot is filled as well as emptied; a fresh occupant has no capture
-      // pending, so cancelling on both edges covers "left" without a dedicated event.
+      // Slot changes cancel captures so a new occupant cannot inherit the previous occupant's prompt.
       _slotListener(slots.Changed += [this](int slot) { CancelCapture(slot); })
 {}
 
@@ -23,7 +22,7 @@ void ChatInput::BeginCapture(int slot, std::string prompt, Callback callback, in
     if (!IsValidSlot(slot) || !callback)
         return;
 
-    CancelCapture(slot);  // drops any existing prompt + scheduled timeout
+    CancelCapture(slot);
 
     Pending p{
         .Prompt = std::move(prompt),
@@ -33,11 +32,9 @@ void ChatInput::BeginCapture(int slot, std::string prompt, Callback callback, in
 
     if (timeoutMs > 0)
     {
-        // Cancel by capture id, not by slot: the prompt can outlive its player, and cancelling
-        // the slot would take out whatever the next occupant had open.
+        // Match by capture ID so a stale timeout cannot cancel a newer capture in the same slot.
         const uint64_t id = p.Id;
-        // Capturing `this` is safe: the timer lives inside the capture, so dropping the capture
-        // cancels it before this registry can go away.
+        // Each capture owns its timer, so clearing the capture prevents callbacks into this registry.
         p.Timeout = _scheduler.Delay(timeoutMs, [this, slot, id]() { CancelCaptureById(slot, id); });
     }
 
@@ -60,19 +57,17 @@ bool ChatInput::TryConsume(int slot, std::string_view text)
     if (!opt.has_value())
         return false;
 
-    // Taken before invoking, so a surface that redraws from the callback already sees no pending
-    // prompt and stops rendering one. It also leaves the callback free to chain its own capture.
+    // Move the capture out before the callback so redraws see no prompt and callbacks can start another capture.
     Pending pending = std::move(*opt);
-    opt.reset();  // takes its pending timeout with it
+    opt.reset();
 
     const bool accepted = pending.Cb && pending.Cb(slot, text);
 
-    // A rejected value keeps the player at the same prompt, so put it back - unless the callback
-    // has already moved them on to a different one.
+    // Restore rejected input unless the callback already installed a replacement capture.
     if (!accepted && !_pending[slot].has_value())
         _pending[slot] = std::move(pending);
 
-    // Either way we suppress the chat broadcast - the player typed a value, not a chat message.
+    // Captured input is never forwarded as chat, even when rejected.
     return true;
 }
 
@@ -91,7 +86,7 @@ void ChatInput::CancelCapture(int slot)
     if (!IsValidSlot(slot))
         return;
 
-    _pending[slot].reset();  // takes its pending timeout with it
+    _pending[slot].reset();  // Dropping the capture also cancels its timeout.
 }
 
 std::optional<std::string> ChatInput::GetPrompt(int slot) const
