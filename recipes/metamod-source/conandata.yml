@@ -1,4 +1,4 @@
 sources:
-  "2.0.0.20260910":
+  "2.0.0.20260915":
     url: "https://github.com/alliedmodders/metamod-source.git"
-    commit: "7e24ce9e7a03bfeb5c8ab1e4dd55d5d5747f3d33"
+    commit: "399ccf393b8ac78162086e464e1225d200d93971"
