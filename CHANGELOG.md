@@ -4,6 +4,42 @@
 
 What changed in each VoltMod release. Older history is in git.
 
+## 1.4.7 (2026-09-16)
+
+### Breaking
+
+- `GameData` is gone. Call `Bindings::Load(path)`, which reads the file and binds every member in
+  one pass; unbound members are listed in `Bindings::Failures`.
+- `gamedata.jsonc` renames its sections and keys: `signatures` is `functions`, `addresses` is
+  `globals`, and an entry takes `module` where it took `library`. A `functions` pattern is now a
+  plain string per platform, a `globals` entry carries its own `pattern` and `rel32At`, and the
+  `max` and `align` constraints on an offset are gone.
+- `ClassSlot` and `HookClassSlot` are gone. A virtual binding is
+  `VirtualFn<Ret(Object*, Args...)>`, which carries the class table: call it directly and hook it
+  with `HookVirtual`.
+- `Runtime::Capabilities` is gone. Ask the service instead: `Hooks.Movement`, `Hooks.Teleport`,
+  `Hooks.Visibility`, `Hooks.ClientConVars` and `Screens` each have `Available()`, whose error
+  says why the feature is off.
+- `Runtime::LoadReport` is now `Runtime::LoadSteps`. `Run` and `Require` become `Optional` and
+  `Required`, each taking a step that returns `Status`; `StageResult`, `IsOk` and `Skipped` are
+  gone.
+- `Bindings::FilterMessage` is a `VirtualFn` hooked through its message-filter base, so gamedata
+  moves it out of `functions` into `vtables` with a `base`.
+- `OriginalVfn` is now `OriginalSlotLookup`, in `OriginalSlotLookup.hpp`.
+
+### New
+
+- The loader reads base classes from RTTI, so a `vtables` entry can count its slot in a `base`
+  and an `offsets` entry can name a `base` instead of a per-platform number. A base that is
+  virtual or appears twice is refused.
+- `gamedata.jsonc` records `build.server`, the `steam.inf` server version it was checked on. A
+  mismatch warns that the file's vtable indices and offsets are unchecked on this build.
+- Each load writes `addons/voltmod/gamedata/resolved.<platform>.json` once per server build, with
+  module-relative addresses, slot indices and offsets. Keep one from a known-good build to diff
+  against after an engine update.
+- `EntitySystem` checks that the pointer it reads really is a `CGameEntitySystem` before using it,
+  and turns entity lookups off with a reason instead of following a stale offset.
+
 ## 1.4.6 (2026-09-14)
 
 ### Breaking
