@@ -15,7 +15,7 @@ runs:
           > /etc/apt/sources.list.d/steamrt-beta.list
         apt-get -o Acquire::Check-Valid-Until=false update
         DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-          ca-certificates ccache gcc-14-monolithic git ninja-build
+          ca-certificates ccache gcc-14-monolithic git ninja-build zstd
         rm -rf /var/lib/apt/lists/*
         echo "steamrt=true" >> "$GITHUB_OUTPUT"
         {
