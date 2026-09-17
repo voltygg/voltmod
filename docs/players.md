@@ -114,7 +114,7 @@ The event fires for additions, removals, and tracked slots cleared during unload
 Use it for identity-free slot state; use roster events when the handler needs a
 `Player`. Keep the subscription beside the state it resets.
 
-For time-decaying per-player scores (suspicion, rate limits), use @ref VoltMod::SlidingWindowScore when the threshold is "N events in the last M seconds" and evidence should expire on a hard boundary. It takes caller-supplied seconds; @ref VoltMod::Time::MonotonicSeconds is the matching clock. @ref VoltMod::RandomIndex is the framework's single source of randomness - use it for a random pick (`@random` targeting does) rather than seeding a generator per feature or reaching for the tick counter, which repeats within a frame. Both are unit-tested in the framework's SDK-free test suite.
+For time-decaying per-player scores (suspicion, rate limits), use @ref VoltMod::DecayingScore, which halves a score every half-life so old evidence fades instead of falling off a window edge. It holds one value and one timestamp whatever the event count, and takes caller-supplied seconds; @ref VoltMod::Time::MonotonicSeconds is the matching clock. @ref VoltMod::RandomIndex is the framework's single source of randomness - use it for a random pick (`@random` targeting does) rather than seeding a generator per feature or reaching for the tick counter, which repeats within a frame. Both are unit-tested in the framework's SDK-free test suite.
 
 ## The gate
 
