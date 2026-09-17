@@ -19,6 +19,9 @@ public:
     ::CEntityInstance* OwnerEntity() const;
 
     void* MyWeapons() const;
+
+    uint32_t ActiveWeapon() const;
+    void SetActiveWeapon(uint32_t value) const;
 };
 
 }  // namespace VoltMod::Schema

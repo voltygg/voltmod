@@ -173,6 +173,7 @@ void MetamodPlugin::HandleServerStartup(std::string_view mapName)
     Schema::WriteSchemaDump(_runtime->Unsafe.Interfaces.SchemaSystem, _runtime->Entities.GetEntitySystem());
     _runtime->GameEvents.OnServerStartup();
     _runtime->Hooks.ClientConVars.OnServerStartup();
+    _runtime->Hooks.Trace.OnServerStartup();
     OnServerStartup(mapName);
 }
 

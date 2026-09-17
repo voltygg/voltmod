@@ -16,7 +16,10 @@
       "m_nRenderMode",
       "m_clrRender>RenderColor"
     ],
-    "CBasePlayerController": ["m_iszPlayerName>Name", "m_hPawn>PawnHandle"],
+    "CBasePlayerController": [
+      "m_iszPlayerName>Name",
+      "m_hPawn>PawnHandle"
+    ],
     "CBasePlayerPawn": [
       "m_pObserverServices>ObserverServices",
       "m_pItemServices>ItemServices",
@@ -24,25 +27,59 @@
       "m_pWeaponServices>WeaponServices",
       "m_hController>ControllerHandle"
     ],
-    "CBaseCombatCharacter": ["m_hMyWearables>MyWearables"],
-    "CBodyComponent": ["m_pSceneNode>SceneNode"],
-    "CCSPlayerController": ["m_hPlayerPawn>PlayerPawnHandle", "m_pInGameMoneyServices>InGameMoneyServices",
-      "m_szClan>Clan"],
-    "CCSPlayerController_InGameMoneyServices": ["m_iAccount>Account"],
+    "CBaseCombatCharacter": [
+      "m_hMyWearables>MyWearables"
+    ],
+    "CBodyComponent": [
+      "m_pSceneNode>SceneNode"
+    ],
+    "CCSPlayerController": [
+      "m_hPlayerPawn>PlayerPawnHandle",
+      "m_pInGameMoneyServices>InGameMoneyServices",
+      "m_szClan>Clan"
+    ],
+    "CCSPlayerController_InGameMoneyServices": [
+      "m_iAccount>Account"
+    ],
     "CCSPlayerPawn": [
       "m_ArmorValue>Armor",
       "m_angEyeAngles>EyeAngles",
       "m_flVelocityModifier>SpeedModifier",
-      "m_bOnGroundLastTick"
+      "m_bOnGroundLastTick",
+      "m_pAimPunchServices>AimPunchServices",
+      "m_bIsScoped>Scoped",
+      "m_iShotsFired>ShotsFired",
+      "m_iLastWeaponFireUsercmd>LastWeaponFireCommand",
+      "m_entitySpottedState>SpottedState"
     ],
-    "CCSPlayerPawnBase": ["m_flFlashDuration", "m_flFlashMaxAlpha"],
-    "CGameSceneNode": ["m_vecAbsOrigin>AbsOrigin", "m_angAbsRotation>AbsRotation"],
-    "CInButtonState": ["m_pButtonStates>ButtonStates"],
-    "CModelState": ["m_ModelName>ModelName"],
-    "CPlayer_MovementServices": ["m_nButtons>Buttons"],
-    "CPlayer_ObserverServices": ["m_iObserverMode>ObserverMode", "m_hObserverTarget"],
-    "CPlayer_WeaponServices": ["m_hMyWeapons>MyWeapons"],
-    "CSkeletonInstance": ["m_modelState>ModelState"],
+    "CCSPlayerPawnBase": [
+      "m_flFlashDuration",
+      "m_flFlashMaxAlpha"
+    ],
+    "CGameSceneNode": [
+      "m_vecAbsOrigin>AbsOrigin",
+      "m_angAbsRotation>AbsRotation"
+    ],
+    "CInButtonState": [
+      "m_pButtonStates>ButtonStates"
+    ],
+    "CModelState": [
+      "m_ModelName>ModelName"
+    ],
+    "CPlayer_MovementServices": [
+      "m_nButtons>Buttons"
+    ],
+    "CPlayer_ObserverServices": [
+      "m_iObserverMode>ObserverMode",
+      "m_hObserverTarget"
+    ],
+    "CPlayer_WeaponServices": [
+      "m_hMyWeapons>MyWeapons",
+      "m_hActiveWeapon>ActiveWeapon"
+    ],
+    "CSkeletonInstance": [
+      "m_modelState>ModelState"
+    ],
     "CCSCustomHudLayout": [
       "m_vecPanelIds>PanelIds",
       "m_vecClassNames>ClassNames",
@@ -51,12 +88,35 @@
       "m_vecPlayerLayoutStates>PlayerLayoutStates:int32_t",
       "m_strLayout>Layout"
     ],
-    "CCSCustomHudLayoutState": ["m_bInputCaptureEnabled>InputCaptureEnabled"],
-    "CVoteController": "*"
+    "CCSCustomHudLayoutState": [
+      "m_bInputCaptureEnabled>InputCaptureEnabled"
+    ],
+    "CVoteController": "*",
+    "CCSPlayer_AimPunchServices": [
+      "m_predictableBaseAngle>BaseAngle",
+      "m_predictableBaseAngleVel>BaseAngleVelocity",
+      "m_predictableBaseTick>BaseTick:int32_t",
+      "m_predictableBaseTickInterpAmount>BaseTickFraction"
+    ],
+    "EntitySpottedState_t": [
+      "m_bSpotted>Spotted",
+      "m_bSpottedByMask>SpottedByMask"
+    ]
   },
   "wrappers": {
-    "Entity": ["CBaseEntity"],
-    "Pawn": ["CCSPlayerPawn", "CCSPlayerPawnBase", "CBasePlayerPawn", "CBaseCombatCharacter", "CBaseModelEntity"],
-    "Controller": ["CCSPlayerController", "CBasePlayerController"]
+    "Entity": [
+      "CBaseEntity"
+    ],
+    "Pawn": [
+      "CCSPlayerPawn",
+      "CCSPlayerPawnBase",
+      "CBasePlayerPawn",
+      "CBaseCombatCharacter",
+      "CBaseModelEntity"
+    ],
+    "Controller": [
+      "CCSPlayerController",
+      "CBasePlayerController"
+    ]
   }
 }

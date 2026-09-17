@@ -15,6 +15,7 @@
 #include <VoltMod/Schema/Generated/CCSPlayerController_InGameMoneyServices.hpp>
 #include <VoltMod/Schema/Generated/CCSPlayerPawn.hpp>
 #include <VoltMod/Schema/Generated/CCSPlayerPawnBase.hpp>
+#include <VoltMod/Schema/Generated/CCSPlayer_AimPunchServices.hpp>
 #include <VoltMod/Schema/Generated/CEntityComponent.hpp>
 #include <VoltMod/Schema/Generated/CEntityInstance.hpp>
 #include <VoltMod/Schema/Generated/CGameSceneNode.hpp>
@@ -29,5 +30,6 @@
 #include <VoltMod/Schema/Generated/CSkeletonInstance.hpp>
 #include <VoltMod/Schema/Generated/CVoteController.hpp>
 #include <VoltMod/Schema/Generated/CountdownTimer.hpp>
+#include <VoltMod/Schema/Generated/EntitySpottedState_t.hpp>
 #include <VoltMod/Schema/Generated/Enums.hpp>
 #include <VoltMod/Schema/View.hpp>

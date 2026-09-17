@@ -1,4 +1,4 @@
-# Movement, teleports, and server commands {#sdk_hooks_guide}
+# Movement, teleports, traces, and server commands {#sdk_hooks_guide}
 
 [TOC]
 
@@ -100,6 +100,30 @@ Semantics worth knowing:
 - The slot is resolved per call from the pawn's controller, and is `-1` for non-player pawns.
 - Respawns need no rebinding: a new pawn shares the class vtable. A spawn also raises the event.
 - The hook spans map changes. `runtime.Clock` restarts with the map.
+
+## Trace
+
+@ref VoltMod::Trace runs line traces through the engine's physics query, for line-of-sight and
+reachability questions:
+
+```cpp
+const VoltMod::Pawn self = runtime.Entities.PawnOf(slot);
+const VoltMod::Pawn other = runtime.Entities.PawnOf(target);
+const auto clear = runtime.Hooks.Trace.Clear(self.EyePosition(), other.EyePosition(),
+                                             {.Ignore1 = self.Raw(), .Ignore2 = other.Raw()});
+if (clear && *clear)
+    ...  // nothing solid between the two eyes
+```
+
+`Line` returns where the trace stopped; `Clear` is the yes/no form. `TraceOptions::Layers` picks
+what stops the trace: `Sight` (world geometry and line-of-sight blockers, so windows and clips do
+not count) or `Solid` (what a player body collides with).
+
+The engine keeps its query object private, so the service records it from the engine's own first
+trace after each map start through a short-lived hook on `TraceShape`, then removes that hook a
+tick later. Until then `Available()` reports NotReady and traces return that error; after a CS2
+update that breaks the `TraceShape` pattern it reports Unsupported. Traces run synchronously on
+the game thread and cost a few microseconds each.
 
 ## Hooking a vfunc the framework does not cover
 

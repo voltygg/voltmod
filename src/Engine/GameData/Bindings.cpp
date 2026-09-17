@@ -63,6 +63,7 @@ Status Bindings::Load(std::string_view path, const OriginalSlotLookup& originalO
     bind(FindEntityByClassName, "CGameEntitySystem::FindEntityByClassName");
     bind(FindEntityByName, "CGameEntitySystem::FindEntityByName");
     bind(LegacyGameEventListener, "GetLegacyGameEventListener");
+    bind(TraceShape, "TraceShape");
 
     bind(CustomHudSetHasClass, "CCSCustomHudLayout::SetHasClass");
     bind(CustomHudSetHasClassForPlayer, "CCSCustomHudLayout::SetHasClassForPlayer");

@@ -4,6 +4,8 @@
 
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Schema/Generated/CCSPlayerPawnBase.hpp>
+#include <VoltMod/Schema/Generated/CCSPlayer_AimPunchServices.hpp>
+#include <VoltMod/Schema/Generated/EntitySpottedState_t.hpp>
 #include <VoltMod/Schema/View.hpp>
 #include <cstdint>
 
@@ -27,6 +29,19 @@ public:
 
     bool OnGroundLastTick() const;
     void SetOnGroundLastTick(bool value) const;
+
+    CCSPlayer_AimPunchServices AimPunchServices() const;
+
+    bool Scoped() const;
+    void SetScoped(bool value) const;
+
+    int32_t ShotsFired() const;
+    void SetShotsFired(int32_t value) const;
+
+    int32_t LastWeaponFireCommand() const;
+    void SetLastWeaponFireCommand(int32_t value) const;
+
+    EntitySpottedState_t SpottedState() const;
 };
 
 }  // namespace VoltMod::Schema

@@ -16,16 +16,18 @@ extern const FieldLayout CCSCustomHudLayout_kFields[6];
 extern const FieldLayout CCSCustomHudLayoutState_kFields[1];
 extern const FieldLayout CCSPlayerController_kFields[3];
 extern const FieldLayout CCSPlayerController_InGameMoneyServices_kFields[1];
-extern const FieldLayout CCSPlayerPawn_kFields[4];
+extern const FieldLayout CCSPlayerPawn_kFields[9];
 extern const FieldLayout CCSPlayerPawnBase_kFields[2];
+extern const FieldLayout CCSPlayer_AimPunchServices_kFields[4];
 extern const FieldLayout CGameSceneNode_kFields[2];
 extern const FieldLayout CInButtonState_kFields[1];
 extern const FieldLayout CModelState_kFields[1];
 extern const FieldLayout CPlayer_MovementServices_kFields[1];
 extern const FieldLayout CPlayer_ObserverServices_kFields[2];
-extern const FieldLayout CPlayer_WeaponServices_kFields[1];
+extern const FieldLayout CPlayer_WeaponServices_kFields[2];
 extern const FieldLayout CSkeletonInstance_kFields[1];
 extern const FieldLayout CVoteController_kFields[14];
+extern const FieldLayout EntitySpottedState_t_kFields[2];
 
 static const ClassLayout kClasses[] = {
     {.Name = "CBaseAnimGraph", .Size = 2400, .OwnerLinkOffset = -1, .Fields = {}},
@@ -48,8 +50,12 @@ static const ClassLayout kClasses[] = {
      .Size = 88,
      .OwnerLinkOffset = 8,
      .Fields = {CCSPlayerController_InGameMoneyServices_kFields, 1}},
-    {.Name = "CCSPlayerPawn", .Size = 4992, .OwnerLinkOffset = -1, .Fields = {CCSPlayerPawn_kFields, 4}},
+    {.Name = "CCSPlayerPawn", .Size = 4992, .OwnerLinkOffset = -1, .Fields = {CCSPlayerPawn_kFields, 9}},
     {.Name = "CCSPlayerPawnBase", .Size = 3376, .OwnerLinkOffset = -1, .Fields = {CCSPlayerPawnBase_kFields, 2}},
+    {.Name = "CCSPlayer_AimPunchServices",
+     .Size = 232,
+     .OwnerLinkOffset = 8,
+     .Fields = {CCSPlayer_AimPunchServices_kFields, 4}},
     {.Name = "CEntityComponent", .Size = 8, .OwnerLinkOffset = -1, .Fields = {}},
     {.Name = "CEntityInstance", .Size = 48, .OwnerLinkOffset = -1, .Fields = {}},
     {.Name = "CGameSceneNode", .Size = 272, .OwnerLinkOffset = -1, .Fields = {CGameSceneNode_kFields, 2}},
@@ -69,10 +75,11 @@ static const ClassLayout kClasses[] = {
     {.Name = "CPlayer_WeaponServices",
      .Size = 176,
      .OwnerLinkOffset = 8,
-     .Fields = {CPlayer_WeaponServices_kFields, 1}},
+     .Fields = {CPlayer_WeaponServices_kFields, 2}},
     {.Name = "CSkeletonInstance", .Size = 1120, .OwnerLinkOffset = -1, .Fields = {CSkeletonInstance_kFields, 1}},
     {.Name = "CVoteController", .Size = 1624, .OwnerLinkOffset = -1, .Fields = {CVoteController_kFields, 14}},
     {.Name = "CountdownTimer", .Size = 24, .OwnerLinkOffset = -1, .Fields = {}},
+    {.Name = "EntitySpottedState_t", .Size = 24, .OwnerLinkOffset = -1, .Fields = {EntitySpottedState_t_kFields, 2}},
 };
 
 std::span<const ClassLayout> GeneratedLayout()

@@ -11,6 +11,7 @@
 #include <VoltMod/Hooks/ClientConVars.hpp>
 #include <VoltMod/Hooks/Movement.hpp>
 #include <VoltMod/Hooks/Teleport.hpp>
+#include <VoltMod/Hooks/Trace.hpp>
 #include <VoltMod/Hooks/Visibility.hpp>
 #include <VoltMod/Hooks/Vote.hpp>
 
@@ -20,8 +21,8 @@ namespace VoltMod
 /**
  * @brief Engine hooks grouped by function.
  *
- * Most hooks install on first subscription and remove after the last one. ClientConVars is
- * initialized by Runtime::Start.
+ * Most hooks install on first subscription and remove after the last one. ClientConVars and
+ * Trace are initialized by Runtime::Start.
  */
 struct HookServices
 {
@@ -32,7 +33,8 @@ struct HookServices
           ChatInput(scheduler, slots),
           Teleport(entities, bindings),
           ClientConVars(interfaces, bindings, slots),
-          Vote(interfaces, entities, gameEvents, scheduler)
+          Vote(interfaces, entities, gameEvents, scheduler),
+          Trace(bindings, scheduler)
     {}
 
     VoltMod::Movement Movement;
@@ -41,6 +43,7 @@ struct HookServices
     VoltMod::Teleport Teleport;
     VoltMod::ClientConVars ClientConVars;
     VoltMod::Vote Vote;
+    VoltMod::Trace Trace;
 };
 
 }  // namespace VoltMod

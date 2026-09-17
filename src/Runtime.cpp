@@ -133,6 +133,7 @@ bool Runtime::InitializeServices(const LoadContext& context)
     steps.Optional("ConVars", [&] { return ConVars.Initialize(); });
     steps.Optional("GameEvents", [&] { return GameEvents.Initialize(); });
     steps.Optional("ClientConVars", [&] { return Hooks.ClientConVars.Initialize(); });
+    steps.Optional("Trace", [&] { return Hooks.Trace.Initialize(); });
 
     for (const auto& [feature, reason] : UnavailableFeatures())
         Log::Warn("{} is unavailable: {}", feature, reason);
@@ -146,6 +147,7 @@ std::map<std::string, std::string> Runtime::UnavailableFeatures() const
         {"Teleport", Hooks.Teleport.Available()},
         {"Visibility", Hooks.Visibility.Available()},
         {"ClientConVars", Hooks.ClientConVars.Available()},
+        {"Trace", Hooks.Trace.Available()},
         {"Screens", Screens.Available()},
     };
 

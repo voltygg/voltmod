@@ -34,6 +34,38 @@ void SetOnGroundLastTick(bool value) const
 {
     Schema::CCSPlayerPawn{_e}.SetOnGroundLastTick(value);
 }
+Schema::CCSPlayer_AimPunchServices AimPunchServices() const
+{
+    return Schema::CCSPlayerPawn{_e}.AimPunchServices();
+}
+bool Scoped() const
+{
+    return Schema::CCSPlayerPawn{_e}.Scoped();
+}
+void SetScoped(bool value) const
+{
+    Schema::CCSPlayerPawn{_e}.SetScoped(value);
+}
+int32_t ShotsFired() const
+{
+    return Schema::CCSPlayerPawn{_e}.ShotsFired();
+}
+void SetShotsFired(int32_t value) const
+{
+    Schema::CCSPlayerPawn{_e}.SetShotsFired(value);
+}
+int32_t LastWeaponFireCommand() const
+{
+    return Schema::CCSPlayerPawn{_e}.LastWeaponFireCommand();
+}
+void SetLastWeaponFireCommand(int32_t value) const
+{
+    Schema::CCSPlayerPawn{_e}.SetLastWeaponFireCommand(value);
+}
+Schema::EntitySpottedState_t SpottedState() const
+{
+    return Schema::CCSPlayerPawn{_e}.SpottedState();
+}
 
 // CCSPlayerPawnBase
 float FlashDuration() const

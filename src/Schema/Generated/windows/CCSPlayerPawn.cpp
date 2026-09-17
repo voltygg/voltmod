@@ -5,15 +5,22 @@
 
 #include <VoltMod/Engine/Memory/MemoryAccess.hpp>
 #include <VoltMod/Schema/Generated/CCSPlayerPawn.hpp>
+#include <VoltMod/Schema/Generated/CCSPlayer_AimPunchServices.hpp>
+#include <VoltMod/Schema/Generated/EntitySpottedState_t.hpp>
 
 namespace VoltMod::Schema
 {
 
 // ---- CCSPlayerPawn, 4992 bytes -------------------------------------
-static constexpr int32_t kCCSPlayerPawn_Armor = 4820;             // int32
-static constexpr int32_t kCCSPlayerPawn_EyeAngles = 4976;         // QAngle
-static constexpr int32_t kCCSPlayerPawn_SpeedModifier = 4768;     // float32
-static constexpr int32_t kCCSPlayerPawn_OnGroundLastTick = 3820;  // bool
+static constexpr int32_t kCCSPlayerPawn_Armor = 4820;                  // int32
+static constexpr int32_t kCCSPlayerPawn_EyeAngles = 4976;              // QAngle
+static constexpr int32_t kCCSPlayerPawn_SpeedModifier = 4768;          // float32
+static constexpr int32_t kCCSPlayerPawn_OnGroundLastTick = 3820;       // bool
+static constexpr int32_t kCCSPlayerPawn_AimPunchServices = 3416;       // CCSPlayer_AimPunchServices*
+static constexpr int32_t kCCSPlayerPawn_Scoped = 4732;                 // bool
+static constexpr int32_t kCCSPlayerPawn_ShotsFired = 4760;             // int32
+static constexpr int32_t kCCSPlayerPawn_LastWeaponFireCommand = 4832;  // int32
+static constexpr int32_t kCCSPlayerPawn_SpottedState = 4704;           // EntitySpottedState_t
 
 int32_t CCSPlayerPawn::Armor() const
 {
@@ -82,12 +89,84 @@ void CCSPlayerPawn::SetOnGroundLastTick(bool value) const
     *MemberPtr<bool>(_base, kCCSPlayerPawn_OnGroundLastTick) = value;
 }
 
-extern const FieldLayout CCSPlayerPawn_kFields[4];
-const FieldLayout CCSPlayerPawn_kFields[4] = {
+CCSPlayer_AimPunchServices CCSPlayerPawn::AimPunchServices() const
+{
+    if (!_base)
+        return {};
+
+    return CCSPlayer_AimPunchServices{*MemberPtr<void*>(_base, kCCSPlayerPawn_AimPunchServices)};
+}
+
+bool CCSPlayerPawn::Scoped() const
+{
+    if (!_base)
+        return {};
+
+    return *MemberPtr<bool>(_base, kCCSPlayerPawn_Scoped);
+}
+
+void CCSPlayerPawn::SetScoped(bool value) const
+{
+    if (!_base)
+        return;
+
+    *MemberPtr<bool>(_base, kCCSPlayerPawn_Scoped) = value;
+    NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawn_Scoped);
+}
+
+int32_t CCSPlayerPawn::ShotsFired() const
+{
+    if (!_base)
+        return {};
+
+    return *MemberPtr<int32_t>(_base, kCCSPlayerPawn_ShotsFired);
+}
+
+void CCSPlayerPawn::SetShotsFired(int32_t value) const
+{
+    if (!_base)
+        return;
+
+    *MemberPtr<int32_t>(_base, kCCSPlayerPawn_ShotsFired) = value;
+    NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawn_ShotsFired);
+}
+
+int32_t CCSPlayerPawn::LastWeaponFireCommand() const
+{
+    if (!_base)
+        return {};
+
+    return *MemberPtr<int32_t>(_base, kCCSPlayerPawn_LastWeaponFireCommand);
+}
+
+void CCSPlayerPawn::SetLastWeaponFireCommand(int32_t value) const
+{
+    if (!_base)
+        return;
+
+    *MemberPtr<int32_t>(_base, kCCSPlayerPawn_LastWeaponFireCommand) = value;
+}
+
+EntitySpottedState_t CCSPlayerPawn::SpottedState() const
+{
+    if (!_base)
+        return {};
+
+    return EntitySpottedState_t{MemberPtr<void>(_base, kCCSPlayerPawn_SpottedState), _owner,
+                                _ownerOffset + kCCSPlayerPawn_SpottedState};
+}
+
+extern const FieldLayout CCSPlayerPawn_kFields[9];
+const FieldLayout CCSPlayerPawn_kFields[9] = {
     {.Name = "m_ArmorValue", .Offset = kCCSPlayerPawn_Armor, .Size = 4},
     {.Name = "m_angEyeAngles", .Offset = kCCSPlayerPawn_EyeAngles, .Size = 12},
     {.Name = "m_flVelocityModifier", .Offset = kCCSPlayerPawn_SpeedModifier, .Size = 4},
     {.Name = "m_bOnGroundLastTick", .Offset = kCCSPlayerPawn_OnGroundLastTick, .Size = 1},
+    {.Name = "m_pAimPunchServices", .Offset = kCCSPlayerPawn_AimPunchServices, .Size = 8},
+    {.Name = "m_bIsScoped", .Offset = kCCSPlayerPawn_Scoped, .Size = 1},
+    {.Name = "m_iShotsFired", .Offset = kCCSPlayerPawn_ShotsFired, .Size = 4},
+    {.Name = "m_iLastWeaponFireUsercmd", .Offset = kCCSPlayerPawn_LastWeaponFireCommand, .Size = 4},
+    {.Name = "m_entitySpottedState", .Offset = kCCSPlayerPawn_SpottedState, .Size = 24},
 };
 
 }  // namespace VoltMod::Schema

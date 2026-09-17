@@ -77,6 +77,10 @@ class EngineServer
 class EngineMovementServices
 {};
 
+/** The engine's physics query object, the receiver of every server trace. */
+class EnginePhysicsQuery
+{};
+
 /** Manifest-time precache hook. Defined in src/Engine/GameSystem.hpp. */
 class PrecacheGameSystem;
 /** Stand-in for the SDK game-system factory. Defined in src/Engine/GameSystem.hpp. */

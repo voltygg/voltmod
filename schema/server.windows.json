@@ -4552,6 +4552,76 @@
         }
       ]
     },
+    "CCSPlayer_AimPunchServices": {
+      "size": 232,
+      "base": "CPlayerPawnComponent",
+      "chain_offset": 8,
+      "fields": [
+        {
+          "name": "m_predictableBaseTick",
+          "offset": 72,
+          "size": 4,
+          "type": {
+            "name": "GameTick_t",
+            "category": "SCHEMA_TYPE_DECLARED_CLASS"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_predictableBaseTickInterpAmount",
+          "offset": 76,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_predictableBaseAngle",
+          "offset": 80,
+          "size": 12,
+          "type": {
+            "name": "QAngle",
+            "category": "SCHEMA_TYPE_ATOMIC",
+            "atomic": "SCHEMA_ATOMIC_PLAIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_predictableBaseAngleVel",
+          "offset": 92,
+          "size": 12,
+          "type": {
+            "name": "QAngle",
+            "category": "SCHEMA_TYPE_ATOMIC",
+            "atomic": "SCHEMA_ATOMIC_PLAIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_unpredictableBaseTick",
+          "offset": 160,
+          "size": 4,
+          "type": {
+            "name": "GameTick_t",
+            "category": "SCHEMA_TYPE_DECLARED_CLASS"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_unpredictableBaseAngle",
+          "offset": 164,
+          "size": 12,
+          "type": {
+            "name": "QAngle",
+            "category": "SCHEMA_TYPE_ATOMIC",
+            "atomic": "SCHEMA_ATOMIC_PLAIN"
+          },
+          "networked": true
+        }
+      ]
+    },
     "CEntityComponent": {
       "size": 8,
       "base": "",
@@ -5742,6 +5812,35 @@
             "name": "WorldGroupId_t",
             "category": "SCHEMA_TYPE_ATOMIC",
             "atomic": "SCHEMA_ATOMIC_PLAIN"
+          },
+          "networked": true
+        }
+      ]
+    },
+    "EntitySpottedState_t": {
+      "size": 24,
+      "base": "",
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_bSpotted",
+          "offset": 8,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_bSpottedByMask",
+          "offset": 12,
+          "size": 8,
+          "type": {
+            "name": "uint32[2]",
+            "category": "SCHEMA_TYPE_FIXED_ARRAY",
+            "inner": "uint32",
+            "extent": 2
           },
           "networked": true
         }
