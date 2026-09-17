@@ -8,7 +8,6 @@
 #include <VoltMod/Engine/Net/RecipientFilter.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
-#include <VoltMod/Schema/Generated/CVoteController.hpp>
 #include <array>
 #include <cstdint>
 #include <functional>
@@ -41,9 +40,9 @@ struct VoteTally
  *
  * A vote broadcasts a `VoteStart` user message, takes each player's `vote option1|option2`
  * command before the engine sees it, republishes the running tally through `vote_changed`, and
- * finishes with `VotePass` or `VoteFailed`. The engine's vote controller only lends its
- * networked panel state; its issue table is never run, so a map or mode without the yes/no issue
- * cannot crash the vote. Only one vote runs at a time; StartVote() refuses while one is live.
+ * finishes with `VotePass` or `VoteFailed`. The map's `vote_controller` is never touched: every
+ * field it would network is already carried by those messages, so a map or mode without the
+ * entity votes the same way. Only one vote runs at a time; StartVote() refuses while one is live.
  *
  * The panel is the engine's, so its title must be a localization token the client already has -
  * a `#SFUI_vote...` or `#Panorama_vote...` string. Arbitrary text does not render.
@@ -108,8 +107,6 @@ private:
     INetworkMessageInternal* _voteStartInternal = nullptr;
     INetworkMessageInternal* _votePassInternal = nullptr;
     INetworkMessageInternal* _voteFailedInternal = nullptr;
-    /** The map's vote_controller, re-acquired per vote: a new map is a new entity. */
-    Schema::CVoteController _controller;
     bool _inProgress = false;
     /** Bumped per vote so a timeout cannot end the vote that replaced it. */
     uint64_t _voteId = 0;

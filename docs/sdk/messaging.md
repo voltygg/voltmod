@@ -91,8 +91,8 @@ when the slot changes hands. Nothing has to call a lifecycle hook for it.
 
 ## Vote
 
-@ref VoltMod::Vote drives the engine's yes/no panel through the map's
-`vote_controller`. The engine collects the ballots.
+@ref VoltMod::Vote draws the engine's yes/no panel with user messages and counts the ballots
+itself, from the `vote` command the panel's F1/F2 keys send.
 
 ```cpp
 runtime.Hooks.Vote.StartVote(
