@@ -14,7 +14,7 @@ extern const FieldLayout CBasePlayerPawn_kFields[5];
 extern const FieldLayout CBodyComponent_kFields[1];
 extern const FieldLayout CCSCustomHudLayout_kFields[6];
 extern const FieldLayout CCSCustomHudLayoutState_kFields[1];
-extern const FieldLayout CCSPlayerController_kFields[2];
+extern const FieldLayout CCSPlayerController_kFields[3];
 extern const FieldLayout CCSPlayerController_InGameMoneyServices_kFields[1];
 extern const FieldLayout CCSPlayerPawn_kFields[4];
 extern const FieldLayout CCSPlayerPawnBase_kFields[2];
@@ -43,7 +43,7 @@ static const ClassLayout kClasses[] = {
      .Size = 408,
      .OwnerLinkOffset = -1,
      .Fields = {CCSCustomHudLayoutState_kFields, 1}},
-    {.Name = "CCSPlayerController", .Size = 3456, .OwnerLinkOffset = -1, .Fields = {CCSPlayerController_kFields, 2}},
+    {.Name = "CCSPlayerController", .Size = 3456, .OwnerLinkOffset = -1, .Fields = {CCSPlayerController_kFields, 3}},
     {.Name = "CCSPlayerController_InGameMoneyServices",
      .Size = 88,
      .OwnerLinkOffset = 8,

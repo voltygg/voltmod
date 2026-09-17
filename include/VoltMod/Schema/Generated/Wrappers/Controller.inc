@@ -14,6 +14,14 @@ Schema::CCSPlayerController_InGameMoneyServices InGameMoneyServices() const
 {
     return Schema::CCSPlayerController{_e}.InGameMoneyServices();
 }
+const char* Clan() const
+{
+    return Schema::CCSPlayerController{_e}.Clan();
+}
+void SetClan(const char* value) const
+{
+    Schema::CCSPlayerController{_e}.SetClan(value);
+}
 
 // CBasePlayerController
 std::string_view Name() const

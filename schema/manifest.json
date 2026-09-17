@@ -26,7 +26,8 @@
     ],
     "CBaseCombatCharacter": ["m_hMyWearables>MyWearables"],
     "CBodyComponent": ["m_pSceneNode>SceneNode"],
-    "CCSPlayerController": ["m_hPlayerPawn>PlayerPawnHandle", "m_pInGameMoneyServices>InGameMoneyServices"],
+    "CCSPlayerController": ["m_hPlayerPawn>PlayerPawnHandle", "m_pInGameMoneyServices>InGameMoneyServices",
+      "m_szClan>Clan"],
     "CCSPlayerController_InGameMoneyServices": ["m_iAccount>Account"],
     "CCSPlayerPawn": [
       "m_ArmorValue>Armor",

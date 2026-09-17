@@ -13,6 +13,7 @@ namespace VoltMod::Schema
 // ---- CCSPlayerController, 3456 bytes -------------------------------
 static constexpr int32_t kCCSPlayerController_PlayerPawnHandle = 3004;     // CHandle< CCSPlayerPawn >
 static constexpr int32_t kCCSPlayerController_InGameMoneyServices = 2744;  // CCSPlayerController_InGameMoneyServices*
+static constexpr int32_t kCCSPlayerController_Clan = 2832;                 // CUtlSymbolLarge
 
 uint32_t CCSPlayerController::PlayerPawnHandle() const
 {
@@ -39,10 +40,28 @@ CCSPlayerController_InGameMoneyServices CCSPlayerController::InGameMoneyServices
     return CCSPlayerController_InGameMoneyServices{*MemberPtr<void*>(_base, kCCSPlayerController_InGameMoneyServices)};
 }
 
-extern const FieldLayout CCSPlayerController_kFields[2];
-const FieldLayout CCSPlayerController_kFields[2] = {
+const char* CCSPlayerController::Clan() const
+{
+    if (!_base)
+        return {};
+
+    return *MemberPtr<const char*>(_base, kCCSPlayerController_Clan);
+}
+
+void CCSPlayerController::SetClan(const char* value) const
+{
+    if (!_base)
+        return;
+
+    *MemberPtr<const char*>(_base, kCCSPlayerController_Clan) = value;
+    NotifyEntity(_owner, _ownerOffset + kCCSPlayerController_Clan);
+}
+
+extern const FieldLayout CCSPlayerController_kFields[3];
+const FieldLayout CCSPlayerController_kFields[3] = {
     {.Name = "m_hPlayerPawn", .Offset = kCCSPlayerController_PlayerPawnHandle, .Size = 4},
     {.Name = "m_pInGameMoneyServices", .Offset = kCCSPlayerController_InGameMoneyServices, .Size = 8},
+    {.Name = "m_szClan", .Offset = kCCSPlayerController_Clan, .Size = 8},
 };
 
 }  // namespace VoltMod::Schema

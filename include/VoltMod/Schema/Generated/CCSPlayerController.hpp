@@ -20,6 +20,9 @@ public:
     void SetPlayerPawnHandle(uint32_t value) const;
 
     CCSPlayerController_InGameMoneyServices InGameMoneyServices() const;
+
+    const char* Clan() const;
+    void SetClan(const char* value) const;
 };
 
 }  // namespace VoltMod::Schema
