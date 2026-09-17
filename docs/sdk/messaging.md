@@ -96,7 +96,7 @@ when the slot changes hands. Nothing has to call a lifecycle hook for it.
 
 ```cpp
 runtime.Hooks.Vote.StartVote(
-    "#SFUI_vote_changelevel",           // see the token note below
+    "#SFUI_vote_changelevel",
     "Dust II",                          // the token's detail string
     20.0f,                              // seconds before it closes itself
     callerSlot,                         // whose name the panel credits; -1 for the server
@@ -110,15 +110,3 @@ runtime.Hooks.Vote.StartVote(
 runtime.Hooks.Vote.InProgress();                                   // only one vote runs at a time
 runtime.Hooks.Vote.EndVote(VoltMod::VoteEndReason::Cancelled);     // call one off early
 ```
-
-Contracts worth knowing:
-
-- **The title must be a localization token the client already has** - a `#SFUI_vote...` or
-  `#Panorama_vote...` string. The panel is the engine's own; arbitrary text does not render.
-- There is no separate setup step: the first `StartVote` subscribes to `vote_cast` itself, so a vote can
-  never silently count zero ballots because nobody set up the service.
-- `StartVote` returns false when a vote is already running, when nobody is connected, or when the
-  map has no `vote_controller` (which is re-found per vote, since it dies with the map).
-- The vote closes on its own as soon as everyone eligible has answered, rather than sitting on a
-  decided result until the timer runs out.
-- Every callback runs on the game thread.

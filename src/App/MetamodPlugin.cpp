@@ -183,6 +183,15 @@ HookResult<void> MetamodPlugin::HandleConCommand(ConCommandRef cmd, const CComma
         return {};
 
     const std::string_view cmdName = name;
+    if (cmdName == "vote")
+    {
+        // A ballot for a plugin vote never reaches the engine's own vote controller.
+        const std::string_view option = args.ArgC() >= 2 ? args.Arg(1) : "";
+        if (_runtime->Hooks.Vote.TryCastBallot(ctx.GetPlayerSlot().Get(), option))
+            return HookResult<void>::Block();
+        return {};
+    }
+
     const bool isSay = cmdName == "say";
     const bool isSayTeam = cmdName == "say_team";
     if (!isSay && !isSayTeam)

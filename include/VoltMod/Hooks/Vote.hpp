@@ -9,9 +9,11 @@
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Schema/Generated/CVoteController.hpp>
+#include <array>
 #include <cstdint>
 #include <functional>
 #include <string>
+#include <string_view>
 
 namespace VoltMod
 {
@@ -35,11 +37,13 @@ struct VoteTally
 };
 
 /**
- * @brief The game's own yes/no vote panel, driven through the map's `vote_controller`.
+ * @brief The game's own yes/no vote panel, with the ballots counted here.
  *
- * A vote configures the controller entity, broadcasts a `VoteStart` user message, counts the
- * `vote_cast` game events that come back, and finishes with `VotePass` or `VoteFailed`. Only one
- * vote runs at a time; StartVote() refuses while one is live.
+ * A vote broadcasts a `VoteStart` user message, takes each player's `vote option1|option2`
+ * command before the engine sees it, republishes the running tally through `vote_changed`, and
+ * finishes with `VotePass` or `VoteFailed`. The engine's vote controller only lends its
+ * networked panel state; its issue table is never run, so a map or mode without the yes/no issue
+ * cannot crash the vote. Only one vote runs at a time; StartVote() refuses while one is live.
  *
  * The panel is the engine's, so its title must be a localization token the client already has -
  * a `#SFUI_vote...` or `#Panorama_vote...` string. Arbitrary text does not render.
@@ -62,13 +66,11 @@ public:
     /**
      * Open a yes/no vote for every connected human.
      *
-     * Subscribes to `vote_cast` on first use, so there is no separate setup step to forget.
-     *
      * @param title a `#SFUI_vote` / `#Panorama_vote` localization token; see the class docs.
      * @param detail the token's detail string, often a map or player name.
      * @param durationSec how long before the vote closes itself.
      * @param callerSlot whose name the panel credits; -1 for the server.
-     * @return false when a vote is already running or the map has no vote controller.
+     * @return false when a vote is already running or nobody is connected.
      */
     bool StartVote(std::string_view title, std::string_view detail, float durationSec, int callerSlot,
                    ResultFn onResult, FinishedFn onFinished = {});
@@ -78,27 +80,26 @@ public:
 
     bool InProgress() const { return _inProgress; }
 
+    /**
+     * A player's `vote <option>` console command, as the panel's F1/F2 keys send it. The plugin
+     * base routes every `vote` command here.
+     * @return true while a vote is running: the command was ours, and the engine must not see it.
+     */
+    bool TryCastBallot(int slot, std::string_view option);
+
 private:
-    void OnVoteCast(int slot, int option);
     void FinishVote(VoteEndReason reason);
     void SendVoteStart();
     void SendVoteOutcome(bool passed);
     void PublishCounts();
-    /** Find the map's vote_controller. False when the map has none. */
-    bool FindController();
     /** Every connected slot - who a vote panel is sent to. */
     MultiRecipientFilter Recipients() const;
-
-    int OptionCount(int option) const;
-    void SetOptionCount(int option, int value);
-    void ResetBallots();
 
     Interfaces& _interfaces;
     EntitySystem& _entities;
     GameEvents& _events;
     Scheduler& _scheduler;
 
-    Subscription _voteCastSub;
     /** The running vote's timeout, and the deferred close once every ballot is in. Held so
      *  neither can fire into a torn-down vote; both are guarded by @ref _voteId as well. */
     Subscription _timeout;
@@ -113,6 +114,9 @@ private:
     /** Bumped per vote so a timeout cannot end the vote that replaced it. */
     uint64_t _voteId = 0;
     int _eligible = 0;
+    int _yes = 0;
+    int _no = 0;
+    std::array<bool, MaxPlayers> _voted{};
     int _callerSlot = -1;
     std::string _title;
     std::string _detail;

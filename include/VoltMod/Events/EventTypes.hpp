@@ -139,7 +139,8 @@ struct RoundPrestart
     static RoundPrestart From(IGameEvent& e);
 };
 
-/** One ballot in the game's own vote panel; @ref VoltMod::Vote counts these. */
+/** One ballot the engine counted for one of its own votes. @ref VoltMod::Vote takes its ballots
+ *  from the `vote` command instead, so this never fires for a plugin vote. */
 struct VoteCast
 {
     static constexpr std::string_view Name = "vote_cast";

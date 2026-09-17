@@ -3,15 +3,14 @@
 
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Scheduler.hpp>
+#include <VoltMod/Core/Slot.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/Net/RecipientFilter.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
-#include <VoltMod/Events/EventTypes.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/Vote.hpp>
 #include <VoltMod/Schema/Api.hpp>
 #include <engine/igameeventsystem.h>
-#include <format>
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
 #include <networksystem/inetworkmessages.h>
@@ -23,13 +22,16 @@ namespace VoltMod
 
 static constexpr std::string_view ControllerClass = "vote_controller";
 
-// The engine's yes/no issue index; option 0 is Yes, option 1 is No, 3 means "not voted".
+// The engine's yes/no issue: the client renders the F1/F2 panel for it. It is only pointed at,
+// never run, and only when the controller's issue table actually holds it.
 static constexpr int YesNoIssueIndex = 2;
-static constexpr int OptionYes = 0;
-static constexpr int OptionNo = 1;
-static constexpr int VoteUncast = 3;
-static constexpr int OptionSlots = 5;
+static constexpr int NoIssue = -1;
 static constexpr int AllTeams = -1;
+
+// Names carry the message prefix: a bare "VoteFailed" also matches CCSUsrMsg_CallVoteFailed.
+static constexpr std::string_view VoteStartMessage = "CCSUsrMsg_VoteStart";
+static constexpr std::string_view VotePassMessage = "CCSUsrMsg_VotePass";
+static constexpr std::string_view VoteFailedMessage = "CCSUsrMsg_VoteFailed";
 
 static ProtoMessage* AsProto(CNetMessage* message)
 {
@@ -68,16 +70,16 @@ static void SetString(ProtoMessage* message, std::string_view name, const std::s
         message->GetReflection()->SetString(message, field, value);
 }
 
+/** How many issues the controller registered: a CUtlVector keeps its count first. */
+static int IssueCount(const Schema::CVoteController& controller)
+{
+    const void* issues = controller.PotentialIssues();
+    return issues ? *static_cast<const int*>(issues) : 0;
+}
+
 Vote::Vote(Interfaces& interfaces, EntitySystem& entities, GameEvents& events, Scheduler& scheduler)
     : _interfaces(interfaces), _entities(entities), _events(events), _scheduler(scheduler)
 {}
-
-bool Vote::FindController()
-{
-    // The controller is a map entity, so it is a different object after every map change.
-    _controller = Schema::CVoteController{_entities.FindByClassName({}, ControllerClass).Raw()};
-    return static_cast<bool>(_controller);
-}
 
 MultiRecipientFilter Vote::Recipients() const
 {
@@ -90,55 +92,11 @@ MultiRecipientFilter Vote::Recipients() const
     return filter;
 }
 
-// m_nVoteOptionCount and m_nVotesCast are int arrays on the controller. The generated accessors
-// bounds-check too, but OptionSlots is the vote UI's own limit - it also drives the loops below -
-// and the accessor takes a size_t, so a negative option has to be rejected here.
-int Vote::OptionCount(int option) const
-{
-    if (option < 0 || option >= OptionSlots)
-        return 0;
-    return _controller.VoteOptionCount(static_cast<size_t>(option));
-}
-
-void Vote::SetOptionCount(int option, int value)
-{
-    if (option < 0 || option >= OptionSlots)
-        return;
-    _controller.SetVoteOptionCount(static_cast<size_t>(option), value);
-}
-
-void Vote::ResetBallots()
-{
-    for (int option = 0; option < OptionSlots; ++option)
-        SetOptionCount(option, 0);
-
-    if (!_controller)
-        return;
-    for (int slot = 0; slot < MaxPlayers; ++slot)
-        _controller.SetVotesCast(static_cast<size_t>(slot), VoteUncast);
-}
-
 bool Vote::StartVote(std::string_view title, std::string_view detail, float durationSec, int callerSlot,
                      ResultFn onResult, FinishedFn onFinished)
 {
     if (_inProgress || !onResult)
         return false;
-
-    // Subscribed here rather than in a separate setup call: a vote that counted no ballots
-    // because nobody set up the service is a silent failure with no good diagnostic.
-    if (!_voteCastSub)
-    {
-        _voteCastSub = _events.On<VoteCast>([this](const VoteCast& e) {
-            if (_inProgress)
-                OnVoteCast(e.Slot, e.Option);
-        });
-    }
-
-    if (!FindController())
-    {
-        Log::Warn("Vote: this map has no vote_controller; no vote can be shown.");
-        return false;
-    }
 
     _eligible = 0;
     for (int slot = 0; slot < MaxPlayers; ++slot)
@@ -149,13 +107,23 @@ bool Vote::StartVote(std::string_view title, std::string_view detail, float dura
     if (_eligible <= 0)
         return false;
 
-    ResetBallots();
+    _yes = 0;
+    _no = 0;
+    _voted.fill(false);
 
-    _controller.SetPotentialVotes(_eligible);
-    _controller.SetIsYesNoVote(true);
-    _controller.SetActiveIssueIndex(YesNoIssueIndex);
-    // Who may vote is decided by the recipients of the VoteStart message, not by this field.
-    _controller.SetOnlyTeamToVote(AllTeams);
+    // The controller is a map entity, so it is a different object after every map change.
+    _controller = Schema::CVoteController{_entities.FindByClassName({}, ControllerClass).Raw()};
+    const bool hasIssue = _controller && IssueCount(_controller) > YesNoIssueIndex;
+    if (_controller)
+    {
+        _controller.SetPotentialVotes(_eligible);
+        _controller.SetIsYesNoVote(true);
+        // Who may vote is decided by the recipients of the VoteStart message, not by this field.
+        _controller.SetOnlyTeamToVote(AllTeams);
+        _controller.SetActiveIssueIndex(hasIssue ? YesNoIssueIndex : NoIssue);
+    }
+    if (!hasIssue)
+        Log::Info("Vote: no vote_controller yes/no issue on this map; the panel runs on messages alone.");
 
     _inProgress = true;
     _title = title;
@@ -178,17 +146,27 @@ bool Vote::StartVote(std::string_view title, std::string_view detail, float dura
     return true;
 }
 
-void Vote::OnVoteCast(int slot, int option)
+bool Vote::TryCastBallot(int slot, std::string_view option)
 {
-    if (slot < 0 || option < 0 || option >= OptionSlots)
-        return;
+    if (!_inProgress)
+        return false;
+    if (!IsValidSlot(slot) || _voted[static_cast<size_t>(slot)] || !_entities.IsPlayerSlotValid(slot))
+        return true;
+
+    if (option == "option1")
+        ++_yes;
+    else if (option == "option2")
+        ++_no;
+    else
+        return true;
+    _voted[static_cast<size_t>(slot)] = true;
 
     PublishCounts();
 
     // Close as soon as everyone who could vote has, rather than sitting on a decided vote.
-    if (OptionCount(OptionYes) + OptionCount(OptionNo) >= _eligible)
+    if (_yes + _no >= _eligible)
     {
-        // Deferred a tick: ending inside the event dispatch that produced the last ballot tears
+        // Deferred a tick: ending inside the command dispatch that produced the last ballot tears
         // down state the engine is still walking.
         const uint64_t voteId = _voteId;
         _deferredClose = _scheduler.NextTick([this, voteId] {
@@ -196,6 +174,7 @@ void Vote::OnVoteCast(int slot, int option)
                 FinishVote(VoteEndReason::AllVoted);
         });
     }
+    return true;
 }
 
 void Vote::EndVote(VoteEndReason reason)
@@ -209,14 +188,15 @@ void Vote::FinishVote(VoteEndReason reason)
     _inProgress = false;
     ++_voteId;  // any timeout still pending for this vote is now stale
 
-    VoteTally tally{.Eligible = _eligible, .Yes = OptionCount(OptionYes), .No = OptionCount(OptionNo)};
+    VoteTally tally{.Eligible = _eligible, .Yes = _yes, .No = _no};
 
     // A cancelled vote never asks the caller whether it passed.
     bool passed = reason != VoteEndReason::Cancelled && _onResult && _onResult(tally);
 
     SendVoteOutcome(passed);
 
-    _controller.SetActiveIssueIndex(-1);
+    if (_controller)
+        _controller.SetActiveIssueIndex(NoIssue);
     _controller = {};
 
     auto finished = std::move(_onFinished);
@@ -228,14 +208,17 @@ void Vote::FinishVote(VoteEndReason reason)
 
 void Vote::PublishCounts()
 {
-    // The panel reads its running tally from vote_changed, not from the entity, so the counts
-    // have to be re-announced after every ballot.
+    // The panel reads its running tally from vote_changed, so the counts are re-announced after
+    // every ballot. Options 3-5 exist on the panel but a yes/no vote never fills them.
     IGameEvent* event = _events.CreateEvent("vote_changed");
     if (!event)
         return;
 
-    for (int option = 0; option < OptionSlots; ++option)
-        event->SetInt(std::format("vote_option{}", option + 1).c_str(), OptionCount(option));
+    event->SetInt("vote_option1", _yes);
+    event->SetInt("vote_option2", _no);
+    event->SetInt("vote_option3", 0);
+    event->SetInt("vote_option4", 0);
+    event->SetInt("vote_option5", 0);
     event->SetInt("potentialVotes", _eligible);
 
     _events.FireEvent(event, false);
@@ -244,7 +227,7 @@ void Vote::PublishCounts()
 void Vote::SendVoteStart()
 {
     MultiRecipientFilter filter = Recipients();
-    PostUserMessage(_interfaces, _voteStartInternal, "VoteStart", filter, [this](CNetMessage* raw) {
+    PostUserMessage(_interfaces, _voteStartInternal, VoteStartMessage, filter, [this](CNetMessage* raw) {
         auto* start = AsProto(raw);
         if (!start)
             return false;
@@ -264,23 +247,24 @@ void Vote::SendVoteOutcome(bool passed)
     auto& cached = passed ? _votePassInternal : _voteFailedInternal;
     MultiRecipientFilter filter = Recipients();
 
-    PostUserMessage(_interfaces, cached, passed ? "VotePass" : "VoteFailed", filter, [this, passed](CNetMessage* raw) {
-        auto* outcome = AsProto(raw);
-        if (!outcome)
-            return false;
-        SetInt(outcome, "team", AllTeams);
-        if (passed)
-        {
-            SetInt(outcome, "vote_type", -1);
-            SetString(outcome, "disp_str", _title);
-            SetString(outcome, "details_str", _detail);
-        }
-        else
-        {
-            SetInt(outcome, "reason", 0);
-        }
-        return true;
-    });
+    PostUserMessage(_interfaces, cached, passed ? VotePassMessage : VoteFailedMessage, filter,
+                    [this, passed](CNetMessage* raw) {
+                        auto* outcome = AsProto(raw);
+                        if (!outcome)
+                            return false;
+                        SetInt(outcome, "team", AllTeams);
+                        if (passed)
+                        {
+                            SetInt(outcome, "vote_type", -1);
+                            SetString(outcome, "disp_str", _title);
+                            SetString(outcome, "details_str", _detail);
+                        }
+                        else
+                        {
+                            SetInt(outcome, "reason", 0);
+                        }
+                        return true;
+                    });
 }
 
 }  // namespace VoltMod
