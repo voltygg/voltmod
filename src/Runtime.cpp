@@ -147,7 +147,6 @@ std::map<std::string, std::string> Runtime::UnavailableFeatures() const
         {"Teleport", Hooks.Teleport.Available()},
         {"Visibility", Hooks.Visibility.Available()},
         {"ClientConVars", Hooks.ClientConVars.Available()},
-        {"Trace", Hooks.Trace.Available()},
         {"Screens", Screens.Available()},
     };
 

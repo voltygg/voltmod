@@ -121,9 +121,8 @@ not count) or `Solid` (what a player body collides with).
 
 The engine keeps its query object private, so the service records it from the engine's own first
 trace after each map start through a short-lived hook on `TraceShape`, then removes that hook a
-tick later. Until then `Available()` reports NotReady and traces return that error; after a CS2
-update that breaks the `TraceShape` pattern it reports Unsupported. Traces run synchronously on
-the game thread and cost a few microseconds each.
+tick later; `Available()` says whether traces can run yet. They run synchronously on the game
+thread.
 
 ## Hooking a vfunc the framework does not cover
 

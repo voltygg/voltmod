@@ -136,14 +136,12 @@ shots originate), and `FlashDuration` / `FlashMaxAlpha` carry what the last `pla
 (255 max-alpha means a full blind). For blind-time bookkeeping prefer the typed `PlayerBlind`
 event, which carries the duration directly.
 
-Shooting state lives beside it: `Scoped()`, `ShotsFired()` (the current burst, reset by the
-engine once the player stops firing), `LastWeaponFireCommand()` (the usercmd number that fired
-the last shot, which ties a `weapon_fire` event to its command), and `AimPunchServices()`, whose
-`BaseAngle()` / `BaseAngleVelocity()` / `BaseTick()` describe the recoil punch as it was set by
-the last shot; the engine decays it from that base each tick. `SpottedState()` exposes the radar
-spotting bits (`Spotted()`, `SpottedByMask(index)` with one bit per player slot across two words),
-and `WeaponServices().ActiveWeapon()` is the entity handle of the weapon in hand, resolvable
-through `EntitySystem::Resolve` for its class name.
+Shooting state lives beside it. `ShotsFired()` counts the current burst and the engine resets it
+once the player stops firing; `LastWeaponFireCommand()` is the usercmd number that fired the last
+shot, which ties a `weapon_fire` event to its command. `AimPunchServices()` carries the recoil
+punch as the last shot set it, so read `BaseAngle()` and `BaseTick()` together: the engine decays
+the angle from that base each tick. `SpottedState()` exposes the radar spotting bits, and
+`WeaponServices().ActiveWeapon()` is a handle to resolve through `EntitySystem::Resolve`.
 
 ```cpp
 QAngle aim = pawn.EyeAngles;

@@ -55,7 +55,7 @@ public:
     Trace(const Trace&) = delete;
     Trace& operator=(const Trace&) = delete;
 
-    /** Arm the capture hook. Runtime::Start calls this once; a failure names the missing binding. */
+    /** Arm the capture hook. Runtime::Start calls this once. */
     Status Initialize();
 
     /** Re-arm the capture: the map rebuilds the physics world, so the query is taken again. */
@@ -71,8 +71,6 @@ public:
     Result<bool> Clear(const Vector& from, const Vector& to, const TraceOptions& options = {}) const;
 
 private:
-    Status Arm();
-
     const Bindings& _bindings;
     Scheduler& _scheduler;
     EnginePhysicsQuery* _query = nullptr;
