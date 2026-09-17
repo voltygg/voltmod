@@ -156,6 +156,25 @@ if (pawn.GetObserverMode() != ObserverMode_t::Roaming)
 Observer mode is a method rather than a field: it lives on a sub-object the pawn points at, so
 there is no fixed offset from the pawn to reach it.
 
+## Line traces
+
+@ref VoltMod::Trace answers sight and reachability questions through the nav mesh's window onto
+the physics world:
+
+```cpp
+const VoltMod::Pawn self = runtime.Entities.PawnOf(slot);
+const VoltMod::Pawn other = runtime.Entities.PawnOf(target);
+const auto clear = runtime.World.Trace.Clear(self.EyePosition(), other.EyePosition(),
+                                             {.Ignore1 = self.Raw(), .Ignore2 = other.Raw()});
+if (clear && *clear)
+    ...  // nothing solid between the two eyes
+```
+
+`Line` returns where the trace stopped; `Clear` is the yes/no form. `TraceOptions::Layers` picks
+what stops the trace: `Sight` (world geometry and line-of-sight blockers, so windows and clips do
+not count) or `Solid` (what a player body collides with). Traces need nothing set up and survive
+map changes; they run synchronously on the game thread.
+
 ## Visibility and the player name
 
 `SetVisible` toggles transparency on the pawn body. Weapons, gloves and grenades stay visible

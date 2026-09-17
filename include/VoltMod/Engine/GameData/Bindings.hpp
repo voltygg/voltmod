@@ -175,9 +175,6 @@ struct Bindings
         FindEntityByName;
     /** ABI: IGameEventListener2* (CPlayerSlot), defined in GameEvents.cpp. */
     Address LegacyGameEventListener;
-    /** ABI: bool (CGamePhysicsQueryInterface*, const Ray_t*, const Vector* start, const Vector* end,
-     *  CTraceFilter*, CGameTrace*). The SDK trace types are void here so this header stays SDK-free. */
-    Fn<bool(EnginePhysicsQuery*, const void*, const Vector*, const Vector*, void*, void*)> TraceShape;
 
     /** @defgroup CustomHudSetters CCSCustomHudLayout setters used by @ref Screen.
      *  `self` is the entity. The ABI uses `const CUtlString*`, not `const char*`.
@@ -214,6 +211,10 @@ struct Bindings
     VirtualFn<void(CEntityInstance*)> Respawn;
     /** CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*), hooked on CCSPlayerPawn. */
     VirtualFn<void(CEntityInstance*, const Vector*, const QAngle*, const Vector*)> Teleport;
+
+    /** CNavPhysicsInterface::Nav_TraceLine(start, end, CTraceFilter*, CGameTrace*), called on the
+     *  class table. The SDK trace types are void here so this header stays SDK-free. */
+    VirtualFn<bool(EngineNavPhysics*, const Vector*, const Vector*, void*, void*)> NavTraceLine;
     /** CPlayer_MovementServices::RunCommand(CUserCmd*), hooked on CCSPlayer_MovementServices. */
     VirtualFn<void*(EngineMovementServices*, void*)> RunCommand;
     /** CCSPlayer_ItemServices::GiveNamedItem(const char* classname). */

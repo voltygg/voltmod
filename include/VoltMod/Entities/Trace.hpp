@@ -1,8 +1,6 @@
 #pragma once
 
 #include <VoltMod/Core/Result.hpp>
-#include <VoltMod/Core/Scheduler.hpp>
-#include <VoltMod/Core/Subscription.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <mathlib/vector.h>
@@ -34,15 +32,16 @@ struct TraceHit
 };
 
 /**
- * @brief Line traces through the engine's physics query.
+ * @brief Line traces through the nav mesh's window onto the physics world.
  *
- * The engine keeps its query object private, so the service captures it from the engine's own
- * first trace after each map start: a short-lived hook on the bound TraceShape function records
- * the receiver and removes itself a tick later. Until that first engine trace, @ref Available
- * reports NotReady and every trace returns that error rather than guessing.
+ * CNavPhysicsInterface holds no state of its own, so the call goes through its class vtable with
+ * the table itself standing in for the object - the same stand-in @ref HookVirtual uses. Nothing
+ * to install and nothing to re-take per map; a trace works as soon as the slot binds.
+ *
+ * Game-thread only.
  *
  * @code
- * const auto clear = runtime.Hooks.Trace.Clear(eye, target, {.Ignore1 = self.Raw(), .Ignore2 = other.Raw()});
+ * const auto clear = runtime.World.Trace.Clear(eye, target, {.Ignore1 = self.Raw(), .Ignore2 = other.Raw()});
  * if (clear && *clear)
  *     ...  // nothing solid between the two points
  * @endcode
@@ -50,18 +49,12 @@ struct TraceHit
 class Trace
 {
 public:
-    /** @p bindings supplies TraceShape and @p scheduler releases the capture hook. Both outlive it. */
-    Trace(const Bindings& bindings, Scheduler& scheduler);
+    /** @p bindings must outlive this service; the Runtime declares it above. */
+    explicit Trace(const Bindings& bindings) : _bindings(bindings) {}
     Trace(const Trace&) = delete;
     Trace& operator=(const Trace&) = delete;
 
-    /** Arm the capture hook. Runtime::Start calls this once. */
-    Status Initialize();
-
-    /** Re-arm the capture: the map rebuilds the physics world, so the query is taken again. */
-    void OnServerStartup();
-
-    /** Unsupported when TraceShape did not bind; NotReady until the engine has traced once. */
+    /** Unsupported when the Nav_TraceLine slot did not bind. */
     Status Available() const;
 
     /** Trace a line from @p from to @p to. */
@@ -72,10 +65,6 @@ public:
 
 private:
     const Bindings& _bindings;
-    Scheduler& _scheduler;
-    EnginePhysicsQuery* _query = nullptr;
-    Subscription _capture;
-    Subscription _release;
 };
 
 }  // namespace VoltMod

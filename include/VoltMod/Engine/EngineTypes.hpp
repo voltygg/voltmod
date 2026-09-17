@@ -77,8 +77,8 @@ class EngineServer
 class EngineMovementServices
 {};
 
-/** The engine's physics query object, the receiver of every server trace. */
-class EnginePhysicsQuery
+/** The nav mesh's window onto the physics world. Stateless; @ref Trace calls it on its class table. */
+class EngineNavPhysics
 {};
 
 /** Manifest-time precache hook. Defined in src/Engine/GameSystem.hpp. */

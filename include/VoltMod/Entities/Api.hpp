@@ -18,3 +18,4 @@
 #include <VoltMod/Entities/PawnPredicates.hpp>
 #include <VoltMod/Entities/Pawns.hpp>
 #include <VoltMod/Entities/Render.hpp>
+#include <VoltMod/Entities/Trace.hpp>
