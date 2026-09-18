@@ -2,9 +2,10 @@
 
 [TOC]
 
-@ref VoltMod::MetamodPlugin owns the Metamod entry points, standard hooks, and
-player lifecycle. It creates one @ref VoltMod::Runtime per load cycle and passes
-it to `OnLoad`. The plugin supplies metadata and its load-cycle object graph.
+@ref VoltMod::Plugin is the base class the host loads. It takes the host's
+engine events, keeps the player roster in step, and creates one @ref
+VoltMod::Runtime per load cycle, which it passes to `OnLoad`. The plugin
+supplies metadata and its load-cycle object graph.
 
 ## The skeleton
 
@@ -12,7 +13,7 @@ it to `OnLoad`. The plugin supplies metadata and its load-cycle object graph.
 #include <VoltMod/Api.hpp>
 #include <VoltMod/App/PluginInfoStamp.hpp>
 
-class MyPlugin final : public VoltMod::MetamodPlugin
+class MyPlugin final : public VoltMod::Plugin
 {
 protected:
     VoltMod::PluginInfo Info() const override
@@ -33,13 +34,14 @@ private:
     std::optional<MyNs::App> _app;
 };
 
-// In the .cpp: the global instance and PLUGIN_EXPOSE in one line:
+// In the .cpp: the global instance and the host's entry point in one line:
 VOLTMOD_PLUGIN(MyPlugin);
 ```
 
-`VOLTMOD_PLUGIN` expands the per-plugin Metamod globals (`PLUGIN_EXPOSE`)
-used by the base. Matching extern declarations are in
-`MetamodPlugin.hpp`, so the plugin header needs no additional declarations.
+`VOLTMOD_PLUGIN` defines the plugin instance and `VoltMod_PluginEntry`, the one
+symbol the host resolves in the library, along with this module's own hook
+dispatch pointer. It all comes from `Plugin.hpp`, so the plugin header needs no
+additional declarations.
 
 `<VoltMod/Api.hpp>` covers the base class, runtime, players, commands, and core
 types. Add module headers only where needed:
@@ -71,18 +73,19 @@ struct App
 };
 ```
 
-Nothing survives `OnUnload`, so `meta reload` starts from clean state. Because
+Nothing survives `OnUnload`, so `volt reload` starts from clean state. Because
 `App` is destroyed before `Runtime`, its subscriptions are removed while their
 services are still alive.
 
 ## Load order
 
-1. The base saves Metamod globals, creates the runtime, and starts each framework
-   subsystem as a step in `runtime.LoadSteps`.
-2. It installs standard hooks, then calls `OnRegisterHooks(runtime, hooks)`.
+1. The base seeds this module's hook dispatch pointer from the host, creates the
+   runtime, and starts each framework subsystem as a step in `runtime.LoadSteps`.
+2. It subscribes to the host's engine events, then calls
+   `OnRegisterHooks(runtime, hooks)`.
 3. It calls `OnLoad(runtime)`. Returning `false` runs `OnUnload`, removes hooks,
-   and destroys the runtime. `meta list` shows the first required step that failed,
-   or `OnLoad returned false`.
+   and destroys the runtime. The base hands the host the first required step that
+   failed, or `OnLoad returned false`, and the host logs it with the refusal.
 
 The standard prelude (settings as a required step, then translations) is one call:
 
@@ -134,6 +137,21 @@ is in @ref players_guide "Players".
 @ref VoltMod::StandardPluginSettings. Use `{.Translations = false}` for
 a plugin that ships no translations.
 
+## Other plugins in the same process
+
+The host loads every installed plugin into the server process and hands each
+engine event to them one after another, in load order. Load order follows the
+dependencies declared in `voltmod_add_plugin` (`DEPENDS` and
+`OPTIONAL_DEPENDS`), with ties broken alphabetically; unload is the reverse. So a
+plugin that declares `DEPENDS admin-system` sees every event after admin-system
+has seen it, and is unloaded before it.
+
+A console command is offered to the plugins in that same order until one
+consumes it. Consuming stops there: later plugins are not offered the command,
+and the engine's own handling of it is blocked once. This is what `OnPlayerChat`
+returning `true` does for a `say` or `say_team` line, and what casting a ballot
+does for `vote`. Two plugins therefore cannot both answer one `!ban`.
+
 ## Registering commands
 
 Commands are registered from your `App::Start()`, by code that already holds what the
@@ -166,8 +184,8 @@ subscriptions still belong in `_subs`, declared after the state they capture.
 already runs the framework subsystems through it. A step returns `Status`:
 
 - `Optional(name, step)`: when it fails, the load continues without that feature.
-- `Required(name, step)`: when it fails, return `false` from `OnLoad`. The base copies the reason
-  into Metamod's error buffer, so `meta list` shows it.
+- `Required(name, step)`: when it fails, return `false` from `OnLoad`. The base passes the reason
+  back to the host, which logs it as the reason the plugin was refused.
 
 Both return whether the step succeeded, so a later step can depend on an earlier one:
 
@@ -175,7 +193,7 @@ Both return whether the step succeeded, so a later step can depend on an earlier
 auto& steps = Runtime.LoadSteps;
 
 if (!steps.Required("Configuration", [this] { return Config.Load("addons/my-plugin/configs/settings.jsonc"); }))
-    return false;  // meta list: "Configuration: <reason>"
+    return false;  // the host logs: "Configuration: <reason>"
 
 const bool database = steps.Optional("Database", [this] { return ConnectDatabase(); });
 if (database)
@@ -201,7 +219,9 @@ Runtime.Status.InstallCommand("my_status", "Report plugin health; 'my_status jso
 ```
 
 `my_status` prints a human-readable report. `my_status json` emits one
-`STATUS_JSON {...}` line for RCON tooling. The top-level `healthy` value is the
+`STATUS_JSON {...}` line for RCON tooling. The host reads the same sections:
+`volt status <name>` prints this plugin's JSON and `volt status` prints every
+loaded plugin's. The top-level `healthy` value is the
 predicate's answer, or `true` without one. The command unregisters on unload.
 
 Sections capture `this`, so keep them on an object the `Runtime` outlives. The `App` is
@@ -214,7 +234,7 @@ Keep JSON sections compact (counts and names, not full lists), because RCON's co
 
 | Override | Fires | Notes |
 |----------|-------|-------|
-| `Info()` | Metadata queries | Required |
+| `Info()` | At load, and for `volt list` and `volt status` | Required |
 | `OnLoad(runtime)` | Once the runtime is live | Required; `false` rejects the load |
 | `OnUnload()` | On unload, before the runtime is destroyed | Drop whatever `OnLoad` built |
 | `OnServerStartup(mapName)` | Each map start, after event listeners are attached | The engine has just reset convars and run the game-mode cfgs |
@@ -227,7 +247,7 @@ The connection lifecycle is **not** an override. Subscribe to
 owns the state - see @ref players_guide "Players".
 
 A hook body reaches the runtime through the state `OnLoad` built, not through the
-base: Metamod calls these without a runtime argument, so keep whatever `OnLoad`
+base: the host calls these without a runtime argument, so keep whatever `OnLoad`
 handed you on the object that needs it.
 
 ## Cleanup on unload
@@ -305,7 +325,7 @@ Add the subscription to `hooks`, do not keep it in a member of your plugin class
 removes custom hooks before `OnUnload` runs, so a hook body cannot fire into state `OnUnload`
 has already released - including after an `OnLoad` that returned false. A subscription held in a
 derived member would instead outlive the whole plugin graph, because the derived object is the
-`VOLTMOD_PLUGIN` global and its members live until the process exits.
+`VOLTMOD_PLUGIN` global and its members live until the host frees the library.
 
 ## Configuration
 

@@ -40,7 +40,7 @@ tests/            SDK-free doctest suite   docs/       Doxygen guides
 ```
 
 Consumers call `find_package(voltmod CONFIG REQUIRED)` and `voltmod_add_plugin(name VERSION v)`
-(`FEATURES DATABASE` for PostgreSQL, MariaDB or SQLite). Targets: `VoltMod::Runtime`, `VoltMod::Database`,
+(`FEATURES DATABASE` for PostgreSQL, MariaDB or SQLite). Targets: `VoltMod::Sdk`, `VoltMod::Database`,
 `VoltMod::Headers` (SDK-free, for tests). Versions: framework in `conanfile.py`, SDK in each
 recipe's `conandata.yml`, tools in `pyproject.toml`.
 
@@ -59,12 +59,12 @@ Players    -> Core, Engine, Entities
 Hooks      -> Core, Engine, Schema, Entities, Events, Players, Unsafe
 Ui         -> Core, Engine, Schema, Entities, Hooks, Unsafe
 Workshop   -> Core, Engine, Players, Unsafe
-Commands   -> Core, Engine, Entities, Messaging, Players
+Commands   -> Core, Engine, Entities, Messaging, Players, Host
 Menu       -> Core, Engine, Entities, Messaging, Players, Hooks, Ui, Workshop
 Http       -> Core
 Database   -> Core
 Unsafe     -> Core, Engine
-Host       -> Core, Engine
+Host       -> Core, Engine, Unsafe
 App        -> every module
 ```
 

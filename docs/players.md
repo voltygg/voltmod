@@ -32,7 +32,7 @@ all; see @ref sdk_players_guide "Entities and players" for the wrapper contract.
 
 ## The roster
 
-@ref VoltMod::MetamodPlugin keeps `runtime.Players` in step with the engine. Look
+@ref VoltMod::Plugin keeps `runtime.Players` in step with the engine. Look
 players up through it:
 
 ```cpp

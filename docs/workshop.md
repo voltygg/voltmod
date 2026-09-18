@@ -83,9 +83,9 @@ downloads reconnects and its slot changes.
 
 ## Several plugins
 
-The framework is a static library, so each plugin has its own `Runtime`, its own
-@ref VoltMod::Addons and its own hooks on the same messages. Metamod runs those
-hooks one after another, and a join-message hook leaves alone a message an earlier
+The SDK is a static library inside each plugin, so every plugin has its own
+`Runtime`, its own @ref VoltMod::Addons and its own hooks on the same messages.
+Those hooks run one after another, and a join-message hook leaves alone a message an earlier
 one already pointed at an addon, counting that addon as sending instead. A client
 owing addons to two plugins gets one plugin's, reconnects, then gets the other's:
 one addon per reconnect, the same as one plugin requiring both.

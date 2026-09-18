@@ -5,7 +5,8 @@
 Use the Conan package to add VoltMod to a plugin project. Do not add the
 framework as a Git submodule or with CMake `add_subdirectory`. Conan supplies
 VoltMod, HL2SDK, Metamod, generated protobuf sources, and the
-`voltmod_add_plugin` CMake API.
+`voltmod_add_plugin` CMake API. A plugin built this way is loaded by the VoltMod
+host, which is the server's only Metamod plugin; see @ref architecture.
 
 The remote is **public**; no login or token is required.
 
@@ -14,7 +15,7 @@ The remote is **public**; no login or token is required.
 Declare VoltMod in the consumer's `conanfile.py`:
 
 ```python
-requires = ("voltmod/[~1.3]",)
+requires = ("voltmod/[~1.4]",)
 ```
 
 Load the generated CMake package and register each plugin:
@@ -30,11 +31,15 @@ The plugin CMake file then uses the helper shipped in the package:
 voltmod_add_plugin(my-plugin VERSION 1.0.0)
 ```
 
+`DEPENDS` and `OPTIONAL_DEPENDS` name other plugins the host should load first
+(see @ref getting_started "Getting started"); they end up in the generated
+`addons/<name>/plugin.json`.
+
 ## Packages
 
 | Package | Contents |
 | --- | --- |
-| `voltmod/x.y.z` | Runtime and Database static libraries, public headers, CMake helpers, gamedata, and plugin templates. |
+| `voltmod/x.y.z` | The host binary, the Sdk and Database static libraries, public headers, CMake helpers, gamedata, and plugin templates. |
 | `hl2sdk-cs2/<yyyy.mm.dd>` | Trimmed HL2SDK in mirror layout: headers, prebuilt Valve libs, the generated `.pb.h`/`.pb.cc`, and the source-only TUs `voltmod_add_plugin` compiles per plugin. Versioned by the upstream commit date. |
 | `metamod-source/2.0.0.<yyyymmdd>` | Metamod core + KHook headers (header-only). KHook arrives as an upstream submodule the recipe fetches. |
 | `sqlpp23/<x.yy>` | sqlpp23 headers (header-only) and the `sqlpp23-ddl2cpp` generator. The `with_postgresql`, `with_mariadb`, and `with_sqlite3` options add the matching connector component and client library. |
@@ -84,16 +89,19 @@ Each plugin registers itself with `voltmod_add_plugin`.
 The framework ships as Conan components matching its CMake targets:
 
 ```text
-headers  runtime  database
+VoltMod::Headers  VoltMod::Sdk  VoltMod::Database
 ```
 
 `VoltMod::Headers` is the include directory with glaze and magic_enum behind it (what a test
-binary links); `VoltMod::Runtime` and `VoltMod::Database` are the libraries. `VoltMod::VoltMod`
-includes every component. Source modules are architecture boundaries, not Conan components.
+binary links); `VoltMod::Sdk` and `VoltMod::Database` are the libraries. `VoltMod::VoltMod`
+includes every library component. Source modules are architecture boundaries, not Conan
+components. The package also carries the built host as the `host` component, which nothing
+links: `cmake --install <build> --component host --prefix dist` stages `dist/addons/voltmod/`
+and `dist/addons/metamod/voltmod.vdf` for a server, and `voltmod install` does it for you.
 Plugins select the database feature explicitly:
 
 ```cmake
-voltmod_add_plugin(bhop VERSION 1.0.0)          # runtime only; sqlpp23 is not linked
+voltmod_add_plugin(bhop VERSION 1.0.0)          # the SDK only; sqlpp23 is not linked
 voltmod_add_plugin(admin-system VERSION 1.0.0 FEATURES DATABASE)
 ```
 

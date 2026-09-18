@@ -62,7 +62,7 @@ Related lifecycle points:
 
 - `OnServerStartup(mapName)` runs at map start. Reapply convars here or on `RoundStart` if map init
   resets them. `runtime.Map.Current()` stays empty after a mid-map load until the next map.
-- `meta reload` detaches old listeners before the new load registers them.
+- `volt reload` detaches old listeners before the new load registers them.
 - Handlers may subscribe or unsubscribe during dispatch. New handlers start with the next event.
 
 ### Inspecting a client's own subscriptions

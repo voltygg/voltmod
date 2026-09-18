@@ -58,7 +58,7 @@ prompt again. Inactive captures expire after `timeoutMs`.
 
 ### Plumbing the chat hook
 
-The base `MetamodPlugin::OnPlayerChat` already consumes active prompts before
+The base `Plugin::OnPlayerChat` already consumes active prompts before
 dispatching commands. An override replaces that behavior, so it must call
 @ref VoltMod::ChatInput::TryConsume before handling other chat:
 

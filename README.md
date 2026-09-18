@@ -4,16 +4,20 @@
 [![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://voltygg.github.io/voltmod/)
 
 VoltMod is a native C++23 framework for Counter-Strike 2 plugins on
-Metamod:Source. It provides engine integration, load-cycle ownership, server
-services, and reproducible CMake and Conan builds. Plugins retain control of
-permissions and game behavior; VoltMod does not host a scripting runtime.
+Metamod:Source. One process-wide host is the server's only Metamod plugin and
+loads your plugins; the framework provides engine integration, load-cycle
+ownership, server services, and reproducible CMake and Conan builds. Plugins
+retain control of permissions and game behavior; VoltMod does not host a
+scripting runtime.
 
 > VoltMod is under active development. Public APIs may change between
 > versions.
 
 ## What it includes
 
-- One `Runtime` and deterministic cleanup per Metamod load cycle.
+- One process-wide host that installs the engine hooks once, loads plugins in
+  declared dependency order, and reloads them one at a time.
+- One `Runtime` and deterministic cleanup per plugin load cycle.
 - Typed chat and console commands with targeting and injected permission policy.
 - WASD center-HTML menus, including multi-step flows.
 - Player tracking, translations, scheduled effects, and typed engine wrappers.
@@ -67,7 +71,7 @@ build straight into a local server and run it:
 uv run poe build --install <name> --start
 ```
 
-Then run `meta list` on the server console and test `!ping`.
+Then run `volt list` on the server console and test `!ping`.
 
 See [Getting started](docs/getting-started.md) for the generated layout and
 manual staging steps.
@@ -99,7 +103,7 @@ immunity, reply formatting, and broadcast behavior.
 Require the Conan package:
 
 ```python
-requires = ("voltmod/[~1.3]",)
+requires = ("voltmod/[~1.4]",)
 ```
 
 Load it and declare plugins:
@@ -114,8 +118,9 @@ add_subdirectory(plugins/my-plugin)
 voltmod_add_plugin(my-plugin VERSION 1.0.0)
 ```
 
-The helper configures the native module, SDK glue, output layout, generated VDF,
-build stamp, and install component. A plugin that uses the database module requests it:
+The helper configures the native module the host loads, SDK glue, output layout,
+the generated `plugin.json`, build stamp, and install component. A plugin that
+uses the database module requests it:
 
 ```cmake
 voltmod_add_plugin(my-plugin VERSION 1.0.0 FEATURES DATABASE)

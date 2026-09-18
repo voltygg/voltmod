@@ -10,7 +10,7 @@ namespace $namespace
 
 /**
  * Everything this plugin owns for one Load/Unload cycle. The plugin creates it in OnLoad
- * and drops it in OnUnload, so no state survives a `meta reload`.
+ * and drops it in OnUnload, so no state survives a `volt reload`.
  *
  * Members are declared in dependency order and destroyed in reverse; each takes the
  * collaborators it needs, so nothing here reaches for a global.

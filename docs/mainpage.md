@@ -4,9 +4,11 @@
 > versions.
 
 VoltMod is a native C++23 framework for Counter-Strike 2 server plugins on
-Metamod:Source. It provides one @ref VoltMod::Runtime per plugin load and
-shared services for commands, players, menus, messages, engine access, HTTP,
-and an optional database (Postgres, MariaDB, or SQLite).
+Metamod:Source. One process-wide host, `voltmod.dll` / `voltmod.so`, is the
+server's only Metamod plugin and loads your plugins; each of them gets one @ref
+VoltMod::Runtime per load and shared services for commands, players, menus,
+messages, engine access, HTTP, and an optional database (Postgres, MariaDB, or
+SQLite).
 
 Start with @ref getting_started to generate a plugin that builds, loads, and
 answers `!ping`.
@@ -34,14 +36,15 @@ renames it. `include/VoltMod/<Module>/` is where a header lives, and the
 | Unsafe | `VoltMod/Unsafe/` | Opt-in raw hooking: `HookInterface` for an interface method, `HookVirtual` for a gamedata-bound virtual function, `HookFunction` for a signature-bound function |
 | Database | `VoltMod/Database/` | Optional async Postgres/MariaDB/SQLite and migrations |
 | Http | `VoltMod/Http/` | Async HTTP and configured JSON endpoints |
-| App | `VoltMod/App/` | Metamod lifecycle, `Config/` for JSONC loading and validation, status, and cross-plugin services |
+| Host | `VoltMod/Host/` | The boundary between the host and a plugin: engine events, the service table, and the plugin entry point |
+| App | `VoltMod/App/` | Plugin lifecycle, `Config/` for JSONC loading and validation, status, and cross-plugin services |
 
 Core and Engine are large enough to group their headers further. Core holds `Signals/`
 (events, subscriptions, hook results), `Text/`, `Slots/` (per-player primitives), `Time/` and
 `Files/`; `Result.hpp`, `LoadSteps.hpp`, `Log.hpp` and `Random.hpp` stay at the module root. In Engine, `Memory/` reaches engine memory (field offsets, vtable entries),
 `GameData/` turns the gamedata file into typed bindings, and `ConVars/`, `Net/` and `Server/`
 hold the live engine services. The three headers at the Engine root are SDK plumbing every other
-module needs: `EngineTypes.hpp`, `Interfaces.hpp` and `MetamodGlobals.hpp`.
+module needs: `EngineTypes.hpp`, `Interfaces.hpp` and `Detours.hpp`.
 
 <h2>Guides</h2>
 

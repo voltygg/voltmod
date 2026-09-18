@@ -6,11 +6,11 @@
 #include <optional>
 
 /**
- * $title plugin entry point. VoltMod::MetamodPlugin owns the Metamod lifecycle, standard
- * hooks, player tracking and chat-command dispatch; this class adds the metadata and owns
- * the plugin's object graph for one load cycle.
+ * $title plugin entry point. VoltMod::Plugin owns one Runtime per load cycle, the
+ * subscriptions to the host's engine events, player tracking and chat-command dispatch; this
+ * class adds the metadata and owns the plugin's object graph for that cycle.
  */
-class $plugin_class final : public VoltMod::MetamodPlugin
+class $plugin_class final : public VoltMod::Plugin
 {
 protected:
     VoltMod::PluginInfo Info() const override;

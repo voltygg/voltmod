@@ -36,7 +36,7 @@ uv run poe build --install $plugin --start
 ```
 
 `--install` merges the server-ready `addons/` tree into `game/csgo` without
-overwriting edited settings. `--start` launches the server. Run `meta list`,
+overwriting edited settings. `--start` launches the server. Run `volt list`,
 confirm `$plugin` appears, join, and enter `!ping`.
 
 To install without rebuilding, or to launch on its own:

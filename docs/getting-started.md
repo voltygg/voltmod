@@ -93,12 +93,12 @@ to the root project. It refuses to overwrite an existing directory.
 
 The scaffold includes:
 
-- a `MetamodPlugin` lifecycle class;
+- a `Plugin` lifecycle class;
 - a load-cycle `App`;
 - a `!ping` command;
 - JSONC settings and schema;
 - an English translation file;
-- Git-backed build identity for `meta list`.
+- Git-backed build identity for `volt list`.
 
 ## Build and install
 
@@ -133,28 +133,34 @@ The install component contains:
 
 ```text
 dist/addons/
-  metamod/my-plugin.vdf
   my-plugin/
+    plugin.json
     bin/<platform>/my-plugin.<dll-or-so>
     configs/
-  voltmod/
-    gamedata/
 ```
 
 Copy `dist/addons` into the server's `game/csgo` directory. Preserve
 operator-edited settings when updating an existing installation.
+
+A plugin has no `.vdf` of its own: the VoltMod host is the server's only Metamod
+plugin, and it loads the plugins it finds under `addons/*/plugin.json`. The
+server therefore also needs the host, `addons/voltmod/bin/<platform>/voltmod.<dll-or-so>`
+with its `addons/metamod/voltmod.vdf`, from the same VoltMod build as the
+plugin; `uv run poe build --install` puts both in place. A plugin whose ABI
+version is not the host's is refused with a message telling you to rebuild
+it.
 
 ## Verify on a server
 
 Start the server and run:
 
 ```text
-meta list
+volt list
 ```
 
-The plugin name, semantic version, commit, and build state should appear. Join
-the server and enter `!ping`; the translated reply confirms the generated
-plugin loaded correctly.
+The host prints each plugin it loaded with its name, semantic version, commit,
+and state; `meta list` shows the host itself. Join the server and enter `!ping`;
+the translated reply confirms the generated plugin loaded correctly.
 
 ## Where to edit
 
@@ -175,9 +181,9 @@ Keep SDK-free decisions in plain types and add doctest coverage.
 uv run poe build --install my-plugin
 ```
 
-Restart the test server to pick up the new binary. Native modules stay locked
-while loaded on Windows, so an install into a running server fails until it
-stops.
+Native modules stay locked while loaded on Windows, so an install into a running
+server fails until the host releases the file. Either restart the server, or run
+`volt unload my-plugin` on its console, install, and `volt load my-plugin`.
 
 Before publishing:
 
@@ -189,16 +195,29 @@ uv run poe test
 
 ## Build details
 
-`voltmod_add_plugin(my-plugin VERSION 1.0.0)` creates the C++23 Metamod
-module, links the SDK and framework, enables the configured warning policy,
-sets hidden symbol visibility, creates the build stamp and VDF, and defines the
-install component.
+`voltmod_add_plugin(my-plugin VERSION 1.0.0)` creates the C++23 module the
+VoltMod host loads, links the SDK, enables the configured warning policy, sets
+hidden symbol visibility, creates the build stamp and `plugin.json`, and defines
+the install component.
 
 A plugin that uses the database module requests it:
 
 ```cmake
 voltmod_add_plugin(my-plugin VERSION 1.0.0 FEATURES DATABASE)
 ```
+
+A plugin that needs another plugin names it. `DEPENDS` is required, and
+`OPTIONAL_DEPENDS` is used when the plugin works without it:
+
+```cmake
+voltmod_add_plugin(my-plugin VERSION 1.0.0 DEPENDS admin-system)
+voltmod_add_plugin(anticheat VERSION 1.1.0 OPTIONAL_DEPENDS admin-system)
+```
+
+Both end up in `plugin.json`, and the host loads a plugin after the dependencies
+it lists that are installed, breaking ties alphabetically. A missing required
+dependency or a dependency cycle refuses that plugin and anything requiring it;
+a missing optional dependency is ignored.
 
 For profiles, lockfiles, local package development, and existing CMake projects, see
 @ref conan_guide.
@@ -211,7 +230,7 @@ handler. Include a module aggregate only where that translation unit needs it:
 
 | Header | Brings in |
 |---|---|
-| `<VoltMod/Api.hpp>` | Core vocabulary (`Event`, `Result`, `Subscription`, `Log`, `Scheduler`, `Translations`, ...), `Runtime`, `Player`/`PlayerManager`/`Policy`, commands, `ChatColors`, `MetamodPlugin` and `LoadStandardConfig` |
+| `<VoltMod/Api.hpp>` | Core vocabulary (`Event`, `Result`, `Subscription`, `Log`, `Scheduler`, `Translations`, ...), `Runtime`, `Player`/`PlayerManager`/`Policy`, commands, `ChatColors`, `Plugin` and `LoadStandardConfig` |
 | `<VoltMod/Entities/Api.hpp>` | Entity/Pawn/Controller wrappers, `EntitySystem`, `EntityOps`, `Items`, and `ConVar`/`ConVarOverrides` |
 | `<VoltMod/Hooks/Api.hpp>` | The per-tick hooks (`Movement`, `Teleport`, ...), game events, and messaging |
 | `<VoltMod/Menu/Api.hpp>` | `MenuRouter` (`runtime.Menus`), `CenterHtmlMenu`, `PanoramaMenu`, `MenuBuilder` and its row specs, `ActionRows`, `Flow`, presets |

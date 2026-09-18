@@ -31,7 +31,7 @@ commands.Add("ban")
 ```
 
 `Run` installs the command and returns no registration handle. A command lives as long as
-the @ref VoltMod::CommandManager that owns it, and `MetamodPlugin` drops every
+the @ref VoltMod::CommandManager that owns it, and @ref VoltMod::Plugin drops every
 one of them before `OnUnload`, so a handler cannot outlive the plugin state it
 captured. There is no way to unregister one command on its own. The builder is
 single use: `Add` starts a new one.

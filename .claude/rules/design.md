@@ -10,11 +10,11 @@ The shapes the framework already uses. New code follows them instead of adding a
 
 ## Runtime and injection
 
-- `MetamodPlugin` owns the Metamod entry points and one `Runtime` per load cycle, passed to `OnLoad(Runtime&)`. Consumers release their state in `OnUnload`.
+- `Plugin` is what the host loads: it takes the host's engine events and owns one `Runtime` per load cycle, passed to `OnLoad(Runtime&)`. Consumers release their state in `OnUnload`.
 - `Runtime` is a flat service container (`runtime.Players`, `runtime.Messages`), so moving a service between modules does not rename the consumer API.
 - No ambient accessor. Constructor-inject the narrowest service that does the job: `CenterHtmlMenu(const CenterHtmlMenu::Services&)`, `ActionDispatcher(Policy&, PlayerManager&, EntitySystem&)`, never `Runtime&`. Only `Commands` and `App` may take `Runtime&`.
 - Header templates plugins instantiate (`Flow<TState>`, `PerSlot<T>`) take one service, so including them does not pull in the composition root.
-- No process-lifetime singletons.
+- Process-lifetime state belongs to the host and nowhere else. The host is one per process by design, and what must exist once for the whole server - the engine hooks, the frame tick, the service table, the plugin list - lives there behind an interface in `Host/`. Everything else, including every service a plugin can reach through `Runtime`, is per load cycle and per plugin; the SDK is a static library in each plugin, so a singleton in it would be one copy per plugin pretending to be one per server. Add nothing to the host that a plugin could own itself.
 
 ## Registration and authorization
 
@@ -25,7 +25,7 @@ The shapes the framework already uses. New code follows them instead of adding a
 ## Players and events
 
 - `PlayerRef` is what gets stored, `Player&` is who is connected now, `Controller`/`Pawn` are this frame's entities.
-- `PlayerManager` owns the roster and raises `Connected`, `FullyConnected`, `SettingsChanged`, `Disconnected`. No lifecycle virtuals on `MetamodPlugin`.
+- `PlayerManager` owns the roster and raises `Connected`, `FullyConnected`, `SettingsChanged`, `Disconnected`. No lifecycle virtuals on `Plugin`.
 - A signal is a public `Event<Args...>` member. `+=` is the only way to subscribe; `Raise` belongs to the owner.
 - Game events go through `GameEvents::On<T>` with a struct in `Events/EventTypes.hpp`. No string form.
 - An `Event` whose source costs something takes an `EventLifecycle`: first subscription installs, last drop removes, and `OnFirst` returning false refuses after logging why. One source feeding several events uses a `SharedLifecycle` instead of counting subscribers itself.

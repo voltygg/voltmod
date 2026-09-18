@@ -23,20 +23,64 @@ VoltMod
 ├── Http        Async HTTP client + JSON REST helpers
 ├── Unsafe      Opt-in raw hooking: HookInterface, HookVirtual, HookFunction (Hook.hpp),
 │               each returning the Subscription that removes the hook
-└── App         The composition root: Runtime, MetamodPlugin, ServiceExchange
+├── Host        The host boundary: engine events, the service table, plugin loading
+└── App         The composition root: Runtime, Plugin, ServiceExchange
 ```
 
-These are source layers, not separate link units. The framework exposes
-`VoltMod::Runtime` and the optional `VoltMod::Database` library. `voltmod
-modgraph` rejects dependencies outside the layer graph.
+These are source layers, not separate link units. The framework exposes the
+`VoltMod::Sdk` static library and the optional `VoltMod::Database` one. `Host`
+holds the interfaces between the host and a plugin, and its implementation is
+compiled into the host binary only. `voltmod modgraph` rejects dependencies
+outside the layer graph.
+
+## The host and its plugins
+
+One process-wide host - `voltmod.dll` or `voltmod.so`, installed at
+`addons/voltmod/bin/<platform>/` - is the only Metamod plugin on the server and
+owns the only `.vdf`. It installs the eight engine hooks once and offers them to
+every plugin it has loaded, ticks the frame, keeps the process-wide table behind
+@ref VoltMod::ServiceExchange, and loads the plugins themselves.
+
+A plugin is an ordinary library that the host loads with `LoadLibrary` or
+`dlopen`. It keeps its own home directory, `addons/<name>/`, holding
+`bin/<platform>/<name>.dll`, `configs/`, and the `plugin.json` that
+`voltmod_add_plugin` generates:
+
+```json
+{
+  "name": "anticheat",
+  "version": "1.1.0",
+  "dependencies": [],
+  "optionalDependencies": ["admin-system"]
+}
+```
+
+The host loads a plugin after the dependencies it lists that are installed and
+breaks ties alphabetically; unload runs in reverse. A missing required
+dependency or a dependency cycle refuses that plugin and everything that
+requires it, while a missing optional dependency is ignored. Engine events reach
+plugins in that same load order.
+
+The host and the plugins come from one build. The host refuses a plugin whose
+ABI version is not its own and says to rebuild it.
+
+From the server console:
+
+```text
+volt list              installed plugins and their state
+volt status [name]     the status report, for every plugin or one of them
+volt load <name>
+volt unload <name>
+volt reload <name>
+```
 
 ## Design rules
 
-- **Game thread only.** Metamod hooks and framework code run on the main thread.
+- **Game thread only.** The host's engine hooks and framework code run on the main thread.
   Database and HTTP workers queue completions and replay them there through
   per-frame delivery, so callbacks do not race game code.
 - **One load-cycle lifetime.** Every service belongs to one @ref VoltMod::Runtime,
-  created on load and destroyed on unload. `meta reload` starts clean.
+  created on load and destroyed on unload. `volt reload` starts clean.
 - **Data over glue.** Effects and menu rows are structs (`EffectDescriptor` and
   context rows), and a command's handler signature is its argument spec. The
   framework owns resolution, checks, dispatch, and replies around them.
@@ -82,7 +126,7 @@ struct App
     VoltMod::EffectManager Effects{Runtime.Scheduler};
 };
 
-class MyPlugin final : public VoltMod::MetamodPlugin
+class MyPlugin final : public VoltMod::Plugin
 {
     bool OnLoad(VoltMod::Runtime& runtime) override
     {
@@ -118,9 +162,10 @@ table.
 
 ## Cross-plugin services
 
-Plugins are separate modules and each has its own runtime. Share typed behavior
-through @ref VoltMod::ServiceExchange instead of exposing a manager or
-framework object directly:
+Each plugin is its own library with its own runtime, and the host keeps one
+service table for the process. Share typed behavior through @ref
+VoltMod::ServiceExchange instead of exposing a manager or framework object
+directly:
 
 ```cpp
 struct IBanService
@@ -138,7 +183,9 @@ if (auto* bans = runtime.Exchange.Get<IBanService>()) // consumer
 ```
 
 Include a version in `InterfaceName` and change it when the vtable or parameter
-meaning changes. Query at the point of use because peers may load or unload.
+meaning changes. Query at the point of use because peers may load or unload. The
+host never loads or unloads a plugin inside a callback, so a pointer fetched
+where it is used cannot dangle before you are done with it.
 Do not transfer ownership, pass allocator-owned objects, or let exceptions cross
 the module boundary. Use a @ref VoltMod::ServerCommand when console, RCON,
 cfg files, or untyped automation also need the operation.
@@ -214,12 +261,12 @@ Players    -> Core, Engine, Entities
 Hooks      -> Core, Engine, Schema, Entities, Events, Players, Unsafe
 Ui         -> Core, Engine, Schema, Entities, Hooks, Unsafe
 Workshop   -> Core, Engine, Players, Unsafe
-Commands   -> Core, Engine, Entities, Messaging, Players
+Commands   -> Core, Engine, Entities, Messaging, Players, Host
 Menu       -> Core, Engine, Entities, Messaging, Players, Hooks, Ui, Workshop
 Http       -> Core
 Database   -> Core
 Unsafe     -> Core, Engine
-Host       -> Core, Engine
+Host       -> Core, Engine, Unsafe
 App        -> every module
 ```
 

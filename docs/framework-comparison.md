@@ -26,7 +26,7 @@ service with a framework-specific lifecycle.
 | Capability | VoltMod | SwiftlyS2 | Plugify with S2SDK | CounterStrikeSharp |
 | --- | --- | --- | --- | --- |
 | Plugin language | C++23 | C# on .NET 10 | C++, C#, Python, Go, Lua, Rust, JavaScript/TypeScript, and additional language modules | C# on .NET 8 |
-| Host model | Each plugin is a native Metamod module | Managed plugins run over a C++ Source 2 core | Plugify hosts language modules; Metamod and S2SDK provide Source 2 integration | A Metamod plugin hosts the .NET scripting layer |
+| Host model | One native Metamod module, the VoltMod host, loads native C++ plugins | Managed plugins run over a C++ Source 2 core | Plugify hosts language modules; Metamod and S2SDK provide Source 2 integration | A Metamod plugin hosts the .NET scripting layer |
 | Commands | Fluent builder whose handler signature is its typed, pre-resolved argument spec, plus aliases, surfaces, targeting, and policy | Console/chat commands, aliases, hooks, and framework permissions | Console commands and hooks through S2SDK | Console/server/chat commands and command attributes |
 | Menus | WASD center-HTML menus with typed rows, pickers, and multi-step flows | Built-in builder with buttons, inputs, sliders, choices, toggles, and more | S2SDK exposes user-message and UI primitives; no equivalent high-level workflow is documented as part of the core stack | Chat and center-HTML menu APIs |
 | Events and hooks | Typed game events, listeners, KHook helpers, movement hooks, and input history | Generated typed game events, listeners, function hooks, net messages, and entity input/output hooks | Game events, listeners, function hooks, user messages, and other Source 2 hooks through S2SDK | Game-event handlers, listeners, timers, virtual functions, and memory/dynamic hooks |
@@ -36,15 +36,16 @@ service with a framework-specific lifecycle.
 | Database | Optional async PostgreSQL service, migrations, and row mapping | Shared connections for MySQL, PostgreSQL, and SQLite | No common Source 2 database service is documented; use a language package or another Plugify extension | Use normal .NET database packages; SQLite is shown in project examples |
 | HTTP | Async framework client with game-thread completions and JSON endpoint helpers | Use .NET HTTP libraries and framework scheduling as needed | Use the selected language's HTTP packages | Use .NET HTTP libraries |
 | Cross-plugin API | Typed `ServiceExchange` interfaces | Shared interfaces and plugin services | Cross-language exported methods are a core Plugify feature | Typed player and plugin capabilities with shared contract assemblies |
-| Reload model | Metamod load/unload cycle with runtime-scoped cleanup; no automatic file watcher | Automatic plugin hot reload is configurable and enabled by default | S2SDK documents hot-reloading for development | Updated plugin DLLs reload automatically when enabled |
+| Reload model | `volt load`/`unload`/`reload` per plugin, with runtime-scoped cleanup; no automatic file watcher | Automatic plugin hot reload is configurable and enabled by default | S2SDK documents hot-reloading for development | Updated plugin DLLs reload automatically when enabled |
 | Project tooling | `init`, `new-plugin`, `doctor`, pinned CMake/Conan/Ninja, presets, CTest, install components, and package publishing | `dotnet new` plugin template and `dotnet publish` | Mamba packages, manifests, language-module tooling, and project-specific manager commands | Standard `dotnet`/NuGet build plus framework examples and API packages |
 
 ## Where VoltMod differs
 
-VoltMod's plugin is the native Metamod module. There is no managed host between
-plugin code and the framework, and no multi-language ABI to cross. That model
-fits codebases that want deterministic C++ ownership and direct control over
-SDK interactions.
+VoltMod's host and plugins are all native code. The host does the work that must
+happen once per server and hands the engine to plugins directly: there is no
+managed runtime between plugin code and the framework, and no multi-language ABI
+to cross. That model fits codebases that want deterministic C++ ownership and
+direct control over SDK interactions.
 
 Its higher-level services are intentionally opinionated:
 
@@ -63,7 +64,7 @@ Plugify offers the broadest language choice and cross-language interoperability.
 
 Choose VoltMod when:
 
-- the plugin should be a native C++ Metamod module;
+- the plugin should be native C++ running in the server process;
 - ownership, lifetime, and unload behavior must stay explicit;
 - PostgreSQL, HTTP, commands, targeting, menus, and packaging should share one
   framework lifecycle;
