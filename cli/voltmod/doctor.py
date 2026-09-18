@@ -7,7 +7,7 @@ from pathlib import Path
 
 from voltmod.check_results import CheckResult, Status
 from voltmod.conan import REMOTE, has_remote, profile_dirs
-from voltmod.cs2_install import METAMOD_BINARIES, server_executable
+from voltmod.cs2_install import HOST_BINARIES, HOST_VDF, METAMOD_BINARIES, server_executable
 from voltmod.errors import VoltmodError
 from voltmod.process import BUILD_TOOLS, WINDOWS, check_tool_version, msvc_version, tool_version
 from voltmod.project import Project
@@ -96,4 +96,13 @@ def _check_server(server: Path) -> Iterator[CheckResult]:
     else:
         yield CheckResult(
             "Metamod binary not found; install Metamod before loading plugins", Status.WARN
+        )
+
+    host = any((server / path).is_file() for path in HOST_BINARIES)
+    if host and (server / HOST_VDF).is_file():
+        yield _passed("VoltMod host installed")
+    else:
+        yield CheckResult(
+            "VoltMod host not installed; run `voltmod install` before starting the server",
+            Status.WARN,
         )

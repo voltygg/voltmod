@@ -12,6 +12,14 @@ METAMOD_BINARIES = (
     "game/csgo/addons/metamod/bin/linuxsteamrt64/server.so",
 )
 
+# The host is the only Metamod plugin: one per server, loading every plugin beside it.
+HOST_COMPONENT = "host"
+HOST_VDF = "game/csgo/addons/metamod/voltmod.vdf"
+HOST_BINARIES = (
+    "game/csgo/addons/voltmod/bin/win64/voltmod.dll",
+    "game/csgo/addons/voltmod/bin/linuxsteamrt64/voltmod.so",
+)
+
 # Written by a server running voltmod once a map runs.
 SCHEMA_DUMP = "game/csgo/addons/voltmod/schema/server.json"
 

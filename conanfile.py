@@ -26,6 +26,7 @@ class VoltModConan(ConanFile):
     license = "MIT"
     homepage = "https://github.com/voltygg/voltmod"
     settings = "os", "compiler", "build_type", "arch"
+    # What consumers link: the SDK. The package also ships the host module, which nothing links.
     package_type = "static-library"
 
     # cpr is header-private. glaze is public through App/Config.hpp, never through Api.hpp.
@@ -101,6 +102,8 @@ class VoltModConan(ConanFile):
         toolchain = CMakeToolchain(self)
         toolchain.user_presets_path = False
         toolchain.variables["CMAKE_POSITION_INDEPENDENT_CODE"] = True
+        # This recipe owns the version; the host stamps it into its build info.
+        toolchain.variables["VOLTMOD_VERSION"] = self.version
         # Via the toolchain so `cmake --preset`, `conan build` and `conan create` all get it.
         if shutil.which("ccache"):
             toolchain.variables["CMAKE_CXX_COMPILER_LAUNCHER"] = "ccache"
@@ -117,6 +120,14 @@ class VoltModConan(ConanFile):
     def package(self):
         cmake = CMake(self)
         cmake.install()
+
+    def _host_bin_dir(self):
+        """Where the host module sits: the packaged addon tree, or a checkout's build output."""
+        if self._source_checkout():
+            arch = "windows-x86_64" if self.settings.os == "Windows" else "linux-x86_64"
+            return os.path.join(self.folders.build, "host", arch)
+        subdir = "win64" if self.settings.os == "Windows" else "linuxsteamrt64"
+        return os.path.join("addons", "voltmod", "bin", subdir)
 
     def package_info(self):
         self.cpp_info.set_property("cmake_file_name", "voltmod")
@@ -138,27 +149,36 @@ class VoltModConan(ConanFile):
         headers.includedirs = ["include"]
         headers.requires = ["glaze::glaze", "magic_enum::magic_enum"]
 
-        runtime = self.cpp_info.components["runtime"]
-        runtime.set_property("cmake_target_name", "VoltMod::Runtime")
-        runtime.libs = ["voltmod-runtime"]
-        runtime.libdirs = libdirs
-        runtime.requires = [
+        sdk = self.cpp_info.components["sdk"]
+        sdk.set_property("cmake_target_name", "VoltMod::Sdk")
+        sdk.libs = ["voltmod-sdk"]
+        sdk.libdirs = libdirs
+        sdk.requires = [
             "headers",
             "hl2sdk-cs2::hl2sdk-cs2",
             "metamod-source::metamod-source",
             "cpr::cpr",
         ]
         if self.settings.os == "Windows":
-            runtime.system_libs = ["psapi"]
+            sdk.system_libs = ["psapi"]
 
         # Plugins link it only with FEATURES DATABASE.
         db = self.cpp_info.components["database"]
         db.set_property("cmake_target_name", "VoltMod::Database")
         db.libs = ["voltmod-database"]
         db.libdirs = libdirs
-        db.requires = ["runtime", "sqlpp23::postgresql", "sqlpp23::mysql", "sqlpp23::sqlite3"]
+        db.requires = ["sdk", "sqlpp23::postgresql", "sqlpp23::mysql", "sqlpp23::sqlite3"]
+
+        # The Metamod plugin that loads every other plugin. Nothing links it: it ships as the
+        # server-ready addons/ tree that VoltModPlugin.cmake offers as the `host` component.
+        host = self.cpp_info.components["host"]
+        host.set_property("cmake_target_name", "VoltMod::Host")
+        host.libs = []
+        host.libdirs = []
+        host.includedirs = []
+        host.bindirs = [self._host_bin_dir()]
 
         # Every component, for a project that links the package without voltmod_add_plugin.
         umbrella = self.cpp_info.components["voltmod"]
         umbrella.set_property("cmake_target_name", "VoltMod::VoltMod")
-        umbrella.requires = ["runtime", "database"]
+        umbrella.requires = ["sdk", "database"]

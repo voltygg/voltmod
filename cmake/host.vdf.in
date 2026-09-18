@@ -1,5 +1,5 @@
 "Metamod Plugin"
 {
-	"alias"	"@CS2_PLUGIN_NAME@"
-	"file"	"addons/@CS2_PLUGIN_NAME@/bin/@CS2_PLUGIN_BIN_SUBDIR@/@CS2_PLUGIN_NAME@"
+	"alias"	"voltmod"
+	"file"	"addons/voltmod/bin/@VOLTMOD_BIN_SUBDIR@/voltmod"
 }

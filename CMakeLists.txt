@@ -4,6 +4,16 @@ project(voltmod LANGUAGES CXX)
 
 option(VOLTMOD_DISABLE_PCH "Disable precompiled headers (e.g. to favor ccache hits over PCH on MSVC)" OFF)
 
+# conanfile.py owns the framework version and the toolchain passes it in; the host build stamp
+# reports the same one. Parsing the recipe covers a configure without the Conan toolchain.
+if(NOT VOLTMOD_VERSION)
+    file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/conanfile.py" _version_line REGEX "^ +version *= *")
+    if(NOT _version_line MATCHES "\"([^\"]+)\"")
+        message(FATAL_ERROR "no framework version: pass -DVOLTMOD_VERSION or keep it in conanfile.py")
+    endif()
+    set(VOLTMOD_VERSION "${CMAKE_MATCH_1}")
+endif()
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(VoltModCommon)
@@ -25,40 +35,43 @@ target_include_directories(voltmod-headers INTERFACE "$<BUILD_INTERFACE:${CMAKE_
 target_link_libraries(voltmod-headers INTERFACE glaze::glaze magic_enum::magic_enum)
 target_compile_features(voltmod-headers INTERFACE cxx_std_23)
 
-# Runtime includes every source module except Database.
-file(GLOB_RECURSE VOLTMOD_RUNTIME_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
-list(FILTER VOLTMOD_RUNTIME_SOURCES EXCLUDE REGEX "/src/Database/")
+# The SDK is every source module except Database and Host: Database is opt-in, and Host
+# belongs to the one process-wide host module, not to each plugin.
+file(GLOB_RECURSE VOLTMOD_SDK_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+list(FILTER VOLTMOD_SDK_SOURCES EXCLUDE REGEX "/src/Database/")
+list(FILTER VOLTMOD_SDK_SOURCES EXCLUDE REGEX "/src/Host/")
 
 # Schema offsets differ between the Windows and Linux builds of the game.
 if(WIN32)
-    list(FILTER VOLTMOD_RUNTIME_SOURCES EXCLUDE REGEX "/src/Schema/Generated/linux/")
+    list(FILTER VOLTMOD_SDK_SOURCES EXCLUDE REGEX "/src/Schema/Generated/linux/")
 else()
-    list(FILTER VOLTMOD_RUNTIME_SOURCES EXCLUDE REGEX "/src/Schema/Generated/windows/")
+    list(FILTER VOLTMOD_SDK_SOURCES EXCLUDE REGEX "/src/Schema/Generated/windows/")
 endif()
 
 file(GLOB_RECURSE VOLTMOD_HTTP_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Http/*.cpp")
 file(GLOB_RECURSE VOLTMOD_DATABASE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Database/*.cpp")
+file(GLOB_RECURSE VOLTMOD_HOST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Host/*.cpp")
 
-add_library(voltmod-runtime STATIC ${VOLTMOD_RUNTIME_SOURCES})
-add_library(VoltMod::Runtime ALIAS voltmod-runtime)
+add_library(voltmod-sdk STATIC ${VOLTMOD_SDK_SOURCES})
+add_library(VoltMod::Sdk ALIAS voltmod-sdk)
 
-voltmod_set_cxx_defaults(voltmod-runtime)
-target_include_directories(voltmod-runtime PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+voltmod_set_cxx_defaults(voltmod-sdk)
+target_include_directories(voltmod-sdk PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 # Keep cpr out of public headers.
-target_link_libraries(voltmod-runtime
+target_link_libraries(voltmod-sdk
     PUBLIC VoltMod::Headers VoltMod::Metamod VoltMod::HL2SDK
     PRIVATE cpr::cpr
 )
-hl2sdk_attach_engine_sources(voltmod-runtime)
-hl2sdk_attach_generated_sources(voltmod-runtime)
+hl2sdk_attach_engine_sources(voltmod-sdk)
+hl2sdk_attach_generated_sources(voltmod-sdk)
 
 if(WIN32)
-    target_link_libraries(voltmod-runtime PUBLIC psapi)
+    target_link_libraries(voltmod-sdk PUBLIC psapi)
 endif()
 
 if(NOT VOLTMOD_DISABLE_PCH)
     # Exclude framework headers so source edits do not invalidate the PCH. Use protobuf's stable header.
-    target_precompile_headers(voltmod-runtime PRIVATE
+    target_precompile_headers(voltmod-sdk PRIVATE
         <ISmmPlugin.h>
         <eiface.h>
         <icvar.h>
@@ -88,7 +101,7 @@ add_library(voltmod-database STATIC ${VOLTMOD_DATABASE_SOURCES})
 add_library(VoltMod::Database ALIAS voltmod-database)
 voltmod_set_cxx_defaults(voltmod-database)
 target_include_directories(voltmod-database PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
-target_link_libraries(voltmod-database PUBLIC VoltMod::Runtime voltmod-sqlpp)
+target_link_libraries(voltmod-database PUBLIC VoltMod::Sdk voltmod-sqlpp)
 if(NOT VOLTMOD_DISABLE_PCH)
     target_precompile_headers(voltmod-database PRIVATE
         <sqlpp23/sqlpp23.h>
@@ -101,8 +114,51 @@ if(NOT VOLTMOD_DISABLE_PCH)
     )
 endif()
 
+# The host: the only Metamod plugin in the process. It loads plugin modules itself, so it
+# needs the same module-local allocator and ConVar sources any plugin gets.
+add_library(voltmod-host MODULE ${VOLTMOD_HOST_SOURCES})
+voltmod_set_cxx_defaults(voltmod-host)
+target_include_directories(voltmod-host PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_link_libraries(voltmod-host PRIVATE VoltMod::Sdk)
+hl2sdk_attach_plugin_support(voltmod-host)
+
+# Release PDBs for crash dumps.
+target_link_options(voltmod-host PRIVATE
+    "$<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:MSVC>>:/DEBUG;/OPT:REF;/OPT:ICF>"
+)
+
+set(VOLTMOD_HOST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/host/${VOLTMOD_PLATFORM_ARCH}")
+set_target_properties(voltmod-host PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "voltmod"
+    LIBRARY_OUTPUT_DIRECTORY "${VOLTMOD_HOST_OUTPUT_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY "${VOLTMOD_HOST_OUTPUT_DIR}"
+    PDB_OUTPUT_DIRECTORY "${VOLTMOD_HOST_OUTPUT_DIR}"
+)
+
+voltmod_stamp_build_info(voltmod-host "${VOLTMOD_VERSION}")
+
+set(VOLTMOD_HOST_BIN "addons/voltmod/bin/${VOLTMOD_BIN_SUBDIR}")
+
+install(TARGETS voltmod-host
+    LIBRARY DESTINATION "${VOLTMOD_HOST_BIN}" COMPONENT host
+    RUNTIME DESTINATION "${VOLTMOD_HOST_BIN}" COMPONENT host
+)
+if(WIN32)
+    install(FILES "$<TARGET_PDB_FILE:voltmod-host>"
+        DESTINATION "${VOLTMOD_HOST_BIN}" COMPONENT host OPTIONAL)
+endif()
+
+# One .vdf and one gamedata directory per server, both the host's.
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/host.vdf.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/voltmod.vdf" @ONLY NEWLINE_STYLE LF)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/voltmod.vdf"
+    DESTINATION "addons/metamod" COMPONENT host)
+install(DIRECTORY "${VOLTMOD_GAMEDATA_DIR}/"
+    DESTINATION "addons/voltmod/gamedata" COMPONENT host)
+
 # CMakeDeps generates the package config; no export set is needed.
-install(TARGETS voltmod-runtime voltmod-database ARCHIVE DESTINATION lib)
+install(TARGETS voltmod-sdk voltmod-database ARCHIVE DESTINATION lib)
 
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/" DESTINATION include)
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/" DESTINATION cmake)
@@ -120,11 +176,12 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
     file(GLOB VOLTMOD_API_CHECKS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/Api/*.cpp")
     add_library(voltmod-api-surface-check OBJECT ${VOLTMOD_API_CHECKS})
     target_compile_definitions(voltmod-api-surface-check PRIVATE VOLTMOD_API_SURFACE_CHECK)
-    target_link_libraries(voltmod-api-surface-check PRIVATE VoltMod::Runtime VoltMod::Database)
+    target_link_libraries(voltmod-api-surface-check PRIVATE VoltMod::Sdk VoltMod::Database)
 
     # SDK-free translation units. Other sources need HL2SDK or a database client.
     voltmod_add_tests(voltmod-utils-tests
         SOURCES
+            src/App/ServiceExchange.cpp
             src/Commands/CommandBuilder.cpp
             src/Commands/CommandRouter.cpp
             src/Commands/CommandSyntax.cpp
@@ -145,7 +202,7 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Players/PlayerManager.cpp
             src/Players/Policy.cpp
             src/Hooks/PendingConVarQueries.cpp
-            src/Host/HostCore.cpp
+            src/Host/PluginHost.cpp
             src/Host/PluginOrder.cpp
             src/Workshop/AddonDownloads.cpp
             src/Ui/LayoutPath.cpp

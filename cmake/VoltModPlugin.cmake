@@ -1,14 +1,16 @@
 include_guard(GLOBAL)
 
 # Consumer plugin API:
-#   voltmod_add_plugin(<name> VERSION <v> [SOURCES ...] [FEATURES ...])
+#   voltmod_add_plugin(<name> VERSION <v> [SOURCES ...] [FEATURES ...]
+#                      [DEPENDS ...] [OPTIONAL_DEPENDS ...])
 
 include("${CMAKE_CURRENT_LIST_DIR}/VoltModCommon.cmake")
 
-# Metamod MODULE linking VoltMod::Runtime. SOURCES defaults to src/*.cpp; FEATURES DATABASE
-# adds VoltMod::Database; VERSION goes into BuildInfo.hpp.
+# A module the voltmod host loads, linking VoltMod::Sdk. SOURCES defaults to src/*.cpp;
+# FEATURES DATABASE adds VoltMod::Database; VERSION goes into BuildInfo.hpp; DEPENDS and
+# OPTIONAL_DEPENDS name other plugins and go into plugin.json, which orders the host's loading.
 function(voltmod_add_plugin target_name)
-    cmake_parse_arguments(ARG "" "VERSION" "SOURCES;FEATURES" ${ARGN})
+    cmake_parse_arguments(ARG "" "VERSION" "SOURCES;FEATURES;DEPENDS;OPTIONAL_DEPENDS" ${ARGN})
 
     if(ARG_UNPARSED_ARGUMENTS)
         message(FATAL_ERROR
@@ -31,6 +33,8 @@ function(voltmod_add_plugin target_name)
         )
     endif()
 
+    # The host loads this module by path. VOLTMOD_EXPORT on VoltMod_PluginEntry is the only
+    # export it needs, so there is no export list or --export-dynamic here.
     add_library("${target_name}" MODULE ${ARG_SOURCES})
     voltmod_set_cxx_defaults("${target_name}")
 
@@ -43,7 +47,7 @@ function(voltmod_add_plugin target_name)
 
     target_include_directories("${target_name}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
-    set(framework_targets VoltMod::Runtime)
+    set(framework_targets VoltMod::Sdk)
     set(pch_headers "<VoltMod/Api.hpp>")
     voltmod_apply_features(voltmod_add_plugin "${target_name}" "${ARG_FEATURES}" framework_targets)
 
@@ -81,7 +85,33 @@ function(voltmod_add_plugin target_name)
         PDB_OUTPUT_DIRECTORY "${output_dir}"
     )
 
+    voltmod_write_plugin_manifest("${target_name}" "${ARG_VERSION}"
+        "${ARG_DEPENDS}" "${ARG_OPTIONAL_DEPENDS}")
     voltmod_install_plugin("${target_name}")
+endfunction()
+
+# plugin.json is what the host scans: it names the plugin's module and orders the load.
+function(voltmod_write_plugin_manifest target_name version depends optional_depends)
+    set(VOLTMOD_PLUGIN_NAME "${target_name}")
+    set(VOLTMOD_PLUGIN_VERSION "${version}")
+    _voltmod_json_array(VOLTMOD_PLUGIN_DEPENDENCIES ${depends})
+    _voltmod_json_array(VOLTMOD_PLUGIN_OPTIONAL_DEPENDENCIES ${optional_depends})
+    configure_file(
+        "${VOLTMOD_ROOT_DIR}/cmake/plugin.json.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/plugin.json"
+        @ONLY
+        NEWLINE_STYLE LF
+    )
+endfunction()
+
+# The members of a JSON array: a CMake list is ';'-separated, and an empty one must stay empty.
+function(_voltmod_json_array out_var)
+    set(members "")
+    foreach(name IN LISTS ARGN)
+        list(APPEND members "\"${name}\"")
+    endforeach()
+    list(JOIN members ", " joined)
+    set("${out_var}" "${joined}" PARENT_SCOPE)
 endfunction()
 
 # Install a server-ready addon bundle under the target component.
@@ -98,16 +128,8 @@ function(voltmod_install_plugin target_name)
             DESTINATION "${addon_bin}" COMPONENT "${target_name}" OPTIONAL)
     endif()
 
-    set(CS2_PLUGIN_NAME "${target_name}")
-    set(CS2_PLUGIN_BIN_SUBDIR "${VOLTMOD_BIN_SUBDIR}")
-    configure_file(
-        "${VOLTMOD_ROOT_DIR}/cmake/plugin.vdf.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.vdf"
-        @ONLY
-        NEWLINE_STYLE LF
-    )
-    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.vdf"
-        DESTINATION "addons/metamod" COMPONENT "${target_name}")
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/plugin.json"
+        DESTINATION "addons/${target_name}" COMPONENT "${target_name}")
 
     # settings.jsonc is rendered per server at deploy.
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/configs")
@@ -116,12 +138,6 @@ function(voltmod_install_plugin target_name)
             COMPONENT "${target_name}"
             PATTERN "settings.jsonc" EXCLUDE
         )
-    endif()
-
-    if(EXISTS "${VOLTMOD_GAMEDATA_DIR}")
-        install(DIRECTORY "${VOLTMOD_GAMEDATA_DIR}/"
-            DESTINATION "addons/voltmod/gamedata"
-            COMPONENT "${target_name}")
     endif()
 endfunction()
 
@@ -145,3 +161,9 @@ function(voltmod_stamp_build_info target_name version)
     add_dependencies("${target_name}" "${target_name}-buildinfo")
     target_include_directories("${target_name}" PRIVATE "${include_dir}")
 endfunction()
+
+# A packaged framework ships the built host under addons/; offer it as an install component so
+# a consumer stages it the same way it stages a plugin. A framework checkout builds it instead.
+if(EXISTS "${VOLTMOD_ROOT_DIR}/addons")
+    install(DIRECTORY "${VOLTMOD_ROOT_DIR}/addons/" DESTINATION "addons" COMPONENT host)
+endif()
