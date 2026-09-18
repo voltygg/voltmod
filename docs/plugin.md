@@ -50,7 +50,7 @@ types. Add module headers only where needed:
 |---|---|
 | Menus (`MenuRouter`, `CenterHtmlMenu`, `PanoramaMenu`, `MenuBuilder`, row specs, `ActionRows`, `Flow`, presets) | `<VoltMod/Menu/Api.hpp>` |
 | More of Entities (`EntityRef`, `Items`, `ConVar`) or Hooks (`Movement`, `Teleport`, game events) | `<VoltMod/Entities/Api.hpp>`, `<VoltMod/Hooks/Api.hpp>` |
-| A JsonConfig-backed settings struct | `<VoltMod/App/Config.hpp>` (see @ref config_guide) |
+| An Options-backed settings struct | `<VoltMod/App/Config.hpp>` (see @ref config_guide) |
 | Raw interfaces, gamedata, or vtable hooking | `<VoltMod/Unsafe/Api.hpp>` |
 | Database (Postgres/MariaDB/SQLite) | `<VoltMod/Database/Api.hpp>` (see @ref database_guide) |
 
@@ -132,7 +132,7 @@ needs the same decision; do not reimplement its steps. The full outcome table
 is in @ref players_guide "Players".
 
 `LoadStandardConfig` uses your config type's `LoadSettings` when it has one
-(the load-then-validate convention), otherwise `JsonConfig::Load`. It applies
+(the load-then-validate convention), otherwise `Options::Load`. It applies
 `plugin.locale` when the settings struct embeds
 @ref VoltMod::StandardPluginSettings. Use `{.Translations = false}` for
 a plugin that ships no translations.
@@ -229,6 +229,31 @@ destroyed first, and a section left holding a dangling pointer is a lifetime bug
 nothing calls it in the gap.
 
 Keep JSON sections compact (counts and names, not full lists), because RCON's console capture can truncate large responses.
+
+## Logging
+
+`Log::Info`, `Log::Warn` and `Log::Error` from `<VoltMod/Core/Log.hpp>` format with
+`std::format` and hand the line to the host, which prefixes the plugin's own tag. The host also
+sets the plugin's minimum level, so a line below it is never formatted at all.
+
+@ref VoltMod::Logger "Logger<T>" adds the name of the class that logged. Include
+`<VoltMod/App/Logger.hpp>` - it is not part of `<VoltMod/Api.hpp>` - and keep one as a member:
+
+```cpp
+class BhopManager
+{
+    void OnTick(int elapsed)
+    {
+        _log.Info("ready in {}ms", elapsed);  // [BHOP] [BhopManager] ready in 12ms
+    }
+
+    VoltMod::Logger<BhopManager> _log;
+};
+```
+
+The plugin tag says which plugin, the type name says which part of it. Namespaces and template
+arguments are dropped, so `Reports::ReportQueue` logs as `[ReportQueue]`. It holds nothing,
+takes no constructor argument, and leaves a silenced line unformatted the way `Log::` does.
 
 ## Overrides
 
@@ -329,4 +354,4 @@ derived member would instead outlive the whole plugin graph, because the derived
 
 ## Configuration
 
-Settings loading is one call through @ref VoltMod::JsonConfig; see @ref config_guide.
+Settings loading is one call through @ref VoltMod::Options; see @ref config_guide.
