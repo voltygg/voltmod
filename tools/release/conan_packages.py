@@ -2,6 +2,7 @@
 
 import os
 from pathlib import Path
+from typing import Any
 
 from voltmod.conan import REMOTE, SDK_BUILD_EXCLUSIONS, ensure_remote, profile_args, run_conan_json
 from voltmod.errors import VoltmodError
@@ -56,6 +57,58 @@ def build_framework(root: Path, *, use_lockfile: bool) -> None:
     if not use_lockfile:
         args.append("--lockfile=")
     create_package(root, root, *args)
+    check_package_contents(framework_version(root))
+
+
+def required_files(package_settings: dict[str, Any]) -> tuple[str, ...]:
+    """What a framework package must hold, for the platform it was built for."""
+    windows = package_settings.get("os") == "Windows"
+    host_bin = "addons/voltmod/bin/win64" if windows else "addons/voltmod/bin/linuxsteamrt64"
+    libraries = (
+        ("lib/voltmod-sdk.lib", "lib/voltmod-database.lib")
+        if windows
+        else ("lib/libvoltmod-sdk.a", "lib/libvoltmod-database.a")
+    )
+    return (
+        *libraries,
+        # The host module, its Metamod entry and its gamedata. Nothing links these, so a
+        # packaging mistake would otherwise only surface when a server fails to start.
+        f"{host_bin}/voltmod.{'dll' if windows else 'so'}",
+        "addons/metamod/voltmod.vdf",
+        "addons/voltmod/gamedata/gamedata.jsonc",
+        "include/VoltMod/Api.hpp",
+        "cmake/VoltModPlugin.cmake",
+    )
+
+
+def check_package_contents(version: str) -> None:
+    """Refuse to publish a package that a server could not be installed from."""
+    listing = run_conan_json(
+        "list", f"{FRAMEWORK_PACKAGE}/{version}#latest:*", "-c"
+    ).get("Local Cache", {})
+    checked = 0
+    for reference, body in listing.items():
+        # A missing recipe still exits 0, listed as an "error" entry instead of a reference.
+        if not reference.startswith(f"{FRAMEWORK_PACKAGE}/"):
+            continue
+        for revision, contents in body.get("revisions", {}).items():
+            for package_id, package in contents.get("packages", {}).items():
+                folder = package_folder(f"{reference}#{revision}:{package_id}")
+                settings = package.get("info", {}).get("settings", {})
+                missing = [name for name in required_files(settings)
+                           if not (folder / name).exists()]
+                if missing:
+                    raise VoltmodError(
+                        f"{reference}:{package_id} is missing {', '.join(missing)}; "
+                        "check the install() rules in CMakeLists.txt"
+                    )
+                checked += 1
+    if not checked:
+        raise VoltmodError(f"no {FRAMEWORK_PACKAGE}/{version} package in the local cache to check")
+
+
+def package_folder(reference: str) -> Path:
+    return Path(run_conan_json("cache", "path", reference)["cache_path"])
 
 
 def framework_version(root: Path) -> str:

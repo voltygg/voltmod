@@ -103,7 +103,7 @@ immunity, reply formatting, and broadcast behavior.
 Require the Conan package:
 
 ```python
-requires = ("voltmod/[~1.4]",)
+requires = ("voltmod/[~1.5]",)
 ```
 
 Load it and declare plugins:

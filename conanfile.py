@@ -14,14 +14,14 @@ class VoltModConan(ConanFile):
     """Serve as both the repository's consumer recipe and VoltMod's package recipe.
 
     A checkout uses the output paths expected by the CMake presets. `conan create`
-    uses `cmake_layout` and packages the headers, CMake helpers, gamedata, Panorama
-    sources, and plugin
-    template. Both modes resolve the same dependencies.
+    uses `cmake_layout` and packages the host addon tree, the SDK and Database
+    libraries, the headers, CMake helpers, gamedata, Panorama sources, and the
+    plugin template. Both modes resolve the same dependencies.
     """
 
     name = "voltmod"
     author = "Sukhrob Ilyosbekov (suxrobgm@gmail.com)"
-    version = "1.4.8"
+    version = "1.5.0"
     description = "C++23 library for CS2 Metamod:Source plugins"
     license = "MIT"
     homepage = "https://github.com/voltygg/voltmod"

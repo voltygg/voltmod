@@ -9,8 +9,8 @@ A release is a `v<version>` tag on `main`. Pushing the tag runs
 `.github/workflows/release.yml`: it refuses a tag that differs from `conanfile.py`
 uploads the Linux Release package to the `volty` remote, then creates the GitHub release.
 
-The user names the version. Consumers pin a range (cs2-plugins: `voltmod/[~1.4]`,
-so 1.4.x only): a patch keeps it, a minor or major means every consumer edits its
+The user names the version. Consumers pin a range (cs2-plugins: `voltmod/[~1.5]`,
+so 1.5.x only): a patch keeps it, a minor or major means every consumer edits its
 range. Point out `!` commits since the last tag before bumping only the patch.
 
 ## Steps

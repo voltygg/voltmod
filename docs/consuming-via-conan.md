@@ -15,7 +15,7 @@ The remote is **public**; no login or token is required.
 Declare VoltMod in the consumer's `conanfile.py`:
 
 ```python
-requires = ("voltmod/[~1.4]",)
+requires = ("voltmod/[~1.5]",)
 ```
 
 Load the generated CMake package and register each plugin:

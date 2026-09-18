@@ -4,6 +4,32 @@
 
 What changed in each VoltMod release. Older history is in git.
 
+## 1.5.0 (2026-09-18)
+
+### Breaking
+
+- The framework runs as one host per server process. `addons/metamod/voltmod.vdf` is the only
+  Metamod plugin left; your plugin is a module under `addons/<name>/` that the host loads.
+- Derive your plugin class from `VoltMod::Plugin` in `<VoltMod/App/Plugin.hpp>`, which replaces
+  `VoltMod::MetamodPlugin`. `VOLTMOD_PLUGIN` keeps its name and its job.
+- Link `VoltMod::Sdk` where you linked `VoltMod::Runtime`. There is no alias for the old name.
+- `voltmod_add_plugin` generates `addons/<name>/plugin.json` and no longer writes a per-plugin
+  `.vdf`. Name the plugins yours loads after with `DEPENDS` and `OPTIONAL_DEPENDS`.
+- `Core` headers now sit in `Signals/`, `Text/`, `Slots/`, `Time/` and `Files/`, `EffectManager`
+  is in `Players/`, the config headers are in `App/Config/` and `Engine/MetamodGlobals.hpp` is
+  `Engine/Detours.hpp`. `<VoltMod/Api.hpp>` and `<VoltMod/App/Config.hpp>` keep their spelling.
+- Bind gamedata with `Bindings::Bind(lookup)` instead of `Bindings::Load(path)`; the host reads
+  and resolves the file and hands every plugin the same lookup.
+- Build the host and your plugins from one build and deploy them together. The host refuses a
+  plugin whose ABI version is not its own, and one built against a different schema layout.
+
+### New
+
+- `volt list`, `volt status [name]`, `volt load`, `volt unload`, `volt reload` and
+  `volt log <name> <level>` drive plugins from the server console.
+- Log output, gamedata resolution and schema verification each happen once per server rather than
+  once per plugin, so a broken signature after a game update is reported once.
+
 ## 1.4.7 (2026-09-16)
 
 ### Breaking
