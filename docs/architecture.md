@@ -104,7 +104,7 @@ down one plugin rather than the whole stack.
    ABI version and its `Load`/`Unload`/`Status` pointers, opens a host view under the plugin's
    name and log tag, then calls `Load`.
 7. Inside the plugin, the internal module seeds its hook dispatch pointer, creates the `Runtime`,
-   and runs `Runtime::Start`: logging, engine interfaces, then the framework load steps, among
+   and runs `Runtime::Initialize`: logging, engine interfaces, then the framework load steps, among
    them the schema stamp comparison that refuses a plugin built against a different layout.
 8. The module constructs the derived `Plugin`, subscribes to host events, then calls `Load`. A
    `false` from `Load` returns the first required step's reason to the host, which logs it as the

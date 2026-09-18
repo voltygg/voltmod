@@ -17,7 +17,7 @@ namespace VoltMod
  */
 struct DatabaseConfig
 {
-    /** "postgres", "mariadb" or "sqlite"; anything else fails `Database::Start`. */
+    /** "postgres", "mariadb" or "sqlite"; anything else fails `Database::Connect`. */
     std::string driver = "postgres";
     std::string host = "localhost";
     /** 0 uses the driver default (5432 for Postgres, 3306 for MariaDB). Ignored by sqlite. */

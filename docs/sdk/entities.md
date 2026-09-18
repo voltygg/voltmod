@@ -245,7 +245,7 @@ VoltMod::Schema::CBeam{beam}.SetWidth(2.0f);
 
 ## Precache
 
-@ref VoltMod::Precache queues custom resources for the next map's session manifest. `Runtime::Start`
+@ref VoltMod::Precache queues custom resources for the next map's session manifest. `Runtime::Initialize`
 registers the game system and unload detaches it.
 
 ```cpp

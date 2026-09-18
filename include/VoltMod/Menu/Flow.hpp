@@ -133,7 +133,7 @@ public:
     }
 
     /** Open the first applicable step (or the confirm/finish when there are none). */
-    void Start() { OpenFrom(0); }
+    void Begin() { OpenFrom(0); }
 
     /** Move past the current step. Steps call this after writing their value into @ref State. */
     void Advance() { OpenFrom(_stepIndex + 1); }

@@ -16,14 +16,14 @@ voltmod_add_plugin(my-plugin FEATURES DATABASE)
 ```cpp
 // Db is a VoltMod::Database member of your App, declared above everything that uses it, and
 // constructed with the scheduler that drives completion delivery: VoltMod::Database Db{Runtime.Scheduler};
-if (!Db.Start(Config.Get().database))
+if (!Db.Connect(Config.Get().database))
 {
     Log::Warn("Database unavailable, running degraded.");
     return true;                           // your call: degrade or reject the load
 }
 ```
 
-`Start` parses the driver, spawns the worker and verifies connectivity with a ping. It returns
+`Connect` parses the driver, spawns the worker and verifies connectivity with a ping. It returns
 false on an invalid config or an unreachable database, so the plugin can degrade instead of
 queueing work that cannot run.
 
@@ -38,7 +38,7 @@ undispatched completions unrun. It is idempotent and the destructor calls it.
 
 | Field | Default | Notes |
 | --- | --- | --- |
-| `driver` | `"postgres"` | `"postgres"`, `"mariadb"` or `"sqlite"`; anything else fails `Start` |
+| `driver` | `"postgres"` | `"postgres"`, `"mariadb"` or `"sqlite"`; anything else fails `Connect` |
 | `host` | `"localhost"` | ignored by sqlite |
 | `port` | `0` | `0` uses the driver default (5432 Postgres, 3306 MariaDB); ignored by sqlite |
 | `database` | `"voltmod_server"` | |

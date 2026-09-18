@@ -16,23 +16,23 @@ Subscription MenuRouter::Prefer(MenuSurface& surface)
     });
 }
 
-bool MenuRouter::Start(int slot, std::shared_ptr<Menu> menu, MenuOptions options)
+bool MenuRouter::OpenSession(int slot, std::shared_ptr<Menu> menu, MenuOptions options)
 {
     // One session per player: a menu left on the other surface would stay open and frozen.
     if (_preferred)
         _preferred->CloseAll(slot);
     _fallback.CloseAll(slot);
 
-    if (_preferred && _preferred->Start(slot, menu, options))
+    if (_preferred && _preferred->OpenSession(slot, menu, options))
         return true;
-    return _fallback.Start(slot, std::move(menu), options);
+    return _fallback.OpenSession(slot, std::move(menu), options);
 }
 
 void MenuRouter::Open(int slot, std::shared_ptr<Menu> menu)
 {
     if (!IsOpen(slot))
     {
-        Start(slot, std::move(menu), {});
+        OpenSession(slot, std::move(menu), {});
         return;
     }
 

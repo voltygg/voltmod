@@ -45,7 +45,7 @@ TEST_CASE("Flow: steps open in order, one at a time")
     flow->AddStep(StepNamed("first"))
         ->AddStep(StepNamed("second"))
         ->Finish([](FlowTestState& state) { ++state.Finished; })
-        ->Start();
+        ->Begin();
 
     REQUIRE(session.Opened.size() == 1);
     CHECK(session.Last()->Title == "first");
@@ -67,18 +67,18 @@ TEST_CASE("Flow: a step whose Applies is false is skipped")
     flow->AddStep(StepNamed("duration"), [](const FlowTestState& state) { return state.Timed; })
         ->AddStep(StepNamed("reason"))
         ->Finish([](FlowTestState&) {})
-        ->Start();
+        ->Begin();
 
     REQUIRE(session.Opened.size() == 1);
     CHECK(session.Last()->Title == "reason");
 }
 
-TEST_CASE("Flow: with no steps and no confirm, Start finishes straight away")
+TEST_CASE("Flow: with no steps and no confirm, Begin finishes straight away")
 {
     FakeMenuSurface session;
 
     auto flow = TestFlow::Create(session, 0, FlowTestState{});
-    flow->Finish([](FlowTestState& state) { ++state.Finished; })->Start();
+    flow->Finish([](FlowTestState& state) { ++state.Finished; })->Begin();
 
     CHECK(session.Opened.empty());
     CHECK(flow->State().Finished == 1);
@@ -91,7 +91,7 @@ TEST_CASE("Flow: advancing past the last step finishes")
     FakeMenuSurface session;
 
     auto flow = TestFlow::Create(session, 0, FlowTestState{});
-    flow->AddStep(StepNamed("only"))->Finish([](FlowTestState& state) { ++state.Finished; })->Start();
+    flow->AddStep(StepNamed("only"))->Finish([](FlowTestState& state) { ++state.Finished; })->Begin();
 
     REQUIRE(session.Opened.size() == 1);
     session.Press(0);
@@ -107,7 +107,7 @@ TEST_CASE("Flow: a Validate key aborts before the first step, replied and closed
     flow->Validate([](const FlowTestState&) { return std::optional<std::string>("cmd.targetLost"); })
         ->AddStep(StepNamed("first"))
         ->Finish([](FlowTestState& state) { ++state.Finished; })
-        ->Start();
+        ->Begin();
 
     CHECK(session.Opened.empty());
     CHECK(session.CloseAlls == 1);
@@ -126,7 +126,7 @@ TEST_CASE("Flow: a Validate key that only starts holding later aborts before fin
         })
         ->AddStep(StepNamed("first"))
         ->Finish([](FlowTestState& state) { ++state.Finished; })
-        ->Start();
+        ->Begin();
 
     REQUIRE(session.Opened.size() == 1);
 
@@ -151,7 +151,7 @@ TEST_CASE("Flow: the confirm dialog summarizes the state and its confirm row fin
              .ConfirmLabel = "Yes",
              .CancelLabel = "No"})
         ->Finish([](FlowTestState& state) { ++state.Finished; })
-        ->Start();
+        ->Begin();
 
     session.Press(0);
     REQUIRE(session.Opened.size() == 2);
@@ -177,7 +177,7 @@ TEST_CASE("Flow: the confirm dialog's cancel row closes without finishing")
                    .ConfirmLabel = "Yes",
                    .CancelLabel = "No"})
         ->Finish([](FlowTestState& state) { ++state.Finished; })
-        ->Start();
+        ->Begin();
 
     REQUIRE(session.Opened.size() == 1);
     session.Press(1);
@@ -196,7 +196,7 @@ TEST_CASE("Flow: a confirm dialog with no labels of its own asks the session for
                            rows.Add("Target", "Bob").AddIf(false, "Duration", "5m").Add("Permanent");
                        }})
         ->Finish([](FlowTestState& state) { ++state.Finished; })
-        ->Start();
+        ->Begin();
 
     REQUIRE(session.Opened.size() == 1);
     const VoltMod::Menu* confirm = session.Last();

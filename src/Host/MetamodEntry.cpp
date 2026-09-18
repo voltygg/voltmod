@@ -44,22 +44,22 @@ bool MetamodEntry::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, 
     // Once for the process too: the baked offsets are the same in every plugin built with this
     // host, and each plugin compares its layout stamp with what was checked here.
     _schema = std::make_unique<SchemaService>();
-    _schema->Start(ismm, *_host, _host->GameData());
+    _schema->Initialize(ismm, *_host, _host->GameData());
 
     _plugins = std::make_unique<PluginLoader>(*_host);
     _hooks = std::make_unique<EngineHooks>(
         *_host, [this] { _plugins->RunPending(); }, [this] { _schema->OnServerStartup(); });
 
-    if (Status started = _hooks->Start(ismm); !started)
+    if (Status installed = _hooks->Install(ismm); !installed)
     {
-        ismm->Format(error, maxlen, "%s", started.error().Detail.c_str());
+        ismm->Format(error, maxlen, "%s", installed.error().Detail.c_str());
         Shutdown();
         return false;
     }
 
     // Before the plugins load, so one of them registering `volt` is refused rather than racing it.
     _command = std::make_unique<VoltCommand>(*_host, *_plugins);
-    _plugins->Start();
+    _plugins->LoadAll();
 
     Log::Info("VoltMod host {} ({}, committed {}) loaded{}.", BuildInfo::Version, BuildInfo::RepoCommit,
               BuildInfo::BuildDate, late ? " (late)" : "");
@@ -76,9 +76,9 @@ void MetamodEntry::Shutdown()
 {
     // Plugins first: their own teardown runs while the host's events and services are still there.
     if (_plugins)
-        _plugins->Stop();
+        _plugins->UnloadAll();
     if (_hooks)
-        _hooks->Stop();
+        _hooks->Uninstall();
 
     _hooks.reset();
     _command.reset();

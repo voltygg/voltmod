@@ -46,7 +46,7 @@ public:
 
     explicit CenterHtmlMenu(const Services& services);
 
-    bool Start(int slot, std::shared_ptr<Menu> menu, MenuOptions options) override;
+    bool OpenSession(int slot, std::shared_ptr<Menu> menu, MenuOptions options) override;
     void Open(int slot, std::shared_ptr<Menu> menu) override;
     [[nodiscard]] bool IsOpen(int slot) const override;
     void Close(int slot) override;

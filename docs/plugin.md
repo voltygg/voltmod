@@ -134,7 +134,7 @@ Custom hooks are in @ref sdk_hooks_guide, typed game events in @ref sdk_events_g
 
 ## Load steps
 
-`runtime.LoadSteps` runs named steps and remembers the ones that fail. `Runtime::Start` already
+`runtime.LoadSteps` runs named steps and remembers the ones that fail. `Runtime::Initialize` already
 runs the framework's subsystems through it. A step returns @ref VoltMod::Status.
 
 ```cpp

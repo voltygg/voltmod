@@ -51,37 +51,37 @@ int CountRows(Database& db, const std::string& table, const std::string& where =
 
 }  // namespace
 
-TEST_CASE("Database: Start against in-memory sqlite succeeds and connects")
+TEST_CASE("Database: Connect against in-memory sqlite succeeds and connects")
 {
     Scheduler scheduler;
     Database db(scheduler);
 
-    REQUIRE(db.Start({.driver = "sqlite", .path = ":memory:"}));
+    REQUIRE(db.Connect({.driver = "sqlite", .path = ":memory:"}));
     CHECK_EQ(db.GetDriver(), Driver::Sqlite);
     CHECK(db.IsConnected());
 }
 
-TEST_CASE("Database: Start fails on an unknown driver")
+TEST_CASE("Database: Connect fails on an unknown driver")
 {
     Scheduler scheduler;
     Database db(scheduler);
 
-    CHECK(!db.Start({.driver = "mysql"}));
+    CHECK(!db.Connect({.driver = "mysql"}));
 }
 
-TEST_CASE("Database: Start fails on sqlite with an empty path")
+TEST_CASE("Database: Connect fails on sqlite with an empty path")
 {
     Scheduler scheduler;
     Database db(scheduler);
 
-    CHECK(!db.Start({.driver = "sqlite", .path = ""}));
+    CHECK(!db.Connect({.driver = "sqlite", .path = ""}));
 }
 
 TEST_CASE("Database: Run runs a raw create, a typed insert, and a typed select")
 {
     Scheduler scheduler;
     Database db(scheduler);
-    REQUIRE(db.Start({.driver = "sqlite", .path = ":memory:"}));
+    REQUIRE(db.Connect({.driver = "sqlite", .path = ":memory:"}));
 
     auto created = db.Run("create-table", [](auto& conn) {
         conn("CREATE TABLE t (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL)");
@@ -109,7 +109,7 @@ TEST_CASE("Database: RunAsync delivers its result only through DispatchCompletio
 {
     Scheduler scheduler;
     Database db(scheduler);
-    REQUIRE(db.Start({.driver = "sqlite", .path = ":memory:"}));
+    REQUIRE(db.Connect({.driver = "sqlite", .path = ":memory:"}));
 
     bool done = false;
     Result<int> result = std::unexpected(Error::Failed("never ran"));
@@ -125,7 +125,7 @@ TEST_CASE("Database: RunAsync delivers its result only through DispatchCompletio
             result = std::move(r);
         });
 
-    // Start registered per-frame delivery; only OnGameFrame() dispatches queued completions.
+    // Connect registered per-frame delivery; only OnGameFrame() dispatches queued completions.
     const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
     while (!done && std::chrono::steady_clock::now() < deadline)
     {
@@ -143,7 +143,7 @@ TEST_CASE("Database: a job that throws yields an error, the next job still succe
     Scheduler scheduler;
     Database db(scheduler);
     VoltModTests::TempFile file("", "database-reopen", ".sqlite3");
-    REQUIRE(db.Start({.driver = "sqlite", .path = file.Path()}));
+    REQUIRE(db.Connect({.driver = "sqlite", .path = file.Path()}));
 
     auto created = db.Run("create-table", [](auto& conn) { conn("CREATE TABLE t (id INTEGER PRIMARY KEY)"); });
     REQUIRE(created.has_value());
@@ -158,12 +158,12 @@ TEST_CASE("Database: a job that throws yields an error, the next job still succe
     CHECK_EQ(CountRows(db, "t"), 0);
 }
 
-TEST_CASE("Database: RunAsync after Stop delivers an error only on the next DispatchCompletions")
+TEST_CASE("Database: RunAsync after Disconnect delivers an error only on the next DispatchCompletions")
 {
     Scheduler scheduler;
     Database db(scheduler);
-    REQUIRE(db.Start({.driver = "sqlite", .path = ":memory:"}));
-    db.Stop();
+    REQUIRE(db.Connect({.driver = "sqlite", .path = ":memory:"}));
+    db.Disconnect();
 
     bool done = false;
     Result<int> result = std::unexpected(Error::Failed("never ran"));
@@ -173,7 +173,7 @@ TEST_CASE("Database: RunAsync after Stop delivers an error only on the next Disp
             done = true;
             result = std::move(r);
         });
-    CHECK(!done);  // Stop tore down per-frame delivery; nothing runs it inline either
+    CHECK(!done);  // Disconnect tore down per-frame delivery; nothing runs it inline either
 
     db.DispatchCompletions();
     REQUIRE(done);
@@ -186,7 +186,7 @@ TEST_CASE("RunMigrations: applies migrations in order, is idempotent, and stops 
 {
     Scheduler scheduler;
     Database db(scheduler);
-    REQUIRE(db.Start({.driver = "sqlite", .path = ":memory:"}));
+    REQUIRE(db.Connect({.driver = "sqlite", .path = ":memory:"}));
 
     VoltModTests::TempDir dir("run-migrations");
     dir.Write("0001_a.sql",
@@ -223,7 +223,7 @@ TEST_CASE("RunMigrations: a missing directory is a successful no-op")
 {
     Scheduler scheduler;
     Database db(scheduler);
-    REQUIRE(db.Start({.driver = "sqlite", .path = ":memory:"}));
+    REQUIRE(db.Connect({.driver = "sqlite", .path = ":memory:"}));
 
     VoltModTests::TempDir dir("run-migrations-missing");
     auto result = RunMigrations(db, dir.Path());
@@ -235,7 +235,7 @@ TEST_CASE("RunMigrations: an unknown placeholder fails the file without recordin
 {
     Scheduler scheduler;
     Database db(scheduler);
-    REQUIRE(db.Start({.driver = "sqlite", .path = ":memory:"}));
+    REQUIRE(db.Connect({.driver = "sqlite", .path = ":memory:"}));
 
     VoltModTests::TempDir dir("run-migrations-placeholder");
     dir.Write("0001_a.sql", "CREATE TABLE a (id @ID@, flag BOOLEAN NOT NULL DEFAULT @MADE_UP@);\n");

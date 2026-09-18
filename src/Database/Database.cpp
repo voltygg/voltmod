@@ -100,10 +100,10 @@ static bool ConfigIsValid(Driver driver, const DatabaseConfig& config)
 
 Database::~Database()
 {
-    Stop();
+    Disconnect();
 }
 
-bool Database::Start(const DatabaseConfig& config)
+bool Database::Connect(const DatabaseConfig& config)
 {
     auto driver = ParseDriver(config.driver);
     if (!driver)
@@ -134,7 +134,7 @@ bool Database::Start(const DatabaseConfig& config)
     });
     if (!ping)
     {
-        Stop();
+        Disconnect();
         return false;
     }
 
@@ -142,7 +142,7 @@ bool Database::Start(const DatabaseConfig& config)
     return true;
 }
 
-void Database::Stop(std::chrono::milliseconds stopDeadline)
+void Database::Disconnect(std::chrono::milliseconds stopDeadline)
 {
     {
         std::lock_guard lock(_queueMutex);

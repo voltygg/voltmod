@@ -26,10 +26,10 @@ EngineHooks::EngineHooks(PluginHost& host, std::function<void()> beforeFrame, st
 
 EngineHooks::~EngineHooks()
 {
-    Stop();
+    Uninstall();
 }
 
-Status EngineHooks::Start(SourceMM::ISmmAPI* metamod)
+Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
 {
     if (metamod == nullptr)
         return std::unexpected(Error::NotReady("the host has no Metamod API to resolve interfaces from"));
@@ -123,7 +123,7 @@ Status EngineHooks::Start(SourceMM::ISmmAPI* metamod)
     return {};
 }
 
-void EngineHooks::Stop()
+void EngineHooks::Uninstall()
 {
     _hooks.Clear();
 }

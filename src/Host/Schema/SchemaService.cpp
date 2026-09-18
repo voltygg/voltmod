@@ -15,7 +15,7 @@ namespace VoltMod
 
 static constexpr std::string_view EntitySystemOffset = "GameEntitySystem";
 
-void SchemaService::Start(SourceMM::ISmmAPI* metamod, PluginHost& host, IHostGameData* gameData)
+void SchemaService::Initialize(SourceMM::ISmmAPI* metamod, PluginHost& host, IHostGameData* gameData)
 {
     if (metamod != nullptr)
     {

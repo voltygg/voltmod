@@ -59,7 +59,7 @@ public:
 
     /** Spawn the worker and ping. False on a bad config or an unreachable database, so a
      *  plugin can degrade rather than queue into the void. */
-    bool Start(const DatabaseConfig& config);
+    bool Connect(const DatabaseConfig& config);
 
     /**
      * Let queued jobs finish within @p stopDeadline, then join the worker, so a ban written just
@@ -67,7 +67,7 @@ public:
      * undispatched completions are destroyed unrun, since the state they touch is going away.
      * Idempotent, and the destructor calls it.
      */
-    void Stop(std::chrono::milliseconds stopDeadline = std::chrono::seconds(5));
+    void Disconnect(std::chrono::milliseconds stopDeadline = std::chrono::seconds(5));
 
     /** Run @p fn on the worker; @p onDone runs on the game thread later. @p name is a log label. */
     template <class Fn>
@@ -164,14 +164,14 @@ public:
         return result ? std::move(*result) : std::move(fallback);
     }
 
-    /** Invoke all ready completions on the calling (game) thread. Start self-registers this. */
+    /** Invoke all ready completions on the calling (game) thread. Connect self-registers this. */
     void DispatchCompletions();
 
     /** Whether the connection was live as of the worker's last job. It can drop before the
      *  next one, so this is a diagnostic, never a guarantee. */
     bool IsConnected() const { return _connected.load(std::memory_order_relaxed); }
 
-    /** The driver @ref Start parsed from the config. Meaningless before a successful Start. */
+    /** The driver @ref Connect parsed from the config. Meaningless before a successful Connect. */
     Driver GetDriver() const { return _driver; }
 
 private:

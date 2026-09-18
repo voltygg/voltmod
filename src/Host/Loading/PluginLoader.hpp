@@ -50,10 +50,10 @@ public:
     PluginLoader& operator=(const PluginLoader&) = delete;
 
     /** Load every installed plugin whose required dependencies are there. */
-    void Start();
+    void LoadAll();
 
     /** Unload every loaded plugin, newest first. */
-    void Stop();
+    void UnloadAll();
 
     /** Take @p kind on @p name at the start of the next frame. */
     void Defer(ActionKind kind, std::string_view name);
@@ -62,7 +62,7 @@ public:
     void RunPending();
 
     /** In load order; unload runs it backwards. */
-    const std::vector<LoadedPlugin>& Loaded() const { return _loaded; }
+    const std::vector<LoadedPlugin>& LoadedPlugins() const { return _loaded; }
 
     /** The loaded plugin @p name, or nullptr after logging that it is not loaded. */
     LoadedPlugin* RequireLoaded(std::string_view name);

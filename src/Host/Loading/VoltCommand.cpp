@@ -47,7 +47,7 @@ void VoltCommand::Run(const CCommand& arguments)
 
 void VoltCommand::PrintLoaded() const
 {
-    const std::vector<LoadedPlugin>& loaded = _loader.Loaded();
+    const std::vector<LoadedPlugin>& loaded = _loader.LoadedPlugins();
     if (loaded.empty())
     {
         Log::Info("No plugins are loaded.");
@@ -72,7 +72,7 @@ void VoltCommand::PrintStatus(std::string_view name)
 
     if (name.empty())
     {
-        for (const LoadedPlugin& plugin : _loader.Loaded())
+        for (const LoadedPlugin& plugin : _loader.LoadedPlugins())
             print(plugin);
         return;
     }

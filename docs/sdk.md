@@ -28,7 +28,7 @@ what it does not:
 
 ## Interfaces
 
-`Runtime::Start()` fills `runtime.Unsafe.Interfaces` with the SDK interfaces the framework uses, so
+`Runtime::Initialize()` fills `runtime.Unsafe.Interfaces` with the SDK interfaces the framework uses, so
 they are live when the plugin is constructed:
 
 ```cpp
@@ -53,5 +53,5 @@ if (auto available = runtime.Hooks.ClientConVars.Available(); !available)
 
 `Available()` is on `Hooks.Movement`, `Hooks.Teleport`, `Hooks.Visibility`, `Hooks.ClientConVars`,
 `World.Trace` and `Screens`. A service that is not available stays safe to call and returns an
-error, an empty `Subscription`, or no result. `Runtime::Start` logs every unavailable feature once,
+error, an empty `Subscription`, or no result. `Runtime::Initialize` logs every unavailable feature once,
 and the `load` status section lists them.

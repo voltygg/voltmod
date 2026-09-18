@@ -50,17 +50,17 @@ PluginLoader::PluginLoader(PluginHost& host) : _host(host) {}
 
 PluginLoader::~PluginLoader()
 {
-    Stop();
+    UnloadAll();
 }
 
-void PluginLoader::Start()
+void PluginLoader::LoadAll()
 {
     const std::vector<PluginManifest> installed = Installed();
     LoadGroup(installed, [](std::string_view) { return true; });
     Log::Info("{} of {} installed plugin(s) loaded.", _loaded.size(), installed.size());
 }
 
-void PluginLoader::Stop()
+void PluginLoader::UnloadAll()
 {
     _pending.clear();
     while (!_loaded.empty())

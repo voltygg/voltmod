@@ -25,7 +25,7 @@ public:
      * @p metamod resolves the schema system and the resource service; @p gameData says where the
      * entity system sits inside that service, which is what the dump needs.
      */
-    void Start(SourceMM::ISmmAPI* metamod, PluginHost& host, IHostGameData* gameData);
+    void Initialize(SourceMM::ISmmAPI* metamod, PluginHost& host, IHostGameData* gameData);
 
     /** Write the dump as soon as a map's entities exist. It writes at most once per process, and
      *  nothing at all while the dump on disk already matches this game build. */

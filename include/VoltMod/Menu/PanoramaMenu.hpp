@@ -54,7 +54,7 @@ public:
     /** Whether @p slot can see the layout and has downloaded its required addon. */
     [[nodiscard]] bool CanShow(int slot) const;
 
-    bool Start(int slot, std::shared_ptr<Menu> menu, MenuOptions options) override;
+    bool OpenSession(int slot, std::shared_ptr<Menu> menu, MenuOptions options) override;
     void Open(int slot, std::shared_ptr<Menu> menu) override;
     [[nodiscard]] bool IsOpen(int slot) const override;
     void Close(int slot) override;

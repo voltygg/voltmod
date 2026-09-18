@@ -28,7 +28,7 @@ public:
      *  longer than @p surface lives. A later call replaces the preference. */
     [[nodiscard]] Subscription Prefer(MenuSurface& surface);
 
-    bool Start(int slot, std::shared_ptr<Menu> menu, MenuOptions options) override;
+    bool OpenSession(int slot, std::shared_ptr<Menu> menu, MenuOptions options) override;
     void Open(int slot, std::shared_ptr<Menu> menu) override;
     [[nodiscard]] bool IsOpen(int slot) const override;
     void Close(int slot) override;

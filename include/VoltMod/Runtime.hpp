@@ -34,7 +34,7 @@
 namespace VoltMod
 {
 
-/** What @ref Runtime::Start needs from the plugin module. */
+/** What @ref Runtime::Initialize needs from the plugin module. */
 struct LoadContext
 {
     IHost* Host = nullptr;
@@ -58,10 +58,10 @@ public:
     Runtime& operator=(const Runtime&) = delete;
 
     /**
-     * Start every subsystem as a step in @ref LoadSteps.
+     * Initialize every subsystem as a step in @ref LoadSteps.
      * @return false when loading must abort; @p context.Error contains the reason.
      */
-    bool Start(const LoadContext& context);
+    bool Initialize(const LoadContext& context);
 
     /** Drive the scheduler. Called once per frame from the GameFrame hook. */
     void OnGameFrame();
@@ -88,7 +88,7 @@ public:
 
     VoltMod::Translations Translations{Slots};
 
-    /** The opt-in engine-access tier (Interfaces, Bindings). Populated by Start. */
+    /** The opt-in engine-access tier (Interfaces, Bindings). Populated by Initialize. */
     UnsafeServices Unsafe;
 
     /** Schema field offsets resolve themselves, per process rather than per load - see @ref Field. */

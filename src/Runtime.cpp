@@ -37,7 +37,7 @@ std::string Runtime::PluginFile(std::string_view relative) const
     return VoltMod::PluginFile(PluginName, relative);
 }
 
-bool Runtime::Start(const LoadContext& context)
+bool Runtime::Initialize(const LoadContext& context)
 {
     PluginName = context.Host->Name();
     Version = context.Version;

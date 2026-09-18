@@ -30,10 +30,10 @@ public:
     EngineHooks& operator=(const EngineHooks&) = delete;
 
     /** Resolve the engine interfaces the hooks need from @p metamod, then install them. */
-    Status Start(SourceMM::ISmmAPI* metamod);
+    Status Install(SourceMM::ISmmAPI* metamod);
 
     /** Remove every hook. Nothing reaches the plugins after this returns. */
-    void Stop();
+    void Uninstall();
 
 private:
     PluginHost& _host;

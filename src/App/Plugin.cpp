@@ -82,7 +82,7 @@ bool PluginModule::AttachImpl(IHost& host, const PluginBuild& build, char* error
     _runtime->Commands.Attach(&host);
 
     const LoadContext context{.Host = &host, .Version = build.Version, .Error = error, .MaxLen = errorSize};
-    if (!_runtime->Start(context))
+    if (!_runtime->Initialize(context))
     {
         if (_runtime->LoadSteps.Count() > 0)
             Log::Info("{}", _runtime->LoadSteps.Summary());

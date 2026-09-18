@@ -24,12 +24,12 @@ public:
     /** Every key Translate was asked for, in order. */
     mutable std::vector<std::string> Translated;
 
-    bool Start(int slot, std::shared_ptr<VoltMod::Menu> menu, VoltMod::MenuOptions) override
+    bool OpenSession(int slot, std::shared_ptr<VoltMod::Menu> menu, VoltMod::MenuOptions) override
     {
         if (!Accepts)
             return false;
 
-        ++Starts;
+        ++SessionsOpened;
         Open(slot, std::move(menu));
         return true;
     }
@@ -87,14 +87,14 @@ public:
             item.Activate(0, *this);
     }
 
-    /** False makes Start refuse, as a surface that cannot draw for the player does. */
+    /** False makes OpenSession refuse, as a surface that cannot draw for the player does. */
     bool Accepts = true;
 
     std::vector<std::shared_ptr<VoltMod::Menu>> Opened;
     std::vector<int> Slots;
     /** Slots with a session: opened and not closed with CloseAll. */
     std::set<int> OpenSlots;
-    int Starts = 0;
+    int SessionsOpened = 0;
     int Closes = 0;
     int CloseAlls = 0;
     int Prompts = 0;

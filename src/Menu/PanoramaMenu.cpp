@@ -36,7 +36,7 @@ bool PanoramaMenu::CanShow(int slot) const
     return IsValidSlot(slot) && _services.Screens.Available() && !_services.Addons.HasMissing(slot);
 }
 
-bool PanoramaMenu::Start(int slot, std::shared_ptr<Menu> menu, MenuOptions options)
+bool PanoramaMenu::OpenSession(int slot, std::shared_ptr<Menu> menu, MenuOptions options)
 {
     if (!menu || !CanShow(slot))
         return false;
@@ -60,7 +60,7 @@ void PanoramaMenu::Open(int slot, std::shared_ptr<Menu> menu)
         return;
     if (!IsOpen(slot))
     {
-        Start(slot, std::move(menu), {});
+        OpenSession(slot, std::move(menu), {});
         return;
     }
 

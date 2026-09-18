@@ -19,10 +19,10 @@ auto menu = MenuBuilder("Admin Panel")
     .Add(ToggleRow{.Label = "God mode", .Get = IsGod, .Flip = FlipGod})
     .Build();
 
-runtime.Menus.Start(playerSlot, menu, {});   // start a session, closing any the player has open
+runtime.Menus.OpenSession(playerSlot, menu, {});   // start a session, closing any the player has open
 ```
 
-@ref VoltMod::MenuSurface::Start starts a session and closes any the player already has; a command
+@ref VoltMod::MenuSurface::OpenSession starts a session and closes any the player already has; a command
 calls it. @ref VoltMod::MenuSurface::Open pushes a submenu onto the open session, which is what a
 row calls. `EmptyText("No active bans")` sets the one line a menu draws if nothing else was added,
 so a list that filtered down to nothing is not a dead-end page.
@@ -152,7 +152,7 @@ Flow::Create(runtime.Menus, adminSlot, std::move(pending))
                        .Add(tr("punish.reason"), s.Reason);
                }})
     ->Finish([](PendingPunishment& s) { Issue(s); })
-    ->Start();
+    ->Begin();
 ```
 
 `Create` takes a @ref VoltMod::MenuSurface and a slot and needs no other service, so a flow runs
@@ -254,7 +254,7 @@ palette in `src/Menu/CenterHtmlRender.cpp`.
 
 `runtime.Freeze.Enable(true)` holds players still while a menu is open, so WASD does not also walk
 them around. The setting is server-wide and every surface honours it. A single session opts out
-with `Start(slot, menu, {.FreezeMovement = false})`, which suits menus ordinary players reach
+with `OpenSession(slot, menu, {.FreezeMovement = false})`, which suits menus ordinary players reach
 mid-round; @ref VoltMod::MenuOptions applies to the call that opens the stack, and submenus and
 Flow steps inherit it.
 
@@ -282,7 +282,7 @@ _panorama.emplace(VoltMod::PanoramaMenu::Services{/* runtime services */}, _layo
 _preferPanorama = runtime.Menus.Prefer(*_panorama);
 ```
 
-While the preference is held, `Start` tries the Panorama menu first and falls back to center HTML
+While the preference is held, `OpenSession` tries the Panorama menu first and falls back to center HTML
 for a player who cannot see the layout - a binding it needs is off, or the client is still
 downloading the addon. Every later call follows the surface holding that player's session, and
 starting a session closes the one the player had on the other surface. `addonId` is 0 when the

@@ -18,7 +18,7 @@ TEST_CASE("Without a preferred surface every session starts on the fallback")
     FakeMenuSurface fallback;
     MenuRouter router(fallback);
 
-    CHECK(router.Start(3, AnyMenu(), {}));
+    CHECK(router.OpenSession(3, AnyMenu(), {}));
     CHECK(fallback.IsOpen(3));
     CHECK(router.IsOpen(3));
 }
@@ -30,9 +30,9 @@ TEST_CASE("A session starts on the preferred surface and later calls follow it")
     MenuRouter router(fallback);
     const auto preference = router.Prefer(preferred);
 
-    CHECK(router.Start(3, AnyMenu(), {}));
-    CHECK(preferred.Starts == 1);
-    CHECK(fallback.Starts == 0);
+    CHECK(router.OpenSession(3, AnyMenu(), {}));
+    CHECK(preferred.SessionsOpened == 1);
+    CHECK(fallback.SessionsOpened == 0);
 
     router.Open(3, AnyMenu());
     router.Close(3);
@@ -49,15 +49,15 @@ TEST_CASE("A preferred surface that cannot draw for the player hands the session
     MenuRouter router(fallback);
     const auto preference = router.Prefer(preferred);
 
-    CHECK(router.Start(3, AnyMenu(), {}));
-    CHECK(fallback.Starts == 1);
+    CHECK(router.OpenSession(3, AnyMenu(), {}));
+    CHECK(fallback.SessionsOpened == 1);
 
     router.Close(3);
     CHECK(fallback.Closes == 1);
     CHECK(preferred.Closes == 0);
 }
 
-TEST_CASE("Starting a session closes the one the player has on the other surface")
+TEST_CASE("Opening a session closes the one the player has on the other surface")
 {
     FakeMenuSurface fallback;
     FakeMenuSurface preferred;
@@ -65,9 +65,9 @@ TEST_CASE("Starting a session closes the one the player has on the other surface
     MenuRouter router(fallback);
     const auto preference = router.Prefer(preferred);
 
-    REQUIRE(router.Start(3, AnyMenu(), {}));
+    REQUIRE(router.OpenSession(3, AnyMenu(), {}));
     preferred.Accepts = true;
-    REQUIRE(router.Start(3, AnyMenu(), {}));
+    REQUIRE(router.OpenSession(3, AnyMenu(), {}));
 
     CHECK_FALSE(fallback.IsOpen(3));
     CHECK(preferred.IsOpen(3));
@@ -79,7 +79,7 @@ TEST_CASE("Pushing a menu with no session open starts one")
     MenuRouter router(fallback);
 
     router.Open(5, AnyMenu());
-    CHECK(fallback.Starts == 1);
+    CHECK(fallback.SessionsOpened == 1);
 }
 
 TEST_CASE("Dropping the preference sends new sessions to the fallback")
@@ -92,7 +92,7 @@ TEST_CASE("Dropping the preference sends new sessions to the fallback")
         const auto preference = router.Prefer(preferred);
     }
 
-    CHECK(router.Start(3, AnyMenu(), {}));
-    CHECK(preferred.Starts == 0);
-    CHECK(fallback.Starts == 1);
+    CHECK(router.OpenSession(3, AnyMenu(), {}));
+    CHECK(preferred.SessionsOpened == 0);
+    CHECK(fallback.SessionsOpened == 1);
 }
