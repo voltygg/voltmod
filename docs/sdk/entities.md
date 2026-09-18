@@ -79,8 +79,8 @@ A manifest entry is `m_name`, `m_name>Accessor` to rename it, `m_name:CppType` t
 type, or `m_name>Accessor:CppType`; a class set to `"*"` takes every field the dump reports.
 
 Because the offsets are baked, a CS2 update that moves a used class would turn every accessor into
-a wrong-address read. `Runtime::Start` therefore compares the whole generated layout against the
-live schema and **aborts the load** on any mismatch, naming the field:
+a wrong-address read. The host therefore compares the whole generated layout against the live
+schema, once when it loads, and names every field that moved:
 
 ```text
 schema drift (accessors generated from game build 1999xxx, server is 2000908); load a plugin into
@@ -88,15 +88,26 @@ a running map to write the dump, then regenerate with voltmod schemagen:
   CCSPlayerPawn::m_ArmorValue: offset 4828 -> 4820
 ```
 
+Every plugin's `SchemaLayout` load step takes that one answer, and **aborts the load** when it
+failed:
+
+```text
+SchemaLayout: the host found schema drift; its log names every field
+```
+
 The dump needs a running map, and a cold start refuses the plugins before any map loads. So update
-day is: start the server, let the plugins refuse, load one again with `meta retry <id>` so it writes
-the dump on its way to the same refusal, run `voltmod schemagen`, review the `git diff` of the
-generated code, rebuild. The dump lands in `addons/voltmod/schema/server.json`, which is where
-`schemagen` looks when `--dump` is not given.
+day is: start the server, let the plugins refuse, let a map load so the host writes the dump, run
+`voltmod schemagen`, review the `git diff` of the generated code, rebuild. The dump lands in
+`addons/voltmod/schema/server.json`, which is where `schemagen` looks when `--dump` is not given.
 
 Windows and Linux lay entity classes out differently, so each platform has its own baseline in
-`schema/server.<platform>.json` and sources in `src/Schema/Generated/<platform>/`. Run `schemagen`
-once per platform; `--platform linux` takes a dump copied off a Linux server.
+`schema/server.<platform>.json`, its own sources in `src/Schema/Generated/<platform>/` and its own
+stamp. Run `schemagen` once per platform; `--platform linux` takes a dump copied off a Linux
+server. Re-rendering a platform from its committed baseline needs no server at all:
+
+```bash
+voltmod schemagen --dump schema/server.windows.json --platform windows
+```
 
 For a class with no curated wrapper, construct its generated view directly:
 
@@ -104,6 +115,23 @@ For a class with no curated wrapper, construct its generated view directly:
 VoltMod::Schema::CCSPlayerPawn view{pawn.Raw()};
 view.SetArmor(100);
 ```
+
+## The layout stamp
+
+The offsets are compiled into each plugin's own copy of the SDK, so the host can only vouch for a
+plugin built from the same generated layout. `schemagen` emits `GeneratedLayoutStamp()`, a hash of
+everything the layout holds - class names and sizes, field names, offsets and sizes - so
+regenerating an unchanged layout keeps the same value and a moved field changes it. Each plugin
+compares its stamp with the host's before taking the host's answer:
+
+```text
+SchemaLayout: this plugin was built against another schema layout (plugin 0xECF0B3522A6F1551,
+host 0x4C1E2A77B09D3E08); rebuild it against this VoltMod
+```
+
+That means the plugin binary and `voltmod.dll` came from different builds of the framework, most
+often a plugin left behind after `schema/manifest.json` changed or the game updated. Rebuild the
+plugin against the VoltMod the host was built from and install both together.
 
 ## EntitySystem
 

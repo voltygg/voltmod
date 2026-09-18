@@ -24,7 +24,7 @@ paths:
 ## Includes and forward declarations
 
 - Include the header that defines a type.
-- `<...>` for the standard library, the SDK, third-party code and the public `<VoltMod/...>` headers. `"..."` only for private headers, rooted at `src/` or `tests/`: `"Schema/Dump.hpp"`, never a `../` path or a bare same-folder name.
+- `<...>` for the standard library, the SDK, third-party code and the public `<VoltMod/...>` headers. `"..."` only for private headers, rooted at `src/` or `tests/`: `"Host/SchemaDump.hpp"`, never a `../` path or a bare same-folder name.
 - Forward declarations live only in `include/VoltMod/Engine/EngineTypes.hpp`, which `modgraph` knows by path. Each entry says why: an SDK type, a type defined under `src/`, or a mutually owning pair.
 - A header declaring a name it goes on to define (a primary template before its specializations) is ordering its own contents, not forward-declaring.
 

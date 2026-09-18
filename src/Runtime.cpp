@@ -2,13 +2,15 @@
 #include "Schema/Layout.hpp"
 
 #include <ISmmAPI.h>
-#include <VoltMod/Core/Text/Json.hpp>
-#include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Files/Paths.hpp>
-#include <VoltMod/Engine/Detours.hpp>
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/Text/Json.hpp>
+#include <VoltMod/Host/IHostGameData.hpp>
 #include <VoltMod/Host/IHostLog.hpp>
+#include <VoltMod/Host/IHostSchema.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <chrono>
+#include <cstdint>
 #include <eiface.h>
 #include <engine/igameeventsystem.h>
 #include <format>
@@ -23,8 +25,6 @@
 
 namespace VoltMod
 {
-
-static constexpr std::string_view DefaultGameDataPath = "addons/voltmod/gamedata/gamedata.jsonc";
 
 Runtime::Runtime() = default;
 
@@ -56,14 +56,12 @@ void Runtime::InstallLogger(const LoadContext& context)
     // The host owns the console. Falling back to writing it directly keeps a runtime built
     // without a log sink - only the tests - from going silent.
     if (auto* sink = static_cast<IHostLog*>(context.Host->GetInterface(
-            HostString{.Data = IHostLog::InterfaceName,
-                       .Length = std::string_view(IHostLog::InterfaceName).size()})))
+            HostString{.Data = IHostLog::InterfaceName, .Length = std::string_view(IHostLog::InterfaceName).size()})))
     {
         sink->SetTag(HostString{.Data = context.LogPrefix.data(), .Length = context.LogPrefix.size()});
         Log::SetMinimumLevel(static_cast<LogLevel>(sink->MinLevel()));
         Log::SetHandler([sink](LogLevel level, std::string_view message) {
-            sink->Write(static_cast<uint8_t>(level),
-                        HostString{.Data = message.data(), .Length = message.size()});
+            sink->Write(static_cast<uint8_t>(level), HostString{.Data = message.data(), .Length = message.size()});
         });
     }
     else
@@ -122,8 +120,31 @@ bool Runtime::InitializeServices(const LoadContext& context)
     // Plugin logs the summary and required-step failure.
     auto& steps = LoadSteps;
 
-    // Log unbound entries. Earlier plugins may hook class tables, so read slots through KHook.
-    steps.Optional("GameData", [&] { return Unsafe.Bindings.Load(DefaultGameDataPath, ReadOriginalSlot); });
+    // The host read and scanned gamedata once for the process; this only takes the numbers.
+    steps.Optional("GameData", [&]() -> VoltMod::Status {
+        auto* gameData = static_cast<IHostGameData*>(context.Host->GetInterface(HostString{
+            .Data = IHostGameData::InterfaceName, .Length = std::string_view(IHostGameData::InterfaceName).size()}));
+        if (!gameData)
+            return std::unexpected(Error::Engine("the host has no gamedata"));
+
+        // Engine names its own lookup, so the adapter to the host's interface lives here.
+        static_assert(static_cast<uint32_t>(GameDataSection::Function) ==
+                      static_cast<uint32_t>(GameDataKind::Function));
+        static_assert(static_cast<uint32_t>(GameDataSection::Global) == static_cast<uint32_t>(GameDataKind::Global));
+        static_assert(static_cast<uint32_t>(GameDataSection::VTable) == static_cast<uint32_t>(GameDataKind::VTable));
+        static_assert(static_cast<uint32_t>(GameDataSection::Offset) == static_cast<uint32_t>(GameDataKind::Offset));
+        return Unsafe.Bindings.Bind([gameData](GameDataSection sections, std::string_view name) {
+            const GameDataEntry entry = gameData->Lookup(static_cast<GameDataKind>(sections),
+                                                         HostString{.Data = name.data(), .Length = name.size()});
+            return GameDataLocation{
+                .Found = entry.Found,
+                .Address = entry.Address,
+                .Value = entry.Value,
+                .Reason = entry.Reason.Data != nullptr ? std::string_view(entry.Reason.Data, entry.Reason.Length)
+                                                       : std::string_view(),
+            };
+        });
+    });
 
     // A required-step failure is reported to Metamod and aborts the load.
     auto requiredStep = [&](std::string_view name, const std::function<VoltMod::Status()>& step) {
@@ -137,14 +158,9 @@ bool Runtime::InitializeServices(const LoadContext& context)
     if (!requiredStep("Messages", [&] { return Messages.Initialize(); }))
         return false;
 
-    // Abort on schema drift. A running map writes the dump before refusing the load.
-    if (!requiredStep("SchemaLayout", [&] {
-            Schema::WriteSchemaDump(Unsafe.Interfaces.SchemaSystem, Entities.GetEntitySystem());
-            return Schema::VerifySchemaLayout(Unsafe.Interfaces.SchemaSystem);
-        }))
-    {
+    // Abort on schema drift, which the host found once for the process.
+    if (!requiredStep("SchemaLayout", [&] { return TakeHostSchema(context); }))
         return false;
-    }
 
     // StartupServer resolves CGameEntitySystem when the first map loads.
     steps.Optional("Entities", [&] { return Entities.Initialize(); });
@@ -159,15 +175,34 @@ bool Runtime::InitializeServices(const LoadContext& context)
     return true;
 }
 
+VoltMod::Status Runtime::TakeHostSchema(const LoadContext& context)
+{
+    auto* schema = static_cast<IHostSchema*>(context.Host->GetInterface(
+        HostString{.Data = IHostSchema::InterfaceName, .Length = std::string_view(IHostSchema::InterfaceName).size()}));
+    if (!schema)
+        return std::unexpected(Error::Engine("the host did not check the schema layout"));
+
+    // The offsets are baked into this plugin's own copy of the SDK, so the host's answer only
+    // covers it when both were generated from the same layout.
+    if (schema->LayoutStamp() != Schema::GeneratedLayoutStamp())
+    {
+        return std::unexpected(Error::Invalid(
+            std::format("this plugin was built against another schema layout (plugin {:016X}, host {:016X}); "
+                        "rebuild it against this VoltMod",
+                        Schema::GeneratedLayoutStamp(), schema->LayoutStamp())));
+    }
+
+    if (!schema->Verified())
+        return std::unexpected(Error::Invalid("the host found schema drift; its log names every field"));
+    return {};
+}
+
 std::map<std::string, std::string> Runtime::UnavailableFeatures() const
 {
     const std::pair<std::string_view, VoltMod::Status> features[] = {
-        {"Movement", Hooks.Movement.Available()},
-        {"Teleport", Hooks.Teleport.Available()},
-        {"Visibility", Hooks.Visibility.Available()},
-        {"Trace", World.Trace.Available()},
-        {"ClientConVars", Hooks.ClientConVars.Available()},
-        {"Screens", Screens.Available()},
+        {"Movement", Hooks.Movement.Available()},           {"Teleport", Hooks.Teleport.Available()},
+        {"Visibility", Hooks.Visibility.Available()},       {"Trace", World.Trace.Available()},
+        {"ClientConVars", Hooks.ClientConVars.Available()}, {"Screens", Screens.Available()},
     };
 
     std::map<std::string, std::string> unavailable;

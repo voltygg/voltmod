@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Host/EngineHooks.hpp"
+#include "Host/HostGameData.hpp"
+#include "Host/HostSchema.hpp"
 #include "Host/PluginHost.hpp"
 #include "Host/PluginLoader.hpp"
 
@@ -46,7 +48,9 @@ private:
 
     // Declared in build order so destruction runs backwards: the hooks stop first, so nothing
     // reaches a plugin while the loader is unloading it.
+    std::unique_ptr<HostGameData> _gameData;
     std::unique_ptr<PluginHost> _host;
+    std::unique_ptr<HostSchema> _schema;
     std::unique_ptr<PluginLoader> _plugins;
     std::unique_ptr<EngineHooks> _hooks;
 };

@@ -92,4 +92,9 @@ std::string_view GeneratedFromBuild()
     return "2000908";
 }
 
+uint64_t GeneratedLayoutStamp()
+{
+    return 0xECF0B3522A6F1551ULL;
+}
+
 }  // namespace VoltMod::Schema

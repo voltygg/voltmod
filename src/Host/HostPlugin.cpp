@@ -2,6 +2,8 @@
 
 #include "Engine/Server/ConsoleLogger.hpp"
 #include "Host/EngineHooks.hpp"
+#include "Host/HostGameData.hpp"
+#include "Host/HostSchema.hpp"
 #include "Host/PluginHost.hpp"
 #include "Host/PluginLoader.hpp"
 
@@ -11,6 +13,7 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Engine/Detours.hpp>
+#include <string_view>
 
 // The host really is a Metamod plugin, so it keeps its own set of Metamod globals. PLUGIN_EXPOSE
 // at the bottom of this file defines them, including KHook's dispatch pointer.
@@ -20,6 +23,7 @@ namespace VoltMod
 {
 
 static constexpr const char* LogTag = "VoltMod";
+static constexpr std::string_view GameDataPath = "addons/voltmod/gamedata/gamedata.jsonc";
 
 HostPlugin::HostPlugin() = default;
 
@@ -35,9 +39,21 @@ bool HostPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, bo
     Log::SetHandler(MakeConsoleHandler(LogTag));
     SetBaseDir(ismm->GetBaseDir());
 
-    _host = std::make_unique<PluginHost>(ismm, KHook::__exported__khook);
+    // Once for the process, before any plugin: a signature a game update broke is logged here
+    // and nowhere else. Another Metamod plugin may already hold a slot, so read through KHook.
+    _gameData = std::make_unique<HostGameData>();
+    _gameData->Resolve(GameDataPath, ReadOriginalSlot);
+
+    _host =
+        std::make_unique<PluginHost>(ismm, KHook::__exported__khook, _gameData->Ready() ? _gameData.get() : nullptr);
+    // Once for the process too: the baked offsets are the same in every plugin built with this
+    // host, and each plugin compares its layout stamp with what was checked here.
+    _schema = std::make_unique<HostSchema>();
+    _schema->Start(ismm, *_host, _host->GameData());
+
     _plugins = std::make_unique<PluginLoader>(*_host);
-    _hooks = std::make_unique<EngineHooks>(*_host, [this] { _plugins->RunQueuedRequests(); });
+    _hooks = std::make_unique<EngineHooks>(
+        *_host, [this] { _plugins->RunQueuedRequests(); }, [this] { _schema->OnServerStartup(); });
 
     if (Status started = _hooks->Start(ismm); !started)
     {
@@ -69,7 +85,9 @@ void HostPlugin::Shutdown()
 
     _hooks.reset();
     _plugins.reset();
+    _schema.reset();
     _host.reset();
+    _gameData.reset();
 }
 
 const char* HostPlugin::GetAuthor()

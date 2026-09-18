@@ -31,8 +31,8 @@ static Status Resolve(Iface*& target, Factory&& factory, const char* version)
     return {};
 }
 
-EngineHooks::EngineHooks(PluginHost& host, std::function<void()> beforeFrame)
-    : _host(host), _beforeFrame(std::move(beforeFrame))
+EngineHooks::EngineHooks(PluginHost& host, std::function<void()> beforeFrame, std::function<void()> beforeServerStartup)
+    : _host(host), _beforeFrame(std::move(beforeFrame)), _beforeServerStartup(std::move(beforeServerStartup))
 {}
 
 EngineHooks::~EngineHooks()
@@ -88,6 +88,8 @@ Status EngineHooks::Start(SourceMM::ISmmAPI* metamod)
         [this](INetworkServerService&, const GameSessionConfiguration_t&, ISource2WorldSession*, const char* mapName) {
             const std::string_view map = mapName != nullptr ? mapName : "";
             Log::Info("Server startup: map '{}'.", map.empty() ? std::string_view("<none>") : map);
+            if (_beforeServerStartup)
+                _beforeServerStartup();
             _host.RaiseServerStartup(map);
         }));
 

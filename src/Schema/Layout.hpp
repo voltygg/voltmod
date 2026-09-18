@@ -1,7 +1,5 @@
 #pragma once
 
-#include <VoltMod/Core/Result.hpp>
-#include <VoltMod/Engine/EngineTypes.hpp>
 #include <cstdint>
 #include <span>
 #include <string_view>
@@ -33,18 +31,12 @@ std::span<const ClassLayout> GeneratedLayout();
 std::string_view GeneratedFromBuild();
 
 /**
- * @brief Compare @ref GeneratedLayout with the live schema.
+ * @brief A hash of everything @ref GeneratedLayout holds.
  *
- * Stale baked offsets would read and write wrong addresses, so a mismatch aborts the load.
- * @return Every mismatch in one message, or ErrorCode::NotReady before the server scope exists.
+ * The host verifies its own copy of the layout, and a plugin may only take that answer when it
+ * was built from the same one. Both sides compare this; different values mean the plugin is
+ * built against other offsets and must be rebuilt.
  */
-Status VerifySchemaLayout(ISchemaSystem* schema);
-
-/**
- * @brief Write `addons/voltmod/schema/server.json` for `voltmod schemagen` unless it matches this build.
- *
- * Networked fields come from the engine's serializers, which exist only with @p entities; null writes nothing.
- */
-void WriteSchemaDump(ISchemaSystem* schema, CGameEntitySystem* entities);
+uint64_t GeneratedLayoutStamp();
 
 }  // namespace VoltMod::Schema

@@ -11,6 +11,7 @@ from voltmod.schemagen.generate import (
     GENERATED_HEADER_DIR,
     GENERATED_SOURCE_DIR,
     MANIFEST,
+    layout_stamp,
     render_outputs,
     write_outputs,
 )
@@ -148,6 +149,61 @@ def test_the_committed_generated_tree_is_what_the_generator_writes(platform):
     shipped = json.loads((REPO_ROOT / MANIFEST).read_text(encoding="utf-8"))
     files = render_outputs(baseline, shipped, platform).files
     write_outputs(REPO_ROOT, files, platform, check=True)
+
+
+def stamp(dumped, selected=None):
+    return layout_stamp(list(resolve_classes(dumped, selected or manifest()).values()))
+
+
+def test_the_stamp_reaches_the_generated_layout():
+    layout = render_outputs(dump(), manifest(), "windows").files[
+        GENERATED_SOURCE_DIR / "windows" / "Layout.cpp"
+    ]
+    assert f"return {stamp(dump())}ULL;" in layout
+
+
+def test_the_two_platforms_do_not_share_a_stamp():
+    """A plugin built for one platform must not take the other's verification."""
+    windows = json.loads((REPO_ROOT / BASELINES["windows"]).read_text(encoding="utf-8"))
+    linux = json.loads((REPO_ROOT / BASELINES["linux"]).read_text(encoding="utf-8"))
+    shipped = json.loads((REPO_ROOT / MANIFEST).read_text(encoding="utf-8"))
+    assert stamp(windows, shipped) != stamp(linux, shipped)
+
+
+def test_regenerating_an_unchanged_layout_keeps_the_stamp():
+    """It follows the layout's content, so a rebuild on its own never refuses a plugin."""
+    assert stamp(dump()) == stamp(dump())
+
+
+def test_a_moved_field_changes_the_stamp():
+    moved = dump()
+    moved["classes"]["CBaseEntity"]["fields"][0]["offset"] += 8
+    assert stamp(moved) != stamp(dump())
+
+
+def test_a_resized_class_changes_the_stamp():
+    grown = dump()
+    grown["classes"]["CBaseEntity"]["size"] += 16
+    assert stamp(grown) != stamp(dump())
+
+
+def test_a_field_the_manifest_drops_changes_the_stamp():
+    fewer = manifest()
+    fewer["classes"]["CBaseEntity"] = fewer["classes"]["CBaseEntity"][1:]
+    assert stamp(dump(), fewer) != stamp(dump())
+
+
+def test_a_skipped_field_is_not_in_the_stamp():
+    """It covers what GeneratedLayout() holds, and a skipped field generates nothing."""
+    without_bitfield = manifest()
+    without_bitfield["classes"]["CBaseEntity"] = without_bitfield["classes"]["CBaseEntity"][:-1]
+    assert stamp(dump(), without_bitfield) == stamp(dump())
+
+
+def test_the_stamp_is_a_64_bit_cpp_literal():
+    value = stamp(dump())
+    assert value.startswith("0x") and len(value) == 18
+    assert int(value, 16) < 2**64
 
 
 def test_the_closure_pulls_in_bases_and_returned_types_but_nothing_else():

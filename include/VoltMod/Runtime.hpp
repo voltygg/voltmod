@@ -139,6 +139,8 @@ private:
     void InstallLogger(const LoadContext& context);
     bool ResolveInterfaces(const LoadContext& context);
     bool InitializeServices(const LoadContext& context);
+    /** Take the host's one schema check, refusing the load unless it covers these baked offsets. */
+    VoltMod::Status TakeHostSchema(const LoadContext& context);
     void RegisterStatusSections();
     /** Each optional feature that cannot work this load, with the reason. */
     std::map<std::string, std::string> UnavailableFeatures() const;

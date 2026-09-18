@@ -1,5 +1,6 @@
 """Rendering the schema accessor layer from a dump and manifest, then writing or checking it."""
 
+import hashlib
 import json
 import tempfile
 from dataclasses import dataclass
@@ -64,7 +65,7 @@ def render_outputs(dump: dict[str, Any], manifest: dict[str, Any], platform: str
     files[GENERATED_HEADER_DIR / "Enums.hpp"] = _render("enums.hpp.j2", enums=_enum_listings(enums))
     files[HEADER_DIR / "Api.hpp"] = _render("api.hpp.j2", classes=ordered)
     files[GENERATED_SOURCE_DIR / platform / "Layout.cpp"] = _render(
-        "layout.cpp.j2", classes=ordered, game_build=game_build
+        "layout.cpp.j2", classes=ordered, game_build=game_build, layout_stamp=layout_stamp(ordered)
     )
     for wrapper, names in manifest.get("wrappers", {}).items():
         wrapped = _wrapped_classes(wrapper, names, codes, classes)
@@ -73,6 +74,22 @@ def render_outputs(dump: dict[str, Any], manifest: dict[str, Any], platform: str
         )
     files[BASELINES[platform]] = json.dumps(baseline_dump(dump, classes, enums), indent=2) + "\n"
     return SchemaOutput(files, _summary(classes, enums, game_build))
+
+
+def layout_stamp(classes: list[SchemaClass]) -> str:
+    """A 64-bit hash of the layout, as a C++ hex literal.
+
+    The host and a plugin compare these to decide whether they were built from the same offsets,
+    so it follows the layout's content and nothing else: regenerating an unchanged layout keeps
+    the same value, and a moved field changes it.
+    """
+    lines = []
+    for schema_class in sorted(classes, key=lambda entry: entry.name):
+        lines.append(f"{schema_class.name} {schema_class.size} {schema_class.owner_link_offset}")
+        for field in schema_class.generated_fields:
+            lines.append(f"  {field.schema_name} {field.offset} {field.size}")
+    digest = hashlib.sha256("\n".join(lines).encode()).digest()
+    return f"0x{int.from_bytes(digest[:8], 'big'):016X}"
 
 
 def write_outputs(

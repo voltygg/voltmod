@@ -67,12 +67,27 @@ void* PluginContext::GetInterface(HostString name) const
         return static_cast<IHostServices*>(self);
     if (wanted == IHostLog::InterfaceName)
         return static_cast<IHostLog*>(self);
+    if (wanted == IHostSchema::InterfaceName)
+        return static_cast<IHostSchema*>(self);
+    // One resolution for the whole process, so this one is the host's, not the context's.
+    if (wanted == IHostGameData::InterfaceName)
+        return _host.GameData();
     return nullptr;
 }
 
 bool PluginContext::ClaimCommand(HostString name)
 {
     return _host.ClaimCommand(*this, Text(name));
+}
+
+uint64_t PluginContext::LayoutStamp() const
+{
+    return _host.SchemaLayoutStamp();
+}
+
+bool PluginContext::Verified() const
+{
+    return _host.SchemaVerified();
 }
 
 void PluginContext::SetTag(HostString tag)
@@ -194,9 +209,17 @@ std::vector<HostEvent> PluginContext::DropSubscriptions()
     return leaked;
 }
 
-PluginHost::PluginHost(SourceMM::ISmmAPI* metamod, KHook::IKHook* detours) : _metamod(metamod), _detours(detours) {}
+PluginHost::PluginHost(SourceMM::ISmmAPI* metamod, KHook::IKHook* detours, IHostGameData* gameData)
+    : _metamod(metamod), _detours(detours), _gameData(gameData)
+{}
 
 PluginHost::~PluginHost() = default;
+
+void PluginHost::SetSchemaLayout(uint64_t stamp, bool verified)
+{
+    _schemaLayoutStamp = stamp;
+    _schemaVerified = verified;
+}
 
 PluginContext* PluginHost::OpenPlugin(std::string_view name)
 {

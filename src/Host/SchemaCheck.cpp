@@ -1,11 +1,13 @@
+#include "Host/SchemaCheck.hpp"
+
 #include "Core/Files/GameBuild.hpp"
 #include "Engine/Memory/SigScanner.hpp"
-#include "Schema/ClassFields.hpp"
-#include "Schema/Dump.hpp"
+#include "Host/SchemaDump.hpp"
+#include "Host/SchemaFields.hpp"
 #include "Schema/Layout.hpp"
 
-#include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Files/Paths.hpp>
+#include <VoltMod/Core/Log.hpp>
 #include <entity2/entityclass.h>
 #include <entity2/entitysystem.h>
 #include <filesystem>
@@ -53,7 +55,7 @@ static CSchemaSystemTypeScope* ServerScope(ISchemaSystem* schema)
 
 void WriteSchemaDump(ISchemaSystem* schema, CGameEntitySystem* entities)
 {
-    static bool attempted = false;  // one try per plugin; the build stamp prevents repeats
+    static bool attempted = false;  // one try per process; the build stamp prevents repeats
     if (attempted || !entities)
         return;
 

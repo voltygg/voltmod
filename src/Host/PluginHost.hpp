@@ -7,7 +7,9 @@
 #include <VoltMod/Host/HostTypes.hpp>
 #include <VoltMod/Host/IHost.hpp>
 #include <VoltMod/Host/IHostEvents.hpp>
+#include <VoltMod/Host/IHostGameData.hpp>
 #include <VoltMod/Host/IHostLog.hpp>
+#include <VoltMod/Host/IHostSchema.hpp>
 #include <VoltMod/Host/IHostServices.hpp>
 #include <cstdint>
 #include <memory>
@@ -57,7 +59,7 @@ std::string_view Text(HostString text);
  * subscription, publication or command claim every call is. Owned by @ref PluginHost and valid from
  * OpenPlugin until ClosePlugin.
  */
-class PluginContext final : public IHost, public IHostEvents, public IHostServices, public IHostLog
+class PluginContext final : public IHost, public IHostEvents, public IHostServices, public IHostLog, public IHostSchema
 {
 public:
     PluginContext(PluginHost& host, std::string name, uint64_t order);
@@ -89,6 +91,9 @@ public:
     void SetTag(HostString tag) override;
     void Write(uint8_t level, HostString text) override;
     uint8_t MinLevel() override;
+
+    uint64_t LayoutStamp() const override;
+    bool Verified() const override;
 
     /** Silence this plugin below @p level. `volt log <name> <level>` is what calls it. */
     void SetMinLevel(LogLevel level) { _minLevel = level; }
@@ -132,12 +137,14 @@ private:
  * claims and one context per loaded plugin.
  *
  * Game thread only, like everything a plugin reaches; nothing here locks. Free of the SDK so it is
- * unit-tested without the engine - @p metamod and @p detours are values it hands on unchanged.
+ * unit-tested without the engine - @p metamod, @p detours and @p gameData are values it hands on
+ * unchanged.
  */
 class PluginHost
 {
 public:
-    explicit PluginHost(SourceMM::ISmmAPI* metamod = nullptr, KHook::IKHook* detours = nullptr);
+    explicit PluginHost(SourceMM::ISmmAPI* metamod = nullptr, KHook::IKHook* detours = nullptr,
+                        IHostGameData* gameData = nullptr);
     ~PluginHost();
 
     PluginHost(const PluginHost&) = delete;
@@ -156,6 +163,14 @@ public:
 
     SourceMM::ISmmAPI* Metamod() const { return _metamod; }
     KHook::IKHook* Detours() const { return _detours; }
+    /** The one gamedata resolution every plugin binds from, null when the host has none. */
+    IHostGameData* GameData() const { return _gameData; }
+
+    /** Record what the host's own schema check found. @p stamp identifies the layout it checked,
+     *  so a plugin can tell whether the answer covers the offsets it was built with. */
+    void SetSchemaLayout(uint64_t stamp, bool verified);
+    uint64_t SchemaLayoutStamp() const { return _schemaLayoutStamp; }
+    bool SchemaVerified() const { return _schemaVerified; }
 
     void RaiseFrame();
     void RaiseServerStartup(std::string_view mapName);
@@ -206,6 +221,10 @@ private:
 
     SourceMM::ISmmAPI* _metamod = nullptr;
     KHook::IKHook* _detours = nullptr;
+    IHostGameData* _gameData = nullptr;
+
+    uint64_t _schemaLayoutStamp = 0;  ///< zero until the host has checked its own layout
+    bool _schemaVerified = false;
 
     HostToken _nextToken = 1;  ///< unique across every event and the service table, never zero, never reused
     uint64_t _nextOrder = 1;   ///< load positions keep rising, so a reloaded plugin dispatches last

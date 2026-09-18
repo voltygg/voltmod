@@ -1,9 +1,9 @@
-#include "Schema/Dump.hpp"
+#include "Host/SchemaDump.hpp"
 
-#include "Schema/ClassFields.hpp"
+#include "Host/SchemaFields.hpp"
 
-#include <VoltMod/Core/Text/EnumNames.hpp>
 #include <VoltMod/Core/Files/File.hpp>
+#include <VoltMod/Core/Text/EnumNames.hpp>
 #include <VoltMod/Core/Text/Json.hpp>
 #include <cstdint>
 #include <map>

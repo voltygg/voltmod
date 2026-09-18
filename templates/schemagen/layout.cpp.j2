@@ -27,4 +27,9 @@ std::string_view GeneratedFromBuild()
     return "{{ game_build }}";
 }
 
+uint64_t GeneratedLayoutStamp()
+{
+    return {{ layout_stamp }}ULL;
+}
+
 }  // namespace VoltMod::Schema

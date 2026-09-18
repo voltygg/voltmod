@@ -1,5 +1,3 @@
-#include "Schema/Layout.hpp"
-
 #include <VoltMod/App/Plugin.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Text/Json.hpp>
@@ -281,7 +279,6 @@ void Plugin::HandleServerStartup(std::string_view mapName)
     _runtime->Map.SetCurrent(std::string(mapName));
     // Publish the new entity system before the plugin callback.
     _runtime->Entities.OnServerStartup();
-    Schema::WriteSchemaDump(_runtime->Unsafe.Interfaces.SchemaSystem, _runtime->Entities.GetEntitySystem());
     _runtime->GameEvents.OnServerStartup();
     _runtime->Hooks.ClientConVars.OnServerStartup();
     OnServerStartup(mapName);
