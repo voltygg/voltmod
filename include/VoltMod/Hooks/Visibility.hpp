@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Color.h>
-#include <VoltMod/Core/Results/Result.hpp>
+#include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Core/Slots/SlotEvents.hpp>
 #include <VoltMod/Core/Signals/Subscription.hpp>

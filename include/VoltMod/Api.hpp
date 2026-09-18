@@ -11,7 +11,7 @@
 #include <VoltMod/Core/Signals/HookResult.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slots/PerSlot.hpp>
-#include <VoltMod/Core/Results/Result.hpp>
+#include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Time/Scheduler.hpp>
 #include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Core/Slots/SteamId.hpp>

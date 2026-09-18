@@ -2,7 +2,7 @@
 
 #include <VoltMod/Core/Signals/Event.hpp>
 #include <VoltMod/Core/Slots/PerSlot.hpp>
-#include <VoltMod/Core/Results/Result.hpp>
+#include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Time/Scheduler.hpp>
 #include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>

@@ -134,7 +134,7 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Core/Files/GameBuild.cpp
             src/Core/Files/Paths.cpp
             src/Core/Logger.cpp
-            src/Core/Results/LoadSteps.cpp
+            src/Core/LoadSteps.cpp
             src/Core/Signals/SharedLifecycle.cpp
             src/Core/Slots/SteamId.cpp
             src/Core/Text/Strings.cpp

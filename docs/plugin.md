@@ -48,7 +48,7 @@ types. Add module headers only where needed:
 |---|---|
 | Menus (`MenuRouter`, `CenterHtmlMenu`, `PanoramaMenu`, `MenuBuilder`, row specs, `ActionRows`, `Flow`, presets) | `<VoltMod/Menu/Api.hpp>` |
 | More of Entities (`EntityRef`, `Items`, `ConVar`) or Hooks (`Movement`, `Teleport`, game events) | `<VoltMod/Entities/Api.hpp>`, `<VoltMod/Hooks/Api.hpp>` |
-| A JsonConfig-backed settings struct | `<VoltMod/App/Config/Config.hpp>` (see @ref config_guide) |
+| A JsonConfig-backed settings struct | `<VoltMod/App/Config.hpp>` (see @ref config_guide) |
 | Raw interfaces, gamedata, or vtable hooking | `<VoltMod/Unsafe/Api.hpp>` |
 | Database (Postgres/MariaDB/SQLite) | `<VoltMod/Database/Api.hpp>` (see @ref database_guide) |
 

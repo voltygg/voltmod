@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoltMod/Core/Signals/Event.hpp>
-#include <VoltMod/Core/Results/Result.hpp>
+#include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Signals/SharedLifecycle.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>

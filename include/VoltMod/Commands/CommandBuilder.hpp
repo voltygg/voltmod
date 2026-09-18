@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoltMod/Commands/Args.hpp>
-#include <VoltMod/Core/Results/Result.hpp>
+#include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Core/Text/Translations.hpp>
 #include <VoltMod/Players/Player.hpp>

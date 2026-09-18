@@ -4,14 +4,14 @@
 
 Represent settings with a default-initialized struct that mirrors the JSON file,
 then load it through @ref VoltMod::JsonConfig. Include
-`<VoltMod/App/Config/Config.hpp>` in the plugin's `Config.hpp`; it provides the
+`<VoltMod/App/Config.hpp>` in the plugin's `Config.hpp`; it provides the
 configuration types and JSON layer without adding them to the main API umbrella.
 
 ## Declaring settings
 
 ```cpp
 #include <VoltMod/Api.hpp>
-#include <VoltMod/App/Config/Config.hpp>
+#include <VoltMod/App/Config.hpp>
 
 struct Settings
 {

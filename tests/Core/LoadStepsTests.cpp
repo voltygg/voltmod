@@ -1,4 +1,4 @@
-#include <VoltMod/Core/Results/LoadSteps.hpp>
+#include <VoltMod/Core/LoadSteps.hpp>
 #include <doctest/doctest.h>
 #include <string>
 #include <utility>

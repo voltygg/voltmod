@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Core/Results/Result.hpp>
+#include <VoltMod/Core/Result.hpp>
 #include <string>
 #include <string_view>
 

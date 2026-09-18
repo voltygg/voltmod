@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Core/Results/Result.hpp>
+#include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Time/Scheduler.hpp>
 #include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Database/Connection.hpp>

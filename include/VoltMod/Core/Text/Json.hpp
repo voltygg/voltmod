@@ -2,7 +2,7 @@
 
 #include <VoltMod/Core/Files/File.hpp>
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/Results/Result.hpp>
+#include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Text/Strings.hpp>
 #include <cstdint>
 #include <format>

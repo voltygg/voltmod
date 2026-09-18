@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Core/Results/Result.hpp>
+#include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Text/Translations.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>

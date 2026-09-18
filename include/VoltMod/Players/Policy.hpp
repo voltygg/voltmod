@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Core/Results/Result.hpp>
+#include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/PlayerRef.hpp>

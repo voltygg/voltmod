@@ -1,4 +1,4 @@
-#include <VoltMod/Core/Results/Result.hpp>
+#include <VoltMod/Core/Result.hpp>
 #include <doctest/doctest.h>
 #include <string>
 
