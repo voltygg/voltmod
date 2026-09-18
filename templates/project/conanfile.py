@@ -8,8 +8,6 @@ from conan.tools.cmake import CMakeDeps, CMakeToolchain
 
 class ProjectConan(ConanFile):
     settings: Any = "os", "compiler", "build_type", "arch"
-
-    # cpr and glaze arrive transitively through voltmod.
     requires = "voltmod/[~1]"
 
     default_options = {

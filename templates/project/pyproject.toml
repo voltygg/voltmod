@@ -6,8 +6,6 @@ readme = "README.md"
 requires-python = ">=3.14"
 
 dependencies = [
-    # Brings the poe tasks below plus the pinned CMake/Conan/Ninja/clang-format.
-    # Replace `main` with a release tag when builds must stop tracking framework changes.
     "voltmod @ git+https://github.com/voltygg/voltmod.git@main",
     "poethepoet>=0.47.0",
     "ruff>=0.14.0",
@@ -29,10 +27,7 @@ format = "voltmod format"
 
 [tool.poe.tasks.lint]
 help = "Lint the build tooling and check the plugin source conventions"
-sequence = [
-    { cmd = "ruff check ." },
-    { cmd = "voltmod modgraph --plugins ." },
-]
+sequence = [{ cmd = "ruff check ." }, { cmd = "voltmod modgraph --plugins ." }]
 
 [tool.ruff]
 line-length = 100
