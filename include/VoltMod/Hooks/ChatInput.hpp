@@ -1,9 +1,9 @@
 #pragma once
 
-#include <VoltMod/Core/Scheduler.hpp>
-#include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Core/SlotEvents.hpp>
-#include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Core/Time/Scheduler.hpp>
+#include <VoltMod/Core/Slots/Slot.hpp>
+#include <VoltMod/Core/Slots/SlotEvents.hpp>
+#include <VoltMod/Core/Signals/Subscription.hpp>
 #include <array>
 #include <cstdint>
 #include <functional>

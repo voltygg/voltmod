@@ -5,7 +5,7 @@
 #include "Engine/Memory/LoadedModule.hpp"
 #include "Engine/Memory/VtableLookup.hpp"
 
-#include <VoltMod/Core/Result.hpp>
+#include <VoltMod/Core/Results/Result.hpp>
 #include <VoltMod/Engine/Memory/OriginalSlotLookup.hpp>
 #include <functional>
 #include <initializer_list>

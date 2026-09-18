@@ -53,7 +53,7 @@ and discovers new files automatically. `tests/Api/` is excluded because those
 compile-only checks need the full HL2SDK and Metamod build.
 
 ```cpp
-#include <VoltMod/Core/Strings.hpp>
+#include <VoltMod/Core/Text/Strings.hpp>
 #include <doctest/doctest.h>
 #include <string>
 

@@ -3,7 +3,7 @@
 #include "Commands/Targeting.hpp"
 
 #include <VoltMod/Commands/CommandBuilder.hpp>
-#include <VoltMod/Core/Translations.hpp>
+#include <VoltMod/Core/Text/Translations.hpp>
 #include <VoltMod/Players/Policy.hpp>
 #include <expected>
 #include <span>

@@ -1,7 +1,7 @@
 #include "Commands/CommandRouter.hpp"
 #include "Commands/CommandSyntax.hpp"
 
-#include <VoltMod/Core/SlotEvents.hpp>
+#include <VoltMod/Core/Slots/SlotEvents.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/Policy.hpp>
 #include <doctest/doctest.h>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoltMod/Api.hpp>
-#include <VoltMod/App/Config.hpp>
+#include <VoltMod/App/Config/Config.hpp>
 
 namespace $namespace
 {

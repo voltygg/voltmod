@@ -1,7 +1,7 @@
 #pragma once
 
-#include <VoltMod/Core/EffectManager.hpp>
-#include <VoltMod/Core/Translations.hpp>
+#include <VoltMod/Players/EffectManager.hpp>
+#include <VoltMod/Core/Text/Translations.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/Pawn.hpp>
 #include <VoltMod/Menu/Menu.hpp>

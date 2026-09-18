@@ -1,4 +1,4 @@
-#include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/Net/NetChannel.hpp>
 #include <inetchannelinfo.h>

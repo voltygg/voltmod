@@ -1,10 +1,10 @@
 #pragma once
 
 #include <Color.h>
-#include <VoltMod/Core/Result.hpp>
-#include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Core/SlotEvents.hpp>
-#include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Core/Results/Result.hpp>
+#include <VoltMod/Core/Slots/Slot.hpp>
+#include <VoltMod/Core/Slots/SlotEvents.hpp>
+#include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Entities/EntityOps.hpp>

@@ -1,4 +1,4 @@
-#include <VoltMod/Core/Strings.hpp>
+#include <VoltMod/Core/Text/Strings.hpp>
 #include <VoltMod/Messaging/ChatColors.hpp>
 #include <unordered_map>
 

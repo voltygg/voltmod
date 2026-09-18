@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Menu/PendingCommit.hpp>
 #include <cstdint>
 #include <functional>

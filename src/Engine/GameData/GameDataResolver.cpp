@@ -1,11 +1,11 @@
 #include "Engine/GameData/GameDataResolver.hpp"
 
-#include "Core/GameBuild.hpp"
+#include "Core/Files/GameBuild.hpp"
 #include "Engine/Memory/SigScanner.hpp"
 #include "Engine/Memory/VtableLookup.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/Strings.hpp>
+#include <VoltMod/Core/Text/Strings.hpp>
 #include <algorithm>
 #include <cstdint>
 #include <format>

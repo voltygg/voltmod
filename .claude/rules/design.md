@@ -37,7 +37,7 @@ The shapes the framework already uses. New code follows them instead of adding a
 
 ## Hooks and subscriptions
 
-- An engine hook is a `HookInterface`, `HookVirtual` or `HookFunction` call from `<VoltMod/Unsafe/Hook.hpp>`, yielding the `Subscription` that removes it. `HookFunction` is for a signature-bound function no class vtable reaches; a virtual function uses a vtable hook. Handlers are callables taking the hooked object first; a before-handler returns `HookResult` or nothing, an after-handler observes and is handed the value the call will return. `HookResult` lives in `<VoltMod/Core/HookResult.hpp>` and is safe in any header. Only a .cpp, or a header under `src/`, reaches `Hook.hpp`; a public header that holds a hook keeps the `Subscription` and needs `<VoltMod/Core/Subscription.hpp>` alone.
+- An engine hook is a `HookInterface`, `HookVirtual` or `HookFunction` call from `<VoltMod/Unsafe/Hook.hpp>`, yielding the `Subscription` that removes it. `HookFunction` is for a signature-bound function no class vtable reaches; a virtual function uses a vtable hook. Handlers are callables taking the hooked object first; a before-handler returns `HookResult` or nothing, an after-handler observes and is handed the value the call will return. `HookResult` lives in `<VoltMod/Core/Signals/HookResult.hpp>` and is safe in any header. Only a .cpp, or a header under `src/`, reaches `Hook.hpp`; a public header that holds a hook keeps the `Subscription` and needs `<VoltMod/Core/Signals/Subscription.hpp>` alone.
 - Event, game-event, scheduler, and hook registrations return `[[nodiscard]] Subscription`. Dropping it unsubscribes; a scheduler one-shot is cancelled the same way.
 - Commands are owned by `CommandManager` for the load cycle.
 
@@ -65,6 +65,6 @@ The shapes the framework already uses. New code follows them instead of adding a
 ## Public headers
 
 - `<VoltMod/Api.hpp>` gathers the core vocabulary, `Runtime`, players, commands, and plugin plumbing. It never reaches the JSON layer or the menu-building surface.
-- Module surfaces: `<VoltMod/Entities/Api.hpp>`, `<VoltMod/Hooks/Api.hpp>`, `<VoltMod/Menu/Api.hpp>`, `<VoltMod/Unsafe/Api.hpp>`. `<VoltMod/App/Config.hpp>` gathers `JsonConfig`, `StandardPluginSettings`, and `Json` for a plugin's `Config.hpp`.
+- Module surfaces: `<VoltMod/Entities/Api.hpp>`, `<VoltMod/Hooks/Api.hpp>`, `<VoltMod/Menu/Api.hpp>`, `<VoltMod/Unsafe/Api.hpp>`. `<VoltMod/App/Config/Config.hpp>` gathers `JsonConfig`, `StandardPluginSettings`, and `Json` for a plugin's `Config.hpp`.
 - Database names stay in `<VoltMod/Database/Api.hpp>` so ordinary TUs never include sqlpp23.
 - A bare `Run` blocks, `RunAsync` returns first; database failures are `Result<T>` over `Error` like everything else. Table specs come from `sqlpp23-ddl2cpp` reading the migration, not from hand-written column lists.

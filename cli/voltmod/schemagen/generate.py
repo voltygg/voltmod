@@ -148,7 +148,7 @@ def _source_includes(schema_class: SchemaClass) -> list[str]:
         if field.kind is FieldKind.VIEW:
             includes.add(f"<VoltMod/Schema/Generated/{field.view_class}.hpp>")
         if field.kind is FieldKind.CHARS:
-            includes.add("<VoltMod/Core/CharBuf.hpp>")
+            includes.add("<VoltMod/Core/Text/CharBuf.hpp>")
     return sorted(includes)
 
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <VoltMod/Core/Event.hpp>
-#include <VoltMod/Core/SlotEvents.hpp>
+#include <VoltMod/Core/Signals/Event.hpp>
+#include <VoltMod/Core/Slots/SlotEvents.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Players/PlayerRef.hpp>
 #include <memory>

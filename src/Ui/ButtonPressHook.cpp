@@ -4,7 +4,7 @@
 #include "Ui/ButtonPressMessage.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Unsafe/Hook.hpp>
 #include <networksystem/inetworkmessages.h>

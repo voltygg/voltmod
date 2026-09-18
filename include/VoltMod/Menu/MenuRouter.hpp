@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <functional>
 #include <memory>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Core/Translations.hpp>
+#include <VoltMod/Core/Text/Translations.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <functional>
 #include <string>

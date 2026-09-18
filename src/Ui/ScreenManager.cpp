@@ -2,7 +2,7 @@
 #include "Ui/LayoutPath.hpp"
 #include "Ui/ScreenEntity.hpp"
 
-#include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Ui/ScreenManager.hpp>
 #include <format>
 #include <memory>

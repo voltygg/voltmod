@@ -2,8 +2,8 @@
 #include "Engine/GameData/GameDataResolver.hpp"
 #include "Engine/GameData/ResolvedRecord.hpp"
 
-#include <VoltMod/Core/Json.hpp>
-#include <VoltMod/Core/Strings.hpp>
+#include <VoltMod/Core/Text/Json.hpp>
+#include <VoltMod/Core/Text/Strings.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <format>
 #include <string_view>

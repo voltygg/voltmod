@@ -1,7 +1,7 @@
 #include "Commands/Targeting.hpp"
 
-#include <VoltMod/Core/SteamId.hpp>
-#include <VoltMod/Core/Strings.hpp>
+#include <VoltMod/Core/Slots/SteamId.hpp>
+#include <VoltMod/Core/Text/Strings.hpp>
 #include <algorithm>
 #include <utility>
 

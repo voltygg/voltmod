@@ -1,8 +1,8 @@
 #include "Menu/FakeMenuSurface.hpp"
 #include "Menu/FakeTimers.hpp"
 
-#include <VoltMod/Core/SlotEvents.hpp>
-#include <VoltMod/Core/Translations.hpp>
+#include <VoltMod/Core/Slots/SlotEvents.hpp>
+#include <VoltMod/Core/Text/Translations.hpp>
 #include <VoltMod/Menu/MenuStack.hpp>
 #include <doctest/doctest.h>
 #include <memory>

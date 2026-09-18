@@ -1,5 +1,5 @@
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Menu/PanoramaMenu.hpp>
 #include <algorithm>
 #include <cstddef>

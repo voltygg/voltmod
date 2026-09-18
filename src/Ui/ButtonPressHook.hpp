@@ -2,9 +2,9 @@
 
 #include "Engine/Net/ProtoReflect.hpp"
 
-#include <VoltMod/Core/Event.hpp>
-#include <VoltMod/Core/Scheduler.hpp>
-#include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Core/Signals/Event.hpp>
+#include <VoltMod/Core/Time/Scheduler.hpp>
+#include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Ui/ButtonPress.hpp>

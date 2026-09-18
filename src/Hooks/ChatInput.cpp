@@ -1,4 +1,4 @@
-#include <VoltMod/Core/Scheduler.hpp>
+#include <VoltMod/Core/Time/Scheduler.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>
 #include <utility>
 

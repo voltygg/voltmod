@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Core/PerSlot.hpp>
+#include <VoltMod/Core/Slots/PerSlot.hpp>
 #include <VoltMod/Ui/Screen.hpp>
 #include <VoltMod/Ui/ScreenManager.hpp>
 #include <optional>

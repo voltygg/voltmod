@@ -1,7 +1,7 @@
 #pragma once
 
-#include <VoltMod/Core/HookResult.hpp>
-#include <VoltMod/Core/Subscriptions.hpp>
+#include <VoltMod/Core/Signals/HookResult.hpp>
+#include <VoltMod/Core/Signals/Subscriptions.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Players/Player.hpp>

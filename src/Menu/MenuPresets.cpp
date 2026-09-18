@@ -1,4 +1,4 @@
-#include <VoltMod/Core/Strings.hpp>
+#include <VoltMod/Core/Text/Strings.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
 #include <VoltMod/Menu/MenuPresets.hpp>
 #include <format>

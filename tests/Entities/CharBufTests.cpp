@@ -1,4 +1,4 @@
-﻿#include <VoltMod/Core/CharBuf.hpp>
+﻿#include <VoltMod/Core/Text/CharBuf.hpp>
 #include <cstring>
 #include <doctest/doctest.h>
 #include <ostream>

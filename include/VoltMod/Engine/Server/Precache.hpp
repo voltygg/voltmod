@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Core/Result.hpp>
+#include <VoltMod/Core/Results/Result.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <memory>

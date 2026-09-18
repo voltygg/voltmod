@@ -1,8 +1,8 @@
 #pragma once
 
-#include <VoltMod/Core/Result.hpp>
-#include <VoltMod/Core/Scheduler.hpp>
-#include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Core/Results/Result.hpp>
+#include <VoltMod/Core/Time/Scheduler.hpp>
+#include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Database/Connection.hpp>
 #include <VoltMod/Database/DatabaseConfig.hpp>
 #include <VoltMod/Database/Driver.hpp>

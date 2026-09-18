@@ -1,5 +1,5 @@
 #include <VoltMod/Commands/CommandBuilder.hpp>
-#include <VoltMod/Core/SlotEvents.hpp>
+#include <VoltMod/Core/Slots/SlotEvents.hpp>
 #include <doctest/doctest.h>
 #include <string>
 #include <vector>

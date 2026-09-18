@@ -2,8 +2,8 @@
 #include "Engine/Net/ProtoReflect.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/Scheduler.hpp>
-#include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Core/Time/Scheduler.hpp>
+#include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/Net/RecipientFilter.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>

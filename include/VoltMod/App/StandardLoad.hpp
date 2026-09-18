@@ -1,8 +1,8 @@
 #pragma once
 
-#include <VoltMod/App/PluginSettings.hpp>
-#include <VoltMod/Core/LoadSteps.hpp>
-#include <VoltMod/Core/Paths.hpp>
+#include <VoltMod/App/Config/PluginSettings.hpp>
+#include <VoltMod/Core/Results/LoadSteps.hpp>
+#include <VoltMod/Core/Files/Paths.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <format>
 #include <string>

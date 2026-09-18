@@ -4,8 +4,8 @@
 #include <igameevents.h>
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Core/Translations.hpp>
+#include <VoltMod/Core/Slots/Slot.hpp>
+#include <VoltMod/Core/Text/Translations.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/Net/RecipientFilter.hpp>
 #include <VoltMod/Events/GameEvents.hpp>

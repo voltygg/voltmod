@@ -1,7 +1,7 @@
 #include "Menu/CenterHtmlRender.hpp"
 
-#include <VoltMod/Core/SlotEvents.hpp>
-#include <VoltMod/Core/Translations.hpp>
+#include <VoltMod/Core/Slots/SlotEvents.hpp>
+#include <VoltMod/Core/Text/Translations.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
 #include <cstddef>

@@ -1,6 +1,6 @@
 #include "Workshop/AddonDownloads.hpp"
 
-#include <VoltMod/Core/Strings.hpp>
+#include <VoltMod/Core/Text/Strings.hpp>
 #include <algorithm>
 #include <string>
 #include <utility>

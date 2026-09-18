@@ -1,7 +1,7 @@
 #pragma once
 
-#include <VoltMod/Core/PerSlot.hpp>
-#include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Core/Slots/PerSlot.hpp>
+#include <VoltMod/Core/Slots/Slot.hpp>
 #include <optional>
 #include <string>
 #include <string_view>

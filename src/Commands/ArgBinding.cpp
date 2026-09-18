@@ -1,6 +1,6 @@
 #include "Commands/ArgBinding.hpp"
 
-#include <VoltMod/Core/Strings.hpp>
+#include <VoltMod/Core/Text/Strings.hpp>
 #include <utility>
 
 namespace VoltMod

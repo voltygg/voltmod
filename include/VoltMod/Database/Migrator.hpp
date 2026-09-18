@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Core/Result.hpp>
+#include <VoltMod/Core/Results/Result.hpp>
 #include <VoltMod/Database/Driver.hpp>
 #include <algorithm>
 #include <charconv>

@@ -1,9 +1,9 @@
 #pragma once
 
-#include <VoltMod/Core/HookResult.hpp>
+#include <VoltMod/Core/Signals/HookResult.hpp>
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/Result.hpp>
-#include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Core/Results/Result.hpp>
+#include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <format>

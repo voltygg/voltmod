@@ -2,8 +2,8 @@
 #include "Hooks/PendingConVarQueries.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Core/Time.hpp>
+#include <VoltMod/Core/Slots/Slot.hpp>
+#include <VoltMod/Core/Time/Time.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>

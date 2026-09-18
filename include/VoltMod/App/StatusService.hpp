@@ -17,7 +17,7 @@ namespace VoltMod
  * Providers run on demand in registration order. VoltMod registers framework sections during
  * load; plugins add their sections in OnLoad and expose the combined report with
  * @ref InstallCommand. A provider returns compact JSON text, normally built with
- * `VoltMod::Json::Write` from `<VoltMod/Core/Json.hpp>`.
+ * `VoltMod::Json::Write` from `<VoltMod/Core/Text/Json.hpp>`.
  */
 class StatusService
 {

@@ -2,7 +2,7 @@
 
 #include "Engine/Memory/LoadedModule.hpp"
 
-#include <VoltMod/Core/Result.hpp>
+#include <VoltMod/Core/Results/Result.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <span>

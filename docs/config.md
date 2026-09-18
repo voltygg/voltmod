@@ -4,14 +4,14 @@
 
 Represent settings with a default-initialized struct that mirrors the JSON file,
 then load it through @ref VoltMod::JsonConfig. Include
-`<VoltMod/App/Config.hpp>` in the plugin's `Config.hpp`; it provides the
+`<VoltMod/App/Config/Config.hpp>` in the plugin's `Config.hpp`; it provides the
 configuration types and JSON layer without adding them to the main API umbrella.
 
 ## Declaring settings
 
 ```cpp
 #include <VoltMod/Api.hpp>
-#include <VoltMod/App/Config.hpp>
+#include <VoltMod/App/Config/Config.hpp>
 
 struct Settings
 {
@@ -89,7 +89,7 @@ configuration intact, and callers never observe a partially validated value.
 `Get()` must return the effective settings because `LoadStandardConfig` reads
 `Get().plugin.locale` when that section exists.
 
-Use the common helpers in `VoltMod/Core/Validation.hpp`. `BuildSnapshot` takes the
+Use the common helpers in `VoltMod/App/Config/Validation.hpp`. `BuildSnapshot` takes the
 raw settings by value, so each helper below operates on a local copy:
 
 ```cpp

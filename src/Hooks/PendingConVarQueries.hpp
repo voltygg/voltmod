@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Core/Slot.hpp>
+#include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Hooks/ClientConVars.hpp>
 #include <array>
 #include <cstdint>

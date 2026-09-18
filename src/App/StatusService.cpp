@@ -1,5 +1,5 @@
 #include <VoltMod/App/StatusService.hpp>
-#include <VoltMod/Core/Json.hpp>
+#include <VoltMod/Core/Text/Json.hpp>
 #include <format>
 #include <map>
 #include <string>

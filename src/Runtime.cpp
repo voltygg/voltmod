@@ -2,9 +2,9 @@
 #include "Schema/Layout.hpp"
 
 #include <ISmmAPI.h>
-#include <VoltMod/Core/Json.hpp>
+#include <VoltMod/Core/Text/Json.hpp>
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/Paths.hpp>
+#include <VoltMod/Core/Files/Paths.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <chrono>

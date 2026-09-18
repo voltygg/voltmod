@@ -2,9 +2,9 @@
 
 #include <igameevents.h>
 
-#include <VoltMod/Core/CallbackRegistry.hpp>
-#include <VoltMod/Core/Result.hpp>
-#include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Core/Signals/CallbackRegistry.hpp>
+#include <VoltMod/Core/Results/Result.hpp>
+#include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>

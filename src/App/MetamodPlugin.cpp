@@ -1,9 +1,9 @@
 #include "Schema/Layout.hpp"
 
 #include <VoltMod/App/MetamodPlugin.hpp>
-#include <VoltMod/Core/Json.hpp>
+#include <VoltMod/Core/Text/Json.hpp>
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/Strings.hpp>
+#include <VoltMod/Core/Text/Strings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>

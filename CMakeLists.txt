@@ -130,18 +130,18 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Commands/CommandSyntax.cpp
             src/Commands/ArgBinding.cpp
             src/Commands/Targeting.cpp
-            src/Core/EffectManager.cpp
-            src/Core/File.cpp
-            src/Core/GameBuild.cpp
-            src/Core/LoadSteps.cpp
+            src/Core/Files/File.cpp
+            src/Core/Files/GameBuild.cpp
+            src/Core/Files/Paths.cpp
             src/Core/Logger.cpp
-            src/Core/Paths.cpp
-            src/Core/Scheduler.cpp
-            src/Core/SharedLifecycle.cpp
-            src/Core/Strings.cpp
-            src/Core/SteamId.cpp
-            src/Core/Time.cpp
-            src/Core/Translations.cpp
+            src/Core/Results/LoadSteps.cpp
+            src/Core/Signals/SharedLifecycle.cpp
+            src/Core/Slots/SteamId.cpp
+            src/Core/Text/Strings.cpp
+            src/Core/Text/Translations.cpp
+            src/Core/Time/Scheduler.cpp
+            src/Core/Time/Time.cpp
+            src/Players/EffectManager.cpp
             src/Players/PlayerManager.cpp
             src/Players/Policy.cpp
             src/Hooks/PendingConVarQueries.cpp

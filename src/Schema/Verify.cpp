@@ -1,11 +1,11 @@
-#include "Core/GameBuild.hpp"
+#include "Core/Files/GameBuild.hpp"
 #include "Engine/Memory/SigScanner.hpp"
 #include "Schema/ClassFields.hpp"
 #include "Schema/Dump.hpp"
 #include "Schema/Layout.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/Paths.hpp>
+#include <VoltMod/Core/Files/Paths.hpp>
 #include <entity2/entityclass.h>
 #include <entity2/entitysystem.h>
 #include <filesystem>

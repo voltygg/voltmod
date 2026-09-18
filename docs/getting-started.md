@@ -219,7 +219,7 @@ handler. Include a module aggregate only where that translation unit needs it:
 | `<VoltMod/Database/Api.hpp>` | The Postgres/MariaDB/SQLite database vocabulary (see @ref database_guide) |
 
 These aggregates do not include the JSON layer. A plugin's own `Config.hpp` includes
-`<VoltMod/App/Config.hpp>` for `JsonConfig` and `StandardPluginSettings` (see
+`<VoltMod/App/Config/Config.hpp>` for `JsonConfig` and `StandardPluginSettings` (see
 @ref config_guide), keeping settings JSON out of unrelated translation units.
 
 ## Next steps

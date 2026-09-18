@@ -2,9 +2,9 @@
 #include "Workshop/AddonDownloads.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/Slot.hpp>
-#include <VoltMod/Core/SteamId.hpp>
-#include <VoltMod/Core/Time.hpp>
+#include <VoltMod/Core/Slots/Slot.hpp>
+#include <VoltMod/Core/Slots/SteamId.hpp>
+#include <VoltMod/Core/Time/Time.hpp>
 #include <VoltMod/Engine/Memory/MemoryAccess.hpp>
 #include <VoltMod/Engine/MetamodGlobals.hpp>
 #include <VoltMod/Players/Player.hpp>

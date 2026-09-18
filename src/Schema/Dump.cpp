@@ -2,9 +2,9 @@
 
 #include "Schema/ClassFields.hpp"
 
-#include <VoltMod/Core/EnumNames.hpp>
-#include <VoltMod/Core/File.hpp>
-#include <VoltMod/Core/Json.hpp>
+#include <VoltMod/Core/Text/EnumNames.hpp>
+#include <VoltMod/Core/Files/File.hpp>
+#include <VoltMod/Core/Text/Json.hpp>
 #include <cstdint>
 #include <map>
 #include <optional>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Core/Json.hpp>
+#include <VoltMod/Core/Text/Json.hpp>
 #include <map>
 #include <optional>
 #include <string>

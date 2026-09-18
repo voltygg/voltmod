@@ -20,9 +20,9 @@ renames it. `include/VoltMod/<Module>/` is where a header lives, and the
 
 | Module | Header directory | Purpose |
 | --- | --- | --- |
-| Core | `VoltMod/Core/` | Policy, scheduling, subscriptions, effects, logging, translations, parsing, config validation, and utilities |
+| Core | `VoltMod/Core/` | Signals, results, text, per-slot state, timing, files, and logging |
 | Commands | `VoltMod/Commands/` | Declarative commands with typed, pre-resolved arguments |
-| Players | `VoltMod/Players/` | Player tracking, target selectors, and actions |
+| Players | `VoltMod/Players/` | Player tracking, target selectors, actions, and timed effects |
 | Menu | `VoltMod/Menu/` | Menu model, context rows, pickers, flows, and the center-HTML session |
 | Engine | `VoltMod/Engine/` | Interfaces, gamedata and its typed bindings, `ConVar<T>`, the server clock, maps, precaching, and console commands |
 | Entities | `VoltMod/Entities/` | Entity lookup, the typed player controller, schema fields, items, and pawn operations |
@@ -34,13 +34,15 @@ renames it. `include/VoltMod/<Module>/` is where a header lives, and the
 | Unsafe | `VoltMod/Unsafe/` | Opt-in raw hooking: `HookInterface` for an interface method, `HookVirtual` for a gamedata-bound virtual function, `HookFunction` for a signature-bound function |
 | Database | `VoltMod/Database/` | Optional async Postgres/MariaDB/SQLite and migrations |
 | Http | `VoltMod/Http/` | Async HTTP and configured JSON endpoints |
-| App | `VoltMod/App/` | Metamod lifecycle, JSONC loading, status, and cross-plugin services |
+| App | `VoltMod/App/` | Metamod lifecycle, `Config/` for JSONC loading and validation, status, and cross-plugin services |
 
-Engine is the one module large enough to group its headers further. `Memory/` reaches engine
-memory (field offsets, vtable entries), `GameData/` turns the gamedata file into
-typed bindings, and `ConVars/`, `Net/` and `Server/` hold the live engine services. The three
-headers at the module root are SDK plumbing every other module needs: `EngineTypes.hpp`,
-`Interfaces.hpp` and `MetamodGlobals.hpp`.
+Core and Engine are large enough to group their headers further. Core holds `Signals/`
+(events, subscriptions, hook results), `Results/` (`Result` and the load steps), `Text/`,
+`Slots/` (per-player primitives), `Time/` and `Files/`; `Log.hpp` and `Random.hpp` stay at the
+module root. In Engine, `Memory/` reaches engine memory (field offsets, vtable entries),
+`GameData/` turns the gamedata file into typed bindings, and `ConVars/`, `Net/` and `Server/`
+hold the live engine services. The three headers at the Engine root are SDK plumbing every other
+module needs: `EngineTypes.hpp`, `Interfaces.hpp` and `MetamodGlobals.hpp`.
 
 <h2>Guides</h2>
 

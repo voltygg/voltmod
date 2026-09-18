@@ -1,9 +1,9 @@
 #pragma once
 
-#include <VoltMod/Core/PerSlot.hpp>
-#include <VoltMod/Core/Scheduler.hpp>
-#include <VoltMod/Core/SlotEvents.hpp>
-#include <VoltMod/Core/Subscription.hpp>
+#include <VoltMod/Core/Slots/PerSlot.hpp>
+#include <VoltMod/Core/Time/Scheduler.hpp>
+#include <VoltMod/Core/Slots/SlotEvents.hpp>
+#include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/MovementFreeze.hpp>
 

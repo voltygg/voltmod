@@ -1,7 +1,7 @@
 #pragma once
 
-#include <VoltMod/Core/EnumNames.hpp>
-#include <VoltMod/Core/Strings.hpp>
+#include <VoltMod/Core/Text/EnumNames.hpp>
+#include <VoltMod/Core/Text/Strings.hpp>
 #include <optional>
 #include <string>
 #include <string_view>

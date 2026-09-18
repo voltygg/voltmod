@@ -3,7 +3,7 @@
 #include "Schema/Layout.hpp"
 #include "Schema/Notify.hpp"
 
-#include <VoltMod/Core/CharBuf.hpp>
+#include <VoltMod/Core/Text/CharBuf.hpp>
 #include <VoltMod/Engine/Memory/MemoryAccess.hpp>
 #include <VoltMod/Schema/Generated/CBasePlayerController.hpp>
 
