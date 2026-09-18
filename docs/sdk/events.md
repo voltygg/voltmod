@@ -4,86 +4,74 @@
 
 ## GameEvents
 
-Subscribe with `On<T>` and a typed event from
-`VoltMod/Events/EventTypes.hpp`. Each type names the engine event and decodes its
-fields.
+Subscribe with `On<T>` and a typed event from `<VoltMod/Events/EventTypes.hpp>`. Each struct names
+the engine event and decodes its fields.
 
 ```cpp
 using VoltMod::PlayerDeath;
 
-auto& events = runtime.GameEvents;
-
-auto death = events.On<PlayerDeath>([](const PlayerDeath& e) {
-    // e.VictimSlot, e.AttackerSlot, e.Headshot, e.Weapon, ...
+// Keep `death` beside the state the handler captures.
+auto death = runtime.GameEvents.On<PlayerDeath>([](const PlayerDeath& e) {
+    // e.VictimSlot, e.AttackerSlot, e.Headshot, e.Weapon, e.Penetrated, ...
 });
-
-// Keep `death` beside the state captured by the handler.
 ```
 
-There is no string subscription API. Add an event type with `Name`, its fields,
-and a `From(IGameEvent&)` decoder:
+There is no string subscription API. Consuming an event that is not modeled means adding its struct
+to `EventTypes.hpp` first:
 
 ```cpp
 struct BombPlanted
 {
-    static constexpr const char* Name = "bomb_planted";
+    static constexpr std::string_view Name = "bomb_planted";
     int Slot = -1;
     int Site = 0;
     static BombPlanted From(IGameEvent& e);
 };
 ```
 
-You can also create and fire events (`CreateEvent` / `FireEvent` / `FreeEvent`); the center-HTML transport is built on exactly that.
+`CreateEvent` / `FireEvent` / `FreeEvent` create and fire events; the center-HTML transport is built
+on exactly that.
+
+Call `On<T>` during load and keep the returned `Subscription`. The engine resets its listener table
+at map startup and the framework reattaches every listener afterwards, so nothing has to be
+re-subscribed. Handlers may subscribe or unsubscribe during dispatch; a new handler starts with the
+next event. `volt reload` detaches the old listeners before the new load registers them.
+
+`PlayerDeath::Penetrated` counts surfaces the killing bullet crossed, so anything above zero is a
+wallbang.
 
 ### BulletImpact: correlate by tick, not identity
 
-@ref VoltMod::BulletImpact fires once per bullet landing. The engine truncates `userid` to one byte,
-so `Slot` is best effort and may be `-1` or identify the wrong player.
-
-Correlate impacts by tick and use `TruncatedUserId` only to disambiguate candidates. Never key state
-on `Slot` alone.
+@ref VoltMod::BulletImpact fires once per bullet landing, but the engine truncates `userid` to one
+byte, so `Slot` is best effort and may be `-1` or name the wrong player. Correlate impacts by tick
+and use `TruncatedUserId` only to disambiguate candidates.
 
 ```cpp
-events.On<VoltMod::BulletImpact>([&clock = runtime.Clock](const VoltMod::BulletImpact& e) {
+runtime.GameEvents.On<VoltMod::BulletImpact>([&clock = runtime.Clock](const VoltMod::BulletImpact& e) {
     Record(clock.Tick(), e.TruncatedUserId, e.X, e.Y, e.Z);
 });
 ```
 
-### PlayerDeath.Penetrated
-
-`Penetrated` counts surfaces crossed by the killing bullet; values above zero indicate a wallbang.
-
-### Handler lifecycle
-
-Call `On<T>` during load and retain the returned `Subscription`. The framework
-reattaches listeners after the engine resets them at map startup.
-
-Related lifecycle points:
-
-- `OnServerStartup(mapName)` runs at map start. Reapply convars here or on `RoundStart` if map init
-  resets them. `runtime.Map.Current()` stays empty after a mid-map load until the next map.
-- `volt reload` detaches old listeners before the new load registers them.
-- Handlers may subscribe or unsubscribe during dispatch. New handlers start with the next event.
-
 ### Inspecting a client's own subscriptions
 
-`GetClientLegacyListener(slot)` returns the client's engine listener, or `nullptr` when unavailable.
-Targeting it sends an event to that client only.
-
-`ClientListensTo(slot, eventName)` asks the event manager whether that handle is subscribed to a given event:
+`GetClientLegacyListener(slot)` returns the client's engine-side listener, or `nullptr` when the
+slot has no client or the `GetLegacyGameEventListener` signature did not resolve. Firing an event
+at it delivers to that client alone.
 
 ```cpp
 if (runtime.GameEvents.ClientListensTo(slot, "player_death"))
     /* ... */;
 ```
 
-Unexpected subscriptions can indicate injected client code. `false` also means unavailable; check
-`GetClientLegacyListener` first when that distinction matters.
+A vanilla client subscribes only to what its HUD needs, so unexpected subscriptions can indicate
+injected client code. `false` also means unavailable, so check `GetClientLegacyListener` first when
+that distinction matters.
 
 ## ConVars
 
-@ref VoltMod::ConVar supports `bool`, `int`, `float`, and `std::string`. Resolve
-the handle once; `Find` rejects type mismatches.
+@ref VoltMod::ConVar handles `bool`, `int`, `float` and `std::string`. Resolve the handle once and
+keep it; handles survive map changes, and an unresolved one is falsy, reads as `T{}` and rejects
+writes.
 
 ```cpp
 auto& cvars = runtime.ConVars;
@@ -92,7 +80,7 @@ auto gravity = cvars.Find<float>("sv_gravity");
 if (!gravity)
     Log::Warn("sv_gravity unusable: {}", gravity.error().Detail);   // NotFound, or Invalid on a type mismatch
 else
-    gravity->Set(400.0f);            // cfg-style write; replicated convars reach clients
+    gravity->Set(400.0f);
 
 cvars.ExecuteServerCommand("mp_restartgame 1");
 
@@ -103,63 +91,37 @@ _changes = cvars.Changed += [](const VoltMod::ConVarChange& e) {
 };
 ```
 
-Change fields borrow engine storage and live only during the handler. Resolve convars once and keep
-their handles. Unresolved handles are falsy, read as `T{}`, and reject writes.
+`ConVarChange`'s string views borrow engine storage and live only for the handler.
 
-### Writing values
+| Call | What it does |
+| --- | --- |
+| `Set(value)` | Queues a cfg-style console write. Callbacks fire and `FCVAR_REPLICATED` values reach clients, so client prediction cannot be left on the old value. |
+| `SetFor(slot, value)` | Changes one client's replicated view, leaving the server and other clients alone. |
+| `RawScope(value)` | Writes storage with no callbacks and nothing networked, restoring the previous value when the scope dies. Not available for `std::string`. |
 
-`Set(value)` queues a cfg-style console write. Callbacks fire and `FCVAR_REPLICATED` values reach
-clients, so a server-wide change cannot leave client prediction using the old value.
-
-`RawScope(value)` is the narrow exception for a temporary server-only flip. It writes storage
-without callbacks or networking and restores the previous value when the scope is destroyed.
+A client's connect and map-change snapshots restore the server value, so re-send a `SetFor`
+override from a `PlayerSpawn` handler to keep it sticky. For a hook pair, store the `RawScope` in a
+member and release it in post; the handle must outlive the scope.
 
 ### Taking a convar over server-wide
 
-@ref VoltMod::ConVarOverrides saves the original before the first write and restores only values it
+@ref VoltMod::ConVarOverrides saves the original before the first write and restores only what it
 changed:
 
 ```cpp
-VoltMod::ConVarOverrides overrides{runtime.ConVars}; // restores on destruction
+VoltMod::ConVarOverrides overrides{runtime.ConVars};  // RestoreAll() on destruction
 
-overrides.Set(gravity, 250.0f);                // false when the handle never resolved
-overrides.Restore(gravity);                    // no-op when it never changed it
+overrides.Set(gravity, 250.0f);   // false when the handle never resolved
+overrides.Restore(gravity);       // no-op when it never changed it
 ```
 
 Later `Set` calls reapply the override without replacing the saved original. Reapply after map
-resets. Destruction calls `RestoreAll()`.
-
-### Per-client replication
-
-`SetFor(slot, value)` changes one client's replicated view without changing the server or other
-clients:
-
-```cpp
-autoBhop.SetFor(slot, true);
-```
-
-The client's connect/map-change snapshot restores the server value, so re-send the override from a
-`PlayerSpawn` handler to keep it sticky.
-
-### Scoped raw flips
-
-`RawScope(value)` changes storage without callbacks or replication and restores
-the previous value on destruction:
-
-```cpp
-{
-    auto flip = autoBhop.RawScope(true);   // no callbacks, nothing networked
-    RunTheOneTickOfWork();
-}                                          // the operator's value is back
-```
-
-For hook pairs, store the scope in a member and release it in post. The handle must outlive it.
+resets.
 
 ## Map
 
-@ref VoltMod::Map validates map names and changes level. It deliberately holds no
-map list: which maps a server offers is operator configuration, not engine state, so the list
-belongs to the plugin.
+@ref VoltMod::Map validates map names and changes level. It holds no map list: which maps a server
+offers is operator configuration, so that list belongs to the plugin.
 
 ```cpp
 auto& maps = runtime.Map;
@@ -170,12 +132,10 @@ if (maps.IsValid("de_dust2"))          // filesystem probe; load-time work, not 
 maps.ChangeToWorkshop(3070563536ull);  // workshop maps are addressed by published-file id
 ```
 
-`IsValid` only answers for plain names. A workshop map is addressed by id and is not mounted
-until it loads, so there is nothing to probe. Check those at load by other means or accept the
-engine's own failure.
+`IsValid` answers only for plain names. A workshop map is not mounted until it loads, so there is
+nothing to probe; check those by other means or accept the engine's own failure.
 
-`maps.Current()` returns the map the server is running, captured from `StartupServer`. It is
-empty after a late load until the next map change, since the hook has already fired by then.
-
-Both change calls take effect immediately. A plugin that wants players to read an announcement
-first should schedule the call rather than delaying inside a listener.
+`maps.Current()` is the map the server is running, captured from `StartupServer`. It stays empty
+after a mid-map load until the next map change. Both change calls take effect immediately, so
+schedule the call rather than delaying inside a listener when players should read an announcement
+first.

@@ -10,11 +10,18 @@ What changed in each VoltMod release. Older history is in git.
 
 - The framework runs as one host per server process. `addons/metamod/voltmod.vdf` is the only
   Metamod plugin left; your plugin is a module under `addons/<name>/` that the host loads.
-- Derive your plugin class from `VoltMod::Plugin` in `<VoltMod/App/Plugin.hpp>`, which replaces
-  `VoltMod::MetamodPlugin`. `VOLTMOD_PLUGIN` keeps its name and its job.
+- Derive your plugin class from `VoltMod::Plugin`, which replaces `VoltMod::MetamodPlugin`, or
+  skip the class: `VOLTMOD_PLUGIN(MyApp)` owns one `MyApp{runtime}` per load.
+  `VOLTMOD_PLUGIN` now comes from `<VoltMod/App/PluginEntry.hpp>`; include it in that one .cpp.
+- Describe the plugin in a hand-written `plugin.json` beside its `CMakeLists.txt`: `name`,
+  `version`, `logTag`, `description`, `author`, `dependencies`, `optionalDependencies`.
+  `voltmod_add_plugin(<name>)` reads it and takes no `VERSION`. `PluginInfo`, `Plugin::Info()`
+  and `WithBuildInfo` are gone; read `runtime.PluginName` and `runtime.Version` instead.
+- `LoadStandardConfig(runtime, config)` and `runtime.AddonFile(relative)` know the plugin's
+  directory; `StandardLoadOptions::Addon` is gone.
 - Link `VoltMod::Sdk` where you linked `VoltMod::Runtime`. There is no alias for the old name.
-- `voltmod_add_plugin` generates `addons/<name>/plugin.json` and no longer writes a per-plugin
-  `.vdf`. Name the plugins yours loads after with `DEPENDS` and `OPTIONAL_DEPENDS`.
+- `voltmod_add_plugin` no longer writes a per-plugin `.vdf`. Delete the old ones from
+  `addons/metamod/` on servers deployed before this release.
 - `Core` headers now sit in `Signals/`, `Text/`, `Slots/`, `Time/` and `Files/`, `EffectManager`
   is in `Players/`, the config headers are in `App/Config/` and `Engine/MetamodGlobals.hpp` is
   `Engine/Detours.hpp`. `<VoltMod/Api.hpp>` and `<VoltMod/App/Config.hpp>` keep their spelling.

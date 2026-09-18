@@ -2,101 +2,86 @@
 
 [TOC]
 
-Use `runtime.Messages` (@ref VoltMod::Messages) for chat, center text,
-center HTML, and alert messages. @ref VoltMod::MessageKind selects the
-destination. `ChatColors` provides the escape codes used in chat text.
-
-## Sending
-
 ```cpp
 #include <VoltMod/Api.hpp>
 
 auto& msg = runtime.Messages;
 
-msg.Reply(slot, "Done.");                                  // chat, to one player
-msg.Send(slot, "Watch out!", VoltMod::MessageKind::Center); // plain center print
-msg.Broadcast("Server restarting in 5 minutes.");          // chat, to everyone
+msg.Reply(slot, "Done.");                                   // chat, to one player
+msg.Send(slot, "Watch out!", VoltMod::MessageKind::Center);  // plain center print
+msg.Broadcast("Server restarting in 5 minutes.");            // chat, to every human player
 msg.Broadcast("Round of the day!", VoltMod::MessageKind::Alert);
 
-// Translate in the player's language, substitute tokens, and reply, all in one call:
+// Translate for the player's language, substitute tokens, and reply, in one call:
 msg.ReplyKey(slot, "cmd.banSuccess", {{"name", targetName}});
 ```
 
-`Reply` sends a chat message to one player. `runtime.Policy.Reply` usually
-forwards to this method.
+@ref VoltMod::MessageKind picks the destination: `Chat`, `Center`, `CenterHtml` or `Alert`.
+`Reply` is `Send` with `Chat`; `runtime.Policy.Reply` usually forwards to it.
+`Shake(slot, durationSec, frequency, amplitude)` shakes one player's view.
 
-Chat output keeps an existing leading color or prepends the default so it cannot
-inherit color from a previous line. CS2 requires `TextMsg` for server-originated
-chat and drops `SayText2` from non-player sources.
+Chat output keeps an existing leading color escape or prepends the default, so a line cannot
+inherit color from the one before it.
 
-For a *sticky* center panel that survives the client's aggressive HUD clearing,
-use @ref VoltMod::CenterHtml; see @ref sdk_messaging_guide.
+For a sticky center panel that survives the client's HUD clearing use @ref VoltMod::CenterHtml;
+see @ref sdk_messaging_guide. This service is main-thread only: call it from hooks, timers,
+command handlers or database and HTTP completions, which already run on the game thread.
 
 ## Color constants
 
-CS2 treats bytes `0x01` through `0x10` as inline color changes. A color remains
-active until the next escape. The constants are `inline constexpr
-std::string_view` values suitable for `std::format`:
+CS2 treats bytes `0x01` through `0x10` as inline color changes, active until the next escape. The
+constants in `<VoltMod/Messaging/ChatColors.hpp>` are `inline constexpr std::string_view`, so they
+drop straight into `std::format`.
 
 | Constant(s) | Byte | Color |
-|---|---|---|
-| `Default` / `White` | `\x01` | White (default) |
+| --- | --- | --- |
+| `Default` / `White` | `\x01` | White |
 | `DarkRed` | `\x02` | Dark red |
 | `LightPurple` | `\x03` | Light purple |
 | `Green` | `\x04` | Green |
-| `Olive` | `\x05` | Olive / dark green |
-| `Lime` | `\x06` | Lime / light green |
+| `Olive` | `\x05` | Olive |
+| `Lime` | `\x06` | Lime |
 | `Red` | `\x07` | Red |
 | `Gray` / `Grey` | `\x08` | Gray |
 | `Yellow` / `LightYellow` | `\x09` | Yellow |
-| `Silver` / `BlueGrey` | `\x0A` | Silver / blue-grey |
+| `Silver` / `BlueGrey` | `\x0A` | Silver |
 | `LightBlue` / `Blue` | `\x0B` | Light blue |
 | `DarkBlue` | `\x0C` | Dark blue |
-| `Purple` / `Magenta` | `\x0E` | Purple / magenta |
+| `Purple` / `Magenta` | `\x0E` | Purple |
 | `LightRed` | `\x0F` | Light red |
-| `Gold` / `Orange` | `\x10` | Gold / orange |
+| `Gold` / `Orange` | `\x10` | Gold |
 
-Names sharing a byte are aliases. The byte values follow the current SwiftlyS2
-mapping.
-
-## Composing colored text
+Names sharing a byte are aliases. `ChatColors::Palette` is the same set deduplicated to one
+canonical lowercase name per byte.
 
 ```cpp
-#include <VoltMod/Messaging/ChatColors.hpp>
-
 namespace ChatColors = VoltMod::ChatColors;
 
-auto line = std::format(
-    "{}[ADMIN]{} {}{}{} kicked {} for {}{}",
-    ChatColors::Red,    ChatColors::Default,
-    ChatColors::LightBlue, adminName, ChatColors::Default,
-    targetName,
-    ChatColors::Olive, reason);
+auto line = std::format("{}[ADMIN]{} {}{}{} kicked {} for {}{}",
+                        ChatColors::Red, ChatColors::Default,
+                        ChatColors::LightBlue, adminName, ChatColors::Default,
+                        targetName,
+                        ChatColors::Olive, reason);
 
 runtime.Messages.Broadcast(line);
 ```
 
-For runtime/config-driven colors, look the escape up by name. `ParseNamed` is case-insensitive, resolves aliases (`"orange"` → `Gold`), and returns `Default` for unknown names:
+For a color that comes from config, look the escape up by name. `ParseNamed` is case-insensitive,
+resolves aliases (`"orange"` gives `Gold`), and returns `Default` for anything it does not know:
 
 ```cpp
 std::string_view color = ChatColors::ParseNamed(group.PrefixColor);
-auto line = std::format("{}{} {}: {}", color, group.Prefix, ChatColors::Default, message);
 ```
 
-Broadcast layouts with a repeated shape ("[PREFIX] actor did-thing target")
-belong in the plugin's chat service. The framework supplies transport and
-colors, not an application-specific format.
+`PaletteChoices(labelFor)` returns `(label, canonical name)` pairs for a color picker, shaped for a
+`ChoiceRow<std::string>`; `labelFor` supplies each localized label and may return `""` to use the
+name itself.
 
-## Stripping colors for logs
-
-The escape bytes render as colors in-game but are garbage in a console or log file:
+The escape bytes are garbage in a console or a log file, so strip them there:
 
 ```cpp
 Log::Info("{}", ChatColors::Strip(coloredLine));
 ```
 
-## Threading
-
-This service is main-thread only. Call it from hooks, timers, command handlers,
-or asynchronous completions (database and HTTP callbacks already run on the
-game thread), never from a worker thread created by the plugin.
+A repeated broadcast layout ("[PREFIX] actor did-thing target") belongs in the plugin's own chat
+service. The framework supplies transport and colors.

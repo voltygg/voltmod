@@ -2,16 +2,6 @@
 
 [TOC]
 
-`runtime.Http` is an asynchronous client whose callbacks run on the game thread:
-
-- `HttpClient::Send` is the unified request contract. `Get`, `Post`, `Put`, `Patch`, and `Delete` are convenience helpers over it.
-- Requests run on bounded workers, and completions replay on the game thread through self-registered per-frame delivery.
-
-The runtime drains in-flight requests during shutdown; plugins need no separate
-HTTP cleanup.
-
-## Requests
-
 ```cpp
 #include <VoltMod/Api.hpp>
 
@@ -19,19 +9,23 @@ runtime.Http.Post(
     url, body,
     [](const VoltMod::HttpResult& result) {
         // Game thread: safe to touch players, menus, managers.
-        if (!result.Ok)
-            Log::Warn("request failed: {}", result.Error);
+        if (!result.IsSuccess())
+            Log::Warn("request failed: {} ({})", result.Error, result.StatusCode);
     },
     {"Content-Type: application/json"}, 8000);
 ```
 
-`HttpResult::Ok` reports transport success only. A 404 still answered, but
-`HttpResult::IsSuccess()` is false unless transport succeeded *and* the status
-is 2xx.
+`runtime.Http` runs requests off the game thread and replays completions on it, through a
+per-frame subscription the client registers for itself. `Get`, `Post`, `Put`, `Patch` and
+`Delete` all take `(url[, body], onComplete, headers = {}, timeoutMs = 8000)` and are
+conveniences over `Send`. The runtime aborts in-flight requests during shutdown, so a plugin
+needs no HTTP cleanup of its own; requests sent after that are dropped and their completions
+never run.
 
-For other request shapes, construct `HttpRequest` and call `Send`. `AddHeader`
-formats a header line. `AddAuth` omits authentication for an empty key and sends
-the key verbatim when the scheme is empty:
+@ref VoltMod::HttpResult carries `Ok`, `StatusCode`, `Body` and `Error`. `Ok` is transport
+success alone - a 404 answered, so it is `true`. `IsSuccess()` is `Ok` and a 2xx status.
+
+For any other request shape, fill an @ref VoltMod::HttpRequest and call `Send`:
 
 ```cpp
 VoltMod::HttpRequest request{
@@ -49,8 +43,8 @@ runtime.Http.Send(std::move(request), [](const VoltMod::HttpResult& result) {
 });
 ```
 
-## Threading
+`Headers` are full `"Key: Value"` lines; `AddHeader` formats one. `AddAuth(header, scheme, key)`
+is a no-op for an empty key, so an endpoint configured without one stays unauthenticated instead
+of sending an empty credential, and an empty scheme sends the key verbatim.
 
-Requests run off-thread, but **callbacks never run concurrently with game code**.
-Do not block on a request from the game thread; the API is asynchronous by
-design.
+Do not block on a request from the game thread. Completions never run concurrently with game code.

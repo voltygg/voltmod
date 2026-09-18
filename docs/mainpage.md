@@ -1,71 +1,49 @@
 # VoltMod {#mainpage}
 
-> VoltMod is under active development. Public APIs may change between
-> versions.
+VoltMod is a C++23 framework for Counter-Strike 2 server plugins on Metamod:Source. One
+process-wide host, `voltmod.dll` / `voltmod.so`, is the server's only Metamod plugin and loads
+your plugins out of `addons/<name>/`. Each plugin gets one @ref VoltMod::Runtime per load cycle
+with commands, players, menus, messages, engine access, HTTP and an optional database.
 
-VoltMod is a native C++23 framework for Counter-Strike 2 server plugins on
-Metamod:Source. One process-wide host, `voltmod.dll` / `voltmod.so`, is the
-server's only Metamod plugin and loads your plugins; each of them gets one @ref
-VoltMod::Runtime per load and shared services for commands, players, menus,
-messages, engine access, HTTP, and an optional database (Postgres, MariaDB, or
-SQLite).
+Public APIs may change between versions.
 
-Start with @ref getting_started to generate a plugin that builds, loads, and
-answers `!ping`.
+## Start here
 
-<h2>Modules</h2>
+- @subpage getting_started - create a plugin, build it, install it, load it
+- @subpage plugin_guide - the plugin entry point, `plugin.json`, load steps, logging, install layout
+- @subpage host_guide - the `volt` commands, load order, refusals, troubleshooting
+- @subpage architecture - modules, the host/plugin model, lifetimes and boundaries
 
-Every public name lives directly in `VoltMod`. A module is a source directory and a
-layer in the include graph, not a namespace: moving a type between modules never
-renames it. `include/VoltMod/<Module>/` is where a header lives, and the
-`VoltMod::` spelling is what you write.
+## Writing a plugin
 
-| Module | Header directory | Purpose |
-| --- | --- | --- |
-| Core | `VoltMod/Core/` | Signals, results, text, per-slot state, timing, files, and logging |
-| Commands | `VoltMod/Commands/` | Declarative commands with typed, pre-resolved arguments |
-| Players | `VoltMod/Players/` | Player tracking, target selectors, actions, and timed effects |
-| Menu | `VoltMod/Menu/` | Menu model, context rows, pickers, flows, and the center-HTML session |
-| Engine | `VoltMod/Engine/` | Interfaces, gamedata and its typed bindings, `ConVar<T>`, the server clock, maps, precaching, and console commands |
-| Entities | `VoltMod/Entities/` | Entity lookup, the typed player controller, schema fields, items, and pawn operations |
-| Events | `VoltMod/Events/` | The game event listener service and its typed event structs |
-| Messaging | `VoltMod/Messaging/` | Chat and center-HTML messages, sticky panels, chat colors, and the vote panel |
-| Hooks | `VoltMod/Hooks/` | Movement, visibility, teleport, chat-input, client-convar, and vote hooks |
-| Workshop | `VoltMod/Workshop/` | Workshop addon requirements for connecting clients |
-| Ui | `VoltMod/Ui/` | Panorama `custom_hud_layout` panels and the button presses they send back |
-| Unsafe | `VoltMod/Unsafe/` | Opt-in raw hooking: `HookInterface` for an interface method, `HookVirtual` for a gamedata-bound virtual function, `HookFunction` for a signature-bound function |
-| Database | `VoltMod/Database/` | Optional async Postgres/MariaDB/SQLite and migrations |
-| Http | `VoltMod/Http/` | Async HTTP and configured JSON endpoints |
-| Host | `VoltMod/Host/` | The boundary between the host and a plugin: engine events, the service table, and the plugin entry point |
-| App | `VoltMod/App/` | Plugin lifecycle, `Config/` for JSONC loading and validation, status, and cross-plugin services |
-
-Core and Engine are large enough to group their headers further. Core holds `Signals/`
-(events, subscriptions, hook results), `Text/`, `Slots/` (per-player primitives), `Time/` and
-`Files/`; `Result.hpp`, `LoadSteps.hpp`, `Log.hpp` and `Random.hpp` stay at the module root. In Engine, `Memory/` reaches engine memory (field offsets, vtable entries),
-`GameData/` turns what the host resolved from gamedata into typed bindings, and `ConVars/`, `Net/` and `Server/`
-hold the live engine services. The three headers at the Engine root are SDK plumbing every other
-module needs: `EngineTypes.hpp`, `Interfaces.hpp` and `Detours.hpp`.
-
-<h2>Guides</h2>
-
-- @subpage getting_started - create, build, stage, and verify a plugin
-- @subpage framework_comparison - compare VoltMod with other CS2 frameworks
-- @subpage architecture - runtime, policy, modules, and lifetimes
-- @subpage plugin_guide - plugin lifecycle and ownership
-- @subpage config_guide - settings and validation
-- @subpage commands_guide - commands and targeting
+- @subpage config_guide - `Options<Settings>`, validation, reloading, translations
+- @subpage commands_guide - chat and console commands, typed arguments, targeting
+- @subpage players_guide - the roster, permissions and immunity, actions and effects
+- @subpage chat_guide - messages, replies and chat colors
 - @subpage menus_guide - menus and multi-step flows
-- @subpage custom_ui_guide - Panorama UI layouts and button presses
-- @subpage panorama_guide - Jinja screens, derived bindings, and the render/check/compile/publish pipeline
+- @subpage custom_ui_guide - Panorama `custom_hud_layout` panels and their button presses
 - @subpage workshop_guide - making clients download workshop addons
-- @subpage players_guide - players, actions, and effects
-- @subpage chat_guide - messages, replies, and chat colors
-- @subpage sdk_guide - engine wrappers
-- @subpage database_guide - Postgres, MariaDB, and SQLite
-- @subpage http_guide - HTTP and JSON endpoints
+- @subpage http_guide - the async HTTP client and JSON endpoints
+- @subpage database_guide - Postgres, MariaDB and SQLite with migrations
+
+## Game API
+
+- @subpage sdk_guide - what each SDK aggregate header brings in, and availability
+  - @ref sdk_gamedata_guide - the gamedata file, typed bindings, baked schema fields
+  - @ref sdk_players_guide - entity lookup, the player wrapper, pawn operations
+  - @ref sdk_visibility_guide - render tricks, per-recipient visibility, glow vision
+  - @ref sdk_messaging_guide - messages, sticky panels, chat input, the vote panel
+  - @ref sdk_events_guide - typed convars, game event listeners, level changes
+  - @ref sdk_hooks_guide - movement and teleport hooks, custom vtable hooks, console commands
+  - @ref sdk_client_telemetry_guide - the server clock, latency, client convar queries
+
+## Tooling
+
+- @subpage conan_guide - the Conan package, CMake targets and functions, publishing
+- @subpage panorama_guide - Jinja screens and the render/check/compile/publish pipeline
 - @subpage testing_guide - SDK-free doctest tests
 
-<h2>License</h2>
+## License
 
 VoltMod is released under the
 [MIT License](https://github.com/voltygg/voltmod/blob/main/LICENSE).

@@ -2,13 +2,13 @@
 
 [TOC]
 
-@ref VoltMod::Addons requires Steam Workshop content for connecting clients,
-such as Panorama layouts, models, or sounds.
+@ref VoltMod::Addons makes connecting clients download Steam Workshop content: Panorama layouts,
+models, sounds. The server mounts nothing.
 
 ```cpp
-auto required = runtime.Addons.Require(3401234567); // of everyone
+auto required = runtime.Addons.Require(3401234567);
 if (!required)
-    return false;                                   // no dedicated server, or the hooks are off
+    return false;                                   // listen server, or the hooks did not bind
 
 _addon = std::move(*required);                      // required until this Subscription drops
 
@@ -17,93 +17,59 @@ _subs.Add(runtime.Addons.Downloaded += [](int slot) {
 });
 ```
 
-The returned Subscription owns the requirement. Keep it beside the feature that needs
-the content. Requirements are reference counted, and `RequireFor(steamId, id)`
-adds a player-specific requirement.
+The Subscription owns the requirement, so keep it beside the feature that needs the content.
+Requirements are reference counted. `RequireFor(steamId, id)` requires an addon of one player
+only. `Required()` lists what every client must have, `Missing(slot)` what one client still owes,
+and `HasMissing(slot)` answers the same question without building the list.
 
-Requirements take effect on a client's next connect; already-connected players
-are not disturbed. `Require` returns an error when its bindings are unavailable or
-the server is a listen server, so the plugin can report the reason.
+Requirements take effect on a client's next connect; already-connected players are not disturbed.
+`Require` returns `ErrorCode::Invalid` for id 0 and `ErrorCode::Unsupported` on a listen server or
+when the hooks could not install, with the reason in `Error::Detail`.
 
-## Building the addon's content
+## Building the content
 
-`voltmod panorama compile [OWNER...] --addon NAME --no-deploy` compiles the
-screens into `game/csgo_addons/NAME/`, the folder the Workshop Manager uploads.
-See @ref panorama_guide_publish for the steps.
+`voltmod panorama compile [OWNER...] --addon NAME --no-deploy` compiles the screens into
+`game/csgo_addons/NAME/`, the folder the Workshop Manager uploads. See @ref panorama_guide_publish.
 
-## How it works
+## One addon per reconnect
 
-Two engine messages carry an addon, and a client needs both:
+Two engine messages carry an addon and a client needs both:
 
-- **The join message** (`CNETMsg_SignonState`) sends the client away to download an
-  addon and reconnect. @ref VoltMod::Addons rewrites it with the next missing addon.
-- **The connection reply** (`CNetworkGameServer::ReplyConnection`) names the addons
-  the client mounts for the session. The reply copies the server's own addon list,
-  so @ref VoltMod::Addons temporarily appends this client's downloaded addons and
-  the addon currently being downloaded, then removes its additions.
+- The join message (`CNETMsg_SignonState`) sends the client away to download an addon and
+  reconnect. @ref VoltMod::Addons rewrites it with the next missing addon.
+- The connection reply (`CNetworkGameServer::ReplyConnection`) names the addons the client mounts
+  for the session. The reply copies the server's own addon list, so @ref VoltMod::Addons appends
+  this client's downloaded addons plus the one being downloaded, then removes its additions.
 
-A client that downloaded an addon but was not told to mount it has the files and no
-content; a menu drawn on that layout is invisible. After the final reconnect the
-client joins normally and @ref VoltMod::Addons::Downloaded fires.
+A client that downloaded an addon but was not told to mount it has the files and no content: a
+menu drawn on that layout is invisible.
 
-Each addon costs the joining client one reconnect, including the first.
+The join message's field is a comma-separated list, but a client handles exactly one addon per
+connection cycle and stalls without downloading when it receives several. The framework reduces
+such a message to its first addon, so the client makes progress. Each addon therefore costs the
+joining client one reconnect, including the first.
 
-Addons cannot be batched. The join message's field is a comma-separated list and the
-engine puts several entries in it when the server mounts more than one. A client
-handles exactly one addon per connection cycle and stalls without downloading when it
-receives several. This is the behavior that
-[MultiAddonManager](https://github.com/Source2ZE/MultiAddonManager) works around.
-VoltMod reduces such a message to its first addon and counts that one as sending, so the
-client makes progress instead of stalling.
+The server gets no download-complete signal. A reconnect within `Addons::DownloadTimeoutSeconds`
+(30 by default) counts as success; a later one retries the addon. The same addon is offered at
+most `Addons::MaxDownloadAttempts` times (3) before a declining client is dropped, which stops an
+endless reconnect loop. Progress is keyed by SteamID, because a client cycling through downloads
+changes slots.
+
+Each plugin has its own @ref VoltMod::Addons and its own hooks on these messages, and they run one
+after another. A join-message hook leaves alone a message an earlier one already pointed at an
+addon, and each plugin takes back only the reply entries it appended, so the reply names every
+plugin's addons whichever order the hooks run in. A client owing addons to two plugins gets one
+plugin's, reconnects, then gets the other's.
 
 ## Server-side content
 
-Nothing is downloaded or mounted **on the server**. If the server itself needs
-the content - a custom map, models the server-side code touches - install and
-mount it the usual way; a workshop map still goes through
-@ref VoltMod::Map::ChangeToWorkshop.
-
-Server-side downloading requires `ISteamUGC`, which the SDK does not link. The
-available subset is the `mm_client_extra_addons` interface exposed by
-[MultiAddonManager](https://github.com/Source2ZE/MultiAddonManager).
-
-## Download completion
-
-The server receives no download-complete signal. It treats a reconnect within
-`Addons::DownloadTimeoutSeconds` (30 seconds by default) as success;
-later reconnects retry the addon. Increase the timeout for large downloads or
-slow clients.
-
-A client that declines the download would otherwise reconnect forever, so the
-same addon is offered at most `Addons::MaxDownloadAttempts` times (3) before that
-client is dropped.
-
-Progress is keyed by SteamID, not slot, because a client cycling through
-downloads reconnects and its slot changes.
-
-## Several plugins
-
-The SDK is a static library inside each plugin, so every plugin has its own
-`Runtime`, its own @ref VoltMod::Addons and its own hooks on the same messages.
-Those hooks run one after another, and a join-message hook leaves alone a message an earlier
-one already pointed at an addon, counting that addon as sending instead. A client
-owing addons to two plugins gets one plugin's, reconnects, then gets the other's:
-one addon per reconnect, the same as one plugin requiring both.
-
-Each plugin appends its own addons to the connection reply and takes back only
-those it appended, so the reply names every plugin's addons whichever order the
-hooks run in.
-
-Each plugin's @ref VoltMod::Addons::Downloaded, @ref VoltMod::Addons::Missing,
-`DownloadTimeoutSeconds` and `MaxDownloadAttempts` cover its own requirements. A
-plugin can see its addon arrive while the client still has another plugin's
-download, and that reconnect, ahead of it; `Downloaded` fires again after it.
+If the server itself needs the content - a custom map, models server-side code touches - install
+and mount it the usual way; a workshop map still goes through @ref VoltMod::Map::ChangeToWorkshop.
+Server-side downloading needs `ISteamUGC`, which the SDK does not link.
 
 ## Availability
 
-The service is inactive on a listen server, where no download step exists, or when one of these
-entries did not bind:
+The service is inactive on a listen server, where there is no download step, and when the
 `CServerSideClient::SendNetMessage` vtable entry, the `CNetworkGameServer::ReplyConnection`
-signature, or the client and server offsets they read. Either way @ref VoltMod::Addons::Require
-returns `ErrorCode::Unsupported` with the reason. @ref VoltMod::Addons::Missing
-reports what a connected client still owes.
+signature, or the client and server offsets they read did not bind. Either way `Require` returns
+`ErrorCode::Unsupported` with the reason.

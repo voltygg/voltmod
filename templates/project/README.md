@@ -1,12 +1,12 @@
 # $project
 
-Counter-Strike 2 Metamod plugins built with
-[VoltMod](https://github.com/voltygg/voltmod).
+Counter-Strike 2 Metamod:Source plugins built with
+[VoltMod](https://github.com/voltygg/voltmod). Each plugin lives in `plugins/<name>/` and is
+loaded by the VoltMod host, the server's only Metamod plugin.
 
 ## First build
 
-Install Git, [uv](https://docs.astral.sh/uv/), Python 3.14+, and a C++23
-compiler. Then run:
+Install Git, [uv](https://docs.astral.sh/uv/), Python 3.14+ and a C++23 compiler, then:
 
 ```sh
 uv sync
@@ -14,40 +14,31 @@ uv run poe doctor
 uv run poe bootstrap
 ```
 
-`doctor` checks the environment without changing it. `bootstrap` installs the
-Conan profiles and remote, resolves dependencies, builds, and runs tests.
+`doctor` reports on the environment without changing it. `bootstrap` installs the Conan profiles
+and remote, resolves dependencies, builds and runs the tests, so it is also the first build.
 
-Bootstrap is already the first build. Use this afterward:
+## Commands
 
-```sh
-uv run poe build
-uv run poe test
-```
+| Command | Does |
+| --- | --- |
+| `uv run poe build` | Build the release preset for this OS |
+| `uv run poe build windows-msvc-debug` | Build another preset |
+| `uv run poe build-linux` | Build the Linux Steam Runtime release |
+| `uv run poe test` | Build, then run CTest |
+| `uv run poe build --install <name> --start` | Build, install into the local server, launch it |
+| `uv run poe install [name]` | Install already-built plugins into the local server |
+| `uv run poe start-server` | Launch the local CS2 dedicated server |
+| `uv run poe new-plugin <name>` | Scaffold and register another plugin |
+| `uv run poe lint` | Lint the tooling and check the plugin source conventions |
+| `uv run poe format` | Apply the pinned C++ formatting |
+| `uv run poe doctor` | Check tools and project configuration |
 
-`test` rebuilds before running CTest.
+Set `CS2_SERVER_PATH` to a CS2 dedicated server root, in `.env` or the environment, before
+installing. The install merges the host and the plugins into `game/csgo` and copies
+`configs/settings.jsonc` only when the server has none, so operator edits survive. Verify with
+`volt list` on the server console.
 
-## Verify $plugin
-
-Point `CS2_SERVER_PATH` at a CS2 dedicated server installation, in `.env` or
-the environment, then build straight into it:
-
-```sh
-uv run poe build --install $plugin --start
-```
-
-`--install` merges the server-ready `addons/` tree into `game/csgo` without
-overwriting edited settings. `--start` launches the server. Run `volt list`,
-confirm `$plugin` appears, join, and enter `!ping`.
-
-To install without rebuilding, or to launch on its own:
-
-```sh
-uv run poe install $plugin
-uv run poe start-server
-```
-
-Build output is under
-`build/<preset>/plugins/<name>/<platform-arch>/`.
+Build output is under `build/<preset>/plugins/<name>/<platform-arch>/`.
 
 ## Add a plugin
 
@@ -55,25 +46,9 @@ Build output is under
 uv run poe new-plugin fun-votes
 ```
 
-The command creates `plugins/fun-votes` with source and configuration files,
-then registers it in the root `CMakeLists.txt`.
+That creates `plugins/fun-votes/` with its sources, `plugin.json` and configuration, then adds
+`add_subdirectory(plugins/fun-votes)` to the root `CMakeLists.txt`. Name it, version it and
+declare what it depends on in its `plugin.json`.
 
-## Common commands
-
-| Command | Purpose |
-| --- | --- |
-| `uv run poe doctor` | Check tools and project configuration |
-| `uv run poe build` | Build the release preset for this OS |
-| `uv run poe test` | Build, then run the test suite |
-| `uv run poe build windows-msvc-debug` | Build Windows debug |
-| `uv run poe build-linux` | Build Linux Steam Runtime release |
-| `uv run poe build --install <name> --start` | Build, install locally, and launch the server |
-| `uv run poe install [name]` | Install built plugins into the local server |
-| `uv run poe start-server` | Launch the local CS2 dedicated server |
-| `uv run poe new-plugin <name>` | Scaffold and register another plugin |
-| `uv run poe format` | Apply the pinned C++ formatting |
-
-## Database
-
-Add `FEATURES DATABASE` to the plugin's `voltmod_add_plugin` call. The driver (PostgreSQL,
-MariaDB or SQLite) is chosen at runtime from config.
+For a plugin that needs a database, add `FEATURES DATABASE` to its `voltmod_add_plugin` call; the
+driver (PostgreSQL, MariaDB or SQLite) is chosen at run time from its settings.

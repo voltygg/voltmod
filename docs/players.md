@@ -2,24 +2,21 @@
 
 [TOC]
 
-`VoltMod/Players/` tracks connections and applies the authorization gate used by
-commands, actions, menu rows, and effects.
-
-`Player` stores identity only. Keep admin flags, punishments, statistics, and
-other plugin state in managers keyed by SteamID.
+`VoltMod/Players/` tracks connections and applies the authorization gate commands, actions, menu
+rows and effects all go through.
 
 ## Three identities
 
-Choose the identity type by how long it must remain valid. Storing a slot or
-frame-local wrapper can act on the wrong player after reconnect or respawn.
+Pick by how long the identity must stay valid. A stored slot or wrapper can act on the wrong
+player after a reconnect or a respawn.
 
 | Type | Lives for | Use it for |
-| ---- | --------- | ---------- |
-| @ref VoltMod::PlayerRef (`{Slot, SteamId}`) | forever - it is a value | anything you **store**: a menu step, a queued database completion, a scheduled task |
-| @ref VoltMod::Player `&` / `*` | one connection | the player you are working with **right now**; owned by `runtime.Players` |
+| --- | --- | --- |
+| @ref VoltMod::PlayerRef (`{Slot, SteamId}`) | forever, it is a value | anything you store: a menu step, a queued database completion, a scheduled task |
+| @ref VoltMod::Player `&` / `*` | one connection | the player you are working with right now; owned by `runtime.Players` |
 | @ref VoltMod::Controller, @ref VoltMod::Pawn | one frame | the engine entity: name, money, team, health, position |
 
-Resolve stored identities at the point of use:
+Resolve a stored identity at the point of use:
 
 ```cpp
 VoltMod::Player* p = runtime.Players.Get(ref);   // null if the slot changed hands
@@ -27,42 +24,33 @@ if (!p) return;
 p->Ctrl().Kick("bye");                           // frame-local wrapper, used and dropped
 ```
 
-Never store a `Player*` across a callback boundary, and never store a wrapper at
-all; see @ref sdk_players_guide "Entities and players" for the wrapper contract.
+Never store a `Player*` across a callback boundary, and never store a wrapper at all; the wrapper
+contract is in @ref sdk_players_guide "Entities and players".
+
+`Player` is identity only: `Slot()`, `SteamId()`, `IsBot()`, `Ref()`, `Playtime()`, `Ip()`
+(captured at connect, the one moment the engine offers it) and `Name()`. `Name()` reads the
+controller on every call, so a player who renames mid-match reads back renamed; it falls back to
+the connect-time name only while there is no controller. `Ctrl()` and `GetPawn()` resolve the
+frame-local wrappers (`player->GetPawn().Slay()`). Keep admin flags, punishments and statistics in
+plugin managers keyed by SteamID, not on `Player`.
 
 ## The roster
 
-@ref VoltMod::Plugin keeps `runtime.Players` in step with the engine. Look
-players up through it:
-
 ```cpp
-auto* p = runtime.Players.Get(slot);                 // O(1), current occupant
-auto* q = runtime.Players.Get(ref);                  // O(1), same slot AND same SteamID
-auto* r = runtime.Players.BySteamId(steamId);        // O(1), humans only - bots share SteamID 0
+auto* p = runtime.Players.Get(slot);                    // O(1), current occupant
+auto* q = runtime.Players.Get(ref);                     // O(1), same slot AND same SteamID
+auto* r = runtime.Players.BySteamId(steamId);           // O(1), humans only - bots share SteamID 0
 for (auto* each : runtime.Players.All()) { /* ... */ }  // slot order, no allocation
 VoltMod::PlayerRef mine = runtime.Players.RefFor(slot); // promote a slot to a storable identity
 ```
 
-`All()` is a view over the roster's own vector, so it is invalidated by the next
-connect or disconnect: do not join or kick anybody while iterating it.
-
-@ref VoltMod::Player carries `Slot()`, `SteamId()`, `IsBot()`, `Ref()`,
-`Playtime()`, `Ip()` (captured at connect, the one moment the engine offers it),
-and `Name()`. `Name()` reads the controller on every call - a player who renames
-mid-match reads back renamed - and falls back to the connect-time name only
-while there is no controller yet. `Ctrl()` and `GetPawn()` return the frame-local
-wrappers for that player:
-
-```cpp
-player->GetPawn().Slay();
-int hp = player->Ctrl().GetPawn().Health;
-```
+`All()` is a view over the roster's own vector, invalidated by the next connect or disconnect: do
+not join or kick anybody while iterating it.
 
 ### Connection lifecycle
 
-Four @ref VoltMod::Event members on the roster, in the order a connection sees
-them. Subscribe in `OnLoad` and keep each `Subscription` beside the state its
-handler touches:
+Four @ref VoltMod::Event members, in the order a connection sees them. Subscribe in `OnLoad` and
+keep each `Subscription` beside the state its handler touches:
 
 ```cpp
 _connected = runtime.Players.Connected += [this](VoltMod::Player& p) { RecordConnect(p.SteamId()); };
@@ -71,76 +59,61 @@ _settings  = runtime.Players.SettingsChanged += [this](VoltMod::Player& p) { Che
 _left      = runtime.Players.Disconnected += [this](VoltMod::Player& p) { FlushSession(p.SteamId()); };
 ```
 
-- `Connected` fires once the player is in the roster. Their **name is not
-  meaningful yet** - the engine has not sent it. Use `FullyConnected` for that.
-- `FullyConnected` is post `ClientFullyConnect`: the first point `Name()` and the
-  client's replicated convars mean anything.
-- `SettingsChanged` fires on every replicated setting change, including the burst
-  the engine sends at connect, so debounce if you act on it.
-- `Disconnected` fires while the player is **still in the roster**, so the handler
-  can read their identity and flush what it keyed on them. The `Player` is
-  destroyed immediately afterwards. Taking over an occupied slot without a
-  disconnect ever arriving raises it too, and so does `Clear()` at unload.
+| Event | When |
+| --- | --- |
+| `Connected` | the player is in the roster; their name is not meaningful yet |
+| `FullyConnected` | post `ClientFullyConnect`, the first point `Name()` and the client's replicated convars mean anything |
+| `SettingsChanged` | every replicated setting change, including the burst the engine sends at connect, so debounce if you act on it |
+| `Disconnected` | while the player is still in the roster, so the handler can read their identity; the `Player` is destroyed right after |
 
-There is no `OnPlayerConnect`/`OnPlayerDisconnect` virtual to override. A
-subscription hands you a live `Player&` rather than a pointer that may be null,
-and it can live on whichever object actually owns the state.
+Taking over an occupied slot without a disconnect raises `Disconnected` too, and so does `Clear()`
+at unload. There is no `OnPlayerConnect` virtual to override: a subscription hands you a live
+`Player&` and can live on whichever object owns the state.
 
 ### Per-slot plugin state
 
-Use @ref VoltMod::PerSlot for slot-indexed plugin state. It value-resets entries
-when a player joins or leaves, preventing state from leaking to the next occupant:
+@ref VoltMod::PerSlot value-resets an entry when a player joins or leaves, so state never leaks to
+the next occupant:
 
 ```cpp
 struct MyState { int Combo = 0; float Score = 0; };
 
 VoltMod::PerSlot<MyState> _state;   // manager member; inert until bound
-_state.BindReset(runtime.Slots);   // in the owner's ctor or Initialize()
-_state[slot].Combo++;              // plain indexed access afterwards
+_state.BindReset(runtime.Slots);    // in the owner's ctor or Initialize()
+_state[slot].Combo++;               // plain indexed access afterwards
 ```
 
-`BindReset` is idempotent, and the destructor unsubscribes - so a `PerSlot` may outlive nothing and still leave the feed clean. It takes the @ref VoltMod::SlotEvents feed rather than the runtime, so a translation unit that includes only `PerSlot.hpp` still compiles.
+`BindReset` is idempotent and the destructor unsubscribes. It takes the @ref VoltMod::SlotEvents
+feed rather than the runtime, so a translation unit including only `PerSlot.hpp` still compiles.
 
-### Reacting to a slot change yourself
+Subscribe to `runtime.Slots.Changed` when a slot change must do more than reset a value - close a
+menu, cancel a timer. It fires for additions, removals and tracked slots cleared during unload. Use
+it for identity-free slot state; use the roster events when the handler needs a `Player`.
 
-Subscribe to `runtime.Slots.Changed` when a slot change must do more than reset
-a value, such as closing a menu or cancelling a timer:
-
-```cpp
-_slots = runtime.Slots.Changed += [this](int slot) { CancelCapture(slot); };
-```
-
-The event fires for additions, removals, and tracked slots cleared during unload.
-Use it for identity-free slot state; use roster events when the handler needs a
-`Player`. Keep the subscription beside the state it resets.
-
-For time-decaying per-player scores (suspicion, rate limits), use @ref VoltMod::DecayingScore, which halves a score every half-life so old evidence fades instead of falling off a window edge. It holds one value and one timestamp whatever the event count, and takes caller-supplied seconds; @ref VoltMod::Time::MonotonicSeconds is the matching clock. @ref VoltMod::RandomIndex is the framework's single source of randomness - use it for a random pick (`@random` targeting does) rather than seeding a generator per feature or reaching for the tick counter, which repeats within a frame. Both are unit-tested in the framework's SDK-free test suite.
+For time-decaying per-player scores (suspicion, rate limits) use @ref VoltMod::DecayingScore, which
+halves a score every half-life and holds one value and one timestamp whatever the event count;
+@ref VoltMod::Time::MonotonicSeconds is the matching clock. `VoltMod::RandomIndex` in
+`<VoltMod/Core/Random.hpp>` is the single source of randomness - `@random` targeting uses it.
 
 ## The gate
 
-@ref VoltMod::Policy::Authorize is the common gate between framework dispatch
-and plugin-defined permission or immunity rules.
+@ref VoltMod::Policy::Authorize is the one gate between framework dispatch and a plugin's
+permission and immunity rules. Fill the callbacks once in `OnLoad` - see
+@ref plugin_guide "Writing a plugin".
 
 ```cpp
-VoltMod::Result<VoltMod::Authorized> Authorize(PlayerRef caller,
-                                               std::optional<PlayerRef> target,
-                                               std::string_view permission) const;
+Result<Authorized> Authorize(PlayerRef caller, std::optional<PlayerRef> target,
+                             std::string_view permission) const;
 ```
 
 | Condition | Result |
-| --------- | ------ |
+| --- | --- |
 | `caller` is not connected (gone, or the slot changed hands) | `ErrorCode::NotFound`, no `Key` |
 | `target` given but not connected | `ErrorCode::NotFound`, `Key` `target.noMatch` |
 | `permission` non-empty and no `HasPermission` installed | `ErrorCode::Denied`, `Key` `cmd.noPermission`, logged once |
 | `HasPermission` says no | `ErrorCode::Denied`, `Key` `cmd.noPermission` |
 | `CanTarget` says no | `ErrorCode::Immune`, `Key` `target.immune` |
-| otherwise | @ref VoltMod::Authorized - `Caller` and (maybe null) `Target` |
-
-An empty `permission` skips the permission check. **Targeting yourself is always
-allowed** and never reaches `CanTarget`, so a plugin's `CanTarget` only ever
-answers "may this caller act on somebody else" - an immunity comparison, nothing
-more. A denial is a value: nothing is nulled out to signal it, and the only way to
-get an `Authorized` is to have passed.
+| otherwise | @ref VoltMod::Authorized - `Caller` and a maybe-null `Target` |
 
 ```cpp
 auto who = runtime.Policy.Authorize(callerRef, targetRef, "b");
@@ -152,21 +125,29 @@ if (!who)
 Ban(who->Target->SteamId());
 ```
 
-Install the rules once in `OnLoad` - see @ref plugin_guide "Writing a plugin".
+An empty `permission` skips the permission check. Targeting yourself is always allowed and never
+reaches `CanTarget`, so a plugin's `CanTarget` only answers "may this caller act on somebody else".
+Denial is a value: the only way to get an `Authorized` is to have passed.
+
+`AuthorizeSteamId(caller, targetSteamId, permission)` is the same decision for a target that may be
+offline. It returns @ref VoltMod::Status, because an offline target has no `Player` to hand back.
+Use it wherever a command binds `Args::PlayerOrSteamId` or a bare SteamID, rather than consulting
+a plugin's own immunity table.
+
+`Policy::Reply` delivers a command result line and `Policy::Broadcast` announces a performed
+action; both are unset by default, and `Reply` then falls back to `runtime.Messages.Reply`.
 
 ## Target selectors
 
-A command's `Target()` argument understands `@all`, `@me`, `@t`, `@random`,
-`#slot`, SteamIDs and name fragments; the grammar and its reserved reply keys are
-covered in @ref commands_guide. Resolution runs inside command dispatch, applies
-this same gate per candidate, and is not public API - a plugin picks targets by
-declaring the argument, not by resolving tokens itself.
+A `Args::Target` or `Args::Targets` command argument understands `@all`, `@me`, `@t`, `@random`,
+`#slot`, SteamIDs and name fragments; the grammar and its reply keys are in @ref commands_guide.
+Resolution runs inside command dispatch, applies this same gate per candidate, and is not public
+API - declare the argument rather than resolving tokens yourself.
 
 ## Actions
 
-An @ref VoltMod::Action describes a single-target operation: permission, guards,
-and body. @ref VoltMod::ActionDispatcher authorizes, runs, and broadcasts it
-using `Policy`, `PlayerManager`, and `EntitySystem`:
+An @ref VoltMod::Action is permission, guards and body. @ref VoltMod::ActionDispatcher authorizes,
+runs and broadcasts it:
 
 ```cpp
 using VoltMod::Action;
@@ -175,41 +156,50 @@ using VoltMod::ActionDispatcher;
 using VoltMod::OptKey;
 
 const Action Slay{"s", /*RequireAlive=*/true, [](const ActionContext& ctx) -> OptKey {
-    (void)ctx.TargetPawn().Slay();  // Slay() lives on Pawn, not Controller
-    return "broadcast.slain";      // policy Broadcast callback announces it; nullopt = silent
+    (void)ctx.TargetPawn().Slay();   // Slay() lives on Pawn, not Controller
+    return "broadcast.slain";        // the Policy::Broadcast callback announces it; nullopt = silent
 }};
 
-ActionDispatcher{runtime.Policy, runtime.Players, runtime.Entities}.Run(adminSlot, targetSlot, Slay);
+ActionDispatcher actions{runtime.Policy, runtime.Entities};
+actions.Run(adminRef, targetRef, Slay);
 ```
 
-`ActionContext` carries the @ref VoltMod::Authorized pair (`ctx.Caller()`, `ctx.Target()`) plus transient `CallerCtrl`/`TargetCtrl` controllers - nothing else. `ParamAction` adds an int the call site supplies (health value, team id). An empty permission string skips that check. A body that needs an engine service beyond the pawns/controllers here (a hook, a message, a convar) reaches it through the plugin's own `App&` it already captures, not through the context - see the effect example below, which has the identical need.
+`Run` takes @ref VoltMod::PlayerRef, not slots: a stored row or callback that outlived its player is
+refused rather than retargeted at whoever holds the slot now. Turn a slot into a ref at the
+boundary that first receives it. `Resolve(caller, target, permission)` returns
+`Result<ActionContext>` when you want the pair without running an action.
 
-`ActionDispatcher::Resolve` returns `Result<ActionContext>` when you need the pair without running an action - `if (!ctx) return;` and `ctx->TargetPawn()` from there.
+`ActionContext` carries the @ref VoltMod::Authorized pair (`ctx.Caller()`, `ctx.Target()`), the
+transient `CallerCtrl`/`TargetCtrl` controllers and their pawns (`CallerPawn()`, `TargetPawn()`) -
+nothing else. A body needing an engine service beyond those reaches it through the plugin's own
+`App&` it already captures. `ParamAction` adds an int the call site supplies (health value, team
+id). An empty permission string skips that check.
 
-Actions plug directly into menu context rows (`Row`, `StateToggle`, `Presets`; see @ref menus_guide), so the same data drives commands, menus, and bespoke call sites.
+Actions plug into menu context rows (`Action`, `StateToggle`, `Presets`; see @ref menus_guide), so
+the same data drives commands, menus and bespoke call sites.
 
-## Effect descriptors
+## Effects
 
-@ref VoltMod::EffectDescriptor defines a toggleable or timed player effect. It
-contains permission and display metadata, lifetime policy, optional choices,
-and a `Setup` function that returns the callbacks driven by @ref
-VoltMod::EffectManager.
+@ref VoltMod::EffectDescriptor is a toggleable, timed or parameterized player effect as data:
+permission, display keys, lifetime policy, optional `Choices`, and a `Setup` returning the
+callbacks @ref VoltMod::EffectManager drives.
 
 ```cpp
 using VoltMod::EffectDescriptor;
 using VoltMod::EffectInstance;
 using VoltMod::EffectScope;
 
-// Effect bodies are static data, built before any App exists, so a body that needs an engine
-// service captures a Runtime& through a small factory function instead of an ActionContext member:
-Effect MakeGhost(VoltMod::Runtime& runtime)
+// Descriptors are static data built before any App exists, so a body that needs an engine service
+// captures a Runtime& through a small factory instead of reading it off the context.
+EffectDescriptor MakeGhost(VoltMod::Runtime& runtime)
 {
-    return Effect{
+    return EffectDescriptor{
         .Permission = "g",
-        .Id = static_cast<int>(EffectId::Ghost),  // Id is a plain int; cast your effect enum
+        .Id = static_cast<int>(EffectId::Ghost),   // Id is a plain int; cast your effect enum
         .NameKey = "effect.ghost",
-        .OnKey = "broadcast.ghosted", .OffKey = "broadcast.unghosted",
-        .Scope = EffectScope::Persistent,      // or Round: auto-cancel on round end
+        .OnKey = "broadcast.ghosted",
+        .OffKey = "broadcast.unghosted",
+        .Scope = EffectScope::Persistent,          // or Round, or Session
         .Setup = [&runtime](const VoltMod::ActionContext& ctx, int) -> EffectInstance {
             int slot = ctx.Target().Slot();
             auto& visibility = runtime.Hooks.Visibility;
@@ -218,37 +208,27 @@ Effect MakeGhost(VoltMod::Runtime& runtime)
         },
     };
 }
-
-// Built once (e.g. as an App member, constructed with Runtime&), then the menu that renders the
-// list reads an explicit table so the display order is visible in one place - array order,
-// not a field on the entry:
-struct EffectEntry
-{
-    const Effect* Toggle = nullptr;
-};
-
-const std::array<EffectEntry, 2> MenuEffects{
-    EffectEntry{&descriptors.Ghost},
-    EffectEntry{&descriptors.Disco},
-};
 ```
 
-A menu row or command handler may capture `App&` or a specific service directly.
-The factory shape above is for descriptors created before `App` exists.
-
 `OnStop` outlives the `ActionContext` that produced it, so capture the service, never `ctx`.
-Capturing a `Runtime&` (or an `App&`) by reference is safe because `EffectManager` is a member of
-your `App`, which is destroyed before the `Runtime`.
+Capturing a `Runtime&` or an `App&` by reference is safe: `EffectManager` is a member of your
+`App`, which is destroyed before the `Runtime`.
 
-Own an `EffectDispatcher` beside the `ActionDispatcher` and `EffectManager`.
-`Toggle`, `Apply`, and `Clear` resolve and authorize the pair before changing an
-effect. `ActionRows::Effect` adds a toggle to a menu, while `EffectPicker` uses
-the descriptor's `Choices` and optional reset label.
-`EffectManager` guarantees `OnStop` runs exactly once however the effect ends, whether by toggle,
-death, disconnect, round end, or unload.
+`Setup` also receives a `param` - 0 for a plain toggle, an @ref VoltMod::EffectChoice's `Param`
+for a picker. `TickIntervalMs` runs `OnTick` on a timer, `DurationMs` auto-expires the effect, and
+an empty `OnKey`/`OffKey` suppresses that broadcast.
 
-Sweeps come in four shapes: `Cancel(slot, id)` clears one effect, `CancelAll(slot)` clears every
-effect on a player, `CancelAll()` clears everyone, `CancelRound()` clears every `Round`-scoped
-effect everywhere, and `CancelOnDeath(slot)` clears a player's per-life effects on death while
-keeping `EffectScope::Session` grants. Declare `Scope = EffectScope::Session` on the descriptor and
-the death sweep skips it, without any per-effect special-casing.
+Hold an `EffectDispatcher` beside the `ActionDispatcher` and `EffectManager`
+(`EffectDispatcher PlayerEffects{Actions, Effects};`). Its `Toggle`, `Apply` and `Clear` resolve
+and authorize the pair before changing anything. `ActionRows::Effect` puts a toggle in a menu and
+`ActionRows::EffectPicker` builds a submenu from `Choices`.
+
+`EffectManager` runs `OnStop` exactly once however the effect ends. The sweeps:
+
+| Call | Clears |
+| --- | --- |
+| `Cancel(slot, id)` | one effect on one player |
+| `CancelAll(slot)` | every effect on one player |
+| `CancelAll()` | every effect on everyone |
+| `CancelRound()` | every `EffectScope::Round` effect everywhere |
+| `CancelOnDeath(slot)` | a player's effects except those scoped `Session` |

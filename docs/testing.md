@@ -2,60 +2,51 @@
 
 [TOC]
 
-Unit tests use [doctest](https://github.com/doctest/doctest) and remain SDK-free.
-They cover parsing, targeting, score calculations, and other logic that does
-not require Metamod or HL2SDK.
+Unit tests use [doctest](https://github.com/doctest/doctest) and stay SDK-free: no Metamod, no
+HL2SDK, no live `Runtime`, entity or database connection. Test logic that takes plain values and
+returns plain values - parsers, the target-selector grammar, angle math, decaying scores,
+throttles, detector heuristics. Keep that logic in free functions over structs and the rest
+follows.
 
 ## Running
 
 ```bash
-uv run poe test               # configure -> build -> ctest
-ctest --preset windows-msvc-release   # tests only
+uv run poe test                       # build, then ctest
+uv run poe test -R SteamId            # only matching case names
 ctest --preset windows-msvc-release --output-on-failure
+ctest --preset windows-msvc-release -N            # list without running
 ```
 
-Each test case is its own CTest entry. `ctest -R` can filter cases, and CI
-reports identify the failing case:
+Each test case is its own CTest entry, so a CI report names the failing case. The presets set
+`noTestsAction: error`, so a run that discovers nothing fails the job instead of passing.
+
+Run the binary under `build/<preset>/` directly for doctest's own filters:
 
 ```bash
-ctest --preset windows-msvc-release -R "SteamId"
-ctest --preset windows-msvc-release -N          # list without running
+voltmod-utils-tests --list-test-cases
+voltmod-utils-tests --test-case="SteamId::*"
+voltmod-utils-tests --source-file="*Targeting*"
+voltmod-utils-tests --success            # print passing asserts too
 ```
 
-## In CI
-
-`conan create` does not include `tests/` and disables `BUILD_TESTING`. CI builds
-the source checkout separately and runs the Linux preset:
+`conan create` excludes `tests/` and disables `BUILD_TESTING`. CI builds the source checkout
+separately:
 
 ```yaml
 - run: voltmod build linux-steamrt-release --no-lockfile
 - run: voltmod test linux-steamrt-release
 ```
 
-`--no-lockfile` resolves without `conan.lock`, which CI needs because it builds
-against SDK packages it just created from the HEAD recipes. The test presets set
-`noTestsAction: error`, so a run that discovers no cases fails the job instead of
-reporting success.
+`--no-lockfile` resolves without `conan.lock`, which CI needs because it builds against SDK
+packages it just created from the HEAD recipes.
 
-Run the test binary directly to use doctest's case and source filters:
+## Writing a case
 
-```bash
-build/windows-msvc-release/vendor/voltmod/voltmod-utils-tests.exe --list-test-cases
-build/windows-msvc-release/vendor/voltmod/voltmod-utils-tests.exe --test-case="SteamId::*"
-build/windows-msvc-release/vendor/voltmod/voltmod-utils-tests.exe --source-file="*Targeting*"
-build/windows-msvc-release/vendor/voltmod/voltmod-utils-tests.exe --success   # print passing asserts too
-```
-
-## Writing a test
-
-Put test cases in `tests/<Module>/*.cpp`; `voltmod_add_tests()` supplies `main`
-and discovers new files automatically. `tests/Api/` is excluded because those
-compile-only checks need the full HL2SDK and Metamod build.
+Put cases in `tests/<Module>/*.cpp`. `voltmod_add_tests()` supplies `main` and picks up new files.
 
 ```cpp
 #include <VoltMod/Core/Text/Strings.hpp>
 #include <doctest/doctest.h>
-#include <string>
 
 using VoltMod::ParseDuration;
 
@@ -68,46 +59,30 @@ TEST_CASE("ParseDuration: suffixes")
 }
 ```
 
-### Assertions
-
-`CHECK*` records a failure and continues. `REQUIRE*` stops the case, so use it
-before dereferencing or indexing a value under test:
+`CHECK*` records a failure and continues; `REQUIRE*` stops the case, so use it before
+dereferencing or indexing a value under test:
 
 ```cpp
-TEST_CASE("FindSettledSnap picks the snap nearest the shot")
-{
-    auto snap = Detectors::AimSnap::FindSettledSnap(window, cfg);
-    REQUIRE(snap.has_value());     // stop here rather than crash on snap->Ago below
-    CHECK_EQ(snap->Ago, 1);
-}
+auto snap = Detectors::AimSnap::FindSettledSnap(window, cfg);
+REQUIRE(snap.has_value());     // stop here rather than crash on snap->Ago below
+CHECK_EQ(snap->Ago, 1);
 ```
 
-Direct comparisons print operand values. Binary forms such as `CHECK_EQ` and
-`CHECK_LT` provide the same decomposition:
+Compare directly. `CHECK_EQ` and friends print both operands; wrapping the comparison in a
+predicate loses that:
 
 ```text
-TEST CASE:  ParseDuration: suffixes
-
 ParseDurationTests.cpp(9): ERROR: CHECK_EQ( ParseDuration("5m"), 300 ) is NOT correct!
   values: CHECK_EQ( 5, 300 )
 ```
 
-Wrapping a comparison in a predicate loses that detail, so compare directly
-when possible.
+`doctest::Approx`'s tolerance is *relative*: `|a - b| < epsilon * (scale + max(|a|, |b|))`, so
+`Approx(180.0f).epsilon(0.01)` accepts a 1.81 gap. Where the test means an absolute tolerance
+(degrees, score units), write a local `Near(a, b, eps)` helper; the angle and decaying-score
+suites do. For throws use `CHECK_THROWS_AS`, `CHECK_THROWS_WITH` or `CHECK_NOTHROW`.
 
-`doctest::Approx` is the built-in float comparison, but note its tolerance is *relative*:
-`|a - b| < epsilon * (scale + max(|a|, |b|))`, so `Approx(180.0f).epsilon(0.01)` accepts a
-1.81 gap, not 0.01. Where an absolute tolerance is what the test means (degrees, score
-units), a small local `Near(a, b, eps)` helper is the honest choice; the angle and
-decaying-score suites use one deliberately.
-
-For expected throws use `CHECK_THROWS_AS(expr, Type)`, `CHECK_THROWS_WITH`, or
-`CHECK_NOTHROW`.
-
-### Sharing setup with SUBCASE
-
-Each `SUBCASE` re-runs the enclosing case body from the top, so setup is written once and
-every branch gets a fresh copy, with no fixture class and no leakage between branches:
+Each `SUBCASE` re-runs the enclosing body from the top, so setup is written once and every branch
+gets a fresh copy with no fixture class:
 
 ```cpp
 TEST_CASE("FilterRoster: team selectors")
@@ -128,10 +103,7 @@ TEST_CASE("FilterRoster: team selectors")
 }
 ```
 
-### Same assertions over several types
-
-`TEST_CASE_TEMPLATE` instantiates the body once per type in the list, reporting each as its
-own case:
+`TEST_CASE_TEMPLATE` instantiates the body once per type, reporting each as its own case:
 
 ```cpp
 TEST_CASE_TEMPLATE("Trim accepts any string-like input", T, const char*, std::string)
@@ -140,23 +112,43 @@ TEST_CASE_TEMPLATE("Trim accepts any string-like input", T, const char*, std::st
 }
 ```
 
-## Adding tests to a plugin
+## Case names cannot contain `[`, `]` or `;`
 
-`voltmod_add_tests()` (from `cmake/VoltModTests.cmake`, a build module of the Conan package)
-owns the wiring: it globs `tests/**/*.cpp`, supplies doctest's `main`, links `doctest::doctest`
-and `VoltMod::Headers` (the framework's include dir plus glaze and magic_enum), adds the
-plugin's `src/`, and registers the cases with CTest. It is a no-op when `BUILD_TESTING` is off.
-`SOURCES` is the list of SDK-free TUs to recompile. Test binaries never link the plugin module
-or the framework, so nothing drags in Metamod.
+Discovery runs the freshly built binary with `--list-test-cases` and parses the output as a CMake
+list, where `[`...`]` groups and `;` separates. An unmatched bracket folds every following case
+into one entry and fails configure with the unrelated-looking `add_test called with incorrect
+number of arguments`; a semicolon silently splits one case into two bogus entries.
+`voltmod_add_tests()` scans the sources and fails configure naming the offending file instead.
+
+Spell interval bounds out - `wraps to -180 exclusive through 180 inclusive`, not
+`wraps into (-180, 180]`. Parentheses, commas, colons, `<`, `>` and `::` are fine.
+
+## Adding tests to a plugin
 
 ```cmake
 voltmod_add_tests(myplugin-tests
     SOURCES
         src/Detectors/AimSnapCore.cpp
+    DEFINITIONS
+        MYPLUGIN_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data"
 )
 ```
 
-The Conan side is one line in `conanfile.py`:
+`voltmod_add_tests(<name> [SOURCES ...] [FEATURES DATABASE] [DEFINITIONS ...])` comes from
+`cmake/VoltModTests.cmake`, a build module of the Conan package. It globs `tests/**/*.cpp`
+(excluding `tests/Api/`), supplies doctest's `main`, links `doctest::doctest` and
+`VoltMod::Headers` (the framework's include dir plus glaze and magic_enum), adds the plugin's
+`src/` and `tests/` to the include path, and registers the cases with CTest. It is a no-op when
+`BUILD_TESTING` is off.
+
+| Argument | Means |
+| --- | --- |
+| `SOURCES` | the SDK-free translation units to recompile beside the test cases |
+| `FEATURES DATABASE` | also link `VoltMod::Database`, so a test can open a SQLite database and run the plugin's migrations |
+| `DEFINITIONS` | compile definitions for the test target |
+
+Test binaries never link the plugin module or the framework, so nothing drags in Metamod. The
+Conan side is one line in `conanfile.py`:
 
 ```python
 def build_requirements(self):
@@ -165,45 +157,19 @@ def build_requirements(self):
 
 ## Api surface checks
 
-Each `Api.hpp` aggregate must compile as the only VoltMod include in a
-translation unit. `RootApiSurfaceTest.cpp` also verifies that the main umbrella
-does not include the JSON layer or the menu-building surface. These files are
-compile-only tests.
+Each `Api.hpp` aggregate must compile as the only VoltMod include in a translation unit, and
+`RootApiSurfaceTest.cpp` checks that the main umbrella pulls in neither the JSON layer nor the
+menu-building surface. These are compile-only, and they need the full HL2SDK and Metamod build, so
+they live in `tests/Api/` and compile into `voltmod-api-surface-check` - an object library in the
+root `CMakeLists.txt` linked against `VoltMod::Sdk` and `VoltMod::Database`.
 
-They compile into `voltmod-api-surface-check`, an object library defined in the root
-`CMakeLists.txt` and linked against `VoltMod::Sdk` and `VoltMod::Database` so they see the
-same include paths and generated HL2SDK headers the framework itself needs - that's also why they live outside `voltmod-utils-tests` and are
-excluded from its `tests/**/*.cpp` glob.
-
-## Checking module layering and source conventions
+## Module layering and source conventions
 
 ```sh
 uv run poe modgraph                 # the framework's own module layering
 voltmod modgraph --plugins .        # a consumer repo's plugins/ sources
 ```
 
-Without `--plugins`, `modgraph` checks the framework's module dependencies and
-source conventions. `--plugins <path>` checks consumer source conventions but
-not framework layering. Run it from the consumer repository root.
-
-## What is worth testing
-
-Test logic that takes plain values and returns plain values: parsers and formatters, the
-target-selector grammar, angle math, decaying scores, throttles, migration-version
-extraction, detector heuristics, threshold reachability. Anything that needs a
-live `Runtime`, an entity, or a database connection is out of scope for this
-suite. Keep that logic thin and push the decisions into free functions over
-structs; that is what makes the rest testable.
-
-## Naming rule: no `[`, `]` or `;`
-
-Discovery registers the CTest entries by running the freshly built binary with
-`--list-test-cases` and parsing the output as a CMake list, where `[`...`]` groups and `;`
-separates. So an unmatched bracket folds every following case into one entry (configure then
-dies with the unrelated-looking `add_test called with incorrect number of arguments`), and a
-semicolon silently splits one case into two bogus entries.
-
-`voltmod_add_tests()` scans the test sources and fails configure with the offending file rather
-than letting either happen. Spell interval bounds out (`wraps to -180 exclusive through 180
-inclusive`, not `wraps into (-180, 180]`). Parentheses, commas, colons, `<`, `>` and `::`
-are all fine.
+Without `--plugins`, `modgraph` checks the framework's module dependencies and its source
+conventions. `--plugins <path>` checks consumer source conventions but not framework layering.
+Run it from the consumer repository root.

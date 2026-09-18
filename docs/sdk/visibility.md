@@ -4,80 +4,85 @@
 
 ## Render
 
-These helpers update and replicate `m_nRenderMode` and `m_clrRender`. Use the
-free function for unwrapped entities and the pawn methods for players.
+`SetRender` writes `m_nRenderMode` and `m_clrRender` and dirties both for replication. Use the free
+function for entities with no wrapper and the pawn method for players.
 
 ```cpp
-using VoltMod::ColorInvisible;
-using VoltMod::ColorOpaqueWhite;
-using VoltMod::SetRender;
+using VoltMod::ColorInvisible;     // 0x00FFFFFF, white at zero alpha
+using VoltMod::ColorOpaqueWhite;   // 0xFFFFFFFF
 
-SetRender(prop, RenderMode_t::TransTexture, ColorInvisible);
-SetRender(prop, RenderMode_t::Normal, ColorOpaqueWhite);
+VoltMod::SetRender(prop, VoltMod::RenderMode_t::TransTexture, ColorInvisible);
+VoltMod::SetRender(prop, VoltMod::RenderMode_t::Normal, ColorOpaqueWhite);
 
-runtime.Entities.PawnOf(slot).SetVisible(false);   // the pawn body
+runtime.Entities.PawnOf(slot).SetVisible(false);        // the pawn body, alpha 0
+runtime.Entities.PawnOf(slot).SetVisible(false, 0x80);  // 50% transparent
 ```
 
-`m_clrRender` is RGBA packed as `(A << 24) | (B << 16) | (G << 8) | R`. `ColorInvisible` (`0x00FFFFFF`) is white at zero alpha.
-
-Render tricks only affect the pawn body; held weapons, wearables and gloves are separate networked entities. For true invisibility use the Visibility filter instead.
+`m_clrRender` is RGBA packed as `(A << 24) | (B << 16) | (G << 8) | R`. Render tricks reach only the
+pawn body: held weapons, wearables and gloves are separate networked entities that CS2 routes
+through systems a server plugin cannot touch. For real invisibility use the visibility filter.
 
 ## Visibility
 
-Per-recipient visibility filtering hooks
-`ISource2GameEntities::CheckTransmit`. A hidden pawn and its related entities
-are not sent to other clients. Controller visibility is controlled separately:
+@ref VoltMod::Visibility filters `ISource2GameEntities::CheckTransmit`, so a hidden pawn and the
+entities that follow it are never sent to other clients.
 
 ```cpp
 auto& visibility = runtime.Hooks.Visibility;
 
-visibility.SetPawnHidden(slot, true);        // pawn + weapons + wearables vanish for everyone else
-visibility.SetControllerHidden(slot, true);  // removes the player's scoreboard row
+visibility.SetPawnHidden(slot, true);        // pawn, weapons, wearables, gloves and shadow
+visibility.SetControllerHidden(slot, true);  // removes the scoreboard row
 ```
 
-The hidden player still receives their own entities, and a client actively observing the hidden pawn keeps receiving it (dropping it would break the spectator camera). Sounds (footsteps, gunfire) are networked separately and are not filtered. State is cleared automatically when the player disconnects.
+The hidden player still receives their own entities, and a client actively observing the hidden pawn
+keeps receiving it so the spectator camera does not break. Sounds are networked separately and are
+not filtered. State clears when the slot changes hands.
 
-Any entity can also be shown to a single client, which is the building block for per-viewer effects like GlowVision below:
+Any entity can also be networked to a single client, which is what per-viewer effects are built on:
 
 ```cpp
 visibility.ShowOnlyTo(entity.Ref(), viewerSlot);  // only this client receives it
-visibility.ShowToEveryone(entity.Ref());           // networked normally again
+visibility.ShowToEveryone(entity.Ref());          // networked normally again
 ```
 
-Entries are keyed by @ref VoltMod::EntityRef: one whose entity is gone drops itself at the next snapshot, so removing the entity is enough. Clear an entry to hand a live entity back to everyone. Player screens from @ref VoltMod::ScreenManager::ForPlayer are built on this.
+Entries are keyed by @ref VoltMod::EntityRef, so an entry whose entity is gone drops itself and
+removing the entity is enough. `ScreenManager::ForPlayer` is built on the same mechanism.
 
-Requires the `CheckTransmitPlayerSlot` gamedata offset (the recipient slot inside the partially-reversed `CCheckTransmitInfo`); if it is missing the service logs a warning at load and becomes inert.
+`Available()` fails when the `CheckTransmitPlayerSlot` gamedata offset - the recipient slot inside
+the partially reversed `CCheckTransmitInfo` - did not bind. Every call above is then accepted but
+inert, which for a hide means the player stays visible.
 
 ## GlowVision
 
-GlowVision builds per-viewer outlines on the visibility filter. Only the selected
-client receives the two helper entities that follow each visible pawn; other
-clients and GOTV never receive them.
+@ref VoltMod::GlowVision builds per-viewer outlines on the visibility filter: one client sees live
+players as team-colored glows through walls, and no other client or GOTV ever receives the helper
+entities. Each glowing player costs two `prop_dynamic` clones.
 
 ```cpp
-using VoltMod::GlowVision;
-
 auto glow = runtime.Hooks.Visibility.CreateGlow(viewerSlot);
-glow->Refresh();  // build the clones immediately
+glow->Refresh();  // build the clones now
 
-// Then drive it from a repeating tick, e.g. an EffectManager spec:
-//   .TickIntervalMs = GlowVision::ReconcileIntervalMs,
+// Then drive it from a repeating tick:
+//   .TickIntervalMs = VoltMod::GlowVision::RefreshIntervalMs,
 //   .OnTick = [glow] { glow->Refresh(); },
 //   .OnStop = [glow] { glow->Destroy(); },
 ```
 
-`Refresh` tracks spawns, deaths, and team/model changes, and rebuilds clones the engine destroyed on a round restart. It skips the beneficiary, dead and spectating players, and pawns hidden via the Visibility filter (a ghosted pawn never transmits, so a clone would follow nothing). `Destroy` clears the visibility-filter entries and removes any surviving clones.
+`Refresh` tracks spawns, deaths and team or model changes, and rebuilds clones the engine destroyed
+on a round restart. It skips the viewer, dead and spectating players, and pawns hidden by the
+visibility filter, since a ghosted pawn never transmits and its clone would follow nothing.
+`Destroy` clears the filter entries and removes any surviving clones.
 
-Team colors and the glow set are configurable; the optional `Filter` veto runs on top of the built-in checks:
+Colors and the optional per-slot veto run on top of the built-in checks:
 
 ```cpp
-GlowConfig config{
+VoltMod::GlowConfig config{
     .TerroristColor = Color(255, 0, 0, 255),
     .CtColor = Color(0, 255, 0, 255),
-    // Ts only:
-    .Filter = [&runtime](int slot) { return runtime.Entities.Controller(slot).GetTeam() == TeamT; },
+    .Filter = [&runtime](int slot) { return runtime.Entities.Controller(slot).Team() == VoltMod::TeamT; },
 };
 auto glow = runtime.Hooks.Visibility.CreateGlow(viewerSlot, std::move(config));
 ```
 
-Costs two entities per glowing player and inherits the Visibility filter's gamedata requirement. Without the `CheckTransmitPlayerSlot` offset the clones would be visible to everyone, so do not use it when the filter is inert.
+Without the `CheckTransmitPlayerSlot` offset the clones would be visible to everyone, so do not use
+glow when the filter is inert.

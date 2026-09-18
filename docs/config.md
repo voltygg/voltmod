@@ -2,12 +2,12 @@
 
 [TOC]
 
-Represent settings with a default-initialized struct that mirrors the JSON file,
-then load it through @ref VoltMod::Options. Include
-`<VoltMod/App/Config.hpp>` in the plugin's `Config.hpp`; it provides the
-configuration types and JSON layer without adding them to the main API umbrella.
-
 ## Declaring settings
+
+Settings are a default-initialized struct that mirrors the JSON file, loaded through
+@ref VoltMod::Options. Include `<VoltMod/App/Config.hpp>` in the plugin's own `Config.hpp`; it
+carries the configuration types and the JSON layer, which `<VoltMod/Api.hpp>` deliberately does
+not.
 
 ```cpp
 #include <VoltMod/Api.hpp>
@@ -15,61 +15,53 @@ configuration types and JSON layer without adding them to the main API umbrella.
 
 struct Settings
 {
-    VoltMod::StandardPluginSettings plugin;   // the framework-standard "plugin" section (locale)
-    // one struct + member per additional section
+    VoltMod::StandardPluginSettings plugin;   // the framework's "plugin" section (locale)
+    // one struct + one member per additional section
 };
 
 using ConfigManager = VoltMod::Options<Settings>;
 ```
 
-Reflection uses each public member name as its JSON key, so no registration is
-required. Missing keys keep their C++ initializers. Missing files, parse errors,
-and wrong value types fail the load; JSONC comments and unknown keys are accepted.
+Each public member name is its JSON key, so nothing has to be registered. A missing key keeps the
+member's C++ initializer. JSONC comments and unknown keys are accepted; a missing file, a parse
+error or a wrong value type fails the load and names the offending key with its line and column.
 
-Reflection reads member names from the type, so the settings struct must have
-external linkage. Declare it at namespace scope, not inside a function or an
-anonymous namespace. Embedding @ref VoltMod::StandardPluginSettings provides the
-framework-owned `plugin` section and lets `LoadStandardConfig` apply
-`plugin.locale` to `runtime.Translations` (see @ref plugin_guide).
+Reflection reads member names off the type, so the struct needs external linkage: declare it at
+namespace scope, not inside a function or an anonymous namespace.
 
-### Editor validation with a JSON Schema
+Ship `settings.schema.json` beside the JSONC file and point at it with a relative `$schema` as the
+first key, for editor validation. `additionalProperties: false` catches typos there; the loader
+ignores `$schema` along with other unknown keys.
 
-Ship `settings.schema.json` beside the JSONC file and reference it with a
-relative `$schema` as the first key. The runtime ignores `$schema` with other
-unknown keys. Give the schema `additionalProperties: false` for editor-side typo
-detection and keep it synchronized with the settings struct.
+## Loading
 
 ```cpp
-bool MyPlugin::OnLoad(VoltMod::Runtime& runtime)
+bool App::Start()
 {
-    return VoltMod::LoadStandardConfig(runtime, Config, {.Addon = "my-plugin"});
+    return VoltMod::LoadStandardConfig(Runtime, Config);
 }
 ```
 
-## Post-load validation
+`LoadStandardConfig` runs a required `Configuration` load step that reads
+`addons/<plugin>/configs/settings.jsonc`, then loads `addons/<plugin>/configs/translations` and
+applies `plugin.locale` when the settings struct embeds @ref VoltMod::StandardPluginSettings. It
+returns false when the settings step failed, which is what aborts the load.
 
-When settings need checking, clamping or values derived from them, name a second
-type for what the plugin publishes and the function that builds it. `Options`
-runs the builder on a local copy and publishes the result in one move, so a
-reload that fails to parse leaves the previous snapshot intact and callers never
-observe a partially validated value:
+`StandardLoadOptions` changes either half:
 
 ```cpp
-struct Snapshot
-{
-    Settings Values;
-    std::vector<int> MenuDurationSecs;
-};
-
-static Snapshot BuildSnapshot(Settings raw);
-
-VoltMod::Options<Settings, Snapshot> options{&BuildSnapshot};
+VoltMod::LoadStandardConfig(Runtime, Config, {.SettingsFile = "configs/other.jsonc"});
+VoltMod::LoadStandardConfig(Runtime, Config, {.Translations = false});
 ```
 
-`Get()` now returns the snapshot, so `options.Get().Values` is the settings and
-`options.Get().MenuDurationSecs` the derived list. Wrap it in a small class of
-your own when you want named accessors, and name the entry point `LoadSettings`;
-`LoadStandardConfig` uses it instead of `Load`:
+It calls your config type's `LoadSettings(path)` when it has one, otherwise `Options::Load(path)`.
+
+## Validating and deriving
+
+When settings need checking, clamping or values derived from them, name a second type for what
+the plugin publishes and the function that builds it. `Options` runs the builder on a local copy
+and publishes the result in one move, so a reload that fails leaves the previous snapshot in
+place and no caller ever sees a half-validated value.
 
 ```cpp
 class ConfigManager
@@ -77,6 +69,7 @@ class ConfigManager
 public:
     VoltMod::Status LoadSettings(std::string_view path) { return _options.Load(path); }
 
+    /** Returns the effective settings, which is what LoadStandardConfig reads plugin.locale from. */
     const Settings& Get() const { return _options.Get().Values; }
     const std::vector<int>& GetMenuDurations() const { return _options.Get().MenuDurationSecs; }
 
@@ -93,12 +86,12 @@ private:
 };
 ```
 
-That wrapper is also what keeps `plugin.locale` working: `LoadStandardConfig`
-reads `Get().plugin.locale` when that section exists, so `Get()` has to return
-the effective settings rather than the snapshot around them.
+Without the wrapper, `Get()` returns the snapshot itself, so `options.Get().Values` is the
+settings. Wrapping it keeps `plugin.locale` reachable and gives the rest of the plugin named
+accessors.
 
-Use the common helpers in `VoltMod/App/Config/Validation.hpp`. `BuildSnapshot` takes the
-raw settings by value, so each helper below operates on a local copy:
+`VoltMod/App/Config/Validation.hpp` has the common helpers. `BuildSnapshot` takes the raw settings
+by value, so each one works on a local copy:
 
 ```cpp
 namespace Validation = VoltMod::Validation;
@@ -108,11 +101,10 @@ ConfigManager::Snapshot ConfigManager::BuildSnapshot(Settings raw)
     Snapshot result{.Values = std::move(raw)};
     auto& s = result.Values;
 
-    // Clamp + fall back with a logged warning; "server.tag" names the field in the log line.
+    // Clamp and fall back, logging once; "server.tag" is how the field is named in the log line.
     Validation::NormalizeTag(s.server.tag, 32, "default", "server.tag");
 
-    // Drop entries a predicate rejects, logging each removal. The predicate returns the
-    // rejection reason (or nullopt to keep the entry), not a plain bool.
+    // Drop entries the predicate rejects, logging each. It returns the reason, or nullopt to keep.
     Validation::FilterValid(
         s.punishments.templates,
         [](const PunishmentTemplate& t, std::size_t) -> std::optional<std::string> {
@@ -120,8 +112,8 @@ ConfigManager::Snapshot ConfigManager::BuildSnapshot(Settings raw)
         },
         "punishments.templates");
 
-    // "5m"/"1h"/"perm" strings -> seconds (0 = permanent); invalid entries logged and skipped,
-    // falling back to the struct defaults if nothing valid remains.
+    // "5m"/"1h"/"perm" -> seconds, 0 being permanent. Invalid entries are logged and skipped, and
+    // the struct defaults stand if nothing valid remains.
     result.MenuDurationSecs = Validation::ParseDurations(
         s.punishments.menuDurations, PunishmentSettings{}.menuDurations, "punishments.menuDurations");
 
@@ -131,33 +123,32 @@ ConfigManager::Snapshot ConfigManager::BuildSnapshot(Settings raw)
 
 ## Reloading
 
-`Load` is the reload: it parses the file again, rebuilds the snapshot and swaps
-it in. A failed parse returns the error and changes nothing, so a plugin command
-can report the offending key and go on serving the settings already in memory:
+`Load` is the reload: it parses the file again, rebuilds the snapshot and swaps it in. A failure
+returns the error and changes nothing, so a command can report the offending key and keep serving
+the settings already in memory.
 
 ```cpp
-if (auto loaded = Config.Load(VoltMod::AddonFile("my-plugin", "configs/settings.jsonc")); !loaded)
+if (auto loaded = Config.LoadSettings(Runtime.AddonFile("configs/settings.jsonc")); !loaded)
     return Reply{std::format("Settings not reloaded: {}", loaded.error().Detail)};
 ```
 
-## Framework types in your settings
+## Framework types in settings
 
-`DatabaseConfig` uses lowercase field names precisely so a JSON section maps onto
-it. Reflection needs no mapper, so embedding it is all there is to do:
+`DatabaseConfig` uses lowercase field names so a JSON section maps straight onto it:
 
 ```cpp
 struct Settings
 {
     VoltMod::DatabaseConfig database;   // "database": { "driver": ..., "host": ..., "port": ... }
-    // ...
 };
 ```
 
-See @ref database_guide for the full field list and one JSON example per driver.
+@ref database_guide has the field list and one JSON example per driver.
 
 ## Translations
 
-Human-facing text lives in per-language JSON files (`translations/en.json`, `translations/ru.json`, ...), flat key → string with `{token}` placeholders:
+Player-facing text lives in per-language files under `configs/translations/` (`en.json`,
+`ru.json`, ...), flat key to string with `{token}` placeholders:
 
 ```json
 {
@@ -167,14 +158,13 @@ Human-facing text lives in per-language JSON files (`translations/en.json`, `tra
 ```
 
 ```cpp
-runtime.Translations.Load("addons/my-plugin/configs/translations");
-runtime.Translations.SetLanguage("en");                       // server default
-runtime.Translations.SetPlayerLanguage(slot, "ru");           // per-player override
+runtime.Translations.SetLanguage("en");               // server default, from plugin.locale
+runtime.Translations.SetPlayerLanguage(slot, "ru");   // per-player override
 
 auto line = runtime.Translations.Get("cmd.banSuccess", slot, {{"name", targetName}});
 ```
 
-Command replies (`Caller::Ok`/`Fail`/`Say`), `Flow` validation errors, and
-`Messages::ReplyKey` all resolve through this service in the addressed
-player's language. The framework reserves a small set of keys for its own error
-replies; see @ref commands_guide.
+A key nothing carries is returned as itself. Command replies (`Caller::Ok`/`Fail`/`Say`), `Flow`
+validation errors and `Messages::ReplyKey` all resolve through this service in the addressed
+player's language. The framework reserves a few keys for its own error replies; see
+@ref commands_guide.

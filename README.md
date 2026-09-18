@@ -3,163 +3,90 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://voltygg.github.io/voltmod/)
 
-VoltMod is a native C++23 framework for Counter-Strike 2 plugins on
-Metamod:Source. One process-wide host is the server's only Metamod plugin and
-loads your plugins; the framework provides engine integration, load-cycle
-ownership, server services, and reproducible CMake and Conan builds. Plugins
-retain control of permissions and game behavior; VoltMod does not host a
-scripting runtime.
+VoltMod is a C++23 framework for Counter-Strike 2 server plugins on Metamod:Source. One
+process-wide host, `voltmod.dll` / `voltmod.so`, is the server's only Metamod plugin and loads
+your plugins out of `addons/<name>/`. Each plugin gets one `Runtime` per load cycle with commands,
+players, menus, messages, engine access, HTTP and an optional database.
 
-> VoltMod is under active development. Public APIs may change between
-> versions.
+> Public APIs may change between versions.
 
-## What it includes
+## The smallest plugin
 
-- One process-wide host that installs the engine hooks once, loads plugins in
-  declared dependency order, and reloads them one at a time.
-- One `Runtime` and deterministic cleanup per plugin load cycle.
-- Typed chat and console commands with targeting and injected permission policy.
-- WASD center-HTML menus, including multi-step flows.
-- Player tracking, translations, scheduled effects, and typed engine wrappers.
-- Asynchronous HTTP and an optional database (Postgres, MariaDB, or SQLite) with game-thread completions.
-- JSONC configuration, startup diagnostics, and typed cross-plugin services.
-- Project scaffolding, pinned build tools, tests, and server-ready install bundles.
+`plugins/my-plugin/plugin.json`:
 
-VoltMod supplies infrastructure, not an admin model. A plugin injects its
-permission and immunity policy into the shared command, targeting, menu, and
-message pipelines.
-
-## Create a project
-
-You need Git, [uv](https://docs.astral.sh/uv/), Python 3.14+, and a C++23
-compiler. Windows uses Visual Studio 2022 or newer. Linux uses the supplied
-Steam Runtime profiles.
-
-From an empty directory:
-
-```sh
-mkdir my-cs2-plugins
-cd my-cs2-plugins
-git init
-uvx --from git+https://github.com/voltygg/voltmod.git voltmod init --plugin my-plugin
-uv sync
-uv run poe doctor
-uv run poe bootstrap
+```json
+{
+  "name": "my-plugin",
+  "version": "1.0.0"
+}
 ```
 
-The generated `my-plugin` is registered automatically and answers `!ping`.
-`bootstrap` installs the Conan configuration, resolves dependencies, builds,
-and runs the tests.
-
-Later development uses:
-
-```sh
-uv run poe build
-uv run poe test
-uv run poe build windows-msvc-debug
-uv run poe build-linux
-uv run poe new-plugin fun-votes
-```
-
-`test` rebuilds before running CTest.
-
-Output is written to
-`build/<preset>/plugins/<name>/<platform-arch>/`. With `CS2_SERVER_PATH` set,
-build straight into a local server and run it:
-
-```sh
-uv run poe build --install <name> --start
-```
-
-Then run `volt list` on the server console and test `!ping`.
-
-See [Getting started](docs/getting-started.md) for the generated layout and
-manual staging steps.
-
-## Write a command
-
-The handler's parameter list is the argument spec: every argument is parsed,
-resolved and immunity-checked before the handler runs.
+`plugins/my-plugin/src/App.cpp`:
 
 ```cpp
-namespace Args = VoltMod::Args;
+#include <VoltMod/Api.hpp>
+#include <VoltMod/App/PluginEntry.hpp>
 
-runtime.Commands.Add("slap")
-    .Describe("Slap a player.")
-    .Permission("admin.slap")
-    .Run([&runtime](VoltMod::Caller c, Args::Target t)
-             -> VoltMod::Result<VoltMod::Reply> {
-        runtime.World.Pawns.Slap(t.Value->Ctrl());
-        return c.Ok("cmd.slapped", {{"name", t.Value->Name()}});
-    });
+namespace MyPlugin
+{
+
+struct App
+{
+    explicit App(VoltMod::Runtime& runtime) : Runtime(runtime) {}
+
+    bool Start()
+    {
+        // "cmd.pong" is a translation key; an untranslated key is replied verbatim.
+        Runtime.Commands.Add("ping").Describe("Check that the plugin is alive.").Run(
+            [](VoltMod::Caller c) -> VoltMod::Result<VoltMod::Reply> { return c.Ok("cmd.pong"); });
+        return true;
+    }
+
+    VoltMod::Runtime& Runtime;
+};
+
+}  // namespace MyPlugin
+
+VOLTMOD_PLUGIN(MyPlugin::App);
 ```
 
-Add `cmd.slapped` to the translation files. `CommandManager` owns the command
-for the load cycle. The plugin's `Runtime::Policy` decides permissions,
-immunity, reply formatting, and broadcast behavior.
-
-## Add VoltMod to an existing project
-
-Require the Conan package:
-
-```python
-requires = ("voltmod/[~1.5]",)
-```
-
-Load it and declare plugins:
+`plugins/my-plugin/CMakeLists.txt`:
 
 ```cmake
-find_package(voltmod CONFIG REQUIRED)
-add_subdirectory(plugins/my-plugin)
+voltmod_add_plugin(my-plugin)
 ```
 
-```cmake
-# plugins/my-plugin/CMakeLists.txt
-voltmod_add_plugin(my-plugin VERSION 1.0.0)
+`voltmod init` writes all three, plus settings and translations.
+
+## Install and run
+
+```sh
+uvx --from git+https://github.com/voltygg/voltmod.git voltmod init --plugin my-plugin
+uv sync
+uv run poe bootstrap
+uv run poe build --install my-plugin --start
 ```
 
-The helper configures the native module the host loads, SDK glue, output layout,
-the generated `plugin.json`, build stamp, and install component. A plugin that
-uses the database module requests it:
-
-```cmake
-voltmod_add_plugin(my-plugin VERSION 1.0.0 FEATURES DATABASE)
-```
-
-See [Consuming VoltMod with Conan](docs/consuming-via-conan.md) for profiles,
-local package development, remotes, and lockfiles.
-
-## Compare frameworks
-
-[Choosing a CS2 plugin framework](docs/framework-comparison.md) compares
-VoltMod's native C++ model with SwiftlyS2, Plugify with S2SDK, and
-CounterStrikeSharp using their official documentation.
+On the server console, `volt list` shows the plugin; in chat, `!ping` answers.
+[Getting started](docs/getting-started.md) has the prerequisites and each step on its own.
 
 ## Documentation
 
-The generated guides and API reference are published at
-[voltygg.github.io/voltmod](https://voltygg.github.io/voltmod/).
+Published at [voltygg.github.io/voltmod](https://voltygg.github.io/voltmod/).
 
 - [Getting started](docs/getting-started.md)
-- [Framework comparison](docs/framework-comparison.md)
-- [Architecture and lifetimes](docs/architecture.md)
-- [Plugin lifecycle](docs/plugin.md)
-- [Commands and targeting](docs/commands.md)
-- [Menus and flows](docs/menu.md)
-- [Players, actions, and effects](docs/players.md)
-- [Messages and chat](docs/chat.md)
+- [Writing a plugin](docs/plugin.md)
+- [Running the host](docs/host.md)
 - [Configuration](docs/config.md)
-- [SDK wrappers](docs/sdk.md)
-- [Database](docs/database.md)
-- [HTTP](docs/http.md)
-- [Testing](docs/testing.md)
+- [Commands](docs/commands.md)
+- [Architecture](docs/architecture.md)
+- [Consuming VoltMod with Conan](docs/consuming-via-conan.md)
 - [Changelog](CHANGELOG.md)
 
 ## Contributing
 
-Open an issue before starting a large change because the public API is still
-evolving.
+Open an issue before starting a large change; the public API is still moving.
 
 ## License
 
-VoltMod is available under the [MIT License](LICENSE).
+[MIT](LICENSE).

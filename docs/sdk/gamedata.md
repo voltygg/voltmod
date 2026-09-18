@@ -2,34 +2,44 @@
 
 [TOC]
 
-## What gamedata is for
+Gamedata says where engine code and untyped fields live. The schema says where entity fields live.
+Both are resolved once and read from there.
 
-The host reads `gamedata/gamedata.jsonc` and scans for every entry once when it loads, before any
-plugin runs. Gamedata records engine locations; @ref VoltMod::Bindings defines their C++ types.
+| | says where | source | checked |
+| --- | --- | --- | --- |
+| `gamedata/gamedata.jsonc` | functions, globals, vtable slots, byte offsets | hand-maintained | by the host at startup, per entry |
+| `schema/server.<platform>.json` | entity field offsets | dumped from the running engine | at load, whole layout |
+
+## Bindings
+
+The host reads `addons/voltmod/gamedata/gamedata.jsonc` and scans for every entry once, before any
+plugin loads. @ref VoltMod::Bindings gives those locations C++ types:
 
 ```cpp
 // include/VoltMod/Engine/GameData/Bindings.hpp
 Fn<CEntityInstance*(const char*, int)> CreateEntityByName;   // functions."CreateEntityByName"
-Address GameEventManager;                                   // globals."CSource2Server::g_GameEventManager"
-VirtualFn<void(CEntityInstance*, int)> ChangeTeam;          // vtables."CCSPlayerController::ChangeTeam"
-OffsetOf<int> ClientSlot;                                   // offsets."CServerSideClientBase::m_nClientSlot"
+Address GameEventManager;                                    // globals."CSource2Server::g_GameEventManager"
+VirtualFn<void(CEntityInstance*, int)> ChangeTeam;           // vtables."CCSPlayerController::ChangeTeam"
+OffsetOf<int> ClientSlot;                                    // offsets."CServerSideClientBase::m_nClientSlot"
 ```
 
-Services use `const Bindings&`, avoiding string lookup on runtime call paths. Each plugin's
-`Runtime::Start()` runs `Bindings::Bind`, which takes every member in one pass from a
-@ref VoltMod::GameDataLookup reading what the host already resolved, before plugin `OnLoad`. No plugin reads the file or scans memory itself, so
-a signature a game update broke costs one scan and one error line for the whole server.
+Each plugin's `Runtime::Start()` calls `Bindings::Bind`, which takes every member in one pass from
+a @ref VoltMod::GameDataLookup over what the host already resolved. Services then hold
+`const Bindings&`, so no call path does a string lookup. No plugin reads the file or scans memory
+itself: a signature a game update broke costs one scan and one error line for the whole server.
 
-## `gamedata.jsonc` format
+`Bindings::Failures` lists `key: reason` for every member the last `Bind` left unbound.
 
-The file has four sections, named for what they bind. Each key uses the engine's name for the
-symbol, or `Class::member` when applicable, so it can be checked against upstream gamedata and the
-binary. `Bindings::Bind` maps each key to a C++ member, and each key belongs to one section.
+## gamedata.jsonc format
+
+Four sections, named for what they bind. A key is the engine's own name for the symbol, or
+`Class::member`, so it can be checked against upstream gamedata and against the binary. Each key
+belongs to exactly one section.
 
 ```jsonc
 {
   "$schema": "./gamedata.schema.json",
-  // The steam.inf ServerVersion the entries were last checked on, and the date.
+  // steam.inf ServerVersion the entries were last checked on, and the date.
   "build": { "server": "2000908", "verified": "2026-09-11" },
 
   // A byte pattern matching the start of a function. The match address is the binding.
@@ -41,7 +51,7 @@ binary. `Bindings::Bind` maps each key to a C++ member, and each key belongs to 
     }
   },
 
-  // A global reached through the rel32 displacement `rel32At` bytes after a pattern's match.
+  // A global reached through the rel32 displacement `rel32At` bytes after the match.
   "globals": {
     "CBaseGameSystemFactory::sm_pFirst": {
       "windows": { "pattern": "48 8B 1D ? ? ? ? 48 85 DB 0F 84 ? ? ? ? BD", "rel32At": 3 },
@@ -65,111 +75,121 @@ binary. `Bindings::Bind` maps each key to a C++ member, and each key belongs to 
 }
 ```
 
-The loader reads a base offset and a `base` vtable from RTTI, so they need no per-platform number.
-A base that appears more than once in the class or is virtual is refused.
-
-Wildcard bytes are `?` or `??`. `gamedata.schema.json` sits next to the file with
-`additionalProperties: false` everywhere, so an editor flags a typo before the server sees it.
+Wildcard bytes are `?` or `??`. A `class` name is the top-level RTTI name, with no namespace or
+template. An offset entry is either per-platform numbers or a `class` + `base` pair read from RTTI
+at load, never both. `gamedata.schema.json` sits beside the file with `additionalProperties: false`
+everywhere, so an editor flags a typo before the server sees it.
 
 ## What the host checks
 
-The file is read strictly. An unknown key, a wrong value type, or a section that is not an object
+The file is read strictly: an unknown key, a wrong value type, or a section that is not an object
 rejects the whole file, and the host then has nothing to serve.
 
-Otherwise every entry in the file is resolved, and each one that cannot be is named with its
-reason. A member then binds from its key, or fails with the same line:
+Otherwise every entry is resolved and each failure is logged once with its reason:
 
 - the key is missing, is in two sections, or is in a section that member does not bind from;
 - the entry has no column for this platform;
 - a pattern is empty, its module is not loaded, or it matches nowhere or more than once;
-- a global's rel32 displacement, or the address it points at, is outside its module or unreadable;
+- a global's rel32 displacement, or the address it points at, falls outside its module;
 - an offset or index is negative;
 - a vtable's class table is not found, or its slot does not hold code;
 - a `base` is not in its class through RTTI, is in it more than once, is virtual, or has no vtable
-  of its own where a slot is counted in it.
+  of its own.
 
-The host logs every failure once. Each plugin's `GameData` load step then lists the failures that
-touch its own members, and each feature reports its own through `Available()`.
+Each plugin's `GameData` load step then lists the failures touching its own members, and each
+feature reports its own through `Available()`.
 
-A pattern is validated by a unique match; a vtable index or offset cannot be validated that way.
-When `build.server` does not match the running server, the load warns that the file's vtable
-indices and offsets are unchecked on this build.
+A pattern is validated by matching exactly once. A vtable index or a byte offset cannot be
+validated that way, so when `build.server` does not match the running server the load warns that
+those columns are unchecked on this build. The log records each vtable slot's code as
+`key=module+offset`, to match a crash dump against a binding.
 
-The log records where each vtable slot's code lives as `key=module+offset`, to match a crash dump
-against a binding.
+When every entry resolves, the host writes `addons/voltmod/gamedata/resolved.<platform>.json`:
+the server build, module-relative addresses for functions, globals and class tables, plus slot
+indices and offsets. It is written once per server build, and a failed write does not fail the
+load. Keep the record from a known-good build to diff against after an update.
 
-### The resolved record
+## Schema fields
 
-When every entry resolves, the host - and only the host - writes the resolved data to
-`addons/voltmod/gamedata/resolved.<platform>.json`. The record contains the server build,
-module-relative addresses for functions, globals, and class tables, plus slot indices and offsets.
-It is written once per server build; a failed write does not fail the load. Keep a record from a
-known-good build for comparison after an update.
-
-## Availability
-
-Each optional feature says whether it works this load, and why not:
+Schema offsets need no gamedata. `voltmod schemagen` bakes them into generated accessors, and the
+host verifies the whole generated layout against the live schema once:
 
 ```cpp
-if (auto available = runtime.Hooks.Movement.Available(); !available)
-    Log::Warn("no movement feed: {}", available.error().Detail);
+runtime.Entities.PawnOf(slot).SetHealth(100);   // CBaseEntity::m_iHealth at a baked offset
 ```
 
-The load log names every unavailable feature once, and the `load` status section lists the same.
-A service that is not available stays safe to call and returns an error, an empty `Subscription`,
-or no result.
+`schemagen` reads `schema/manifest.json` plus a dump and writes
+`include/VoltMod/Schema/Generated/` and `src/Schema/Generated/<platform>/`. The dump comes from the
+engine's network serializers, which exist only while a map runs, so the host writes
+`addons/voltmod/schema/server.json` at map start and skips the write when the file on disk already
+carries the running game build.
 
-## Re-verify after an engine update
+Windows and Linux lay entity classes out differently. Each platform has its own committed baseline
+in `schema/server.<platform>.json` and its own generated sources, so run `schemagen` once per
+platform. Re-rendering a platform from its baseline needs no server:
 
-Every entry can drift after a CS2 update. Treat a `build.server` that does not match the running
-server as unverified.
+```bash
+voltmod schemagen --dump schema/server.windows.json --platform windows
+```
 
-1. **Run `voltmod gamedata check`.** It reports, against the installed binaries and in a second,
-   which `functions` and `globals` patterns no longer match. Prefer it to the load log: it needs
-   no server, and it says why an entry drifted rather than only that it did.
-2. **Run `voltmod gamedata resolve --write`** to repair what it can, then read the diff. It only
-   ever widens a struct displacement that moved, and only when exactly one such change brings the
-   pattern back to a single match. Anything else it refuses, and those you re-sync by hand from
-   the upstream named in `gamedata.jsonc`.
-3. **Re-check every vtable index.** The slot check catches an index that lands on data, but not a
+Field access on a wrapper is what @ref sdk_players_guide "Entities and players" describes.
+
+### The layout stamp
+
+The offsets are compiled into each plugin's own copy of the SDK, so the host can only vouch for a
+plugin built from the same generated layout. `schemagen` emits `GeneratedLayoutStamp()`, a hash of
+class names and sizes, field names, offsets and sizes: regenerating an unchanged layout keeps the
+value, and a moved field changes it. Each plugin compares its stamp with the host's before taking
+the host's answer, and refuses the load when they differ:
+
+```text
+SchemaLayout: this plugin was built against another schema layout (plugin 0xECF0B3522A6F1551,
+host 0x4C1E2A77B09D3E08); rebuild it against this VoltMod
+```
+
+The plugin binary and `voltmod.dll` came from different builds of the framework. Rebuild the plugin
+against the VoltMod the host was built from and install both together.
+
+When the stamps match but the live schema moved a field, the load aborts with:
+
+```text
+SchemaLayout: the host found schema drift; its log names every field
+```
+
+and the host's log names each one:
+
+```text
+CCSPlayerPawn::m_ArmorValue: offset 4828 -> 4820
+```
+
+## After a game update
+
+A dump needs a running map, so a cold start refuses every plugin before the first map loads. Update
+day is: start the server, let the plugins refuse, let a map load so the host writes the dump, run
+`voltmod schemagen`, review the `git diff` of the generated code, rebuild.
+
+Gamedata is repaired separately, and offline:
+
+1. `voltmod gamedata check` reports which `functions` and `globals` patterns no longer match the
+   installed binaries, and why. It needs no server.
+2. `voltmod gamedata resolve --write` repairs what it can, then read the diff.
+3. Re-check every vtable index by hand. The slot check catches an index landing on data, not a
    valid slot holding the wrong function.
-4. **Re-check every byte offset.** Stale offsets can read plausible unrelated data.
-5. **Exercise each feature on a live server.** Successful resolution does not prove correct behavior.
-6. **Update `build.server` and `build.verified`** in the same change.
+4. Re-check every byte offset by hand. A stale offset reads plausible unrelated data.
+5. Exercise each feature on a live server. Resolution is not correctness.
+6. Update `build.server` and `build.verified` in the same change.
 
-Common failure points:
+`check` and `resolve` take `--game-dir` (default `CS2_SERVER_PATH`) and `--platform`. The platform
+otherwise follows whichever binaries that directory holds, so the Linux column is checked by
+pointing them at a folder holding `libserver.so` and `libengine2.so` copied off a server.
 
-| Entry | Section | Used by | Drift symptom |
-| --- | --- | --- | --- |
-| `CPlayer_MovementServices::RunCommand` | vtables | @ref VoltMod::Movement | Crash on the first movement tick, unless the slot check catches it |
-| `CBaseEntity::Teleport` | vtables | @ref VoltMod::Teleport | Missing: subscribing to `Teleported` is refused and `Teleport::Available` says why |
-| `CServerSideClient::ProcessRespondCvarValue` | vtables | @ref VoltMod::ClientConVars | `ClientConVars::Available` fails; client convar queries unavailable |
-| `CUserCmd::CSGOUserCmdPB` | offsets | `Movement` cmd events | Missing: `Valid=false` views. Stale: garbage viewangles and buttons |
-| `GameEntitySystem` | offsets | @ref VoltMod::EntitySystem | Stale: the pointer read is not a `CGameEntitySystem`, so entity lookups return nothing and the load log says so |
-| `CUserCmdBase::cmdNum` | offsets | `PlayerInput::CommandNumber` | Missing: falls back to the protobuf's `legacy_command_number`, which live clients leave at 0. Stale: a counter that never increments by 1 |
-| `CServerSideClientBase::m_nClientSlot` | offsets | `ClientConVars`, `ButtonPresses` | Stale: a client's answer is attributed to the wrong player |
-| `INetworkMessageProcessingPreFilter::FilterMessage` | vtables (base) | @ref VoltMod::ScreenManager::Pressed | Missing: `ScreenManager::Available` fails; presses never arrive. Stale index: a different filter function is hooked |
-| `CServerSideClient::INetworkMessageProcessingPreFilter` | offsets (RTTI) | @ref VoltMod::ScreenManager::Pressed | Missing: the base was renamed or its RTTI changed; `ScreenManager::Available` fails |
-| `CNetworkGameServer::ReplyConnection` | functions | @ref VoltMod::Addons | Missing: `Require` is refused with the reason |
-| `CNetworkGameServer::m_szAddons` | offsets | @ref VoltMod::Addons | Stale: clients download addons but mount none, or a corrupted reply |
-| `CheckTransmitPlayerSlot` | offsets | @ref VoltMod::Visibility | Stale: the wrong recipient is filtered |
-| `CSource2Server::g_GameEventManager` | globals | @ref VoltMod::GameEvents | Center HTML does not display |
+What `resolve --write` will and will not do:
 
-## Checking and repairing offline
-
-`voltmod gamedata check` and `voltmod gamedata resolve` read the shipped binaries and never start
-the game. `--game-dir` defaults to `CS2_SERVER_PATH`, and the platform comes from whichever
-binaries that directory holds, so the Linux column is checked by pointing them at a folder
-holding `libserver.so` and `libengine2.so` copied off a server.
-
-What `resolve --write` will do, and what it will not:
-
-- An entry that still matches once is never rewritten. The file only changes where it was wrong.
-- An entry that misses is repaired only by widening one struct displacement, the bytes a pattern
-  should never have pinned, and only when exactly one such change brings it back to a single
-  match. Two viable candidates means nothing can say which drifted, so it refuses.
-- It never searches for a function. Verify each binding against the upstream named in
-  `gamedata.jsonc`.
+- An entry that still matches once is never rewritten. The file changes only where it was wrong.
+- A missed entry is repaired only by widening one struct displacement - bytes a pattern should
+  never have pinned - and only when exactly one such change brings it back to a single match. Two
+  viable candidates means nothing can say which drifted, so it refuses.
+- It never searches for a function. Re-sync those by hand from the upstream named in the file.
 
 ```text
 ==> gamedata windows (game build 2000908)
@@ -179,54 +199,24 @@ What `resolve --write` will do, and what it will not:
               1208 is CCSCustomHudLayout::m_vecPlayerLayoutStates
 ```
 
-## Pattern scanning
+Common drift points:
 
-The internal scanner rejects ambiguous patterns. A global's rel32 target must land inside its
-module. Plugins access the scanner through gamedata rather than directly.
-
-### Vtable lookup by class name
-
-`FindVirtualTable(moduleName, className)` resolves primary class tables. `FindBaseIn` finds a base's
-position in a class and its own table. `VirtualFn` stores the resolved table and slot.
-
-- Windows: walks the module's RTTI: the type descriptor for `.?AV<class>@@` or `.?AU<class>@@`,
-  the complete object locator referencing it (its signature and its own RVA must match), then the
-  vtable that follows. A base's offset comes from the class hierarchy's base list, and its table
-  follows the locator at that offset. The name has to be the top-level class name exactly: a nested
-  or namespaced class resolves to null.
-- Linux: reads `_ZTV<mangled>` from the ELF `.symtab`, falling back to `.dynsym`. The game's
-  modules hide those symbols, so it then walks the Itanium RTTI in the mapped module. A base's
-  offset is summed along the typeinfo base lists, and its table is the one whose offset-to-top is
-  minus that offset.
-
-When lookup fails, the entry does not bind.
-
-## Schema fields
-
-Schema offsets need no gamedata: `voltmod schemagen` bakes them into the generated accessors,
-and `Runtime::Start` verifies the whole layout against the live schema once at load. The input
-`schemagen` needs, `addons/voltmod/schema/server.json`, also records which fields the engine sends
-to clients. That comes from the engine's network serializers, which exist only while a map runs, so
-a plugin writes the dump at map start, or at load when it loads into a running map, and skips it
-when the dump on disk already carries the running game build. A failed write never fails a load.
-
-```cpp
-runtime.Entities.PawnOf(slot).SetHealth(100);   // writes CBaseEntity::m_iHealth at a baked offset
-```
-
-Gamedata and the schema answer different questions, and both are baked rather than searched at
-each call:
-
-| | says where | source | checked |
+| Entry | Section | Used by | Drift symptom |
 | --- | --- | --- | --- |
-| `gamedata/gamedata.jsonc` | functions, globals, vtable slots, offsets | hand-maintained | at load, per entry |
-| `schema/server.<platform>.json` | entity field offsets | dumped from the engine | at load, whole layout |
+| `CPlayer_MovementServices::RunCommand` | vtables | @ref VoltMod::Movement | Crash on the first movement tick, unless the slot check catches it |
+| `CBaseEntity::Teleport` | vtables | @ref VoltMod::Teleport | Subscribing to `Teleported` is refused; `Teleport::Available` says why |
+| `CServerSideClient::ProcessRespondCvarValue` | vtables | @ref VoltMod::ClientConVars | `ClientConVars::Available` fails; queries unavailable |
+| `INetworkMessageProcessingPreFilter::FilterMessage` | vtables (base) | @ref VoltMod::ScreenManager | Presses never arrive; a stale index hooks a different filter |
+| `CUserCmd::CSGOUserCmdPB` | offsets | @ref VoltMod::Movement | Missing: `Valid=false`. Stale: garbage viewangles and buttons |
+| `GameEntitySystem` | offsets | @ref VoltMod::EntitySystem | Stale: the pointer is not a `CGameEntitySystem`, so lookups return nothing |
+| `CUserCmdBase::cmdNum` | offsets | `PlayerInput::CommandNumber` | Missing: falls back to `legacy_command_number`, which live clients leave at 0 |
+| `CServerSideClientBase::m_nClientSlot` | offsets | `ClientConVars`, screen presses | Stale: a client's answer is attributed to the wrong player |
+| `CheckTransmitPlayerSlot` | offsets | @ref VoltMod::Visibility | Stale: the wrong recipient is filtered |
+| `CNetworkGameServer::ReplyConnection` | functions | @ref VoltMod::Addons | `Require` is refused with the reason |
+| `CSource2Server::g_GameEventManager` | globals | @ref VoltMod::GameEvents | Events do not fire and center HTML does not display |
 
-Schema fields are generated accessors, so a sub-object is a hop rather than a follow:
+## Class table lookup
 
-```cpp
-int money = controller.InGameMoneyServices().Account();
-```
-
-Every accessor answers harmlessly on a falsy view, and a `Set` dirties the field for replication
-on its own. Use them only on the game thread.
+The host finds a class vtable by RTTI on Windows and by `_ZTV` symbol - falling back to the mapped
+module's Itanium RTTI - on Linux. A `class` name must therefore be the top-level RTTI name exactly;
+a nested or namespaced name resolves to nothing and the entry does not bind.

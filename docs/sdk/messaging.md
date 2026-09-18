@@ -4,95 +4,83 @@
 
 ## Messages
 
-One service handles all message destinations. See @ref chat_guide for colors,
-translation keys, and broadcasts:
+One service covers every message destination. See @ref chat_guide for colors, translation keys and
+broadcasts.
 
 ```cpp
 auto& msg = runtime.Messages;
 
-msg.Reply(slot, "Hello!");                                     // chat line
-msg.Send(slot, "Look up", VoltMod::MessageKind::Center);        // plain center print
+msg.Reply(slot, "Hello!");                                 // chat line
+msg.Send(slot, "Look up", VoltMod::MessageKind::Center);   // plain center print
 msg.Send(slot, "<b>Notice</b>", VoltMod::MessageKind::CenterHtml);
 msg.Broadcast("Map change in 60s", VoltMod::MessageKind::Alert);
+msg.ReplyKey(slot, "punish.banned", {{"admin", name}});    // translated for the player's language
 
 msg.ClearCenterHtml(slot);
+msg.Shake(slot, 1.0f, 40.0f, 8.0f);                        // duration, frequency, amplitude
 ```
 
 ## CenterHtml
 
-CS2 drops center-HTML almost immediately after events such as death, a team
-switch, or a HUD update. A sticky panel must therefore be sent repeatedly.
-@ref VoltMod::CenterHtml owns that refresh loop; the caller owns
-the deadline or expiry policy:
+CS2 drops center HTML almost immediately after a death, a team switch or a HUD update, so a sticky
+panel has to be re-sent. @ref VoltMod::CenterHtml owns that loop and nothing else; the deadline or
+expiry policy is yours.
 
 ```cpp
-// A member of your plugin object; the two services it takes belong to the runtime.
+// A member of your plugin object; both services belong to the runtime.
 VoltMod::CenterHtml panel{runtime.Messages, runtime.Scheduler};
 
 panel.Show(slot, /*refreshMs=*/100, [](int s) {
     return std::format("<b>Time left: {}s</b>", RemainingSeconds(s));  // re-rendered every refresh
 });
-// ...
-panel.Stop(slot);   // cancel + clear the panel
+
+panel.Stop(slot);   // cancel and clear the panel
 ```
 
 ## ChatInput
 
-This per-slot prompt registry powers menu text input and may also be used
-directly.
+A per-slot prompt registry. It powers menu text input and can be used directly.
 
 ```cpp
-auto& capture = runtime.Hooks.ChatInput;
-
-capture.BeginCapture(slot, "Enter your nickname:",
+runtime.Hooks.ChatInput.BeginCapture(slot, "Enter your nickname:",
     [](int s, std::string_view text) -> bool {
-        if (text.size() > 32) return false;        // re-prompt
+        if (text.size() > 32)
+            return false;                          // re-prompt
         StoreNickname(s, std::string(text));
-        return true;                                // accept
+        return true;                               // accept and clear the capture
     },
     /*timeoutMs=*/30000);
 ```
 
-The validator returns `true` to accept and clear the capture, or `false` to
-prompt again. Inactive captures expire after `timeoutMs`.
+| Method | What it does |
+| --- | --- |
+| `BeginCapture(slot, prompt, callback, timeoutMs = 60000)` | Wait for the slot's next chat line, replacing any pending prompt. A positive timeout cancels the capture. |
+| `IsCapturing(slot)` | Whether a prompt is pending. |
+| `TryConsume(slot, text)` | Route a chat line to the active prompt. `true` means the caller must suppress the chat broadcast. |
+| `CancelCapture(slot)` | Drop the prompt without firing the callback. |
+| `GetPrompt(slot)` | A copy of the active prompt as `std::optional<std::string>`. |
 
-### Plumbing the chat hook
+The service subscribes to @ref VoltMod::SlotEvents itself, so a pending prompt is cancelled when the
+slot changes hands.
 
-The base `Plugin::OnPlayerChat` already consumes active prompts before
-dispatching commands. An override replaces that behavior, so it must call
-@ref VoltMod::ChatInput::TryConsume before handling other chat:
-
-The override reaches `ChatInput` through the state `OnLoad` built - here an
-`std::optional<App>` member holding the `Runtime&`:
+`Plugin::OnPlayerChat` already consumes active prompts before dispatching commands. An override
+replaces that, so it must call `TryConsume` first or menu text input never completes:
 
 ```cpp
 bool MyPlugin::OnPlayerChat(Player* p, std::string_view message, bool team) override
 {
     if (_app->Runtime.Hooks.ChatInput.TryConsume(p->Slot(), message))
-        return true;   // capture handled it; don't broadcast
+        return true;   // the capture handled it; don't broadcast
     return false;      // fall through to normal chat handling
 }
 ```
 
-If no capture is pending for the slot, `TryConsume` returns `false`.
-
-### API
-
-| Method | Description |
-| --- | --- |
-| `BeginCapture(slot, prompt, callback, timeoutMs = 30000)` | Start waiting for `slot`'s next chat line. Replaces any previous pending prompt for the same slot. |
-| `IsCapturing(slot)` | `true` if `slot` has a pending prompt. |
-| `TryConsume(slot, text)` | Route a chat line to the active prompt. Returns `true` when the message was consumed. |
-| `CancelCapture(slot)` | Drop the pending prompt without firing the callback. |
-| `GetPrompt(slot)` | Returns the active prompt string (used by the center-HTML menu driver to draw the overlay), or `nullptr`. |
-
-The service subscribes to @ref VoltMod::SlotEvents itself, so a pending prompt is cancelled
-when the slot changes hands. Nothing has to call a lifecycle hook for it.
-
 ## Vote
 
-@ref VoltMod::Vote draws the engine's yes/no panel with user messages and counts the ballots
-itself, from the `vote` command the panel's F1/F2 keys send.
+@ref VoltMod::Vote draws the engine's yes/no panel with user messages and counts the ballots itself,
+from the `vote` command the panel's F1/F2 keys send. The panel is the engine's, so the title must be
+a `#SFUI_vote...` or `#Panorama_vote...` token the client already has; arbitrary text does not
+render. Only one vote runs at a time.
 
 ```cpp
 runtime.Hooks.Vote.StartVote(
@@ -101,12 +89,14 @@ runtime.Hooks.Vote.StartVote(
     20.0f,                              // seconds before it closes itself
     callerSlot,                         // whose name the panel credits; -1 for the server
     [](const VoltMod::VoteTally& tally) {
-        // Decide whether it passed. Judging on ballots cast rather than on everyone connected
-        // means abstaining is not the same as voting no.
+        // Judging on ballots cast rather than everyone connected means abstaining is not a no.
         return tally.Cast() > 0 && tally.Yes * 2 > tally.Cast();
     },
     [](bool passed, VoltMod::VoteEndReason reason) { /* act on the outcome */ });
 
-runtime.Hooks.Vote.InProgress();                                   // only one vote runs at a time
-runtime.Hooks.Vote.EndVote(VoltMod::VoteEndReason::Cancelled);     // call one off early
+runtime.Hooks.Vote.InProgress();
+runtime.Hooks.Vote.EndVote(VoltMod::VoteEndReason::Cancelled);   // call one off early
 ```
+
+`StartVote` returns false when a vote is already running or nobody is connected. `VoteEndReason` is
+`AllVoted`, `TimeUp` or `Cancelled`. Every callback runs on the game thread.

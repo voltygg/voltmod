@@ -39,8 +39,8 @@ cli/voltmod/      Python CLI (tests: cli/tests/)   templates/  new-plugin and in
 tests/            SDK-free doctest suite   docs/       Doxygen guides
 ```
 
-Consumers call `find_package(voltmod CONFIG REQUIRED)` and `voltmod_add_plugin(name VERSION v)`
-(`FEATURES DATABASE` for PostgreSQL, MariaDB or SQLite). Targets: `VoltMod::Sdk`, `VoltMod::Database`,
+Consumers call `find_package(voltmod CONFIG REQUIRED)` and `voltmod_add_plugin(name)`
+(`FEATURES DATABASE` for PostgreSQL, MariaDB or SQLite); the plugin's `plugin.json` names and versions it. Targets: `VoltMod::Sdk`, `VoltMod::Database`,
 `VoltMod::Headers` (SDK-free, for tests). Versions: framework in `conanfile.py`, SDK in each
 recipe's `conandata.yml`, tools in `pyproject.toml`.
 
