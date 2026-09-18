@@ -4,17 +4,15 @@
 
 What changed in each VoltMod release. Older history is in git.
 
-## Unreleased
+## 1.5.1 (2026-09-18)
 
 ### Breaking
 
-- `voltmod_add_plugin` and `voltmod_add_tests` take `DATABASE` instead of `FEATURES DATABASE`.
-- `VoltMod::Headers` is gone. Test binaries link `VoltMod::Portable`, the framework code that
-  builds without the game SDK, so an SDK-free source under test can call `Log`, `Time` and
-  `Strings`.
-- The plugin's version comes from its `plugin.json`, through `IHost::Version()`. The generated
-  `BuildInfo.hpp` and the commit and date in `volt list` and the plugin's status are gone.
-  `PluginDescriptor` lost `Version`; rebuild every plugin together with the host.
+- Write `DATABASE` instead of `FEATURES DATABASE` in `voltmod_add_plugin` and `voltmod_add_tests`.
+- Link `VoltMod::Portable` where you linked `VoltMod::Headers`; tested SDK-free code can now call
+  `Log`, `Time` and `Strings`.
+- Rebuild every plugin together with the host: plugins built against 1.5.0 cannot load.
+- `runtime.Version` and `volt list` show the `plugin.json` version without a commit suffix.
 
 ## 1.5.0 (2026-09-18)
 
