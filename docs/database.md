@@ -59,7 +59,7 @@ struct Settings
 "database": { "driver": "postgres", "host": "localhost", "port": 0, "database": "voltmod_server",
               "username": "voltmod_plugin", "password": "...", "sslMode": "prefer" }
 
-"database": { "driver": "sqlite", "path": "addons/my-plugin/data.db" }
+"database": { "driver": "sqlite", "path": "addons/voltmod/plugins/my-plugin/data.db" }
 ```
 
 ## Running work
@@ -186,7 +186,7 @@ Anything the set does not cover belongs in a driver-specific migration.
 is also how an operator applies a hand-run seed file.
 
 ```cpp
-if (!VoltMod::RunMigrations(db, "addons/my-plugin/configs/migrations",
+if (!VoltMod::RunMigrations(db, "addons/voltmod/plugins/my-plugin/configs/migrations",
                             {.HistoryTable = "schema_migrations", .LockKey = 727274}))
     return false;   // don't run against an out-of-date schema
 ```

@@ -32,9 +32,9 @@ Runtime::~Runtime()
     Log::DeliverPending();
 }
 
-std::string Runtime::AddonFile(std::string_view relative) const
+std::string Runtime::PluginFile(std::string_view relative) const
 {
-    return VoltMod::AddonFile(PluginName, relative);
+    return VoltMod::PluginFile(PluginName, relative);
 }
 
 bool Runtime::Start(const LoadContext& context)

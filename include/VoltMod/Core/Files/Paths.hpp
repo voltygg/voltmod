@@ -23,11 +23,10 @@ void SetBaseDir(const std::filesystem::path& baseDir);
  */
 std::filesystem::path ResolvePath(std::string_view relativePath);
 
-/** @brief "addons/<addon>" - the engine-relative install root the framework's loaders take.
- *  Pure string building, so safe at static init. */
-std::string AddonDir(std::string_view addon);
+/** @brief "addons/voltmod/plugins/<plugin>". Pure string building, so safe at static init. */
+std::string PluginDir(std::string_view plugin);
 
-/** @brief "addons/<addon>/<relative>", e.g. AddonFile("bhop", "configs/settings.jsonc"). */
-std::string AddonFile(std::string_view addon, std::string_view relative);
+/** @brief "addons/voltmod/plugins/<plugin>/<relative>". */
+std::string PluginFile(std::string_view plugin, std::string_view relative);
 
 }  // namespace VoltMod

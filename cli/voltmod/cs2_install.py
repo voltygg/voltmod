@@ -20,9 +20,10 @@ METAMOD_BINARIES = (
     f"addons/metamod/bin/{BIN_SUBDIR['linux']}/server.so",
 )
 
-# The host is the only Metamod plugin: one per server, loading every plugin beside it.
+# The host is the only Metamod plugin: one per server, loading modules from its plugins directory.
 HOST_COMPONENT = "host"
 HOST_ADDON_DIR = "addons/voltmod"
+PLUGINS_DIR = f"{HOST_ADDON_DIR}/plugins"
 HOST_VDF = "addons/metamod/voltmod.vdf"
 HOST_GAMEDATA = f"{HOST_ADDON_DIR}/gamedata/gamedata.jsonc"
 HOST_BINARY_NAMES = {"windows": "voltmod.dll", "linux": "voltmod.so"}
@@ -48,9 +49,9 @@ GAME_LIBRARIES = {
 RESOURCE_COMPILER = f"game/bin/{BIN_SUBDIR['windows']}/resourcecompiler.exe"
 
 
-def plugin_addon_dir(name: str) -> str:
+def plugin_dir(name: str) -> str:
     """Where one plugin's files live, relative to the game directory."""
-    return f"addons/{name}"
+    return f"{PLUGINS_DIR}/{name}"
 
 
 # Searched in order when no client path is given.

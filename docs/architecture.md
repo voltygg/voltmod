@@ -76,7 +76,7 @@ These are source layers, not link units. The framework ships `VoltMod::Sdk` and 
   └───┬──────────────────────────┬───────────────────────────┬───┘
       │ IHost view               │ IHost view                │
       ▼                          ▼                           ▼
- addons/admin-system/      addons/anticheat/            addons/bhop/
+ plugins/admin-system/      plugins/anticheat/            plugins/bhop/
    Plugin + Runtime          Plugin + Runtime             Plugin + Runtime
    its own allocator         its own allocator            its own allocator
 ```
@@ -98,7 +98,7 @@ down one plugin rather than the whole stack.
 3. It verifies the live schema against the layout baked into this build, once, and remembers both
    the verdict and the layout stamp.
 4. It installs the engine hooks and reserves the `volt` command name.
-5. It reads every `addons/*/plugin.json`, plans an order from the dependency lists, logs one
+5. It reads every `addons/voltmod/plugins/*/plugin.json`, plans an order from the dependency lists, logs one
    `Refusing '<name>': <reason>` per plugin it will not load, and loads the rest in that order.
 6. For each plugin it opens the library, resolves `VoltMod_PluginEntry`, checks the descriptor's
    ABI version and its `Load`/`Unload`/`Status` pointers, opens a host view under the plugin's

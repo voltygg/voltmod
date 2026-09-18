@@ -43,7 +43,7 @@ bool App::Load()
 ```
 
 `LoadStandardConfig` runs a required `Configuration` load step that reads
-`addons/<plugin>/configs/settings.jsonc`, then loads `addons/<plugin>/configs/translations` and
+`addons/voltmod/plugins/<plugin>/configs/settings.jsonc`, then loads the plugin's `configs/translations` and
 applies `plugin.locale` when the settings struct embeds @ref VoltMod::StandardPluginSettings. It
 returns false when the settings step failed, which is what aborts the load.
 
@@ -128,7 +128,7 @@ returns the error and changes nothing, so a command can report the offending key
 the settings already in memory.
 
 ```cpp
-if (auto loaded = Config.LoadSettings(Runtime.AddonFile("configs/settings.jsonc")); !loaded)
+if (auto loaded = Config.LoadSettings(Runtime.PluginFile("configs/settings.jsonc")); !loaded)
     return Reply{std::format("Settings not reloaded: {}", loaded.error().Detail)};
 ```
 

@@ -15,13 +15,13 @@ using VoltMod::PluginManifest;
 using VoltMod::ValidateDescriptor;
 using VoltMod::InstalledPlugins::Discover;
 
-/** An addons directory the case fills with plugin directories. */
-class Addons
+/** An installed plugins directory the case fills with named plugin directories. */
+class Plugins
 {
 public:
-    explicit Addons(std::string_view tag) : _root(tag) {}
+    explicit Plugins(std::string_view tag) : _root(tag) {}
 
-    /** Create `<addons>/<directory>`, holding @p manifest as plugin.json unless it is empty. */
+    /** Create `<plugins>/<directory>`, holding @p manifest as plugin.json unless it is empty. */
     void Install(std::string_view directory, std::string_view manifest) const
     {
         const std::filesystem::path home = std::filesystem::path(_root.Path()) / directory;
@@ -62,10 +62,10 @@ static PluginDescriptor Descriptor()
 
 TEST_CASE("A manifest is read with its optional fields defaulted")
 {
-    const Addons addons("installed-plugins");
-    addons.Install("bhop", R"({ "name": "bhop", "version": "1.2.0", "dependencies": ["admin-system"] })");
+    const Plugins plugins("installed-plugins");
+    plugins.Install("bhop", R"({ "name": "bhop", "version": "1.2.0", "dependencies": ["admin-system"] })");
 
-    const std::vector<PluginManifest> installed = Discover(addons.Path());
+    const std::vector<PluginManifest> installed = Discover(plugins.Path());
 
     REQUIRE(installed.size() == 1u);
     CHECK(installed[0].Name == "bhop");
@@ -78,10 +78,10 @@ TEST_CASE("A manifest is read with its optional fields defaulted")
 
 TEST_CASE("A log tag the manifest gives is kept")
 {
-    const Addons addons("installed-plugins");
-    addons.Install("admin-system", R"({ "name": "admin-system", "version": "2.0.0", "logTag": "Admin" })");
+    const Plugins plugins("installed-plugins");
+    plugins.Install("admin-system", R"({ "name": "admin-system", "version": "2.0.0", "logTag": "Admin" })");
 
-    const std::vector<PluginManifest> installed = Discover(addons.Path());
+    const std::vector<PluginManifest> installed = Discover(plugins.Path());
 
     REQUIRE(installed.size() == 1u);
     CHECK(installed[0].LogTag == "Admin");
@@ -89,36 +89,36 @@ TEST_CASE("A log tag the manifest gives is kept")
 
 TEST_CASE("A manifest naming a plugin other than its directory is refused")
 {
-    const Addons addons("installed-plugins");
-    addons.Install("bhop", R"({ "name": "surf", "version": "1.0.0" })");
+    const Plugins plugins("installed-plugins");
+    plugins.Install("bhop", R"({ "name": "surf", "version": "1.0.0" })");
 
-    CHECK(Discover(addons.Path()).empty());
+    CHECK(Discover(plugins.Path()).empty());
 }
 
 TEST_CASE("A malformed manifest, or one with a misspelled key, is refused")
 {
-    const Addons addons("installed-plugins");
-    addons.Install("bhop", R"({ "name": "bhop", )");
-    addons.Install("surf", R"({ "name": "surf", "version": "1.0.0", "dependancies": ["bhop"] })");
+    const Plugins plugins("installed-plugins");
+    plugins.Install("bhop", R"({ "name": "bhop", )");
+    plugins.Install("surf", R"({ "name": "surf", "version": "1.0.0", "dependancies": ["bhop"] })");
 
-    CHECK(Discover(addons.Path()).empty());
+    CHECK(Discover(plugins.Path()).empty());
 }
 
 TEST_CASE("A directory without a manifest is not a plugin")
 {
-    const Addons addons("installed-plugins");
-    addons.Install("metamod", "");
-    addons.Install("bhop", R"({ "name": "bhop", "version": "1.0.0" })");
+    const Plugins plugins("installed-plugins");
+    plugins.Install("not-a-plugin", "");
+    plugins.Install("bhop", R"({ "name": "bhop", "version": "1.0.0" })");
 
-    const std::vector<PluginManifest> installed = Discover(addons.Path());
+    const std::vector<PluginManifest> installed = Discover(plugins.Path());
 
     REQUIRE(installed.size() == 1u);
     CHECK(installed[0].Name == "bhop");
 }
 
-TEST_CASE("An addons directory that is not there resolves to nothing")
+TEST_CASE("A plugins directory that is not there resolves to nothing")
 {
-    CHECK(Discover("voltmod-no-such-addons-directory").empty());
+    CHECK(Discover("voltmod-no-such-plugins-directory").empty());
 }
 
 TEST_CASE("A descriptor is accepted only whole and only at this host's ABI version")

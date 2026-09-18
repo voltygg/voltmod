@@ -17,14 +17,14 @@ std::filesystem::path ResolvePath(std::string_view relativePath)
     return p.is_absolute() ? p : g_baseDir / p;
 }
 
-std::string AddonDir(std::string_view addon)
+std::string PluginDir(std::string_view plugin)
 {
-    return std::format("addons/{}", addon);
+    return std::format("addons/voltmod/plugins/{}", plugin);
 }
 
-std::string AddonFile(std::string_view addon, std::string_view relative)
+std::string PluginFile(std::string_view plugin, std::string_view relative)
 {
-    return std::format("addons/{}/{}", addon, relative);
+    return std::format("{}/{}", PluginDir(plugin), relative);
 }
 
 }  // namespace VoltMod

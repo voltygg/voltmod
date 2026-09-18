@@ -14,10 +14,8 @@ namespace VoltMod
 {
 
 #if defined(_WIN32)
-static constexpr std::string_view PlatformDirectory = "win64";
 static constexpr std::string_view LibrarySuffix = ".dll";
 #else
-static constexpr std::string_view PlatformDirectory = "linuxsteamrt64";
 static constexpr std::string_view LibrarySuffix = ".so";
 #endif
 
@@ -33,12 +31,12 @@ static void WarnUnreleased(std::string_view name, const Unreleased& unreleased)
 
 static std::filesystem::path LibraryPath(std::string_view name)
 {
-    return ResolvePath(AddonFile(name, std::format("bin/{}/{}{}", PlatformDirectory, name, LibrarySuffix)));
+    return ResolvePath(PluginFile(name, std::format("{}{}", name, LibrarySuffix)));
 }
 
 static std::vector<PluginManifest> Installed()
 {
-    return InstalledPlugins::Discover(ResolvePath("addons"));
+    return InstalledPlugins::Discover(ResolvePath("addons/voltmod/plugins"));
 }
 
 std::string_view LoadedPlugin::Version() const

@@ -25,12 +25,19 @@ struct PluginDocument
     std::vector<std::string> optionalDependencies;
 };
 
-std::vector<PluginManifest> InstalledPlugins::Discover(const std::filesystem::path& addons)
+std::vector<PluginManifest> InstalledPlugins::Discover(const std::filesystem::path& plugins)
 {
     std::vector<PluginManifest> installed;
 
     std::error_code failed;
-    for (std::filesystem::directory_iterator entry(addons, failed), end; !failed && entry != end;
+    if (!std::filesystem::exists(plugins, failed))
+    {
+        if (failed)
+            Log::Error("Cannot inspect {}: {}", plugins.string(), failed.message());
+        return installed;
+    }
+
+    for (std::filesystem::directory_iterator entry(plugins, failed), end; !failed && entry != end;
          entry.increment(failed))
     {
         if (!entry->is_directory(failed) || failed)
@@ -66,7 +73,7 @@ std::vector<PluginManifest> InstalledPlugins::Discover(const std::filesystem::pa
     }
 
     if (failed)
-        Log::Error("Cannot read {}: {}", addons.string(), failed.message());
+        Log::Error("Cannot read {}: {}", plugins.string(), failed.message());
 
     return installed;
 }

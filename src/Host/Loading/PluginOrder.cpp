@@ -100,7 +100,7 @@ LoadPlan PluginOrder::Plan(std::span<const PluginManifest> installed)
     for (const PluginManifest& manifest : installed)
         if (!plugins.emplace(manifest.Name, &manifest).second)
             refused.insert_or_assign(manifest.Name,
-                                     Error::Invalid("installed more than once; each addon directory needs its "
+                                     Error::Invalid("installed more than once; each plugin directory needs its "
                                                     "own plugin name"));
 
     RefuseUnsatisfied(plugins, refused);

@@ -9,7 +9,8 @@ What changed in each VoltMod release. Older history is in git.
 ### Breaking
 
 - The framework runs as one host per server process. `addons/metamod/voltmod.vdf` is the only
-  Metamod plugin left; your plugin is a module under `addons/<name>/` that the host loads.
+  Metamod plugin left; your plugin is a module under `addons/voltmod/plugins/<name>/` that the host loads.
+  Its binary sits beside `plugin.json`; per-plugin `bin/` directories are gone.
 - Derive your load-cycle class from `VoltMod::Plugin`, construct the base from `Runtime&`, and
   override `Load()`. `VOLTMOD_PLUGIN(MyPlugin)` constructs it after the runtime starts and
   destroys it before the runtime stops. The macro comes from `<VoltMod/App/PluginEntry.hpp>`;
@@ -18,7 +19,7 @@ What changed in each VoltMod release. Older history is in git.
   `version`, `logTag`, `description`, `author`, `dependencies`, `optionalDependencies`.
   `voltmod_add_plugin(<name>)` reads it and takes no `VERSION`. `PluginInfo`, `Plugin::Info()`
   and `WithBuildInfo` are gone; read `runtime.PluginName` and `runtime.Version` instead.
-- `LoadStandardConfig(runtime, config)` and `runtime.AddonFile(relative)` know the plugin's
+- `LoadStandardConfig(runtime, config)` and `runtime.PluginFile(relative)` know the plugin's
   directory; `StandardLoadOptions::Addon` is gone.
 - Link `VoltMod::Sdk` where you linked `VoltMod::Runtime`. There is no alias for the old name.
 - `voltmod_add_plugin` no longer writes a per-plugin `.vdf`. Delete the old ones from

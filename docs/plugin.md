@@ -99,7 +99,8 @@ Add `.cpp` files anywhere under `src/`; `voltmod_add_plugin` globs them.
 ## plugin.json
 
 The manifest is hand-written and lives beside `CMakeLists.txt`. CMake reads `name` and `version`
-from it at configure time; the host reads the copy installed at `addons/<name>/plugin.json`. An
+from it at configure time; the host reads the copy installed at
+`addons/voltmod/plugins/<name>/plugin.json`. An
 unknown key is an error and the plugin is refused.
 
 ```json
@@ -116,7 +117,7 @@ unknown key is an error and the plugin is refused.
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `name` | string | required | The plugin's directory under `addons/` and its CMake target. All three must match. |
+| `name` | string | required | The plugin's directory under `addons/voltmod/plugins/` and its CMake target. All three must match. |
 | `version` | string | required | Its version. CMake stamps it into the build info as `<version>+<short-sha>[-dirty]`, which is what `volt list` shows. |
 | `logTag` | string | `name` | The prefix the host puts in front of every log line from this plugin. |
 | `description` | string | `""` | One line, printed after the version by `volt list`. |
@@ -160,7 +161,7 @@ if (!VoltMod::LoadStandardConfig(Runtime, Config))
     return false;
 ```
 
-It reads `addons/<plugin>/configs/settings.jsonc` and then `configs/translations`. Pass
+It reads `addons/voltmod/plugins/<plugin>/configs/settings.jsonc` and then `configs/translations`. Pass
 `{.SettingsFile = "configs/other.jsonc"}` or `{.Translations = false}` to change either. See
 @ref config_guide.
 
@@ -257,17 +258,17 @@ addons/
     bin/win64/voltmod.dll                 or bin/linuxsteamrt64/voltmod.so
     gamedata/gamedata.jsonc
     schema/server.json                    written by the server once a map has run
-  my-plugin/
-    plugin.json
-    bin/win64/my-plugin.dll               or bin/linuxsteamrt64/my-plugin.so
-    configs/
-      settings.jsonc                      seeded once, never overwritten
-      settings.schema.json
-      translations/en.json
+    plugins/my-plugin/
+      plugin.json
+      my-plugin.dll                       or my-plugin.so
+      configs/
+        settings.jsonc                    seeded once, never overwritten
+        settings.schema.json
+        translations/en.json
 ```
 
-A plugin has no `.vdf` of its own. `runtime.AddonFile("configs/x")` builds
-`addons/<name>/configs/x` for any file the plugin reads at run time.
+A plugin has no `.vdf` or `bin` directory of its own. `runtime.PluginFile("configs/x")` builds
+`addons/voltmod/plugins/<name>/configs/x` for any file the plugin reads at run time.
 
 `uv run poe build --install <name>` stages and merges both trees. By hand:
 

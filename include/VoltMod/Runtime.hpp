@@ -66,13 +66,13 @@ public:
     /** Drive the scheduler. Called once per frame from the GameFrame hook. */
     void OnGameFrame();
 
-    /** The plugin's `plugin.json` name, which is also its directory under `addons/`. */
+    /** The plugin's `plugin.json` name and directory under `addons/voltmod/plugins/`. */
     std::string PluginName;
     /** "<plugin.json version>+<short-sha>[-dirty]". */
     std::string Version;
 
-    /** "addons/<PluginName>/<relative>". */
-    std::string AddonFile(std::string_view relative) const;
+    /** "addons/voltmod/plugins/<PluginName>/<relative>". */
+    std::string PluginFile(std::string_view relative) const;
 
     VoltMod::LoadSteps LoadSteps;
 

@@ -6,22 +6,21 @@ import pytest
 
 from voltmod import server
 from voltmod.cs2_install import (
-    BIN_SUBDIR,
     CSGO_DIR,
     HOST_BINARIES,
     HOST_GAMEDATA,
     HOST_VDF,
-    plugin_addon_dir,
+    plugin_dir,
 )
 from voltmod.errors import VoltmodError
 from voltmod.project import Project, Settings
 
 PRESET = "windows-msvc-release"
 HOST_DLL = HOST_BINARIES["windows"]
-DEMO = plugin_addon_dir("demo")
+DEMO = plugin_dir("demo")
 
 HOST_FILES = (HOST_VDF, HOST_DLL, HOST_GAMEDATA)
-PLUGIN_FILES = (f"{DEMO}/bin/{BIN_SUBDIR['windows']}/demo.dll", f"{DEMO}/plugin.json")
+PLUGIN_FILES = (f"{DEMO}/demo.dll", f"{DEMO}/plugin.json")
 
 
 @pytest.fixture(autouse=True)

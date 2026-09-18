@@ -35,7 +35,7 @@ function(voltmod_add_plugin target_name)
         SOURCES ${ARG_SOURCES}
         VERSION "${version}"
         OUTPUT_DIR "${CMAKE_BINARY_DIR}/plugins/${target_name}/${VOLTMOD_PLATFORM_ARCH}"
-        INSTALL_DIR "addons/${target_name}/bin/${VOLTMOD_BIN_SUBDIR}"
+        INSTALL_DIR "addons/voltmod/plugins/${target_name}"
         COMPONENT "${target_name}"
     )
 
@@ -68,12 +68,12 @@ function(voltmod_add_plugin target_name)
     endif()
 
     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/plugin.json"
-        DESTINATION "addons/${target_name}" COMPONENT "${target_name}")
+        DESTINATION "addons/voltmod/plugins/${target_name}" COMPONENT "${target_name}")
 
     # settings.jsonc is rendered per server at deploy.
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/configs")
         install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/configs/"
-            DESTINATION "addons/${target_name}/configs"
+            DESTINATION "addons/voltmod/plugins/${target_name}/configs"
             COMPONENT "${target_name}"
             PATTERN "settings.jsonc" EXCLUDE
         )

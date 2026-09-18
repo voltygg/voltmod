@@ -5,7 +5,7 @@
 
 VoltMod is a C++23 framework for Counter-Strike 2 server plugins on Metamod:Source. One
 process-wide host, `voltmod.dll` / `voltmod.so`, is the server's only Metamod plugin and loads
-your plugins out of `addons/<name>/`. Each plugin gets one `Runtime` per load cycle with commands,
+your plugins from `addons/voltmod/plugins/<name>/`. Each plugin gets one `Runtime` per load cycle with commands,
 players, menus, messages, engine access, HTTP and an optional database.
 
 > Public APIs may change between versions.

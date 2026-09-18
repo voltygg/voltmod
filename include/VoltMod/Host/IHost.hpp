@@ -18,7 +18,7 @@ namespace VoltMod
  */
 struct IHost
 {
-    /** The plugin's name: its `plugin.json` name and its directory under `addons/`. */
+    /** The plugin's name: its manifest name and directory under `addons/voltmod/plugins/`. */
     virtual std::string_view Name() const = 0;
 
     /** The host is the Metamod plugin and shares its own API pointer unchanged. */

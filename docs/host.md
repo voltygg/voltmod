@@ -3,7 +3,7 @@
 [TOC]
 
 The host is the server's only Metamod plugin. It installs the engine hooks once, loads every
-plugin it finds under `addons/*/plugin.json`, and offers each engine event to them in load order.
+plugin it finds under `addons/voltmod/plugins/*/plugin.json`, and offers each engine event to them in load order.
 `meta list` shows the host; `volt` commands show the plugins.
 
 ## volt
@@ -134,8 +134,8 @@ refused. Move the shared piece into one of them and let the other reach it throu
 `runtime.Exchange`, which does not create a load-order edge unless you also list it as an optional
 dependency.
 
-**`Refusing '<name>': installed more than once; each addon directory needs its own plugin name.`**
-Two directories under `addons/` carry manifests with the same `name`.
+**`Refusing '<name>': installed more than once; each plugin directory needs its own plugin name.`**
+Two directories under `addons/voltmod/plugins/` carry manifests with the same `name`.
 
 **A plugin loads but a feature is missing.** The load summary logs `<feature> is unavailable:
 <reason>` for each engine feature that could not bind, and `volt status <name>` repeats it in the

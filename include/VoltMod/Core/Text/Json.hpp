@@ -24,7 +24,7 @@ namespace VoltMod
  *
  * @code
  * struct Cfg { std::string host = "localhost"; int port = 5432; };
- * auto cfg = Json::ReadFile<Cfg>("addons/my/config.jsonc");
+ * auto cfg = Json::ReadFile<Cfg>("addons/voltmod/plugins/my-plugin/config.jsonc");
  * if (!cfg)
  *     Log::Error("{}", cfg.error().Detail);
  * @endcode

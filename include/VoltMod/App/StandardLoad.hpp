@@ -22,14 +22,14 @@ struct StandardLoadOptions
 /**
  * @brief Run the standard configuration and translation load steps.
  *
- * The required "Configuration" step reads `addons/<plugin>/<SettingsFile>` through
- * TConfig::LoadSettings when available, otherwise Options::Load. Translation loading then
- * applies `plugin.locale` and reads `addons/<plugin>/configs/translations` when enabled.
+ * The required "Configuration" step reads the plugin's @ref StandardLoadOptions::SettingsFile
+ * through TConfig::LoadSettings when available, otherwise Options::Load. Translation loading then
+ * applies `plugin.locale` and reads the plugin's `configs/translations` directory when enabled.
  */
 template <class TConfig>
 bool LoadStandardConfig(Runtime& runtime, TConfig& config, const StandardLoadOptions& options = {})
 {
-    const std::string path = runtime.AddonFile(options.SettingsFile);
+    const std::string path = runtime.PluginFile(options.SettingsFile);
     const bool loaded = runtime.LoadSteps.Required("Configuration", [&] {
         Status status = [&] {
             if constexpr (requires { config.LoadSettings(path); })
@@ -49,7 +49,7 @@ bool LoadStandardConfig(Runtime& runtime, TConfig& config, const StandardLoadOpt
         auto& translations = runtime.Translations;
         if constexpr (requires { translations.SetLanguage(config.Get().plugin.locale); })
             translations.SetLanguage(config.Get().plugin.locale);
-        translations.Load(runtime.AddonFile("configs/translations"));
+        translations.Load(runtime.PluginFile("configs/translations"));
     }
     return true;
 }

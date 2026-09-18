@@ -10,7 +10,7 @@ from voltmod.cs2_install import (
     HOST_COMPONENT,
     SERVER_EXECUTABLES,
     find_server,
-    plugin_addon_dir,
+    plugin_dir,
     server_executable,
 )
 from voltmod.errors import VoltmodError
@@ -84,7 +84,7 @@ def run_server(settings: Settings, *, check_update: bool = False) -> None:
 
 
 def _install_host(project: Project, csgo: Path, preset: str) -> None:
-    """Install the host: the only Metamod plugin, which loads every plugin beside it."""
+    """Install the host: the only Metamod plugin, which loads its managed plugins."""
     print("--- voltmod host ---")
     searched = _host_build_dirs(project, preset)
     for build_dir in searched:
@@ -133,11 +133,11 @@ def _install_plugin(project: Project, name: str, csgo: Path, preset: str, *, nam
 
 def _seed_settings(project: Project, name: str, csgo: Path) -> None:
     """Copy the shipped settings once, so an operator's edits survive every later install."""
-    plugin_dir = project.plugin_dir(name) or project.root / "plugins" / name
-    source = plugin_dir / "configs/settings.jsonc"
+    project_plugin_dir = project.plugin_dir(name) or project.root / "plugins" / name
+    source = project_plugin_dir / "configs/settings.jsonc"
     if not source.is_file():
         return
-    target = csgo / plugin_addon_dir(name) / "configs/settings.jsonc"
+    target = csgo / plugin_dir(name) / "configs/settings.jsonc"
     if target.is_file():
         print("  -> configs/settings.jsonc (skipped - already exists)")
         return
