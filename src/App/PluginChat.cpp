@@ -1,3 +1,4 @@
+#include <VoltMod/App/Internal/PluginModule.hpp>
 #include <VoltMod/App/Plugin.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
@@ -10,13 +11,16 @@ namespace VoltMod
 bool Plugin::OnPlayerChat(Player* player, std::string_view message, bool /*teamChat*/)
 {
     // Menu input takes precedence over command parsing.
-    if (_runtime->Hooks.ChatInput.TryConsume(player->Slot(), message))
+    if (Runtime.Hooks.ChatInput.TryConsume(player->Slot(), message))
         return true;
 
-    return _runtime->Commands.HandleChatMessage(player, message);
+    return Runtime.Commands.HandleChatMessage(player, message);
 }
 
-bool Plugin::HandleConsoleCommand(std::string_view name, std::string_view arguments, int slot)
+namespace Internal
+{
+
+bool PluginModule::HandleConsoleCommand(std::string_view name, std::string_view arguments, int slot)
 {
     // A ballot for a plugin vote never reaches the engine's own vote controller.
     if (name == "vote")
@@ -36,7 +40,8 @@ bool Plugin::HandleConsoleCommand(std::string_view name, std::string_view argume
         return false;
 
     Player* player = _runtime->Players.Get(slot);
-    return player != nullptr && OnPlayerChat(player, message, teamChat);
+    return player != nullptr && _plugin->OnPlayerChat(player, message, teamChat);
 }
 
+}  // namespace Internal
 }  // namespace VoltMod

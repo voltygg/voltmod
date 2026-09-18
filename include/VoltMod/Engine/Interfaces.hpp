@@ -8,7 +8,7 @@ namespace VoltMod
 /**
  * @brief Centralized holder for all HL2SDK interface pointers.
  *
- * All fields are populated during Plugin::Load() via Metamod's
+ * All fields are populated while the runtime starts via Metamod's
  * `GET_V_IFACE_ANY` / `GET_V_IFACE_CURRENT` macros.
  *
  * Every field is a pointer, so this header names the SDK interfaces without including

@@ -57,7 +57,7 @@ int PendingConVarQueries::NextCookie(int slot)
 }
 
 void PendingConVarQueries::Add(int slot, int cookie, std::string name, ClientConVars::QueryCallback callback,
-                                 double now)
+                               double now)
 {
     if (!IsValidSlot(slot) || cookie < 0)
         return;

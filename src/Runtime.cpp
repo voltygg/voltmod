@@ -58,9 +58,8 @@ void Runtime::InstallLogger(const LoadContext& context)
     // The host owns the console and prefixes this plugin's log tag.
     IHost* host = context.Host;
     Log::SetMinimumLevel(static_cast<LogLevel>(host->MinLogLevel()));
-    Log::SetHandler([host](LogLevel level, std::string_view message) {
-        host->WriteLog(static_cast<uint8_t>(level), message);
-    });
+    Log::SetHandler(
+        [host](LogLevel level, std::string_view message) { host->WriteLog(static_cast<uint8_t>(level), message); });
 
     SetBaseDir(context.Host->Metamod()->GetBaseDir());
 }
@@ -187,7 +186,7 @@ std::map<std::string, std::string> Runtime::UnavailableFeatures() const
 
 void Runtime::RegisterStatusSections()
 {
-    // Plugins add status sections during OnLoad; the runtime owns them for the load cycle.
+    // Plugins add status sections during Load; the runtime owns them for the load cycle.
     Status.RegisterSection("load", [this] {
         std::map<std::string, std::string> failed;
         for (const FailedStep& step : LoadSteps.Failures())

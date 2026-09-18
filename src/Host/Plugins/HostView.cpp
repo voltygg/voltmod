@@ -51,8 +51,8 @@ bool HostView::RegisterCommand(std::string_view name)
     if (_state.Commands.Register(this, _name, name))
         return true;
 
-    Log::Error("Command '{}' is already registered by {}, so {} cannot have it.", name,
-               _state.Commands.OwnerOf(name), _name);
+    Log::Error("Command '{}' is already registered by {}, so {} cannot have it.", name, _state.Commands.OwnerOf(name),
+               _name);
     return false;
 }
 

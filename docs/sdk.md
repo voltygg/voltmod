@@ -29,7 +29,7 @@ what it does not:
 ## Interfaces
 
 `Runtime::Start()` fills `runtime.Unsafe.Interfaces` with the SDK interfaces the framework uses, so
-they are live by `OnLoad`:
+they are live when the plugin is constructed:
 
 ```cpp
 #include <VoltMod/Unsafe/Api.hpp>

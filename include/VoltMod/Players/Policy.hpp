@@ -28,7 +28,7 @@ struct Authorized
 /**
  * @brief The one permission and targeting gate, plus the plugin's reply and broadcast callbacks.
  *
- * Fill the four callbacks once in OnLoad (`runtime.Policy.HasPermission = ...`) and every
+ * Fill the four callbacks once in Plugin::Load (`runtime.Policy.HasPermission = ...`) and every
  * policy-aware framework subsystem - command dispatch, target resolution, action and effect
  * dispatch, context menu rows - goes through @ref Authorize to reach them. An unset
  * @ref CanTarget, @ref Reply or @ref Broadcast means "no rule / no callback"; an unset

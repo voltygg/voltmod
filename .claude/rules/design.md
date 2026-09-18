@@ -10,7 +10,7 @@ The shapes the framework already uses. New code follows them instead of adding a
 
 ## Runtime and injection
 
-- `Plugin` is what the host loads: it takes the host's engine events and owns one `Runtime` per load cycle, passed to `OnLoad(Runtime&)`. Consumers release their state in `OnUnload`.
+- `Plugin` is the user-owned object for one load cycle. The internal module constructs it with a live `Runtime`, calls `Start`, and destroys it before the runtime.
 - `Runtime` is a flat service container (`runtime.Players`, `runtime.Messages`), so moving a service between modules does not rename the consumer API.
 - No ambient accessor. Constructor-inject the narrowest service that does the job: `CenterHtmlMenu(const CenterHtmlMenu::Services&)`, `ActionDispatcher(Policy&, PlayerManager&, EntitySystem&)`, never `Runtime&`. Only `Commands` and `App` may take `Runtime&`.
 - Header templates plugins instantiate (`Flow<TState>`, `PerSlot<T>`) take one service, so including them does not pull in the composition root.
@@ -25,7 +25,7 @@ The shapes the framework already uses. New code follows them instead of adding a
 ## Players and events
 
 - `PlayerRef` is what gets stored, `Player&` is who is connected now, `Controller`/`Pawn` are this frame's entities.
-- `PlayerManager` owns the roster and raises `Connected`, `FullyConnected`, `SettingsChanged`, `Disconnected`. No lifecycle virtuals on `Plugin`.
+- `PlayerManager` owns the roster and raises `Connected`, `FullyConnected`, `SettingsChanged`, `Disconnected`. Plugins subscribe in `Start`; these are not lifecycle virtuals.
 - A signal is a public `Event<Args...>` member. `+=` is the only way to subscribe; `Raise` belongs to the owner.
 - Game events go through `GameEvents::On<T>` with a struct in `Events/EventTypes.hpp`. No string form.
 - An `Event` whose source costs something takes an `EventLifecycle`: first subscription installs, last drop removes, and `OnFirst` returning false refuses after logging why. One source feeding several events uses a `SharedLifecycle` instead of counting subscribers itself.

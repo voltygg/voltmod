@@ -34,10 +34,7 @@ struct Both final : IGreeter, ICounter
 class FakeServices final : public VoltMod::IHostServices
 {
 public:
-    void Publish(std::string_view name, void* implementation) override
-    {
-        _entries[std::string(name)] = implementation;
-    }
+    void Publish(std::string_view name, void* implementation) override { _entries[std::string(name)] = implementation; }
 
     void Unpublish(std::string_view name) override { _entries.erase(std::string(name)); }
 
@@ -54,7 +51,7 @@ private:
     std::unordered_map<std::string, void*> _entries;
 };
 
-/** An exchange attached to its own table, as Plugin::Attach wires one up. */
+/** An exchange attached to its own table, as the plugin module wires one up. */
 struct Attached
 {
     FakeServices Services;

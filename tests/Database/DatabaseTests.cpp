@@ -1,13 +1,13 @@
+#include "Support/TempPath.hpp"
+
 #include <VoltMod/Database/Api.hpp>
-#include <doctest/doctest.h>
 #include <chrono>
 #include <cstdint>
+#include <doctest/doctest.h>
 #include <filesystem>
 #include <string>
 #include <thread>
 #include <type_traits>
-
-#include "Support/TempPath.hpp"
 
 using VoltMod::Database;
 using VoltMod::Driver;
@@ -83,8 +83,9 @@ TEST_CASE("Database: Run runs a raw create, a typed insert, and a typed select")
     Database db(scheduler);
     REQUIRE(db.Start({.driver = "sqlite", .path = ":memory:"}));
 
-    auto created = db.Run(
-        "create-table", [](auto& conn) { conn("CREATE TABLE t (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL)"); });
+    auto created = db.Run("create-table", [](auto& conn) {
+        conn("CREATE TABLE t (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL)");
+    });
     REQUIRE(created.has_value());
 
     const T t;
@@ -188,8 +189,9 @@ TEST_CASE("RunMigrations: applies migrations in order, is idempotent, and stops 
     REQUIRE(db.Start({.driver = "sqlite", .path = ":memory:"}));
 
     VoltModTests::TempDir dir("run-migrations");
-    dir.Write("0001_a.sql", "CREATE TABLE a (id @ID@, note TEXT NOT NULL DEFAULT 'x;y'); -- seed table\n"
-                            "INSERT INTO a (note) VALUES ('seed');\n");
+    dir.Write("0001_a.sql",
+              "CREATE TABLE a (id @ID@, note TEXT NOT NULL DEFAULT 'x;y'); -- seed table\n"
+              "INSERT INTO a (note) VALUES ('seed');\n");
     dir.Write("0002_b.sql", "CREATE TABLE b (id INTEGER PRIMARY KEY);\n");
 
     auto first = RunMigrations(db, dir.Path());

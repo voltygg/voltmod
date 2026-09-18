@@ -277,7 +277,7 @@ AdminMenuScreen _layout{runtime.Screens};        // : VoltMod::MenuLayout, on Vo
 std::optional<VoltMod::PanoramaMenu> _panorama;
 VoltMod::Subscription _preferPanorama;           // after the menu, so it lets go first
 
-// App::Start, when settings turn Panorama on
+// App::Load, when settings turn Panorama on
 _panorama.emplace(VoltMod::PanoramaMenu::Services{/* runtime services */}, _layout, addonId);
 _preferPanorama = runtime.Menus.Prefer(*_panorama);
 ```

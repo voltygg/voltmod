@@ -25,8 +25,8 @@ runtime.Commands.Add("ban")
 ```
 
 `Run` installs the command and hands nothing back. A command lives as long as the
-@ref VoltMod::CommandManager that owns it, and @ref VoltMod::Plugin drops every one before
-`OnUnload`, so a handler cannot outlive the state it captured. There is no way to unregister
+@ref VoltMod::CommandManager that owns it, and VoltMod drops every one before destroying the
+plugin, so a handler cannot outlive the state it captured. There is no way to unregister
 one command. The builder is single use: `Add` starts a new one.
 
 Per invocation the manager resolves the name or alias, authorizes the caller, checks arity,

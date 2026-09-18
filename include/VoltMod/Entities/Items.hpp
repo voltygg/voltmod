@@ -1,7 +1,7 @@
 #pragma once
 
-#include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Entities/Pawn.hpp>
 #include <VoltMod/Schema/Generated/CPlayer_ItemServices.hpp>
 #include <string_view>

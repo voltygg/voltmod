@@ -48,8 +48,8 @@ TEST_CASE("A client connect arrives with its strings and ids intact")
     plugin->OnClientConnected(
         +[](void* context, int slot, int64_t steamId, std::string_view name, std::string_view address) {
             auto& calls = static_cast<EventsTrace*>(context)->Calls;
-            calls.push_back(std::string(name) + "@" + std::string(address) + "/" + std::to_string(slot) +
-                            "/" + std::to_string(steamId));
+            calls.push_back(std::string(name) + "@" + std::string(address) + "/" + std::to_string(slot) + "/" +
+                            std::to_string(steamId));
         },
         &trace);
 

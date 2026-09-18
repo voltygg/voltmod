@@ -12,7 +12,7 @@ namespace Args = VoltMod::Args;
 namespace $namespace
 {
 
-// Register commands from Start. The handler parameter list declares parsed and
+// Register commands from Load. The handler parameter list declares parsed and
 // immunity-checked arguments, and the manager owns each registration.
 void RegisterCommands(VoltMod::CommandManager& commands)
 {

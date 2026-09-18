@@ -15,7 +15,7 @@ namespace VoltMod
  * @brief Build text and JSON diagnostics from named providers.
  *
  * Providers run on demand in registration order. VoltMod registers framework sections during
- * load; plugins add their sections in OnLoad and expose the combined report with
+ * load; plugins add their sections in Load and expose the combined report with
  * @ref InstallCommand. A provider returns compact JSON text, normally built with
  * `VoltMod::Json::Write` from `<VoltMod/Core/Text/Json.hpp>`.
  */

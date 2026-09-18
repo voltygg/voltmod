@@ -1,5 +1,5 @@
-#include <VoltMod/Engine/Server/Clock.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
+#include <VoltMod/Engine/Server/Clock.hpp>
 #include <globalvars.h>
 
 namespace VoltMod

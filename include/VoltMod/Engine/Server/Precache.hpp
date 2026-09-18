@@ -1,8 +1,8 @@
 #pragma once
 
 #include <VoltMod/Core/Result.hpp>
-#include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <memory>
 #include <string>
 #include <string_view>

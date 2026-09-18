@@ -16,7 +16,8 @@ struct IHostEvents
 {
     using FrameFn = void (*)(void* context);
     using ServerStartupFn = void (*)(void* context, std::string_view mapName);
-    using ClientConnectedFn = void (*)(void* context, int slot, int64_t steamId, std::string_view name, std::string_view address);
+    using ClientConnectedFn = void (*)(void* context, int slot, int64_t steamId, std::string_view name,
+                                       std::string_view address);
     using ClientDisconnectedFn = void (*)(void* context, int slot);
     using ClientFullyConnectedFn = void (*)(void* context, int slot);
     using ClientSettingsChangedFn = void (*)(void* context, int slot);

@@ -9,17 +9,16 @@ namespace $namespace
 {
 
 /**
- * Everything this plugin owns for one load cycle. VoltMod::AppPlugin builds it on load and drops
- * it on unload, so nothing survives a `volt reload`. Members are destroyed in reverse order.
+ * Everything this plugin owns for one load cycle. VoltMod destroys it before the runtime, so
+ * nothing survives a `volt reload`. Members are destroyed in reverse order.
  */
-struct App
+struct App final : VoltMod::Plugin
 {
-    explicit App(VoltMod::Runtime& runtime) : Runtime(runtime) {}
+    explicit App(VoltMod::Runtime& runtime) : Plugin(runtime) {}
 
     /** Load config and register commands. False aborts the plugin load. */
-    bool Start();
+    bool Load() override;
 
-    VoltMod::Runtime& Runtime;
     ConfigManager Config;
 
 private:

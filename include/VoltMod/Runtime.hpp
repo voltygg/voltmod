@@ -34,7 +34,7 @@
 namespace VoltMod
 {
 
-/** What @ref Runtime::Start needs from Plugin::Attach. */
+/** What @ref Runtime::Start needs from the plugin module. */
 struct LoadContext
 {
     IHost* Host = nullptr;
@@ -97,7 +97,7 @@ public:
     PlayerManager Players{Slots, &Entities};
 
     /** Plugin-supplied permission, targeting and reply rules, and the one gate that applies
-     *  them (`Policy::Authorize`). Fill the members you enforce in OnLoad. */
+     *  them (`Policy::Authorize`). Fill the members you enforce in Plugin::Load. */
     VoltMod::Policy Policy{Players};
 
     VoltMod::ConVars ConVars{Unsafe.Interfaces};

@@ -4,9 +4,9 @@
 #include <doctest/doctest.h>
 #include <string>
 
-using VoltMod::PendingConVarQueries;
 using VoltMod::ClientConVars;
 using VoltMod::ClientConVarStatus;
+using VoltMod::PendingConVarQueries;
 
 /** Callback that records the value it was handed, so tests can tell two callbacks apart. */
 static ClientConVars::QueryCallback Recorder(std::string& into)

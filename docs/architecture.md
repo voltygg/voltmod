@@ -103,17 +103,16 @@ down one plugin rather than the whole stack.
 6. For each plugin it opens the library, resolves `VoltMod_PluginEntry`, checks the descriptor's
    ABI version and its `Load`/`Unload`/`Status` pointers, opens a host view under the plugin's
    name and log tag, then calls `Load`.
-7. Inside the plugin, `Plugin::Attach` seeds this module's hook dispatch pointer from the host,
-   creates the `Runtime`, and runs `Runtime::Start`: logging, engine interfaces, then the
-   framework load steps, among them the schema stamp comparison that refuses a plugin built
-   against a different layout.
-8. `Attach` subscribes to the host's engine events, calls `OnRegisterHooks`, then `OnLoad`. A
-   `false` from `OnLoad` returns the first required step's reason to the host, which logs it as
-   the refusal, and the plugin is torn down and its library freed.
+7. Inside the plugin, the internal module seeds its hook dispatch pointer, creates the `Runtime`,
+   and runs `Runtime::Start`: logging, engine interfaces, then the framework load steps, among
+   them the schema stamp comparison that refuses a plugin built against a different layout.
+8. The module constructs the derived `Plugin`, subscribes to host events, then calls `Load`. A
+   `false` from `Load` returns the first required step's reason to the host, which logs it as the
+   refusal, destroys the plugin, and frees its library.
 9. The host logs `N of M installed plugin(s) loaded.`
 
-Unload runs in reverse: the plugin's custom hooks, its commands, `OnUnload`, its host-event
-subscriptions, then the `Runtime`. Only once nothing of the plugin is still running does the host
+Unload runs in reverse: the plugin's commands, the plugin object, its host-event subscriptions,
+then the `Runtime`. Only once nothing of the plugin is still running does the host
 free the library - every hook thunk and subscription closure it installed is code inside it.
 
 ## Crossing the boundary
@@ -157,10 +156,10 @@ Three rules follow from the single-cycle model:
 - **Game thread only.** Engine hooks and framework code run on the main thread. Database and HTTP
   workers queue completions and the `GameFrame` hook replays them through
   @ref VoltMod::Scheduler, so a callback never races game code.
-- **Dependencies arrive through constructors.** `OnLoad` gets the runtime; every object below it
-  gets only the services it uses. Nothing self-registers during static initialization.
+- **Dependencies arrive through constructors.** The plugin constructor gets the runtime; every
+  object below it gets only the services it uses. Nothing self-registers during static initialization.
 - **Policy is injected once.** The framework has no admin model. A plugin fills `runtime.Policy`
-  in `OnLoad`, and one gate, `Policy::Authorize`, applies it to commands, targeting, actions,
+  in `Load`, and one gate, `Policy::Authorize`, applies it to commands, targeting, actions,
   effects and menu rows. Anything declaring a permission is denied while `HasPermission` is
   unset. See @ref players_guide.
 

@@ -1,52 +1,83 @@
-#include <VoltMod/App/Plugin.hpp>
+#include <VoltMod/App/Internal/PluginModule.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Text/Json.hpp>
 #include <VoltMod/Core/Text/Strings.hpp>
 #include <VoltMod/Engine/Detours.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Runtime.hpp>
-#include <cstdio>
+#include <algorithm>
+#include <cstring>
 #include <exception>
 #include <format>
 #include <string>
 #include <vector>
 
-namespace VoltMod
+namespace VoltMod::Internal
 {
 
-/** The C function the host calls for @p Member. Nothing may unwind into the host: the two modules
- *  do not share a runtime. */
+/** The C function the host calls for @p Member. Nothing may unwind into the host. */
 template <auto Member>
 struct HostCallback;
 
-template <class Result, class... Args, Result (Plugin::*Member)(Args...)>
+template <class Result, class... Args, Result (PluginModule::*Member)(Args...)>
 struct HostCallback<Member>
 {
-    static Result Call(void* plugin, Args... args) noexcept
+    static Result Call(void* module, Args... args) noexcept
     {
         try
         {
-            return (static_cast<Plugin*>(plugin)->*Member)(args...);
+            return (static_cast<PluginModule*>(module)->*Member)(args...);
         }
         catch (const std::exception& error)
         {
             Log::Error("Unhandled exception in a host event: {}", error.what());
             return Result();
         }
+        catch (...)
+        {
+            Log::Error("Unhandled non-standard exception in a host event.");
+            return Result();
+        }
     }
 };
 
-Plugin::Plugin() = default;
-Plugin::~Plugin() = default;
-
-bool Plugin::Attach(IHost& host, const PluginBuild& build, char* error, size_t errorSize)
+PluginModule::~PluginModule()
 {
-    // KHook resolves its entry points against this module's own pointer, so seed it before any hook goes up.
+    Detach();
+}
+
+bool PluginModule::Attach(IHost& host, const PluginBuild& build, char* error, size_t errorSize) noexcept
+{
+    try
+    {
+        const bool loaded = AttachImpl(host, build, error, errorSize);
+        if (!loaded)
+            _host = nullptr;
+        return loaded;
+    }
+    catch (const std::exception& exception)
+    {
+        WriteFailure(error, errorSize, exception.what());
+        Shutdown();
+        _host = nullptr;
+        return false;
+    }
+    catch (...)
+    {
+        WriteFailure(error, errorSize, "plugin threw a non-standard exception during load");
+        Shutdown();
+        _host = nullptr;
+        return false;
+    }
+}
+
+bool PluginModule::AttachImpl(IHost& host, const PluginBuild& build, char* error, size_t errorSize)
+{
     KHook::__exported__khook = host.HookDispatcher();
     _host = &host;
 
     _runtime = std::make_unique<Runtime>();
-    // Attach before Start so a load step can already reach a peer's published interface.
+    // Attach before Load so a load step can already reach a peer's published interface.
     _runtime->Exchange.Attach(&host.Services());
     _runtime->Commands.Attach(&host);
 
@@ -64,16 +95,23 @@ bool Plugin::Attach(IHost& host, const PluginBuild& build, char* error, size_t e
                                     std::string_view(build.Commit), "date", std::string_view(build.Date)});
     });
 
-    SubscribeHostEvents();
-    OnRegisterHooks(*_runtime, _customHooks);
+    _plugin = _factory(*_runtime);
+    if (!_plugin)
+    {
+        WriteFailure(error, errorSize, "plugin factory returned nothing");
+        Shutdown();
+        return false;
+    }
 
-    if (!OnLoad(*_runtime))
+    SubscribeHostEvents();
+
+    if (!_plugin->Load())
     {
         std::string failure = _runtime->LoadSteps.AbortReason();
         if (failure.empty())
-            failure = "OnLoad returned false";
+            failure = "Load returned false";
         Log::Info("{}", _runtime->LoadSteps.Summary());
-        snprintf(error, errorSize, "%s", failure.c_str());
+        WriteFailure(error, errorSize, failure);
         Shutdown();
         return false;
     }
@@ -85,7 +123,7 @@ bool Plugin::Attach(IHost& host, const PluginBuild& build, char* error, size_t e
         return std::unexpected(
             Error::Invalid(std::format("{} command(s) gate on a permission with no HasPermission policy "
                                        "installed and will be denied ({}); set Runtime::Policy.HasPermission "
-                                       "in OnLoad",
+                                       "in Load",
                                        missing.size(), Strings::Join(missing, ", "))));
     });
 
@@ -93,88 +131,101 @@ bool Plugin::Attach(IHost& host, const PluginBuild& build, char* error, size_t e
     return true;
 }
 
-void Plugin::Detach()
+void PluginModule::WriteFailure(char* error, size_t errorSize, std::string_view failure) noexcept
+{
+    if (error == nullptr || errorSize == 0)
+        return;
+
+    const size_t length = std::min(errorSize - 1, failure.size());
+    std::memcpy(error, failure.data(), length);
+    error[length] = '\0';
+}
+
+void PluginModule::Detach() noexcept
 {
     Shutdown();
     _host = nullptr;
 }
 
-// Stop callbacks into plugin state before OnUnload, then drop the host events and the services.
-void Plugin::Shutdown()
+// Stop commands before destroying their captured state, then drop host events and services.
+void PluginModule::Shutdown() noexcept
 {
-    _customHooks.Clear();
     if (_runtime)
         _runtime->Commands.RemoveAll();
-    OnUnload();
+    _plugin.reset();
     _hostEvents.Clear();
     _runtime.reset();
 }
 
-const char* Plugin::StatusJson()
+const char* PluginModule::StatusJson() noexcept
 {
-    _status = _runtime ? _runtime->Status.BuildJson() : std::string("{}");
-    return _status.c_str();
+    try
+    {
+        _status = _runtime ? _runtime->Status.BuildJson() : std::string("{}");
+        return _status.c_str();
+    }
+    catch (...)
+    {
+        return "{}";
+    }
 }
 
-void Plugin::SubscribeHostEvents()
+void PluginModule::SubscribeHostEvents()
 {
     IHostEvents& events = _host->Events();
-    auto keep = [&](uint64_t token) {
-        _hostEvents.Add(Subscription([&events, token] { events.Unsubscribe(token); }));
-    };
+    auto keep = [&](uint64_t token) { _hostEvents.Add(Subscription([&events, token] { events.Unsubscribe(token); })); };
 
-    keep(events.OnFrame(&HostCallback<&Plugin::HostFrame>::Call, this));
-    keep(events.OnServerStartup(&HostCallback<&Plugin::HandleServerStartup>::Call, this));
-    keep(events.OnClientConnected(&HostCallback<&Plugin::HostClientConnected>::Call, this));
-    keep(events.OnClientDisconnected(&HostCallback<&Plugin::HostClientDisconnected>::Call, this));
-    keep(events.OnClientFullyConnected(&HostCallback<&Plugin::HostClientFullyConnected>::Call, this));
-    keep(events.OnClientSettingsChanged(&HostCallback<&Plugin::HostClientSettingsChanged>::Call, this));
-    keep(events.OnConsoleCommand(&HostCallback<&Plugin::HandleConsoleCommand>::Call, this));
-    keep(events.OnCheckTransmit(&HostCallback<&Plugin::HostCheckTransmit>::Call, this));
+    keep(events.OnFrame(&HostCallback<&PluginModule::HostFrame>::Call, this));
+    keep(events.OnServerStartup(&HostCallback<&PluginModule::HandleServerStartup>::Call, this));
+    keep(events.OnClientConnected(&HostCallback<&PluginModule::HostClientConnected>::Call, this));
+    keep(events.OnClientDisconnected(&HostCallback<&PluginModule::HostClientDisconnected>::Call, this));
+    keep(events.OnClientFullyConnected(&HostCallback<&PluginModule::HostClientFullyConnected>::Call, this));
+    keep(events.OnClientSettingsChanged(&HostCallback<&PluginModule::HostClientSettingsChanged>::Call, this));
+    keep(events.OnConsoleCommand(&HostCallback<&PluginModule::HandleConsoleCommand>::Call, this));
+    keep(events.OnCheckTransmit(&HostCallback<&PluginModule::HostCheckTransmit>::Call, this));
 }
 
-void Plugin::HostFrame()
+void PluginModule::HostFrame()
 {
-    // `volt log` changes this; reading it once a frame lets the log helpers skip formatting silenced lines.
+    // `volt log` changes this; reading it once a frame lets the log helpers skip silenced lines.
     Log::SetMinimumLevel(static_cast<LogLevel>(_host->MinLogLevel()));
     _runtime->OnGameFrame();
 }
 
-void Plugin::HandleServerStartup(std::string_view mapName)
+void PluginModule::HandleServerStartup(std::string_view mapName)
 {
     Log::Info("Server startup: map '{}'.", mapName.empty() ? std::string_view("<none>") : mapName);
     _runtime->Map.SetCurrent(std::string(mapName));
-    // Publish the new entity system before the plugin callback.
     _runtime->Entities.OnServerStartup();
     _runtime->GameEvents.OnServerStartup();
     _runtime->Hooks.ClientConVars.OnServerStartup();
-    OnServerStartup(mapName);
+    _plugin->OnServerStartup(mapName);
 }
 
-void Plugin::HostClientConnected(int slot, int64_t steamId, std::string_view name, std::string_view address)
+void PluginModule::HostClientConnected(int slot, int64_t steamId, std::string_view name, std::string_view address)
 {
     _runtime->Players.Add(slot, steamId, std::string(name), std::string(address));
 }
 
-void Plugin::HostClientDisconnected(int slot)
+void PluginModule::HostClientDisconnected(int slot)
 {
     _runtime->Players.Remove(slot);
 }
 
-void Plugin::HostClientFullyConnected(int slot)
+void PluginModule::HostClientFullyConnected(int slot)
 {
     _runtime->Hooks.ClientConVars.OnClientFullyConnect(slot);
     _runtime->Players.OnClientFullyConnected(slot);
 }
 
-void Plugin::HostClientSettingsChanged(int slot)
+void PluginModule::HostClientSettingsChanged(int slot)
 {
     _runtime->Players.OnClientSettingsChanged(slot);
 }
 
-void Plugin::HostCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
+void PluginModule::HostCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
 {
     _runtime->Hooks.Visibility.OnCheckTransmit(infoList, infoCount);
 }
 
-}  // namespace VoltMod
+}  // namespace VoltMod::Internal

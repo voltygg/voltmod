@@ -16,9 +16,9 @@ namespace VoltMod
 {
 
 /**
- * @brief Registers commands and dispatches chat and console invocations to them.
+ * @brief Owns typed commands for chat and the server console.
  *
- * Registration is fluent and the handler's signature is the argument spec:
+ * A handler's parameters define how its arguments are parsed:
  *
  * @code
  * commands.Add("slap")
@@ -28,20 +28,15 @@ namespace VoltMod
  *     });
  * @endcode
  *
- * A command lives as long as the manager, so registration hands nothing back to hold. Handlers
- * routinely capture plugin state; @ref Plugin drops every command before `OnUnload`, so
- * they stop before that state does.
+ * `Run()` installs the command for the manager's lifetime. Handlers may capture plugin state because
+ * the framework removes every command before destroying the plugin.
  *
- * The pipeline per invocation: prefix match -> name or alias lookup -> `Policy::Authorize` for
- * the command's permission (which denies when no `HasPermission` policy is installed) -> arity
- * -> typed argument binding (targets, durations, SteamIDs - see @ref ArgKind) -> handler ->
- * the reply through `Policy::Reply`, falling back to `Messages::Reply`. Handlers only run with
- * fully-resolved, validated arguments; every earlier failure replies with a localized message
- * and stops.
+ * Dispatch resolves aliases, authorizes the command, and binds every argument before calling the
+ * handler (see @ref ArgKind). Invalid input gets a localized reply. Permissioned commands are denied
+ * without `Policy::HasPermission`; replies use `Policy::Reply` or fall back to `Messages::Reply`.
  *
- * `Console()` additionally registers a tier1 ConCommand of the same name, running the same
- * binding and handler with no caller and printing its reply to the console. It is removed with
- * the command.
+ * `Console()` exposes the same command as a tier1 ConCommand. It calls the handler without a caller,
+ * prints the reply to the server console, and is removed with the command.
  */
 class CommandManager
 {
@@ -54,8 +49,8 @@ public:
     CommandManager(const CommandManager&) = delete;
     CommandManager& operator=(const CommandManager&) = delete;
 
-    /** Attach to @p host, which hands out command names for the whole process. Called by
-     *  @ref Plugin before OnLoad, so every command added there is registered with it. A null host
+    /** Attach to @p host, which hands out command names for the whole process. Called before the
+     *  plugin is constructed, so every command added in Load is registered with it. A null host
      *  keeps the names local to this plugin. */
     void Attach(IHost* host);
 
@@ -68,12 +63,12 @@ public:
 
     size_t Count() const;
 
-    /** Unregister every command and its ConCommand. Called by @ref Plugin on the unload
+    /** Unregister every command and its ConCommand. Called by the framework on the unload
      *  path, before the plugin's own state goes away; plugins do not call this. */
     void RemoveAll();
 
     /** Names of registered commands that declare a permission while no `HasPermission` policy
-     *  is installed. Every one of them will be denied; @ref Plugin reports this after OnLoad
+     *  is installed. Every one of them will be denied; the framework reports this after Load
      *  so the misconfiguration shows up in the load summary instead of the first time a player
      *  tries the command. */
     std::vector<std::string> CommandsMissingPolicy() const;

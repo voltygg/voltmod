@@ -10,7 +10,7 @@ separately (@ref panorama_guide); this page is the C++ that drives one.
 // App.hpp: the screen owns the entity, so keep it for as long as the layout should live.
 VoltMod::Screen _welcome;
 
-// Somewhere in App::Start()
+// Somewhere in App::Load()
 auto screen = runtime.Screens.Shared("welcome");
 if (!screen)
     return false;             // the name was refused

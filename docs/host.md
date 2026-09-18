@@ -79,7 +79,7 @@ protected:
     ~IBanService() = default;
 };
 
-runtime.Exchange.Publish<IBanService>(&_bans);          // provider, in Start
+runtime.Exchange.Publish<IBanService>(&_bans);          // provider, in Load
 
 if (auto* bans = runtime.Exchange.Get<IBanService>())   // consumer, where it is used
     Check(*bans);

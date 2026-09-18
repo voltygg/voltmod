@@ -17,14 +17,13 @@ and an `App` class that owns everything for one load cycle.
 namespace MyPlugin
 {
 
-struct App
+struct App final : VoltMod::Plugin
 {
-    explicit App(VoltMod::Runtime& runtime) : Runtime(runtime) {}
+    explicit App(VoltMod::Runtime& runtime) : Plugin(runtime) {}
 
     /** Load config and register commands. Returning false aborts the load. */
-    bool Start();
+    bool Load() override;
 
-    VoltMod::Runtime& Runtime;
     ConfigManager Config;
 
 private:
@@ -49,7 +48,7 @@ namespace MyPlugin
 
 void RegisterCommands(VoltMod::CommandManager& commands);   // defined in src/Commands.cpp
 
-bool App::Start()
+bool App::Load()
 {
     if (!VoltMod::LoadStandardConfig(Runtime, Config))
         return false;
@@ -66,16 +65,16 @@ bool App::Start()
 every commit. The macro defines the plugin object, this module's hook dispatch pointer and
 `VoltMod_PluginEntry`, the one symbol the host resolves.
 
-The framework builds your `App` from `Runtime&` on load and drops it on unload
-(@ref VoltMod::AppPlugin). These members are looked for by name:
+Your `App` derives from @ref VoltMod::Plugin. The framework constructs it from `Runtime&` after
+the runtime starts and destroys it before the runtime shuts down.
 
-| Member | Required | Called |
+| Override | Required | Called |
 | --- | --- | --- |
-| `bool Start()` | yes | Once on load; `false` aborts the load |
-| `void OnMapChanged()` | no | At each map start |
+| `bool Load()` | yes | Once on load; `false` aborts the load |
+| `void OnServerStartup(std::string_view mapName)` | no | At each map start |
 | `bool OnPlayerChat(Player*, std::string_view message, bool teamChat)` | no | On `say` / `say_team`, in place of the default, which consumes menu input and then dispatches `!` and `.` commands. `true` swallows the line |
 
-Keep custom engine hooks in the App's `Subscriptions` like any other subscription.
+Keep custom engine hooks, signals and timers in the App's own `Subscriptions`.
 
 Members initialize in declaration order, so an initializer may reference only members above it.
 The `App` is destroyed before the `Runtime`, which is what lets its subscriptions unregister while
@@ -127,26 +126,8 @@ unknown key is an error and the plugin is refused.
 
 Both dependency lists decide load order and what a reload takes down with it; see @ref host_guide.
 
-## Deriving from Plugin
-
-You rarely need this. @ref VoltMod::Plugin is the base @ref VoltMod::AppPlugin is built from;
-derive from it when the App members above are not enough, and pass the derived class to the same
-macro: `VOLTMOD_PLUGIN(MyPlugin);`.
-
-| Override | Fires | Notes |
-| --- | --- | --- |
-| `OnLoad(Runtime&)` | Once, with a live runtime | Required; `false` aborts the load |
-| `OnUnload()` | Before the runtime is destroyed | Drop whatever `OnLoad` built |
-| `OnServerStartup(mapName)` | Each map start, after event listeners attach | Reapply load-time convar values here: the engine has just run the game-mode cfgs |
-| `OnPlayerChat(Player*, message, teamChat)` | On `say` / `say_team` | The default consumes menu input, then dispatches `!` and `.` commands; an override replaces both and must consume menu prompts itself. `true` swallows the line |
-| `OnRegisterHooks(Runtime&, Subscriptions&)` | Once during load, before `OnLoad` | Add custom hooks to the `Subscriptions&`, never to a member of your plugin class |
-
-The base clears the hooks it was given before `OnUnload` runs, so a hook body cannot fire into
-state that has already gone. A subscription kept in a derived member instead outlives the whole
-graph, because the derived object is the `VOLTMOD_PLUGIN` global.
-
-The connection lifecycle is not an override. Subscribe to `runtime.Players.Connected`,
-`.FullyConnected`, `.SettingsChanged` and `.Disconnected` from `OnLoad`; see @ref players_guide.
+The connection lifecycle is not an override. Subscribe to `Runtime.Players.Connected`,
+`.FullyConnected`, `.SettingsChanged` and `.Disconnected` in `Load`; see @ref players_guide.
 Custom hooks are in @ref sdk_hooks_guide, typed game events in @ref sdk_events_guide.
 
 ## Load steps
@@ -166,7 +147,7 @@ if (!steps.Required("Migrations", [this] { return Migrate(); }))
 ```
 
 `Optional` continues without that feature. `Required` is for work the plugin cannot run without:
-return `false` from `Start` and the base hands the first required failure to the host as
+return `false` from `Load` and the base hands the first required failure to the host as
 `<step>: <reason>`, which the host logs as the refusal. Both return whether the step succeeded.
 
 After the load the base logs `N load steps in X ms` plus one line per failure. Work that cannot
@@ -186,7 +167,7 @@ It reads `addons/<plugin>/configs/settings.jsonc` and then `configs/translations
 ## Status sections
 
 `runtime.Status` combines named diagnostic sections into one report. The framework registers
-`build`, `load` and `uptime`. Add your own in `Start` and expose the report as a console command:
+`build`, `load` and `uptime`. Add your own in `Load` and expose the report as a console command:
 
 ```cpp
 Runtime.Status.RegisterSection("db", [this] {
@@ -232,8 +213,8 @@ It holds nothing and takes no constructor argument.
 
 ## Cleanup on unload
 
-Nothing may survive `OnUnload`, so a `volt reload` starts from clean state. Cleanup belongs in a
-member destructor or in a @ref VoltMod::Subscription held beside the state its handler captures:
+Nothing survives the App's destructor, so a `volt reload` starts from clean state. Cleanup belongs
+in a member destructor or in a @ref VoltMod::Subscription held beside the state its handler captures:
 
 ```cpp
 class Bhop

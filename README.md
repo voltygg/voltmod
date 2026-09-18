@@ -30,19 +30,17 @@ players, menus, messages, engine access, HTTP and an optional database.
 namespace MyPlugin
 {
 
-struct App
+struct App final : VoltMod::Plugin
 {
-    explicit App(VoltMod::Runtime& runtime) : Runtime(runtime) {}
+    explicit App(VoltMod::Runtime& runtime) : Plugin(runtime) {}
 
-    bool Start()
+    bool Load() override
     {
         // "cmd.pong" is a translation key; an untranslated key is replied verbatim.
         Runtime.Commands.Add("ping").Describe("Check that the plugin is alive.").Run(
             [](VoltMod::Caller c) -> VoltMod::Result<VoltMod::Reply> { return c.Ok("cmd.pong"); });
         return true;
     }
-
-    VoltMod::Runtime& Runtime;
 };
 
 }  // namespace MyPlugin

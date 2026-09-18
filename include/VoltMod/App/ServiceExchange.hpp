@@ -17,7 +17,7 @@ namespace VoltMod
 class ServiceExchange
 {
 public:
-    /** Attach to the host's table. Called by Plugin::Attach before OnLoad. */
+    /** Attach to the host's table before the plugin is constructed. */
     void Attach(IHostServices* services) { _services = services; }
 
     /** Offer @p impl until Unpublish or unload. Name @p T explicitly, `Publish<IBanService>(&_bans)`,

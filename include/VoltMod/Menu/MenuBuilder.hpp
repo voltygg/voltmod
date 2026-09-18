@@ -241,25 +241,27 @@ MenuItem ChoiceRow<T>::ToItem() &&
                                                .Own = Index});
 
     MenuItem item{
-        .Describe = [state](int slot) {
-            MenuRow row{.Label = state->Label, .Kind = MenuRowKind::Choice, .Enabled = state->Enabled(slot)};
-            // An empty list cannot step, so A/D pages instead.
-            if (!state->Choices.empty())
-            {
-                row.Value = state->Choices[static_cast<std::size_t>(state->Selected(slot))].first;
-                row.Steppable = true;
-            }
-            return row;
-        },
-        .Activate = [state](int slot, MenuSurface&) {
-            if (!state->Enabled(slot))
-                return;
-            // Without a commit callback, E advances like D for a live pick-a-value row.
-            if (state->Commit)
-                state->Apply(slot);
-            else
-                state->Step(slot, +1);
-        },
+        .Describe =
+            [state](int slot) {
+                MenuRow row{.Label = state->Label, .Kind = MenuRowKind::Choice, .Enabled = state->Enabled(slot)};
+                // An empty list cannot step, so A/D pages instead.
+                if (!state->Choices.empty())
+                {
+                    row.Value = state->Choices[static_cast<std::size_t>(state->Selected(slot))].first;
+                    row.Steppable = true;
+                }
+                return row;
+            },
+        .Activate =
+            [state](int slot, MenuSurface&) {
+                if (!state->Enabled(slot))
+                    return;
+                // Without a commit callback, E advances like D for a live pick-a-value row.
+                if (state->Commit)
+                    state->Apply(slot);
+                else
+                    state->Step(slot, +1);
+            },
         .Step = [state](int slot, int direction) { return state->Enabled(slot) && state->Step(slot, direction); },
     };
 

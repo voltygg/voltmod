@@ -10,9 +10,10 @@ What changed in each VoltMod release. Older history is in git.
 
 - The framework runs as one host per server process. `addons/metamod/voltmod.vdf` is the only
   Metamod plugin left; your plugin is a module under `addons/<name>/` that the host loads.
-- Derive your plugin class from `VoltMod::Plugin`, which replaces `VoltMod::MetamodPlugin`, or
-  skip the class: `VOLTMOD_PLUGIN(MyApp)` owns one `MyApp{runtime}` per load.
-  `VOLTMOD_PLUGIN` now comes from `<VoltMod/App/PluginEntry.hpp>`; include it in that one .cpp.
+- Derive your load-cycle class from `VoltMod::Plugin`, construct the base from `Runtime&`, and
+  override `Load()`. `VOLTMOD_PLUGIN(MyPlugin)` constructs it after the runtime starts and
+  destroys it before the runtime stops. The macro comes from `<VoltMod/App/PluginEntry.hpp>`;
+  include it in that one .cpp.
 - Describe the plugin in a hand-written `plugin.json` beside its `CMakeLists.txt`: `name`,
   `version`, `logTag`, `description`, `author`, `dependencies`, `optionalDependencies`.
   `voltmod_add_plugin(<name>)` reads it and takes no `VERSION`. `PluginInfo`, `Plugin::Info()`

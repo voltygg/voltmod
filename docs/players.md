@@ -49,7 +49,7 @@ not join or kick anybody while iterating it.
 
 ### Connection lifecycle
 
-Four @ref VoltMod::Event members, in the order a connection sees them. Subscribe in `OnLoad` and
+Four @ref VoltMod::Event members, in the order a connection sees them. Subscribe in `Load` and
 keep each `Subscription` beside the state its handler touches:
 
 ```cpp
@@ -98,7 +98,7 @@ halves a score every half-life and holds one value and one timestamp whatever th
 ## The gate
 
 @ref VoltMod::Policy::Authorize is the one gate between framework dispatch and a plugin's
-permission and immunity rules. Fill the callbacks once in `OnLoad` - see
+permission and immunity rules. Fill the callbacks once in `Load` - see
 @ref plugin_guide "Writing a plugin".
 
 ```cpp

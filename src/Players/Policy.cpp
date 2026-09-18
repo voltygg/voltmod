@@ -18,7 +18,7 @@ Status Policy::CheckPermission(const Player& caller, std::string_view permission
             _missingPermissionWarned = true;
             Log::Error(
                 "Denying '{}': no HasPermission policy is installed. "
-                "Set Runtime::Policy.HasPermission in OnLoad.",
+                "Set Runtime::Policy.HasPermission in Load.",
                 permission);
         }
         return std::unexpected(Error::Denied("cmd.noPermission"));

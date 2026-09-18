@@ -22,7 +22,7 @@ struct FailedStep
 /**
  * @brief Named steps for one plugin load, retaining failed steps.
  *
- * `Runtime::Start` and plugin `OnLoad` run work through @ref Optional and @ref Required.
+ * `Runtime::Start` and `Plugin::Load` run work through @ref Optional and @ref Required.
  * @ref Plugin logs @ref Summary and copies @ref AbortReason to the host's error buffer.
  */
 class LoadSteps
@@ -31,7 +31,7 @@ public:
     /** Run @p step. A failure disables that feature and returns false. */
     bool Optional(std::string_view name, const std::function<Status()>& step);
 
-    /** Run @p step. A failure returns false from OnLoad. */
+    /** Run @p step. A failure returns false from Plugin::Load. */
     bool Required(std::string_view name, const std::function<Status()>& step);
 
     /** Return `N load steps in X ms`, followed by one line per failure. */

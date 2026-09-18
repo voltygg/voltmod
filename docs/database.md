@@ -71,7 +71,7 @@ type on every driver, so dialect differences go in `if constexpr` branches on `I
 | Call | Behavior |
 | --- | --- |
 | `RunAsync(name, fn, onDone)` | the gameplay path: enqueue and return; `onDone` runs on the game thread when the worker finishes |
-| `Run(name, fn)` | enqueue and wait. Load time only - `OnLoad`, migrations, an admin reload - never per frame or per event |
+| `Run(name, fn)` | enqueue and wait. Load time only - `Plugin::Load`, migrations, an admin reload - never per frame or per event |
 | `RunOr(name, fn, fallback)` | `Run`, folding a failure into a value |
 
 `name` is a log label. An `onDone` taking the value alone fires only on success, the failure having

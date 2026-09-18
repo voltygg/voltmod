@@ -19,7 +19,8 @@ template <>
 struct glz::meta<VoltMod::ResolvedGameData::Slot>
 {
     using T = VoltMod::ResolvedGameData::Slot;
-    static constexpr auto value = glz::object("module", &T::Module, "table", &T::Table, "index", &T::Index, "code", &T::Code);
+    static constexpr auto value =
+        glz::object("module", &T::Module, "table", &T::Table, "index", &T::Index, "code", &T::Code);
 };
 
 template <>

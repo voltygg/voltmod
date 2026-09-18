@@ -39,8 +39,9 @@ TEST_CASE("A readable span is readable, and an impossible address is not")
 
 TEST_CASE("An Itanium vtable is found from its type name, past tables that are not the primary one")
 {
-    static const char names[] = "N3Foo\0"
-                                "3Foo";
+    static const char names[] =
+        "N3Foo\0"
+        "3Foo";
     uintptr_t words[14]{};
     words[0] = 1;
     words[1] = reinterpret_cast<uintptr_t>(&names[6]);

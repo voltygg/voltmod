@@ -27,13 +27,8 @@ public:
 
     /** All three services must outlive this object; `runtime.Hooks.Visibility.CreateGlow(slot)`
      *  is the normal entry point and passes them for you. */
-    GlowVision(EntitySystem& entities, EntityOps& ops, Visibility& visibility, int viewerSlot,
-               GlowConfig config = {})
-        : _entities(entities),
-          _ops(ops),
-          _visibility(visibility),
-          _viewerSlot(viewerSlot),
-          _config(std::move(config))
+    GlowVision(EntitySystem& entities, EntityOps& ops, Visibility& visibility, int viewerSlot, GlowConfig config = {})
+        : _entities(entities), _ops(ops), _visibility(visibility), _viewerSlot(viewerSlot), _config(std::move(config))
     {}
 
     /** Create/refresh/destroy glow clone pairs to match the current live players. */

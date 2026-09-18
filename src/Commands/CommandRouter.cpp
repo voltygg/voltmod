@@ -65,8 +65,8 @@ bool CommandRouter::Add(CommandDefinition def)
         }
         if (_host && !_host->RegisterCommand(key))
         {
-            Log::Error("Command '{}' asks for alias '{}', which another plugin owns - skipping the alias.",
-                       def.Name, alias);
+            Log::Error("Command '{}' asks for alias '{}', which another plugin owns - skipping the alias.", def.Name,
+                       alias);
             continue;
         }
         _aliases.emplace(std::move(key), name);

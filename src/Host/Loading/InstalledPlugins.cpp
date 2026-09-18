@@ -41,7 +41,8 @@ std::vector<PluginManifest> InstalledPlugins::Discover(const std::filesystem::pa
         if (!std::filesystem::exists(manifest, failed) || failed)
             continue;
 
-        const Result<PluginDocument> document = Json::ReadFile<PluginDocument, Json::StrictReadOptions>(manifest.string());
+        const Result<PluginDocument> document =
+            Json::ReadFile<PluginDocument, Json::StrictReadOptions>(manifest.string());
         if (!document)
         {
             Log::Error("Refusing '{}': {}", directory, document.error().Detail);

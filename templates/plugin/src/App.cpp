@@ -10,7 +10,7 @@ namespace $namespace
 
 void RegisterCommands(VoltMod::CommandManager& commands);
 
-bool App::Start()
+bool App::Load()
 {
     if (!VoltMod::LoadStandardConfig(Runtime, Config))
         return false;

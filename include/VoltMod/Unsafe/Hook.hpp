@@ -15,7 +15,7 @@
 
 namespace VoltMod
 {
-namespace Detail
+namespace Internal
 {
 
 inline KHook::Action ToKHookAction(HookAction action)
@@ -117,7 +117,7 @@ Subscription ToSubscription(std::unique_ptr<Hook> hook)
     return Subscription([hook = std::move(hook)]() mutable { hook.reset(); });
 }
 
-}  // namespace Detail
+}  // namespace Internal
 
 /**
  * @brief Hook one virtual method of an engine interface for a subscription's lifetime.
@@ -134,13 +134,13 @@ template <class Iface, class Ret, class... Args, class Before, class After = std
 [[nodiscard]] Subscription HookInterface(Ret (Iface::*method)(Args...), Iface* instance, Before&& before,
                                          After&& after = nullptr)
 {
-    using Installed = Detail::InstalledHook<KHook::Virtual, Iface, Ret, Args...>;
+    using Installed = Internal::InstalledHook<KHook::Virtual, Iface, Ret, Args...>;
     auto hook = std::make_unique<Installed>(std::forward<Before>(before), std::forward<After>(after));
     hook->Hook.Configure(method);
     if (instance)
         hook->Hook.Add(instance);
 
-    return Detail::ToSubscription(std::move(hook));
+    return Internal::ToSubscription(std::move(hook));
 }
 
 /**
@@ -161,7 +161,7 @@ template <class Object, class Ret, class... Args, class Before, class After = st
     if (!function)
         return std::unexpected(Error::Unsupported(std::format("the {} vtable slot did not bind", name)));
 
-    using Installed = Detail::InstalledHook<KHook::Virtual, Object, Ret, Args...>;
+    using Installed = Internal::InstalledHook<KHook::Virtual, Object, Ret, Args...>;
     auto hook = std::make_unique<Installed>(std::forward<Before>(before), std::forward<After>(after));
     hook->Hook.Configure(function.Index());
 
@@ -170,7 +170,7 @@ template <class Object, class Ret, class... Args, class Before, class After = st
     hook->Hook.AddGlobal(reinterpret_cast<Object*>(&asObject));
 
     Log::Info("{} hook installed (vtable index {}).", name, function.Index());
-    return Detail::ToSubscription(std::move(hook));
+    return Internal::ToSubscription(std::move(hook));
 }
 
 /**
@@ -191,12 +191,12 @@ template <class Object, class Ret, class... Args, class Before, class After = st
     if (!function)
         return std::unexpected(Error::Unsupported(std::format("the {} signature did not bind", name)));
 
-    using Installed = Detail::InstalledHook<KHook::Member, Object, Ret, Args...>;
+    using Installed = Internal::InstalledHook<KHook::Member, Object, Ret, Args...>;
     auto hook = std::make_unique<Installed>(std::forward<Before>(before), std::forward<After>(after));
     hook->Hook.Configure(static_cast<const void*>(function.Ptr()));
 
     Log::Info("{} hook installed.", name);
-    return Detail::ToSubscription(std::move(hook));
+    return Internal::ToSubscription(std::move(hook));
 }
 
 /** The engine's own implementation of @p method, bypassing every hook on the slot. */

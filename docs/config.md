@@ -36,7 +36,7 @@ ignores `$schema` along with other unknown keys.
 ## Loading
 
 ```cpp
-bool App::Start()
+bool App::Load()
 {
     return VoltMod::LoadStandardConfig(Runtime, Config);
 }
