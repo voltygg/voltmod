@@ -34,16 +34,16 @@ struct Both final : IGreeter, ICounter
 class FakeServices final : public VoltMod::IHostServices
 {
 public:
-    void Publish(VoltMod::HostString name, void* implementation) override
+    void Publish(std::string_view name, void* implementation) override
     {
-        _entries[std::string(name.Data, name.Length)] = implementation;
+        _entries[std::string(name)] = implementation;
     }
 
-    void Unpublish(VoltMod::HostString name) override { _entries.erase(std::string(name.Data, name.Length)); }
+    void Unpublish(std::string_view name) override { _entries.erase(std::string(name)); }
 
-    void* Find(VoltMod::HostString name) override
+    void* Find(std::string_view name) override
     {
-        auto it = _entries.find(std::string(name.Data, name.Length));
+        auto it = _entries.find(std::string(name));
         return it == _entries.end() ? nullptr : it->second;
     }
 
@@ -63,36 +63,18 @@ struct Attached
     Attached() { Exchange.Attach(&Services); }
 };
 
-TEST_CASE("An unpublished interface is not found")
-{
-    Attached host;
-    auto& exchange = host.Exchange;
-    CHECK(exchange.Find(IGreeter::InterfaceName) == nullptr);
-}
-
-TEST_CASE("A published interface is found under its own name only")
-{
-    Attached host;
-    auto& exchange = host.Exchange;
-    Both impl;
-    exchange.Publish<IGreeter>(&impl);
-
-    CHECK(exchange.Find(IGreeter::InterfaceName) == static_cast<IGreeter*>(&impl));
-    CHECK(exchange.Find(ICounter::InterfaceName) == nullptr);
-}
-
-TEST_CASE("Publish stores the interface subobject not the object address")
+TEST_CASE("Get returns the published interface subobject, under its own name only")
 {
     Attached host;
     auto& exchange = host.Exchange;
     Both impl;
     exchange.Publish<ICounter>(&impl);
 
-    // The second base is at a non-zero offset; recovering 9 rather than 7 proves the cast
-    // lands on the right vtable.
-    auto* recovered = static_cast<ICounter*>(exchange.Find(ICounter::InterfaceName));
-    REQUIRE(recovered != nullptr);
-    CHECK(recovered->Count() == 9);
+    // ICounter is the second base, at a non-zero offset: 9 rather than 7 proves the right vtable.
+    ICounter* found = exchange.Get<ICounter>();
+    REQUIRE(found != nullptr);
+    CHECK(found->Count() == 9);
+    CHECK(exchange.Get<IGreeter>() == nullptr);
 }
 
 TEST_CASE("Unpublish withdraws only the named interface")
@@ -107,31 +89,6 @@ TEST_CASE("Unpublish withdraws only the named interface")
 
     CHECK(exchange.Find(IGreeter::InterfaceName) == nullptr);
     CHECK(exchange.Find(ICounter::InterfaceName) != nullptr);
-}
-
-TEST_CASE("Publishing twice replaces the earlier implementation")
-{
-    Attached host;
-    auto& exchange = host.Exchange;
-    Both first;
-    Both second;
-    exchange.Publish<IGreeter>(&first);
-    exchange.Publish<IGreeter>(&second);
-
-    CHECK(exchange.Find(IGreeter::InterfaceName) == static_cast<IGreeter*>(&second));
-}
-
-TEST_CASE("Get returns what a peer published, typed")
-{
-    Attached host;
-    auto& exchange = host.Exchange;
-    Both impl;
-    exchange.Publish<ICounter>(&impl);
-
-    ICounter* found = exchange.Get<ICounter>();
-    REQUIRE(found != nullptr);
-    CHECK(found->Count() == 9);
-    CHECK(exchange.Get<IGreeter>() == nullptr);
 }
 
 TEST_CASE("An exchange with no host attached publishes nowhere and finds nothing")

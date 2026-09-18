@@ -34,13 +34,13 @@
 namespace VoltMod
 {
 
-/** Everything @ref Runtime::Start needs from the host, plus the optional overrides. */
+/** What @ref Runtime::Start needs from Plugin::Attach. */
 struct LoadContext
 {
-    IHost* Host = nullptr;                   ///< the host this plugin attached to, from Plugin::Attach
-    char* Error = nullptr;                   ///< Error buffer the host shows if the load fails
-    size_t MaxLen = 0;                       ///< Size of that buffer
-    std::string_view LogPrefix = "VoltMod";  ///< Console log prefix, e.g. "[ADMIN]"
+    IHost* Host = nullptr;
+    std::string_view Version;  ///< the plugin's build stamp
+    char* Error = nullptr;     ///< shown by the host when the load fails
+    size_t MaxLen = 0;
 };
 
 /**
@@ -65,6 +65,14 @@ public:
 
     /** Drive the scheduler. Called once per frame from the GameFrame hook. */
     void OnGameFrame();
+
+    /** The plugin's `plugin.json` name, which is also its directory under `addons/`. */
+    std::string PluginName;
+    /** "<plugin.json version>+<short-sha>[-dirty]". */
+    std::string Version;
+
+    /** "addons/<PluginName>/<relative>". */
+    std::string AddonFile(std::string_view relative) const;
 
     VoltMod::LoadSteps LoadSteps;
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Host/PluginHost.hpp"
+#include "Host/Plugins/PluginHost.hpp"
 
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Signals/Subscriptions.hpp>
@@ -21,10 +21,7 @@ class EngineHooks
 public:
     /**
      * @param beforeFrame Runs at the start of every frame, before the frame reaches the plugins.
-     *        The plugin loader acts on what `volt` queued there, so a library is never loaded or
-     *        freed inside a dispatch.
-     * @param beforeServerStartup Runs on every map change, before the plugins hear about it. The
-     *        schema dump is written there, where the map's entities exist.
+     * @param beforeServerStartup Runs on every map change, before the plugins hear about it.
      */
     EngineHooks(PluginHost& host, std::function<void()> beforeFrame, std::function<void()> beforeServerStartup);
     ~EngineHooks();

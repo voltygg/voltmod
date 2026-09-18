@@ -12,12 +12,8 @@ namespace VoltMod
 /**
  * @brief Logs through @ref VoltMod::Log with the name of @p T in front of every line.
  *
- * Give the class that logs a member - `Logger<BhopManager> _log;` - and `_log.Info("ready")`
- * reaches the handler as `[BhopManager] ready`. The host adds the plugin's own tag, so a line
- * reads `[BHOP] [BhopManager] ready`: which plugin, then which part of it.
- *
- * Empty and copyable; it holds nothing. Levels are not its business - the host sets each
- * plugin's minimum level and `Log::` drops the rest.
+ * A `Logger<BhopManager> _log;` member makes `_log.Info("ready")` print
+ * `[BHOP] [BhopManager] ready`: the host adds the plugin's tag. Stateless.
  */
 template <class T>
 class Logger

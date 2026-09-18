@@ -14,7 +14,6 @@ namespace VoltMod
 /** @brief Paths and translation behavior for LoadStandardConfig. */
 struct StandardLoadOptions
 {
-    std::string_view Addon;
     std::string_view SettingsFile = "configs/settings.jsonc";
     /** Whether to load configs/translations. */
     bool Translations = true;
@@ -23,14 +22,14 @@ struct StandardLoadOptions
 /**
  * @brief Run the standard configuration and translation load steps.
  *
- * The required "Configuration" step reads `addons/<Addon>/<SettingsFile>` through
+ * The required "Configuration" step reads `addons/<plugin>/<SettingsFile>` through
  * TConfig::LoadSettings when available, otherwise Options::Load. Translation loading then
- * applies `plugin.locale` and reads `addons/<Addon>/configs/translations` when enabled.
+ * applies `plugin.locale` and reads `addons/<plugin>/configs/translations` when enabled.
  */
 template <class TConfig>
-bool LoadStandardConfig(Runtime& runtime, TConfig& config, const StandardLoadOptions& options)
+bool LoadStandardConfig(Runtime& runtime, TConfig& config, const StandardLoadOptions& options = {})
 {
-    const std::string path = AddonFile(options.Addon, options.SettingsFile);
+    const std::string path = runtime.AddonFile(options.SettingsFile);
     const bool loaded = runtime.LoadSteps.Required("Configuration", [&] {
         Status status = [&] {
             if constexpr (requires { config.LoadSettings(path); })
@@ -50,7 +49,7 @@ bool LoadStandardConfig(Runtime& runtime, TConfig& config, const StandardLoadOpt
         auto& translations = runtime.Translations;
         if constexpr (requires { translations.SetLanguage(config.Get().plugin.locale); })
             translations.SetLanguage(config.Get().plugin.locale);
-        translations.Load(AddonFile(options.Addon, "configs/translations"));
+        translations.Load(runtime.AddonFile("configs/translations"));
     }
     return true;
 }

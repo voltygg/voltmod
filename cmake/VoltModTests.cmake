@@ -1,11 +1,10 @@
 include_guard(GLOBAL)
 
 # Consumer test API:
-#   voltmod_add_tests(<name> [SOURCES ...] [FEATURES DATABASE])
+#   voltmod_add_tests(<name> [SOURCES ...] [FEATURES DATABASE] [DEFINITIONS ...])
 # Globs tests/*.cpp and recompiles the SDK-free SOURCES beside them against src/ and
-# VoltMod::Headers only. FEATURES DATABASE additionally links VoltMod::Database, so a test
-# can open a SQLite database and run the plugin's own migrations. No-op when BUILD_TESTING
-# is off.
+# VoltMod::Headers only. FEATURES DATABASE also links VoltMod::Database, so a test can open a
+# SQLite database and run the plugin's migrations. No-op when BUILD_TESTING is off.
 
 include("${CMAKE_CURRENT_LIST_DIR}/VoltModCommon.cmake")
 
@@ -25,7 +24,7 @@ function(voltmod_add_tests target_name)
     if(NOT BUILD_TESTING)
         return()
     endif()
-    cmake_parse_arguments(ARG "" "" "SOURCES;FEATURES" ${ARGN})
+    cmake_parse_arguments(ARG "" "" "SOURCES;FEATURES;DEFINITIONS" ${ARGN})
 
     if(NOT TARGET doctest::doctest)
         find_package(doctest REQUIRED)
@@ -51,6 +50,7 @@ function(voltmod_add_tests target_name)
     set(link_targets doctest::doctest VoltMod::Headers)
     voltmod_apply_features(voltmod_add_tests "${target_name}" "${ARG_FEATURES}" link_targets)
     target_link_libraries("${target_name}" PRIVATE ${link_targets})
+    target_compile_definitions("${target_name}" PRIVATE ${ARG_DEFINITIONS})
 
     doctest_discover_tests("${target_name}")
 endfunction()

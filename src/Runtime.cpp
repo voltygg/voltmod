@@ -1,4 +1,3 @@
-#include "Engine/Server/ConsoleLogger.hpp"
 #include "Schema/Layout.hpp"
 
 #include <ISmmAPI.h>
@@ -6,8 +5,6 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Text/Json.hpp>
 #include <VoltMod/Host/IHostGameData.hpp>
-#include <VoltMod/Host/IHostLog.hpp>
-#include <VoltMod/Host/IHostSchema.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <chrono>
 #include <cstdint>
@@ -35,11 +32,16 @@ Runtime::~Runtime()
     Log::DeliverPending();
 }
 
+std::string Runtime::AddonFile(std::string_view relative) const
+{
+    return VoltMod::AddonFile(PluginName, relative);
+}
+
 bool Runtime::Start(const LoadContext& context)
 {
+    PluginName = context.Host->Name();
+    Version = context.Version;
     InstallLogger(context);
-    Log::Info("Initializing VoltMod...");
-    Log::Info("Runtime size: {} bytes", sizeof(Runtime));
 
     if (!ResolveInterfaces(context))
         return false;
@@ -53,29 +55,18 @@ bool Runtime::Start(const LoadContext& context)
 
 void Runtime::InstallLogger(const LoadContext& context)
 {
-    // The host owns the console. Falling back to writing it directly keeps a runtime built
-    // without a log sink - only the tests - from going silent.
-    if (auto* sink = static_cast<IHostLog*>(context.Host->GetInterface(
-            HostString{.Data = IHostLog::InterfaceName, .Length = std::string_view(IHostLog::InterfaceName).size()})))
-    {
-        sink->SetTag(HostString{.Data = context.LogPrefix.data(), .Length = context.LogPrefix.size()});
-        Log::SetMinimumLevel(static_cast<LogLevel>(sink->MinLevel()));
-        Log::SetHandler([sink](LogLevel level, std::string_view message) {
-            sink->Write(static_cast<uint8_t>(level), HostString{.Data = message.data(), .Length = message.size()});
-        });
-    }
-    else
-    {
-        Log::SetHandler(MakeConsoleHandler(std::string(context.LogPrefix)));
-    }
+    // The host owns the console and prefixes this plugin's log tag.
+    IHost* host = context.Host;
+    Log::SetMinimumLevel(static_cast<LogLevel>(host->MinLogLevel()));
+    Log::SetHandler([host](LogLevel level, std::string_view message) {
+        host->WriteLog(static_cast<uint8_t>(level), message);
+    });
 
     SetBaseDir(context.Host->Metamod()->GetBaseDir());
 }
 
 bool Runtime::ResolveInterfaces(const LoadContext& context)
 {
-    // The host is the Metamod plugin and shares its own pointer, so this resolves exactly as it
-    // did when every plugin was one.
     ISmmAPI* ismm = context.Host->Metamod();
 
     auto resolveEngine = [&](const char* version) -> void* {
@@ -87,7 +78,6 @@ bool Runtime::ResolveInterfaces(const LoadContext& context)
 
     auto& gi = Unsafe.Interfaces;
 
-    // Resolve interfaces in order without unsafe void** casts.
 #define VOLTMOD_RESOLVE(field, factory, version)                                              \
     gi.field = static_cast<decltype(gi.field)>(factory(version));                             \
     if (!gi.field)                                                                            \
@@ -122,28 +112,12 @@ bool Runtime::InitializeServices(const LoadContext& context)
 
     // The host read and scanned gamedata once for the process; this only takes the numbers.
     steps.Optional("GameData", [&]() -> VoltMod::Status {
-        auto* gameData = static_cast<IHostGameData*>(context.Host->GetInterface(HostString{
-            .Data = IHostGameData::InterfaceName, .Length = std::string_view(IHostGameData::InterfaceName).size()}));
+        IHostGameData* gameData = context.Host->GameData();
         if (!gameData)
             return std::unexpected(Error::Engine("the host has no gamedata"));
 
-        // Engine names its own lookup, so the adapter to the host's interface lives here.
-        static_assert(static_cast<uint32_t>(GameDataSection::Function) ==
-                      static_cast<uint32_t>(GameDataKind::Function));
-        static_assert(static_cast<uint32_t>(GameDataSection::Global) == static_cast<uint32_t>(GameDataKind::Global));
-        static_assert(static_cast<uint32_t>(GameDataSection::VTable) == static_cast<uint32_t>(GameDataKind::VTable));
-        static_assert(static_cast<uint32_t>(GameDataSection::Offset) == static_cast<uint32_t>(GameDataKind::Offset));
-        return Unsafe.Bindings.Bind([gameData](GameDataSection sections, std::string_view name) {
-            const GameDataEntry entry = gameData->Lookup(static_cast<GameDataKind>(sections),
-                                                         HostString{.Data = name.data(), .Length = name.size()});
-            return GameDataLocation{
-                .Found = entry.Found,
-                .Address = entry.Address,
-                .Value = entry.Value,
-                .Reason = entry.Reason.Data != nullptr ? std::string_view(entry.Reason.Data, entry.Reason.Length)
-                                                       : std::string_view(),
-            };
-        });
+        return Unsafe.Bindings.Bind(
+            [gameData](GameDataSection sections, std::string_view name) { return gameData->Lookup(sections, name); });
     });
 
     // A required-step failure is reported to Metamod and aborts the load.
@@ -165,7 +139,7 @@ bool Runtime::InitializeServices(const LoadContext& context)
     // StartupServer resolves CGameEntitySystem when the first map loads.
     steps.Optional("Entities", [&] { return Entities.Initialize(); });
     steps.Optional("Precache",
-                   [&] { return World.Precache.Initialize(std::format("{}_VoltModPrecache", context.LogPrefix)); });
+                   [&] { return World.Precache.Initialize(std::format("{}_VoltModPrecache", PluginName)); });
     steps.Optional("ConVars", [&] { return ConVars.Initialize(); });
     steps.Optional("GameEvents", [&] { return GameEvents.Initialize(); });
     steps.Optional("ClientConVars", [&] { return Hooks.ClientConVars.Initialize(); });
@@ -177,22 +151,19 @@ bool Runtime::InitializeServices(const LoadContext& context)
 
 VoltMod::Status Runtime::TakeHostSchema(const LoadContext& context)
 {
-    auto* schema = static_cast<IHostSchema*>(context.Host->GetInterface(
-        HostString{.Data = IHostSchema::InterfaceName, .Length = std::string_view(IHostSchema::InterfaceName).size()}));
-    if (!schema)
-        return std::unexpected(Error::Engine("the host did not check the schema layout"));
+    const IHost* schema = context.Host;
 
-    // The offsets are baked into this plugin's own copy of the SDK, so the host's answer only
-    // covers it when both were generated from the same layout.
-    if (schema->LayoutStamp() != Schema::GeneratedLayoutStamp())
+    // The offsets are baked into this plugin's own copy of the SDK, so the host's check only covers
+    // it when both were generated from the same layout.
+    if (schema->SchemaLayoutStamp() != Schema::GeneratedLayoutStamp())
     {
         return std::unexpected(Error::Invalid(
             std::format("this plugin was built against another schema layout (plugin {:016X}, host {:016X}); "
                         "rebuild it against this VoltMod",
-                        Schema::GeneratedLayoutStamp(), schema->LayoutStamp())));
+                        Schema::GeneratedLayoutStamp(), schema->SchemaLayoutStamp())));
     }
 
-    if (!schema->Verified())
+    if (!schema->SchemaVerified())
         return std::unexpected(Error::Invalid("the host found schema drift; its log names every field"));
     return {};
 }

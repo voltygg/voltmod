@@ -52,3 +52,58 @@ function(voltmod_set_cxx_defaults target)
         "$<$<CXX_COMPILER_ID:MSVC>:/W3>"
     )
 endfunction()
+
+# A module the game process loads: the host, or a plugin the host loads. Built into OUTPUT_DIR
+# and installed to INSTALL_DIR under COMPONENT, with VERSION in its BuildInfo.hpp.
+function(voltmod_add_module target)
+    cmake_parse_arguments(ARG "" "VERSION;OUTPUT_DIR;INSTALL_DIR;COMPONENT" "SOURCES" ${ARGN})
+
+    add_library("${target}" MODULE ${ARG_SOURCES})
+    voltmod_set_cxx_defaults("${target}")
+    target_include_directories("${target}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    hl2sdk_attach_plugin_support("${target}")
+
+    # Release PDBs for crash dumps.
+    target_link_options("${target}" PRIVATE
+        "$<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:MSVC>>:/DEBUG;/OPT:REF;/OPT:ICF>"
+    )
+
+    set_target_properties("${target}" PROPERTIES
+        PREFIX ""
+        LIBRARY_OUTPUT_DIRECTORY "${ARG_OUTPUT_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY "${ARG_OUTPUT_DIR}"
+        PDB_OUTPUT_DIRECTORY "${ARG_OUTPUT_DIR}"
+    )
+
+    voltmod_stamp_build_info("${target}" "${ARG_VERSION}")
+
+    install(TARGETS "${target}"
+        LIBRARY DESTINATION "${ARG_INSTALL_DIR}" COMPONENT "${ARG_COMPONENT}"
+        RUNTIME DESTINATION "${ARG_INSTALL_DIR}" COMPONENT "${ARG_COMPONENT}"
+    )
+    if(WIN32)
+        install(FILES "$<TARGET_PDB_FILE:${target}>"
+            DESTINATION "${ARG_INSTALL_DIR}" COMPONENT "${ARG_COMPONENT}" OPTIONAL)
+    endif()
+endfunction()
+
+# BuildInfo.hpp is re-stamped on every build.
+function(voltmod_stamp_build_info target_name version)
+    set(include_dir "${CMAKE_BINARY_DIR}/voltmod-buildinfo/${target_name}/include")
+    set(header "${include_dir}/VoltMod/BuildInfo.hpp")
+
+    add_custom_target("${target_name}-buildinfo"
+        COMMAND "${CMAKE_COMMAND}"
+            -D "TEMPLATE_FILE=${VOLTMOD_ROOT_DIR}/cmake/BuildInfo.hpp.in"
+            -D "OUTPUT_FILE=${header}"
+            -D "VERSION=${version}"
+            -D "REPO_DIR=${CMAKE_SOURCE_DIR}"
+            -P "${VOLTMOD_ROOT_DIR}/cmake/GitBuildInfoScript.cmake"
+        BYPRODUCTS "${header}"
+        COMMENT "Stamping ${target_name} build info"
+        VERBATIM
+    )
+
+    add_dependencies("${target_name}" "${target_name}-buildinfo")
+    target_include_directories("${target_name}" PRIVATE "${include_dir}")
+endfunction()

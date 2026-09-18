@@ -12,11 +12,6 @@
 namespace VoltMod
 {
 
-static HostString Borrow(std::string_view text)
-{
-    return HostString{.Data = text.data(), .Length = text.size()};
-}
-
 /** Translation key for an argument kind's usage placeholder. */
 static std::string UsagePlaceholderKey(ArgKind kind)
 {
@@ -44,7 +39,7 @@ bool CommandRouter::Add(CommandDefinition def)
         Log::Error("Command '{}' is already registered - ignoring the second registration.", def.Name);
         return false;
     }
-    if (_host && !_host->ClaimCommand(Borrow(name)))
+    if (_host && !_host->RegisterCommand(name))
     {
         Log::Error("Command '{}' is held by another plugin - ignoring this registration.", def.Name);
         return false;
@@ -58,19 +53,19 @@ bool CommandRouter::Add(CommandDefinition def)
             continue;
         if (_commands.contains(key))
         {
-            Log::Error("Command '{}' claims alias '{}', which is already a command name - skipping the alias.",
+            Log::Error("Command '{}' asks for alias '{}', which is already a command name - skipping the alias.",
                        def.Name, alias);
             continue;
         }
         if (auto it = _aliases.find(key); it != _aliases.end())
         {
-            Log::Error("Command '{}' claims alias '{}', already taken by '{}' - skipping the alias.", def.Name, alias,
+            Log::Error("Command '{}' asks for alias '{}', already taken by '{}' - skipping the alias.", def.Name, alias,
                        it->second);
             continue;
         }
-        if (_host && !_host->ClaimCommand(Borrow(key)))
+        if (_host && !_host->RegisterCommand(key))
         {
-            Log::Error("Command '{}' claims alias '{}', which is held by another plugin - skipping the alias.",
+            Log::Error("Command '{}' asks for alias '{}', which another plugin owns - skipping the alias.",
                        def.Name, alias);
             continue;
         }

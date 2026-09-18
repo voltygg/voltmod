@@ -1,17 +1,15 @@
 cmake_minimum_required(VERSION 4.3)
 
+# The toolchain sets this without FORCE, so an existing build tree would keep a bumped version's old value.
+unset(VOLTMOD_VERSION CACHE)
+
 project(voltmod LANGUAGES CXX)
 
 option(VOLTMOD_DISABLE_PCH "Disable precompiled headers (e.g. to favor ccache hits over PCH on MSVC)" OFF)
 
-# conanfile.py owns the framework version and the toolchain passes it in; the host build stamp
-# reports the same one. Parsing the recipe covers a configure without the Conan toolchain.
+# conanfile.py owns the framework version; its toolchain passes it in for the host's build stamp.
 if(NOT VOLTMOD_VERSION)
-    file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/conanfile.py" _version_line REGEX "^ +version *= *")
-    if(NOT _version_line MATCHES "\"([^\"]+)\"")
-        message(FATAL_ERROR "no framework version: pass -DVOLTMOD_VERSION or keep it in conanfile.py")
-    endif()
-    set(VOLTMOD_VERSION "${CMAKE_MATCH_1}")
+    message(FATAL_ERROR "VOLTMOD_VERSION is not set: configure through a preset, which uses the Conan toolchain")
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -114,40 +112,16 @@ if(NOT VOLTMOD_DISABLE_PCH)
     )
 endif()
 
-# The host: the only Metamod plugin in the process. It loads plugin modules itself, so it
-# needs the same module-local allocator and ConVar sources any plugin gets.
-add_library(voltmod-host MODULE ${VOLTMOD_HOST_SOURCES})
-voltmod_set_cxx_defaults(voltmod-host)
-target_include_directories(voltmod-host PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+# The host: the only Metamod plugin in the process, which loads the plugin modules itself.
+voltmod_add_module(voltmod-host
+    SOURCES ${VOLTMOD_HOST_SOURCES}
+    VERSION "${VOLTMOD_VERSION}"
+    OUTPUT_DIR "${CMAKE_BINARY_DIR}/host/${VOLTMOD_PLATFORM_ARCH}"
+    INSTALL_DIR "addons/voltmod/bin/${VOLTMOD_BIN_SUBDIR}"
+    COMPONENT host
+)
+set_target_properties(voltmod-host PROPERTIES OUTPUT_NAME "voltmod")
 target_link_libraries(voltmod-host PRIVATE VoltMod::Sdk)
-hl2sdk_attach_plugin_support(voltmod-host)
-
-# Release PDBs for crash dumps.
-target_link_options(voltmod-host PRIVATE
-    "$<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:MSVC>>:/DEBUG;/OPT:REF;/OPT:ICF>"
-)
-
-set(VOLTMOD_HOST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/host/${VOLTMOD_PLATFORM_ARCH}")
-set_target_properties(voltmod-host PROPERTIES
-    PREFIX ""
-    OUTPUT_NAME "voltmod"
-    LIBRARY_OUTPUT_DIRECTORY "${VOLTMOD_HOST_OUTPUT_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY "${VOLTMOD_HOST_OUTPUT_DIR}"
-    PDB_OUTPUT_DIRECTORY "${VOLTMOD_HOST_OUTPUT_DIR}"
-)
-
-voltmod_stamp_build_info(voltmod-host "${VOLTMOD_VERSION}")
-
-set(VOLTMOD_HOST_BIN "addons/voltmod/bin/${VOLTMOD_BIN_SUBDIR}")
-
-install(TARGETS voltmod-host
-    LIBRARY DESTINATION "${VOLTMOD_HOST_BIN}" COMPONENT host
-    RUNTIME DESTINATION "${VOLTMOD_HOST_BIN}" COMPONENT host
-)
-if(WIN32)
-    install(FILES "$<TARGET_PDB_FILE:voltmod-host>"
-        DESTINATION "${VOLTMOD_HOST_BIN}" COMPONENT host OPTIONAL)
-endif()
 
 # One .vdf and one gamedata directory per server, both the host's.
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/host.vdf.in"
@@ -202,11 +176,15 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Players/PlayerManager.cpp
             src/Players/Policy.cpp
             src/Hooks/PendingConVarQueries.cpp
-            src/Host/GameDataResolver.cpp
-            src/Host/HostGameData.cpp
-            src/Host/PluginHost.cpp
-            src/Host/PluginOrder.cpp
-            src/Host/ResolvedRecord.cpp
+            src/Host/GameData/GameDataResolver.cpp
+            src/Host/GameData/GameDataService.cpp
+            src/Host/GameData/ResolvedGameData.cpp
+            src/Host/Loading/InstalledPlugins.cpp
+            src/Host/Loading/PluginOrder.cpp
+            src/Host/Plugins/CommandNames.cpp
+            src/Host/Plugins/HostView.cpp
+            src/Host/Plugins/PluginHost.cpp
+            src/Host/Plugins/ServiceTable.cpp
             src/Workshop/AddonDownloads.cpp
             src/Ui/LayoutPath.cpp
             src/Ui/WriteCache.cpp

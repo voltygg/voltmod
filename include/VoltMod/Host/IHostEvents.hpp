@@ -1,31 +1,27 @@
 #pragma once
 
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Host/HostTypes.hpp>
 #include <cstdint>
+#include <string_view>
 
 namespace VoltMod
 {
 
 /**
- * @brief The engine hooks, installed once by the host and called on every loaded plugin.
+ * @brief The engine hooks the host installed once, raised on every plugin in load order.
  *
- * Callbacks run on the game thread in load order. A callback must not throw: the SDK trampoline
- * that owns it catches, logs and continues, and nothing propagates across the boundary.
+ * Game thread only. A callback must not throw: nothing may unwind across the boundary.
  */
 struct IHostEvents
 {
-    static constexpr const char* InterfaceName = "VoltMod.IHostEvents";
-
     using FrameFn = void (*)(void* context);
-    using ServerStartupFn = void (*)(void* context, HostString mapName);
-    using ClientConnectedFn = void (*)(void* context, int slot, int64_t steamId, HostString name, HostString address);
+    using ServerStartupFn = void (*)(void* context, std::string_view mapName);
+    using ClientConnectedFn = void (*)(void* context, int slot, int64_t steamId, std::string_view name, std::string_view address);
     using ClientDisconnectedFn = void (*)(void* context, int slot);
     using ClientFullyConnectedFn = void (*)(void* context, int slot);
     using ClientSettingsChangedFn = void (*)(void* context, int slot);
-    /** True when this plugin answered the command: later plugins do not see it and the engine
-     *  call is blocked once. */
-    using ConsoleCommandFn = bool (*)(void* context, HostString name, HostString arguments, int slot);
+    /** True when this plugin answered it: later plugins do not see it and the engine call is blocked. */
+    using ConsoleCommandFn = bool (*)(void* context, std::string_view name, std::string_view arguments, int slot);
     using CheckTransmitFn = void (*)(void* context, CCheckTransmitInfo** infoList, int infoCount);
 
     virtual uint64_t OnFrame(FrameFn callback, void* context) = 0;
@@ -37,8 +33,7 @@ struct IHostEvents
     virtual uint64_t OnConsoleCommand(ConsoleCommandFn callback, void* context) = 0;
     virtual uint64_t OnCheckTransmit(CheckTransmitFn callback, void* context) = 0;
 
-    /** Each subscription above returns the token that removes it, which is never zero while
-     *  it is live. Safe during a dispatch: the one in flight skips the removed callback. */
+    /** Takes the token a subscription returned, which is never zero. Safe during a dispatch. */
     virtual void Unsubscribe(uint64_t token) = 0;
 
 protected:

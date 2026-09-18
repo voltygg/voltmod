@@ -1,6 +1,0 @@
-{
-  "name": "@VOLTMOD_PLUGIN_NAME@",
-  "version": "@VOLTMOD_PLUGIN_VERSION@",
-  "dependencies": [@VOLTMOD_PLUGIN_DEPENDENCIES@],
-  "optionalDependencies": [@VOLTMOD_PLUGIN_OPTIONAL_DEPENDENCIES@]
-}

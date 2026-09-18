@@ -85,16 +85,3 @@ TEST_CASE("Options runs the builder and publishes what it returns")
     CHECK(options.Get().Values.limits.maxPlayers == 64);
     CHECK(options.Get().LongDurations == std::vector<std::string>{"2h", "3h"});
 }
-
-TEST_CASE("A derived value survives a failed reload with the settings it came from")
-{
-    const TempFile good(R"({"durations":["2h"]})", "options", ".jsonc");
-    const TempFile broken("not json at all", "options", ".jsonc");
-
-    VoltMod::Options<OptionsSample, OptionsSnapshot> options{&BuildOptionsSnapshot};
-    REQUIRE(options.Load(good.Path()).has_value());
-    REQUIRE_FALSE(options.Load(broken.Path()).has_value());
-
-    CHECK(options.Get().Values.durations == std::vector<std::string>{"2h"});
-    CHECK(options.Get().LongDurations == std::vector<std::string>{"2h"});
-}

@@ -12,27 +12,12 @@ namespace VoltMod
 {
 
 /**
- * @brief Owns a plugin's settings and republishes them whole on every reload.
+ * @brief Owns a plugin's settings and republishes them whole on every Load.
  *
- * @p TSettings is a plain aggregate: Glaze reflects its public members, so no registration is
- * needed. A missing key keeps the member's C++ initializer and unknown keys are ignored.
- *
- * `Options<Settings>` publishes exactly what the file parsed into. A plugin that has to validate
- * values or derive more of them names a second type and the function that builds it:
- *
- * @code
- * struct Snapshot
- * {
- *     Settings Values;
- *     std::vector<int> MenuDurationSecs;
- * };
- * static Snapshot BuildSnapshot(Settings raw);
- *
- * VoltMod::Options<Settings, Snapshot> options{&BuildSnapshot};
- * @endcode
- *
- * The snapshot is built before it is published, so a reload that fails to parse leaves the
- * previous one intact and nothing ever observes a half-validated configuration.
+ * @p TSettings is a plain aggregate whose member names are the JSON keys. A missing key keeps the
+ * member's initializer and unknown keys are ignored. To validate or derive values, name a
+ * @p TSnapshot and pass the function that builds it from the parsed settings. The snapshot is
+ * built before it is published, so a failed Load keeps the previous one. See docs/config.md.
  */
 template <class TSettings, class TSnapshot = TSettings>
 class Options

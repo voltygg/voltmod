@@ -55,8 +55,8 @@ public:
     CommandManager& operator=(const CommandManager&) = delete;
 
     /** Attach to @p host, which hands out command names for the whole process. Called by
-     *  @ref Plugin before OnLoad, so every command registered there is claimed. A null host
-     *  registers commands exactly as before, claiming nothing. */
+     *  @ref Plugin before OnLoad, so every command added there is registered with it. A null host
+     *  keeps the names local to this plugin. */
     void Attach(IHost* host);
 
     /** Start describing a command. Finish with `.Run(handler)`, which installs it. */

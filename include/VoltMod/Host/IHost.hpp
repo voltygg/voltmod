@@ -1,43 +1,47 @@
 #pragma once
 
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Host/HostTypes.hpp>
+#include <VoltMod/Host/IHostEvents.hpp>
+#include <VoltMod/Host/IHostGameData.hpp>
+#include <VoltMod/Host/IHostServices.hpp>
 #include <cstdint>
+#include <string_view>
 
 namespace VoltMod
 {
 
 /**
- * @brief What the host hands one plugin at load.
+ * @brief What the host hands one plugin at load: that plugin's own view of the host.
  *
  * Everything reachable from here belongs to the host and outlives the plugin. Nothing here
- * transfers ownership.
+ * transfers ownership. Game thread only.
  */
 struct IHost
 {
-    static constexpr const char* InterfaceName = "VoltMod.IHost";
+    /** The plugin's name: its `plugin.json` name and its directory under `addons/`. */
+    virtual std::string_view Name() const = 0;
 
-    /** Only ever @ref HostAbiVersion: the host refuses a plugin built against anything else
-     *  before calling Load. Offered so a plugin can log what it attached to. */
-    virtual uint32_t AbiVersion() const = 0;
-
-    virtual HostString Name() const = 0;
-    /** `addons/<name>`, relative to the server's base directory. */
-    virtual HostString HomeDirectory() const = 0;
-
-    /** Metamod's API. The host is the Metamod plugin and shares its own pointer unchanged, so a
-     *  plugin resolves engine interfaces exactly as it did when it was one. */
+    /** The host is the Metamod plugin and shares its own API pointer unchanged. */
     virtual SourceMM::ISmmAPI* Metamod() const = 0;
-    /** KHook's dispatcher. Each module carries its own `KHook::__exported__khook`, and a plugin
-     *  seeds its copy from this before installing any hook. */
-    virtual KHook::IKHook* Detours() const = 0;
+    /** Each module has its own `KHook::__exported__khook`; a plugin seeds it from this before hooking. */
+    virtual KHook::IKHook* HookDispatcher() const = 0;
 
-    /** One of the host's own interfaces by `InterfaceName`, or nullptr. */
-    virtual void* GetInterface(HostString name) const = 0;
+    virtual IHostEvents& Events() = 0;
+    virtual IHostServices& Services() = 0;
+    /** Null when the host resolved no gamedata. */
+    virtual IHostGameData* GameData() const = 0;
 
-    /** Take @p name for this plugin's console commands. False when another plugin already holds
-     *  it, which the host logs naming both. Released with the plugin. */
-    virtual bool ClaimCommand(HostString name) = 0;
+    /** False when another plugin holds @p name, which the host logs naming both. Released with the plugin. */
+    virtual bool RegisterCommand(std::string_view name) = 0;
+
+    /** Print one line under this plugin's `logTag`. @p level is a @ref LogLevel. */
+    virtual void WriteLog(uint8_t level, std::string_view text) = 0;
+    /** Lines below this are dropped; `volt log <name> <level>` changes it. */
+    virtual uint8_t MinLogLevel() const = 0;
+
+    /** The hash of the baked schema layout the host compared with the live game. */
+    virtual uint64_t SchemaLayoutStamp() const = 0;
+    virtual bool SchemaVerified() const = 0;
 
 protected:
     ~IHost() = default;

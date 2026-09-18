@@ -1,12 +1,11 @@
 #include "Host/EngineHooks.hpp"
 
-#include "Host/PluginHost.hpp"
+#include "Host/EngineInterfaces.hpp"
+#include "Host/Plugins/PluginHost.hpp"
 
-#include <ISmmAPI.h>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Unsafe/Hook.hpp>
 #include <eiface.h>
-#include <format>
 #include <icvar.h>
 #include <interfaces/interfaces.h>
 #include <iserver.h>
@@ -20,16 +19,6 @@ class GameSessionConfiguration_t
 
 namespace VoltMod
 {
-
-// Resolve one engine interface, naming it when the factory does not have it.
-template <class Iface, class Factory>
-static Status Resolve(Iface*& target, Factory&& factory, const char* version)
-{
-    target = static_cast<Iface*>(factory(version));
-    if (target == nullptr)
-        return std::unexpected(Error::Engine(std::format("could not find interface: {}", version)));
-    return {};
-}
 
 EngineHooks::EngineHooks(PluginHost& host, std::function<void()> beforeFrame, std::function<void()> beforeServerStartup)
     : _host(host), _beforeFrame(std::move(beforeFrame)), _beforeServerStartup(std::move(beforeServerStartup))
@@ -45,12 +34,8 @@ Status EngineHooks::Start(SourceMM::ISmmAPI* metamod)
     if (metamod == nullptr)
         return std::unexpected(Error::NotReady("the host has no Metamod API to resolve interfaces from"));
 
-    auto fromEngine = [metamod](const char* version) {
-        return metamod->VInterfaceMatch(metamod->GetEngineFactory(), version, 0);
-    };
-    auto fromServer = [metamod](const char* version) {
-        return metamod->VInterfaceMatch(metamod->GetServerFactory(), version, 0);
-    };
+    auto fromEngine = EngineInterfaces(metamod);
+    auto fromServer = ServerInterfaces(metamod);
 
     IServerGameDLL* serverGameDLL = nullptr;
     IServerGameClients* serverGameClients = nullptr;
@@ -58,15 +43,16 @@ Status EngineHooks::Start(SourceMM::ISmmAPI* metamod)
     ISource2GameEntities* gameEntities = nullptr;
     ICvar* cvar = nullptr;
 
-    if (Status found = Resolve(serverGameDLL, fromServer, INTERFACEVERSION_SERVERGAMEDLL); !found)
+    if (Status found = ResolveInterface(serverGameDLL, fromServer, INTERFACEVERSION_SERVERGAMEDLL); !found)
         return found;
-    if (Status found = Resolve(serverGameClients, fromServer, INTERFACEVERSION_SERVERGAMECLIENTS); !found)
+    if (Status found = ResolveInterface(serverGameClients, fromServer, INTERFACEVERSION_SERVERGAMECLIENTS); !found)
         return found;
-    if (Status found = Resolve(networkServerService, fromEngine, NETWORKSERVERSERVICE_INTERFACE_VERSION); !found)
+    if (Status found = ResolveInterface(networkServerService, fromEngine, NETWORKSERVERSERVICE_INTERFACE_VERSION);
+        !found)
         return found;
-    if (Status found = Resolve(gameEntities, fromServer, INTERFACEVERSION_SERVERGAMEENTS); !found)
+    if (Status found = ResolveInterface(gameEntities, fromServer, INTERFACEVERSION_SERVERGAMEENTS); !found)
         return found;
-    if (Status found = Resolve(cvar, fromEngine, CVAR_INTERFACE_VERSION); !found)
+    if (Status found = ResolveInterface(cvar, fromEngine, CVAR_INTERFACE_VERSION); !found)
         return found;
 
     // Register the host's own pending tier1 ConCommands - `volt` is one - before the engine can
@@ -77,7 +63,6 @@ Status EngineHooks::Start(SourceMM::ISmmAPI* metamod)
     auto add = [this](Subscription hook) { _hooks.Add(std::move(hook)); };
 
     add(HookInterface(&IServerGameDLL::GameFrame, serverGameDLL, nullptr, [this](IServerGameDLL&, bool, bool, bool) {
-        // Queued loads and unloads happen here, where no dispatch is in flight.
         if (_beforeFrame)
             _beforeFrame();
         _host.RaiseFrame();

@@ -1,12 +1,7 @@
 #pragma once
 
 #include <VoltMod/Core/Signals/Subscriptions.hpp>
-#include <VoltMod/Host/Abi.hpp>
-#include <VoltMod/Host/HostTypes.hpp>
 #include <VoltMod/Host/IHost.hpp>
-#include <VoltMod/Host/IHostEvents.hpp>
-#include <VoltMod/Host/IHostLog.hpp>
-#include <VoltMod/Host/PluginDescriptor.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <cstddef>
@@ -18,18 +13,12 @@
 namespace VoltMod
 {
 
-/** Metadata returned by Plugin::Info(). BuildInfo.hpp supplies build identity fields. */
-struct PluginInfo
+/** The build stamp VOLTMOD_PLUGIN takes from the generated BuildInfo.hpp. */
+struct PluginBuild
 {
-    std::string Name = "VoltMod Plugin";
-    std::string Author;
-    std::string Description;
-    std::string Url;
-    std::string License = "MIT";
-    std::string Version = "1.0.0";
-    std::string Date = __DATE__;
-    std::string Commit;
-    std::string LogTag = "VoltMod";
+    const char* Version = "";
+    const char* Commit = "";
+    const char* Date = "";
 };
 
 /**
@@ -48,7 +37,7 @@ public:
     Plugin& operator=(const Plugin&) = delete;
 
     /** Called by VOLTMOD_PLUGIN's entry point, not by plugin code. */
-    bool Attach(IHost& host, char* error, size_t errorSize);
+    bool Attach(IHost& host, const PluginBuild& build, char* error, size_t errorSize);
 
     /** Reverse of Attach. Returns with nothing of this plugin's left running, which is what lets
      *  the host free the library. */
@@ -58,9 +47,6 @@ public:
     const char* StatusJson();
 
 protected:
-    /** @brief Return metadata describing this plugin. */
-    virtual PluginInfo Info() const = 0;
-
     /**
      * @brief Build load-cycle state, load configuration, and register commands.
      * @return false to abort the load.
@@ -101,65 +87,25 @@ private:
      *  @return true when this plugin answered it, which keeps it from the game's own handler. */
     bool HandleConsoleCommand(std::string_view name, std::string_view arguments, int slot);
 
-    /** Take the host's events in the order the framework used to install their hooks. */
     void SubscribeHostEvents();
 
     /** Release custom hooks, commands, plugin state, host events, then the runtime. */
     void Shutdown();
 
-    // The host calls C function pointers, so each event arrives at a static that finds the plugin
-    // through its context pointer. Every one of them stops exceptions at the boundary.
-    static void OnHostFrame(void* context);
-    static void OnHostServerStartup(void* context, HostString mapName);
-    static void OnHostClientConnected(void* context, int slot, int64_t steamId, HostString name, HostString address);
-    static void OnHostClientDisconnected(void* context, int slot);
-    static void OnHostClientFullyConnected(void* context, int slot);
-    static void OnHostClientSettingsChanged(void* context, int slot);
-    static bool OnHostConsoleCommand(void* context, HostString name, HostString arguments, int slot);
-    static void OnHostCheckTransmit(void* context, CCheckTransmitInfo** infoList, int infoCount);
+    void HostFrame();
+    void HostClientConnected(int slot, int64_t steamId, std::string_view name, std::string_view address);
+    void HostClientDisconnected(int slot);
+    void HostClientFullyConnected(int slot);
+    void HostClientSettingsChanged(int slot);
+    void HostCheckTransmit(CCheckTransmitInfo** infoList, int infoCount);
 
     IHost* _host = nullptr;
-    IHostEvents* _events = nullptr;
-    IHostLog* _log = nullptr;
 
     // Reverse destruction order: custom hooks, host events, then their Runtime services.
     std::unique_ptr<Runtime> _runtime;
     Subscriptions _hostEvents;
     Subscriptions _customHooks;
-    PluginInfo _info;  ///< captured at load, so the host can name the plugin after Detach
     std::string _status;
 };
 
 }  // namespace VoltMod
-
-/**
- * @brief Define the plugin instance and the entry point the host resolves.
- *
- * Invoke once, at global namespace scope, in the plugin's Plugin.cpp. The plugin library is not a
- * Metamod plugin, so it defines KHook's dispatch pointer itself; Attach seeds it from the host.
- */
-#define VOLTMOD_PLUGIN(PluginClass)                                                                              \
-    PluginClass g_##PluginClass;                                                                                 \
-    namespace KHook                                                                                              \
-    {                                                                                                            \
-    KHook::IKHook* __exported__khook = nullptr;                                                                  \
-    }                                                                                                            \
-    static bool VoltMod_PluginLoad(::VoltMod::IHost* host, char* error, size_t errorSize)                        \
-    {                                                                                                            \
-        return host && g_##PluginClass.Attach(*host, error, errorSize);                                          \
-    }                                                                                                            \
-    static void VoltMod_PluginUnload()                                                                           \
-    {                                                                                                            \
-        g_##PluginClass.Detach();                                                                                \
-    }                                                                                                            \
-    static const char* VoltMod_PluginStatus()                                                                    \
-    {                                                                                                            \
-        return g_##PluginClass.StatusJson();                                                                     \
-    }                                                                                                            \
-    static const ::VoltMod::PluginDescriptor g_voltmodDescriptor{::VoltMod::HostAbiVersion, &VoltMod_PluginLoad, \
-                                                                 &VoltMod_PluginUnload, &VoltMod_PluginStatus};  \
-    extern "C" VOLTMOD_EXPORT const ::VoltMod::PluginDescriptor* VoltMod_PluginEntry()                           \
-    {                                                                                                            \
-        return &g_voltmodDescriptor;                                                                             \
-    }                                                                                                            \
-    static_assert(true, "VOLTMOD_PLUGIN requires a trailing semicolon")

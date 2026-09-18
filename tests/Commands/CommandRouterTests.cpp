@@ -2,12 +2,12 @@
 #include "Commands/CommandSyntax.hpp"
 
 #include <VoltMod/Core/Slots/SlotEvents.hpp>
-#include <VoltMod/Host/Abi.hpp>
 #include <VoltMod/Host/IHost.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/Policy.hpp>
 #include <algorithm>
 #include <cstdint>
+#include <cstdlib>
 #include <doctest/doctest.h>
 #include <string>
 #include <vector>
@@ -20,7 +20,6 @@ using VoltMod::BoundArg;
 using VoltMod::Caller;
 using VoltMod::CommandDefinition;
 using VoltMod::CommandRouter;
-using VoltMod::HostString;
 using VoltMod::Origin;
 using VoltMod::Player;
 using VoltMod::PlayerManager;
@@ -58,27 +57,30 @@ struct StubBinder final : ArgBinder
     }
 };
 
-/** The host arbitrates command names for the whole process; this stands in for it, refusing
- *  whatever a peer is said to hold. */
+/** Stands in for the host's command names, refusing whatever a peer is said to hold. */
 class FakeHost final : public VoltMod::IHost
 {
 public:
-    std::vector<std::string> Held;
-    std::vector<std::string> Claimed;
+    std::vector<std::string> OwnedByPeer;
+    std::vector<std::string> Registered;
 
-    uint32_t AbiVersion() const override { return VoltMod::HostAbiVersion; }
-    HostString Name() const override { return {}; }
-    HostString HomeDirectory() const override { return {}; }
+    std::string_view Name() const override { return {}; }
     SourceMM::ISmmAPI* Metamod() const override { return nullptr; }
-    KHook::IKHook* Detours() const override { return nullptr; }
-    void* GetInterface(HostString) const override { return nullptr; }
+    KHook::IKHook* HookDispatcher() const override { return nullptr; }
+    VoltMod::IHostEvents& Events() override { std::abort(); }
+    VoltMod::IHostServices& Services() override { std::abort(); }
+    VoltMod::IHostGameData* GameData() const override { return nullptr; }
+    void WriteLog(uint8_t, std::string_view) override {}
+    uint8_t MinLogLevel() const override { return 0; }
+    uint64_t SchemaLayoutStamp() const override { return 0; }
+    bool SchemaVerified() const override { return false; }
 
-    bool ClaimCommand(HostString name) override
+    bool RegisterCommand(std::string_view name) override
     {
-        std::string asked(name.Data, name.Length);
-        if (std::ranges::find(Held, asked) != Held.end())
+        std::string asked(name);
+        if (std::ranges::find(OwnedByPeer, asked) != OwnedByPeer.end())
             return false;
-        Claimed.push_back(asked);
+        Registered.push_back(asked);
         return true;
     }
 };
@@ -191,7 +193,7 @@ TEST_CASE("A name another plugin holds is refused, and the command is not regist
 {
     Fixture f;
     FakeHost host;
-    host.Held = {"ban"};
+    host.OwnedByPeer = {"ban"};
     f.Router.Attach(&host);
 
     CHECK_FALSE(f.Router.Add(Echo("ban", {}, nullptr)));
@@ -199,7 +201,7 @@ TEST_CASE("A name another plugin holds is refused, and the command is not regist
     CHECK(f.Router.Count() == 0);
 }
 
-TEST_CASE("A registered command claims its name and every alias, lowercased")
+TEST_CASE("A command registers its name and every alias with the host, lowercased")
 {
     Fixture f;
     FakeHost host;
@@ -209,14 +211,14 @@ TEST_CASE("A registered command claims its name and every alias, lowercased")
     def.Aliases = {"B"};
     REQUIRE(f.Router.Add(std::move(def)));
 
-    CHECK(host.Claimed == std::vector<std::string>{"ban", "b"});
+    CHECK(host.Registered == std::vector<std::string>{"ban", "b"});
 }
 
 TEST_CASE("An alias another plugin holds is skipped while the command still registers")
 {
     Fixture f;
     FakeHost host;
-    host.Held = {"b"};
+    host.OwnedByPeer = {"b"};
     f.Router.Attach(&host);
 
     CommandDefinition def = Echo("ban", {}, nullptr);

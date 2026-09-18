@@ -85,20 +85,13 @@ TEST_CASE("Logger names a namespaced or nested type by its class name alone")
     CHECK(recorder.Lines[1] == "[Session] open");
 }
 
-TEST_CASE("Logger formats nothing while no handler is installed")
+TEST_CASE("Logger formats only the lines that will be printed")
 {
     VoltMod::Log::SetHandler({});
-    REQUIRE_FALSE(VoltMod::Log::Enabled());
+    const int unhandled = CountedArgument::Formats;
+    Logger<BhopManager>().Error("{}", CountedArgument{});
+    CHECK(CountedArgument::Formats == unhandled);
 
-    const int before = CountedArgument::Formats;
-    Logger<BhopManager> log;
-    log.Error("{}", CountedArgument{});
-
-    CHECK(CountedArgument::Formats == before);
-}
-
-TEST_CASE("Logger formats nothing below the minimum level")
-{
     LogRecorder recorder;
     VoltMod::Log::SetMinimumLevel(LogLevel::Error);
 

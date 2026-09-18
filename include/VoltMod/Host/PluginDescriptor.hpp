@@ -13,15 +13,13 @@
 namespace VoltMod
 {
 
-/**
- * @brief What a plugin library exports, and all the host reads before deciding to load it.
- *
- * The host checks @ref AbiVersion first and refuses any value but its own, so a plugin built
- * against a different boundary never reaches @ref Load.
- */
+/** What a plugin library exports. The host checks @ref AbiVersion before it reads anything else. */
 struct PluginDescriptor
 {
     uint32_t AbiVersion;
+
+    /** The build stamp, "<plugin.json version>+<short-sha>[-dirty]". */
+    const char* Version;
 
     /** Attach to @p host. On false, write why into @p error, which holds @p errorSize bytes. */
     bool (*Load)(IHost* host, char* error, size_t errorSize);

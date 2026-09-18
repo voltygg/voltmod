@@ -1,6 +1,5 @@
 #pragma once
 
-#include <VoltMod/Host/HostTypes.hpp>
 #include <VoltMod/Host/IHostServices.hpp>
 #include <string_view>
 
@@ -8,18 +7,12 @@ namespace VoltMod
 {
 
 /**
- * @brief Typed interface exchange between separately-loaded plugins.
+ * @brief Typed view of the host's table of interfaces plugins publish to each other.
  *
- * The host owns one table for the process. Publish puts this plugin's implementation in it under
- * `T::InterfaceName` and Get asks for whatever any plugin published under that name.
- *
- * An interface is a pure-virtual struct carrying a versioned `InterfaceName`. Bump the version in
- * the name whenever the vtable or a parameter's meaning changes, so a stale consumer gets nullptr
- * rather than a mismatched vtable.
- *
- * Each plugin compiles its own memoverride.cpp and so has its own operator new: never transfer
- * ownership across the boundary. Take string_view, return trivially-copyable types, let no
- * exception escape.
+ * An interface is a pure-virtual struct with a versioned `InterfaceName` ("bans.IBanService/2").
+ * Bump the version whenever the vtable or a parameter's meaning changes, so a stale consumer gets
+ * nullptr instead of a mismatched vtable. Each plugin has its own allocator: never transfer
+ * ownership through an interface, and let no exception escape one.
  */
 class ServiceExchange
 {
@@ -27,12 +20,8 @@ public:
     /** Attach to the host's table. Called by Plugin::Attach before OnLoad. */
     void Attach(IHostServices* services) { _services = services; }
 
-    /**
-     * Offer @p impl under `T::InterfaceName` until Unpublish or unload.
-     *
-     * Name @p T explicitly (`Publish<IBanService>(&_bans)`) so the stored pointer is the
-     * interface subobject the consumer casts back to.
-     */
+    /** Offer @p impl until Unpublish or unload. Name @p T explicitly, `Publish<IBanService>(&_bans)`,
+     *  so the stored pointer is the interface subobject the consumer casts back to. */
     template <class T>
     void Publish(T* impl)
     {
@@ -49,9 +38,8 @@ public:
 
     void UnpublishNamed(std::string_view iface);
 
-    /** What any plugin published for @p T, or nullptr. Not cached: peers come and go, and the
-     *  host never loads or unloads one inside a callback, so a pointer fetched at the point of
-     *  use cannot dangle before you are done with it. */
+    /** What any plugin published for @p T, or nullptr. Ask where you use it and do not keep it:
+     *  the publisher can unload between callbacks, never inside one. */
     template <class T>
     T* Get() const
     {

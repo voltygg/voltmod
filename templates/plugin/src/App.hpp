@@ -9,11 +9,8 @@ namespace $namespace
 {
 
 /**
- * Everything this plugin owns for one Load/Unload cycle. The plugin creates it in OnLoad
- * and drops it in OnUnload, so no state survives a `volt reload`.
- *
- * Members are declared in dependency order and destroyed in reverse; each takes the
- * collaborators it needs, so nothing here reaches for a global.
+ * Everything this plugin owns for one load cycle. VoltMod::AppPlugin builds it on load and drops
+ * it on unload, so nothing survives a `volt reload`. Members are destroyed in reverse order.
  */
 struct App
 {
@@ -26,9 +23,7 @@ struct App
     ConfigManager Config;
 
 private:
-    /** Event, hook and timer registrations, released together. Declared last: reverse member
-     *  destruction stops the handlers before the state they capture goes away. Commands are
-     *  not in here - CommandManager owns those and drops them before OnUnload. */
+    /** Declared last, so handlers stop before the state they capture goes away. */
     VoltMod::Subscriptions _subs;
 };
 

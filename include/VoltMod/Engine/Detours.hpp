@@ -9,7 +9,7 @@
 // Each module carries its own copy: KHook's entry points are defined in its header and resolve
 // this against the module they were compiled into. The host defines and fills its own through
 // Metamod; a plugin library defines its own in VOLTMOD_PLUGIN and Plugin::Attach seeds it from
-// IHost::Detours(). The declaration lives in Engine because vtable hooks must not depend on the
+// IHost::HookDispatcher(). The declaration lives in Engine because vtable hooks must not depend on the
 // composition root.
 namespace KHook
 {

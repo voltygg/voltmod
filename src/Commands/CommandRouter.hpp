@@ -43,7 +43,7 @@ public:
     void Attach(IHost* host) { _host = host; }
 
     /** Register @p def under its lowercased name plus its aliases. With a host attached, each of
-     *  those names is claimed there first, so two plugins cannot answer the same command.
+     *  those names is registered there first, so two plugins cannot answer the same command.
      *  @return false when the name or the registration was refused (already logged). */
     bool Add(CommandDefinition def);
 
