@@ -1,17 +1,11 @@
 #pragma once
 
+#include <VoltMod/Players/Player.hpp>
+#include <VoltMod/Runtime.hpp>
 #include <string_view>
 
 namespace VoltMod
 {
-
-class Player;
-class Runtime;
-
-namespace Internal
-{
-class PluginModule;
-}
 
 /**
  * @brief Everything a plugin owns for one load cycle.
@@ -31,7 +25,6 @@ public:
     /** Framework services for this plugin's load cycle. */
     VoltMod::Runtime& Runtime;
 
-protected:
     /** Load configuration and start the plugin. Returning false aborts the load. */
     virtual bool Load() = 0;
 
@@ -45,9 +38,6 @@ protected:
      * An override replaces both behaviors.
      */
     virtual bool OnPlayerChat(Player* player, std::string_view message, bool teamChat);
-
-private:
-    friend class Internal::PluginModule;
 };
 
 }  // namespace VoltMod

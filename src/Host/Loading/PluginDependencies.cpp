@@ -12,15 +12,12 @@
 namespace VoltMod
 {
 
-namespace
-{
-
 using PluginsByName = std::map<std::string, const PluginManifest*, std::less<>>;
 using RefusalsByName = std::map<std::string, Error, std::less<>>;
 
 // Refuse whoever names a dependency that is not installed, then whoever required them, and so on
 // down the chain. Plugins already in @p refused seed the chain.
-void RefuseUnsatisfied(const PluginsByName& plugins, RefusalsByName& refused)
+static void RefuseUnsatisfied(const PluginsByName& plugins, RefusalsByName& refused)
 {
     std::vector<std::string> spreading;
     for (const auto& [name, reason] : refused)
@@ -49,8 +46,6 @@ void RefuseUnsatisfied(const PluginsByName& plugins, RefusalsByName& refused)
                 refuse(name, Error::NotReady(std::format("requires '{}', which the host refused", gone)));
     }
 }
-
-}  // namespace
 
 LoadList PluginDependencies::Resolve(std::span<const PluginManifest> installed)
 {
