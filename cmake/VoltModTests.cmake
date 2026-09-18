@@ -1,15 +1,12 @@
 include_guard(GLOBAL)
 
 # Consumer test API:
-#   voltmod_add_tests(<name> [SOURCES ...] [FEATURES DATABASE] [DEFINITIONS ...])
-# Globs tests/*.cpp and recompiles the SDK-free SOURCES beside them against src/ and
-# VoltMod::Headers only. FEATURES DATABASE also links VoltMod::Database, so a test can open a
-# SQLite database and run the plugin's migrations. No-op when BUILD_TESTING is off.
+#   voltmod_add_tests(<name> [DATABASE] [SOURCES ...] [DEFINITIONS ...])
 
 include("${CMAKE_CURRENT_LIST_DIR}/VoltModCommon.cmake")
 
 # '[', ']' and ';' break CTest's list of discovered names.
-function(voltmod_verify_test_names)
+function(_voltmod_check_test_names)
     foreach(source IN LISTS ARGN)
         file(STRINGS "${source}" offenders REGEX "TEST_CASE[A-Z_]*\\(\"[^\"]*[][;]")
         if(offenders)
@@ -20,11 +17,13 @@ function(voltmod_verify_test_names)
     endforeach()
 endfunction()
 
+# A doctest binary from tests/*.cpp plus SOURCES, linking VoltMod::Portable; DATABASE adds
+# VoltMod::Database. SOURCES must build without the game SDK.
 function(voltmod_add_tests target_name)
     if(NOT BUILD_TESTING)
         return()
     endif()
-    cmake_parse_arguments(ARG "" "" "SOURCES;FEATURES;DEFINITIONS" ${ARGN})
+    cmake_parse_arguments(ARG "DATABASE" "" "SOURCES;DEFINITIONS" ${ARGN})
 
     if(NOT TARGET doctest::doctest)
         find_package(doctest REQUIRED)
@@ -36,7 +35,7 @@ function(voltmod_add_tests target_name)
     file(GLOB_RECURSE test_cases CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
     # Needs HL2SDK; built by voltmod-api-surface-check.
     list(FILTER test_cases EXCLUDE REGEX "/tests/Api/")
-    voltmod_verify_test_names(${test_cases})
+    _voltmod_check_test_names(${test_cases})
 
     add_executable("${target_name}"
         ${test_cases}
@@ -47,9 +46,10 @@ function(voltmod_add_tests target_name)
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
         "${CMAKE_CURRENT_SOURCE_DIR}/tests"
     )
-    set(link_targets doctest::doctest VoltMod::Headers)
-    voltmod_apply_features(voltmod_add_tests "${target_name}" "${ARG_FEATURES}" link_targets)
-    target_link_libraries("${target_name}" PRIVATE ${link_targets})
+    target_link_libraries("${target_name}" PRIVATE doctest::doctest VoltMod::Portable)
+    if(ARG_DATABASE)
+        target_link_libraries("${target_name}" PRIVATE VoltMod::Database)
+    endif()
     target_compile_definitions("${target_name}" PRIVATE ${ARG_DEFINITIONS})
 
     doctest_discover_tests("${target_name}")

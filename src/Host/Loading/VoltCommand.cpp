@@ -58,7 +58,7 @@ void VoltCommand::PrintLoaded() const
     for (const LoadedPlugin& plugin : loaded)
     {
         const std::string_view description = plugin.Manifest.Description;
-        Log::Info("  {} v{}{}{}", plugin.Manifest.Name, plugin.Version(), description.empty() ? "" : " - ",
+        Log::Info("  {} v{}{}{}", plugin.Manifest.Name, plugin.Manifest.Version, description.empty() ? "" : " - ",
                   description);
     }
 }

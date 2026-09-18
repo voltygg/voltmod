@@ -21,9 +21,6 @@ struct LoadedPlugin
     PluginManifest Manifest;
     const PluginDescriptor* Descriptor = nullptr;
     SharedLibrary Code;  ///< last member: freed only after Unload has returned
-
-    /** The plugin's own build stamp, falling back to the manifest version when it carries none. */
-    std::string_view Version() const;
 };
 
 /**

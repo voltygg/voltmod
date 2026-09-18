@@ -10,7 +10,7 @@ from voltmod.commands.panorama import panorama_commands
 from voltmod.commands.schemagen import schemagen_commands
 from voltmod.commands.server import server_commands
 from voltmod.commands.setup import setup_commands
-from voltmod.process import run_with_error_messages
+from voltmod.process import run_cli
 
 app = typer.Typer(
     help="Build and scaffolding tooling for CS2 Metamod:Source plugin projects.",
@@ -27,4 +27,4 @@ app.add_typer(panorama_commands, name="panorama")
 
 
 def main() -> None:
-    run_with_error_messages(app)
+    run_cli(app)

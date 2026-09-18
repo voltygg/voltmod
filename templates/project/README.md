@@ -50,5 +50,5 @@ That creates `plugins/fun-votes/` with its sources, `plugin.json` and configurat
 `add_subdirectory(plugins/fun-votes)` to the root `CMakeLists.txt`. Name it, version it and
 declare what it depends on in its `plugin.json`.
 
-For a plugin that needs a database, add `FEATURES DATABASE` to its `voltmod_add_plugin` call; the
+For a plugin that needs a database, add `DATABASE` to its `voltmod_add_plugin` call; the
 driver (PostgreSQL, MariaDB or SQLite) is chosen at run time from its settings.

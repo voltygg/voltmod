@@ -54,7 +54,6 @@ static const char* PluginStatus()
 static PluginDescriptor Descriptor()
 {
     return {.AbiVersion = VoltMod::HostAbiVersion,
-            .Version = "1.0.0",
             .Load = LoadPlugin,
             .Unload = UnloadPlugin,
             .Status = PluginStatus};

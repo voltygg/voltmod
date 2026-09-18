@@ -61,8 +61,7 @@ bool App::Load()
 ```
 
 `VOLTMOD_PLUGIN` goes at global scope in exactly one `.cpp`, and
-`<VoltMod/App/PluginEntry.hpp>` is included only there: it pulls in `BuildInfo.hpp`, which changes
-every commit. The macro defines the plugin object, this module's hook dispatch pointer and
+`<VoltMod/App/PluginEntry.hpp>` is included only there. The macro defines the plugin object, this module's hook dispatch pointer and
 `VoltMod_PluginEntry`, the one symbol the host resolves.
 
 Your `App` derives from @ref VoltMod::Plugin. The framework constructs it from `Runtime&` after

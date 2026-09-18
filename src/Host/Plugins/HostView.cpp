@@ -12,13 +12,18 @@ bool Unreleased::Any() const
     return !Subscriptions.empty() || !Services.empty();
 }
 
-HostView::HostView(HostState& state, std::string name, std::string logTag, uint64_t order)
-    : _state(state), _name(std::move(name)), _logTag(std::move(logTag)), _order(order)
+HostView::HostView(HostState& state, std::string name, std::string logTag, std::string version, uint64_t order)
+    : _state(state), _name(std::move(name)), _logTag(std::move(logTag)), _version(std::move(version)), _order(order)
 {}
 
 std::string_view HostView::Name() const
 {
     return _name;
+}
+
+std::string_view HostView::Version() const
+{
+    return _version;
 }
 
 SourceMM::ISmmAPI* HostView::Metamod() const

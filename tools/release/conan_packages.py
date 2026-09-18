@@ -75,9 +75,9 @@ def required_files(package_settings: dict[str, Any]) -> tuple[str, ...]:
     windows = package_settings.get("os") == "Windows"
     platform = "windows" if windows else "linux"
     libraries = (
-        ("lib/voltmod-sdk.lib", "lib/voltmod-database.lib")
+        ("lib/voltmod-portable.lib", "lib/voltmod-sdk.lib", "lib/voltmod-database.lib")
         if windows
-        else ("lib/libvoltmod-sdk.a", "lib/libvoltmod-database.a")
+        else ("lib/libvoltmod-portable.a", "lib/libvoltmod-sdk.a", "lib/libvoltmod-database.a")
     )
     return (
         *libraries,

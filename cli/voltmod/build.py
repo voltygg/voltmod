@@ -5,11 +5,11 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from voltmod.conan import SDK_BUILD_EXCLUSIONS, ensure_remote, find_editable_framework, profile_args
+from voltmod.conan import SDK_BUILD_EXCLUSIONS, editable_framework, ensure_remote, profile_args
 from voltmod.errors import VoltmodError
 from voltmod.framework_checkout import build_checkout, check_build_uses_package, relock_framework
 from voltmod.panorama.render import render_screens
-from voltmod.process import load_msvc_environment, require_build_tools, run_tool
+from voltmod.process import load_msvc_environment, run_tool
 from voltmod.project import Project
 
 FRAMEWORK_REPOSITORY = "https://github.com/voltygg/voltmod.git"
@@ -35,7 +35,6 @@ def build(
     @p relock turns the editable framework into the package CI resolves, and verifies afterwards
     that this build was configured against it.
     """
-    require_build_tools()
     uses_ccache = _configure_ccache(project.root)
     ensure_remote(project.root)
     host_profile = profile_args(project.root, preset)
@@ -44,8 +43,7 @@ def build(
     package_folder = relock_framework(project, preset) if relock else ""
 
     # An editable framework is linked in place, so it compiles first.
-    checkout = find_editable_framework()
-    if checkout and checkout.resolve() != project.root.resolve():
+    if checkout := editable_framework(project.root):
         build_checkout(project, checkout, preset)
 
     # Right after an SDK bump the lockfile does not pin the new revisions, so CI builds without it.

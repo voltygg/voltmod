@@ -20,7 +20,7 @@ from tools.release.conan_packages import (
 )
 from tools.release.sdk_updates import SdkPackage, recipe_version, update_sdk_pins
 from voltmod.errors import VoltmodError
-from voltmod.process import WINDOWS, run_tool, run_with_error_messages
+from voltmod.process import WINDOWS, run_cli, run_tool
 from voltmod.project import Project
 
 app = typer.Typer(
@@ -111,4 +111,4 @@ def watch(
     update_sdk_pins(Project.load().root, package)
 
 
-run_with_error_messages(app)
+run_cli(app)

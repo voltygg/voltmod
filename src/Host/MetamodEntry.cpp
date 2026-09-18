@@ -3,7 +3,6 @@
 #include "Engine/Server/ConsoleLogger.hpp"
 
 #include <ISmmAPI.h>
-#include <VoltMod/BuildInfo.hpp>
 #include <VoltMod/Core/Files/Paths.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Result.hpp>
@@ -61,8 +60,7 @@ bool MetamodEntry::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, 
     _command = std::make_unique<VoltCommand>(*_host, *_plugins);
     _plugins->LoadAll();
 
-    Log::Info("VoltMod host {} ({}, committed {}) loaded{}.", BuildInfo::Version, BuildInfo::RepoCommit,
-              BuildInfo::BuildDate, late ? " (late)" : "");
+    Log::Info("VoltMod host {} loaded{}.", VOLTMOD_VERSION, late ? " (late)" : "");
     return true;
 }
 
@@ -110,11 +108,12 @@ const char* MetamodEntry::GetLicense()
 }
 const char* MetamodEntry::GetVersion()
 {
-    return BuildInfo::Version;
+    return VOLTMOD_VERSION;
 }
+// No build date: a wall-clock stamp would defeat ccache.
 const char* MetamodEntry::GetDate()
 {
-    return BuildInfo::BuildDate;
+    return "";
 }
 const char* MetamodEntry::GetLogTag()
 {

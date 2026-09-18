@@ -15,7 +15,7 @@ from voltmod.cs2_install import (
     server_executable,
 )
 from voltmod.errors import VoltmodError
-from voltmod.process import BUILD_TOOLS, WINDOWS, check_tool_version, msvc_version, tool_version
+from voltmod.process import BUILD_TOOLS, WINDOWS, msvc_version, tool_version
 from voltmod.project import Project
 
 PROJECT_FILES = ("CMakeLists.txt", "CMakePresets.json", "conanfile.py", "pyproject.toml")
@@ -38,11 +38,9 @@ def _passed(message: str) -> CheckResult:
 def _check_tools() -> Iterator[CheckResult]:
     for tool in BUILD_TOOLS:
         try:
-            banner, problem = check_tool_version(tool)
+            yield _passed(f"{tool}: {tool_version(tool)}")
         except VoltmodError as error:
             yield CheckResult(f"{tool}: {error}")
-            continue
-        yield CheckResult(f"{tool}: {problem}") if problem else _passed(f"{tool}: {banner}")
 
 
 def _check_compiler() -> CheckResult:
@@ -56,7 +54,7 @@ def _check_compiler() -> CheckResult:
     if compiler is None:
         return CheckResult("C++ compiler: install GCC or Clang with C++23 support")
     try:
-        return _passed(f"C++ compiler: {tool_version(compiler)[0]}")
+        return _passed(f"C++ compiler: {tool_version(compiler)}")
     except VoltmodError as error:
         return CheckResult(f"C++ compiler: {error}")
 

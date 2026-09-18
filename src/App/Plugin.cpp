@@ -46,11 +46,11 @@ PluginModule::~PluginModule()
     Detach();
 }
 
-bool PluginModule::Attach(IHost& host, const PluginBuild& build, char* error, size_t errorSize) noexcept
+bool PluginModule::Attach(IHost& host, char* error, size_t errorSize) noexcept
 {
     try
     {
-        const bool loaded = AttachImpl(host, build, error, errorSize);
+        const bool loaded = AttachImpl(host, error, errorSize);
         if (!loaded)
             _host = nullptr;
         return loaded;
@@ -71,7 +71,7 @@ bool PluginModule::Attach(IHost& host, const PluginBuild& build, char* error, si
     }
 }
 
-bool PluginModule::AttachImpl(IHost& host, const PluginBuild& build, char* error, size_t errorSize)
+bool PluginModule::AttachImpl(IHost& host, char* error, size_t errorSize)
 {
     KHook::__exported__khook = host.HookDispatcher();
     _host = &host;
@@ -81,7 +81,7 @@ bool PluginModule::AttachImpl(IHost& host, const PluginBuild& build, char* error
     _runtime->Exchange.Attach(&host.Services());
     _runtime->Commands.Attach(&host);
 
-    const LoadContext context{.Host = &host, .Version = build.Version, .Error = error, .MaxLen = errorSize};
+    const LoadContext context{.Host = &host, .Error = error, .MaxLen = errorSize};
     if (!_runtime->Initialize(context))
     {
         if (_runtime->LoadSteps.Count() > 0)
@@ -90,9 +90,8 @@ bool PluginModule::AttachImpl(IHost& host, const PluginBuild& build, char* error
         return false;
     }
 
-    _runtime->Status.RegisterSection("build", [name = _runtime->PluginName, build] {
-        return Json::Write(glz::obj{"name", name, "version", std::string_view(build.Version), "commit",
-                                    std::string_view(build.Commit), "date", std::string_view(build.Date)});
+    _runtime->Status.RegisterSection("build", [name = _runtime->PluginName, version = _runtime->Version] {
+        return Json::Write(glz::obj{"name", name, "version", version});
     });
 
     _plugin = _factory(*_runtime);

@@ -26,7 +26,7 @@ PLUGIN_FILES = (f"{DEMO}/demo.dll", f"{DEMO}/plugin.json")
 @pytest.fixture(autouse=True)
 def no_editable_framework(monkeypatch: pytest.MonkeyPatch) -> None:
     """Whatever this machine has registered with `conan editable` must not reach a test."""
-    monkeypatch.setattr(server, "find_editable_framework", lambda: None)
+    monkeypatch.setattr(server, "editable_framework", lambda root: None)
 
 
 @pytest.fixture
@@ -98,7 +98,7 @@ def test_the_host_comes_from_an_editable_framework_checkout(
     checkout = project.root.parent / "voltmod"
     framework_build = checkout / "build" / PRESET
     framework_build.mkdir(parents=True)
-    monkeypatch.setattr(server, "find_editable_framework", lambda: checkout)
+    monkeypatch.setattr(server, "editable_framework", lambda root: checkout)
     stage_components(
         monkeypatch,
         {(framework_build, "host"): HOST_FILES, (project.build_dir(PRESET), "demo"): PLUGIN_FILES},

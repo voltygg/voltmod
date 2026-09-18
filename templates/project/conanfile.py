@@ -21,6 +21,13 @@ class ProjectConan(ConanFile):
         # voltmod_add_tests uses doctest. Remove this if the project has no unit tests.
         self.test_requires("doctest/2.5.2")
 
+    def layout(self):
+        # The build tree the CMake presets expect: build/<preset>, generators beneath it.
+        toolchain = "windows-msvc" if self.settings.os == "Windows" else "linux-steamrt"
+        preset = f"{toolchain}-{str(self.settings.build_type).lower()}"
+        self.folders.build = f"build/{preset}"
+        self.folders.generators = f"build/{preset}/generators"
+
     def generate(self):
         deps = CMakeDeps(self)
         deps.generate()

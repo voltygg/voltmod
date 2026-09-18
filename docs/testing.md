@@ -23,13 +23,13 @@ Each test case is its own CTest entry, so a CI report names the failing case. Th
 Run the binary under `build/<preset>/` directly for doctest's own filters:
 
 ```bash
-voltmod-utils-tests --list-test-cases
-voltmod-utils-tests --test-case="SteamId::*"
-voltmod-utils-tests --source-file="*Targeting*"
-voltmod-utils-tests --success            # print passing asserts too
+voltmod-tests --list-test-cases
+voltmod-tests --test-case="SteamId::*"
+voltmod-tests --source-file="*Targeting*"
+voltmod-tests --success            # print passing asserts too
 ```
 
-`conan create` excludes `tests/` and disables `BUILD_TESTING`. CI builds the source checkout
+`conan create` excludes `tests/`, so a package build compiles no tests. CI builds the source checkout
 separately:
 
 ```yaml
@@ -134,20 +134,20 @@ voltmod_add_tests(myplugin-tests
 )
 ```
 
-`voltmod_add_tests(<name> [SOURCES ...] [FEATURES DATABASE] [DEFINITIONS ...])` comes from
+`voltmod_add_tests(<name> [DATABASE] [SOURCES ...] [DEFINITIONS ...])` comes from
 `cmake/VoltModTests.cmake`, a build module of the Conan package. It globs `tests/**/*.cpp`
 (excluding `tests/Api/`), supplies doctest's `main`, links `doctest::doctest` and
-`VoltMod::Headers` (the framework's include dir plus glaze and magic_enum), adds the plugin's
+`VoltMod::Portable` (the framework code that builds without the game SDK), adds the plugin's
 `src/` and `tests/` to the include path, and registers the cases with CTest. It is a no-op when
 `BUILD_TESTING` is off.
 
 | Argument | Means |
 | --- | --- |
-| `SOURCES` | the SDK-free translation units to recompile beside the test cases |
-| `FEATURES DATABASE` | also link `VoltMod::Database`, so a test can open a SQLite database and run the plugin's migrations |
+| `SOURCES` | the plugin's SDK-free translation units to compile beside the test cases |
+| `DATABASE` | also link `VoltMod::Database`, so a test can open a SQLite database and run the plugin's migrations |
 | `DEFINITIONS` | compile definitions for the test target |
 
-Test binaries never link the plugin module or the framework, so nothing drags in Metamod. The
+Test binaries never link the plugin module or `VoltMod::Sdk`, so nothing drags in Metamod. The
 Conan side is one line in `conanfile.py`:
 
 ```python

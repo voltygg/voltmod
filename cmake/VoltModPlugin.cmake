@@ -1,15 +1,19 @@
 include_guard(GLOBAL)
 
 # Consumer plugin API:
-#   voltmod_add_plugin(<name> [SOURCES ...] [FEATURES ...])
+#   voltmod_add_plugin(<name> [DATABASE] [SOURCES ...])
 
 include("${CMAKE_CURRENT_LIST_DIR}/VoltModCommon.cmake")
 
-# A plugin the voltmod host loads, linking VoltMod::Sdk. Its plugin.json, beside this
-# CMakeLists.txt, names it, versions it and lists the plugins it depends on; the host reads the
-# installed copy. SOURCES defaults to src/*.cpp; FEATURES DATABASE adds VoltMod::Database.
+# The Conan package ships a prebuilt host; a framework checkout builds its own.
+if(EXISTS "${VOLTMOD_ROOT_DIR}/addons")
+    install(DIRECTORY "${VOLTMOD_ROOT_DIR}/addons/" DESTINATION "addons" COMPONENT host)
+endif()
+
+# A plugin module named by the plugin.json beside it. SOURCES defaults to src/*.cpp;
+# DATABASE adds VoltMod::Database.
 function(voltmod_add_plugin target_name)
-    cmake_parse_arguments(ARG "" "" "SOURCES;FEATURES" ${ARGN})
+    cmake_parse_arguments(ARG "DATABASE" "" "SOURCES" ${ARGN})
 
     if(ARG_UNPARSED_ARGUMENTS)
         message(FATAL_ERROR
@@ -22,7 +26,7 @@ function(voltmod_add_plugin target_name)
             "must run before voltmod_add_plugin().")
     endif()
 
-    _voltmod_read_plugin_version("${target_name}" version)
+    _voltmod_check_plugin_json("${target_name}")
 
     if(NOT ARG_SOURCES)
         file(GLOB_RECURSE ARG_SOURCES CONFIGURE_DEPENDS
@@ -33,19 +37,16 @@ function(voltmod_add_plugin target_name)
     # VOLTMOD_EXPORT on VoltMod_PluginEntry is the only export the host needs.
     voltmod_add_module("${target_name}"
         SOURCES ${ARG_SOURCES}
-        VERSION "${version}"
         OUTPUT_DIR "${CMAKE_BINARY_DIR}/plugins/${target_name}/${VOLTMOD_PLATFORM_ARCH}"
         INSTALL_DIR "addons/voltmod/plugins/${target_name}"
         COMPONENT "${target_name}"
     )
+    target_link_libraries("${target_name}" PRIVATE VoltMod::Sdk)
 
-    set(framework_targets VoltMod::Sdk)
     set(pch_headers "<VoltMod/Api.hpp>")
-    voltmod_apply_features(voltmod_add_plugin "${target_name}" "${ARG_FEATURES}" framework_targets)
-
-    if("DATABASE" IN_LIST ARG_FEATURES)
-        # Ahead of any framework header: the MariaDB connector needs winsock2.h before the
-        # windows.h an SDK header pulls in.
+    if(ARG_DATABASE)
+        target_link_libraries("${target_name}" PRIVATE VoltMod::Database)
+        # First: the MariaDB connector needs winsock2.h before windows.h.
         list(PREPEND pch_headers
             "<sqlpp23/sqlpp23.h>"
             "<sqlpp23/postgresql/postgresql.h>"
@@ -54,13 +55,11 @@ function(voltmod_add_plugin target_name)
         )
     endif()
 
-    target_link_libraries("${target_name}" PRIVATE ${framework_targets})
-
     if(NOT VOLTMOD_DISABLE_PCH)
         target_precompile_headers("${target_name}" PRIVATE ${pch_headers})
     endif()
 
-    # `voltmod build` renders panorama/screens/ there first; nothing generated is committed.
+    # Headers `voltmod build` renders from panorama/screens/.
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/panorama/screens")
         get_filename_component(owner "${CMAKE_CURRENT_SOURCE_DIR}" NAME)
         target_include_directories("${target_name}" PRIVATE
@@ -78,12 +77,10 @@ function(voltmod_add_plugin target_name)
             PATTERN "settings.jsonc" EXCLUDE
         )
     endif()
-
-    _voltmod_install_packaged_host()
 endfunction()
 
-# The host refuses a plugin whose plugin.json name is not its directory, so fail here instead.
-function(_voltmod_read_plugin_version target_name out_var)
+# Fail at configure time on a plugin.json the host would refuse.
+function(_voltmod_check_plugin_json target_name)
     set(manifest "${CMAKE_CURRENT_SOURCE_DIR}/plugin.json")
     if(NOT EXISTS "${manifest}")
         message(FATAL_ERROR "voltmod_add_plugin(${target_name}): ${manifest} is missing")
@@ -99,16 +96,4 @@ function(_voltmod_read_plugin_version target_name out_var)
     if(error OR version STREQUAL "")
         message(FATAL_ERROR "${manifest}: \"version\" is missing (${error})")
     endif()
-    set("${out_var}" "${version}" PARENT_SCOPE)
-endfunction()
-
-# A packaged framework ships the built host under addons/, offered as the same `host` install
-# component a framework checkout builds.
-function(_voltmod_install_packaged_host)
-    get_property(done GLOBAL PROPERTY VOLTMOD_PACKAGED_HOST_INSTALLED)
-    if(done OR NOT EXISTS "${VOLTMOD_ROOT_DIR}/addons")
-        return()
-    endif()
-    set_property(GLOBAL PROPERTY VOLTMOD_PACKAGED_HOST_INSTALLED TRUE)
-    install(DIRECTORY "${VOLTMOD_ROOT_DIR}/addons/" DESTINATION "addons" COMPONENT host)
 endfunction()

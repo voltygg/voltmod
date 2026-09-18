@@ -18,13 +18,14 @@ void PluginHost::SetSchemaLayout(uint64_t stamp, bool verified)
     _state.SchemaVerified = verified;
 }
 
-HostView* PluginHost::AddPlugin(std::string_view name, std::string_view logTag)
+HostView* PluginHost::AddPlugin(std::string_view name, std::string_view logTag, std::string_view version)
 {
     if (name.empty() || FindPlugin(name) != nullptr)
         return nullptr;
 
     _plugins.push_back(std::make_unique<HostView>(_state, std::string(name),
-                                                  std::string(logTag.empty() ? name : logTag), _state.NextOrder++));
+                                                  std::string(logTag.empty() ? name : logTag), std::string(version),
+                                                  _state.NextOrder++));
     return _plugins.back().get();
 }
 

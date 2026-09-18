@@ -4,7 +4,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from voltmod.conan import find_editable_framework
+from voltmod.conan import editable_framework
 from voltmod.cs2_install import (
     CSGO_DIR,
     HOST_COMPONENT,
@@ -86,44 +86,33 @@ def run_server(settings: Settings, *, check_update: bool = False) -> None:
 def _install_host(project: Project, csgo: Path, preset: str) -> None:
     """Install the host: the only Metamod plugin, which loads its managed plugins."""
     print("--- voltmod host ---")
-    searched = _host_build_dirs(project, preset)
+    # An editable framework checkout builds the host in its own tree.
+    checkout = editable_framework(project.root)
+    searched = [project.build_dir(preset)] + ([checkout / "build" / preset] if checkout else [])
     for build_dir in searched:
-        staging = _stage_component(build_dir, HOST_COMPONENT, required=False)
-        if staging is None:
-            continue
-        _merge_addons(staging, csgo, HOST_COMPONENT)
-        _print_staged(staging)
-        return
+        if staging := _stage_component(build_dir, HOST_COMPONENT):
+            _merge_addons(staging, csgo, HOST_COMPONENT)
+            _print_staged(staging)
+            return
 
-    looked_in = "\n  ".join(str(path) for path in searched) or "(no build directory)"
+    looked_in = "\n  ".join(map(str, searched))
     raise VoltmodError(
         f"no voltmod host was staged; looked in:\n  {looked_in}\n"
         f"Build the framework first: voltmod build {preset}"
     )
 
 
-def _host_build_dirs(project: Project, preset: str) -> list[Path]:
-    """This project's build tree, then an editable framework checkout's, which builds its own."""
-    candidates = [project.build_dir(preset)]
-    checkout = find_editable_framework()
-    if checkout and checkout.resolve() != project.root.resolve():
-        candidates.append(checkout / "build" / preset)
-    return [path for path in candidates if path.is_dir()]
-
-
 def _install_plugin(project: Project, name: str, csgo: Path, preset: str, *, named: bool) -> None:
-    """Stage one plugin with `cmake --install`, then merge it into the server tree."""
-    print(f"--- {name} ---")
-    build_dir = project.build_dir(preset)
-    if not build_dir.is_dir():
-        if named:
-            raise VoltmodError(f"no build at {build_dir}\nBuild first: voltmod build {preset}")
-        print(f"  (skipped - no build at {build_dir})")
-        return
+    """Stage one plugin with `cmake --install`, then merge it into the server tree.
 
-    staging = _stage_component(build_dir, name, required=named)
+    A plugin asked for by name must install; a bare install skips what is not built.
+    """
+    print(f"--- {name} ---")
+    staging = _stage_component(project.build_dir(preset), name)
     if staging is None:
-        print(f"  (skipped - cmake --install produced nothing for {name})")
+        if named:
+            raise VoltmodError(f"{name} is not built; run `voltmod build {preset}` first")
+        print(f"  (skipped - not built for {preset})")
         return
 
     _merge_addons(staging, csgo, name)
@@ -153,8 +142,10 @@ def _print_staged(staging: Path) -> None:
         print(f"  -> {'/'.join(parts)}")
 
 
-def _stage_component(build_dir: Path, component: str, *, required: bool) -> Path | None:
+def _stage_component(build_dir: Path, component: str) -> Path | None:
     """Stage one install component under the build tree; None when it installs no addons."""
+    if not build_dir.is_dir():
+        return None
     staging = build_dir / "_install-staging" / component
     shutil.rmtree(staging, ignore_errors=True)
     try:
@@ -162,15 +153,9 @@ def _stage_component(build_dir: Path, component: str, *, required: bool) -> Path
             "cmake", "--install", str(build_dir), "--component", component,
             "--prefix", str(staging),
         )
-        staged = (staging / "addons").is_dir()
     except subprocess.CalledProcessError:
-        staged = False
-
-    if staged:
-        return staging
-    if required:
-        raise VoltmodError(f"cmake --install staged no addons/ for {component} (is it built?)")
-    return None
+        return None
+    return staging if (staging / "addons").is_dir() else None
 
 
 def _merge_addons(staging: Path, csgo: Path, what: str) -> None:

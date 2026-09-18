@@ -40,12 +40,6 @@ static std::vector<PluginManifest> Installed()
     return InstalledPlugins::Discover(ResolvePath("addons/voltmod/plugins"));
 }
 
-std::string_view LoadedPlugin::Version() const
-{
-    const char* stamped = Descriptor != nullptr ? Descriptor->Version : nullptr;
-    return stamped != nullptr && stamped[0] != '\0' ? std::string_view(stamped) : std::string_view(Manifest.Version);
-}
-
 PluginLoader::PluginLoader(PluginHost& host) : _host(host) {}
 
 PluginLoader::~PluginLoader()
@@ -135,7 +129,7 @@ Status PluginLoader::LoadOne(const PluginManifest& manifest)
     if (Status valid = ValidateDescriptor(descriptor); !valid)
         return valid;
 
-    HostView* view = _host.AddPlugin(name, manifest.LogTag);
+    HostView* view = _host.AddPlugin(name, manifest.LogTag, manifest.Version);
     if (view == nullptr)
         return std::unexpected(Error::Failed("the host already holds a view under that name"));
 
@@ -151,7 +145,7 @@ Status PluginLoader::LoadOne(const PluginManifest& manifest)
 
     _loaded.push_back({.Manifest = manifest, .Descriptor = descriptor, .Code = std::move(*code)});
 
-    Log::Info("Loaded {} v{}.", name, _loaded.back().Version());
+    Log::Info("Loaded {} v{}.", name, manifest.Version);
     return {};
 }
 

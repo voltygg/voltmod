@@ -18,9 +18,6 @@ struct PluginDescriptor
 {
     uint32_t AbiVersion;
 
-    /** The build stamp, "<plugin.json version>+<short-sha>[-dirty]". */
-    const char* Version;
-
     /** Attach to @p host. On false, write why into @p error, which holds @p errorSize bytes. */
     bool (*Load)(IHost* host, char* error, size_t errorSize);
 

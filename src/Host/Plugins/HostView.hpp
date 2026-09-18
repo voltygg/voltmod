@@ -68,7 +68,7 @@ struct Unreleased
 class HostView final : public IHost, public IHostEvents, public IHostServices
 {
 public:
-    HostView(HostState& state, std::string name, std::string logTag, uint64_t order);
+    HostView(HostState& state, std::string name, std::string logTag, std::string version, uint64_t order);
 
     HostView(const HostView&) = delete;
     HostView& operator=(const HostView&) = delete;
@@ -82,6 +82,7 @@ public:
     Unreleased RemoveAll();
 
     std::string_view Name() const override;
+    std::string_view Version() const override;
     SourceMM::ISmmAPI* Metamod() const override;
     KHook::IKHook* HookDispatcher() const override;
     IHostEvents& Events() override;
@@ -125,6 +126,7 @@ private:
     HostState& _state;
     std::string _name;
     std::string _logTag;  ///< what this plugin's log lines are prefixed with
+    std::string _version;
     LogLevel _minLevel = LogLevel::Info;
     uint64_t _order = 0;
     std::vector<Subscribed> _subscriptions;  ///< in the order the plugin took them

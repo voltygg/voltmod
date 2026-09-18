@@ -38,8 +38,7 @@ namespace VoltMod
 struct LoadContext
 {
     IHost* Host = nullptr;
-    std::string_view Version;  ///< the plugin's build stamp
-    char* Error = nullptr;     ///< shown by the host when the load fails
+    char* Error = nullptr;  ///< shown by the host when the load fails
     size_t MaxLen = 0;
 };
 
@@ -68,7 +67,7 @@ public:
 
     /** The plugin's `plugin.json` name and directory under `addons/voltmod/plugins/`. */
     std::string PluginName;
-    /** "<plugin.json version>+<short-sha>[-dirty]". */
+    /** The plugin's `plugin.json` version. */
     std::string Version;
 
     /** "addons/voltmod/plugins/<PluginName>/<relative>". */

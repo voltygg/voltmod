@@ -42,7 +42,7 @@ and includes `cmake/VoltModPlugin.cmake` and `cmake/VoltModTests.cmake`.
 
 | Package | Contents |
 | --- | --- |
-| `voltmod/x.y.z` | The host binary, the Sdk and Database libraries, headers, CMake helpers, gamedata, templates |
+| `voltmod/x.y.z` | The host binary, the Portable, Sdk and Database libraries, headers, CMake helpers, gamedata, templates |
 | `hl2sdk-cs2/<yyyy.mm.dd>` | Trimmed HL2SDK in mirror layout: headers, prebuilt Valve libs, generated `.pb.h`/`.pb.cc`, and the source-only TUs each plugin compiles itself. Versioned by the upstream commit date |
 | `metamod-source/2.0.0.<yyyymmdd>` | Metamod core and KHook headers, header-only |
 | `sqlpp23/<x.yy>` | sqlpp23 headers and `sqlpp23-ddl2cpp`. The `with_postgresql`, `with_mariadb` and `with_sqlite3` options add the matching connector |
@@ -50,11 +50,11 @@ and includes `cmake/VoltModPlugin.cmake` and `cmake/VoltModTests.cmake`.
 | Target | Is |
 | --- | --- |
 | `VoltMod::Sdk` | The framework library a plugin links. `voltmod_add_plugin` links it for you |
-| `VoltMod::Database` | Postgres/MariaDB/SQLite plus sqlpp23, added by `FEATURES DATABASE` |
-| `VoltMod::Headers` | The include directory with glaze and magic_enum behind it, and no SDK. What a test binary links |
-| `VoltMod::VoltMod` | Every library component at once |
+| `VoltMod::Portable` | The part of the framework that builds without the game SDK. `VoltMod::Sdk` links it, and so does a test binary |
+| `VoltMod::Database` | Postgres/MariaDB/SQLite plus sqlpp23, added by `DATABASE` |
+| `VoltMod::VoltMod` | Every library above |
 
-The package also carries the built host as the `host` install component, which nothing links.
+The package also carries the built host under `addons/`, installed as the `host` component.
 `cmake --install <build> --component host --prefix dist` stages `dist/addons/voltmod/` and
 `dist/addons/metamod/voltmod.vdf` for a server; `voltmod install` does it as part of an install.
 
@@ -75,11 +75,11 @@ through `--build=missing`.
 ## CMake functions
 
 ```cmake
-voltmod_add_plugin(<name> [SOURCES <file>...] [FEATURES DATABASE])
+voltmod_add_plugin(<name> [DATABASE] [SOURCES <file>...])
 ```
 
 Builds the library the host loads and installs it as the `<name>` component. `SOURCES` defaults
-to a recursive glob of `src/*.cpp`. `FEATURES DATABASE` links `VoltMod::Database` and puts the
+to a recursive glob of `src/*.cpp`. `DATABASE` links `VoltMod::Database` and puts the
 sqlpp23 connector headers ahead of the framework's in the precompiled header.
 
 The name must be the CMake target, the plugin's directory and the `name` in the `plugin.json`
@@ -89,12 +89,12 @@ the same reason. There is no `VERSION`, `DEPENDS` or `OPTIONAL_DEPENDS` argument
 dependencies live in `plugin.json` (see @ref plugin_guide).
 
 ```cmake
-voltmod_add_tests(<name> [SOURCES <file>...] [FEATURES DATABASE] [DEFINITIONS <define>...])
+voltmod_add_tests(<name> [DATABASE] [SOURCES <file>...] [DEFINITIONS <define>...])
 ```
 
 Builds a doctest binary from a recursive glob of `tests/*.cpp` plus the SDK-free `SOURCES`
-recompiled beside them, links `VoltMod::Headers`, and registers the cases with CTest. It is a
-no-op when `BUILD_TESTING` is off. `FEATURES DATABASE` also links `VoltMod::Database`, so a test
+compiled beside them, links `VoltMod::Portable`, and registers the cases with CTest. It is a
+no-op when `BUILD_TESTING` is off. `DATABASE` also links `VoltMod::Database`, so a test
 can open a SQLite database and run the plugin's migrations. A `TEST_CASE` name may not contain
 `[`, `]` or `;`, which CTest discovery cannot round-trip; the function fails on one that does.
 See @ref testing_guide.

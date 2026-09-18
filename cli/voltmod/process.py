@@ -16,9 +16,7 @@ WINDOWS = sys.platform == "win32"
 # cmake, ctest, conan, ninja and clang-format are voltmod dependencies, installed here.
 TOOLS_DIR = Path(sysconfig.get_path("scripts"))
 
-# Both `voltmod build` and `voltmod doctor` judge a toolchain against these.
 BUILD_TOOLS = ("cmake", "conan", "ninja")
-MINIMUM_VERSIONS = {"cmake": (4, 3, 4), "conan": (2, 29, 1)}
 
 
 def put_tools_first_on_path() -> None:
@@ -26,7 +24,7 @@ def put_tools_first_on_path() -> None:
     os.environ["PATH"] = f"{TOOLS_DIR}{os.pathsep}{os.environ.get('PATH', '')}"
 
 
-def run_with_error_messages(main: Callable[[], object]) -> None:
+def run_cli(main: Callable[[], object]) -> None:
     """Run @p main, reporting a VoltmodError or a failed tool as one line and exit code 1."""
     put_tools_first_on_path()
     try:
@@ -58,30 +56,13 @@ def run_tool(
     return subprocess.run(command, check=check, text=True, capture_output=capture, cwd=cwd)
 
 
-def tool_version(tool: str) -> tuple[str, tuple[int, ...]]:
-    """A tool's first `--version` line, and the version numbers in it (empty when it has none)."""
+def tool_version(tool: str) -> str:
+    """A tool's first `--version` line."""
     result = run_tool(tool, "--version", capture=True, check=False)
     lines = (result.stdout or result.stderr).strip().splitlines()
     if result.returncode != 0 or not lines:
         raise VoltmodError(f"`{tool} --version` failed")
-    match = re.search(r"\b\d+(?:\.\d+)+", lines[0])
-    return lines[0], tuple(map(int, match.group().split("."))) if match else ()
-
-
-def check_tool_version(tool: str) -> tuple[str, str]:
-    """A tool's version line, and why it is too old ("" when it is new enough)."""
-    banner, actual = tool_version(tool)
-    minimum = MINIMUM_VERSIONS.get(tool)
-    if minimum and actual < minimum:
-        return banner, f"{banner}; voltmod requires {'.'.join(map(str, minimum))} or newer"
-    return banner, ""
-
-
-def require_build_tools() -> None:
-    for tool in BUILD_TOOLS:
-        _, problem = check_tool_version(tool)
-        if problem:
-            raise VoltmodError(f"{tool}: {problem}")
+    return lines[0]
 
 
 def msvc_version() -> str:

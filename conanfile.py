@@ -1,13 +1,12 @@
 # Conan replaces these class attributes at runtime, causing Pyright false positives.
 # pyright: reportAttributeAccessIssue=false, reportCallIssue=false
 
-import os
 import shutil
 
 from conan import ConanFile  # type: ignore[attr-defined]
 from conan.errors import ConanInvalidConfiguration
 from conan.tools.build import check_min_cppstd
-from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
+from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain
 
 
 class VoltModConan(ConanFile):
@@ -20,7 +19,7 @@ class VoltModConan(ConanFile):
     license = "MIT"
     homepage = "https://github.com/voltygg/voltmod"
     settings = "os", "compiler", "build_type", "arch"
-    # What consumers link: the SDK. The package also ships the host module, which nothing links.
+    # What consumers link: the SDK libraries. The package also ships the built host under addons/.
     package_type = "static-library"
 
     # cpr is header-private. glaze is public through App/Config.hpp, never through Api.hpp.
@@ -44,10 +43,6 @@ class VoltModConan(ConanFile):
         "templates/plugin/*",
         "LICENSE",
     )
-
-    def _source_checkout(self):
-        # exports_sources omits CMakePresets.json, so this is false in the cache.
-        return os.path.isfile(os.path.join(self.recipe_folder, "CMakePresets.json"))
 
     def requirements(self):
         self.requires("glaze/8.0.0", transitive_headers=True)
@@ -82,12 +77,12 @@ class VoltModConan(ConanFile):
         return f"{toolchain}-{str(self.settings.build_type).lower()}"
 
     def layout(self):
-        # Checkouts use the paths defined by the public CMake presets.
-        if self._source_checkout():
-            self.folders.build = f"build/{self._preset()}"
-            self.folders.generators = f"build/{self._preset()}/generators"
-        else:
-            cmake_layout(self)
+        # The public CMake presets' build tree, for a checkout and the cache alike.
+        self.folders.build = f"build/{self._preset()}"
+        self.folders.generators = f"build/{self._preset()}/generators"
+        # An editable checkout's libraries sit at the top of its build tree, not in lib/.
+        for component in ("portable", "sdk", "database"):
+            self.cpp.build.components[component].libdirs = ["."]
 
     def generate(self):
         deps = CMakeDeps(self)
@@ -96,14 +91,11 @@ class VoltModConan(ConanFile):
         toolchain = CMakeToolchain(self)
         toolchain.user_presets_path = False
         toolchain.variables["CMAKE_POSITION_INDEPENDENT_CODE"] = True
-        # This recipe owns the version; the host stamps it into its build info.
+        # This recipe owns the version; the host reports it to Metamod.
         toolchain.variables["VOLTMOD_VERSION"] = self.version
         # Via the toolchain so `cmake --preset`, `conan build` and `conan create` all get it.
         if shutil.which("ccache"):
             toolchain.variables["CMAKE_CXX_COMPILER_LAUNCHER"] = "ccache"
-        # hl2sdk-cs2's build module owns VOLTMOD_HL2SDK_DIR.
-        if not self._source_checkout():
-            toolchain.variables["BUILD_TESTING"] = False
         toolchain.generate()
 
     def build(self):
@@ -115,65 +107,41 @@ class VoltModConan(ConanFile):
         cmake = CMake(self)
         cmake.install()
 
-    def _host_bin_dir(self):
-        """The packaged addon tree, or a checkout's build output. cs2_install is unimportable
-        during a conan run, so the layout is spelled out here."""
-        if self._source_checkout():
-            arch = "windows-x86_64" if self.settings.os == "Windows" else "linux-x86_64"
-            return os.path.join(self.folders.build, "host", arch)
-        subdir = "win64" if self.settings.os == "Windows" else "linuxsteamrt64"
-        return os.path.join("addons", "voltmod", "bin", subdir)
-
     def package_info(self):
         self.cpp_info.set_property("cmake_file_name", "voltmod")
         self.cpp_info.set_property("cmake_target_name", "VoltMod::VoltMod")
         self.cpp_info.builddirs = ["cmake"]
         # Export the plugin and test helpers as CMakeDeps build modules.
         self.cpp_info.set_property("cmake_build_modules", [
-            os.path.join("cmake", "VoltModPlugin.cmake"),
-            os.path.join("cmake", "VoltModTests.cmake"),
+            "cmake/VoltModPlugin.cmake",
+            "cmake/VoltModTests.cmake",
         ])
 
-        # Components match the CMake targets. An editable checkout's libraries sit in its
-        # preset build tree, not lib/.
-        libdirs = [self.folders.build] if self._source_checkout() else ["lib"]
-
-        # All a test binary links.
-        headers = self.cpp_info.components["headers"]
-        headers.set_property("cmake_target_name", "VoltMod::Headers")
-        headers.includedirs = ["include"]
-        headers.requires = ["glaze::glaze", "magic_enum::magic_enum"]
+        # Components match the CMake targets. CMakeDeps makes VoltMod::VoltMod link them all.
+        portable = self.cpp_info.components["portable"]
+        portable.set_property("cmake_target_name", "VoltMod::Portable")
+        portable.libs = ["voltmod-portable"]
+        portable.requires = ["glaze::glaze", "magic_enum::magic_enum"]
+        if self.settings.os == "Windows":
+            portable.system_libs = ["psapi"]
 
         sdk = self.cpp_info.components["sdk"]
         sdk.set_property("cmake_target_name", "VoltMod::Sdk")
         sdk.libs = ["voltmod-sdk"]
-        sdk.libdirs = libdirs
         sdk.requires = [
-            "headers",
+            "portable",
             "hl2sdk-cs2::hl2sdk-cs2",
             "metamod-source::metamod-source",
             "cpr::cpr",
         ]
+
+        # Plugins link it only with DATABASE.
+        database = self.cpp_info.components["database"]
+        database.set_property("cmake_target_name", "VoltMod::Database")
+        database.libs = ["voltmod-database"]
+        database.requires = [
+            "portable", "sqlpp23::postgresql", "sqlpp23::mysql", "sqlpp23::sqlite3",
+        ]
         if self.settings.os == "Windows":
-            sdk.system_libs = ["psapi"]
-
-        # Plugins link it only with FEATURES DATABASE.
-        db = self.cpp_info.components["database"]
-        db.set_property("cmake_target_name", "VoltMod::Database")
-        db.libs = ["voltmod-database"]
-        db.libdirs = libdirs
-        db.requires = ["sdk", "sqlpp23::postgresql", "sqlpp23::mysql", "sqlpp23::sqlite3"]
-
-        # The Metamod plugin that loads every other plugin. Nothing links it: it ships as the
-        # server-ready addons/ tree that VoltModPlugin.cmake offers as the `host` component.
-        host = self.cpp_info.components["host"]
-        host.set_property("cmake_target_name", "VoltMod::Host")
-        host.libs = []
-        host.libdirs = []
-        host.includedirs = []
-        host.bindirs = [self._host_bin_dir()]
-
-        # Every component, for a project that links the package without voltmod_add_plugin.
-        umbrella = self.cpp_info.components["voltmod"]
-        umbrella.set_property("cmake_target_name", "VoltMod::VoltMod")
-        umbrella.requires = ["sdk", "database"]
+            # The MariaDB connector needs winsock2.h before the windows.h other headers pull in.
+            database.defines = ["NOMINMAX", "WIN32_LEAN_AND_MEAN"]

@@ -10,7 +10,7 @@ Ask for it in CMake; the package always ships it, but a plugin links it and the 
 only on request:
 
 ```cmake
-voltmod_add_plugin(my-plugin FEATURES DATABASE)
+voltmod_add_plugin(my-plugin DATABASE)
 ```
 
 ```cpp

@@ -78,15 +78,20 @@ def find_editable_framework() -> Path | None:
     if not registry.is_file():
         return None
     try:
-        return _framework_entry(json.loads(registry.read_text(encoding="utf-8")))
-    except (OSError, ValueError, AttributeError, KeyError, TypeError):
+        entries = json.loads(registry.read_text(encoding="utf-8"))
+        return next(
+            (Path(entry["path"]).parent for reference, entry in entries.items()
+             if reference.startswith("voltmod/")),
+            None,
+        )
+    except (OSError, ValueError, AttributeError, KeyError, TypeError) as error:
         # Never read an unexpected format as "no editable": the build would link a stale framework.
-        listing = run_tool("conan", "editable", "list", "--format=json", capture=True, check=False)
-        return None if listing.returncode else _framework_entry(json.loads(listing.stdout or "{}"))
+        raise VoltmodError(f"cannot read {registry}: {error}") from None
 
 
-def _framework_entry(entries: dict[str, Any]) -> Path | None:
-    for reference, entry in entries.items():
-        if reference.startswith("voltmod/"):
-            return Path(entry["path"]).parent
-    return None
+def editable_framework(project_root: Path) -> Path | None:
+    """The editable checkout the project links, or None when there is none or it is the project."""
+    checkout = find_editable_framework()
+    if checkout is None or checkout.resolve() == project_root.resolve():
+        return None
+    return checkout

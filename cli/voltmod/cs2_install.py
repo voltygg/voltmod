@@ -5,7 +5,6 @@ from pathlib import Path
 
 from voltmod.errors import VoltmodError
 
-PLATFORMS = ("windows", "linux")
 BIN_SUBDIR = {"windows": "win64", "linux": "linuxsteamrt64"}
 
 # The game directory every addons/ path below is relative to.
@@ -26,10 +25,9 @@ HOST_ADDON_DIR = "addons/voltmod"
 PLUGINS_DIR = f"{HOST_ADDON_DIR}/plugins"
 HOST_VDF = "addons/metamod/voltmod.vdf"
 HOST_GAMEDATA = f"{HOST_ADDON_DIR}/gamedata/gamedata.jsonc"
-HOST_BINARY_NAMES = {"windows": "voltmod.dll", "linux": "voltmod.so"}
 HOST_BINARIES = {
-    platform: f"{HOST_ADDON_DIR}/bin/{BIN_SUBDIR[platform]}/{HOST_BINARY_NAMES[platform]}"
-    for platform in PLATFORMS
+    "windows": f"{HOST_ADDON_DIR}/bin/{BIN_SUBDIR['windows']}/voltmod.dll",
+    "linux": f"{HOST_ADDON_DIR}/bin/{BIN_SUBDIR['linux']}/voltmod.so",
 }
 
 # Written by a server running voltmod once a map runs.

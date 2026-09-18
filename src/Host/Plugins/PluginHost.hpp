@@ -31,7 +31,7 @@ public:
 
     /** Give @p name its own view, at the end of the dispatch order. Nullptr when it already has one.
      *  @p logTag prefixes every line the plugin writes; empty means its name. */
-    HostView* AddPlugin(std::string_view name, std::string_view logTag = {});
+    HostView* AddPlugin(std::string_view name, std::string_view logTag = {}, std::string_view version = {});
 
     /** Drop every subscription, publication and command name @p name still holds, and report them. */
     Unreleased RemovePlugin(std::string_view name);

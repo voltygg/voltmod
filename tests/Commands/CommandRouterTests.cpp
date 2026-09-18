@@ -65,6 +65,7 @@ public:
     std::vector<std::string> Registered;
 
     std::string_view Name() const override { return {}; }
+    std::string_view Version() const override { return {}; }
     SourceMM::ISmmAPI* Metamod() const override { return nullptr; }
     KHook::IKHook* HookDispatcher() const override { return nullptr; }
     VoltMod::IHostEvents& Events() override { std::abort(); }

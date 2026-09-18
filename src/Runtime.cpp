@@ -40,7 +40,7 @@ std::string Runtime::PluginFile(std::string_view relative) const
 bool Runtime::Initialize(const LoadContext& context)
 {
     PluginName = context.Host->Name();
-    Version = context.Version;
+    Version = context.Host->Version();
     InstallLogger(context);
 
     if (!ResolveInterfaces(context))

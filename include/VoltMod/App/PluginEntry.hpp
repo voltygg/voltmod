@@ -1,7 +1,6 @@
 #pragma once
 
 #include <VoltMod/App/Internal/PluginModule.hpp>
-#include <VoltMod/BuildInfo.hpp>
 #include <VoltMod/Host/Abi.hpp>
 #include <VoltMod/Host/PluginDescriptor.hpp>
 
@@ -19,9 +18,7 @@
     }                                                                                                                \
     static bool VoltMod_PluginLoad(::VoltMod::IHost* host, char* error, size_t errorSize) noexcept                   \
     {                                                                                                                \
-        static constexpr ::VoltMod::Internal::PluginBuild build{                                                     \
-            ::VoltMod::BuildInfo::Version, ::VoltMod::BuildInfo::RepoCommit, ::VoltMod::BuildInfo::BuildDate};       \
-        return host && g_voltmodPlugin.Attach(*host, build, error, errorSize);                                       \
+        return host && g_voltmodPlugin.Attach(*host, error, errorSize);                                              \
     }                                                                                                                \
     static void VoltMod_PluginUnload() noexcept                                                                      \
     {                                                                                                                \
@@ -31,8 +28,7 @@
     {                                                                                                                \
         return g_voltmodPlugin.StatusJson();                                                                         \
     }                                                                                                                \
-    static const ::VoltMod::PluginDescriptor g_voltmodDescriptor{::VoltMod::HostAbiVersion,                          \
-                                                                 ::VoltMod::BuildInfo::Version, &VoltMod_PluginLoad, \
+    static const ::VoltMod::PluginDescriptor g_voltmodDescriptor{::VoltMod::HostAbiVersion, &VoltMod_PluginLoad,     \
                                                                  &VoltMod_PluginUnload, &VoltMod_PluginStatus};      \
     extern "C" VOLTMOD_EXPORT const ::VoltMod::PluginDescriptor* VoltMod_PluginEntry() noexcept                      \
     {                                                                                                                \

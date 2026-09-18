@@ -13,14 +13,6 @@
 namespace VoltMod::Internal
 {
 
-/** The build stamp VOLTMOD_PLUGIN takes from the generated BuildInfo.hpp. */
-struct PluginBuild
-{
-    const char* Version = "";
-    const char* Commit = "";
-    const char* Date = "";
-};
-
 template <class T>
 concept PluginType = std::derived_from<T, Plugin> && std::constructible_from<T, Runtime&>;
 
@@ -36,12 +28,12 @@ public:
     PluginModule(const PluginModule&) = delete;
     PluginModule& operator=(const PluginModule&) = delete;
 
-    bool Attach(IHost& host, const PluginBuild& build, char* error, size_t errorSize) noexcept;
+    bool Attach(IHost& host, char* error, size_t errorSize) noexcept;
     void Detach() noexcept;
     const char* StatusJson() noexcept;
 
 private:
-    bool AttachImpl(IHost& host, const PluginBuild& build, char* error, size_t errorSize);
+    bool AttachImpl(IHost& host, char* error, size_t errorSize);
     void WriteFailure(char* error, size_t errorSize, std::string_view failure) noexcept;
 
     void HandleServerStartup(std::string_view mapName);
