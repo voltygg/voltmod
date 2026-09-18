@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Host/EventFanOut.hpp"
+#include "Host/Subscribers.hpp"
 
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Host/HostTypes.hpp>
@@ -16,9 +16,9 @@
 namespace VoltMod
 {
 
-class HostCore;
+class PluginHost;
 
-/** Which fan-out a subscription was taken on. Names the event in a leak line. */
+/** Which event a subscription was taken on. Names it in a leak line. */
 enum class HostEvent
 {
     Frame,
@@ -52,19 +52,19 @@ std::string_view Text(HostString text);
  * @brief One loaded plugin's view of the host, and the record of what it took.
  *
  * A plugin reaches the host only through its own context, which is how the host knows whose
- * subscription, publication or command claim every call is. Owned by @ref HostCore and valid from
+ * subscription, publication or command claim every call is. Owned by @ref PluginHost and valid from
  * OpenPlugin until ClosePlugin.
  */
 class PluginContext final : public IHost, public IHostEvents, public IHostServices
 {
 public:
-    PluginContext(HostCore& host, std::string name, uint64_t order);
+    PluginContext(PluginHost& host, std::string name, uint64_t order);
 
     PluginContext(const PluginContext&) = delete;
     PluginContext& operator=(const PluginContext&) = delete;
 
     std::string_view PluginName() const { return _name; }
-    /** The plugin's load position: the first key of every fan-out's dispatch order. */
+    /** The plugin's load position: what every event dispatches in. */
     uint64_t Order() const { return _order; }
 
     uint32_t AbiVersion() const override;
@@ -95,7 +95,7 @@ public:
 
 private:
     // One unit split in two: the context is the plugin-facing side of the host's own state.
-    friend class HostCore;
+    friend class PluginHost;
 
     struct Subscribed
     {
@@ -104,12 +104,12 @@ private:
     };
 
     template <class Fn>
-    HostToken Take(HostEvent event, EventFanOut<Fn>& fanOut, Fn call, void* context);
+    HostToken Take(HostEvent event, Subscribers<Fn>& subscribers, Fn call, void* context);
 
     /** Remove every subscription still held and report which event each was on. */
     std::vector<HostEvent> DropSubscriptions();
 
-    HostCore& _host;
+    PluginHost& _host;
     std::string _name;
     std::string _home;
     uint64_t _order = 0;
@@ -117,20 +117,20 @@ private:
 };
 
 /**
- * @brief The state one host owns once per process: the fan-outs, the service table, the command
+ * @brief The state one host owns once per process: the subscribers of each event, the service table, the command
  * claims and one context per loaded plugin.
  *
  * Game thread only, like everything a plugin reaches; nothing here locks. Free of the SDK so it is
  * unit-tested without the engine - @p metamod and @p detours are values it hands on unchanged.
  */
-class HostCore
+class PluginHost
 {
 public:
-    explicit HostCore(SourceMM::ISmmAPI* metamod = nullptr, KHook::IKHook* detours = nullptr);
-    ~HostCore();
+    explicit PluginHost(SourceMM::ISmmAPI* metamod = nullptr, KHook::IKHook* detours = nullptr);
+    ~PluginHost();
 
-    HostCore(const HostCore&) = delete;
-    HostCore& operator=(const HostCore&) = delete;
+    PluginHost(const PluginHost&) = delete;
+    PluginHost& operator=(const PluginHost&) = delete;
 
     /** Give @p name its own context, at the end of the dispatch order. Nullptr when it is open. */
     PluginContext* OpenPlugin(std::string_view name);
@@ -156,6 +156,9 @@ public:
     /** The plugin holding @p name for its console commands, empty while the name is free. */
     std::string_view CommandHolder(std::string_view name) const;
 
+    /** Keep @p name for the host's own console commands, so no plugin can take it. */
+    void ReserveCommand(std::string_view name);
+
     /** The plugin that published @p name, empty while nothing has. */
     std::string_view ServiceOwner(std::string_view name) const;
 
@@ -172,7 +175,7 @@ private:
     struct Claim
     {
         std::string Name;
-        const PluginContext* Owner = nullptr;
+        const PluginContext* Owner = nullptr;  ///< nullptr means the host reserved it for itself
     };
 
     HostToken NextToken() { return _nextToken++; }
@@ -190,20 +193,20 @@ private:
     SourceMM::ISmmAPI* _metamod = nullptr;
     KHook::IKHook* _detours = nullptr;
 
-    HostToken _nextToken = 1;  ///< unique across every fan-out, never zero, never reused
+    HostToken _nextToken = 1;  ///< unique across every event and the service table, never zero, never reused
     uint64_t _nextOrder = 1;   ///< load positions keep rising, so a reloaded plugin dispatches last
 
     std::vector<std::unique_ptr<PluginContext>> _plugins;  ///< in load order
 
-    EventFanOut<IHostEvents::FrameFn> _frame;
-    EventFanOut<IHostEvents::ServerStartupFn> _serverStartup;
-    EventFanOut<IHostEvents::ClientConnectedFn> _clientConnected;
-    EventFanOut<IHostEvents::ClientDisconnectedFn> _clientDisconnected;
-    EventFanOut<IHostEvents::ClientFullyConnectedFn> _clientFullyConnected;
-    EventFanOut<IHostEvents::ClientSettingsChangedFn> _clientSettingsChanged;
-    EventFanOut<IHostEvents::ConsoleCommandFn> _consoleCommand;
-    EventFanOut<IHostEvents::CheckTransmitFn> _checkTransmit;
-    EventFanOut<IHostServices::ChangedFn> _servicesChanged;
+    Subscribers<IHostEvents::FrameFn> _frame;
+    Subscribers<IHostEvents::ServerStartupFn> _serverStartup;
+    Subscribers<IHostEvents::ClientConnectedFn> _clientConnected;
+    Subscribers<IHostEvents::ClientDisconnectedFn> _clientDisconnected;
+    Subscribers<IHostEvents::ClientFullyConnectedFn> _clientFullyConnected;
+    Subscribers<IHostEvents::ClientSettingsChangedFn> _clientSettingsChanged;
+    Subscribers<IHostEvents::ConsoleCommandFn> _consoleCommand;
+    Subscribers<IHostEvents::CheckTransmitFn> _checkTransmit;
+    Subscribers<IHostServices::ChangedFn> _servicesChanged;
 
     std::vector<Service> _services;  ///< in publish order, which is the replay order
     std::vector<Claim> _commands;

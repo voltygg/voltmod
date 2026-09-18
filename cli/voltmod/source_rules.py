@@ -23,13 +23,15 @@ ALLOWED_DEPENDENCIES: dict[str, set[str]] = {
     "Hooks": {"Core", "Engine", "Schema", "Entities", "Events", "Players", "Unsafe"},
     "Ui": {"Core", "Engine", "Schema", "Entities", "Hooks", "Unsafe"},
     "Workshop": {"Core", "Engine", "Players", "Unsafe"},
-    "Commands": {"Core", "Engine", "Entities", "Players", "Messaging"},
+    # Host: a command name belongs to one plugin process-wide, so registration claims it.
+    "Commands": {"Core", "Engine", "Entities", "Players", "Messaging", "Host"},
     "Menu": {"Core", "Engine", "Entities", "Players", "Messaging", "Hooks", "Ui", "Workshop"},
     "Http": {"Core"},
     "Database": {"Core"},
     "Unsafe": {"Core", "Engine"},
-    # Boundary interfaces only; Engine holds the ISmmAPI and IKHook forward declarations they name.
-    "Host": {"Core", "Engine"},
+    # The boundary interfaces name types Engine forward-declares; the host binary beside them
+    # installs the engine hooks every plugin used to install for itself, which is what Unsafe is.
+    "Host": {"Core", "Engine", "Unsafe"},
     "App": {
         "Core", "Engine", "Schema", "Entities", "Events", "Messaging", "Players", "Hooks",
         "Ui", "Workshop", "Commands", "Menu", "Http", "Database", "Unsafe", "Host",

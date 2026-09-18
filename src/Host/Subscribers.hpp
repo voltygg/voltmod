@@ -21,7 +21,7 @@ namespace VoltMod
  * pass that created it. Both land when the outermost pass ends.
  */
 template <class Fn>
-class EventFanOut
+class Subscribers
 {
 public:
     void Add(HostToken token, uint64_t order, Fn call, void* context)
@@ -33,7 +33,7 @@ public:
             Insert(entry);
     }
 
-    /** Whether this fan-out was the one holding @p token. */
+    /** Whether @p token was taken on this event. */
     bool Remove(HostToken token)
     {
         for (Entry& entry : _entries)

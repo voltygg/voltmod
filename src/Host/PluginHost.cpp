@@ -1,5 +1,6 @@
-#include "Host/HostCore.hpp"
+#include "Host/PluginHost.hpp"
 
+#include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Host/Abi.hpp>
 #include <algorithm>
 #include <utility>
@@ -22,7 +23,7 @@ std::string_view Text(HostString text)
     return text.Data != nullptr ? std::string_view(text.Data, text.Length) : std::string_view();
 }
 
-PluginContext::PluginContext(HostCore& host, std::string name, uint64_t order)
+PluginContext::PluginContext(PluginHost& host, std::string name, uint64_t order)
     : _host(host), _name(std::move(name)), _home("addons/" + _name), _order(order)
 {}
 
@@ -72,13 +73,13 @@ bool PluginContext::ClaimCommand(HostString name)
 }
 
 template <class Fn>
-HostToken PluginContext::Take(HostEvent event, EventFanOut<Fn>& fanOut, Fn call, void* context)
+HostToken PluginContext::Take(HostEvent event, Subscribers<Fn>& subscribers, Fn call, void* context)
 {
     if (call == nullptr)
         return 0;
 
     const HostToken token = _host.NextToken();
-    fanOut.Add(token, _order, call, context);
+    subscribers.Add(token, _order, call, context);
     _subscriptions.push_back({.Token = token, .Event = event});
     return token;
 }
@@ -169,11 +170,11 @@ std::vector<HostEvent> PluginContext::DropSubscriptions()
     return leaked;
 }
 
-HostCore::HostCore(SourceMM::ISmmAPI* metamod, KHook::IKHook* detours) : _metamod(metamod), _detours(detours) {}
+PluginHost::PluginHost(SourceMM::ISmmAPI* metamod, KHook::IKHook* detours) : _metamod(metamod), _detours(detours) {}
 
-HostCore::~HostCore() = default;
+PluginHost::~PluginHost() = default;
 
-PluginContext* HostCore::OpenPlugin(std::string_view name)
+PluginContext* PluginHost::OpenPlugin(std::string_view name)
 {
     if (name.empty() || FindPlugin(name) != nullptr)
         return nullptr;
@@ -182,14 +183,14 @@ PluginContext* HostCore::OpenPlugin(std::string_view name)
     return _plugins.back().get();
 }
 
-PluginContext* HostCore::FindPlugin(std::string_view name)
+PluginContext* PluginHost::FindPlugin(std::string_view name)
 {
     const auto found = std::ranges::find_if(
         _plugins, [&](const std::unique_ptr<PluginContext>& plugin) { return plugin->PluginName() == name; });
     return found != _plugins.end() ? found->get() : nullptr;
 }
 
-PluginLeaks HostCore::ClosePlugin(std::string_view name)
+PluginLeaks PluginHost::ClosePlugin(std::string_view name)
 {
     PluginLeaks leaks;
     const auto found = std::ranges::find_if(
@@ -219,7 +220,7 @@ PluginLeaks HostCore::ClosePlugin(std::string_view name)
     return leaks;
 }
 
-void HostCore::RemoveFrom(HostEvent event, HostToken token)
+void PluginHost::RemoveFrom(HostEvent event, HostToken token)
 {
     switch (event)
     {
@@ -253,7 +254,7 @@ void HostCore::RemoveFrom(HostEvent event, HostToken token)
     }
 }
 
-void HostCore::RaiseFrame()
+void PluginHost::RaiseFrame()
 {
     _frame.Dispatch([](IHostEvents::FrameFn call, void* context) {
         call(context);
@@ -261,7 +262,7 @@ void HostCore::RaiseFrame()
     });
 }
 
-void HostCore::RaiseServerStartup(std::string_view mapName)
+void PluginHost::RaiseServerStartup(std::string_view mapName)
 {
     const HostString map = Borrowed(mapName);
     _serverStartup.Dispatch([&](IHostEvents::ServerStartupFn call, void* context) {
@@ -270,7 +271,7 @@ void HostCore::RaiseServerStartup(std::string_view mapName)
     });
 }
 
-void HostCore::RaiseClientConnected(int slot, int64_t steamId, std::string_view name, std::string_view address)
+void PluginHost::RaiseClientConnected(int slot, int64_t steamId, std::string_view name, std::string_view address)
 {
     const HostString clientName = Borrowed(name);
     const HostString clientAddress = Borrowed(address);
@@ -280,7 +281,7 @@ void HostCore::RaiseClientConnected(int slot, int64_t steamId, std::string_view 
     });
 }
 
-void HostCore::RaiseClientDisconnected(int slot)
+void PluginHost::RaiseClientDisconnected(int slot)
 {
     _clientDisconnected.Dispatch([&](IHostEvents::ClientDisconnectedFn call, void* context) {
         call(context, slot);
@@ -288,7 +289,7 @@ void HostCore::RaiseClientDisconnected(int slot)
     });
 }
 
-void HostCore::RaiseClientFullyConnected(int slot)
+void PluginHost::RaiseClientFullyConnected(int slot)
 {
     _clientFullyConnected.Dispatch([&](IHostEvents::ClientFullyConnectedFn call, void* context) {
         call(context, slot);
@@ -296,7 +297,7 @@ void HostCore::RaiseClientFullyConnected(int slot)
     });
 }
 
-void HostCore::RaiseClientSettingsChanged(int slot)
+void PluginHost::RaiseClientSettingsChanged(int slot)
 {
     _clientSettingsChanged.Dispatch([&](IHostEvents::ClientSettingsChangedFn call, void* context) {
         call(context, slot);
@@ -304,7 +305,7 @@ void HostCore::RaiseClientSettingsChanged(int slot)
     });
 }
 
-bool HostCore::RaiseConsoleCommand(std::string_view name, std::string_view arguments, int slot)
+bool PluginHost::RaiseConsoleCommand(std::string_view name, std::string_view arguments, int slot)
 {
     const HostString commandName = Borrowed(name);
     const HostString commandArguments = Borrowed(arguments);
@@ -313,7 +314,7 @@ bool HostCore::RaiseConsoleCommand(std::string_view name, std::string_view argum
     });
 }
 
-void HostCore::RaiseCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
+void PluginHost::RaiseCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
 {
     _checkTransmit.Dispatch([&](IHostEvents::CheckTransmitFn call, void* context) {
         call(context, infoList, infoCount);
@@ -321,26 +322,42 @@ void HostCore::RaiseCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
     });
 }
 
-bool HostCore::ClaimCommand(const PluginContext& plugin, std::string_view name)
+bool PluginHost::ClaimCommand(const PluginContext& plugin, std::string_view name)
 {
     if (name.empty())
         return false;
 
     const auto held = std::ranges::find(_commands, name, &Claim::Name);
     if (held != _commands.end())
-        return held->Owner == &plugin;  // re-claiming its own name is not a conflict
+    {
+        if (held->Owner == &plugin)  // re-claiming its own name is not a conflict
+            return true;
+
+        const std::string_view holder = held->Owner ? held->Owner->PluginName() : "the host";
+        Log::Error("Command '{}' is already registered by {}, so {} cannot have it.", name, holder,
+                   plugin.PluginName());
+        return false;
+    }
 
     _commands.push_back({.Name = std::string(name), .Owner = &plugin});
     return true;
 }
 
-std::string_view HostCore::CommandHolder(std::string_view name) const
+std::string_view PluginHost::CommandHolder(std::string_view name) const
 {
     const auto held = std::ranges::find(_commands, name, &Claim::Name);
-    return held != _commands.end() ? held->Owner->PluginName() : std::string_view();
+    if (held == _commands.end())
+        return {};
+    return held->Owner ? held->Owner->PluginName() : std::string_view("the host");
 }
 
-void HostCore::Publish(const PluginContext& plugin, std::string_view name, void* implementation)
+void PluginHost::ReserveCommand(std::string_view name)
+{
+    if (!name.empty() && std::ranges::find(_commands, name, &Claim::Name) == _commands.end())
+        _commands.push_back({.Name = std::string(name), .Owner = nullptr});
+}
+
+void PluginHost::Publish(const PluginContext& plugin, std::string_view name, void* implementation)
 {
     if (name.empty() || implementation == nullptr)
         return;
@@ -362,7 +379,7 @@ void HostCore::Publish(const PluginContext& plugin, std::string_view name, void*
     RaiseServicesChanged(name, true);
 }
 
-void HostCore::Unpublish(const PluginContext& plugin, std::string_view name)
+void PluginHost::Unpublish(const PluginContext& plugin, std::string_view name)
 {
     const auto held = std::ranges::find(_services, name, &Service::Name);
     if (held == _services.end() || held->Owner != &plugin)
@@ -373,19 +390,19 @@ void HostCore::Unpublish(const PluginContext& plugin, std::string_view name)
     RaiseServicesChanged(withdrawn, false);
 }
 
-void* HostCore::FindService(std::string_view name) const
+void* PluginHost::FindService(std::string_view name) const
 {
     const auto held = std::ranges::find(_services, name, &Service::Name);
     return held != _services.end() ? held->Implementation : nullptr;
 }
 
-std::string_view HostCore::ServiceOwner(std::string_view name) const
+std::string_view PluginHost::ServiceOwner(std::string_view name) const
 {
     const auto held = std::ranges::find(_services, name, &Service::Name);
     return held != _services.end() ? held->Owner->PluginName() : std::string_view();
 }
 
-void HostCore::ReplayServices(IHostServices::ChangedFn call, void* context) const
+void PluginHost::ReplayServices(IHostServices::ChangedFn call, void* context) const
 {
     // Copy the names out first: a replayed callback may publish or withdraw as it goes.
     std::vector<std::string> published;
@@ -397,7 +414,7 @@ void HostCore::ReplayServices(IHostServices::ChangedFn call, void* context) cons
         call(context, Borrowed(name), true);
 }
 
-void HostCore::RaiseServicesChanged(std::string_view name, bool published)
+void PluginHost::RaiseServicesChanged(std::string_view name, bool published)
 {
     const HostString changed = Borrowed(name);
     _servicesChanged.Dispatch([&](IHostServices::ChangedFn call, void* context) {
