@@ -47,14 +47,4 @@ void {{ schema_class.name }}::Set{{ code.name }}({{ code.setter_params }}) const
 
 {% endif %}
 {% endfor %}
-{% if schema_class.generated_fields %}
-{% set count = schema_class.generated_fields | length %}
-extern const FieldLayout {{ schema_class.name }}_kFields[{{ count }}];
-const FieldLayout {{ schema_class.name }}_kFields[{{ count }}] = {
-{% for field in schema_class.generated_fields %}
-    {.Name = "{{ field.schema_name }}", .Offset = {{ offset_constant(schema_class, field) }}, .Size = {{ field.size }}},
-{% endfor %}
-};
-
-{% endif %}
 }  // namespace VoltMod::Schema

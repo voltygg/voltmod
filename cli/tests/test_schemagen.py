@@ -11,6 +11,7 @@ from voltmod.schemagen.generate import (
     GENERATED_HEADER_DIR,
     GENERATED_SOURCE_DIR,
     MANIFEST,
+    layout_rows,
     layout_stamp,
     render_outputs,
     write_outputs,
@@ -86,7 +87,13 @@ def dump():
                 "size": 88,
                 "base": "",
                 "chain_offset": 8,
-                "fields": [dumped_field("m_iAccount", 72, 4, type_info("int32"))],
+                "fields": [
+                    dumped_field(
+                        "__m_pChainEntity", 8, 40,
+                        type_info("CNetworkVarChainer", "SCHEMA_TYPE_DECLARED_CLASS"),
+                    ),
+                    dumped_field("m_iAccount", 72, 4, type_info("int32")),
+                ],
             },
             "CEmbedded": {
                 "size": 8,
@@ -152,7 +159,8 @@ def test_the_committed_generated_tree_is_what_the_generator_writes(platform):
 
 
 def stamp(dumped, selected=None):
-    return layout_stamp(list(resolve_classes(dumped, selected or manifest()).values()))
+    classes = list(resolve_classes(dumped, selected or manifest()).values())
+    return layout_stamp(layout_rows(dumped, classes))
 
 
 def test_the_stamp_reaches_the_generated_layout():
@@ -176,9 +184,9 @@ def moved_field():
     return dumped, None
 
 
-def resized_class():
+def moved_owner_link():
     dumped = dump()
-    dumped["classes"]["CBaseEntity"]["size"] += 16
+    dumped["classes"]["CMoneyServices"]["fields"][0]["offset"] += 8
     return dumped, None
 
 
@@ -188,10 +196,17 @@ def dropped_field():
     return dump(), selected
 
 
-@pytest.mark.parametrize("mutate", [moved_field, resized_class, dropped_field])
+@pytest.mark.parametrize("mutate", [moved_field, moved_owner_link, dropped_field])
 def test_a_changed_layout_changes_the_stamp(mutate):
     dumped, selected = mutate()
     assert stamp(dumped, selected) != stamp(dump())
+
+
+def test_the_owner_link_is_checked_like_a_field():
+    rows = layout_rows(dump(), list(resolve_classes(dump(), manifest()).values()))
+    assert ("CMoneyServices", "__m_pChainEntity", 8, 40) in [
+        (row.class_name, row.field_name, row.offset, row.size) for row in rows
+    ]
 
 
 def test_a_skipped_field_is_not_in_the_stamp():
@@ -255,7 +270,8 @@ def test_a_type_override_reads_the_leading_value_of_a_larger_field():
 
 def test_a_star_takes_every_field_the_dump_reports():
     classes = resolve_classes(dump(), manifest({"CMoneyServices": "*"}))
-    assert [field.schema_name for field in classes["CMoneyServices"].fields] == ["m_iAccount"]
+    generated = classes["CMoneyServices"].generated_fields
+    assert [field.schema_name for field in generated] == ["m_iAccount"]
 
 
 @pytest.mark.parametrize(

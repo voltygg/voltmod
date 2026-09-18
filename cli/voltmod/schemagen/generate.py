@@ -15,6 +15,7 @@ from voltmod.schemagen.accessors import AccessorCode, accessor_code
 from voltmod.schemagen.fields import CPP_INCLUDES
 from voltmod.schemagen.model import (
     ENTITY_ROOT,
+    OWNER_LINK_FIELD,
     FieldKind,
     SchemaClass,
     cpp_identifier,
@@ -30,6 +31,16 @@ GENERATED_SOURCE_DIR = Path("src/Schema/Generated")
 MANIFEST = Path("schema/manifest.json")
 # The Windows and Linux builds of one game version lay classes out differently.
 BASELINES = {platform: Path(f"schema/server.{platform}.json") for platform in ("windows", "linux")}
+
+
+@dataclass(frozen=True, slots=True)
+class LayoutRow:
+    """One field the host checks against the live schema."""
+
+    class_name: str
+    field_name: str
+    offset: int
+    size: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,8 +75,9 @@ def render_outputs(dump: dict[str, Any], manifest: dict[str, Any], platform: str
         )
     files[GENERATED_HEADER_DIR / "Enums.hpp"] = _render("enums.hpp.j2", enums=_enum_listings(enums))
     files[HEADER_DIR / "Api.hpp"] = _render("api.hpp.j2", classes=ordered)
+    rows = layout_rows(dump, ordered)
     files[GENERATED_SOURCE_DIR / platform / "Layout.cpp"] = _render(
-        "layout.cpp.j2", classes=ordered, game_build=game_build, layout_stamp=layout_stamp(ordered)
+        "layout.cpp.j2", rows=rows, game_build=game_build, layout_stamp=layout_stamp(rows)
     )
     for wrapper, names in manifest.get("wrappers", {}).items():
         wrapped = _wrapped_classes(wrapper, names, codes, classes)
@@ -76,13 +88,25 @@ def render_outputs(dump: dict[str, Any], manifest: dict[str, Any], platform: str
     return SchemaOutput(files, _summary(classes, enums, game_build))
 
 
-def layout_stamp(classes: list[SchemaClass]) -> str:
-    """A 64-bit hash of the layout's content, as the C++ literal the host and a plugin compare."""
-    lines = []
+def layout_rows(dump: dict[str, Any], classes: list[SchemaClass]) -> list[LayoutRow]:
+    """Every generated field, plus the owner link on each class that declares one."""
+    rows = []
     for schema_class in sorted(classes, key=lambda entry: entry.name):
-        lines.append(f"{schema_class.name} {schema_class.size} {schema_class.owner_link_offset}")
-        for field in schema_class.generated_fields:
-            lines.append(f"  {field.schema_name} {field.offset} {field.size}")
+        rows += [
+            LayoutRow(schema_class.name, field.schema_name, field.offset, field.size)
+            for field in schema_class.generated_fields
+        ]
+        rows += [
+            LayoutRow(schema_class.name, dumped["name"], dumped["offset"], dumped["size"])
+            for dumped in dump["classes"][schema_class.name]["fields"]
+            if dumped["name"] == OWNER_LINK_FIELD
+        ]
+    return rows
+
+
+def layout_stamp(rows: list[LayoutRow]) -> str:
+    """A 64-bit hash of the layout's content, as the C++ literal the host and a plugin compare."""
+    lines = [f"{row.class_name} {row.field_name} {row.offset} {row.size}" for row in rows]
     digest = hashlib.sha256("\n".join(lines).encode()).digest()
     return f"0x{int.from_bytes(digest[:8], 'big'):016X}"
 
@@ -153,7 +177,6 @@ def _source_includes(schema_class: SchemaClass) -> list[str]:
     includes = {
         "<VoltMod/Engine/Memory/MemoryAccess.hpp>",
         f"<VoltMod/Schema/Generated/{schema_class.name}.hpp>",
-        '"Schema/Layout.hpp"',
         '"Schema/Notify.hpp"',
     }
     for field in schema_class.fields:

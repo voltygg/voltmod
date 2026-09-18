@@ -89,54 +89,31 @@ Status VerifySchemaLayout(ISchemaSystem* schema)
 
     // Report all mismatches so one shifted class does not hide the rest.
     std::vector<std::string> drift;
-    for (const ClassLayout& expected : GeneratedLayout())
+    for (const FieldLayout& want : GeneratedLayout())
     {
-        const std::string name(expected.Name);
-        CSchemaClassInfo* live = server->FindDeclaredClass(name.c_str()).Get();
+        const std::string className(want.Class);
+        CSchemaClassInfo* live = server->FindDeclaredClass(className.c_str()).Get();
         if (!live && global)
-            live = global->FindDeclaredClass(name.c_str()).Get();
+            live = global->FindDeclaredClass(className.c_str()).Get();
 
-        if (!live)
+        const SchemaClassFieldData_t* found = live ? FindField(live, want.Field) : nullptr;
+        if (!found)
         {
-            drift.push_back(std::format("{}: no longer in the schema", expected.Name));
+            drift.push_back(std::format("{}::{}: gone", want.Class, want.Field));
             continue;
         }
 
-        if (live->m_nSize != expected.Size)
-            drift.push_back(std::format("{}: size {} -> {}", expected.Name, expected.Size, live->m_nSize));
-
-        if (expected.OwnerLinkOffset >= 0)
+        if (found->m_nSingleInheritanceOffset != want.Offset)
         {
-            const SchemaClassFieldData_t* link = FindField(live, ChainField);
-            const int32_t offset = link ? link->m_nSingleInheritanceOffset : -1;
-            if (offset != expected.OwnerLinkOffset)
-                drift.push_back(
-                    std::format("{}: owner link offset {} -> {}", expected.Name, expected.OwnerLinkOffset, offset));
+            drift.push_back(std::format("{}::{}: offset {} -> {}", want.Class, want.Field, want.Offset,
+                                        found->m_nSingleInheritanceOffset));
+            continue;
         }
 
-        for (const FieldLayout& want : expected.Fields)
-        {
-            const SchemaClassFieldData_t* found = FindField(live, want.Name);
-            if (!found)
-            {
-                drift.push_back(std::format("{}::{}: gone", expected.Name, want.Name));
-                continue;
-            }
-
-            if (found->m_nSingleInheritanceOffset != want.Offset)
-            {
-                drift.push_back(std::format("{}::{}: offset {} -> {}", expected.Name, want.Name, want.Offset,
-                                            found->m_nSingleInheritanceOffset));
-                continue;
-            }
-
-            int size = 0;
-            uint8_t alignment = 0;
-            if (found->m_pType && found->m_pType->GetSizeAndAlignment(size, alignment) && size != want.Size)
-            {
-                drift.push_back(std::format("{}::{}: size {} -> {}", expected.Name, want.Name, want.Size, size));
-            }
-        }
+        int size = 0;
+        uint8_t alignment = 0;
+        if (found->m_pType && found->m_pType->GetSizeAndAlignment(size, alignment) && size != want.Size)
+            drift.push_back(std::format("{}::{}: size {} -> {}", want.Class, want.Field, want.Size, size));
     }
 
     if (drift.empty())

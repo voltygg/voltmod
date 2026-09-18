@@ -6,6 +6,9 @@ from enum import StrEnum
 # A class inheriting from this replicates writes through the entity itself.
 ENTITY_ROOT = "CEntityInstance"
 
+# The engine's link from a replicated component to the entity that owns it.
+OWNER_LINK_FIELD = "__m_pChainEntity"
+
 # Stripped from a field name only when an uppercase letter follows, so `m_lifeState` stays whole.
 HUNGARIAN_PREFIXES = {
     "a", "ang", "arr", "b", "cl", "clr", "d", "e", "f", "fl", "fn", "h", "i", "isz", "m",
