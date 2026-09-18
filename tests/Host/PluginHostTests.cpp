@@ -62,12 +62,12 @@ TEST_CASE("Tokens are unique across every event and the service table, and are n
 
     CoreCounter counter;
     std::vector<HostToken> tokens{
-        first->SubscribeFrame(CountFrame, &counter),
-        first->SubscribeConsoleCommand(
+        first->OnFrame(CountFrame, &counter),
+        first->OnConsoleCommand(
             +[](void*, VoltMod::HostString, VoltMod::HostString, int) { return false; }, &counter),
-        first->SubscribeChanged(
+        first->OnChanged(
             +[](void*, VoltMod::HostString, bool) {}, &counter),
-        second->SubscribeFrame(CountFrame, &counter),
+        second->OnFrame(CountFrame, &counter),
     };
 
     for (const HostToken token : tokens)
@@ -77,7 +77,7 @@ TEST_CASE("Tokens are unique across every event and the service table, and are n
     CHECK(std::ranges::adjacent_find(sorted) == sorted.end());
 
     first->Unsubscribe(tokens.front());
-    const HostToken reissued = first->SubscribeFrame(CountFrame, &counter);
+    const HostToken reissued = first->OnFrame(CountFrame, &counter);
     CHECK(std::ranges::find(tokens, reissued) == tokens.end());
 }
 
@@ -88,7 +88,7 @@ TEST_CASE("Unsubscribing a token another plugin took does nothing")
     PluginContext* second = host.OpenPlugin("second");
 
     CoreCounter counter;
-    const HostToken token = first->SubscribeFrame(CountFrame, &counter);
+    const HostToken token = first->OnFrame(CountFrame, &counter);
 
     second->Unsubscribe(token);
     host.RaiseFrame();
@@ -116,12 +116,12 @@ TEST_CASE("Closing a context drops what the plugin still held and reports each l
     PluginContext* second = host.OpenPlugin("second");
 
     CoreCounter counter;
-    first->SubscribeFrame(CountFrame, &counter);
-    first->SubscribeClientDisconnected(+[](void*, int) {}, &counter);
+    first->OnFrame(CountFrame, &counter);
+    first->OnClientDisconnected(+[](void*, int) {}, &counter);
     int implementation = 7;
     first->Publish(Borrowed("first.api"), &implementation);
     CHECK(first->ClaimCommand(Borrowed("ban")));
-    second->SubscribeFrame(CountFrame, &counter);
+    second->OnFrame(CountFrame, &counter);
 
     host.RaiseFrame();
     CHECK(counter.Calls == 2);
@@ -148,7 +148,7 @@ TEST_CASE("Closing a context tells the remaining plugins its services are gone")
     PluginContext* second = host.OpenPlugin("second");
 
     std::vector<std::string> withdrawn;
-    second->SubscribeChanged(
+    second->OnChanged(
         +[](void* context, VoltMod::HostString name, bool published) {
             if (!published)
                 static_cast<std::vector<std::string>*>(context)->push_back(std::string(Text(name)));

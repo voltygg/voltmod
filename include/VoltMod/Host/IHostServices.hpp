@@ -25,7 +25,7 @@ struct IHostServices
 
     /** Raised for every plugin's publications, including those already in the table when the
      *  subscription is made. */
-    virtual HostToken SubscribeChanged(ChangedFn call, void* context) = 0;
+    virtual HostToken OnChanged(ChangedFn call, void* context) = 0;
     virtual void Unsubscribe(HostToken token) = 0;
 
 protected:

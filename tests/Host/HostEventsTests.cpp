@@ -33,9 +33,9 @@ TEST_CASE("Frame callbacks run in plugin load order, then subscription order")
 
     EventsTrace trace;
     // Subscribed out of load order, to prove load order is what decides.
-    second->SubscribeFrame(+[](void* context) { Note(context, "second"); }, &trace);
-    first->SubscribeFrame(+[](void* context) { Note(context, "first-a"); }, &trace);
-    first->SubscribeFrame(+[](void* context) { Note(context, "first-b"); }, &trace);
+    second->OnFrame(+[](void* context) { Note(context, "second"); }, &trace);
+    first->OnFrame(+[](void* context) { Note(context, "first-a"); }, &trace);
+    first->OnFrame(+[](void* context) { Note(context, "first-b"); }, &trace);
 
     host.RaiseFrame();
 
@@ -54,8 +54,8 @@ TEST_CASE("Every plugin sees a client connect, in load order")
         calls.push_back(std::string(Text(name)) + "@" + std::string(Text(address)) + "/" + std::to_string(slot) + "/" +
                         std::to_string(steamId));
     };
-    first->SubscribeClientConnected(record, &trace);
-    second->SubscribeClientConnected(record, &trace);
+    first->OnClientConnected(record, &trace);
+    second->OnClientConnected(record, &trace);
 
     host.RaiseClientConnected(3, 76561198000000000LL, "player", "10.0.0.2");
 
@@ -71,13 +71,13 @@ TEST_CASE("A console command consumed by the first plugin never reaches the seco
     PluginContext* second = host.OpenPlugin("second");
 
     EventsTrace trace;
-    first->SubscribeConsoleCommand(
+    first->OnConsoleCommand(
         +[](void* context, HostString name, HostString, int) {
             Note(context, "first");
             return Text(name) == "ban";
         },
         &trace);
-    second->SubscribeConsoleCommand(
+    second->OnConsoleCommand(
         +[](void* context, HostString, HostString, int) {
             Note(context, "second");
             return false;
@@ -107,16 +107,16 @@ TEST_CASE("A callback unsubscribed earlier in the same pass does not run")
 
     EventsRemoval state;
     state.Plugin = plugin;
-    plugin->SubscribeFrame(
+    plugin->OnFrame(
         +[](void* context) {
             auto& removal = *static_cast<EventsRemoval*>(context);
             removal.Calls.push_back("first");
             removal.Plugin->Unsubscribe(removal.Target);
         },
         &state);
-    state.Target = plugin->SubscribeFrame(
+    state.Target = plugin->OnFrame(
         +[](void* context) { static_cast<EventsRemoval*>(context)->Calls.push_back("second"); }, &state);
-    plugin->SubscribeFrame(
+    plugin->OnFrame(
         +[](void* context) { static_cast<EventsRemoval*>(context)->Calls.push_back("third"); }, &state);
 
     host.RaiseFrame();
@@ -142,13 +142,13 @@ TEST_CASE("A callback subscribed during a pass first runs in the next one")
 
     EventsAddition state;
     state.Plugin = plugin;
-    plugin->SubscribeFrame(
+    plugin->OnFrame(
         +[](void* context) {
             auto& addition = *static_cast<EventsAddition*>(context);
             addition.Calls.push_back("first");
             if (addition.Passes++ > 0)
                 return;
-            addition.Plugin->SubscribeFrame(
+            addition.Plugin->OnFrame(
                 +[](void* inner) { static_cast<EventsAddition*>(inner)->Calls.push_back("late"); }, context);
         },
         &state);
@@ -174,7 +174,7 @@ TEST_CASE("Check transmit hands the engine list through untouched")
     PluginContext* plugin = host.OpenPlugin("only");
 
     EventsTransmit seen;
-    plugin->SubscribeCheckTransmit(
+    plugin->OnCheckTransmit(
         +[](void* context, CCheckTransmitInfo** list, int count) {
             auto& transmit = *static_cast<EventsTransmit*>(context);
             transmit.List = list;

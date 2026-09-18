@@ -47,7 +47,7 @@ public:
         return it == _entries.end() ? nullptr : it->second;
     }
 
-    VoltMod::HostToken SubscribeChanged(ChangedFn, void*) override { return 0; }
+    VoltMod::HostToken OnChanged(ChangedFn, void*) override { return 0; }
     void Unsubscribe(VoltMod::HostToken) override {}
 
 private:

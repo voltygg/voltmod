@@ -64,7 +64,7 @@ TEST_CASE("Changed reports a publish and a withdrawal to every subscriber")
     PluginContext* second = host.OpenPlugin("second");
 
     ServicesLog log;
-    second->SubscribeChanged(RecordChange, &log);
+    second->OnChanged(RecordChange, &log);
 
     int implementation = 7;
     first->Publish(Borrowed("first.api"), &implementation);
@@ -85,7 +85,7 @@ TEST_CASE("A late Changed subscriber is replayed what is already in the table")
     first->Publish(Borrowed("first.two"), &two);
 
     ServicesLog log;
-    second->SubscribeChanged(RecordChange, &log);
+    second->OnChanged(RecordChange, &log);
 
     CHECK(log.Entries == std::vector<std::string>{"+first.one", "+first.two"});
 }
@@ -97,7 +97,7 @@ TEST_CASE("Unsubscribing from Changed stops the notifications")
     PluginContext* second = host.OpenPlugin("second");
 
     ServicesLog log;
-    second->Unsubscribe(second->SubscribeChanged(RecordChange, &log));
+    second->Unsubscribe(second->OnChanged(RecordChange, &log));
 
     int implementation = 7;
     first->Publish(Borrowed("first.api"), &implementation);

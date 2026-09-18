@@ -123,42 +123,42 @@ HostToken PluginContext::Take(HostEvent event, Subscribers<Fn>& subscribers, Fn 
     return token;
 }
 
-HostToken PluginContext::SubscribeFrame(FrameFn call, void* context)
+HostToken PluginContext::OnFrame(FrameFn call, void* context)
 {
     return Take(HostEvent::Frame, _host._frame, call, context);
 }
 
-HostToken PluginContext::SubscribeServerStartup(ServerStartupFn call, void* context)
+HostToken PluginContext::OnServerStartup(ServerStartupFn call, void* context)
 {
     return Take(HostEvent::ServerStartup, _host._serverStartup, call, context);
 }
 
-HostToken PluginContext::SubscribeClientConnected(ClientConnectedFn call, void* context)
+HostToken PluginContext::OnClientConnected(ClientConnectedFn call, void* context)
 {
     return Take(HostEvent::ClientConnected, _host._clientConnected, call, context);
 }
 
-HostToken PluginContext::SubscribeClientDisconnected(ClientDisconnectedFn call, void* context)
+HostToken PluginContext::OnClientDisconnected(ClientDisconnectedFn call, void* context)
 {
     return Take(HostEvent::ClientDisconnected, _host._clientDisconnected, call, context);
 }
 
-HostToken PluginContext::SubscribeClientFullyConnected(ClientFullyConnectedFn call, void* context)
+HostToken PluginContext::OnClientFullyConnected(ClientFullyConnectedFn call, void* context)
 {
     return Take(HostEvent::ClientFullyConnected, _host._clientFullyConnected, call, context);
 }
 
-HostToken PluginContext::SubscribeClientSettingsChanged(ClientSettingsChangedFn call, void* context)
+HostToken PluginContext::OnClientSettingsChanged(ClientSettingsChangedFn call, void* context)
 {
     return Take(HostEvent::ClientSettingsChanged, _host._clientSettingsChanged, call, context);
 }
 
-HostToken PluginContext::SubscribeConsoleCommand(ConsoleCommandFn call, void* context)
+HostToken PluginContext::OnConsoleCommand(ConsoleCommandFn call, void* context)
 {
     return Take(HostEvent::ConsoleCommand, _host._consoleCommand, call, context);
 }
 
-HostToken PluginContext::SubscribeCheckTransmit(CheckTransmitFn call, void* context)
+HostToken PluginContext::OnCheckTransmit(CheckTransmitFn call, void* context)
 {
     return Take(HostEvent::CheckTransmit, _host._checkTransmit, call, context);
 }
@@ -178,7 +178,7 @@ void* PluginContext::Find(HostString name)
     return _host.FindService(Text(name));
 }
 
-HostToken PluginContext::SubscribeChanged(ChangedFn call, void* context)
+HostToken PluginContext::OnChanged(ChangedFn call, void* context)
 {
     const HostToken token = Take(HostEvent::ServicesChanged, _host._servicesChanged, call, context);
     if (token != 0)

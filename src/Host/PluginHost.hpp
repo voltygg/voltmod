@@ -79,14 +79,14 @@ public:
     void* GetInterface(HostString name) const override;
     bool ClaimCommand(HostString name) override;
 
-    HostToken SubscribeFrame(FrameFn call, void* context) override;
-    HostToken SubscribeServerStartup(ServerStartupFn call, void* context) override;
-    HostToken SubscribeClientConnected(ClientConnectedFn call, void* context) override;
-    HostToken SubscribeClientDisconnected(ClientDisconnectedFn call, void* context) override;
-    HostToken SubscribeClientFullyConnected(ClientFullyConnectedFn call, void* context) override;
-    HostToken SubscribeClientSettingsChanged(ClientSettingsChangedFn call, void* context) override;
-    HostToken SubscribeConsoleCommand(ConsoleCommandFn call, void* context) override;
-    HostToken SubscribeCheckTransmit(CheckTransmitFn call, void* context) override;
+    HostToken OnFrame(FrameFn call, void* context) override;
+    HostToken OnServerStartup(ServerStartupFn call, void* context) override;
+    HostToken OnClientConnected(ClientConnectedFn call, void* context) override;
+    HostToken OnClientDisconnected(ClientDisconnectedFn call, void* context) override;
+    HostToken OnClientFullyConnected(ClientFullyConnectedFn call, void* context) override;
+    HostToken OnClientSettingsChanged(ClientSettingsChangedFn call, void* context) override;
+    HostToken OnConsoleCommand(ConsoleCommandFn call, void* context) override;
+    HostToken OnCheckTransmit(CheckTransmitFn call, void* context) override;
 
     void SetTag(HostString tag) override;
     void Write(uint8_t level, HostString text) override;
@@ -101,7 +101,7 @@ public:
     void Publish(HostString name, void* implementation) override;
     void Unpublish(HostString name) override;
     void* Find(HostString name) override;
-    HostToken SubscribeChanged(ChangedFn call, void* context) override;
+    HostToken OnChanged(ChangedFn call, void* context) override;
 
     /** Overrides both interfaces' Unsubscribe: there is one token space, and a token this plugin
      *  never took is ignored. */

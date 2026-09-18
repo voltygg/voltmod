@@ -138,14 +138,14 @@ void Plugin::SubscribeHostEvents()
         _hostEvents.Add(Subscription([events = _events, token] { events->Unsubscribe(token); }));
     };
 
-    take(_events->SubscribeFrame(&Plugin::OnHostFrame, this));
-    take(_events->SubscribeServerStartup(&Plugin::OnHostServerStartup, this));
-    take(_events->SubscribeClientConnected(&Plugin::OnHostClientConnected, this));
-    take(_events->SubscribeClientDisconnected(&Plugin::OnHostClientDisconnected, this));
-    take(_events->SubscribeClientFullyConnected(&Plugin::OnHostClientFullyConnected, this));
-    take(_events->SubscribeClientSettingsChanged(&Plugin::OnHostClientSettingsChanged, this));
-    take(_events->SubscribeConsoleCommand(&Plugin::OnHostConsoleCommand, this));
-    take(_events->SubscribeCheckTransmit(&Plugin::OnHostCheckTransmit, this));
+    take(_events->OnFrame(&Plugin::OnHostFrame, this));
+    take(_events->OnServerStartup(&Plugin::OnHostServerStartup, this));
+    take(_events->OnClientConnected(&Plugin::OnHostClientConnected, this));
+    take(_events->OnClientDisconnected(&Plugin::OnHostClientDisconnected, this));
+    take(_events->OnClientFullyConnected(&Plugin::OnHostClientFullyConnected, this));
+    take(_events->OnClientSettingsChanged(&Plugin::OnHostClientSettingsChanged, this));
+    take(_events->OnConsoleCommand(&Plugin::OnHostConsoleCommand, this));
+    take(_events->OnCheckTransmit(&Plugin::OnHostCheckTransmit, this));
 }
 
 void Plugin::OnHostFrame(void* context)

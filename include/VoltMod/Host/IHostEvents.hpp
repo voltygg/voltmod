@@ -28,14 +28,14 @@ struct IHostEvents
     using ConsoleCommandFn = bool (*)(void* context, HostString name, HostString arguments, int slot);
     using CheckTransmitFn = void (*)(void* context, CCheckTransmitInfo** infoList, int infoCount);
 
-    virtual HostToken SubscribeFrame(FrameFn call, void* context) = 0;
-    virtual HostToken SubscribeServerStartup(ServerStartupFn call, void* context) = 0;
-    virtual HostToken SubscribeClientConnected(ClientConnectedFn call, void* context) = 0;
-    virtual HostToken SubscribeClientDisconnected(ClientDisconnectedFn call, void* context) = 0;
-    virtual HostToken SubscribeClientFullyConnected(ClientFullyConnectedFn call, void* context) = 0;
-    virtual HostToken SubscribeClientSettingsChanged(ClientSettingsChangedFn call, void* context) = 0;
-    virtual HostToken SubscribeConsoleCommand(ConsoleCommandFn call, void* context) = 0;
-    virtual HostToken SubscribeCheckTransmit(CheckTransmitFn call, void* context) = 0;
+    virtual HostToken OnFrame(FrameFn call, void* context) = 0;
+    virtual HostToken OnServerStartup(ServerStartupFn call, void* context) = 0;
+    virtual HostToken OnClientConnected(ClientConnectedFn call, void* context) = 0;
+    virtual HostToken OnClientDisconnected(ClientDisconnectedFn call, void* context) = 0;
+    virtual HostToken OnClientFullyConnected(ClientFullyConnectedFn call, void* context) = 0;
+    virtual HostToken OnClientSettingsChanged(ClientSettingsChangedFn call, void* context) = 0;
+    virtual HostToken OnConsoleCommand(ConsoleCommandFn call, void* context) = 0;
+    virtual HostToken OnCheckTransmit(CheckTransmitFn call, void* context) = 0;
 
     /** Safe during a dispatch: the one in flight skips the removed callback. */
     virtual void Unsubscribe(HostToken token) = 0;
