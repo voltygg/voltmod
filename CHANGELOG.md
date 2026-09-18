@@ -33,6 +33,10 @@ What changed in each VoltMod release. Older history is in git.
   another plugin through `runtime.Exchange` when you use it rather than caching it in `Load`.
   `dependencies` still refuses a plugin whose entry is missing or refused, and still decides what
   `volt unload` blocks and `volt reload` takes down; `optionalDependencies` refuses nothing.
+- Declare settings as `VoltMod::Options<Settings>` where you used `JsonConfig`; a failed reload
+  keeps the previous settings. See `docs/config.md`.
+- Rename the calls that said `Start`: `Database::Connect`, `Runtime::Initialize`,
+  `MenuSurface::OpenSession` and `Flow::Begin`.
 - Build the host and your plugins from one build and deploy them together. The host refuses a
   plugin whose ABI version is not its own, and one built against a different schema layout.
 
@@ -42,6 +46,7 @@ What changed in each VoltMod release. Older history is in git.
   `volt log <name> <level>` drive plugins from the server console.
 - Log output, gamedata resolution and schema verification each happen once per server rather than
   once per plugin, so a broken signature after a game update is reported once.
+- `Logger<T>` prefixes each log line with the name of `T`, beside the plugin's tag.
 
 ## 1.4.7 (2026-09-16)
 
