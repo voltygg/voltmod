@@ -122,10 +122,11 @@ unknown key is an error and the plugin is refused.
 | `logTag` | string | `name` | The prefix the host puts in front of every log line from this plugin. |
 | `description` | string | `""` | One line, printed after the version by `volt list`. |
 | `author` | string | `""` | Credit. The host does not print it. |
-| `dependencies` | string[] | `[]` | Plugins that must be installed and loaded first. |
-| `optionalDependencies` | string[] | `[]` | Plugins to load after when they are installed, ignored when they are not. |
+| `dependencies` | string[] | `[]` | Plugins this one is refused without. |
+| `optionalDependencies` | string[] | `[]` | Plugins it is better with; never a reason to refuse it. |
 
-Both dependency lists decide load order and what a reload takes down with it; see @ref host_guide.
+Neither list decides load order. `dependencies` decides whether the plugin loads at all and what a
+reload takes down with it; see @ref host_guide.
 
 The connection lifecycle is not an override. Subscribe to `Runtime.Players.Connected`,
 `.FullyConnected`, `.SettingsChanged` and `.Disconnected` in `Load`; see @ref players_guide.

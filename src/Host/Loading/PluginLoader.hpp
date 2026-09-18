@@ -27,7 +27,7 @@ struct LoadedPlugin
 };
 
 /**
- * @brief Finds the installed plugins and loads them in dependency order.
+ * @brief Finds the installed plugins and loads the ones their dependencies allow.
  *
  * A load or unload asked for from the console is deferred, never acted on where it was asked: the
  * request arrives inside the console-command dispatch, and freeing a library there would pull the
@@ -49,7 +49,7 @@ public:
     PluginLoader(const PluginLoader&) = delete;
     PluginLoader& operator=(const PluginLoader&) = delete;
 
-    /** Load every installed plugin the dependency order allows. */
+    /** Load every installed plugin whose required dependencies are there. */
     void Start();
 
     /** Unload every loaded plugin, newest first. */
@@ -79,7 +79,7 @@ private:
     /** Unload @p name, report whatever it left behind, then free its library. */
     void UnloadOne(std::string_view name);
 
-    /** Plan @p installed, log what it refuses, and load in order whatever @p wanted accepts. */
+    /** Plan @p installed, log what it refuses, and load whatever @p wanted accepts. */
     void LoadGroup(std::span<const PluginManifest> installed, const std::function<bool(std::string_view)>& wanted);
 
     LoadedPlugin* FindLoaded(std::string_view name);

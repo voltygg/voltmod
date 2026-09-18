@@ -11,7 +11,7 @@ Public APIs may change between versions.
 
 - @subpage getting_started - create a plugin, build it, install it, load it
 - @subpage plugin_guide - the plugin entry point, `plugin.json`, load steps, logging, install layout
-- @subpage host_guide - the `volt` commands, load order, refusals, troubleshooting
+- @subpage host_guide - the `volt` commands, dependencies, refusals, troubleshooting
 - @subpage architecture - modules, the host/plugin model, lifetimes and boundaries
 
 ## Writing a plugin

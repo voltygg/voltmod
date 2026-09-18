@@ -1,6 +1,6 @@
 #include "Host/Loading/PluginLoader.hpp"
 
-#include "Host/Loading/PluginOrder.hpp"
+#include "Host/Loading/PluginDependencies.hpp"
 
 #include <VoltMod/Core/Files/Paths.hpp>
 #include <VoltMod/Core/Log.hpp>
@@ -8,6 +8,7 @@
 #include <VoltMod/Core/Text/Strings.hpp>
 #include <algorithm>
 #include <format>
+#include <ranges>
 #include <utility>
 
 namespace VoltMod
@@ -101,12 +102,12 @@ void PluginLoader::RunPending()
 void PluginLoader::LoadGroup(std::span<const PluginManifest> installed,
                              const std::function<bool(std::string_view)>& wanted)
 {
-    const LoadPlan plan = PluginOrder::Plan(installed);
-    for (const RefusedPlugin& refused : plan.Refused)
+    const LoadList list = PluginDependencies::Resolve(installed);
+    for (const RefusedPlugin& refused : list.Refused)
         if (wanted(refused.Name))
             Log::Error("Refusing '{}': {}", refused.Name, refused.Reason.Detail);
 
-    for (const std::string& name : plan.Order)
+    for (const std::string& name : list.Allowed)
     {
         if (!wanted(name) || FindLoaded(name) != nullptr)
             continue;
@@ -231,7 +232,7 @@ void PluginLoader::RunUnload(std::string_view name)
     if (RequireLoaded(name) == nullptr)
         return;
 
-    const std::vector<std::string> dependents = PluginOrder::RequiredDependents(name, LoadedManifests());
+    const std::vector<std::string> dependents = PluginDependencies::RequiredDependents(name, LoadedManifests());
     if (!dependents.empty())
     {
         Log::Warn("Refusing to unload '{}': {} still requires it.", name, Strings::Join(dependents, ", "));
@@ -246,9 +247,16 @@ void PluginLoader::RunReload(std::string_view name)
     if (RequireLoaded(name) == nullptr)
         return;
 
-    // Whatever requires it goes down and comes back with it.
-    const std::vector<std::string> group = PluginOrder::ReloadGroup(name, LoadedManifests());
-    for (const std::string& plugin : group)
+    // Whatever requires it goes down and comes back with it, each one before what it requires.
+    std::vector<std::string> group = PluginDependencies::RequiredDependents(name, LoadedManifests());
+    group.emplace_back(name);
+
+    std::vector<std::string> going;
+    for (const LoadedPlugin& plugin : _loaded | std::views::reverse)
+        if (std::ranges::find(group, plugin.Manifest.Name) != group.end())
+            going.push_back(plugin.Manifest.Name);
+
+    for (const std::string& plugin : going)
         UnloadOne(plugin);
 
     // Read the manifests again: a rebuilt plugin may declare different dependencies.

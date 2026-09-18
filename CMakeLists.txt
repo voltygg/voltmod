@@ -180,7 +180,7 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Host/GameData/GameDataService.cpp
             src/Host/GameData/ResolvedGameData.cpp
             src/Host/Loading/InstalledPlugins.cpp
-            src/Host/Loading/PluginOrder.cpp
+            src/Host/Loading/PluginDependencies.cpp
             src/Host/Plugins/CommandNames.cpp
             src/Host/Plugins/HostView.cpp
             src/Host/Plugins/PluginHost.cpp

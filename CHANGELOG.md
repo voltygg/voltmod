@@ -29,6 +29,10 @@ What changed in each VoltMod release. Older history is in git.
   `Engine/Detours.hpp`. `<VoltMod/Api.hpp>` and `<VoltMod/App/Config.hpp>` keep their spelling.
 - Bind gamedata with `Bindings::Bind(lookup)` instead of `Bindings::Load(path)`; the host reads
   and resolves the file and hands every plugin the same lookup.
+- The host no longer orders plugins by their dependency lists: it loads alphabetically. Resolve
+  another plugin through `runtime.Exchange` when you use it rather than caching it in `Load`.
+  `dependencies` still refuses a plugin whose entry is missing or refused, and still decides what
+  `volt unload` blocks and `volt reload` takes down; `optionalDependencies` refuses nothing.
 - Build the host and your plugins from one build and deploy them together. The host refuses a
   plugin whose ABI version is not its own, and one built against a different schema layout.
 

@@ -17,8 +17,9 @@ struct PluginManifest
     std::string LogTag;  ///< prefixes the plugin's log lines; its name unless the file says otherwise
     std::string Description;
     std::string Author;
-    std::vector<std::string> Dependencies;          ///< Required: a missing one refuses this plugin.
-    std::vector<std::string> OptionalDependencies;  ///< Order after these when installed, ignore them when not.
+    std::vector<std::string> Dependencies;  ///< Required: a missing one refuses this plugin.
+    /** Wanted, not needed: the plugin loads without these and reaches them through the exchange if they came. */
+    std::vector<std::string> OptionalDependencies;
 };
 
 /** Reading the installed plugin directory. No SDK, so it is tested against a real one. */

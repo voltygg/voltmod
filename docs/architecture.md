@@ -98,8 +98,8 @@ down one plugin rather than the whole stack.
 3. It verifies the live schema against the layout baked into this build, once, and remembers both
    the verdict and the layout stamp.
 4. It installs the engine hooks and reserves the `volt` command name.
-5. It reads every `addons/voltmod/plugins/*/plugin.json`, plans an order from the dependency lists, logs one
-   `Refusing '<name>': <reason>` per plugin it will not load, and loads the rest in that order.
+5. It reads every `addons/voltmod/plugins/*/plugin.json`, refuses the plugins whose required dependencies
+   are not there with one `Refusing '<name>': <reason>` line each, and loads the rest alphabetically.
 6. For each plugin it opens the library, resolves `VoltMod_PluginEntry`, checks the descriptor's
    ABI version and its `Load`/`Unload`/`Status` pointers, opens a host view under the plugin's
    name and log tag, then calls `Load`.

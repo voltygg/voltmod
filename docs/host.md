@@ -33,23 +33,24 @@ plugins both want:
 Command 'ban' is already registered by admin-system, so bans cannot have it.
 ```
 
-## Load order
+## Dependencies
 
-The host loads a plugin after every `dependencies` and `optionalDependencies` entry that is
-installed and not refused, and breaks ties alphabetically. Unload runs in reverse. Engine events,
-and console commands offered until one plugin consumes them, follow the same order.
+`dependencies` names the plugins this one cannot run without; `optionalDependencies` names the
+ones it is better with and runs fine without. Neither decides load order. Plugins load
+alphabetically, and one plugin reaches another by asking `runtime.Exchange` for its interface at
+the moment it needs it, which answers null when that plugin is not loaded. Engine events, and
+console commands offered until one plugin consumes them, follow that same alphabetical order.
 
 | | `dependencies` | `optionalDependencies` |
 | --- | --- | --- |
 | Not installed | this plugin is refused | ignored |
 | Installed but refused | this plugin is refused | ignored |
-| In a cycle with this plugin | both are refused | both are refused |
 | `volt unload` on it | refused while this plugin is loaded | allowed |
 | `volt reload` on it | this plugin goes down and comes back with it | untouched |
 
-So a plugin that declares `"dependencies": ["admin-system"]` sees every event after admin-system
-has seen it, is unloaded before it, and comes back with it on a reload. Reloading a plugin
-nothing requires touches only that plugin.
+So a plugin that declares `"dependencies": ["admin-system"]` does not load without it and comes
+back with it on a reload, in no particular order within that group. Reloading a plugin nothing
+requires touches only that plugin.
 
 `volt unload` on something still required names what is in the way:
 
@@ -128,11 +129,6 @@ otherwise fine - regenerate with `voltmod schemagen` and rebuild.
 **`Refusing '<name>': requires '<dep>', which is not installed`** or **`... which the host
 refused`.** Install the dependency, or fix why it was refused: every refusal upstream refuses
 everything below it.
-
-**`Refusing '<name>': dependency cycle: a -> b -> a`.** Every plugin named in the cycle is
-refused. Move the shared piece into one of them and let the other reach it through
-`runtime.Exchange`, which does not create a load-order edge unless you also list it as an optional
-dependency.
 
 **`Refusing '<name>': installed more than once; each plugin directory needs its own plugin name.`**
 Two directories under `addons/voltmod/plugins/` carry manifests with the same `name`.
