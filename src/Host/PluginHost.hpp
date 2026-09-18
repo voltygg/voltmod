@@ -79,14 +79,14 @@ public:
     void* GetInterface(HostString name) const override;
     bool ClaimCommand(HostString name) override;
 
-    HostToken OnFrame(FrameFn call, void* context) override;
-    HostToken OnServerStartup(ServerStartupFn call, void* context) override;
-    HostToken OnClientConnected(ClientConnectedFn call, void* context) override;
-    HostToken OnClientDisconnected(ClientDisconnectedFn call, void* context) override;
-    HostToken OnClientFullyConnected(ClientFullyConnectedFn call, void* context) override;
-    HostToken OnClientSettingsChanged(ClientSettingsChangedFn call, void* context) override;
-    HostToken OnConsoleCommand(ConsoleCommandFn call, void* context) override;
-    HostToken OnCheckTransmit(CheckTransmitFn call, void* context) override;
+    uint64_t OnFrame(FrameFn callback, void* context) override;
+    uint64_t OnServerStartup(ServerStartupFn callback, void* context) override;
+    uint64_t OnClientConnected(ClientConnectedFn callback, void* context) override;
+    uint64_t OnClientDisconnected(ClientDisconnectedFn callback, void* context) override;
+    uint64_t OnClientFullyConnected(ClientFullyConnectedFn callback, void* context) override;
+    uint64_t OnClientSettingsChanged(ClientSettingsChangedFn callback, void* context) override;
+    uint64_t OnConsoleCommand(ConsoleCommandFn callback, void* context) override;
+    uint64_t OnCheckTransmit(CheckTransmitFn callback, void* context) override;
 
     void SetTag(HostString tag) override;
     void Write(uint8_t level, HostString text) override;
@@ -101,11 +101,11 @@ public:
     void Publish(HostString name, void* implementation) override;
     void Unpublish(HostString name) override;
     void* Find(HostString name) override;
-    HostToken OnChanged(ChangedFn call, void* context) override;
+    uint64_t OnChanged(ChangedFn callback, void* context) override;
 
     /** Overrides both interfaces' Unsubscribe: there is one token space, and a token this plugin
      *  never took is ignored. */
-    void Unsubscribe(HostToken token) override;
+    void Unsubscribe(uint64_t token) override;
 
 private:
     // One unit split in two: the context is the plugin-facing side of the host's own state.
@@ -113,12 +113,12 @@ private:
 
     struct Subscribed
     {
-        HostToken Token = 0;
+        uint64_t Token = 0;
         HostEvent Event = HostEvent::Frame;
     };
 
     template <class Fn>
-    HostToken Take(HostEvent event, Subscribers<Fn>& subscribers, Fn call, void* context);
+    uint64_t Take(HostEvent event, Subscribers<Fn>& subscribers, Fn callback, void* context);
 
     /** Remove every subscription still held and report which event each was on. */
     std::vector<HostEvent> DropSubscriptions();
@@ -207,16 +207,16 @@ private:
         const PluginContext* Owner = nullptr;  ///< nullptr means the host reserved it for itself
     };
 
-    HostToken NextToken() { return _nextToken++; }
+    uint64_t NextToken() { return _nextToken++; }
 
-    void RemoveFrom(HostEvent event, HostToken token);
+    void RemoveFrom(HostEvent event, uint64_t token);
 
     bool ClaimCommand(const PluginContext& plugin, std::string_view name);
     void Publish(const PluginContext& plugin, std::string_view name, void* implementation);
     void Unpublish(const PluginContext& plugin, std::string_view name);
     void* FindService(std::string_view name) const;
     /** Hand @p call what is already in the table: what a late subscriber is promised. */
-    void ReplayServices(IHostServices::ChangedFn call, void* context) const;
+    void ReplayServices(IHostServices::ChangedFn callback, void* context) const;
     void RaiseServicesChanged(std::string_view name, bool published);
 
     SourceMM::ISmmAPI* _metamod = nullptr;
@@ -226,7 +226,7 @@ private:
     uint64_t _schemaLayoutStamp = 0;  ///< zero until the host has checked its own layout
     bool _schemaVerified = false;
 
-    HostToken _nextToken = 1;  ///< unique across every event and the service table, never zero, never reused
+    uint64_t _nextToken = 1;  ///< unique across every event and the service table, never zero, never reused
     uint64_t _nextOrder = 1;   ///< load positions keep rising, so a reloaded plugin dispatches last
 
     std::vector<std::unique_ptr<PluginContext>> _plugins;  ///< in load order

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoltMod/Host/HostTypes.hpp>
+#include <cstdint>
 
 namespace VoltMod
 {
@@ -25,8 +26,8 @@ struct IHostServices
 
     /** Raised for every plugin's publications, including those already in the table when the
      *  subscription is made. */
-    virtual HostToken OnChanged(ChangedFn call, void* context) = 0;
-    virtual void Unsubscribe(HostToken token) = 0;
+    virtual uint64_t OnChanged(ChangedFn callback, void* context) = 0;
+    virtual void Unsubscribe(uint64_t token) = 0;
 
 protected:
     ~IHostServices() = default;

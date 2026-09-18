@@ -47,8 +47,8 @@ public:
         return it == _entries.end() ? nullptr : it->second;
     }
 
-    VoltMod::HostToken OnChanged(ChangedFn, void*) override { return 0; }
-    void Unsubscribe(VoltMod::HostToken) override {}
+    uint64_t OnChanged(ChangedFn, void*) override { return 0; }
+    void Unsubscribe(uint64_t) override {}
 
 private:
     std::unordered_map<std::string, void*> _entries;

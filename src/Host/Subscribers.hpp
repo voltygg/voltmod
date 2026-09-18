@@ -24,9 +24,9 @@ template <class Fn>
 class Subscribers
 {
 public:
-    void Add(HostToken token, uint64_t order, Fn call, void* context)
+    void Add(uint64_t token, uint64_t order, Fn callback, void* context)
     {
-        const Entry entry{.Token = token, .Order = order, .Call = call, .Context = context};
+        const Entry entry{.Token = token, .Order = order, .Call = callback, .Context = context};
         if (_depth > 0)
             _pending.push_back(entry);
         else
@@ -34,7 +34,7 @@ public:
     }
 
     /** Whether @p token was taken on this event. */
-    bool Remove(HostToken token)
+    bool Remove(uint64_t token)
     {
         for (Entry& entry : _entries)
         {
@@ -58,7 +58,7 @@ public:
     bool Empty() const { return _entries.empty() && _pending.empty(); }
 
     /**
-     * Invoke @p visit(call, context) over the callbacks present when the pass began, stopping at
+     * Invoke @p visit(callback, context) over the callbacks present when the pass began, stopping at
      * the first that returns true. Returns whether one did.
      */
     template <class Visit>
@@ -82,7 +82,7 @@ public:
 private:
     struct Entry
     {
-        HostToken Token = 0;
+        uint64_t Token = 0;
         uint64_t Order = 0;  ///< the owning plugin's load position
         Fn Call = nullptr;
         void* Context = nullptr;

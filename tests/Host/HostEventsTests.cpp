@@ -7,7 +7,6 @@
 #include <vector>
 
 using VoltMod::HostString;
-using VoltMod::HostToken;
 using VoltMod::PluginContext;
 using VoltMod::PluginHost;
 using VoltMod::Text;
@@ -96,7 +95,7 @@ TEST_CASE("A console command consumed by the first plugin never reaches the seco
 struct EventsRemoval
 {
     PluginContext* Plugin = nullptr;
-    HostToken Target = 0;
+    uint64_t Target = 0;
     std::vector<std::string> Calls;
 };
 

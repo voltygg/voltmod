@@ -112,55 +112,55 @@ uint8_t PluginContext::MinLevel()
 }
 
 template <class Fn>
-HostToken PluginContext::Take(HostEvent event, Subscribers<Fn>& subscribers, Fn call, void* context)
+uint64_t PluginContext::Take(HostEvent event, Subscribers<Fn>& subscribers, Fn callback, void* context)
 {
-    if (call == nullptr)
+    if (callback == nullptr)
         return 0;
 
-    const HostToken token = _host.NextToken();
-    subscribers.Add(token, _order, call, context);
+    const uint64_t token = _host.NextToken();
+    subscribers.Add(token, _order, callback, context);
     _subscriptions.push_back({.Token = token, .Event = event});
     return token;
 }
 
-HostToken PluginContext::OnFrame(FrameFn call, void* context)
+uint64_t PluginContext::OnFrame(FrameFn callback, void* context)
 {
-    return Take(HostEvent::Frame, _host._frame, call, context);
+    return Take(HostEvent::Frame, _host._frame, callback, context);
 }
 
-HostToken PluginContext::OnServerStartup(ServerStartupFn call, void* context)
+uint64_t PluginContext::OnServerStartup(ServerStartupFn callback, void* context)
 {
-    return Take(HostEvent::ServerStartup, _host._serverStartup, call, context);
+    return Take(HostEvent::ServerStartup, _host._serverStartup, callback, context);
 }
 
-HostToken PluginContext::OnClientConnected(ClientConnectedFn call, void* context)
+uint64_t PluginContext::OnClientConnected(ClientConnectedFn callback, void* context)
 {
-    return Take(HostEvent::ClientConnected, _host._clientConnected, call, context);
+    return Take(HostEvent::ClientConnected, _host._clientConnected, callback, context);
 }
 
-HostToken PluginContext::OnClientDisconnected(ClientDisconnectedFn call, void* context)
+uint64_t PluginContext::OnClientDisconnected(ClientDisconnectedFn callback, void* context)
 {
-    return Take(HostEvent::ClientDisconnected, _host._clientDisconnected, call, context);
+    return Take(HostEvent::ClientDisconnected, _host._clientDisconnected, callback, context);
 }
 
-HostToken PluginContext::OnClientFullyConnected(ClientFullyConnectedFn call, void* context)
+uint64_t PluginContext::OnClientFullyConnected(ClientFullyConnectedFn callback, void* context)
 {
-    return Take(HostEvent::ClientFullyConnected, _host._clientFullyConnected, call, context);
+    return Take(HostEvent::ClientFullyConnected, _host._clientFullyConnected, callback, context);
 }
 
-HostToken PluginContext::OnClientSettingsChanged(ClientSettingsChangedFn call, void* context)
+uint64_t PluginContext::OnClientSettingsChanged(ClientSettingsChangedFn callback, void* context)
 {
-    return Take(HostEvent::ClientSettingsChanged, _host._clientSettingsChanged, call, context);
+    return Take(HostEvent::ClientSettingsChanged, _host._clientSettingsChanged, callback, context);
 }
 
-HostToken PluginContext::OnConsoleCommand(ConsoleCommandFn call, void* context)
+uint64_t PluginContext::OnConsoleCommand(ConsoleCommandFn callback, void* context)
 {
-    return Take(HostEvent::ConsoleCommand, _host._consoleCommand, call, context);
+    return Take(HostEvent::ConsoleCommand, _host._consoleCommand, callback, context);
 }
 
-HostToken PluginContext::OnCheckTransmit(CheckTransmitFn call, void* context)
+uint64_t PluginContext::OnCheckTransmit(CheckTransmitFn callback, void* context)
 {
-    return Take(HostEvent::CheckTransmit, _host._checkTransmit, call, context);
+    return Take(HostEvent::CheckTransmit, _host._checkTransmit, callback, context);
 }
 
 void PluginContext::Publish(HostString name, void* implementation)
@@ -178,15 +178,15 @@ void* PluginContext::Find(HostString name)
     return _host.FindService(Text(name));
 }
 
-HostToken PluginContext::OnChanged(ChangedFn call, void* context)
+uint64_t PluginContext::OnChanged(ChangedFn callback, void* context)
 {
-    const HostToken token = Take(HostEvent::ServicesChanged, _host._servicesChanged, call, context);
+    const uint64_t token = Take(HostEvent::ServicesChanged, _host._servicesChanged, callback, context);
     if (token != 0)
-        _host.ReplayServices(call, context);
+        _host.ReplayServices(callback, context);
     return token;
 }
 
-void PluginContext::Unsubscribe(HostToken token)
+void PluginContext::Unsubscribe(uint64_t token)
 {
     const auto held = std::ranges::find(_subscriptions, token, &Subscribed::Token);
     if (held == _subscriptions.end())
@@ -274,7 +274,7 @@ PluginLeaks PluginHost::ClosePlugin(std::string_view name)
     return leaks;
 }
 
-void PluginHost::RemoveFrom(HostEvent event, HostToken token)
+void PluginHost::RemoveFrom(HostEvent event, uint64_t token)
 {
     switch (event)
     {
@@ -310,8 +310,8 @@ void PluginHost::RemoveFrom(HostEvent event, HostToken token)
 
 void PluginHost::RaiseFrame()
 {
-    _frame.Dispatch([](IHostEvents::FrameFn call, void* context) {
-        call(context);
+    _frame.Dispatch([](IHostEvents::FrameFn callback, void* context) {
+        callback(context);
         return false;
     });
 }
@@ -319,8 +319,8 @@ void PluginHost::RaiseFrame()
 void PluginHost::RaiseServerStartup(std::string_view mapName)
 {
     const HostString map = Borrowed(mapName);
-    _serverStartup.Dispatch([&](IHostEvents::ServerStartupFn call, void* context) {
-        call(context, map);
+    _serverStartup.Dispatch([&](IHostEvents::ServerStartupFn callback, void* context) {
+        callback(context, map);
         return false;
     });
 }
@@ -329,32 +329,32 @@ void PluginHost::RaiseClientConnected(int slot, int64_t steamId, std::string_vie
 {
     const HostString clientName = Borrowed(name);
     const HostString clientAddress = Borrowed(address);
-    _clientConnected.Dispatch([&](IHostEvents::ClientConnectedFn call, void* context) {
-        call(context, slot, steamId, clientName, clientAddress);
+    _clientConnected.Dispatch([&](IHostEvents::ClientConnectedFn callback, void* context) {
+        callback(context, slot, steamId, clientName, clientAddress);
         return false;
     });
 }
 
 void PluginHost::RaiseClientDisconnected(int slot)
 {
-    _clientDisconnected.Dispatch([&](IHostEvents::ClientDisconnectedFn call, void* context) {
-        call(context, slot);
+    _clientDisconnected.Dispatch([&](IHostEvents::ClientDisconnectedFn callback, void* context) {
+        callback(context, slot);
         return false;
     });
 }
 
 void PluginHost::RaiseClientFullyConnected(int slot)
 {
-    _clientFullyConnected.Dispatch([&](IHostEvents::ClientFullyConnectedFn call, void* context) {
-        call(context, slot);
+    _clientFullyConnected.Dispatch([&](IHostEvents::ClientFullyConnectedFn callback, void* context) {
+        callback(context, slot);
         return false;
     });
 }
 
 void PluginHost::RaiseClientSettingsChanged(int slot)
 {
-    _clientSettingsChanged.Dispatch([&](IHostEvents::ClientSettingsChangedFn call, void* context) {
-        call(context, slot);
+    _clientSettingsChanged.Dispatch([&](IHostEvents::ClientSettingsChangedFn callback, void* context) {
+        callback(context, slot);
         return false;
     });
 }
@@ -363,15 +363,15 @@ bool PluginHost::RaiseConsoleCommand(std::string_view name, std::string_view arg
 {
     const HostString commandName = Borrowed(name);
     const HostString commandArguments = Borrowed(arguments);
-    return _consoleCommand.Dispatch([&](IHostEvents::ConsoleCommandFn call, void* context) {
-        return call(context, commandName, commandArguments, slot);
+    return _consoleCommand.Dispatch([&](IHostEvents::ConsoleCommandFn callback, void* context) {
+        return callback(context, commandName, commandArguments, slot);
     });
 }
 
 void PluginHost::RaiseCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
 {
-    _checkTransmit.Dispatch([&](IHostEvents::CheckTransmitFn call, void* context) {
-        call(context, infoList, infoCount);
+    _checkTransmit.Dispatch([&](IHostEvents::CheckTransmitFn callback, void* context) {
+        callback(context, infoList, infoCount);
         return false;
     });
 }
@@ -456,7 +456,7 @@ std::string_view PluginHost::ServiceOwner(std::string_view name) const
     return held != _services.end() ? held->Owner->PluginName() : std::string_view();
 }
 
-void PluginHost::ReplayServices(IHostServices::ChangedFn call, void* context) const
+void PluginHost::ReplayServices(IHostServices::ChangedFn callback, void* context) const
 {
     // Copy the names out first: a replayed callback may publish or withdraw as it goes.
     std::vector<std::string> published;
@@ -465,14 +465,14 @@ void PluginHost::ReplayServices(IHostServices::ChangedFn call, void* context) co
         published.push_back(service.Name);
 
     for (const std::string& name : published)
-        call(context, Borrowed(name), true);
+        callback(context, Borrowed(name), true);
 }
 
 void PluginHost::RaiseServicesChanged(std::string_view name, bool published)
 {
     const HostString changed = Borrowed(name);
-    _servicesChanged.Dispatch([&](IHostServices::ChangedFn call, void* context) {
-        call(context, changed, published);
+    _servicesChanged.Dispatch([&](IHostServices::ChangedFn callback, void* context) {
+        callback(context, changed, published);
         return false;
     });
 }

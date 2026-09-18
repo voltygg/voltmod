@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstddef>
-#include <cstdint>
 
 namespace VoltMod
 {
@@ -17,8 +16,5 @@ struct HostString
     const char* Data = nullptr;
     size_t Length = 0;
 };
-
-/** Identifies one subscription for removal. Never zero while it is live. */
-using HostToken = uint64_t;
 
 }  // namespace VoltMod

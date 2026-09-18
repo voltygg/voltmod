@@ -9,7 +9,6 @@
 
 using VoltMod::Borrowed;
 using VoltMod::HostEvent;
-using VoltMod::HostToken;
 using VoltMod::PluginContext;
 using VoltMod::PluginHost;
 using VoltMod::PluginLeaks;
@@ -61,7 +60,7 @@ TEST_CASE("Tokens are unique across every event and the service table, and are n
     PluginContext* second = host.OpenPlugin("second");
 
     CoreCounter counter;
-    std::vector<HostToken> tokens{
+    std::vector<uint64_t> tokens{
         first->OnFrame(CountFrame, &counter),
         first->OnConsoleCommand(
             +[](void*, VoltMod::HostString, VoltMod::HostString, int) { return false; }, &counter),
@@ -70,14 +69,14 @@ TEST_CASE("Tokens are unique across every event and the service table, and are n
         second->OnFrame(CountFrame, &counter),
     };
 
-    for (const HostToken token : tokens)
+    for (const uint64_t token : tokens)
         CHECK(token != 0);
-    std::vector<HostToken> sorted = tokens;
+    std::vector<uint64_t> sorted = tokens;
     std::ranges::sort(sorted);
     CHECK(std::ranges::adjacent_find(sorted) == sorted.end());
 
     first->Unsubscribe(tokens.front());
-    const HostToken reissued = first->OnFrame(CountFrame, &counter);
+    const uint64_t reissued = first->OnFrame(CountFrame, &counter);
     CHECK(std::ranges::find(tokens, reissued) == tokens.end());
 }
 
@@ -88,7 +87,7 @@ TEST_CASE("Unsubscribing a token another plugin took does nothing")
     PluginContext* second = host.OpenPlugin("second");
 
     CoreCounter counter;
-    const HostToken token = first->OnFrame(CountFrame, &counter);
+    const uint64_t token = first->OnFrame(CountFrame, &counter);
 
     second->Unsubscribe(token);
     host.RaiseFrame();

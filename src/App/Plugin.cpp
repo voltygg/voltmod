@@ -134,7 +134,7 @@ void Plugin::SubscribeHostEvents()
 {
     // The host installed each engine hook once. Taking them in the order the framework used to
     // install its own keeps the load-time sequence a reader already knows.
-    auto take = [this](HostToken token) {
+    auto take = [this](uint64_t token) {
         _hostEvents.Add(Subscription([events = _events, token] { events->Unsubscribe(token); }));
     };
 
