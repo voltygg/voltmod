@@ -5,7 +5,7 @@
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
-#include <VoltMod/Engine/MetamodGlobals.hpp>
+#include <VoltMod/Engine/Detours.hpp>
 #include <format>
 #include <functional>
 #include <memory>

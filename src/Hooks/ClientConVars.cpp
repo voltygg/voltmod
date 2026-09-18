@@ -6,7 +6,7 @@
 #include <VoltMod/Core/Time/Time.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
-#include <VoltMod/Engine/MetamodGlobals.hpp>
+#include <VoltMod/Engine/Detours.hpp>
 #include <VoltMod/Hooks/ClientConVars.hpp>
 #include <VoltMod/Unsafe/Hook.hpp>
 #include <cstdint>

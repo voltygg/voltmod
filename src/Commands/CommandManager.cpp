@@ -40,6 +40,11 @@ CommandManager::CommandManager(Policy& policy, Translations& translations, Playe
 
 CommandManager::~CommandManager() = default;
 
+void CommandManager::Attach(IHost* host)
+{
+    _impl->Router.Attach(host);
+}
+
 CommandBuilder CommandManager::Add(std::string_view name)
 {
     return CommandBuilder(

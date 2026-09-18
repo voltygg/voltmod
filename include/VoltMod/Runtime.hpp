@@ -15,6 +15,7 @@
 #include <VoltMod/Entities/World.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/Hooks.hpp>
+#include <VoltMod/Host/IHost.hpp>
 #include <VoltMod/Http/HttpClient.hpp>
 #include <VoltMod/Menu/CenterHtmlMenu.hpp>
 #include <VoltMod/Menu/MenuRouter.hpp>
@@ -33,11 +34,11 @@
 namespace VoltMod
 {
 
-/** Everything @ref Runtime::Start needs from Metamod, plus the optional overrides. */
+/** Everything @ref Runtime::Start needs from the host, plus the optional overrides. */
 struct LoadContext
 {
-    SourceMM::ISmmAPI* Ismm = nullptr;       ///< Metamod API pointer, from Plugin::Load
-    char* Error = nullptr;                   ///< Error buffer Metamod shows if the load fails
+    IHost* Host = nullptr;                   ///< the host this plugin attached to, from Plugin::Attach
+    char* Error = nullptr;                   ///< Error buffer the host shows if the load fails
     size_t MaxLen = 0;                       ///< Size of that buffer
     std::string_view LogPrefix = "VoltMod";  ///< Console log prefix, e.g. "[ADMIN]"
 };

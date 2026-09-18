@@ -1,7 +1,7 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
-#include <VoltMod/Engine/MetamodGlobals.hpp>
+#include <VoltMod/Engine/Detours.hpp>
 #include <VoltMod/Hooks/Movement.hpp>
 #include <VoltMod/Schema/Api.hpp>
 #include <VoltMod/Unsafe/Hook.hpp>

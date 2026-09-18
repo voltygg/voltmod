@@ -5,7 +5,7 @@
 
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slots/Slot.hpp>
-#include <VoltMod/Engine/MetamodGlobals.hpp>
+#include <VoltMod/Engine/Detours.hpp>
 #include <VoltMod/Unsafe/Hook.hpp>
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>

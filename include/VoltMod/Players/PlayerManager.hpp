@@ -83,7 +83,7 @@ public:
     [[nodiscard]] PlayerRef RefFor(int slot);
 
     /** @internal Roster mutation and lifecycle raising belong to the framework's Metamod
-     *  callbacks (`MetamodPlugin`); a plugin that calls these desynchronizes the roster from
+     *  callbacks (`Plugin`); a plugin that calls these desynchronizes the roster from
      *  the engine. */
     /** @{ */
     Player* Add(int slot, int64_t steamId, std::string name, std::string ip);

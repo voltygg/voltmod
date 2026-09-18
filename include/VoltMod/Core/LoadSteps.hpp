@@ -23,7 +23,7 @@ struct FailedStep
  * @brief Named steps for one plugin load, retaining failed steps.
  *
  * `Runtime::Start` and plugin `OnLoad` run work through @ref Optional and @ref Required.
- * MetamodPlugin logs @ref Summary and copies @ref AbortReason to Metamod's error buffer.
+ * @ref Plugin logs @ref Summary and copies @ref AbortReason to the host's error buffer.
  */
 class LoadSteps
 {

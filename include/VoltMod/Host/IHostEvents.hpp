@@ -8,7 +8,7 @@ namespace VoltMod
 {
 
 /**
- * @brief The engine hooks, installed once by the host and fanned out to every loaded plugin.
+ * @brief The engine hooks, installed once by the host and called on every loaded plugin.
  *
  * Callbacks run on the game thread in load order. A callback must not throw: the SDK trampoline
  * that owns it catches, logs and continues, and nothing propagates across the boundary.
@@ -40,7 +40,7 @@ struct IHostEvents
     virtual HostToken SubscribeConsoleCommand(ConsoleCommandFn call, void* context) = 0;
     virtual HostToken SubscribeCheckTransmit(CheckTransmitFn call, void* context) = 0;
 
-    /** Safe during a fan-out: the pass in flight skips the removed callback. */
+    /** Safe during a dispatch: the one in flight skips the removed callback. */
     virtual void Unsubscribe(HostToken token) = 0;
 
 protected:

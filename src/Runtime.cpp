@@ -5,7 +5,7 @@
 #include <VoltMod/Core/Text/Json.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Files/Paths.hpp>
-#include <VoltMod/Engine/MetamodGlobals.hpp>
+#include <VoltMod/Engine/Detours.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <chrono>
 #include <eiface.h>
@@ -53,12 +53,14 @@ bool Runtime::Start(const LoadContext& context)
 void Runtime::InstallLogger(const LoadContext& context)
 {
     Log::SetHandler(MakeConsoleHandler(std::string(context.LogPrefix)));
-    SetBaseDir(context.Ismm->GetBaseDir());
+    SetBaseDir(context.Host->Metamod()->GetBaseDir());
 }
 
 bool Runtime::ResolveInterfaces(const LoadContext& context)
 {
-    ISmmAPI* ismm = context.Ismm;
+    // The host is the Metamod plugin and shares its own pointer, so this resolves exactly as it
+    // did when every plugin was one.
+    ISmmAPI* ismm = context.Host->Metamod();
 
     auto resolveEngine = [&](const char* version) -> void* {
         return ismm->VInterfaceMatch(ismm->GetEngineFactory(), version, 0);
@@ -99,7 +101,7 @@ bool Runtime::ResolveInterfaces(const LoadContext& context)
 
 bool Runtime::InitializeServices(const LoadContext& context)
 {
-    // MetamodPlugin logs the summary and required-step failure.
+    // Plugin logs the summary and required-step failure.
     auto& steps = LoadSteps;
 
     // Log unbound entries. Earlier plugins may hook class tables, so read slots through KHook.
@@ -110,7 +112,7 @@ bool Runtime::InitializeServices(const LoadContext& context)
         if (steps.Required(name, step))
             return true;
 
-        context.Ismm->Format(context.Error, context.MaxLen, "%s", steps.AbortReason().c_str());
+        context.Host->Metamod()->Format(context.Error, context.MaxLen, "%s", steps.AbortReason().c_str());
         return false;
     };
 

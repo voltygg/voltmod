@@ -1,4 +1,4 @@
-#include "Host/HostCore.hpp"
+#include "Host/PluginHost.hpp"
 
 #include <cstdint>
 #include <doctest/doctest.h>
@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-using VoltMod::HostCore;
+using VoltMod::PluginHost;
 using VoltMod::HostString;
 using VoltMod::HostToken;
 using VoltMod::PluginContext;
@@ -25,7 +25,7 @@ static void Note(void* context, const char* who)
 
 TEST_CASE("Frame callbacks run in plugin load order, then subscription order")
 {
-    HostCore host;
+    PluginHost host;
     PluginContext* first = host.OpenPlugin("first");
     PluginContext* second = host.OpenPlugin("second");
     REQUIRE(first != nullptr);
@@ -44,7 +44,7 @@ TEST_CASE("Frame callbacks run in plugin load order, then subscription order")
 
 TEST_CASE("Every plugin sees a client connect, in load order")
 {
-    HostCore host;
+    PluginHost host;
     PluginContext* first = host.OpenPlugin("first");
     PluginContext* second = host.OpenPlugin("second");
 
@@ -66,7 +66,7 @@ TEST_CASE("Every plugin sees a client connect, in load order")
 
 TEST_CASE("A console command consumed by the first plugin never reaches the second")
 {
-    HostCore host;
+    PluginHost host;
     PluginContext* first = host.OpenPlugin("first");
     PluginContext* second = host.OpenPlugin("second");
 
@@ -102,7 +102,7 @@ struct EventsRemoval
 
 TEST_CASE("A callback unsubscribed earlier in the same pass does not run")
 {
-    HostCore host;
+    PluginHost host;
     PluginContext* plugin = host.OpenPlugin("only");
 
     EventsRemoval state;
@@ -137,7 +137,7 @@ struct EventsAddition
 
 TEST_CASE("A callback subscribed during a pass first runs in the next one")
 {
-    HostCore host;
+    PluginHost host;
     PluginContext* plugin = host.OpenPlugin("only");
 
     EventsAddition state;
@@ -170,7 +170,7 @@ struct EventsTransmit
 
 TEST_CASE("Check transmit hands the engine list through untouched")
 {
-    HostCore host;
+    PluginHost host;
     PluginContext* plugin = host.OpenPlugin("only");
 
     EventsTransmit seen;

@@ -4,7 +4,7 @@
 // on plugin targets' include paths), so hoisting this into Api.hpp would
 // rebuild every TU on every commit.
 
-#include <VoltMod/App/MetamodPlugin.hpp>
+#include <VoltMod/App/Plugin.hpp>
 #include <VoltMod/BuildInfo.hpp>
 
 namespace VoltMod

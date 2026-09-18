@@ -2,6 +2,7 @@
 
 #include <VoltMod/Commands/CommandBuilder.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Host/IHost.hpp>
 #include <VoltMod/Messaging/Messages.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/Policy.hpp>
@@ -28,7 +29,7 @@ namespace VoltMod
  * @endcode
  *
  * A command lives as long as the manager, so registration hands nothing back to hold. Handlers
- * routinely capture plugin state; @ref MetamodPlugin drops every command before `OnUnload`, so
+ * routinely capture plugin state; @ref Plugin drops every command before `OnUnload`, so
  * they stop before that state does.
  *
  * The pipeline per invocation: prefix match -> name or alias lookup -> `Policy::Authorize` for
@@ -53,6 +54,11 @@ public:
     CommandManager(const CommandManager&) = delete;
     CommandManager& operator=(const CommandManager&) = delete;
 
+    /** Attach to @p host, which hands out command names for the whole process. Called by
+     *  @ref Plugin before OnLoad, so every command registered there is claimed. A null host
+     *  registers commands exactly as before, claiming nothing. */
+    void Attach(IHost* host);
+
     /** Start describing a command. Finish with `.Run(handler)`, which installs it. */
     [[nodiscard]] CommandBuilder Add(std::string_view name);
 
@@ -62,12 +68,12 @@ public:
 
     size_t Count() const;
 
-    /** Unregister every command and its ConCommand. Called by @ref MetamodPlugin on the unload
+    /** Unregister every command and its ConCommand. Called by @ref Plugin on the unload
      *  path, before the plugin's own state goes away; plugins do not call this. */
     void RemoveAll();
 
     /** Names of registered commands that declare a permission while no `HasPermission` policy
-     *  is installed. Every one of them will be denied; MetamodPlugin reports this after OnLoad
+     *  is installed. Every one of them will be denied; @ref Plugin reports this after OnLoad
      *  so the misconfiguration shows up in the load summary instead of the first time a player
      *  tries the command. */
     std::vector<std::string> CommandsMissingPolicy() const;

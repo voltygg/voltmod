@@ -2,8 +2,12 @@
 #include "Commands/CommandSyntax.hpp"
 
 #include <VoltMod/Core/Slots/SlotEvents.hpp>
+#include <VoltMod/Host/Abi.hpp>
+#include <VoltMod/Host/IHost.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/Policy.hpp>
+#include <algorithm>
+#include <cstdint>
 #include <doctest/doctest.h>
 #include <string>
 #include <vector>
@@ -16,6 +20,7 @@ using VoltMod::BoundArg;
 using VoltMod::Caller;
 using VoltMod::CommandDefinition;
 using VoltMod::CommandRouter;
+using VoltMod::HostString;
 using VoltMod::Origin;
 using VoltMod::Player;
 using VoltMod::PlayerManager;
@@ -50,6 +55,31 @@ struct StubBinder final : ArgBinder
         if (!Succeed)
             return std::unexpected(Failure);
         return Roster;
+    }
+};
+
+/** The host arbitrates command names for the whole process; this stands in for it, refusing
+ *  whatever a peer is said to hold. */
+class FakeHost final : public VoltMod::IHost
+{
+public:
+    std::vector<std::string> Held;
+    std::vector<std::string> Claimed;
+
+    uint32_t AbiVersion() const override { return VoltMod::HostAbiVersion; }
+    HostString Name() const override { return {}; }
+    HostString HomeDirectory() const override { return {}; }
+    SourceMM::ISmmAPI* Metamod() const override { return nullptr; }
+    KHook::IKHook* Detours() const override { return nullptr; }
+    void* GetInterface(HostString) const override { return nullptr; }
+
+    bool ClaimCommand(HostString name) override
+    {
+        std::string asked(name.Data, name.Length);
+        if (std::ranges::find(Held, asked) != Held.end())
+            return false;
+        Claimed.push_back(asked);
+        return true;
     }
 };
 
@@ -155,6 +185,46 @@ TEST_CASE("A second registration of the same name is refused")
     CHECK(f.Router.Add(Echo("ban", {}, nullptr)));
     CHECK_FALSE(f.Router.Add(Echo("ban", {}, nullptr)));
     CHECK(f.Router.Count() == 1);
+}
+
+TEST_CASE("A name another plugin holds is refused, and the command is not registered")
+{
+    Fixture f;
+    FakeHost host;
+    host.Held = {"ban"};
+    f.Router.Attach(&host);
+
+    CHECK_FALSE(f.Router.Add(Echo("ban", {}, nullptr)));
+    CHECK(f.Router.Find("ban") == nullptr);
+    CHECK(f.Router.Count() == 0);
+}
+
+TEST_CASE("A registered command claims its name and every alias, lowercased")
+{
+    Fixture f;
+    FakeHost host;
+    f.Router.Attach(&host);
+
+    CommandDefinition def = Echo("Ban", {}, nullptr);
+    def.Aliases = {"B"};
+    REQUIRE(f.Router.Add(std::move(def)));
+
+    CHECK(host.Claimed == std::vector<std::string>{"ban", "b"});
+}
+
+TEST_CASE("An alias another plugin holds is skipped while the command still registers")
+{
+    Fixture f;
+    FakeHost host;
+    host.Held = {"b"};
+    f.Router.Attach(&host);
+
+    CommandDefinition def = Echo("ban", {}, nullptr);
+    def.Aliases = {"b"};
+    REQUIRE(f.Router.Add(std::move(def)));
+
+    CHECK(f.Router.Find("ban") != nullptr);
+    CHECK(f.Router.Find("b") == nullptr);
 }
 
 TEST_CASE("Clear drops every command and its aliases")

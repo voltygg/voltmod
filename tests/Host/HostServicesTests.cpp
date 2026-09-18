@@ -1,4 +1,4 @@
-#include "Host/HostCore.hpp"
+#include "Host/PluginHost.hpp"
 
 #include <doctest/doctest.h>
 #include <ostream>
@@ -6,7 +6,7 @@
 #include <vector>
 
 using VoltMod::Borrowed;
-using VoltMod::HostCore;
+using VoltMod::PluginHost;
 using VoltMod::HostString;
 using VoltMod::PluginContext;
 using VoltMod::Text;
@@ -25,7 +25,7 @@ static void RecordChange(void* context, HostString name, bool published)
 
 TEST_CASE("Find returns what a plugin published, and nothing once it withdraws")
 {
-    HostCore host;
+    PluginHost host;
     PluginContext* first = host.OpenPlugin("first");
     PluginContext* second = host.OpenPlugin("second");
 
@@ -44,7 +44,7 @@ TEST_CASE("Find returns what a plugin published, and nothing once it withdraws")
 
 TEST_CASE("Unpublishing a name another plugin owns leaves that entry alone")
 {
-    HostCore host;
+    PluginHost host;
     PluginContext* first = host.OpenPlugin("first");
     PluginContext* second = host.OpenPlugin("second");
 
@@ -59,7 +59,7 @@ TEST_CASE("Unpublishing a name another plugin owns leaves that entry alone")
 
 TEST_CASE("Changed reports a publish and a withdrawal to every subscriber")
 {
-    HostCore host;
+    PluginHost host;
     PluginContext* first = host.OpenPlugin("first");
     PluginContext* second = host.OpenPlugin("second");
 
@@ -75,7 +75,7 @@ TEST_CASE("Changed reports a publish and a withdrawal to every subscriber")
 
 TEST_CASE("A late Changed subscriber is replayed what is already in the table")
 {
-    HostCore host;
+    PluginHost host;
     PluginContext* first = host.OpenPlugin("first");
     PluginContext* second = host.OpenPlugin("second");
 
@@ -92,7 +92,7 @@ TEST_CASE("A late Changed subscriber is replayed what is already in the table")
 
 TEST_CASE("Unsubscribing from Changed stops the notifications")
 {
-    HostCore host;
+    PluginHost host;
     PluginContext* first = host.OpenPlugin("first");
     PluginContext* second = host.OpenPlugin("second");
 

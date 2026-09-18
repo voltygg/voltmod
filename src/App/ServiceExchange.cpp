@@ -1,20 +1,28 @@
-#include <VoltMod/App/MetamodPlugin.hpp>  // PLUGIN_GLOBALVARS -> g_SMAPI
 #include <VoltMod/App/ServiceExchange.hpp>
-#include <string>
 
 namespace VoltMod
 {
 
-void* ServiceExchange::Query(std::string_view iface)
+static HostString Borrow(std::string_view text)
 {
-    if (!g_SMAPI)
-        return nullptr;
+    return HostString{.Data = text.data(), .Length = text.size()};
+}
 
-    // MetaFactory checks each loaded plugin's table during the call.
-    const std::string name(iface);
-    int ret = META_IFACE_FAILED;
-    void* impl = g_SMAPI->MetaFactory(name.c_str(), &ret, nullptr);
-    return ret == META_IFACE_OK ? impl : nullptr;
+void ServiceExchange::PublishNamed(std::string_view iface, void* impl)
+{
+    if (_services)
+        _services->Publish(Borrow(iface), impl);
+}
+
+void ServiceExchange::UnpublishNamed(std::string_view iface)
+{
+    if (_services)
+        _services->Unpublish(Borrow(iface));
+}
+
+void* ServiceExchange::Find(std::string_view iface) const
+{
+    return _services ? _services->Find(Borrow(iface)) : nullptr;
 }
 
 }  // namespace VoltMod

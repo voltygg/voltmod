@@ -1,8 +1,8 @@
 #pragma once
 
-#include <string>
+#include <VoltMod/Host/HostTypes.hpp>
+#include <VoltMod/Host/IHostServices.hpp>
 #include <string_view>
-#include <unordered_map>
 
 namespace VoltMod
 {
@@ -10,22 +10,23 @@ namespace VoltMod
 /**
  * @brief Typed interface exchange between separately-loaded plugins.
  *
- * The framework is a static library, so each plugin has its own Runtime and sharing cannot go
- * through framework state. It goes through Metamod instead: Publish fills this module's table,
- * which MetamodPlugin::OnMetamodQuery serves, and Get asks MetaFactory across every
- * loaded plugin.
+ * The host owns one table for the process. Publish puts this plugin's implementation in it under
+ * `T::InterfaceName` and Get asks for whatever any plugin published under that name.
  *
- * An interface is a pure-virtual struct carrying a versioned `InterfaceName`. Bump the
- * version in the name whenever the vtable or a parameter's meaning changes, so a stale
- * consumer gets nullptr rather than a mismatched vtable.
+ * An interface is a pure-virtual struct carrying a versioned `InterfaceName`. Bump the version in
+ * the name whenever the vtable or a parameter's meaning changes, so a stale consumer gets nullptr
+ * rather than a mismatched vtable.
  *
- * Each plugin compiles its own memoverride.cpp and so has its own operator new: never
- * transfer ownership across the boundary. Take string_view, return trivially-copyable
- * types, let no exception escape.
+ * Each plugin compiles its own memoverride.cpp and so has its own operator new: never transfer
+ * ownership across the boundary. Take string_view, return trivially-copyable types, let no
+ * exception escape.
  */
 class ServiceExchange
 {
 public:
+    /** Attach to the host's table. Called by Plugin::Attach before OnLoad. */
+    void Attach(IHostServices* services) { _services = services; }
+
     /**
      * Offer @p impl under `T::InterfaceName` until Unpublish or unload.
      *
@@ -38,7 +39,7 @@ public:
         PublishNamed(T::InterfaceName, static_cast<void*>(impl));
     }
 
-    void PublishNamed(std::string_view iface, void* impl) { _published[std::string(iface)] = impl; }
+    void PublishNamed(std::string_view iface, void* impl);
 
     template <class T>
     void Unpublish()
@@ -46,29 +47,22 @@ public:
         UnpublishNamed(T::InterfaceName);
     }
 
-    void UnpublishNamed(std::string_view iface) { _published.erase(std::string(iface)); }
+    void UnpublishNamed(std::string_view iface);
 
-    /** What another plugin published for @p T, or nullptr. Not cached: peers come and go,
-     *  and callers are rare enough that a factory walk each time is cheaper than tracking
-     *  invalidation. */
+    /** What any plugin published for @p T, or nullptr. Not cached: peers come and go, and the
+     *  host never loads or unloads one inside a callback, so a pointer fetched at the point of
+     *  use cannot dangle before you are done with it. */
     template <class T>
     T* Get() const
     {
-        return static_cast<T*>(Query(T::InterfaceName));
+        return static_cast<T*>(Find(T::InterfaceName));
     }
 
-    /** This module's own entry for @p iface. Serves OnMetamodQuery; inline so the table
-     *  can be tested without linking Metamod. */
-    void* Find(std::string_view iface) const
-    {
-        auto it = _published.find(std::string(iface));
-        return it == _published.end() ? nullptr : it->second;
-    }
+    /** The raw entry for @p iface, or nullptr. */
+    void* Find(std::string_view iface) const;
 
 private:
-    static void* Query(std::string_view iface);
-
-    std::unordered_map<std::string, void*> _published;
+    IHostServices* _services = nullptr;
 };
 
 }  // namespace VoltMod

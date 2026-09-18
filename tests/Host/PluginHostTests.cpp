@@ -1,4 +1,4 @@
-#include "Host/HostCore.hpp"
+#include "Host/PluginHost.hpp"
 
 #include <VoltMod/Host/Abi.hpp>
 #include <algorithm>
@@ -8,7 +8,7 @@
 #include <vector>
 
 using VoltMod::Borrowed;
-using VoltMod::HostCore;
+using VoltMod::PluginHost;
 using VoltMod::HostEvent;
 using VoltMod::HostToken;
 using VoltMod::PluginContext;
@@ -28,7 +28,7 @@ static void CountFrame(void* context)
 
 TEST_CASE("A context answers for the plugin it was opened for")
 {
-    HostCore host;
+    PluginHost host;
     PluginContext* plugin = host.OpenPlugin("bhop");
     REQUIRE(plugin != nullptr);
 
@@ -43,7 +43,7 @@ TEST_CASE("A context answers for the plugin it was opened for")
 
 TEST_CASE("GetInterface answers with each interface the context implements")
 {
-    HostCore host;
+    PluginHost host;
     PluginContext* plugin = host.OpenPlugin("bhop");
 
     CHECK(plugin->GetInterface(Borrowed(VoltMod::IHost::InterfaceName)) == static_cast<VoltMod::IHost*>(plugin));
@@ -54,9 +54,9 @@ TEST_CASE("GetInterface answers with each interface the context implements")
     CHECK(plugin->GetInterface(Borrowed("VoltMod.Nothing")) == nullptr);
 }
 
-TEST_CASE("Tokens are unique across the fan-outs and the registry, and are never reused")
+TEST_CASE("Tokens are unique across every event and the service table, and are never reused")
 {
-    HostCore host;
+    PluginHost host;
     PluginContext* first = host.OpenPlugin("first");
     PluginContext* second = host.OpenPlugin("second");
 
@@ -83,7 +83,7 @@ TEST_CASE("Tokens are unique across the fan-outs and the registry, and are never
 
 TEST_CASE("Unsubscribing a token another plugin took does nothing")
 {
-    HostCore host;
+    PluginHost host;
     PluginContext* first = host.OpenPlugin("first");
     PluginContext* second = host.OpenPlugin("second");
 
@@ -98,7 +98,7 @@ TEST_CASE("Unsubscribing a token another plugin took does nothing")
 
 TEST_CASE("A second plugin claiming a command name fails and the holder can be named")
 {
-    HostCore host;
+    PluginHost host;
     PluginContext* first = host.OpenPlugin("first");
     PluginContext* second = host.OpenPlugin("second");
 
@@ -111,7 +111,7 @@ TEST_CASE("A second plugin claiming a command name fails and the holder can be n
 
 TEST_CASE("Closing a context drops what the plugin still held and reports each leftover")
 {
-    HostCore host;
+    PluginHost host;
     PluginContext* first = host.OpenPlugin("first");
     PluginContext* second = host.OpenPlugin("second");
 
@@ -143,7 +143,7 @@ TEST_CASE("Closing a context drops what the plugin still held and reports each l
 
 TEST_CASE("Closing a context tells the remaining plugins its services are gone")
 {
-    HostCore host;
+    PluginHost host;
     PluginContext* first = host.OpenPlugin("first");
     PluginContext* second = host.OpenPlugin("second");
 
@@ -164,7 +164,7 @@ TEST_CASE("Closing a context tells the remaining plugins its services are gone")
 
 TEST_CASE("Closing a context that held nothing reports no leak")
 {
-    HostCore host;
+    PluginHost host;
     host.OpenPlugin("first");
 
     const PluginLeaks leaks = host.ClosePlugin("first");
