@@ -1,5 +1,5 @@
-#include "Engine/Net/NetMessage.hpp"
 #include "Engine/Memory/SigScanner.hpp"
+#include "Engine/Net/NetMessage.hpp"
 
 #include <igameevents.h>
 

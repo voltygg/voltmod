@@ -99,9 +99,8 @@ std::vector<uint64_t> AddonDownloads::ToMount(int64_t steamId) const
         return {};
 
     std::vector<uint64_t> ids = RequiredFor(client);
-    std::erase_if(ids, [client](uint64_t id) {
-        return id != client->Sending && !std::ranges::contains(client->Downloaded, id);
-    });
+    std::erase_if(
+        ids, [client](uint64_t id) { return id != client->Sending && !std::ranges::contains(client->Downloaded, id); });
     return ids;
 }
 

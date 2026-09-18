@@ -19,15 +19,13 @@ struct IHostEvents
 
     using FrameFn = void (*)(void* context);
     using ServerStartupFn = void (*)(void* context, HostString mapName);
-    using ClientConnectedFn = void (*)(void* context, int slot, int64_t steamId, HostString name,
-                                       HostString address);
+    using ClientConnectedFn = void (*)(void* context, int slot, int64_t steamId, HostString name, HostString address);
     using ClientDisconnectedFn = void (*)(void* context, int slot);
     using ClientFullyConnectedFn = void (*)(void* context, int slot);
     using ClientSettingsChangedFn = void (*)(void* context, int slot);
     /** True when this plugin answered the command: later plugins do not see it and the engine
      *  call is blocked once. */
-    using ConsoleCommandFn = bool (*)(void* context, HostString name, HostString arguments,
-                                      int slot);
+    using ConsoleCommandFn = bool (*)(void* context, HostString name, HostString arguments, int slot);
     using CheckTransmitFn = void (*)(void* context, CCheckTransmitInfo** infoList, int infoCount);
 
     virtual HostToken SubscribeFrame(FrameFn call, void* context) = 0;
@@ -35,8 +33,7 @@ struct IHostEvents
     virtual HostToken SubscribeClientConnected(ClientConnectedFn call, void* context) = 0;
     virtual HostToken SubscribeClientDisconnected(ClientDisconnectedFn call, void* context) = 0;
     virtual HostToken SubscribeClientFullyConnected(ClientFullyConnectedFn call, void* context) = 0;
-    virtual HostToken SubscribeClientSettingsChanged(ClientSettingsChangedFn call,
-                                                     void* context) = 0;
+    virtual HostToken SubscribeClientSettingsChanged(ClientSettingsChangedFn call, void* context) = 0;
     virtual HostToken SubscribeConsoleCommand(ConsoleCommandFn call, void* context) = 0;
     virtual HostToken SubscribeCheckTransmit(CheckTransmitFn call, void* context) = 0;
 

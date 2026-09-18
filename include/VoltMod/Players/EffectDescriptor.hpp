@@ -1,7 +1,7 @@
 #pragma once
 
-#include <VoltMod/Players/EffectManager.hpp>
 #include <VoltMod/Players/ActionDispatcher.hpp>
+#include <VoltMod/Players/EffectManager.hpp>
 #include <functional>
 #include <string>
 #include <vector>

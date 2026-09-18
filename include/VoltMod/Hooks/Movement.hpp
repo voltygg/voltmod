@@ -1,12 +1,12 @@
 #pragma once
 
-#include <VoltMod/Core/Signals/Event.hpp>
 #include <VoltMod/Core/Result.hpp>
+#include <VoltMod/Core/Signals/Event.hpp>
 #include <VoltMod/Core/Signals/SharedLifecycle.hpp>
+#include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Hooks/PlayerInput.hpp>
-#include <VoltMod/Core/Signals/Subscription.hpp>
 
 namespace VoltMod
 {

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <VoltMod/Core/Result.hpp>
-#include <VoltMod/Core/Time/Scheduler.hpp>
 #include <VoltMod/Core/Signals/Subscription.hpp>
+#include <VoltMod/Core/Time/Scheduler.hpp>
 #include <VoltMod/Database/Connection.hpp>
 #include <VoltMod/Database/DatabaseConfig.hpp>
 #include <VoltMod/Database/Driver.hpp>
@@ -97,9 +97,8 @@ public:
             }
             else
             {
-                PushCompletion([callback, value = Invoke(conn, fn)]() mutable {
-                    (*callback)(Result<Value>{std::move(value)});
-                });
+                PushCompletion(
+                    [callback, value = Invoke(conn, fn)]() mutable { (*callback)(Result<Value>{std::move(value)}); });
             }
         };
         job.OnFail = [this, callback](Error error) {

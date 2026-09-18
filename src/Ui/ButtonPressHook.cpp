@@ -38,9 +38,9 @@ bool ButtonPressHook::Install()
         Log::Warn("ButtonPressHook: the FilterMessage client offset did not bind; button presses will not arrive.");
         return false;
     }
-    if (auto* message = _interfaces.NetworkMessages
-                            ? _interfaces.NetworkMessages->FindNetworkMessagePartial(std::string(UserMessageName).c_str())
-                            : nullptr)
+    if (auto* message = _interfaces.NetworkMessages ? _interfaces.NetworkMessages->FindNetworkMessagePartial(
+                                                          std::string(UserMessageName).c_str())
+                                                    : nullptr)
         _messageId = message->GetNetMessageInfo()->m_MessageId;
     if (_messageId < 0)
     {

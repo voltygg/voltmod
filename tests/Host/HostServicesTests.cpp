@@ -6,9 +6,9 @@
 #include <vector>
 
 using VoltMod::Borrowed;
-using VoltMod::PluginHost;
 using VoltMod::HostString;
 using VoltMod::PluginContext;
+using VoltMod::PluginHost;
 using VoltMod::Text;
 
 /** The Changed callback context: each entry is the name with a leading + or -. */

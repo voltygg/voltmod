@@ -1,7 +1,7 @@
 #pragma once
 
-#include <VoltMod/Core/Signals/Event.hpp>
 #include <VoltMod/Core/Result.hpp>
+#include <VoltMod/Core/Signals/Event.hpp>
 #include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>

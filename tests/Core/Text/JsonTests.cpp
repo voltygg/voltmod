@@ -1,7 +1,7 @@
 #include "Support/TempPath.hpp"
 
-#include <VoltMod/Core/Text/Json.hpp>
 #include <VoltMod/Core/Files/Paths.hpp>
+#include <VoltMod/Core/Text/Json.hpp>
 #include <doctest/doctest.h>
 #include <map>
 #include <string>

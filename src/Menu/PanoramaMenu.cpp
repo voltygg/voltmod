@@ -133,7 +133,8 @@ void PanoramaMenu::ReadTabs(int slot)
     for (int index = 0; index < items && static_cast<int>(tabs.size()) < _layout.TabCount(); ++index)
     {
         if (MenuRow described = _stack.Describe(slot, index); described.Kind == MenuRowKind::Submenu)
-            tabs.push_back({.RootIndex = index, .Label = std::move(described.Label), .Icon = std::move(described.Icon)});
+            tabs.push_back(
+                {.RootIndex = index, .Label = std::move(described.Label), .Icon = std::move(described.Icon)});
     }
 }
 

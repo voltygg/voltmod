@@ -1,6 +1,6 @@
-#include <VoltMod/Players/EffectManager.hpp>
-#include <VoltMod/Core/Time/Scheduler.hpp>
 #include <VoltMod/Core/Slots/Slot.hpp>
+#include <VoltMod/Core/Time/Scheduler.hpp>
+#include <VoltMod/Players/EffectManager.hpp>
 #include <doctest/doctest.h>
 
 using VoltMod::EffectInstance;

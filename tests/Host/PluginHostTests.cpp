@@ -8,10 +8,10 @@
 #include <vector>
 
 using VoltMod::Borrowed;
-using VoltMod::PluginHost;
 using VoltMod::HostEvent;
 using VoltMod::HostToken;
 using VoltMod::PluginContext;
+using VoltMod::PluginHost;
 using VoltMod::PluginLeaks;
 using VoltMod::Text;
 

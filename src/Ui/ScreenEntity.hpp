@@ -4,9 +4,9 @@
 #include "Ui/WriteCache.hpp"
 
 #include <VoltMod/Core/Result.hpp>
+#include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Core/Slots/SlotEvents.hpp>
-#include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Entities/EntityRef.hpp>

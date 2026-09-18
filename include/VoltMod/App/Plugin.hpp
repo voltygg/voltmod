@@ -111,8 +111,7 @@ private:
     // through its context pointer. Every one of them stops exceptions at the boundary.
     static void OnHostFrame(void* context);
     static void OnHostServerStartup(void* context, HostString mapName);
-    static void OnHostClientConnected(void* context, int slot, int64_t steamId, HostString name,
-                                      HostString address);
+    static void OnHostClientConnected(void* context, int slot, int64_t steamId, HostString name, HostString address);
     static void OnHostClientDisconnected(void* context, int slot);
     static void OnHostClientFullyConnected(void* context, int slot);
     static void OnHostClientSettingsChanged(void* context, int slot);
@@ -139,22 +138,28 @@ private:
  * Invoke once, at global namespace scope, in the plugin's Plugin.cpp. The plugin library is not a
  * Metamod plugin, so it defines KHook's dispatch pointer itself; Attach seeds it from the host.
  */
-#define VOLTMOD_PLUGIN(PluginClass)                                                                \
-    PluginClass g_##PluginClass;                                                                   \
-    namespace KHook                                                                                \
-    {                                                                                              \
-    KHook::IKHook* __exported__khook = nullptr;                                                    \
-    }                                                                                              \
-    static bool VoltMod_PluginLoad(::VoltMod::IHost* host, char* error, size_t errorSize)          \
-    {                                                                                              \
-        return host && g_##PluginClass.Attach(*host, error, errorSize);                             \
-    }                                                                                              \
-    static void VoltMod_PluginUnload() { g_##PluginClass.Detach(); }                                \
-    static const char* VoltMod_PluginStatus() { return g_##PluginClass.StatusJson(); }              \
-    static const ::VoltMod::PluginDescriptor g_voltmodDescriptor{                                   \
-        ::VoltMod::HostAbiVersion, &VoltMod_PluginLoad, &VoltMod_PluginUnload, &VoltMod_PluginStatus}; \
-    extern "C" VOLTMOD_EXPORT const ::VoltMod::PluginDescriptor* VoltMod_PluginEntry()              \
-    {                                                                                              \
-        return &g_voltmodDescriptor;                                                                \
-    }                                                                                               \
+#define VOLTMOD_PLUGIN(PluginClass)                                                                              \
+    PluginClass g_##PluginClass;                                                                                 \
+    namespace KHook                                                                                              \
+    {                                                                                                            \
+    KHook::IKHook* __exported__khook = nullptr;                                                                  \
+    }                                                                                                            \
+    static bool VoltMod_PluginLoad(::VoltMod::IHost* host, char* error, size_t errorSize)                        \
+    {                                                                                                            \
+        return host && g_##PluginClass.Attach(*host, error, errorSize);                                          \
+    }                                                                                                            \
+    static void VoltMod_PluginUnload()                                                                           \
+    {                                                                                                            \
+        g_##PluginClass.Detach();                                                                                \
+    }                                                                                                            \
+    static const char* VoltMod_PluginStatus()                                                                    \
+    {                                                                                                            \
+        return g_##PluginClass.StatusJson();                                                                     \
+    }                                                                                                            \
+    static const ::VoltMod::PluginDescriptor g_voltmodDescriptor{::VoltMod::HostAbiVersion, &VoltMod_PluginLoad, \
+                                                                 &VoltMod_PluginUnload, &VoltMod_PluginStatus};  \
+    extern "C" VOLTMOD_EXPORT const ::VoltMod::PluginDescriptor* VoltMod_PluginEntry()                           \
+    {                                                                                                            \
+        return &g_voltmodDescriptor;                                                                             \
+    }                                                                                                            \
     static_assert(true, "VOLTMOD_PLUGIN requires a trailing semicolon")

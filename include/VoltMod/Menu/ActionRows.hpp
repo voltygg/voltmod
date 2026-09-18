@@ -1,6 +1,5 @@
 #pragma once
 
-#include <VoltMod/Players/EffectManager.hpp>
 #include <VoltMod/Core/Text/Translations.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/Pawn.hpp>
@@ -9,6 +8,7 @@
 #include <VoltMod/Players/ActionDispatcher.hpp>
 #include <VoltMod/Players/EffectDescriptor.hpp>
 #include <VoltMod/Players/EffectDispatcher.hpp>
+#include <VoltMod/Players/EffectManager.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/PlayerRef.hpp>
 #include <VoltMod/Players/Policy.hpp>

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <VoltMod/Core/Slots/PerSlot.hpp>
-#include <VoltMod/Core/Time/Scheduler.hpp>
-#include <VoltMod/Core/Slots/SlotEvents.hpp>
 #include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Core/Signals/Subscriptions.hpp>
+#include <VoltMod/Core/Slots/PerSlot.hpp>
+#include <VoltMod/Core/Slots/SlotEvents.hpp>
 #include <VoltMod/Core/Text/Translations.hpp>
+#include <VoltMod/Core/Time/Scheduler.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuFreeze.hpp>

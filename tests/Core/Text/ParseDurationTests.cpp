@@ -33,13 +33,13 @@ TEST_CASE("ParseDuration: invalid inputs return -1")
     CHECK_EQ(ParseDuration(""), -1);
     CHECK_EQ(ParseDuration("   "), -1);
     CHECK_EQ(ParseDuration("abc"), -1);
-    CHECK_EQ(ParseDuration("5x"), -1);           // unknown suffix
-    CHECK_EQ(ParseDuration("m"), -1);            // suffix without number
-    CHECK_EQ(ParseDuration("5.5m"), -1);         // non-integer
-    CHECK_EQ(ParseDuration("-5"), -1);           // negative
-    CHECK_EQ(ParseDuration("12 34"), -1);        // embedded space
-    CHECK_EQ(ParseDuration("5mm"), -1);          // double suffix
-    CHECK_EQ(ParseDuration("999999999d"), -1);   // overflows int
+    CHECK_EQ(ParseDuration("5x"), -1);          // unknown suffix
+    CHECK_EQ(ParseDuration("m"), -1);           // suffix without number
+    CHECK_EQ(ParseDuration("5.5m"), -1);        // non-integer
+    CHECK_EQ(ParseDuration("-5"), -1);          // negative
+    CHECK_EQ(ParseDuration("12 34"), -1);       // embedded space
+    CHECK_EQ(ParseDuration("5mm"), -1);         // double suffix
+    CHECK_EQ(ParseDuration("999999999d"), -1);  // overflows int
 }
 
 TEST_CASE("ParseDuration: case-insensitive suffixes and literals")

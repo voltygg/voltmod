@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ISmmPlugin.h>
+
 #include <VoltMod/Engine/EngineTypes.hpp>
 
 // KHook's dispatch pointer, declared for every translation unit that installs a hook.

@@ -53,12 +53,10 @@ bool Plugin::Attach(IHost& host, char* error, size_t errorSize)
     _info = Info();
     _runtime = std::make_unique<Runtime>();
     // Attach before Start so a load step can already reach a peer's published interface.
-    _runtime->Exchange.Attach(
-        static_cast<IHostServices*>(host.GetInterface(Borrow(IHostServices::InterfaceName))));
+    _runtime->Exchange.Attach(static_cast<IHostServices*>(host.GetInterface(Borrow(IHostServices::InterfaceName))));
     _runtime->Commands.Attach(&host);
 
-    const LoadContext context{
-        .Host = &host, .Error = error, .MaxLen = errorSize, .LogPrefix = _info.LogTag};
+    const LoadContext context{.Host = &host, .Error = error, .MaxLen = errorSize, .LogPrefix = _info.LogTag};
     if (!_runtime->Start(context))
     {
         if (_runtime->LoadSteps.Count() > 0)
@@ -181,8 +179,7 @@ void Plugin::OnHostServerStartup(void* context, HostString mapName)
     }
 }
 
-void Plugin::OnHostClientConnected(void* context, int slot, int64_t steamId, HostString name,
-                                   HostString address)
+void Plugin::OnHostClientConnected(void* context, int slot, int64_t steamId, HostString name, HostString address)
 {
     auto* self = static_cast<Plugin*>(context);
     try

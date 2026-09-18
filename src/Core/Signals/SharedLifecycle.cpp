@@ -13,8 +13,7 @@ SharedLifecycle::~SharedLifecycle()
 {
     // Never leave a handler pointing into state that is going away.
     if (_listening != 0)
-        Log::Error("{}: {} event(s) still had handlers when the source went away; one may dangle.", _what,
-                   _listening);
+        Log::Error("{}: {} event(s) still had handlers when the source went away; one may dangle.", _what, _listening);
 }
 
 EventLifecycle SharedLifecycle::ForEvent()

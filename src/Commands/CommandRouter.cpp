@@ -2,8 +2,8 @@
 
 #include "Commands/CommandSyntax.hpp"
 
-#include <VoltMod/Core/Text/EnumNames.hpp>
 #include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/Text/EnumNames.hpp>
 #include <VoltMod/Core/Text/Strings.hpp>
 #include <algorithm>
 #include <cctype>

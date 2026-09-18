@@ -15,10 +15,10 @@ namespace VoltMod
 /** @brief One outstanding client convar query, identified by the cookie sent to the client. */
 struct PendingConVarQuery
 {
-    std::string Name;                     ///< Convar name the query asked for.
+    std::string Name;                       ///< Convar name the query asked for.
     ClientConVars::QueryCallback Callback;  ///< Invoked once, when a matching answer arrives.
-    double SentAtSec = 0.0;               ///< Caller-supplied monotonic timestamp of the send.
-    int Cookie = -1;                      ///< Cookie sent to the client; matched on the answer.
+    double SentAtSec = 0.0;                 ///< Caller-supplied monotonic timestamp of the send.
+    int Cookie = -1;                        ///< Cookie sent to the client; matched on the answer.
 };
 
 /**

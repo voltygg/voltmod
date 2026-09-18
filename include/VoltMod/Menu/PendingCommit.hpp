@@ -1,8 +1,8 @@
 #pragma once
 
+#include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Core/Slots/PerSlot.hpp>
 #include <VoltMod/Core/Slots/SlotEvents.hpp>
-#include <VoltMod/Core/Signals/Subscription.hpp>
 #include <cstdint>
 #include <functional>
 

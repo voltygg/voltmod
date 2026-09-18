@@ -1,9 +1,9 @@
 #include "Host/PluginHost.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <format>
 #include <VoltMod/Host/Abi.hpp>
 #include <algorithm>
+#include <format>
 #include <utility>
 
 namespace VoltMod
@@ -239,8 +239,8 @@ PluginContext* PluginHost::FindPlugin(std::string_view name)
 
 PluginContext* PluginHost::ContextFor(std::string_view name)
 {
-    const auto found = std::ranges::find_if(
-        _plugins, [name](const auto& plugin) { return plugin->PluginName() == name; });
+    const auto found =
+        std::ranges::find_if(_plugins, [name](const auto& plugin) { return plugin->PluginName() == name; });
     return found == _plugins.end() ? nullptr : found->get();
 }
 

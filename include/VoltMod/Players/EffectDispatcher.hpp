@@ -1,7 +1,7 @@
 #pragma once
 
-#include <VoltMod/Players/EffectManager.hpp>
 #include <VoltMod/Players/EffectDescriptor.hpp>
+#include <VoltMod/Players/EffectManager.hpp>
 
 namespace VoltMod
 {

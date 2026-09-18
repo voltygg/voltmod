@@ -1,7 +1,7 @@
 #include <VoltMod/Core/Files/File.hpp>
-#include <VoltMod/Core/Text/Json.hpp>
-#include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Files/Paths.hpp>
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/Text/Json.hpp>
 #include <VoltMod/Core/Text/Strings.hpp>
 #include <VoltMod/Core/Text/Translations.hpp>
 #include <filesystem>

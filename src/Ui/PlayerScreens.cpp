@@ -6,8 +6,7 @@
 namespace VoltMod
 {
 
-PlayerScreens::PlayerScreens(ScreenManager& screens, std::string layout)
-    : _screens(screens), _layout(std::move(layout))
+PlayerScreens::PlayerScreens(ScreenManager& screens, std::string layout) : _screens(screens), _layout(std::move(layout))
 {}
 
 Screen& PlayerScreens::For(int slot)

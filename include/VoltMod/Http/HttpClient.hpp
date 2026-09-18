@@ -1,7 +1,7 @@
 #pragma once
 
-#include <VoltMod/Core/Time/Scheduler.hpp>
 #include <VoltMod/Core/Signals/Subscription.hpp>
+#include <VoltMod/Core/Time/Scheduler.hpp>
 #include <VoltMod/Http/HttpResult.hpp>
 #include <memory>
 #include <string>

@@ -1,7 +1,7 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slots/Slot.hpp>
-#include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Detours.hpp>
+#include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Hooks/Teleport.hpp>
 #include <VoltMod/Unsafe/Hook.hpp>
@@ -28,7 +28,8 @@ bool Teleport::Install()
 {
     auto hook = HookVirtual("Teleport", _bindings.Teleport,
                             [this](CEntityInstance& pawn, const Vector*, const QAngle*, const Vector*) {
-                                // Resolve the slot through the controller so recycled pawn addresses cannot misidentify it.
+                                // Resolve the slot through the controller so recycled pawn addresses cannot misidentify
+                                // it.
                                 Teleported.Raise(Pawn{_entities, &pawn}.Slot());
                             });
     if (!hook)

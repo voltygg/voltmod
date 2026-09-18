@@ -5,8 +5,8 @@
 #include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Core/Slots/SteamId.hpp>
 #include <VoltMod/Core/Time/Time.hpp>
-#include <VoltMod/Engine/Memory/MemoryAccess.hpp>
 #include <VoltMod/Engine/Detours.hpp>
+#include <VoltMod/Engine/Memory/MemoryAccess.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Unsafe/Hook.hpp>
 #include <VoltMod/Workshop/Addons.hpp>

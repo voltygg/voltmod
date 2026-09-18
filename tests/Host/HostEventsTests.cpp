@@ -6,10 +6,10 @@
 #include <string>
 #include <vector>
 
-using VoltMod::PluginHost;
 using VoltMod::HostString;
 using VoltMod::HostToken;
 using VoltMod::PluginContext;
+using VoltMod::PluginHost;
 using VoltMod::Text;
 
 /** The callback context every case here passes: one list of who ran, in order. */

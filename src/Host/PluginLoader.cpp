@@ -5,12 +5,12 @@
 #include <VoltMod/Core/Files/Paths.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Text/EnumNames.hpp>
-#include <optional>
 #include <VoltMod/Core/Text/Json.hpp>
 #include <VoltMod/Core/Text/Strings.hpp>
 #include <VoltMod/Host/Abi.hpp>
 #include <algorithm>
 #include <format>
+#include <optional>
 #include <system_error>
 #include <tier1/convar.h>
 #include <utility>

@@ -1,7 +1,7 @@
 #include "Menu/FakeTimers.hpp"
 
-#include <VoltMod/Core/Slots/SlotEvents.hpp>
 #include <VoltMod/Core/Signals/Subscription.hpp>
+#include <VoltMod/Core/Slots/SlotEvents.hpp>
 #include <VoltMod/Menu/PendingCommit.hpp>
 #include <cstdint>
 #include <doctest/doctest.h>

@@ -1,5 +1,5 @@
-#include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Files/Paths.hpp>
+#include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Time/Scheduler.hpp>
 #include <VoltMod/Database/Database.hpp>
 #include <filesystem>

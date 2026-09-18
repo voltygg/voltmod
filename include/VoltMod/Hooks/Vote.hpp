@@ -1,8 +1,8 @@
 #pragma once
 
-#include <VoltMod/Core/Time/Scheduler.hpp>
-#include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Core/Signals/Subscription.hpp>
+#include <VoltMod/Core/Slots/Slot.hpp>
+#include <VoltMod/Core/Time/Scheduler.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/Net/RecipientFilter.hpp>
