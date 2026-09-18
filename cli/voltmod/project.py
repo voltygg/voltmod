@@ -114,7 +114,7 @@ class Project:
         )
 
     def plugin_names(self, requested: str = "") -> list[str]:
-        """@p requested, checked to exist, or every plugin with sources under plugins/."""
+        """@p requested, checked to exist, or every plugin.json under plugins/."""
         if requested:
             if self.plugin_dir(requested) is None:
                 searched = " or ".join(f"{parent}/{requested}" for parent in PLUGIN_DIRS)
@@ -124,9 +124,7 @@ class Project:
         plugins = self.root / "plugins"
         if not plugins.is_dir():
             raise VoltmodError(f"no plugins directory at {plugins}")
-        names = sorted(
-            path.name for path in plugins.iterdir() if path.is_dir() and (path / "src").is_dir()
-        )
+        names = sorted(path.parent.name for path in plugins.glob("*/plugin.json"))
         if not names:
             raise VoltmodError("no plugins found under plugins/")
         return names

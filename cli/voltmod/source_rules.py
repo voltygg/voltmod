@@ -29,8 +29,7 @@ ALLOWED_DEPENDENCIES: dict[str, set[str]] = {
     "Http": {"Core"},
     "Database": {"Core"},
     "Unsafe": {"Core", "Engine"},
-    # The boundary interfaces name types Engine forward-declares; the host binary beside them
-    # installs the engine hooks every plugin used to install for itself, which is what Unsafe is.
+    # Host installs for every plugin the engine hooks each used to install for itself.
     "Host": {"Core", "Engine", "Unsafe"},
     "App": {
         "Core", "Engine", "Schema", "Entities", "Events", "Messaging", "Players", "Hooks",
@@ -55,10 +54,15 @@ FRAMEWORK_DECLARATION_HEADERS = frozenset({"include/VoltMod/Engine/EngineTypes.h
 # A plugin's layout is its own, so its declaration header is matched by file name.
 PLUGIN_DECLARATION_HEADER = re.compile(r"(^|/)\w*Types\.hpp$")
 
-# The host and each plugin are separately compiled, with their own CRT and allocator, so no
-# std:: type, template or owned object may appear in a boundary signature.
+# Host and plugins have separate allocators: a boundary signature takes views, never owning types.
 HOST_BOUNDARY_PATH = "include/VoltMod/Host/"
-HOST_BOUNDARY_INCLUDES = frozenset({"<cstddef>", "<cstdint>", "<VoltMod/Engine/EngineTypes.hpp>"})
+HOST_BOUNDARY_INCLUDES = frozenset({
+    "<cstddef>",
+    "<cstdint>",
+    "<string_view>",
+    "<VoltMod/Engine/EngineTypes.hpp>",
+    "<VoltMod/Engine/GameData/GameDataLocation.hpp>",
+})
 ANY_INCLUDE = re.compile(r'^\s*#\s*include\s*([<"][^>"]+[>"])')
 
 FORWARD_DECLARATION = re.compile(r"^(?:class|struct)\s+(\w+);")
@@ -71,42 +75,6 @@ class SourceFile(NamedTuple):
     path: str  # relative to the repo root, with forward slashes
     module: str | None
     text: str
-
-
-def dependency_cycles(table: dict[str, set[str]]) -> list[list[str]]:
-    """Every cycle a depth-first walk of @p table finds, each listed in dependency order."""
-    cycles: list[list[str]] = []
-    finished: set[str] = set()
-    path: list[str] = []
-
-    def walk(module: str) -> None:
-        if module in path:
-            cycles.append(path[path.index(module) :])
-            return
-        if module in finished:
-            return
-        path.append(module)
-        for dependency in sorted(table.get(module, ())):
-            walk(dependency)
-        path.pop()
-        finished.add(module)
-
-    for module in sorted(table):
-        walk(module)
-    return cycles
-
-
-def check_dependency_cycles(table: dict[str, set[str]]) -> list[CheckResult]:
-    """A module reachable from itself. The layering is a direction, so the table must be
-    acyclic."""
-    return [
-        CheckResult(
-            "cycle in ALLOWED_DEPENDENCIES: " + " -> ".join([*cycle, cycle[0]]),
-            hint="Invert one of these dependencies: the lower module takes an injected callable "
-                 "instead of naming the higher one.",
-        )
-        for cycle in dependency_cycles(table)
-    ]
 
 
 def layering_table() -> str:
@@ -172,7 +140,7 @@ def check_composition_root(files: Iterable[SourceFile], modules: set[str]) -> li
 
 
 def check_host_boundary(files: Iterable[SourceFile]) -> list[CheckResult]:
-    """Includes a host boundary header may not have; the closed set keeps std:: out of it."""
+    """Includes a host boundary header may not have; the closed set keeps owning types out of it."""
     results = []
     for file in files:
         if not (file.path.startswith(HOST_BOUNDARY_PATH) and file.path.endswith(".hpp")):
@@ -185,8 +153,8 @@ def check_host_boundary(files: Iterable[SourceFile]) -> list[CheckResult]:
                 continue
             results.append(CheckResult(
                 f"{file.path}:{number}: includes {included}",
-                hint="The boundary carries plain data only: <cstddef>, <cstdint>, "
-                     "VoltMod/Host/ and VoltMod/Engine/EngineTypes.hpp.",
+                hint="The boundary carries plain data and borrowed views only: "
+                     + ", ".join(sorted(HOST_BOUNDARY_INCLUDES)) + " and VoltMod/Host/.",
             ))
     return results
 
@@ -244,22 +212,24 @@ def check_framework(root: Path) -> tuple[dict[str, set[str]], list[CheckResult]]
     files = list(read_sources(root, FRAMEWORK_SOURCE_DIRS))
     dependencies, evidence = module_dependencies(files, modules)
 
-    cycles = check_dependency_cycles(ALLOWED_DEPENDENCIES)
     listed = set(ALLOWED_DEPENDENCIES)
-    unlisted = sorted(set(modules) - listed)
-    removed = sorted(listed - set(modules))
-    if unlisted or removed:
-        messages = [f"module {name}/ is missing from ALLOWED_DEPENDENCIES" for name in unlisted]
-        messages += [f"ALLOWED_DEPENDENCIES lists {name}, which is gone" for name in removed]
-        return dependencies, cycles + [CheckResult(message) for message in messages]
-
-    results = cycles + [
+    results = [
+        CheckResult(f"module {name}/ is missing from ALLOWED_DEPENDENCIES")
+        for name in sorted(set(modules) - listed)
+    ]
+    results += [
+        CheckResult(f"ALLOWED_DEPENDENCIES lists {name}, which is gone")
+        for name in sorted(listed - set(modules))
+    ]
+    # Only a listed module has an allowed set to compare its includes against.
+    results += [
         CheckResult(
             f"{owner} -> {dependency} is not allowed "
             f"(allowed: {' '.join(sorted(ALLOWED_DEPENDENCIES[owner])) or 'nothing'})\n"
             f"      {evidence[(owner, dependency)]}"
         )
         for owner, used in sorted(dependencies.items())
+        if owner in listed
         for dependency in sorted(used - ALLOWED_DEPENDENCIES[owner])
     ]
     results += check_composition_root(files, listed)

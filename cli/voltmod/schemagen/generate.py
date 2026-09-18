@@ -77,12 +77,7 @@ def render_outputs(dump: dict[str, Any], manifest: dict[str, Any], platform: str
 
 
 def layout_stamp(classes: list[SchemaClass]) -> str:
-    """A 64-bit hash of the layout, as a C++ hex literal.
-
-    The host and a plugin compare these to decide whether they were built from the same offsets,
-    so it follows the layout's content and nothing else: regenerating an unchanged layout keeps
-    the same value, and a moved field changes it.
-    """
+    """A 64-bit hash of the layout's content, as the C++ literal the host and a plugin compare."""
     lines = []
     for schema_class in sorted(classes, key=lambda entry: entry.name):
         lines.append(f"{schema_class.name} {schema_class.size} {schema_class.owner_link_offset}")

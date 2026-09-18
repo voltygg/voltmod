@@ -11,13 +11,7 @@ from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
 
 
 class VoltModConan(ConanFile):
-    """Serve as both the repository's consumer recipe and VoltMod's package recipe.
-
-    A checkout uses the output paths expected by the CMake presets. `conan create`
-    uses `cmake_layout` and packages the host addon tree, the SDK and Database
-    libraries, the headers, CMake helpers, gamedata, Panorama sources, and the
-    plugin template. Both modes resolve the same dependencies.
-    """
+    """Both the repository's consumer recipe and VoltMod's package recipe."""
 
     name = "voltmod"
     author = "Sukhrob Ilyosbekov (suxrobgm@gmail.com)"
@@ -122,7 +116,8 @@ class VoltModConan(ConanFile):
         cmake.install()
 
     def _host_bin_dir(self):
-        """Where the host module sits: the packaged addon tree, or a checkout's build output."""
+        """The packaged addon tree, or a checkout's build output. cs2_install is unimportable
+        during a conan run, so the layout is spelled out here."""
         if self._source_checkout():
             arch = "windows-x86_64" if self.settings.os == "Windows" else "linux-x86_64"
             return os.path.join(self.folders.build, "host", arch)

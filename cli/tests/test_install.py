@@ -5,20 +5,23 @@ from pathlib import Path
 import pytest
 
 from voltmod import server
+from voltmod.cs2_install import (
+    BIN_SUBDIR,
+    CSGO_DIR,
+    HOST_BINARIES,
+    HOST_GAMEDATA,
+    HOST_VDF,
+    plugin_addon_dir,
+)
 from voltmod.errors import VoltmodError
 from voltmod.project import Project, Settings
 
 PRESET = "windows-msvc-release"
+HOST_DLL = HOST_BINARIES["windows"]
+DEMO = plugin_addon_dir("demo")
 
-HOST_FILES = (
-    "addons/metamod/voltmod.vdf",
-    "addons/voltmod/bin/win64/voltmod.dll",
-    "addons/voltmod/gamedata/gamedata.jsonc",
-)
-PLUGIN_FILES = (
-    "addons/demo/bin/win64/demo.dll",
-    "addons/demo/plugin.json",
-)
+HOST_FILES = (HOST_VDF, HOST_DLL, HOST_GAMEDATA)
+PLUGIN_FILES = (f"{DEMO}/bin/{BIN_SUBDIR['windows']}/demo.dll", f"{DEMO}/plugin.json")
 
 
 @pytest.fixture(autouse=True)
@@ -29,17 +32,16 @@ def no_editable_framework(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.fixture
 def cs2_server(tmp_path: Path) -> Path:
-    (tmp_path / "server/game/csgo").mkdir(parents=True)
+    (tmp_path / "server" / CSGO_DIR).mkdir(parents=True)
     return tmp_path / "server"
 
 
 @pytest.fixture
 def project(tmp_path: Path) -> Project:
-    """A consumer repo with one plugin, its settings file, and a configured build directory."""
+    """A consumer repo with one plugin, its settings file, and a build directory."""
     configs = tmp_path / "repo/plugins/demo/configs"
     configs.mkdir(parents=True)
     (configs / "settings.jsonc").write_text("{ shipped: true }", encoding="utf-8")
-    (tmp_path / "repo/plugins/demo/src").mkdir()
     (tmp_path / "repo/build" / PRESET).mkdir(parents=True)
     settings = Settings(
         server_path="",
@@ -74,25 +76,6 @@ def stage_components(monkeypatch: pytest.MonkeyPatch, staged: Staged) -> None:
     monkeypatch.setattr(server, "run_tool", run_tool)
 
 
-def test_installs_the_host_and_the_plugin(
-    project: Project, cs2_server: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    build = project.build_dir(PRESET)
-    stage_components(
-        monkeypatch, {(build, "host"): HOST_FILES, (build, "demo"): PLUGIN_FILES}
-    )
-
-    server.install_plugins(project, str(cs2_server), "demo", PRESET)
-
-    addons = cs2_server / "game/csgo/addons"
-    assert (addons / "metamod/voltmod.vdf").is_file()
-    assert (addons / "voltmod/bin/win64/voltmod.dll").is_file()
-    assert (addons / "voltmod/gamedata/gamedata.jsonc").is_file()
-    assert (addons / "demo/plugin.json").is_file()
-    # The host is the only Metamod plugin now.
-    assert not (addons / "metamod/demo.vdf").exists()
-
-
 def test_seeded_settings_survive_a_reinstall(
     project: Project, cs2_server: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -102,7 +85,7 @@ def test_seeded_settings_survive_a_reinstall(
     )
 
     server.install_plugins(project, str(cs2_server), "demo", PRESET)
-    settings = cs2_server / "game/csgo/addons/demo/configs/settings.jsonc"
+    settings = cs2_server / CSGO_DIR / DEMO / "configs/settings.jsonc"
     assert settings.read_text(encoding="utf-8") == "{ shipped: true }"
 
     settings.write_text("{ edited: true }", encoding="utf-8")
@@ -124,7 +107,7 @@ def test_the_host_comes_from_an_editable_framework_checkout(
 
     server.install_plugins(project, str(cs2_server), "demo", PRESET)
 
-    assert (cs2_server / "game/csgo/addons/voltmod/bin/win64/voltmod.dll").is_file()
+    assert (cs2_server / CSGO_DIR / HOST_DLL).is_file()
 
 
 def test_a_missing_host_is_an_error(

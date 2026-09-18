@@ -5,7 +5,14 @@ import subprocess
 from pathlib import Path
 
 from voltmod.conan import find_editable_framework
-from voltmod.cs2_install import HOST_COMPONENT, SERVER_EXECUTABLES, find_server, server_executable
+from voltmod.cs2_install import (
+    CSGO_DIR,
+    HOST_COMPONENT,
+    SERVER_EXECUTABLES,
+    find_server,
+    plugin_addon_dir,
+    server_executable,
+)
 from voltmod.errors import VoltmodError
 from voltmod.process import WINDOWS, run_tool
 from voltmod.project import Project, Settings
@@ -14,7 +21,7 @@ from voltmod.project import Project, Settings
 def install_plugins(project: Project, server_path: str, plugin: str, preset: str) -> None:
     """Install the host and @p plugin, or every plugin when it is empty, into that server."""
     server = find_server(server_path)
-    csgo = server / "game/csgo"
+    csgo = server / CSGO_DIR
     names = project.plugin_names(plugin)
 
     print("=== VoltMod Install ===\n")
@@ -85,7 +92,7 @@ def _install_host(project: Project, csgo: Path, preset: str) -> None:
         if staging is None:
             continue
         _merge_addons(staging, csgo, HOST_COMPONENT)
-        print("  -> addons/voltmod/ (host binary, gamedata) and addons/metamod/voltmod.vdf")
+        _print_staged(staging)
         return
 
     looked_in = "\n  ".join(str(path) for path in searched) or "(no build directory)"
@@ -120,20 +127,30 @@ def _install_plugin(project: Project, name: str, csgo: Path, preset: str, *, nam
         return
 
     _merge_addons(staging, csgo, name)
-    print("  -> addons/ (binary, plugin.json, configs, panorama sources)")
+    _print_staged(staging)
+    _seed_settings(project, name, csgo)
 
-    # Operator-edited settings survive every install after the first.
+
+def _seed_settings(project: Project, name: str, csgo: Path) -> None:
+    """Copy the shipped settings once, so an operator's edits survive every later install."""
     plugin_dir = project.plugin_dir(name) or project.root / "plugins" / name
     source = plugin_dir / "configs/settings.jsonc"
-    target = csgo / "addons" / name / "configs/settings.jsonc"
     if not source.is_file():
         return
+    target = csgo / plugin_addon_dir(name) / "configs/settings.jsonc"
     if target.is_file():
         print("  -> configs/settings.jsonc (skipped - already exists)")
         return
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, target)
     print("  -> configs/settings.jsonc (seeded)")
+
+
+def _print_staged(staging: Path) -> None:
+    """Name what was merged, using the staged tree's own top-level paths."""
+    top = sorted({path.relative_to(staging).parts[:2] for path in staging.rglob("*")})
+    for parts in top:
+        print(f"  -> {'/'.join(parts)}")
 
 
 def _stage_component(build_dir: Path, component: str, *, required: bool) -> Path | None:
@@ -145,12 +162,11 @@ def _stage_component(build_dir: Path, component: str, *, required: bool) -> Path
             "cmake", "--install", str(build_dir), "--component", component,
             "--prefix", str(staging),
         )
+        staged = (staging / "addons").is_dir()
     except subprocess.CalledProcessError:
-        if required:
-            raise VoltmodError(f"cmake --install failed for {component} (is it built?)") from None
-        return None
+        staged = False
 
-    if (staging / "addons").is_dir():
+    if staged:
         return staging
     if required:
         raise VoltmodError(f"cmake --install staged no addons/ for {component} (is it built?)")

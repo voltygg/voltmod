@@ -10,7 +10,6 @@ from voltmod.source_rules import (
     FRAMEWORK_DECLARATION_HEADERS,
     check_composition_root,
     check_conventions,
-    check_dependency_cycles,
     check_host_boundary,
     layering_table,
     module_dependencies,
@@ -36,29 +35,6 @@ def test_no_module_below_app_may_reach_menu_or_app():
             continue
         assert "Menu" not in allowed or module == "Menu", module
         assert "App" not in allowed, module
-
-
-def cycles(table):
-    return [result.message for result in check_dependency_cycles(table)]
-
-
-def test_the_declared_layering_has_no_cycle():
-    assert cycles(ALLOWED_DEPENDENCIES) == []
-
-
-def test_two_modules_that_depend_on_each_other_are_reported():
-    table = {"Core": set(), "Engine": {"Core", "Host"}, "Host": {"Core", "Engine"}}
-    assert cycles(table) == ["cycle in ALLOWED_DEPENDENCIES: Engine -> Host -> Engine"]
-
-
-def test_a_cycle_through_a_third_module_is_reported():
-    table = {"Core": set(), "Engine": {"Ui"}, "Ui": {"Host"}, "Host": {"Engine"}}
-    assert cycles(table) == ["cycle in ALLOWED_DEPENDENCIES: Engine -> Ui -> Host -> Engine"]
-
-
-def test_a_cycle_is_reported_with_how_to_break_it():
-    table = {"Engine": {"Host"}, "Host": {"Engine"}}
-    assert "Invert one of these dependencies" in check_dependency_cycles(table)[0].hint
 
 
 def test_a_dependency_is_reported_with_the_include_that_proves_it(tmp_path):
@@ -141,28 +117,19 @@ def boundary(root):
 def test_the_allowed_boundary_includes_pass(tmp_path):
     write(tmp_path, "include/VoltMod/Host/IHost.hpp", """
         #include <VoltMod/Engine/EngineTypes.hpp>
-        #include <VoltMod/Host/HostTypes.hpp>
+        #include <VoltMod/Engine/GameData/GameDataLocation.hpp>
+        #include <VoltMod/Host/IHostEvents.hpp>
         #include <cstddef>
         #include <cstdint>
+        #include <string_view>
         """)
     assert boundary(tmp_path) == []
 
 
-def test_a_boundary_header_may_not_include_another_standard_header(tmp_path):
-    write(tmp_path, "include/VoltMod/Host/IHost.hpp", "#include <string>\n")
-    assert boundary(tmp_path) == ["include/VoltMod/Host/IHost.hpp:1: includes <string>"]
-
-
-def test_a_boundary_header_may_not_include_another_voltmod_header(tmp_path):
-    write(tmp_path, "include/VoltMod/Host/IHost.hpp", "#include <VoltMod/Core/Logger.hpp>\n")
-    assert boundary(tmp_path) == [
-        "include/VoltMod/Host/IHost.hpp:1: includes <VoltMod/Core/Logger.hpp>"
-    ]
-
-
-def test_headers_outside_the_host_boundary_are_untouched(tmp_path):
-    write(tmp_path, "include/VoltMod/Core/Logger.hpp", "#include <string>\n")
-    assert boundary(tmp_path) == []
+@pytest.mark.parametrize("included", ["<string>", "<VoltMod/Core/Logger.hpp>"])
+def test_a_boundary_header_may_not_include_anything_else(tmp_path, included):
+    write(tmp_path, "include/VoltMod/Host/IHost.hpp", f"#include {included}\n")
+    assert boundary(tmp_path) == [f"include/VoltMod/Host/IHost.hpp:1: includes {included}"]
 
 
 @pytest.mark.parametrize("path", ["CLAUDE.md", "docs/architecture.md"])

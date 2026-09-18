@@ -5,36 +5,53 @@ from pathlib import Path
 
 from voltmod.errors import VoltmodError
 
-# Windows first, then Linux.
-SERVER_EXECUTABLES = ("game/bin/win64/cs2.exe", "game/bin/linuxsteamrt64/cs2")
+PLATFORMS = ("windows", "linux")
+BIN_SUBDIR = {"windows": "win64", "linux": "linuxsteamrt64"}
+
+# The game directory every addons/ path below is relative to.
+CSGO_DIR = "game/csgo"
+
+SERVER_EXECUTABLES = (
+    f"game/bin/{BIN_SUBDIR['windows']}/cs2.exe",
+    f"game/bin/{BIN_SUBDIR['linux']}/cs2",
+)
 METAMOD_BINARIES = (
-    "game/csgo/addons/metamod/bin/win64/server.dll",
-    "game/csgo/addons/metamod/bin/linuxsteamrt64/server.so",
+    f"addons/metamod/bin/{BIN_SUBDIR['windows']}/server.dll",
+    f"addons/metamod/bin/{BIN_SUBDIR['linux']}/server.so",
 )
 
 # The host is the only Metamod plugin: one per server, loading every plugin beside it.
 HOST_COMPONENT = "host"
-HOST_VDF = "game/csgo/addons/metamod/voltmod.vdf"
-HOST_BINARIES = (
-    "game/csgo/addons/voltmod/bin/win64/voltmod.dll",
-    "game/csgo/addons/voltmod/bin/linuxsteamrt64/voltmod.so",
-)
+HOST_ADDON_DIR = "addons/voltmod"
+HOST_VDF = "addons/metamod/voltmod.vdf"
+HOST_GAMEDATA = f"{HOST_ADDON_DIR}/gamedata/gamedata.jsonc"
+HOST_BINARY_NAMES = {"windows": "voltmod.dll", "linux": "voltmod.so"}
+HOST_BINARIES = {
+    platform: f"{HOST_ADDON_DIR}/bin/{BIN_SUBDIR[platform]}/{HOST_BINARY_NAMES[platform]}"
+    for platform in PLATFORMS
+}
 
 # Written by a server running voltmod once a map runs.
-SCHEMA_DUMP = "game/csgo/addons/voltmod/schema/server.json"
+SCHEMA_DUMP = f"{CSGO_DIR}/{HOST_ADDON_DIR}/schema/server.json"
 
 GAME_LIBRARIES = {
     "windows": {
-        "server": "game/csgo/bin/win64/server.dll",
-        "engine2": "game/bin/win64/engine2.dll",
+        "server": f"{CSGO_DIR}/bin/{BIN_SUBDIR['windows']}/server.dll",
+        "engine2": f"game/bin/{BIN_SUBDIR['windows']}/engine2.dll",
     },
     "linux": {
-        "server": "game/csgo/bin/linuxsteamrt64/libserver.so",
-        "engine2": "game/bin/linuxsteamrt64/libengine2.so",
+        "server": f"{CSGO_DIR}/bin/{BIN_SUBDIR['linux']}/libserver.so",
+        "engine2": f"game/bin/{BIN_SUBDIR['linux']}/libengine2.so",
     },
 }
 
-RESOURCE_COMPILER = "game/bin/win64/resourcecompiler.exe"
+RESOURCE_COMPILER = f"game/bin/{BIN_SUBDIR['windows']}/resourcecompiler.exe"
+
+
+def plugin_addon_dir(name: str) -> str:
+    """Where one plugin's files live, relative to the game directory."""
+    return f"addons/{name}"
+
 
 # Searched in order when no client path is given.
 _STEAM_ROOTS = (
@@ -51,9 +68,9 @@ def find_server(server_path: str) -> Path:
     if not server_path:
         raise VoltmodError("no CS2 server path; set CS2_SERVER_PATH in .env or pass --server-path")
     root = Path(server_path).expanduser()
-    if not (root / "game/csgo").is_dir():
+    if not (root / CSGO_DIR).is_dir():
         raise VoltmodError(
-            f"CS2 server not found at {root / 'game/csgo'}\n"
+            f"CS2 server not found at {root / CSGO_DIR}\n"
             "Set CS2_SERVER_PATH in .env or pass --server-path"
         )
     return root
@@ -65,7 +82,7 @@ def server_executable(root: Path) -> Path | None:
 
 def game_build(root: Path) -> str:
     """The build number in steam.inf, which the framework also stamps on schema dumps."""
-    steam_inf = root / "game/csgo/steam.inf"
+    steam_inf = root / CSGO_DIR / "steam.inf"
     if not steam_inf.is_file():
         return "unknown"
     text = steam_inf.read_text(encoding="utf-8", errors="replace")
@@ -74,7 +91,7 @@ def game_build(root: Path) -> str:
 
 
 def is_client(root: Path) -> bool:
-    return (root / "game/csgo/gameinfo.gi").is_file()
+    return (root / CSGO_DIR / "gameinfo.gi").is_file()
 
 
 def find_client(client_path: str) -> Path:
@@ -83,7 +100,7 @@ def find_client(client_path: str) -> Path:
         root = Path(client_path).expanduser()
         if not is_client(root):
             raise VoltmodError(
-                f"no CS2 client at {root}\nExpected {root / 'game/csgo/gameinfo.gi'}"
+                f"no CS2 client at {root}\nExpected {root / CSGO_DIR / 'gameinfo.gi'}"
             )
         return root
 

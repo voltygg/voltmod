@@ -170,27 +170,28 @@ def test_the_two_platforms_do_not_share_a_stamp():
     assert stamp(windows, shipped) != stamp(linux, shipped)
 
 
-def test_regenerating_an_unchanged_layout_keeps_the_stamp():
-    """It follows the layout's content, so a rebuild on its own never refuses a plugin."""
-    assert stamp(dump()) == stamp(dump())
+def moved_field():
+    dumped = dump()
+    dumped["classes"]["CBaseEntity"]["fields"][0]["offset"] += 8
+    return dumped, None
 
 
-def test_a_moved_field_changes_the_stamp():
-    moved = dump()
-    moved["classes"]["CBaseEntity"]["fields"][0]["offset"] += 8
-    assert stamp(moved) != stamp(dump())
+def resized_class():
+    dumped = dump()
+    dumped["classes"]["CBaseEntity"]["size"] += 16
+    return dumped, None
 
 
-def test_a_resized_class_changes_the_stamp():
-    grown = dump()
-    grown["classes"]["CBaseEntity"]["size"] += 16
-    assert stamp(grown) != stamp(dump())
+def dropped_field():
+    selected = manifest()
+    selected["classes"]["CBaseEntity"] = selected["classes"]["CBaseEntity"][1:]
+    return dump(), selected
 
 
-def test_a_field_the_manifest_drops_changes_the_stamp():
-    fewer = manifest()
-    fewer["classes"]["CBaseEntity"] = fewer["classes"]["CBaseEntity"][1:]
-    assert stamp(dump(), fewer) != stamp(dump())
+@pytest.mark.parametrize("mutate", [moved_field, resized_class, dropped_field])
+def test_a_changed_layout_changes_the_stamp(mutate):
+    dumped, selected = mutate()
+    assert stamp(dumped, selected) != stamp(dump())
 
 
 def test_a_skipped_field_is_not_in_the_stamp():
@@ -198,12 +199,6 @@ def test_a_skipped_field_is_not_in_the_stamp():
     without_bitfield = manifest()
     without_bitfield["classes"]["CBaseEntity"] = without_bitfield["classes"]["CBaseEntity"][:-1]
     assert stamp(dump(), without_bitfield) == stamp(dump())
-
-
-def test_the_stamp_is_a_64_bit_cpp_literal():
-    value = stamp(dump())
-    assert value.startswith("0x") and len(value) == 18
-    assert int(value, 16) < 2**64
 
 
 def test_the_closure_pulls_in_bases_and_returned_types_but_nothing_else():

@@ -1,10 +1,12 @@
 """The Conan packages this repository publishes, and how each is built and uploaded."""
 
 import os
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
 from voltmod.conan import REMOTE, SDK_BUILD_EXCLUSIONS, ensure_remote, profile_args, run_conan_json
+from voltmod.cs2_install import HOST_BINARIES, HOST_GAMEDATA, HOST_VDF
 from voltmod.errors import VoltmodError
 from voltmod.process import WINDOWS, msvc_version, run_tool
 from voltmod.project import default_preset
@@ -40,10 +42,18 @@ def log_in(root: Path) -> None:
     run_tool("conan", "remote", "login", REMOTE, user, "-p", key)
 
 
+def references(listing: dict[str, Any], name: str) -> dict[str, Any]:
+    """The listing's entries for @p name; `conan list` reports a miss as an "error" entry."""
+    return {
+        reference: body
+        for reference, body in listing.items()
+        if reference.startswith(f"{name}/")
+    }
+
+
 def is_published(name: str, version: str) -> bool:
-    # A missing recipe still exits 0, listed as an "error" entry instead of a reference.
     listing = run_conan_json("list", f"{name}/{version}", "-r", REMOTE).get(REMOTE, {})
-    return any(reference.startswith(f"{name}/") for reference in listing)
+    return bool(references(listing, name))
 
 
 def build_sdks(root: Path) -> None:
@@ -63,7 +73,7 @@ def build_framework(root: Path, *, use_lockfile: bool) -> None:
 def required_files(package_settings: dict[str, Any]) -> tuple[str, ...]:
     """What a framework package must hold, for the platform it was built for."""
     windows = package_settings.get("os") == "Windows"
-    host_bin = "addons/voltmod/bin/win64" if windows else "addons/voltmod/bin/linuxsteamrt64"
+    platform = "windows" if windows else "linux"
     libraries = (
         ("lib/voltmod-sdk.lib", "lib/voltmod-database.lib")
         if windows
@@ -71,38 +81,39 @@ def required_files(package_settings: dict[str, Any]) -> tuple[str, ...]:
     )
     return (
         *libraries,
-        # The host module, its Metamod entry and its gamedata. Nothing links these, so a
-        # packaging mistake would otherwise only surface when a server fails to start.
-        f"{host_bin}/voltmod.{'dll' if windows else 'so'}",
-        "addons/metamod/voltmod.vdf",
-        "addons/voltmod/gamedata/gamedata.jsonc",
+        # Nothing links the host, so a packaging mistake in it only shows up on a live server.
+        HOST_BINARIES[platform],
+        HOST_VDF,
+        HOST_GAMEDATA,
         "include/VoltMod/Api.hpp",
         "cmake/VoltModPlugin.cmake",
     )
 
 
-def check_package_contents(version: str) -> None:
-    """Refuse to publish a package that a server could not be installed from."""
+def cached_packages(version: str) -> Iterator[tuple[str, dict[str, Any]]]:
+    """Every full package reference the local cache holds for @p version, with its metadata."""
     listing = run_conan_json(
         "list", f"{FRAMEWORK_PACKAGE}/{version}#latest:*", "-c"
     ).get("Local Cache", {})
-    checked = 0
-    for reference, body in listing.items():
-        # A missing recipe still exits 0, listed as an "error" entry instead of a reference.
-        if not reference.startswith(f"{FRAMEWORK_PACKAGE}/"):
-            continue
+    for reference, body in references(listing, FRAMEWORK_PACKAGE).items():
         for revision, contents in body.get("revisions", {}).items():
             for package_id, package in contents.get("packages", {}).items():
-                folder = package_folder(f"{reference}#{revision}:{package_id}")
-                settings = package.get("info", {}).get("settings", {})
-                missing = [name for name in required_files(settings)
-                           if not (folder / name).exists()]
-                if missing:
-                    raise VoltmodError(
-                        f"{reference}:{package_id} is missing {', '.join(missing)}; "
-                        "check the install() rules in CMakeLists.txt"
-                    )
-                checked += 1
+                yield f"{reference}#{revision}:{package_id}", package
+
+
+def check_package_contents(version: str) -> None:
+    """Refuse to publish a package that a server could not be installed from."""
+    checked = 0
+    for reference, package in cached_packages(version):
+        folder = package_folder(reference)
+        settings = package.get("info", {}).get("settings", {})
+        missing = [name for name in required_files(settings) if not (folder / name).exists()]
+        if missing:
+            raise VoltmodError(
+                f"{reference} is missing {', '.join(missing)}; "
+                "check the install() rules in CMakeLists.txt"
+            )
+        checked += 1
     if not checked:
         raise VoltmodError(f"no {FRAMEWORK_PACKAGE}/{version} package in the local cache to check")
 

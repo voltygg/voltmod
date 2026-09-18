@@ -7,7 +7,13 @@ from pathlib import Path
 
 from voltmod.check_results import CheckResult, Status
 from voltmod.conan import REMOTE, has_remote, profile_dirs
-from voltmod.cs2_install import HOST_BINARIES, HOST_VDF, METAMOD_BINARIES, server_executable
+from voltmod.cs2_install import (
+    CSGO_DIR,
+    HOST_BINARIES,
+    HOST_VDF,
+    METAMOD_BINARIES,
+    server_executable,
+)
 from voltmod.errors import VoltmodError
 from voltmod.process import BUILD_TOOLS, WINDOWS, check_tool_version, msvc_version, tool_version
 from voltmod.project import Project
@@ -81,8 +87,9 @@ def _check_project(root: Path) -> Iterator[CheckResult]:
 
 
 def _check_server(server: Path) -> Iterator[CheckResult]:
-    if not (server / "game/csgo").is_dir():
-        yield CheckResult(f"CS2 server: expected {server / 'game/csgo'}")
+    csgo = server / CSGO_DIR
+    if not csgo.is_dir():
+        yield CheckResult(f"CS2 server: expected {csgo}")
         return
     yield _passed(f"CS2 server: {server}")
 
@@ -91,15 +98,15 @@ def _check_server(server: Path) -> Iterator[CheckResult]:
     else:
         yield CheckResult("CS2 dedicated-server executable not found")
 
-    if any((server / path).is_file() for path in METAMOD_BINARIES):
+    if any((csgo / path).is_file() for path in METAMOD_BINARIES):
         yield _passed("Metamod installation found")
     else:
         yield CheckResult(
             "Metamod binary not found; install Metamod before loading plugins", Status.WARN
         )
 
-    host = any((server / path).is_file() for path in HOST_BINARIES)
-    if host and (server / HOST_VDF).is_file():
+    installed = any((csgo / path).is_file() for path in HOST_BINARIES.values())
+    if installed and (csgo / HOST_VDF).is_file():
         yield _passed("VoltMod host installed")
     else:
         yield CheckResult(
