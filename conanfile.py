@@ -1,7 +1,7 @@
-# Conan replaces these class attributes at runtime, causing Pyright false positives.
-# pyright: reportAttributeAccessIssue=false, reportCallIssue=false
+# pyright: reportAttributeAccessIssue=false, reportOptionalCall=false, reportOptionalMemberAccess=false
 
 import shutil
+from typing import Any
 
 from conan import ConanFile  # type: ignore[attr-defined]
 from conan.errors import ConanInvalidConfiguration
@@ -10,20 +10,14 @@ from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain
 
 
 class VoltModConan(ConanFile):
-    """Both the repository's consumer recipe and VoltMod's package recipe."""
-
     name = "voltmod"
     author = "Sukhrob Ilyosbekov (suxrobgm@gmail.com)"
     version = "1.5.1"
     description = "C++23 library for CS2 Metamod:Source plugins"
     license = "MIT"
     homepage = "https://github.com/voltygg/voltmod"
-    settings = "os", "compiler", "build_type", "arch"
-    # What consumers link: the SDK libraries. The package also ships the built host under addons/.
+    settings: Any = "os", "compiler", "build_type", "arch"
     package_type = "static-library"
-
-    # cpr is header-private. glaze is public through App/Config.hpp, never through Api.hpp.
-    requires = ("cpr/1.11.2",)
 
     default_options = {
         "*:shared": False,
@@ -44,21 +38,21 @@ class VoltModConan(ConanFile):
         "LICENSE",
     )
 
-    def requirements(self):
+    def requirements(self) -> None:
+        self.requires("cpr/1.11.2")
         self.requires("glaze/8.0.0", transitive_headers=True)
         self.requires("magic_enum/0.9.7", transitive_headers=True)
-        self.requires("hl2sdk-cs2/[>=2026 <2028]",
-                      transitive_headers=True, transitive_libs=True)
+        self.requires("hl2sdk-cs2/[>=2026 <2028]", transitive_headers=True, transitive_libs=True)
         self.requires("metamod-source/[>=2.0 <3]",
                       transitive_headers=True, package_id_mode="minor_mode")
         # All three connectors: the driver is chosen at runtime from config. Linking them
         # statically makes the LGPL MariaDB connector a relinkable-object obligation.
         self.requires("sqlpp23/0.70", transitive_headers=True, transitive_libs=True)
 
-    def build_requirements(self):
+    def build_requirements(self) -> None:
         self.test_requires("doctest/2.5.2")
 
-    def validate(self):
+    def validate(self) -> None:
         check_min_cppstd(self, 23)
         if self.settings.os == "Linux" and self.settings.get_safe("compiler.libcxx") != "libstdc++":
             raise ConanInvalidConfiguration(
@@ -71,23 +65,22 @@ class VoltModConan(ConanFile):
                 "voltmod requires the static MSVC runtime (/MT); "
                 "use the shipped windows-msvc profile")
 
-    def _preset(self):
+    def _preset(self) -> str:
         """The CMake preset a checkout builds into. Preset names are public API."""
         toolchain = "windows-msvc" if self.settings.os == "Windows" else "linux-steamrt"
         return f"{toolchain}-{str(self.settings.build_type).lower()}"
 
-    def layout(self):
+    def layout(self) -> None:
         # The public CMake presets' build tree, for a checkout and the cache alike.
-        self.folders.build = f"build/{self._preset()}"
-        self.folders.generators = f"build/{self._preset()}/generators"
+        build = f"build/{self._preset()}"
+        self.folders.build = build
+        self.folders.generators = f"{build}/generators"
         # An editable checkout's libraries sit at the top of its build tree, not in lib/.
         for component in ("portable", "sdk", "database"):
             self.cpp.build.components[component].libdirs = ["."]
 
-    def generate(self):
-        deps = CMakeDeps(self)
-        deps.generate()
-
+    def generate(self) -> None:
+        CMakeDeps(self).generate()
         toolchain = CMakeToolchain(self)
         toolchain.user_presets_path = False
         toolchain.variables["CMAKE_POSITION_INDEPENDENT_CODE"] = True
@@ -98,16 +91,16 @@ class VoltModConan(ConanFile):
             toolchain.variables["CMAKE_CXX_COMPILER_LAUNCHER"] = "ccache"
         toolchain.generate()
 
-    def build(self):
+    def build(self) -> None:
         cmake = CMake(self)
         cmake.configure()
         cmake.build()
 
-    def package(self):
+    def package(self) -> None:
         cmake = CMake(self)
         cmake.install()
 
-    def package_info(self):
+    def package_info(self) -> None:
         self.cpp_info.set_property("cmake_file_name", "voltmod")
         self.cpp_info.set_property("cmake_target_name", "VoltMod::VoltMod")
         self.cpp_info.builddirs = ["cmake"]

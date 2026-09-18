@@ -1,6 +1,10 @@
+# pyright: reportOptionalSubscript=false
+
 import os
 import shutil
 import subprocess
+from pathlib import Path
+from typing import Any, NamedTuple
 
 from conan import ConanFile
 from conan.errors import ConanException, ConanInvalidConfiguration
@@ -10,135 +14,136 @@ from conan.tools.scm import Git
 PROTOBUF_SRC = "thirdparty/protobuf-3.21.8/src"
 
 
+class ProtoBatch(NamedTuple):
+    out: str
+    paths: tuple[str, ...]
+    protos: tuple[str, ...]
+
+
 class Hl2SdkCs2Conan(ConanFile):
     name = "hl2sdk-cs2"
-    description = ("HL2SDK (CS2 branch): headers, prebuilt libs, generated protobufs, "
-                   "source-only TUs")
+    description = (
+        "HL2SDK (CS2 branch): headers, prebuilt libs, generated protobufs, source-only TUs"
+    )
     license = "LicenseRef-Valve-Source-SDK"
     homepage = "https://github.com/alliedmodders/hl2sdk/tree/cs2"
     package_type = "static-library"
-    # Prebuilt libraries and generated protobufs are toolchain-independent.
-    settings = "os", "arch"
+    settings: Any = "os", "arch"
     exports = "cmake/hl2sdk-sources.cmake"
     no_copy_source = True
 
-    HEADER_TREES = ["public", "game/shared", "game/server", "common"]
+    HEADER_TREES = ("public", "game/shared", "game/server", "common")
 
     # Shipped as sources only; hl2sdk-sources.cmake attaches the plugin group per module.
-    ENGINE_SOURCES = [
+    ENGINE_SOURCES = (
         "entity2/entityidentity.cpp",
         "entity2/entitykeyvalues.cpp",
         "entity2/entitysystem.cpp",
         "tier1/keyvalues3.cpp",
         "tier1/rangecheckedvar.cpp",
         "tier1/utlbufferutil.cpp",
-    ]
-    PLUGIN_SOURCES = [
+    )
+    PLUGIN_SOURCES = (
         "tier1/convar.cpp",
         "public/tier0/memoverride.cpp",
-    ]
+    )
 
-    PROTO_BATCHES = [
-        {
-            "out": "public",
-            "paths": ["common", PROTOBUF_SRC],
-            "protos": [
+    PROTO_BATCHES = (
+        ProtoBatch(
+            out="public",
+            paths=("common", PROTOBUF_SRC),
+            protos=(
                 "common/network_connection",
                 "common/networkbasetypes",
                 "common/engine_gcmessages",
                 "common/valveextensions",
                 "common/netmessages",
                 "common/source2_steam_stats",  # imported by netmessages
-            ],
-        },
-        {
-            "out": "game-shared",
+            ),
+        ),
+        ProtoBatch(
+            out="game-shared",
             # cs/ leads so cs_usercmd.pb.h lands flat beside usercmd.pb.h.
-            "paths": ["game/shared/cs", "game/shared", "common", PROTOBUF_SRC],
-            "protos": [
+            paths=("game/shared/cs", "game/shared", "common", PROTOBUF_SRC),
+            protos=(
                 "game/shared/usermessages",
                 "game/shared/usercmd",
                 "game/shared/gameevents",
                 "game/shared/cs/cs_usercmd",
-            ],
-        },
-    ]
+            ),
+        ),
+    )
 
-    def set_version(self):
+    def set_version(self) -> None:
         pinned = list(self.conan_data["sources"])
         if len(pinned) != 1:
             raise ConanInvalidConfiguration("conandata.yml must pin exactly one version")
         self.version = pinned[0]
 
-    def validate(self):
-        if str(self.settings.os) not in ("Linux", "Windows") or str(self.settings.arch) != "x86_64":
+    def validate(self) -> None:
+        if self.settings.os not in ("Linux", "Windows") or self.settings.arch != "x86_64":
             raise ConanInvalidConfiguration("hl2sdk-cs2 supports Linux/Windows x86_64 only")
 
-    def source(self):
+    def source(self) -> None:
         pin = self.conan_data["sources"][self.version]
         Git(self).fetch_commit(url=pin["url"], commit=pin["commit"])
 
-    def _protoc(self):
-        relative = ("devtools/bin/protoc.exe" if self.settings.os == "Windows"
-                    else "devtools/bin/linux/protoc")
-        path = os.path.join(self.source_folder, relative)
-        if not os.path.isfile(path):
+    def _protoc(self) -> Path:
+        windows = self.settings.os == "Windows"
+        relative = "devtools/bin/protoc.exe" if windows else "devtools/bin/linux/protoc"
+        path = self.source_path / relative
+        if not path.is_file():
             raise ConanException(f"the SDK checkout has no protoc at {relative}")
-        if self.settings.os != "Windows":
-            os.chmod(path, 0o755)  # Git may not preserve the executable bit.
+        if not windows:
+            path.chmod(0o755)  # Git may not preserve the executable bit.
         return path
 
-    def build(self):
+    def build(self) -> None:
         protoc = self._protoc()
         for batch in self.PROTO_BATCHES:
-            out_dir = os.path.join(self.build_folder, "generated", batch["out"])
-            os.makedirs(out_dir, exist_ok=True)
-            command = [
+            out_dir = self.build_path / "generated" / batch.out
+            out_dir.mkdir(parents=True, exist_ok=True)
+            subprocess.run([
                 protoc,
-                *(f"--proto_path={os.path.join(self.source_folder, p)}" for p in batch["paths"]),
+                *(f"--proto_path={self.source_path / p}" for p in batch.paths),
                 f"--cpp_out={out_dir}",
-                *(os.path.join(self.source_folder, f"{p}.proto") for p in batch["protos"]),
-            ]
-            subprocess.run(command, check=True)
+                *(self.source_path / f"{p}.proto" for p in batch.protos),
+            ], check=True)
 
-    def package(self):
-        src, dst = self.source_folder, self.package_folder
+    def package(self) -> None:
+        src, dst = self.source_path, self.package_path
         for tree in self.HEADER_TREES:
             for pattern in ("*.h", "*.hpp", "*.inl", "*.inc", "*.proto"):
-                copy(self, pattern, os.path.join(src, tree), os.path.join(dst, tree))
+                copy(self, pattern, src / tree, dst / tree)
 
         for pattern in ("*.h", "*.inc", "*.proto"):
-            copy(self, pattern, os.path.join(src, PROTOBUF_SRC), os.path.join(dst, PROTOBUF_SRC))
+            copy(self, pattern, src / PROTOBUF_SRC, dst / PROTOBUF_SRC)
 
-        for rel in self.ENGINE_SOURCES + self.PLUGIN_SOURCES:
-            copy(self, os.path.basename(rel), os.path.join(src, os.path.dirname(rel)),
-                 os.path.join(dst, os.path.dirname(rel)))
+        for source in self.ENGINE_SOURCES + self.PLUGIN_SOURCES:
+            folder, file = os.path.split(source)
+            copy(self, file, src / folder, dst / folder)
 
-        copy(self, "*", os.path.join(self.build_folder, "generated"),
-             os.path.join(dst, "generated"))
+        copy(self, "*", self.build_path / "generated", dst / "generated")
         self._package_libs()
-        copy(self, "hl2sdk-sources.cmake", os.path.join(self.recipe_folder, "cmake"),
-             os.path.join(dst, "cmake"))
-        copy(self, "LICENSE*", src, os.path.join(dst, "licenses"))
+        copy(self, "cmake/hl2sdk-sources.cmake", self.recipe_folder, dst)
+        copy(self, "LICENSE*", src, dst / "licenses")
 
-    def _package_libs(self):
-        src, dst = self.source_folder, self.package_folder
-
+    def _package_libs(self) -> None:
+        src, dst = self.source_path, self.package_path
         if self.settings.os != "Linux":
-            copy(self, "*", os.path.join(src, "lib/public/win64"),
-                 os.path.join(dst, "lib/public/win64"))
+            copy(self, "*", src / "lib/public/win64", dst / "lib/public/win64")
             return
 
-        lib_dir = os.path.join(dst, "lib/linux64")
-        copy(self, "*", os.path.join(src, "lib/linux64"), lib_dir)
+        lib_dir = dst / "lib/linux64"
+        copy(self, "*", src / "lib/linux64", lib_dir)
 
         # CMake needs lib-prefixed names; retain originals for path-based linking.
         for stem in ("mathlib", "interfaces"):
-            plain = os.path.join(lib_dir, f"{stem}.a")
-            if os.path.isfile(plain):
-                shutil.copyfile(plain, os.path.join(lib_dir, f"lib{stem}.a"))
+            plain = lib_dir / f"{stem}.a"
+            if plain.is_file():
+                shutil.copyfile(plain, lib_dir / f"lib{stem}.a")
 
-    def package_info(self):
+    def package_info(self) -> None:
         self.cpp_info.set_property("cmake_file_name", "hl2sdk-cs2")
         self.cpp_info.set_property("cmake_target_name", "VoltMod::HL2SDK")
         self.cpp_info.includedirs = [

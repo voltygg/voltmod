@@ -1,4 +1,6 @@
-import os
+# pyright: reportAttributeAccessIssue=false, reportOptionalCall=false, reportOptionalSubscript=false
+
+from typing import Any
 
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
@@ -12,11 +14,10 @@ class Sqlpp23Conan(ConanFile):
     license = "BSD-2-Clause"
     homepage = "https://github.com/rbock/sqlpp23"
     package_type = "header-library"
-    # The connector requirements resolve against the consumer's toolchain.
-    settings = "os", "compiler", "build_type", "arch"
+    settings: Any = "os", "compiler", "build_type", "arch"
     no_copy_source = True
 
-    options = {
+    options: Any = {
         "with_postgresql": [True, False],
         "with_mariadb": [True, False],
         "with_sqlite3": [True, False],
@@ -27,13 +28,13 @@ class Sqlpp23Conan(ConanFile):
         "with_sqlite3": True,
     }
 
-    def set_version(self):
+    def set_version(self) -> None:
         pinned = list(self.conan_data["sources"])
         if len(pinned) != 1:
             raise ConanInvalidConfiguration("conandata.yml must pin exactly one version")
         self.version = pinned[0]
 
-    def requirements(self):
+    def requirements(self) -> None:
         if self.options.with_postgresql:
             self.requires("libpq/[>=17 <18]", transitive_headers=True, transitive_libs=True)
         if self.options.with_mariadb:
@@ -42,20 +43,20 @@ class Sqlpp23Conan(ConanFile):
         if self.options.with_sqlite3:
             self.requires("sqlite3/[>=3.53 <4]", transitive_headers=True, transitive_libs=True)
 
-    def package_id(self):
+    def package_id(self) -> None:
         self.info.clear()
 
-    def source(self):
+    def source(self) -> None:
         pin = self.conan_data["sources"][self.version]
         Git(self).fetch_commit(url=pin["url"], commit=pin["commit"])
 
-    def package(self):
-        src, dst = self.source_folder, self.package_folder
-        copy(self, "*", os.path.join(src, "include"), os.path.join(dst, "include"))
-        copy(self, "sqlpp23-ddl2cpp", os.path.join(src, "scripts"), os.path.join(dst, "bin"))
-        copy(self, "LICENSE*", src, os.path.join(dst, "licenses"))
+    def package(self) -> None:
+        src, dst = self.source_path, self.package_path
+        copy(self, "*", src / "include", dst / "include")
+        copy(self, "sqlpp23-ddl2cpp", src / "scripts", dst / "bin")
+        copy(self, "LICENSE*", src, dst / "licenses")
 
-    def package_info(self):
+    def package_info(self) -> None:
         self.cpp_info.set_property("cmake_file_name", "Sqlpp23")
         self.cpp_info.set_property("cmake_target_name", "sqlpp23::sqlpp23")
 

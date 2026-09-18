@@ -1,4 +1,4 @@
-import os
+# pyright: reportOptionalSubscript=false
 
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
@@ -16,27 +16,26 @@ class MetamodSourceConan(ConanFile):
     package_type = "header-library"
     no_copy_source = True
 
-    def set_version(self):
+    def set_version(self) -> None:
         pinned = list(self.conan_data["sources"])
         if len(pinned) != 1:
             raise ConanInvalidConfiguration("conandata.yml must pin exactly one version")
         self.version = pinned[0]
 
-    def source(self):
+    def source(self) -> None:
         pin = self.conan_data["sources"][self.version]
         git = Git(self)
         git.fetch_commit(url=pin["url"], commit=pin["commit"])
         git.run(f"submodule update --init --depth 1 {KHOOK}")
 
-    def package(self):
-        src, dst = self.source_folder, self.package_folder
-        copy(self, "*.h", os.path.join(src, "core"), os.path.join(dst, "core"))
-        copy(self, "*.hpp", os.path.join(src, KHOOK, "include"),
-             os.path.join(dst, KHOOK, "include"))
-        copy(self, "LICENSE*", src, os.path.join(dst, "licenses"))
-        copy(self, "LICENSE*", os.path.join(src, KHOOK), os.path.join(dst, "licenses/khook"))
+    def package(self) -> None:
+        src, dst = self.source_path, self.package_path
+        copy(self, "*.h", src / "core", dst / "core")
+        copy(self, "*.hpp", src / KHOOK / "include", dst / KHOOK / "include")
+        copy(self, "LICENSE*", src, dst / "licenses")
+        copy(self, "LICENSE*", src / KHOOK, dst / "licenses/khook")
 
-    def package_info(self):
+    def package_info(self) -> None:
         self.cpp_info.set_property("cmake_file_name", "metamod-source")
         self.cpp_info.set_property("cmake_target_name", "VoltMod::Metamod")
         self.cpp_info.includedirs = ["core", f"{KHOOK}/include"]

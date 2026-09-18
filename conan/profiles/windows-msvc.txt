@@ -1,5 +1,4 @@
 # Local dev; the deploy path is Linux. compiler.version=195 is cl 19.5x (VS 2022/2026);
-# on older VS pass -s compiler.version=193|194. build_type and runtime_type are passed per build.
 [settings]
 os=Windows
 arch=x86_64
