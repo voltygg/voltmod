@@ -1,6 +1,7 @@
 #include "Host/PluginHost.hpp"
 
 #include <VoltMod/Core/Log.hpp>
+#include <format>
 #include <VoltMod/Host/Abi.hpp>
 #include <algorithm>
 #include <utility>
@@ -64,12 +65,35 @@ void* PluginContext::GetInterface(HostString name) const
         return static_cast<IHostEvents*>(self);
     if (wanted == IHostServices::InterfaceName)
         return static_cast<IHostServices*>(self);
+    if (wanted == IHostLog::InterfaceName)
+        return static_cast<IHostLog*>(self);
     return nullptr;
 }
 
 bool PluginContext::ClaimCommand(HostString name)
 {
     return _host.ClaimCommand(*this, Text(name));
+}
+
+void PluginContext::SetTag(HostString tag)
+{
+    const std::string_view wanted = Text(tag);
+    _tag = wanted.empty() ? _name : std::string(wanted);
+}
+
+void PluginContext::Write(uint8_t level, HostString text)
+{
+    const auto wanted = static_cast<LogLevel>(level);
+    if (wanted < _minLevel)
+        return;
+
+    // Every plugin prints through the host's own handler, so a server reads one stream.
+    Log::Emit(wanted, std::format("[{}] {}", _tag.empty() ? _name : _tag, Text(text)));
+}
+
+uint8_t PluginContext::MinLevel()
+{
+    return static_cast<uint8_t>(_minLevel);
 }
 
 template <class Fn>
@@ -188,6 +212,13 @@ PluginContext* PluginHost::FindPlugin(std::string_view name)
     const auto found = std::ranges::find_if(
         _plugins, [&](const std::unique_ptr<PluginContext>& plugin) { return plugin->PluginName() == name; });
     return found != _plugins.end() ? found->get() : nullptr;
+}
+
+PluginContext* PluginHost::ContextFor(std::string_view name)
+{
+    const auto found = std::ranges::find_if(
+        _plugins, [name](const auto& plugin) { return plugin->PluginName() == name; });
+    return found == _plugins.end() ? nullptr : found->get();
 }
 
 PluginLeaks PluginHost::ClosePlugin(std::string_view name)

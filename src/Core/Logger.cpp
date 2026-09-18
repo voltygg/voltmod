@@ -10,6 +10,8 @@ namespace VoltMod::Log
 
 static Handler g_handler;
 static std::thread::id g_gameThread{};
+/** What the host wants from this module. Read on every log call, written once a frame. */
+static std::atomic<LogLevel> g_minimumLevel{LogLevel::Info};
 
 static std::mutex g_deferredMutex;
 static std::deque<std::pair<LogLevel, std::string>> g_deferred;
@@ -30,6 +32,16 @@ void SetHandler(Handler handler)
 bool Enabled()
 {
     return static_cast<bool>(g_handler);
+}
+
+void SetMinimumLevel(LogLevel level)
+{
+    g_minimumLevel.store(level, std::memory_order_relaxed);
+}
+
+LogLevel MinimumLevel()
+{
+    return g_minimumLevel.load(std::memory_order_relaxed);
 }
 
 void Emit(LogLevel level, std::string message)

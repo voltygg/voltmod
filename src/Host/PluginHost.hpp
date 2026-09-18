@@ -2,10 +2,12 @@
 
 #include "Host/Subscribers.hpp"
 
+#include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Host/HostTypes.hpp>
 #include <VoltMod/Host/IHost.hpp>
 #include <VoltMod/Host/IHostEvents.hpp>
+#include <VoltMod/Host/IHostLog.hpp>
 #include <VoltMod/Host/IHostServices.hpp>
 #include <cstdint>
 #include <memory>
@@ -55,7 +57,7 @@ std::string_view Text(HostString text);
  * subscription, publication or command claim every call is. Owned by @ref PluginHost and valid from
  * OpenPlugin until ClosePlugin.
  */
-class PluginContext final : public IHost, public IHostEvents, public IHostServices
+class PluginContext final : public IHost, public IHostEvents, public IHostServices, public IHostLog
 {
 public:
     PluginContext(PluginHost& host, std::string name, uint64_t order);
@@ -83,6 +85,13 @@ public:
     HostToken SubscribeClientSettingsChanged(ClientSettingsChangedFn call, void* context) override;
     HostToken SubscribeConsoleCommand(ConsoleCommandFn call, void* context) override;
     HostToken SubscribeCheckTransmit(CheckTransmitFn call, void* context) override;
+
+    void SetTag(HostString tag) override;
+    void Write(uint8_t level, HostString text) override;
+    uint8_t MinLevel() override;
+
+    /** Silence this plugin below @p level. `volt log <name> <level>` is what calls it. */
+    void SetMinLevel(LogLevel level) { _minLevel = level; }
 
     void Publish(HostString name, void* implementation) override;
     void Unpublish(HostString name) override;
@@ -112,6 +121,8 @@ private:
     PluginHost& _host;
     std::string _name;
     std::string _home;
+    std::string _tag;  ///< what the plugin calls itself in a log line; its name until it says
+    LogLevel _minLevel = LogLevel::Info;
     uint64_t _order = 0;
     std::vector<Subscribed> _subscriptions;  ///< in the order the plugin took them
 };
@@ -137,6 +148,9 @@ public:
 
     /** Drop every subscription, publication and claim @p name still holds, and report them. */
     PluginLeaks ClosePlugin(std::string_view name);
+
+    /** The loaded plugin @p name, or nullptr. */
+    PluginContext* ContextFor(std::string_view name);
 
     PluginContext* FindPlugin(std::string_view name);
 

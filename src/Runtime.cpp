@@ -6,6 +6,7 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Files/Paths.hpp>
 #include <VoltMod/Engine/Detours.hpp>
+#include <VoltMod/Host/IHostLog.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <chrono>
 #include <eiface.h>
@@ -52,7 +53,24 @@ bool Runtime::Start(const LoadContext& context)
 
 void Runtime::InstallLogger(const LoadContext& context)
 {
-    Log::SetHandler(MakeConsoleHandler(std::string(context.LogPrefix)));
+    // The host owns the console. Falling back to writing it directly keeps a runtime built
+    // without a log sink - only the tests - from going silent.
+    if (auto* sink = static_cast<IHostLog*>(context.Host->GetInterface(
+            HostString{.Data = IHostLog::InterfaceName,
+                       .Length = std::string_view(IHostLog::InterfaceName).size()})))
+    {
+        sink->SetTag(HostString{.Data = context.LogPrefix.data(), .Length = context.LogPrefix.size()});
+        Log::SetMinimumLevel(static_cast<LogLevel>(sink->MinLevel()));
+        Log::SetHandler([sink](LogLevel level, std::string_view message) {
+            sink->Write(static_cast<uint8_t>(level),
+                        HostString{.Data = message.data(), .Length = message.size()});
+        });
+    }
+    else
+    {
+        Log::SetHandler(MakeConsoleHandler(std::string(context.LogPrefix)));
+    }
+
     SetBaseDir(context.Host->Metamod()->GetBaseDir());
 }
 

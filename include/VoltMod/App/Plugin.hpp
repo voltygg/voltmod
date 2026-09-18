@@ -5,6 +5,7 @@
 #include <VoltMod/Host/HostTypes.hpp>
 #include <VoltMod/Host/IHost.hpp>
 #include <VoltMod/Host/IHostEvents.hpp>
+#include <VoltMod/Host/IHostLog.hpp>
 #include <VoltMod/Host/PluginDescriptor.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Runtime.hpp>
@@ -120,6 +121,7 @@ private:
 
     IHost* _host = nullptr;
     IHostEvents* _events = nullptr;
+    IHostLog* _log = nullptr;
 
     // Reverse destruction order: custom hooks, host events, then their Runtime services.
     std::unique_ptr<Runtime> _runtime;

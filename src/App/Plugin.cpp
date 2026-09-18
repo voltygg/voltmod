@@ -44,6 +44,7 @@ bool Plugin::Attach(IHost& host, char* error, size_t errorSize)
     KHook::__exported__khook = host.Detours();
 
     _host = &host;
+    _log = static_cast<IHostLog*>(host.GetInterface(Borrow(IHostLog::InterfaceName)));
     _events = static_cast<IHostEvents*>(host.GetInterface(Borrow(IHostEvents::InterfaceName)));
     if (!_events)
     {
@@ -112,6 +113,7 @@ void Plugin::Detach()
 {
     Shutdown();
     _events = nullptr;
+    _log = nullptr;
     _host = nullptr;
 }
 
@@ -155,6 +157,11 @@ void Plugin::OnHostFrame(void* context)
     auto* self = static_cast<Plugin*>(context);
     try
     {
+        // `volt log` lands here: reading it once a frame is what lets the log helpers skip
+        // formatting a line this plugin is silenced for.
+        if (self->_log)
+            Log::SetMinimumLevel(static_cast<LogLevel>(self->_log->MinLevel()));
+
         self->_runtime->OnGameFrame();
     }
     catch (const std::exception& error)

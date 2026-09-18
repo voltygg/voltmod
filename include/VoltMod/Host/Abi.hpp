@@ -12,6 +12,6 @@ namespace VoltMod
  * descriptor names another value: host and plugins always ship from the same build, so there is
  * no older shape to stay compatible with.
  */
-inline constexpr uint32_t HostAbiVersion = 1;
+inline constexpr uint32_t HostAbiVersion = 2;
 
 }  // namespace VoltMod

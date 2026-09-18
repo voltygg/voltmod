@@ -5,6 +5,7 @@
 #include <VoltMod/Core/Files/Paths.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Text/EnumNames.hpp>
+#include <optional>
 #include <VoltMod/Core/Text/Json.hpp>
 #include <VoltMod/Core/Text/Strings.hpp>
 #include <VoltMod/Host/Abi.hpp>
@@ -27,7 +28,8 @@ static constexpr std::string_view LibrarySuffix = ".so";
 
 static constexpr std::string_view ManifestName = "plugin.json";
 static constexpr std::string_view CommandUsage =
-    "volt list | status [name] | load <name> | unload <name> | reload <name>";
+    "volt list | status [name] | load <name> | unload <name> | reload <name> | "
+    "log <name> <info|warn|error>";
 
 /** The shape of plugin.json: the member names are its keys. */
 struct PluginDocument
@@ -255,6 +257,7 @@ void PluginLoader::RunCommand(const CCommand& arguments)
 {
     const std::string_view verb = arguments.ArgC() >= 2 ? arguments.Arg(1) : "";
     const std::string_view target = arguments.ArgC() >= 3 ? arguments.Arg(2) : "";
+    const std::string_view value = arguments.ArgC() >= 4 ? arguments.Arg(3) : "";
 
     if (verb == "list")
         PrintLoaded();
@@ -266,8 +269,30 @@ void PluginLoader::RunCommand(const CCommand& arguments)
         Queue(RequestKind::Unload, target);
     else if (verb == "reload" && !target.empty())
         Queue(RequestKind::Reload, target);
+    else if (verb == "log" && !target.empty() && !value.empty())
+        SetLogLevel(target, value);
     else
         Log::Info("Usage: {}", CommandUsage);
+}
+
+void PluginLoader::SetLogLevel(std::string_view name, std::string_view level)
+{
+    const std::optional<LogLevel> wanted = Parse<LogLevel>(level);
+    if (!wanted)
+    {
+        Log::Warn("'{}' is not a log level. Use info, warn or error.", level);
+        return;
+    }
+
+    PluginContext* context = _host.ContextFor(name);
+    if (context == nullptr)
+    {
+        Log::Warn("'{}' is not loaded.", name);
+        return;
+    }
+
+    context->SetMinLevel(*wanted);
+    Log::Info("{} now logs {} and above.", name, Strings::ToLower(Name(*wanted)));
 }
 
 void PluginLoader::Queue(RequestKind kind, std::string_view name)

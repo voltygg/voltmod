@@ -42,6 +42,23 @@ void SetHandler(Handler handler);
 bool Enabled();
 
 /**
+ * Drop lines below @p level.
+ *
+ * The host decides what each plugin prints, and the SDK reads that back once a frame. Set here
+ * rather than checked per line so the formatting helpers can skip the whole `std::format` call.
+ */
+void SetMinimumLevel(LogLevel level);
+
+/** The level set by @ref SetMinimumLevel; @ref LogLevel::Info until one is. */
+LogLevel MinimumLevel();
+
+/** Whether a line at @p level would be printed at all. */
+inline bool Wanted(LogLevel level)
+{
+    return Enabled() && level >= MinimumLevel();
+}
+
+/**
  * Route one formatted line to the handler.
  *
  * The console handler reaches tier0's ConColorMsg/Msg, which is game-thread-only, but the
@@ -54,27 +71,28 @@ void Emit(LogLevel level, std::string message);
 /** Replay lines queued from worker threads. Game thread only; `Runtime::OnGameFrame` calls it. */
 void DeliverPending();
 
-// Formatting is skipped entirely without a handler: diagnostic logging behind a debug gate should
-// cost nothing before SetHandler and after unload.
+// Formatting is skipped entirely without a handler, and for a level the host does not want:
+// diagnostic logging behind a debug gate should cost nothing before SetHandler, after unload, and
+// while the plugin is silenced.
 
 template <typename... Args>
 void Info(std::format_string<Args...> fmt, Args&&... args)
 {
-    if (Enabled())
+    if (Wanted(LogLevel::Info))
         Emit(LogLevel::Info, std::format(fmt, std::forward<Args>(args)...));
 }
 
 template <typename... Args>
 void Warn(std::format_string<Args...> fmt, Args&&... args)
 {
-    if (Enabled())
+    if (Wanted(LogLevel::Warn))
         Emit(LogLevel::Warn, std::format(fmt, std::forward<Args>(args)...));
 }
 
 template <typename... Args>
 void Error(std::format_string<Args...> fmt, Args&&... args)
 {
-    if (Enabled())
+    if (Wanted(LogLevel::Error))
         Emit(LogLevel::Error, std::format(fmt, std::forward<Args>(args)...));
 }
 

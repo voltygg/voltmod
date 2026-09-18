@@ -87,6 +87,8 @@ private:
     std::vector<PluginManifest> LoadedManifests() const;
 
     void RunCommand(const CCommand& arguments);
+    /** `volt log <name> <level>`: silence one plugin below @p level. */
+    void SetLogLevel(std::string_view name, std::string_view level);
     void Queue(RequestKind kind, std::string_view name);
     void PrintLoaded() const;
     void PrintStatus(std::string_view name);
