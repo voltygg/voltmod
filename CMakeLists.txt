@@ -145,6 +145,7 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Players/PlayerManager.cpp
             src/Players/Policy.cpp
             src/Hooks/PendingConVarQueries.cpp
+            src/Host/PluginOrder.cpp
             src/Workshop/AddonDownloads.cpp
             src/Ui/LayoutPath.cpp
             src/Ui/WriteCache.cpp
