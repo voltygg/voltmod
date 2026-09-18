@@ -3,7 +3,7 @@
 [TOC]
 
 Represent settings with a default-initialized struct that mirrors the JSON file,
-then load it through @ref VoltMod::JsonConfig. Include
+then load it through @ref VoltMod::Options. Include
 `<VoltMod/App/Config.hpp>` in the plugin's `Config.hpp`; it provides the
 configuration types and JSON layer without adding them to the main API umbrella.
 
@@ -19,7 +19,7 @@ struct Settings
     // one struct + member per additional section
 };
 
-using ConfigManager = VoltMod::JsonConfig<Settings>;
+using ConfigManager = VoltMod::Options<Settings>;
 ```
 
 Reflection uses each public member name as its JSON key, so no registration is
@@ -48,46 +48,54 @@ bool MyPlugin::OnLoad(VoltMod::Runtime& runtime)
 
 ## Post-load validation
 
-When settings need parsing or clamping, compose `Json::ReadFile` instead of
-subclassing `JsonConfig`. Publish the validated result in one assignment and
-name the entry point `LoadSettings`; `LoadStandardConfig` uses it instead of
-`Load`:
+When settings need checking, clamping or values derived from them, name a second
+type for what the plugin publishes and the function that builds it. `Options`
+runs the builder on a local copy and publishes the result in one move, so a
+reload that fails to parse leaves the previous snapshot intact and callers never
+observe a partially validated value:
+
+```cpp
+struct Snapshot
+{
+    Settings Values;
+    std::vector<int> MenuDurationSecs;
+};
+
+static Snapshot BuildSnapshot(Settings raw);
+
+VoltMod::Options<Settings, Snapshot> options{&BuildSnapshot};
+```
+
+`Get()` now returns the snapshot, so `options.Get().Values` is the settings and
+`options.Get().MenuDurationSecs` the derived list. Wrap it in a small class of
+your own when you want named accessors, and name the entry point `LoadSettings`;
+`LoadStandardConfig` uses it instead of `Load`:
 
 ```cpp
 class ConfigManager
 {
 public:
-    VoltMod::Status LoadSettings(std::string_view path)
-    {
-        auto raw = VoltMod::Json::ReadFile<Settings>(path);
-        if (!raw)
-            return std::unexpected(raw.error());
+    VoltMod::Status LoadSettings(std::string_view path) { return _options.Load(path); }
 
-        // Validate a local copy, then publish it whole.
-        _snapshot = BuildSnapshot(std::move(*raw));
-        return {};
-    }
-
-    const Settings& Get() const { return _snapshot.Values; }
-    const std::vector<int>& GetMenuDurations() const { return _snapshot.MenuDurationSecs; }
+    const Settings& Get() const { return _options.Get().Values; }
+    const std::vector<int>& GetMenuDurations() const { return _options.Get().MenuDurationSecs; }
 
 private:
-    struct ConfigSnapshot
+    struct Snapshot
     {
         Settings Values;
         std::vector<int> MenuDurationSecs;
     };
 
-    static ConfigSnapshot BuildSnapshot(Settings raw);
+    static Snapshot BuildSnapshot(Settings raw);
 
-    ConfigSnapshot _snapshot;
+    VoltMod::Options<Settings, Snapshot> _options{&BuildSnapshot};
 };
 ```
 
-Build the snapshot before publishing it. A failed reload then leaves the previous
-configuration intact, and callers never observe a partially validated value.
-`Get()` must return the effective settings because `LoadStandardConfig` reads
-`Get().plugin.locale` when that section exists.
+That wrapper is also what keeps `plugin.locale` working: `LoadStandardConfig`
+reads `Get().plugin.locale` when that section exists, so `Get()` has to return
+the effective settings rather than the snapshot around them.
 
 Use the common helpers in `VoltMod/App/Config/Validation.hpp`. `BuildSnapshot` takes the
 raw settings by value, so each helper below operates on a local copy:
@@ -95,9 +103,9 @@ raw settings by value, so each helper below operates on a local copy:
 ```cpp
 namespace Validation = VoltMod::Validation;
 
-ConfigManager::ConfigSnapshot ConfigManager::BuildSnapshot(Settings raw)
+ConfigManager::Snapshot ConfigManager::BuildSnapshot(Settings raw)
 {
-    ConfigSnapshot result{.Values = std::move(raw)};
+    Snapshot result{.Values = std::move(raw)};
     auto& s = result.Values;
 
     // Clamp + fall back with a logged warning; "server.tag" names the field in the log line.
@@ -119,6 +127,17 @@ ConfigManager::ConfigSnapshot ConfigManager::BuildSnapshot(Settings raw)
 
     return result;
 }
+```
+
+## Reloading
+
+`Load` is the reload: it parses the file again, rebuilds the snapshot and swaps
+it in. A failed parse returns the error and changes nothing, so a plugin command
+can report the offending key and go on serving the settings already in memory:
+
+```cpp
+if (auto loaded = Config.Load(VoltMod::AddonFile("my-plugin", "configs/settings.jsonc")); !loaded)
+    return Reply{std::format("Settings not reloaded: {}", loaded.error().Detail)};
 ```
 
 ## Framework types in your settings

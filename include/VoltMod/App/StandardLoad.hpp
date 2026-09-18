@@ -1,8 +1,8 @@
 #pragma once
 
 #include <VoltMod/App/Config/PluginSettings.hpp>
-#include <VoltMod/Core/LoadSteps.hpp>
 #include <VoltMod/Core/Files/Paths.hpp>
+#include <VoltMod/Core/LoadSteps.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <format>
 #include <string>
@@ -24,7 +24,7 @@ struct StandardLoadOptions
  * @brief Run the standard configuration and translation load steps.
  *
  * The required "Configuration" step reads `addons/<Addon>/<SettingsFile>` through
- * TConfig::LoadSettings when available, otherwise JsonConfig::Load. Translation loading then
+ * TConfig::LoadSettings when available, otherwise Options::Load. Translation loading then
  * applies `plugin.locale` and reads `addons/<Addon>/configs/translations` when enabled.
  */
 template <class TConfig>

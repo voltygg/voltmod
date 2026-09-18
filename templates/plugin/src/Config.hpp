@@ -13,10 +13,9 @@ struct Settings
     VoltMod::StandardPluginSettings plugin;
 };
 
-/** Compose VoltMod::JsonConfig in a ConfigManager of your own once you need post-load validation
- *  or derived accessors - see the configuration guide. Do not subclass it: resolving into a value
- *  that has not been published yet is what keeps a failed reload from leaving half-applied state. */
-using ConfigManager = VoltMod::JsonConfig<Settings>;
+/** Name a snapshot type and the function that builds it once you need post-load validation or
+ *  derived values - see the configuration guide. Options builds the snapshot before publishing
+ *  it, which is what keeps a failed reload from leaving half-applied state. */
+using ConfigManager = VoltMod::Options<Settings>;
 
 }  // namespace $namespace
-
