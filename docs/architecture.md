@@ -219,6 +219,7 @@ Menu       -> Core, Engine, Entities, Messaging, Players, Hooks, Ui, Workshop
 Http       -> Core
 Database   -> Core
 Unsafe     -> Core, Engine
+Host       -> Core, Engine
 App        -> every module
 ```
 

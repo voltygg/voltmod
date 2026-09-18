@@ -54,6 +54,13 @@ namespace SourceMM
 class ISmmAPI;
 }
 
+namespace KHook
+{
+/** Metamod's hook dispatcher. The host passes it to each plugin through @ref VoltMod::IHost, and
+ *  every module seeds its own `__exported__khook` from it. */
+class IKHook;
+}
+
 namespace VoltMod
 {
 

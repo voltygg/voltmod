@@ -10,6 +10,7 @@ from voltmod.source_rules import (
     FRAMEWORK_DECLARATION_HEADERS,
     check_composition_root,
     check_conventions,
+    check_host_boundary,
     layering_table,
     module_dependencies,
     read_sources,
@@ -106,6 +107,38 @@ def test_only_app_may_include_the_composition_root(tmp_path):
     assert [result.message for result in results] == [
         "include/VoltMod/Core/Thing.hpp includes VoltMod/Runtime.hpp"
     ]
+
+
+def boundary(root):
+    files = read_sources(root, ("include/VoltMod",))
+    return [result.message for result in check_host_boundary(files)]
+
+
+def test_the_allowed_boundary_includes_pass(tmp_path):
+    write(tmp_path, "include/VoltMod/Host/IHost.hpp", """
+        #include <VoltMod/Engine/EngineTypes.hpp>
+        #include <VoltMod/Host/HostTypes.hpp>
+        #include <cstddef>
+        #include <cstdint>
+        """)
+    assert boundary(tmp_path) == []
+
+
+def test_a_boundary_header_may_not_include_another_standard_header(tmp_path):
+    write(tmp_path, "include/VoltMod/Host/IHost.hpp", "#include <string>\n")
+    assert boundary(tmp_path) == ["include/VoltMod/Host/IHost.hpp:1: includes <string>"]
+
+
+def test_a_boundary_header_may_not_include_another_voltmod_header(tmp_path):
+    write(tmp_path, "include/VoltMod/Host/IHost.hpp", "#include <VoltMod/Core/Logger.hpp>\n")
+    assert boundary(tmp_path) == [
+        "include/VoltMod/Host/IHost.hpp:1: includes <VoltMod/Core/Logger.hpp>"
+    ]
+
+
+def test_headers_outside_the_host_boundary_are_untouched(tmp_path):
+    write(tmp_path, "include/VoltMod/Core/Logger.hpp", "#include <string>\n")
+    assert boundary(tmp_path) == []
 
 
 @pytest.mark.parametrize("path", ["CLAUDE.md", "docs/architecture.md"])

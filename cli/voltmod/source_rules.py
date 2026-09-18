@@ -28,9 +28,11 @@ ALLOWED_DEPENDENCIES: dict[str, set[str]] = {
     "Http": {"Core"},
     "Database": {"Core"},
     "Unsafe": {"Core", "Engine"},
+    # Boundary interfaces only; Engine holds the ISmmAPI and IKHook forward declarations they name.
+    "Host": {"Core", "Engine"},
     "App": {
         "Core", "Engine", "Schema", "Entities", "Events", "Messaging", "Players", "Hooks",
-        "Ui", "Workshop", "Commands", "Menu", "Http", "Database", "Unsafe",
+        "Ui", "Workshop", "Commands", "Menu", "Http", "Database", "Unsafe", "Host",
     },
 }
 
@@ -50,6 +52,12 @@ ENGINE_INCLUDE = re.compile(
 FRAMEWORK_DECLARATION_HEADERS = frozenset({"include/VoltMod/Engine/EngineTypes.hpp"})
 # A plugin's layout is its own, so its declaration header is matched by file name.
 PLUGIN_DECLARATION_HEADER = re.compile(r"(^|/)\w*Types\.hpp$")
+
+# The host and each plugin are separately compiled, with their own CRT and allocator, so no
+# std:: type, template or owned object may appear in a boundary signature.
+HOST_BOUNDARY_PATH = "include/VoltMod/Host/"
+HOST_BOUNDARY_INCLUDES = frozenset({"<cstddef>", "<cstdint>", "<VoltMod/Engine/EngineTypes.hpp>"})
+ANY_INCLUDE = re.compile(r'^\s*#\s*include\s*([<"][^>"]+[>"])')
 
 FORWARD_DECLARATION = re.compile(r"^(?:class|struct)\s+(\w+);")
 DEFINITION = r"^(?:class|struct)\s+{}\b\s*(?!;)"
@@ -125,6 +133,26 @@ def check_composition_root(files: Iterable[SourceFile], modules: set[str]) -> li
     return sorted(headers, key=lambda r: r.message) + sorted(sources, key=lambda r: r.message)
 
 
+def check_host_boundary(files: Iterable[SourceFile]) -> list[CheckResult]:
+    """Includes a host boundary header may not have; the closed set keeps std:: out of it."""
+    results = []
+    for file in files:
+        if not (file.path.startswith(HOST_BOUNDARY_PATH) and file.path.endswith(".hpp")):
+            continue
+        for number, line in enumerate(file.text.splitlines(), 1):
+            if not (found := ANY_INCLUDE.match(line)):
+                continue
+            included = found.group(1)
+            if included in HOST_BOUNDARY_INCLUDES or included.startswith("<VoltMod/Host/"):
+                continue
+            results.append(CheckResult(
+                f"{file.path}:{number}: includes {included}",
+                hint="The boundary carries plain data only: <cstddef>, <cstdint>, "
+                     "VoltMod/Host/ and VoltMod/Engine/EngineTypes.hpp.",
+            ))
+    return results
+
+
 def check_conventions(
     files: Iterable[SourceFile], declaration_headers: frozenset[str] | None = None
 ) -> list[CheckResult]:
@@ -197,6 +225,7 @@ def check_framework(root: Path) -> tuple[dict[str, set[str]], list[CheckResult]]
     ]
     results += check_composition_root(files, listed)
     results += check_conventions(files, FRAMEWORK_DECLARATION_HEADERS)
+    results += check_host_boundary(files)
     return dependencies, results
 
 
