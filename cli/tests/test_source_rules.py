@@ -10,6 +10,7 @@ from voltmod.source_rules import (
     FRAMEWORK_DECLARATION_HEADERS,
     check_composition_root,
     check_conventions,
+    check_dependency_cycles,
     check_host_boundary,
     layering_table,
     module_dependencies,
@@ -35,6 +36,29 @@ def test_no_module_below_app_may_reach_menu_or_app():
             continue
         assert "Menu" not in allowed or module == "Menu", module
         assert "App" not in allowed, module
+
+
+def cycles(table):
+    return [result.message for result in check_dependency_cycles(table)]
+
+
+def test_the_declared_layering_has_no_cycle():
+    assert cycles(ALLOWED_DEPENDENCIES) == []
+
+
+def test_two_modules_that_depend_on_each_other_are_reported():
+    table = {"Core": set(), "Engine": {"Core", "Host"}, "Host": {"Core", "Engine"}}
+    assert cycles(table) == ["cycle in ALLOWED_DEPENDENCIES: Engine -> Host -> Engine"]
+
+
+def test_a_cycle_through_a_third_module_is_reported():
+    table = {"Core": set(), "Engine": {"Ui"}, "Ui": {"Host"}, "Host": {"Engine"}}
+    assert cycles(table) == ["cycle in ALLOWED_DEPENDENCIES: Engine -> Ui -> Host -> Engine"]
+
+
+def test_a_cycle_is_reported_with_how_to_break_it():
+    table = {"Engine": {"Host"}, "Host": {"Engine"}}
+    assert "Invert one of these dependencies" in check_dependency_cycles(table)[0].hint
 
 
 def test_a_dependency_is_reported_with_the_include_that_proves_it(tmp_path):

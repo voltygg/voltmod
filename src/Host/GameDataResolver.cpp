@@ -1,4 +1,4 @@
-#include "Engine/GameData/GameDataResolver.hpp"
+#include "Host/GameDataResolver.hpp"
 
 #include "Core/Files/GameBuild.hpp"
 #include "Engine/Memory/SigScanner.hpp"
@@ -75,41 +75,86 @@ Result<BaseSubobject> ModuleCache::Base(const LoadedModule& module, const std::s
 GameDataResolver::GameDataResolver(const GameDataDocument& file, const OriginalSlotLookup& originalOf)
     : _file(file), _originalOf(originalOf)
 {
-    const auto index = [this](const auto& section, std::string_view name) {
+    const auto index = [this](const auto& section, GameDataKind kind, std::string_view name) {
         for (const auto& key : section | std::views::keys)
-            _sections[key].Sections.push_back(name);
+        {
+            ResolvedEntry& entry = _entries[key];
+            entry.Sections.push_back(name);
+            // A key in two sections binds from neither, so it has no kind to resolve from.
+            entry.Kind = entry.Sections.size() == 1 ? kind : GameDataKind{};
+        }
     };
-    index(file.functions, "functions");
-    index(file.globals, "globals");
-    index(file.vtables, "vtables");
-    index(file.offsets, "offsets");
+    index(file.functions, GameDataKind::Function, "functions");
+    index(file.globals, GameDataKind::Global, "globals");
+    index(file.vtables, GameDataKind::VTable, "vtables");
+    index(file.offsets, GameDataKind::Offset, "offsets");
+
+    for (auto& [key, entry] : _entries)
+    {
+        if (entry.Sections.size() > 1)
+            Fail(key, entry,
+                 Error::NotFound(std::format("in both '{}' and '{}'", entry.Sections[0], entry.Sections[1])));
+    }
 }
 
-void* GameDataResolver::Function(std::string_view key)
+void GameDataResolver::ResolveAll()
 {
-    const auto found = UseKey(key, {"functions"}).and_then([&] { return FindFunction(std::string(key)); });
-    return Bind(key, found);
+    for (auto& [key, entry] : _entries)
+    {
+        if (entry.Reason.empty())
+            Resolve(key, entry);
+    }
 }
 
-void* GameDataResolver::FunctionOrGlobal(std::string_view key)
+const ResolvedEntry* GameDataResolver::Find(std::string_view key) const
 {
-    const auto found = UseKey(key, {"functions", "globals"}).and_then([&] {
-        std::string name(key);
-        return _file.functions.contains(name) ? FindFunction(name) : FindGlobal(name);
-    });
-    return Bind(key, found);
+    const auto it = _entries.find(key);
+    return it != _entries.end() ? &it->second : nullptr;
 }
 
-VirtualSlot GameDataResolver::Slot(std::string_view key)
+void GameDataResolver::Resolve(const std::string& key, ResolvedEntry& entry)
 {
-    const auto found = UseKey(key, {"vtables"}).and_then([&] { return FindSlot(std::string(key)); });
-    return Bind(key, found);
+    switch (entry.Kind)
+    {
+    case GameDataKind::Function:
+        if (const auto found = FindFunction(key))
+            entry.Address = *found;
+        else
+            Fail(key, entry, found.error());
+        return;
+
+    case GameDataKind::Global:
+        if (const auto found = FindGlobal(key))
+            entry.Address = *found;
+        else
+            Fail(key, entry, found.error());
+        return;
+
+    case GameDataKind::VTable:
+        if (const auto found = FindSlot(key))
+        {
+            entry.Address = found->Table;
+            entry.Value = found->Index;
+        }
+        else
+        {
+            Fail(key, entry, found.error());
+        }
+        return;
+
+    case GameDataKind::Offset:
+        if (const auto found = FindOffset(key))
+            entry.Value = *found;
+        else
+            Fail(key, entry, found.error());
+        return;
+    }
 }
 
-int GameDataResolver::Offset(std::string_view key)
+void GameDataResolver::Fail(std::string_view key, ResolvedEntry& entry, const Error& error)
 {
-    const auto found = UseKey(key, {"offsets"}).and_then([&] { return FindOffset(std::string(key)); });
-    return Bind(key, found, -1);
+    entry.Reason = error.Detail;
+    _failures.push_back(std::format("{}: {}", key, entry.Reason));
 }
 
 void GameDataResolver::LogSummary(std::string_view path) const
@@ -130,15 +175,6 @@ void GameDataResolver::LogSummary(std::string_view path) const
     if (!baseOffsets.empty())
         Log::Info("GameData: RTTI placed {}.", Strings::Join(baseOffsets, ", "));
 
-    std::vector<std::string> unused;
-    for (const auto& [key, entry] : _sections)
-    {
-        if (!entry.Used)
-            unused.push_back(key);
-    }
-    if (!unused.empty())
-        Log::Warn("GameData: {} entries bind to nothing: {}.", unused.size(), Strings::Join(unused, ", "));
-
     // Patterns and RTTI are checked at load; hand-maintained indices and offsets are not.
     if (_file.build.server != GameBuild())
     {
@@ -147,21 +183,6 @@ void GameDataResolver::LogSummary(std::string_view path) const
         Log::Warn("GameData: verified on server {}, running {}: {} vtable indices and {} offsets are unchecked.",
                   _file.build.server, GameBuild(), _file.vtables.size(), numbered);
     }
-}
-
-Status GameDataResolver::UseKey(std::string_view key, std::initializer_list<std::string_view> allowed)
-{
-    const auto it = _sections.find(key);
-    if (it == _sections.end())
-        return Unbound("not in gamedata");
-
-    it->second.Used = true;
-    const std::vector<std::string_view>& sections = it->second.Sections;
-    if (sections.size() > 1)
-        return Unbound(std::format("in both '{}' and '{}'", sections[0], sections[1]));
-    if (!std::ranges::contains(allowed, sections[0]))
-        return Unbound(std::format("in '{}', which this member does not bind from", sections[0]));
-    return {};
 }
 
 Result<void*> GameDataResolver::FindFunction(const std::string& key)
@@ -277,16 +298,6 @@ Result<int> GameDataResolver::FindBaseOffset(const std::string& key, const GameD
 
     _record.Offsets.emplace(key, base->Offset);
     return base->Offset;
-}
-
-template <class T>
-T GameDataResolver::Bind(std::string_view key, const Result<T>& resolved, std::type_identity_t<T> unbound)
-{
-    if (resolved)
-        return *resolved;
-
-    _failures.push_back(std::format("{}: {}", key, resolved.error().Detail));
-    return unbound;
 }
 
 }  // namespace VoltMod

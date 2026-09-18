@@ -23,7 +23,8 @@ VoltMod
 ├── Http        Async HTTP client + JSON REST helpers
 ├── Unsafe      Opt-in raw hooking: HookInterface, HookVirtual, HookFunction (Hook.hpp),
 │               each returning the Subscription that removes the hook
-├── Host        The host boundary: engine events, the service table, plugin loading
+├── Host        The host boundary: engine events, the service table, gamedata, the schema
+│               check, plugin loading
 └── App         The composition root: Runtime, Plugin, ServiceExchange
 ```
 
@@ -108,8 +109,9 @@ runtime.Hooks.Movement.Before += [](int slot, const PlayerInput&) { /* ... */ };
 
 Schema offsets are not a service. They are baked into the generated accessors at
 build time by `voltmod schemagen`, so nothing has to be threaded through a
-constructor to read `m_iHealth`, and `Runtime::Start` aborts the load if the baked
-layout and the live schema disagree. See
+constructor to read `m_iHealth`. The host compares its own copy of that layout with
+the live schema once for the process, and `Runtime::Start` aborts a plugin's load
+when the comparison failed or when the plugin carries a different layout. See
 @ref sdk_players_guide "Entities and players".
 
 **Your `App`** holds everything the plugin owns for one load cycle. Build it in
@@ -247,8 +249,12 @@ corrupts a neighbouring member rather than failing.
 
 ## Module layering
 
-`cli/voltmod/source_rules.py` (`voltmod modgraph`) enforces the allowed edges. It rejects upward
-dependencies as well as cycles.
+`cli/voltmod/source_rules.py` (`voltmod modgraph`) enforces the allowed edges, rejects upward
+dependencies, and reports a cycle in the table itself. `Host/` holds the plain-data interfaces
+between the host binary and a plugin, and those name the engine types `Engine` declares, so the
+edge runs `Host -> Engine` only. Where a lower module needs what the host resolved it takes an
+injected callable instead: `Bindings::Bind` takes a `GameDataLookup`, and `App` adapts
+`IHostGameData` to it in the `GameData` load step.
 
 ```text
 Core       -> nothing

@@ -4,9 +4,8 @@
 
 ## What gamedata is for
 
-`Runtime::Start()` loads `gamedata/gamedata.jsonc` before plugin `OnLoad`.
-Gamedata records engine locations; @ref VoltMod::Bindings defines their C++
-types.
+The host reads `gamedata/gamedata.jsonc` and scans for every entry once when it loads, before any
+plugin runs. Gamedata records engine locations; @ref VoltMod::Bindings defines their C++ types.
 
 ```cpp
 // include/VoltMod/Engine/GameData/Bindings.hpp
@@ -16,14 +15,16 @@ VirtualFn<void(CEntityInstance*, int)> ChangeTeam;          // vtables."CCSPlaye
 OffsetOf<int> ClientSlot;                                   // offsets."CServerSideClientBase::m_nClientSlot"
 ```
 
-Services use `const Bindings&`, avoiding string lookup on runtime call paths.
-`Bindings::Load` reads the file and binds every member in one pass.
+Services use `const Bindings&`, avoiding string lookup on runtime call paths. Each plugin's
+`Runtime::Start()` runs `Bindings::Bind`, which takes every member in one pass from a
+@ref VoltMod::GameDataLookup reading what the host already resolved, before plugin `OnLoad`. No plugin reads the file or scans memory itself, so
+a signature a game update broke costs one scan and one error line for the whole server.
 
 ## `gamedata.jsonc` format
 
 The file has four sections, named for what they bind. Each key uses the engine's name for the
 symbol, or `Class::member` when applicable, so it can be checked against upstream gamedata and the
-binary. `Bindings::Load` maps each key to a C++ member, and each key belongs to one section.
+binary. `Bindings::Bind` maps each key to a C++ member, and each key belongs to one section.
 
 ```jsonc
 {
@@ -70,15 +71,16 @@ A base that appears more than once in the class or is virtual is refused.
 Wildcard bytes are `?` or `??`. `gamedata.schema.json` sits next to the file with
 `additionalProperties: false` everywhere, so an editor flags a typo before the server sees it.
 
-## What the loader checks
+## What the host checks
 
 The file is read strictly. An unknown key, a wrong value type, or a section that is not an object
-rejects the whole file before binding starts.
+rejects the whole file, and the host then has nothing to serve.
 
-Then each member binds from its key, or fails with a line naming the key and the reason:
+Otherwise every entry in the file is resolved, and each one that cannot be is named with its
+reason. A member then binds from its key, or fails with the same line:
 
 - the key is missing, is in two sections, or is in a section that member does not bind from;
-- the entry has no column for this platform (an entry nothing binds may leave it out);
+- the entry has no column for this platform;
 - a pattern is empty, its module is not loaded, or it matches nowhere or more than once;
 - a global's rel32 displacement, or the address it points at, is outside its module or unreadable;
 - an offset or index is negative;
@@ -86,8 +88,8 @@ Then each member binds from its key, or fails with a line naming the key and the
 - a `base` is not in its class through RTTI, is in it more than once, is virtual, or has no vtable
   of its own where a slot is counted in it.
 
-The `GameData` load step lists every failure, and each feature reports its own through
-`Available()`. An entry that binds nothing produces a warning rather than failing the load.
+The host logs every failure once. Each plugin's `GameData` load step then lists the failures that
+touch its own members, and each feature reports its own through `Available()`.
 
 A pattern is validated by a unique match; a vtable index or offset cannot be validated that way.
 When `build.server` does not match the running server, the load warns that the file's vtable
@@ -98,7 +100,7 @@ against a binding.
 
 ### The resolved record
 
-After every member binds, the framework writes the resolved data to
+When every entry resolves, the host - and only the host - writes the resolved data to
 `addons/voltmod/gamedata/resolved.<platform>.json`. The record contains the server build,
 module-relative addresses for functions, globals, and class tables, plus slot indices and offsets.
 It is written once per server build; a failed write does not fail the load. Keep a record from a

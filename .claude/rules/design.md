@@ -49,12 +49,12 @@ The shapes the framework already uses. New code follows them instead of adding a
 
 - `Entity`, `Pawn`, `Controller` are frame-local wrappers. `explicit operator bool()` is the only validity check; they copy but do not assign. Anything stored is an `EntityRef`/`PlayerRef` re-resolved through `EntitySystem`.
 - A schema field is a generated `Health()`/`SetHealth()` pair. `voltmod schemagen` bakes the offset from `schema/manifest.json` plus a dump; the setter dirties the write through the entity, a `__m_pChainEntity` chainer, or the enclosing entity.
-- No schema service, no runtime resolution, no string lookup on a call path. `Runtime::Start` aborts the load if the baked layout and live schema disagree.
+- No schema service, no runtime resolution, no string lookup on a call path. The host compares the baked layout with the live schema once per process and `Runtime::Start` aborts a plugin's load when it disagrees, or when the plugin's layout stamp is not the one the host checked.
 
 ## Gamedata, convars, enums
 
 - `gamedata/gamedata.jsonc` says only *where* something is. `Engine/Bindings.hpp` owns every prototype, vtable signature, and field type; services take `const Bindings&` and read typed fields.
-- `Bindings::Load` reads the file strictly and binds every member in one pass, SDK-free so it is unit-tested. The JSON schema checks structure; C++ checks only what memory safety needs.
+- The host reads the file strictly and resolves every entry once for the process, behind `IHostGameData`; `Bindings::Bind` takes every member in one pass from an injected `GameDataLookup`, which `App` adapts from that interface. It names neither the SDK nor the host, so it is unit-tested against a fake lookup. The JSON schema checks structure; C++ checks only what memory safety needs.
 - One convar is one `ConVar<T>`, resolved by name once. `Set` uses a cfg line so replicated values reach clients; `RawScope` pokes storage without callbacks or networking.
 - Enumerator names come from `Core/EnumNames.hpp` (`Name(value)`, `Parse<E>(text)`), not hand-written switches.
 

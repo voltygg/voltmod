@@ -2,7 +2,7 @@
 
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Engine/Memory/OriginalSlotLookup.hpp>
+#include <VoltMod/Engine/GameData/GameDataLookup.hpp>
 #include <bit>
 #include <cstdint>
 #include <cstring>
@@ -140,14 +140,14 @@ private:
 struct Bindings
 {
     /**
-     * Read gamedata from @p path and bind every member in one pass, clearing earlier results.
+     * Bind every member from @p lookup, in one pass, clearing earlier results.
      *
-     * @p originalOf reads a vtable slot through another plugin's hook. A missing or malformed file
-     * binds nothing. Otherwise, each unbound member is reported in @ref Failures.
+     * Gamedata is read and scanned once for the process; this only looks each key up. Every member
+     * the lookup could not give a value is reported in @ref Failures with the reason it gave.
      */
-    Status Load(std::string_view path, const OriginalSlotLookup& originalOf = {});
+    Status Bind(const GameDataLookup& lookup);
 
-    /** `key: reason` for each member left unbound by the last @ref Load. */
+    /** `key: reason` for each member left unbound by the last @ref Bind. */
     std::vector<std::string> Failures;
 
     /** ABI: CBaseEntity* (const char* className, int forceEdictIndex). */
@@ -156,7 +156,8 @@ struct Bindings
     Fn<void(CEntityInstance*, CEntityKeyValues*)> DispatchSpawn;
     /** ABI: void (CEntityInstance*, const char* input, activator, caller, variant_t*, int outputId, void*). */
     Fn<void(CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, void*, int, void*)> AcceptInput;
-    /** ABI: void (CEntitySystem*, target, input, activator, caller, variant_t*, float delay, int outputId, void*, void*). */
+    /** ABI: void (CEntitySystem*, target, input, activator, caller, variant_t*, float delay, int outputId, void*,
+     * void*). */
     Fn<void(void*, CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, void*, float, int, void*, void*)>
         AddEntityIOEvent;
     /** ABI: void (CEntityInstance*). */

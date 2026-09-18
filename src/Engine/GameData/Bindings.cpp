@@ -1,56 +1,65 @@
-#include "Engine/GameData/GameDataDocument.hpp"
-#include "Engine/GameData/GameDataResolver.hpp"
-#include "Engine/GameData/ResolvedRecord.hpp"
-
-#include <VoltMod/Core/Text/Json.hpp>
 #include <VoltMod/Core/Text/Strings.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <format>
+#include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 namespace VoltMod
 {
 
+/** Binds one member from a gamedata lookup and keeps what did not bind. */
 class MemberBinder
 {
 public:
-    explicit MemberBinder(GameDataResolver& resolver) : _resolver(resolver) {}
+    explicit MemberBinder(const GameDataLookup& lookup) : _lookup(lookup) {}
 
     template <class Sig>
     void operator()(Fn<Sig>& member, std::string_view key)
     {
-        member = Fn<Sig>(_resolver.Function(key));
+        member = Fn<Sig>(Look(GameDataSection::Function, key).Address);
     }
 
-    void operator()(Address& member, std::string_view key) { member = Address(_resolver.FunctionOrGlobal(key)); }
+    void operator()(Address& member, std::string_view key)
+    {
+        member = Address(Look(GameDataSection::Function | GameDataSection::Global, key).Address);
+    }
 
     template <class Sig>
     void operator()(VirtualFn<Sig>& member, std::string_view key)
     {
-        const VirtualSlot slot = _resolver.Slot(key);
-        member = VirtualFn<Sig>(slot.Index, slot.Table);
+        const GameDataLocation entry = Look(GameDataSection::VTable, key);
+        member = VirtualFn<Sig>(entry.Value, entry.Address);
     }
 
     template <class T>
     void operator()(OffsetOf<T>& member, std::string_view key)
     {
-        member = OffsetOf<T>(_resolver.Offset(key));
+        member = OffsetOf<T>(Look(GameDataSection::Offset, key).Value);
     }
 
+    /** What did not bind, as `key: reason`, in the order the members were bound. */
+    std::vector<std::string> TakeFailures() { return std::move(_failures); }
+
 private:
-    GameDataResolver& _resolver;
+    GameDataLocation Look(GameDataSection sections, std::string_view key)
+    {
+        const GameDataLocation entry = _lookup(sections, key);
+        if (!entry.Found)
+            _failures.push_back(std::format("{}: {}", key, entry.Reason));
+        return entry;
+    }
+
+    const GameDataLookup& _lookup;
+    std::vector<std::string> _failures;
 };
 
-Status Bindings::Load(std::string_view path, const OriginalSlotLookup& originalOf)
+Status Bindings::Bind(const GameDataLookup& lookup)
 {
     *this = Bindings{};
 
-    const auto file = Json::ReadFile<GameDataDocument, Json::StrictReadOptions>(path);
-    if (!file)
-        return std::unexpected(file.error());
-
-    GameDataResolver resolver(*file, originalOf);
-    MemberBinder bind(resolver);
+    MemberBinder bind(lookup);
 
     bind(CreateEntityByName, "CreateEntityByName");
     bind(DispatchSpawn, "DispatchSpawn");
@@ -98,13 +107,11 @@ Status Bindings::Load(std::string_view path, const OriginalSlotLookup& originalO
     // Movement can use the protobuf counter instead.
     bind(UserCmdNumber, "CUserCmdBase::cmdNum");
 
-    resolver.LogSummary(path);
-    Failures = resolver.Failures();
+    Failures = bind.TakeFailures();
     if (!Failures.empty())
         return std::unexpected(
             Error::Engine(std::format("{} did not bind: {}", Failures.size(), Strings::Join(Failures, "; "))));
 
-    WriteResolvedRecord(resolver.Record());
     return {};
 }
 

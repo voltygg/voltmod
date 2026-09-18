@@ -73,6 +73,42 @@ class SourceFile(NamedTuple):
     text: str
 
 
+def dependency_cycles(table: dict[str, set[str]]) -> list[list[str]]:
+    """Every cycle a depth-first walk of @p table finds, each listed in dependency order."""
+    cycles: list[list[str]] = []
+    finished: set[str] = set()
+    path: list[str] = []
+
+    def walk(module: str) -> None:
+        if module in path:
+            cycles.append(path[path.index(module) :])
+            return
+        if module in finished:
+            return
+        path.append(module)
+        for dependency in sorted(table.get(module, ())):
+            walk(dependency)
+        path.pop()
+        finished.add(module)
+
+    for module in sorted(table):
+        walk(module)
+    return cycles
+
+
+def check_dependency_cycles(table: dict[str, set[str]]) -> list[CheckResult]:
+    """A module reachable from itself. The layering is a direction, so the table must be
+    acyclic."""
+    return [
+        CheckResult(
+            "cycle in ALLOWED_DEPENDENCIES: " + " -> ".join([*cycle, cycle[0]]),
+            hint="Invert one of these dependencies: the lower module takes an injected callable "
+                 "instead of naming the higher one.",
+        )
+        for cycle in dependency_cycles(table)
+    ]
+
+
 def layering_table() -> str:
     """ALLOWED_DEPENDENCIES as the block CLAUDE.md and docs/architecture.md quote."""
     lines = []
@@ -208,15 +244,16 @@ def check_framework(root: Path) -> tuple[dict[str, set[str]], list[CheckResult]]
     files = list(read_sources(root, FRAMEWORK_SOURCE_DIRS))
     dependencies, evidence = module_dependencies(files, modules)
 
+    cycles = check_dependency_cycles(ALLOWED_DEPENDENCIES)
     listed = set(ALLOWED_DEPENDENCIES)
     unlisted = sorted(set(modules) - listed)
     removed = sorted(listed - set(modules))
     if unlisted or removed:
         messages = [f"module {name}/ is missing from ALLOWED_DEPENDENCIES" for name in unlisted]
         messages += [f"ALLOWED_DEPENDENCIES lists {name}, which is gone" for name in removed]
-        return dependencies, [CheckResult(message) for message in messages]
+        return dependencies, cycles + [CheckResult(message) for message in messages]
 
-    results = [
+    results = cycles + [
         CheckResult(
             f"{owner} -> {dependency} is not allowed "
             f"(allowed: {' '.join(sorted(ALLOWED_DEPENDENCIES[owner])) or 'nothing'})\n"

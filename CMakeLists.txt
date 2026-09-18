@@ -202,16 +202,17 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
             src/Players/PlayerManager.cpp
             src/Players/Policy.cpp
             src/Hooks/PendingConVarQueries.cpp
+            src/Host/GameDataResolver.cpp
+            src/Host/HostGameData.cpp
             src/Host/PluginHost.cpp
             src/Host/PluginOrder.cpp
+            src/Host/ResolvedRecord.cpp
             src/Workshop/AddonDownloads.cpp
             src/Ui/LayoutPath.cpp
             src/Ui/WriteCache.cpp
             src/Ui/ButtonPressMessage.cpp
             src/Engine/ConVars/ConVarTypes.cpp
             src/Engine/GameData/Bindings.cpp
-            src/Engine/GameData/GameDataResolver.cpp
-            src/Engine/GameData/ResolvedRecord.cpp
             src/Engine/Memory/BytePattern.cpp
             src/Engine/Memory/SigScanner.cpp
             src/Engine/Memory/VtableLookup.cpp
