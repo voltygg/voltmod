@@ -66,6 +66,17 @@ bool HostView::IsCommandRegistered(std::string_view name) const
     return !_state.Commands.OwnerOf(name).empty();
 }
 
+std::string_view HostView::PlayerLanguage(int slot) const
+{
+    return IsValidSlot(slot) ? std::string_view(_state.Languages[slot]) : std::string_view{};
+}
+
+void HostView::SetPlayerLanguage(int slot, std::string_view lang)
+{
+    if (IsValidSlot(slot))
+        _state.Languages[slot] = lang;
+}
+
 void HostView::WriteLog(uint8_t level, std::string_view text)
 {
     const auto wanted = static_cast<LogLevel>(level);

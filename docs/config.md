@@ -159,12 +159,14 @@ Player-facing text lives in per-language files under `configs/translations/` (`e
 
 ```cpp
 runtime.Translations.SetLanguage("en");               // server default, from plugin.locale
-runtime.Translations.SetPlayerLanguage(slot, "ru");   // per-player override
+runtime.Translations.SetPlayerLanguage(slot, "ru");   // the player's pick, for every plugin
 
 auto line = runtime.Translations.Get("cmd.banSuccess", slot, {{"name", targetName}});
 ```
 
-A key nothing carries is returned as itself. Command replies (`Caller::Ok`/`Fail`/`Say`), `Flow`
+The player's language lives in the host, so one plugin's language setting reaches every other plugin's
+text; the host clears it when the slot changes hands, and whoever saves it applies it again on
+connect. A key nothing carries is returned as itself. Command replies (`Caller::Ok`/`Fail`/`Say`), `Flow`
 validation errors and `Messages::ReplyKey` all resolve through this service in the addressed
 player's language. The framework reserves a few keys for its own error replies; see
 @ref commands_guide.

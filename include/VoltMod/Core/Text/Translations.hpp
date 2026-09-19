@@ -3,7 +3,9 @@
 #include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Core/Slots/SlotEvents.hpp>
+#include <VoltMod/Core/Text/PlayerLanguages.hpp>
 #include <array>
+#include <functional>
 #include <map>
 #include <optional>
 #include <string>
@@ -19,13 +21,10 @@ using Tokens = std::map<std::string, std::string>;
 
 /**
  * @brief Localization system. Loads one JSON file per language; nested objects flatten into
- * dotted keys (`category.punish`). Use @ref Get(key, slot) for per-player text; use
- * @ref SetPlayerLanguage to register a slot's preferred language.
+ * dotted keys (`category.punish`). Use @ref Get(key, slot) for per-player text.
  *
- * Lookup order is the slot's language, then the active language, then English, then the framework's
- * own English defaults for the keys it emits itself (`cmd.*`, `target.*`), then the key
- * verbatim. A plugin that translates those keys still wins; one that forgets a language gets
- * readable English instead of a raw key on screen.
+ * Lookup order: the slot's language (@ref PlayerLanguage), the active language, English, the
+ * framework's English defaults for its own keys (`cmd.*`, `target.*`), then the key verbatim.
  */
 class Translations
 {
@@ -58,23 +57,38 @@ public:
     /** Language codes that were successfully loaded (one per JSON file). */
     std::vector<std::string> GetAvailableLanguages() const;
 
-    /** Set/clear a slot's preferred language. Empty (or cleared) means "use the active language". */
+    /** Where player languages live; must outlive this. Unset, they stay in this plugin. */
+    void UseSharedLanguages(PlayerLanguages& shared);
+
+    /** Set @p slot's language for every plugin. Empty means the active language. */
     void SetPlayerLanguage(int slot, std::string_view lang);
-    void ClearPlayerLanguage(int slot);
+
+    /** Empty means the active language. Valid until the next change. */
+    [[nodiscard]] std::string_view PlayerLanguage(int slot) const;
 
 private:
     // Engaged (possibly with an empty view) when lang/key is present, nullopt when it is absent.
     // A view, not a string, so a lookup on the per-frame menu path copies nothing; the tables and
     // the built-in defaults both outlive the call.
-    std::optional<std::string_view> LookupIn(const std::string& lang, const std::string& key) const;
+    std::optional<std::string_view> LookupIn(std::string_view lang, const std::string& key) const;
 
     // The whole lookup chain for @p slot short of the final fallback: nullopt means nothing
     // carries the key, which is what Get and GetOr answer differently.
     std::optional<std::string_view> Resolve(const std::string& key, int slot) const;
 
-    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> _translations;
+    // Looks up a std::string key by string_view without building a string.
+    struct LanguageHash
+    {
+        using is_transparent = void;
+        size_t operator()(std::string_view code) const { return std::hash<std::string_view>{}(code); }
+    };
+
+    std::unordered_map<std::string, std::unordered_map<std::string, std::string>, LanguageHash, std::equal_to<>>
+        _translations;
     std::string _activeLang = "en";
+    /** Used only when no shared table is set. */
     std::array<std::string, MaxPlayers> _playerLangs{};
+    PlayerLanguages* _shared = nullptr;
     /** Declared after _playerLangs so it unregisters before the entries its callback clears. */
     Subscription _slotListener;
 };

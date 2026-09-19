@@ -38,6 +38,11 @@ struct IHost
     /** True while any plugin, this one included, or the host holds @p name. */
     virtual bool IsCommandRegistered(std::string_view name) const = 0;
 
+    /** Empty when no plugin has set one. */
+    virtual std::string_view PlayerLanguage(int slot) const = 0;
+    /** For every plugin. Empty clears it, as does the slot changing hands. */
+    virtual void SetPlayerLanguage(int slot, std::string_view lang) = 0;
+
     /** Print one line under this plugin's `logTag`. @p level is a @ref LogLevel. */
     virtual void WriteLog(uint8_t level, std::string_view text) = 0;
     /** Lines below this are dropped; `volt log <name> <level>` changes it. */

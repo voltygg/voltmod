@@ -85,6 +85,9 @@ public:
         return true;
     }
 
+    std::string_view PlayerLanguage(int) const override { return {}; }
+    void SetPlayerLanguage(int, std::string_view) override {}
+
     bool IsCommandRegistered(std::string_view name) const override
     {
         const std::string asked(name);

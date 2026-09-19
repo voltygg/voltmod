@@ -13,7 +13,9 @@ What changed in each VoltMod release. Older history is in git.
 - `ServiceExchange::PublishNamed`, `UnpublishNamed` and `Find` are private; use `Publish<T>`,
   `Unpublish<T>` and `Get<T>`, with a key when one interface has several providers.
 - Chat commands take only the `!` prefix; `.ban` is plain chat now.
-- `HostAbiVersion` is 2: `IHost` gained `IsCommandRegistered`. Rebuild every plugin against this host.
+- `Translations::SetPlayerLanguage` sets the language for every plugin, through a table the host
+  keeps and clears when the slot changes hands. `ClearPlayerLanguage` is gone; set `""` instead.
+- `HostAbiVersion` is 2: `IHost` gained `IsCommandRegistered`, `PlayerLanguage` and `SetPlayerLanguage`. Rebuild every plugin against this host.
 - Panorama class names are BEM in kebab-case (`row`, `row__label`, `row--disabled`), in the blocks
   and in what `PanoramaMenuLayout` writes. `Screen::SetHidden` writes `hidden`. The icon family is
   `icon-set--<name>`, so the header spells `IconSetNames` instead of `IconNames`; family arrays are
@@ -33,6 +35,8 @@ What changed in each VoltMod release. Older history is in git.
 - The `menu` block takes optional `home` markup, and the screen gets `screen--home` while the root menu shows;
   `PanoramaMenuLayout::AddText` fills that markup's variables.
 - The Panorama menu hides its back button on the home page instead of labelling it `nav.root`.
+- `Translations::PlayerLanguage(slot)` reads the language a lookup uses.
+- `voltmod database tables` folds `ALTER TABLE t DROP COLUMN c;` into t's generated spec.
 
 ### Fixed
 

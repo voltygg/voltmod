@@ -69,7 +69,10 @@ static const std::unordered_map<std::string, std::string>& KitDefaults()
 Translations::Translations(SlotEvents& slots)
     // SlotEvents covers both arrival and departure; arrival happens before OnPlayerConnect sets
     // the language.
-    : _slotListener(slots.Changed += [this](int slot) { ClearPlayerLanguage(slot); })
+    : _slotListener(slots.Changed += [this](int slot) {
+          if (IsValidSlot(slot))
+              _playerLangs[slot].clear();
+      })
 {}
 
 bool Translations::Load(std::string_view dirPath)
@@ -165,23 +168,29 @@ std::vector<std::string> Translations::GetAvailableLanguages() const
     return langs;
 }
 
+void Translations::UseSharedLanguages(PlayerLanguages& shared)
+{
+    _shared = &shared;
+}
+
 void Translations::SetPlayerLanguage(int slot, std::string_view lang)
 {
-    if (IsValidSlot(slot))
-    {
+    if (!IsValidSlot(slot))
+        return;
+    if (_shared)
+        _shared->SetLanguage(slot, lang);
+    else
         _playerLangs[slot] = lang;
-    }
 }
 
-void Translations::ClearPlayerLanguage(int slot)
+std::string_view Translations::PlayerLanguage(int slot) const
 {
-    if (IsValidSlot(slot))
-    {
-        _playerLangs[slot].clear();
-    }
+    if (!IsValidSlot(slot))
+        return {};
+    return _shared ? _shared->Language(slot) : std::string_view(_playerLangs[slot]);
 }
 
-std::optional<std::string_view> Translations::LookupIn(const std::string& lang, const std::string& key) const
+std::optional<std::string_view> Translations::LookupIn(std::string_view lang, const std::string& key) const
 {
     auto langIt = _translations.find(lang);
     if (langIt != _translations.end())
@@ -200,11 +209,11 @@ std::string Translations::Get(std::string_view key) const
 
 std::optional<std::string_view> Translations::Resolve(const std::string& key, int slot) const
 {
-    const std::string& lang = (IsValidSlot(slot) && !_playerLangs[slot].empty()) ? _playerLangs[slot] : _activeLang;
-    static const std::string kEnglish = "en";
+    const std::string_view picked = PlayerLanguage(slot);
+    const std::string_view lang = picked.empty() ? std::string_view(_activeLang) : picked;
 
-    for (const std::string* candidate : {&lang, &_activeLang, &kEnglish})
-        if (auto v = LookupIn(*candidate, key))
+    for (const std::string_view candidate : {lang, std::string_view(_activeLang), std::string_view("en")})
+        if (auto v = LookupIn(candidate, key))
             return v;
 
     if (auto it = KitDefaults().find(key); it != KitDefaults().end())

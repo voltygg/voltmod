@@ -139,3 +139,22 @@ TEST_CASE("Removing a plugin that held nothing reports no leak")
     CHECK_FALSE(unreleased.Any());
     CHECK_FALSE(host.RemovePlugin("never-loaded").Any());
 }
+
+TEST_CASE("A language one plugin sets reaches the others until the slot changes hands")
+{
+    PluginHost host;
+    HostView* picker = host.AddPlugin("picker");
+    HostView* reader = host.AddPlugin("reader");
+    REQUIRE(picker != nullptr);
+    REQUIRE(reader != nullptr);
+
+    picker->SetPlayerLanguage(2, "ru");
+    CHECK(reader->PlayerLanguage(2) == "ru");
+
+    host.RaiseClientDisconnected(2);
+    CHECK(reader->PlayerLanguage(2).empty());
+
+    picker->SetPlayerLanguage(2, "ru");
+    host.RaiseClientConnected(2, 76561198000000000LL, "next", "10.0.0.3");
+    CHECK(reader->PlayerLanguage(2).empty());
+}

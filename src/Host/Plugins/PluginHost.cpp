@@ -66,6 +66,8 @@ void PluginHost::RaiseServerStartup(std::string_view mapName)
 
 void PluginHost::RaiseClientConnected(int slot, int64_t steamId, std::string_view name, std::string_view address)
 {
+    // First, so a pick a plugin restores on connect survives.
+    _state.Languages.Reset(slot);
     _state.ClientConnected.Dispatch([&](IHostEvents::ClientConnectedFn callback, void* context) {
         callback(context, slot, steamId, name, address);
         return false;
@@ -78,6 +80,7 @@ void PluginHost::RaiseClientDisconnected(int slot)
         callback(context, slot);
         return false;
     });
+    _state.Languages.Reset(slot);
 }
 
 void PluginHost::RaiseClientFullyConnected(int slot)
