@@ -4,6 +4,17 @@
 
 What changed in each VoltMod release. Older history is in git.
 
+## 1.5.3 (2026-09-19)
+
+### New
+
+- `voltmod database tables` folds `ALTER TABLE ... ADD COLUMN` into the generated table spec.
+
+### Fixed
+
+- Hiding a Panorama menu removes its `custom_hud_layout` entity, so a second menu (or another
+  plugin's) renders instead of showing only the cursor.
+
 ## 1.5.2 (2026-09-19)
 
 ### Breaking
@@ -26,15 +37,12 @@ What changed in each VoltMod release. Older history is in git.
 - The `menu` Panorama block and `PanoramaMenuLayout` draw a whole menu screen, with an optional
   home page; see the Panorama guide.
 - `ConVars::ExecuteClientCommand(slot, command)` runs a console command as a player.
-- `voltmod database tables` folds `ALTER TABLE ... ADD COLUMN` and `DROP COLUMN` into the
-  generated table spec.
+- `voltmod database tables` folds `ALTER TABLE ... DROP COLUMN` into the generated table spec.
 
 ### Fixed
 
 - A chat command reaches its plugin even when another plugin's `OnPlayerChat` consumes the line.
 - `voltmod panorama check` no longer reads a number in a top-level `@define` as a class name.
-- Hiding a Panorama menu removes its `custom_hud_layout` entity, so a second menu (or another
-  plugin's) renders instead of showing only the cursor.
 
 ## 1.5.1 (2026-09-18)
 
