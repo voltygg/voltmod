@@ -74,6 +74,25 @@ def test_a_second_render_writes_nothing(make_screen_project):
     assert render_screens(root, []) == []
 
 
+def test_a_removed_screen_and_icon_leave_nothing_rendered(make_screen_project):
+    root = make_screen_project(name="old", icons=("ak47", "m4a1"))
+    render_screens(root, [])
+    screens = root / "plugins/ui-lab/panorama/screens"
+    (screens / "old.xml.j2").unlink()
+    (screens / "old.css.j2").unlink()
+    (root / "plugins/ui-lab/panorama/images/custom_game/weapons/m4a1.png").unlink()
+    make_screen_project()
+
+    render_screens(root, [])
+
+    out = root / "build/panorama/ui-lab"
+    assert not (out / "panorama/layout/custom_game/old.xml").exists()
+    assert not (out / "panorama/styles/custom_game/old.css").exists()
+    assert not (out / "panorama/images/custom_game/weapons/m4a1.vtex").exists()
+    assert not (out / "include/Ui/Old.hpp").exists()
+    assert (out / "panorama/layout/custom_game/hud.xml").is_file()
+
+
 def test_a_screen_imports_a_template_another_plugin_ships(make_screen_project):
     root = make_screen_project(
         xml='{% import "@brand-kit/brand/logo.xml.j2" as brand %}<root><Panel id="{{screen}}">'

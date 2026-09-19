@@ -58,8 +58,10 @@ def compile_command(
         ),
     ] = True,
 ) -> None:
-    """Render, compile with the Workshop Tools, and install into your client."""
+    """Check, render, compile with the Workshop Tools, and install into your client."""
     project = Project.load()
+    if print_results(check_screens(project.root, owners)):
+        raise typer.Exit(1)
     render_screens(project.root, owners)
     client_path = client_path or project.settings.client_path
     compile_and_install(project.root, owners, client_path, addon, deploy)

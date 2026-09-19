@@ -109,7 +109,7 @@ def render_screens(
 
 
 def screen_header(screen: Screen, template_source: str) -> str:
-    """The C++ header naming @p screen's panels, variables, blocks and class families."""
+    """The C++ header naming `screen`'s panels, variables, blocks and class families."""
     return load_template("panorama/screen.hpp.j2").render(
         screen=screen,
         namespace=header_namespace(screen, template_source),
@@ -117,6 +117,36 @@ def screen_header(screen: Screen, template_source: str) -> str:
         pascal_case=pascal_case,
     )
 
+def _remove_stale(trees: list[Path], keep: set[Path]) -> list[Path]:
+    """Delete and return files under `trees` not in `keep`; the compiler would ship them."""
+    stale = [
+        path
+        for tree in trees
+        if tree.is_dir()
+        for path in tree.rglob("*")
+        if path.is_file() and path not in keep
+    ]
+    for path in stale:
+        path.unlink()
+    return stale
+
+
+def _template_loader(owner: ScreenOwner, owners: list[ScreenOwner]) -> ChoiceLoader:
+    """Screen-local, explicitly namespaced plugin, then bundled framework templates."""
+    plugin_templates = {
+        f"{PLUGIN_TEMPLATE_PREFIX}{candidate.name}": FileSystemLoader(
+            candidate.source / TEMPLATES_DIR, encoding="utf-8-sig"
+        )
+        for candidate in owners
+        if (candidate.source / TEMPLATES_DIR).is_dir()
+    }
+    return ChoiceLoader(
+        [
+            FileSystemLoader(owner.source / SCREENS_DIR, encoding="utf-8-sig"),
+            PrefixLoader(plugin_templates),
+            FileSystemLoader(BUNDLED_DIR / "panorama/blocks", encoding="utf-8-sig"),
+        ]
+    )
 
 class ScreenRenderer:
     """One owner's screens through one Jinja environment, so the block library compiles once."""
@@ -146,16 +176,19 @@ class ScreenRenderer:
         target = rendered_dir(root, self.owner, out)
         headers = header_dir(root, self.owner, out) / HEADERS_DIR
 
-        written: list[Path] = []
+        files: dict[Path, str | bytes] = {}
         for source in screen_sources(self.owner):
             name = screen_name(source)
             layout, stylesheet = self.render(name)
-            written += _write(target / "layout/custom_game" / f"{name}.xml", layout)
-            written += _write(target / "styles/custom_game" / f"{name}.css", stylesheet)
+            files[target / "layout/custom_game" / f"{name}.xml"] = layout
+            files[target / "styles/custom_game" / f"{name}.css"] = stylesheet
             screen = read_screen(layout, stylesheet, source)
             header = screen_header(screen, source.read_text(encoding="utf-8-sig"))
-            written += _write(headers / f"{pascal_case(name)}.hpp", header)
-        return written + self._write_icons(target)
+            files[headers / f"{pascal_case(name)}.hpp"] = header
+        files.update(self._icon_files(target))
+
+        written = [path for path, data in files.items() if write_if_changed(path, data)]
+        return written + _remove_stale([target, headers], set(files))
 
     def _render_template(self, template: str) -> str:
         try:
@@ -163,36 +196,14 @@ class ScreenRenderer:
         except TemplateError as error:
             raise VoltmodError(f"{self.owner.source / SCREENS_DIR / template}: {error}") from None
 
-    def _write_icons(self, target: Path) -> list[Path]:
+    def _icon_files(self, target: Path) -> dict[Path, str | bytes]:
         # resourcecompiler compiles the .vtex descriptor, which names the PNG beside it.
         descriptor = load_template("panorama/icon.vtex.j2")
-        written: list[Path] = []
+        files: dict[Path, str | bytes] = {}
         for icon_set, names in self.icons.items():
             for name in names:
                 png = target / IMAGES_DIR / icon_set / f"{name}.png"
                 source = f"panorama/{IMAGES_DIR}/{icon_set}/{name}.png"
-                written += _write(png, icon_path(self.owner, icon_set, name).read_bytes())
-                written += _write(png.with_suffix(".vtex"), descriptor.render(source=source))
-        return written
-
-
-def _write(path: Path, data: str | bytes) -> list[Path]:
-    return [path] if write_if_changed(path, data) else []
-
-
-def _template_loader(owner: ScreenOwner, owners: list[ScreenOwner]) -> ChoiceLoader:
-    """Screen-local, explicitly namespaced plugin, then bundled framework templates."""
-    plugin_templates = {
-        f"{PLUGIN_TEMPLATE_PREFIX}{candidate.name}": FileSystemLoader(
-            candidate.source / TEMPLATES_DIR, encoding="utf-8-sig"
-        )
-        for candidate in owners
-        if (candidate.source / TEMPLATES_DIR).is_dir()
-    }
-    return ChoiceLoader(
-        [
-            FileSystemLoader(owner.source / SCREENS_DIR, encoding="utf-8-sig"),
-            PrefixLoader(plugin_templates),
-            FileSystemLoader(BUNDLED_DIR / "panorama/blocks", encoding="utf-8-sig"),
-        ]
-    )
+                files[png] = icon_path(self.owner, icon_set, name).read_bytes()
+                files[png.with_suffix(".vtex")] = descriptor.render(source=source)
+        return files
