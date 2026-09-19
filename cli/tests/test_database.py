@@ -5,7 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from voltmod.database import DIALECTS, DRIVERS, render_migrations, resolve_placeholders
+from voltmod.database import (
+    DIALECTS,
+    DRIVERS,
+    apply_dropped_columns,
+    render_migrations,
+    resolve_placeholders,
+)
 from voltmod.errors import VoltmodError
 
 MIGRATOR_HPP = Path(__file__).resolve().parents[2] / "include/VoltMod/Database/Migrator.hpp"
@@ -66,3 +72,25 @@ def test_migrations_render_in_version_order(tmp_path: Path):
     rendered = render_migrations(tmp_path, "sqlite")
     assert rendered.index("TABLE a") < rendered.index("TABLE b")
     assert "ignored" not in rendered
+
+
+def test_a_dropped_column_leaves_its_create_table():
+    ddl = (
+        "CREATE TABLE IF NOT EXISTS admins (\n"
+        "  id BIGINT,\n"
+        "  language VARCHAR(5) NOT NULL DEFAULT 'en',\n"
+        "  name TEXT,\n"
+        "  last TEXT\n"
+        ");\n"
+        "ALTER TABLE admins DROP COLUMN language;\n"
+        "ALTER TABLE admins DROP COLUMN last;\n"
+    )
+    assert (
+        apply_dropped_columns(ddl)
+        == "CREATE TABLE IF NOT EXISTS admins (\n  id BIGINT,\n  name TEXT\n);\n"
+    )
+
+
+def test_dropping_a_column_the_table_lacks_is_refused():
+    with pytest.raises(VoltmodError):
+        apply_dropped_columns("CREATE TABLE t (\n  a INT\n);\nALTER TABLE t DROP COLUMN b;\n")
