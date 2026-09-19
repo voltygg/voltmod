@@ -73,11 +73,14 @@ public:
 
     virtual void SetHeader(int slot, const MenuHeader& header) = 0;
     virtual void SetSidebarVisible(int slot, bool visible) = 0;
+    /** Whether the root menu is showing, not a menu opened from it. */
+    virtual void SetHomePage(int slot, bool home) = 0;
     virtual void SetTab(int slot, int index, const MenuTab* tab) = 0;
     virtual void SetRow(int slot, int index, const MenuRow* row, std::string_view pendingHint) = 0;
     virtual void SetEmpty(int slot, std::string_view text) = 0;
     virtual void SetPager(int slot, std::string_view text) = 0;
     virtual void SetPrompt(int slot, std::string_view text, std::string_view hint) = 0;
+    /** An empty @p back hides the back button: the root has nothing to go back to. */
     virtual void SetFooter(int slot, std::string_view back, std::string_view cancel) = 0;
 
     /** The button a pressed id names, or nothing for an id outside this layout. */

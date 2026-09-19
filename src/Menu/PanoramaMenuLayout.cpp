@@ -1,6 +1,7 @@
 #include <VoltMod/Menu/PanoramaMenuLayout.hpp>
 #include <cstddef>
 #include <format>
+#include <utility>
 
 namespace VoltMod
 {
@@ -96,11 +97,19 @@ void PanoramaMenuLayout::SetHeader(int slot, const MenuHeader& header)
     Text(screen, slot, "title", header.Title);
     Text(screen, slot, "subtitle", header.Subtitle);
     Hidden(screen, slot, _subtitle, header.Subtitle.empty());
+
+    for (const ScreenText& text : _texts)
+        Text(screen, slot, text.Variable, text.Value(slot));
 }
 
 void PanoramaMenuLayout::SetSidebarVisible(int slot, bool visible)
 {
     Class(_screens.For(slot), slot, _root, "NoSidebar", !visible);
+}
+
+void PanoramaMenuLayout::SetHomePage(int slot, bool home)
+{
+    Class(_screens.For(slot), slot, _root, "HomePage", home);
 }
 
 void PanoramaMenuLayout::SetTab(int slot, int index, const MenuTab* tab)
@@ -172,7 +181,13 @@ void PanoramaMenuLayout::SetFooter(int slot, std::string_view back, std::string_
 {
     Screen& screen = _screens.For(slot);
     Text(screen, slot, "back", back);
+    Hidden(screen, slot, _back, back.empty());
     Text(screen, slot, "cancel", cancel);
+}
+
+void PanoramaMenuLayout::AddText(std::string variable, std::function<std::string(int slot)> text)
+{
+    _texts.push_back(ScreenText{.Variable = std::move(variable), .Value = std::move(text)});
 }
 
 std::optional<MenuButton> PanoramaMenuLayout::ButtonFor(std::string_view id) const

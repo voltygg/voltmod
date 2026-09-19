@@ -1,15 +1,12 @@
-{#- A whole menu screen that PanoramaMenuLayout draws, root panel included: the layout toggles
-    Hidden, NoSidebar and Prompting on the panel whose id is the screen name. Its ids are fixed, so
-    a screen passes only counts and the tab icon set, and the call body is the sidebar brand:
+{#- The whole menu screen PanoramaMenuLayout draws. The call body is the sidebar brand; `home` is
+    optional markup above the rows, and the screen's CSS shows it on `.HomePage`:
 
-    <root>
-      <styles>...</styles>
-      {% call blocks.menu(6, 8, ICONS) %}<Label class="Brand-title" text="{s:brand}" />{% endcall %}
-    </root> -#}
+    {% call blocks.menu(6, 8, ICONS) %}<Label class="Brand-title" text="{s:brand}" />{% endcall %} -#}
 {% import "button.xml.j2" as controls %}
 {% import "icons.xml.j2" as icon_block %}
 {% import "listrow.xml.j2" as list %}
-{% macro menu(tabs, rows, icons) -%}
+{% macro menu(tabs, rows, icons, home="") -%}
+
 <Panel class="Layer" hittest="false">
   <Panel id="{{screen}}" class="Screen Hidden" hittest="true">
     <Panel class="Window" hittest="true">
@@ -39,6 +36,12 @@
             <Image class="IconButton-image" src="s2r://panorama/images/icons/ui/cancel.vsvg" textureheight="32" hittest="false" />
           </Button>
         </Panel>
+
+        {%- if home %}
+        <Panel class="Home" hittest="true">
+          {{ home | indent(10) }}
+        </Panel>
+        {%- endif %}
 
         <Panel class="Rows" hittest="true">
           {%- for row in range(rows) %}

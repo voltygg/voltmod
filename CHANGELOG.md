@@ -14,6 +14,7 @@ What changed in each VoltMod release. Older history is in git.
   `Unpublish<T>` and `Get<T>`, with a key when one interface has several providers.
 - Chat commands take only the `!` prefix; `.ban` is plain chat now.
 - `HostAbiVersion` is 2: `IHost` gained `IsCommandRegistered`. Rebuild every plugin against this host.
+- `MenuLayout` gained `SetHomePage(slot, home)`; a custom layout must implement it.
 
 ### Added
 
@@ -25,6 +26,9 @@ What changed in each VoltMod release. Older history is in git.
 - Keyed `ServiceExchange::Publish<T>(impl, key)`, `Unpublish<T>(key)` and `Get<T>(key)`, for
   several providers of one interface.
 - `Runtime::PanoramaMenuServices()`, and `PanoramaMenuSettings` for a plugin's "menu" settings section.
+- The `menu` block takes optional `home` markup, and the screen gets `HomePage` while the root menu shows;
+  `PanoramaMenuLayout::AddText` fills that markup's variables.
+- The Panorama menu hides its back button on the home page instead of labelling it `nav.root`.
 
 ### Fixed
 

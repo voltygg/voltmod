@@ -305,6 +305,11 @@ class of its own:
 VoltMod::PanoramaMenuLayout _layout{runtime.Screens, MainMenuLayout::Layout, MainMenuLayout::Tabs.size(), MainMenuLayout::Rows.size(),  MainMenuLayout::IconNames};
 ```
 
+A screen can pass the block `home` markup, such as a welcome panel. The screen panel has the
+`HomePage` class while the root menu shows, so the screen's CSS decides when to swap it for the
+rows. `_layout.AddText("home_title", ...)` fills a `{s:home_title}` in that markup, and a Button in
+it arrives on `runtime.Screens.Pressed` for the plugin to handle.
+
 A third surface is a class implementing @ref VoltMod::MenuSurface that holds a
 @ref VoltMod::MenuStack and forwards to it. The stack owns everything that does not depend on how a
 menu is drawn: the open menus, the breadcrumb, `Describe`, `Activate`, `Step`, and the held commit.

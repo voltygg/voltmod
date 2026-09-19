@@ -5,6 +5,7 @@
 #include <VoltMod/Ui/PlayerScreens.hpp>
 #include <VoltMod/Ui/ScreenManager.hpp>
 #include <cstddef>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string>
@@ -35,6 +36,7 @@ public:
 
     void SetHeader(int slot, const MenuHeader& header) override;
     void SetSidebarVisible(int slot, bool visible) override;
+    void SetHomePage(int slot, bool home) override;
     void SetTab(int slot, int index, const MenuTab* tab) override;
     void SetRow(int slot, int index, const MenuRow* row, std::string_view pendingHint) override;
     void SetEmpty(int slot, std::string_view text) override;
@@ -43,6 +45,10 @@ public:
     void SetFooter(int slot, std::string_view back, std::string_view cancel) override;
 
     [[nodiscard]] std::optional<MenuButton> ButtonFor(std::string_view id) const override;
+
+    /** Fills `{s:<variable>}` in markup the screen adds itself, such as its `home` panel. Written
+     *  with every header, so it outlives a respawned screen. */
+    void AddText(std::string variable, std::function<std::string(int slot)> text);
 
 private:
     struct TabIds
@@ -61,6 +67,12 @@ private:
         std::string LabelVar;
         std::string HintVar;
         std::string ValueVar;
+    };
+
+    struct ScreenText
+    {
+        std::string Variable;
+        std::function<std::string(int slot)> Value;
     };
 
     struct Icon
@@ -83,6 +95,7 @@ private:
     std::vector<TabIds> _tabs;
     std::vector<RowIds> _rows;
     std::vector<Icon> _icons;
+    std::vector<ScreenText> _texts;
 };
 
 }  // namespace VoltMod

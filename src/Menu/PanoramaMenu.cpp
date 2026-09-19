@@ -155,12 +155,13 @@ void PanoramaMenu::Draw(int slot)
                              .Breadcrumb = _stack.Breadcrumb(slot),
                              .Title = menu->Title,
                              .Subtitle = menu != &root ? std::string_view(menu->Subtitle) : std::string_view{}});
+    _layout.SetHomePage(slot, menu == &root);
     DrawTabs(slot);
     DrawRows(slot, *menu);
     DrawPrompt(slot);
 
     const bool deep = _stack.Depth(slot) > 1;
-    _layout.SetFooter(slot, Translate(slot, deep ? "nav.back" : "nav.root", deep ? "Back" : "Main"),
+    _layout.SetFooter(slot, deep ? Translate(slot, "nav.back", "Back") : std::string{},
                       Translate(slot, "menu.cancel", "Cancel"));
 }
 
