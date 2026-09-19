@@ -33,6 +33,8 @@ What changed in each VoltMod release. Older history is in git.
 
 - A chat command reaches its plugin even when another plugin's `OnPlayerChat` consumes the line.
 - `voltmod panorama check` no longer reads a number in a top-level `@define` as a class name.
+- Hiding a Panorama menu removes its `custom_hud_layout` entity, so a second menu (or another
+  plugin's) renders instead of showing only the cursor.
 
 ## 1.5.1 (2026-09-18)
 

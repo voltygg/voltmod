@@ -84,8 +84,9 @@ void PanoramaMenuLayout::Hide(int slot)
     if (!screen || !*screen)
         return;
 
+    // Clients draw only their first custom_hud_layout, so a hidden one would block the next menu.
     Cursor(*screen, slot, false);
-    Hidden(*screen, slot, _root, true);
+    screen->Remove();
 }
 
 void PanoramaMenuLayout::SetHeader(int slot, const MenuHeader& header)
