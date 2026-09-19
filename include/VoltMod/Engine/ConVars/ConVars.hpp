@@ -130,6 +130,10 @@ public:
     /** Queue a server console line. Returns Error::NotReady when IVEngineServer2 is unavailable. */
     Status ExecuteServerCommand(std::string_view command);
 
+    /** Run one console command as player @p slot, server-side and without a chat echo; plugins
+     *  hooking ISource2GameClients::ClientCommand see it. Refuses `;` and newlines. */
+    Status ExecuteClientCommand(int slot, std::string_view command);
+
     /**
      * @brief Assign a convar over the console, quoting the value.
      *

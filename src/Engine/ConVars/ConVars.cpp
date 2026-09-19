@@ -4,6 +4,7 @@
 #include <VoltMod/Engine/ConVars/ConVars.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/Net/RecipientFilter.hpp>
+#include <eiface.h>
 #include <engine/igameeventsystem.h>
 #include <format>
 #include <icvar.h>
@@ -72,6 +73,29 @@ Status ConVars::ExecuteServerCommand(std::string_view command)
         line.push_back('\n');
 
     engine->ServerCommand(line.c_str());
+    return {};
+}
+
+Status ConVars::ExecuteClientCommand(int slot, std::string_view command)
+{
+    auto* cvar = _interfaces.CVar;
+    auto* clients = _interfaces.ServerGameClients;
+    if (!cvar || !clients)
+        return std::unexpected(Error::NotReady("ICvar or ISource2GameClients is not available"));
+    if (!IsValidSlot(slot))
+        return std::unexpected(Error::Invalid(std::format("slot {} is not a player slot", slot)));
+    if (command.empty() || command.find_first_of(";\r\n") != std::string_view::npos)
+        return std::unexpected(Error::Invalid("a client command must be one non-empty command"));
+
+    CCommand args;
+    if (!args.Tokenize(CUtlString(std::string(command).c_str())) || args.ArgC() == 0)
+        return std::unexpected(Error::Invalid(std::format("cannot tokenize '{}'", command)));
+
+    ConCommandRef registered = cvar->FindConCommand(args.Arg(0));
+    if (registered.IsValidRef())
+        cvar->DispatchConCommand(registered, CCommandContext(CT_FIRST_SPLITSCREEN_CLIENT, CPlayerSlot(slot)), args);
+    else
+        clients->ClientCommand(CPlayerSlot(slot), args);
     return {};
 }
 

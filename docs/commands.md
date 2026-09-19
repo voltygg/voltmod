@@ -135,6 +135,9 @@ caller: `c.Player` is null, `c.Slot` is -1, permissions are skipped (the console
 and caller-relative selectors such as `@me` match nobody. Put an operator command with no
 permission on `ConsoleOnly()`.
 
+To run another plugin's console command as a player, use
+`runtime.ConVars.ExecuteClientCommand(slot, "mm_lvl")`. Nothing is echoed to chat.
+
 ## Chat dispatch and quoting
 
 The default `OnPlayerChat` sends `!` and `.` messages through `HandleChatMessage`; unknown names
