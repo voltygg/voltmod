@@ -3,7 +3,14 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from jinja2 import ChoiceLoader, Environment, FileSystemLoader, StrictUndefined, TemplateError
+from jinja2 import (
+    ChoiceLoader,
+    Environment,
+    FileSystemLoader,
+    PrefixLoader,
+    StrictUndefined,
+    TemplateError,
+)
 
 from voltmod.errors import VoltmodError
 from voltmod.files import write_if_changed
@@ -23,6 +30,7 @@ HEADERS_DIR = "Ui"
 IMAGES_DIR = "images/custom_game"
 LAYOUT_SUFFIX = ".xml.j2"
 STYLESHEET_SUFFIX = ".css.j2"
+PLUGIN_TEMPLATE_PREFIX = "@"
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,16 +59,6 @@ def screen_owners(root: Path, names: list[str] | None = None) -> list[ScreenOwne
             f"no panorama sources for {', '.join(unknown)}\nKnown: {', '.join(known) or 'none'}"
         )
     return [found[name] for name in names]
-
-
-def template_dirs(owner: ScreenOwner, owners: list[ScreenOwner]) -> list[Path]:
-    """Import paths after the owner's screens: its own templates/, then every other plugin's."""
-    others = [other for other in owners if other.name != owner.name]
-    return [
-        candidate.source / TEMPLATES_DIR
-        for candidate in [owner, *others]
-        if (candidate.source / TEMPLATES_DIR).is_dir()
-    ]
 
 
 def rendered_dir(root: Path, owner: ScreenOwner, out: Path | None = None) -> Path:
@@ -128,16 +126,7 @@ class ScreenRenderer:
         self.icons = icon_sets(owner)
         # No trimming or escaping: layouts and stylesheets come out exactly as written.
         self.environment = Environment(
-            loader=ChoiceLoader(
-                [
-                    FileSystemLoader(owner.source / SCREENS_DIR, encoding="utf-8-sig"),
-                    *(
-                        FileSystemLoader(directory, encoding="utf-8-sig")
-                        for directory in template_dirs(owner, owners)
-                    ),
-                    FileSystemLoader(BUNDLED_DIR / "panorama/blocks", encoding="utf-8-sig"),
-                ]
-            ),
+            loader=_template_loader(owner, owners),
             undefined=StrictUndefined,
             keep_trailing_newline=True,
             autoescape=False,
@@ -189,3 +178,21 @@ class ScreenRenderer:
 
 def _write(path: Path, data: str | bytes) -> list[Path]:
     return [path] if write_if_changed(path, data) else []
+
+
+def _template_loader(owner: ScreenOwner, owners: list[ScreenOwner]) -> ChoiceLoader:
+    """Screen-local, explicitly namespaced plugin, then bundled framework templates."""
+    plugin_templates = {
+        f"{PLUGIN_TEMPLATE_PREFIX}{candidate.name}": FileSystemLoader(
+            candidate.source / TEMPLATES_DIR, encoding="utf-8-sig"
+        )
+        for candidate in owners
+        if (candidate.source / TEMPLATES_DIR).is_dir()
+    }
+    return ChoiceLoader(
+        [
+            FileSystemLoader(owner.source / SCREENS_DIR, encoding="utf-8-sig"),
+            PrefixLoader(plugin_templates),
+            FileSystemLoader(BUNDLED_DIR / "panorama/blocks", encoding="utf-8-sig"),
+        ]
+    )

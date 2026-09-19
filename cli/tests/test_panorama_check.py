@@ -45,6 +45,7 @@ RULES = [
         "nested inside another Button",
     ),
     (screen('<Panel id="{{screen}}_row" />\n<Panel id="{{screen}}_row" />'), "used more than once"),
+    (screen("").replace('id="{{screen}}"', 'id="other"'), "does not match source name 'hud'"),
     (screen('<Panel id="other" />'), "does not start with"),
     (
         SCREEN.replace("{{screen}}.css", "wrong.css").replace("BODY", ""),

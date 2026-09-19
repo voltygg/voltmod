@@ -17,7 +17,7 @@ What changed in each VoltMod release. Older history is in git.
   chat echo.
 - The `menu` Panorama block, a whole menu screen, and `VoltMod::PanoramaMenuLayout`, which draws it.
 - `ToItem()` on menu row specs is `const` instead of `&&`.
-- A plugin's `panorama/templates/` is importable from every plugin's screens.
+- A plugin's `panorama/templates/` is importable from every plugin's screens through its namespace.
 - Keyed `ServiceExchange::Publish<T>(impl, key)`, `Unpublish<T>(key)` and `Get<T>(key)`, for
   several providers of one interface.
 - `Runtime::PanoramaMenuServices()`, and `PanoramaMenuSettings` for a plugin's "menu" settings section.

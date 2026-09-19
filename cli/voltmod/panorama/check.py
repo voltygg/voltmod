@@ -75,7 +75,7 @@ def _check_screen(
         problems
         + _check_elements(screen, source)
         + _check_buttons(screen, source)
-        + _check_ids(screen, source)
+        + _check_ids(screen, name, source)
         + _check_cpp_names(screen, source)
         + _check_stylesheet_include(screen, name, source)
         + _check_images(owner, screen, source)
@@ -107,12 +107,16 @@ def _check_buttons(screen: Screen, source: Path) -> list[str]:
     return problems
 
 
-def _check_ids(screen: Screen, source: Path) -> list[str]:
+def _check_ids(screen: Screen, expected_name: str, source: Path) -> list[str]:
     """An id names the screen or starts with its name, and never repeats."""
     if not screen.name:
         return [f"{source}: no element carries an id, so there is nothing to name the screen"]
 
     problems: list[str] = []
+    if screen.name != expected_name:
+        problems.append(
+            f"{source}: screen id '{screen.name}' does not match source name '{expected_name}'"
+        )
     seen: set[str] = set()
     for identifier in screen.ids:
         if identifier in seen:

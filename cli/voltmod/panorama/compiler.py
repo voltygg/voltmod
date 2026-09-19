@@ -32,7 +32,7 @@ def compile_and_install(
     print(f"Client:  {client}")
     print(f"Addon:   csgo_addons/{addon}")
 
-    # One compiler launch for every owner: its startup dominates a run this size.
+    # Stage each owner separately for useful output, then compile them in one launch.
     staged_by_owner: list[tuple[str, list[Path]]] = []
     for owner in screen_owners(root, names):
         rendered = rendered_dir(root, owner)

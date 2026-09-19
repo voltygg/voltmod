@@ -76,7 +76,7 @@ def test_a_second_render_writes_nothing(make_screen_project):
 
 def test_a_screen_imports_a_template_another_plugin_ships(make_screen_project):
     root = make_screen_project(
-        xml='{% import "brand/logo.xml.j2" as brand %}<root><Panel id="{{screen}}">'
+        xml='{% import "@brand-kit/brand/logo.xml.j2" as brand %}<root><Panel id="{{screen}}">'
         "{{ brand.logo() }}</Panel></root>",
         css="",
     )
@@ -92,6 +92,22 @@ def test_a_screen_imports_a_template_another_plugin_ships(make_screen_project):
         encoding="utf-8"
     )
     assert '<Label text="MEAT" />' in xml
+
+
+def test_plugin_templates_are_not_found_through_an_ambiguous_bare_path(make_screen_project):
+    root = make_screen_project(
+        xml='{% import "brand/logo.xml.j2" as brand %}<root><Panel id="{{screen}}">'
+        "{{ brand.logo() }}</Panel></root>",
+        css="",
+    )
+    templates = root / "plugins/brand-kit/panorama/templates/brand"
+    templates.mkdir(parents=True)
+    (templates / "logo.xml.j2").write_text(
+        '{% macro logo() %}<Label text="MEAT" />{% endmacro %}', encoding="utf-8"
+    )
+
+    with pytest.raises(VoltmodError, match="brand/logo.xml.j2"):
+        render_screens(root, ["ui-lab"])
 
 
 def test_the_menu_block_draws_the_ids_panorama_menu_screen_writes(make_screen_project):

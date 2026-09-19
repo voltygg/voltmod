@@ -59,8 +59,16 @@ header's C++ namespace; without it the namespace is `Screens::<Pascal>` (`hud.xm
 `Screens::Hud`).
 
 Templates several plugins share go in one plugin's `panorama/templates/`, under a folder named for
-the kit (`templates/brand/...`). An import searches the screen's `screens/`, its plugin's
-`templates/`, every other plugin's `templates/`, then the block library.
+the kit (`templates/brand/...`). Import one through its explicit `@<plugin>/` namespace:
+
+```jinja
+{% import "@brand-kit/brand/logo.xml.j2" as brand %}
+```
+
+Here `@brand-kit/brand/logo.xml.j2` resolves only to
+`plugins/brand-kit/panorama/templates/brand/logo.xml.j2`. Bare names resolve against the screen's
+own `screens/` tree and then the framework block library; plugin template directories are never
+merged into that search path.
 
 ## Theme tokens
 
