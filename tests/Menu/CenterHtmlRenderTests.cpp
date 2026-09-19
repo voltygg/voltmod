@@ -1,5 +1,5 @@
-#include "Host/Plugins/LanguageTable.hpp"
 #include "Menu/CenterHtmlRender.hpp"
+#include "Support/TestLanguages.hpp"
 
 #include <VoltMod/Core/Text/Translations.hpp>
 #include <VoltMod/Menu/Menu.hpp>
@@ -13,7 +13,6 @@ using VoltMod::ButtonRow;
 using VoltMod::CenterHtmlRowsPerPage;
 using VoltMod::CenterHtmlView;
 using VoltMod::ChoiceRow;
-using VoltMod::LanguageTable;
 using VoltMod::Menu;
 using VoltMod::MenuBuilder;
 using VoltMod::MenuRow;
@@ -23,6 +22,7 @@ using VoltMod::RenderHeader;
 using VoltMod::RenderMenuHtml;
 using VoltMod::ToggleRow;
 using VoltMod::Translations;
+using VoltModTests::TestLanguages;
 
 // The manager fills Pending and Changed before a driver draws a row; here the rows describe
 // themselves and nothing is pending, which is what an untouched menu looks like.
@@ -68,7 +68,7 @@ TEST_CASE("CenterHtmlRender: the breadcrumb draws ahead of the title, and the ro
 
 TEST_CASE("CenterHtmlRender: RenderMenuHtml marks the selected row and dims disabled rows")
 {
-    LanguageTable languages;
+    TestLanguages languages;
     Translations translations{languages};
 
     auto menu = MenuBuilder("Test Menu")
@@ -86,7 +86,7 @@ TEST_CASE("CenterHtmlRender: RenderMenuHtml marks the selected row and dims disa
 
 TEST_CASE("CenterHtmlRender: a non-selectable Text row renders without a cursor")
 {
-    LanguageTable languages;
+    TestLanguages languages;
     Translations translations{languages};
 
     auto menu = MenuBuilder("Test Menu").Text("Just a heading").Button("Pick me", [](int) {}).Build();
@@ -101,7 +101,7 @@ TEST_CASE("CenterHtmlRender: a non-selectable Text row renders without a cursor"
 
 TEST_CASE("CenterHtmlRender: an empty menu says so instead of drawing a bare header")
 {
-    LanguageTable languages;
+    TestLanguages languages;
     Translations translations{languages};
 
     auto menu = MenuBuilder("Test Menu").Build();
@@ -111,7 +111,7 @@ TEST_CASE("CenterHtmlRender: an empty menu says so instead of drawing a bare hea
 
 TEST_CASE("CenterHtmlRender: pagination footer appears only once a menu spans multiple pages")
 {
-    LanguageTable languages;
+    TestLanguages languages;
     Translations translations{languages};
 
     MenuBuilder builder("Multi-row Menu");
@@ -132,7 +132,7 @@ TEST_CASE("CenterHtmlRender: pagination footer appears only once a menu spans mu
 
 TEST_CASE("CenterHtmlRender: a submenu shows the Back hint, a root menu shows Close")
 {
-    LanguageTable languages;
+    TestLanguages languages;
     Translations translations{languages};
 
     auto menu = MenuBuilder("Test Menu").Button("Row", [](int) {}).Build();
@@ -143,7 +143,7 @@ TEST_CASE("CenterHtmlRender: a submenu shows the Back hint, a root menu shows Cl
 
 TEST_CASE("CenterHtmlRender: a toggle draws its value as a switch")
 {
-    LanguageTable languages;
+    TestLanguages languages;
     Translations translations{languages};
 
     auto menu = MenuBuilder("Test Menu").Add(ToggleRow{.Label = "Prefix", .Get = [](int) { return true; }}).Build();
@@ -163,7 +163,7 @@ TEST_CASE("CenterHtmlRender: a toggle draws its value as a switch")
 
 TEST_CASE("CenterHtmlRender: a choice row keeps the arrows that say A and D change it")
 {
-    LanguageTable languages;
+    TestLanguages languages;
     Translations translations{languages};
 
     auto menu = MenuBuilder("Test Menu").Add(ChoiceRow<int>{.Label = "Speed", .Choices = {{"100%", 100}}}).Build();
@@ -174,7 +174,7 @@ TEST_CASE("CenterHtmlRender: a choice row keeps the arrows that say A and D chan
 
 TEST_CASE("CenterHtmlRender: a pending row trails an ellipsis and a changed row a star")
 {
-    LanguageTable languages;
+    TestLanguages languages;
     Translations translations{languages};
 
     auto menu = MenuBuilder("Test Menu").Add(ChoiceRow<int>{.Label = "HP", .Choices = {{"150 HP", 150}}}).Build();
@@ -194,7 +194,7 @@ TEST_CASE("CenterHtmlRender: a pending row trails an ellipsis and a changed row 
 
 TEST_CASE("CenterHtmlRender: row text is escaped, so a player name cannot inject markup")
 {
-    LanguageTable languages;
+    TestLanguages languages;
     Translations translations{languages};
 
     auto menu = MenuBuilder("Test Menu").Button("<b>Bold</b> & Co", [](int) {}).Build();

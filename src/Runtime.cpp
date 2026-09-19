@@ -23,7 +23,7 @@
 namespace VoltMod
 {
 
-Runtime::Runtime(PlayerLanguages& languages) : Translations(languages) {}
+Runtime::Runtime(IHostLanguages& languages) : _languages(languages) {}
 
 Runtime::~Runtime()
 {

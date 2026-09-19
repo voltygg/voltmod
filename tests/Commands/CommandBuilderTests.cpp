@@ -1,4 +1,4 @@
-#include "Host/Plugins/LanguageTable.hpp"
+#include "Support/TestLanguages.hpp"
 
 #include <VoltMod/Commands/CommandBuilder.hpp>
 #include <doctest/doctest.h>
@@ -11,10 +11,10 @@ using VoltMod::Caller;
 using VoltMod::CommandBuilder;
 using VoltMod::CommandDefinition;
 using VoltMod::CommandSignature;
-using VoltMod::LanguageTable;
 using VoltMod::Reply;
 using VoltMod::Result;
 using VoltMod::Translations;
+using VoltModTests::TestLanguages;
 
 namespace Args = VoltMod::Args;
 
@@ -121,7 +121,7 @@ TEST_CASE("The trampoline unpacks bound arguments back into the parameter list")
                         (note.Value ? note.Value->Value : std::string("-")));
         });
 
-    LanguageTable languages;
+    TestLanguages languages;
     Translations texts{languages};
     const Caller caller{.Player = nullptr, .Slot = -1, .Tr = texts, .Send = {}};
 
@@ -146,7 +146,7 @@ TEST_CASE("Run installs the command and hands nothing back")
 
 TEST_CASE("Caller Fail is a failure carrying both the key and the localized line")
 {
-    LanguageTable languages;
+    TestLanguages languages;
     Translations texts{languages};
     std::vector<std::string> lines;
     const Caller caller{

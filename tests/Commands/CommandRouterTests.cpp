@@ -1,6 +1,6 @@
 #include "Commands/CommandRouter.hpp"
 #include "Commands/CommandSyntax.hpp"
-#include "Host/Plugins/LanguageTable.hpp"
+#include "Support/TestLanguages.hpp"
 
 #include <VoltMod/Core/Slots/SlotEvents.hpp>
 #include <VoltMod/Host/IHost.hpp>
@@ -21,7 +21,6 @@ using VoltMod::BoundArg;
 using VoltMod::Caller;
 using VoltMod::CommandDefinition;
 using VoltMod::CommandRouter;
-using VoltMod::LanguageTable;
 using VoltMod::Origin;
 using VoltMod::Player;
 using VoltMod::PlayerManager;
@@ -33,6 +32,7 @@ using VoltMod::TargetError;
 using VoltMod::TargetFailure;
 using VoltMod::TargetRules;
 using VoltMod::Translations;
+using VoltModTests::TestLanguages;
 
 namespace CommandSyntax = VoltMod::CommandSyntax;
 
@@ -72,7 +72,7 @@ public:
     KHook::IKHook* HookDispatcher() const override { return nullptr; }
     VoltMod::IHostEvents& Events() override { std::abort(); }
     VoltMod::IHostServices& Services() override { std::abort(); }
-    VoltMod::PlayerLanguages& Languages() override { std::abort(); }
+    VoltMod::IHostLanguages& Languages() override { std::abort(); }
     VoltMod::IHostGameData* GameData() const override { return nullptr; }
     void WriteLog(uint8_t, std::string_view) override {}
     uint8_t MinLogLevel() const override { return 0; }
@@ -101,7 +101,7 @@ struct Fixture
     SlotEvents Slots;
     PlayerManager Players{Slots, nullptr};
     Policy Rules{Players};
-    LanguageTable Languages;
+    TestLanguages Languages;
     Translations Texts{Languages};
     CommandRouter Router{Rules, Texts};
     StubBinder Binder;

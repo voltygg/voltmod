@@ -1,9 +1,9 @@
 #pragma once
 
-#include <VoltMod/Core/Text/PlayerLanguages.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Host/IHostEvents.hpp>
 #include <VoltMod/Host/IHostGameData.hpp>
+#include <VoltMod/Host/IHostLanguages.hpp>
 #include <VoltMod/Host/IHostServices.hpp>
 #include <cstdint>
 #include <string_view>
@@ -31,7 +31,7 @@ struct IHost
 
     virtual IHostEvents& Events() = 0;
     virtual IHostServices& Services() = 0;
-    virtual PlayerLanguages& Languages() = 0;
+    virtual IHostLanguages& Languages() = 0;
     /** Null when the host resolved no gamedata. */
     virtual IHostGameData* GameData() const = 0;
 
