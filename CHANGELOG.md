@@ -4,49 +4,33 @@
 
 What changed in each VoltMod release. Older history is in git.
 
-## Unreleased
+## 1.5.2 (2026-09-19)
 
 ### Breaking
 
-- `voltmod modgraph --plugins <path>` is now `voltmod lint [path]`; `modgraph` only checks the
-  framework checkout.
-- `ServiceExchange::PublishNamed`, `UnpublishNamed` and `Find` are private; use `Publish<T>`,
-  `Unpublish<T>` and `Get<T>`, with a key when one interface has several providers.
+- Rebuild every plugin together with the host: `HostAbiVersion` is 2.
 - Chat commands take only the `!` prefix; `.ban` is plain chat now.
-- `Translations::SetPlayerLanguage` sets the language for every plugin, through a table the host
-  keeps and clears when the slot changes hands. `ClearPlayerLanguage` is gone; set `""` instead.
-  `Translations` takes a `PlayerLanguages&` instead of `SlotEvents&`.
-- `HostAbiVersion` is 2: `IHost` gained `IsCommandRegistered` and `Languages()`. Rebuild every plugin against this host.
-- `ChoiceRow<T>::Choices`, `ChatColors::PaletteChoices`, `DurationMenu::Presets` and the `Flow` duration and
-  options steps hold `Labeled<T>{.Label, .Value}` instead of pairs; brace lists such as `{{"1 HP", 1}}` still work.
-- `Tokens` lives in `Core/Text/Strings.hpp`, and every token-substituting call takes it.
-- Panorama class names are BEM in kebab-case (`row`, `row__label`, `row--disabled`), in the blocks
-  and in what `PanoramaMenuLayout` writes. `Screen::SetHidden` writes `hidden`. The icon family is
-  `icon-set--<name>`, so the header spells `IconSetNames` instead of `IconNames`; family arrays are
-  named in PascalCase from the kebab prefix. The toast starts `hidden` instead of waiting for `Show`.
-  Re-render screens and republish their addon together with the server build.
+- Run `voltmod lint [path]` in place of `voltmod modgraph --plugins <path>`.
+- Use `ServiceExchange::Publish<T>`, `Unpublish<T>` and `Get<T>` in place of `PublishNamed`,
+  `UnpublishNamed` and `Find`; pass a key when one interface has several providers.
+- `Translations::SetPlayerLanguage` now sets the language for every plugin; call it with `""`
+  where you called `ClearPlayerLanguage`.
+- Read `.Label` and `.Value` where you read `.first` and `.second` on `ChoiceRow::Choices`,
+  `DurationMenu::Presets`, the `Flow` step lists and `ChatColors::PaletteChoices`; brace lists
+  such as `{{"1 HP", 1}}` still compile.
+- Re-render your Panorama screens and republish their addon with the server build: classes are
+  BEM kebab-case (`row__label`) and `IconNames` is `IconSetNames`.
 
-### Added
+### New
 
-- `ConVars::ExecuteClientCommand(slot, command)` runs a console command as a player, without a
-  chat echo.
-- The `menu` Panorama block, a whole menu screen, and `VoltMod::PanoramaMenuLayout`, which draws it.
-- `ToItem()` on menu row specs is `const` instead of `&&`.
-- A plugin's `panorama/templates/` is importable from every plugin's screens through its namespace.
-- Keyed `ServiceExchange::Publish<T>(impl, key)`, `Unpublish<T>(key)` and `Get<T>(key)`, for
-  several providers of one interface.
-- `Runtime::PanoramaMenuServices()`, and `PanoramaMenuSettings` for a plugin's "menu" settings section.
-- The `menu` block takes optional `home` markup, and the screen gets `screen--home` while the root menu shows;
-  `PanoramaMenuLayout::AddText` fills that markup's variables. Without `home` markup the root menu keeps its rows.
-- The Panorama menu hides its back button on the home page instead of labelling it `nav.root`.
-- `Translations::PlayerLanguage(slot)` reads the language a lookup uses.
-- `StringMap<V>` in `Core/Text/StringMap.hpp`, a string-keyed map that looks up a `std::string_view` without a copy.
-- `voltmod database tables` folds `ALTER TABLE t DROP COLUMN c;` into t's generated spec.
+- The `menu` Panorama block and `PanoramaMenuLayout` draw a whole menu screen, with an optional
+  home page; see the Panorama guide.
+- `ConVars::ExecuteClientCommand(slot, command)` runs a console command as a player.
+- `voltmod database tables` folds `ALTER TABLE ... DROP COLUMN` into the generated table spec.
 
 ### Fixed
 
-- A chat command reaches the plugin that registered it even when an earlier plugin's
-  `OnPlayerChat` would consume the line, such as admin-chat tagging swallowing `!m`.
+- A chat command reaches its plugin even when another plugin's `OnPlayerChat` consumes the line.
 - `voltmod panorama check` no longer reads a number in a top-level `@define` as a class name.
 
 ## 1.5.1 (2026-09-18)
