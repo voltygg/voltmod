@@ -36,6 +36,7 @@ struct MenuHeader
     std::string_view Breadcrumb;
     std::string_view Title;
     std::string_view Subtitle;
+    bool IsRoot = false;
 };
 
 /** One sidebar tab as drawn. */
@@ -73,8 +74,6 @@ public:
 
     virtual void SetHeader(int slot, const MenuHeader& header) = 0;
     virtual void SetSidebarVisible(int slot, bool visible) = 0;
-    /** Whether the root menu is showing, not a menu opened from it. */
-    virtual void SetHomePage(int slot, bool home) = 0;
     virtual void SetTab(int slot, int index, const MenuTab* tab) = 0;
     virtual void SetRow(int slot, int index, const MenuRow* row, std::string_view pendingHint) = 0;
     virtual void SetEmpty(int slot, std::string_view text) = 0;

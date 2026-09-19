@@ -1,12 +1,11 @@
 {#- The whole menu screen PanoramaMenuLayout draws. The call body is the sidebar brand; `home` is
-    optional markup above the rows, and the screen's CSS shows it on `.HomePage`:
+    optional markup that replaces the rows on the root menu:
 
     {% call blocks.menu(6, 8, ICONS) %}<Label class="Brand-title" text="{s:brand}" />{% endcall %} -#}
 {% import "button.xml.j2" as controls %}
 {% import "icons.xml.j2" as icon_block %}
 {% import "listrow.xml.j2" as list %}
 {% macro menu(tabs, rows, icons, home="") -%}
-
 <Panel class="Layer" hittest="false">
   <Panel id="{{screen}}" class="Screen Hidden" hittest="true">
     <Panel class="Window" hittest="true">

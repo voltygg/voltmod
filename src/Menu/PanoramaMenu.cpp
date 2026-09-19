@@ -150,18 +150,18 @@ void PanoramaMenu::Draw(int slot)
 
     // The root subtitle already appears below the brand.
     const Menu& root = *_stack.Root(slot);
+    const bool isRoot = menu == &root;
     _layout.SetHeader(slot, {.Brand = root.Title,
                              .BrandSubtitle = root.Subtitle,
                              .Breadcrumb = _stack.Breadcrumb(slot),
                              .Title = menu->Title,
-                             .Subtitle = menu != &root ? std::string_view(menu->Subtitle) : std::string_view{}});
-    _layout.SetHomePage(slot, menu == &root);
+                             .Subtitle = isRoot ? std::string_view{} : std::string_view(menu->Subtitle),
+                             .IsRoot = isRoot});
     DrawTabs(slot);
     DrawRows(slot, *menu);
     DrawPrompt(slot);
 
-    const bool deep = _stack.Depth(slot) > 1;
-    _layout.SetFooter(slot, deep ? Translate(slot, "nav.back", "Back") : std::string{},
+    _layout.SetFooter(slot, isRoot ? std::string{} : Translate(slot, "nav.back", "Back"),
                       Translate(slot, "menu.cancel", "Cancel"));
 }
 

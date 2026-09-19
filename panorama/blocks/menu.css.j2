@@ -136,6 +136,22 @@
   flow-children: down;
 }
 
+/* The optional `home` markup takes the rows' place while the root menu shows. */
+.Home {
+  width: 100%;
+  height: fill-parent-flow(1);
+  flow-children: down;
+  visibility: collapse;
+}
+
+.Screen.HomePage .Home {
+  visibility: visible;
+}
+
+.Screen.HomePage .Rows {
+  visibility: collapse;
+}
+
 .Row {
   height: 50px;
   margin-bottom: 6px;
