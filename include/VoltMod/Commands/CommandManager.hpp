@@ -22,7 +22,7 @@ namespace VoltMod
  *
  * @code
  * commands.Add("slap")
- *     .Permission("s")
+ *     .Permission("admin.control")
  *     .Run([&](Caller c, Args::Target t, Args::Opt<Args::Int> damage) -> Result<Reply> {
  *         return c.Ok("cmd.slapped", {{"name", t.Value->Name()}});
  *     });

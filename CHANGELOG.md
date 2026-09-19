@@ -26,7 +26,8 @@ What changed in each VoltMod release. Older history is in git.
 - The `menu` Panorama block and `PanoramaMenuLayout` draw a whole menu screen, with an optional
   home page; see the Panorama guide.
 - `ConVars::ExecuteClientCommand(slot, command)` runs a console command as a player.
-- `voltmod database tables` folds `ALTER TABLE ... DROP COLUMN` into the generated table spec.
+- `voltmod database tables` folds `ALTER TABLE ... ADD COLUMN` and `DROP COLUMN` into the
+  generated table spec.
 
 ### Fixed
 

@@ -161,7 +161,7 @@ struct CommandHandlerArgs<R (*)(Caller, A...) noexcept> : CommandHandlerArgs<R(C
  * commands.Add("ban")
  *     .Describe("Ban a player.")
  *     .Alias("b")
- *     .Permission(Flag(Permission::Ban))
+ *     .Permission("admin.ban")
  *     .Run([&app](Caller c, Args::Target t, Args::Duration d, Args::Opt<Args::Rest> why)
  *              -> Result<Reply> {
  *         std::string name = t.Value->Name();   // capture first: a ban drops the target

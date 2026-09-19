@@ -42,8 +42,8 @@ TABLE_HEADER_TEMPLATE = TEMPLATES_DIR / "database/table-header.in"
 
 _PLACEHOLDER = re.compile(r"@([A-Z_]+(?:\([^)@]*\))?)@")
 _CONFLICT_PREFIX = "ON_CONFLICT("
-_DROP_COLUMN = re.compile(
-    r"^\s*ALTER\s+TABLE\s+(\w+)\s+DROP\s+COLUMN\s+(?:IF\s+EXISTS\s+)?(\w+)\s*;[^\S\n]*\n?",
+_ALTER_COLUMN = re.compile(
+    r"^\s*ALTER\s+TABLE\s+(\w+)\s+(ADD|DROP)\s+COLUMN\s+(?:IF\s+(?:NOT\s+)?EXISTS\s+)?(\w+)([^;]*);[^\S\n]*\n?",
     re.I | re.M,
 )
 
@@ -84,28 +84,35 @@ def render_migrations(source: Path, driver: str) -> str:
     return "\n".join(rendered)
 
 
-def apply_dropped_columns(ddl: str) -> str:
-    """Fold each `ALTER TABLE t DROP COLUMN c;` into t's CREATE TABLE, which ddl2cpp cannot do."""
-    for table, column in _DROP_COLUMN.findall(ddl):
+def apply_altered_columns(ddl: str) -> str:
+    """Fold each `ALTER TABLE t ADD|DROP COLUMN` into t's CREATE TABLE in file order, for ddl2cpp."""
+    for table, action, column, definition in _ALTER_COLUMN.findall(ddl):
         create = re.search(
             rf"CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?{table}\s*\((.*?)\n\);", ddl, re.I | re.S
         )
         if not create:
-            raise VoltmodError(f"DROP COLUMN {column} names a table with no CREATE TABLE: {table}")
-        body = re.sub(rf"^\s*{column}\s[^\n]*\n?", "", create.group(1), count=1, flags=re.I | re.M)
-        if body == create.group(1):
-            raise VoltmodError(f"DROP COLUMN names a column {table} does not have: {column}")
-        # The dropped column may have been the last one.
-        body = body.rstrip().removesuffix(",")
+            raise VoltmodError(
+                f"{action} COLUMN {column} names a table with no CREATE TABLE: {table}"
+            )
+        if action.upper() == "ADD":
+            body = f"{create.group(1).rstrip()},\n  {column}{definition.rstrip()}"
+        else:
+            body = re.sub(
+                rf"^\s*{column}\s[^\n]*\n?", "", create.group(1), count=1, flags=re.I | re.M
+            )
+            if body == create.group(1):
+                raise VoltmodError(f"DROP COLUMN names a column {table} does not have: {column}")
+            # The dropped column may have been the last one.
+            body = body.rstrip().removesuffix(",")
         ddl = ddl[: create.start(1)] + body + ddl[create.end(1) :]
-    return _DROP_COLUMN.sub("", ddl)
+    return _ALTER_COLUMN.sub("", ddl)
 
 
 def generate_table_header(root: Path, ddl: str, namespace: str, header_name: str) -> str:
     """Run sqlpp23-ddl2cpp over `ddl` in a temporary directory, and return the header it wrote."""
     with tempfile.TemporaryDirectory() as work:
         source = Path(work) / "schema.sql"
-        source.write_text(apply_dropped_columns(ddl), encoding="utf-8", newline="\n")
+        source.write_text(apply_altered_columns(ddl), encoding="utf-8", newline="\n")
         target = Path(work) / header_name
         # fmt: off
         subprocess.run(
