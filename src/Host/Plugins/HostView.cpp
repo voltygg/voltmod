@@ -66,7 +66,7 @@ bool HostView::IsCommandRegistered(std::string_view name) const
     return !_state.Commands.OwnerOf(name).empty();
 }
 
-IHostLanguages& HostView::Languages()
+PlayerLanguages& HostView::Languages()
 {
     return _state.Languages;
 }

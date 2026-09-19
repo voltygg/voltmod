@@ -1,13 +1,13 @@
+#include "Host/Plugins/LanguageTable.hpp"
 #include "Support/TempPath.hpp"
-#include "Support/TestLanguages.hpp"
 
 #include <VoltMod/Core/Text/Translations.hpp>
 #include <doctest/doctest.h>
 #include <string>
 
+using VoltMod::LanguageTable;
 using VoltMod::Translations;
 using VoltModTests::TempDir;
-using VoltModTests::TestLanguages;
 
 TEST_CASE("A key missing from the player's language falls back to the active one before English")
 {
@@ -17,7 +17,7 @@ TEST_CASE("A key missing from the player's language falls back to the active one
     dir.Write("de.json", R"({"greet": "hallo", "shared": "geteilt"})");
     dir.Write("ru.json", R"({"greet": "privet"})");
 
-    TestLanguages languages;
+    LanguageTable languages;
     Translations texts{languages};
     REQUIRE(texts.Load(dir.Path()));
     texts.SetLanguage("de");
@@ -43,7 +43,7 @@ TEST_CASE("With no player language the active language answers, then English")
     dir.Write("en.json", R"({"greet": "hello", "onlyEn": "english"})");
     dir.Write("de.json", R"({"greet": "hallo"})");
 
-    TestLanguages languages;
+    LanguageTable languages;
     Translations texts{languages};
     REQUIRE(texts.Load(dir.Path()));
     texts.SetLanguage("de");
@@ -58,16 +58,16 @@ TEST_CASE("The player's language answers, and clearing it falls back to the acti
     dir.Write("en.json", R"({"greet": "hello"})");
     dir.Write("ru.json", R"({"greet": "privet"})");
 
-    TestLanguages languages;
+    LanguageTable languages;
     Translations texts{languages};
     REQUIRE(texts.Load(dir.Path()));
 
     // Another plugin's pick reaches this one through the shared table.
-    languages.Languages[0] = "ru";
+    languages.SetLanguage(0, "ru");
     CHECK(texts.Get("greet", 0) == "privet");
     CHECK(texts.PlayerLanguage(0) == "ru");
 
     texts.SetPlayerLanguage(0, "");
-    CHECK(languages.Languages[0].empty());
+    CHECK(languages.Language(0).empty());
     CHECK(texts.Get("greet", 0) == "hello");
 }

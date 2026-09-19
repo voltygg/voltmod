@@ -5,10 +5,12 @@
 namespace VoltMod
 {
 
-/** Each player's language, which @ref Translations reads and writes. Game thread only. */
+/** Each player's language, one table for every plugin. Crosses the host ABI through @ref IHost::Languages,
+ *  so a change here bumps HostAbiVersion. Game thread only. */
 class PlayerLanguages
 {
 public:
+    /** Empty when no plugin has set one. */
     [[nodiscard]] virtual std::string_view Language(int slot) const = 0;
 
     /** Empty clears it. */

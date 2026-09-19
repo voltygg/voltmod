@@ -89,7 +89,7 @@ public:
     KHook::IKHook* HookDispatcher() const override;
     IHostEvents& Events() override;
     IHostServices& Services() override;
-    IHostLanguages& Languages() override;
+    PlayerLanguages& Languages() override;
     IHostGameData* GameData() const override;
     bool RegisterCommand(std::string_view name) override;
     bool IsCommandRegistered(std::string_view name) const override;
