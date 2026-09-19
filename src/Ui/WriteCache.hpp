@@ -35,14 +35,14 @@ public:
     /** True the first time it is asked for @p slot, so a failure that repeats every frame logs once. */
     bool IsFirstFailure(int slot);
 
-    /** Drop what @p slot was sent, so the next write goes through. Keeps the failure flag. */
-    void Forget(int slot);
+    /** After a failed write, so the next one goes through. The failure still logs once. */
+    void Invalidate(int slot);
 
-    /** Drop everything about @p slot, failure flag included: another player took it. */
-    void Reset(int slot);
+    /** Another player took @p slot. */
+    void RemoveSlot(int slot);
 
-    /** Drop everything, failure flags included: a new entity has been told nothing. */
-    void ForgetAll();
+    /** A new entity has been told nothing. */
+    void Clear();
 
 private:
     struct Sent

@@ -73,20 +73,20 @@ TEST_CASE("Writes for everyone are remembered apart from every slot")
     CHECK_FALSE(cache.Changed(VoltMod::EveryoneSlot, WriteKind::Text, "vm_title", "text", "Admin Panel"));
 
     CHECK(cache.Changed(0, WriteKind::Text, "vm_title", "text", "Admin Panel"));
-    cache.Forget(0);
+    cache.Invalidate(0);
     CHECK_FALSE(cache.Changed(VoltMod::EveryoneSlot, WriteKind::Text, "vm_title", "text", "Admin Panel"));
-    cache.Forget(VoltMod::EveryoneSlot);
+    cache.Invalidate(VoltMod::EveryoneSlot);
     CHECK(cache.Changed(VoltMod::EveryoneSlot, WriteKind::Text, "vm_title", "text", "Admin Panel"));
 }
 
-TEST_CASE("Forget makes the next write go through again, and leaves other slots alone")
+TEST_CASE("Invalidate makes the next write go through again, and leaves other slots alone")
 {
     WriteCache cache;
     CHECK(cache.Changed(0, WriteKind::Text, "vm_title", "text", "Admin Panel"));
     CHECK(cache.CursorChanged(0, true));
     CHECK(cache.Changed(1, WriteKind::Text, "vm_title", "text", "Admin Panel"));
 
-    cache.Forget(0);
+    cache.Invalidate(0);
 
     CHECK(cache.Changed(0, WriteKind::Text, "vm_title", "text", "Admin Panel"));
     CHECK(cache.CursorChanged(0, true));
@@ -102,13 +102,13 @@ TEST_CASE("A repeating failure is only worth reporting once")
     CHECK(cache.IsFirstFailure(1));
 }
 
-TEST_CASE("Forgetting a slot does not reset its failure report")
+TEST_CASE("Invalidating a slot does not reset its failure report")
 {
     WriteCache cache;
     CHECK(cache.IsFirstFailure(0));
 
-    // Forget runs on every failed write; resetting the flag here would log every frame again.
-    cache.Forget(0);
+    // Invalidate runs on every failed write; resetting the flag here would log every frame again.
+    cache.Invalidate(0);
     CHECK_FALSE(cache.IsFirstFailure(0));
 }
 
@@ -118,7 +118,7 @@ TEST_CASE("A new entity has been told nothing, failures included")
     CHECK(cache.Changed(0, WriteKind::Text, "vm_title", "text", "Admin Panel"));
     CHECK(cache.IsFirstFailure(0));
 
-    cache.ForgetAll();
+    cache.Clear();
 
     CHECK(cache.Changed(0, WriteKind::Text, "vm_title", "text", "Admin Panel"));
     CHECK(cache.IsFirstFailure(0));
@@ -132,7 +132,7 @@ TEST_CASE("A slot changing hands forgets what its last occupant was told")
     CHECK(cache.IsFirstFailure(3));
     CHECK(cache.Changed(4, WriteKind::Text, "vm_title", "text", "Admin Panel"));
 
-    cache.Reset(3);
+    cache.RemoveSlot(3);
 
     CHECK(cache.Changed(3, WriteKind::Text, "vm_title", "text", "Admin Panel"));
     CHECK(cache.IsFirstFailure(3));

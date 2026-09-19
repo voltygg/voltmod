@@ -38,7 +38,7 @@ ScreenEntity::ScreenEntity(EntitySystem& entities, EntityOps& ops, SlotEvents& s
         if (slot == _owner)  // a player screen leaves with its owner
             Remove();
         else
-            _written.Reset(slot);
+            _written.RemoveSlot(slot);
     };
 }
 
@@ -82,7 +82,7 @@ void ScreenEntity::Remove()
         _ops.Remove(entity.Raw());
 
     _entity = {};
-    _written.ForgetAll();
+    _written.Clear();
 }
 
 Status ScreenEntity::WriteText(int slot, std::string_view variable, std::string_view value)
@@ -281,7 +281,7 @@ Status ScreenEntity::Record(int cacheSlot, Status status, std::string_view what)
     if (status || !IsValidSlot(cacheSlot))
         return status;
 
-    _written.Forget(cacheSlot);
+    _written.Invalidate(cacheSlot);
     if (_written.IsFirstFailure(cacheSlot))
         Log::Warn("Screen '{}': writing {} for slot {} failed ({}).", _layout.Name(), what, cacheSlot,
                   status.error().Detail);

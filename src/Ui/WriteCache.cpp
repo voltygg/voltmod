@@ -60,7 +60,7 @@ bool WriteCache::IsFirstFailure(int slot)
     return true;
 }
 
-void WriteCache::Forget(int slot)
+void WriteCache::Invalidate(int slot)
 {
     Sent* sent = For(slot);
     if (!sent)
@@ -70,12 +70,12 @@ void WriteCache::Forget(int slot)
     sent->Cursor.reset();
 }
 
-void WriteCache::Reset(int slot)
+void WriteCache::RemoveSlot(int slot)
 {
     _slots.Reset(slot);
 }
 
-void WriteCache::ForgetAll()
+void WriteCache::Clear()
 {
     _slots.ResetAll();
     _everyone = {};
