@@ -38,8 +38,9 @@ class Sqlpp23Conan(ConanFile):
         if self.options.with_postgresql:
             self.requires("libpq/[>=17 <18]", transitive_headers=True, transitive_libs=True)
         if self.options.with_mariadb:
-            self.requires("mariadb-connector-c/[>=3.4 <4]",
-                          transitive_headers=True, transitive_libs=True)
+            self.requires(
+                "mariadb-connector-c/[>=3.4 <4]", transitive_headers=True, transitive_libs=True
+            )
         if self.options.with_sqlite3:
             self.requires("sqlite3/[>=3.53 <4]", transitive_headers=True, transitive_libs=True)
 

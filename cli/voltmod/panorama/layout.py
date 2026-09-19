@@ -152,9 +152,7 @@ def css_rules(stylesheet: str) -> list[tuple[str, str]]:
     """Every rule as (selector, declarations), in source order, comments and `@define`s stripped."""
     text = _CSS_AT_STATEMENT.sub(" ", _CSS_COMMENT.sub(" ", stylesheet))
     return [
-        (selector.strip(), body)
-        for selector, body in _CSS_RULE.findall(text)
-        if selector.strip()
+        (selector.strip(), body) for selector, body in _CSS_RULE.findall(text) if selector.strip()
     ]
 
 

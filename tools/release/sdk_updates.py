@@ -80,10 +80,12 @@ def _branch_tip(url: str, branch: str) -> str:
 
 def _commit_day(url: str, commit: str) -> str:
     repository = url.removeprefix("https://github.com/").removesuffix(".git")
+    # fmt: off
     committed = run_tool(
         "gh", "api", f"repos/{repository}/commits/{commit}", "--jq", ".commit.committer.date",
         capture=True,
     ).stdout
+    # fmt: on
     return committed.split("T")[0]
 
 

@@ -43,10 +43,12 @@ def update_server(steamcmd_path: str, server: Path) -> None:
         print(f"WARNING: SteamCMD not found at {steamcmd}; skipping update.")
         return
 
+    # fmt: off
     update = [
         str(steamcmd), "+force_install_dir", str(server), "+login", "anonymous",
         "+app_update", "730", "validate", "+quit",
     ]
+    # fmt: on
     result = subprocess.run(update)
     if result.returncode:
         print(f"WARNING: SteamCMD update failed ({result.returncode}); using existing files.")
@@ -63,6 +65,7 @@ def run_server(settings: Settings, *, check_update: bool = False) -> None:
         expected = SERVER_EXECUTABLES[0] if WINDOWS else SERVER_EXECUTABLES[1]
         raise VoltmodError(f"CS2 executable not found: {server / expected}")
 
+    # fmt: off
     command = [
         str(executable), "-dedicated", "-console", "-usercon",
         "+map", settings.map_name,
@@ -70,6 +73,7 @@ def run_server(settings: Settings, *, check_update: bool = False) -> None:
         "-port", str(settings.port),
         "+game_mode", "0",
     ]
+    # fmt: on
     if settings.gslt_token:
         command += ["+sv_setsteamaccount", settings.gslt_token]
     if settings.rcon_password:
@@ -149,10 +153,12 @@ def _stage_component(build_dir: Path, component: str) -> Path | None:
     staging = build_dir / "_install-staging" / component
     shutil.rmtree(staging, ignore_errors=True)
     try:
+        # fmt: off
         run_tool(
             "cmake", "--install", str(build_dir), "--component", component,
             "--prefix", str(staging),
         )
+        # fmt: on
     except subprocess.CalledProcessError:
         return None
     return staging if (staging / "addons").is_dir() else None

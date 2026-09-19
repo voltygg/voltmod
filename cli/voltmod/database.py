@@ -86,6 +86,7 @@ def generate_table_header(root: Path, ddl: str, namespace: str, header_name: str
         source = Path(work) / "schema.sql"
         source.write_text(ddl, encoding="utf-8", newline="\n")
         target = Path(work) / header_name
+        # fmt: off
         subprocess.run(
             [
                 sys.executable, str(_find_ddl2cpp(root)),
@@ -99,6 +100,7 @@ def generate_table_header(root: Path, ddl: str, namespace: str, header_name: str
             check=True,
             cwd=root,
         )
+        # fmt: on
         return target.read_text(encoding="utf-8")
 
 

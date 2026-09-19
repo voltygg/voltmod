@@ -50,11 +50,13 @@ def build(
     lock_args = []
     if use_lockfile and project.lockfile.is_file():
         lock_args = ["--lockfile", str(project.lockfile)]
+    # fmt: off
     run_tool(
         "conan", "install", str(project.root), "--output-folder", str(project.root),
         "--build=missing", *SDK_BUILD_EXCLUSIONS, *lock_args, *(conan_options or []),
         *host_profile,
     )
+    # fmt: on
 
     # Writes only what changed, so unchanged screens trigger no rebuild.
     render_screens(project.root)

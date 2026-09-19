@@ -80,8 +80,11 @@ def find_editable_framework() -> Path | None:
     try:
         entries = json.loads(registry.read_text(encoding="utf-8"))
         return next(
-            (Path(entry["path"]).parent for reference, entry in entries.items()
-             if reference.startswith("voltmod/")),
+            (
+                Path(entry["path"]).parent
+                for reference, entry in entries.items()
+                if reference.startswith("voltmod/")
+            ),
             None,
         )
     except (OSError, ValueError, AttributeError, KeyError, TypeError) as error:

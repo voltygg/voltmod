@@ -197,12 +197,14 @@ def _enum_listings(enums: dict[str, Any]) -> list[dict[str, Any]]:
             alias = item["value"] in seen
             items.append({"name": item["name"], "value": item["value"], "alias": alias})
             seen.add(item["value"])
-        listings.append({
-            "schema_name": name,
-            "name": cpp_identifier(name),
-            "underlying_type": enum_underlying_type(info["size"]),
-            "items": items,
-        })
+        listings.append(
+            {
+                "schema_name": name,
+                "name": cpp_identifier(name),
+                "underlying_type": enum_underlying_type(info["size"]),
+                "items": items,
+            }
+        )
     return listings
 
 

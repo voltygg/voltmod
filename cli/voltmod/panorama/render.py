@@ -117,15 +117,16 @@ def screen_header(screen: Screen, template_source: str) -> str:
         pascal_case=pascal_case,
     )
 
+
 def _remove_stale(trees: list[Path], keep: set[Path]) -> list[Path]:
     """Delete and return files under `trees` not in `keep`; the compiler would ship them."""
+    # fmt: off
     stale = [
         path
-        for tree in trees
-        if tree.is_dir()
-        for path in tree.rglob("*")
-        if path.is_file() and path not in keep
+        for tree in trees if tree.is_dir()
+        for path in tree.rglob("*") if path.is_file() and path not in keep
     ]
+    # fmt: on
     for path in stale:
         path.unlink()
     return stale
@@ -147,6 +148,7 @@ def _template_loader(owner: ScreenOwner, owners: list[ScreenOwner]) -> ChoiceLoa
             FileSystemLoader(BUNDLED_DIR / "panorama/blocks", encoding="utf-8-sig"),
         ]
     )
+
 
 class ScreenRenderer:
     """One owner's screens through one Jinja environment, so the block library compiles once."""

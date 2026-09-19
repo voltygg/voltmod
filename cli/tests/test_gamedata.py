@@ -86,7 +86,7 @@ def test_an_entry_for_the_other_platform_is_skipped():
 
 def test_replacing_a_pattern_keeps_every_comment_and_blank_line():
     text = (
-        '{\n  // Why this entry exists.\n'
+        "{\n  // Why this entry exists.\n"
         '  "functions": {\n    "Setter": { "windows": "3B 99 B0 04" }\n  }\n}\n'
     )
     patched = replace_pattern(text, "Setter", "3B 99 B0 04", "3B 99 ? ?")

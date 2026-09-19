@@ -79,9 +79,7 @@ def test_seeded_settings_survive_a_reinstall(
     project: Project, cs2_server: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     build = project.build_dir(PRESET)
-    stage_components(
-        monkeypatch, {(build, "host"): HOST_FILES, (build, "demo"): PLUGIN_FILES}
-    )
+    stage_components(monkeypatch, {(build, "host"): HOST_FILES, (build, "demo"): PLUGIN_FILES})
 
     server.install_plugins(project, str(cs2_server), "demo", PRESET)
     settings = cs2_server / CSGO_DIR / DEMO / "configs/settings.jsonc"

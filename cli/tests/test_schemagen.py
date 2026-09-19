@@ -32,6 +32,7 @@ def dumped_field(name, offset, size, info, networked=True):
 
 def dump():
     """An entity, a chained component, an embedded struct and the types they reach."""
+    # fmt: off
     return {
         "classes": {
             "CEntityInstance": {"size": 48, "base": "", "chain_offset": -1, "fields": []},
@@ -119,6 +120,7 @@ def dump():
             "Unused_t": {"size": 4, "items": [{"name": "UNUSED", "value": 0}]},
         },
     }
+    # fmt: on
 
 
 def manifest(classes=None):

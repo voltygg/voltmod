@@ -56,13 +56,16 @@ RULES = [
         "has no weapons/missing.png",
     ),
     (
-        screen('<Panel id="{{screen}}_row0" />\n<Panel id="{{screen}}_row1" />\n'
-               '<Panel id="{{screen}}_rows" />'),
+        screen(
+            '<Panel id="{{screen}}_row0" />\n<Panel id="{{screen}}_row1" />\n'
+            '<Panel id="{{screen}}_rows" />'
+        ),
         "both spell Rows",
     ),
     (
-        screen('{%- for index in range(901) %}\n<Panel id="{{screen}}_p{{index}}" />\n'
-               "{%- endfor %}"),
+        screen(
+            '{%- for index in range(901) %}\n<Panel id="{{screen}}_p{{index}}" />\n{%- endfor %}'
+        ),
         "per-screen limit",
     ),
 ]

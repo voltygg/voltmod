@@ -12,6 +12,7 @@ from voltmod.errors import VoltmodError
 FRAMEWORK_SOURCE_DIRS = ("include/VoltMod", "src")
 
 # Transitive dependencies are listed too: this table is the layering.
+# fmt: off
 ALLOWED_DEPENDENCIES: dict[str, set[str]] = {
     "Core": set(),
     "Engine": {"Core"},
@@ -36,6 +37,7 @@ ALLOWED_DEPENDENCIES: dict[str, set[str]] = {
         "Ui", "Workshop", "Commands", "Menu", "Http", "Database", "Unsafe", "Host",
     },
 }
+# fmt: on
 
 INCLUDE = re.compile(r'#\s*include\s*[<"]VoltMod/([A-Za-z0-9_]+)/([^>"]+)[>"]')
 # A module's Api.hpp gathers its public types; its includes are not dependencies.
@@ -56,6 +58,7 @@ PLUGIN_DECLARATION_HEADER = re.compile(r"(^|/)\w*Types\.hpp$")
 
 # Host and plugins have separate allocators: a boundary signature takes views, never owning types.
 HOST_BOUNDARY_PATH = "include/VoltMod/Host/"
+# fmt: off
 HOST_BOUNDARY_INCLUDES = frozenset({
     "<cstddef>",
     "<cstdint>",
@@ -63,6 +66,7 @@ HOST_BOUNDARY_INCLUDES = frozenset({
     "<VoltMod/Engine/EngineTypes.hpp>",
     "<VoltMod/Engine/GameData/GameDataLocation.hpp>",
 })
+# fmt: on
 ANY_INCLUDE = re.compile(r'^\s*#\s*include\s*([<"][^>"]+[>"])')
 
 FORWARD_DECLARATION = re.compile(r"^(?:class|struct)\s+(\w+);")
@@ -151,6 +155,7 @@ def check_host_boundary(files: Iterable[SourceFile]) -> list[CheckResult]:
             included = found.group(1)
             if included in HOST_BOUNDARY_INCLUDES or included.startswith("<VoltMod/Host/"):
                 continue
+
             results.append(CheckResult(
                 f"{file.path}:{number}: includes {included}",
                 hint="The boundary carries plain data and borrowed views only: "
@@ -167,6 +172,7 @@ def check_conventions(
     `declaration_headers` may forward-declare; None accepts any `*Types.hpp`.
     """
     forwards, anonymous, directives, engine = [], [], [], []
+
     for file in files:
         is_header = file.path.endswith(".hpp")
         if declaration_headers is None:

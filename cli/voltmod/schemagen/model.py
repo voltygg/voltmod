@@ -10,11 +10,13 @@ ENTITY_ROOT = "CEntityInstance"
 OWNER_LINK_FIELD = "__m_pChainEntity"
 
 # Stripped from a field name only when an uppercase letter follows, so `m_lifeState` stays whole.
+# fmt: off
 HUNGARIAN_PREFIXES = {
     "a", "ang", "arr", "b", "cl", "clr", "d", "e", "f", "fl", "fn", "h", "i", "isz", "m",
     "n", "nv", "p", "pp", "psz", "pv", "q", "s", "str", "sz", "t", "u", "ub", "ui", "un",
     "v", "vec", "w", "x", "y", "z",
 }
+# fmt: on
 
 
 class FieldKind(StrEnum):

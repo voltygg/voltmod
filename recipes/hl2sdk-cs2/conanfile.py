@@ -103,12 +103,15 @@ class Hl2SdkCs2Conan(ConanFile):
         for batch in self.PROTO_BATCHES:
             out_dir = self.build_path / "generated" / batch.out
             out_dir.mkdir(parents=True, exist_ok=True)
-            subprocess.run([
-                protoc,
-                *(f"--proto_path={self.source_path / p}" for p in batch.paths),
-                f"--cpp_out={out_dir}",
-                *(self.source_path / f"{p}.proto" for p in batch.protos),
-            ], check=True)
+            subprocess.run(
+                [
+                    protoc,
+                    *(f"--proto_path={self.source_path / p}" for p in batch.paths),
+                    f"--cpp_out={out_dir}",
+                    *(self.source_path / f"{p}.proto" for p in batch.protos),
+                ],
+                check=True,
+            )
 
     def package(self) -> None:
         src, dst = self.source_path, self.package_path

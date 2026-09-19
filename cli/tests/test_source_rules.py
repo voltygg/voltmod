@@ -76,14 +76,18 @@ def test_a_plugins_types_header_may_forward_declare(tmp_path):
 
 
 def test_declaring_a_name_the_header_goes_on_to_define_is_allowed(tmp_path):
-    write(tmp_path, "include/VoltMod/Core/Thing.hpp", """
+    write(
+        tmp_path,
+        "include/VoltMod/Core/Thing.hpp",
+        """
         template <class T>
         class Thing;
 
         class Thing
         {
         };
-        """)
+        """,
+    )
     assert violations(tmp_path) == []
 
 
@@ -115,14 +119,18 @@ def boundary(root):
 
 
 def test_the_allowed_boundary_includes_pass(tmp_path):
-    write(tmp_path, "include/VoltMod/Host/IHost.hpp", """
+    write(
+        tmp_path,
+        "include/VoltMod/Host/IHost.hpp",
+        """
         #include <VoltMod/Engine/EngineTypes.hpp>
         #include <VoltMod/Engine/GameData/GameDataLocation.hpp>
         #include <VoltMod/Host/IHostEvents.hpp>
         #include <cstddef>
         #include <cstdint>
         #include <string_view>
-        """)
+        """,
+    )
     assert boundary(tmp_path) == []
 
 

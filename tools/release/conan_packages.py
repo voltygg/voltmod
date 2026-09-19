@@ -43,11 +43,9 @@ def log_in(root: Path) -> None:
 
 
 def references(listing: dict[str, Any], name: str) -> dict[str, Any]:
-    """The listing's entries for @p name; `conan list` reports a miss as an "error" entry."""
+    """The listing's entries for `name`; `conan list` reports a miss as an "error" entry."""
     return {
-        reference: body
-        for reference, body in listing.items()
-        if reference.startswith(f"{name}/")
+        reference: body for reference, body in listing.items() if reference.startswith(f"{name}/")
     }
 
 
@@ -91,10 +89,10 @@ def required_files(package_settings: dict[str, Any]) -> tuple[str, ...]:
 
 
 def cached_packages(version: str) -> Iterator[tuple[str, dict[str, Any]]]:
-    """Every full package reference the local cache holds for @p version, with its metadata."""
-    listing = run_conan_json(
-        "list", f"{FRAMEWORK_PACKAGE}/{version}#latest:*", "-c"
-    ).get("Local Cache", {})
+    """Every full package reference the local cache holds for `version`, with its metadata."""
+    listing = run_conan_json("list", f"{FRAMEWORK_PACKAGE}/{version}#latest:*", "-c").get(
+        "Local Cache", {}
+    )
     for reference, body in references(listing, FRAMEWORK_PACKAGE).items():
         for revision, contents in body.get("revisions", {}).items():
             for package_id, package in contents.get("packages", {}).items():

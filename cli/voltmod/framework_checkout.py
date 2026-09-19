@@ -78,7 +78,9 @@ def _pin_framework(project: Project, preset: str) -> None:
         run_tool(
             "conan", "lock", "remove", "--requires=voltmod/*", *lock_args, f"--lockfile-out={lock}"
         )
+    # fmt: off
     run_tool(
         "conan", "lock", "create", str(project.root), *profile_args(project.root, preset),
         *lock_args, f"--lockfile-out={lock}", "--no-remote",
     )
+    # fmt: on

@@ -43,8 +43,9 @@ class VoltModConan(ConanFile):
         self.requires("glaze/8.0.0", transitive_headers=True)
         self.requires("magic_enum/0.9.7", transitive_headers=True)
         self.requires("hl2sdk-cs2/[>=2026 <2028]", transitive_headers=True, transitive_libs=True)
-        self.requires("metamod-source/[>=2.0 <3]",
-                      transitive_headers=True, package_id_mode="minor_mode")
+        self.requires(
+            "metamod-source/[>=2.0 <3]", transitive_headers=True, package_id_mode="minor_mode"
+        )
         # All three connectors: the driver is chosen at runtime from config. Linking them
         # statically makes the LGPL MariaDB connector a relinkable-object obligation.
         self.requires("sqlpp23/0.70", transitive_headers=True, transitive_libs=True)
@@ -58,12 +59,14 @@ class VoltModConan(ConanFile):
             raise ConanInvalidConfiguration(
                 "voltmod requires compiler.libcxx=libstdc++ (Valve's _GLIBCXX_USE_CXX11_ABI=0); "
                 "use the shipped linux-steamrt profile "
-                "(conan config install the repo's conan/ dir)")
+                "(conan config install the repo's conan/ dir)"
+            )
         runtime = str(self.settings.get_safe("compiler.runtime"))
         if self.settings.os == "Windows" and runtime != "static":
             raise ConanInvalidConfiguration(
                 "voltmod requires the static MSVC runtime (/MT); "
-                "use the shipped windows-msvc profile")
+                "use the shipped windows-msvc profile"
+            )
 
     def _preset(self) -> str:
         """The CMake preset a checkout builds into. Preset names are public API."""
@@ -105,10 +108,13 @@ class VoltModConan(ConanFile):
         self.cpp_info.set_property("cmake_target_name", "VoltMod::VoltMod")
         self.cpp_info.builddirs = ["cmake"]
         # Export the plugin and test helpers as CMakeDeps build modules.
-        self.cpp_info.set_property("cmake_build_modules", [
-            "cmake/VoltModPlugin.cmake",
-            "cmake/VoltModTests.cmake",
-        ])
+        self.cpp_info.set_property(
+            "cmake_build_modules",
+            [
+                "cmake/VoltModPlugin.cmake",
+                "cmake/VoltModTests.cmake",
+            ],
+        )
 
         # Components match the CMake targets. CMakeDeps makes VoltMod::VoltMod link them all.
         portable = self.cpp_info.components["portable"]
@@ -132,9 +138,11 @@ class VoltModConan(ConanFile):
         database = self.cpp_info.components["database"]
         database.set_property("cmake_target_name", "VoltMod::Database")
         database.libs = ["voltmod-database"]
+        # fmt: off
         database.requires = [
             "portable", "sqlpp23::postgresql", "sqlpp23::mysql", "sqlpp23::sqlite3",
         ]
+        # fmt: on
         if self.settings.os == "Windows":
             # The MariaDB connector needs winsock2.h before the windows.h other headers pull in.
             database.defines = ["NOMINMAX", "WIN32_LEAN_AND_MEAN"]
