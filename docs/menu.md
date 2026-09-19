@@ -273,12 +273,13 @@ screen and takes clicks instead of keys.
 
 ```cpp
 // App.hpp
-VoltMod::PanoramaMenuLayout _layout{runtime.Screens, "admin_menu", 6, 8, AdminMenuLayout::IconNames};
+VoltMod::PanoramaMenuLayout _layout{runtime.Screens, AdminMenuLayout::Layout, AdminMenuLayout::Tabs.size(),
+                                     AdminMenuLayout::Rows.size(), AdminMenuLayout::IconNames};
 std::optional<VoltMod::PanoramaMenu> _panorama;
 VoltMod::Subscription _preferPanorama;           // after the menu, so it lets go first
 
 // App::Load, when settings turn Panorama on
-_panorama.emplace(VoltMod::PanoramaMenu::Services{/* runtime services */}, _layout, addonId);
+_panorama.emplace(runtime.PanoramaMenuServices(), _layout, addonId);
 _preferPanorama = runtime.Menus.Prefer(*_panorama);
 ```
 
@@ -298,7 +299,7 @@ A screen built from the `menu` Panorama block uses @ref VoltMod::PanoramaMenuLay
 class of its own:
 
 ```cpp
-VoltMod::PanoramaMenuLayout _layout{runtime.Screens, "main_menu", 6, 8, MainMenuLayout::IconNames};
+VoltMod::PanoramaMenuLayout _layout{runtime.Screens, MainMenuLayout::Layout, MainMenuLayout::Tabs.size(), MainMenuLayout::Rows.size(),  MainMenuLayout::IconNames};
 ```
 
 A third surface is a class implementing @ref VoltMod::MenuSurface that holds a

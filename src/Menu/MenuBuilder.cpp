@@ -149,9 +149,9 @@ struct ChoiceState
     }
 };
 
-MenuItem ChoiceItem(std::string label, std::vector<std::string> choices,
-                    std::function<void(int slot, int index)> commit, std::optional<ChoiceIndex> bind, int index,
-                    EnabledCondition enabled, ChoiceApply apply)
+MenuItem Internal::ChoiceItem(std::string label, std::vector<std::string> choices,
+                              std::function<void(int slot, int index)> commit, std::optional<ChoiceIndex> bind,
+                              int index, EnabledCondition enabled, ChoiceApply apply)
 {
     auto state = std::make_shared<ChoiceState>(
         ChoiceState{.Choices = std::move(choices), .Commit = std::move(commit), .Bind = std::move(bind), .Own = index});

@@ -4,6 +4,7 @@
 #include <VoltMod/Menu/MenuLayout.hpp>
 #include <VoltMod/Ui/PlayerScreens.hpp>
 #include <VoltMod/Ui/ScreenManager.hpp>
+#include <cstddef>
 #include <optional>
 #include <span>
 #include <string>
@@ -16,14 +17,14 @@ namespace VoltMod
 /**
  * @brief The @ref MenuLayout for a screen built from the `menu` Panorama block.
  *
- * @p screen is the layout name, @p tabs and @p rows the counts it passed to `menu(tabs, rows,
- * icons)`, and @p iconNames its tab icon names (the generated header's `IconNames`). Each player
- * gets their own screen, so the menu survives death and spectating. @p screens must outlive this.
+ * @p screen is the layout name; @p tabs, @p rows and @p iconNames come from its generated header
+ * (`Tabs.size()`, `Rows.size()`, `IconNames`). Each player gets their own screen, so the menu
+ * survives death and spectating. @p screens must outlive this.
  */
 class PanoramaMenuLayout final : public MenuLayout
 {
 public:
-    PanoramaMenuLayout(ScreenManager& screens, std::string_view screen, int tabs, int rows,
+    PanoramaMenuLayout(ScreenManager& screens, std::string_view screen, std::size_t tabs, std::size_t rows,
                        std::span<const std::string_view> iconNames);
 
     [[nodiscard]] int RowCount() const override { return static_cast<int>(_rows.size()); }

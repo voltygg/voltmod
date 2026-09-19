@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoltMod/Host/IHostServices.hpp>
+#include <string>
 #include <string_view>
 
 namespace VoltMod
@@ -28,7 +29,12 @@ public:
         PublishNamed(T::InterfaceName, static_cast<void*>(impl));
     }
 
-    void PublishNamed(std::string_view iface, void* impl);
+    /** Offer @p impl as one of several @p T, told apart by @p key: `Publish<IMenuSection>(this, "admin")`. */
+    template <class T>
+    void Publish(T* impl, std::string_view key)
+    {
+        PublishNamed(KeyedName(T::InterfaceName, key), static_cast<void*>(impl));
+    }
 
     template <class T>
     void Unpublish()
@@ -36,7 +42,11 @@ public:
         UnpublishNamed(T::InterfaceName);
     }
 
-    void UnpublishNamed(std::string_view iface);
+    template <class T>
+    void Unpublish(std::string_view key)
+    {
+        UnpublishNamed(KeyedName(T::InterfaceName, key));
+    }
 
     /** What any plugin published for @p T, or nullptr. Ask where you use it and do not keep it:
      *  the publisher can unload between callbacks, never inside one. */
@@ -46,10 +56,23 @@ public:
         return static_cast<T*>(Find(T::InterfaceName));
     }
 
-    /** The raw entry for @p iface, or nullptr. */
-    void* Find(std::string_view iface) const;
+    /** What a plugin published for @p T under @p key, or nullptr. */
+    template <class T>
+    T* Get(std::string_view key) const
+    {
+        return static_cast<T*>(Find(KeyedName(T::InterfaceName, key)));
+    }
 
 private:
+    void PublishNamed(std::string_view iface, void* impl);
+    void UnpublishNamed(std::string_view iface);
+    void* Find(std::string_view iface) const;
+
+    static std::string KeyedName(std::string_view iface, std::string_view key)
+    {
+        return std::string(iface) + ":" + std::string(key);
+    }
+
     IHostServices* _services = nullptr;
 };
 

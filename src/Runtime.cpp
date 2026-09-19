@@ -37,6 +37,18 @@ std::string Runtime::PluginFile(std::string_view relative) const
     return VoltMod::PluginFile(PluginName, relative);
 }
 
+PanoramaMenu::Services Runtime::PanoramaMenuServices()
+{
+    return {.Scheduler = Scheduler,
+            .Slots = Slots,
+            .Freeze = Freeze,
+            .ChatInput = Hooks.ChatInput,
+            .Translations = Translations,
+            .Policy = Policy,
+            .Screens = Screens,
+            .Addons = Addons};
+}
+
 bool Runtime::Initialize(const LoadContext& context)
 {
     PluginName = context.Host->Name();

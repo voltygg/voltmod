@@ -53,9 +53,9 @@ def screen_owners(root: Path, names: list[str] | None = None) -> list[ScreenOwne
     return [found[name] for name in names]
 
 
-def template_dirs(root: Path, owner: ScreenOwner) -> list[Path]:
+def template_dirs(owner: ScreenOwner, owners: list[ScreenOwner]) -> list[Path]:
     """Import paths after the owner's screens: its own templates/, then every other plugin's."""
-    others = [other for other in screen_owners(root) if other.name != owner.name]
+    others = [other for other in owners if other.name != owner.name]
     return [
         candidate.source / TEMPLATES_DIR
         for candidate in [owner, *others]
@@ -104,8 +104,9 @@ def render_screens(
 ) -> list[Path]:
     """Render the named owners' screens, and return the files that changed."""
     written: list[Path] = []
+    everyone = screen_owners(root)
     for owner in screen_owners(root, names):
-        written += ScreenRenderer(owner, root).write_all(root, out)
+        written += ScreenRenderer(owner, everyone).write_all(root, out)
     return written
 
 
@@ -122,7 +123,7 @@ def screen_header(screen: Screen, template_source: str) -> str:
 class ScreenRenderer:
     """One owner's screens through one Jinja environment, so the block library compiles once."""
 
-    def __init__(self, owner: ScreenOwner, root: Path) -> None:
+    def __init__(self, owner: ScreenOwner, owners: list[ScreenOwner]) -> None:
         self.owner = owner
         self.icons = icon_sets(owner)
         # No trimming or escaping: layouts and stylesheets come out exactly as written.
@@ -132,7 +133,7 @@ class ScreenRenderer:
                     FileSystemLoader(owner.source / SCREENS_DIR, encoding="utf-8-sig"),
                     *(
                         FileSystemLoader(directory, encoding="utf-8-sig")
-                        for directory in template_dirs(root, owner)
+                        for directory in template_dirs(owner, owners)
                     ),
                     FileSystemLoader(BUNDLED_DIR / "panorama/blocks", encoding="utf-8-sig"),
                 ]

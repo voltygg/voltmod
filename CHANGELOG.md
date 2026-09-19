@@ -6,6 +6,11 @@ What changed in each VoltMod release. Older history is in git.
 
 ## Unreleased
 
+### Breaking
+
+- `ServiceExchange::PublishNamed`, `UnpublishNamed` and `Find` are private; use `Publish<T>`,
+  `Unpublish<T>` and `Get<T>`, with a key when one interface has several providers.
+
 ### Added
 
 - `ConVars::ExecuteClientCommand(slot, command)` runs a console command as a player, without a
@@ -13,6 +18,9 @@ What changed in each VoltMod release. Older history is in git.
 - The `menu` Panorama block and `VoltMod::PanoramaMenuLayout`, which draws it.
 - `ToItem()` on menu row specs is `const` instead of `&&`.
 - A plugin's `panorama/templates/` is importable from every plugin's screens.
+- Keyed `ServiceExchange::Publish<T>(impl, key)`, `Unpublish<T>(key)` and `Get<T>(key)`, for
+  several providers of one interface.
+- `Runtime::PanoramaMenuServices()`.
 
 ### Fixed
 

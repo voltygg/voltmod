@@ -53,10 +53,7 @@ static const char* PluginStatus()
 
 static PluginDescriptor Descriptor()
 {
-    return {.AbiVersion = VoltMod::HostAbiVersion,
-            .Load = LoadPlugin,
-            .Unload = UnloadPlugin,
-            .Status = PluginStatus};
+    return {.AbiVersion = VoltMod::HostAbiVersion, .Load = LoadPlugin, .Unload = UnloadPlugin, .Status = PluginStatus};
 }
 
 TEST_CASE("A manifest is read with its optional fields defaulted")

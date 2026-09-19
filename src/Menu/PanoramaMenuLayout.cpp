@@ -26,8 +26,8 @@ static void Cursor(Screen& screen, int slot, bool shown)
     static_cast<void>(screen.ShowCursor(slot, shown));
 }
 
-PanoramaMenuLayout::PanoramaMenuLayout(ScreenManager& screens, std::string_view screen, int tabs, int rows,
-                                       std::span<const std::string_view> iconNames)
+PanoramaMenuLayout::PanoramaMenuLayout(ScreenManager& screens, std::string_view screen, std::size_t tabs,
+                                       std::size_t rows, std::span<const std::string_view> iconNames)
     : _screens(screens, std::string(screen)),
       _root(screen),
       _subtitle(std::format("{}_subtitle", screen)),
@@ -40,7 +40,7 @@ PanoramaMenuLayout::PanoramaMenuLayout(ScreenManager& screens, std::string_view 
       _pagePrevious(std::format("{}_page_previous", screen)),
       _pageNext(std::format("{}_page_next", screen))
 {
-    for (int index = 0; index < tabs; ++index)
+    for (std::size_t index = 0; index < tabs; ++index)
     {
         _tabs.push_back(TabIds{
             .Id = std::format("{}_tab{}", screen, index),
@@ -49,7 +49,7 @@ PanoramaMenuLayout::PanoramaMenuLayout(ScreenManager& screens, std::string_view 
         });
     }
 
-    for (int index = 0; index < rows; ++index)
+    for (std::size_t index = 0; index < rows; ++index)
     {
         _rows.push_back(RowIds{
             .Id = std::format("{}_row{}", screen, index),

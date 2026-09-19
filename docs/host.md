@@ -90,6 +90,9 @@ Name `T` explicitly in `Publish<T>`, so the stored pointer is the interface subo
 casts back to. Put a version in `InterfaceName` and bump it whenever the vtable or a parameter's
 meaning changes: a stale consumer then gets `nullptr` instead of a mismatched vtable.
 
+Several providers of one interface pass a key: `Publish<IMenuSection>(this, "admin")`, then
+`Get<IMenuSection>("admin")` and `Unpublish<IMenuSection>("admin")`.
+
 Ask for a service where you use it and do not keep the pointer. The publisher can unload between
 callbacks, never inside one, so a pointer fetched at the point of use cannot dangle before you
 are done with it. Never transfer ownership across the boundary, never pass an object one module's

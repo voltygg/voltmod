@@ -84,8 +84,26 @@ TEST_CASE("Unpublish withdraws only the named interface")
 
     exchange.Unpublish<IGreeter>();
 
-    CHECK(exchange.Find(IGreeter::InterfaceName) == nullptr);
-    CHECK(exchange.Find(ICounter::InterfaceName) != nullptr);
+    CHECK(exchange.Get<IGreeter>() == nullptr);
+    CHECK(exchange.Get<ICounter>() != nullptr);
+}
+
+TEST_CASE("Keyed providers of one interface are found and withdrawn apart")
+{
+    Attached host;
+    auto& exchange = host.Exchange;
+    Both first;
+    Both second;
+    exchange.Publish<ICounter>(&first, "first");
+    exchange.Publish<ICounter>(&second, "second");
+
+    CHECK(exchange.Get<ICounter>("first") == &first);
+    CHECK(exchange.Get<ICounter>() == nullptr);
+
+    exchange.Unpublish<ICounter>("first");
+
+    CHECK(exchange.Get<ICounter>("first") == nullptr);
+    CHECK(exchange.Get<ICounter>("second") == &second);
 }
 
 TEST_CASE("An exchange with no host attached publishes nowhere and finds nothing")

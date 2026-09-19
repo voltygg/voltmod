@@ -10,8 +10,8 @@ using VoltMod::ErrorCode;
 using VoltMod::LoadList;
 using VoltMod::PluginManifest;
 using VoltMod::RefusedPlugin;
-using VoltMod::PluginDependencies::Resolve;
 using VoltMod::PluginDependencies::RequiredDependents;
+using VoltMod::PluginDependencies::Resolve;
 
 static PluginManifest Plugin(std::string name, std::vector<std::string> dependencies = {},
                              std::vector<std::string> optionalDependencies = {})

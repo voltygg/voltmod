@@ -75,10 +75,13 @@ struct ChoiceIndex
     std::function<void(int slot, int index)> Set;
 };
 
+namespace Internal
+{
 /** @ref ChoiceRow's row with its values reduced to indices; build rows with ChoiceRow instead. */
 [[nodiscard]] MenuItem ChoiceItem(std::string label, std::vector<std::string> choices,
                                   std::function<void(int slot, int index)> commit, std::optional<ChoiceIndex> bind,
                                   int index, EnabledCondition enabled, ChoiceApply apply);
+}  // namespace Internal
 
 /** A labeled choice list. A/D wraps through the values. */
 template <class T>
@@ -98,17 +101,21 @@ struct ChoiceRow
     [[nodiscard]] MenuItem ToItem() const
     {
         std::vector<std::string> labels;
-        for (const auto& choice : Choices)
-            labels.push_back(choice.first);
+        std::vector<T> values;
+        for (const auto& [label, value] : Choices)
+        {
+            labels.push_back(label);
+            values.push_back(value);
+        }
 
         std::function<void(int slot, int index)> commitIndex;
         if (Commit)
         {
-            commitIndex = [choices = Choices, commit = Commit](int slot, int index) {
-                commit(slot, choices[static_cast<std::size_t>(index)].second);
+            commitIndex = [values = std::move(values), commit = Commit](int slot, int index) {
+                commit(slot, values[static_cast<std::size_t>(index)]);
             };
         }
-        return ChoiceItem(Label, std::move(labels), std::move(commitIndex), Bind, Index, Enabled, Apply);
+        return Internal::ChoiceItem(Label, std::move(labels), std::move(commitIndex), Bind, Index, Enabled, Apply);
     }
 };
 

@@ -54,7 +54,8 @@ def header_for(xml: str, css: str = "", template_source: str = "") -> str:
 def test_the_checked_in_fixture_header_is_what_rendering_writes(make_screen_project):
     """Set VOLTMOD_REFRESH_FIXTURES=1 to rewrite the fixture after a deliberate change."""
     root = make_screen_project(xml=LAB_XML, css=LAB_CSS, name="lab", icons=("ak47", "awp"))
-    layout, stylesheet = ScreenRenderer(screen_owners(root, ["ui-lab"])[0], root).render("lab")
+    lab = screen_owners(root, ["ui-lab"])[0]
+    layout, stylesheet = ScreenRenderer(lab, screen_owners(root)).render("lab")
 
     header = header_for(layout, stylesheet, LAB_XML)
     fixture = REPO_ROOT / "tests/Ui/Fixtures/Lab.hpp"

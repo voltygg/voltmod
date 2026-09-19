@@ -19,6 +19,7 @@
 #include <VoltMod/Http/HttpClient.hpp>
 #include <VoltMod/Menu/CenterHtmlMenu.hpp>
 #include <VoltMod/Menu/MenuRouter.hpp>
+#include <VoltMod/Menu/PanoramaMenu.hpp>
 #include <VoltMod/Messaging/Messages.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/Policy.hpp>
@@ -72,6 +73,9 @@ public:
 
     /** "addons/voltmod/plugins/<PluginName>/<relative>". */
     std::string PluginFile(std::string_view relative) const;
+
+    /** What a plugin's @ref PanoramaMenu needs, from this runtime's services. */
+    PanoramaMenu::Services PanoramaMenuServices();
 
     VoltMod::LoadSteps LoadSteps;
 

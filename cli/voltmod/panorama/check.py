@@ -41,8 +41,9 @@ def check_screens(root: Path, names: list[str] | None = None) -> list[CheckResul
     claimed: dict[str, str] = {}
     interned: dict[Path, set[str]] = {}
 
+    everyone = screen_owners(root)
     for owner in screen_owners(root, names):
-        renderer = ScreenRenderer(owner, root)
+        renderer = ScreenRenderer(owner, everyone)
         for icon_set, icons in renderer.icons.items():
             for icon in icons:
                 resource = f"images/custom_game/{icon_set}/{icon}.*"
