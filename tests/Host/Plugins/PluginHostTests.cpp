@@ -148,13 +148,13 @@ TEST_CASE("A language one plugin sets reaches the others until the slot changes 
     REQUIRE(picker != nullptr);
     REQUIRE(reader != nullptr);
 
-    picker->SetPlayerLanguage(2, "ru");
-    CHECK(reader->PlayerLanguage(2) == "ru");
+    picker->Languages().SetLanguage(2, "ru");
+    CHECK(reader->Languages().Language(2) == "ru");
 
     host.RaiseClientDisconnected(2);
-    CHECK(reader->PlayerLanguage(2).empty());
+    CHECK(reader->Languages().Language(2).empty());
 
-    picker->SetPlayerLanguage(2, "ru");
+    picker->Languages().SetLanguage(2, "ru");
     host.RaiseClientConnected(2, 76561198000000000LL, "next", "10.0.0.3");
-    CHECK(reader->PlayerLanguage(2).empty());
+    CHECK(reader->Languages().Language(2).empty());
 }

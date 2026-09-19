@@ -76,11 +76,10 @@ bool PluginModule::AttachImpl(IHost& host, char* error, size_t errorSize)
     KHook::__exported__khook = host.HookDispatcher();
     _host = &host;
 
-    _runtime = std::make_unique<Runtime>();
+    _runtime = std::make_unique<Runtime>(host.Languages());
     // Attach before Load so a load step can already reach a peer's published interface.
     _runtime->Exchange.Attach(&host.Services());
     _runtime->Commands.Attach(&host);
-    _runtime->Translations.UseSharedLanguages(*this);
 
     const LoadContext context{.Host = &host, .Error = error, .MaxLen = errorSize};
     if (!_runtime->Initialize(context))
@@ -216,16 +215,6 @@ void PluginModule::HostClientFullyConnected(int slot)
 {
     _runtime->Hooks.ClientConVars.OnClientFullyConnect(slot);
     _runtime->Players.OnClientFullyConnected(slot);
-}
-
-std::string_view PluginModule::Language(int slot) const
-{
-    return _host->PlayerLanguage(slot);
-}
-
-void PluginModule::SetLanguage(int slot, std::string_view lang)
-{
-    _host->SetPlayerLanguage(slot, lang);
 }
 
 void PluginModule::HostClientSettingsChanged(int slot)

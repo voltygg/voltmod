@@ -129,7 +129,7 @@ void Messages::Reply(int slot, std::string_view message)
     Send(slot, message);
 }
 
-void Messages::ReplyKey(int slot, const std::string& key, const std::map<std::string, std::string>& tokens)
+void Messages::ReplyKey(int slot, const std::string& key, const Tokens& tokens)
 {
     Reply(slot, _translations.Get(key, slot, tokens));
 }

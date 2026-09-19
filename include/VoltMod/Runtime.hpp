@@ -1,5 +1,6 @@
 #pragma once
 
+#include <VoltMod/App/Internal/HostPlayerLanguages.hpp>
 #include <VoltMod/App/ServiceExchange.hpp>
 #include <VoltMod/App/StatusService.hpp>
 #include <VoltMod/Commands/CommandManager.hpp>
@@ -52,7 +53,8 @@ struct LoadContext
 class Runtime
 {
 public:
-    Runtime();
+    /** @p languages is the host's table; it outlives the runtime. */
+    explicit Runtime(IHostLanguages& languages);
     ~Runtime();
     Runtime(const Runtime&) = delete;
     Runtime& operator=(const Runtime&) = delete;
@@ -89,7 +91,11 @@ public:
      */
     VoltMod::Scheduler Scheduler;
 
-    VoltMod::Translations Translations{Slots};
+private:
+    Internal::HostPlayerLanguages _languages;
+
+public:
+    VoltMod::Translations Translations{_languages};
 
     /** The opt-in engine-access tier (Interfaces, Bindings). Populated by Initialize. */
     UnsafeServices Unsafe;

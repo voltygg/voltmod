@@ -60,10 +60,10 @@ MenuItem ActionRows::StateToggle(std::string_view labelKey, std::function<bool(c
 
 MenuItem ActionRows::Presets(const PresetSpec& spec)
 {
-    std::vector<std::pair<std::string, int>> choices;
+    std::vector<Labeled<int>> choices;
     choices.reserve(spec.Presets.size());
     for (int value : spec.Presets)
-        choices.emplace_back(std::format("{} {}", value, spec.Unit), value);
+        choices.push_back({.Label = std::format("{} {}", value, spec.Unit), .Value = value});
 
     return ChoiceRow<int>{
         .Label = Translate(spec.LabelKey),

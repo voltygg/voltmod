@@ -2,7 +2,6 @@
 
 #include <VoltMod/App/Plugin.hpp>
 #include <VoltMod/Core/Signals/Subscriptions.hpp>
-#include <VoltMod/Core/Text/PlayerLanguages.hpp>
 #include <VoltMod/Host/IHost.hpp>
 #include <concepts>
 #include <cstddef>
@@ -19,9 +18,8 @@ concept PluginType = std::derived_from<T, Plugin> && std::constructible_from<T, 
 
 using PluginFactory = std::unique_ptr<Plugin> (*)(Runtime&);
 
-/** Owns the host connection, runtime, and one user plugin for each load cycle. Also the runtime's
- *  @ref PlayerLanguages, forwarding to the host. */
-class PluginModule final : private PlayerLanguages
+/** Owns the host connection, runtime, and one user plugin for each load cycle. */
+class PluginModule
 {
 public:
     explicit PluginModule(PluginFactory factory) : _factory(factory) {}
@@ -49,9 +47,6 @@ private:
     void HostClientFullyConnected(int slot);
     void HostClientSettingsChanged(int slot);
     void HostCheckTransmit(CCheckTransmitInfo** infoList, int infoCount);
-
-    std::string_view Language(int slot) const override;
-    void SetLanguage(int slot, std::string_view lang) override;
 
     PluginFactory _factory;
     IHost* _host = nullptr;

@@ -23,7 +23,7 @@
 namespace VoltMod
 {
 
-Runtime::Runtime() = default;
+Runtime::Runtime(IHostLanguages& languages) : _languages(languages) {}
 
 Runtime::~Runtime()
 {

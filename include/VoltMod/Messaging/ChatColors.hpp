@@ -1,10 +1,10 @@
 #pragma once
 
+#include <VoltMod/Core/Text/Labeled.hpp>
 #include <array>
 #include <functional>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
 namespace VoltMod::ChatColors
@@ -76,14 +76,13 @@ std::string_view ParseNamed(std::string_view name);
 std::string Strip(std::string_view text);
 
 /**
- * @ref Palette as (label, canonical name) pairs, so a colour picker grows as the palette does
+ * @ref Palette as labeled canonical names, so a colour picker grows as the palette does
  * rather than repeating its contents.
  *
  * @p labelFor supplies the localized label for each canonical name; returning "" falls back to
  * the name itself. Shaped for a `ChoiceRow<std::string>`, but it names no menu type - a caller
  * that wants the list for anything else gets the same answer.
  */
-std::vector<std::pair<std::string, std::string>> PaletteChoices(
-    std::function<std::string(std::string_view canonicalName)> labelFor);
+std::vector<Labeled<std::string>> PaletteChoices(std::function<std::string(std::string_view canonicalName)> labelFor);
 
 }  // namespace VoltMod::ChatColors

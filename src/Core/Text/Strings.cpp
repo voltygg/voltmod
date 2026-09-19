@@ -148,7 +148,7 @@ static std::string ReplaceAll(const std::string& str, const std::string& from, c
     return result;
 }
 
-std::string Strings::SubstituteTokens(std::string text, const std::map<std::string, std::string>& tokens)
+std::string Strings::SubstituteTokens(std::string text, const Tokens& tokens)
 {
     for (const auto& [key, value] : tokens)
         text = ReplaceAll(text, "{" + key + "}", value);

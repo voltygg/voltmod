@@ -12,8 +12,7 @@ namespace VoltMod
 {
 
 // Flatten nested JSON objects into dotted keys and keep only string leaves.
-static void FlattenInto(const glz::generic& node, const std::string& prefix,
-                        std::unordered_map<std::string, std::string>& out)
+static void FlattenInto(const glz::generic& node, const std::string& prefix, StringMap<std::string>& out)
 {
     if (!node.is_object())
         return;
@@ -34,9 +33,9 @@ static void FlattenInto(const glz::generic& node, const std::string& prefix,
  * players saw the literal string `cmd.noPermission`. A plugin's own file still wins - these are
  * the floor, not an override.
  */
-static const std::unordered_map<std::string, std::string>& KitDefaults()
+static const StringMap<std::string>& KitDefaults()
 {
-    static const std::unordered_map<std::string, std::string> defaults{
+    static const StringMap<std::string> defaults{
         {"cmd.noPermission", "You do not have permission to use this command."},
         {"cmd.tooManyArgs", "Too many arguments. Usage: {usage}"},
         {"cmd.usage", "Usage: {usage}"},
@@ -66,14 +65,7 @@ static const std::unordered_map<std::string, std::string>& KitDefaults()
     return defaults;
 }
 
-Translations::Translations(SlotEvents& slots)
-    // SlotEvents covers both arrival and departure; arrival happens before OnPlayerConnect sets
-    // the language.
-    : _slotListener(slots.Changed += [this](int slot) {
-          if (IsValidSlot(slot))
-              _playerLangs[slot].clear();
-      })
-{}
+Translations::Translations(PlayerLanguages& languages) : _languages(languages) {}
 
 bool Translations::Load(std::string_view dirPath)
 {
@@ -168,29 +160,17 @@ std::vector<std::string> Translations::GetAvailableLanguages() const
     return langs;
 }
 
-void Translations::UseSharedLanguages(PlayerLanguages& shared)
-{
-    _shared = &shared;
-}
-
 void Translations::SetPlayerLanguage(int slot, std::string_view lang)
 {
-    if (!IsValidSlot(slot))
-        return;
-    if (_shared)
-        _shared->SetLanguage(slot, lang);
-    else
-        _playerLangs[slot] = lang;
+    _languages.SetLanguage(slot, lang);
 }
 
 std::string_view Translations::PlayerLanguage(int slot) const
 {
-    if (!IsValidSlot(slot))
-        return {};
-    return _shared ? _shared->Language(slot) : std::string_view(_playerLangs[slot]);
+    return _languages.Language(slot);
 }
 
-std::optional<std::string_view> Translations::LookupIn(std::string_view lang, const std::string& key) const
+std::optional<std::string_view> Translations::LookupIn(std::string_view lang, std::string_view key) const
 {
     auto langIt = _translations.find(lang);
     if (langIt != _translations.end())
@@ -207,7 +187,7 @@ std::string Translations::Get(std::string_view key) const
     return Get(key, -1);  // negative slot uses the active language
 }
 
-std::optional<std::string_view> Translations::Resolve(const std::string& key, int slot) const
+std::optional<std::string_view> Translations::Resolve(std::string_view key, int slot) const
 {
     const std::string_view picked = PlayerLanguage(slot);
     const std::string_view lang = picked.empty() ? std::string_view(_activeLang) : picked;
@@ -223,24 +203,20 @@ std::optional<std::string_view> Translations::Resolve(const std::string& key, in
 
 std::string Translations::Get(std::string_view key, int slot) const
 {
-    // The tables are keyed by std::string, so the view is materialized once for the lookup.
-    const std::string name(key);
-    auto value = Resolve(name, slot);
-    return value ? std::string(*value) : name;
+    return std::string(Resolve(key, slot).value_or(key));
 }
 
 std::string Translations::GetOr(std::string_view key, int slot, std::string_view fallback) const
 {
-    auto value = Resolve(std::string(key), slot);
-    return std::string(value.value_or(fallback));
+    return std::string(Resolve(key, slot).value_or(fallback));
 }
 
-std::string Translations::Get(std::string_view key, int slot, const std::map<std::string, std::string>& tokens) const
+std::string Translations::Get(std::string_view key, int slot, const Tokens& tokens) const
 {
     return Strings::SubstituteTokens(Get(key, slot), tokens);
 }
 
-std::string Translations::Get(std::string_view key, const std::map<std::string, std::string>& tokens) const
+std::string Translations::Get(std::string_view key, const Tokens& tokens) const
 {
     return Get(key, -1, tokens);
 }

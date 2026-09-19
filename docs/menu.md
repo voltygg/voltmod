@@ -38,7 +38,7 @@ Each row is a spec struct filled with designated initializers, and `Add` appends
 | `TextRow{.Label}` | A heading or divider. Not selectable. |
 | `ButtonRow{.Label, .Activate, .Enabled}` | Runs `Activate(slot)` on E or a click. |
 | `ToggleRow{.Label, .Get, .Flip, .Enabled}` | Reads `Get` every redraw; E and A/D both run `Flip`. |
-| `ChoiceRow<T>{.Label, .Choices, .Commit, .Bind, .Index, .Enabled, .Apply}` | A/D walks the `{label, value}` list, wrapping, and applies what it lands on. |
+| `ChoiceRow<T>{.Label, .Choices, .Commit, .Bind, .Index, .Enabled, .Apply}` | A/D walks the `Labeled<T>` list, wrapping, and applies what it lands on. |
 | `InputRow{.Label, .Prompt, .Get, .Set, .MaxLength, .Enabled}` | E routes the player's next chat line into `Set`. |
 | `SubmenuRow{.Label, .Build, .Enabled, .Icon}` | Runs `Build(slot)` lazily on E and pushes the result. |
 

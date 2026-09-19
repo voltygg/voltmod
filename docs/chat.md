@@ -73,7 +73,7 @@ resolves aliases (`"orange"` gives `Gold`), and returns `Default` for anything i
 std::string_view color = ChatColors::ParseNamed(group.PrefixColor);
 ```
 
-`PaletteChoices(labelFor)` returns `(label, canonical name)` pairs for a color picker, shaped for a
+`PaletteChoices(labelFor)` returns `Labeled` canonical names for a color picker, shaped for a
 `ChoiceRow<std::string>`; `labelFor` supplies each localized label and may return `""` to use the
 name itself.
 

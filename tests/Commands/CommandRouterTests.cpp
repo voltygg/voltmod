@@ -1,5 +1,6 @@
 #include "Commands/CommandRouter.hpp"
 #include "Commands/CommandSyntax.hpp"
+#include "Support/TestLanguages.hpp"
 
 #include <VoltMod/Core/Slots/SlotEvents.hpp>
 #include <VoltMod/Host/IHost.hpp>
@@ -31,6 +32,7 @@ using VoltMod::TargetError;
 using VoltMod::TargetFailure;
 using VoltMod::TargetRules;
 using VoltMod::Translations;
+using VoltModTests::TestLanguages;
 
 namespace CommandSyntax = VoltMod::CommandSyntax;
 
@@ -70,6 +72,7 @@ public:
     KHook::IKHook* HookDispatcher() const override { return nullptr; }
     VoltMod::IHostEvents& Events() override { std::abort(); }
     VoltMod::IHostServices& Services() override { std::abort(); }
+    VoltMod::IHostLanguages& Languages() override { std::abort(); }
     VoltMod::IHostGameData* GameData() const override { return nullptr; }
     void WriteLog(uint8_t, std::string_view) override {}
     uint8_t MinLogLevel() const override { return 0; }
@@ -85,9 +88,6 @@ public:
         return true;
     }
 
-    std::string_view PlayerLanguage(int) const override { return {}; }
-    void SetPlayerLanguage(int, std::string_view) override {}
-
     bool IsCommandRegistered(std::string_view name) const override
     {
         const std::string asked(name);
@@ -101,7 +101,8 @@ struct Fixture
     SlotEvents Slots;
     PlayerManager Players{Slots, nullptr};
     Policy Rules{Players};
-    Translations Texts{Slots};
+    TestLanguages Languages;
+    Translations Texts{Languages};
     CommandRouter Router{Rules, Texts};
     StubBinder Binder;
     std::vector<std::string> Lines;

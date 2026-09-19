@@ -1,5 +1,6 @@
+#include "Support/TestLanguages.hpp"
+
 #include <VoltMod/Commands/CommandBuilder.hpp>
-#include <VoltMod/Core/Slots/SlotEvents.hpp>
 #include <doctest/doctest.h>
 #include <string>
 #include <vector>
@@ -12,8 +13,8 @@ using VoltMod::CommandDefinition;
 using VoltMod::CommandSignature;
 using VoltMod::Reply;
 using VoltMod::Result;
-using VoltMod::SlotEvents;
 using VoltMod::Translations;
+using VoltModTests::TestLanguages;
 
 namespace Args = VoltMod::Args;
 
@@ -120,8 +121,8 @@ TEST_CASE("The trampoline unpacks bound arguments back into the parameter list")
                         (note.Value ? note.Value->Value : std::string("-")));
         });
 
-    SlotEvents slots;
-    Translations texts{slots};
+    TestLanguages languages;
+    Translations texts{languages};
     const Caller caller{.Player = nullptr, .Slot = -1, .Tr = texts, .Send = {}};
 
     const std::vector<BoundArg> full{Args::Int{7}, Args::Int{128}, Args::Rest{"why not"}};
@@ -145,8 +146,8 @@ TEST_CASE("Run installs the command and hands nothing back")
 
 TEST_CASE("Caller Fail is a failure carrying both the key and the localized line")
 {
-    SlotEvents slots;
-    Translations texts{slots};
+    TestLanguages languages;
+    Translations texts{languages};
     std::vector<std::string> lines;
     const Caller caller{
         .Player = nullptr, .Slot = -1, .Tr = texts, .Send = [&lines](const std::string& l) { lines.push_back(l); }};

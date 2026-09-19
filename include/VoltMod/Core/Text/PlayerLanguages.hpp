@@ -5,7 +5,7 @@
 namespace VoltMod
 {
 
-/** Each player's language, shared by every plugin through the host. Game thread only. */
+/** Each player's language, which @ref Translations reads and writes. Game thread only. */
 class PlayerLanguages
 {
 public:

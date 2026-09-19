@@ -7,7 +7,6 @@
 #include <cstdint>
 #include <format>
 #include <glaze/json.hpp>
-#include <map>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -112,7 +111,7 @@ public:
      *
      *  Substituting inside the parsed document rather than in its text is what keeps a token
      *  value containing `"` or `\` (a player name, say) from producing invalid JSON. */
-    static void SubstituteTokens(glz::generic& node, const std::map<std::string, std::string>& tokens)
+    static void SubstituteTokens(glz::generic& node, const Tokens& tokens)
     {
         if (node.is_string())
         {

@@ -5,7 +5,6 @@
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
-#include <map>
 #include <string>
 #include <string_view>
 
@@ -47,7 +46,7 @@ public:
     void Reply(int slot, std::string_view message);
 
     /** Translate @p key for the player's language, substitute @p tokens, and Reply. */
-    void ReplyKey(int slot, const std::string& key, const std::map<std::string, std::string>& tokens = {});
+    void ReplyKey(int slot, const std::string& key, const Tokens& tokens = {});
 
     /**
      * Shake @p slot's screen, the engine's own CUserMessageShake.

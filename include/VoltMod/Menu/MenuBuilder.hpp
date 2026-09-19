@@ -1,5 +1,6 @@
 #pragma once
 
+#include <VoltMod/Core/Text/Labeled.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <concepts>
 #include <functional>
@@ -88,7 +89,7 @@ template <class T>
 struct ChoiceRow
 {
     std::string Label;
-    std::vector<std::pair<std::string, T>> Choices;
+    std::vector<Labeled<T>> Choices;
     /** Runs on E, or shortly after the last step unless @ref Apply says otherwise. */
     std::function<void(int slot, const T& value)> Commit;
     /** Optional external home for the selection; unset keeps it in the row. */

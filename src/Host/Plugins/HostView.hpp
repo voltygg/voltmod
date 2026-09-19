@@ -2,11 +2,10 @@
 
 #include "Host/Plugins/CallbackList.hpp"
 #include "Host/Plugins/CommandNames.hpp"
+#include "Host/Plugins/LanguageTable.hpp"
 #include "Host/Plugins/ServiceTable.hpp"
 
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/Slots/PerSlot.hpp>
-#include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Host/IHost.hpp>
 #include <VoltMod/Host/IHostEvents.hpp>
@@ -49,8 +48,7 @@ struct HostState
 
     ServiceTable Services;
     CommandNames Commands;
-    /** Cleared when the slot connects and after it disconnects. */
-    PerSlot<std::string> Languages;
+    LanguageTable Languages;
 };
 
 /** What a plugin had not released when it was removed. The host drops each and warns about it. */
@@ -91,11 +89,10 @@ public:
     KHook::IKHook* HookDispatcher() const override;
     IHostEvents& Events() override;
     IHostServices& Services() override;
+    IHostLanguages& Languages() override;
     IHostGameData* GameData() const override;
     bool RegisterCommand(std::string_view name) override;
     bool IsCommandRegistered(std::string_view name) const override;
-    std::string_view PlayerLanguage(int slot) const override;
-    void SetPlayerLanguage(int slot, std::string_view lang) override;
     void WriteLog(uint8_t level, std::string_view text) override;
     uint8_t MinLogLevel() const override;
     uint64_t SchemaLayoutStamp() const override;

@@ -1,5 +1,6 @@
 #include "Menu/FakeMenuSurface.hpp"
 #include "Menu/FakeTimers.hpp"
+#include "Support/TestLanguages.hpp"
 
 #include <VoltMod/Core/Slots/SlotEvents.hpp>
 #include <VoltMod/Core/Text/Translations.hpp>
@@ -18,6 +19,7 @@ using VoltMod::SlotEvents;
 using VoltMod::Translations;
 using VoltModTests::FakeMenuSurface;
 using VoltModTests::FakeTimers;
+using VoltModTests::TestLanguages;
 
 static constexpr int kSlot = 0;
 
@@ -42,7 +44,8 @@ struct MenuStackFixture
     MenuStackFixture() : Stack(Surface, Strings, Timers.Bind()) {}
 
     SlotEvents Slots;
-    Translations Strings{Slots};
+    TestLanguages Languages;
+    Translations Strings{Languages};
     FakeMenuSurface Surface;
     FakeTimers Timers;
     MenuStack Stack;
@@ -219,8 +222,8 @@ TEST_CASE("MenuStack: a slot changing hands drops its session unrun")
 
 TEST_CASE("MenuStack: a Scheduler is accepted as the timer")
 {
-    SlotEvents slots;
-    Translations strings{slots};
+    TestLanguages languages;
+    Translations strings{languages};
     FakeMenuSurface surface;
     VoltMod::Scheduler scheduler;
     MenuStack stack(surface, strings, scheduler);
