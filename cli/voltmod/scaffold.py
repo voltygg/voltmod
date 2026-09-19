@@ -15,7 +15,7 @@ def is_kebab_case(name: str) -> bool:
 
 
 def create_project(root: Path, name: str, plugin: str) -> None:
-    """Render templates/project into @p root, then its first plugin."""
+    """Render templates/project into `root`, then its first plugin."""
     for existing in ("CMakeLists.txt", "conanfile.py"):
         if (root / existing).exists():
             raise VoltmodError(f"{existing} already exists in {root}; refusing to overwrite")

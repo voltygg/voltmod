@@ -107,7 +107,7 @@ class Screen:
 
 
 def read_screen(layout: str, stylesheet: str, source: Path | None = None) -> Screen:
-    """Parse one rendered screen; a malformed layout raises a VoltmodError naming @p source."""
+    """Parse one rendered screen; a malformed layout raises a VoltmodError naming `source`."""
     try:
         tree = ElementTree.fromstring(layout)
     except ElementTree.ParseError as error:

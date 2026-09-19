@@ -25,7 +25,7 @@ def put_tools_first_on_path() -> None:
 
 
 def run_cli(main: Callable[[], object]) -> None:
-    """Run @p main, reporting a VoltmodError or a failed tool as one line and exit code 1."""
+    """Run `main`, reporting a VoltmodError or a failed tool as one line and exit code 1."""
     put_tools_first_on_path()
     try:
         main()

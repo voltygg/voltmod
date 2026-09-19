@@ -94,7 +94,7 @@ def is_client(root: Path) -> bool:
 
 
 def find_client(client_path: str) -> Path:
-    """The CS2 client at @p client_path, or the first one in any Steam library."""
+    """The CS2 client at `client_path`, or the first one in any Steam library."""
     if client_path:
         root = Path(client_path).expanduser()
         if not is_client(root):

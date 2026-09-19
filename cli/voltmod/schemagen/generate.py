@@ -114,7 +114,7 @@ def layout_stamp(rows: list[LayoutRow]) -> str:
 def write_outputs(
     repo: Path, files: dict[Path, str], platform: str, *, check: bool = False
 ) -> None:
-    """Format and write @p files, deleting stale ones; with @p check, fail on any difference."""
+    """Format and write `files`, deleting stale ones; with `check`, fail on any difference."""
     expected = {repo / relative for relative in files}
     stale = [path for path in _existing_generated_files(repo, platform) if path not in expected]
     if check and stale:
@@ -127,7 +127,7 @@ def write_outputs(
 
 
 def _format_cpp(repo: Path, files: dict[Path, str]) -> dict[Path, str]:
-    """@p files with the C++ ones formatted by one clang-format run."""
+    """`files` with the C++ ones formatted by one clang-format run."""
     scratch_parent = repo / "build"
     scratch_parent.mkdir(exist_ok=True)
     # Inside the repo, so clang-format finds the .clang-format the real paths would.

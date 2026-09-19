@@ -45,7 +45,7 @@ _CONFLICT_PREFIX = "ON_CONFLICT("
 
 
 def resolve_placeholders(sql: str, driver: str) -> str:
-    """Substitute every @PLACEHOLDER@ in @p sql for @p driver; an unknown one is an error."""
+    """Substitute every @PLACEHOLDER@ in `sql` for `driver`; an unknown one is an error."""
     if driver not in DIALECTS:
         raise VoltmodError(f"unknown driver '{driver}'; expected {', '.join(DRIVERS)}")
     values = DIALECTS[driver]
@@ -63,7 +63,7 @@ def resolve_placeholders(sql: str, driver: str) -> str:
 
 
 def find_migrations(directory: Path) -> list[Path]:
-    """Every `NNNN_*.sql` in @p directory, in version order."""
+    """Every `NNNN_*.sql` in `directory`, in version order."""
     numbered = []
     for path in directory.glob("*.sql"):
         if match := re.match(r"(\d+)", path.name):
@@ -74,14 +74,14 @@ def find_migrations(directory: Path) -> list[Path]:
 
 
 def render_migrations(source: Path, driver: str) -> str:
-    """One SQL file, or a whole migration directory in version order, rendered for @p driver."""
+    """One SQL file, or a whole migration directory in version order, rendered for `driver`."""
     files = [source] if source.is_file() else find_migrations(source)
     rendered = (resolve_placeholders(path.read_text(encoding="utf-8"), driver) for path in files)
     return "\n".join(rendered)
 
 
 def generate_table_header(root: Path, ddl: str, namespace: str, header_name: str) -> str:
-    """Run sqlpp23-ddl2cpp over @p ddl in a temporary directory, and return the header it wrote."""
+    """Run sqlpp23-ddl2cpp over `ddl` in a temporary directory, and return the header it wrote."""
     with tempfile.TemporaryDirectory() as work:
         source = Path(work) / "schema.sql"
         source.write_text(ddl, encoding="utf-8", newline="\n")

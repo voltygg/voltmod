@@ -19,7 +19,7 @@ from voltmod.project import Project, Settings
 
 
 def install_plugins(project: Project, server_path: str, plugin: str, preset: str) -> None:
-    """Install the host and @p plugin, or every plugin when it is empty, into that server."""
+    """Install the host and `plugin`, or every plugin when it is empty, into that server."""
     server = find_server(server_path)
     csgo = server / CSGO_DIR
     names = project.plugin_names(plugin)

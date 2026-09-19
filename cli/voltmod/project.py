@@ -85,7 +85,7 @@ class Project:
 
     @classmethod
     def load(cls, root: Path | None = None) -> Project:
-        """The project at @p root (default: the working directory), with its .env applied."""
+        """The project at `root` (default: the working directory), with its .env applied."""
         root = root or Path.cwd()
         # Into os.environ, so conan and cmake child processes see the same values.
         load_dotenv(root / ".env", override=False)
@@ -114,7 +114,7 @@ class Project:
         )
 
     def plugin_names(self, requested: str = "") -> list[str]:
-        """@p requested, checked to exist, or every plugin.json under plugins/."""
+        """`requested`, checked to exist, or every plugin.json under plugins/."""
         if requested:
             if self.plugin_dir(requested) is None:
                 searched = " or ".join(f"{parent}/{requested}" for parent in PLUGIN_DIRS)

@@ -190,7 +190,7 @@ def _check_images(owner: ScreenOwner, screen: Screen, source: Path) -> list[str]
 def _check_screen_names(
     screen: Screen, stylesheet: str, source: Path, interned: dict[Path, set[str]]
 ) -> list[str]:
-    """Record the names @p screen interns, and flag a screen that has run away on its own."""
+    """Record the names `screen` interns, and flag a screen that has run away on its own."""
     names = {screen.name, *screen.ids, *screen.variables, *selector_classes(stylesheet)}
     for node in screen.tree.iter():
         names.update(node.get("class", "").split())
@@ -215,7 +215,7 @@ def _check_name_table(interned: dict[Path, set[str]]) -> list[str]:
 
 
 def _claim_resource(resource: str, owner: ScreenOwner, claimed: dict[str, str]) -> list[str]:
-    """The first owner to render @p resource keeps it; a second owner is a problem."""
+    """The first owner to render `resource` keeps it; a second owner is a problem."""
     holder = claimed.setdefault(resource, owner.name)
     if holder == owner.name:
         return []

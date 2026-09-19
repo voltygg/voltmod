@@ -88,7 +88,7 @@ def pattern_regex(pattern: str) -> re.Pattern[bytes]:
 
 
 def check_gamedata(root: Path, game_dir: str, platform: str) -> tuple[str, list[PatternResult]]:
-    """The gamedata text in @p root, and every pattern checked against the game at @p game_dir."""
+    """The gamedata text in `root`, and every pattern checked against the game at `game_dir`."""
     if not game_dir:
         raise VoltmodError("no game directory; set CS2_SERVER_PATH in .env or pass --game-dir")
     game = Path(game_dir).expanduser()
@@ -175,7 +175,7 @@ def repair_pattern(
 
 
 def schema_fields_at(schema: dict[str, Any], offset: int) -> list[str]:
-    """Schema fields at @p offset, to name what a repaired displacement points at."""
+    """Schema fields at `offset`, to name what a repaired displacement points at."""
     return [
         f"{name}::{field['name']}"
         for name, info in sorted(schema.get("classes", {}).items())
@@ -195,7 +195,7 @@ def replace_pattern(text: str, key: str, old_pattern: str, new_pattern: str) -> 
 
 
 def write_repairs(root: Path, text: str, repaired: list[PatternResult]) -> None:
-    """Patch each repaired pattern into @p text and write it back as the gamedata file."""
+    """Patch each repaired pattern into `text` and write it back as the gamedata file."""
     for result in repaired:
         text = replace_pattern(text, result.key, result.old_pattern, result.new_pattern)
     (root / GAMEDATA_FILE).write_text(text, encoding="utf-8", newline="\n")

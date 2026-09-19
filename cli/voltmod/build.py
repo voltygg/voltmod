@@ -32,7 +32,7 @@ def build(
 ) -> None:
     """Conan install, screen rendering, and the CMake build for one preset.
 
-    @p relock turns the editable framework into the package CI resolves, and verifies afterwards
+    `relock` turns the editable framework into the package CI resolves, and verifies afterwards
     that this build was configured against it.
     """
     uses_ccache = _configure_ccache(project.root)

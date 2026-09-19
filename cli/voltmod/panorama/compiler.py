@@ -60,7 +60,7 @@ def compile_and_install(
 
 
 def _stage_files(rendered: Path, content: Path) -> list[Path]:
-    """Copy a rendered tree into @p content, keeping the panorama/ prefix that includes rely on."""
+    """Copy a rendered tree into `content`, keeping the panorama/ prefix that includes rely on."""
     staged = []
     for source in _rendered_files(rendered):
         target = content / source.relative_to(rendered.parent)

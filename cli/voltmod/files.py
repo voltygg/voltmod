@@ -27,7 +27,7 @@ def write_if_changed(path: Path, data: str | bytes) -> bool:
 
 
 def write_or_check(path: Path, text: str, *, check: bool) -> bool:
-    """Write @p text, or with @p check print a diff and fail when the file differs from it."""
+    """Write `text`, or with `check` print a diff and fail when the file differs from it."""
     if not check:
         return write_if_changed(path, text)
     current = path.read_text(encoding="utf-8") if path.is_file() else ""

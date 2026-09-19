@@ -8,7 +8,7 @@ from voltmod.schemagen.model import ENTITY_ROOT, FieldKind, SchemaClass, parse_m
 
 
 def base_chain(dump: dict[str, Any], name: str) -> list[str]:
-    """The single-inheritance chain above @p name, nearest first."""
+    """The single-inheritance chain above `name`, nearest first."""
     chain: list[str] = []
     current = name
     while True:

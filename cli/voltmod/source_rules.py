@@ -164,7 +164,7 @@ def check_conventions(
 ) -> list[CheckResult]:
     """Stray forward declarations, anonymous namespaces, using-directives, and Core using the SDK.
 
-    @p declaration_headers may forward-declare; None accepts any `*Types.hpp`.
+    `declaration_headers` may forward-declare; None accepts any `*Types.hpp`.
     """
     forwards, anonymous, directives, engine = [], [], [], []
     for file in files:
@@ -239,7 +239,7 @@ def check_framework(root: Path) -> tuple[dict[str, set[str]], list[CheckResult]]
 
 
 def check_plugins(root: Path) -> list[CheckResult]:
-    """Source conventions in a consumer's plugins directory, or in @p root itself."""
+    """Source conventions in a consumer's plugins directory, or in `root` itself."""
     plugins = root / "plugins" if (root / "plugins").is_dir() else root
     if not plugins.is_dir():
         raise VoltmodError(f"no plugins directory under {root.resolve()}")

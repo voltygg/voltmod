@@ -32,7 +32,7 @@ class AccessorCode:
 
 
 def accessor_code(schema_class: SchemaClass, schema_field: SchemaField) -> AccessorCode | None:
-    """The spelling of @p schema_field, or None when it is skipped."""
+    """The spelling of `schema_field`, or None when it is skipped."""
     match schema_field.kind:
         case FieldKind.SKIPPED:
             return None
