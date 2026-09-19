@@ -213,7 +213,7 @@ default CSS with `{% include "<name>.css.j2" %}`.
 | `listrow` | `listrow(id, switch=false, hint=false, value=true, steppers=false, chevron=false)` | one row of a list: two lines of text, a value, a collapsed switch and chevron the screen shows per row class, and steppers; its ids end `_button`, `_decrease` and `_increase` |
 | `tabs` | `tabs(id, count)` | a strip of hidden-by-default tabs, each reading `{s:<id><i>}` |
 | `pager` | `pager(id)` | previous (`_previous`), a `{s:<id>}` label, next (`_next`) |
-| `menu` | `menu(tabs, rows, icons)`, used with `{% call %}` | a menu window: sidebar tabs, header, rows, prompt, Back and a pager; the call body is the sidebar brand. @ref VoltMod::PanoramaMenuLayout draws it |
+| `menu` | `menu(tabs, rows, icons)`, used with `{% call %}` | a whole menu screen, root panel included: sidebar tabs, header, rows, prompt, Back and a pager; the call body is the sidebar brand, and `<root>` holds only the styles and this call. @ref VoltMod::PanoramaMenuLayout draws it |
 
 `dialog` takes its body through `{% call %}` rather than an argument:
 

@@ -15,12 +15,12 @@ What changed in each VoltMod release. Older history is in git.
 
 - `ConVars::ExecuteClientCommand(slot, command)` runs a console command as a player, without a
   chat echo.
-- The `menu` Panorama block and `VoltMod::PanoramaMenuLayout`, which draws it.
+- The `menu` Panorama block, a whole menu screen, and `VoltMod::PanoramaMenuLayout`, which draws it.
 - `ToItem()` on menu row specs is `const` instead of `&&`.
 - A plugin's `panorama/templates/` is importable from every plugin's screens.
 - Keyed `ServiceExchange::Publish<T>(impl, key)`, `Unpublish<T>(key)` and `Get<T>(key)`, for
   several providers of one interface.
-- `Runtime::PanoramaMenuServices()`.
+- `Runtime::PanoramaMenuServices()`, and `PanoramaMenuSettings` for a plugin's "menu" settings section.
 
 ### Fixed
 

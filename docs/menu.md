@@ -278,9 +278,12 @@ VoltMod::PanoramaMenuLayout _layout{runtime.Screens, AdminMenuLayout::Layout, Ad
 std::optional<VoltMod::PanoramaMenu> _panorama;
 VoltMod::Subscription _preferPanorama;           // after the menu, so it lets go first
 
-// App::Load, when settings turn Panorama on
-_panorama.emplace(runtime.PanoramaMenuServices(), _layout, addonId);
-_preferPanorama = runtime.Menus.Prefer(*_panorama);
+// App::Load; settings.menu is a VoltMod::PanoramaMenuSettings
+if (const auto& menu = settings.menu; menu.panorama)
+{
+    _panorama.emplace(runtime.PanoramaMenuServices(), _layout, menu.addonId);
+    _preferPanorama = runtime.Menus.Prefer(*_panorama);
+}
 ```
 
 While the preference is held, `OpenSession` tries the Panorama menu first and falls back to center HTML

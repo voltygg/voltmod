@@ -96,9 +96,9 @@ def test_a_screen_imports_a_template_another_plugin_ships(make_screen_project):
 
 def test_the_menu_block_draws_the_ids_panorama_menu_screen_writes(make_screen_project):
     root = make_screen_project(
-        xml='{% import "menu.xml.j2" as blocks %}<root><Panel id="{{screen}}">'
+        xml='{% import "menu.xml.j2" as blocks %}<root>'
         '{% call blocks.menu(2, 2, "weapons") %}<Label text="{s:brand}" />{% endcall %}'
-        "</Panel></root>",
+        "</root>",
         css='{% include "menu.css.j2" %}',
     )
     render_screens(root, ["ui-lab"])
@@ -108,6 +108,7 @@ def test_the_menu_block_draws_the_ids_panorama_menu_screen_writes(make_screen_pr
     )
     # src/Menu/PanoramaMenuLayout.cpp builds these same names from the screen name.
     for name in (
+        '<Panel id="hud" class="Screen Hidden"',
         'id="hud_tab1"',
         'id="hud_tab1_icon"',
         "{s:tab1}",
