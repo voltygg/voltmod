@@ -276,6 +276,15 @@ if (auto required = runtime.Addons.Require(3401234567))
     _addon = std::move(*required);   // keep the Subscription
 ```
 
+The Workshop Manager packs only the folders listed under `AddonConfig/VpkDirectories` in your
+client's `game/csgo/gameinfo.gi`; add `"include" "panorama/images/custom_game"` next to the layout
+and styles entries or the images stay out of the upload.
+
+Publish changed screens as a **new** item and require the new id. A client downloads a
+server-required item once and never checks it for updates, so an update under the old id reaches
+only players who have never had it; everyone else keeps drawing the old layout and sees a cursor
+with no menu.
+
 Delete what an earlier `compile` installed under your client's
 `game/csgo/panorama/*/custom_game/` before testing the download, or the client keeps using those
 files. See @ref workshop_guide for what an addon costs a connecting client.
