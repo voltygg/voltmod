@@ -1,7 +1,6 @@
 #pragma once
 
 #include <VoltMod/Menu/Menu.hpp>
-#include <algorithm>
 #include <concepts>
 #include <functional>
 #include <memory>
@@ -35,8 +34,8 @@ private:
 
 /** A row spec consumable as a @ref MenuItem. */
 template <class T>
-concept MenuRowSpec = requires(T row) {
-    { std::move(row).ToItem() } -> std::same_as<MenuItem>;
+concept MenuRowSpec = requires(const T& row) {
+    { row.ToItem() } -> std::same_as<MenuItem>;
 };
 
 /** A plain action row. @ref Activate runs on E or a click. */
@@ -46,7 +45,7 @@ struct ButtonRow
     std::function<void(int slot)> Activate;
     EnabledCondition Enabled;
 
-    [[nodiscard]] MenuItem ToItem() &&;
+    [[nodiscard]] MenuItem ToItem() const;
 };
 
 /** A boolean row drawn as a switch. E and A/D run @ref Flip. */
@@ -57,7 +56,7 @@ struct ToggleRow
     std::function<void(int slot)> Flip;
     EnabledCondition Enabled;
 
-    [[nodiscard]] MenuItem ToItem() &&;
+    [[nodiscard]] MenuItem ToItem() const;
 };
 
 /** When a @ref ChoiceRow runs its `Commit`. */
@@ -76,6 +75,11 @@ struct ChoiceIndex
     std::function<void(int slot, int index)> Set;
 };
 
+/** @ref ChoiceRow's row with its values reduced to indices; build rows with ChoiceRow instead. */
+[[nodiscard]] MenuItem ChoiceItem(std::string label, std::vector<std::string> choices,
+                                  std::function<void(int slot, int index)> commit, std::optional<ChoiceIndex> bind,
+                                  int index, EnabledCondition enabled, ChoiceApply apply);
+
 /** A labeled choice list. A/D wraps through the values. */
 template <class T>
 struct ChoiceRow
@@ -91,7 +95,21 @@ struct ChoiceRow
     EnabledCondition Enabled;
     ChoiceApply Apply = ChoiceApply::AfterStep;
 
-    [[nodiscard]] MenuItem ToItem() &&;
+    [[nodiscard]] MenuItem ToItem() const
+    {
+        std::vector<std::string> labels;
+        for (const auto& choice : Choices)
+            labels.push_back(choice.first);
+
+        std::function<void(int slot, int index)> commitIndex;
+        if (Commit)
+        {
+            commitIndex = [choices = Choices, commit = Commit](int slot, int index) {
+                commit(slot, choices[static_cast<std::size_t>(index)].second);
+            };
+        }
+        return ChoiceItem(Label, std::move(labels), std::move(commitIndex), Bind, Index, Enabled, Apply);
+    }
 };
 
 /**
@@ -107,7 +125,7 @@ struct InputRow
     int MaxLength = 64;
     EnabledCondition Enabled;
 
-    [[nodiscard]] MenuItem ToItem() &&;
+    [[nodiscard]] MenuItem ToItem() const;
 };
 
 /** A link to another menu. @ref Build runs on E and its result is pushed onto the stack. */
@@ -119,7 +137,7 @@ struct SubmenuRow
     /** Reported as @ref MenuRow::Icon. */
     std::string Icon;
 
-    [[nodiscard]] MenuItem ToItem() &&;
+    [[nodiscard]] MenuItem ToItem() const;
 };
 
 /** A heading or divider. The cursor skips it. */
@@ -127,7 +145,7 @@ struct TextRow
 {
     std::string Label;
 
-    [[nodiscard]] MenuItem ToItem() &&;
+    [[nodiscard]] MenuItem ToItem() const;
 };
 
 /** Fluent builder for menus and row specs. */
@@ -151,7 +169,7 @@ public:
     }
 
     /** Appends any compatible row spec. */
-    MenuBuilder& Add(MenuRowSpec auto row) { return Add(std::move(row).ToItem()); }
+    MenuBuilder& Add(const MenuRowSpec auto& row) { return Add(row.ToItem()); }
 
     /** @ref ButtonRow with nothing but a label and a callback. */
     MenuBuilder& Button(std::string label, std::function<void(int slot)> activate)
@@ -188,92 +206,5 @@ private:
     Menu _menu;
     std::string _emptyText;
 };
-
-template <class T>
-MenuItem ChoiceRow<T>::ToItem() &&
-{
-    // One shared copy, so every callback of the open menu sees the same selection.
-    struct State
-    {
-        std::string Label;
-        std::vector<std::pair<std::string, T>> Choices;
-        std::function<void(int slot, const T& value)> Commit;
-        std::optional<ChoiceIndex> Bind;
-        EnabledCondition Enabled;
-        int Own;
-
-        [[nodiscard]] int Selected(int slot) const
-        {
-            if (Choices.empty())
-                return 0;
-            const int index = Bind ? Bind->Get(slot) : Own;
-            return std::clamp(index, 0, static_cast<int>(Choices.size()) - 1);
-        }
-
-        void Select(int slot, int index)
-        {
-            if (Bind)
-                Bind->Set(slot, index);
-            else
-                Own = index;
-        }
-
-        void Apply(int slot) const
-        {
-            if (Commit && !Choices.empty())
-                Commit(slot, Choices[static_cast<std::size_t>(Selected(slot))].second);
-        }
-
-        bool Step(int slot, int direction)
-        {
-            if (Choices.empty())
-                return false;
-            Select(slot, WrapIndex(Selected(slot) + direction, static_cast<int>(Choices.size())));
-            return true;
-        }
-    };
-
-    auto state = std::make_shared<State>(State{.Label = std::move(Label),
-                                               .Choices = std::move(Choices),
-                                               .Commit = std::move(Commit),
-                                               .Bind = std::move(Bind),
-                                               .Enabled = std::move(Enabled),
-                                               .Own = Index});
-
-    MenuItem item{
-        .Describe =
-            [state](int slot) {
-                MenuRow row{.Label = state->Label, .Kind = MenuRowKind::Choice, .Enabled = state->Enabled(slot)};
-                // An empty list cannot step, so A/D pages instead.
-                if (!state->Choices.empty())
-                {
-                    row.Value = state->Choices[static_cast<std::size_t>(state->Selected(slot))].first;
-                    row.Steppable = true;
-                }
-                return row;
-            },
-        .Activate =
-            [state](int slot, MenuSurface&) {
-                if (!state->Enabled(slot))
-                    return;
-                // Without a commit callback, E advances like D for a live pick-a-value row.
-                if (state->Commit)
-                    state->Apply(slot);
-                else
-                    state->Step(slot, +1);
-            },
-        .Step = [state](int slot, int direction) { return state->Enabled(slot) && state->Step(slot, direction); },
-    };
-
-    // Left empty for OnActivate: a row without Commit is applied only when activated.
-    if (Apply == ChoiceApply::AfterStep)
-    {
-        item.Commit = [state](int slot) {
-            if (state->Enabled(slot))
-                state->Apply(slot);
-        };
-    }
-    return item;
-}
 
 }  // namespace VoltMod

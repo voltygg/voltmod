@@ -1,4 +1,7 @@
 #include <VoltMod/Menu/MenuBuilder.hpp>
+#include <algorithm>
+#include <cstddef>
+#include <memory>
 #include <utility>
 
 namespace VoltMod
@@ -30,23 +33,23 @@ static std::function<void(int, MenuSurface&)> WhenEnabled(EnabledCondition enabl
     };
 }
 
-MenuItem ButtonRow::ToItem() &&
+MenuItem ButtonRow::ToItem() const
 {
     return MenuItem{
-        .Describe = DescribeRow(std::move(Label), MenuRowKind::Button, Enabled),
-        .Activate = WhenEnabled(std::move(Enabled),
-                                [activate = std::move(Activate)](int slot, MenuSurface&) {
+        .Describe = DescribeRow(Label, MenuRowKind::Button, Enabled),
+        .Activate = WhenEnabled(Enabled,
+                                [activate = Activate](int slot, MenuSurface&) {
                                     if (activate)
                                         activate(slot);
                                 }),
     };
 }
 
-MenuItem ToggleRow::ToItem() &&
+MenuItem ToggleRow::ToItem() const
 {
     // MenuStack::Describe supplies the localized state text.
     return MenuItem{
-        .Describe = DescribeRow(std::move(Label), MenuRowKind::Toggle, Enabled,
+        .Describe = DescribeRow(Label, MenuRowKind::Toggle, Enabled,
                                 [get = Get](int slot, MenuRow& row) {
                                     row.Steppable = true;
                                     row.State = get && get(slot);
@@ -57,7 +60,7 @@ MenuItem ToggleRow::ToItem() &&
                                         flip(slot);
                                 }),
         .Step =
-            [flip = std::move(Flip), enabled = std::move(Enabled)](int slot, int) {
+            [flip = Flip, enabled = Enabled](int slot, int) {
                 if (!flip || !enabled(slot))
                     return false;
                 flip(slot);
@@ -66,35 +69,34 @@ MenuItem ToggleRow::ToItem() &&
     };
 }
 
-MenuItem InputRow::ToItem() &&
+MenuItem InputRow::ToItem() const
 {
     return MenuItem{
-        .Describe = DescribeRow(std::move(Label), MenuRowKind::Input, Enabled,
-                                [get = std::move(Get)](int slot, MenuRow& row) {
+        .Describe = DescribeRow(Label, MenuRowKind::Input, Enabled,
+                                [get = Get](int slot, MenuRow& row) {
                                     // An unset value still needs to look like a field waiting for one.
                                     std::string value = get ? get(slot) : std::string{};
                                     row.Value = value.empty() ? "…" : std::move(value);
                                 }),
-        .Activate = WhenEnabled(
-            std::move(Enabled),
-            [prompt = std::move(Prompt), set = std::move(Set), maxLength = MaxLength](int slot, MenuSurface& surface) {
-                surface.Prompt(slot, prompt, [set, maxLength](int s, std::string_view text) {
-                    // Reject over-long client input before calling the setter.
-                    if (maxLength > 0 && static_cast<int>(text.size()) > maxLength)
-                        return false;
-                    return set ? set(s, text) : true;
-                });
-            }),
+        .Activate = WhenEnabled(Enabled,
+                                [prompt = Prompt, set = Set, maxLength = MaxLength](int slot, MenuSurface& surface) {
+                                    surface.Prompt(slot, prompt, [set, maxLength](int s, std::string_view text) {
+                                        // Reject over-long client input before calling the setter.
+                                        if (maxLength > 0 && static_cast<int>(text.size()) > maxLength)
+                                            return false;
+                                        return set ? set(s, text) : true;
+                                    });
+                                }),
     };
 }
 
-MenuItem SubmenuRow::ToItem() &&
+MenuItem SubmenuRow::ToItem() const
 {
     return MenuItem{
-        .Describe = DescribeRow(std::move(Label), MenuRowKind::Submenu, Enabled,
-                                [icon = std::move(Icon)](int, MenuRow& row) { row.Icon = icon; }),
-        .Activate = WhenEnabled(std::move(Enabled),
-                                [build = std::move(Build)](int slot, MenuSurface& surface) {
+        .Describe =
+            DescribeRow(Label, MenuRowKind::Submenu, Enabled, [icon = Icon](int, MenuRow& row) { row.Icon = icon; }),
+        .Activate = WhenEnabled(Enabled,
+                                [build = Build](int slot, MenuSurface& surface) {
                                     if (!build)
                                         return;
                                     if (auto submenu = build(slot))
@@ -103,9 +105,86 @@ MenuItem SubmenuRow::ToItem() &&
     };
 }
 
-MenuItem TextRow::ToItem() &&
+MenuItem TextRow::ToItem() const
 {
-    return MenuItem{.Describe = DescribeRow(std::move(Label), MenuRowKind::Text, true)};
+    return MenuItem{.Describe = DescribeRow(Label, MenuRowKind::Text, true)};
+}
+
+/** One shared copy, so every callback of the open menu sees the same selection. */
+struct ChoiceState
+{
+    std::vector<std::string> Choices;
+    std::function<void(int slot, int index)> Commit;
+    std::optional<ChoiceIndex> Bind;
+    int Own;
+
+    [[nodiscard]] int Selected(int slot) const
+    {
+        if (Choices.empty())
+            return 0;
+        const int index = Bind ? Bind->Get(slot) : Own;
+        return std::clamp(index, 0, static_cast<int>(Choices.size()) - 1);
+    }
+
+    void Select(int slot, int index)
+    {
+        if (Bind)
+            Bind->Set(slot, index);
+        else
+            Own = index;
+    }
+
+    void Apply(int slot) const
+    {
+        if (Commit && !Choices.empty())
+            Commit(slot, Selected(slot));
+    }
+
+    bool Step(int slot, int direction)
+    {
+        if (Choices.empty())
+            return false;
+        Select(slot, WrapIndex(Selected(slot) + direction, static_cast<int>(Choices.size())));
+        return true;
+    }
+};
+
+MenuItem ChoiceItem(std::string label, std::vector<std::string> choices,
+                    std::function<void(int slot, int index)> commit, std::optional<ChoiceIndex> bind, int index,
+                    EnabledCondition enabled, ChoiceApply apply)
+{
+    auto state = std::make_shared<ChoiceState>(
+        ChoiceState{.Choices = std::move(choices), .Commit = std::move(commit), .Bind = std::move(bind), .Own = index});
+
+    MenuItem item{
+        .Describe = DescribeRow(std::move(label), MenuRowKind::Choice, enabled,
+                                [state](int slot, MenuRow& row) {
+                                    // An empty list cannot step, so A/D pages instead.
+                                    if (state->Choices.empty())
+                                        return;
+                                    row.Value = state->Choices[static_cast<std::size_t>(state->Selected(slot))];
+                                    row.Steppable = true;
+                                }),
+        .Activate = WhenEnabled(enabled,
+                                [state](int slot, MenuSurface&) {
+                                    // Without a commit callback, E advances like D for a live pick-a-value row.
+                                    if (state->Commit)
+                                        state->Apply(slot);
+                                    else
+                                        state->Step(slot, +1);
+                                }),
+        .Step = [state, enabled](int slot, int direction) { return enabled(slot) && state->Step(slot, direction); },
+    };
+
+    // Left empty for OnActivate: a row without Commit is applied only when activated.
+    if (apply == ChoiceApply::AfterStep)
+    {
+        item.Commit = [state, enabled](int slot) {
+            if (enabled(slot))
+                state->Apply(slot);
+        };
+    }
+    return item;
 }
 
 }  // namespace VoltMod
