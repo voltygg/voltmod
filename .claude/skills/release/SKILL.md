@@ -17,7 +17,8 @@ range. Point out `!` commits since the last tag before bumping only the patch.
 
 1. **Check the start.** Clean tree on `main`, level with `origin/main`, the tag
    unused (`git tag -l v<version>`), and CI green on HEAD:
-   `gh run list -R voltygg/voltmod --workflow ci.yml -b main -L 1`. Red or running: stop.
+   `gh run list -R voltygg/voltmod --workflow ci.yml -b main -L 1`. Red: stop. Running:
+   write steps 2-4 meanwhile, then `gh run watch <id>` before step 5. This is the only CI wait.
 2. **Collect the changes:** `git log --format='%h %s%n%b' v<last>..HEAD`. The body
    line of a `!` commit says what consumers change.
 3. **Write the CHANGELOG entry** at the top of `CHANGELOG.md` as
@@ -36,28 +37,29 @@ range. Point out `!` commits since the last tag before bumping only the patch.
    `uv lock`, then confirm `uv run poe release version` prints it.
 5. **Commit and push:** stage `conanfile.py`, `pyproject.toml`, `uv.lock` and
    `CHANGELOG.md` by name, `chore: release <version>`, `git push origin main`.
-6. **Wait for CI** on that commit (`gh run watch <id> -R voltygg/voltmod`). Only a green
-   commit gets tagged.
-7. **Tag:** `git tag v<version> && git push origin v<version>`.
-8. **Watch Release:** `gh run list -R voltygg/voltmod --workflow release.yml -L 1`,
+6. **Tag right away:** `git tag v<version> && git push origin v<version>`. The release commit
+   changes only the version, changelog and lock over the green commit from step 1, so its
+   CI run is not waited for; the Release workflow builds the tag itself.
+7. **Watch Release:** `gh run list -R voltygg/voltmod --workflow release.yml -L 1`,
    then `gh run watch`. Both jobs must pass.
-9. **Confirm the remote** and note the revision:
+8. **Confirm the remote** and note the revision:
    `uv run conan list "voltmod/<version>#*" -r volty`.
-10. **Relock cs2-plugins** (MSVC dev shell, see its `/build-local` skill), with
+9. **Relock cs2-plugins** (MSVC dev shell, see its `/build-local` skill), with
     `vendor/voltmod` checked out at the tag:
     - in `vendor/voltmod`, `git ls-files --eol` must list no `w/crlf` or `w/mixed` file;
       Conan hashes the bytes on disk, so re-checkout any it lists (`rm <file>` then
       `git checkout -- <file>`)
     - `uv run conan editable add vendor/voltmod` if `conan editable list` is empty
     - `uv run poe build --relock`
-    - the `voltmod/<version>#<revision>` in `conan.lock` must equal step 9's revision;
+    - the `voltmod/<version>#<revision>` in `conan.lock` must equal step 8's revision;
       a different one exists only locally and CI cannot resolve it
     - `uv lock --upgrade-package voltmod`
     - commit `conan.lock` and `uv.lock` as `chore: bump voltmod to <version>` via `/commit`
 
 ## Never
 
-- Tag a commit that is not on `origin/main` or whose CI is not green.
+- Tag a commit that is not on `origin/main`, or put anything but the release files between
+  it and the green commit from step 1.
 - Move, delete or re-push a pushed tag. A broken release is fixed by the next patch.
 - Upload from a local machine; the tag's workflow owns publishing.
 - Commit a consumer `conan.lock` naming a revision the remote does not list.
