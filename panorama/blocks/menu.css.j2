@@ -148,7 +148,8 @@
   visibility: visible;
 }
 
-.screen.screen--home .menu__rows {
+/* Without home markup the root menu keeps its rows. */
+.screen.screen--home .menu--with-home .menu__rows {
   visibility: collapse;
 }
 

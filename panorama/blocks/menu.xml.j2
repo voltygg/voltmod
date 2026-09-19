@@ -8,7 +8,7 @@
 {% macro menu(tabs, rows, icons, home="") -%}
 <Panel class="layer" hittest="false">
   <Panel id="{{screen}}" class="screen hidden" hittest="true">
-    <Panel class="menu" hittest="true">
+    <Panel class="menu{{ ' menu--with-home' if home }}" hittest="true">
 
       <Panel class="menu__sidebar" hittest="true">
         <Panel class="menu__brand" hittest="false">

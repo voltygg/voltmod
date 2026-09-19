@@ -47,7 +47,7 @@ public:
 
     /** Fills `{s:<variable>}` in markup the screen adds itself, such as its `home` panel. Written
      *  with every header, so it outlives a respawned screen. */
-    void AddText(std::string variable, std::function<std::string(int slot)> text);
+    void AddText(std::string_view variable, std::function<std::string(int slot)> text);
 
 private:
     struct TabIds

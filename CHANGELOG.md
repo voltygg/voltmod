@@ -37,7 +37,7 @@ What changed in each VoltMod release. Older history is in git.
   several providers of one interface.
 - `Runtime::PanoramaMenuServices()`, and `PanoramaMenuSettings` for a plugin's "menu" settings section.
 - The `menu` block takes optional `home` markup, and the screen gets `screen--home` while the root menu shows;
-  `PanoramaMenuLayout::AddText` fills that markup's variables.
+  `PanoramaMenuLayout::AddText` fills that markup's variables. Without `home` markup the root menu keeps its rows.
 - The Panorama menu hides its back button on the home page instead of labelling it `nav.root`.
 - `Translations::PlayerLanguage(slot)` reads the language a lookup uses.
 - `StringMap<V>`, a string-keyed map that looks up a `std::string_view` without a copy.

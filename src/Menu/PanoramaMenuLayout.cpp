@@ -181,9 +181,9 @@ void PanoramaMenuLayout::SetFooter(int slot, std::string_view back, std::string_
     Text(screen, slot, "cancel", cancel);
 }
 
-void PanoramaMenuLayout::AddText(std::string variable, std::function<std::string(int slot)> text)
+void PanoramaMenuLayout::AddText(std::string_view variable, std::function<std::string(int slot)> text)
 {
-    _texts.push_back(ScreenText{.Variable = std::move(variable), .Value = std::move(text)});
+    _texts.push_back(ScreenText{.Variable = std::string{variable}, .Value = std::move(text)});
 }
 
 std::optional<MenuButton> PanoramaMenuLayout::ButtonFor(std::string_view id) const
