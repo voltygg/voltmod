@@ -1,12 +1,12 @@
 /* Layout only. A screen sets width, colour and radius after including this. */
-.Dialog {
+.dialog {
   height: fit-children;
   horizontal-align: center;
   vertical-align: center;
   flow-children: down;
 }
 
-.Dialog-header {
+.dialog__header {
   width: 100%;
   height: fit-children;
   flow-children: down;
@@ -14,36 +14,36 @@
 }
 
 /* Fixed height: empty at the root, and CSS cannot test that, so it holds its line. */
-.Dialog-breadcrumb {
+.dialog__breadcrumb {
   width: 100%;
   height: 14px;
   font-size: 12px;
   text-overflow: ellipsis;
 }
 
-.Dialog-title {
+.dialog__title {
   width: 100%;
   font-size: 22px;
   font-weight: bold;
   text-overflow: ellipsis;
 }
 
-.Dialog-subtitle {
+.dialog__subtitle {
   width: 100%;
   font-size: 13px;
   text-overflow: ellipsis;
 }
 
-.Dialog-subtitle.Hidden {
+.dialog__subtitle.hidden {
   visibility: collapse;
 }
 
-.Dialog-rule {
+.dialog__rule {
   width: 100%;
   height: 1px;
 }
 
-.Dialog-body {
+.dialog__body {
   width: 100%;
   height: fit-children;
   flow-children: down;

@@ -4,21 +4,21 @@
 {% include "icons.css.j2" %}
 {% include "listrow.css.j2" %}
 
-.Layer {
+.layer {
   width: 100%;
   height: 100%;
 }
 
-.Screen {
+.screen {
   width: 100%;
   height: 100%;
 }
 
-.Hidden {
+.hidden {
   visibility: collapse;
 }
 
-.Window {
+.menu {
   width: 920px;
   height: 640px;
   horizontal-align: center;
@@ -26,7 +26,7 @@
   flow-children: right;
 }
 
-.Sidebar {
+.menu__sidebar {
   width: 236px;
   height: 100%;
   flow-children: down;
@@ -34,28 +34,28 @@
 }
 
 /* A menu without tabs drops the sidebar and keeps the content width. */
-.Screen.NoSidebar .Sidebar {
+.screen.screen--no-sidebar .menu__sidebar {
   visibility: collapse;
 }
 
-.Screen.NoSidebar .Window {
+.screen.screen--no-sidebar .menu {
   width: 684px;
 }
 
-.Brand {
+.menu__brand {
   width: 100%;
   height: fit-children;
   flow-children: down;
   margin: 0px 10px 24px 10px;
 }
 
-.Nav {
+.menu__nav {
   width: 100%;
   height: fill-parent-flow(1);
   flow-children: down;
 }
 
-.Tab {
+.tab {
   width: 100%;
   height: 44px;
   margin-bottom: 4px;
@@ -63,187 +63,187 @@
   flow-children: right;
 }
 
-.Tab .Icons {
+.tab .icon-set {
   width: 20px;
   height: 20px;
   vertical-align: center;
   margin-right: 12px;
 }
 
-.Tab-label {
+.tab__label {
   width: fill-parent-flow(1);
   vertical-align: center;
   font-size: 15px;
   text-overflow: ellipsis;
 }
 
-.Content {
+.menu__content {
   width: fill-parent-flow(1);
   height: 100%;
   flow-children: down;
   padding: 22px 26px 20px 26px;
 }
 
-.Header {
+.menu__header {
   width: 100%;
   height: fit-children;
   flow-children: right;
   margin-bottom: 16px;
 }
 
-.Header-text {
+.menu__header-text {
   width: fill-parent-flow(1);
   height: fit-children;
   flow-children: down;
 }
 
 /* Fixed height: empty at the root, and CSS cannot test that. */
-.Breadcrumb {
+.menu__breadcrumb {
   width: 100%;
   height: 16px;
   font-size: 12px;
   text-overflow: ellipsis;
 }
 
-.Title {
+.menu__title {
   width: 100%;
   font-size: 24px;
   font-weight: bold;
   text-overflow: ellipsis;
 }
 
-.Subtitle {
+.menu__subtitle {
   width: 100%;
   font-size: 13px;
   text-overflow: ellipsis;
 }
 
-.IconButton {
+.icon-button {
   width: 36px;
   height: 36px;
 }
 
-.IconButton-image {
+.icon-button__image {
   width: 14px;
   height: 14px;
   horizontal-align: center;
   vertical-align: center;
 }
 
-.Rows {
+.menu__rows {
   width: 100%;
   height: fill-parent-flow(1);
   flow-children: down;
 }
 
 /* The optional `home` markup takes the rows' place while the root menu shows. */
-.Home {
+.menu__home {
   width: 100%;
   height: fill-parent-flow(1);
   flow-children: down;
   visibility: collapse;
 }
 
-.Screen.HomePage .Home {
+.screen.screen--home .menu__home {
   visibility: visible;
 }
 
-.Screen.HomePage .Rows {
+.screen.screen--home .menu__rows {
   visibility: collapse;
 }
 
-.Row {
+.row {
   height: 50px;
   margin-bottom: 6px;
 }
 
-.Row-button {
+.row__button {
   padding: 0px 16px 0px 18px;
 }
 
-.Row-label {
+.row__label {
   font-size: 15px;
 }
 
-.Row-hint {
+.row__hint {
   visibility: collapse;
 }
 
-.Row.Pending .Row-hint {
+.row.row--pending .row__hint {
   visibility: visible;
 }
 
-.Row-value {
+.row__value {
   margin-left: 10px;
   padding: 4px 10px;
   visibility: collapse;
 }
 
-.Row.HasValue .Row-value {
+.row.row--value .row__value {
   visibility: visible;
 }
 
 /* The switch already says ON or OFF. */
-.Row.Toggle .Row-value {
+.row.row--toggle .row__value {
   visibility: collapse;
 }
 
-.Row-chevron {
+.row__chevron {
   margin-left: 12px;
   font-size: 22px;
 }
 
-.Row.HasChevron .Row-chevron {
+.row.row--chevron .row__chevron {
   visibility: visible;
 }
 
-.Switch {
+.switch {
   width: 44px;
   height: 24px;
   margin-left: 12px;
 }
 
-.Row.Toggle .Switch {
+.row.row--toggle .switch {
   visibility: visible;
 }
 
-.Switch-knob {
+.switch__knob {
   width: 18px;
   height: 18px;
 }
 
-.Row.On .Switch-knob {
+.row.row--on .switch__knob {
   transform: translateX(20px);
 }
 
-.Steppers {
+.row__steppers {
   width: fit-children;
   margin-right: 10px;
 }
 
-.Row.HasSteppers .Steppers {
+.row.row--steppers .row__steppers {
   visibility: visible;
 }
 
-.Stepper {
+.row__stepper {
   width: 30px;
   height: 30px;
   margin-left: 4px;
   vertical-align: center;
 }
 
-.Stepper-glyph {
+.row__stepper-glyph {
   font-size: 10px;
 }
 
-.Empty {
+.menu__empty {
   width: 100%;
   height: 50px;
   text-align: center;
   font-size: 14px;
 }
 
-.Prompt {
+.menu__prompt {
   width: 100%;
   height: fit-children;
   flow-children: down;
@@ -251,40 +251,40 @@
   padding: 14px;
 }
 
-.Prompt-text {
+.menu__prompt-text {
   width: 100%;
   font-size: 15px;
 }
 
-.Prompt-hint {
+.menu__prompt-hint {
   width: 100%;
   margin-bottom: 10px;
   font-size: 13px;
 }
 
-.Footer {
+.menu__footer {
   width: 100%;
   height: 40px;
   flow-children: right;
   margin-top: 10px;
 }
 
-.Button {
+.button {
   width: 150px;
   height: 40px;
 }
 
-.Button-label {
+.button__label {
   font-size: 14px;
 }
 
-.Pager {
+.pager {
   width: fill-parent-flow(1);
   height: 100%;
   flow-children: right;
 }
 
-.Pager-label {
+.pager__label {
   width: fill-parent-flow(1);
   vertical-align: center;
   margin-right: 14px;
@@ -292,13 +292,13 @@
   font-size: 14px;
 }
 
-.Pager-arrow {
+.pager__arrow {
   width: 40px;
   height: 100%;
   margin-left: 6px;
 }
 
-.Pager-glyph {
+.pager__glyph {
   horizontal-align: center;
   vertical-align: center;
   font-size: 11px;

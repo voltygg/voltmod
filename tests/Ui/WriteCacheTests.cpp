@@ -32,11 +32,11 @@ TEST_CASE("Elements and variables are remembered apart, even when they concatena
 TEST_CASE("A class and a text with the same name do not shadow each other")
 {
     WriteCache cache;
-    CHECK(cache.Changed(0, WriteKind::Text, "vm_row0", "Hidden", "1"));
+    CHECK(cache.Changed(0, WriteKind::Text, "vm_row0", "hidden", "1"));
 
-    CHECK(cache.Changed(0, WriteKind::Class, "vm_row0", "Hidden", "1"));
-    CHECK_FALSE(cache.Changed(0, WriteKind::Class, "vm_row0", "Hidden", "1"));
-    CHECK_FALSE(cache.Changed(0, WriteKind::Text, "vm_row0", "Hidden", "1"));
+    CHECK(cache.Changed(0, WriteKind::Class, "vm_row0", "hidden", "1"));
+    CHECK_FALSE(cache.Changed(0, WriteKind::Class, "vm_row0", "hidden", "1"));
+    CHECK_FALSE(cache.Changed(0, WriteKind::Text, "vm_row0", "hidden", "1"));
 }
 
 TEST_CASE("Slots are remembered apart")

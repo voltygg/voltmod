@@ -1,14 +1,14 @@
 /* Layout only. A screen sets height, colour and radius after including this. */
-.Row {
+.row {
   width: 100%;
   flow-children: right;
 }
 
-.Row.Hidden {
+.row.hidden {
   visibility: collapse;
 }
 
-.Row-button {
+.row__button {
   width: fill-parent-flow(1);
   height: 100%;
   flow-children: right;
@@ -16,33 +16,33 @@
 }
 
 /* Fit, not 100%: a full-height column starts its lines at the top instead of centring them. */
-.Row-body {
+.row__body {
   width: fill-parent-flow(1);
   height: fit-children;
   flow-children: down;
   vertical-align: center;
 }
 
-.Row-label {
+.row__label {
   width: 100%;
   font-size: 14px;
   text-overflow: ellipsis;
 }
 
-.Row-hint {
+.row__hint {
   width: 100%;
   font-size: 11px;
   text-overflow: ellipsis;
 }
 
-.Row-value {
+.row__value {
   vertical-align: center;
   margin-left: 8px;
   font-size: 13px;
   text-overflow: ellipsis;
 }
 
-.Switch {
+.switch {
   width: 36px;
   height: 20px;
   vertical-align: center;
@@ -51,7 +51,7 @@
   visibility: collapse;
 }
 
-.Switch-knob {
+.switch__knob {
   width: 14px;
   height: 14px;
   margin-left: 3px;
@@ -63,26 +63,26 @@
   transition-timing-function: ease-out;
 }
 
-.Row-chevron {
+.row__chevron {
   vertical-align: center;
   visibility: collapse;
 }
 
-.Steppers {
+.row__steppers {
   width: 52px;
   height: 100%;
   flow-children: right;
   visibility: collapse;
 }
 
-.Stepper {
+.row__stepper {
   width: 26px;
   height: 100%;
   font-size: 11px;
 }
 
 /* A Label in a Button sits top-left unless told otherwise. */
-.Stepper-glyph {
+.row__stepper-glyph {
   horizontal-align: center;
   vertical-align: center;
 }

@@ -18,9 +18,9 @@ static_assert(LabUi::Rows[1].Decrease == "lab_row1_decrease");
 static_assert(LabUi::Rows[1].Increase == "lab_row1_increase");
 static_assert(LabUi::Rows[0].LabelVar == "row0_label");
 
-static_assert(LabUi::IconClasses.size() == 2);
-static_assert(LabUi::IconClasses[1] == "Icon--awp");
-static_assert(LabUi::IconNames[1] == "awp");
+static_assert(LabUi::IconSetClasses.size() == 2);
+static_assert(LabUi::IconSetClasses[1] == "icon-set--awp");
+static_assert(LabUi::IconSetNames[1] == "awp");
 
 TEST_CASE("Every repeated row names its own elements and variables")
 {

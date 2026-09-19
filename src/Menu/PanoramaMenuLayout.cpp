@@ -64,7 +64,7 @@ PanoramaMenuLayout::PanoramaMenuLayout(ScreenManager& screens, std::string_view 
     }
 
     for (std::string_view name : iconNames)
-        _icons.push_back(Icon{.Name = std::string(name), .Class = std::format("Icon--{}", name)});
+        _icons.push_back(Icon{.Name = std::string(name), .Class = std::format("icon-set--{}", name)});
 }
 
 bool PanoramaMenuLayout::Show(int slot)
@@ -97,7 +97,7 @@ void PanoramaMenuLayout::SetHeader(int slot, const MenuHeader& header)
     Text(screen, slot, "title", header.Title);
     Text(screen, slot, "subtitle", header.Subtitle);
     Hidden(screen, slot, _subtitle, header.Subtitle.empty());
-    Class(screen, slot, _root, "HomePage", header.IsRoot);
+    Class(screen, slot, _root, "screen--home", header.IsRoot);
 
     for (const ScreenText& text : _texts)
         Text(screen, slot, text.Variable, text.Value(slot));
@@ -105,7 +105,7 @@ void PanoramaMenuLayout::SetHeader(int slot, const MenuHeader& header)
 
 void PanoramaMenuLayout::SetSidebarVisible(int slot, bool visible)
 {
-    Class(_screens.For(slot), slot, _root, "NoSidebar", !visible);
+    Class(_screens.For(slot), slot, _root, "screen--no-sidebar", !visible);
 }
 
 void PanoramaMenuLayout::SetTab(int slot, int index, const MenuTab* tab)
@@ -118,7 +118,7 @@ void PanoramaMenuLayout::SetTab(int slot, int index, const MenuTab* tab)
         return;
 
     Text(screen, slot, ids.LabelVar, tab->Label);
-    Class(screen, slot, ids.Id, "Selected", tab->Selected);
+    Class(screen, slot, ids.Id, "tab--selected", tab->Selected);
 
     // Every icon class is written, so the one a previous tab showed turns off.
     for (const Icon& icon : _icons)
@@ -137,15 +137,15 @@ void PanoramaMenuLayout::SetRow(int slot, int index, const MenuRow* row, std::st
     const bool toggle = row->Kind == MenuRowKind::Toggle;
     Text(screen, slot, ids.LabelVar, row->Label);
     Text(screen, slot, ids.ValueVar, row->Value);
-    Class(screen, slot, ids.Id, "HasValue", !row->Value.empty());
-    Class(screen, slot, ids.Id, "Disabled", !row->Enabled);
-    Class(screen, slot, ids.Id, "On", row->State.value_or(false));
-    Class(screen, slot, ids.Id, "Toggle", toggle);
-    Class(screen, slot, ids.Id, "HasChevron", row->Kind == MenuRowKind::Submenu || row->Kind == MenuRowKind::Input);
+    Class(screen, slot, ids.Id, "row--value", !row->Value.empty());
+    Class(screen, slot, ids.Id, "row--disabled", !row->Enabled);
+    Class(screen, slot, ids.Id, "row--on", row->State.value_or(false));
+    Class(screen, slot, ids.Id, "row--toggle", toggle);
+    Class(screen, slot, ids.Id, "row--chevron", row->Kind == MenuRowKind::Submenu || row->Kind == MenuRowKind::Input);
     // An inert row still ships a live button, so without this it hovers and clicks like any other.
-    Class(screen, slot, ids.Id, "Static", !row->Selectable);
-    Class(screen, slot, ids.Id, "HasSteppers", row->Steppable && row->Enabled && !toggle);
-    Class(screen, slot, ids.Id, "Pending", row->Pending);
+    Class(screen, slot, ids.Id, "row--static", !row->Selectable);
+    Class(screen, slot, ids.Id, "row--steppers", row->Steppable && row->Enabled && !toggle);
+    Class(screen, slot, ids.Id, "row--pending", row->Pending);
     if (row->Pending)
         Text(screen, slot, ids.HintVar, pendingHint);
 }
@@ -170,7 +170,7 @@ void PanoramaMenuLayout::SetPrompt(int slot, std::string_view text, std::string_
     Text(screen, slot, "prompt_text", text);
     Text(screen, slot, "prompt_hint", hint);
     Hidden(screen, slot, _prompt, text.empty());
-    Class(screen, slot, _root, "Prompting", !text.empty());
+    Class(screen, slot, _root, "screen--prompting", !text.empty());
 }
 
 void PanoramaMenuLayout::SetFooter(int slot, std::string_view back, std::string_view cancel)

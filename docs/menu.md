@@ -274,7 +274,7 @@ screen and takes clicks instead of keys.
 ```cpp
 // App.hpp
 VoltMod::PanoramaMenuLayout _layout{runtime.Screens, AdminMenuLayout::Layout, AdminMenuLayout::Tabs.size(),
-                                     AdminMenuLayout::Rows.size(), AdminMenuLayout::IconNames};
+                                     AdminMenuLayout::Rows.size(), AdminMenuLayout::IconSetNames};
 std::optional<VoltMod::PanoramaMenu> _panorama;
 VoltMod::Subscription _preferPanorama;           // after the menu, so it lets go first
 
@@ -302,11 +302,11 @@ A screen built from the `menu` Panorama block uses @ref VoltMod::PanoramaMenuLay
 class of its own:
 
 ```cpp
-VoltMod::PanoramaMenuLayout _layout{runtime.Screens, MainMenuLayout::Layout, MainMenuLayout::Tabs.size(), MainMenuLayout::Rows.size(),  MainMenuLayout::IconNames};
+VoltMod::PanoramaMenuLayout _layout{runtime.Screens, MainMenuLayout::Layout, MainMenuLayout::Tabs.size(), MainMenuLayout::Rows.size(),  MainMenuLayout::IconSetNames};
 ```
 
 A screen can pass the block `home` markup, such as a welcome panel. It replaces the rows while
-the root menu shows, when the screen panel has the `HomePage` class. `_layout.AddText("home_title", ...)` fills a `{s:home_title}` in that markup, and a Button in
+the root menu shows, when the screen panel has the `screen--home` class. `_layout.AddText("home_title", ...)` fills a `{s:home_title}` in that markup, and a Button in
 it arrives on `runtime.Screens.Pressed` for the plugin to handle.
 
 A third surface is a class implementing @ref VoltMod::MenuSurface that holds a

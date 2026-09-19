@@ -1,8 +1,7 @@
-{#- A labelled Button. `text` is literal or a `{s:var}`; `variant` adds a `Button-<variant>`
-    modifier the screen styles. Modifiers use one dash: `--` would read as a server-written
-    class family. -#}
+{#- A labelled Button. `text` is literal or a `{s:var}`; `variant` adds a `button--<variant>`
+    modifier the screen styles. -#}
 {% macro button(id, text, variant="") -%}
-<Button id="{{screen}}_{{id}}" class="Button{% if variant %} Button-{{variant}}{% endif %}">
-  <Label class="Button-label" text="{{text}}" hittest="false" />
+<Button id="{{screen}}_{{id}}" class="button{% if variant %} button--{{variant}}{% endif %}">
+  <Label class="button__label" text="{{text}}" hittest="false" />
 </Button>
 {%- endmacro %}

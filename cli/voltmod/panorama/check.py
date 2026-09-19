@@ -9,6 +9,7 @@ from voltmod.panorama.layout import (
     Screen,
     is_cpp_name,
     member_name,
+    pascal_case,
     read_screen,
     selector_classes,
 )
@@ -154,8 +155,8 @@ def _check_cpp_names(screen: Screen, source: Path) -> list[str]:
     for family in screen.families:
         if not is_cpp_name(family):
             problems.append(f"{source}: class family '{family}--*' cannot be spelled in C++")
-        take(f"{family}Classes", f"the {family} family")
-        take(f"{family}Names", f"the {family} family's names")
+        take(f"{pascal_case(family)}Classes", f"the {family} family")
+        take(f"{pascal_case(family)}Names", f"the {family} family's names")
     return problems
 
 

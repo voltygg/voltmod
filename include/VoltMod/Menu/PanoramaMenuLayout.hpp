@@ -19,7 +19,7 @@ namespace VoltMod
  * @brief The @ref MenuLayout for a screen built from the `menu` Panorama block.
  *
  * @p screen is the layout name; @p tabs, @p rows and @p iconNames come from its generated header
- * (`Tabs.size()`, `Rows.size()`, `IconNames`). Each player gets their own screen, so the menu
+ * (`Tabs.size()`, `Rows.size()`, `IconSetNames`). Each player gets their own screen, so the menu
  * survives death and spectating. @p screens must outlive this.
  */
 class PanoramaMenuLayout final : public MenuLayout

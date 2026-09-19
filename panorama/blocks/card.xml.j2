@@ -5,16 +5,16 @@
     bottom. Starts hidden, so a card the driver never writes is never seen. Ids carry the screen
     name, the dialog variables the driver writes do not. -#}
 {% macro card(id, icon_set=none, bar=false) -%}
-<Panel id="{{screen}}_{{id}}" class="Card Hidden" hittest="false">
-  <Panel class="Card-main" hittest="false">
+<Panel id="{{screen}}_{{id}}" class="card hidden" hittest="false">
+  <Panel class="card__main" hittest="false">
     {%- if icon_set %}
     {{ icons.icons(id ~ "_icon", icon_set) | indent(4) }}
     {%- endif %}
-    <Panel class="Card-body" hittest="false">
-      <Label class="Card-title" text="{s:{{id}}_title}" hittest="false" />
-      <Label class="Card-subtitle" text="{s:{{id}}_subtitle}" hittest="false" />
+    <Panel class="card__body" hittest="false">
+      <Label class="card__title" text="{s:{{id}}_title}" hittest="false" />
+      <Label class="card__subtitle" text="{s:{{id}}_subtitle}" hittest="false" />
     </Panel>
-    <Label class="Card-value" text="{s:{{id}}_value}" hittest="false" />
+    <Label class="card__value" text="{s:{{id}}_value}" hittest="false" />
   </Panel>
   {%- if bar %}
   {{ bars.bar(id ~ "_bar") | indent(2) }}

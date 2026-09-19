@@ -19,8 +19,8 @@ LAB_XML = """{# namespace: LabUi #}
 {% import "icons.xml.j2" as icons %}
 {% import "listrow.xml.j2" as list %}
 <root>
-  <Panel class="Layer" hittest="false">
-    <Panel id="{{screen}}" class="Screen Hidden" hittest="false">
+  <Panel class="layer" hittest="false">
+    <Panel id="{{screen}}" class="screen hidden" hittest="false">
       {{ icons.icons("icon", "weapons") }}
       {%- for index in range(2) %}
       {{ list.listrow("row" ~ index, switch=true, hint=true, steppers=true, chevron=true) }}
@@ -32,12 +32,12 @@ LAB_XML = """{# namespace: LabUi #}
 """
 
 LAB_CSS = """{% import "icons.css.j2" as icons %}
-.Screen {
+.screen {
   width: 420px;
   flow-children: down;
 }
 
-.Screen.Hidden {
+.screen.hidden {
   visibility: collapse;
 }
 
@@ -75,19 +75,27 @@ def test_a_variable_named_twice_is_emitted_once():
 
 def test_a_family_keeps_the_order_it_was_declared_in():
     header = header_for(
-        '<root><Panel id="s" /></root>', ".Accent--zulu { a: 1; }\n.Accent--alpha { a: 1; }\n"
+        '<root><Panel id="s" /></root>', ".accent--zulu { a: 1; }\n.accent--alpha { a: 1; }\n"
     )
-    assert header.index('"Accent--zulu"') < header.index('"Accent--alpha"')
+    assert header.index('"accent--zulu"') < header.index('"accent--alpha"')
+
+
+def test_a_bem_family_is_spelled_in_pascal_case():
+    header = header_for(
+        '<root><Panel id="s"><Image class="icon-set__icon--ak-47" /></Panel></root>'
+    )
+    assert 'IconSetIconClasses{"icon-set__icon--ak-47"}' in header
+    assert 'IconSetIconNames{"ak-47"}' in header
 
 
 def test_a_decimal_in_a_declaration_is_not_read_as_a_family():
-    header = header_for('<root><Panel id="s" /></root>', ".Bar { width: 33.3--4%; }\n")
+    header = header_for('<root><Panel id="s" /></root>', ".bar { width: 33.3--4%; }\n")
     assert "Classes" not in header
 
 
 def test_a_define_is_not_read_as_part_of_the_next_selector():
-    stylesheet = "@define red-soft: rgba(225, 39, 60, 0.6);\n.Row { color: red-soft; }\n"
-    assert selector_classes(stylesheet) == ["Row"]
+    stylesheet = "@define red-soft: rgba(225, 39, 60, 0.6);\n.row { color: red-soft; }\n"
+    assert selector_classes(stylesheet) == ["row"]
 
 
 def test_without_a_directive_the_namespace_comes_from_the_screen():

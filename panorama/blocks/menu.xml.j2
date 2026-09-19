@@ -1,69 +1,69 @@
 {#- The whole menu screen PanoramaMenuLayout draws. The call body is the sidebar brand; `home` is
     optional markup that replaces the rows on the root menu:
 
-    {% call blocks.menu(6, 8, ICONS) %}<Label class="Brand-title" text="{s:brand}" />{% endcall %} -#}
+    {% call blocks.menu(6, 8, ICONS) %}<Label class="menu__brand-title" text="{s:brand}" />{% endcall %} -#}
 {% import "button.xml.j2" as controls %}
 {% import "icons.xml.j2" as icon_block %}
 {% import "listrow.xml.j2" as list %}
 {% macro menu(tabs, rows, icons, home="") -%}
-<Panel class="Layer" hittest="false">
-  <Panel id="{{screen}}" class="Screen Hidden" hittest="true">
-    <Panel class="Window" hittest="true">
+<Panel class="layer" hittest="false">
+  <Panel id="{{screen}}" class="screen hidden" hittest="true">
+    <Panel class="menu" hittest="true">
 
-      <Panel class="Sidebar" hittest="true">
-        <Panel class="Brand" hittest="false">
+      <Panel class="menu__sidebar" hittest="true">
+        <Panel class="menu__brand" hittest="false">
           {{ caller() | indent(10) }}
         </Panel>
-        <Panel class="Nav" hittest="true">
+        <Panel class="menu__nav" hittest="true">
           {%- for index in range(tabs) %}
-          <Button id="{{screen}}_tab{{index}}" class="Tab Hidden">
+          <Button id="{{screen}}_tab{{index}}" class="tab hidden">
             {{ icon_block.icons("tab" ~ index ~ "_icon", icons) | indent(12) }}
-            <Label class="Tab-label" text="{s:tab{{index}}}" hittest="false" />
+            <Label class="tab__label" text="{s:tab{{index}}}" hittest="false" />
           </Button>
           {%- endfor %}
         </Panel>
       </Panel>
 
-      <Panel class="Content" hittest="true">
-        <Panel class="Header" hittest="true">
-          <Panel class="Header-text" hittest="false">
-            <Label class="Breadcrumb" text="{s:breadcrumb}" hittest="false" />
-            <Label class="Title" text="{s:title}" hittest="false" />
-            <Label id="{{screen}}_subtitle" class="Subtitle" text="{s:subtitle}" hittest="false" />
+      <Panel class="menu__content" hittest="true">
+        <Panel class="menu__header" hittest="true">
+          <Panel class="menu__header-text" hittest="false">
+            <Label class="menu__breadcrumb" text="{s:breadcrumb}" hittest="false" />
+            <Label class="menu__title" text="{s:title}" hittest="false" />
+            <Label id="{{screen}}_subtitle" class="menu__subtitle" text="{s:subtitle}" hittest="false" />
           </Panel>
-          <Button id="{{screen}}_close" class="IconButton">
-            <Image class="IconButton-image" src="s2r://panorama/images/icons/ui/cancel.vsvg" textureheight="32" hittest="false" />
+          <Button id="{{screen}}_close" class="icon-button">
+            <Image class="icon-button__image" src="s2r://panorama/images/icons/ui/cancel.vsvg" textureheight="32" hittest="false" />
           </Button>
         </Panel>
 
         {%- if home %}
-        <Panel class="Home" hittest="true">
+        <Panel class="menu__home" hittest="true">
           {{ home | indent(10) }}
         </Panel>
         {%- endif %}
 
-        <Panel class="Rows" hittest="true">
+        <Panel class="menu__rows" hittest="true">
           {%- for row in range(rows) %}
           {{ list.listrow("row" ~ row, switch=true, hint=true, steppers=true, chevron=true) | indent(10) }}
           {%- endfor %}
-          <Label id="{{screen}}_empty" class="Empty Hidden" text="{s:empty}" hittest="false" />
+          <Label id="{{screen}}_empty" class="menu__empty hidden" text="{s:empty}" hittest="false" />
         </Panel>
 
-        <Panel id="{{screen}}_prompt" class="Prompt Hidden" hittest="true">
-          <Label class="Prompt-text" text="{s:prompt_text}" hittest="false" />
-          <Label class="Prompt-hint" text="{s:prompt_hint}" hittest="false" />
+        <Panel id="{{screen}}_prompt" class="menu__prompt hidden" hittest="true">
+          <Label class="menu__prompt-text" text="{s:prompt_text}" hittest="false" />
+          <Label class="menu__prompt-hint" text="{s:prompt_hint}" hittest="false" />
           {{ controls.button("cancel", "{s:cancel}") | indent(10) }}
         </Panel>
 
-        <Panel class="Footer" hittest="true">
+        <Panel class="menu__footer" hittest="true">
           {{ controls.button("back", "{s:back}") | indent(10) }}
-          <Panel id="{{screen}}_page" class="Pager Hidden" hittest="true">
-            <Label class="Pager-label" text="{s:page}" hittest="false" />
-            <Button id="{{screen}}_page_previous" class="Pager-arrow">
-              <Label class="Pager-glyph" text="&#9664;" hittest="false" />
+          <Panel id="{{screen}}_page" class="pager hidden" hittest="true">
+            <Label class="pager__label" text="{s:page}" hittest="false" />
+            <Button id="{{screen}}_page_previous" class="pager__arrow">
+              <Label class="pager__glyph" text="&#9664;" hittest="false" />
             </Button>
-            <Button id="{{screen}}_page_next" class="Pager-arrow">
-              <Label class="Pager-glyph" text="&#9654;" hittest="false" />
+            <Button id="{{screen}}_page_next" class="pager__arrow">
+              <Label class="pager__glyph" text="&#9654;" hittest="false" />
             </Button>
           </Panel>
         </Panel>

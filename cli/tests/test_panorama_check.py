@@ -4,24 +4,24 @@ import pytest
 
 from voltmod.panorama.check import check_screens
 
-HIDDEN_CSS = ".Screen.Hidden {\n  visibility: collapse;\n}\n"
+HIDDEN_CSS = ".screen.hidden {\n  visibility: collapse;\n}\n"
 
 SCREEN = """<root>
   <styles>
     <include src="file://{resources}/styles/custom_game/{{screen}}.css" />
   </styles>
-  <Panel id="{{screen}}" class="Screen Hidden">
+  <Panel id="{{screen}}" class="screen hidden">
 BODY
   </Panel>
 </root>
 """
 
 CLEAN_BODY = """<Label text="{s:title}" />
-<Button id="{{screen}}_close" class="Nav">
+<Button id="{{screen}}_close" class="nav">
   <Label text="Close" />
 </Button>"""
 
-CLEAN_CSS = HIDDEN_CSS + ".Nav {\n  width: 100%;\n}\n"
+CLEAN_CSS = HIDDEN_CSS + ".nav {\n  width: 100%;\n}\n"
 
 # Well under the per-screen limit alone; three of these overflow the client's table.
 CROWDED_BODY = """{%- for index in range(350) %}
@@ -39,7 +39,7 @@ def messages(root, owners=("ui-lab",)) -> list[str]:
 
 RULES = [
     (screen("<script>bad()</script>"), "<script> is not an allowed element"),
-    (screen('<Button class="Nav" />'), "<Button> has no id"),
+    (screen('<Button class="nav" />'), "<Button> has no id"),
     (
         screen('<Button id="{{screen}}_outer"><Button id="{{screen}}_inner" /></Button>'),
         "nested inside another Button",

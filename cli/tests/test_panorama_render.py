@@ -24,8 +24,8 @@ def test_a_screen_renders_its_layout_styles_icons_and_header(make_screen_project
     assert 'id="hud_slot0"' in xml and 'id="hud_slot0_button"' in xml
     assert "{s:slot0_label}" in xml
     assert 'src="s2r://panorama/images/custom_game/weapons/ak47.vtex"' in xml
-    assert ".Row-button" in css and "color: #e8e6e0;" in css
-    assert ".Icon--ak47 .Icon--ak47 {\n  visibility: visible;\n}" in css
+    assert ".row__button" in css and "color: #e8e6e0;" in css
+    assert ".icon-set--ak47 .icon-set__icon--ak47 {\n  visibility: visible;\n}" in css
     vtex = (out / "images/custom_game/weapons/ak47.vtex").read_text(encoding="utf-8")
     assert vtex.startswith("<!-- dmx encoding")
     assert '"panorama/images/custom_game/weapons/ak47.png"' in vtex
@@ -34,7 +34,7 @@ def test_a_screen_renders_its_layout_styles_icons_and_header(make_screen_project
 HUD_BLOCKS_XML = """{% import "card.xml.j2" as cards %}
 {% import "toast.xml.j2" as toasts %}
 <root>
-  <Panel id="{{screen}}" class="Screen">
+  <Panel id="{{screen}}" class="screen">
     {{ cards.card("card0", icon_set="weapons", bar=true) }}
     {{ toasts.toast("toast") }}
   </Panel>
@@ -44,7 +44,7 @@ HUD_BLOCKS_XML = """{% import "card.xml.j2" as cards %}
 HUD_BLOCKS_CSS = """{% import "bar.css.j2" as bar %}
 {% include "card.css.j2" %}
 {% include "toast.css.j2" %}
-{{ bar.fill_rules("Bar", 4) }}
+{{ bar.fill_rules("bar", 4) }}
 """
 
 
@@ -58,7 +58,7 @@ def test_the_hud_blocks_render(make_screen_project):
 
     assert 'id="hud_card0_bar"' in xml and 'id="hud_toast"' in xml
     assert "{s:card0_title}" in xml
-    assert ".Bar.Step--4 .Bar-fill {\n  width: 100.0%;\n}" in css
+    assert ".bar.bar--step-4 .bar__fill {\n  width: 100.0%;\n}" in css
 
 
 def test_an_unknown_token_names_the_file_and_the_token(make_screen_project):
@@ -143,7 +143,7 @@ def test_the_menu_block_draws_the_ids_panorama_menu_screen_writes(make_screen_pr
     )
     # src/Menu/PanoramaMenuLayout.cpp builds these same names from the screen name.
     for name in (
-        '<Panel id="hud" class="Screen Hidden"',
+        '<Panel id="hud" class="screen hidden"',
         'id="hud_tab1"',
         'id="hud_tab1_icon"',
         "{s:tab1}",

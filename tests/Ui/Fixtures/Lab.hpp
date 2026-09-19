@@ -32,7 +32,10 @@ inline constexpr std::array<Row, 2> Rows{
     Row{"lab_row1", "lab_row1_button", "lab_row1_decrease", "lab_row1_increase", "row1_label", "row1_hint", "row1_value"},
 };
 
-inline constexpr std::array<std::string_view, 2> IconClasses{"Icon--ak47", "Icon--awp"};
-inline constexpr std::array<std::string_view, 2> IconNames{"ak47", "awp"};
+inline constexpr std::array<std::string_view, 2> IconSetIconClasses{"icon-set__icon--ak47", "icon-set__icon--awp"};
+inline constexpr std::array<std::string_view, 2> IconSetIconNames{"ak47", "awp"};
+
+inline constexpr std::array<std::string_view, 2> IconSetClasses{"icon-set--ak47", "icon-set--awp"};
+inline constexpr std::array<std::string_view, 2> IconSetNames{"ak47", "awp"};
 
 }  // namespace LabUi

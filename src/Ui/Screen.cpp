@@ -38,7 +38,7 @@ Status Screen::SetClass(int slot, std::string_view elementId, std::string_view c
 
 Status Screen::SetHidden(int slot, std::string_view elementId, bool hidden)
 {
-    return SetClass(slot, elementId, "Hidden", hidden);
+    return SetClass(slot, elementId, "hidden", hidden);
 }
 
 Status Screen::ShowCursor(int slot, bool shown)

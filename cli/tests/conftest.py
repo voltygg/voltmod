@@ -14,8 +14,8 @@ PNG = bytes.fromhex(
 HUD_XML = """{% import "icons.xml.j2" as icons %}
 {% import "listrow.xml.j2" as list %}
 <root>
-  <Panel class="Layer" hittest="false">
-    <Panel id="{{screen}}" class="Screen" hittest="false">
+  <Panel class="layer" hittest="false">
+    <Panel id="{{screen}}" class="screen" hittest="false">
       {{ icons.icons("slot0_icon", "weapons") }}
       {{ list.listrow("slot0", hint=true) }}
     </Panel>
@@ -24,7 +24,7 @@ HUD_XML = """{% import "icons.xml.j2" as icons %}
 """
 
 HUD_CSS = """{% import "icons.css.j2" as icons %}
-.Screen {
+.screen {
   color: #e8e6e0;
   background-color: rgba(255, 255, 255, 0.05);
 }

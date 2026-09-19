@@ -11,8 +11,8 @@ from voltmod.errors import VoltmodError
 # A Label reading a dialog variable off the layout root.
 DIALOG_VARIABLE = re.compile(r"^\{s:(\w+)\}$")
 
-# One class of a `Prefix--variant` family.
-CLASS_FAMILY = re.compile(r"^([A-Za-z_]\w*)--([A-Za-z0-9_]+)$")
+# One class of a BEM `block--modifier` or `block__element--modifier` family.
+CLASS_FAMILY = re.compile(r"^([A-Za-z_]\w*(?:-\w+)*)--(\w+(?:-\w+)*)$")
 SELECTOR_CLASS = re.compile(r"\.([A-Za-z0-9_-]+)")
 IMAGE_SOURCE = re.compile(r"^s2r://panorama/images/custom_game/([^/]+)/([^/]+)\.vtex$")
 
@@ -135,8 +135,8 @@ def header_namespace(screen: Screen, template_source: str) -> str:
 
 
 def pascal_case(name: str) -> str:
-    """`voltmod_menu` -> `VoltmodMenu`, the name CMake spells for the same screen."""
-    return "".join(word[:1].upper() + word[1:] for word in name.split("_") if word)
+    """`voltmod_menu` or `icon-set` -> `VoltmodMenu` or `IconSet`; CMake spells screens the same."""
+    return "".join(word[:1].upper() + word[1:] for word in re.split(r"[_-]", name) if word)
 
 
 def member_name(identifier: str, screen: str) -> str:

@@ -1,4 +1,4 @@
-.Icons Image {
+.icon-set__icon {
   width: 100%;
   height: 100%;
   visibility: collapse;
@@ -7,7 +7,7 @@
 {#- An icon shows only while its own class is on the panel that holds the whole set. -#}
 {% macro show_rules(set) %}
 {% for name in (images[set] if set is string else set | map("first")) %}
-.Icon--{{name}} .Icon--{{name}} {
+.icon-set--{{name}} .icon-set__icon--{{name}} {
   visibility: visible;
 }
 {% endfor %}

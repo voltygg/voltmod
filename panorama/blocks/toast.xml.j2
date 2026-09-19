@@ -1,9 +1,9 @@
-{#- A notice that fades in when the driver puts `Show` on it. -#}
+{#- A notice that fades in when the driver takes `hidden` off it. -#}
 {% macro toast(id) -%}
-<Panel id="{{screen}}_{{id}}" class="Toast" hittest="false">
-  <Panel class="Toast-body" hittest="false">
-    <Label class="Toast-title" text="{s:{{id}}_title}" hittest="false" />
-    <Label class="Toast-text" text="{s:{{id}}_description}" hittest="false" />
+<Panel id="{{screen}}_{{id}}" class="toast hidden" hittest="false">
+  <Panel class="toast__body" hittest="false">
+    <Label class="toast__title" text="{s:{{id}}_title}" hittest="false" />
+    <Label class="toast__text" text="{s:{{id}}_description}" hittest="false" />
   </Panel>
 </Panel>
 {%- endmacro %}
