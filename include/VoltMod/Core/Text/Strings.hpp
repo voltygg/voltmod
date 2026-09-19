@@ -1,12 +1,10 @@
 #pragma once
 
 #include <cstdint>
-#include <functional>
 #include <map>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 namespace VoltMod
@@ -14,17 +12,6 @@ namespace VoltMod
 
 /** `{token}` -> replacement, for @ref Strings::SubstituteTokens and the text built on it. */
 using Tokens = std::map<std::string, std::string>;
-
-/** Hashes std::string and std::string_view alike, so a @ref StringMap looks up a view without a copy. */
-struct StringHash
-{
-    using is_transparent = void;
-    size_t operator()(std::string_view text) const { return std::hash<std::string_view>{}(text); }
-};
-
-/** A string-keyed map that finds a std::string_view key without building a string. */
-template <class Value>
-using StringMap = std::unordered_map<std::string, Value, StringHash, std::equal_to<>>;
 
 /** @p text as an int64_t, or nullopt unless it is entirely digits (with an optional sign). */
 std::optional<int64_t> ParseInt64(std::string_view text);

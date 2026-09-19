@@ -135,13 +135,13 @@ Flow::Create(runtime.Menus, adminSlot, std::move(pending))
         return StillPunishable(s) ? std::nullopt : std::optional<std::string>("cmd.targetLost");
     })
     ->AddDurationStep({.Title = tr("punish.duration"),
-                       .Presets = durations,                       // (label, seconds) pairs
+                       .Presets = durations,                       // Labeled<int> seconds
                        .Set = [](PendingPunishment& s, int sec) { s.DurationSec = sec; },
                        .CustomLabel = tr("punish.custom"),
                        .CustomPrompt = tr("punish.customPrompt"),
                        .Applies = [](const PendingPunishment& s) { return IsTimed(s.Type); }})
     ->AddOptionsStep({.Title = tr("punish.reason"),
-                      .Options = reasons,                          // (label, value) pairs
+                      .Options = reasons,                          // Labeled<std::string>
                       .Set = [](PendingPunishment& s, const std::string& label, const std::string&) {
                           s.Reason = label;
                       }})

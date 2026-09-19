@@ -1,5 +1,6 @@
 #pragma once
 
+#include <VoltMod/Core/Text/Labeled.hpp>
 #include <VoltMod/Core/Text/Strings.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
@@ -31,7 +32,7 @@ public:
     struct DurationStep
     {
         std::string Title;
-        std::vector<std::pair<std::string, int>> Presets;
+        std::vector<Labeled<int>> Presets;
         std::function<void(TState&, int seconds)> Set;
         /** Empty = no free-text row. */
         std::string CustomLabel;
@@ -43,7 +44,7 @@ public:
     struct OptionsStep
     {
         std::string Title;
-        std::vector<std::pair<std::string, std::string>> Options;
+        std::vector<Labeled<std::string>> Options;
         std::function<void(TState&, const std::string& label, const std::string& value)> Set;
         std::string CustomLabel;
         std::string CustomPrompt;

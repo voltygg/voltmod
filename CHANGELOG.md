@@ -17,8 +17,8 @@ What changed in each VoltMod release. Older history is in git.
   keeps and clears when the slot changes hands. `ClearPlayerLanguage` is gone; set `""` instead.
   `Translations` takes a `PlayerLanguages&` instead of `SlotEvents&`.
 - `HostAbiVersion` is 2: `IHost` gained `IsCommandRegistered` and `Languages()`. Rebuild every plugin against this host.
-- `ChoiceRow<T>::Choices` and `ChatColors::PaletteChoices` hold `Labeled<T>{.Label, .Value}` instead
-  of pairs; brace lists such as `{{"1 HP", 1}}` still work.
+- `ChoiceRow<T>::Choices`, `ChatColors::PaletteChoices`, `DurationMenu::Presets` and the `Flow` duration and
+  options steps hold `Labeled<T>{.Label, .Value}` instead of pairs; brace lists such as `{{"1 HP", 1}}` still work.
 - `Tokens` lives in `Core/Text/Strings.hpp`, and every token-substituting call takes it.
 - Panorama class names are BEM in kebab-case (`row`, `row__label`, `row--disabled`), in the blocks
   and in what `PanoramaMenuLayout` writes. `Screen::SetHidden` writes `hidden`. The icon family is
@@ -40,7 +40,7 @@ What changed in each VoltMod release. Older history is in git.
   `PanoramaMenuLayout::AddText` fills that markup's variables. Without `home` markup the root menu keeps its rows.
 - The Panorama menu hides its back button on the home page instead of labelling it `nav.root`.
 - `Translations::PlayerLanguage(slot)` reads the language a lookup uses.
-- `StringMap<V>`, a string-keyed map that looks up a `std::string_view` without a copy.
+- `StringMap<V>` in `Core/Text/StringMap.hpp`, a string-keyed map that looks up a `std::string_view` without a copy.
 - `voltmod database tables` folds `ALTER TABLE t DROP COLUMN c;` into t's generated spec.
 
 ### Fixed

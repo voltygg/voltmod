@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoltMod/Core/Text/PlayerLanguages.hpp>
+#include <VoltMod/Core/Text/StringMap.hpp>
 #include <VoltMod/Core/Text/Strings.hpp>
 #include <optional>
 #include <string>

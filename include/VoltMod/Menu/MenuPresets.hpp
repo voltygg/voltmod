@@ -1,5 +1,6 @@
 #pragma once
 
+#include <VoltMod/Core/Text/Labeled.hpp>
 #include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
@@ -38,8 +39,8 @@ std::shared_ptr<Menu> BuildPlayerPicker(PlayerManager& players, PlayerPicker spe
 struct DurationMenu
 {
     std::string Title;
-    /** (label, seconds) pairs, drawn in this order. */
-    std::vector<std::pair<std::string, int>> Presets;
+    /** Seconds, drawn in this order. */
+    std::vector<Labeled<int>> Presets;
     /** Runs with the seconds the picked row - or the typed text - stands for. */
     std::function<void(int slot, int seconds)> Pick;
     /** Empty disables free-text input. */
