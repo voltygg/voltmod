@@ -1,16 +1,13 @@
-"""The init, new-plugin and doctor commands."""
+"""The init and new-plugin commands."""
 
-import sys
 from typing import Annotated
 
 import typer
 
-from voltmod.check_results import print_results
-from voltmod.doctor import run_checks
 from voltmod.project import Project
 from voltmod.scaffold import create_plugin, create_project, is_kebab_case
 
-setup_commands = typer.Typer()
+scaffold_commands = typer.Typer()
 
 
 def _kebab_case(value: str | None) -> str | None:
@@ -19,7 +16,7 @@ def _kebab_case(value: str | None) -> str | None:
     return value
 
 
-@setup_commands.command("init")
+@scaffold_commands.command("init")
 def init_command(
     name: Annotated[
         str | None,
@@ -40,7 +37,7 @@ def init_command(
     create_project(project.root, project_name, plugin)
 
 
-@setup_commands.command("new-plugin")
+@scaffold_commands.command("new-plugin")
 def new_plugin_command(
     name: Annotated[
         str, typer.Argument(callback=_kebab_case, help="Kebab-case name, e.g. fun-votes")
@@ -48,16 +45,3 @@ def new_plugin_command(
 ) -> None:
     """Stamp a plugin skeleton into plugins/<name>/."""
     create_plugin(Project.load().root, name)
-
-
-@setup_commands.command("doctor")
-def doctor_command(
-    server_path: Annotated[
-        str, typer.Option("--server-path", help="Optional CS2 server root to check")
-    ] = "",
-) -> None:
-    """Check the local toolchain, the project, and an optional server."""
-    project = Project.load()
-    print(f"VoltMod doctor\nProject: {project.root.resolve()}\nPython: {sys.version.split()[0]}")
-    if print_results(run_checks(project, server_path)):
-        raise typer.Exit(1)

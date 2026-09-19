@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, replace
 
-from voltmod.schemagen.model import (
+from voltmod.framework.schemagen.model import (
     FieldKind,
     SchemaClass,
     SchemaField,

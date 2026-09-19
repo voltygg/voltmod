@@ -1,22 +1,14 @@
-"""The project voltmod runs in: its root, .env settings, plugins, and the bundled templates."""
+"""The project voltmod runs in: its root, .env settings, and plugins."""
 
 import os
 from dataclasses import dataclass, replace
-from functools import cache
 from pathlib import Path
 
 from dotenv import load_dotenv
-from jinja2 import Environment, FileSystemLoader, StrictUndefined, Template, select_autoescape
 
 from voltmod.errors import VoltmodError
-from voltmod.process import WINDOWS
-
-_PACKAGE_DIR = Path(__file__).resolve().parent
-
-# A wheel carries templates/ and panorama/ under bundled/; a checkout keeps them at the repo root.
-BUNDLED_DIR = (
-    _PACKAGE_DIR / "bundled" if (_PACKAGE_DIR / "bundled").is_dir() else _PACKAGE_DIR.parents[1]
-)
+from voltmod.framework.paths import is_framework
+from voltmod.toolchain.process import WINDOWS
 
 # `tools/` holds dev-only plugins: installable by name, never by a bare `voltmod install`.
 PLUGIN_DIRS = ("plugins", "tools")
@@ -24,24 +16,6 @@ PLUGIN_DIRS = ("plugins", "tools")
 
 def default_preset() -> str:
     return "windows-msvc-release" if WINDOWS else "linux-steamrt-release"
-
-
-def load_template(name: str) -> Template:
-    """One of the bundled Jinja templates, such as `panorama/screen.hpp.j2`."""
-    return _template_environment().get_template(name)
-
-
-@cache
-def _template_environment() -> Environment:
-    # utf-8-sig: an editor's byte order mark must not reach the output.
-    return Environment(
-        loader=FileSystemLoader(BUNDLED_DIR / "templates", encoding="utf-8-sig"),
-        undefined=StrictUndefined,
-        keep_trailing_newline=True,
-        trim_blocks=True,
-        lstrip_blocks=True,
-        autoescape=select_autoescape(["html.j2"]),
-    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,14 +70,21 @@ class Project:
         return self.root / "conan.lock"
 
     @property
+    def is_framework(self) -> bool:
+        """Whether this is the VoltMod checkout itself rather than a consumer of it."""
+        return is_framework(self.root)
+
+    @property
     def cpp_source_dirs(self) -> list[str]:
         """The framework's own source trees, or a consumer's plugins."""
-        if (self.root / "include/VoltMod").is_dir():
-            return ["src", "include", "tests"]
-        return ["plugins"]
+        return ["src", "include", "tests"] if self.is_framework else ["plugins"]
 
     def resolve_preset(self, requested: str | None = None) -> str:
         return requested or self.settings.build_preset or default_preset()
+
+    def server_path(self, requested: str = "") -> str:
+        """`requested`, else CS2_SERVER_PATH."""
+        return requested or self.settings.server_path
 
     def build_dir(self, preset: str) -> Path:
         return self.root / "build" / preset

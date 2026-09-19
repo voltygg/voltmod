@@ -4,8 +4,8 @@ import re
 import string
 from pathlib import Path
 
+from voltmod.bundled import TEMPLATES_DIR
 from voltmod.errors import VoltmodError
-from voltmod.project import BUNDLED_DIR
 
 _KEBAB_CASE = re.compile(r"^[a-z][a-z0-9]*(-[a-z0-9]+)*$")
 
@@ -55,7 +55,7 @@ def plugin_fields(name: str) -> dict[str, str]:
 
 
 def _template_dir(kind: str) -> Path:
-    path = BUNDLED_DIR / "templates" / kind
+    path = TEMPLATES_DIR / kind
     if not path.is_dir():
         raise VoltmodError(f"template tree missing at {path}")
     return path

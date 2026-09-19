@@ -12,9 +12,9 @@ from voltmod.panorama.layout import (
     read_screen,
     selector_classes,
 )
-from voltmod.panorama.render import (
+from voltmod.panorama.render import ScreenRenderer
+from voltmod.panorama.sources import (
     ScreenOwner,
-    ScreenRenderer,
     icon_path,
     screen_name,
     screen_owners,

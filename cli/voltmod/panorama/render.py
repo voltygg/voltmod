@@ -1,6 +1,5 @@
-"""Finding each plugin's Panorama screens and rendering them into the build tree."""
+"""Rendering each plugin's Panorama screens, headers and icons into the build tree."""
 
-from dataclasses import dataclass
 from pathlib import Path
 
 from jinja2 import (
@@ -12,6 +11,7 @@ from jinja2 import (
     TemplateError,
 )
 
+from voltmod.bundled import BUNDLED_DIR, load_template
 from voltmod.errors import VoltmodError
 from voltmod.files import write_if_changed
 from voltmod.panorama.layout import (
@@ -21,80 +21,24 @@ from voltmod.panorama.layout import (
     pascal_case,
     read_screen,
 )
-from voltmod.project import BUNDLED_DIR, PLUGIN_DIRS, load_template
+from voltmod.panorama.sources import (
+    IMAGES_DIR,
+    LAYOUT_SUFFIX,
+    SCREENS_DIR,
+    STYLESHEET_SUFFIX,
+    ScreenOwner,
+    header_dir,
+    icon_path,
+    icon_sets,
+    rendered_dir,
+    screen_name,
+    screen_owners,
+    screen_sources,
+)
 
-BUILD_DIR = "build/panorama"
-SCREENS_DIR = "screens"
-TEMPLATES_DIR = "templates"
+PLUGIN_TEMPLATES_DIR = "templates"
 HEADERS_DIR = "Ui"
-IMAGES_DIR = "images/custom_game"
-LAYOUT_SUFFIX = ".xml.j2"
-STYLESHEET_SUFFIX = ".css.j2"
 PLUGIN_TEMPLATE_PREFIX = "@"
-
-
-@dataclass(frozen=True, slots=True)
-class ScreenOwner:
-    """A plugin that ships a panorama/ tree."""
-
-    name: str
-    source: Path
-
-
-def screen_owners(root: Path, names: list[str] | None = None) -> list[ScreenOwner]:
-    """The named plugins that ship a panorama/ tree, or all of them when none is named."""
-    found = {
-        plugin.name: ScreenOwner(plugin.name, plugin / "panorama")
-        for parent in PLUGIN_DIRS
-        if (root / parent).is_dir()
-        for plugin in (root / parent).iterdir()
-        if (plugin / "panorama").is_dir()
-    }
-    known = sorted(found)
-    if not names:
-        return [found[name] for name in known]
-    unknown = [name for name in names if name not in found]
-    if unknown:
-        raise VoltmodError(
-            f"no panorama sources for {', '.join(unknown)}\nKnown: {', '.join(known) or 'none'}"
-        )
-    return [found[name] for name in names]
-
-
-def rendered_dir(root: Path, owner: ScreenOwner, out: Path | None = None) -> Path:
-    # Keeps the panorama/ prefix: a layout's `file://{resources}/...` include resolves against it.
-    return (out or root / BUILD_DIR) / owner.name / "panorama"
-
-
-def header_dir(root: Path, owner: ScreenOwner, out: Path | None = None) -> Path:
-    """What a plugin puts on its include path for its screen headers."""
-    return (out or root / BUILD_DIR) / owner.name / "include"
-
-
-def screen_sources(owner: ScreenOwner) -> list[Path]:
-    return sorted((owner.source / SCREENS_DIR).glob(f"*{LAYOUT_SUFFIX}"))
-
-
-def screen_name(source: Path) -> str:
-    """`hud.xml.j2` -> `hud`."""
-    return source.name.removesuffix(LAYOUT_SUFFIX)
-
-
-def icon_sets(owner: ScreenOwner) -> dict[str, list[str]]:
-    """Every icon set the owner ships, as its sorted PNG names; empty sets are skipped."""
-    images = owner.source / IMAGES_DIR
-    if not images.is_dir():
-        return {}
-    return {
-        directory.name: names
-        for directory in sorted(path for path in images.iterdir() if path.is_dir())
-        if (names := sorted(png.stem for png in directory.glob("*.png")))
-    }
-
-
-def icon_path(owner: ScreenOwner, icon_set: str, name: str) -> Path:
-    """The PNG behind `s2r://panorama/images/custom_game/<set>/<name>.vtex`."""
-    return owner.source / IMAGES_DIR / icon_set / f"{name}.png"
 
 
 def render_screens(
@@ -136,10 +80,10 @@ def _template_loader(owner: ScreenOwner, owners: list[ScreenOwner]) -> ChoiceLoa
     """Screen-local, explicitly namespaced plugin, then bundled framework templates."""
     plugin_templates = {
         f"{PLUGIN_TEMPLATE_PREFIX}{candidate.name}": FileSystemLoader(
-            candidate.source / TEMPLATES_DIR, encoding="utf-8-sig"
+            candidate.source / PLUGIN_TEMPLATES_DIR, encoding="utf-8-sig"
         )
         for candidate in owners
-        if (candidate.source / TEMPLATES_DIR).is_dir()
+        if (candidate.source / PLUGIN_TEMPLATES_DIR).is_dir()
     }
     return ChoiceLoader(
         [

@@ -8,7 +8,7 @@ import yaml
 
 from tools.release.conan_packages import is_published
 from voltmod.errors import VoltmodError
-from voltmod.process import run_tool
+from voltmod.toolchain.process import run_tool
 
 
 class SdkPackage(StrEnum):

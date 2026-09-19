@@ -1,18 +1,22 @@
-"""The `voltmod gamedata` commands: check patterns, and repair explained drift."""
+"""Commands that maintain the framework checkout: modgraph, schemagen, and gamedata."""
 
+import sys
+from pathlib import Path
 from typing import Annotated
 
 import typer
 
-from voltmod.gamedata import (
-    GAMEDATA_FILE,
-    PatternResult,
-    PatternStatus,
-    check_gamedata,
-    write_repairs,
-)
+from voltmod.commands.shared import ServerPath, exit_on_failure
+from voltmod.cs2_install import SCHEMA_DUMP, find_server
+from voltmod.errors import VoltmodError
+from voltmod.files import read_json
+from voltmod.framework.gamedata import PatternResult, PatternStatus, check_gamedata, write_repairs
+from voltmod.framework.modgraph import check_framework
+from voltmod.framework.paths import GAMEDATA_FILE, SCHEMA_BASELINES, SCHEMA_MANIFEST
+from voltmod.framework.schemagen.generate import render_outputs, write_outputs
 from voltmod.project import Project
 
+framework_commands = typer.Typer()
 gamedata_commands = typer.Typer(help="Check and repair gamedata against the shipped game binaries.")
 
 GameDir = Annotated[
@@ -26,11 +30,46 @@ Platform = Annotated[
 ]
 
 
+@framework_commands.command("modgraph")
+def modgraph_command() -> None:
+    """Check VoltMod's module layering and the framework's own source rules."""
+    dependencies, results = check_framework(Project.load().root)
+    for module, used in dependencies.items():
+        print(f"{module:10} -> {' '.join(sorted(used)) or '(none)'}")
+    exit_on_failure(results)
+    print("\nLayering holds.")
+
+
+@framework_commands.command("schemagen")
+def schemagen_command(
+    dump_path: Annotated[
+        str, typer.Option("--dump", help="Schema dump (default: the one the local server wrote)")
+    ] = "",
+    server_path: ServerPath = "",
+    platform: Annotated[
+        str, typer.Option("--platform", help="windows or linux: the server the dump came from")
+    ] = "windows" if sys.platform == "win32" else "linux",
+) -> None:
+    """Regenerate the schema accessor layer from a dump."""
+    if platform not in SCHEMA_BASELINES:
+        raise VoltmodError(f"unknown platform '{platform}'; use windows or linux")
+    project = Project.load()
+    manifest = read_json(project.root / SCHEMA_MANIFEST, "manifest")
+    if dump_path:
+        dump_file = Path(dump_path)
+    else:
+        dump_file = find_server(project.server_path(server_path)) / SCHEMA_DUMP
+
+    output = render_outputs(read_json(dump_file, "dump"), manifest, platform)
+    write_outputs(project.root, output.files, platform)
+    print(output.summary)
+
+
 @gamedata_commands.command("check")
 def check_command(game_dir: GameDir = "", platform: Platform = "") -> None:
     """Report which committed patterns no longer match the shipped binaries."""
     project = Project.load()
-    _, results = check_gamedata(project.root, game_dir or project.settings.server_path, platform)
+    _, results = check_gamedata(project.root, project.server_path(game_dir), platform)
     drifted = _print_drift(results)
     if drifted:
         print(f"{drifted} entries drifted; repair them with: voltmod gamedata resolve --write")
@@ -45,7 +84,7 @@ def resolve_command(
 ) -> None:
     """Repair the patterns that drifted, leaving every entry that still matches alone."""
     project = Project.load()
-    text, results = check_gamedata(project.root, game_dir or project.settings.server_path, platform)
+    text, results = check_gamedata(project.root, project.server_path(game_dir), platform)
     drifted = _print_drift(results)
 
     repaired = [result for result in results if result.status is PatternStatus.REPAIRED]

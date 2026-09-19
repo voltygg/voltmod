@@ -4,17 +4,14 @@ from typing import Annotated
 
 import typer
 
+from voltmod.commands.shared import ServerPath
 from voltmod.project import Project
 from voltmod.server import install_plugins, run_server
 
-server_commands = typer.Typer()
-
-ServerPath = Annotated[
-    str, typer.Option("--server-path", help="CS2 server root (default: CS2_SERVER_PATH)")
-]
+local_server_commands = typer.Typer()
 
 
-@server_commands.command("install")
+@local_server_commands.command("install")
 def install_command(
     plugin: Annotated[
         str, typer.Argument(help="Plugin to install (default: every built plugin)")
@@ -26,11 +23,11 @@ def install_command(
 ) -> None:
     """Install already-built plugins into a local CS2 server."""
     project = Project.load()
-    server_path = server_path or project.settings.server_path
-    install_plugins(project, server_path, plugin, project.resolve_preset(preset))
+    preset = project.resolve_preset(preset)
+    install_plugins(project, project.server_path(server_path), plugin, preset)
 
 
-@server_commands.command("serve")
+@local_server_commands.command("serve")
 def serve_command(
     server_path: ServerPath = "",
     steamcmd_path: Annotated[

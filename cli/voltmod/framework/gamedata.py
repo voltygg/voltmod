@@ -9,9 +9,7 @@ from typing import Any
 
 from voltmod.cs2_install import GAME_LIBRARIES, game_build
 from voltmod.errors import VoltmodError
-from voltmod.schemagen.generate import BASELINES
-
-GAMEDATA_FILE = Path("gamedata/gamedata.jsonc")
+from voltmod.framework.paths import GAMEDATA_FILE, SCHEMA_BASELINES
 
 PATTERN_SECTIONS = ("functions", "globals")
 
@@ -101,7 +99,7 @@ def check_gamedata(root: Path, game_dir: str, platform: str) -> tuple[str, list[
     text = path.read_text(encoding="utf-8")
 
     binaries = GameBinaries(game, platform or detect_platform(game))
-    baseline = root / BASELINES[binaries.platform]
+    baseline = root / SCHEMA_BASELINES[binaries.platform]
     schema = json.loads(baseline.read_text(encoding="utf-8")) if baseline.is_file() else {}
 
     print(f"==> gamedata {binaries.platform} (game build {game_build(game)})")

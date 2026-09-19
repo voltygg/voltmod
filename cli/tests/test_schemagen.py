@@ -6,18 +6,20 @@ from pathlib import Path
 import pytest
 
 from voltmod.errors import VoltmodError
-from voltmod.schemagen.generate import (
-    BASELINES,
+from voltmod.framework.paths import (
     GENERATED_HEADER_DIR,
     GENERATED_SOURCE_DIR,
-    MANIFEST,
+    SCHEMA_BASELINES,
+    SCHEMA_MANIFEST,
+)
+from voltmod.framework.schemagen.generate import (
     layout_rows,
     layout_stamp,
     render_outputs,
     write_outputs,
 )
-from voltmod.schemagen.model import accessor_name
-from voltmod.schemagen.resolve import baseline_dump, collect_enums, resolve_classes
+from voltmod.framework.schemagen.model import accessor_name
+from voltmod.framework.schemagen.resolve import baseline_dump, collect_enums, resolve_classes
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -151,11 +153,11 @@ def class_header(dumped, selected, name):
     return render_outputs(dumped, selected, "windows").files[GENERATED_HEADER_DIR / f"{name}.hpp"]
 
 
-@pytest.mark.parametrize("platform", list(BASELINES))
+@pytest.mark.parametrize("platform", list(SCHEMA_BASELINES))
 def test_the_committed_generated_tree_is_what_the_generator_writes(platform):
     """The committed baseline and manifest must regenerate every committed file byte for byte."""
-    baseline = json.loads((REPO_ROOT / BASELINES[platform]).read_text(encoding="utf-8"))
-    shipped = json.loads((REPO_ROOT / MANIFEST).read_text(encoding="utf-8"))
+    baseline = json.loads((REPO_ROOT / SCHEMA_BASELINES[platform]).read_text(encoding="utf-8"))
+    shipped = json.loads((REPO_ROOT / SCHEMA_MANIFEST).read_text(encoding="utf-8"))
     files = render_outputs(baseline, shipped, platform).files
     write_outputs(REPO_ROOT, files, platform, check=True)
 
@@ -174,9 +176,9 @@ def test_the_stamp_reaches_the_generated_layout():
 
 def test_the_two_platforms_do_not_share_a_stamp():
     """A plugin built for one platform must not take the other's verification."""
-    windows = json.loads((REPO_ROOT / BASELINES["windows"]).read_text(encoding="utf-8"))
-    linux = json.loads((REPO_ROOT / BASELINES["linux"]).read_text(encoding="utf-8"))
-    shipped = json.loads((REPO_ROOT / MANIFEST).read_text(encoding="utf-8"))
+    windows = json.loads((REPO_ROOT / SCHEMA_BASELINES["windows"]).read_text(encoding="utf-8"))
+    linux = json.loads((REPO_ROOT / SCHEMA_BASELINES["linux"]).read_text(encoding="utf-8"))
+    shipped = json.loads((REPO_ROOT / SCHEMA_MANIFEST).read_text(encoding="utf-8"))
     assert stamp(windows, shipped) != stamp(linux, shipped)
 
 

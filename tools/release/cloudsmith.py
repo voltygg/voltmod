@@ -6,8 +6,8 @@ import urllib.request
 from typing import Any
 
 from tools.release.conan_packages import FRAMEWORK_PACKAGE, SDK_PACKAGES
-from voltmod.conan import REMOTE, run_conan_json
 from voltmod.errors import VoltmodError
+from voltmod.toolchain.conan import REMOTE, run_conan_json
 
 # Conan cannot delete revisions on Cloudsmith, so deletes go through its REST API.
 API = "https://api.cloudsmith.io/v1/packages/volty/voltmod/"

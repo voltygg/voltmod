@@ -167,9 +167,9 @@ root `CMakeLists.txt` linked against `VoltMod::Sdk` and `VoltMod::Database`.
 
 ```sh
 uv run poe modgraph                 # the framework's own module layering
-voltmod modgraph --plugins .        # a consumer repo's plugins/ sources
+voltmod lint                        # a consumer repo's plugins/ sources
 ```
 
-Without `--plugins`, `modgraph` checks the framework's module dependencies and its source
-conventions. `--plugins <path>` checks consumer source conventions but not framework layering.
-Run it from the consumer repository root.
+`modgraph` checks the framework's module dependencies and its source conventions. `lint [path]`
+checks the source conventions under a consumer's `plugins/`, not framework layering; it defaults to
+the working directory.

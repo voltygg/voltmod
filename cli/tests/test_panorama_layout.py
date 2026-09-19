@@ -9,7 +9,8 @@ from pathlib import Path
 import pytest
 
 from voltmod.panorama.layout import read_screen, selector_classes
-from voltmod.panorama.render import ScreenRenderer, screen_header, screen_owners
+from voltmod.panorama.render import ScreenRenderer, screen_header
+from voltmod.panorama.sources import screen_owners
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 

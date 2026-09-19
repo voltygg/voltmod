@@ -5,10 +5,11 @@ from typing import Annotated
 
 import typer
 
-from voltmod.check_results import print_results
+from voltmod.commands.shared import exit_on_failure
 from voltmod.panorama.check import check_screens
 from voltmod.panorama.compiler import compile_and_install
-from voltmod.panorama.render import render_screens, screen_owners, screen_sources
+from voltmod.panorama.render import render_screens
+from voltmod.panorama.sources import screen_owners, screen_sources
 from voltmod.project import Project
 
 panorama_commands = typer.Typer(help="Render, check and compile Panorama screens.")
@@ -60,8 +61,7 @@ def compile_command(
 ) -> None:
     """Check, render, compile with the Workshop Tools, and install into your client."""
     project = Project.load()
-    if print_results(check_screens(project.root, owners)):
-        raise typer.Exit(1)
+    exit_on_failure(check_screens(project.root, owners))
     render_screens(project.root, owners)
     client_path = client_path or project.settings.client_path
     compile_and_install(project.root, owners, client_path, addon, deploy)
@@ -71,7 +71,6 @@ def compile_command(
 def check_command(owners: Owners = None) -> None:
     """Validate rendered screens against the rules the CS2 client enforces silently."""
     root = Project.load().root
-    if print_results(check_screens(root, owners)):
-        raise typer.Exit(1)
+    exit_on_failure(check_screens(root, owners))
     count = sum(len(screen_sources(owner)) for owner in screen_owners(root, owners))
     print(f"Checked {count} screen(s)")

@@ -19,9 +19,10 @@ from tools.release.conan_packages import (
     upload_packages,
 )
 from tools.release.sdk_updates import SdkPackage, recipe_version, update_sdk_pins
+from voltmod.cli import run_cli
 from voltmod.errors import VoltmodError
-from voltmod.process import WINDOWS, run_cli, run_tool
 from voltmod.project import Project
+from voltmod.toolchain.process import WINDOWS, run_tool
 
 app = typer.Typer(
     help="Build, publish, and maintain VoltMod's Conan packages.", no_args_is_help=True

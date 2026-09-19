@@ -5,11 +5,18 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
-from voltmod.conan import REMOTE, SDK_BUILD_EXCLUSIONS, ensure_remote, profile_args, run_conan_json
 from voltmod.cs2_install import HOST_BINARIES, HOST_GAMEDATA, HOST_VDF
 from voltmod.errors import VoltmodError
-from voltmod.process import WINDOWS, msvc_version, run_tool
 from voltmod.project import default_preset
+from voltmod.toolchain.conan import (
+    REMOTE,
+    SDK_BUILD_EXCLUSIONS,
+    ensure_remote,
+    profile_args,
+    run_conan_json,
+)
+from voltmod.toolchain.msvc import msvc_version
+from voltmod.toolchain.process import WINDOWS, run_tool
 
 # Dependency order: the SDKs, then the framework that consumes them.
 SDK_PACKAGES = ("metamod-source", "hl2sdk-cs2", "sqlpp23")

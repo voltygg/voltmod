@@ -7,13 +7,18 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from voltmod.cpp_sources import CPP_SUFFIXES, format_cpp_files
+from voltmod.bundled import load_template
 from voltmod.errors import VoltmodError
 from voltmod.files import write_if_changed, write_or_check
-from voltmod.project import load_template
-from voltmod.schemagen.accessors import AccessorCode, accessor_code
-from voltmod.schemagen.fields import CPP_INCLUDES
-from voltmod.schemagen.model import (
+from voltmod.framework.paths import (
+    GENERATED_HEADER_DIR,
+    GENERATED_SOURCE_DIR,
+    SCHEMA_BASELINES,
+    SCHEMA_HEADER_DIR,
+)
+from voltmod.framework.schemagen.accessors import AccessorCode, accessor_code
+from voltmod.framework.schemagen.fields import CPP_INCLUDES
+from voltmod.framework.schemagen.model import (
     ENTITY_ROOT,
     OWNER_LINK_FIELD,
     FieldKind,
@@ -22,15 +27,8 @@ from voltmod.schemagen.model import (
     enum_underlying_type,
     offset_constant,
 )
-from voltmod.schemagen.resolve import baseline_dump, collect_enums, resolve_classes
-
-HEADER_DIR = Path("include/VoltMod/Schema")
-# Generated headers stay apart from the hand-written ones.
-GENERATED_HEADER_DIR = HEADER_DIR / "Generated"
-GENERATED_SOURCE_DIR = Path("src/Schema/Generated")
-MANIFEST = Path("schema/manifest.json")
-# The Windows and Linux builds of one game version lay classes out differently.
-BASELINES = {platform: Path(f"schema/server.{platform}.json") for platform in ("windows", "linux")}
+from voltmod.framework.schemagen.resolve import baseline_dump, collect_enums, resolve_classes
+from voltmod.toolchain.clang_format import CPP_SUFFIXES, format_cpp_files
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,7 +72,7 @@ def render_outputs(dump: dict[str, Any], manifest: dict[str, Any], platform: str
             "class.cpp.j2", includes=_source_includes(schema_class), **shared
         )
     files[GENERATED_HEADER_DIR / "Enums.hpp"] = _render("enums.hpp.j2", enums=_enum_listings(enums))
-    files[HEADER_DIR / "Api.hpp"] = _render("api.hpp.j2", classes=ordered)
+    files[SCHEMA_HEADER_DIR / "Api.hpp"] = _render("api.hpp.j2", classes=ordered)
     rows = layout_rows(dump, ordered)
     files[GENERATED_SOURCE_DIR / platform / "Layout.cpp"] = _render(
         "layout.cpp.j2", rows=rows, game_build=game_build, layout_stamp=layout_stamp(rows)
@@ -84,7 +82,8 @@ def render_outputs(dump: dict[str, Any], manifest: dict[str, Any], platform: str
         files[GENERATED_HEADER_DIR / "Wrappers" / f"{wrapper}.inc"] = _render(
             "wrapper.inc.j2", wrapper=wrapper, classes=wrapped
         )
-    files[BASELINES[platform]] = json.dumps(baseline_dump(dump, classes, enums), indent=2) + "\n"
+    baseline = baseline_dump(dump, classes, enums)
+    files[SCHEMA_BASELINES[platform]] = json.dumps(baseline, indent=2) + "\n"
     return SchemaOutput(files, _summary(classes, enums, game_build))
 
 

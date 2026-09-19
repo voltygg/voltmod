@@ -6,7 +6,6 @@ from collections.abc import Iterator
 from pathlib import Path
 
 from voltmod.check_results import CheckResult, Status
-from voltmod.conan import REMOTE, has_remote, profile_dirs
 from voltmod.cs2_install import (
     CSGO_DIR,
     HOST_BINARIES,
@@ -15,8 +14,10 @@ from voltmod.cs2_install import (
     server_executable,
 )
 from voltmod.errors import VoltmodError
-from voltmod.process import BUILD_TOOLS, WINDOWS, msvc_version, tool_version
 from voltmod.project import Project
+from voltmod.toolchain.conan import REMOTE, has_remote, profile_dirs
+from voltmod.toolchain.msvc import msvc_version
+from voltmod.toolchain.process import BUILD_TOOLS, WINDOWS, tool_version
 
 PROJECT_FILES = ("CMakeLists.txt", "CMakePresets.json", "conanfile.py", "pyproject.toml")
 

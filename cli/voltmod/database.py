@@ -6,8 +6,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+from voltmod.bundled import TEMPLATES_DIR
 from voltmod.errors import VoltmodError
-from voltmod.project import BUNDLED_DIR
 
 # Mirrors DialectFor in include/VoltMod/Database/Migrator.hpp; test_database.py fails on drift.
 # @ON_CONFLICT(columns)@ is resolved in code: only Postgres renders a clause for it.
@@ -38,7 +38,7 @@ DIALECTS: dict[str, dict[str, str]] = {
 
 DRIVERS = tuple(DIALECTS)
 
-TABLE_HEADER_TEMPLATE = BUNDLED_DIR / "templates/database/table-header.in"
+TABLE_HEADER_TEMPLATE = TEMPLATES_DIR / "database/table-header.in"
 
 _PLACEHOLDER = re.compile(r"@([A-Z_]+(?:\([^)@]*\))?)@")
 _CONFLICT_PREFIX = "ON_CONFLICT("

@@ -3,8 +3,13 @@
 from typing import Any
 
 from voltmod.errors import VoltmodError
-from voltmod.schemagen.fields import describe_field
-from voltmod.schemagen.model import ENTITY_ROOT, FieldKind, SchemaClass, parse_manifest_entry
+from voltmod.framework.schemagen.fields import describe_field
+from voltmod.framework.schemagen.model import (
+    ENTITY_ROOT,
+    FieldKind,
+    SchemaClass,
+    parse_manifest_entry,
+)
 
 
 def base_chain(dump: dict[str, Any], name: str) -> list[str]:

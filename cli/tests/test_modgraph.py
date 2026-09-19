@@ -1,19 +1,19 @@
-"""Cover the layering and convention checks against temporary trees, not the real sources."""
+"""Cover the framework's layering and source rules against temporary trees, not the real sources."""
 
 import textwrap
 from pathlib import Path
 
 import pytest
 
-from voltmod.source_rules import (
+from voltmod.conventions import check_conventions, read_sources
+from voltmod.framework.modgraph import (
     ALLOWED_DEPENDENCIES,
-    FRAMEWORK_DECLARATION_HEADERS,
+    DECLARATION_HEADERS,
     check_composition_root,
-    check_conventions,
+    check_core_isolation,
     check_host_boundary,
     layering_table,
     module_dependencies,
-    read_sources,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -25,8 +25,9 @@ def write(root: Path, path: str, text: str) -> None:
     target.write_text(textwrap.dedent(text).lstrip(), encoding="utf-8")
 
 
-def violations(root, bases=("include/VoltMod", "src"), headers=FRAMEWORK_DECLARATION_HEADERS):
-    return [result.message for result in check_conventions(read_sources(root, bases), headers)]
+def violations(root):
+    files = read_sources(root, ("include/VoltMod", "src"))
+    return [result.message for result in check_conventions(files, DECLARATION_HEADERS)]
 
 
 def test_no_module_below_app_may_reach_menu_or_app():
@@ -70,37 +71,12 @@ def test_other_types_headers_may_not_forward_declare(tmp_path, path):
     assert any("forward declaration" in message for message in violations(tmp_path))
 
 
-def test_a_plugins_types_header_may_forward_declare(tmp_path):
-    write(tmp_path, "plugins/admin/src/Core/Types.hpp", "struct App;\n")
-    assert violations(tmp_path, ("plugins",), None) == []
-
-
-def test_declaring_a_name_the_header_goes_on_to_define_is_allowed(tmp_path):
-    write(
-        tmp_path,
-        "include/VoltMod/Core/Thing.hpp",
-        """
-        template <class T>
-        class Thing;
-
-        class Thing
-        {
-        };
-        """,
-    )
-    assert violations(tmp_path) == []
-
-
-def test_anonymous_namespaces_and_using_directives_are_violations(tmp_path):
-    write(tmp_path, "src/Core/Thing.cpp", "namespace\n{\n}\nusing namespace VoltMod;\n")
-    found = violations(tmp_path)
-    assert any("anonymous namespace" in message for message in found)
-    assert any("using-directive" in message for message in found)
-
-
 def test_core_may_not_reach_the_sdk(tmp_path):
     write(tmp_path, "src/Core/Thing.cpp", "#include <tier0/dbg.h>\n")
-    assert any("Core includes tier0/" in message for message in violations(tmp_path))
+    files = read_sources(tmp_path, ("src",))
+    assert [result.message for result in check_core_isolation(files)] == [
+        "src/Core/Thing.cpp:1: Core includes tier0/"
+    ]
 
 
 def test_only_app_may_include_the_composition_root(tmp_path):

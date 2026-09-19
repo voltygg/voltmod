@@ -27,7 +27,7 @@ format = "voltmod format"
 
 [tool.poe.tasks.lint]
 help = "Lint the build tooling and check the plugin source conventions"
-sequence = [{ cmd = "ruff check ." }, { cmd = "voltmod modgraph --plugins ." }]
+sequence = [{ cmd = "ruff check ." }, { cmd = "voltmod lint" }]
 
 [tool.ruff]
 line-length = 100

@@ -6,8 +6,8 @@ from pathlib import Path
 
 from voltmod.cs2_install import RESOURCE_COMPILER, find_client
 from voltmod.errors import VoltmodError
-from voltmod.panorama.render import rendered_dir, screen_owners
-from voltmod.process import WINDOWS
+from voltmod.panorama.sources import rendered_dir, screen_owners
+from voltmod.toolchain.process import WINDOWS
 
 # Source suffix -> what resourcecompiler writes for it.
 COMPILED_SUFFIX = {".xml": ".vxml_c", ".css": ".vcss_c", ".vtex": ".vtex_c"}

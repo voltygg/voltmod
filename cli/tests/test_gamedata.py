@@ -3,7 +3,7 @@
 import pytest
 
 from voltmod.errors import VoltmodError
-from voltmod.gamedata import check_patterns, pattern_regex, replace_pattern
+from voltmod.framework.gamedata import check_patterns, pattern_regex, replace_pattern
 
 
 class FakeBinaries:

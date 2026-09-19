@@ -8,6 +8,8 @@ What changed in each VoltMod release. Older history is in git.
 
 ### Breaking
 
+- `voltmod modgraph --plugins <path>` is now `voltmod lint [path]`; `modgraph` only checks the
+  framework checkout.
 - `ServiceExchange::PublishNamed`, `UnpublishNamed` and `Find` are private; use `Publish<T>`,
   `Unpublish<T>` and `Get<T>`, with a key when one interface has several providers.
 

@@ -4,7 +4,6 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from voltmod.conan import editable_framework
 from voltmod.cs2_install import (
     CSGO_DIR,
     HOST_COMPONENT,
@@ -14,8 +13,9 @@ from voltmod.cs2_install import (
     server_executable,
 )
 from voltmod.errors import VoltmodError
-from voltmod.process import WINDOWS, run_tool
 from voltmod.project import Project, Settings
+from voltmod.toolchain.conan import editable_framework
+from voltmod.toolchain.process import WINDOWS, run_tool
 
 
 def install_plugins(project: Project, server_path: str, plugin: str, preset: str) -> None:

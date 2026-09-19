@@ -2,7 +2,12 @@
 
 from typing import Any
 
-from voltmod.schemagen.model import FieldKind, SchemaField, accessor_name, parse_manifest_entry
+from voltmod.framework.schemagen.model import (
+    FieldKind,
+    SchemaField,
+    accessor_name,
+    parse_manifest_entry,
+)
 
 BUILTIN_TYPES = {
     "bool": "bool",
