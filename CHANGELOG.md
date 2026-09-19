@@ -4,6 +4,20 @@
 
 What changed in each VoltMod release. Older history is in git.
 
+## Unreleased
+
+### Added
+
+- `ConVars::ExecuteClientCommand(slot, command)` runs a console command as a player, without a
+  chat echo.
+- The `menu` Panorama block and `VoltMod::PanoramaMenuLayout`, which draws it.
+- `ToItem()` on menu row specs is `const` instead of `&&`.
+- A plugin's `panorama/templates/` is importable from every plugin's screens.
+
+### Fixed
+
+- `voltmod panorama check` no longer reads a number in a top-level `@define` as a class name.
+
 ## 1.5.1 (2026-09-18)
 
 ### Breaking

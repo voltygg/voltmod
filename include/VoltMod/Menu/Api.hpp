@@ -11,3 +11,4 @@
 #include <VoltMod/Menu/MenuRouter.hpp>
 #include <VoltMod/Menu/MenuStack.hpp>
 #include <VoltMod/Menu/PanoramaMenu.hpp>
+#include <VoltMod/Menu/PanoramaMenuLayout.hpp>

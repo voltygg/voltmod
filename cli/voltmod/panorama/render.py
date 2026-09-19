@@ -18,6 +18,7 @@ from voltmod.project import BUNDLED_DIR, PLUGIN_DIRS, load_template
 
 BUILD_DIR = "build/panorama"
 SCREENS_DIR = "screens"
+TEMPLATES_DIR = "templates"
 HEADERS_DIR = "Ui"
 IMAGES_DIR = "images/custom_game"
 LAYOUT_SUFFIX = ".xml.j2"
@@ -50,6 +51,16 @@ def screen_owners(root: Path, names: list[str] | None = None) -> list[ScreenOwne
             f"no panorama sources for {', '.join(unknown)}\nKnown: {', '.join(known) or 'none'}"
         )
     return [found[name] for name in names]
+
+
+def template_dirs(root: Path, owner: ScreenOwner) -> list[Path]:
+    """Import paths after the owner's screens: its own templates/, then every other plugin's."""
+    others = [other for other in screen_owners(root) if other.name != owner.name]
+    return [
+        candidate.source / TEMPLATES_DIR
+        for candidate in [owner, *others]
+        if (candidate.source / TEMPLATES_DIR).is_dir()
+    ]
 
 
 def rendered_dir(root: Path, owner: ScreenOwner, out: Path | None = None) -> Path:
@@ -94,7 +105,7 @@ def render_screens(
     """Render the named owners' screens, and return the files that changed."""
     written: list[Path] = []
     for owner in screen_owners(root, names):
-        written += ScreenRenderer(owner).write_all(root, out)
+        written += ScreenRenderer(owner, root).write_all(root, out)
     return written
 
 
@@ -111,7 +122,7 @@ def screen_header(screen: Screen, template_source: str) -> str:
 class ScreenRenderer:
     """One owner's screens through one Jinja environment, so the block library compiles once."""
 
-    def __init__(self, owner: ScreenOwner) -> None:
+    def __init__(self, owner: ScreenOwner, root: Path) -> None:
         self.owner = owner
         self.icons = icon_sets(owner)
         # No trimming or escaping: layouts and stylesheets come out exactly as written.
@@ -119,6 +130,10 @@ class ScreenRenderer:
             loader=ChoiceLoader(
                 [
                     FileSystemLoader(owner.source / SCREENS_DIR, encoding="utf-8-sig"),
+                    *(
+                        FileSystemLoader(directory, encoding="utf-8-sig")
+                        for directory in template_dirs(root, owner)
+                    ),
                     FileSystemLoader(BUNDLED_DIR / "panorama/blocks", encoding="utf-8-sig"),
                 ]
             ),

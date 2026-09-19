@@ -30,8 +30,8 @@ so a list that filtered down to nothing is not a dead-end page.
 ## Rows
 
 Each row is a spec struct filled with designated initializers, and `Add` appends it. `Button`,
-`Submenu` and `Text` also have two-argument conveniences. `ToItem` consumes the spec, so pass a
-temporary - which the designated-initializer form already is.
+`Submenu` and `Text` also have two-argument conveniences. `ToItem()` turns a spec into the
+@ref VoltMod::MenuItem the menu stores; `Add` calls it for you.
 
 | Spec | What it is |
 | --- | --- |
@@ -273,7 +273,7 @@ screen and takes clicks instead of keys.
 
 ```cpp
 // App.hpp
-AdminMenuScreen _layout{runtime.Screens};        // : VoltMod::MenuLayout, on VoltMod::PlayerScreens
+VoltMod::PanoramaMenuLayout _layout{runtime.Screens, "admin_menu", 6, 8, AdminMenuLayout::IconNames};
 std::optional<VoltMod::PanoramaMenu> _panorama;
 VoltMod::Subscription _preferPanorama;           // after the menu, so it lets go first
 
@@ -293,6 +293,13 @@ which knows element ids and nothing about menus: `RowCount`, `TabCount`, `Show`/
 writes, and `ButtonFor(id)` mapping a pressed id to a @ref VoltMod::MenuButton. The root menu's
 submenus become the layout's sidebar tabs. Writing that class is @ref custom_ui_guide; authoring
 the screen it draws on is @ref panorama_guide.
+
+A screen built from the `menu` Panorama block uses @ref VoltMod::PanoramaMenuLayout instead of a
+class of its own:
+
+```cpp
+VoltMod::PanoramaMenuLayout _layout{runtime.Screens, "main_menu", 6, 8, MainMenuLayout::IconNames};
+```
 
 A third surface is a class implementing @ref VoltMod::MenuSurface that holds a
 @ref VoltMod::MenuStack and forwards to it. The stack owns everything that does not depend on how a

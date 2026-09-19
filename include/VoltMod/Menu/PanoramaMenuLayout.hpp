@@ -1,0 +1,87 @@
+#pragma once
+
+#include <VoltMod/Menu/Menu.hpp>
+#include <VoltMod/Menu/MenuLayout.hpp>
+#include <VoltMod/Ui/PlayerScreens.hpp>
+#include <VoltMod/Ui/ScreenManager.hpp>
+#include <optional>
+#include <span>
+#include <string>
+#include <string_view>
+#include <vector>
+
+namespace VoltMod
+{
+
+/**
+ * @brief The @ref MenuLayout for a screen built from the `menu` Panorama block.
+ *
+ * @p screen is the layout name, @p tabs and @p rows the counts it passed to `menu(tabs, rows,
+ * icons)`, and @p iconNames its tab icon names (the generated header's `IconNames`). Each player
+ * gets their own screen, so the menu survives death and spectating. @p screens must outlive this.
+ */
+class PanoramaMenuLayout final : public MenuLayout
+{
+public:
+    PanoramaMenuLayout(ScreenManager& screens, std::string_view screen, int tabs, int rows,
+                       std::span<const std::string_view> iconNames);
+
+    [[nodiscard]] int RowCount() const override { return static_cast<int>(_rows.size()); }
+    [[nodiscard]] int TabCount() const override { return static_cast<int>(_tabs.size()); }
+
+    bool Show(int slot) override;
+    void Hide(int slot) override;
+
+    void SetHeader(int slot, const MenuHeader& header) override;
+    void SetSidebarVisible(int slot, bool visible) override;
+    void SetTab(int slot, int index, const MenuTab* tab) override;
+    void SetRow(int slot, int index, const MenuRow* row, std::string_view pendingHint) override;
+    void SetEmpty(int slot, std::string_view text) override;
+    void SetPager(int slot, std::string_view text) override;
+    void SetPrompt(int slot, std::string_view text, std::string_view hint) override;
+    void SetFooter(int slot, std::string_view back, std::string_view cancel) override;
+
+    [[nodiscard]] std::optional<MenuButton> ButtonFor(std::string_view id) const override;
+
+private:
+    struct TabIds
+    {
+        std::string Id;
+        std::string Icon;
+        std::string LabelVar;
+    };
+
+    struct RowIds
+    {
+        std::string Id;
+        std::string Button;
+        std::string Decrease;
+        std::string Increase;
+        std::string LabelVar;
+        std::string HintVar;
+        std::string ValueVar;
+    };
+
+    struct Icon
+    {
+        std::string Name;
+        std::string Class;
+    };
+
+    PlayerScreens _screens;
+    std::string _root;
+    std::string _subtitle;
+    std::string _close;
+    std::string _empty;
+    std::string _prompt;
+    std::string _cancel;
+    std::string _back;
+    std::string _page;
+    std::string _pagePrevious;
+    std::string _pageNext;
+    std::vector<TabIds> _tabs;
+    std::vector<RowIds> _rows;
+    std::vector<Icon> _icons;
+};
+
+}  // namespace VoltMod

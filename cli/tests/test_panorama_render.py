@@ -72,3 +72,60 @@ def test_a_second_render_writes_nothing(make_screen_project):
     root = make_screen_project()
     assert render_screens(root, [])
     assert render_screens(root, []) == []
+
+
+def test_a_screen_imports_a_template_another_plugin_ships(make_screen_project):
+    root = make_screen_project(
+        xml='{% import "brand/logo.xml.j2" as brand %}<root><Panel id="{{screen}}">'
+        "{{ brand.logo() }}</Panel></root>",
+        css="",
+    )
+    templates = root / "plugins/brand-kit/panorama/templates/brand"
+    templates.mkdir(parents=True)
+    (templates / "logo.xml.j2").write_text(
+        '{% macro logo() %}<Label text="MEAT" />{% endmacro %}', encoding="utf-8"
+    )
+
+    render_screens(root, ["ui-lab"])
+
+    xml = (root / "build/panorama/ui-lab/panorama/layout/custom_game/hud.xml").read_text(
+        encoding="utf-8"
+    )
+    assert '<Label text="MEAT" />' in xml
+
+
+def test_the_menu_block_draws_the_ids_panorama_menu_screen_writes(make_screen_project):
+    root = make_screen_project(
+        xml='{% import "menu.xml.j2" as blocks %}<root><Panel id="{{screen}}">'
+        '{% call blocks.menu(2, 2, "weapons") %}<Label text="{s:brand}" />{% endcall %}'
+        "</Panel></root>",
+        css='{% include "menu.css.j2" %}',
+    )
+    render_screens(root, ["ui-lab"])
+
+    xml = (root / "build/panorama/ui-lab/panorama/layout/custom_game/hud.xml").read_text(
+        encoding="utf-8"
+    )
+    # src/Menu/PanoramaMenuLayout.cpp builds these same names from the screen name.
+    for name in (
+        'id="hud_tab1"',
+        'id="hud_tab1_icon"',
+        "{s:tab1}",
+        'id="hud_row1_button"',
+        'id="hud_row1_decrease"',
+        'id="hud_row1_increase"',
+        "{s:row1_label}",
+        "{s:row1_hint}",
+        "{s:row1_value}",
+        'id="hud_subtitle"',
+        'id="hud_close"',
+        'id="hud_empty"',
+        'id="hud_prompt"',
+        'id="hud_cancel"',
+        'id="hud_back"',
+        'id="hud_page"',
+        'id="hud_page_previous"',
+        'id="hud_page_next"',
+        "{s:brand}",
+    ):
+        assert name in xml

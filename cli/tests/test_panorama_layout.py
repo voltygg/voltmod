@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from voltmod.panorama.layout import read_screen
+from voltmod.panorama.layout import read_screen, selector_classes
 from voltmod.panorama.render import ScreenRenderer, screen_header, screen_owners
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -54,7 +54,7 @@ def header_for(xml: str, css: str = "", template_source: str = "") -> str:
 def test_the_checked_in_fixture_header_is_what_rendering_writes(make_screen_project):
     """Set VOLTMOD_REFRESH_FIXTURES=1 to rewrite the fixture after a deliberate change."""
     root = make_screen_project(xml=LAB_XML, css=LAB_CSS, name="lab", icons=("ak47", "awp"))
-    layout, stylesheet = ScreenRenderer(screen_owners(root, ["ui-lab"])[0]).render("lab")
+    layout, stylesheet = ScreenRenderer(screen_owners(root, ["ui-lab"])[0], root).render("lab")
 
     header = header_for(layout, stylesheet, LAB_XML)
     fixture = REPO_ROOT / "tests/Ui/Fixtures/Lab.hpp"
@@ -81,6 +81,11 @@ def test_a_family_keeps_the_order_it_was_declared_in():
 def test_a_decimal_in_a_declaration_is_not_read_as_a_family():
     header = header_for('<root><Panel id="s" /></root>', ".Bar { width: 33.3--4%; }\n")
     assert "Classes" not in header
+
+
+def test_a_define_is_not_read_as_part_of_the_next_selector():
+    stylesheet = "@define red-soft: rgba(225, 39, 60, 0.6);\n.Row { color: red-soft; }\n"
+    assert selector_classes(stylesheet) == ["Row"]
 
 
 def test_without_a_directive_the_namespace_comes_from_the_screen():

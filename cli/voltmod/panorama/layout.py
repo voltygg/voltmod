@@ -25,6 +25,8 @@ INDEXED_NAME = re.compile(r"^([a-z][a-z_]*?)(\d+)(?:_(\w+))?$")
 _CPP_IDENTIFIER = re.compile(r"^[A-Za-z_]\w*$")
 _CSS_RULE = re.compile(r"([^{}]*)\{([^{}]*)\}", re.DOTALL)
 _CSS_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
+# A statement at-rule such as `@define accent: #e1273c;`, which is not part of the next selector.
+_CSS_AT_STATEMENT = re.compile(r"@[\w-]+[^;{}]*;")
 
 
 @dataclass(frozen=True, slots=True)
@@ -147,10 +149,11 @@ def is_cpp_name(name: str) -> bool:
 
 
 def css_rules(stylesheet: str) -> list[tuple[str, str]]:
-    """Every rule as (selector, declarations), in source order, comments stripped."""
+    """Every rule as (selector, declarations), in source order, comments and `@define`s stripped."""
+    text = _CSS_AT_STATEMENT.sub(" ", _CSS_COMMENT.sub(" ", stylesheet))
     return [
         (selector.strip(), body)
-        for selector, body in _CSS_RULE.findall(_CSS_COMMENT.sub(" ", stylesheet))
+        for selector, body in _CSS_RULE.findall(text)
         if selector.strip()
     ]
 

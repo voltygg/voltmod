@@ -1,0 +1,289 @@
+{#- Layout, and the show/hide rules for the classes PanoramaMenuLayout writes. Colour and state are
+    the screen's. -#}
+{% include "button.css.j2" %}
+{% include "icons.css.j2" %}
+{% include "listrow.css.j2" %}
+
+.Layer {
+  width: 100%;
+  height: 100%;
+}
+
+.Screen {
+  width: 100%;
+  height: 100%;
+}
+
+.Hidden {
+  visibility: collapse;
+}
+
+.Window {
+  width: 920px;
+  height: 640px;
+  horizontal-align: center;
+  vertical-align: center;
+  flow-children: right;
+}
+
+.Sidebar {
+  width: 236px;
+  height: 100%;
+  flow-children: down;
+  padding: 22px 14px;
+}
+
+/* A menu without tabs drops the sidebar and keeps the content width. */
+.Screen.NoSidebar .Sidebar {
+  visibility: collapse;
+}
+
+.Screen.NoSidebar .Window {
+  width: 684px;
+}
+
+.Brand {
+  width: 100%;
+  height: fit-children;
+  flow-children: down;
+  margin: 0px 10px 24px 10px;
+}
+
+.Nav {
+  width: 100%;
+  height: fill-parent-flow(1);
+  flow-children: down;
+}
+
+.Tab {
+  width: 100%;
+  height: 44px;
+  margin-bottom: 4px;
+  padding: 0px 12px;
+  flow-children: right;
+}
+
+.Tab .Icons {
+  width: 20px;
+  height: 20px;
+  vertical-align: center;
+  margin-right: 12px;
+}
+
+.Tab-label {
+  width: fill-parent-flow(1);
+  vertical-align: center;
+  font-size: 15px;
+  text-overflow: ellipsis;
+}
+
+.Content {
+  width: fill-parent-flow(1);
+  height: 100%;
+  flow-children: down;
+  padding: 22px 26px 20px 26px;
+}
+
+.Header {
+  width: 100%;
+  height: fit-children;
+  flow-children: right;
+  margin-bottom: 16px;
+}
+
+.Header-text {
+  width: fill-parent-flow(1);
+  height: fit-children;
+  flow-children: down;
+}
+
+/* Fixed height: empty at the root, and CSS cannot test that. */
+.Breadcrumb {
+  width: 100%;
+  height: 16px;
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+
+.Title {
+  width: 100%;
+  font-size: 24px;
+  font-weight: bold;
+  text-overflow: ellipsis;
+}
+
+.Subtitle {
+  width: 100%;
+  font-size: 13px;
+  text-overflow: ellipsis;
+}
+
+.IconButton {
+  width: 36px;
+  height: 36px;
+}
+
+.IconButton-image {
+  width: 14px;
+  height: 14px;
+  horizontal-align: center;
+  vertical-align: center;
+}
+
+.Rows {
+  width: 100%;
+  height: fill-parent-flow(1);
+  flow-children: down;
+}
+
+.Row {
+  height: 50px;
+  margin-bottom: 6px;
+}
+
+.Row-button {
+  padding: 0px 16px 0px 18px;
+}
+
+.Row-label {
+  font-size: 15px;
+}
+
+.Row-hint {
+  visibility: collapse;
+}
+
+.Row.Pending .Row-hint {
+  visibility: visible;
+}
+
+.Row-value {
+  margin-left: 10px;
+  padding: 4px 10px;
+  visibility: collapse;
+}
+
+.Row.HasValue .Row-value {
+  visibility: visible;
+}
+
+/* The switch already says ON or OFF. */
+.Row.Toggle .Row-value {
+  visibility: collapse;
+}
+
+.Row-chevron {
+  margin-left: 12px;
+  font-size: 22px;
+}
+
+.Row.HasChevron .Row-chevron {
+  visibility: visible;
+}
+
+.Switch {
+  width: 44px;
+  height: 24px;
+  margin-left: 12px;
+}
+
+.Row.Toggle .Switch {
+  visibility: visible;
+}
+
+.Switch-knob {
+  width: 18px;
+  height: 18px;
+}
+
+.Row.On .Switch-knob {
+  transform: translateX(20px);
+}
+
+.Steppers {
+  width: fit-children;
+  margin-right: 10px;
+}
+
+.Row.HasSteppers .Steppers {
+  visibility: visible;
+}
+
+.Stepper {
+  width: 30px;
+  height: 30px;
+  margin-left: 4px;
+  vertical-align: center;
+}
+
+.Stepper-glyph {
+  font-size: 10px;
+}
+
+.Empty {
+  width: 100%;
+  height: 50px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.Prompt {
+  width: 100%;
+  height: fit-children;
+  flow-children: down;
+  margin-top: 8px;
+  padding: 14px;
+}
+
+.Prompt-text {
+  width: 100%;
+  font-size: 15px;
+}
+
+.Prompt-hint {
+  width: 100%;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.Footer {
+  width: 100%;
+  height: 40px;
+  flow-children: right;
+  margin-top: 10px;
+}
+
+.Button {
+  width: 150px;
+  height: 40px;
+}
+
+.Button-label {
+  font-size: 14px;
+}
+
+.Pager {
+  width: fill-parent-flow(1);
+  height: 100%;
+  flow-children: right;
+}
+
+.Pager-label {
+  width: fill-parent-flow(1);
+  vertical-align: center;
+  margin-right: 14px;
+  text-align: right;
+  font-size: 14px;
+}
+
+.Pager-arrow {
+  width: 40px;
+  height: 100%;
+  margin-left: 6px;
+}
+
+.Pager-glyph {
+  horizontal-align: center;
+  vertical-align: center;
+  font-size: 11px;
+}

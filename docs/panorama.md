@@ -58,6 +58,23 @@ once, in the screen's own stylesheet. `{# namespace: X #}` as the template's fir
 header's C++ namespace; without it the namespace is `Screens::<Pascal>` (`hud.xml.j2` gives
 `Screens::Hud`).
 
+Templates several plugins share go in one plugin's `panorama/templates/`, under a folder named for
+the kit (`templates/brand/...`). An import searches the screen's `screens/`, its plugin's
+`templates/`, every other plugin's `templates/`, then the block library.
+
+## Theme tokens
+
+`@define name: value;` declares a token; use it as a bare `name`. A define reaches only its own
+stylesheet, so `{% include %}` a shared partial at the top of each screen's CSS. Tokens do not
+compose (`rgba(accent, 0.6)` fails), so give each alpha variant its own.
+
+```css
+@define accent: #e1273c;
+@define accent-soft: rgba(225, 39, 60, 0.16);
+
+.Tab.Selected { background-color: accent; }
+```
+
 ## What the client accepts
 
 The client validates markup and reports failures only in the client console, so
@@ -196,6 +213,7 @@ default CSS with `{% include "<name>.css.j2" %}`.
 | `listrow` | `listrow(id, switch=false, hint=false, value=true, steppers=false, chevron=false)` | one row of a list: two lines of text, a value, a collapsed switch and chevron the screen shows per row class, and steppers; its ids end `_button`, `_decrease` and `_increase` |
 | `tabs` | `tabs(id, count)` | a strip of hidden-by-default tabs, each reading `{s:<id><i>}` |
 | `pager` | `pager(id)` | previous (`_previous`), a `{s:<id>}` label, next (`_next`) |
+| `menu` | `menu(tabs, rows, icons)`, used with `{% call %}` | a menu window: sidebar tabs, header, rows, prompt, Back and a pager; the call body is the sidebar brand. @ref VoltMod::PanoramaMenuLayout draws it |
 
 `dialog` takes its body through `{% call %}` rather than an argument:
 
