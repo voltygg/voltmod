@@ -96,6 +96,11 @@ const CommandDefinition* CommandRouter::Find(std::string_view name) const
     return nullptr;
 }
 
+bool CommandRouter::IsForeign(std::string_view name) const
+{
+    return _host && !Find(name) && _host->IsCommandRegistered(Strings::ToLower(std::string(name)));
+}
+
 std::vector<std::string> CommandRouter::NamesWithPermission() const
 {
     std::vector<std::string> names;
@@ -120,7 +125,7 @@ bool CommandRouter::HasRest(const CommandDefinition& def)
 Tokens CommandRouter::UsageTokens(const CommandDefinition& def, int slot, Origin origin) const
 {
     // Only chat usage includes a prefix.
-    std::string prefix = origin == Origin::Chat ? std::string(CommandSyntax::ChatPrefix()) : std::string{};
+    std::string prefix = origin == Origin::Chat ? std::string(CommandSyntax::ChatPrefix) : std::string{};
 
     std::string args;
     for (const ArgDesc& arg : def.Args)

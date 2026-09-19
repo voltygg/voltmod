@@ -84,6 +84,13 @@ public:
         Registered.push_back(asked);
         return true;
     }
+
+    bool IsCommandRegistered(std::string_view name) const override
+    {
+        const std::string asked(name);
+        return std::ranges::find(OwnedByPeer, asked) != OwnedByPeer.end() ||
+               std::ranges::find(Registered, asked) != Registered.end();
+    }
 };
 
 struct Fixture
@@ -158,10 +165,10 @@ TEST_CASE("Tokenize keeps an explicit empty token but not an implicit one")
     CHECK(tokens[2] == "x");
 }
 
-TEST_CASE("StripPrefix accepts both chat prefixes and nothing else")
+TEST_CASE("StripPrefix accepts only the ! prefix")
 {
     CHECK(CommandSyntax::StripPrefix("!ban Bob").value() == "ban Bob");
-    CHECK(CommandSyntax::StripPrefix(".ban Bob").value() == "ban Bob");
+    CHECK_FALSE(CommandSyntax::StripPrefix(".ban Bob").has_value());
     CHECK_FALSE(CommandSyntax::StripPrefix("ban Bob").has_value());
     CHECK_FALSE(CommandSyntax::StripPrefix("hello").has_value());
     // A bare prefix names no command, so it is not one.
@@ -228,6 +235,30 @@ TEST_CASE("An alias another plugin holds is skipped while the command still regi
 
     CHECK(f.Router.Find("ban") != nullptr);
     CHECK(f.Router.Find("b") == nullptr);
+}
+
+TEST_CASE("Only a name a peer holds is owned by another plugin, not this router's own or an unknown one")
+{
+    Fixture f;
+    FakeHost host;
+    host.OwnedByPeer = {"m"};
+    f.Router.Attach(&host);
+
+    CommandDefinition def = Echo("admin", {}, nullptr);
+    def.Aliases = {"a"};
+    REQUIRE(f.Router.Add(std::move(def)));
+
+    CHECK(f.Router.IsForeign("m"));
+    CHECK(f.Router.IsForeign("M"));
+    CHECK_FALSE(f.Router.IsForeign("admin"));
+    CHECK_FALSE(f.Router.IsForeign("A"));
+    CHECK_FALSE(f.Router.IsForeign("ads"));
+}
+
+TEST_CASE("Without a host no command is owned by another plugin")
+{
+    Fixture f;
+    CHECK_FALSE(f.Router.IsForeign("m"));
 }
 
 TEST_CASE("Clear drops every command and its aliases")

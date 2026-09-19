@@ -57,9 +57,13 @@ public:
     /** Start describing a command. Finish with `.Run(handler)`, which installs it. */
     [[nodiscard]] CommandBuilder Add(std::string_view name);
 
-    /** Dispatch @p message when it starts with a command prefix (`!` or `.`).
+    /** Dispatch @p message when it starts with the `!` command prefix.
      *  @return true when it was a command, so the chat line should not be shown. */
     bool HandleChatMessage(Player* caller, std::string_view message);
+
+    /** True when @p message invokes a command another plugin registered, which that plugin
+     *  answers; this one should pass the line on without filtering it as chat. */
+    bool IsForeign(std::string_view message) const;
 
     size_t Count() const;
 

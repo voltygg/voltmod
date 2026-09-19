@@ -71,7 +71,7 @@ the runtime starts and destroys it before the runtime shuts down.
 | --- | --- | --- |
 | `bool Load()` | yes | Once on load; `false` aborts the load |
 | `void OnServerStartup(std::string_view mapName)` | no | At each map start |
-| `bool OnPlayerChat(Player*, std::string_view message, bool teamChat)` | no | On `say` / `say_team`, in place of the default, which consumes menu input and then dispatches `!` and `.` commands. `true` swallows the line |
+| `bool OnPlayerChat(Player*, std::string_view message, bool teamChat)` | no | On `say` / `say_team`, in place of the default, which consumes menu input and then dispatches `!` commands. `true` swallows the line. Another plugin's commands skip it |
 
 Keep custom engine hooks, signals and timers in the App's own `Subscriptions`.
 

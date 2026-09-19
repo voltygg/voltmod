@@ -1,17 +1,7 @@
 #include "Commands/CommandSyntax.hpp"
 
-#include <array>
-
 namespace VoltMod::CommandSyntax
 {
-
-/** The chat prefixes, in the order they are matched. The first is what a usage line shows. */
-static const std::array<std::string_view, 2> kPrefixes{"!", "."};
-
-std::string_view ChatPrefix()
-{
-    return kPrefixes.front();
-}
 
 std::vector<std::string> Tokenize(std::string_view text)
 {
@@ -54,9 +44,8 @@ std::vector<std::string> Tokenize(std::string_view text)
 
 std::optional<std::string_view> StripPrefix(std::string_view message)
 {
-    for (std::string_view prefix : kPrefixes)
-        if (message.size() > prefix.size() && message.compare(0, prefix.size(), prefix) == 0)
-            return message.substr(prefix.size());
+    if (message.size() > ChatPrefix.size() && message.starts_with(ChatPrefix))
+        return message.substr(ChatPrefix.size());
     return std::nullopt;
 }
 

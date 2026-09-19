@@ -12,6 +12,8 @@ What changed in each VoltMod release. Older history is in git.
   framework checkout.
 - `ServiceExchange::PublishNamed`, `UnpublishNamed` and `Find` are private; use `Publish<T>`,
   `Unpublish<T>` and `Get<T>`, with a key when one interface has several providers.
+- Chat commands take only the `!` prefix; `.ban` is plain chat now.
+- `HostAbiVersion` is 2: `IHost` gained `IsCommandRegistered`. Rebuild every plugin against this host.
 
 ### Added
 
@@ -26,6 +28,8 @@ What changed in each VoltMod release. Older history is in git.
 
 ### Fixed
 
+- A chat command reaches the plugin that registered it even when an earlier plugin's
+  `OnPlayerChat` would consume the line, such as admin-chat tagging swallowing `!m`.
 - `voltmod panorama check` no longer reads a number in a top-level `@define` as a class name.
 
 ## 1.5.1 (2026-09-18)

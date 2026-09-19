@@ -121,6 +121,16 @@ bool CommandManager::HandleChatMessage(Player* caller, std::string_view message)
     return true;
 }
 
+bool CommandManager::IsForeign(std::string_view message) const
+{
+    auto body = CommandSyntax::StripPrefix(message);
+    if (!body)
+        return false;
+
+    std::vector<std::string> parts = CommandSyntax::Tokenize(*body);
+    return !parts.empty() && _impl->Router.IsForeign(parts.front());
+}
+
 size_t CommandManager::Count() const
 {
     return _impl->Router.Count();

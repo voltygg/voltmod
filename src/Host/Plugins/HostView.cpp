@@ -61,6 +61,11 @@ bool HostView::RegisterCommand(std::string_view name)
     return false;
 }
 
+bool HostView::IsCommandRegistered(std::string_view name) const
+{
+    return !_state.Commands.OwnerOf(name).empty();
+}
+
 void HostView::WriteLog(uint8_t level, std::string_view text)
 {
     const auto wanted = static_cast<LogLevel>(level);

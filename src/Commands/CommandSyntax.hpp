@@ -10,7 +10,7 @@ namespace VoltMod::CommandSyntax
 
 /**
  * @file CommandSyntax.hpp
- * @brief How a chat line is spelled: the prefixes, and splitting one into tokens.
+ * @brief How a chat line is spelled: the prefix, and splitting one into tokens.
  *
  * Pure text, no registrations and no engine, which is what keeps the whole dispatch path
  * unit-testable. Separate from @ref CommandRouter because none of it depends on which commands
@@ -24,7 +24,7 @@ std::vector<std::string> Tokenize(std::string_view text);
 /** @p message without its command prefix, or nullopt when it carries none. */
 std::optional<std::string_view> StripPrefix(std::string_view message);
 
-/** The prefix a chat usage line shows. */
-std::string_view ChatPrefix();
+/** What starts a chat command, and what a chat usage line shows. */
+inline constexpr std::string_view ChatPrefix = "!";
 
 }  // namespace VoltMod::CommandSyntax

@@ -54,6 +54,9 @@ public:
     /** Look @p name up as a command name, then as an alias. */
     const CommandDefinition* Find(std::string_view name) const;
 
+    /** True when @p name is not this router's but the host has it registered for someone else. */
+    bool IsForeign(std::string_view name) const;
+
     size_t Count() const { return _commands.size(); }
 
     /** Registered names that declare a permission. Sorted; map order is arbitrary and a load

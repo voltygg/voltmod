@@ -35,6 +35,8 @@ struct IHost
 
     /** False when another plugin holds @p name, which the host logs naming both. Released with the plugin. */
     virtual bool RegisterCommand(std::string_view name) = 0;
+    /** True while any plugin, this one included, or the host holds @p name. */
+    virtual bool IsCommandRegistered(std::string_view name) const = 0;
 
     /** Print one line under this plugin's `logTag`. @p level is a @ref LogLevel. */
     virtual void WriteLog(uint8_t level, std::string_view text) = 0;

@@ -39,6 +39,10 @@ bool PluginModule::HandleConsoleCommand(std::string_view name, std::string_view 
     if (message.empty() || !IsValidSlot(slot))
         return false;
 
+    // A later plugin's command must reach it past this plugin's chat handling, such as admin-chat tagging.
+    if (_runtime->Commands.IsForeign(message))
+        return false;
+
     Player* player = _runtime->Players.Get(slot);
     return player != nullptr && _plugin->OnPlayerChat(player, message, teamChat);
 }

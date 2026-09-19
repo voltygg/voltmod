@@ -89,6 +89,7 @@ public:
     IHostServices& Services() override;
     IHostGameData* GameData() const override;
     bool RegisterCommand(std::string_view name) override;
+    bool IsCommandRegistered(std::string_view name) const override;
     void WriteLog(uint8_t level, std::string_view text) override;
     uint8_t MinLogLevel() const override;
     uint64_t SchemaLayoutStamp() const override;

@@ -140,9 +140,12 @@ To run another plugin's console command as a player, use
 
 ## Chat dispatch and quoting
 
-The default `OnPlayerChat` sends `!` and `.` messages through `HandleChatMessage`; unknown names
+The default `OnPlayerChat` sends `!` messages through `HandleChatMessage`; unknown names
 fall through to normal chat. A plugin with its own chat service overrides `OnPlayerChat` and
 takes over dispatch.
+
+A line naming a command another plugin registered never reaches `OnPlayerChat`: it goes on to
+that plugin, so chat filters such as admin tagging cannot swallow `!m` before its owner sees it.
 
 The tokenizer treats a `"quoted run"` as one token and `\"` as a literal quote, so
 `!ban Bob 30 "wall bang"` is three arguments. Repeated spaces produce no empty arguments; an
