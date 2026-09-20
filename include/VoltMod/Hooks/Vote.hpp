@@ -101,7 +101,7 @@ private:
     INetworkMessageInternal* _voteStartInternal = nullptr;
     INetworkMessageInternal* _votePassInternal = nullptr;
     INetworkMessageInternal* _voteFailedInternal = nullptr;
-    /** The map's vote_controller, re-acquired per vote: a new map is a new entity. */
+    /** The running vote's controller entity. */
     Schema::CVoteController _controller;
     bool _inProgress = false;
     /** Bumped per vote so a timeout cannot end the vote that replaced it. */

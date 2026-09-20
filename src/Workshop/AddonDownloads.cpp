@@ -149,7 +149,7 @@ AddonDecision AddonDownloads::DecideJoinMessage(int64_t steamId, bool reconnect,
         const std::vector<uint64_t> downloaded = ToMount(steamId);
         if (downloaded.empty())
             return {};
-        return {.Action = AddonAction::Mount, .Id = downloaded.front(), .Remaining = downloaded.size() - 1};
+        return {.Action = AddonAction::Mount, .Id = downloaded.front()};
     }
 
     MarkSending(steamId, listed.front(), now);

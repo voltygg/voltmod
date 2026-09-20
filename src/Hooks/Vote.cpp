@@ -21,7 +21,7 @@ namespace VoltMod
 
 static constexpr std::string_view ControllerClass = "vote_controller";
 
-// A client only takes F1/F2 while an issue is active. The engine must never run this one, so
+// A client takes F1/F2 only while an issue is active. The engine must never run this one, so
 // `vote` and `callvote` are blocked during a vote.
 static constexpr int YesNoIssueIndex = 2;
 static constexpr int NoIssue = -1;

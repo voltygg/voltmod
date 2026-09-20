@@ -154,9 +154,9 @@ CEntityInstance* EntitySystem::RawController(int slot)
         return nullptr;
 
     // An index past the server's player limit holds an ordinary entity.
-    const char* className = identity->GetClassname();
-    const bool isController = className != nullptr && ControllerClass == className;
-    return isController ? identity->m_pInstance : nullptr;
+    if (ControllerClass != identity->GetClassname())
+        return nullptr;
+    return identity->m_pInstance;
 }
 
 VoltMod::Controller EntitySystem::Controller(int slot)

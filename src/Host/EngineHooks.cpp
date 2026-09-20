@@ -26,6 +26,14 @@ static std::string_view Text(const char* text)
     return text != nullptr ? text : "";
 }
 
+/** Offer a command to the plugins, and keep it from the engine when one consumes it. */
+static HookResult<void> RunCommand(PluginHost& host, std::string_view name, const CCommand& arguments, int slot)
+{
+    // ArgS is the whole line after the command name.
+    const bool consumed = host.RaiseConsoleCommand(name, Text(arguments.ArgS()), slot);
+    return consumed ? HookResult<void>::Block() : HookResult<void>{};
+}
+
 EngineHooks::EngineHooks(PluginHost& host, std::function<void()> beforeFrame, std::function<void()> beforeServerStartup)
     : _host(host), _beforeFrame(std::move(beforeFrame)), _beforeServerStartup(std::move(beforeServerStartup))
 {}
@@ -49,7 +57,7 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
     ISource2GameEntities* gameEntities = nullptr;
     ICvar* cvar = nullptr;
 
-    // The first failure sticks; the rest are skipped.
+    // Stops at the first failure.
     Status found;
     auto resolve = [&found](auto*& target, auto& factory, const char* version) {
         if (found)
@@ -95,7 +103,7 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
                           ConnectClient(slot.Get(), xuid, Text(name), Text(address));
                       }));
 
-    // After a map change clients return here, in new slots, without OnClientConnected.
+    // Clients returning from a map change skip OnClientConnected.
     add(HookInterface(&IServerGameClients::ClientPutInServer, serverGameClients, nullptr,
                       [this](IServerGameClients&, CPlayerSlot slot, const char* name, int, uint64 xuid) {
                           if (!IsValidSlot(slot.Get()))
@@ -130,24 +138,13 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
 
     add(HookInterface(&ICvar::DispatchConCommand, cvar,
                       [this](ICvar&, ConCommandRef command, const CCommandContext& context, const CCommand& arguments) {
-                          const char* name = command.GetName();
-                          if (name == nullptr)
-                              return HookResult<void>{};
-
-                          // The whole line after the command name.
-                          const std::string_view line = Text(arguments.ArgS());
-                          const int slot = context.GetPlayerSlot().Get();
-                          const bool consumed = _host.RaiseConsoleCommand(name, line, slot);
-                          return consumed ? HookResult<void>::Block() : HookResult<void>{};
+                          return RunCommand(_host, Text(command.GetName()), arguments, context.GetPlayerSlot().Get());
                       }));
 
-    // Client commands that are not ConCommands arrive here instead; `vote` is one.
+    // Client commands that are not ConCommands, `vote` among them.
     add(HookInterface(&IServerGameClients::ClientCommand, serverGameClients,
                       [this](IServerGameClients&, CPlayerSlot slot, const CCommand& arguments) {
-                          const std::string_view name = Text(arguments.Arg(0));
-                          const std::string_view line = Text(arguments.ArgS());
-                          const bool consumed = _host.RaiseConsoleCommand(name, line, slot.Get());
-                          return consumed ? HookResult<void>::Block() : HookResult<void>{};
+                          return RunCommand(_host, Text(arguments.Arg(0)), arguments, slot.Get());
                       }));
 
     // Filter the bit vectors after the game fills them.
