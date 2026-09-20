@@ -88,6 +88,11 @@ MultiRecipientFilter Vote::Recipients() const
     return filter;
 }
 
+Schema::CVoteController Vote::Controller()
+{
+    return Schema::CVoteController{_entities.FindByClassName({}, ControllerClass).Raw()};
+}
+
 bool Vote::StartVote(std::string_view title, std::string_view detail, float durationSec, int callerSlot,
                      ResultFn onResult, FinishedFn onFinished)
 {
@@ -107,15 +112,13 @@ bool Vote::StartVote(std::string_view title, std::string_view detail, float dura
     _no = 0;
     _voted.fill(false);
 
-    // A new map is a new controller entity.
-    _controller = Schema::CVoteController{_entities.FindByClassName({}, ControllerClass).Raw()};
-    if (_controller)
+    if (Schema::CVoteController controller = Controller())
     {
-        _controller.SetPotentialVotes(_eligible);
-        _controller.SetIsYesNoVote(true);
+        controller.SetPotentialVotes(_eligible);
+        controller.SetIsYesNoVote(true);
         // The VoteStart recipients decide who may vote.
-        _controller.SetOnlyTeamToVote(AllTeams);
-        _controller.SetActiveIssueIndex(YesNoIssueIndex);
+        controller.SetOnlyTeamToVote(AllTeams);
+        controller.SetActiveIssueIndex(YesNoIssueIndex);
     }
 
     _inProgress = true;
@@ -194,9 +197,8 @@ void Vote::FinishVote(VoteEndReason reason)
 
     SendVoteOutcome(passed);
 
-    if (_controller)
-        _controller.SetActiveIssueIndex(NoIssue);
-    _controller = {};
+    if (Schema::CVoteController controller = Controller())
+        controller.SetActiveIssueIndex(NoIssue);
 
     auto finished = std::move(_onFinished);
     _onResult = nullptr;

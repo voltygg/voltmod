@@ -42,6 +42,9 @@ public:
     void Uninstall();
 
 private:
+    /** The remembered address for @p xuid, from this map or the one before it. */
+    std::string_view AddressOf(uint64_t xuid) const;
+
     /** Raise ClientConnected and remember the address for a map change. */
     void ConnectClient(int slot, uint64_t xuid, std::string_view name, std::string_view address);
 
@@ -54,6 +57,7 @@ private:
     Subscriptions _hooks;
     std::array<bool, MaxPlayers> _connected{};
     std::unordered_map<uint64_t, std::string> _addresses;  ///< by xuid, kept across a map change
+    std::unordered_map<uint64_t, std::string> _carriedAddresses;  ///< the previous map's, dropped at the next change
 };
 
 }  // namespace VoltMod

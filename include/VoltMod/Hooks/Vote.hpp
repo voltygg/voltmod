@@ -80,6 +80,8 @@ public:
     bool TryCastBallot(int slot, std::string_view option);
 
 private:
+    /** The map's vote controller, or an empty handle. Never stored: a map change frees it. */
+    Schema::CVoteController Controller();
     void FinishVote(VoteEndReason reason);
     void SendVoteStart();
     void SendVoteOutcome(bool passed);
@@ -101,8 +103,6 @@ private:
     INetworkMessageInternal* _voteStartInternal = nullptr;
     INetworkMessageInternal* _votePassInternal = nullptr;
     INetworkMessageInternal* _voteFailedInternal = nullptr;
-    /** The running vote's controller entity. */
-    Schema::CVoteController _controller;
     bool _inProgress = false;
     /** Bumped per vote so a timeout cannot end the vote that replaced it. */
     uint64_t _voteId = 0;

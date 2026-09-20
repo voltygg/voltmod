@@ -111,11 +111,7 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
                           if (_connected[slot.Get()])
                               return;
 
-                          std::string_view address;
-                          auto known = _addresses.find(xuid);
-                          if (known != _addresses.end())
-                              address = known->second;
-                          ConnectClient(slot.Get(), xuid, Text(name), address);
+                          ConnectClient(slot.Get(), xuid, Text(name), AddressOf(xuid));
                       }));
 
     add(HookInterface(&IServerGameClients::ClientDisconnect, serverGameClients, nullptr,
@@ -157,6 +153,15 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
     return {};
 }
 
+std::string_view EngineHooks::AddressOf(uint64_t xuid) const
+{
+    if (auto known = _addresses.find(xuid); known != _addresses.end())
+        return known->second;
+    if (auto carried = _carriedAddresses.find(xuid); carried != _carriedAddresses.end())
+        return carried->second;
+    return {};
+}
+
 void EngineHooks::ConnectClient(int slot, uint64_t xuid, std::string_view name, std::string_view address)
 {
     if (IsValidSlot(slot))
@@ -175,6 +180,11 @@ void EngineHooks::DisconnectEveryone()
         _connected[slot] = false;
         _host.RaiseClientDisconnected(slot);
     }
+
+    // Addresses are kept for whoever ClientPutInServer brings back; what the last map change
+    // left unclaimed never returned, so it goes here.
+    _carriedAddresses = std::move(_addresses);
+    _addresses.clear();
 }
 
 void EngineHooks::Uninstall()
