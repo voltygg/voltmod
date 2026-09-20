@@ -210,8 +210,7 @@ void Addons::OnJoinMessage(const CNetMessage* message, void* client)
     case AddonAction::TrimToFirst:
         Log::Info("Addons: a reconnect message named {} addons; sending {} and holding the rest.",
                   decision.Remaining + 1, decision.Id);
-        joinMessage->set_addons(std::to_string(decision.Id));
-        return;
+        [[fallthrough]];
     case AddonAction::Mount:
         joinMessage->set_addons(std::to_string(decision.Id));
         return;

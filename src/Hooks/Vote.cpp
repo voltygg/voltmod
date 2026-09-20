@@ -143,8 +143,7 @@ bool Vote::TryCastBallot(int slot, std::string_view option)
     if (!_inProgress)
         return false;
 
-    const bool canVote = IsValidSlot(slot) && _entities.IsPlayerSlotValid(slot) && !_voted[slot];
-    if (!canVote)
+    if (!IsValidSlot(slot) || !_entities.IsPlayerSlotValid(slot) || _voted[slot])
         return true;
 
     if (option == "option1")
@@ -165,8 +164,7 @@ bool Vote::TryCastBallot(int slot, std::string_view option)
     _voted[slot] = true;
     PublishCounts();
 
-    const bool everyoneVoted = _yes + _no >= _eligible;
-    if (everyoneVoted)
+    if (_yes + _no >= _eligible)
     {
         // Deferred a tick: the engine is still inside the command dispatch.
         const uint64_t voteId = _voteId;

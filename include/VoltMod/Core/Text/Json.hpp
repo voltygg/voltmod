@@ -141,8 +141,13 @@ public:
         auto document = ParseDocument(jsonText);
         if (!document)
             return {};
+        return GetString(*document, dotPath);
+    }
 
-        const glz::generic* node = &*document;
+    /** As above, for a node already parsed: saves callers a dump-and-reparse round trip. */
+    static std::string GetString(const glz::generic& root, std::string_view dotPath)
+    {
+        const glz::generic* node = &root;
         for (size_t start = 0; start <= dotPath.size();)
         {
             const size_t dot = dotPath.find('.', start);
