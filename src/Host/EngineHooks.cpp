@@ -55,11 +55,13 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
         if (found)
             found = ResolveInterface(target, factory, version);
     };
+
     resolve(serverGameDLL, fromServer, INTERFACEVERSION_SERVERGAMEDLL);
     resolve(serverGameClients, fromServer, INTERFACEVERSION_SERVERGAMECLIENTS);
     resolve(networkServerService, fromEngine, NETWORKSERVERSERVICE_INTERFACE_VERSION);
     resolve(gameEntities, fromServer, INTERFACEVERSION_SERVERGAMEENTS);
     resolve(cvar, fromEngine, CVAR_INTERFACE_VERSION);
+
     if (!found)
         return found;
 
@@ -108,18 +110,17 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
                           ConnectClient(slot.Get(), xuid, Text(name), address);
                       }));
 
-    add(HookInterface(
-        &IServerGameClients::ClientDisconnect, serverGameClients, nullptr,
-        [this](IServerGameClients&, CPlayerSlot slot, ENetworkDisconnectionReason reason, const char*, uint64 xuid,
-               const char*) {
-            if (IsValidSlot(slot.Get()))
-                _connected[slot.Get()] = false;
-            // Kept over a map change: the client returns without it.
-            if (reason != NETWORK_DISCONNECT_LOOPSHUTDOWN)
-                _addresses.erase(xuid);
-            // After the call, before the slot is reused.
-            _host.RaiseClientDisconnected(slot.Get());
-        }));
+    add(HookInterface(&IServerGameClients::ClientDisconnect, serverGameClients, nullptr,
+                      [this](IServerGameClients&, CPlayerSlot slot, ENetworkDisconnectionReason reason, const char*,
+                             uint64 xuid, const char*) {
+                          if (IsValidSlot(slot.Get()))
+                              _connected[slot.Get()] = false;
+                          // Kept over a map change: the client returns without it.
+                          if (reason != NETWORK_DISCONNECT_LOOPSHUTDOWN)
+                              _addresses.erase(xuid);
+                          // After the call, before the slot is reused.
+                          _host.RaiseClientDisconnected(slot.Get());
+                      }));
 
     add(HookInterface(&IServerGameClients::ClientFullyConnect, serverGameClients, nullptr,
                       [this](IServerGameClients&, CPlayerSlot slot) { _host.RaiseClientFullyConnected(slot.Get()); }));
@@ -137,6 +138,15 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
                           const std::string_view line = Text(arguments.ArgS());
                           const int slot = context.GetPlayerSlot().Get();
                           const bool consumed = _host.RaiseConsoleCommand(name, line, slot);
+                          return consumed ? HookResult<void>::Block() : HookResult<void>{};
+                      }));
+
+    // Client commands that are not ConCommands arrive here instead; `vote` is one.
+    add(HookInterface(&IServerGameClients::ClientCommand, serverGameClients,
+                      [this](IServerGameClients&, CPlayerSlot slot, const CCommand& arguments) {
+                          const std::string_view name = Text(arguments.Arg(0));
+                          const std::string_view line = Text(arguments.ArgS());
+                          const bool consumed = _host.RaiseConsoleCommand(name, line, slot.Get());
                           return consumed ? HookResult<void>::Block() : HookResult<void>{};
                       }));
 

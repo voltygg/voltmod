@@ -9,7 +9,6 @@
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/Vote.hpp>
-#include <VoltMod/Schema/Api.hpp>
 #include <engine/igameeventsystem.h>
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
@@ -22,8 +21,8 @@ namespace VoltMod
 
 static constexpr std::string_view ControllerClass = "vote_controller";
 
-// A client only takes F1/F2 while this is not NoIssue. The server may not hold the issue at all,
-// so `vote` and `callvote` are blocked during a vote and the engine never runs it.
+// A client only takes F1/F2 while an issue is active. The engine must never run this one, so
+// `vote` and `callvote` are blocked during a vote.
 static constexpr int YesNoIssueIndex = 2;
 static constexpr int NoIssue = -1;
 static constexpr int AllTeams = -1;
@@ -104,19 +103,15 @@ bool Vote::StartVote(std::string_view title, std::string_view detail, float dura
     _no = 0;
     _voted.fill(false);
 
-    // The controller is a map entity, so it is a different object after every map change.
+    // A new map is a new controller entity.
     _controller = Schema::CVoteController{_entities.FindByClassName({}, ControllerClass).Raw()};
     if (_controller)
     {
         _controller.SetPotentialVotes(_eligible);
         _controller.SetIsYesNoVote(true);
-        // Who may vote is decided by the recipients of the VoteStart message, not by this field.
+        // The VoteStart recipients decide who may vote.
         _controller.SetOnlyTeamToVote(AllTeams);
         _controller.SetActiveIssueIndex(YesNoIssueIndex);
-    }
-    else
-    {
-        Log::Warn("Vote: this map has no vote_controller, so clients will ignore F1/F2.");
     }
 
     _inProgress = true;
@@ -129,8 +124,7 @@ bool Vote::StartVote(std::string_view title, std::string_view detail, float dura
     PublishCounts();
     SendVoteStart();
 
-    // Captured by value so a timeout can only ever end the vote that scheduled it; a vote that
-    // finished early has already moved the id on.
+    // A timeout may only end the vote that scheduled it.
     const uint64_t voteId = ++_voteId;
     _timeout = _scheduler.Delay(static_cast<int64_t>(durationSec * 1000.0f), [this, voteId] {
         if (_inProgress && voteId == _voteId)
@@ -147,22 +141,21 @@ bool Vote::TryCastBallot(int slot, std::string_view option)
     if (!IsValidSlot(slot) || _voted[static_cast<size_t>(slot)] || !_entities.IsPlayerSlotValid(slot))
         return true;
 
-    option = option.substr(0, option.find(' '));  // the whole argument line arrives here
-    if (option == "option1")
-        ++_yes;
-    else if (option == "option2")
-        ++_no;
-    else
+    const bool yes = option == "option1";
+    const bool no = option == "option2";
+
+    if (!yes && !no)
         return true;
+
+    ++(yes ? _yes : _no);
     _voted[static_cast<size_t>(slot)] = true;
 
+    PublishBallot(slot, yes ? 0 : 1);
     PublishCounts();
 
-    // Close as soon as everyone who could vote has, rather than sitting on a decided vote.
     if (_yes + _no >= _eligible)
     {
-        // Deferred a tick: ending inside the command dispatch that produced the last ballot tears
-        // down state the engine is still walking.
+        // Deferred a tick: the engine is still inside the command dispatch.
         const uint64_t voteId = _voteId;
         _deferredClose = _scheduler.NextTick([this, voteId] {
             if (_inProgress && voteId == _voteId)
@@ -181,7 +174,7 @@ void Vote::EndVote(VoteEndReason reason)
 void Vote::FinishVote(VoteEndReason reason)
 {
     _inProgress = false;
-    ++_voteId;  // any timeout still pending for this vote is now stale
+    ++_voteId;
 
     VoteTally tally{.Eligible = _eligible, .Yes = _yes, .No = _no};
 
@@ -201,10 +194,22 @@ void Vote::FinishVote(VoteEndReason reason)
         finished(passed, reason);
 }
 
+void Vote::PublishBallot(int slot, int option)
+{
+    // The voter's panel registers the key press from this event.
+    IGameEvent* event = _events.CreateEvent("vote_cast");
+    if (!event)
+        return;
+
+    event->SetInt("vote_option", option);
+    event->SetInt("team", AllTeams);
+    event->SetPlayer("userid", CPlayerSlot(slot));
+    _events.FireEvent(event, false);
+}
+
 void Vote::PublishCounts()
 {
-    // The panel reads its running tally from vote_changed, so the counts are re-announced after
-    // every ballot. Options 3-5 exist on the panel but a yes/no vote never fills them.
+    // The panel reads its tally from this event.
     IGameEvent* event = _events.CreateEvent("vote_changed");
     if (!event)
         return;
@@ -215,7 +220,6 @@ void Vote::PublishCounts()
     event->SetInt("vote_option4", 0);
     event->SetInt("vote_option5", 0);
     event->SetInt("potentialVotes", _eligible);
-
     _events.FireEvent(event, false);
 }
 

@@ -17,7 +17,7 @@ namespace VoltMod
 {
 
 /**
- * @brief The nine engine hooks, installed once for the whole process.
+ * @brief The engine hooks, installed once for the whole process.
  *
  * Each one raises the matching event on @ref PluginHost, which calls every loaded plugin in load
  * order. Game thread only, like everything downstream of it.

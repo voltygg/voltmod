@@ -83,6 +83,7 @@ private:
     void FinishVote(VoteEndReason reason);
     void SendVoteStart();
     void SendVoteOutcome(bool passed);
+    void PublishBallot(int slot, int option);
     void PublishCounts();
     /** Every connected slot - who a vote panel is sent to. */
     MultiRecipientFilter Recipients() const;
