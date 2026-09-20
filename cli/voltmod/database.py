@@ -85,7 +85,10 @@ def render_migrations(source: Path, driver: str) -> str:
 
 
 def apply_altered_columns(ddl: str) -> str:
-    """Fold each `ALTER TABLE t ADD|DROP COLUMN` into t's CREATE TABLE in file order, for ddl2cpp."""
+    """Fold each `ALTER TABLE t ADD|DROP COLUMN` into t's CREATE TABLE in file order.
+
+    ddl2cpp only reads CREATE TABLE.
+    """
     for table, action, column, definition in _ALTER_COLUMN.findall(ddl):
         create = re.search(
             rf"CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?{table}\s*\((.*?)\n\);", ddl, re.I | re.S
