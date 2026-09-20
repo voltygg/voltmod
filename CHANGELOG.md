@@ -4,6 +4,20 @@
 
 What changed in each VoltMod release. Older history is in git.
 
+## 1.5.5 (2026-09-20)
+
+### Breaking
+
+- `GameEvents::FireEvent` takes `broadcast` where it took `dontBroadcast`; invert the second
+  argument at every call site.
+
+### Fixed
+
+- Clients accept F1/F2 on a plugin vote and their ballots reach the plugin.
+- Players the engine brings back after a map change reconnect, so a stale player no longer
+  holds a slot and the occupied-slot count stays right.
+- The map change message names the downloaded addon, so clients keep it mounted across the change.
+
 ## 1.5.4 (2026-09-20)
 
 ### New
