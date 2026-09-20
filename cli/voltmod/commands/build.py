@@ -19,6 +19,10 @@ def build_command(
     install: Annotated[
         str, typer.Option("--install", help="Install this plugin into the local CS2 server")
     ] = "",
+    install_all: Annotated[
+        bool,
+        typer.Option("--install-all", help="Install every built plugin into the local CS2 server"),
+    ] = False,
     start: Annotated[
         bool, typer.Option("--start", help="Launch the local CS2 server afterwards")
     ] = False,
@@ -47,16 +51,18 @@ def build_command(
     preset = project.resolve_preset(preset)
     server_path = project.server_path(server_path)
 
+    installing = bool(install) or install_all
     # Fail on a bad plugin name or server path before spending a whole build on it.
     if install:
         project.plugin_names(install)
-    if install or start:
+    if installing or start:
         find_server(server_path)
 
     conan_options = [arg for value in option or [] for arg in ("-o", value)]
     build(project, preset, conan_options=conan_options, use_lockfile=not no_lockfile, relock=relock)
 
-    if install:
+    # An empty name installs every plugin.
+    if installing:
         install_plugins(project, server_path, install, preset)
     if start:
         run_server(project.settings.with_options(server_path=server_path))
