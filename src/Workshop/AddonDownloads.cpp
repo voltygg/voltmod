@@ -144,7 +144,13 @@ AddonDecision AddonDownloads::DecideJoinMessage(int64_t steamId, bool reconnect,
     // The client handles only the first addon; the rest wait for a later reconnect.
     const std::vector<uint64_t> listed = ParseAddonList(addons);
     if (listed.empty())
-        return {};
+    {
+        // A client unmounts whatever the map change message does not name.
+        const std::vector<uint64_t> downloaded = ToMount(steamId);
+        if (downloaded.empty())
+            return {};
+        return {.Action = AddonAction::Mount, .Id = downloaded.front(), .Remaining = downloaded.size() - 1};
+    }
 
     MarkSending(steamId, listed.front(), now);
     if (listed.size() == 1)

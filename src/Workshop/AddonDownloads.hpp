@@ -17,6 +17,7 @@ enum class AddonAction
     Send,         ///< point the client at @ref AddonDecision::Id and wait for its reconnect
     TrimToFirst,  ///< the message names several addons; keep only @ref AddonDecision::Id
     Kick,         ///< the client refused @ref AddonDecision::Id too often
+    Mount,        ///< a map change names no addon; name @ref AddonDecision::Id so the client keeps it
 };
 
 struct AddonDecision

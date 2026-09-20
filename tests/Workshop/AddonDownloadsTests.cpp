@@ -194,6 +194,19 @@ TEST_CASE("A reconnect message keeps only its first addon, and counts it as send
     CHECK(downloads.MissingFor(kPlayer).empty());
 }
 
+TEST_CASE("A map change message names the addon the client already downloaded")
+{
+    AddonDownloads downloads;
+    downloads.Require(100);
+
+    (void)downloads.DecideJoinMessage(kPlayer, false, "", 1.0, kMaxAttempts);
+    downloads.RecordReconnect(kPlayer, 2.0, kTimeout);
+
+    const auto decision = downloads.DecideJoinMessage(kPlayer, true, "", 3.0, kMaxAttempts);
+    CHECK(decision.Action == AddonAction::Mount);
+    CHECK(decision.Id == 100);
+}
+
 TEST_CASE("An addons field parses as a comma separated list, skipping malformed entries")
 {
     CHECK(ParseAddonList("").empty());
