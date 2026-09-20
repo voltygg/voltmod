@@ -217,7 +217,7 @@ void Vote::PublishBallot(int slot, int option)
     event->SetInt("vote_option", option);
     event->SetInt("team", AllTeams);
     event->SetPlayer("userid", CPlayerSlot(slot));
-    _events.FireEvent(event, false);
+    _events.FireEvent(event);
 }
 
 void Vote::PublishCounts()
@@ -233,7 +233,7 @@ void Vote::PublishCounts()
     event->SetInt("vote_option4", 0);
     event->SetInt("vote_option5", 0);
     event->SetInt("potentialVotes", _eligible);
-    _events.FireEvent(event, false);
+    _events.FireEvent(event);
 }
 
 void Vote::SendVoteStart()

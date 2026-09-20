@@ -33,7 +33,7 @@ public:
     Status Initialize();
 
     IGameEvent* CreateEvent(std::string_view name);
-    bool FireEvent(IGameEvent* event, bool dontBroadcast = false);
+    bool FireEvent(IGameEvent* event, bool broadcast = true);
     void FreeEvent(IGameEvent* event);
 
     /**

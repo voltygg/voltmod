@@ -67,13 +67,13 @@ IGameEvent* GameEvents::CreateEvent(std::string_view name)
     return mgr->CreateEvent(std::string(name).c_str());
 }
 
-bool GameEvents::FireEvent(IGameEvent* event, bool dontBroadcast)
+bool GameEvents::FireEvent(IGameEvent* event, bool broadcast)
 {
     auto* mgr = _interfaces.GameEventManager;
     if (!mgr || !event)
         return false;
 
-    return mgr->FireEvent(event, dontBroadcast);
+    return mgr->FireEvent(event, !broadcast);
 }
 
 void GameEvents::FreeEvent(IGameEvent* event)
