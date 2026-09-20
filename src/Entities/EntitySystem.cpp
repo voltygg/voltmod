@@ -10,6 +10,7 @@
 #include <entity2/entityinstance.h>
 #include <entity2/entitysystem.h>
 #include <string>
+#include <string_view>
 
 /**
  * The SDK calls ::GameEntitySystem() without context. EntitySystem owns this pointer and clears it
@@ -25,6 +26,8 @@ CGameEntitySystem* GameEntitySystem()
 
 namespace VoltMod
 {
+
+static constexpr std::string_view ControllerClass = "cs_player_controller";
 
 EntitySystem::EntitySystem(Interfaces& interfaces, const Bindings& bindings)
     : _interfaces(interfaces), _bindings(bindings)
@@ -150,7 +153,10 @@ CEntityInstance* EntitySystem::RawController(int slot)
     if (!identity)
         return nullptr;
 
-    return identity->m_pInstance;
+    // An index past the server's player limit holds an ordinary entity.
+    const char* className = identity->GetClassname();
+    const bool isController = className != nullptr && ControllerClass == className;
+    return isController ? identity->m_pInstance : nullptr;
 }
 
 VoltMod::Controller EntitySystem::Controller(int slot)
