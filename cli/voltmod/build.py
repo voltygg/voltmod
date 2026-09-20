@@ -28,7 +28,6 @@ FRAMEWORK_REPOSITORY = "https://github.com/voltygg/voltmod.git"
 CCACHE_SETTINGS = {
     "CCACHE_SLOPPINESS": "pch_defines,time_macros,locale,include_file_ctime,include_file_mtime",
     "CCACHE_DEPEND": "1",
-    "CCACHE_MAXSIZE": "1G",
 }
 
 
