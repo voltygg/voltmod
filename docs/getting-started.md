@@ -66,8 +66,8 @@ uv run poe build --install my-plugin --start
 ```
 
 `--install` merges the host and the plugin into `game/csgo`, copying `configs/settings.jsonc` only
-when the server does not already have one, so operator edits survive. `--start` launches the
-server afterwards. To do either on its own:
+when the server does not already have one, so operator edits survive. `--install-all` does the same
+for every plugin in the repo. `--start` launches the server afterwards. To do either on its own:
 
 ```sh
 uv run poe install my-plugin

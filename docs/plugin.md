@@ -270,7 +270,8 @@ addons/
 A plugin has no `.vdf` or `bin` directory of its own. `runtime.PluginFile("configs/x")` builds
 `addons/voltmod/plugins/<name>/configs/x` for any file the plugin reads at run time.
 
-`uv run poe build --install <name>` stages and merges both trees. By hand:
+`uv run poe build --install <name>` stages and merges both trees, `--install-all` every plugin's.
+By hand:
 
 ```sh
 cmake --install build/<preset> --component host      --prefix dist
