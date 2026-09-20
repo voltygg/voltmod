@@ -80,7 +80,8 @@ bool MyPlugin::OnPlayerChat(Player* p, std::string_view message, bool team) over
 @ref VoltMod::Vote draws the engine's yes/no panel with user messages and counts the ballots itself,
 from the `vote` command the panel's F1/F2 keys send. The panel is the engine's, so the title must be
 a `#SFUI_vote...` or `#Panorama_vote...` token the client already has; arbitrary text does not
-render. Only one vote runs at a time.
+render. The map's `vote_controller` carries the networked state that makes the client accept F1/F2;
+its issue table is never run. Only one vote runs at a time.
 
 ```cpp
 runtime.Hooks.Vote.StartVote(

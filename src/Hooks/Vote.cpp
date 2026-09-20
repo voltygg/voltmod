@@ -9,6 +9,7 @@
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/Vote.hpp>
+#include <VoltMod/Schema/Api.hpp>
 #include <engine/igameeventsystem.h>
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
@@ -19,6 +20,12 @@
 namespace VoltMod
 {
 
+static constexpr std::string_view ControllerClass = "vote_controller";
+
+// The engine's yes/no issue: the client renders the F1/F2 panel for it. It is only pointed at,
+// never run, and only when the controller's issue table actually holds it.
+static constexpr int YesNoIssueIndex = 2;
+static constexpr int NoIssue = -1;
 static constexpr int AllTeams = -1;
 
 // Names carry the message prefix: a bare "VoteFailed" also matches CCSUsrMsg_CallVoteFailed.
@@ -63,6 +70,13 @@ static void SetString(ProtoMessage* message, std::string_view name, const std::s
         message->GetReflection()->SetString(message, field, value);
 }
 
+/** How many issues the controller registered: a CUtlVector keeps its count first. */
+static int IssueCount(const Schema::CVoteController& controller)
+{
+    const void* issues = controller.PotentialIssues();
+    return issues ? *static_cast<const int*>(issues) : 0;
+}
+
 Vote::Vote(Interfaces& interfaces, EntitySystem& entities, GameEvents& events, Scheduler& scheduler)
     : _interfaces(interfaces), _entities(entities), _events(events), _scheduler(scheduler)
 {}
@@ -97,6 +111,20 @@ bool Vote::StartVote(std::string_view title, std::string_view detail, float dura
     _no = 0;
     _voted.fill(false);
 
+    // The controller is a map entity, so it is a different object after every map change.
+    _controller = Schema::CVoteController{_entities.FindByClassName({}, ControllerClass).Raw()};
+    const bool hasIssue = _controller && IssueCount(_controller) > YesNoIssueIndex;
+    if (_controller)
+    {
+        _controller.SetPotentialVotes(_eligible);
+        _controller.SetIsYesNoVote(true);
+        // Who may vote is decided by the recipients of the VoteStart message, not by this field.
+        _controller.SetOnlyTeamToVote(AllTeams);
+        _controller.SetActiveIssueIndex(hasIssue ? YesNoIssueIndex : NoIssue);
+    }
+    if (!hasIssue)
+        Log::Info("Vote: no vote_controller yes/no issue on this map; the panel runs on messages alone.");
+
     _inProgress = true;
     _title = title;
     _detail = detail;
@@ -125,6 +153,7 @@ bool Vote::TryCastBallot(int slot, std::string_view option)
     if (!IsValidSlot(slot) || _voted[static_cast<size_t>(slot)] || !_entities.IsPlayerSlotValid(slot))
         return true;
 
+    option = option.substr(0, option.find(' '));  // the whole argument line arrives here
     if (option == "option1")
         ++_yes;
     else if (option == "option2")
@@ -166,6 +195,10 @@ void Vote::FinishVote(VoteEndReason reason)
     bool passed = reason != VoteEndReason::Cancelled && _onResult && _onResult(tally);
 
     SendVoteOutcome(passed);
+
+    if (_controller)
+        _controller.SetActiveIssueIndex(NoIssue);
+    _controller = {};
 
     auto finished = std::move(_onFinished);
     _onResult = nullptr;
