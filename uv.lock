@@ -497,7 +497,7 @@ wheels = [
 
 [[package]]
 name = "voltmod"
-version = "1.5.3"
+version = "1.5.4"
 source = { editable = "." }
 dependencies = [
     { name = "clang-format" },

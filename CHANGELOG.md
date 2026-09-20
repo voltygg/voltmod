@@ -4,6 +4,18 @@
 
 What changed in each VoltMod release. Older history is in git.
 
+## 1.5.4 (2026-09-20)
+
+### New
+
+- `voltmod build --install-all` copies every plugin to the server instead of one named plugin.
+- The Panorama menu ships a default image asset, so a screen that sets no image still renders one.
+
+### Fixed
+
+- Opening a Panorama menu draws its home page only for the session that asked for it, instead of
+  for everyone holding the menu open.
+
 ## 1.5.3 (2026-09-19)
 
 ### New
