@@ -27,6 +27,10 @@ static constexpr int YesNoIssueIndex = 2;
 static constexpr int NoIssue = -1;
 static constexpr int AllTeams = -1;
 
+// The vote_cast event's option numbers.
+static constexpr int YesOption = 0;
+static constexpr int NoOption = 1;
+
 // Names carry the message prefix: a bare "VoteFailed" also matches CCSUsrMsg_CallVoteFailed.
 static constexpr std::string_view VoteStartMessage = "CCSUsrMsg_VoteStart";
 static constexpr std::string_view VotePassMessage = "CCSUsrMsg_VotePass";
@@ -138,22 +142,31 @@ bool Vote::TryCastBallot(int slot, std::string_view option)
 {
     if (!_inProgress)
         return false;
-    if (!IsValidSlot(slot) || _voted[static_cast<size_t>(slot)] || !_entities.IsPlayerSlotValid(slot))
+
+    const bool canVote = IsValidSlot(slot) && _entities.IsPlayerSlotValid(slot) && !_voted[slot];
+    if (!canVote)
         return true;
 
-    const bool yes = option == "option1";
-    const bool no = option == "option2";
-
-    if (!yes && !no)
+    if (option == "option1")
+    {
+        ++_yes;
+        PublishBallot(slot, YesOption);
+    }
+    else if (option == "option2")
+    {
+        ++_no;
+        PublishBallot(slot, NoOption);
+    }
+    else
+    {
         return true;
+    }
 
-    ++(yes ? _yes : _no);
-    _voted[static_cast<size_t>(slot)] = true;
-
-    PublishBallot(slot, yes ? 0 : 1);
+    _voted[slot] = true;
     PublishCounts();
 
-    if (_yes + _no >= _eligible)
+    const bool everyoneVoted = _yes + _no >= _eligible;
+    if (everyoneVoted)
     {
         // Deferred a tick: the engine is still inside the command dispatch.
         const uint64_t voteId = _voteId;
