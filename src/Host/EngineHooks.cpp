@@ -7,6 +7,7 @@
 #include <VoltMod/Unsafe/Hook.hpp>
 #include <eiface.h>
 #include <icvar.h>
+#include <inetchannelinfo.h>
 #include <interfaces/interfaces.h>
 #include <iserver.h>
 #include <string_view>
@@ -56,6 +57,7 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
     INetworkServerService* networkServerService = nullptr;
     ISource2GameEntities* gameEntities = nullptr;
     ICvar* cvar = nullptr;
+    IVEngineServer2* engine = nullptr;
 
     // Stops at the first failure.
     Status found;
@@ -69,6 +71,7 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
     resolve(networkServerService, fromEngine, NETWORKSERVERSERVICE_INTERFACE_VERSION);
     resolve(gameEntities, fromServer, INTERFACEVERSION_SERVERGAMEENTS);
     resolve(cvar, fromEngine, CVAR_INTERFACE_VERSION);
+    resolve(engine, fromEngine, INTERFACEVERSION_VENGINESERVER);
 
     if (!found)
         return found;
@@ -105,23 +108,23 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
 
     // Clients returning from a map change skip OnClientConnected.
     add(HookInterface(&IServerGameClients::ClientPutInServer, serverGameClients, nullptr,
-                      [this](IServerGameClients&, CPlayerSlot slot, const char* name, int, uint64 xuid) {
+                      [this, engine](IServerGameClients&, CPlayerSlot slot, const char* name, int, uint64 xuid) {
                           if (!IsValidSlot(slot.Get()))
                               return;
                           if (_connected[slot.Get()])
                               return;
 
-                          ConnectClient(slot.Get(), xuid, Text(name), AddressOf(xuid));
+                          // A bot has no net channel.
+                          auto* channel = engine->GetPlayerNetInfo(slot);
+                          const auto address = channel != nullptr ? Text(channel->GetAddress()) : std::string_view{};
+                          ConnectClient(slot.Get(), xuid, Text(name), address);
                       }));
 
     add(HookInterface(&IServerGameClients::ClientDisconnect, serverGameClients, nullptr,
-                      [this](IServerGameClients&, CPlayerSlot slot, ENetworkDisconnectionReason reason, const char*,
-                             uint64 xuid, const char*) {
+                      [this](IServerGameClients&, CPlayerSlot slot, ENetworkDisconnectionReason, const char*, uint64,
+                             const char*) {
                           if (IsValidSlot(slot.Get()))
                               _connected[slot.Get()] = false;
-                          // Kept over a map change: the client returns without it.
-                          if (reason != NETWORK_DISCONNECT_LOOPSHUTDOWN)
-                              _addresses.erase(xuid);
                           // After the call, before the slot is reused.
                           _host.RaiseClientDisconnected(slot.Get());
                       }));
@@ -153,21 +156,10 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
     return {};
 }
 
-std::string_view EngineHooks::AddressOf(uint64_t xuid) const
-{
-    if (auto known = _addresses.find(xuid); known != _addresses.end())
-        return known->second;
-    if (auto carried = _carriedAddresses.find(xuid); carried != _carriedAddresses.end())
-        return carried->second;
-    return {};
-}
-
 void EngineHooks::ConnectClient(int slot, uint64_t xuid, std::string_view name, std::string_view address)
 {
     if (IsValidSlot(slot))
         _connected[slot] = true;
-    if (xuid != 0 && !address.empty())
-        _addresses[xuid] = address;
     _host.RaiseClientConnected(slot, static_cast<int64_t>(xuid), name, address);
 }
 
@@ -180,11 +172,6 @@ void EngineHooks::DisconnectEveryone()
         _connected[slot] = false;
         _host.RaiseClientDisconnected(slot);
     }
-
-    // Addresses are kept for whoever ClientPutInServer brings back; what the last map change
-    // left unclaimed never returned, so it goes here.
-    _carriedAddresses = std::move(_addresses);
-    _addresses.clear();
 }
 
 void EngineHooks::Uninstall()
