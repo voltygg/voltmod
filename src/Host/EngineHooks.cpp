@@ -83,6 +83,7 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
             if (_beforeServerStartup)
                 _beforeServerStartup();
             _host.RaiseServerStartup(map);
+            DisconnectEveryone();
         }));
 
     add(HookInterface(&IServerGameClients::OnClientConnected, serverGameClients,
@@ -156,6 +157,17 @@ void EngineHooks::ConnectClient(int slot, uint64_t xuid, std::string_view name, 
     if (xuid != 0 && !address.empty())
         _addresses[xuid] = address;
     _host.RaiseClientConnected(slot, static_cast<int64_t>(xuid), name, address);
+}
+
+void EngineHooks::DisconnectEveryone()
+{
+    for (int slot = 0; slot < MaxPlayers; ++slot)
+    {
+        if (!_connected[slot])
+            continue;
+        _connected[slot] = false;
+        _host.RaiseClientDisconnected(slot);
+    }
 }
 
 void EngineHooks::Uninstall()

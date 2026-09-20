@@ -45,6 +45,10 @@ private:
     /** Raise ClientConnected once per stay in a slot, remembering the address for a map change. */
     void ConnectClient(int slot, uint64_t xuid, std::string_view name, std::string_view address);
 
+    /** A map change moves clients to new slots without disconnecting them; ClientPutInServer
+     *  reconnects each one where it lands. Runs after the plugins re-read the new map. */
+    void DisconnectEveryone();
+
     PluginHost& _host;
     std::function<void()> _beforeFrame;
     std::function<void()> _beforeServerStartup;
