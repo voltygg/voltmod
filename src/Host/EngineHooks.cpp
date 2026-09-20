@@ -20,6 +20,12 @@ class GameSessionConfiguration_t
 namespace VoltMod
 {
 
+/** The engine passes null for an absent string. */
+static std::string_view Text(const char* text)
+{
+    return text != nullptr ? text : "";
+}
+
 EngineHooks::EngineHooks(PluginHost& host, std::function<void()> beforeFrame, std::function<void()> beforeServerStartup)
     : _host(host), _beforeFrame(std::move(beforeFrame)), _beforeServerStartup(std::move(beforeServerStartup))
 {}
@@ -43,20 +49,21 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
     ISource2GameEntities* gameEntities = nullptr;
     ICvar* cvar = nullptr;
 
-    if (Status found = ResolveInterface(serverGameDLL, fromServer, INTERFACEVERSION_SERVERGAMEDLL); !found)
-        return found;
-    if (Status found = ResolveInterface(serverGameClients, fromServer, INTERFACEVERSION_SERVERGAMECLIENTS); !found)
-        return found;
-    if (Status found = ResolveInterface(networkServerService, fromEngine, NETWORKSERVERSERVICE_INTERFACE_VERSION);
-        !found)
-        return found;
-    if (Status found = ResolveInterface(gameEntities, fromServer, INTERFACEVERSION_SERVERGAMEENTS); !found)
-        return found;
-    if (Status found = ResolveInterface(cvar, fromEngine, CVAR_INTERFACE_VERSION); !found)
+    // The first failure sticks; the rest are skipped.
+    Status found;
+    auto resolve = [&found](auto*& target, auto& factory, const char* version) {
+        if (found)
+            found = ResolveInterface(target, factory, version);
+    };
+    resolve(serverGameDLL, fromServer, INTERFACEVERSION_SERVERGAMEDLL);
+    resolve(serverGameClients, fromServer, INTERFACEVERSION_SERVERGAMECLIENTS);
+    resolve(networkServerService, fromEngine, NETWORKSERVERSERVICE_INTERFACE_VERSION);
+    resolve(gameEntities, fromServer, INTERFACEVERSION_SERVERGAMEENTS);
+    resolve(cvar, fromEngine, CVAR_INTERFACE_VERSION);
+    if (!found)
         return found;
 
-    // Register the host's own pending tier1 ConCommands - `volt` is one - before the engine can
-    // dispatch them. Each plugin library still registers its own.
+    // Registers the host's own ConCommands, `volt` among them.
     g_pCVar = cvar;
     ConVar_Register(FCVAR_RELEASE | FCVAR_CLIENT_CAN_EXECUTE | FCVAR_SERVER_CAN_EXECUTE | FCVAR_GAMEDLL);
 
@@ -71,8 +78,8 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
     add(HookInterface(
         &INetworkServerService::StartupServer, networkServerService, nullptr,
         [this](INetworkServerService&, const GameSessionConfiguration_t&, ISource2WorldSession*, const char* mapName) {
-            const std::string_view map = mapName != nullptr ? mapName : "";
-            Log::Info("Server startup: map '{}'.", map.empty() ? std::string_view("<none>") : map);
+            const std::string_view map = Text(mapName);
+            Log::Info("Server startup: map '{}'.", map.empty() ? "<none>" : map);
             if (_beforeServerStartup)
                 _beforeServerStartup();
             _host.RaiseServerStartup(map);
@@ -81,15 +88,35 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
     add(HookInterface(&IServerGameClients::OnClientConnected, serverGameClients,
                       [this](IServerGameClients&, CPlayerSlot slot, const char* name, uint64 xuid, const char*,
                              const char* address, bool) {
-                          // Before the call, while the engine still provides the connection address.
-                          _host.RaiseClientConnected(slot.Get(), static_cast<int64_t>(xuid),
-                                                     name != nullptr ? name : "", address != nullptr ? address : "");
+                          // Before the call: the address is gone after it.
+                          ConnectClient(slot.Get(), xuid, Text(name), Text(address));
+                      }));
+
+    // After a map change clients return here, in new slots, without OnClientConnected.
+    add(HookInterface(&IServerGameClients::ClientPutInServer, serverGameClients, nullptr,
+                      [this](IServerGameClients&, CPlayerSlot slot, const char* name, int, uint64 xuid) {
+                          if (!IsValidSlot(slot.Get()))
+                              return;
+                          if (_connected[slot.Get()])
+                              return;
+
+                          std::string_view address;
+                          auto known = _addresses.find(xuid);
+                          if (known != _addresses.end())
+                              address = known->second;
+                          ConnectClient(slot.Get(), xuid, Text(name), address);
                       }));
 
     add(HookInterface(
         &IServerGameClients::ClientDisconnect, serverGameClients, nullptr,
-        [this](IServerGameClients&, CPlayerSlot slot, ENetworkDisconnectionReason, const char*, uint64, const char*) {
-            // After the call, so a plugin sees the disconnect before the slot is reused.
+        [this](IServerGameClients&, CPlayerSlot slot, ENetworkDisconnectionReason reason, const char*, uint64 xuid,
+               const char*) {
+            if (IsValidSlot(slot.Get()))
+                _connected[slot.Get()] = false;
+            // Kept over a map change: the client returns without it.
+            if (reason != NETWORK_DISCONNECT_LOOPSHUTDOWN)
+                _addresses.erase(xuid);
+            // After the call, before the slot is reused.
             _host.RaiseClientDisconnected(slot.Get());
         }));
 
@@ -105,12 +132,11 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
                           if (name == nullptr)
                               return HookResult<void>{};
 
-                          // ArgS is the whole line after the command; a plugin parses what it wants.
-                          const char* line = arguments.ArgS();
-                          if (_host.RaiseConsoleCommand(name, line != nullptr ? line : "",
-                                                        context.GetPlayerSlot().Get()))
-                              return HookResult<void>::Block();
-                          return HookResult<void>{};
+                          // The whole line after the command name.
+                          const std::string_view line = Text(arguments.ArgS());
+                          const int slot = context.GetPlayerSlot().Get();
+                          const bool consumed = _host.RaiseConsoleCommand(name, line, slot);
+                          return consumed ? HookResult<void>::Block() : HookResult<void>{};
                       }));
 
     // Filter the bit vectors after the game fills them.
@@ -121,6 +147,15 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
 
     Log::Info("Engine hooks installed.");
     return {};
+}
+
+void EngineHooks::ConnectClient(int slot, uint64_t xuid, std::string_view name, std::string_view address)
+{
+    if (IsValidSlot(slot))
+        _connected[slot] = true;
+    if (xuid != 0 && !address.empty())
+        _addresses[xuid] = address;
+    _host.RaiseClientConnected(slot, static_cast<int64_t>(xuid), name, address);
 }
 
 void EngineHooks::Uninstall()

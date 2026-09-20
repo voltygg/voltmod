@@ -4,14 +4,20 @@
 
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Signals/Subscriptions.hpp>
+#include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
+#include <array>
+#include <cstdint>
 #include <functional>
+#include <string>
+#include <string_view>
+#include <unordered_map>
 
 namespace VoltMod
 {
 
 /**
- * @brief The eight engine hooks, installed once for the whole process.
+ * @brief The nine engine hooks, installed once for the whole process.
  *
  * Each one raises the matching event on @ref PluginHost, which calls every loaded plugin in load
  * order. Game thread only, like everything downstream of it.
@@ -36,10 +42,15 @@ public:
     void Uninstall();
 
 private:
+    /** Raise ClientConnected once per stay in a slot, remembering the address for a map change. */
+    void ConnectClient(int slot, uint64_t xuid, std::string_view name, std::string_view address);
+
     PluginHost& _host;
     std::function<void()> _beforeFrame;
     std::function<void()> _beforeServerStartup;
     Subscriptions _hooks;
+    std::array<bool, MaxPlayers> _connected{};
+    std::unordered_map<uint64_t, std::string> _addresses;  ///< by xuid, kept across a map change
 };
 
 }  // namespace VoltMod
