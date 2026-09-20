@@ -25,6 +25,8 @@ bool PluginModule::HandleConsoleCommand(std::string_view name, std::string_view 
     // A ballot for a plugin vote never reaches the engine's own vote controller.
     if (name == "vote")
         return _runtime->Hooks.Vote.TryCastBallot(slot, arguments);
+    if (name == "callvote")
+        return _runtime->Hooks.Vote.InProgress();
 
     const bool teamChat = name == "say_team";
     if (name != "say" && !teamChat)

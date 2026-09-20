@@ -22,8 +22,8 @@ namespace VoltMod
 
 static constexpr std::string_view ControllerClass = "vote_controller";
 
-// The engine's yes/no issue: the client renders the F1/F2 panel for it. It is only pointed at,
-// never run, and only when the controller's issue table actually holds it.
+// A client only takes F1/F2 while this is not NoIssue. The server may not hold the issue at all,
+// so `vote` and `callvote` are blocked during a vote and the engine never runs it.
 static constexpr int YesNoIssueIndex = 2;
 static constexpr int NoIssue = -1;
 static constexpr int AllTeams = -1;
@@ -70,13 +70,6 @@ static void SetString(ProtoMessage* message, std::string_view name, const std::s
         message->GetReflection()->SetString(message, field, value);
 }
 
-/** How many issues the controller registered: a CUtlVector keeps its count first. */
-static int IssueCount(const Schema::CVoteController& controller)
-{
-    const void* issues = controller.PotentialIssues();
-    return issues ? *static_cast<const int*>(issues) : 0;
-}
-
 Vote::Vote(Interfaces& interfaces, EntitySystem& entities, GameEvents& events, Scheduler& scheduler)
     : _interfaces(interfaces), _entities(entities), _events(events), _scheduler(scheduler)
 {}
@@ -113,17 +106,18 @@ bool Vote::StartVote(std::string_view title, std::string_view detail, float dura
 
     // The controller is a map entity, so it is a different object after every map change.
     _controller = Schema::CVoteController{_entities.FindByClassName({}, ControllerClass).Raw()};
-    const bool hasIssue = _controller && IssueCount(_controller) > YesNoIssueIndex;
     if (_controller)
     {
         _controller.SetPotentialVotes(_eligible);
         _controller.SetIsYesNoVote(true);
         // Who may vote is decided by the recipients of the VoteStart message, not by this field.
         _controller.SetOnlyTeamToVote(AllTeams);
-        _controller.SetActiveIssueIndex(hasIssue ? YesNoIssueIndex : NoIssue);
+        _controller.SetActiveIssueIndex(YesNoIssueIndex);
     }
-    if (!hasIssue)
-        Log::Info("Vote: no vote_controller yes/no issue on this map; the panel runs on messages alone.");
+    else
+    {
+        Log::Warn("Vote: this map has no vote_controller, so clients will ignore F1/F2.");
+    }
 
     _inProgress = true;
     _title = title;
