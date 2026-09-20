@@ -110,7 +110,11 @@ CEntityIdentity* EntitySystem::GetEntityIdentityByIndex(CGameEntitySystem* syste
     if (!chunkBase)
         return nullptr;
 
-    return &chunkBase[offset];
+    // A freed identity keeps a dangling m_pInstance; only its handle says the entry is dead.
+    CEntityIdentity* identity = &chunkBase[offset];
+    if (identity->GetRefEHandle().GetEntryIndex() != index)
+        return nullptr;
+    return identity;
 }
 
 Entity EntitySystem::Resolve(EntityRef ref)
