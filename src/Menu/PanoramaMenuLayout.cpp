@@ -98,7 +98,6 @@ void PanoramaMenuLayout::SetHeader(int slot, const MenuHeader& header)
     Text(screen, slot, "title", header.Title);
     Text(screen, slot, "subtitle", header.Subtitle);
     Hidden(screen, slot, _subtitle, header.Subtitle.empty());
-    Class(screen, slot, _root, "screen--home", header.IsRoot);
 
     for (const ScreenText& text : _texts)
         Text(screen, slot, text.Variable, text.Value(slot));
@@ -107,6 +106,11 @@ void PanoramaMenuLayout::SetHeader(int slot, const MenuHeader& header)
 void PanoramaMenuLayout::SetSidebarVisible(int slot, bool visible)
 {
     Class(_screens.For(slot), slot, _root, "screen--no-sidebar", !visible);
+}
+
+void PanoramaMenuLayout::SetHomeVisible(int slot, bool visible)
+{
+    Class(_screens.For(slot), slot, _root, "screen--home", visible);
 }
 
 void PanoramaMenuLayout::SetTab(int slot, int index, const MenuTab* tab)

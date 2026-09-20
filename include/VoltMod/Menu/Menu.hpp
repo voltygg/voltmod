@@ -59,9 +59,11 @@ struct MenuRow
 /** Options for a menu session. Submenus inherit them. */
 struct MenuOptions
 {
-    /** Whether the server-wide movement freeze (@ref MenuFreeze::Enable) applies. Pass false for
-     *  menus players reach mid-round, where being held still is worse than stray movement. */
+    /** Whether the server-wide movement freeze (@ref MenuFreeze::Enable) applies. False mid-round. */
     bool FreezeMovement = true;
+
+    /** Whether the root menu shows the layout's home markup instead of its rows. Only its owner asks. */
+    bool HomePage = false;
 };
 
 struct Menu;

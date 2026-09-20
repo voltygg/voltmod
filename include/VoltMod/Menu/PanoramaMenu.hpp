@@ -76,6 +76,8 @@ private:
         std::vector<Tab> Tabs;
         int SelectedTab = -1;
         int Page = 0;
+        /** @ref MenuOptions::HomePage of the session that is open. */
+        bool HomePage = false;
     };
 
     [[nodiscard]] int ItemAt(int slot, int row) const;

@@ -306,7 +306,10 @@ VoltMod::PanoramaMenuLayout _layout{runtime.Screens, MainMenuLayout::Layout, Mai
 ```
 
 A screen can pass the block `home` markup, such as a welcome panel. It replaces the rows while
-the root menu shows, when the screen panel has the `screen--home` class. `_layout.AddText("home_title", ...)` fills a `{s:home_title}` in that markup, and a Button in
+the root menu shows, when the screen panel has the `screen--home` class. The surface writes that
+class only for a session opened with `MenuOptions{.HomePage = true}`, so the plugin that owns the
+markup asks for it and a menu another plugin opens on the same screen keeps its rows.
+`_layout.AddText("home_title", ...)` fills a `{s:home_title}` in that markup, and a Button in
 it arrives on `runtime.Screens.Pressed` for the plugin to handle.
 
 A third surface is a class implementing @ref VoltMod::MenuSurface that holds a

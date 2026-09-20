@@ -36,6 +36,7 @@ public:
 
     void SetHeader(int slot, const MenuHeader& header) override;
     void SetSidebarVisible(int slot, bool visible) override;
+    void SetHomeVisible(int slot, bool visible) override;
     void SetTab(int slot, int index, const MenuTab* tab) override;
     void SetRow(int slot, int index, const MenuRow* row, std::string_view pendingHint) override;
     void SetEmpty(int slot, std::string_view text) override;

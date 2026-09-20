@@ -43,6 +43,7 @@ bool PanoramaMenu::OpenSession(int slot, std::shared_ptr<Menu> menu, MenuOptions
 
     CloseAll(slot);
     _stack.Push(slot, std::move(menu));
+    _sessions[slot].HomePage = options.HomePage;
     ReadTabs(slot);
 
     // Close the session when the layout cannot be shown.
@@ -155,8 +156,8 @@ void PanoramaMenu::Draw(int slot)
                              .BrandSubtitle = root.Subtitle,
                              .Breadcrumb = _stack.Breadcrumb(slot),
                              .Title = menu->Title,
-                             .Subtitle = isRoot ? std::string_view{} : std::string_view(menu->Subtitle),
-                             .IsRoot = isRoot});
+                             .Subtitle = isRoot ? std::string_view{} : std::string_view(menu->Subtitle)});
+    _layout.SetHomeVisible(slot, isRoot && _sessions[slot].HomePage);
     DrawTabs(slot);
     DrawRows(slot, *menu);
     DrawPrompt(slot);
