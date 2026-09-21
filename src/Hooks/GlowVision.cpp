@@ -4,12 +4,11 @@
 #include <VoltMod/Entities/PawnOps.hpp>
 #include <VoltMod/Hooks/GlowVision.hpp>
 #include <VoltMod/Hooks/Visibility.hpp>
+#include <VoltMod/Schema/Generated/Enums.hpp>
 #include <utility>
 
 namespace VoltMod
 {
-
-static constexpr int RenderModeNone = 10;
 
 // prop_dynamic keyvalues shared by the relay and glow clones.
 static constexpr int PropSpawnFlags = 256;
@@ -46,7 +45,9 @@ void GlowVision::CreatePair(int slot, GlowPair& pair)
         return;
 
     KeyValues relayKv;
-    relayKv.Set("model", model.c_str()).Set("spawnflags", PropSpawnFlags).Set("rendermode", RenderModeNone);
+    relayKv.Set("model", model.c_str())
+        .Set("spawnflags", PropSpawnFlags)
+        .Set("rendermode", static_cast<int>(Schema::RenderMode_t::kRenderNone));
     auto* relay = _ops.Spawn("prop_dynamic", relayKv);
     if (!relay)
         return;

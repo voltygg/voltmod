@@ -115,7 +115,7 @@ std::string Pawn::ModelName() const
     return path ? std::string(path) : std::string{};
 }
 
-void Pawn::SetRender(RenderMode_t mode, uint32_t color) const
+void Pawn::SetRender(Schema::RenderMode_t mode, uint32_t color) const
 {
     // Qualify the free function because the member has the same name.
     VoltMod::SetRender(_e, mode, color);
@@ -123,7 +123,7 @@ void Pawn::SetRender(RenderMode_t mode, uint32_t color) const
 
 void Pawn::SetVisible(bool visible, uint8_t alpha) const
 {
-    RenderMode_t mode = visible ? RenderMode_t::Normal : RenderMode_t::TransTexture;
+    const auto mode = visible ? Schema::RenderMode_t::kRenderNormal : Schema::RenderMode_t::kRenderTransAlpha;
     // m_clrRender stores alpha in the top byte and opaque white in the low three.
     uint32_t color = visible ? ColorOpaqueWhite : ((static_cast<uint32_t>(alpha) << 24) | 0x00FFFFFFu);
     SetRender(mode, color);

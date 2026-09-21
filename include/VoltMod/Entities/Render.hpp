@@ -1,20 +1,11 @@
 #pragma once
 
 #include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Schema/Generated/Enums.hpp>
 #include <cstdint>
 
 namespace VoltMod
 {
-
-/**
- * @brief CBaseModelEntity::m_nRenderMode values (legacy Source numbering).
- * Only the ones plugins actually need are listed.
- */
-enum class RenderMode_t : uint8_t
-{
-    Normal = 0,
-    TransTexture = 3,
-};
 
 /** RGBA white at 100% alpha. Low byte is R, high byte is A in CS2's m_clrRender. */
 constexpr uint32_t ColorOpaqueWhite = 0xFFFFFFFFu;
@@ -30,9 +21,9 @@ constexpr uint32_t ColorInvisible = 0x00FFFFFFu;
  * @ref Pawn::SetRender. Both writes dirty for replication. Safe to call with a null entity (no-op).
  *
  * @param entity Target. Must derive from CBaseModelEntity.
- * @param mode   Render mode (see RenderMode_t).
+ * @param mode   `kRenderTransAlpha` for a color whose alpha should show, `kRenderNone` to hide.
  * @param color  RGBA, low byte = R, high byte = A.
  */
-void SetRender(CEntityInstance* entity, RenderMode_t mode, uint32_t color);
+void SetRender(CEntityInstance* entity, Schema::RenderMode_t mode, uint32_t color);
 
 }  // namespace VoltMod

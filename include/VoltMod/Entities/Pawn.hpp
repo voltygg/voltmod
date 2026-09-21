@@ -75,7 +75,7 @@ public:
     void SetVisible(bool visible, uint8_t alpha = 0) const;
 
     /** Set render mode and color together, dirtying both for replication. */
-    void SetRender(RenderMode_t mode, uint32_t color) const;
+    void SetRender(Schema::RenderMode_t mode, uint32_t color) const;
 
     /** The controller that owns this pawn, resolved through `m_hController`. */
     [[nodiscard]] Controller GetController() const;
