@@ -1,10 +1,9 @@
+#include <VoltMod/Entities/Angles.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/PawnOps.hpp>
 #include <VoltMod/Entities/Pawns.hpp>
-#include <cmath>
 #include <cstdint>
 #include <mathlib/vector.h>
-#include <numbers>
 #include <random>
 #include <shareddefs.h>
 
@@ -30,11 +29,8 @@ static float Rand(float lo, float hi)
 
 Vector ClearedDestination(const Pawn& anchor, float clearance)
 {
-    Vector origin = anchor.Origin();
-    float yawRad = anchor.EyeAngles().y * std::numbers::pi_v<float> / 180.0f;
-    origin.x += std::cos(yawRad) * clearance;
-    origin.y += std::sin(yawRad) * clearance;
-    return origin;
+    // Level the aim so the offset stays horizontal.
+    return anchor.Origin() + AngleToForward(QAngle(0.0f, anchor.EyeAngles().y, 0.0f)) * clearance;
 }
 
 void SwapOrigins(const Pawn& a, const Pawn& b)
