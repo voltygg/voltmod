@@ -93,6 +93,7 @@ Status Bindings::Bind(const GameDataLookup& lookup)
     bind(Respawn, "CCSPlayerController::Respawn");
     bind(Teleport, "CBaseEntity::Teleport");
     bind(NavTraceLine, "CNavPhysicsInterface::Nav_TraceLine");
+    bind(NavTraceShape, "CNavPhysicsInterface::Nav_TraceShape");
     bind(GiveNamedItem, "CCSPlayer_ItemServices::GiveNamedItem");
     bind(RemoveAllItems, "CCSPlayer_ItemServices::RemoveAllItems");
     bind(RunCommand, "CPlayer_MovementServices::RunCommand");

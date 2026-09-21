@@ -192,6 +192,13 @@
       "windows": 1,
       "linux": 3
     },
+    // The Nav_TraceShape overload taking a filter; Trace::Hull sweeps a box with it. Windows read
+    // off the 2000908 vtable, linux inferred from the ABI. From CS2AC.
+    "CNavPhysicsInterface::Nav_TraceShape": {
+      "class": "CNavPhysicsInterface",
+      "windows": 3,
+      "linux": 5
+    },
     // Called on a CCSPlayerPawn. From SwiftlyS2 v1.4.5.
     "CBasePlayerPawn::CommitSuicide": { "class": "CCSPlayerPawn", "windows": 384, "linux": 384 },
     // From SwiftlyS2.

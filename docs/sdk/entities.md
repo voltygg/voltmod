@@ -145,7 +145,7 @@ controller.SetName("");                 // hide on the scoreboard
 controller.SetName(saved);
 ```
 
-## Line traces
+## Traces
 
 @ref VoltMod::Trace answers sight and reachability questions through the nav mesh's window onto the
 physics world. Nothing to install, nothing to re-take per map, and it survives map changes.
@@ -159,10 +159,23 @@ if (clear && *clear)
     ...  // nothing solid between the two eyes
 ```
 
-`Line` returns a @ref VoltMod::TraceHit saying where the trace stopped; `Clear` is the yes/no form.
+`Line` returns a @ref VoltMod::TraceHit saying where the trace stopped, the surface normal there,
+and `HitEntity`, the entity it hit (the world included); `Clear` is the yes/no form.
 `TraceOptions::Layers` picks what stops it: `Sight` (world geometry and line-of-sight blockers, so
 windows and clips do not count) or `Solid` (what a player body collides with, other players
 included).
+
+`Hull` sweeps a box instead of a line, to ask whether something of that size fits along the path:
+
+```cpp
+const Vector mins(-16.0f, -16.0f, 0.0f), maxs(16.0f, 16.0f, 48.0f);
+const auto swept = runtime.World.Trace.Hull(spot + Vector(0, 0, 8), spot, mins, maxs,
+                                            {.Layers = VoltMod::TraceLayers::Solid, .Ignore1 = self.Raw()});
+if (swept && !swept->Hit)
+    ...  // the box fits at spot
+```
+
+`Hull` needs its own vtable slot, so it can be unsupported while `Line` works.
 
 ## PawnOps
 

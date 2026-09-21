@@ -3,6 +3,7 @@
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
+#include <VoltMod/Entities/EntityRef.hpp>
 #include <mathlib/vector.h>
 
 namespace VoltMod
@@ -23,16 +24,18 @@ struct TraceOptions
     CEntityInstance* Ignore2 = nullptr;
 };
 
-/** Where a line trace stopped. */
+/** Where a trace stopped. */
 struct TraceHit
 {
-    bool Hit = false;       ///< something lay on the line, or the start point was inside a solid
-    float Fraction = 1.0f;  ///< share of the line travelled before the hit; 1 when nothing was hit
-    Vector End;             ///< the hit point, or the requested end when nothing was hit
+    bool Hit = false;       ///< something lay on the path, or the start point was inside a solid
+    float Fraction = 1.0f;  ///< share of the path travelled before the hit; 1 when nothing was hit
+    Vector End;             ///< where the trace stopped: the requested end when nothing was hit
+    Vector Normal;          ///< surface normal at the hit; zero when nothing was hit
+    EntityRef HitEntity;    ///< what was hit, the world included; empty when nothing was hit
 };
 
 /**
- * @brief Line traces through the nav mesh's window onto the physics world.
+ * @brief Line and box traces through the nav mesh's window onto the physics world.
  *
  * CNavPhysicsInterface holds no state of its own, so the call goes through its class vtable with
  * the table itself standing in for the object - the same stand-in @ref HookVirtual uses. Nothing
@@ -59,6 +62,11 @@ public:
 
     /** Trace a line from @p from to @p to. */
     Result<TraceHit> Line(const Vector& from, const Vector& to, const TraceOptions& options = {}) const;
+
+    /** Sweep the box @p mins..@p maxs, relative to the path, from @p from to @p to. `End` is where
+     *  the box's origin stopped. Unsupported when the Nav_TraceShape slot did not bind. */
+    Result<TraceHit> Hull(const Vector& from, const Vector& to, const Vector& mins, const Vector& maxs,
+                          const TraceOptions& options = {}) const;
 
     /** True when nothing in the chosen layers lies between the two points. */
     Result<bool> Clear(const Vector& from, const Vector& to, const TraceOptions& options = {}) const;

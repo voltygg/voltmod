@@ -224,6 +224,9 @@ struct Bindings
     /** CNavPhysicsInterface::Nav_TraceLine(start, end, CTraceFilter*, CGameTrace*), called on the
      *  class table. The SDK trace types are void here so this header stays SDK-free. */
     VirtualFn<bool(EngineNavPhysics*, const Vector*, const Vector*, void*, void*)> NavTraceLine;
+    /** CNavPhysicsInterface::Nav_TraceShape(const Ray_t&, start, end, CTraceFilter*, CGameTrace*), the overload
+     *  taking a filter, called like @ref NavTraceLine. */
+    VirtualFn<void(EngineNavPhysics*, const void*, const Vector*, const Vector*, void*, void*)> NavTraceShape;
     /** CPlayer_MovementServices::RunCommand(CUserCmd*), hooked on CCSPlayer_MovementServices. */
     VirtualFn<void*(EngineMovementServices*, void*)> RunCommand;
     /** CCSPlayer_ItemServices::GiveNamedItem(const char* classname). */
