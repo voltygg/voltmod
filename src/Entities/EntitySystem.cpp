@@ -28,6 +28,8 @@ namespace VoltMod
 
 static constexpr std::string_view ControllerClass = "cs_player_controller";
 
+static_assert(MaxPlayers == ABSOLUTE_PLAYER_LIMIT);
+
 EntitySystem::EntitySystem(Interfaces& interfaces, const Bindings& bindings)
     : _interfaces(interfaces), _bindings(bindings)
 {}

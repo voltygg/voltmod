@@ -11,10 +11,22 @@ namespace VoltMod
 {
 
 // Keep the SDK-independent type mirror aligned with the engine.
+static_assert(static_cast<int>(ConVarType::Invalid) == EConVarType_Invalid);
 static_assert(static_cast<int>(ConVarType::Bool) == EConVarType_Bool);
+static_assert(static_cast<int>(ConVarType::Int16) == EConVarType_Int16);
+static_assert(static_cast<int>(ConVarType::UInt16) == EConVarType_UInt16);
 static_assert(static_cast<int>(ConVarType::Int32) == EConVarType_Int32);
+static_assert(static_cast<int>(ConVarType::UInt32) == EConVarType_UInt32);
+static_assert(static_cast<int>(ConVarType::Int64) == EConVarType_Int64);
+static_assert(static_cast<int>(ConVarType::UInt64) == EConVarType_UInt64);
 static_assert(static_cast<int>(ConVarType::Float32) == EConVarType_Float32);
+static_assert(static_cast<int>(ConVarType::Float64) == EConVarType_Float64);
 static_assert(static_cast<int>(ConVarType::String) == EConVarType_String);
+static_assert(static_cast<int>(ConVarType::Color) == EConVarType_Color);
+static_assert(static_cast<int>(ConVarType::Vector2) == EConVarType_Vector2);
+static_assert(static_cast<int>(ConVarType::Vector3) == EConVarType_Vector3);
+static_assert(static_cast<int>(ConVarType::Vector4) == EConVarType_Vector4);
+static_assert(static_cast<int>(ConVarType::QAngle) == EConVarType_Qangle);
 static_assert(static_cast<int>(ConVarType::VectorWS) == EConVarType_VectorWS);
 
 template <ConVarValue T>
