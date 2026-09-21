@@ -133,8 +133,12 @@ VoltMod::EntityRef ref = pawn.Ref();       // storable
 VoltMod::Entity again = es.Resolve(ref);   // falsy if it died or its index was recycled
 
 // Iterate map entities; a falsy Entity starts at the list head, and the walk ends falsy.
-for (auto door = es.FindByClassName({}, "func_door"); door; door = es.FindByClassName(door, "func_door"))
-    /* ... */;
+VoltMod::EntityRef last;
+while (VoltMod::Entity door = es.FindByClassName(es.Resolve(last), "func_door"))
+{
+    last = door.Ref();
+    /* ... */
+}
 auto named = es.FindByName({}, "my_targetname");
 ```
 
