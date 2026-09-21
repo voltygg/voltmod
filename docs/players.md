@@ -49,8 +49,8 @@ not join or kick anybody while iterating it.
 
 ### Connection lifecycle
 
-Four @ref VoltMod::Event members, in the order a connection sees them. Subscribe in `Load` and
-keep each `Subscription` beside the state its handler touches:
+Four @ref VoltMod::Event members, in the order a connection sees them. Subscribe in the constructor
+of the class whose state the handler touches, and keep each `Subscription` there:
 
 ```cpp
 _connected = runtime.Players.Connected += [this](VoltMod::Player& p) { RecordConnect(p.SteamId()); };
