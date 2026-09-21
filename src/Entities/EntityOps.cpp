@@ -47,14 +47,14 @@ static_assert(sizeof(StartSoundEventInfo) == 20);
 using EmitSoundFilterFn = StartSoundEventInfo (*)(IRecipientFilter& filter, CEntityIndex sourceIndex,
                                                   const EmitSoundParams& params);
 
-// The public header cannot expose the SDK's variant_t. The engine resolves the input by name
-// during the call and does not keep the pointer, so a NUL-terminated temporary is enough.
+// The public header cannot expose the SDK's variant_t. The engine looks the input up during the call
+// and keeps neither pointer, so temporaries are enough.
 static void FireInput(const Bindings& bindings, CEntityInstance* entity, std::string_view input, variant_t& value,
                       CEntityInstance* activator, CEntityInstance* caller)
 {
     if (!bindings.AcceptInput || !entity || input.empty())
         return;
-    bindings.AcceptInput(entity, std::string(input).c_str(), activator, caller, &value, 0, nullptr);
+    bindings.AcceptInput(entity, std::string(input).c_str(), activator, caller, &value);
 }
 
 bool EntityOps::CanSpawn() const
@@ -94,9 +94,7 @@ CEntityInstance* EntityOps::Spawn(std::string_view className, KeyValues& kv)
 void EntityOps::AcceptInput(CEntityInstance* entity, std::string_view input, std::string_view param,
                             CEntityInstance* activator, CEntityInstance* caller)
 {
-    // variant_t holds the pointer rather than copying, so the buffer has to outlive the call below.
-    const std::string text(param);
-    variant_t value(text.c_str());
+    variant_t value(std::string(param).c_str());
     FireInput(_bindings, entity, input, value, activator, caller);
 }
 
@@ -125,11 +123,10 @@ void EntityOps::AddIOEvent(CEntityInstance* target, std::string_view input, floa
     if (!system)
         return;
 
-    // The queue copies the input name when it takes the event, so this temporary is enough.
-    const std::string name(input);
-    variant_t value("");
-    _bindings.AddEntityIOEvent(system, target, name.c_str(), activator, caller, &value, delaySeconds, 0, nullptr,
-                               nullptr);
+    // The queue interns the name and copies the value, so both temporaries may die after the call.
+    const variant_t value("");
+    _bindings.AddEntityIOEvent(system, target, std::string(input).c_str(), activator, caller, &value, delaySeconds,
+                               nullptr, nullptr);
 }
 
 void EntityOps::Remove(CEntityInstance* entity)

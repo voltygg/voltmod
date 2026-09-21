@@ -154,11 +154,13 @@ struct Bindings
     Fn<CEntityInstance*(const char*, int)> CreateEntityByName;
     /** ABI: void (CBaseEntity*, CEntityKeyValues*); keyvalues may be null. */
     Fn<void(CEntityInstance*, CEntityKeyValues*)> DispatchSpawn;
-    /** ABI: void (CEntityInstance*, const char* input, activator, caller, variant_t*, int outputId, void*). */
-    Fn<void(CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, void*, int, void*)> AcceptInput;
-    /** ABI: void (CEntitySystem*, target, input, activator, caller, variant_t*, float delay, int outputId, void*,
-     * void*). */
-    Fn<void(void*, CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, void*, float, int, void*, void*)>
+    /** ABI: void (CEntityInstance*, const char* input, activator, caller, variant_t* value). */
+    Fn<void(CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, void*)> AcceptInput;
+    /** ABI: void (CEntitySystem*, target, const char* input, activator, caller, const variant_t* value, float delay,
+     *  const void* extra, const KeyValues3* kv). The engine copies from the last two when non-null, so pass
+     *  nullptr, never an int. It interns the input and deep-copies the value; both need only outlive the call. */
+    Fn<void(void*, CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, const void*, float, const void*,
+            const void*)>
         AddEntityIOEvent;
     /** ABI: void (CEntityInstance*). */
     Fn<void(CEntityInstance*)> UtilRemove;
