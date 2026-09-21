@@ -24,7 +24,7 @@ constexpr uint32_t DamageFall = 1u << 5;
 constexpr uint32_t DamageBlast = 1u << 6;
 constexpr uint32_t DamageClub = 1u << 7;
 constexpr uint32_t DamageShock = 1u << 8;
-constexpr uint32_t DamageHeadshot = 1u << 23;
+constexpr uint32_t DamageHeadshot = 1u << 19;
 /** @} */
 
 /** Who deals the damage, how much, and of which kind. */

@@ -8,10 +8,22 @@
 #include <VoltMod/Unsafe/Hook.hpp>
 #include <cstdint>
 #include <mathlib/vector.h>
+#include <shareddefs.h>
 #include <utility>
 
 namespace VoltMod
 {
+
+static_assert(DamageGeneric == DMG_GENERIC);
+static_assert(DamageCrush == DMG_CRUSH);
+static_assert(DamageBullet == DMG_BULLET);
+static_assert(DamageSlash == DMG_SLASH);
+static_assert(DamageBurn == DMG_BURN);
+static_assert(DamageFall == DMG_FALL);
+static_assert(DamageBlast == DMG_BLAST);
+static_assert(DamageClub == DMG_CLUB);
+static_assert(DamageShock == DMG_SHOCK);
+static_assert(DamageHeadshot == DMG_HEADSHOT);
 
 Damage::Damage(EntitySystem& entities, const Bindings& bindings)
     : Before({.OnFirst = [this] { return Install(); }, .OnLast = [this] { _hook.Reset(); }}),
