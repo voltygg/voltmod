@@ -157,7 +157,7 @@ struct Bindings
     /** ABI: void (CEntityInstance*, const char* input, activator, caller, variant_t* value). */
     Fn<void(CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, void*)> AcceptInput;
     /** Queues an input on an entity after a delay: entity system, target, input, activator, caller, value, delay.
-     *  Pass nullptr for the trailing extra and keyvalues pointers; the engine copies the input and value, so locals are fine. */
+     *  Pass nullptr for the trailing extra and keyvalues pointers; input and value are copied, so locals are fine. */
     Fn<void(void*, CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, const void*, float, const void*,
             const void*)>
         AddEntityIOEvent;
