@@ -8,7 +8,7 @@ namespace VoltMod
 
 struct ServerCommand::Impl final : ICommandCallback
 {
-    Impl(std::string_view name, std::string_view helpText, Handler handler)
+    Impl(std::string_view name, std::string_view helpText, PlayerHandler handler)
         : _handler(std::move(handler)),
           _name(name),
           _help(helpText),
@@ -21,7 +21,7 @@ struct ServerCommand::Impl final : ICommandCallback
             _handler(command, context.GetPlayerSlot().Get());
     }
 
-    Handler _handler;
+    PlayerHandler _handler;
     // ConCommand keeps these pointers rather than copying, so the strings have to outlive it -
     // hence owned here, and declared above _command so they are destroyed after it.
     std::string _name;
@@ -30,6 +30,13 @@ struct ServerCommand::Impl final : ICommandCallback
 };
 
 ServerCommand::ServerCommand(std::string_view name, std::string_view helpText, Handler handler)
+    : ServerCommand(name, helpText, [handler = std::move(handler)](const CCommand& args, int slot) {
+          if (slot < 0 && handler)
+              handler(args);
+      })
+{}
+
+ServerCommand::ServerCommand(std::string_view name, std::string_view helpText, PlayerHandler handler)
     : _impl(std::make_unique<Impl>(name, helpText, std::move(handler)))
 {}
 

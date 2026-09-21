@@ -76,15 +76,14 @@ void StatusService::InstallCommand(std::string_view name, std::string_view helpT
 {
     _healthy = std::move(healthy);
     // The member-owned command unregisters before destruction.
-    _command = std::make_unique<ServerCommand>(
-        name, helpText, [this, name = std::string(name)](const CCommand& args, int /*slot*/) {
-            if (args.ArgC() > 1 && std::string_view(args.Arg(1)) == "json")
-            {
-                Msg("STATUS_JSON %s\n", BuildJson().c_str());
-                return;
-            }
-            Msg("=== %s (healthy: %s) ===\n%s\n", name.c_str(), IsHealthy() ? "yes" : "no", BuildText().c_str());
-        });
+    _command = std::make_unique<ServerCommand>(name, helpText, [this, name = std::string(name)](const CCommand& args) {
+        if (args.ArgC() > 1 && std::string_view(args.Arg(1)) == "json")
+        {
+            Msg("STATUS_JSON %s\n", BuildJson().c_str());
+            return;
+        }
+        Msg("=== %s (healthy: %s) ===\n%s\n", name.c_str(), IsHealthy() ? "yes" : "no", BuildText().c_str());
+    });
 }
 
 }  // namespace VoltMod

@@ -16,16 +16,19 @@ namespace VoltMod
  * commands through @ref ConVars::ExecuteServerCommand. Prefer ServiceExchange
  * when two plugins need a typed, versioned contract.
  *
- * The handler runs on the game thread with the calling player's slot, or -1 for the server
- * console, RCON and cfg files. Construct only while the plugin is loaded (ICvar must be live);
- * typically a manager member, so destruction on unload unregisters it.
+ * The handler runs on the game thread. Construct only while the plugin is loaded (ICvar must be
+ * live); typically a manager member, so destruction on unload unregisters it.
  */
 class ServerCommand
 {
 public:
-    using Handler = std::function<void(const CCommand& args, int slot)>;
+    using Handler = std::function<void(const CCommand& args)>;
+    using PlayerHandler = std::function<void(const CCommand& args, int slot)>;
 
+    /** Runs for the server console, RCON and cfg files only; a player typing it is ignored. */
     ServerCommand(std::string_view name, std::string_view helpText, Handler handler);
+    /** Also runs for a player who types it in their own console: @p slot is theirs, or -1 for the server. */
+    ServerCommand(std::string_view name, std::string_view helpText, PlayerHandler handler);
     ~ServerCommand();
     ServerCommand(const ServerCommand&) = delete;
     ServerCommand& operator=(const ServerCommand&) = delete;
