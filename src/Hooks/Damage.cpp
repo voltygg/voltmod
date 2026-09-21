@@ -56,8 +56,8 @@ HookResult<int64_t> Damage::OnTakeDamage(CEntityInstance& victim, void* rawInfo)
 {
     auto* info = static_cast<EngineDamageInfo*>(rawInfo);
     DamageHit hit{.Victim = Entity{_entities, &victim},
-                  .Info = {.Attacker = {info->Attacker},
-                           .Inflictor = {info->Inflictor},
+                  .Info = {.Attacker = {static_cast<uint32_t>(info->Attacker.ToInt())},
+                           .Inflictor = {static_cast<uint32_t>(info->Inflictor.ToInt())},
                            .Amount = info->Damage,
                            .Type = static_cast<uint32_t>(info->DamageType)}};
     Before.Raise(hit);

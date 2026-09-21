@@ -2,6 +2,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <entityhandle.h>
+#include <gametrace.h>
 #include <mathlib/vector.h>
 
 namespace VoltMod
@@ -16,9 +18,9 @@ struct EngineDamageInfo
     Vector Position;
     Vector ReportedPosition;
     Vector Direction;
-    uint32_t Inflictor;
-    uint32_t Attacker;
-    uint32_t Ability;
+    CEntityHandle Inflictor;
+    CEntityHandle Attacker;
+    CEntityHandle Ability;
     float Damage;
     float TotalledDamage;
     int32_t DamageType;
@@ -46,7 +48,7 @@ struct EngineDamageResult
     uint64_t DamageFlags;
     bool WasDamageSuppressed;
     bool SuppressFlinch;
-    int32_t OverrideFlinchHitGroup;
+    HitGroup_t OverrideFlinchHitGroup;
     uint8_t Unknown[8];
 };
 static_assert(offsetof(EngineDamageResult, DamageFlags) == 72);
