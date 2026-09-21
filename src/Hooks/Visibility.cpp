@@ -6,6 +6,8 @@
 #include <checktransmitinfo.h>
 #include <cstdint>
 #include <entity2/entityinstance.h>
+#include <entityhandle.h>
+#include <tier1/utlvector.h>
 #include <utility>
 
 namespace VoltMod
@@ -14,13 +16,9 @@ namespace VoltMod
 // The fixed capacity covers the pawn, weapons, and wearables.
 static constexpr int MaxIndicesPerPlayer = 24;
 
-// CNetworkUtlVectorBase<CHandle<T>> stores count at +0 and the element pointer at +8. This view is read-only.
-struct HandleVectorView
-{
-    int32_t Count;
-    int32_t _pad;
-    const uint32_t* Elements;
-};
+// The schema's CNetworkUtlVectorBase<CHandle<T>> fields are 24 bytes, laid out as a CUtlVector.
+using HandleVector = CUtlVector<CEntityHandle>;
+static_assert(sizeof(HandleVector) == 24);
 
 struct HiddenPlayer
 {
@@ -37,14 +35,13 @@ static void AddIndex(HiddenPlayer& player, int index)
         player.PawnIndices[player.IndexCount++] = index;
 }
 
-// The generated accessor supplies the vector address. Keep its element layout local to this view.
-static void AddHandleVector(EntitySystem& entities, HiddenPlayer& player, void* vector)
+static void AddHandleVector(EntitySystem& entities, HiddenPlayer& player, const void* vector)
 {
-    const auto* view = static_cast<const HandleVectorView*>(vector);
-    if (!view || !view->Elements)
+    const auto* handles = static_cast<const HandleVector*>(vector);
+    if (!handles)
         return;
-    for (int32_t i = 0; i < view->Count && i < MaxIndicesPerPlayer; ++i)
-        AddIndex(player, entities.Resolve(EntityRef{view->Elements[i]}).Index());
+    for (int i = 0; i < handles->Count() && i < MaxIndicesPerPlayer; ++i)
+        AddIndex(player, entities.Resolve(EntityRef{static_cast<uint32_t>(handles->Element(i).ToInt())}).Index());
 }
 
 // Return the pawn watched by `recipientSlot`. It must remain transmissible to preserve spectator view.
