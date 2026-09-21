@@ -157,8 +157,8 @@ struct Bindings
     /** ABI: void (CEntityInstance*, const char* input, activator, caller, variant_t* value). */
     Fn<void(CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, void*)> AcceptInput;
     /** ABI: void (CEntitySystem*, target, const char* input, activator, caller, const variant_t* value, float delay,
-     *  const void* extra, const KeyValues3* kv). The engine copies from the last two when non-null, so pass
-     *  nullptr, never an int. It interns the input and deep-copies the value; both need only outlive the call. */
+     *  const void* extra, const KeyValues3* kv). Pass nullptr for the last two; the engine reads any non-null
+     *  pointer. The input and value are copied, so they need only outlive the call. */
     Fn<void(void*, CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, const void*, float, const void*,
             const void*)>
         AddEntityIOEvent;
