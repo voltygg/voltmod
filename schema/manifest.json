@@ -116,6 +116,11 @@
     ],
     "CCSGameRulesProxy": [
       "m_pGameRules>GameRules:void*"
+    ],
+    "CBeam": [
+      "m_fWidth>Width",
+      "m_fEndWidth>EndWidth",
+      "m_vecEndPos>EndPos"
     ]
   },
   "wrappers": {

@@ -2130,6 +2130,254 @@
         }
       ]
     },
+    "CBeam": {
+      "size": 2800,
+      "base": "CBaseModelEntity",
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_flFrameRate",
+          "offset": 2640,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_flHDRColorScale",
+          "offset": 2644,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_flFireTime",
+          "offset": 2648,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "SCHEMA_TYPE_DECLARED_CLASS"
+          },
+          "networked": false
+        },
+        {
+          "name": "m_flDamage",
+          "offset": 2652,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": false
+        },
+        {
+          "name": "m_nNumBeamEnts",
+          "offset": 2656,
+          "size": 1,
+          "type": {
+            "name": "uint8",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_hBaseMaterial",
+          "offset": 2664,
+          "size": 8,
+          "type": {
+            "name": "CStrongHandle< InfoForResourceTypeIMaterial2 >",
+            "category": "SCHEMA_TYPE_ATOMIC",
+            "atomic": "SCHEMA_ATOMIC_T",
+            "inner": "InfoForResourceTypeIMaterial2"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_nHaloIndex",
+          "offset": 2672,
+          "size": 8,
+          "type": {
+            "name": "CStrongHandle< InfoForResourceTypeIMaterial2 >",
+            "category": "SCHEMA_TYPE_ATOMIC",
+            "atomic": "SCHEMA_ATOMIC_T",
+            "inner": "InfoForResourceTypeIMaterial2"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_nBeamType",
+          "offset": 2680,
+          "size": 4,
+          "type": {
+            "name": "BeamType_t",
+            "category": "SCHEMA_TYPE_DECLARED_ENUM"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_nBeamFlags",
+          "offset": 2684,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_hAttachEntity",
+          "offset": 2688,
+          "size": 40,
+          "type": {
+            "name": "CHandle< CBaseEntity >[10]",
+            "category": "SCHEMA_TYPE_FIXED_ARRAY",
+            "inner": "CHandle< CBaseEntity >",
+            "extent": 10
+          },
+          "networked": true
+        },
+        {
+          "name": "m_nAttachIndex",
+          "offset": 2728,
+          "size": 10,
+          "type": {
+            "name": "AttachmentHandle_t[10]",
+            "category": "SCHEMA_TYPE_FIXED_ARRAY",
+            "inner": "AttachmentHandle_t",
+            "extent": 10
+          },
+          "networked": true
+        },
+        {
+          "name": "m_fWidth",
+          "offset": 2740,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_fEndWidth",
+          "offset": 2744,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_fFadeLength",
+          "offset": 2748,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_fHaloScale",
+          "offset": 2752,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_fAmplitude",
+          "offset": 2756,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_fStartFrame",
+          "offset": 2760,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_fSpeed",
+          "offset": 2764,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_flFrame",
+          "offset": 2768,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_bTurnedOff",
+          "offset": 2772,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_vecEndPos",
+          "offset": 2776,
+          "size": 12,
+          "type": {
+            "name": "VectorWS",
+            "category": "SCHEMA_TYPE_ATOMIC",
+            "atomic": "SCHEMA_ATOMIC_PLAIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_hEndEntity",
+          "offset": 2788,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CBaseEntity >",
+            "category": "SCHEMA_TYPE_ATOMIC",
+            "atomic": "SCHEMA_ATOMIC_T",
+            "inner": "CBaseEntity"
+          },
+          "networked": false
+        },
+        {
+          "name": "m_nDissolveType",
+          "offset": 2792,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": false
+        }
+      ]
+    },
     "CBodyComponent": {
       "size": 120,
       "base": "CEntityComponent",

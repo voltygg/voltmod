@@ -78,6 +78,20 @@ pawn.CameraServices().SetViewEntity(camera.Ref().Handle);  // see through anothe
 VoltMod::Schema::CCSPlayerBase_CameraServices{pawn.CameraServices().Base()}.SetFieldOfView(90);
 ```
 
+An entity with no wrapper class is viewed through its generated class. A `beam` draws a line
+from its origin to its end point; set the fields before it spawns:
+
+```cpp
+CEntityInstance* line = runtime.World.EntityOps.CreateByName("beam");
+const VoltMod::Schema::CBeam beam{line};
+beam.SetWidth(2.0f);
+beam.SetEndWidth(2.0f);
+beam.SetEndPos(end);
+VoltMod::KeyValues kv;
+kv.Set("origin", start);
+runtime.World.EntityOps.DispatchSpawn(line, &kv);
+```
+
 A `Set` on a networked field dirties it for the next snapshot. A field the engine does not network
 is written without a notify, because the engine rejects one and then stops updating that entity for
 its clients; a field with no route to notify generates no setter at all.

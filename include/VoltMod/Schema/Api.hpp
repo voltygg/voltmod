@@ -8,6 +8,7 @@
 #include <VoltMod/Schema/Generated/CBaseModelEntity.hpp>
 #include <VoltMod/Schema/Generated/CBasePlayerController.hpp>
 #include <VoltMod/Schema/Generated/CBasePlayerPawn.hpp>
+#include <VoltMod/Schema/Generated/CBeam.hpp>
 #include <VoltMod/Schema/Generated/CBodyComponent.hpp>
 #include <VoltMod/Schema/Generated/CCSCustomHudLayout.hpp>
 #include <VoltMod/Schema/Generated/CCSCustomHudLayoutState.hpp>
