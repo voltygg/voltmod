@@ -129,6 +129,13 @@
       "linux": "49 BB ? ? ? ? ? ? ? ? 55 48 89 E5 48 83 EC ? 4C 8D 15"
     },
 
+    // Ends the round with a reason and a restart delay. From CS2Fixes; SwiftlyS2 has the same bytes.
+    "CCSGameRules::TerminateRound": {
+      "module": "server",
+      "windows": "48 8B C4 4C 89 48 ? 48 89 48 ? 55 41 54",
+      "linux": "55 48 89 E5 41 57 41 56 41 55 41 54 41 89 F4 53 48 8D 35 ? ? ? ? 48 89 FB"
+    },
+
     "CGameEntitySystem::FindEntityByClassName": {
       "module": "server",
       "windows": "48 83 EC 68 45 33 C9",

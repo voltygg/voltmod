@@ -191,6 +191,19 @@ if (blocked && !blocked->Hit)
 
 `Hull` needs its own vtable slot, so it can be unsupported while `Line` works.
 
+## Ending a round
+
+@ref VoltMod::Rounds ends the current round through `CCSGameRules::TerminateRound`, so the win
+panel, `round_end` and the next round are the engine's own. It works with
+`mp_ignore_round_win_conditions 1`, which is how a mode with its own win rule runs:
+
+```cpp
+// Terrorists win; the next round starts in 5 seconds.
+runtime.World.Rounds.End(VoltMod::RoundEndReason::TerroristsWin, 5.0f);
+```
+
+Team scores are left alone.
+
 ## PawnOps
 
 Common pawn manipulations, as free functions in `VoltMod::PawnOps`

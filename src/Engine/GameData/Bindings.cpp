@@ -74,6 +74,7 @@ Status Bindings::Bind(const GameDataLookup& lookup)
     bind(LegacyGameEventListener, "GetLegacyGameEventListener");
     bind(TakeDamage, "CBaseEntity::TakeDamageOld");
     bind(BuildDamageInfo, "CTakeDamageInfo::CTakeDamageInfo");
+    bind(TerminateRound, "CCSGameRules::TerminateRound");
 
     bind(CustomHudSetHasClass, "CCSCustomHudLayout::SetHasClass");
     bind(CustomHudSetHasClassForPlayer, "CCSCustomHudLayout::SetHasClassForPlayer");

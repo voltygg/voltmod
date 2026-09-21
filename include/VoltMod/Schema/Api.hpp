@@ -11,6 +11,7 @@
 #include <VoltMod/Schema/Generated/CBodyComponent.hpp>
 #include <VoltMod/Schema/Generated/CCSCustomHudLayout.hpp>
 #include <VoltMod/Schema/Generated/CCSCustomHudLayoutState.hpp>
+#include <VoltMod/Schema/Generated/CCSGameRulesProxy.hpp>
 #include <VoltMod/Schema/Generated/CCSPlayerBase_CameraServices.hpp>
 #include <VoltMod/Schema/Generated/CCSPlayerController.hpp>
 #include <VoltMod/Schema/Generated/CCSPlayerController_InGameMoneyServices.hpp>
@@ -19,6 +20,7 @@
 #include <VoltMod/Schema/Generated/CCSPlayer_AimPunchServices.hpp>
 #include <VoltMod/Schema/Generated/CEntityComponent.hpp>
 #include <VoltMod/Schema/Generated/CEntityInstance.hpp>
+#include <VoltMod/Schema/Generated/CGameRulesProxy.hpp>
 #include <VoltMod/Schema/Generated/CGameSceneNode.hpp>
 #include <VoltMod/Schema/Generated/CInButtonState.hpp>
 #include <VoltMod/Schema/Generated/CModelState.hpp>

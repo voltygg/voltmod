@@ -113,6 +113,9 @@
     "EntitySpottedState_t": [
       "m_bSpotted>Spotted",
       "m_bSpottedByMask>SpottedByMask"
+    ],
+    "CCSGameRulesProxy": [
+      "m_pGameRules>GameRules:void*"
     ]
   },
   "wrappers": {

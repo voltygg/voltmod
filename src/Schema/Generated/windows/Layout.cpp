@@ -39,6 +39,7 @@ static const FieldLayout kFields[] = {
     {.Class = "CCSCustomHudLayout", .Field = "m_vecPlayerLayoutStates", .Offset = 1208, .Size = 104},
     {.Class = "CCSCustomHudLayout", .Field = "m_strLayout", .Offset = 1192, .Size = 8},
     {.Class = "CCSCustomHudLayoutState", .Field = "m_bInputCaptureEnabled", .Offset = 52, .Size = 1},
+    {.Class = "CCSGameRulesProxy", .Field = "m_pGameRules", .Offset = 1192, .Size = 8},
     {.Class = "CCSPlayerBase_CameraServices", .Field = "m_iFOV", .Offset = 376, .Size = 4},
     {.Class = "CCSPlayerBase_CameraServices", .Field = "m_hZoomOwner", .Offset = 392, .Size = 4},
     {.Class = "CCSPlayerController", .Field = "m_hPlayerPawn", .Offset = 2276, .Size = 4},
@@ -104,7 +105,7 @@ std::string_view GeneratedFromBuild()
 
 uint64_t GeneratedLayoutStamp()
 {
-    return 0xF65C2532BB0465BDULL;
+    return 0xC25E5B176A2656A8ULL;
 }
 
 }  // namespace VoltMod::Schema

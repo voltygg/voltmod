@@ -10,6 +10,7 @@
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/Items.hpp>
 #include <VoltMod/Entities/Pawns.hpp>
+#include <VoltMod/Entities/Rounds.hpp>
 #include <VoltMod/Entities/Trace.hpp>
 
 namespace VoltMod
@@ -17,7 +18,8 @@ namespace VoltMod
 
 /**
  * @brief World-affecting services with no per-tick engine hook of their own: entity IO, weapon
- * give/strip, precaching, pawn manipulation, per-client net-channel reads, and line traces.
+ * give/strip, precaching, pawn manipulation, per-client net-channel reads, line traces, and
+ * ending the round.
  *
  * Declared once by Runtime, right after @ref EntitySystem; each member below takes exactly the
  * sibling services it uses, stated once here rather than once per member on Runtime itself.
@@ -31,7 +33,8 @@ struct WorldServices
           Precache(bindings),
           Pawns(scheduler, slots, entities),
           NetChannels(interfaces),
-          Trace(bindings)
+          Trace(bindings),
+          Rounds(entities, bindings)
     {}
 
     /** Depends on: Entities, Bindings. */
@@ -48,6 +51,8 @@ struct WorldServices
     VoltMod::NetChannels NetChannels;
     /** Line traces for sight and reachability questions. Depends on: Bindings. */
     VoltMod::Trace Trace;
+    /** Ending the current round with a winner. Depends on: Entities, Bindings. */
+    VoltMod::Rounds Rounds;
 };
 
 }  // namespace VoltMod

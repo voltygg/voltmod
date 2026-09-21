@@ -184,6 +184,8 @@ struct Bindings
     Fn<void(void*, CEntityInstance*, CEntityInstance*, CEntityInstance*, const Vector*, const Vector*, float, int, int,
             void*)>
         BuildDamageInfo;
+    /** ABI: void (CCSGameRules*, float delay, uint32 CSRoundEndReason, int* team). Used by @ref Rounds. */
+    Fn<void(void*, float, uint32_t, void*)> TerminateRound;
 
     /** @defgroup CustomHudSetters CCSCustomHudLayout setters used by @ref Screen.
      *  `self` is the entity. The ABI uses `const CUtlString*`, not `const char*`.

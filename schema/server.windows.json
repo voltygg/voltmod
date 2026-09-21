@@ -2296,6 +2296,24 @@
         }
       ]
     },
+    "CCSGameRulesProxy": {
+      "size": 1200,
+      "base": "CGameRulesProxy",
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_pGameRules",
+          "offset": 1192,
+          "size": 8,
+          "type": {
+            "name": "CCSGameRules*",
+            "category": "SCHEMA_TYPE_POINTER",
+            "inner": "CCSGameRules"
+          },
+          "networked": true
+        }
+      ]
+    },
     "CCSPlayerBase_CameraServices": {
       "size": 432,
       "base": "CPlayer_CameraServices",
@@ -4750,6 +4768,12 @@
           "networked": false
         }
       ]
+    },
+    "CGameRulesProxy": {
+      "size": 1192,
+      "base": "CBaseEntity",
+      "chain_offset": -1,
+      "fields": []
     },
     "CGameSceneNode": {
       "size": 272,
