@@ -8,7 +8,7 @@ if (!pawn)
     return;
 
 pawn.SetHealth(100);                              // writes m_iHealth and dirties it for replication
-pawn.SetFlags(pawn.Flags() | VoltMod::FL_ONGROUND);
+pawn.SetFlags(pawn.Flags() | FL_ONGROUND);
 
 auto controller = runtime.Entities.Controller(slot);
 controller.ChangeTeam(VoltMod::TeamCT);
@@ -62,7 +62,7 @@ dump, and the load aborts when the live game no longer matches - see
 @ref sdk_gamedata_guide "Gamedata and schema".
 
 ```cpp
-if (pawn.Team() == VoltMod::TeamCT && (pawn.Flags() & VoltMod::FL_ONGROUND))
+if (pawn.Team() == VoltMod::TeamCT && (pawn.Flags() & FL_ONGROUND))
     pawn.SetSpeedModifier(1.5f);
 
 int money = controller.InGameMoneyServices().Account();   // a sub-object is a hop, not a follow
@@ -126,7 +126,7 @@ VoltMod::Controller controller = es.Controller(slot);
 VoltMod::Pawn pawn = es.PawnOf(slot);
 bool occupied = es.IsPlayerSlotValid(slot);
 
-uint64_t buttons = es.Buttons(slot);       // held buttons, IN_* flags
+uint64_t buttons = es.Buttons(slot);       // held buttons, the SDK's IN_* bits
 int owner = es.SlotOf(pawn);               // -1 when it is not a player pawn; constant-time
 
 VoltMod::EntityRef ref = pawn.Ref();       // storable
@@ -237,7 +237,7 @@ namespace PawnOps = VoltMod::PawnOps;
 VoltMod::Pawn target = runtime.Entities.PawnOf(slot);
 
 PawnOps::ToggleNoclip(target);              // noclip <-> walk; returns the new on-state
-PawnOps::ToggleFreeze(target);              // MoveType None <-> walk
+PawnOps::ToggleFreeze(target);              // MOVETYPE_NONE <-> walk
 PawnOps::ToggleGodmode(target);             // FL_GODMODE flip, the working CS2 invincibility path
 PawnOps::ShiftZ(target, -15.0f);            // bury; +15 to unbury
 

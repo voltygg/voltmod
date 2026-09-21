@@ -36,7 +36,7 @@ void ShiftZ(const Pawn& pawn, float deltaZ);
 /** Toggle noclip <-> walk. Returns the new on-state. */
 bool ToggleNoclip(const Pawn& pawn);
 
-/** Toggle frozen (MoveType None) <-> walk. Returns the new on-state. */
+/** Toggle frozen (MOVETYPE_NONE) <-> walk. Returns the new on-state. */
 bool ToggleFreeze(const Pawn& pawn);
 
 /** FL_GODMODE flag helpers - the m_fFlags bit is the working CS2 invincibility path

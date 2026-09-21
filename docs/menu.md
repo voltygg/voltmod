@@ -92,7 +92,7 @@ ActionRows rows({.Actions = app.Actions, .Policy = runtime.Policy,
 
 MenuBuilder(title)
     .Add(rows.Action("action.kill", Actions::Kill))                     // runs an Action
-    .Add(rows.StateToggle("action.freeze", InMoveType(MoveType::None), Actions::Freeze))
+    .Add(rows.StateToggle("action.freeze", InMoveType(Schema::MoveType_t::MOVETYPE_NONE), Actions::Freeze))
     .Add(rows.Presets({.LabelKey = "action.health", .Unit = "HP",
                        .Presets = HealthPresets, .Action = Actions::SetHealth}))
     .Add(rows.Effect(Effects::Ghost))           // data-defined effect (EffectDescriptor)

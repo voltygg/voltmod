@@ -68,11 +68,10 @@ Vector Pawn::EyePosition() const
     return Origin() + ViewOffset();
 }
 
-void Pawn::SetMove(MoveType type) const
+void Pawn::SetMove(Schema::MoveType_t type) const
 {
-    const auto value = static_cast<Schema::MoveType_t>(type);
-    SetMoveTypeRaw(value);
-    SetActualMoveTypeRaw(value);
+    SetMoveTypeRaw(type);
+    SetActualMoveTypeRaw(type);
 }
 
 Status Pawn::Slay() const

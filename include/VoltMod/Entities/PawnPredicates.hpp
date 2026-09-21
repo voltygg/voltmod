@@ -1,6 +1,5 @@
 #pragma once
 
-#include <VoltMod/Entities/MoveType.hpp>
 #include <VoltMod/Entities/Pawn.hpp>
 #include <cstdint>
 
@@ -11,8 +10,8 @@ namespace VoltMod
  * @brief Pawn-state predicate factories for state-toggle menu rows (re-read every redraw).
  */
 
-/** The pawn is currently in @p activeType (e.g. MoveType::None = frozen). */
-inline auto InMoveType(MoveType activeType)
+/** The pawn is currently in @p activeType (e.g. MOVETYPE_NONE = frozen). */
+inline auto InMoveType(Schema::MoveType_t activeType)
 {
     return [activeType](const Pawn& pawn) { return pawn.Move() == activeType; };
 }

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <VoltMod/Entities/EntityRef.hpp>
-#include <VoltMod/Entities/MoveType.hpp>
 #include <VoltMod/Entities/Pawn.hpp>
 
 namespace VoltMod
@@ -33,7 +32,7 @@ public:
 
 private:
     EntityRef _pawn;
-    MoveType _prev = MoveType::Walk;
+    Schema::MoveType_t _prev = Schema::MoveType_t::MOVETYPE_WALK;
 };
 
 }  // namespace VoltMod

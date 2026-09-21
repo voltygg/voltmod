@@ -8,31 +8,12 @@
 #include <VoltMod/Entities/Controller.hpp>
 #include <VoltMod/Schema/Generated/CPlayer_MovementServices.hpp>
 #include <cstdint>
+#include <in_buttons.h>
 #include <optional>
 #include <string_view>
 
 namespace VoltMod
 {
-
-/** @defgroup ButtonFlags Player Button Flags */
-/** @{ */
-constexpr uint64_t IN_ATTACK = 0x1;
-constexpr uint64_t IN_JUMP = 0x2;
-constexpr uint64_t IN_DUCK = 0x4;
-constexpr uint64_t IN_FORWARD = 0x8;
-constexpr uint64_t IN_BACK = 0x10;
-constexpr uint64_t IN_USE = 0x20;
-constexpr uint64_t IN_TURNLEFT = 0x80;
-constexpr uint64_t IN_TURNRIGHT = 0x100;
-constexpr uint64_t IN_MOVELEFT = 0x200;
-constexpr uint64_t IN_MOVERIGHT = 0x400;
-constexpr uint64_t IN_ATTACK2 = 0x800;
-constexpr uint64_t IN_RELOAD = 0x2000;
-constexpr uint64_t IN_SPEED = 0x10000;
-constexpr uint64_t IN_SCORE = 0x200000000ULL;
-constexpr uint64_t IN_ZOOM = 0x400000000ULL;
-constexpr uint64_t IN_LOOK_AT_WEAPON = 0x800000000ULL;
-/** @} */
 
 /**
  * @brief Entity lookup for the Source 2 engine, and the factory for every entity wrapper.
@@ -89,8 +70,8 @@ public:
     /** Slot owning @p pawn, or -1 when it is not a player pawn. Constant-time. */
     int SlotOf(const Pawn& pawn);
 
-    /** Held buttons for @p slot (m_pButtonStates[0]), or 0. Read from @ref Controller::Possessed,
-     *  so they arrive while dead or spectating too. */
+    /** Held buttons for @p slot (m_pButtonStates[0]) as `IN_*` bits from in_buttons.h, or 0. Read
+     *  from @ref Controller::Possessed, so they arrive while dead or spectating too. */
     uint64_t Buttons(int slot);
 
     /** The player pawn's CPlayer_MovementServices for @p slot, or a falsy view when the slot

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <VoltMod/Entities/Entity.hpp>
-#include <VoltMod/Entities/MoveType.hpp>
 #include <VoltMod/Entities/ObserverMode.hpp>
 #include <VoltMod/Entities/Render.hpp>
 #include <VoltMod/Schema/Generated/CCSPlayerPawn.hpp>
@@ -46,11 +45,11 @@ public:
     /** Where this pawn's shots originate: the origin plus @ref ViewOffset. */
     [[nodiscard]] Vector EyePosition() const;
 
-    [[nodiscard]] MoveType Move() const { return static_cast<MoveType>(MoveTypeRaw()); }
+    [[nodiscard]] Schema::MoveType_t Move() const { return MoveTypeRaw(); }
 
     /** Writes both `m_MoveType` and `m_nActualMoveType`; setting only one lets the engine revert
      *  it on the next tick. */
-    void SetMove(MoveType type) const;
+    void SetMove(Schema::MoveType_t type) const;
 
     /** Kill the pawn through `CBasePlayerPawn::CommitSuicide`.
      *  @return Error::Unsupported when the vtable index did not bind. */

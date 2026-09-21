@@ -27,7 +27,7 @@ public:
 
     /**
      * Freeze movement for the duration of a session, so navigating does not also walk the player
-     * around. The original MoveType is restored when the session closes. Off by default; turning
+     * around. The original move type is restored when the session closes. Off by default; turning
      * it off also releases whoever the previous setting had already frozen.
      */
     void Enable(bool enabled);

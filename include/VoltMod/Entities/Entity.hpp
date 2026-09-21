@@ -4,6 +4,8 @@
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Entities/EntityRef.hpp>
 #include <VoltMod/Schema/Generated/CBaseEntity.hpp>
+// Flags_t: the FL_* bits Flags() returns.
+#include <const.h>
 #include <cstdint>
 // EngineTypes.hpp only forward-declares Vector; the generated accessors return it by value.
 #include <mathlib/vector.h>
@@ -12,16 +14,6 @@
 
 namespace VoltMod
 {
-
-/** @defgroup EntityFlags CBaseEntity::m_fFlags bit values (Flags_t in the CS2 schema) */
-/** @{ */
-constexpr uint32_t FL_ONGROUND = 1;
-constexpr uint32_t FL_DUCKING = 2;
-constexpr uint32_t FL_FROZEN = 32;
-constexpr uint32_t FL_FAKECLIENT = 256;
-constexpr uint32_t FL_GODMODE = 16384;
-constexpr uint32_t FL_NOTARGET = 32768;
-/** @} */
 
 /**
  * @brief A live entity, addressed by its fields.

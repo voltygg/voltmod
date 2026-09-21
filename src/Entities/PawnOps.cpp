@@ -1,5 +1,4 @@
 #include <VoltMod/Entities/EntitySystem.hpp>
-#include <VoltMod/Entities/MoveType.hpp>
 #include <VoltMod/Entities/PawnOps.hpp>
 #include <VoltMod/Entities/Pawns.hpp>
 #include <cmath>
@@ -46,15 +45,15 @@ void ShiftZ(const Pawn& pawn, float deltaZ)
 
 bool ToggleNoclip(const Pawn& pawn)
 {
-    bool turningOn = (pawn.Move() != MoveType::NoClip);
-    pawn.SetMove(turningOn ? MoveType::NoClip : MoveType::Walk);
+    bool turningOn = (pawn.Move() != Schema::MoveType_t::MOVETYPE_NOCLIP);
+    pawn.SetMove(turningOn ? Schema::MoveType_t::MOVETYPE_NOCLIP : Schema::MoveType_t::MOVETYPE_WALK);
     return turningOn;
 }
 
 bool ToggleFreeze(const Pawn& pawn)
 {
-    bool turningOn = (pawn.Move() != MoveType::None);
-    pawn.SetMove(turningOn ? MoveType::None : MoveType::Walk);
+    bool turningOn = (pawn.Move() != Schema::MoveType_t::MOVETYPE_NONE);
+    pawn.SetMove(turningOn ? Schema::MoveType_t::MOVETYPE_NONE : Schema::MoveType_t::MOVETYPE_WALK);
     return turningOn;
 }
 

@@ -5,13 +5,13 @@ namespace VoltMod
 
 void MovementFreeze::Hold(const Pawn& pawn)
 {
-    // Holding twice would capture MoveType::None as the type to give back.
+    // Holding twice would capture MOVETYPE_NONE as the type to give back.
     if (_pawn || !pawn || !pawn.IsAlive())
         return;
 
     _prev = pawn.Move();
     _pawn = pawn.Ref();
-    pawn.SetMove(MoveType::None);
+    pawn.SetMove(Schema::MoveType_t::MOVETYPE_NONE);
 }
 
 void MovementFreeze::Release(const Pawn& pawn)
