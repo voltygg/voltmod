@@ -2,6 +2,7 @@
 
 #include <VoltMod/Engine/ConVars/ConVarOverrides.hpp>
 #include <VoltMod/Engine/ConVars/ConVars.hpp>
+#include <VoltMod/Entities/Angles.hpp>
 #include <VoltMod/Entities/Controller.hpp>
 #include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Entities/EntityOps.hpp>

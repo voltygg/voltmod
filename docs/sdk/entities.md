@@ -131,9 +131,13 @@ to its command. `AimPunchServices()` carries the recoil punch as the last shot s
 `SpottedState()` exposes the radar bits, and `WeaponServices().ActiveWeapon()` is a handle to
 resolve through `EntitySystem::Resolve`.
 
+`AngleToForward` (`<VoltMod/Entities/Angles.hpp>`) turns an aim into the unit vector it points
+along, for tracing or placing something ahead of a player.
+
 ```cpp
 QAngle aim = pawn.EyeAngles();
 Vector muzzle = pawn.EyePosition();
+Vector ahead = muzzle + VoltMod::AngleToForward(aim) * 64.0f;
 
 using VoltMod::ObserverMode_t;
 if (pawn.GetObserverMode() != ObserverMode_t::Roaming)
