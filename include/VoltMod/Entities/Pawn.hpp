@@ -57,8 +57,8 @@ public:
 
     /** Read `m_iObserverMode` from the pawn's CPlayer_ObserverServices. The services pointer is
      *  its own object, so this is a method rather than a Field. */
-    [[nodiscard]] ObserverMode_t GetObserverMode() const;
-    Status SetObserverMode(ObserverMode_t mode) const;
+    [[nodiscard]] ObserverMode GetObserverMode() const;
+    Status SetObserverMode(ObserverMode mode) const;
 
     /** Current model path (the scene node's CModelState). Empty when unavailable. */
     [[nodiscard]] std::string ModelName() const;

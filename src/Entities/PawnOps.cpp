@@ -6,6 +6,17 @@
 #include <mathlib/vector.h>
 #include <numbers>
 #include <random>
+#include <shareddefs.h>
+
+namespace VoltMod
+{
+
+static_assert(TeamNone == TEAM_UNASSIGNED);
+static_assert(TeamSpectator == TEAM_SPECTATOR);
+static_assert(TeamT == CS_TEAM_T);
+static_assert(TeamCT == CS_TEAM_CT);
+
+}  // namespace VoltMod
 
 namespace VoltMod::PawnOps
 {

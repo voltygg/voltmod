@@ -2,15 +2,10 @@
 
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Entities/Controller.hpp>
+#include <VoltMod/Entities/Teams.hpp>
 
 namespace VoltMod
 {
-
-// Engine team indices.
-inline constexpr int TeamNone = 0;
-inline constexpr int TeamSpectator = 1;
-inline constexpr int TeamT = 2;
-inline constexpr int TeamCT = 3;
 
 /**
  * @brief Pawn manipulations composed from @ref Pawn primitives: teleport destinations,

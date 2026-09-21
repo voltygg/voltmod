@@ -160,9 +160,9 @@ QAngle aim = pawn.EyeAngles();
 Vector muzzle = pawn.EyePosition();
 Vector ahead = muzzle + VoltMod::AngleToForward(aim) * 64.0f;
 
-using VoltMod::ObserverMode_t;
-if (pawn.GetObserverMode() != ObserverMode_t::Roaming)
-    pawn.SetObserverMode(ObserverMode_t::Roaming);
+using VoltMod::ObserverMode;
+if (pawn.GetObserverMode() != ObserverMode::Roaming)
+    pawn.SetObserverMode(ObserverMode::Roaming);
 ```
 
 Observer mode is a method rather than a field: it lives on a sub-object the pawn points at, so
@@ -229,7 +229,7 @@ Team scores are left alone.
 
 Common pawn manipulations, as free functions in `VoltMod::PawnOps`
 (`<VoltMod/Entities/PawnOps.hpp>`), plus the engine team constants `TeamNone` / `TeamSpectator` /
-`TeamT` / `TeamCT`:
+`TeamT` / `TeamCT` from `<VoltMod/Entities/Teams.hpp>`, which needs no SDK:
 
 ```cpp
 namespace PawnOps = VoltMod::PawnOps;

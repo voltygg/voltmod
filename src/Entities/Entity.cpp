@@ -8,9 +8,17 @@
 #include <entity2/entityidentity.h>
 #include <entity2/entityinstance.h>
 #include <mathlib/vector.h>
+#include <shareddefs.h>
+#include <utility>
 
 namespace VoltMod
 {
+
+static_assert(std::to_underlying(ObserverMode::None) == OBS_MODE_NONE);
+static_assert(std::to_underlying(ObserverMode::Fixed) == OBS_MODE_FIXED);
+static_assert(std::to_underlying(ObserverMode::InEye) == OBS_MODE_IN_EYE);
+static_assert(std::to_underlying(ObserverMode::Chase) == OBS_MODE_CHASE);
+static_assert(std::to_underlying(ObserverMode::Roaming) == OBS_MODE_ROAMING);
 
 // CBaseEntity stores origin and rotation on CGameSceneNode via m_CBodyComponent -> m_pSceneNode.
 static Schema::CGameSceneNode SceneNode(const Entity& entity)
@@ -87,19 +95,19 @@ Status Pawn::Slay() const
     return {};
 }
 
-ObserverMode_t Pawn::GetObserverMode() const
+ObserverMode Pawn::GetObserverMode() const
 {
     const Schema::CPlayer_ObserverServices services = ObserverServices();
-    return services ? static_cast<ObserverMode_t>(services.ObserverMode()) : ObserverMode_t::None;
+    return services ? static_cast<ObserverMode>(services.ObserverMode()) : ObserverMode::None;
 }
 
-Status Pawn::SetObserverMode(ObserverMode_t value) const
+Status Pawn::SetObserverMode(ObserverMode value) const
 {
     const Schema::CPlayer_ObserverServices services = ObserverServices();
     if (!services)
         return std::unexpected(Error::NotReady("observer services unavailable"));
 
-    services.SetObserverMode(static_cast<uint8_t>(value));
+    services.SetObserverMode(std::to_underlying(value));
     return {};
 }
 

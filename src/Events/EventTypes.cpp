@@ -1,10 +1,23 @@
 #include <igameevents.h>
 
 #include <VoltMod/Events/EventTypes.hpp>
+#include <gametrace.h>
 #include <playerslot.h>
+#include <utility>
 
 namespace VoltMod
 {
+
+static_assert(std::to_underlying(HitGroup::Invalid) == HITGROUP_INVALID);
+static_assert(std::to_underlying(HitGroup::Generic) == HITGROUP_GENERIC);
+static_assert(std::to_underlying(HitGroup::Head) == HITGROUP_HEAD);
+static_assert(std::to_underlying(HitGroup::Chest) == HITGROUP_CHEST);
+static_assert(std::to_underlying(HitGroup::Stomach) == HITGROUP_STOMACH);
+static_assert(std::to_underlying(HitGroup::LeftArm) == HITGROUP_LEFTARM);
+static_assert(std::to_underlying(HitGroup::RightArm) == HITGROUP_RIGHTARM);
+static_assert(std::to_underlying(HitGroup::LeftLeg) == HITGROUP_LEFTLEG);
+static_assert(std::to_underlying(HitGroup::RightLeg) == HITGROUP_RIGHTLEG);
+static_assert(std::to_underlying(HitGroup::Neck) == HITGROUP_NECK);
 
 // GetPlayerSlot decodes the connection userid to the actual slot (userids drift from slots
 // on reconnect); it yields -1 when the field is absent or holds no live player.

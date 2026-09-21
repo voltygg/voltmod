@@ -5,11 +5,8 @@
 namespace VoltMod
 {
 
-/**
- * @brief CPlayer_ObserverServices::m_iObserverMode values.
- * Mirrors the CS2 schema enum ObserverMode_t.
- */
-enum class ObserverMode_t : uint8_t
+/** CPlayer_ObserverServices::m_iObserverMode values; Entity.cpp checks them against the SDK's OBS_MODE_*. */
+enum class ObserverMode : uint8_t
 {
     None = 0,
     Fixed = 1,

@@ -2,15 +2,12 @@
 
 #include <VoltMod/Core/Slots/SteamId.hpp>
 #include <VoltMod/Core/Text/Strings.hpp>
+#include <VoltMod/Entities/Teams.hpp>
 #include <algorithm>
 #include <utility>
 
 namespace VoltMod
 {
-
-static constexpr int TeamSpectator = 1;
-static constexpr int TeamT = 2;
-static constexpr int TeamCT = 3;
 
 TargetQuery ParseTargetToken(std::string_view token)
 {
