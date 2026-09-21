@@ -156,9 +156,8 @@ struct Bindings
     Fn<void(CEntityInstance*, CEntityKeyValues*)> DispatchSpawn;
     /** ABI: void (CEntityInstance*, const char* input, activator, caller, variant_t* value). */
     Fn<void(CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, void*)> AcceptInput;
-    /** ABI: void (CEntitySystem*, target, const char* input, activator, caller, const variant_t* value, float delay,
-     *  const void* extra, const KeyValues3* kv). Pass nullptr for the last two; the engine reads any non-null
-     *  pointer. The input and value are copied, so they need only outlive the call. */
+    /** Queues an input on an entity after a delay: entity system, target, input, activator, caller, value, delay.
+     *  Pass nullptr for the trailing extra and keyvalues pointers; the engine copies the input and value, so locals are fine. */
     Fn<void(void*, CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, const void*, float, const void*,
             const void*)>
         AddEntityIOEvent;
