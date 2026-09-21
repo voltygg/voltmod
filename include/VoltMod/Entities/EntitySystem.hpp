@@ -59,12 +59,12 @@ public:
      */
     Entity Resolve(EntityRef ref);
 
-    /** First entity of @p className after @p after (a falsy Entity starts at the list head).
-     *  Falsy when exhausted or the finder signature is unresolved. */
+    /** First entity of @p className after @p after (a falsy Entity starts at the list head); `*`
+     *  wildcards match. Falsy when exhausted. */
     Entity FindByClassName(const Entity& after, std::string_view className);
 
-    /** First entity whose targetname is @p name after @p after (a falsy Entity starts at the list
-     *  head). Falsy when exhausted or the finder signature is unresolved. */
+    /** First entity whose targetname is @p targetName after @p after (a falsy Entity starts at the
+     *  first match); `*` wildcards match. Falsy when exhausted or @p after is not a match. */
     Entity FindByName(const Entity& after, std::string_view targetName);
 
     /** Slot owning @p pawn, or -1 when it is not a player pawn. Constant-time. */

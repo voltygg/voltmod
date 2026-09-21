@@ -170,12 +170,6 @@ struct Bindings
     Fn<void(CEntityInstance*, const char*, int, float, float)> EmitSoundParams;
     /** ABI: StartSoundEventInfo (IRecipientFilter&, CEntityIndex, const EmitSound_t&), defined in EntityOps.cpp. */
     Address EmitSoundFilter;
-    /** ABI: CBaseEntity* (CEntitySystem*, CEntityInstance* startAfter, const char* className). */
-    Fn<CEntityInstance*(void*, CEntityInstance*, const char*)> FindEntityByClassName;
-    /** ABI: CBaseEntity* (CEntitySystem*, startAfter, name, searching, activator, caller, IEntityFindFilter*). */
-    Fn<CEntityInstance*(void*, CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, CEntityInstance*,
-                        void*)>
-        FindEntityByName;
     /** ABI: IGameEventListener2* (CPlayerSlot), defined in GameEvents.cpp. */
     Address LegacyGameEventListener;
     /** ABI: int64 (CBaseEntity*, CTakeDamageInfo*, CTakeDamageResult*). Every entity's damage passes

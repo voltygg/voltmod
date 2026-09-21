@@ -169,24 +169,32 @@ bool EntitySystem::IsPlayerSlotValid(int slot)
 
 Entity EntitySystem::FindByClassName(const Entity& after, std::string_view className)
 {
-    auto* system = GetEntitySystem();
-    if (!_bindings.FindEntityByClassName || !system || className.empty())
+    if (!GetEntitySystem() || className.empty())
         return {};
 
-    // Upcast where complete types are visible; the engine uses the temporary name only during lookup.
+    // Starting from `after` walks the active list, so repeated calls visit each entity once.
     const std::string name(className);
-    return {*this, _bindings.FindEntityByClassName(static_cast<CEntitySystem*>(system), after.Raw(), name.c_str())};
+    EntityInstanceByClassIter_t iter(after.Raw(), name.c_str());
+    return {*this, iter.Next()};
 }
 
 Entity EntitySystem::FindByName(const Entity& after, std::string_view targetName)
 {
-    auto* system = GetEntitySystem();
-    if (!_bindings.FindEntityByName || !system || targetName.empty())
+    if (!GetEntitySystem() || targetName.empty())
         return {};
 
+    // The name iterator cannot start mid-list, so step past `after` first.
     const std::string name(targetName);
-    return {*this, _bindings.FindEntityByName(static_cast<CEntitySystem*>(system), after.Raw(), name.c_str(), nullptr,
-                                              nullptr, nullptr, nullptr)};
+    EntityInstanceByNameIter_t iter(name.c_str());
+    CEntityInstance* entity = iter.First();
+    if (after)
+    {
+        while (entity && entity != after.Raw())
+            entity = iter.Next();
+        if (entity)
+            entity = iter.Next();
+    }
+    return {*this, entity};
 }
 
 }  // namespace VoltMod
