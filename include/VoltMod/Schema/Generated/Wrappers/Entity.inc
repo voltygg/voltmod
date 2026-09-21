@@ -90,6 +90,14 @@ void SetGroundEntity(uint32_t value) const
 {
     Schema::CBaseEntity{_e}.SetGroundEntity(value);
 }
+uint32_t OwnerHandle() const
+{
+    return Schema::CBaseEntity{_e}.OwnerHandle();
+}
+void SetOwnerHandle(uint32_t value) const
+{
+    Schema::CBaseEntity{_e}.SetOwnerHandle(value);
+}
 Schema::CBodyComponent BodyComponent() const
 {
     return Schema::CBaseEntity{_e}.BodyComponent();

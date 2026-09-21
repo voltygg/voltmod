@@ -51,6 +51,9 @@ public:
     uint32_t GroundEntity() const;
     void SetGroundEntity(uint32_t value) const;
 
+    uint32_t OwnerHandle() const;
+    void SetOwnerHandle(uint32_t value) const;
+
     CBodyComponent BodyComponent() const;
 };
 

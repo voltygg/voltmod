@@ -12,6 +12,7 @@
       "m_MoveType>MoveTypeRaw",
       "m_nActualMoveType>ActualMoveTypeRaw",
       "m_hGroundEntity",
+      "m_hOwnerEntity>OwnerHandle",
       "m_CBodyComponent>BodyComponent"
     ],
     "CBaseModelEntity": [

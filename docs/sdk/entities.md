@@ -78,6 +78,13 @@ pawn.CameraServices().SetViewEntity(camera.Ref().Handle);  // see through anothe
 VoltMod::Schema::CCSPlayerBase_CameraServices{pawn.CameraServices().Base()}.SetFieldOfView(90);
 ```
 
+A handle field reads as a raw `uint32_t`. Wrap it in an `EntityRef` to resolve it:
+
+```cpp
+// m_hOwnerEntity: for a thrown grenade, the pawn that threw it
+VoltMod::Entity owner = runtime.Entities.Resolve(VoltMod::EntityRef{grenade.OwnerHandle()});
+```
+
 An entity with no wrapper class is viewed through its generated class. A `beam` draws a line
 from its origin to its end point; set the fields before it spawns:
 

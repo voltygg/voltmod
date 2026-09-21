@@ -21,6 +21,7 @@ static constexpr int32_t kCBaseEntity_Velocity = 1644;           // Vector
 static constexpr int32_t kCBaseEntity_MoveTypeRaw = 1491;        // MoveType_t
 static constexpr int32_t kCBaseEntity_ActualMoveTypeRaw = 1493;  // MoveType_t
 static constexpr int32_t kCBaseEntity_GroundEntity = 1740;       // CHandle< CBaseEntity >
+static constexpr int32_t kCBaseEntity_OwnerHandle = 1732;        // CHandle< CBaseEntity >
 static constexpr int32_t kCBaseEntity_BodyComponent = 48;        // CBodyComponent*
 
 int32_t CBaseEntity::Health() const
@@ -206,6 +207,23 @@ void CBaseEntity::SetGroundEntity(uint32_t value) const
 
     *MemberPtr<uint32_t>(_base, kCBaseEntity_GroundEntity) = value;
     NotifyEntity(_owner, _ownerOffset + kCBaseEntity_GroundEntity);
+}
+
+uint32_t CBaseEntity::OwnerHandle() const
+{
+    if (!_base)
+        return {};
+
+    return *MemberPtr<uint32_t>(_base, kCBaseEntity_OwnerHandle);
+}
+
+void CBaseEntity::SetOwnerHandle(uint32_t value) const
+{
+    if (!_base)
+        return;
+
+    *MemberPtr<uint32_t>(_base, kCBaseEntity_OwnerHandle) = value;
+    NotifyEntity(_owner, _ownerOffset + kCBaseEntity_OwnerHandle);
 }
 
 CBodyComponent CBaseEntity::BodyComponent() const

@@ -18,6 +18,7 @@ static const FieldLayout kFields[] = {
     {.Class = "CBaseEntity", .Field = "m_MoveType", .Offset = 1491, .Size = 1},
     {.Class = "CBaseEntity", .Field = "m_nActualMoveType", .Offset = 1493, .Size = 1},
     {.Class = "CBaseEntity", .Field = "m_hGroundEntity", .Offset = 1740, .Size = 4},
+    {.Class = "CBaseEntity", .Field = "m_hOwnerEntity", .Offset = 1732, .Size = 4},
     {.Class = "CBaseEntity", .Field = "m_CBodyComponent", .Offset = 48, .Size = 8},
     {.Class = "CBaseModelEntity", .Field = "m_vecViewOffset", .Offset = 2584, .Size = 40},
     {.Class = "CBaseModelEntity", .Field = "m_nRenderMode", .Offset = 2096, .Size = 1},
@@ -108,7 +109,7 @@ std::string_view GeneratedFromBuild()
 
 uint64_t GeneratedLayoutStamp()
 {
-    return 0x9D58DEC62E28B9D1ULL;
+    return 0x704EC4AB22856D69ULL;
 }
 
 }  // namespace VoltMod::Schema
