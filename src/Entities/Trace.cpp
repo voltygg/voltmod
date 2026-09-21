@@ -66,8 +66,8 @@ Result<TraceHit> Trace::Line(const Vector& from, const Vector& to, const TraceOp
     return ToHit(trace);
 }
 
-Result<TraceHit> Trace::Hull(const Vector& from, const Vector& to, const Vector& mins, const Vector& maxs,
-                             const TraceOptions& options) const
+Result<TraceHit> Trace::Box(const Vector& from, const Vector& to, const Vector& mins, const Vector& maxs,
+                            const TraceOptions& options) const
 {
     if (!_bindings.NavTraceShape)
         return std::unexpected(Error::Unsupported("the Nav_TraceShape vtable slot did not bind"));

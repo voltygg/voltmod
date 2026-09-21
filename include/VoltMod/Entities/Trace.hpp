@@ -65,8 +65,8 @@ public:
 
     /** Sweep the box @p mins..@p maxs, relative to the path, from @p from to @p to. `End` is where
      *  the box's origin stopped. Unsupported when the Nav_TraceShape slot did not bind. */
-    Result<TraceHit> Hull(const Vector& from, const Vector& to, const Vector& mins, const Vector& maxs,
-                          const TraceOptions& options = {}) const;
+    Result<TraceHit> Box(const Vector& from, const Vector& to, const Vector& mins, const Vector& maxs,
+                         const TraceOptions& options = {}) const;
 
     /** True when nothing in the chosen layers lies between the two points. */
     Result<bool> Clear(const Vector& from, const Vector& to, const TraceOptions& options = {}) const;
