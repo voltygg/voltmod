@@ -28,7 +28,7 @@ static EntityRef RefOf(const CEntityInstance* entity)
 {
     if (!entity || !entity->m_pEntity)
         return {};
-    return {static_cast<uint32_t>(entity->m_pEntity->m_EHandle.ToInt())};
+    return {static_cast<uint32_t>(entity->GetRefEHandle().ToInt())};
 }
 
 static TraceHit ToHit(const CGameTrace& trace)

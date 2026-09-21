@@ -20,19 +20,19 @@ static Schema::CGameSceneNode SceneNode(const Entity& entity)
 
 int Entity::Index() const
 {
-    return (_e && _e->m_pEntity) ? _e->m_pEntity->GetEntityIndex().Get() : -1;
+    return (_e && _e->m_pEntity) ? _e->GetEntityIndex().Get() : -1;
 }
 
 EntityRef Entity::Ref() const
 {
-    return {(_e && _e->m_pEntity) ? static_cast<uint32_t>(_e->m_pEntity->m_EHandle.ToInt()) : InvalidEntityHandle};
+    return {(_e && _e->m_pEntity) ? static_cast<uint32_t>(_e->GetRefEHandle().ToInt()) : InvalidEntityHandle};
 }
 
 std::string_view Entity::ClassName() const
 {
     if (!_e || !_e->m_pEntity)
         return {};
-    const char* name = _e->m_pEntity->m_designerName.String();
+    const char* name = _e->GetClassname();
     return name ? std::string_view(name) : std::string_view{};
 }
 

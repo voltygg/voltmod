@@ -171,8 +171,7 @@ void EntityOps::EmitSoundFilter(IRecipientFilter& filter, CEntityInstance* sourc
     params.Volume = volume;
     params.Pitch = static_cast<int16_t>(pitch);
 
-    CEntityIndex sourceIndex(source->m_pEntity->m_EHandle.GetEntryIndex());
-    std::bit_cast<EmitSoundFilterFn>(_bindings.EmitSoundFilter.Ptr())(filter, sourceIndex, params);
+    std::bit_cast<EmitSoundFilterFn>(_bindings.EmitSoundFilter.Ptr())(filter, source->GetEntityIndex(), params);
 }
 
 }  // namespace VoltMod

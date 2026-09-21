@@ -110,8 +110,6 @@ public:
     /** @} */
 
 private:
-    CEntityIdentity* GetEntityIdentityByIndex(CGameEntitySystem* system, int index);
-
     CEntityInstance* RawController(int slot);
 
     /** Read CGameEntitySystem* at the gamedata offset, or nullptr when it is unavailable. */

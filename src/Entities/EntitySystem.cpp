@@ -5,7 +5,6 @@
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Schema/Api.hpp>
-#include <entity2/concreteentitylist.h>
 #include <entity2/entityidentity.h>
 #include <entity2/entityinstance.h>
 #include <entity2/entitysystem.h>
@@ -101,45 +100,14 @@ CGameEntitySystem* EntitySystem::GetEntitySystem()
     return _interfaces.EntitySystem;
 }
 
-CEntityIdentity* EntitySystem::GetEntityIdentityByIndex(CGameEntitySystem* system, int index)
-{
-    if (!system || index < 0 || index >= MAX_TOTAL_ENTITIES)
-        return nullptr;
-
-    int chunk = index / MAX_ENTITIES_IN_LIST;
-    int offset = index % MAX_ENTITIES_IN_LIST;
-
-    CEntityIdentity* chunkBase = system->m_EntityList.m_pIdentityChunks[chunk];
-    if (!chunkBase)
-        return nullptr;
-
-    // A freed identity keeps a dangling m_pInstance; only its handle says the entry is dead.
-    CEntityIdentity* identity = &chunkBase[offset];
-    if (identity->GetRefEHandle().GetEntryIndex() != index)
-        return nullptr;
-    return identity;
-}
-
 Entity EntitySystem::Resolve(EntityRef ref)
 {
-    if (!ref)
-        return {};
-
-    int entryIndex = static_cast<int>(ref.Handle & 0x7FFF);  // low 15 bits index, high bits serial
-
     auto* system = GetEntitySystem();
-    if (!system)
+    if (!ref || !system)
         return {};
 
-    CEntityIdentity* identity = GetEntityIdentityByIndex(system, entryIndex);
-    if (!identity)
-        return {};
-
-    // Validate the identity before m_pInstance because a destroyed entity leaves a dangling pointer.
-    if (static_cast<uint32_t>(identity->GetRefEHandle().ToInt()) != ref.Handle)
-        return {};
-
-    return {*this, identity->m_pInstance};
+    // The identity's serial must match, since a destroyed entity leaves a dangling instance pointer.
+    return {*this, system->GetEntityInstance(CEntityHandle(ref.Handle))};
 }
 
 CEntityInstance* EntitySystem::RawController(int slot)
@@ -149,7 +117,7 @@ CEntityInstance* EntitySystem::RawController(int slot)
         return nullptr;
 
     // Controllers occupy indices 1..MaxPlayers; index 0 is worldspawn.
-    CEntityIdentity* identity = GetEntityIdentityByIndex(system, slot + 1);
+    CEntityIdentity* identity = system->GetEntityIdentity(CEntityIndex(slot + 1));
     if (!identity)
         return nullptr;
 
