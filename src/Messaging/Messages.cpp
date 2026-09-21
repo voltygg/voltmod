@@ -40,6 +40,19 @@ static std::string Render(std::string_view message, MessageKind kind)
     return kind == MessageKind::Chat ? EnsureColorPrefix(message) : std::string(message);
 }
 
+static int HudDestination(MessageKind kind)
+{
+    switch (kind)
+    {
+    case MessageKind::Center:
+        return HUD_PRINTCENTER;
+    case MessageKind::Alert:
+        return HUD_PRINTALERT;
+    default:
+        return HUD_PRINTTALK;
+    }
+}
+
 Messages::Messages(Interfaces& interfaces, GameEvents& events, Translations& translations)
     : _interfaces(interfaces), _events(events), _translations(translations)
 {}
@@ -91,10 +104,7 @@ void Messages::Send(int slot, std::string_view message, MessageKind kind)
         return;
     }
 
-    int destination = kind == MessageKind::Center  ? HUD_PRINTCENTER
-                      : kind == MessageKind::Alert ? HUD_PRINTALERT
-                                                   : HUD_PRINTTALK;
-    SendTextMsg(slot, destination, Render(message, kind));
+    SendTextMsg(slot, HudDestination(kind), Render(message, kind));
 }
 
 void Messages::Broadcast(std::string_view message, MessageKind kind)
@@ -115,11 +125,7 @@ void Messages::Broadcast(std::string_view message, MessageKind kind)
     for (int slot = 0; slot < MaxPlayers; ++slot)
         filter.AddRecipient(slot);
 
-    PostTextMsg(filter,
-                kind == MessageKind::Center  ? HUD_PRINTCENTER
-                : kind == MessageKind::Alert ? HUD_PRINTALERT
-                                             : HUD_PRINTTALK,
-                rendered);
+    PostTextMsg(filter, HudDestination(kind), rendered);
 }
 
 void Messages::Reply(int slot, std::string_view message)
