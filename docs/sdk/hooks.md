@@ -115,8 +115,20 @@ runtime.Hooks.Damage.Apply(target, {.Attacker = owner.Ref(),     // credited in 
 ```
 
 The engine drops a hit with no inflictor, so an empty `Inflictor` falls back to the attacker.
-Both need the `CBaseEntity::TakeDamageOld` and `CTakeDamageInfo::CTakeDamageInfo` signatures;
-`Available()` says which one did not bind.
+The hit lands at the victim's origin, pushed away from the inflictor. `player_death` names the
+attacker's active weapon. Both need the `CBaseEntity::TakeDamageOld` and
+`CTakeDamageInfo::CTakeDamageInfo` signatures; `Available()` says which one did not bind.
+
+### Damaging props
+
+Bullets reach `Before` for any prop with collision, with the prop as `hit.Victim`. A
+`prop_dynamic` spawned with a precached model and `solid` 6 is enough. Bullets that hit the world
+arrive too, with `worldent` (index 0) as the victim.
+
+The engine keeps no health on a `prop_dynamic`: a `health` keyvalue, `SetMaxHealth` and
+`SetTakesDamage(true)` change nothing. Keep the prop's health in the plugin and set
+`hit.Blocked`. A `prop_physics_override` with `spawnflags` 8 (motion disabled) and a `health`
+keyvalue does lose health, to bullets and to `Apply`, and the engine removes it at zero.
 
 ## Hooking a vfunc the framework does not cover
 

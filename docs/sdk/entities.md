@@ -179,14 +179,14 @@ and `HitEntity`, the entity it hit (the world included); `Clear` is the yes/no f
 windows and clips do not count) or `Solid` (what a player body collides with, other players
 included).
 
-`Hull` sweeps a box instead of a line, to ask whether something of that size fits along the path:
+`Hull` sweeps a box instead of a line. A sweep that starts and ends at one point asks whether a
+box of that size fits there:
 
 ```cpp
-const Vector mins(-16.0f, -16.0f, 0.0f), maxs(16.0f, 16.0f, 48.0f);
-const auto swept = runtime.World.Trace.Hull(spot + Vector(0, 0, 8), spot, mins, maxs,
-                                            {.Layers = VoltMod::TraceLayers::Solid, .Ignore1 = self.Raw()});
-if (swept && !swept->Hit)
-    ...  // the box fits at spot
+const Vector mins(-16.0f, -16.0f, 1.0f), maxs(16.0f, 16.0f, 48.0f);   // just clear of the floor
+const auto blocked = runtime.World.Trace.Hull(spot, spot, mins, maxs, {.Layers = VoltMod::TraceLayers::Solid});
+if (blocked && !blocked->Hit)
+    ...  // nothing solid, players included, overlaps the box at spot
 ```
 
 `Hull` needs its own vtable slot, so it can be unsupported while `Line` works.
