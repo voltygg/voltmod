@@ -8,6 +8,20 @@
 namespace VoltMod
 {
 
+static void RemoveListener(CUtlVector<CUtlVector<IGameSystem*>>& table, IGameSystem* system)
+{
+    // Each slot is indexed by event id, so an emptied slot stays.
+    for (int event = 0; event < table.Count(); ++event)
+    {
+        auto& listeners = table[event];
+        for (int i = listeners.Count() - 1; i >= 0; --i)
+        {
+            if (listeners[i] == system)
+                listeners.Remove(i);
+        }
+    }
+}
+
 GS_EVENT_MEMBER(PrecacheGameSystem, BuildGameSessionManifest)
 {
     if (!msg->m_pResourceManifest)
@@ -36,11 +50,13 @@ Status Precache::Initialize(std::string systemName)
     auto* listHead = static_cast<GameSystemFactory**>(_bindings.GameSystemFactoryList.Ptr());
     _eventDispatcher = _bindings.GameSystemEventDispatcher.Ptr();
     _gameSystems = _bindings.GameSystemList.Ptr();
+    _fallbackListeners = _bindings.GameSystemFallbackListeners.Ptr();
 
-    if (!listHead || !_eventDispatcher || !_gameSystems)
+    if (!listHead || !_eventDispatcher || !_gameSystems || !_fallbackListeners)
     {
         _eventDispatcher = nullptr;
         _gameSystems = nullptr;
+        _fallbackListeners = nullptr;
         return std::unexpected(Error::Unsupported("a game-system address did not bind"));
     }
 
@@ -62,39 +78,29 @@ void Precache::Shutdown()
     delete _factory;
     _factory = nullptr;
 
-    // Detach the live game system from the current session so nothing calls into
-    // this plugin after unload. Both structures may already be empty when the
-    // server itself is shutting down. Recipe mirrors CS2Fixes' UnregisterGameSystem.
+    // Detach the live game system from the current session so nothing calls into this plugin
+    // after unload. Removals keep the order: the engine runs systems in list order, and a
+    // reordered list broke bot animation after a reload.
     if (auto* gameSystems = static_cast<CUtlVector<AddedGameSystem_t>*>(_gameSystems))
     {
         for (int i = gameSystems->Count() - 1; i >= 0; --i)
         {
             if ((*gameSystems)[i].m_pGameSystem == _system.get())
-                gameSystems->FastRemove(i);
+                gameSystems->Remove(i);
         }
     }
 
     auto** dispatcherSlot = static_cast<CGameSystemEventDispatcher**>(_eventDispatcher);
     if (dispatcherSlot && *dispatcherSlot && (*dispatcherSlot)->m_funcListeners)
-    {
-        auto& funcListeners = *(*dispatcherSlot)->m_funcListeners;
-        for (int i = funcListeners.Count() - 1; i >= 0; --i)
-        {
-            auto& listeners = funcListeners[i];
-            for (int j = listeners.Count() - 1; j >= 0; --j)
-            {
-                if (listeners[j] == _system.get())
-                    listeners.FastRemove(j);
-            }
-
-            if (!listeners.Count())
-                funcListeners.FastRemove(i);
-        }
-    }
+        RemoveListener(*(*dispatcherSlot)->m_funcListeners, _system.get());
+    // A listener left here is called after the image unloads, at the next level change.
+    if (auto* fallback = static_cast<CUtlVector<CUtlVector<IGameSystem*>>*>(_fallbackListeners))
+        RemoveListener(*fallback, _system.get());
 
     _system.reset();
     _eventDispatcher = nullptr;
     _gameSystems = nullptr;
+    _fallbackListeners = nullptr;
 }
 
 void Precache::Add(std::string_view resourcePath)

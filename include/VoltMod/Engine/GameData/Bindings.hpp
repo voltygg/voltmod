@@ -208,6 +208,9 @@ struct Bindings
     Address GameSystemEventDispatcher;
     /** CUtlVector<AddedGameSystem_t>* used to remove systems on unload. */
     Address GameSystemList;
+    /** CUtlVector<CUtlVector<IGameSystem*>>* the engine dispatches from during a level change;
+     *  systems are removed from it on unload too. */
+    Address GameSystemFallbackListeners;
 
     /** CBasePlayerPawn::CommitSuicide(bool explode, bool force), counted in CCSPlayerPawn. */
     VirtualFn<void(CEntityInstance*, bool, bool)> CommitSuicide;

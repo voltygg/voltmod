@@ -86,6 +86,7 @@ Status Bindings::Bind(const GameDataLookup& lookup)
     bind(GameSystemFactoryList, "CBaseGameSystemFactory::sm_pFirst");
     bind(GameSystemEventDispatcher, "IGameSystem::pEventDispatcher");
     bind(GameSystemList, "IGameSystem::s_GameSystems");
+    bind(GameSystemFallbackListeners, "IGameSystem::s_FallbackListeners");
 
     bind(CommitSuicide, "CBasePlayerPawn::CommitSuicide");
     bind(ChangeTeam, "CCSPlayerController::ChangeTeam");

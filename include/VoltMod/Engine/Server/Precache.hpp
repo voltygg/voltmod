@@ -35,8 +35,9 @@ public:
      *  engine rejects duplicates. Error::Unsupported when a game-system address did not bind. */
     Status Initialize(std::string systemName);
 
-    /** Detach from the engine (factory list, event dispatcher, active-systems
-     *  vector). Idempotent; must run before the plugin image unloads. */
+    /** Detach from the engine (factory list, both listener tables, active-systems
+     *  vector) without reordering the engine's systems. Idempotent; must run before the
+     *  plugin image unloads. */
     void Shutdown();
 
     /** Queue a resource path (e.g. "particles/foo.vpcf") for the next map load. Dedupes. */
@@ -52,6 +53,7 @@ private:
     GameSystemFactory* _factory = nullptr;
     void* _eventDispatcher = nullptr;  // CGameSystemEventDispatcher** (internal type)
     void* _gameSystems = nullptr;      // CUtlVector<AddedGameSystem_t>* (internal type)
+    void* _fallbackListeners = nullptr;  // CUtlVector<CUtlVector<IGameSystem*>>* (internal type)
 };
 
 }  // namespace VoltMod
