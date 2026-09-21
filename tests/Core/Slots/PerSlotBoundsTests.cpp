@@ -39,11 +39,10 @@ TEST_CASE("Reset at MaxPlayers is a no-op")
     CHECK(values[MaxPlayers - 1] == 9);
 }
 
-TEST_CASE("BindReset ignores an invalid slot raised through SlotEvents")
+TEST_CASE("A bound PerSlot ignores an invalid slot raised through SlotEvents")
 {
     SlotEvents slots;
-    PerSlot<int> values;
-    values.BindReset(slots);
+    PerSlot<int> values{slots};
     values[0] = 5;
 
     // Neither call should touch a real slot's value or assert-fail on the invalid index.

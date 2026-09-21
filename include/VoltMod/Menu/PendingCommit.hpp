@@ -34,12 +34,9 @@ public:
     /** How long a stepped value waits before it is applied. */
     static constexpr int64_t DelayMs = 400;
 
-    /** Store the timer used by @ref Hold. */
-    explicit PendingCommit(Timer timer);
-
-    /** Drop a slot's pending commit unrun when the slot changes hands. @p slots must outlive
-     *  this. */
-    void BindReset(SlotEvents& slots);
+    /** Store the timer used by @ref Hold. A slot's pending commit is dropped unrun when the slot
+     *  changes hands; @p slots must outlive this. */
+    PendingCommit(Timer timer, SlotEvents& slots);
 
     /** Hold @p commit for row @p index of @p slot. Holding the same row again restarts the delay;
      *  holding a different one applies what the previous row was holding first. */

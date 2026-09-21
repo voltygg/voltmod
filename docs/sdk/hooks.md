@@ -73,8 +73,8 @@ diagnostics, not gameplay.
 service keeps no history; store your own window.
 
 ```cpp
-// Subscribing is what installs the hook. PerSlot clears a stamp when the seat changes hands.
-_lastTeleport.BindReset(runtime.Slots);
+// Subscribing is what installs the hook. _lastTeleport, a PerSlot<float> constructed with
+// runtime.Slots, clears a stamp when the seat changes hands.
 _teleports = runtime.Hooks.Teleport.Teleported += [this](int slot) {
     if (VoltMod::IsValidSlot(slot))
         _lastTeleport[slot] = _rt.Clock.Time();

@@ -5,13 +5,8 @@
 namespace VoltMod
 {
 
-PendingCommit::PendingCommit(Timer timer) : _timer(std::move(timer)) {}
-
-void PendingCommit::BindReset(SlotEvents& slots)
-{
-    // Dropping the subscription drops a commit when the slot changes hands.
-    _entries.BindReset(slots);
-}
+// Resetting an entry drops its timer subscription, so the commit never runs.
+PendingCommit::PendingCommit(Timer timer, SlotEvents& slots) : _timer(std::move(timer)), _entries(slots) {}
 
 void PendingCommit::Hold(int slot, int index, std::function<void()> commit)
 {

@@ -9,21 +9,18 @@ namespace VoltMod
 
 static constexpr std::string_view kBreadcrumbSeparator = " › ";
 
-MenuStack::MenuStack(MenuSurface& surface, Translations& translations, Scheduler& scheduler)
-    : MenuStack(surface, translations, PendingCommit::Timer([&scheduler](int64_t delayMs, std::function<void()> run) {
-                    return scheduler.Delay(delayMs, std::move(run));
-                }))
-{}
-
-MenuStack::MenuStack(MenuSurface& surface, Translations& translations, PendingCommit::Timer timer)
-    : _surface(surface), _translations(translations), _pending(std::move(timer))
-{}
-
-void MenuStack::BindReset(SlotEvents& slots)
+static PendingCommit::Timer TimerOn(Scheduler& scheduler)
 {
-    _states.BindReset(slots);
-    _pending.BindReset(slots);
+    return [&scheduler](int64_t ms, std::function<void()> run) { return scheduler.Delay(ms, std::move(run)); };
 }
+
+MenuStack::MenuStack(MenuSurface& surface, Translations& translations, Scheduler& scheduler, SlotEvents& slots)
+    : MenuStack(surface, translations, TimerOn(scheduler), slots)
+{}
+
+MenuStack::MenuStack(MenuSurface& surface, Translations& translations, PendingCommit::Timer timer, SlotEvents& slots)
+    : _surface(surface), _translations(translations), _states(slots), _pending(std::move(timer), slots)
+{}
 
 Menu* MenuStack::Current(int slot)
 {

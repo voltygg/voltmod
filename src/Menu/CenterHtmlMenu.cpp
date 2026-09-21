@@ -24,11 +24,10 @@ static CursorRows CursorRowsFor(Menu* menu, int slot)
 }
 
 CenterHtmlMenu::CenterHtmlMenu(const Services& services)
-    : _services(services), _stack(*this, _services.Translations, services.Scheduler)
-{
-    _stack.BindReset(services.Slots);
-    _cursors.BindReset(services.Slots);
-}
+    : _services(services),
+      _stack(*this, _services.Translations, services.Scheduler, services.Slots),
+      _cursors(services.Slots)
+{}
 
 bool CenterHtmlMenu::OpenSession(int slot, std::shared_ptr<Menu> menu, MenuOptions options)
 {

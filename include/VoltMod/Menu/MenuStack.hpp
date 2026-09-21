@@ -34,15 +34,13 @@ namespace VoltMod
 class MenuStack
 {
 public:
-    /** @p surface is what a row's Activate callback is handed: the surface owning this stack.
-     *  Every reference must outlive this instance. */
-    MenuStack(MenuSurface& surface, Translations& translations, Scheduler& scheduler);
+    /** @p surface is what a row's Activate callback is handed: the surface owning this stack. A
+     *  slot's stack is dropped when @p slots reports it changed hands. Every reference must
+     *  outlive this instance. */
+    MenuStack(MenuSurface& surface, Translations& translations, Scheduler& scheduler, SlotEvents& slots);
 
     /** The same, with the held commit's delay driven by @p timer instead of a Scheduler. */
-    MenuStack(MenuSurface& surface, Translations& translations, PendingCommit::Timer timer);
-
-    /** Drop a slot's stack when it changes hands. @p slots must outlive this. */
-    void BindReset(SlotEvents& slots);
+    MenuStack(MenuSurface& surface, Translations& translations, PendingCommit::Timer timer, SlotEvents& slots);
 
     /** Top menu, or null when none is open. */
     [[nodiscard]] Menu* Current(int slot);

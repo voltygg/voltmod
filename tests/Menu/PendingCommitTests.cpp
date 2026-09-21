@@ -15,8 +15,9 @@ using VoltModTests::FakeTimers;
 
 TEST_CASE("PendingCommit: a stepped row waits out the delay before it commits")
 {
+    SlotEvents slots;
     FakeTimers timers;
-    PendingCommit pending(timers.Bind());
+    PendingCommit pending(timers.Bind(), slots);
 
     int commits = 0;
     pending.Hold(0, 2, [&] { ++commits; });
@@ -34,8 +35,9 @@ TEST_CASE("PendingCommit: a stepped row waits out the delay before it commits")
 
 TEST_CASE("PendingCommit: a burst of steps on one row is one commit")
 {
+    SlotEvents slots;
     FakeTimers timers;
-    PendingCommit pending(timers.Bind());
+    PendingCommit pending(timers.Bind(), slots);
 
     int commits = 0;
     for (int i = 0; i < 5; ++i)
@@ -51,8 +53,9 @@ TEST_CASE("PendingCommit: a burst of steps on one row is one commit")
 
 TEST_CASE("PendingCommit: stepping another row commits the one before it")
 {
+    SlotEvents slots;
     FakeTimers timers;
-    PendingCommit pending(timers.Bind());
+    PendingCommit pending(timers.Bind(), slots);
 
     int first = 0;
     int second = 0;
@@ -67,8 +70,9 @@ TEST_CASE("PendingCommit: stepping another row commits the one before it")
 
 TEST_CASE("PendingCommit: running it applies the value now and drops the timer")
 {
+    SlotEvents slots;
     FakeTimers timers;
-    PendingCommit pending(timers.Bind());
+    PendingCommit pending(timers.Bind(), slots);
 
     int commits = 0;
     pending.Hold(0, 0, [&] { ++commits; });
@@ -85,8 +89,9 @@ TEST_CASE("PendingCommit: running it applies the value now and drops the timer")
 
 TEST_CASE("PendingCommit: cancelling drops the value unrun")
 {
+    SlotEvents slots;
     FakeTimers timers;
-    PendingCommit pending(timers.Bind());
+    PendingCommit pending(timers.Bind(), slots);
 
     int commits = 0;
     pending.Hold(0, 0, [&] { ++commits; });
@@ -102,8 +107,7 @@ TEST_CASE("PendingCommit: a slot changing hands cancels rather than commits")
 {
     SlotEvents slots;
     FakeTimers timers;
-    PendingCommit pending(timers.Bind());
-    pending.BindReset(slots);
+    PendingCommit pending(timers.Bind(), slots);
 
     int commits = 0;
     pending.Hold(3, 4, [&] { ++commits; });
@@ -118,8 +122,9 @@ TEST_CASE("PendingCommit: a slot changing hands cancels rather than commits")
 
 TEST_CASE("PendingCommit: one player's pending value is not another's")
 {
+    SlotEvents slots;
     FakeTimers timers;
-    PendingCommit pending(timers.Bind());
+    PendingCommit pending(timers.Bind(), slots);
 
     int first = 0;
     int second = 0;
@@ -138,8 +143,9 @@ TEST_CASE("PendingCommit: one player's pending value is not another's")
 
 TEST_CASE("PendingCommit: running an empty slot does nothing")
 {
+    SlotEvents slots;
     FakeTimers timers;
-    PendingCommit pending(timers.Bind());
+    PendingCommit pending(timers.Bind(), slots);
 
     pending.Apply(0);
     pending.Drop(0);
@@ -150,8 +156,9 @@ TEST_CASE("PendingCommit: running an empty slot does nothing")
 
 TEST_CASE("PendingCommit: a commit that holds the next value is not run twice")
 {
+    SlotEvents slots;
     FakeTimers timers;
-    PendingCommit pending(timers.Bind());
+    PendingCommit pending(timers.Bind(), slots);
 
     int commits = 0;
     int heldAgain = 0;

@@ -5,10 +5,8 @@ namespace VoltMod
 {
 
 MenuFreeze::MenuFreeze(EntitySystem& entities, Scheduler& scheduler, SlotEvents& slots)
-    : _entities(entities), _scheduler(scheduler)
-{
-    _states.BindReset(slots);
-}
+    : _entities(entities), _scheduler(scheduler), _states(slots)
+{}
 
 void MenuFreeze::Enable(bool enabled)
 {

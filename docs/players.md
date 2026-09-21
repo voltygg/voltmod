@@ -78,13 +78,13 @@ the next occupant:
 ```cpp
 struct MyState { int Combo = 0; float Score = 0; };
 
-VoltMod::PerSlot<MyState> _state;   // manager member; inert until bound
-_state.BindReset(runtime.Slots);    // in the owner's ctor or Initialize()
-_state[slot].Combo++;               // plain indexed access afterwards
+VoltMod::PerSlot<MyState> _state{runtime.Slots};   // manager member, reset per slot
+_state[slot].Combo++;                              // plain indexed access
 ```
 
-`BindReset` is idempotent and the destructor unsubscribes. It takes the @ref VoltMod::SlotEvents
-feed rather than the runtime, so a translation unit including only `PerSlot.hpp` still compiles.
+The destructor unsubscribes. The constructor takes the @ref VoltMod::SlotEvents feed rather than
+the runtime, so a translation unit including only `PerSlot.hpp` still compiles. A default-constructed
+`PerSlot` never resets on its own.
 
 Subscribe to `runtime.Slots.Changed` when a slot change must do more than reset a value - close a
 menu, cancel a timer. It fires for additions, removals and tracked slots cleared during unload. Use

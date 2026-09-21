@@ -17,11 +17,10 @@ TEST_CASE("An unbound PerSlot keeps its values when a slot changes hands")
     CHECK(values[3] == 7);
 }
 
-TEST_CASE("BindReset clears the slot that changed hands and leaves the others alone")
+TEST_CASE("A bound PerSlot clears the slot that changed hands and leaves the others alone")
 {
     SlotEvents slots;
-    PerSlot<int> values;
-    values.BindReset(slots);
+    PerSlot<int> values{slots};
 
     values[3] = 7;
     values[4] = 11;
@@ -32,25 +31,11 @@ TEST_CASE("BindReset clears the slot that changed hands and leaves the others al
     CHECK(values[4] == 11);
 }
 
-TEST_CASE("BindReset is idempotent, so a slot change resets once")
-{
-    SlotEvents slots;
-    PerSlot<int> values;
-    values.BindReset(slots);
-    values.BindReset(slots);
-
-    values[2] = 5;
-    slots.Raise(2);
-
-    CHECK(values[2] == 0);
-}
-
 TEST_CASE("Destroying a PerSlot unsubscribes, so a later slot change is inert")
 {
     SlotEvents slots;
     {
-        auto values = std::make_unique<PerSlot<int>>();
-        values->BindReset(slots);
+        auto values = std::make_unique<PerSlot<int>>(slots);
         (*values)[5] = 42;
     }
 

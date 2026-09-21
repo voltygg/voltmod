@@ -10,11 +10,11 @@ namespace VoltMod
 {
 
 PanoramaMenu::PanoramaMenu(const Services& services, MenuLayout& layout, uint64_t addonId)
-    : _services(services), _layout(layout), _stack(*this, _services.Translations, services.Scheduler)
+    : _services(services),
+      _layout(layout),
+      _stack(*this, _services.Translations, services.Scheduler, services.Slots),
+      _sessions(services.Slots)
 {
-    _stack.BindReset(services.Slots);
-    _sessions.BindReset(services.Slots);
-
     // Without the addon, report that the layout is unavailable instead of drawing blanks.
     if (addonId == 0)
         Log::Warn("PanoramaMenu: no addon required. Only a client the layout was compiled into can see it.");

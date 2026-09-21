@@ -41,7 +41,7 @@ static std::shared_ptr<Menu> Screen(std::string title, std::vector<VoltMod::Menu
  *  one binary, so a bare `Fixture` here would collide with another file's. */
 struct MenuStackFixture
 {
-    MenuStackFixture() : Stack(Surface, Strings, Timers.Bind()) {}
+    MenuStackFixture() : Stack(Surface, Strings, Timers.Bind(), Slots) {}
 
     SlotEvents Slots;
     TestLanguages Languages;
@@ -205,7 +205,6 @@ TEST_CASE("MenuStack: a disabled row does not activate")
 TEST_CASE("MenuStack: a slot changing hands drops its session unrun")
 {
     MenuStackFixture f;
-    f.Stack.BindReset(f.Slots);
 
     int commits = 0;
     f.Stack.Push(kSlot, Screen("Admin", {{
@@ -226,7 +225,8 @@ TEST_CASE("MenuStack: a Scheduler is accepted as the timer")
     Translations strings{languages};
     FakeMenuSurface surface;
     VoltMod::Scheduler scheduler;
-    MenuStack stack(surface, strings, scheduler);
+    SlotEvents slots;
+    MenuStack stack(surface, strings, scheduler, slots);
 
     int committed = 0;
     stack.Push(kSlot, Screen("Admin", {VoltMod::MenuItem{.Describe =

@@ -13,11 +13,9 @@ namespace VoltMod
 /**
  * @brief Per-player-slot value store that never leaks state across occupants.
  *
- * A plain `std::array<T, MaxPlayers>` plus an optional binding to the slot-change
- * feed: after BindReset() the entry for a slot is value-reset whenever a player
- * joins or leaves it. Default construction is inert, so PerSlot can live in plugin
- * manager containers and bind later - typically `_state.BindReset(runtime.Slots)`
- * from the owner's constructor or Initialize.
+ * A plain `std::array<T, MaxPlayers>`. Constructed with the slot-change feed, the entry for a
+ * slot is value-reset whenever a player joins or leaves it: `PerSlot<State> _state{runtime.Slots};`.
+ * Default construction is inert, for an owner that resets entries itself.
  *
  * Takes @ref SlotEvents rather than the runtime so a plugin translation unit
  * that includes only this header still compiles.
@@ -27,18 +25,12 @@ class PerSlot
 {
 public:
     PerSlot() = default;
+    /** Resets a slot's entry on player connect/disconnect. @p slots must outlive this object. */
+    explicit PerSlot(SlotEvents& slots) : _listener(slots.Changed += [this](int slot) { Reset(slot); }) {}
     /** Unsubscribes directly, so the feed cannot reset entries that are going away. */
     ~PerSlot() { _listener.Reset(); }
     PerSlot(const PerSlot&) = delete;
     PerSlot& operator=(const PerSlot&) = delete;
-
-    /** Auto-reset a slot's entry on player connect/disconnect. Idempotent; @p slots must
-     *  outlive this object. */
-    void BindReset(SlotEvents& slots)
-    {
-        if (!_listener)
-            _listener = slots.Changed += [this](int slot) { Reset(slot); };
-    }
 
     /** @pre IsValidSlot(slot); asserted, not checked - callers that can receive an unvalidated
      *  slot (console callers, CallerSlot() == -1) must check IsValidSlot before indexing. */
