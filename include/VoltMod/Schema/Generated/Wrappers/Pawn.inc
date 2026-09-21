@@ -102,6 +102,10 @@ Schema::CPlayer_WeaponServices WeaponServices() const
 {
     return Schema::CBasePlayerPawn{_e}.WeaponServices();
 }
+Schema::CPlayer_CameraServices CameraServices() const
+{
+    return Schema::CBasePlayerPawn{_e}.CameraServices();
+}
 uint32_t ControllerHandle() const
 {
     return Schema::CBasePlayerPawn{_e}.ControllerHandle();

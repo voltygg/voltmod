@@ -11,7 +11,8 @@ namespace VoltMod::Schema
 
 // ---- CPlayer_MovementServices, 600 bytes --------------------------
 static constexpr int32_t CPlayer_MovementServices_kOwnerLinkOffset = 8;
-static constexpr int32_t kCPlayer_MovementServices_Buttons = 80;  // CInButtonState
+static constexpr int32_t kCPlayer_MovementServices_Buttons = 80;    // CInButtonState
+static constexpr int32_t kCPlayer_MovementServices_MaxSpeed = 428;  // float32
 
 ::CEntityInstance* CPlayer_MovementServices::OwnerEntity() const
 {
@@ -25,6 +26,23 @@ CInButtonState CPlayer_MovementServices::Buttons() const
 
     return CInButtonState{MemberPtr<void>(_base, kCPlayer_MovementServices_Buttons), _owner,
                           _ownerOffset + kCPlayer_MovementServices_Buttons};
+}
+
+float CPlayer_MovementServices::MaxSpeed() const
+{
+    if (!_base)
+        return {};
+
+    return *MemberPtr<float>(_base, kCPlayer_MovementServices_MaxSpeed);
+}
+
+void CPlayer_MovementServices::SetMaxSpeed(float value) const
+{
+    if (!_base)
+        return;
+
+    *MemberPtr<float>(_base, kCPlayer_MovementServices_MaxSpeed) = value;
+    NotifyComponentOwner(_base, CPlayer_MovementServices_kOwnerLinkOffset, kCPlayer_MovementServices_MaxSpeed);
 }
 
 }  // namespace VoltMod::Schema

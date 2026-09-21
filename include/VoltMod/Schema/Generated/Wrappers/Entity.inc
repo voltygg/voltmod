@@ -10,6 +10,30 @@ void SetHealth(int32_t value) const
 {
     Schema::CBaseEntity{_e}.SetHealth(value);
 }
+int32_t MaxHealth() const
+{
+    return Schema::CBaseEntity{_e}.MaxHealth();
+}
+void SetMaxHealth(int32_t value) const
+{
+    Schema::CBaseEntity{_e}.SetMaxHealth(value);
+}
+bool TakesDamage() const
+{
+    return Schema::CBaseEntity{_e}.TakesDamage();
+}
+void SetTakesDamage(bool value) const
+{
+    Schema::CBaseEntity{_e}.SetTakesDamage(value);
+}
+float GravityScale() const
+{
+    return Schema::CBaseEntity{_e}.GravityScale();
+}
+void SetGravityScale(float value) const
+{
+    Schema::CBaseEntity{_e}.SetGravityScale(value);
+}
 uint8_t Team() const
 {
     return Schema::CBaseEntity{_e}.Team();

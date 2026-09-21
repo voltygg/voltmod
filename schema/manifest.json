@@ -2,6 +2,9 @@
   "classes": {
     "CBaseEntity": [
       "m_iHealth>Health",
+      "m_iMaxHealth>MaxHealth",
+      "m_bTakesDamage>TakesDamage",
+      "m_flGravityScale>GravityScale",
       "m_iTeamNum>Team",
       "m_lifeState",
       "m_fFlags>Flags",
@@ -25,6 +28,7 @@
       "m_pItemServices>ItemServices",
       "m_pMovementServices>MovementServices",
       "m_pWeaponServices>WeaponServices",
+      "m_pCameraServices>CameraServices",
       "m_hController>ControllerHandle"
     ],
     "CBaseCombatCharacter": [
@@ -67,7 +71,15 @@
       "m_ModelName>ModelName"
     ],
     "CPlayer_MovementServices": [
-      "m_nButtons>Buttons"
+      "m_nButtons>Buttons",
+      "m_flMaxspeed>MaxSpeed"
+    ],
+    "CPlayer_CameraServices": [
+      "m_hViewEntity>ViewEntity"
+    ],
+    "CCSPlayerBase_CameraServices": [
+      "m_iFOV>FieldOfView",
+      "m_hZoomOwner>ZoomOwner"
     ],
     "CPlayer_ObserverServices": [
       "m_iObserverMode>ObserverMode",

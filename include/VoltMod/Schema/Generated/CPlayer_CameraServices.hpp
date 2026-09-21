@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include <VoltMod/Schema/Generated/CInButtonState.hpp>
 #include <VoltMod/Schema/Generated/CPlayerPawnComponent.hpp>
 #include <VoltMod/Schema/View.hpp>
 #include <cstdint>
@@ -10,8 +9,8 @@
 namespace VoltMod::Schema
 {
 
-/** Frame-local view over an engine CPlayer_MovementServices; never store one. */
-class CPlayer_MovementServices : public CPlayerPawnComponent
+/** Frame-local view over an engine CPlayer_CameraServices; never store one. */
+class CPlayer_CameraServices : public CPlayerPawnComponent
 {
 public:
     using CPlayerPawnComponent::CPlayerPawnComponent;
@@ -19,10 +18,8 @@ public:
     /** The entity that owns this component, or nullptr. */
     ::CEntityInstance* OwnerEntity() const;
 
-    CInButtonState Buttons() const;
-
-    float MaxSpeed() const;
-    void SetMaxSpeed(float value) const;
+    uint32_t ViewEntity() const;
+    void SetViewEntity(uint32_t value) const;
 };
 
 }  // namespace VoltMod::Schema

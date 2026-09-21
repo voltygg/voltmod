@@ -2296,6 +2296,89 @@
         }
       ]
     },
+    "CCSPlayerBase_CameraServices": {
+      "size": 432,
+      "base": "CPlayer_CameraServices",
+      "chain_offset": 8,
+      "fields": [
+        {
+          "name": "m_iFOV",
+          "offset": 376,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_iFOVStart",
+          "offset": 380,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_flFOVTime",
+          "offset": 384,
+          "size": 4,
+          "type": {
+            "name": "GameTime_t",
+            "category": "SCHEMA_TYPE_DECLARED_CLASS"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_flFOVRate",
+          "offset": 388,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_hZoomOwner",
+          "offset": 392,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CBaseEntity >",
+            "category": "SCHEMA_TYPE_ATOMIC",
+            "atomic": "SCHEMA_ATOMIC_T",
+            "inner": "CBaseEntity"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_hTriggerFogList",
+          "offset": 400,
+          "size": 24,
+          "type": {
+            "name": "CUtlVector< CHandle< CBaseEntity > >",
+            "category": "SCHEMA_TYPE_ATOMIC",
+            "atomic": "SCHEMA_ATOMIC_COLLECTION_OF_T",
+            "inner": "CHandle< CBaseEntity >"
+          },
+          "networked": false
+        },
+        {
+          "name": "m_hLastFogTrigger",
+          "offset": 424,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CBaseEntity >",
+            "category": "SCHEMA_TYPE_ATOMIC",
+            "atomic": "SCHEMA_ATOMIC_T",
+            "inner": "CBaseEntity"
+          },
+          "networked": false
+        }
+      ]
+    },
     "CCSPlayerController": {
       "size": 3456,
       "base": "CBasePlayerController",
@@ -5206,6 +5289,144 @@
           "type": {
             "name": "CAnimGraphControllerPtr",
             "category": "SCHEMA_TYPE_DECLARED_CLASS"
+          },
+          "networked": false
+        }
+      ]
+    },
+    "CPlayer_CameraServices": {
+      "size": 376,
+      "base": "CPlayerPawnComponent",
+      "chain_offset": 8,
+      "fields": [
+        {
+          "name": "m_vecCsViewPunchAngle",
+          "offset": 72,
+          "size": 12,
+          "type": {
+            "name": "QAngle",
+            "category": "SCHEMA_TYPE_ATOMIC",
+            "atomic": "SCHEMA_ATOMIC_PLAIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_nCsViewPunchAngleTick",
+          "offset": 84,
+          "size": 4,
+          "type": {
+            "name": "GameTick_t",
+            "category": "SCHEMA_TYPE_DECLARED_CLASS"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_flCsViewPunchAngleTickRatio",
+          "offset": 88,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_PlayerFog",
+          "offset": 96,
+          "size": 64,
+          "type": {
+            "name": "fogplayerparams_t",
+            "category": "SCHEMA_TYPE_DECLARED_CLASS"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_hColorCorrectionCtrl",
+          "offset": 160,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CColorCorrection >",
+            "category": "SCHEMA_TYPE_ATOMIC",
+            "atomic": "SCHEMA_ATOMIC_T",
+            "inner": "CColorCorrection"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_hViewEntity",
+          "offset": 164,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CBaseEntity >",
+            "category": "SCHEMA_TYPE_ATOMIC",
+            "atomic": "SCHEMA_ATOMIC_T",
+            "inner": "CBaseEntity"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_hTonemapController",
+          "offset": 168,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CTonemapController2 >",
+            "category": "SCHEMA_TYPE_ATOMIC",
+            "atomic": "SCHEMA_ATOMIC_T",
+            "inner": "CTonemapController2"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_audio",
+          "offset": 176,
+          "size": 120,
+          "type": {
+            "name": "audioparams_t",
+            "category": "SCHEMA_TYPE_DECLARED_CLASS"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_PostProcessingVolumes",
+          "offset": 296,
+          "size": 24,
+          "type": {
+            "name": "CNetworkUtlVectorBase< CHandle< CPostProcessingVolume > >",
+            "category": "SCHEMA_TYPE_ATOMIC",
+            "atomic": "SCHEMA_ATOMIC_COLLECTION_OF_T",
+            "inner": "CHandle< CPostProcessingVolume >"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_flOldPlayerZ",
+          "offset": 320,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": false
+        },
+        {
+          "name": "m_flOldPlayerViewOffsetZ",
+          "offset": 324,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": false
+        },
+        {
+          "name": "m_hTriggerSoundscapeList",
+          "offset": 352,
+          "size": 24,
+          "type": {
+            "name": "CUtlVector< CHandle< CEnvSoundscapeTriggerable > >",
+            "category": "SCHEMA_TYPE_ATOMIC",
+            "atomic": "SCHEMA_ATOMIC_COLLECTION_OF_T",
+            "inner": "CHandle< CEnvSoundscapeTriggerable >"
           },
           "networked": false
         }

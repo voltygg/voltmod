@@ -68,6 +68,16 @@ if (pawn.Team() == VoltMod::TeamCT && (pawn.Flags() & VoltMod::FL_ONGROUND))
 int money = controller.InGameMoneyServices().Account();   // a sub-object is a hop, not a follow
 ```
 
+Fields on a pawn's services are reached the same way. The camera services pointer is typed as the
+base class, so view it as the CS subclass to reach the zoom fields:
+
+```cpp
+pawn.SetGravityScale(0.5f);                                // CBaseEntity, so any entity has it
+pawn.MovementServices().SetMaxSpeed(300.0f);
+pawn.CameraServices().SetViewEntity(camera.Ref().Handle);  // see through another entity
+VoltMod::Schema::CCSPlayerBase_CameraServices{pawn.CameraServices().Base()}.SetFieldOfView(90);
+```
+
 A `Set` on a networked field dirties it for the next snapshot. A field the engine does not network
 is written without a notify, because the engine rejects one and then stops updating that entity for
 its clients; a field with no route to notify generates no setter at all.

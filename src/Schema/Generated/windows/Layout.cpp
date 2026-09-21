@@ -8,6 +8,9 @@ namespace VoltMod::Schema
 static const FieldLayout kFields[] = {
     {.Class = "CBaseCombatCharacter", .Field = "m_hMyWearables", .Offset = 2408, .Size = 24},
     {.Class = "CBaseEntity", .Field = "m_iHealth", .Offset = 720, .Size = 4},
+    {.Class = "CBaseEntity", .Field = "m_iMaxHealth", .Offset = 724, .Size = 4},
+    {.Class = "CBaseEntity", .Field = "m_bTakesDamage", .Offset = 736, .Size = 1},
+    {.Class = "CBaseEntity", .Field = "m_flGravityScale", .Offset = 1020, .Size = 4},
     {.Class = "CBaseEntity", .Field = "m_iTeamNum", .Offset = 836, .Size = 1},
     {.Class = "CBaseEntity", .Field = "m_lifeState", .Offset = 728, .Size = 1},
     {.Class = "CBaseEntity", .Field = "m_fFlags", .Offset = 904, .Size = 4},
@@ -25,6 +28,7 @@ static const FieldLayout kFields[] = {
     {.Class = "CBasePlayerPawn", .Field = "m_pItemServices", .Offset = 2616, .Size = 8},
     {.Class = "CBasePlayerPawn", .Field = "m_pMovementServices", .Offset = 2672, .Size = 8},
     {.Class = "CBasePlayerPawn", .Field = "m_pWeaponServices", .Offset = 2608, .Size = 8},
+    {.Class = "CBasePlayerPawn", .Field = "m_pCameraServices", .Offset = 2664, .Size = 8},
     {.Class = "CBasePlayerPawn", .Field = "m_hController", .Offset = 2992, .Size = 4},
     {.Class = "CBodyComponent", .Field = "m_pSceneNode", .Offset = 8, .Size = 8},
     {.Class = "CBodyComponent", .Field = "__m_pChainEntity", .Offset = 72, .Size = 40},
@@ -35,6 +39,8 @@ static const FieldLayout kFields[] = {
     {.Class = "CCSCustomHudLayout", .Field = "m_vecPlayerLayoutStates", .Offset = 1208, .Size = 104},
     {.Class = "CCSCustomHudLayout", .Field = "m_strLayout", .Offset = 1192, .Size = 8},
     {.Class = "CCSCustomHudLayoutState", .Field = "m_bInputCaptureEnabled", .Offset = 52, .Size = 1},
+    {.Class = "CCSPlayerBase_CameraServices", .Field = "m_iFOV", .Offset = 376, .Size = 4},
+    {.Class = "CCSPlayerBase_CameraServices", .Field = "m_hZoomOwner", .Offset = 392, .Size = 4},
     {.Class = "CCSPlayerController", .Field = "m_hPlayerPawn", .Offset = 2276, .Size = 4},
     {.Class = "CCSPlayerController", .Field = "m_pInGameMoneyServices", .Offset = 2016, .Size = 8},
     {.Class = "CCSPlayerController", .Field = "m_szClan", .Offset = 2104, .Size = 8},
@@ -60,7 +66,9 @@ static const FieldLayout kFields[] = {
     {.Class = "CModelState", .Field = "m_ModelName", .Offset = 168, .Size = 8},
     {.Class = "CPlayerControllerComponent", .Field = "__m_pChainEntity", .Offset = 8, .Size = 40},
     {.Class = "CPlayerPawnComponent", .Field = "__m_pChainEntity", .Offset = 8, .Size = 40},
+    {.Class = "CPlayer_CameraServices", .Field = "m_hViewEntity", .Offset = 164, .Size = 4},
     {.Class = "CPlayer_MovementServices", .Field = "m_nButtons", .Offset = 80, .Size = 32},
+    {.Class = "CPlayer_MovementServices", .Field = "m_flMaxspeed", .Offset = 428, .Size = 4},
     {.Class = "CPlayer_ObserverServices", .Field = "m_iObserverMode", .Offset = 72, .Size = 1},
     {.Class = "CPlayer_ObserverServices", .Field = "m_hObserverTarget", .Offset = 76, .Size = 4},
     {.Class = "CPlayer_WeaponServices", .Field = "m_hMyWeapons", .Offset = 72, .Size = 24},
@@ -96,7 +104,7 @@ std::string_view GeneratedFromBuild()
 
 uint64_t GeneratedLayoutStamp()
 {
-    return 0x5D8F48C93221375DULL;
+    return 0xF65C2532BB0465BDULL;
 }
 
 }  // namespace VoltMod::Schema

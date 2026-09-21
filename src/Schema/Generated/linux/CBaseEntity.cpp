@@ -11,6 +11,9 @@ namespace VoltMod::Schema
 
 // ---- CBaseEntity, 1928 bytes ---------------------------------------
 static constexpr int32_t kCBaseEntity_Health = 1456;             // int32
+static constexpr int32_t kCBaseEntity_MaxHealth = 1460;          // int32
+static constexpr int32_t kCBaseEntity_TakesDamage = 1472;        // bool
+static constexpr int32_t kCBaseEntity_GravityScale = 1756;       // float32
 static constexpr int32_t kCBaseEntity_Team = 1572;               // uint8
 static constexpr int32_t kCBaseEntity_LifeState = 1464;          // uint8
 static constexpr int32_t kCBaseEntity_Flags = 1640;              // uint32
@@ -35,6 +38,57 @@ void CBaseEntity::SetHealth(int32_t value) const
 
     *MemberPtr<int32_t>(_base, kCBaseEntity_Health) = value;
     NotifyEntity(_owner, _ownerOffset + kCBaseEntity_Health);
+}
+
+int32_t CBaseEntity::MaxHealth() const
+{
+    if (!_base)
+        return {};
+
+    return *MemberPtr<int32_t>(_base, kCBaseEntity_MaxHealth);
+}
+
+void CBaseEntity::SetMaxHealth(int32_t value) const
+{
+    if (!_base)
+        return;
+
+    *MemberPtr<int32_t>(_base, kCBaseEntity_MaxHealth) = value;
+    NotifyEntity(_owner, _ownerOffset + kCBaseEntity_MaxHealth);
+}
+
+bool CBaseEntity::TakesDamage() const
+{
+    if (!_base)
+        return {};
+
+    return *MemberPtr<bool>(_base, kCBaseEntity_TakesDamage);
+}
+
+void CBaseEntity::SetTakesDamage(bool value) const
+{
+    if (!_base)
+        return;
+
+    *MemberPtr<bool>(_base, kCBaseEntity_TakesDamage) = value;
+    NotifyEntity(_owner, _ownerOffset + kCBaseEntity_TakesDamage);
+}
+
+float CBaseEntity::GravityScale() const
+{
+    if (!_base)
+        return {};
+
+    return *MemberPtr<float>(_base, kCBaseEntity_GravityScale);
+}
+
+void CBaseEntity::SetGravityScale(float value) const
+{
+    if (!_base)
+        return;
+
+    *MemberPtr<float>(_base, kCBaseEntity_GravityScale) = value;
+    NotifyEntity(_owner, _ownerOffset + kCBaseEntity_GravityScale);
 }
 
 uint8_t CBaseEntity::Team() const

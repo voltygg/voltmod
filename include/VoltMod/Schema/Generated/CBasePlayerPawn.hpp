@@ -3,6 +3,7 @@
 #pragma once
 
 #include <VoltMod/Schema/Generated/CBaseCombatCharacter.hpp>
+#include <VoltMod/Schema/Generated/CPlayer_CameraServices.hpp>
 #include <VoltMod/Schema/Generated/CPlayer_ItemServices.hpp>
 #include <VoltMod/Schema/Generated/CPlayer_MovementServices.hpp>
 #include <VoltMod/Schema/Generated/CPlayer_ObserverServices.hpp>
@@ -26,6 +27,8 @@ public:
     CPlayer_MovementServices MovementServices() const;
 
     CPlayer_WeaponServices WeaponServices() const;
+
+    CPlayer_CameraServices CameraServices() const;
 
     uint32_t ControllerHandle() const;
     void SetControllerHandle(uint32_t value) const;

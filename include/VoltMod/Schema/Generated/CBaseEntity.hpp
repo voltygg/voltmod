@@ -21,6 +21,15 @@ public:
     int32_t Health() const;
     void SetHealth(int32_t value) const;
 
+    int32_t MaxHealth() const;
+    void SetMaxHealth(int32_t value) const;
+
+    bool TakesDamage() const;
+    void SetTakesDamage(bool value) const;
+
+    float GravityScale() const;
+    void SetGravityScale(float value) const;
+
     uint8_t Team() const;
     void SetTeam(uint8_t value) const;
 

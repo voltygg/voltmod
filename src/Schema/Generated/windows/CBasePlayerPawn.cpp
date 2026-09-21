@@ -4,6 +4,7 @@
 
 #include <VoltMod/Engine/Memory/MemoryAccess.hpp>
 #include <VoltMod/Schema/Generated/CBasePlayerPawn.hpp>
+#include <VoltMod/Schema/Generated/CPlayer_CameraServices.hpp>
 #include <VoltMod/Schema/Generated/CPlayer_ItemServices.hpp>
 #include <VoltMod/Schema/Generated/CPlayer_MovementServices.hpp>
 #include <VoltMod/Schema/Generated/CPlayer_ObserverServices.hpp>
@@ -17,6 +18,7 @@ static constexpr int32_t kCBasePlayerPawn_ObserverServices = 2632;  // CPlayer_O
 static constexpr int32_t kCBasePlayerPawn_ItemServices = 2616;      // CPlayer_ItemServices*
 static constexpr int32_t kCBasePlayerPawn_MovementServices = 2672;  // CPlayer_MovementServices*
 static constexpr int32_t kCBasePlayerPawn_WeaponServices = 2608;    // CPlayer_WeaponServices*
+static constexpr int32_t kCBasePlayerPawn_CameraServices = 2664;    // CPlayer_CameraServices*
 static constexpr int32_t kCBasePlayerPawn_ControllerHandle = 2992;  // CHandle< CBasePlayerController >
 
 CPlayer_ObserverServices CBasePlayerPawn::ObserverServices() const
@@ -49,6 +51,14 @@ CPlayer_WeaponServices CBasePlayerPawn::WeaponServices() const
         return {};
 
     return CPlayer_WeaponServices{*MemberPtr<void*>(_base, kCBasePlayerPawn_WeaponServices)};
+}
+
+CPlayer_CameraServices CBasePlayerPawn::CameraServices() const
+{
+    if (!_base)
+        return {};
+
+    return CPlayer_CameraServices{*MemberPtr<void*>(_base, kCBasePlayerPawn_CameraServices)};
 }
 
 uint32_t CBasePlayerPawn::ControllerHandle() const
