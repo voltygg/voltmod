@@ -19,6 +19,7 @@ struct CommandManager::Impl
     Impl(Policy& policy, Translations& translations, PlayerManager& players, EntitySystem& entities, Messages& messages)
         : Policies(policy),
           Texts(translations),
+          Players(players),
           Notify(messages),
           Binder(players, policy, entities),
           Router(policy, translations)
@@ -26,6 +27,7 @@ struct CommandManager::Impl
 
     Policy& Policies;
     Translations& Texts;
+    PlayerManager& Players;
     Messages& Notify;
     EngineArgBinder Binder;
     CommandRouter Router;
@@ -74,7 +76,7 @@ void CommandManager::InstallConsoleCommand(const std::string& name)
         def->Description.empty() ? _impl->Router.Usage(*def, -1, Origin::Console) : def->Description;
 
     _impl->ConsoleCommands.emplace(
-        name, std::make_unique<ServerCommand>(name.c_str(), help.c_str(), [this, name](const CCommand& args) {
+        name, std::make_unique<ServerCommand>(name.c_str(), help.c_str(), [this, name](const CCommand& args, int slot) {
             // Resolve on each call because shutdown can unregister the command first.
             const CommandDefinition* current = _impl->Router.Find(name);
             if (!current || !current->Console)
@@ -85,10 +87,28 @@ void CommandManager::InstallConsoleCommand(const std::string& name)
             for (int i = 1; i < args.ArgC(); ++i)
                 tokens.emplace_back(args.Arg(i));
 
+            // A player typing it in their own console is that player, never the server.
+            if (slot >= 0)
+            {
+                Player* player = _impl->Players.Get(slot);
+                if (player && current->Chat)
+                    _impl->Router.Dispatch(*current, player, tokens, Origin::Console, _impl->Binder,
+                                           [this, slot](const std::string& line) { ReplyToPlayer(slot, line); });
+                return;
+            }
+
             // Console replies use the server language.
             _impl->Router.Dispatch(*current, nullptr, tokens, Origin::Console, _impl->Binder,
                                    [](const std::string& line) { Log::Info("{}", line); });
         }));
+}
+
+void CommandManager::ReplyToPlayer(int slot, const std::string& line)
+{
+    if (_impl->Policies.Reply)
+        _impl->Policies.Reply(slot, line);
+    else
+        _impl->Notify.Reply(slot, line);
 }
 
 bool CommandManager::HandleChatMessage(Player* caller, std::string_view message)
@@ -111,12 +131,8 @@ bool CommandManager::HandleChatMessage(Player* caller, std::string_view message)
 
     const std::span<const std::string> tokens{parts.begin() + 1, parts.end()};
     const int slot = caller->Slot();
-    _impl->Router.Dispatch(*def, caller, tokens, Origin::Chat, _impl->Binder, [this, slot](const std::string& line) {
-        if (_impl->Policies.Reply)
-            _impl->Policies.Reply(slot, line);
-        else
-            _impl->Notify.Reply(slot, line);
-    });
+    _impl->Router.Dispatch(*def, caller, tokens, Origin::Chat, _impl->Binder,
+                           [this, slot](const std::string& line) { ReplyToPlayer(slot, line); });
 
     return true;
 }

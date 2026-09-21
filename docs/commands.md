@@ -130,10 +130,12 @@ runtime.Commands.Add("bhop_player")
     });
 ```
 
-Console calls run the same binder and handler, print their reply to the console, and have no
-caller: `c.Player` is null, `c.Slot` is -1, permissions are skipped (the console is the server),
-and caller-relative selectors such as `@me` match nobody. Put an operator command with no
-permission on `ConsoleOnly()`.
+Server console calls (rcon, cfg files) run the same binder and handler, print their reply to the
+console, and have no caller: `c.Player` is null, `c.Slot` is -1, permissions are skipped (the
+console is the server), and caller-relative selectors such as `@me` match nobody. A `.Console()`
+command typed in a player's own console runs as that player, exactly as from chat, and replies
+in chat. A `ConsoleOnly()` command ignores players, so put an operator command with no
+permission there.
 
 To run another plugin's console command as a player, use
 `runtime.ConVars.ExecuteClientCommand(slot, "mm_lvl")`. Nothing is echoed to chat.

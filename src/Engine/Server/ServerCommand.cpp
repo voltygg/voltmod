@@ -15,10 +15,10 @@ struct ServerCommand::Impl final : ICommandCallback
           _command(_name.c_str(), this, _help.c_str(), FCVAR_RELEASE | FCVAR_GAMEDLL)
     {}
 
-    void CommandCallback(const CCommandContext& /*context*/, const CCommand& command) override
+    void CommandCallback(const CCommandContext& context, const CCommand& command) override
     {
         if (_handler)
-            _handler(command);
+            _handler(command, context.GetPlayerSlot().Get());
     }
 
     Handler _handler;
