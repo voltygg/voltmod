@@ -8,11 +8,11 @@ namespace VoltMod
 
 struct ServerCommand::Impl final : ICommandCallback
 {
-    Impl(std::string_view name, std::string_view helpText, PlayerHandler handler)
+    Impl(std::string_view name, std::string_view helpText, PlayerHandler handler, uint64 flags)
         : _handler(std::move(handler)),
           _name(name),
           _help(helpText),
-          _command(_name.c_str(), this, _help.c_str(), FCVAR_RELEASE | FCVAR_GAMEDLL)
+          _command(_name.c_str(), this, _help.c_str(), FCVAR_RELEASE | FCVAR_GAMEDLL | flags)
     {}
 
     void CommandCallback(const CCommandContext& context, const CCommand& command) override
@@ -30,14 +30,18 @@ struct ServerCommand::Impl final : ICommandCallback
 };
 
 ServerCommand::ServerCommand(std::string_view name, std::string_view helpText, Handler handler)
-    : ServerCommand(name, helpText, [handler = std::move(handler)](const CCommand& args, int slot) {
-          if (slot < 0 && handler)
-              handler(args);
-      })
+    : _impl(std::make_unique<Impl>(
+          name, helpText,
+          [handler = std::move(handler)](const CCommand& args, int slot) {
+              if (slot < 0 && handler)
+                  handler(args);
+          },
+          0))
 {}
 
+// Without the flag the engine refuses the command from a client before any handler runs.
 ServerCommand::ServerCommand(std::string_view name, std::string_view helpText, PlayerHandler handler)
-    : _impl(std::make_unique<Impl>(name, helpText, std::move(handler)))
+    : _impl(std::make_unique<Impl>(name, helpText, std::move(handler), FCVAR_CLIENT_CAN_EXECUTE))
 {}
 
 ServerCommand::~ServerCommand() = default;

@@ -202,8 +202,8 @@ class MyManager
 ```
 
 Call one with `runtime.ConVars.ExecuteServerCommand("myplugin_do 765...")`; the engine reports an
-unknown command when no provider is loaded. A player who types the command in their own console
-is ignored; a handler taking `(const CCommand& args, int slot)` runs for them too, with their slot
-(-1 for the server). Server commands are for console, RCON, cfg files and
-loose automation. For a typed contract between two plugins publish a versioned interface through
+unknown command when no provider is loaded. A player cannot run it from their own console. A
+handler taking `(const CCommand& args, int slot)` makes the command client-executable and runs for
+players too, with their slot (-1 for the server). Server commands are for console, RCON, cfg files
+and loose automation. For a typed contract between two plugins publish a versioned interface through
 `runtime.Exchange` instead, and never transfer ownership or exceptions across module boundaries.

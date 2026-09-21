@@ -27,7 +27,7 @@ public:
 
     /** Runs for the server console, RCON and cfg files only; a player typing it is ignored. */
     ServerCommand(std::string_view name, std::string_view helpText, Handler handler);
-    /** Also runs for a player who types it in their own console: @p slot is theirs, or -1 for the server. */
+    /** Also typeable in a player's own console, where @p slot is theirs; -1 is the server. */
     ServerCommand(std::string_view name, std::string_view helpText, PlayerHandler handler);
     ~ServerCommand();
     ServerCommand(const ServerCommand&) = delete;
