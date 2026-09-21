@@ -176,6 +176,14 @@ struct Bindings
         FindEntityByName;
     /** ABI: IGameEventListener2* (CPlayerSlot), defined in GameEvents.cpp. */
     Address LegacyGameEventListener;
+    /** ABI: int64 (CBaseEntity*, CTakeDamageInfo*, CTakeDamageResult*). Every entity's damage passes
+     *  through it; hooked by @ref Damage. The damage types are declared in src/Hooks/DamageLayout.hpp. */
+    Fn<int64_t(CEntityInstance*, void*, void*)> TakeDamage;
+    /** ABI: void (CTakeDamageInfo*, inflictor, attacker, ability, const Vector* force, const Vector* position,
+     *  float damage, int damageType, int customDamage, void*). */
+    Fn<void(void*, CEntityInstance*, CEntityInstance*, CEntityInstance*, const Vector*, const Vector*, float, int, int,
+            void*)>
+        BuildDamageInfo;
 
     /** @defgroup CustomHudSetters CCSCustomHudLayout setters used by @ref Screen.
      *  `self` is the entity. The ABI uses `const CUtlString*`, not `const char*`.

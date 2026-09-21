@@ -1,4 +1,4 @@
-# Movement, teleports, and server commands {#sdk_hooks_guide}
+# Movement, teleports, damage, and server commands {#sdk_hooks_guide}
 
 [TOC]
 
@@ -85,6 +85,38 @@ The first subscription hooks the pawn class vtable, so every pawn is covered and
 rebinding. Spawning also raises the event, so filter it out if you only want mid-life teleports.
 The slot is `-1` for non-player pawns. The hook spans map changes, but `runtime.Clock` restarts
 with the map.
+
+## Damage
+
+@ref VoltMod::Damage hooks `CBaseEntity::TakeDamageOld`, which every entity's damage passes
+through: players, props, and hits dealt by `Apply`. `Before` receives a @ref VoltMod::DamageHit
+before the engine applies it:
+
+```cpp
+_damage = runtime.Hooks.Damage.Before += [this](VoltMod::DamageHit& hit) {
+    if (!IsStructure(hit.Victim.Ref()))
+        return;
+    hit.Blocked = true;                        // the engine deals nothing and fires no event
+    Wear(hit.Victim.Ref(), hit.Info.Attacker, hit.Info.Amount);
+};
+```
+
+Edits to `hit.Info.Amount` and `hit.Info.Type` reach the engine; `Attacker` and `Inflictor` are
+for reading.
+
+`Apply` deals damage through the same engine path, so death, the kill feed and `player_death`
+credit the attacker as if their own weapon had hit:
+
+```cpp
+runtime.Hooks.Damage.Apply(target, {.Attacker = owner.Ref(),     // credited in the kill feed
+                                    .Inflictor = turret,          // empty means the attacker
+                                    .Amount = 25.0f,
+                                    .Type = VoltMod::DamageBullet});
+```
+
+The engine drops a hit with no inflictor, so an empty `Inflictor` falls back to the attacker.
+Both need the `CBaseEntity::TakeDamageOld` and `CTakeDamageInfo::CTakeDamageInfo` signatures;
+`Available()` says which one did not bind.
 
 ## Hooking a vfunc the framework does not cover
 

@@ -9,6 +9,7 @@
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>
 #include <VoltMod/Hooks/ClientConVars.hpp>
+#include <VoltMod/Hooks/Damage.hpp>
 #include <VoltMod/Hooks/Movement.hpp>
 #include <VoltMod/Hooks/Teleport.hpp>
 #include <VoltMod/Hooks/Visibility.hpp>
@@ -32,7 +33,8 @@ struct HookServices
           ChatInput(scheduler, slots),
           Teleport(entities, bindings),
           ClientConVars(interfaces, bindings, slots),
-          Vote(interfaces, entities, gameEvents, scheduler)
+          Vote(interfaces, entities, gameEvents, scheduler),
+          Damage(entities, bindings)
     {}
 
     VoltMod::Movement Movement;
@@ -41,6 +43,7 @@ struct HookServices
     VoltMod::Teleport Teleport;
     VoltMod::ClientConVars ClientConVars;
     VoltMod::Vote Vote;
+    VoltMod::Damage Damage;
 };
 
 }  // namespace VoltMod

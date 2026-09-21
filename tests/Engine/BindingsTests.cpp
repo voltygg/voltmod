@@ -75,6 +75,7 @@ TEST_CASE("Each member asks for the sections its key may live in")
     CHECK(gameData.AskedFor("CreateEntityByName") == GameDataSection::Function);
     CHECK(gameData.AskedFor("CBaseEntity::EmitSoundFilter") == (GameDataSection::Function | GameDataSection::Global));
     CHECK(gameData.AskedFor("CBaseEntity::Teleport") == GameDataSection::VTable);
+    CHECK(gameData.AskedFor("CBaseEntity::TakeDamageOld") == GameDataSection::Function);
     CHECK(gameData.AskedFor("CheckTransmitPlayerSlot") == GameDataSection::Offset);
 }
 

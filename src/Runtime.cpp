@@ -182,9 +182,13 @@ VoltMod::Status Runtime::TakeHostSchema(const LoadContext& context)
 std::map<std::string, std::string> Runtime::UnavailableFeatures() const
 {
     const std::pair<std::string_view, VoltMod::Status> features[] = {
-        {"Movement", Hooks.Movement.Available()},           {"Teleport", Hooks.Teleport.Available()},
-        {"Visibility", Hooks.Visibility.Available()},       {"Trace", World.Trace.Available()},
-        {"ClientConVars", Hooks.ClientConVars.Available()}, {"Screens", Screens.Available()},
+        {"Movement", Hooks.Movement.Available()},
+        {"Teleport", Hooks.Teleport.Available()},
+        {"Visibility", Hooks.Visibility.Available()},
+        {"Trace", World.Trace.Available()},
+        {"ClientConVars", Hooks.ClientConVars.Available()},
+        {"Screens", Screens.Available()},
+        {"Damage", Hooks.Damage.Available()},
     };
 
     std::map<std::string, std::string> unavailable;

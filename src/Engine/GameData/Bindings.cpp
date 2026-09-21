@@ -72,6 +72,8 @@ Status Bindings::Bind(const GameDataLookup& lookup)
     bind(FindEntityByClassName, "CGameEntitySystem::FindEntityByClassName");
     bind(FindEntityByName, "CGameEntitySystem::FindEntityByName");
     bind(LegacyGameEventListener, "GetLegacyGameEventListener");
+    bind(TakeDamage, "CBaseEntity::TakeDamageOld");
+    bind(BuildDamageInfo, "CTakeDamageInfo::CTakeDamageInfo");
 
     bind(CustomHudSetHasClass, "CCSCustomHudLayout::SetHasClass");
     bind(CustomHudSetHasClassForPlayer, "CCSCustomHudLayout::SetHasClassForPlayer");
