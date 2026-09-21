@@ -7,6 +7,7 @@
 #include <VoltMod/Engine/Detours.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
+#include <VoltMod/Engine/Net/RecipientFilter.hpp>
 #include <VoltMod/Hooks/ClientConVars.hpp>
 #include <VoltMod/Unsafe/Hook.hpp>
 #include <cstdint>
@@ -19,6 +20,11 @@
 
 namespace VoltMod
 {
+
+static_assert(std::to_underlying(ClientConVarStatus::Answered) == eQueryCvarValueStatus_ValueIntact);
+static_assert(std::to_underlying(ClientConVarStatus::NotFound) == eQueryCvarValueStatus_CvarNotFound);
+static_assert(std::to_underlying(ClientConVarStatus::NotAConVar) == eQueryCvarValueStatus_NotACvar);
+static_assert(std::to_underlying(ClientConVarStatus::Protected) == eQueryCvarValueStatus_CvarProtected);
 
 ClientConVars::ClientConVars(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots)
     : _interfaces(interfaces), _bindings(bindings), _pending(std::make_unique<PendingConVarQueries>())
@@ -140,9 +146,8 @@ bool ClientConVars::Send(int slot, const std::string& cvarName, int cookie)
     request->set_cookie(cookie);
     request->set_cvar_name(cvarName);
 
-    const uint64 recipients = 1ull << slot;
-    _interfaces.GameEventSystem->PostEventAbstract(-1, false, slot + 1, &recipients, _getCvarValue, request, 0,
-                                                   BUF_RELIABLE);
+    SingleRecipientFilter filter(slot);
+    _interfaces.GameEventSystem->PostEventAbstract(-1, false, &filter, _getCvarValue, request, 0);
     _interfaces.NetworkMessages->DeallocateNetMessageAbstract(_getCvarValue, message);
     return true;
 }
@@ -158,8 +163,7 @@ void ClientConVars::OnRespondCvarValue(const void* client, const void* message)
 
     // Validate every client-controlled field before dispatch.
     const int status = msg.status_code();
-    if (status < std::to_underlying(ClientConVarStatus::Answered) ||
-        status > std::to_underlying(ClientConVarStatus::Protected))
+    if (!EQueryCvarValueStatus_IsValid(status))
         return;
 
     std::string_view value;
