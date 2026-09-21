@@ -82,7 +82,9 @@ const CommandDefinition* CommandRouter::Add(CommandDefinition def)
         _aliases.emplace(std::move(key), name);
     }
 
-    return &_commands.emplace(name, std::move(def)).first->second;
+    CommandDefinition& stored = _commands[name];
+    stored = std::move(def);
+    return &stored;
 }
 
 void CommandRouter::Clear()
