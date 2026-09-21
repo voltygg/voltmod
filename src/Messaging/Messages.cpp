@@ -14,15 +14,11 @@
 #include <engine/igameeventsystem.h>
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
+#include <shareddefs.h>
 #include <usermessages.pb.h>
 
 namespace VoltMod
 {
-
-// TextMsg destination ids supported by the client.
-static constexpr int DestChat = 3;
-static constexpr int DestCenter = 4;
-static constexpr int DestAlert = 6;
 
 // Prepend a space to preserve a leading color, or Default to prevent color carryover.
 static std::string EnsureColorPrefix(std::string_view message)
@@ -95,7 +91,9 @@ void Messages::Send(int slot, std::string_view message, MessageKind kind)
         return;
     }
 
-    int destination = kind == MessageKind::Center ? DestCenter : kind == MessageKind::Alert ? DestAlert : DestChat;
+    int destination = kind == MessageKind::Center  ? HUD_PRINTCENTER
+                      : kind == MessageKind::Alert ? HUD_PRINTALERT
+                                                   : HUD_PRINTTALK;
     SendTextMsg(slot, destination, Render(message, kind));
 }
 
@@ -118,9 +116,9 @@ void Messages::Broadcast(std::string_view message, MessageKind kind)
         filter.AddRecipient(slot);
 
     PostTextMsg(filter,
-                kind == MessageKind::Center  ? DestCenter
-                : kind == MessageKind::Alert ? DestAlert
-                                             : DestChat,
+                kind == MessageKind::Center  ? HUD_PRINTCENTER
+                : kind == MessageKind::Alert ? HUD_PRINTALERT
+                                             : HUD_PRINTTALK,
                 rendered);
 }
 
