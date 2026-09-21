@@ -43,6 +43,8 @@ struct Error
     ErrorCode Code = ErrorCode::Failed;
     std::string Detail;
     std::string Key;
+    /** A line already localized for whoever ran the command; shown in place of @ref Key. */
+    std::string Text;
 
     static Error NotFound(std::string detail) { return {ErrorCode::NotFound, std::move(detail), {}}; }
     static Error NotReady(std::string detail) { return {ErrorCode::NotReady, std::move(detail), {}}; }

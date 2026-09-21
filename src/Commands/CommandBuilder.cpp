@@ -17,9 +17,9 @@ Result<Reply> Caller::Ok(std::string_view key, Tokens tokens) const
 
 std::unexpected<Error> Caller::Fail(std::string_view key, Tokens tokens) const
 {
-    // Detail carries the finished line because Error has nowhere to hold `tokens` until reply
-    // time; Key still names the key, so a caller inspecting the result can branch on it.
-    return std::unexpected(Error{ErrorCode::Failed, Text(key, std::move(tokens)), std::string(key)});
+    // Localized now because Error has nowhere to hold `tokens` until reply time.
+    return std::unexpected(
+        Error{.Code = ErrorCode::Failed, .Key = std::string(key), .Text = Text(key, std::move(tokens))});
 }
 
 void Caller::Say(std::string_view key, Tokens tokens) const

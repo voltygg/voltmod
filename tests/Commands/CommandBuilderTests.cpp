@@ -153,7 +153,7 @@ TEST_CASE("Caller Fail is a failure carrying both the key and the localized line
     Result<Reply> failed = caller.Fail("target.immune", {{"token", "Bob"}});
     REQUIRE_FALSE(failed.has_value());
     CHECK(failed.error().Key == "target.immune");
-    CHECK(failed.error().Detail == "'Bob' is immune to that.");
+    CHECK(failed.error().Text == "'Bob' is immune to that.");
 
     Result<Reply> ok = caller.Ok("cmd.badNumber", {{"token", "x"}});
     REQUIRE(ok.has_value());

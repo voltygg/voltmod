@@ -58,8 +58,8 @@ struct Caller
     /**
      * Fail, replying with @p key localized for this caller.
      *
-     * The error stores the key and, when tokens were supplied, the localized line in `Detail`.
-     * Errors from other services carry only a key and are localized by dispatch.
+     * The error keeps @p key in `Key` and the localized line in `Text`. Errors from other
+     * services carry only a key and are localized by dispatch.
      */
     std::unexpected<Error> Fail(std::string_view key, Tokens tokens = {}) const;
 

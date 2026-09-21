@@ -12,6 +12,16 @@
 namespace VoltMod
 {
 
+/** The line a failed handler replies with: its own localized line, else its key, else the log text. */
+static std::string FailureLine(const Error& error, const Translations& translations, int slot)
+{
+    if (!error.Text.empty())
+        return error.Text;
+    if (!error.Key.empty())
+        return translations.Get(error.Key, slot);
+    return error.Detail;
+}
+
 /** Translation key for an argument kind's usage placeholder. */
 static std::string UsagePlaceholderKey(ArgKind kind)
 {
@@ -197,11 +207,7 @@ void CommandRouter::Dispatch(const CommandDefinition& def, Player* caller, std::
 
     const Caller who{.Player = caller, .Slot = slot, .Tr = _translations, .Send = say};
     auto result = def.Invoke(who, *bound);
-    if (result)
-        reply(result->Text);
-    else
-        // Caller::Fail already localized its error; other errors carry a key.
-        reply(result.error().Detail.empty() ? _translations.Get(result.error().Key, slot) : result.error().Detail);
+    reply(result ? result->Text : FailureLine(result.error(), _translations, slot));
 }
 
 }  // namespace VoltMod
