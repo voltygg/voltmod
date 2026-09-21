@@ -101,9 +101,16 @@ void CommandManager::InstallConsoleCommand(const std::string& name)
     };
 
     // A console-only command stays with the server; one players may type in chat, they may type in their console.
-    auto command = def->Chat ? std::make_unique<ServerCommand>(name, help, std::move(run))
-                             : std::make_unique<ServerCommand>(
-                                   name, help, ServerCommand::Handler([run](const CCommand& args) { run(args, -1); }));
+    std::unique_ptr<ServerCommand> command;
+    if (def->Chat)
+    {
+        command = std::make_unique<ServerCommand>(name, help, std::move(run));
+    }
+    else
+    {
+        ServerCommand::Handler runAsServer = [run](const CCommand& args) { run(args, -1); };
+        command = std::make_unique<ServerCommand>(name, help, std::move(runAsServer));
+    }
     _impl->ConsoleCommands.emplace(name, std::move(command));
 }
 
