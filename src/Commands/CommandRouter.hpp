@@ -44,8 +44,9 @@ public:
 
     /** Register @p def under its lowercased name plus its aliases. With a host attached, each of
      *  those names is registered there first, so two plugins cannot answer the same command.
-     *  @return false when the name or the registration was refused (already logged). */
-    bool Add(CommandDefinition def);
+     *  @return the stored definition, or null when the name or the registration was refused
+     *  (already logged). Valid until @ref Clear. */
+    const CommandDefinition* Add(CommandDefinition def);
 
     /** Drop every registration. The router is emptied as a whole or not at all: a command
      *  lives exactly as long as the manager that owns it. */

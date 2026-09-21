@@ -51,10 +51,9 @@ CommandBuilder CommandManager::Add(std::string_view name)
 {
     return CommandBuilder(
         [this](CommandDefinition def) {
-            const std::string key = Strings::ToLower(def.Name);
-            const bool console = def.Console;
-            if (_impl->Router.Add(std::move(def)) && console)
-                InstallConsoleCommand(key);
+            const CommandDefinition* added = _impl->Router.Add(std::move(def));
+            if (added && added->Access != CommandAccess::Players)
+                InstallConsoleCommand(*added);
         },
         name);
 }
@@ -65,20 +64,16 @@ void CommandManager::RemoveAll()
     _impl->Router.Clear();
 }
 
-void CommandManager::InstallConsoleCommand(const std::string& name)
+void CommandManager::InstallConsoleCommand(const CommandDefinition& def)
 {
-    const CommandDefinition* def = _impl->Router.Find(name);
-    if (!def)
-        return;
-
+    const std::string name = Strings::ToLower(def.Name);
     // Console usage has no chat prefix.
-    const std::string help =
-        def->Description.empty() ? _impl->Router.Usage(*def, -1, Origin::Console) : def->Description;
+    const std::string help = def.Description.empty() ? _impl->Router.Usage(def, -1, Origin::Console) : def.Description;
 
     ServerCommand::PlayerHandler run = [this, name](const CCommand& args, int slot) {
         // Resolve on each call because shutdown can unregister the command first.
         const CommandDefinition* current = _impl->Router.Find(name);
-        if (!current || !current->Console)
+        if (!current)
             return;
 
         std::vector<std::string> tokens;
@@ -100,9 +95,9 @@ void CommandManager::InstallConsoleCommand(const std::string& name)
                                [](const std::string& line) { Log::Info("{}", line); });
     };
 
-    // A console-only command stays with the server; one players may type in chat, they may type in their console.
+    // A server-only command ignores players; any other also runs as the player who typed it in their console.
     std::unique_ptr<ServerCommand> command;
-    if (def->Chat)
+    if (def.Access == CommandAccess::Anywhere)
     {
         command = std::make_unique<ServerCommand>(name, help, std::move(run));
     }
@@ -135,9 +130,8 @@ bool CommandManager::HandleChatMessage(Player* caller, std::string_view message)
     if (parts.empty())
         return false;
 
-    // Commands without a chat surface remain console-only.
     const CommandDefinition* def = _impl->Router.Find(parts.front());
-    if (!def || !def->Chat)
+    if (!def || def->Access == CommandAccess::ServerOnly)
         return false;
 
     const std::span<const std::string> tokens{parts.begin() + 1, parts.end()};

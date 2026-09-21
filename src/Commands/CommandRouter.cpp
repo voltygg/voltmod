@@ -25,24 +25,24 @@ static std::string UsagePlaceholderKey(ArgKind kind)
     return key;
 }
 
-bool CommandRouter::Add(CommandDefinition def)
+const CommandDefinition* CommandRouter::Add(CommandDefinition def)
 {
     const std::string name = Strings::ToLower(def.Name);
 
     if (name.empty())
     {
         Log::Error("A command was registered with no name - ignoring it.");
-        return false;
+        return nullptr;
     }
     if (_commands.contains(name) || _aliases.contains(name))
     {
         Log::Error("Command '{}' is already registered - ignoring the second registration.", def.Name);
-        return false;
+        return nullptr;
     }
     if (_host && !_host->RegisterCommand(name))
     {
         Log::Error("Command '{}' is held by another plugin - ignoring this registration.", def.Name);
-        return false;
+        return nullptr;
     }
 
     // Index aliases once so lookup is deterministic.
@@ -72,8 +72,7 @@ bool CommandRouter::Add(CommandDefinition def)
         _aliases.emplace(std::move(key), name);
     }
 
-    _commands.emplace(name, std::move(def));
-    return true;
+    return &_commands.emplace(name, std::move(def)).first->second;
 }
 
 void CommandRouter::Clear()

@@ -5,6 +5,7 @@
 #include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Core/Text/Translations.hpp>
 #include <VoltMod/Players/Player.hpp>
+#include <cstdint>
 #include <functional>
 #include <span>
 #include <string>
@@ -45,6 +46,9 @@ struct Caller
     /** Sends a reply to chat or the console for the duration of the handler call. */
     std::function<void(const std::string&)> Send;
 
+    /** True when the server ran the command: the server console, rcon or a cfg file. */
+    bool IsServer() const { return Player == nullptr; }
+
     /** Return localized @p key with `{token}` substitution. */
     std::string Text(std::string_view key, Tokens tokens = {}) const;
 
@@ -66,6 +70,17 @@ struct Caller
     void SayRaw(std::string_view line) const;
 };
 
+/** Who may run a command, and so where it can be typed. */
+enum class CommandAccess : uint8_t
+{
+    /** Players, from chat. The default. */
+    Players,
+    /** Players from chat or their own console, and the server from its console, rcon and cfg files. */
+    Anywhere,
+    /** The server only, from its console, rcon and cfg files. Players are ignored. */
+    ServerOnly,
+};
+
 /**
  * @brief One command as the builder assembled it.
  *
@@ -77,12 +92,11 @@ struct CommandDefinition
     std::string Name;
     std::vector<std::string> Aliases;
     std::string Description;
-    /** Empty means no permission check. Never checked on the console surface. */
+    /** Empty means no permission check. Never checked when the server runs the command. */
     std::string PermissionName;
     /** Translation key for the whole usage line; empty derives one from @ref Args. */
     std::string UsageKey;
-    bool Chat = true;
-    bool Console = false;
+    CommandAccess Access = CommandAccess::Players;
     std::vector<ArgDesc> Args;
     /** The type-erased handler: unpacks @p bound back into the parameter list it was written
      *  with. Built by @ref CommandBuilder::Run. */
@@ -206,18 +220,18 @@ public:
         return *this;
     }
 
-    /** Also register a tier1 ConCommand for rcon, cfg files, and `ExecuteServerCommand`. */
-    CommandBuilder& Console()
+    /** Also register a tier1 ConCommand, so players can type it in their console and the server
+     *  can run it from its console, rcon, cfg files and `ExecuteServerCommand`. */
+    CommandBuilder& Anywhere()
     {
-        _def.Console = true;
+        _def.Access = CommandAccess::Anywhere;
         return *this;
     }
 
-    /** Register only the ConCommand for an operator-only command. */
-    CommandBuilder& ConsoleOnly()
+    /** Register only the ConCommand, for an operator command players cannot run. */
+    CommandBuilder& ServerOnly()
     {
-        _def.Console = true;
-        _def.Chat = false;
+        _def.Access = CommandAccess::ServerOnly;
         return *this;
     }
 

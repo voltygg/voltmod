@@ -35,9 +35,9 @@ namespace VoltMod
  * handler (see @ref ArgKind). Invalid input gets a localized reply. Permissioned commands are denied
  * without `Policy::HasPermission`; replies use `Policy::Reply` or fall back to `Messages::Reply`.
  *
- * `Console()` exposes the same command as a tier1 ConCommand, removed with the command. From the
- * server console it calls the handler without a caller and prints the reply there; typed in a
- * player's own console it runs as that player, like chat. A `ConsoleOnly()` command ignores players.
+ * `Anywhere()` also exposes the command as a tier1 ConCommand, removed with the command. When the
+ * server runs it, the handler has no player and the reply prints to the server console; typed in
+ * a player's own console it runs as that player, like chat. A `ServerOnly()` command ignores players.
  */
 class CommandManager
 {
@@ -79,8 +79,8 @@ public:
     std::vector<std::string> CommandsMissingPolicy() const;
 
 private:
-    /** Bind the already-registered command @p name to a tier1 ConCommand of the same name. */
-    void InstallConsoleCommand(const std::string& name);
+    /** Bind the already-registered @p def to a tier1 ConCommand of the same name. */
+    void InstallConsoleCommand(const CommandDefinition& def);
     /** Send a command's reply line to @p slot through `Policy::Reply`, else chat. */
     void ReplyToPlayer(int slot, const std::string& line);
 

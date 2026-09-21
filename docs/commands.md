@@ -69,9 +69,9 @@ database or announced to everyone wants; `c.Ok`, `c.Fail` and `c.Say` resolve th
 
 ## Replying
 
-@ref VoltMod::Caller is the first parameter: `c.Player` is the player (null on the console),
-`c.Slot` their slot (-1 for the console, which is also the server-language slot), and `c.Tr` the
-translation table.
+@ref VoltMod::Caller is the first parameter: `c.Player` is the player (null when the server ran
+the command, which `c.IsServer()` checks), `c.Slot` their slot (-1 for the server, which is also
+the server-language slot), and `c.Tr` the translation table.
 
 | Call | Result |
 | --- | --- |
@@ -109,21 +109,21 @@ An empty permission skips the check. See @ref players_guide for the rest of the 
 
 ## Surfaces
 
-A command is typeable in chat by default.
+By default only players can run a command, from chat.
 
-| Builder call | Chat | Console |
-| --- | --- | --- |
-| (nothing) | yes | no |
-| `.Console()` | yes | yes |
-| `.ConsoleOnly()` | no | yes |
+| Builder call | Players, chat | Players, own console | Server console, rcon, cfg |
+| --- | --- | --- | --- |
+| (nothing) | yes | no | no |
+| `.Anywhere()` | yes | yes | yes |
+| `.ServerOnly()` | no | no | yes |
 
-`Console()` registers a real tier1 ConCommand of the same name, so rcon, cfg files and
-`ExecuteServerCommand` reach the same handler:
+`Anywhere()` and `ServerOnly()` register a real tier1 ConCommand of the same name, so rcon, cfg
+files and `ExecuteServerCommand` reach the same handler:
 
 ```cpp
 runtime.Commands.Add("bhop_player")
     .Describe("Grant/revoke session bhop for a player.")
-    .ConsoleOnly()
+    .ServerOnly()
     .Run([this](Caller, Args::SteamId id, Args::Int on) -> Result<Reply> {
         Grant(id.Value, on.Value != 0);
         return Reply::Silent();
@@ -132,9 +132,9 @@ runtime.Commands.Add("bhop_player")
 
 Server console calls (rcon, cfg files) run the same binder and handler, print their reply to the
 console, and have no caller: `c.Player` is null, `c.Slot` is -1, permissions are skipped (the
-console is the server), and caller-relative selectors such as `@me` match nobody. A `.Console()`
+console is the server), and caller-relative selectors such as `@me` match nobody. An `.Anywhere()`
 command typed in a player's own console runs as that player, exactly as from chat, and replies
-in chat. A `ConsoleOnly()` command ignores players, so put an operator command with no
+in chat. A `ServerOnly()` command ignores players, so put an operator command with no
 permission there.
 
 To run another plugin's console command as a player, use

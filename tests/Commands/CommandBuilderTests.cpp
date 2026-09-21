@@ -8,6 +8,7 @@
 using VoltMod::ArgKind;
 using VoltMod::BoundArg;
 using VoltMod::Caller;
+using VoltMod::CommandAccess;
 using VoltMod::CommandBuilder;
 using VoltMod::CommandDefinition;
 using VoltMod::CommandSignature;
@@ -64,21 +65,18 @@ TEST_CASE("The metadata methods fill the definition and each returns the builder
     CHECK(installed.Def.UsageKey == "cmd.muteUsage");
     REQUIRE(installed.Def.Aliases.size() == 2);
     CHECK(installed.Def.Aliases[0] == "vmute");
-    CHECK(installed.Def.Chat);
-    CHECK_FALSE(installed.Def.Console);
+    CHECK(installed.Def.Access == CommandAccess::Players);
     CHECK(installed.Def.Args.empty());
 }
 
-TEST_CASE("Console adds the console surface and ConsoleOnly takes chat away")
+TEST_CASE("Anywhere and ServerOnly set who may run the command")
 {
     Installed installed;
-    installed.Builder("bhop_reload").Console().Run([](Caller) -> Result<Reply> { return Reply::Silent(); });
-    CHECK(installed.Def.Chat);
-    CHECK(installed.Def.Console);
+    installed.Builder("bhop_reload").Anywhere().Run([](Caller) -> Result<Reply> { return Reply::Silent(); });
+    CHECK(installed.Def.Access == CommandAccess::Anywhere);
 
-    installed.Builder("bhop_player").ConsoleOnly().Run([](Caller) -> Result<Reply> { return Reply::Silent(); });
-    CHECK_FALSE(installed.Def.Chat);
-    CHECK(installed.Def.Console);
+    installed.Builder("bhop_player").ServerOnly().Run([](Caller) -> Result<Reply> { return Reply::Silent(); });
+    CHECK(installed.Def.Access == CommandAccess::ServerOnly);
 }
 
 TEST_CASE("The handler's parameter list is the argument descriptor")
