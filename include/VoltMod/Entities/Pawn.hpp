@@ -40,7 +40,7 @@ public:
 #include <VoltMod/Schema/Generated/Wrappers/Pawn.inc>
     /** @} */
 
-    [[nodiscard]] bool IsAlive() const { return _e != nullptr && LifeState() == 0; }
+    [[nodiscard]] bool IsAlive() const { return _e != nullptr && LifeState() == LIFE_ALIVE; }
 
     /** Where this pawn's shots originate: the origin plus @ref ViewOffset. */
     [[nodiscard]] Vector EyePosition() const;

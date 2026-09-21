@@ -1,3 +1,4 @@
+#include <Color.h>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
@@ -131,8 +132,8 @@ void Pawn::SetRender(Schema::RenderMode_t mode, uint32_t color) const
 void Pawn::SetVisible(bool visible, uint8_t alpha) const
 {
     const auto mode = visible ? Schema::RenderMode_t::kRenderNormal : Schema::RenderMode_t::kRenderTransAlpha;
-    // m_clrRender stores alpha in the top byte and opaque white in the low three.
-    uint32_t color = visible ? ColorOpaqueWhite : ((static_cast<uint32_t>(alpha) << 24) | 0x00FFFFFFu);
+    const uint32_t color =
+        visible ? ColorOpaqueWhite : static_cast<uint32_t>(Color(255, 255, 255, alpha).GetRawColor());
     SetRender(mode, color);
 }
 
