@@ -85,9 +85,14 @@ Status Damage::Apply(const Entity& victim, const DamageInfo& info) const
     if (!inflictor)
         inflictor = attacker;
 
-    const Vector zero(0.0f, 0.0f, 0.0f);
+    // The engine warns about a hit with no position or push, and pushes nothing.
+    const Vector position = victim.Origin();
+    Vector push = position - Entity{_entities, inflictor}.Origin();
+    push.NormalizeInPlace();
+    push *= info.Amount;
+
     EngineDamageInfo damage{};
-    _bindings.BuildDamageInfo(&damage, inflictor, attacker, nullptr, &zero, &zero, info.Amount,
+    _bindings.BuildDamageInfo(&damage, inflictor, attacker, nullptr, &push, &position, info.Amount,
                               static_cast<int>(info.Type), 0, nullptr);
 
     EngineDamageResult result{};
