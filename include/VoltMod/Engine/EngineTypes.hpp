@@ -1,21 +1,11 @@
 #pragma once
 
-// The one place VoltMod forward-declares anything.
-//
-// Every other header includes the header that defines what it names, so
-// `grep -E '^(class|struct) \w+;' include/` has exactly one hit list: this file.
-// Three kinds of declaration earn a place here.
-//
-// 1. Engine and Metamod types VoltMod only ever passes by pointer or reference.
-//    Naming them costs a forward declaration; including the SDK header costs
-//    every consumer a few thousand lines of tier0/entity2 and a compile-order
-//    dependency on the HL2SDK.
-// 2. Framework types defined under src/ and never exposed whole. A public
-//    header can name them but has no header to include.
-// 3. Framework types whose owning header cannot be included without an include
-//    cycle, because the owner holds the namer by value. Each one says which
-//    pair it belongs to.
+// VoltMod's only forward declarations, for three reasons:
+// 1. SDK types passed by pointer or reference, so consumers never include the SDK.
+// 2. Framework types defined under src/, which have no public header.
+// 3. One side of a pair of headers that would otherwise include each other.
 
+// 1. SDK and Metamod types.
 class CCheckTransmitInfo;
 class CCommand;
 class CEntityIdentity;
@@ -25,9 +15,7 @@ class CGameEntitySystem;
 class CGlobalVars;
 class CNetMessage;
 class CSchemaSystemTypeScope;
-// tier1's ref-counted string. Named only as `const CUtlString*` in the custom HUD setter
-// prototypes, which is the real ABI of those functions rather than a convenience.
-class CUtlString;
+class CUtlString;  // the custom HUD setters take `const CUtlString*`
 class Color;
 class CPlayerSlot;
 class ICvar;
@@ -41,9 +29,9 @@ class INetworkMessages;
 class INetworkServerService;
 class IRecipientFilter;
 class ISchemaSystem;
-class ISource2GameClients;  // the SDK's IServerGameClients typedef
+class ISource2GameClients;  // IServerGameClients
 class ISource2GameEntities;
-class ISource2Server;  // the SDK's IServerGameDLL typedef
+class ISource2Server;  // IServerGameDLL
 class ISource2WorldSession;
 class IVEngineServer2;
 class QAngle;
@@ -56,76 +44,41 @@ class ISmmAPI;
 
 namespace KHook
 {
-/** Metamod's hook dispatcher. The host passes it to each plugin through @ref VoltMod::IHost, and
- *  every module seeds its own `__exported__khook` from it. */
+/** Metamod's hook dispatcher, handed to each plugin through @ref VoltMod::IHost. */
 class IKHook;
 }  // namespace KHook
 
 namespace VoltMod
 {
 
-/** CCSPlayerPawn and the pawn classes sharing its vtable. */
-class EnginePawn
+/** Tags for engine classes the SDK does not declare; only ever pointed to. */
+class EnginePawn  // CCSPlayerPawn and the pawns sharing its vtable
+{};
+class EngineClient  // CServerSideClient
+{};
+class EngineMessageFilter  // CServerSideClient's base that runs FilterMessage
+{};
+class EngineServer  // CNetworkGameServer
+{};
+class EngineMovementServices  // CCSPlayer_MovementServices
+{};
+class EngineNavPhysics  // the nav mesh's physics interface, used by @ref Trace
 {};
 
-/** CServerSideClient, the engine's per-connection object. */
-class EngineClient
-{};
+// 2. Defined under src/.
+class PrecacheGameSystem;    // Engine/GameSystem.hpp
+class GameSystemFactory;     // Engine/GameSystem.hpp
+class ScreenEntity;          // Ui/ScreenEntity.hpp
+class ButtonPressHook;       // Ui/ButtonPressHook.hpp
+class PendingConVarQueries;  // Hooks/PendingConVarQueries.hpp
+class AddonDownloads;        // Workshop/AddonDownloads.hpp
+class CommandRouter;         // Commands/CommandRouter.hpp
+class EngineArgBinder;       // Commands/ArgBinding.hpp
 
-/** CServerSideClient's message-filter base, where FilterMessage runs. Not the client itself. */
-class EngineMessageFilter
-{};
-
-/** CNetworkGameServer, the engine's server object. */
-class EngineServer
-{};
-
-/** CCSPlayer_MovementServices, the per-pawn movement component. */
-class EngineMovementServices
-{};
-
-/** The nav mesh's window onto the physics world. Stateless; @ref Trace calls it on its class table. */
-class EngineNavPhysics
-{};
-
-/** Manifest-time precache hook. Defined in src/Engine/GameSystem.hpp. */
-class PrecacheGameSystem;
-/** Stand-in for the SDK game-system factory. Defined in src/Engine/GameSystem.hpp. */
-class GameSystemFactory;
-
-/** The entity behind a Screen, held by unique_ptr so no public header reaches the SDK string
- *  types. Defined in src/Ui/ScreenEntity.hpp. */
-class ScreenEntity;
-/** The FilterMessage hook behind ScreenManager::Pressed. Held by unique_ptr so no public header
- *  reaches Hook.hpp. Defined in src/Ui/ButtonPressHook.hpp. */
-class ButtonPressHook;
-/** The queries ClientConVars has in flight, kept SDK-free for its tests. Defined in
- *  src/Hooks/PendingConVarQueries.hpp. */
-class PendingConVarQueries;
-/** Which addons each client still owes, kept engine-free for its tests. Defined in
- *  src/Workshop/AddonDownloads.hpp. */
-class AddonDownloads;
-
-/** Entity.hpp holds an EntitySystem* so a wrapper's verbs can reach Bindings and
- *  the entity system, while EntitySystem.hpp returns Entity, Pawn and Controller
- *  by value. Only one side can include the other: EntitySystem.hpp includes
- *  Controller.hpp, which includes Pawn.hpp, which includes Entity.hpp. */
-class EntitySystem;
-
-/** Pawn.hpp returns Controller by value from Pawn::GetController and
- *  Controller.hpp includes Pawn.hpp, so this is the same pair as above one level
- *  down.
- *
- *  Player.hpp declares `Controller Ctrl()` and `Pawn GetPawn()` from these two as
- *  well. A return type in a declaration may be incomplete, and including the
- *  wrappers instead would pull the generated schema headers - and through them the
- *  SDK's mathlib, which `Vector`-returning accessors need by value - into every
- *  translation unit that names a Player, including the SDK-free unit tests. */
-class Controller;
-class Pawn;
-
-/** Visibility.hpp returns GlowVision by shared_ptr from Visibility::CreateGlow, and
- *  GlowVision.hpp includes Visibility.hpp for the reference it holds. */
-class GlowVision;
+// 3. Include cycles.
+class EntitySystem;  // Entity.hpp points to it; EntitySystem.hpp returns entities by value
+class Controller;    // Pawn.hpp returns it; Controller.hpp includes Pawn.hpp
+class Pawn;          // Player.hpp returns both without pulling the schema headers into SDK-free tests
+class GlowVision;    // Visibility.hpp returns it; GlowVision.hpp includes Visibility.hpp
 
 }  // namespace VoltMod

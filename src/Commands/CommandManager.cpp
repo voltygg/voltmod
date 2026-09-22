@@ -13,45 +13,27 @@
 namespace VoltMod
 {
 
-/** Engine-facing command state. */
-struct CommandManager::Impl
-{
-    Impl(Policy& policy, Translations& translations, PlayerManager& players, EntitySystem& entities, Messages& messages)
-        : Policies(policy),
-          Texts(translations),
-          Players(players),
-          Notify(messages),
-          Binder(players, policy, entities),
-          Router(policy, translations)
-    {}
-
-    Policy& Policies;
-    Translations& Texts;
-    PlayerManager& Players;
-    Messages& Notify;
-    EngineArgBinder Binder;
-    CommandRouter Router;
-    /** Lowercased names of commands exposed to the console. */
-    std::unordered_map<std::string, std::unique_ptr<ServerCommand>> ConsoleCommands;
-};
-
 CommandManager::CommandManager(Policy& policy, Translations& translations, PlayerManager& players,
                                EntitySystem& entities, Messages& messages)
-    : _impl(std::make_unique<Impl>(policy, translations, players, entities, messages))
+    : _policy(policy),
+      _players(players),
+      _messages(messages),
+      _binder(std::make_unique<EngineArgBinder>(players, policy, entities)),
+      _router(std::make_unique<CommandRouter>(policy, translations))
 {}
 
 CommandManager::~CommandManager() = default;
 
 void CommandManager::Attach(IHost* host)
 {
-    _impl->Router.Attach(host);
+    _router->Attach(host);
 }
 
 CommandBuilder CommandManager::Add(std::string_view name)
 {
     return CommandBuilder(
         [this](CommandDefinition def) {
-            const CommandDefinition* added = _impl->Router.Add(std::move(def));
+            const CommandDefinition* added = _router->Add(std::move(def));
             if (added && added->Access != CommandAccess::Players)
                 InstallConsoleCommand(*added);
         },
@@ -60,19 +42,18 @@ CommandBuilder CommandManager::Add(std::string_view name)
 
 void CommandManager::RemoveAll()
 {
-    _impl->ConsoleCommands.clear();
-    _impl->Router.Clear();
+    _consoleCommands.clear();
+    _router->Clear();
 }
 
 void CommandManager::InstallConsoleCommand(const CommandDefinition& def)
 {
     const std::string name = Strings::ToLower(def.Name);
-    // Console usage has no chat prefix.
-    const std::string help = def.Description.empty() ? _impl->Router.Usage(def, -1, Origin::Console) : def.Description;
+    const std::string help = def.Description.empty() ? _router->Usage(def, -1, Origin::Console) : def.Description;
 
     ServerCommand::Handler run = [this, name](const CCommand& args, int slot) {
-        // Resolve on each call because shutdown can unregister the command first.
-        const CommandDefinition* current = _impl->Router.Find(name);
+        // Shutdown can unregister the command before the engine drops it.
+        const CommandDefinition* current = _router->Find(name);
         if (!current)
             return;
 
@@ -81,31 +62,28 @@ void CommandManager::InstallConsoleCommand(const CommandDefinition& def)
         for (int i = 1; i < args.ArgC(); ++i)
             tokens.emplace_back(args.Arg(i));
 
-        // A player typing it in their own console is that player, never the server.
         if (slot >= 0)
         {
-            if (Player* player = _impl->Players.Get(slot))
-                _impl->Router.Dispatch(*current, player, tokens, Origin::Console, _impl->Binder,
+            if (Player* player = _players.Get(slot))
+                _router->Dispatch(*current, player, tokens, Origin::Console, *_binder,
                                        [this, slot](const std::string& line) { ReplyToPlayer(slot, line); });
             return;
         }
 
-        // Console replies use the server language.
-        _impl->Router.Dispatch(*current, nullptr, tokens, Origin::Console, _impl->Binder,
+        _router->Dispatch(*current, nullptr, tokens, Origin::Console, *_binder,
                                [](const std::string& line) { Log::Info("{}", line); });
     };
 
-    // A server-only command is refused to players by the engine; any other also runs as the player who typed it.
     const bool playersCanRun = def.Access == CommandAccess::Anywhere;
-    _impl->ConsoleCommands.emplace(name, std::make_unique<ServerCommand>(name, help, std::move(run), playersCanRun));
+    _consoleCommands.emplace(name, std::make_unique<ServerCommand>(name, help, std::move(run), playersCanRun));
 }
 
 void CommandManager::ReplyToPlayer(int slot, const std::string& line)
 {
-    if (_impl->Policies.Reply)
-        _impl->Policies.Reply(slot, line);
+    if (_policy.Reply)
+        _policy.Reply(slot, line);
     else
-        _impl->Notify.Reply(slot, line);
+        _messages.Reply(slot, line);
 }
 
 bool CommandManager::HandleChatMessage(Player* caller, std::string_view message)
@@ -121,13 +99,13 @@ bool CommandManager::HandleChatMessage(Player* caller, std::string_view message)
     if (parts.empty())
         return false;
 
-    const CommandDefinition* def = _impl->Router.Find(parts.front());
+    const CommandDefinition* def = _router->Find(parts.front());
     if (!def || def->Access == CommandAccess::ServerOnly)
         return false;
 
     const std::span<const std::string> tokens{parts.begin() + 1, parts.end()};
     const int slot = caller->Slot();
-    _impl->Router.Dispatch(*def, caller, tokens, Origin::Chat, _impl->Binder,
+    _router->Dispatch(*def, caller, tokens, Origin::Chat, *_binder,
                            [this, slot](const std::string& line) { ReplyToPlayer(slot, line); });
 
     return true;
@@ -140,19 +118,19 @@ bool CommandManager::IsForeign(std::string_view message) const
         return false;
 
     std::vector<std::string> parts = CommandSyntax::Tokenize(*body);
-    return !parts.empty() && _impl->Router.IsForeign(parts.front());
+    return !parts.empty() && _router->IsForeign(parts.front());
 }
 
 size_t CommandManager::Count() const
 {
-    return _impl->Router.Count();
+    return _router->Count();
 }
 
 std::vector<std::string> CommandManager::CommandsMissingPolicy() const
 {
-    if (_impl->Policies.HasPermission)
+    if (_policy.HasPermission)
         return {};
-    return _impl->Router.NamesWithPermission();
+    return _router->NamesWithPermission();
 }
 
 }  // namespace VoltMod
