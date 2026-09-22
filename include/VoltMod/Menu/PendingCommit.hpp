@@ -43,10 +43,10 @@ public:
     void Hold(int slot, int index, std::function<void()> commit);
 
     /** Pending row for @p slot, or -1. */
-    [[nodiscard]] int Index(int slot) const;
+    int Index(int slot) const;
 
     /** True while @p slot's pending commit belongs to row @p index. */
-    [[nodiscard]] bool IsPending(int slot, int index) const;
+    bool IsPending(int slot, int index) const;
 
     /** Apply @p slot's pending commit now, if it has one, and stop its timer. */
     void Apply(int slot);

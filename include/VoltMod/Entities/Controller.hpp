@@ -43,19 +43,19 @@ public:
     /** @} */
 
     /** The slot this controller occupies, or -1. */
-    [[nodiscard]] int Slot() const noexcept { return _slot; }
+    int Slot() const noexcept { return _slot; }
 
     /** The player pawn (`m_hPlayerPawn`): the body gameplay code wants. Dead or falsy while the
      *  player is not alive. */
-    [[nodiscard]] Pawn GetPawn() const;
+    Pawn GetPawn() const;
 
     /** The pawn the player is driving (`m_hPawn`): @ref GetPawn while alive, the observer pawn
      *  while dead or spectating. Where input lands; changes on every death and spawn. */
-    [[nodiscard]] Pawn Possessed() const;
+    Pawn Possessed() const;
 
     /** Buy-menu balance (CCSPlayerController_InGameMoneyServices::m_iAccount), or 0 when the money
      *  services are unavailable. */
-    [[nodiscard]] int Money() const;
+    int Money() const;
 
     /** Write the balance and dirty it, so the client's HUD follows.
      *  @return Error::NotReady when the money services are unavailable. */

@@ -60,7 +60,7 @@ public:
     std::vector<uint64_t> Missing(int slot) const;
 
     /** Whether @p slot has anything left to download, without building the list. */
-    [[nodiscard]] bool HasMissing(int slot) const;
+    bool HasMissing(int slot) const;
 
     /** A client connected with every addon this plugin requires. May fire again on a later reconnect. */
     Event<int /*slot*/> Downloaded;

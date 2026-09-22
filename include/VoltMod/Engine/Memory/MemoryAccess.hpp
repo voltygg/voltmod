@@ -18,14 +18,14 @@ namespace VoltMod
 
 /** Pointer to the field of type T located @p offset bytes into @p base. */
 template <typename T>
-[[nodiscard]] T* MemberPtr(void* base, std::ptrdiff_t offset) noexcept
+T* MemberPtr(void* base, std::ptrdiff_t offset) noexcept
 {
     return reinterpret_cast<T*>(static_cast<uint8_t*>(base) + offset);
 }
 
 /** Read the value of type T located @p offset bytes into @p base. */
 template <typename T>
-[[nodiscard]] T ReadAt(void* base, std::ptrdiff_t offset) noexcept
+T ReadAt(void* base, std::ptrdiff_t offset) noexcept
 {
     return *MemberPtr<T>(base, offset);
 }

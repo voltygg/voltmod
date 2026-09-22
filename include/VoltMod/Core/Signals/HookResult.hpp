@@ -34,16 +34,16 @@ public:
     HookResult() = default;
 
     /** Run the original, then return @p value rather than what it produced. */
-    [[nodiscard]] static HookResult Replace(Ret value) { return {HookAction::Replace, std::move(value)}; }
+    static HookResult Replace(Ret value) { return {HookAction::Replace, std::move(value)}; }
 
     /** Do not run the original at all; return @p value instead. */
-    [[nodiscard]] static HookResult Block(Ret value) { return {HookAction::Block, std::move(value)}; }
+    static HookResult Block(Ret value) { return {HookAction::Block, std::move(value)}; }
 
-    [[nodiscard]] HookAction Action() const noexcept { return _action; }
+    HookAction Action() const noexcept { return _action; }
 
     /** Meaningless unless @ref Action is Replace or Block. */
-    [[nodiscard]] const Ret& Value() const& noexcept { return _value; }
-    [[nodiscard]] Ret Value() && { return std::move(_value); }
+    const Ret& Value() const& noexcept { return _value; }
+    Ret Value() && { return std::move(_value); }
 
 private:
     HookResult(HookAction action, Ret value) : _action(action), _value(std::move(value)) {}
@@ -60,9 +60,9 @@ public:
     HookResult() = default;
 
     /** Skip the engine's own handler. */
-    [[nodiscard]] static HookResult Block() { return HookResult(HookAction::Block); }
+    static HookResult Block() { return HookResult(HookAction::Block); }
 
-    [[nodiscard]] HookAction Action() const noexcept { return _action; }
+    HookAction Action() const noexcept { return _action; }
 
 private:
     explicit HookResult(HookAction action) noexcept : _action(action) {}

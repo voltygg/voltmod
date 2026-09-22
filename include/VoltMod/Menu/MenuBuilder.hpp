@@ -26,7 +26,7 @@ public:
     EnabledCondition(Predicate predicate) : _predicate(std::move(predicate))
     {}
 
-    [[nodiscard]] bool operator()(int slot) const { return _predicate ? _predicate(slot) : _fixed; }
+    bool operator()(int slot) const { return _predicate ? _predicate(slot) : _fixed; }
 
 private:
     std::function<bool(int slot)> _predicate;
@@ -46,7 +46,7 @@ struct ButtonRow
     std::function<void(int slot)> Activate;
     EnabledCondition Enabled;
 
-    [[nodiscard]] MenuItem ToItem() const;
+    MenuItem ToItem() const;
 };
 
 /** A boolean row drawn as a switch. E and A/D run @ref Flip. */
@@ -57,7 +57,7 @@ struct ToggleRow
     std::function<void(int slot)> Flip;
     EnabledCondition Enabled;
 
-    [[nodiscard]] MenuItem ToItem() const;
+    MenuItem ToItem() const;
 };
 
 /** When a @ref ChoiceRow runs its `Commit`. */
@@ -79,9 +79,9 @@ struct ChoiceIndex
 namespace Internal
 {
 /** @ref ChoiceRow's row with its values reduced to indices; build rows with ChoiceRow instead. */
-[[nodiscard]] MenuItem ChoiceItem(std::string label, std::vector<std::string> choices,
-                                  std::function<void(int slot, int index)> commit, std::optional<ChoiceIndex> bind,
-                                  int index, EnabledCondition enabled, ChoiceApply apply);
+MenuItem ChoiceItem(std::string label, std::vector<std::string> choices,
+                    std::function<void(int slot, int index)> commit, std::optional<ChoiceIndex> bind, int index,
+                    EnabledCondition enabled, ChoiceApply apply);
 }  // namespace Internal
 
 /** A labeled choice list. A/D wraps through the values. */
@@ -99,7 +99,7 @@ struct ChoiceRow
     EnabledCondition Enabled;
     ChoiceApply Apply = ChoiceApply::AfterStep;
 
-    [[nodiscard]] MenuItem ToItem() const
+    MenuItem ToItem() const
     {
         std::vector<std::string> labels;
         std::vector<T> values;
@@ -133,7 +133,7 @@ struct InputRow
     int MaxLength = 64;
     EnabledCondition Enabled;
 
-    [[nodiscard]] MenuItem ToItem() const;
+    MenuItem ToItem() const;
 };
 
 /** A link to another menu. @ref Build runs on E and its result is pushed onto the stack. */
@@ -145,7 +145,7 @@ struct SubmenuRow
     /** Reported as @ref MenuRow::Icon. */
     std::string Icon;
 
-    [[nodiscard]] MenuItem ToItem() const;
+    MenuItem ToItem() const;
 };
 
 /** A heading or divider. The cursor skips it. */
@@ -153,7 +153,7 @@ struct TextRow
 {
     std::string Label;
 
-    [[nodiscard]] MenuItem ToItem() const;
+    MenuItem ToItem() const;
 };
 
 /** Fluent builder for menus and row specs. */

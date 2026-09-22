@@ -85,7 +85,7 @@ public:
      *  none is open. What a row calls. */
     virtual void Open(int slot, std::shared_ptr<Menu> menu) = 0;
 
-    [[nodiscard]] virtual bool IsOpen(int slot) const = 0;
+    virtual bool IsOpen(int slot) const = 0;
 
     /** Pops the top menu, returning to its parent when one exists. */
     virtual void Close(int slot) = 0;
@@ -101,7 +101,7 @@ public:
                         std::function<bool(int slot, std::string_view text)> callback) = 0;
 
     /** Translates @p key for @p slot, using @p fallback when missing. */
-    [[nodiscard]] virtual std::string Translate(int slot, std::string_view key, std::string_view fallback) const = 0;
+    virtual std::string Translate(int slot, std::string_view key, std::string_view fallback) const = 0;
 
 protected:
     MenuSurface() = default;
@@ -125,7 +125,7 @@ struct MenuItem
 
 /** True when @p item is one a player may act on right now: it describes itself as both enabled
  *  and selectable. A cursor lands only on these, and only these activate. */
-[[nodiscard]] inline bool IsRowActionable(const MenuItem& item, int slot)
+inline bool IsRowActionable(const MenuItem& item, int slot)
 {
     if (!item.Describe)
         return false;

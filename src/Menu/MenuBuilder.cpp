@@ -118,7 +118,7 @@ struct ChoiceState
     std::optional<ChoiceIndex> Bind;
     int Own;
 
-    [[nodiscard]] int Selected(int slot) const
+    int Selected(int slot) const
     {
         if (Choices.empty())
             return 0;

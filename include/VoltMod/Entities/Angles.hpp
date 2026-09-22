@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mathlib/vector.h>
+#include <VoltMod/Engine/Math.hpp>
 
 namespace VoltMod
 {

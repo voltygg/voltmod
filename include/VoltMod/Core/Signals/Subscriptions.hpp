@@ -51,7 +51,7 @@ public:
 
     /** True while this holds nothing - also how a caller asks "have I subscribed yet?" for a
      *  registration deferred to first use. */
-    [[nodiscard]] bool Empty() const noexcept { return _items.empty(); }
+    bool Empty() const noexcept { return _items.empty(); }
 
 private:
     std::vector<Subscription> _items;

@@ -52,16 +52,16 @@ public:
     PanoramaMenu(const Services& services, MenuLayout& layout, uint64_t addonId);
 
     /** Whether @p slot can see the layout and has downloaded its required addon. */
-    [[nodiscard]] bool CanShow(int slot) const;
+    bool CanShow(int slot) const;
 
     bool OpenSession(int slot, std::shared_ptr<Menu> menu, MenuOptions options) override;
     void Open(int slot, std::shared_ptr<Menu> menu) override;
-    [[nodiscard]] bool IsOpen(int slot) const override;
+    bool IsOpen(int slot) const override;
     void Close(int slot) override;
     void CloseAll(int slot) override;
     void CloseAll(int slot, std::string_view replyKey) override;
     void Prompt(int slot, std::string prompt, std::function<bool(int slot, std::string_view text)> callback) override;
-    [[nodiscard]] std::string Translate(int slot, std::string_view key, std::string_view fallback) const override;
+    std::string Translate(int slot, std::string_view key, std::string_view fallback) const override;
 
 private:
     struct Tab
@@ -80,7 +80,7 @@ private:
         bool HomePage = false;
     };
 
-    [[nodiscard]] int ItemAt(int slot, int row) const;
+    int ItemAt(int slot, int row) const;
     void ReadTabs(int slot);
 
     /** Draw the session, or close it when the layout cannot reach the player. */

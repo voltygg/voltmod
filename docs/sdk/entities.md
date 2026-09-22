@@ -156,8 +156,10 @@ to its command. `AimPunchServices()` carries the recoil punch as the last shot s
 `SpottedState()` exposes the radar bits, and `WeaponServices().ActiveWeapon()` is a handle to
 resolve through `EntitySystem::Resolve`.
 
-`AngleToForward` (`<VoltMod/Entities/Angles.hpp>`) turns an aim into the unit vector it points
-along, for tracing or placing something ahead of a player.
+`Vector` and `QAngle` are the engine's own types; `<VoltMod/Engine/Math.hpp>` is the header to
+include for them, so a plugin never names an SDK path. `AngleToForward`
+(`<VoltMod/Entities/Angles.hpp>`) turns an aim into the unit vector it points along, for tracing
+or placing something ahead of a player.
 
 ```cpp
 QAngle aim = pawn.EyeAngles();

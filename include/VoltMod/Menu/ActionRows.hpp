@@ -42,20 +42,20 @@ public:
     ActionRows(const Services& services, PlayerRef admin, std::optional<PlayerRef> target);
 
     /** Checks the permission each time the row is drawn or used. */
-    [[nodiscard]] EnabledCondition Allows(std::string_view permission) const;
+    EnabledCondition Allows(std::string_view permission) const;
 
     /** Translates @p key for the admin. */
-    [[nodiscard]] std::string Translate(std::string_view key, Tokens tokens = {}) const;
+    std::string Translate(std::string_view key, Tokens tokens = {}) const;
 
     /** A button that runs a single-target action. */
-    [[nodiscard]] MenuItem Action(std::string_view labelKey, const VoltMod::Action& action);
+    MenuItem Action(std::string_view labelKey, const VoltMod::Action& action);
 
     /**
      * A toggle row whose state is @p isActive over the target's pawn, re-read on every redraw,
      * and whose flip runs @p action. Predicates live in Entities/PawnPredicates.hpp.
      */
-    [[nodiscard]] MenuItem StateToggle(std::string_view labelKey, std::function<bool(const Pawn&)> isActive,
-                                       const VoltMod::Action& action);
+    MenuItem StateToggle(std::string_view labelKey, std::function<bool(const Pawn&)> isActive,
+                         const VoltMod::Action& action);
 
     /** A choice row over a fixed list of numbers. */
     struct PresetSpec
@@ -70,22 +70,22 @@ public:
     };
 
     /** Applies the selected preset after stepping stops. */
-    [[nodiscard]] MenuItem Presets(const PresetSpec& spec);
+    MenuItem Presets(const PresetSpec& spec);
 
     /** An on/off row for a data-defined effect. */
-    [[nodiscard]] MenuItem Effect(const EffectDescriptor& effect);
+    MenuItem Effect(const EffectDescriptor& effect);
 
     /** A submenu over an effect's choices. */
-    [[nodiscard]] MenuItem EffectPicker(const EffectDescriptor& effect);
+    MenuItem EffectPicker(const EffectDescriptor& effect);
 
 private:
     std::shared_ptr<Menu> BuildPicker(const EffectDescriptor& effect, EnabledCondition allowed) const;
 
-    [[nodiscard]] EffectDispatcher Effects() const;
+    EffectDispatcher Effects() const;
 
-    [[nodiscard]] EnabledCondition EffectAllows(const EffectDescriptor& effect) const;
+    EnabledCondition EffectAllows(const EffectDescriptor& effect) const;
 
-    [[nodiscard]] PlayerRef TargetRef() const { return _target.value_or(PlayerRef{}); }
+    PlayerRef TargetRef() const { return _target.value_or(PlayerRef{}); }
 
     /** Shared by row callbacks so each menu stores one copy. The referenced services must still
      *  outlive the rows. */

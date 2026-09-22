@@ -52,31 +52,31 @@ public:
     Player(const Player&) = delete;
     Player& operator=(const Player&) = delete;
 
-    [[nodiscard]] int Slot() const noexcept { return _slot; }
-    [[nodiscard]] int64_t SteamId() const noexcept { return _steamId; }
+    int Slot() const noexcept { return _slot; }
+    int64_t SteamId() const noexcept { return _steamId; }
 
     /** True for engine bots, which connect without a real SteamID. */
-    [[nodiscard]] bool IsBot() const noexcept { return _steamId == 0; }
+    bool IsBot() const noexcept { return _steamId == 0; }
 
     /** This player as a storable reference. */
-    [[nodiscard]] PlayerRef Ref() const noexcept { return {.Slot = _slot, .SteamId = _steamId}; }
+    PlayerRef Ref() const noexcept { return {.Slot = _slot, .SteamId = _steamId}; }
 
     /** The scoreboard name, read from the controller. Falls back to the connect-time name while
      *  there is no controller yet - between ClientConnected and the first spawn. */
-    [[nodiscard]] std::string Name() const;
+    std::string Name() const;
 
     /** The IP the player connected from, captured at connect because the engine offers it only
      *  there. Empty for bots. */
-    [[nodiscard]] std::string_view Ip() const noexcept { return _ip; }
+    std::string_view Ip() const noexcept { return _ip; }
 
     /** How long this connection has lasted. */
-    [[nodiscard]] std::chrono::seconds Playtime() const { return std::chrono::seconds{Time::Now() - _connectTime}; }
+    std::chrono::seconds Playtime() const { return std::chrono::seconds{Time::Now() - _connectTime}; }
 
     /** @{ The engine wrappers for this player, resolved now. Frame-local: read them, do not
      *  store them. Falsy when the player has no controller or no pawn. Include
      *  <VoltMod/Entities/EntitySystem.hpp> (or <VoltMod/Api.hpp>) to use what they return. */
-    [[nodiscard]] Controller Ctrl() const;
-    [[nodiscard]] Pawn GetPawn() const;
+    Controller Ctrl() const;
+    Pawn GetPawn() const;
     /** @} */
 
 private:

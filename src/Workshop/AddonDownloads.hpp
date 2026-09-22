@@ -52,7 +52,7 @@ public:
 
     /** What @p steamId has still to download. */
     std::vector<uint64_t> MissingFor(int64_t steamId) const;
-    [[nodiscard]] bool HasMissing(int64_t steamId) const;
+    bool HasMissing(int64_t steamId) const;
 
     /** Required addons @p steamId has downloaded or is downloading: what it mounts on connect. */
     std::vector<uint64_t> ToMount(int64_t steamId) const;

@@ -76,11 +76,11 @@ public:
      * this allocates nothing; it is invalidated by the next Add/Remove/Clear, which means a loop
      * over it must not connect or disconnect anybody.
      */
-    [[nodiscard]] std::span<Player* const> All() const { return _ordered; }
+    std::span<Player* const> All() const { return _ordered; }
 
     /** The ref for whoever occupies @p slot, or an unset ref when it is empty. The way a
      *  transient slot - a menu row, an engine callback - becomes a storable identity. */
-    [[nodiscard]] PlayerRef RefFor(int slot);
+    PlayerRef RefFor(int slot);
 
     /** @internal Roster mutation and lifecycle raising belong to the framework's Metamod
      *  callbacks (`Plugin`); a plugin that calls these desynchronizes the roster from

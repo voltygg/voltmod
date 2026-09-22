@@ -56,7 +56,7 @@ public:
     void Attach(IHost* host);
 
     /** Start describing a command. Finish with `.Run(handler)`, which installs it. */
-    [[nodiscard]] CommandBuilder Add(std::string_view name);
+    CommandBuilder Add(std::string_view name);
 
     /** Dispatch @p message when it starts with the `!` command prefix.
      *  @return true when it was a command, so the chat line should not be shown. */

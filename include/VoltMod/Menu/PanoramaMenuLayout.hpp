@@ -28,8 +28,8 @@ public:
     PanoramaMenuLayout(ScreenManager& screens, std::string_view screen, std::size_t tabs, std::size_t rows,
                        std::span<const std::string_view> iconNames);
 
-    [[nodiscard]] int RowCount() const override { return static_cast<int>(_rows.size()); }
-    [[nodiscard]] int TabCount() const override { return static_cast<int>(_tabs.size()); }
+    int RowCount() const override { return static_cast<int>(_rows.size()); }
+    int TabCount() const override { return static_cast<int>(_tabs.size()); }
 
     bool Show(int slot) override;
     void Hide(int slot) override;
@@ -44,7 +44,7 @@ public:
     void SetPrompt(int slot, std::string_view text, std::string_view hint) override;
     void SetFooter(int slot, std::string_view back, std::string_view cancel) override;
 
-    [[nodiscard]] std::optional<MenuButton> ButtonFor(std::string_view id) const override;
+    std::optional<MenuButton> ButtonFor(std::string_view id) const override;
 
     /** Fills `{s:<variable>}` in markup the screen adds itself, such as its `home` panel. Written
      *  with every header, so it outlives a respawned screen. */

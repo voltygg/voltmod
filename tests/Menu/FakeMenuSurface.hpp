@@ -41,7 +41,7 @@ public:
         Opened.push_back(std::move(menu));
     }
 
-    [[nodiscard]] bool IsOpen(int slot) const override { return OpenSlots.contains(slot); }
+    bool IsOpen(int slot) const override { return OpenSlots.contains(slot); }
 
     void Close(int) override { ++Closes; }
 
@@ -66,14 +66,14 @@ public:
 
     /** No translation table here, so a key always resolves to the framework's own fallback -
      *  which is what makes the default confirm labels observable in a test. */
-    [[nodiscard]] std::string Translate(int, std::string_view key, std::string_view fallback) const override
+    std::string Translate(int, std::string_view key, std::string_view fallback) const override
     {
         Translated.emplace_back(key);
         return std::string(fallback);
     }
 
     /** The menu on top of what has been opened, or null when nothing has been. */
-    [[nodiscard]] const VoltMod::Menu* Last() const { return Opened.empty() ? nullptr : Opened.back().get(); }
+    const VoltMod::Menu* Last() const { return Opened.empty() ? nullptr : Opened.back().get(); }
 
     /** Press row @p index of the last opened menu, as a driver would. */
     void Press(int index)

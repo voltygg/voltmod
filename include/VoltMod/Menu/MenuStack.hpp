@@ -43,17 +43,17 @@ public:
     MenuStack(MenuSurface& surface, Translations& translations, PendingCommit::Timer timer, SlotEvents& slots);
 
     /** Top menu, or null when none is open. */
-    [[nodiscard]] Menu* Current(int slot);
+    Menu* Current(int slot);
 
     /** Bottom menu - the one the session was opened with - or null. */
-    [[nodiscard]] Menu* Root(int slot);
+    Menu* Root(int slot);
 
-    [[nodiscard]] int Depth(int slot) const;
-    [[nodiscard]] bool IsOpen(int slot) const;
-    [[nodiscard]] bool AnyOpen() const;
+    int Depth(int slot) const;
+    bool IsOpen(int slot) const;
+    bool AnyOpen() const;
 
     /** Parent menu titles joined. Valid until the stack changes. */
-    [[nodiscard]] std::string_view Breadcrumb(int slot) const;
+    std::string_view Breadcrumb(int slot) const;
 
     void Push(int slot, std::shared_ptr<Menu> menu);
 
@@ -71,7 +71,7 @@ public:
     /** Row @p index as it describes itself, with @ref MenuRow::Pending and @ref MenuRow::Changed
      *  filled in and a Toggle's on/off word spelled. An index with no row behind it describes as
      *  a disabled, unselectable line. */
-    [[nodiscard]] MenuRow Describe(int slot, int index);
+    MenuRow Describe(int slot, int index);
 
     /** Run row @p index, as if it had been selected and confirmed. Ignores rows that are disabled,
      *  unselectable, or out of range.
@@ -90,7 +90,7 @@ public:
     void ApplyPending(int slot);
 
     /** True while @p slot is holding a stepped value for row @p index. */
-    [[nodiscard]] bool IsPending(int slot, int index) const;
+    bool IsPending(int slot, int index) const;
 
     /** A held commit was applied. A surface that redraws every frame can ignore this; one that
      *  draws on demand needs it, because the commit lands on a timer rather than on a press. */

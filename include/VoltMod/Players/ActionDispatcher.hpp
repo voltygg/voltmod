@@ -26,14 +26,14 @@ struct ActionContext
     Controller CallerCtrl;
     Controller TargetCtrl;
 
-    [[nodiscard]] Player& Caller() const { return Auth.Caller; }
+    Player& Caller() const { return Auth.Caller; }
     /** An action always has a target: @ref ActionDispatcher::Resolve fails without one. */
-    [[nodiscard]] Player& Target() const { return *Auth.Target; }
+    Player& Target() const { return *Auth.Target; }
 
     /** @{ The pawns behind the two controllers. Free to call - each controller resolved its pawn
      *  when the dispatcher built it - and falsy when the player has none. */
-    [[nodiscard]] Pawn CallerPawn() const { return CallerCtrl.GetPawn(); }
-    [[nodiscard]] Pawn TargetPawn() const { return TargetCtrl.GetPawn(); }
+    Pawn CallerPawn() const { return CallerCtrl.GetPawn(); }
+    Pawn TargetPawn() const { return TargetCtrl.GetPawn(); }
     /** @} */
 };
 

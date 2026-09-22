@@ -30,16 +30,16 @@ public:
 
     bool OpenSession(int slot, std::shared_ptr<Menu> menu, MenuOptions options) override;
     void Open(int slot, std::shared_ptr<Menu> menu) override;
-    [[nodiscard]] bool IsOpen(int slot) const override;
+    bool IsOpen(int slot) const override;
     void Close(int slot) override;
     void CloseAll(int slot) override;
     void CloseAll(int slot, std::string_view replyKey) override;
     void Prompt(int slot, std::string prompt, std::function<bool(int slot, std::string_view text)> callback) override;
-    [[nodiscard]] std::string Translate(int slot, std::string_view key, std::string_view fallback) const override;
+    std::string Translate(int slot, std::string_view key, std::string_view fallback) const override;
 
 private:
     /** The surface holding @p slot's session; the fallback when there is none. */
-    [[nodiscard]] MenuSurface& SessionOf(int slot) const;
+    MenuSurface& SessionOf(int slot) const;
 
     MenuSurface& _fallback;
     MenuSurface* _preferred = nullptr;

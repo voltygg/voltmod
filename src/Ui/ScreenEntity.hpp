@@ -38,7 +38,7 @@ public:
     ScreenEntity(const ScreenEntity&) = delete;
     ScreenEntity& operator=(const ScreenEntity&) = delete;
 
-    [[nodiscard]] bool Exists() const;
+    bool Exists() const;
 
     /** Spawn, or respawn after the player list changed, until the entity covers @p slot. */
     bool EnsureSpawned(int slot);
@@ -51,23 +51,23 @@ public:
     Status WriteCursor(int slot, bool shown);
 
 private:
-    [[nodiscard]] bool IsForPlayer() const noexcept { return _owner != EveryoneSlot; }
+    bool IsForPlayer() const noexcept { return _owner != EveryoneSlot; }
 
     /** The slot a write is cached under, which the cursor is also sent to. A player screen accepts
      *  only its owner or @ref EveryoneSlot. */
-    [[nodiscard]] Result<int> CacheSlotFor(int slot) const;
+    Result<int> CacheSlotFor(int slot) const;
 
     /** The slot text and classes are sent to: global on a player screen. */
-    [[nodiscard]] int ContentSlotFor(int cacheSlot) const noexcept;
+    int ContentSlotFor(int cacheSlot) const noexcept;
 
     Status Spawn();
     bool SpawnOrWarn();
 
-    [[nodiscard]] int PlayerStateCount() const;
-    [[nodiscard]] bool Covers(int slot) const;
+    int PlayerStateCount() const;
+    bool Covers(int slot) const;
 
     /** The entity, or why @p engineSlot cannot be written to right now. */
-    [[nodiscard]] Result<CEntityInstance*> EntityForWrite(int engineSlot) const;
+    Result<CEntityInstance*> EntityForWrite(int engineSlot) const;
 
     Status SendText(int engineSlot, std::string_view variable, std::string_view value);
     Status SendClass(int engineSlot, std::string_view elementId, std::string_view className, bool on);

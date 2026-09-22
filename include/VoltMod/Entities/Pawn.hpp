@@ -40,12 +40,12 @@ public:
 #include <VoltMod/Schema/Generated/Wrappers/Pawn.inc>
     /** @} */
 
-    [[nodiscard]] bool IsAlive() const { return _e != nullptr && LifeState() == LIFE_ALIVE; }
+    bool IsAlive() const { return _e != nullptr && LifeState() == LIFE_ALIVE; }
 
     /** Where this pawn's shots originate: the origin plus @ref ViewOffset. */
-    [[nodiscard]] Vector EyePosition() const;
+    Vector EyePosition() const;
 
-    [[nodiscard]] Schema::MoveType_t Move() const { return MoveTypeRaw(); }
+    Schema::MoveType_t Move() const { return MoveTypeRaw(); }
 
     /** Writes both `m_MoveType` and `m_nActualMoveType`; setting only one lets the engine revert
      *  it on the next tick. */
@@ -57,11 +57,11 @@ public:
 
     /** Read `m_iObserverMode` from the pawn's CPlayer_ObserverServices. The services pointer is
      *  its own object, so this is a method rather than a Field. */
-    [[nodiscard]] ObserverMode GetObserverMode() const;
+    ObserverMode GetObserverMode() const;
     Status SetObserverMode(ObserverMode mode) const;
 
     /** Current model path (the scene node's CModelState). Empty when unavailable. */
-    [[nodiscard]] std::string ModelName() const;
+    std::string ModelName() const;
 
     /**
      * Apply transparency to the pawn body. Weapons and wearables are unaffected - CS2 routes
@@ -77,11 +77,11 @@ public:
     void SetRender(Schema::RenderMode_t mode, uint32_t color) const;
 
     /** The controller that owns this pawn, resolved through `m_hController`. */
-    [[nodiscard]] Controller GetController() const;
+    Controller GetController() const;
 
     /** Slot of the owning player, or -1. Constant-time: it reads the pawn's own back-reference
      *  rather than scanning the roster, which per-damage and per-tick paths depend on. */
-    [[nodiscard]] int Slot() const;
+    int Slot() const;
 };
 
 }  // namespace VoltMod

@@ -23,10 +23,10 @@ public:
     static Result<LayoutPath> Parse(std::string_view layout);
 
     /** The resource name that goes on the entity. */
-    [[nodiscard]] const std::string& Resource() const noexcept { return _resource; }
+    const std::string& Resource() const noexcept { return _resource; }
 
     /** The file name without directory or extension: the layout's root element id. */
-    [[nodiscard]] std::string_view Name() const noexcept;
+    std::string_view Name() const noexcept;
 
 private:
     explicit LayoutPath(std::string resource) : _resource(std::move(resource)) {}

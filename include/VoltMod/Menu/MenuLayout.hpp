@@ -62,10 +62,10 @@ public:
     MenuLayout& operator=(const MenuLayout&) = delete;
 
     /** Rows on one page. */
-    [[nodiscard]] virtual int RowCount() const = 0;
+    virtual int RowCount() const = 0;
 
     /** Sidebar tabs, filled from the root menu's submenus. Zero for a layout without a sidebar. */
-    [[nodiscard]] virtual int TabCount() const = 0;
+    virtual int TabCount() const = 0;
 
     /** Spawn if needed, unhide, and give the cursor. False when @p slot cannot be drawn to. */
     virtual bool Show(int slot) = 0;
@@ -84,7 +84,7 @@ public:
     virtual void SetFooter(int slot, std::string_view back, std::string_view cancel) = 0;
 
     /** The button a pressed id names, or nothing for an id outside this layout. */
-    [[nodiscard]] virtual std::optional<MenuButton> ButtonFor(std::string_view id) const = 0;
+    virtual std::optional<MenuButton> ButtonFor(std::string_view id) const = 0;
 
 protected:
     MenuLayout() = default;

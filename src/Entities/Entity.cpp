@@ -21,7 +21,7 @@ static_assert(std::to_underlying(ObserverMode::InEye) == OBS_MODE_IN_EYE);
 static_assert(std::to_underlying(ObserverMode::Chase) == OBS_MODE_CHASE);
 static_assert(std::to_underlying(ObserverMode::Roaming) == OBS_MODE_ROAMING);
 
-// CBaseEntity stores origin and rotation on CGameSceneNode via m_CBodyComponent -> m_pSceneNode.
+// Origin and rotation live on the scene node, not on CBaseEntity.
 static Schema::CGameSceneNode SceneNode(const Entity& entity)
 {
     return entity.BodyComponent().SceneNode();
@@ -47,7 +47,6 @@ std::string_view Entity::ClassName() const
 
 Vector Entity::Origin() const
 {
-    // Vector's default constructor does not zero the value.
     const Schema::CGameSceneNode node = SceneNode(*this);
     return node ? node.AbsOrigin() : Vector(0.0f, 0.0f, 0.0f);
 }
@@ -114,7 +113,6 @@ Status Pawn::SetObserverMode(ObserverMode value) const
 
 std::string Pawn::ModelName() const
 {
-    // The model path is the interned CUtlSymbolLarge in the pawn's embedded CModelState.
     const Schema::CSkeletonInstance skeleton{SceneNode(*this).Base()};
     if (!skeleton)
         return {};
@@ -125,7 +123,6 @@ std::string Pawn::ModelName() const
 
 void Pawn::SetRender(Schema::RenderMode_t mode, uint32_t color) const
 {
-    // Qualify the free function because the member has the same name.
     VoltMod::SetRender(_e, mode, color);
 }
 
@@ -174,7 +171,6 @@ int Controller::Money() const
 
 Status Controller::SetMoney(int amount) const
 {
-    // Money services own __m_pChainEntity, so the generated setter dirties the controller through it.
     const Schema::CCSPlayerController_InGameMoneyServices money = InGameMoneyServices();
     if (!money)
         return std::unexpected(Error::NotReady("money services unavailable"));
@@ -192,7 +188,6 @@ Status Controller::Kick(std::string_view reason) const
     if (!engine)
         return std::unexpected(Error::NotReady("IVEngineServer2 not available"));
 
-    // DisconnectClient requires a null-terminated reason string.
     const std::string text(reason);
     engine->DisconnectClient(CPlayerSlot(_slot), NETWORK_DISCONNECT_KICKED, text.c_str());
     return {};
@@ -224,7 +219,7 @@ Status Controller::Respawn() const
     return {};
 }
 
-// These wrappers are passed by value, so their field layout is part of the ABI.
+// Passed by value: the field layout is ABI.
 static_assert(sizeof(Pawn) <= 160, "Pawn is a frame-local value; keep the field list tight.");
 static_assert(sizeof(Controller) <= 104, "Controller is a frame-local value; keep the field list tight.");
 

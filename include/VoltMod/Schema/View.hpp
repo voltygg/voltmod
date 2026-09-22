@@ -30,7 +30,7 @@ public:
     explicit operator bool() const noexcept { return _base != nullptr; }
 
     /** The object this view points at. */
-    [[nodiscard]] void* Base() const noexcept { return _base; }
+    void* Base() const noexcept { return _base; }
 
 protected:
     void* _base = nullptr;

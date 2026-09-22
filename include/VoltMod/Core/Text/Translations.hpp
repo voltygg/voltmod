@@ -52,7 +52,7 @@ public:
     void SetPlayerLanguage(int slot, std::string_view lang);
 
     /** Empty means the active language. Valid until the next change. */
-    [[nodiscard]] std::string_view PlayerLanguage(int slot) const;
+    std::string_view PlayerLanguage(int slot) const;
 
 private:
     // Engaged (possibly with an empty view) when lang/key is present, nullopt when it is absent.

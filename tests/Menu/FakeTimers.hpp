@@ -43,10 +43,10 @@ public:
     }
 
     /** How many commits are waiting on a timer. */
-    [[nodiscard]] int Running() const { return static_cast<int>(_running->size()); }
+    int Running() const { return static_cast<int>(_running->size()); }
 
     /** The delay the most recent timer asked for. */
-    [[nodiscard]] int64_t LastDelay() const { return _running->empty() ? -1 : _running->rbegin()->second.DelayMs; }
+    int64_t LastDelay() const { return _running->empty() ? -1 : _running->rbegin()->second.DelayMs; }
 
 private:
     struct Timer

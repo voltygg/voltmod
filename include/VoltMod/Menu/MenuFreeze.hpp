@@ -32,7 +32,7 @@ public:
      */
     void Enable(bool enabled);
 
-    [[nodiscard]] bool Enabled() const noexcept { return _enabled; }
+    bool Enabled() const noexcept { return _enabled; }
 
     /** A session opened for @p slot. @p requested is that session's @ref MenuOptions::FreezeMovement,
      *  so a menu players reach mid-round can opt out while the setting stays on. */

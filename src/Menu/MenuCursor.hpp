@@ -19,13 +19,13 @@ struct CursorRows
 namespace MenuCursor
 {
 /** @p index moved by @p step, wrapping over @p rows and skipping what it may not land on. */
-[[nodiscard]] int Step(const CursorRows& rows, int index, int step);
+int Step(const CursorRows& rows, int index, int step);
 
 /** First selectable row. */
-[[nodiscard]] int First(const CursorRows& rows);
+int First(const CursorRows& rows);
 
 /** Moves @p index by @p delta pages while preserving its page offset. */
-[[nodiscard]] int JumpPage(const CursorRows& rows, int index, int rowsPerPage, int delta);
+int JumpPage(const CursorRows& rows, int index, int rowsPerPage, int delta);
 }  // namespace MenuCursor
 
 }  // namespace VoltMod

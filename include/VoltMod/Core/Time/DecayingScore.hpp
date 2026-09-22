@@ -23,7 +23,7 @@ public:
 
     /** Takes effect from the next @ref Value; weight already accrued is not re-aged. */
     void SetHalfLife(double halfLifeSec) { _halfLifeSec = halfLifeSec; }
-    [[nodiscard]] double HalfLife() const { return _halfLifeSec; }
+    double HalfLife() const { return _halfLifeSec; }
 
     /** Ages the score to @p now, adds @p weight, and returns the result. */
     double Add(double now, double weight = 1.0)
@@ -34,7 +34,7 @@ public:
     }
 
     /** The score at @p now, leaving the stored value and stamp alone. */
-    [[nodiscard]] double Value(double now) const
+    double Value(double now) const
     {
         const double elapsed = now - _stamp;
         // A clock that went backwards - map restart, skew - reads as no time passed, never as gain.

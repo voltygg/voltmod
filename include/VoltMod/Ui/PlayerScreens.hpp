@@ -27,7 +27,7 @@ public:
     Screen& For(int slot);
 
     /** @p slot's screen if one was created, or null. Never creates. */
-    [[nodiscard]] Screen* Find(int slot);
+    Screen* Find(int slot);
 
 private:
     ScreenManager& _screens;

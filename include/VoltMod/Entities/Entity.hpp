@@ -2,13 +2,12 @@
 
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/Math.hpp>
 #include <VoltMod/Entities/EntityRef.hpp>
 #include <VoltMod/Schema/Generated/CBaseEntity.hpp>
 // Flags_t: the FL_* bits Flags() returns.
 #include <const.h>
 #include <cstdint>
-// EngineTypes.hpp only forward-declares Vector; the generated accessors return it by value.
-#include <mathlib/vector.h>
 #include <optional>
 #include <string_view>
 
@@ -16,89 +15,56 @@ namespace VoltMod
 {
 
 /**
- * @brief A live entity, addressed by its fields.
+ * A live entity. Frame-local: the engine can free it between frames, so do not keep an Entity,
+ * Pawn or Controller across frames. Store an EntityRef (or PlayerRef) and resolve it again where
+ * you use it. `if (entity)` checks validity; there is no IsValid().
  *
- * ### Validity
- *
- * Every wrapper built on this one - @ref Entity, @ref Pawn, @ref Controller - is a **frame-local
- * value**. It holds a raw entity pointer, and the engine frees entities between frames without
- * telling anyone, so a wrapper kept past the frame it was built in points at freed memory.
- *
- * - `explicit operator bool()` is the one validity check. There is no `IsValid()`.
- * - Never store a wrapper. Store an @ref EntityRef (any entity) or a @ref PlayerRef (a player) and
- *   resolve it again where it is needed: `runtime.Entities.Resolve(ref)`,
- *   `runtime.Entities.PawnOf(slot)`.
- * - Wrappers copy but do not assign. Copying rebinds a whole wrapper to the same entity, so
- *   letting one be assigned would read like writing a field rather than rebinding.
- *
- * Reading a field of a falsy wrapper yields a zero value and writing it does nothing, so a
- * wrapper that was never resolved degrades rather than crashing. A stale non-null one does not,
- * which is why the rule is "never store one" and not "check before use".
- *
- * ### Fields
- *
- * Schema fields are generated accessor pairs, not data members: `pawn.Health()` reads and
- * `pawn.SetHealth(100)` writes and replicates. `voltmod schemagen` bakes the offsets in from the
- * schema dump and the load aborts if they no longer match the engine, so a stale offset is a
- * startup failure rather than a bad read. `Entity` carries the CBaseEntity fields every entity
- * has; @ref Pawn and @ref Controller add theirs.
+ * Fields are generated getter/setter pairs: `Health()` reads, `SetHealth(100)` writes and
+ * replicates. A null wrapper reads zero and writes nothing.
  */
 class Entity
 {
 protected:
-    /** The service graph the verbs below reach the engine through. Null only for a
-     *  default-constructed wrapper, which is falsy anyway. */
+    /** Null only when default-constructed. */
     EntitySystem* _sys = nullptr;
     CEntityInstance* _e = nullptr;
 
 public:
     Entity() = default;
 
-    /** @p entities must outlive this wrapper - the Runtime owns it and the wrapper is frame-local.
-     *  Prefer the factories on @ref EntitySystem over building one by hand. */
+    /** Prefer runtime.Entities.Resolve/PawnOf/Controller over building one by hand. */
     Entity(EntitySystem& entities, CEntityInstance* raw) noexcept : _sys(&entities), _e(raw) {}
 
     Entity(const Entity&) = default;
-
-    /** Wrappers are not assignable: see the validity note above. Re-resolve instead. */
+    /** Not assignable: resolve a new wrapper instead. */
     Entity& operator=(const Entity&) = delete;
 
     explicit operator bool() const noexcept { return _e != nullptr; }
 
-    /** The entity this wraps, for the engine calls the framework has not typed yet. */
-    [[nodiscard]] CEntityInstance* Raw() const noexcept { return _e; }
+    /** The raw entity, for engine calls the framework does not wrap. */
+    CEntityInstance* Raw() const noexcept { return _e; }
 
-    /** Network entity index, or -1 when the entity is null or unlinked. */
-    [[nodiscard]] int Index() const;
+    /** Network entity index; -1 when null or unlinked. */
+    int Index() const;
 
-    /** The storable form of this entity. Invalid for a null or unlinked entity. */
-    [[nodiscard]] EntityRef Ref() const;
+    /** The handle to store; invalid when null or unlinked. */
+    EntityRef Ref() const;
 
-    /** Designer classname, or empty. Borrowed from the engine; it dies with the entity. */
-    [[nodiscard]] std::string_view ClassName() const;
+    /** Classname such as "player"; empty when null. Points into engine memory: copy it to keep it. */
+    std::string_view ClassName() const;
 
-    /** @name CBaseEntity fields, carried by every entity.
-     *
-     *  Generated from `schema/manifest.json`; the offsets are baked in and checked against the
-     *  live schema once at load. On a pawn prefer @ref Pawn::Move and @ref Pawn::SetMove over
-     *  `SetMoveType` - writing only one of the two move-type fields lets the engine revert it
-     *  next tick.
-     */
+    /** @name CBaseEntity fields
+     *  On a pawn use Pawn::SetMove, not SetMoveType: the engine reverts a lone move-type write next tick. */
     /** @{ */
 #include <VoltMod/Schema/Generated/Wrappers/Entity.inc>
     /** @} */
 
-    /** World position. Origin and rotation are not CBaseEntity schema fields in CS2; both live on
-     *  the entity's CGameSceneNode, reached through `m_CBodyComponent`. */
-    [[nodiscard]] Vector Origin() const;
-    [[nodiscard]] QAngle Angles() const;
+    /** World position and rotation (from the scene node; not schema fields on CBaseEntity). */
+    Vector Origin() const;
+    QAngle Angles() const;
 
-    /**
-     * Move the entity through `CBaseEntity::Teleport`. A component left as `std::nullopt` is
-     * unchanged.
-     * @return Error::NotReady for a null entity, Error::Unsupported when the Teleport vtable index
-     *         did not bind.
-     */
+    /** Move the entity; a std::nullopt argument leaves that part unchanged.
+     *  Errors: NotReady on a null entity, Unsupported when the Teleport vtable index did not bind. */
     Status Teleport(std::optional<Vector> origin, std::optional<QAngle> angles, std::optional<Vector> velocity) const;
 };
 

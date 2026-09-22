@@ -42,7 +42,7 @@ struct CharBuf
     }
 
     /** Contents before the first NUL, borrowed from this buffer. */
-    [[nodiscard]] std::string_view View() const noexcept
+    std::string_view View() const noexcept
     {
         size_t length = 0;
         while (length < N && Value[length] != '\0')
@@ -50,9 +50,9 @@ struct CharBuf
         return {Value, length};
     }
 
-    [[nodiscard]] std::string Str() const { return std::string(View()); }
+    std::string Str() const { return std::string(View()); }
 
-    [[nodiscard]] bool Empty() const noexcept { return Value[0] == '\0'; }
+    bool Empty() const noexcept { return Value[0] == '\0'; }
 
     void Assign(std::string_view text) noexcept
     {

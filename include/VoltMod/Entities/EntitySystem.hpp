@@ -86,8 +86,8 @@ public:
      *  reach the whole service graph is the locator shape this framework does not have, and these
      *  two are exactly the engine handles, not the graph. */
     /** @{ */
-    [[nodiscard]] const Bindings& BindingsRef() const noexcept { return _bindings; }
-    [[nodiscard]] const Interfaces& InterfacesRef() const noexcept { return _interfaces; }
+    const Bindings& BindingsRef() const noexcept { return _bindings; }
+    const Interfaces& InterfacesRef() const noexcept { return _interfaces; }
     /** @} */
 
 private:

@@ -33,10 +33,10 @@ public:
     SharedLifecycle(const SharedLifecycle&) = delete;
     SharedLifecycle& operator=(const SharedLifecycle&) = delete;
 
-    [[nodiscard]] EventLifecycle ForEvent();
+    EventLifecycle ForEvent();
 
     /** Number of adapted events with at least one handler. For diagnostics and tests only. */
-    [[nodiscard]] int ListeningEvents() const noexcept { return _listening; }
+    int ListeningEvents() const noexcept { return _listening; }
 
 private:
     bool AddListener();
