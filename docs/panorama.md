@@ -246,7 +246,7 @@ header spells them as C++ names.
 ## Images and icon sets {#panorama_guide_images}
 
 Drop PNGs in an owner's `panorama/images/<set>/`, referenced as
-`s2r://panorama/images/<set>/<name>.vtex`. Name a set for its owner (`stronghold_items`, not
+`s2r://panorama/images/<set>/<name>.vtex`. Name a set for its owner (`stronghold`, not
 `icons`): a set shares the client's `panorama/images/` with the game's own folders, and one of the
 same name replaces them. Every set becomes an entry in the `images` context (`images.weapons`,
 sorted file stems), so `{% for name in images[set] %}` in a block can draw one `<Image>` per icon. Rendering copies each PNG into the build tree and writes a

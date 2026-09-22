@@ -3,6 +3,7 @@
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <memory>
+#include <span>
 #include <string_view>
 
 namespace VoltMod
@@ -42,6 +43,11 @@ public:
     Status SetClass(int slot, std::string_view elementId, std::string_view className, bool on);
 
     Status SetHidden(int slot, std::string_view elementId, bool hidden);
+
+    /** Show @p name in the icon set @p elementId: `icon-set--<name>` on, every other of @p names off.
+     *  @p names is the generated header's `IconSetNames`. */
+    Status ShowIcon(int slot, std::string_view elementId, std::span<const std::string_view> names,
+                    std::string_view name);
 
     Status ShowCursor(int slot, bool shown);
 

@@ -1,6 +1,7 @@
 #include "Ui/ScreenEntity.hpp"
 
 #include <VoltMod/Ui/Screen.hpp>
+#include <string>
 #include <utility>
 
 namespace VoltMod
@@ -39,6 +40,19 @@ Status Screen::SetClass(int slot, std::string_view elementId, std::string_view c
 Status Screen::SetHidden(int slot, std::string_view elementId, bool hidden)
 {
     return SetClass(slot, elementId, "hidden", hidden);
+}
+
+Status Screen::ShowIcon(int slot, std::string_view elementId, std::span<const std::string_view> names,
+                        std::string_view name)
+{
+    std::string className;
+    for (std::string_view each : names)
+    {
+        className.assign("icon-set--").append(each);
+        if (Status written = SetClass(slot, elementId, className, each == name); !written)
+            return written;
+    }
+    return {};
 }
 
 Status Screen::ShowCursor(int slot, bool shown)

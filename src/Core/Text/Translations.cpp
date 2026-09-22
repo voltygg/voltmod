@@ -28,10 +28,10 @@ static void FlattenInto(const glz::generic& node, const std::string& prefix, Str
 }
 
 /**
- * English text for the keys the framework itself emits. Translations::Get returns the raw key on a
- * miss, so without this every plugin had to hand-copy all of them into every language file or
- * players saw the literal string `cmd.noPermission`. A plugin's own file still wins - these are
- * the floor, not an override.
+ * English text for the keys the framework itself emits, and each language's own name for a
+ * language picker. Translations::Get returns the raw key on a miss, so without this every plugin
+ * had to hand-copy all of them into every language file or players saw the literal string
+ * `cmd.noPermission`. A plugin's own file still wins - these are the floor, not an override.
  */
 static const StringMap<std::string>& KitDefaults()
 {
@@ -61,6 +61,9 @@ static const StringMap<std::string>& KitDefaults()
         {"menu.off", "OFF"},
         {"menu.confirm", "Confirm"},
         {"menu.cancel", "Cancel"},
+        {"language.en", "English"},
+        // "Русский" as UTF-8 bytes: MSVC reads sources in the ANSI code page.
+        {"language.ru", "Ð ÑÑÑÐºÐ¸Ð¹"},
     };
     return defaults;
 }

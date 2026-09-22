@@ -20,7 +20,8 @@ namespace VoltMod
  *
  * @p screen is the layout name; @p tabs, @p rows and @p iconNames come from its generated header
  * (`Tabs.size()`, `Rows.size()`, `IconSetNames`). Each player gets their own screen, so the menu
- * survives death and spectating. @p screens must outlive this.
+ * survives death and spectating. @p screens and @p iconNames must outlive this; the generated
+ * header's array does.
  */
 class PanoramaMenuLayout final : public MenuLayout
 {
@@ -75,12 +76,6 @@ private:
         std::function<std::string(int slot)> Value;
     };
 
-    struct Icon
-    {
-        std::string Name;
-        std::string Class;
-    };
-
     PlayerScreens _screens;
     std::string _root;
     std::string _subtitle;
@@ -94,7 +89,7 @@ private:
     std::string _pageNext;
     std::vector<TabIds> _tabs;
     std::vector<RowIds> _rows;
-    std::vector<Icon> _icons;
+    std::span<const std::string_view> _iconNames;
     std::vector<ScreenText> _texts;
 };
 

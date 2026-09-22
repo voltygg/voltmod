@@ -39,7 +39,8 @@ PanoramaMenuLayout::PanoramaMenuLayout(ScreenManager& screens, std::string_view 
       _back(std::format("{}_back", screen)),
       _page(std::format("{}_page", screen)),
       _pagePrevious(std::format("{}_page_previous", screen)),
-      _pageNext(std::format("{}_page_next", screen))
+      _pageNext(std::format("{}_page_next", screen)),
+      _iconNames(iconNames)
 {
     for (std::size_t index = 0; index < tabs; ++index)
     {
@@ -62,9 +63,6 @@ PanoramaMenuLayout::PanoramaMenuLayout(ScreenManager& screens, std::string_view 
             .ValueVar = std::format("row{}_value", index),
         });
     }
-
-    for (std::string_view name : iconNames)
-        _icons.push_back(Icon{.Name = std::string(name), .Class = std::format("icon-set--{}", name)});
 }
 
 bool PanoramaMenuLayout::Show(int slot)
@@ -125,9 +123,7 @@ void PanoramaMenuLayout::SetTab(int slot, int index, const MenuTab* tab)
     Text(screen, slot, ids.LabelVar, tab->Label);
     Class(screen, slot, ids.Id, "tab--selected", tab->Selected);
 
-    // Every icon class is written, so the one a previous tab showed turns off.
-    for (const Icon& icon : _icons)
-        Class(screen, slot, ids.Icon, icon.Class, icon.Name == tab->Icon);
+    static_cast<void>(screen.ShowIcon(slot, ids.Icon, _iconNames, tab->Icon));
 }
 
 void PanoramaMenuLayout::SetRow(int slot, int index, const MenuRow* row, std::string_view pendingHint)
