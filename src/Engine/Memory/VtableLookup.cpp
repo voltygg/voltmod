@@ -18,7 +18,9 @@ namespace VoltMod
 void* FindVirtualTable(std::string_view moduleName, std::string_view className)
 {
     if (moduleName.empty() || className.empty())
+    {
         return nullptr;
+    }
 
     LoadedModule module;
     if (!FindLoadedModule(moduleName, module))
@@ -29,7 +31,9 @@ void* FindVirtualTable(std::string_view moduleName, std::string_view className)
 
     void* vtable = FindVirtualTableIn(module, className);
     if (!vtable)
+    {
         Log::Warn("VtableLookup: '{}' vtable not found in '{}'.", className, PlatformModuleName(moduleName));
+    }
     return vtable;
 }
 
@@ -57,7 +61,9 @@ static std::vector<uintptr_t> FindWords(std::span<const ScanRange> ranges, uintp
         for (uintptr_t at = first; at + 2 * sizeof(void*) <= begin + range.Size; at += sizeof(void*))
         {
             if (ReadWord(at) == value)
+            {
                 found.push_back(at);
+            }
         }
     }
     return found;
@@ -80,7 +86,9 @@ void* FindVirtualTableByTypeName(std::span<const ScanRange> ranges, std::string_
         {
             // A preceding name character means this is part of a longer mangled name.
             if (at > 0 && (std::isalnum(static_cast<unsigned char>(memory[at - 1])) || memory[at - 1] == '_'))
+            {
                 continue;
+            }
 
             for (uintptr_t name : FindWords(ranges, reinterpret_cast<uintptr_t>(range.Base) + at))
             {
@@ -89,7 +97,9 @@ void* FindVirtualTableByTypeName(std::span<const ScanRange> ranges, std::string_
                     // The primary table has offset-to-top zero and executable code in its first slot.
                     if (ReadWord(typeInfo - sizeof(void*)) == 0 &&
                         IsExecutableAddress(reinterpret_cast<const void*>(ReadWord(typeInfo + sizeof(void*)))))
+                    {
                         return reinterpret_cast<void*>(typeInfo + sizeof(void*));
+                    }
                 }
             }
         }
@@ -118,11 +128,15 @@ static bool LooksLikeTypeInfo(uintptr_t address)
 {
     if (!address || address % alignof(void*) != 0 ||
         !IsReadableAddress(reinterpret_cast<const void*>(address), 2 * sizeof(void*)))
+    {
         return false;
+    }
 
     const auto* name = reinterpret_cast<const char*>(ReadWord(address + sizeof(void*)));
     if (!IsReadableAddress(name, 1))
+    {
         return false;
+    }
     return std::isdigit(static_cast<unsigned char>(*name)) || *name == 'N' || *name == '*';
 }
 
@@ -136,7 +150,9 @@ static bool NameIs(uintptr_t address, std::string_view wanted)
 static bool HasSingleBase(uintptr_t typeInfo, const TypeInfoKinds& kinds)
 {
     if (kinds.SingleBase)
+    {
         return ReadWord(typeInfo) == kinds.SingleBase;
+    }
     return IsReadableAddress(reinterpret_cast<const void*>(typeInfo), TypeInfoBase + sizeof(void*)) &&
            LooksLikeTypeInfo(ReadWord(typeInfo + TypeInfoBase));
 }
@@ -144,19 +160,27 @@ static bool HasSingleBase(uintptr_t typeInfo, const TypeInfoKinds& kinds)
 static uint32_t BaseCount(uintptr_t typeInfo, const TypeInfoKinds& kinds)
 {
     if (kinds.MultipleBases && ReadWord(typeInfo) != kinds.MultipleBases)
+    {
         return 0;
+    }
     if (!IsReadableAddress(reinterpret_cast<const void*>(typeInfo), TypeInfoBaseList))
+    {
         return 0;
+    }
 
     const uint32_t count = ReadU32(typeInfo + TypeInfoCount);
     if (count == 0 || count > MaxBases ||
         !IsReadableAddress(reinterpret_cast<const void*>(typeInfo + TypeInfoBaseList), count * BaseEntrySize))
+    {
         return 0;
+    }
 
     // Without the real vptr, validate the flags and first-base shape.
     if (!kinds.MultipleBases &&
         (ReadU32(typeInfo + TypeInfoFlags) > 3 || !LooksLikeTypeInfo(ReadWord(typeInfo + TypeInfoBaseList))))
+    {
         return 0;
+    }
     return count;
 }
 
@@ -170,17 +194,25 @@ static void CollectBases(uintptr_t typeInfo, std::string_view wanted, FoundBase 
                          int depth, std::vector<FoundBase>& found)
 {
     if (depth > MaxDepth)
+    {
         return;
+    }
 
     const auto visit = [&](uintptr_t base, intptr_t offset, bool isVirtual) {
         if (!LooksLikeTypeInfo(base))
+        {
             return;
+        }
 
         const FoundBase here{.Offset = at.Offset + offset, .Virtual = at.Virtual || isVirtual};
         if (NameIs(base, wanted))
+        {
             found.push_back(here);
+        }
         else
+        {
             CollectBases(base, wanted, here, kinds, depth + 1, found);
+        }
     };
 
     if (HasSingleBase(typeInfo, kinds))
@@ -202,18 +234,26 @@ Result<int> FindBaseOffsetByTypeInfo(const void* typeInfo, std::string_view base
 {
     const auto address = reinterpret_cast<uintptr_t>(typeInfo);
     if (!LooksLikeTypeInfo(address))
+    {
         return std::unexpected(Error::Invalid("the class has no readable typeinfo"));
+    }
 
     const std::string wanted = LengthPrefixedName(baseName);
     std::vector<FoundBase> found;
     CollectBases(address, wanted, {}, kinds, 0, found);
 
     if (found.empty())
+    {
         return std::unexpected(Error::NotFound(std::format("'{}' is not a base", baseName)));
+    }
     if (found.size() > 1)
+    {
         return std::unexpected(Error::Invalid(std::format("'{}' is a base {} times", baseName, found.size())));
+    }
     if (found.front().Virtual)
+    {
         return std::unexpected(Error::Unsupported(std::format("'{}' is a virtual base", baseName)));
+    }
     return static_cast<int>(found.front().Offset);
 }
 
@@ -225,10 +265,14 @@ void* FindVirtualTableByTypeInfo(std::span<const ScanRange> ranges, const void* 
         const uintptr_t table = at + sizeof(void*);
         if (static_cast<intptr_t>(ReadWord(at - sizeof(void*))) != offsetToTop ||
             !IsExecutableAddress(reinterpret_cast<const void*>(ReadWord(table))))
+        {
             continue;
+        }
 
         if (found)
+        {
             return nullptr;
+        }
         found = reinterpret_cast<void*>(table);
     }
     return found;

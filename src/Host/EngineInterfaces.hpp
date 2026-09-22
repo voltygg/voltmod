@@ -13,7 +13,9 @@ Status ResolveInterface(Iface*& target, Factory&& factory, const char* version)
 {
     target = static_cast<Iface*>(factory(version));
     if (target == nullptr)
+    {
         return std::unexpected(Error::Engine(std::format("could not find interface: {}", version)));
+    }
     return {};
 }
 

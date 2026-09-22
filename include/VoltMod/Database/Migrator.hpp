@@ -44,7 +44,9 @@ inline std::optional<int> ParseMigrationVersion(std::string_view filename)
     const char* end = begin + filename.size();
     auto [ptr, ec] = std::from_chars(begin, end, version);
     if (ec != std::errc{} || ptr == begin)
+    {
         return std::nullopt;
+    }
     return version;
 }
 
@@ -107,7 +109,9 @@ inline Result<std::string> ResolveDialect(std::string_view sql, Driver driver)
         {
             const size_t args = sql.find_first_of(")@", close);
             if (args != std::string_view::npos && sql[args] == ')')
+            {
                 close = args + 1;
+            }
         }
         if (!named || close >= sql.size() || sql[close] != '@')
         {
@@ -120,22 +124,36 @@ inline Result<std::string> ResolveDialect(std::string_view sql, Driver driver)
         copied = close + 1;
         const std::string_view token = sql.substr(open + 1, close - open - 1);
         if (token == "ID")
+        {
             out.append(dialect.AutoIncrementKey);
+        }
         else if (token == "NOW")
+        {
             out.append(dialect.EpochNow);
+        }
         else if (token == "TRUE")
+        {
             out.append(dialect.True);
+        }
         else if (token == "FALSE")
+        {
             out.append(dialect.False);
+        }
         else if (token == "INSERT_IF_ABSENT")
+        {
             out.append(dialect.InsertIfAbsent);
+        }
         else if (token.starts_with(ConflictToken))
         {
             if (dialect.NeedsConflictClause)
+            {
                 out.append("ON CONFLICT (").append(token.substr(ConflictToken.size())).append(" DO NOTHING");
+            }
         }
         else
+        {
             return std::unexpected(Error::Invalid(std::format("unknown migration placeholder @{}@", token)));
+        }
     }
     out.append(sql.substr(copied));
     return out;
@@ -155,7 +173,9 @@ inline std::vector<std::string> SplitStatements(std::string_view sql)
     auto flush = [&] {
         const size_t begin = current.find_first_not_of(Blanks);
         if (begin != std::string::npos)
+        {
             statements.push_back(current.substr(begin, current.find_last_not_of(Blanks) - begin + 1));
+        }
         current.clear();
     };
 
@@ -172,7 +192,9 @@ inline std::vector<std::string> SplitStatements(std::string_view sql)
         else if (c == '-' && i + 1 < sql.size() && sql[i + 1] == '-')
         {
             while (i < sql.size() && sql[i] != '\n')
+            {
                 ++i;
+            }
             current.push_back('\n');
         }
         else if (c == ';')

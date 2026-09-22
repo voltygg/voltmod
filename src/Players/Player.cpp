@@ -24,7 +24,9 @@ std::string Player::Name() const
         {
             std::string live(controller.Name());
             if (!live.empty())
+            {
                 return live;
+            }
         }
     }
     return _connectName;

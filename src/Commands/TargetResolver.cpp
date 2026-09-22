@@ -14,7 +14,9 @@ std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(PlayerManager&
                                                                   Player* caller, const TargetRules& rules)
 {
     if (token.empty())
+    {
         return std::unexpected(TargetFailure{TargetError::NoMatch});
+    }
 
     std::vector<PlayerView> roster;
     roster.reserve(players.All().size());
@@ -35,13 +37,19 @@ std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(PlayerManager&
 
     auto slots = FilterRoster(roster, ParseTargetToken(token), rules, caller ? caller->Slot() : -1, RandomIndex);
     if (!slots)
+    {
         return std::unexpected(slots.error());
+    }
 
     std::vector<Player*> resolved;
     resolved.reserve(slots->size());
     for (int slot : *slots)
+    {
         if (Player* player = players.Get(slot))
+        {
             resolved.push_back(player);
+        }
+    }
     return resolved;
 }
 

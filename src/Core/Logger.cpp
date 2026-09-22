@@ -47,7 +47,9 @@ LogLevel MinimumLevel()
 void Emit(LogLevel level, std::string message)
 {
     if (!g_handler)
+    {
         return;
+    }
 
     if (std::this_thread::get_id() == g_gameThread)
     {
@@ -57,7 +59,9 @@ void Emit(LogLevel level, std::string message)
 
     std::lock_guard lock(g_deferredMutex);
     if (g_deferred.size() >= MaxDeferred)
+    {
         g_deferred.pop_front();
+    }
     g_deferred.emplace_back(level, std::move(message));
     g_hasDeferred.store(true, std::memory_order_release);
 }
@@ -65,7 +69,9 @@ void Emit(LogLevel level, std::string message)
 void DeliverPending()
 {
     if (!g_hasDeferred.load(std::memory_order_acquire))
+    {
         return;
+    }
 
     std::deque<std::pair<LogLevel, std::string>> ready;
     {
@@ -75,10 +81,14 @@ void DeliverPending()
     }
 
     if (!g_handler)
+    {
         return;
+    }
 
     for (const auto& [level, message] : ready)
+    {
         g_handler(level, message);
+    }
 }
 
 }  // namespace VoltMod::Log

@@ -50,7 +50,9 @@ Status Screen::ShowIcon(int slot, std::string_view elementId, std::span<const st
     {
         className.assign("icon-set--").append(each);
         if (Status written = SetClass(slot, elementId, className, each == name); !written)
+        {
             return written;
+        }
     }
     return {};
 }
@@ -63,7 +65,9 @@ Status Screen::ShowCursor(int slot, bool shown)
 void Screen::Remove()
 {
     if (_entity)
+    {
         _entity->Remove();
+    }
 }
 
 Error Screen::Empty()

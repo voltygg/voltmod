@@ -15,7 +15,9 @@ Map::Map(Interfaces& interfaces, ConVars& conVars) : _interfaces(interfaces), _c
 bool Map::IsValid(std::string_view name) const
 {
     if (name.empty())
+    {
         return false;
+    }
 
     auto* engine = _interfaces.Engine;
     if (!engine)
@@ -59,7 +61,9 @@ bool Map::ChangeToWorkshop(uint64_t workshopId)
 std::string Map::Current() const
 {
     if (!_current.empty())
+    {
         return _current;
+    }
 
     auto* globals = _interfaces.Engine ? _interfaces.Engine->GetServerGlobals() : nullptr;
     const char* name = globals ? globals->mapname.ToCStr() : nullptr;

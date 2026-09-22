@@ -47,7 +47,9 @@ public:
     {
         return Add(TEvent::Name, [h = std::move(handler)](IGameEvent* e) {
             if (e)
+            {
                 h(TEvent::From(*e));
+            }
         });
     }
 

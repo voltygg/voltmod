@@ -74,9 +74,13 @@ void MetamodEntry::Shutdown()
 {
     // Plugins first: their own teardown runs while the host's events and services are still there.
     if (_plugins)
+    {
         _plugins->UnloadAll();
+    }
     if (_hooks)
+    {
         _hooks->Uninstall();
+    }
 
     _hooks.reset();
     _command.reset();

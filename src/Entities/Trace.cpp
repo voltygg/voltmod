@@ -27,7 +27,9 @@ static CTraceFilter MakeFilter(const TraceOptions& options)
 static EntityRef RefOf(const CEntityInstance* entity)
 {
     if (!entity || !entity->m_pEntity)
+    {
         return {};
+    }
     return {static_cast<uint32_t>(entity->GetRefEHandle().ToInt())};
 }
 
@@ -49,14 +51,18 @@ static EngineNavPhysics* NavPhysics(void*& table)
 Status Trace::Available() const
 {
     if (!_bindings.NavTraceLine)
+    {
         return std::unexpected(Error::Unsupported("the Nav_TraceLine vtable slot did not bind"));
+    }
     return {};
 }
 
 Result<TraceHit> Trace::Line(const Vector& from, const Vector& to, const TraceOptions& options) const
 {
     if (Status available = Available(); !available)
+    {
         return std::unexpected(available.error());
+    }
 
     CTraceFilter filter = MakeFilter(options);
     void* table = _bindings.NavTraceLine.Table();
@@ -70,7 +76,9 @@ Result<TraceHit> Trace::Box(const Vector& from, const Vector& to, const Vector& 
                             const TraceOptions& options) const
 {
     if (!_bindings.NavTraceShape)
+    {
         return std::unexpected(Error::Unsupported("the Nav_TraceShape vtable slot did not bind"));
+    }
 
     const Ray_t ray(mins, maxs);
     CTraceFilter filter = MakeFilter(options);
@@ -84,7 +92,9 @@ Result<bool> Trace::Clear(const Vector& from, const Vector& to, const TraceOptio
 {
     Result<TraceHit> hit = Line(from, to, options);
     if (!hit)
+    {
         return std::unexpected(std::move(hit).error());
+    }
     return !hit->Hit;
 }
 

@@ -71,7 +71,9 @@ TEST_CASE("A handler added during a raise first fires on the next one")
     auto first = event += [&](int) {
         ++outer;
         if (held.empty())
+        {
             held.push_back(event += [&](int) { ++inner; });
+        }
     };
 
     event.Raise(1);

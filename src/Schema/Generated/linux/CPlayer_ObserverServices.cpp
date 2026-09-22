@@ -21,7 +21,9 @@ static constexpr int32_t kCPlayer_ObserverServices_ObserverTarget = 76;  // CHan
 uint8_t CPlayer_ObserverServices::ObserverMode() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<uint8_t>(_base, kCPlayer_ObserverServices_ObserverMode);
 }
@@ -29,7 +31,9 @@ uint8_t CPlayer_ObserverServices::ObserverMode() const
 void CPlayer_ObserverServices::SetObserverMode(uint8_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<uint8_t>(_base, kCPlayer_ObserverServices_ObserverMode) = value;
     NotifyComponentOwner(_base, CPlayer_ObserverServices_kOwnerLinkOffset, kCPlayer_ObserverServices_ObserverMode);
@@ -38,7 +42,9 @@ void CPlayer_ObserverServices::SetObserverMode(uint8_t value) const
 uint32_t CPlayer_ObserverServices::ObserverTarget() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<uint32_t>(_base, kCPlayer_ObserverServices_ObserverTarget);
 }
@@ -46,7 +52,9 @@ uint32_t CPlayer_ObserverServices::ObserverTarget() const
 void CPlayer_ObserverServices::SetObserverTarget(uint32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<uint32_t>(_base, kCPlayer_ObserverServices_ObserverTarget) = value;
     NotifyComponentOwner(_base, CPlayer_ObserverServices_kOwnerLinkOffset, kCPlayer_ObserverServices_ObserverTarget);

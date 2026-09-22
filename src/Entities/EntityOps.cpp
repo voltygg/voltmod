@@ -53,7 +53,9 @@ static void FireInput(const Bindings& bindings, CEntityInstance* entity, std::st
                       CEntityInstance* activator, CEntityInstance* caller)
 {
     if (!bindings.AcceptInput || !entity || input.empty())
+    {
         return;
+    }
     bindings.AcceptInput(entity, std::string(input).c_str(), activator, caller, &value);
 }
 
@@ -65,7 +67,9 @@ bool EntityOps::CanSpawn() const
 CEntityInstance* EntityOps::CreateByName(std::string_view className)
 {
     if (!_bindings.CreateEntityByName || className.empty())
+    {
         return nullptr;
+    }
 
     return _bindings.CreateEntityByName(std::string(className).c_str(), -1);
 }
@@ -73,7 +77,9 @@ CEntityInstance* EntityOps::CreateByName(std::string_view className)
 void EntityOps::DispatchSpawn(CEntityInstance* entity, KeyValues* kv)
 {
     if (!_bindings.DispatchSpawn || !entity)
+    {
         return;
+    }
 
     _bindings.DispatchSpawn(entity, kv ? kv->Detach() : nullptr);
 }
@@ -81,11 +87,15 @@ void EntityOps::DispatchSpawn(CEntityInstance* entity, KeyValues* kv)
 CEntityInstance* EntityOps::Spawn(std::string_view className, KeyValues& kv)
 {
     if (!CanSpawn())
+    {
         return nullptr;
+    }
 
     CEntityInstance* entity = CreateByName(className);
     if (!entity)
+    {
         return nullptr;
+    }
 
     DispatchSpawn(entity, &kv);
     return entity;
@@ -117,11 +127,15 @@ void EntityOps::AddIOEvent(CEntityInstance* target, std::string_view input, floa
                            CEntityInstance* activator, CEntityInstance* caller)
 {
     if (!_bindings.AddEntityIOEvent || !target || input.empty())
+    {
         return;
+    }
 
     CEntitySystem* system = _entities.GetEntitySystem();
     if (!system)
+    {
         return;
+    }
 
     // The queue interns the name and copies the value, so both temporaries may die after the call.
     const variant_t value("");
@@ -132,7 +146,9 @@ void EntityOps::AddIOEvent(CEntityInstance* target, std::string_view input, floa
 void EntityOps::Remove(CEntityInstance* entity)
 {
     if (!_bindings.UtilRemove || !entity)
+    {
         return;
+    }
 
     _bindings.UtilRemove(entity);
 }
@@ -145,7 +161,9 @@ void EntityOps::RemoveDelayed(CEntityInstance* entity, float delaySeconds)
 void EntityOps::SetModel(CEntityInstance* entity, std::string_view modelPath)
 {
     if (!_bindings.SetModel || !entity || modelPath.empty())
+    {
         return;
+    }
 
     _bindings.SetModel(entity, std::string(modelPath).c_str());
 }
@@ -153,7 +171,9 @@ void EntityOps::SetModel(CEntityInstance* entity, std::string_view modelPath)
 void EntityOps::EmitSound(CEntityInstance* entity, std::string_view soundEvent, int pitch, float volume, float delay)
 {
     if (!_bindings.EmitSoundParams || !entity || soundEvent.empty())
+    {
         return;
+    }
 
     _bindings.EmitSoundParams(entity, std::string(soundEvent).c_str(), pitch, volume, delay);
 }
@@ -162,7 +182,9 @@ void EntityOps::EmitSoundFilter(IRecipientFilter& filter, CEntityInstance* sourc
                                 float volume, int pitch)
 {
     if (!_bindings.EmitSoundFilter || !source || soundEvent.empty())
+    {
         return;
+    }
 
     // EmitSoundParams borrows the name; the engine reads it during the call below.
     const std::string sound(soundEvent);

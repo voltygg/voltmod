@@ -88,7 +88,9 @@ TEST_CASE("Dispatch survives more entries than the inline snapshot holds")
     std::vector<Subscription> subs;
     int calls = 0;
     for (int i = 0; i < 20; ++i)
+    {
         subs.push_back(registry.AddOwned([&] { ++calls; }));
+    }
 
     registry.Dispatch([](Fn& fn) { fn(); });
 

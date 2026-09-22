@@ -32,7 +32,9 @@ static int DlIterateCallback(struct dl_phdr_info* info, size_t /*size*/, void* d
 {
     auto* scan = static_cast<ModuleScan*>(data);
     if (!info->dlpi_name || BaseName(info->dlpi_name) != scan->Name)
+    {
         return 0;
+    }
 
     size_t span = 0;
     std::vector<ScanRange> segments;
@@ -40,7 +42,9 @@ static int DlIterateCallback(struct dl_phdr_info* info, size_t /*size*/, void* d
     {
         const auto& phdr = info->dlpi_phdr[i];
         if (phdr.p_type != PT_LOAD || phdr.p_memsz == 0)
+        {
             continue;
+        }
 
         span = std::max(span, static_cast<size_t>(phdr.p_vaddr + phdr.p_memsz));
         segments.push_back({reinterpret_cast<const uint8_t*>(info->dlpi_addr + phdr.p_vaddr), phdr.p_memsz});
@@ -61,7 +65,9 @@ bool FindModuleAndRanges(std::string_view fileName, LoadedModule& module, std::v
     ModuleScan scan{.Name = fileName};
     dl_iterate_phdr(DlIterateCallback, &scan);
     if (scan.Ranges.empty())
+    {
         return false;
+    }
 
     module = std::move(scan.Module);
     ranges = std::move(scan.Ranges);

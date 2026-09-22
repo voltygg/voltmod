@@ -33,11 +33,15 @@ Result<Screen> ScreenManager::Shared(std::string_view layout)
 Result<Screen> ScreenManager::ForPlayer(std::string_view layout, int slot)
 {
     if (!IsValidSlot(slot))
+    {
         return std::unexpected(Error::Invalid(std::format("slot {} is not a player slot", slot)));
+    }
 
     if (auto visible = _visibility.Available(); !visible)
+    {
         return std::unexpected(
             Error::Unsupported(std::format("a player screen needs the Visibility filter: {}", visible.error().Detail)));
+    }
 
     return Create(layout, slot);
 }
@@ -58,7 +62,9 @@ Status ScreenManager::Available() const
     for (const auto& [bound, key] : needed)
     {
         if (!bound)
+        {
             return std::unexpected(Error::Unsupported(std::format("gamedata '{}' did not bind", key)));
+        }
     }
     return _visibility.Available();
 }
@@ -67,7 +73,9 @@ Result<Screen> ScreenManager::Create(std::string_view layout, int owner)
 {
     auto path = LayoutPath::Parse(layout);
     if (!path)
+    {
         return std::unexpected(path.error());
+    }
 
     return Screen(std::make_unique<ScreenEntity>(_entities, _ops, _slots, _visibility, std::move(*path), owner));
 }

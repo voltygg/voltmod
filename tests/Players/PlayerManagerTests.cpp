@@ -156,7 +156,9 @@ TEST_CASE("All returns every player in slot order")
 
     std::vector<int> seen;
     for (const Player* player : players.All())
+    {
         seen.push_back(player->Slot());
+    }
 
     CHECK(seen == std::vector<int>{1, 3, 5});
 }

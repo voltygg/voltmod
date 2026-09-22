@@ -18,7 +18,9 @@ struct ServerCommand::Impl final : ICommandCallback
     void CommandCallback(const CCommandContext& context, const CCommand& command) override
     {
         if (_handler)
+        {
             _handler(command, context.GetPlayerSlot().Get());
+        }
     }
 
     Handler _handler;

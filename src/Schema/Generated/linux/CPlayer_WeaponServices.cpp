@@ -27,7 +27,9 @@ void* CPlayer_WeaponServices::MyWeapons() const
 uint32_t CPlayer_WeaponServices::ActiveWeapon() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<uint32_t>(_base, kCPlayer_WeaponServices_ActiveWeapon);
 }
@@ -35,7 +37,9 @@ uint32_t CPlayer_WeaponServices::ActiveWeapon() const
 void CPlayer_WeaponServices::SetActiveWeapon(uint32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<uint32_t>(_base, kCPlayer_WeaponServices_ActiveWeapon) = value;
     NotifyComponentOwner(_base, CPlayer_WeaponServices_kOwnerLinkOffset, kCPlayer_WeaponServices_ActiveWeapon);

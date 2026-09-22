@@ -16,9 +16,13 @@ namespace VoltMod
 static std::string FailureLine(const Error& error, const Translations& translations, int slot)
 {
     if (!error.Text.empty())
+    {
         return error.Text;
+    }
     if (!error.Key.empty())
+    {
         return translations.Get(error.Key, slot);
+    }
     return error.Detail;
 }
 
@@ -60,7 +64,9 @@ const CommandDefinition* CommandRouter::Add(CommandDefinition def)
     {
         std::string key = Strings::ToLower(alias);
         if (key.empty() || key == name)
+        {
             continue;
+        }
         if (_commands.contains(key))
         {
             Log::Error("Command '{}' asks for alias '{}', which is already a command name - skipping the alias.",
@@ -98,11 +104,17 @@ const CommandDefinition* CommandRouter::Find(std::string_view name) const
     const std::string key = Strings::ToLower(std::string(name));
 
     if (auto it = _commands.find(key); it != _commands.end())
+    {
         return &it->second;
+    }
 
     if (auto alias = _aliases.find(key); alias != _aliases.end())
+    {
         if (auto it = _commands.find(alias->second); it != _commands.end())
+        {
             return &it->second;
+        }
+    }
 
     return nullptr;
 }
@@ -116,8 +128,12 @@ std::vector<std::string> CommandRouter::NamesWithPermission() const
 {
     std::vector<std::string> names;
     for (const auto& [key, def] : _commands)
+    {
         if (!def.PermissionName.empty())
+        {
             names.push_back(def.Name);
+        }
+    }
     std::sort(names.begin(), names.end());
     return names;
 }
@@ -142,7 +158,9 @@ Tokens CommandRouter::UsageTokens(const CommandDefinition& def, int slot, Origin
     for (const ArgDesc& arg : def.Args)
     {
         if (!args.empty())
+        {
             args += ' ';
+        }
         const std::string placeholder = _translations.Get(UsagePlaceholderKey(arg.Kind), slot);
         args += arg.Optional ? '[' : '<';
         args += placeholder;
@@ -151,7 +169,9 @@ Tokens CommandRouter::UsageTokens(const CommandDefinition& def, int slot, Origin
 
     std::string line = prefix + def.Name;
     if (!args.empty())
+    {
         line += ' ' + args;
+    }
 
     return {{"prefix", prefix}, {"command", def.Name}, {"args", args}, {"usage", line}};
 }
@@ -159,7 +179,9 @@ Tokens CommandRouter::UsageTokens(const CommandDefinition& def, int slot, Origin
 std::string CommandRouter::Usage(const CommandDefinition& def, int slot, Origin origin) const
 {
     if (!def.UsageKey.empty())
+    {
         return _translations.Get(def.UsageKey, slot);
+    }
     return _translations.Get("cmd.usage", slot, UsageTokens(def, slot, origin));
 }
 
@@ -170,7 +192,9 @@ void CommandRouter::Dispatch(const CommandDefinition& def, Player* caller, std::
     const int slot = caller ? caller->Slot() : -1;
     const auto reply = [&say](const std::string& line) {
         if (!line.empty())
+        {
             say(line);
+        }
     };
 
     // Apply the permission gate to player callers; the console is the server.
@@ -205,7 +229,9 @@ void CommandRouter::Dispatch(const CommandDefinition& def, Player* caller, std::
     }
 
     if (!def.Invoke)
+    {
         return;
+    }
 
     const Caller who{.Player = caller, .Slot = slot, .Tr = _translations, .Send = say};
     auto result = def.Invoke(who, *bound);

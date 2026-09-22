@@ -86,7 +86,9 @@ struct PlayerInput
     std::optional<InputHistorySample> SampleAt(int index) const
     {
         if (index < 0 || index >= InputHistorySampleCount)
+        {
             return std::nullopt;
+        }
         return InputHistorySamples[index];
     }
 };

@@ -48,7 +48,9 @@ public:
     void Reset(int slot)
     {
         if (IsValidSlot(slot))
+        {
             _items[slot] = T{};
+        }
     }
 
     /** Assigned one by one rather than through `fill`, which would copy: the common T here is
@@ -56,7 +58,9 @@ public:
     void ResetAll()
     {
         for (T& item : _items)
+        {
             item = T{};
+        }
     }
 
 private:

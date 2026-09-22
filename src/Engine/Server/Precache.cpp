@@ -17,7 +17,9 @@ static void RemoveListener(CUtlVector<CUtlVector<IGameSystem*>>& table, IGameSys
         for (int i = listeners.Count() - 1; i >= 0; --i)
         {
             if (listeners[i] == system)
+            {
                 listeners.Remove(i);
+            }
         }
     }
 }
@@ -25,14 +27,20 @@ static void RemoveListener(CUtlVector<CUtlVector<IGameSystem*>>& table, IGameSys
 GS_EVENT_MEMBER(PrecacheGameSystem, BuildGameSessionManifest)
 {
     if (!msg->m_pResourceManifest)
+    {
         return;
+    }
 
     // The manifest is not long-lived; every resource must be added inside this event.
     for (const auto& path : _owner._resources)
+    {
         msg->m_pResourceManifest->AddResource(path.c_str());
+    }
 
     if (!_owner._resources.empty())
+    {
         Log::Info("Precache: added {} resource(s) to the session manifest.", _owner._resources.size());
+    }
 }
 
 Precache::Precache(const Bindings& bindings) : _bindings(bindings) {}
@@ -45,7 +53,9 @@ Precache::~Precache()
 Status Precache::Initialize(std::string systemName)
 {
     if (_factory)
+    {
         return {};
+    }
 
     auto* listHead = static_cast<GameSystemFactory**>(_bindings.GameSystemFactoryList.Ptr());
     _eventDispatcher = _bindings.GameSystemEventDispatcher.Ptr();
@@ -71,7 +81,9 @@ Status Precache::Initialize(std::string systemName)
 void Precache::Shutdown()
 {
     if (!_factory)
+    {
         return;
+    }
 
     // Unlink the factory so future InitAllSystems passes no longer see us.
     _factory->Unregister();
@@ -86,16 +98,22 @@ void Precache::Shutdown()
         for (int i = gameSystems->Count() - 1; i >= 0; --i)
         {
             if ((*gameSystems)[i].m_pGameSystem == _system.get())
+            {
                 gameSystems->Remove(i);
+            }
         }
     }
 
     auto** dispatcherSlot = static_cast<CGameSystemEventDispatcher**>(_eventDispatcher);
     if (dispatcherSlot && *dispatcherSlot && (*dispatcherSlot)->m_funcListeners)
+    {
         RemoveListener(*(*dispatcherSlot)->m_funcListeners, _system.get());
+    }
     // A listener left here is called after the image unloads, at the next level change.
     if (auto* fallback = static_cast<CUtlVector<CUtlVector<IGameSystem*>>*>(_fallbackListeners))
+    {
         RemoveListener(*fallback, _system.get());
+    }
 
     _system.reset();
     _eventDispatcher = nullptr;
@@ -106,10 +124,14 @@ void Precache::Shutdown()
 void Precache::Add(std::string_view resourcePath)
 {
     if (resourcePath.empty())
+    {
         return;
+    }
 
     if (std::ranges::find(_resources, resourcePath) != _resources.end())
+    {
         return;
+    }
 
     _resources.emplace_back(resourcePath);
 }

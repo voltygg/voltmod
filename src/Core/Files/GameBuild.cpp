@@ -14,7 +14,9 @@ std::string_view GameBuild()
         auto text = ReadAllText("steam.inf");
         const size_t at = text ? text->find(key) : std::string::npos;
         if (at == std::string::npos)
+        {
             return std::string("unknown");
+        }
 
         const size_t start = at + key.size();
         return Strings::Trim(std::string_view(*text).substr(start, text->find_first_of("\r\n", start) - start));

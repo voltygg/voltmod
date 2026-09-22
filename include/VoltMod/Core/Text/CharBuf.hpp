@@ -46,7 +46,9 @@ struct CharBuf
     {
         size_t length = 0;
         while (length < N && Value[length] != '\0')
+        {
             ++length;
+        }
         return {Value, length};
     }
 
@@ -59,7 +61,9 @@ struct CharBuf
         const size_t length = std::min(text.size(), N - 1);
         std::memset(Value, 0, N);
         if (length > 0)
+        {
             std::memcpy(Value, text.data(), length);
+        }
     }
 };
 

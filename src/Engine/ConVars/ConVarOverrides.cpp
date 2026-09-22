@@ -10,7 +10,9 @@ void ConVarOverrides::Restore(std::string_view name)
 {
     const auto it = std::ranges::find(_saved, name, &Snapshot::Name);
     if (it == _saved.end())
+    {
         return;
+    }
 
     Write(it->Name, it->Value);
     _saved.erase(it);
@@ -19,7 +21,9 @@ void ConVarOverrides::Restore(std::string_view name)
 void ConVarOverrides::RestoreAll()
 {
     for (const auto& entry : _saved)
+    {
         Write(entry.Name, entry.Value);
+    }
     _saved.clear();
 }
 

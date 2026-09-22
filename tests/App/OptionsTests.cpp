@@ -33,8 +33,12 @@ static OptionsSnapshot BuildOptionsSnapshot(OptionsSample raw)
     OptionsSnapshot snapshot{.Values = std::move(raw)};
     snapshot.Values.limits.maxPlayers = std::clamp(snapshot.Values.limits.maxPlayers, 1, 64);
     for (const std::string& duration : snapshot.Values.durations)
+    {
         if (duration.ends_with("h"))
+        {
             snapshot.LongDurations.push_back(duration);
+        }
+    }
     return snapshot;
 }
 

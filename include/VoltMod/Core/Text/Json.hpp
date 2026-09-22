@@ -47,11 +47,15 @@ public:
     {
         auto text = ReadAllText(path);
         if (!text)
+        {
             return std::unexpected(text.error());
+        }
 
         auto parsed = Read<T, Options>(*text);
         if (!parsed)
+        {
             return std::unexpected(Error::Invalid(std::format("{}: {}", path, parsed.error().Detail)));
+        }
         return parsed;
     }
 
@@ -61,7 +65,9 @@ public:
     {
         T value{};
         if (auto ec = glz::read<Options>(value, text))
+        {
             return std::unexpected(Error::Invalid(glz::format_error(ec, text)));
+        }
         return value;
     }
 
@@ -103,7 +109,9 @@ public:
     {
         glz::generic document{};
         if (auto ec = glz::read_json(document, text))
+        {
             return std::unexpected(Error::Invalid(glz::format_error(ec, text)));
+        }
         return document;
     }
 
@@ -120,12 +128,16 @@ public:
         else if (node.is_object())
         {
             for (auto& [key, child] : node.get_object())
+            {
                 SubstituteTokens(child, tokens);
+            }
         }
         else if (node.is_array())
         {
             for (auto& child : node.get<glz::generic::array_t>())
+            {
                 SubstituteTokens(child, tokens);
+            }
         }
     }
 
@@ -140,7 +152,9 @@ public:
     {
         auto document = ParseDocument(jsonText);
         if (!document)
+        {
             return {};
+        }
         return GetString(*document, dotPath);
     }
 
@@ -154,20 +168,28 @@ public:
             const std::string key(
                 dotPath.substr(start, dot == std::string_view::npos ? std::string_view::npos : dot - start));
             if (!node->is_object() || !node->contains(key))
+            {
                 return {};
+            }
             node = &(*node)[key];
             if (dot == std::string_view::npos)
+            {
                 break;
+            }
             start = dot + 1;
         }
 
         if (node->is_string())
+        {
             return node->get_string();
+        }
         // A numeric value (e.g. a room id) is valid; dump() yields "42"/"true" without quotes.
         if (node->is_number() || node->is_boolean())
         {
             if (auto dumped = node->dump())
+            {
                 return std::move(*dumped);
+            }
         }
         return {};
     }

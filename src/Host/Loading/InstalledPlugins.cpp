@@ -33,7 +33,9 @@ std::vector<PluginManifest> InstalledPlugins::Discover(const std::filesystem::pa
     if (!std::filesystem::exists(plugins, failed))
     {
         if (failed)
+        {
             Log::Error("Cannot inspect {}: {}", plugins.string(), failed.message());
+        }
         return installed;
     }
 
@@ -41,12 +43,16 @@ std::vector<PluginManifest> InstalledPlugins::Discover(const std::filesystem::pa
          entry.increment(failed))
     {
         if (!entry->is_directory(failed) || failed)
+        {
             continue;
+        }
 
         const std::string directory = entry->path().filename().string();
         const std::filesystem::path manifest = entry->path() / ManifestName;
         if (!std::filesystem::exists(manifest, failed) || failed)
+        {
             continue;
+        }
 
         const Result<PluginDocument> document =
             Json::ReadFile<PluginDocument, Json::StrictReadOptions>(manifest.string());
@@ -73,7 +79,9 @@ std::vector<PluginManifest> InstalledPlugins::Discover(const std::filesystem::pa
     }
 
     if (failed)
+    {
         Log::Error("Cannot read {}: {}", plugins.string(), failed.message());
+    }
 
     return installed;
 }
@@ -81,16 +89,22 @@ std::vector<PluginManifest> InstalledPlugins::Discover(const std::filesystem::pa
 Status ValidateDescriptor(const PluginDescriptor* descriptor)
 {
     if (descriptor == nullptr)
+    {
         return std::unexpected(Error::Invalid(std::format("{} returned nothing", PluginEntryName)));
+    }
 
     if (descriptor->AbiVersion != HostAbiVersion)
+    {
         return std::unexpected(Error::Invalid(
             std::format("it was built against host ABI version {} and this host speaks version {}; rebuild the "
                         "plugin against this VoltMod",
                         descriptor->AbiVersion, HostAbiVersion)));
+    }
 
     if (descriptor->Load == nullptr || descriptor->Unload == nullptr || descriptor->Status == nullptr)
+    {
         return std::unexpected(Error::Invalid("its descriptor leaves out one of Load, Unload and Status"));
+    }
 
     return {};
 }

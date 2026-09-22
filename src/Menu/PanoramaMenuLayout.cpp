@@ -69,7 +69,9 @@ bool PanoramaMenuLayout::Show(int slot)
 {
     Screen& screen = _screens.For(slot);
     if (!screen.EnsureSpawned(slot))
+    {
         return false;
+    }
 
     Hidden(screen, slot, _root, false);
     Cursor(screen, slot, true);
@@ -80,7 +82,9 @@ void PanoramaMenuLayout::Hide(int slot)
 {
     Screen* screen = _screens.Find(slot);
     if (!screen || !*screen)
+    {
         return;
+    }
 
     // Clients draw only their first custom_hud_layout, so a hidden one would block the next menu.
     Cursor(*screen, slot, false);
@@ -98,7 +102,9 @@ void PanoramaMenuLayout::SetHeader(int slot, const MenuHeader& header)
     Hidden(screen, slot, _subtitle, header.Subtitle.empty());
 
     for (const ScreenText& text : _texts)
+    {
         Text(screen, slot, text.Variable, text.Value(slot));
+    }
 }
 
 void PanoramaMenuLayout::SetSidebarVisible(int slot, bool visible)
@@ -118,7 +124,9 @@ void PanoramaMenuLayout::SetTab(int slot, int index, const MenuTab* tab)
 
     Hidden(screen, slot, ids.Id, !tab);
     if (!tab)
+    {
         return;
+    }
 
     Text(screen, slot, ids.LabelVar, tab->Label);
     Class(screen, slot, ids.Id, "tab--selected", tab->Selected);
@@ -133,7 +141,9 @@ void PanoramaMenuLayout::SetRow(int slot, int index, const MenuRow* row, std::st
 
     Hidden(screen, slot, ids.Id, !row);
     if (!row)
+    {
         return;
+    }
 
     const bool toggle = row->Kind == MenuRowKind::Toggle;
     Text(screen, slot, ids.LabelVar, row->Label);
@@ -148,7 +158,9 @@ void PanoramaMenuLayout::SetRow(int slot, int index, const MenuRow* row, std::st
     Class(screen, slot, ids.Id, "row--steppers", row->Steppable && row->Enabled && !toggle);
     Class(screen, slot, ids.Id, "row--pending", row->Pending);
     if (row->Pending)
+    {
         Text(screen, slot, ids.HintVar, pendingHint);
+    }
 }
 
 void PanoramaMenuLayout::SetEmpty(int slot, std::string_view text)
@@ -190,31 +202,49 @@ void PanoramaMenuLayout::AddText(std::string_view variable, std::function<std::s
 std::optional<MenuButton> PanoramaMenuLayout::ButtonFor(std::string_view id) const
 {
     if (id == _cancel)
+    {
         return MenuButton{MenuButtonKind::Cancel};
+    }
     if (id == _back)
+    {
         return MenuButton{MenuButtonKind::Back};
+    }
     if (id == _close)
+    {
         return MenuButton{MenuButtonKind::Close};
+    }
     if (id == _pagePrevious)
+    {
         return MenuButton{MenuButtonKind::PreviousPage};
+    }
     if (id == _pageNext)
+    {
         return MenuButton{MenuButtonKind::NextPage};
+    }
 
     for (int index = 0; index < TabCount(); ++index)
     {
         if (id == _tabs[static_cast<std::size_t>(index)].Id)
+        {
             return MenuButton{MenuButtonKind::Tab, index};
+        }
     }
 
     for (int index = 0; index < RowCount(); ++index)
     {
         const RowIds& row = _rows[static_cast<std::size_t>(index)];
         if (id == row.Button)
+        {
             return MenuButton{MenuButtonKind::Row, index};
+        }
         if (id == row.Decrease)
+        {
             return MenuButton{MenuButtonKind::StepDown, index};
+        }
         if (id == row.Increase)
+        {
             return MenuButton{MenuButtonKind::StepUp, index};
+        }
     }
 
     return std::nullopt;

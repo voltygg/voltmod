@@ -33,11 +33,15 @@ static const ByteHistogram& FrequenciesOf(const LoadedModule& module, const std:
 
     const auto found = cache.find(module.Base);
     if (found != cache.end())
+    {
         return found->second;
+    }
 
     ByteHistogram counts{};
     for (const auto& range : ranges)
+    {
         CountBytes(range.Base, range.Size, counts);
+    }
 
     return cache.emplace(module.Base, counts).first->second;
 }
@@ -80,7 +84,9 @@ ScanResult FindPatternEx(std::string_view moduleName, const std::string& pattern
         {
             const uint8_t* hit = FindFirst(range.Base + at, range.Size - at, bytes, anchor);
             if (!hit)
+            {
                 break;
+            }
 
             if (first)
             {
@@ -93,18 +99,24 @@ ScanResult FindPatternEx(std::string_view moduleName, const std::string& pattern
     }
 
     if (!first)
+    {
         Log::Warn("SigScanner: Pattern not found in '{}'.", fullName);
+    }
     return {const_cast<uint8_t*>(first), true, std::move(module)};
 }
 
 uintptr_t ResolveRelativeAddress(const LoadedModule& module, uintptr_t matchAddress, int ripOffset, int ripSize)
 {
     if (matchAddress == 0 || !module.Base)
+    {
         return 0;
+    }
 
     // The displacement must be inside the mapping before it is read.
     if (!Rel32ReadInBounds(reinterpret_cast<uintptr_t>(module.Base), module.Size, matchAddress, ripOffset))
+    {
         return 0;
+    }
 
     const uintptr_t site = Rel32Site(matchAddress, ripOffset);
     int32_t displacement = 0;
@@ -125,7 +137,9 @@ static std::optional<MemoryRegion> QueryRegion(const void* address)
     MEMORY_BASIC_INFORMATION info{};
     if (VirtualQuery(address, &info, sizeof(info)) != sizeof(info) || info.State != MEM_COMMIT ||
         (info.Protect & PAGE_GUARD) != 0)
+    {
         return std::nullopt;
+    }
 
     constexpr DWORD readable = PAGE_READONLY | PAGE_READWRITE | PAGE_WRITECOPY | PAGE_EXECUTE_READ |
                                PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
@@ -143,11 +157,15 @@ static std::optional<MemoryRegion> QueryRegion(const void* address)
         unsigned long end = 0;
         char perms[5] = {};
         if (std::sscanf(line.c_str(), "%lx-%lx %4s", &start, &end, perms) != 3)
+        {
             continue;
+        }
         if (target >= start && target < end)
+        {
             return MemoryRegion{.End = reinterpret_cast<const uint8_t*>(end),
                                 .Readable = perms[0] == 'r',
                                 .Executable = perms[2] == 'x'};
+        }
     }
     return std::nullopt;
 #endif
@@ -156,7 +174,9 @@ static std::optional<MemoryRegion> QueryRegion(const void* address)
 bool IsExecutableAddress(const void* address)
 {
     if (!address)
+    {
         return false;
+    }
 
     const auto region = QueryRegion(address);
     return region && region->Executable;
@@ -165,7 +185,9 @@ bool IsExecutableAddress(const void* address)
 bool IsReadableAddress(const void* address, size_t bytes)
 {
     if (!address || bytes == 0)
+    {
         return false;
+    }
 
     // Keep the span within one mapping because the next may be unmapped.
     const auto region = QueryRegion(address);

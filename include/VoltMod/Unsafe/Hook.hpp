@@ -81,14 +81,20 @@ private:
     static Before WrapBefore(Handler&& handler)
     {
         if constexpr (std::is_null_pointer_v<std::decay_t<Handler>>)
+        {
             return {};
+        }
         else if constexpr (std::is_void_v<std::invoke_result_t<std::decay_t<Handler>&, Object&, Args...>>)
+        {
             return [handler = std::forward<Handler>(handler)](Object& self, Args... args) mutable {
                 handler(self, std::forward<Args>(args)...);
                 return HookResult<Ret>{};
             };
+        }
         else
+        {
             return std::forward<Handler>(handler);
+        }
     }
 
     KHook::Return<Ret> RunBefore(Object* self, Args... args)
@@ -99,7 +105,9 @@ private:
     KHook::Return<Ret> RunAfter(Object* self, Args... args)
     {
         if (_after)
+        {
             _after(*self, std::forward<Args>(args)...);
+        }
         return ToKHook(HookResult<Ret>{});
     }
 
@@ -138,7 +146,9 @@ template <class Iface, class Ret, class... Args, class Before, class After = std
     auto hook = std::make_unique<Installed>(std::forward<Before>(before), std::forward<After>(after));
     hook->Hook.Configure(method);
     if (instance)
+    {
         hook->Hook.Add(instance);
+    }
 
     return Internal::ToSubscription(std::move(hook));
 }
@@ -159,7 +169,9 @@ template <class Object, class Ret, class... Args, class Before, class After = st
                                                Before&& before, After&& after = nullptr)
 {
     if (!function)
+    {
         return std::unexpected(Error::Unsupported(std::format("the {} vtable slot did not bind", name)));
+    }
 
     using Installed = Internal::InstalledHook<KHook::Virtual, Object, Ret, Args...>;
     auto hook = std::make_unique<Installed>(std::forward<Before>(before), std::forward<After>(after));
@@ -189,7 +201,9 @@ template <class Object, class Ret, class... Args, class Before, class After = st
                                                 Before&& before, After&& after = nullptr)
 {
     if (!function)
+    {
         return std::unexpected(Error::Unsupported(std::format("the {} signature did not bind", name)));
+    }
 
     using Installed = Internal::InstalledHook<KHook::Member, Object, Ret, Args...>;
     auto hook = std::make_unique<Installed>(std::forward<Before>(before), std::forward<After>(after));

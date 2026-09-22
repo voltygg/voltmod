@@ -40,7 +40,9 @@ EntityRef Entity::Ref() const
 std::string_view Entity::ClassName() const
 {
     if (!_e || !_e->m_pEntity)
+    {
         return {};
+    }
     const char* name = _e->GetClassname();
     return name ? std::string_view(name) : std::string_view{};
 }
@@ -61,11 +63,15 @@ Status Entity::Teleport(std::optional<Vector> origin, std::optional<QAngle> angl
                         std::optional<Vector> velocity) const
 {
     if (!_e || !_sys)
+    {
         return std::unexpected(Error::NotReady("no entity"));
+    }
 
     const auto& teleport = _sys->BindingsRef().Teleport;
     if (!teleport)
+    {
         return std::unexpected(Error::Unsupported("gamedata has no 'CBaseEntity::Teleport' vtable slot"));
+    }
 
     teleport(_e, origin ? &*origin : nullptr, angles ? &*angles : nullptr, velocity ? &*velocity : nullptr);
     return {};
@@ -85,11 +91,15 @@ void Pawn::SetMove(Schema::MoveType_t type) const
 Status Pawn::Slay() const
 {
     if (!_e || !_sys)
+    {
         return std::unexpected(Error::NotReady("no pawn"));
+    }
 
     const auto& suicide = _sys->BindingsRef().CommitSuicide;
     if (!suicide)
+    {
         return std::unexpected(Error::Unsupported("gamedata has no 'CBasePlayerPawn::CommitSuicide' vtable index"));
+    }
 
     suicide(_e, false, true);
     return {};
@@ -105,7 +115,9 @@ Status Pawn::SetObserverMode(ObserverMode value) const
 {
     const Schema::CPlayer_ObserverServices services = ObserverServices();
     if (!services)
+    {
         return std::unexpected(Error::NotReady("observer services unavailable"));
+    }
 
     services.SetObserverMode(std::to_underlying(value));
     return {};
@@ -115,7 +127,9 @@ std::string Pawn::ModelName() const
 {
     const Schema::CSkeletonInstance skeleton{SceneNode(*this).Base()};
     if (!skeleton)
+    {
         return {};
+    }
 
     const char* path = skeleton.ModelState().ModelName();
     return path ? std::string(path) : std::string{};
@@ -137,7 +151,9 @@ void Pawn::SetVisible(bool visible, uint8_t alpha) const
 Controller Pawn::GetController() const
 {
     if (!_sys)
+    {
         return {};
+    }
     return _sys->Controller(Slot());
 }
 
@@ -159,7 +175,9 @@ Pawn Controller::GetPawn() const
 Pawn Controller::Possessed() const
 {
     if (!_sys)
+    {
         return {};
+    }
     return Pawn{*_sys, _sys->Resolve(EntityRef{PawnHandle()}).Raw()};
 }
 
@@ -173,7 +191,9 @@ Status Controller::SetMoney(int amount) const
 {
     const Schema::CCSPlayerController_InGameMoneyServices money = InGameMoneyServices();
     if (!money)
+    {
         return std::unexpected(Error::NotReady("money services unavailable"));
+    }
 
     money.SetAccount(amount);
     return {};
@@ -182,11 +202,15 @@ Status Controller::SetMoney(int amount) const
 Status Controller::Kick(std::string_view reason) const
 {
     if (!_e || !_sys)
+    {
         return std::unexpected(Error::NotReady("no controller"));
+    }
 
     auto* engine = _sys->InterfacesRef().Engine;
     if (!engine)
+    {
         return std::unexpected(Error::NotReady("IVEngineServer2 not available"));
+    }
 
     const std::string text(reason);
     engine->DisconnectClient(CPlayerSlot(_slot), NETWORK_DISCONNECT_KICKED, text.c_str());
@@ -196,11 +220,15 @@ Status Controller::Kick(std::string_view reason) const
 Status Controller::ChangeTeam(int team) const
 {
     if (!_e || !_sys)
+    {
         return std::unexpected(Error::NotReady("no controller"));
+    }
 
     const auto& changeTeam = _sys->BindingsRef().ChangeTeam;
     if (!changeTeam)
+    {
         return std::unexpected(Error::Unsupported("gamedata has no 'CCSPlayerController::ChangeTeam' vtable index"));
+    }
 
     changeTeam(_e, team);
     return {};
@@ -209,11 +237,15 @@ Status Controller::ChangeTeam(int team) const
 Status Controller::Respawn() const
 {
     if (!_e || !_sys)
+    {
         return std::unexpected(Error::NotReady("no controller"));
+    }
 
     const auto& respawn = _sys->BindingsRef().Respawn;
     if (!respawn)
+    {
         return std::unexpected(Error::Unsupported("gamedata has no 'CCSPlayerController::Respawn' vtable index"));
+    }
 
     respawn(_e);
     return {};

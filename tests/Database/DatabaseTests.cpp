@@ -42,7 +42,9 @@ int CountRows(Database& db, const std::string& table, const std::string& where =
                           .where(sqlpp::verbatim<sqlpp::boolean>(where.empty() ? "1 = 1" : where));
         int rows = 0;
         for (const auto& row : conn(select))
+        {
             rows = static_cast<int>(row.a.value_or(0));
+        }
         return rows;
     });
     REQUIRE(count.has_value());
@@ -98,7 +100,9 @@ TEST_CASE("Database: Run runs a raw create, a typed insert, and a typed select")
     auto name = db.Run("select-row", [&](auto& conn) -> std::string {
         std::string found;
         for (const auto& row : conn(sqlpp::select(sqlpp::all_of(t)).from(t).where(t.id == 1)))
+        {
             found = row.name;
+        }
         return found;
     });
     REQUIRE(name.has_value());
@@ -117,7 +121,9 @@ TEST_CASE("Database: RunAsync delivers its result only through DispatchCompletio
         "ping-async",
         [](auto& conn) -> int {
             for (const auto& row : conn(sqlpp::select(sqlpp::value(1).as(sqlpp::alias::a))))
+            {
                 (void)row;
+            }
             return 1;
         },
         [&](Result<int> r) {

@@ -20,7 +20,9 @@ static constexpr int32_t kCPlayer_CameraServices_ViewEntity = 164;  // CHandle< 
 uint32_t CPlayer_CameraServices::ViewEntity() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<uint32_t>(_base, kCPlayer_CameraServices_ViewEntity);
 }
@@ -28,7 +30,9 @@ uint32_t CPlayer_CameraServices::ViewEntity() const
 void CPlayer_CameraServices::SetViewEntity(uint32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<uint32_t>(_base, kCPlayer_CameraServices_ViewEntity) = value;
     NotifyComponentOwner(_base, CPlayer_CameraServices_kOwnerLinkOffset, kCPlayer_CameraServices_ViewEntity);

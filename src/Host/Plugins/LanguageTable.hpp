@@ -21,7 +21,9 @@ public:
     void SetLanguage(int slot, std::string_view lang) override
     {
         if (IsValidSlot(slot))
+        {
             _languages[slot] = lang;
+        }
     }
 
     void Reset(int slot) { _languages.Reset(slot); }

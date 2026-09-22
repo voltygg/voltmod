@@ -86,7 +86,9 @@ Result<SharedLibrary> SharedLibrary::Open(const std::filesystem::path& path)
 {
     void* handle = OpenLibrary(path);
     if (handle == nullptr)
+    {
         return std::unexpected(Error::Failed(std::format("cannot load {}: {}", path.string(), LastError())));
+    }
 
     return SharedLibrary(handle);
 }
@@ -94,11 +96,15 @@ Result<SharedLibrary> SharedLibrary::Open(const std::filesystem::path& path)
 Result<void*> SharedLibrary::Symbol(const char* name) const
 {
     if (_handle == nullptr)
+    {
         return std::unexpected(Error::NotReady(std::format("cannot look up {}: nothing is loaded", name)));
+    }
 
     void* address = FindExport(_handle, name);
     if (address == nullptr)
+    {
         return std::unexpected(Error::NotFound(std::format("does not export {}: {}", name, LastError())));
+    }
 
     return address;
 }
@@ -106,7 +112,9 @@ Result<void*> SharedLibrary::Symbol(const char* name) const
 void SharedLibrary::Close()
 {
     if (_handle == nullptr)
+    {
         return;
+    }
 
     CloseLibrary(std::exchange(_handle, nullptr));
 }

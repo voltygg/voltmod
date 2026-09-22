@@ -28,7 +28,9 @@ ButtonPressHook::~ButtonPressHook()
 {
     // A remaining hook may call into an unloaded module after Runtime is destroyed.
     if (_hook)
+    {
         Log::Error("ButtonPressHook: a press subscription outlived the hook; a handler may dangle.");
+    }
 }
 
 bool ButtonPressHook::Install()
@@ -41,7 +43,9 @@ bool ButtonPressHook::Install()
     if (auto* message = _interfaces.NetworkMessages ? _interfaces.NetworkMessages->FindNetworkMessagePartial(
                                                           std::string(UserMessageName).c_str())
                                                     : nullptr)
+    {
         _messageId = message->GetNetMessageInfo()->m_MessageId;
+    }
     if (_messageId < 0)
     {
         Log::Warn("ButtonPressHook: the engine does not know {}; button presses will not arrive.", UserMessageName);
@@ -77,7 +81,9 @@ const ButtonPressHook::MessageFields& ButtonPressHook::FieldsOf(const ProtoMessa
     static const MessageFields fields = [&proto] {
         const MessageFields resolved{.Type = ProtoField(proto, "msg_type"), .Data = ProtoField(proto, "msg_data")};
         if (!resolved)
+        {
             Log::Warn("ButtonPressHook: {} has no 'msg_type'/'msg_data' field; ignoring presses.", UserMessageName);
+        }
         return resolved;
     }();
     return fields;
@@ -88,24 +94,34 @@ void ButtonPressHook::Queue(const CNetMessage* message, const EngineMessageFilte
     // Filter by message id before parsing the inbound message.
     INetworkMessageInternal* info = message ? message->GetNetMessage() : nullptr;
     if (!info || info->GetNetMessageInfo()->m_MessageId != _messageId)
+    {
         return;
+    }
 
     const ProtoMessage* proto = message->ToPB<ProtoMessage>();
     if (!proto)
+    {
         return;
+    }
 
     const MessageFields& fields = FieldsOf(*proto);
     if (!fields)
+    {
         return;
+    }
 
     const auto* reflection = proto->GetReflection();
     if (reflection->GetInt32(*proto, fields.Type) != CustomHudClickType)
+    {
         return;
+    }
 
     // Use the sending connection's slot so a spectator's press remains theirs.
     const int slot = SlotOfClient(_bindings, ClientOfFilter(_bindings, filter));
     if (!IsValidSlot(slot))
+    {
         return;
+    }
 
     auto payload = ButtonPressMessage::Parse(reflection->GetString(*proto, fields.Data));
     if (!payload)
@@ -116,7 +132,9 @@ void ButtonPressHook::Queue(const CNetMessage* message, const EngineMessageFilte
 
     // Reject embedded NULs in client-controlled text before formatting it.
     if (payload->ButtonId.find('\0') != std::string::npos)
+    {
         return;
+    }
 
     _queued.push_back({.Slot = slot, .ButtonId = std::move(payload->ButtonId)});
 }
@@ -128,7 +146,9 @@ void ButtonPressHook::RaiseQueued()
     presses.swap(_queued);
 
     for (const ButtonPress& press : presses)
+    {
         _pressed.Raise(press);
+    }
 }
 
 }  // namespace VoltMod

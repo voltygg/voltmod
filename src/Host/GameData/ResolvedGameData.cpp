@@ -39,14 +39,20 @@ void WriteResolvedGameData(const ResolvedGameData& resolved)
     const std::string path = std::format("addons/voltmod/gamedata/resolved.{}.json", PlatformName);
     const std::string build(GameBuild());
     if (const auto existing = Json::ReadFile<ResolvedGameData>(path); existing && existing->Build == build)
+    {
         return;
+    }
 
     ResolvedGameData stamped = resolved;
     stamped.Build = build;
     if (const Status written = WriteAllText(path, Json::WritePretty(stamped)); !written)
+    {
         Log::Warn("GameData: no record written to {}: {}", path, written.error().Detail);
+    }
     else
+    {
         Log::Info("GameData: recorded what resolved on server {} in {}.", build, path);
+    }
 }
 
 }  // namespace VoltMod

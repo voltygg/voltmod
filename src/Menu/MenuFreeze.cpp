@@ -18,7 +18,9 @@ void MenuFreeze::Enable(bool enabled)
     if (!enabled)
     {
         for (int slot = 0; slot < MaxPlayers; ++slot)
+        {
             _states[slot].Movement.Release(_entities.PawnOf(slot));
+        }
     }
 
     SyncFrameWork();
@@ -27,11 +29,15 @@ void MenuFreeze::Enable(bool enabled)
 void MenuFreeze::Open(int slot, bool requested)
 {
     if (!IsValidSlot(slot))
+    {
         return;
+    }
 
     _states[slot].Requested = requested;
     if (_enabled && requested)
+    {
         _states[slot].Movement.Hold(_entities.PawnOf(slot));
+    }
 
     SyncFrameWork();
 }
@@ -39,7 +45,9 @@ void MenuFreeze::Open(int slot, bool requested)
 void MenuFreeze::Close(int slot)
 {
     if (!IsValidSlot(slot))
+    {
         return;
+    }
 
     // Releasing is never gated on the setting: a hold taken while it was on must come back.
     _states[slot].Requested = false;
@@ -53,7 +61,9 @@ void MenuFreeze::OnGameFrame()
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
         if (_states[slot].Requested)
+        {
             _states[slot].Movement.Sync(_entities.PawnOf(slot));
+        }
     }
 }
 
@@ -63,13 +73,19 @@ void MenuFreeze::SyncFrameWork()
     if (_enabled)
     {
         for (int slot = 0; slot < MaxPlayers && !wanted; ++slot)
+        {
             wanted = _states[slot].Requested;
+        }
     }
 
     if (!wanted)
+    {
         _onFrame.Reset();
+    }
     else if (!_onFrame)
+    {
         _onFrame = _scheduler.EveryFrame([this] { OnGameFrame(); });
+    }
 }
 
 }  // namespace VoltMod

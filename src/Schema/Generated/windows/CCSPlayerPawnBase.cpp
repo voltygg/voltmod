@@ -15,7 +15,9 @@ static constexpr int32_t kCCSPlayerPawnBase_FlashMaxAlpha = 3352;  // float32
 float CCSPlayerPawnBase::FlashDuration() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<float>(_base, kCCSPlayerPawnBase_FlashDuration);
 }
@@ -23,7 +25,9 @@ float CCSPlayerPawnBase::FlashDuration() const
 void CCSPlayerPawnBase::SetFlashDuration(float value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<float>(_base, kCCSPlayerPawnBase_FlashDuration) = value;
     NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawnBase_FlashDuration);
@@ -32,7 +36,9 @@ void CCSPlayerPawnBase::SetFlashDuration(float value) const
 float CCSPlayerPawnBase::FlashMaxAlpha() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<float>(_base, kCCSPlayerPawnBase_FlashMaxAlpha);
 }
@@ -40,7 +46,9 @@ float CCSPlayerPawnBase::FlashMaxAlpha() const
 void CCSPlayerPawnBase::SetFlashMaxAlpha(float value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<float>(_base, kCCSPlayerPawnBase_FlashMaxAlpha) = value;
     NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawnBase_FlashMaxAlpha);

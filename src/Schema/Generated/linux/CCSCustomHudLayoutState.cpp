@@ -14,7 +14,9 @@ static constexpr int32_t kCCSCustomHudLayoutState_InputCaptureEnabled = 52;  // 
 bool CCSCustomHudLayoutState::InputCaptureEnabled() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<bool>(_base, kCCSCustomHudLayoutState_InputCaptureEnabled);
 }
@@ -22,7 +24,9 @@ bool CCSCustomHudLayoutState::InputCaptureEnabled() const
 void CCSCustomHudLayoutState::SetInputCaptureEnabled(bool value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<bool>(_base, kCCSCustomHudLayoutState_InputCaptureEnabled) = value;
     NotifyEntity(_owner, _ownerOffset + kCCSCustomHudLayoutState_InputCaptureEnabled);

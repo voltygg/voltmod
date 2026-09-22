@@ -20,15 +20,21 @@ static constexpr int GlowRenderAmt = 1;
 void GlowVision::DestroyPair(GlowPair& pair)
 {
     if (!pair.Active())
+    {
         return;
+    }
 
     _visibility.ShowToEveryone(pair.Relay);
     _visibility.ShowToEveryone(pair.Glow);
 
     if (Entity glow = _entities.Resolve(pair.Glow))
+    {
         _ops.Remove(glow.Raw());
+    }
     if (Entity relay = _entities.Resolve(pair.Relay))
+    {
         _ops.Remove(relay.Raw());
+    }
 
     pair = {};
 }
@@ -37,12 +43,16 @@ void GlowVision::CreatePair(int slot, GlowPair& pair)
 {
     Pawn pawn = _entities.PawnOf(slot);
     if (!pawn)
+    {
         return;
+    }
 
     std::string model = pawn.ModelName();
     const int team = pawn.Team();
     if (model.empty())
+    {
         return;
+    }
 
     KeyValues relayKv;
     relayKv.Set("model", model.c_str())
@@ -50,7 +60,9 @@ void GlowVision::CreatePair(int slot, GlowPair& pair)
         .Set("rendermode", static_cast<int>(Schema::RenderMode_t::kRenderNone));
     auto* relay = _ops.Spawn("prop_dynamic", relayKv);
     if (!relay)
+    {
         return;
+    }
 
     KeyValues glowKv;
     glowKv.Set("model", model.c_str())
@@ -96,18 +108,24 @@ void GlowVision::Refresh()
             bool stale = !desired || team != pair.Team || !_entities.Resolve(pair.Relay) ||
                          !_entities.Resolve(pair.Glow) || pawn.ModelName() != pair.Model;
             if (stale)
+            {
                 DestroyPair(pair);
+            }
         }
 
         if (!pair.Active() && desired)
+        {
             CreatePair(slot, pair);
+        }
     }
 }
 
 void GlowVision::Destroy()
 {
     for (auto& pair : _pairs)
+    {
         DestroyPair(pair);
+    }
 }
 
 }  // namespace VoltMod

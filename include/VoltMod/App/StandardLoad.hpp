@@ -33,22 +33,32 @@ bool LoadStandardConfig(Runtime& runtime, TConfig& config, const StandardLoadOpt
     const bool loaded = runtime.LoadSteps.Required("Configuration", [&] {
         Status status = [&] {
             if constexpr (requires { config.LoadSettings(path); })
+            {
                 return config.LoadSettings(path);
+            }
             else
+            {
                 return config.Load(path);
+            }
         }();
         if (!status)
+        {
             status.error().Detail = std::format("{}: {}", path, status.error().Detail);
+        }
         return status;
     });
     if (!loaded)
+    {
         return false;
+    }
 
     if (options.Translations)
     {
         auto& translations = runtime.Translations;
         if constexpr (requires { translations.SetLanguage(config.Get().plugin.locale); })
+        {
             translations.SetLanguage(config.Get().plugin.locale);
+        }
         translations.Load(runtime.PluginFile("configs/translations"));
     }
     return true;

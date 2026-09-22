@@ -11,7 +11,9 @@ void SetRender(CEntityInstance* entity, Schema::RenderMode_t mode, uint32_t colo
     // setters dirty the entity themselves, so the new values replicate on the next update.
     const Schema::CBaseModelEntity target{entity};
     if (!target)
+    {
         return;
+    }
 
     target.SetRenderMode(mode);
     target.SetRenderColor(color);

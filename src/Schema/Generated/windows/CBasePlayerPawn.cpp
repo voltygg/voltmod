@@ -24,7 +24,9 @@ static constexpr int32_t kCBasePlayerPawn_ControllerHandle = 2992;  // CHandle< 
 CPlayer_ObserverServices CBasePlayerPawn::ObserverServices() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return CPlayer_ObserverServices{*MemberPtr<void*>(_base, kCBasePlayerPawn_ObserverServices)};
 }
@@ -32,7 +34,9 @@ CPlayer_ObserverServices CBasePlayerPawn::ObserverServices() const
 CPlayer_ItemServices CBasePlayerPawn::ItemServices() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return CPlayer_ItemServices{*MemberPtr<void*>(_base, kCBasePlayerPawn_ItemServices)};
 }
@@ -40,7 +44,9 @@ CPlayer_ItemServices CBasePlayerPawn::ItemServices() const
 CPlayer_MovementServices CBasePlayerPawn::MovementServices() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return CPlayer_MovementServices{*MemberPtr<void*>(_base, kCBasePlayerPawn_MovementServices)};
 }
@@ -48,7 +54,9 @@ CPlayer_MovementServices CBasePlayerPawn::MovementServices() const
 CPlayer_WeaponServices CBasePlayerPawn::WeaponServices() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return CPlayer_WeaponServices{*MemberPtr<void*>(_base, kCBasePlayerPawn_WeaponServices)};
 }
@@ -56,7 +64,9 @@ CPlayer_WeaponServices CBasePlayerPawn::WeaponServices() const
 CPlayer_CameraServices CBasePlayerPawn::CameraServices() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return CPlayer_CameraServices{*MemberPtr<void*>(_base, kCBasePlayerPawn_CameraServices)};
 }
@@ -64,7 +74,9 @@ CPlayer_CameraServices CBasePlayerPawn::CameraServices() const
 uint32_t CBasePlayerPawn::ControllerHandle() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<uint32_t>(_base, kCBasePlayerPawn_ControllerHandle);
 }
@@ -72,7 +84,9 @@ uint32_t CBasePlayerPawn::ControllerHandle() const
 void CBasePlayerPawn::SetControllerHandle(uint32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<uint32_t>(_base, kCBasePlayerPawn_ControllerHandle) = value;
     NotifyEntity(_owner, _ownerOffset + kCBasePlayerPawn_ControllerHandle);

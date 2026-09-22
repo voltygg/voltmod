@@ -16,7 +16,9 @@ static constexpr int32_t kCBeam_EndPos = 2040;    // VectorWS
 float CBeam::Width() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<float>(_base, kCBeam_Width);
 }
@@ -24,7 +26,9 @@ float CBeam::Width() const
 void CBeam::SetWidth(float value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<float>(_base, kCBeam_Width) = value;
     NotifyEntity(_owner, _ownerOffset + kCBeam_Width);
@@ -33,7 +37,9 @@ void CBeam::SetWidth(float value) const
 float CBeam::EndWidth() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<float>(_base, kCBeam_EndWidth);
 }
@@ -41,7 +47,9 @@ float CBeam::EndWidth() const
 void CBeam::SetEndWidth(float value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<float>(_base, kCBeam_EndWidth) = value;
     NotifyEntity(_owner, _ownerOffset + kCBeam_EndWidth);
@@ -50,7 +58,9 @@ void CBeam::SetEndWidth(float value) const
 Vector CBeam::EndPos() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<Vector>(_base, kCBeam_EndPos);
 }
@@ -58,7 +68,9 @@ Vector CBeam::EndPos() const
 void CBeam::SetEndPos(Vector value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<Vector>(_base, kCBeam_EndPos) = value;
     NotifyEntity(_owner, _ownerOffset + kCBeam_EndPos);

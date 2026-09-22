@@ -24,21 +24,27 @@ public:
     {
         // Check the gate before formatting, as Log:: does: a dropped line must cost nothing.
         if (Log::Wanted(LogLevel::Info))
+        {
             Log::Info("[{}] {}", TypeName(), std::format(fmt, std::forward<Args>(args)...));
+        }
     }
 
     template <class... Args>
     void Warn(std::format_string<Args...> fmt, Args&&... args) const
     {
         if (Log::Wanted(LogLevel::Warn))
+        {
             Log::Warn("[{}] {}", TypeName(), std::format(fmt, std::forward<Args>(args)...));
+        }
     }
 
     template <class... Args>
     void Error(std::format_string<Args...> fmt, Args&&... args) const
     {
         if (Log::Wanted(LogLevel::Error))
+        {
             Log::Error("[{}] {}", TypeName(), std::format(fmt, std::forward<Args>(args)...));
+        }
     }
 
 private:
@@ -63,9 +69,13 @@ private:
         // Leaves "Row" for "class VoltMod::Menu::Row" and for "Table<int>".
         name = name.substr(0, name.find('<'));
         if (const std::size_t lastColon = name.rfind(':'); lastColon != std::string_view::npos)
+        {
             name.remove_prefix(lastColon + 1);
+        }
         if (const std::size_t lastSpace = name.rfind(' '); lastSpace != std::string_view::npos)
+        {
             name.remove_prefix(lastSpace + 1);
+        }
 
         return name;
     }

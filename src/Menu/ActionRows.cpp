@@ -63,7 +63,9 @@ MenuItem ActionRows::Presets(const PresetSpec& spec)
     std::vector<Labeled<int>> choices;
     choices.reserve(spec.Presets.size());
     for (int value : spec.Presets)
+    {
         choices.push_back({.Label = std::format("{} {}", value, spec.Unit), .Value = value});
+    }
 
     return ChoiceRow<int>{
         .Label = Translate(spec.LabelKey),
@@ -99,10 +101,14 @@ std::shared_ptr<Menu> ActionRows::BuildPicker(const EffectDescriptor& effect, En
 {
     // Resolve the captured player, not a later occupant of the slot.
     if (!_target)
+    {
         return nullptr;
+    }
     auto* targetPlayer = _services->Players.Get(*_target);
     if (!targetPlayer)
+    {
         return nullptr;
+    }
 
     MenuBuilder builder(std::format("{}: {}", Translate(effect.NameKey), targetPlayer->Name()));
 

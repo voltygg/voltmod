@@ -26,7 +26,9 @@ public:
     {
         const int fd = open(path.c_str(), O_RDONLY);
         if (fd == -1)
+        {
             return;
+        }
 
         struct stat info{};
         if (fstat(fd, &info) == 0 && info.st_size > 0)
@@ -44,7 +46,9 @@ public:
     ~MappedFile()
     {
         if (_base)
+        {
             munmap(const_cast<uint8_t*>(_base), _size);
+        }
     }
 
     MappedFile(const MappedFile&) = delete;
@@ -56,7 +60,9 @@ public:
     const T* At(size_t offset, size_t count = 1) const
     {
         if (!_base || count == 0 || offset > _size || (_size - offset) / sizeof(T) < count)
+        {
             return nullptr;
+        }
         return reinterpret_cast<const T*>(_base + offset);
     }
 
@@ -69,11 +75,15 @@ static uint64_t FindSymbolValue(const MappedFile& elf, const std::string& symbol
 {
     const auto* header = elf.At<Elf64_Ehdr>(0);
     if (!header || std::memcmp(header->e_ident, ELFMAG, SELFMAG) != 0 || header->e_ident[EI_CLASS] != ELFCLASS64)
+    {
         return 0;
+    }
 
     const auto* sections = elf.At<Elf64_Shdr>(header->e_shoff, header->e_shnum);
     if (!sections || header->e_shentsize != sizeof(Elf64_Shdr))
+    {
         return 0;
+    }
 
     // Use .symtab when present because .dynsym contains only exports.
     for (const Elf64_Word wanted : {Elf64_Word{SHT_SYMTAB}, Elf64_Word{SHT_DYNSYM}})
@@ -83,20 +93,28 @@ static uint64_t FindSymbolValue(const MappedFile& elf, const std::string& symbol
             const Elf64_Shdr& section = sections[i];
             if (section.sh_type != wanted || section.sh_entsize != sizeof(Elf64_Sym) ||
                 section.sh_link >= header->e_shnum)
+            {
                 continue;
+            }
 
             const Elf64_Shdr& strings = sections[section.sh_link];
             const auto* names = elf.At<char>(strings.sh_offset, strings.sh_size);
             const auto* symbols = elf.At<Elf64_Sym>(section.sh_offset, section.sh_size / sizeof(Elf64_Sym));
             if (!names || !symbols)
+            {
                 continue;
+            }
 
             for (size_t s = 0; s < section.sh_size / sizeof(Elf64_Sym); ++s)
             {
                 if (symbols[s].st_name >= strings.sh_size || symbols[s].st_value == 0)
+                {
                     continue;
+                }
                 if (symbol == names + symbols[s].st_name)
+                {
                     return symbols[s].st_value;
+                }
             }
         }
     }
@@ -113,7 +131,9 @@ static bool RangesOf(const LoadedModule& module, std::vector<ScanRange>& ranges)
 void* FindVirtualTableIn(const LoadedModule& module, std::string_view className)
 {
     if (module.Path.empty())
+    {
         return nullptr;
+    }
 
     if (MappedFile elf(module.Path); elf)
     {
@@ -121,13 +141,17 @@ void* FindVirtualTableIn(const LoadedModule& module, std::string_view className)
         const std::string symbol = "_ZTV" + LengthPrefixedName(className);
         // Object vptrs point past offset-to-top and typeinfo.
         if (const uint64_t value = FindSymbolValue(elf, symbol))
+        {
             return const_cast<uint8_t*>(module.Base + value + 2 * sizeof(void*));
+        }
     }
 
     // Game modules hide vtable symbols but retain RTTI, so search mapped segments.
     std::vector<ScanRange> ranges;
     if (!RangesOf(module, ranges))
+    {
         return nullptr;
+    }
     return FindVirtualTableByTypeName(ranges, className);
 }
 
@@ -152,21 +176,31 @@ Result<BaseSubobject> FindBaseIn(const LoadedModule& module, std::string_view cl
 {
     void* primary = FindVirtualTableIn(module, className);
     if (!primary)
+    {
         return std::unexpected(Error::NotFound(std::format("no vtable for '{}'", className)));
+    }
 
     const void* typeInfo = static_cast<void**>(primary)[-1];
     Result<int> offset = FindBaseOffsetByTypeInfo(typeInfo, baseName, ExportedTypeInfoKinds());
     // Modules with a private C++ runtime have different vptrs, so validate record shapes instead.
     if (!offset && offset.error().Code == ErrorCode::NotFound)
+    {
         offset = FindBaseOffsetByTypeInfo(typeInfo, baseName, {});
+    }
     if (!offset)
+    {
         return std::unexpected(offset.error());
+    }
     if (*offset == 0)
+    {
         return BaseSubobject{.Offset = 0, .Table = primary};
+    }
 
     std::vector<ScanRange> ranges;
     if (!RangesOf(module, ranges))
+    {
         return BaseSubobject{.Offset = *offset};
+    }
     return BaseSubobject{.Offset = *offset, .Table = FindVirtualTableByTypeInfo(ranges, typeInfo, -*offset)};
 }
 

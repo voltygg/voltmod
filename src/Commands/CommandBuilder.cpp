@@ -30,7 +30,9 @@ void Caller::Say(std::string_view key, Tokens tokens) const
 void Caller::SayRaw(std::string_view line) const
 {
     if (Send && !line.empty())
+    {
         Send(std::string(line));
+    }
 }
 
 }  // namespace VoltMod

@@ -30,19 +30,33 @@ void VoltCommand::Run(const CCommand& arguments)
     const std::string_view value = arguments.ArgC() >= 4 ? arguments.Arg(3) : "";
 
     if (verb == "list")
+    {
         PrintLoaded();
+    }
     else if (verb == "status")
+    {
         PrintStatus(target);
+    }
     else if (verb == "load" && !target.empty())
+    {
         _loader.Defer(PluginLoader::ActionKind::Load, target);
+    }
     else if (verb == "unload" && !target.empty())
+    {
         _loader.Defer(PluginLoader::ActionKind::Unload, target);
+    }
     else if (verb == "reload" && !target.empty())
+    {
         _loader.Defer(PluginLoader::ActionKind::Reload, target);
+    }
     else if (verb == "log" && !target.empty() && !value.empty())
+    {
         SetLogLevel(target, value);
+    }
     else
+    {
         Log::Info("Usage: {}", CommandUsage);
+    }
 }
 
 void VoltCommand::PrintLoaded() const
@@ -73,12 +87,16 @@ void VoltCommand::PrintStatus(std::string_view name)
     if (name.empty())
     {
         for (const LoadedPlugin& plugin : _loader.LoadedPlugins())
+        {
             print(plugin);
+        }
         return;
     }
 
     if (const LoadedPlugin* plugin = _loader.RequireLoaded(name); plugin != nullptr)
+    {
         print(*plugin);
+    }
 }
 
 void VoltCommand::SetLogLevel(std::string_view name, std::string_view level)
@@ -92,7 +110,9 @@ void VoltCommand::SetLogLevel(std::string_view name, std::string_view level)
 
     HostView* plugin = _loader.RequireLoaded(name) != nullptr ? _host.FindPlugin(name) : nullptr;
     if (plugin == nullptr)
+    {
         return;
+    }
 
     plugin->SetMinLogLevel(*wanted);
     Log::Info("{} now logs {} and above.", name, Strings::ToLower(Name(*wanted)));

@@ -13,7 +13,9 @@ void RegisterCommands(VoltMod::CommandManager& commands);
 bool App::Load()
 {
     if (!VoltMod::LoadStandardConfig(Runtime, Config))
+    {
         return false;
+    }
 
     // Set Runtime.Policy before registering permission-gated commands.
     RegisterCommands(Runtime.Commands);

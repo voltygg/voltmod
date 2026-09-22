@@ -15,7 +15,9 @@ static constexpr int32_t kCSkeletonInstance_ModelState = 288;  // CModelState
 CModelState CSkeletonInstance::ModelState() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return CModelState{MemberPtr<void>(_base, kCSkeletonInstance_ModelState), _owner,
                        _ownerOffset + kCSkeletonInstance_ModelState};

@@ -1,16 +1,11 @@
-# Clang-Format Configuration for Admin System
-# Based on Google style with Allman braces and 4-space indent
-
 Language: Cpp
 BasedOnStyle: Google
 
-# Indentation
 IndentWidth: 4
 TabWidth: 4
 IndentCaseLabels: false
 AccessModifierOffset: -4
 
-# Braces (Allman-like with compact empty bodies)
 BreakBeforeBraces: Custom
 BraceWrapping:
   AfterCaseLabel: true
@@ -29,28 +24,24 @@ BraceWrapping:
   SplitEmptyFunction: false
   SplitEmptyRecord: false
   SplitEmptyNamespace: false
+InsertBraces: true
 
-# Line breaking
 ColumnLimit: 120
 AllowShortBlocksOnASingleLine: Empty
 AllowShortFunctionsOnASingleLine: Inline
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: false
 
-# Alignment
 AlignConsecutiveMacros: true
 AlignOperands: Align
 
-# Spaces
 SpacesInContainerLiterals: false
 
-# Includes
 IncludeBlocks: Regroup
 IncludeCategories:
   - Regex: '^"'
     Priority: 1
-  # windows.h declares the types the rest of the Win32 SDK headers name, so it has to sort ahead
-  # of them - psapi.h does not compile without it.
+  # windows.h first: psapi.h and other Win32 headers use its types.
   - Regex: '^<windows\.h>'
     Priority: 2
   - Regex: '^<(ISmmPlugin|igameevents|iplayerinfo|sh_)'
@@ -58,6 +49,5 @@ IncludeCategories:
   - Regex: '^<'
     Priority: 4
 
-# Pointer alignment
 DerivePointerAlignment: false
 PointerAlignment: Left

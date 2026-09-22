@@ -13,17 +13,29 @@ using PostgresSslMode = sqlpp::postgresql::connection_config::sslmode_t;
 static std::optional<PostgresSslMode> ParseSslMode(const std::string& mode)
 {
     if (mode == "disable")
+    {
         return PostgresSslMode::disable;
+    }
     if (mode == "allow")
+    {
         return PostgresSslMode::allow;
+    }
     if (mode == "prefer")
+    {
         return PostgresSslMode::prefer;
+    }
     if (mode == "require")
+    {
         return PostgresSslMode::require;
+    }
     if (mode == "verify-ca")
+    {
         return PostgresSslMode::verify_ca;
+    }
     if (mode == "verify-full")
+    {
         return PostgresSslMode::verify_full;
+    }
     return std::nullopt;
 }
 
@@ -112,12 +124,16 @@ bool Database::Connect(const DatabaseConfig& config)
         return false;
     }
     if (!ConfigIsValid(*driver, config))
+    {
         return false;
+    }
 
     {
         std::lock_guard lock(_queueMutex);
         if (_worker.joinable())
+        {
             return true;  // already started
+        }
         _config = config;
         _driver = *driver;
         _accepting = true;
@@ -130,7 +146,9 @@ bool Database::Connect(const DatabaseConfig& config)
     // Typed, not raw: a raw SELECT leaves an unread result set on MariaDB.
     auto ping = Run("db_ping", [](auto& conn) {
         for (const auto& row : conn(sqlpp::select(sqlpp::value(1).as(sqlpp::alias::a))))
+        {
             (void)row;
+        }
     });
     if (!ping)
     {
@@ -147,7 +165,9 @@ void Database::Disconnect(std::chrono::milliseconds stopDeadline)
     {
         std::lock_guard lock(_queueMutex);
         if (!_worker.joinable() && !_accepting)
+        {
             return;
+        }
         _accepting = false;
         _stopping = true;
         _stopDeadline = std::chrono::steady_clock::now() + stopDeadline;
@@ -155,7 +175,9 @@ void Database::Disconnect(std::chrono::milliseconds stopDeadline)
     _queueCv.notify_all();
 
     if (_worker.joinable())
+    {
         _worker.join();
+    }
 
     _onFrame.Reset();
 
@@ -175,7 +197,9 @@ void Database::DispatchCompletions()
         ready.swap(_completions);
     }
     for (auto& completion : ready)
+    {
         completion();
+    }
 }
 
 void Database::PushCompletion(std::move_only_function<void()> completion)
@@ -191,7 +215,9 @@ void Database::Enqueue(Job job)
         std::lock_guard lock(_queueMutex);
         accepted = _accepting;
         if (accepted)
+        {
             _queue.push_back(std::move(job));
+        }
     }
 
     if (accepted)
@@ -218,7 +244,9 @@ void Database::WorkerMain()
             _queueCv.wait(lock, [&] { return !_queue.empty() || _stopping; });
 
             if (_queue.empty() && _stopping)
+            {
                 break;
+            }
 
             // Past the stop deadline: drop what's left (a dead database must not hang unload).
             if (_stopping && std::chrono::steady_clock::now() >= _stopDeadline)
@@ -263,13 +291,19 @@ bool Database::EnsureOpen()
     const bool open = std::visit(
         [](const auto& conn) {
             if constexpr (std::same_as<std::remove_cvref_t<decltype(conn)>, std::monostate>)
+            {
                 return false;
+            }
             else
+            {
                 return conn.is_connected();
+            }
         },
         _connection);
     if (open)
+    {
         return true;
+    }
 
     try
     {
@@ -286,7 +320,9 @@ bool Database::EnsureOpen()
         {
             auto& conn = _connection.emplace<SqliteConnection>(SqliteSettings(_config));
             if (_config.path != ":memory:")
+            {
                 conn("PRAGMA journal_mode=WAL");
+            }
             conn("PRAGMA busy_timeout=" + std::to_string(_config.connectTimeoutSec * 1000));
             break;
         }

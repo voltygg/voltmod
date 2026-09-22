@@ -74,7 +74,9 @@ TEST_CASE("A refused start counts no listener and is retried by the next subscri
         "Test",
         [&] {
             if (!ready)
+            {
                 return false;
+            }
             ++starts;
             return true;
         },

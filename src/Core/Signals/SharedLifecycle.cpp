@@ -13,7 +13,9 @@ SharedLifecycle::~SharedLifecycle()
 {
     // Never leave a handler pointing into state that is going away.
     if (_listening != 0)
+    {
         Log::Error("{}: {} event(s) still had handlers when the source went away; one may dangle.", _what, _listening);
+    }
 }
 
 EventLifecycle SharedLifecycle::ForEvent()
@@ -25,7 +27,9 @@ bool SharedLifecycle::AddListener()
 {
     // A refused start leaves the count at zero, so the next subscriber retries.
     if (_listening == 0 && _start && !_start())
+    {
         return false;
+    }
 
     ++_listening;
     return true;
@@ -34,7 +38,9 @@ bool SharedLifecycle::AddListener()
 void SharedLifecycle::RemoveListener()
 {
     if (_listening > 0 && --_listening == 0 && _stop)
+    {
         _stop();
+    }
 }
 
 }  // namespace VoltMod

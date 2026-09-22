@@ -18,7 +18,9 @@ public:
     explicit SingleRecipientFilter(int slot)
     {
         if (slot >= 0 && slot < ABSOLUTE_PLAYER_LIMIT)
+        {
             _recipients.Set(slot);
+        }
     }
 
     NetChannelBufType_t GetNetworkBufType() const override { return BUF_RELIABLE; }
@@ -42,7 +44,9 @@ public:
     void AddRecipient(int slot)
     {
         if (slot >= 0 && slot < ABSOLUTE_PLAYER_LIMIT)
+        {
             _recipients.Set(slot);
+        }
     }
 
     NetChannelBufType_t GetNetworkBufType() const override { return BUF_RELIABLE; }

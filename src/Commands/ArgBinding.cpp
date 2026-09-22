@@ -31,7 +31,9 @@ static std::expected<Args::Target, ArgError> BindTarget(ArgBinder& binder, const
 {
     auto resolved = binder.Resolve(token, caller, TargetRules{});
     if (!resolved)
+    {
         return std::unexpected(TargetKey(resolved.error(), token));
+    }
     return Args::Target{.Value = resolved->front()};
 }
 
@@ -40,7 +42,9 @@ static std::expected<Args::Targets, ArgError> BindTargets(ArgBinder& binder, con
 {
     auto resolved = binder.Resolve(token, caller, TargetRules{.AllowMultiple = true});
     if (!resolved)
+    {
         return std::unexpected(TargetKey(resolved.error(), token));
+    }
     return Args::Targets{.Value = std::move(*resolved)};
 }
 
@@ -61,8 +65,12 @@ static std::expected<Args::PlayerOrSteamId, ArgError> BindPlayerOrSteamId(ArgBin
     }
 
     if (resolved.error().Error == TargetError::NoMatch && Strings::IsNumeric(token))
+    {
         if (auto id = ParseInt64(token))
+        {
             return Args::PlayerOrSteamId{.Online = nullptr, .SteamId = *id};
+        }
+    }
 
     return std::unexpected(TargetKey(resolved.error(), token));
 }
@@ -71,7 +79,9 @@ static std::expected<Args::Duration, ArgError> BindDuration(const std::string& t
 {
     const int seconds = ParseDuration(token);
     if (seconds < 0)
+    {
         return std::unexpected(ArgError{.Key = "cmd.badDuration", .Vars = {{"token", token}}});
+    }
 
     // ParseDuration reads a bare number as seconds; a command duration reads it as minutes.
     const int64_t value = Strings::IsNumeric(token) ? static_cast<int64_t>(seconds) * 60 : seconds;
@@ -82,7 +92,9 @@ static std::expected<Args::SteamId, ArgError> BindSteamId(const std::string& tok
 {
     auto id = ParseInt64(token);
     if (!id || !Strings::IsNumeric(token))
+    {
         return std::unexpected(ArgError{.Key = "cmd.badSteamId", .Vars = {{"token", token}}});
+    }
     return Args::SteamId{.Value = *id};
 }
 
@@ -90,7 +102,9 @@ static std::expected<Args::Int, ArgError> BindInt(const std::string& token)
 {
     auto value = ParseInt64(token);
     if (!value || !std::in_range<int>(*value))
+    {
         return std::unexpected(ArgError{.Key = "cmd.badNumber", .Vars = {{"token", token}}});
+    }
     return Args::Int{.Value = static_cast<int>(*value)};
 }
 
@@ -98,7 +112,9 @@ static std::expected<Args::U64, ArgError> BindU64(const std::string& token)
 {
     auto value = ParseUInt64(token);
     if (!value)
+    {
         return std::unexpected(ArgError{.Key = "cmd.badNumber", .Vars = {{"token", token}}});
+    }
     return Args::U64{.Value = *value};
 }
 
@@ -107,7 +123,9 @@ template <class T>
 static std::optional<ArgError> Store(std::expected<T, ArgError> parsed, std::vector<BoundArg>& bound)
 {
     if (!parsed)
+    {
         return std::move(parsed.error());
+    }
     bound.emplace_back(std::move(*parsed));
     return std::nullopt;
 }
@@ -171,7 +189,9 @@ std::expected<std::vector<BoundArg>, ArgError> BindArgs(const CommandDefinition&
         }
 
         if (failed)
+        {
             return std::unexpected(std::move(*failed));
+        }
         ++i;
     }
 

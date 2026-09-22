@@ -41,7 +41,9 @@ TEST_CASE("PendingCommit: a burst of steps on one row is one commit")
 
     int commits = 0;
     for (int i = 0; i < 5; ++i)
+    {
         pending.Hold(0, 1, [&] { ++commits; });
+    }
 
     // Each hold replaced the last, so one timer is live and nothing has run yet.
     CHECK(commits == 0);

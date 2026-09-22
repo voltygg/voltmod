@@ -25,9 +25,13 @@ struct Migration
 static bool IsValidTableName(const std::string& name)
 {
     if (name.empty())
+    {
         return false;
+    }
     if (!std::isalpha(static_cast<unsigned char>(name.front())) && name.front() != '_')
+    {
         return false;
+    }
     return std::all_of(name.begin(), name.end(), [](unsigned char c) { return std::isalnum(c) || c == '_'; });
 }
 
@@ -42,7 +46,9 @@ static void ApplyMigration(Conn& conn, const std::string& table, const Migration
                            const std::vector<std::string>& statements)
 {
     for (const std::string& statement : statements)
+    {
         conn(statement);
+    }
     // The timestamp is written explicitly: no DEFAULT for it is portable across the drivers.
     conn("INSERT INTO " + table + " (version, name, applied_at) VALUES (" + std::to_string(migration.Version) + ", '" +
          conn.escape(migration.Name) + "', " + std::to_string(Time::Now()) + ")");
@@ -72,13 +78,19 @@ MigrationResult RunMigrations(Database& db, std::string_view dir, const Migratio
     for (const auto& entry : fs::directory_iterator(resolvedDir, ec))
     {
         if (!entry.is_regular_file())
+        {
             continue;
+        }
         std::string name = entry.path().filename().string();
         if (!name.ends_with(".sql"))
+        {
             continue;
+        }
         auto version = ParseMigrationVersion(name);
         if (!version)  // ignore stray files without a leading version (e.g. *.sql.bak)
+        {
             continue;
+        }
         migrations.push_back({*version, name, entry.path()});
     }
     std::sort(migrations.begin(), migrations.end(),
@@ -95,20 +107,28 @@ MigrationResult RunMigrations(Database& db, std::string_view dir, const Migratio
         // connection drops. Serializes two plugin loads that race on the same database. SQLite
         // has none: BEGIN IMMEDIATE below takes its single writer lock instead.
         if constexpr (IsPostgres<Conn>)
+        {
             conn("SELECT pg_advisory_lock(" + lockKey + ")");
+        }
         else if constexpr (IsMariaDb<Conn>)
+        {
             conn("DO GET_LOCK('voltmod_migrations_" + lockKey + "', 30)");
+        }
 
         int current = 0;
         for (const auto& row : conn(sqlpp::select(sqlpp::verbatim<sqlpp::integral>("MAX(version)").as(sqlpp::alias::a))
                                         .from(sqlpp::verbatim_table(table))))
+        {
             current = static_cast<int>(row.a.value_or(0));
+        }
 
         MigrationResult result{.Success = true, .CurrentVersion = current};
         for (const Migration& m : migrations)
         {
             if (m.Version <= current)
+            {
                 continue;
+            }
             // An unreadable file must not be recorded as applied: an empty statement list would
             // commit the version row having run nothing.
             auto sql = ReadAllText(m.Path.string());
@@ -166,12 +186,18 @@ MigrationResult RunMigrations(Database& db, std::string_view dir, const Migratio
         }
 
         if constexpr (IsPostgres<Conn>)
+        {
             conn("SELECT pg_advisory_unlock(" + lockKey + ")");
+        }
         else if constexpr (IsMariaDb<Conn>)
+        {
             conn("DO RELEASE_LOCK('voltmod_migrations_" + lockKey + "')");
+        }
 
         if (result.Applied > 0)
+        {
             Log::Info("Database schema up to date ({} migration(s) applied).", result.Applied);
+        }
         return result;
     });
 

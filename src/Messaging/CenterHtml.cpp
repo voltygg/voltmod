@@ -9,7 +9,9 @@ namespace VoltMod
 void CenterHtml::Show(int slot, int refreshMs, std::function<std::string(int slot)> render)
 {
     if (!IsValidSlot(slot) || !render || refreshMs <= 0)
+    {
         return;
+    }
 
     Stop(slot);
 
@@ -23,7 +25,9 @@ void CenterHtml::Show(int slot, int refreshMs, std::function<std::string(int slo
 void CenterHtml::Stop(int slot)
 {
     if (!IsValidSlot(slot) || !_timers[slot])
+    {
         return;
+    }
     _timers[slot].Reset();
     _messages.ClearCenterHtml(slot);
 }
@@ -31,7 +35,9 @@ void CenterHtml::Stop(int slot)
 void CenterHtml::StopAll()
 {
     for (int slot = 0; slot < MaxPlayers; ++slot)
+    {
         Stop(slot);
+    }
 }
 
 }  // namespace VoltMod

@@ -36,9 +36,13 @@ ScreenEntity::ScreenEntity(EntitySystem& entities, EntityOps& ops, SlotEvents& s
     _slotChanges = slots.Changed += [this](int slot) {
         _playersChangedSinceSpawn = true;
         if (slot == _owner)  // a player screen leaves with its owner
+        {
             Remove();
+        }
         else
+        {
             _written.RemoveSlot(slot);
+        }
     };
 }
 
@@ -55,21 +59,31 @@ bool ScreenEntity::Exists() const
 bool ScreenEntity::EnsureSpawned(int slot)
 {
     if (slot != EveryoneSlot && !IsValidSlot(slot))
+    {
         return false;
+    }
 
     const auto target = CacheSlotFor(slot);
     if (!target)
+    {
         return false;
+    }
 
     if (!Exists() && !SpawnOrWarn())
+    {
         return false;
+    }
 
     if (*target == EveryoneSlot || Covers(*target))
+    {
         return true;
+    }
 
     // Respawning for any other reason would retry a hopeless spawn every frame.
     if (!_playersChangedSinceSpawn)
+    {
         return false;
+    }
 
     return SpawnOrWarn() && Covers(*target);
 }
@@ -77,9 +91,13 @@ bool ScreenEntity::EnsureSpawned(int slot)
 void ScreenEntity::Remove()
 {
     if (IsForPlayer())
+    {
         _visibility.ShowToEveryone(_entity);
+    }
     if (Entity entity = _entities.Resolve(_entity))
+    {
         _ops.Remove(entity.Raw());
+    }
 
     _entity = {};
     _written.Clear();
@@ -89,10 +107,14 @@ Status ScreenEntity::WriteText(int slot, std::string_view variable, std::string_
 {
     const auto target = CacheSlotFor(slot);
     if (!target)
+    {
         return std::unexpected(target.error());
+    }
     // One entity holds one layout, so the variable alone names the text.
     if (!_written.Changed(*target, WriteKind::Text, {}, variable, value))
+    {
         return {};
+    }
 
     return Record(*target, SendText(ContentSlotFor(*target), variable, value), variable);
 }
@@ -101,9 +123,13 @@ Status ScreenEntity::WriteClass(int slot, std::string_view elementId, std::strin
 {
     const auto target = CacheSlotFor(slot);
     if (!target)
+    {
         return std::unexpected(target.error());
+    }
     if (!_written.Changed(*target, WriteKind::Class, elementId, className, on ? "1" : "0"))
+    {
         return {};
+    }
 
     return Record(*target, SendClass(ContentSlotFor(*target), elementId, className, on), elementId);
 }
@@ -112,9 +138,13 @@ Status ScreenEntity::WriteCursor(int slot, bool shown)
 {
     const auto target = CacheSlotFor(slot);
     if (!target)
+    {
         return std::unexpected(target.error());
+    }
     if (!_written.CursorChanged(*target, shown))
+    {
         return {};
+    }
 
     return Record(*target, SendCursor(*target, shown), "the cursor");
 }
@@ -122,10 +152,14 @@ Status ScreenEntity::WriteCursor(int slot, bool shown)
 Result<int> ScreenEntity::CacheSlotFor(int slot) const
 {
     if (!IsForPlayer())
+    {
         return slot;
+    }
 
     if (slot != EveryoneSlot && slot != _owner)
+    {
         return std::unexpected(Error::Invalid(std::format("this screen belongs to slot {}", _owner)));
+    }
 
     return _owner;
 }
@@ -141,18 +175,24 @@ Status ScreenEntity::Spawn()
     Remove();
 
     if (!_ops.CanSpawn())
+    {
         return std::unexpected(Error::Unsupported("entity spawning is unavailable"));
+    }
 
     KeyValues values;
     values.Set("layout", _layout.Resource());
 
     CEntityInstance* spawned = _ops.Spawn("custom_hud_layout", values);
     if (!spawned)
+    {
         return std::unexpected(Error::Engine("the engine refused to spawn custom_hud_layout"));
+    }
 
     _entity = Entity(_entities, spawned).Ref();
     if (IsForPlayer())
+    {
         _visibility.ShowOnlyTo(_entity, _owner);
+    }
     return {};
 }
 
@@ -160,7 +200,9 @@ bool ScreenEntity::SpawnOrWarn()
 {
     const Status spawned = Spawn();
     if (!spawned)
+    {
         Log::Warn("Screen '{}': spawn failed ({}).", _layout.Name(), spawned.error().Detail);
+    }
     return spawned.has_value();
 }
 
@@ -180,7 +222,9 @@ Result<CEntityInstance*> ScreenEntity::EntityForWrite(int engineSlot) const
 {
     Entity entity = _entities.Resolve(_entity);
     if (!entity)
+    {
         return std::unexpected(Error::NotFound("the custom_hud_layout entity no longer exists"));
+    }
 
     const Schema::CCSCustomHudLayout layout{entity.Raw()};
     for (const auto& [name, table] :
@@ -189,17 +233,23 @@ Result<CEntityInstance*> ScreenEntity::EntityForWrite(int engineSlot) const
     {
         const int count = table ? static_cast<const StringTable*>(table)->Count() : -1;
         if (count >= StringTableCap - StringTableHeadroom)
+        {
             return std::unexpected(
                 Error::Failed(std::format("the {} table is nearly full ({}/{})", name, count, StringTableCap)));
+        }
     }
 
     if (engineSlot == EveryoneSlot)
+    {
         return entity.Raw();
+    }
 
     // The engine's per-player setters return silently for a slot past the state count.
     if (const int states = PlayerStateCount(); states <= engineSlot)
+    {
         return std::unexpected(Error::Failed(
             std::format("slot {} has no per-player layout state (the entity holds {})", engineSlot, states)));
+    }
 
     return entity.Raw();
 }
@@ -208,7 +258,9 @@ Status ScreenEntity::SendText(int engineSlot, std::string_view variable, std::st
 {
     auto entity = EntityForWrite(engineSlot);
     if (!entity)
+    {
         return std::unexpected(entity.error());
+    }
 
     CUtlString root, name, text;
     SetStr(root, _layout.Name());
@@ -219,13 +271,17 @@ Status ScreenEntity::SendText(int engineSlot, std::string_view variable, std::st
     if (engineSlot == EveryoneSlot)
     {
         if (!bindings.CustomHudSetDialogVariable)
+        {
             return std::unexpected(Error::Unsupported("the custom HUD text setter did not bind"));
+        }
         bindings.CustomHudSetDialogVariable(*entity, &root, &name, &text);
         return {};
     }
 
     if (!bindings.CustomHudSetDialogVariableForPlayer)
+    {
         return std::unexpected(Error::Unsupported("the custom HUD per-player text setter did not bind"));
+    }
     bindings.CustomHudSetDialogVariableForPlayer(*entity, engineSlot, &root, &name, &text);
     return {};
 }
@@ -234,7 +290,9 @@ Status ScreenEntity::SendClass(int engineSlot, std::string_view elementId, std::
 {
     auto entity = EntityForWrite(engineSlot);
     if (!entity)
+    {
         return std::unexpected(entity.error());
+    }
 
     CUtlString element, name;
     SetStr(element, elementId);
@@ -245,13 +303,17 @@ Status ScreenEntity::SendClass(int engineSlot, std::string_view elementId, std::
     if (engineSlot == EveryoneSlot)
     {
         if (!bindings.CustomHudSetHasClass)
+        {
             return std::unexpected(Error::Unsupported("the custom HUD class setter did not bind"));
+        }
         bindings.CustomHudSetHasClass(*entity, &element, &name, state);
         return {};
     }
 
     if (!bindings.CustomHudSetHasClassForPlayer)
+    {
         return std::unexpected(Error::Unsupported("the custom HUD per-player class setter did not bind"));
+    }
     bindings.CustomHudSetHasClassForPlayer(*entity, engineSlot, &element, &name, state);
     return {};
 }
@@ -260,13 +322,17 @@ Status ScreenEntity::SendCursor(int engineSlot, bool shown)
 {
     auto entity = EntityForWrite(engineSlot);
     if (!entity)
+    {
         return std::unexpected(entity.error());
+    }
 
     if (engineSlot != EveryoneSlot)
     {
         const auto& set = _entities.BindingsRef().CustomHudSetInputCapture;
         if (!set)
+        {
             return std::unexpected(Error::Unsupported("the custom HUD input capture setter did not bind"));
+        }
         set(*entity, engineSlot, shown);
         return {};
     }
@@ -279,12 +345,16 @@ Status ScreenEntity::SendCursor(int engineSlot, bool shown)
 Status ScreenEntity::Record(int cacheSlot, Status status, std::string_view what)
 {
     if (status || !IsValidSlot(cacheSlot))
+    {
         return status;
+    }
 
     _written.Invalidate(cacheSlot);
     if (_written.IsFirstFailure(cacheSlot))
+    {
         Log::Warn("Screen '{}': writing {} for slot {} failed ({}).", _layout.Name(), what, cacheSlot,
                   status.error().Detail);
+    }
     return status;
 }
 

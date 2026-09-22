@@ -13,7 +13,9 @@ TEST_CASE("CharBuf starts empty and zeroed")
     CHECK(buf.View().empty());
     CHECK(buf.Str().empty());
     for (char c : buf.Value)
+    {
         CHECK(c == '\0');
+    }
 }
 
 TEST_CASE("CharBuf assignment NUL-terminates and zeroes the tail")
@@ -29,7 +31,9 @@ TEST_CASE("CharBuf assignment NUL-terminates and zeroes the tail")
     buf = "xy";
     CHECK(buf.View() == "xy");
     for (size_t i = 2; i < 8; ++i)
+    {
         CHECK(buf.Value[i] == '\0');
+    }
 }
 
 TEST_CASE("CharBuf truncates to N-1 characters plus a NUL")

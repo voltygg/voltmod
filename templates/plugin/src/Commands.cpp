@@ -16,9 +16,9 @@ namespace $namespace
 // immunity-checked arguments, and the manager owns each registration.
 void RegisterCommands(VoltMod::CommandManager& commands)
 {
-    commands.Add("ping")
-                .Describe("Check that the plugin is alive.")
-                .Run([](Caller c) -> Result<Reply> { return c.Ok("cmd.pong"); });
+    commands.Add("ping").Describe("Check that the plugin is alive.").Run([](Caller c) -> Result<Reply> {
+        return c.Ok("cmd.pong");
+    });
 }
 
 }  // namespace $namespace

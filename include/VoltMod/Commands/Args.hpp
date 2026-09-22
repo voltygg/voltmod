@@ -234,9 +234,13 @@ consteval bool OptionalsTrail()
     for (bool isOptional : optional)
     {
         if (isOptional)
+        {
             seen = true;
+        }
         else if (seen)
+        {
             return false;
+        }
     }
     return true;
 }
@@ -248,8 +252,12 @@ consteval bool RestIsLast()
 {
     const std::array<ArgKind, sizeof...(A)> kinds{ArgTrait<A>::Kind...};
     for (std::size_t i = 0; i + 1 < kinds.size(); ++i)
+    {
         if (kinds[i] == ArgKind::Rest)
+        {
             return false;
+        }
+    }
     return true;
 }
 
@@ -278,7 +286,9 @@ struct ArgUnpack<Args::Opt<T>>
     static Args::Opt<T> From(const BoundArg& bound)
     {
         if (std::holds_alternative<std::monostate>(bound))
+        {
             return {};
+        }
         return Args::Opt<T>{std::get<T>(bound)};
     }
 };

@@ -33,7 +33,9 @@ bool FindModuleAndRanges(std::string_view fileName, LoadedModule& module, std::v
     DWORD needed = 0;
 
     if (!EnumProcessModules(process, modules, sizeof(modules), &needed))
+    {
         return false;
+    }
 
     LoadedModule best;
     for (DWORD i = 0; i < needed / sizeof(HMODULE); ++i)
@@ -41,19 +43,27 @@ bool FindModuleAndRanges(std::string_view fileName, LoadedModule& module, std::v
         char buffer[MAX_PATH];
         const DWORD length = GetModuleFileNameA(modules[i], buffer, sizeof(buffer));
         if (length == 0)
+        {
             continue;
+        }
 
         const std::string_view path(buffer, length);
         if (!SameFileName(BaseName(path), fileName))
+        {
             continue;
+        }
 
         MODULEINFO info{};
         if (GetModuleInformation(process, modules[i], &info, sizeof(info)) && info.SizeOfImage > best.Size)
+        {
             best = {static_cast<const uint8_t*>(info.lpBaseOfDll), info.SizeOfImage, std::string(path)};
+        }
     }
 
     if (!best.Base)
+    {
         return false;
+    }
 
     module = std::move(best);
     ranges.assign(1, ScanRange{module.Base, module.Size});

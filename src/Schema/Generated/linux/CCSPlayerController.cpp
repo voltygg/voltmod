@@ -17,7 +17,9 @@ static constexpr int32_t kCCSPlayerController_Clan = 2832;                 // CU
 uint32_t CCSPlayerController::PlayerPawnHandle() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<uint32_t>(_base, kCCSPlayerController_PlayerPawnHandle);
 }
@@ -25,7 +27,9 @@ uint32_t CCSPlayerController::PlayerPawnHandle() const
 void CCSPlayerController::SetPlayerPawnHandle(uint32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<uint32_t>(_base, kCCSPlayerController_PlayerPawnHandle) = value;
     NotifyEntity(_owner, _ownerOffset + kCCSPlayerController_PlayerPawnHandle);
@@ -34,7 +38,9 @@ void CCSPlayerController::SetPlayerPawnHandle(uint32_t value) const
 CCSPlayerController_InGameMoneyServices CCSPlayerController::InGameMoneyServices() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return CCSPlayerController_InGameMoneyServices{*MemberPtr<void*>(_base, kCCSPlayerController_InGameMoneyServices)};
 }
@@ -42,7 +48,9 @@ CCSPlayerController_InGameMoneyServices CCSPlayerController::InGameMoneyServices
 const char* CCSPlayerController::Clan() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<const char*>(_base, kCCSPlayerController_Clan);
 }
@@ -50,7 +58,9 @@ const char* CCSPlayerController::Clan() const
 void CCSPlayerController::SetClan(const char* value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<const char*>(_base, kCCSPlayerController_Clan) = value;
     NotifyEntity(_owner, _ownerOffset + kCCSPlayerController_Clan);

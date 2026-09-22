@@ -14,7 +14,9 @@ std::optional<int64_t> ParseInt64(std::string_view text)
     int64_t value{};
     auto [ptr, ec] = std::from_chars(text.data(), text.data() + text.size(), value);
     if (ec != std::errc{} || ptr != text.data() + text.size())
+    {
         return std::nullopt;
+    }
     return value;
 }
 
@@ -23,24 +25,34 @@ std::optional<uint64_t> ParseUInt64(std::string_view text)
     uint64_t value{};
     auto [ptr, ec] = std::from_chars(text.data(), text.data() + text.size(), value);
     if (ec != std::errc{} || ptr != text.data() + text.size())
+    {
         return std::nullopt;
+    }
     return value;
 }
 
 int ParseDuration(std::string_view text)
 {
     while (!text.empty() && std::isspace(static_cast<unsigned char>(text.front())))
+    {
         text.remove_prefix(1);
+    }
     while (!text.empty() && std::isspace(static_cast<unsigned char>(text.back())))
+    {
         text.remove_suffix(1);
+    }
 
     if (text.empty())
+    {
         return -1;
+    }
 
     std::string lower(text);
     std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return std::tolower(c); });
     if (lower == "0" || lower == "perm" || lower == "permanent")
+    {
         return 0;
+    }
 
     int64_t multiplier = 1;
     char suffix = lower.back();
@@ -72,11 +84,15 @@ int ParseDuration(std::string_view text)
     int value = 0;
     auto [ptr, ec] = std::from_chars(lower.data(), lower.data() + lower.size(), value);
     if (ec != std::errc{} || ptr != lower.data() + lower.size() || value < 0)
+    {
         return -1;
+    }
 
     int64_t total = static_cast<int64_t>(value) * multiplier;
     if (total > std::numeric_limits<int>::max())
+    {
         return -1;
+    }
     return static_cast<int>(total);
 }
 
@@ -97,7 +113,9 @@ std::string Strings::Trim(std::string_view str)
 std::string Strings::Join(const std::vector<std::string>& parts, std::string_view delimiter)
 {
     if (parts.empty())
+    {
         return "";
+    }
 
     std::string result = parts[0];
     for (size_t i = 1; i < parts.size(); ++i)
@@ -114,9 +132,13 @@ std::string Strings::JoinNonEmpty(const std::vector<std::string>& parts, std::st
     for (const auto& part : parts)
     {
         if (part.empty())
+        {
             continue;
+        }
         if (!result.empty())
+        {
             result += delimiter;
+        }
         result += part;
     }
     return result;
@@ -136,7 +158,9 @@ bool Strings::ContainsIgnoreCase(std::string_view str, std::string_view substr)
 static std::string ReplaceAll(const std::string& str, const std::string& from, const std::string& to)
 {
     if (from.empty())
+    {
         return str;
+    }
 
     std::string result = str;
     size_t pos = 0;
@@ -151,7 +175,9 @@ static std::string ReplaceAll(const std::string& str, const std::string& from, c
 std::string Strings::SubstituteTokens(std::string text, const Tokens& tokens)
 {
     for (const auto& [key, value] : tokens)
+    {
         text = ReplaceAll(text, "{" + key + "}", value);
+    }
     return text;
 }
 
@@ -194,7 +220,9 @@ std::string Strings::QuoteConsoleArg(std::string_view value)
     for (char c : value)
     {
         if (c == '"' || c == '\\')
+        {
             out += '\\';
+        }
         out += c;
     }
     out += '"';
@@ -204,18 +232,24 @@ std::string Strings::QuoteConsoleArg(std::string_view value)
 std::string Strings::TruncateUtf8(std::string_view text, std::size_t maxBytes, std::string_view ellipsis)
 {
     if (text.size() <= maxBytes)
+    {
         return std::string(text);
+    }
     std::size_t end = maxBytes;
     // Back up past UTF-8 continuation bytes so the cut never splits a multibyte sequence.
     while (end > 0 && (static_cast<unsigned char>(text[end]) & 0xC0) == 0x80)
+    {
         --end;
+    }
     return std::string(text.substr(0, end)).append(ellipsis);
 }
 
 bool Strings::IsNumeric(std::string_view str)
 {
     if (str.empty())
+    {
         return false;
+    }
     return std::all_of(str.begin(), str.end(), [](unsigned char c) { return std::isdigit(c); });
 }
 

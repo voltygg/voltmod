@@ -15,7 +15,9 @@ static constexpr int32_t kEntitySpottedState_t_SpottedByMask = 12;  // uint32[2]
 bool EntitySpottedState_t::Spotted() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<bool>(_base, kEntitySpottedState_t_Spotted);
 }
@@ -23,7 +25,9 @@ bool EntitySpottedState_t::Spotted() const
 void EntitySpottedState_t::SetSpotted(bool value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<bool>(_base, kEntitySpottedState_t_Spotted) = value;
     NotifyEntity(_owner, _ownerOffset + kEntitySpottedState_t_Spotted);
@@ -32,7 +36,9 @@ void EntitySpottedState_t::SetSpotted(bool value) const
 uint32_t EntitySpottedState_t::SpottedByMask(size_t index) const
 {
     if (!_base || index >= 2)
+    {
         return {};
+    }
 
     return MemberPtr<uint32_t>(_base, kEntitySpottedState_t_SpottedByMask)[index];
 }
@@ -40,7 +46,9 @@ uint32_t EntitySpottedState_t::SpottedByMask(size_t index) const
 void EntitySpottedState_t::SetSpottedByMask(size_t index, uint32_t value) const
 {
     if (!_base || index >= 2)
+    {
         return;
+    }
 
     MemberPtr<uint32_t>(_base, kEntitySpottedState_t_SpottedByMask)[index] = value;
     NotifyEntity(_owner,

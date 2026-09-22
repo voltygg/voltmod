@@ -128,7 +128,9 @@ struct MenuItem
 inline bool IsRowActionable(const MenuItem& item, int slot)
 {
     if (!item.Describe)
+    {
         return false;
+    }
 
     const MenuRow row = item.Describe(slot);
     return row.Enabled && row.Selectable;

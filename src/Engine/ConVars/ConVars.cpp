@@ -27,7 +27,9 @@ static void GlobalConVarChangeCallback(ConVarRefAbstract* ref, CSplitScreenSlot 
                                        const char* oldValue, void* /*unk*/)
 {
     if (!ref || !g_changeCallback)
+    {
         return;
+    }
 
     g_changeCallback->Changed.Raise(
         VoltMod::ConVarChange{.Name = Text(ref->GetName()), .OldValue = Text(oldValue), .NewValue = Text(newValue)});
@@ -50,7 +52,9 @@ ConVars::~ConVars()
 Status ConVars::Initialize()
 {
     if (!_interfaces.CVar)
+    {
         return std::unexpected(Error::NotReady("ICvar not available"));
+    }
 
     Log::Info("ConVar service initialized.");
     return {};
@@ -60,17 +64,23 @@ Status ConVars::ExecuteServerCommand(std::string_view command)
 {
     auto* engine = _interfaces.Engine;
     if (!engine)
+    {
         return std::unexpected(Error::NotReady("IVEngineServer2 is not available"));
+    }
 
     // A newline cannot be quoted away - it ends the line and whatever follows runs as its
     // own command - so an injected one is refused rather than escaped.
     if (command.find_first_of("\r\n") != std::string_view::npos)
+    {
         return std::unexpected(Error::Invalid("command contains an embedded newline"));
+    }
 
     // ServerCommand adds no separator between buffered commands.
     std::string line(command);
     if (line.empty() || line.back() != '\n')
+    {
         line.push_back('\n');
+    }
 
     engine->ServerCommand(line.c_str());
     return {};
@@ -81,21 +91,33 @@ Status ConVars::ExecuteClientCommand(int slot, std::string_view command)
     auto* cvar = _interfaces.CVar;
     auto* clients = _interfaces.ServerGameClients;
     if (!cvar || !clients)
+    {
         return std::unexpected(Error::NotReady("ICvar or ISource2GameClients is not available"));
+    }
     if (!IsValidSlot(slot))
+    {
         return std::unexpected(Error::Invalid(std::format("slot {} is not a player slot", slot)));
+    }
     if (command.empty() || command.find_first_of(";\r\n") != std::string_view::npos)
+    {
         return std::unexpected(Error::Invalid("a client command must be one non-empty command"));
+    }
 
     CCommand args;
     if (!args.Tokenize(CUtlString(std::string(command).c_str())) || args.ArgC() == 0)
+    {
         return std::unexpected(Error::Invalid(std::format("cannot tokenize '{}'", command)));
+    }
 
     ConCommandRef registered = cvar->FindConCommand(args.Arg(0));
     if (registered.IsValidRef())
+    {
         cvar->DispatchConCommand(registered, CCommandContext(CT_FIRST_SPLITSCREEN_CLIENT, CPlayerSlot(slot)), args);
+    }
     else
+    {
         clients->ClientCommand(CPlayerSlot(slot), args);
+    }
     return {};
 }
 
@@ -107,15 +129,21 @@ Status ConVars::SetByConsole(std::string_view name, std::string_view value)
 INetworkMessageInternal* ConVars::SetConVarMessage()
 {
     if (_setConVarMsg)
+    {
         return _setConVarMsg;
+    }
 
     auto* messages = _interfaces.NetworkMessages;
     if (!messages)
+    {
         return nullptr;
+    }
 
     _setConVarMsg = messages->FindNetworkMessagePartial("SetConVar");
     if (!_setConVarMsg)
+    {
         Log::Warn("ConVars: CNETMsg_SetConVar not found; per-client convar overrides are unavailable.");
+    }
 
     return _setConVarMsg;
 }
@@ -123,15 +151,21 @@ INetworkMessageInternal* ConVars::SetConVarMessage()
 bool ConVars::SendToClient(int slot, std::string_view name, std::string_view value)
 {
     if (!_interfaces.GameEventSystem || !IsValidSlot(slot) || name.empty())
+    {
         return false;
+    }
 
     auto* msgType = SetConVarMessage();
     if (!msgType)
+    {
         return false;
+    }
 
     CNetMessage* msg = msgType->AllocateMessage();
     if (!msg)
+    {
         return false;
+    }
 
     auto* setConVar = msg->ToPB<CNETMsg_SetConVar>();
     if (setConVar)
@@ -151,7 +185,9 @@ bool ConVars::SendToClient(int slot, std::string_view name, std::string_view val
 bool ConVars::RouteChanges()
 {
     if (_routingChanges)
+    {
         return true;
+    }
 
     auto* cvar = _interfaces.CVar;
     if (!cvar)
@@ -169,10 +205,14 @@ bool ConVars::RouteChanges()
 void ConVars::StopRoutingChanges()
 {
     if (!_routingChanges)
+    {
         return;
+    }
 
     if (auto* cvar = _interfaces.CVar)
+    {
         cvar->RemoveGlobalChangeCallback(&GlobalConVarChangeCallback);
+    }
 
     g_changeCallback = nullptr;
     _routingChanges = false;

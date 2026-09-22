@@ -21,10 +21,14 @@ void SchemaService::Initialize(SourceMM::ISmmAPI* metamod, PluginHost& host, IHo
     {
         auto fromEngine = EngineInterfaces(metamod);
         if (Status found = ResolveInterface(_schema, fromEngine, SCHEMASYSTEM_INTERFACE_VERSION); !found)
+        {
             Log::Error("Schema: {}", found.error().Detail);
+        }
         if (Status found = ResolveInterface(_resources, fromEngine, GAMERESOURCESERVICESERVER_INTERFACE_VERSION);
             !found)
+        {
             Log::Error("Schema: {}", found.error().Detail);
+        }
     }
 
     if (gameData != nullptr)
@@ -41,7 +45,9 @@ void SchemaService::OnServerStartup()
 {
     // The first map is the next chance when the schema scope was not there at host load.
     if (!_schemaLoaded)
+    {
         Check();
+    }
     Schema::WriteSchemaDump(_schema, Entities());
 }
 
@@ -50,9 +56,13 @@ void SchemaService::Check()
     const Status verified = Schema::VerifySchemaLayout(_schema);
     _schemaLoaded = verified || verified.error().Code != ErrorCode::NotReady;
     if (!verified)
+    {
         Log::Error("Schema: {}", verified.error().Detail);
+    }
     else
+    {
         Log::Info("Schema: the generated layout matches game build {}.", Schema::GeneratedFromBuild());
+    }
 
     _host->SetSchemaLayout(Schema::GeneratedLayoutStamp(), verified.has_value());
 }
@@ -60,7 +70,9 @@ void SchemaService::Check()
 CGameEntitySystem* SchemaService::Entities() const
 {
     if (_resources == nullptr || _entitySystemOffset < 0)
+    {
         return nullptr;
+    }
     return ReadAt<CGameEntitySystem*>(_resources, _entitySystemOffset);
 }
 

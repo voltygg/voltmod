@@ -52,7 +52,9 @@ bool PluginModule::Attach(IHost& host, char* error, size_t errorSize) noexcept
     {
         const bool loaded = AttachImpl(host, error, errorSize);
         if (!loaded)
+        {
             _host = nullptr;
+        }
         return loaded;
     }
     catch (const std::exception& exception)
@@ -85,7 +87,9 @@ bool PluginModule::AttachImpl(IHost& host, char* error, size_t errorSize)
     if (!_runtime->Initialize(context))
     {
         if (_runtime->LoadSteps.Count() > 0)
+        {
             Log::Info("{}", _runtime->LoadSteps.Summary());
+        }
         _runtime.reset();
         return false;
     }
@@ -108,7 +112,9 @@ bool PluginModule::AttachImpl(IHost& host, char* error, size_t errorSize)
     {
         std::string failure = _runtime->LoadSteps.AbortReason();
         if (failure.empty())
+        {
             failure = "Load returned false";
+        }
         Log::Info("{}", _runtime->LoadSteps.Summary());
         WriteFailure(error, errorSize, failure);
         Shutdown();
@@ -118,7 +124,9 @@ bool PluginModule::AttachImpl(IHost& host, char* error, size_t errorSize)
     _runtime->LoadSteps.Optional("Permissions", [this]() -> Status {
         const std::vector<std::string> missing = _runtime->Commands.CommandsMissingPolicy();
         if (missing.empty())
+        {
             return {};
+        }
         return std::unexpected(
             Error::Invalid(std::format("{} command(s) gate on a permission with no HasPermission policy "
                                        "installed and will be denied ({}); set Runtime::Policy.HasPermission "
@@ -133,7 +141,9 @@ bool PluginModule::AttachImpl(IHost& host, char* error, size_t errorSize)
 void PluginModule::WriteFailure(char* error, size_t errorSize, std::string_view failure) noexcept
 {
     if (error == nullptr || errorSize == 0)
+    {
         return;
+    }
 
     const size_t length = std::min(errorSize - 1, failure.size());
     std::memcpy(error, failure.data(), length);
@@ -150,7 +160,9 @@ void PluginModule::Detach() noexcept
 void PluginModule::Shutdown() noexcept
 {
     if (_runtime)
+    {
         _runtime->Commands.RemoveAll();
+    }
     _plugin.reset();
     _hostEvents.Clear();
     _runtime.reset();

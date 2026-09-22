@@ -80,7 +80,9 @@ public:
     void DispatchIf(std::predicate<const T&> auto&& pred, std::invocable<T&> auto&& fn)
     {
         if (_items.empty())
+        {
             return;
+        }
 
         constexpr size_t InlineCapacity = 8;
         std::array<uint64_t, InlineCapacity> inlineIds{};
@@ -89,11 +91,17 @@ public:
         for (const auto& [id, item] : _items)
         {
             if (!pred(item))
+            {
                 continue;
+            }
             if (count < InlineCapacity)
+            {
                 inlineIds[count] = id;
+            }
             else
+            {
                 overflowIds.push_back(id);
+            }
             ++count;
         }
 
@@ -101,7 +109,9 @@ public:
         {
             T* stored = Find(i < InlineCapacity ? inlineIds[i] : overflowIds[i - InlineCapacity]);
             if (!stored || !pred(*stored))
+            {
                 continue;  // an earlier callback in this batch removed it
+            }
             T item = *stored;
             fn(item);
         }

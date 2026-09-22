@@ -58,19 +58,25 @@ static const ProtoFieldDescriptor* VoteField(ProtoMessage* message, std::string_
 static void SetInt(ProtoMessage* message, std::string_view name, int32_t value)
 {
     if (const auto* field = VoteField(message, name))
+    {
         message->GetReflection()->SetInt32(message, field, value);
+    }
 }
 
 static void SetBool(ProtoMessage* message, std::string_view name, bool value)
 {
     if (const auto* field = VoteField(message, name))
+    {
         message->GetReflection()->SetBool(message, field, value);
+    }
 }
 
 static void SetString(ProtoMessage* message, std::string_view name, const std::string& value)
 {
     if (const auto* field = VoteField(message, name))
+    {
         message->GetReflection()->SetString(message, field, value);
+    }
 }
 
 Vote::Vote(Interfaces& interfaces, EntitySystem& entities, GameEvents& events, Scheduler& scheduler)
@@ -83,7 +89,9 @@ MultiRecipientFilter Vote::Recipients() const
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
         if (const_cast<EntitySystem&>(_entities).IsPlayerSlotValid(slot))
+        {
             filter.AddRecipient(slot);
+        }
     }
     return filter;
 }
@@ -97,16 +105,22 @@ bool Vote::StartVote(std::string_view title, std::string_view detail, float dura
                      ResultFn onResult, FinishedFn onFinished)
 {
     if (_inProgress || !onResult)
+    {
         return false;
+    }
 
     _eligible = 0;
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
         if (_entities.IsPlayerSlotValid(slot))
+        {
             ++_eligible;
+        }
     }
     if (_eligible <= 0)
+    {
         return false;
+    }
 
     _yes = 0;
     _no = 0;
@@ -135,7 +149,9 @@ bool Vote::StartVote(std::string_view title, std::string_view detail, float dura
     const uint64_t voteId = ++_voteId;
     _timeout = _scheduler.Delay(static_cast<int64_t>(durationSec * 1000.0f), [this, voteId] {
         if (_inProgress && voteId == _voteId)
+        {
             FinishVote(VoteEndReason::TimeUp);
+        }
     });
 
     return true;
@@ -144,10 +160,14 @@ bool Vote::StartVote(std::string_view title, std::string_view detail, float dura
 bool Vote::TryCastBallot(int slot, std::string_view option)
 {
     if (!_inProgress)
+    {
         return false;
+    }
 
     if (!IsValidSlot(slot) || !_entities.IsPlayerSlotValid(slot) || _voted[slot])
+    {
         return true;
+    }
 
     if (option == "option1")
     {
@@ -173,7 +193,9 @@ bool Vote::TryCastBallot(int slot, std::string_view option)
         const uint64_t voteId = _voteId;
         _deferredClose = _scheduler.NextTick([this, voteId] {
             if (_inProgress && voteId == _voteId)
+            {
                 FinishVote(VoteEndReason::AllVoted);
+            }
         });
     }
     return true;
@@ -182,7 +204,9 @@ bool Vote::TryCastBallot(int slot, std::string_view option)
 void Vote::EndVote(VoteEndReason reason)
 {
     if (_inProgress)
+    {
         FinishVote(reason);
+    }
 }
 
 void Vote::FinishVote(VoteEndReason reason)
@@ -198,13 +222,17 @@ void Vote::FinishVote(VoteEndReason reason)
     SendVoteOutcome(passed);
 
     if (Schema::CVoteController controller = Controller())
+    {
         controller.SetActiveIssueIndex(NoIssue);
+    }
 
     auto finished = std::move(_onFinished);
     _onResult = nullptr;
     _onFinished = nullptr;
     if (finished)
+    {
         finished(passed, reason);
+    }
 }
 
 void Vote::PublishBallot(int slot, int option)
@@ -212,7 +240,9 @@ void Vote::PublishBallot(int slot, int option)
     // The voter's panel registers the key press from this event.
     IGameEvent* event = _events.CreateEvent("vote_cast");
     if (!event)
+    {
         return;
+    }
 
     event->SetInt("vote_option", option);
     event->SetInt("team", AllTeams);
@@ -225,7 +255,9 @@ void Vote::PublishCounts()
     // The panel reads its tally from this event.
     IGameEvent* event = _events.CreateEvent("vote_changed");
     if (!event)
+    {
         return;
+    }
 
     event->SetInt("vote_option1", _yes);
     event->SetInt("vote_option2", _no);
@@ -242,7 +274,9 @@ void Vote::SendVoteStart()
     PostUserMessage(_interfaces, _voteStartInternal, VoteStartMessage, filter, [this](CNetMessage* raw) {
         auto* start = AsProto(raw);
         if (!start)
+        {
             return false;
+        }
         SetInt(start, "team", AllTeams);
         SetInt(start, "player_slot", _callerSlot);
         SetInt(start, "vote_type", -1);
@@ -263,7 +297,9 @@ void Vote::SendVoteOutcome(bool passed)
                     [this, passed](CNetMessage* raw) {
                         auto* outcome = AsProto(raw);
                         if (!outcome)
+                        {
                             return false;
+                        }
                         SetInt(outcome, "team", AllTeams);
                         if (passed)
                         {

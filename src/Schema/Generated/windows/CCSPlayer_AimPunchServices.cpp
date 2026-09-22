@@ -23,7 +23,9 @@ static constexpr int32_t kCCSPlayer_AimPunchServices_BaseTickFraction = 76;   //
 QAngle CCSPlayer_AimPunchServices::BaseAngle() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<QAngle>(_base, kCCSPlayer_AimPunchServices_BaseAngle);
 }
@@ -31,7 +33,9 @@ QAngle CCSPlayer_AimPunchServices::BaseAngle() const
 void CCSPlayer_AimPunchServices::SetBaseAngle(QAngle value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<QAngle>(_base, kCCSPlayer_AimPunchServices_BaseAngle) = value;
     NotifyComponentOwner(_base, CCSPlayer_AimPunchServices_kOwnerLinkOffset, kCCSPlayer_AimPunchServices_BaseAngle);
@@ -40,7 +44,9 @@ void CCSPlayer_AimPunchServices::SetBaseAngle(QAngle value) const
 QAngle CCSPlayer_AimPunchServices::BaseAngleVelocity() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<QAngle>(_base, kCCSPlayer_AimPunchServices_BaseAngleVelocity);
 }
@@ -48,7 +54,9 @@ QAngle CCSPlayer_AimPunchServices::BaseAngleVelocity() const
 void CCSPlayer_AimPunchServices::SetBaseAngleVelocity(QAngle value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<QAngle>(_base, kCCSPlayer_AimPunchServices_BaseAngleVelocity) = value;
     NotifyComponentOwner(_base, CCSPlayer_AimPunchServices_kOwnerLinkOffset,
@@ -58,7 +66,9 @@ void CCSPlayer_AimPunchServices::SetBaseAngleVelocity(QAngle value) const
 int32_t CCSPlayer_AimPunchServices::BaseTick() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<int32_t>(_base, kCCSPlayer_AimPunchServices_BaseTick);
 }
@@ -66,7 +76,9 @@ int32_t CCSPlayer_AimPunchServices::BaseTick() const
 void CCSPlayer_AimPunchServices::SetBaseTick(int32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<int32_t>(_base, kCCSPlayer_AimPunchServices_BaseTick) = value;
     NotifyComponentOwner(_base, CCSPlayer_AimPunchServices_kOwnerLinkOffset, kCCSPlayer_AimPunchServices_BaseTick);
@@ -75,7 +87,9 @@ void CCSPlayer_AimPunchServices::SetBaseTick(int32_t value) const
 float CCSPlayer_AimPunchServices::BaseTickFraction() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<float>(_base, kCCSPlayer_AimPunchServices_BaseTickFraction);
 }
@@ -83,7 +97,9 @@ float CCSPlayer_AimPunchServices::BaseTickFraction() const
 void CCSPlayer_AimPunchServices::SetBaseTickFraction(float value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<float>(_base, kCCSPlayer_AimPunchServices_BaseTickFraction) = value;
     NotifyComponentOwner(_base, CCSPlayer_AimPunchServices_kOwnerLinkOffset,

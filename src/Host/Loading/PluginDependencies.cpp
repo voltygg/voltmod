@@ -21,20 +21,28 @@ static void RefuseUnsatisfied(const PluginsByName& plugins, RefusalsByName& refu
 {
     std::vector<std::string> spreading;
     for (const auto& [name, reason] : refused)
+    {
         spreading.push_back(name);
+    }
 
     const auto refuse = [&](const std::string& name, Error reason) {
         if (refused.emplace(name, std::move(reason)).second)
+        {
             spreading.push_back(name);
+        }
     };
 
     for (const auto& [name, manifest] : plugins)
+    {
         for (const std::string& dependency : manifest->Dependencies)
+        {
             if (!plugins.contains(dependency))
             {
                 refuse(name, Error::NotFound(std::format("requires '{}', which is not installed", dependency)));
                 break;
             }
+        }
+    }
 
     while (!spreading.empty())
     {
@@ -42,8 +50,12 @@ static void RefuseUnsatisfied(const PluginsByName& plugins, RefusalsByName& refu
         spreading.pop_back();
 
         for (const auto& [name, manifest] : plugins)
+        {
             if (!refused.contains(name) && std::ranges::contains(manifest->Dependencies, gone))
+            {
                 refuse(name, Error::NotReady(std::format("requires '{}', which the host refused", gone)));
+            }
+        }
     }
 }
 
@@ -52,19 +64,29 @@ LoadList PluginDependencies::Resolve(std::span<const PluginManifest> installed)
     PluginsByName plugins;
     RefusalsByName refused;
     for (const PluginManifest& manifest : installed)
+    {
         if (!plugins.emplace(manifest.Name, &manifest).second)
+        {
             refused.emplace(manifest.Name, Error::Invalid("installed more than once; each plugin directory needs its "
                                                           "own plugin name"));
+        }
+    }
 
     RefuseUnsatisfied(plugins, refused);
 
     LoadList list;
     for (const auto& [name, manifest] : plugins)
+    {
         if (!refused.contains(name))
+        {
             list.Allowed.push_back(name);
+        }
+    }
 
     for (auto& [name, reason] : refused)
+    {
         list.Refused.push_back({name, std::move(reason)});
+    }
 
     return list;
 }
@@ -80,12 +102,14 @@ std::vector<std::string> PluginDependencies::RequiredDependents(std::string_view
         spreading.pop_back();
 
         for (const PluginManifest& manifest : loaded)
+        {
             if (manifest.Name != plugin && !dependents.contains(manifest.Name) &&
                 std::ranges::contains(manifest.Dependencies, needed))
             {
                 dependents.insert(manifest.Name);
                 spreading.push_back(manifest.Name);
             }
+        }
     }
 
     return {dependents.begin(), dependents.end()};

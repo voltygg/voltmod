@@ -15,7 +15,9 @@ static constexpr int32_t kCGameSceneNode_AbsRotation = 212;  // QAngle
 Vector CGameSceneNode::AbsOrigin() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<Vector>(_base, kCGameSceneNode_AbsOrigin);
 }
@@ -23,7 +25,9 @@ Vector CGameSceneNode::AbsOrigin() const
 QAngle CGameSceneNode::AbsRotation() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<QAngle>(_base, kCGameSceneNode_AbsRotation);
 }

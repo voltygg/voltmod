@@ -34,12 +34,16 @@ static constexpr uint32_t MaxBases = 1024;
 static const uint8_t* FindValue(const uint8_t* begin, const uint8_t* end, const void* needle, size_t len, size_t stride)
 {
     if (!begin || !end || len == 0 || static_cast<size_t>(end - begin) < len)
+    {
         return nullptr;
+    }
 
     for (const uint8_t* at = begin; at + len <= end; at += stride)
     {
         if (std::memcmp(at, needle, len) == 0)
+        {
             return at;
+        }
     }
     return nullptr;
 }
@@ -60,7 +64,9 @@ static const uint8_t* End(const ScanRange& range)
 static const uint8_t* AtRva(const PeRtti& rtti, int64_t rva, size_t bytes)
 {
     if (rva < 0 || static_cast<uint64_t>(rva) > rtti.Size || rtti.Size - static_cast<size_t>(rva) < bytes)
+    {
         return nullptr;
+    }
     return rtti.Base + rva;
 }
 
@@ -76,7 +82,9 @@ static uint32_t FindTypeDescriptor(const PeRtti& rtti, std::string_view classNam
         // Include the terminator to reject longer names.
         const uint8_t* name = FindValue(rtti.Data.Base, End(rtti.Data), mangled.c_str(), mangled.size() + 1, 1);
         if (name && static_cast<size_t>(name - rtti.Base) >= TypeDescriptorName)
+        {
             return static_cast<uint32_t>(name - rtti.Base - TypeDescriptorName);
+        }
     }
     return 0;
 }
@@ -87,7 +95,9 @@ static bool TypeDescriptorMatches(const PeRtti& rtti, int32_t rva, std::span<con
     {
         const uint8_t* name = AtRva(rtti, int64_t{rva} + TypeDescriptorName, mangled.size() + 1);
         if (name && std::memcmp(name, mangled.c_str(), mangled.size() + 1) == 0)
+        {
             return true;
+        }
     }
     return false;
 }
@@ -101,12 +111,16 @@ static const uint8_t* FindLocator(const PeRtti& rtti, uint32_t typeDescriptor, u
     {
         if (static_cast<size_t>(ref - begin) < LocatorTypeDescriptor ||
             static_cast<size_t>(end - ref) < LocatorSize - LocatorTypeDescriptor)
+        {
             continue;
+        }
 
         const uint8_t* locator = ref - LocatorTypeDescriptor;
         if (ReadAt<uint32_t>(locator) == 1 && ReadAt<uint32_t>(locator + LocatorOffset) == offset &&
             ReadAt<uint32_t>(locator + LocatorSelf) == static_cast<uint32_t>(locator - rtti.Base))
+        {
             return locator;
+        }
     }
     return nullptr;
 }
@@ -134,7 +148,9 @@ Result<BaseSubobject> FindBaseInRtti(const PeRtti& rtti, std::string_view classN
 {
     const auto [typeDescriptor, locator] = PrimaryLocator(rtti, className);
     if (!locator)
+    {
         return std::unexpected(Error::NotFound(std::format("no RTTI for '{}'", className)));
+    }
 
     const uint8_t* hierarchy = AtRva(rtti, ReadAt<int32_t>(locator + LocatorHierarchy), HierarchySize);
     const uint32_t count = hierarchy ? ReadAt<uint32_t>(hierarchy + HierarchyBaseCount) : 0;
@@ -142,7 +158,9 @@ Result<BaseSubobject> FindBaseInRtti(const PeRtti& rtti, std::string_view classN
                                ? AtRva(rtti, ReadAt<int32_t>(hierarchy + HierarchyBaseList), count * sizeof(int32_t))
                                : nullptr;
     if (!bases)
+    {
         return std::unexpected(Error::Invalid(std::format("the RTTI base list of '{}' is unreadable", className)));
+    }
 
     const std::array<std::string, 2> wanted = ClassAndStructNames(baseName);
     std::vector<int32_t> offsets;
@@ -152,21 +170,33 @@ Result<BaseSubobject> FindBaseInRtti(const PeRtti& rtti, std::string_view classN
     {
         const uint8_t* base = AtRva(rtti, ReadAt<int32_t>(bases + i * sizeof(int32_t)), BaseSize);
         if (!base || !TypeDescriptorMatches(rtti, ReadAt<int32_t>(base), wanted))
+        {
             continue;
+        }
 
         if (ReadAt<int32_t>(base + BaseVirtualOffset) != -1)
+        {
             ++virtualBases;
+        }
         else
+        {
             offsets.push_back(ReadAt<int32_t>(base + BaseMemberOffset));
+        }
     }
 
     if (offsets.size() + virtualBases > 1)
+    {
         return std::unexpected(
             Error::Invalid(std::format("'{}' is a base {} times", baseName, offsets.size() + virtualBases)));
+    }
     if (virtualBases)
+    {
         return std::unexpected(Error::Unsupported(std::format("'{}' is a virtual base", baseName)));
+    }
     if (offsets.empty())
+    {
         return std::unexpected(Error::NotFound(std::format("'{}' is not a base", baseName)));
+    }
 
     const int32_t offset = offsets.front();
     const uint8_t* baseLocator =
@@ -178,12 +208,16 @@ static ScanRange FindSection(const LoadedModule& module, std::string_view name)
 {
     const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(module.Base);
     if (module.Size < sizeof(IMAGE_DOS_HEADER) || dos->e_magic != IMAGE_DOS_SIGNATURE)
+    {
         return {};
+    }
 
     const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS64*>(module.Base + dos->e_lfanew);
     if (static_cast<size_t>(dos->e_lfanew) + sizeof(IMAGE_NT_HEADERS64) > module.Size ||
         nt->Signature != IMAGE_NT_SIGNATURE)
+    {
         return {};
+    }
 
     const IMAGE_SECTION_HEADER* sections = IMAGE_FIRST_SECTION(nt);
     for (WORD i = 0; i < nt->FileHeader.NumberOfSections; ++i)
@@ -191,14 +225,20 @@ static ScanRange FindSection(const LoadedModule& module, std::string_view name)
         // Section names are eight bytes, padded with NULs.
         std::string_view actual(reinterpret_cast<const char*>(sections[i].Name), IMAGE_SIZEOF_SHORT_NAME);
         if (const size_t padding = actual.find('\0'); padding != std::string_view::npos)
+        {
             actual = actual.substr(0, padding);
+        }
         if (actual != name)
+        {
             continue;
+        }
 
         // Use virtual size for the mapped image; raw size covers a zero virtual size.
         const DWORD size = sections[i].Misc.VirtualSize ? sections[i].Misc.VirtualSize : sections[i].SizeOfRawData;
         if (sections[i].VirtualAddress + static_cast<size_t>(size) > module.Size)
+        {
             return {};
+        }
 
         return {module.Base + sections[i].VirtualAddress, size};
     }
@@ -217,7 +257,9 @@ void* FindVirtualTableIn(const LoadedModule& module, std::string_view className)
 {
     const PeRtti rtti = RttiOf(module);
     if (!rtti.Data.Base || !rtti.ReadOnlyData.Base)
+    {
         return nullptr;
+    }
     return FindVirtualTableInRtti(rtti, className);
 }
 
@@ -225,7 +267,9 @@ Result<BaseSubobject> FindBaseIn(const LoadedModule& module, std::string_view cl
 {
     const PeRtti rtti = RttiOf(module);
     if (!rtti.Data.Base || !rtti.ReadOnlyData.Base)
+    {
         return std::unexpected(Error::NotFound("the module has no RTTI sections"));
+    }
     return FindBaseInRtti(rtti, className, baseName);
 }
 

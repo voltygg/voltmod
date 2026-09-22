@@ -62,10 +62,14 @@ Status Messages::Initialize()
     auto& interfaces = _interfaces;
 
     if (!interfaces.GameEventSystem)
+    {
         return std::unexpected(Error::NotReady("IGameEventSystem not available"));
+    }
 
     if (!interfaces.NetworkMessages)
+    {
         return std::unexpected(Error::NotReady("INetworkMessages not available"));
+    }
 
     Log::Info("Message system initialized.");
     return {};
@@ -75,11 +79,15 @@ void Messages::SendCenterHtml(int slot, const std::string& html)
 {
     auto* gameEventManager = _interfaces.GameEventManager;
     if (!gameEventManager || !IsValidSlot(slot))
+    {
         return;
+    }
 
     IGameEvent* pEvent = gameEventManager->CreateEvent("show_survival_respawn_status");
     if (!pEvent)
+    {
         return;
+    }
 
     pEvent->SetString("loc_token", html.c_str());
     pEvent->SetInt("userid", slot);
@@ -115,15 +123,21 @@ void Messages::Broadcast(std::string_view message, MessageKind kind)
     {
         // Each panel write targets one client's listener; null means the slot is empty.
         for (int slot = 0; slot < MaxPlayers; ++slot)
+        {
             if (_events.GetClientLegacyListener(slot))
+            {
                 SendCenterHtml(slot, rendered);
+            }
+        }
         return;
     }
 
     // One event lets the engine remove empty slots from recipient bits without a roster scan.
     MultiRecipientFilter filter;
     for (int slot = 0; slot < MaxPlayers; ++slot)
+    {
         filter.AddRecipient(slot);
+    }
 
     PostTextMsg(filter, HudDestination(kind), rendered);
 }
@@ -141,7 +155,9 @@ void Messages::ReplyKey(int slot, const std::string& key, const Tokens& tokens)
 void Messages::SendTextMsg(int slot, int destination, const std::string& message)
 {
     if (!IsValidSlot(slot))
+    {
         return;
+    }
 
     SingleRecipientFilter filter(slot);
     PostTextMsg(filter, destination, message);
@@ -153,7 +169,9 @@ void Messages::PostTextMsg(IRecipientFilter& filter, int destination, const std:
     PostUserMessage(_interfaces, _textMsgInternal, "TextMsg", filter, [&](CNetMessage* raw) {
         auto* textMsg = raw->ToPB<CUserMessageTextMsg>();
         if (!textMsg)
+        {
             return false;
+        }
         textMsg->set_dest(destination);
         textMsg->add_param(message.c_str());
         return true;
@@ -166,7 +184,9 @@ void Messages::Shake(int slot, float durationSec, float frequency, float amplitu
     PostUserMessage(_interfaces, _shakeInternal, "Shake", filter, [&](CNetMessage* raw) {
         auto* shake = raw->ToPB<CUserMessageShake>();
         if (!shake)
+        {
             return false;
+        }
         shake->set_duration(durationSec);
         shake->set_frequency(frequency);
         shake->set_amplitude(amplitude);

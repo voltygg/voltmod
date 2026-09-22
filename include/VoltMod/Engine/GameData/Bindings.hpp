@@ -100,14 +100,18 @@ public:
     {
         T out{};
         if (_value >= 0 && base)
+        {
             std::memcpy(&out, static_cast<const uint8_t*>(base) + _value, sizeof(T));
+        }
         return out;
     }
 
     void Write(void* base, const T& value) const
     {
         if (_value >= 0 && base)
+        {
             std::memcpy(static_cast<uint8_t*>(base) + _value, &value, sizeof(T));
+        }
     }
 
 private:
@@ -128,7 +132,9 @@ public:
     const void* Ptr(const void* base) const
     {
         if (_value < 0 || !base)
+        {
             return nullptr;
+        }
         return static_cast<const uint8_t*>(base) + _value;
     }
 

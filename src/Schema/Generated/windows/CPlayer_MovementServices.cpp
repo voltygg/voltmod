@@ -22,7 +22,9 @@ static constexpr int32_t kCPlayer_MovementServices_MaxSpeed = 428;  // float32
 CInButtonState CPlayer_MovementServices::Buttons() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return CInButtonState{MemberPtr<void>(_base, kCPlayer_MovementServices_Buttons), _owner,
                           _ownerOffset + kCPlayer_MovementServices_Buttons};
@@ -31,7 +33,9 @@ CInButtonState CPlayer_MovementServices::Buttons() const
 float CPlayer_MovementServices::MaxSpeed() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<float>(_base, kCPlayer_MovementServices_MaxSpeed);
 }
@@ -39,7 +43,9 @@ float CPlayer_MovementServices::MaxSpeed() const
 void CPlayer_MovementServices::SetMaxSpeed(float value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<float>(_base, kCPlayer_MovementServices_MaxSpeed) = value;
     NotifyComponentOwner(_base, CPlayer_MovementServices_kOwnerLinkOffset, kCPlayer_MovementServices_MaxSpeed);

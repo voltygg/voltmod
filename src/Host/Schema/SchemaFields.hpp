@@ -23,7 +23,9 @@ inline const SchemaClassFieldData_t* FindField(const CSchemaClassInfo* klass, st
         {
             const char* name = klass->m_pFields[i].m_pszName;
             if (name && field == name)
+            {
                 return &klass->m_pFields[i];
+            }
         }
     }
     return nullptr;

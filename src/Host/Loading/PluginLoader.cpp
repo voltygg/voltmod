@@ -25,9 +25,13 @@ static constexpr std::string_view LibrarySuffix = ".so";
 static void WarnUnreleased(std::string_view name, const Unreleased& unreleased)
 {
     for (std::string_view event : unreleased.Subscriptions)
+    {
         Log::Warn("{} left a {} subscription behind; the host dropped it.", name, event);
+    }
     for (const std::string& service : unreleased.Services)
+    {
         Log::Warn("{} left the service '{}' published; the host withdrew it.", name, service);
+    }
 }
 
 static std::filesystem::path LibraryPath(std::string_view name)
@@ -58,7 +62,9 @@ void PluginLoader::UnloadAll()
 {
     _pending.clear();
     while (!_loaded.empty())
+    {
         UnloadOne(_loaded.back().Manifest.Name);
+    }
 }
 
 void PluginLoader::Defer(ActionKind kind, std::string_view name)
@@ -70,7 +76,9 @@ void PluginLoader::Defer(ActionKind kind, std::string_view name)
 void PluginLoader::RunPending()
 {
     if (_pending.empty())
+    {
         return;
+    }
 
     // Take the list aside: an action that defers another leaves it for the next frame.
     const std::vector<PendingAction> actions = std::move(_pending);
@@ -98,17 +106,25 @@ void PluginLoader::LoadGroup(std::span<const PluginManifest> installed,
 {
     const LoadList list = PluginDependencies::Resolve(installed);
     for (const RefusedPlugin& refused : list.Refused)
+    {
         if (wanted(refused.Name))
+        {
             Log::Error("Refusing '{}': {}", refused.Name, refused.Reason.Detail);
+        }
+    }
 
     for (const std::string& name : list.Allowed)
     {
         if (!wanted(name) || FindLoaded(name) != nullptr)
+        {
             continue;
+        }
 
         const auto found = std::ranges::find(installed, name, &PluginManifest::Name);
         if (Status loaded = LoadOne(*found); !loaded)
+        {
             Log::Error("Refusing '{}': {}", name, loaded.error().Detail);
+        }
     }
 }
 
@@ -118,20 +134,28 @@ Status PluginLoader::LoadOne(const PluginManifest& manifest)
 
     Result<SharedLibrary> code = SharedLibrary::Open(LibraryPath(name));
     if (!code)
+    {
         return std::unexpected(code.error());
+    }
 
     const Result<void*> entry = code->Symbol(PluginEntryName);
     if (!entry)
+    {
         return std::unexpected(entry.error());
+    }
 
     using EntryPoint = const PluginDescriptor* (*)();
     const PluginDescriptor* descriptor = reinterpret_cast<EntryPoint>(*entry)();
     if (Status valid = ValidateDescriptor(descriptor); !valid)
+    {
         return valid;
+    }
 
     HostView* view = _host.AddPlugin(name, manifest.LogTag, manifest.Version);
     if (view == nullptr)
+    {
         return std::unexpected(Error::Failed("the host already holds a view under that name"));
+    }
 
     char failure[512] = {};
     if (!descriptor->Load(view, failure, sizeof failure))
@@ -157,7 +181,9 @@ void PluginLoader::UnloadOne(std::string_view name)
     const auto found =
         std::ranges::find_if(_loaded, [&](const LoadedPlugin& loaded) { return loaded.Manifest.Name == plugin; });
     if (found == _loaded.end())
+    {
         return;
+    }
 
     found->Descriptor->Unload();
     WarnUnreleased(plugin, _host.RemovePlugin(plugin));
@@ -179,7 +205,9 @@ LoadedPlugin* PluginLoader::RequireLoaded(std::string_view name)
 {
     LoadedPlugin* plugin = FindLoaded(name);
     if (plugin == nullptr)
+    {
         Log::Warn("'{}' is not loaded.", name);
+    }
     return plugin;
 }
 
@@ -188,7 +216,9 @@ std::vector<PluginManifest> PluginLoader::LoadedManifests() const
     std::vector<PluginManifest> manifests;
     manifests.reserve(_loaded.size());
     for (const LoadedPlugin& plugin : _loaded)
+    {
         manifests.push_back(plugin.Manifest);
+    }
     return manifests;
 }
 
@@ -218,13 +248,17 @@ void PluginLoader::RunLoad(std::string_view name)
     }
 
     if (Status loaded = LoadOne(*found); !loaded)
+    {
         Log::Error("Refusing '{}': {}", name, loaded.error().Detail);
+    }
 }
 
 void PluginLoader::RunUnload(std::string_view name)
 {
     if (RequireLoaded(name) == nullptr)
+    {
         return;
+    }
 
     const std::vector<std::string> dependents = PluginDependencies::RequiredDependents(name, LoadedManifests());
     if (!dependents.empty())
@@ -239,7 +273,9 @@ void PluginLoader::RunUnload(std::string_view name)
 void PluginLoader::RunReload(std::string_view name)
 {
     if (RequireLoaded(name) == nullptr)
+    {
         return;
+    }
 
     // Whatever requires it goes down and comes back with it, each one before what it requires.
     std::vector<std::string> group = PluginDependencies::RequiredDependents(name, LoadedManifests());
@@ -247,11 +283,17 @@ void PluginLoader::RunReload(std::string_view name)
 
     std::vector<std::string> going;
     for (const LoadedPlugin& plugin : _loaded | std::views::reverse)
+    {
         if (std::ranges::find(group, plugin.Manifest.Name) != group.end())
+        {
             going.push_back(plugin.Manifest.Name);
+        }
+    }
 
     for (const std::string& plugin : going)
+    {
         UnloadOne(plugin);
+    }
 
     // Read the manifests again: a rebuilt plugin may declare different dependencies.
     LoadGroup(Installed(),

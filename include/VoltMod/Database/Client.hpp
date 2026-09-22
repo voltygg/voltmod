@@ -120,10 +120,16 @@ public:
                      [onValue = std::move(onValue)](Result<ResultOf<Fn>> result) mutable {
                          // std::function callbacks are optional at several call sites.
                          if constexpr (requires { static_cast<bool>(onValue); })
+                         {
                              if (!onValue)
+                             {
                                  return;
+                             }
+                         }
                          if (result)
+                         {
                              onValue(std::move(*result));
+                         }
                      }));
     }
 
@@ -197,9 +203,13 @@ private:
         return std::visit(
             [&fn](auto& open) -> ResultOf<Fn> {
                 if constexpr (std::same_as<std::remove_cvref_t<decltype(open)>, std::monostate>)
+                {
                     throw std::logic_error("no database connection");
+                }
                 else
+                {
                     return fn(open);
+                }
             },
             conn);
     }

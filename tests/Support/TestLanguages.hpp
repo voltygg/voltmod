@@ -21,7 +21,9 @@ public:
     void SetLanguage(int slot, std::string_view lang) override
     {
         if (VoltMod::IsValidSlot(slot))
+        {
             Languages[slot] = lang;
+        }
     }
 
     std::array<std::string, VoltMod::MaxPlayers> Languages;

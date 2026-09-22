@@ -16,53 +16,87 @@ TargetQuery ParseTargetToken(std::string_view token)
     using Kind = TargetKind;
 
     if (lower == "@all" || lower == "@*")
+    {
         return {.Kind = Kind::All};
+    }
     if (lower == "@me")
+    {
         return {.Kind = Kind::Me};
+    }
     if (lower == "@!me")
+    {
         return {.Kind = Kind::NotMe};
+    }
     if (lower == "@t")
+    {
         return {.Kind = Kind::Team, .Team = TeamT};
+    }
     if (lower == "@ct")
+    {
         return {.Kind = Kind::Team, .Team = TeamCT};
+    }
     if (lower == "@spec")
+    {
         return {.Kind = Kind::Team, .Team = TeamSpectator};
+    }
     if (lower == "@dead")
+    {
         return {.Kind = Kind::Dead};
+    }
     if (lower == "@alive")
+    {
         return {.Kind = Kind::Alive};
+    }
     if (lower == "@bot" || lower == "@bots")
+    {
         return {.Kind = Kind::Bots};
+    }
     if (lower == "@human" || lower == "@humans")
+    {
         return {.Kind = Kind::Humans};
+    }
     if (lower == "@random")
+    {
         return {.Kind = Kind::Random};
+    }
     if (lower == "@randomt")
+    {
         return {.Kind = Kind::RandomTeam, .Team = TeamT};
+    }
     if (lower == "@randomct")
+    {
         return {.Kind = Kind::RandomTeam, .Team = TeamCT};
+    }
 
     if (raw.size() > 1 && raw[0] == '#')
     {
         // Check the range before casting to avoid wrapping into another slot.
         if (auto slot = ParseInt64(std::string_view(raw).substr(1)); slot && std::in_range<int>(*slot) && *slot >= 0)
+        {
             return {.Kind = Kind::Slot, .Slot = static_cast<int>(*slot)};
+        }
     }
 
     if (raw.size() >= 15)
     {
         if (auto id = ParseInt64(raw); id && SteamId::IsValid(*id))
+        {
             return {.Kind = Kind::SteamId, .SteamId = *id};
+        }
     }
     if (Strings::StartsWith(raw, "[U:1:"))
     {
         if (auto id = SteamId::FromSteamId3(raw))
+        {
             return {.Kind = Kind::SteamId, .SteamId = *id};
+        }
     }
     if (Strings::StartsWith(raw, "STEAM_"))
     {
         if (auto id = SteamId::FromSteamId(raw))
+        {
             return {.Kind = Kind::SteamId, .SteamId = *id};
+        }
     }
 
     return {.Kind = Kind::Name, .Needle = lower};
@@ -78,8 +112,12 @@ std::expected<std::vector<int>, TargetFailure> FilterRoster(std::span<const Play
     std::vector<const PlayerView*> candidates;
     auto collect = [&](auto&& pred) {
         for (const auto& p : roster)
+        {
             if (pred(p))
+            {
                 candidates.push_back(&p);
+            }
+        }
     };
 
     switch (query.Kind)
@@ -132,7 +170,9 @@ std::expected<std::vector<int>, TargetFailure> FilterRoster(std::span<const Play
     }
 
     if (candidates.empty())
+    {
         return std::unexpected(TargetFailure{TargetError::NoMatch});
+    }
 
     auto drop = [&](auto&& pred) { std::erase_if(candidates, pred); };
 
@@ -140,19 +180,25 @@ std::expected<std::vector<int>, TargetFailure> FilterRoster(std::span<const Play
     {
         drop([](const PlayerView* p) { return p->Bot; });
         if (candidates.empty())
+        {
             return std::unexpected(TargetFailure{TargetError::BotNotAllowed});
+        }
     }
     if (!rules.AllowDead)
     {
         drop([](const PlayerView* p) { return !p->Alive; });
         if (candidates.empty())
+        {
             return std::unexpected(TargetFailure{TargetError::DeadNotAllowed});
+        }
     }
 
     // Blocked players are removed; report immunity only when none remain.
     drop([](const PlayerView* p) { return !p->Targetable; });
     if (candidates.empty())
+    {
         return std::unexpected(TargetFailure{TargetError::Immune});
+    }
 
     if (query.Kind == Kind::Random || query.Kind == Kind::RandomTeam)
     {
@@ -170,7 +216,9 @@ std::expected<std::vector<int>, TargetFailure> FilterRoster(std::span<const Play
     std::vector<int> slots;
     slots.reserve(candidates.size());
     for (const auto* p : candidates)
+    {
         slots.push_back(p->Slot);
+    }
     return slots;
 }
 

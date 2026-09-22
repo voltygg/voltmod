@@ -27,7 +27,9 @@ public:
     bool OpenSession(int slot, std::shared_ptr<VoltMod::Menu> menu, VoltMod::MenuOptions) override
     {
         if (!Accepts)
+        {
             return false;
+        }
 
         ++SessionsOpened;
         Open(slot, std::move(menu));
@@ -80,11 +82,15 @@ public:
     {
         const VoltMod::Menu* menu = Last();
         if (!menu || index < 0 || index >= static_cast<int>(menu->Items.size()))
+        {
             return;
+        }
         // Copied out first: activating may open a menu, which reallocates Opened.
         const VoltMod::MenuItem item = menu->Items[static_cast<std::size_t>(index)];
         if (item.Activate)
+        {
             item.Activate(0, *this);
+        }
     }
 
     /** False makes OpenSession refuse, as a surface that cannot draw for the player does. */

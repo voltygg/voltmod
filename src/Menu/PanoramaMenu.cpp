@@ -17,12 +17,18 @@ PanoramaMenu::PanoramaMenu(const Services& services, MenuLayout& layout, uint64_
 {
     // Without the addon, report that the layout is unavailable instead of drawing blanks.
     if (addonId == 0)
+    {
         Log::Warn("PanoramaMenu: no addon required. Only a client the layout was compiled into can see it.");
+    }
     else if (auto required = _services.Addons.Require(addonId))
+    {
         _addon = std::move(*required);
+    }
     else
+    {
         Log::Warn("PanoramaMenu: addon {} not required ({}); clients without the layout will see nothing.", addonId,
                   required.error().Detail);
+    }
 
     _subs.Add(_services.Screens.Pressed += [this](const ButtonPress& press) { OnPress(press); });
 
@@ -39,7 +45,9 @@ bool PanoramaMenu::CanShow(int slot) const
 bool PanoramaMenu::OpenSession(int slot, std::shared_ptr<Menu> menu, MenuOptions options)
 {
     if (!menu || !CanShow(slot))
+    {
         return false;
+    }
 
     CloseAll(slot);
     _stack.Push(slot, std::move(menu));
@@ -49,7 +57,9 @@ bool PanoramaMenu::OpenSession(int slot, std::shared_ptr<Menu> menu, MenuOptions
     // Close the session when the layout cannot be shown.
     Draw(slot);
     if (!IsOpen(slot))
+    {
         return false;
+    }
 
     _services.Freeze.Open(slot, options.FreezeMovement);
     return true;
@@ -58,7 +68,9 @@ bool PanoramaMenu::OpenSession(int slot, std::shared_ptr<Menu> menu, MenuOptions
 void PanoramaMenu::Open(int slot, std::shared_ptr<Menu> menu)
 {
     if (!menu)
+    {
         return;
+    }
     if (!IsOpen(slot))
     {
         OpenSession(slot, std::move(menu), {});
@@ -78,24 +90,32 @@ bool PanoramaMenu::IsOpen(int slot) const
 void PanoramaMenu::Close(int slot)
 {
     if (!IsOpen(slot))
+    {
         return;
+    }
 
     _services.ChatInput.CancelCapture(slot);
     _stack.Pop(slot);
     if (!IsOpen(slot))
+    {
         return Hide(slot);
+    }
 
     Session& session = _sessions[slot];
     session.Page = 0;
     if (_stack.Depth(slot) == 1)
+    {
         session.SelectedTab = -1;
+    }
     Draw(slot);
 }
 
 void PanoramaMenu::CloseAll(int slot)
 {
     if (!IsOpen(slot))
+    {
         return;
+    }
 
     _stack.Clear(slot);
     Hide(slot);
@@ -105,7 +125,9 @@ void PanoramaMenu::CloseAll(int slot, std::string_view replyKey)
 {
     // Reply before removing the player's menus.
     if (auto& reply = _services.Policy.Reply; reply)
+    {
         reply(slot, _services.Translations.Get(std::string(replyKey), slot));
+    }
 
     CloseAll(slot);
 }
@@ -134,8 +156,10 @@ void PanoramaMenu::ReadTabs(int slot)
     for (int index = 0; index < items && static_cast<int>(tabs.size()) < _layout.TabCount(); ++index)
     {
         if (MenuRow described = _stack.Describe(slot, index); described.Kind == MenuRowKind::Submenu)
+        {
             tabs.push_back(
                 {.RootIndex = index, .Label = std::move(described.Label), .Icon = std::move(described.Icon)});
+        }
     }
 }
 
@@ -143,11 +167,15 @@ void PanoramaMenu::Draw(int slot)
 {
     const Menu* menu = _stack.Current(slot);
     if (!menu)
+    {
         return;
+    }
 
     // This also restores the screen after a map change removes it.
     if (!_layout.Show(slot))
+    {
         return CloseAll(slot);
+    }
 
     // The root subtitle already appears below the brand.
     const Menu& root = *_stack.Root(slot);
@@ -207,7 +235,9 @@ void PanoramaMenu::DrawRows(int slot, const Menu& menu)
 
         const MenuRow described = _stack.Describe(slot, item);
         if (described.Pending && pendingHint.empty())
+        {
             pendingHint = Translate(slot, "menu.pending", "Applying...");
+        }
         _layout.SetRow(slot, row, &described, pendingHint);
     }
 
@@ -226,15 +256,21 @@ void PanoramaMenu::OnPress(const ButtonPress& press)
 {
     const int slot = press.Slot;
     if (!IsOpen(slot))
+    {
         return;
+    }
 
     const auto button = _layout.ButtonFor(press.ButtonId);
     if (!button)
+    {
         return;
+    }
 
     // A prompt handles presses except Cancel; its answer arrives as chat input.
     if (_services.ChatInput.IsCapturing(slot) && button->Kind != MenuButtonKind::Cancel)
+    {
         return;
+    }
 
     switch (button->Kind)
     {
@@ -278,14 +314,18 @@ void PanoramaMenu::Activate(int slot, int index)
 void PanoramaMenu::StepRow(int slot, int row, int direction)
 {
     if (_stack.Step(slot, ItemAt(slot, row), direction))
+    {
         Draw(slot);
+    }
 }
 
 void PanoramaMenu::OpenTab(int slot, int tab)
 {
     Session& session = _sessions[slot];
     if (tab < 0 || tab >= static_cast<int>(session.Tabs.size()))
+    {
         return;
+    }
 
     // A tab jumps from the root instead of pushing another menu.
     _stack.PopToRoot(slot);
@@ -297,7 +337,9 @@ void PanoramaMenu::TurnPage(int slot, int delta)
 {
     const Menu* menu = _stack.Current(slot);
     if (!menu)
+    {
         return;
+    }
 
     _stack.ApplyPending(slot);
     Session& session = _sessions[slot];

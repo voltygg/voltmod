@@ -7,7 +7,9 @@ namespace VoltMod
 std::size_t RandomIndex(std::size_t count)
 {
     if (count == 0)
+    {
         return 0;
+    }
 
     // Seeded once per process; game code is single-threaded, so no synchronisation is needed.
     static std::mt19937 rng{std::random_device{}()};

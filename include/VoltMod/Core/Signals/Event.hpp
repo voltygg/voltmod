@@ -68,15 +68,21 @@ public:
     [[nodiscard]] Subscription operator+=(Handler handler)
     {
         if (!handler)
+        {
             return {};
+        }
 
         if (_handlers.Empty() && _lifecycle.OnFirst && !_lifecycle.OnFirst())
+        {
             return {};
+        }
 
         const uint64_t id = _handlers.Add(std::move(handler));
         return Subscription([this, id] {
             if (_handlers.Remove(id) && _handlers.Empty() && _lifecycle.OnLast)
+            {
                 _lifecycle.OnLast();
+            }
         });
     }
 

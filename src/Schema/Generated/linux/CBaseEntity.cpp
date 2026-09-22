@@ -26,7 +26,9 @@ static constexpr int32_t kCBaseEntity_BodyComponent = 48;        // CBodyCompone
 int32_t CBaseEntity::Health() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<int32_t>(_base, kCBaseEntity_Health);
 }
@@ -34,7 +36,9 @@ int32_t CBaseEntity::Health() const
 void CBaseEntity::SetHealth(int32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<int32_t>(_base, kCBaseEntity_Health) = value;
     NotifyEntity(_owner, _ownerOffset + kCBaseEntity_Health);
@@ -43,7 +47,9 @@ void CBaseEntity::SetHealth(int32_t value) const
 int32_t CBaseEntity::MaxHealth() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<int32_t>(_base, kCBaseEntity_MaxHealth);
 }
@@ -51,7 +57,9 @@ int32_t CBaseEntity::MaxHealth() const
 void CBaseEntity::SetMaxHealth(int32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<int32_t>(_base, kCBaseEntity_MaxHealth) = value;
     NotifyEntity(_owner, _ownerOffset + kCBaseEntity_MaxHealth);
@@ -60,7 +68,9 @@ void CBaseEntity::SetMaxHealth(int32_t value) const
 float CBaseEntity::GravityScale() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<float>(_base, kCBaseEntity_GravityScale);
 }
@@ -68,7 +78,9 @@ float CBaseEntity::GravityScale() const
 void CBaseEntity::SetGravityScale(float value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<float>(_base, kCBaseEntity_GravityScale) = value;
     NotifyEntity(_owner, _ownerOffset + kCBaseEntity_GravityScale);
@@ -77,7 +89,9 @@ void CBaseEntity::SetGravityScale(float value) const
 uint8_t CBaseEntity::Team() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<uint8_t>(_base, kCBaseEntity_Team);
 }
@@ -85,7 +99,9 @@ uint8_t CBaseEntity::Team() const
 void CBaseEntity::SetTeam(uint8_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<uint8_t>(_base, kCBaseEntity_Team) = value;
     NotifyEntity(_owner, _ownerOffset + kCBaseEntity_Team);
@@ -94,7 +110,9 @@ void CBaseEntity::SetTeam(uint8_t value) const
 uint8_t CBaseEntity::LifeState() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<uint8_t>(_base, kCBaseEntity_LifeState);
 }
@@ -102,7 +120,9 @@ uint8_t CBaseEntity::LifeState() const
 void CBaseEntity::SetLifeState(uint8_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<uint8_t>(_base, kCBaseEntity_LifeState) = value;
     NotifyEntity(_owner, _ownerOffset + kCBaseEntity_LifeState);
@@ -111,7 +131,9 @@ void CBaseEntity::SetLifeState(uint8_t value) const
 uint32_t CBaseEntity::Flags() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<uint32_t>(_base, kCBaseEntity_Flags);
 }
@@ -119,7 +141,9 @@ uint32_t CBaseEntity::Flags() const
 void CBaseEntity::SetFlags(uint32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<uint32_t>(_base, kCBaseEntity_Flags) = value;
     NotifyEntity(_owner, _ownerOffset + kCBaseEntity_Flags);
@@ -128,7 +152,9 @@ void CBaseEntity::SetFlags(uint32_t value) const
 Vector CBaseEntity::Velocity() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<Vector>(_base, kCBaseEntity_Velocity);
 }
@@ -136,7 +162,9 @@ Vector CBaseEntity::Velocity() const
 void CBaseEntity::SetVelocity(Vector value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<Vector>(_base, kCBaseEntity_Velocity) = value;
 }
@@ -144,7 +172,9 @@ void CBaseEntity::SetVelocity(Vector value) const
 MoveType_t CBaseEntity::MoveTypeRaw() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<MoveType_t>(_base, kCBaseEntity_MoveTypeRaw);
 }
@@ -152,7 +182,9 @@ MoveType_t CBaseEntity::MoveTypeRaw() const
 void CBaseEntity::SetMoveTypeRaw(MoveType_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<MoveType_t>(_base, kCBaseEntity_MoveTypeRaw) = value;
     NotifyEntity(_owner, _ownerOffset + kCBaseEntity_MoveTypeRaw);
@@ -161,7 +193,9 @@ void CBaseEntity::SetMoveTypeRaw(MoveType_t value) const
 MoveType_t CBaseEntity::ActualMoveTypeRaw() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<MoveType_t>(_base, kCBaseEntity_ActualMoveTypeRaw);
 }
@@ -169,7 +203,9 @@ MoveType_t CBaseEntity::ActualMoveTypeRaw() const
 void CBaseEntity::SetActualMoveTypeRaw(MoveType_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<MoveType_t>(_base, kCBaseEntity_ActualMoveTypeRaw) = value;
 }
@@ -177,7 +213,9 @@ void CBaseEntity::SetActualMoveTypeRaw(MoveType_t value) const
 uint32_t CBaseEntity::GroundEntity() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<uint32_t>(_base, kCBaseEntity_GroundEntity);
 }
@@ -185,7 +223,9 @@ uint32_t CBaseEntity::GroundEntity() const
 void CBaseEntity::SetGroundEntity(uint32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<uint32_t>(_base, kCBaseEntity_GroundEntity) = value;
     NotifyEntity(_owner, _ownerOffset + kCBaseEntity_GroundEntity);
@@ -194,7 +234,9 @@ void CBaseEntity::SetGroundEntity(uint32_t value) const
 uint32_t CBaseEntity::OwnerHandle() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<uint32_t>(_base, kCBaseEntity_OwnerHandle);
 }
@@ -202,7 +244,9 @@ uint32_t CBaseEntity::OwnerHandle() const
 void CBaseEntity::SetOwnerHandle(uint32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<uint32_t>(_base, kCBaseEntity_OwnerHandle) = value;
     NotifyEntity(_owner, _ownerOffset + kCBaseEntity_OwnerHandle);
@@ -211,7 +255,9 @@ void CBaseEntity::SetOwnerHandle(uint32_t value) const
 CBodyComponent CBaseEntity::BodyComponent() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return CBodyComponent{*MemberPtr<void*>(_base, kCBaseEntity_BodyComponent)};
 }

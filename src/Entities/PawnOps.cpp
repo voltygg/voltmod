@@ -72,9 +72,13 @@ bool HasGodmode(const Pawn& pawn)
 void SetGodmode(const Pawn& pawn, bool enable)
 {
     if (enable)
+    {
         pawn.SetFlags(pawn.Flags() | FL_GODMODE);
+    }
     else
+    {
         pawn.SetFlags(pawn.Flags() & ~FL_GODMODE);
+    }
 }
 
 bool ToggleGodmode(const Pawn& pawn)
@@ -87,7 +91,9 @@ bool ToggleGodmode(const Pawn& pawn)
 bool ChangeTeamSafe(const Controller& controller, int team)
 {
     if (team < TeamSpectator || team > TeamCT)
+    {
         return false;
+    }
     return controller.ChangeTeam(team).has_value();
 }
 
@@ -102,7 +108,9 @@ Pawns::Pawns(Scheduler& scheduler, SlotEvents& slots, EntitySystem& entities)
       // Either edge of a slot change means the pending clear no longer belongs to whoever sits there.
       _slotListener(slots.Changed += [this](int slot) {
           if (!IsValidSlot(slot))
+          {
               return;
+          }
           _fallProtect[slot].Reset();
           _slay[slot].Reset();
       })
@@ -119,7 +127,9 @@ void Pawns::Slap(const Pawn& pawn, float upward, float horizontal, int fallProte
     // the delayed clear below would silently strip an externally applied godmode.
     const int slot = pawn.Slot();
     if (fallProtectMs <= 0 || !IsValidSlot(slot) || PawnOps::HasGodmode(pawn))
+    {
         return;
+    }
 
     PawnOps::SetGodmode(pawn, true);
 
@@ -129,21 +139,27 @@ void Pawns::Slap(const Pawn& pawn, float upward, float horizontal, int fallProte
     _fallProtect[slot] = _scheduler.Delay(fallProtectMs, [this, slot] {
         Pawn target = _entities.PawnOf(slot);
         if (target)
+        {
             PawnOps::SetGodmode(target, false);
+        }
     });
 }
 
 void Pawns::SlayDelayed(int slot, int64_t delayMs)
 {
     if (!IsValidSlot(slot))
+    {
         return;
+    }
 
     // Re-resolved on fire for the same reason Slap's clear is, and assigning cancels whatever
     // slay was already pending for this slot.
     _slay[slot] = _scheduler.Delay(delayMs, [this, slot] {
         Pawn target = _entities.PawnOf(slot);
         if (target && target.IsAlive())
+        {
             (void)target.Slay();
+        }
     });
 }
 

@@ -45,11 +45,15 @@ static Ids Join(const std::vector<AddonDownloads*>& order)
             }
         }
         if (!reconnect)
+        {
             break;
+        }
 
         sent.push_back(std::stoull(addons));
         for (AddonDownloads* plugin : order)
+        {
             plugin->RecordReconnect(kPlayer, now + 0.5, kTimeout);
+        }
     }
     return sent;
 }
@@ -103,7 +107,9 @@ TEST_CASE("Offers past the attempt cap kick the client, and a prompt reconnect r
     downloads.RecordReconnect(kPlayer, 3.0, kTimeout);
 
     for (int attempt = 1; attempt <= kMaxAttempts; ++attempt)
+    {
         CHECK(downloads.NextToSend(kPlayer, 3.0 + attempt, kMaxAttempts).Action == AddonAction::Send);
+    }
 
     const auto decision = downloads.NextToSend(kPlayer, 10.0, kMaxAttempts);
     CHECK(decision.Action == AddonAction::Kick);
@@ -137,7 +143,9 @@ TEST_CASE("An addon the engine is already sending costs no attempt and is not se
     downloads.Require(200);
 
     for (int attempt = 0; attempt < 10; ++attempt)
+    {
         downloads.MarkSending(kPlayer, 100, attempt);
+    }
     CHECK(downloads.NextToSend(kPlayer, 10.0, kMaxAttempts).Action == AddonAction::Send);
 
     downloads.RecordReconnect(kPlayer, 11.0, kTimeout);

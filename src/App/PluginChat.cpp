@@ -12,7 +12,9 @@ bool Plugin::OnPlayerChat(Player* player, std::string_view message, bool /*teamC
 {
     // Menu input takes precedence over command parsing.
     if (Runtime.Hooks.ChatInput.TryConsume(player->Slot(), message))
+    {
         return true;
+    }
 
     return Runtime.Commands.HandleChatMessage(player, message);
 }
@@ -24,13 +26,19 @@ bool PluginModule::HandleConsoleCommand(std::string_view name, std::string_view 
 {
     // A ballot for a plugin vote never reaches the engine's own vote controller.
     if (name == "vote")
+    {
         return _runtime->Hooks.Vote.TryCastBallot(slot, arguments);
+    }
     if (name == "callvote")
+    {
         return _runtime->Hooks.Vote.InProgress();
+    }
 
     const bool teamChat = name == "say_team";
     if (name != "say" && !teamChat)
+    {
         return false;
+    }
 
     std::string_view message = arguments;
     if (message.size() >= 2 && message.front() == '"' && message.back() == '"')
@@ -39,11 +47,15 @@ bool PluginModule::HandleConsoleCommand(std::string_view name, std::string_view 
         message.remove_suffix(1);
     }
     if (message.empty() || !IsValidSlot(slot))
+    {
         return false;
+    }
 
     // A later plugin's command must reach it past this plugin's chat handling, such as admin-chat tagging.
     if (_runtime->Commands.IsForeign(message))
+    {
         return false;
+    }
 
     Player* player = _runtime->Players.Get(slot);
     return player != nullptr && _plugin->OnPlayerChat(player, message, teamChat);

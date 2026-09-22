@@ -56,10 +56,14 @@ bool Runtime::Initialize(const LoadContext& context)
     InstallLogger(context);
 
     if (!ResolveInterfaces(context))
+    {
         return false;
+    }
 
     if (!InitializeServices(context))
+    {
         return false;
+    }
 
     RegisterStatusSections();
     return true;
@@ -125,7 +129,9 @@ bool Runtime::InitializeServices(const LoadContext& context)
     steps.Optional("GameData", [&]() -> VoltMod::Status {
         IHostGameData* gameData = context.Host->GameData();
         if (!gameData)
+        {
             return std::unexpected(Error::Engine("the host has no gamedata"));
+        }
 
         return Unsafe.Bindings.Bind(
             [gameData](GameDataSection sections, std::string_view name) { return gameData->Lookup(sections, name); });
@@ -134,18 +140,24 @@ bool Runtime::InitializeServices(const LoadContext& context)
     // A required-step failure is reported to Metamod and aborts the load.
     auto requiredStep = [&](std::string_view name, const std::function<VoltMod::Status()>& step) {
         if (steps.Required(name, step))
+        {
             return true;
+        }
 
         context.Host->Metamod()->Format(context.Error, context.MaxLen, "%s", steps.AbortReason().c_str());
         return false;
     };
 
     if (!requiredStep("Messages", [&] { return Messages.Initialize(); }))
+    {
         return false;
+    }
 
     // Abort on schema drift, which the host found once for the process.
     if (!requiredStep("SchemaLayout", [&] { return TakeHostSchema(context); }))
+    {
         return false;
+    }
 
     // StartupServer resolves CGameEntitySystem when the first map loads.
     steps.Optional("Entities", [&] { return Entities.Initialize(); });
@@ -156,7 +168,9 @@ bool Runtime::InitializeServices(const LoadContext& context)
     steps.Optional("ClientConVars", [&] { return Hooks.ClientConVars.Initialize(); });
 
     for (const auto& [feature, reason] : UnavailableFeatures())
+    {
         Log::Warn("{} is unavailable: {}", feature, reason);
+    }
     return true;
 }
 
@@ -175,7 +189,9 @@ VoltMod::Status Runtime::TakeHostSchema(const LoadContext& context)
     }
 
     if (!schema->SchemaVerified())
+    {
         return std::unexpected(Error::Invalid("the host found schema drift; its log names every field"));
+    }
     return {};
 }
 
@@ -195,7 +211,9 @@ std::map<std::string, std::string> Runtime::UnavailableFeatures() const
     for (const auto& [feature, available] : features)
     {
         if (!available)
+        {
             unavailable.emplace(feature, available.error().Detail);
+        }
     }
     return unavailable;
 }
@@ -206,7 +224,9 @@ void Runtime::RegisterStatusSections()
     Status.RegisterSection("load", [this] {
         std::map<std::string, std::string> failed;
         for (const FailedStep& step : LoadSteps.Failures())
+        {
             failed.emplace(step.Name, step.Reason);
+        }
         return Json::Write(
             glz::obj{"steps", LoadSteps.Count(), "failed", failed, "unavailable", UnavailableFeatures()});
     });

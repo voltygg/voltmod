@@ -39,7 +39,9 @@ std::vector<PatternByte> ParsePattern(const std::string& pattern)
 void CountBytes(const uint8_t* base, size_t size, ByteHistogram& counts)
 {
     for (size_t i = 0; i < size; ++i)
+    {
         ++counts[base[i]];
+    }
 }
 
 size_t AnchorOf(const std::vector<PatternByte>& pattern, const ByteHistogram& frequencies)
@@ -50,7 +52,9 @@ size_t AnchorOf(const std::vector<PatternByte>& pattern, const ByteHistogram& fr
     for (size_t i = 0; i < pattern.size(); ++i)
     {
         if (pattern[i].Wildcard)
+        {
             continue;
+        }
         if (const size_t count = frequencies[pattern[i].Value]; count < rarest)
         {
             rarest = count;
@@ -66,7 +70,9 @@ static bool Matches(const uint8_t* at, const std::vector<PatternByte>& pattern)
     for (size_t i = 0; i < pattern.size(); ++i)
     {
         if (!pattern[i].Wildcard && at[i] != pattern[i].Value)
+        {
             return false;
+        }
     }
     return true;
 }
@@ -74,13 +80,17 @@ static bool Matches(const uint8_t* at, const std::vector<PatternByte>& pattern)
 const uint8_t* FindFirst(const uint8_t* base, size_t size, const std::vector<PatternByte>& pattern, size_t anchor)
 {
     if (!base || pattern.empty() || size < pattern.size())
+    {
         return nullptr;
+    }
 
     const size_t lastStart = size - pattern.size();
 
     // Nothing to anchor on: an all-wildcard pattern matches at the first offset.
     if (anchor >= pattern.size())
+    {
         return base;
+    }
 
     const uint8_t wanted = pattern[anchor].Value;
     for (size_t at = 0; at <= lastStart;)
@@ -89,11 +99,15 @@ const uint8_t* FindFirst(const uint8_t* base, size_t size, const std::vector<Pat
         // the window ends at lastStart + anchor. Whatever memchr skips cannot match.
         const auto* found = static_cast<const uint8_t*>(std::memchr(base + at + anchor, wanted, lastStart - at + 1));
         if (!found)
+        {
             return nullptr;
+        }
 
         at = static_cast<size_t>(found - base) - anchor;
         if (Matches(base + at, pattern))
+        {
             return base + at;
+        }
         ++at;
     }
     return nullptr;

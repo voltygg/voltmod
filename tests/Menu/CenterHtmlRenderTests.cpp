@@ -116,7 +116,9 @@ TEST_CASE("CenterHtmlRender: pagination footer appears only once a menu spans mu
 
     MenuBuilder builder("Multi-row Menu");
     for (int i = 0; i < CenterHtmlRowsPerPage; ++i)
+    {
         builder.Button("Row", [](int) {});
+    }
     auto menu = builder.Build();
 
     // Exactly one page: no page indicator, no [A/D] page hint.

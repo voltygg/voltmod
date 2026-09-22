@@ -143,7 +143,9 @@ TEST_CASE("The per slot cap refuses further queries until one is answered")
     PendingConVarQueries table;
     std::string seen;
     for (size_t i = 0; i < PendingConVarQueries::MaxPendingPerSlot; ++i)
+    {
         AddQuery(table, 7, "cvar" + std::to_string(i), Recorder(seen), 0.0);
+    }
 
     CHECK(table.Full(7));
     CHECK_FALSE(table.Full(8));
@@ -159,7 +161,9 @@ TEST_CASE("The cap frees up once queries are answered or expire")
     {
         const int cookie = AddQuery(table, 7, "cvar" + std::to_string(i), Recorder(seen), 0.0);
         if (i == 0)
+        {
             firstCookie = cookie;
+        }
     }
 
     CHECK(table.Take(7, firstCookie, "cvar0").has_value());

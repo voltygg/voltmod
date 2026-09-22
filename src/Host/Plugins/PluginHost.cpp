@@ -21,7 +21,9 @@ void PluginHost::SetSchemaLayout(uint64_t stamp, bool verified)
 HostView* PluginHost::AddPlugin(std::string_view name, std::string_view logTag, std::string_view version)
 {
     if (name.empty() || FindPlugin(name) != nullptr)
+    {
         return nullptr;
+    }
 
     _plugins.push_back(std::make_unique<HostView>(_state, std::string(name),
                                                   std::string(logTag.empty() ? name : logTag), std::string(version),
@@ -41,7 +43,9 @@ Unreleased PluginHost::RemovePlugin(std::string_view name)
     const auto found =
         std::ranges::find_if(_plugins, [name](const auto& plugin) { return plugin->PluginName() == name; });
     if (found == _plugins.end())
+    {
         return {};
+    }
 
     Unreleased unreleased = (*found)->RemoveAll();
     _plugins.erase(found);

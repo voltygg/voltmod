@@ -77,9 +77,13 @@ std::string RenderFooter(bool isSubmenu, bool isPaginated, bool selectedRowSteps
 
     bool hasStepHint = selectedRowSteps || isPaginated;
     if (selectedRowSteps)
+    {
         row1 << " · " << FooterChunk(Theme::NavGold, "[A/D]", label("nav.change", "Change"));
+    }
     else if (isPaginated)
+    {
         row1 << " · " << FooterChunk(Theme::NavGold, "[A/D]", label("nav.page", "Page"));
+    }
 
     const std::string_view selectKey = selectedRowSteps ? "nav.confirm" : "nav.select";
     const std::string_view selectFallback = selectedRowSteps ? "Confirm" : "Select";
@@ -93,9 +97,13 @@ std::string RenderFooter(bool isSubmenu, bool isPaginated, bool selectedRowSteps
     // With an A/D hint there are four chunks - splitting onto two short rows is more reliable
     // than relying on the HUD's word wrap, which sometimes pushes [R] past the visible area.
     if (hasStepHint)
+    {
         html << "<br>" << closeChunk;
+    }
     else
+    {
         html << " · " << closeChunk;
+    }
 
     html << "</font>";
     return html.str();
@@ -109,22 +117,32 @@ static std::string RowText(const MenuRow& row)
 {
     std::string text = Strings::EscapeHtml(row.Label);
     if (row.Value.empty())
+    {
         return text;
+    }
 
     std::string value = Strings::EscapeHtml(row.Value);
     if (row.Pending)
+    {
         value += "…";
+    }
 
     // The brackets say "this is a switch" and the arrows "A and D change this"; nothing else in a
     // line of center HTML does.
     if (row.Kind == MenuRowKind::Toggle)
+    {
         value = "[" + value + "]";
+    }
     else if (row.Kind == MenuRowKind::Choice)
+    {
         value = "&lt; " + value + " &gt;";
+    }
 
     text += ": " + value;
     if (row.Changed)
+    {
         text += " *";
+    }
     return text;
 }
 
@@ -138,7 +156,9 @@ static std::string RenderItems(const CenterHtmlView& view, int pageStart, int pa
     {
         const MenuRow row = view.Describe(i);
         if (i == view.SelectedIndex)
+        {
             selected = row;
+        }
         std::string title = RowText(row);
         bool selectable = row.Selectable;
         bool enabled = row.Enabled;

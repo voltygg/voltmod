@@ -16,7 +16,9 @@ namespace VoltMod
 static CursorRows CursorRowsFor(Menu* menu, int slot)
 {
     if (!menu)
+    {
         return {};
+    }
 
     return {.Count = static_cast<int>(menu->Items.size()), .Selectable = [menu, slot](int index) {
                 return IsRowActionable(menu->Items[static_cast<std::size_t>(index)], slot);
@@ -32,7 +34,9 @@ CenterHtmlMenu::CenterHtmlMenu(const Services& services)
 bool CenterHtmlMenu::OpenSession(int slot, std::shared_ptr<Menu> menu, MenuOptions options)
 {
     if (!IsValidSlot(slot) || !menu)
+    {
         return false;
+    }
 
     CloseAll(slot);
 
@@ -45,7 +49,9 @@ bool CenterHtmlMenu::OpenSession(int slot, std::shared_ptr<Menu> menu, MenuOptio
 void CenterHtmlMenu::Open(int slot, std::shared_ptr<Menu> menu)
 {
     if (!IsValidSlot(slot) || !menu)
+    {
         return;
+    }
 
     if (!_stack.IsOpen(slot))
     {
@@ -68,7 +74,9 @@ void CenterHtmlMenu::Push(int slot, std::shared_ptr<Menu> menu)
     }
 
     if (!_onFrame)
+    {
         _onFrame = _services.Scheduler.EveryFrame([this] { OnGameFrame(); });
+    }
 }
 
 void CenterHtmlMenu::ResetCursor(int slot)
@@ -83,11 +91,15 @@ void CenterHtmlMenu::Select(int slot, int index)
     // Ignore stale or client-forged row indexes.
     Menu* menu = _stack.Current(slot);
     if (index < 0 || !menu || index >= static_cast<int>(menu->Items.size()))
+    {
         return;
+    }
 
     // Leaving a stepped row applies its pending value. Returning to it leaves the value pending.
     if (!_stack.IsPending(slot, index))
+    {
         _stack.ApplyPending(slot);
+    }
 
     _cursors[slot].Selected = index;
 }
@@ -95,13 +107,17 @@ void CenterHtmlMenu::Select(int slot, int index)
 void CenterHtmlMenu::Close(int slot)
 {
     if (!IsValidSlot(slot))
+    {
         return;
+    }
 
     // Clear prompts for menus that are closing so they cannot consume later chat input.
     _services.ChatInput.CancelCapture(slot);
 
     if (!_stack.IsOpen(slot))
+    {
         return;
+    }
 
     // A parent menu still showing is drawn next frame.
     _stack.Pop(slot);
@@ -121,12 +137,16 @@ void CenterHtmlMenu::Close(int slot)
 void CenterHtmlMenu::CloseAll(int slot)
 {
     if (!IsValidSlot(slot))
+    {
         return;
+    }
 
     _services.ChatInput.CancelCapture(slot);
 
     if (!_stack.IsOpen(slot))
+    {
         return;
+    }
 
     _stack.Clear(slot);
     _cursors[slot] = {};
@@ -139,7 +159,9 @@ void CenterHtmlMenu::CloseAll(int slot, std::string_view replyKey)
 {
     // Reply before closing: it is addressed to a player whose menus are about to go.
     if (auto& reply = _services.Policy.Reply; reply)
+    {
         reply(slot, _services.Translations.Get(std::string(replyKey), slot));
+    }
 
     CloseAll(slot);
 }
@@ -163,7 +185,9 @@ void CenterHtmlMenu::Draw(int slot)
 {
     Menu* menu = _stack.Current(slot);
     if (!menu)
+    {
         return;
+    }
 
     // A pending capture replaces the item list with its prompt.
     if (auto prompt = _services.ChatInput.GetPrompt(slot))
@@ -187,24 +211,32 @@ void CenterHtmlMenu::OnGameFrame()
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
         if (!_stack.IsOpen(slot))
+        {
             continue;
+        }
 
         ReadKeys(slot);
 
         // Input may have activated a row that closed the menu it was about to draw.
         if (_stack.IsOpen(slot))
+        {
             Draw(slot);
+        }
     }
 
     // Slot reset clears stacks without going through Close, so stop per-frame work here.
     if (!_stack.AnyOpen())
+    {
         _onFrame.Reset();
+    }
 }
 
 bool CenterHtmlMenu::ReadKeys(int slot)
 {
     if (!_stack.Current(slot))
+    {
         return false;
+    }
 
     Cursor& cursor = _cursors[slot];
     const uint64_t buttons = _services.Entities.Buttons(slot);
@@ -212,16 +244,22 @@ bool CenterHtmlMenu::ReadKeys(int slot)
     cursor.PrevButtons = buttons;
 
     if (pressed == 0)
+    {
         return false;
+    }
 
     const int64_t now = Time::MonotonicMs();
     if (now - cursor.LastInputTime < PressGapMs)
+    {
         return false;
+    }
 
     if (_services.ChatInput.IsCapturing(slot))
     {
         if ((pressed & IN_RELOAD) == 0)
+        {
             return false;
+        }
 
         _services.ChatInput.CancelCapture(slot);
         cursor.LastInputTime = now;
@@ -229,7 +267,9 @@ bool CenterHtmlMenu::ReadKeys(int slot)
     }
 
     if (!RunKey(slot, pressed))
+    {
         return false;
+    }
 
     cursor.LastInputTime = now;
     return true;
@@ -246,7 +286,9 @@ bool CenterHtmlMenu::RunKey(int slot, uint64_t pressed)
     Menu* menu = _stack.Current(slot);
     const int itemCount = menu ? static_cast<int>(menu->Items.size()) : 0;
     if (itemCount == 0)
+    {
         return false;
+    }
 
     if (pressed & IN_FORWARD)
     {
@@ -262,9 +304,13 @@ bool CenterHtmlMenu::RunKey(int slot, uint64_t pressed)
     {
         const int direction = (pressed & IN_MOVELEFT) ? -1 : +1;
         if (_stack.Step(slot, _cursors[slot].Selected, direction))
+        {
             return true;
+        }
         if (itemCount <= CenterHtmlRowsPerPage)
+        {
             return false;
+        }
         JumpPage(slot, direction);
         return true;
     }
@@ -285,7 +331,9 @@ void CenterHtmlMenu::JumpPage(int slot, int delta)
 {
     Menu* menu = _stack.Current(slot);
     if (!menu || menu->Items.empty())
+    {
         return;
+    }
 
     Select(slot,
            MenuCursor::JumpPage(CursorRowsFor(menu, slot), _cursors[slot].Selected, CenterHtmlRowsPerPage, delta));

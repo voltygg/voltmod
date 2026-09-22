@@ -75,7 +75,9 @@ public:
     Status Available() const
     {
         if (!_bindings.VisibilityRecipientSlot)
+        {
             return std::unexpected(Error::Unsupported("the CheckTransmitPlayerSlot offset did not bind"));
+        }
         return {};
     }
 

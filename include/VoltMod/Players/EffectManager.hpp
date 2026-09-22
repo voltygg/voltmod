@@ -47,7 +47,9 @@ struct ActiveEffect
     void Stop()
     {
         if (Stopped)
+        {
             return;
+        }
         Stopped = true;
         Tick.Reset();
         Expiry.Reset();

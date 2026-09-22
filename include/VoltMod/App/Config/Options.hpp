@@ -42,7 +42,9 @@ public:
     {
         auto parsed = Json::ReadFile<TSettings>(path);
         if (!parsed)
+        {
             return std::unexpected(parsed.error());
+        }
 
         TSnapshot next = _build(std::move(*parsed));
         _snapshot = std::move(next);

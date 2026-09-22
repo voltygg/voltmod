@@ -28,11 +28,15 @@ public:
     bool Set(ConVar<T>& cvar, const T& value)
     {
         if (!cvar)
+        {
             return false;
+        }
 
         const auto name = cvar.Name();
         if (std::ranges::find(_saved, name, &Snapshot::Name) == _saved.end())
+        {
             _saved.push_back({.Name = std::string(name), .Value = ConVarText(cvar.Get())});
+        }
 
         return cvar.Set(value).has_value();
     }

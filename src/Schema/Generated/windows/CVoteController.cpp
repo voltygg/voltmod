@@ -28,7 +28,9 @@ static constexpr int32_t kCVoteController_VoteOptions = 1600;            // CUtl
 int32_t CVoteController::ActiveIssueIndex() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<int32_t>(_base, kCVoteController_ActiveIssueIndex);
 }
@@ -36,7 +38,9 @@ int32_t CVoteController::ActiveIssueIndex() const
 void CVoteController::SetActiveIssueIndex(int32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<int32_t>(_base, kCVoteController_ActiveIssueIndex) = value;
     NotifyEntity(_owner, _ownerOffset + kCVoteController_ActiveIssueIndex);
@@ -45,7 +49,9 @@ void CVoteController::SetActiveIssueIndex(int32_t value) const
 int32_t CVoteController::OnlyTeamToVote() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<int32_t>(_base, kCVoteController_OnlyTeamToVote);
 }
@@ -53,7 +59,9 @@ int32_t CVoteController::OnlyTeamToVote() const
 void CVoteController::SetOnlyTeamToVote(int32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<int32_t>(_base, kCVoteController_OnlyTeamToVote) = value;
     NotifyEntity(_owner, _ownerOffset + kCVoteController_OnlyTeamToVote);
@@ -62,7 +70,9 @@ void CVoteController::SetOnlyTeamToVote(int32_t value) const
 int32_t CVoteController::VoteOptionCount(size_t index) const
 {
     if (!_base || index >= 5)
+    {
         return {};
+    }
 
     return MemberPtr<int32_t>(_base, kCVoteController_VoteOptionCount)[index];
 }
@@ -70,7 +80,9 @@ int32_t CVoteController::VoteOptionCount(size_t index) const
 void CVoteController::SetVoteOptionCount(size_t index, int32_t value) const
 {
     if (!_base || index >= 5)
+    {
         return;
+    }
 
     MemberPtr<int32_t>(_base, kCVoteController_VoteOptionCount)[index] = value;
     NotifyEntity(_owner,
@@ -80,7 +92,9 @@ void CVoteController::SetVoteOptionCount(size_t index, int32_t value) const
 int32_t CVoteController::PotentialVotes() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<int32_t>(_base, kCVoteController_PotentialVotes);
 }
@@ -88,7 +102,9 @@ int32_t CVoteController::PotentialVotes() const
 void CVoteController::SetPotentialVotes(int32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<int32_t>(_base, kCVoteController_PotentialVotes) = value;
     NotifyEntity(_owner, _ownerOffset + kCVoteController_PotentialVotes);
@@ -97,7 +113,9 @@ void CVoteController::SetPotentialVotes(int32_t value) const
 bool CVoteController::IsYesNoVote() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<bool>(_base, kCVoteController_IsYesNoVote);
 }
@@ -105,7 +123,9 @@ bool CVoteController::IsYesNoVote() const
 void CVoteController::SetIsYesNoVote(bool value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<bool>(_base, kCVoteController_IsYesNoVote) = value;
     NotifyEntity(_owner, _ownerOffset + kCVoteController_IsYesNoVote);
@@ -114,7 +134,9 @@ void CVoteController::SetIsYesNoVote(bool value) const
 CountdownTimer CVoteController::AcceptingVotesTimer() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return CountdownTimer{MemberPtr<void>(_base, kCVoteController_AcceptingVotesTimer), _owner,
                           _ownerOffset + kCVoteController_AcceptingVotesTimer};
@@ -123,7 +145,9 @@ CountdownTimer CVoteController::AcceptingVotesTimer() const
 CountdownTimer CVoteController::ExecuteCommandTimer() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return CountdownTimer{MemberPtr<void>(_base, kCVoteController_ExecuteCommandTimer), _owner,
                           _ownerOffset + kCVoteController_ExecuteCommandTimer};
@@ -132,7 +156,9 @@ CountdownTimer CVoteController::ExecuteCommandTimer() const
 CountdownTimer CVoteController::ResetVoteTimer() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return CountdownTimer{MemberPtr<void>(_base, kCVoteController_ResetVoteTimer), _owner,
                           _ownerOffset + kCVoteController_ResetVoteTimer};
@@ -141,7 +167,9 @@ CountdownTimer CVoteController::ResetVoteTimer() const
 int32_t CVoteController::VotesCast(size_t index) const
 {
     if (!_base || index >= 64)
+    {
         return {};
+    }
 
     return MemberPtr<int32_t>(_base, kCVoteController_VotesCast)[index];
 }
@@ -149,7 +177,9 @@ int32_t CVoteController::VotesCast(size_t index) const
 void CVoteController::SetVotesCast(size_t index, int32_t value) const
 {
     if (!_base || index >= 64)
+    {
         return;
+    }
 
     MemberPtr<int32_t>(_base, kCVoteController_VotesCast)[index] = value;
 }
@@ -157,7 +187,9 @@ void CVoteController::SetVotesCast(size_t index, int32_t value) const
 int32_t CVoteController::PlayerHoldingVote() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<int32_t>(_base, kCVoteController_PlayerHoldingVote);
 }
@@ -165,7 +197,9 @@ int32_t CVoteController::PlayerHoldingVote() const
 void CVoteController::SetPlayerHoldingVote(int32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<int32_t>(_base, kCVoteController_PlayerHoldingVote) = value;
 }
@@ -173,7 +207,9 @@ void CVoteController::SetPlayerHoldingVote(int32_t value) const
 int32_t CVoteController::PlayerOverrideForVote() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<int32_t>(_base, kCVoteController_PlayerOverrideForVote);
 }
@@ -181,7 +217,9 @@ int32_t CVoteController::PlayerOverrideForVote() const
 void CVoteController::SetPlayerOverrideForVote(int32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<int32_t>(_base, kCVoteController_PlayerOverrideForVote) = value;
 }
@@ -189,7 +227,9 @@ void CVoteController::SetPlayerOverrideForVote(int32_t value) const
 int32_t CVoteController::HighestCountIndex() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<int32_t>(_base, kCVoteController_HighestCountIndex);
 }
@@ -197,7 +237,9 @@ int32_t CVoteController::HighestCountIndex() const
 void CVoteController::SetHighestCountIndex(int32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<int32_t>(_base, kCVoteController_HighestCountIndex) = value;
 }

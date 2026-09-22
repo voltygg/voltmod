@@ -43,7 +43,9 @@ struct HttpRequest
     void AddAuth(std::string_view header, std::string_view scheme, std::string_view key)
     {
         if (key.empty())
+        {
             return;
+        }
         AddHeader(header, scheme.empty() ? std::string(key) : std::string(scheme) + " " + std::string(key));
     }
 };

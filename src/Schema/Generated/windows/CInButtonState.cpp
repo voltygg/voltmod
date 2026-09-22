@@ -14,7 +14,9 @@ static constexpr int32_t kCInButtonState_ButtonStates = 8;  // uint64[3]
 uint64_t CInButtonState::ButtonStates(size_t index) const
 {
     if (!_base || index >= 3)
+    {
         return {};
+    }
 
     return MemberPtr<uint64_t>(_base, kCInButtonState_ButtonStates)[index];
 }

@@ -22,7 +22,9 @@ namespace VoltMod::Validation
 inline void NormalizeTag(std::string& value, std::size_t maxLen, std::string_view fallback, std::string_view what)
 {
     if (!Strings::Trim(value).empty() && value.size() <= maxLen)
+    {
         return;
+    }
 
     Log::Warn("settings: {} is empty or longer than {} chars; using \"{}\"", what, maxLen, fallback);
     value = std::string(fallback);
@@ -37,9 +39,13 @@ void FilterValid(std::vector<T>& items, std::invocable<const T&, std::size_t> au
     for (std::size_t i = 0; i < items.size(); ++i)
     {
         if (auto reason = validate(items[i], i))
+        {
             Log::Warn("settings: skipping {}[{}]: {}", what, i, *reason);
+        }
         else
+        {
             kept.push_back(std::move(items[i]));
+        }
     }
     items = std::move(kept);
 }
@@ -50,7 +56,9 @@ template <class T>
 bool FallbackIfEmpty(std::vector<T>& items, const std::vector<T>& defaults, std::string_view what)
 {
     if (!items.empty() || defaults.empty())
+    {
         return false;
+    }
 
     Log::Warn("settings: {} has no valid entries; using built-in defaults", what);
     items = defaults;
@@ -64,11 +72,15 @@ template <class T>
 bool FallbackIfEmpty(std::vector<T>& items, std::invocable auto&& makeDefaults, std::string_view what)
 {
     if (!items.empty())
+    {
         return false;
+    }
 
     auto defaults = makeDefaults();
     if (defaults.empty())
+    {
         return false;
+    }
 
     Log::Warn("settings: {} has no valid entries; using built-in defaults", what);
     items = std::move(defaults);
@@ -85,7 +97,9 @@ inline std::vector<int> ParseDurations(const std::vector<std::string>& entries,
         kept,
         [](const std::string& entry, std::size_t) -> std::optional<std::string> {
             if (ParseDuration(entry) < 0)
+            {
                 return std::format("bad duration '{}'", entry);
+            }
             return std::nullopt;
         },
         what);
@@ -94,7 +108,9 @@ inline std::vector<int> ParseDurations(const std::vector<std::string>& entries,
     std::vector<int> result;
     result.reserve(kept.size());
     for (const auto& entry : kept)
+    {
         result.push_back(ParseDuration(entry));
+    }
     return result;
 }
 

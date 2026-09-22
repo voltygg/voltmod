@@ -21,7 +21,9 @@ static constexpr int32_t kCBodyComponent_SceneNode = 8;  // CGameSceneNode*
 CGameSceneNode CBodyComponent::SceneNode() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return CGameSceneNode{*MemberPtr<void*>(_base, kCBodyComponent_SceneNode)};
 }

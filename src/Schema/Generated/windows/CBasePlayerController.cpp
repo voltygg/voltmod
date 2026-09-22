@@ -16,7 +16,9 @@ static constexpr int32_t kCBasePlayerController_PawnHandle = 1248;  // CHandle< 
 std::string_view CBasePlayerController::Name() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return MemberPtr<CharBuf<128>>(_base, kCBasePlayerController_Name)->View();
 }
@@ -24,7 +26,9 @@ std::string_view CBasePlayerController::Name() const
 void CBasePlayerController::SetName(std::string_view value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<CharBuf<128>>(_base, kCBasePlayerController_Name) = value;
     NotifyEntity(_owner, _ownerOffset + kCBasePlayerController_Name);
@@ -33,7 +37,9 @@ void CBasePlayerController::SetName(std::string_view value) const
 uint32_t CBasePlayerController::PawnHandle() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<uint32_t>(_base, kCBasePlayerController_PawnHandle);
 }
@@ -41,7 +47,9 @@ uint32_t CBasePlayerController::PawnHandle() const
 void CBasePlayerController::SetPawnHandle(uint32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<uint32_t>(_base, kCBasePlayerController_PawnHandle) = value;
     NotifyEntity(_owner, _ownerOffset + kCBasePlayerController_PawnHandle);

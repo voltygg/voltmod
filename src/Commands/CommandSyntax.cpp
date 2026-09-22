@@ -29,7 +29,9 @@ std::vector<std::string> Tokenize(std::string_view text)
         if (c == ' ' && !quoted)
         {
             if (started || !current.empty())
+            {
                 tokens.push_back(current);
+            }
             current.clear();
             started = false;
             continue;
@@ -38,14 +40,18 @@ std::vector<std::string> Tokenize(std::string_view text)
     }
 
     if (started || !current.empty())
+    {
         tokens.push_back(current);
+    }
     return tokens;
 }
 
 std::optional<std::string_view> StripPrefix(std::string_view message)
 {
     if (message.size() > ChatPrefix.size() && message.starts_with(ChatPrefix))
+    {
         return message.substr(ChatPrefix.size());
+    }
     return std::nullopt;
 }
 

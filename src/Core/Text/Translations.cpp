@@ -15,15 +15,21 @@ namespace VoltMod
 static void FlattenInto(const glz::generic& node, const std::string& prefix, StringMap<std::string>& out)
 {
     if (!node.is_object())
+    {
         return;
+    }
 
     for (const auto& [key, value] : node.get_object())
     {
         std::string full = prefix.empty() ? key : prefix + "." + key;
         if (value.is_object())
+        {
             FlattenInto(value, full, out);
+        }
         else if (value.is_string())
+        {
             out[full] = value.get_string();
+        }
     }
 }
 
@@ -87,12 +93,16 @@ bool Translations::Load(std::string_view dirPath)
     for (const auto& entry : fs::directory_iterator(resolvedPath))
     {
         if (entry.path().extension() != ".json")
+        {
             continue;
+        }
 
         std::string langCode = entry.path().stem().string();
         auto text = ReadAllText(entry.path().string());
         if (!text)
+        {
             continue;
+        }
 
         // Language files remain strict JSON, not JSONC.
         auto data = Json::ParseDocument(*text);
@@ -180,7 +190,9 @@ std::optional<std::string_view> Translations::LookupIn(std::string_view lang, st
     {
         auto keyIt = langIt->second.find(key);
         if (keyIt != langIt->second.end())
+        {
             return keyIt->second;
+        }
     }
     return std::nullopt;
 }
@@ -196,11 +208,17 @@ std::optional<std::string_view> Translations::Resolve(std::string_view key, int 
     const std::string_view lang = picked.empty() ? std::string_view(_activeLang) : picked;
 
     for (const std::string_view candidate : {lang, std::string_view(_activeLang), std::string_view("en")})
+    {
         if (auto v = LookupIn(candidate, key))
+        {
             return v;
+        }
+    }
 
     if (auto it = KitDefaults().find(key); it != KitDefaults().end())
+    {
         return it->second;
+    }
     return std::nullopt;
 }
 

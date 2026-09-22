@@ -24,8 +24,12 @@ static PluginManifest Plugin(std::string name, std::vector<std::string> dependen
 static const RefusedPlugin* Refusal(const LoadList& list, std::string_view name)
 {
     for (const RefusedPlugin& refused : list.Refused)
+    {
         if (refused.Name == name)
+        {
             return &refused;
+        }
+    }
 
     return nullptr;
 }

@@ -14,13 +14,17 @@ ChatInput::ChatInput(Scheduler& scheduler, SlotEvents& slots)
 ChatInput::~ChatInput()
 {
     for (int slot = 0; slot < MaxPlayers; ++slot)
+    {
         CancelCapture(slot);
+    }
 }
 
 void ChatInput::BeginCapture(int slot, std::string prompt, Callback callback, int timeoutMs)
 {
     if (!IsValidSlot(slot) || !callback)
+    {
         return;
+    }
 
     CancelCapture(slot);
 
@@ -44,18 +48,24 @@ void ChatInput::BeginCapture(int slot, std::string prompt, Callback callback, in
 bool ChatInput::IsCapturing(int slot) const
 {
     if (!IsValidSlot(slot))
+    {
         return false;
+    }
     return _pending[slot].has_value();
 }
 
 bool ChatInput::TryConsume(int slot, std::string_view text)
 {
     if (!IsValidSlot(slot))
+    {
         return false;
+    }
 
     auto& opt = _pending[slot];
     if (!opt.has_value())
+    {
         return false;
+    }
 
     // Move the capture out before the callback so redraws see no prompt and callbacks can start another capture.
     Pending pending = std::move(*opt);
@@ -65,7 +75,9 @@ bool ChatInput::TryConsume(int slot, std::string_view text)
 
     // Restore rejected input unless the callback already installed a replacement capture.
     if (!accepted && !_pending[slot].has_value())
+    {
         _pending[slot] = std::move(pending);
+    }
 
     // Captured input is never forwarded as chat, even when rejected.
     return true;
@@ -74,17 +86,23 @@ bool ChatInput::TryConsume(int slot, std::string_view text)
 void ChatInput::CancelCaptureById(int slot, uint64_t id)
 {
     if (!IsValidSlot(slot))
+    {
         return;
+    }
 
     const auto& opt = _pending[slot];
     if (opt.has_value() && opt->Id == id)
+    {
         CancelCapture(slot);
+    }
 }
 
 void ChatInput::CancelCapture(int slot)
 {
     if (!IsValidSlot(slot))
+    {
         return;
+    }
 
     _pending[slot].reset();  // Dropping the capture also cancels its timeout.
 }
@@ -92,10 +110,14 @@ void ChatInput::CancelCapture(int slot)
 std::optional<std::string> ChatInput::GetPrompt(int slot) const
 {
     if (!IsValidSlot(slot))
+    {
         return std::nullopt;
+    }
     const auto& opt = _pending[slot];
     if (!opt)
+    {
         return std::nullopt;
+    }
     return opt->Prompt;
 }
 

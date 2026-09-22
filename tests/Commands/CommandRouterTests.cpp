@@ -54,7 +54,9 @@ struct StubBinder final : ArgBinder
         LastToken = std::string(token);
         LastAllowedMultiple = rules.AllowMultiple;
         if (!Succeed)
+        {
             return std::unexpected(Failure);
+        }
         return Roster;
     }
 };
@@ -83,7 +85,9 @@ public:
     {
         std::string asked(name);
         if (std::ranges::find(OwnedByPeer, asked) != OwnedByPeer.end())
+        {
             return false;
+        }
         Registered.push_back(asked);
         return true;
     }
@@ -132,7 +136,9 @@ static CommandDefinition Echo(std::string name, std::vector<ArgDesc> args, std::
     def.Args = std::move(args);
     def.Invoke = [seen](const Caller& c, std::span<const BoundArg> bound) -> Result<Reply> {
         if (seen)
+        {
             seen->assign(bound.begin(), bound.end());
+        }
         return c.Ok("ok");
     };
     return def;

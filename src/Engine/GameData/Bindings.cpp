@@ -47,7 +47,9 @@ private:
     {
         const GameDataLocation entry = _lookup(sections, key);
         if (!entry.Found)
+        {
             _failures.push_back(std::format("{}: {}", key, entry.Reason));
+        }
         return entry;
     }
 
@@ -112,8 +114,10 @@ Status Bindings::Bind(const GameDataLookup& lookup)
 
     Failures = bind.TakeFailures();
     if (!Failures.empty())
+    {
         return std::unexpected(
             Error::Engine(std::format("{} did not bind: {}", Failures.size(), Strings::Join(Failures, "; "))));
+    }
 
     return {};
 }

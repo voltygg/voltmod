@@ -9,7 +9,9 @@ namespace VoltMod
 static bool IsSelectable(const CursorRows& rows, int index)
 {
     if (index < 0 || index >= rows.Count)
+    {
         return false;
+    }
 
     return !rows.Selectable || rows.Selectable(index);
 }
@@ -17,7 +19,9 @@ static bool IsSelectable(const CursorRows& rows, int index)
 int MenuCursor::Step(const CursorRows& rows, int index, int step)
 {
     if (rows.Count <= 0)
+    {
         return index;
+    }
 
     // Bound the search so an all-disabled menu cannot loop forever.
     int attempts = rows.Count;
@@ -33,7 +37,9 @@ int MenuCursor::Step(const CursorRows& rows, int index, int step)
 int MenuCursor::First(const CursorRows& rows)
 {
     if (rows.Count <= 0 || IsSelectable(rows, 0))
+    {
         return 0;
+    }
 
     return Step(rows, 0, +1);
 }
@@ -41,7 +47,9 @@ int MenuCursor::First(const CursorRows& rows)
 int MenuCursor::JumpPage(const CursorRows& rows, int index, int rowsPerPage, int delta)
 {
     if (rows.Count <= 0 || rowsPerPage <= 0)
+    {
         return index;
+    }
 
     const int pages = PageCount(rows.Count, rowsPerPage);
     const int page = WrapIndex(index / rowsPerPage + delta, pages);
@@ -53,7 +61,9 @@ int MenuCursor::JumpPage(const CursorRows& rows, int index, int rowsPerPage, int
     for (int attempts = end - start; attempts > 0; --attempts)
     {
         if (IsSelectable(rows, landed))
+        {
             break;
+        }
         landed = (landed + 1 < end) ? landed + 1 : start;
     }
 

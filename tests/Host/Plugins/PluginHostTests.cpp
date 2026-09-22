@@ -50,7 +50,9 @@ TEST_CASE("Tokens are unique across every event and the service table, and are n
     };
 
     for (const uint64_t token : tokens)
+    {
         CHECK(token != 0);
+    }
     std::vector<uint64_t> sorted = tokens;
     std::ranges::sort(sorted);
     CHECK(std::ranges::adjacent_find(sorted) == sorted.end());
@@ -98,7 +100,9 @@ TEST_CASE("Removing a plugin drops what it still held, reports each leftover and
     second->OnChanged(
         +[](void* context, std::string_view name, bool published) {
             if (!published)
+            {
                 static_cast<std::vector<std::string>*>(context)->push_back(std::string(name));
+            }
         },
         &withdrawn);
 

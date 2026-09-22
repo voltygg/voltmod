@@ -48,20 +48,26 @@ std::optional<int64_t> SteamId::FromSteamId(const std::string& steamId)
     // <universe 0-5> ':' <auth 0|1> ':' <accountNum>.
     constexpr std::string_view prefix = "STEAM_";
     if (!steamId.starts_with(prefix) || steamId.size() < prefix.size() + 4)
+    {
         return std::nullopt;
+    }
 
     const char universe = steamId[prefix.size()];
     const char auth = steamId[prefix.size() + 2];
     if (universe < '0' || universe > '5' || auth < '0' || auth > '1' || steamId[prefix.size() + 1] != ':' ||
         steamId[prefix.size() + 3] != ':')
+    {
         return std::nullopt;
+    }
 
     const char* first = steamId.data() + prefix.size() + 4;
     const char* last = steamId.data() + steamId.size();
     uint32_t accountNum = 0;
     auto [ptr, ec] = std::from_chars(first, last, accountNum);
     if (ec != std::errc{} || ptr != last)  // (\d+) requires ≥1 digit and no trailing junk
+    {
         return std::nullopt;
+    }
 
     const uint32_t accountId = accountNum * 2 + static_cast<uint32_t>(auth - '0');
     return SteamId64Base + accountId;

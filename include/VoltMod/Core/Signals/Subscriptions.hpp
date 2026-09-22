@@ -46,7 +46,9 @@ public:
     void Clear()
     {
         while (!_items.empty())
+        {
             _items.pop_back();
+        }
     }
 
     /** True while this holds nothing - also how a caller asks "have I subscribed yet?" for a

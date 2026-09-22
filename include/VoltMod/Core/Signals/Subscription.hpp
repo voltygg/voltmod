@@ -59,7 +59,9 @@ public:
     void Reset()
     {
         if (auto cleanup = std::exchange(_cleanup, nullptr))
+        {
             cleanup();
+        }
     }
 
     /** True while this holds a live registration. */

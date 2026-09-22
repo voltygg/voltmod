@@ -36,7 +36,9 @@ void* CCSCustomHudLayout::DialogVariableNames() const
 CCSCustomHudLayoutState CCSCustomHudLayout::GlobalLayoutState() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return CCSCustomHudLayoutState{MemberPtr<void>(_base, kCCSCustomHudLayout_GlobalLayoutState), _owner,
                                    _ownerOffset + kCCSCustomHudLayout_GlobalLayoutState};
@@ -45,7 +47,9 @@ CCSCustomHudLayoutState CCSCustomHudLayout::GlobalLayoutState() const
 int32_t CCSCustomHudLayout::PlayerLayoutStates() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<int32_t>(_base, kCCSCustomHudLayout_PlayerLayoutStates);
 }
@@ -53,7 +57,9 @@ int32_t CCSCustomHudLayout::PlayerLayoutStates() const
 void CCSCustomHudLayout::SetPlayerLayoutStates(int32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<int32_t>(_base, kCCSCustomHudLayout_PlayerLayoutStates) = value;
     NotifyEntity(_owner, _ownerOffset + kCCSCustomHudLayout_PlayerLayoutStates);
@@ -62,7 +68,9 @@ void CCSCustomHudLayout::SetPlayerLayoutStates(int32_t value) const
 const char* CCSCustomHudLayout::Layout() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<const char*>(_base, kCCSCustomHudLayout_Layout);
 }
@@ -70,7 +78,9 @@ const char* CCSCustomHudLayout::Layout() const
 void CCSCustomHudLayout::SetLayout(const char* value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<const char*>(_base, kCCSCustomHudLayout_Layout) = value;
     NotifyEntity(_owner, _ownerOffset + kCCSCustomHudLayout_Layout);

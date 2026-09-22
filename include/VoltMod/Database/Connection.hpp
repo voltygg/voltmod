@@ -57,7 +57,9 @@ template <class Conn, class Update, class Statement>
 void Upsert(Conn& conn, const Update& update, const Statement& insert)
 {
     if (conn(update).affected_rows == 0)
+    {
         conn(insert);
+    }
 }
 
 }  // namespace VoltMod

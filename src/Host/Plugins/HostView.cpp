@@ -54,7 +54,9 @@ IHostGameData* HostView::GameData() const
 bool HostView::RegisterCommand(std::string_view name)
 {
     if (_state.Commands.Register(this, _name, name))
+    {
         return true;
+    }
 
     Log::Error("Command '{}' is already registered by {}, so {} cannot have it.", name, _state.Commands.OwnerOf(name),
                _name);
@@ -75,7 +77,9 @@ void HostView::WriteLog(uint8_t level, std::string_view text)
 {
     const auto wanted = static_cast<LogLevel>(level);
     if (wanted < _minLevel)
+    {
         return;
+    }
 
     // Every plugin prints through the host's own handler, so a server reads one stream.
     Log::Emit(wanted, std::format("[{}] {}", _logTag, text));
@@ -100,7 +104,9 @@ template <class Fn>
 uint64_t HostView::Subscribe(std::string_view event, CallbackList<Fn>& list, Fn callback, void* context)
 {
     if (callback == nullptr)
+    {
         return 0;
+    }
 
     const uint64_t token = _state.NextToken++;
     list.Add(token, _order, callback, context);
@@ -167,7 +173,9 @@ uint64_t HostView::OnChanged(ChangedFn callback, void* context)
 {
     const uint64_t token = Subscribe("services changed", _state.Services.Changed(), callback, context);
     if (token != 0)
+    {
         _state.Services.NotifyPublished(callback, context);
+    }
     return token;
 }
 
@@ -175,7 +183,9 @@ void HostView::Unsubscribe(uint64_t token)
 {
     const auto held = std::ranges::find(_subscriptions, token, &Subscribed::Token);
     if (held == _subscriptions.end())
+    {
         return;
+    }
 
     held->Remove();
     _subscriptions.erase(held);

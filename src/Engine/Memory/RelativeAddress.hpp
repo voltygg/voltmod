@@ -38,12 +38,16 @@ constexpr bool Rel32ReadInBounds(uintptr_t moduleBase, size_t moduleSize, uintpt
                                  int ripOffset) noexcept
 {
     if (ripOffset < 0 || matchAddress < moduleBase)
+    {
         return false;
+    }
 
     const uintptr_t moduleEnd = moduleBase + moduleSize;
     const uintptr_t site = Rel32Site(matchAddress, ripOffset);
     if (site < matchAddress || site >= moduleEnd)
+    {
         return false;
+    }
 
     return moduleEnd - site >= static_cast<uintptr_t>(Rel32Size);
 }

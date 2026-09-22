@@ -24,7 +24,9 @@ static constexpr int32_t kCCSPlayerPawn_SpottedState = 5424;           // Entity
 int32_t CCSPlayerPawn::Armor() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<int32_t>(_base, kCCSPlayerPawn_Armor);
 }
@@ -32,7 +34,9 @@ int32_t CCSPlayerPawn::Armor() const
 void CCSPlayerPawn::SetArmor(int32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<int32_t>(_base, kCCSPlayerPawn_Armor) = value;
     NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawn_Armor);
@@ -41,7 +45,9 @@ void CCSPlayerPawn::SetArmor(int32_t value) const
 QAngle CCSPlayerPawn::EyeAngles() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<QAngle>(_base, kCCSPlayerPawn_EyeAngles);
 }
@@ -49,7 +55,9 @@ QAngle CCSPlayerPawn::EyeAngles() const
 void CCSPlayerPawn::SetEyeAngles(QAngle value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<QAngle>(_base, kCCSPlayerPawn_EyeAngles) = value;
     NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawn_EyeAngles);
@@ -58,7 +66,9 @@ void CCSPlayerPawn::SetEyeAngles(QAngle value) const
 float CCSPlayerPawn::SpeedModifier() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<float>(_base, kCCSPlayerPawn_SpeedModifier);
 }
@@ -66,7 +76,9 @@ float CCSPlayerPawn::SpeedModifier() const
 void CCSPlayerPawn::SetSpeedModifier(float value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<float>(_base, kCCSPlayerPawn_SpeedModifier) = value;
     NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawn_SpeedModifier);
@@ -75,7 +87,9 @@ void CCSPlayerPawn::SetSpeedModifier(float value) const
 bool CCSPlayerPawn::OnGroundLastTick() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<bool>(_base, kCCSPlayerPawn_OnGroundLastTick);
 }
@@ -83,7 +97,9 @@ bool CCSPlayerPawn::OnGroundLastTick() const
 void CCSPlayerPawn::SetOnGroundLastTick(bool value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<bool>(_base, kCCSPlayerPawn_OnGroundLastTick) = value;
 }
@@ -91,7 +107,9 @@ void CCSPlayerPawn::SetOnGroundLastTick(bool value) const
 CCSPlayer_AimPunchServices CCSPlayerPawn::AimPunchServices() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return CCSPlayer_AimPunchServices{*MemberPtr<void*>(_base, kCCSPlayerPawn_AimPunchServices)};
 }
@@ -99,7 +117,9 @@ CCSPlayer_AimPunchServices CCSPlayerPawn::AimPunchServices() const
 bool CCSPlayerPawn::Scoped() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<bool>(_base, kCCSPlayerPawn_Scoped);
 }
@@ -107,7 +127,9 @@ bool CCSPlayerPawn::Scoped() const
 void CCSPlayerPawn::SetScoped(bool value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<bool>(_base, kCCSPlayerPawn_Scoped) = value;
     NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawn_Scoped);
@@ -116,7 +138,9 @@ void CCSPlayerPawn::SetScoped(bool value) const
 int32_t CCSPlayerPawn::ShotsFired() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<int32_t>(_base, kCCSPlayerPawn_ShotsFired);
 }
@@ -124,7 +148,9 @@ int32_t CCSPlayerPawn::ShotsFired() const
 void CCSPlayerPawn::SetShotsFired(int32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<int32_t>(_base, kCCSPlayerPawn_ShotsFired) = value;
     NotifyEntity(_owner, _ownerOffset + kCCSPlayerPawn_ShotsFired);
@@ -133,7 +159,9 @@ void CCSPlayerPawn::SetShotsFired(int32_t value) const
 int32_t CCSPlayerPawn::LastWeaponFireCommand() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<int32_t>(_base, kCCSPlayerPawn_LastWeaponFireCommand);
 }
@@ -141,7 +169,9 @@ int32_t CCSPlayerPawn::LastWeaponFireCommand() const
 void CCSPlayerPawn::SetLastWeaponFireCommand(int32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<int32_t>(_base, kCCSPlayerPawn_LastWeaponFireCommand) = value;
 }
@@ -149,7 +179,9 @@ void CCSPlayerPawn::SetLastWeaponFireCommand(int32_t value) const
 EntitySpottedState_t CCSPlayerPawn::SpottedState() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return EntitySpottedState_t{MemberPtr<void>(_base, kCCSPlayerPawn_SpottedState), _owner,
                                 _ownerOffset + kCCSPlayerPawn_SpottedState};

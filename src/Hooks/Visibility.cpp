@@ -32,16 +32,22 @@ struct HiddenPlayer
 static void AddIndex(HiddenPlayer& player, int index)
 {
     if (index > 0 && player.IndexCount < MaxIndicesPerPlayer)
+    {
         player.PawnIndices[player.IndexCount++] = index;
+    }
 }
 
 static void AddHandleVector(EntitySystem& entities, HiddenPlayer& player, const void* vector)
 {
     const auto* handles = static_cast<const HandleVector*>(vector);
     if (!handles)
+    {
         return;
+    }
     for (int i = 0; i < handles->Count() && i < MaxIndicesPerPlayer; ++i)
+    {
         AddIndex(player, entities.Resolve(EntityRef{static_cast<uint32_t>(handles->Element(i).ToInt())}).Index());
+    }
 }
 
 // Return the pawn watched by `recipientSlot`. It must remain transmissible to preserve spectator view.
@@ -51,7 +57,9 @@ static CEntityInstance* ObserverTarget(EntitySystem& entities, int recipientSlot
     Pawn pawn = entities.Controller(recipientSlot).Possessed();
     const Schema::CPlayer_ObserverServices services = pawn.ObserverServices();
     if (!services)
+    {
         return nullptr;
+    }
 
     return entities.Resolve(EntityRef{services.ObserverTarget()}).Raw();
 }
@@ -63,17 +71,25 @@ static void CollectHiddenPlayer(EntitySystem& entities, int slot, bool pawnHidde
 
     Controller controller = entities.Controller(slot);
     if (!controller)
+    {
         return;
+    }
 
     if (controllerHidden)
+    {
         out.ControllerIndex = controller.Index();
+    }
 
     if (!pawnHidden)
+    {
         return;
+    }
 
     Pawn pawn = controller.GetPawn();
     if (!pawn)
+    {
         return;
+    }
 
     out.Pawn = pawn.Raw();
     AddIndex(out, pawn.Index());
@@ -88,7 +104,9 @@ Visibility::Visibility(EntitySystem& entities, const Bindings& bindings, SlotEve
     // SlotEvents fires on both fill and empty, so clearing on both edges handles recycled slots.
     _slotListener = slots.Changed += [this](int slot) {
         if (!IsValidSlot(slot))
+        {
             return;
+        }
         _state[slot] = {};
         // The owning effect normally cleans up first; this handles a vanished viewer.
         std::erase_if(_private, [slot](const PrivateEntity& e) { return e.Viewer == slot; });
@@ -98,13 +116,17 @@ Visibility::Visibility(EntitySystem& entities, const Bindings& bindings, SlotEve
 void Visibility::SetPawnHidden(int slot, bool hidden)
 {
     if (IsValidSlot(slot))
+    {
         _state[slot].PawnHidden = hidden;
+    }
 }
 
 void Visibility::SetControllerHidden(int slot, bool hidden)
 {
     if (IsValidSlot(slot))
+    {
         _state[slot].ControllerHidden = hidden;
+    }
 }
 
 bool Visibility::IsPawnHidden(int slot) const
@@ -120,7 +142,9 @@ bool Visibility::IsControllerHidden(int slot) const
 void Visibility::ShowOnlyTo(EntityRef entity, int slot)
 {
     if (!entity || !IsValidSlot(slot))
+    {
         return;
+    }
 
     for (auto& entry : _private)
     {
@@ -146,7 +170,9 @@ std::shared_ptr<GlowVision> Visibility::CreateGlow(int viewerSlot, GlowConfig co
 void Visibility::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
 {
     if (!_bindings.VisibilityRecipientSlot || !infoList)
+    {
         return;
+    }
 
     // Drop entries whose entity is gone because the engine recycles indices.
     for (auto& entry : _private)
@@ -163,17 +189,23 @@ void Visibility::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
     {
         const auto& state = _state[slot];
         if (state.Any())
+        {
             CollectHiddenPlayer(_entities, slot, state.PawnHidden, state.ControllerHidden, hidden[hiddenCount++]);
+        }
     }
 
     if (hiddenCount == 0 && _private.empty())
+    {
         return;
+    }
 
     for (int i = 0; i < infoCount; ++i)
     {
         auto* info = infoList[i];
         if (!info || !info->m_pTransmitEntity)
+        {
             continue;
+        }
 
         const int recipient = static_cast<int>(_bindings.VisibilityRecipientSlot.Read(info));
         CEntityInstance* observed = hiddenCount > 0 ? ObserverTarget(_entities, recipient) : nullptr;
@@ -182,19 +214,31 @@ void Visibility::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
         {
             const auto& player = hidden[h];
             if (player.Slot == recipient)
+            {
                 continue;
+            }
 
             if (observed != player.Pawn)
+            {
                 for (int n = 0; n < player.IndexCount; ++n)
+                {
                     info->m_pTransmitEntity->Clear(player.PawnIndices[n]);
+                }
+            }
 
             if (player.ControllerIndex > 0)
+            {
                 info->m_pTransmitEntity->Clear(player.ControllerIndex);
+            }
         }
 
         for (const auto& entry : _private)
+        {
             if (entry.Viewer != recipient)
+            {
                 info->m_pTransmitEntity->Clear(entry.Index);
+            }
+        }
     }
 }
 

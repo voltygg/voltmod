@@ -11,12 +11,16 @@ PendingCommit::PendingCommit(Timer timer, SlotEvents& slots) : _timer(std::move(
 void PendingCommit::Hold(int slot, int index, std::function<void()> commit)
 {
     if (!IsValidSlot(slot) || !commit)
+    {
         return;
+    }
 
     // Commit the previous row before holding a different one. Holding the same row again only
     // restarts its delay.
     if (_entries[slot].Index != index)
+    {
         Apply(slot);
+    }
 
     Entry& entry = _entries[slot];
     entry.Index = index;
@@ -37,20 +41,26 @@ bool PendingCommit::IsPending(int slot, int index) const
 void PendingCommit::Apply(int slot)
 {
     if (!IsValidSlot(slot))
+    {
         return;
+    }
 
     // Remove the entry before running it. The callback may replace it or change the menu.
     Entry taken = std::move(_entries[slot]);
     _entries[slot] = Entry{};
 
     if (taken.Commit)
+    {
         taken.Commit();
+    }
 }
 
 void PendingCommit::Drop(int slot)
 {
     if (IsValidSlot(slot))
+    {
         _entries[slot] = Entry{};
+    }
 }
 
 }  // namespace VoltMod

@@ -41,11 +41,17 @@ GameDataLocation GameDataService::Lookup(GameDataSection sections, std::string_v
 {
     const ResolvedEntry* entry = _resolver ? _resolver->Find(key) : nullptr;
     if (!entry)
+    {
         return NotBound("not in gamedata");
+    }
     if (!entry->Reason.empty())
+    {
         return NotBound(entry->Reason);
+    }
     if ((static_cast<uint32_t>(sections) & static_cast<uint32_t>(entry->Kind)) == 0)
+    {
         return NotBound(std::format("in '{}', which this member does not bind from", entry->Sections[0]));
+    }
 
     return {.Found = true, .Address = entry->Address, .Value = entry->Value};
 }

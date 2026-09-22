@@ -16,13 +16,21 @@ bool ConVarTypeMatches(ConVarType type)
     // than the handle could keep. A convar of an unrepresentable width now fails to resolve,
     // with the type mismatch named, instead of reading wrong.
     if constexpr (std::is_same_v<T, bool>)
+    {
         return type == ConVarType::Bool;
+    }
     else if constexpr (std::is_same_v<T, int>)
+    {
         return type == ConVarType::Int16 || type == ConVarType::UInt16 || type == ConVarType::Int32;
+    }
     else if constexpr (std::is_same_v<T, float>)
+    {
         return type == ConVarType::Float32;
+    }
     else
+    {
         return type == ConVarType::String;
+    }
 }
 
 template bool ConVarTypeMatches<bool>(ConVarType);

@@ -84,14 +84,18 @@ public:
             [weak, step = std::move(step)](Flow&) -> std::shared_ptr<Menu> {
                 auto self = weak.lock();
                 if (!self)
+                {
                     return nullptr;
+                }
 
                 return BuildDurationMenu({.Title = step.Title,
                                           .Presets = step.Presets,
                                           .Pick =
                                               [self, set = step.Set](int, int seconds) {
                                                   if (set)
+                                                  {
                                                       set(self->_state, seconds);
+                                                  }
                                                   self->Advance();
                                               },
                                           .CustomLabel = step.CustomLabel,
@@ -162,7 +166,9 @@ private:
         {
             builder.Button(label, [self, set, label, value](int) {
                 if (*set)
+                {
                     (*set)(self->_state, label, value);
+                }
                 self->Advance();
             });
         }
@@ -174,9 +180,13 @@ private:
                                  .Set = [self, set, customValue = step.CustomValue](int, std::string_view text) {
                                      std::string typed = Strings::Trim(std::string(text));
                                      if (typed.empty())
+                                     {
                                          return false;  // re-prompt
+                                     }
                                      if (*set)
+                                     {
                                          (*set)(self->_state, typed, customValue.empty() ? typed : customValue);
+                                     }
                                      self->Advance();
                                      return true;
                                  }});
@@ -191,7 +201,9 @@ private:
 
         SummaryRows rows;
         if (_confirm.Summary)
+        {
             _confirm.Summary(_state, rows);
+        }
 
         // Resolved here because the flow knows which player it runs for.
         std::string confirmLabel =
@@ -209,12 +221,16 @@ private:
     void OpenFrom(std::size_t from)
     {
         if (!RunValidation())
+        {
             return;
+        }
 
         for (std::size_t i = from; i < _steps.size(); ++i)
         {
             if (_steps[i].Applies && !_steps[i].Applies(_state))
+            {
                 continue;
+            }
             _stepIndex = i;
             auto menu = _steps[i].Build(*this);
             if (!menu)
@@ -229,18 +245,26 @@ private:
         }
 
         if (_confirm.Summary)
+        {
             _menus->Open(_slot, BuildSummary());
+        }
         else
+        {
             RunFinish();
+        }
     }
 
     void RunFinish()
     {
         // Check again after the confirmation dialog.
         if (!RunValidation())
+        {
             return;
+        }
         if (_finish)
+        {
             _finish(_state);
+        }
         _menus->CloseAll(_slot);
     }
 
@@ -248,10 +272,14 @@ private:
     bool RunValidation()
     {
         if (!_validate)
+        {
             return true;
+        }
         auto error = _validate(_state);
         if (!error)
+        {
             return true;
+        }
 
         _menus->CloseAll(_slot, *error);
         return false;

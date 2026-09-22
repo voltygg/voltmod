@@ -28,12 +28,16 @@ Movement::~Movement() = default;
 bool Movement::Install()
 {
     if (!_bindings.UserCmdProto)
+    {
         Log::Warn("Movement: no usable 'CUserCmd::CSGOUserCmdPB' offset; handlers get Valid=false commands.");
+    }
 
     if (!_bindings.UserCmdNumber)
+    {
         Log::Warn(
             "Movement: no usable 'CUserCmdBase::cmdNum' offset; falling back to the protobuf's "
             "legacy_command_number, which the live client leaves at 0.");
+    }
 
     auto hook = HookVirtual(
         "Movement RunCommand", _bindings.RunCommand,
@@ -57,9 +61,13 @@ bool Movement::Install()
 Status Movement::Available() const
 {
     if (!_bindings.RunCommand)
+    {
         return std::unexpected(Error::Unsupported("the CPlayer_MovementServices::RunCommand vtable slot did not bind"));
+    }
     if (!_bindings.UserCmdProto)
+    {
         return std::unexpected(Error::Unsupported("the CUserCmd::CSGOUserCmdPB offset did not bind"));
+    }
     return {};
 }
 
@@ -74,7 +82,9 @@ void Movement::Decode(const void* userCmd)
 {
     _cmd = {};
     if (!userCmd || !_bindings.UserCmdProto)
+    {
         return;
+    }
 
     const auto* pb = static_cast<const CSGOUserCmdPB*>(_bindings.UserCmdProto.Ptr(userCmd));
     const auto& base = pb->base();

@@ -41,39 +41,53 @@ ClientConVars::~ClientConVars()
 Status ClientConVars::Initialize()
 {
     if (_hook)
+    {
         return {};
+    }
 
     Status installed = Install();
     if (!installed)
+    {
         _failure = installed.error();
+    }
     return installed;
 }
 
 Status ClientConVars::Available() const
 {
     if (_hook)
+    {
         return {};
+    }
     return std::unexpected(_failure);
 }
 
 Status ClientConVars::Install()
 {
     if (!_interfaces.Engine || !_interfaces.NetworkMessages || !_interfaces.GameEventSystem)
+    {
         return std::unexpected(Error::NotReady("engine interfaces unavailable"));
+    }
 
     if (!_bindings.ClientSlot)
+    {
         return std::unexpected(Error::Unsupported("the ClientSlot offset did not bind"));
+    }
 
     INetworkMessageInternal* getCvarValue =
         _interfaces.NetworkMessages->FindNetworkMessagePartial("CSVCMsg_GetCvarValue");
     if (!getCvarValue)
+    {
         return std::unexpected(Error::Engine("the engine does not provide CSVCMsg_GetCvarValue"));
+    }
 
     auto hook =
         HookVirtual("Client convar response", _bindings.ProcessRespondCvarValue, nullptr,
                     [this](EngineClient& client, const void* message) { OnRespondCvarValue(&client, message); });
     if (!hook)
+    {
         return std::unexpected(hook.error());
+    }
 
     _hook = std::move(*hook);
     _getCvarValue = getCvarValue;
@@ -91,21 +105,29 @@ void ClientConVars::Shutdown()
 bool ClientConVars::Query(int slot, const std::string& cvarName, QueryCallback callback)
 {
     if (!_hook || !IsValidSlot(slot) || cvarName.empty() || !callback)
+    {
         return false;
+    }
 
     const double now = Time::MonotonicSeconds();
     _pending->Prune(slot, now);
 
     // Share one request among callbacks for the same convar.
     if (_pending->Retarget(slot, cvarName, callback))
+    {
         return true;
+    }
 
     if (_pending->Full(slot))
+    {
         return false;
+    }
 
     const int cookie = _pending->NextCookie(slot);
     if (cookie < 0 || !Send(slot, cvarName, cookie))
+    {
         return false;
+    }
 
     _pending->Add(slot, cookie, cvarName, std::move(callback), now);
     return true;
@@ -130,11 +152,15 @@ bool ClientConVars::Send(int slot, const std::string& cvarName, int cookie)
 {
     // Bots and empty slots have no network channel.
     if (!_interfaces.Engine->GetPlayerNetInfo(CPlayerSlot(slot)))
+    {
         return false;
+    }
 
     CNetMessage* message = _getCvarValue->AllocateMessage();
     if (!message)
+    {
         return false;
+    }
 
     auto* request = message->ToPB<CSVCMsg_GetCvarValue>();
     if (!request)
@@ -159,25 +185,33 @@ void ClientConVars::OnRespondCvarValue(const void* client, const void* message)
     const auto& msg = *static_cast<const CNetMessagePB<CCLCMsg_RespondCvarValue>*>(message);
 
     if (!IsValidSlot(slot) || !msg.has_cookie() || !msg.has_status_code() || !msg.has_name())
+    {
         return;
+    }
 
     // Validate every client-controlled field before dispatch.
     const int status = msg.status_code();
     if (!EQueryCvarValueStatus_IsValid(status))
+    {
         return;
+    }
 
     std::string_view value;
     if (status == std::to_underlying(ClientConVarStatus::Answered))
     {
         if (!msg.has_value() || msg.value().find('\0') != std::string::npos)
+        {
             return;
+        }
         value = msg.value();
     }
 
     // Remove before callbacks may query the same convar again.
     auto query = _pending->Take(slot, msg.cookie(), msg.name());
     if (query && query->Callback)
+    {
         query->Callback(slot, static_cast<ClientConVarStatus>(status), msg.name(), value);
+    }
 }
 
 }  // namespace VoltMod

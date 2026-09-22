@@ -23,7 +23,9 @@ std::string_view NetChannels::GetUserInfoCvar(int slot, std::string_view name) c
 {
     auto* engine = IsValidSlot(slot) ? _interfaces.Engine : nullptr;
     if (!engine || name.empty())
+    {
         return {};
+    }
 
     const char* value = engine->GetClientConVarValue(CPlayerSlot(slot), std::string(name).c_str());
     return value ? std::string_view(value) : std::string_view{};

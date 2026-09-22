@@ -39,7 +39,9 @@ static void ResolveSections(GameDataService& gameData, std::string_view sections
 {
     std::string text = R"({ "build": { "server": "1", "verified": "2026-09-11" })";
     if (!sections.empty())
+    {
         text += std::format(",\n{}", sections);
+    }
     text += "\n}";
 
     ResolveFile(gameData, text);

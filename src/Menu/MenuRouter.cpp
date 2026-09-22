@@ -12,7 +12,9 @@ Subscription MenuRouter::Prefer(MenuSurface& surface)
     return Subscription([this, &surface] {
         // A later Prefer replaced this one; leave that in place.
         if (_preferred == &surface)
+        {
             _preferred = nullptr;
+        }
     });
 }
 
@@ -20,11 +22,15 @@ bool MenuRouter::OpenSession(int slot, std::shared_ptr<Menu> menu, MenuOptions o
 {
     // One session per player: a menu left on the other surface would stay open and frozen.
     if (_preferred)
+    {
         _preferred->CloseAll(slot);
+    }
     _fallback.CloseAll(slot);
 
     if (_preferred && _preferred->OpenSession(slot, menu, options))
+    {
         return true;
+    }
     return _fallback.OpenSession(slot, std::move(menu), options);
 }
 

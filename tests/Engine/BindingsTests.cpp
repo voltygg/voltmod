@@ -33,7 +33,9 @@ public:
 
         const auto refused = _refused.find(key);
         if (refused == _refused.end())
+        {
             return {.Found = true, .Address = &_anything, .Value = 8};
+        }
 
         _reason = refused->second;
         return {.Reason = _reason};

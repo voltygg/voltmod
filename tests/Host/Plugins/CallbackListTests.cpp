@@ -82,7 +82,9 @@ TEST_CASE("A callback added during a pass first runs in the next one")
             ListTrace& state = Trace(context);
             state.Calls.push_back("first");
             if (state.Passes++ > 0)
+            {
                 return;
+            }
             state.List->Add(2, 1, +[](void* inner) { Trace(inner).Calls.push_back("late"); }, context);
         },
         &trace);

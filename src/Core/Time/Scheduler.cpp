@@ -47,19 +47,29 @@ void Scheduler::OnGameFrame()
     _timers.DispatchIf([now](const Timer& timer) { return now >= timer.NextFireTime; },
                        [this, now](Timer& timer) {
                            if (timer.Callback)
+                           {
                                timer.Callback();
+                           }
 
                            // The callback may have cancelled this timer.
                            Timer* stored = _timers.Find(timer.Id);
                            if (!stored)
+                           {
                                return;
+                           }
 
                            if (timer.Interval > 0)
+                           {
                                stored->NextFireTime = now + timer.Interval;
+                           }
                            else if (timer.Interval < 0)
+                           {
                                stored->NextFireTime = now;  // repeat on the next frame
+                           }
                            else
+                           {
                                _timers.Remove(timer.Id);
+                           }
                        });
 }
 

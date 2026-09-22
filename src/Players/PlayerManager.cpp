@@ -11,19 +11,25 @@ namespace VoltMod
 void PlayerManager::IndexBySteamId(Player* player)
 {
     if (!player->IsBot())
+    {
         _playersBySteamId[player->SteamId()] = player;
+    }
 }
 
 void PlayerManager::UnindexBySteamId(const Player* player)
 {
     if (player->IsBot())
+    {
         return;
+    }
 
     // Only drop the entry if it still points at this player: a reconnect under the same SteamID
     // into a different slot must not be unindexed by the old occupant leaving.
     auto it = _playersBySteamId.find(player->SteamId());
     if (it != _playersBySteamId.end() && it->second == player)
+    {
         _playersBySteamId.erase(it);
+    }
 }
 
 void PlayerManager::Reindex()
@@ -31,7 +37,9 @@ void PlayerManager::Reindex()
     _ordered.clear();
     _ordered.reserve(_playersBySlot.size());
     for (const auto& [slot, player] : _playersBySlot)
+    {
         _ordered.push_back(player.get());
+    }
     std::sort(_ordered.begin(), _ordered.end(), [](const Player* a, const Player* b) { return a->Slot() < b->Slot(); });
 }
 
@@ -39,7 +47,9 @@ void PlayerManager::Drop(int slot)
 {
     auto it = _playersBySlot.find(slot);
     if (it == _playersBySlot.end())
+    {
         return;
+    }
 
     // Raised while the player is still in the roster, so a handler may still look them up.
     Disconnected.Raise(*it->second);
@@ -47,7 +57,9 @@ void PlayerManager::Drop(int slot)
     // Re-find: a handler is allowed to touch the roster, and the node may have moved or gone.
     it = _playersBySlot.find(slot);
     if (it == _playersBySlot.end())
+    {
         return;
+    }
 
     UnindexBySteamId(it->second.get());
     _playersBySlot.erase(it);
@@ -78,7 +90,9 @@ Player* PlayerManager::Add(int slot, int64_t steamId, std::string name, std::str
 void PlayerManager::Remove(int slot)
 {
     if (!_playersBySlot.contains(slot))
+    {
         return;
+    }
 
     Drop(slot);
     _slots.Raise(slot);
@@ -89,11 +103,15 @@ void PlayerManager::Clear()
     std::vector<int> slots;
     slots.reserve(_playersBySlot.size());
     for (const auto& [slot, player] : _playersBySlot)
+    {
         slots.push_back(slot);
+    }
     std::sort(slots.begin(), slots.end());
 
     for (int slot : slots)
+    {
         Drop(slot);
+    }
 
     // Anything left is a player a Disconnected handler added; drop it without a second raise.
     _playersBySlot.clear();
@@ -101,19 +119,25 @@ void PlayerManager::Clear()
     _ordered.clear();
 
     for (int slot : slots)
+    {
         _slots.Raise(slot);
+    }
 }
 
 void PlayerManager::OnClientFullyConnected(int slot)
 {
     if (Player* player = Get(slot))
+    {
         FullyConnected.Raise(*player);
+    }
 }
 
 void PlayerManager::OnClientSettingsChanged(int slot)
 {
     if (Player* player = Get(slot))
+    {
         SettingsChanged.Raise(*player);
+    }
 }
 
 Player* PlayerManager::Get(int slot)

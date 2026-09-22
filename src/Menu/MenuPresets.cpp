@@ -14,7 +14,9 @@ std::vector<std::string> SummaryRows::Take() &&
     std::vector<std::string> lines;
     lines.reserve(_rows.size());
     for (auto& [label, value] : _rows)
+    {
         lines.push_back(value.empty() ? std::move(label) : std::format("{}: {}", label, value));
+    }
 
     return lines;
 }
@@ -27,7 +29,9 @@ std::shared_ptr<Menu> BuildDurationMenu(DurationMenu spec)
     {
         builder.Button(label, [pick = spec.Pick, seconds](int slot) {
             if (pick)
+            {
                 pick(slot, seconds);
+            }
         });
     }
 
@@ -40,9 +44,13 @@ std::shared_ptr<Menu> BuildDurationMenu(DurationMenu spec)
                                  [pick = spec.Pick](int slot, std::string_view text) {
                                      const int seconds = ParseDuration(text);
                                      if (seconds < 0)
+                                     {
                                          return false;  // re-prompt
+                                     }
                                      if (pick)
+                                     {
                                          pick(slot, seconds);
+                                     }
                                      return true;
                                  },
                              .MaxLength = spec.MaxInputLength});
@@ -56,17 +64,25 @@ std::shared_ptr<Menu> BuildConfirmMenu(ConfirmMenu spec)
     MenuBuilder builder(std::move(spec.Title));
 
     for (const auto& line : spec.Lines)
+    {
         builder.Text(line);
+    }
 
     // Flow normally translates both labels before building this row.
     if (spec.ConfirmLabel.empty())
+    {
         spec.ConfirmLabel = "Confirm";
+    }
     if (spec.CancelLabel.empty())
+    {
         spec.CancelLabel = "Cancel";
+    }
 
     builder.Button(std::move(spec.ConfirmLabel), [confirm = std::move(spec.Confirm)](int slot) {
         if (confirm)
+        {
             confirm(slot);
+        }
     });
 
     // Cancel closes through the surface passed to Activate.
@@ -74,9 +90,13 @@ std::shared_ptr<Menu> BuildConfirmMenu(ConfirmMenu spec)
                          .Activate =
                              [cancel = std::move(spec.Cancel)](int slot, MenuSurface& surface) {
                                  if (cancel)
+                                 {
                                      cancel(slot);
+                                 }
                                  else
+                                 {
                                      surface.CloseAll(slot);
+                                 }
                              }});
 
     return builder.Build();

@@ -205,7 +205,9 @@ public:
     std::shared_ptr<Menu> Build()
     {
         if (_menu.Items.empty() && !_emptyText.empty())
+        {
             Text(std::move(_emptyText));
+        }
 
         return std::make_shared<Menu>(std::move(_menu));
     }

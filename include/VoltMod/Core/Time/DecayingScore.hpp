@@ -39,7 +39,9 @@ public:
         const double elapsed = now - _stamp;
         // A clock that went backwards - map restart, skew - reads as no time passed, never as gain.
         if (_halfLifeSec <= 0.0 || elapsed <= 0.0)
+        {
             return _value;
+        }
         return _value * std::exp2(-elapsed / _halfLifeSec);
     }
 

@@ -14,7 +14,9 @@ static constexpr int32_t kCCSGameRulesProxy_GameRules = 1192;  // CCSGameRules*
 void* CCSGameRulesProxy::GameRules() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<void*>(_base, kCCSGameRulesProxy_GameRules);
 }
@@ -22,7 +24,9 @@ void* CCSGameRulesProxy::GameRules() const
 void CCSGameRulesProxy::SetGameRules(void* value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<void*>(_base, kCCSGameRulesProxy_GameRules) = value;
     NotifyEntity(_owner, _ownerOffset + kCCSGameRulesProxy_GameRules);

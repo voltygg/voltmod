@@ -16,7 +16,9 @@ static constexpr int32_t kCBaseModelEntity_RenderColor = 1392;  // Color
 Vector CBaseModelEntity::ViewOffset() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<Vector>(_base, kCBaseModelEntity_ViewOffset);
 }
@@ -24,7 +26,9 @@ Vector CBaseModelEntity::ViewOffset() const
 void CBaseModelEntity::SetViewOffset(Vector value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<Vector>(_base, kCBaseModelEntity_ViewOffset) = value;
     NotifyEntity(_owner, _ownerOffset + kCBaseModelEntity_ViewOffset);
@@ -33,7 +37,9 @@ void CBaseModelEntity::SetViewOffset(Vector value) const
 RenderMode_t CBaseModelEntity::RenderMode() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<RenderMode_t>(_base, kCBaseModelEntity_RenderMode);
 }
@@ -41,7 +47,9 @@ RenderMode_t CBaseModelEntity::RenderMode() const
 void CBaseModelEntity::SetRenderMode(RenderMode_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<RenderMode_t>(_base, kCBaseModelEntity_RenderMode) = value;
     NotifyEntity(_owner, _ownerOffset + kCBaseModelEntity_RenderMode);
@@ -50,7 +58,9 @@ void CBaseModelEntity::SetRenderMode(RenderMode_t value) const
 uint32_t CBaseModelEntity::RenderColor() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<uint32_t>(_base, kCBaseModelEntity_RenderColor);
 }
@@ -58,7 +68,9 @@ uint32_t CBaseModelEntity::RenderColor() const
 void CBaseModelEntity::SetRenderColor(uint32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<uint32_t>(_base, kCBaseModelEntity_RenderColor) = value;
     NotifyEntity(_owner, _ownerOffset + kCBaseModelEntity_RenderColor);

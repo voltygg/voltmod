@@ -20,7 +20,9 @@ static constexpr int32_t kCCSPlayerBase_CameraServices_ZoomOwner = 392;  // CHan
 uint32_t CCSPlayerBase_CameraServices::ZoomOwner() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<uint32_t>(_base, kCCSPlayerBase_CameraServices_ZoomOwner);
 }
@@ -28,7 +30,9 @@ uint32_t CCSPlayerBase_CameraServices::ZoomOwner() const
 void CCSPlayerBase_CameraServices::SetZoomOwner(uint32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<uint32_t>(_base, kCCSPlayerBase_CameraServices_ZoomOwner) = value;
     NotifyComponentOwner(_base, CCSPlayerBase_CameraServices_kOwnerLinkOffset, kCCSPlayerBase_CameraServices_ZoomOwner);

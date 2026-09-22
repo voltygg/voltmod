@@ -68,7 +68,9 @@ std::string StatusService::BuildText() const
         }
     }
     if (!out.empty() && out.back() == '\n')
+    {
         out.pop_back();
+    }
     return out;
 }
 

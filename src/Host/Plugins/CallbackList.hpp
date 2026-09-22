@@ -31,9 +31,13 @@ public:
     {
         const Entry entry{.Token = token, .Order = order, .Call = callback, .Context = context};
         if (_depth > 0)
+        {
             _pending.push_back(entry);
+        }
         else
+        {
             Insert(entry);
+        }
     }
 
     /** Whether @p token was taken on this event. */
@@ -42,17 +46,23 @@ public:
         for (Entry& entry : _entries)
         {
             if (entry.Token != token || entry.Removed)
+            {
                 continue;
+            }
 
             entry.Removed = true;
             if (_depth == 0)
+            {
                 ApplyPending();
+            }
             return true;
         }
 
         const auto waiting = std::ranges::find(_pending, token, &Entry::Token);
         if (waiting == _pending.end())
+        {
             return false;
+        }
 
         _pending.erase(waiting);
         return true;
@@ -73,10 +83,14 @@ public:
         {
             const Entry& entry = _entries[i];
             if (!entry.Removed)
+            {
                 stopped = visit(entry.Call, entry.Context);
+            }
         }
         if (--_depth == 0)
+        {
             ApplyPending();
+        }
         return stopped;
     }
 
@@ -101,7 +115,9 @@ private:
     {
         std::erase_if(_entries, [](const Entry& entry) { return entry.Removed; });
         for (const Entry& entry : _pending)
+        {
             Insert(entry);
+        }
         _pending.clear();
     }
 

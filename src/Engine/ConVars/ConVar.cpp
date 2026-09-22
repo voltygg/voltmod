@@ -35,19 +35,27 @@ Result<ConVar<T>> ConVars::Find(std::string_view name)
     const std::string owned(name);
     ConVarRefAbstract ref(owned.c_str());
     if (!ref.IsValidRef() || !ref.IsConVarDataAvailable())
+    {
         return std::unexpected(Error::NotFound(std::format("no convar '{}'", owned)));
+    }
 
     const auto type = static_cast<ConVarType>(ref.GetType());
     if (!ConVarTypeMatches<T>(type))
+    {
         return std::unexpected(Error::Invalid(
             std::format("convar '{}' is engine type {}, not the requested one", owned, static_cast<int>(type))));
+    }
 
     // Prefer shared storage; some convars expose only slot 0.
     CVValue_t* storage = ref.GetConVarData()->Value(CSplitScreenSlot(-1));
     if (!storage)
+    {
         storage = ref.GetConVarData()->Value(CSplitScreenSlot(0));
+    }
     if (!storage)
+    {
         return std::unexpected(Error::Engine(std::format("convar '{}' has no value storage", owned)));
+    }
 
     ConVar<T> handle;
     handle._service = this;
@@ -61,7 +69,9 @@ template <class T>
 T ConVar<T>::Get() const
 {
     if (!_storage)
+    {
         return T{};
+    }
 
     const auto* value = static_cast<const CVValue_t*>(_storage);
     const auto type = static_cast<ConVarType>(_type);
@@ -98,7 +108,9 @@ template <class T>
 Status ConVar<T>::Set(const T& value)
 {
     if (!_storage || !_service)
+    {
         return std::unexpected(Error::NotReady("convar handle is unresolved"));
+    }
 
     // ConVarText renders unquoted: the console path quotes in SetByConsole, while the
     // replicated payload at SendToClient below must stay unquoted.
@@ -110,7 +122,9 @@ Status ConVar<T>::SetRaw(const T& value)
     requires RawConVarValue<T>
 {
     if (!_storage)
+    {
         return std::unexpected(Error::NotReady("convar handle is unresolved"));
+    }
 
     auto* storage = static_cast<CVValue_t*>(_storage);
     const auto type = static_cast<ConVarType>(_type);
@@ -144,10 +158,14 @@ template <class T>
 Status ConVar<T>::SetFor(int slot, const T& value) const
 {
     if (!_storage || !_service)
+    {
         return std::unexpected(Error::NotReady("convar handle is unresolved"));
+    }
 
     if (!_service->SendToClient(slot, _name, ConVarText(value)))
+    {
         return std::unexpected(Error::Engine(std::format("could not send '{}' to slot {}", _name, slot)));
+    }
     return {};
 }
 
@@ -157,14 +175,18 @@ ConVarRawScope<T>::ConVarRawScope(ConVar<T>& cvar, const T& value)
     : _cvar(&cvar), _previous(cvar.Get())
 {
     if (!cvar.SetRaw(value))
+    {
         _cvar = nullptr;
+    }
 }
 
 template <class T>
 ConVarRawScope<T>::~ConVarRawScope()
 {
     if (_cvar)
+    {
         (void)_cvar->SetRaw(_previous);
+    }
 }
 
 // The templates above are defined only here, so these instantiations are what makes the handles

@@ -20,7 +20,9 @@ static_assert(offsetof(OwnerLink, PathIndex) == 0x20);
 void NotifyEntity(CEntityInstance* entity, int32_t offset)
 {
     if (!entity)
+    {
         return;
+    }
 
     entity->NetworkStateChanged(NetworkStateChangedData(static_cast<uint32>(offset)));
 }
@@ -28,11 +30,15 @@ void NotifyEntity(CEntityInstance* entity, int32_t offset)
 void NotifyComponentOwner(void* component, int32_t ownerLinkOffset, int32_t offset)
 {
     if (!component || ownerLinkOffset < 0)
+    {
         return;
+    }
 
     auto* link = MemberPtr<OwnerLink>(component, ownerLinkOffset);
     if (!link->Entity)
+    {
         return;
+    }
 
     link->Entity->NetworkStateChanged(NetworkStateChangedData(static_cast<uint32>(offset), -1, link->PathIndex));
 }
@@ -40,7 +46,9 @@ void NotifyComponentOwner(void* component, int32_t ownerLinkOffset, int32_t offs
 CEntityInstance* ComponentOwner(const void* component, int32_t ownerLinkOffset)
 {
     if (!component || ownerLinkOffset < 0)
+    {
         return nullptr;
+    }
     // MemberPtr takes a mutable base; the read here never writes through it.
     return MemberPtr<const OwnerLink>(const_cast<void*>(component), ownerLinkOffset)->Entity;
 }

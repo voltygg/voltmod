@@ -39,7 +39,9 @@ public:
         auto due = *_running;
         _running->clear();
         for (auto& [id, timer] : due)
+        {
             timer.Callback();
+        }
     }
 
     /** How many commits are waiting on a timer. */

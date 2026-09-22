@@ -31,7 +31,9 @@ public:
     bool TryAcquire(const TKey& key, int64_t nowSec, int64_t intervalSec)
     {
         if (RemainingSec(key, nowSec, intervalSec) > 0)
+        {
             return false;
+        }
         _lastAt[key] = nowSec;
         return true;
     }
@@ -44,13 +46,19 @@ public:
     int64_t RemainingSec(const TKey& key, int64_t nowSec, int64_t intervalSec) const
     {
         if (intervalSec <= 0)
+        {
             return 0;
+        }
         auto it = _lastAt.find(key);
         if (it == _lastAt.end())
+        {
             return 0;
+        }
         const int64_t elapsed = nowSec - it->second;
         if (elapsed < 0 || elapsed >= intervalSec)
+        {
             return 0;
+        }
         return intervalSec - elapsed;
     }
 

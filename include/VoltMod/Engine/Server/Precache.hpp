@@ -51,8 +51,8 @@ private:
     std::string _systemName;
     std::unique_ptr<PrecacheGameSystem> _system;
     GameSystemFactory* _factory = nullptr;
-    void* _eventDispatcher = nullptr;  // CGameSystemEventDispatcher** (internal type)
-    void* _gameSystems = nullptr;      // CUtlVector<AddedGameSystem_t>* (internal type)
+    void* _eventDispatcher = nullptr;    // CGameSystemEventDispatcher** (internal type)
+    void* _gameSystems = nullptr;        // CUtlVector<AddedGameSystem_t>* (internal type)
     void* _fallbackListeners = nullptr;  // CUtlVector<CUtlVector<IGameSystem*>>* (internal type)
 };
 

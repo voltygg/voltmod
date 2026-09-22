@@ -13,16 +13,24 @@ bool PostUserMessage(Interfaces& interfaces, INetworkMessageInternal*& cached, s
                      IRecipientFilter& filter, const std::function<bool(CNetMessage*)>& fill)
 {
     if (!interfaces.GameEventSystem || !interfaces.NetworkMessages)
+    {
         return false;
+    }
 
     if (!cached)
+    {
         cached = interfaces.NetworkMessages->FindNetworkMessagePartial(std::string(partialName).c_str());
+    }
     if (!cached)
+    {
         return false;
+    }
 
     CNetMessage* message = cached->AllocateMessage();
     if (!message)
+    {
         return false;
+    }
 
     bool posted = false;
     if (fill(message))

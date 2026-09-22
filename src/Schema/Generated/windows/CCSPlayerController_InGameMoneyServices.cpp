@@ -20,7 +20,9 @@ static constexpr int32_t kCCSPlayerController_InGameMoneyServices_Account = 72; 
 int32_t CCSPlayerController_InGameMoneyServices::Account() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<int32_t>(_base, kCCSPlayerController_InGameMoneyServices_Account);
 }
@@ -28,7 +30,9 @@ int32_t CCSPlayerController_InGameMoneyServices::Account() const
 void CCSPlayerController_InGameMoneyServices::SetAccount(int32_t value) const
 {
     if (!_base)
+    {
         return;
+    }
 
     *MemberPtr<int32_t>(_base, kCCSPlayerController_InGameMoneyServices_Account) = value;
     NotifyComponentOwner(_base, CCSPlayerController_InGameMoneyServices_kOwnerLinkOffset,

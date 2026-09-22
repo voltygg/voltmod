@@ -18,10 +18,14 @@ static cpr::Header ParseHeaderLines(const std::vector<std::string>& headers)
     {
         const size_t colon = line.find(':');
         if (colon == std::string::npos)
+        {
             continue;
+        }
         size_t valueStart = colon + 1;
         while (valueStart < line.size() && line[valueStart] == ' ')
+        {
             ++valueStart;
+        }
         header[line.substr(0, colon)] = line.substr(valueStart);
     }
     return header;
@@ -107,7 +111,9 @@ void HttpClient::Stop()
     // Join workers during plugin unload, then discard completions they did not deliver. This keeps
     // meta reload from leaving threads pointing into the unmapped DLL.
     for (auto& p : _impl->Items)
+    {
         p.Result.wait();
+    }
     _impl->Items.clear();
     _impl->Waiting.clear();  // never started, so nothing to wait on
 }
@@ -227,7 +233,9 @@ void HttpClient::DispatchCompletions()
     for (auto& p : ready)
     {
         if (p.OnComplete)
+        {
             p.OnComplete(p.Result.get());
+        }
     }
 }
 

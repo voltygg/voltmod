@@ -21,7 +21,9 @@ Teleport::~Teleport()
 {
     // A surviving subscription would call into an unloaded module after meta reload.
     if (!Teleported.Empty())
+    {
         Log::Error("Teleport: {} subscription(s) outlived the tracker; a handler may dangle.", Teleported.Count());
+    }
 }
 
 bool Teleport::Install()
@@ -45,7 +47,9 @@ bool Teleport::Install()
 Status Teleport::Available() const
 {
     if (!_bindings.Teleport)
+    {
         return std::unexpected(Error::Unsupported("the CBaseEntity::Teleport vtable slot did not bind"));
+    }
     return {};
 }
 

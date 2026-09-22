@@ -14,7 +14,9 @@ static constexpr int32_t kCModelState_ModelName = 168;  // CUtlSymbolLarge
 const char* CModelState::ModelName() const
 {
     if (!_base)
+    {
         return {};
+    }
 
     return *MemberPtr<const char*>(_base, kCModelState_ModelName);
 }

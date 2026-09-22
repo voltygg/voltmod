@@ -25,14 +25,18 @@ MenuStack::MenuStack(MenuSurface& surface, Translations& translations, PendingCo
 Menu* MenuStack::Current(int slot)
 {
     if (!IsValidSlot(slot) || _states[slot].Menus.empty())
+    {
         return nullptr;
+    }
     return _states[slot].Menus.back().get();
 }
 
 Menu* MenuStack::Root(int slot)
 {
     if (!IsValidSlot(slot) || _states[slot].Menus.empty())
+    {
         return nullptr;
+    }
     return _states[slot].Menus.front().get();
 }
 
@@ -51,7 +55,9 @@ bool MenuStack::AnyOpen() const
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
         if (!_states[slot].Menus.empty())
+        {
             return true;
+        }
     }
     return false;
 }
@@ -64,7 +70,9 @@ std::string_view MenuStack::Breadcrumb(int slot) const
 void MenuStack::Push(int slot, std::shared_ptr<Menu> menu)
 {
     if (!IsValidSlot(slot) || !menu)
+    {
         return;
+    }
 
     _states[slot].Menus.push_back(std::move(menu));
     Rebuild(slot);
@@ -73,7 +81,9 @@ void MenuStack::Push(int slot, std::shared_ptr<Menu> menu)
 void MenuStack::Pop(int slot)
 {
     if (!IsValidSlot(slot) || _states[slot].Menus.empty())
+    {
         return;
+    }
 
     // Apply a stepped value before changing the stack.
     ApplyPending(slot);
@@ -81,15 +91,21 @@ void MenuStack::Pop(int slot)
     State& state = _states[slot];
     state.Menus.pop_back();
     if (state.Menus.empty())
+    {
         state = {};
+    }
     else
+    {
         Rebuild(slot);
+    }
 }
 
 void MenuStack::Clear(int slot)
 {
     if (!IsValidSlot(slot))
+    {
         return;
+    }
 
     ApplyPending(slot);
     _states[slot] = {};
@@ -98,7 +114,9 @@ void MenuStack::Clear(int slot)
 void MenuStack::PopToRoot(int slot)
 {
     if (!IsValidSlot(slot) || _states[slot].Menus.empty())
+    {
         return;
+    }
 
     ApplyPending(slot);
     _states[slot].Menus.resize(1);
@@ -115,7 +133,9 @@ void MenuStack::Rebuild(int slot)
     for (std::size_t i = 0; i + 1 < state.Menus.size(); ++i)
     {
         if (!state.Breadcrumb.empty())
+        {
             state.Breadcrumb += kBreadcrumbSeparator;
+        }
         state.Breadcrumb += state.Menus[i]->Title;
     }
 }
@@ -124,7 +144,9 @@ MenuRow MenuStack::Describe(int slot, int index)
 {
     Menu* menu = Current(slot);
     if (!menu || index < 0 || index >= static_cast<int>(menu->Items.size()))
+    {
         return MenuRow{.Enabled = false, .Selectable = false};
+    }
 
     // A malformed item is shown as a disabled line.
     const MenuItem& item = menu->Items[static_cast<std::size_t>(index)];
@@ -139,7 +161,9 @@ MenuRow MenuStack::Describe(int slot, int index)
 
     State& state = _states[slot];
     if (state.Rows.size() != menu->Items.size())
+    {
         state.Rows.assign(menu->Items.size(), RowMemory{});
+    }
 
     const int64_t now = Time::MonotonicMs();
     RowMemory& memory = state.Rows[static_cast<std::size_t>(index)];
@@ -148,7 +172,9 @@ MenuRow MenuStack::Describe(int slot, int index)
         // Arriving on screen is not a change: only a value that moves under a row already drawn
         // is worth flashing.
         if (memory.Drawn)
+        {
             memory.ChangedAt = now;
+        }
         memory.Value = row.Value;
         memory.Drawn = true;
     }
@@ -161,47 +187,65 @@ MenuRow MenuStack::Describe(int slot, int index)
 void MenuStack::Activate(int slot, int index)
 {
     if (!IsValidSlot(slot))
+    {
         return;
+    }
 
     // A row whose activation *is* its commit - a ChoiceRow's E - would apply the value twice if
     // the held one ran as well, so pressing the pending row cancels the wait and lets the
     // activation apply it. Any other row runs what is held first.
     if (_pending.IsPending(slot, index))
+    {
         _pending.Drop(slot);
+    }
     else
+    {
         _pending.Apply(slot);
+    }
 
     // The callback may close or replace the menu, so read the stack again.
     Menu* menu = Current(slot);
     if (!menu || index < 0 || index >= static_cast<int>(menu->Items.size()))
+    {
         return;
+    }
 
     // Copy the item because its handler may close or reopen the menu.
     const MenuItem item = menu->Items[static_cast<std::size_t>(index)];
     if (item.Activate && IsRowActionable(item, slot))
+    {
         item.Activate(slot, _surface);
+    }
 }
 
 bool MenuStack::Step(int slot, int index, int direction)
 {
     Menu* menu = Current(slot);
     if (!menu || index < 0 || index >= static_cast<int>(menu->Items.size()))
+    {
         return false;
+    }
 
     // Copy the item and keep the menu alive while its step handler runs.
     const std::shared_ptr<Menu> held = _states[slot].Menus.back();
     const MenuItem item = menu->Items[static_cast<std::size_t>(index)];
     if (!item.Step || !item.Describe || !item.Describe(slot).Enabled)
+    {
         return false;
+    }
     if (!item.Step(slot, direction))
+    {
         return false;
+    }
 
     // A burst of presses is one commit. Do not hold by index if the step replaced the menu.
     if (item.Commit && Current(slot) == held.get())
+    {
         _pending.Hold(slot, index, [this, commit = item.Commit, slot] {
             commit(slot);
             Committed.Raise(slot);
         });
+    }
 
     return true;
 }

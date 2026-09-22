@@ -21,7 +21,9 @@ int64_t Time::ParseDuration(const std::string& duration)
 std::string Time::FormatDuration(int64_t seconds)
 {
     if (seconds == 0)
+    {
         return "Permanent";
+    }
 
     if (seconds % SecondsPerWeek == 0 && seconds >= SecondsPerWeek)
     {
@@ -49,7 +51,9 @@ std::string Time::FormatDuration(int64_t seconds)
 std::string Time::FormatDurationLabel(int64_t seconds, const DurationUnitLabels& units)
 {
     if (seconds <= 0)
+    {
         return units.Permanent;
+    }
 
     struct Unit
     {
@@ -64,7 +68,9 @@ std::string Time::FormatDurationLabel(int64_t seconds, const DurationUnitLabels&
     for (const auto& unit : unitTable)
     {
         if (seconds % unit.Divisor == 0)
+        {
             return std::format("{} {}", seconds / unit.Divisor, *unit.Label);
+        }
     }
     return std::format("{} {}", seconds, units.Seconds);
 }
@@ -73,11 +79,15 @@ std::string Time::FormatExpiry(int64_t expiresAt, int64_t nowSec, std::string_vi
                                std::string_view expiresInPrefix)
 {
     if (expiresAt <= 0)
+    {
         return std::string(permanentText);
+    }
 
     int64_t remaining = expiresAt - nowSec;
     if (remaining <= 0)
+    {
         return std::string(permanentText);
+    }
 
     return std::format("{} {}", expiresInPrefix, FormatDuration(remaining));
 }
@@ -85,7 +95,9 @@ std::string Time::FormatExpiry(int64_t expiresAt, int64_t nowSec, std::string_vi
 std::string Time::FormatTimestamp(int64_t timestamp)
 {
     if (timestamp == 0)
+    {
         return "Never";
+    }
 
     std::time_t time = static_cast<std::time_t>(timestamp);
     std::tm tm;
@@ -101,14 +113,18 @@ std::string Time::FormatTimestamp(int64_t timestamp)
 bool Time::IsExpired(int64_t expiresAt)
 {
     if (expiresAt == 0)
+    {
         return false;
+    }
     return Now() >= expiresAt;
 }
 
 int64_t Time::GetExpirationTime(int64_t durationSeconds)
 {
     if (durationSeconds == 0)
+    {
         return 0;
+    }
     return Now() + durationSeconds;
 }
 

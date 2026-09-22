@@ -31,13 +31,17 @@ void AppendPlayerRows(MenuBuilder& builder, PlayerManager& players, const Player
                               .Activate =
                                   [pick = spec.Pick, target](int) {
                                       if (pick)
+                                      {
                                           pick(target);
+                                      }
                                   },
                               .Enabled = std::move(enabled)});
     }
 
     if (connected.empty() && !spec.EmptyLabel.empty())
+    {
         builder.Text(spec.EmptyLabel);
+    }
 }
 
 std::shared_ptr<Menu> BuildPlayerPicker(PlayerManager& players, PlayerPicker spec)

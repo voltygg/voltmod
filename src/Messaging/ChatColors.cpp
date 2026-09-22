@@ -18,7 +18,9 @@ static const std::unordered_map<std::string, std::string_view> kNameTable = {
 std::string_view ParseNamed(std::string_view name)
 {
     if (name.empty())
+    {
         return Default;
+    }
 
     auto it = kNameTable.find(Strings::ToLower(std::string(name)));
     return it != kNameTable.end() ? it->second : Default;
@@ -31,7 +33,9 @@ std::string Strip(std::string_view text)
     for (char c : text)
     {
         if (static_cast<unsigned char>(c) > 0x10)  // 0x01-0x10 are chat color escape bytes
+        {
             out.push_back(c);
+        }
     }
     return out;
 }
@@ -45,7 +49,9 @@ std::vector<Labeled<std::string>> PaletteChoices(std::function<std::string(std::
     {
         std::string label = labelFor ? labelFor(entry.Name) : std::string{};
         if (label.empty())
+        {
             label = std::string(entry.Name);
+        }
         choices.push_back({.Label = std::move(label), .Value = std::string(entry.Name)});
     }
     return choices;

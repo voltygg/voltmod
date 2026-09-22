@@ -12,7 +12,9 @@ PlayerScreens::PlayerScreens(ScreenManager& screens, std::string layout) : _scre
 Screen& PlayerScreens::For(int slot)
 {
     if (!IsValidSlot(slot))
+    {
         return _empty;
+    }
 
     std::optional<Screen>& screen = _created[slot];
     if (!screen)
@@ -20,7 +22,9 @@ Screen& PlayerScreens::For(int slot)
         auto created = _screens.ForPlayer(_layout, slot);
         // Kept empty rather than retried: what ForPlayer refuses for lasts the whole load.
         if (!created)
+        {
             Log::Warn("Screen '{}': no player screen for slot {} ({}).", _layout, slot, created.error().Detail);
+        }
         screen.emplace(created ? std::move(*created) : Screen());
     }
     return *screen;
@@ -29,7 +33,9 @@ Screen& PlayerScreens::For(int slot)
 Screen* PlayerScreens::Find(int slot)
 {
     if (!IsValidSlot(slot) || !_created[slot])
+    {
         return nullptr;
+    }
     return &*_created[slot];
 }
 

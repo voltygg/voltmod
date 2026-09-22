@@ -47,7 +47,9 @@ EngineHooks::~EngineHooks()
 Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
 {
     if (metamod == nullptr)
+    {
         return std::unexpected(Error::NotReady("the host has no Metamod API to resolve interfaces from"));
+    }
 
     auto fromEngine = EngineInterfaces(metamod);
     auto fromServer = ServerInterfaces(metamod);
@@ -63,7 +65,9 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
     Status found;
     auto resolve = [&found](auto*& target, auto& factory, const char* version) {
         if (found)
+        {
             found = ResolveInterface(target, factory, version);
+        }
     };
 
     resolve(serverGameDLL, fromServer, INTERFACEVERSION_SERVERGAMEDLL);
@@ -74,7 +78,9 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
     resolve(engine, fromEngine, INTERFACEVERSION_VENGINESERVER);
 
     if (!found)
+    {
         return found;
+    }
 
     // Registers the host's own ConCommands, `volt` among them.
     g_pCVar = cvar;
@@ -84,7 +90,9 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
 
     add(HookInterface(&IServerGameDLL::GameFrame, serverGameDLL, nullptr, [this](IServerGameDLL&, bool, bool, bool) {
         if (_beforeFrame)
+        {
             _beforeFrame();
+        }
         _host.RaiseFrame();
     }));
 
@@ -94,7 +102,9 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
             const std::string_view map = Text(mapName);
             Log::Info("Server startup: map '{}'.", map.empty() ? "<none>" : map);
             if (_beforeServerStartup)
+            {
                 _beforeServerStartup();
+            }
             _host.RaiseServerStartup(map);
             DisconnectEveryone();
         }));
@@ -110,9 +120,13 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
     add(HookInterface(&IServerGameClients::ClientPutInServer, serverGameClients, nullptr,
                       [this, engine](IServerGameClients&, CPlayerSlot slot, const char* name, int, uint64 xuid) {
                           if (!IsValidSlot(slot.Get()))
+                          {
                               return;
+                          }
                           if (_connected[slot.Get()])
+                          {
                               return;
+                          }
 
                           // A bot has no net channel.
                           auto* channel = engine->GetPlayerNetInfo(slot);
@@ -120,14 +134,16 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
                           ConnectClient(slot.Get(), xuid, Text(name), address);
                       }));
 
-    add(HookInterface(&IServerGameClients::ClientDisconnect, serverGameClients, nullptr,
-                      [this](IServerGameClients&, CPlayerSlot slot, ENetworkDisconnectionReason, const char*, uint64,
-                             const char*) {
-                          if (IsValidSlot(slot.Get()))
-                              _connected[slot.Get()] = false;
-                          // After the call, before the slot is reused.
-                          _host.RaiseClientDisconnected(slot.Get());
-                      }));
+    add(HookInterface(
+        &IServerGameClients::ClientDisconnect, serverGameClients, nullptr,
+        [this](IServerGameClients&, CPlayerSlot slot, ENetworkDisconnectionReason, const char*, uint64, const char*) {
+            if (IsValidSlot(slot.Get()))
+            {
+                _connected[slot.Get()] = false;
+            }
+            // After the call, before the slot is reused.
+            _host.RaiseClientDisconnected(slot.Get());
+        }));
 
     add(HookInterface(&IServerGameClients::ClientFullyConnect, serverGameClients, nullptr,
                       [this](IServerGameClients&, CPlayerSlot slot) { _host.RaiseClientFullyConnected(slot.Get()); }));
@@ -159,7 +175,9 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
 void EngineHooks::ConnectClient(int slot, uint64_t xuid, std::string_view name, std::string_view address)
 {
     if (IsValidSlot(slot))
+    {
         _connected[slot] = true;
+    }
     _host.RaiseClientConnected(slot, static_cast<int64_t>(xuid), name, address);
 }
 
@@ -168,7 +186,9 @@ void EngineHooks::DisconnectEveryone()
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
         if (!_connected[slot])
+        {
             continue;
+        }
         _connected[slot] = false;
         _host.RaiseClientDisconnected(slot);
     }

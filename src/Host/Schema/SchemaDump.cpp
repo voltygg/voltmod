@@ -68,14 +68,18 @@ struct SchemaDoc
 static std::string TypeName(CSchemaType* type)
 {
     if (!type || !type->m_sTypeName.Get())
+    {
         return {};
+    }
     return type->m_sTypeName.Get();
 }
 
 static TypeInfo DescribeType(CSchemaType* type)
 {
     if (!type)
+    {
         return {};
+    }
 
     TypeInfo out{.name = TypeName(type), .category = std::string(Name(type->m_eTypeCategory))};
     switch (type->m_eTypeCategory)
@@ -95,7 +99,9 @@ static TypeInfo DescribeType(CSchemaType* type)
         // Only templated atomics have an element type.
         if (type->m_eAtomicCategory == SCHEMA_ATOMIC_T || type->m_eAtomicCategory == SCHEMA_ATOMIC_COLLECTION_OF_T ||
             type->m_eAtomicCategory == SCHEMA_ATOMIC_TT)
+        {
             out.inner = TypeName(static_cast<CSchemaType_Atomic_T*>(type)->m_pTemplateType);
+        }
         break;
     default:
         break;
@@ -119,12 +125,16 @@ static ClassInfo DescribeClass(const CSchemaClassInfo* klass, const CNetworkSeri
     {
         const auto& field = klass->m_pFields[i];
         if (!field.m_pszName)
+        {
             continue;
+        }
 
         int size = 0;
         uint8_t alignment = 0;
         if (field.m_pType)
+        {
             field.m_pType->GetSizeAndAlignment(size, alignment);
+        }
 
         out.fields.push_back({.name = field.m_pszName,
                               .offset = field.m_nSingleInheritanceOffset,
@@ -145,7 +155,9 @@ static EnumInfo DescribeEnum(const CSchemaEnumInfo* enumeration)
     {
         const auto& item = enumeration->m_pEnumerators[i];
         if (item.m_pszName)
+        {
             out.items.push_back({.name = item.m_pszName, .value = item.m_nValue});
+        }
     }
 
     return out;
@@ -164,7 +176,9 @@ static std::vector<T> HashElements(Hash& hash)
 {
     const int count = hash.Count();
     if (count <= 0)
+    {
         return {};
+    }
 
     std::vector<UtlTSHashHandle_t> handles(static_cast<size_t>(count));
     const int written = hash.GetElements(0, count, handles.data());
@@ -172,7 +186,9 @@ static std::vector<T> HashElements(Hash& hash)
     std::vector<T> out;
     out.reserve(static_cast<size_t>(written));
     for (int i = 0; i < written; ++i)
+    {
         out.push_back(hash.Element(handles[static_cast<size_t>(i)]));
+    }
     return out;
 }
 
@@ -181,14 +197,18 @@ static void MergeScope(SchemaDoc& doc, CSchemaSystemTypeScope* scope, const CNet
     for (CSchemaClassInfo* klass : HashElements<CSchemaClassInfo*>(scope->m_ClassBindings))
     {
         if (klass && klass->m_pszName)
+        {
             doc.classes.insert_or_assign(klass->m_pszName,
                                          DescribeClass(klass, NetworkClass(network, klass->m_pszName)));
+        }
     }
 
     for (CSchemaEnumInfo* enumeration : HashElements<CSchemaEnumInfo*>(scope->m_EnumBindings))
     {
         if (enumeration && enumeration->m_pszName)
+        {
             doc.enums.insert_or_assign(enumeration->m_pszName, DescribeEnum(enumeration));
+        }
     }
 }
 
@@ -200,12 +220,16 @@ Status WriteDumpFile(CSchemaSystemTypeScope* global, CSchemaSystemTypeScope* ser
 
     // Server definitions override global ones.
     if (global)
+    {
         MergeScope(doc, global, network);
+    }
     MergeScope(doc, server, network);
 
     const std::string text = Json::WritePretty(doc);
     if (text.empty())
+    {
         return std::unexpected(Error::Invalid("failed to serialize the schema document"));
+    }
     return WriteAllText(path, text + "\n");
 }
 
