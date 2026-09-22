@@ -1,6 +1,6 @@
 {
-  "$schema": "./settings.schema.json",
   "plugin": {
+    // Translation language: a file name in configs/translations without `.json`.
     "locale": "en"
   }
 }

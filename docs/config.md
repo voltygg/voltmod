@@ -29,9 +29,8 @@ error or a wrong value type fails the load and names the offending key with its 
 Reflection reads member names off the type, so the struct needs external linkage: declare it at
 namespace scope, not inside a function or an anonymous namespace.
 
-Ship `settings.schema.json` beside the JSONC file and point at it with a relative `$schema` as the
-first key, for editor validation. `additionalProperties: false` catches typos there; the loader
-ignores `$schema` along with other unknown keys.
+Document each key with a comment beside it in the shipped `settings.jsonc`; that file is what an
+operator reads.
 
 ## Loading
 

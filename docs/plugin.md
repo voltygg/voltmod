@@ -90,7 +90,8 @@ the services they point at are still alive.
 | `src/App.hpp`, `src/App.cpp` | the load-cycle object graph and `VOLTMOD_PLUGIN` |
 | `src/Commands.cpp` | the `!ping` command |
 | `src/Config.hpp` | the settings struct and `ConfigManager` |
-| `configs/settings.jsonc`, `configs/settings.schema.json` | operator settings and their schema |
+| `configs/settings.jsonc` | operator settings |
+| `README.md` | what the plugin does, its commands and settings |
 | `configs/translations/en.json` | player-facing text |
 
 Add `.cpp` files anywhere under `src/`; `voltmod_add_plugin` globs them.
@@ -263,7 +264,6 @@ addons/
       my-plugin.dll                       or my-plugin.so
       configs/
         settings.jsonc                    seeded once, never overwritten
-        settings.schema.json
         translations/en.json
 ```
 
