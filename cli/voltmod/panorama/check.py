@@ -77,7 +77,7 @@ def _check_screen(
 
     return (
         problems
-        + _check_elements(screen, source)
+        + _check_markup(screen, source)
         + _check_buttons(screen, source)
         + _check_ids(screen, name, source)
         + _check_cpp_names(screen, source)
@@ -87,7 +87,7 @@ def _check_screen(
     )
 
 
-def _check_elements(screen: Screen, source: Path) -> list[str]:
+def _check_markup(screen: Screen, source: Path) -> list[str]:
     problems: list[str] = []
     for node in screen.tree.iter():
         if node.tag not in ALLOWED_ELEMENTS:

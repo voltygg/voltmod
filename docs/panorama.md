@@ -151,8 +151,8 @@ voltmod panorama compile --no-deploy         # compile only, leave the client al
 It finds the client through Steam's library list; set `CS2_CLIENT_PATH` in `.env` or pass
 `--client-path` when that guess is wrong. Sources are staged into `content/csgo_addons/voltmod/`,
 compiled to `game/csgo_addons/voltmod/`, and the compiled resources copied into
-`csgo/panorama/{layout,styles}/custom_game/` and `csgo/panorama/images/<set>/`. Reconnect to see the change; no addon is
-required for your own client.
+`csgo/panorama/{layout,styles}/custom_game/` and `csgo/panorama/images/<set>/`. Reconnect to see
+the change; no addon is required for your own client.
 
 ## Build tree outputs
 
@@ -245,12 +245,11 @@ header spells them as C++ names.
 
 ## Images and icon sets {#panorama_guide_images}
 
-Drop PNGs in an owner's `panorama/images/<set>/`, referenced as `s2r://panorama/images/<set>/<name>.vtex`.
-Name a set for its owner (`stronghold_items`, not `icons`): a set shares the client's
-`panorama/images/` with the game's own folders, and one of the same name replaces them. Every set
-becomes an entry in the
-`images` context (`images.weapons`, sorted file stems), so `{% for name in images[set] %}` in a
-block can draw one `<Image>` per icon. Rendering copies each PNG into the build tree and writes a
+Drop PNGs in an owner's `panorama/images/<set>/`, referenced as
+`s2r://panorama/images/<set>/<name>.vtex`. Name a set for its owner (`stronghold_items`, not
+`icons`): a set shares the client's `panorama/images/` with the game's own folders, and one of the
+same name replaces them. Every set becomes an entry in the `images` context (`images.weapons`,
+sorted file stems), so `{% for name in images[set] %}` in a block can draw one `<Image>` per icon. Rendering copies each PNG into the build tree and writes a
 matching `.vtex` descriptor beside it - `resourcecompiler` compiles the descriptor, never the PNG.
 
 The client's own icons need no files. Point an `<Image>` at
