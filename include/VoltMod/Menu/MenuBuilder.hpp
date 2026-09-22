@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoltMod/Core/Text/Labeled.hpp>
-#include <VoltMod/Menu/Menu.hpp>
+#include <VoltMod/Menu/MenuModel.hpp>
 #include <concepts>
 #include <functional>
 #include <memory>

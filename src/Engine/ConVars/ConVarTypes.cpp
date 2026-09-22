@@ -1,6 +1,6 @@
 #include "Engine/ConVars/ConVarTypes.hpp"
 
-#include <VoltMod/Engine/ConVars/ConVars.hpp>
+#include <VoltMod/Engine/ConVars/ConVar.hpp>
 #include <format>
 #include <string>
 #include <type_traits>

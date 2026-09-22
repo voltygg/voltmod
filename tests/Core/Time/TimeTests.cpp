@@ -1,6 +1,6 @@
 // Time::ParseDuration delegates to VoltMod::ParseDuration; its grammar is covered by
 // ParseDurationTests.
-#include <VoltMod/Core/Time/Time.hpp>
+#include <VoltMod/Core/Time/Durations.hpp>
 #include <cstdint>
 #include <doctest/doctest.h>
 #include <string>

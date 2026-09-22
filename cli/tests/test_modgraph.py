@@ -47,7 +47,7 @@ def test_a_dependency_is_reported_with_the_include_that_proves_it(tmp_path):
 
 
 def test_a_module_api_header_is_not_a_dependency(tmp_path):
-    write(tmp_path, "include/VoltMod/Hooks/Api.hpp", "#include <VoltMod/Menu/Menu.hpp>\n")
+    write(tmp_path, "include/VoltMod/Hooks/Api.hpp", "#include <VoltMod/Menu/MenuModel.hpp>\n")
     files = list(read_sources(tmp_path, ("include/VoltMod",)))
     dependencies, _ = module_dependencies(files, ["Hooks", "Menu"])
     assert dependencies["Hooks"] == set()

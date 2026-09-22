@@ -1,5 +1,5 @@
+#include <VoltMod/Engine/ConVars/ConVar.hpp>
 #include <VoltMod/Engine/ConVars/ConVarOverrides.hpp>
-#include <VoltMod/Engine/ConVars/ConVars.hpp>
 #include <algorithm>
 #include <string>
 

@@ -1,7 +1,7 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Core/Text/Strings.hpp>
-#include <VoltMod/Engine/ConVars/ConVars.hpp>
+#include <VoltMod/Engine/ConVars/ConVar.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/Net/RecipientFilter.hpp>
 #include <eiface.h>

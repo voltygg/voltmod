@@ -22,13 +22,12 @@ namespace VoltMod
 class ServerCommand
 {
 public:
-    using Handler = std::function<void(const CCommand& args)>;
-    using PlayerHandler = std::function<void(const CCommand& args, int slot)>;
+    /** @p slot is the player who typed it in their own console, or -1 for the server. */
+    using Handler = std::function<void(const CCommand& args, int slot)>;
 
-    /** Runs for the server console, RCON and cfg files only; a player typing it is ignored. */
-    ServerCommand(std::string_view name, std::string_view helpText, Handler handler);
-    /** Also typeable in a player's own console, where @p slot is theirs; -1 is the server. */
-    ServerCommand(std::string_view name, std::string_view helpText, PlayerHandler handler);
+    /** Runs for the server console, RCON and cfg files; with @p playersCanRun, also from a
+     *  player's own console. Otherwise the engine refuses a player before the handler runs. */
+    ServerCommand(std::string_view name, std::string_view helpText, Handler handler, bool playersCanRun = false);
     ~ServerCommand();
     ServerCommand(const ServerCommand&) = delete;
     ServerCommand& operator=(const ServerCommand&) = delete;

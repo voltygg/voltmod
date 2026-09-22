@@ -5,7 +5,7 @@
 #include <VoltMod/Core/Slots/SlotEvents.hpp>
 #include <VoltMod/Core/Text/Translations.hpp>
 #include <VoltMod/Core/Time/Scheduler.hpp>
-#include <VoltMod/Menu/Menu.hpp>
+#include <VoltMod/Menu/MenuModel.hpp>
 #include <VoltMod/Menu/PendingCommit.hpp>
 #include <cstdint>
 #include <memory>

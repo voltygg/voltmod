@@ -7,8 +7,8 @@
 #include <VoltMod/Core/Time/Scheduler.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>
-#include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuFreeze.hpp>
+#include <VoltMod/Menu/MenuModel.hpp>
 #include <VoltMod/Menu/MenuStack.hpp>
 #include <VoltMod/Messaging/Messages.hpp>
 #include <VoltMod/Players/Policy.hpp>

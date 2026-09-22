@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoltMod/Core/Signals/Subscription.hpp>
-#include <VoltMod/Menu/Menu.hpp>
+#include <VoltMod/Menu/MenuModel.hpp>
 #include <functional>
 #include <memory>
 #include <string>

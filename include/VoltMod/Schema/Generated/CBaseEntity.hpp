@@ -24,9 +24,6 @@ public:
     int32_t MaxHealth() const;
     void SetMaxHealth(int32_t value) const;
 
-    bool TakesDamage() const;
-    void SetTakesDamage(bool value) const;
-
     float GravityScale() const;
     void SetGravityScale(float value) const;
 

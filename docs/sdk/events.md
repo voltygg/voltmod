@@ -135,7 +135,7 @@ maps.ChangeToWorkshop(3070563536ull);  // workshop maps are addressed by publish
 `IsValid` answers only for plain names. A workshop map is not mounted until it loads, so there is
 nothing to probe; check those by other means or accept the engine's own failure.
 
-`maps.Current()` is the map the server is running, captured from `StartupServer`. It stays empty
-after a mid-map load until the next map change. Both change calls take effect immediately, so
+`maps.Current()` is the map the server is running, captured from `StartupServer`, or read from the
+engine globals after a mid-map load. Both change calls take effect immediately, so
 schedule the call rather than delaying inside a listener when players should read an announcement
 first.

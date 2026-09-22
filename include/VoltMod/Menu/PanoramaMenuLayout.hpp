@@ -1,7 +1,7 @@
 #pragma once
 
-#include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuLayout.hpp>
+#include <VoltMod/Menu/MenuModel.hpp>
 #include <VoltMod/Ui/PlayerScreens.hpp>
 #include <VoltMod/Ui/ScreenManager.hpp>
 #include <cstddef>

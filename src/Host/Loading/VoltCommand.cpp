@@ -17,8 +17,8 @@ static constexpr std::string_view CommandUsage =
 VoltCommand::VoltCommand(PluginHost& host, PluginLoader& loader) : _host(host), _loader(loader)
 {
     _host.RegisterHostCommand("volt");
-    _command =
-        std::make_unique<ServerCommand>("volt", CommandUsage, [this](const CCommand& arguments) { Run(arguments); });
+    _command = std::make_unique<ServerCommand>("volt", CommandUsage,
+                                               [this](const CCommand& arguments, int) { Run(arguments); });
 }
 
 VoltCommand::~VoltCommand() = default;

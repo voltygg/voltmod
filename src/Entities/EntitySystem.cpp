@@ -150,6 +150,14 @@ int EntitySystem::SlotOf(const Pawn& pawn)
     return IsValidSlot(slot) ? slot : -1;
 }
 
+int EntitySystem::PlayerSlotOf(const Entity& entity)
+{
+    // SlotOf reads a pawn-only field, so every other class is turned away first.
+    if (!entity || entity.ClassName() != "player")
+        return -1;
+    return SlotOf(Pawn{*this, entity.Raw()});
+}
+
 uint64_t EntitySystem::Buttons(int slot)
 {
     // m_pButtonStates is uint64[3]; read it from the possessed pawn because the observer owns input while dead.
@@ -172,8 +180,25 @@ Entity EntitySystem::FindByClassName(const Entity& after, std::string_view class
     if (!GetEntitySystem() || className.empty())
         return {};
 
-    // Starting from `after` walks the active list, so repeated calls visit each entity once.
+    // An exact match continues along the engine's per-class chain instead of the whole active list.
+    CEntityIdentity* start = after ? after.Raw()->m_pEntity : nullptr;
+    if (start && start->m_pClass && className.find('*') == std::string_view::npos && after.ClassName() == className)
+    {
+        for (CEntityIdentity* next = start->m_pNextByClass; next; next = next->m_pNextByClass)
+        {
+            if ((next->m_flags & EF_MARKED_FOR_DELETE) == 0)
+                return {*this, next->m_pInstance};
+        }
+        return {};
+    }
+
     const std::string name(className);
+    if (!after)
+    {
+        EntityInstanceByClassIter_t iter(name.c_str());
+        return {*this, iter.First()};
+    }
+    // Wildcards and unresolved classes walk the active list from `after`.
     EntityInstanceByClassIter_t iter(after.Raw(), name.c_str());
     return {*this, iter.Next()};
 }

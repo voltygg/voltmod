@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Menu/Menu.hpp>
+#include <VoltMod/Menu/MenuModel.hpp>
 #include <optional>
 #include <string_view>
 

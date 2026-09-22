@@ -1,5 +1,5 @@
 #include <VoltMod/Core/Slots/Slot.hpp>
-#include <VoltMod/Core/Time/Time.hpp>
+#include <VoltMod/Core/Time/Durations.hpp>
 #include <VoltMod/Menu/MenuStack.hpp>
 #include <cstddef>
 #include <utility>

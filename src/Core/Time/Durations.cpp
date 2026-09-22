@@ -1,5 +1,5 @@
 #include <VoltMod/Core/Text/Strings.hpp>
-#include <VoltMod/Core/Time/Time.hpp>
+#include <VoltMod/Core/Time/Durations.hpp>
 #include <charconv>
 #include <chrono>
 #include <format>

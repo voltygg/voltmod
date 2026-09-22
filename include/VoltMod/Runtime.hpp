@@ -8,14 +8,14 @@
 #include <VoltMod/Core/Slots/SlotEvents.hpp>
 #include <VoltMod/Core/Text/Translations.hpp>
 #include <VoltMod/Core/Time/Scheduler.hpp>
-#include <VoltMod/Engine/ConVars/ConVars.hpp>
+#include <VoltMod/Engine/ConVars/ConVar.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/Server/Clock.hpp>
 #include <VoltMod/Engine/Server/Map.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/World.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
-#include <VoltMod/Hooks/Hooks.hpp>
+#include <VoltMod/Hooks/HookServices.hpp>
 #include <VoltMod/Host/IHost.hpp>
 #include <VoltMod/Http/HttpClient.hpp>
 #include <VoltMod/Menu/CenterHtmlMenu.hpp>
@@ -25,7 +25,7 @@
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/Policy.hpp>
 #include <VoltMod/Ui/ScreenManager.hpp>
-#include <VoltMod/Unsafe/Unsafe.hpp>
+#include <VoltMod/Unsafe/UnsafeServices.hpp>
 #include <VoltMod/Workshop/Addons.hpp>
 #include <cstddef>
 #include <map>

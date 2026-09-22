@@ -1,8 +1,8 @@
 #include <VoltMod/Core/Files/File.hpp>
 #include <VoltMod/Core/Files/Paths.hpp>
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/Time/Time.hpp>
-#include <VoltMod/Database/Database.hpp>
+#include <VoltMod/Core/Time/Durations.hpp>
+#include <VoltMod/Database/Client.hpp>
 #include <algorithm>
 #include <cctype>
 #include <filesystem>

@@ -2,8 +2,8 @@
 
 #include <VoltMod/Core/Text/Labeled.hpp>
 #include <VoltMod/Core/Text/Strings.hpp>
-#include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
+#include <VoltMod/Menu/MenuModel.hpp>
 #include <VoltMod/Menu/MenuPresets.hpp>
 #include <format>
 #include <functional>

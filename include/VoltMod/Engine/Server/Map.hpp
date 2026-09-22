@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Engine/ConVars/ConVars.hpp>
+#include <VoltMod/Engine/ConVars/ConVar.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <cstdint>
 #include <string>
@@ -26,8 +26,9 @@ public:
     /** Queue `host_workshop_map`. Returns false for zero or when queuing fails. */
     bool ChangeToWorkshop(uint64_t workshopId);
 
-    /** Current map from StartupServer. Empty after a late load until the next map. */
-    const std::string& Current() const { return _current; }
+    /** The map being played: the StartupServer name, or the engine globals' `mapname` after a late
+     *  load. Empty when neither is available. */
+    std::string Current() const;
 
     /** Framework hook entry point. Plugins read @ref Current. */
     void SetCurrent(std::string name) { _current = std::move(name); }

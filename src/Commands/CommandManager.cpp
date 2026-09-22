@@ -70,7 +70,7 @@ void CommandManager::InstallConsoleCommand(const CommandDefinition& def)
     // Console usage has no chat prefix.
     const std::string help = def.Description.empty() ? _impl->Router.Usage(def, -1, Origin::Console) : def.Description;
 
-    ServerCommand::PlayerHandler run = [this, name](const CCommand& args, int slot) {
+    ServerCommand::Handler run = [this, name](const CCommand& args, int slot) {
         // Resolve on each call because shutdown can unregister the command first.
         const CommandDefinition* current = _impl->Router.Find(name);
         if (!current)
@@ -95,18 +95,9 @@ void CommandManager::InstallConsoleCommand(const CommandDefinition& def)
                                [](const std::string& line) { Log::Info("{}", line); });
     };
 
-    // A server-only command ignores players; any other also runs as the player who typed it in their console.
-    std::unique_ptr<ServerCommand> command;
-    if (def.Access == CommandAccess::Anywhere)
-    {
-        command = std::make_unique<ServerCommand>(name, help, std::move(run));
-    }
-    else
-    {
-        ServerCommand::Handler runAsServer = [run](const CCommand& args) { run(args, -1); };
-        command = std::make_unique<ServerCommand>(name, help, std::move(runAsServer));
-    }
-    _impl->ConsoleCommands.emplace(name, std::move(command));
+    // A server-only command is refused to players by the engine; any other also runs as the player who typed it.
+    const bool playersCanRun = def.Access == CommandAccess::Anywhere;
+    _impl->ConsoleCommands.emplace(name, std::make_unique<ServerCommand>(name, help, std::move(run), playersCanRun));
 }
 
 void CommandManager::ReplyToPlayer(int slot, const std::string& line)

@@ -3,7 +3,6 @@
     "CBaseEntity": [
       "m_iHealth>Health",
       "m_iMaxHealth>MaxHealth",
-      "m_bTakesDamage>TakesDamage",
       "m_flGravityScale>GravityScale",
       "m_iTeamNum>Team",
       "m_lifeState",
@@ -79,7 +78,6 @@
       "m_hViewEntity>ViewEntity"
     ],
     "CCSPlayerBase_CameraServices": [
-      "m_iFOV>FieldOfView",
       "m_hZoomOwner>ZoomOwner"
     ],
     "CPlayer_ObserverServices": [

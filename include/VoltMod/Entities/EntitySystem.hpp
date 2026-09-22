@@ -70,6 +70,10 @@ public:
     /** Slot owning @p pawn, or -1 when it is not a player pawn. Constant-time. */
     int SlotOf(const Pawn& pawn);
 
+    /** Slot of @p entity when it is a player pawn, or -1 for any other entity, such as a damage
+     *  attacker or inflictor. */
+    int PlayerSlotOf(const Entity& entity);
+
     /** Held buttons for @p slot (m_pButtonStates[0]) as `IN_*` bits from in_buttons.h, or 0. Read
      *  from @ref Controller::Possessed, so they arrive while dead or spectating too. */
     uint64_t Buttons(int slot);

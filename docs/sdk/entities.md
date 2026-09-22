@@ -75,7 +75,7 @@ base class, so view it as the CS subclass to reach the zoom fields:
 pawn.SetGravityScale(0.5f);                                // CBaseEntity, so any entity has it
 pawn.MovementServices().SetMaxSpeed(300.0f);
 pawn.CameraServices().SetViewEntity(camera.Ref().Handle);  // see through another entity
-VoltMod::Schema::CCSPlayerBase_CameraServices{pawn.CameraServices().Base()}.SetFieldOfView(90);
+uint32_t zoomOwner = VoltMod::Schema::CCSPlayerBase_CameraServices{pawn.CameraServices().Base()}.ZoomOwner();
 ```
 
 A handle field reads as a raw `uint32_t`. Wrap it in an `EntityRef` to resolve it:

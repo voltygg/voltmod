@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Engine/ConVars/ConVars.hpp>
+#include <VoltMod/Engine/ConVars/ConVar.hpp>
 #include <algorithm>
 #include <string>
 #include <string_view>

@@ -125,9 +125,8 @@ Bullets reach `Before` for any prop with collision, with the prop as `hit.Victim
 `prop_dynamic` spawned with a precached model and `solid` 6 is enough. Bullets that hit the world
 arrive too, with `worldent` (index 0) as the victim.
 
-The engine keeps no health on a `prop_dynamic`: a `health` keyvalue, `SetMaxHealth` and
-`SetTakesDamage(true)` change nothing. Keep the prop's health in the plugin and set
-`hit.Blocked`. A `prop_physics_override` with `spawnflags` 8 (motion disabled) and a `health`
+The engine keeps no health on a `prop_dynamic`: a `health` keyvalue and `SetMaxHealth` change
+nothing. Keep the prop's health in the plugin and set `hit.Blocked`. A `prop_physics_override` with `spawnflags` 8 (motion disabled) and a `health`
 keyvalue does lose health, to bullets and to `Apply`, and the engine removes it at zero.
 
 ## Hooking a vfunc the framework does not cover
@@ -196,14 +195,14 @@ class MyManager
     void Initialize()
     {
         _cmd.emplace("myplugin_do", "Do the thing: myplugin_do <steamid64>",
-                     [this](const CCommand& args) { /* args.ArgC(), args.Arg(1), ... */ });
+                     [this](const CCommand& args, int slot) { /* args.ArgC(), args.Arg(1), ... */ });
     }
 };
 ```
 
 Call one with `runtime.ConVars.ExecuteServerCommand("myplugin_do 765...")`; the engine reports an
-unknown command when no provider is loaded. A player cannot run it from their own console. A
-handler taking `(const CCommand& args, int slot)` makes the command client-executable and runs for
-players too, with their slot (-1 for the server). Server commands are for console, RCON, cfg files
+unknown command when no provider is loaded. A player cannot run it from their own console unless
+the constructor's last argument, `playersCanRun`, is true; the handler then runs for players too,
+with their slot (-1 for the server). Server commands are for console, RCON, cfg files
 and loose automation. For a typed contract between two plugins publish a versioned interface through
 `runtime.Exchange` instead, and never transfer ownership or exceptions across module boundaries.

@@ -1,5 +1,5 @@
+#include <VoltMod/Core/Time/Durations.hpp>
 #include <VoltMod/Core/Time/Scheduler.hpp>
-#include <VoltMod/Core/Time/Time.hpp>
 #include <utility>
 
 namespace VoltMod

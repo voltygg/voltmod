@@ -3,8 +3,8 @@
 #include <VoltMod/Core/Text/Translations.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/Pawn.hpp>
-#include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
+#include <VoltMod/Menu/MenuModel.hpp>
 #include <VoltMod/Players/ActionDispatcher.hpp>
 #include <VoltMod/Players/EffectDescriptor.hpp>
 #include <VoltMod/Players/EffectDispatcher.hpp>

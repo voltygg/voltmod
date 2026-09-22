@@ -1,9 +1,10 @@
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Engine/ConVars/ConVars.hpp>
+#include <VoltMod/Engine/ConVars/ConVar.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/Server/Map.hpp>
 #include <eiface.h>
 #include <format>
+#include <globalvars.h>
 #include <string>
 
 namespace VoltMod
@@ -53,6 +54,16 @@ bool Map::ChangeToWorkshop(uint64_t workshopId)
         return false;
     }
     return true;
+}
+
+std::string Map::Current() const
+{
+    if (!_current.empty())
+        return _current;
+
+    auto* globals = _interfaces.Engine ? _interfaces.Engine->GetServerGlobals() : nullptr;
+    const char* name = globals ? globals->mapname.ToCStr() : nullptr;
+    return name ? std::string(name) : std::string{};
 }
 
 }  // namespace VoltMod

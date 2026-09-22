@@ -2,7 +2,7 @@
 
 #include <VoltMod/Core/Text/Strings.hpp>
 #include <VoltMod/Core/Text/Translations.hpp>
-#include <VoltMod/Menu/Menu.hpp>
+#include <VoltMod/Menu/MenuModel.hpp>
 #include <algorithm>
 #include <sstream>
 #include <string>

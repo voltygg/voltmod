@@ -2,8 +2,8 @@
 #include "Support/TestLanguages.hpp"
 
 #include <VoltMod/Core/Text/Translations.hpp>
-#include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
+#include <VoltMod/Menu/MenuModel.hpp>
 #include <cstddef>
 #include <doctest/doctest.h>
 #include <memory>

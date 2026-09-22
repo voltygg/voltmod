@@ -18,14 +18,6 @@ void SetMaxHealth(int32_t value) const
 {
     Schema::CBaseEntity{_e}.SetMaxHealth(value);
 }
-bool TakesDamage() const
-{
-    return Schema::CBaseEntity{_e}.TakesDamage();
-}
-void SetTakesDamage(bool value) const
-{
-    Schema::CBaseEntity{_e}.SetTakesDamage(value);
-}
 float GravityScale() const
 {
     return Schema::CBaseEntity{_e}.GravityScale();

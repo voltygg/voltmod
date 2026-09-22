@@ -4,7 +4,7 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Core/Slots/SteamId.hpp>
-#include <VoltMod/Core/Time/Time.hpp>
+#include <VoltMod/Core/Time/Durations.hpp>
 #include <VoltMod/Engine/Detours.hpp>
 #include <VoltMod/Engine/Memory/MemoryAccess.hpp>
 #include <VoltMod/Players/Player.hpp>

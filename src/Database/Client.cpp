@@ -1,7 +1,7 @@
 #include <VoltMod/Core/Files/Paths.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Time/Scheduler.hpp>
-#include <VoltMod/Database/Database.hpp>
+#include <VoltMod/Database/Client.hpp>
 #include <filesystem>
 #include <optional>
 

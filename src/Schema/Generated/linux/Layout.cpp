@@ -9,7 +9,6 @@ static const FieldLayout kFields[] = {
     {.Class = "CBaseCombatCharacter", .Field = "m_hMyWearables", .Offset = 3144, .Size = 24},
     {.Class = "CBaseEntity", .Field = "m_iHealth", .Offset = 1456, .Size = 4},
     {.Class = "CBaseEntity", .Field = "m_iMaxHealth", .Offset = 1460, .Size = 4},
-    {.Class = "CBaseEntity", .Field = "m_bTakesDamage", .Offset = 1472, .Size = 1},
     {.Class = "CBaseEntity", .Field = "m_flGravityScale", .Offset = 1756, .Size = 4},
     {.Class = "CBaseEntity", .Field = "m_iTeamNum", .Offset = 1572, .Size = 1},
     {.Class = "CBaseEntity", .Field = "m_lifeState", .Offset = 1464, .Size = 1},
@@ -44,7 +43,6 @@ static const FieldLayout kFields[] = {
     {.Class = "CCSCustomHudLayout", .Field = "m_strLayout", .Offset = 1928, .Size = 8},
     {.Class = "CCSCustomHudLayoutState", .Field = "m_bInputCaptureEnabled", .Offset = 52, .Size = 1},
     {.Class = "CCSGameRulesProxy", .Field = "m_pGameRules", .Offset = 1928, .Size = 8},
-    {.Class = "CCSPlayerBase_CameraServices", .Field = "m_iFOV", .Offset = 376, .Size = 4},
     {.Class = "CCSPlayerBase_CameraServices", .Field = "m_hZoomOwner", .Offset = 392, .Size = 4},
     {.Class = "CCSPlayerController", .Field = "m_hPlayerPawn", .Offset = 3004, .Size = 4},
     {.Class = "CCSPlayerController", .Field = "m_pInGameMoneyServices", .Offset = 2744, .Size = 8},
@@ -109,7 +107,7 @@ std::string_view GeneratedFromBuild()
 
 uint64_t GeneratedLayoutStamp()
 {
-    return 0x704EC4AB22856D69ULL;
+    return 0x1EFF0FF34C2D610EULL;
 }
 
 }  // namespace VoltMod::Schema

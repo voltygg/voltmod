@@ -24,11 +24,4 @@ float Clock::Time() const
     return globals ? globals->curtime : 0.0f;
 }
 
-std::string_view Clock::MapName() const
-{
-    auto* globals = Globals();
-    const char* name = globals ? globals->mapname.ToCStr() : nullptr;
-    return name ? std::string_view(name) : std::string_view{};
-}
-
 }  // namespace VoltMod

@@ -2,7 +2,6 @@
 
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
-#include <string_view>
 
 namespace VoltMod
 {
@@ -32,10 +31,6 @@ public:
 
     /** Current simulation time in seconds (`curtime`), or 0 when the globals are unavailable. */
     float Time() const;
-
-    /** The map being played (`mapname`), or empty when the globals are unavailable. Borrowed
-     *  from the engine: it changes with the map, so copy it to keep it. */
-    std::string_view MapName() const;
 
 private:
     Interfaces& _interfaces;

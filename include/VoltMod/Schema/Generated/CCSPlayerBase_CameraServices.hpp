@@ -18,9 +18,6 @@ public:
     /** The entity that owns this component, or nullptr. */
     ::CEntityInstance* OwnerEntity() const;
 
-    uint32_t FieldOfView() const;
-    void SetFieldOfView(uint32_t value) const;
-
     uint32_t ZoomOwner() const;
     void SetZoomOwner(uint32_t value) const;
 };

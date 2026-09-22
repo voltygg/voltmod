@@ -1,8 +1,8 @@
 #pragma once
 
 #include <VoltMod/Core/Text/Labeled.hpp>
-#include <VoltMod/Menu/Menu.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>
+#include <VoltMod/Menu/MenuModel.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/PlayerRef.hpp>
 #include <functional>

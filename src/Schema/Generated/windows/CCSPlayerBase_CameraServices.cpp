@@ -10,30 +10,11 @@ namespace VoltMod::Schema
 
 // ---- CCSPlayerBase_CameraServices, 432 bytes ----------------------
 static constexpr int32_t CCSPlayerBase_CameraServices_kOwnerLinkOffset = 8;
-static constexpr int32_t kCCSPlayerBase_CameraServices_FieldOfView = 376;  // uint32
-static constexpr int32_t kCCSPlayerBase_CameraServices_ZoomOwner = 392;    // CHandle< CBaseEntity >
+static constexpr int32_t kCCSPlayerBase_CameraServices_ZoomOwner = 392;  // CHandle< CBaseEntity >
 
 ::CEntityInstance* CCSPlayerBase_CameraServices::OwnerEntity() const
 {
     return ComponentOwner(_base, CCSPlayerBase_CameraServices_kOwnerLinkOffset);
-}
-
-uint32_t CCSPlayerBase_CameraServices::FieldOfView() const
-{
-    if (!_base)
-        return {};
-
-    return *MemberPtr<uint32_t>(_base, kCCSPlayerBase_CameraServices_FieldOfView);
-}
-
-void CCSPlayerBase_CameraServices::SetFieldOfView(uint32_t value) const
-{
-    if (!_base)
-        return;
-
-    *MemberPtr<uint32_t>(_base, kCCSPlayerBase_CameraServices_FieldOfView) = value;
-    NotifyComponentOwner(_base, CCSPlayerBase_CameraServices_kOwnerLinkOffset,
-                         kCCSPlayerBase_CameraServices_FieldOfView);
 }
 
 uint32_t CCSPlayerBase_CameraServices::ZoomOwner() const
