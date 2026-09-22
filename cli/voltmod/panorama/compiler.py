@@ -15,8 +15,8 @@ COMPILED_SUFFIX = {".xml": ".vxml_c", ".css": ".vcss_c", ".vtex": ".vtex_c"}
 # Staged beside the .vtex descriptor that names it; never handed to the compiler.
 STAGED_ONLY_SUFFIXES = (".png",)
 
-# The only panorama subdirectories gameinfo.gi lets an addon ship custom layouts under.
-PANORAMA_DIRS = ("layout/custom_game", "styles/custom_game", "images/custom_game")
+# gameinfo.gi lets an addon ship layouts and styles only under custom_game; images go anywhere.
+PANORAMA_DIRS = ("layout/custom_game", "styles/custom_game", "images")
 
 
 def compile_and_install(

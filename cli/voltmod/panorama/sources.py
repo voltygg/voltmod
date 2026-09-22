@@ -8,7 +8,7 @@ from voltmod.project import PLUGIN_DIRS
 
 BUILD_DIR = "build/panorama"
 SCREENS_DIR = "screens"
-IMAGES_DIR = "images/custom_game"
+IMAGES_DIR = "images"
 LAYOUT_SUFFIX = ".xml.j2"
 STYLESHEET_SUFFIX = ".css.j2"
 
@@ -73,5 +73,5 @@ def icon_sets(owner: ScreenOwner) -> dict[str, list[str]]:
 
 
 def icon_path(owner: ScreenOwner, icon_set: str, name: str) -> Path:
-    """The PNG behind `s2r://panorama/images/custom_game/<set>/<name>.vtex`."""
+    """The PNG behind `s2r://panorama/images/<set>/<name>.vtex`."""
     return owner.source / IMAGES_DIR / icon_set / f"{name}.png"

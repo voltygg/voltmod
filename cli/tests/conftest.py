@@ -50,7 +50,7 @@ def make_screen_project(tmp_path: Path):
         (screens / f"{name}.xml.j2").write_text(xml, encoding="utf-8")
         (screens / f"{name}.css.j2").write_text(css, encoding="utf-8")
 
-        weapons = panorama / "images/custom_game/weapons"
+        weapons = panorama / "images/weapons"
         weapons.mkdir(parents=True, exist_ok=True)
         for icon in icons:
             (weapons / f"{icon}.png").write_bytes(PNG)

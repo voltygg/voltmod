@@ -89,13 +89,16 @@ The client validates markup and reports failures only in the client console, so
 `voltmod panorama check` refuses the same things first:
 
 - Only `Panel`, `Label`, `Image` and `Button` (plus `<root>`, `<styles>` and `<include>`).
+- Only the attributes `id`, `class`, `hittest`, `text`, `src` and `textureheight`. Anything else,
+  even a valid Panorama one such as `scaling`, fails the client's custom HUD validation and the
+  whole layout is dropped.
 - Every `Button` needs an `id`, and a `Button` may not sit inside another `Button` - the inner
   press is lost. Make them siblings and size them side by side.
 - Every id is unique and starts with `<screen>_`, except the outermost one, which is the screen
   name itself.
 - The stylesheet is included by its **source** name under `{resources}`, not the compiled
   `.vcss_c` name.
-- An `<Image src>` is either a game icon or a real PNG under `images/custom_game/<set>/`.
+- An `<Image src>` is either a game icon or a real PNG under `images/<set>/`.
 
 For reliable clicks, every panel on the path to a `Button` needs a resolved size (`width: 100%`, a
 fixed value, or `fill-parent-flow`); a container left to size itself around its children renders
@@ -148,7 +151,7 @@ voltmod panorama compile --no-deploy         # compile only, leave the client al
 It finds the client through Steam's library list; set `CS2_CLIENT_PATH` in `.env` or pass
 `--client-path` when that guess is wrong. Sources are staged into `content/csgo_addons/voltmod/`,
 compiled to `game/csgo_addons/voltmod/`, and the compiled resources copied into
-`csgo/panorama/{layout,styles,images}/custom_game/`. Reconnect to see the change; no addon is
+`csgo/panorama/{layout,styles}/custom_game/` and `csgo/panorama/images/<set>/`. Reconnect to see the change; no addon is
 required for your own client.
 
 ## Build tree outputs
@@ -156,8 +159,8 @@ required for your own client.
 ```text
 build/panorama/<owner>/panorama/layout/custom_game/<name>.xml
 build/panorama/<owner>/panorama/styles/custom_game/<name>.css
-build/panorama/<owner>/panorama/images/custom_game/<set>/<icon>.png
-build/panorama/<owner>/panorama/images/custom_game/<set>/<icon>.vtex
+build/panorama/<owner>/panorama/images/<set>/<icon>.png
+build/panorama/<owner>/panorama/images/<set>/<icon>.vtex
 build/panorama/<owner>/include/Ui/<Pascal>.hpp
 ```
 
@@ -242,7 +245,10 @@ header spells them as C++ names.
 
 ## Images and icon sets {#panorama_guide_images}
 
-Drop PNGs in an owner's `panorama/images/custom_game/<set>/`. Every set becomes an entry in the
+Drop PNGs in an owner's `panorama/images/<set>/`, referenced as `s2r://panorama/images/<set>/<name>.vtex`.
+Name a set for its owner (`stronghold_items`, not `icons`): a set shares the client's
+`panorama/images/` with the game's own folders, and one of the same name replaces them. Every set
+becomes an entry in the
 `images` context (`images.weapons`, sorted file stems), so `{% for name in images[set] %}` in a
 block can draw one `<Image>` per icon. Rendering copies each PNG into the build tree and writes a
 matching `.vtex` descriptor beside it - `resourcecompiler` compiles the descriptor, never the PNG.
@@ -277,5 +283,5 @@ if (auto required = runtime.Addons.Require(3401234567))
 ```
 
 Delete what an earlier `compile` installed under your client's
-`game/csgo/panorama/*/custom_game/` before testing the download, or the client keeps using those
+`game/csgo/panorama/` before testing the download, or the client keeps using those
 files. See @ref workshop_guide for what an addon costs a connecting client.

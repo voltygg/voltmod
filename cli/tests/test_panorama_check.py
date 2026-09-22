@@ -39,6 +39,7 @@ def messages(root, owners=("ui-lab",)) -> list[str]:
 
 RULES = [
     (screen("<script>bad()</script>"), "<script> is not an allowed element"),
+    (screen('<Image scaling="none" />'), "disallowed attribute 'scaling'"),
     (screen('<Button class="nav" />'), "<Button> has no id"),
     (
         screen('<Button id="{{screen}}_outer"><Button id="{{screen}}_inner" /></Button>'),
@@ -52,7 +53,7 @@ RULES = [
         "expected one style include",
     ),
     (
-        screen('<Image src="s2r://panorama/images/custom_game/weapons/missing.vtex" />'),
+        screen('<Image src="s2r://panorama/images/weapons/missing.vtex" />'),
         "has no weapons/missing.png",
     ),
     (

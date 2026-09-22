@@ -28,6 +28,9 @@ GAME_ICONS = "s2r://panorama/images/icons/"
 # What the client's Panorama parser accepts anywhere in a layout.
 ALLOWED_ELEMENTS = {"root", "styles", "include", "Panel", "Label", "Image", "Button"}
 
+# Attributes known to pass the client's custom HUD validation; any other rejects the whole layout.
+ALLOWED_ATTRIBUTES = {"id", "class", "hittest", "text", "src", "textureheight"}
+
 # The client interns every id, variable and class name in one table shared by all screens, and
 # overflowing it breaks rendering on players' machines, where no build step can see it.
 NAME_TABLE_SIZE = 1024
@@ -47,7 +50,7 @@ def check_screens(root: Path, names: list[str] | None = None) -> list[CheckResul
         renderer = ScreenRenderer(owner, everyone)
         for icon_set, icons in renderer.icons.items():
             for icon in icons:
-                resource = f"images/custom_game/{icon_set}/{icon}.*"
+                resource = f"images/{icon_set}/{icon}.*"
                 problems += _claim_resource(resource, owner, claimed)
         for source in screen_sources(owner):
             problems += _check_screen(renderer, source, claimed, interned)
@@ -85,11 +88,14 @@ def _check_screen(
 
 
 def _check_elements(screen: Screen, source: Path) -> list[str]:
-    return [
-        f"{source}: <{node.tag}> is not an allowed element"
-        for node in screen.tree.iter()
-        if node.tag not in ALLOWED_ELEMENTS
-    ]
+    problems: list[str] = []
+    for node in screen.tree.iter():
+        if node.tag not in ALLOWED_ELEMENTS:
+            problems.append(f"{source}: <{node.tag}> is not an allowed element")
+        for name in node.attrib:
+            if name not in ALLOWED_ATTRIBUTES:
+                problems.append(f"{source}: <{node.tag}> has disallowed attribute '{name}'")
+    return problems
 
 
 def _check_buttons(screen: Screen, source: Path) -> list[str]:
@@ -179,7 +185,7 @@ def _check_images(owner: ScreenOwner, screen: Screen, source: Path) -> list[str]
         if not match:
             problems.append(
                 f"{source}: Image src '{src}' is neither "
-                "s2r://panorama/images/custom_game/<set>/<name>.vtex "
+                "s2r://panorama/images/<set>/<name>.vtex "
                 "nor a game icon under s2r://panorama/images/icons/"
             )
         elif not icon_path(owner, *match.groups()).is_file():
