@@ -48,6 +48,7 @@ PlayerHurt PlayerHurt::From(IGameEvent& e)
     return {
         .VictimSlot = e.GetPlayerSlot("userid").Get(),
         .AttackerSlot = e.GetPlayerSlot("attacker").Get(),
+        .Weapon = e.GetString("weapon", ""),
         .Health = e.GetInt("health"),
         .DamageHealth = e.GetInt("dmg_health"),
         .Hitbox = static_cast<HitGroup>(e.GetInt("hitgroup", static_cast<int>(HitGroup::Generic))),

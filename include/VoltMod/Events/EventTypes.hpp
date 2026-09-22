@@ -57,6 +57,7 @@ struct PlayerHurt
     static constexpr std::string_view Name = "player_hurt";
     int VictimSlot = -1;
     int AttackerSlot = -1;
+    std::string Weapon;
     int Health = 0;
     int DamageHealth = 0;
     /** Where the shot landed. Unlike @ref DamageView::Hitbox this comes from the event, so it is

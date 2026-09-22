@@ -11,6 +11,7 @@
 #include <in_buttons.h>
 #include <optional>
 #include <string_view>
+#include <vector>
 
 namespace VoltMod
 {
@@ -73,6 +74,9 @@ public:
     /** Slot of @p entity when it is a player pawn, or -1 for any other entity, such as a damage
      *  attacker or inflictor. */
     int PlayerSlotOf(const Entity& entity);
+
+    /** The weapons @p pawn carries, knife and grenades included. Empty for a falsy pawn. */
+    std::vector<Entity> WeaponsOf(const Pawn& pawn);
 
     /** Held buttons for @p slot (m_pButtonStates[0]) as `IN_*` bits from in_buttons.h, or 0. Read
      *  from @ref Controller::Possessed, so they arrive while dead or spectating too. */

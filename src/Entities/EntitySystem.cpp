@@ -8,8 +8,11 @@
 #include <entity2/entityidentity.h>
 #include <entity2/entityinstance.h>
 #include <entity2/entitysystem.h>
+#include <entityhandle.h>
 #include <string>
 #include <string_view>
+#include <tier1/utlvector.h>
+#include <vector>
 
 /**
  * The SDK calls ::GameEntitySystem() without context. EntitySystem owns this pointer and clears it
@@ -156,6 +159,27 @@ int EntitySystem::PlayerSlotOf(const Entity& entity)
     if (!entity || entity.ClassName() != "player")
         return -1;
     return SlotOf(Pawn{*this, entity.Raw()});
+}
+
+std::vector<Entity> EntitySystem::WeaponsOf(const Pawn& pawn)
+{
+    std::vector<Entity> weapons;
+    if (!pawn)
+        return weapons;
+    const Schema::CPlayer_WeaponServices services = pawn.WeaponServices();
+    if (!services)
+        return weapons;
+    // The schema's CNetworkUtlVectorBase<CHandle<T>> is laid out as a CUtlVector.
+    const auto* handles = static_cast<const CUtlVector<CEntityHandle>*>(services.MyWeapons());
+    if (!handles)
+        return weapons;
+    for (int i = 0; i < handles->Count(); ++i)
+    {
+        const Entity weapon = Resolve(EntityRef{static_cast<uint32_t>(handles->Element(i).ToInt())});
+        if (weapon)
+            weapons.push_back(weapon);
+    }
+    return weapons;
 }
 
 uint64_t EntitySystem::Buttons(int slot)
