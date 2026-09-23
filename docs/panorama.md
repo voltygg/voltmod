@@ -129,12 +129,12 @@ Valve's own reference layout ships as source at
 
 ```bash
 voltmod build                            # renders panorama/screens/ before configuring
-voltmod panorama render [OWNER...]       # write layouts, stylesheets, images and headers
-voltmod panorama check [OWNER...]        # read-only: the checks the client applies silently
-voltmod panorama compile [OWNER...]      # render, run resourcecompiler, install into your client
+voltmod panorama render [PLUGIN...]       # write layouts, stylesheets, images and headers
+voltmod panorama check [PLUGIN...]        # read-only: the checks the client applies silently
+voltmod panorama compile [PLUGIN...]      # render, run resourcecompiler, install into your client
 ```
 
-`OWNER` is a plugin name; omitted, every plugin that ships a screen renders. Nothing rendered is
+Omit `PLUGIN` and every plugin that ships a screen renders. Nothing rendered is
 committed - a checkout renders before it builds, and CI never needs the CS2 Workshop Tools. `check`
 writes nothing and belongs in a consumer repo's lint task; it also refuses two owners writing the
 same resource path, a screen whose names cannot be spelled in C++, and too many interned names.
@@ -149,7 +149,7 @@ voltmod panorama compile --no-deploy         # compile only, leave the client al
 ```
 
 It finds the client through Steam's library list; set `CS2_CLIENT_PATH` in `.env` or pass
-`--client-path` when that guess is wrong. Sources are staged into `content/csgo_addons/voltmod/`,
+`--client` when that guess is wrong. Sources are staged into `content/csgo_addons/voltmod/`,
 compiled to `game/csgo_addons/voltmod/`, and the compiled resources copied into
 `csgo/panorama/{layout,styles}/custom_game/` and `csgo/panorama/images/<set>/`. Reconnect to see
 the change; no addon is required for your own client.
@@ -270,7 +270,7 @@ instance.
 
 Other players get the screens from a workshop addon:
 
-1. `voltmod panorama compile [OWNER...] --addon NAME --no-deploy` compiles into
+1. `voltmod panorama compile [PLUGIN...] --addon NAME --no-deploy` compiles into
    `game/csgo_addons/NAME/` without touching your client.
 2. Open NAME in the CS2 Workshop Tools, then the Workshop Manager, and submit it as Public or
    Unlisted. A private item does not download for anyone else.

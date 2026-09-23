@@ -81,7 +81,7 @@ the services they point at are still alive.
 
 ### What the scaffold creates
 
-`voltmod new-plugin <name>` writes `plugins/<name>/`:
+`voltmod new plugin <name>` writes `plugins/<name>/`:
 
 | File | Holds |
 | --- | --- |
@@ -271,7 +271,7 @@ addons/
 A plugin has no `.vdf` or `bin` directory of its own. `runtime.PluginFile("configs/x")` builds
 `addons/voltmod/plugins/<name>/configs/x` for any file the plugin reads at run time.
 
-`uv run poe build --install <name>` stages and merges both trees, `--install-all` every plugin's.
+`voltmod install <name>` stages and merges both trees; with no name, every plugin's.
 By hand:
 
 ```sh

@@ -8,7 +8,7 @@ Write a small snippet file and run it with these helpers in scope:
     uv run .claude/skills/gamedata-update/scripts/binre.py snippet.py
 
     # snippet.py
-    new = Binary.open("2000913", "windows")          # a build fetched by `voltmod gamedata fetch`
+    new = Binary.open("2000913", "windows")  # archived by `voltmod framework gamedata fetch`
     print(new.disasm(new.find("48 89 5C 24 08")[0]))
 
 Every address is an RVA, the same numbers resolved.<platform>.json records.
@@ -37,6 +37,7 @@ from voltmod.framework.gamedata import (  # noqa: E402
     pattern_regex,
     read_gamedata,
 )
+from voltmod.platforms import Platform  # noqa: E402
 
 PE_EXECUTABLE = 0x20000000  # IMAGE_SCN_MEM_EXECUTE
 ELF_EXECUTABLE = 0x4  # SHF_EXECINSTR
@@ -78,7 +79,7 @@ class Binary:
     def open(cls, build: str, platform: str, module: str = "server") -> Binary:
         """A module from the build archive, or from any game directory passed as `build`."""
         root = Path(build) if Path(build).is_dir() else default_archive() / build / platform
-        return cls(module_path(root, platform, module), platform)
+        return cls(module_path(root, Platform(platform), module), platform)
 
     def section(self, name: str) -> Section:
         return next(section for section in self.sections if section.name == name)
@@ -288,7 +289,7 @@ def load_gamedata() -> dict:
 
 
 def load_resolved(build: str, platform: str) -> dict | None:
-    """The host's resolved record that `voltmod gamedata fetch` archived beside a build."""
+    """The host's resolved record that `gamedata fetch` archived beside a build."""
     path = resolved_record(default_archive() / build / platform, platform)
     return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
 

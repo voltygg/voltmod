@@ -111,7 +111,7 @@ load. Keep the record from a known-good build to diff against after an update.
 
 ## Schema fields
 
-Schema offsets need no gamedata. `voltmod schemagen` bakes them into generated accessors, and the
+Schema offsets need no gamedata. `voltmod framework schemagen` bakes them into generated accessors, and the
 host verifies the whole generated layout against the live schema once:
 
 ```cpp
@@ -129,7 +129,7 @@ in `schema/server.<platform>.json` and its own generated sources, so run `schema
 platform. Re-rendering a platform from its baseline needs no server:
 
 ```bash
-voltmod schemagen --dump schema/server.windows.json --platform windows
+voltmod framework schemagen --dump schema/server.windows.json --platform windows
 ```
 
 Field access on a wrapper is what @ref sdk_players_guide "Entities and players" describes.
@@ -164,34 +164,34 @@ CCSPlayerPawn::m_ArmorValue: offset 4828 -> 4820
 
 ## After a game update
 
-`voltmod doctor --server-path <dir>` says when the server is behind Steam, and when gamedata was
+`voltmod doctor --server <dir>` says when the server is behind Steam, and when gamedata was
 checked on another build than the server runs. `voltmod serve` puts back the Metamod line an update
 removes from `gameinfo.gi`.
 
 A dump needs a running map, so a cold start refuses every plugin before the first map loads. Update
 day is: start the server, let the plugins refuse, let a map load so the host writes the dump, run
-`voltmod schemagen`, review the `git diff` of the generated code, rebuild.
+`voltmod framework schemagen`, review the `git diff` of the generated code, rebuild.
 
 Gamedata is repaired separately, and offline:
 
-1. `voltmod gamedata fetch` downloads the new build's `server` and `engine2` binaries for both
+1. `voltmod framework gamedata fetch` downloads the new build's `server` and `engine2` binaries for both
    platforms into `~/.voltmod/cs2-builds/<build>/<platform>` (`CS2_BUILD_ARCHIVE` moves it). It
    also files the local server's `resolved.<platform>.json` under the archived build it names, so
    run it before updating the server. Steam serves only the current build, so this archive is the
    only way to compare an update with the build before it.
-2. `voltmod gamedata check --game-dir ~/.voltmod/cs2-builds/<build>/<platform>` reports which
+2. `voltmod framework gamedata check --game-dir ~/.voltmod/cs2-builds/<build>/<platform>` reports which
    `functions` and `globals` patterns no longer match those binaries, and why. It needs no server.
-3. `voltmod gamedata resolve --write` repairs what it can, then read the diff.
+3. `voltmod framework gamedata check --fix` repairs what it can, then read the diff.
 4. Re-check every vtable index by hand. The slot check catches an index landing on data, not a
    valid slot holding the wrong function.
 5. Re-check every byte offset by hand. A stale offset reads plausible unrelated data.
 6. Exercise each feature on a live server. Resolution is not correctness.
 7. Update `build.server` and `build.verified` in the same change.
 
-`check` and `resolve` take `--game-dir` (default `CS2_SERVER_PATH`) and `--platform`. The platform
-otherwise follows whichever binaries that directory holds.
+`check` takes `--game-dir` (default `CS2_SERVER_PATH`) and `--platform`. The platform otherwise
+follows whichever binaries that directory holds.
 
-What `resolve --write` will and will not do:
+What `--fix` will and will not do:
 
 - An entry that still matches once is never rewritten. The file changes only where it was wrong.
 - A missed entry is repaired only by widening one struct displacement - bytes a pattern should

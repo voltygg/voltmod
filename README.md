@@ -26,11 +26,11 @@ You need Git, [uv](https://docs.astral.sh/uv/), Python 3.14 or newer, a C++23 co
 dedicated server with Metamod:Source. The generated project includes a working `!ping` command.
 
 ```sh
-uvx --from git+https://github.com/voltygg/voltmod.git voltmod init --plugin my-plugin
+uvx --from git+https://github.com/voltygg/voltmod.git voltmod new project --plugin my-plugin
 uv sync
 uv run poe doctor
 uv run poe bootstrap
-uv run poe build --install my-plugin --start
+uv run poe run my-plugin
 ```
 
 Run `volt list` in the server console, then join the server and enter `!ping` in chat. See
@@ -82,7 +82,7 @@ VOLTMOD_PLUGIN(MyPlugin::App);
 voltmod_add_plugin(my-plugin)
 ```
 
-`voltmod init` writes these files and also creates settings and translation files. Add another
+`voltmod new project` writes these files and also creates settings and translation files. Add another
 plugin later with `uv run poe new-plugin <name>`.
 
 ## Features
@@ -126,7 +126,6 @@ Open an issue before starting a large change. Run these checks before submitting
 ```sh
 uv run poe lint
 uv run poe test
-uv run poe modgraph
 ```
 
 ## License

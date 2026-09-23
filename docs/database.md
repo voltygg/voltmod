@@ -114,12 +114,20 @@ which leaves an unread result set on the connection.
 
 ## Declaring tables
 
-Generate the table header from the migrations:
+Name the migrations, the header and its namespace in the plugin's `plugin.json`:
+
+```json
+"database": {
+  "migrations": "configs/migrations",
+  "header": "src/Database/Tables/Schema.hpp",
+  "namespace": "MyPlugin::Database::Tables"
+}
+```
+
+Then generate the header from the migrations:
 
 ```bash
-voltmod database tables --migrations <plugin>/configs/migrations \
-    --header <plugin>/src/Database/Tables/Schema.hpp \
-    --namespace MyPlugin::Database::Tables
+voltmod database header my-plugin        # no name: every plugin with a database block
 ```
 
 It renders the migrations for Postgres, runs `sqlpp23-ddl2cpp`, and writes the header, skipping

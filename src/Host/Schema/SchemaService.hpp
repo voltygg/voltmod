@@ -12,7 +12,7 @@ namespace VoltMod
 /**
  * @brief The process's one comparison of the baked schema offsets against the live game.
  *
- * Both the comparison and the dump `voltmod schemagen` reads used to run once per plugin. The
+ * Both the comparison and the dump `voltmod framework schemagen` reads used to run once per plugin. The
  * layout compared here is the host's own copy of the generated offsets; the answer is recorded on
  * @ref PluginHost and only covers a plugin carrying the same layout stamp.
  */
@@ -58,7 +58,7 @@ namespace Schema
 Status VerifySchemaLayout(ISchemaSystem* schema);
 
 /**
- * @brief Write `addons/voltmod/schema/server.json` for `voltmod schemagen` unless it matches this build.
+ * @brief Write `addons/voltmod/schema/server.json` for `voltmod framework schemagen` unless it matches this build.
  *
  * Networked fields come from the engine's serializers, which exist only with @p entities; null
  * writes nothing, which is what happens before the first map.

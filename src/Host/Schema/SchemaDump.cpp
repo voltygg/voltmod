@@ -16,7 +16,7 @@
 namespace VoltMod::Schema
 {
 
-// The document `voltmod schemagen` reads; member names are its JSON keys.
+// The document `voltmod framework schemagen` reads; member names are its JSON keys.
 
 /** `inner` is a pointer, array or templated atomic's element type. */
 struct TypeInfo

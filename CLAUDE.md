@@ -15,16 +15,16 @@ MUST:
 
 ```bash
 uv run poe doctor
-uv run poe build [preset]      # windows-msvc-{release,debug}, linux-steamrt-{release,debug}
+uv run poe build [-p preset]   # windows-msvc-{release,debug}, linux-steamrt-{release,debug}
 uv run poe test                # build, then CTest (-R filters)
-uv run poe lint | format | modgraph
-uv run poe build --install <plugin> --start   # install to CS2_SERVER_PATH and launch
-uv run poe build --install-all                # ...every plugin instead of one
+uv run poe lint | format        # lint also enforces the module layering below
+voltmod run [plugin]...        # build, install to CS2_SERVER_PATH, launch
+voltmod install [plugin]...    # install only; no plugin means every plugin
 uv run poe panorama            # compile panorama/ UI into the client (Windows)
 voltmod panorama render | check                       # screens: docs/panorama.md
-voltmod gamedata fetch | check | resolve --write  # after a CS2 update: gamedata-update skill
-voltmod schemagen                             # regenerate accessors from the server's own dump
-voltmod init | new-plugin <name>              # run from the consumer repo
+voltmod framework gamedata fetch | check [--fix]   # after a CS2 update: gamedata-update skill
+voltmod framework schemagen                        # regenerate accessors from the server's own dump
+voltmod new project | new plugin <name>            # run from the consumer repo
 uv run poe release <build|publish|version|tag|prune|watch>   # framework packages; tools/release
 ```
 
@@ -47,7 +47,7 @@ recipe's `conandata.yml`, tools in `pyproject.toml`.
 
 ## Module layering
 
-`uv run poe modgraph` enforces what each module may include:
+`uv run poe lint` enforces what each module may include:
 
 ```text
 Core       -> nothing

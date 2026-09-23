@@ -33,8 +33,8 @@ voltmod-tests --success            # print passing asserts too
 separately:
 
 ```yaml
-- run: voltmod build linux-steamrt-release --no-lockfile
-- run: voltmod test linux-steamrt-release
+- run: voltmod build -p linux-steamrt-release --no-lockfile
+- run: voltmod test -p linux-steamrt-release
 ```
 
 `--no-lockfile` resolves without `conan.lock`, which CI needs because it builds against SDK
@@ -166,10 +166,9 @@ root `CMakeLists.txt` linked against `VoltMod::Sdk` and `VoltMod::Database`.
 ## Module layering and source conventions
 
 ```sh
-uv run poe modgraph                 # the framework's own module layering
-voltmod lint                        # a consumer repo's plugins/ sources
+voltmod lint                        # the framework's module layering, or a consumer's plugins/
 ```
 
-`modgraph` checks the framework's module dependencies and its source conventions. `lint [path]`
-checks the source conventions under a consumer's `plugins/`, not framework layering; it defaults to
-the working directory.
+In the framework checkout `lint` checks the module dependencies and the framework's source
+conventions. In a consumer repo it checks the source conventions under `plugins/`. `-C <dir>` runs
+it on another repo.

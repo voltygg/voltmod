@@ -57,7 +57,7 @@ the rule is "never store one" rather than "check before use".
 ## Fields
 
 Schema fields are generated accessor pairs, not data members: `pawn.Health()` reads,
-`pawn.SetHealth(100)` writes and replicates. `voltmod schemagen` bakes the offsets in from a schema
+`pawn.SetHealth(100)` writes and replicates. `voltmod framework schemagen` bakes the offsets in from a schema
 dump, and the load aborts when the live game no longer matches - see
 @ref sdk_gamedata_guide "Gamedata and schema".
 

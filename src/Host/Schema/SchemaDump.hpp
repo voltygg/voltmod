@@ -9,7 +9,7 @@ namespace VoltMod::Schema
 {
 
 /**
- * Write @p server merged over @p global to @p path as `voltmod schemagen` input, stamped with
+ * Write @p server merged over @p global to @p path as `voltmod framework schemagen` input, stamped with
  * @p gameBuild; @p network marks the fields the engine sends to clients.
  */
 Status WriteDumpFile(CSchemaSystemTypeScope* global, CSchemaSystemTypeScope* server,

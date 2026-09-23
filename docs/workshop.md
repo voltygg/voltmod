@@ -28,7 +28,7 @@ when the hooks could not install, with the reason in `Error::Detail`.
 
 ## Building the content
 
-`voltmod panorama compile [OWNER...] --addon NAME --no-deploy` compiles the screens into
+`voltmod panorama compile [PLUGIN...] --addon NAME --no-deploy` compiles the screens into
 `game/csgo_addons/NAME/`, the folder the Workshop Manager uploads. See @ref panorama_guide_publish.
 
 ## One addon per reconnect

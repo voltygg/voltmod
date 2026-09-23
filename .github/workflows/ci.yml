@@ -19,11 +19,8 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v10.1.0
 
-      - name: Ruff
+      - name: Lint and module layering
         run: uv run poe lint
-
-      - name: Check the module layering
-        run: uv run poe modgraph
 
   # Packaging runs only in the tag's Release workflow, not on every push.
   build:
@@ -38,7 +35,7 @@ jobs:
       # `conan create` cannot run the suite: tests/ is outside exports_sources, and a cache build
       # forces BUILD_TESTING off.
       - name: Build the framework from source, with tests
-        run: voltmod build linux-steamrt-release
+        run: voltmod build -p linux-steamrt-release
 
       - name: Run the test suite
-        run: voltmod test linux-steamrt-release
+        run: voltmod test -p linux-steamrt-release

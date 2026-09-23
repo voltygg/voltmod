@@ -20,7 +20,7 @@
 namespace VoltMod::Schema
 {
 
-/** Output consumed by `voltmod schemagen`. */
+/** Output consumed by `voltmod framework schemagen`. */
 static constexpr std::string_view DumpPath = "addons/voltmod/schema/server.json";
 
 /** Read the build stamp from @p path, or return empty. */
@@ -142,7 +142,7 @@ Status VerifySchemaLayout(ISchemaSystem* schema)
     std::string message = std::format(
         "schema drift (accessors generated from game build {}, server is {}); "
         "load a plugin into a running map to write the dump, then regenerate "
-        "with voltmod schemagen:",
+        "with voltmod framework schemagen:",
         GeneratedFromBuild(), GameBuild());
     for (const std::string& line : drift)
     {

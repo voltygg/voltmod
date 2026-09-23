@@ -4,7 +4,7 @@
 
 VoltMod is a Conan package. Do not add the framework as a Git submodule or with
 `add_subdirectory`. The package brings VoltMod, HL2SDK, Metamod, the generated protobuf sources
-and the CMake functions below. `voltmod init` sets all of this up; this page is for adding it to
+and the CMake functions below. `voltmod new project` sets all of this up; this page is for adding it to
 an existing project and for what the functions take.
 
 The remote is public - no login or token.

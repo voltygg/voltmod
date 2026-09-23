@@ -39,14 +39,14 @@ dev = ["ruff>=0.14.0", "poethepoet>=0.47.0", "pytest>=8.4.0"]
 
 [tool.poe.tasks]
 build = "voltmod build"
-build-linux = "voltmod build linux-steamrt-release"
+build-linux = "voltmod build -p linux-steamrt-release"
 test = "voltmod test"
 doctor = "voltmod doctor"
-new-plugin = "voltmod new-plugin"
-lint = ["_ruff", "test-tools"]
+new-plugin = "voltmod new plugin"
+lint = ["_ruff", "_sources", "test-tools"]
 _ruff = "ruff check ."
+_sources = "voltmod lint"
 
-modgraph = "voltmod modgraph"
 panorama = "voltmod panorama compile"
 test-tools = "pytest cli/tests"
 format = "voltmod format"

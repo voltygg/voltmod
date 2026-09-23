@@ -11,8 +11,8 @@ update-day procedure. Work in the framework checkout; `uv run` there.
 ## 1. Get both builds side by side
 
 ```bash
-uv run voltmod doctor --server-path C:/cs2-server   # is the server current? gamedata stamp vs server
-uv run voltmod gamedata fetch                        # archive this build's binaries, both platforms
+uv run voltmod doctor --server C:/cs2-server        # is the server current? gamedata stamp vs server
+uv run voltmod framework gamedata fetch              # archive this build's binaries, both platforms
 ```
 
 The archive (`~/.voltmod/cs2-builds/<build>/<platform>/`, laid out like a server) is the only
@@ -20,15 +20,15 @@ source of an old build; see `docs/sdk/gamedata.md`. Run `fetch` before updating 
 it files the server's `resolved.<platform>.json` under the old build it names, which gives the
 old addresses to diff against.
 
-Update the local server (`voltmod serve --check-update`, which also restores the Metamod line
+Update the local server (`voltmod serve --update`, which also restores the Metamod line
 the update strips from `gameinfo.gi`).
 
 ## 2. Patterns
 
 ```bash
-uv run voltmod gamedata check --game-dir ~/.voltmod/cs2-builds/<new>/windows
-uv run voltmod gamedata check --game-dir ~/.voltmod/cs2-builds/<new>/linux
-uv run voltmod gamedata resolve --write --game-dir ...   # only fixes a drifted struct displacement
+uv run voltmod framework gamedata check --game-dir ~/.voltmod/cs2-builds/<new>/windows
+uv run voltmod framework gamedata check --game-dir ~/.voltmod/cs2-builds/<new>/linux
+uv run voltmod framework gamedata check --fix --game-dir ...   # only fixes a drifted struct offset
 ```
 
 Re-find everything `resolve` cannot, with `scripts/binre.py` (run a snippet file:
@@ -83,10 +83,10 @@ between 170 and 179). Say which offsets were not checked offline.
 The dump exists only while a map runs, per platform. Windows: start the local server with a map
 (`voltmod serve`), wait for `Schema: dumped game build <n>` in
 `game/csgo/addons/metamod/console.log` (launch with `-condebug`), then
-`uv run voltmod schemagen --platform windows --server-path C:/cs2-server`. Linux: the dump must
+`uv run voltmod framework schemagen --platform windows --server C:/cs2-server`. Linux: the dump must
 come from a Linux server on the new build; pull `csgo/addons/voltmod/schema/server.json` from a
 panel server with `PanelApi` (`/files/download` returns a signed URL), then
-`schemagen --platform linux --dump <file>`. A panel server lags until its host updates; ask the
+`framework schemagen --platform linux --dump <file>`. A panel server lags until its host updates; ask the
 user before restarting one (`poe deploy-update`), it is production.
 
 ## 6. Prove it

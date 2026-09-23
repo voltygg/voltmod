@@ -11,7 +11,7 @@ Last checked: 2026-09-20.
 
 | Framework | Plugin language | Loader | Build setup | License |
 | --- | --- | --- | --- | --- |
-| VoltMod | C++23 | Metamod:Source | `voltmod init`, Conan, and CMake | MIT |
+| VoltMod | C++23 | Metamod:Source | `voltmod new project`, Conan, and CMake | MIT |
 | [CounterStrikeSharp](https://github.com/roflmuffin/CounterStrikeSharp) | C# on .NET 8 | Metamod:Source | .NET class library | GPLv3 with a plugin exception |
 | [SwiftlyS2](https://swiftlys2.net/) | C# on .NET 10 | [SwiftlyS2 loader](https://swiftlys2.net/docs/installation/) | `dotnet new` template and `dotnet publish` | GPLv3 with a plugin exception |
 | [Plugify for Source 2](https://github.com/untrustedmodders/plugify-plugin-s2sdk) | C++, C#, Go, Python, JavaScript, Lua, Rust, D, and other language modules | Plugify with the Source 2 SDK plugin | Depends on the installed language module | Plugify is MIT; the Source 2 SDK plugin is GPLv3 |

@@ -17,11 +17,11 @@ Conan fetches VoltMod, HL2SDK and Metamod:Source; a generated project has no sub
 ```sh
 mkdir my-cs2-plugins && cd my-cs2-plugins
 git init
-uvx --from git+https://github.com/voltygg/voltmod.git voltmod init --plugin my-plugin
+uvx --from git+https://github.com/voltygg/voltmod.git voltmod new project --plugin my-plugin
 uv sync
 ```
 
-`voltmod init` writes `CMakeLists.txt`, `CMakePresets.json`, `conanfile.py`, `pyproject.toml` and
+`voltmod new project` writes `CMakeLists.txt`, `CMakePresets.json`, `conanfile.py`, `pyproject.toml` and
 `plugins/my-plugin/`. The generated plugin builds as it is and answers `!ping`. See
 @ref plugin_guide for what is in it.
 
@@ -38,7 +38,7 @@ That creates `plugins/fun-votes/` and adds `add_subdirectory(plugins/fun-votes)`
 
 ```sh
 uv run poe doctor
-uv run poe doctor --server-path C:/cs2-server
+uv run poe doctor --server C:/cs2-server
 ```
 
 Doctor reports on tools, compiler, Conan profiles and the package remote without changing
@@ -53,7 +53,7 @@ uv run poe test        # build, then CTest
 ```
 
 Presets are `windows-msvc-release`, `windows-msvc-debug`, `linux-steamrt-release` and
-`linux-steamrt-debug`; `uv run poe build windows-msvc-debug` picks one. Binaries land in
+`linux-steamrt-debug`; `uv run poe build -p windows-msvc-debug` picks one. Binaries land in
 `build/<preset>/plugins/<name>/<platform-arch>/`. Profiles, lockfiles and the CMake functions are
 in @ref conan_guide.
 
@@ -62,16 +62,17 @@ in @ref conan_guide.
 Point `CS2_SERVER_PATH` at a CS2 dedicated server root, in `.env` or the environment:
 
 ```sh
-uv run poe build --install my-plugin --start
+uv run poe run my-plugin
 ```
 
-`--install` merges the host and the plugin into `game/csgo`, copying `configs/settings.jsonc` only
-when the server does not already have one, so operator edits survive. `--install-all` does the same
-for every plugin in the repo. `--start` launches the server afterwards. To do either on its own:
+`run` builds, then installs the host and the plugin into `game/csgo`, copying
+`configs/settings.jsonc` only when the server does not already have one, so operator edits survive.
+Then it launches the server. With no plugin named it installs every plugin in the repo. To do
+either step on its own:
 
 ```sh
 uv run poe install my-plugin
-uv run poe start-server
+uv run poe serve
 ```
 
 The host is installed with the plugin, from the same VoltMod build: a plugin built against a
