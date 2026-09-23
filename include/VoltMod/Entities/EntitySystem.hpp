@@ -73,7 +73,7 @@ public:
     /** A `prop_dynamic`; falsy when it did not spawn. */
     Entity SpawnProp(const PropSpec& prop);
 
-    /** A running particle effect such as "particles/explosion.vpcf". Remove it to stop it. */
+    /** A running particle effect such as "particles/explosion.vpcf"; empty for an empty name. Remove it to stop it. */
     Entity SpawnParticle(std::string_view effect, const Vector& origin, const QAngle& angles = {0.0f, 0.0f, 0.0f});
 
     /** A straight line of @p width from @p from to @p to. */

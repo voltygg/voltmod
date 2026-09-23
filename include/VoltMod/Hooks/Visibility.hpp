@@ -41,7 +41,7 @@ class Visibility
 {
 public:
     /** @p slots tells the service when a slot changes hands, so hiding cannot carry over to
-     *  whoever occupies it next. All four must outlive it; the Runtime declares them above. */
+     *  whoever occupies it next. All three must outlive it; the Runtime declares them above. */
     Visibility(EntitySystem& entities, const Bindings& bindings, SlotEvents& slots);
     Visibility(const Visibility&) = delete;
     Visibility& operator=(const Visibility&) = delete;

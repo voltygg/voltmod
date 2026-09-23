@@ -54,13 +54,17 @@ bool Pawn::Heal(int amount) const
 bool Pawn::GiveItem(std::string_view item) const
 {
     const Schema::CPlayer_ItemServices services = ItemServices();
-    if (!_sys || !services || !_sys->Bindings().GiveNamedItem || item.empty())
+    if (!_sys || !services || item.empty())
+    {
+        return false;
+    }
+    const auto& give = _sys->Bindings().GiveNamedItem;
+    if (!give)
     {
         return false;
     }
 
     const std::string className(item);
-    const auto& give = _sys->Bindings().GiveNamedItem;
     if (give(services.Base(), className.c_str()))
     {
         return true;
@@ -68,11 +72,12 @@ bool Pawn::GiveItem(std::string_view item) const
 
     // The engine refuses a weapon only the other team can buy; the swap is undone before anyone sees it.
     const VoltMod::Team team = Team();
-    if (Opposite(team) == VoltMod::Team::None)
+    const VoltMod::Team other = Opposite(team);
+    if (other == VoltMod::Team::None)
     {
         return false;
     }
-    SetTeam(Opposite(team));
+    SetTeam(other);
     const bool given = give(services.Base(), className.c_str()) != nullptr;
     SetTeam(team);
 

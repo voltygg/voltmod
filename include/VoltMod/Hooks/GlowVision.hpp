@@ -24,7 +24,7 @@ public:
     /** Suggested tick interval for @ref Refresh. */
     static constexpr int RefreshIntervalMs = 500;
 
-    /** All three services must outlive this object; `runtime.Hooks.Visibility.CreateGlow(slot)`
+    /** Both services must outlive this object; `runtime.Hooks.Visibility.CreateGlow(slot)`
      *  is the normal entry point and passes them for you. */
     GlowVision(EntitySystem& entities, Visibility& visibility, int viewerSlot, GlowConfig config = {})
         : _entities(entities), _visibility(visibility), _viewerSlot(viewerSlot), _config(std::move(config))

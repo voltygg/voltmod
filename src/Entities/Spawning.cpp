@@ -69,6 +69,10 @@ Entity EntitySystem::SpawnProp(const PropSpec& prop)
 
 Entity EntitySystem::SpawnParticle(std::string_view effect, const Vector& origin, const QAngle& angles)
 {
+    if (effect.empty())
+    {
+        return {};
+    }
     KeyValues values;
     values.Set("effect_name", effect).Set("start_active", 1).Set("origin", origin).Set("angles", angles);
     return Spawn("info_particle_system", values);

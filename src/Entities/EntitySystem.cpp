@@ -4,7 +4,6 @@
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
-#include <VoltMod/Schema/Api.hpp>
 #include <entity2/entityidentity.h>
 #include <entity2/entityinstance.h>
 #include <entity2/entitysystem.h>
@@ -196,6 +195,7 @@ std::vector<Entity> EntitySystem::FindAll(std::string_view className)
 std::vector<VoltMod::Pawn> EntitySystem::AlivePawns()
 {
     std::vector<VoltMod::Pawn> pawns;
+    pawns.reserve(MaxPlayers);
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
         if (VoltMod::Pawn pawn = Pawn(slot); pawn.IsAlive())
