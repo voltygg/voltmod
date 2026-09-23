@@ -22,22 +22,17 @@ def gamedata(pattern: str) -> dict:
     return {"functions": {"Setter": {"windows": pattern}}}
 
 
-def test_a_pattern_that_still_matches_once_is_left_alone():
-    binaries = FakeBinaries(b"\x90\x90\x48\x8b\x01\x02\xc3")
-    results = check_patterns(gamedata("48 8B 01 02"), binaries, {})
-
-    assert [result.status for result in results] == ["unique"]
-    assert results[0].new_pattern == "", "a holding entry has nothing to write"
-
-
-def test_a_global_is_checked_by_the_pattern_in_its_column():
+@pytest.mark.parametrize(
+    ("section", "column"),
+    [("functions", "48 8B 05"), ("globals", {"pattern": "48 8B 05", "rel32At": 3})],
+    ids=["function pattern", "global column"],
+)
+def test_a_pattern_that_still_matches_once_is_left_alone(section, column):
     binaries = FakeBinaries(b"\x90\x48\x8b\x05\x10\x00\x00\x00")
-    document = {"globals": {"Global": {"windows": {"pattern": "48 8B 05", "rel32At": 3}}}}
-    results = check_patterns(document, binaries, {})
+    results = check_patterns({section: {"Entry": {"windows": column}}}, binaries, {})
 
-    assert [(result.section, result.key, result.status) for result in results] == [
-        ("globals", "Global", "unique")
-    ]
+    assert [(result.section, result.status) for result in results] == [(section, "unique")]
+    assert results[0].new_pattern == "", "a unique entry has nothing to write"
 
 
 def test_a_pattern_matching_twice_is_ambiguous_rather_than_repaired():
@@ -61,19 +56,19 @@ def test_a_moved_offset_is_wildcarded_and_named_after_its_schema_field():
     assert "CCSCustomHudLayout::m_vec" in results[0].detail
 
 
-def test_two_viable_offsets_are_refused_rather_than_guessed_between():
-    binaries = FakeBinaries(b"\x01\x00\x00\x00\x99\x02\x00\x00\x00")
-    results = check_patterns(gamedata("05 00 00 00 99 06 00 00 00"), binaries, {})
+@pytest.mark.parametrize(
+    ("contents", "pattern"),
+    [
+        (b"\x01\x00\x00\x00\x99\x02\x00\x00\x00", "05 00 00 00 99 06 00 00 00"),
+        (b"\x90" * 64, "48 8B 01 02 03 04"),
+    ],
+    ids=["two viable offsets", "no offset explains it"],
+)
+def test_a_miss_is_repaired_only_when_exactly_one_offset_explains_it(contents, pattern):
+    results = check_patterns(gamedata(pattern), FakeBinaries(contents), {})
 
     assert results[0].status == "missing"
     assert results[0].new_pattern == ""
-
-
-def test_a_miss_no_offset_explains_is_reported_not_repaired():
-    binaries = FakeBinaries(b"\x90" * 64)
-    results = check_patterns(gamedata("48 8B 01 02 03 04"), binaries, {})
-
-    assert results[0].status == "missing"
     assert "no single moved offset" in results[0].detail
 
 

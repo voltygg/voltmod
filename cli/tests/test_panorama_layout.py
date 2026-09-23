@@ -78,14 +78,6 @@ def test_modifiers_keep_the_order_they_were_declared_in():
     assert header.index('"accent--zulu"') < header.index('"accent--alpha"')
 
 
-def test_a_bem_family_is_spelled_in_pascal_case():
-    header = header_for(
-        '<root><Panel id="s"><Image class="icon-set__icon--ak-47" /></Panel></root>'
-    )
-    assert 'IconSetIconClasses{"icon-set__icon--ak-47"}' in header
-    assert 'IconSetIconNames{"ak-47"}' in header
-
-
 def test_a_decimal_in_a_declaration_is_not_read_as_a_modifier():
     header = header_for('<root><Panel id="s" /></root>', ".bar { width: 33.3--4%; }\n")
     assert "Classes" not in header

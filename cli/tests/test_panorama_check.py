@@ -76,23 +76,24 @@ def test_each_rule_is_flagged(make_screen_project, xml, expected):
     assert any(expected in message for message in messages(root))
 
 
-def test_a_clean_screen_has_no_findings(make_screen_project):
-    root = make_screen_project(xml=screen(CLEAN_BODY), css=CLEAN_CSS)
-    assert messages(root) == []
+CLEAN = [
+    (screen(CLEAN_BODY), CLEAN_CSS),
+    (screen('<Image src="s2r://panorama/images/icons/ui/settings.vsvg" />'), HIDDEN_CSS),
+    (
+        screen(
+            '<Panel id="{{screen}}_a"><Label text="{s:label}" /></Panel>\n'
+            '<Panel id="{{screen}}_b"><Label text="{s:label}" /></Panel>'
+        ),
+        HIDDEN_CSS,
+    ),
+]
 
 
-def test_a_game_icon_needs_no_png(make_screen_project):
-    body = '<Image src="s2r://panorama/images/icons/ui/settings.vsvg" />'
-    root = make_screen_project(xml=screen(body), css=HIDDEN_CSS)
-    assert messages(root) == []
-
-
-def test_a_dialog_variable_shared_by_two_labels_is_not_flagged(make_screen_project):
-    body = (
-        '<Panel id="{{screen}}_a"><Label text="{s:label}" /></Panel>\n'
-        '<Panel id="{{screen}}_b"><Label text="{s:label}" /></Panel>'
-    )
-    root = make_screen_project(xml=screen(body), css=HIDDEN_CSS)
+@pytest.mark.parametrize(
+    ("xml", "css"), CLEAN, ids=["clean screen", "game icon needs no png", "shared variable"]
+)
+def test_a_screen_that_follows_every_rule_has_no_findings(make_screen_project, xml, css):
+    root = make_screen_project(xml=xml, css=css)
     assert messages(root) == []
 
 

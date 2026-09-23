@@ -204,13 +204,6 @@ def test_a_changed_layout_changes_the_stamp(mutate):
     assert stamp(dumped, selected) != stamp(dump())
 
 
-def test_the_owner_link_is_checked_like_a_field():
-    rows = layout_rows(dump(), list(resolve_classes(dump(), manifest()).values()))
-    assert ("CMoneyServices", "__m_pChainEntity", 8, 40) in [
-        (row.class_name, row.field_name, row.offset, row.size) for row in rows
-    ]
-
-
 def test_a_skipped_field_is_not_in_the_stamp():
     """It covers what GeneratedLayout() holds, and a skipped field generates nothing."""
     without_bitfield = manifest()

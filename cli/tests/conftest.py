@@ -1,3 +1,4 @@
+import textwrap
 from pathlib import Path
 
 import pytest
@@ -29,6 +30,19 @@ HUD_CSS = """{% import "icons.css.j2" as icons %}
 {% include "listrow.css.j2" %}
 {{ icons.show_rules("weapons") }}
 """
+
+
+@pytest.fixture
+def write_source(tmp_path: Path):
+    """Write a dedented source file under the temporary repo root; returns that root."""
+
+    def write(path: str, text: str) -> Path:
+        target = tmp_path / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(textwrap.dedent(text).lstrip(), encoding="utf-8")
+        return tmp_path
+
+    return write
 
 
 @pytest.fixture

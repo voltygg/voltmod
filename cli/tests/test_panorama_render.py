@@ -91,9 +91,10 @@ def test_a_removed_screen_and_icon_leave_nothing_rendered(make_screen_project):
     assert (out / "panorama/layout/custom_game/hud.xml").is_file()
 
 
-def test_a_screen_imports_a_template_another_plugin_ships(make_screen_project):
+def importing(make_screen_project, template: str):
+    """A screen importing `template`, beside a brand-kit plugin that ships brand/logo.xml.j2."""
     root = make_screen_project(
-        xml='{% import "@brand-kit/brand/logo.xml.j2" as brand %}<root><Panel id="{{screen}}">'
+        xml=f'{{% import "{template}" as brand %}}<root><Panel id="{{{{screen}}}}">'
         "{{ brand.logo() }}</Panel></root>",
         css="",
     )
@@ -102,6 +103,11 @@ def test_a_screen_imports_a_template_another_plugin_ships(make_screen_project):
     (templates / "logo.xml.j2").write_text(
         '{% macro logo() %}<Label text="MEAT" />{% endmacro %}', encoding="utf-8"
     )
+    return root
+
+
+def test_a_screen_imports_a_template_another_plugin_ships(make_screen_project):
+    root = importing(make_screen_project, "@brand-kit/brand/logo.xml.j2")
 
     render_screens(root, ["ui-lab"])
 
@@ -112,16 +118,7 @@ def test_a_screen_imports_a_template_another_plugin_ships(make_screen_project):
 
 
 def test_plugin_templates_are_not_found_through_an_ambiguous_bare_path(make_screen_project):
-    root = make_screen_project(
-        xml='{% import "brand/logo.xml.j2" as brand %}<root><Panel id="{{screen}}">'
-        "{{ brand.logo() }}</Panel></root>",
-        css="",
-    )
-    templates = root / "plugins/brand-kit/panorama/templates/brand"
-    templates.mkdir(parents=True)
-    (templates / "logo.xml.j2").write_text(
-        '{% macro logo() %}<Label text="MEAT" />{% endmacro %}', encoding="utf-8"
-    )
+    root = importing(make_screen_project, "brand/logo.xml.j2")
 
     with pytest.raises(VoltmodError, match="brand/logo.xml.j2"):
         render_screens(root, ["ui-lab"])
