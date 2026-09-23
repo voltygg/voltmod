@@ -29,9 +29,9 @@ static void SetStr(CUtlString& out, std::string_view text)
     out.SetDirect(text.data(), static_cast<int>(text.size()));
 }
 
-ScreenEntity::ScreenEntity(EntitySystem& entities, EntityOps& ops, SlotEvents& slots, Visibility& visibility,
-                           LayoutPath layout, int owner)
-    : _entities(entities), _ops(ops), _visibility(visibility), _layout(std::move(layout)), _owner(owner)
+ScreenEntity::ScreenEntity(EntitySystem& entities, SlotEvents& slots, Visibility& visibility, LayoutPath layout,
+                           int owner)
+    : _entities(entities), _visibility(visibility), _layout(std::move(layout)), _owner(owner)
 {
     _slotChanges = slots.Changed += [this](int slot) {
         _playersChangedSinceSpawn = true;
@@ -94,10 +94,7 @@ void ScreenEntity::Remove()
     {
         _visibility.ShowToEveryone(_entity);
     }
-    if (Entity entity = _entities.Resolve(_entity))
-    {
-        _ops.Remove(entity.Raw());
-    }
+    _entities.Resolve(_entity).Remove();
 
     _entity = {};
     _written.Clear();
@@ -174,21 +171,21 @@ Status ScreenEntity::Spawn()
     _playersChangedSinceSpawn = false;
     Remove();
 
-    if (!_ops.CanSpawn())
+    if (Status available = _entities.Available(); !available)
     {
-        return std::unexpected(Error::Unsupported("entity spawning is unavailable"));
+        return available;
     }
 
     KeyValues values;
     values.Set("layout", _layout.Resource());
 
-    CEntityInstance* spawned = _ops.Spawn("custom_hud_layout", values);
+    const Entity spawned = _entities.Spawn("custom_hud_layout", values);
     if (!spawned)
     {
         return std::unexpected(Error::Engine("the engine refused to spawn custom_hud_layout"));
     }
 
-    _entity = Entity(_entities, spawned).Ref();
+    _entity = spawned.Ref();
     if (IsForPlayer())
     {
         _visibility.ShowOnlyTo(_entity, _owner);

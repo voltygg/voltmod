@@ -233,6 +233,35 @@ bool EntitySystem::IsPlayerSlotValid(int slot)
     return RawController(slot) != nullptr;
 }
 
+Status EntitySystem::Available() const
+{
+    if (!_bindings.CreateEntityByName || !_bindings.DispatchSpawn)
+    {
+        return std::unexpected(Error::Unsupported("CreateEntityByName or DispatchSpawn did not bind"));
+    }
+    return {};
+}
+
+Entity EntitySystem::Create(std::string_view className)
+{
+    if (!_bindings.CreateEntityByName || className.empty())
+    {
+        return {};
+    }
+    return {*this, _bindings.CreateEntityByName(std::string(className).c_str(), -1)};
+}
+
+Entity EntitySystem::Spawn(std::string_view className, KeyValues& values)
+{
+    if (!Available())
+    {
+        return {};
+    }
+    Entity entity = Create(className);
+    entity.Spawn(values);
+    return entity;
+}
+
 Entity EntitySystem::FindByClassName(const Entity& after, std::string_view className)
 {
     if (!GetEntitySystem() || className.empty())

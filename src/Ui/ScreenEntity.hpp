@@ -9,7 +9,6 @@
 #include <VoltMod/Core/Slots/SlotEvents.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/EntityRef.hpp>
-#include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Hooks/Visibility.hpp>
 #include <string_view>
@@ -31,8 +30,7 @@ class ScreenEntity
 {
 public:
     /** Every reference must outlive this. @p owner is a player slot, or @ref EveryoneSlot for a shared screen. */
-    ScreenEntity(EntitySystem& entities, EntityOps& ops, SlotEvents& slots, Visibility& visibility, LayoutPath layout,
-                 int owner);
+    ScreenEntity(EntitySystem& entities, SlotEvents& slots, Visibility& visibility, LayoutPath layout, int owner);
     ~ScreenEntity();
 
     ScreenEntity(const ScreenEntity&) = delete;
@@ -77,7 +75,6 @@ private:
     Status Record(int cacheSlot, Status status, std::string_view what);
 
     EntitySystem& _entities;
-    EntityOps& _ops;
     Visibility& _visibility;
     LayoutPath _layout;
     int _owner;

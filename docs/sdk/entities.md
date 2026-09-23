@@ -89,14 +89,14 @@ An entity with no wrapper class is viewed through its generated class. A `beam` 
 from its origin to its end point; set the fields before it spawns:
 
 ```cpp
-CEntityInstance* line = runtime.World.EntityOps.CreateByName("beam");
-const VoltMod::Schema::CBeam beam{line};
+VoltMod::Entity line = runtime.Entities.Create("beam");
+const VoltMod::Schema::CBeam beam{line.Raw()};
 beam.SetWidth(2.0f);
 beam.SetEndWidth(2.0f);
 beam.SetEndPos(end);
 VoltMod::KeyValues kv;
 kv.Set("origin", start);
-runtime.World.EntityOps.DispatchSpawn(line, &kv);
+line.Spawn(kv);
 ```
 
 A `Set` on a networked field dirties it for the next snapshot. A field the engine does not network
@@ -286,29 +286,26 @@ the call to `false`.
 
 ## Spawning, entity IO and sound
 
-@ref VoltMod::EntityOps creates, mutates and removes entities. Build spawn data with
-@ref VoltMod::KeyValues; `CanSpawn()` checks the bindings `Spawn()` needs.
+`runtime.Entities` creates entities; the verbs are on the @ref VoltMod::Entity itself. Build spawn
+data with @ref VoltMod::KeyValues. `runtime.Entities.Available()` says whether spawning bound.
 
 ```cpp
-auto& ops = runtime.World.EntityOps;
-
 VoltMod::KeyValues kv;
 kv.Set("origin", pos).Set("spawnflags", 1);
-if (auto* boom = ops.Spawn("env_explosion", kv))
+if (VoltMod::Entity boom = runtime.Entities.Spawn("env_explosion", kv))
 {
-    ops.AcceptInput(boom, "Explode");      // fire an input now
-    ops.RemoveDelayed(boom, 1.0f);         // deferred "Kill" through the engine's IO queue
+    boom.AcceptInput("Explode");      // fire an input now
+    boom.RemoveAfter(1.0f);           // a "Kill" through the engine's input queue
 }
 
-ops.EmitSound(entity, "SoundEventName");   // a .vsndevts event name, not a file path
+entity.EmitSound("SoundEventName");   // a .vsndevts event name, not a file path
+prop.SetModel("models/props/crate.vmdl");
+prop.SetScale(1.5f);
+prop.PlayAnimation("open", "idle");
 ```
 
-Never `delete` an entity: use `Remove` or `RemoveDelayed`. Fields written before `DispatchSpawn` go
-out with the first snapshot, so a generated view's setter costs nothing extra there:
-
-```cpp
-VoltMod::Schema::CBeam{beam}.SetWidth(2.0f);
-```
+Never `delete` an entity: use `Remove` or `RemoveAfter`. Fields written between `Create` and
+`Spawn` go out with the first snapshot.
 
 ## Precache
 

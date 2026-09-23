@@ -6,7 +6,6 @@
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Engine/Net/NetChannel.hpp>
 #include <VoltMod/Engine/Server/Precache.hpp>
-#include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/Items.hpp>
 #include <VoltMod/Entities/Pawns.hpp>
@@ -22,16 +21,13 @@ struct WorldServices
 {
     WorldServices(EntitySystem& entities, Bindings& bindings, Scheduler& scheduler, SlotEvents& slots,
                   Interfaces& interfaces)
-        : EntityOps(entities, bindings),
-          Items(bindings),
+        : Items(bindings),
           Pawns(scheduler, slots, entities),
           NetChannels(interfaces),
           Trace(bindings),
           Rounds(entities, bindings)
     {}
 
-    /** Depends on: Entities, Bindings. */
-    VoltMod::EntityOps EntityOps;
     /** Weapon give/strip through CCSPlayer_ItemServices. Depends on: Bindings. */
     VoltMod::Items Items;
     /** Resources for the next map's session manifest. */

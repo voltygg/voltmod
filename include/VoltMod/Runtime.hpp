@@ -123,10 +123,9 @@ public:
 
     WorldServices World{Entities, Unsafe.Bindings, Scheduler, Slots, Unsafe.Interfaces};
 
-    HookServices Hooks{Entities, Unsafe.Bindings, Slots, Scheduler, GameEvents, Unsafe.Interfaces, World.EntityOps};
+    HookServices Hooks{Entities, Unsafe.Bindings, Slots, Scheduler, GameEvents, Unsafe.Interfaces};
 
-    VoltMod::ScreenManager Screens{Entities, World.EntityOps, Unsafe.Bindings, Unsafe.Interfaces,
-                                   Slots,    Scheduler,       Hooks.Visibility};
+    VoltMod::ScreenManager Screens{Entities, Unsafe.Bindings, Unsafe.Interfaces, Slots, Scheduler, Hooks.Visibility};
 
     VoltMod::Addons Addons{Unsafe.Interfaces, Unsafe.Bindings, Players, Scheduler};
 

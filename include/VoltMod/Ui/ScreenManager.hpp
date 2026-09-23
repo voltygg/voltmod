@@ -7,7 +7,6 @@
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
-#include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Hooks/Visibility.hpp>
 #include <VoltMod/Ui/ButtonPress.hpp>
@@ -29,8 +28,8 @@ class ScreenManager
 {
 public:
     /** Constructor dependencies must outlive this service. */
-    ScreenManager(EntitySystem& entities, EntityOps& ops, const Bindings& bindings, Interfaces& interfaces,
-                  SlotEvents& slots, Scheduler& scheduler, Visibility& visibility);
+    ScreenManager(EntitySystem& entities, const Bindings& bindings, Interfaces& interfaces, SlotEvents& slots,
+                  Scheduler& scheduler, Visibility& visibility);
     ~ScreenManager();
 
     ScreenManager(const ScreenManager&) = delete;
@@ -61,7 +60,6 @@ private:
     Result<Screen> Create(std::string_view layout, int owner);
 
     EntitySystem& _entities;
-    EntityOps& _ops;
     const Bindings& _bindings;
     SlotEvents& _slots;
     Visibility& _visibility;

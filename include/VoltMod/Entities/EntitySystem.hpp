@@ -6,6 +6,7 @@
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Entities/Controller.hpp>
+#include <VoltMod/Entities/KeyValues.hpp>
 #include <VoltMod/Schema/Generated/CPlayer_MovementServices.hpp>
 #include <cstdint>
 #include <in_buttons.h>
@@ -63,6 +64,15 @@ public:
     /** First entity of @p className after @p after (a falsy Entity starts at the list head); `*`
      *  wildcards match. Falsy when exhausted. */
     Entity FindByClassName(const Entity& after, std::string_view className);
+
+    /** Unsupported when entities cannot be created or spawned. */
+    Status Available() const;
+
+    /** A new entity that has not spawned yet: set its fields, then call @ref Entity::Spawn. */
+    Entity Create(std::string_view className);
+
+    /** Create and spawn; falsy on failure. The engine takes the keyvalues. */
+    Entity Spawn(std::string_view className, KeyValues& values);
 
     /** First entity whose targetname is @p targetName after @p after (a falsy Entity starts at the
      *  first match); `*` wildcards match. Falsy when exhausted or @p after is not a match. */

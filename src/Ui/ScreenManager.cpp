@@ -12,11 +12,10 @@
 namespace VoltMod
 {
 
-ScreenManager::ScreenManager(EntitySystem& entities, EntityOps& ops, const Bindings& bindings, Interfaces& interfaces,
+ScreenManager::ScreenManager(EntitySystem& entities, const Bindings& bindings, Interfaces& interfaces,
                              SlotEvents& slots, Scheduler& scheduler, Visibility& visibility)
     : Pressed({.OnFirst = [this] { return _hook->Install(); }, .OnLast = [this] { _hook->Remove(); }}),
       _entities(entities),
-      _ops(ops),
       _bindings(bindings),
       _slots(slots),
       _visibility(visibility),
@@ -77,7 +76,7 @@ Result<Screen> ScreenManager::Create(std::string_view layout, int owner)
         return std::unexpected(path.error());
     }
 
-    return Screen(std::make_unique<ScreenEntity>(_entities, _ops, _slots, _visibility, std::move(*path), owner));
+    return Screen(std::make_unique<ScreenEntity>(_entities, _slots, _visibility, std::move(*path), owner));
 }
 
 }  // namespace VoltMod

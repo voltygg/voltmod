@@ -1,6 +1,5 @@
 #pragma once
 
-#include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Hooks/Visibility.hpp>
 #include <array>
@@ -27,8 +26,8 @@ public:
 
     /** All three services must outlive this object; `runtime.Hooks.Visibility.CreateGlow(slot)`
      *  is the normal entry point and passes them for you. */
-    GlowVision(EntitySystem& entities, EntityOps& ops, Visibility& visibility, int viewerSlot, GlowConfig config = {})
-        : _entities(entities), _ops(ops), _visibility(visibility), _viewerSlot(viewerSlot), _config(std::move(config))
+    GlowVision(EntitySystem& entities, Visibility& visibility, int viewerSlot, GlowConfig config = {})
+        : _entities(entities), _visibility(visibility), _viewerSlot(viewerSlot), _config(std::move(config))
     {}
 
     /** Create/refresh/destroy glow clone pairs to match the current live players. */
@@ -53,7 +52,6 @@ private:
     void DestroyPair(GlowPair& pair);
 
     EntitySystem& _entities;
-    EntityOps& _ops;
     Visibility& _visibility;
     int _viewerSlot;
     GlowConfig _config;

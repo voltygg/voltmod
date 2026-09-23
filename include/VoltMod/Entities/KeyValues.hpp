@@ -8,12 +8,9 @@ namespace VoltMod
 {
 
 /**
- * @brief Builder for entity spawn keyvalues ("origin", "spawnflags", "effect_name", ...).
+ * @brief Spawn keyvalues such as "origin", "spawnflags" or "effect_name".
  *
- * Owns the underlying CEntityKeyValues until EntityOps::DispatchSpawn/Spawn
- * consumes it via Detach() - from that point the engine refcounts the object and
- * freeing it here would be a double-free. A builder that is never spawned releases
- * its keyvalues in the destructor.
+ * Owns the engine object until a spawn takes it; one that never spawns frees it.
  */
 class KeyValues
 {
@@ -25,13 +22,7 @@ public:
 
     KeyValues& Set(std::string_view key, std::string_view value);
 
-    /**
-     * String literals and C strings.
-     *
-     * Without this they set the key to `"true"`: a pointer converts to `bool` by a standard
-     * conversion and to `std::string_view` only by a user-defined one, so the bool overload wins
-     * and the engine is handed a bool where a string_t was meant.
-     */
+    /** Without this a string literal picks the bool overload and sets "true". */
     KeyValues& Set(std::string_view key, const char* value)
     {
         return Set(key, value ? std::string_view(value) : std::string_view{});
@@ -47,7 +38,7 @@ public:
     /** The wrapped object; nullptr after Detach(). */
     CEntityKeyValues* Raw() const { return _kv; }
 
-    /** Hand ownership to the caller and forget the pointer. Used by DispatchSpawn. */
+    /** Hand the object to the engine's spawn, which frees it. */
     CEntityKeyValues* Detach();
 
 private:

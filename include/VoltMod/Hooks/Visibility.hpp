@@ -8,7 +8,6 @@
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/EntityRef.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
-#include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <array>
 #include <functional>
@@ -43,7 +42,7 @@ class Visibility
 public:
     /** @p slots tells the service when a slot changes hands, so hiding cannot carry over to
      *  whoever occupies it next. All four must outlive it; the Runtime declares them above. */
-    Visibility(EntitySystem& entities, const Bindings& bindings, SlotEvents& slots, EntityOps& ops);
+    Visibility(EntitySystem& entities, const Bindings& bindings, SlotEvents& slots);
     Visibility(const Visibility&) = delete;
     Visibility& operator=(const Visibility&) = delete;
 
@@ -99,7 +98,6 @@ private:
 
     EntitySystem& _entities;
     const Bindings& _bindings;
-    EntityOps& _ops;
     std::array<SlotState, MaxPlayers> _state{};
     std::vector<PrivateEntity> _private;
     /** Declared last so it unregisters before its callback targets are destroyed. */

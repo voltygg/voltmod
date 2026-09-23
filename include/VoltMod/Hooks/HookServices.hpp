@@ -4,7 +4,6 @@
 #include <VoltMod/Core/Time/Scheduler.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
-#include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>
@@ -27,9 +26,9 @@ namespace VoltMod
 struct HookServices
 {
     HookServices(EntitySystem& entities, Bindings& bindings, SlotEvents& slots, Scheduler& scheduler,
-                 GameEvents& gameEvents, Interfaces& interfaces, EntityOps& entityOps)
+                 GameEvents& gameEvents, Interfaces& interfaces)
         : Movement(entities, bindings),
-          Visibility(entities, bindings, slots, entityOps),
+          Visibility(entities, bindings, slots),
           ChatInput(scheduler, slots),
           Teleport(entities, bindings),
           ClientConVars(interfaces, bindings, slots),

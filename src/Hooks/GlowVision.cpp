@@ -1,4 +1,3 @@
-#include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/KeyValues.hpp>
 #include <VoltMod/Hooks/GlowVision.hpp>
@@ -26,14 +25,8 @@ void GlowVision::DestroyPair(GlowPair& pair)
     _visibility.ShowToEveryone(pair.Relay);
     _visibility.ShowToEveryone(pair.Glow);
 
-    if (Entity glow = _entities.Resolve(pair.Glow))
-    {
-        _ops.Remove(glow.Raw());
-    }
-    if (Entity relay = _entities.Resolve(pair.Relay))
-    {
-        _ops.Remove(relay.Raw());
-    }
+    _entities.Resolve(pair.Glow).Remove();
+    _entities.Resolve(pair.Relay).Remove();
 
     pair = {};
 }
@@ -57,7 +50,7 @@ void GlowVision::CreatePair(int slot, GlowPair& pair)
     relayKv.Set("model", model.c_str())
         .Set("spawnflags", PropSpawnFlags)
         .Set("rendermode", static_cast<int>(Schema::RenderMode_t::kRenderNone));
-    auto* relay = _ops.Spawn("prop_dynamic", relayKv);
+    const Entity relay = _entities.Spawn("prop_dynamic", relayKv);
     if (!relay)
     {
         return;
@@ -71,18 +64,18 @@ void GlowVision::CreatePair(int slot, GlowPair& pair)
         .Set("glowteam", GlowTeamAny)
         .Set("glowstate", GlowStateAlwaysOn)
         .Set("renderamt", GlowRenderAmt);
-    auto* glow = _ops.Spawn("prop_dynamic", glowKv);
+    const Entity glow = _entities.Spawn("prop_dynamic", glowKv);
     if (!glow)
     {
-        _ops.Remove(relay);
+        relay.Remove();
         return;
     }
 
-    _ops.AcceptInput(relay, "FollowEntity", "!activator", pawn.Raw());
-    _ops.AcceptInput(glow, "FollowEntity", "!activator", relay);
+    relay.AcceptInput("FollowEntity", "!activator", pawn);
+    glow.AcceptInput("FollowEntity", "!activator", relay);
 
-    pair.Relay = Entity{_entities, relay}.Ref();
-    pair.Glow = Entity{_entities, glow}.Ref();
+    pair.Relay = relay.Ref();
+    pair.Glow = glow.Ref();
     pair.Team = team;
     pair.Model = std::move(model);
 

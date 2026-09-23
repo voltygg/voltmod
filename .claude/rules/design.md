@@ -48,6 +48,7 @@ The shapes the framework already uses. New code follows them instead of adding a
 ## Entities and schema
 
 - `Entity`, `Pawn`, `Controller` are frame-local wrappers. `explicit operator bool()` is the only validity check; they copy but do not assign. Anything stored is an `EntityRef`/`PlayerRef` re-resolved through `EntitySystem`.
+- A verb lives on the wrapper it acts on (`entity.Remove()`, `pawn.Slay()`); creating one lives on `EntitySystem`. Wrappers reach the engine through the `EntitySystem` that made them, never a service of their own. No verb takes a raw `CEntityInstance*`.
 - A schema field is a generated `Health()`/`SetHealth()` pair. `voltmod framework schemagen` bakes the offset from `schema/manifest.json` plus a dump; the setter dirties the write through the entity, a `__m_pChainEntity` chainer, or the enclosing entity.
 - No schema service, no runtime resolution, no string lookup on a call path. The host compares the baked layout with the live schema once per process and `Runtime::Initialize` aborts a plugin's load when it disagrees, or when the plugin's layout stamp is not the one the host checked.
 

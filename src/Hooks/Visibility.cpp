@@ -98,8 +98,8 @@ static void CollectHiddenPlayer(EntitySystem& entities, int slot, bool pawnHidde
     AddHandleVector(entities, out, pawn.MyWearables());
 }
 
-Visibility::Visibility(EntitySystem& entities, const Bindings& bindings, SlotEvents& slots, EntityOps& ops)
-    : _entities(entities), _bindings(bindings), _ops(ops)
+Visibility::Visibility(EntitySystem& entities, const Bindings& bindings, SlotEvents& slots)
+    : _entities(entities), _bindings(bindings)
 {
     // SlotEvents fires on both fill and empty, so clearing on both edges handles recycled slots.
     _slotListener = slots.Changed += [this](int slot) {
@@ -164,7 +164,7 @@ void Visibility::ShowToEveryone(EntityRef entity)
 
 std::shared_ptr<GlowVision> Visibility::CreateGlow(int viewerSlot, GlowConfig config)
 {
-    return std::make_shared<GlowVision>(_entities, _ops, *this, viewerSlot, std::move(config));
+    return std::make_shared<GlowVision>(_entities, *this, viewerSlot, std::move(config));
 }
 
 void Visibility::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)

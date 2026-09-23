@@ -1,28 +1,70 @@
-#include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
-#include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
-#include <VoltMod/Entities/Render.hpp>
 #include <VoltMod/Schema/Api.hpp>
-#include <eiface.h>
+#include <algorithm>
+#include <bit>
+#include <entity2/entityclass.h>
 #include <entity2/entityidentity.h>
 #include <entity2/entityinstance.h>
-#include <mathlib/vector.h>
+#include <entity2/entitysystem.h>
 #include <shareddefs.h>
+#include <string>
 #include <utility>
+#include <variant.h>
 
 namespace VoltMod
 {
 
-static_assert(std::to_underlying(ObserverMode::None) == OBS_MODE_NONE);
-static_assert(std::to_underlying(ObserverMode::Fixed) == OBS_MODE_FIXED);
-static_assert(std::to_underlying(ObserverMode::InEye) == OBS_MODE_IN_EYE);
-static_assert(std::to_underlying(ObserverMode::Chase) == OBS_MODE_CHASE);
-static_assert(std::to_underlying(ObserverMode::Roaming) == OBS_MODE_ROAMING);
 static_assert(std::to_underlying(Team::None) == TEAM_UNASSIGNED);
 static_assert(std::to_underlying(Team::Spectator) == TEAM_SPECTATOR);
 static_assert(std::to_underlying(Team::T) == CS_TEAM_T);
 static_assert(std::to_underlying(Team::CT) == CS_TEAM_CT);
+
+// CS2's EmitSound_t; the SDK still declares the Source 1 layout. The engine reads it by offset.
+struct EmitSoundParams
+{
+    const char* SoundName = nullptr;
+    Vector SoundOrigin{0.0f, 0.0f, 0.0f};
+    float Volume = 1.0f;
+    float SoundTime = 0.0f;
+    uint8_t Pad1C[0x4]{};
+    uint32_t ForceGuid = 0;
+    uint8_t Pad24[0x4]{};
+    int16_t Pitch = 100;
+    uint8_t Flags = 0;
+};
+static_assert(offsetof(EmitSoundParams, Volume) == 0x14);
+static_assert(offsetof(EmitSoundParams, ForceGuid) == 0x20);
+static_assert(offsetof(EmitSoundParams, Pitch) == 0x28);
+
+// The filtered EmitSound returns this through the hidden sret ABI.
+#pragma pack(push, 1)
+struct StartSoundEventInfo
+{
+    uint32_t Guid;
+    uint32_t StackHash;
+    int32_t Flags;
+    uint64_t Recipients;
+};
+#pragma pack(pop)
+static_assert(sizeof(StartSoundEventInfo) == 20);
+
+using EmitSoundFilterFn = StartSoundEventInfo (*)(IRecipientFilter& filter, CEntityIndex sourceIndex,
+                                                  const EmitSoundParams& params);
+
+static constexpr float MinScale = 0.05f;
+static constexpr float MaxScale = 3.0f;
+
+// The engine keeps neither pointer past the call.
+static void FireInput(const Bindings& bindings, CEntityInstance* entity, std::string_view input, variant_t& value,
+                      CEntityInstance* activator)
+{
+    if (!bindings.AcceptInput || !entity || input.empty())
+    {
+        return;
+    }
+    bindings.AcceptInput(entity, std::string(input).c_str(), activator, nullptr, &value);
+}
 
 // Origin and rotation live on the scene node, not on CBaseEntity.
 static Schema::CGameSceneNode SceneNode(const Entity& entity)
@@ -80,184 +122,118 @@ Status Entity::Teleport(std::optional<Vector> origin, std::optional<QAngle> angl
     return {};
 }
 
-Vector Pawn::EyePosition() const
+void Entity::Spawn(KeyValues& values) const
 {
-    return Origin() + ViewOffset();
-}
-
-void Pawn::SetMove(Schema::MoveType_t type) const
-{
-    SetMoveTypeRaw(type);
-    SetActualMoveTypeRaw(type);
-}
-
-Status Pawn::Slay() const
-{
-    if (!_e || !_sys)
+    if (_e && _sys && _sys->BindingsRef().DispatchSpawn)
     {
-        return std::unexpected(Error::NotReady("no pawn"));
+        _sys->BindingsRef().DispatchSpawn(_e, values.Detach());
     }
-
-    const auto& suicide = _sys->BindingsRef().CommitSuicide;
-    if (!suicide)
-    {
-        return std::unexpected(Error::Unsupported("gamedata has no 'CBasePlayerPawn::CommitSuicide' vtable index"));
-    }
-
-    suicide(_e, false, true);
-    return {};
 }
 
-ObserverMode Pawn::GetObserverMode() const
-{
-    const Schema::CPlayer_ObserverServices services = ObserverServices();
-    return services ? static_cast<ObserverMode>(services.ObserverMode()) : ObserverMode::None;
-}
-
-Status Pawn::SetObserverMode(ObserverMode value) const
-{
-    const Schema::CPlayer_ObserverServices services = ObserverServices();
-    if (!services)
-    {
-        return std::unexpected(Error::NotReady("observer services unavailable"));
-    }
-
-    services.SetObserverMode(std::to_underlying(value));
-    return {};
-}
-
-std::string Pawn::ModelName() const
-{
-    const Schema::CSkeletonInstance skeleton{SceneNode(*this).Base()};
-    if (!skeleton)
-    {
-        return {};
-    }
-
-    const char* path = skeleton.ModelState().ModelName();
-    return path ? std::string(path) : std::string{};
-}
-
-void Pawn::SetRender(Schema::RenderMode_t mode, Color color) const
-{
-    VoltMod::SetRender(_e, mode, color);
-}
-
-void Pawn::SetVisible(bool visible, uint8_t alpha) const
-{
-    const auto mode = visible ? Schema::RenderMode_t::kRenderNormal : Schema::RenderMode_t::kRenderTransAlpha;
-    SetRender(mode, Color{.A = visible ? uint8_t{255} : alpha});
-}
-
-Controller Pawn::GetController() const
+void Entity::AcceptInput(std::string_view input, std::string_view value, const Entity& activator) const
 {
     if (!_sys)
     {
-        return {};
+        return;
     }
-    return _sys->Controller(Slot());
+    variant_t variant(std::string(value).c_str());
+    FireInput(_sys->BindingsRef(), _e, input, variant, activator.Raw());
 }
 
-int Pawn::Slot() const
+void Entity::Remove() const
 {
-    return _sys ? _sys->SlotOf(*this) : -1;
+    CEntityIdentity* identity = _e ? _e->m_pEntity : nullptr;
+    if (!identity || !identity->m_pClass)
+    {
+        return;
+    }
+
+    // The class's think lookup searches its bases, so every entity reaches CBaseEntity's removal.
+    const BASEPTR remove = identity->m_pClass->m_NameToThinkFunc("CBaseEntitySUB_Remove");
+    if (remove)
+    {
+        remove(_e);
+    }
 }
 
-Controller::Controller(EntitySystem& entities, CEntityInstance* raw, int slot) : Entity(entities, raw), _slot(slot)
+void Entity::RemoveAfter(float seconds) const
 {
-    _pawn = entities.Resolve(PlayerPawnRef()).Raw();
+    if (!_e || !_sys || !_sys->BindingsRef().AddEntityIOEvent)
+    {
+        return;
+    }
+    CEntitySystem* system = _sys->GetEntitySystem();
+    if (!system)
+    {
+        return;
+    }
+
+    // The queue copies the input name and the value.
+    const variant_t value("");
+    _sys->BindingsRef().AddEntityIOEvent(system, _e, "Kill", nullptr, nullptr, &value, seconds, nullptr, nullptr);
 }
 
-Pawn Controller::GetPawn() const
+void Entity::SetModel(std::string_view path) const
 {
-    return _sys ? Pawn{*_sys, _pawn} : Pawn{};
+    if (_e && _sys && _sys->BindingsRef().SetModel && !path.empty())
+    {
+        _sys->BindingsRef().SetModel(_e, std::string(path).c_str());
+    }
 }
 
-Pawn Controller::Possessed() const
+void Entity::SetScale(float scale) const
 {
     if (!_sys)
     {
-        return {};
+        return;
     }
-    return Pawn{*_sys, _sys->Resolve(PawnRef()).Raw()};
+    variant_t value(std::clamp(scale, MinScale, MaxScale));
+    FireInput(_sys->BindingsRef(), _e, "SetScale", value, nullptr);
 }
 
-int Controller::Money() const
+void Entity::SetRender(Schema::RenderMode_t mode, Color color) const
 {
-    const Schema::CCSPlayerController_InGameMoneyServices money = InGameMoneyServices();
-    return money ? money.Account() : 0;
+    const Schema::CBaseModelEntity model{_e};
+    if (!model)
+    {
+        return;
+    }
+    model.SetRenderMode(mode);
+    model.SetRenderColor(color);
 }
 
-Status Controller::SetMoney(int amount) const
+void Entity::PlayAnimation(std::string_view animation, std::string_view idle) const
 {
-    const Schema::CCSPlayerController_InGameMoneyServices money = InGameMoneyServices();
-    if (!money)
+    if (!idle.empty())
     {
-        return std::unexpected(Error::NotReady("money services unavailable"));
+        AcceptInput("SetIdleAnimationLooping", idle);
     }
-
-    money.SetAccount(amount);
-    return {};
+    AcceptInput("SetAnimationNotLooping", animation);
 }
 
-Status Controller::Kick(std::string_view reason) const
+void Entity::EmitSound(std::string_view soundEvent, float volume) const
 {
-    if (!_e || !_sys)
+    if (_e && _sys && _sys->BindingsRef().EmitSoundParams && !soundEvent.empty())
     {
-        return std::unexpected(Error::NotReady("no controller"));
+        _sys->BindingsRef().EmitSoundParams(_e, std::string(soundEvent).c_str(), 100, volume, 0.0f);
     }
-
-    auto* engine = _sys->InterfacesRef().Engine;
-    if (!engine)
-    {
-        return std::unexpected(Error::NotReady("IVEngineServer2 not available"));
-    }
-
-    const std::string text(reason);
-    engine->DisconnectClient(CPlayerSlot(_slot), NETWORK_DISCONNECT_KICKED, text.c_str());
-    return {};
 }
 
-Status Controller::ChangeTeam(VoltMod::Team team) const
+void Entity::EmitSound(std::string_view soundEvent, IRecipientFilter& recipients, float volume) const
 {
-    if (!_e || !_sys)
+    if (!_e || !_sys || !_sys->BindingsRef().EmitSoundFilter || soundEvent.empty())
     {
-        return std::unexpected(Error::NotReady("no controller"));
-    }
-    if (team != Team::Spectator && !IsPlaying(team))
-    {
-        return std::unexpected(Error::Invalid("a player can only join the spectators, T or CT"));
+        return;
     }
 
-    const auto& changeTeam = _sys->BindingsRef().ChangeTeam;
-    if (!changeTeam)
-    {
-        return std::unexpected(Error::Unsupported("the 'CCSPlayerController::ChangeTeam' vtable slot did not bind"));
-    }
+    // The params borrow the name; the engine reads it during the call.
+    const std::string sound(soundEvent);
+    EmitSoundParams params;
+    params.SoundName = sound.c_str();
+    params.Volume = volume;
 
-    changeTeam(_e, std::to_underlying(team));
-    return {};
+    std::bit_cast<EmitSoundFilterFn>(_sys->BindingsRef().EmitSoundFilter.Ptr())(recipients, _e->GetEntityIndex(),
+                                                                                params);
 }
-
-Status Controller::Respawn() const
-{
-    if (!_e || !_sys)
-    {
-        return std::unexpected(Error::NotReady("no controller"));
-    }
-
-    const auto& respawn = _sys->BindingsRef().Respawn;
-    if (!respawn)
-    {
-        return std::unexpected(Error::Unsupported("gamedata has no 'CCSPlayerController::Respawn' vtable index"));
-    }
-
-    respawn(_e);
-    return {};
-}
-
-// Passed by value: the field layout is ABI.
-static_assert(sizeof(Pawn) <= 160, "Pawn is a frame-local value; keep the field list tight.");
-static_assert(sizeof(Controller) <= 104, "Controller is a frame-local value; keep the field list tight.");
 
 }  // namespace VoltMod

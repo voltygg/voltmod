@@ -4,16 +4,16 @@
 
 ## Render
 
-`SetRender` writes `m_nRenderMode` and `m_clrRender` and dirties both for replication. Use the free
-function for entities with no wrapper and the pawn method for players. The mode is the generated
+`Entity::SetRender` writes `m_nRenderMode` and `m_clrRender` and dirties both for replication. It
+works on any model entity: a prop, a weapon, a pawn. The mode is the generated
 `Schema::RenderMode_t`, CS2's own numbering: `kRenderNormal`, `kRenderTransAlpha` (the color's alpha
 applies) and `kRenderNone`.
 
 ```cpp
 using VoltMod::Schema::RenderMode_t;
 
-VoltMod::SetRender(prop, RenderMode_t::kRenderTransAlpha, VoltMod::Color{.A = 0});
-VoltMod::SetRender(prop, RenderMode_t::kRenderNormal, VoltMod::Color{});
+prop.SetRender(RenderMode_t::kRenderTransAlpha, VoltMod::Color{.A = 0});
+prop.SetRender(RenderMode_t::kRenderNormal, VoltMod::Color{});
 
 runtime.Entities.PawnOf(slot).SetVisible(false);        // the pawn body, alpha 0
 runtime.Entities.PawnOf(slot).SetVisible(false, 0x80);  // 50% transparent
