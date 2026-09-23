@@ -22,7 +22,7 @@ uv run poe build --install <plugin> --start   # install to CS2_SERVER_PATH and l
 uv run poe build --install-all                # ...every plugin instead of one
 uv run poe panorama            # compile panorama/ UI into the client (Windows)
 voltmod panorama render | check                       # screens: docs/panorama.md
-voltmod gamedata check | resolve --write      # after a CS2 update: docs/sdk/gamedata.md
+voltmod gamedata fetch | check | resolve --write  # after a CS2 update: gamedata-update skill
 voltmod schemagen                             # regenerate accessors from the server's own dump
 voltmod init | new-plugin <name>              # run from the consumer repo
 uv run poe release <build|publish|version|tag|prune|watch>   # framework packages; tools/release

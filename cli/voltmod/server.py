@@ -5,11 +5,13 @@ import subprocess
 from pathlib import Path
 
 from voltmod.cs2_install import (
+    CS2_APP,
     CSGO_DIR,
     HOST_COMPONENT,
     SERVER_EXECUTABLES,
     find_server,
     plugin_dir,
+    restore_metamod_search_path,
     server_executable,
 )
 from voltmod.errors import VoltmodError
@@ -46,7 +48,7 @@ def update_server(steamcmd_path: str, server: Path) -> None:
     # fmt: off
     update = [
         str(steamcmd), "+force_install_dir", str(server), "+login", "anonymous",
-        "+app_update", "730", "validate", "+quit",
+        "+app_update", CS2_APP, "validate", "+quit",
     ]
     # fmt: on
     result = subprocess.run(update)
@@ -59,6 +61,9 @@ def run_server(settings: Settings, *, check_update: bool = False) -> None:
     server = find_server(settings.server_path)
     if check_update:
         update_server(settings.steamcmd_path, server)
+
+    if restore_metamod_search_path(server):
+        print("Restored Metamod's search path in gameinfo.gi (a CS2 update removed it).")
 
     executable = server_executable(server)
     if executable is None:

@@ -50,15 +50,7 @@ class GameBinaries:
 
     def contents(self, module: str) -> bytes:
         if module not in self._contents:
-            relative = GAME_LIBRARIES[self.platform].get(module)
-            if relative is None:
-                raise VoltmodError(f"unknown gamedata module '{module}'")
-            path = self.game_dir / relative
-            # Deployment images may flatten Linux binaries into one directory.
-            if not path.is_file():
-                path = self.game_dir / Path(relative).name
-            if not path.is_file():
-                raise VoltmodError(f"no {module} binary at {self.game_dir / relative}")
+            path = module_path(self.game_dir, self.platform, module)
             self._contents[module] = path.read_bytes()
         return self._contents[module]
 
@@ -85,6 +77,19 @@ def pattern_regex(pattern: str) -> re.Pattern[bytes]:
     return re.compile(b"".join(parts), re.DOTALL)
 
 
+def module_path(game_dir: Path, platform: str, module: str) -> Path:
+    relative = GAME_LIBRARIES[platform].get(module)
+    if relative is None:
+        raise VoltmodError(f"unknown gamedata module '{module}'")
+    path = game_dir / relative
+    # Deployment images may flatten Linux binaries into one directory.
+    if not path.is_file():
+        path = game_dir / Path(relative).name
+    if not path.is_file():
+        raise VoltmodError(f"no {module} binary at {game_dir / relative}")
+    return path
+
+
 def check_gamedata(root: Path, game_dir: str, platform: str) -> tuple[str, list[PatternResult]]:
     """The gamedata text in `root`, and every pattern checked against the game at `game_dir`."""
     if not game_dir:
@@ -93,17 +98,20 @@ def check_gamedata(root: Path, game_dir: str, platform: str) -> tuple[str, list[
     if not game.is_dir():
         raise VoltmodError(f"no game directory at {game}")
 
-    path = root / GAMEDATA_FILE
-    if not path.is_file():
-        raise VoltmodError(f"no {GAMEDATA_FILE} in {root}; run this from the framework checkout")
-    text = path.read_text(encoding="utf-8")
-
+    text = read_gamedata(root)
     binaries = GameBinaries(game, platform or detect_platform(game))
     baseline = root / SCHEMA_BASELINES[binaries.platform]
     schema = json.loads(baseline.read_text(encoding="utf-8")) if baseline.is_file() else {}
 
     print(f"==> gamedata {binaries.platform} (game build {game_build(game)})")
     return text, check_patterns(parse_gamedata(text), binaries, schema)
+
+
+def read_gamedata(root: Path) -> str:
+    path = root / GAMEDATA_FILE
+    if not path.is_file():
+        raise VoltmodError(f"no {GAMEDATA_FILE} in {root}; run this from the framework checkout")
+    return path.read_text(encoding="utf-8")
 
 
 def parse_gamedata(text: str) -> dict[str, Any]:

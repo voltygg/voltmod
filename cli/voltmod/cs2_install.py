@@ -7,8 +7,12 @@ from voltmod.errors import VoltmodError
 
 BIN_SUBDIR = {"windows": "win64", "linux": "linuxsteamrt64"}
 
+CS2_APP = "730"
+
 # The game directory every addons/ path below is relative to.
 CSGO_DIR = "game/csgo"
+STEAM_INF = f"{CSGO_DIR}/steam.inf"
+GAMEINFO = f"{CSGO_DIR}/gameinfo.gi"
 
 SERVER_EXECUTABLES = (
     f"game/bin/{BIN_SUBDIR['windows']}/cs2.exe",
@@ -81,16 +85,46 @@ def server_executable(root: Path) -> Path | None:
 
 def game_build(root: Path) -> str:
     """The build number in steam.inf, which the framework also stamps on schema dumps."""
-    steam_inf = root / CSGO_DIR / "steam.inf"
+    return _steam_inf(root, "ServerVersion")
+
+
+def patch_version(root: Path) -> str:
+    """The dotted version in steam.inf, which Steam's up-to-date check takes."""
+    return _steam_inf(root, "PatchVersion")
+
+
+def _steam_inf(root: Path, key: str) -> str:
+    steam_inf = root / STEAM_INF
     if not steam_inf.is_file():
         return "unknown"
     text = steam_inf.read_text(encoding="utf-8", errors="replace")
-    found = re.search(r"ServerVersion=(\S+)", text)
+    found = re.search(rf"{key}=(\S+)", text)
     return found.group(1) if found else "unknown"
 
 
+METAMOD_SEARCH_PATH = "csgo/addons/metamod"
+_GAME_CSGO_LINE = re.compile(r"^([ \t]*)Game[ \t]+csgo[ \t]*(\r?)$", re.MULTILINE)
+
+
+def has_metamod_search_path(root: Path) -> bool:
+    return METAMOD_SEARCH_PATH in (root / GAMEINFO).read_text(encoding="utf-8", errors="replace")
+
+
+def restore_metamod_search_path(root: Path) -> bool:
+    """Put Metamod's line back above `Game csgo`; a CS2 update rewrites gameinfo.gi without it."""
+    gameinfo = root / GAMEINFO
+    text = gameinfo.read_bytes().decode("utf-8")
+    if METAMOD_SEARCH_PATH in text:
+        return False
+    patched, count = _GAME_CSGO_LINE.subn(rf"\1Game\t{METAMOD_SEARCH_PATH}\2\n\g<0>", text, count=1)
+    if not count:
+        raise VoltmodError(f"{gameinfo} has no `Game csgo` line to put Metamod above")
+    gameinfo.write_bytes(patched.encode("utf-8"))
+    return True
+
+
 def is_client(root: Path) -> bool:
-    return (root / CSGO_DIR / "gameinfo.gi").is_file()
+    return (root / GAMEINFO).is_file()
 
 
 def find_client(client_path: str) -> Path:
@@ -98,9 +132,7 @@ def find_client(client_path: str) -> Path:
     if client_path:
         root = Path(client_path).expanduser()
         if not is_client(root):
-            raise VoltmodError(
-                f"no CS2 client at {root}\nExpected {root / CSGO_DIR / 'gameinfo.gi'}"
-            )
+            raise VoltmodError(f"no CS2 client at {root}\nExpected {root / GAMEINFO}")
         return root
 
     for candidate in _STEAM_ROOTS:

@@ -7,9 +7,15 @@ from typing import Annotated
 import typer
 
 from voltmod.commands.shared import ServerPath, exit_on_failure
-from voltmod.cs2_install import SCHEMA_DUMP, find_server
+from voltmod.cs2_install import GAME_LIBRARIES, SCHEMA_DUMP, find_server
 from voltmod.errors import VoltmodError
 from voltmod.files import read_json
+from voltmod.framework.game_builds import (
+    archive_resolved,
+    archived_builds,
+    default_archive,
+    fetch_build,
+)
 from voltmod.framework.gamedata import PatternResult, PatternStatus, check_gamedata, write_repairs
 from voltmod.framework.modgraph import check_framework
 from voltmod.framework.paths import GAMEDATA_FILE, SCHEMA_BASELINES, SCHEMA_MANIFEST
@@ -74,6 +80,33 @@ def check_command(game_dir: GameDir = "", platform: Platform = "") -> None:
     if drifted:
         print(f"{drifted} entries drifted; repair them with: voltmod gamedata resolve --write")
         raise typer.Exit(1)
+
+
+@gamedata_commands.command("fetch")
+def fetch_command(
+    platform: Annotated[
+        str, typer.Option("--platform", help="windows or linux (default: both)")
+    ] = "",
+    server_path: ServerPath = "",
+) -> None:
+    """Archive the current build's server binaries from Steam, for checks and old/new diffs.
+
+    The archive is CS2_BUILD_ARCHIVE, else ~/.voltmod/cs2-builds.
+    """
+    root = default_archive()
+    server = Project.load().server_path(server_path)
+    for name in [platform] if platform else list(GAME_LIBRARIES):
+        if name not in GAME_LIBRARIES:
+            raise VoltmodError(f"unknown platform '{name}'; use windows or linux")
+        print(f"==> fetch {name}")
+        target = fetch_build(root, name)
+        print(f"    {target}")
+        if server and (build := archive_resolved(Path(server).expanduser(), root, name)):
+            print(f"    kept the local server's resolved.{name}.json under build {build}")
+        print(f"    voltmod gamedata check --game-dir {target} --platform {name}")
+    builds = archived_builds(root)
+    if len(builds) > 1:
+        print(f"Archived builds: {' '.join(builds)} (the previous one is {builds[-2]})")
 
 
 @gamedata_commands.command("resolve")
