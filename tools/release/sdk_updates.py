@@ -1,14 +1,15 @@
-"""Following the SDK upstreams: find a branch's new tip, and pin it in its recipe's conandata."""
-
 import os
+from dataclasses import dataclass
+from datetime import date
 from enum import StrEnum
 from pathlib import Path
 
 import yaml
 
 from tools.release.conan_packages import is_published
+from voltmod import console
 from voltmod.errors import VoltmodError
-from voltmod.toolchain.process import tool_output
+from voltmod.toolchain.process import run
 
 
 class SdkPackage(StrEnum):
@@ -16,90 +17,81 @@ class SdkPackage(StrEnum):
     METAMOD = "metamod-source"
 
 
-# The branches followed, and how each package spells its version.
+@dataclass(frozen=True)
+class Upstream:
+    url: str
+    branch: str
+    # Formats the tip's commit date into the package version.
+    version_format: str
+
+
 UPSTREAMS = {
-    SdkPackage.HL2SDK: {
-        "url": "https://github.com/alliedmodders/hl2sdk.git",
-        "branch": "cs2",
-        "version_style": "date",  # 2026.07.23
-    },
-    SdkPackage.METAMOD: {
-        "url": "https://github.com/alliedmodders/metamod-source.git",
-        "branch": "master",
-        "version_style": "metamod",  # 2.0.0.20260711
-    },
+    SdkPackage.HL2SDK: Upstream(
+        "https://github.com/alliedmodders/hl2sdk.git", "cs2", "{:%Y.%m.%d}"
+    ),
+    SdkPackage.METAMOD: Upstream(
+        "https://github.com/alliedmodders/metamod-source.git", "master", "2.0.0.{:%Y%m%d}"
+    ),
 }
 
 
 def recipe_version(root: Path, name: str) -> str:
-    """The one version a recipe's conandata.yml pins."""
-    sources = _read_conandata(root, name)["sources"]
-    if len(sources) != 1:
-        raise VoltmodError(f"recipes/{name}/conandata.yml must pin exactly one version")
-    return next(iter(sources))
+    return _pinned_source(root, name)[0]
 
 
 def update_sdk_pins(root: Path, package: SdkPackage | None) -> None:
-    """Rewrite conandata.yml for each selected package whose upstream branch has moved."""
+    """Pin each selected package to its upstream branch tip, and tell the workflow if any moved."""
     changed = False
     for name in (package,) if package else UPSTREAMS:
         upstream = UPSTREAMS[name]
-        current = next(iter(_read_conandata(root, name)["sources"].values()))["commit"]
-
-        tip = _branch_tip(upstream["url"], upstream["branch"])
+        current = _pinned_source(root, name)[1]
+        tip = _branch_tip(upstream)
         if current == tip:
-            print(f"{name}: already at {tip[:12]}")
+            console.info(f"{name}: already at {tip[:12]}")
             continue
 
-        day = _commit_day(upstream["url"], tip)
-        version = _next_version(name, day, upstream["version_style"])
-        # Quoted, so a date-like version stays a string and the diff stays stable.
+        version = _next_version(name, upstream.version_format.format(_commit_date(upstream, tip)))
+        # Quoted, so a date-like version stays a string.
         (root / "recipes" / name / "conandata.yml").write_text(
-            f'sources:\n  "{version}":\n    url: "{upstream["url"]}"\n    commit: "{tip}"\n',
+            f'sources:\n  "{version}":\n    url: "{upstream.url}"\n    commit: "{tip}"\n',
             encoding="utf-8",
             newline="\n",
         )
-        print(f"{name}: {current[:12]} -> {tip[:12]} as {version}")
-        _set_step_output(f"{name}-version", version)
-        _set_step_output(f"{name}-old", current)
+        console.done(f"{name}: {current[:12]} -> {tip[:12]} as {version}")
         changed = True
 
-    _set_step_output("changed", "true" if changed else "false")
+    if output := os.environ.get("GITHUB_OUTPUT"):
+        with open(output, "a", encoding="utf-8") as handle:
+            handle.write(f"changed={str(changed).lower()}\n")
 
 
-def _read_conandata(root: Path, name: str) -> dict:
-    return yaml.safe_load((root / "recipes" / name / "conandata.yml").read_text(encoding="utf-8"))
+def _pinned_source(root: Path, name: str) -> tuple[str, str]:
+    """The version and commit a recipe's conandata.yml pins."""
+    conandata = root / "recipes" / name / "conandata.yml"
+    sources = yaml.safe_load(conandata.read_text(encoding="utf-8"))["sources"]
+    if len(sources) != 1:
+        raise VoltmodError(f"recipes/{name}/conandata.yml must pin exactly one version")
+    [(version, source)] = sources.items()
+    return version, source["commit"]
 
 
-def _branch_tip(url: str, branch: str) -> str:
-    output = tool_output("git", "ls-remote", url, f"refs/heads/{branch}")
-    if not output.strip():
-        raise VoltmodError(f"{url} has no branch {branch}")
-    return output.split()[0]
+def _branch_tip(upstream: Upstream) -> str:
+    output = run("git", "ls-remote", upstream.url, f"refs/heads/{upstream.branch}", capture=True)
+    if not output.stdout.strip():
+        raise VoltmodError(f"{upstream.url} has no branch {upstream.branch}")
+    return output.stdout.split()[0]
 
 
-def _commit_day(url: str, commit: str) -> str:
-    repository = url.removeprefix("https://github.com/").removesuffix(".git")
-    commit_path = f"repos/{repository}/commits/{commit}"
-    committed = tool_output("gh", "api", commit_path, "--jq", ".commit.committer.date")
-    return committed.split("T")[0]
+def _commit_date(upstream: Upstream, commit: str) -> date:
+    repository = upstream.url.removeprefix("https://github.com/").removesuffix(".git")
+    query = ("gh", "api", f"repos/{repository}/commits/{commit}", "--jq", ".commit.committer.date")
+    return date.fromisoformat(run(*query, capture=True).stdout[:10])
 
 
-def _next_version(name: str, day: str, version_style: str) -> str:
-    """The version a commit's date implies, suffixed when the remote already has it."""
-    if version_style == "date":
-        base = day.replace("-", ".")
-    else:
-        base = f"2.0.0.{day.replace('-', '')}"
+def _next_version(name: str, base: str) -> str:
+    """`base`, suffixed .1, .2, ... until the remote does not have it."""
     version, suffix = base, 0
     while is_published(name, version):
         suffix += 1
         version = f"{base}.{suffix}"
     return version
-
-
-def _set_step_output(key: str, value: str) -> None:
-    """Hand a value to the surrounding GitHub Actions step, when there is one."""
-    if path := os.environ.get("GITHUB_OUTPUT"):
-        with open(path, "a", encoding="utf-8") as handle:
-            handle.write(f"{key}={value}\n")
