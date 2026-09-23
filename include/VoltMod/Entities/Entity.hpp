@@ -70,6 +70,11 @@ public:
      *  @return Error::Unsupported when the Teleport slot did not bind. */
     Status Teleport(std::optional<Vector> origin, std::optional<QAngle> angles, std::optional<Vector> velocity) const;
 
+    Schema::MoveType_t MoveType() const { return MoveTypeRaw(); }
+
+    /** Writes both move-type fields; the engine reverts a lone one next tick. */
+    void SetMoveType(Schema::MoveType_t type) const;
+
     /** Spawn an entity from @ref EntitySystem::Create; the engine takes the keyvalues. */
     void Spawn(KeyValues& values) const;
 

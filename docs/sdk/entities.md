@@ -156,9 +156,9 @@ to its command. `AimPunchServices()` carries the recoil punch as the last shot s
 weapon.
 
 `Vector` and `QAngle` are the engine's own types; `<VoltMod/Engine/Math.hpp>` is the header to
-include for them, so a plugin never names an SDK path. `AngleToForward`
-(`<VoltMod/Entities/Angles.hpp>`) turns an aim into the unit vector it points along, for tracing
-or placing something ahead of a player.
+include for them, so a plugin never names an SDK path. `AngleToForward`, from the same header,
+turns an aim into the unit vector it points along, for tracing or placing something ahead of a
+player.
 
 ```cpp
 QAngle aim = pawn.EyeAngles();
@@ -264,24 +264,23 @@ runtime.World.Pawns.SlayDelayed(slot, 2000);
 
 Both drop their pending work when the seat changes hands, so neither can reach the next occupant.
 
-## Items
-
-@ref VoltMod::Items gives and strips weapons through the pawn's `CCSPlayer_ItemServices`. Both are
-vtable calls whose indices live in gamedata, so a game update is a gamedata edit rather than a
-rebuild.
+## Pawn verbs
 
 ```cpp
-runtime.World.Items.Give(target, "weapon_ak47");   // entity classname, not a display name
-runtime.World.Items.StripWeapons(target);          // pass false to keep armor and the defuse kit
+pawn.GiveItem("weapon_ak47");                 // an entity class name, not a display name
+pawn.StripWeapons();                          // pass false to keep armor and the defuse kit
+for (const VoltMod::Entity& weapon : pawn.Weapons())
+    weapon.SetRender(RenderMode_t::kRenderTransAlpha, VoltMod::Color{.A = 0});
+
+pawn.SetGodmode(!pawn.Godmode());             // FL_GODMODE: the pawn takes no damage
+pawn.SetMoveType(MoveType_t::MOVETYPE_NOCLIP); // writes both move-type fields
+pawn.Launch(Vector{0.0f, 0.0f, 600.0f});      // velocity, and off the ground this tick
+pawn.Heal(25);                                // up to MaxHealth
 ```
 
-`Give` returns false only when the pawn is unavailable or the engine refused the item twice. The
-retry matters: the engine rejects a weapon the player's team cannot buy, so a refusal is tried
-again with the pawn briefly flipped to the other team and flipped back before the call returns.
-Do not interleave it with anything else that reads the pawn's team.
-
-Anything that fails to resolve - the pawn, the item services pointer, the vtable index - degrades
-the call to `false`.
+The engine refuses a weapon the pawn's team cannot buy, so `GiveItem` retries with the pawn on the
+other team for the same frame and swaps it back before returning. It returns false when the engine
+refused the item both times or the item services did not bind.
 
 ## Spawning, entity IO and sound
 

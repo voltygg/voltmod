@@ -7,7 +7,6 @@
 #include <VoltMod/Engine/Net/NetChannel.hpp>
 #include <VoltMod/Engine/Server/Precache.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
-#include <VoltMod/Entities/Items.hpp>
 #include <VoltMod/Entities/Pawns.hpp>
 #include <VoltMod/Entities/Rounds.hpp>
 #include <VoltMod/Entities/Trace.hpp>
@@ -21,15 +20,9 @@ struct WorldServices
 {
     WorldServices(EntitySystem& entities, Bindings& bindings, Scheduler& scheduler, SlotEvents& slots,
                   Interfaces& interfaces)
-        : Items(bindings),
-          Pawns(scheduler, slots, entities),
-          NetChannels(interfaces),
-          Trace(bindings),
-          Rounds(entities, bindings)
+        : Pawns(scheduler, slots, entities), NetChannels(interfaces), Trace(bindings), Rounds(entities, bindings)
     {}
 
-    /** Weapon give/strip through CCSPlayer_ItemServices. Depends on: Bindings. */
-    VoltMod::Items Items;
     /** Resources for the next map's session manifest. */
     VoltMod::Precache Precache;
     /** Pawn manipulations that need framework services, such as slap and its fall protection.

@@ -5,13 +5,15 @@
 #include <VoltMod/Schema/Generated/CCSPlayerPawn.hpp>
 #include <cstdint>
 #include <string>
+#include <string_view>
+#include <vector>
 
 namespace VoltMod
 {
 
 /**
- * @brief A player's body: health, armor, movement, aim. The engine replaces it on every spawn;
- * the @ref Controller is the identity that stays.
+ * @brief A player's body: health, armor, movement, aim, weapons. The engine replaces it on every
+ * spawn; the @ref Controller is the identity that stays.
  */
 class Pawn : public Entity
 {
@@ -26,16 +28,33 @@ public:
 
     bool IsAlive() const { return _e != nullptr && LifeState() == LIFE_ALIVE; }
 
+    bool IsOnGround() const { return (Flags() & FL_ONGROUND) != 0; }
+
     /** Where shots start: the origin plus the view offset. */
     Vector EyePosition() const;
 
-    Schema::MoveType_t Move() const { return MoveTypeRaw(); }
-
-    /** Writes both move-type fields; the engine reverts a lone one next tick. */
-    void SetMove(Schema::MoveType_t type) const;
-
     /** @return Error::Unsupported when the CommitSuicide index did not bind. */
     Status Slay() const;
+
+    /** The FL_GODMODE flag, which is what makes a CS2 pawn take no damage. */
+    bool Godmode() const { return (Flags() & FL_GODMODE) != 0; }
+    void SetGodmode(bool on) const;
+
+    /** Throw the pawn with @p velocity, off the ground this tick. */
+    void Launch(Vector velocity) const;
+
+    /** Add @p amount health, up to MaxHealth. False when nothing changed, such as a dead pawn. */
+    bool Heal(int amount) const;
+
+    /** Give an item by class name, such as "weapon_ak47". A weapon the pawn's team cannot buy is
+     *  given through a same-frame team swap. False when the engine refused it. */
+    bool GiveItem(std::string_view item) const;
+
+    /** Remove every weapon, and with @p removeSuit the armor and defuse kit too. */
+    bool StripWeapons(bool removeSuit = true) const;
+
+    /** The carried weapons, knife and grenades included. */
+    std::vector<Entity> Weapons() const;
 
     VoltMod::ObserverMode ObserverMode() const;
     Status SetObserverMode(VoltMod::ObserverMode mode) const;

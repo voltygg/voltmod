@@ -122,6 +122,12 @@ Status Entity::Teleport(std::optional<Vector> origin, std::optional<QAngle> angl
     return {};
 }
 
+void Entity::SetMoveType(Schema::MoveType_t type) const
+{
+    SetMoveTypeRaw(type);
+    SetActualMoveTypeRaw(type);
+}
+
 void Entity::Spawn(KeyValues& values) const
 {
     if (_e && _sys && _sys->Bindings().DispatchSpawn)

@@ -11,9 +11,9 @@ void MovementFreeze::Hold(const Pawn& pawn)
         return;
     }
 
-    _prev = pawn.Move();
+    _prev = pawn.MoveType();
     _pawn = pawn.Ref();
-    pawn.SetMove(Schema::MoveType_t::MOVETYPE_NONE);
+    pawn.SetMoveType(Schema::MoveType_t::MOVETYPE_NONE);
 }
 
 void MovementFreeze::Release(const Pawn& pawn)
@@ -25,7 +25,7 @@ void MovementFreeze::Release(const Pawn& pawn)
 
     if (pawn && pawn.Ref() == _pawn)
     {
-        pawn.SetMove(_prev);
+        pawn.SetMoveType(_prev);
     }
     _pawn = {};
 }

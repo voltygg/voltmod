@@ -1,4 +1,4 @@
-#include <VoltMod/Entities/Angles.hpp>
+#include <VoltMod/Engine/Math.hpp>
 #include <mathlib/mathlib.h>
 
 namespace VoltMod

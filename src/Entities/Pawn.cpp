@@ -1,7 +1,12 @@
+#include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Schema/Api.hpp>
+#include <algorithm>
+#include <entityhandle.h>
 #include <shareddefs.h>
+#include <string>
+#include <tier1/utlvector.h>
 #include <utility>
 
 namespace VoltMod
@@ -21,10 +26,92 @@ Vector Pawn::EyePosition() const
     return Origin() + ViewOffset();
 }
 
-void Pawn::SetMove(Schema::MoveType_t type) const
+void Pawn::SetGodmode(bool on) const
 {
-    SetMoveTypeRaw(type);
-    SetActualMoveTypeRaw(type);
+    SetFlags(on ? (Flags() | FL_GODMODE) : (Flags() & ~FL_GODMODE));
+}
+
+void Pawn::Launch(Vector velocity) const
+{
+    // Written directly: a Teleport carrying only a velocity has crashed CS2 builds.
+    SetVelocity(velocity);
+    // Otherwise the engine grounds the pawn again on the next tick.
+    SetFlags(Flags() & ~FL_ONGROUND);
+}
+
+bool Pawn::Heal(int amount) const
+{
+    const int health = Health();
+    const int healed = std::min(health + amount, MaxHealth());
+    if (!IsAlive() || healed <= health)
+    {
+        return false;
+    }
+    SetHealth(healed);
+    return true;
+}
+
+bool Pawn::GiveItem(std::string_view item) const
+{
+    const Schema::CPlayer_ItemServices services = ItemServices();
+    if (!_sys || !services || !_sys->Bindings().GiveNamedItem || item.empty())
+    {
+        return false;
+    }
+
+    const std::string className(item);
+    const auto& give = _sys->Bindings().GiveNamedItem;
+    if (give(services.Base(), className.c_str()))
+    {
+        return true;
+    }
+
+    // The engine refuses a weapon only the other team can buy; the swap is undone before anyone sees it.
+    const VoltMod::Team team = Team();
+    if (Opposite(team) == VoltMod::Team::None)
+    {
+        return false;
+    }
+    SetTeam(Opposite(team));
+    const bool given = give(services.Base(), className.c_str()) != nullptr;
+    SetTeam(team);
+
+    if (!given)
+    {
+        Log::Warn("The engine refused '{}' for both teams.", item);
+    }
+    return given;
+}
+
+bool Pawn::StripWeapons(bool removeSuit) const
+{
+    const Schema::CPlayer_ItemServices services = ItemServices();
+    if (!_sys || !services || !_sys->Bindings().RemoveAllItems)
+    {
+        return false;
+    }
+    _sys->Bindings().RemoveAllItems(services.Base(), removeSuit);
+    return true;
+}
+
+std::vector<Entity> Pawn::Weapons() const
+{
+    std::vector<Entity> weapons;
+    const Schema::CPlayer_WeaponServices services = WeaponServices();
+    // The schema's CNetworkUtlVectorBase<CHandle<T>> is laid out as a CUtlVector.
+    const auto* handles = services ? static_cast<const CUtlVector<CEntityHandle>*>(services.MyWeapons()) : nullptr;
+    if (!_sys || !handles)
+    {
+        return weapons;
+    }
+    for (int i = 0; i < handles->Count(); ++i)
+    {
+        if (const Entity weapon = _sys->Resolve(EntityRef{static_cast<uint32_t>(handles->Element(i).ToInt())}))
+        {
+            weapons.push_back(weapon);
+        }
+    }
+    return weapons;
 }
 
 Status Pawn::Slay() const

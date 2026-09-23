@@ -1,4 +1,3 @@
-#include <VoltMod/Entities/Angles.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/PawnOps.hpp>
 #include <VoltMod/Entities/Pawns.hpp>
@@ -42,39 +41,22 @@ void ShiftZ(const Pawn& pawn, float deltaZ)
 
 bool ToggleNoclip(const Pawn& pawn)
 {
-    bool turningOn = (pawn.Move() != Schema::MoveType_t::MOVETYPE_NOCLIP);
-    pawn.SetMove(turningOn ? Schema::MoveType_t::MOVETYPE_NOCLIP : Schema::MoveType_t::MOVETYPE_WALK);
+    bool turningOn = (pawn.MoveType() != Schema::MoveType_t::MOVETYPE_NOCLIP);
+    pawn.SetMoveType(turningOn ? Schema::MoveType_t::MOVETYPE_NOCLIP : Schema::MoveType_t::MOVETYPE_WALK);
     return turningOn;
 }
 
 bool ToggleFreeze(const Pawn& pawn)
 {
-    bool turningOn = (pawn.Move() != Schema::MoveType_t::MOVETYPE_NONE);
-    pawn.SetMove(turningOn ? Schema::MoveType_t::MOVETYPE_NONE : Schema::MoveType_t::MOVETYPE_WALK);
+    bool turningOn = (pawn.MoveType() != Schema::MoveType_t::MOVETYPE_NONE);
+    pawn.SetMoveType(turningOn ? Schema::MoveType_t::MOVETYPE_NONE : Schema::MoveType_t::MOVETYPE_WALK);
     return turningOn;
-}
-
-bool HasGodmode(const Pawn& pawn)
-{
-    return (pawn.Flags() & FL_GODMODE) != 0;
-}
-
-void SetGodmode(const Pawn& pawn, bool enable)
-{
-    if (enable)
-    {
-        pawn.SetFlags(pawn.Flags() | FL_GODMODE);
-    }
-    else
-    {
-        pawn.SetFlags(pawn.Flags() & ~FL_GODMODE);
-    }
 }
 
 bool ToggleGodmode(const Pawn& pawn)
 {
-    bool turningOn = !HasGodmode(pawn);
-    SetGodmode(pawn, turningOn);
+    bool turningOn = !pawn.Godmode();
+    pawn.SetGodmode(turningOn);
     return turningOn;
 }
 
@@ -112,12 +94,12 @@ void Pawns::Slap(const Pawn& pawn, float upward, float horizontal, int fallProte
     // Only toggle godmode for fall protection if the target wasn't already in godmode, otherwise
     // the delayed clear below would silently strip an externally applied godmode.
     const int slot = pawn.Slot();
-    if (fallProtectMs <= 0 || !IsValidSlot(slot) || PawnOps::HasGodmode(pawn))
+    if (fallProtectMs <= 0 || !IsValidSlot(slot) || pawn.Godmode())
     {
         return;
     }
 
-    PawnOps::SetGodmode(pawn, true);
+    pawn.SetGodmode(true);
 
     // Re-resolve rather than holding this pawn: it is a frame-local value and the window outlives
     // the frame. The Runtime discards pending timers unrun, so `this` never dangles. Assigning
@@ -126,7 +108,7 @@ void Pawns::Slap(const Pawn& pawn, float upward, float horizontal, int fallProte
         Pawn target = _entities.Pawn(slot);
         if (target)
         {
-            PawnOps::SetGodmode(target, false);
+            target.SetGodmode(false);
         }
     });
 }

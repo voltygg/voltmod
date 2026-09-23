@@ -13,4 +13,7 @@ using Vector = ::Vector;
 /** The engine's angles in degrees: (pitch, yaw, roll), positive pitch looks down. */
 using QAngle = ::QAngle;
 
+/** The unit vector @p angles aim along; roll does not change it. */
+Vector AngleToForward(const QAngle& angles);
+
 }  // namespace VoltMod

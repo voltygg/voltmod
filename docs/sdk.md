@@ -10,7 +10,7 @@ what it does not:
 
 | Header | Brings in |
 | --- | --- |
-| `<VoltMod/Entities/Api.hpp>` | `Entity`, `Pawn`, `Controller`, `EntityRef`, `AngleToForward`, `EntitySystem`, `KeyValues`, `Items`, `Pawns`, `PawnOps`, `Trace`, `ConVar`, `ConVarOverrides` |
+| `<VoltMod/Entities/Api.hpp>` | `Entity`, `Pawn`, `Controller`, `EntityRef`, `EntitySystem`, `KeyValues`, `Pawns`, `PawnOps`, `Trace`, `ConVar`, `ConVarOverrides` |
 | `<VoltMod/Hooks/Api.hpp>` | `Movement`, `PlayerInput`, `Teleport`, `Damage`, `Visibility`, `GlowVision`, `ChatInput`, `ClientConVars`, `Vote`, `GameEvents` and the event structs, `Messages`, `CenterHtml` |
 | `<VoltMod/Unsafe/Api.hpp>` | `Interfaces`, `Bindings`, `MemoryAccess`, `RecipientFilter` and the hook entry points - opt in only where a plugin pokes at the engine directly |
 

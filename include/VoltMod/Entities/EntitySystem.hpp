@@ -40,9 +40,6 @@ public:
      *  match. Falsy when exhausted. */
     Entity FindByClassName(const Entity& after, std::string_view className);
 
-    /** The weapons @p pawn carries, knife and grenades included. */
-    std::vector<Entity> WeaponsOf(const VoltMod::Pawn& pawn);
-
     /** Unsupported when entities cannot be created or spawned. */
     Status Available() const;
 
