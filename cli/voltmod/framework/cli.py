@@ -1,14 +1,11 @@
 """Commands that maintain the framework checkout: modgraph, schemagen, and gamedata."""
 
-import sys
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
 from voltmod.checks.results import exit_on_failure
-from voltmod.cs2_install import GAME_LIBRARIES, SCHEMA_DUMP, find_server
-from voltmod.errors import VoltmodError
 from voltmod.files import read_json
 from voltmod.framework.game_builds import (
     archive_resolved,
@@ -18,10 +15,13 @@ from voltmod.framework.game_builds import (
 )
 from voltmod.framework.gamedata import PatternResult, PatternStatus, check_gamedata, write_repairs
 from voltmod.framework.layering import check_framework
-from voltmod.framework.paths import GAMEDATA_FILE, SCHEMA_BASELINES, SCHEMA_MANIFEST
+from voltmod.framework.paths import GAMEDATA_FILE, SCHEMA_MANIFEST
 from voltmod.framework.schemagen.generate import render_outputs, write_outputs
 from voltmod.options import ServerPath
+from voltmod.platforms import Platform
 from voltmod.project import Project
+from voltmod.server.cs2_server import Cs2Server
+from voltmod.server.install import SCHEMA_DUMP
 
 GameDir = Annotated[
     str,
@@ -29,8 +29,8 @@ GameDir = Annotated[
         "--game-dir", help="CS2 install, or a folder of its binaries (default: CS2_SERVER_PATH)"
     ),
 ]
-Platform = Annotated[
-    str, typer.Option("--platform", help="windows or linux (default: what --game-dir holds)")
+PlatformOption = Annotated[
+    Platform | None, typer.Option("--platform", help="Default: what --game-dir holds")
 ]
 
 
@@ -49,25 +49,23 @@ def schemagen_command(
     ] = "",
     server_path: ServerPath = "",
     platform: Annotated[
-        str, typer.Option("--platform", help="windows or linux: the server the dump came from")
-    ] = "windows" if sys.platform == "win32" else "linux",
+        Platform, typer.Option("--platform", help="The server the dump came from")
+    ] = Platform.host(),
 ) -> None:
     """Regenerate the schema accessor layer from a dump."""
-    if platform not in SCHEMA_BASELINES:
-        raise VoltmodError(f"unknown platform '{platform}'; use windows or linux")
     project = Project.load()
     manifest = read_json(project.root / SCHEMA_MANIFEST, "manifest")
     if dump_path:
         dump_file = Path(dump_path)
     else:
-        dump_file = find_server(project.server_path(server_path)) / SCHEMA_DUMP
+        dump_file = Cs2Server.open(project.server_path(server_path)).root / SCHEMA_DUMP
 
     output = render_outputs(read_json(dump_file, "dump"), manifest, platform)
     write_outputs(project.root, output.files, platform)
     print(output.summary)
 
 
-def gamedata_check_command(game_dir: GameDir = "", platform: Platform = "") -> None:
+def gamedata_check_command(game_dir: GameDir = "", platform: PlatformOption = None) -> None:
     """Report which committed patterns no longer match the shipped binaries."""
     project = Project.load()
     _, results = check_gamedata(project.root, project.server_path(game_dir), platform)
@@ -78,9 +76,7 @@ def gamedata_check_command(game_dir: GameDir = "", platform: Platform = "") -> N
 
 
 def gamedata_fetch_command(
-    platform: Annotated[
-        str, typer.Option("--platform", help="windows or linux (default: both)")
-    ] = "",
+    platform: Annotated[Platform | None, typer.Option("--platform", help="Default: both")] = None,
     server_path: ServerPath = "",
 ) -> None:
     """Archive the current build's server binaries from Steam, for checks and old/new diffs.
@@ -89,9 +85,7 @@ def gamedata_fetch_command(
     """
     root = default_archive()
     server = Project.load().server_path(server_path)
-    for name in [platform] if platform else list(GAME_LIBRARIES):
-        if name not in GAME_LIBRARIES:
-            raise VoltmodError(f"unknown platform '{name}'; use windows or linux")
+    for name in [platform] if platform else list(Platform):
         print(f"==> fetch {name}")
         target = fetch_build(root, name)
         print(f"    {target}")
@@ -105,7 +99,7 @@ def gamedata_fetch_command(
 
 def gamedata_resolve_command(
     game_dir: GameDir = "",
-    platform: Platform = "",
+    platform: PlatformOption = None,
     write: Annotated[bool, typer.Option("--write", help="Patch gamedata.jsonc in place")] = False,
 ) -> None:
     """Repair the patterns that drifted, leaving every entry that still matches alone."""

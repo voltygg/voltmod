@@ -7,7 +7,7 @@ import subprocess
 from pathlib import Path
 
 from voltmod.errors import VoltmodError
-from voltmod.toolchain.process import WINDOWS, put_tools_first_on_path
+from voltmod.toolchain.process import WINDOWS, put_tools_first_on_path, run
 
 
 def msvc_version() -> str:
@@ -16,7 +16,7 @@ def msvc_version() -> str:
     if not found:
         raise VoltmodError("no cl.exe found; install Visual Studio with the C++ tools")
     # cl prints its banner to stderr.
-    banner = subprocess.run([sorted(found)[-1]], text=True, capture_output=True).stderr
+    banner = run(sorted(found)[-1], capture=True, check=False).stderr
     match = re.search(r"Version (\d+)\.(\d+)", banner)
     if not match:
         raise VoltmodError("could not read the cl version banner")
@@ -63,5 +63,4 @@ def _query_visual_studio(*args: str) -> list[str]:
     vswhere = Path(program_files) / "Microsoft Visual Studio/Installer/vswhere.exe"
     if not vswhere.is_file():
         raise VoltmodError("vswhere not found; install Visual Studio with the C++ tools")
-    query = [str(vswhere), "-latest", "-products", "*", *args]
-    return subprocess.run(query, check=True, text=True, capture_output=True).stdout.splitlines()
+    return run(vswhere, "-latest", "-products", "*", *args, capture=True).stdout.splitlines()

@@ -2,7 +2,6 @@
 
 import os
 import shutil
-import subprocess
 from pathlib import Path
 
 from voltmod.errors import VoltmodError
@@ -20,7 +19,7 @@ from voltmod.toolchain.conan import (
     profile_args,
 )
 from voltmod.toolchain.msvc import load_msvc_environment
-from voltmod.toolchain.process import run_tool
+from voltmod.toolchain.process import run, run_tool
 
 FRAMEWORK_REPOSITORY = "https://github.com/voltygg/voltmod.git"
 
@@ -56,26 +55,31 @@ def build(
         build_checkout(project, checkout, preset)
 
     # Right after an SDK bump the lockfile does not pin the new revisions, so CI builds without it.
-    lock_args = []
+    lock_args: list[str | Path] = []
     if use_lockfile and project.lockfile.is_file():
-        lock_args = ["--lockfile", str(project.lockfile)]
-    # fmt: off
+        lock_args = ["--lockfile", project.lockfile]
     run_tool(
-        "conan", "install", str(project.root), "--output-folder", str(project.root),
-        "--build=missing", *SDK_BUILD_EXCLUSIONS, *lock_args, *(conan_options or []),
+        "conan",
+        "install",
+        project.root,
+        "--output-folder",
+        project.root,
+        "--build=missing",
+        *SDK_BUILD_EXCLUSIONS,
+        *lock_args,
+        *(conan_options or []),
         *host_profile,
     )
-    # fmt: on
 
     # Writes only what changed, so unchanged screens trigger no rebuild.
     render_screens(project.root)
 
     if uses_ccache:
-        subprocess.run(["ccache", "-z"], check=False)
+        run("ccache", "-z", check=False)
     run_tool("cmake", "--preset", preset)
     run_tool("cmake", "--build", "--preset", preset)
     if uses_ccache:
-        subprocess.run(["ccache", "-s", "-v"], check=False)
+        run("ccache", "-s", "-v", check=False)
     if relock:
         check_build_uses_package(project, preset, package_folder)
 

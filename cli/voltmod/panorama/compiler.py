@@ -1,13 +1,15 @@
 """Compiling rendered screens with the CS2 Workshop Tools, then installing them."""
 
 import shutil
-import subprocess
 from pathlib import Path
 
-from voltmod.cs2_install import RESOURCE_COMPILER, find_client
 from voltmod.errors import VoltmodError
 from voltmod.panorama.sources import rendered_dir, screen_owners
-from voltmod.toolchain.process import WINDOWS
+from voltmod.platforms import Platform
+from voltmod.steam import find_client
+from voltmod.toolchain.process import WINDOWS, run
+
+RESOURCE_COMPILER = f"game/bin/{Platform.WINDOWS.bin_dir}/resourcecompiler.exe"
 
 # Source suffix -> what resourcecompiler writes for it.
 COMPILED_SUFFIX = {".xml": ".vxml_c", ".css": ".vcss_c", ".vtex": ".vtex_c"}
@@ -103,11 +105,20 @@ def _run_resource_compiler(client: Path, built: Path, staged: list[Path], conten
         info.write_text('"AddonInfo"\n{\n}\n', encoding="utf-8")
 
     compilable = _compilable_files(staged)
-    command = [str(compiler), "-nop4", "-f", "-game", str(client / "game/csgo")]
     # One -i per file: wildcards match nothing here, and still report success.
-    for path in compilable:
-        command += ["-i", str(path)]
-    result = subprocess.run(command, cwd=compiler.parent, capture_output=True, text=True)
+    inputs = [argument for path in compilable for argument in ("-i", path)]
+    game = client / "game/csgo"
+    result = run(
+        compiler,
+        "-nop4",
+        "-f",
+        "-game",
+        game,
+        *inputs,
+        cwd=compiler.parent,
+        capture=True,
+        check=False,
+    )
 
     # It exits 0 whether or not anything compiled, so the expected outputs decide.
     missing = [path for path in compilable if not _compiled_path(built, path, content).is_file()]

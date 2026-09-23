@@ -5,9 +5,10 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
-from voltmod.cs2_install import HOST_BINARIES, HOST_GAMEDATA, HOST_VDF
 from voltmod.errors import VoltmodError
+from voltmod.platforms import Platform
 from voltmod.project import default_preset
+from voltmod.server.install import HOST_GAMEDATA, HOST_VDF, host_binary
 from voltmod.toolchain.conan import (
     REMOTE,
     SDK_BUILD_EXCLUSIONS,
@@ -32,7 +33,7 @@ def create_package(root: Path, recipe: Path, *args: str) -> None:
     if WINDOWS:
         # The runner's own cl, rather than the newest one the profile names.
         settings += ["-s", f"compiler.version={msvc_version()}"]
-    run_tool("conan", "create", str(recipe), *settings, *args)
+    run_tool("conan", "create", recipe, *settings, *args)
 
 
 def upload_packages(pattern: str) -> None:
@@ -78,7 +79,7 @@ def build_framework(root: Path, *, use_lockfile: bool) -> None:
 def required_files(package_settings: dict[str, Any]) -> tuple[str, ...]:
     """What a framework package must hold, for the platform it was built for."""
     windows = package_settings.get("os") == "Windows"
-    platform = "windows" if windows else "linux"
+    platform = Platform.WINDOWS if windows else Platform.LINUX
     libraries = (
         ("lib/voltmod-portable.lib", "lib/voltmod-sdk.lib", "lib/voltmod-database.lib")
         if windows
@@ -87,7 +88,7 @@ def required_files(package_settings: dict[str, Any]) -> tuple[str, ...]:
     return (
         *libraries,
         # Nothing links the host, so a packaging mistake in it only shows up on a live server.
-        HOST_BINARIES[platform],
+        host_binary(platform),
         HOST_VDF,
         HOST_GAMEDATA,
         "include/VoltMod/Api.hpp",
@@ -129,7 +130,7 @@ def package_folder(reference: str) -> Path:
 
 def framework_version(root: Path) -> str:
     """The package version, read through Conan, which owns that metadata."""
-    version = run_conan_json("inspect", str(root)).get("version")
+    version = run_conan_json("inspect", root).get("version")
     if not version:
         raise VoltmodError("the voltmod Conan recipe has no version")
     return version

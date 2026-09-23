@@ -4,9 +4,9 @@ from typing import Annotated
 
 import typer
 
-from voltmod.cs2_install import find_server
 from voltmod.options import PresetArgument, ServerPath
 from voltmod.project import Project
+from voltmod.server.cs2_server import Cs2Server
 from voltmod.server.install import install_plugins
 from voltmod.server.launch import run_server
 from voltmod.toolchain.build import bootstrap, build, run_tests
@@ -54,7 +54,7 @@ def build_command(
     if install:
         project.plugin_names(install)
     if installing or start:
-        find_server(server_path)
+        Cs2Server.open(server_path)
 
     conan_options = [arg for value in option or [] for arg in ("-o", value)]
     build(project, preset, conan_options=conan_options, use_lockfile=not no_lockfile, relock=relock)

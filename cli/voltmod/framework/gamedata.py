@@ -7,9 +7,10 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
-from voltmod.cs2_install import GAME_LIBRARIES, game_build
 from voltmod.errors import VoltmodError
 from voltmod.framework.paths import GAMEDATA_FILE, SCHEMA_BASELINES
+from voltmod.platforms import Platform
+from voltmod.server.cs2_server import CSGO_DIR, Cs2Server
 
 PATTERN_SECTIONS = ("functions", "globals")
 
@@ -43,7 +44,7 @@ class GameBinaries:
     ambiguous here; ambiguity is reported, never resolved.
     """
 
-    def __init__(self, game_dir: Path, platform: str) -> None:
+    def __init__(self, game_dir: Path, platform: Platform) -> None:
         self.game_dir = game_dir
         self.platform = platform
         self._contents: dict[str, bytes] = {}
@@ -61,9 +62,19 @@ class GameBinaries:
         return self.contents(module)[offset : offset + length]
 
 
-def detect_platform(game_dir: Path) -> str:
-    for platform, modules in GAME_LIBRARIES.items():
-        if any((game_dir / path).is_file() for path in modules.values()):
+def game_libraries(platform: Platform) -> dict[str, str]:
+    """Each gamedata module's binary, relative to the install root."""
+    prefix = "lib" if platform is Platform.LINUX else ""
+    suffix = platform.library_suffix
+    return {
+        "server": f"{CSGO_DIR}/bin/{platform.bin_dir}/{prefix}server{suffix}",
+        "engine2": f"game/bin/{platform.bin_dir}/{prefix}engine2{suffix}",
+    }
+
+
+def detect_platform(game_dir: Path) -> Platform:
+    for platform in Platform:
+        if any((game_dir / path).is_file() for path in game_libraries(platform).values()):
             return platform
     raise VoltmodError(f"no CS2 server or engine2 binary under {game_dir}")
 
@@ -77,8 +88,8 @@ def pattern_regex(pattern: str) -> re.Pattern[bytes]:
     return re.compile(b"".join(parts), re.DOTALL)
 
 
-def module_path(game_dir: Path, platform: str, module: str) -> Path:
-    relative = GAME_LIBRARIES[platform].get(module)
+def module_path(game_dir: Path, platform: Platform, module: str) -> Path:
+    relative = game_libraries(platform).get(module)
     if relative is None:
         raise VoltmodError(f"unknown gamedata module '{module}'")
     path = game_dir / relative
@@ -90,7 +101,9 @@ def module_path(game_dir: Path, platform: str, module: str) -> Path:
     return path
 
 
-def check_gamedata(root: Path, game_dir: str, platform: str) -> tuple[str, list[PatternResult]]:
+def check_gamedata(
+    root: Path, game_dir: str, platform: Platform | None
+) -> tuple[str, list[PatternResult]]:
     """The gamedata text in `root`, and every pattern checked against the game at `game_dir`."""
     if not game_dir:
         raise VoltmodError("no game directory; set CS2_SERVER_PATH in .env or pass --game-dir")
@@ -103,7 +116,7 @@ def check_gamedata(root: Path, game_dir: str, platform: str) -> tuple[str, list[
     baseline = root / SCHEMA_BASELINES[binaries.platform]
     schema = json.loads(baseline.read_text(encoding="utf-8")) if baseline.is_file() else {}
 
-    print(f"==> gamedata {binaries.platform} (game build {game_build(game)})")
+    print(f"==> gamedata {binaries.platform} (game build {Cs2Server(game).build})")
     return text, check_patterns(parse_gamedata(text), binaries, schema)
 
 

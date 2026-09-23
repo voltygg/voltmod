@@ -1,16 +1,11 @@
-import subprocess
 from pathlib import Path
 
-from voltmod.cs2_install import (
-    CS2_APP,
-    SERVER_EXECUTABLES,
-    find_server,
-    restore_metamod_search_path,
-    server_executable,
-)
 from voltmod.errors import VoltmodError
+from voltmod.platforms import Platform
 from voltmod.project import Settings
-from voltmod.toolchain.process import WINDOWS
+from voltmod.server.cs2_server import Cs2Server
+from voltmod.steam import CS2_APP
+from voltmod.toolchain.process import run
 
 
 def update_server(steamcmd_path: str, server: Path) -> None:
@@ -20,40 +15,30 @@ def update_server(steamcmd_path: str, server: Path) -> None:
         print(f"WARNING: SteamCMD not found at {steamcmd}; skipping update.")
         return
 
-    # fmt: off
-    update = [
-        str(steamcmd), "+force_install_dir", str(server), "+login", "anonymous",
-        "+app_update", CS2_APP, "validate", "+quit",
-    ]
-    # fmt: on
-    result = subprocess.run(update)
+    login: list[str | Path] = ["+force_install_dir", server, "+login", "anonymous"]
+    result = run(steamcmd, *login, "+app_update", CS2_APP, "validate", "+quit", check=False)
     if result.returncode:
         print(f"WARNING: SteamCMD update failed ({result.returncode}); using existing files.")
 
 
 def run_server(settings: Settings, *, check_update: bool = False) -> None:
     """Optionally update, then run the dedicated server in the foreground."""
-    server = find_server(settings.server_path)
+    server = Cs2Server.open(settings.server_path)
     if check_update:
-        update_server(settings.steamcmd_path, server)
+        update_server(settings.steamcmd_path, server.root)
 
-    if restore_metamod_search_path(server):
+    if server.restore_metamod_search_path():
         print("Restored Metamod's search path in gameinfo.gi (a CS2 update removed it).")
 
-    executable = server_executable(server)
+    executable = server.executable
     if executable is None:
-        expected = SERVER_EXECUTABLES[0] if WINDOWS else SERVER_EXECUTABLES[1]
-        raise VoltmodError(f"CS2 executable not found: {server / expected}")
+        expected = server.root / Platform.host().server_executable
+        raise VoltmodError(f"CS2 executable not found: {expected}")
 
-    # fmt: off
-    command = [
-        str(executable), "-dedicated", "-console", "-usercon",
-        "+map", settings.map_name,
-        "-maxplayers", str(settings.max_players),
-        "-port", str(settings.port),
-        "+game_mode", "0",
-    ]
-    # fmt: on
+    command: list[str | Path] = [executable, "-dedicated", "-console", "-usercon"]
+    command += ["+map", settings.map_name]
+    command += ["-maxplayers", str(settings.max_players), "-port", str(settings.port)]
+    command += ["+game_mode", "0"]
     if settings.gslt_token:
         command += ["+sv_setsteamaccount", settings.gslt_token]
     if settings.rcon_password:
@@ -64,4 +49,4 @@ def run_server(settings: Settings, *, check_update: bool = False) -> None:
         f"=== Starting CS2: {settings.map_name}, {settings.max_players} players, "
         f"port {settings.port}, {mode} ==="
     )
-    subprocess.run(command, cwd=executable.parent)
+    run(*command, cwd=executable.parent, check=False)

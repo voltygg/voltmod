@@ -10,22 +10,18 @@ import os
 import platform as host
 import re
 import shutil
-import subprocess
 import tempfile
 import urllib.request
 import zipfile
 from pathlib import Path
 
-from voltmod.cs2_install import (
-    CS2_APP,
-    CSGO_DIR,
-    GAME_LIBRARIES,
-    HOST_GAMEDATA,
-    STEAM_INF,
-    game_build,
-)
 from voltmod.errors import VoltmodError
-from voltmod.toolchain.process import WINDOWS
+from voltmod.framework.gamedata import game_libraries
+from voltmod.platforms import Platform
+from voltmod.server.cs2_server import CSGO_DIR, STEAM_INF, Cs2Server
+from voltmod.server.install import HOST_GAMEDATA
+from voltmod.steam import CS2_APP
+from voltmod.toolchain.process import WINDOWS, run
 
 DEPOT_DOWNLOADER_VERSION = "3.4.0"
 # Release asset and SHA-256 per host; a changed hash means a changed binary, so refuse it.
@@ -45,9 +41,9 @@ def default_archive() -> Path:
     return Path(os.environ.get("CS2_BUILD_ARCHIVE") or "~/.voltmod/cs2-builds").expanduser()
 
 
-def fetch_build(archive: Path, platform: str) -> Path:
+def fetch_build(archive: Path, platform: Platform) -> Path:
     """Download the current build's gamedata binaries into `archive/<build>/<platform>`."""
-    files = [*GAME_LIBRARIES[platform].values(), STEAM_INF]
+    files = [*game_libraries(platform).values(), STEAM_INF]
     archive.mkdir(parents=True, exist_ok=True)
     downloader = _depot_downloader(archive / "tools")
     staging = Path(tempfile.mkdtemp(prefix=f"fetch-{platform}-", dir=archive))
@@ -57,13 +53,9 @@ def fetch_build(archive: Path, platform: str) -> Path:
             "".join(f"regex:^{re.escape(path)}$\n" for path in files), encoding="utf-8"
         )
         install = staging / "install"
-        # fmt: off
-        command = [
-            str(downloader), "-app", CS2_APP, "-os", platform, "-osarch", "64",
-            "-filelist", str(file_list), "-dir", str(install),
-        ]
-        # fmt: on
-        result = subprocess.run(command, text=True, capture_output=True)
+        app = ["-app", CS2_APP, "-os", platform, "-osarch", "64"]
+        output: list[str | Path] = ["-filelist", file_list, "-dir", install]
+        result = run(downloader, *app, *output, capture=True, check=False)
         missing = [path for path in files if not (install / path).is_file()]
         if result.returncode or missing:
             raise VoltmodError(
@@ -71,7 +63,7 @@ def fetch_build(archive: Path, platform: str) -> Path:
                 f"{result.stdout[-2000:]}{result.stderr[-2000:]}"
             )
 
-        target = archive / game_build(install) / platform
+        target = archive / Cs2Server(install).build / platform
         if target.is_dir():
             print(f"    build {target.parent.name} {platform} is already archived")
             return target
@@ -84,16 +76,16 @@ def fetch_build(archive: Path, platform: str) -> Path:
         shutil.rmtree(staging, ignore_errors=True)
 
 
-def resolved_record(build_dir: Path, platform: str) -> Path:
+def resolved_record(build_dir: Path, platform: Platform) -> Path:
     return build_dir / f"resolved.{platform}.json"
 
 
-def archive_resolved(server: Path, archive: Path, platform: str) -> str | None:
+def archive_resolved(server: Path, archive: Path, platform: Platform) -> str | None:
     """File the server's resolved record under the build it names, if that build is archived.
 
     On update day the server still holds the old build's record: the addresses to diff against.
     """
-    record = server / CSGO_DIR / Path(HOST_GAMEDATA).parent / f"resolved.{platform}.json"
+    record = resolved_record(server / CSGO_DIR / Path(HOST_GAMEDATA).parent, platform)
     if not record.is_file():
         return None
     build = str(json.loads(record.read_text(encoding="utf-8")).get("build"))

@@ -1,5 +1,4 @@
 import re
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -7,6 +6,7 @@ from pathlib import Path
 from voltmod.bundled import TEMPLATES_DIR
 from voltmod.database.migrations import apply_altered_columns
 from voltmod.errors import VoltmodError
+from voltmod.toolchain.process import run
 
 TABLE_HEADER_TEMPLATE = TEMPLATES_DIR / "database/table-header.in"
 
@@ -17,21 +17,15 @@ def generate_table_header(root: Path, ddl: str, namespace: str, header_name: str
         source = Path(work) / "schema.sql"
         source.write_text(apply_altered_columns(ddl), encoding="utf-8", newline="\n")
         target = Path(work) / header_name
-        # fmt: off
-        subprocess.run(
-            [
-                sys.executable, str(_find_ddl2cpp(root)),
-                "--path-to-ddl", str(source),
-                "--path-to-header", str(target),
-                "--namespace", namespace,
-                "--naming-style", "camel-case",
-                "--assume-auto-id",
-                "--path-to-custom-template", str(TABLE_HEADER_TEMPLATE),
-            ],
-            check=True,
-            cwd=root,
-        )
-        # fmt: on
+        options: dict[str, str | Path] = {
+            "--path-to-ddl": source,
+            "--path-to-header": target,
+            "--namespace": namespace,
+            "--naming-style": "camel-case",
+            "--path-to-custom-template": TABLE_HEADER_TEMPLATE,
+        }
+        arguments = [part for option in options.items() for part in option]
+        run(sys.executable, _find_ddl2cpp(root), *arguments, "--assume-auto-id", cwd=root)
         return target.read_text(encoding="utf-8")
 
 

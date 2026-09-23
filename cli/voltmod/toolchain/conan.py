@@ -7,7 +7,7 @@ from typing import Any
 
 from voltmod.bundled import BUNDLED_DIR
 from voltmod.errors import VoltmodError
-from voltmod.toolchain.process import WINDOWS, run_tool
+from voltmod.toolchain.process import WINDOWS, run_tool, tool_output
 
 REMOTE = "volty"
 
@@ -15,8 +15,8 @@ REMOTE = "volty"
 SDK_BUILD_EXCLUSIONS = () if WINDOWS else ("--build=!hl2sdk-cs2/*", "--build=!metamod-source/*")
 
 
-def run_conan_json(*args: str) -> Any:
-    return json.loads(run_tool("conan", *args, "--format=json", capture=True).stdout)
+def run_conan_json(*args: str | Path) -> Any:
+    return json.loads(tool_output("conan", *args, "--format=json"))
 
 
 def conan_home() -> Path:

@@ -8,7 +8,7 @@ import yaml
 
 from tools.release.conan_packages import is_published
 from voltmod.errors import VoltmodError
-from voltmod.toolchain.process import run_tool
+from voltmod.toolchain.process import tool_output
 
 
 class SdkPackage(StrEnum):
@@ -72,7 +72,7 @@ def _read_conandata(root: Path, name: str) -> dict:
 
 
 def _branch_tip(url: str, branch: str) -> str:
-    output = run_tool("git", "ls-remote", url, f"refs/heads/{branch}", capture=True).stdout
+    output = tool_output("git", "ls-remote", url, f"refs/heads/{branch}")
     if not output.strip():
         raise VoltmodError(f"{url} has no branch {branch}")
     return output.split()[0]
@@ -80,12 +80,8 @@ def _branch_tip(url: str, branch: str) -> str:
 
 def _commit_day(url: str, commit: str) -> str:
     repository = url.removeprefix("https://github.com/").removesuffix(".git")
-    # fmt: off
-    committed = run_tool(
-        "gh", "api", f"repos/{repository}/commits/{commit}", "--jq", ".commit.committer.date",
-        capture=True,
-    ).stdout
-    # fmt: on
+    commit_path = f"repos/{repository}/commits/{commit}"
+    committed = tool_output("gh", "api", commit_path, "--jq", ".commit.committer.date")
     return committed.split("T")[0]
 
 

@@ -29,15 +29,29 @@ def find_tool(tool: str) -> str:
     return found
 
 
-def run_tool(
-    tool: str,
-    *args: str,
+def run(
+    *command: str | Path,
     capture: bool = False,
     check: bool = True,
     cwd: Path | None = None,
 ) -> subprocess.CompletedProcess[str]:
-    command = [find_tool(tool), *args]
-    return subprocess.run(command, check=check, text=True, capture_output=capture, cwd=cwd)
+    """Run any program; `run_tool` is for the pinned tools."""
+    arguments = [str(part) for part in command]
+    return subprocess.run(arguments, check=check, text=True, capture_output=capture, cwd=cwd)
+
+
+def run_tool(
+    tool: str,
+    *args: str | Path,
+    capture: bool = False,
+    check: bool = True,
+    cwd: Path | None = None,
+) -> subprocess.CompletedProcess[str]:
+    return run(find_tool(tool), *args, capture=capture, check=check, cwd=cwd)
+
+
+def tool_output(tool: str, *args: str | Path) -> str:
+    return run_tool(tool, *args, capture=True).stdout
 
 
 def tool_version(tool: str) -> str:

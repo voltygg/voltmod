@@ -8,21 +8,13 @@ from collections.abc import Iterator
 from pathlib import Path
 
 from voltmod.checks.results import CheckResult, Status
-from voltmod.cs2_install import (
-    CS2_APP,
-    CSGO_DIR,
-    GAMEINFO,
-    HOST_BINARIES,
-    HOST_VDF,
-    METAMOD_BINARIES,
-    game_build,
-    has_metamod_search_path,
-    patch_version,
-    server_executable,
-)
 from voltmod.errors import VoltmodError
 from voltmod.framework.gamedata import parse_gamedata, read_gamedata
+from voltmod.platforms import Platform
 from voltmod.project import Project
+from voltmod.server.cs2_server import GAMEINFO, Cs2Server
+from voltmod.server.install import HOST_VDF, host_binary
+from voltmod.steam import CS2_APP
 from voltmod.toolchain.conan import REMOTE, has_remote, profile_dirs
 from voltmod.toolchain.msvc import msvc_version
 from voltmod.toolchain.process import BUILD_TOOLS, WINDOWS, tool_version
@@ -39,9 +31,9 @@ def run_checks(project: Project, server_path: str) -> Iterator[CheckResult]:
     yield _check_compiler()
     yield from _check_project(project.root)
     if server_path:
-        server = Path(server_path).expanduser()
+        server = Cs2Server(Path(server_path).expanduser())
         yield from _check_server(server)
-        if (server / CSGO_DIR).is_dir():
+        if server.csgo.is_dir():
             yield from _check_game_build(project, server)
     else:
         yield CheckResult("CS2 server check skipped; pass --server-path to include it", Status.WARN)
@@ -100,33 +92,34 @@ def _check_project(root: Path) -> Iterator[CheckResult]:
         yield CheckResult(f"Conan remote check: {error}")
 
 
-def _check_server(server: Path) -> Iterator[CheckResult]:
-    csgo = server / CSGO_DIR
+def _check_server(server: Cs2Server) -> Iterator[CheckResult]:
+    csgo = server.csgo
     if not csgo.is_dir():
         yield CheckResult(f"CS2 server: expected {csgo}")
         return
-    yield _passed(f"CS2 server: {server}")
+    yield _passed(f"CS2 server: {server.root}")
 
-    if server_executable(server) is not None:
+    if server.executable is not None:
         yield _passed("CS2 dedicated-server executable found")
     else:
         yield CheckResult("CS2 dedicated-server executable not found")
 
-    if any((csgo / path).is_file() for path in METAMOD_BINARIES):
+    metamod = (f"addons/metamod/bin/{p.bin_dir}/server{p.library_suffix}" for p in Platform)
+    if any((csgo / path).is_file() for path in metamod):
         yield _passed("Metamod installation found")
     else:
         yield CheckResult(
             "Metamod binary not found; install Metamod before loading plugins", Status.WARN
         )
 
-    if (server / GAMEINFO).is_file() and not has_metamod_search_path(server):
+    if (server.root / GAMEINFO).is_file() and not server.has_metamod_search_path():
         yield CheckResult(
             "gameinfo.gi lost Metamod's search path (a CS2 update rewrites it); "
             "`voltmod serve` restores it",
             Status.WARN,
         )
 
-    installed = any((csgo / path).is_file() for path in HOST_BINARIES.values())
+    installed = any((csgo / host_binary(platform)).is_file() for platform in Platform)
     if installed and (csgo / HOST_VDF).is_file():
         yield _passed("VoltMod host installed")
     else:
@@ -136,9 +129,9 @@ def _check_server(server: Path) -> Iterator[CheckResult]:
         )
 
 
-def _check_game_build(project: Project, server: Path) -> Iterator[CheckResult]:
-    build = game_build(server)
-    yield _check_up_to_date(build, patch_version(server))
+def _check_game_build(project: Project, server: Cs2Server) -> Iterator[CheckResult]:
+    build = server.build
+    yield _check_up_to_date(build, server.patch_version)
     if not project.is_framework:
         return
     gamedata = parse_gamedata(read_gamedata(project.root))

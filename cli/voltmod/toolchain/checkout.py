@@ -11,7 +11,7 @@ from voltmod.toolchain.conan import (
     run_conan_json,
 )
 from voltmod.toolchain.msvc import load_msvc_environment
-from voltmod.toolchain.process import run_tool
+from voltmod.toolchain.process import run_tool, tool_output
 
 
 def build_checkout(project: Project, checkout: Path, preset: str) -> None:
@@ -29,10 +29,10 @@ def relock_framework(project: Project, preset: str) -> str:
             "no editable voltmod checkout; register one with `conan editable add <path>`"
         )
     build_checkout(project, checkout, preset)
-    run_tool("conan", "editable", "remove", str(checkout), check=False)
+    run_tool("conan", "editable", "remove", checkout, check=False)
 
     # The lock pins only the recipe revision, so drop older binaries that could win over this one.
-    reference = run_conan_json("export", str(checkout))["reference"]
+    reference = run_conan_json("export", checkout)["reference"]
     run_tool("conan", "remove", f"{reference}:*", "--confirm", check=False)
     exported = run_conan_json("export-pkg", *_checkout_args(project, checkout, preset))
     package_id = next(
@@ -40,10 +40,10 @@ def relock_framework(project: Project, preset: str) -> str:
         for node in exported["graph"]["nodes"].values()
         if node["ref"].startswith("voltmod/")
     )
-    package = run_tool("conan", "cache", "path", f"{reference}:{package_id}", capture=True)
+    package_folder = tool_output("conan", "cache", "path", f"{reference}:{package_id}").strip()
 
     _pin_framework(project, preset)
-    return package.stdout.strip()
+    return package_folder
 
 
 def check_build_uses_package(project: Project, preset: str, package_folder: str) -> None:
@@ -58,15 +58,11 @@ def check_build_uses_package(project: Project, preset: str, package_folder: str)
     )
 
 
-def _checkout_args(project: Project, checkout: Path, preset: str) -> list[str]:
+def _checkout_args(project: Project, checkout: Path, preset: str) -> list[str | Path]:
     # The consumer's lock: dependency versions are part of the package id the plugins resolve.
     lock = project.lockfile
     lock_args = [f"--lockfile={lock}", "--lockfile-partial"] if lock.is_file() else []
-    return [
-        str(checkout),
-        *profile_args(checkout, preset),
-        *lock_args,
-    ]
+    return [checkout, *profile_args(checkout, preset), *lock_args]
 
 
 def _pin_framework(project: Project, preset: str) -> None:
@@ -79,9 +75,6 @@ def _pin_framework(project: Project, preset: str) -> None:
         run_tool(
             "conan", "lock", "remove", "--requires=voltmod/*", *lock_args, f"--lockfile-out={lock}"
         )
-    # fmt: off
-    run_tool(
-        "conan", "lock", "create", str(project.root), *profile_args(project.root, preset),
-        *lock_args, f"--lockfile-out={lock}", "--no-remote",
-    )
-    # fmt: on
+    profile = profile_args(project.root, preset)
+    lock_out = f"--lockfile-out={lock}"
+    run_tool("conan", "lock", "create", project.root, *profile, *lock_args, lock_out, "--no-remote")

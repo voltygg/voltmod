@@ -4,19 +4,15 @@ from pathlib import Path
 
 import pytest
 
-from voltmod.cs2_install import (
-    CSGO_DIR,
-    HOST_BINARIES,
-    HOST_GAMEDATA,
-    HOST_VDF,
-    plugin_dir,
-)
 from voltmod.errors import VoltmodError
+from voltmod.platforms import Platform
 from voltmod.project import Project, Settings
 from voltmod.server import install
+from voltmod.server.cs2_server import CSGO_DIR
+from voltmod.server.install import HOST_GAMEDATA, HOST_VDF, host_binary, plugin_dir
 
 PRESET = "windows-msvc-release"
-HOST_DLL = HOST_BINARIES["windows"]
+HOST_DLL = host_binary(Platform.WINDOWS)
 DEMO = plugin_dir("demo")
 
 HOST_FILES = (HOST_VDF, HOST_DLL, HOST_GAMEDATA)
