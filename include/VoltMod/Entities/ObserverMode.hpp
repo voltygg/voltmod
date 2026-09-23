@@ -5,7 +5,7 @@
 namespace VoltMod
 {
 
-/** CPlayer_ObserverServices::m_iObserverMode values; Entity.cpp checks them against the SDK's OBS_MODE_*. */
+/** How a dead or spectating player's camera follows; Pawn.cpp checks the values against the SDK. */
 enum class ObserverMode : uint8_t
 {
     None = 0,

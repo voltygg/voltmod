@@ -17,9 +17,7 @@ enum class RoundEndReason : uint32_t
 };
 
 /**
- * @brief Ends the current round through `CCSGameRules::TerminateRound`.
- *
- * The win panel, `round_end` and the next round's start are the engine's own, and this works
+ * @brief `runtime.Rounds`: ends the round with the engine's own win panel and `round_end`, even
  * with `mp_ignore_round_win_conditions` on. Team scores are not changed.
  *
  * @code
@@ -31,7 +29,7 @@ enum class RoundEndReason : uint32_t
 class Rounds
 {
 public:
-    /** Both must outlive this service; the Runtime declares them above. */
+    /** Both must outlive this service. */
     Rounds(EntitySystem& entities, const Bindings& bindings) : _entities(entities), _bindings(bindings) {}
     Rounds(const Rounds&) = delete;
     Rounds& operator=(const Rounds&) = delete;

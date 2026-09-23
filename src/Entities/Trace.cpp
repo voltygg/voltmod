@@ -44,7 +44,7 @@ static TraceHit ToHit(const CGameTrace& trace)
                                 trace.m_pEnt->GetEntityIndex().Get() == 0};
 }
 
-// The interface carries no state, so its own class table stands in for the object.
+// CNavPhysicsInterface carries no state, so its class table stands in for the object, as in HookVirtual.
 static EngineNavPhysics* NavPhysics(void*& table)
 {
     return reinterpret_cast<EngineNavPhysics*>(&table);

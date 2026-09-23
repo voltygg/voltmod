@@ -3,15 +3,8 @@
 namespace VoltMod
 {
 
-/**
- * Engine hitgroup ids, as carried by the hitbox the damage trace struck
- * (CTakeDamageInfo::m_pTrace->m_pHitBox->m_nGroupId). Damage with no trace - fire, the bomb, a
- * fall - has no hitgroup at all and reads @ref Invalid; CTakeDamageInfo::m_iHitGroupId is not the
- * source, it reads -1 even for ordinary bullet damage.
- *
- * The dependency-free header lets damage rules and statistics share these values without pulling
- * in hooks or link-time dependencies.
- */
+/** The body part a bullet hit. Damage with no bullet, such as fire, the bomb or a fall, is
+ *  @ref Invalid. */
 enum class HitGroup : int
 {
     Invalid = -1,

@@ -7,12 +7,8 @@ namespace VoltMod
 {
 
 /**
- * @brief Holds one pawn still and gives back only that pawn's move type.
- *
- * The subtle part is who is released: a player who dies and respawns while held must not inherit
- * the dead body's move type, so the release is keyed on the pawn that was actually frozen rather
- * than on whoever occupies the slot now. Anything that pins a player while a screen is up - the
- * built-in menu, a plugin's own - keeps one of these per player.
+ * @brief Holds one pawn still and gives its move type back to that pawn only, so a player who
+ * respawns while held never inherits the dead body's. Keep one per player.
  */
 class MovementFreeze
 {
@@ -23,8 +19,8 @@ public:
     /** Give @p pawn its move type back if it is the one being held, then forget it. */
     void Release(const Pawn& pawn);
 
-    /** Re-apply across a respawn: let go of a pawn that died or was replaced without writing to
-     *  it, then hold @p pawn. */
+    /** Carry the hold across a respawn: forget a replaced pawn without writing to it, then hold
+     *  @p pawn. */
     void Sync(const Pawn& pawn);
 
     /** Whether a pawn is being held. */

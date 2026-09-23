@@ -13,31 +13,17 @@ namespace VoltMod
 {
 
 /**
- * @brief One connected player: the live identity behind a slot.
+ * @brief One connected player, owned by @ref PlayerManager for the length of the connection.
  *
- * A `Player` is owned by @ref PlayerManager for the length of one connection and keeps its
- * address while the player is connected, so a `Player&` handed to a callback stays valid for
- * that call. It dies on disconnect, on slot reuse, and on `Clear()` - store a @ref PlayerRef
- * across anything that can outlive the connection (a menu step, a queued database completion,
- * a scheduled task) and resolve it again with `runtime.Players.Get(ref)`.
- *
- * Identity only. Admin flags, punishments and statistics belong in plugin-side managers keyed
- * by SteamID, not on this type.
- *
- * @ref Name, @ref Controller and @ref Pawn read the engine on every call: the name changes
- * mid-connection and the pawn is replaced on every spawn.
+ * A `Player&` stays valid while the player is connected. Store a @ref PlayerRef across anything
+ * that can outlive that, and resolve it with `runtime.Players.Get(ref)`. Identity only: keep
+ * plugin state in your own managers, keyed by SteamID.
  */
 class Player
 {
 public:
-    /**
-     * @internal @ref PlayerManager builds these; plugins never construct one.
-     *
-     * @p connectName is what the engine reported at ClientConnected, which is only a fallback:
-     * the name is not meaningful until ClientFullyConnect, so @ref Name prefers the controller.
-     * @p entities is null only in the framework's SDK-free unit tests, where there is no engine;
-     * the engine-facing accessors are then inert.
-     */
+    /** @internal Built by @ref PlayerManager. @p connectName is the fallback for @ref Name;
+     *  @p entities is null only in the SDK-free unit tests. */
     Player(int slot, int64_t steamId, std::string connectName, std::string ip, EntitySystem* entities)
         : _slot(slot),
           _steamId(steamId),

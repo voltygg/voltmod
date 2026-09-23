@@ -37,13 +37,7 @@ struct TraceHit
 };
 
 /**
- * @brief Line and box traces through the nav mesh's window onto the physics world.
- *
- * CNavPhysicsInterface holds no state of its own, so the call goes through its class vtable with
- * the table itself standing in for the object - the same stand-in @ref HookVirtual uses. Nothing
- * to install and nothing to re-take per map; a trace works as soon as the slot binds.
- *
- * Game-thread only.
+ * @brief `runtime.Trace`: line and box traces against the physics world. Game-thread only.
  *
  * @code
  * const auto clear = runtime.Trace.Clear(eye, target, {.Ignore1 = self, .Ignore2 = other});
@@ -54,7 +48,7 @@ struct TraceHit
 class Trace
 {
 public:
-    /** @p bindings must outlive this service; the Runtime declares it above. */
+    /** @p bindings must outlive this service. */
     explicit Trace(const Bindings& bindings) : _bindings(bindings) {}
     Trace(const Trace&) = delete;
     Trace& operator=(const Trace&) = delete;
