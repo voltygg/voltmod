@@ -21,17 +21,15 @@ class Cs2Server:
     root: Path
 
     @classmethod
-    def open(cls, path: str) -> Cs2Server:
+    def open(cls, path: Path | None) -> Cs2Server:
         """The server at `path`, which must hold game/csgo."""
-        if not path:
-            raise VoltmodError(
-                "no CS2 server path; set CS2_SERVER_PATH in .env or pass --server-path"
-            )
-        root = Path(path).expanduser()
+        if path is None:
+            raise VoltmodError("no CS2 server path; set CS2_SERVER_PATH in .env or pass --server")
+        root = path.expanduser()
         if not (root / CSGO_DIR).is_dir():
             raise VoltmodError(
                 f"CS2 server not found at {root / CSGO_DIR}\n"
-                "Set CS2_SERVER_PATH in .env or pass --server-path"
+                "Set CS2_SERVER_PATH in .env or pass --server"
             )
         return cls(root)
 

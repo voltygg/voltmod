@@ -6,7 +6,7 @@ from pathlib import Path
 
 from voltmod.errors import VoltmodError
 from voltmod.platforms import Platform
-from voltmod.project import Project
+from voltmod.project import Plugin, Project
 from voltmod.server.cs2_server import CSGO_DIR, Cs2Server
 from voltmod.toolchain.conan import editable_framework
 from voltmod.toolchain.process import run_tool
@@ -32,21 +32,21 @@ def plugin_dir(name: str) -> str:
     return f"{PLUGINS_DIR}/{name}"
 
 
-def install_plugins(project: Project, server_path: str, plugin: str, preset: str) -> None:
-    """Install the host and `plugin`, or every plugin when it is empty, into that server."""
-    server = Cs2Server.open(server_path)
+def install_plugins(project: Project, server: Cs2Server, names: list[str], preset: str) -> None:
+    """Install the host and the named plugins, or every plugin when none is named."""
     csgo = server.csgo
-    names = project.plugin_names(plugin)
+    plugins = project.installable_plugins(names)
 
     print("=== VoltMod Install ===\n")
     print(f"Server path:   {server.root}")
     print(f"Build preset:  {preset}\n")
 
     _install_host(project, csgo, preset)
-    for name in names:
-        _install_plugin(project, name, csgo, preset, named=bool(plugin))
+    for plugin in plugins:
+        _install_plugin(project, plugin, csgo, preset, named=bool(names))
 
-    print(f"\n=== Install complete ===\nInstalled: {' '.join(names)}")
+    installed = " ".join(plugin.name for plugin in plugins)
+    print(f"\n=== Install complete ===\nInstalled: {installed}")
     print("Verify on the server console with: volt list")
 
 
@@ -65,35 +65,36 @@ def _install_host(project: Project, csgo: Path, preset: str) -> None:
     looked_in = "\n  ".join(map(str, searched))
     raise VoltmodError(
         f"no voltmod host was staged; looked in:\n  {looked_in}\n"
-        f"Build the framework first: voltmod build {preset}"
+        f"Build the framework first: voltmod build -p {preset}"
     )
 
 
-def _install_plugin(project: Project, name: str, csgo: Path, preset: str, *, named: bool) -> None:
+def _install_plugin(
+    project: Project, plugin: Plugin, csgo: Path, preset: str, *, named: bool
+) -> None:
     """Stage one plugin with `cmake --install`, then merge it into the server tree.
 
     A plugin asked for by name must install; a bare install skips what is not built.
     """
-    print(f"--- {name} ---")
-    staging = _stage_component(project.build_dir(preset), name)
+    print(f"--- {plugin.name} ---")
+    staging = _stage_component(project.build_dir(preset), plugin.name)
     if staging is None:
         if named:
-            raise VoltmodError(f"{name} is not built; run `voltmod build {preset}` first")
+            raise VoltmodError(f"{plugin.name} is not built; run `voltmod build -p {preset}` first")
         print(f"  (skipped - not built for {preset})")
         return
 
-    _merge_addons(staging, csgo, name)
+    _merge_addons(staging, csgo, plugin.name)
     _print_staged(staging)
-    _seed_settings(project, name, csgo)
+    _seed_settings(plugin, csgo)
 
 
-def _seed_settings(project: Project, name: str, csgo: Path) -> None:
+def _seed_settings(plugin: Plugin, csgo: Path) -> None:
     """Copy the shipped settings once, so an operator's edits survive every later install."""
-    project_plugin_dir = project.plugin_dir(name) or project.root / "plugins" / name
-    source = project_plugin_dir / "configs/settings.jsonc"
+    source = plugin.dir / "configs/settings.jsonc"
     if not source.is_file():
         return
-    target = csgo / plugin_dir(name) / "configs/settings.jsonc"
+    target = csgo / plugin_dir(plugin.name) / "configs/settings.jsonc"
     if target.is_file():
         print("  -> configs/settings.jsonc (skipped - already exists)")
         return

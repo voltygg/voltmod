@@ -1,5 +1,3 @@
-"""The doctor, lint and format commands."""
-
 import sys
 from pathlib import Path
 from typing import Annotated
@@ -9,30 +7,35 @@ import typer
 from voltmod.checks.conventions import check_plugins
 from voltmod.checks.doctor import run_checks
 from voltmod.checks.results import exit_on_failure
-from voltmod.project import Project
+from voltmod.framework.layering import check_framework
+from voltmod.options import current_project
 from voltmod.toolchain.clang_format import find_cpp_sources, format_cpp_files
 
 
 def doctor_command(
-    server_path: Annotated[
-        str, typer.Option("--server-path", help="Optional CS2 server root to check")
-    ] = "",
-) -> None:
-    """Check the local toolchain, the project, and an optional server."""
-    project = Project.load()
-    print(f"VoltMod doctor\nProject: {project.root.resolve()}\nPython: {sys.version.split()[0]}")
-    exit_on_failure(run_checks(project, server_path))
-
-
-def lint_command(
-    root: Annotated[
-        Path | None,
-        typer.Argument(help="Repo whose plugins/ to check (default: the working directory)"),
+    server: Annotated[
+        Path | None, typer.Option("--server", file_okay=False, help="A CS2 server root to check")
     ] = None,
 ) -> None:
-    """Check plugin sources for the VoltMod source conventions."""
-    exit_on_failure(check_plugins(root or Project.load().root))
-    print("Plugin sources hold.")
+    """Check the local toolchain, the project, and an optional server."""
+    project = current_project()
+    print(f"VoltMod doctor\nProject: {project.root.resolve()}\nPython: {sys.version.split()[0]}")
+    exit_on_failure(run_checks(project, server))
+
+
+def lint_command() -> None:
+    """Check C++ sources: plugin conventions, or the framework's layering in its checkout."""
+    project = current_project()
+    if not project.is_framework:
+        exit_on_failure(check_plugins(project.root))
+        print("Plugin sources hold.")
+        return
+
+    dependencies, results = check_framework(project.root)
+    for module, used in dependencies.items():
+        print(f"{module:10} -> {' '.join(sorted(used)) or '(none)'}")
+    exit_on_failure(results)
+    print("\nLayering holds.")
 
 
 def format_command(
@@ -42,7 +45,7 @@ def format_command(
     ] = None,
 ) -> None:
     """Rewrite C++ sources in the pinned clang-format style."""
-    project = Project.load()
+    project = current_project()
     files = find_cpp_sources(project.root, dirs or project.cpp_source_dirs)
     if not files:
         print("No C++ sources found.")

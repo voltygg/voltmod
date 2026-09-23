@@ -26,17 +26,17 @@ UP_TO_DATE_CHECK = (
 )
 
 
-def run_checks(project: Project, server_path: str) -> Iterator[CheckResult]:
+def run_checks(project: Project, server_path: Path | None) -> Iterator[CheckResult]:
     yield from _check_tools()
     yield _check_compiler()
     yield from _check_project(project.root)
     if server_path:
-        server = Cs2Server(Path(server_path).expanduser())
+        server = Cs2Server(server_path.expanduser())
         yield from _check_server(server)
         if server.csgo.is_dir():
             yield from _check_game_build(project, server)
     else:
-        yield CheckResult("CS2 server check skipped; pass --server-path to include it", Status.WARN)
+        yield CheckResult("CS2 server check skipped; pass --server to include it", Status.WARN)
 
 
 def _passed(message: str) -> CheckResult:

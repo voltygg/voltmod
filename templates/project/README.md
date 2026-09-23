@@ -22,12 +22,12 @@ and remote, resolves dependencies, builds and runs the tests, so it is also the 
 | Command | Does |
 | --- | --- |
 | `uv run poe build` | Build the release preset for this OS |
-| `uv run poe build windows-msvc-debug` | Build another preset |
+| `uv run poe build -p windows-msvc-debug` | Build another preset |
 | `uv run poe build-linux` | Build the Linux Steam Runtime release |
 | `uv run poe test` | Build, then run CTest |
-| `uv run poe build --install <name> --start` | Build, install into the local server, launch it |
+| `uv run poe run [name]` | Build, install into the local server, launch it |
 | `uv run poe install [name]` | Install already-built plugins into the local server |
-| `uv run poe start-server` | Launch the local CS2 dedicated server |
+| `uv run poe serve` | Launch the local CS2 dedicated server |
 | `uv run poe new-plugin <name>` | Scaffold and register another plugin |
 | `uv run poe lint` | Lint the tooling and check the plugin source conventions |
 | `uv run poe format` | Apply the pinned C++ formatting |

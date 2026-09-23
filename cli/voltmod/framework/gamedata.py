@@ -102,12 +102,12 @@ def module_path(game_dir: Path, platform: Platform, module: str) -> Path:
 
 
 def check_gamedata(
-    root: Path, game_dir: str, platform: Platform | None
+    root: Path, game_dir: Path | None, platform: Platform | None
 ) -> tuple[str, list[PatternResult]]:
     """The gamedata text in `root`, and every pattern checked against the game at `game_dir`."""
-    if not game_dir:
+    if game_dir is None:
         raise VoltmodError("no game directory; set CS2_SERVER_PATH in .env or pass --game-dir")
-    game = Path(game_dir).expanduser()
+    game = game_dir.expanduser()
     if not game.is_dir():
         raise VoltmodError(f"no game directory at {game}")
 

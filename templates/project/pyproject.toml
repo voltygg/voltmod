@@ -16,13 +16,14 @@ package = false
 
 [tool.poe.tasks]
 build = "voltmod build"
-build-linux = "voltmod build linux-steamrt-release"
+build-linux = "voltmod build -p linux-steamrt-release"
 test = "voltmod test"
 install = "voltmod install"
-start-server = "voltmod serve"
+serve = "voltmod serve"
+run = "voltmod run"
 bootstrap = "voltmod bootstrap"
 doctor = "voltmod doctor"
-new-plugin = "voltmod new-plugin"
+new-plugin = "voltmod new plugin"
 format = "voltmod format"
 
 [tool.poe.tasks.lint]

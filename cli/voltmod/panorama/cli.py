@@ -1,47 +1,46 @@
-"""The `voltmod panorama` commands: render, compile and check screens."""
-
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
 from voltmod.checks.results import exit_on_failure
+from voltmod.options import current_project
 from voltmod.panorama.check import check_screens
 from voltmod.panorama.compiler import compile_and_install
 from voltmod.panorama.render import render_screens
 from voltmod.panorama.sources import screen_owners, screen_sources
-from voltmod.project import Project
 
-Owners = Annotated[
+Plugins = Annotated[
     list[str] | None,
     typer.Argument(
-        metavar="[OWNER]...",
-        help="Whose screens: a plugin name. Default: every plugin that ships some.",
+        metavar="[PLUGIN]...", help="Default: every plugin that ships screens", show_default=False
     ),
 ]
 
 
 def render_command(
-    owners: Owners = None,
+    plugins: Plugins = None,
     out: Annotated[
         Path | None,
         typer.Option("--out", help="Render into this directory instead of build/panorama"),
     ] = None,
 ) -> None:
     """Render panorama/screens/ into the build tree."""
-    written = render_screens(Project.load().root, owners, out)
+    written = render_screens(current_project().root, plugins, out)
     print(f"Rendered {len(written)} file(s)")
 
 
 def compile_command(
-    owners: Owners = None,
-    client_path: Annotated[
-        str,
+    plugins: Plugins = None,
+    client: Annotated[
+        Path | None,
         typer.Option(
-            "--client-path",
-            help="CS2 *client* root, not the server (default: CS2_CLIENT_PATH, else via Steam)",
+            "--client",
+            envvar="CS2_CLIENT_PATH",
+            file_okay=False,
+            help="CS2 *client* root, not the server (default: found through Steam)",
         ),
-    ] = "",
+    ] = None,
     addon: Annotated[
         str,
         typer.Option(
@@ -56,16 +55,15 @@ def compile_command(
     ] = True,
 ) -> None:
     """Check, render, compile with the Workshop Tools, and install into your client."""
-    project = Project.load()
-    exit_on_failure(check_screens(project.root, owners))
-    render_screens(project.root, owners)
-    client_path = client_path or project.settings.client_path
-    compile_and_install(project.root, owners, client_path, addon, deploy)
+    root = current_project().root
+    exit_on_failure(check_screens(root, plugins))
+    render_screens(root, plugins)
+    compile_and_install(root, plugins, client, addon, deploy)
 
 
-def check_command(owners: Owners = None) -> None:
+def check_command(plugins: Plugins = None) -> None:
     """Validate rendered screens against the rules the CS2 client enforces silently."""
-    root = Project.load().root
-    exit_on_failure(check_screens(root, owners))
-    count = sum(len(screen_sources(owner)) for owner in screen_owners(root, owners))
+    root = current_project().root
+    exit_on_failure(check_screens(root, plugins))
+    count = sum(len(screen_sources(owner)) for owner in screen_owners(root, plugins))
     print(f"Checked {count} screen(s)")

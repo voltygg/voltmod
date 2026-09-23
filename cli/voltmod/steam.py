@@ -21,10 +21,10 @@ def is_client(root: Path) -> bool:
     return (root / GAMEINFO).is_file()
 
 
-def find_client(client_path: str) -> Path:
+def find_client(client_path: Path | None) -> Path:
     """The CS2 client at `client_path`, or the first one in any Steam library."""
     if client_path:
-        root = Path(client_path).expanduser()
+        root = client_path.expanduser()
         if not is_client(root):
             raise VoltmodError(f"no CS2 client at {root}\nExpected {root / GAMEINFO}")
         return root
@@ -35,7 +35,7 @@ def find_client(client_path: str) -> Path:
             if is_client(client):
                 return client
 
-    raise VoltmodError("no CS2 client found; set CS2_CLIENT_PATH in .env or pass --client-path")
+    raise VoltmodError("no CS2 client found; set CS2_CLIENT_PATH in .env or pass --client")
 
 
 def _steam_libraries(steam: Path) -> list[Path]:

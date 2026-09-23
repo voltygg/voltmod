@@ -1,30 +1,14 @@
-"""The build, test and bootstrap commands."""
-
 from typing import Annotated
 
 import typer
 
-from voltmod.options import PresetArgument, ServerPath
-from voltmod.project import Project
-from voltmod.server.cs2_server import Cs2Server
-from voltmod.server.install import install_plugins
-from voltmod.server.launch import run_server
+from voltmod.options import Preset, current_project
+from voltmod.project import default_preset
 from voltmod.toolchain.build import bootstrap, build, run_tests
 
 
 def build_command(
-    preset: PresetArgument = None,
-    install: Annotated[
-        str, typer.Option("--install", help="Install this plugin into the local CS2 server")
-    ] = "",
-    install_all: Annotated[
-        bool,
-        typer.Option("--install-all", help="Install every built plugin into the local CS2 server"),
-    ] = False,
-    start: Annotated[
-        bool, typer.Option("--start", help="Launch the local CS2 server afterwards")
-    ] = False,
-    server_path: ServerPath = "",
+    preset: Preset = default_preset(),
     option: Annotated[
         list[str] | None,
         typer.Option(
@@ -45,38 +29,26 @@ def build_command(
     ] = False,
 ) -> None:
     """Run Conan install and the CMake build for one preset."""
-    project = Project.load()
-    preset = project.resolve_preset(preset)
-    server_path = project.server_path(server_path)
-
-    installing = bool(install) or install_all
-    # Fail on a bad plugin name or server path before spending a whole build on it.
-    if install:
-        project.plugin_names(install)
-    if installing or start:
-        Cs2Server.open(server_path)
-
     conan_options = [arg for value in option or [] for arg in ("-o", value)]
-    build(project, preset, conan_options=conan_options, use_lockfile=not no_lockfile, relock=relock)
-
-    # An empty name installs every plugin.
-    if installing:
-        install_plugins(project, server_path, install, preset)
-    if start:
-        run_server(project.settings.with_options(server_path=server_path))
+    build(
+        current_project(),
+        preset,
+        conan_options=conan_options,
+        use_lockfile=not no_lockfile,
+        relock=relock,
+    )
 
 
 def test_command(
-    preset: PresetArgument = None,
+    preset: Preset = default_preset(),
     name_filter: Annotated[
         str, typer.Option("--filter", "-R", metavar="REGEX", help="Only run matching test cases")
     ] = "",
 ) -> None:
     """Bring the build up to date, then run its tests."""
-    project = Project.load()
-    run_tests(project, project.resolve_preset(preset), name_filter)
+    run_tests(current_project(), preset, name_filter)
 
 
-def bootstrap_command() -> None:
+def bootstrap_command(preset: Preset = default_preset()) -> None:
     """Install the Conan profiles and remote, then build."""
-    bootstrap(Project.load())
+    bootstrap(current_project(), preset)

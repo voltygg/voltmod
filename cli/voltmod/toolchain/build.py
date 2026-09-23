@@ -88,14 +88,14 @@ def build(
 
 def run_tests(project: Project, preset: str, name_filter: str = "") -> None:
     if not project.build_dir(preset).is_dir():
-        raise VoltmodError(f"no build at build/{preset}; run `voltmod build {preset}` first")
+        raise VoltmodError(f"no build at build/{preset}; run `voltmod build -p {preset}` first")
     load_msvc_environment()
     # Rebuild first so stale test binaries never run.
     run_tool("cmake", "--build", "--preset", preset)
     run_tool("ctest", "--preset", preset, *(["-R", name_filter] if name_filter else []))
 
 
-def bootstrap(project: Project) -> None:
+def bootstrap(project: Project, preset: str) -> None:
     print("==> [1/2] Installing Conan profiles and remotes")
     local_config = project.root / "conan"
     if (local_config / "profiles").is_dir():
@@ -105,7 +105,7 @@ def bootstrap(project: Project) -> None:
     run_tool("conan", "config", "install", *source)
 
     print("==> [2/2] Building with Conan + CMake")
-    build(project, project.resolve_preset())
+    build(project, preset)
     print("\nBootstrap complete: build/<preset>/plugins/")
 
 

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from voltmod.errors import VoltmodError
-from voltmod.project import PLUGIN_DIRS
+from voltmod.project import Project
 
 BUILD_DIR = "build/panorama"
 SCREENS_DIR = "screens"
@@ -24,11 +24,9 @@ class ScreenOwner:
 def screen_owners(root: Path, names: list[str] | None = None) -> list[ScreenOwner]:
     """The named plugins that ship a panorama/ tree, or all of them when none is named."""
     found = {
-        plugin.name: ScreenOwner(plugin.name, plugin / "panorama")
-        for parent in PLUGIN_DIRS
-        if (root / parent).is_dir()
-        for plugin in (root / parent).iterdir()
-        if (plugin / "panorama").is_dir()
+        plugin.name: ScreenOwner(plugin.name, plugin.dir / "panorama")
+        for plugin in Project(root).plugins(include_tools=True)
+        if (plugin.dir / "panorama").is_dir()
     }
     known = sorted(found)
     if not names:

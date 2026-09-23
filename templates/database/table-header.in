@@ -1,7 +1,7 @@
 #pragma once
 
 // clang-format off
-// Generated from the plugin's migrations by `voltmod database tables`. Do not edit.
+// Generated from the plugin's migrations by `voltmod database header`. Do not edit.
 
 #include <VoltMod/Database/Table.hpp>
 #include <optional>

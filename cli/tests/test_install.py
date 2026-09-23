@@ -6,9 +6,9 @@ import pytest
 
 from voltmod.errors import VoltmodError
 from voltmod.platforms import Platform
-from voltmod.project import Project, Settings
+from voltmod.project import Project
 from voltmod.server import install
-from voltmod.server.cs2_server import CSGO_DIR
+from voltmod.server.cs2_server import CSGO_DIR, Cs2Server
 from voltmod.server.install import HOST_GAMEDATA, HOST_VDF, host_binary, plugin_dir
 
 PRESET = "windows-msvc-release"
@@ -38,18 +38,7 @@ def project(tmp_path: Path) -> Project:
     configs.mkdir(parents=True)
     (configs / "settings.jsonc").write_text("{ shipped: true }", encoding="utf-8")
     (tmp_path / "repo/build" / PRESET).mkdir(parents=True)
-    settings = Settings(
-        server_path="",
-        client_path="",
-        steamcmd_path="",
-        build_preset=PRESET,
-        map_name="de_dust2",
-        port=27015,
-        max_players=16,
-        gslt_token="",
-        rcon_password="",
-    )
-    return Project(tmp_path / "repo", settings)
+    return Project(tmp_path / "repo")
 
 
 Staged = dict[tuple[Path, str], tuple[str, ...]]
@@ -77,12 +66,12 @@ def test_seeded_settings_survive_a_reinstall(
     build = project.build_dir(PRESET)
     stage_components(monkeypatch, {(build, "host"): HOST_FILES, (build, "demo"): PLUGIN_FILES})
 
-    install.install_plugins(project, str(cs2_server), "demo", PRESET)
+    install.install_plugins(project, Cs2Server(cs2_server), ["demo"], PRESET)
     settings = cs2_server / CSGO_DIR / DEMO / "configs/settings.jsonc"
     assert settings.read_text(encoding="utf-8") == "{ shipped: true }"
 
     settings.write_text("{ edited: true }", encoding="utf-8")
-    install.install_plugins(project, str(cs2_server), "demo", PRESET)
+    install.install_plugins(project, Cs2Server(cs2_server), ["demo"], PRESET)
     assert settings.read_text(encoding="utf-8") == "{ edited: true }"
 
 
@@ -98,7 +87,7 @@ def test_the_host_comes_from_an_editable_framework_checkout(
         {(framework_build, "host"): HOST_FILES, (project.build_dir(PRESET), "demo"): PLUGIN_FILES},
     )
 
-    install.install_plugins(project, str(cs2_server), "demo", PRESET)
+    install.install_plugins(project, Cs2Server(cs2_server), ["demo"], PRESET)
 
     assert (cs2_server / CSGO_DIR / HOST_DLL).is_file()
 
@@ -109,4 +98,4 @@ def test_a_missing_host_is_an_error(
     stage_components(monkeypatch, {(project.build_dir(PRESET), "demo"): PLUGIN_FILES})
 
     with pytest.raises(VoltmodError, match="no voltmod host"):
-        install.install_plugins(project, str(cs2_server), "demo", PRESET)
+        install.install_plugins(project, Cs2Server(cs2_server), ["demo"], PRESET)

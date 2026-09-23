@@ -1,10 +1,8 @@
-"""The init and new-plugin commands."""
-
 from typing import Annotated
 
 import typer
 
-from voltmod.project import Project
+from voltmod.options import current_project
 from voltmod.scaffold.scaffold import create_plugin, create_project, is_kebab_case
 
 
@@ -14,7 +12,7 @@ def _kebab_case(value: str | None) -> str | None:
     return value
 
 
-def init_command(
+def project_command(
     name: Annotated[
         str | None,
         typer.Option(
@@ -29,15 +27,15 @@ def init_command(
     ] = "my-plugin",
 ) -> None:
     """Stamp a whole consumer project into the working directory."""
-    project = Project.load()
-    project_name = _kebab_case(name or project.root.name) or project.root.name
-    create_project(project.root, project_name, plugin)
+    root = current_project().root
+    project_name = _kebab_case(name or root.name) or root.name
+    create_project(root, project_name, plugin)
 
 
-def new_plugin_command(
+def plugin_command(
     name: Annotated[
         str, typer.Argument(callback=_kebab_case, help="Kebab-case name, e.g. fun-votes")
     ],
 ) -> None:
     """Stamp a plugin skeleton into plugins/<name>/."""
-    create_plugin(Project.load().root, name)
+    create_plugin(current_project().root, name)

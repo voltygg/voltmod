@@ -7,7 +7,7 @@ What the plugin does for players and server operators, in a sentence or two.
 Build and install it into `CS2_SERVER_PATH`:
 
 ```bash
-uv run poe build --install $name --start
+uv run poe run $name
 ```
 
 Run `volt list` in the server console. `$name` should be in the loaded plugin list.

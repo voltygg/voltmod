@@ -22,7 +22,7 @@ PANORAMA_DIRS = ("layout/custom_game", "styles/custom_game", "images")
 
 
 def compile_and_install(
-    root: Path, names: list[str] | None, client_path: str, addon: str, deploy: bool
+    root: Path, names: list[str] | None, client_path: Path | None, addon: str, deploy: bool
 ) -> None:
     """Compile the named owners' rendered screens, and install them into your client."""
     if not WINDOWS:
