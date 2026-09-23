@@ -28,7 +28,8 @@ def project_command(
 ) -> None:
     """Stamp a whole consumer project into the working directory."""
     root = current_project().root
-    project_name = _kebab_case(name or root.name) or root.name
+    project_name = name or root.name
+    _kebab_case(project_name)
     create_project(root, project_name, plugin)
 
 

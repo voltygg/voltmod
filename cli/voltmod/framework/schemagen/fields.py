@@ -65,31 +65,25 @@ def resolve_field(entry: str, dumped: DumpedField, dump: Dump) -> SchemaField:
     if type_override:
         return make(FieldKind.VALUE, cpp_type=type_override)
 
-    # A type the generator does not know is skipped rather than guessed at.
-    unsupported = make(FieldKind.SKIPPED, skip_reason=type_name)
     inner = type_info.get("inner", "")
     match type_info["category"]:
         case "SCHEMA_TYPE_BUILTIN":
             if type_name in BUILTIN_TYPES:
                 return make(FieldKind.VALUE, cpp_type=BUILTIN_TYPES[type_name])
-            return unsupported
         case "SCHEMA_TYPE_DECLARED_ENUM":
             return make(FieldKind.ENUM, cpp_type=type_name)
         case "SCHEMA_TYPE_DECLARED_CLASS":
             if type_name in dump["classes"]:
                 return make(FieldKind.VIEW, view_class=type_name, embedded=True)
-            return unsupported
         case "SCHEMA_TYPE_POINTER":
             if inner in dump["classes"]:
                 return make(FieldKind.VIEW, view_class=inner)
-            return unsupported
         case "SCHEMA_TYPE_FIXED_ARRAY":
             length = int(type_info.get("extent", 0))
             if inner == "char":
                 return make(FieldKind.CHAR_ARRAY, length=length)
             if inner in BUILTIN_TYPES and length > 0:
                 return make(FieldKind.ARRAY, cpp_type=BUILTIN_TYPES[inner], length=length)
-            return unsupported
         case "SCHEMA_TYPE_ATOMIC":
             atomic = type_info.get("atomic")
             # A CUtlVector hands back its address, so no SDK container reaches a generated header.
@@ -99,8 +93,9 @@ def resolve_field(entry: str, dumped: DumpedField, dump: Dump) -> SchemaField:
                 return make(FieldKind.HANDLE, cpp_type="uint32_t")
             if type_name in ATOMIC_TYPES:
                 return make(FieldKind.VALUE, cpp_type=ATOMIC_TYPES[type_name])
-            return unsupported
         case "SCHEMA_TYPE_BITFIELD":
-            return unsupported
+            pass
         case category:
             return make(FieldKind.SKIPPED, skip_reason=f"{category} {type_name}")
+    # A type the generator does not know is skipped rather than guessed at.
+    return make(FieldKind.SKIPPED, skip_reason=type_name)

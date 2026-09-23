@@ -11,11 +11,11 @@ from voltmod.toolchain.process import run
 
 @dataclass(frozen=True, slots=True)
 class LaunchOptions:
-    map_name: str = "de_dust2"
-    port: int = 27015
-    max_players: int = 16
-    gslt_token: str = ""
-    rcon_password: str = ""
+    map_name: str
+    port: int
+    max_players: int
+    gslt_token: str
+    rcon_password: str
 
 
 def update_game(steamcmd: Path | None, server: Path) -> None:

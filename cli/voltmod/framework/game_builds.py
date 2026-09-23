@@ -1,6 +1,5 @@
 import hashlib
 import io
-import json
 import os
 import platform as host
 import re
@@ -12,9 +11,10 @@ from pathlib import Path
 
 from voltmod import console
 from voltmod.errors import VoltmodError
+from voltmod.files import read_json
 from voltmod.framework.gamedata import game_libraries
 from voltmod.platforms import Platform
-from voltmod.server.cs2_server import CSGO_DIR, STEAM_INF, Cs2Server
+from voltmod.server.cs2_server import STEAM_INF, Cs2Server
 from voltmod.server.install import HOST_GAMEDATA
 from voltmod.steam import CS2_APP
 from voltmod.toolchain.process import WINDOWS, run
@@ -85,10 +85,10 @@ def archive_resolved(server: Path, archive: Path, platform: Platform) -> str | N
 
     On update day the server still holds the old build's record: the addresses to diff against.
     """
-    record = resolved_record(server / CSGO_DIR / Path(HOST_GAMEDATA).parent, platform)
+    record = resolved_record(Cs2Server(server).game_dir / Path(HOST_GAMEDATA).parent, platform)
     if not record.is_file():
         return None
-    build = str(json.loads(record.read_text(encoding="utf-8")).get("build"))
+    build = str(read_json(record, "resolved record").get("build"))
     target = archive / build / platform
     if not target.is_dir():
         return None

@@ -1,13 +1,13 @@
 import os
 import shutil
 import subprocess
-import sys
 import sysconfig
 from pathlib import Path
 
 from voltmod.errors import VoltmodError
+from voltmod.platforms import Platform
 
-WINDOWS = sys.platform == "win32"
+WINDOWS = Platform.host() is Platform.WINDOWS
 
 # cmake, ctest, conan, ninja and clang-format are voltmod dependencies, installed here.
 TOOLS_DIR = Path(sysconfig.get_path("scripts"))
