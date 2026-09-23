@@ -14,13 +14,13 @@ Log::Handler MakeConsoleHandler(std::string prefix)
         switch (level)
         {
         case LogLevel::Info:
-            ConColorMsg(Color(0, 255, 0, 255), "[%s] ", prefix.c_str());
+            ConColorMsg(::Color(0, 255, 0, 255), "[%s] ", prefix.c_str());
             break;
         case LogLevel::Warn:
-            ConColorMsg(Color(255, 255, 0, 255), "[%s] WARN: ", prefix.c_str());
+            ConColorMsg(::Color(255, 255, 0, 255), "[%s] WARN: ", prefix.c_str());
             break;
         case LogLevel::Error:
-            ConColorMsg(Color(255, 0, 0, 255), "[%s] ERROR: ", prefix.c_str());
+            ConColorMsg(::Color(255, 0, 0, 255), "[%s] ERROR: ", prefix.c_str());
             break;
         }
         // string_view is not guaranteed null-terminated, so bound the format explicitly.

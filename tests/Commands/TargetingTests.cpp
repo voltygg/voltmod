@@ -9,6 +9,7 @@ using VoltMod::TargetError;
 using VoltMod::TargetFailure;
 using VoltMod::TargetKind;
 using VoltMod::TargetRules;
+using VoltMod::Team;
 
 using Kind = TargetKind;
 
@@ -17,11 +18,16 @@ using Kind = TargetKind;
 static std::vector<PlayerView> Roster()
 {
     return {
-        {.Slot = 0, .SteamId = 76561197960287930, .Name = "Alice", .Team = 2, .Alive = true, .Bot = false},
-        {.Slot = 1, .SteamId = 76561197960287931, .Name = "Bob", .Team = 3, .Alive = true, .Bot = false},
-        {.Slot = 2, .SteamId = 76561197960287932, .Name = "Bobby", .Team = 3, .Alive = false, .Bot = false},
-        {.Slot = 3, .SteamId = 0, .Name = "Chick", .Team = 2, .Alive = true, .Bot = true},
-        {.Slot = 4, .SteamId = 76561197960287934, .Name = "Spec", .Team = 1, .Alive = false, .Bot = false},
+        {.Slot = 0, .SteamId = 76561197960287930, .Name = "Alice", .Team = Team::T, .Alive = true, .Bot = false},
+        {.Slot = 1, .SteamId = 76561197960287931, .Name = "Bob", .Team = Team::CT, .Alive = true, .Bot = false},
+        {.Slot = 2, .SteamId = 76561197960287932, .Name = "Bobby", .Team = Team::CT, .Alive = false, .Bot = false},
+        {.Slot = 3, .SteamId = 0, .Name = "Chick", .Team = Team::T, .Alive = true, .Bot = true},
+        {.Slot = 4,
+         .SteamId = 76561197960287934,
+         .Name = "Spec",
+         .Team = Team::Spectator,
+         .Alive = false,
+         .Bot = false},
     };
 }
 
@@ -54,16 +60,16 @@ TEST_CASE("ParseTargetToken: selectors")
     CHECK(ParseTargetToken("@ME").Kind == Kind::Me);
     CHECK(ParseTargetToken("@!me").Kind == Kind::NotMe);
     CHECK(ParseTargetToken("@t").Kind == Kind::Team);
-    CHECK_EQ(ParseTargetToken("@t").Team, 2);
-    CHECK_EQ(ParseTargetToken("@CT").Team, 3);
+    CHECK(ParseTargetToken("@t").Team == Team::T);
+    CHECK(ParseTargetToken("@CT").Team == Team::CT);
     CHECK(ParseTargetToken("@spec").Kind == Kind::Team);
-    CHECK_EQ(ParseTargetToken("@spec").Team, 1);
+    CHECK(ParseTargetToken("@spec").Team == Team::Spectator);
     CHECK(ParseTargetToken("@dead").Kind == Kind::Dead);
     CHECK(ParseTargetToken("@alive").Kind == Kind::Alive);
     CHECK(ParseTargetToken("@bot").Kind == Kind::Bots);
     CHECK(ParseTargetToken("@human").Kind == Kind::Humans);
     CHECK(ParseTargetToken("@random").Kind == Kind::Random);
-    CHECK_EQ(ParseTargetToken("@randomct").Team, 3);
+    CHECK(ParseTargetToken("@randomct").Team == Team::CT);
 }
 
 TEST_CASE("ParseTargetToken: slot, steamid, name fallback")

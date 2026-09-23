@@ -21,7 +21,6 @@ class CNetworkGameServerBase;
 class CSchemaSystemTypeScope;
 class CTraceFilter;
 class CUtlString;  // the custom HUD setters take `const CUtlString*`
-class Color;
 class CPlayerSlot;
 class ICvar;
 class IEntityResourceManifest;

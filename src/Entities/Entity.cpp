@@ -1,4 +1,3 @@
-#include <Color.h>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
@@ -20,6 +19,10 @@ static_assert(std::to_underlying(ObserverMode::Fixed) == OBS_MODE_FIXED);
 static_assert(std::to_underlying(ObserverMode::InEye) == OBS_MODE_IN_EYE);
 static_assert(std::to_underlying(ObserverMode::Chase) == OBS_MODE_CHASE);
 static_assert(std::to_underlying(ObserverMode::Roaming) == OBS_MODE_ROAMING);
+static_assert(std::to_underlying(Team::None) == TEAM_UNASSIGNED);
+static_assert(std::to_underlying(Team::Spectator) == TEAM_SPECTATOR);
+static_assert(std::to_underlying(Team::T) == CS_TEAM_T);
+static_assert(std::to_underlying(Team::CT) == CS_TEAM_CT);
 
 // Origin and rotation live on the scene node, not on CBaseEntity.
 static Schema::CGameSceneNode SceneNode(const Entity& entity)
@@ -34,7 +37,7 @@ int Entity::Index() const
 
 EntityRef Entity::Ref() const
 {
-    return {(_e && _e->m_pEntity) ? static_cast<uint32_t>(_e->GetRefEHandle().ToInt()) : InvalidEntityHandle};
+    return {(_e && _e->m_pEntity) ? static_cast<uint32_t>(_e->GetRefEHandle().ToInt()) : EntityRef::Unset};
 }
 
 std::string_view Entity::ClassName() const
@@ -135,7 +138,7 @@ std::string Pawn::ModelName() const
     return path ? std::string(path) : std::string{};
 }
 
-void Pawn::SetRender(Schema::RenderMode_t mode, uint32_t color) const
+void Pawn::SetRender(Schema::RenderMode_t mode, Color color) const
 {
     VoltMod::SetRender(_e, mode, color);
 }
@@ -143,9 +146,7 @@ void Pawn::SetRender(Schema::RenderMode_t mode, uint32_t color) const
 void Pawn::SetVisible(bool visible, uint8_t alpha) const
 {
     const auto mode = visible ? Schema::RenderMode_t::kRenderNormal : Schema::RenderMode_t::kRenderTransAlpha;
-    const uint32_t color =
-        visible ? ColorOpaqueWhite : static_cast<uint32_t>(Color(255, 255, 255, alpha).GetRawColor());
-    SetRender(mode, color);
+    SetRender(mode, Color{.A = visible ? uint8_t{255} : alpha});
 }
 
 Controller Pawn::GetController() const
@@ -164,7 +165,7 @@ int Pawn::Slot() const
 
 Controller::Controller(EntitySystem& entities, CEntityInstance* raw, int slot) : Entity(entities, raw), _slot(slot)
 {
-    _pawn = entities.Resolve(EntityRef{PlayerPawnHandle()}).Raw();
+    _pawn = entities.Resolve(PlayerPawnRef()).Raw();
 }
 
 Pawn Controller::GetPawn() const
@@ -178,7 +179,7 @@ Pawn Controller::Possessed() const
     {
         return {};
     }
-    return Pawn{*_sys, _sys->Resolve(EntityRef{PawnHandle()}).Raw()};
+    return Pawn{*_sys, _sys->Resolve(PawnRef()).Raw()};
 }
 
 int Controller::Money() const
@@ -217,11 +218,15 @@ Status Controller::Kick(std::string_view reason) const
     return {};
 }
 
-Status Controller::ChangeTeam(int team) const
+Status Controller::ChangeTeam(VoltMod::Team team) const
 {
     if (!_e || !_sys)
     {
         return std::unexpected(Error::NotReady("no controller"));
+    }
+    if (team != Team::Spectator && !IsPlaying(team))
+    {
+        return std::unexpected(Error::Invalid("a player can only join the spectators, T or CT"));
     }
 
     const auto& changeTeam = _sys->BindingsRef().ChangeTeam;
@@ -230,7 +235,7 @@ Status Controller::ChangeTeam(int team) const
         return std::unexpected(Error::Unsupported("the 'CCSPlayerController::ChangeTeam' vtable slot did not bind"));
     }
 
-    changeTeam(_e, team);
+    changeTeam(_e, std::to_underlying(team));
     return {};
 }
 

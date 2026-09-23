@@ -4,9 +4,9 @@
 #include <VoltMod/Core/Signals/Event.hpp>
 #include <VoltMod/Core/Signals/HookResult.hpp>
 #include <VoltMod/Core/Signals/Subscription.hpp>
+#include <VoltMod/Engine/EntityRef.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Entities/Entity.hpp>
-#include <VoltMod/Entities/EntityRef.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <cstdint>
 

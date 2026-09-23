@@ -2,8 +2,8 @@
 
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/EntityRef.hpp>
 #include <VoltMod/Engine/Math.hpp>
-#include <VoltMod/Entities/EntityRef.hpp>
 #include <VoltMod/Schema/Generated/CBaseEntity.hpp>
 // Flags_t: the FL_* bits Flags() returns.
 #include <const.h>

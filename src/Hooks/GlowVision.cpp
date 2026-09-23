@@ -1,7 +1,6 @@
 #include <VoltMod/Entities/EntityOps.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/KeyValues.hpp>
-#include <VoltMod/Entities/PawnOps.hpp>
 #include <VoltMod/Hooks/GlowVision.hpp>
 #include <VoltMod/Hooks/Visibility.hpp>
 #include <VoltMod/Schema/Generated/Enums.hpp>
@@ -48,7 +47,7 @@ void GlowVision::CreatePair(int slot, GlowPair& pair)
     }
 
     std::string model = pawn.ModelName();
-    const int team = pawn.Team();
+    const Team team = pawn.Team();
     if (model.empty())
     {
         return;
@@ -67,7 +66,7 @@ void GlowVision::CreatePair(int slot, GlowPair& pair)
     KeyValues glowKv;
     glowKv.Set("model", model.c_str())
         .Set("spawnflags", PropSpawnFlags)
-        .Set("glowcolor", team == TeamT ? _config.TerroristColor : _config.CtColor)
+        .Set("glowcolor", team == Team::T ? _config.TerroristColor : _config.CtColor)
         .Set("glowrange", GlowRangeUnits)
         .Set("glowteam", GlowTeamAny)
         .Set("glowstate", GlowStateAlwaysOn)
@@ -98,9 +97,9 @@ void GlowVision::Refresh()
         auto& pair = _pairs[slot];
 
         Pawn pawn = _entities.PawnOf(slot);
-        const int team = pawn ? static_cast<int>(pawn.Team()) : 0;
+        const Team team = pawn.Team();
         // Hidden pawns never reach the viewer, so a clone would follow nothing.
-        bool desired = slot != _viewerSlot && pawn && pawn.IsAlive() && (team == TeamT || team == TeamCT) &&
+        bool desired = slot != _viewerSlot && pawn && pawn.IsAlive() && IsPlaying(team) &&
                        !_visibility.IsPawnHidden(slot) && (!_config.Filter || _config.Filter(slot));
 
         if (pair.Active())

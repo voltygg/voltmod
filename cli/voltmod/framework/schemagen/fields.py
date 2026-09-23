@@ -28,7 +28,7 @@ ATOMIC_TYPES = {
     "Vector": "Vector",
     "VectorWS": "Vector",
     "QAngle": "QAngle",
-    "Color": "uint32_t",
+    "Color": "Color",
     "CPlayerSlot": "int32_t",
     "CEntityIndex": "int32_t",
     "CUtlSymbolLarge": "const char*",
@@ -41,6 +41,9 @@ ATOMIC_TYPES = {
 TYPE_INCLUDES = {
     "Vector": "<VoltMod/Engine/EngineTypes.hpp>",
     "QAngle": "<VoltMod/Engine/EngineTypes.hpp>",
+    "Color": "<VoltMod/Engine/Color.hpp>",
+    "EntityRef": "<VoltMod/Engine/EntityRef.hpp>",
+    "VoltMod::Team": "<VoltMod/Engine/Team.hpp>",
 }
 
 
@@ -51,9 +54,9 @@ def resolve_field(entry: str, dumped: DumpedField, dump: Dump) -> SchemaField:
     type_name = type_info["name"]
 
     def make(kind: FieldKind, **extra: Any) -> SchemaField:
+        extra.setdefault("method", method or method_name(engine_name))
         return SchemaField(
             engine_name=engine_name,
-            method=method or method_name(engine_name),
             offset=dumped["offset"],
             size=dumped["size"],
             kind=kind,
@@ -89,8 +92,10 @@ def resolve_field(entry: str, dumped: DumpedField, dump: Dump) -> SchemaField:
             # A CUtlVector hands back its address, so no SDK container reaches a generated header.
             if atomic == "SCHEMA_ATOMIC_COLLECTION_OF_T":
                 return make(FieldKind.ADDRESS)
+            # A handle reads as an EntityRef; the Ref suffix keeps it apart from the entity itself.
             if atomic == "SCHEMA_ATOMIC_T" and type_name.startswith("CHandle"):
-                return make(FieldKind.HANDLE, cpp_type="uint32_t")
+                handle_method = method or method_name(engine_name) + "Ref"
+                return make(FieldKind.HANDLE, cpp_type="EntityRef", method=handle_method)
             if type_name in ATOMIC_TYPES:
                 return make(FieldKind.VALUE, cpp_type=ATOMIC_TYPES[type_name])
         case "SCHEMA_TYPE_BITFIELD":

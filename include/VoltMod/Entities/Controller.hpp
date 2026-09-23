@@ -1,5 +1,6 @@
 #pragma once
 
+#include <VoltMod/Engine/Team.hpp>
 #include <VoltMod/Entities/Pawn.hpp>
 #include <VoltMod/Schema/Generated/CCSPlayerController.hpp>
 #include <cstdint>
@@ -64,9 +65,10 @@ public:
     /** Disconnect the client. @return Error::NotReady when IVEngineServer2 is unavailable. */
     Status Kick(std::string_view reason) const;
 
-    /** `CCSPlayerController::ChangeTeam`. @ref PawnOps::ChangeTeamSafe bounds-checks @p team.
-     *  @return Error::Unsupported when the vtable index did not bind. */
-    Status ChangeTeam(int team) const;
+    /** `CCSPlayerController::ChangeTeam`.
+     *  @return Error::Invalid for a team outside Spectator..CT, Error::Unsupported when the vtable
+     *          index did not bind. */
+    Status ChangeTeam(VoltMod::Team team) const;
 
     /** `CCSPlayerController::Respawn`. @return Error::Unsupported when the index did not bind. */
     Status Respawn() const;

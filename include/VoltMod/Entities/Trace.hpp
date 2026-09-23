@@ -2,9 +2,9 @@
 
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/EntityRef.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Math.hpp>
-#include <VoltMod/Entities/EntityRef.hpp>
 
 namespace VoltMod
 {

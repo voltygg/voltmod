@@ -40,9 +40,9 @@ bool Items::Give(const Pawn& pawn, std::string_view item)
     }
 
     // Retry once with the pawn's team flipped for items restricted to the other team, then restore it.
-    const auto team = static_cast<uint8_t>(pawn.Team());
-    const auto other = static_cast<uint8_t>(team == TeamT ? TeamCT : (team == TeamCT ? TeamT : 0));
-    if (other == 0)
+    const Team team = pawn.Team();
+    const Team other = Opposite(team);
+    if (other == Team::None)
     {
         return false;
     }

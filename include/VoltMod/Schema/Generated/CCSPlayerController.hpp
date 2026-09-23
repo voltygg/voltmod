@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <VoltMod/Engine/EntityRef.hpp>
 #include <VoltMod/Schema/Generated/CBasePlayerController.hpp>
 #include <VoltMod/Schema/Generated/CCSPlayerController_InGameMoneyServices.hpp>
 #include <VoltMod/Schema/View.hpp>
@@ -16,8 +17,8 @@ class CCSPlayerController : public CBasePlayerController
 public:
     using CBasePlayerController::CBasePlayerController;
 
-    uint32_t PlayerPawnHandle() const;
-    void SetPlayerPawnHandle(uint32_t value) const;
+    EntityRef PlayerPawnRef() const;
+    void SetPlayerPawnRef(EntityRef value) const;
 
     CCSPlayerController_InGameMoneyServices InGameMoneyServices() const;
 

@@ -166,7 +166,7 @@ Pawn EntitySystem::PawnOf(int slot)
 
 int EntitySystem::SlotOf(const Pawn& pawn)
 {
-    Entity controller = Resolve(EntityRef{pawn.ControllerHandle()});
+    Entity controller = Resolve(pawn.ControllerRef());
     if (!controller)
     {
         return -1;

@@ -8,8 +8,8 @@
 #include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Core/Slots/SlotEvents.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/EntityRef.hpp>
 #include <VoltMod/Entities/EntityOps.hpp>
-#include <VoltMod/Entities/EntityRef.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Hooks/Visibility.hpp>
 #include <string_view>

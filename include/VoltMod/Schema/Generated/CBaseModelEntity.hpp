@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <VoltMod/Engine/Color.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Schema/Generated/CBaseEntity.hpp>
 #include <VoltMod/Schema/Generated/Enums.hpp>
@@ -23,8 +24,8 @@ public:
     RenderMode_t RenderMode() const;
     void SetRenderMode(RenderMode_t value) const;
 
-    uint32_t RenderColor() const;
-    void SetRenderColor(uint32_t value) const;
+    Color RenderColor() const;
+    void SetRenderColor(Color value) const;
 };
 
 }  // namespace VoltMod::Schema

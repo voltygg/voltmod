@@ -106,13 +106,13 @@ Schema::CPlayer_CameraServices CameraServices() const
 {
     return Schema::CBasePlayerPawn{_e}.CameraServices();
 }
-uint32_t ControllerHandle() const
+EntityRef ControllerRef() const
 {
-    return Schema::CBasePlayerPawn{_e}.ControllerHandle();
+    return Schema::CBasePlayerPawn{_e}.ControllerRef();
 }
-void SetControllerHandle(uint32_t value) const
+void SetControllerRef(EntityRef value) const
 {
-    Schema::CBasePlayerPawn{_e}.SetControllerHandle(value);
+    Schema::CBasePlayerPawn{_e}.SetControllerRef(value);
 }
 
 // CBaseCombatCharacter
@@ -138,11 +138,11 @@ void SetRenderMode(Schema::RenderMode_t value) const
 {
     Schema::CBaseModelEntity{_e}.SetRenderMode(value);
 }
-uint32_t RenderColor() const
+Color RenderColor() const
 {
     return Schema::CBaseModelEntity{_e}.RenderColor();
 }
-void SetRenderColor(uint32_t value) const
+void SetRenderColor(Color value) const
 {
     Schema::CBaseModelEntity{_e}.SetRenderColor(value);
 }

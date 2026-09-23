@@ -10,8 +10,8 @@ namespace VoltMod::Schema
 {
 
 // ---- CBasePlayerController, 2728 bytes -----------------------------
-static constexpr int32_t kCBasePlayerController_Name = 2036;        // char[128]
-static constexpr int32_t kCBasePlayerController_PawnHandle = 1984;  // CHandle< CBasePlayerPawn >
+static constexpr int32_t kCBasePlayerController_Name = 2036;     // char[128]
+static constexpr int32_t kCBasePlayerController_PawnRef = 1984;  // CHandle< CBasePlayerPawn >
 
 std::string_view CBasePlayerController::Name() const
 {
@@ -34,25 +34,25 @@ void CBasePlayerController::SetName(std::string_view value) const
     NotifyEntity(_owner, _ownerOffset + kCBasePlayerController_Name);
 }
 
-uint32_t CBasePlayerController::PawnHandle() const
+EntityRef CBasePlayerController::PawnRef() const
 {
     if (!_base)
     {
         return {};
     }
 
-    return *MemberPtr<uint32_t>(_base, kCBasePlayerController_PawnHandle);
+    return *MemberPtr<EntityRef>(_base, kCBasePlayerController_PawnRef);
 }
 
-void CBasePlayerController::SetPawnHandle(uint32_t value) const
+void CBasePlayerController::SetPawnRef(EntityRef value) const
 {
     if (!_base)
     {
         return;
     }
 
-    *MemberPtr<uint32_t>(_base, kCBasePlayerController_PawnHandle) = value;
-    NotifyEntity(_owner, _ownerOffset + kCBasePlayerController_PawnHandle);
+    *MemberPtr<EntityRef>(_base, kCBasePlayerController_PawnRef) = value;
+    NotifyEntity(_owner, _ownerOffset + kCBasePlayerController_PawnRef);
 }
 
 }  // namespace VoltMod::Schema

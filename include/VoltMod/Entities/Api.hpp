@@ -1,12 +1,14 @@
 #pragma once
 
+#include <VoltMod/Engine/Color.hpp>
 #include <VoltMod/Engine/ConVars/ConVar.hpp>
 #include <VoltMod/Engine/ConVars/ConVarOverrides.hpp>
+#include <VoltMod/Engine/EntityRef.hpp>
+#include <VoltMod/Engine/Team.hpp>
 #include <VoltMod/Entities/Angles.hpp>
 #include <VoltMod/Entities/Controller.hpp>
 #include <VoltMod/Entities/Entity.hpp>
 #include <VoltMod/Entities/EntityOps.hpp>
-#include <VoltMod/Entities/EntityRef.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Entities/HitGroup.hpp>
 #include <VoltMod/Entities/Items.hpp>
@@ -19,5 +21,4 @@
 #include <VoltMod/Entities/Pawns.hpp>
 #include <VoltMod/Entities/Render.hpp>
 #include <VoltMod/Entities/Rounds.hpp>
-#include <VoltMod/Entities/Teams.hpp>
 #include <VoltMod/Entities/Trace.hpp>

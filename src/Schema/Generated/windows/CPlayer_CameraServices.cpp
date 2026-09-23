@@ -10,32 +10,32 @@ namespace VoltMod::Schema
 
 // ---- CPlayer_CameraServices, 376 bytes ----------------------------
 static constexpr int32_t CPlayer_CameraServices_kOwnerLinkOffset = 8;
-static constexpr int32_t kCPlayer_CameraServices_ViewEntity = 164;  // CHandle< CBaseEntity >
+static constexpr int32_t kCPlayer_CameraServices_ViewEntityRef = 164;  // CHandle< CBaseEntity >
 
 ::CEntityInstance* CPlayer_CameraServices::OwnerEntity() const
 {
     return ComponentOwner(_base, CPlayer_CameraServices_kOwnerLinkOffset);
 }
 
-uint32_t CPlayer_CameraServices::ViewEntity() const
+EntityRef CPlayer_CameraServices::ViewEntityRef() const
 {
     if (!_base)
     {
         return {};
     }
 
-    return *MemberPtr<uint32_t>(_base, kCPlayer_CameraServices_ViewEntity);
+    return *MemberPtr<EntityRef>(_base, kCPlayer_CameraServices_ViewEntityRef);
 }
 
-void CPlayer_CameraServices::SetViewEntity(uint32_t value) const
+void CPlayer_CameraServices::SetViewEntityRef(EntityRef value) const
 {
     if (!_base)
     {
         return;
     }
 
-    *MemberPtr<uint32_t>(_base, kCPlayer_CameraServices_ViewEntity) = value;
-    NotifyComponentOwner(_base, CPlayer_CameraServices_kOwnerLinkOffset, kCPlayer_CameraServices_ViewEntity);
+    *MemberPtr<EntityRef>(_base, kCPlayer_CameraServices_ViewEntityRef) = value;
+    NotifyComponentOwner(_base, CPlayer_CameraServices_kOwnerLinkOffset, kCPlayer_CameraServices_ViewEntityRef);
 }
 
 }  // namespace VoltMod::Schema

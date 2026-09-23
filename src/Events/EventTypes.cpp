@@ -68,8 +68,8 @@ PlayerTeam PlayerTeam::From(IGameEvent& e)
 {
     return {
         .Slot = e.GetPlayerSlot("userid").Get(),
-        .Team = e.GetInt("team"),
-        .OldTeam = e.GetInt("oldteam"),
+        .Team = static_cast<VoltMod::Team>(e.GetInt("team")),
+        .OldTeam = static_cast<VoltMod::Team>(e.GetInt("oldteam")),
         .Disconnect = e.GetBool("disconnect"),
     };
 }

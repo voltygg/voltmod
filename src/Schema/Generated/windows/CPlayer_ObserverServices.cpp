@@ -10,8 +10,8 @@ namespace VoltMod::Schema
 
 // ---- CPlayer_ObserverServices, 88 bytes --------------------------
 static constexpr int32_t CPlayer_ObserverServices_kOwnerLinkOffset = 8;
-static constexpr int32_t kCPlayer_ObserverServices_ObserverMode = 72;    // uint8
-static constexpr int32_t kCPlayer_ObserverServices_ObserverTarget = 76;  // CHandle< CBaseEntity >
+static constexpr int32_t kCPlayer_ObserverServices_ObserverMode = 72;       // uint8
+static constexpr int32_t kCPlayer_ObserverServices_ObserverTargetRef = 76;  // CHandle< CBaseEntity >
 
 ::CEntityInstance* CPlayer_ObserverServices::OwnerEntity() const
 {
@@ -39,25 +39,25 @@ void CPlayer_ObserverServices::SetObserverMode(uint8_t value) const
     NotifyComponentOwner(_base, CPlayer_ObserverServices_kOwnerLinkOffset, kCPlayer_ObserverServices_ObserverMode);
 }
 
-uint32_t CPlayer_ObserverServices::ObserverTarget() const
+EntityRef CPlayer_ObserverServices::ObserverTargetRef() const
 {
     if (!_base)
     {
         return {};
     }
 
-    return *MemberPtr<uint32_t>(_base, kCPlayer_ObserverServices_ObserverTarget);
+    return *MemberPtr<EntityRef>(_base, kCPlayer_ObserverServices_ObserverTargetRef);
 }
 
-void CPlayer_ObserverServices::SetObserverTarget(uint32_t value) const
+void CPlayer_ObserverServices::SetObserverTargetRef(EntityRef value) const
 {
     if (!_base)
     {
         return;
     }
 
-    *MemberPtr<uint32_t>(_base, kCPlayer_ObserverServices_ObserverTarget) = value;
-    NotifyComponentOwner(_base, CPlayer_ObserverServices_kOwnerLinkOffset, kCPlayer_ObserverServices_ObserverTarget);
+    *MemberPtr<EntityRef>(_base, kCPlayer_ObserverServices_ObserverTargetRef) = value;
+    NotifyComponentOwner(_base, CPlayer_ObserverServices_kOwnerLinkOffset, kCPlayer_ObserverServices_ObserverTargetRef);
 }
 
 }  // namespace VoltMod::Schema

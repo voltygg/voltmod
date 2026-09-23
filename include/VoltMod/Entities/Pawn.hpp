@@ -30,11 +30,10 @@ public:
      *  Generated from `schema/manifest.json`. Notes worth keeping in mind:
      *  - `EyeAngles` is declared on CCSPlayerPawn, not on CCSPlayerPawnBase.
      *  - `SpeedModifier` decays toward 1.0 (e.g. after firing), so it is a nudge, not a setting.
-     *  - `GroundEntity` is @ref InvalidEntityHandle when airborne.
+     *  - `GroundEntityRef` is unset when airborne.
      *  - `FlashMaxAlpha` of 255 means the last flash was a full blind; for blind-time bookkeeping
      *    prefer the typed `PlayerBlind` game event, which carries the duration directly.
      *  - `ViewOffset` reads the leading Vector of a 40-byte CNetworkViewOffsetVector.
-     *  - `RenderColor` is RGBA; the low byte is R and the high byte is A.
      */
     /** @{ */
 #include <VoltMod/Schema/Generated/Wrappers/Pawn.inc>
@@ -74,7 +73,7 @@ public:
     void SetVisible(bool visible, uint8_t alpha = 0) const;
 
     /** Set render mode and color together, dirtying both for replication. */
-    void SetRender(Schema::RenderMode_t mode, uint32_t color) const;
+    void SetRender(Schema::RenderMode_t mode, Color color) const;
 
     /** The controller that owns this pawn, resolved through `m_hController`. */
     Controller GetController() const;

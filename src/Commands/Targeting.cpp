@@ -2,7 +2,6 @@
 
 #include <VoltMod/Core/Slots/SteamId.hpp>
 #include <VoltMod/Core/Text/Strings.hpp>
-#include <VoltMod/Entities/Teams.hpp>
 #include <algorithm>
 #include <utility>
 
@@ -29,15 +28,15 @@ TargetQuery ParseTargetToken(std::string_view token)
     }
     if (lower == "@t")
     {
-        return {.Kind = Kind::Team, .Team = TeamT};
+        return {.Kind = Kind::Team, .Team = Team::T};
     }
     if (lower == "@ct")
     {
-        return {.Kind = Kind::Team, .Team = TeamCT};
+        return {.Kind = Kind::Team, .Team = Team::CT};
     }
     if (lower == "@spec")
     {
-        return {.Kind = Kind::Team, .Team = TeamSpectator};
+        return {.Kind = Kind::Team, .Team = Team::Spectator};
     }
     if (lower == "@dead")
     {
@@ -61,11 +60,11 @@ TargetQuery ParseTargetToken(std::string_view token)
     }
     if (lower == "@randomt")
     {
-        return {.Kind = Kind::RandomTeam, .Team = TeamT};
+        return {.Kind = Kind::RandomTeam, .Team = Team::T};
     }
     if (lower == "@randomct")
     {
-        return {.Kind = Kind::RandomTeam, .Team = TeamCT};
+        return {.Kind = Kind::RandomTeam, .Team = Team::CT};
     }
 
     if (raw.size() > 1 && raw[0] == '#')

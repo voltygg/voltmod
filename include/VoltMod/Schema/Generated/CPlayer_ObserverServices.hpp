@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <VoltMod/Engine/EntityRef.hpp>
 #include <VoltMod/Schema/Generated/CPlayerPawnComponent.hpp>
 #include <VoltMod/Schema/View.hpp>
 #include <cstdint>
@@ -21,8 +22,8 @@ public:
     uint8_t ObserverMode() const;
     void SetObserverMode(uint8_t value) const;
 
-    uint32_t ObserverTarget() const;
-    void SetObserverTarget(uint32_t value) const;
+    EntityRef ObserverTargetRef() const;
+    void SetObserverTargetRef(EntityRef value) const;
 };
 
 }  // namespace VoltMod::Schema

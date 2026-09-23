@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <VoltMod/Engine/EntityRef.hpp>
 #include <VoltMod/Schema/Generated/CBaseEntity.hpp>
 #include <VoltMod/Schema/View.hpp>
 #include <cstdint>
@@ -19,8 +20,8 @@ public:
     std::string_view Name() const;
     void SetName(std::string_view value) const;
 
-    uint32_t PawnHandle() const;
-    void SetPawnHandle(uint32_t value) const;
+    EntityRef PawnRef() const;
+    void SetPawnRef(EntityRef value) const;
 };
 
 }  // namespace VoltMod::Schema

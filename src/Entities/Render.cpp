@@ -5,7 +5,7 @@
 namespace VoltMod
 {
 
-void SetRender(CEntityInstance* entity, Schema::RenderMode_t mode, uint32_t color)
+void SetRender(CEntityInstance* entity, Schema::RenderMode_t mode, Color color)
 {
     // Both or neither: a half-applied render state is worse than an unchanged one. The generated
     // setters dirty the entity themselves, so the new values replicate on the next update.

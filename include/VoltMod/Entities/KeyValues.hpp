@@ -1,5 +1,6 @@
 #pragma once
 
+#include <VoltMod/Engine/Color.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <string_view>
 

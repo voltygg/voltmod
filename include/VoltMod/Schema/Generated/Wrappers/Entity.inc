@@ -26,11 +26,11 @@ void SetGravityScale(float value) const
 {
     Schema::CBaseEntity{_e}.SetGravityScale(value);
 }
-uint8_t Team() const
+VoltMod::Team Team() const
 {
     return Schema::CBaseEntity{_e}.Team();
 }
-void SetTeam(uint8_t value) const
+void SetTeam(VoltMod::Team value) const
 {
     Schema::CBaseEntity{_e}.SetTeam(value);
 }
@@ -74,21 +74,21 @@ void SetActualMoveTypeRaw(Schema::MoveType_t value) const
 {
     Schema::CBaseEntity{_e}.SetActualMoveTypeRaw(value);
 }
-uint32_t GroundEntity() const
+EntityRef GroundEntityRef() const
 {
-    return Schema::CBaseEntity{_e}.GroundEntity();
+    return Schema::CBaseEntity{_e}.GroundEntityRef();
 }
-void SetGroundEntity(uint32_t value) const
+void SetGroundEntityRef(EntityRef value) const
 {
-    Schema::CBaseEntity{_e}.SetGroundEntity(value);
+    Schema::CBaseEntity{_e}.SetGroundEntityRef(value);
 }
-uint32_t OwnerHandle() const
+EntityRef OwnerRef() const
 {
-    return Schema::CBaseEntity{_e}.OwnerHandle();
+    return Schema::CBaseEntity{_e}.OwnerRef();
 }
-void SetOwnerHandle(uint32_t value) const
+void SetOwnerRef(EntityRef value) const
 {
-    Schema::CBaseEntity{_e}.SetOwnerHandle(value);
+    Schema::CBaseEntity{_e}.SetOwnerRef(value);
 }
 Schema::CBodyComponent BodyComponent() const
 {

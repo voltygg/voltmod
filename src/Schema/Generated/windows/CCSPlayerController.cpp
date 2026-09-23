@@ -10,29 +10,29 @@ namespace VoltMod::Schema
 {
 
 // ---- CCSPlayerController, 2744 bytes -------------------------------
-static constexpr int32_t kCCSPlayerController_PlayerPawnHandle = 2284;     // CHandle< CCSPlayerPawn >
+static constexpr int32_t kCCSPlayerController_PlayerPawnRef = 2284;        // CHandle< CCSPlayerPawn >
 static constexpr int32_t kCCSPlayerController_InGameMoneyServices = 2024;  // CCSPlayerController_InGameMoneyServices*
 static constexpr int32_t kCCSPlayerController_Clan = 2112;                 // CUtlSymbolLarge
 
-uint32_t CCSPlayerController::PlayerPawnHandle() const
+EntityRef CCSPlayerController::PlayerPawnRef() const
 {
     if (!_base)
     {
         return {};
     }
 
-    return *MemberPtr<uint32_t>(_base, kCCSPlayerController_PlayerPawnHandle);
+    return *MemberPtr<EntityRef>(_base, kCCSPlayerController_PlayerPawnRef);
 }
 
-void CCSPlayerController::SetPlayerPawnHandle(uint32_t value) const
+void CCSPlayerController::SetPlayerPawnRef(EntityRef value) const
 {
     if (!_base)
     {
         return;
     }
 
-    *MemberPtr<uint32_t>(_base, kCCSPlayerController_PlayerPawnHandle) = value;
-    NotifyEntity(_owner, _ownerOffset + kCCSPlayerController_PlayerPawnHandle);
+    *MemberPtr<EntityRef>(_base, kCCSPlayerController_PlayerPawnRef) = value;
+    NotifyEntity(_owner, _ownerOffset + kCCSPlayerController_PlayerPawnRef);
 }
 
 CCSPlayerController_InGameMoneyServices CCSPlayerController::InGameMoneyServices() const

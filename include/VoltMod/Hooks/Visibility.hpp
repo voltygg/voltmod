@@ -1,14 +1,14 @@
 #pragma once
 
-#include <Color.h>
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Core/Slots/SlotEvents.hpp>
+#include <VoltMod/Engine/Color.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/EntityRef.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Entities/EntityOps.hpp>
-#include <VoltMod/Entities/EntityRef.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <array>
 #include <functional>
@@ -21,8 +21,8 @@ namespace VoltMod
 /** Glow colors and an optional per-slot veto. */
 struct GlowConfig
 {
-    Color TerroristColor{255, 128, 0, 255};
-    Color CtColor{0, 160, 255, 255};
+    Color TerroristColor{255, 128, 0};
+    Color CtColor{0, 160, 255};
     /** Extra per-slot veto on top of the built-in live/team/visibility checks (empty = all). */
     std::function<bool(int slot)> Filter;
 };

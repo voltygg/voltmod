@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <VoltMod/Engine/EntityRef.hpp>
 #include <VoltMod/Schema/Generated/CPlayerPawnComponent.hpp>
 #include <VoltMod/Schema/View.hpp>
 #include <cstdint>
@@ -20,8 +21,8 @@ public:
 
     void* MyWeapons() const;
 
-    uint32_t ActiveWeapon() const;
-    void SetActiveWeapon(uint32_t value) const;
+    EntityRef ActiveWeaponRef() const;
+    void SetActiveWeaponRef(EntityRef value) const;
 };
 
 }  // namespace VoltMod::Schema

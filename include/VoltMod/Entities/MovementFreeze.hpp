@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VoltMod/Entities/EntityRef.hpp>
+#include <VoltMod/Engine/EntityRef.hpp>
 #include <VoltMod/Entities/Pawn.hpp>
 
 namespace VoltMod

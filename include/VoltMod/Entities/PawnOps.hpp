@@ -1,8 +1,8 @@
 #pragma once
 
 #include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/Team.hpp>
 #include <VoltMod/Entities/Controller.hpp>
-#include <VoltMod/Entities/Teams.hpp>
 
 namespace VoltMod
 {
@@ -40,8 +40,8 @@ bool HasGodmode(const Pawn& pawn);
 void SetGodmode(const Pawn& pawn, bool enable);
 bool ToggleGodmode(const Pawn& pawn);
 
-/** ChangeTeam bounds-checked to TeamSpectator..TeamCT. Returns false for out-of-range values. */
-bool ChangeTeamSafe(const Controller& controller, int team);
+/** @ref Controller::ChangeTeam, as a bool. */
+bool ChangeTeamSafe(const Controller& controller, Team team);
 
 }  // namespace PawnOps
 

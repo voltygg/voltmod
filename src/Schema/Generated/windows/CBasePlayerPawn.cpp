@@ -19,7 +19,7 @@ static constexpr int32_t kCBasePlayerPawn_ItemServices = 2840;      // CPlayer_I
 static constexpr int32_t kCBasePlayerPawn_MovementServices = 2896;  // CPlayer_MovementServices*
 static constexpr int32_t kCBasePlayerPawn_WeaponServices = 2832;    // CPlayer_WeaponServices*
 static constexpr int32_t kCBasePlayerPawn_CameraServices = 2888;    // CPlayer_CameraServices*
-static constexpr int32_t kCBasePlayerPawn_ControllerHandle = 3224;  // CHandle< CBasePlayerController >
+static constexpr int32_t kCBasePlayerPawn_ControllerRef = 3224;     // CHandle< CBasePlayerController >
 
 CPlayer_ObserverServices CBasePlayerPawn::ObserverServices() const
 {
@@ -71,25 +71,25 @@ CPlayer_CameraServices CBasePlayerPawn::CameraServices() const
     return CPlayer_CameraServices{*MemberPtr<void*>(_base, kCBasePlayerPawn_CameraServices)};
 }
 
-uint32_t CBasePlayerPawn::ControllerHandle() const
+EntityRef CBasePlayerPawn::ControllerRef() const
 {
     if (!_base)
     {
         return {};
     }
 
-    return *MemberPtr<uint32_t>(_base, kCBasePlayerPawn_ControllerHandle);
+    return *MemberPtr<EntityRef>(_base, kCBasePlayerPawn_ControllerRef);
 }
 
-void CBasePlayerPawn::SetControllerHandle(uint32_t value) const
+void CBasePlayerPawn::SetControllerRef(EntityRef value) const
 {
     if (!_base)
     {
         return;
     }
 
-    *MemberPtr<uint32_t>(_base, kCBasePlayerPawn_ControllerHandle) = value;
-    NotifyEntity(_owner, _ownerOffset + kCBasePlayerPawn_ControllerHandle);
+    *MemberPtr<EntityRef>(_base, kCBasePlayerPawn_ControllerRef) = value;
+    NotifyEntity(_owner, _ownerOffset + kCBasePlayerPawn_ControllerRef);
 }
 
 }  // namespace VoltMod::Schema

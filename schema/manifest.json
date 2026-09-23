@@ -4,14 +4,14 @@
       "m_iHealth>Health",
       "m_iMaxHealth>MaxHealth",
       "m_flGravityScale>GravityScale",
-      "m_iTeamNum>Team",
+      "m_iTeamNum>Team:VoltMod::Team",
       "m_lifeState",
       "m_fFlags>Flags",
       "m_vecAbsVelocity>Velocity",
       "m_MoveType>MoveTypeRaw",
       "m_nActualMoveType>ActualMoveTypeRaw",
       "m_hGroundEntity",
-      "m_hOwnerEntity>OwnerHandle",
+      "m_hOwnerEntity>OwnerRef",
       "m_CBodyComponent>BodyComponent"
     ],
     "CBaseModelEntity": [
@@ -21,7 +21,7 @@
     ],
     "CBasePlayerController": [
       "m_iszPlayerName>Name",
-      "m_hPawn>PawnHandle"
+      "m_hPawn"
     ],
     "CBasePlayerPawn": [
       "m_pObserverServices>ObserverServices",
@@ -29,7 +29,7 @@
       "m_pMovementServices>MovementServices",
       "m_pWeaponServices>WeaponServices",
       "m_pCameraServices>CameraServices",
-      "m_hController>ControllerHandle"
+      "m_hController"
     ],
     "CBaseCombatCharacter": [
       "m_hMyWearables>MyWearables"
@@ -38,7 +38,7 @@
       "m_pSceneNode>SceneNode"
     ],
     "CCSPlayerController": [
-      "m_hPlayerPawn>PlayerPawnHandle",
+      "m_hPlayerPawn",
       "m_pInGameMoneyServices>InGameMoneyServices",
       "m_szClan>Clan"
     ],
@@ -75,10 +75,10 @@
       "m_flMaxspeed>MaxSpeed"
     ],
     "CPlayer_CameraServices": [
-      "m_hViewEntity>ViewEntity"
+      "m_hViewEntity"
     ],
     "CCSPlayerBase_CameraServices": [
-      "m_hZoomOwner>ZoomOwner"
+      "m_hZoomOwner"
     ],
     "CPlayer_ObserverServices": [
       "m_iObserverMode>ObserverMode",
@@ -86,7 +86,7 @@
     ],
     "CPlayer_WeaponServices": [
       "m_hMyWeapons>MyWeapons",
-      "m_hActiveWeapon>ActiveWeapon"
+      "m_hActiveWeapon"
     ],
     "CSkeletonInstance": [
       "m_modelState>ModelState"

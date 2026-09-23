@@ -7,16 +7,6 @@
 #include <random>
 #include <shareddefs.h>
 
-namespace VoltMod
-{
-
-static_assert(TeamNone == TEAM_UNASSIGNED);
-static_assert(TeamSpectator == TEAM_SPECTATOR);
-static_assert(TeamT == CS_TEAM_T);
-static_assert(TeamCT == CS_TEAM_CT);
-
-}  // namespace VoltMod
-
 namespace VoltMod::PawnOps
 {
 
@@ -88,12 +78,8 @@ bool ToggleGodmode(const Pawn& pawn)
     return turningOn;
 }
 
-bool ChangeTeamSafe(const Controller& controller, int team)
+bool ChangeTeamSafe(const Controller& controller, Team team)
 {
-    if (team < TeamSpectator || team > TeamCT)
-    {
-        return false;
-    }
     return controller.ChangeTeam(team).has_value();
 }
 

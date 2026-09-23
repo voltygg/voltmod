@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <VoltMod/Engine/EntityRef.hpp>
 #include <VoltMod/Schema/Generated/CPlayerPawnComponent.hpp>
 #include <VoltMod/Schema/View.hpp>
 #include <cstdint>
@@ -18,8 +19,8 @@ public:
     /** The entity that owns this component, or nullptr. */
     ::CEntityInstance* OwnerEntity() const;
 
-    uint32_t ViewEntity() const;
-    void SetViewEntity(uint32_t value) const;
+    EntityRef ViewEntityRef() const;
+    void SetViewEntityRef(EntityRef value) const;
 };
 
 }  // namespace VoltMod::Schema

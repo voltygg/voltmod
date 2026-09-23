@@ -3,6 +3,8 @@
 #pragma once
 
 #include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/EntityRef.hpp>
+#include <VoltMod/Engine/Team.hpp>
 #include <VoltMod/Schema/Generated/CBodyComponent.hpp>
 #include <VoltMod/Schema/Generated/CEntityInstance.hpp>
 #include <VoltMod/Schema/Generated/Enums.hpp>
@@ -27,8 +29,8 @@ public:
     float GravityScale() const;
     void SetGravityScale(float value) const;
 
-    uint8_t Team() const;
-    void SetTeam(uint8_t value) const;
+    VoltMod::Team Team() const;
+    void SetTeam(VoltMod::Team value) const;
 
     uint8_t LifeState() const;
     void SetLifeState(uint8_t value) const;
@@ -45,11 +47,11 @@ public:
     MoveType_t ActualMoveTypeRaw() const;
     void SetActualMoveTypeRaw(MoveType_t value) const;
 
-    uint32_t GroundEntity() const;
-    void SetGroundEntity(uint32_t value) const;
+    EntityRef GroundEntityRef() const;
+    void SetGroundEntityRef(EntityRef value) const;
 
-    uint32_t OwnerHandle() const;
-    void SetOwnerHandle(uint32_t value) const;
+    EntityRef OwnerRef() const;
+    void SetOwnerRef(EntityRef value) const;
 
     CBodyComponent BodyComponent() const;
 };

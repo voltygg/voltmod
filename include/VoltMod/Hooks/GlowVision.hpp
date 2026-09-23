@@ -42,7 +42,7 @@ private:
     {
         EntityRef Relay;
         EntityRef Glow;
-        int Team = 0;
+        VoltMod::Team Team = VoltMod::Team::None;
         std::string Model;
 
         // The relay ref is the single source of truth for liveness; DestroyPair resets it.

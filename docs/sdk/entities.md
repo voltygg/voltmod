@@ -11,7 +11,7 @@ pawn.SetHealth(100);                              // writes m_iHealth and dirtie
 pawn.SetFlags(pawn.Flags() | FL_ONGROUND);
 
 auto controller = runtime.Entities.Controller(slot);
-controller.ChangeTeam(VoltMod::TeamCT);
+controller.ChangeTeam(VoltMod::Team::CT);
 controller.Kick("Cheating");
 ```
 
@@ -62,7 +62,7 @@ dump, and the load aborts when the live game no longer matches - see
 @ref sdk_gamedata_guide "Gamedata and schema".
 
 ```cpp
-if (pawn.Team() == VoltMod::TeamCT && (pawn.Flags() & FL_ONGROUND))
+if (pawn.Team() == VoltMod::Team::CT && (pawn.Flags() & FL_ONGROUND))
     pawn.SetSpeedModifier(1.5f);
 
 int money = controller.InGameMoneyServices().Account();   // a sub-object is a hop, not a follow
@@ -74,15 +74,15 @@ base class, so view it as the CS subclass to reach the zoom fields:
 ```cpp
 pawn.SetGravityScale(0.5f);                                // CBaseEntity, so any entity has it
 pawn.MovementServices().SetMaxSpeed(300.0f);
-pawn.CameraServices().SetViewEntity(camera.Ref().Handle);  // see through another entity
-uint32_t zoomOwner = VoltMod::Schema::CCSPlayerBase_CameraServices{pawn.CameraServices().Base()}.ZoomOwner();
+pawn.CameraServices().SetViewEntityRef(camera.Ref());     // see through another entity
+VoltMod::EntityRef zoomOwner = VoltMod::Schema::CCSPlayerBase_CameraServices{pawn.CameraServices().Base()}.ZoomOwnerRef();
 ```
 
-A handle field reads as a raw `uint32_t`. Wrap it in an `EntityRef` to resolve it:
+A handle field reads as an `EntityRef`, and its name ends in `Ref`. Resolve it to get the entity:
 
 ```cpp
 // m_hOwnerEntity: for a thrown grenade, the pawn that threw it
-VoltMod::Entity owner = runtime.Entities.Resolve(VoltMod::EntityRef{grenade.OwnerHandle()});
+VoltMod::Entity owner = runtime.Entities.Resolve(grenade.OwnerRef());
 ```
 
 An entity with no wrapper class is viewed through its generated class. A `beam` draws a line
@@ -153,8 +153,8 @@ event, which carries the duration directly.
 `LastWeaponFireCommand()` is the usercmd number of the last shot, which ties a `weapon_fire` event
 to its command. `AimPunchServices()` carries the recoil punch as the last shot set it, so read
 `BaseAngle()` and `BaseTick()` together - the engine decays the angle from that base each tick.
-`SpottedState()` exposes the radar bits, and `WeaponServices().ActiveWeapon()` is a handle to
-resolve through `EntitySystem::Resolve`.
+`SpottedState()` exposes the radar bits, and `WeaponServices().ActiveWeaponRef()` is the held
+weapon.
 
 `Vector` and `QAngle` are the engine's own types; `<VoltMod/Engine/Math.hpp>` is the header to
 include for them, so a plugin never names an SDK path. `AngleToForward`
@@ -234,8 +234,8 @@ Team scores are left alone.
 ## PawnOps
 
 Common pawn manipulations, as free functions in `VoltMod::PawnOps`
-(`<VoltMod/Entities/PawnOps.hpp>`), plus the engine team constants `TeamNone` / `TeamSpectator` /
-`TeamT` / `TeamCT` from `<VoltMod/Entities/Teams.hpp>`, which needs no SDK:
+(`<VoltMod/Entities/PawnOps.hpp>`). Teams are `VoltMod::Team` from `<VoltMod/Engine/Team.hpp>`,
+which needs no SDK:
 
 ```cpp
 namespace PawnOps = VoltMod::PawnOps;
@@ -248,7 +248,7 @@ PawnOps::ToggleGodmode(target);             // FL_GODMODE flip, the working CS2 
 PawnOps::ShiftZ(target, -15.0f);            // bury; +15 to unbury
 
 // Team lives on the controller, so this one takes that.
-PawnOps::ChangeTeamSafe(runtime.Entities.Controller(slot), VoltMod::TeamCT);
+PawnOps::ChangeTeamSafe(runtime.Entities.Controller(slot), VoltMod::Team::CT);
 
 // Teleports: a destination cleared past the anchor's hull, and an exact-origin swap.
 Vector dest = PawnOps::ClearedDestination(anchor);   // 48u ahead of the anchor's eye yaw

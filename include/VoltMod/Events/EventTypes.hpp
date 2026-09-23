@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/Team.hpp>
 #include <VoltMod/Entities/HitGroup.hpp>
 #include <string>
 #include <string_view>
@@ -79,8 +80,8 @@ struct PlayerTeam
 {
     static constexpr std::string_view Name = "player_team";
     int Slot = -1;
-    int Team = 0;
-    int OldTeam = 0;
+    VoltMod::Team Team = VoltMod::Team::None;
+    VoltMod::Team OldTeam = VoltMod::Team::None;
     bool Disconnect = false;
     static PlayerTeam From(IGameEvent& e);
 };

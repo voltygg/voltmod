@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <VoltMod/Engine/EntityRef.hpp>
 #include <VoltMod/Schema/Generated/CPlayer_CameraServices.hpp>
 #include <VoltMod/Schema/View.hpp>
 #include <cstdint>
@@ -18,8 +19,8 @@ public:
     /** The entity that owns this component, or nullptr. */
     ::CEntityInstance* OwnerEntity() const;
 
-    uint32_t ZoomOwner() const;
-    void SetZoomOwner(uint32_t value) const;
+    EntityRef ZoomOwnerRef() const;
+    void SetZoomOwnerRef(EntityRef value) const;
 };
 
 }  // namespace VoltMod::Schema

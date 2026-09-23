@@ -1,5 +1,6 @@
 #pragma once
 
+#include <VoltMod/Engine/Team.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/Policy.hpp>
@@ -58,7 +59,7 @@ enum class TargetKind
     All,
     Me,
     NotMe,
-    Team,  ///< uses TargetQuery::Team (engine index: 1 = spectators, 2 = T, 3 = CT)
+    Team,  ///< uses TargetQuery::Team
     Dead,
     Alive,
     Bots,
@@ -74,7 +75,7 @@ enum class TargetKind
 struct TargetQuery
 {
     TargetKind Kind = TargetKind::Name;
-    int Team = -1;
+    VoltMod::Team Team = VoltMod::Team::None;
     int Slot = -1;
     int64_t SteamId = 0;
     std::string Needle;  ///< lowercased name fragment for TargetKind::Name
@@ -88,7 +89,7 @@ struct PlayerView
     int Slot = -1;
     int64_t SteamId = 0;
     std::string Name;
-    int Team = 0;
+    VoltMod::Team Team = VoltMod::Team::None;
     bool Alive = false;
     bool Bot = false;
     bool Targetable = true;  ///< policy verdict, precomputed by the caller

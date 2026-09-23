@@ -61,7 +61,7 @@ static CEntityInstance* ObserverTarget(EntitySystem& entities, int recipientSlot
         return nullptr;
     }
 
-    return entities.Resolve(EntityRef{services.ObserverTarget()}).Raw();
+    return entities.Resolve(services.ObserverTargetRef()).Raw();
 }
 
 static void CollectHiddenPlayer(EntitySystem& entities, int slot, bool pawnHidden, bool controllerHidden,

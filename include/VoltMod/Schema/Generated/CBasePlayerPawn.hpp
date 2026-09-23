@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <VoltMod/Engine/EntityRef.hpp>
 #include <VoltMod/Schema/Generated/CBaseCombatCharacter.hpp>
 #include <VoltMod/Schema/Generated/CPlayer_CameraServices.hpp>
 #include <VoltMod/Schema/Generated/CPlayer_ItemServices.hpp>
@@ -30,8 +31,8 @@ public:
 
     CPlayer_CameraServices CameraServices() const;
 
-    uint32_t ControllerHandle() const;
-    void SetControllerHandle(uint32_t value) const;
+    EntityRef ControllerRef() const;
+    void SetControllerRef(EntityRef value) const;
 };
 
 }  // namespace VoltMod::Schema

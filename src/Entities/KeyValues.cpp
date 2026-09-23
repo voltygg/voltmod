@@ -79,7 +79,7 @@ KeyValues& KeyValues::Set(std::string_view key, const Color& value)
 {
     if (_kv)
     {
-        _kv->SetColor(std::string(key).c_str(), value);
+        _kv->SetColor(std::string(key).c_str(), ::Color(value.R, value.G, value.B, value.A));
     }
     return *this;
 }

@@ -10,18 +10,16 @@ function for entities with no wrapper and the pawn method for players. The mode 
 applies) and `kRenderNone`.
 
 ```cpp
-using VoltMod::ColorInvisible;     // 0x00FFFFFF, white at zero alpha
-using VoltMod::ColorOpaqueWhite;   // 0xFFFFFFFF
 using VoltMod::Schema::RenderMode_t;
 
-VoltMod::SetRender(prop, RenderMode_t::kRenderTransAlpha, ColorInvisible);
-VoltMod::SetRender(prop, RenderMode_t::kRenderNormal, ColorOpaqueWhite);
+VoltMod::SetRender(prop, RenderMode_t::kRenderTransAlpha, VoltMod::Color{.A = 0});
+VoltMod::SetRender(prop, RenderMode_t::kRenderNormal, VoltMod::Color{});
 
 runtime.Entities.PawnOf(slot).SetVisible(false);        // the pawn body, alpha 0
 runtime.Entities.PawnOf(slot).SetVisible(false, 0x80);  // 50% transparent
 ```
 
-`m_clrRender` is RGBA packed as `(A << 24) | (B << 16) | (G << 8) | R`. Render tricks reach only the
+`VoltMod::Color` holds the RGBA bytes in the engine's order. Render tricks reach only the
 pawn body: held weapons, wearables and gloves are separate networked entities that CS2 routes
 through systems a server plugin cannot touch. For real invisibility use the visibility filter.
 
@@ -80,9 +78,9 @@ Colors and the optional per-slot veto run on top of the built-in checks:
 
 ```cpp
 VoltMod::GlowConfig config{
-    .TerroristColor = Color(255, 0, 0, 255),
-    .CtColor = Color(0, 255, 0, 255),
-    .Filter = [&runtime](int slot) { return runtime.Entities.Controller(slot).Team() == VoltMod::TeamT; },
+    .TerroristColor = VoltMod::Color{255, 0, 0},
+    .CtColor = VoltMod::Color{0, 255, 0},
+    .Filter = [&runtime](int slot) { return runtime.Entities.Controller(slot).Team() == VoltMod::Team::T; },
 };
 auto glow = runtime.Hooks.Visibility.CreateGlow(viewerSlot, std::move(config));
 ```

@@ -55,24 +55,24 @@ void CBaseModelEntity::SetRenderMode(RenderMode_t value) const
     NotifyEntity(_owner, _ownerOffset + kCBaseModelEntity_RenderMode);
 }
 
-uint32_t CBaseModelEntity::RenderColor() const
+Color CBaseModelEntity::RenderColor() const
 {
     if (!_base)
     {
         return {};
     }
 
-    return *MemberPtr<uint32_t>(_base, kCBaseModelEntity_RenderColor);
+    return *MemberPtr<Color>(_base, kCBaseModelEntity_RenderColor);
 }
 
-void CBaseModelEntity::SetRenderColor(uint32_t value) const
+void CBaseModelEntity::SetRenderColor(Color value) const
 {
     if (!_base)
     {
         return;
     }
 
-    *MemberPtr<uint32_t>(_base, kCBaseModelEntity_RenderColor) = value;
+    *MemberPtr<Color>(_base, kCBaseModelEntity_RenderColor) = value;
     NotifyEntity(_owner, _ownerOffset + kCBaseModelEntity_RenderColor);
 }
 
