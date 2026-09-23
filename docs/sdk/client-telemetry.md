@@ -21,11 +21,11 @@ far in the future - drop stamps at map start. Both return `0` when the globals a
 
 ## NetChannels
 
-`runtime.World.NetChannels` reads the engine's per-client channel live. Bots, empty slots and
+`runtime.NetChannels` reads the engine's per-client channel live. Bots, empty slots and
 clients already torn down have no channel, and every accessor degrades instead of asserting.
 
 ```cpp
-auto& net = runtime.World.NetChannels;
+auto& net = runtime.NetChannels;
 
 const float rtt = net.EngineLatency(slot);                 // seconds, 0 when unavailable
 std::string keep{net.GetUserInfoCvar(slot, "sensitivity")}; // copy before the next engine call

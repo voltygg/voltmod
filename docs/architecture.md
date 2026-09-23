@@ -145,7 +145,7 @@ services they reference are still alive. That pair is what makes `volt reload` s
 runtime.Players.Get(slot);
 runtime.Messages.Reply(slot, "done");
 runtime.Entities.Pawn(slot).SetHealth(100);
-runtime.World.Precache.Add("models/props/mine.vmdl");
+runtime.Precache.Add("models/props/mine.vmdl");
 ```
 
 Schema offsets are not a service. `voltmod framework schemagen` bakes them into the generated accessors at

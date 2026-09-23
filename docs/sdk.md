@@ -52,6 +52,6 @@ if (auto available = runtime.Hooks.ClientConVars.Available(); !available)
 ```
 
 `Available()` is on `Hooks.Movement`, `Hooks.Teleport`, `Hooks.Damage`, `Hooks.Visibility`,
-`Hooks.ClientConVars`, `World.Trace` and `Screens`. A service that is not available stays safe to call and returns an
+`Hooks.ClientConVars`, `Trace` and `Screens`. A service that is not available stays safe to call and returns an
 error, an empty `Subscription`, or no result. `Runtime::Initialize` logs every unavailable feature once,
 and the `load` status section lists them.

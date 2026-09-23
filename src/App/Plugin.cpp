@@ -242,7 +242,7 @@ void PluginModule::HostCheckTransmit(CCheckTransmitInfo** infoList, int infoCoun
 
 void PluginModule::HostBuildGameSessionManifest(IEntityResourceManifest* manifest)
 {
-    _runtime->World.Precache.AddTo(*manifest);
+    _runtime->Precache.AddTo(*manifest);
 }
 
 }  // namespace VoltMod::Internal

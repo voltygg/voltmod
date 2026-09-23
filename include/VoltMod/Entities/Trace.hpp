@@ -46,7 +46,7 @@ struct TraceHit
  * Game-thread only.
  *
  * @code
- * const auto clear = runtime.World.Trace.Clear(eye, target, {.Ignore1 = self, .Ignore2 = other});
+ * const auto clear = runtime.Trace.Clear(eye, target, {.Ignore1 = self, .Ignore2 = other});
  * if (clear && *clear)
  *     ...  // nothing solid between the two points
  * @endcode

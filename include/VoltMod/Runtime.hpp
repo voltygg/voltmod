@@ -10,10 +10,13 @@
 #include <VoltMod/Core/Time/Scheduler.hpp>
 #include <VoltMod/Engine/ConVars/ConVar.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/Net/NetChannel.hpp>
 #include <VoltMod/Engine/Server/Clock.hpp>
 #include <VoltMod/Engine/Server/Map.hpp>
+#include <VoltMod/Engine/Server/Precache.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
-#include <VoltMod/Entities/World.hpp>
+#include <VoltMod/Entities/Rounds.hpp>
+#include <VoltMod/Entities/Trace.hpp>
 #include <VoltMod/Events/GameEvents.hpp>
 #include <VoltMod/Hooks/HookServices.hpp>
 #include <VoltMod/Host/IHost.hpp>
@@ -121,7 +124,17 @@ public:
 
     VoltMod::Clock Clock{Unsafe.Interfaces};
 
-    WorldServices World{Entities, Unsafe.Bindings, Scheduler, Slots, Unsafe.Interfaces};
+    /** Resources for the next map's session manifest. */
+    VoltMod::Precache Precache;
+
+    /** Per-client latency and replicated userinfo cvars. */
+    VoltMod::NetChannels NetChannels{Unsafe.Interfaces};
+
+    /** Line and box traces for sight and reachability questions. */
+    VoltMod::Trace Trace{Unsafe.Bindings};
+
+    /** Ending the current round with a winner. */
+    VoltMod::Rounds Rounds{Entities, Unsafe.Bindings};
 
     HookServices Hooks{Entities, Unsafe.Bindings, Slots, Scheduler, GameEvents, Unsafe.Interfaces};
 

@@ -191,7 +191,7 @@ physics world. Nothing to install, nothing to re-take per map, and it survives m
 ```cpp
 const VoltMod::Pawn self = runtime.Entities.Pawn(slot);
 const VoltMod::Pawn other = runtime.Entities.Pawn(target);
-const auto clear = runtime.World.Trace.Clear(self.EyePosition(), other.EyePosition(),
+const auto clear = runtime.Trace.Clear(self.EyePosition(), other.EyePosition(),
                                              {.Ignore1 = self, .Ignore2 = other});
 if (clear && *clear)
     ...  // nothing solid between the two eyes
@@ -209,7 +209,7 @@ box of that size fits there:
 
 ```cpp
 const Vector mins(-16.0f, -16.0f, 1.0f), maxs(16.0f, 16.0f, 48.0f);   // just clear of the floor
-const auto blocked = runtime.World.Trace.Box(spot, spot, mins, maxs, {.Layers = VoltMod::TraceLayers::Solid});
+const auto blocked = runtime.Trace.Box(spot, spot, mins, maxs, {.Layers = VoltMod::TraceLayers::Solid});
 if (blocked && !blocked->Hit)
     ...  // nothing solid, players included, overlaps the box at spot
 ```
@@ -224,7 +224,7 @@ panel, `round_end` and the next round are the engine's own. It works with
 
 ```cpp
 // Terrorists win; the next round starts in 5 seconds.
-runtime.World.Rounds.End(VoltMod::RoundEndReason::TerroristsWin, 5.0f);
+runtime.Rounds.End(VoltMod::RoundEndReason::TerroristsWin, 5.0f);
 ```
 
 Team scores are left alone.
@@ -300,7 +300,7 @@ the game rules system's manifest event once and hands every plugin the manifest,
 mid-map, by `volt reload` too, adds its resources at the next map load.
 
 ```cpp
-runtime.World.Precache.Add("particles/my_plugin/lightning_strike.vpcf");
+runtime.Precache.Add("particles/my_plugin/lightning_strike.vpcf");
 ```
 
 Assets that are not part of the map must also reach clients, such as through a workshop addon, or

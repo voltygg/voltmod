@@ -23,7 +23,7 @@ enum class RoundEndReason : uint32_t
  * with `mp_ignore_round_win_conditions` on. Team scores are not changed.
  *
  * @code
- * runtime.World.Rounds.End(VoltMod::RoundEndReason::TerroristsWin, 5.0f);
+ * runtime.Rounds.End(VoltMod::RoundEndReason::TerroristsWin, 5.0f);
  * @endcode
  *
  * Game-thread only.
