@@ -52,7 +52,8 @@ jobs:
           git commit -m "$title"
           git push --force origin "$branch"
           body=$(git show --stat --format= HEAD)
-          if gh pr view "$branch" --json number >/dev/null 2>&1; then
+          # gh pr view also finds merged PRs, so only an open one counts.
+          if [ -n "$(gh pr list --head "$branch" --state open --json number --jq '.[].number')" ]; then
             gh pr edit "$branch" --body "$body"
           else
             gh pr create --head "$branch" --title "$title" --body "$body"
