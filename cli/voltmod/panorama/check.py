@@ -56,7 +56,7 @@ def check_screens(root: Path, names: list[str] | None = None) -> list[CheckResul
             problems += _check_screen(renderer, source, claimed, interned)
 
     problems += _check_name_table(interned)
-    return [CheckResult(problem) for problem in problems]
+    return [CheckResult.fail(problem) for problem in problems]
 
 
 def _check_screen(

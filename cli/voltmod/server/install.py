@@ -4,6 +4,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from voltmod import console
 from voltmod.errors import VoltmodError
 from voltmod.platforms import Platform
 from voltmod.project import Plugin, Project
@@ -37,22 +38,20 @@ def install_plugins(project: Project, server: Cs2Server, names: list[str], prese
     csgo = server.csgo
     plugins = project.installable_plugins(names)
 
-    print("=== VoltMod Install ===\n")
-    print(f"Server path:   {server.root}")
-    print(f"Build preset:  {preset}\n")
+    console.step(f"Installing into {server.root} from build/{preset}")
 
     _install_host(project, csgo, preset)
     for plugin in plugins:
         _install_plugin(project, plugin, csgo, preset, named=bool(names))
 
     installed = " ".join(plugin.name for plugin in plugins)
-    print(f"\n=== Install complete ===\nInstalled: {installed}")
-    print("Verify on the server console with: volt list")
+    console.done(f"Installed {installed}")
+    console.info("Verify on the server console with: volt list")
 
 
 def _install_host(project: Project, csgo: Path, preset: str) -> None:
     """Install the host: the only Metamod plugin, which loads its managed plugins."""
-    print("--- voltmod host ---")
+    console.section("voltmod host")
     # An editable framework checkout builds the host in its own tree.
     checkout = editable_framework(project.root)
     searched = [project.build_dir(preset)] + ([checkout / "build" / preset] if checkout else [])
@@ -76,12 +75,12 @@ def _install_plugin(
 
     A plugin asked for by name must install; a bare install skips what is not built.
     """
-    print(f"--- {plugin.name} ---")
+    console.section(plugin.name)
     staging = _stage_component(project.build_dir(preset), plugin.name)
     if staging is None:
         if named:
             raise VoltmodError(f"{plugin.name} is not built; run `voltmod build -p {preset}` first")
-        print(f"  (skipped - not built for {preset})")
+        console.note(f"skipped: not built for {preset}")
         return
 
     _merge_addons(staging, csgo, plugin.name)
@@ -96,18 +95,18 @@ def _seed_settings(plugin: Plugin, csgo: Path) -> None:
         return
     target = csgo / plugin_dir(plugin.name) / "configs/settings.jsonc"
     if target.is_file():
-        print("  -> configs/settings.jsonc (skipped - already exists)")
+        console.item("configs/settings.jsonc (kept the server's copy)")
         return
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, target)
-    print("  -> configs/settings.jsonc (seeded)")
+    console.item("configs/settings.jsonc (copied)")
 
 
 def _print_staged(staging: Path) -> None:
     """Name what was merged, using the staged tree's own top-level paths."""
     top = sorted({path.relative_to(staging).parts[:2] for path in staging.rglob("*")})
     for parts in top:
-        print(f"  -> {'/'.join(parts)}")
+        console.item("/".join(parts))
 
 
 def _stage_component(build_dir: Path, component: str) -> Path | None:

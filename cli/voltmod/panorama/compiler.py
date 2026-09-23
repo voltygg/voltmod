@@ -3,6 +3,7 @@
 import shutil
 from pathlib import Path
 
+from voltmod import console
 from voltmod.errors import VoltmodError
 from voltmod.panorama.sources import rendered_dir, screen_owners
 from voltmod.platforms import Platform
@@ -31,8 +32,7 @@ def compile_and_install(
     client = find_client(client_path)
     content = client / "content/csgo_addons" / addon
     built = client / "game/csgo_addons" / addon
-    print(f"Client:  {client}")
-    print(f"Addon:   csgo_addons/{addon}")
+    console.step(f"Compiling into csgo_addons/{addon} of {client}")
 
     # Stage each owner separately for useful output, then compile them in one launch.
     staged_by_owner: list[tuple[str, list[Path]]] = []
@@ -42,23 +42,23 @@ def compile_and_install(
         if staged:
             staged_by_owner.append((owner.name, staged))
         else:
-            print(f"\n--- {owner.name} ---\n  (nothing rendered under {rendered})")
+            console.note(f"{owner.name}: nothing rendered under {rendered}")
 
     staged = [path for _, paths in staged_by_owner for path in paths]
     if staged:
         owners = ", ".join(name for name, _ in staged_by_owner)
-        print(f"\nStaged {len(staged)} source(s) from {owners}")
+        console.step(f"Staged {len(staged)} source(s) from {owners}")
         _run_resource_compiler(client, built, staged, content)
 
     if not deploy:
-        print(f"\nCompiled into {built}; not installed.")
+        console.done(f"Compiled into {built}; not installed")
         return
 
     installed = 0
     for name, paths in staged_by_owner:
-        print(f"\n--- {name} ---")
+        console.section(name)
         installed += _copy_into_client(client, built, paths, content)
-    print(f"\nInstalled {installed} resource(s). Reconnect to pick them up.")
+    console.done(f"Installed {installed} resource(s). Reconnect to pick them up.")
 
 
 def _stage_files(rendered: Path, content: Path) -> list[Path]:
@@ -123,12 +123,12 @@ def _run_resource_compiler(client: Path, built: Path, staged: list[Path], conten
     # It exits 0 whether or not anything compiled, so the expected outputs decide.
     missing = [path for path in compilable if not _compiled_path(built, path, content).is_file()]
     if result.returncode != 0 or missing:
-        print(f"{result.stdout}{result.stderr}".strip())
+        console.info(f"{result.stdout}{result.stderr}".strip())
         if missing:
             names = ", ".join(path.name for path in missing)
             raise VoltmodError(f"resourcecompiler produced no output for: {names}")
         raise VoltmodError(f"resourcecompiler exited {result.returncode}")
-    print(f"  compiled {len(compilable)} resource(s)")
+    console.note(f"compiled {len(compilable)} resource(s)")
 
 
 def _copy_into_client(client: Path, built: Path, staged: list[Path], content: Path) -> int:
@@ -139,5 +139,5 @@ def _copy_into_client(client: Path, built: Path, staged: list[Path], content: Pa
         target = csgo / source.relative_to(content).parent / compiled.name
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(compiled, target)
-        print(f"  -> {target.relative_to(client)}")
+        console.item(str(target.relative_to(client)))
     return len(compilable)

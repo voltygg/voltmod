@@ -3,6 +3,7 @@ from typing import Annotated
 
 import typer
 
+from voltmod import console
 from voltmod.database.header import generate_table_header
 from voltmod.database.migrations import DRIVERS, render_migrations
 from voltmod.errors import VoltmodError
@@ -38,7 +39,7 @@ def header_command(
         text = generate_table_header(project.root, ddl, database.namespace, database.header.name)
         write_or_check(database.header, text, check=check)
         header = database.header.relative_to(project.root)
-        print(f"{header} is up to date." if check else f"Generated {header}.")
+        console.done(f"{header} is up to date." if check else f"Generated {header}.")
 
 
 def sql_command(

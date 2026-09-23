@@ -1,11 +1,12 @@
-"""Results from doctor, source rules and screen checks, printed one way."""
-
 from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import StrEnum
+from itertools import groupby
 
 import typer
+
+from voltmod import console
 
 
 class Status(StrEnum):
@@ -14,31 +15,42 @@ class Status(StrEnum):
     FAIL = "FAIL"
 
 
+_STYLES = {Status.PASS: "green", Status.WARN: "yellow", Status.FAIL: "bold red"}
+
+
 @dataclass(frozen=True, slots=True)
 class CheckResult:
     message: str
-    status: Status = Status.FAIL
+    status: Status
     hint: str = ""
+
+    @classmethod
+    def ok(cls, message: str) -> CheckResult:
+        return cls(message, Status.PASS)
+
+    @classmethod
+    def warn(cls, message: str, hint: str = "") -> CheckResult:
+        return cls(message, Status.WARN, hint)
+
+    @classmethod
+    def fail(cls, message: str, hint: str = "") -> CheckResult:
+        return cls(message, Status.FAIL, hint)
 
 
 def print_results(results: Iterable[CheckResult]) -> int:
-    """Print results as they arrive, each hint once after its run of messages; return failures."""
+    """Print results as they arrive, each hint once after its group; return the failure count."""
     counts: Counter[Status] = Counter()
-    hint = ""
-    for result in results:
-        if hint and result.hint != hint:
-            print(f"      {hint}")
-        hint = result.hint
-        counts[result.status] += 1
-        print(f"{result.status}  {result.message}")
-    if hint:
-        print(f"      {hint}")
+    for hint, group in groupby(results, key=lambda result: result.hint):
+        for result in group:
+            counts[result.status] += 1
+            console.labelled(result.status, _STYLES[result.status], result.message)
+        if hint:
+            console.note(f"    {hint}")
     if counts:
-        print(f"\n{counts[Status.FAIL]} failure(s), {counts[Status.WARN]} warning(s)")
+        console.info(f"\n{counts[Status.FAIL]} failure(s), {counts[Status.WARN]} warning(s)")
     return counts[Status.FAIL]
 
 
 def exit_on_failure(results: Iterable[CheckResult]) -> None:
-    """Print `results`, and exit 1 when any of them failed."""
     if print_results(results):
         raise typer.Exit(1)

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+from voltmod import console
 from voltmod.errors import VoltmodError
 from voltmod.platforms import Platform
 from voltmod.server.cs2_server import Cs2Server
@@ -21,13 +22,13 @@ def update_server(steamcmd: Path | None, server: Path) -> None:
     """Refresh the server files when SteamCMD is available."""
     steamcmd = steamcmd.expanduser() if steamcmd else None
     if not steamcmd or not steamcmd.is_file():
-        print(f"WARNING: SteamCMD not found at {steamcmd}; skipping update.")
+        console.warn(f"SteamCMD not found at {steamcmd}; skipping the update")
         return
 
     login: list[str | Path] = ["+force_install_dir", server, "+login", "anonymous"]
     result = run(steamcmd, *login, "+app_update", CS2_APP, "validate", "+quit", check=False)
     if result.returncode:
-        print(f"WARNING: SteamCMD update failed ({result.returncode}); using existing files.")
+        console.warn(f"SteamCMD update failed ({result.returncode}); using the existing files")
 
 
 def run_server(
@@ -38,7 +39,7 @@ def run_server(
         update_server(steamcmd, server.root)
 
     if server.restore_metamod_search_path():
-        print("Restored Metamod's search path in gameinfo.gi (a CS2 update removed it).")
+        console.note("Restored Metamod's search path in gameinfo.gi (a CS2 update removed it)")
 
     executable = server.executable
     if executable is None:
@@ -55,8 +56,8 @@ def run_server(
         command += ["+rcon_password", options.rcon_password]
 
     mode = "public" if options.gslt_token else "LAN"
-    print(
-        f"=== Starting CS2: {options.map_name}, {options.max_players} players, "
-        f"port {options.port}, {mode} ==="
+    console.step(
+        f"Starting CS2: {options.map_name}, {options.max_players} players, "
+        f"port {options.port}, {mode}"
     )
     run(*command, cwd=executable.parent, check=False)

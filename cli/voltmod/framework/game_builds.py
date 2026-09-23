@@ -15,6 +15,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
+from voltmod import console
 from voltmod.errors import VoltmodError
 from voltmod.framework.gamedata import game_libraries
 from voltmod.platforms import Platform
@@ -65,7 +66,7 @@ def fetch_build(archive: Path, platform: Platform) -> Path:
 
         target = archive / Cs2Server(install).build / platform
         if target.is_dir():
-            print(f"    build {target.parent.name} {platform} is already archived")
+            console.note(f"build {target.parent.name} {platform} is already archived")
             return target
         target.mkdir(parents=True)
         for path in files:
@@ -118,7 +119,7 @@ def _depot_downloader(tools: Path) -> Path:
         "https://github.com/SteamRE/DepotDownloader/releases/download/"
         f"DepotDownloader_{DEPOT_DOWNLOADER_VERSION}/{name}"
     )
-    print(f"    downloading {name}")
+    console.note(f"downloading {name}")
     with urllib.request.urlopen(url, timeout=120) as response:
         data = response.read()
     if hashlib.sha256(data).hexdigest() != digest:

@@ -6,6 +6,7 @@ from typing import Annotated
 
 import typer
 
+from voltmod import console
 from voltmod.checks import cli as checks
 from voltmod.database import cli as database
 from voltmod.errors import VoltmodError
@@ -81,11 +82,11 @@ def run_cli(main: Callable[[], object]) -> None:
     try:
         main()
     except VoltmodError as error:
-        print(f"error: {error}", file=sys.stderr)
+        console.error(str(error))
         sys.exit(1)
     except subprocess.CalledProcessError as error:
         command = error.cmd if isinstance(error.cmd, str) else " ".join(map(str, error.cmd))
-        print(f"error: `{command}` exited with {error.returncode}", file=sys.stderr)
+        console.error(f"`{command}` exited with {error.returncode}")
         sys.exit(1)
 
 

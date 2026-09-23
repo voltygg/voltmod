@@ -101,10 +101,16 @@ def module_path(game_dir: Path, platform: Platform, module: str) -> Path:
     return path
 
 
-def check_gamedata(
-    root: Path, game_dir: Path | None, platform: Platform | None
-) -> tuple[str, list[PatternResult]]:
-    """The gamedata text in `root`, and every pattern checked against the game at `game_dir`."""
+@dataclass(frozen=True, slots=True)
+class GamedataCheck:
+    text: str  # the file as read, which repairs patch in place
+    platform: Platform
+    game_build: str
+    results: list[PatternResult]
+
+
+def check_gamedata(root: Path, game_dir: Path | None, platform: Platform | None) -> GamedataCheck:
+    """Every committed pattern in `root` checked against the game at `game_dir`."""
     if game_dir is None:
         raise VoltmodError("no game directory; set CS2_SERVER_PATH in .env or pass --game-dir")
     game = game_dir.expanduser()
@@ -116,8 +122,8 @@ def check_gamedata(
     baseline = root / SCHEMA_BASELINES[binaries.platform]
     schema = json.loads(baseline.read_text(encoding="utf-8")) if baseline.is_file() else {}
 
-    print(f"==> gamedata {binaries.platform} (game build {Cs2Server(game).build})")
-    return text, check_patterns(parse_gamedata(text), binaries, schema)
+    results = check_patterns(parse_gamedata(text), binaries, schema)
+    return GamedataCheck(text, binaries.platform, Cs2Server(game).build, results)
 
 
 def read_gamedata(root: Path) -> str:

@@ -4,6 +4,7 @@ from typing import Annotated
 
 import typer
 
+from voltmod import console
 from voltmod.checks.conventions import check_plugins
 from voltmod.checks.doctor import run_checks
 from voltmod.checks.results import exit_on_failure
@@ -19,7 +20,7 @@ def doctor_command(
 ) -> None:
     """Check the local toolchain, the project, and an optional server."""
     project = current_project()
-    print(f"VoltMod doctor\nProject: {project.root.resolve()}\nPython: {sys.version.split()[0]}")
+    console.step(f"VoltMod doctor for {project.root.resolve()}, Python {sys.version.split()[0]}")
     exit_on_failure(run_checks(project, server))
 
 
@@ -28,14 +29,14 @@ def lint_command() -> None:
     project = current_project()
     if not project.is_framework:
         exit_on_failure(check_plugins(project.root))
-        print("Plugin sources hold.")
+        console.done("Plugin sources hold.")
         return
 
     dependencies, results = check_framework(project.root)
     for module, used in dependencies.items():
-        print(f"{module:10} -> {' '.join(sorted(used)) or '(none)'}")
+        console.info(f"{module:10} -> {' '.join(sorted(used)) or '(none)'}")
     exit_on_failure(results)
-    print("\nLayering holds.")
+    console.done("Layering holds.")
 
 
 def format_command(
@@ -48,7 +49,7 @@ def format_command(
     project = current_project()
     files = find_cpp_sources(project.root, dirs or project.cpp_source_dirs)
     if not files:
-        print("No C++ sources found.")
+        console.info("No C++ sources found.")
         return
     format_cpp_files(files)
-    print(f"clang-format formatted {len(files)} file(s).")
+    console.done(f"clang-format formatted {len(files)} file(s).")

@@ -6,6 +6,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from voltmod import console
 from voltmod.errors import VoltmodError
 from voltmod.toolchain.process import WINDOWS, put_tools_first_on_path, run
 
@@ -42,7 +43,7 @@ def load_msvc_environment() -> None:
     if not visual_studio or not vcvars.is_file():
         raise VoltmodError("vcvars64.bat not found; install the VC++ x64 toolset")
 
-    print(f"==> Loading MSVC environment ({visual_studio})")
+    console.step(f"Loading MSVC environment ({visual_studio})")
     # A string keeps the quoted vcvars path intact; list2cmdline does not.
     command = f'cmd /c "{vcvars}" >nul && set'
     output = subprocess.run(command, check=True, text=True, capture_output=True).stdout

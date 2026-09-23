@@ -4,6 +4,7 @@ import os
 import shutil
 from pathlib import Path
 
+from voltmod import console
 from voltmod.errors import VoltmodError
 from voltmod.panorama.render import render_screens
 from voltmod.project import Project
@@ -83,7 +84,7 @@ def build(
     if relock:
         check_build_uses_package(project, preset, package_folder)
 
-    print(f"\nBuild complete: {preset} -> build/{preset}")
+    console.done(f"Build complete: {preset} -> build/{preset}")
 
 
 def run_tests(project: Project, preset: str, name_filter: str = "") -> None:
@@ -96,7 +97,7 @@ def run_tests(project: Project, preset: str, name_filter: str = "") -> None:
 
 
 def bootstrap(project: Project, preset: str) -> None:
-    print("==> [1/2] Installing Conan profiles and remotes")
+    console.step("[1/2] Installing Conan profiles and remotes")
     local_config = project.root / "conan"
     if (local_config / "profiles").is_dir():
         source = [str(local_config)]
@@ -104,9 +105,9 @@ def bootstrap(project: Project, preset: str) -> None:
         source = [FRAMEWORK_REPOSITORY, "-sf", "conan"]
     run_tool("conan", "config", "install", *source)
 
-    print("==> [2/2] Building with Conan + CMake")
+    console.step("[2/2] Building with Conan + CMake")
     build(project, preset)
-    print("\nBootstrap complete: build/<preset>/plugins/")
+    console.done(f"Bootstrap complete: build/{preset}/plugins/")
 
 
 def _configure_ccache(root: Path) -> bool:

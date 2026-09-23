@@ -4,6 +4,7 @@ import re
 import string
 from pathlib import Path
 
+from voltmod import console
 from voltmod.bundled import TEMPLATES_DIR
 from voltmod.errors import VoltmodError
 
@@ -25,12 +26,10 @@ def create_project(root: Path, name: str, plugin: str) -> None:
     _render_tree(_template_dir("project"), root, {"project": name})
     _add_plugin(root, plugin)
 
-    print(
-        "\nDone. Next steps:\n"
-        "  uv sync              # provision the toolchain (https://docs.astral.sh/uv)\n"
-        "  uv run poe doctor    # check tools and project configuration\n"
-        "  uv run poe bootstrap # Conan profiles + remote, then a first build"
-    )
+    console.done("Done. Next steps:")
+    console.info("  uv sync              # provision the toolchain (https://docs.astral.sh/uv)")
+    console.info("  uv run poe doctor    # check tools and project configuration")
+    console.info("  uv run poe bootstrap # Conan profiles + remote, then a first build")
 
 
 def create_plugin(root: Path, name: str) -> None:
@@ -38,7 +37,7 @@ def create_plugin(root: Path, name: str) -> None:
     if not (root / "CMakeLists.txt").is_file():
         raise VoltmodError(f"no CMakeLists.txt in {root}; run from your repo's root")
     _add_plugin(root, name)
-    print("\nDone. Build it with: uv run poe build")
+    console.done("Done. Build it with: uv run poe build")
 
 
 def plugin_fields(name: str) -> dict[str, str]:
@@ -68,7 +67,7 @@ def _add_plugin(root: Path, name: str) -> None:
 
     _render_tree(_template_dir("plugin"), plugin_dir, plugin_fields(name), label=f"plugins/{name}/")
     if _register_subdirectory(root / "CMakeLists.txt", name):
-        print(f"  registered add_subdirectory(plugins/{name}) in CMakeLists.txt")
+        console.item(f"registered add_subdirectory(plugins/{name}) in CMakeLists.txt")
 
 
 def _render_tree(template_dir: Path, target: Path, fields: dict[str, str], label: str = "") -> None:
@@ -81,7 +80,7 @@ def _render_tree(template_dir: Path, target: Path, fields: dict[str, str], label
         out = target / relative
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(text, encoding="utf-8", newline="\n")
-        print(f"  created {label}{relative.as_posix()}")
+        console.item(f"created {label}{relative.as_posix()}")
 
 
 def _register_subdirectory(root_cmake: Path, name: str) -> bool:

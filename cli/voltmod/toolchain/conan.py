@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 from typing import Any
 
+from voltmod import console
 from voltmod.bundled import BUNDLED_DIR
 from voltmod.errors import VoltmodError
 from voltmod.toolchain.process import WINDOWS, run_tool, tool_output
@@ -65,7 +66,7 @@ def ensure_remote(root: Path) -> None:
     if os.environ.get("VOLTMOD_SKIP_REMOTE_SETUP") or has_remote():
         return
     url = remote_url(root)
-    print(f"==> Adding Conan remote '{REMOTE}' ({url})")
+    console.step(f"Adding Conan remote '{REMOTE}' ({url})")
     run_tool("conan", "remote", "add", "--force", REMOTE, url)
 
 

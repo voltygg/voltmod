@@ -63,7 +63,7 @@ def check_conventions(
                 definition = DEFINITION.format(re.escape(declared.group(1)))
                 if not re.search(definition, file.text, re.MULTILINE):
                     forwards.append(
-                        CheckResult(
+                        CheckResult.fail(
                             f"{where}: forward declaration `{line.strip()}`",
                             hint="Include the defining header, or use the documented "
                             "*Types.hpp file.",
@@ -71,13 +71,13 @@ def check_conventions(
                     )
             if ANONYMOUS_NAMESPACE.match(line):
                 anonymous.append(
-                    CheckResult(
+                    CheckResult.fail(
                         f"{where}: anonymous namespace", hint="Use a static file-scope declaration."
                     )
                 )
             if USING_DIRECTIVE.match(line):
                 directives.append(
-                    CheckResult(
+                    CheckResult.fail(
                         f"{where}: using-directive `{line.strip()}`",
                         hint="Qualify the name, or use a targeted using-declaration in the .cpp.",
                     )

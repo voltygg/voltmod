@@ -3,6 +3,7 @@ from typing import Annotated
 
 import typer
 
+from voltmod import console
 from voltmod.checks.results import exit_on_failure
 from voltmod.options import current_project
 from voltmod.panorama.check import check_screens
@@ -27,7 +28,7 @@ def render_command(
 ) -> None:
     """Render panorama/screens/ into the build tree."""
     written = render_screens(current_project().root, plugins, out)
-    print(f"Rendered {len(written)} file(s)")
+    console.done(f"Rendered {len(written)} file(s)")
 
 
 def compile_command(
@@ -66,4 +67,4 @@ def check_command(plugins: Plugins = None) -> None:
     root = current_project().root
     exit_on_failure(check_screens(root, plugins))
     count = sum(len(screen_sources(owner)) for owner in screen_owners(root, plugins))
-    print(f"Checked {count} screen(s)")
+    console.done(f"Checked {count} screen(s)")

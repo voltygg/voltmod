@@ -3,6 +3,7 @@ from typing import Annotated
 
 import typer
 
+from voltmod import console
 from voltmod.files import read_json
 from voltmod.framework.game_builds import (
     archive_resolved,
@@ -49,7 +50,7 @@ def schemagen_command(
 
     output = render_outputs(read_json(dump_file, "dump"), manifest, platform)
     write_outputs(project.root, output.files, platform)
-    print(output.summary)
+    console.done(output.summary)
 
 
 def gamedata_check_command(
@@ -61,17 +62,20 @@ def gamedata_check_command(
 ) -> None:
     """Report which committed patterns no longer match the shipped binaries."""
     project = current_project()
-    text, results = check_gamedata(project.root, game_dir, platform)
-    drifted = _print_drift(results)
-    repaired = [result for result in results if result.status is PatternStatus.REPAIRED]
+    check = check_gamedata(project.root, game_dir, platform)
+    console.step(f"gamedata {check.platform} (game build {check.game_build})")
+    drifted = _print_drift(check.results)
+    repaired = [result for result in check.results if result.status is PatternStatus.REPAIRED]
 
     if fix and repaired:
-        write_repairs(project.root, text, repaired)
-        print(f"wrote {GAMEDATA_FILE} ({len(repaired)} patterns)")
-        print("A unique match is not proof of behaviour: exercise each feature on a live server.")
+        write_repairs(project.root, check.text, repaired)
+        console.done(f"Wrote {GAMEDATA_FILE} ({len(repaired)} patterns)")
+        console.warn(
+            "a unique match is not proof of behaviour: exercise each feature on a live server"
+        )
         drifted -= len(repaired)
     elif repaired:
-        print(f"{len(repaired)} of {drifted} drifted entries can be repaired with --fix")
+        console.info(f"{len(repaired)} of {drifted} drifted entries can be repaired with --fix")
     if drifted:
         raise typer.Exit(1)
 
@@ -86,25 +90,25 @@ def gamedata_fetch_command(
     """
     root = default_archive()
     for name in [platform] if platform else list(Platform):
-        print(f"==> fetch {name}")
+        console.step(f"fetch {name}")
         target = fetch_build(root, name)
-        print(f"    {target}")
+        console.item(str(target))
         if server and (build := archive_resolved(server.expanduser(), root, name)):
-            print(f"    kept the local server's resolved.{name}.json under build {build}")
-        print(f"    voltmod framework gamedata check --game-dir {target} --platform {name}")
+            console.note(f"kept the local server's resolved.{name}.json under build {build}")
+        console.note(f"voltmod framework gamedata check --game-dir {target} --platform {name}")
     builds = archived_builds(root)
     if len(builds) > 1:
-        print(f"Archived builds: {' '.join(builds)} (the previous one is {builds[-2]})")
+        console.info(f"Archived builds: {' '.join(builds)} (the previous one is {builds[-2]})")
 
 
 def _print_drift(results: list[PatternResult]) -> int:
     """Print every pattern that no longer holds; return how many there are."""
     held = sum(result.status is PatternStatus.HOLDS for result in results)
-    print(f"    {held}/{len(results)} patterns hold")
+    console.note(f"{held}/{len(results)} patterns hold")
     for result in results:
         if result.status is PatternStatus.HOLDS:
             continue
-        print(f"    {result.status.upper():9} {result.section}.{result.key}")
+        console.labelled(f"{result.status.upper():9}", "yellow", f"{result.section}.{result.key}")
         for line in result.detail.splitlines():
-            print(f"{'':14}{line}")
+            console.note(f"{'':9}{line}")
     return len(results) - held

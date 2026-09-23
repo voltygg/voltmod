@@ -106,9 +106,11 @@ def check_composition_root(files: Iterable[SourceFile], modules: set[str]) -> li
             continue
         message = f"{file.path} includes VoltMod/{found.group(1)}.hpp"
         if file.path.startswith("include/VoltMod/") and file.path.endswith(".hpp"):
-            headers.append(CheckResult(message, hint="Only App may include the composition root."))
+            headers.append(
+                CheckResult.fail(message, hint="Only App may include the composition root.")
+            )
         elif file.path.startswith("src/") and file.path.endswith(".cpp"):
-            sources.append(CheckResult(message, hint="Inject the narrower service instead."))
+            sources.append(CheckResult.fail(message, hint="Inject the narrower service instead."))
     return sorted(headers, key=lambda r: r.message) + sorted(sources, key=lambda r: r.message)
 
 
@@ -121,7 +123,7 @@ def check_core_isolation(files: Iterable[SourceFile]) -> list[CheckResult]:
         for number, line in enumerate(file.text.splitlines(), 1):
             if hit := ENGINE_INCLUDE.match(line):
                 results.append(
-                    CheckResult(
+                    CheckResult.fail(
                         f"{file.path}:{number}: Core includes {hit.group(1)}",
                         hint="Move engine-dependent code to Engine.",
                     )
@@ -143,7 +145,7 @@ def check_host_boundary(files: Iterable[SourceFile]) -> list[CheckResult]:
                 continue
 
             results.append(
-                CheckResult(
+                CheckResult.fail(
                     f"{file.path}:{number}: includes {included}",
                     hint="The boundary carries plain data and borrowed views only: "
                     + ", ".join(sorted(HOST_BOUNDARY_INCLUDES))
@@ -165,16 +167,16 @@ def check_framework(root: Path) -> tuple[dict[str, set[str]], list[CheckResult]]
 
     listed = set(ALLOWED_DEPENDENCIES)
     results = [
-        CheckResult(f"module {name}/ is missing from ALLOWED_DEPENDENCIES")
+        CheckResult.fail(f"module {name}/ is missing from ALLOWED_DEPENDENCIES")
         for name in sorted(set(modules) - listed)
     ]
     results += [
-        CheckResult(f"ALLOWED_DEPENDENCIES lists {name}, which is gone")
+        CheckResult.fail(f"ALLOWED_DEPENDENCIES lists {name}, which is gone")
         for name in sorted(listed - set(modules))
     ]
     # Only a listed module has an allowed set to compare its includes against.
     results += [
-        CheckResult(
+        CheckResult.fail(
             f"{owner} -> {dependency} is not allowed "
             f"(allowed: {' '.join(sorted(ALLOWED_DEPENDENCIES[owner])) or 'nothing'})\n"
             f"      {evidence[(owner, dependency)]}"
