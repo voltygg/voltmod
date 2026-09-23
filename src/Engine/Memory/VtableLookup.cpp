@@ -22,8 +22,8 @@ void* FindVirtualTable(std::string_view moduleName, std::string_view className)
         return nullptr;
     }
 
-    LoadedModule module;
-    if (!FindLoadedModule(moduleName, module))
+    Image module;
+    if (!FindImage(moduleName, module))
     {
         Log::Warn("VtableLookup: Module '{}' not found.", PlatformModuleName(moduleName));
         return nullptr;

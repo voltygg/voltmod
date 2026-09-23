@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Engine/Memory/LoadedModule.hpp"
-#include "Engine/Memory/VtableLookup.hpp"
+#include "Engine/Memory/ScriptBindings.hpp"
 #include "Host/GameData/GameDataDocument.hpp"
+#include "Host/GameData/ModuleCache.hpp"
 #include "Host/GameData/ResolvedGameData.hpp"
 
 #include <VoltMod/Core/Result.hpp>
@@ -12,8 +12,6 @@
 #include <map>
 #include <string>
 #include <string_view>
-#include <tuple>
-#include <utility>
 #include <vector>
 
 namespace VoltMod
@@ -26,73 +24,64 @@ struct VirtualSlot
     void* Table = nullptr;
 };
 
-/**
- * @brief Locates modules, class vtables, and base subobjects, caching each lookup.
- */
-class ModuleCache
-{
-public:
-    const LoadedModule* Module(const std::string& moduleName);
-    void* ClassTable(const LoadedModule& module, const std::string& moduleName, const std::string& className);
-    Result<BaseSubobject> Base(const LoadedModule& module, const std::string& moduleName, const std::string& className,
-                               const std::string& baseName);
-
-private:
-    std::map<std::string, LoadedModule> _modules;
-    std::map<std::pair<std::string, std::string>, void*> _tables;
-    std::map<std::tuple<std::string, std::string, std::string>, Result<BaseSubobject>> _bases;
-};
-
 /** What one gamedata key resolved to. @ref Reason is empty exactly when it bound. */
 struct ResolvedEntry
 {
-    /** The sections holding the key: one normally, more when the file repeats it. */
+    /** Every section holding the key; more than one is a file error. */
     std::vector<std::string_view> Sections;
-    /** The section's kind, or no kind at all when the key is in more than one. */
+    /** No kind when the key is in more than one section. */
     GameDataSection Kind{};
     void* Address = nullptr;
     int Value = -1;
     std::string Reason;
 };
 
-/**
- * @brief Resolve every gamedata key against the loaded modules.
- *
- * An unresolved key keeps its reason and adds `key: reason` to @ref Failures.
- */
+/** Resolves every gamedata key against the loaded modules, once for the process. */
 class GameDataResolver
 {
 public:
-    /** @p file and @p originalOf must outlive the resolver. */
-    GameDataResolver(const GameDataDocument& file, const OriginalSlotLookup& originalOf);
+    /** @p file, @p originalOf and @p scriptOf must outlive the resolver. */
+    GameDataResolver(const GameDataDocument& file, const OriginalSlotLookup& originalOf,
+                     const ScriptBindingLookup& scriptOf);
 
-    /** Scan for every entry in the file. Called once: this is the work the host does for all. */
     void ResolveAll();
 
-    /** What @p key resolved to, or nullptr when the file does not have it. */
+    /** Nullptr when the file does not have @p key. */
     const ResolvedEntry* Find(std::string_view key) const;
 
+    /** `key: reason` for each entry that did not bind. */
     const std::vector<std::string>& Failures() const { return _failures; }
 
     const ResolvedGameData& Resolved() const { return _resolved; }
 
-    /** Log resolution counts, addresses, and build mismatches. */
+    /** Log the entry counts, and warn when the file was checked on another game build. */
     void LogSummary(std::string_view path) const;
 
 private:
-    void Resolve(const std::string& key, ResolvedEntry& entry);
+    /** An address, a slot or offset value, or both for a vtable slot. */
+    struct Bound
+    {
+        void* Address = nullptr;
+        int Value = -1;
+    };
 
-    /** Keep @p error as @p entry's reason and name the entry in @ref Failures. */
+    Result<Bound> Locate(GameDataSection kind, const std::string& key);
     void Fail(std::string_view key, ResolvedEntry& entry, const Error& error);
 
     Result<void*> FindFunction(const std::string& key);
+    Result<void*> FindScriptFunction(const std::string& key, const GameDataDocument::Function& entry);
     Result<void*> FindGlobal(const std::string& key);
     Result<VirtualSlot> FindSlot(const std::string& key);
     Result<int> FindOffset(const std::string& key);
-    Result<int> FindBaseOffset(const std::string& key, const GameDataDocument::Offset& entry);
+    Result<int> FindBaseOffset(const GameDataDocument::Offset& entry);
+
+    Result<ScriptTarget> FindScript(void* table, const std::string& name) const;
+    /** The slot a virtual VScript binding dispatches through. */
+    Result<int> ScriptSlot(void* table, const std::string& name) const;
 
     const GameDataDocument& _file;
     const OriginalSlotLookup& _originalOf;
+    const ScriptBindingLookup& _scriptOf;
     std::map<std::string, ResolvedEntry, std::less<>> _entries;
     ModuleCache _cache;
     std::vector<std::string> _failures;

@@ -20,11 +20,14 @@ struct GameDataDocument
         std::string verified;  ///< YYYY-MM-DD of the last full review.
     };
 
+    /** A byte pattern per platform, or the VScript binding `script` of `class`. */
     struct Function
     {
         std::string Module = "server";
         std::optional<std::string> Windows;
         std::optional<std::string> Linux;
+        std::string Class;
+        std::string Script;
     };
 
     /** A pattern and the offset of its rel32 displacement. */
@@ -41,7 +44,7 @@ struct GameDataDocument
         std::optional<GlobalColumn> Linux;
     };
 
-    /** A vtable slot, counted in `class` or its named `base`. */
+    /** A vtable slot, counted in `class` or its named `base`, or read from the VScript binding `script`. */
     struct VTable
     {
         std::string Class;
@@ -49,6 +52,7 @@ struct GameDataDocument
         std::string Module = "server";
         std::optional<int> Windows;
         std::optional<int> Linux;
+        std::string Script;
     };
 
     /** A platform offset, or the RTTI-derived location of `base` within `class`. */
@@ -98,7 +102,8 @@ template <>
 struct glz::meta<VoltMod::GameDataDocument::Function>
 {
     using T = VoltMod::GameDataDocument::Function;
-    static constexpr auto value = glz::object("module", &T::Module, "windows", &T::Windows, "linux", &T::Linux);
+    static constexpr auto value = glz::object("module", &T::Module, "windows", &T::Windows, "linux", &T::Linux, "class",
+                                              &T::Class, "script", &T::Script);
 };
 
 template <>
@@ -113,7 +118,7 @@ struct glz::meta<VoltMod::GameDataDocument::VTable>
 {
     using T = VoltMod::GameDataDocument::VTable;
     static constexpr auto value = glz::object("class", &T::Class, "base", &T::Base, "module", &T::Module, "windows",
-                                              &T::Windows, "linux", &T::Linux);
+                                              &T::Windows, "linux", &T::Linux, "script", &T::Script);
 };
 
 template <>

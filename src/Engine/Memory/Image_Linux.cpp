@@ -1,4 +1,4 @@
-#include "Engine/Memory/LoadedModule.hpp"
+#include "Engine/Memory/Image.hpp"
 
 #ifndef _WIN32
 
@@ -23,7 +23,7 @@ struct ModuleScan
     std::string_view Name;          // basename to match, e.g. "libserver.so"
     size_t BestSpan = 0;            // largest span selects the real module
     std::vector<ScanRange> Ranges;  // PT_LOAD segments of the selected module
-    LoadedModule Module;            // selected module mapping and path
+    Image Module;                   // selected module mapping and path
 };
 
 // Multiple objects can share a basename. Match it exactly and keep the largest mapping to avoid
@@ -60,7 +60,7 @@ static int DlIterateCallback(struct dl_phdr_info* info, size_t /*size*/, void* d
     return 0;  // continue so the largest match wins
 }
 
-bool FindModuleAndRanges(std::string_view fileName, LoadedModule& module, std::vector<ScanRange>& ranges)
+bool FindModuleAndRanges(std::string_view fileName, Image& module, std::vector<ScanRange>& ranges)
 {
     ModuleScan scan{.Name = fileName};
     dl_iterate_phdr(DlIterateCallback, &scan);

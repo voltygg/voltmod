@@ -1,5 +1,6 @@
 #include "Host/MetamodEntry.hpp"
 
+#include "Engine/Memory/ScriptBindings.hpp"
 #include "Engine/Server/ConsoleLogger.hpp"
 
 #include <ISmmAPI.h>
@@ -36,7 +37,7 @@ bool MetamodEntry::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, 
     // Once for the process, before any plugin: a signature a game update broke is logged here
     // and nowhere else. Another Metamod plugin may already hold a slot, so read through KHook.
     _gameData = std::make_unique<GameDataService>();
-    _gameData->Resolve(GameDataPath, ReadOriginalSlot);
+    _gameData->Resolve(GameDataPath, ReadOriginalSlot, FindScriptBinding);
 
     _host =
         std::make_unique<PluginHost>(ismm, KHook::__exported__khook, _gameData->Ready() ? _gameData.get() : nullptr);

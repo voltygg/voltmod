@@ -12,22 +12,16 @@
 namespace VoltMod
 {
 
-/**
- * @brief The process's one gamedata resolution, served to every plugin.
- *
- * Read and scanned once at host load, before any plugin runs, and kept for the rest of the
- * process. What did not bind is logged here, once, with the same reason each plugin's
- * @ref Bindings then reports through its own `Available()`.
- */
+/** The process's one gamedata resolution, made at host load and served to every plugin. What
+ *  did not bind is logged here once; each plugin's services report it again as unavailable. */
 class GameDataService final : public IHostGameData
 {
 public:
-    /** Read @p path, scan for every entry, log the outcome and record what bound.
-     *
-     *  @p originalOf reads a vtable slot another module already hooked. */
-    void Resolve(std::string_view path, const OriginalSlotLookup& originalOf = {});
+    /** Read and resolve @p path. @p originalOf reads a slot another module already hooked. */
+    void Resolve(std::string_view path, const OriginalSlotLookup& originalOf = {},
+                 const ScriptBindingLookup& scriptOf = {});
 
-    /** False when the file could not be read, in which case there is nothing to serve. */
+    /** False when the file could not be read. */
     bool Ready() const { return _resolver != nullptr; }
 
     GameDataLocation Lookup(GameDataSection sections, std::string_view key) override;
@@ -40,6 +34,7 @@ private:
     std::unique_ptr<GameDataDocument> _file;
     std::unique_ptr<GameDataResolver> _resolver;
     OriginalSlotLookup _originalOf;
+    ScriptBindingLookup _scriptOf;
     std::string _reason;
 };
 

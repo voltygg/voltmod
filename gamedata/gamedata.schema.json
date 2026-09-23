@@ -26,7 +26,7 @@
     },
     "functions": {
       "type": "object",
-      "description": "Functions located by byte pattern; the match address is the binding.",
+      "description": "Functions located by byte pattern, or by the VScript binding that calls them.",
       "additionalProperties": { "$ref": "#/definitions/function" }
     },
     "globals": {
@@ -59,11 +59,24 @@
     "function": {
       "type": "object",
       "additionalProperties": false,
-      "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }],
+      "oneOf": [
+        {
+          "description": "Byte pattern for each platform.",
+          "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }],
+          "not": { "anyOf": [{ "required": ["class"] }, { "required": ["script"] }] }
+        },
+        {
+          "description": "The function a VScript binding of `class` calls, found by name at load.",
+          "required": ["class", "script"],
+          "not": { "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }] }
+        }
+      ],
       "properties": {
         "module": { "$ref": "#/definitions/module" },
         "windows": { "$ref": "#/definitions/pattern" },
-        "linux": { "$ref": "#/definitions/pattern" }
+        "linux": { "$ref": "#/definitions/pattern" },
+        "class": { "$ref": "#/definitions/class" },
+        "script": { "$ref": "#/definitions/script" }
       }
     },
     "global": {
@@ -93,7 +106,18 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["class"],
-      "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }],
+      "oneOf": [
+        {
+          "description": "Index for each platform.",
+          "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }],
+          "not": { "required": ["script"] }
+        },
+        {
+          "description": "The index a virtual VScript binding of `class` dispatches through, read at load.",
+          "required": ["script"],
+          "not": { "anyOf": [{ "required": ["windows"] }, { "required": ["linux"] }, { "required": ["base"] }] }
+        }
+      ],
       "properties": {
         "class": { "$ref": "#/definitions/class" },
         "base": {
@@ -102,7 +126,8 @@
         },
         "module": { "$ref": "#/definitions/module" },
         "windows": { "type": "integer", "minimum": 0 },
-        "linux": { "type": "integer", "minimum": 0 }
+        "linux": { "type": "integer", "minimum": 0 },
+        "script": { "$ref": "#/definitions/script" }
       }
     },
     "offset": {
@@ -131,6 +156,11 @@
     "class": {
       "type": "string",
       "description": "Top-level RTTI class name without a namespace or template."
+    },
+    "script": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A VScript binding name, searched in the class's script description and then its bases."
     }
   }
 }

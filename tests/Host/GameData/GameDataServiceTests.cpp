@@ -148,6 +148,10 @@ TEST_CASE("Anything that needs a module the server has not loaded names that mod
          GameDataSection::Function, "CreateEntityByName", "module 'engine2' is not loaded"},
         {R"("vtables": { "CBaseEntity::Teleport": { "class": "CCSPlayerPawn", "windows": 163, "linux": 162 } })",
          GameDataSection::VTable, "CBaseEntity::Teleport", "module 'server' is not loaded"},
+        {R"("functions": { "CBaseEntity::EmitSoundParams": { "class": "CBaseEntity", "script": "EmitSoundParams" } })",
+         GameDataSection::Function, "CBaseEntity::EmitSoundParams", "module 'server' is not loaded"},
+        {R"("vtables": { "CCSPlayerController::ChangeTeam": { "class": "CCSPlayerController", "script": "SetTeam" } })",
+         GameDataSection::VTable, "CCSPlayerController::ChangeTeam", "module 'server' is not loaded"},
         {R"("offsets": { "CServerSideClient::INetworkMessageProcessingPreFilter": {
       "class": "CServerSideClient", "base": "INetworkMessageProcessingPreFilter", "module": "engine2" } })",
          GameDataSection::Offset, "CServerSideClient::INetworkMessageProcessingPreFilter",
@@ -200,7 +204,7 @@ TEST_CASE("Only a file this host can read whole is resolved")
         {R"("signatures": {})", false},
         {R"("offsets": { "GameEntitySystem": { "windows": "88", "linux": 80 } })", false},
         {R"("vtables": [1, 2])", false},
-        {R"("globals": { "CBaseGameSystemFactory::sm_pFirst": { "windows": "48 8B" } })", false},
+        {R"("globals": { "CSource2Server::g_GameEventManager": { "windows": "48 8B" } })", false},
         {R"("functions": { "CreateEntityByName": 7 })", false},
         // The schema key every gamedata file carries.
         {R"("$schema": "./gamedata.schema.json")", true},

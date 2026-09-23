@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Engine/Memory/LoadedModule.hpp"
+#include "Engine/Memory/Image.hpp"
 #include "Engine/Memory/RelativeAddress.hpp"
 
 #include <cstddef>
@@ -15,12 +15,12 @@ struct ScanResult
 {
     void* Address = nullptr;  // first match, or nullptr
     bool Unique = true;       // false when another match exists
-    LoadedModule Module;      // scanned module; Base is null when it was not loaded
+    Image Module;             // scanned module; Base is null when it was not loaded
 };
 
 std::string PlatformModuleName(std::string_view moduleName);
 
-bool FindLoadedModule(std::string_view moduleName, LoadedModule& module);
+bool FindImage(std::string_view moduleName, Image& module);
 
 /**
  * Scan a loaded module for a byte pattern with `?` wildcards. Address holds the first match, while
@@ -33,8 +33,7 @@ ScanResult FindPatternEx(std::string_view moduleName, const std::string& pattern
  *
  * @return 0 when the displacement is not wholly inside the module.
  */
-uintptr_t ResolveRelativeAddress(const LoadedModule& module, uintptr_t matchAddress, int ripOffset,
-                                 int ripSize = Rel32Size);
+uintptr_t ResolveRelativeAddress(const Image& module, uintptr_t matchAddress, int ripOffset, int ripSize = Rel32Size);
 
 /**
  * Whether @p address lies in committed, executable memory.

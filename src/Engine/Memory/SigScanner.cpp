@@ -27,7 +27,7 @@ namespace VoltMod
  * Byte frequencies are stable for a mapped module, so cache them by base address. Count explicit
  * scan ranges because a Linux module's overall span may include unmapped gaps.
  */
-static const ByteHistogram& FrequenciesOf(const LoadedModule& module, const std::vector<ScanRange>& ranges)
+static const ByteHistogram& FrequenciesOf(const Image& module, const std::vector<ScanRange>& ranges)
 {
     static std::map<const uint8_t*, ByteHistogram> cache;
 
@@ -55,7 +55,7 @@ std::string PlatformModuleName(std::string_view moduleName)
 #endif
 }
 
-bool FindLoadedModule(std::string_view moduleName, LoadedModule& module)
+bool FindImage(std::string_view moduleName, Image& module)
 {
     std::vector<ScanRange> ranges;
     return FindModuleAndRanges(PlatformModuleName(moduleName), module, ranges);
@@ -65,7 +65,7 @@ ScanResult FindPatternEx(std::string_view moduleName, const std::string& pattern
 {
     const std::string fullName = PlatformModuleName(moduleName);
 
-    LoadedModule module;
+    Image module;
     std::vector<ScanRange> ranges;
     if (!FindModuleAndRanges(fullName, module, ranges))
     {
@@ -105,7 +105,7 @@ ScanResult FindPatternEx(std::string_view moduleName, const std::string& pattern
     return {const_cast<uint8_t*>(first), true, std::move(module)};
 }
 
-uintptr_t ResolveRelativeAddress(const LoadedModule& module, uintptr_t matchAddress, int ripOffset, int ripSize)
+uintptr_t ResolveRelativeAddress(const Image& module, uintptr_t matchAddress, int ripOffset, int ripSize)
 {
     if (matchAddress == 0 || !module.Base)
     {

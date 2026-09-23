@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Engine/Memory/LoadedModule.hpp"
+#include "Engine/Memory/Image.hpp"
 
 #include <VoltMod/Core/Result.hpp>
 #include <cstddef>
@@ -18,7 +18,7 @@ namespace VoltMod
  */
 void* FindVirtualTable(std::string_view moduleName, std::string_view className);
 
-void* FindVirtualTableIn(const LoadedModule& module, std::string_view className);
+void* FindVirtualTableIn(const Image& module, std::string_view className);
 
 void* FindVirtualTableByTypeName(std::span<const ScanRange> ranges, std::string_view className);
 
@@ -38,7 +38,7 @@ struct BaseSubobject
  * @return NotFound when either class is missing, Invalid when the base is in the class more than
  *         once, Unsupported for a virtual base. Table is null when the base has no vtable.
  */
-Result<BaseSubobject> FindBaseIn(const LoadedModule& module, std::string_view className, std::string_view baseName);
+Result<BaseSubobject> FindBaseIn(const Image& module, std::string_view className, std::string_view baseName);
 
 /**
  * The vptr values of Itanium `__si_class_type_info` (one base) and `__vmi_class_type_info`

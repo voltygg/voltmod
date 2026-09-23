@@ -10,7 +10,7 @@ namespace VoltMod
 {
 
 /** A process mapping and the file backing it. */
-struct LoadedModule
+struct Image
 {
     const uint8_t* Base = nullptr;
     size_t Size = 0;
@@ -37,6 +37,6 @@ struct ScanRange
  *
  * @return false when the module is not loaded. Both outputs remain unchanged.
  */
-bool FindModuleAndRanges(std::string_view fileName, LoadedModule& module, std::vector<ScanRange>& ranges);
+bool FindModuleAndRanges(std::string_view fileName, Image& module, std::vector<ScanRange>& ranges);
 
 }  // namespace VoltMod

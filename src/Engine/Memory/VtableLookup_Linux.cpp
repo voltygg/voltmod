@@ -121,14 +121,14 @@ static uint64_t FindSymbolValue(const MappedFile& elf, const std::string& symbol
     return 0;
 }
 
-static bool RangesOf(const LoadedModule& module, std::vector<ScanRange>& ranges)
+static bool RangesOf(const Image& module, std::vector<ScanRange>& ranges)
 {
-    LoadedModule mapped;
+    Image mapped;
     const std::string fileName = std::filesystem::path(module.Path).filename().string();
     return FindModuleAndRanges(fileName, mapped, ranges);
 }
 
-void* FindVirtualTableIn(const LoadedModule& module, std::string_view className)
+void* FindVirtualTableIn(const Image& module, std::string_view className)
 {
     if (module.Path.empty())
     {
@@ -172,7 +172,7 @@ static const TypeInfoKinds& ExportedTypeInfoKinds()
     return kinds;
 }
 
-Result<BaseSubobject> FindBaseIn(const LoadedModule& module, std::string_view className, std::string_view baseName)
+Result<BaseSubobject> FindBaseIn(const Image& module, std::string_view className, std::string_view baseName)
 {
     void* primary = FindVirtualTableIn(module, className);
     if (!primary)

@@ -12,7 +12,8 @@
 namespace VoltMod
 {
 
-void GameDataService::Resolve(std::string_view path, const OriginalSlotLookup& originalOf)
+void GameDataService::Resolve(std::string_view path, const OriginalSlotLookup& originalOf,
+                              const ScriptBindingLookup& scriptOf)
 {
     auto file = Json::ReadFile<GameDataDocument, Json::StrictReadOptions>(path);
     if (!file)
@@ -23,7 +24,8 @@ void GameDataService::Resolve(std::string_view path, const OriginalSlotLookup& o
 
     _file = std::make_unique<GameDataDocument>(std::move(*file));
     _originalOf = originalOf;
-    _resolver = std::make_unique<GameDataResolver>(*_file, _originalOf);
+    _scriptOf = scriptOf;
+    _resolver = std::make_unique<GameDataResolver>(*_file, _originalOf, _scriptOf);
     _resolver->ResolveAll();
     _resolver->LogSummary(path);
 

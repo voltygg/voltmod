@@ -42,27 +42,30 @@ belongs to exactly one section.
   // steam.inf ServerVersion the entries were last checked on, and the date.
   "build": { "server": "2000908", "verified": "2026-09-11" },
 
-  // A byte pattern matching the start of a function. The match address is the binding.
+  // A byte pattern matching the start of a function, or the function a VScript binding calls.
   "functions": {
     "CreateEntityByName": {
       "module": "server",                                  // default; "engine2" for engine code
       "windows": "48 83 EC 48 C6 44 24 30 00",
       "linux": "48 8D 05 ? ? ? ? 55 48 89 FA"
-    }
+    },
+    "CBaseEntity::EmitSoundParams": { "class": "CBaseEntity", "script": "EmitSoundParams" }
   },
 
   // A global reached through the rel32 displacement `rel32At` bytes after the match.
   "globals": {
-    "CBaseGameSystemFactory::sm_pFirst": {
-      "windows": { "pattern": "48 8B 1D ? ? ? ? 48 85 DB 0F 84 ? ? ? ? BD", "rel32At": 3 },
-      "linux": { "pattern": "4C 8B 35 ? ? ? ? 4D 85 F6 75 ? E9", "rel32At": 3 }
+    "CSource2Server::g_GameEventManager": {
+      "windows": { "pattern": "48 8B 0D ? ? ? ? E8 ? ? ? ? 45 33 FF 4C 39 7D 50", "rel32At": 3 },
+      "linux": { "pattern": "48 8D 05 ? ? ? ? 48 8B 38 E8 ? ? ? ? 49 83 7D 50 00", "rel32At": 3 }
     }
   },
 
-  // A vtable slot, counted in the primary table of `class`, or in the table of its base `base`.
+  // A vtable slot, counted in the primary table of `class`, or in the table of its base `base`,
+  // or the slot a virtual VScript binding dispatches through.
   "vtables": {
     "CPlayer_MovementServices::RunCommand": { "class": "CCSPlayer_MovementServices", "windows": 25, "linux": 26 },
-    "CServerSideClient::ProcessRespondCvarValue": { "class": "CServerSideClient", "module": "engine2", "windows": 38, "linux": 40 }
+    "CServerSideClient::ProcessRespondCvarValue": { "class": "CServerSideClient", "module": "engine2", "windows": 38, "linux": 40 },
+    "CCSPlayerController::ChangeTeam": { "class": "CCSPlayerController", "script": "SetTeam" }
   },
 
   // A byte offset into a layout the SDK headers do not declare, or where a base sits in a class.
@@ -77,8 +80,15 @@ belongs to exactly one section.
 
 Wildcard bytes are `?` or `??`. A `class` name is the top-level RTTI name, with no namespace or
 template. An offset entry is either per-platform numbers or a `class` + `base` pair read from RTTI
-at load, never both. `gamedata.schema.json` sits beside the file with `additionalProperties: false`
-everywhere, so an editor flags a typo before the server sees it.
+at load, never both.
+
+A `script` entry has no platform columns. The host reads `class`'s VScript description, searches
+its bindings and then its bases' for the name, and takes the function, or for a vtable entry the
+slot the binding dispatches through. A VScript binding can vanish in an update, so use one only
+where the binding calls the engine function itself.
+
+`gamedata.schema.json` sits beside the file with `additionalProperties: false` everywhere, so an
+editor flags a typo before the server sees it.
 
 ## What the host checks
 
@@ -93,6 +103,8 @@ Otherwise every entry is resolved and each failure is logged once with its reaso
 - a global's rel32 displacement, or the address it points at, falls outside its module;
 - an offset or index is negative;
 - a vtable's class table is not found, or its slot does not hold code;
+- a `script` binding is not in the class or its bases, or is virtual where a function is wanted,
+  or not virtual where a slot is;
 - a `base` is not in its class through RTTI, is in it more than once, is virtual, or has no vtable
   of its own.
 
@@ -182,8 +194,9 @@ Gamedata is repaired separately, and offline:
 2. `voltmod framework gamedata check --game-dir ~/.voltmod/cs2-builds/<build>/<platform>` reports which
    `functions` and `globals` patterns no longer match those binaries, and why. It needs no server.
 3. `voltmod framework gamedata check --fix` repairs what it can, then read the diff.
-4. Re-check every vtable index by hand. The slot check catches an index landing on data, not a
-   valid slot holding the wrong function.
+4. Re-check every vtable index by hand. The slot check catches an index landing on data, not
+   a valid slot holding the wrong function. `script` entries need no check: the load log says when
+   a binding is gone.
 5. Re-check every byte offset by hand. A stale offset reads plausible unrelated data.
 6. Exercise each feature on a live server. Resolution is not correctness.
 7. Update `build.server` and `build.verified` in the same change.
@@ -221,6 +234,7 @@ Common drift points:
 | `CServerSideClientBase::m_nClientSlot` | offsets | `ClientConVars`, screen presses | Stale: a client's answer is attributed to the wrong player |
 | `CheckTransmitPlayerSlot` | offsets | @ref VoltMod::Visibility | Stale: the wrong recipient is filtered |
 | `CNetworkGameServer::ReplyConnection` | functions | @ref VoltMod::Addons | `Require` is refused with the reason |
+| `CNetworkGameServer::m_szAddons` | offsets | @ref VoltMod::Addons | Stale: it no longer holds what `GetAddonName` returns, so each reply logs it and mounts nothing |
 | `CSource2Server::g_GameEventManager` | globals | @ref VoltMod::GameEvents | Events do not fire and center HTML does not display |
 
 ## Class table lookup

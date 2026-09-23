@@ -1,4 +1,4 @@
-#include "Engine/Memory/LoadedModule.hpp"
+#include "Engine/Memory/Image.hpp"
 
 #ifdef _WIN32
 
@@ -26,7 +26,7 @@ static bool SameFileName(std::string_view left, std::string_view right)
     return left.size() == right.size() && _strnicmp(left.data(), right.data(), left.size()) == 0;
 }
 
-bool FindModuleAndRanges(std::string_view fileName, LoadedModule& module, std::vector<ScanRange>& ranges)
+bool FindModuleAndRanges(std::string_view fileName, Image& module, std::vector<ScanRange>& ranges)
 {
     HANDLE process = GetCurrentProcess();
     HMODULE modules[1024];
@@ -37,7 +37,7 @@ bool FindModuleAndRanges(std::string_view fileName, LoadedModule& module, std::v
         return false;
     }
 
-    LoadedModule best;
+    Image best;
     for (DWORD i = 0; i < needed / sizeof(HMODULE); ++i)
     {
         char buffer[MAX_PATH];

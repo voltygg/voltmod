@@ -2,7 +2,6 @@
 
 #include "Core/Files/GameBuild.hpp"
 #include "Engine/Memory/SigScanner.hpp"
-#include "Engine/Memory/VtableLookup.hpp"
 
 #include <VoltMod/Core/Log.hpp>
 #include <algorithm>
@@ -18,7 +17,7 @@ static std::unexpected<Error> Unbound(std::string reason)
     return std::unexpected(Error::NotFound(std::move(reason)));
 }
 
-static uint64_t Rva(const LoadedModule& module, const void* address)
+static uint64_t Rva(const Image& module, const void* address)
 {
     return static_cast<uint64_t>(static_cast<const uint8_t*>(address) - module.Base);
 }
@@ -46,6 +45,22 @@ static Result<ScanResult> Scan(std::string_view moduleName, const std::string& p
     return match;
 }
 
+/** A non-negative number from this platform's column, or why there is none. */
+template <class TEntry>
+static Result<int> ColumnValue(const TEntry& entry, std::string_view what)
+{
+    const auto& value = PlatformColumn(entry);
+    if (!value)
+    {
+        return Unbound(std::format("no {} {}", PlatformName, what));
+    }
+    if (*value < 0)
+    {
+        return Unbound(std::format("{} {} is negative", what, *value));
+    }
+    return *value;
+}
+
 static const void* OriginalSlot(void* table, int index, const OriginalSlotLookup& originalOf)
 {
     void** slots = static_cast<void**>(table);
@@ -53,40 +68,9 @@ static const void* OriginalSlot(void* table, int index, const OriginalSlotLookup
     return original ? original : slots[index];
 }
 
-const LoadedModule* ModuleCache::Module(const std::string& moduleName)
-{
-    auto [it, added] = _modules.try_emplace(moduleName);
-    if (added)
-    {
-        FindLoadedModule(moduleName, it->second);
-    }
-    return it->second.Base ? &it->second : nullptr;
-}
-
-void* ModuleCache::ClassTable(const LoadedModule& module, const std::string& moduleName, const std::string& className)
-{
-    auto [it, added] = _tables.try_emplace({moduleName, className}, nullptr);
-    if (added)
-    {
-        it->second = FindVirtualTableIn(module, className);
-    }
-    return it->second;
-}
-
-Result<BaseSubobject> ModuleCache::Base(const LoadedModule& module, const std::string& moduleName,
-                                        const std::string& className, const std::string& baseName)
-{
-    auto key = std::tuple{moduleName, className, baseName};
-    auto it = _bases.find(key);
-    if (it == _bases.end())
-    {
-        it = _bases.emplace(std::move(key), FindBaseIn(module, className, baseName)).first;
-    }
-    return it->second;
-}
-
-GameDataResolver::GameDataResolver(const GameDataDocument& file, const OriginalSlotLookup& originalOf)
-    : _file(file), _originalOf(originalOf)
+GameDataResolver::GameDataResolver(const GameDataDocument& file, const OriginalSlotLookup& originalOf,
+                                   const ScriptBindingLookup& scriptOf)
+    : _file(file), _originalOf(originalOf), _scriptOf(scriptOf)
 {
     const auto index = [this](const auto& section, GameDataSection kind, std::string_view name) {
         for (const auto& key : section | std::views::keys)
@@ -116,9 +100,18 @@ void GameDataResolver::ResolveAll()
 {
     for (auto& [key, entry] : _entries)
     {
-        if (entry.Reason.empty())
+        if (!entry.Reason.empty())
         {
-            Resolve(key, entry);
+            continue;
+        }
+        if (const Result<Bound> bound = Locate(entry.Kind, key))
+        {
+            entry.Address = bound->Address;
+            entry.Value = bound->Value;
+        }
+        else
+        {
+            Fail(key, entry, bound.error());
         }
     }
 }
@@ -129,55 +122,40 @@ const ResolvedEntry* GameDataResolver::Find(std::string_view key) const
     return it != _entries.end() ? &it->second : nullptr;
 }
 
-void GameDataResolver::Resolve(const std::string& key, ResolvedEntry& entry)
+void GameDataResolver::LogSummary(std::string_view path) const
 {
-    switch (entry.Kind)
+    Log::Info("GameData: {} (server {}, verified {}): {} functions, {} globals, {} vtables, {} offsets.", path,
+              _file.build.server, _file.build.verified, _file.functions.size(), _file.globals.size(),
+              _file.vtables.size(), _file.offsets.size());
+
+    // Patterns, RTTI and VScript are checked at load; hand-written numbers are not.
+    if (_file.build.server != GameBuild())
+    {
+        const auto indices =
+            std::ranges::count_if(_file.vtables, [](const auto& each) { return each.second.Script.empty(); });
+        const auto numbered =
+            std::ranges::count_if(_file.offsets, [](const auto& each) { return each.second.Base.empty(); });
+        Log::Warn("GameData: verified on server {}, running {}: {} vtable indices and {} offsets are unchecked.",
+                  _file.build.server, GameBuild(), indices, numbered);
+    }
+}
+
+Result<GameDataResolver::Bound> GameDataResolver::Locate(GameDataSection kind, const std::string& key)
+{
+    const auto address = [](void* found) { return Bound{.Address = found}; };
+    switch (kind)
     {
     case GameDataSection::Function:
-        if (const auto found = FindFunction(key))
-        {
-            entry.Address = *found;
-        }
-        else
-        {
-            Fail(key, entry, found.error());
-        }
-        return;
-
+        return FindFunction(key).transform(address);
     case GameDataSection::Global:
-        if (const auto found = FindGlobal(key))
-        {
-            entry.Address = *found;
-        }
-        else
-        {
-            Fail(key, entry, found.error());
-        }
-        return;
-
+        return FindGlobal(key).transform(address);
     case GameDataSection::VTable:
-        if (const auto found = FindSlot(key))
-        {
-            entry.Address = found->Table;
-            entry.Value = found->Index;
-        }
-        else
-        {
-            Fail(key, entry, found.error());
-        }
-        return;
-
+        return FindSlot(key).transform(
+            [](VirtualSlot slot) { return Bound{.Address = slot.Table, .Value = slot.Index}; });
     case GameDataSection::Offset:
-        if (const auto found = FindOffset(key))
-        {
-            entry.Value = *found;
-        }
-        else
-        {
-            Fail(key, entry, found.error());
-        }
-        return;
+        return FindOffset(key).transform([](int value) { return Bound{.Value = value}; });
     }
+    return Unbound("in no section");
 }
 
 void GameDataResolver::Fail(std::string_view key, ResolvedEntry& entry, const Error& error)
@@ -186,25 +164,14 @@ void GameDataResolver::Fail(std::string_view key, ResolvedEntry& entry, const Er
     _failures.push_back(std::format("{}: {}", key, entry.Reason));
 }
 
-void GameDataResolver::LogSummary(std::string_view path) const
-{
-    Log::Info("GameData: {} (server {}, verified {}): {} functions, {} globals, {} vtables, {} offsets.", path,
-              _file.build.server, _file.build.verified, _file.functions.size(), _file.globals.size(),
-              _file.vtables.size(), _file.offsets.size());
-
-    // Patterns and RTTI are checked at load; hand-maintained indices and offsets are not.
-    if (_file.build.server != GameBuild())
-    {
-        const auto numbered =
-            std::ranges::count_if(_file.offsets, [](const auto& each) { return each.second.Base.empty(); });
-        Log::Warn("GameData: verified on server {}, running {}: {} vtable indices and {} offsets are unchecked.",
-                  _file.build.server, GameBuild(), _file.vtables.size(), numbered);
-    }
-}
-
 Result<void*> GameDataResolver::FindFunction(const std::string& key)
 {
     const GameDataDocument::Function& entry = _file.functions.at(key);
+    if (!entry.Script.empty())
+    {
+        return FindScriptFunction(key, entry);
+    }
+
     const auto& pattern = PlatformColumn(entry);
     if (!pattern)
     {
@@ -219,6 +186,32 @@ Result<void*> GameDataResolver::FindFunction(const std::string& key)
 
     _resolved.Functions.emplace(key, ResolvedGameData::Location{entry.Module, Rva(match->Module, match->Address)});
     return match->Address;
+}
+
+Result<void*> GameDataResolver::FindScriptFunction(const std::string& key, const GameDataDocument::Function& entry)
+{
+    const auto module = _cache.Module(entry.Module);
+    if (!module)
+    {
+        return std::unexpected(module.error());
+    }
+    const auto table = _cache.Table(entry.Module, entry.Class);
+    if (!table)
+    {
+        return std::unexpected(table.error());
+    }
+    const auto target = FindScript(*table, entry.Script);
+    if (!target)
+    {
+        return std::unexpected(target.error());
+    }
+    if (!(*module)->Contains(target->Address))
+    {
+        return Unbound(std::format("VScript '{}' is virtual or outside '{}'", entry.Script, entry.Module));
+    }
+
+    _resolved.Functions.emplace(key, ResolvedGameData::Location{entry.Module, Rva(**module, target->Address)});
+    return target->Address;
 }
 
 Result<void*> GameDataResolver::FindGlobal(const std::string& key)
@@ -252,104 +245,91 @@ Result<void*> GameDataResolver::FindGlobal(const std::string& key)
 Result<VirtualSlot> GameDataResolver::FindSlot(const std::string& key)
 {
     const GameDataDocument::VTable& entry = _file.vtables.at(key);
-    const auto& index = PlatformColumn(entry);
+    // A `script` entry's index needs the class table, so it is read once the table is found.
+    Result<int> index = entry.Script.empty() ? ColumnValue(entry, "index") : -1;
     if (!index)
     {
-        return Unbound(std::format("no {} index", PlatformName));
-    }
-    if (*index < 0)
-    {
-        return Unbound(std::format("index {} is negative", *index));
+        return std::unexpected(index.error());
     }
 
-    const LoadedModule* module = _cache.Module(entry.Module);
+    const auto module = _cache.Module(entry.Module);
     if (!module)
     {
-        return Unbound(std::format("module '{}' is not loaded", entry.Module));
+        return std::unexpected(module.error());
+    }
+    const auto table = _cache.Table(entry.Module, entry.Class, entry.Base);
+    if (!table)
+    {
+        return std::unexpected(table.error());
+    }
+    if (!entry.Script.empty())
+    {
+        index = ScriptSlot(*table, entry.Script);
+        if (!index)
+        {
+            return std::unexpected(index.error());
+        }
     }
 
-    void* table = nullptr;
-    std::string_view owner = entry.Class;
-    if (entry.Base.empty())
-    {
-        table = _cache.ClassTable(*module, entry.Module, entry.Class);
-        if (!table)
-        {
-            return Unbound(std::format("no vtable for '{}' in '{}'", entry.Class, entry.Module));
-        }
-    }
-    else
-    {
-        const auto base = _cache.Base(*module, entry.Module, entry.Class, entry.Base);
-        if (!base)
-        {
-            return std::unexpected(base.error());
-        }
-        if (!base->Table)
-        {
-            return Unbound(std::format("'{}' has no vtable of its own in '{}'", entry.Base, entry.Class));
-        }
-        table = base->Table;
-        owner = entry.Base;
-    }
-
-    // Check the slot before reading it because a short table may end before the index.
-    void** slot = static_cast<void**>(table) + *index;
-    const void* code = IsReadableAddress(slot, sizeof(void*)) ? OriginalSlot(table, *index, _originalOf) : nullptr;
+    // A short table may end before the index, so check the slot is readable first.
+    void** slot = static_cast<void**>(*table) + *index;
+    const void* code = IsReadableAddress(slot, sizeof(void*)) ? OriginalSlot(*table, *index, _originalOf) : nullptr;
     if (!IsExecutableAddress(code))
     {
+        const std::string& owner = entry.Base.empty() ? entry.Class : entry.Base;
         return Unbound(std::format("{}::[{}] does not hold code", owner, *index));
     }
 
     // A hook trampoline can live outside the module, so it has no module-relative address.
-    const uint64_t codeRva = module->Contains(code) ? Rva(*module, code) : 0;
-    _resolved.VTables.emplace(key, ResolvedGameData::Slot{entry.Module, Rva(*module, table), *index, codeRva});
-    return VirtualSlot{.Index = *index, .Table = table};
+    const Image& loaded = **module;
+    const uint64_t codeRva = loaded.Contains(code) ? Rva(loaded, code) : 0;
+    _resolved.VTables.emplace(key, ResolvedGameData::Slot{entry.Module, Rva(loaded, *table), *index, codeRva});
+    return VirtualSlot{.Index = *index, .Table = *table};
+}
+
+Result<ScriptTarget> GameDataResolver::FindScript(void* table, const std::string& name) const
+{
+    if (!_scriptOf)
+    {
+        return Unbound("no VScript lookup");
+    }
+    return _scriptOf(table, name);
+}
+
+Result<int> GameDataResolver::ScriptSlot(void* table, const std::string& name) const
+{
+    const auto target = FindScript(table, name);
+    if (!target)
+    {
+        return std::unexpected(target.error());
+    }
+    if (target->Index < 0)
+    {
+        return Unbound(std::format("VScript '{}' is not virtual", name));
+    }
+    return target->Index;
 }
 
 Result<int> GameDataResolver::FindOffset(const std::string& key)
 {
     const GameDataDocument::Offset& entry = _file.offsets.at(key);
-    if (!entry.Base.empty())
+    Result<int> offset = entry.Base.empty() ? ColumnValue(entry, "offset") : FindBaseOffset(entry);
+    if (offset)
     {
-        return FindBaseOffset(key, entry);
+        _resolved.Offsets.emplace(key, *offset);
     }
-
-    const auto& value = PlatformColumn(entry);
-    if (!value)
-    {
-        return Unbound(std::format("no {} offset", PlatformName));
-    }
-    if (*value < 0)
-    {
-        return Unbound(std::format("offset {} is negative", *value));
-    }
-
-    _resolved.Offsets.emplace(key, *value);
-    return *value;
+    return offset;
 }
 
-Result<int> GameDataResolver::FindBaseOffset(const std::string& key, const GameDataDocument::Offset& entry)
+Result<int> GameDataResolver::FindBaseOffset(const GameDataDocument::Offset& entry)
 {
     if (entry.Class.empty())
     {
         return Unbound(std::format("base '{}' names no class", entry.Base));
     }
-
-    const LoadedModule* module = _cache.Module(entry.Module);
-    if (!module)
-    {
-        return Unbound(std::format("module '{}' is not loaded", entry.Module));
-    }
-
-    const auto base = _cache.Base(*module, entry.Module, entry.Class, entry.Base);
-    if (!base)
-    {
-        return std::unexpected(base.error());
-    }
-
-    _resolved.Offsets.emplace(key, base->Offset);
-    return base->Offset;
+    return _cache.Base(entry.Module, entry.Class, entry.Base).transform([](const BaseSubobject& base) {
+        return base.Offset;
+    });
 }
 
 }  // namespace VoltMod

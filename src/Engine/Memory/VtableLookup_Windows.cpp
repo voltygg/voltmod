@@ -204,7 +204,7 @@ Result<BaseSubobject> FindBaseInRtti(const PeRtti& rtti, std::string_view classN
     return BaseSubobject{.Offset = offset, .Table = baseLocator ? TableAfter(rtti, baseLocator) : nullptr};
 }
 
-static ScanRange FindSection(const LoadedModule& module, std::string_view name)
+static ScanRange FindSection(const Image& module, std::string_view name)
 {
     const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(module.Base);
     if (module.Size < sizeof(IMAGE_DOS_HEADER) || dos->e_magic != IMAGE_DOS_SIGNATURE)
@@ -245,7 +245,7 @@ static ScanRange FindSection(const LoadedModule& module, std::string_view name)
     return {};
 }
 
-static PeRtti RttiOf(const LoadedModule& module)
+static PeRtti RttiOf(const Image& module)
 {
     return {.Base = module.Base,
             .Size = module.Size,
@@ -253,7 +253,7 @@ static PeRtti RttiOf(const LoadedModule& module)
             .ReadOnlyData = FindSection(module, ".rdata")};
 }
 
-void* FindVirtualTableIn(const LoadedModule& module, std::string_view className)
+void* FindVirtualTableIn(const Image& module, std::string_view className)
 {
     const PeRtti rtti = RttiOf(module);
     if (!rtti.Data.Base || !rtti.ReadOnlyData.Base)
@@ -263,7 +263,7 @@ void* FindVirtualTableIn(const LoadedModule& module, std::string_view className)
     return FindVirtualTableInRtti(rtti, className);
 }
 
-Result<BaseSubobject> FindBaseIn(const LoadedModule& module, std::string_view className, std::string_view baseName)
+Result<BaseSubobject> FindBaseIn(const Image& module, std::string_view className, std::string_view baseName)
 {
     const PeRtti rtti = RttiOf(module);
     if (!rtti.Data.Base || !rtti.ReadOnlyData.Base)

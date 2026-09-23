@@ -51,6 +51,7 @@ set(VOLTMOD_PORTABLE_SOURCES
     src/Hooks/PendingConVarQueries.cpp
     src/Host/GameData/GameDataResolver.cpp
     src/Host/GameData/GameDataService.cpp
+    src/Host/GameData/ModuleCache.cpp
     src/Host/GameData/ResolvedGameData.cpp
     src/Host/Loading/InstalledPlugins.cpp
     src/Host/Loading/PluginDependencies.cpp
@@ -68,8 +69,8 @@ set(VOLTMOD_PORTABLE_SOURCES
     src/Engine/Memory/SigScanner.cpp
     src/Engine/Memory/VtableLookup.cpp
     # One file in each pair is empty on this platform.
-    src/Engine/Memory/LoadedModule_Windows.cpp
-    src/Engine/Memory/LoadedModule_Linux.cpp
+    src/Engine/Memory/Image_Windows.cpp
+    src/Engine/Memory/Image_Linux.cpp
     src/Engine/Memory/VtableLookup_Windows.cpp
     src/Engine/Memory/VtableLookup_Linux.cpp
     src/Menu/MenuBuilder.cpp
