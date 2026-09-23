@@ -17,15 +17,18 @@ def generate_table_header(root: Path, ddl: str, namespace: str, header_name: str
         source = Path(work) / "schema.sql"
         source.write_text(apply_altered_columns(ddl), encoding="utf-8", newline="\n")
         target = Path(work) / header_name
-        options: dict[str, str | Path] = {
-            "--path-to-ddl": source,
-            "--path-to-header": target,
-            "--namespace": namespace,
-            "--naming-style": "camel-case",
-            "--path-to-custom-template": TABLE_HEADER_TEMPLATE,
-        }
-        arguments = [part for option in options.items() for part in option]
-        run(sys.executable, _find_ddl2cpp(root), *arguments, "--assume-auto-id", cwd=root)
+        # fmt: off
+        run(
+            sys.executable, _find_ddl2cpp(root),
+            "--path-to-ddl", source,
+            "--path-to-header", target,
+            "--namespace", namespace,
+            "--naming-style", "camel-case",
+            "--assume-auto-id",
+            "--path-to-custom-template", TABLE_HEADER_TEMPLATE,
+            cwd=root,
+        )
+        # fmt: on
         return target.read_text(encoding="utf-8")
 
 
