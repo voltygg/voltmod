@@ -1,5 +1,3 @@
-"""Cover the migration renderer, and keep its dialect table in step with the C++ one."""
-
 import re
 from pathlib import Path
 

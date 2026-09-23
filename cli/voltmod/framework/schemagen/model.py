@@ -1,5 +1,3 @@
-"""The resolved shape of one generated schema class, and the naming rules behind it."""
-
 from dataclasses import dataclass, field
 from enum import StrEnum
 

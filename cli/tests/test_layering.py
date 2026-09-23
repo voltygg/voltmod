@@ -1,5 +1,3 @@
-"""Cover the framework's layering and source rules against temporary trees, not the real sources."""
-
 import textwrap
 from pathlib import Path
 

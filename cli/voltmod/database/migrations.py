@@ -1,5 +1,3 @@
-"""Rendering migrations for each database driver, and generating their sqlpp23 table header."""
-
 import re
 from pathlib import Path
 

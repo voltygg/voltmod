@@ -1,5 +1,3 @@
-"""Cover the source conventions every plugin follows, against temporary trees."""
-
 import textwrap
 from pathlib import Path
 

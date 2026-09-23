@@ -1,5 +1,3 @@
-"""Cover `voltmod panorama check`, one small rendered screen per rule."""
-
 import pytest
 
 from voltmod.panorama.check import check_screens

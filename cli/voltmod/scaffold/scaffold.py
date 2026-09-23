@@ -1,5 +1,3 @@
-"""Stamping a new consumer project or plugin out of the bundled templates."""
-
 import re
 import string
 from pathlib import Path

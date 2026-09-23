@@ -1,5 +1,3 @@
-"""Read-only checks of the toolchain, the project files, and an optional CS2 server."""
-
 import json
 import shutil
 import subprocess

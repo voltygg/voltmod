@@ -1,5 +1,3 @@
-"""Installing the host and a plugin into a local CS2 server."""
-
 from pathlib import Path
 
 import pytest

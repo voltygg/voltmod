@@ -1,5 +1,3 @@
-"""Installing plugins into a local CS2 server and running it; fleet deployment is the consumer's."""
-
 import shutil
 import subprocess
 from pathlib import Path
@@ -52,7 +50,7 @@ def install_plugins(project: Project, server: Cs2Server, names: list[str], prese
 def _install_host(project: Project, game_dir: Path, preset: str) -> None:
     """Install the host: the only Metamod plugin, which loads its managed plugins."""
     console.section("voltmod host")
-    # An editable framework checkout builds the host in its own tree.
+    # A linked framework checkout builds the host in its own tree.
     checkout = linked_checkout(project.root)
     searched = [project.build_dir(preset)] + ([checkout / "build" / preset] if checkout else [])
     if _install_component(searched, HOST_COMPONENT, game_dir):

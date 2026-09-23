@@ -1,5 +1,3 @@
-"""Cover the Panorama renderer against the framework's real block library."""
-
 import pytest
 
 from voltmod.errors import VoltmodError

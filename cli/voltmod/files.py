@@ -1,5 +1,3 @@
-"""Reading inputs and writing generated files without touching unchanged ones."""
-
 import difflib
 import json
 import sys

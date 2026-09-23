@@ -1,5 +1,3 @@
-"""Checking gamedata patterns against the game binaries, and repairing moved struct offsets."""
-
 import json
 import re
 from dataclasses import dataclass
@@ -172,7 +170,7 @@ def check_pattern(
     pattern: str,
     schema: dict[str, Any],
 ) -> PatternResult:
-    """Whether one pattern holds, matches twice, can be repaired, or is broken."""
+    """Whether one pattern is unique, ambiguous, repairable from a moved offset, or missing."""
     matches = binaries.find(module, pattern)
     if len(matches) == 1:
         return PatternResult(section, key, PatternStatus.UNIQUE)

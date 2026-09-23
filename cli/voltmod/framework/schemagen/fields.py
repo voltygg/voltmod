@@ -1,5 +1,3 @@
-"""Mapping one dumped schema field onto a generated field, or marking it skipped."""
-
 from typing import Any
 
 from voltmod.framework.schemagen.dump_types import Dump, DumpedField

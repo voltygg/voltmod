@@ -1,5 +1,3 @@
-"""Rendering each plugin's Panorama screens, headers and icons into the build tree."""
-
 from pathlib import Path
 
 from jinja2 import (

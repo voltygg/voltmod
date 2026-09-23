@@ -1,5 +1,3 @@
-"""Shared fixture: a consumer repo whose `ui-lab` plugin owns Panorama screens."""
-
 from pathlib import Path
 
 import pytest

@@ -1,5 +1,3 @@
-"""Resolving the manifest against a dump into the closed set of classes to generate."""
-
 from typing import Literal
 
 from voltmod.errors import VoltmodError

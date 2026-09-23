@@ -1,8 +1,3 @@
-"""Archiving each CS2 build's server binaries, so an update can be diffed against the last one.
-
-Steam serves only the current build to an anonymous login; a build not archived on its day is gone.
-"""
-
 import hashlib
 import io
 import json
@@ -43,7 +38,11 @@ def archive_dir() -> Path:
 
 
 def download_build(archive: Path, platform: Platform) -> Path:
-    """Download the current build's gamedata binaries into `archive/<build>/<platform>`."""
+    """Download the current build's gamedata binaries into `archive/<build>/<platform>`.
+
+    Steam serves only the current build to an anonymous login; a build not archived on its day
+    is gone.
+    """
     files = [*game_libraries(platform).values(), STEAM_INF]
     archive.mkdir(parents=True, exist_ok=True)
     downloader = _depot_downloader(archive / "tools")

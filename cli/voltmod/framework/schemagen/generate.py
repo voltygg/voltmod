@@ -1,5 +1,3 @@
-"""Rendering the schema accessor layer from a dump and manifest, then writing or checking it."""
-
 import hashlib
 import json
 import tempfile

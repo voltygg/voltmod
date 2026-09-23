@@ -1,5 +1,3 @@
-"""Cover the schema generator: resolve rules on a synthetic dump, output on the committed tree."""
-
 import json
 from pathlib import Path
 

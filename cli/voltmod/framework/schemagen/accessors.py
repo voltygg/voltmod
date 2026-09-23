@@ -1,5 +1,3 @@
-"""How one schema field is spelled in C++: its signatures, its read, its write, its forwarders."""
-
 from dataclasses import dataclass
 
 from voltmod.framework.schemagen.model import (

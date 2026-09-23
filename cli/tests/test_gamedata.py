@@ -1,5 +1,3 @@
-"""Cover pattern matching with synthetic bytes; a wrong verdict can misbind an engine call."""
-
 import pytest
 
 from voltmod.errors import VoltmodError

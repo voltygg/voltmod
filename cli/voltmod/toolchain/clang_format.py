@@ -1,5 +1,3 @@
-"""Finding C++ sources and formatting them with the pinned clang-format."""
-
 from itertools import batched
 from pathlib import Path
 

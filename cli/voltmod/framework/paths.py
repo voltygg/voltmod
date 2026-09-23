@@ -1,5 +1,3 @@
-"""Where the framework checkout keeps what its maintainer commands read and write."""
-
 from pathlib import Path
 
 INCLUDE_ROOT = Path("include/VoltMod")

@@ -1,8 +1,3 @@
-"""Cover the C++ header a rendered screen gets; plugins spell its constants, so it is a contract.
-
-`tests/Ui/Fixtures/Lab.hpp` is the same header compiled by the C++ suite; one case regenerates it.
-"""
-
 import os
 from pathlib import Path
 
@@ -53,7 +48,10 @@ def header_for(xml: str, css: str = "", template_source: str = "") -> str:
 
 
 def test_the_checked_in_fixture_header_is_what_rendering_writes(make_screen_project):
-    """Set VOLTMOD_REFRESH_FIXTURES=1 to rewrite the fixture after a deliberate change."""
+    """The C++ suite compiles tests/Ui/Fixtures/Lab.hpp; plugins spell its constants.
+
+    Set VOLTMOD_REFRESH_FIXTURES=1 to rewrite the fixture after a deliberate change.
+    """
     root = make_screen_project(xml=LAB_XML, css=LAB_CSS, name="lab", icons=("ak47", "awp"))
     lab = panorama_plugins(root, ["ui-lab"])[0]
     layout, stylesheet = ScreenRenderer(lab, panorama_plugins(root)).render("lab")

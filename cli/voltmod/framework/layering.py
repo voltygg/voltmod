@@ -1,5 +1,3 @@
-"""The framework's module layering, and the source rules only the framework follows."""
-
 import re
 from collections.abc import Iterable
 from pathlib import Path

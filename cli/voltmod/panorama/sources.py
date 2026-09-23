@@ -1,5 +1,3 @@
-"""Where each plugin keeps its Panorama screens and icons, and where they render to."""
-
 from pathlib import Path
 
 from voltmod.errors import VoltmodError

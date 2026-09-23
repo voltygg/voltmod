@@ -1,5 +1,3 @@
-"""Source conventions every VoltMod C++ tree follows, the framework's and a consumer's plugins."""
-
 import re
 from collections.abc import Iterable, Iterator
 from pathlib import Path

@@ -1,5 +1,3 @@
-"""Finding Visual Studio's C++ compiler and loading its environment on Windows."""
-
 import os
 import re
 import shutil

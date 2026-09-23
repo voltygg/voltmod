@@ -1,5 +1,3 @@
-"""Checks for the rules the CS2 client enforces on a screen without saying so."""
-
 from pathlib import Path
 
 from voltmod.checks.results import CheckResult

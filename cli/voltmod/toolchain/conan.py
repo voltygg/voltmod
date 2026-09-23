@@ -1,5 +1,3 @@
-"""Conan pieces every build shares: the package remote, host profiles, the editable framework."""
-
 import json
 import os
 from pathlib import Path

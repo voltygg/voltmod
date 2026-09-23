@@ -1,5 +1,3 @@
-"""Reading a rendered screen's panel ids, dialog variables, class modifiers and repeated blocks."""
-
 import re
 from dataclasses import dataclass, field
 from functools import cached_property

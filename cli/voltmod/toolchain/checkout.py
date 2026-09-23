@@ -1,5 +1,3 @@
-"""The editable VoltMod checkout: built in place while developing, pinned by --relock."""
-
 from pathlib import Path
 
 from voltmod.errors import VoltmodError

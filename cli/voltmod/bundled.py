@@ -1,5 +1,3 @@
-"""The templates/ and panorama/ trees voltmod ships, and the Jinja templates in them."""
-
 from functools import cache
 from pathlib import Path
 

@@ -1,5 +1,3 @@
-"""Building, testing and formatting one preset of a VoltMod project."""
-
 import os
 import shutil
 from collections.abc import Iterator

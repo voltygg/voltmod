@@ -1,5 +1,3 @@
-"""Running the build tools installed beside voltmod."""
-
 import os
 import shutil
 import subprocess
