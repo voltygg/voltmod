@@ -89,9 +89,9 @@ The client validates markup and reports failures only in the client console, so
 `voltmod panorama check` refuses the same things first:
 
 - Only `Panel`, `Label`, `Image` and `Button` (plus `<root>`, `<styles>` and `<include>`).
-- Only the attributes `id`, `class`, `hittest`, `text`, `src` and `textureheight`. Anything else,
-  even a valid Panorama one such as `scaling`, fails the client's custom HUD validation and the
-  whole layout is dropped.
+- Only the attributes `id`, `class`, `hittest`, `text` and `src`. Anything else, even a
+  valid Panorama one such as `scaling` or `textureheight`, fails the client's custom HUD
+  validation and the whole layout is dropped.
 - Every `Button` needs an `id`, and a `Button` may not sit inside another `Button` - the inner
   press is lost. Make them siblings and size them side by side.
 - Every id is unique and starts with `<screen>_`, except the outermost one, which is the screen
@@ -254,8 +254,8 @@ matching `.vtex` descriptor beside it - `resourcecompiler` compiles the descript
 
 The client's own icons need no files. Point an `<Image>` at
 `s2r://panorama/images/icons/ui/<name>.vsvg` (`settings`, `player`, `message`, ...) and tint it with
-`wash-color`; they are vectors, so give them `textureheight="32"` to rasterise sharply at menu
-sizes. The `icons` block does all three when `set` is a list of `(name, icon)` pairs.
+`wash-color`, sizing them in CSS. The `icons` block does both when `set` is a list of
+`(name, icon)` pairs.
 
 ## The name budget {#panorama_guide_budget}
 

@@ -27,7 +27,7 @@ GAME_ICONS = "s2r://panorama/images/icons/"
 ALLOWED_ELEMENTS = {"root", "styles", "include", "Panel", "Label", "Image", "Button"}
 
 # Attributes known to pass the client's custom HUD validation; any other rejects the whole layout.
-ALLOWED_ATTRIBUTES = {"id", "class", "hittest", "text", "src", "textureheight"}
+ALLOWED_ATTRIBUTES = {"id", "class", "hittest", "text", "src"}
 
 # The client interns every id, variable and class name in one table shared by all screens, and
 # overflowing it breaks rendering on players' machines, where no build step can see it.
