@@ -120,10 +120,12 @@ def check_core_isolation(files: Iterable[SourceFile]) -> list[CheckResult]:
             continue
         for number, line in enumerate(file.text.splitlines(), 1):
             if hit := ENGINE_INCLUDE.match(line):
-                results.append(CheckResult(
-                    f"{file.path}:{number}: Core includes {hit.group(1)}",
-                    hint="Move engine-dependent code to Engine.",
-                ))
+                results.append(
+                    CheckResult(
+                        f"{file.path}:{number}: Core includes {hit.group(1)}",
+                        hint="Move engine-dependent code to Engine.",
+                    )
+                )
     return results
 
 
@@ -140,11 +142,14 @@ def check_host_boundary(files: Iterable[SourceFile]) -> list[CheckResult]:
             if included in HOST_BOUNDARY_INCLUDES or included.startswith("<VoltMod/Host/"):
                 continue
 
-            results.append(CheckResult(
-                f"{file.path}:{number}: includes {included}",
-                hint="The boundary carries plain data and borrowed views only: "
-                     + ", ".join(sorted(HOST_BOUNDARY_INCLUDES)) + " and VoltMod/Host/.",
-            ))
+            results.append(
+                CheckResult(
+                    f"{file.path}:{number}: includes {included}",
+                    hint="The boundary carries plain data and borrowed views only: "
+                    + ", ".join(sorted(HOST_BOUNDARY_INCLUDES))
+                    + " and VoltMod/Host/.",
+                )
+            )
     return results
 
 
