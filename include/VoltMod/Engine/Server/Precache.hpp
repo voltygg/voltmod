@@ -1,9 +1,6 @@
 #pragma once
 
-#include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Engine/GameData/Bindings.hpp>
-#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -11,49 +8,20 @@
 namespace VoltMod
 {
 
-/**
- * @brief Precaches custom resources (particles, models, sound events) by
- * registering a framework-owned game system that receives BuildGameSessionManifest.
- *
- * Paths queued with Add() take effect at the NEXT map load - the engine's
- * resource manifest only exists inside that event. Resources that are not part
- * of the map's own assets must also reach clients (e.g. via a workshop addon),
- * or they precache server-side but render nothing.
- */
+/** Custom resources (particles, models, sound events) added to every map's session manifest.
+ *  A path takes effect from the next map load, and clients also need the file, such as through
+ *  a workshop addon. */
 class Precache
 {
 public:
-    // Ctor/dtor are out-of-line: inline they would instantiate the unique_ptr
-    // destructor of the forward-declared game system in every consumer TU.
-    /** @p bindings supplies the game-system addresses; it must outlive this service. */
-    explicit Precache(const Bindings& bindings);
-    ~Precache();
-    Precache(const Precache&) = delete;
-    Precache& operator=(const Precache&) = delete;
-
-    /** Link into the engine's factory list. @p systemName must be unique across plugins - the
-     *  engine rejects duplicates. Error::Unsupported when a game-system address did not bind. */
-    Status Initialize(std::string systemName);
-
-    /** Detach from the engine (factory list, both listener tables, active-systems
-     *  vector) without reordering the engine's systems. Idempotent; must run before the
-     *  plugin image unloads. */
-    void Shutdown();
-
-    /** Queue a resource path (e.g. "particles/foo.vpcf") for the next map load. Dedupes. */
+    /** Queue @p resourcePath, such as "particles/foo.vpcf", once. */
     void Add(std::string_view resourcePath);
 
-private:
-    friend class PrecacheGameSystem;  // reads _resources inside the manifest event
+    /** Called by the framework while the engine builds a manifest. */
+    void AddTo(IEntityResourceManifest& manifest) const;
 
-    const Bindings& _bindings;
+private:
     std::vector<std::string> _resources;
-    std::string _systemName;
-    std::unique_ptr<PrecacheGameSystem> _system;
-    GameSystemFactory* _factory = nullptr;
-    void* _eventDispatcher = nullptr;    // CGameSystemEventDispatcher** (internal type)
-    void* _gameSystems = nullptr;        // CUtlVector<AddedGameSystem_t>* (internal type)
-    void* _fallbackListeners = nullptr;  // CUtlVector<CUtlVector<IGameSystem*>>* (internal type)
 };
 
 }  // namespace VoltMod

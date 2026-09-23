@@ -47,6 +47,7 @@ private:
     void HostClientFullyConnected(int slot);
     void HostClientSettingsChanged(int slot);
     void HostCheckTransmit(CCheckTransmitInfo** infoList, int infoCount);
+    void HostBuildGameSessionManifest(IEntityResourceManifest* manifest);
 
     PluginFactory _factory;
     IHost* _host = nullptr;

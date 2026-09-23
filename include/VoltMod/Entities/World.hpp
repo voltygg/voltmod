@@ -16,21 +16,14 @@
 namespace VoltMod
 {
 
-/**
- * @brief World-affecting services with no per-tick engine hook of their own: entity IO, weapon
- * give/strip, precaching, pawn manipulation, per-client net-channel reads, line traces, and
- * ending the round.
- *
- * Declared once by Runtime, right after @ref EntitySystem; each member below takes exactly the
- * sibling services it uses, stated once here rather than once per member on Runtime itself.
- */
+/** Services that act on the world without an engine hook of their own; each member lists the
+ *  services it depends on. */
 struct WorldServices
 {
     WorldServices(EntitySystem& entities, Bindings& bindings, Scheduler& scheduler, SlotEvents& slots,
                   Interfaces& interfaces)
         : EntityOps(entities, bindings),
           Items(bindings),
-          Precache(bindings),
           Pawns(scheduler, slots, entities),
           NetChannels(interfaces),
           Trace(bindings),
@@ -41,7 +34,7 @@ struct WorldServices
     VoltMod::EntityOps EntityOps;
     /** Weapon give/strip through CCSPlayer_ItemServices. Depends on: Bindings. */
     VoltMod::Items Items;
-    /** Depends on: Bindings. */
+    /** Resources for the next map's session manifest. */
     VoltMod::Precache Precache;
     /** Pawn manipulations that need framework services, such as slap and its fall protection.
      *  Depends on: Scheduler, Slots, Entities. */

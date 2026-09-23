@@ -24,6 +24,8 @@ struct IHostEvents
     /** True when this plugin answered it: later plugins do not see it and the engine call is blocked. */
     using ConsoleCommandFn = bool (*)(void* context, std::string_view name, std::string_view arguments, int slot);
     using CheckTransmitFn = void (*)(void* context, CCheckTransmitInfo** infoList, int infoCount);
+    /** The next map's resource manifest, which only takes resources during this call. */
+    using BuildGameSessionManifestFn = void (*)(void* context, IEntityResourceManifest* manifest);
 
     virtual uint64_t OnFrame(FrameFn callback, void* context) = 0;
     virtual uint64_t OnServerStartup(ServerStartupFn callback, void* context) = 0;
@@ -33,6 +35,7 @@ struct IHostEvents
     virtual uint64_t OnClientSettingsChanged(ClientSettingsChangedFn callback, void* context) = 0;
     virtual uint64_t OnConsoleCommand(ConsoleCommandFn callback, void* context) = 0;
     virtual uint64_t OnCheckTransmit(CheckTransmitFn callback, void* context) = 0;
+    virtual uint64_t OnBuildGameSessionManifest(BuildGameSessionManifestFn callback, void* context) = 0;
 
     /** Takes the token a subscription returned, which is never zero. Safe during a dispatch. */
     virtual void Unsubscribe(uint64_t token) = 0;

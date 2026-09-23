@@ -154,6 +154,11 @@ uint64_t HostView::OnCheckTransmit(CheckTransmitFn callback, void* context)
     return Subscribe("check transmit", _state.CheckTransmit, callback, context);
 }
 
+uint64_t HostView::OnBuildGameSessionManifest(BuildGameSessionManifestFn callback, void* context)
+{
+    return Subscribe("build game session manifest", _state.BuildGameSessionManifest, callback, context);
+}
+
 void HostView::Publish(std::string_view name, void* implementation)
 {
     _state.Services.Publish(this, name, implementation);

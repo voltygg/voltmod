@@ -17,12 +17,14 @@ class CGameEntitySystem;
 class CGameTrace;
 class CGlobalVars;
 class CNetMessage;
+class CNetworkGameServerBase;
 class CSchemaSystemTypeScope;
 class CTraceFilter;
 class CUtlString;  // the custom HUD setters take `const CUtlString*`
 class Color;
 class CPlayerSlot;
 class ICvar;
+class IEntityResourceManifest;
 class IGameEvent;
 class IGameEventManager2;
 class IGameEventSystem;
@@ -30,6 +32,7 @@ class IGameResourceService;
 class INetChannel;
 class INetChannelInfo;
 class INetworkMessageInternal;
+class INetworkMessageProcessingPreFilter;
 class INetworkMessages;
 class INetworkServerService;
 class IRecipientFilter;
@@ -65,18 +68,12 @@ class EnginePawn  // CCSPlayerPawn and the pawns sharing its vtable
 {};
 class EngineClient  // CServerSideClient
 {};
-class EngineMessageFilter  // CServerSideClient's base that runs FilterMessage
-{};
-class EngineServer  // CNetworkGameServer
-{};
 class EngineMovementServices  // CCSPlayer_MovementServices
 {};
 class EngineNavPhysics  // the nav mesh's physics interface, used by @ref Trace
 {};
 
 // 2. Defined under src/.
-class PrecacheGameSystem;    // Engine/GameSystem.hpp
-class GameSystemFactory;     // Engine/GameSystem.hpp
 class ScreenEntity;          // Ui/ScreenEntity.hpp
 class ButtonPressHook;       // Ui/ButtonPressHook.hpp
 class PendingConVarQueries;  // Hooks/PendingConVarQueries.hpp

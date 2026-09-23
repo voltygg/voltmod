@@ -312,8 +312,9 @@ VoltMod::Schema::CBeam{beam}.SetWidth(2.0f);
 
 ## Precache
 
-@ref VoltMod::Precache queues custom resources for the next map's session manifest. `Runtime::Initialize`
-registers the game system and unload detaches it.
+@ref VoltMod::Precache queues custom resources for the next map's session manifest. The host hooks
+the game rules system's manifest event once and hands every plugin the manifest, so a plugin loaded
+mid-map, by `volt reload` too, adds its resources at the next map load.
 
 ```cpp
 runtime.World.Precache.Add("particles/my_plugin/lightning_strike.vpcf");

@@ -6,6 +6,6 @@ namespace VoltMod
 {
 
 /** Bump with any change under `VoltMod/Host/`. The host refuses a plugin built against another value. */
-inline constexpr uint32_t HostAbiVersion = 2;
+inline constexpr uint32_t HostAbiVersion = 3;
 
 }  // namespace VoltMod

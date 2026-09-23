@@ -194,6 +194,7 @@ void PluginModule::SubscribeHostEvents()
     keep(events.OnClientSettingsChanged(&HostCallback<&PluginModule::HostClientSettingsChanged>::Call, this));
     keep(events.OnConsoleCommand(&HostCallback<&PluginModule::HandleConsoleCommand>::Call, this));
     keep(events.OnCheckTransmit(&HostCallback<&PluginModule::HostCheckTransmit>::Call, this));
+    keep(events.OnBuildGameSessionManifest(&HostCallback<&PluginModule::HostBuildGameSessionManifest>::Call, this));
 }
 
 void PluginModule::HostFrame()
@@ -237,6 +238,11 @@ void PluginModule::HostClientSettingsChanged(int slot)
 void PluginModule::HostCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
 {
     _runtime->Hooks.Visibility.OnCheckTransmit(infoList, infoCount);
+}
+
+void PluginModule::HostBuildGameSessionManifest(IEntityResourceManifest* manifest)
+{
+    _runtime->World.Precache.AddTo(*manifest);
 }
 
 }  // namespace VoltMod::Internal

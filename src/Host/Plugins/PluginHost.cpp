@@ -118,6 +118,14 @@ void PluginHost::RaiseCheckTransmit(CCheckTransmitInfo** infoList, int infoCount
     });
 }
 
+void PluginHost::RaiseBuildGameSessionManifest(IEntityResourceManifest* manifest)
+{
+    _state.BuildGameSessionManifest.Dispatch([&](IHostEvents::BuildGameSessionManifestFn callback, void* context) {
+        callback(context, manifest);
+        return false;
+    });
+}
+
 std::string_view PluginHost::CommandOwner(std::string_view name) const
 {
     return _state.Commands.OwnerOf(name);

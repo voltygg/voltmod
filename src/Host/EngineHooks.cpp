@@ -1,12 +1,16 @@
 #include "Host/EngineHooks.hpp"
 
+#include "Engine/Memory/VtableLookup.hpp"
 #include "Host/EngineInterfaces.hpp"
 #include "Host/Plugins/PluginHost.hpp"
 
 #include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Engine/GameData/BindingTypes.hpp>
 #include <VoltMod/Unsafe/Hook.hpp>
 #include <eiface.h>
+#include <entity2/entitysystem.h>
 #include <icvar.h>
+#include <igamesystem.h>
 #include <inetchannelinfo.h>
 #include <interfaces/interfaces.h>
 #include <iserver.h>
@@ -33,6 +37,21 @@ static HookResult<void> RunCommand(PluginHost& host, std::string_view name, cons
     // ArgS is the whole line after the command name.
     const bool consumed = host.RaiseConsoleCommand(name, Text(arguments.ArgS()), slot);
     return consumed ? HookResult<void>::Block() : HookResult<void>{};
+}
+
+/** Hand every map's resource manifest to the plugins. The game rules system is in every session. */
+static Result<Subscription> HookSessionManifest(PluginHost& host)
+{
+    const VirtualFn<void(IGameSystem*, const EventBuildGameSessionManifest_t*)> build(
+        KHook::GetVtableIndex(&IGameSystem::OnBuildGameSessionManifest),
+        FindVirtualTable("server", "CGameRulesGameSystem"));
+    return HookVirtual("CGameRulesGameSystem::BuildGameSessionManifest", build, nullptr,
+                       [&host](IGameSystem&, const EventBuildGameSessionManifest_t* event) {
+                           if (event && event->m_pResourceManifest)
+                           {
+                               host.RaiseBuildGameSessionManifest(event->m_pResourceManifest);
+                           }
+                       });
 }
 
 EngineHooks::EngineHooks(PluginHost& host, std::function<void()> beforeFrame, std::function<void()> beforeServerStartup)
@@ -167,6 +186,15 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
         &ISource2GameEntities::CheckTransmit, gameEntities, nullptr,
         [this](ISource2GameEntities&, CCheckTransmitInfo** infoList, int infoCount, CBitVec<16384>&, CBitVec<16384>&,
                const Entity2Networkable_t**, const uint16*, int) { _host.RaiseCheckTransmit(infoList, infoCount); }));
+
+    if (auto manifest = HookSessionManifest(_host))
+    {
+        add(std::move(*manifest));
+    }
+    else
+    {
+        Log::Error("Precache is off: {}", manifest.error().Detail);
+    }
 
     Log::Info("Engine hooks installed.");
     return {};

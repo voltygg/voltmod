@@ -54,6 +54,7 @@ public:
     /** True when a plugin answered it: later plugins never see it and the engine call is blocked. */
     bool RaiseConsoleCommand(std::string_view name, std::string_view arguments, int slot);
     void RaiseCheckTransmit(CCheckTransmitInfo** infoList, int infoCount);
+    void RaiseBuildGameSessionManifest(IEntityResourceManifest* manifest);
 
     /** The plugin holding @p name for its console commands, empty while the name is free. */
     std::string_view CommandOwner(std::string_view name) const;

@@ -45,6 +45,7 @@ struct HostState
     CallbackList<IHostEvents::ClientSettingsChangedFn> ClientSettingsChanged;
     CallbackList<IHostEvents::ConsoleCommandFn> ConsoleCommand;
     CallbackList<IHostEvents::CheckTransmitFn> CheckTransmit;
+    CallbackList<IHostEvents::BuildGameSessionManifestFn> BuildGameSessionManifest;
 
     ServiceTable Services;
     CommandNames Commands;
@@ -106,6 +107,7 @@ public:
     uint64_t OnClientSettingsChanged(ClientSettingsChangedFn callback, void* context) override;
     uint64_t OnConsoleCommand(ConsoleCommandFn callback, void* context) override;
     uint64_t OnCheckTransmit(CheckTransmitFn callback, void* context) override;
+    uint64_t OnBuildGameSessionManifest(BuildGameSessionManifestFn callback, void* context) override;
 
     void Publish(std::string_view name, void* implementation) override;
     void Unpublish(std::string_view name) override;

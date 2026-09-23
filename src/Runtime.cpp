@@ -161,8 +161,6 @@ bool Runtime::InitializeServices(const LoadContext& context)
 
     // StartupServer resolves CGameEntitySystem when the first map loads.
     steps.Optional("Entities", [&] { return Entities.Initialize(); });
-    steps.Optional("Precache",
-                   [&] { return World.Precache.Initialize(std::format("{}_VoltModPrecache", PluginName)); });
     steps.Optional("ConVars", [&] { return ConVars.Initialize(); });
     steps.Optional("GameEvents", [&] { return GameEvents.Initialize(); });
     steps.Optional("ClientConVars", [&] { return Hooks.ClientConVars.Initialize(); });
