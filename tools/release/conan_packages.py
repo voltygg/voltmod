@@ -10,11 +10,11 @@ from voltmod.platforms import Platform
 from voltmod.project import default_preset
 from voltmod.server.install import HOST_GAMEDATA, HOST_VDF, host_binary
 from voltmod.toolchain.conan import (
-    REMOTE,
-    SDK_BUILD_EXCLUSIONS,
+    PACKAGE_REMOTE,
+    PREBUILT_SDK_ARGS,
+    conan_json,
     ensure_remote,
     profile_args,
-    run_conan_json,
 )
 from voltmod.toolchain.msvc import msvc_version
 from voltmod.toolchain.process import WINDOWS, run_tool
@@ -38,7 +38,7 @@ def create_package(root: Path, recipe: Path, *args: str) -> None:
 
 def upload_packages(pattern: str) -> None:
     retry = ("-cc", "core.upload:retry=3", "-cc", "core.upload:retry_wait=10")
-    run_tool("conan", "upload", pattern, "-r", REMOTE, "--confirm", *retry)
+    run_tool("conan", "upload", pattern, "-r", PACKAGE_REMOTE, "--confirm", *retry)
 
 
 def log_in(root: Path) -> None:
@@ -47,7 +47,7 @@ def log_in(root: Path) -> None:
     if not user or not key:
         raise VoltmodError("CLOUDSMITH_USERNAME and CLOUDSMITH_API_KEY are required to publish")
     ensure_remote(root)
-    run_tool("conan", "remote", "login", REMOTE, user, "-p", key)
+    run_tool("conan", "remote", "login", PACKAGE_REMOTE, user, "-p", key)
 
 
 def references(listing: dict[str, Any], name: str) -> dict[str, Any]:
@@ -58,7 +58,7 @@ def references(listing: dict[str, Any], name: str) -> dict[str, Any]:
 
 
 def is_published(name: str, version: str) -> bool:
-    listing = run_conan_json("list", f"{name}/{version}", "-r", REMOTE).get(REMOTE, {})
+    listing = conan_json("list", f"{name}/{version}", "-r", PACKAGE_REMOTE).get(PACKAGE_REMOTE, {})
     return bool(references(listing, name))
 
 
@@ -69,7 +69,7 @@ def build_sdks(root: Path) -> None:
 
 
 def build_framework(root: Path, *, use_lockfile: bool) -> None:
-    args = ["--build=missing", *SDK_BUILD_EXCLUSIONS]
+    args = ["--build=missing", *PREBUILT_SDK_ARGS]
     if not use_lockfile:
         args.append("--lockfile=")
     create_package(root, root, *args)
@@ -98,7 +98,7 @@ def required_files(package_settings: dict[str, Any]) -> tuple[str, ...]:
 
 def cached_packages(version: str) -> Iterator[tuple[str, dict[str, Any]]]:
     """Every full package reference the local cache holds for `version`, with its metadata."""
-    listing = run_conan_json("list", f"{FRAMEWORK_PACKAGE}/{version}#latest:*", "-c").get(
+    listing = conan_json("list", f"{FRAMEWORK_PACKAGE}/{version}#latest:*", "-c").get(
         "Local Cache", {}
     )
     for reference, body in references(listing, FRAMEWORK_PACKAGE).items():
@@ -125,12 +125,12 @@ def check_package_contents(version: str) -> None:
 
 
 def package_folder(reference: str) -> Path:
-    return Path(run_conan_json("cache", "path", reference)["cache_path"])
+    return Path(conan_json("cache", "path", reference)["cache_path"])
 
 
 def framework_version(root: Path) -> str:
     """The package version, read through Conan, which owns that metadata."""
-    version = run_conan_json("inspect", root).get("version")
+    version = conan_json("inspect", root).get("version")
     if not version:
         raise VoltmodError("the voltmod Conan recipe has no version")
     return version

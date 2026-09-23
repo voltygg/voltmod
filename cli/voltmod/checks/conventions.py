@@ -13,7 +13,7 @@ from voltmod.toolchain.clang_format import CPP_SUFFIXES
 PLUGIN_DECLARATION_HEADER = re.compile(r"(^|/)\w*Types\.hpp$")
 
 FORWARD_DECLARATION = re.compile(r"^(?:class|struct)\s+(\w+);")
-DEFINITION = r"^(?:class|struct)\s+{}\b\s*(?!;)"
+DEFINITION_TEMPLATE = r"^(?:class|struct)\s+{}\b\s*(?!;)"
 ANONYMOUS_NAMESPACE = re.compile(r"^[ \t]*namespace[ \t]*(\{[ \t]*)?$")
 USING_DIRECTIVE = re.compile(r"^[ \t]*using\s+namespace\b")
 
@@ -80,7 +80,7 @@ def _forward_declarations(
         if _may_forward_declare(file.path, declaration_headers):
             continue
         # Declaring a name the same header goes on to define is only an ordering aid.
-        definition = DEFINITION.format(re.escape(declared.group(1)))
+        definition = DEFINITION_TEMPLATE.format(re.escape(declared.group(1)))
         if not re.search(definition, file.text, re.MULTILINE):
             message = f"{file.path}:{number}: forward declaration `{line.strip()}`"
             results.append(CheckResult.fail(message, hint))

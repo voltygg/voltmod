@@ -41,9 +41,9 @@ inline constexpr std::array<{{ block.struct_name }}, {{ block.count }}> {{ block
 
 {% endfor %}
 {% endif %}
-{% for family, variants in screen.families.items() %}
-inline constexpr std::array<std::string_view, {{ variants | length }}> {{ pascal_case(family) }}Classes{{ string_list(variants, family ~ "--") }};
-inline constexpr std::array<std::string_view, {{ variants | length }}> {{ pascal_case(family) }}Names{{ string_list(variants) }};
+{% for prefix, modifiers in screen.modifiers.items() %}
+inline constexpr std::array<std::string_view, {{ modifiers | length }}> {{ pascal_case(prefix) }}Classes{{ string_list(modifiers, prefix ~ "--") }};
+inline constexpr std::array<std::string_view, {{ modifiers | length }}> {{ pascal_case(prefix) }}Names{{ string_list(modifiers) }};
 
 {% endfor %}
 }  // namespace {{ namespace }}

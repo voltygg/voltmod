@@ -13,16 +13,16 @@ namespace VoltMod::Schema
 class {{ schema_class.name }} : public {{ schema_class.base or "View" }}
 {
 public:
-{% if schema_class.name == entity_root %}
+{% if schema_class.name == entity_base %}
     {{ schema_class.name }}() = default;
 
-    explicit {{ schema_class.name }}(::{{ entity_root }}* entity) noexcept
+    explicit {{ schema_class.name }}(::{{ entity_base }}* entity) noexcept
         : View(entity, entity, 0)
     {
     }
 
     explicit {{ schema_class.name }}(void* base) noexcept
-        : View(base, static_cast<::{{ entity_root }}*>(base), 0)
+        : View(base, static_cast<::{{ entity_base }}*>(base), 0)
     {
     }
 {% else %}
@@ -31,7 +31,7 @@ public:
 {% if schema_class.owner_link_offset >= 0 %}
 
     /** The entity that owns this component, or nullptr. */
-    ::{{ entity_root }}* OwnerEntity() const;
+    ::{{ entity_base }}* OwnerEntity() const;
 {% endif %}
 {% for field, code in fields %}
 
@@ -41,7 +41,7 @@ public:
     void Set{{ code.name }}({{ code.setter.params }}) const;
 {% endif %}
 {% else %}
-    // skipped: {{ field.schema_name }} ({{ field.skip_reason }})
+    // skipped: {{ field.engine_name }} ({{ field.skip_reason }})
 {% endif %}
 {% endfor %}
 };

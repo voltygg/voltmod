@@ -15,11 +15,11 @@ from voltmod.panorama.layout import (
 )
 from voltmod.panorama.render import ScreenRenderer
 from voltmod.panorama.sources import (
-    ScreenOwner,
+    Plugin,
     icon_path,
+    panorama_plugins,
     screen_name,
-    screen_owners,
-    screen_sources,
+    screen_templates,
 )
 
 # Icons the client ships itself; there is no file of ours to resolve.
@@ -40,22 +40,22 @@ MAX_NAMES_PER_SCREEN = 400
 
 
 def check_screens(root: Path, names: list[str] | None = None) -> list[CheckResult]:
-    """Every problem the named owners' screens would fail on in the client."""
+    """Every problem the named plugins' screens would fail on in the client."""
     problems: list[str] = []
     claimed: dict[str, str] = {}
-    interned: dict[Path, set[str]] = {}
+    names_by_screen: dict[Path, set[str]] = {}
 
-    everyone = screen_owners(root)
-    for owner in screen_owners(root, names):
-        renderer = ScreenRenderer(owner, everyone)
+    all_plugins = panorama_plugins(root)
+    for plugin in panorama_plugins(root, names):
+        renderer = ScreenRenderer(plugin, all_plugins)
         for icon_set, icons in renderer.icons.items():
             for icon in icons:
                 resource = f"images/{icon_set}/{icon}.*"
-                problems += _claim_resource(resource, owner, claimed)
-        for source in screen_sources(owner):
-            problems += _check_screen(renderer, source, claimed, interned)
+                problems += _claim_resource(resource, plugin, claimed)
+        for source in screen_templates(plugin):
+            problems += _check_screen(renderer, source, claimed, names_by_screen)
 
-    problems += _check_name_table(interned)
+    problems += _check_name_table(names_by_screen)
     return [CheckResult.fail(problem) for problem in problems]
 
 
@@ -63,11 +63,11 @@ def _check_screen(
     renderer: ScreenRenderer,
     source: Path,
     claimed: dict[str, str],
-    interned: dict[Path, set[str]],
+    names_by_screen: dict[Path, set[str]],
 ) -> list[str]:
-    owner, name = renderer.owner, screen_name(source)
-    problems = _claim_resource(f"layout/custom_game/{name}.xml", owner, claimed)
-    problems += _claim_resource(f"styles/custom_game/{name}.css", owner, claimed)
+    plugin, name = renderer.plugin, screen_name(source)
+    problems = _claim_resource(f"layout/custom_game/{name}.xml", plugin, claimed)
+    problems += _claim_resource(f"styles/custom_game/{name}.css", plugin, claimed)
 
     layout, stylesheet = renderer.render(name)
     try:
@@ -82,8 +82,8 @@ def _check_screen(
         + _check_ids(screen, name, source)
         + _check_cpp_names(screen, source)
         + _check_stylesheet_include(screen, name, source)
-        + _check_images(owner, screen, source)
-        + _check_screen_names(screen, stylesheet, source, interned)
+        + _check_images(plugin, screen, source)
+        + _check_screen_names(screen, stylesheet, source, names_by_screen)
     )
 
 
@@ -139,10 +139,10 @@ def _check_cpp_names(screen: Screen, source: Path) -> list[str]:
     problems: list[str] = []
     taken = {"Layout": "the screen itself", "RootId": "the screen itself"}
 
-    def take(spelled: str, what: str) -> None:
+    def take(spelled: str, origin: str) -> None:
         if spelled in taken:
-            problems.append(f"{source}: {taken[spelled]} and {what} both spell {spelled}")
-        taken[spelled] = what
+            problems.append(f"{source}: {taken[spelled]} and {origin} both spell {spelled}")
+        taken[spelled] = origin
 
     for identifier in screen.ids:
         if not is_cpp_name(identifier.removeprefix(f"{screen.name}_")):
@@ -158,11 +158,11 @@ def _check_cpp_names(screen: Screen, source: Path) -> list[str]:
             if members.count(member) > 1:
                 problems.append(f"{source}: the {block.name} block names {member} twice")
 
-    for family in screen.families:
-        if not is_cpp_name(family):
-            problems.append(f"{source}: class family '{family}--*' cannot be spelled in C++")
-        take(f"{pascal_case(family)}Classes", f"the {family} family")
-        take(f"{pascal_case(family)}Names", f"the {family} family's names")
+    for prefix in screen.modifiers:
+        if not is_cpp_name(prefix):
+            problems.append(f"{source}: modifier class '{prefix}--*' cannot be spelled in C++")
+        take(f"{pascal_case(prefix)}Classes", f"the {prefix}--* classes")
+        take(f"{pascal_case(prefix)}Names", f"the {prefix}--* names")
     return problems
 
 
@@ -175,7 +175,7 @@ def _check_stylesheet_include(screen: Screen, name: str, source: Path) -> list[s
     return [f"{source}: expected one style include of '{expected}', got {got}"]
 
 
-def _check_images(owner: ScreenOwner, screen: Screen, source: Path) -> list[str]:
+def _check_images(plugin: Plugin, screen: Screen, source: Path) -> list[str]:
     problems: list[str] = []
     for image in screen.tree.iter("Image"):
         src = image.get("src", "")
@@ -188,20 +188,20 @@ def _check_images(owner: ScreenOwner, screen: Screen, source: Path) -> list[str]
                 "s2r://panorama/images/<set>/<name>.vtex "
                 "nor a game icon under s2r://panorama/images/icons/"
             )
-        elif not icon_path(owner, *match.groups()).is_file():
+        elif not icon_path(plugin, *match.groups()).is_file():
             icon_set, name = match.groups()
             problems.append(f"{source}: Image src '{src}' has no {icon_set}/{name}.png")
     return problems
 
 
 def _check_screen_names(
-    screen: Screen, stylesheet: str, source: Path, interned: dict[Path, set[str]]
+    screen: Screen, stylesheet: str, source: Path, names_by_screen: dict[Path, set[str]]
 ) -> list[str]:
     """Record the names `screen` interns, and flag a screen that has run away on its own."""
     names = {screen.name, *screen.ids, *screen.variables, *selector_classes(stylesheet)}
     for node in screen.tree.iter():
         names.update(node.get("class", "").split())
-    interned[source] = names
+    names_by_screen[source] = names
 
     if len(names) <= MAX_NAMES_PER_SCREEN:
         return []
@@ -209,11 +209,11 @@ def _check_screen_names(
     return [f"{source}: {len(names)} interned names, over the per-screen limit of {limit}"]
 
 
-def _check_name_table(interned: dict[Path, set[str]]) -> list[str]:
-    total = set().union(*interned.values())
+def _check_name_table(names_by_screen: dict[Path, set[str]]) -> list[str]:
+    total = set().union(*names_by_screen.values())
     if len(total) <= NAME_TABLE_SIZE:
         return []
-    largest = sorted(interned.items(), key=lambda pair: len(pair[1]), reverse=True)
+    largest = sorted(names_by_screen.items(), key=lambda pair: len(pair[1]), reverse=True)
     breakdown = ", ".join(f"{source} {len(names)}" for source, names in largest)
     return [
         f"{len(total)} interned names across all screens, "
@@ -221,9 +221,9 @@ def _check_name_table(interned: dict[Path, set[str]]) -> list[str]:
     ]
 
 
-def _claim_resource(resource: str, owner: ScreenOwner, claimed: dict[str, str]) -> list[str]:
-    """The first owner to render `resource` keeps it; a second owner is a problem."""
-    holder = claimed.setdefault(resource, owner.name)
-    if holder == owner.name:
+def _claim_resource(resource: str, plugin: Plugin, claimed: dict[str, str]) -> list[str]:
+    """The first plugin to render `resource` keeps it; a second plugin is a problem."""
+    holder = claimed.setdefault(resource, plugin.name)
+    if holder == plugin.name:
         return []
-    return [f"{resource}: rendered by both {holder} and {owner.name}"]
+    return [f"{resource}: rendered by both {holder} and {plugin.name}"]

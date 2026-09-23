@@ -51,6 +51,6 @@ def print_results(results: Iterable[CheckResult]) -> int:
     return counts[Status.FAIL]
 
 
-def exit_on_failure(results: Iterable[CheckResult]) -> None:
+def exit_if_failed(results: Iterable[CheckResult]) -> None:
     if print_results(results):
         raise typer.Exit(1)

@@ -35,6 +35,11 @@ class Plugin:
     def manifest_path(self) -> Path:
         return self.dir / "plugin.json"
 
+    @property
+    def panorama_dir(self) -> Path:
+        """Screens, icons and templates the plugin ships for the Panorama UI."""
+        return self.dir / "panorama"
+
     def manifest(self) -> dict[str, Any]:
         if not self.manifest_path.is_file():
             return {}

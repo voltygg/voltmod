@@ -7,8 +7,8 @@ import typer
 from voltmod import console
 from voltmod.checks.conventions import check_plugins
 from voltmod.checks.doctor import run_checks
-from voltmod.checks.results import exit_on_failure
-from voltmod.framework.layering import check_framework
+from voltmod.checks.results import exit_if_failed
+from voltmod.framework.layering import check_layering
 from voltmod.options import current_project
 from voltmod.toolchain.clang_format import find_cpp_sources, format_cpp_files
 
@@ -21,21 +21,21 @@ def doctor_command(
     """Check the local toolchain, the project, and an optional server."""
     project = current_project()
     console.step(f"VoltMod doctor for {project.root.resolve()}, Python {sys.version.split()[0]}")
-    exit_on_failure(run_checks(project, server))
+    exit_if_failed(run_checks(project, server))
 
 
 def lint_command() -> None:
     """Check C++ sources: plugin conventions, or the framework's layering in its checkout."""
     project = current_project()
     if not project.is_framework:
-        exit_on_failure(check_plugins(project.root))
+        exit_if_failed(check_plugins(project.root))
         console.done("Plugin sources hold.")
         return
 
-    dependencies, results = check_framework(project.root)
+    dependencies, results = check_layering(project.root)
     for module, used in dependencies.items():
         console.info(f"{module:10} -> {' '.join(sorted(used)) or '(none)'}")
-    exit_on_failure(results)
+    exit_if_failed(results)
     console.done("Layering holds.")
 
 

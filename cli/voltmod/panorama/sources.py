@@ -1,10 +1,9 @@
 """Where each plugin keeps its Panorama screens and icons, and where they render to."""
 
-from dataclasses import dataclass
 from pathlib import Path
 
 from voltmod.errors import VoltmodError
-from voltmod.project import Project
+from voltmod.project import Plugin, Project
 
 BUILD_DIR = "build/panorama"
 SCREENS_DIR = "screens"
@@ -13,20 +12,12 @@ LAYOUT_SUFFIX = ".xml.j2"
 STYLESHEET_SUFFIX = ".css.j2"
 
 
-@dataclass(frozen=True, slots=True)
-class ScreenOwner:
-    """A plugin that ships a panorama/ tree."""
-
-    name: str
-    source: Path
-
-
-def screen_owners(root: Path, names: list[str] | None = None) -> list[ScreenOwner]:
+def panorama_plugins(root: Path, names: list[str] | None = None) -> list[Plugin]:
     """The named plugins that ship a panorama/ tree, or all of them when none is named."""
     found = {
-        plugin.name: ScreenOwner(plugin.name, plugin.dir / "panorama")
+        plugin.name: plugin
         for plugin in Project(root).plugins(include_tools=True)
-        if (plugin.dir / "panorama").is_dir()
+        if plugin.panorama_dir.is_dir()
     }
     known = sorted(found)
     if not names:
@@ -39,18 +30,18 @@ def screen_owners(root: Path, names: list[str] | None = None) -> list[ScreenOwne
     return [found[name] for name in names]
 
 
-def rendered_dir(root: Path, owner: ScreenOwner, out: Path | None = None) -> Path:
+def rendered_dir(root: Path, plugin: Plugin, out: Path | None = None) -> Path:
     # Keeps the panorama/ prefix: a layout's `file://{resources}/...` include resolves against it.
-    return (out or root / BUILD_DIR) / owner.name / "panorama"
+    return (out or root / BUILD_DIR) / plugin.name / "panorama"
 
 
-def header_dir(root: Path, owner: ScreenOwner, out: Path | None = None) -> Path:
+def header_dir(root: Path, plugin: Plugin, out: Path | None = None) -> Path:
     """What a plugin puts on its include path for its screen headers."""
-    return (out or root / BUILD_DIR) / owner.name / "include"
+    return (out or root / BUILD_DIR) / plugin.name / "include"
 
 
-def screen_sources(owner: ScreenOwner) -> list[Path]:
-    return sorted((owner.source / SCREENS_DIR).glob(f"*{LAYOUT_SUFFIX}"))
+def screen_templates(plugin: Plugin) -> list[Path]:
+    return sorted((plugin.panorama_dir / SCREENS_DIR).glob(f"*{LAYOUT_SUFFIX}"))
 
 
 def screen_name(source: Path) -> str:
@@ -58,9 +49,9 @@ def screen_name(source: Path) -> str:
     return source.name.removesuffix(LAYOUT_SUFFIX)
 
 
-def icon_sets(owner: ScreenOwner) -> dict[str, list[str]]:
-    """Every icon set the owner ships, as its sorted PNG names; empty sets are skipped."""
-    images = owner.source / IMAGES_DIR
+def icon_sets(plugin: Plugin) -> dict[str, list[str]]:
+    """Every icon set the plugin ships, as its sorted PNG names; empty sets are skipped."""
+    images = plugin.panorama_dir / IMAGES_DIR
     if not images.is_dir():
         return {}
     return {
@@ -70,6 +61,6 @@ def icon_sets(owner: ScreenOwner) -> dict[str, list[str]]:
     }
 
 
-def icon_path(owner: ScreenOwner, icon_set: str, name: str) -> Path:
+def icon_path(plugin: Plugin, icon_set: str, name: str) -> Path:
     """The PNG behind `s2r://panorama/images/<set>/<name>.vtex`."""
-    return owner.source / IMAGES_DIR / icon_set / f"{name}.png"
+    return plugin.panorama_dir / IMAGES_DIR / icon_set / f"{name}.png"

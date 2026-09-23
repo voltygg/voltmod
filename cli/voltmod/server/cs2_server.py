@@ -34,7 +34,7 @@ class Cs2Server:
         return cls(root)
 
     @property
-    def csgo(self) -> Path:
+    def game_dir(self) -> Path:
         return self.root / CSGO_DIR
 
     @property

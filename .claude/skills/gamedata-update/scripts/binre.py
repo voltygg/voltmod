@@ -30,7 +30,7 @@ import numpy as np
 FRAMEWORK = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(FRAMEWORK / "cli"))
 
-from voltmod.framework.game_builds import default_archive, resolved_record  # noqa: E402
+from voltmod.framework.game_builds import archive_dir, resolved_record  # noqa: E402
 from voltmod.framework.gamedata import (  # noqa: E402
     module_path,
     parse_gamedata,
@@ -78,7 +78,7 @@ class Binary:
     @classmethod
     def open(cls, build: str, platform: str, module: str = "server") -> Binary:
         """A module from the build archive, or from any game directory passed as `build`."""
-        root = Path(build) if Path(build).is_dir() else default_archive() / build / platform
+        root = Path(build) if Path(build).is_dir() else archive_dir() / build / platform
         return cls(module_path(root, Platform(platform), module), platform)
 
     def section(self, name: str) -> Section:
@@ -290,7 +290,7 @@ def load_gamedata() -> dict:
 
 def load_resolved(build: str, platform: str) -> dict | None:
     """The host's resolved record that `gamedata fetch` archived beside a build."""
-    path = resolved_record(default_archive() / build / platform, platform)
+    path = resolved_record(archive_dir() / build / platform, platform)
     return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
 
 

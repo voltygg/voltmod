@@ -144,7 +144,7 @@ def check_host_boundary(files: Iterable[SourceFile]) -> list[CheckResult]:
     return results
 
 
-def check_framework(root: Path) -> tuple[dict[str, set[str]], list[CheckResult]]:
+def check_layering(root: Path) -> tuple[dict[str, set[str]], list[CheckResult]]:
     """The framework's module dependencies, and every layering or convention violation."""
     include_root = root / INCLUDE_ROOT
     if not include_root.is_dir():

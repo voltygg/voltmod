@@ -15,11 +15,11 @@ from voltmod.framework.paths import (
 from voltmod.framework.schemagen.generate import (
     layout_rows,
     layout_stamp,
-    render_outputs,
-    write_outputs,
+    render_schema,
+    write_schema,
 )
-from voltmod.framework.schemagen.model import accessor_name
-from voltmod.framework.schemagen.resolve import baseline_dump, collect_enums, resolve_classes
+from voltmod.framework.schemagen.model import method_name
+from voltmod.framework.schemagen.resolve import collect_enums, resolve_classes, trimmed_dump
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -150,7 +150,7 @@ def manifest(classes=None):
 
 
 def class_header(dumped, selected, name):
-    return render_outputs(dumped, selected, "windows").files[GENERATED_HEADER_DIR / f"{name}.hpp"]
+    return render_schema(dumped, selected, "windows").files[GENERATED_HEADER_DIR / f"{name}.hpp"]
 
 
 @pytest.mark.parametrize("platform", list(SCHEMA_BASELINES))
@@ -158,8 +158,8 @@ def test_the_committed_generated_tree_is_what_the_generator_writes(platform):
     """The committed baseline and manifest must regenerate every committed file byte for byte."""
     baseline = json.loads((REPO_ROOT / SCHEMA_BASELINES[platform]).read_text(encoding="utf-8"))
     shipped = json.loads((REPO_ROOT / SCHEMA_MANIFEST).read_text(encoding="utf-8"))
-    files = render_outputs(baseline, shipped, platform).files
-    write_outputs(REPO_ROOT, files, platform, check=True)
+    files = render_schema(baseline, shipped, platform).files
+    write_schema(REPO_ROOT, files, platform, check=True)
 
 
 def stamp(dumped, selected=None):
@@ -168,7 +168,7 @@ def stamp(dumped, selected=None):
 
 
 def test_the_stamp_reaches_the_generated_layout():
-    layout = render_outputs(dump(), manifest(), "windows").files[
+    layout = render_schema(dump(), manifest(), "windows").files[
         GENERATED_SOURCE_DIR / "windows" / "Layout.cpp"
     ]
     assert f"return {stamp(dump())}ULL;" in layout
@@ -232,7 +232,7 @@ def test_only_what_the_generator_read_reaches_the_baseline():
     classes = resolve_classes(dumped, manifest())
     enums = collect_enums(dumped, classes)
 
-    baseline = baseline_dump(dumped, classes, enums)
+    baseline = trimmed_dump(dumped, classes, enums)
     assert set(baseline["classes"]) == set(classes)
     assert set(baseline["enums"]) == {"MoveType_t"}
 
@@ -243,14 +243,14 @@ def test_an_unmapped_type_is_skipped_visibly():
 
 
 def test_a_struct_embedded_in_an_entity_keeps_its_setters():
-    assert resolve_classes(dump(), manifest())["CEmbedded"].embeds_in_entity is True
+    assert resolve_classes(dump(), manifest())["CEmbedded"].in_entity is True
     assert "void SetFlag(bool value) const" in class_header(dump(), manifest(), "CEmbedded")
 
 
 def test_a_field_the_engine_does_not_network_is_written_without_a_notify():
     dumped = dump()
     dumped["classes"]["CBaseEntity"]["fields"][1]["networked"] = False
-    source = render_outputs(dumped, manifest(), "windows").files[
+    source = render_schema(dumped, manifest(), "windows").files[
         GENERATED_SOURCE_DIR / "windows" / "CBaseEntity.cpp"
     ]
     assert "*MemberPtr<uint8_t>(_base, kCBaseEntity_LifeState) = value;" in source
@@ -275,11 +275,11 @@ def test_a_type_override_reads_the_leading_value_of_a_larger_field():
 def test_a_star_takes_every_field_the_dump_reports():
     classes = resolve_classes(dump(), manifest({"CMoneyServices": "*"}))
     generated = classes["CMoneyServices"].generated_fields
-    assert [field.schema_name for field in generated] == ["m_iAccount"]
+    assert [field.engine_name for field in generated] == ["m_iAccount"]
 
 
 @pytest.mark.parametrize(
-    ("schema_name", "expected"),
+    ("engine_name", "expected"),
     [
         ("m_flVelocityModifier", "VelocityModifier"),
         ("m_iAccount", "Account"),
@@ -290,8 +290,8 @@ def test_a_star_takes_every_field_the_dump_reports():
         ("m_modelState", "ModelState"),
     ],
 )
-def test_the_accessor_name_strips_only_a_real_hungarian_prefix(schema_name, expected):
-    assert accessor_name(schema_name) == expected
+def test_the_method_name_strips_only_a_real_hungarian_prefix(engine_name, expected):
+    assert method_name(engine_name) == expected
 
 
 def test_two_fields_mapping_to_one_accessor_are_refused():

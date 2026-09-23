@@ -4,7 +4,7 @@ from pathlib import Path
 
 from voltmod import console
 from voltmod.errors import VoltmodError
-from voltmod.panorama.sources import rendered_dir, screen_owners
+from voltmod.panorama.sources import panorama_plugins, rendered_dir
 from voltmod.platforms import Platform
 from voltmod.toolchain.process import run
 
@@ -52,12 +52,12 @@ class StagedPlugin:
 def stage(root: Path, names: list[str] | None, dirs: AddonDirs) -> list[StagedPlugin]:
     """Copy each named plugin's rendered screens into the addon's sources."""
     staged = []
-    for owner in screen_owners(root, names):
-        rendered = rendered_dir(root, owner)
+    for plugin in panorama_plugins(root, names):
+        rendered = rendered_dir(root, plugin)
         if files := _stage_files(rendered, dirs.sources):
-            staged.append(StagedPlugin(owner.name, files))
+            staged.append(StagedPlugin(plugin.name, files))
         else:
-            console.note(f"{owner.name}: nothing rendered under {rendered}")
+            console.note(f"{plugin.name}: nothing rendered under {rendered}")
     return staged
 
 

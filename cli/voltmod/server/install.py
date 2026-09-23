@@ -9,7 +9,7 @@ from voltmod.errors import VoltmodError
 from voltmod.platforms import Platform
 from voltmod.project import Plugin, Project
 from voltmod.server.cs2_server import CSGO_DIR, Cs2Server
-from voltmod.toolchain.conan import editable_framework
+from voltmod.toolchain.conan import linked_checkout
 from voltmod.toolchain.process import run_tool
 
 # The host is the only Metamod plugin: one per server, loading modules from its plugins directory.
@@ -35,27 +35,27 @@ def plugin_dir(name: str) -> str:
 
 def install_plugins(project: Project, server: Cs2Server, names: list[str], preset: str) -> None:
     """Install the host and the named plugins, or every plugin when none is named."""
-    csgo = server.csgo
+    game_dir = server.game_dir
     plugins = project.installable_plugins(names)
 
     console.step(f"Installing into {server.root} from build/{preset}")
 
-    _install_host(project, csgo, preset)
+    _install_host(project, game_dir, preset)
     for plugin in plugins:
-        _install_plugin(project, plugin, csgo, preset, named=bool(names))
+        _install_plugin(project, plugin, game_dir, preset, named=bool(names))
 
     installed = " ".join(plugin.name for plugin in plugins)
     console.done(f"Installed {installed}")
     console.info("Verify on the server console with: volt list")
 
 
-def _install_host(project: Project, csgo: Path, preset: str) -> None:
+def _install_host(project: Project, game_dir: Path, preset: str) -> None:
     """Install the host: the only Metamod plugin, which loads its managed plugins."""
     console.section("voltmod host")
     # An editable framework checkout builds the host in its own tree.
-    checkout = editable_framework(project.root)
+    checkout = linked_checkout(project.root)
     searched = [project.build_dir(preset)] + ([checkout / "build" / preset] if checkout else [])
-    if _install_component(searched, HOST_COMPONENT, csgo):
+    if _install_component(searched, HOST_COMPONENT, game_dir):
         return
 
     looked_in = "\n  ".join(map(str, searched))
@@ -66,37 +66,37 @@ def _install_host(project: Project, csgo: Path, preset: str) -> None:
 
 
 def _install_plugin(
-    project: Project, plugin: Plugin, csgo: Path, preset: str, *, named: bool
+    project: Project, plugin: Plugin, game_dir: Path, preset: str, *, named: bool
 ) -> None:
     """Stage one plugin with `cmake --install`, then merge it into the server tree.
 
     A plugin asked for by name must install; a bare install skips what is not built.
     """
     console.section(plugin.name)
-    if _install_component([project.build_dir(preset)], plugin.name, csgo):
-        _seed_settings(plugin, csgo)
+    if _install_component([project.build_dir(preset)], plugin.name, game_dir):
+        _copy_settings(plugin, game_dir)
     elif named:
         raise VoltmodError(f"{plugin.name} is not built; run `voltmod build -p {preset}` first")
     else:
         console.note(f"skipped: not built for {preset}")
 
 
-def _install_component(build_dirs: list[Path], component: str, csgo: Path) -> bool:
+def _install_component(build_dirs: list[Path], component: str, game_dir: Path) -> bool:
     """Merge `component` from the first build that stages it into the server; False if none does."""
     for build_dir in build_dirs:
         if staging := _stage_component(build_dir, component):
-            _merge_addons(staging, csgo, component)
+            _merge_addons(staging, game_dir, component)
             _print_staged(staging)
             return True
     return False
 
 
-def _seed_settings(plugin: Plugin, csgo: Path) -> None:
+def _copy_settings(plugin: Plugin, game_dir: Path) -> None:
     """Copy the shipped settings once, so an operator's edits survive every later install."""
     source = plugin.dir / "configs/settings.jsonc"
     if not source.is_file():
         return
-    target = csgo / plugin_dir(plugin.name) / "configs/settings.jsonc"
+    target = game_dir / plugin_dir(plugin.name) / "configs/settings.jsonc"
     if target.is_file():
         console.item("configs/settings.jsonc (kept the server's copy)")
         return
@@ -125,11 +125,11 @@ def _stage_component(build_dir: Path, component: str) -> Path | None:
     return staging if (staging / "addons").is_dir() else None
 
 
-def _merge_addons(staging: Path, csgo: Path, what: str) -> None:
+def _merge_addons(staging: Path, game_dir: Path, component: str) -> None:
     try:
-        shutil.copytree(staging / "addons", csgo / "addons", dirs_exist_ok=True)
+        shutil.copytree(staging / "addons", game_dir / "addons", dirs_exist_ok=True)
     except (shutil.Error, PermissionError) as error:
         raise VoltmodError(
-            f"could not replace the installed files for {what}: {error}\n"
+            f"could not replace the installed files for {component}: {error}\n"
             "A running CS2 server holds the binary open; stop it and try again."
         ) from None

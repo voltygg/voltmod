@@ -12,11 +12,11 @@ namespace VoltMod::Schema
 static constexpr int32_t {{ schema_class.name }}_kOwnerLinkOffset = {{ schema_class.owner_link_offset }};
 {% endif %}
 {% for field in schema_class.generated_fields %}
-static constexpr int32_t {{ offset_constant(schema_class, field) }} = {{ field.offset }};  // {{ field.schema_type }}
+static constexpr int32_t {{ offset_constant(schema_class, field) }} = {{ field.offset }};  // {{ field.engine_type }}
 {% endfor %}
 
 {% if schema_class.owner_link_offset >= 0 %}
-::{{ entity_root }}* {{ schema_class.name }}::OwnerEntity() const
+::{{ entity_base }}* {{ schema_class.name }}::OwnerEntity() const
 {
     return ComponentOwner(_base, {{ schema_class.name }}_kOwnerLinkOffset);
 }

@@ -10,13 +10,13 @@ from voltmod.bundled import BUNDLED_DIR
 from voltmod.errors import VoltmodError
 from voltmod.toolchain.process import WINDOWS, run_tool, tool_output
 
-REMOTE = "volty"
+PACKAGE_REMOTE = "volty"
 
 # Linux CI must consume the published SDK binaries.
-SDK_BUILD_EXCLUSIONS = () if WINDOWS else ("--build=!hl2sdk-cs2/*", "--build=!metamod-source/*")
+PREBUILT_SDK_ARGS = () if WINDOWS else ("--build=!hl2sdk-cs2/*", "--build=!metamod-source/*")
 
 
-def run_conan_json(*args: str | Path) -> Any:
+def conan_json(*args: str | Path) -> Any:
     return json.loads(tool_output("conan", *args, "--format=json"))
 
 
@@ -48,7 +48,7 @@ def profile_args(root: Path, preset: str) -> list[str]:
 
 def has_remote() -> bool:
     listing = run_tool("conan", "remote", "list", capture=True, check=False)
-    return listing.returncode == 0 and f"{REMOTE}:" in listing.stdout
+    return listing.returncode == 0 and f"{PACKAGE_REMOTE}:" in listing.stdout
 
 
 def remote_url(root: Path) -> str:
@@ -56,9 +56,9 @@ def remote_url(root: Path) -> str:
         remotes = base / "conan/remotes.json"
         if remotes.is_file():
             for entry in json.loads(remotes.read_text(encoding="utf-8"))["remotes"]:
-                if entry["name"] == REMOTE:
+                if entry["name"] == PACKAGE_REMOTE:
                     return entry["url"]
-    raise VoltmodError(f"no '{REMOTE}' remote in any conan/remotes.json")
+    raise VoltmodError(f"no '{PACKAGE_REMOTE}' remote in any conan/remotes.json")
 
 
 def ensure_remote(root: Path) -> None:
@@ -66,11 +66,11 @@ def ensure_remote(root: Path) -> None:
     if os.environ.get("VOLTMOD_SKIP_REMOTE_SETUP") or has_remote():
         return
     url = remote_url(root)
-    console.step(f"Adding Conan remote '{REMOTE}' ({url})")
-    run_tool("conan", "remote", "add", "--force", REMOTE, url)
+    console.step(f"Adding Conan remote '{PACKAGE_REMOTE}' ({url})")
+    run_tool("conan", "remote", "add", "--force", PACKAGE_REMOTE, url)
 
 
-def find_editable_framework() -> Path | None:
+def find_checkout() -> Path | None:
     """The checkout registered with `conan editable add`, read from Conan's registry file.
 
     Starting Conan to ask costs about a second on every build, so the file is read directly.
@@ -93,9 +93,9 @@ def find_editable_framework() -> Path | None:
         raise VoltmodError(f"cannot read {registry}: {error}") from None
 
 
-def editable_framework(project_root: Path) -> Path | None:
+def linked_checkout(project_root: Path) -> Path | None:
     """The editable checkout the project links, or None when there is none or it is the project."""
-    checkout = find_editable_framework()
+    checkout = find_checkout()
     if checkout is None or checkout.resolve() == project_root.resolve():
         return None
     return checkout

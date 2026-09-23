@@ -5,10 +5,10 @@ from pathlib import Path
 from voltmod.errors import VoltmodError
 from voltmod.project import Project
 from voltmod.toolchain.conan import (
-    SDK_BUILD_EXCLUSIONS,
-    find_editable_framework,
+    PREBUILT_SDK_ARGS,
+    conan_json,
+    find_checkout,
     profile_args,
-    run_conan_json,
 )
 from voltmod.toolchain.msvc import load_msvc_environment
 from voltmod.toolchain.process import run_tool, tool_output
@@ -18,12 +18,12 @@ def build_checkout(project: Project, checkout: Path, preset: str) -> None:
     """Compile the checkout into its own build/<preset>; only what changed recompiles."""
     load_msvc_environment()
     args = _checkout_args(project, checkout, preset)
-    run_tool("conan", "build", *args, "--build=missing", *SDK_BUILD_EXCLUSIONS)
+    run_tool("conan", "build", *args, "--build=missing", *PREBUILT_SDK_ARGS)
 
 
 def relock_framework(project: Project, preset: str) -> str:
     """Export the editable checkout as a package, pin it, drop the editable; return its folder."""
-    checkout = find_editable_framework()
+    checkout = find_checkout()
     if checkout is None:
         raise VoltmodError(
             "no editable voltmod checkout; register one with `conan editable add <path>`"
@@ -32,9 +32,9 @@ def relock_framework(project: Project, preset: str) -> str:
     run_tool("conan", "editable", "remove", checkout, check=False)
 
     # The lock pins only the recipe revision, so drop older binaries that could win over this one.
-    reference = run_conan_json("export", checkout)["reference"]
+    reference = conan_json("export", checkout)["reference"]
     run_tool("conan", "remove", f"{reference}:*", "--confirm", check=False)
-    exported = run_conan_json("export-pkg", *_checkout_args(project, checkout, preset))
+    exported = conan_json("export-pkg", *_checkout_args(project, checkout, preset))
     package_id = next(
         node["package_id"]
         for node in exported["graph"]["nodes"].values()

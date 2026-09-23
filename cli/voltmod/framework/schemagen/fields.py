@@ -6,7 +6,7 @@ from voltmod.framework.schemagen.dump_types import Dump, DumpedField
 from voltmod.framework.schemagen.model import (
     FieldKind,
     SchemaField,
-    accessor_name,
+    method_name,
     parse_manifest_entry,
 )
 
@@ -40,26 +40,26 @@ ATOMIC_TYPES = {
 }
 
 # Keyed by the C++ spelling, so a manifest `:CppType` override gets its include too.
-CPP_INCLUDES = {
+TYPE_INCLUDES = {
     "Vector": "<VoltMod/Engine/EngineTypes.hpp>",
     "QAngle": "<VoltMod/Engine/EngineTypes.hpp>",
 }
 
 
-def describe_field(entry: str, dumped: DumpedField, dump: Dump) -> SchemaField:
+def resolve_field(entry: str, dumped: DumpedField, dump: Dump) -> SchemaField:
     """Turn one manifest entry and its dumped field into a generated field, or a skipped one."""
-    schema_name, accessor, type_override = parse_manifest_entry(entry)
+    engine_name, method, type_override = parse_manifest_entry(entry)
     type_info = dumped["type"]
     type_name = type_info["name"]
 
     def make(kind: FieldKind, **extra: Any) -> SchemaField:
         return SchemaField(
-            schema_name=schema_name,
-            accessor=accessor or accessor_name(schema_name),
+            engine_name=engine_name,
+            method=method or method_name(engine_name),
             offset=dumped["offset"],
             size=dumped["size"],
             kind=kind,
-            schema_type=type_name,
+            engine_type=type_name,
             networked=dumped["networked"],
             **extra,
         )
@@ -86,11 +86,11 @@ def describe_field(entry: str, dumped: DumpedField, dump: Dump) -> SchemaField:
                 return make(FieldKind.VIEW, view_class=inner)
             return unsupported
         case "SCHEMA_TYPE_FIXED_ARRAY":
-            extent = int(type_info.get("extent", 0))
+            length = int(type_info.get("extent", 0))
             if inner == "char":
-                return make(FieldKind.CHARS, extent=extent)
-            if inner in BUILTIN_TYPES and extent > 0:
-                return make(FieldKind.ARRAY, cpp_type=BUILTIN_TYPES[inner], extent=extent)
+                return make(FieldKind.CHAR_ARRAY, length=length)
+            if inner in BUILTIN_TYPES and length > 0:
+                return make(FieldKind.ARRAY, cpp_type=BUILTIN_TYPES[inner], length=length)
             return unsupported
         case "SCHEMA_TYPE_ATOMIC":
             atomic = type_info.get("atomic")

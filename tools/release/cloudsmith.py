@@ -7,7 +7,7 @@ from typing import Any
 
 from tools.release.conan_packages import FRAMEWORK_PACKAGE, SDK_PACKAGES
 from voltmod.errors import VoltmodError
-from voltmod.toolchain.conan import REMOTE, run_conan_json
+from voltmod.toolchain.conan import PACKAGE_REMOTE, conan_json
 
 # Conan cannot delete revisions on Cloudsmith, so deletes go through its REST API.
 API = "https://api.cloudsmith.io/v1/packages/volty/voltmod/"
@@ -18,7 +18,9 @@ def reachable_revisions(keep_versions: int) -> set[str]:
     """Every recipe and package revision a consumer can still resolve."""
     keep: set[str] = set()
     for name in (*SDK_PACKAGES, FRAMEWORK_PACKAGE):
-        listing = run_conan_json("list", f"{name}/*#*:*#*", "-r", REMOTE).get(REMOTE, {})
+        listing = conan_json("list", f"{name}/*#*:*#*", "-r", PACKAGE_REMOTE).get(
+            PACKAGE_REMOTE, {}
+        )
 
         versions: dict[str, dict[str, Any]] = {}
         for reference, body in listing.items():

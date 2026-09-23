@@ -38,11 +38,11 @@ DEPOT_DOWNLOADER_ASSETS = {
 }
 
 
-def default_archive() -> Path:
+def archive_dir() -> Path:
     return Path(os.environ.get("CS2_BUILD_ARCHIVE") or "~/.voltmod/cs2-builds").expanduser()
 
 
-def fetch_build(archive: Path, platform: Platform) -> Path:
+def download_build(archive: Path, platform: Platform) -> Path:
     """Download the current build's gamedata binaries into `archive/<build>/<platform>`."""
     files = [*game_libraries(platform).values(), STEAM_INF]
     archive.mkdir(parents=True, exist_ok=True)

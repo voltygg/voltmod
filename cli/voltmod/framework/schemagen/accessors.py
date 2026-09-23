@@ -62,7 +62,7 @@ def accessor_code(schema_class: SchemaClass, schema_field: SchemaField) -> Acces
         )
 
     return AccessorCode(
-        name=schema_field.accessor,
+        name=schema_field.method,
         return_type=cpp_type,
         wrapper_return_type=wrapper_type,
         getter_params="size_t index" if takes_index else "",
@@ -81,7 +81,7 @@ def _types(schema_field: SchemaField) -> tuple[str, str]:
             return name, f"Schema::{name}"
         case FieldKind.VIEW:
             return schema_field.view_class, f"Schema::{schema_field.view_class}"
-        case FieldKind.CHARS:
+        case FieldKind.CHAR_ARRAY:
             return "std::string_view", "std::string_view"
         case FieldKind.ADDRESS:
             return "void*", "void*"
@@ -99,12 +99,12 @@ def _read(schema_field: SchemaField, cpp_type: str, constant: str) -> tuple[str,
             return "!_base", f"{cpp_type}{{MemberPtr<void>(_base, {constant}), {owner}}}"
         case FieldKind.VIEW:
             return "!_base", f"{cpp_type}{{*MemberPtr<void*>(_base, {constant})}}"
-        case FieldKind.CHARS:
+        case FieldKind.CHAR_ARRAY:
             # CharBuf is what a fixed engine char[N] means; the setter writes through it too.
-            buffer = f"CharBuf<{schema_field.extent}>"
+            buffer = f"CharBuf<{schema_field.length}>"
             return "!_base", f"MemberPtr<{buffer}>(_base, {constant})->View()"
         case FieldKind.ARRAY:
-            guard = f"!_base || index >= {schema_field.extent}"
+            guard = f"!_base || index >= {schema_field.length}"
             return guard, f"MemberPtr<{cpp_type}>(_base, {constant})[index]"
         case _:
             return "!_base", f"*MemberPtr<{cpp_type}>(_base, {constant})"
@@ -114,11 +114,13 @@ def _write(schema_field: SchemaField, cpp_type: str, constant: str) -> tuple[str
     """The guard, the assignment, and the offset handed to dirty tracking."""
     if schema_field.kind is FieldKind.ARRAY:
         return (
-            f"!_base || index >= {schema_field.extent}",
+            f"!_base || index >= {schema_field.length}",
             f"MemberPtr<{cpp_type}>(_base, {constant})[index] = value;",
             f"{constant} + static_cast<int32_t>(index * sizeof({cpp_type}))",
         )
-    stored = f"CharBuf<{schema_field.extent}>" if schema_field.kind is FieldKind.CHARS else cpp_type
+    stored = (
+        f"CharBuf<{schema_field.length}>" if schema_field.kind is FieldKind.CHAR_ARRAY else cpp_type
+    )
     return "!_base", f"*MemberPtr<{stored}>(_base, {constant}) = value;", constant
 
 

@@ -10,7 +10,7 @@ import pytest
 
 from voltmod.panorama.layout import read_screen, selector_classes
 from voltmod.panorama.render import ScreenRenderer, screen_header
-from voltmod.panorama.sources import screen_owners
+from voltmod.panorama.sources import panorama_plugins
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -55,8 +55,8 @@ def header_for(xml: str, css: str = "", template_source: str = "") -> str:
 def test_the_checked_in_fixture_header_is_what_rendering_writes(make_screen_project):
     """Set VOLTMOD_REFRESH_FIXTURES=1 to rewrite the fixture after a deliberate change."""
     root = make_screen_project(xml=LAB_XML, css=LAB_CSS, name="lab", icons=("ak47", "awp"))
-    lab = screen_owners(root, ["ui-lab"])[0]
-    layout, stylesheet = ScreenRenderer(lab, screen_owners(root)).render("lab")
+    lab = panorama_plugins(root, ["ui-lab"])[0]
+    layout, stylesheet = ScreenRenderer(lab, panorama_plugins(root)).render("lab")
 
     header = header_for(layout, stylesheet, LAB_XML)
     fixture = REPO_ROOT / "tests/Ui/Fixtures/Lab.hpp"
@@ -73,7 +73,7 @@ def test_a_variable_named_twice_is_emitted_once():
     assert header.count('std::string_view TitleVar = "title";') == 1
 
 
-def test_a_family_keeps_the_order_it_was_declared_in():
+def test_modifiers_keep_the_order_they_were_declared_in():
     header = header_for(
         '<root><Panel id="s" /></root>', ".accent--zulu { a: 1; }\n.accent--alpha { a: 1; }\n"
     )
@@ -88,7 +88,7 @@ def test_a_bem_family_is_spelled_in_pascal_case():
     assert 'IconSetIconNames{"ak-47"}' in header
 
 
-def test_a_decimal_in_a_declaration_is_not_read_as_a_family():
+def test_a_decimal_in_a_declaration_is_not_read_as_a_modifier():
     header = header_for('<root><Panel id="s" /></root>', ".bar { width: 33.3--4%; }\n")
     assert "Classes" not in header
 

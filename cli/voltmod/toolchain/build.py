@@ -16,9 +16,9 @@ from voltmod.toolchain.checkout import (
     relock_framework,
 )
 from voltmod.toolchain.conan import (
-    SDK_BUILD_EXCLUSIONS,
-    editable_framework,
+    PREBUILT_SDK_ARGS,
     ensure_remote,
+    linked_checkout,
     profile_args,
 )
 from voltmod.toolchain.msvc import load_msvc_environment
@@ -53,7 +53,7 @@ def build(
     package_folder = relock_framework(project, preset) if relock else ""
 
     # An editable framework is linked in place, so it compiles first.
-    if checkout := editable_framework(project.root):
+    if checkout := linked_checkout(project.root):
         build_checkout(project, checkout, preset)
 
     _conan_install(project, host_profile, conan_options or [], use_lockfile)
@@ -100,7 +100,7 @@ def _conan_install(
     if use_lockfile and project.lockfile.is_file():
         lock = ["--lockfile", project.lockfile]
     output: list[str | Path] = ["--output-folder", project.root]
-    build_policy = ["--build=missing", *SDK_BUILD_EXCLUSIONS]
+    build_policy = ["--build=missing", *PREBUILT_SDK_ARGS]
     run_tool(
         "conan", "install", project.root, *output, *build_policy, *lock, *options, *host_profile
     )

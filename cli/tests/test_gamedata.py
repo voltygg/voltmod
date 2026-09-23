@@ -28,7 +28,7 @@ def test_a_pattern_that_still_matches_once_is_left_alone():
     binaries = FakeBinaries(b"\x90\x90\x48\x8b\x01\x02\xc3")
     results = check_patterns(gamedata("48 8B 01 02"), binaries, {})
 
-    assert [result.status for result in results] == ["holds"]
+    assert [result.status for result in results] == ["unique"]
     assert results[0].new_pattern == "", "a holding entry has nothing to write"
 
 
@@ -38,7 +38,7 @@ def test_a_global_is_checked_by_the_pattern_in_its_column():
     results = check_patterns(document, binaries, {})
 
     assert [(result.section, result.key, result.status) for result in results] == [
-        ("globals", "Global", "holds")
+        ("globals", "Global", "unique")
     ]
 
 
@@ -50,9 +50,9 @@ def test_a_pattern_matching_twice_is_ambiguous_rather_than_repaired():
     assert "2 matches" in results[0].detail
 
 
-def test_a_moved_displacement_is_wildcarded_and_named_after_its_schema_field():
-    """A field grew, moving the displacement in an otherwise matching function."""
-    # The live displacement is 0x4B8; the stale pattern encodes 0x4B0.
+def test_a_moved_offset_is_wildcarded_and_named_after_its_schema_field():
+    """A field grew, moving the offset in an otherwise matching function."""
+    # The live offset is 0x4B8; the stale pattern encodes 0x4B0.
     binaries = FakeBinaries(b"\x00\x3b\x99\xb8\x04\x00\x00\x7d\x5e\x00")
     schema = {"classes": {"CCSCustomHudLayout": {"fields": [{"name": "m_vec", "offset": 1208}]}}}
     results = check_patterns(gamedata("3B 99 B0 04 00 00 7D 5E"), binaries, schema)
@@ -63,20 +63,20 @@ def test_a_moved_displacement_is_wildcarded_and_named_after_its_schema_field():
     assert "CCSCustomHudLayout::m_vec" in results[0].detail
 
 
-def test_two_viable_displacements_are_refused_rather_than_guessed_between():
+def test_two_viable_offsets_are_refused_rather_than_guessed_between():
     binaries = FakeBinaries(b"\x01\x00\x00\x00\x99\x02\x00\x00\x00")
     results = check_patterns(gamedata("05 00 00 00 99 06 00 00 00"), binaries, {})
 
-    assert results[0].status == "broken"
+    assert results[0].status == "missing"
     assert results[0].new_pattern == ""
 
 
-def test_a_miss_no_displacement_explains_is_reported_not_repaired():
+def test_a_miss_no_offset_explains_is_reported_not_repaired():
     binaries = FakeBinaries(b"\x90" * 64)
     results = check_patterns(gamedata("48 8B 01 02 03 04"), binaries, {})
 
-    assert results[0].status == "broken"
-    assert "no single displacement" in results[0].detail
+    assert results[0].status == "missing"
+    assert "no single moved offset" in results[0].detail
 
 
 def test_an_entry_for_the_other_platform_is_skipped():

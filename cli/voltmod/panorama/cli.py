@@ -4,13 +4,13 @@ from typing import Annotated
 import typer
 
 from voltmod import console
-from voltmod.checks.results import exit_on_failure
+from voltmod.checks.results import exit_if_failed
 from voltmod.errors import VoltmodError
 from voltmod.options import current_project
 from voltmod.panorama.check import check_screens
 from voltmod.panorama.compiler import AddonDirs, compile_resources, install_into_client, stage
 from voltmod.panorama.render import render_screens
-from voltmod.panorama.sources import screen_owners, screen_sources
+from voltmod.panorama.sources import panorama_plugins, screen_templates
 from voltmod.steam import find_client
 from voltmod.toolchain.process import WINDOWS
 
@@ -62,7 +62,7 @@ def compile_command(
     if not WINDOWS:
         raise VoltmodError("the CS2 Workshop Tools are Windows only; compile the layouts there")
     root = current_project().root
-    exit_on_failure(check_screens(root, plugins))
+    exit_if_failed(check_screens(root, plugins))
     render_screens(root, plugins)
 
     dirs = AddonDirs.of(find_client(client), addon)
@@ -84,6 +84,6 @@ def compile_command(
 def check_command(plugins: Plugins = None) -> None:
     """Validate rendered screens against the rules the CS2 client enforces silently."""
     root = current_project().root
-    exit_on_failure(check_screens(root, plugins))
-    count = sum(len(screen_sources(owner)) for owner in screen_owners(root, plugins))
+    exit_if_failed(check_screens(root, plugins))
+    count = sum(len(screen_templates(plugin)) for plugin in panorama_plugins(root, plugins))
     console.done(f"Checked {count} screen(s)")

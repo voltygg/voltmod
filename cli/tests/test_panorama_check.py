@@ -33,8 +33,8 @@ def screen(body: str) -> str:
     return SCREEN.replace("BODY", body)
 
 
-def messages(root, owners=("ui-lab",)) -> list[str]:
-    return [result.message for result in check_screens(root, list(owners))]
+def messages(root, plugins=("ui-lab",)) -> list[str]:
+    return [result.message for result in check_screens(root, list(plugins))]
 
 
 RULES = [

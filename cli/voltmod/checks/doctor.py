@@ -15,13 +15,13 @@ from voltmod.project import Project
 from voltmod.server.cs2_server import GAMEINFO, Cs2Server
 from voltmod.server.install import HOST_VDF, host_binary
 from voltmod.steam import CS2_APP
-from voltmod.toolchain.conan import REMOTE, has_remote, profile_dirs
+from voltmod.toolchain.conan import PACKAGE_REMOTE, has_remote, profile_dirs
 from voltmod.toolchain.msvc import msvc_version
 from voltmod.toolchain.process import BUILD_TOOLS, WINDOWS, tool_version
 
 PROJECT_FILES = ("CMakeLists.txt", "CMakePresets.json", "conanfile.py", "pyproject.toml")
 
-UP_TO_DATE_CHECK = (
+STEAM_UP_TO_DATE_URL = (
     f"https://api.steampowered.com/ISteamApps/UpToDateCheck/v1/?appid={CS2_APP}&version="
 )
 
@@ -33,7 +33,7 @@ def run_checks(project: Project, server_path: Path | None) -> Iterator[CheckResu
     if server_path:
         server = Cs2Server(server_path.expanduser())
         yield from _check_server(server)
-        if server.csgo.is_dir():
+        if server.game_dir.is_dir():
             yield from _check_game_build(project, server)
     else:
         yield CheckResult.warn("CS2 server check skipped; pass --server to include it")
@@ -77,19 +77,19 @@ def _check_project(root: Path) -> Iterator[CheckResult]:
 
     try:
         if has_remote():
-            yield CheckResult.ok(f"Conan remote: {REMOTE}")
+            yield CheckResult.ok(f"Conan remote: {PACKAGE_REMOTE}")
         else:
             yield CheckResult.warn(
-                f"Conan remote '{REMOTE}' is not configured; run `voltmod bootstrap`"
+                f"Conan remote '{PACKAGE_REMOTE}' is not configured; run `voltmod bootstrap`"
             )
     except VoltmodError as error:
         yield CheckResult.fail(f"Conan remote check: {error}")
 
 
 def _check_server(server: Cs2Server) -> Iterator[CheckResult]:
-    csgo = server.csgo
-    if not csgo.is_dir():
-        yield CheckResult.fail(f"CS2 server: expected {csgo}")
+    game_dir = server.game_dir
+    if not game_dir.is_dir():
+        yield CheckResult.fail(f"CS2 server: expected {game_dir}")
         return
     yield CheckResult.ok(f"CS2 server: {server.root}")
 
@@ -99,7 +99,7 @@ def _check_server(server: Cs2Server) -> Iterator[CheckResult]:
         yield CheckResult.fail("CS2 dedicated-server executable not found")
 
     metamod = (f"addons/metamod/bin/{p.bin_dir}/server{p.library_suffix}" for p in Platform)
-    if any((csgo / path).is_file() for path in metamod):
+    if any((game_dir / path).is_file() for path in metamod):
         yield CheckResult.ok("Metamod installation found")
     else:
         yield CheckResult.warn("Metamod binary not found; install Metamod before loading plugins")
@@ -110,8 +110,8 @@ def _check_server(server: Cs2Server) -> Iterator[CheckResult]:
             "`voltmod serve` restores it",
         )
 
-    installed = any((csgo / host_binary(platform)).is_file() for platform in Platform)
-    if installed and (csgo / HOST_VDF).is_file():
+    installed = any((game_dir / host_binary(platform)).is_file() for platform in Platform)
+    if installed and (game_dir / HOST_VDF).is_file():
         yield CheckResult.ok("VoltMod host installed")
     else:
         yield CheckResult.warn(
@@ -137,7 +137,7 @@ def _check_game_build(project: Project, server: Cs2Server) -> Iterator[CheckResu
 
 def _check_up_to_date(build: str, version: str) -> CheckResult:
     try:
-        with urllib.request.urlopen(UP_TO_DATE_CHECK + version, timeout=10) as response:
+        with urllib.request.urlopen(STEAM_UP_TO_DATE_URL + version, timeout=10) as response:
             answer = json.load(response)["response"]
     except (OSError, ValueError, KeyError) as error:
         return CheckResult.warn(f"Steam up-to-date check failed: {error}")

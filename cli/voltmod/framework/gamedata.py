@@ -15,16 +15,16 @@ from voltmod.server.cs2_server import CSGO_DIR, Cs2Server
 PATTERN_SECTIONS = ("functions", "globals")
 
 # Four literal bytes reading as a little-endian integer this small may be a struct offset.
-MAX_DISPLACEMENT = 0xFFFF
+MAX_OFFSET = 0xFFFF
 
 _LINE_COMMENT = re.compile(r"^\s*//.*$", re.MULTILINE)
 
 
 class PatternStatus(StrEnum):
-    HOLDS = "holds"
+    UNIQUE = "unique"
     REPAIRED = "repaired"
     AMBIGUOUS = "ambiguous"
-    BROKEN = "broken"
+    MISSING = "missing"
 
 
 @dataclass(frozen=True, slots=True)
@@ -151,7 +151,7 @@ def parse_gamedata(text: str) -> dict[str, Any]:
 def check_patterns(
     gamedata: dict[str, Any], binaries: GameBinaries, schema: dict[str, Any]
 ) -> list[PatternResult]:
-    """Check this platform's patterns, repairing those one moved displacement explains."""
+    """Check this platform's patterns, repairing those one moved struct offset explains."""
     results = []
     for section in PATTERN_SECTIONS:
         for key, entry in sorted(gamedata.get(section, {}).items()):
@@ -173,16 +173,16 @@ def check_pattern(
     schema: dict[str, Any],
 ) -> PatternResult:
     """Whether one pattern holds, matches twice, can be repaired, or is broken."""
-    hits = binaries.find(module, pattern)
-    if len(hits) == 1:
-        return PatternResult(section, key, PatternStatus.HOLDS)
-    if len(hits) > 1:
-        return PatternResult(section, key, PatternStatus.AMBIGUOUS, f"{len(hits)} matches")
+    matches = binaries.find(module, pattern)
+    if len(matches) == 1:
+        return PatternResult(section, key, PatternStatus.UNIQUE)
+    if len(matches) > 1:
+        return PatternResult(section, key, PatternStatus.AMBIGUOUS, f"{len(matches)} matches")
 
     repaired = repair_pattern(binaries, module, pattern)
     if repaired is None:
-        detail = "no match, and no single displacement explains it"
-        return PatternResult(section, key, PatternStatus.BROKEN, detail)
+        detail = "no match, and no single moved offset explains it"
+        return PatternResult(section, key, PatternStatus.MISSING, detail)
 
     start, end = repaired.index, repaired.index + 3
     detail = f"bytes {start}-{end}: {repaired.old_offset} -> {repaired.new_offset}, wildcarded"
@@ -192,23 +192,23 @@ def check_pattern(
 
 
 def repair_pattern(binaries: GameBinaries, module: str, pattern: str) -> Repair | None:
-    """Wildcard the one displacement that restores a unique match; None when zero or several do."""
-    # Widen only the displacement. Never search for a new function match.
+    """Wildcard the one struct offset that restores a unique match; None when zero or several do."""
+    # Widen only the offset. Never search for a new function match.
     tokens = pattern.split()
     accepted = []
-    for index, old_offset in _displacements(tokens):
+    for index, old_offset in _offset_candidates(tokens):
         widened = tokens.copy()
         widened[index : index + 4] = ["?"] * 4
         candidate = " ".join(widened)
-        hits = binaries.find(module, candidate)
-        if len(hits) == 1:
-            new_offset = int.from_bytes(binaries.read(module, hits[0] + index, 4), "little")
+        matches = binaries.find(module, candidate)
+        if len(matches) == 1:
+            new_offset = int.from_bytes(binaries.read(module, matches[0] + index, 4), "little")
             accepted.append(Repair(candidate, index, old_offset, new_offset))
     return accepted[0] if len(accepted) == 1 else None
 
 
 def schema_fields_at(schema: dict[str, Any], offset: int) -> list[str]:
-    """Schema fields at `offset`, to name what a repaired displacement points at."""
+    """Schema fields at `offset`, to name what a repaired offset points at."""
     return [
         f"{name}::{field['name']}"
         for name, info in sorted(schema.get("classes", {}).items())
@@ -234,7 +234,7 @@ def write_repairs(root: Path, text: str, repaired: list[PatternResult]) -> None:
     (root / GAMEDATA_FILE).write_text(text, encoding="utf-8", newline="\n")
 
 
-def _displacements(tokens: list[str]) -> list[tuple[int, int]]:
+def _offset_candidates(tokens: list[str]) -> list[tuple[int, int]]:
     """Every (index, value) where four literal bytes read as a plausible struct offset."""
     found = []
     for index in range(len(tokens) - 3):
@@ -242,6 +242,6 @@ def _displacements(tokens: list[str]) -> list[tuple[int, int]]:
         if any(token in ("?", "??") for token in window):
             continue
         value = int.from_bytes(bytes(int(token, 16) for token in window), "little")
-        if 0 < value <= MAX_DISPLACEMENT:
+        if 0 < value <= MAX_OFFSET:
             found.append((index, value))
     return found

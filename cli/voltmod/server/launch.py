@@ -18,7 +18,7 @@ class LaunchOptions:
     rcon_password: str = ""
 
 
-def update_server(steamcmd: Path | None, server: Path) -> None:
+def update_game(steamcmd: Path | None, server: Path) -> None:
     """Refresh the server files when SteamCMD is available."""
     steamcmd = steamcmd.expanduser() if steamcmd else None
     if not steamcmd or not steamcmd.is_file():
@@ -36,7 +36,7 @@ def run_server(
 ) -> None:
     """Optionally update with SteamCMD, then run the dedicated server in the foreground."""
     if update:
-        update_server(steamcmd, server.root)
+        update_game(steamcmd, server.root)
 
     if server.restore_metamod_search_path():
         console.note("Restored Metamod's search path in gameinfo.gi (a CS2 update removed it)")

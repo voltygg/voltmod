@@ -18,9 +18,9 @@ from voltmod.framework.paths import (
 )
 from voltmod.framework.schemagen.accessors import AccessorCode, accessor_code
 from voltmod.framework.schemagen.dump_types import Dump, DumpedEnum, Manifest
-from voltmod.framework.schemagen.fields import CPP_INCLUDES
+from voltmod.framework.schemagen.fields import TYPE_INCLUDES
 from voltmod.framework.schemagen.model import (
-    ENTITY_ROOT,
+    ENTITY_BASE,
     OWNER_LINK_FIELD,
     FieldKind,
     SchemaClass,
@@ -29,7 +29,7 @@ from voltmod.framework.schemagen.model import (
     enum_underlying_type,
     offset_constant,
 )
-from voltmod.framework.schemagen.resolve import baseline_dump, collect_enums, resolve_classes
+from voltmod.framework.schemagen.resolve import collect_enums, resolve_classes, trimmed_dump
 from voltmod.toolchain.clang_format import CPP_SUFFIXES, format_cpp_files
 
 
@@ -54,12 +54,12 @@ class GeneratedClass:
 
 
 @dataclass(frozen=True, slots=True)
-class SchemaOutput:
+class SchemaFiles:
     files: dict[Path, str]  # repo-relative path -> text; C++ is formatted when written
     summary: str
 
 
-def render_outputs(dump: Dump, manifest: Manifest, platform: str) -> SchemaOutput:
+def render_schema(dump: Dump, manifest: Manifest, platform: str) -> SchemaFiles:
     classes = resolve_classes(dump, manifest)
     enums = collect_enums(dump, classes)
     ordered = [classes[name] for name in sorted(classes)]
@@ -77,7 +77,7 @@ def render_outputs(dump: Dump, manifest: Manifest, platform: str) -> SchemaOutpu
         shared = {
             "schema_class": schema_class,
             "fields": generated[schema_class.name].fields,
-            "entity_root": ENTITY_ROOT,
+            "entity_base": ENTITY_BASE,
             "offset_constant": offset_constant,
         }
         files[GENERATED_HEADER_DIR / f"{schema_class.name}.hpp"] = _render(
@@ -97,9 +97,9 @@ def render_outputs(dump: Dump, manifest: Manifest, platform: str) -> SchemaOutpu
         files[GENERATED_HEADER_DIR / "Wrappers" / f"{wrapper}.inc"] = _render(
             "wrapper.inc.j2", wrapper=wrapper, classes=wrapped
         )
-    baseline = baseline_dump(dump, classes, enums)
+    baseline = trimmed_dump(dump, classes, enums)
     files[SCHEMA_BASELINES[platform]] = json.dumps(baseline, indent=2) + "\n"
-    return SchemaOutput(files, _summary(classes, enums, game_build))
+    return SchemaFiles(files, _summary(classes, enums, game_build))
 
 
 def layout_rows(dump: Dump, classes: list[SchemaClass]) -> list[LayoutRow]:
@@ -107,7 +107,7 @@ def layout_rows(dump: Dump, classes: list[SchemaClass]) -> list[LayoutRow]:
     rows = []
     for schema_class in sorted(classes, key=lambda entry: entry.name):
         rows += [
-            LayoutRow(schema_class.name, field.schema_name, field.offset, field.size)
+            LayoutRow(schema_class.name, field.engine_name, field.offset, field.size)
             for field in schema_class.generated_fields
         ]
         rows += [
@@ -125,9 +125,7 @@ def layout_stamp(rows: list[LayoutRow]) -> str:
     return f"0x{int.from_bytes(digest[:8], 'big'):016X}"
 
 
-def write_outputs(
-    repo: Path, files: dict[Path, str], platform: str, *, check: bool = False
-) -> None:
+def write_schema(repo: Path, files: dict[Path, str], platform: str, *, check: bool = False) -> None:
     """Format and write `files`, deleting stale ones; with `check`, fail on any difference."""
     expected = {repo / relative for relative in files}
     stale = [path for path in _existing_generated_files(repo, platform) if path not in expected]
@@ -178,12 +176,12 @@ def _header_includes(schema_class: SchemaClass) -> list[str]:
                 includes.add(f"<VoltMod/Schema/Generated/{field.view_class}.hpp>")
             case FieldKind.ENUM:
                 includes.add("<VoltMod/Schema/Generated/Enums.hpp>")
-            case FieldKind.CHARS:
+            case FieldKind.CHAR_ARRAY:
                 includes.add("<string_view>")
             case FieldKind.ARRAY:
                 includes.add("<cstddef>")
-            case FieldKind.VALUE if field.cpp_type in CPP_INCLUDES:
-                includes.add(CPP_INCLUDES[field.cpp_type])
+            case FieldKind.VALUE if field.cpp_type in TYPE_INCLUDES:
+                includes.add(TYPE_INCLUDES[field.cpp_type])
     return sorted(includes)
 
 
@@ -196,7 +194,7 @@ def _source_includes(schema_class: SchemaClass) -> list[str]:
     for field in schema_class.fields:
         if field.kind is FieldKind.VIEW:
             includes.add(f"<VoltMod/Schema/Generated/{field.view_class}.hpp>")
-        if field.kind is FieldKind.CHARS:
+        if field.kind is FieldKind.CHAR_ARRAY:
             includes.add("<VoltMod/Core/Text/CharBuf.hpp>")
     return sorted(includes)
 

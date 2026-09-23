@@ -6,14 +6,14 @@ import typer
 from voltmod import console
 from voltmod.files import read_json
 from voltmod.framework.game_builds import (
+    archive_dir,
     archive_resolved,
     archived_builds,
-    default_archive,
-    fetch_build,
+    download_build,
 )
 from voltmod.framework.gamedata import PatternResult, PatternStatus, check_gamedata, write_repairs
 from voltmod.framework.paths import GAMEDATA_FILE, SCHEMA_MANIFEST
-from voltmod.framework.schemagen.generate import render_outputs, write_outputs
+from voltmod.framework.schemagen.generate import render_schema, write_schema
 from voltmod.options import ServerDir, current_project
 from voltmod.platforms import Platform
 from voltmod.server.cs2_server import Cs2Server
@@ -48,8 +48,8 @@ def schemagen_command(
     manifest = read_json(project.root / SCHEMA_MANIFEST, "manifest")
     dump_file = dump or Cs2Server.open(server).root / SCHEMA_DUMP
 
-    output = render_outputs(read_json(dump_file, "dump"), manifest, platform)
-    write_outputs(project.root, output.files, platform)
+    output = render_schema(read_json(dump_file, "dump"), manifest, platform)
+    write_schema(project.root, output.files, platform)
     console.done(output.summary)
 
 
@@ -88,10 +88,10 @@ def gamedata_fetch_command(
 
     The archive is CS2_BUILD_ARCHIVE, else ~/.voltmod/cs2-builds.
     """
-    root = default_archive()
+    root = archive_dir()
     for name in [platform] if platform else list(Platform):
         console.step(f"fetch {name}")
-        target = fetch_build(root, name)
+        target = download_build(root, name)
         console.item(str(target))
         if server and (build := archive_resolved(server.expanduser(), root, name)):
             console.note(f"kept the local server's resolved.{name}.json under build {build}")
@@ -103,10 +103,10 @@ def gamedata_fetch_command(
 
 def _print_drift(results: list[PatternResult]) -> int:
     """Print every pattern that no longer holds; return how many there are."""
-    held = sum(result.status is PatternStatus.HOLDS for result in results)
+    held = sum(result.status is PatternStatus.UNIQUE for result in results)
     console.note(f"{held}/{len(results)} patterns hold")
     for result in results:
-        if result.status is PatternStatus.HOLDS:
+        if result.status is PatternStatus.UNIQUE:
             continue
         console.labelled(f"{result.status.upper():9}", "yellow", f"{result.section}.{result.key}")
         for line in result.detail.splitlines():

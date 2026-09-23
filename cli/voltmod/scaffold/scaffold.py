@@ -40,7 +40,7 @@ def create_plugin(root: Path, name: str) -> None:
     console.done("Done. Build it with: uv run poe build")
 
 
-def plugin_fields(name: str) -> dict[str, str]:
+def template_values(name: str) -> dict[str, str]:
     """A kebab-case plugin name spelled for each template placeholder."""
     words = [word.capitalize() for word in name.split("-")]
     pascal = "".join(words)
@@ -65,8 +65,10 @@ def _add_plugin(root: Path, name: str) -> None:
     if plugin_dir.exists():
         raise VoltmodError(f"{plugin_dir} already exists; refusing to overwrite")
 
-    _render_tree(_template_dir("plugin"), plugin_dir, plugin_fields(name), label=f"plugins/{name}/")
-    if _register_subdirectory(root / "CMakeLists.txt", name):
+    _render_tree(
+        _template_dir("plugin"), plugin_dir, template_values(name), label=f"plugins/{name}/"
+    )
+    if _register_plugin(root / "CMakeLists.txt", name):
         console.item(f"registered add_subdirectory(plugins/{name}) in CMakeLists.txt")
 
 
@@ -83,7 +85,7 @@ def _render_tree(template_dir: Path, target: Path, fields: dict[str, str], label
         console.item(f"created {label}{relative.as_posix()}")
 
 
-def _register_subdirectory(root_cmake: Path, name: str) -> bool:
+def _register_plugin(root_cmake: Path, name: str) -> bool:
     """Add add_subdirectory(plugins/<name>) after the last plugin one; False if already there."""
     line = f"add_subdirectory(plugins/{name})"
     text = root_cmake.read_text(encoding="utf-8")

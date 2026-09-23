@@ -1,4 +1,4 @@
-"""Reading a rendered screen's panel ids, dialog variables, class families and repeated blocks."""
+"""Reading a rendered screen's panel ids, dialog variables, class modifiers and repeated blocks."""
 
 import re
 from dataclasses import dataclass, field
@@ -11,8 +11,8 @@ from voltmod.errors import VoltmodError
 # A Label reading a dialog variable off the layout root.
 DIALOG_VARIABLE = re.compile(r"^\{s:(\w+)\}$")
 
-# One class of a BEM `block--modifier` or `block__element--modifier` family.
-CLASS_FAMILY = re.compile(r"^([A-Za-z_]\w*(?:-\w+)*)--(\w+(?:-\w+)*)$")
+# One class of a BEM `block--modifier` or `block__element--modifier` set.
+MODIFIER_CLASS = re.compile(r"^([A-Za-z_]\w*(?:-\w+)*)--(\w+(?:-\w+)*)$")
 SELECTOR_CLASS = re.compile(r"\.([A-Za-z0-9_-]+)")
 IMAGE_SOURCE = re.compile(r"^s2r://panorama/images/([^/]+)/([^/]+)\.vtex$")
 
@@ -72,8 +72,8 @@ class Screen:
     tree: ElementTree.Element
     ids: list[str] = field(default_factory=list)
     variables: list[str] = field(default_factory=list)
-    # Family prefix -> its variants, both in first-appearance order.
-    families: dict[str, list[str]] = field(default_factory=dict)
+    # `block` or `block__element` -> its modifiers, both in first-appearance order.
+    modifiers: dict[str, list[str]] = field(default_factory=dict)
 
     @cached_property
     def blocks(self) -> list[RepeatedBlock]:
@@ -118,13 +118,13 @@ def read_screen(layout: str, stylesheet: str, source: Path | None = None) -> Scr
     ids = [node.get("id", "") for node in nodes if node.get("id")]
     screen = Screen(name=ids[0] if ids else "", tree=tree, ids=ids[1:])
 
-    # Layout first, so an icon set's families keep the order its Images are stacked in.
+    # Layout first, so an icon set's modifiers keep the order its Images are stacked in.
     for node in nodes:
         found = DIALOG_VARIABLE.match(node.get("text", ""))
         if found and found.group(1) not in screen.variables:
             screen.variables.append(found.group(1))
-        _collect_families(screen.families, node.get("class", "").split())
-    _collect_families(screen.families, selector_classes(stylesheet))
+        _collect_modifiers(screen.modifiers, node.get("class", "").split())
+    _collect_modifiers(screen.modifiers, selector_classes(stylesheet))
     return screen
 
 
@@ -196,9 +196,9 @@ def _find_blocks(screen: Screen) -> list[RepeatedBlock]:
     return blocks
 
 
-def _collect_families(families: dict[str, list[str]], classes: list[str]) -> None:
+def _collect_modifiers(modifiers: dict[str, list[str]], classes: list[str]) -> None:
     for name in classes:
-        if found := CLASS_FAMILY.match(name):
-            variants = families.setdefault(found.group(1), [])
-            if found.group(2) not in variants:
-                variants.append(found.group(2))
+        if found := MODIFIER_CLASS.match(name):
+            known = modifiers.setdefault(found.group(1), [])
+            if found.group(2) not in known:
+                known.append(found.group(2))
