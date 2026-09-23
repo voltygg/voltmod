@@ -1,7 +1,9 @@
+# Secrets:
+#   CLOUDSMITH_USERNAME, CLOUDSMITH_API_KEY  a Cloudsmith account that can upload packages
+
 name: SDK packages
 
-# A recipe change is the only reason to rebuild the SDKs; CI otherwise uses the binaries the
-# lockfile pins. A pull request builds them; main publishes and tags them.
+# Only a recipe change rebuilds the SDKs; CI otherwise uses the binaries conan.lock pins.
 
 on:
   pull_request:
@@ -13,7 +15,7 @@ on:
 
 concurrency:
   group: sdk-${{ github.ref }}
-  # An upload is never cancelled half way.
+  # Never cancel an upload half way.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -29,10 +31,10 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-toolchain
 
-      - name: Build the SDK packages, uploading them outside a pull request
+      - name: Build the SDK packages, publishing outside a pull request
         run: python -m tools.release ${{ github.event_name == 'pull_request' && 'build' || 'publish' }} sdk
 
-      # Without the lockfile: it pins the published SDK revisions, not the ones built here.
+      # The lockfile pins the published SDK revisions, not the ones built here.
       - name: Rebuild the framework against them
         run: python -m tools.release build framework --no-lockfile
 

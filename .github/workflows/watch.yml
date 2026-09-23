@@ -1,3 +1,8 @@
+# Secrets:
+#   BOT_APP_ID           variable; a GitHub App with contents and pull-requests write
+#   BOT_APP_PRIVATE_KEY  that app's private key
+#   CLOUDSMITH_API_KEY   a Cloudsmith key that can delete packages
+
 name: Watch upstream
 
 on:
