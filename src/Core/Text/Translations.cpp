@@ -68,8 +68,7 @@ static const StringMap<std::string>& KitDefaults()
         {"menu.confirm", "Confirm"},
         {"menu.cancel", "Cancel"},
         {"language.en", "English"},
-        // "Русский" as UTF-8 bytes: MSVC reads sources in the ANSI code page.
-        {"language.ru", "Ð ÑÑÑÐºÐ¸Ð¹"},
+        {"language.ru", "Russian"},
     };
     return defaults;
 }
