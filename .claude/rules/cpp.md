@@ -17,7 +17,7 @@ paths:
 ## Namespaces
 
 - Every public name lives in `VoltMod`. Modules are directories and layers, not namespaces.
-- The only nested namespaces: free-function groups with a common noun (`Log`, `ChatColors`, `Validation`, `PawnOps`); `Args`, the command argument types that only appear in handler signatures; and `Internal`, which may only appear under `src/`.
+- The only nested namespaces: free-function groups with a common noun (`Log`, `ChatColors`, `Validation`); `Args`, the command argument types that only appear in handler signatures; and `Internal`, which may only appear under `src/`.
 - No anonymous namespaces; a file-local helper is `static` at the top of the .cpp.
 - No using-directives. A .cpp may write `using VoltMod::Player;`; a header may not.
 

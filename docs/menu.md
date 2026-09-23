@@ -92,7 +92,7 @@ ActionRows rows({.Actions = app.Actions, .Policy = runtime.Policy,
 
 MenuBuilder(title)
     .Add(rows.Action("action.kill", Actions::Kill))                     // runs an Action
-    .Add(rows.StateToggle("action.freeze", InMoveType(Schema::MoveType_t::MOVETYPE_NONE), Actions::Freeze))
+    .Add(rows.StateToggle("action.freeze", IsFrozen, Actions::Freeze))  // bool IsFrozen(const Pawn&)
     .Add(rows.Presets({.LabelKey = "action.health", .Unit = "HP",
                        .Presets = HealthPresets, .Action = Actions::SetHealth}))
     .Add(rows.Effect(Effects::Ghost))           // data-defined effect (EffectDescriptor)
@@ -115,8 +115,7 @@ your own callbacks, and `rows.Translate(key, tokens)` the admin's wording:
 ```
 
 `StateToggle` re-reads its predicate every redraw, so one row shows "Freeze"/"Unfreeze" reality and
-doubles as the undo control; the pawn predicates (`InMoveType`, `HasPawnFlag`) live in
-`Entities/PawnPredicates.hpp`. `Presets` leaves the menu open after applying, so a value can be
+doubles as the undo control. `Presets` leaves the menu open after applying, so a value can be
 adjusted again. An effect row built without `Services::Effects` is drawn disabled rather than live
 and doing nothing; the descriptor itself is in @ref players_guide.
 

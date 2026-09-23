@@ -230,39 +230,17 @@ runtime.World.Rounds.End(VoltMod::RoundEndReason::TerroristsWin, 5.0f);
 
 Team scores are left alone.
 
-## PawnOps
+## Teams
 
-Common pawn manipulations, as free functions in `VoltMod::PawnOps`
-(`<VoltMod/Entities/PawnOps.hpp>`). Teams are `VoltMod::Team` from `<VoltMod/Engine/Team.hpp>`,
-which needs no SDK:
-
-```cpp
-namespace PawnOps = VoltMod::PawnOps;
-
-VoltMod::Pawn target = runtime.Entities.Pawn(slot);
-
-PawnOps::ToggleNoclip(target);              // noclip <-> walk; returns the new on-state
-PawnOps::ToggleFreeze(target);              // MOVETYPE_NONE <-> walk
-PawnOps::ToggleGodmode(target);             // FL_GODMODE flip, the working CS2 invincibility path
-PawnOps::ShiftZ(target, -15.0f);            // bury; +15 to unbury
-
-// Team lives on the controller, so this one takes that.
-PawnOps::ChangeTeamSafe(runtime.Entities.Controller(slot), VoltMod::Team::CT);
-
-// Teleports: a destination cleared past the anchor's hull, and an exact-origin swap.
-Vector dest = PawnOps::ClearedDestination(anchor);   // 48u ahead of the anchor's eye yaw
-target.Teleport(dest, std::nullopt, Vector{0, 0, 0});
-PawnOps::SwapOrigins(a, b);                          // both spots vacate in the same frame
-```
-
-Anything needing framework services lives on `runtime.World.Pawns` instead:
+`VoltMod::Team` (`<VoltMod/Engine/Team.hpp>`, no SDK) is what `Team()` returns and `ChangeTeam`
+takes. The team lives on the controller:
 
 ```cpp
-runtime.World.Pawns.Slap(target);           // upward punt plus timed fall protection
-runtime.World.Pawns.SlayDelayed(slot, 2000);
+VoltMod::Controller controller = runtime.Entities.Controller(slot);
+if (VoltMod::IsPlaying(controller.Team()))
+    controller.ChangeTeam(VoltMod::Opposite(controller.Team()));
+controller.ChangeTeam(VoltMod::Team::Spectator);
 ```
-
-Both drop their pending work when the seat changes hands, so neither can reach the next occupant.
 
 ## Pawn verbs
 

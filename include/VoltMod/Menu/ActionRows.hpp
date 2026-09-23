@@ -50,10 +50,8 @@ public:
     /** A button that runs a single-target action. */
     MenuItem Action(std::string_view labelKey, const VoltMod::Action& action);
 
-    /**
-     * A toggle row whose state is @p isActive over the target's pawn, re-read on every redraw,
-     * and whose flip runs @p action. Predicates live in Entities/PawnPredicates.hpp.
-     */
+    /** A toggle row whose state is @p isActive over the target's pawn, re-read on every redraw,
+     *  and whose flip runs @p action. */
     MenuItem StateToggle(std::string_view labelKey, std::function<bool(const Pawn&)> isActive,
                          const VoltMod::Action& action);
 

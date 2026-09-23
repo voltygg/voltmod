@@ -13,8 +13,5 @@
 #include <VoltMod/Entities/MovementFreeze.hpp>
 #include <VoltMod/Entities/ObserverMode.hpp>
 #include <VoltMod/Entities/Pawn.hpp>
-#include <VoltMod/Entities/PawnOps.hpp>
-#include <VoltMod/Entities/PawnPredicates.hpp>
-#include <VoltMod/Entities/Pawns.hpp>
 #include <VoltMod/Entities/Rounds.hpp>
 #include <VoltMod/Entities/Trace.hpp>
