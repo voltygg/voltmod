@@ -11,7 +11,12 @@ from voltmod.framework.game_builds import (
     archived_builds,
     download_build,
 )
-from voltmod.framework.gamedata import PatternResult, PatternStatus, check_gamedata, write_repairs
+from voltmod.framework.gamedata_check import (
+    PatternResult,
+    PatternStatus,
+    check_gamedata,
+    write_repairs,
+)
 from voltmod.framework.paths import GAMEDATA_FILE, SCHEMA_MANIFEST
 from voltmod.framework.schemagen.generate import render_schema, write_schema
 from voltmod.options import ServerDir

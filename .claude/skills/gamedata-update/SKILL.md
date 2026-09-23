@@ -31,9 +31,17 @@ uv run voltmod framework gamedata check --game-dir ~/.voltmod/cs2-builds/<new>/l
 uv run voltmod framework gamedata check --fix --game-dir ...   # only fixes a drifted struct offset
 ```
 
-Re-find everything `resolve` cannot, with `scripts/binre.py` (run a snippet file:
-`uv run .claude/skills/gamedata-update/scripts/binre.py snippet.py`; `Binary.open(build, platform)`
-takes a build number from the archive). What worked, most reliable first:
+`script` entries (`CBaseEntity::EmitSoundParams`, `CCSPlayerController::ChangeTeam`) have nothing
+to check offline: the host reads them from the VScript bindings at load, and a binding Valve
+removed shows up as a `did not bind` line in step 6.
+
+Re-find everything `check --fix` cannot with `scripts/binre.py`, which runs a snippet with the
+helpers of `scripts/binary.py` (disassembly, references, callers) and `scripts/analysis.py`
+(slots, patterns, drift) in scope. Both build on the CLI's `voltmod.framework.binaries`, so run
+it in the framework's environment:
+`uv run --with capstone --with numpy python .claude/skills/gamedata-update/scripts/binre.py snippet.py`.
+`Binary.open(build, platform)` takes a build number from the archive, and `binary.image` is the
+CLI's `Image`. What worked, most reliable first:
 
 - **Shared callees.** A broken function usually calls the same helpers as an entry that still
   matches (the HUD `ForPlayer` setters call the same name lookups as `SetHasClass`). Take the
@@ -70,13 +78,18 @@ Nothing catches a shifted index but a crash, so check every entry, not only brok
 - Identical `return true` stubs are folded by MSVC, so a handler slot pointing at a shared stub
   is normal (`ProcessRespondCvarValue`); verify it by its neighbours instead.
 - A slot's code must match the `code` the host records in `resolved.<platform>.json`.
+- `vtable(binary, class, subobject)` takes a base's offset for its own table (the
+  `INetworkMessageProcessingPreFilter` table of `CServerSideClient` is at 8 on Windows, 48 on Linux).
 
 ## 4. Byte offsets
 
 Find an instruction that reads the field and read its displacement on the new build: the
-addons string is `[this + X]` in `ReplyConnection` right before its log line. For client
-fields, count unaligned displacements across the class's virtuals (`m_SteamID` at 171 sits
-between 170 and 179). Say which offsets were not checked offline.
+addons string is `[this + X]` in `ReplyConnection` right before its log line, and also the
+`mov rdx, [rcx + X]` in `CNetworkGameServer`'s `GetAddonName` slot (26). The host compares that
+offset with `GetAddonName` before every write and logs `m_szAddons offset ... is stale` instead of
+writing, so a missed update fails safe. For client fields, count unaligned displacements across
+the class's virtuals (`m_SteamID` at 171 sits between 170 and 179). Say which offsets were not
+checked offline.
 
 ## 5. Schema
 
