@@ -137,23 +137,8 @@ def _check_server(server: Path) -> Iterator[CheckResult]:
 
 
 def _check_game_build(project: Project, server: Path) -> Iterator[CheckResult]:
-    build, version = game_build(server), patch_version(server)
-    try:
-        with urllib.request.urlopen(UP_TO_DATE_CHECK + version, timeout=10) as response:
-            answer = json.load(response)["response"]
-    except (OSError, ValueError, KeyError) as error:
-        yield CheckResult(f"Steam up-to-date check failed: {error}", Status.WARN)
-    else:
-        if answer.get("up_to_date"):
-            yield _passed(f"CS2 server {version} ({build}) is the current build")
-        else:
-            required = answer.get("message", "Steam requires a newer build")
-            yield CheckResult(
-                f"CS2 server {version} is out of date ({required}); update it, then follow "
-                "docs/sdk/gamedata.md",
-                Status.WARN,
-            )
-
+    build = game_build(server)
+    yield _check_up_to_date(build, patch_version(server))
     if not project.is_framework:
         return
     gamedata = parse_gamedata(read_gamedata(project.root))
@@ -166,3 +151,19 @@ def _check_game_build(project: Project, server: Path) -> Iterator[CheckResult]:
             "see docs/sdk/gamedata.md",
             Status.WARN,
         )
+
+
+def _check_up_to_date(build: str, version: str) -> CheckResult:
+    try:
+        with urllib.request.urlopen(UP_TO_DATE_CHECK + version, timeout=10) as response:
+            answer = json.load(response)["response"]
+    except (OSError, ValueError, KeyError) as error:
+        return CheckResult(f"Steam up-to-date check failed: {error}", Status.WARN)
+    if answer.get("up_to_date"):
+        return _passed(f"CS2 server {version} ({build}) is the current build")
+    required = answer.get("message", "Steam requires a newer build")
+    return CheckResult(
+        f"CS2 server {version} is out of date ({required}); update it, then follow "
+        "docs/sdk/gamedata.md",
+        Status.WARN,
+    )

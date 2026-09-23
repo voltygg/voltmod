@@ -168,13 +168,12 @@ class Binary:
 
     def calls_in(self, function: Function) -> list[int]:
         """Direct call and jump targets outside the function, in order."""
-        targets = []
-        for insn in self.instructions(function.start, function.size):
-            if insn.mnemonic in ("call", "jmp") and insn.op_str.startswith("0x"):
-                target = int(insn.op_str, 16)
-                if not function.start <= target < function.end:
-                    targets.append(target)
-        return targets
+        targets = [
+            int(insn.op_str, 16)
+            for insn in self.instructions(function.start, function.size)
+            if insn.mnemonic in ("call", "jmp") and insn.op_str.startswith("0x")
+        ]
+        return [target for target in targets if not function.start <= target < function.end]
 
     def strings_in(self, function: Function) -> list[str]:
         found = []
@@ -383,10 +382,11 @@ def _vtables_windows(binary: Binary, class_name: str) -> dict[int, int]:
         locator_at = match.start() - 12
         locator = rdata.rva + locator_at
         signature, offset, _, _, _, self_rva = struct.unpack_from("<IIIIII", blob, locator_at)
-        if signature == 1 and self_rva == locator:
-            pointer_at = blob.find(struct.pack("<Q", binary.image_base + locator))
-            if pointer_at >= 0:
-                tables[offset] = rdata.rva + pointer_at + 8
+        if signature != 1 or self_rva != locator:
+            continue
+        pointer_at = blob.find(struct.pack("<Q", binary.image_base + locator))
+        if pointer_at >= 0:
+            tables[offset] = rdata.rva + pointer_at + 8
     return tables
 
 

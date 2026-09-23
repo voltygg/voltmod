@@ -135,21 +135,19 @@ def find_client(client_path: str) -> Path:
             raise VoltmodError(f"no CS2 client at {root}\nExpected {root / GAMEINFO}")
         return root
 
-    for candidate in _STEAM_ROOTS:
-        steam = Path(candidate).expanduser()
-        if steam.is_dir():
-            for library in _steam_libraries(steam):
-                if is_client(library / _CS2_IN_STEAM_LIBRARY):
-                    return library / _CS2_IN_STEAM_LIBRARY
+    for steam in _STEAM_ROOTS:
+        for library in _steam_libraries(Path(steam).expanduser()):
+            client = library / _CS2_IN_STEAM_LIBRARY
+            if is_client(client):
+                return client
 
     raise VoltmodError("no CS2 client found; set CS2_CLIENT_PATH in .env or pass --client-path")
 
 
 def _steam_libraries(steam: Path) -> list[Path]:
     """Every Steam library on this machine, so a client on a second drive is still found."""
-    libraries = [steam]
     manifest = steam / "steamapps/libraryfolders.vdf"
-    if manifest.is_file():
-        text = manifest.read_text(encoding="utf-8", errors="replace")
-        libraries += [Path(path.replace("\\\\", "/")) for path in _LIBRARY_PATH.findall(text)]
-    return libraries
+    if not manifest.is_file():
+        return [steam]
+    text = manifest.read_text(encoding="utf-8", errors="replace")
+    return [steam, *(Path(path.replace("\\\\", "/")) for path in _LIBRARY_PATH.findall(text))]
