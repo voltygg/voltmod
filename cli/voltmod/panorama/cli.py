@@ -5,14 +5,12 @@ from typing import Annotated
 
 import typer
 
-from voltmod.commands.shared import exit_on_failure
+from voltmod.checks.results import exit_on_failure
 from voltmod.panorama.check import check_screens
 from voltmod.panorama.compiler import compile_and_install
 from voltmod.panorama.render import render_screens
 from voltmod.panorama.sources import screen_owners, screen_sources
 from voltmod.project import Project
-
-panorama_commands = typer.Typer(help="Render, check and compile Panorama screens.")
 
 Owners = Annotated[
     list[str] | None,
@@ -23,7 +21,6 @@ Owners = Annotated[
 ]
 
 
-@panorama_commands.command("render")
 def render_command(
     owners: Owners = None,
     out: Annotated[
@@ -36,7 +33,6 @@ def render_command(
     print(f"Rendered {len(written)} file(s)")
 
 
-@panorama_commands.command("compile")
 def compile_command(
     owners: Owners = None,
     client_path: Annotated[
@@ -67,7 +63,6 @@ def compile_command(
     compile_and_install(project.root, owners, client_path, addon, deploy)
 
 
-@panorama_commands.command("check")
 def check_command(owners: Owners = None) -> None:
     """Validate rendered screens against the rules the CS2 client enforces silently."""
     root = Project.load().root

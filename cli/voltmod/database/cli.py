@@ -5,14 +5,12 @@ from typing import Annotated
 
 import typer
 
-from voltmod.database import DRIVERS, generate_table_header, render_migrations
+from voltmod.database.header import generate_table_header
+from voltmod.database.migrations import DRIVERS, render_migrations
 from voltmod.files import write_or_check
 from voltmod.project import Project
 
-database_commands = typer.Typer(help="Migration rendering and table-header generation.")
 
-
-@database_commands.command("tables")
 def tables_command(
     migrations: Annotated[
         str, typer.Option("--migrations", help="Directory holding the NNNN_*.sql migrations")
@@ -36,7 +34,6 @@ def tables_command(
     print(f"{target} is up to date." if check else f"Generated {target}.")
 
 
-@database_commands.command("sql")
 def sql_command(
     source: Annotated[
         str, typer.Argument(help="A .sql file, or a directory of NNNN_*.sql migrations")

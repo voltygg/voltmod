@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from voltmod.database import (
+from voltmod.database.migrations import (
     DIALECTS,
     DRIVERS,
     apply_altered_columns,

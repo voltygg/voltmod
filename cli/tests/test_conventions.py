@@ -3,7 +3,7 @@
 import textwrap
 from pathlib import Path
 
-from voltmod.conventions import check_plugins
+from voltmod.checks.conventions import check_plugins
 
 
 def write(root: Path, path: str, text: str) -> None:

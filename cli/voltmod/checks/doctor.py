@@ -7,7 +7,7 @@ import urllib.request
 from collections.abc import Iterator
 from pathlib import Path
 
-from voltmod.check_results import CheckResult, Status
+from voltmod.checks.results import CheckResult, Status
 from voltmod.cs2_install import (
     CS2_APP,
     CSGO_DIR,

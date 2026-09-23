@@ -6,7 +6,7 @@ from typing import Annotated
 
 import typer
 
-from voltmod.commands.shared import ServerPath, exit_on_failure
+from voltmod.checks.results import exit_on_failure
 from voltmod.cs2_install import GAME_LIBRARIES, SCHEMA_DUMP, find_server
 from voltmod.errors import VoltmodError
 from voltmod.files import read_json
@@ -17,13 +17,11 @@ from voltmod.framework.game_builds import (
     fetch_build,
 )
 from voltmod.framework.gamedata import PatternResult, PatternStatus, check_gamedata, write_repairs
-from voltmod.framework.modgraph import check_framework
+from voltmod.framework.layering import check_framework
 from voltmod.framework.paths import GAMEDATA_FILE, SCHEMA_BASELINES, SCHEMA_MANIFEST
 from voltmod.framework.schemagen.generate import render_outputs, write_outputs
+from voltmod.options import ServerPath
 from voltmod.project import Project
-
-framework_commands = typer.Typer()
-gamedata_commands = typer.Typer(help="Check and repair gamedata against the shipped game binaries.")
 
 GameDir = Annotated[
     str,
@@ -36,7 +34,6 @@ Platform = Annotated[
 ]
 
 
-@framework_commands.command("modgraph")
 def modgraph_command() -> None:
     """Check VoltMod's module layering and the framework's own source rules."""
     dependencies, results = check_framework(Project.load().root)
@@ -46,7 +43,6 @@ def modgraph_command() -> None:
     print("\nLayering holds.")
 
 
-@framework_commands.command("schemagen")
 def schemagen_command(
     dump_path: Annotated[
         str, typer.Option("--dump", help="Schema dump (default: the one the local server wrote)")
@@ -71,8 +67,7 @@ def schemagen_command(
     print(output.summary)
 
 
-@gamedata_commands.command("check")
-def check_command(game_dir: GameDir = "", platform: Platform = "") -> None:
+def gamedata_check_command(game_dir: GameDir = "", platform: Platform = "") -> None:
     """Report which committed patterns no longer match the shipped binaries."""
     project = Project.load()
     _, results = check_gamedata(project.root, project.server_path(game_dir), platform)
@@ -82,8 +77,7 @@ def check_command(game_dir: GameDir = "", platform: Platform = "") -> None:
         raise typer.Exit(1)
 
 
-@gamedata_commands.command("fetch")
-def fetch_command(
+def gamedata_fetch_command(
     platform: Annotated[
         str, typer.Option("--platform", help="windows or linux (default: both)")
     ] = "",
@@ -109,8 +103,7 @@ def fetch_command(
         print(f"Archived builds: {' '.join(builds)} (the previous one is {builds[-2]})")
 
 
-@gamedata_commands.command("resolve")
-def resolve_command(
+def gamedata_resolve_command(
     game_dir: GameDir = "",
     platform: Platform = "",
     write: Annotated[bool, typer.Option("--write", help="Patch gamedata.jsonc in place")] = False,

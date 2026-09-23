@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from voltmod.check_results import CheckResult
+from voltmod.checks.results import CheckResult
 from voltmod.errors import VoltmodError
 from voltmod.panorama.layout import (
     IMAGE_SOURCE,

@@ -4,14 +4,12 @@ from typing import Annotated
 
 import typer
 
-from voltmod.commands.shared import ServerPath
+from voltmod.options import ServerPath
 from voltmod.project import Project
-from voltmod.server import install_plugins, run_server
+from voltmod.server.install import install_plugins
+from voltmod.server.launch import run_server
 
-local_server_commands = typer.Typer()
 
-
-@local_server_commands.command("install")
 def install_command(
     plugin: Annotated[
         str, typer.Argument(help="Plugin to install (default: every built plugin)")
@@ -27,7 +25,6 @@ def install_command(
     install_plugins(project, project.server_path(server_path), plugin, preset)
 
 
-@local_server_commands.command("serve")
 def serve_command(
     server_path: ServerPath = "",
     steamcmd_path: Annotated[

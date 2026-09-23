@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from voltmod.conventions import check_conventions, read_sources
-from voltmod.framework.modgraph import (
+from voltmod.checks.conventions import check_conventions, read_sources
+from voltmod.framework.layering import (
     ALLOWED_DEPENDENCIES,
     DECLARATION_HEADERS,
     check_composition_root,

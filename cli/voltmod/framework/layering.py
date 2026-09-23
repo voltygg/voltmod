@@ -4,8 +4,8 @@ import re
 from collections.abc import Iterable
 from pathlib import Path
 
-from voltmod.check_results import CheckResult
-from voltmod.conventions import SourceFile, check_conventions, read_sources
+from voltmod.checks.conventions import SourceFile, check_conventions, read_sources
+from voltmod.checks.results import CheckResult
 from voltmod.errors import VoltmodError
 from voltmod.framework.paths import INCLUDE_ROOT, SOURCE_DIRS
 

@@ -5,7 +5,7 @@ from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import NamedTuple
 
-from voltmod.check_results import CheckResult
+from voltmod.checks.results import CheckResult
 from voltmod.errors import VoltmodError
 from voltmod.toolchain.clang_format import CPP_SUFFIXES
 

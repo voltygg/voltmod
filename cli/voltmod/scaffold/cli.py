@@ -5,9 +5,7 @@ from typing import Annotated
 import typer
 
 from voltmod.project import Project
-from voltmod.scaffold import create_plugin, create_project, is_kebab_case
-
-scaffold_commands = typer.Typer()
+from voltmod.scaffold.scaffold import create_plugin, create_project, is_kebab_case
 
 
 def _kebab_case(value: str | None) -> str | None:
@@ -16,7 +14,6 @@ def _kebab_case(value: str | None) -> str | None:
     return value
 
 
-@scaffold_commands.command("init")
 def init_command(
     name: Annotated[
         str | None,
@@ -37,7 +34,6 @@ def init_command(
     create_project(project.root, project_name, plugin)
 
 
-@scaffold_commands.command("new-plugin")
 def new_plugin_command(
     name: Annotated[
         str, typer.Argument(callback=_kebab_case, help="Kebab-case name, e.g. fun-votes")

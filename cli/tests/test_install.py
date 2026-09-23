@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 
-from voltmod import server
 from voltmod.cs2_install import (
     CSGO_DIR,
     HOST_BINARIES,
@@ -14,6 +13,7 @@ from voltmod.cs2_install import (
 )
 from voltmod.errors import VoltmodError
 from voltmod.project import Project, Settings
+from voltmod.server import install
 
 PRESET = "windows-msvc-release"
 HOST_DLL = HOST_BINARIES["windows"]
@@ -26,7 +26,7 @@ PLUGIN_FILES = (f"{DEMO}/demo.dll", f"{DEMO}/plugin.json")
 @pytest.fixture(autouse=True)
 def no_editable_framework(monkeypatch: pytest.MonkeyPatch) -> None:
     """Whatever this machine has registered with `conan editable` must not reach a test."""
-    monkeypatch.setattr(server, "editable_framework", lambda root: None)
+    monkeypatch.setattr(install, "editable_framework", lambda root: None)
 
 
 @pytest.fixture
@@ -72,7 +72,7 @@ def stage_components(monkeypatch: pytest.MonkeyPatch, staged: Staged) -> None:
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(component, encoding="utf-8")
 
-    monkeypatch.setattr(server, "run_tool", run_tool)
+    monkeypatch.setattr(install, "run_tool", run_tool)
 
 
 def test_seeded_settings_survive_a_reinstall(
@@ -81,12 +81,12 @@ def test_seeded_settings_survive_a_reinstall(
     build = project.build_dir(PRESET)
     stage_components(monkeypatch, {(build, "host"): HOST_FILES, (build, "demo"): PLUGIN_FILES})
 
-    server.install_plugins(project, str(cs2_server), "demo", PRESET)
+    install.install_plugins(project, str(cs2_server), "demo", PRESET)
     settings = cs2_server / CSGO_DIR / DEMO / "configs/settings.jsonc"
     assert settings.read_text(encoding="utf-8") == "{ shipped: true }"
 
     settings.write_text("{ edited: true }", encoding="utf-8")
-    server.install_plugins(project, str(cs2_server), "demo", PRESET)
+    install.install_plugins(project, str(cs2_server), "demo", PRESET)
     assert settings.read_text(encoding="utf-8") == "{ edited: true }"
 
 
@@ -96,13 +96,13 @@ def test_the_host_comes_from_an_editable_framework_checkout(
     checkout = project.root.parent / "voltmod"
     framework_build = checkout / "build" / PRESET
     framework_build.mkdir(parents=True)
-    monkeypatch.setattr(server, "editable_framework", lambda root: checkout)
+    monkeypatch.setattr(install, "editable_framework", lambda root: checkout)
     stage_components(
         monkeypatch,
         {(framework_build, "host"): HOST_FILES, (project.build_dir(PRESET), "demo"): PLUGIN_FILES},
     )
 
-    server.install_plugins(project, str(cs2_server), "demo", PRESET)
+    install.install_plugins(project, str(cs2_server), "demo", PRESET)
 
     assert (cs2_server / CSGO_DIR / HOST_DLL).is_file()
 
@@ -113,4 +113,4 @@ def test_a_missing_host_is_an_error(
     stage_components(monkeypatch, {(project.build_dir(PRESET), "demo"): PLUGIN_FILES})
 
     with pytest.raises(VoltmodError, match="no voltmod host"):
-        server.install_plugins(project, str(cs2_server), "demo", PRESET)
+        install.install_plugins(project, str(cs2_server), "demo", PRESET)

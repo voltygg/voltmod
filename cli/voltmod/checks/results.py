@@ -5,6 +5,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import StrEnum
 
+import typer
+
 
 class Status(StrEnum):
     PASS = "PASS"
@@ -34,3 +36,9 @@ def print_results(results: Iterable[CheckResult]) -> int:
     if counts:
         print(f"\n{counts[Status.FAIL]} failure(s), {counts[Status.WARN]} warning(s)")
     return counts[Status.FAIL]
+
+
+def exit_on_failure(results: Iterable[CheckResult]) -> None:
+    """Print `results`, and exit 1 when any of them failed."""
+    if print_results(results):
+        raise typer.Exit(1)

@@ -6,16 +6,13 @@ from typing import Annotated
 
 import typer
 
-from voltmod.commands.shared import exit_on_failure
-from voltmod.conventions import check_plugins
-from voltmod.doctor import run_checks
+from voltmod.checks.conventions import check_plugins
+from voltmod.checks.doctor import run_checks
+from voltmod.checks.results import exit_on_failure
 from voltmod.project import Project
 from voltmod.toolchain.clang_format import find_cpp_sources, format_cpp_files
 
-check_commands = typer.Typer()
 
-
-@check_commands.command("doctor")
 def doctor_command(
     server_path: Annotated[
         str, typer.Option("--server-path", help="Optional CS2 server root to check")
@@ -27,7 +24,6 @@ def doctor_command(
     exit_on_failure(run_checks(project, server_path))
 
 
-@check_commands.command("lint")
 def lint_command(
     root: Annotated[
         Path | None,
@@ -39,7 +35,6 @@ def lint_command(
     print("Plugin sources hold.")
 
 
-@check_commands.command("format")
 def format_command(
     dirs: Annotated[
         list[str] | None,

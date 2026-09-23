@@ -4,16 +4,14 @@ from typing import Annotated
 
 import typer
 
-from voltmod.build import bootstrap, build, run_tests
-from voltmod.commands.shared import PresetArgument, ServerPath
 from voltmod.cs2_install import find_server
+from voltmod.options import PresetArgument, ServerPath
 from voltmod.project import Project
-from voltmod.server import install_plugins, run_server
+from voltmod.server.install import install_plugins
+from voltmod.server.launch import run_server
+from voltmod.toolchain.build import bootstrap, build, run_tests
 
-build_commands = typer.Typer()
 
-
-@build_commands.command("build")
 def build_command(
     preset: PresetArgument = None,
     install: Annotated[
@@ -68,7 +66,6 @@ def build_command(
         run_server(project.settings.with_options(server_path=server_path))
 
 
-@build_commands.command("test")
 def test_command(
     preset: PresetArgument = None,
     name_filter: Annotated[
@@ -80,7 +77,6 @@ def test_command(
     run_tests(project, project.resolve_preset(preset), name_filter)
 
 
-@build_commands.command("bootstrap")
 def bootstrap_command() -> None:
     """Install the Conan profiles and remote, then build."""
     bootstrap(Project.load())

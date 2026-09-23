@@ -52,7 +52,7 @@ Host       -> Core, Engine, Unsafe
 App        -> every module
 ```
 
-`voltmod modgraph` (`cli/voltmod/framework/modgraph.py`) enforces that block, rejects upward edges and
+`voltmod modgraph` (`cli/voltmod/framework/layering.py`) enforces that block, rejects upward edges and
 reports cycles. A module's own `Api.hpp` is exempt. Only `Commands` and `App` may name `Runtime`,
 and header-only templates such as `Flow<TState>` and `PerSlot<T>` avoid the composition root so
 consumer translation units stay narrow.
