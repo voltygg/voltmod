@@ -1,4 +1,4 @@
-/* Layout only. A screen sets height, colour and radius after including this. */
+/* Layout only. Add colors and borders in the screen's stylesheet after including this file. */
 .row {
   width: 100%;
   flow-children: right;
@@ -15,7 +15,7 @@
   padding: 0px 12px;
 }
 
-/* Fit, not 100%: a full-height column starts its lines at the top instead of centring them. */
+/* Use fit-children, not 100%: a full-height column puts its text at the top instead of centering it. */
 .row__body {
   width: fill-parent-flow(1);
   height: fit-children;
@@ -81,7 +81,7 @@
   font-size: 11px;
 }
 
-/* A Label in a Button sits top-left unless told otherwise. */
+/* A Label inside a Button sits in the top-left corner unless you align it. */
 .row__stepper-glyph {
   horizontal-align: center;
   vertical-align: center;

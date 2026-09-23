@@ -13,8 +13,8 @@
   background-color: #c8a24a;
 }
 
-{#- The step count is per bar rather than per stylesheet, so the widths are emitted per bar.
-    `cls` is the bar's own class, `bar` unless the screen renames it. -#}
+{#- Each bar can have its own number of steps, so the width rules are generated per bar.
+    `cls` is the bar's class name. -#}
 {% macro fill_rules(cls, steps) %}
 {% for step in range(steps + 1) %}
 .{{cls}}.bar--step-{{step}} .bar__fill {

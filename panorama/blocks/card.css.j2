@@ -10,14 +10,14 @@
   visibility: collapse;
 }
 
-/* Fixed height, so two lines always fit. */
+/* Fixed height so both lines of text always fit. */
 .card__main {
   width: 100%;
   height: 48px;
   flow-children: right;
 }
 
-/* An empty icon slot would still take its width; the driver writes HasIcon. */
+/* Hidden until the card has an icon, because an empty icon slot still takes up space. */
 .card .icon-set {
   visibility: collapse;
 }

@@ -1,5 +1,5 @@
-{#- Previous, a `{s:<id>}` label, next. The strip carries the id so a driver can hide the whole
-    thing on a single-page menu. -#}
+{#- Previous and next buttons around a `{s:<id>}` label. The id is on the whole strip, so a
+    single-page menu can hide it. -#}
 {% macro pager(id) -%}
 <Panel id="{{screen}}_{{id}}" class="pager hidden" hittest="true">
   <Button id="{{screen}}_{{id}}_previous" class="pager__arrow">

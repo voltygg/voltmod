@@ -1,7 +1,5 @@
-{#- One row of a list: two lines of text, a value, an optional switch and chevron, and optional
-    steppers. The row, its button and each stepper carry their own id, so a screen can hide the
-    row, read a press and read a step separately. The switch and chevron start collapsed; the
-    screen's stylesheet shows them per a class written on the row. -#}
+{#- One list row. The row, its button and each stepper have their own id, so C++ can hide the row
+    and tell presses and steps apart. The switch and chevron start hidden; row classes show them. -#}
 {% macro listrow(id, switch=false, hint=false, value=true, steppers=false, chevron=false) -%}
 <Panel id="{{screen}}_{{id}}" class="row hidden" hittest="true">
   <Button id="{{screen}}_{{id}}_button" class="row__button">

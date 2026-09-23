@@ -218,7 +218,7 @@ default CSS with `{% include "<name>.css.j2" %}`.
 | `card` | `card(id, icon_set=none, bar=false)` | a HUD row: an optional icon set, two lines of text, a value, an optional bar along the bottom; starts `hidden`, and the icon takes room only while `card--icon` is on the card |
 | `bar` | `bar(id)` | a meter; pair with `bar.css.j2`'s `fill_rules(cls, steps)` for the `bar--step-0`..`bar--step-<steps>` width rules; `hidden` on the bar takes it away |
 | `toast` | `toast(id)` | a notice that starts `hidden` and fades in when that class comes off |
-| `icons` | `icons(id, set)` | one `<Image>` per PNG in the icon set, or per `(name, icon)` pair of client icons, stacked; pair with `icons.css.j2`'s `show_rules(set)` so an `icon-set--<name>` class on the set uncollapses its own image |
+| `icons` | `icons(id, set, keep_shape=false)` | one `<Image>` per PNG in the icon set, or per `(name, icon)` pair of client icons, stacked; pair with `icons.css.j2`'s `show_rules(set)` so an `icon-set--<name>` class on the set uncollapses its own image. Icons fill the set's box; `keep_shape` adds `keep-shape`, which sizes each icon from its height so an icon that is not square keeps its shape |
 | `button` | `button(id, text, variant="")` | a labelled Button; `variant` adds a `button--<variant>` modifier |
 | `dialog` | `dialog(id)`, called not imported | a centred panel with a breadcrumb/title/subtitle header and a body slot |
 | `listrow` | `listrow(id, switch=false, hint=false, value=true, steppers=false, chevron=false)` | one row of a list: two lines of text, a value, a collapsed switch and chevron the screen shows per row class, and steppers; its ids end `_button`, `_decrease` and `_increase` |

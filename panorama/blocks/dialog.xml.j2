@@ -1,9 +1,8 @@
-{#- A centred panel with a header and a body slot. Call it, do not import it:
+{#- A centered panel with a header and a body. Use it with `call` instead of importing it:
 
-      {% call blocks.dialog("panel") %}...rows, pager, footer...{% endcall %}
+      {% call blocks.dialog("panel") %}...{% endcall %}
 
-    The header reads three dialog variables off the root: `<id>_breadcrumb`, `<id>_title` and
-    `<id>_subtitle`. A breadcrumb keeps its line when empty so the title does not jump. -#}
+    The header shows the `<id>_breadcrumb`, `<id>_title` and `<id>_subtitle` variables. -#}
 {% macro dialog(id) -%}
 <Panel id="{{screen}}_{{id}}" class="dialog" hittest="true">
   <Panel class="dialog__header" hittest="false">

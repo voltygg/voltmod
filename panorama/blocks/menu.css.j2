@@ -1,5 +1,5 @@
-{#- Layout, and the show/hide rules for the classes PanoramaMenuLayout writes. Colour and state are
-    the screen's. -#}
+{#- Layout, plus the show/hide rules for the classes PanoramaMenuLayout sets. Colors go in the
+    screen's own stylesheet. -#}
 {% include "button.css.j2" %}
 {% include "icons.css.j2" %}
 {% include "listrow.css.j2" %}
@@ -33,7 +33,6 @@
   padding: 22px 14px;
 }
 
-/* A menu without tabs drops the sidebar and keeps the content width. */
 .screen.screen--no-sidebar .menu__sidebar {
   visibility: collapse;
 }
@@ -97,7 +96,7 @@
   flow-children: down;
 }
 
-/* Fixed height: empty at the root, and CSS cannot test that. */
+/* Fixed height, because CSS can't tell when the breadcrumb is empty. This keeps the title from jumping. */
 .menu__breadcrumb {
   width: 100%;
   height: 16px;
@@ -136,7 +135,7 @@
   flow-children: down;
 }
 
-/* The optional `home` markup takes the rows' place while the root menu shows. */
+/* When the screen provides `home` markup, it replaces the rows on the root menu. */
 .menu__home {
   width: 100%;
   height: fill-parent-flow(1);
@@ -148,7 +147,6 @@
   visibility: visible;
 }
 
-/* Without home markup the root menu keeps its rows. */
 .screen.screen--home .menu--with-home .menu__rows {
   visibility: collapse;
 }
@@ -184,7 +182,7 @@
   visibility: visible;
 }
 
-/* The switch already says ON or OFF. */
+/* Toggle rows hide their value because the switch already shows ON or OFF. */
 .row.row--toggle .row__value {
   visibility: collapse;
 }

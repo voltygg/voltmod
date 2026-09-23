@@ -1,8 +1,8 @@
-{#- Every icon in a set, stacked. The set's own class on the panel uncollapses one of them. `set`
-    names a PNG set under images/, or is a list of `(name, icon)` pairs naming the
-    client's own icons/ui/<icon>.vsvg. -#}
-{% macro icons(id, set) -%}
-<Panel id="{{screen}}_{{id}}" class="icon-set" hittest="false">
+{#- A stack of icons where only one is visible at a time. `set` is either a PNG folder under
+    images/ or a list of `(name, icon)` pairs for built-in CS2 icons. Pass `keep_shape=true` for
+    icons that aren't square, so they keep their proportions instead of stretching. -#}
+{% macro icons(id, set, keep_shape=false) -%}
+<Panel id="{{screen}}_{{id}}" class="icon-set{{ ' keep-shape' if keep_shape }}" hittest="false">
   {%- if set is string %}
   {%- for name in images[set] %}
   <Image class="icon-set__icon icon-set__icon--{{name}}" src="s2r://panorama/images/{{set}}/{{name}}.vtex" hittest="false" />

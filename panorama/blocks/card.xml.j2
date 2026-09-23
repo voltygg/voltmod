@@ -1,9 +1,8 @@
 {% import "bar.xml.j2" as bars %}
 {% import "icons.xml.j2" as icons %}
 
-{#- A row of a list: an optional icon, two lines of text, a value, an optional bar along the
-    bottom. Starts hidden, so a card the driver never writes is never seen. Ids carry the screen
-    name, the dialog variables the driver writes do not. -#}
+{#- A list row with an optional icon and bar. It starts hidden, so a card the plugin never fills in
+    stays invisible. Element ids include the screen name; text variable names don't. -#}
 {% macro card(id, icon_set=none, bar=false) -%}
 <Panel id="{{screen}}_{{id}}" class="card hidden" hittest="false">
   <Panel class="card__main" hittest="false">
