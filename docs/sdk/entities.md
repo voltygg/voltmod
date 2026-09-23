@@ -21,7 +21,7 @@ Three value types wrap a live entity, each adding to the one before it:
 
 | Type | What it is | Where it comes from |
 | ---- | ---------- | ------------------- |
-| @ref VoltMod::Entity | Any entity: the CBaseEntity fields, position, teleport | `runtime.Entities.Resolve(ref)`, `FindByClassName`, `entity.AsPawn()` |
+| @ref VoltMod::Entity | Any entity: the CBaseEntity fields, position, teleport | `runtime.Entities.Resolve(ref)`, `Find`, `FindAll`, `entity.AsPawn()` |
 | @ref VoltMod::Pawn | A player's body: health, armor, movement, aim, render | `runtime.Entities.Pawn(slot)` |
 | @ref VoltMod::Controller | A player's identity: name, money, team, kick | `runtime.Entities.Controller(slot)` |
 
@@ -132,13 +132,11 @@ VoltMod::Pawn victim = hit.Victim.AsPawn(); // falsy unless the entity is a play
 VoltMod::EntityRef ref = pawn.Ref();       // storable
 VoltMod::Entity again = es.Resolve(ref);   // falsy if it died or its index was recycled
 
-// Iterate map entities; a falsy Entity starts at the list head, and the walk ends falsy.
-VoltMod::EntityRef last;
-while (VoltMod::Entity door = es.FindByClassName(es.Resolve(last), "func_door"))
-{
-    last = door.Ref();
-    /* ... */
-}
+VoltMod::Entity rules = es.Find("cs_gamerules");          // the first of a class
+for (const VoltMod::Entity& door : es.FindAll("func_door")) // a snapshot: removing is safe
+    door.Remove();
+for (const VoltMod::Pawn& alive : es.AlivePawns())          // every living player, in slot order
+    alive.Heal(10);
 ```
 
 ## Aim, flash and observer state
@@ -194,13 +192,14 @@ physics world. Nothing to install, nothing to re-take per map, and it survives m
 const VoltMod::Pawn self = runtime.Entities.Pawn(slot);
 const VoltMod::Pawn other = runtime.Entities.Pawn(target);
 const auto clear = runtime.World.Trace.Clear(self.EyePosition(), other.EyePosition(),
-                                             {.Ignore1 = self.Raw(), .Ignore2 = other.Raw()});
+                                             {.Ignore1 = self, .Ignore2 = other});
 if (clear && *clear)
     ...  // nothing solid between the two eyes
 ```
 
 `Line` returns a @ref VoltMod::TraceHit saying where the trace stopped, the surface normal there,
-and `HitEntity`, the entity it hit (the world included); `Clear` is the yes/no form.
+`HitEntity`, the entity it hit, and `HitWorld` when that was the map itself; `Clear` is the yes/no
+form. `FromEyes(pawn, distance)` traces along a player's aim, ignoring the player.
 `TraceOptions::Layers` picks what stops it: `Sight` (world geometry and line-of-sight blockers, so
 windows and clips do not count) or `Solid` (what a player body collides with, other players
 included).
@@ -282,6 +281,17 @@ prop.PlayAnimation("open", "idle");
 
 Never `delete` an entity: use `Remove` or `RemoveAfter`. Fields written between `Create` and
 `Spawn` go out with the first snapshot.
+
+Props, particles and beams have their own spawners, which know the engine's traps: a prop that
+blocks nothing needs collision turned off as well as `solid 0`, and a line is a `beam`, never an
+`env_beam`, which takes the server down.
+
+```cpp
+VoltMod::Entity crate = runtime.Entities.SpawnProp({.Model = "models/props/crate.vmdl", .Origin = pos,
+                                                    .Solid = false, .Scale = 0.5f});
+runtime.Entities.SpawnParticle("particles/explosion.vpcf", pos).RemoveAfter(2.0f);
+runtime.Entities.SpawnBeam(from, to, 2.0f, VoltMod::Color{255, 60, 30});
+```
 
 ## Precache
 

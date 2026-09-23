@@ -5,6 +5,7 @@
 #include <VoltMod/Engine/EntityRef.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Math.hpp>
+#include <VoltMod/Entities/Pawn.hpp>
 
 namespace VoltMod
 {
@@ -20,8 +21,8 @@ struct TraceOptions
 {
     TraceLayers Layers = TraceLayers::Sight;
     /** Entities the trace passes through, such as the two pawns whose sight line is being asked. */
-    CEntityInstance* Ignore1 = nullptr;
-    CEntityInstance* Ignore2 = nullptr;
+    Entity Ignore1;
+    Entity Ignore2;
 };
 
 /** Where a trace stopped. */
@@ -32,6 +33,7 @@ struct TraceHit
     Vector End;             ///< where the trace stopped: the requested end when nothing was hit
     Vector Normal;          ///< surface normal at the hit; zero when nothing was hit
     EntityRef HitEntity;    ///< what was hit, the world included; empty when nothing was hit
+    bool HitWorld = false;  ///< what was hit is the map itself rather than an entity on it
 };
 
 /**
@@ -44,7 +46,7 @@ struct TraceHit
  * Game-thread only.
  *
  * @code
- * const auto clear = runtime.World.Trace.Clear(eye, target, {.Ignore1 = self.Raw(), .Ignore2 = other.Raw()});
+ * const auto clear = runtime.World.Trace.Clear(eye, target, {.Ignore1 = self, .Ignore2 = other});
  * if (clear && *clear)
  *     ...  // nothing solid between the two points
  * @endcode
@@ -67,6 +69,9 @@ public:
      *  the box's origin stopped. Unsupported when the Nav_TraceShape slot did not bind. */
     Result<TraceHit> Box(const Vector& from, const Vector& to, const Vector& mins, const Vector& maxs,
                          const TraceOptions& options = {}) const;
+
+    /** Where @p pawn's aim meets something within @p distance; the pawn itself is ignored. */
+    Result<TraceHit> FromEyes(const Pawn& pawn, float distance, TraceLayers layers = TraceLayers::Solid) const;
 
     /** True when nothing in the chosen layers lies between the two points. */
     Result<bool> Clear(const Vector& from, const Vector& to, const TraceOptions& options = {}) const;

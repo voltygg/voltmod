@@ -22,7 +22,7 @@ Status Rounds::End(RoundEndReason reason, float delaySeconds) const
     }
 
     // The game rules live outside the entity system; their proxy entity holds the pointer.
-    const Entity proxy = _entities.FindByClassName({}, "cs_gamerules");
+    const Entity proxy = _entities.Find("cs_gamerules");
     void* rules = proxy ? Schema::CCSGameRulesProxy{proxy.Raw()}.GameRules() : nullptr;
     if (!rules)
     {

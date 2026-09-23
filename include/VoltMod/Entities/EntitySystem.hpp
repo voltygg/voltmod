@@ -2,9 +2,11 @@
 
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Slots/Slot.hpp>
+#include <VoltMod/Engine/Color.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
+#include <VoltMod/Engine/Math.hpp>
 #include <VoltMod/Entities/Controller.hpp>
 #include <VoltMod/Entities/KeyValues.hpp>
 #include <optional>
@@ -13,6 +15,20 @@
 
 namespace VoltMod
 {
+
+/** What @ref EntitySystem::SpawnProp places. */
+struct PropSpec
+{
+    std::string_view Model;
+    Vector Origin{0.0f, 0.0f, 0.0f};
+    QAngle Angles{0.0f, 0.0f, 0.0f};
+    /** False blocks nothing, bullets and traces included. */
+    bool Solid = true;
+    /** Material group; empty keeps the model's default. */
+    std::string_view Skin;
+    float Scale = 1.0f;
+    bool CastsShadow = true;
+};
 
 /**
  * @brief `runtime.Entities`: finds and creates entities. Everything it returns is valid for this
@@ -36,9 +52,14 @@ public:
     /** What @p ref points at; falsy when it is unset, or its entity is gone or replaced. */
     Entity Resolve(EntityRef ref);
 
-    /** First entity of @p className after @p after (a falsy one starts at the head); `*` wildcards
-     *  match. Falsy when exhausted. */
-    Entity FindByClassName(const Entity& after, std::string_view className);
+    /** The first entity of @p className, such as "cs_gamerules"; `*` wildcards match. */
+    Entity Find(std::string_view className);
+
+    /** Every entity of @p className, taken now, so removing them while looping is safe. */
+    std::vector<Entity> FindAll(std::string_view className);
+
+    /** Every living player's pawn, in slot order. */
+    std::vector<VoltMod::Pawn> AlivePawns();
 
     /** Unsupported when entities cannot be created or spawned. */
     Status Available() const;
@@ -48,6 +69,15 @@ public:
 
     /** Create and spawn; falsy on failure. The engine takes the keyvalues. */
     Entity Spawn(std::string_view className, KeyValues& values);
+
+    /** A `prop_dynamic`; falsy when it did not spawn. */
+    Entity SpawnProp(const PropSpec& prop);
+
+    /** A running particle effect such as "particles/explosion.vpcf". Remove it to stop it. */
+    Entity SpawnParticle(std::string_view effect, const Vector& origin, const QAngle& angles = {0.0f, 0.0f, 0.0f});
+
+    /** A straight line of @p width from @p from to @p to. */
+    Entity SpawnBeam(const Vector& from, const Vector& to, float width, Color color);
 
     /** @name Framework plumbing */
     /** @{ */

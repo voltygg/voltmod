@@ -98,7 +98,7 @@ MultiRecipientFilter Vote::Recipients() const
 
 Schema::CVoteController Vote::Controller()
 {
-    return Schema::CVoteController{_entities.FindByClassName({}, ControllerClass).Raw()};
+    return Schema::CVoteController{_entities.Find(ControllerClass).Raw()};
 }
 
 bool Vote::StartVote(std::string_view title, std::string_view detail, float durationSec, int callerSlot,

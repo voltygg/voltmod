@@ -163,36 +163,7 @@ VoltMod::Pawn EntitySystem::Pawn(int slot)
     return Controller(slot).Pawn();
 }
 
-Status EntitySystem::Available() const
-{
-    if (!_bindings.CreateEntityByName || !_bindings.DispatchSpawn)
-    {
-        return std::unexpected(Error::Unsupported("CreateEntityByName or DispatchSpawn did not bind"));
-    }
-    return {};
-}
-
-Entity EntitySystem::Create(std::string_view className)
-{
-    if (!_bindings.CreateEntityByName || className.empty())
-    {
-        return {};
-    }
-    return {*this, _bindings.CreateEntityByName(std::string(className).c_str(), -1)};
-}
-
-Entity EntitySystem::Spawn(std::string_view className, KeyValues& values)
-{
-    if (!Available())
-    {
-        return {};
-    }
-    Entity entity = Create(className);
-    entity.Spawn(values);
-    return entity;
-}
-
-Entity EntitySystem::FindByClassName(const Entity& after, std::string_view className)
+Entity EntitySystem::Find(std::string_view className)
 {
     if (!Raw() || className.empty())
     {
@@ -201,8 +172,38 @@ Entity EntitySystem::FindByClassName(const Entity& after, std::string_view class
 
     // Walk the active list: the SDK's CEntityClass layout is stale, so its per-class chain reads garbage.
     const std::string name(className);
-    EntityInstanceByClassIter_t iter(after ? after.Raw() : nullptr, name.c_str());
+    EntityInstanceByClassIter_t iter(nullptr, name.c_str());
     return {*this, iter.Next()};
+}
+
+std::vector<Entity> EntitySystem::FindAll(std::string_view className)
+{
+    std::vector<Entity> found;
+    if (!Raw() || className.empty())
+    {
+        return found;
+    }
+
+    const std::string name(className);
+    EntityInstanceByClassIter_t iter(nullptr, name.c_str());
+    for (CEntityInstance* entity = iter.Next(); entity; entity = iter.Next())
+    {
+        found.emplace_back(*this, entity);
+    }
+    return found;
+}
+
+std::vector<VoltMod::Pawn> EntitySystem::AlivePawns()
+{
+    std::vector<VoltMod::Pawn> pawns;
+    for (int slot = 0; slot < MaxPlayers; ++slot)
+    {
+        if (VoltMod::Pawn pawn = Pawn(slot); pawn.IsAlive())
+        {
+            pawns.push_back(pawn);
+        }
+    }
+    return pawns;
 }
 
 }  // namespace VoltMod

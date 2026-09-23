@@ -19,8 +19,8 @@ static CTraceFilter MakeFilter(const TraceOptions& options)
 {
     CTraceFilter filter(options.Layers == TraceLayers::Sight ? SightMask : MASK_PLAYERSOLID, COLLISION_GROUP_DEFAULT,
                         false);
-    filter.SetPassEntity1(options.Ignore1);
-    filter.SetPassEntity2(options.Ignore2);
+    filter.SetPassEntity1(options.Ignore1.Raw());
+    filter.SetPassEntity2(options.Ignore2.Raw());
     return filter;
 }
 
@@ -39,7 +39,9 @@ static TraceHit ToHit(const CGameTrace& trace)
                     .Fraction = trace.m_flFraction,
                     .End = trace.m_vEndPos,
                     .Normal = trace.m_vHitNormal,
-                    .HitEntity = RefOf(trace.m_pEnt)};
+                    .HitEntity = RefOf(trace.m_pEnt),
+                    .HitWorld = trace.DidHit() && trace.m_pEnt && trace.m_pEnt->m_pEntity &&
+                                trace.m_pEnt->GetEntityIndex().Get() == 0};
 }
 
 // The interface carries no state, so its own class table stands in for the object.
@@ -86,6 +88,12 @@ Result<TraceHit> Trace::Box(const Vector& from, const Vector& to, const Vector& 
     alignas(16) CGameTrace trace;
     _bindings.NavTraceShape(NavPhysics(table), &ray, &from, &to, &filter, &trace);
     return ToHit(trace);
+}
+
+Result<TraceHit> Trace::FromEyes(const Pawn& pawn, float distance, TraceLayers layers) const
+{
+    const Vector eyes = pawn.EyePosition();
+    return Line(eyes, eyes + AngleToForward(pawn.EyeAngles()) * distance, {.Layers = layers, .Ignore1 = pawn});
 }
 
 Result<bool> Trace::Clear(const Vector& from, const Vector& to, const TraceOptions& options) const
