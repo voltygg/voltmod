@@ -1,7 +1,5 @@
 name: Watch upstream
 
-# Opens or updates one PR for upstream SDK revisions.
-
 on:
   schedule:
     - cron: "0 6 * * *"  # watch, daily
@@ -19,8 +17,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      # An app identity, not GITHUB_TOKEN: Actions refuses to open a PR with it, and events it
-      # signs never start another workflow, so CI would skip the PR and every later push to it.
+      # GITHUB_TOKEN can't open PRs, and its pushes never start CI.
       - uses: actions/create-github-app-token@v2
         id: app-token
         with:
@@ -52,22 +49,15 @@ jobs:
           git commit -m "$title"
           git push --force origin "$branch"
           body=$(git show --stat --format= HEAD)
-          # gh pr view also finds merged PRs, so only an open one counts.
-          if [ -n "$(gh pr list --head "$branch" --state open --json number --jq '.[].number')" ]; then
-            gh pr edit "$branch" --body "$body"
-          else
-            gh pr create --head "$branch" --title "$title" --body "$body"
-          fi
+          gh pr create --head "$branch" --title "$title" --body "$body" || gh pr edit "$branch" --body "$body"
 
   prune:
-    name: Prune superseded artifacts
     runs-on: ubuntu-latest
     if: github.event.schedule != '0 6 * * *'
-    env:
-      CLOUDSMITH_USERNAME: ${{ secrets.CLOUDSMITH_USERNAME }}
-      CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-toolchain
-      - name: Prune
+      - name: Prune superseded artifacts
+        env:
+          CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
         run: python -m tools.release prune --keep 3
