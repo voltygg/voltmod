@@ -8,7 +8,8 @@ from voltmod.database.header import generate_table_header
 from voltmod.database.migrations import DRIVERS, render_migrations
 from voltmod.errors import VoltmodError
 from voltmod.files import write_or_check
-from voltmod.options import PluginNames, current_project
+from voltmod.options import PluginNames
+from voltmod.project import Project
 
 
 def header_command(
@@ -23,7 +24,7 @@ def header_command(
     reads the Postgres rendering and skips the indexes and seed rows it cannot parse, so the
     migrations stay the single source of truth.
     """
-    project = current_project()
+    project = Project.load()
     if plugins:
         selected = [project.plugin(name) for name in plugins]
     else:

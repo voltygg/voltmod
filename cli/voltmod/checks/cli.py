@@ -9,7 +9,7 @@ from voltmod.checks.conventions import check_plugins
 from voltmod.checks.doctor import run_checks
 from voltmod.checks.results import exit_if_failed
 from voltmod.framework.layering import check_layering
-from voltmod.options import current_project
+from voltmod.project import Project
 from voltmod.toolchain.clang_format import find_cpp_sources, format_cpp_files
 
 
@@ -19,14 +19,14 @@ def doctor_command(
     ] = None,
 ) -> None:
     """Check the local toolchain, the project, and an optional server."""
-    project = current_project()
+    project = Project.load()
     console.step(f"VoltMod doctor for {project.root.resolve()}, Python {sys.version.split()[0]}")
     exit_if_failed(run_checks(project, server))
 
 
 def lint_command() -> None:
     """Check C++ sources: plugin conventions, or the framework's layering in its checkout."""
-    project = current_project()
+    project = Project.load()
     if not project.is_framework:
         exit_if_failed(check_plugins(project.root))
         console.done("Plugin sources hold.")
@@ -46,7 +46,7 @@ def format_command(
     ] = None,
 ) -> None:
     """Rewrite C++ sources in the pinned clang-format style."""
-    project = current_project()
+    project = Project.load()
     files = find_cpp_sources(project.root, dirs or project.cpp_source_dirs)
     if not files:
         console.info("No C++ sources found.")

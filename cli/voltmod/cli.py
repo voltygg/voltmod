@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 from collections.abc import Callable
@@ -11,7 +12,6 @@ from voltmod.checks import cli as checks
 from voltmod.database import cli as database
 from voltmod.errors import VoltmodError
 from voltmod.framework import cli as framework
-from voltmod.options import use_project
 from voltmod.panorama import cli as panorama
 from voltmod.project import Project
 from voltmod.scaffold import cli as scaffold
@@ -32,12 +32,17 @@ def _load_project(
     directory: Annotated[
         Path,
         typer.Option(
-            "-C", "--directory", file_okay=False, help="Run as if started in this directory"
+            "-C",
+            "--directory",
+            exists=True,
+            file_okay=False,
+            help="Run as if started in this directory",
         ),
     ] = Path(),
 ) -> None:
+    os.chdir(directory)
     # Before any subcommand parses its options, so the .env defaults reach their envvars.
-    use_project(Project.load(directory.resolve()))
+    Project.load()
 
 
 new = _group("Stamp a new project or plugin from the bundled templates.")

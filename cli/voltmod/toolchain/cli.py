@@ -2,8 +2,8 @@ from typing import Annotated
 
 import typer
 
-from voltmod.options import Preset, current_project
-from voltmod.project import default_preset
+from voltmod.options import Preset
+from voltmod.project import Project, default_preset
 from voltmod.toolchain.build import bootstrap, build, run_tests
 
 
@@ -31,7 +31,7 @@ def build_command(
     """Run Conan install and the CMake build for one preset."""
     conan_options = [arg for value in option or [] for arg in ("-o", value)]
     build(
-        current_project(),
+        Project.load(),
         preset,
         conan_options=conan_options,
         use_lockfile=not no_lockfile,
@@ -46,9 +46,9 @@ def test_command(
     ] = "",
 ) -> None:
     """Bring the build up to date, then run its tests."""
-    run_tests(current_project(), preset, name_filter)
+    run_tests(Project.load(), preset, name_filter)
 
 
 def bootstrap_command(preset: Preset = default_preset()) -> None:
     """Install the Conan profiles and remote, then build."""
-    bootstrap(current_project(), preset)
+    bootstrap(Project.load(), preset)

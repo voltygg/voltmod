@@ -6,11 +6,11 @@ import typer
 from voltmod import console
 from voltmod.checks.results import exit_if_failed
 from voltmod.errors import VoltmodError
-from voltmod.options import current_project
 from voltmod.panorama.check import check_screens
 from voltmod.panorama.compiler import AddonDirs, compile_resources, install_into_client, stage
 from voltmod.panorama.render import render_screens
 from voltmod.panorama.sources import panorama_plugins, screen_templates
+from voltmod.project import Project
 from voltmod.steam import find_client
 from voltmod.toolchain.process import WINDOWS
 
@@ -30,7 +30,7 @@ def render_command(
     ] = None,
 ) -> None:
     """Render panorama/screens/ into the build tree."""
-    written = render_screens(current_project().root, plugins, out)
+    written = render_screens(Project.load().root, plugins, out)
     console.done(f"Rendered {len(written)} file(s)")
 
 
@@ -61,7 +61,7 @@ def compile_command(
     """Check, render, compile with the Workshop Tools, and install into your client."""
     if not WINDOWS:
         raise VoltmodError("the CS2 Workshop Tools are Windows only; compile the layouts there")
-    root = current_project().root
+    root = Project.load().root
     exit_if_failed(check_screens(root, plugins))
     render_screens(root, plugins)
 
@@ -83,7 +83,7 @@ def compile_command(
 
 def check_command(plugins: Plugins = None) -> None:
     """Validate rendered screens against the rules the CS2 client enforces silently."""
-    root = current_project().root
+    root = Project.load().root
     exit_if_failed(check_screens(root, plugins))
     count = sum(len(screen_templates(plugin)) for plugin in panorama_plugins(root, plugins))
     console.done(f"Checked {count} screen(s)")

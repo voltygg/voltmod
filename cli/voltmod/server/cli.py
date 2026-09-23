@@ -3,8 +3,8 @@ from typing import Annotated
 
 import typer
 
-from voltmod.options import PluginNames, Preset, ServerDir, current_project
-from voltmod.project import default_preset
+from voltmod.options import PluginNames, Preset, ServerDir
+from voltmod.project import Project, default_preset
 from voltmod.server.cs2_server import Cs2Server
 from voltmod.server.install import install_plugins
 from voltmod.server.launch import LaunchOptions, run_server
@@ -23,7 +23,7 @@ def install_command(
     plugins: PluginNames = None, preset: Preset = default_preset(), server: ServerDir = None
 ) -> None:
     """Install built plugins, and the host they load under, into a local CS2 server."""
-    install_plugins(current_project(), Cs2Server.open(server), plugins or [], preset)
+    install_plugins(Project.load(), Cs2Server.open(server), plugins or [], preset)
 
 
 def serve_command(
@@ -56,7 +56,7 @@ def run_command(
     rcon_password: RconPassword = "",
 ) -> None:
     """Build, install the plugins into the local server, and start it."""
-    project = current_project()
+    project = Project.load()
     # Fail on a bad plugin name or server path before spending a whole build on it.
     project.installable_plugins(plugins or [])
     game = Cs2Server.open(server)

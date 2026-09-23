@@ -14,8 +14,9 @@ from voltmod.framework.game_builds import (
 from voltmod.framework.gamedata import PatternResult, PatternStatus, check_gamedata, write_repairs
 from voltmod.framework.paths import GAMEDATA_FILE, SCHEMA_MANIFEST
 from voltmod.framework.schemagen.generate import render_schema, write_schema
-from voltmod.options import ServerDir, current_project
+from voltmod.options import ServerDir
 from voltmod.platforms import Platform
+from voltmod.project import Project
 from voltmod.server.cs2_server import Cs2Server
 from voltmod.server.install import SCHEMA_DUMP
 
@@ -44,7 +45,7 @@ def schemagen_command(
     ] = Platform.host(),
 ) -> None:
     """Regenerate the schema accessor layer from a dump."""
-    project = current_project()
+    project = Project.load()
     manifest = read_json(project.root / SCHEMA_MANIFEST, "manifest")
     dump_file = dump or Cs2Server.open(server).root / SCHEMA_DUMP
 
@@ -61,7 +62,7 @@ def gamedata_check_command(
     ] = False,
 ) -> None:
     """Report which committed patterns no longer match the shipped binaries."""
-    project = current_project()
+    project = Project.load()
     check = check_gamedata(project.root, game_dir, platform)
     console.step(f"gamedata {check.platform} (game build {check.game_build})")
     drifted = _print_drift(check.results)

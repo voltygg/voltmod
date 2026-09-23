@@ -2,7 +2,7 @@ from typing import Annotated
 
 import typer
 
-from voltmod.options import current_project
+from voltmod.project import Project
 from voltmod.scaffold.scaffold import create_plugin, create_project, is_kebab_case
 
 
@@ -27,7 +27,7 @@ def project_command(
     ] = "my-plugin",
 ) -> None:
     """Stamp a whole consumer project into the working directory."""
-    root = current_project().root
+    root = Project.load().root
     project_name = name or root.name
     _kebab_case(project_name)
     create_project(root, project_name, plugin)
@@ -39,4 +39,4 @@ def plugin_command(
     ],
 ) -> None:
     """Stamp a plugin skeleton into plugins/<name>/."""
-    create_plugin(current_project().root, name)
+    create_plugin(Project.load().root, name)
