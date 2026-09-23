@@ -25,7 +25,7 @@ Screen& PlayerScreens::For(int slot)
         {
             Log::Warn("Screen '{}': no player screen for slot {} ({}).", _layout, slot, created.error().Detail);
         }
-        screen.emplace(created ? std::move(*created) : Screen());
+        screen = created ? std::move(*created) : Screen();
     }
     return *screen;
 }

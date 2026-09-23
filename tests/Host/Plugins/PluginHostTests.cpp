@@ -101,7 +101,7 @@ TEST_CASE("Removing a plugin drops what it still held, reports each leftover and
         +[](void* context, std::string_view name, bool published) {
             if (!published)
             {
-                static_cast<std::vector<std::string>*>(context)->push_back(std::string(name));
+                static_cast<std::vector<std::string>*>(context)->emplace_back(name);
             }
         },
         &withdrawn);
