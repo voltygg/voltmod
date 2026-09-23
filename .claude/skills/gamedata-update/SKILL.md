@@ -87,7 +87,7 @@ The dump exists only while a map runs, per platform. Windows: start the local se
 come from a Linux server on the new build; pull `csgo/addons/voltmod/schema/server.json` from a
 panel server with `PanelApi` (`/files/download` returns a signed URL), then
 `framework schemagen --platform linux --dump <file>`. A panel server lags until its host updates; ask the
-user before restarting one (`poe deploy-update`), it is production.
+user before restarting one (`poe deploy restart`), it is production.
 
 ## 6. Prove it
 
