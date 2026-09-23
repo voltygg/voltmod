@@ -6,7 +6,7 @@ namespace VoltMod::Schema
 {
 
 static const FieldLayout kFields[] = {
-    {.Class = "CBaseCombatCharacter", .Field = "m_hMyWearables", .Offset = 2408, .Size = 24},
+    {.Class = "CBaseCombatCharacter", .Field = "m_hMyWearables", .Offset = 2632, .Size = 24},
     {.Class = "CBaseEntity", .Field = "m_iHealth", .Offset = 720, .Size = 4},
     {.Class = "CBaseEntity", .Field = "m_iMaxHealth", .Offset = 724, .Size = 4},
     {.Class = "CBaseEntity", .Field = "m_flGravityScale", .Offset = 1020, .Size = 4},
@@ -19,46 +19,46 @@ static const FieldLayout kFields[] = {
     {.Class = "CBaseEntity", .Field = "m_hGroundEntity", .Offset = 1004, .Size = 4},
     {.Class = "CBaseEntity", .Field = "m_hOwnerEntity", .Offset = 996, .Size = 4},
     {.Class = "CBaseEntity", .Field = "m_CBodyComponent", .Offset = 48, .Size = 8},
-    {.Class = "CBaseModelEntity", .Field = "m_vecViewOffset", .Offset = 1848, .Size = 40},
+    {.Class = "CBaseModelEntity", .Field = "m_vecViewOffset", .Offset = 2072, .Size = 40},
     {.Class = "CBaseModelEntity", .Field = "m_nRenderMode", .Offset = 1360, .Size = 1},
     {.Class = "CBaseModelEntity", .Field = "m_clrRender", .Offset = 1392, .Size = 4},
-    {.Class = "CBasePlayerController", .Field = "m_iszPlayerName", .Offset = 1300, .Size = 128},
+    {.Class = "CBasePlayerController", .Field = "m_iszPlayerName", .Offset = 1308, .Size = 128},
     {.Class = "CBasePlayerController", .Field = "m_hPawn", .Offset = 1248, .Size = 4},
-    {.Class = "CBasePlayerPawn", .Field = "m_pObserverServices", .Offset = 2632, .Size = 8},
-    {.Class = "CBasePlayerPawn", .Field = "m_pItemServices", .Offset = 2616, .Size = 8},
-    {.Class = "CBasePlayerPawn", .Field = "m_pMovementServices", .Offset = 2672, .Size = 8},
-    {.Class = "CBasePlayerPawn", .Field = "m_pWeaponServices", .Offset = 2608, .Size = 8},
-    {.Class = "CBasePlayerPawn", .Field = "m_pCameraServices", .Offset = 2664, .Size = 8},
-    {.Class = "CBasePlayerPawn", .Field = "m_hController", .Offset = 2992, .Size = 4},
-    {.Class = "CBeam", .Field = "m_fWidth", .Offset = 2004, .Size = 4},
-    {.Class = "CBeam", .Field = "m_fEndWidth", .Offset = 2008, .Size = 4},
-    {.Class = "CBeam", .Field = "m_vecEndPos", .Offset = 2040, .Size = 12},
+    {.Class = "CBasePlayerPawn", .Field = "m_pObserverServices", .Offset = 2856, .Size = 8},
+    {.Class = "CBasePlayerPawn", .Field = "m_pItemServices", .Offset = 2840, .Size = 8},
+    {.Class = "CBasePlayerPawn", .Field = "m_pMovementServices", .Offset = 2896, .Size = 8},
+    {.Class = "CBasePlayerPawn", .Field = "m_pWeaponServices", .Offset = 2832, .Size = 8},
+    {.Class = "CBasePlayerPawn", .Field = "m_pCameraServices", .Offset = 2888, .Size = 8},
+    {.Class = "CBasePlayerPawn", .Field = "m_hController", .Offset = 3224, .Size = 4},
+    {.Class = "CBeam", .Field = "m_fWidth", .Offset = 2228, .Size = 4},
+    {.Class = "CBeam", .Field = "m_fEndWidth", .Offset = 2232, .Size = 4},
+    {.Class = "CBeam", .Field = "m_vecEndPos", .Offset = 2264, .Size = 12},
     {.Class = "CBodyComponent", .Field = "m_pSceneNode", .Offset = 8, .Size = 8},
     {.Class = "CBodyComponent", .Field = "__m_pChainEntity", .Offset = 72, .Size = 40},
-    {.Class = "CCSCustomHudLayout", .Field = "m_vecPanelIds", .Offset = 1720, .Size = 24},
-    {.Class = "CCSCustomHudLayout", .Field = "m_vecClassNames", .Offset = 1744, .Size = 24},
-    {.Class = "CCSCustomHudLayout", .Field = "m_vecDialogVariableNames", .Offset = 1768, .Size = 24},
-    {.Class = "CCSCustomHudLayout", .Field = "m_globalLayoutState", .Offset = 1312, .Size = 408},
-    {.Class = "CCSCustomHudLayout", .Field = "m_vecPlayerLayoutStates", .Offset = 1208, .Size = 104},
-    {.Class = "CCSCustomHudLayout", .Field = "m_strLayout", .Offset = 1192, .Size = 8},
+    {.Class = "CCSCustomHudLayout", .Field = "m_vecPanelIds", .Offset = 1736, .Size = 24},
+    {.Class = "CCSCustomHudLayout", .Field = "m_vecClassNames", .Offset = 1760, .Size = 24},
+    {.Class = "CCSCustomHudLayout", .Field = "m_vecDialogVariableNames", .Offset = 1784, .Size = 24},
+    {.Class = "CCSCustomHudLayout", .Field = "m_globalLayoutState", .Offset = 1328, .Size = 408},
+    {.Class = "CCSCustomHudLayout", .Field = "m_vecPlayerLayoutStates", .Offset = 1224, .Size = 104},
+    {.Class = "CCSCustomHudLayout", .Field = "m_strLayout", .Offset = 1208, .Size = 8},
     {.Class = "CCSCustomHudLayoutState", .Field = "m_bInputCaptureEnabled", .Offset = 52, .Size = 1},
     {.Class = "CCSGameRulesProxy", .Field = "m_pGameRules", .Offset = 1192, .Size = 8},
     {.Class = "CCSPlayerBase_CameraServices", .Field = "m_hZoomOwner", .Offset = 392, .Size = 4},
-    {.Class = "CCSPlayerController", .Field = "m_hPlayerPawn", .Offset = 2276, .Size = 4},
-    {.Class = "CCSPlayerController", .Field = "m_pInGameMoneyServices", .Offset = 2016, .Size = 8},
-    {.Class = "CCSPlayerController", .Field = "m_szClan", .Offset = 2104, .Size = 8},
+    {.Class = "CCSPlayerController", .Field = "m_hPlayerPawn", .Offset = 2284, .Size = 4},
+    {.Class = "CCSPlayerController", .Field = "m_pInGameMoneyServices", .Offset = 2024, .Size = 8},
+    {.Class = "CCSPlayerController", .Field = "m_szClan", .Offset = 2112, .Size = 8},
     {.Class = "CCSPlayerController_InGameMoneyServices", .Field = "m_iAccount", .Offset = 72, .Size = 4},
-    {.Class = "CCSPlayerPawn", .Field = "m_ArmorValue", .Offset = 4820, .Size = 4},
-    {.Class = "CCSPlayerPawn", .Field = "m_angEyeAngles", .Offset = 4976, .Size = 12},
-    {.Class = "CCSPlayerPawn", .Field = "m_flVelocityModifier", .Offset = 4768, .Size = 4},
-    {.Class = "CCSPlayerPawn", .Field = "m_bOnGroundLastTick", .Offset = 3820, .Size = 1},
-    {.Class = "CCSPlayerPawn", .Field = "m_pAimPunchServices", .Offset = 3416, .Size = 8},
-    {.Class = "CCSPlayerPawn", .Field = "m_bIsScoped", .Offset = 4732, .Size = 1},
-    {.Class = "CCSPlayerPawn", .Field = "m_iShotsFired", .Offset = 4760, .Size = 4},
-    {.Class = "CCSPlayerPawn", .Field = "m_iLastWeaponFireUsercmd", .Offset = 4832, .Size = 4},
-    {.Class = "CCSPlayerPawn", .Field = "m_entitySpottedState", .Offset = 4704, .Size = 24},
-    {.Class = "CCSPlayerPawnBase", .Field = "m_flFlashDuration", .Offset = 3348, .Size = 4},
-    {.Class = "CCSPlayerPawnBase", .Field = "m_flFlashMaxAlpha", .Offset = 3352, .Size = 4},
+    {.Class = "CCSPlayerPawn", .Field = "m_ArmorValue", .Offset = 5412, .Size = 4},
+    {.Class = "CCSPlayerPawn", .Field = "m_angEyeAngles", .Offset = 5568, .Size = 12},
+    {.Class = "CCSPlayerPawn", .Field = "m_flVelocityModifier", .Offset = 5360, .Size = 4},
+    {.Class = "CCSPlayerPawn", .Field = "m_bOnGroundLastTick", .Offset = 4060, .Size = 1},
+    {.Class = "CCSPlayerPawn", .Field = "m_pAimPunchServices", .Offset = 3656, .Size = 8},
+    {.Class = "CCSPlayerPawn", .Field = "m_bIsScoped", .Offset = 5324, .Size = 1},
+    {.Class = "CCSPlayerPawn", .Field = "m_iShotsFired", .Offset = 5352, .Size = 4},
+    {.Class = "CCSPlayerPawn", .Field = "m_iLastWeaponFireUsercmd", .Offset = 5424, .Size = 4},
+    {.Class = "CCSPlayerPawn", .Field = "m_entitySpottedState", .Offset = 5296, .Size = 24},
+    {.Class = "CCSPlayerPawnBase", .Field = "m_flFlashDuration", .Offset = 3588, .Size = 4},
+    {.Class = "CCSPlayerPawnBase", .Field = "m_flFlashMaxAlpha", .Offset = 3592, .Size = 4},
     {.Class = "CCSPlayer_AimPunchServices", .Field = "m_predictableBaseAngle", .Offset = 80, .Size = 12},
     {.Class = "CCSPlayer_AimPunchServices", .Field = "m_predictableBaseAngleVel", .Offset = 92, .Size = 12},
     {.Class = "CCSPlayer_AimPunchServices", .Field = "m_predictableBaseTick", .Offset = 72, .Size = 4},
@@ -102,12 +102,12 @@ std::span<const FieldLayout> GeneratedLayout()
 
 std::string_view GeneratedFromBuild()
 {
-    return "2000908";
+    return "2000913";
 }
 
 uint64_t GeneratedLayoutStamp()
 {
-    return 0x91DEF348E7D60D39ULL;
+    return 0xC74732F12AA3D52BULL;
 }
 
 }  // namespace VoltMod::Schema

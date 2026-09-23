@@ -8,6 +8,6 @@
 namespace VoltMod::Schema
 {
 
-// ---- CBaseAnimGraph, 2400 bytes ------------------------------------
+// ---- CBaseAnimGraph, 2624 bytes ------------------------------------
 
 }  // namespace VoltMod::Schema

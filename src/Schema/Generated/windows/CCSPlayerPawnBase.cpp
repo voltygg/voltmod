@@ -8,9 +8,9 @@
 namespace VoltMod::Schema
 {
 
-// ---- CCSPlayerPawnBase, 3376 bytes ---------------------------------
-static constexpr int32_t kCCSPlayerPawnBase_FlashDuration = 3348;  // float32
-static constexpr int32_t kCCSPlayerPawnBase_FlashMaxAlpha = 3352;  // float32
+// ---- CCSPlayerPawnBase, 3616 bytes ---------------------------------
+static constexpr int32_t kCCSPlayerPawnBase_FlashDuration = 3588;  // float32
+static constexpr int32_t kCCSPlayerPawnBase_FlashMaxAlpha = 3592;  // float32
 
 float CCSPlayerPawnBase::FlashDuration() const
 {

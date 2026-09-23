@@ -8,8 +8,8 @@
 namespace VoltMod::Schema
 {
 
-// ---- CBaseCombatCharacter, 2608 bytes ------------------------------
-static constexpr int32_t kCBaseCombatCharacter_MyWearables = 2408;  // CNetworkUtlVectorBase< CHandle< CEconWearable > >
+// ---- CBaseCombatCharacter, 2832 bytes ------------------------------
+static constexpr int32_t kCBaseCombatCharacter_MyWearables = 2632;  // CNetworkUtlVectorBase< CHandle< CEconWearable > >
 
 void* CBaseCombatCharacter::MyWearables() const
 {

@@ -13,13 +13,13 @@
 namespace VoltMod::Schema
 {
 
-// ---- CBasePlayerPawn, 3040 bytes -----------------------------------
-static constexpr int32_t kCBasePlayerPawn_ObserverServices = 2632;  // CPlayer_ObserverServices*
-static constexpr int32_t kCBasePlayerPawn_ItemServices = 2616;      // CPlayer_ItemServices*
-static constexpr int32_t kCBasePlayerPawn_MovementServices = 2672;  // CPlayer_MovementServices*
-static constexpr int32_t kCBasePlayerPawn_WeaponServices = 2608;    // CPlayer_WeaponServices*
-static constexpr int32_t kCBasePlayerPawn_CameraServices = 2664;    // CPlayer_CameraServices*
-static constexpr int32_t kCBasePlayerPawn_ControllerHandle = 2992;  // CHandle< CBasePlayerController >
+// ---- CBasePlayerPawn, 3280 bytes -----------------------------------
+static constexpr int32_t kCBasePlayerPawn_ObserverServices = 2856;  // CPlayer_ObserverServices*
+static constexpr int32_t kCBasePlayerPawn_ItemServices = 2840;      // CPlayer_ItemServices*
+static constexpr int32_t kCBasePlayerPawn_MovementServices = 2896;  // CPlayer_MovementServices*
+static constexpr int32_t kCBasePlayerPawn_WeaponServices = 2832;    // CPlayer_WeaponServices*
+static constexpr int32_t kCBasePlayerPawn_CameraServices = 2888;    // CPlayer_CameraServices*
+static constexpr int32_t kCBasePlayerPawn_ControllerHandle = 3224;  // CHandle< CBasePlayerController >
 
 CPlayer_ObserverServices CBasePlayerPawn::ObserverServices() const
 {

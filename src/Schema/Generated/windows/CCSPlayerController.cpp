@@ -9,10 +9,10 @@
 namespace VoltMod::Schema
 {
 
-// ---- CCSPlayerController, 2728 bytes -------------------------------
-static constexpr int32_t kCCSPlayerController_PlayerPawnHandle = 2276;     // CHandle< CCSPlayerPawn >
-static constexpr int32_t kCCSPlayerController_InGameMoneyServices = 2016;  // CCSPlayerController_InGameMoneyServices*
-static constexpr int32_t kCCSPlayerController_Clan = 2104;                 // CUtlSymbolLarge
+// ---- CCSPlayerController, 2744 bytes -------------------------------
+static constexpr int32_t kCCSPlayerController_PlayerPawnHandle = 2284;     // CHandle< CCSPlayerPawn >
+static constexpr int32_t kCCSPlayerController_InGameMoneyServices = 2024;  // CCSPlayerController_InGameMoneyServices*
+static constexpr int32_t kCCSPlayerController_Clan = 2112;                 // CUtlSymbolLarge
 
 uint32_t CCSPlayerController::PlayerPawnHandle() const
 {

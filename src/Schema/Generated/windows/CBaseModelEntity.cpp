@@ -8,8 +8,8 @@
 namespace VoltMod::Schema
 {
 
-// ---- CBaseModelEntity, 1904 bytes ----------------------------------
-static constexpr int32_t kCBaseModelEntity_ViewOffset = 1848;   // CNetworkViewOffsetVector
+// ---- CBaseModelEntity, 2128 bytes ----------------------------------
+static constexpr int32_t kCBaseModelEntity_ViewOffset = 2072;   // CNetworkViewOffsetVector
 static constexpr int32_t kCBaseModelEntity_RenderMode = 1360;   // RenderMode_t
 static constexpr int32_t kCBaseModelEntity_RenderColor = 1392;  // Color
 
