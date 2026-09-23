@@ -229,7 +229,7 @@ bool CenterHtmlMenu::ReadKeys(int slot)
     }
 
     Cursor& cursor = _cursors[slot];
-    const uint64_t buttons = _services.Entities.Buttons(slot);
+    const uint64_t buttons = _services.Entities.Controller(slot).Buttons();
     const uint64_t pressed = buttons & ~cursor.PrevButtons;
     cursor.PrevButtons = buttons;
 

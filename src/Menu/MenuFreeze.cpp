@@ -19,7 +19,7 @@ void MenuFreeze::Enable(bool enabled)
     {
         for (int slot = 0; slot < MaxPlayers; ++slot)
         {
-            _states[slot].Movement.Release(_entities.PawnOf(slot));
+            _states[slot].Movement.Release(_entities.Pawn(slot));
         }
     }
 
@@ -36,7 +36,7 @@ void MenuFreeze::Open(int slot, bool requested)
     _states[slot].Requested = requested;
     if (_enabled && requested)
     {
-        _states[slot].Movement.Hold(_entities.PawnOf(slot));
+        _states[slot].Movement.Hold(_entities.Pawn(slot));
     }
 
     SyncFrameWork();
@@ -51,7 +51,7 @@ void MenuFreeze::Close(int slot)
 
     // Releasing is never gated on the setting: a hold taken while it was on must come back.
     _states[slot].Requested = false;
-    _states[slot].Movement.Release(_entities.PawnOf(slot));
+    _states[slot].Movement.Release(_entities.Pawn(slot));
 
     SyncFrameWork();
 }
@@ -62,7 +62,7 @@ void MenuFreeze::OnGameFrame()
     {
         if (_states[slot].Requested)
         {
-            _states[slot].Movement.Sync(_entities.PawnOf(slot));
+            _states[slot].Movement.Sync(_entities.Pawn(slot));
         }
     }
 }

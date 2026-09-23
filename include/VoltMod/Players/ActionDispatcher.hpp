@@ -2,7 +2,6 @@
 
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
-#include <VoltMod/Entities/Controller.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Players/PlayerRef.hpp>
 #include <VoltMod/Players/Policy.hpp>
@@ -20,21 +19,12 @@ using OptKey = std::optional<std::string>;
 /** Resolved caller/target pair handed to action bodies. */
 struct ActionContext
 {
-    /** The pair, as @ref Policy::Authorize cleared it. @ref Caller and @ref Target read it. */
+    /** The pair, as @ref Policy::Authorize cleared it. */
     Authorized Auth;
-    /** Frame-local wrappers, resolved by the dispatcher for this one dispatch. */
-    Controller CallerCtrl;
-    Controller TargetCtrl;
 
     Player& Caller() const { return Auth.Caller; }
     /** An action always has a target: @ref ActionDispatcher::Resolve fails without one. */
     Player& Target() const { return *Auth.Target; }
-
-    /** @{ The pawns behind the two controllers. Free to call - each controller resolved its pawn
-     *  when the dispatcher built it - and falsy when the player has none. */
-    Pawn CallerPawn() const { return CallerCtrl.GetPawn(); }
-    Pawn TargetPawn() const { return TargetCtrl.GetPawn(); }
-    /** @} */
 };
 
 /**
@@ -69,10 +59,8 @@ struct ParamAction
 class ActionDispatcher
 {
 public:
-    /** @p policy and @p entities must outlive the dispatcher. Cheap to construct (two
-     *  references), so a call site may build one per dispatch or hold one as a long-lived
-     *  member (see @ref ActionRows, which holds one for its context rows). */
-    ActionDispatcher(Policy& policy, EntitySystem& entities) : _policy(policy), _entities(entities) {}
+    /** @p policy must outlive the dispatcher. */
+    explicit ActionDispatcher(Policy& policy) : _policy(policy) {}
 
     /**
      * Authorize a caller+target pair and build the context for it.
@@ -96,7 +84,6 @@ public:
 
 private:
     Policy& _policy;
-    EntitySystem& _entities;
 };
 
 }  // namespace VoltMod

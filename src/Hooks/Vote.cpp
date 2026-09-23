@@ -88,7 +88,7 @@ MultiRecipientFilter Vote::Recipients() const
     MultiRecipientFilter filter;
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
-        if (const_cast<EntitySystem&>(_entities).IsPlayerSlotValid(slot))
+        if (const_cast<EntitySystem&>(_entities).Controller(slot))
         {
             filter.AddRecipient(slot);
         }
@@ -112,7 +112,7 @@ bool Vote::StartVote(std::string_view title, std::string_view detail, float dura
     _eligible = 0;
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
-        if (_entities.IsPlayerSlotValid(slot))
+        if (_entities.Controller(slot))
         {
             ++_eligible;
         }
@@ -164,7 +164,7 @@ bool Vote::TryCastBallot(int slot, std::string_view option)
         return false;
     }
 
-    if (!IsValidSlot(slot) || !_entities.IsPlayerSlotValid(slot) || _voted[slot])
+    if (!IsValidSlot(slot) || !_entities.Controller(slot) || _voted[slot])
     {
         return true;
     }

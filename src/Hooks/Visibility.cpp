@@ -53,8 +53,8 @@ static void AddHandleVector(EntitySystem& entities, HiddenPlayer& player, const 
 // Return the pawn watched by `recipientSlot`. It must remain transmissible to preserve spectator view.
 static CEntityInstance* ObserverTarget(EntitySystem& entities, int recipientSlot)
 {
-    // Use Possessed(), because the observer pawn carries the camera while dead or spectating.
-    Pawn pawn = entities.Controller(recipientSlot).Possessed();
+    // The observer pawn carries the camera while dead or spectating.
+    Pawn pawn = entities.Controller(recipientSlot).InputPawn();
     const Schema::CPlayer_ObserverServices services = pawn.ObserverServices();
     if (!services)
     {
@@ -85,7 +85,7 @@ static void CollectHiddenPlayer(EntitySystem& entities, int slot, bool pawnHidde
         return;
     }
 
-    Pawn pawn = controller.GetPawn();
+    Pawn pawn = controller.Pawn();
     if (!pawn)
     {
         return;

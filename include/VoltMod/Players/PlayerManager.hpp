@@ -30,7 +30,7 @@ public:
      * @p slots is the Core-level "this slot changed hands" signal this manager raises; subscribe
      *   on that feed (`runtime.Slots.Changed`) rather than here when all you need is to drop
      *   per-slot state - it lives in Core precisely so services below Players can hear it.
-     * @p entities builds the wrappers @ref Player::Ctrl and @ref Player::GetPawn return. Null
+     * @p entities builds the wrappers @ref Player::Controller and @ref Player::Pawn return. Null
      *   only in the framework's SDK-free unit tests, where there is no engine.
      * Both must outlive the manager.
      */

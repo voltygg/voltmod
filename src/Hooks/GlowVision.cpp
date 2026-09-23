@@ -33,7 +33,7 @@ void GlowVision::DestroyPair(GlowPair& pair)
 
 void GlowVision::CreatePair(int slot, GlowPair& pair)
 {
-    Pawn pawn = _entities.PawnOf(slot);
+    Pawn pawn = _entities.Pawn(slot);
     if (!pawn)
     {
         return;
@@ -89,7 +89,7 @@ void GlowVision::Refresh()
     {
         auto& pair = _pairs[slot];
 
-        Pawn pawn = _entities.PawnOf(slot);
+        Pawn pawn = _entities.Pawn(slot);
         const Team team = pawn.Team();
         // Hidden pawns never reach the viewer, so a clone would follow nothing.
         bool desired = slot != _viewerSlot && pawn && pawn.IsAlive() && IsPlaying(team) &&

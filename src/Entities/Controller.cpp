@@ -17,18 +17,21 @@ Controller::Controller(EntitySystem& entities, CEntityInstance* raw, int slot) :
     _pawn = entities.Resolve(PlayerPawnRef()).Raw();
 }
 
-Pawn Controller::GetPawn() const
+VoltMod::Pawn Controller::Pawn() const
 {
-    return _sys ? Pawn{*_sys, _pawn} : Pawn{};
+    return _sys ? VoltMod::Pawn{*_sys, _pawn} : VoltMod::Pawn{};
 }
 
-Pawn Controller::Possessed() const
+VoltMod::Pawn Controller::InputPawn() const
 {
-    if (!_sys)
-    {
-        return {};
-    }
-    return Pawn{*_sys, _sys->Resolve(PawnRef()).Raw()};
+    return _sys ? VoltMod::Pawn{*_sys, _sys->Resolve(PawnRef()).Raw()} : VoltMod::Pawn{};
+}
+
+uint64_t Controller::Buttons() const
+{
+    // m_pButtonStates[0] holds the buttons down this tick.
+    const Schema::CPlayer_MovementServices services = InputPawn().MovementServices();
+    return services ? services.Buttons().ButtonStates(0) : 0;
 }
 
 int Controller::Money() const
@@ -56,7 +59,7 @@ Status Controller::Kick(std::string_view reason) const
         return std::unexpected(Error::NotReady("no controller"));
     }
 
-    auto* engine = _sys->InterfacesRef().Engine;
+    auto* engine = _sys->Interfaces().Engine;
     if (!engine)
     {
         return std::unexpected(Error::NotReady("IVEngineServer2 not available"));
@@ -78,7 +81,7 @@ Status Controller::ChangeTeam(VoltMod::Team team) const
         return std::unexpected(Error::Invalid("a player can only join the spectators, T or CT"));
     }
 
-    const auto& changeTeam = _sys->BindingsRef().ChangeTeam;
+    const auto& changeTeam = _sys->Bindings().ChangeTeam;
     if (!changeTeam)
     {
         return std::unexpected(Error::Unsupported("the 'CCSPlayerController::ChangeTeam' vtable slot did not bind"));
@@ -95,7 +98,7 @@ Status Controller::Respawn() const
         return std::unexpected(Error::NotReady("no controller"));
     }
 
-    const auto& respawn = _sys->BindingsRef().Respawn;
+    const auto& respawn = _sys->Bindings().Respawn;
     if (!respawn)
     {
         return std::unexpected(Error::Unsupported("gamedata has no 'CCSPlayerController::Respawn' vtable index"));

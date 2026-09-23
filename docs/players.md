@@ -21,7 +21,7 @@ Resolve a stored identity at the point of use:
 ```cpp
 VoltMod::Player* p = runtime.Players.Get(ref);   // null if the slot changed hands
 if (!p) return;
-p->Ctrl().Kick("bye");                           // frame-local wrapper, used and dropped
+p->Controller().Kick("bye");                     // frame-local wrapper, used and dropped
 ```
 
 Never store a `Player*` across a callback boundary, and never store a wrapper at all; the wrapper
@@ -30,8 +30,8 @@ contract is in @ref sdk_players_guide "Entities and players".
 `Player` is identity only: `Slot()`, `SteamId()`, `IsBot()`, `Ref()`, `Playtime()`, `Ip()`
 (captured at connect, the one moment the engine offers it) and `Name()`. `Name()` reads the
 controller on every call, so a player who renames mid-match reads back renamed; it falls back to
-the connect-time name only while there is no controller. `Ctrl()` and `GetPawn()` resolve the
-frame-local wrappers (`player->GetPawn().Slay()`). Keep admin flags, punishments and statistics in
+the connect-time name only while there is no controller. `Controller()` and `Pawn()` resolve the
+frame-local wrappers (`player->Pawn().Slay()`). Keep admin flags, punishments and statistics in
 plugin managers keyed by SteamID, not on `Player`.
 
 ## The roster
@@ -156,11 +156,11 @@ using VoltMod::ActionDispatcher;
 using VoltMod::OptKey;
 
 const Action Slay{"s", /*RequireAlive=*/true, [](const ActionContext& ctx) -> OptKey {
-    (void)ctx.TargetPawn().Slay();   // Slay() lives on Pawn, not Controller
+    (void)ctx.Target().Pawn().Slay();
     return "broadcast.slain";        // the Policy::Broadcast callback announces it; nullopt = silent
 }};
 
-ActionDispatcher actions{runtime.Policy, runtime.Entities};
+ActionDispatcher actions{runtime.Policy};
 actions.Run(adminRef, targetRef, Slay);
 ```
 
@@ -169,10 +169,9 @@ refused rather than retargeted at whoever holds the slot now. Turn a slot into a
 boundary that first receives it. `Resolve(caller, target, permission)` returns
 `Result<ActionContext>` when you want the pair without running an action.
 
-`ActionContext` carries the @ref VoltMod::Authorized pair (`ctx.Caller()`, `ctx.Target()`), the
-transient `CallerCtrl`/`TargetCtrl` controllers and their pawns (`CallerPawn()`, `TargetPawn()`) -
-nothing else. A body needing an engine service beyond those reaches it through the plugin's own
-`App&` it already captures. `ParamAction` adds an int the call site supplies (health value, team
+`ActionContext` carries the @ref VoltMod::Authorized pair, `ctx.Caller()` and `ctx.Target()`, and
+nothing else: `ctx.Target().Pawn()` is the target's body. A body that needs another service reaches
+it through the plugin's own `App&`. `ParamAction` adds an int the call site supplies (health value, team
 id). An empty permission string skips that check.
 
 Actions plug into menu context rows (`Action`, `StateToggle`, `Presets`; see @ref menus_guide), so

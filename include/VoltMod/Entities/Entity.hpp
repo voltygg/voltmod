@@ -54,6 +54,9 @@ public:
     /** Such as "player". Points into engine memory: copy it to keep it. */
     std::string_view ClassName() const;
 
+    /** This entity as a player pawn; falsy for anything else, such as a prop or a grenade. */
+    Pawn AsPawn() const;
+
     /** @name CBaseEntity fields */
     /** @{ */
 #include <VoltMod/Schema/Generated/Wrappers/Entity.inc>

@@ -3,7 +3,7 @@
 [TOC]
 
 ```cpp
-auto pawn = runtime.Entities.PawnOf(slot);
+auto pawn = runtime.Entities.Pawn(slot);
 if (!pawn)
     return;
 
@@ -21,13 +21,13 @@ Three value types wrap a live entity, each adding to the one before it:
 
 | Type | What it is | Where it comes from |
 | ---- | ---------- | ------------------- |
-| @ref VoltMod::Entity | Any entity: the CBaseEntity fields, position, teleport | `runtime.Entities.Resolve(ref)`, `FindByClassName`, `FindByName` |
-| @ref VoltMod::Pawn | A player's body: health, armor, movement, aim, render | `runtime.Entities.PawnOf(slot)` |
+| @ref VoltMod::Entity | Any entity: the CBaseEntity fields, position, teleport | `runtime.Entities.Resolve(ref)`, `FindByClassName`, `entity.AsPawn()` |
+| @ref VoltMod::Pawn | A player's body: health, armor, movement, aim, render | `runtime.Entities.Pawn(slot)` |
 | @ref VoltMod::Controller | A player's identity: name, money, team, kick | `runtime.Entities.Controller(slot)` |
 
 The controller is the scoreboard identity and survives respawns; the pawn is the replaceable body.
 CBaseEntity fields read off a `Controller` belong to the controller entity and mean nothing for
-gameplay - use `controller.GetPawn()`.
+gameplay - use `controller.Pawn()`.
 
 ## Validity, and never storing a wrapper
 
@@ -41,12 +41,12 @@ between frames without telling anyone.
 
 ```cpp
 // Wrong: the pawn is gone by the time the timer fires.
-auto pawn = runtime.Entities.PawnOf(slot);
+auto pawn = runtime.Entities.Pawn(slot);
 scheduler.Delay(3000, [pawn] { pawn.SetHealth(100); });
 
 // Right: re-resolve on the far side.
 scheduler.Delay(3000, [&entities = runtime.Entities, slot] {
-    if (auto pawn = entities.PawnOf(slot))
+    if (auto pawn = entities.Pawn(slot))
         pawn.SetHealth(100);
 });
 ```
@@ -122,12 +122,12 @@ Every accessor answers harmlessly on a falsy view. Use them only on the game thr
 ```cpp
 auto& es = runtime.Entities;
 
-VoltMod::Controller controller = es.Controller(slot);
-VoltMod::Pawn pawn = es.PawnOf(slot);
-bool occupied = es.IsPlayerSlotValid(slot);
+VoltMod::Controller controller = es.Controller(slot);   // falsy when the slot is empty
+VoltMod::Pawn pawn = es.Pawn(slot);                     // falsy while dead
 
-uint64_t buttons = es.Buttons(slot);       // held buttons, the SDK's IN_* bits
-int owner = es.SlotOf(pawn);               // -1 when it is not a player pawn; constant-time
+uint64_t buttons = controller.Buttons();   // held buttons, the SDK's IN_* bits
+int owner = pawn.Slot();                   // -1 when it is not a player pawn; constant time
+VoltMod::Pawn victim = hit.Victim.AsPawn(); // falsy unless the entity is a player pawn
 
 VoltMod::EntityRef ref = pawn.Ref();       // storable
 VoltMod::Entity again = es.Resolve(ref);   // falsy if it died or its index was recycled
@@ -139,7 +139,6 @@ while (VoltMod::Entity door = es.FindByClassName(es.Resolve(last), "func_door"))
     last = door.Ref();
     /* ... */
 }
-auto named = es.FindByName({}, "my_targetname");
 ```
 
 ## Aim, flash and observer state
@@ -167,7 +166,7 @@ Vector muzzle = pawn.EyePosition();
 Vector ahead = muzzle + VoltMod::AngleToForward(aim) * 64.0f;
 
 using VoltMod::ObserverMode;
-if (pawn.GetObserverMode() != ObserverMode::Roaming)
+if (pawn.ObserverMode() != ObserverMode::Roaming)
     pawn.SetObserverMode(ObserverMode::Roaming);
 ```
 
@@ -192,8 +191,8 @@ controller.SetName(saved);
 physics world. Nothing to install, nothing to re-take per map, and it survives map changes.
 
 ```cpp
-const VoltMod::Pawn self = runtime.Entities.PawnOf(slot);
-const VoltMod::Pawn other = runtime.Entities.PawnOf(target);
+const VoltMod::Pawn self = runtime.Entities.Pawn(slot);
+const VoltMod::Pawn other = runtime.Entities.Pawn(target);
 const auto clear = runtime.World.Trace.Clear(self.EyePosition(), other.EyePosition(),
                                              {.Ignore1 = self.Raw(), .Ignore2 = other.Raw()});
 if (clear && *clear)
@@ -240,7 +239,7 @@ which needs no SDK:
 ```cpp
 namespace PawnOps = VoltMod::PawnOps;
 
-VoltMod::Pawn target = runtime.Entities.PawnOf(slot);
+VoltMod::Pawn target = runtime.Entities.Pawn(slot);
 
 PawnOps::ToggleNoclip(target);              // noclip <-> walk; returns the new on-state
 PawnOps::ToggleFreeze(target);              // MOVETYPE_NONE <-> walk

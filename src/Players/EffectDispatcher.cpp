@@ -1,3 +1,4 @@
+#include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Players/EffectDispatcher.hpp>
 #include <utility>
 
@@ -11,7 +12,7 @@ void EffectDispatcher::Apply(PlayerRef admin, PlayerRef target, const EffectDesc
     {
         return;
     }
-    if (effect.RequireAlive && !ctx->TargetPawn().IsAlive())
+    if (effect.RequireAlive && !ctx->Target().Pawn().IsAlive())
     {
         return;
     }

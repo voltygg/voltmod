@@ -22,7 +22,7 @@ std::expected<std::vector<Player*>, TargetFailure> ResolveTargets(PlayerManager&
     roster.reserve(players.All().size());
     for (Player* player : players.All())
     {
-        Pawn pawn = entities.PawnOf(player->Slot());
+        const Pawn pawn = entities.Pawn(player->Slot());
         roster.push_back({
             .Slot = player->Slot(),
             .SteamId = player->SteamId(),

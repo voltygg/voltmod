@@ -127,7 +127,7 @@ Schema offsets need no gamedata. `voltmod framework schemagen` bakes them into g
 host verifies the whole generated layout against the live schema once:
 
 ```cpp
-runtime.Entities.PawnOf(slot).SetHealth(100);   // CBaseEntity::m_iHealth at a baked offset
+runtime.Entities.Pawn(slot).SetHealth(100);   // CBaseEntity::m_iHealth at a baked offset
 ```
 
 `schemagen` reads `schema/manifest.json` plus a dump and writes

@@ -4,80 +4,65 @@
 #include <VoltMod/Entities/Pawn.hpp>
 #include <VoltMod/Schema/Generated/CCSPlayerController.hpp>
 #include <cstdint>
+// The IN_* bits Buttons() returns.
+#include <in_buttons.h>
 #include <string_view>
 
 namespace VoltMod
 {
 
 /**
- * @brief A player's controller - the persistent identity behind a slot.
- *
- * The controller owns the name, the scoreboard row and the money; it survives death, team changes
- * and respawns. Everything about the body - health, armor, position, movement - is on the
- * @ref Pawn, which the engine replaces on every spawn. `controller.GetPawn().Health` is the
- * player's health; the CBaseEntity fields this inherits from @ref Entity are the controller
- * entity's own and mean nothing for gameplay.
- *
- * Frame-local, like every wrapper: see @ref Entity for the validity contract.
+ * @brief A player's identity behind a slot: name, money, team, scoreboard row. It survives death
+ * and respawn; the body is @ref Pawn(). Its own CBaseEntity fields, such as Health, mean nothing
+ * for gameplay.
  */
 class Controller : public Entity
 {
 public:
     Controller() = default;
 
-    /** Resolves and caches the player pawn, so @ref GetPawn is free afterwards. Prefer
-     *  `runtime.Entities.Controller(slot)`. */
+    /** Prefer `runtime.Entities.Controller(slot)`. */
     Controller(EntitySystem& entities, CEntityInstance* raw, int slot);
 
     Controller(const Controller&) = default;
     Controller& operator=(const Controller&) = delete;
 
-    /** @name CCSPlayerController and CBasePlayerController fields.
-     *
-     *  Generated from `schema/manifest.json`. `Name` is `m_iszPlayerName`, a 128-byte fixed
-     *  buffer: `SetName` truncates to 127 characters plus NUL, and replication piggybacks on the
-     *  next state-change broadcast, so pair a write with @ref ChangeTeam or similar when the
-     *  scoreboard has to refresh now.
-     */
+    /** @name CCSPlayerController and CBasePlayerController fields
+     *  `SetName` shows on the scoreboard with the next state change, such as @ref ChangeTeam. */
     /** @{ */
 #include <VoltMod/Schema/Generated/Wrappers/Controller.inc>
     /** @} */
 
-    /** The slot this controller occupies, or -1. */
+    /** The slot, or -1. */
     int Slot() const noexcept { return _slot; }
 
-    /** The player pawn (`m_hPlayerPawn`): the body gameplay code wants. Dead or falsy while the
-     *  player is not alive. */
-    Pawn GetPawn() const;
+    /** The living body; falsy while dead. */
+    VoltMod::Pawn Pawn() const;
 
-    /** The pawn the player is driving (`m_hPawn`): @ref GetPawn while alive, the observer pawn
-     *  while dead or spectating. Where input lands; changes on every death and spawn. */
-    Pawn Possessed() const;
+    /** The pawn the player's input drives: @ref Pawn while alive, the observer pawn while dead or
+     *  spectating. */
+    VoltMod::Pawn InputPawn() const;
 
-    /** Buy-menu balance (CCSPlayerController_InGameMoneyServices::m_iAccount), or 0 when the money
-     *  services are unavailable. */
+    /** Held buttons as `IN_*` bits, read from @ref InputPawn so they arrive while dead too. */
+    uint64_t Buttons() const;
+
+    /** The buy-menu balance; 0 when unavailable. */
     int Money() const;
 
-    /** Write the balance and dirty it, so the client's HUD follows.
-     *  @return Error::NotReady when the money services are unavailable. */
+    /** @return Error::NotReady when the money services are unavailable. */
     Status SetMoney(int amount) const;
 
-    /** Disconnect the client. @return Error::NotReady when IVEngineServer2 is unavailable. */
     Status Kick(std::string_view reason) const;
 
-    /** `CCSPlayerController::ChangeTeam`.
-     *  @return Error::Invalid for a team outside Spectator..CT, Error::Unsupported when the vtable
-     *          index did not bind. */
+    /** @return Error::Invalid for a team outside Spectator..CT, Error::Unsupported when the vtable
+     *          slot did not bind. */
     Status ChangeTeam(VoltMod::Team team) const;
 
-    /** `CCSPlayerController::Respawn`. @return Error::Unsupported when the index did not bind. */
     Status Respawn() const;
 
 private:
     int _slot = -1;
-    /** Resolved in the constructor: the pawn lookup is a handle resolve, and callers ask for it
-     *  several times per wrapper. @ref Possessed resolves on demand instead - every controller
-     *  would pay for it, and only the input paths ask. */
+    /** Resolved once: callers ask for the pawn several times per wrapper. */
     CEntityInstance* _pawn = nullptr;
 };
 

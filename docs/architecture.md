@@ -144,7 +144,7 @@ services they reference are still alive. That pair is what makes `volt reload` s
 ```cpp
 runtime.Players.Get(slot);
 runtime.Messages.Reply(slot, "done");
-runtime.Entities.PawnOf(slot).SetHealth(100);
+runtime.Entities.Pawn(slot).SetHealth(100);
 runtime.World.Precache.Add("models/props/mine.vmdl");
 ```
 

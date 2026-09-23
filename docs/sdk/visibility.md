@@ -15,8 +15,8 @@ using VoltMod::Schema::RenderMode_t;
 prop.SetRender(RenderMode_t::kRenderTransAlpha, VoltMod::Color{.A = 0});
 prop.SetRender(RenderMode_t::kRenderNormal, VoltMod::Color{});
 
-runtime.Entities.PawnOf(slot).SetVisible(false);        // the pawn body, alpha 0
-runtime.Entities.PawnOf(slot).SetVisible(false, 0x80);  // 50% transparent
+runtime.Entities.Pawn(slot).SetVisible(false);        // the pawn body, alpha 0
+runtime.Entities.Pawn(slot).SetVisible(false, 0x80);  // 50% transparent
 ```
 
 `VoltMod::Color` holds the RGBA bytes in the engine's order. Render tricks reach only the

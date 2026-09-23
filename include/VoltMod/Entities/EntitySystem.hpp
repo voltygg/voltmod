@@ -7,9 +7,6 @@
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Entities/Controller.hpp>
 #include <VoltMod/Entities/KeyValues.hpp>
-#include <VoltMod/Schema/Generated/CPlayer_MovementServices.hpp>
-#include <cstdint>
-#include <in_buttons.h>
 #include <optional>
 #include <string_view>
 #include <vector>
@@ -18,52 +15,33 @@ namespace VoltMod
 {
 
 /**
- * @brief Entity lookup for the Source 2 engine, and the factory for every entity wrapper.
- *
- * Resolves CGameEntitySystem from IGameResourceService, then hands out @ref Entity, @ref Pawn and
- * @ref Controller values for slots, handles and classnames. Everything it returns is frame-local;
- * see @ref Entity for the validity contract.
+ * @brief `runtime.Entities`: finds and creates entities. Everything it returns is valid for this
+ * frame only; see @ref Entity.
  */
 class EntitySystem
 {
 public:
     /** @p interfaces and @p bindings must outlive this service. */
-    EntitySystem(Interfaces& interfaces, const Bindings& bindings);
+    EntitySystem(VoltMod::Interfaces& interfaces, const VoltMod::Bindings& bindings);
     ~EntitySystem();
     EntitySystem(const EntitySystem&) = delete;
     EntitySystem& operator=(const EntitySystem&) = delete;
 
-    /**
-     * @brief Bind the gamedata offset and attempt a first read of the entity system.
-     * @return An error only when the service cannot work at all (no IGameResourceService, or the
-     *         offset did not bind). Success with `GetEntitySystem() == nullptr` means the engine
-     *         has not created CGameEntitySystem yet - expected before the first map load, and
-     *         OnServerStartup picks it up. Whether that counts as degraded is the caller's load
-     *         policy.
-     */
-    Status Initialize();
-
-    /** Re-read the pointer for the new map. Called by the framework's StartupServer hook. */
-    void OnServerStartup();
-
-    CGameEntitySystem* GetEntitySystem();
-
-    /** The controller in @p slot, or a falsy value when the slot is empty. */
+    /** The controller in @p slot; falsy when the slot is empty. */
     VoltMod::Controller Controller(int slot);
 
-    /** The player pawn of @p slot, or a falsy value when there is none. */
-    Pawn PawnOf(int slot);
+    /** The living body of @p slot's player; falsy when there is none. */
+    VoltMod::Pawn Pawn(int slot);
 
-    /**
-     * The entity @p ref points at, or a falsy wrapper when the ref is unset, stale, or its index
-     * was recycled by another entity. Validation happens on the entity identity, so a ref that
-     * outlived its entity is always safe to resolve.
-     */
+    /** What @p ref points at; falsy when it is unset, or its entity is gone or replaced. */
     Entity Resolve(EntityRef ref);
 
-    /** First entity of @p className after @p after (a falsy Entity starts at the list head); `*`
-     *  wildcards match. Falsy when exhausted. */
+    /** First entity of @p className after @p after (a falsy one starts at the head); `*` wildcards
+     *  match. Falsy when exhausted. */
     Entity FindByClassName(const Entity& after, std::string_view className);
+
+    /** The weapons @p pawn carries, knife and grenades included. */
+    std::vector<Entity> WeaponsOf(const VoltMod::Pawn& pawn);
 
     /** Unsupported when entities cannot be created or spawned. */
     Status Available() const;
@@ -74,52 +52,35 @@ public:
     /** Create and spawn; falsy on failure. The engine takes the keyvalues. */
     Entity Spawn(std::string_view className, KeyValues& values);
 
-    /** First entity whose targetname is @p targetName after @p after (a falsy Entity starts at the
-     *  first match); `*` wildcards match. Falsy when exhausted or @p after is not a match. */
-    Entity FindByName(const Entity& after, std::string_view targetName);
-
-    /** Slot owning @p pawn, or -1 when it is not a player pawn. Constant-time. */
-    int SlotOf(const Pawn& pawn);
-
-    /** Slot of @p entity when it is a player pawn, or -1 for any other entity, such as a damage
-     *  attacker or inflictor. */
-    int PlayerSlotOf(const Entity& entity);
-
-    /** The weapons @p pawn carries, knife and grenades included. Empty for a falsy pawn. */
-    std::vector<Entity> WeaponsOf(const Pawn& pawn);
-
-    /** Held buttons for @p slot (m_pButtonStates[0]) as `IN_*` bits from in_buttons.h, or 0. Read
-     *  from @ref Controller::Possessed, so they arrive while dead or spectating too. */
-    uint64_t Buttons(int slot);
-
-    /** The player pawn's CPlayer_MovementServices for @p slot, or a falsy view when the slot
-     *  has no pawn. */
-    Schema::CPlayer_MovementServices MovementServices(int slot);
-
-    bool IsPlayerSlotValid(int slot);
-
-    /** @name Engine access for the wrappers.
-     *  The wrappers are values with no services of their own, so their verbs reach the engine
-     *  through the system that produced them. Public rather than `friend`: a value type that can
-     *  reach the whole service graph is the locator shape this framework does not have, and these
-     *  two are exactly the engine handles, not the graph. */
+    /** @name Framework plumbing */
     /** @{ */
-    const Bindings& BindingsRef() const noexcept { return _bindings; }
-    const Interfaces& InterfacesRef() const noexcept { return _interfaces; }
+    /** An error only when entity lookups can never work; a missing system before the first map is
+     *  fine, and @ref OnServerStartup picks it up. */
+    Status Initialize();
+
+    /** Re-read the system for the new map. */
+    void OnServerStartup();
+
+    /** The engine's entity system; null before the first map. */
+    CGameEntitySystem* Raw();
+
+    /** What the wrappers' verbs call the engine through. */
+    const VoltMod::Bindings& Bindings() const noexcept { return _bindings; }
+    const VoltMod::Interfaces& Interfaces() const noexcept { return _interfaces; }
     /** @} */
 
 private:
     CEntityInstance* RawController(int slot);
 
-    /** Read CGameEntitySystem* at the gamedata offset, or nullptr when it is unavailable. */
+    /** Null when the gamedata offset does not reach a CGameEntitySystem. */
     CGameEntitySystem* ReadEntitySystemPointer();
 
-    /** Sole writer for both this service and the ::GameEntitySystem() compatibility global. */
+    /** Also publishes it for the SDK's ::GameEntitySystem(). */
     void SetEntitySystem(CGameEntitySystem* system);
 
-    Interfaces& _interfaces;
-    const Bindings& _bindings;
-    /** Empty until the first pointer is validated as a CGameEntitySystem. */
+    VoltMod::Interfaces& _interfaces;
+    const VoltMod::Bindings& _bindings;
+    /** Empty until the first pointer is checked. */
     std::optional<bool> _isRealSystem;
 };
 

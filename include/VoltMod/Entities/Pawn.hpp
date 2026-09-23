@@ -37,8 +37,8 @@ public:
     /** @return Error::Unsupported when the CommitSuicide index did not bind. */
     Status Slay() const;
 
-    ObserverMode GetObserverMode() const;
-    Status SetObserverMode(ObserverMode mode) const;
+    VoltMod::ObserverMode ObserverMode() const;
+    Status SetObserverMode(VoltMod::ObserverMode mode) const;
 
     /** Current model path; empty when unavailable. */
     std::string ModelName() const;
@@ -47,7 +47,8 @@ public:
      *  player completely with @ref Visibility. */
     void SetVisible(bool visible, uint8_t alpha = 0) const;
 
-    Controller GetController() const;
+    /** The owning player's controller. */
+    VoltMod::Controller Controller() const;
 
     /** The owning player's slot, or -1. Constant time. */
     int Slot() const;

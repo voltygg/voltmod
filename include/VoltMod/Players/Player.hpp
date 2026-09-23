@@ -24,9 +24,8 @@ namespace VoltMod
  * Identity only. Admin flags, punishments and statistics belong in plugin-side managers keyed
  * by SteamID, not on this type.
  *
- * @ref Name, @ref Ctrl and @ref GetPawn read the engine on every call rather than caching: the
- * scoreboard name changes mid-connection and the pawn is replaced on every spawn, so a cached
- * copy is wrong the moment it is taken.
+ * @ref Name, @ref Controller and @ref Pawn read the engine on every call: the name changes
+ * mid-connection and the pawn is replaced on every spawn.
  */
 class Player
 {
@@ -72,11 +71,10 @@ public:
     /** How long this connection has lasted. */
     std::chrono::seconds Playtime() const { return std::chrono::seconds{Time::Now() - _connectTime}; }
 
-    /** @{ The engine wrappers for this player, resolved now. Frame-local: read them, do not
-     *  store them. Falsy when the player has no controller or no pawn. Include
-     *  <VoltMod/Entities/EntitySystem.hpp> (or <VoltMod/Api.hpp>) to use what they return. */
-    Controller Ctrl() const;
-    Pawn GetPawn() const;
+    /** @{ This player's entities, valid for this frame; falsy when there are none. Include
+     *  <VoltMod/Entities/EntitySystem.hpp> or <VoltMod/Api.hpp> to use them. */
+    VoltMod::Controller Controller() const;
+    VoltMod::Pawn Pawn() const;
     /** @} */
 
 private:

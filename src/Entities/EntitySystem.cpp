@@ -33,7 +33,7 @@ static constexpr std::string_view ControllerClass = "cs_player_controller";
 
 static_assert(MaxPlayers == ABSOLUTE_PLAYER_LIMIT);
 
-EntitySystem::EntitySystem(Interfaces& interfaces, const Bindings& bindings)
+EntitySystem::EntitySystem(VoltMod::Interfaces& interfaces, const VoltMod::Bindings& bindings)
     : _interfaces(interfaces), _bindings(bindings)
 {}
 
@@ -89,7 +89,7 @@ Status EntitySystem::Initialize()
     Log::Info("Gamedata loaded (entity system offset: {}).", _bindings.GameEntitySystem.Value());
 
     // Null is expected before the first map; OnServerStartup retries and callers decide whether it is required.
-    GetEntitySystem();
+    Raw();
     return {};
 }
 
@@ -98,7 +98,7 @@ void EntitySystem::OnServerStartup()
     // Each map creates a new system, so discard the old pointer before it is freed.
     SetEntitySystem(nullptr);
 
-    if (GetEntitySystem())
+    if (Raw())
     {
         Log::Info("Entity system initialized.");
     }
@@ -108,7 +108,7 @@ void EntitySystem::OnServerStartup()
     }
 }
 
-CGameEntitySystem* EntitySystem::GetEntitySystem()
+CGameEntitySystem* EntitySystem::Raw()
 {
     // The cache stays empty until the first server starts and is cleared for each new map.
     if (!_interfaces.EntitySystem)
@@ -121,7 +121,7 @@ CGameEntitySystem* EntitySystem::GetEntitySystem()
 
 Entity EntitySystem::Resolve(EntityRef ref)
 {
-    auto* system = GetEntitySystem();
+    auto* system = Raw();
     if (!ref || !system)
     {
         return {};
@@ -133,7 +133,7 @@ Entity EntitySystem::Resolve(EntityRef ref)
 
 CEntityInstance* EntitySystem::RawController(int slot)
 {
-    auto* system = GetEntitySystem();
+    auto* system = Raw();
     if (!system || slot < 0 || slot >= MaxPlayers)
     {
         return nullptr;
@@ -159,35 +159,12 @@ VoltMod::Controller EntitySystem::Controller(int slot)
     return {*this, RawController(slot), slot};
 }
 
-Pawn EntitySystem::PawnOf(int slot)
+VoltMod::Pawn EntitySystem::Pawn(int slot)
 {
-    return Controller(slot).GetPawn();
+    return Controller(slot).Pawn();
 }
 
-int EntitySystem::SlotOf(const Pawn& pawn)
-{
-    Entity controller = Resolve(pawn.ControllerRef());
-    if (!controller)
-    {
-        return -1;
-    }
-
-    // Keep controller indices consistent with RawController.
-    int slot = controller.Index() - 1;
-    return IsValidSlot(slot) ? slot : -1;
-}
-
-int EntitySystem::PlayerSlotOf(const Entity& entity)
-{
-    // SlotOf reads a pawn-only field, so every other class is turned away first.
-    if (!entity || entity.ClassName() != "player")
-    {
-        return -1;
-    }
-    return SlotOf(Pawn{*this, entity.Raw()});
-}
-
-std::vector<Entity> EntitySystem::WeaponsOf(const Pawn& pawn)
+std::vector<Entity> EntitySystem::WeaponsOf(const VoltMod::Pawn& pawn)
 {
     std::vector<Entity> weapons;
     if (!pawn)
@@ -214,23 +191,6 @@ std::vector<Entity> EntitySystem::WeaponsOf(const Pawn& pawn)
         }
     }
     return weapons;
-}
-
-uint64_t EntitySystem::Buttons(int slot)
-{
-    // m_pButtonStates is uint64[3]; read it from the possessed pawn because the observer owns input while dead.
-    const Schema::CPlayer_MovementServices services = Controller(slot).Possessed().MovementServices();
-    return services ? services.Buttons().ButtonStates(0) : 0;
-}
-
-Schema::CPlayer_MovementServices EntitySystem::MovementServices(int slot)
-{
-    return PawnOf(slot).MovementServices();
-}
-
-bool EntitySystem::IsPlayerSlotValid(int slot)
-{
-    return RawController(slot) != nullptr;
 }
 
 Status EntitySystem::Available() const
@@ -264,7 +224,7 @@ Entity EntitySystem::Spawn(std::string_view className, KeyValues& values)
 
 Entity EntitySystem::FindByClassName(const Entity& after, std::string_view className)
 {
-    if (!GetEntitySystem() || className.empty())
+    if (!Raw() || className.empty())
     {
         return {};
     }
@@ -273,31 +233,6 @@ Entity EntitySystem::FindByClassName(const Entity& after, std::string_view class
     const std::string name(className);
     EntityInstanceByClassIter_t iter(after ? after.Raw() : nullptr, name.c_str());
     return {*this, iter.Next()};
-}
-
-Entity EntitySystem::FindByName(const Entity& after, std::string_view targetName)
-{
-    if (!GetEntitySystem() || targetName.empty())
-    {
-        return {};
-    }
-
-    // The name iterator cannot start mid-list, so step past `after` first.
-    const std::string name(targetName);
-    EntityInstanceByNameIter_t iter(name.c_str());
-    CEntityInstance* entity = iter.First();
-    if (after)
-    {
-        while (entity && entity != after.Raw())
-        {
-            entity = iter.Next();
-        }
-        if (entity)
-        {
-            entity = iter.Next();
-        }
-    }
-    return {*this, entity};
 }
 
 }  // namespace VoltMod

@@ -123,7 +123,7 @@ void Pawns::Slap(const Pawn& pawn, float upward, float horizontal, int fallProte
     // the frame. The Runtime discards pending timers unrun, so `this` never dangles. Assigning
     // cancels whatever clear was already pending for this slot.
     _fallProtect[slot] = _scheduler.Delay(fallProtectMs, [this, slot] {
-        Pawn target = _entities.PawnOf(slot);
+        Pawn target = _entities.Pawn(slot);
         if (target)
         {
             PawnOps::SetGodmode(target, false);
@@ -141,7 +141,7 @@ void Pawns::SlayDelayed(int slot, int64_t delayMs)
     // Re-resolved on fire for the same reason Slap's clear is, and assigning cancels whatever
     // slay was already pending for this slot.
     _slay[slot] = _scheduler.Delay(delayMs, [this, slot] {
-        Pawn target = _entities.PawnOf(slot);
+        Pawn target = _entities.Pawn(slot);
         if (target && target.IsAlive())
         {
             (void)target.Slay();

@@ -14,10 +14,7 @@ Result<ActionContext> ActionDispatcher::Resolve(PlayerRef caller, PlayerRef targ
         return std::unexpected(authorized.error());
     }
 
-    // Safe only now - Authorize confirmed both refs still name the players they were taken for.
-    return ActionContext{.Auth = *authorized,
-                         .CallerCtrl = _entities.Controller(caller.Slot),
-                         .TargetCtrl = _entities.Controller(target.Slot)};
+    return ActionContext{.Auth = *authorized};
 }
 
 void ActionDispatcher::Run(PlayerRef caller, PlayerRef target, const Action& action) const
@@ -27,7 +24,7 @@ void ActionDispatcher::Run(PlayerRef caller, PlayerRef target, const Action& act
     {
         return;
     }
-    if (action.RequireAlive && !ctx->TargetPawn().IsAlive())
+    if (action.RequireAlive && !ctx->Target().Pawn().IsAlive())
     {
         return;
     }
@@ -44,7 +41,7 @@ void ActionDispatcher::Run(PlayerRef caller, PlayerRef target, int param, const 
     {
         return;
     }
-    if (action.RequireAlive && !ctx->TargetPawn().IsAlive())
+    if (action.RequireAlive && !ctx->Target().Pawn().IsAlive())
     {
         return;
     }

@@ -112,7 +112,7 @@ Status Entity::Teleport(std::optional<Vector> origin, std::optional<QAngle> angl
         return std::unexpected(Error::NotReady("no entity"));
     }
 
-    const auto& teleport = _sys->BindingsRef().Teleport;
+    const auto& teleport = _sys->Bindings().Teleport;
     if (!teleport)
     {
         return std::unexpected(Error::Unsupported("gamedata has no 'CBaseEntity::Teleport' vtable slot"));
@@ -124,9 +124,9 @@ Status Entity::Teleport(std::optional<Vector> origin, std::optional<QAngle> angl
 
 void Entity::Spawn(KeyValues& values) const
 {
-    if (_e && _sys && _sys->BindingsRef().DispatchSpawn)
+    if (_e && _sys && _sys->Bindings().DispatchSpawn)
     {
-        _sys->BindingsRef().DispatchSpawn(_e, values.Detach());
+        _sys->Bindings().DispatchSpawn(_e, values.Detach());
     }
 }
 
@@ -137,7 +137,7 @@ void Entity::AcceptInput(std::string_view input, std::string_view value, const E
         return;
     }
     variant_t variant(std::string(value).c_str());
-    FireInput(_sys->BindingsRef(), _e, input, variant, activator.Raw());
+    FireInput(_sys->Bindings(), _e, input, variant, activator.Raw());
 }
 
 void Entity::Remove() const
@@ -158,11 +158,11 @@ void Entity::Remove() const
 
 void Entity::RemoveAfter(float seconds) const
 {
-    if (!_e || !_sys || !_sys->BindingsRef().AddEntityIOEvent)
+    if (!_e || !_sys || !_sys->Bindings().AddEntityIOEvent)
     {
         return;
     }
-    CEntitySystem* system = _sys->GetEntitySystem();
+    CEntitySystem* system = _sys->Raw();
     if (!system)
     {
         return;
@@ -170,14 +170,14 @@ void Entity::RemoveAfter(float seconds) const
 
     // The queue copies the input name and the value.
     const variant_t value("");
-    _sys->BindingsRef().AddEntityIOEvent(system, _e, "Kill", nullptr, nullptr, &value, seconds, nullptr, nullptr);
+    _sys->Bindings().AddEntityIOEvent(system, _e, "Kill", nullptr, nullptr, &value, seconds, nullptr, nullptr);
 }
 
 void Entity::SetModel(std::string_view path) const
 {
-    if (_e && _sys && _sys->BindingsRef().SetModel && !path.empty())
+    if (_e && _sys && _sys->Bindings().SetModel && !path.empty())
     {
-        _sys->BindingsRef().SetModel(_e, std::string(path).c_str());
+        _sys->Bindings().SetModel(_e, std::string(path).c_str());
     }
 }
 
@@ -188,7 +188,7 @@ void Entity::SetScale(float scale) const
         return;
     }
     variant_t value(std::clamp(scale, MinScale, MaxScale));
-    FireInput(_sys->BindingsRef(), _e, "SetScale", value, nullptr);
+    FireInput(_sys->Bindings(), _e, "SetScale", value, nullptr);
 }
 
 void Entity::SetRender(Schema::RenderMode_t mode, Color color) const
@@ -213,15 +213,15 @@ void Entity::PlayAnimation(std::string_view animation, std::string_view idle) co
 
 void Entity::EmitSound(std::string_view soundEvent, float volume) const
 {
-    if (_e && _sys && _sys->BindingsRef().EmitSoundParams && !soundEvent.empty())
+    if (_e && _sys && _sys->Bindings().EmitSoundParams && !soundEvent.empty())
     {
-        _sys->BindingsRef().EmitSoundParams(_e, std::string(soundEvent).c_str(), 100, volume, 0.0f);
+        _sys->Bindings().EmitSoundParams(_e, std::string(soundEvent).c_str(), 100, volume, 0.0f);
     }
 }
 
 void Entity::EmitSound(std::string_view soundEvent, IRecipientFilter& recipients, float volume) const
 {
-    if (!_e || !_sys || !_sys->BindingsRef().EmitSoundFilter || soundEvent.empty())
+    if (!_e || !_sys || !_sys->Bindings().EmitSoundFilter || soundEvent.empty())
     {
         return;
     }
@@ -232,8 +232,7 @@ void Entity::EmitSound(std::string_view soundEvent, IRecipientFilter& recipients
     params.SoundName = sound.c_str();
     params.Volume = volume;
 
-    std::bit_cast<EmitSoundFilterFn>(_sys->BindingsRef().EmitSoundFilter.Ptr())(recipients, _e->GetEntityIndex(),
-                                                                                params);
+    std::bit_cast<EmitSoundFilterFn>(_sys->Bindings().EmitSoundFilter.Ptr())(recipients, _e->GetEntityIndex(), params);
 }
 
 }  // namespace VoltMod

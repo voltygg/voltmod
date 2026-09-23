@@ -4,14 +4,14 @@
 namespace VoltMod
 {
 
-Controller Player::Ctrl() const
+VoltMod::Controller Player::Controller() const
 {
-    return _entities ? _entities->Controller(_slot) : Controller{};
+    return _entities ? _entities->Controller(_slot) : VoltMod::Controller{};
 }
 
-Pawn Player::GetPawn() const
+VoltMod::Pawn Player::Pawn() const
 {
-    return _entities ? _entities->PawnOf(_slot) : Pawn{};
+    return _entities ? _entities->Pawn(_slot) : VoltMod::Pawn{};
 }
 
 std::string Player::Name() const
@@ -20,7 +20,7 @@ std::string Player::Name() const
     {
         // The controller carries the live scoreboard name. It is empty before the player has a
         // controller, and the engine also reports an empty name for a moment around connect.
-        if (Controller controller = _entities->Controller(_slot))
+        if (const VoltMod::Controller controller = _entities->Controller(_slot))
         {
             std::string live(controller.Name());
             if (!live.empty())

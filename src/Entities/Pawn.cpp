@@ -34,7 +34,7 @@ Status Pawn::Slay() const
         return std::unexpected(Error::NotReady("no pawn"));
     }
 
-    const auto& suicide = _sys->BindingsRef().CommitSuicide;
+    const auto& suicide = _sys->Bindings().CommitSuicide;
     if (!suicide)
     {
         return std::unexpected(Error::Unsupported("gamedata has no 'CBasePlayerPawn::CommitSuicide' vtable index"));
@@ -44,13 +44,18 @@ Status Pawn::Slay() const
     return {};
 }
 
-ObserverMode Pawn::GetObserverMode() const
+Pawn Entity::AsPawn() const
 {
-    const Schema::CPlayer_ObserverServices services = ObserverServices();
-    return services ? static_cast<ObserverMode>(services.ObserverMode()) : ObserverMode::None;
+    return (_sys && ClassName() == "player") ? Pawn{*_sys, _e} : Pawn{};
 }
 
-Status Pawn::SetObserverMode(ObserverMode value) const
+VoltMod::ObserverMode Pawn::ObserverMode() const
+{
+    const Schema::CPlayer_ObserverServices services = ObserverServices();
+    return services ? static_cast<VoltMod::ObserverMode>(services.ObserverMode()) : VoltMod::ObserverMode::None;
+}
+
+Status Pawn::SetObserverMode(VoltMod::ObserverMode value) const
 {
     const Schema::CPlayer_ObserverServices services = ObserverServices();
     if (!services)
@@ -80,18 +85,17 @@ void Pawn::SetVisible(bool visible, uint8_t alpha) const
     SetRender(mode, Color{.A = visible ? uint8_t{255} : alpha});
 }
 
-Controller Pawn::GetController() const
+VoltMod::Controller Pawn::Controller() const
 {
-    if (!_sys)
-    {
-        return {};
-    }
-    return _sys->Controller(Slot());
+    return _sys ? _sys->Controller(Slot()) : VoltMod::Controller{};
 }
 
 int Pawn::Slot() const
 {
-    return _sys ? _sys->SlotOf(*this) : -1;
+    // Controllers sit at entity index slot + 1.
+    const Entity controller = _sys ? _sys->Resolve(ControllerRef()) : Entity{};
+    const int slot = controller.Index() - 1;
+    return controller && IsValidSlot(slot) ? slot : -1;
 }
 
 }  // namespace VoltMod

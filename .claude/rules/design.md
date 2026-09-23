@@ -12,7 +12,7 @@ The shapes the framework already uses. New code follows them instead of adding a
 
 - `Plugin` is the user-owned object for one load cycle. The internal module constructs it with a live `Runtime`, calls `Load`, and destroys it before the runtime.
 - `Runtime` is a flat service container (`runtime.Players`, `runtime.Messages`), so moving a service between modules does not rename the consumer API.
-- No ambient accessor. Constructor-inject the narrowest service that does the job: `CenterHtmlMenu(const CenterHtmlMenu::Services&)`, `ActionDispatcher(Policy&, PlayerManager&, EntitySystem&)`, never `Runtime&`. Only `Commands` and `App` may take `Runtime&`.
+- No ambient accessor. Constructor-inject the narrowest service that does the job: `CenterHtmlMenu(const CenterHtmlMenu::Services&)`, `ActionDispatcher(Policy&)`, never `Runtime&`. Only `Commands` and `App` may take `Runtime&`.
 - Header templates plugins instantiate (`Flow<TState>`, `PerSlot<T>`) take one service, so including them does not pull in the composition root.
 - Process-lifetime state belongs to the host and nowhere else. The host is one per process by design, and what must exist once for the whole server - the engine hooks, the frame tick, the service table, the plugin list - lives there behind an interface in `Host/`. Everything else, including every service a plugin can reach through `Runtime`, is per load cycle and per plugin; the SDK is a static library in each plugin, so a singleton in it would be one copy per plugin pretending to be one per server. Add nothing to the host that a plugin could own itself.
 

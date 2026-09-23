@@ -264,7 +264,7 @@ Status ScreenEntity::SendText(int engineSlot, std::string_view variable, std::st
     SetStr(name, variable);
     SetStr(text, value);
 
-    const Bindings& bindings = _entities.BindingsRef();
+    const Bindings& bindings = _entities.Bindings();
     if (engineSlot == EveryoneSlot)
     {
         if (!bindings.CustomHudSetDialogVariable)
@@ -296,7 +296,7 @@ Status ScreenEntity::SendClass(int engineSlot, std::string_view elementId, std::
     SetStr(name, className);
     const int32_t state = on ? ClassPresent : ClassAbsent;
 
-    const Bindings& bindings = _entities.BindingsRef();
+    const Bindings& bindings = _entities.Bindings();
     if (engineSlot == EveryoneSlot)
     {
         if (!bindings.CustomHudSetHasClass)
@@ -325,7 +325,7 @@ Status ScreenEntity::SendCursor(int engineSlot, bool shown)
 
     if (engineSlot != EveryoneSlot)
     {
-        const auto& set = _entities.BindingsRef().CustomHudSetInputCapture;
+        const auto& set = _entities.Bindings().CustomHudSetInputCapture;
         if (!set)
         {
             return std::unexpected(Error::Unsupported("the custom HUD input capture setter did not bind"));

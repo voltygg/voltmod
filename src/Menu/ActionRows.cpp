@@ -48,7 +48,7 @@ MenuItem ActionRows::StateToggle(std::string_view labelKey, std::function<bool(c
         .Label = Translate(labelKey),
         .Get =
             [services = _services, target = TargetRef(), isActive = std::move(isActive)](int) {
-                Pawn pawn = services->Entities.PawnOf(target.Slot);
+                Pawn pawn = services->Entities.Pawn(target.Slot);
                 return pawn && isActive(pawn);
             },
         .Flip = [services = _services, admin = _admin, target = TargetRef(),
