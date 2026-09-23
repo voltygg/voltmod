@@ -2,195 +2,53 @@
 
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
+#include <VoltMod/Engine/GameData/BindingTypes.hpp>
 #include <VoltMod/Engine/GameData/GameDataLookup.hpp>
-#include <bit>
 #include <cstdint>
-#include <cstring>
 #include <string>
-#include <string_view>
-#include <utility>
 #include <vector>
 
 namespace VoltMod
 {
 
-/**
- * @file Bindings.hpp
- * @brief Typed engine ABIs bound from gamedata locations.
- */
-
-/** Opaque address for an ABI declared only in its implementation file. */
-class Address
-{
-public:
-    Address() = default;
-    explicit Address(void* address) noexcept : _address(address) {}
-
-    explicit operator bool() const noexcept { return _address != nullptr; }
-    void* Ptr() const noexcept { return _address; }
-
-private:
-    void* _address = nullptr;
-};
-
-/** Typed engine function. Calling an unbound function is undefined. */
-template <class Sig>
-class Fn;
-
-template <class Ret, class... Args>
-class Fn<Ret(Args...)>
-{
-public:
-    Fn() = default;
-    explicit Fn(void* address) noexcept : _address(address) {}
-
-    explicit operator bool() const noexcept { return _address != nullptr; }
-    void* Ptr() const noexcept { return _address; }
-
-    Ret operator()(Args... args) const
-    {
-        return std::bit_cast<Ret (*)(Args...)>(_address)(std::forward<Args>(args)...);
-    }
-
-private:
-    void* _address = nullptr;
-};
-
-/**
- * Typed virtual function. The first parameter identifies the object type, and the slot is counted
- * in the bound class vtable. Calling an unbound function is undefined.
- */
-template <class Sig>
-class VirtualFn;
-
-template <class Ret, class Object, class... Args>
-class VirtualFn<Ret(Object*, Args...)>
-{
-public:
-    VirtualFn() = default;
-    VirtualFn(int index, void* table) noexcept : _index(index), _table(table) {}
-
-    explicit operator bool() const noexcept { return _index >= 0 && _table != nullptr; }
-    int Index() const noexcept { return _index; }
-    void* Table() const noexcept { return _table; }
-
-    Ret operator()(Object* object, Args... args) const
-    {
-        auto* vtable = *reinterpret_cast<void***>(object);
-        return std::bit_cast<Ret (*)(Object*, Args...)>(vtable[_index])(object, std::forward<Args>(args)...);
-    }
-
-private:
-    int _index = -1;
-    void* _table = nullptr;
-};
-
-/** Typed byte offset. Unbound access is inert and reads/writes support unaligned fields. */
-template <class T>
-class OffsetOf
-{
-public:
-    OffsetOf() = default;
-    explicit constexpr OffsetOf(int value) noexcept : _value(value) {}
-
-    explicit constexpr operator bool() const noexcept { return _value >= 0; }
-    constexpr int Value() const noexcept { return _value; }
-
-    T Read(const void* base) const
-    {
-        T out{};
-        if (_value >= 0 && base)
-        {
-            std::memcpy(&out, static_cast<const uint8_t*>(base) + _value, sizeof(T));
-        }
-        return out;
-    }
-
-    void Write(void* base, const T& value) const
-    {
-        if (_value >= 0 && base)
-        {
-            std::memcpy(static_cast<uint8_t*>(base) + _value, &value, sizeof(T));
-        }
-    }
-
-private:
-    int _value = -1;
-};
-
-/** Byte offset for an embedded type declared only in an implementation file. */
-template <>
-class OffsetOf<void>
-{
-public:
-    OffsetOf() = default;
-    explicit constexpr OffsetOf(int value) noexcept : _value(value) {}
-
-    explicit constexpr operator bool() const noexcept { return _value >= 0; }
-    constexpr int Value() const noexcept { return _value; }
-
-    const void* Ptr(const void* base) const
-    {
-        if (_value < 0 || !base)
-        {
-            return nullptr;
-        }
-        return static_cast<const uint8_t*>(base) + _value;
-    }
-
-private:
-    int _value = -1;
-};
-
-/** Typed gamedata bindings shared by engine-facing services. */
+/** Every engine function, slot and offset the framework calls, typed and bound from gamedata. */
 struct Bindings
 {
-    /**
-     * Bind every member from @p lookup, in one pass, clearing earlier results.
-     *
-     * Gamedata is read and scanned once for the process; this only looks each key up. Every member
-     * the lookup could not give a value is reported in @ref Failures with the reason it gave.
-     */
+    /** Take every member from @p lookup in one pass, clearing the last result. What did not bind
+     *  is listed in @ref Failures. */
     Status Bind(const GameDataLookup& lookup);
 
-    /** `key: reason` for each member left unbound by the last @ref Bind. */
+    /** `key: reason` for each member the last @ref Bind left unbound. */
     std::vector<std::string> Failures;
 
-    /** ABI: CBaseEntity* (const char* className, int forceEdictIndex). */
+    /** (className, forceEdictIndex). */
     Fn<CEntityInstance*(const char*, int)> CreateEntityByName;
-    /** ABI: void (CBaseEntity*, CEntityKeyValues*); keyvalues may be null. */
+    /** keyvalues may be null. */
     Fn<void(CEntityInstance*, CEntityKeyValues*)> DispatchSpawn;
-    /** ABI: void (CEntityInstance*, const char* input, activator, caller, variant_t* value). */
+    /** (entity, input, activator, caller, variant_t* value). */
     Fn<void(CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, void*)> AcceptInput;
-    /** Queues an input on an entity after a delay: entity system, target, input, activator, caller, value, delay.
-     *  Pass nullptr for the trailing extra and keyvalues pointers; input and value are copied, so locals are fine. */
+    /** (entity system, target, input, activator, caller, value, delay, nullptr, nullptr). The queue
+     *  copies the input and value. */
     Fn<void(void*, CEntityInstance*, const char*, CEntityInstance*, CEntityInstance*, const void*, float, const void*,
             const void*)>
         AddEntityIOEvent;
-    /** ABI: void (CEntityInstance*). */
-    Fn<void(CEntityInstance*)> UtilRemove;
-    /** ABI: void (CBaseModelEntity*, const char* modelPath). */
     Fn<void(CEntityInstance*, const char*)> SetModel;
-    /** ABI: void (CBaseEntity*, const char* soundEvent, int pitch, float volume, float delay). */
+    /** (entity, soundEvent, pitch, volume, delay). */
     Fn<void(CEntityInstance*, const char*, int, float, float)> EmitSoundParams;
-    /** ABI: StartSoundEventInfo (IRecipientFilter&, CEntityIndex, const EmitSound_t&), defined in EntityOps.cpp. */
+    /** Returns its result through a hidden pointer, so EntityOps.cpp declares the prototype. */
     Address EmitSoundFilter;
-    /** ABI: IGameEventListener2* (CPlayerSlot), defined in GameEvents.cpp. */
+    /** IGameEventListener2* (CPlayerSlot); GameEvents.cpp declares the prototype. */
     Address LegacyGameEventListener;
-    /** ABI: int64 (CBaseEntity*, CTakeDamageInfo*, CTakeDamageResult*). Every entity's damage passes
-     *  through it; hooked by @ref Damage. The damage types are declared in src/Hooks/DamageLayout.hpp. */
+    /** CBaseEntity::TakeDamageOld(CTakeDamageInfo*, CTakeDamageResult*); see src/Hooks/DamageLayout.hpp. */
     Fn<int64_t(CEntityInstance*, void*, void*)> TakeDamage;
-    /** ABI: void (CTakeDamageInfo*, inflictor, attacker, ability, const Vector* force, const Vector* position,
-     *  float damage, int damageType, int customDamage, void*). */
+    /** CTakeDamageInfo(info, inflictor, attacker, ability, force, position, damage, type, custom, nullptr). */
     Fn<void(void*, CEntityInstance*, CEntityInstance*, CEntityInstance*, const Vector*, const Vector*, float, int, int,
             void*)>
         BuildDamageInfo;
-    /** ABI: void (CCSGameRules*, float delay, uint32 CSRoundEndReason, int* team). Used by @ref Rounds. */
+    /** (CCSGameRules*, delay, CSRoundEndReason, int* team). */
     Fn<void(void*, float, uint32_t, void*)> TerminateRound;
 
-    /** @defgroup CustomHudSetters CCSCustomHudLayout setters used by @ref Screen.
-     *  `self` is the entity. The ABI uses `const CUtlString*`, not `const char*`.
-     *  @ref ScreenManager::Available requires all five. @{ */
+    /** @defgroup CustomHudSetters CCSCustomHudLayout setters; they take `const CUtlString*`. @{ */
     Fn<void(void*, const CUtlString*, const CUtlString*, int32_t)> CustomHudSetHasClass;
     Fn<void(void*, int32_t, const CUtlString*, const CUtlString*, int32_t)> CustomHudSetHasClassForPlayer;
     Fn<void(void*, const CUtlString*, const CUtlString*, const CUtlString*)> CustomHudSetDialogVariable;
@@ -199,65 +57,47 @@ struct Bindings
     Fn<void(void*, int32_t, bool)> CustomHudSetInputCapture;
     /** @} */
 
-    /** CServerSideClient::FilterMessage, counted in its message-filter base's vtable. The hook
-     *  receives that base on every platform. Used by @ref ScreenManager::Pressed. */
-    VirtualFn<bool(EngineMessageFilter*, const CNetMessage*, INetChannel*)> FilterMessage;
-    /** CNetworkGameServer::ReplyConnection(CServerSideClient*), which names the addons a client
-     *  mounts. Hooked by @ref Addons. */
-    Fn<void(EngineServer*, EngineClient*)> ReplyConnection;
+    /** Counted in CServerSideClient's message-filter base, which the hook receives. */
+    VirtualFn<bool(INetworkMessageProcessingPreFilter*, const CNetMessage*, INetChannel*)> FilterMessage;
+    /** CNetworkGameServer::ReplyConnection, which names the addons a connecting client mounts. */
+    Fn<void(CNetworkGameServerBase*, EngineClient*)> ReplyConnection;
 
     /** IGameEventManager2** inside CSource2Server. */
     Address GameEventManager;
-    /** CBaseGameSystemFactory** list head. */
-    Address GameSystemFactoryList;
-    /** CGameSystemEventDispatcher** used to detach systems on unload. */
-    Address GameSystemEventDispatcher;
-    /** CUtlVector<AddedGameSystem_t>* used to remove systems on unload. */
-    Address GameSystemList;
-    /** CUtlVector<CUtlVector<IGameSystem*>>* the engine dispatches from during a level change;
-     *  systems are removed from it on unload too. */
-    Address GameSystemFallbackListeners;
 
-    /** CBasePlayerPawn::CommitSuicide(bool explode, bool force), counted in CCSPlayerPawn. */
+    /** The (bool explode, bool force) overload, counted in CCSPlayerPawn. */
     VirtualFn<void(CEntityInstance*, bool, bool)> CommitSuicide;
-    /** CCSPlayerController::ChangeTeam(int team). */
     VirtualFn<void(CEntityInstance*, int)> ChangeTeam;
-    /** CCSPlayerController::Respawn(). */
     VirtualFn<void(CEntityInstance*)> Respawn;
-    /** CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*), hooked on CCSPlayerPawn. */
+    /** (origin, angles, velocity), each nullable; counted in CCSPlayerPawn. */
     VirtualFn<void(CEntityInstance*, const Vector*, const QAngle*, const Vector*)> Teleport;
 
-    /** CNavPhysicsInterface::Nav_TraceLine, called on the class table. */
+    /** The overloads taking a filter, called on the stateless class table. */
     VirtualFn<bool(EngineNavPhysics*, const Vector*, const Vector*, CTraceFilter*, CGameTrace*)> NavTraceLine;
-    /** CNavPhysicsInterface::Nav_TraceShape, the overload taking a filter, called like @ref NavTraceLine. */
     VirtualFn<void(EngineNavPhysics*, const Ray_t*, const Vector*, const Vector*, CTraceFilter*, CGameTrace*)>
         NavTraceShape;
-    /** CPlayer_MovementServices::RunCommand(CUserCmd*), hooked on CCSPlayer_MovementServices. */
+    /** (CUserCmd*), counted in CCSPlayer_MovementServices. */
     VirtualFn<void*(EngineMovementServices*, void*)> RunCommand;
-    /** CCSPlayer_ItemServices::GiveNamedItem(const char* classname). */
     VirtualFn<void*(void*, const char*)> GiveNamedItem;
-    /** CCSPlayer_ItemServices::RemoveAllItems(bool removeSuit). */
+    /** (bool removeSuit). */
     VirtualFn<void(void*, bool)> RemoveAllItems;
-    /** CServerSideClient::ProcessRespondCvarValue, hooked on CServerSideClient. */
     VirtualFn<bool(EngineClient*, const CNetMessage*)> ProcessRespondCvarValue;
-    /** CServerSideClient::SendNetMessage, hooked on CServerSideClient. */
     VirtualFn<bool(EngineClient*, const CNetMessage*, NetChannelBufType_t)> SendNetMessage;
 
-    /** CGameEntitySystem* cached inside IGameResourceService. */
+    /** Inside IGameResourceService. */
     OffsetOf<CGameEntitySystem*> GameEntitySystem;
-    /** Recipient player slot inside CCheckTransmitInfo. */
+    /** The recipient's slot inside CCheckTransmitInfo. */
     OffsetOf<uint8_t> VisibilityRecipientSlot;
-    /** Player slot inside CServerSideClient. */
     OffsetOf<int> ClientSlot;
-    /** SteamID inside CServerSideClient. Unaligned; read through memcpy. */
+    /** Unaligned inside CServerSideClient. */
     OffsetOf<int64_t> ClientSteamId;
-    /** Bytes from CServerSideClient to the base FilterMessage runs on. */
+    /** From CServerSideClient to the base FilterMessage runs on. */
     OffsetOf<void> ClientMessageFilter;
-    /** CNetworkGameServer::m_szAddons (CUtlString), copied into each connection reply. */
+    /** CNetworkGameServer::m_szAddons, a CUtlString. */
     OffsetOf<void> ServerAddons;
-    /** CSGOUserCmdPB payload embedded in CUserCmd. */
+    /** The CSGOUserCmdPB inside CUserCmd. */
     OffsetOf<void> UserCmdProto;
-    /** CUserCmd command counter; live clients leave the protobuf counter at zero. */
+    /** CUserCmd's own counter; live clients leave the protobuf one at zero. */
     OffsetOf<int32_t> UserCmdNumber;
 };
 

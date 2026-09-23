@@ -4,6 +4,8 @@
 #include <VoltMod/Entities/KeyValues.hpp>
 #include <algorithm>
 #include <bit>
+#include <entity2/entityclass.h>
+#include <entity2/entityidentity.h>
 #include <entity2/entityinstance.h>
 #include <entity2/entitykeyvalues.h>
 #include <entity2/entitysystem.h>
@@ -13,20 +15,19 @@
 namespace VoltMod
 {
 
-// CS2 EmitSound_t layout from CS2Fixes, not the legacy Source 1 SDK type.
+// CS2's EmitSound_t; the SDK still declares the Source 1 layout. The engine reads it by offset.
 struct EmitSoundParams
 {
-    const char* SoundName = nullptr;       // 0x00
-    Vector SoundOrigin{0.0f, 0.0f, 0.0f};  // 0x08
-    float Volume = 1.0f;                   // 0x14
-    float SoundTime = 0.0f;                // 0x18
-    uint8_t Pad1C[0x4]{};                  // 0x1c
-    uint32_t ForceGuid = 0;                // 0x20
-    uint8_t Pad24[0x4]{};                  // 0x24
-    int16_t Pitch = 100;                   // 0x28
-    uint8_t Flags = 0;                     // 0x2a
+    const char* SoundName = nullptr;
+    Vector SoundOrigin{0.0f, 0.0f, 0.0f};
+    float Volume = 1.0f;
+    float SoundTime = 0.0f;
+    uint8_t Pad1C[0x4]{};
+    uint32_t ForceGuid = 0;
+    uint8_t Pad24[0x4]{};
+    int16_t Pitch = 100;
+    uint8_t Flags = 0;
 };
-// The engine receives this by reference, so field offsets define the ABI.
 static_assert(offsetof(EmitSoundParams, Volume) == 0x14);
 static_assert(offsetof(EmitSoundParams, ForceGuid) == 0x20);
 static_assert(offsetof(EmitSoundParams, Pitch) == 0x28);
@@ -43,12 +44,10 @@ struct StartSoundEventInfo
 #pragma pack(pop)
 static_assert(sizeof(StartSoundEventInfo) == 20);
 
-// Keep this sret prototype aligned with CS2Fixes after game updates.
 using EmitSoundFilterFn = StartSoundEventInfo (*)(IRecipientFilter& filter, CEntityIndex sourceIndex,
                                                   const EmitSoundParams& params);
 
-// The public header cannot expose the SDK's variant_t. The engine looks the input up during the call
-// and keeps neither pointer, so temporaries are enough.
+// The engine keeps neither pointer past the call, so temporaries are enough.
 static void FireInput(const Bindings& bindings, CEntityInstance* entity, std::string_view input, variant_t& value,
                       CEntityInstance* activator, CEntityInstance* caller)
 {
@@ -145,12 +144,18 @@ void EntityOps::AddIOEvent(CEntityInstance* target, std::string_view input, floa
 
 void EntityOps::Remove(CEntityInstance* entity)
 {
-    if (!_bindings.UtilRemove || !entity)
+    CEntityIdentity* identity = entity ? entity->m_pEntity : nullptr;
+    if (!identity || !identity->m_pClass)
     {
         return;
     }
 
-    _bindings.UtilRemove(entity);
+    // The class's think lookup searches its bases, so every entity reaches CBaseEntity's removal.
+    const BASEPTR remove = identity->m_pClass->m_NameToThinkFunc("CBaseEntitySUB_Remove");
+    if (remove)
+    {
+        remove(entity);
+    }
 }
 
 void EntityOps::RemoveDelayed(CEntityInstance* entity, float delaySeconds)

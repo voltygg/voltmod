@@ -80,8 +80,8 @@ private:
     void OnJoinMessage(const CNetMessage* message, void* client);
 
     /** Add @p client's addons to the server's list for its connection reply, then remove them. */
-    void AddToReply(EngineServer& server, const EngineClient* client);
-    void RestoreReply(EngineServer& server);
+    void AddToReply(CNetworkGameServerBase& server, const EngineClient* client);
+    void RestoreReply(CNetworkGameServerBase& server);
 
     /** Waits a tick: kicking inside the send hook crashes on Windows. */
     void KickLater(int slot, int64_t steamId);

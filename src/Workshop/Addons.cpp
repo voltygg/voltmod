@@ -11,6 +11,7 @@
 #include <VoltMod/Unsafe/Hook.hpp>
 #include <VoltMod/Workshop/Addons.hpp>
 #include <eiface.h>
+#include <iserver.h>
 #include <networkbasetypes.pb.h>
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
@@ -118,8 +119,8 @@ Status Addons::InstallHooks()
 
     auto reply = HookFunction(
         "Workshop addon mount", _bindings.ReplyConnection,
-        [this](EngineServer& server, EngineClient* client) { AddToReply(server, client); },
-        [this](EngineServer& server, EngineClient*) { RestoreReply(server); });
+        [this](CNetworkGameServerBase& server, EngineClient* client) { AddToReply(server, client); },
+        [this](CNetworkGameServerBase& server, EngineClient*) { RestoreReply(server); });
     if (!reply)
     {
         return std::unexpected(Error::Unsupported(reply.error().Detail));
@@ -148,12 +149,24 @@ void Addons::RemoveHooksIfUnused()
     _downloads->ClearProgress();
 }
 
-static CUtlString* AddonList(const Bindings& bindings, EngineServer& server)
+/** The server's addon list, or nullptr when the offset misses the string GetAddonName returns. */
+static CUtlString* AddonList(const Bindings& bindings, CNetworkGameServerBase& server)
 {
-    return MemberPtr<CUtlString>(&server, bindings.ServerAddons.Value());
+    auto* list = MemberPtr<CUtlString>(&server, bindings.ServerAddons.Value());
+    // An empty list has no buffer to compare, and each side then returns its own "".
+    const char* stored = list->Get();
+    const char* reported = server.GetAddonName();
+    const bool same = stored == reported || (*stored == '\0' && *reported == '\0');
+    if (!same)
+    {
+        Log::Error("Addons: the CNetworkGameServer::m_szAddons offset {} is stale; not mounting addons.",
+                   bindings.ServerAddons.Value());
+        return nullptr;
+    }
+    return list;
 }
 
-void Addons::AddToReply(EngineServer& server, const EngineClient* client)
+void Addons::AddToReply(CNetworkGameServerBase& server, const EngineClient* client)
 {
     const int64_t steamId = _bindings.ClientSteamId.Read(client);
     if (!SteamId::IsValid(steamId))
@@ -169,6 +182,10 @@ void Addons::AddToReply(EngineServer& server, const EngineClient* client)
 
     // The client mounts only what the connection reply names.
     CUtlString* list = AddonList(_bindings, server);
+    if (!list)
+    {
+        return;
+    }
     std::string field = list->Get();
     _addedToReply = AppendToAddonList(field, toMount);
     if (_addedToReply.empty())
@@ -180,7 +197,7 @@ void Addons::AddToReply(EngineServer& server, const EngineClient* client)
     Log::Info("Addons: telling {} to mount {}.", steamId, field);
 }
 
-void Addons::RestoreReply(EngineServer& server)
+void Addons::RestoreReply(CNetworkGameServerBase& server)
 {
     if (_addedToReply.empty())
     {
@@ -189,6 +206,11 @@ void Addons::RestoreReply(EngineServer& server)
 
     // Only our entries; other plugins' and the map's stay.
     CUtlString* list = AddonList(_bindings, server);
+    if (!list)
+    {
+        _addedToReply.clear();
+        return;
+    }
     std::string field = list->Get();
     RemoveFromAddonList(field, _addedToReply);
     list->Set(field.c_str());

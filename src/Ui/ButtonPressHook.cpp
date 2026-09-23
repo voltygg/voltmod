@@ -7,6 +7,7 @@
 #include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Engine/Detours.hpp>
 #include <VoltMod/Unsafe/Hook.hpp>
+#include <inetchannel.h>
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
 #include <string_view>
@@ -53,9 +54,9 @@ bool ButtonPressHook::Install()
     }
 
     // Hook the filter's vtable slot. Every plugin must locate the same unpatched table.
-    auto hook = HookVirtual(
-        "Custom HUD button presses", _bindings.FilterMessage,
-        [this](EngineMessageFilter& filter, const CNetMessage* message, INetChannel*) { Queue(message, filter); });
+    auto hook = HookVirtual("Custom HUD button presses", _bindings.FilterMessage,
+                            [this](INetworkMessageProcessingPreFilter& filter, const CNetMessage* message,
+                                   INetChannel*) { Queue(message, filter); });
     if (!hook)
     {
         Log::Warn("ButtonPressHook: {}; button presses will not arrive.", hook.error().Detail);
@@ -89,7 +90,7 @@ const ButtonPressHook::MessageFields& ButtonPressHook::FieldsOf(const ProtoMessa
     return fields;
 }
 
-void ButtonPressHook::Queue(const CNetMessage* message, const EngineMessageFilter& filter)
+void ButtonPressHook::Queue(const CNetMessage* message, const INetworkMessageProcessingPreFilter& filter)
 {
     // Filter by message id before parsing the inbound message.
     INetworkMessageInternal* info = message ? message->GetNetMessage() : nullptr;

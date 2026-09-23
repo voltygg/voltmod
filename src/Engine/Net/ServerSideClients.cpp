@@ -5,7 +5,7 @@
 namespace VoltMod
 {
 
-const void* ClientOfFilter(const Bindings& bindings, const EngineMessageFilter& filter)
+const void* ClientOfFilter(const Bindings& bindings, const INetworkMessageProcessingPreFilter& filter)
 {
     if (!bindings.ClientMessageFilter)
     {

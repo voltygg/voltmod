@@ -47,7 +47,7 @@ public:
     void AddIOEvent(CEntityInstance* target, std::string_view input, float delaySeconds,
                     CEntityInstance* activator = nullptr, CEntityInstance* caller = nullptr);
 
-    /** Remove immediately through UTIL_Remove. */
+    /** Remove immediately through the entity's `SUB_Remove` think function. */
     void Remove(CEntityInstance* entity);
 
     /** Remove later through a deferred `Kill` input. */

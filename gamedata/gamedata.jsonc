@@ -81,19 +81,8 @@
       "linux": "55 48 89 E5 41 55 49 89 CD 41 54 49 89 FC 53 BB"
     },
 
-    // Removes immediately, bypassing the IO queue.
-    "UTIL_Remove": {
-      "module": "server",
-      "windows": "48 85 C9 74 ? 48 8B D1 48 8B 0D ? ? ? ?",
-      "linux": "48 89 FE 48 85 FF 74 ? 48 8D 05 ? ? ? ? 48"
-    },
-
-    // A VScript binding that can vanish between builds; EmitSoundFilter is the stable path.
-    "CBaseEntity::EmitSoundParams": {
-      "module": "server",
-      "windows": "48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 55 48 8B EC 48 81 EC ? ? ? ? 33 C0",
-      "linux": "48 B8 ? ? ? ? ? ? ? ? 55 0F 28 D0"
-    },
+    // A VScript binding, so it can vanish between builds; EmitSoundFilter is the stable path.
+    "CBaseEntity::EmitSoundParams": { "class": "CBaseEntity", "script": "EmitSoundParams" },
 
     "CBaseEntity::EmitSoundFilter": {
       "module": "server",
@@ -135,35 +124,6 @@
       "module": "server",
       "windows": { "pattern": "48 8B 0D ? ? ? ? E8 ? ? ? ? 45 33 FF 4C 39 7D 50", "rel32At": 3 },
       "linux": { "pattern": "48 8D 05 ? ? ? ? 48 8B 38 E8 ? ? ? ? 49 83 7D 50 00", "rel32At": 3 }
-    },
-
-    // In IGameSystem::InitAllSystems. String: "Game System %s is defined twice!".
-    "CBaseGameSystemFactory::sm_pFirst": {
-      "module": "server",
-      "windows": { "pattern": "48 8B 1D ? ? ? ? 48 85 DB 0F 84 ? ? ? ? BD", "rel32At": 3 },
-      "linux": { "pattern": "4C 8B 35 ? ? ? ? 4D 85 F6 75 ? E9", "rel32At": 3 }
-    },
-
-    // In IGameSystem::LoopPostInitAllSystems.
-    "IGameSystem::pEventDispatcher": {
-      "module": "server",
-      "windows": { "pattern": "48 39 1D ? ? ? ? 74 ? 39 05", "rel32At": 3 },
-      "linux": { "pattern": "4C 8B 25 ? ? ? ? 48 8B 05 ? ? ? ? 8B 35", "rel32At": 3 }
-    },
-
-    // CUtlVector<AddedGameSystem_t>; the framework removes its entry on unload.
-    "IGameSystem::s_GameSystems": {
-      "module": "server",
-      "windows": { "pattern": "8B 05 ? ? ? ? 83 E8 ? 48 63 F8 0F 88", "rel32At": 2 },
-      "linux": { "pattern": "8B 05 ? ? ? ? 89 C2 83 EA ? 0F 88 ? ? ? ? 4C 8D 3D", "rel32At": 2 }
-    },
-
-    // Events go here while pEventDispatcher is null during a level change; it holds every
-    // BuildGameSessionManifest listener.
-    "IGameSystem::s_FallbackListeners": {
-      "module": "server",
-      "windows": { "pattern": "48 83 3D ? ? ? ? 00 49 8B E8 4C 8B F2 75 ? 39 0D", "rel32At": 18 },
-      "linux": { "pattern": "48 83 3D ? ? ? ? 00 74 ? C3 0F 1F 44 00 00 3B 3D", "rel32At": 18 }
     }
   },
 
@@ -183,11 +143,8 @@
     },
     // The (bool, bool) overload. MSVC orders it after its sibling overload, Itanium before.
     "CBasePlayerPawn::CommitSuicide": { "class": "CCSPlayerPawn", "windows": 387, "linux": 387 },
-    "CCSPlayerController::ChangeTeam": {
-      "class": "CCSPlayerController",
-      "windows": 105,
-      "linux": 104
-    },
+    // Read from the SetTeam VScript binding, which dispatches through this slot.
+    "CCSPlayerController::ChangeTeam": { "class": "CCSPlayerController", "script": "SetTeam" },
     "CCSPlayerController::Respawn": { "class": "CCSPlayerController", "windows": 274, "linux": 276 },
     // Hooked on the pawn class, so counted in CCSPlayerPawn.
     "CBaseEntity::Teleport": { "class": "CCSPlayerPawn", "windows": 165, "linux": 164 },

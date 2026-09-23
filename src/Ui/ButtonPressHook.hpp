@@ -48,7 +48,7 @@ private:
     static const MessageFields& FieldsOf(const ProtoMessage& proto);
 
     /** Queue a press for the next frame without changing the engine's verdict. */
-    void Queue(const CNetMessage* message, const EngineMessageFilter& filter);
+    void Queue(const CNetMessage* message, const INetworkMessageProcessingPreFilter& filter);
     void RaiseQueued();
 
     Interfaces& _interfaces;

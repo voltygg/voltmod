@@ -227,7 +227,7 @@ Status Controller::ChangeTeam(int team) const
     const auto& changeTeam = _sys->BindingsRef().ChangeTeam;
     if (!changeTeam)
     {
-        return std::unexpected(Error::Unsupported("gamedata has no 'CCSPlayerController::ChangeTeam' vtable index"));
+        return std::unexpected(Error::Unsupported("the 'CCSPlayerController::ChangeTeam' vtable slot did not bind"));
     }
 
     changeTeam(_e, team);

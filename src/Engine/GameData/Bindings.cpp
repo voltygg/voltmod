@@ -67,7 +67,6 @@ Status Bindings::Bind(const GameDataLookup& lookup)
     bind(DispatchSpawn, "DispatchSpawn");
     bind(AcceptInput, "CEntityInstance::AcceptInput");
     bind(AddEntityIOEvent, "CEntitySystem::AddEntityIOEvent");
-    bind(UtilRemove, "UTIL_Remove");
     bind(SetModel, "CBaseModelEntity::SetModel");
     bind(EmitSoundParams, "CBaseEntity::EmitSoundParams");
     bind(EmitSoundFilter, "CBaseEntity::EmitSoundFilter");
@@ -85,10 +84,6 @@ Status Bindings::Bind(const GameDataLookup& lookup)
     bind(ReplyConnection, "CNetworkGameServer::ReplyConnection");
 
     bind(GameEventManager, "CSource2Server::g_GameEventManager");
-    bind(GameSystemFactoryList, "CBaseGameSystemFactory::sm_pFirst");
-    bind(GameSystemEventDispatcher, "IGameSystem::pEventDispatcher");
-    bind(GameSystemList, "IGameSystem::s_GameSystems");
-    bind(GameSystemFallbackListeners, "IGameSystem::s_FallbackListeners");
 
     bind(CommitSuicide, "CBasePlayerPawn::CommitSuicide");
     bind(ChangeTeam, "CCSPlayerController::ChangeTeam");
