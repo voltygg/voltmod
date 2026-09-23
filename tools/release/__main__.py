@@ -22,7 +22,7 @@ from tools.release.sdk_updates import SdkPackage, recipe_version, update_sdk_pin
 from voltmod.cli import run_cli
 from voltmod.errors import VoltmodError
 from voltmod.project import Project
-from voltmod.toolchain.process import WINDOWS, run_tool
+from voltmod.toolchain.process import WINDOWS, run_tool, tool_output
 
 app = typer.Typer(
     help="Build, publish, and maintain VoltMod's Conan packages.", no_args_is_help=True
@@ -81,10 +81,11 @@ def tag() -> None:
     root = Project.load().root
     for name in SDK_PACKAGES:
         label = f"sdk/{name}/{recipe_version(root, name)}"
-        created = run_tool("git", "tag", label, capture=True, check=False)
-        if created.returncode:
+        # CI checks out without tags, so only the remote knows what is already tagged.
+        if tool_output("git", "ls-remote", "--tags", "origin", f"refs/tags/{label}").strip():
             print(f"{label} already exists")
             continue
+        run_tool("git", "tag", label)
         run_tool("git", "push", "origin", label)
         print(f"tagged {label}")
 
