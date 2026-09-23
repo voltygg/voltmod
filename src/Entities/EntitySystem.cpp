@@ -240,28 +240,9 @@ Entity EntitySystem::FindByClassName(const Entity& after, std::string_view class
         return {};
     }
 
-    // An exact match continues along the engine's per-class chain instead of the whole active list.
-    CEntityIdentity* start = after ? after.Raw()->m_pEntity : nullptr;
-    if (start && start->m_pClass && className.find('*') == std::string_view::npos && after.ClassName() == className)
-    {
-        for (CEntityIdentity* next = start->m_pNextByClass; next; next = next->m_pNextByClass)
-        {
-            if ((next->m_flags & EF_MARKED_FOR_DELETE) == 0)
-            {
-                return {*this, next->m_pInstance};
-            }
-        }
-        return {};
-    }
-
+    // Walk the active list: the SDK's CEntityClass layout is stale, so its per-class chain reads garbage.
     const std::string name(className);
-    if (!after)
-    {
-        EntityInstanceByClassIter_t iter(name.c_str());
-        return {*this, iter.First()};
-    }
-    // Wildcards and unresolved classes walk the active list from `after`.
-    EntityInstanceByClassIter_t iter(after.Raw(), name.c_str());
+    EntityInstanceByClassIter_t iter(after ? after.Raw() : nullptr, name.c_str());
     return {*this, iter.Next()};
 }
 
