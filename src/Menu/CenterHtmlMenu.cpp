@@ -1,7 +1,6 @@
 #include "Menu/CenterHtmlRender.hpp"
 #include "Menu/MenuCursor.hpp"
 
-#include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Core/Time/Durations.hpp>
 #include <VoltMod/Menu/CenterHtmlMenu.hpp>
@@ -67,12 +66,6 @@ void CenterHtmlMenu::Push(int slot, std::shared_ptr<Menu> menu)
     _stack.Push(slot, std::move(menu));
     ResetCursor(slot);
 
-    if (auto* current = _stack.Current(slot))
-    {
-        Log::Info("Menu opened for slot {} (title: {}, depth: {}, items: {})", slot, current->Title, _stack.Depth(slot),
-                  current->Items.size());
-    }
-
     if (!_onFrame)
     {
         _onFrame = _services.Scheduler.EveryFrame([this] { OnGameFrame(); });
@@ -124,12 +117,10 @@ void CenterHtmlMenu::Close(int slot)
     if (_stack.IsOpen(slot))
     {
         ResetCursor(slot);
-        Log::Info("Menu closed for slot {} ({} left on the stack)", slot, _stack.Depth(slot));
         return;
     }
 
     _cursors[slot] = {};
-    Log::Info("Menu closed for slot {} (0 left on the stack)", slot);
     _services.Freeze.Close(slot);
     _services.Messages.ClearCenterHtml(slot);
 }
@@ -151,7 +142,6 @@ void CenterHtmlMenu::CloseAll(int slot)
     _stack.Clear(slot);
     _cursors[slot] = {};
     _services.Freeze.Close(slot);
-    Log::Info("All menus closed for slot {}", slot);
     _services.Messages.ClearCenterHtml(slot);
 }
 
