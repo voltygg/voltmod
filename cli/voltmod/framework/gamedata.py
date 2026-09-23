@@ -37,6 +37,16 @@ class PatternResult:
     new_pattern: str = ""
 
 
+@dataclass(frozen=True, slots=True)
+class Repair:
+    """A pattern with one struct offset wildcarded, and the offset it now reads."""
+
+    pattern: str
+    index: int  # the offset's first byte in the pattern
+    old_offset: int
+    new_offset: int
+
+
 class GameBinaries:
     """Game modules read once and searched as files.
 
@@ -174,17 +184,15 @@ def check_pattern(
         detail = "no match, and no single displacement explains it"
         return PatternResult(section, key, PatternStatus.BROKEN, detail)
 
-    new_pattern, index, old_offset, new_offset = repaired
-    detail = f"bytes {index}-{index + 3}: {old_offset} -> {new_offset}, wildcarded"
-    if fields := schema_fields_at(schema, new_offset):
-        detail += f"\n{new_offset} is {', '.join(fields[:2])}"
-    return PatternResult(section, key, PatternStatus.REPAIRED, detail, pattern, new_pattern)
+    start, end = repaired.index, repaired.index + 3
+    detail = f"bytes {start}-{end}: {repaired.old_offset} -> {repaired.new_offset}, wildcarded"
+    if fields := schema_fields_at(schema, repaired.new_offset):
+        detail += f"\n{repaired.new_offset} is {', '.join(fields[:2])}"
+    return PatternResult(section, key, PatternStatus.REPAIRED, detail, pattern, repaired.pattern)
 
 
-def repair_pattern(
-    binaries: GameBinaries, module: str, pattern: str
-) -> tuple[str, int, int, int] | None:
-    """Wildcard the one displacement that restores a unique match: (pattern, index, old, new)."""
+def repair_pattern(binaries: GameBinaries, module: str, pattern: str) -> Repair | None:
+    """Wildcard the one displacement that restores a unique match; None when zero or several do."""
     # Widen only the displacement. Never search for a new function match.
     tokens = pattern.split()
     accepted = []
@@ -195,7 +203,7 @@ def repair_pattern(
         hits = binaries.find(module, candidate)
         if len(hits) == 1:
             new_offset = int.from_bytes(binaries.read(module, hits[0] + index, 4), "little")
-            accepted.append((candidate, index, old_offset, new_offset))
+            accepted.append(Repair(candidate, index, old_offset, new_offset))
     return accepted[0] if len(accepted) == 1 else None
 
 

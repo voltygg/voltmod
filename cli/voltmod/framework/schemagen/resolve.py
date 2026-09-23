@@ -1,8 +1,9 @@
 """Resolving the manifest against a dump into the closed set of classes to generate."""
 
-from typing import Any
+from typing import Literal
 
 from voltmod.errors import VoltmodError
+from voltmod.framework.schemagen.dump_types import Dump, DumpedEnum, Manifest
 from voltmod.framework.schemagen.fields import describe_field
 from voltmod.framework.schemagen.model import (
     ENTITY_ROOT,
@@ -12,7 +13,7 @@ from voltmod.framework.schemagen.model import (
 )
 
 
-def base_chain(dump: dict[str, Any], name: str) -> list[str]:
+def base_chain(dump: Dump, name: str) -> list[str]:
     """The single-inheritance chain above `name`, nearest first."""
     chain: list[str] = []
     current = name
@@ -26,7 +27,7 @@ def base_chain(dump: dict[str, Any], name: str) -> list[str]:
         chain.append(current)
 
 
-def resolve_classes(dump: dict[str, Any], manifest: dict[str, Any]) -> dict[str, SchemaClass]:
+def resolve_classes(dump: Dump, manifest: Manifest) -> dict[str, SchemaClass]:
     """Every manifest class, plus the bases and returned view types they pull in."""
     wanted = dict(manifest["classes"])
     # base_chain walks to the root, so one pass closes the set.
@@ -40,7 +41,7 @@ def resolve_classes(dump: dict[str, Any], manifest: dict[str, Any]) -> dict[str,
     return classes
 
 
-def collect_enums(dump: dict[str, Any], classes: dict[str, SchemaClass]) -> dict[str, Any]:
+def collect_enums(dump: Dump, classes: dict[str, SchemaClass]) -> dict[str, DumpedEnum]:
     """Every enum a generated field returns, sorted by name."""
     names = {
         schema_field.cpp_type
@@ -57,8 +58,8 @@ def collect_enums(dump: dict[str, Any], classes: dict[str, SchemaClass]) -> dict
 
 
 def baseline_dump(
-    dump: dict[str, Any], classes: dict[str, SchemaClass], enums: dict[str, Any]
-) -> dict[str, Any]:
+    dump: Dump, classes: dict[str, SchemaClass], enums: dict[str, DumpedEnum]
+) -> Dump:
     """The dump reduced to what the generator read, committed beside its output."""
     return {
         "build": dump.get("build", ""),
@@ -67,7 +68,7 @@ def baseline_dump(
     }
 
 
-def _empty_class(dump: dict[str, Any], name: str) -> SchemaClass:
+def _empty_class(dump: Dump, name: str) -> SchemaClass:
     dumped = dump["classes"][name]
     chain = base_chain(dump, name)
     return SchemaClass(
@@ -79,7 +80,7 @@ def _empty_class(dump: dict[str, Any], name: str) -> SchemaClass:
     )
 
 
-def _resolve_class(dump: dict[str, Any], name: str, entries: Any) -> SchemaClass:
+def _resolve_class(dump: Dump, name: str, entries: list[str] | Literal["*"]) -> SchemaClass:
     """One manifest class with its selected fields described and its accessors unique."""
     dumped = dump["classes"].get(name)
     if dumped is None:
@@ -106,7 +107,7 @@ def _resolve_class(dump: dict[str, Any], name: str, entries: Any) -> SchemaClass
     return schema_class
 
 
-def _add_view_classes(dump: dict[str, Any], classes: dict[str, SchemaClass]) -> None:
+def _add_view_classes(dump: Dump, classes: dict[str, SchemaClass]) -> None:
     """Add the classes that generated views return, with their bases."""
     while True:
         missing = {

@@ -33,15 +33,15 @@ static constexpr int32_t {{ offset_constant(schema_class, field) }} = {{ field.o
     return {{ code.read_expression }};
 }
 
-{% if code.has_setter %}
-void {{ schema_class.name }}::Set{{ code.name }}({{ code.setter_params }}) const
+{% if code.setter %}
+void {{ schema_class.name }}::Set{{ code.name }}({{ code.setter.params }}) const
 {
-    if ({{ code.write_guard }})
+    if ({{ code.setter.guard }})
         return;
 
-    {{ code.write_statement }}
-{% if code.notify_statement %}
-    {{ code.notify_statement }}
+    {{ code.setter.statement }}
+{% if code.setter.notify %}
+    {{ code.setter.notify }}
 {% endif %}
 }
 

@@ -2,6 +2,8 @@
 
 import os
 import shutil
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 from voltmod import console
@@ -41,8 +43,7 @@ def build(
 ) -> None:
     """Conan install, screen rendering, and the CMake build for one preset.
 
-    `relock` turns the editable framework into the package CI resolves, and verifies afterwards
-    that this build was configured against it.
+    `relock` pins the editable framework as the package CI resolves, then checks the build used it.
     """
     uses_ccache = _configure_ccache(project.root)
     ensure_remote(project.root)
@@ -55,32 +56,13 @@ def build(
     if checkout := editable_framework(project.root):
         build_checkout(project, checkout, preset)
 
-    # Right after an SDK bump the lockfile does not pin the new revisions, so CI builds without it.
-    lock_args: list[str | Path] = []
-    if use_lockfile and project.lockfile.is_file():
-        lock_args = ["--lockfile", project.lockfile]
-    run_tool(
-        "conan",
-        "install",
-        project.root,
-        "--output-folder",
-        project.root,
-        "--build=missing",
-        *SDK_BUILD_EXCLUSIONS,
-        *lock_args,
-        *(conan_options or []),
-        *host_profile,
-    )
-
+    _conan_install(project, host_profile, conan_options or [], use_lockfile)
     # Writes only what changed, so unchanged screens trigger no rebuild.
     render_screens(project.root)
+    with _ccache_stats(uses_ccache):
+        run_tool("cmake", "--preset", preset)
+        run_tool("cmake", "--build", "--preset", preset)
 
-    if uses_ccache:
-        run("ccache", "-z", check=False)
-    run_tool("cmake", "--preset", preset)
-    run_tool("cmake", "--build", "--preset", preset)
-    if uses_ccache:
-        run("ccache", "-s", "-v", check=False)
     if relock:
         check_build_uses_package(project, preset, package_folder)
 
@@ -108,6 +90,30 @@ def bootstrap(project: Project, preset: str) -> None:
     console.step("[2/2] Building with Conan + CMake")
     build(project, preset)
     console.done(f"Bootstrap complete: build/{preset}/plugins/")
+
+
+def _conan_install(
+    project: Project, host_profile: list[str], options: list[str], use_lockfile: bool
+) -> None:
+    lock: list[str | Path] = []
+    # Right after an SDK bump the lockfile does not pin the new revisions, so CI builds without it.
+    if use_lockfile and project.lockfile.is_file():
+        lock = ["--lockfile", project.lockfile]
+    output: list[str | Path] = ["--output-folder", project.root]
+    build_policy = ["--build=missing", *SDK_BUILD_EXCLUSIONS]
+    run_tool(
+        "conan", "install", project.root, *output, *build_policy, *lock, *options, *host_profile
+    )
+
+
+@contextmanager
+def _ccache_stats(enabled: bool) -> Iterator[None]:
+    """Zero ccache's counters before the block and report them after it."""
+    if enabled:
+        run("ccache", "-z", check=False)
+    yield
+    if enabled:
+        run("ccache", "-s", "-v", check=False)
 
 
 def _configure_ccache(root: Path) -> bool:

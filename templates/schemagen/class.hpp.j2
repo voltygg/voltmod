@@ -37,8 +37,8 @@ public:
 
 {% if code %}
     {{ code.return_type }} {{ code.name }}({{ code.getter_params }}) const;
-{% if code.has_setter %}
-    void Set{{ code.name }}({{ code.setter_params }}) const;
+{% if code.setter %}
+    void Set{{ code.name }}({{ code.setter.params }}) const;
 {% endif %}
 {% else %}
     // skipped: {{ field.schema_name }} ({{ field.skip_reason }})

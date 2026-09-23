@@ -1,6 +1,6 @@
 """How one schema field is spelled in C++: its signatures, its read, its write, its forwarders."""
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 
 from voltmod.framework.schemagen.model import (
     FieldKind,
@@ -9,6 +9,19 @@ from voltmod.framework.schemagen.model import (
     cpp_identifier,
     offset_constant,
 )
+
+# A view hands out another object and an address is raw memory: neither is assigned through.
+READ_ONLY_KINDS = {FieldKind.VIEW, FieldKind.ADDRESS}
+
+
+@dataclass(frozen=True, slots=True)
+class SetterCode:
+    params: str
+    wrapper_params: str
+    arguments: str  # what a wrapper forwards
+    guard: str
+    statement: str
+    notify: str  # empty for a field the engine does not network
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,40 +35,33 @@ class AccessorCode:
     index_argument: str
     read_guard: str  # empty when the read cannot fail
     read_expression: str
-    has_setter: bool = False
-    setter_params: str = ""
-    wrapper_setter_params: str = ""
-    setter_arguments: str = ""
-    write_guard: str = ""
-    write_statement: str = ""
-    notify_statement: str = ""
+    setter: SetterCode | None
 
 
 def accessor_code(schema_class: SchemaClass, schema_field: SchemaField) -> AccessorCode | None:
     """The spelling of `schema_field`, or None when it is skipped."""
-    match schema_field.kind:
-        case FieldKind.SKIPPED:
-            return None
-        case FieldKind.ENUM:
-            name = cpp_identifier(schema_field.cpp_type)
-            cpp_type, wrapper_type, assignable = name, f"Schema::{name}", True
-        case FieldKind.VIEW:
-            name = schema_field.view_class
-            cpp_type, wrapper_type, assignable = name, f"Schema::{name}", False
-        case FieldKind.CHARS:
-            cpp_type = wrapper_type = "std::string_view"
-            assignable = True
-        case FieldKind.ADDRESS:
-            cpp_type = wrapper_type = "void*"
-            assignable = False
-        case _:
-            cpp_type = wrapper_type = schema_field.cpp_type
-            assignable = True
+    if schema_field.kind is FieldKind.SKIPPED:
+        return None
 
+    cpp_type, wrapper_type = _types(schema_field)
     constant = offset_constant(schema_class, schema_field)
     takes_index = schema_field.kind is FieldKind.ARRAY
     read_guard, read_expression = _read(schema_field, cpp_type, constant)
-    code = AccessorCode(
+
+    setter = None
+    if schema_field.kind not in READ_ONLY_KINDS and schema_class.writable:
+        leading_index = "size_t index, " if takes_index else ""
+        guard, statement, written_offset = _write(schema_field, cpp_type, constant)
+        setter = SetterCode(
+            params=f"{leading_index}{cpp_type} value",
+            wrapper_params=f"{leading_index}{wrapper_type} value",
+            arguments="index, value" if takes_index else "value",
+            guard=guard,
+            statement=statement,
+            notify=_notify_statement(schema_class, schema_field, written_offset),
+        )
+
+    return AccessorCode(
         name=schema_field.accessor,
         return_type=cpp_type,
         wrapper_return_type=wrapper_type,
@@ -63,22 +69,24 @@ def accessor_code(schema_class: SchemaClass, schema_field: SchemaField) -> Acces
         index_argument="index" if takes_index else "",
         read_guard=read_guard,
         read_expression=read_expression,
+        setter=setter,
     )
-    if not (assignable and schema_class.writable):
-        return code
 
-    leading_index = "size_t index, " if takes_index else ""
-    write_guard, write_statement, written_offset = _write(schema_field, cpp_type, constant)
-    return replace(
-        code,
-        has_setter=True,
-        setter_params=f"{leading_index}{cpp_type} value",
-        wrapper_setter_params=f"{leading_index}{wrapper_type} value",
-        setter_arguments="index, value" if takes_index else "value",
-        write_guard=write_guard,
-        write_statement=write_statement,
-        notify_statement=_notify_statement(schema_class, schema_field, written_offset),
-    )
+
+def _types(schema_field: SchemaField) -> tuple[str, str]:
+    """The field's C++ type inside namespace VoltMod::Schema, and as a wrapper outside spells it."""
+    match schema_field.kind:
+        case FieldKind.ENUM:
+            name = cpp_identifier(schema_field.cpp_type)
+            return name, f"Schema::{name}"
+        case FieldKind.VIEW:
+            return schema_field.view_class, f"Schema::{schema_field.view_class}"
+        case FieldKind.CHARS:
+            return "std::string_view", "std::string_view"
+        case FieldKind.ADDRESS:
+            return "void*", "void*"
+        case _:
+            return schema_field.cpp_type, schema_field.cpp_type
 
 
 def _read(schema_field: SchemaField, cpp_type: str, constant: str) -> tuple[str, str]:

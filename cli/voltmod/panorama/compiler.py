@@ -1,14 +1,12 @@
-"""Compiling rendered screens with the CS2 Workshop Tools, then installing them."""
-
 import shutil
+from dataclasses import dataclass
 from pathlib import Path
 
 from voltmod import console
 from voltmod.errors import VoltmodError
 from voltmod.panorama.sources import rendered_dir, screen_owners
 from voltmod.platforms import Platform
-from voltmod.steam import find_client
-from voltmod.toolchain.process import WINDOWS, run
+from voltmod.toolchain.process import run
 
 RESOURCE_COMPILER = f"game/bin/{Platform.WINDOWS.bin_dir}/resourcecompiler.exe"
 
@@ -22,50 +20,100 @@ STAGED_ONLY_SUFFIXES = (".png",)
 PANORAMA_DIRS = ("layout/custom_game", "styles/custom_game", "images")
 
 
-def compile_and_install(
-    root: Path, names: list[str] | None, client_path: Path | None, addon: str, deploy: bool
-) -> None:
-    """Compile the named owners' rendered screens, and install them into your client."""
-    if not WINDOWS:
-        raise VoltmodError("the CS2 Workshop Tools are Windows only; compile the layouts there")
+@dataclass(frozen=True, slots=True)
+class AddonDirs:
+    """Where the Workshop Tools read one addon's sources and write its compiled resources."""
 
-    client = find_client(client_path)
-    content = client / "content/csgo_addons" / addon
-    built = client / "game/csgo_addons" / addon
-    console.step(f"Compiling into csgo_addons/{addon} of {client}")
+    client: Path
+    sources: Path
+    compiled: Path
 
-    # Stage each owner separately for useful output, then compile them in one launch.
-    staged_by_owner: list[tuple[str, list[Path]]] = []
+    @classmethod
+    def of(cls, client: Path, addon: str) -> AddonDirs:
+        return cls(
+            client, client / "content/csgo_addons" / addon, client / "game/csgo_addons" / addon
+        )
+
+    def compiled_path(self, source: Path) -> Path:
+        relative = source.relative_to(self.sources)
+        return (self.compiled / relative).with_suffix(COMPILED_SUFFIX[source.suffix])
+
+
+@dataclass(frozen=True, slots=True)
+class StagedPlugin:
+    name: str
+    files: list[Path]
+
+    @property
+    def compilable(self) -> list[Path]:
+        return [path for path in self.files if path.suffix in COMPILED_SUFFIX]
+
+
+def stage(root: Path, names: list[str] | None, dirs: AddonDirs) -> list[StagedPlugin]:
+    """Copy each named plugin's rendered screens into the addon's sources."""
+    staged = []
     for owner in screen_owners(root, names):
         rendered = rendered_dir(root, owner)
-        staged = _stage_files(rendered, content)
-        if staged:
-            staged_by_owner.append((owner.name, staged))
+        if files := _stage_files(rendered, dirs.sources):
+            staged.append(StagedPlugin(owner.name, files))
         else:
             console.note(f"{owner.name}: nothing rendered under {rendered}")
+    return staged
 
-    staged = [path for _, paths in staged_by_owner for path in paths]
-    if staged:
-        owners = ", ".join(name for name, _ in staged_by_owner)
-        console.step(f"Staged {len(staged)} source(s) from {owners}")
-        _run_resource_compiler(client, built, staged, content)
 
-    if not deploy:
-        console.done(f"Compiled into {built}; not installed")
-        return
+def compile_resources(dirs: AddonDirs, staged: list[StagedPlugin]) -> None:
+    """Compile every staged source in one resourcecompiler launch."""
+    compiler = dirs.client / RESOURCE_COMPILER
+    if not compiler.is_file():
+        raise VoltmodError(
+            f"CS2 Workshop Tools not found at {compiler}\n"
+            "Install them from Steam: Library > Tools > Counter-Strike 2 Workshop Tools."
+        )
 
+    # The tools only treat a directory with addoninfo.txt as an addon.
+    info = dirs.compiled / "addoninfo.txt"
+    if not info.is_file():
+        info.parent.mkdir(parents=True, exist_ok=True)
+        info.write_text('"AddonInfo"\n{\n}\n', encoding="utf-8")
+
+    compilable = [path for plugin in staged for path in plugin.compilable]
+    # One -i per file: wildcards match nothing here, and still report success.
+    inputs = [argument for path in compilable for argument in ("-i", path)]
+    flags: list[str | Path] = ["-nop4", "-f", "-game", dirs.client / "game/csgo"]
+    result = run(compiler, *flags, *inputs, cwd=compiler.parent, capture=True, check=False)
+
+    # It exits 0 whether or not anything compiled, so the expected outputs decide.
+    missing = [path for path in compilable if not dirs.compiled_path(path).is_file()]
+    if result.returncode != 0 or missing:
+        console.info(f"{result.stdout}{result.stderr}".strip())
+        if missing:
+            names = ", ".join(path.name for path in missing)
+            raise VoltmodError(f"resourcecompiler produced no output for: {names}")
+        raise VoltmodError(f"resourcecompiler exited {result.returncode}")
+    console.note(f"compiled {len(compilable)} resource(s)")
+
+
+def install_into_client(dirs: AddonDirs, staged: list[StagedPlugin]) -> int:
+    """Copy the compiled resources into the client's own csgo/, where a local game loads them."""
+    csgo = dirs.client / "game/csgo"
     installed = 0
-    for name, paths in staged_by_owner:
-        console.section(name)
-        installed += _copy_into_client(client, built, paths, content)
-    console.done(f"Installed {installed} resource(s). Reconnect to pick them up.")
+    for plugin in staged:
+        console.section(plugin.name)
+        for source in plugin.compilable:
+            compiled = dirs.compiled_path(source)
+            target = csgo / source.relative_to(dirs.sources).parent / compiled.name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(compiled, target)
+            console.item(str(target.relative_to(dirs.client)))
+            installed += 1
+    return installed
 
 
-def _stage_files(rendered: Path, content: Path) -> list[Path]:
-    """Copy a rendered tree into `content`, keeping the panorama/ prefix that includes rely on."""
+def _stage_files(rendered: Path, sources: Path) -> list[Path]:
+    """Copy a rendered tree into `sources`, keeping the panorama/ prefix that includes rely on."""
     staged = []
     for source in _rendered_files(rendered):
-        target = content / source.relative_to(rendered.parent)
+        target = sources / source.relative_to(rendered.parent)
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, target)
         staged.append(target)
@@ -80,64 +128,3 @@ def _rendered_files(rendered: Path) -> list[Path]:
         for path in sorted((rendered / subdir).rglob("*"))
         if path.is_file() and path.suffix in (*COMPILED_SUFFIX, *STAGED_ONLY_SUFFIXES)
     ]
-
-
-def _compilable_files(staged: list[Path]) -> list[Path]:
-    return [path for path in staged if path.suffix in COMPILED_SUFFIX]
-
-
-def _compiled_path(built: Path, staged: Path, content: Path) -> Path:
-    return (built / staged.relative_to(content)).with_suffix(COMPILED_SUFFIX[staged.suffix])
-
-
-def _run_resource_compiler(client: Path, built: Path, staged: list[Path], content: Path) -> None:
-    compiler = client / RESOURCE_COMPILER
-    if not compiler.is_file():
-        raise VoltmodError(
-            f"CS2 Workshop Tools not found at {compiler}\n"
-            "Install them from Steam: Library > Tools > Counter-Strike 2 Workshop Tools."
-        )
-
-    # The tools only treat a directory with addoninfo.txt as an addon.
-    info = built / "addoninfo.txt"
-    if not info.is_file():
-        info.parent.mkdir(parents=True, exist_ok=True)
-        info.write_text('"AddonInfo"\n{\n}\n', encoding="utf-8")
-
-    compilable = _compilable_files(staged)
-    # One -i per file: wildcards match nothing here, and still report success.
-    inputs = [argument for path in compilable for argument in ("-i", path)]
-    game = client / "game/csgo"
-    result = run(
-        compiler,
-        "-nop4",
-        "-f",
-        "-game",
-        game,
-        *inputs,
-        cwd=compiler.parent,
-        capture=True,
-        check=False,
-    )
-
-    # It exits 0 whether or not anything compiled, so the expected outputs decide.
-    missing = [path for path in compilable if not _compiled_path(built, path, content).is_file()]
-    if result.returncode != 0 or missing:
-        console.info(f"{result.stdout}{result.stderr}".strip())
-        if missing:
-            names = ", ".join(path.name for path in missing)
-            raise VoltmodError(f"resourcecompiler produced no output for: {names}")
-        raise VoltmodError(f"resourcecompiler exited {result.returncode}")
-    console.note(f"compiled {len(compilable)} resource(s)")
-
-
-def _copy_into_client(client: Path, built: Path, staged: list[Path], content: Path) -> int:
-    csgo = client / "game/csgo"
-    compilable = _compilable_files(staged)
-    for source in compilable:
-        compiled = _compiled_path(built, source, content)
-        target = csgo / source.relative_to(content).parent / compiled.name
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(compiled, target)
-        console.item(str(target.relative_to(client)))
-    return len(compilable)

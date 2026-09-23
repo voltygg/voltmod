@@ -5,11 +5,14 @@ import typer
 
 from voltmod import console
 from voltmod.checks.results import exit_on_failure
+from voltmod.errors import VoltmodError
 from voltmod.options import current_project
 from voltmod.panorama.check import check_screens
-from voltmod.panorama.compiler import compile_and_install
+from voltmod.panorama.compiler import AddonDirs, compile_resources, install_into_client, stage
 from voltmod.panorama.render import render_screens
 from voltmod.panorama.sources import screen_owners, screen_sources
+from voltmod.steam import find_client
+from voltmod.toolchain.process import WINDOWS
 
 Plugins = Annotated[
     list[str] | None,
@@ -56,10 +59,26 @@ def compile_command(
     ] = True,
 ) -> None:
     """Check, render, compile with the Workshop Tools, and install into your client."""
+    if not WINDOWS:
+        raise VoltmodError("the CS2 Workshop Tools are Windows only; compile the layouts there")
     root = current_project().root
     exit_on_failure(check_screens(root, plugins))
     render_screens(root, plugins)
-    compile_and_install(root, plugins, client, addon, deploy)
+
+    dirs = AddonDirs.of(find_client(client), addon)
+    console.step(f"Compiling into csgo_addons/{addon} of {dirs.client}")
+    staged = stage(root, plugins, dirs)
+    if staged:
+        sources = sum(len(plugin.files) for plugin in staged)
+        names = ", ".join(plugin.name for plugin in staged)
+        console.step(f"Staged {sources} source(s) from {names}")
+        compile_resources(dirs, staged)
+
+    if not deploy:
+        console.done(f"Compiled into {dirs.compiled}; not installed")
+        return
+    installed = install_into_client(dirs, staged)
+    console.done(f"Installed {installed} resource(s). Reconnect to pick them up.")
 
 
 def check_command(plugins: Plugins = None) -> None:

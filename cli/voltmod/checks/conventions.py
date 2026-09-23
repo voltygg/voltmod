@@ -17,6 +17,9 @@ DEFINITION = r"^(?:class|struct)\s+{}\b\s*(?!;)"
 ANONYMOUS_NAMESPACE = re.compile(r"^[ \t]*namespace[ \t]*(\{[ \t]*)?$")
 USING_DIRECTIVE = re.compile(r"^[ \t]*using\s+namespace\b")
 
+_STATIC_HINT = "Use a static file-scope declaration."
+_USING_HINT = "Qualify the name, or use a targeted using-declaration in the .cpp."
+
 
 class SourceFile(NamedTuple):
     path: str  # relative to the repo root, with forward slashes
@@ -40,6 +43,16 @@ def read_sources(root: Path, bases: Iterable[str]) -> Iterator[SourceFile]:
             )
 
 
+def source_lines(
+    files: Iterable[SourceFile], prefix: str | tuple[str, ...] = ""
+) -> Iterator[tuple[SourceFile, int, str]]:
+    """Every numbered line of the files whose path starts with `prefix`."""
+    for file in files:
+        if file.path.startswith(prefix):
+            for number, line in enumerate(file.text.splitlines(), 1):
+                yield file, number, line
+
+
 def check_conventions(
     files: Iterable[SourceFile], declaration_headers: frozenset[str] | None = None
 ) -> list[CheckResult]:
@@ -47,42 +60,53 @@ def check_conventions(
 
     `declaration_headers` may forward-declare; None accepts any `*Types.hpp`.
     """
-    forwards, anonymous, directives = [], [], []
+    files = list(files)
+    return (
+        _forward_declarations(files, declaration_headers)
+        + _anonymous_namespaces(files)
+        + _using_directives(files)
+    )
 
-    for file in files:
-        is_header = file.path.endswith(".hpp")
-        if declaration_headers is None:
-            declares_types = bool(PLUGIN_DECLARATION_HEADER.search(file.path))
-        else:
-            declares_types = file.path in declaration_headers
 
-        for number, line in enumerate(file.text.splitlines(), 1):
-            where = f"{file.path}:{number}"
-            declared = FORWARD_DECLARATION.match(line)
-            if is_header and not declares_types and declared:
-                definition = DEFINITION.format(re.escape(declared.group(1)))
-                if not re.search(definition, file.text, re.MULTILINE):
-                    forwards.append(
-                        CheckResult.fail(
-                            f"{where}: forward declaration `{line.strip()}`",
-                            hint="Include the defining header, or use the documented "
-                            "*Types.hpp file.",
-                        )
-                    )
-            if ANONYMOUS_NAMESPACE.match(line):
-                anonymous.append(
-                    CheckResult.fail(
-                        f"{where}: anonymous namespace", hint="Use a static file-scope declaration."
-                    )
-                )
-            if USING_DIRECTIVE.match(line):
-                directives.append(
-                    CheckResult.fail(
-                        f"{where}: using-directive `{line.strip()}`",
-                        hint="Qualify the name, or use a targeted using-declaration in the .cpp.",
-                    )
-                )
-    return forwards + anonymous + directives
+def _forward_declarations(
+    files: list[SourceFile], declaration_headers: frozenset[str] | None
+) -> list[CheckResult]:
+    hint = "Include the defining header, or use the documented *Types.hpp file."
+    results = []
+    for file, number, line in source_lines(files):
+        declared = FORWARD_DECLARATION.match(line)
+        if not declared or not file.path.endswith(".hpp"):
+            continue
+        if _may_forward_declare(file.path, declaration_headers):
+            continue
+        # Declaring a name the same header goes on to define is only an ordering aid.
+        definition = DEFINITION.format(re.escape(declared.group(1)))
+        if not re.search(definition, file.text, re.MULTILINE):
+            message = f"{file.path}:{number}: forward declaration `{line.strip()}`"
+            results.append(CheckResult.fail(message, hint))
+    return results
+
+
+def _may_forward_declare(path: str, declaration_headers: frozenset[str] | None) -> bool:
+    if declaration_headers is None:
+        return bool(PLUGIN_DECLARATION_HEADER.search(path))
+    return path in declaration_headers
+
+
+def _anonymous_namespaces(files: list[SourceFile]) -> list[CheckResult]:
+    return [
+        CheckResult.fail(f"{file.path}:{number}: anonymous namespace", _STATIC_HINT)
+        for file, number, line in source_lines(files)
+        if ANONYMOUS_NAMESPACE.match(line)
+    ]
+
+
+def _using_directives(files: list[SourceFile]) -> list[CheckResult]:
+    return [
+        CheckResult.fail(f"{file.path}:{number}: using-directive `{line.strip()}`", _USING_HINT)
+        for file, number, line in source_lines(files)
+        if USING_DIRECTIVE.match(line)
+    ]
 
 
 def check_plugins(root: Path) -> list[CheckResult]:

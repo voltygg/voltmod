@@ -55,11 +55,8 @@ def _install_host(project: Project, csgo: Path, preset: str) -> None:
     # An editable framework checkout builds the host in its own tree.
     checkout = editable_framework(project.root)
     searched = [project.build_dir(preset)] + ([checkout / "build" / preset] if checkout else [])
-    for build_dir in searched:
-        if staging := _stage_component(build_dir, HOST_COMPONENT):
-            _merge_addons(staging, csgo, HOST_COMPONENT)
-            _print_staged(staging)
-            return
+    if _install_component(searched, HOST_COMPONENT, csgo):
+        return
 
     looked_in = "\n  ".join(map(str, searched))
     raise VoltmodError(
@@ -76,16 +73,22 @@ def _install_plugin(
     A plugin asked for by name must install; a bare install skips what is not built.
     """
     console.section(plugin.name)
-    staging = _stage_component(project.build_dir(preset), plugin.name)
-    if staging is None:
-        if named:
-            raise VoltmodError(f"{plugin.name} is not built; run `voltmod build -p {preset}` first")
+    if _install_component([project.build_dir(preset)], plugin.name, csgo):
+        _seed_settings(plugin, csgo)
+    elif named:
+        raise VoltmodError(f"{plugin.name} is not built; run `voltmod build -p {preset}` first")
+    else:
         console.note(f"skipped: not built for {preset}")
-        return
 
-    _merge_addons(staging, csgo, plugin.name)
-    _print_staged(staging)
-    _seed_settings(plugin, csgo)
+
+def _install_component(build_dirs: list[Path], component: str, csgo: Path) -> bool:
+    """Merge `component` from the first build that stages it into the server; False if none does."""
+    for build_dir in build_dirs:
+        if staging := _stage_component(build_dir, component):
+            _merge_addons(staging, csgo, component)
+            _print_staged(staging)
+            return True
+    return False
 
 
 def _seed_settings(plugin: Plugin, csgo: Path) -> None:

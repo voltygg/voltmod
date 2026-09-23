@@ -4,7 +4,12 @@ import re
 from collections.abc import Iterable
 from pathlib import Path
 
-from voltmod.checks.conventions import SourceFile, check_conventions, read_sources
+from voltmod.checks.conventions import (
+    SourceFile,
+    check_conventions,
+    read_sources,
+    source_lines,
+)
 from voltmod.checks.results import CheckResult
 from voltmod.errors import VoltmodError
 from voltmod.framework.paths import INCLUDE_ROOT, SOURCE_DIRS
@@ -116,42 +121,26 @@ def check_composition_root(files: Iterable[SourceFile], modules: set[str]) -> li
 
 def check_core_isolation(files: Iterable[SourceFile]) -> list[CheckResult]:
     """Core includes of the SDK; Core must build without it."""
-    results = []
-    for file in files:
-        if not file.path.startswith(CORE_PATHS):
-            continue
-        for number, line in enumerate(file.text.splitlines(), 1):
-            if hit := ENGINE_INCLUDE.match(line):
-                results.append(
-                    CheckResult.fail(
-                        f"{file.path}:{number}: Core includes {hit.group(1)}",
-                        hint="Move engine-dependent code to Engine.",
-                    )
-                )
-    return results
+    hint = "Move engine-dependent code to Engine."
+    return [
+        CheckResult.fail(f"{file.path}:{number}: Core includes {found.group(1)}", hint)
+        for file, number, line in source_lines(files, CORE_PATHS)
+        if (found := ENGINE_INCLUDE.match(line))
+    ]
 
 
 def check_host_boundary(files: Iterable[SourceFile]) -> list[CheckResult]:
     """Includes a host boundary header may not have; the closed set keeps owning types out of it."""
+    allowed = ", ".join(sorted(HOST_BOUNDARY_INCLUDES))
+    hint = f"The boundary carries plain data and borrowed views only: {allowed} and VoltMod/Host/."
     results = []
-    for file in files:
-        if not (file.path.startswith(HOST_BOUNDARY_PATH) and file.path.endswith(".hpp")):
+    for file, number, line in source_lines(files, HOST_BOUNDARY_PATH):
+        found = ANY_INCLUDE.match(line)
+        if not found or not file.path.endswith(".hpp"):
             continue
-        for number, line in enumerate(file.text.splitlines(), 1):
-            if not (found := ANY_INCLUDE.match(line)):
-                continue
-            included = found.group(1)
-            if included in HOST_BOUNDARY_INCLUDES or included.startswith("<VoltMod/Host/"):
-                continue
-
-            results.append(
-                CheckResult.fail(
-                    f"{file.path}:{number}: includes {included}",
-                    hint="The boundary carries plain data and borrowed views only: "
-                    + ", ".join(sorted(HOST_BOUNDARY_INCLUDES))
-                    + " and VoltMod/Host/.",
-                )
-            )
+        included = found.group(1)
+        if included not in HOST_BOUNDARY_INCLUDES and not included.startswith("<VoltMod/Host/"):
+            results.append(CheckResult.fail(f"{file.path}:{number}: includes {included}", hint))
     return results
 
 

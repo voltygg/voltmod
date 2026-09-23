@@ -17,12 +17,14 @@ from voltmod.framework.paths import (
     SCHEMA_HEADER_DIR,
 )
 from voltmod.framework.schemagen.accessors import AccessorCode, accessor_code
+from voltmod.framework.schemagen.dump_types import Dump, DumpedEnum, Manifest
 from voltmod.framework.schemagen.fields import CPP_INCLUDES
 from voltmod.framework.schemagen.model import (
     ENTITY_ROOT,
     OWNER_LINK_FIELD,
     FieldKind,
     SchemaClass,
+    SchemaField,
     cpp_identifier,
     enum_underlying_type,
     offset_constant,
@@ -42,26 +44,39 @@ class LayoutRow:
 
 
 @dataclass(frozen=True, slots=True)
+class GeneratedClass:
+    schema_class: SchemaClass
+    fields: list[tuple[SchemaField, AccessorCode | None]]  # None where the field is skipped
+
+    @property
+    def accessors(self) -> list[AccessorCode]:
+        return [code for _, code in self.fields if code]
+
+
+@dataclass(frozen=True, slots=True)
 class SchemaOutput:
     files: dict[Path, str]  # repo-relative path -> text; C++ is formatted when written
     summary: str
 
 
-def render_outputs(dump: dict[str, Any], manifest: dict[str, Any], platform: str) -> SchemaOutput:
+def render_outputs(dump: Dump, manifest: Manifest, platform: str) -> SchemaOutput:
     classes = resolve_classes(dump, manifest)
     enums = collect_enums(dump, classes)
     ordered = [classes[name] for name in sorted(classes)]
     game_build = dump.get("build", "unknown")
 
-    codes = {
-        name: [accessor_code(schema_class, field) for field in schema_class.fields]
-        for name, schema_class in classes.items()
+    generated = {
+        schema_class.name: GeneratedClass(
+            schema_class,
+            [(field, accessor_code(schema_class, field)) for field in schema_class.fields],
+        )
+        for schema_class in ordered
     }
     files: dict[Path, str] = {}
     for schema_class in ordered:
         shared = {
             "schema_class": schema_class,
-            "fields": list(zip(schema_class.fields, codes[schema_class.name])),
+            "fields": generated[schema_class.name].fields,
             "entity_root": ENTITY_ROOT,
             "offset_constant": offset_constant,
         }
@@ -78,7 +93,7 @@ def render_outputs(dump: dict[str, Any], manifest: dict[str, Any], platform: str
         "layout.cpp.j2", rows=rows, game_build=game_build, layout_stamp=layout_stamp(rows)
     )
     for wrapper, names in manifest.get("wrappers", {}).items():
-        wrapped = _wrapped_classes(wrapper, names, codes, classes)
+        wrapped = _wrapped_classes(wrapper, names, generated)
         files[GENERATED_HEADER_DIR / "Wrappers" / f"{wrapper}.inc"] = _render(
             "wrapper.inc.j2", wrapper=wrapper, classes=wrapped
         )
@@ -87,7 +102,7 @@ def render_outputs(dump: dict[str, Any], manifest: dict[str, Any], platform: str
     return SchemaOutput(files, _summary(classes, enums, game_build))
 
 
-def layout_rows(dump: dict[str, Any], classes: list[SchemaClass]) -> list[LayoutRow]:
+def layout_rows(dump: Dump, classes: list[SchemaClass]) -> list[LayoutRow]:
     """Every generated field, plus the owner link on each class that declares one."""
     rows = []
     for schema_class in sorted(classes, key=lambda entry: entry.name):
@@ -186,7 +201,7 @@ def _source_includes(schema_class: SchemaClass) -> list[str]:
     return sorted(includes)
 
 
-def _enum_listings(enums: dict[str, Any]) -> list[dict[str, Any]]:
+def _enum_listings(enums: dict[str, DumpedEnum]) -> list[dict[str, Any]]:
     listings = []
     for name, info in enums.items():
         seen: set[int] = set()
@@ -208,21 +223,16 @@ def _enum_listings(enums: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _wrapped_classes(
-    wrapper: str,
-    names: list[str],
-    codes: dict[str, list[AccessorCode | None]],
-    classes: dict[str, SchemaClass],
-) -> list[tuple[SchemaClass, list[AccessorCode]]]:
-    wrapped = []
+    wrapper: str, names: list[str], generated: dict[str, GeneratedClass]
+) -> list[GeneratedClass]:
+    """The named classes that generate at least one accessor, in the manifest's order."""
     for name in names:
-        if name not in classes:
+        if name not in generated:
             raise VoltmodError(f"wrapper '{wrapper}' names '{name}', which is not generated")
-        if generated := [code for code in codes[name] if code]:
-            wrapped.append((classes[name], generated))
-    return wrapped
+    return [generated[name] for name in names if generated[name].accessors]
 
 
-def _summary(classes: dict[str, SchemaClass], enums: dict[str, Any], game_build: str) -> str:
+def _summary(classes: dict[str, SchemaClass], enums: dict[str, DumpedEnum], game_build: str) -> str:
     generated = sum(len(schema_class.generated_fields) for schema_class in classes.values())
     skipped = sum(len(schema_class.fields) for schema_class in classes.values()) - generated
     line = (
