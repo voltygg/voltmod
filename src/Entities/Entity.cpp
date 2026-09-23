@@ -7,8 +7,10 @@
 #include <entity2/entityidentity.h>
 #include <entity2/entityinstance.h>
 #include <entity2/entitysystem.h>
+#include <schemasystem/schematypes.h>
 #include <shareddefs.h>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <variant.h>
 
@@ -146,6 +148,25 @@ void Entity::AcceptInput(std::string_view input, std::string_view value, const E
     FireInput(_sys->Bindings(), _e, input, variant, activator.Raw());
 }
 
+// Walks the entity's schema classes, since designer names such as "prop_dynamic" do not say it.
+static bool IsModelEntity(CEntityInstance* entity)
+{
+    const CEntityIdentity* identity = entity ? entity->m_pEntity : nullptr;
+    if (!identity || !identity->m_pClass || !identity->m_pClass->m_pClassInfo)
+    {
+        return false;
+    }
+    const CSchemaClassInfo* klass = identity->m_pClass->GetSchemaBinding();
+    for (; klass; klass = klass->m_nBaseClassCount > 0 ? klass->m_pBaseClasses[0].m_pClass : nullptr)
+    {
+        if (klass->m_pszName && std::string_view(klass->m_pszName) == "CBaseModelEntity")
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 void Entity::Remove() const
 {
     CEntityIdentity* identity = _e ? _e->m_pEntity : nullptr;
@@ -181,7 +202,7 @@ void Entity::RemoveAfter(float seconds) const
 
 void Entity::SetModel(std::string_view path) const
 {
-    if (_e && _sys && _sys->Bindings().SetModel && !path.empty())
+    if (_sys && _sys->Bindings().SetModel && !path.empty() && IsModelEntity(_e))
     {
         _sys->Bindings().SetModel(_e, std::string(path).c_str());
     }
@@ -199,11 +220,11 @@ void Entity::SetScale(float scale) const
 
 void Entity::SetRender(Schema::RenderMode_t mode, Color color) const
 {
-    const Schema::CBaseModelEntity model{_e};
-    if (!model)
+    if (!IsModelEntity(_e))
     {
         return;
     }
+    const Schema::CBaseModelEntity model{_e};
     model.SetRenderMode(mode);
     model.SetRenderColor(color);
 }

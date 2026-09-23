@@ -88,7 +88,7 @@ MultiRecipientFilter Vote::Recipients() const
     MultiRecipientFilter filter;
     for (int slot = 0; slot < MaxPlayers; ++slot)
     {
-        if (const_cast<EntitySystem&>(_entities).Controller(slot))
+        if (_entities.Controller(slot))
         {
             filter.AddRecipient(slot);
         }

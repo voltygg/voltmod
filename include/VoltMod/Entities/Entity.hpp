@@ -88,7 +88,7 @@ public:
     void RemoveAfter(float seconds) const;
 
     /** @name Model entities only
-     *  Props, pawns, weapons and beams. On any other entity these write past the object. */
+     *  Props, pawns, weapons and beams. On any other entity these do nothing. */
     /** @{ */
     void SetModel(std::string_view path) const;
 
