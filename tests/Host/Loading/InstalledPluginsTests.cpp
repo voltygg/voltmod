@@ -83,6 +83,25 @@ TEST_CASE("A log tag the manifest gives is kept")
     CHECK(installed[0].LogTag == "Admin");
 }
 
+TEST_CASE("A manifest with a database block for the CLI is accepted")
+{
+    const Plugins plugins("installed-plugins");
+    plugins.Install("admin-system", R"({
+        "name": "admin-system",
+        "version": "1.0.0",
+        "database": {
+            "migrations": "configs/migrations",
+            "header": "src/Database/Tables/Schema.hpp",
+            "namespace": "AdminSystem::Database::Tables"
+        }
+    })");
+
+    const std::vector<PluginManifest> installed = Discover(plugins.Path());
+
+    REQUIRE(installed.size() == 1u);
+    CHECK(installed[0].Name == "admin-system");
+}
+
 TEST_CASE("A manifest naming a plugin other than its directory is refused")
 {
     const Plugins plugins("installed-plugins");

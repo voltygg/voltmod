@@ -4,6 +4,7 @@
 #include <VoltMod/Core/Text/Json.hpp>
 #include <VoltMod/Host/Abi.hpp>
 #include <format>
+#include <optional>
 #include <string_view>
 #include <system_error>
 #include <utility>
@@ -11,7 +12,13 @@
 namespace VoltMod
 {
 
-static constexpr std::string_view ManifestName = "plugin.json";
+/** Where `voltmod database header` reads migrations and writes the table header; the host ignores it. */
+struct PluginDatabase
+{
+    std::string migrations;
+    std::string header;
+    std::string tablesNamespace;
+};
 
 /** The shape of plugin.json: the member names are its keys, and an unknown key is an error. */
 struct PluginDocument
@@ -23,7 +30,24 @@ struct PluginDocument
     std::string author;
     std::vector<std::string> dependencies;
     std::vector<std::string> optionalDependencies;
+    std::optional<PluginDatabase> database;
 };
+
+}  // namespace VoltMod
+
+// `namespace` is a keyword, so this one key is mapped by hand.
+template <>
+struct glz::meta<VoltMod::PluginDatabase>
+{
+    using T = VoltMod::PluginDatabase;
+    static constexpr auto value =
+        glz::object("migrations", &T::migrations, "header", &T::header, "namespace", &T::tablesNamespace);
+};
+
+namespace VoltMod
+{
+
+static constexpr std::string_view ManifestName = "plugin.json";
 
 std::vector<PluginManifest> InstalledPlugins::Discover(const std::filesystem::path& plugins)
 {

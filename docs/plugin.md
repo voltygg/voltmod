@@ -124,6 +124,7 @@ unknown key is an error and the plugin is refused.
 | `author` | string | `""` | Credit. The host does not print it. |
 | `dependencies` | string[] | `[]` | Plugins this one is refused without. |
 | `optionalDependencies` | string[] | `[]` | Plugins it is better with; never a reason to refuse it. |
+| `database` | object | none | `migrations`, `header` and `namespace` for `voltmod database header`, relative to the plugin directory. The host ignores it. |
 
 Neither list decides load order. `dependencies` decides whether the plugin loads at all and what a
 reload takes down with it; see @ref host_guide.
