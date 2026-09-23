@@ -2,7 +2,7 @@
 
 #include <VoltMod/Engine/Server/ServerCommand.hpp>
 #include <functional>
-#include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -44,15 +44,14 @@ public:
      * @brief Install the server command that reports this status.
      *
      * `<name>` prints @ref BuildText. `<name> json` emits @ref BuildJson as one `STATUS_JSON {...}`
-     * line for RCON tooling. `name` and `helpText` must outlive the plugin because tier1 retains
-     * their pointers. The command unregisters when this service is destroyed.
+     * line for RCON tooling. The command unregisters when this service is destroyed.
      */
     void InstallCommand(std::string_view name, std::string_view helpText, HealthCheck healthy = {});
 
 private:
     std::vector<std::pair<std::string, Provider>> _sections;
     HealthCheck _healthy;
-    std::unique_ptr<ServerCommand> _command;
+    std::optional<ServerCommand> _command;
 };
 
 }  // namespace VoltMod

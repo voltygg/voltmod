@@ -4,7 +4,6 @@
 #include "Host/Plugins/PluginHost.hpp"
 
 #include <VoltMod/Engine/Server/ServerCommand.hpp>
-#include <memory>
 #include <string_view>
 
 namespace VoltMod
@@ -34,7 +33,7 @@ private:
 
     PluginHost& _host;
     PluginLoader& _loader;
-    std::unique_ptr<ServerCommand> _command;
+    ServerCommand _command;
 };
 
 }  // namespace VoltMod

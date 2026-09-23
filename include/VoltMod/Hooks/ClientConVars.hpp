@@ -97,7 +97,7 @@ private:
     Status Install();
 
     /** Deliver one CCLCMsg_RespondCvarValue, the message type the response hook carries. */
-    void OnRespondCvarValue(const void* client, const void* message);
+    void OnRespondCvarValue(const EngineClient& client, const CNetMessage& message);
 
     /** Send a query to one connected human client. */
     bool Send(int slot, const std::string& cvarName, int cookie);

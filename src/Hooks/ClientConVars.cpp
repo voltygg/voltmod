@@ -83,7 +83,7 @@ Status ClientConVars::Install()
 
     auto hook =
         HookVirtual("Client convar response", _bindings.ProcessRespondCvarValue, nullptr,
-                    [this](EngineClient& client, const void* message) { OnRespondCvarValue(&client, message); });
+                    [this](EngineClient& client, const CNetMessage* message) { OnRespondCvarValue(client, *message); });
     if (!hook)
     {
         return std::unexpected(hook.error());
@@ -178,11 +178,11 @@ bool ClientConVars::Send(int slot, const std::string& cvarName, int cookie)
     return true;
 }
 
-void ClientConVars::OnRespondCvarValue(const void* client, const void* message)
+void ClientConVars::OnRespondCvarValue(const EngineClient& client, const CNetMessage& message)
 {
     // Gamedata supplies the SDK-missing client slot offset; -1 means it did not bind.
-    const int slot = SlotOfClient(_bindings, client);
-    const auto& msg = *static_cast<const CNetMessagePB<CCLCMsg_RespondCvarValue>*>(message);
+    const int slot = SlotOfClient(_bindings, &client);
+    const auto& msg = *message.ToPB<CCLCMsg_RespondCvarValue>();
 
     if (!IsValidSlot(slot) || !msg.has_cookie() || !msg.has_status_code() || !msg.has_name())
     {

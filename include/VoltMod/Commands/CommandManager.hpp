@@ -76,7 +76,7 @@ private:
     std::unique_ptr<EngineArgBinder> _binder;
     std::unique_ptr<CommandRouter> _router;
     /** By lowercased name. Declared after the router, which their handlers use. */
-    std::unordered_map<std::string, std::unique_ptr<ServerCommand>> _consoleCommands;
+    std::unordered_map<std::string, ServerCommand> _consoleCommands;
 };
 
 }  // namespace VoltMod

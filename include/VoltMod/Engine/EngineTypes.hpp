@@ -5,6 +5,8 @@
 // 2. Framework types defined under src/, which have no public header.
 // 3. One side of a pair of headers that would otherwise include each other.
 
+#include <cstdint>
+
 // 1. SDK and Metamod types.
 class CCheckTransmitInfo;
 class CCommand;
@@ -12,9 +14,11 @@ class CEntityIdentity;
 class CEntityInstance;
 class CEntityKeyValues;
 class CGameEntitySystem;
+class CGameTrace;
 class CGlobalVars;
 class CNetMessage;
 class CSchemaSystemTypeScope;
+class CTraceFilter;
 class CUtlString;  // the custom HUD setters take `const CUtlString*`
 class Color;
 class CPlayerSlot;
@@ -23,6 +27,7 @@ class IGameEvent;
 class IGameEventManager2;
 class IGameEventSystem;
 class IGameResourceService;
+class INetChannel;
 class INetChannelInfo;
 class INetworkMessageInternal;
 class INetworkMessages;
@@ -35,7 +40,11 @@ class ISource2Server;  // IServerGameDLL
 class ISource2WorldSession;
 class IVEngineServer2;
 class QAngle;
+struct Ray_t;
 class Vector;
+union CVValue_t;
+enum EConVarType : int16_t;
+enum NetChannelBufType_t : int8_t;
 
 namespace SourceMM
 {

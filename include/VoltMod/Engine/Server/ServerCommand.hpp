@@ -33,7 +33,7 @@ public:
     ServerCommand& operator=(const ServerCommand&) = delete;
 
 private:
-    struct Impl;  // hides tier1 ConCommand + ICommandCallback so this header stays SDK-free
+    struct Impl;  // tier1's ConCommand, kept out of this header
     std::unique_ptr<Impl> _impl;
 };
 

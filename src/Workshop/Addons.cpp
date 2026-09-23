@@ -107,9 +107,10 @@ Status Addons::InstallHooks()
         return std::unexpected(Error::Unsupported("the client SteamID or server addons offset did not bind"));
     }
 
-    auto join =
-        HookVirtual("Workshop addon download", _bindings.SendNetMessage,
-                    [this](EngineClient& client, const CNetMessage* message, int) { OnJoinMessage(message, &client); });
+    auto join = HookVirtual("Workshop addon download", _bindings.SendNetMessage,
+                            [this](EngineClient& client, const CNetMessage* message, NetChannelBufType_t) {
+                                OnJoinMessage(message, &client);
+                            });
     if (!join)
     {
         return std::unexpected(Error::Unsupported(join.error().Detail));

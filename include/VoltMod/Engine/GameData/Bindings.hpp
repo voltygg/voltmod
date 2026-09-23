@@ -199,9 +199,9 @@ struct Bindings
     Fn<void(void*, int32_t, bool)> CustomHudSetInputCapture;
     /** @} */
 
-    /** CServerSideClient::FilterMessage(const CNetMessage*, INetChannel*), counted in its message-filter
-     *  base's vtable. The hook receives that base on every platform. Used by @ref ScreenManager::Pressed. */
-    VirtualFn<bool(EngineMessageFilter*, const CNetMessage*, void*)> FilterMessage;
+    /** CServerSideClient::FilterMessage, counted in its message-filter base's vtable. The hook
+     *  receives that base on every platform. Used by @ref ScreenManager::Pressed. */
+    VirtualFn<bool(EngineMessageFilter*, const CNetMessage*, INetChannel*)> FilterMessage;
     /** CNetworkGameServer::ReplyConnection(CServerSideClient*), which names the addons a client
      *  mounts. Hooked by @ref Addons. */
     Fn<void(EngineServer*, EngineClient*)> ReplyConnection;
@@ -227,23 +227,21 @@ struct Bindings
     /** CBaseEntity::Teleport(const Vector*, const QAngle*, const Vector*), hooked on CCSPlayerPawn. */
     VirtualFn<void(CEntityInstance*, const Vector*, const QAngle*, const Vector*)> Teleport;
 
-    /** CNavPhysicsInterface::Nav_TraceLine(start, end, CTraceFilter*, CGameTrace*), called on the
-     *  class table. The SDK trace types are void here so this header stays SDK-free. */
-    VirtualFn<bool(EngineNavPhysics*, const Vector*, const Vector*, void*, void*)> NavTraceLine;
-    /** CNavPhysicsInterface::Nav_TraceShape(const Ray_t&, start, end, CTraceFilter*, CGameTrace*), the overload
-     *  taking a filter, called like @ref NavTraceLine. */
-    VirtualFn<void(EngineNavPhysics*, const void*, const Vector*, const Vector*, void*, void*)> NavTraceShape;
+    /** CNavPhysicsInterface::Nav_TraceLine, called on the class table. */
+    VirtualFn<bool(EngineNavPhysics*, const Vector*, const Vector*, CTraceFilter*, CGameTrace*)> NavTraceLine;
+    /** CNavPhysicsInterface::Nav_TraceShape, the overload taking a filter, called like @ref NavTraceLine. */
+    VirtualFn<void(EngineNavPhysics*, const Ray_t*, const Vector*, const Vector*, CTraceFilter*, CGameTrace*)>
+        NavTraceShape;
     /** CPlayer_MovementServices::RunCommand(CUserCmd*), hooked on CCSPlayer_MovementServices. */
     VirtualFn<void*(EngineMovementServices*, void*)> RunCommand;
     /** CCSPlayer_ItemServices::GiveNamedItem(const char* classname). */
     VirtualFn<void*(void*, const char*)> GiveNamedItem;
     /** CCSPlayer_ItemServices::RemoveAllItems(bool removeSuit). */
     VirtualFn<void(void*, bool)> RemoveAllItems;
-    /** CServerSideClient::ProcessRespondCvarValue(...), hooked on CServerSideClient. */
-    VirtualFn<bool(EngineClient*, const void*)> ProcessRespondCvarValue;
-    /** CServerSideClient::SendNetMessage(const CNetMessage*, NetChannelBufType_t), hooked on
-     *  CServerSideClient. The SDK enum is represented as int here. */
-    VirtualFn<bool(EngineClient*, const CNetMessage*, int)> SendNetMessage;
+    /** CServerSideClient::ProcessRespondCvarValue, hooked on CServerSideClient. */
+    VirtualFn<bool(EngineClient*, const CNetMessage*)> ProcessRespondCvarValue;
+    /** CServerSideClient::SendNetMessage, hooked on CServerSideClient. */
+    VirtualFn<bool(EngineClient*, const CNetMessage*, NetChannelBufType_t)> SendNetMessage;
 
     /** CGameEntitySystem* cached inside IGameResourceService. */
     OffsetOf<CGameEntitySystem*> GameEntitySystem;

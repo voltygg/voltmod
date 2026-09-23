@@ -106,8 +106,8 @@ private:
 
     ConVars* _service = nullptr;
     std::string _name;
-    void* _storage = nullptr;  ///< the convar's CVValue_t* (void* so this header stays SDK-free)
-    int16_t _type = -1;        ///< the engine's EConVarType, so Get reads the right width
+    CVValue_t* _storage = nullptr;
+    EConVarType _type{};  ///< so Get reads the declared width
 };
 
 /** Convar lookup, console commands, client overrides, and global change events. */

@@ -61,7 +61,7 @@ Result<ConVar<T>> ConVars::Find(std::string_view name)
     handle._service = this;
     handle._name = owned;
     handle._storage = storage;
-    handle._type = static_cast<int16_t>(type);
+    handle._type = ref.GetType();
     return handle;
 }
 
@@ -73,21 +73,20 @@ T ConVar<T>::Get() const
         return T{};
     }
 
-    const auto* value = static_cast<const CVValue_t*>(_storage);
     const auto type = static_cast<ConVarType>(_type);
 
     if constexpr (std::is_same_v<T, bool>)
     {
-        return value->m_bValue;
+        return _storage->m_bValue;
     }
     else if constexpr (std::is_same_v<T, std::string>)
     {
-        const char* text = value->m_StringValue.Get();
+        const char* text = _storage->m_StringValue.Get();
         return text ? std::string(text) : std::string{};
     }
     else if constexpr (std::is_same_v<T, float>)
     {
-        return value->m_fl32Value;
+        return _storage->m_fl32Value;
     }
     else
     {
@@ -95,11 +94,11 @@ T ConVar<T>::Get() const
         switch (type)
         {
         case ConVarType::Int16:
-            return value->m_i16Value;
+            return _storage->m_i16Value;
         case ConVarType::UInt16:
-            return value->m_u16Value;
+            return _storage->m_u16Value;
         default:
-            return value->m_i32Value;
+            return _storage->m_i32Value;
         }
     }
 }
@@ -126,28 +125,27 @@ Status ConVar<T>::SetRaw(const T& value)
         return std::unexpected(Error::NotReady("convar handle is unresolved"));
     }
 
-    auto* storage = static_cast<CVValue_t*>(_storage);
     const auto type = static_cast<ConVarType>(_type);
     if constexpr (std::is_same_v<T, bool>)
     {
-        storage->m_bValue = value;
+        _storage->m_bValue = value;
     }
     else if constexpr (std::is_same_v<T, float>)
     {
-        storage->m_fl32Value = value;
+        _storage->m_fl32Value = value;
     }
     else
     {
         switch (type)
         {
         case ConVarType::Int16:
-            storage->m_i16Value = static_cast<int16_t>(value);
+            _storage->m_i16Value = static_cast<int16_t>(value);
             break;
         case ConVarType::UInt16:
-            storage->m_u16Value = static_cast<uint16_t>(value);
+            _storage->m_u16Value = static_cast<uint16_t>(value);
             break;
         default:
-            storage->m_i32Value = value;
+            _storage->m_i32Value = value;
             break;
         }
     }

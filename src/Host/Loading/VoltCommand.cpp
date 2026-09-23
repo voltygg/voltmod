@@ -14,11 +14,12 @@ static constexpr std::string_view CommandUsage =
     "volt list | status [name] | load <name> | unload <name> | reload <name> | "
     "log <name> <info|warn|error>";
 
-VoltCommand::VoltCommand(PluginHost& host, PluginLoader& loader) : _host(host), _loader(loader)
+VoltCommand::VoltCommand(PluginHost& host, PluginLoader& loader)
+    : _host(host),
+      _loader(loader),
+      _command("volt", CommandUsage, [this](const CCommand& arguments, int) { Run(arguments); })
 {
     _host.RegisterHostCommand("volt");
-    _command = std::make_unique<ServerCommand>("volt", CommandUsage,
-                                               [this](const CCommand& arguments, int) { Run(arguments); });
 }
 
 VoltCommand::~VoltCommand() = default;

@@ -83,7 +83,7 @@ void CommandManager::InstallConsoleCommand(const CommandDefinition& def)
     };
 
     const bool playersCanRun = def.Access == CommandAccess::Anywhere;
-    _consoleCommands.emplace(name, std::make_unique<ServerCommand>(name, help, std::move(run), playersCanRun));
+    _consoleCommands.try_emplace(name, name, help, std::move(run), playersCanRun);
 }
 
 void CommandManager::ReplyToPlayer(int slot, const std::string& line)

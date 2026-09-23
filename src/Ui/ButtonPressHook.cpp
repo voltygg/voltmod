@@ -53,9 +53,9 @@ bool ButtonPressHook::Install()
     }
 
     // Hook the filter's vtable slot. Every plugin must locate the same unpatched table.
-    auto hook =
-        HookVirtual("Custom HUD button presses", _bindings.FilterMessage,
-                    [this](EngineMessageFilter& filter, const CNetMessage* message, void*) { Queue(message, filter); });
+    auto hook = HookVirtual(
+        "Custom HUD button presses", _bindings.FilterMessage,
+        [this](EngineMessageFilter& filter, const CNetMessage* message, INetChannel*) { Queue(message, filter); });
     if (!hook)
     {
         Log::Warn("ButtonPressHook: {}; button presses will not arrive.", hook.error().Detail);
