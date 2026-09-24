@@ -105,8 +105,8 @@ Status Damage::Apply(const Entity& victim, const DamageInfo& info) const
         return std::unexpected(Error::NotReady("no victim"));
     }
 
-    CEntityInstance* attacker = _entities.Resolve(info.Attacker).Raw();
-    CEntityInstance* inflictor = _entities.Resolve(info.Inflictor).Raw();
+    CEntityInstance* attacker = _entities.Get(info.Attacker).Raw();
+    CEntityInstance* inflictor = _entities.Get(info.Inflictor).Raw();
     // The engine drops a hit with no inflictor.
     if (!inflictor)
     {

@@ -117,7 +117,7 @@ CGameEntitySystem* EntitySystem::Raw()
     return _interfaces.EntitySystem;
 }
 
-Entity EntitySystem::Resolve(EntityRef ref)
+Entity EntitySystem::Get(EntityRef ref)
 {
     auto* system = Raw();
     if (!ref || !system)
@@ -160,6 +160,11 @@ VoltMod::Controller EntitySystem::Controller(int slot)
 VoltMod::Pawn EntitySystem::Pawn(int slot)
 {
     return Controller(slot).Pawn();
+}
+
+VoltMod::Pawn EntitySystem::Pawn(EntityRef ref)
+{
+    return Get(ref).AsPawn();
 }
 
 Entity EntitySystem::Find(std::string_view className)

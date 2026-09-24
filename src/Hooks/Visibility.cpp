@@ -46,7 +46,7 @@ static void AddHandleVector(EntitySystem& entities, HiddenPlayer& player, const 
     }
     for (int i = 0; i < handles->Count() && i < MaxIndicesPerPlayer; ++i)
     {
-        AddIndex(player, entities.Resolve(EntityRef{static_cast<uint32_t>(handles->Element(i).ToInt())}).Index());
+        AddIndex(player, entities.Get(EntityRef{static_cast<uint32_t>(handles->Element(i).ToInt())}).Index());
     }
 }
 
@@ -61,7 +61,7 @@ static CEntityInstance* ObserverTarget(EntitySystem& entities, int recipientSlot
         return nullptr;
     }
 
-    return entities.Resolve(services.ObserverTargetRef()).Raw();
+    return entities.Get(services.ObserverTargetRef()).Raw();
 }
 
 static void CollectHiddenPlayer(EntitySystem& entities, int slot, bool pawnHidden, bool controllerHidden,
@@ -177,7 +177,7 @@ void Visibility::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
     // Drop entries whose entity is gone because the engine recycles indices.
     for (auto& entry : _private)
     {
-        const Entity entity = _entities.Resolve(entry.Entity);
+        const Entity entity = _entities.Get(entry.Entity);
         entry.Index = entity ? entity.Index() : -1;
     }
     std::erase_if(_private, [](const PrivateEntity& e) { return e.Index <= 0; });

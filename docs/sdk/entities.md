@@ -21,8 +21,8 @@ Three value types wrap a live entity, each adding to the one before it:
 
 | Type | What it is | Where it comes from |
 | ---- | ---------- | ------------------- |
-| @ref VoltMod::Entity | Any entity: the CBaseEntity fields, position, teleport | `runtime.Entities.Resolve(ref)`, `Find`, `FindAll`, `entity.AsPawn()` |
-| @ref VoltMod::Pawn | A player's body: health, armor, movement, aim, render | `runtime.Entities.Pawn(slot)` |
+| @ref VoltMod::Entity | Any entity: the CBaseEntity fields, position, teleport | `runtime.Entities.Get(ref)`, `Find`, `FindAll`, `entity.AsPawn()` |
+| @ref VoltMod::Pawn | A player's body: health, armor, movement, aim, render | `runtime.Entities.Pawn(slot)`, `Pawn(ref)` |
 | @ref VoltMod::Controller | A player's identity: name, money, team, kick | `runtime.Entities.Controller(slot)` |
 
 The controller is the scoreboard identity and survives respawns; the pawn is the replaceable body.
@@ -78,11 +78,11 @@ pawn.CameraServices().SetViewEntityRef(camera.Ref());     // see through another
 VoltMod::EntityRef zoomOwner = VoltMod::Schema::CCSPlayerBase_CameraServices{pawn.CameraServices().Base()}.ZoomOwnerRef();
 ```
 
-A handle field reads as an `EntityRef`, and its name ends in `Ref`. Resolve it to get the entity:
+A handle field reads as an `EntityRef`, and its name ends in `Ref`. Get the entity it points at:
 
 ```cpp
 // m_hOwnerEntity: for a thrown grenade, the pawn that threw it
-VoltMod::Entity owner = runtime.Entities.Resolve(grenade.OwnerRef());
+VoltMod::Entity owner = runtime.Entities.Get(grenade.OwnerRef());
 ```
 
 An entity with no wrapper class is viewed through its generated class. A `beam` draws a line
@@ -130,7 +130,8 @@ int owner = pawn.Slot();                   // -1 when it is not a player pawn; c
 VoltMod::Pawn victim = hit.Victim.AsPawn(); // falsy unless the entity is a player pawn
 
 VoltMod::EntityRef ref = pawn.Ref();       // storable
-VoltMod::Entity again = es.Resolve(ref);   // falsy if it died or its index was recycled
+VoltMod::Entity again = es.Get(ref);       // falsy if it died or its index was recycled
+VoltMod::Pawn body = es.Pawn(ref);         // the same, and falsy unless it is a player pawn
 
 VoltMod::Entity rules = es.Find("cs_gamerules");          // the first of a class
 for (const VoltMod::Entity& door : es.FindAll("func_door")) // a snapshot: removing is safe

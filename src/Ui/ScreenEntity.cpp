@@ -53,7 +53,7 @@ ScreenEntity::~ScreenEntity()
 
 bool ScreenEntity::Exists() const
 {
-    return static_cast<bool>(_entities.Resolve(_entity));
+    return static_cast<bool>(_entities.Get(_entity));
 }
 
 bool ScreenEntity::EnsureSpawned(int slot)
@@ -94,7 +94,7 @@ void ScreenEntity::Remove()
     {
         _visibility.ShowToEveryone(_entity);
     }
-    _entities.Resolve(_entity).Remove();
+    _entities.Get(_entity).Remove();
 
     _entity = {};
     _written.Clear();
@@ -206,7 +206,7 @@ bool ScreenEntity::SpawnOrWarn()
 int ScreenEntity::PlayerStateCount() const
 {
     // The embedded vector keeps its count first, which is what the engine itself reads before indexing.
-    const Schema::CCSCustomHudLayout layout{_entities.Resolve(_entity).Raw()};
+    const Schema::CCSCustomHudLayout layout{_entities.Get(_entity).Raw()};
     return layout ? layout.PlayerLayoutStates() : -1;
 }
 
@@ -217,7 +217,7 @@ bool ScreenEntity::Covers(int slot) const
 
 Result<CEntityInstance*> ScreenEntity::EntityForWrite(int engineSlot) const
 {
-    Entity entity = _entities.Resolve(_entity);
+    Entity entity = _entities.Get(_entity);
     if (!entity)
     {
         return std::unexpected(Error::NotFound("the custom_hud_layout entity no longer exists"));

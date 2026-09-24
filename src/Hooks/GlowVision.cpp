@@ -25,8 +25,8 @@ void GlowVision::DestroyPair(GlowPair& pair)
     _visibility.ShowToEveryone(pair.Relay);
     _visibility.ShowToEveryone(pair.Glow);
 
-    _entities.Resolve(pair.Glow).Remove();
-    _entities.Resolve(pair.Relay).Remove();
+    _entities.Get(pair.Glow).Remove();
+    _entities.Get(pair.Relay).Remove();
 
     pair = {};
 }
@@ -97,8 +97,8 @@ void GlowVision::Refresh()
 
         if (pair.Active())
         {
-            bool stale = !desired || team != pair.Team || !_entities.Resolve(pair.Relay) ||
-                         !_entities.Resolve(pair.Glow) || pawn.ModelName() != pair.Model;
+            bool stale = !desired || team != pair.Team || !_entities.Get(pair.Relay) ||
+                         !_entities.Get(pair.Glow) || pawn.ModelName() != pair.Model;
             if (stale)
             {
                 DestroyPair(pair);

@@ -49,8 +49,11 @@ public:
     /** The living body of @p slot's player; falsy when there is none. */
     VoltMod::Pawn Pawn(int slot);
 
+    /** The player pawn @p ref points at; falsy when it is gone or not a player pawn. */
+    VoltMod::Pawn Pawn(EntityRef ref);
+
     /** What @p ref points at; falsy when it is unset, or its entity is gone or replaced. */
-    Entity Resolve(EntityRef ref);
+    Entity Get(EntityRef ref);
 
     /** The first entity of @p className, such as "cs_gamerules"; `*` wildcards match. */
     Entity Find(std::string_view className);

@@ -111,7 +111,7 @@ std::vector<Entity> Pawn::Weapons() const
     }
     for (int i = 0; i < handles->Count(); ++i)
     {
-        if (const Entity weapon = _sys->Resolve(EntityRef{static_cast<uint32_t>(handles->Element(i).ToInt())}))
+        if (const Entity weapon = _sys->Get(EntityRef{static_cast<uint32_t>(handles->Element(i).ToInt())}))
         {
             weapons.push_back(weapon);
         }
@@ -122,7 +122,7 @@ std::vector<Entity> Pawn::Weapons() const
 void Pawn::HoldFire(int tick) const
 {
     const Schema::CPlayer_WeaponServices services = WeaponServices();
-    const Entity active = services && _sys ? _sys->Resolve(services.ActiveWeaponRef()) : Entity{};
+    const Entity active = services && _sys ? _sys->Get(services.ActiveWeaponRef()) : Entity{};
     const Schema::CBasePlayerWeapon weapon{active.Raw()};
     if (!weapon)
     {
@@ -204,7 +204,7 @@ VoltMod::Controller Pawn::Controller() const
 int Pawn::Slot() const
 {
     // Controllers sit at entity index slot + 1.
-    const Entity controller = _sys ? _sys->Resolve(ControllerRef()) : Entity{};
+    const Entity controller = _sys ? _sys->Get(ControllerRef()) : Entity{};
     const int slot = controller.Index() - 1;
     return controller && IsValidSlot(slot) ? slot : -1;
 }
