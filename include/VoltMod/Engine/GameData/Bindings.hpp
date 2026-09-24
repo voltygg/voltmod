@@ -35,6 +35,8 @@ struct Bindings
     Fn<void(CEntityInstance*, const char*)> SetModel;
     /** (entity, soundEvent, pitch, volume, delay). */
     Fn<void(CEntityInstance*, const char*, int, float, float)> EmitSoundParams;
+    /** (entity, soundEvent). */
+    Fn<void(CEntityInstance*, const char*)> StopSound;
     /** Returns its result through a hidden pointer, so Entity.cpp declares the prototype. */
     Address EmitSoundFilter;
     /** IGameEventListener2* (CPlayerSlot); GameEvents.cpp declares the prototype. */

@@ -262,4 +262,12 @@ void Entity::EmitSound(std::string_view soundEvent, IRecipientFilter& recipients
     std::bit_cast<EmitSoundFilterFn>(_sys->Bindings().EmitSoundFilter.Ptr())(recipients, _e->GetEntityIndex(), params);
 }
 
+void Entity::StopSound(std::string_view soundEvent) const
+{
+    if (_e && _sys && _sys->Bindings().StopSound && !soundEvent.empty())
+    {
+        _sys->Bindings().StopSound(_e, std::string(soundEvent).c_str());
+    }
+}
+
 }  // namespace VoltMod

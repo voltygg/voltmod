@@ -105,6 +105,8 @@ public:
     /** Play a `.vsndevts` event from this entity, to everyone or to @p recipients. */
     void EmitSound(std::string_view soundEvent, float volume = 1.0f) const;
     void EmitSound(std::string_view soundEvent, IRecipientFilter& recipients, float volume = 1.0f) const;
+    /** Stop every @p soundEvent this entity is playing, for everyone. */
+    void StopSound(std::string_view soundEvent) const;
 };
 
 }  // namespace VoltMod

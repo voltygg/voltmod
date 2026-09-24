@@ -69,6 +69,7 @@ Status Bindings::Bind(const GameDataLookup& lookup)
     bind(AddEntityIOEvent, "CEntitySystem::AddEntityIOEvent");
     bind(SetModel, "CBaseModelEntity::SetModel");
     bind(EmitSoundParams, "CBaseEntity::EmitSoundParams");
+    bind(StopSound, "CBaseEntity::StopSound");
     bind(EmitSoundFilter, "CBaseEntity::EmitSoundFilter");
     bind(LegacyGameEventListener, "GetLegacyGameEventListener");
     bind(TakeDamage, "CBaseEntity::TakeDamageOld");

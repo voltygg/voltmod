@@ -83,6 +83,7 @@
 
     // A VScript binding, so it can vanish between builds; EmitSoundFilter is the stable path.
     "CBaseEntity::EmitSoundParams": { "class": "CBaseEntity", "script": "EmitSoundParams" },
+    "CBaseEntity::StopSound": { "class": "CBaseEntity", "script": "StopSound" },
 
     "CBaseEntity::EmitSoundFilter": {
       "module": "server",
