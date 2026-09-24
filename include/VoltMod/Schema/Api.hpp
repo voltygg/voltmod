@@ -8,6 +8,7 @@
 #include <VoltMod/Schema/Generated/CBaseModelEntity.hpp>
 #include <VoltMod/Schema/Generated/CBasePlayerController.hpp>
 #include <VoltMod/Schema/Generated/CBasePlayerPawn.hpp>
+#include <VoltMod/Schema/Generated/CBasePlayerWeapon.hpp>
 #include <VoltMod/Schema/Generated/CBeam.hpp>
 #include <VoltMod/Schema/Generated/CBodyComponent.hpp>
 #include <VoltMod/Schema/Generated/CCSCustomHudLayout.hpp>
@@ -19,6 +20,7 @@
 #include <VoltMod/Schema/Generated/CCSPlayerPawn.hpp>
 #include <VoltMod/Schema/Generated/CCSPlayerPawnBase.hpp>
 #include <VoltMod/Schema/Generated/CCSPlayer_AimPunchServices.hpp>
+#include <VoltMod/Schema/Generated/CEconEntity.hpp>
 #include <VoltMod/Schema/Generated/CEntityComponent.hpp>
 #include <VoltMod/Schema/Generated/CEntityInstance.hpp>
 #include <VoltMod/Schema/Generated/CGameRulesProxy.hpp>

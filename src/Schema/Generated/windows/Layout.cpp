@@ -30,6 +30,8 @@ static const FieldLayout kFields[] = {
     {.Class = "CBasePlayerPawn", .Field = "m_pWeaponServices", .Offset = 2832, .Size = 8},
     {.Class = "CBasePlayerPawn", .Field = "m_pCameraServices", .Offset = 2888, .Size = 8},
     {.Class = "CBasePlayerPawn", .Field = "m_hController", .Offset = 3224, .Size = 4},
+    {.Class = "CBasePlayerWeapon", .Field = "m_nNextPrimaryAttackTick", .Offset = 3760, .Size = 4},
+    {.Class = "CBasePlayerWeapon", .Field = "m_nNextSecondaryAttackTick", .Offset = 3768, .Size = 4},
     {.Class = "CBeam", .Field = "m_fWidth", .Offset = 2228, .Size = 4},
     {.Class = "CBeam", .Field = "m_fEndWidth", .Offset = 2232, .Size = 4},
     {.Class = "CBeam", .Field = "m_vecEndPos", .Offset = 2264, .Size = 12},
@@ -102,12 +104,12 @@ std::span<const FieldLayout> GeneratedLayout()
 
 std::string_view GeneratedFromBuild()
 {
-    return "2000913";
+    return "2000915";
 }
 
 uint64_t GeneratedLayoutStamp()
 {
-    return 0xC74732F12AA3D52BULL;
+    return 0x56CF495F2271445FULL;
 }
 
 }  // namespace VoltMod::Schema

@@ -119,6 +119,25 @@ std::vector<Entity> Pawn::Weapons() const
     return weapons;
 }
 
+void Pawn::HoldFire(int tick) const
+{
+    const Schema::CPlayer_WeaponServices services = WeaponServices();
+    const Entity active = services && _sys ? _sys->Resolve(services.ActiveWeaponRef()) : Entity{};
+    const Schema::CBasePlayerWeapon weapon{active.Raw()};
+    if (!weapon)
+    {
+        return;
+    }
+    if (weapon.NextPrimaryAttackTick() < tick)
+    {
+        weapon.SetNextPrimaryAttackTick(tick);
+    }
+    if (weapon.NextSecondaryAttackTick() < tick)
+    {
+        weapon.SetNextSecondaryAttackTick(tick);
+    }
+}
+
 Status Pawn::Slay() const
 {
     if (!_e || !_sys)

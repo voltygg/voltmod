@@ -8,10 +8,10 @@
 namespace VoltMod::Schema
 {
 
-// ---- CBeam, 2800 bytes ---------------------------------------------
-static constexpr int32_t kCBeam_Width = 2740;     // float32
-static constexpr int32_t kCBeam_EndWidth = 2744;  // float32
-static constexpr int32_t kCBeam_EndPos = 2776;    // VectorWS
+// ---- CBeam, 3016 bytes ---------------------------------------------
+static constexpr int32_t kCBeam_Width = 2956;     // float32
+static constexpr int32_t kCBeam_EndWidth = 2960;  // float32
+static constexpr int32_t kCBeam_EndPos = 2992;    // VectorWS
 
 float CBeam::Width() const
 {

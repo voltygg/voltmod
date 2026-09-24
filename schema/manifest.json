@@ -88,6 +88,10 @@
       "m_hMyWeapons>MyWeapons",
       "m_hActiveWeapon"
     ],
+    "CBasePlayerWeapon": [
+      "m_nNextPrimaryAttackTick>NextPrimaryAttackTick:int32_t",
+      "m_nNextSecondaryAttackTick>NextSecondaryAttackTick:int32_t"
+    ],
     "CSkeletonInstance": [
       "m_modelState>ModelState"
     ],

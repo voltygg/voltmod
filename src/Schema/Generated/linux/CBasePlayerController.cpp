@@ -9,8 +9,8 @@
 namespace VoltMod::Schema
 {
 
-// ---- CBasePlayerController, 2728 bytes -----------------------------
-static constexpr int32_t kCBasePlayerController_Name = 2036;     // char[128]
+// ---- CBasePlayerController, 2736 bytes -----------------------------
+static constexpr int32_t kCBasePlayerController_Name = 2044;     // char[128]
 static constexpr int32_t kCBasePlayerController_PawnRef = 1984;  // CHandle< CBasePlayerPawn >
 
 std::string_view CBasePlayerController::Name() const

@@ -1,5 +1,5 @@
 {
-  "build": "2000913",
+  "build": "2000915",
   "classes": {
     "CBaseAnimGraph": {
       "size": 2624,
@@ -2167,6 +2167,95 @@
             "category": "SCHEMA_TYPE_ATOMIC",
             "atomic": "SCHEMA_ATOMIC_COLLECTION_OF_T",
             "inner": "sndopvarlatchdata_t"
+          },
+          "networked": false
+        }
+      ]
+    },
+    "CBasePlayerWeapon": {
+      "size": 3824,
+      "base": "CEconEntity",
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_nNextPrimaryAttackTick",
+          "offset": 3760,
+          "size": 4,
+          "type": {
+            "name": "GameTick_t",
+            "category": "SCHEMA_TYPE_DECLARED_CLASS"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_flNextPrimaryAttackTickRatio",
+          "offset": 3764,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_nNextSecondaryAttackTick",
+          "offset": 3768,
+          "size": 4,
+          "type": {
+            "name": "GameTick_t",
+            "category": "SCHEMA_TYPE_DECLARED_CLASS"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_flNextSecondaryAttackTickRatio",
+          "offset": 3772,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_iClip1",
+          "offset": 3776,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_iClip2",
+          "offset": 3780,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_pReserveAmmo",
+          "offset": 3784,
+          "size": 8,
+          "type": {
+            "name": "int32[2]",
+            "category": "SCHEMA_TYPE_FIXED_ARRAY",
+            "inner": "int32",
+            "extent": 2
+          },
+          "networked": true
+        },
+        {
+          "name": "m_OnPlayerUse",
+          "offset": 3792,
+          "size": 24,
+          "type": {
+            "name": "CEntityIOOutput",
+            "category": "SCHEMA_TYPE_DECLARED_CLASS"
           },
           "networked": false
         }
@@ -5044,6 +5133,105 @@
             "atomic": "SCHEMA_ATOMIC_PLAIN"
           },
           "networked": true
+        }
+      ]
+    },
+    "CEconEntity": {
+      "size": 3760,
+      "base": "CBaseAnimGraph",
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_AttributeManager",
+          "offset": 2648,
+          "size": 1080,
+          "type": {
+            "name": "CAttributeContainer",
+            "category": "SCHEMA_TYPE_DECLARED_CLASS"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_OriginalOwnerXuidLow",
+          "offset": 3728,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_OriginalOwnerXuidHigh",
+          "offset": 3732,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_nFallbackPaintKit",
+          "offset": 3736,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_nFallbackSeed",
+          "offset": 3740,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_flFallbackWear",
+          "offset": 3744,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_nFallbackStatTrak",
+          "offset": 3748,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_hOldProvidee",
+          "offset": 3752,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CBaseEntity >",
+            "category": "SCHEMA_TYPE_ATOMIC",
+            "atomic": "SCHEMA_ATOMIC_T",
+            "inner": "CBaseEntity"
+          },
+          "networked": false
+        },
+        {
+          "name": "m_iOldOwnerClass",
+          "offset": 3756,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": false
         }
       ]
     },

@@ -3,11 +3,11 @@
 #include "Schema/Notify.hpp"
 
 #include <VoltMod/Engine/Memory/MemoryAccess.hpp>
-#include <VoltMod/Schema/Generated/CBaseAnimGraph.hpp>
+#include <VoltMod/Schema/Generated/CEconEntity.hpp>
 
 namespace VoltMod::Schema
 {
 
-// ---- CBaseAnimGraph, 3360 bytes ------------------------------------
+// ---- CEconEntity, 4496 bytes ---------------------------------------
 
 }  // namespace VoltMod::Schema

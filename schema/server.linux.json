@@ -1,14 +1,14 @@
 {
-  "build": "2000908",
+  "build": "2000915",
   "classes": {
     "CBaseAnimGraph": {
-      "size": 3136,
+      "size": 3360,
       "base": "CBaseModelEntity",
       "chain_offset": -1,
       "fields": [
         {
           "name": "m_graphControllerManager",
-          "offset": 2640,
+          "offset": 2864,
           "size": 152,
           "type": {
             "name": "CAnimGraphControllerManager",
@@ -18,7 +18,7 @@
         },
         {
           "name": "m_pMainGraphController",
-          "offset": 2792,
+          "offset": 3016,
           "size": 8,
           "type": {
             "name": "CAnimGraphControllerPtr",
@@ -28,7 +28,7 @@
         },
         {
           "name": "m_bInitiallyPopulateInterpHistory",
-          "offset": 2800,
+          "offset": 3024,
           "size": 1,
           "type": {
             "name": "bool",
@@ -38,7 +38,7 @@
         },
         {
           "name": "m_OnLayerCycleUpdated",
-          "offset": 2808,
+          "offset": 3032,
           "size": 32,
           "type": {
             "name": "CEntityOutputTemplate< float32 >",
@@ -50,7 +50,7 @@
         },
         {
           "name": "m_OnExternalChoreoGraphChanged",
-          "offset": 2840,
+          "offset": 3064,
           "size": 24,
           "type": {
             "name": "CEntityIOOutput",
@@ -60,7 +60,7 @@
         },
         {
           "name": "m_pChoreoServices",
-          "offset": 2864,
+          "offset": 3088,
           "size": 8,
           "type": {
             "name": "IChoreoServices*",
@@ -71,7 +71,7 @@
         },
         {
           "name": "m_bAnimGraphUpdateEnabled",
-          "offset": 2872,
+          "offset": 3096,
           "size": 1,
           "type": {
             "name": "bool",
@@ -81,7 +81,7 @@
         },
         {
           "name": "m_bAnimationUpdateScheduled",
-          "offset": 2873,
+          "offset": 3097,
           "size": 1,
           "type": {
             "name": "bool",
@@ -91,7 +91,7 @@
         },
         {
           "name": "m_vecForce",
-          "offset": 2876,
+          "offset": 3100,
           "size": 12,
           "type": {
             "name": "Vector",
@@ -102,7 +102,7 @@
         },
         {
           "name": "m_nForceBone",
-          "offset": 2888,
+          "offset": 3112,
           "size": 4,
           "type": {
             "name": "int32",
@@ -112,7 +112,7 @@
         },
         {
           "name": "m_pRagdollControl",
-          "offset": 2904,
+          "offset": 3128,
           "size": 8,
           "type": {
             "name": "IPhysicsRagdollControl*",
@@ -123,7 +123,7 @@
         },
         {
           "name": "m_RagdollPose",
-          "offset": 2912,
+          "offset": 3136,
           "size": 40,
           "type": {
             "name": "PhysicsRagdollPose_t",
@@ -133,7 +133,7 @@
         },
         {
           "name": "m_bRagdollEnabled",
-          "offset": 2952,
+          "offset": 3176,
           "size": 1,
           "type": {
             "name": "bool",
@@ -143,7 +143,17 @@
         },
         {
           "name": "m_bRagdollClientSide",
-          "offset": 2953,
+          "offset": 3177,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_bShouldUpdateTransformations",
+          "offset": 3178,
           "size": 1,
           "type": {
             "name": "bool",
@@ -153,7 +163,7 @@
         },
         {
           "name": "m_xParentedRagdollRootInEntitySpace",
-          "offset": 2960,
+          "offset": 3184,
           "size": 32,
           "type": {
             "name": "CTransform",
@@ -165,13 +175,13 @@
       ]
     },
     "CBaseCombatCharacter": {
-      "size": 3344,
+      "size": 3568,
       "base": "CBaseAnimGraph",
       "chain_offset": -1,
       "fields": [
         {
           "name": "m_bForceServerRagdoll",
-          "offset": 3136,
+          "offset": 3360,
           "size": 1,
           "type": {
             "name": "bool",
@@ -181,7 +191,7 @@
         },
         {
           "name": "m_hMyWearables",
-          "offset": 3144,
+          "offset": 3368,
           "size": 24,
           "type": {
             "name": "CNetworkUtlVectorBase< CHandle< CEconWearable > >",
@@ -193,7 +203,7 @@
         },
         {
           "name": "m_impactEnergyScale",
-          "offset": 3168,
+          "offset": 3392,
           "size": 4,
           "type": {
             "name": "float32",
@@ -203,7 +213,7 @@
         },
         {
           "name": "m_bApplyStressDamage",
-          "offset": 3172,
+          "offset": 3396,
           "size": 1,
           "type": {
             "name": "bool",
@@ -213,7 +223,7 @@
         },
         {
           "name": "m_bDeathEventsDispatched",
-          "offset": 3173,
+          "offset": 3397,
           "size": 1,
           "type": {
             "name": "bool",
@@ -223,7 +233,7 @@
         },
         {
           "name": "m_vecRelationships",
-          "offset": 3240,
+          "offset": 3464,
           "size": 24,
           "type": {
             "name": "CUtlVector< RelationshipOverride_t >",
@@ -235,7 +245,7 @@
         },
         {
           "name": "m_strRelationships",
-          "offset": 3264,
+          "offset": 3488,
           "size": 8,
           "type": {
             "name": "CUtlSymbolLarge",
@@ -246,7 +256,7 @@
         },
         {
           "name": "m_eHull",
-          "offset": 3272,
+          "offset": 3496,
           "size": 4,
           "type": {
             "name": "Hull_t",
@@ -256,7 +266,7 @@
         },
         {
           "name": "m_nNavHullIdx",
-          "offset": 3276,
+          "offset": 3500,
           "size": 4,
           "type": {
             "name": "uint32",
@@ -266,7 +276,7 @@
         },
         {
           "name": "m_movementStats",
-          "offset": 3280,
+          "offset": 3504,
           "size": 64,
           "type": {
             "name": "CMovementStatsProperty",
@@ -1167,7 +1177,7 @@
       ]
     },
     "CBaseModelEntity": {
-      "size": 2640,
+      "size": 2864,
       "base": "CBaseEntity",
       "chain_offset": -1,
       "fields": [
@@ -1460,8 +1470,18 @@
           "networked": true
         },
         {
-          "name": "m_bNoInterpolate",
+          "name": "m_bExpandRenderBoundsToIncludeCloth",
           "offset": 2241,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_bNoInterpolate",
+          "offset": 2242,
           "size": 1,
           "type": {
             "name": "bool",
@@ -1550,8 +1570,30 @@
           "networked": true
         },
         {
-          "name": "m_bodyGroupChoices",
+          "name": "m_bodyGroupTotalRequestCount",
           "offset": 2544,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": false
+        },
+        {
+          "name": "m_bodyGroupRequests",
+          "offset": 2552,
+          "size": 216,
+          "type": {
+            "name": "CUtlVectorFixedGrowable< CBaseModelEntity::BodyGroupRequest_t, 8 >",
+            "category": "SCHEMA_TYPE_ATOMIC",
+            "atomic": "SCHEMA_ATOMIC_COLLECTION_OF_T",
+            "inner": "CBaseModelEntity::BodyGroupRequest_t"
+          },
+          "networked": false
+        },
+        {
+          "name": "m_bodyGroupChoices",
+          "offset": 2768,
           "size": 40,
           "type": {
             "name": "CUtlOrderedMap< CGlobalSymbol, int32 >",
@@ -1563,7 +1605,7 @@
         },
         {
           "name": "m_vecViewOffset",
-          "offset": 2584,
+          "offset": 2808,
           "size": 40,
           "type": {
             "name": "CNetworkViewOffsetVector",
@@ -1573,7 +1615,7 @@
         },
         {
           "name": "m_bvDisabledHitGroups",
-          "offset": 2632,
+          "offset": 2856,
           "size": 4,
           "type": {
             "name": "uint32[1]",
@@ -1586,7 +1628,7 @@
       ]
     },
     "CBasePlayerController": {
-      "size": 2728,
+      "size": 2736,
       "base": "CBaseEntity",
       "chain_offset": -1,
       "fields": [
@@ -1634,7 +1676,7 @@
         },
         {
           "name": "m_nSplitScreenSlot",
-          "offset": 1992,
+          "offset": 1996,
           "size": 4,
           "type": {
             "name": "CSplitScreenSlot",
@@ -1645,7 +1687,7 @@
         },
         {
           "name": "m_hSplitOwner",
-          "offset": 1996,
+          "offset": 2000,
           "size": 4,
           "type": {
             "name": "CHandle< CBasePlayerController >",
@@ -1657,7 +1699,7 @@
         },
         {
           "name": "m_hSplitScreenPlayers",
-          "offset": 2000,
+          "offset": 2008,
           "size": 24,
           "type": {
             "name": "CUtlVector< CHandle< CBasePlayerController > >",
@@ -1669,7 +1711,7 @@
         },
         {
           "name": "m_bIsHLTV",
-          "offset": 2024,
+          "offset": 2032,
           "size": 1,
           "type": {
             "name": "bool",
@@ -1679,7 +1721,7 @@
         },
         {
           "name": "m_iConnected",
-          "offset": 2028,
+          "offset": 2036,
           "size": 4,
           "type": {
             "name": "PlayerConnectedState",
@@ -1689,7 +1731,7 @@
         },
         {
           "name": "m_iMostConnected",
-          "offset": 2032,
+          "offset": 2040,
           "size": 4,
           "type": {
             "name": "PlayerConnectedState",
@@ -1699,7 +1741,7 @@
         },
         {
           "name": "m_iszPlayerName",
-          "offset": 2036,
+          "offset": 2044,
           "size": 128,
           "type": {
             "name": "char[128]",
@@ -1711,7 +1753,7 @@
         },
         {
           "name": "m_szNetworkIDString",
-          "offset": 2168,
+          "offset": 2176,
           "size": 8,
           "type": {
             "name": "CUtlString",
@@ -1722,7 +1764,7 @@
         },
         {
           "name": "m_fLerpTime",
-          "offset": 2176,
+          "offset": 2184,
           "size": 4,
           "type": {
             "name": "float32",
@@ -1732,26 +1774,6 @@
         },
         {
           "name": "m_bLagCompensation",
-          "offset": 2180,
-          "size": 1,
-          "type": {
-            "name": "bool",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": false
-        },
-        {
-          "name": "m_bPredict",
-          "offset": 2181,
-          "size": 1,
-          "type": {
-            "name": "bool",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": false
-        },
-        {
-          "name": "m_bIsLowViolence",
           "offset": 2188,
           "size": 1,
           "type": {
@@ -1761,7 +1783,7 @@
           "networked": false
         },
         {
-          "name": "m_bGamePaused",
+          "name": "m_bPredict",
           "offset": 2189,
           "size": 1,
           "type": {
@@ -1771,8 +1793,28 @@
           "networked": false
         },
         {
+          "name": "m_bIsLowViolence",
+          "offset": 2196,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": false
+        },
+        {
+          "name": "m_bGamePaused",
+          "offset": 2197,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": false
+        },
+        {
           "name": "m_iIgnoreGlobalChat",
-          "offset": 2496,
+          "offset": 2504,
           "size": 4,
           "type": {
             "name": "ChatIgnoreType_t",
@@ -1782,7 +1824,7 @@
         },
         {
           "name": "m_flLastPlayerTalkTime",
-          "offset": 2500,
+          "offset": 2508,
           "size": 4,
           "type": {
             "name": "float32",
@@ -1792,7 +1834,7 @@
         },
         {
           "name": "m_flLastEntitySteadyState",
-          "offset": 2504,
+          "offset": 2512,
           "size": 4,
           "type": {
             "name": "float32",
@@ -1802,7 +1844,7 @@
         },
         {
           "name": "m_nAvailableEntitySteadyState",
-          "offset": 2508,
+          "offset": 2516,
           "size": 4,
           "type": {
             "name": "int32",
@@ -1812,7 +1854,7 @@
         },
         {
           "name": "m_bHasAnySteadyStateEnts",
-          "offset": 2512,
+          "offset": 2520,
           "size": 1,
           "type": {
             "name": "bool",
@@ -1822,7 +1864,7 @@
         },
         {
           "name": "m_steamID",
-          "offset": 2528,
+          "offset": 2536,
           "size": 8,
           "type": {
             "name": "uint64",
@@ -1832,7 +1874,7 @@
         },
         {
           "name": "m_bNoClipEnabled",
-          "offset": 2536,
+          "offset": 2544,
           "size": 1,
           "type": {
             "name": "bool",
@@ -1842,7 +1884,7 @@
         },
         {
           "name": "m_iDesiredFOV",
-          "offset": 2540,
+          "offset": 2548,
           "size": 4,
           "type": {
             "name": "uint32",
@@ -1853,13 +1895,13 @@
       ]
     },
     "CBasePlayerPawn": {
-      "size": 3776,
+      "size": 4016,
       "base": "CBaseCombatCharacter",
       "chain_offset": -1,
       "fields": [
         {
           "name": "m_pWeaponServices",
-          "offset": 3344,
+          "offset": 3568,
           "size": 8,
           "type": {
             "name": "CPlayer_WeaponServices*",
@@ -1870,7 +1912,7 @@
         },
         {
           "name": "m_pItemServices",
-          "offset": 3352,
+          "offset": 3576,
           "size": 8,
           "type": {
             "name": "CPlayer_ItemServices*",
@@ -1881,7 +1923,7 @@
         },
         {
           "name": "m_pAutoaimServices",
-          "offset": 3360,
+          "offset": 3584,
           "size": 8,
           "type": {
             "name": "CPlayer_AutoaimServices*",
@@ -1892,7 +1934,7 @@
         },
         {
           "name": "m_pObserverServices",
-          "offset": 3368,
+          "offset": 3592,
           "size": 8,
           "type": {
             "name": "CPlayer_ObserverServices*",
@@ -1903,7 +1945,7 @@
         },
         {
           "name": "m_pWaterServices",
-          "offset": 3376,
+          "offset": 3600,
           "size": 8,
           "type": {
             "name": "CPlayer_WaterServices*",
@@ -1914,7 +1956,7 @@
         },
         {
           "name": "m_pUseServices",
-          "offset": 3384,
+          "offset": 3608,
           "size": 8,
           "type": {
             "name": "CPlayer_UseServices*",
@@ -1925,7 +1967,7 @@
         },
         {
           "name": "m_pFlashlightServices",
-          "offset": 3392,
+          "offset": 3616,
           "size": 8,
           "type": {
             "name": "CPlayer_FlashlightServices*",
@@ -1936,7 +1978,7 @@
         },
         {
           "name": "m_pCameraServices",
-          "offset": 3400,
+          "offset": 3624,
           "size": 8,
           "type": {
             "name": "CPlayer_CameraServices*",
@@ -1947,7 +1989,7 @@
         },
         {
           "name": "m_pMovementServices",
-          "offset": 3408,
+          "offset": 3632,
           "size": 8,
           "type": {
             "name": "CPlayer_MovementServices*",
@@ -1958,7 +2000,7 @@
         },
         {
           "name": "m_ServerViewAngleChanges",
-          "offset": 3424,
+          "offset": 3648,
           "size": 104,
           "type": {
             "name": "CUtlVectorEmbeddedNetworkVar< ViewAngleServerChange_t >",
@@ -1970,7 +2012,7 @@
         },
         {
           "name": "v_angle",
-          "offset": 3528,
+          "offset": 3752,
           "size": 12,
           "type": {
             "name": "QAngle",
@@ -1981,7 +2023,7 @@
         },
         {
           "name": "v_anglePrevious",
-          "offset": 3540,
+          "offset": 3764,
           "size": 12,
           "type": {
             "name": "QAngle",
@@ -1992,7 +2034,7 @@
         },
         {
           "name": "m_iHideHUD",
-          "offset": 3552,
+          "offset": 3776,
           "size": 4,
           "type": {
             "name": "uint32",
@@ -2002,7 +2044,7 @@
         },
         {
           "name": "m_skybox3d",
-          "offset": 3560,
+          "offset": 3784,
           "size": 144,
           "type": {
             "name": "sky3dparams_t",
@@ -2012,7 +2054,7 @@
         },
         {
           "name": "m_fTimeLastHurt",
-          "offset": 3704,
+          "offset": 3928,
           "size": 4,
           "type": {
             "name": "GameTime_t",
@@ -2022,7 +2064,7 @@
         },
         {
           "name": "m_flDeathTime",
-          "offset": 3708,
+          "offset": 3932,
           "size": 4,
           "type": {
             "name": "GameTime_t",
@@ -2032,7 +2074,7 @@
         },
         {
           "name": "m_fNextSuicideTime",
-          "offset": 3712,
+          "offset": 3936,
           "size": 4,
           "type": {
             "name": "GameTime_t",
@@ -2042,7 +2084,7 @@
         },
         {
           "name": "m_fInitHUD",
-          "offset": 3716,
+          "offset": 3944,
           "size": 1,
           "type": {
             "name": "bool",
@@ -2052,7 +2094,7 @@
         },
         {
           "name": "m_pExpresser",
-          "offset": 3720,
+          "offset": 3952,
           "size": 8,
           "type": {
             "name": "CAI_Expresser*",
@@ -2063,7 +2105,7 @@
         },
         {
           "name": "m_hController",
-          "offset": 3728,
+          "offset": 3960,
           "size": 4,
           "type": {
             "name": "CHandle< CBasePlayerController >",
@@ -2075,7 +2117,7 @@
         },
         {
           "name": "m_hDefaultController",
-          "offset": 3732,
+          "offset": 3964,
           "size": 4,
           "type": {
             "name": "CHandle< CBasePlayerController >",
@@ -2087,7 +2129,7 @@
         },
         {
           "name": "m_fHltvReplayDelay",
-          "offset": 3740,
+          "offset": 3972,
           "size": 4,
           "type": {
             "name": "float32",
@@ -2097,7 +2139,7 @@
         },
         {
           "name": "m_fHltvReplayEnd",
-          "offset": 3744,
+          "offset": 3976,
           "size": 4,
           "type": {
             "name": "float32",
@@ -2107,7 +2149,7 @@
         },
         {
           "name": "m_iHltvReplayEntity",
-          "offset": 3748,
+          "offset": 3980,
           "size": 4,
           "type": {
             "name": "CEntityIndex",
@@ -2118,7 +2160,7 @@
         },
         {
           "name": "m_sndOpvarLatchData",
-          "offset": 3752,
+          "offset": 3984,
           "size": 24,
           "type": {
             "name": "CUtlVector< sndopvarlatchdata_t >",
@@ -2130,14 +2172,103 @@
         }
       ]
     },
+    "CBasePlayerWeapon": {
+      "size": 4560,
+      "base": "CEconEntity",
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_nNextPrimaryAttackTick",
+          "offset": 4496,
+          "size": 4,
+          "type": {
+            "name": "GameTick_t",
+            "category": "SCHEMA_TYPE_DECLARED_CLASS"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_flNextPrimaryAttackTickRatio",
+          "offset": 4500,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_nNextSecondaryAttackTick",
+          "offset": 4504,
+          "size": 4,
+          "type": {
+            "name": "GameTick_t",
+            "category": "SCHEMA_TYPE_DECLARED_CLASS"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_flNextSecondaryAttackTickRatio",
+          "offset": 4508,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_iClip1",
+          "offset": 4512,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_iClip2",
+          "offset": 4516,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_pReserveAmmo",
+          "offset": 4520,
+          "size": 8,
+          "type": {
+            "name": "int32[2]",
+            "category": "SCHEMA_TYPE_FIXED_ARRAY",
+            "inner": "int32",
+            "extent": 2
+          },
+          "networked": true
+        },
+        {
+          "name": "m_OnPlayerUse",
+          "offset": 4528,
+          "size": 24,
+          "type": {
+            "name": "CEntityIOOutput",
+            "category": "SCHEMA_TYPE_DECLARED_CLASS"
+          },
+          "networked": false
+        }
+      ]
+    },
     "CBeam": {
-      "size": 2800,
+      "size": 3016,
       "base": "CBaseModelEntity",
       "chain_offset": -1,
       "fields": [
         {
           "name": "m_flFrameRate",
-          "offset": 2640,
+          "offset": 2860,
           "size": 4,
           "type": {
             "name": "float32",
@@ -2147,7 +2278,7 @@
         },
         {
           "name": "m_flHDRColorScale",
-          "offset": 2644,
+          "offset": 2864,
           "size": 4,
           "type": {
             "name": "float32",
@@ -2157,7 +2288,7 @@
         },
         {
           "name": "m_flFireTime",
-          "offset": 2648,
+          "offset": 2868,
           "size": 4,
           "type": {
             "name": "GameTime_t",
@@ -2167,7 +2298,7 @@
         },
         {
           "name": "m_flDamage",
-          "offset": 2652,
+          "offset": 2872,
           "size": 4,
           "type": {
             "name": "float32",
@@ -2177,7 +2308,7 @@
         },
         {
           "name": "m_nNumBeamEnts",
-          "offset": 2656,
+          "offset": 2876,
           "size": 1,
           "type": {
             "name": "uint8",
@@ -2187,7 +2318,7 @@
         },
         {
           "name": "m_hBaseMaterial",
-          "offset": 2664,
+          "offset": 2880,
           "size": 8,
           "type": {
             "name": "CStrongHandle< InfoForResourceTypeIMaterial2 >",
@@ -2199,7 +2330,7 @@
         },
         {
           "name": "m_nHaloIndex",
-          "offset": 2672,
+          "offset": 2888,
           "size": 8,
           "type": {
             "name": "CStrongHandle< InfoForResourceTypeIMaterial2 >",
@@ -2211,7 +2342,7 @@
         },
         {
           "name": "m_nBeamType",
-          "offset": 2680,
+          "offset": 2896,
           "size": 4,
           "type": {
             "name": "BeamType_t",
@@ -2221,7 +2352,7 @@
         },
         {
           "name": "m_nBeamFlags",
-          "offset": 2684,
+          "offset": 2900,
           "size": 4,
           "type": {
             "name": "uint32",
@@ -2231,7 +2362,7 @@
         },
         {
           "name": "m_hAttachEntity",
-          "offset": 2688,
+          "offset": 2904,
           "size": 40,
           "type": {
             "name": "CHandle< CBaseEntity >[10]",
@@ -2243,7 +2374,7 @@
         },
         {
           "name": "m_nAttachIndex",
-          "offset": 2728,
+          "offset": 2944,
           "size": 10,
           "type": {
             "name": "AttachmentHandle_t[10]",
@@ -2255,7 +2386,7 @@
         },
         {
           "name": "m_fWidth",
-          "offset": 2740,
+          "offset": 2956,
           "size": 4,
           "type": {
             "name": "float32",
@@ -2265,7 +2396,7 @@
         },
         {
           "name": "m_fEndWidth",
-          "offset": 2744,
+          "offset": 2960,
           "size": 4,
           "type": {
             "name": "float32",
@@ -2275,7 +2406,7 @@
         },
         {
           "name": "m_fFadeLength",
-          "offset": 2748,
+          "offset": 2964,
           "size": 4,
           "type": {
             "name": "float32",
@@ -2285,7 +2416,7 @@
         },
         {
           "name": "m_fHaloScale",
-          "offset": 2752,
+          "offset": 2968,
           "size": 4,
           "type": {
             "name": "float32",
@@ -2295,7 +2426,7 @@
         },
         {
           "name": "m_fAmplitude",
-          "offset": 2756,
+          "offset": 2972,
           "size": 4,
           "type": {
             "name": "float32",
@@ -2305,7 +2436,7 @@
         },
         {
           "name": "m_fStartFrame",
-          "offset": 2760,
+          "offset": 2976,
           "size": 4,
           "type": {
             "name": "float32",
@@ -2315,7 +2446,7 @@
         },
         {
           "name": "m_fSpeed",
-          "offset": 2764,
+          "offset": 2980,
           "size": 4,
           "type": {
             "name": "float32",
@@ -2325,7 +2456,7 @@
         },
         {
           "name": "m_flFrame",
-          "offset": 2768,
+          "offset": 2984,
           "size": 4,
           "type": {
             "name": "float32",
@@ -2335,7 +2466,7 @@
         },
         {
           "name": "m_bTurnedOff",
-          "offset": 2772,
+          "offset": 2988,
           "size": 1,
           "type": {
             "name": "bool",
@@ -2345,7 +2476,7 @@
         },
         {
           "name": "m_vecEndPos",
-          "offset": 2776,
+          "offset": 2992,
           "size": 12,
           "type": {
             "name": "VectorWS",
@@ -2356,7 +2487,7 @@
         },
         {
           "name": "m_hEndEntity",
-          "offset": 2788,
+          "offset": 3004,
           "size": 4,
           "type": {
             "name": "CHandle< CBaseEntity >",
@@ -2368,7 +2499,7 @@
         },
         {
           "name": "m_nDissolveType",
-          "offset": 2792,
+          "offset": 3008,
           "size": 4,
           "type": {
             "name": "int32",
@@ -2407,13 +2538,13 @@
       ]
     },
     "CCSCustomHudLayout": {
-      "size": 2768,
+      "size": 2808,
       "base": "CBaseEntity",
       "chain_offset": -1,
       "fields": [
         {
           "name": "m_strLayout",
-          "offset": 1928,
+          "offset": 1944,
           "size": 8,
           "type": {
             "name": "CUtlSymbolLarge",
@@ -2424,7 +2555,7 @@
         },
         {
           "name": "m_bObservable",
-          "offset": 1936,
+          "offset": 1952,
           "size": 1,
           "type": {
             "name": "bool",
@@ -2434,7 +2565,7 @@
         },
         {
           "name": "m_vecPlayerLayoutStates",
-          "offset": 1944,
+          "offset": 1960,
           "size": 104,
           "type": {
             "name": "CUtlVectorEmbeddedNetworkVar< CCSCustomHudLayoutState >",
@@ -2446,7 +2577,7 @@
         },
         {
           "name": "m_globalLayoutState",
-          "offset": 2048,
+          "offset": 2064,
           "size": 408,
           "type": {
             "name": "CCSCustomHudLayoutState",
@@ -2456,7 +2587,7 @@
         },
         {
           "name": "m_vecPanelIds",
-          "offset": 2456,
+          "offset": 2472,
           "size": 24,
           "type": {
             "name": "CNetworkUtlVectorBase< CUtlString >",
@@ -2468,7 +2599,7 @@
         },
         {
           "name": "m_vecClassNames",
-          "offset": 2480,
+          "offset": 2496,
           "size": 24,
           "type": {
             "name": "CNetworkUtlVectorBase< CUtlString >",
@@ -2480,7 +2611,7 @@
         },
         {
           "name": "m_vecDialogVariableNames",
-          "offset": 2504,
+          "offset": 2520,
           "size": 24,
           "type": {
             "name": "CNetworkUtlVectorBase< CUtlString >",
@@ -2646,13 +2777,13 @@
       ]
     },
     "CCSPlayerController": {
-      "size": 3456,
+      "size": 3472,
       "base": "CBasePlayerController",
       "chain_offset": -1,
       "fields": [
         {
           "name": "m_pInGameMoneyServices",
-          "offset": 2744,
+          "offset": 2752,
           "size": 8,
           "type": {
             "name": "CCSPlayerController_InGameMoneyServices*",
@@ -2663,7 +2794,7 @@
         },
         {
           "name": "m_pInventoryServices",
-          "offset": 2752,
+          "offset": 2760,
           "size": 8,
           "type": {
             "name": "CCSPlayerController_InventoryServices*",
@@ -2674,7 +2805,7 @@
         },
         {
           "name": "m_pActionTrackingServices",
-          "offset": 2760,
+          "offset": 2768,
           "size": 8,
           "type": {
             "name": "CCSPlayerController_ActionTrackingServices*",
@@ -2685,7 +2816,7 @@
         },
         {
           "name": "m_pDamageServices",
-          "offset": 2768,
+          "offset": 2776,
           "size": 8,
           "type": {
             "name": "CCSPlayerController_DamageServices*",
@@ -2696,26 +2827,6 @@
         },
         {
           "name": "m_iPing",
-          "offset": 2776,
-          "size": 4,
-          "type": {
-            "name": "uint32",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": true
-        },
-        {
-          "name": "m_bHasCommunicationAbuseMute",
-          "offset": 2780,
-          "size": 1,
-          "type": {
-            "name": "bool",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": true
-        },
-        {
-          "name": "m_uiCommunicationMuteFlags",
           "offset": 2784,
           "size": 4,
           "type": {
@@ -2725,8 +2836,28 @@
           "networked": true
         },
         {
-          "name": "m_szCrosshairCodes",
+          "name": "m_bHasCommunicationAbuseMute",
+          "offset": 2788,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_uiCommunicationMuteFlags",
           "offset": 2792,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_szCrosshairCodes",
+          "offset": 2800,
           "size": 8,
           "type": {
             "name": "CUtlSymbolLarge",
@@ -2737,7 +2868,7 @@
         },
         {
           "name": "m_iPendingTeamNum",
-          "offset": 2800,
+          "offset": 2808,
           "size": 1,
           "type": {
             "name": "uint8",
@@ -2747,7 +2878,7 @@
         },
         {
           "name": "m_flForceTeamTime",
-          "offset": 2804,
+          "offset": 2812,
           "size": 4,
           "type": {
             "name": "GameTime_t",
@@ -2757,7 +2888,7 @@
         },
         {
           "name": "m_iCompTeammateColor",
-          "offset": 2808,
+          "offset": 2816,
           "size": 4,
           "type": {
             "name": "int32",
@@ -2767,7 +2898,7 @@
         },
         {
           "name": "m_bEverPlayedOnTeam",
-          "offset": 2812,
+          "offset": 2820,
           "size": 1,
           "type": {
             "name": "bool",
@@ -2777,36 +2908,6 @@
         },
         {
           "name": "m_bAttemptedToGetColor",
-          "offset": 2813,
-          "size": 1,
-          "type": {
-            "name": "bool",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": false
-        },
-        {
-          "name": "m_iTeammatePreferredColor",
-          "offset": 2816,
-          "size": 4,
-          "type": {
-            "name": "int32",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": false
-        },
-        {
-          "name": "m_bTeamChanged",
-          "offset": 2820,
-          "size": 1,
-          "type": {
-            "name": "bool",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": false
-        },
-        {
-          "name": "m_bInSwitchTeam",
           "offset": 2821,
           "size": 1,
           "type": {
@@ -2816,8 +2917,38 @@
           "networked": false
         },
         {
+          "name": "m_iTeammatePreferredColor",
+          "offset": 2824,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": false
+        },
+        {
+          "name": "m_bTeamChanged",
+          "offset": 2828,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": false
+        },
+        {
+          "name": "m_bInSwitchTeam",
+          "offset": 2829,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": false
+        },
+        {
           "name": "m_bHasSeenJoinGame",
-          "offset": 2822,
+          "offset": 2830,
           "size": 1,
           "type": {
             "name": "bool",
@@ -2827,7 +2958,7 @@
         },
         {
           "name": "m_bJustBecameSpectator",
-          "offset": 2823,
+          "offset": 2831,
           "size": 1,
           "type": {
             "name": "bool",
@@ -2837,7 +2968,7 @@
         },
         {
           "name": "m_bSwitchTeamsOnNextRoundReset",
-          "offset": 2824,
+          "offset": 2832,
           "size": 1,
           "type": {
             "name": "bool",
@@ -2847,7 +2978,7 @@
         },
         {
           "name": "m_bRemoveAllItemsOnNextRoundReset",
-          "offset": 2825,
+          "offset": 2833,
           "size": 1,
           "type": {
             "name": "bool",
@@ -2857,7 +2988,7 @@
         },
         {
           "name": "m_flLastJoinTeamTime",
-          "offset": 2828,
+          "offset": 2836,
           "size": 4,
           "type": {
             "name": "GameTime_t",
@@ -2867,7 +2998,7 @@
         },
         {
           "name": "m_szClan",
-          "offset": 2832,
+          "offset": 2840,
           "size": 8,
           "type": {
             "name": "CUtlSymbolLarge",
@@ -2877,8 +3008,18 @@
           "networked": true
         },
         {
+          "name": "m_unClanId32bit",
+          "offset": 2848,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
           "name": "m_iCoachingTeam",
-          "offset": 2840,
+          "offset": 2852,
           "size": 4,
           "type": {
             "name": "int32",
@@ -2888,16 +3029,6 @@
         },
         {
           "name": "m_nPlayerDominated",
-          "offset": 2848,
-          "size": 8,
-          "type": {
-            "name": "uint64",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": true
-        },
-        {
-          "name": "m_nPlayerDominatingMe",
           "offset": 2856,
           "size": 8,
           "type": {
@@ -2907,8 +3038,18 @@
           "networked": true
         },
         {
-          "name": "m_iCompetitiveRanking",
+          "name": "m_nPlayerDominatingMe",
           "offset": 2864,
+          "size": 8,
+          "type": {
+            "name": "uint64",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_iCompetitiveRanking",
+          "offset": 2872,
           "size": 4,
           "type": {
             "name": "int32",
@@ -2918,26 +3059,6 @@
         },
         {
           "name": "m_iCompetitiveWins",
-          "offset": 2868,
-          "size": 4,
-          "type": {
-            "name": "int32",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": true
-        },
-        {
-          "name": "m_iCompetitiveRankType",
-          "offset": 2872,
-          "size": 1,
-          "type": {
-            "name": "int8",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": true
-        },
-        {
-          "name": "m_iCompetitiveRankingPredicted_Win",
           "offset": 2876,
           "size": 4,
           "type": {
@@ -2947,17 +3068,17 @@
           "networked": true
         },
         {
-          "name": "m_iCompetitiveRankingPredicted_Loss",
+          "name": "m_iCompetitiveRankType",
           "offset": 2880,
-          "size": 4,
+          "size": 1,
           "type": {
-            "name": "int32",
+            "name": "int8",
             "category": "SCHEMA_TYPE_BUILTIN"
           },
           "networked": true
         },
         {
-          "name": "m_iCompetitiveRankingPredicted_Tie",
+          "name": "m_iCompetitiveRankingPredicted_Win",
           "offset": 2884,
           "size": 4,
           "type": {
@@ -2967,7 +3088,7 @@
           "networked": true
         },
         {
-          "name": "m_nEndMatchNextMapVote",
+          "name": "m_iCompetitiveRankingPredicted_Loss",
           "offset": 2888,
           "size": 4,
           "type": {
@@ -2977,8 +3098,28 @@
           "networked": true
         },
         {
-          "name": "m_unActiveQuestId",
+          "name": "m_iCompetitiveRankingPredicted_Tie",
           "offset": 2892,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_nEndMatchNextMapVote",
+          "offset": 2896,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_unActiveQuestId",
+          "offset": 2900,
           "size": 2,
           "type": {
             "name": "uint16",
@@ -2988,26 +3129,6 @@
         },
         {
           "name": "m_rtActiveMissionPeriod",
-          "offset": 2896,
-          "size": 4,
-          "type": {
-            "name": "uint32",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": true
-        },
-        {
-          "name": "m_nQuestProgressReason",
-          "offset": 2900,
-          "size": 4,
-          "type": {
-            "name": "QuestProgress::Reason",
-            "category": "SCHEMA_TYPE_DECLARED_ENUM"
-          },
-          "networked": true
-        },
-        {
-          "name": "m_unPlayerTvControlFlags",
           "offset": 2904,
           "size": 4,
           "type": {
@@ -3017,8 +3138,28 @@
           "networked": true
         },
         {
+          "name": "m_nQuestProgressReason",
+          "offset": 2908,
+          "size": 4,
+          "type": {
+            "name": "QuestProgress::Reason",
+            "category": "SCHEMA_TYPE_DECLARED_ENUM"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_unPlayerTvControlFlags",
+          "offset": 2912,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
           "name": "m_iDraftIndex",
-          "offset": 2952,
+          "offset": 2960,
           "size": 4,
           "type": {
             "name": "int32",
@@ -3028,26 +3169,6 @@
         },
         {
           "name": "m_msQueuedModeDisconnectionTimestamp",
-          "offset": 2956,
-          "size": 4,
-          "type": {
-            "name": "uint32",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": false
-        },
-        {
-          "name": "m_uiAbandonRecordedReason",
-          "offset": 2960,
-          "size": 4,
-          "type": {
-            "name": "uint32",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": false
-        },
-        {
-          "name": "m_eNetworkDisconnectionReason",
           "offset": 2964,
           "size": 4,
           "type": {
@@ -3057,8 +3178,28 @@
           "networked": false
         },
         {
-          "name": "m_bCannotBeKicked",
+          "name": "m_uiAbandonRecordedReason",
           "offset": 2968,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": false
+        },
+        {
+          "name": "m_eNetworkDisconnectionReason",
+          "offset": 2972,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": false
+        },
+        {
+          "name": "m_bCannotBeKicked",
+          "offset": 2976,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3068,7 +3209,7 @@
         },
         {
           "name": "m_bEverFullyConnected",
-          "offset": 2969,
+          "offset": 2977,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3078,7 +3219,7 @@
         },
         {
           "name": "m_bAbandonAllowsSurrender",
-          "offset": 2970,
+          "offset": 2978,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3088,7 +3229,7 @@
         },
         {
           "name": "m_bAbandonOffersInstantSurrender",
-          "offset": 2971,
+          "offset": 2979,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3098,7 +3239,7 @@
         },
         {
           "name": "m_bDisconnection1MinWarningPrinted",
-          "offset": 2972,
+          "offset": 2980,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3108,7 +3249,7 @@
         },
         {
           "name": "m_bScoreReported",
-          "offset": 2973,
+          "offset": 2981,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3118,7 +3259,7 @@
         },
         {
           "name": "m_nDisconnectionTick",
-          "offset": 2976,
+          "offset": 2984,
           "size": 4,
           "type": {
             "name": "int32",
@@ -3128,46 +3269,6 @@
         },
         {
           "name": "m_bControllingBot",
-          "offset": 2992,
-          "size": 1,
-          "type": {
-            "name": "bool",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": true
-        },
-        {
-          "name": "m_bHasControlledBotThisRound",
-          "offset": 2993,
-          "size": 1,
-          "type": {
-            "name": "bool",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": true
-        },
-        {
-          "name": "m_bHasBeenControlledByPlayerThisRound",
-          "offset": 2994,
-          "size": 1,
-          "type": {
-            "name": "bool",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": false
-        },
-        {
-          "name": "m_nBotsControlledThisRound",
-          "offset": 2996,
-          "size": 4,
-          "type": {
-            "name": "int32",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": false
-        },
-        {
-          "name": "m_bCanControlObservedBot",
           "offset": 3000,
           "size": 1,
           "type": {
@@ -3177,8 +3278,48 @@
           "networked": true
         },
         {
-          "name": "m_hPlayerPawn",
+          "name": "m_bHasControlledBotThisRound",
+          "offset": 3001,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_bHasBeenControlledByPlayerThisRound",
+          "offset": 3002,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": false
+        },
+        {
+          "name": "m_nBotsControlledThisRound",
           "offset": 3004,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": false
+        },
+        {
+          "name": "m_bCanControlObservedBot",
+          "offset": 3008,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_hPlayerPawn",
+          "offset": 3012,
           "size": 4,
           "type": {
             "name": "CHandle< CCSPlayerPawn >",
@@ -3190,7 +3331,7 @@
         },
         {
           "name": "m_hObserverPawn",
-          "offset": 3008,
+          "offset": 3016,
           "size": 4,
           "type": {
             "name": "CHandle< CCSObserverPawn >",
@@ -3202,7 +3343,7 @@
         },
         {
           "name": "m_DesiredObserverMode",
-          "offset": 3012,
+          "offset": 3020,
           "size": 4,
           "type": {
             "name": "int32",
@@ -3212,7 +3353,7 @@
         },
         {
           "name": "m_hDesiredObserverTarget",
-          "offset": 3016,
+          "offset": 3024,
           "size": 4,
           "type": {
             "name": "CEntityHandle",
@@ -3223,7 +3364,7 @@
         },
         {
           "name": "m_bPawnIsAlive",
-          "offset": 3020,
+          "offset": 3028,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3233,7 +3374,7 @@
         },
         {
           "name": "m_iPawnHealth",
-          "offset": 3024,
+          "offset": 3032,
           "size": 4,
           "type": {
             "name": "uint32",
@@ -3243,46 +3384,6 @@
         },
         {
           "name": "m_iPawnArmor",
-          "offset": 3028,
-          "size": 4,
-          "type": {
-            "name": "int32",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": true
-        },
-        {
-          "name": "m_bPawnHasDefuser",
-          "offset": 3032,
-          "size": 1,
-          "type": {
-            "name": "bool",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": true
-        },
-        {
-          "name": "m_bPawnHasHelmet",
-          "offset": 3033,
-          "size": 1,
-          "type": {
-            "name": "bool",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": true
-        },
-        {
-          "name": "m_nPawnCharacterDefIndex",
-          "offset": 3034,
-          "size": 2,
-          "type": {
-            "name": "uint16",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": true
-        },
-        {
-          "name": "m_iPawnLifetimeStart",
           "offset": 3036,
           "size": 4,
           "type": {
@@ -3292,17 +3393,37 @@
           "networked": true
         },
         {
-          "name": "m_iPawnLifetimeEnd",
+          "name": "m_bPawnHasDefuser",
           "offset": 3040,
-          "size": 4,
+          "size": 1,
           "type": {
-            "name": "int32",
+            "name": "bool",
             "category": "SCHEMA_TYPE_BUILTIN"
           },
           "networked": true
         },
         {
-          "name": "m_iPawnBotDifficulty",
+          "name": "m_bPawnHasHelmet",
+          "offset": 3041,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_nPawnCharacterDefIndex",
+          "offset": 3042,
+          "size": 2,
+          "type": {
+            "name": "uint16",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_iPawnLifetimeStart",
           "offset": 3044,
           "size": 4,
           "type": {
@@ -3312,8 +3433,28 @@
           "networked": true
         },
         {
-          "name": "m_hOriginalControllerOfCurrentPawn",
+          "name": "m_iPawnLifetimeEnd",
           "offset": 3048,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_iPawnBotDifficulty",
+          "offset": 3052,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_hOriginalControllerOfCurrentPawn",
+          "offset": 3056,
           "size": 4,
           "type": {
             "name": "CHandle< CCSPlayerController >",
@@ -3325,7 +3466,7 @@
         },
         {
           "name": "m_iScore",
-          "offset": 3052,
+          "offset": 3060,
           "size": 4,
           "type": {
             "name": "int32",
@@ -3335,7 +3476,7 @@
         },
         {
           "name": "m_iRoundScore",
-          "offset": 3056,
+          "offset": 3064,
           "size": 4,
           "type": {
             "name": "int32",
@@ -3345,7 +3486,7 @@
         },
         {
           "name": "m_iRoundsWon",
-          "offset": 3060,
+          "offset": 3068,
           "size": 4,
           "type": {
             "name": "int32",
@@ -3355,7 +3496,7 @@
         },
         {
           "name": "m_recentKillQueue",
-          "offset": 3064,
+          "offset": 3072,
           "size": 8,
           "type": {
             "name": "uint8[8]",
@@ -3367,7 +3508,7 @@
         },
         {
           "name": "m_nFirstKill",
-          "offset": 3072,
+          "offset": 3080,
           "size": 1,
           "type": {
             "name": "uint8",
@@ -3377,7 +3518,7 @@
         },
         {
           "name": "m_nKillCount",
-          "offset": 3073,
+          "offset": 3081,
           "size": 1,
           "type": {
             "name": "uint8",
@@ -3387,7 +3528,7 @@
         },
         {
           "name": "m_bMvpNoMusic",
-          "offset": 3074,
+          "offset": 3082,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3397,26 +3538,6 @@
         },
         {
           "name": "m_eMvpReason",
-          "offset": 3076,
-          "size": 4,
-          "type": {
-            "name": "int32",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": true
-        },
-        {
-          "name": "m_iMusicKitID",
-          "offset": 3080,
-          "size": 4,
-          "type": {
-            "name": "int32",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": true
-        },
-        {
-          "name": "m_iMusicKitMVPs",
           "offset": 3084,
           "size": 4,
           "type": {
@@ -3426,7 +3547,7 @@
           "networked": true
         },
         {
-          "name": "m_iMVPs",
+          "name": "m_iMusicKitID",
           "offset": 3088,
           "size": 4,
           "type": {
@@ -3436,8 +3557,28 @@
           "networked": true
         },
         {
-          "name": "m_nUpdateCounter",
+          "name": "m_iMusicKitMVPs",
           "offset": 3092,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_iMVPs",
+          "offset": 3096,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_nUpdateCounter",
+          "offset": 3100,
           "size": 4,
           "type": {
             "name": "int32",
@@ -3447,7 +3588,7 @@
         },
         {
           "name": "m_flSmoothedPing",
-          "offset": 3096,
+          "offset": 3104,
           "size": 4,
           "type": {
             "name": "float32",
@@ -3457,7 +3598,7 @@
         },
         {
           "name": "m_lastHeldVoteTimer",
-          "offset": 3104,
+          "offset": 3112,
           "size": 16,
           "type": {
             "name": "IntervalTimer",
@@ -3467,26 +3608,6 @@
         },
         {
           "name": "m_bShowHints",
-          "offset": 3128,
-          "size": 1,
-          "type": {
-            "name": "bool",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": false
-        },
-        {
-          "name": "m_iNextTimeCheck",
-          "offset": 3132,
-          "size": 4,
-          "type": {
-            "name": "int32",
-            "category": "SCHEMA_TYPE_BUILTIN"
-          },
-          "networked": false
-        },
-        {
-          "name": "m_bJustDidTeamKill",
           "offset": 3136,
           "size": 1,
           "type": {
@@ -3496,8 +3617,28 @@
           "networked": false
         },
         {
+          "name": "m_iNextTimeCheck",
+          "offset": 3140,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": false
+        },
+        {
+          "name": "m_bJustDidTeamKill",
+          "offset": 3144,
+          "size": 1,
+          "type": {
+            "name": "bool",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": false
+        },
+        {
           "name": "m_bPunishForTeamKill",
-          "offset": 3137,
+          "offset": 3145,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3507,7 +3648,7 @@
         },
         {
           "name": "m_bGaveTeamDamageWarning",
-          "offset": 3138,
+          "offset": 3146,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3517,7 +3658,7 @@
         },
         {
           "name": "m_bGaveTeamDamageWarningThisRound",
-          "offset": 3139,
+          "offset": 3147,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3527,7 +3668,7 @@
         },
         {
           "name": "m_dblLastReceivedPacketPlatFloatTime",
-          "offset": 3144,
+          "offset": 3152,
           "size": 8,
           "type": {
             "name": "float64",
@@ -3537,7 +3678,7 @@
         },
         {
           "name": "m_LastTeamDamageWarningTime",
-          "offset": 3152,
+          "offset": 3160,
           "size": 4,
           "type": {
             "name": "GameTime_t",
@@ -3547,7 +3688,7 @@
         },
         {
           "name": "m_LastTimePlayerWasDisconnectedForPawnsRemove",
-          "offset": 3156,
+          "offset": 3164,
           "size": 4,
           "type": {
             "name": "GameTime_t",
@@ -3557,7 +3698,7 @@
         },
         {
           "name": "m_nSuspiciousHitCount",
-          "offset": 3160,
+          "offset": 3168,
           "size": 4,
           "type": {
             "name": "uint32",
@@ -3567,7 +3708,7 @@
         },
         {
           "name": "m_nNonSuspiciousHitStreak",
-          "offset": 3164,
+          "offset": 3172,
           "size": 4,
           "type": {
             "name": "uint32",
@@ -3577,7 +3718,7 @@
         },
         {
           "name": "m_bFireBulletsSeedSynchronized",
-          "offset": 3329,
+          "offset": 3345,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3655,13 +3796,13 @@
       ]
     },
     "CCSPlayerPawn": {
-      "size": 5712,
+      "size": 6304,
       "base": "CCSPlayerPawnBase",
       "chain_offset": -1,
       "fields": [
         {
           "name": "m_pBulletServices",
-          "offset": 4104,
+          "offset": 4336,
           "size": 8,
           "type": {
             "name": "CCSPlayer_BulletServices*",
@@ -3672,7 +3813,7 @@
         },
         {
           "name": "m_pHostageServices",
-          "offset": 4112,
+          "offset": 4344,
           "size": 8,
           "type": {
             "name": "CCSPlayer_HostageServices*",
@@ -3683,7 +3824,7 @@
         },
         {
           "name": "m_pBuyServices",
-          "offset": 4120,
+          "offset": 4352,
           "size": 8,
           "type": {
             "name": "CCSPlayer_BuyServices*",
@@ -3694,7 +3835,7 @@
         },
         {
           "name": "m_pActionTrackingServices",
-          "offset": 4128,
+          "offset": 4360,
           "size": 8,
           "type": {
             "name": "CCSPlayer_ActionTrackingServices*",
@@ -3705,7 +3846,7 @@
         },
         {
           "name": "m_pAimPunchServices",
-          "offset": 4136,
+          "offset": 4368,
           "size": 8,
           "type": {
             "name": "CCSPlayer_AimPunchServices*",
@@ -3716,7 +3857,7 @@
         },
         {
           "name": "m_pRadioServices",
-          "offset": 4144,
+          "offset": 4376,
           "size": 8,
           "type": {
             "name": "CCSPlayer_RadioServices*",
@@ -3727,7 +3868,7 @@
         },
         {
           "name": "m_pDamageReactServices",
-          "offset": 4152,
+          "offset": 4384,
           "size": 8,
           "type": {
             "name": "CCSPlayer_DamageReactServices*",
@@ -3738,7 +3879,7 @@
         },
         {
           "name": "m_nCharacterDefIndex",
-          "offset": 4160,
+          "offset": 4392,
           "size": 2,
           "type": {
             "name": "uint16",
@@ -3748,7 +3889,7 @@
         },
         {
           "name": "m_bHasFemaleVoice",
-          "offset": 4162,
+          "offset": 4394,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3758,7 +3899,7 @@
         },
         {
           "name": "m_strVOPrefix",
-          "offset": 4168,
+          "offset": 4400,
           "size": 8,
           "type": {
             "name": "CUtlString",
@@ -3769,7 +3910,7 @@
         },
         {
           "name": "m_szLastPlaceName",
-          "offset": 4176,
+          "offset": 4408,
           "size": 18,
           "type": {
             "name": "char[18]",
@@ -3781,7 +3922,7 @@
         },
         {
           "name": "m_bInHostageResetZone",
-          "offset": 4416,
+          "offset": 4648,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3791,7 +3932,7 @@
         },
         {
           "name": "m_bInBuyZone",
-          "offset": 4417,
+          "offset": 4649,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3801,7 +3942,7 @@
         },
         {
           "name": "m_TouchingBuyZones",
-          "offset": 4424,
+          "offset": 4656,
           "size": 24,
           "type": {
             "name": "CUtlVector< CHandle< CBaseEntity > >",
@@ -3813,7 +3954,7 @@
         },
         {
           "name": "m_bWasInBuyZone",
-          "offset": 4448,
+          "offset": 4680,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3823,7 +3964,7 @@
         },
         {
           "name": "m_bInHostageRescueZone",
-          "offset": 4449,
+          "offset": 4681,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3833,7 +3974,7 @@
         },
         {
           "name": "m_bInBombZone",
-          "offset": 4450,
+          "offset": 4682,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3843,7 +3984,7 @@
         },
         {
           "name": "m_bWasInHostageRescueZone",
-          "offset": 4451,
+          "offset": 4683,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3853,7 +3994,7 @@
         },
         {
           "name": "m_iRetakesOffering",
-          "offset": 4452,
+          "offset": 4684,
           "size": 4,
           "type": {
             "name": "int32",
@@ -3863,7 +4004,7 @@
         },
         {
           "name": "m_iRetakesOfferingCard",
-          "offset": 4456,
+          "offset": 4688,
           "size": 4,
           "type": {
             "name": "int32",
@@ -3873,7 +4014,7 @@
         },
         {
           "name": "m_bRetakesHasDefuseKit",
-          "offset": 4460,
+          "offset": 4692,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3883,7 +4024,7 @@
         },
         {
           "name": "m_bRetakesMVPLastRound",
-          "offset": 4461,
+          "offset": 4693,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3893,7 +4034,7 @@
         },
         {
           "name": "m_iRetakesMVPBoostItem",
-          "offset": 4464,
+          "offset": 4696,
           "size": 4,
           "type": {
             "name": "int32",
@@ -3903,7 +4044,7 @@
         },
         {
           "name": "m_RetakesMVPBoostExtraUtility",
-          "offset": 4468,
+          "offset": 4700,
           "size": 4,
           "type": {
             "name": "loadout_slot_t",
@@ -3913,7 +4054,7 @@
         },
         {
           "name": "m_flHealthShotBoostExpirationTime",
-          "offset": 4472,
+          "offset": 4704,
           "size": 4,
           "type": {
             "name": "GameTime_t",
@@ -3923,7 +4064,7 @@
         },
         {
           "name": "m_flLandingTimeSeconds",
-          "offset": 4476,
+          "offset": 4708,
           "size": 4,
           "type": {
             "name": "float32",
@@ -3933,7 +4074,7 @@
         },
         {
           "name": "m_bIsBuyMenuOpen",
-          "offset": 4480,
+          "offset": 4712,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3943,7 +4084,7 @@
         },
         {
           "name": "m_lastLandTime",
-          "offset": 4536,
+          "offset": 4768,
           "size": 4,
           "type": {
             "name": "GameTime_t",
@@ -3953,7 +4094,7 @@
         },
         {
           "name": "m_bOnGroundLastTick",
-          "offset": 4540,
+          "offset": 4772,
           "size": 1,
           "type": {
             "name": "bool",
@@ -3963,7 +4104,7 @@
         },
         {
           "name": "m_iPlayerLocked",
-          "offset": 4544,
+          "offset": 4776,
           "size": 4,
           "type": {
             "name": "int32",
@@ -3973,7 +4114,7 @@
         },
         {
           "name": "m_flTimeOfLastInjury",
-          "offset": 4552,
+          "offset": 4784,
           "size": 4,
           "type": {
             "name": "GameTime_t",
@@ -3983,7 +4124,7 @@
         },
         {
           "name": "m_flNextSprayDecalTime",
-          "offset": 4556,
+          "offset": 4788,
           "size": 4,
           "type": {
             "name": "GameTime_t",
@@ -3993,7 +4134,7 @@
         },
         {
           "name": "m_bNextSprayDecalTimeExpedited",
-          "offset": 4560,
+          "offset": 4792,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4003,7 +4144,7 @@
         },
         {
           "name": "m_nRagdollDamageBone",
-          "offset": 4564,
+          "offset": 4796,
           "size": 4,
           "type": {
             "name": "int32",
@@ -4013,7 +4154,7 @@
         },
         {
           "name": "m_vRagdollDamageForce",
-          "offset": 4568,
+          "offset": 4800,
           "size": 12,
           "type": {
             "name": "Vector",
@@ -4024,7 +4165,7 @@
         },
         {
           "name": "m_szRagdollDamageWeaponName",
-          "offset": 4580,
+          "offset": 4812,
           "size": 64,
           "type": {
             "name": "char[64]",
@@ -4036,7 +4177,7 @@
         },
         {
           "name": "m_bRagdollDamageHeadshot",
-          "offset": 4644,
+          "offset": 4876,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4046,7 +4187,7 @@
         },
         {
           "name": "m_vRagdollServerOrigin",
-          "offset": 4648,
+          "offset": 4880,
           "size": 12,
           "type": {
             "name": "VectorWS",
@@ -4057,8 +4198,8 @@
         },
         {
           "name": "m_EconGloves",
-          "offset": 4664,
-          "size": 680,
+          "offset": 4896,
+          "size": 1000,
           "type": {
             "name": "CEconItemView",
             "category": "SCHEMA_TYPE_DECLARED_CLASS"
@@ -4067,7 +4208,7 @@
         },
         {
           "name": "m_nEconGlovesChanged",
-          "offset": 5344,
+          "offset": 5896,
           "size": 1,
           "type": {
             "name": "uint8",
@@ -4076,8 +4217,32 @@
           "networked": true
         },
         {
+          "name": "m_vecCurrentMinimapVolumes",
+          "offset": 5904,
+          "size": 24,
+          "type": {
+            "name": "CUtlVector< CHandle< CCSMinimapVolume > >",
+            "category": "SCHEMA_TYPE_ATOMIC",
+            "atomic": "SCHEMA_ATOMIC_COLLECTION_OF_T",
+            "inner": "CHandle< CCSMinimapVolume >"
+          },
+          "networked": false
+        },
+        {
+          "name": "m_hActiveMinimapVolume",
+          "offset": 5928,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CCSMinimapVolume >",
+            "category": "SCHEMA_TYPE_ATOMIC",
+            "atomic": "SCHEMA_ATOMIC_T",
+            "inner": "CCSMinimapVolume"
+          },
+          "networked": true
+        },
+        {
           "name": "m_qDeathEyeAngles",
-          "offset": 5348,
+          "offset": 5932,
           "size": 12,
           "type": {
             "name": "QAngle",
@@ -4088,7 +4253,7 @@
         },
         {
           "name": "m_bLeftHanded",
-          "offset": 5360,
+          "offset": 5944,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4098,7 +4263,7 @@
         },
         {
           "name": "m_fSwitchedHandednessTime",
-          "offset": 5364,
+          "offset": 5948,
           "size": 4,
           "type": {
             "name": "GameTime_t",
@@ -4108,7 +4273,7 @@
         },
         {
           "name": "m_flViewmodelOffsetX",
-          "offset": 5368,
+          "offset": 5952,
           "size": 4,
           "type": {
             "name": "float32",
@@ -4118,7 +4283,7 @@
         },
         {
           "name": "m_flViewmodelOffsetY",
-          "offset": 5372,
+          "offset": 5956,
           "size": 4,
           "type": {
             "name": "float32",
@@ -4128,7 +4293,7 @@
         },
         {
           "name": "m_flViewmodelOffsetZ",
-          "offset": 5376,
+          "offset": 5960,
           "size": 4,
           "type": {
             "name": "float32",
@@ -4138,7 +4303,7 @@
         },
         {
           "name": "m_flViewmodelFOV",
-          "offset": 5380,
+          "offset": 5964,
           "size": 4,
           "type": {
             "name": "float32",
@@ -4148,7 +4313,7 @@
         },
         {
           "name": "m_bIsWalking",
-          "offset": 5384,
+          "offset": 5968,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4158,7 +4323,7 @@
         },
         {
           "name": "m_fLastGivenDefuserTime",
-          "offset": 5388,
+          "offset": 5972,
           "size": 4,
           "type": {
             "name": "float32",
@@ -4168,7 +4333,7 @@
         },
         {
           "name": "m_fLastGivenBombTime",
-          "offset": 5392,
+          "offset": 5976,
           "size": 4,
           "type": {
             "name": "float32",
@@ -4178,7 +4343,7 @@
         },
         {
           "name": "m_flDealtDamageToEnemyMostRecentTimestamp",
-          "offset": 5396,
+          "offset": 5980,
           "size": 4,
           "type": {
             "name": "float32",
@@ -4188,7 +4353,7 @@
         },
         {
           "name": "m_iDisplayHistoryBits",
-          "offset": 5400,
+          "offset": 5984,
           "size": 4,
           "type": {
             "name": "uint32",
@@ -4198,7 +4363,7 @@
         },
         {
           "name": "m_flLastAttackedTeammate",
-          "offset": 5404,
+          "offset": 5988,
           "size": 4,
           "type": {
             "name": "float32",
@@ -4208,7 +4373,7 @@
         },
         {
           "name": "m_allowAutoFollowTime",
-          "offset": 5408,
+          "offset": 5992,
           "size": 4,
           "type": {
             "name": "GameTime_t",
@@ -4218,7 +4383,7 @@
         },
         {
           "name": "m_bResetArmorNextSpawn",
-          "offset": 5412,
+          "offset": 5996,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4228,7 +4393,7 @@
         },
         {
           "name": "m_nLastKillerIndex",
-          "offset": 5416,
+          "offset": 6000,
           "size": 4,
           "type": {
             "name": "CEntityIndex",
@@ -4239,7 +4404,7 @@
         },
         {
           "name": "m_entitySpottedState",
-          "offset": 5424,
+          "offset": 6008,
           "size": 24,
           "type": {
             "name": "EntitySpottedState_t",
@@ -4249,7 +4414,7 @@
         },
         {
           "name": "m_nSpotRules",
-          "offset": 5448,
+          "offset": 6032,
           "size": 4,
           "type": {
             "name": "int32",
@@ -4259,7 +4424,7 @@
         },
         {
           "name": "m_bIsScoped",
-          "offset": 5452,
+          "offset": 6036,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4269,7 +4434,7 @@
         },
         {
           "name": "m_bResumeZoom",
-          "offset": 5453,
+          "offset": 6037,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4279,7 +4444,7 @@
         },
         {
           "name": "m_bIsDefusing",
-          "offset": 5454,
+          "offset": 6038,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4289,7 +4454,7 @@
         },
         {
           "name": "m_bIsGrabbingHostage",
-          "offset": 5455,
+          "offset": 6039,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4299,7 +4464,7 @@
         },
         {
           "name": "m_iBlockingUseActionInProgress",
-          "offset": 5456,
+          "offset": 6040,
           "size": 4,
           "type": {
             "name": "CSPlayerBlockingUseAction_t",
@@ -4309,7 +4474,7 @@
         },
         {
           "name": "m_flEmitSoundTime",
-          "offset": 5460,
+          "offset": 6044,
           "size": 4,
           "type": {
             "name": "GameTime_t",
@@ -4319,7 +4484,7 @@
         },
         {
           "name": "m_bInNoDefuseArea",
-          "offset": 5464,
+          "offset": 6048,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4329,7 +4494,7 @@
         },
         {
           "name": "m_iBombSiteIndex",
-          "offset": 5468,
+          "offset": 6052,
           "size": 4,
           "type": {
             "name": "CEntityIndex",
@@ -4340,7 +4505,7 @@
         },
         {
           "name": "m_nWhichBombZone",
-          "offset": 5472,
+          "offset": 6056,
           "size": 4,
           "type": {
             "name": "int32",
@@ -4350,7 +4515,7 @@
         },
         {
           "name": "m_bInBombZoneTrigger",
-          "offset": 5476,
+          "offset": 6060,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4360,7 +4525,7 @@
         },
         {
           "name": "m_bWasInBombZoneTrigger",
-          "offset": 5477,
+          "offset": 6061,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4370,7 +4535,7 @@
         },
         {
           "name": "m_iShotsFired",
-          "offset": 5480,
+          "offset": 6064,
           "size": 4,
           "type": {
             "name": "int32",
@@ -4380,7 +4545,7 @@
         },
         {
           "name": "m_flFlinchStack",
-          "offset": 5484,
+          "offset": 6068,
           "size": 4,
           "type": {
             "name": "float32",
@@ -4390,7 +4555,7 @@
         },
         {
           "name": "m_flVelocityModifier",
-          "offset": 5488,
+          "offset": 6072,
           "size": 4,
           "type": {
             "name": "float32",
@@ -4400,7 +4565,7 @@
         },
         {
           "name": "m_vecTotalBulletForce",
-          "offset": 5492,
+          "offset": 6076,
           "size": 12,
           "type": {
             "name": "Vector",
@@ -4411,7 +4576,7 @@
         },
         {
           "name": "m_bWaitForNoAttack",
-          "offset": 5504,
+          "offset": 6088,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4421,7 +4586,7 @@
         },
         {
           "name": "m_ignoreLadderJumpTime",
-          "offset": 5508,
+          "offset": 6092,
           "size": 4,
           "type": {
             "name": "float32",
@@ -4431,7 +4596,7 @@
         },
         {
           "name": "m_bKilledByHeadshot",
-          "offset": 5512,
+          "offset": 6096,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4441,7 +4606,7 @@
         },
         {
           "name": "m_LastHitBox",
-          "offset": 5516,
+          "offset": 6100,
           "size": 4,
           "type": {
             "name": "int32",
@@ -4451,7 +4616,7 @@
         },
         {
           "name": "m_pBot",
-          "offset": 5520,
+          "offset": 6104,
           "size": 8,
           "type": {
             "name": "CCSBot*",
@@ -4462,7 +4627,7 @@
         },
         {
           "name": "m_bBotAllowActive",
-          "offset": 5528,
+          "offset": 6112,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4472,7 +4637,7 @@
         },
         {
           "name": "m_nLastPickupPriority",
-          "offset": 5532,
+          "offset": 6116,
           "size": 4,
           "type": {
             "name": "int32",
@@ -4482,7 +4647,7 @@
         },
         {
           "name": "m_flLastPickupPriorityTime",
-          "offset": 5536,
+          "offset": 6120,
           "size": 4,
           "type": {
             "name": "float32",
@@ -4492,7 +4657,7 @@
         },
         {
           "name": "m_ArmorValue",
-          "offset": 5540,
+          "offset": 6124,
           "size": 4,
           "type": {
             "name": "int32",
@@ -4502,7 +4667,7 @@
         },
         {
           "name": "m_unCurrentEquipmentValue",
-          "offset": 5544,
+          "offset": 6128,
           "size": 2,
           "type": {
             "name": "uint16",
@@ -4512,7 +4677,7 @@
         },
         {
           "name": "m_unRoundStartEquipmentValue",
-          "offset": 5546,
+          "offset": 6130,
           "size": 2,
           "type": {
             "name": "uint16",
@@ -4522,7 +4687,7 @@
         },
         {
           "name": "m_unFreezetimeEndEquipmentValue",
-          "offset": 5548,
+          "offset": 6132,
           "size": 2,
           "type": {
             "name": "uint16",
@@ -4532,7 +4697,7 @@
         },
         {
           "name": "m_iLastWeaponFireUsercmd",
-          "offset": 5552,
+          "offset": 6136,
           "size": 4,
           "type": {
             "name": "int32",
@@ -4542,7 +4707,7 @@
         },
         {
           "name": "m_bIsSpawning",
-          "offset": 5556,
+          "offset": 6140,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4552,7 +4717,7 @@
         },
         {
           "name": "m_iDeathFlags",
-          "offset": 5568,
+          "offset": 6152,
           "size": 4,
           "type": {
             "name": "int32",
@@ -4562,7 +4727,7 @@
         },
         {
           "name": "m_bHasDeathInfo",
-          "offset": 5572,
+          "offset": 6156,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4572,7 +4737,7 @@
         },
         {
           "name": "m_flDeathInfoTime",
-          "offset": 5576,
+          "offset": 6160,
           "size": 4,
           "type": {
             "name": "float32",
@@ -4582,7 +4747,7 @@
         },
         {
           "name": "m_vecDeathInfoOrigin",
-          "offset": 5580,
+          "offset": 6164,
           "size": 12,
           "type": {
             "name": "VectorWS",
@@ -4593,7 +4758,7 @@
         },
         {
           "name": "m_vecPlayerPatchEconIndices",
-          "offset": 5592,
+          "offset": 6176,
           "size": 20,
           "type": {
             "name": "uint32[5]",
@@ -4605,7 +4770,7 @@
         },
         {
           "name": "m_GunGameImmunityColor",
-          "offset": 5612,
+          "offset": 6196,
           "size": 4,
           "type": {
             "name": "Color",
@@ -4616,7 +4781,7 @@
         },
         {
           "name": "m_grenadeParameterStashTime",
-          "offset": 5616,
+          "offset": 6200,
           "size": 4,
           "type": {
             "name": "GameTime_t",
@@ -4626,7 +4791,7 @@
         },
         {
           "name": "m_bGrenadeParametersStashed",
-          "offset": 5620,
+          "offset": 6204,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4636,7 +4801,7 @@
         },
         {
           "name": "m_angStashedShootAngles",
-          "offset": 5624,
+          "offset": 6208,
           "size": 12,
           "type": {
             "name": "QAngle",
@@ -4647,7 +4812,7 @@
         },
         {
           "name": "m_vecStashedGrenadeThrowPosition",
-          "offset": 5636,
+          "offset": 6220,
           "size": 12,
           "type": {
             "name": "VectorWS",
@@ -4658,7 +4823,7 @@
         },
         {
           "name": "m_vecStashedGrenadeThrowPawnCenter",
-          "offset": 5648,
+          "offset": 6232,
           "size": 12,
           "type": {
             "name": "VectorWS",
@@ -4669,7 +4834,7 @@
         },
         {
           "name": "m_vecStashedVelocity",
-          "offset": 5660,
+          "offset": 6244,
           "size": 12,
           "type": {
             "name": "Vector",
@@ -4680,7 +4845,7 @@
         },
         {
           "name": "m_bCommittingSuicideOnTeamChange",
-          "offset": 5680,
+          "offset": 6264,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4690,7 +4855,7 @@
         },
         {
           "name": "m_wasNotKilledNaturally",
-          "offset": 5681,
+          "offset": 6265,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4700,7 +4865,7 @@
         },
         {
           "name": "m_fImmuneToGunGameDamageTime",
-          "offset": 5684,
+          "offset": 6268,
           "size": 4,
           "type": {
             "name": "GameTime_t",
@@ -4710,7 +4875,7 @@
         },
         {
           "name": "m_bGunGameImmunity",
-          "offset": 5688,
+          "offset": 6272,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4720,7 +4885,7 @@
         },
         {
           "name": "m_fMolotovDamageTime",
-          "offset": 5692,
+          "offset": 6276,
           "size": 4,
           "type": {
             "name": "float32",
@@ -4730,7 +4895,7 @@
         },
         {
           "name": "m_angEyeAngles",
-          "offset": 5696,
+          "offset": 6280,
           "size": 12,
           "type": {
             "name": "QAngle",
@@ -4742,13 +4907,13 @@
       ]
     },
     "CCSPlayerPawnBase": {
-      "size": 4096,
+      "size": 4336,
       "base": "CBasePlayerPawn",
       "chain_offset": -1,
       "fields": [
         {
           "name": "m_CTouchExpansionComponent",
-          "offset": 3784,
+          "offset": 4016,
           "size": 80,
           "type": {
             "name": "CTouchExpansionComponent",
@@ -4758,7 +4923,7 @@
         },
         {
           "name": "m_pPingServices",
-          "offset": 3864,
+          "offset": 4096,
           "size": 8,
           "type": {
             "name": "CCSPlayer_PingServices*",
@@ -4769,7 +4934,7 @@
         },
         {
           "name": "m_blindUntilTime",
-          "offset": 3872,
+          "offset": 4104,
           "size": 4,
           "type": {
             "name": "GameTime_t",
@@ -4779,7 +4944,7 @@
         },
         {
           "name": "m_blindStartTime",
-          "offset": 3876,
+          "offset": 4108,
           "size": 4,
           "type": {
             "name": "GameTime_t",
@@ -4789,7 +4954,7 @@
         },
         {
           "name": "m_iPlayerState",
-          "offset": 3880,
+          "offset": 4112,
           "size": 4,
           "type": {
             "name": "CSPlayerState",
@@ -4799,7 +4964,7 @@
         },
         {
           "name": "m_bRespawning",
-          "offset": 4056,
+          "offset": 4288,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4809,7 +4974,7 @@
         },
         {
           "name": "m_bHasMovedSinceSpawn",
-          "offset": 4057,
+          "offset": 4289,
           "size": 1,
           "type": {
             "name": "bool",
@@ -4819,7 +4984,7 @@
         },
         {
           "name": "m_iNumSpawns",
-          "offset": 4060,
+          "offset": 4292,
           "size": 4,
           "type": {
             "name": "int32",
@@ -4829,7 +4994,7 @@
         },
         {
           "name": "m_flIdleTimeSinceLastAction",
-          "offset": 4068,
+          "offset": 4300,
           "size": 4,
           "type": {
             "name": "float32",
@@ -4839,7 +5004,7 @@
         },
         {
           "name": "m_fNextRadarUpdateTime",
-          "offset": 4072,
+          "offset": 4304,
           "size": 4,
           "type": {
             "name": "float32",
@@ -4849,7 +5014,7 @@
         },
         {
           "name": "m_flFlashDuration",
-          "offset": 4076,
+          "offset": 4308,
           "size": 4,
           "type": {
             "name": "float32",
@@ -4859,7 +5024,7 @@
         },
         {
           "name": "m_flFlashMaxAlpha",
-          "offset": 4080,
+          "offset": 4312,
           "size": 4,
           "type": {
             "name": "float32",
@@ -4869,7 +5034,7 @@
         },
         {
           "name": "m_flProgressBarStartTime",
-          "offset": 4084,
+          "offset": 4316,
           "size": 4,
           "type": {
             "name": "float32",
@@ -4879,7 +5044,7 @@
         },
         {
           "name": "m_iProgressBarDuration",
-          "offset": 4088,
+          "offset": 4320,
           "size": 4,
           "type": {
             "name": "int32",
@@ -4889,7 +5054,7 @@
         },
         {
           "name": "m_hOriginalController",
-          "offset": 4092,
+          "offset": 4324,
           "size": 4,
           "type": {
             "name": "CHandle< CCSPlayerController >",
@@ -4968,6 +5133,105 @@
             "atomic": "SCHEMA_ATOMIC_PLAIN"
           },
           "networked": true
+        }
+      ]
+    },
+    "CEconEntity": {
+      "size": 4496,
+      "base": "CBaseAnimGraph",
+      "chain_offset": -1,
+      "fields": [
+        {
+          "name": "m_AttributeManager",
+          "offset": 3384,
+          "size": 1080,
+          "type": {
+            "name": "CAttributeContainer",
+            "category": "SCHEMA_TYPE_DECLARED_CLASS"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_OriginalOwnerXuidLow",
+          "offset": 4464,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_OriginalOwnerXuidHigh",
+          "offset": 4468,
+          "size": 4,
+          "type": {
+            "name": "uint32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_nFallbackPaintKit",
+          "offset": 4472,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_nFallbackSeed",
+          "offset": 4476,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_flFallbackWear",
+          "offset": 4480,
+          "size": 4,
+          "type": {
+            "name": "float32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_nFallbackStatTrak",
+          "offset": 4484,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": true
+        },
+        {
+          "name": "m_hOldProvidee",
+          "offset": 4488,
+          "size": 4,
+          "type": {
+            "name": "CHandle< CBaseEntity >",
+            "category": "SCHEMA_TYPE_ATOMIC",
+            "atomic": "SCHEMA_ATOMIC_T",
+            "inner": "CBaseEntity"
+          },
+          "networked": false
+        },
+        {
+          "name": "m_iOldOwnerClass",
+          "offset": 4492,
+          "size": 4,
+          "type": {
+            "name": "int32",
+            "category": "SCHEMA_TYPE_BUILTIN"
+          },
+          "networked": false
         }
       ]
     },

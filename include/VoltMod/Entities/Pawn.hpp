@@ -56,6 +56,10 @@ public:
     /** The carried weapons, knife and grenades included. */
     std::vector<Entity> Weapons() const;
 
+    /** Keep the weapon in hand from either attack before engine tick @p tick. A weapon switched to
+     *  later is not covered, so call it every frame to hold fire for a while. */
+    void HoldFire(int tick) const;
+
     VoltMod::ObserverMode ObserverMode() const;
     Status SetObserverMode(VoltMod::ObserverMode mode) const;
 
