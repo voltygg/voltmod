@@ -32,7 +32,8 @@ protected:
     CEntityInstance* _e = nullptr;
 
 public:
-    Entity() = default;
+    // Not `= default`: GCC then needs the member initializers for AcceptInput's `activator = {}`.
+    Entity() noexcept {}
 
     /** Prefer `runtime.Entities` lookups over building one by hand. */
     Entity(EntitySystem& entities, CEntityInstance* raw) noexcept : _sys(&entities), _e(raw) {}
