@@ -4,6 +4,26 @@
 
 What changed in each VoltMod release. Older history is in git.
 
+## 1.6.0 (2026-09-25)
+
+### Breaking
+
+- Rebuild every plugin against this release: the host ABI is now 3.
+- Call entity verbs on the entity or pawn (`entity.Remove()`, `AcceptInput`, `pawn.GiveItem`,
+  `StripWeapons`) and spawn with `runtime.Entities.Spawn`; `EntityOps`, `Items` and `PawnOps` are gone.
+- Getters name what they return (`Entities.Pawn(slot)`, `Entities.Get(ref)`, `player.Controller()`),
+  and `runtime.World.Trace`, `Rounds`, `Precache` and `NetChannels` now sit directly on `runtime`.
+- Move `configs/translations` and `configs/migrations` to `translations/` and `migrations/`, and
+  call `LoadConfig` where you called `LoadStandardConfig`.
+- Panorama screens extend `screen.xml.j2`, and image sets move from `images/custom_game/<set>/`
+  to `images/<set>/`.
+
+### New
+
+- Hook and apply entity damage, spawn props, particles and beams, and find entities with
+  `FindAll` and `AlivePawns`.
+- Built against CS2 build 2000917 and hl2sdk-cs2 2026.09.25.
+
 ## 1.5.5 (2026-09-20)
 
 ### Breaking
