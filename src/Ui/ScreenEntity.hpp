@@ -84,8 +84,9 @@ private:
     bool _playersChangedSinceSpawn = true;
     WriteCache _written;
 
-    /** Declared last: its handler touches the members above. */
+    /** Declared last: their handlers touch the members above. */
     Subscription _slotChanges;
+    Subscription _fullConnects;
 };
 
 }  // namespace VoltMod

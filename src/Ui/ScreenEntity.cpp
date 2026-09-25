@@ -44,6 +44,11 @@ ScreenEntity::ScreenEntity(EntitySystem& entities, SlotEvents& slots, Visibility
             _written.RemoveSlot(slot);
         }
     };
+    // The game resets the slot's per-player state as its client finishes loading, so resend it.
+    _fullConnects = slots.FullyConnected += [this](int slot) {
+        _playersChangedSinceSpawn = true;
+        _written.RemoveSlot(slot);
+    };
 }
 
 ScreenEntity::~ScreenEntity()

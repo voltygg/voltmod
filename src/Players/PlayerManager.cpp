@@ -128,6 +128,8 @@ void PlayerManager::OnClientFullyConnected(int slot)
 {
     if (Player* player = Get(slot))
     {
+        // First, as in Add: per-slot caches drop before a handler writes.
+        _slots.FullyConnected.Raise(slot);
         FullyConnected.Raise(*player);
     }
 }

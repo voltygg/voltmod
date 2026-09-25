@@ -20,6 +20,10 @@ public:
     /** `runtime.Slots.Changed += [](int slot) { ... };` */
     Event<int> Changed;
 
+    /** The slot's client finished loading. The game resets what it keeps per player controller
+     *  then, such as a custom HUD's per-player classes and text. */
+    Event<int> FullyConnected;
+
     /** Notify every handler that @p slot changed hands. PlayerManager's to call. */
     void Raise(int slot) { Changed.Raise(slot); }
 };
