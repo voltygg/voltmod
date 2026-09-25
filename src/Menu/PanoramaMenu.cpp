@@ -9,7 +9,7 @@
 namespace VoltMod
 {
 
-PanoramaMenu::PanoramaMenu(const Services& services, MenuLayout& layout, uint64_t addonId)
+PanoramaMenu::PanoramaMenu(const Services& services, PanoramaMenuLayout& layout, uint64_t addonId)
     : _services(services),
       _layout(layout),
       _stack(*this, _services.Translations, services.Scheduler, services.Slots),

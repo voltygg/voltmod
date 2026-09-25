@@ -1,0 +1,15 @@
+{#- Every screen extends this and puts its markup in `content`. It includes the screen's stylesheet
+    and makes the root panel, whose id is the screen name. The root starts `hidden`; set
+    `starts_hidden = false` for a screen that shows at once, and `hittest = false` to let clicks
+    through the root. -#}
+<root>
+  <styles>
+    <include src="file://{resources}/styles/custom_game/{{screen}}.css" />
+  </styles>
+
+  <Panel class="layer" hittest="false">
+    <Panel id="{{screen}}" class="screen{{ ' hidden' if starts_hidden | default(true) }}" hittest="{{ 'true' if hittest | default(true) else 'false' }}">
+      {%- block content %}{% endblock %}
+    </Panel>
+  </Panel>
+</root>

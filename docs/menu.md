@@ -272,7 +272,7 @@ screen and takes clicks instead of keys.
 
 ```cpp
 // App.hpp
-VoltMod::PanoramaMenuLayout _layout{runtime.Screens, AdminMenuLayout::Layout, AdminMenuLayout::Tabs.size(),
+VoltMod::PanoramaMenuLayout _layout{runtime.Screens, AdminMenuLayout::Name, AdminMenuLayout::Tabs.size(),
                                      AdminMenuLayout::Rows.size(), AdminMenuLayout::IconSetNames};
 std::optional<VoltMod::PanoramaMenu> _panorama;
 VoltMod::Subscription _preferPanorama;           // after the menu, so it lets go first
@@ -291,18 +291,10 @@ downloading the addon. Every later call follows the surface holding that player'
 starting a session closes the one the player had on the other surface. `addonId` is 0 when the
 layout is already compiled into the client.
 
-The plugin tells @ref VoltMod::PanoramaMenu how to draw by implementing @ref VoltMod::MenuLayout,
-which knows element ids and nothing about menus: `RowCount`, `TabCount`, `Show`/`Hide`, the `Set*`
-writes, and `ButtonFor(id)` mapping a pressed id to a @ref VoltMod::MenuButton. The root menu's
-submenus become the layout's sidebar tabs. Writing that class is @ref custom_ui_guide; authoring
-the screen it draws on is @ref panorama_guide.
-
-A screen built from the `menu` Panorama block uses @ref VoltMod::PanoramaMenuLayout instead of a
-class of its own:
-
-```cpp
-VoltMod::PanoramaMenuLayout _layout{runtime.Screens, MainMenuLayout::Layout, MainMenuLayout::Tabs.size(), MainMenuLayout::Rows.size(),  MainMenuLayout::IconSetNames};
-```
+@ref VoltMod::PanoramaMenu draws on a screen built from the `menu` Panorama block, through
+@ref VoltMod::PanoramaMenuLayout, which knows element ids and nothing about menus: `Show`/`Hide`,
+the `Set*` writes, and `ButtonFor(id)` mapping a pressed id to a @ref VoltMod::MenuButton. The
+root menu's submenus become the sidebar tabs. Authoring the screen is @ref panorama_guide.
 
 A screen can pass the block `home` markup, such as a welcome panel. It replaces the rows while
 the root menu shows, when the screen panel has the `screen--home` class. The surface writes that
@@ -322,7 +314,7 @@ subscribes to it, because a held commit lands on a timer rather than on a press.
 ## Headers
 
 Include the specific menu headers a translation unit uses, or `<VoltMod/Menu/Api.hpp>` for the full
-public surface. `MenuBuilder.hpp`, `Flow.hpp`, `MenuStack.hpp`, `MenuLayout.hpp` and
+public surface. `MenuBuilder.hpp`, `Flow.hpp`, `MenuStack.hpp` and
 `MenuRouter.hpp` are SDK-free - the two calls a row makes into a live session go through
 @ref VoltMod::MenuSurface, an abstract class with no engine behind it - which is what lets the
 `tests/Menu/` suite drive real rows and real flows against a fake session. `CenterHtmlMenu.hpp`,

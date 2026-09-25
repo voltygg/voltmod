@@ -14,8 +14,8 @@ MODIFIER_CLASS = re.compile(r"^([A-Za-z_]\w*(?:-\w+)*)--(\w+(?:-\w+)*)$")
 SELECTOR_CLASS = re.compile(r"\.([A-Za-z0-9_-]+)")
 IMAGE_SOURCE = re.compile(r"^s2r://panorama/images/([^/]+)/([^/]+)\.vtex$")
 
-# The C++ namespace a template asks for, as `{# namespace: Some::Name #}`.
-NAMESPACE_DIRECTIVE = re.compile(r"\{#-?\s*namespace:\s*([A-Za-z_][A-Za-z0-9_:]*)\s*-?#\}")
+# Blocks whose modifiers C++ picks exactly one of, so the header lists their names.
+CHOICE_BLOCKS = ("icon-set", "bar")
 
 # A name inside a repeated block: `<name><index>`, with an optional `_<suffix>`.
 INDEXED_NAME = re.compile(r"^([a-z][a-z_]*?)(\d+)(?:_(\w+))?$")
@@ -70,7 +70,7 @@ class Screen:
     tree: ElementTree.Element
     ids: list[str] = field(default_factory=list)
     variables: list[str] = field(default_factory=list)
-    # `block` or `block__element` -> its modifiers, both in first-appearance order.
+    # A block in CHOICE_BLOCKS -> its modifiers, both in first-appearance order.
     modifiers: dict[str, list[str]] = field(default_factory=dict)
 
     @cached_property
@@ -116,7 +116,6 @@ def read_screen(layout: str, stylesheet: str, source: Path | None = None) -> Scr
     ids = [node.get("id", "") for node in nodes if node.get("id")]
     screen = Screen(name=ids[0] if ids else "", tree=tree, ids=ids[1:])
 
-    # Layout first, so an icon set's modifiers keep the order its Images are stacked in.
     for node in nodes:
         found = DIALOG_VARIABLE.match(node.get("text", ""))
         if found and found.group(1) not in screen.variables:
@@ -126,10 +125,9 @@ def read_screen(layout: str, stylesheet: str, source: Path | None = None) -> Scr
     return screen
 
 
-def header_namespace(screen: Screen, template_source: str) -> str:
-    """The namespace the template names, or `Screens::<Screen>`."""
-    found = NAMESPACE_DIRECTIVE.search(template_source)
-    return found.group(1) if found else f"Screens::{pascal_case(screen.name)}"
+def header_namespace(screen: Screen) -> str:
+    """`stronghold_hud` -> `StrongholdHudLayout`."""
+    return f"{pascal_case(screen.name)}Layout"
 
 
 def pascal_case(name: str) -> str:
@@ -165,9 +163,8 @@ def _with_suffix(base: str, suffix: str) -> str:
     return f"{base}_{suffix}" if suffix else base
 
 
-def _find_blocks(screen: Screen) -> list[RepeatedBlock]:
-    """Names indexed 0..N-1 (N >= 2) whose copies are alike; a gap or a difference stays flat."""
-    # name -> index -> (id suffixes, variable suffixes), names in first-appearance order.
+def indexed_names(screen: Screen) -> dict[str, dict[int, tuple[list[str], list[str]]]]:
+    """`<name><index>` ids and variables as name -> index -> (id suffixes, variable suffixes)."""
     copies: dict[str, dict[int, tuple[list[str], list[str]]]] = {}
 
     def add(name: str, slot: int) -> None:
@@ -179,9 +176,13 @@ def _find_blocks(screen: Screen) -> list[RepeatedBlock]:
         add(identifier.removeprefix(f"{screen.name}_"), 0)
     for variable in screen.variables:
         add(variable, 1)
+    return copies
 
+
+def _find_blocks(screen: Screen) -> list[RepeatedBlock]:
+    """Names indexed 0..N-1 (N >= 2) whose copies are alike; a gap or a difference stays flat."""
     blocks = []
-    for name, by_index in copies.items():
+    for name, by_index in indexed_names(screen).items():
         if len(by_index) < 2 or sorted(by_index) != list(range(len(by_index))):
             continue
         first_ids, first_variables = by_index[0]
@@ -196,7 +197,7 @@ def _find_blocks(screen: Screen) -> list[RepeatedBlock]:
 
 def _collect_modifiers(modifiers: dict[str, list[str]], classes: list[str]) -> None:
     for name in classes:
-        if found := MODIFIER_CLASS.match(name):
+        if (found := MODIFIER_CLASS.match(name)) and found.group(1) in CHOICE_BLOCKS:
             known = modifiers.setdefault(found.group(1), [])
             if found.group(2) not in known:
                 known.append(found.group(2))

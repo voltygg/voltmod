@@ -19,10 +19,9 @@ def test_a_screen_renders_its_layout_styles_icons_and_header(make_screen_project
         out / "images/weapons/ak47.vtex",
         root / "build/panorama/ui-lab/include/Ui/Hud.hpp",
     }
-    assert 'id="hud_slot0"' in xml and 'id="hud_slot0_button"' in xml
-    assert "{s:slot0_label}" in xml
+    assert 'id="hud_slot0"' in xml and "{s:slot0_label}" in xml
     assert 'src="s2r://panorama/images/weapons/ak47.vtex"' in xml
-    assert ".row__button" in css and "color: #e8e6e0;" in css
+    assert ".button__label" in css and "color: #e8e6e0;" in css
     assert ".icon-set--ak47 .icon-set__icon--ak47 {\n  visibility: visible;\n}" in css
     vtex = (out / "images/weapons/ak47.vtex").read_text(encoding="utf-8")
     assert vtex.startswith("<!-- dmx encoding")
@@ -33,7 +32,7 @@ HUD_BLOCKS_XML = """{% import "card.xml.j2" as cards %}
 {% import "toast.xml.j2" as toasts %}
 <root>
   <Panel id="{{screen}}" class="screen">
-    {{ cards.card("card0", icon_set="weapons", bar=true) }}
+    {{ cards.card("card0", icon_set=png_icons("weapons"), bar=true) }}
     {{ toasts.toast("toast") }}
   </Panel>
 </root>
@@ -42,7 +41,7 @@ HUD_BLOCKS_XML = """{% import "card.xml.j2" as cards %}
 HUD_BLOCKS_CSS = """{% import "bar.css.j2" as bar %}
 {% include "card.css.j2" %}
 {% include "toast.css.j2" %}
-{{ bar.fill_rules("bar", 4) }}
+{{ bar.styles(4) }}
 """
 
 
@@ -126,9 +125,9 @@ def test_plugin_templates_are_not_found_through_an_ambiguous_bare_path(make_scre
 
 def test_the_menu_block_draws_the_ids_panorama_menu_screen_writes(make_screen_project):
     root = make_screen_project(
-        xml='{% import "menu.xml.j2" as blocks %}<root>'
-        '{% call blocks.menu(2, 2, "weapons") %}<Label text="{s:brand}" />{% endcall %}'
-        "</root>",
+        xml='{% extends "screen.xml.j2" %}{% import "menu.xml.j2" as blocks %}{% block content %}'
+        '{% call blocks.menu(2, 2, png_icons("weapons")) %}<Label text="{s:brand}" />{% endcall %}'
+        "{% endblock %}",
         css='{% include "menu.css.j2" %}',
     )
     render_screens(root, ["ui-lab"])

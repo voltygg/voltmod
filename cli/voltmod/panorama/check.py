@@ -5,6 +5,7 @@ from voltmod.errors import VoltmodError
 from voltmod.panorama.layout import (
     IMAGE_SOURCE,
     Screen,
+    indexed_names,
     is_cpp_name,
     member_name,
     pascal_case,
@@ -79,7 +80,7 @@ def _check_screen(
         + _check_buttons(screen, source)
         + _check_ids(screen, name, source)
         + _check_cpp_names(screen, source)
-        + _check_stylesheet_include(screen, name, source)
+        + _check_repeated_blocks(screen, source)
         + _check_images(plugin, screen, source)
         + _check_screen_names(screen, stylesheet, source, names_by_screen)
     )
@@ -135,7 +136,7 @@ def _check_ids(screen: Screen, expected_name: str, source: Path) -> list[str]:
 def _check_cpp_names(screen: Screen, source: Path) -> list[str]:
     """Everything the header spells must be a C++ name, and no two may spell the same one."""
     problems: list[str] = []
-    taken = {"Layout": "the screen itself", "RootId": "the screen itself"}
+    taken = {"Name": "the screen itself"}
 
     def take(spelled: str, origin: str) -> None:
         if spelled in taken:
@@ -159,18 +160,19 @@ def _check_cpp_names(screen: Screen, source: Path) -> list[str]:
     for prefix in screen.modifiers:
         if not is_cpp_name(prefix):
             problems.append(f"{source}: modifier class '{prefix}--*' cannot be spelled in C++")
-        take(f"{pascal_case(prefix)}Classes", f"the {prefix}--* classes")
         take(f"{pascal_case(prefix)}Names", f"the {prefix}--* names")
     return problems
 
 
-def _check_stylesheet_include(screen: Screen, name: str, source: Path) -> list[str]:
-    expected = f"file://{{resources}}/styles/custom_game/{name}.css"
-    found = [node.get("src", "") for node in screen.tree.iter("include")]
-    if found == [expected]:
-        return []
-    got = ", ".join(found) or "none"
-    return [f"{source}: expected one style include of '{expected}', got {got}"]
+def _check_repeated_blocks(screen: Screen, source: Path) -> list[str]:
+    """Copies that skip an index or differ would silently lose their array in the header."""
+    repeated = {block.name for block in screen.blocks}
+    return [
+        f"{source}: '{name}0'..'{name}{max(copies)}' skip an index or differ between copies, "
+        f"so the header cannot make them a {pascal_case(name)}s array"
+        for name, copies in indexed_names(screen).items()
+        if len(copies) >= 2 and name not in repeated
+    ]
 
 
 def _check_images(plugin: Plugin, screen: Screen, source: Path) -> list[str]:

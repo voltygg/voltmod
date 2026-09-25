@@ -1,22 +1,8 @@
-{#- Layout, plus the show/hide rules for the classes PanoramaMenuLayout sets. Colors go in the
-    screen's own stylesheet. -#}
+{#- Layout, plus the show/hide rules for the classes PanoramaMenuLayout sets. Colors, borders,
+    radii and transitions go in the screen's own stylesheet. -#}
+{% include "screen.css.j2" %}
 {% include "button.css.j2" %}
 {% include "icons.css.j2" %}
-{% include "listrow.css.j2" %}
-
-.layer {
-  width: 100%;
-  height: 100%;
-}
-
-.screen {
-  width: 100%;
-  height: 100%;
-}
-
-.hidden {
-  visibility: collapse;
-}
 
 .menu {
   width: 920px;
@@ -100,13 +86,13 @@
 .menu__breadcrumb {
   width: 100%;
   height: 16px;
-  font-size: 12px;
+  font-size: 11px;
   text-overflow: ellipsis;
 }
 
 .menu__title {
   width: 100%;
-  font-size: 24px;
+  font-size: 26px;
   font-weight: bold;
   text-overflow: ellipsis;
 }
@@ -152,19 +138,37 @@
 }
 
 .row {
-  height: 50px;
+  width: 100%;
+  height: 48px;
   margin-bottom: 6px;
+  flow-children: right;
 }
 
 .row__button {
+  width: fill-parent-flow(1);
+  height: 100%;
+  flow-children: right;
   padding: 0px 16px 0px 18px;
 }
 
+/* Use fit-children, not 100%: a full-height column puts its text at the top instead of centering it. */
+.row__body {
+  width: fill-parent-flow(1);
+  height: fit-children;
+  flow-children: down;
+  vertical-align: center;
+}
+
 .row__label {
+  width: 100%;
   font-size: 15px;
+  text-overflow: ellipsis;
 }
 
 .row__hint {
+  width: 100%;
+  font-size: 11px;
+  text-overflow: ellipsis;
   visibility: collapse;
 }
 
@@ -173,8 +177,11 @@
 }
 
 .row__value {
+  vertical-align: center;
   margin-left: 10px;
   padding: 4px 10px;
+  font-size: 13px;
+  text-overflow: ellipsis;
   visibility: collapse;
 }
 
@@ -188,8 +195,11 @@
 }
 
 .row__chevron {
+  vertical-align: center;
   margin-left: 12px;
-  font-size: 22px;
+  margin-bottom: 3px;
+  font-size: 24px;
+  visibility: collapse;
 }
 
 .row.row--chevron .row__chevron {
@@ -199,7 +209,9 @@
 .switch {
   width: 44px;
   height: 24px;
+  vertical-align: center;
   margin-left: 12px;
+  visibility: collapse;
 }
 
 .row.row--toggle .switch {
@@ -209,6 +221,9 @@
 .switch__knob {
   width: 18px;
   height: 18px;
+  margin-left: 3px;
+  vertical-align: center;
+  transform: translateX(0px);
 }
 
 .row.row--on .switch__knob {
@@ -217,7 +232,10 @@
 
 .row__steppers {
   width: fit-children;
-  margin-right: 10px;
+  height: 100%;
+  margin-left: 6px;
+  flow-children: right;
+  visibility: collapse;
 }
 
 .row.row--steppers .row__steppers {
@@ -225,13 +243,17 @@
 }
 
 .row__stepper {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 100%;
   margin-left: 4px;
   vertical-align: center;
+  font-size: 11px;
 }
 
+/* A Label inside a Button sits in the top-left corner unless you align it. */
 .row__stepper-glyph {
+  horizontal-align: center;
+  vertical-align: center;
   font-size: 10px;
 }
 
@@ -269,7 +291,7 @@
 }
 
 .button {
-  width: 150px;
+  width: 140px;
   height: 40px;
 }
 

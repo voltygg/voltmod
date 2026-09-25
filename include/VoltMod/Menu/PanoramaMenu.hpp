@@ -8,9 +8,9 @@
 #include <VoltMod/Core/Time/Scheduler.hpp>
 #include <VoltMod/Hooks/ChatInput.hpp>
 #include <VoltMod/Menu/MenuFreeze.hpp>
-#include <VoltMod/Menu/MenuLayout.hpp>
 #include <VoltMod/Menu/MenuModel.hpp>
 #include <VoltMod/Menu/MenuStack.hpp>
+#include <VoltMod/Menu/PanoramaMenuLayout.hpp>
 #include <VoltMod/Players/Policy.hpp>
 #include <VoltMod/Ui/ButtonPress.hpp>
 #include <VoltMod/Ui/ScreenManager.hpp>
@@ -26,7 +26,7 @@ namespace VoltMod
 {
 
 /**
- * @brief Run menu sessions on a plugin's Panorama @ref MenuLayout.
+ * @brief Run menu sessions on a plugin's @ref PanoramaMenuLayout.
  *
  * Uses the same @ref MenuStack behavior as @ref CenterHtmlMenu. Root submenus become sidebar tabs.
  * Pass the menu to `runtime.Menus.Prefer` when Panorama should be the preferred surface.
@@ -49,7 +49,7 @@ public:
 
     /** @p layout must outlive this. @p addonId identifies the workshop addon required by clients;
      *  zero means the layout is already compiled into the client. */
-    PanoramaMenu(const Services& services, MenuLayout& layout, uint64_t addonId);
+    PanoramaMenu(const Services& services, PanoramaMenuLayout& layout, uint64_t addonId);
 
     /** Whether @p slot can see the layout and has downloaded its required addon. */
     bool CanShow(int slot) const;
@@ -98,7 +98,7 @@ private:
     void Hide(int slot);
 
     Services _services;
-    MenuLayout& _layout;
+    PanoramaMenuLayout& _layout;
     Subscription _addon;
     MenuStack _stack;
     PerSlot<Session> _sessions;

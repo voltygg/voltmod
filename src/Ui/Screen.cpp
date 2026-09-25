@@ -48,13 +48,13 @@ void Screen::SetHidden(int slot, std::string_view elementId, bool hidden)
     SetClass(slot, elementId, "hidden", hidden);
 }
 
-void Screen::ShowIcon(int slot, std::string_view elementId, std::span<const std::string_view> names,
-                      std::string_view name)
+void Screen::SetModifier(int slot, std::string_view elementId, std::string_view block,
+                         std::span<const std::string_view> names, std::string_view name)
 {
     std::string className;
     for (std::string_view each : names)
     {
-        className.assign("icon-set--").append(each);
+        className.assign(block).append("--").append(each);
         SetClass(slot, elementId, className, each == name);
     }
 }

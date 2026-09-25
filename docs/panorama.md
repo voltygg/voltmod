@@ -15,48 +15,42 @@ framework owns no screens; it ships `panorama/blocks/`, the macro library a scre
 the Jinja loader.
 
 ```text
-{# namespace: ArenaLayout #}
+{% extends "screen.xml.j2" %}
 {% import "button.xml.j2" as controls %}
 {% import "icons.xml.j2" as icons %}
-{% import "listrow.xml.j2" as list %}
-<root>
-  <styles>
-    <include src="file://{resources}/styles/custom_game/{{screen}}.css" />
-  </styles>
-  <Panel class="layer" hittest="false">
-    <Panel id="{{screen}}" class="screen hidden" hittest="false">
-      {{ icons.icons("icon", "weapons") }}
+{% block content %}
+      {{ icons.icons("icon", png_icons("weapons")) }}
       {%- for index in range(3) %}
-      {{ list.listrow("row" ~ index, hint=true, chevron=true) }}
+      <Button id="{{screen}}_row{{index}}" class="row">
+        <Label class="row__label" text="{s:row{{index}}_label}" hittest="false" />
+      </Button>
       {%- endfor %}
       {{ controls.button("close", "{s:close}") }}
-    </Panel>
-  </Panel>
-</root>
+{% endblock %}
 ```
 
 ```css
 {% import "icons.css.j2" as icons %}
-.screen {
-  width: 420px;
-  flow-children: down;
-}
-
-.screen.hidden {
-  visibility: collapse;
-}
-
-{% include "listrow.css.j2" %}
+{% include "screen.css.j2" %}
 {% include "button.css.j2" %}
 
-{{ icons.show_rules("weapons") }}
+.row {
+  width: 420px;
+  height: 40px;
+}
+
+{{ icons.show_rules(png_icons("weapons")) }}
 ```
 
-The template context is `screen` (the file's own name) and `images` (every icon set the owner
-ships). Block macros come in with `{% import %}`; their default CSS comes in with `{% include %}`,
-once, in the screen's own stylesheet. `{# namespace: X #}` as the template's first line names the
-header's C++ namespace; without it the namespace is `Screens::<Pascal>` (`hud.xml.j2` gives
-`Screens::Hud`).
+Every screen extends `screen.xml.j2`, which includes the stylesheet and makes the root panel with
+the screen name as its id. The root starts `hidden`; `{% set starts_hidden = false %}` shows it at
+once, and `{% set hittest = false %}` lets clicks through it. Every stylesheet includes
+`screen.css.j2`, which sizes the root and defines `hidden`.
+
+The template context is `screen` (the file's own name) plus the icon helpers under
+[Images and icon sets](#panorama_guide_images). Block macros come in with `{% import %}`; their
+default CSS comes in with `{% include %}`, once, in the screen's own stylesheet. The header's C++
+namespace is `<Pascal>Layout` (`stronghold_hud.xml.j2` gives `StrongholdHudLayout`).
 
 Templates several plugins share go in one plugin's `panorama/templates/`, under a folder named for
 the kit (`templates/brand/...`). Import one through its explicit `@<plugin>/` namespace:
@@ -96,8 +90,6 @@ The client validates markup and reports failures only in the client console, so
   press is lost. Make them siblings and size them side by side.
 - Every id is unique and starts with `<screen>_`, except the outermost one, which is the screen
   name itself.
-- The stylesheet is included by its **source** name under `{resources}`, not the compiled
-  `.vcss_c` name.
 - An `<Image src>` is either a game icon or a real PNG under `images/<set>/`.
 
 For reliable clicks, every panel on the path to a `Button` needs a resolved size (`width: 100%`, a
@@ -137,7 +129,8 @@ voltmod panorama compile [PLUGIN...]      # render, run resourcecompiler, instal
 Omit `PLUGIN` and every plugin that ships a screen renders. Nothing rendered is
 committed - a checkout renders before it builds, and CI never needs the CS2 Workshop Tools. `check`
 writes nothing and belongs in a consumer repo's lint task; it also refuses two owners writing the
-same resource path, a screen whose names cannot be spelled in C++, and too many interned names.
+same resource path, a screen whose names cannot be spelled in C++, indexed names that skip an
+index or differ between copies, and too many interned names.
 
 `compile` renders first, then compiles with `resourcecompiler.exe` and installs into your own
 client. It runs on Windows only.
@@ -175,37 +168,36 @@ per name a plugin has to spell.
 
 | In the screen | In the header |
 | --- | --- |
-| the outermost id | `Layout` and `RootId` |
+| the outermost id | `Name`, the layout name `ScreenManager` takes |
 | every other `id="..."` | a `std::string_view` named by what follows the screen prefix - `lab_close` becomes `Close` |
 | `text="{s:var}"` | a `std::string_view` named `<Var>Var` |
-| a block the template repeats - ids `<screen>_<stem><N>[_<suffix>]` and variables `<stem><N>[_<suffix>]` for N = 0..K-1 (K >= 2), alike in every copy | `struct <Stem>` with one `std::string_view` per member (`Id`, `<Suffix>`, `<Suffix>Var`, or `Var` for a bare variable) and `std::array<<Stem>, K> <Stem>s`; those names get no flat constant |
-| a `block--modifier` class, in the layout or the stylesheet | a `BlockClasses` array, and a `BlockNames` array of the modifiers alone in the same order; `icon-set__icon--awp` belongs to `IconSetIcon` |
+| a block the template repeats - ids `<screen>_<stem><N>[_<suffix>]` and variables `<stem><N>[_<suffix>]` for N = 0..K-1 (K >= 2), alike in every copy | `struct <Stem>` with one `std::string_view` per member (`Id`, `<Suffix>`, `<Suffix>Var`, or `Var` for a bare variable) and `std::array<<Stem>, K> <Stem>s`; those names get no flat constant. `check` refuses copies that skip an index or differ |
+| an `icon-set--<name>` or `bar--<step>` class, in the layout or the stylesheet | `IconSetNames` or `BarNames`, the modifiers in the order they first appear, for `Screen::SetModifier` |
 
-A family is found by a plain scan for `.block--modifier`, layout order first and then stylesheet
-order. The stylesheet half matters: a family only selectors use is declared nowhere in the layout.
+Other modifiers, such as `row--on`, get no constant; a driver writes them as literals.
 
 `tests/Ui/Fixtures/Lab.hpp` is a real header, checked in and regenerated by
 `cli/tests/test_panorama_layout.py` so the two never drift. It comes from a screen shaped like the
 example above, with two rows:
 
 ```cpp
-inline constexpr std::string_view RootId = "lab";
+inline constexpr std::string_view Name = "lab";
 inline constexpr std::string_view Close = "lab_close";
 inline constexpr std::string_view CloseVar = "close";
 
 struct Row { std::string_view Id, Button, Decrease, Increase, LabelVar, HintVar, ValueVar; };
 inline constexpr std::array<Row, 2> Rows{ Row{"lab_row0", "lab_row0_button", ...}, Row{"lab_row1", ...} };
 
-inline constexpr std::array<std::string_view, 2> IconSetClasses{"icon-set--ak47", "icon-set--awp"};
 inline constexpr std::array<std::string_view, 2> IconSetNames{"ak47", "awp"};
 ```
 
 Writing one row of it:
 
 ```cpp
-const LabUi::Row& row = LabUi::Rows[index];
+const LabLayout::Row& row = LabLayout::Rows[index];
 screen.SetHidden(slot, row.Id, false);
 screen.SetText(slot, row.LabelVar, "Kick");
+screen.SetModifier(slot, LabLayout::Icon, "icon-set", LabLayout::IconSetNames, "awp");
 ```
 
 ## Block library
@@ -216,15 +208,14 @@ default CSS with `{% include "<name>.css.j2" %}`.
 | Block | Signature | Draws |
 | --- | --- | --- |
 | `card` | `card(id, icon_set=none, bar=false)` | a HUD row: an optional icon set, two lines of text, a value, an optional bar along the bottom; starts `hidden`, and the icon takes room only while `card--icon` is on the card |
-| `bar` | `bar(id)` | a meter; pair with `bar.css.j2`'s `fill_rules(cls, steps)` for the `bar--step-0`..`bar--step-<steps>` width rules; `hidden` on the bar takes it away |
+| `bar` | `bar(id)` | a meter; pair with `bar.css.j2`'s `styles(steps)`, which adds the `bar--step-0`..`bar--step-<steps>` width rules; `hidden` on the bar takes it away |
 | `toast` | `toast(id)` | a notice that starts `hidden` and fades in when that class comes off |
-| `icons` | `icons(id, set, keep_shape=false)` | one `<Image>` per PNG in the icon set, or per `(name, icon)` pair of client icons, stacked; pair with `icons.css.j2`'s `show_rules(set)` so an `icon-set--<name>` class on the set uncollapses its own image. Icons fill the set's box; `keep_shape` adds `keep-shape`, which sizes each icon from its height so an icon that is not square keeps its shape |
+| `icons` | `icons(id, set, keep_shape=false)` | one `<Image>` per `(name, src)` pair in `set`, stacked; pair with `icons.css.j2`'s `show_rules(set)` so an `icon-set--<name>` class on the set uncollapses its own image. Icons fill the set's box; `keep_shape` adds `keep-shape`, which sizes each icon from its height so an icon that is not square keeps its shape |
 | `button` | `button(id, text, variant="")` | a labelled Button; `variant` adds a `button--<variant>` modifier |
 | `dialog` | `dialog(id)`, called not imported | a centred panel with a breadcrumb/title/subtitle header and a body slot |
-| `listrow` | `listrow(id, switch=false, hint=false, value=true, steppers=false, chevron=false)` | one row of a list: two lines of text, a value, a collapsed switch and chevron the screen shows per row class, and steppers; its ids end `_button`, `_decrease` and `_increase` |
 | `tabs` | `tabs(id, count)` | a strip of hidden-by-default tabs, each reading `{s:<id><i>}` |
 | `pager` | `pager(id)` | previous (`_previous`), a `{s:<id>}` label, next (`_next`) |
-| `menu` | `menu(tabs, rows, icons)`, used with `{% call %}` | a whole menu screen, root panel included: sidebar tabs, header, rows, prompt, Back and a pager; the call body is the sidebar brand, and `<root>` holds only the styles and this call. @ref VoltMod::PanoramaMenuLayout draws it |
+| `menu` | `menu(tabs, rows, icons, home="")`, used with `{% call %}` | a whole menu: sidebar tabs, header, rows with their switch, chevron and steppers, prompt, Back and a pager; the call body is the sidebar brand, and the screen's `content` holds only this call. Include `menu.css.j2` for its layout. @ref VoltMod::PanoramaMenuLayout draws it |
 
 `dialog` takes its body through `{% call %}` rather than an argument:
 
@@ -240,7 +231,7 @@ screen that includes it, which is what lets two screens share a row and still lo
 Class names are BEM in kebab-case: a block (`row`), its elements (`row__label`) and its modifiers
 (`row--disabled`, `button--primary`). A driver writes modifiers too, on the block it knows:
 `tab--selected`, `row--on`, `screen--home`. The one class outside a block is `hidden`, which
-`Screen::SetHidden` puts on any element. Ids and dialog variables stay snake_case, since the
+`Screen::SetHidden` puts on any element and `screen.css.j2` defines once. Ids and dialog variables stay snake_case, since the
 header spells them as C++ names.
 
 ## Images and icon sets {#panorama_guide_images}
@@ -248,14 +239,15 @@ header spells them as C++ names.
 Drop PNGs in an owner's `panorama/images/<set>/`, referenced as
 `s2r://panorama/images/<set>/<name>.vtex`. Name a set for its owner (`stronghold`, not
 `icons`): a set shares the client's `panorama/images/` with the game's own folders, and one of the
-same name replaces them. Every set becomes an entry in the `images` context (`images.weapons`,
-sorted file stems), so `{% for name in images[set] %}` in a block can draw one `<Image>` per icon. Rendering copies each PNG into the build tree and writes a
-matching `.vtex` descriptor beside it - `resourcecompiler` compiles the descriptor, never the PNG.
+same name replaces them. `png_icons("weapons")` gives the set as `(name, src)` pairs, one per PNG
+in file-name order, which is what the `icons` block and `show_rules` take. Rendering copies each PNG
+into the build tree and writes a matching `.vtex` descriptor beside it - `resourcecompiler` compiles
+the descriptor, never the PNG.
 
-The client's own icons need no files. Point an `<Image>` at
-`s2r://panorama/images/icons/ui/<name>.vsvg` (`settings`, `player`, `message`, ...) and tint it with
-`wash-color`, sizing them in CSS. The `icons` block does both when `set` is a list of
-`(name, icon)` pairs.
+The client's own icons need no files. `game_icons([("gear", "settings"), ...])` gives the same pairs
+pointing at `s2r://panorama/images/icons/ui/<icon>.vsvg` (`settings`, `player`, `message`, ...);
+`game_icons(pairs, "equipment")` reads `icons/equipment/` instead. Tint them with `wash-color`
+and size them in CSS.
 
 ## The name budget {#panorama_guide_budget}
 

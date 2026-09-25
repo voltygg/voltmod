@@ -9,42 +9,36 @@ from voltmod.panorama.sources import panorama_plugins
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-LAB_XML = """{# namespace: LabUi #}
+LAB_XML = """{% extends "screen.xml.j2" %}
 {% import "button.xml.j2" as controls %}
 {% import "icons.xml.j2" as icons %}
-{% import "listrow.xml.j2" as list %}
-<root>
-  <Panel class="layer" hittest="false">
-    <Panel id="{{screen}}" class="screen hidden" hittest="false">
-      {{ icons.icons("icon", "weapons") }}
+{% block content %}
+      {{ icons.icons("icon", png_icons("weapons")) }}
       {%- for index in range(2) %}
-      {{ list.listrow("row" ~ index, switch=true, hint=true, steppers=true, chevron=true) }}
+      <Panel id="{{screen}}_row{{index}}" class="row hidden" hittest="true">
+        <Button id="{{screen}}_row{{index}}_button" class="row__button">
+          <Label class="row__label" text="{s:row{{index}}_label}" hittest="false" />
+          <Label class="row__hint" text="{s:row{{index}}_hint}" hittest="false" />
+          <Label class="row__value" text="{s:row{{index}}_value}" hittest="false" />
+        </Button>
+        <Button id="{{screen}}_row{{index}}_decrease" class="row__stepper" />
+        <Button id="{{screen}}_row{{index}}_increase" class="row__stepper" />
+      </Panel>
       {%- endfor %}
       {{ controls.button("close", "{s:close}") }}
-    </Panel>
-  </Panel>
-</root>
+{% endblock %}
 """
 
 LAB_CSS = """{% import "icons.css.j2" as icons %}
-.screen {
-  width: 420px;
-  flow-children: down;
-}
-
-.screen.hidden {
-  visibility: collapse;
-}
-
-{% include "listrow.css.j2" %}
+{% include "screen.css.j2" %}
 {% include "button.css.j2" %}
 
-{{ icons.show_rules("weapons") }}
+{{ icons.show_rules(png_icons("weapons")) }}
 """
 
 
-def header_for(xml: str, css: str = "", template_source: str = "") -> str:
-    return screen_header(read_screen(xml, css), template_source)
+def header_for(xml: str, css: str = "") -> str:
+    return screen_header(read_screen(xml, css))
 
 
 def test_the_checked_in_fixture_header_is_what_rendering_writes(make_screen_project):
@@ -56,7 +50,7 @@ def test_the_checked_in_fixture_header_is_what_rendering_writes(make_screen_proj
     lab = panorama_plugins(root, ["ui-lab"])[0]
     layout, stylesheet = ScreenRenderer(lab, panorama_plugins(root)).render("lab")
 
-    header = header_for(layout, stylesheet, LAB_XML)
+    header = header_for(layout, stylesheet)
     fixture = REPO_ROOT / "tests/Ui/Fixtures/Lab.hpp"
     if os.environ.get("VOLTMOD_REFRESH_FIXTURES"):
         fixture.write_text(header, encoding="utf-8", newline="\n")
@@ -73,14 +67,14 @@ def test_a_variable_named_twice_is_emitted_once():
 
 def test_modifiers_keep_the_order_they_were_declared_in():
     header = header_for(
-        '<root><Panel id="s" /></root>', ".accent--zulu { a: 1; }\n.accent--alpha { a: 1; }\n"
+        '<root><Panel id="s" /></root>', ".icon-set--zulu { a: 1; }\n.icon-set--alpha { a: 1; }\n"
     )
-    assert header.index('"accent--zulu"') < header.index('"accent--alpha"')
+    assert header.index('"zulu"') < header.index('"alpha"')
 
 
 def test_a_decimal_in_a_declaration_is_not_read_as_a_modifier():
     header = header_for('<root><Panel id="s" /></root>', ".bar { width: 33.3--4%; }\n")
-    assert "Classes" not in header
+    assert "BarNames" not in header
 
 
 def test_a_define_is_not_read_as_part_of_the_next_selector():
@@ -88,9 +82,9 @@ def test_a_define_is_not_read_as_part_of_the_next_selector():
     assert selector_classes(stylesheet) == ["row"]
 
 
-def test_without_a_directive_the_namespace_comes_from_the_screen():
+def test_the_namespace_comes_from_the_screen():
     header = header_for('<root><Panel id="voltmod_menu" /></root>')
-    assert "namespace Screens::VoltmodMenu" in header
+    assert "namespace VoltmodMenuLayout" in header
 
 
 def test_a_bare_indexed_variable_becomes_var():

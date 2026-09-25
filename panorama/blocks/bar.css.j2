@@ -1,23 +1,18 @@
+{#- A bar's layout plus one width rule per step, from `bar--step-0` (empty) to `bar--step-<steps>`
+    (full). Each screen picks its own number of steps. -#}
+{% macro styles(steps) %}
 .bar {
   width: 120px;
   height: 6px;
   background-color: rgba(255, 255, 255, 0.05);
 }
 
-.bar.hidden {
-  visibility: collapse;
-}
-
 .bar__fill {
   height: 100%;
   background-color: #c8a24a;
 }
-
-{#- Each bar can have its own number of steps, so the width rules are generated per bar.
-    `cls` is the bar's class name. -#}
-{% macro fill_rules(cls, steps) %}
 {% for step in range(steps + 1) %}
-.{{cls}}.bar--step-{{step}} .bar__fill {
+.bar.bar--step-{{step}} .bar__fill {
   width: {{ (step * 100 / steps) | round(1) }}%;
 }
 {% endfor %}

@@ -1,4 +1,4 @@
-{% macro string_list(values, prefix="") %}{{ "{" }}{% for value in values %}"{{ prefix }}{{ value }}"{{ ", " if not loop.last else "" }}{% endfor %}{{ "}" }}{% endmacro %}
+{% macro string_list(values) %}{{ "{" }}{% for value in values %}"{{ value }}"{{ ", " if not loop.last else "" }}{% endfor %}{{ "}" }}{% endmacro %}
 #pragma once
 
 #include <array>
@@ -7,8 +7,8 @@
 namespace {{ namespace }}
 {
 
-inline constexpr std::string_view Layout = "{{ screen.name }}";
-inline constexpr std::string_view RootId = "{{ screen.name }}";
+// The layout name, which is also the root panel's id.
+inline constexpr std::string_view Name = "{{ screen.name }}";
 
 {% if screen.flat_ids %}
 // Panel ids.
@@ -42,7 +42,6 @@ inline constexpr std::array<{{ block.struct_name }}, {{ block.count }}> {{ block
 {% endfor %}
 {% endif %}
 {% for prefix, modifiers in screen.modifiers.items() %}
-inline constexpr std::array<std::string_view, {{ modifiers | length }}> {{ pascal_case(prefix) }}Classes{{ string_list(modifiers, prefix ~ "--") }};
 inline constexpr std::array<std::string_view, {{ modifiers | length }}> {{ pascal_case(prefix) }}Names{{ string_list(modifiers) }};
 
 {% endfor %}

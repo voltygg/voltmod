@@ -1,6 +1,5 @@
 #pragma once
 
-#include <VoltMod/Menu/MenuLayout.hpp>
 #include <VoltMod/Menu/MenuModel.hpp>
 #include <VoltMod/Ui/PlayerScreens.hpp>
 #include <VoltMod/Ui/ScreenManager.hpp>
@@ -15,37 +14,85 @@
 namespace VoltMod
 {
 
+/** What a pressed button on the menu stands for. */
+enum class MenuButtonKind
+{
+    Cancel,
+    Back,
+    Close,
+    PreviousPage,
+    NextPage,
+    Tab,
+    Row,
+    StepDown,
+    StepUp,
+};
+
+struct MenuButton
+{
+    MenuButtonKind Kind;
+    /** The tab or row index, for the kinds that have one. */
+    int Index = 0;
+};
+
+/** The text above the rows. An empty subtitle hides its line. */
+struct MenuHeader
+{
+    std::string_view Brand;
+    std::string_view BrandSubtitle;
+    std::string_view Breadcrumb;
+    std::string_view Title;
+    std::string_view Subtitle;
+};
+
+/** One sidebar tab as drawn. */
+struct MenuTab
+{
+    std::string_view Label;
+    std::string_view Icon;
+    bool Selected = false;
+};
+
 /**
- * @brief The @ref MenuLayout for a screen built from the `menu` Panorama block.
+ * @brief The screen built from the `menu` Panorama block, as @ref PanoramaMenu draws on it.
  *
- * @p screen is the layout name; @p tabs, @p rows and @p iconNames come from its generated header
- * (`Tabs.size()`, `Rows.size()`, `IconSetNames`). Each player gets their own screen, so the menu
- * survives death and spectating. @p screens and @p iconNames must outlive this; the generated
- * header's array does.
+ * Knows element ids and classes and nothing about menus; every call names the player it draws
+ * for. A null tab or row hides it, and so does empty text for the empty-list line, the pager and
+ * the prompt. @p screen is the layout name; @p tabs, @p rows and @p iconNames come from its
+ * generated header (`Tabs.size()`, `Rows.size()`, `IconSetNames`). Each player gets their own
+ * screen, so the menu survives death and spectating. @p screens and @p iconNames must outlive
+ * this; the generated header's array does.
  */
-class PanoramaMenuLayout final : public MenuLayout
+class PanoramaMenuLayout
 {
 public:
     PanoramaMenuLayout(ScreenManager& screens, std::string_view screen, std::size_t tabs, std::size_t rows,
                        std::span<const std::string_view> iconNames);
 
-    int RowCount() const override { return static_cast<int>(_rows.size()); }
-    int TabCount() const override { return static_cast<int>(_tabs.size()); }
+    /** Rows on one page. */
+    int RowCount() const { return static_cast<int>(_rows.size()); }
 
-    bool Show(int slot) override;
-    void Hide(int slot) override;
+    /** Sidebar tabs, filled from the root menu's submenus. */
+    int TabCount() const { return static_cast<int>(_tabs.size()); }
 
-    void SetHeader(int slot, const MenuHeader& header) override;
-    void SetSidebarVisible(int slot, bool visible) override;
-    void SetHomeVisible(int slot, bool visible) override;
-    void SetTab(int slot, int index, const MenuTab* tab) override;
-    void SetRow(int slot, int index, const MenuRow* row, std::string_view pendingHint) override;
-    void SetEmpty(int slot, std::string_view text) override;
-    void SetPager(int slot, std::string_view text) override;
-    void SetPrompt(int slot, std::string_view text, std::string_view hint) override;
-    void SetFooter(int slot, std::string_view back, std::string_view cancel) override;
+    /** Spawn if needed, unhide, and give the cursor. False when @p slot cannot be drawn to. */
+    bool Show(int slot);
+    void Hide(int slot);
 
-    std::optional<MenuButton> ButtonFor(std::string_view id) const override;
+    void SetHeader(int slot, const MenuHeader& header);
+    void SetSidebarVisible(int slot, bool visible);
+    /** Show the home markup in the rows' place. A screen without any does nothing. */
+    void SetHomeVisible(int slot, bool visible);
+    void SetTab(int slot, int index, const MenuTab* tab);
+    void SetRow(int slot, int index, const MenuRow* row, std::string_view pendingHint);
+    void SetEmpty(int slot, std::string_view text);
+    void SetPager(int slot, std::string_view text);
+    void SetPrompt(int slot, std::string_view text, std::string_view hint);
+    /** An empty @p back hides the back button: the root has nothing to go back to. */
+    void SetFooter(int slot, std::string_view back, std::string_view cancel);
+
+    /** The button a pressed id names, or nothing for an id outside this screen. */
+    std::optional<MenuButton> ButtonFor(std::string_view id) const;
 
     /** Fills `{s:<variable>}` in markup the screen adds itself, such as its `home` panel. Written
      *  with every header, so it outlives a respawned screen. */

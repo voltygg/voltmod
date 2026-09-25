@@ -1,16 +1,11 @@
-{#- A stack of icons where only one is visible at a time. `set` is either a PNG folder under
-    images/ or a list of `(name, icon)` pairs for built-in CS2 icons. Pass `keep_shape=true` for
-    icons that aren't square, so they keep their proportions instead of stretching. -#}
+{#- A stack of icons where only one is visible at a time. `set` is a list of `(name, src)` pairs:
+    `png_icons("<folder>")` for the PNGs under images/<folder>, or
+    `game_icons([(name, icon), ...])` for built-in CS2 icons. Pass `keep_shape=true` for icons that
+    aren't square, so they keep their proportions instead of stretching. -#}
 {% macro icons(id, set, keep_shape=false) -%}
 <Panel id="{{screen}}_{{id}}" class="icon-set{{ ' keep-shape' if keep_shape }}" hittest="false">
-  {%- if set is string %}
-  {%- for name in images[set] %}
-  <Image class="icon-set__icon icon-set__icon--{{name}}" src="s2r://panorama/images/{{set}}/{{name}}.vtex" hittest="false" />
+  {%- for name, src in set %}
+  <Image class="icon-set__icon icon-set__icon--{{name}}" src="{{src}}" hittest="false" />
   {%- endfor %}
-  {%- else %}
-  {%- for name, icon in set %}
-  <Image class="icon-set__icon icon-set__icon--{{name}}" src="s2r://panorama/images/icons/ui/{{icon}}.vsvg" hittest="false" />
-  {%- endfor %}
-  {%- endif %}
 </Panel>
 {%- endmacro %}

@@ -110,7 +110,7 @@ void PanoramaMenuLayout::SetTab(int slot, int index, const MenuTab* tab)
     screen.SetText(slot, ids.LabelVar, tab->Label);
     screen.SetClass(slot, ids.Id, "tab--selected", tab->Selected);
 
-    screen.ShowIcon(slot, ids.Icon, _iconNames, tab->Icon);
+    screen.SetModifier(slot, ids.Icon, "icon-set", _iconNames, tab->Icon);
 }
 
 void PanoramaMenuLayout::SetRow(int slot, int index, const MenuRow* row, std::string_view pendingHint)

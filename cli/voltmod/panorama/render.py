@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 from jinja2 import (
@@ -7,6 +8,7 @@ from jinja2 import (
     PrefixLoader,
     StrictUndefined,
     TemplateError,
+    TemplateRuntimeError,
 )
 
 from voltmod.bundled import BUNDLED_DIR, load_template
@@ -20,6 +22,7 @@ from voltmod.panorama.layout import (
     read_screen,
 )
 from voltmod.panorama.sources import (
+    BUILD_DIR,
     IMAGES_DIR,
     LAYOUT_SUFFIX,
     SCREENS_DIR,
@@ -47,14 +50,16 @@ def render_screens(
     all_plugins = panorama_plugins(root)
     for plugin in panorama_plugins(root, names):
         written += ScreenRenderer(plugin, all_plugins).write(root, out)
+    if out is None:
+        written += _remove_old_plugins(root / BUILD_DIR, all_plugins)
     return written
 
 
-def screen_header(screen: Screen, template_source: str) -> str:
-    """The C++ header naming `screen`'s panels, variables, blocks and modifier classes."""
+def screen_header(screen: Screen) -> str:
+    """The C++ header naming `screen`'s panels, variables, blocks and choice modifiers."""
     return load_template("panorama/screen.hpp.j2").render(
         screen=screen,
-        namespace=header_namespace(screen, template_source),
+        namespace=header_namespace(screen),
         member_name=member_name,
         pascal_case=pascal_case,
     )
@@ -72,6 +77,19 @@ def _remove_stale(trees: list[Path], keep: set[Path]) -> list[Path]:
     for path in stale:
         path.unlink()
     return stale
+
+
+def _remove_old_plugins(build: Path, plugins: list[Plugin]) -> list[Path]:
+    """Delete what a plugin that no longer ships screens left under `build`."""
+    if not build.is_dir():
+        return []
+    names = {plugin.name for plugin in plugins}
+    removed: list[Path] = []
+    for directory in build.iterdir():
+        if directory.is_dir() and directory.name not in names:
+            removed += [path for path in directory.rglob("*") if path.is_file()]
+            shutil.rmtree(directory)
+    return removed
 
 
 def _template_loader(plugin: Plugin, plugins: list[Plugin]) -> ChoiceLoader:
@@ -106,7 +124,8 @@ class ScreenRenderer:
             autoescape=False,
         )
         # Globals, because a block reached through `{% import %}` cannot see the caller's variables.
-        self.environment.globals["images"] = self.icons
+        self.environment.globals["png_icons"] = self._png_icons
+        self.environment.globals["game_icons"] = _game_icons
 
     def render(self, name: str) -> tuple[str, str]:
         self.environment.globals["screen"] = name
@@ -126,8 +145,7 @@ class ScreenRenderer:
             layout, stylesheet = self.render(name)
             files[target / "layout/custom_game" / f"{name}.xml"] = layout
             files[target / "styles/custom_game" / f"{name}.css"] = stylesheet
-            screen = read_screen(layout, stylesheet, source)
-            header = screen_header(screen, source.read_text(encoding="utf-8-sig"))
+            header = screen_header(read_screen(layout, stylesheet, source))
             files[headers / f"{pascal_case(name)}.hpp"] = header
         files.update(self._icon_files(target))
 
@@ -142,6 +160,15 @@ class ScreenRenderer:
                 f"{self.plugin.panorama_dir / SCREENS_DIR / template}: {error}"
             ) from None
 
+    def _png_icons(self, icon_set: str) -> list[tuple[str, str]]:
+        """An icon set's `(name, src)` pairs, one per PNG under images/<icon_set>/."""
+        if icon_set not in self.icons:
+            raise TemplateRuntimeError(f"no PNGs under {IMAGES_DIR}/{icon_set}/")
+        return [
+            (name, f"s2r://panorama/{IMAGES_DIR}/{icon_set}/{name}.vtex")
+            for name in self.icons[icon_set]
+        ]
+
     def _icon_files(self, target: Path) -> dict[Path, str | bytes]:
         # resourcecompiler compiles the .vtex descriptor, which names the PNG beside it.
         descriptor = load_template("panorama/icon.vtex.j2")
@@ -153,3 +180,8 @@ class ScreenRenderer:
                 files[png] = icon_path(self.plugin, icon_set, name).read_bytes()
                 files[png.with_suffix(".vtex")] = descriptor.render(source=source)
         return files
+
+
+def _game_icons(pairs: list[tuple[str, str]], folder: str = "ui") -> list[tuple[str, str]]:
+    """`(name, icon)` pairs of built-in CS2 icons as `(name, src)`; `folder` is under icons/."""
+    return [(name, f"s2r://panorama/images/icons/{folder}/{icon}.vsvg") for name, icon in pairs]

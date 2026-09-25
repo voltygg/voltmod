@@ -47,8 +47,15 @@ RULES = [
     (screen("").replace('id="{{screen}}"', 'id="other"'), "does not match source name 'hud'"),
     (screen('<Panel id="other" />'), "does not start with"),
     (
-        SCREEN.replace("{{screen}}.css", "wrong.css").replace("BODY", ""),
-        "expected one style include",
+        screen('<Panel id="{{screen}}_row0" />\n<Panel id="{{screen}}_row2" />'),
+        "skip an index or differ",
+    ),
+    (
+        screen(
+            '<Panel id="{{screen}}_row0"><Panel id="{{screen}}_row0_accent" /></Panel>\n'
+            '<Panel id="{{screen}}_row1" />'
+        ),
+        "skip an index or differ",
     ),
     (
         screen('<Image src="s2r://panorama/images/weapons/missing.vtex" />'),

@@ -10,9 +10,10 @@
   horizontal-align: center;
 }
 
-{#- Adding `icon-set--<name>` to the set shows the icon with that name. -#}
+{#- Adding `icon-set--<name>` to the set shows the icon with that name. `set` is the same list
+    the `icons` macro takes. -#}
 {% macro show_rules(set) %}
-{% for name in (images[set] if set is string else set | map("first")) %}
+{% for name, _ in set %}
 .icon-set--{{name}} .icon-set__icon--{{name}} {
   visibility: visible;
 }
